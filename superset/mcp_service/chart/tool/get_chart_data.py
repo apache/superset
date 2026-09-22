@@ -111,6 +111,7 @@ _VIZ_CATEGORY: dict[str, str] = {
     "area": "area",
     "scatter": "scatter",
     "bubble": "bubble",
+    "bubble_v2": "bubble",
     "treemap_v2": "treemap",
     "sunburst_v2": "treemap",
     "heatmap_v2": "heatmap",
@@ -668,7 +669,7 @@ async def execute_chart_data(  # noqa: C901
                     chart=chart_facts,
                     extra_form_data=request.extra_form_data,
                     row_limit=row_limit,
-                    order_desc=True,
+                    order_desc=form_data.get("order_desc", True),
                 )
 
                 # Safety net: if we could not extract any metrics or

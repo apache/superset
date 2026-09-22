@@ -17,7 +17,9 @@
 
 import io
 import shutil
+import struct
 import subprocess
+import zlib
 from unittest.mock import MagicMock, patch
 from uuid import UUID
 
@@ -26,6 +28,7 @@ from PIL import Image, ImageDraw, ImageFont, UnidentifiedImageError
 
 from superset.utils import json
 from superset.utils.report_execution import (
+    ReportArtifactKind,
     ReportExecutionContext,
     ReportExecutionDeadline,
 )
@@ -33,6 +36,8 @@ from superset.utils.screenshot_utils import (
     _stable_readiness_js,
     combine_screenshot_tiles,
     CONTENTFUL_CHART_HOLDERS_IN_CLIP_JS,
+    FIND_ALL_CHART_HOLDER_STATES_JS,
+    FIND_CHART_HOLDER_STATES_JS,
     get_screenshot_blankness_metrics,
     is_screenshot_nearly_uniform,
     REPORT_CAPTURE_READINESS_STABILITY_MS,
@@ -45,6 +50,7 @@ from superset.utils.screenshot_utils import (
     take_tiled_screenshot,
     TILED_SCREENSHOT_TOTAL_WAIT_BUDGET_SECONDS,
     TiledScreenshotBudgetExceededError,
+    validate_report_screenshot,
     wait_for_stable_readiness,
 )
 
@@ -88,6 +94,46 @@ def test_stable_readiness_skips_when_budget_below_polling_margin() -> None:
 
     assert waited is False
     page.wait_for_function.assert_not_called()
+
+
+def test_holder_diagnostics_include_offscreen_errors_for_full_capture() -> None:
+    """Full scans expose off-screen errors that viewport scans mark virtualized."""
+    node = shutil.which("node")
+    if node is None:
+        pytest.skip("Node.js is required to execute holder diagnostics")
+    assert node is not None
+    script = r"""
+const input = JSON.parse(require("fs").readFileSync(0, "utf8"));
+global.window = {innerHeight: 800};
+const holder = (id, top, error) => ({
+  className: `dashboard-chart-id-${id}`,
+  getBoundingClientRect: () => ({top, bottom: top + 100}),
+  querySelectorAll: () => [],
+  querySelector: selector => {
+    if (selector.includes('slice_container')) return {};
+    if (error && selector.includes('alert')) return {};
+    return null;
+  },
+});
+global.document = {
+  querySelectorAll: () => [holder(1, 0, false), holder(2, 1000, true)],
+};
+process.stdout.write(JSON.stringify(input.map(expression =>
+  eval('(' + expression + ')')().map(item => item.state))));
+"""
+    completed = subprocess.run(  # noqa: S603
+        [node, "-e", script],
+        input=json.dumps(
+            [FIND_CHART_HOLDER_STATES_JS, FIND_ALL_CHART_HOLDER_STATES_JS]
+        ),
+        capture_output=True,
+        check=True,
+        text=True,
+    )
+    assert json.loads(completed.stdout) == [
+        ["rendered", "virtualized"],
+        ["rendered", "error"],
+    ]
 
 
 def test_stable_readiness_javascript_resets_dwell_state() -> None:
@@ -144,6 +190,111 @@ process.stdout.write(JSON.stringify(results));
 
 
 class TestScreenshotBlankDetection:
+    @pytest.mark.parametrize("shade", [230, 239, 245, 250, 255])
+    def test_uniform_light_gray_is_blank(self, shade):
+        assert is_screenshot_nearly_uniform(
+            _png(800, 1000, f"rgb({shade},{shade},{shade})")
+        )[0]
+
+    def test_final_validation_rejects_undecodable_bytes(self):
+        context = _report_context()
+        with pytest.raises(ScreenshotBlankCaptureError):
+            validate_report_screenshot(b"broken png", context)
+        assert context.capture_rejection_reasons == ("invalid_image",)
+
+    @pytest.mark.parametrize("content_validated", [False, True])
+    def test_final_validation_rejects_png_with_corrupt_pixel_stream(
+        self, content_validated
+    ):
+        screenshot = bytearray(_png(100, 100, "red"))
+        chunk_offset = 8
+        while chunk_offset < len(screenshot):
+            chunk_size = struct.unpack(
+                ">I",
+                screenshot[chunk_offset : chunk_offset + 4],
+            )[0]
+            chunk_type = bytes(screenshot[chunk_offset + 4 : chunk_offset + 8])
+            data_start = chunk_offset + 8
+            data_end = data_start + chunk_size
+            if chunk_type == b"IDAT":
+                corrupt_data = b"\x78\x9c" + b"\x00" * (chunk_size - 2)
+                screenshot[data_start:data_end] = corrupt_data
+                screenshot[data_end : data_end + 4] = struct.pack(
+                    ">I",
+                    zlib.crc32(chunk_type + corrupt_data) & 0xFFFFFFFF,
+                )
+                break
+            chunk_offset = data_end + 4
+        else:
+            pytest.fail("PNG did not contain an IDAT chunk")
+
+        with Image.open(io.BytesIO(screenshot)) as image:
+            image.verify()
+
+        context = _report_context()
+        with pytest.raises(ScreenshotBlankCaptureError):
+            validate_report_screenshot(
+                bytes(screenshot), context, content_validated=content_validated
+            )
+        assert context.capture_rejection_reasons == ("invalid_image",)
+
+    @pytest.mark.parametrize("shade", [239, 245, 250])
+    def test_white_page_with_gray_placeholder_is_blank(self, shade):
+        image = Image.new("RGB", (800, 1000), "white")
+        ImageDraw.Draw(image).rectangle((0, 0, 799, 149), fill=(shade, shade, shade))
+        output = io.BytesIO()
+        image.save(output, format="PNG")
+        context = _report_context()
+        with pytest.raises(ScreenshotBlankCaptureError):
+            validate_report_screenshot(output.getvalue(), context)
+        assert context.capture_was_rejected
+
+    @pytest.mark.parametrize("height", [1000, 10000])
+    @pytest.mark.parametrize("label", ["No data", "42", "Dashboard", "Error"])
+    def test_small_label_does_not_exempt_blank_page(self, height, label):
+        image = Image.new("RGB", (800, height), "white")
+        ImageDraw.Draw(image).text(
+            (100, 100), label, fill="black", font=ImageFont.load_default(size=24)
+        )
+        output = io.BytesIO()
+        image.save(output, format="PNG")
+        with pytest.raises(ScreenshotBlankCaptureError):
+            validate_report_screenshot(output.getvalue(), _report_context())
+
+    @pytest.mark.parametrize(
+        "color", ["navy", "#1b1b2e", "gray", "red", "#30aa55", "lightblue"]
+    )
+    def test_uniform_fill_is_rejected_regardless_of_theme(self, color):
+        context = _report_context()
+        screenshot = _png(800, 1000, color)
+        with pytest.raises(ScreenshotBlankCaptureError):
+            validate_report_screenshot(screenshot, context)
+        assert context.capture_was_rejected
+        assert not context.artifact_was_validated(
+            screenshot,
+            ReportArtifactKind.SCREENSHOT,
+        )
+
+    @pytest.mark.parametrize(
+        "background,foreground", [("white", "black"), ("navy", "white")]
+    )
+    def test_large_readable_kpi_is_not_blank(self, background, foreground):
+        image = Image.new("RGB", (800, 1000), background)
+        ImageDraw.Draw(image).text(
+            (200, 400), "42", fill=foreground, font=ImageFont.load_default(size=180)
+        )
+        output = io.BytesIO()
+        image.save(output, format="PNG")
+        validate_report_screenshot(output.getvalue(), _report_context())
+
+    def test_small_logo_does_not_exempt_blank_page(self):
+        image = Image.new("RGB", (800, 1000), "white")
+        ImageDraw.Draw(image).ellipse((10, 10, 24, 24), fill="navy")
+        output = io.BytesIO()
+        image.save(output, format="PNG")
+        with pytest.raises(ScreenshotBlankCaptureError):
+            validate_report_screenshot(output.getvalue(), _report_context())
+
     def test_uniform_png_is_blank(self):
         is_blank, dominant_ratio = is_screenshot_nearly_uniform(_png(100, 100, "white"))
 
@@ -430,6 +581,147 @@ class TestCombineScreenshotTiles:
 
 
 class TestTakeTiledScreenshot:
+    def test_per_tile_diagnostics_failure_does_not_discard_capture(self, mock_page):
+        """Diagnostics must not discard valid tiles: a non-timeout evaluate
+        failure on the per-tile diagnostics path logs a warning and the
+        capture still succeeds."""
+        final_states = [{"chartId": "1", "state": "rendered"}]
+        diagnostics_calls = 0
+
+        def evaluate(script, _arg=None):
+            nonlocal diagnostics_calls
+            if "scrollWidth" in script:
+                return {"height": 1000, "top": 100, "left": 50, "width": 800}
+            if script == CONTENTFUL_CHART_HOLDERS_IN_CLIP_JS:
+                return {"total": 1, "contentful": 1}
+            if script == FIND_CHART_HOLDER_STATES_JS:
+                diagnostics_calls += 1
+                if diagnostics_calls == 1:
+                    raise RuntimeError("Execution context was destroyed")
+                return final_states
+            return None
+
+        mock_page.wait_for_function.side_effect = None
+        mock_page.wait_for_function.return_value = None
+        mock_page.evaluate.side_effect = evaluate
+        combined = self._create_chart_like_tile()
+        mock_page.screenshot.return_value = combined
+
+        with patch("superset.utils.screenshot_utils.logger") as mock_logger:
+            with patch(
+                "superset.utils.screenshot_utils.combine_screenshot_tiles",
+                return_value=combined,
+            ):
+                result = take_tiled_screenshot(
+                    mock_page,
+                    "dashboard",
+                    tile_height=2000,
+                    load_wait=30,
+                    report_execution_context=_report_context(),
+                )
+
+        assert result == combined
+        assert mock_page.screenshot.call_count == 1
+        assert any(
+            call.args
+            and call.args[0].startswith(
+                "Unable to collect per-tile chart-holder diagnostics"
+            )
+            for call in mock_logger.warning.call_args_list
+        )
+
+    def test_final_semantic_status_fires_exactly_once_for_error_holders(
+        self, mock_page
+    ):
+        """One error chart spanning every tile emits ONE report_semantic_status
+        WARNING for the capture (final block), not one per tile — the per-tile
+        INFO lines already carry error_holders."""
+        with_error = [
+            {"chartId": "1", "state": "rendered"},
+            {"chartId": "2", "state": "error"},
+        ]
+        mock_page.wait_for_function.side_effect = None
+        mock_page.wait_for_function.return_value = None
+        mock_page.evaluate.side_effect = [
+            {"height": 5000, "top": 100, "left": 50, "width": 800},
+            None,
+            with_error,
+            None,
+            with_error,
+            None,
+            with_error,
+            with_error,
+        ]
+
+        with patch("superset.utils.screenshot_utils.logger") as mock_logger:
+            with patch("superset.utils.screenshot_utils.combine_screenshot_tiles"):
+                take_tiled_screenshot(
+                    mock_page,
+                    "dashboard",
+                    tile_height=2000,
+                    load_wait=30,
+                    report_execution_context=_report_context(),
+                )
+
+        semantic_calls = [
+            call
+            for call in mock_logger.warning.call_args_list
+            if call.args and call.args[0].startswith("report_semantic_status")
+        ]
+        assert len(semantic_calls) == 1
+        message = semantic_calls[0].args[0] % semantic_calls[0].args[1:]
+        assert "error_holders=1" in message
+        assert "semantic_success=false" in message
+
+    def test_tile_line_reports_mixed_holder_states(self, mock_page):
+        """The per-tile enriched line must map each state to its own field —
+        a swap between (say) rendered and error counts must fail this test."""
+        mixed = [
+            {"chartId": "1", "state": "rendered"},
+            {"chartId": "2", "state": "rendered"},
+            {"chartId": "3", "state": "empty"},
+            {"chartId": "4", "state": "error"},
+            {"chartId": "5", "state": "waiting_on_database"},
+        ]
+        mock_page.wait_for_function.side_effect = None
+        mock_page.wait_for_function.return_value = None
+        mock_page.evaluate.side_effect = [
+            {"height": 5000, "top": 100, "left": 50, "width": 800},  # dimensions
+            None,
+            mixed,  # tile 1: scroll, per-tile diagnostics
+            None,
+            mixed,  # tile 2
+            None,
+            mixed,  # tile 3
+            mixed,  # final diagnostics
+        ]
+
+        with patch("superset.utils.screenshot_utils.logger") as mock_logger:
+            with patch("superset.utils.screenshot_utils.combine_screenshot_tiles"):
+                take_tiled_screenshot(
+                    mock_page,
+                    "dashboard",
+                    tile_height=2000,
+                    load_wait=30,
+                    report_execution_context=_report_context(),
+                )
+
+        tile_calls = [
+            call
+            for call in mock_logger.info.call_args_list
+            if call.args and call.args[0].startswith("report_readiness_tile")
+        ]
+        assert len(tile_calls) == 3
+        message = tile_calls[0].args[0] % tile_calls[0].args[1:]
+        assert "mounted_holders=5" in message
+        assert "ready_holders=4" in message
+        assert "rendered_holders=2" in message
+        assert "empty_holders=1" in message
+        assert "error_holders=1" in message
+        assert "virtualized_holders=0" in message
+        assert "unready_holders=1" in message
+        assert "semantic_success=False" in message
+
     @pytest.fixture
     def mock_page(self):
         """Create a mock Playwright page object."""
@@ -517,7 +809,7 @@ class TestTakeTiledScreenshot:
             for call in mock_logger.info.call_args_list
             if call.args[0].startswith("report_readiness_ready")
         )
-        assert readiness_log.args[6] == 1
+        assert readiness_log.args[13] == 1
         retry_log = next(
             call
             for call in mock_logger.info.call_args_list
@@ -560,6 +852,41 @@ class TestTakeTiledScreenshot:
 
         assert mock_page.screenshot.call_count == 3
         assert report_context.capture_rejection_reasons == ("blank_tile:1/2",)
+        mock_combine.assert_not_called()
+
+    def test_repeated_blank_tiles_fail_closed_for_api_exports(self, mock_page):
+        element_info = {"height": 1000, "top": 0, "left": 0, "width": 800}
+
+        def evaluate(script, _arg=None):
+            if "scrollWidth" in script:
+                return element_info
+            if script == CONTENTFUL_CHART_HOLDERS_IN_CLIP_JS:
+                return {"total": 1, "contentful": 1}
+            if "requestAnimationFrame" in script or "window.scrollTo" in script:
+                return None
+            return [{"chartId": "7", "state": "rendered"}]
+
+        mock_page.evaluate.side_effect = evaluate
+        mock_page.screenshot.return_value = _png(800, 1000, "white")
+
+        with (
+            patch("superset.utils.screenshot_utils.logger"),
+            patch(
+                "superset.utils.screenshot_utils.combine_screenshot_tiles"
+            ) as mock_combine,
+            pytest.raises(
+                ScreenshotBlankCaptureError,
+                match="blank tile 1/1 after 3 attempts",
+            ),
+        ):
+            take_tiled_screenshot(
+                mock_page,
+                "dashboard",
+                tile_height=1000,
+                require_complete_capture=True,
+            )
+
+        assert mock_page.screenshot.call_count == 3
         mock_combine.assert_not_called()
 
     def test_blank_combined_image_fails_closed_after_contentful_tiles_pass(
@@ -606,6 +933,38 @@ class TestTakeTiledScreenshot:
             for call in mock_logger.warning.call_args_list
         )
 
+    def test_blank_combined_image_fails_closed_for_api_exports(self, mock_page):
+        element_info = {"height": 1000, "top": 0, "left": 0, "width": 800}
+
+        def evaluate(script, _arg=None):
+            if "scrollWidth" in script:
+                return element_info
+            if script == CONTENTFUL_CHART_HOLDERS_IN_CLIP_JS:
+                return {"total": 1, "contentful": 1}
+            if "requestAnimationFrame" in script or "window.scrollTo" in script:
+                return None
+            return [{"chartId": "7", "state": "rendered"}]
+
+        mock_page.evaluate.side_effect = evaluate
+        mock_page.screenshot.return_value = self._create_chart_like_tile()
+
+        with (
+            patch(
+                "superset.utils.screenshot_utils.combine_screenshot_tiles",
+                return_value=_two_tone_blank(800, 1000),
+            ),
+            pytest.raises(
+                ScreenshotBlankCaptureError,
+                match="Combined report screenshot lost content",
+            ),
+        ):
+            take_tiled_screenshot(
+                mock_page,
+                "dashboard",
+                tile_height=1000,
+                require_complete_capture=True,
+            )
+
     def test_sparse_contentful_tile_is_not_diluted_by_empty_tiles(self, mock_page):
         element_info = {"height": 8000, "top": 0, "left": 0, "width": 800}
         holder_count_calls = 0
@@ -643,10 +1002,17 @@ class TestTakeTiledScreenshot:
         # The whole image is statistically blank because valid empty-state tiles
         # dominate it, but its content-bearing region remains valid.
         assert get_screenshot_blankness_metrics(result).is_blank is True
+        validate_report_screenshot(result, report_context)
+        assert report_context.artifact_was_validated(
+            result, ReportArtifactKind.SCREENSHOT
+        )
         assert report_context.capture_was_rejected is False
         assert mock_page.screenshot.call_count == 8
 
-    def test_blank_combined_image_is_allowed_for_terminal_empty_states(self, mock_page):
+    @pytest.mark.parametrize("terminal_state", ["empty", "error"])
+    def test_blank_combined_image_is_allowed_for_terminal_empty_states(
+        self, mock_page, terminal_state
+    ):
         element_info = {"height": 1000, "top": 0, "left": 0, "width": 800}
         blank = _two_tone_blank(800, 1000)
 
@@ -657,11 +1023,12 @@ class TestTakeTiledScreenshot:
                 return {"total": 1, "contentful": 0}
             if "window.scrollTo" in script:
                 return None
-            return [{"chartId": "7", "state": "empty"}]
+            return [{"chartId": "7", "state": terminal_state}]
 
         mock_page.evaluate.side_effect = evaluate
         mock_page.screenshot.return_value = blank
 
+        report_context = _report_context()
         with patch(
             "superset.utils.screenshot_utils.combine_screenshot_tiles",
             return_value=blank,
@@ -670,15 +1037,54 @@ class TestTakeTiledScreenshot:
                 mock_page,
                 "dashboard",
                 tile_height=1000,
-                report_execution_context=_report_context(),
+                report_execution_context=report_context,
             )
 
         assert result == blank
+        validate_report_screenshot(result, report_context)
+        assert report_context.artifact_was_validated(
+            result, ReportArtifactKind.SCREENSHOT
+        )
         assert mock_page.screenshot.call_count == 1
 
-    def test_single_uniform_content_tile_fails_closed_for_reports(self, mock_page):
+    def test_terminal_empty_tiles_do_not_approve_corrupt_combined_bytes(
+        self, mock_page
+    ):
+        def evaluate(script, _arg=None):
+            if "scrollWidth" in script:
+                return {"height": 1000, "top": 0, "left": 0, "width": 800}
+            if script == CONTENTFUL_CHART_HOLDERS_IN_CLIP_JS:
+                return {"total": 1, "contentful": 0}
+            return [{"chartId": "7", "state": "empty"}]
+
+        mock_page.evaluate.side_effect = evaluate
+        mock_page.screenshot.return_value = _png(800, 1000, "white")
+        context = _report_context()
+        with (
+            patch(
+                "superset.utils.screenshot_utils.combine_screenshot_tiles",
+                return_value=b"corrupt combined image",
+            ),
+            pytest.raises(ScreenshotBlankCaptureError),
+        ):
+            take_tiled_screenshot(
+                mock_page,
+                "dashboard",
+                tile_height=1000,
+                report_execution_context=context,
+            )
+        assert context.capture_rejection_reasons == ("invalid_image",)
+        assert not context.artifact_was_validated(
+            b"corrupt combined image",
+            ReportArtifactKind.SCREENSHOT,
+        )
+
+    @pytest.mark.parametrize("color", ["white", "navy", "#1b1b2e", "gray", "lightblue"])
+    def test_single_uniform_content_tile_fails_closed_for_reports(
+        self, mock_page, color
+    ):
         element_info = {"height": 1000, "top": 0, "left": 0, "width": 800}
-        uniform_tile = _png(800, 1000, "navy")
+        uniform_tile = _png(800, 1000, color)
 
         def evaluate(script, _arg=None):
             if "scrollWidth" in script:
@@ -996,7 +1402,13 @@ class TestTakeTiledScreenshot:
 
         def screenshot(**kwargs):
             events.append("capture")
-            return b"tile"
+            return content_png
+
+        content = Image.new("RGB", (800, 1000), "white")
+        ImageDraw.Draw(content).rectangle((0, 0, 399, 999), fill="black")
+        output = io.BytesIO()
+        content.save(output, format="PNG")
+        content_png = output.getvalue()
 
         mock_page.wait_for_function.side_effect = wait_for_function
         mock_page.evaluate.side_effect = evaluate
@@ -1004,7 +1416,7 @@ class TestTakeTiledScreenshot:
 
         with patch(
             "superset.utils.screenshot_utils.combine_screenshot_tiles",
-            return_value=b"combined",
+            return_value=content_png,
         ):
             result = take_tiled_screenshot(
                 mock_page,
@@ -1014,7 +1426,7 @@ class TestTakeTiledScreenshot:
                 report_execution_context=_report_context(),
             )
 
-        assert result == b"combined"
+        assert result == content_png
         assert events == [
             "mount",
             "dimensions",
@@ -1319,18 +1731,18 @@ class TestTakeTiledScreenshot:
         assert "unready" in warning_args[0].lower()
         assert warning_args[3] == 1  # mounted holders
         assert warning_args[4] == 0  # ready holders
-        assert warning_args[5] == 1  # tile index
-        assert warning_args[6] == 3  # total tiles
-        assert warning_args[7] == 0  # tiles captured so far
-        assert warning_args[8] == 3  # total tiles
-        assert isinstance(warning_args[9], float)  # tile elapsed
-        assert isinstance(warning_args[10], float)  # total elapsed
-        assert warning_args[12] == 30  # effective wait
-        assert "capture_kind=report" in warning_args[13]
+        message = warning_args[0] % warning_args[1:]
+        assert "tile=1/3" in message
+        assert "tiles_captured=0/3" in message
+        assert "effective_wait_seconds=30.00" in message
+        assert "capture_kind=report" in message
         # Diagnostic payload identifies chart id AND the state it's stuck in
         # (spinner mounted vs nothing mounted vs waiting-on-database) so a
         # slow query can be told apart from the virtualization race.
-        assert warning_args[14] == [{"chartId": "42", "state": "waiting_on_database"}]
+        assert (
+            "unready_holder_states=[{'chartId': '42', 'state': 'waiting_on_database'}]"
+            in message
+        )
 
     def test_readiness_change_aborts_before_tile_capture(self, mock_page):
         from superset.utils.screenshot_utils import PlaywrightTimeout
@@ -1376,7 +1788,7 @@ class TestTakeTiledScreenshot:
                     )
 
         warning_args = mock_logger.warning.call_args[0]
-        assert warning_args[13] == " [execution_id=abc-123]"
+        assert " [execution_id=abc-123]" in warning_args[0] % warning_args[1:]
 
     def test_chart_holder_with_nothing_mounted_blocks_wait(self, mock_page):
         """Regression test for the vacuous-pass race (PR #39895).
@@ -1425,6 +1837,7 @@ class TestTakeTiledScreenshot:
         """
         from superset.utils.screenshot_utils import (
             CHART_HOLDERS_READY_JS,
+            DASHBOARD_ALL_CHART_HOLDERS_READY_JS,
             FIND_CHART_HOLDER_STATES_JS,
             FIND_UNREADY_CHART_HOLDERS_JS,
             REPORT_CHART_HOLDERS_READY_JS,
@@ -1441,6 +1854,8 @@ class TestTakeTiledScreenshot:
             assert "holder.className.match(/\\bdashboard-chart-id-(\\d+)\\b/)" in js
         assert "holders.length > 0" not in CHART_HOLDERS_READY_JS
         assert "holders.length > 0" in REPORT_CHART_HOLDERS_READY_JS
+        assert ".dashboard-grid" in DASHBOARD_ALL_CHART_HOLDERS_READY_JS
+        assert "holders.length > 0" not in DASHBOARD_ALL_CHART_HOLDERS_READY_JS
 
         assert "rendered" in FIND_CHART_HOLDER_STATES_JS
         assert "empty" in FIND_CHART_HOLDER_STATES_JS
@@ -1455,6 +1870,7 @@ class TestTakeTiledScreenshot:
         from superset.utils.screenshot_utils import (
             CHART_CONTAINER_READY_JS,
             CHART_HOLDERS_READY_JS,
+            DASHBOARD_ALL_CHART_HOLDERS_READY_JS,
             FIND_CHART_HOLDER_STATES_JS,
             FIND_UNREADY_CHART_HOLDERS_JS,
             REPORT_CHART_HOLDERS_READY_JS,
@@ -1463,6 +1879,7 @@ class TestTakeTiledScreenshot:
         for js in (
             CHART_CONTAINER_READY_JS,
             CHART_HOLDERS_READY_JS,
+            DASHBOARD_ALL_CHART_HOLDERS_READY_JS,
             FIND_CHART_HOLDER_STATES_JS,
             FIND_UNREADY_CHART_HOLDERS_JS,
             REPORT_CHART_HOLDERS_READY_JS,
