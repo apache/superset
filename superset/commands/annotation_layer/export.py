@@ -86,10 +86,13 @@ class ExportAnnotationLayersCommand(ExportModelsCommand):
 
     @staticmethod
     def _export(
-        model: AnnotationLayer, export_related: bool = True
+        model: AnnotationLayer,
+        export_related: bool = True,
+        seen: set[str] | None = None,
     ) -> Iterator[tuple[str, Callable[[], str]]]:
         """
-        Yield (path, content_factory) for the layer export; export_related is unused.
+        Yield (path, content_factory) for the layer export; export_related and
+        seen are unused (an annotation layer has no related assets to export).
         """
 
         yield (
