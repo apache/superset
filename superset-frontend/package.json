@@ -147,7 +147,7 @@
     "@superset-ui/plugin-chart-world-map": "file:./plugins/plugin-chart-world-map",
     "@superset-ui/preset-chart-deckgl": "file:./plugins/preset-chart-deckgl",
     "@superset-ui/switchboard": "file:./packages/superset-ui-switchboard",
-    "@types/d3-selection": "^3.0.11",
+    "@types/d3-selection": "^3.0.12",
     "@types/d3-time-format": "^4.0.3",
     "@types/react-google-recaptcha": "^2.1.9",
     "@visx/axis": "^4.0.0",
