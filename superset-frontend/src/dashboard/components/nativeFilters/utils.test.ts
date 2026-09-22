@@ -17,8 +17,9 @@
  * under the License.
  */
 import { Behavior } from '@superset-ui/core';
-import { DashboardLayout } from 'src/dashboard/types';
+import { DashboardLayout, LayoutItem } from 'src/dashboard/types';
 import { CHART_TYPE } from 'src/dashboard/util/componentTypes';
+import { createChartLayoutItemMap } from 'src/dashboard/util/getChartIdsInFilterScope';
 import {
   nativeFilterGate,
   findTabsWithChartsInScope,
@@ -86,6 +87,40 @@ test('findTabsWithChartsInScope should handle a recursive layout structure', () 
   );
 });
 
+test('findTabsWithChartsInScope includes tabs from duplicate chart holders', () => {
+  const chartLayoutItems: LayoutItem[] = [
+    {
+      id: 'CHART-7-first',
+      type: CHART_TYPE,
+      children: [],
+      parents: ['ROOT_ID', 'TAB-parent', 'TABS-nested', 'TAB-first'],
+      meta: {
+        chartId: 7,
+        height: 100,
+        width: 100,
+        uuid: 'test-uuid-CHART-7-first',
+      },
+    },
+    {
+      id: 'CHART-7-second',
+      type: CHART_TYPE,
+      children: [],
+      parents: ['ROOT_ID', 'TAB-parent', 'TABS-nested', 'TAB-second'],
+      meta: {
+        chartId: 7,
+        height: 100,
+        width: 100,
+        uuid: 'test-uuid-CHART-7-second',
+      },
+    },
+  ];
+  const chartLayoutItemMap = createChartLayoutItemMap(chartLayoutItems);
+
+  expect(
+    Array.from(findTabsWithChartsInScope(chartLayoutItemMap, [7])),
+  ).toEqual(['TAB-parent', 'TAB-first', 'TAB-second']);
+});
+
 test('getFormData should include persisted time_grains for time grain filters', () => {
   const formData = getFormData({
     dashboardId: 10,
@@ -99,4 +134,17 @@ test('getFormData should include persisted time_grains for time grain filters', 
   });
 
   expect((formData as any).time_grains).toEqual(['PT1H', 'P1D', 'P1W']);
+});
+
+test('getFormData passes controlValues.displayFormat through to the filter plugin formData', () => {
+  const formData = getFormData({
+    dashboardId: 10,
+    id: 'NATIVE_FILTER-1',
+    filterType: 'filter_time',
+    type: 'NATIVE_FILTER' as any,
+    controlValues: { displayFormat: '%d-%m-%Y' },
+    defaultDataMask: {},
+  });
+
+  expect((formData as any).displayFormat).toBe('%d-%m-%Y');
 });

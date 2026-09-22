@@ -78,19 +78,78 @@ export function transformLinkUri(uri: string): string {
   return DANGEROUS_LINK_PROTOCOLS.includes(scheme) ? '' : url;
 }
 
+// A hast-util-sanitize attribute definition is either a bare property name
+// (any value allowed) or a tuple of `[propertyName, ...allowedValues]` (only
+// the listed values allowed). See hast-util-sanitize's `PropertyDefinition`.
+type AttributeDefinition = string | readonly [string, ...unknown[]];
+
+function getAttributeDefinitionKey(
+  definition: AttributeDefinition,
+): string | undefined {
+  if (typeof definition === 'string') return definition;
+  // htmlSchemaOverrides comes from runtime config and isn't guaranteed to
+  // match the expected shape; a malformed element (e.g. `null`) has no key
+  // rather than crashing the lookup.
+  return Array.isArray(definition) ? definition[0] : undefined;
+}
+
+/**
+ * Merge an operator-supplied list of attribute definitions for a tag (or the
+ * `'*'` wildcard) with the corresponding default definitions.
+ *
+ * hast-util-sanitize's `findDefinition` returns only the FIRST definition it
+ * finds for a given property name, so a naive concat leaves whichever list
+ * happens to declare that property first in charge. The default schema
+ * already declares restrictive tuples for some properties (e.g.
+ * `li: [['className', 'task-list-item']]`), so appending an operator's
+ * override after it never took effect. Because a failed allowlist check
+ * returns `[]` rather than `undefined`, hast-util-sanitize's own `'*'`
+ * fallback never kicked in either.
+ *
+ * To fix that, an override definition replaces the default definition for
+ * the same property (by property name) instead of being appended alongside
+ * it.
+ */
+function mergeAttributeDefinitions(
+  defaults: readonly AttributeDefinition[],
+  overrides: readonly AttributeDefinition[],
+): AttributeDefinition[] {
+  const overriddenKeys = new Set(
+    overrides.map(getAttributeDefinitionKey).filter(Boolean),
+  );
+  const remainingDefaults = defaults.filter(
+    definition => !overriddenKeys.has(getAttributeDefinitionKey(definition)),
+  );
+  return [...remainingDefaults, ...overrides];
+}
+
 export function getOverrideHtmlSchema(
   originalSchema: typeof defaultSchema,
   htmlSchemaOverrides: SafeMarkdownProps['htmlSchemaOverrides'],
 ) {
-  // Merge into a fresh clone: mergeWith mutates its first argument, and the
-  // array customizer concatenates, so merging into the shared defaultSchema
-  // import would progressively widen the sanitization allowlist for every
-  // SafeMarkdown instance app-wide.
+  // Merge into a fresh clone: mergeWith mutates its first argument, so
+  // merging into the shared defaultSchema import would progressively widen
+  // the sanitization allowlist for every SafeMarkdown instance app-wide.
+  const target = cloneDeep(originalSchema);
   return mergeWith(
-    cloneDeep(originalSchema),
+    target,
     htmlSchemaOverrides,
-    (objValue, srcValue) =>
-      Array.isArray(objValue) ? objValue.concat(srcValue) : undefined,
+    (objValue, srcValue, _key, object) => {
+      if (!Array.isArray(objValue)) return undefined;
+      // Only the per-tag (and `'*'`) arrays nested under `attributes` hold
+      // property definitions that need dedup-by-key; every other array in
+      // the schema (e.g. `tagNames`, `protocols.href`) is a plain list where
+      // concatenation is the correct merge.
+      if (object === target.attributes) {
+        // htmlSchemaOverrides comes from runtime config and isn't guaranteed
+        // to match the expected shape; fall back to the default definitions
+        // for a tag rather than throwing if an operator supplies something
+        // other than an array of attribute definitions.
+        if (!Array.isArray(srcValue)) return objValue;
+        return mergeAttributeDefinitions(objValue, srcValue);
+      }
+      return objValue.concat(srcValue);
+    },
   );
 }
 

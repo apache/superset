@@ -21,8 +21,9 @@ from unittest import mock
 
 import pandas as pd
 import pyarrow as pa
-import pytest  # noqa: F401
+import pytest
 from pandas.api.types import is_datetime64_any_dtype
+from pytest_mock import MockerFixture
 
 from superset.utils import csv, json
 from superset.utils.core import GenericDataType
@@ -450,3 +451,27 @@ def test_get_chart_dataframe_forwards_timeout(monkeypatch: pytest.MonkeyPatch) -
     monkeypatch.setattr(csv, "get_chart_csv_data", fake)
     get_chart_dataframe("http://dummy-url", timeout=99)
     assert captured["timeout"] == 99
+
+
+@pytest.mark.parametrize("fail_read", [False, True])
+def test_get_chart_csv_data_closes_response(
+    mocker: MockerFixture, fail_read: bool
+) -> None:
+    """Release the legacy export connection on success and before retrying a read."""
+    from superset.utils.csv import get_chart_csv_data
+
+    response = mocker.patch(
+        "urllib.request.build_opener"
+    ).return_value.open.return_value
+    response.getcode.return_value = 200
+    response.read.return_value = b"csv"
+    if fail_read:
+        response.read.side_effect = TimeoutError()
+        with pytest.raises(TimeoutError):
+            get_chart_csv_data("https://localhost/chart", {"session": "cookie"}, 10)
+    else:
+        assert (
+            get_chart_csv_data("https://localhost/chart", {"session": "cookie"}, 10)
+            == b"csv"
+        )
+    response.close.assert_called_once()

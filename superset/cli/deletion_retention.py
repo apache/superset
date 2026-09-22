@@ -155,7 +155,11 @@ def force_purge(uuid: UUID, entity_type: str | None) -> None:
             )
         else:
             click.echo(f"No entity found for uuid={uuid} (nothing to purge).")
-        return
+        # A refused or absent target is not a completed purge: exit non-zero
+        # so an operator's script (a compliance-erasure runbook) cannot mistake
+        # it for success. The message above is the contract; only the exit
+        # status changed.
+        raise click.exceptions.Exit(1)
     click.echo(
         f"Purged {result['entity_type']} uuid={uuid}. "
         f"Dangling charts: {len(result.get('dangling_chart_uuids') or [])}; "

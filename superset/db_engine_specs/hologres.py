@@ -17,6 +17,10 @@
 
 from __future__ import annotations
 
+from typing import Callable
+
+from sqlalchemy.sql.elements import ColumnElement
+
 from superset.db_engine_specs.base import DatabaseCategory
 from superset.db_engine_specs.postgres import PostgresBaseEngineSpec
 
@@ -31,6 +35,12 @@ class HologresEngineSpec(PostgresBaseEngineSpec):
     engine = "hologres"
     engine_name = "Hologres"
     default_driver = "psycopg2"
+
+    # `PostgresBaseEngineSpec._extended_aggregations` (MEDIAN/STDDEV_SAMP/VAR_SAMP)
+    # is verified against real Postgres behavior, not Hologres's real-time analytics
+    # engine; disable it here until someone confirms the same expressions against a
+    # live Hologres instance.
+    _extended_aggregations: dict[str, Callable[[ColumnElement], ColumnElement]] = {}
 
     metadata = {
         "description": (

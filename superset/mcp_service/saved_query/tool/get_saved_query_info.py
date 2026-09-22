@@ -47,6 +47,7 @@ logger = logging.getLogger(__name__)
         title="Get saved query info",
         readOnlyHint=True,
         destructiveHint=False,
+        openWorldHint=False,
     ),
 )
 async def get_saved_query_info(

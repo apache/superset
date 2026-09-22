@@ -30,6 +30,7 @@ from superset.commands.temporary_cache.exceptions import (
     TemporaryCacheResourceNotFoundError,
 )
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP
+from superset.exceptions import SupersetTemplateException
 from superset.explore.form_data.schemas import FormDataPostSchema, FormDataPutSchema
 from superset.extensions import event_logger
 from superset.views.base_api import BaseSupersetApi, requires_json, statsd_metrics
@@ -110,6 +111,8 @@ class ExploreFormDataRestApi(BaseSupersetApi):
             return self.response(403, message=str(ex))
         except TemporaryCacheResourceNotFoundError as ex:
             return self.response(404, message=str(ex))
+        except SupersetTemplateException as ex:
+            return self.response(ex.status, message=str(ex))
 
     @expose("/form_data/<string:key>", methods=("PUT",))
     @protect()
@@ -183,6 +186,8 @@ class ExploreFormDataRestApi(BaseSupersetApi):
             return self.response(403, message=str(ex))
         except TemporaryCacheResourceNotFoundError as ex:
             return self.response(404, message=str(ex))
+        except SupersetTemplateException as ex:
+            return self.response(ex.status, message=str(ex))
 
     @expose("/form_data/<string:key>", methods=("GET",))
     @protect()
@@ -234,6 +239,8 @@ class ExploreFormDataRestApi(BaseSupersetApi):
             return self.response(403, message=str(ex))
         except TemporaryCacheResourceNotFoundError as ex:
             return self.response(404, message=str(ex))
+        except SupersetTemplateException as ex:
+            return self.response(ex.status, message=str(ex))
 
     @expose("/form_data/<string:key>", methods=("DELETE",))
     @protect()
@@ -254,6 +261,10 @@ class ExploreFormDataRestApi(BaseSupersetApi):
               type: string
             name: key
             description: The form_data key.
+          - in: query
+            schema:
+              type: integer
+            name: tab_id
           responses:
             200:
               description: Deleted the stored form_data.
@@ -277,7 +288,8 @@ class ExploreFormDataRestApi(BaseSupersetApi):
               $ref: '#/components/responses/500'
         """
         try:
-            args = CommandParameters(key=key)
+            tab_id = request.args.get("tab_id")
+            args = CommandParameters(key=key, tab_id=tab_id)
             result = DeleteFormDataCommand(args).run()
             if not result:
                 return self.response_404()
@@ -286,3 +298,5 @@ class ExploreFormDataRestApi(BaseSupersetApi):
             return self.response(403, message=str(ex))
         except TemporaryCacheResourceNotFoundError as ex:
             return self.response(404, message=str(ex))
+        except SupersetTemplateException as ex:
+            return self.response(ex.status, message=str(ex))

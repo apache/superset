@@ -27,6 +27,34 @@ from superset.reports.schemas import (
 )
 
 
+@pytest.mark.parametrize(
+    "schema_cls", [ReportSchedulePostSchema, ReportSchedulePutSchema]
+)
+@pytest.mark.parametrize("enabled", [True, False])
+def test_alert_retry_schema(
+    mocker: MockerFixture, schema_cls: type, enabled: bool
+) -> None:
+    """Both APIs accept alert retry settings only when the feature is enabled."""
+    mocker.patch("superset.reports.schemas.is_feature_enabled", return_value=enabled)
+    result = schema_cls().load(
+        {
+            "type": "Alert",
+            "name": "Retry alert",
+            "crontab": "* * * * *",
+            "database": 1,
+            "sql": "SELECT 1",
+            "validator_type": "not null",
+            "retry_on_failure": True,
+            "retry_max_attempts": 3,
+        }
+    )
+    if enabled:
+        assert result["retry_on_failure"] is True
+        assert result["retry_max_attempts"] == 3
+    else:
+        assert not result.get("retry_on_failure", False)
+
+
 def test_report_post_schema_custom_width_validation(mocker: MockerFixture) -> None:
     """
     Test the custom width validation.
@@ -419,9 +447,13 @@ def test_put_schema_allows_database_on_report_type(mocker: MockerFixture) -> Non
 # ---------------------------------------------------------------------------
 
 
+_PATCH_RETRY_FLAG = "superset.reports.schemas.is_feature_enabled"
+
+
 def test_retry_fields_defaults(mocker: MockerFixture) -> None:
     """POST schema: retry fields have correct defaults when omitted."""
     mocker.patch("flask.current_app.config", CUSTOM_WIDTH_CONFIG)
+    mocker.patch(_PATCH_RETRY_FLAG, return_value=True)
     schema = ReportSchedulePostSchema()
     result = schema.load(MINIMAL_POST_PAYLOAD)
     assert result["retry_on_failure"] is False
@@ -434,6 +466,7 @@ def test_retry_fields_defaults(mocker: MockerFixture) -> None:
 def test_retry_fields_accepted(mocker: MockerFixture) -> None:
     """POST schema: retry fields are accepted with valid values."""
     mocker.patch("flask.current_app.config", CUSTOM_WIDTH_CONFIG)
+    mocker.patch(_PATCH_RETRY_FLAG, return_value=True)
     schema = ReportSchedulePostSchema()
     result = schema.load(
         {
@@ -460,6 +493,7 @@ def test_retry_fields_accepted(mocker: MockerFixture) -> None:
 def test_retry_max_attempts_out_of_range(mocker: MockerFixture, value: int) -> None:
     """POST schema: retry_max_attempts outside 1–10 is rejected."""
     mocker.patch("flask.current_app.config", CUSTOM_WIDTH_CONFIG)
+    mocker.patch(_PATCH_RETRY_FLAG, return_value=True)
     schema = ReportSchedulePostSchema()
     with pytest.raises(ValidationError) as exc:
         schema.load(
@@ -480,6 +514,7 @@ def test_retry_max_attempts_out_of_range(mocker: MockerFixture, value: int) -> N
 def test_retry_max_attempts_boundary_values(mocker: MockerFixture, value: int) -> None:
     """POST schema: retry_max_attempts at boundaries (1 and 10) is accepted."""
     mocker.patch("flask.current_app.config", CUSTOM_WIDTH_CONFIG)
+    mocker.patch(_PATCH_RETRY_FLAG, return_value=True)
     schema = ReportSchedulePostSchema()
     result = schema.load(
         {**MINIMAL_POST_PAYLOAD, "retry_on_failure": True, "retry_max_attempts": value}
@@ -492,6 +527,7 @@ def test_send_failed_reports_requires_retry_on_failure(
 ) -> None:
     """POST schema: send_failed_reports=True with retry_on_failure=False is rejected."""
     mocker.patch("flask.current_app.config", CUSTOM_WIDTH_CONFIG)
+    mocker.patch(_PATCH_RETRY_FLAG, return_value=True)
     schema = ReportSchedulePostSchema()
     with pytest.raises(ValidationError) as exc:
         schema.load(
@@ -507,6 +543,7 @@ def test_send_failed_reports_requires_retry_on_failure(
 def test_put_schema_accepts_retry_fields(mocker: MockerFixture) -> None:
     """PUT schema: retry fields are accepted as optional partial updates."""
     mocker.patch("flask.current_app.config", CUSTOM_WIDTH_CONFIG)
+    mocker.patch(_PATCH_RETRY_FLAG, return_value=True)
     schema = ReportSchedulePutSchema()
     result = schema.load({"retry_on_failure": True, "retry_max_attempts": 7})
     assert result["retry_on_failure"] is True
@@ -518,7 +555,57 @@ def test_put_schema_retry_max_attempts_out_of_range(
 ) -> None:
     """PUT schema: retry_max_attempts outside 1–10 is rejected."""
     mocker.patch("flask.current_app.config", CUSTOM_WIDTH_CONFIG)
+    mocker.patch(_PATCH_RETRY_FLAG, return_value=True)
     schema = ReportSchedulePutSchema()
     with pytest.raises(ValidationError) as exc:
         schema.load({"retry_max_attempts": 11})
     assert "retry_max_attempts" in exc.value.messages
+
+
+@pytest.mark.parametrize(
+    "schema_class,payload_base",
+    [
+        (ReportSchedulePostSchema, MINIMAL_POST_PAYLOAD),
+        (ReportSchedulePutSchema, {}),
+    ],
+    ids=["post", "put"],
+)
+def test_include_cta_round_trips(
+    mocker: MockerFixture, schema_class, payload_base
+) -> None:
+    mocker.patch("flask.current_app.config", CUSTOM_WIDTH_CONFIG)
+    schema = schema_class()
+
+    result = schema.load({**payload_base, "include_cta": False})
+    assert result["include_cta"] is False
+
+    result = schema.load({**payload_base, "include_cta": True})
+    assert result["include_cta"] is True
+
+    # explicit null is accepted and round-trips as None (legacy NULL rows are
+    # treated as True at execution time)
+    result = schema.load({**payload_base, "include_cta": None})
+    assert result["include_cta"] is None
+
+    # omitted key is absent from the load result (the model default applies)
+    result = schema.load(payload_base)
+    assert "include_cta" not in result
+
+
+@pytest.mark.parametrize(
+    "schema_class,payload_base",
+    [
+        (ReportSchedulePostSchema, MINIMAL_POST_PAYLOAD),
+        (ReportSchedulePutSchema, {}),
+    ],
+    ids=["post", "put"],
+)
+def test_include_cta_rejects_non_boolean(
+    mocker: MockerFixture, schema_class, payload_base
+) -> None:
+    mocker.patch("flask.current_app.config", CUSTOM_WIDTH_CONFIG)
+    schema = schema_class()
+
+    with pytest.raises(ValidationError) as exc:
+        schema.load({**payload_base, "include_cta": "not-a-boolean"})
+    assert "include_cta" in exc.value.messages

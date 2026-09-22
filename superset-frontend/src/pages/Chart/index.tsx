@@ -56,6 +56,11 @@ const isValidResult = (rv: JsonObject): boolean =>
 const hasDatasetId = (rv: JsonObject): boolean =>
   isDefined(rv?.result?.dataset?.id);
 
+const EXPLORE_ROUTE_PREFIX = '/explore/';
+
+const isExploreRoute = (pathname: string): boolean =>
+  pathname.startsWith(EXPLORE_ROUTE_PREFIX);
+
 const fetchExploreData = async (
   exploreUrlParams: URLSearchParams,
   signal?: AbortSignal,
@@ -160,7 +165,11 @@ export default function ExplorePage() {
       const exploreUrlParams = getParsedExploreURLParams(loc);
       const dashboardContextFormData = getDashboardContextFormData(loc.search);
 
-      const isStale = () => generation !== fetchGeneration.current;
+      // A superseded fetch and an aborted one are equally unusable: the abort
+      // fires on unmount without touching `fetchGeneration`, so results must be
+      // dropped on either signal rather than dispatched into a torn-down page.
+      const isStale = () =>
+        generation !== fetchGeneration.current || controller.signal.aborted;
 
       fetchExploreData(exploreUrlParams, controller.signal)
         .then(({ result }) => {
@@ -228,13 +237,20 @@ export default function ExplorePage() {
             t('Failed to load chart data.');
           dispatch(addDangerToast(errorMesage));
 
-          if (err.extra?.datasource) {
+          // `extra.datasource` is the pre-`is_access_denial` shape of this
+          // payload; accepting it keeps the request-access UI working while a
+          // rolling deploy still has older API pods answering.
+          if (err.extra?.is_access_denial || isDefined(err.extra?.datasource)) {
+            // An API pod that predates the fix still names the dataset in
+            // `extra`. Drop it before the error is stored — `DatasourceControl`
+            // renders this object, and Explore's state must not carry the name
+            // of a dataset the user was just denied. Deleted in place rather
+            // than spread into a copy, which would lose `Error.message`.
+            delete err.extra?.datasource_name;
             const exploreData = {
               ...fallbackExploreInitialData,
               dataset: {
                 ...fallbackExploreInitialData.dataset,
-                id: err.extra?.datasource,
-                name: err.extra?.datasource_name,
                 extra: {
                   error: err,
                 },
@@ -246,19 +262,38 @@ export default function ExplorePage() {
                 ? makeApi<void, { result: Chart }>({
                     method: 'GET',
                     endpoint: `api/v1/chart/${chartId}`,
+                    signal: controller.signal,
                   })()
                 : Promise.reject()
             )
               .then(
                 ({
-                  result: { id, url, editors, viewers, form_data: _, ...data },
+                  result: {
+                    id,
+                    url,
+                    editors,
+                    viewers,
+                    form_data: _,
+                    // `GET /api/v1/chart/<id>` is granted to any chart viewer
+                    // regardless of dataset access, so its payload describes
+                    // the dataset this user was just denied: the name/url/uuid
+                    // identify it, and params/query_context carry its columns,
+                    // metric SQL and filter values. Explore reads none of them
+                    // on this path — drop them rather than spreading them into
+                    // state. Only the chart's own name and owners are needed.
+                    datasource_name_text: _datasourceNameText,
+                    datasource_url: _datasourceUrl,
+                    datasource_uuid: _datasourceUuid,
+                    params: _params,
+                    query_context: _queryContext,
+                    ...data
+                  },
                 }) => {
                   if (isStale()) {
                     return;
                   }
                   const slice = {
                     ...data,
-                    datasource: err.extra?.datasource_name,
                     slice_id: id,
                     slice_url: url,
                     editors: mapSubjectValuesToIds(editors),
@@ -283,7 +318,7 @@ export default function ExplorePage() {
           return Promise.resolve();
         })
         .finally(() => {
-          if (!isStale() && !controller.signal.aborted) {
+          if (!isStale()) {
             setIsLoaded(true);
           }
         });
@@ -312,6 +347,8 @@ export default function ExplorePage() {
   // Other REPLACE: ignored (URL sync from updateHistory).
   // Entries holding a chart state of the loaded chart are skipped: Explore
   // pushed them itself, and ExploreViewContainer restores a popped one in place.
+  // Navigations that leave Explore must not trigger a re-fetch while the page
+  // is unmounting, as the destination's URL params are not chart params.
   useEffect(() => {
     const unlisten = history.listen((loc: Location, action: Action) => {
       const saveAction = (loc.state as Record<string, unknown>)?.saveAction as
@@ -325,6 +362,9 @@ export default function ExplorePage() {
         if (action === 'POP' && isSameChartState(chartState, restoreTarget)) {
           return;
         }
+      }
+      if (!isExploreRoute(loc.pathname)) {
+        return;
       }
       if (action === 'PUSH' || action === 'POP') {
         setIsLoaded(false);

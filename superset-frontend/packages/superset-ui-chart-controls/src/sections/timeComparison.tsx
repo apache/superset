@@ -122,6 +122,12 @@ export const timeComparisonControls: ({
             }
             return newState;
           },
+          // Re-run this control's validation whenever `time_compare` changes so
+          // the "date required" error clears once a non-custom shift is picked.
+          // Without it the stale error survives in Redux (see the
+          // dependantControls path in exploreReducer's SET_FIELD_VALUE handler)
+          // and blocks further chart updates until a page refresh.
+          validationDependencies: ['time_compare'],
         },
       },
     ],

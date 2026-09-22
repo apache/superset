@@ -72,6 +72,13 @@ export interface SSLConfiguration {
   };
 }
 
+export interface KnownIncompatibility {
+  dependency: string;  // e.g. "SQLAlchemy 2.0"
+  reason?: string;
+  tracking_url?: string;  // upstream issue/PR tracking a fix, if one exists
+  since?: string;  // ISO date this was last confirmed still broken
+}
+
 export interface CompatibleDatabase {
   name: string;
   description?: string;
@@ -84,6 +91,7 @@ export interface CompatibleDatabase {
   connection_examples?: ConnectionExample[];
   notes?: string;
   docs_url?: string;
+  known_incompatibilities?: KnownIncompatibility[];
 }
 
 export interface CustomError {
@@ -123,6 +131,7 @@ export interface DatabaseDocumentation {
   advanced_features?: Record<string, string>;
   compatible_databases?: CompatibleDatabase[];
   custom_errors?: CustomError[]; // Database-specific error messages and troubleshooting info
+  known_incompatibilities?: KnownIncompatibility[]; // Unresolved incompatibilities with a Superset dependency
 }
 
 export interface TimeGrains {

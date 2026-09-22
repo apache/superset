@@ -7,6 +7,9 @@ on:
   pull_request:
     types: [opened, edited]
 
+permissions:
+  contents: read
+
 jobs:
   superbot-orglabel:
     runs-on: ubuntu-slim
@@ -21,7 +24,7 @@ jobs:
           persist-credentials: false
 
       - name: Setup supersetbot
-        uses: ./.github/actions/setup-supersetbot/
+        uses: $/.github/actions/setup-supersetbot/
 
       - name: Execute supersetbot orglabel command
         env:

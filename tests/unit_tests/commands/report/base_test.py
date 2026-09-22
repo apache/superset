@@ -24,6 +24,7 @@ from typing import Any, Callable
 from unittest.mock import patch
 
 import pytest
+from pytest_mock import MockerFixture
 
 from superset.commands.report.base import BaseReportScheduleCommand
 from superset.commands.report.exceptions import (
@@ -32,27 +33,33 @@ from superset.commands.report.exceptions import (
 )
 from superset.reports.models import ReportScheduleType
 
-REPORT_TYPES = {
+# Tuples, not sets: these feed ``@pytest.mark.parametrize``, and pytest-xdist
+# requires every worker to collect the same test ids in the same order. A set
+# of strings iterates in per-process hash order (PYTHONHASHSEED), so a set here
+# makes workers disagree and xdist aborts with "Different tests were collected".
+REPORT_TYPES: tuple[ReportScheduleType, ...] = (
     ReportScheduleType.ALERT,
     ReportScheduleType.REPORT,
-}
+)
 
-TEST_SCHEDULES_EVERY_MINUTE = {
+TEST_SCHEDULES_EVERY_MINUTE: tuple[str, ...] = (
     "* * * * *",
     "1-5 * * * *",
     "10-20 * * * *",
     "0,45,10-20 * * * *",
     "23,45,50,51 * * * *",
     "10,20,30,40-45 * * * *",
-}
+)
 
-TEST_SCHEDULES_SINGLE_MINUTES = {
+TEST_SCHEDULES_SINGLE_MINUTES: tuple[str, ...] = (
     "1,5,8,10,12 * * * *",
     "10 1 * * *",
     "27,2 1-5 * * *",
-}
+)
 
-TEST_SCHEDULES = TEST_SCHEDULES_EVERY_MINUTE.union(TEST_SCHEDULES_SINGLE_MINUTES)
+TEST_SCHEDULES: tuple[str, ...] = (
+    TEST_SCHEDULES_EVERY_MINUTE + TEST_SCHEDULES_SINGLE_MINUTES
+)
 
 
 def dynamic_alert_minimum_interval(**kwargs) -> int:
@@ -318,3 +325,94 @@ def test_validate_report_frequency_using_callable() -> None:
         "1,6 * * * *",
         ReportScheduleType.REPORT,
     )
+
+
+def test_validate_alert_query_rejects_multi_statement_sql() -> None:
+    """
+    Alert SQL is validated at save time; multi-statement SQL cannot be
+    persisted for later raw execution by the alert runner.
+    """
+    from unittest.mock import MagicMock
+
+    from marshmallow import ValidationError
+
+    from superset.commands.report.base import BaseReportScheduleCommand
+    from superset.commands.report.exceptions import (
+        AlertQueryMultipleStatementsValidationError,
+    )
+
+    database = MagicMock()
+    database.backend = "sqlite"
+    database.allow_dml = False
+
+    exceptions: list[ValidationError] = []
+    BaseReportScheduleCommand().validate_alert_query(
+        database, "SELECT 1; DROP TABLE ab_user", exceptions
+    )
+
+    assert len(exceptions) == 1
+    assert isinstance(exceptions[0], AlertQueryMultipleStatementsValidationError)
+
+
+def test_validate_alert_query_rejects_dml_when_not_allowed() -> None:
+    """A mutating alert query is rejected unless the database allows DML."""
+    from unittest.mock import MagicMock
+
+    from marshmallow import ValidationError
+
+    from superset.commands.report.base import BaseReportScheduleCommand
+    from superset.commands.report.exceptions import (
+        AlertQueryDMLNotAllowedValidationError,
+    )
+
+    database = MagicMock()
+    database.backend = "sqlite"
+    database.allow_dml = False
+
+    exceptions: list[ValidationError] = []
+    BaseReportScheduleCommand().validate_alert_query(
+        database, "UPDATE ab_user SET active = 1", exceptions
+    )
+
+    assert len(exceptions) == 1
+    assert isinstance(exceptions[0], AlertQueryDMLNotAllowedValidationError)
+
+
+def test_validate_alert_query_rejects_unauthorized_tables(
+    mocker: MockerFixture,
+) -> None:
+    """A single read-only statement referencing tables the user cannot access
+    is rejected via the table-level authorization check."""
+    from unittest.mock import MagicMock
+
+    from marshmallow import ValidationError
+
+    from superset.commands.report.base import BaseReportScheduleCommand
+    from superset.commands.report.exceptions import (
+        AlertQueryDataAccessValidationError,
+    )
+    from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
+    from superset.exceptions import SupersetSecurityException
+
+    mocker.patch(
+        "superset.commands.report.base.security_manager.raise_for_access",
+        side_effect=SupersetSecurityException(
+            SupersetError(
+                error_type=SupersetErrorType.TABLE_SECURITY_ACCESS_ERROR,
+                message="You need access to the following tables: `secret`",
+                level=ErrorLevel.ERROR,
+            )
+        ),
+    )
+
+    database = MagicMock()
+    database.backend = "sqlite"
+    database.allow_dml = False
+
+    exceptions: list[ValidationError] = []
+    BaseReportScheduleCommand().validate_alert_query(
+        database, "SELECT * FROM secret", exceptions
+    )
+
+    assert len(exceptions) == 1
+    assert isinstance(exceptions[0], AlertQueryDataAccessValidationError)

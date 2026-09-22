@@ -17,9 +17,14 @@
 from __future__ import annotations
 
 import re
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 from flask import Flask
+from pytest_mock import MockerFixture
+
+from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
+from superset.exceptions import SupersetSecurityException
 
 
 def _disposition_filename(form_filename: str | None) -> str:
@@ -62,3 +67,44 @@ def test_streaming_csv_falls_back_when_filename_empty() -> None:
 
     assert filename.startswith("sqllab_abc123_")
     assert filename.endswith(".csv")
+
+
+def test_format_sql_checks_access_before_rendering(
+    mocker: MockerFixture,
+    client: Any,
+    full_api_access: None,
+) -> None:
+    """
+    Access must be checked before Jinja rendering, as some Jinja macros
+    execute statements against the database upon rendering.
+    """
+    database = mocker.MagicMock()
+    database.db_engine_spec.engine = "presto"
+    mocker.patch(
+        "superset.sqllab.api.DatabaseDAO.find_by_id",
+        return_value=database,
+    )
+    get_template_processor = mocker.patch("superset.sqllab.api.get_template_processor")
+    raise_for_access = mocker.patch(
+        "superset.sqllab.api.security_manager.raise_for_access",
+        side_effect=SupersetSecurityException(
+            SupersetError(
+                error_type=SupersetErrorType.TABLE_SECURITY_ACCESS_ERROR,
+                message="You need access to the following tables: `s.t`",
+                level=ErrorLevel.ERROR,
+            )
+        ),
+    )
+
+    response = client.post(
+        "/api/v1/sqllab/format_sql/",
+        json={
+            "sql": "SELECT '{{ presto.latest_partition('s.t') }}'",
+            "database_id": 1,
+            "template_params": '{"foo": "bar"}',
+        },
+    )
+
+    assert response.status_code == 403
+    raise_for_access.assert_called_once()
+    get_template_processor.assert_not_called()

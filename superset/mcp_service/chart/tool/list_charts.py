@@ -71,6 +71,7 @@ _DEFAULT_LIST_CHARTS_REQUEST = ListChartsRequest()
         title="List charts",
         readOnlyHint=True,
         destructiveHint=False,
+        openWorldHint=False,
     ),
 )
 async def list_charts(
@@ -80,7 +81,9 @@ async def list_charts(
     """List charts with filtering and search.
 
     Returns chart metadata including id, name, viz_type, URL, and last
-    modified time.
+    modified time. Set ``request.certified`` to true to return only governed
+    charts; false returns only uncertified charts, while omitting it preserves
+    the unfiltered behavior.
 
     **IMPORTANT**: All parameters must be wrapped in a ``request`` object.
     Do NOT pass ``search``, ``page``, ``page_size``, etc. as top-level
@@ -100,7 +103,8 @@ async def list_charts(
 
     Sortable columns for ``order_column``:
         ``id``, ``slice_name``, ``viz_type``, ``description``,
-        ``changed_on``, ``created_on``
+        ``changed_on``, ``changed_on_delta_humanized`` (alias for ``changed_on``),
+        ``created_on``
 
     To filter by a person, call find_users to resolve the name to a user ID,
     then pass it as a filter: filters=[{"col": "created_by_fk", "opr": "eq",
@@ -124,7 +128,7 @@ async def list_charts(
         )
     )
 
-    from superset.charts.filters import ChartDeletedStateFilter
+    from superset.charts.filters import ChartCertifiedFilter, ChartDeletedStateFilter
     from superset.daos.chart import ChartDAO
     from superset.mcp_service.common.schema_discovery import (
         CHART_SORTABLE_COLUMNS,
@@ -179,6 +183,13 @@ async def list_charts(
 
     try:
         with event_logger.log_context(action="mcp.list_charts.query"):
+            custom_filters = None
+            if request.certified is not None:
+                custom_filters = {
+                    "certified": tool.build_bound_filter(
+                        ChartCertifiedFilter, request.certified
+                    )
+                }
             result = tool.run_tool(
                 filters=request.filters,
                 search=request.search,
@@ -190,6 +201,7 @@ async def list_charts(
                 created_by_me=request.created_by_me,
                 edited_by_me=request.edited_by_me,
                 deleted_state=request.deleted_state,
+                custom_filters=custom_filters,
             )
         count = len(result.charts) if hasattr(result, "charts") else 0
         total_pages = getattr(result, "total_pages", None)

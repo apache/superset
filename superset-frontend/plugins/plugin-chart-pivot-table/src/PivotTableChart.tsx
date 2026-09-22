@@ -249,6 +249,7 @@ export default function PivotTableChart(props: PivotTableProps) {
     columnFormats,
     currencyFormats,
     metricsLayout,
+    showValuesAs,
     metricColorFormatters,
     dateFormatters,
     onContextMenu,
@@ -754,6 +755,7 @@ export default function PivotTableChart(props: PivotTableProps) {
           namesMapping={verboseMap}
           onContextMenu={handleContextMenu}
           allowRenderHtml={allowRenderHtml}
+          showValuesAs={showValuesAs}
         />
       </PivotTableWrapper>
     </Styles>

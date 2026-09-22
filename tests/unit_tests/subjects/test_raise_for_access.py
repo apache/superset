@@ -31,6 +31,19 @@ def _make_sm():
     return SupersetSecurityManager.__new__(SupersetSecurityManager)
 
 
+def _make_slice(
+    *,
+    datasource_type: str = "table",
+    datasource_id: int = 1,
+    resolved_datasource=None,
+):
+    slc = MagicMock()
+    slc.datasource_type = datasource_type
+    slc.datasource_id = datasource_id
+    slc.resolved_datasource = resolved_datasource
+    return slc
+
+
 def _make_dashboard(
     *,
     published: bool = True,
@@ -44,9 +57,12 @@ def _make_dashboard(
     else:
         dashboard.viewers = []
     if has_datasources:
-        dashboard.datasources = [MagicMock()]
+        datasource = MagicMock()
+        dashboard.datasources = [datasource]
+        dashboard.slices = [_make_slice(resolved_datasource=datasource)]
     else:
         dashboard.datasources = []
+        dashboard.slices = []
     return dashboard
 
 
@@ -120,8 +136,8 @@ def test_raise_for_access_no_viewers_dataset_fallback(app_context):
         sm.raise_for_access(dashboard=dashboard)
 
 
-def test_raise_for_access_no_viewers_no_datasources_allows(app_context):
-    """Dashboard with no viewers and no datasources is allowed."""
+def test_raise_for_access_no_viewers_no_charts_allows(app_context):
+    """Dashboard with no viewers and no member charts is allowed."""
     sm = _make_sm()
     dashboard = _make_dashboard(
         published=True, has_viewers=False, has_datasources=False
@@ -351,6 +367,88 @@ def test_raise_for_access_datasource_chart_viewer_no_promiscuous_denies(
 
 
 # -- GetExploreCommand access check tests --
+
+
+# -- Query schema_access path tests --
+
+
+def test_raise_for_access_query_schema_access_non_author(app_context):
+    """A schema_access holder can explore another author's SQL Lab query.
+    Mirrors _authorize_datasource in superset/commands/explore/get.py,
+    which passes the Query under both ``query=`` and ``datasource=``.
+    """
+    from superset.models.sql_lab import Query
+    from superset.sql.parse import Table
+
+    sm = _make_sm()
+    database = MagicMock()
+    database.database_name = "examples"
+    database.get_default_catalog.return_value = None
+    database.get_default_schema_for_query.return_value = "main"
+    query = Query(sql="SELECT * FROM t1", schema="main", catalog=None, user_id=2)
+    object.__setattr__(query, "database", database)
+    query.status = "success"
+    query.id = 42
+
+    def schema_access_main_only(permission_name, view_name):
+        return permission_name == "schema_access" and view_name == "[examples].[main]"
+
+    parse_result = MagicMock()
+    parse_result.tables = {Table("t1", "main", None)}
+
+    with (
+        patch.object(sm, "can_access_all_datasources", return_value=False),
+        patch.object(sm, "can_access_all_databases", return_value=False),
+        patch.object(sm, "can_access", side_effect=schema_access_main_only),
+        patch.object(sm, "is_editor", return_value=False),
+        patch("superset.security.manager.get_user_id", return_value=999),
+        patch("superset.security.manager.process_jinja_sql", return_value=parse_result),
+    ):
+        sm.raise_for_access(
+            query=query,
+            datasource=query,
+            allow_query_authorship_bypass=True,
+        )
+
+
+def test_raise_for_access_query_schema_access_denied_ungranted_schema(app_context):
+    """A schema_access holder is denied when SQL references an ungranted schema."""
+    from superset.models.sql_lab import Query
+    from superset.sql.parse import Table
+
+    sm = _make_sm()
+    database = MagicMock()
+    database.database_name = "examples"
+    database.get_default_catalog.return_value = None
+    database.get_default_schema_for_query.return_value = "main"
+    query = Query(sql="SELECT * FROM t1", schema="main", catalog=None, user_id=2)
+    object.__setattr__(query, "database", database)
+    query.status = "success"
+    query.id = 42
+
+    parse_result = MagicMock()
+    # SQL touches a table in "other" schema, not the granted "main" schema.
+    parse_result.tables = {Table("t1", "other", None)}
+
+    with (
+        patch.object(sm, "can_access_all_datasources", return_value=False),
+        patch.object(sm, "can_access_all_databases", return_value=False),
+        patch.object(sm, "can_access", return_value=False),
+        patch.object(sm, "is_editor", return_value=False),
+        patch.object(sm, "get_table_access_error_object", return_value=MagicMock()),
+        patch(
+            "superset.connectors.sqla.models.SqlaTable.query_datasources_by_name",
+            return_value=[],
+        ),
+        patch("superset.security.manager.get_user_id", return_value=999),
+        patch("superset.security.manager.process_jinja_sql", return_value=parse_result),
+    ):
+        with pytest.raises(SupersetSecurityException):
+            sm.raise_for_access(
+                query=query,
+                datasource=query,
+                allow_query_authorship_bypass=True,
+            )
 
 
 def test_explore_command_uses_chart_access_when_slice_exists(app_context):

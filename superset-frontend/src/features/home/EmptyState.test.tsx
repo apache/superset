@@ -18,6 +18,10 @@
  */
 import { TableTab } from 'src/views/CRUD/types';
 import { render, screen } from 'spec/helpers/testing-library';
+import {
+  enableMobileConsumptionFlag,
+  mockMobileMatchMedia,
+} from 'spec/helpers/mobileTestUtils';
 import EmptyState, { EmptyStateProps } from './EmptyState';
 import { WelcomeTable } from './types';
 
@@ -90,6 +94,41 @@ describe('EmptyState', () => {
       expect(
         container.querySelector('.ant-empty-image')?.children,
       ).toHaveLength(1);
+    });
+  });
+
+  // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
+  describe('mobile consumption mode', () => {
+    let restoreMatchMedia: () => void;
+    let restoreFlag: () => void;
+
+    beforeEach(() => {
+      restoreMatchMedia = mockMobileMatchMedia();
+      restoreFlag = enableMobileConsumptionFlag();
+    });
+
+    afterEach(() => {
+      restoreMatchMedia();
+      restoreFlag();
+    });
+
+    test('withholds the creation action for a non-favorite tab', () => {
+      render(
+        <EmptyState tab={TableTab.Mine} tableName={WelcomeTable.Dashboards} />,
+      );
+
+      expect(screen.queryByRole('button')).not.toBeInTheDocument();
+    });
+
+    test('still offers the "See all ..." action for the favorite tab', () => {
+      render(
+        <EmptyState
+          tab={TableTab.Favorite}
+          tableName={WelcomeTable.Dashboards}
+        />,
+      );
+
+      expect(screen.getAllByRole('button')).toHaveLength(1);
     });
   });
 });

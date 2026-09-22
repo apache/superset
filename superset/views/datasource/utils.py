@@ -28,7 +28,11 @@ from superset.common.query_context_factory import QueryContextFactory
 from superset.common.utils.query_cache_manager import QueryCacheManager
 from superset.constants import CacheRegion
 from superset.daos.datasource import DatasourceDAO
-from superset.utils.core import extract_dataframe_dtypes, QueryStatus
+from superset.utils.core import (
+    apply_max_row_limit,
+    extract_dataframe_dtypes,
+    QueryStatus,
+)
 from superset.views.datasource.schemas import SamplesPayloadSchema
 
 if TYPE_CHECKING:
@@ -45,9 +49,11 @@ def get_limit_clause(page: Optional[int], per_page: Optional[int]) -> dict[str, 
 
     if isinstance(page, int) and isinstance(per_page, int):
         limit = int(per_page)
-        if limit < 0 or limit > samples_row_limit:
+        if limit < 0:
             # reset limit value if input is invalid
             limit = samples_row_limit
+        elif limit:
+            limit = apply_max_row_limit(limit)
 
         offset = max((int(page) - 1) * limit, 0)
 

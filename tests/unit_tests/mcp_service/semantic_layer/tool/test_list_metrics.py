@@ -22,17 +22,28 @@ from __future__ import annotations
 import contextlib
 import importlib
 from collections.abc import Generator
-from types import ModuleType
+from types import MethodType, ModuleType
 from typing import Any
 from unittest.mock import call, MagicMock, Mock, patch
 
+import pyarrow as pa
 import pytest
 from fastmcp import Client, FastMCP
 from fastmcp.exceptions import ToolError
+from pydantic import ValidationError
+from superset_core.semantic_layers.types import Dimension, Grains
 
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetSecurityException
 from superset.mcp_service.app import mcp
+from superset.mcp_service.constants import DEFAULT_MAX_RESPONSE_BYTES
+from superset.mcp_service.middleware import (
+    create_response_size_guard_middleware,
+    ResponseSizeGuardMiddleware,
+)
+from superset.mcp_service.semantic_layer.schemas import ListMetricsRequest
+from superset.mcp_service.utils.response_size_utils import get_response_size_bytes
+from superset.semantic_layers.models import SemanticView
 from superset.utils import json
 
 list_metrics_module: ModuleType = importlib.import_module(
@@ -103,6 +114,143 @@ def _make_view(view_id: int = 5) -> MagicMock:
     view.columns = [_make_column("listing__country_name"), _make_column("channel")]
     view.get_compatible_dimensions = MagicMock(return_value=["listing__country_name"])
     return view
+
+
+@pytest.fixture
+def large_metric_catalog() -> Generator[MagicMock, None, None]:
+    """Expose a large catalog through the real dimension-name projection."""
+    view: MagicMock = _make_view(5)
+    view.metrics = [_make_metric(f"metric_{i}") for i in range(60)]
+    view.columns = [_make_column(f"dimension_{i}") for i in range(40)]
+    dimensions: set[Dimension] = {
+        Dimension(
+            id=f"dimension_{i}",
+            name=f"dimension_{i}",
+            type=pa.timestamp("us"),
+            definition=f"dimension_{i}",
+            grain=grain,
+        )
+        for i in range(40)
+        for grain in (
+            Grains.HOUR,
+            Grains.DAY,
+            Grains.WEEK,
+            Grains.MONTH,
+            Grains.QUARTER,
+            Grains.YEAR,
+        )
+    }
+    view.implementation.get_dimensions.return_value = dimensions
+    view.implementation.get_metrics.return_value = []
+    view.implementation.get_compatible_dimensions.return_value = dimensions
+    view.get_compatible_dimensions.side_effect = MethodType(
+        SemanticView.get_compatible_dimensions, view
+    )
+    dataset: MagicMock = _make_dataset(1)
+    dataset.metrics = [_make_metric(f"builtin_{i}") for i in range(20)]
+    dataset.columns = [_make_column(f"column_{i}") for i in range(30)]
+    view_dao: MagicMock
+    with _patched_dataset_search([dataset]) as (_, view_dao, _):
+        view_dao.find_accessible.return_value = [view]
+        view_dao.find_by_id.return_value = view
+        yield view
+
+
+@pytest.mark.asyncio
+async def test_list_metrics_default_page_byte_bound(
+    mcp_server: FastMCP,
+    large_metric_catalog: MagicMock,
+) -> None:
+    """Default discovery leaves size headroom without embedded dimensions."""
+    async with Client(mcp_server) as client:
+        data: dict[str, Any] = json.loads(
+            (await client.call_tool("list_metrics", {})).content[0].text
+        )
+    assert data["success"] is True
+    assert data["total_count"] == 80
+    assert get_response_size_bytes(data) <= DEFAULT_MAX_RESPONSE_BYTES // 2
+    assert data["page_size"] == 25
+    assert len(data["metrics"]) == 25
+    assert all(metric["compatible_dimensions"] == [] for metric in data["metrics"])
+    large_metric_catalog.get_compatible_dimensions.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_list_metrics_embedded_page_byte_bound(
+    mcp_server: FastMCP,
+    large_metric_catalog: MagicMock,
+) -> None:
+    """The largest embedded page fits after grain variants are collapsed."""
+    async with Client(mcp_server) as client:
+        data: dict[str, Any] = json.loads(
+            (
+                await client.call_tool(
+                    "list_metrics",
+                    {
+                        "request": {
+                            "view_id": 5,
+                            "include_compatible_dimensions": True,
+                            "page_size": 4,
+                        }
+                    },
+                )
+            )
+            .content[0]
+            .text
+        )
+    assert data["success"] is True
+    assert len(data["metrics"]) == data["page_size"] == 4
+    assert data["total_count"] == 60
+    metric: dict[str, Any]
+    for metric in data["metrics"]:
+        assert len(metric["compatible_dimensions"]) == 40
+        assert len({dim["name"] for dim in metric["compatible_dimensions"]}) == 40
+    assert get_response_size_bytes(data) < DEFAULT_MAX_RESPONSE_BYTES
+
+
+@pytest.mark.asyncio
+async def test_list_metrics_embedded_page_over_cap_rejected(
+    mcp_server: FastMCP,
+) -> None:
+    """Oversized embedded pages fail validation with a recovery suggestion."""
+    async with Client(mcp_server) as client:
+        with pytest.raises(ToolError, match="get_compatible_dimensions"):
+            await client.call_tool(
+                "list_metrics",
+                {
+                    "request": {
+                        "include_compatible_dimensions": True,
+                        "page_size": 9,
+                    }
+                },
+            )
+
+
+@pytest.mark.parametrize("max_bytes", [10000, 50000])
+def test_embedding_cap_is_independent_of_configured_max_bytes(
+    max_bytes: int,
+) -> None:
+    """The guard honors overrides without changing the fixed embedding cap."""
+    app: MagicMock = MagicMock()
+    app.config = {"MCP_RESPONSE_SIZE_CONFIG": {"max_bytes": max_bytes}}
+    with patch("superset.mcp_service.flask_singleton.get_flask_app", return_value=app):
+        guard: ResponseSizeGuardMiddleware | None = (
+            create_response_size_guard_middleware()
+        )
+    assert guard is not None
+    assert guard.max_bytes == max_bytes
+    assert (
+        ListMetricsRequest(include_compatible_dimensions=True, page_size=4).page_size
+        == 4
+    )
+    error: pytest.ExceptionInfo[ValidationError]
+    with pytest.raises(ValidationError) as error:
+        ListMetricsRequest(include_compatible_dimensions=True, page_size=5)
+    message: str = str(error.value)
+    assert "MCP_RESPONSE_SIZE_CONFIG['max_bytes']" in message
+    assert "50k by default" in message
+    assert "page_size <= 4" in message
+    assert "get_compatible_dimensions" in message
 
 
 def _access_denied_exc(message: str = "Access denied") -> SupersetSecurityException:
@@ -290,7 +438,13 @@ async def test_list_metrics_external_per_metric_compatible_dimensions(
         async with Client(mcp_server) as client:
             result = await client.call_tool(
                 "list_metrics",
-                {"request": {"view_id": 5, "include_compatible_dimensions": True}},
+                {
+                    "request": {
+                        "view_id": 5,
+                        "include_compatible_dimensions": True,
+                        "page_size": 4,
+                    }
+                },
             )
         data = json.loads(result.content[0].text)
 
@@ -474,6 +628,83 @@ async def test_list_metrics_page_size_over_max_rejected(mcp_server: FastMCP) -> 
     async with Client(mcp_server) as client:
         with pytest.raises(ToolError, match="less than or equal to 500"):
             await client.call_tool("list_metrics", {"request": {"page_size": 501}})
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("page_size", [9, 25, 500])
+async def test_builtin_embedded_metrics_reject_oversized_pages(
+    mcp_server: FastMCP, page_size: int
+) -> None:
+    """Dataset scoping must not bypass the embedded page cap."""
+    mock_ds: MagicMock = _make_dataset(42)
+    with _patched_dataset_lookup(mock_ds):
+        async with Client(mcp_server) as client:
+            with pytest.raises(ToolError, match="page_size <= 4"):
+                await client.call_tool(
+                    "list_metrics",
+                    {
+                        "request": {
+                            "dataset_id": 42,
+                            "page_size": page_size,
+                            "include_compatible_dimensions": True,
+                        }
+                    },
+                )
+
+
+@pytest.mark.asyncio
+async def test_builtin_embedded_metrics_realistic_byte_bound(
+    mcp_server: FastMCP,
+) -> None:
+    """Twenty metrics with thirty columns require bounded, lossless pages."""
+    dataset: MagicMock = _make_dataset(42)
+    dataset.metrics = [_make_metric(f"builtin_{i}") for i in range(20)]
+    dataset.columns = [_make_column(f"column_{i}") for i in range(30)]
+    names: list[str] = []
+    page: int
+    metric: dict[str, Any]
+    with _patched_dataset_lookup(dataset):
+        async with Client(mcp_server) as client:
+            with pytest.raises(ToolError, match="page_size <= 4"):
+                await client.call_tool(
+                    "list_metrics",
+                    {
+                        "request": {
+                            "dataset_id": 42,
+                            "include_compatible_dimensions": True,
+                        }
+                    },
+                )
+            for page in (1, 2, 3, 4, 5):
+                result: Any = await client.call_tool(
+                    "list_metrics",
+                    {
+                        "request": {
+                            "dataset_id": 42,
+                            "include_compatible_dimensions": True,
+                            "page_size": 4,
+                            "page": page,
+                        }
+                    },
+                )
+                data: dict[str, Any] = json.loads(result.content[0].text)
+                assert data["success"] is True
+                assert data["total_count"] == 20
+                assert data["total_pages"] == 5
+                assert data["page_size"] == 4
+                assert len(data["metrics"]) == 4
+                assert get_response_size_bytes(data) < DEFAULT_MAX_RESPONSE_BYTES
+                for metric in data["metrics"]:
+                    assert len(metric["compatible_dimensions"]) == 30
+                    names.append(metric["name"])
+    assert len(names) == len(set(names)) == 20
+
+
+@pytest.mark.parametrize("scope", [{}, {"view_id": 42}])
+def test_external_embedded_metrics_retain_page_ceiling(scope: dict[str, int]) -> None:
+    """Unscoped and view-scoped requests can carry external dimensions."""
+    with pytest.raises(ValidationError, match="page_size <= 4"):
+        ListMetricsRequest(**scope, include_compatible_dimensions=True, page_size=9)
 
 
 @pytest.mark.asyncio

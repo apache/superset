@@ -102,7 +102,7 @@ test('Popover shows cross-filtering option on by default', async () => {
   const settingsButton = screen.getByRole('button', {
     name: 'setting',
   });
-  userEvent.click(settingsButton);
+  await userEvent.click(settingsButton);
   expect(screen.getByText('Enable cross-filtering')).toBeInTheDocument();
   expect(screen.getByRole('checkbox')).toBeChecked();
 });
@@ -120,13 +120,13 @@ test('Can enable/disable cross-filtering', async () => {
   const settingsButton = screen.getByRole('button', {
     name: 'setting',
   });
-  userEvent.click(settingsButton);
+  await userEvent.click(settingsButton);
   const initialCheckbox = screen.getByRole('checkbox');
   expect(initialCheckbox).toBeChecked();
 
-  userEvent.click(initialCheckbox);
+  await userEvent.click(initialCheckbox);
 
-  userEvent.click(screen.getByLabelText('setting'));
+  await userEvent.click(screen.getByLabelText('setting'));
   expect(screen.getByRole('checkbox')).not.toBeChecked();
 });
 
@@ -135,8 +135,8 @@ test('Popover opens with "Vertical" selected', async () => {
   const settingsButton = screen.getByRole('button', {
     name: 'setting',
   });
-  userEvent.click(settingsButton);
-  userEvent.hover(screen.getByText('Orientation of filter bar'));
+  await userEvent.click(settingsButton);
+  await userEvent.hover(screen.getByText('Orientation of filter bar'));
   expect(await screen.findByText('Vertical (Left)')).toBeInTheDocument();
   expect(screen.getByText('Horizontal (Top)')).toBeInTheDocument();
 
@@ -151,8 +151,8 @@ test('Popover opens with "Horizontal" selected', async () => {
   const settingsButton = screen.getByRole('button', {
     name: 'setting',
   });
-  userEvent.click(settingsButton);
-  userEvent.hover(screen.getByText('Orientation of filter bar'));
+  await userEvent.click(settingsButton);
+  await userEvent.hover(screen.getByText('Orientation of filter bar'));
   expect(await screen.findByText('Vertical (Left)')).toBeInTheDocument();
   expect(screen.getByText('Horizontal (Top)')).toBeInTheDocument();
 
@@ -177,18 +177,18 @@ test('On selection change, send request and update checked value', async () => {
   const settingsButton = screen.getByRole('button', {
     name: 'setting',
   });
-  userEvent.click(settingsButton);
-  userEvent.hover(screen.getByText('Orientation of filter bar'));
+  await userEvent.click(settingsButton);
+  await userEvent.hover(screen.getByText('Orientation of filter bar'));
 
   const verticalItem = await screen.findByText('Vertical (Left)');
   expect(
     within(verticalItem.closest('li')!).getByLabelText('Selected'),
   ).toBeInTheDocument();
 
-  userEvent.click(screen.getByText('Horizontal (Top)'));
+  await userEvent.click(screen.getByText('Horizontal (Top)'));
 
-  userEvent.click(settingsButton);
-  userEvent.hover(screen.getByText('Orientation of filter bar'));
+  await userEvent.click(settingsButton);
+  await userEvent.hover(screen.getByText('Orientation of filter bar'));
 
   const horizontalItem = await screen.findByText('Horizontal (Top)');
   expect(
@@ -206,9 +206,9 @@ test('On selection change, send request and update checked value', async () => {
     ),
   );
 
-  await waitFor(() => {
-    userEvent.click(screen.getByRole('button', { name: 'setting' }));
-    userEvent.hover(screen.getByText('Orientation of filter bar'));
+  await waitFor(async () => {
+    await userEvent.click(screen.getByRole('button', { name: 'setting' }));
+    await userEvent.hover(screen.getByText('Orientation of filter bar'));
     const updatedHorizontalItem = screen.getByText('Horizontal (Top)');
     expect(
       within(updatedHorizontalItem.closest('li')!).getByLabelText('Selected'),
@@ -230,10 +230,10 @@ test('On failed request, restore previous selection', async () => {
   await setup();
   const SettingsIcon = screen.getByRole('img', { name: /setting/i });
 
-  userEvent.click(SettingsIcon);
+  await userEvent.click(SettingsIcon);
 
   const orientationMenu = await screen.findByText('Orientation of filter bar');
-  userEvent.hover(orientationMenu);
+  await userEvent.hover(orientationMenu);
 
   // Wait for menu items to be visible
   const verticalItem = await screen.findByText('Vertical (Left)');
@@ -248,7 +248,7 @@ test('On failed request, restore previous selection', async () => {
   ).not.toBeInTheDocument();
 
   // Click horizontal option
-  userEvent.click(horizontalItem);
+  await userEvent.click(horizontalItem);
 
   // Verify error toast
   await waitFor(() => {
@@ -258,8 +258,8 @@ test('On failed request, restore previous selection', async () => {
   });
 
   // Reopen menu and verify selection rolled back
-  userEvent.click(SettingsIcon);
-  userEvent.hover(orientationMenu);
+  await userEvent.click(SettingsIcon);
+  await userEvent.hover(orientationMenu);
 
   // Wait for menu items and verify state
   await waitFor(() => {

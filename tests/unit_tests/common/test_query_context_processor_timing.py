@@ -52,6 +52,7 @@ def _processor() -> QueryContextProcessor:
     query_context.form_data = {}
     query_context.cache_values = {"queries": [{}]}
     query_context.queries = [_query_obj()]
+    query_context.prepare_contribution_totals.return_value = ([], None)
 
     processor = QueryContextProcessor.__new__(QueryContextProcessor)
     processor._query_context = query_context
@@ -232,9 +233,6 @@ def test_get_payload_preserves_legacy_shape_without_timing() -> None:
     query_payload = {"data": [{"col1": 1}]}
 
     with (
-        patch.object(
-            processor, "_prepare_contribution_totals", return_value=([], None)
-        ),
         patch(
             "superset.common.query_context_processor.get_query_results_with_timing",
             return_value=QueryDataResult(query_payload, _query_timing()),
@@ -251,9 +249,6 @@ def test_get_payload_result_keeps_timing_sidecar() -> None:
     query_payload = {"data": [{"col1": 1}]}
 
     with (
-        patch.object(
-            processor, "_prepare_contribution_totals", return_value=([], None)
-        ),
         patch(
             "superset.common.query_context_processor.get_query_results_with_timing",
             return_value=QueryDataResult(query_payload, _query_timing()),

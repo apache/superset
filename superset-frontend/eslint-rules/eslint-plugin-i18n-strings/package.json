@@ -1,10 +1,11 @@
 {
-  "name": "eslint-plugin-i18n-strings",
+  "name": "@superset-ui/eslint-plugin-i18n-strings",
   "version": "1.0.0",
   "description": "Warns about translation variables",
   "keywords": [],
   "license": "Apache-2.0",
   "author": "Apache",
+  "type": "module",
   "main": "index.ts",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"

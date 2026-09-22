@@ -19,6 +19,7 @@
 
 from __future__ import annotations
 
+import ast
 import builtins
 import copy
 import dataclasses
@@ -40,6 +41,7 @@ from typing import (
     TypedDict,
     Union,
 )
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 import dateutil.parser
 import humanize
@@ -56,7 +58,7 @@ from flask_appbuilder.security.sqla.models import User
 from flask_babel import get_locale, lazy_gettext as _
 from jinja2.exceptions import TemplateError, UndefinedError
 from markupsafe import escape, Markup
-from pandas import DateOffset
+from pandas import DateOffset, Timedelta
 from sqlalchemy import and_, Column, or_, UniqueConstraint
 from sqlalchemy.exc import MultipleResultsFound
 from sqlalchemy.ext.hybrid import hybrid_property
@@ -78,7 +80,6 @@ from superset import db, is_feature_enabled
 from superset.advanced_data_type.types import AdvancedDataTypeResponse
 from superset.common.db_query_status import QueryStatus
 from superset.common.grouping_sets import (
-    grouping_id_column,
     grouping_marker_label,
     grouping_sets_clause,
 )
@@ -106,11 +107,14 @@ from superset.exceptions import (
     SupersetDisallowedSQLTableException,
     SupersetErrorException,
     SupersetErrorsException,
+    SupersetParseError,
     SupersetSecurityException,
     SupersetSyntaxErrorException,
+    SupersetTemplateException,
 )
 from superset.extensions import feature_flag_manager
 from superset.jinja_context import BaseTemplateProcessor
+from superset.sql.metric_normalization import normalize_custom_metric
 from superset.sql.parse import has_aggregate, sanitize_clause, SQLScript, SQLStatement
 from superset.superset_typing import (
     AdhocColumn,
@@ -128,6 +132,7 @@ from superset.utils.core import (
     DTTM_ALIAS,
     FilterOperator,
     GenericDataType,
+    get_base_axis_columns,
     get_base_axis_labels,
     get_column_name,
     get_column_names,
@@ -151,7 +156,7 @@ from superset.utils.date_parser import (
     TimeDeltaAmbiguousError,
 )
 from superset.utils.dates import datetime_to_epoch
-from superset.utils.rls import apply_rls
+from superset.utils.rls import apply_rls, get_predicates_for_table
 
 
 class ValidationResultDict(TypedDict):
@@ -175,8 +180,75 @@ SERIES_LIMIT_SUBQ_ALIAS = "series_limit"
 # Offset join column suffix used for joining offset results
 OFFSET_JOIN_COLUMN_SUFFIX = "__offset_join_column_"
 
+
+def get_effective_hours_offset(
+    db_engine_spec: type["BaseEngineSpec"],
+    column_type: str | None,
+    offset_hours: int,
+    db_extra: dict[str, Any] | None = None,
+) -> int:
+    """Return the dataset offset representable by a temporal column's type."""
+    sqla_type = db_engine_spec.get_sqla_column_type(column_type, db_extra=db_extra)
+    if isinstance(sqla_type, sa.Date):
+        # int() deliberately truncates toward zero; // would turn -1h into -24h.
+        return int(offset_hours / 24) * 24
+    return offset_hours
+
+
 # Right suffix used for joining offset results
 R_SUFFIX = "__right_suffix"
+
+
+def build_like_predicate(
+    expr: ColumnElement[Any],
+    search: str,
+) -> ColumnElement[Any]:
+    """
+    Build a case-insensitive containment predicate for ``expr``.
+
+    Uses ``contains(..., autoescape=True)`` rather than a raw ``LIKE ...
+    ESCAPE`` clause because BigQuery's GoogleSQL dialect has no ESCAPE
+    keyword and rejects it outright; ``contains()`` lets each dialect's
+    compiler render wildcard-escaping in its own supported syntax (BigQuery's
+    compiler swaps in backslash-escaping instead of an ESCAPE clause).
+
+    ``lower(expr) LIKE lower('%term%')`` is used rather than ``ILIKE`` because
+    the latter is not portable across engines.
+    """
+    return sa.func.lower(expr).contains(search.lower(), autoescape=True)
+
+
+def _is_parenthesized(sqla_col: ColumnElement) -> bool:
+    """
+    Return ``True`` when ``sqla_col`` is already wrapped in a ``Grouping``.
+
+    Calculated columns are parenthesized at the converter level
+    (``Grouping(literal_column(...))``), optionally behind a ``Label``. This
+    guards the filter-loop wrap below from adding a redundant second
+    ``Grouping`` (``((expr))``) for adhoc columns that reference a saved
+    calculated column.
+    """
+    return isinstance(sqla_col, Grouping) or (
+        isinstance(sqla_col, Label) and isinstance(sqla_col.element, Grouping)
+    )
+
+
+def _normalize_mssql_virtual_dataset_sql(
+    sql: str, parsed_script: SQLScript, engine: str
+) -> str:
+    """Remove SQL Server ordering that is invalid inside a derived table."""
+    if engine != "mssql" or not parsed_script.statements:
+        return sql
+
+    statement = parsed_script.statements[0]
+    if not isinstance(statement, SQLStatement):
+        return sql
+
+    return (
+        parsed_script.format()
+        if statement.remove_unbounded_top_level_order_by()
+        else sql
+    )
 
 
 def _as_wall_clock(series: pd.Series) -> pd.Series:
@@ -187,6 +259,189 @@ def _as_wall_clock(series: pd.Series) -> pd.Series:
     if isinstance(series.dtype, pd.DatetimeTZDtype):
         return series.dt.tz_localize(None)
     return series
+
+
+class _TemporalColumnMetadata(NamedTuple):
+    """Temporal metadata resolved from a physical dataset column."""
+
+    is_temporal: bool = False
+    python_date_format: str | None = None
+
+
+def _get_temporal_physical_column_metadata(
+    datasource: Any, column_name: str | None
+) -> _TemporalColumnMetadata:
+    """Resolve temporal metadata using the physical column's precedence rules."""
+    if not column_name or not hasattr(datasource, "get_column"):
+        return _TemporalColumnMetadata()
+    column = datasource.get_column(column_name.strip())
+    if not column:
+        return _TemporalColumnMetadata()
+    if isinstance(column, dict):
+        declared_is_dttm = column.get("is_dttm")
+        is_temporal = (
+            bool(declared_is_dttm)
+            if declared_is_dttm is not None
+            else column.get("type_generic") == GenericDataType.TEMPORAL
+        )
+        python_date_format = column.get("python_date_format")
+    else:
+        is_temporal_property = getattr(column, "is_temporal", None)
+        if is_temporal_property is not None:
+            is_temporal = bool(is_temporal_property)
+        else:
+            declared_is_dttm = getattr(column, "is_dttm", None)
+            is_temporal = (
+                bool(declared_is_dttm)
+                if declared_is_dttm is not None
+                else getattr(column, "type_generic", None) == GenericDataType.TEMPORAL
+            )
+        python_date_format = getattr(column, "python_date_format", None)
+    return _TemporalColumnMetadata(
+        is_temporal=is_temporal,
+        python_date_format=(str(python_date_format) if python_date_format else None),
+    )
+
+
+def _temporal_axis_parse_error(column_name: str) -> QueryObjectValidationError:
+    """Build the user-facing error for an unparseable temporal join axis."""
+    return QueryObjectValidationError(
+        _(
+            "Unable to align time comparison because temporal axis "
+            "'%(column)s' contains values that cannot be parsed as datetimes. "
+            "Update the column's datetime format or choose a valid temporal "
+            "column.",
+            column=column_name,
+        )
+    )
+
+
+def _apply_temporal_join_format(
+    series: pd.Series,
+    column_name: str,
+    datetime_format: str | None,
+) -> pd.Series:
+    """Apply a dataset column's declared datetime format to working values."""
+    if not datetime_format:
+        return series
+    working_df = pd.DataFrame({column_name: series.copy()})
+    normalize_dttm_col(
+        working_df,
+        (
+            DateColumn(
+                col_label=column_name,
+                timestamp_format=datetime_format,
+            ),
+        ),
+    )
+    return working_df[column_name]
+
+
+def _parse_temporal_join_values(series: pd.Series, column_name: str) -> pd.Series:
+    """Parse working temporal values and wrap pandas parser-policy errors."""
+    if pd.api.types.is_datetime64_any_dtype(series):
+        return series
+    try:
+        return pd.to_datetime(series, errors="coerce", format="mixed")
+    except (TypeError, ValueError) as ex:
+        raise _temporal_axis_parse_error(column_name) from ex
+
+
+def _retry_temporal_join_values_at_wider_resolution(
+    series: pd.Series,
+    column_name: str,
+    datetime_format: str | None,
+) -> pd.Series:
+    """Retry valid values outside pandas' nanosecond datetime range."""
+    resolution = "ms" if datetime_format == "epoch_ms" else "s"
+    try:
+        if datetime_format and datetime_format not in {"epoch_s", "epoch_ms"}:
+            parsed_values = [
+                datetime.strptime(str(value), datetime_format)
+                if pd.notna(value)
+                else None
+                for value in series
+            ]
+        else:
+            parsed_values = series
+        converted = pd.Series(
+            pd.array(parsed_values, dtype=f"datetime64[{resolution}]"),
+            index=series.index,
+            name=series.name,
+        )
+    except (OverflowError, TypeError, ValueError) as ex:
+        raise _temporal_axis_parse_error(column_name) from ex
+    if (series.notna() & converted.isna()).any():
+        raise _temporal_axis_parse_error(column_name)
+    return converted
+
+
+def _coerce_temporal_join_series(
+    series: pd.Series,
+    column_name: str,
+    datetime_format: str | None = None,
+) -> pd.Series:
+    """Parse a temporal join series losslessly and normalize it to wall clocks."""
+    if series.isna().all():
+        return series
+
+    converted = _apply_temporal_join_format(series, column_name, datetime_format)
+    converted = _parse_temporal_join_values(converted, column_name)
+    if (series.notna() & converted.isna()).any():
+        converted = _retry_temporal_join_values_at_wider_resolution(
+            series, column_name, datetime_format
+        )
+
+    if isinstance(converted.dtype, pd.DatetimeTZDtype):
+        return converted.dt.tz_localize(None)
+    if pd.api.types.is_datetime64_any_dtype(converted):
+        return converted
+
+    def as_wall_clock(value: Any) -> pd.Timestamp:
+        if pd.isna(value):
+            return pd.NaT
+        timestamp = pd.Timestamp(value)
+        return timestamp.tz_localize(None) if timestamp.tzinfo else timestamp
+
+    return converted.map(as_wall_clock)
+
+
+def _has_multiple_utc_offsets(series: pd.Series) -> bool:
+    """Return whether every value is timezone-aware and offsets differ."""
+    utc_offsets: set[timedelta | None] = set()
+    for value in series.dropna():
+        try:
+            timestamp = pd.Timestamp(value)
+        except (TypeError, ValueError):
+            return False
+        if timestamp.tzinfo is None:
+            return False
+        utc_offsets.add(timestamp.utcoffset())
+    return len(utc_offsets) > 1
+
+
+def _shift_grainless_temporal_source(
+    source: pd.Series,
+    offset: str,
+    delta: DateOffset | None,
+) -> pd.Series:
+    """Shift a temporal join source after validating free-form anchors."""
+    if delta is None and not is_constant_human_timedelta(offset):
+        raise QueryObjectValidationError(
+            _("Time Grain must be specified when using Time Comparison.")
+        )
+    if source.isna().all():
+        return source.map(lambda value: pd.NaT)
+    if delta is not None:
+        return source + delta
+
+    def shift(value: pd.Timestamp) -> pd.Timestamp:
+        if pd.isna(value):
+            return value
+        truncated = value.floor("s").to_pydatetime()
+        return value + (get_past_or_future(offset, truncated) - truncated)
+
+    return source.map(shift)
 
 
 class CachedTimeOffset(TypedDict):
@@ -265,6 +520,124 @@ def validate_adhoc_subquery(
     return parsed_statement.format() if rls_applied else sql
 
 
+def validate_stored_expression_at_query_time(
+    expression: str,
+    database: Database,
+    catalog: str | None,
+    schema: str | None,
+    engine: str,
+) -> str:
+    """
+    Validate a stored column/metric expression at the point of use, applying the
+    same sub-query policy and RLS injection as adhoc expressions. Only the
+    dataset update path validates on save; v1 import
+    (``superset/commands/dataset/importers/v1/``) and dataset duplication
+    (``superset/commands/dataset/duplicate.py``) persist expressions as-is, and
+    rows written before the save-time check was added were never validated at
+    all. Jinja templating also rewrites the expression after save. The query
+    sink is therefore the reliable place to enforce the policy.
+
+    A parse failure is ambiguous: the expression may use dialect-specific syntax
+    sqlglot cannot handle (e.g. ``DATE_ADD(ds, 1)`` on MySQL), it may be a
+    fragment that only parses inside a select list (``DISTINCT <expr>``), or it
+    may be unparseable precisely because something was appended to it. Before
+    falling back to the raw expression, the synthetic ``SELECT <expr>`` form and
+    the permissive dialect are used as detectors, so a sub-query or a second
+    statement sitting next to benign-but-unparseable syntax is still caught.
+    Only when no detector can parse the expression is validation skipped (and
+    logged), matching the pre-gate behaviour for such expressions.
+
+    A disallowed sub-query is surfaced as ``QueryObjectValidationError`` (a
+    chart-level 400) to match the adhoc sinks, rather than a raw 403.
+    """
+    default_schema = schema or ""
+    try:
+        return validate_adhoc_subquery(
+            expression, database, catalog, default_schema, engine
+        )
+    except SupersetSecurityException as ex:
+        raise QueryObjectValidationError(ex.message) from ex
+    except SupersetParseError:
+        pass
+
+    # The detector passes below are detection only: the SQL they return is
+    # discarded rather than returned, since it is wrapped and may be in the wrong
+    # dialect. RLS injection is therefore not applied here, matching how such
+    # expressions reached the query before this check existed.
+    wrapped = f"SELECT {expression}"
+    for dialect in (engine, "base"):
+        try:
+            if len(SQLScript(wrapped, dialect).statements) > 1:
+                raise QueryObjectValidationError(
+                    _("Custom SQL fields cannot be parsed as a single SQL statement.")
+                )
+            validate_adhoc_subquery(wrapped, database, catalog, default_schema, dialect)
+        except SupersetParseError:
+            continue
+        except SupersetSecurityException as ex:
+            raise QueryObjectValidationError(ex.message) from ex
+        return expression
+
+    logger.warning("Skipping query-time validation of unparseable stored expression")
+    return expression
+
+
+def validate_rendered_expression(
+    expression: str,
+    database: Database,
+    catalog: str | None,
+    schema: str | None,
+) -> str:
+    """
+    Apply the stored-expression validation policy to a rendered expression.
+
+    Query-time counterpart to ``validate_stored_expression``: it runs on the
+    already-rendered expression that is embedded via ``literal_column`` and
+    applies the same policy, failing closed on unparseable results.
+
+    :param expression: the rendered expression
+    :returns: the expression to embed, possibly rewritten with RLS predicates
+    :raises QueryObjectValidationError: on multi-statement, set-operation,
+        disallowed sub-query, or sanitization failures -- matching the
+        ``QueryObjectValidationError`` contract callers already expect from
+        ``validate_stored_expression_at_query_time``, rather than letting a
+        raw ``SupersetSecurityException`` escape uncaught.
+    """
+    engine = database.backend
+    wrapped = f"SELECT {expression}"
+
+    try:
+        parsed = SQLStatement(wrapped, engine)
+    except SupersetParseError as ex:
+        raise QueryObjectValidationError(
+            _("Custom SQL fields cannot be parsed as a single SQL statement.")
+        ) from ex
+
+    if parsed.is_set_operation():
+        raise QueryObjectValidationError(
+            _("Custom SQL fields cannot contain set operations.")
+        )
+
+    try:
+        wrapped = validate_adhoc_subquery(
+            wrapped, database, catalog, schema or "", engine
+        )
+    except SupersetSecurityException as ex:
+        raise QueryObjectValidationError(ex.message) from ex
+    try:
+        wrapped = sanitize_clause(wrapped, engine)
+    except QueryClauseValidationException as ex:
+        raise QueryObjectValidationError(ex.message) from ex
+
+    prefix, expression = re.split(
+        r"SELECT\s+",
+        wrapped,
+        maxsplit=1,
+        flags=re.IGNORECASE,
+    )
+    return expression.strip()
+
+
 def json_to_dict(json_str: str) -> dict[Any, Any]:
     if json_str:
         val = re.sub(",[ \t\r\n]+}", "}", json_str)
@@ -277,6 +650,52 @@ def json_to_dict(json_str: str) -> dict[Any, Any]:
 UUID_NATIVE_TYPE_RE: re.Pattern[str] = re.compile(
     r"\b(uuid|uniqueidentifier)\b", re.IGNORECASE
 )
+
+
+def parse_array_literal(value: Any) -> list[Any]:
+    """
+    Parse a user-entered array literal (e.g. ``['a', 'b']`` or ``[1, 2]``) into a
+    list of elements, for the whole-array (column-level) array operators.
+
+    Accepts either an actual list/tuple, a bracketed literal string (parsed with
+    ``ast.literal_eval``), or a plain scalar (wrapped into a single-element list).
+    Falls back to a single-element list when the string is not a valid literal.
+    """
+    if isinstance(value, (list, tuple)):
+        return list(value)
+    if isinstance(value, str):
+        stripped = value.strip()
+        if stripped.startswith("[") and stripped.endswith("]"):
+            try:
+                parsed = ast.literal_eval(stripped)
+            except (ValueError, SyntaxError):
+                parsed = None
+            if isinstance(parsed, (list, tuple)):
+                return list(parsed)
+    return [value]
+
+
+def coerce_array_values(
+    values: list[Any], element_type: Optional[utils.GenericDataType]
+) -> list[Any]:
+    """
+    Coerce array-element ``values`` to the array column's element type so the
+    emitted literal matches the column. Array columns map to a SQLAlchemy
+    ``String`` type, so values arrive as strings and would otherwise build
+    string literals (e.g. ``array('5')``) that fail against a numeric array on
+    the server. Numeric elements are cast to numbers and boolean elements to
+    booleans; every other element type (string, temporal, enum, unknown) is left
+    untouched.
+
+    :param values: element values entered for an array filter
+    :param element_type: the array's element :class:`GenericDataType`, or None
+    :return: the coerced values
+    """
+    if element_type == utils.GenericDataType.NUMERIC:
+        return [utils.cast_to_num(v) if isinstance(v, str) else v for v in values]
+    if element_type == utils.GenericDataType.BOOLEAN:
+        return [utils.cast_to_boolean(v) if isinstance(v, str) else v for v in values]
+    return values
 
 
 def is_uuid_native_type(native_type: Optional[str]) -> bool:
@@ -367,6 +786,27 @@ class UUIDMixin:  # pylint: disable=too-few-public-methods
     @property
     def short_uuid(self) -> str:
         return str(self.uuid)[:8]
+
+
+class ChildMultipleResultsFound(MultipleResultsFound):
+    """
+    An ambiguous lookup raised while importing a *child* object.
+
+    ``ImportExportMixin.import_from_dict`` matches an incoming payload against
+    existing rows with a disjunction (unique-constraint match OR uuid match), so
+    a single payload entry can match two different DB rows — one by name and one
+    by uuid. When that happens for a top-level object it is raised before any
+    mutation, and callers may legitimately recover by skipping or returning the
+    existing row (see ``superset/commands/importers/v1/examples.py``).
+
+    When it happens for a *child* (``parent is not None``) the parent's fields
+    have already been updated and earlier siblings have already been imported,
+    so recovering by "returning the existing row" would report success over a
+    half-applied import. This subclass lets callers tell the two cases apart and
+    abort the transaction for the child case. It intentionally subclasses
+    ``MultipleResultsFound`` so existing ``except MultipleResultsFound`` handlers
+    keep working.
+    """
 
 
 class ImportExportMixin(UUIDMixin):
@@ -506,7 +946,32 @@ class ImportExportMixin(UUIDMixin):
         try:
             obj_query = db.session.query(cls).filter(and_(*filters))
             obj = obj_query.one_or_none()
-        except MultipleResultsFound:
+        except MultipleResultsFound as ex:
+            # Now that children carry a ``uuid``, this match is a disjunction
+            # (name-match OR uuid-match), so a payload child can match one DB row
+            # by name and a different one by uuid — e.g. metrics renamed/swapped
+            # in the UI, then an older export re-imported with overwrite.
+            #
+            # That stays a hard error on purpose. Resolving it by preferring the
+            # uuid match would rename the uuid-matched row while the name-matched
+            # row still holds that name, trading this clear failure for an opaque
+            # ``UNIQUE constraint failed: (table_id, <name>)`` at the next flush.
+            #
+            # The two cases are not equally recoverable, so they are raised as
+            # distinct types:
+            #
+            # * ``parent is None`` (top-level object) — nothing has been mutated
+            #   yet, so a caller may legitimately skip or fall back to the
+            #   existing row. See the legacy NULL-schema handling in
+            #   ``superset/commands/dataset/importers/v1/utils.py`` (including
+            #   its ``deleted_at`` rollback) and the ``continue`` in
+            #   ``superset/commands/importers/v1/examples.py`` (issue #16051).
+            # * ``parent is not None`` (child object) — the parent's scalar
+            #   fields were already updated and earlier siblings were already
+            #   imported, so there is no "unmodified row" to fall back to.
+            #   Raising ``ChildMultipleResultsFound`` lets the dataset importer
+            #   fail the import atomically (the command's transaction rolls
+            #   back) instead of reporting success over a half-applied state.
             logger.error(
                 "Error importing %s \n %s \n %s",
                 cls.__name__,
@@ -514,7 +979,53 @@ class ImportExportMixin(UUIDMixin):
                 yaml.safe_dump(dict_rep),
                 exc_info=True,
             )
+            if parent is not None:
+                raise ChildMultipleResultsFound(
+                    f"{cls.__name__} matches more than one existing row under "
+                    f"its parent {type(parent).__name__}"
+                ) from ex
             raise
+
+        # A child ``uuid`` is globally unique, but the match above is scoped to
+        # this ``parent`` (and also matches on name). Importing a config as a
+        # clone — e.g. a dataset re-imported under an edited uuid while the
+        # original still exists — can leave the incoming child uuid owned by a
+        # different row. Writing it, whether on INSERT (new obj) or on an
+        # overwrite UPDATE (obj matched by name), would violate the ``uuid``
+        # unique constraint at flush. Drop the incoming uuid whenever it belongs
+        # to some other row so ``UUIDMixin`` keeps/assigns a distinct one,
+        # reverting to the pre-uuid-export behavior for that clone.
+        if parent is not None and "uuid" in dict_rep:
+            if dict_rep["uuid"] is None:
+                # The child import schemas accept ``uuid: null``. On the
+                # overwrite UPDATE that would write a literal NULL over an
+                # existing child's uuid — silently, since the column is nullable
+                # and ``unique`` permits repeated NULLs — leaving a child no
+                # folder can reference and no export can round-trip.
+                del dict_rep["uuid"]
+            else:
+                # Known limitation: this lookup goes through the normal session
+                # visibility filter, so for child classes that are soft-deletable
+                # it cannot see a soft-deleted owner of the incoming uuid. In
+                # practice the children that matter here (``TableColumn`` /
+                # ``SqlMetric``) are not soft-deletable; the only soft-deletable
+                # child registered anywhere is ``SqlaTable`` via ``Database``'s
+                # ``export_children = ["tables"]`` (the v0 legacy path), which is
+                # reachable only from a hand-crafted v0 file. There a colliding
+                # uuid owned by a soft-deleted dataset would be kept and fail on
+                # the unique constraint at flush rather than being dropped here.
+                #
+                # Skip the lookup on the common idempotent re-import, where the
+                # name-matched ``obj`` already owns the incoming uuid: the guard
+                # would keep it anyway, so the query is pure waste on that path.
+                if obj is None or str(obj.uuid) != str(dict_rep["uuid"]):
+                    uuid_owner = (
+                        db.session.query(cls)
+                        .filter(cls.uuid == dict_rep["uuid"])
+                        .first()
+                    )
+                    if uuid_owner is not None and uuid_owner is not obj:
+                        del dict_rep["uuid"]
 
         if not obj:
             is_new_obj = True
@@ -615,6 +1126,7 @@ class ImportExportMixin(UUIDMixin):
                             recursive=recursive,
                             include_parent_ref=include_parent_ref,
                             include_defaults=include_defaults,
+                            export_uuids=export_uuids,
                         )
                         for child in getattr(self, cld)
                     ],
@@ -814,6 +1326,15 @@ class AuditMixinNullable(AuditMixin):
 # does not allocate a fresh empty set. ``frozenset`` so accidental
 # mutation by a caller is a TypeError, not silent corruption.
 _NO_BYPASS: frozenset[type] = frozenset()
+
+
+@dataclasses.dataclass(frozen=True)
+class SqlExpressionContext:
+    """Database context required to validate and render a SQL expression."""
+
+    engine: str
+    schema: str
+    template_processor: BaseTemplateProcessor | None
 
 
 class SoftDeleteMixin:
@@ -1081,6 +1602,7 @@ class QueryResult:  # pylint: disable=too-few-public-methods
         errors: Optional[list[dict[str, Any]]] = None,
         from_dttm: Optional[datetime] = None,
         to_dttm: Optional[datetime] = None,
+        sql_shifted_temporal_labels: set[str] | None = None,
     ) -> None:
         self.df = df
         self.query = query
@@ -1093,6 +1615,7 @@ class QueryResult:  # pylint: disable=too-few-public-methods
         self.errors = errors or []
         self.from_dttm = from_dttm
         self.to_dttm = to_dttm
+        self.sql_shifted_temporal_labels = sql_shifted_temporal_labels or set()
         self.sql_rowcount = len(self.df.index) if not self.df.empty else 0
 
 
@@ -1132,16 +1655,28 @@ class ExtraJSONMixin:
         return value
 
 
+_EXTRA_DICT_CACHE_UNSET = object()
+
+
 class CertificationMixin:
     """Mixin to add extra certification fields"""
 
     extra = sa.Column(sa.Text, default="{}")
 
     def get_extra_dict(self) -> dict[str, Any]:
-        try:
-            return json.loads(self.extra)
-        except (TypeError, json.JSONDecodeError):
-            return {}
+        # Cache the parsed ``extra`` payload on the instance, keyed by the raw
+        # string it was parsed from, so callers reading multiple
+        # certification/warning properties off the same object don't each
+        # trigger their own ``json.loads``. The cache is transient (not a
+        # mapped column) and self-invalidates whenever ``extra`` changes.
+        cache_raw = getattr(self, "_extra_dict_cache_raw", _EXTRA_DICT_CACHE_UNSET)
+        if cache_raw is _EXTRA_DICT_CACHE_UNSET or cache_raw != self.extra:
+            try:
+                self._extra_dict_cache = json.loads(self.extra)
+            except (TypeError, json.JSONDecodeError):
+                self._extra_dict_cache = {}
+            self._extra_dict_cache_raw = self.extra
+        return self._extra_dict_cache
 
     @property
     def is_certified(self) -> bool:
@@ -1192,6 +1727,12 @@ class QueryStringExtended(NamedTuple):
     labels_expected: list[str]
     prequeries: list[str]
     sql: str
+    sql_shifted_temporal_labels: set[str]
+
+    @property
+    def full_sql(self) -> str:
+        """The prequeries and the main query as one displayable statement."""
+        return ";\n\n".join([*self.prequeries, self.sql]) + ";"
 
 
 class SqlaQuery(NamedTuple):
@@ -1203,6 +1744,16 @@ class SqlaQuery(NamedTuple):
     labels_expected: list[str]
     prequeries: list[str]
     sqla_query: Select
+    sql_shifted_temporal_labels: set[str]
+
+
+WEEK_GRAINS = (
+    TimeGrain.WEEK_STARTING_SUNDAY,
+    TimeGrain.WEEK_ENDING_SATURDAY,
+    TimeGrain.WEEK,
+    TimeGrain.WEEK_STARTING_MONDAY,
+    TimeGrain.WEEK_ENDING_SUNDAY,
+)
 
 
 class ExploreMixin:  # pylint: disable=too-many-public-methods
@@ -1301,6 +1852,26 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
     def get_template_processor(self, **kwargs: Any) -> BaseTemplateProcessor:
         raise NotImplementedError()
 
+    def get_dataset_timezone(self) -> str | None:
+        """
+        Get the timezone configured for this dataset from the extra JSON field.
+
+        Returns an IANA timezone name (e.g., "Europe/Berlin", "America/New_York")
+        or None if not configured.
+
+        ``extra`` is arbitrary user-supplied JSON, so the ``timezone`` key could
+        hold a non-string value (a number, object, list, ...). Only a string is
+        ever a valid IANA name, so anything else is treated as "not configured"
+        rather than propagating a bad value on to ``ZoneInfo``.
+
+        ``extra_dict`` is provided by concrete datasources (e.g. ``SqlaTable``)
+        rather than this mixin, so read it defensively: subclasses without it
+        simply have no configured timezone.
+        """
+        extra = getattr(self, "extra_dict", None) or {}
+        dataset_timezone = extra.get("timezone")
+        return dataset_timezone if isinstance(dataset_timezone, str) else None
+
     def get_fetch_values_predicate(
         self,
         template_processor: Optional[  # pylint: disable=unused-argument
@@ -1344,28 +1915,70 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             )
         return self._denylist_default_schema
 
-    def _process_sql_expression(  # pylint: disable=too-many-arguments
+    def _process_sql_expression(
         self,
         expression: Optional[str],
-        database_id: int,
-        engine: str,
-        schema: str,
-        template_processor: Optional[BaseTemplateProcessor],
+        context: SqlExpressionContext,
     ) -> Optional[str]:
-        if template_processor and expression:
-            expression = template_processor.process_template(expression)
+        return self._process_validated_sql_expression(expression, context)
+
+    def _process_metric_sql_expression(
+        self,
+        expression: Optional[str],
+        context: SqlExpressionContext,
+    ) -> Optional[str]:
+        if context.template_processor and expression:
+            expression = context.template_processor.process_template(expression)
+        if not expression:
+            return expression
+
+        expression = validate_adhoc_subquery(
+            expression,
+            self.database,
+            self.catalog,
+            context.schema,
+            context.engine,
+        )
+        normalized_metric = normalize_custom_metric(
+            expression,
+            context.engine,
+            self.database.db_engine_spec,
+        )
+        return self._process_validated_sql_expression(
+            normalized_metric.expression,
+            context,
+            preserve_source=normalized_metric.may_preserve_source,
+            render_template=False,
+            validate_subquery=False,
+        )
+
+    def _process_validated_sql_expression(  # noqa: C901
+        self,
+        expression: Optional[str],
+        context: SqlExpressionContext,
+        *,
+        preserve_source: bool = False,
+        render_template: bool = True,
+        validate_subquery: bool = True,
+    ) -> Optional[str]:
+        if render_template and context.template_processor and expression:
+            expression = context.template_processor.process_template(expression)
         if expression:
-            expression = validate_adhoc_subquery(
-                expression,
-                self.database,
-                self.catalog,
-                schema,
-                engine,
-            )
+            if validate_subquery:
+                expression = validate_adhoc_subquery(
+                    expression,
+                    self.database,
+                    self.catalog,
+                    context.schema,
+                    context.engine,
+                )
+            source_expression = expression
             try:
-                expression = sanitize_clause(expression, engine)
+                expression = sanitize_clause(expression, context.engine)
             except QueryClauseValidationException as ex:
                 raise QueryObjectValidationError(ex.message) from ex
+            if preserve_source:
+                expression = source_expression.rstrip().rstrip(";").rstrip()
             # Adhoc expressions are user-controlled SQL that ends up inside a
             # `literal_column(...)`. Apply the operator-configured
             # `DISALLOWED_SQL_FUNCTIONS` / `DISALLOWED_SQL_TABLES` gates at the
@@ -1375,9 +1988,11 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             # the same gate applied at query-execution time and gives the
             # adhoc-expression path defense in depth.
             disallowed_functions = app.config["DISALLOWED_SQL_FUNCTIONS"].get(
-                engine, set()
+                context.engine, set()
             )
-            disallowed_tables = app.config["DISALLOWED_SQL_TABLES"].get(engine, set())
+            disallowed_tables = app.config["DISALLOWED_SQL_TABLES"].get(
+                context.engine, set()
+            )
             if disallowed_functions or disallowed_tables:
                 # `_process_select_expression` (and siblings) pre-wraps the
                 # input with `SELECT ...`; other callers pass bare
@@ -1388,7 +2003,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     if expression.strip().upper().startswith("SELECT")
                     else f"SELECT {expression}"
                 )
-                parsed = SQLScript(sql_to_check, engine=engine)
+                parsed = SQLScript(sql_to_check, engine=context.engine)
                 if disallowed_functions and parsed.check_functions_present(
                     disallowed_functions
                 ):
@@ -1415,7 +2030,6 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
     def _process_select_expression(
         self,
         expression: Optional[str],
-        database_id: int,
         engine: str,
         schema: str,
         template_processor: Optional[BaseTemplateProcessor],
@@ -1429,14 +2043,9 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         if expression:
             expression = f"SELECT {expression}"
 
-        if processed := self._process_sql_expression(
-            expression=expression,
-            database_id=database_id,
-            engine=engine,
-            schema=schema,
-            template_processor=template_processor,
-        ):
-            prefix, expression = re.split(
+        context = SqlExpressionContext(engine, schema, template_processor)
+        if processed := self._process_sql_expression(expression, context):
+            _prefix, expression = re.split(
                 r"SELECT\s+",
                 processed,
                 maxsplit=1,
@@ -1446,10 +2055,31 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
 
         return None
 
+    def _process_metric_select_expression(
+        self,
+        expression: Optional[str],
+        engine: str,
+        schema: str,
+        template_processor: Optional[BaseTemplateProcessor],
+    ) -> Optional[str]:
+        """Validate and normalize an ad hoc metric used in SELECT."""
+        if expression:
+            expression = f"SELECT {expression}"
+
+        context = SqlExpressionContext(engine, schema, template_processor)
+        if processed := self._process_metric_sql_expression(expression, context):
+            _prefix, expression = re.split(
+                r"SELECT\s+",
+                processed,
+                maxsplit=1,
+                flags=re.IGNORECASE,
+            )
+            return expression.strip()
+        return None
+
     def _process_orderby_expression(
         self,
         expression: Optional[str],
-        database_id: int,
         engine: str,
         schema: str,
         template_processor: Optional[BaseTemplateProcessor],
@@ -1463,14 +2093,9 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         if expression:
             expression = f"SELECT 1 ORDER BY {expression}"
 
-        if processed := self._process_sql_expression(
-            expression=expression,
-            database_id=database_id,
-            engine=engine,
-            schema=schema,
-            template_processor=template_processor,
-        ):
-            prefix, expression = re.split(
+        context = SqlExpressionContext(engine, schema, template_processor)
+        if processed := self._process_sql_expression(expression, context):
+            _prefix, expression = re.split(
                 r"ORDER\s+BY",
                 processed,
                 maxsplit=1,
@@ -1478,6 +2103,28 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             )
             return expression.strip()
 
+        return None
+
+    def _process_metric_orderby_expression(
+        self,
+        expression: Optional[str],
+        engine: str,
+        schema: str,
+        template_processor: Optional[BaseTemplateProcessor],
+    ) -> Optional[str]:
+        """Validate and normalize an ad hoc metric used in ORDER BY."""
+        if expression:
+            expression = f"SELECT 1 ORDER BY {expression}"
+
+        context = SqlExpressionContext(engine, schema, template_processor)
+        if processed := self._process_metric_sql_expression(expression, context):
+            _prefix, expression = re.split(
+                r"ORDER\s+BY",
+                processed,
+                maxsplit=1,
+                flags=re.IGNORECASE,
+            )
+            return expression.strip()
         return None
 
     def make_sqla_column_compatible(
@@ -1537,6 +2184,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             labels_expected=sqlaq.labels_expected,
             prequeries=sqlaq.prequeries,
             sql=sql,
+            sql_shifted_temporal_labels=sqlaq.sql_shifted_temporal_labels,
         )
 
     def _normalize_prequery_result_type(
@@ -1741,6 +2389,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             query=sql,
             errors=errors,
             error_message=error_message,
+            sql_shifted_temporal_labels=query_str_ext.sql_shifted_temporal_labels,
         )
 
     def exc_query(self, qry: Any) -> QueryResult:
@@ -1810,6 +2459,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         df: pd.DataFrame,
         query_object: QueryObject,
         already_collected: set[str],
+        sql_shifted_temporal_labels: set[str] | None = None,
     ) -> list[DateColumn]:
         """``DateColumn`` entries that only need the dataset HOURS OFFSET (and any
         time shift) applied, for temporal columns the database already returns as
@@ -1829,6 +2479,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         ):
             return []
 
+        sql_shifted_temporal_labels = sql_shifted_temporal_labels or set()
         extra: list[DateColumn] = []
         for label in df.columns:
             if label in already_collected or label == DTTM_ALIAS:
@@ -1847,7 +2498,9 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 extra.append(
                     DateColumn(
                         timestamp_format=None,
-                        offset=self.offset,
+                        offset=(
+                            0 if label in sql_shifted_temporal_labels else self.offset
+                        ),
                         time_shift=query_object.time_shift,
                         col_label=label,
                     )
@@ -1855,22 +2508,36 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 already_collected.add(label)
         return extra
 
-    def normalize_df(self, df: pd.DataFrame, query_object: QueryObject) -> pd.DataFrame:
+    def normalize_df(
+        self,
+        df: pd.DataFrame,
+        query_object: QueryObject,
+        sql_shifted_temporal_labels: set[str] | None = None,
+    ) -> pd.DataFrame:
         """
         Normalize the dataframe by converting datetime columns and ensuring
         numerical metrics.
 
         :param df: The dataframe to normalize
         :param query_object: The query object with metadata about columns
+        :param sql_shifted_temporal_labels: labels already shifted in generated SQL
         :return: Normalized dataframe
         """
+        sql_shifted_temporal_labels = sql_shifted_temporal_labels or set()
         labels = self._collect_dttm_labels(query_object)
 
+        # ``get_dataset_timezone`` lives on ``ExploreMixin``; datasource doubles
+        # that bind only a subset of mixin methods onto a plain object (as some
+        # unit tests do) won't have it, so fall back to "not configured" rather
+        # than raising.
+        get_dataset_timezone = getattr(self, "get_dataset_timezone", None)
+        dataset_timezone = get_dataset_timezone() if get_dataset_timezone else None
         dttm_cols = [
             DateColumn(
                 timestamp_format=fmt,
-                offset=self.offset,
+                offset=0 if label in sql_shifted_temporal_labels else self.offset,
                 time_shift=query_object.time_shift,
+                timezone=dataset_timezone,
                 col_label=label,
             )
             for label, fmt in labels
@@ -1880,14 +2547,20 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             dttm_cols.append(
                 DateColumn.get_legacy_time_column(
                     timestamp_format=self._python_date_format(query_object.granularity),
-                    offset=self.offset,
+                    offset=(
+                        0 if DTTM_ALIAS in sql_shifted_temporal_labels else self.offset
+                    ),
                     time_shift=query_object.time_shift,
+                    timezone=dataset_timezone,
                 )
             )
 
         dttm_cols.extend(
             self._offset_only_dttm_cols(
-                df, query_object, {col.col_label for col in dttm_cols}
+                df,
+                query_object,
+                {col.col_label for col in dttm_cols},
+                sql_shifted_temporal_labels,
             )
         )
 
@@ -1933,7 +2606,11 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         df = result.df
         if not df.empty:
             # Normalize datetime columns and metrics
-            df = self.normalize_df(df, query_object)
+            df = self.normalize_df(
+                df,
+                query_object,
+                result.sql_shifted_temporal_labels,
+            )
 
             # Process time offsets if requested
             if query_object.time_offsets:
@@ -2243,7 +2920,9 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             else:
                 # 1. normalize df, set dttm column
                 offset_metrics_df = self.normalize_df(
-                    offset_metrics_df, query_object_clone
+                    offset_metrics_df,
+                    query_object_clone,
+                    result.sql_shifted_temporal_labels,
                 )
 
                 # 2. rename extra query columns
@@ -2265,6 +2944,16 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             offset_dfs[offset] = offset_metrics_df
 
         if offset_dfs:
+            x_axis_columns = get_base_axis_columns(query_object.columns)
+            x_axis_expression = (
+                x_axis_columns[0].get("sqlExpression")
+                if x_axis_columns and isinstance(x_axis_columns[0], dict)
+                else None
+            )
+            x_axis_metadata = _get_temporal_physical_column_metadata(
+                self,
+                x_axis_expression if isinstance(x_axis_expression, str) else None,
+            )
             df = self.join_offset_dfs(
                 df,
                 offset_dfs,
@@ -2272,6 +2961,8 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 join_keys,
                 full_range=getattr(query_object, "time_compare_full_range", False),
                 x_axis_label=get_x_axis_label(query_object.columns),
+                x_axis_is_temporal=x_axis_metadata.is_temporal,
+                x_axis_datetime_format=x_axis_metadata.python_date_format,
             )
 
         return CachedTimeOffset(df=df, queries=queries, cache_keys=cache_keys)
@@ -2446,6 +3137,9 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         is_date_range_offset: bool,
         join_column_producer: Any,
         x_axis_label: str | None = None,
+        x_axis_is_temporal: bool = False,
+        x_axis_datetime_format: str | None = None,
+        resolved_week_offset: DateOffset | None = None,
     ) -> tuple[pd.DataFrame, list[str]]:
         """Determine appropriate join keys and modify DataFrames if needed."""
         if time_grain and not is_date_range_offset:
@@ -2463,7 +3157,12 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
 
             # Add offset join columns for relative time offsets
             self.add_offset_join_column(
-                df, column_name, time_grain, offset, join_column_producer
+                df,
+                column_name,
+                time_grain,
+                offset,
+                join_column_producer,
+                resolved_week_offset,
             )
             self.add_offset_join_column(
                 offset_df, column_name, time_grain, None, join_column_producer
@@ -2475,7 +3174,13 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
 
         else:
             return self._align_offset_without_time_grain(
-                df, offset_df, offset, join_keys, x_axis_label
+                df,
+                offset_df,
+                offset,
+                join_keys,
+                x_axis_label,
+                x_axis_is_temporal,
+                x_axis_datetime_format,
             )
 
     def _align_offset_without_time_grain(
@@ -2485,6 +3190,8 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         offset: str,
         join_keys: list[str],
         x_axis_label: str | None = None,
+        x_axis_is_temporal: bool = False,
+        x_axis_datetime_format: str | None = None,
     ) -> tuple[pd.DataFrame, list[str]]:
         """
         Determine join keys for a relative offset when no time grain is set.
@@ -2504,9 +3211,15 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         -- so the rows it returns carry the source wall clock, and matching on
         it is what aligns the two series. Re-localizing the result would only
         reintroduce the DST edge cases that wall-clock arithmetic sidesteps:
-        shifting onto a skipped or repeated local hour raises out of pandas.
-        Both sides are normalized identically, so the two readings of a
-        repeated hour still align with each other.
+        shifting onto a skipped or repeated local hour raises out of pandas. A
+        single reading of a repeated hour aligns by wall clock. Distinct raw
+        values that normalize to the same working key are rejected because
+        they would fan out the merge; the error identifies a daylight-saving
+        fold when their UTC offsets differ.
+
+        A string-backed x-axis is parsed only when its physical dataset column
+        declares temporal metadata. Its configured datetime format is applied
+        to working join values without changing the displayed columns.
 
         Month, quarter, and year offsets shift via ``DateOffset``, which clamps
         to a valid calendar day (e.g. Mar 29, 30, and 31 all shift back one
@@ -2524,14 +3237,46 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 for key in candidate_keys
                 if key in df.columns
                 and key in offset_df.columns
-                and pd.api.types.is_datetime64_any_dtype(df[key])
+                and (
+                    pd.api.types.is_datetime64_any_dtype(df[key])
+                    or (key == x_axis_label and x_axis_is_temporal)
+                )
             ),
             None,
         )
         if not temporal_join_key:
             return offset_df, join_keys
 
-        source = _as_wall_clock(df[temporal_join_key])
+        source_values = df[temporal_join_key]
+        offset_values = offset_df[temporal_join_key]
+        raw_offset_values = offset_values.copy()
+        remaining_keys = [key for key in join_keys if key != temporal_join_key]
+        raw_duplicate_mask = offset_df.duplicated(
+            subset=[temporal_join_key, *remaining_keys], keep=False
+        )
+        if x_axis_is_temporal and (
+            not pd.api.types.is_datetime64_any_dtype(source_values)
+            or not pd.api.types.is_datetime64_any_dtype(offset_values)
+        ):
+            if x_axis_datetime_format is None and any(
+                pd.api.types.is_numeric_dtype(values) and values.notna().any()
+                for values in (source_values, offset_values)
+            ):
+                # A numeric temporal axis without a declared format cannot be
+                # interpreted, so retain the pre-alignment raw-key join.
+                return offset_df, join_keys
+            source_values = _coerce_temporal_join_series(
+                source_values,
+                temporal_join_key,
+                x_axis_datetime_format,
+            )
+            offset_values = _coerce_temporal_join_series(
+                offset_values,
+                temporal_join_key,
+                x_axis_datetime_format,
+            )
+
+        source = _as_wall_clock(source_values)
 
         try:
             delta: DateOffset | None = DateOffset(**normalize_time_delta(offset))
@@ -2539,51 +3284,43 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             delta = None
 
         column_name = OFFSET_JOIN_COLUMN_SUFFIX + offset
-        if delta is not None:
-            # DateOffset addition is vectorized over the datetime column; NaT
-            # rows shift to NaT (they join to the offset series' NaT rows).
-            shifted = source + delta
-        else:
-            # Free-form offsets (e.g. "one year ago") don't match the
-            # normalize_time_delta grammar; shift with the same parser that
-            # shifted the offset query's time range. parsedatetime resolves
-            # second resolution only, so compute each row's delta from a
-            # truncated copy and apply it to the original value, preserving
-            # sub-second precision.
-            if not is_constant_human_timedelta(offset):
-                # Anchors such as "yesterday" resolve every source time within
-                # a day onto one timestamp rather than shifting each by a
-                # fixed amount, so they cannot align two series row by row:
-                # distinct timestamps would collapse onto a single join key.
-                # A time grain gives the join a truncated column to match on
-                # instead of a shifted one.
-                raise QueryObjectValidationError(
-                    _("Time Grain must be specified when using Time Comparison.")
-                )
-
-            def shift(value: pd.Timestamp) -> pd.Timestamp:
-                if pd.isna(value):
-                    return value
-                truncated = value.floor("s").to_pydatetime()
-                return value + (get_past_or_future(offset, truncated) - truncated)
-
-            shifted = source.map(shift)
+        shifted = _shift_grainless_temporal_source(source, offset, delta)
 
         # Join on string values so that mismatched key dtypes (e.g. an empty
         # offset series materializes its join keys as NaN floats) cannot break
         # the merge.
         df[column_name] = shifted.map(str)
-        offset_df[column_name] = _as_wall_clock(offset_df[temporal_join_key]).map(str)
+        offset_df[column_name] = _as_wall_clock(offset_values).map(str)
 
-        remaining_keys = [key for key in join_keys if key != temporal_join_key]
-        return offset_df, [column_name, *remaining_keys]
+        actual_join_keys = [column_name, *remaining_keys]
+        normalized_duplicate_mask = offset_df.duplicated(
+            subset=actual_join_keys, keep=False
+        )
+        introduced_duplicate_mask = normalized_duplicate_mask & ~raw_duplicate_mask
+        if introduced_duplicate_mask.any():
+            if _has_multiple_utc_offsets(raw_offset_values[normalized_duplicate_mask]):
+                message = _(
+                    "Unable to align time comparison because the offset series "
+                    "contains an ambiguous daylight-saving fold for the same "
+                    "dimensions and local time. Add a Time Grain or filter the "
+                    "source to one UTC offset."
+                )
+            else:
+                message = _(
+                    "Unable to align time comparison because the temporal axis "
+                    "contains distinct values that normalize to the same instant "
+                    "for the same dimensions. Standardize the source values or "
+                    "add a Time Grain."
+                )
+            raise QueryObjectValidationError(message)
+        return offset_df, actual_join_keys
 
     def _perform_join(
         self,
         df: pd.DataFrame,
         offset_df: pd.DataFrame,
         actual_join_keys: list[str],
-        how: Literal["left", "right", "inner", "outer", "cross"] = "left",
+        how: Literal["left", "right", "inner", "outer"] = "left",
     ) -> pd.DataFrame:
         """Perform the appropriate join operation."""
         if actual_join_keys:
@@ -2622,6 +3359,8 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         join_keys: list[str],
         full_range: bool = False,
         x_axis_label: str | None = None,
+        x_axis_is_temporal: bool = False,
+        x_axis_datetime_format: str | None = None,
     ) -> pd.DataFrame:
         """
         Join offset DataFrames with the main DataFrame.
@@ -2636,6 +3375,10 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             the current day is still in progress) are preserved.
         :param x_axis_label: The query's temporal x-axis label, used to pick the
             temporal join key when no time grain is set.
+        :param x_axis_is_temporal: Whether physical-column metadata declares the
+            x-axis temporal.
+        :param x_axis_datetime_format: The physical x-axis column's configured
+            Python datetime format.
         """
         join_column_producer = app.config["TIME_GRAIN_JOIN_COLUMN_PRODUCERS"].get(
             time_grain
@@ -2649,6 +3392,19 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 "DATE_RANGE_TIMESHIFTS_ENABLED"
             )
 
+            # Resolved once per offset, from the main series, and reused for
+            # both the join column and (if needed) the full-range coalesce
+            # below so the two cannot drift apart. Skipped entirely when a
+            # custom join_column_producer is configured: that path bypasses
+            # all built-in offset parsing (including normalize_time_delta),
+            # so resolving here could raise on an offset the producer itself
+            # never needs to parse.
+            resolved_week_offset = (
+                None
+                if join_column_producer
+                else self._resolve_week_grain_offset(df, time_grain, offset)
+            )
+
             offset_df, actual_join_keys = self._determine_join_keys(
                 df,
                 offset_df,
@@ -2658,6 +3414,9 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 is_date_range_offset,
                 join_column_producer,
                 x_axis_label,
+                x_axis_is_temporal,
+                x_axis_datetime_format,
+                resolved_week_offset,
             )
 
             # The full-range option is only meaningful for relative offsets aligned
@@ -2674,7 +3433,9 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             df = self._perform_join(df, offset_df, actual_join_keys, how=how)
 
             if use_outer_join:
-                df = self._coalesce_offset_index(df, offset, join_keys)
+                df = self._coalesce_offset_index(
+                    df, offset, join_keys, resolved_week_offset
+                )
 
             df = self._apply_cleanup_logic(
                 df, offset, time_grain, join_keys, is_date_range_offset
@@ -2696,6 +3457,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         df: pd.DataFrame,
         offset: str,
         join_keys: list[str],
+        resolved_week_offset: DateOffset | None = None,
     ) -> pd.DataFrame:
         """
         Rebuild the temporal x-axis after an outer join with an offset DataFrame.
@@ -2706,22 +3468,107 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         right-hand column, expressed in the offset's own time range (e.g. "yesterday
         15:00"). Shifting it forward by the offset places it on the main series'
         axis (e.g. "today 15:00") so the comparison line spans the full period.
+
+        Under a Week grain, ``resolved_week_offset`` is the same whole-week shift
+        used to build the join column (see ``_resolve_week_grain_offset``); reusing
+        it here instead of the raw calendar offset keeps this reconstructed axis
+        value aligned to the same weekday the join matched on.
         """
         x_axis = join_keys[0]
         offset_x_axis = f"{x_axis}{R_SUFFIX}"
         if x_axis not in df.columns or offset_x_axis not in df.columns:
             return df
 
-        # normalize_time_delta returns a negative delta for "... ago" offsets, so
-        # subtracting it shifts the historical timestamp forward onto the main axis.
-        try:
-            forward_shift = DateOffset(**normalize_time_delta(offset))
-        except (ValueError, TimeDeltaAmbiguousError):
-            return df
+        if resolved_week_offset is not None:
+            forward_shift = resolved_week_offset
+        else:
+            # normalize_time_delta returns a negative delta for "... ago"
+            # offsets, so subtracting it shifts the historical timestamp
+            # forward onto the main axis.
+            try:
+                forward_shift = DateOffset(**normalize_time_delta(offset))
+            except (ValueError, TimeDeltaAmbiguousError):
+                return df
 
         shifted = df[offset_x_axis] - forward_shift
         df[x_axis] = df[x_axis].fillna(shifted)
         return df
+
+    @staticmethod
+    def _resolve_week_grain_offset(
+        df: pd.DataFrame,
+        time_grain: str | None,
+        time_offset: str | None,
+    ) -> DateOffset | None:
+        """
+        Resolve a relative time offset applied under a Week grain to a single
+        whole-week ``DateOffset`` shared by every row of ``df``.
+
+        A calendar month/quarter/year is not a whole number of weeks, so
+        applying the raw calendar shift independently to each row rounds to a
+        different number of weeks depending on how many leap days or
+        month-length differences happen to fall inside that particular row's
+        span. Two main-series rows exactly one grain apart can then round to
+        *different* whole-week counts, colliding onto the same shifted date
+        (or skipping one). Resolving the shift once, from a single reference
+        date, and reusing that constant for every row keeps rows exactly as
+        many whole weeks apart as they started -- matching the offset
+        series' own real week-start dates, which are always aligned to the
+        grain's weekday.
+
+        Returns ``None`` when the offset does not apply (no offset, a date
+        range, or a non-Week grain), in which case callers fall back to the
+        original per-call calendar-offset behavior.
+        """
+        if (
+            not time_grain
+            or time_grain not in WEEK_GRAINS
+            or not time_offset
+            or ExploreMixin.is_valid_date_range_static(time_offset)
+            or df.empty
+        ):
+            return None
+
+        reference_column = df.iloc[:, 0]
+        reference_values = reference_column[
+            reference_column.apply(
+                lambda value: hasattr(value, "strftime") and pd.notna(value)
+            )
+        ]
+        if reference_values.empty:
+            return None
+
+        # The reference must be picked by value, not row position: two rows
+        # exactly one grain apart can shift by calendar spans that differ by
+        # up to a whole week (depending on how many leap days fall inside
+        # each row's own span), so whichever row happened to land first
+        # would make the resolved constant depend on DataFrame row order.
+        # The minimum is deterministic for a given set of dates regardless
+        # of ordering.
+        reference = reference_values.min()
+        calendar_offset = DateOffset(**normalize_time_delta(time_offset))
+        calendar_shifted = reference + calendar_offset
+        # Timedelta.days floors toward negative infinity, which would round
+        # e.g. an 83-hour ("< half a week") shift down to a full week instead
+        # of zero; dividing by a one-day Timedelta keeps the exact fraction.
+        exact_days = (calendar_shifted - reference) / Timedelta(days=1)
+        weeks = round(exact_days / 7)
+        if abs(exact_days) < 7:
+            # A sub-week offset (e.g. "3 days ago", "5 days ago") is not the
+            # weekday-drift case this resolution exists to fix -- it does not
+            # touch a calendar unit wider than a week, so per-row rounding
+            # cannot disagree between rows. Checking ``weeks == 0`` here is
+            # not enough: ``round()`` rounds to the nearest whole week rather
+            # than toward zero, so a 4-6 day offset already rounds to a
+            # nonzero week count (e.g. ``round(-5 / 7) == -1``) and would
+            # slip past that guard. Comparing the exact day count against a
+            # full week instead catches every sub-week offset. Returning a
+            # whole-week DateOffset here would override the raw per-row
+            # calendar shift, leaving every row shifted by the wrong number
+            # of days instead of the offset actually requested. Returning
+            # None restores that raw per-row behavior.
+            return None
+        return DateOffset(days=weeks * 7)
 
     def add_offset_join_column(
         self,
@@ -2730,6 +3577,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         time_grain: str,
         time_offset: str | None = None,
         join_column_producer: Any = None,
+        resolved_week_offset: DateOffset | None = None,
     ) -> None:
         """
         Adds an offset join column to the provided DataFrame.
@@ -2741,12 +3589,25 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         :param time_grain: The time grain used to calculate the new column.
         :param time_offset: The time offset used to calculate the new column.
         :param join_column_producer: A function to generate the join column.
+        :param resolved_week_offset: Under a Week grain, the single whole-week
+            ``DateOffset`` to apply to every row (see
+            ``_resolve_week_grain_offset``). Computed from ``df`` when not
+            supplied, so callers that already resolved it for this same
+            ``df`` and ``time_offset`` (e.g. to also reuse it in
+            ``_coalesce_offset_index``) can pass it through instead of
+            recomputing it.
         """
         if join_column_producer:
             df[name] = df.apply(lambda row: join_column_producer(row, 0), axis=1)
         else:
+            if resolved_week_offset is None:
+                resolved_week_offset = self._resolve_week_grain_offset(
+                    df, time_grain, time_offset
+                )
             df[name] = df.apply(
-                lambda row: self.generate_join_column(row, 0, time_grain, time_offset),
+                lambda row: self.generate_join_column(
+                    row, 0, time_grain, time_offset, resolved_week_offset
+                ),
                 axis=1,
             )
 
@@ -2756,12 +3617,16 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         column_index: int,
         time_grain: str,
         time_offset: str | None = None,
+        resolved_week_offset: DateOffset | None = None,
     ) -> str:
         value = row.iloc[column_index]
 
         if hasattr(value, "strftime"):
             if time_offset and not ExploreMixin.is_valid_date_range_static(time_offset):
-                value = value + DateOffset(**normalize_time_delta(time_offset))
+                if resolved_week_offset is not None:
+                    value = value + resolved_week_offset
+                else:
+                    value = value + DateOffset(**normalize_time_delta(time_offset))
 
             if time_grain in (
                 TimeGrain.WEEK_STARTING_SUNDAY,
@@ -2826,17 +3691,35 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                         msg=str(ex),
                     )
                 ) from ex
-            except (TemplateError, SupersetSyntaxErrorException) as ex:
-                # Extract error message from different exception types
+            except (
+                TemplateError,
+                SupersetSyntaxErrorException,
+                SupersetTemplateException,
+            ) as ex:
                 if isinstance(ex, TemplateError):
                     error_msg = ex.message
-                else:  # SupersetSyntaxErrorException
+                elif isinstance(ex, SupersetSyntaxErrorException):
                     error_msg = str(ex.errors[0].message if ex.errors else ex)
+                else:  # SupersetTemplateException
+                    error_msg = str(ex)
 
                 raise QueryObjectValidationError(
                     _(
                         "Error while rendering virtual dataset query: %(msg)s",
                         msg=error_msg,
+                    )
+                ) from ex
+            except TypeError as ex:
+                # Raised when a Python builtin invoked from within the template
+                # receives an unexpected type, e.g. `"','".join(filter_values(...))`
+                # where `filter_values()` returns non-string values (numeric filter
+                # values) and `str.join` fails with "expected str instance, int
+                # found". These are not TemplateError/UndefinedError, so they would
+                # otherwise escape as an unhandled 500.
+                raise QueryObjectValidationError(
+                    _(
+                        "Error while rendering virtual dataset query: %(msg)s",
+                        msg=str(ex),
                     )
                 ) from ex
 
@@ -2898,9 +3781,48 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 if rls_applied:
                     from_sql = parsed_script.format()
 
-            except Exception as ex:
-                # Log the error but don't fail - RLS application is best-effort
-                logger.warning("Failed to apply RLS to virtual dataset SQL: %s", ex)
+            except Exception as ex:  # pylint: disable=broad-except
+                # A caught DB error can leave db.session in "pending rollback"
+                # state, which would poison unrelated queries later in this request.
+                db.session.rollback()  # pylint: disable=consider-using-transaction
+
+                # RLS injection failures fail closed: only continue when it is
+                # positively confirmed that no RLS predicates apply to the
+                # referenced tables; any other outcome aborts the query.
+                try:
+                    rls_required = any(
+                        get_predicates_for_table(
+                            table.qualify(
+                                catalog=self.catalog,
+                                schema=self.schema or default_schema or "",
+                            ),
+                            self.database,
+                            self.database.get_default_catalog(),
+                            exclude_dataset_id=self_id,
+                        )
+                        for statement in parsed_script.statements
+                        for table in statement.tables
+                    )
+                except Exception:  # pylint: disable=broad-except
+                    rls_required = True
+                if rls_required:
+                    raise QueryObjectValidationError(
+                        _(
+                            "Row-level security could not be applied to the "
+                            "virtual dataset query, so it cannot be run "
+                            "securely: %(msg)s",
+                            msg=str(ex),
+                        )
+                    ) from ex
+                logger.warning(
+                    "RLS application to virtual dataset SQL failed, but no "
+                    "predicates apply to its tables; continuing: %s",
+                    ex,
+                )
+
+        from_sql = _normalize_mssql_virtual_dataset_sql(
+            from_sql, parsed_script, self.db_engine_spec.engine
+        )
 
         cte = self.db_engine_spec.get_cte_query(from_sql)
         from_clause = (
@@ -2933,15 +3855,35 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
 
         if expression_type == utils.AdhocMetricExpressionType.SIMPLE:
             aggregate: Any = metric.get("aggregate")
-            if (
-                not isinstance(aggregate, str)
-                or aggregate not in self.sqla_aggregations
-            ):
-                raise QueryObjectValidationError(_("Adhoc metric aggregate is invalid"))
             metric_column = metric.get("column") or {}
             column_name = cast(str, metric_column.get("column_name"))
-            sqla_column = sa.column(column_name)
-            sqla_metric = self.sqla_aggregations[aggregate](sqla_column)
+            sqla_column = sa.column(
+                self.db_engine_spec.prepare_identifier(
+                    column_name,
+                    normalize_columns=bool(self.normalize_columns),
+                )
+            )
+
+            if isinstance(aggregate, str) and aggregate in self.sqla_aggregations:
+                sqla_metric = self.sqla_aggregations[aggregate](sqla_column)
+            elif isinstance(aggregate, str) and (
+                extended_func := self.db_engine_spec.get_extended_aggregation_func(
+                    aggregate
+                )
+            ):
+                sqla_metric = extended_func(sqla_column)
+            elif (
+                isinstance(aggregate, str)
+                and aggregate in utils.EXTENDED_METRIC_AGGREGATES
+            ):
+                raise QueryObjectValidationError(
+                    _(
+                        "The %(aggregate)s aggregate is not supported on this database",
+                        aggregate=aggregate,
+                    )
+                )
+            else:
+                raise QueryObjectValidationError(_("Adhoc metric aggregate is invalid"))
         elif expression_type == utils.AdhocMetricExpressionType.SQL:
             expression: Any = metric.get("sqlExpression")
             if not isinstance(expression, str) or not expression.strip():
@@ -2950,9 +3892,8 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 )
 
             if not processed:
-                expression = self._process_select_expression(
+                expression = self._process_metric_select_expression(
                     expression=expression,
-                    database_id=self.database_id,
                     engine=self.database.backend,
                     schema=self.schema,
                     template_processor=template_processor,
@@ -3065,9 +4006,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         return values
 
     def get_query_str(self, query_obj: QueryObjectDict) -> str:
-        query_str_ext = self.get_query_str_extended(query_obj)
-        all_queries = query_str_ext.prequeries + [query_str_ext.sql]
-        return ";\n\n".join(all_queries) + ";"
+        return self.get_query_str_extended(query_obj).full_sql
 
     def _get_series_orderby(
         self,
@@ -3078,7 +4017,11 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
     ) -> Column:
         if utils.is_adhoc_metric(series_limit_metric):
             assert isinstance(series_limit_metric, dict)
-            ob = self.adhoc_metric_to_sqla(series_limit_metric, columns_by_name)
+            ob = self.adhoc_metric_to_sqla(
+                series_limit_metric,
+                columns_by_name,
+                template_processor=template_processor,
+            )
         elif (
             isinstance(series_limit_metric, str)
             and series_limit_metric in metrics_by_name
@@ -3145,6 +4088,8 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         col: AdhocColumn,
         force_type_check: bool = False,
         template_processor: Optional[BaseTemplateProcessor] = None,
+        apply_dataset_offset: bool = False,
+        sql_shifted_temporal_labels: set[str] | None = None,
     ) -> tuple[ColumnElement, Optional[GenericDataType]]:
         raise NotImplementedError()
 
@@ -3269,7 +4214,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
 
         return f"""'{dttm.strftime("%Y-%m-%d %H:%M:%S.%f")}'"""
 
-    def get_time_filter(  # pylint: disable=too-many-arguments
+    def get_time_filter(  # pylint: disable=too-many-arguments  # noqa: C901
         self,
         time_col: "TableColumn",
         start_dttm: Optional[sa.DateTime],
@@ -3290,12 +4235,51 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             )
         )
 
-        # Honor the dataset "Hour Offset". Result timestamps are displayed shifted
-        # by +offset hours (see normalize_df / DateColumn in superset.utils.core),
-        # but the time filter compares the raw stored values. Shifting the filter
-        # bounds by -offset keeps the filter consistent with what is displayed;
-        # otherwise a date selection lands on the wrong calendar day (#104810).
-        if offset_hours := getattr(self, "offset", 0) or 0:
+        # Resolve dataset-level time-boundary adjustments. A configured
+        # `extra.timezone` (an IANA name, DST-aware) takes precedence: naive UI
+        # boundaries are interpreted in that zone and converted to UTC for
+        # comparison with UTC-stored data. When no timezone is configured, fall
+        # back to the legacy "Hour Offset" field instead: displayed values are
+        # shifted by +offset hours (see normalize_df / DateColumn in
+        # superset.utils.core), but the time filter compares raw stored values, so
+        # bounds are shifted by -offset to stay consistent with what's displayed
+        # (#104810).
+        dataset_timezone = self.get_dataset_timezone()
+
+        if dataset_timezone and (start_dttm or end_dttm):
+            try:
+                tz = ZoneInfo(dataset_timezone)
+
+                # The datetimes from the UI are naive (no timezone info). We
+                # interpret them as being in the dataset's configured timezone and
+                # convert them to UTC for comparison with UTC-stored data.
+                if start_dttm is not None:
+                    start_dttm = (
+                        start_dttm.replace(tzinfo=tz)
+                        .astimezone(timezone.utc)
+                        .replace(tzinfo=None)
+                    )
+                if end_dttm is not None:
+                    end_dttm = (
+                        end_dttm.replace(tzinfo=tz)
+                        .astimezone(timezone.utc)
+                        .replace(tzinfo=None)
+                    )
+            except (ZoneInfoNotFoundError, TypeError):
+                logger.warning(
+                    "Invalid timezone %r in dataset extra; falling back to Hour "
+                    "Offset if configured",
+                    dataset_timezone,
+                )
+                dataset_timezone = None
+
+        if not dataset_timezone and (offset_hours := getattr(self, "offset", 0) or 0):
+            offset_hours = get_effective_hours_offset(
+                self.db_engine_spec,
+                time_col.type,
+                offset_hours,
+                db_extra=self.db_extra,
+            )
             if start_dttm is not None:
                 start_dttm = start_dttm - timedelta(hours=offset_hours)
             if end_dttm is not None:
@@ -3325,6 +4309,8 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         column_name: str,
         limit: int = 10000,
         denormalize_column: bool = False,
+        array_elements: bool = False,
+        search: str | None = None,
     ) -> list[Any]:
         # denormalize column name before querying for values
         # unless disabled in the dataset configuration
@@ -3339,17 +4325,32 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         tp = self.get_template_processor()
         tbl, cte = self.get_from_clause(tp)
 
+        db_engine_spec = self.database.db_engine_spec
+        value_expr = target_col.get_sqla_col(template_processor=tp)
+        # For element-level operators (Contains any / Contains all) on a
+        # multi-value (array) column, suggest the distinct **elements** rather
+        # than distinct whole arrays by expanding the array first (e.g. ClickHouse
+        # arrayJoin). Only when the engine supports arrays and the column is
+        # actually an array column; otherwise fall back to whole-value suggestions.
+        if array_elements and db_engine_spec.supports_multivalue_columns:
+            col_spec = db_engine_spec.get_column_spec(native_type=target_col.type)
+            if col_spec and col_spec.generic_type == GenericDataType.MULTI_VALUE:
+                value_expr = db_engine_spec.array_explode(value_expr)
+
         qry = (
             sa.select(
                 # The alias (label) here is important because some dialects will
                 # automatically add a random alias to the projection because of the
                 # call to DISTINCT; others will uppercase the column names. This
                 # gives us a deterministic column name in the dataframe.
-                target_col.get_sqla_col(template_processor=tp).label("column_values")
+                value_expr.label("column_values")
             )
             .select_from(tbl)
             .distinct()
         )
+        if search:
+            qry = qry.where(build_like_predicate(value_expr, search))
+
         if limit:
             qry = qry.limit(limit)
 
@@ -3511,6 +4512,15 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
 
             return ValidationResultDict(valid=True, errors=[])
 
+    def _validate_stored_expression(self, expression: str) -> str:
+        return validate_stored_expression_at_query_time(
+            expression,
+            self.database,
+            self.catalog,
+            self.schema,
+            self.db_engine_spec.engine,
+        )
+
     def get_timestamp_expression(
         self,
         column: dict[str, Any],
@@ -3534,6 +4544,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
 
         if template_processor:
             expression = template_processor.process_template(column["column_name"])
+            expression = self._validate_stored_expression(expression)
             col = sa.literal_column(expression, type_=type_)
 
         time_expr = self.db_engine_spec.get_timestamp_expr(col, None, time_grain)
@@ -3553,10 +4564,55 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         type_ = column_spec.sqla_type if column_spec else None
         if expression := tbl_column.expression:
             if template_processor:
-                expression = template_processor.process_template(expression)
-            col = literal_column(expression, type_=type_)
+                try:
+                    expression = template_processor.process_template(expression)
+                except UndefinedError as ex:
+                    raise QueryObjectValidationError(
+                        _(
+                            "Calculated column template error: %(msg)s",
+                            msg=str(ex),
+                        )
+                    ) from ex
+                except (
+                    TemplateError,
+                    SupersetSyntaxErrorException,
+                    SupersetTemplateException,
+                ) as ex:
+                    if isinstance(ex, TemplateError):
+                        error_msg = ex.message
+                    elif isinstance(ex, SupersetSyntaxErrorException):
+                        error_msg = str(ex.errors[0].message if ex.errors else ex)
+                    else:  # SupersetTemplateException
+                        error_msg = str(ex)
+                    raise QueryObjectValidationError(
+                        _(
+                            "Error while rendering calculated column "
+                            "expression: %(msg)s",
+                            msg=error_msg,
+                        )
+                    ) from ex
+                if expression != tbl_column.expression:
+                    # Re-check the rendered expression before embedding it.
+                    expression = validate_rendered_expression(
+                        expression, self.database, self.catalog, self.schema
+                    )
+            expression = self._validate_stored_expression(expression)
+            if "--" in expression or "#" in expression:
+                # A trailing single-line comment (``--``/``#``) would otherwise
+                # let Grouping's closing paren be swallowed by the comment
+                # (``(... -- x)`` -> unclosed paren); emit it on a new line.
+                expression = f"{expression}\n"
+            # Parenthesize calculated-column expressions so a bare boolean
+            # operator (e.g. OR) inside the expression cannot leak into the
+            # surrounding operator precedence when the column is used in a
+            # SELECT/GROUP BY/ORDER BY, series-limit prequery, or JOIN ON.
+            col = Grouping(literal_column(expression, type_=type_))
         else:
-            col = sa.column(tbl_column.column_name, type_=type_)
+            identifier = db_engine_spec.prepare_identifier(
+                cast(str, tbl_column.column_name),
+                normalize_columns=bool(self.normalize_columns),
+            )
+            col = sa.column(identifier, type_=type_)
         col = self.make_sqla_column_compatible(col, label)
         return col
 
@@ -3636,6 +4692,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         template_kwargs["applied_filters"] = applied_template_filters
         template_processor = self.get_template_processor(**template_kwargs)
         prequeries: list[str] = []
+        sql_shifted_temporal_labels: set[str] = set()
         orderby = orderby or []
         need_groupby = bool(metrics is not None or groupby)
         metrics = metrics or []
@@ -3713,9 +4770,8 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 # back would change the cache key of a rehydrated query context
                 col = cast(AdhocMetric, dict(col))
                 if col.get("sqlExpression"):
-                    col["sqlExpression"] = self._process_orderby_expression(
+                    col["sqlExpression"] = self._process_metric_orderby_expression(
                         expression=col["sqlExpression"],
-                        database_id=self.database_id,
                         engine=self.database.backend,
                         schema=self.schema,
                         template_processor=template_processor,
@@ -3744,6 +4800,8 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 col, _unused = self.adhoc_column_to_sqla(
                     col=adhoc_columns_by_label[col],
                     template_processor=template_processor,
+                    apply_dataset_offset=True,
+                    sql_shifted_temporal_labels=sql_shifted_temporal_labels,
                 )
             elif col in metrics_by_name:
                 col = metrics_by_name[col].get_sqla_col(
@@ -3783,6 +4841,8 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                             time_grain=time_grain,
                             label=selected,
                             template_processor=template_processor,
+                            apply_dataset_offset=True,
+                            sql_shifted_temporal_labels=sql_shifted_temporal_labels,
                         )
                     # if groupby field equals a selected column
                     elif selected in columns_by_name:
@@ -3793,7 +4853,6 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     else:
                         selected = self._process_select_expression(
                             expression=selected,
-                            database_id=self.database_id,
                             engine=self.database.backend,
                             schema=self.schema,
                             template_processor=template_processor,
@@ -3804,6 +4863,8 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     outer, _unused = self.adhoc_column_to_sqla(
                         col=selected,
                         template_processor=template_processor,
+                        apply_dataset_offset=True,
+                        sql_shifted_temporal_labels=sql_shifted_temporal_labels,
                     )
                 groupby_all_columns[outer.name] = outer
                 if (
@@ -3844,13 +4905,14 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     outer, _unused = self.adhoc_column_to_sqla(
                         col=selected,
                         template_processor=template_processor,
+                        apply_dataset_offset=True,
+                        sql_shifted_temporal_labels=sql_shifted_temporal_labels,
                     )
                     select_exprs.append(outer)
                     continue
                 if isinstance(selected, str):
                     selected = self._process_select_expression(
                         expression=quote(selected),
-                        database_id=self.database_id,
                         engine=self.database.backend,
                         schema=self.schema,
                         template_processor=template_processor,
@@ -3879,7 +4941,10 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
 
             if is_timeseries:
                 timestamp = dttm_col.get_timestamp_expression(
-                    time_grain=time_grain, template_processor=template_processor
+                    time_grain=time_grain,
+                    template_processor=template_processor,
+                    apply_dataset_offset=True,
+                    sql_shifted_temporal_labels=sql_shifted_temporal_labels,
                 )
                 # always put timestamp as the first column
                 select_exprs.insert(0, timestamp)
@@ -3965,10 +5030,31 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             and groupby_all_columns
             and db_engine_spec.supports_grouping_sets
         )
+        # Both the GROUPING() marker labels and the `grouping_sets` level
+        # definitions sent by the frontend (see buildQuery.ts) are expressed in
+        # terms of the column's logical/requested label (``.key``), not the
+        # engine-mutated SQL alias (``.name``). BigQuery, for example, mangles
+        # labels containing spaces (e.g. a Custom SQL column named "Test Row")
+        # into something like "Test_Row_a1b2c3" for `.name`, while `.key` keeps
+        # the original "Test Row". Keying by `.name` here would silently drop
+        # such columns from every rollup level (the `col in ...` guard below),
+        # producing an invalid ``GROUP BY GROUPING SETS`` clause that omits a
+        # selected, non-aggregated column.
+        groupby_columns_by_label = {
+            gby_expr.key: gby_expr for gby_expr in groupby_all_columns.values()
+        }
         if use_grouping_sets:
+            # Route the marker through `make_sqla_column_compatible` like every
+            # other selected column: the SQL-level alias is engine-mutated if
+            # required (e.g. BigQuery rejects aliases with spaces), while
+            # `.key` keeps the unmutated marker label so it lines up with the
+            # `groupby_columns_by_label` keys above and with what the frontend
+            # looks for when splitting the combined result back per level.
             select_exprs = select_exprs + [
-                grouping_id_column(gby_expr, grouping_marker_label(name))
-                for name, gby_expr in groupby_all_columns.items()
+                self.make_sqla_column_compatible(
+                    sa.func.grouping(gby_expr), grouping_marker_label(label)
+                )
+                for label, gby_expr in groupby_columns_by_label.items()
             ]
 
         # Expected output columns
@@ -3985,9 +5071,9 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             if use_grouping_sets:
                 gs_levels = [
                     [
-                        groupby_all_columns[col]
+                        groupby_columns_by_label[col]
                         for col in level
-                        if col in groupby_all_columns
+                        if col in groupby_columns_by_label
                     ]
                     for level in grouping_sets or []
                 ]
@@ -4011,16 +5097,21 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             is_metric_filter = (
                 False  # Track if this is a filter on a metric (needs HAVING clause)
             )
+            # Track whether ``sqla_col`` was built from an adhoc expression
+            # (inline dict or referenced by label), so it can be parenthesized
+            # to guard operator precedence regardless of how it was referenced.
+            is_adhoc_sqla_col = False
             if flt_col == utils.DTTM_ALIAS and is_timeseries and dttm_col:
                 col_obj = dttm_col
             elif is_adhoc_column(flt_col):
                 try:
                     sqla_col, adhoc_generic_type = self.adhoc_column_to_sqla(
-                        flt_col,
+                        cast("AdhocColumn", flt_col),
                         force_type_check=True,
                         template_processor=template_processor,
                     )
                     applied_adhoc_filters_columns.append(flt_col)
+                    is_adhoc_sqla_col = True
                 except ColumnNotFoundException:
                     rejected_adhoc_filters_columns.append(flt_col)
                     continue
@@ -4047,6 +5138,19 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                         template_processor=template_processor
                     )
                     is_metric_filter = True
+                elif (
+                    col_obj is None
+                    and isinstance(flt_col, str)
+                    and flt_col in adhoc_columns_by_label
+                ):
+                    sqla_col, _unused = self.adhoc_column_to_sqla(
+                        col=adhoc_columns_by_label[flt_col],
+                        template_processor=template_processor,
+                    )
+                    if isinstance(sqla_col, ColumnElement):
+                        applied_adhoc_filters_columns.append(flt_col)
+                        is_adhoc_sqla_col = True
+
             filter_grain = flt.get("grain")
 
             # Check if this filter should be skipped because it was handled in
@@ -4080,19 +5184,38 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     sqla_col = self.convert_tbl_column_to_sqla_col(
                         tbl_column=col_obj, template_processor=template_processor
                     )
-                # Parenthesize expression-based columns to prevent operator
-                # precedence issues (e.g. OR in a calculated column breaking
-                # surrounding AND filters). Same pattern as extras.where
-                # wrapping added in PR #38183.
-                if sqla_col is not None and (
-                    (col_obj and col_obj.expression) or is_adhoc_column(flt_col)
+                # Parenthesize adhoc SQL-expression columns (referenced inline
+                # or by label) to prevent operator-precedence issues (e.g. an OR
+                # in the expression breaking surrounding AND filters). Same
+                # pattern as the extras.where wrapping added in PR #38183.
+                # Registered calculated columns are already parenthesized by the
+                # converters (convert_tbl_column_to_sqla_col / get_sqla_col), so
+                # they no longer need wrapping here; the _is_parenthesized guard
+                # avoids a redundant double-wrap for adhoc columns that reference
+                # a saved calculated column.
+                if (
+                    sqla_col is not None
+                    and is_adhoc_sqla_col
+                    and not _is_parenthesized(sqla_col)
                 ):
                     sqla_col = Grouping(sqla_col)
                 col_type = col_obj.type if col_obj else None
                 col_spec = db_engine_spec.get_column_spec(native_type=col_type)
+                is_multivalue_col = bool(
+                    col_spec and col_spec.generic_type == GenericDataType.MULTI_VALUE
+                )
+                # Element type of an array column (e.g. Array(Int32) -> NUMERIC),
+                # used to coerce filter values before building array expressions.
+                array_element_type = (
+                    db_engine_spec.get_array_element_type(col_type)
+                    if is_multivalue_col
+                    else None
+                )
                 is_list_target = op in (
                     utils.FilterOperator.IN,
                     utils.FilterOperator.NOT_IN,
+                    utils.FilterOperator.CONTAINS_ANY,
+                    utils.FilterOperator.CONTAINS_ALL,
                 )
 
                 col_advanced_data_type = col_obj.advanced_data_type if col_obj else ""
@@ -4147,12 +5270,73 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                             sqla_col, op, bus_resp["values"]
                         )
                     )
-                elif is_list_target:
+                elif is_multivalue_col and op in {
+                    utils.FilterOperator.EQUALS,
+                    utils.FilterOperator.NOT_EQUALS,
+                    utils.FilterOperator.IN,
+                    utils.FilterOperator.NOT_IN,
+                }:
+                    # Whole-array (column-level) comparison against array
+                    # literal(s). The value is a pasted array literal like
+                    # ``['a', 'b']`` (parsed into elements): ``col = ['a', 'b']``
+                    # for = / !=; for IN / NOT IN each entered value is one such
+                    # array literal (``col IN (['a'], ['b'])``).
+                    if op in {
+                        utils.FilterOperator.EQUALS,
+                        utils.FilterOperator.NOT_EQUALS,
+                    }:
+                        literal = db_engine_spec.array_literal(
+                            coerce_array_values(
+                                parse_array_literal(val), array_element_type
+                            )
+                        )
+                        cond = (
+                            sqla_col != literal
+                            if op == utils.FilterOperator.NOT_EQUALS
+                            else sqla_col == literal
+                        )
+                    else:
+                        candidates: list[Any] = (
+                            list(val) if isinstance(val, (list, tuple)) else [val]
+                        )
+                        cond = sqla_col.in_(
+                            [
+                                db_engine_spec.array_literal(
+                                    coerce_array_values(
+                                        parse_array_literal(candidate),
+                                        array_element_type,
+                                    )
+                                )
+                                for candidate in candidates
+                            ]
+                        )
+                        if op == utils.FilterOperator.NOT_IN:
+                            cond = ~cond
+                    target_clause_list.append(cond)
+                elif op in {
+                    utils.FilterOperator.IN,
+                    utils.FilterOperator.NOT_IN,
+                }:
+                    # CONTAINS_ANY/CONTAINS_ALL also produce a list ``eq`` (they
+                    # are in ``is_list_target``), but are element-level array ops
+                    # handled by their own branch below — not IN.
                     assert isinstance(eq, (tuple, list))
                     if len(eq) == 0:
                         raise QueryObjectValidationError(
                             _("Filter value list cannot be empty")
                         )
+
+                    # Normalize mixed int/float values before binding, since
+                    # SQLAlchemy may infer the bind parameter type from the
+                    # first element and silently truncate other values
+                    # (see #33206)
+                    if target_generic_type == utils.GenericDataType.NUMERIC and any(
+                        isinstance(v, float) for v in eq
+                    ):
+                        eq = [
+                            float(v) if isinstance(v, (int, float)) else v for v in eq
+                        ]
+
                     if len(eq) > len(
                         eq_without_none := [x for x in eq if x is not None]
                     ):
@@ -4163,6 +5347,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                             cond = is_null_cond
                     else:
                         cond = sqla_col.in_(eq)
+
                     if op == utils.FilterOperator.NOT_IN:
                         cond = ~cond
                     target_clause_list.append(cond)
@@ -4173,6 +5358,57 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     target_clause_list.append(
                         db_engine_spec.handle_null_filter(sqla_col, op)
                     )
+                elif op in {
+                    utils.FilterOperator.IS_EMPTY,
+                    utils.FilterOperator.IS_NOT_EMPTY,
+                }:
+                    # Element-level array operators: length(col) == 0 / > 0.
+                    if target_generic_type != GenericDataType.MULTI_VALUE:
+                        raise QueryObjectValidationError(
+                            _(
+                                "The %(op)s operator is only supported for "
+                                "multi-value (array) columns.",
+                                op=op,
+                            )
+                        )
+                    length_expr = db_engine_spec.array_length(sqla_col)
+                    if op == utils.FilterOperator.IS_EMPTY:
+                        target_clause_list.append(length_expr == 0)
+                    else:
+                        target_clause_list.append(length_expr > 0)
+                elif op in {
+                    utils.FilterOperator.LENGTH_EQUALS,
+                    utils.FilterOperator.LENGTH_GREATER_THAN,
+                    utils.FilterOperator.LENGTH_LESS_THAN,
+                    utils.FilterOperator.LENGTH_GREATER_THAN_OR_EQUALS,
+                    utils.FilterOperator.LENGTH_LESS_THAN_OR_EQUALS,
+                }:
+                    # Length filter: compare the array's element count to a
+                    # number, e.g. length(col) > 2.
+                    if target_generic_type != GenericDataType.MULTI_VALUE:
+                        raise QueryObjectValidationError(
+                            _(
+                                "The %(op)s operator is only supported for "
+                                "multi-value (array) columns.",
+                                op=op,
+                            )
+                        )
+                    number = utils.cast_to_num(eq)  # type: ignore[arg-type]
+                    if number is None:
+                        raise QueryObjectValidationError(
+                            _("The Length filter requires a numeric value.")
+                        )
+                    length_expr = db_engine_spec.array_length(sqla_col)
+                    length_comparisons = {
+                        utils.FilterOperator.LENGTH_EQUALS: length_expr == number,
+                        utils.FilterOperator.LENGTH_GREATER_THAN: length_expr > number,
+                        utils.FilterOperator.LENGTH_LESS_THAN: length_expr < number,
+                        utils.FilterOperator.LENGTH_GREATER_THAN_OR_EQUALS: length_expr
+                        >= number,
+                        utils.FilterOperator.LENGTH_LESS_THAN_OR_EQUALS: length_expr
+                        <= number,
+                    }
+                    target_clause_list.append(length_comparisons[op])
                 elif op == utils.FilterOperator.IS_TRUE:
                     target_clause_list.append(
                         db_engine_spec.handle_boolean_filter(sqla_col, op, True)
@@ -4230,6 +5466,38 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                             target_clause_list.append(sqla_col.not_like(eq))
                         else:
                             target_clause_list.append(sqla_col.not_ilike(eq))
+                    elif op in {
+                        utils.FilterOperator.CONTAINS_ANY,
+                        utils.FilterOperator.CONTAINS_ALL,
+                    }:
+                        # Element-level array membership. Enforce the target is
+                        # actually a multi-value (array) column (only classified
+                        # MULTI_VALUE on an array-capable engine), guarding against
+                        # payloads that bypass the UI gating.
+                        if target_generic_type != GenericDataType.MULTI_VALUE:
+                            raise QueryObjectValidationError(
+                                _(
+                                    "The %(op)s operator is only supported for "
+                                    "multi-value (array) columns.",
+                                    op=op,
+                                )
+                            )
+                        array_values: list[Any] = coerce_array_values(
+                            list(eq) if isinstance(eq, (list, tuple)) else [eq],
+                            array_element_type,
+                        )
+                        if op == utils.FilterOperator.CONTAINS_ANY:
+                            target_clause_list.append(
+                                db_engine_spec.array_contains_any(
+                                    sqla_col, array_values
+                                )
+                            )
+                        else:
+                            target_clause_list.append(
+                                db_engine_spec.array_contains_all(
+                                    sqla_col, array_values
+                                )
+                            )
                     elif (
                         op == utils.FilterOperator.TEMPORAL_RANGE
                         and isinstance(eq, str)
@@ -4264,7 +5532,6 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             if where:
                 where = self._process_select_expression(
                     expression=where,
-                    database_id=self.database_id,
                     engine=self.database.backend,
                     schema=self.schema,
                     template_processor=template_processor,
@@ -4274,7 +5541,6 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             if having:
                 having = self._process_select_expression(
                     expression=having,
-                    database_id=self.database_id,
                     engine=self.database.backend,
                     schema=self.schema,
                     template_processor=template_processor,
@@ -4531,4 +5797,5 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             labels_expected=labels_expected,
             sqla_query=qry,
             prequeries=prequeries,
+            sql_shifted_temporal_labels=sql_shifted_temporal_labels,
         )

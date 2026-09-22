@@ -128,16 +128,15 @@ test('non-admin user can view a themed dashboard without 403 or infinite spinner
 
     // --- NON-ADMIN USER PHASE (page has no cached auth via test.use) ---
 
-    // 4. Instrument network: track any /api/v1/theme/ requests and 403 responses
+    // 4. Instrument network: track any /api/v1/theme/ request, with its status.
+    // Recording the status rather than asserting on a separate 403-only array
+    // keeps the diagnostic — a failure prints whether the calls were forbidden
+    // or merely unexpected — without a second, subsumed assertion.
     const themeApiRequests: string[] = [];
-    const forbiddenResponses: string[] = [];
     page.on('response', response => {
       const url = response.url();
       if (url.includes('/api/v1/theme/')) {
-        themeApiRequests.push(url);
-      }
-      if (response.status() === 403 && url.includes('/api/v1/theme/')) {
-        forbiddenResponses.push(url);
+        themeApiRequests.push(`${response.status()} ${url}`);
       }
     });
 
@@ -152,14 +151,19 @@ test('non-admin user can view a themed dashboard without 403 or infinite spinner
     const dashboardPage = new DashboardPage(page);
     await dashboardPage.gotoById(dashboardId!);
 
-    // 7. Assert dashboard fully loads (not stuck on infinite spinner)
+    // 7. Assert dashboard fully loads (not stuck on infinite spinner).
+    // The dashboard is created with no position_json, so its grid renders
+    // empty — there is no chart to wait for, only the grid itself.
     await dashboardPage.waitForLoad({ timeout: TIMEOUT.PAGE_LOAD });
-    await dashboardPage.waitForChartsToLoad();
+    await dashboardPage.waitForGridToLoad();
 
-    // 8. Assert no /api/v1/theme/ requests were made (theme data comes from dashboard response)
-    expect(themeApiRequests).toHaveLength(0);
-    // Assert no 403 responses on /api/v1/theme/ (scoped to avoid login/unrelated 403 noise)
-    expect(forbiddenResponses).toHaveLength(0);
+    // 8. A non-admin must render the themed dashboard without ever calling the
+    // theme API — theme data rides along on the dashboard response, and the
+    // endpoint itself is admin-only, so any call here would 403 and break them.
+    expect(
+      themeApiRequests,
+      'Non-admin dashboard load must not call the theme API',
+    ).toHaveLength(0);
   } finally {
     // Cleanup: delete test resources using admin context
     if (dashboardId) {

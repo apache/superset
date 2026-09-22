@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 
+import base64
 from unittest.mock import MagicMock, mock_open, patch
 
 from superset.themes.types import ThemeMode
@@ -23,6 +24,7 @@ from superset.views.base import (
     _load_theme_from_model,
     _merge_theme_dicts,
     _process_theme,
+    _svg_to_data_uri,
     get_theme_bootstrap_data,
 )
 
@@ -531,6 +533,47 @@ class TestGetThemeBootstrapData:
         assert result["theme"]["enableUiThemeAdministration"] is False
         assert result["theme"]["default"] == {}
         assert result["theme"]["dark"] == {}
+
+    @patch("superset.views.base.app")
+    @patch("superset.views.base.get_config_value")
+    @patch("superset.views.base.ThemeDAO")
+    def test_light_theme_in_dark_slot_gets_dark_algorithm(
+        self,
+        mock_dao,
+        mock_get_config,
+        mock_app,
+    ):
+        """Regression test for a light theme selected as the system dark theme.
+
+        The database theme's algorithm wins the merge against the config base,
+        so without correction the dark slot would be served ``default`` and Ant
+        Design would derive a mix of light and dark tokens.
+        """
+        mock_app.config = MagicMock()
+        mock_app.config.get.side_effect = lambda k, d=None: {
+            "ENABLE_UI_THEME_ADMINISTRATION": True,
+        }.get(k, d)
+
+        mock_get_config.side_effect = lambda k: {
+            "THEME_DEFAULT": {"token": {"colorPrimary": "#config1"}},
+            "THEME_DARK": {"token": {"colorPrimary": "#config2"}},
+        }.get(k)
+
+        # The same light theme is set as both the system default and system dark
+        light_theme = MagicMock()
+        light_theme.json_data = (
+            '{"token": {"colorPrimary": "#db1"}, "algorithm": "default"}'
+        )
+
+        mock_dao.find_system_default.return_value = light_theme
+        mock_dao.find_system_dark.return_value = light_theme
+
+        result = get_theme_bootstrap_data()
+
+        assert result["theme"]["default"]["algorithm"] == "default"
+        assert result["theme"]["dark"]["algorithm"] == "dark"
+        # The theme's own tokens are still honored in both slots
+        assert result["theme"]["dark"]["token"]["colorPrimary"] == "#db1"
 
     @patch("superset.views.base.app")
     @patch("superset.views.base.get_config_value")
@@ -1076,6 +1119,66 @@ class TestGetDefaultSpinnerSvg:
         assert result is not None
         assert "<svg" in result
         assert "morphPath" in result
+
+
+class TestSvgToDataUri:
+    """Test _svg_to_data_uri (see #43504: <img> data URI spinner rendering)"""
+
+    def test_string_input_encoded_as_data_uri(self):
+        """A valid SVG string is base64-encoded into a data URI"""
+        svg = "<svg>ok</svg>"
+        result = _svg_to_data_uri(svg)
+        assert result == (
+            "data:image/svg+xml;base64,"
+            + base64.b64encode(svg.encode("utf-8")).decode("ascii")
+        )
+
+    def test_none_input_returns_none(self):
+        assert _svg_to_data_uri(None) is None
+
+    def test_empty_string_returns_none(self):
+        assert _svg_to_data_uri("") is None
+
+    def test_non_string_input_returns_none(self):
+        """A malformed theme (hand-edited config or a stale database row)
+        could supply a truthy non-string value; it must be treated as
+        absent rather than raising and 500ing SPA rendering."""
+        assert _svg_to_data_uri(True) is None  # noqa: FBT003
+        assert _svg_to_data_uri(123) is None
+        assert _svg_to_data_uri({"not": "a string"}) is None
+
+
+class TestSpinnerSvgDataUri:
+    """Regression test for #43503: brandSpinnerSvg must reach spa.html only
+    as a base64 data URI, never as raw markup that could be inlined."""
+
+    @patch("superset.views.base.get_spa_payload")
+    @patch("superset.views.base.app")
+    def test_custom_svg_rendered_only_as_data_uri(self, mock_app, mock_payload):
+        from superset.views.base import get_spa_template_context
+
+        mock_app.config = {}
+        malicious_svg = '<svg onload="alert(1)"><script>alert(1)</script></svg>'
+        mock_payload.return_value = {
+            "common": {
+                "theme": {
+                    "default": {
+                        "token": {"brandSpinnerSvg": malicious_svg},
+                    }
+                }
+            }
+        }
+
+        result = get_spa_template_context("app")
+
+        # The template no longer receives a raw "spinner_svg" it could
+        # render with `| safe`; only the encoded data URI is passed.
+        assert "spinner_svg" not in result
+        assert result["spinner_svg_data_uri"].startswith("data:image/svg+xml;base64,")
+        decoded = base64.b64decode(
+            result["spinner_svg_data_uri"].split(",", 1)[1]
+        ).decode("utf-8")
+        assert decoded == malicious_svg
 
 
 class TestThemeCacheInvalidation:

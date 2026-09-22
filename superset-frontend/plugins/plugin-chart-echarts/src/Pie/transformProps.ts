@@ -55,15 +55,19 @@ import { getDefaultTooltip } from '../utils/tooltip';
 import { Refs } from '../types';
 import { getContributionLabel } from './utils';
 
-const percentFormatter = getNumberFormatter(NumberFormats.PERCENT_2_POINT);
+const defaultPercentFormatter = getNumberFormatter(
+  NumberFormats.PERCENT_2_POINT,
+);
 
 export function parseParams({
   params,
   numberFormatter,
+  percentFormatter = defaultPercentFormatter,
   sanitizeName = false,
 }: {
   params: Pick<CallbackDataParams, 'name' | 'value' | 'percent'>;
   numberFormatter: ValueFormatter;
+  percentFormatter?: ValueFormatter;
   sanitizeName?: boolean;
 }): string[] {
   const { name: rawName = '', value, percent } = params;
@@ -296,6 +300,9 @@ export default function transformProps(
     currencyCodeColumn,
     detectedCurrency,
   );
+  const percentFormatter = numberFormat?.endsWith('%')
+    ? getNumberFormatter(numberFormat)
+    : defaultPercentFormatter;
 
   let data = rawData;
   const otherRows: DataRecord[] = [];
@@ -446,6 +453,7 @@ export default function transformProps(
     const [name, formattedValue, formattedPercent] = parseParams({
       params,
       numberFormatter,
+      percentFormatter,
     });
     switch (labelType) {
       case EchartsPieLabelType.Key:
@@ -566,6 +574,7 @@ export default function transformProps(
         const [name, formattedValue, formattedPercent] = parseParams({
           params,
           numberFormatter,
+          percentFormatter,
           sanitizeName: true,
         });
         if (params?.data?.isOther) {

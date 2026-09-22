@@ -37,6 +37,7 @@ joins and unions are done in memory, using the SQLite engine.
 
 from __future__ import annotations
 
+import contextvars
 import datetime
 import decimal
 import operator
@@ -68,7 +69,34 @@ from sqlalchemy.exc import NoSuchTableError
 from sqlalchemy.sql import Select, select
 
 from superset import db, feature_flag_manager, security_manager
-from superset.sql.parse import Table
+from superset.sql.parse import count_referenced_tables, Table
+
+
+def _count_referenced_tables(statement: str) -> int:
+    """
+    Count the distinct `superset://` virtual tables a statement references,
+    so ``get_data`` can tell whether it's being asked for a standalone table
+    or for one side of a multi-table statement (see ``get_data`` for why this
+    matters). Shillelagh calls `SupersetShillelaghAdapter.get_data` once per
+    underlying table, independently of any other table referenced by the
+    same statement, so it has no way on its own to tell the two cases apart.
+
+    Uses the real SQL parser rather than pattern-matching on quoted
+    identifiers, since a naive `"db.table"`-shaped regex also matches
+    dotted, double-quoted column aliases (e.g. `AS "metric.value"`) that
+    have nothing to do with table references, and would misclassify a
+    single-table statement as multi-table.
+    """
+    return count_referenced_tables(statement, "sqlite")
+
+
+# `SupersetAPSWDialect.on_connect` populates `_executing_multi_table_query` for
+# the duration of a statement so that `get_data` can tell whether it's being
+# asked for a standalone table or for one side of a multi-table query (see
+# `get_data` for why this matters).
+_executing_multi_table_query: contextvars.ContextVar[bool] = contextvars.ContextVar(
+    "_executing_multi_table_query", default=False
+)
 
 
 # pylint: disable=abstract-method
@@ -118,6 +146,49 @@ class SupersetAPSWDialect(APSWDialect):
                 "isolation_level": self.isolation_level,
             },
         )
+
+    def on_connect(self) -> Callable[[Any], None]:
+        """
+        Wrap cursor creation on every new DBAPI connection so ``execute`` tracks
+        whether the statement it's about to run references more than one
+        `superset://` virtual table, no matter how that statement reaches the
+        cursor.
+
+        SQLAlchemy's `do_execute*` hooks only fire for statements executed
+        through a SQLAlchemy `Connection` (the ORM/Core path). SQL Lab, the
+        primary way users query these tables, instead pulls a raw DBAPI cursor
+        via `engine.raw_connection()` and calls `cursor.execute()` on it
+        directly, bypassing those hooks entirely -- which would leave
+        `_executing_multi_table_query` permanently `False` for that path, and
+        `get_data` back to silently truncating one side of a join (see
+        `get_data` and #36304). Patching the cursor factory here, at the point
+        a new physical connection is established, catches every path, since
+        each one ultimately calls `execute()` on a cursor obtained from this
+        same connection.
+        """
+
+        def setup(dbapi_connection: Any) -> None:
+            original_cursor = dbapi_connection.cursor
+
+            def cursor(*args: Any, **kwargs: Any) -> Any:
+                raw_cursor = original_cursor(*args, **kwargs)
+                original_execute = raw_cursor.execute
+
+                def execute(operation: str, parameters: Any = None) -> Any:
+                    token = _executing_multi_table_query.set(
+                        _count_referenced_tables(operation) > 1
+                    )
+                    try:
+                        return original_execute(operation, parameters)
+                    finally:
+                        _executing_multi_table_query.reset(token)
+
+                raw_cursor.execute = execute
+                return raw_cursor
+
+            dbapi_connection.cursor = cursor
+
+        return setup
 
 
 F = TypeVar("F", bound=Callable[..., Any])
@@ -409,7 +480,18 @@ class SupersetShillelaghAdapter(Adapter):
         """
         app_limit: int | None = current_app.config["SUPERSET_META_DB_LIMIT"]
         if limit is None:
-            limit = app_limit
+            # Shillelagh calls `get_data` once per table, independently of any
+            # other table referenced by the same statement, so a value of `None`
+            # here doesn't necessarily mean this table is the whole query -- it
+            # can equally mean this table is one side of a join (or other
+            # multi-table statement). Applying the app-wide default in that case
+            # would silently truncate this table before the in-memory join runs,
+            # dropping rows that have a genuine match on the other side with no
+            # error (see #36304). Only fall back to the default for statements
+            # that reference a single table, where truncating it can't hide
+            # otherwise-valid matches.
+            if app_limit is not None and not _executing_multi_table_query.get():
+                limit = app_limit
         elif app_limit is not None:
             limit = min(limit, app_limit)
 

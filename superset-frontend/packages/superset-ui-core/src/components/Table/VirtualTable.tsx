@@ -24,10 +24,14 @@ import {
 } from 'antd/es/table';
 import classNames from 'classnames';
 import { useResizeDetector } from 'react-resize-detector';
-import { useEffect, useRef, useState, useCallback, CSSProperties } from 'react';
-import { VariableSizeGrid as Grid } from 'react-window';
+import { useRef, useState, useCallback, type UIEvent } from 'react';
+import {
+  Grid,
+  type CellComponentProps,
+  type GridImperativeAPI,
+} from 'react-window';
 import { safeHtmlSpan } from '@superset-ui/core';
-import { useTheme, styled } from '@apache-superset/core/theme';
+import { useTheme, styled, SupersetTheme } from '@apache-superset/core/theme';
 
 import { TableSize, ETableAction } from './index';
 
@@ -70,6 +74,59 @@ const StyledTable = styled(AntTable)(
 
 const SMALL = 39;
 const MIDDLE = 47;
+
+interface VirtualGridCellProps {
+  mergedColumns: AntTableProps<any>['columns'];
+  rawData: readonly object[];
+  cellSize: number;
+  allowHTML: boolean;
+  theme: SupersetTheme;
+}
+
+// Rendered via `cellComponent`, so it must be a stable reference (module scope)
+// rather than defined inline on every render of the enclosing table -
+// otherwise react-window would treat it as a new component type each render
+// and remount every cell. All the data it needs is threaded through
+// `cellProps` instead of being closed over.
+const VirtualGridCell = ({
+  columnIndex,
+  rowIndex,
+  style,
+  mergedColumns,
+  rawData,
+  cellSize,
+  allowHTML,
+  theme,
+}: CellComponentProps<VirtualGridCellProps>) => {
+  const data: any = rawData?.[rowIndex];
+  // Set default content
+  let content = data?.[(mergedColumns as any)?.[columnIndex]?.dataIndex];
+  // Check if the column has a render function
+  const render = mergedColumns?.[columnIndex]?.render;
+  if (typeof render === 'function') {
+    // Use render function to generate formatted content using column's render function
+    content = render(content, data, rowIndex);
+  }
+
+  if (allowHTML && typeof content === 'string') {
+    content = safeHtmlSpan(content);
+  }
+
+  return (
+    <StyledCell
+      className={classNames('virtual-table-cell', {
+        'virtual-table-cell-last':
+          columnIndex === (mergedColumns?.length ?? 0) - 1,
+      })}
+      style={style}
+      title={typeof content === 'string' ? content : undefined}
+      theme={theme}
+      height={cellSize}
+    >
+      {content}
+    </StyledCell>
+  );
+};
 
 const VirtualTable = <RecordType extends object>(
   props: VirtualTableProps<RecordType>,
@@ -126,19 +183,15 @@ const VirtualTable = <RecordType extends object>(
       (lastColumn.width as number) + Math.floor(tableWidth - totalWidth);
   }
 
-  const gridRef = useRef<any>();
+  const gridRef = useRef<GridImperativeAPI>(null);
   const [connectObject] = useState<any>(() => {
     const obj = {};
     Object.defineProperty(obj, 'scrollLeft', {
-      get: () => {
-        if (gridRef.current) {
-          return gridRef.current?.state?.scrollLeft;
-        }
-        return 0;
-      },
+      get: () => gridRef.current?.element?.scrollLeft ?? 0,
       set: (scrollLeft: number) => {
-        if (gridRef.current) {
-          gridRef.current.scrollTo({ scrollLeft });
+        const element = gridRef.current?.element;
+        if (element) {
+          element.scrollLeft = scrollLeft;
         }
       },
     });
@@ -146,14 +199,11 @@ const VirtualTable = <RecordType extends object>(
     return obj;
   });
 
-  const resetVirtualGrid = () => {
-    gridRef.current?.resetAfterIndices({
-      columnIndex: 0,
-      shouldForceUpdate: true,
-    });
-  };
-
-  useEffect(() => resetVirtualGrid, [tableWidth, columns, size]);
+  // No manual cache-reset is needed here (react-window v2 has no
+  // `resetAfterIndices`-style API): `columnWidth` below is a fresh inline
+  // closure over `mergedColumns` on every render, so react-window's internal
+  // size cache - which is invalidated whenever the `columnWidth`/`rowHeight`
+  // function reference changes - recomputes automatically.
 
   /*
    * antd Table has a runtime error when it tries to fire the onChange event triggered from a pageChange
@@ -166,7 +216,10 @@ const VirtualTable = <RecordType extends object>(
      * We intentionally leave horizontal scroll where it was so user can focus on
      * specific range of columns as they page through data
      */
-    gridRef.current?.scrollTo?.({ scrollTop: 0 });
+    const element = gridRef.current?.element;
+    if (element) {
+      element.scrollTop = 0;
+    }
 
     onChange?.(
       {
@@ -192,61 +245,31 @@ const VirtualTable = <RecordType extends object>(
     const cellSize = size === TableSize.Middle ? MIDDLE : SMALL;
     return (
       <Grid
-        ref={gridRef}
+        gridRef={gridRef}
         className="virtual-grid"
         columnCount={mergedColumns.length}
         columnWidth={(index: number) => {
           const { width = DEFAULT_COL_WIDTH } = mergedColumns[index];
           return width as number;
         }}
-        height={height || (scroll!.y as number)}
         rowCount={rawData.length}
         rowHeight={() => cellSize}
-        width={tableWidth}
-        onScroll={({ scrollLeft }: { scrollLeft: number }) => {
-          onScroll({ scrollLeft });
+        style={{
+          height: height || (scroll!.y as number),
+          width: tableWidth,
         }}
-      >
-        {({
-          columnIndex,
-          rowIndex,
-          style,
-        }: {
-          columnIndex: number;
-          rowIndex: number;
-          style: CSSProperties;
-        }) => {
-          const data: any = rawData?.[rowIndex];
-          // Set default content
-          let content =
-            data?.[(mergedColumns as any)?.[columnIndex]?.dataIndex];
-          // Check if the column has a render function
-          const render = mergedColumns[columnIndex]?.render;
-          if (typeof render === 'function') {
-            // Use render function to generate formatted content using column's render function
-            content = render(content, data, rowIndex);
-          }
-
-          if (allowHTML && typeof content === 'string') {
-            content = safeHtmlSpan(content);
-          }
-
-          return (
-            <StyledCell
-              className={classNames('virtual-table-cell', {
-                'virtual-table-cell-last':
-                  columnIndex === mergedColumns.length - 1,
-              })}
-              style={style}
-              title={typeof content === 'string' ? content : undefined}
-              theme={theme}
-              height={cellSize}
-            >
-              {content}
-            </StyledCell>
-          );
+        cellComponent={VirtualGridCell}
+        cellProps={{
+          mergedColumns,
+          rawData,
+          cellSize,
+          allowHTML,
+          theme,
         }}
-      </Grid>
+        onScroll={(event: UIEvent<HTMLDivElement>) => {
+          onScroll({ scrollLeft: event.currentTarget.scrollLeft });
+        }}
+      />
     );
   };
 

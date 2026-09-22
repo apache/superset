@@ -457,6 +457,71 @@ export function openInNewTab(path: string): void {
 }
 
 /**
+ * Opens an empty tab immediately, for callers that only know the destination
+ * after an await.
+ *
+ * Browsers grant `window.open` only inside the task servicing a user gesture:
+ * Safari refuses any call outside it, and Chrome/Firefox refuse once transient
+ * activation lapses, which a couple of sequential requests will exceed. The
+ * refusal is silent -- `window.open` just returns null -- so a caller that
+ * awaits first appears to do nothing at all. Call this synchronously in the
+ * handler and hand the result to `navigateOpenedTab` when the URL is known.
+ *
+ * The placeholder is opened WITHOUT `noopener`: per the HTML standard,
+ * `window.open(..., 'noopener')` always returns null, which would discard the
+ * very handle this function exists to return and leave the caller with a
+ * stranded `about:blank` tab it can never navigate. The destination is always
+ * a same-origin app route (`ensureAppRoot` in `navigateOpenedTab`), so the
+ * opener relationship carries no cross-origin tabnabbing risk. The one-shot
+ * `window.open(url, ...)` fallback in `navigateOpenedTab` keeps `noopener`,
+ * since it passes the real URL and never needs the handle.
+ */
+export function openBlankTab(): Window | null {
+  return window.open('', '_blank');
+}
+
+/**
+ * Points a tab from `openBlankTab` at *path*, falling back to a fresh
+ * `openInNewTab` if the tab was blocked or has since been closed.
+ *
+ * The URL is validated before either branch, so an unsafe path cannot reach
+ * a pre-opened tab any more than it could reach `openInNewTab`.
+ *
+ * The external-URL branch (a safe absolute URL on a claimed tab) is defensive:
+ * no current caller passes one, and by the time it would run the click's
+ * activation has lapsed, so the reopen is popup-blocked and the placeholder
+ * closes with nothing opening. It exists only to keep an absolute URL off the
+ * opener-connected tab; a caller needing an external target after an await
+ * should not claim a tab up front.
+ */
+export function navigateOpenedTab(tab: Window | null, path: string): void {
+  const url = assertSafeNavigationUrl(ensureAppRoot(path));
+  // Only a same-origin app route may reuse the opener-connected placeholder
+  // from `openBlankTab` (which drops `noopener` to keep its handle).
+  // `ensureAppRoot` leaves an absolute URL untouched, so anything not starting
+  // with a single `/` is external: it must not ride the opener chain. Route it
+  // through the `noopener` fallback instead — closing the claimed tab first so
+  // no `about:blank` is stranded — which makes the same-origin guarantee
+  // structural rather than a caller convention.
+  const isSameOriginRoute = url.startsWith('/') && !url.startsWith('//');
+  if (isSameOriginRoute && tab && !tab.closed) {
+    tab.location.replace(url);
+    return;
+  }
+  if (tab && !tab.closed) {
+    tab.close();
+  }
+  window.open(url, '_blank', NEW_TAB_FEATURES);
+}
+
+/** Closes a tab opened by `openBlankTab` when the work behind it failed. */
+export function closeOpenedTab(tab: Window | null): void {
+  if (tab && !tab.closed) {
+    tab.close();
+  }
+}
+
+/**
  * Full-page redirect to a router-relative path. Use only when the destination
  * is outside the React Router tree or a hard reload is required.
  *

@@ -80,6 +80,32 @@ def test_ephemeral_get_delegates_to_dao(
 
 @patch("superset.extensions.storage.api.ExtensionEphemeralDAO")
 @patch("superset.extensions.storage.utils.get_extensions")
+def test_ephemeral_get_response_is_marked_no_store(
+    mock_get_ext: MagicMock, mock_dao: MagicMock, app: Flask
+) -> None:
+    """Stored values are scoped to the requesting user, so responses built via
+    `response()` must never be cached (e.g. by a shared/CDN cache)."""
+    mock_get_ext.return_value = {"acme.dashboard": MagicMock()}
+    Babel(app)
+    app.appbuilder = MagicMock()
+    app.appbuilder.sm.is_item_public.return_value = True
+    mock_dao.get_raw.return_value = (get_codec("json").encode({"data": 42}), "json")
+
+    with app.test_request_context(
+        "/api/v1/extensions/acme/dashboard/storage/ephemeral/my-key"
+    ):
+        g.user = MagicMock(id=7)
+
+        body, status_code = ExtensionStorageRestApi().get_ephemeral(
+            "acme", "dashboard", "my-key"
+        )
+
+        assert status_code == 200
+        assert body.cache_control.no_store is True
+
+
+@patch("superset.extensions.storage.api.ExtensionEphemeralDAO")
+@patch("superset.extensions.storage.utils.get_extensions")
 def test_ephemeral_get_returns_none_when_entry_missing(
     mock_get_ext: MagicMock, mock_dao: MagicMock, app: Flask
 ) -> None:

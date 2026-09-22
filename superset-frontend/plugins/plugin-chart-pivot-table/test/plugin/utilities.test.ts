@@ -26,7 +26,11 @@ import buildGroupbyCombinations, {
   splitGroupingSetsResult,
   groupingMarkerLabel,
 } from '../../src/plugin/utilities';
-import { PivotTableQueryFormData, MetricsLayoutEnum } from '../../src/types';
+import {
+  PivotTableQueryFormData,
+  MetricsLayoutEnum,
+  ShowValuesAsEnum,
+} from '../../src/types';
 
 const baseFormData = {
   groupbyRows: ['row1', 'row2'],
@@ -286,6 +290,25 @@ test('isAdditiveMetric: non-additive aggregates, SQL, and saved metrics are not 
   expect(isAdditiveMetric('count')).toBe(false);
 });
 
+test('isAdditiveMetric: MEDIAN/STDDEV_SAMP/VAR_SAMP are non-additive, with no dedicated code needed', () => {
+  // Regression guard: MEDIAN/STDDEV_SAMP/VAR_SAMP are new system-wide metric
+  // aggregates (not pivot-table-specific). They must fall outside
+  // ADDITIVE_AGGREGATES so totals/subtotals route through the correct
+  // DB-rollup path automatically, same as AVG/COUNT_DISTINCT already do --
+  // averaging per-group medians (or variances) is exactly the class of bug
+  // SIP-216 fixed for AVG, and would be equally wrong here.
+  (['MEDIAN', 'STDDEV_SAMP', 'VAR_SAMP'] as const).forEach(aggregate => {
+    expect(
+      isAdditiveMetric({
+        expressionType: 'SIMPLE',
+        aggregate,
+        column: { column_name: 'num' },
+        label: `${aggregate.toLowerCase()}_num`,
+      } as QueryFormMetric),
+    ).toBe(false);
+  });
+});
+
 test('allMetricsAdditive: all additive vs any non-additive vs empty', () => {
   const sum = {
     expressionType: 'SIMPLE',
@@ -361,6 +384,70 @@ test('pruning: empty column dims keep the [] (leaf) level regardless of rowTotal
   expect(combinations).toEqual([
     { rows: [], columns: [] },
     { rows: ['row1', 'row2'], columns: [] },
+  ]);
+});
+
+test('pruning: percent_row forces the row-total (columns collapsed) level even with rowTotals off', () => {
+  const combinations = buildGroupbyCombinations({
+    ...baseFormData,
+    colTotals: false,
+    rowTotals: false,
+    colSubTotals: false,
+    rowSubTotals: false,
+    showValuesAs: ShowValuesAsEnum.PERCENT_OF_ROW,
+  });
+  expect(combinations).toEqual([
+    { rows: ['row1', 'row2'], columns: [] },
+    { rows: ['row1', 'row2'], columns: ['col1', 'col2'] },
+  ]);
+});
+
+test('pruning: percent_col forces the column-total (rows collapsed) level even with colTotals off', () => {
+  const combinations = buildGroupbyCombinations({
+    ...baseFormData,
+    colTotals: false,
+    rowTotals: false,
+    colSubTotals: false,
+    rowSubTotals: false,
+    showValuesAs: ShowValuesAsEnum.PERCENT_OF_COLUMN,
+  });
+  expect(combinations).toEqual([
+    { rows: [], columns: ['col1', 'col2'] },
+    { rows: ['row1', 'row2'], columns: ['col1', 'col2'] },
+  ]);
+});
+
+test('pruning: percent_total forces the grand-total level even with both totals off', () => {
+  const combinations = buildGroupbyCombinations({
+    ...baseFormData,
+    colTotals: false,
+    rowTotals: false,
+    colSubTotals: false,
+    rowSubTotals: false,
+    showValuesAs: ShowValuesAsEnum.PERCENT_OF_TOTAL,
+  });
+  // Rows is the outer loop and columns the inner loop (see
+  // buildGroupbyCombinations's flatMap), so the rows-collapsed level pairs
+  // with every column prefix before the leaf row prefix does.
+  expect(combinations).toEqual([
+    { rows: [], columns: [] },
+    { rows: [], columns: ['col1', 'col2'] },
+    { rows: ['row1', 'row2'], columns: [] },
+    { rows: ['row1', 'row2'], columns: ['col1', 'col2'] },
+  ]);
+});
+
+test('pruning: actual (no percent mode) does not force any extra level', () => {
+  const combinations = buildGroupbyCombinations({
+    ...baseFormData,
+    colTotals: false,
+    rowTotals: false,
+    colSubTotals: false,
+    rowSubTotals: false,
+    showValuesAs: ShowValuesAsEnum.ACTUAL,
+  });
+  expect(combinations).toEqual([
+    { rows: ['row1', 'row2'], columns: ['col1', 'col2'] },
   ]);
 });
 

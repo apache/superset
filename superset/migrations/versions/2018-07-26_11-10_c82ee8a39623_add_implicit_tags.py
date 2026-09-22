@@ -29,9 +29,8 @@ down_revision = "c617da68de7d"
 from datetime import datetime  # noqa: E402
 
 from alembic import op  # noqa: E402
-from flask_appbuilder.models.mixins import AuditMixin  # noqa: E402
 from sqlalchemy import Column, DateTime, Enum, ForeignKey, Integer, String  # noqa: E402
-from sqlalchemy.orm import declarative_base, declared_attr  # noqa: E402
+from sqlalchemy.orm import declarative_base, declared_attr, Mapped  # noqa: E402
 
 from superset.tags.models import ObjectType, TagType  # noqa: E402
 from superset.utils.core import get_user_id  # noqa: E402
@@ -39,10 +38,15 @@ from superset.utils.core import get_user_id  # noqa: E402
 Base = declarative_base()
 
 
-class AuditMixinNullable(AuditMixin):
-    """Altering the AuditMixin to use nullable fields
+class AuditMixinNullable:
+    """Nullable audit columns, without FAB's ``AuditMixin`` relationships.
 
-    Allows creating objects programmatically outside of CRUD
+    This module only needs the audit *columns* for ``__table__.create``.
+    Inheriting FAB's ``AuditMixin`` would also declare ``created_by`` /
+    ``changed_by`` relationships on these throwaway mapped classes, and once
+    alembic imports this script the resulting mapper cannot be configured —
+    breaking ``sqlalchemy.orm.configure_mappers()`` process-wide for any
+    later caller.
     """
 
     created_on = Column(DateTime, default=datetime.now, nullable=True)
@@ -51,7 +55,7 @@ class AuditMixinNullable(AuditMixin):
     )
 
     @declared_attr
-    def created_by_fk(self) -> Column:
+    def created_by_fk(self) -> Mapped[int | None]:
         return Column(
             Integer,
             ForeignKey("ab_user.id"),
@@ -60,7 +64,7 @@ class AuditMixinNullable(AuditMixin):
         )
 
     @declared_attr
-    def changed_by_fk(self) -> Column:
+    def changed_by_fk(self) -> Mapped[int | None]:
         return Column(
             Integer,
             ForeignKey("ab_user.id"),

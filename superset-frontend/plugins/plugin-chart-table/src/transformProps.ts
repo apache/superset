@@ -36,6 +36,7 @@ import {
   SMART_DATE_ID,
   TimeFormats,
   TimeFormatter,
+  DateWithFormatter,
 } from '@superset-ui/core';
 import { GenericDataType } from '@apache-superset/core/common';
 import {
@@ -47,7 +48,6 @@ import {
 
 import { isEmpty, merge } from 'lodash-es';
 import isEqualColumns from './utils/isEqualColumns';
-import DateWithFormatter from './utils/DateWithFormatter';
 import {
   BasicColorFormatterType,
   DataColumnMeta,
@@ -752,8 +752,17 @@ const transformProps = (
   const basicColorFormatters =
     comparisonColorEnabled && getBasicColorFormatter(baseQuery?.data, columns);
   const columnColorFormatters =
-    getColorFormatters(conditionalFormatting, passedData, theme) ??
-    defaultColorFormatters;
+    getColorFormatters(
+      (conditionalFormatting || []).filter(
+        (config: ConditionalFormattingConfig) =>
+          config.colorScheme !== ColorSchemeEnum.Green &&
+          config.colorScheme !== ColorSchemeEnum.Red,
+      ),
+      passedData,
+      theme,
+      undefined,
+      serverPagination,
+    ) ?? defaultColorFormatters;
 
   const basicColorColumnFormatters = getBasicColorFormatterForColumn(
     baseQuery?.data,

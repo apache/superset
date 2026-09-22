@@ -83,6 +83,10 @@ const disableDevModeInRules = rules =>
     };
   });
 
+function getAbsolutePath(value) {
+  return path.dirname(require.resolve(path.join(value, 'package.json')));
+}
+
 export default {
   stories: [
     '../src/**/*.stories.tsx',
@@ -101,7 +105,15 @@ export default {
     ...config,
     module: {
       ...config.module,
-      rules: disableDevModeInRules(customConfig.module.rules),
+      rules: [
+        ...(config.module?.rules ?? []).filter(
+          rule => {
+            const test = rule.test?.toString() ?? '';
+            return test !== '/\\.css$/' && !test.includes('svg');
+          },
+        ),
+        ...disableDevModeInRules(customConfig.module.rules),
+      ],
     },
     resolve: {
       ...config.resolve,
@@ -129,7 +141,3 @@ export default {
     options: {},
   }
 };
-
-function getAbsolutePath(value) {
-  return path.dirname(require.resolve(path.join(value, 'package.json')));
-}

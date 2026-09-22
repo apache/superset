@@ -23,7 +23,7 @@ from freezegun import freeze_time
 from freezegun.api import FakeDatetime
 
 from superset.extensions import db
-from superset.reports.models import ReportScheduleType
+from superset.reports.models import ReportSchedule, ReportScheduleType
 from superset.subjects.models import Subject
 from superset.subjects.types import SubjectType
 from superset.tasks.scheduler import execute, log_task_failure, scheduler
@@ -110,6 +110,40 @@ def test_scheduler_celery_timeout_utc(execute_mock, editors):
 
 @pytest.mark.usefixtures("app_context")
 @patch("superset.tasks.scheduler.execute.apply_async")
+def test_scheduler_report_timeout_uses_end_to_end_budget(execute_mock, editors):
+    report_schedule = insert_report_schedule(
+        type=ReportScheduleType.REPORT,
+        name="dashboard report",
+        crontab="0 9 * * *",
+        timezone="UTC",
+        editors=editors,
+    )
+
+    # The default budget (1h) matches the working_timeout column default, so
+    # the derived limits preserve the historical runtime ceiling out of the box.
+    with freeze_time("2020-01-01T09:00:00Z"):
+        scheduler()
+        assert execute_mock.call_args[1]["soft_time_limit"] == 3600
+        assert execute_mock.call_args[1]["time_limit"] == 3630
+
+    # A lower per-schedule working_timeout caps the effective budget and the
+    # derived Celery limits. Update via query so persistence does not depend
+    # on which session the fixture object is bound to.
+    db.session.query(ReportSchedule).filter(
+        ReportSchedule.id == report_schedule.id
+    ).update({"working_timeout": 900})
+    db.session.commit()
+    with freeze_time("2020-01-01T09:00:00Z"):
+        scheduler()
+        assert execute_mock.call_args[1]["soft_time_limit"] == 900
+        assert execute_mock.call_args[1]["time_limit"] == 930
+
+    db.session.delete(report_schedule)
+    db.session.commit()
+
+
+@pytest.mark.usefixtures("app_context")
+@patch("superset.tasks.scheduler.execute.apply_async")
 def test_scheduler_celery_no_timeout_utc(execute_mock, editors):
     """
     Reports scheduler: Test scheduler setting celery soft and hard timeout
@@ -174,6 +208,41 @@ def test_execute_task(update_state_mock, command_mock, init_mock, editors):
         execute(report_schedule.id)
         update_state_mock.assert_called_with(state="FAILURE")
 
+    db.session.delete(report_schedule)
+    db.session.commit()
+
+
+@pytest.mark.usefixtures("app_context")
+@patch("superset.commands.report.execute.AsyncExecuteReportScheduleCommand.__init__")
+@patch("superset.commands.report.execute.AsyncExecuteReportScheduleCommand.run")
+@patch("superset.tasks.scheduler.execute.update_state")
+def test_execute_soft_timeout_emits_operator_metric(
+    update_state_mock,
+    command_mock,
+    init_mock,
+    editors,
+):
+    from celery.exceptions import SoftTimeLimitExceeded
+
+    report_schedule = insert_report_schedule(
+        type=ReportScheduleType.REPORT,
+        name=f"report-{randint(0, 1000)}",  # noqa: S311
+        crontab="0 4 * * *",
+        timezone="America/New_York",
+        editors=editors,
+    )
+    stats_logger = MagicMock()
+    init_mock.return_value = None
+    command_mock.side_effect = SoftTimeLimitExceeded()
+
+    with (
+        patch.dict(app.config, {"STATS_LOGGER": stats_logger}),
+        pytest.raises(SoftTimeLimitExceeded),
+    ):
+        execute(report_schedule.id)
+
+    stats_logger.incr.assert_any_call("reports.execute.celery_soft_timeout")
+    update_state_mock.assert_called_once_with(state="FAILURE")
     db.session.delete(report_schedule)
     db.session.commit()
 

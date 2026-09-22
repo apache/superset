@@ -65,6 +65,7 @@ from superset.models.helpers import (
     ExploreMixin,
     ExtraJSONMixin,
     ImportExportMixin,
+    SqlExpressionContext,
 )
 from superset.sql.parse import (
     CTASMethod,
@@ -126,6 +127,12 @@ class Query(
 
     __tablename__ = "query"
     type = "query"
+
+    # Query results are raw rows, so samples are meaningful. Declared
+    # explicitly (rather than relying on a fail-open ``getattr`` default)
+    # so every member of ``DatasourceDAO.sources`` carries the capability.
+    supports_samples: bool = True
+
     id = Column(Integer, primary_key=True)
     client_id = Column(String(11), unique=True, nullable=False)
     query_language = "sql"
@@ -364,7 +371,16 @@ class Query(
 
     @property
     def schema_perm(self) -> str:
-        return f"{self.database.database_name}.{self.schema}"
+        if not self.database:
+            return ""
+        return (
+            security_manager.get_schema_perm(
+                self.database.database_name,
+                self.catalog or self.database.get_default_catalog(),
+                self.schema,
+            )
+            or ""
+        )
 
     @property
     def perm(self) -> str:
@@ -437,6 +453,8 @@ class Query(
         col: "AdhocColumn",  # type: ignore  # noqa: F821
         force_type_check: bool = False,
         template_processor: Optional[BaseTemplateProcessor] = None,
+        apply_dataset_offset: bool = False,
+        sql_shifted_temporal_labels: set[str] | None = None,
     ) -> tuple[ColumnElement, Optional[GenericDataType]]:
         """
         Turn an adhoc column into a sqlalchemy column.
@@ -459,11 +477,12 @@ class Query(
             pdf = col_in_metadata.python_date_format
 
         expression = self._process_sql_expression(
-            expression=sql_expression,
-            database_id=self.database_id,
-            engine=self.database.backend,
-            schema=self.schema,
-            template_processor=template_processor,
+            sql_expression,
+            SqlExpressionContext(
+                self.database.backend,
+                self.schema,
+                template_processor,
+            ),
         )
         sqla_column = literal_column(expression)
 
@@ -489,6 +508,13 @@ class SavedQuery(
     """ORM model for SQL query"""
 
     __tablename__ = "saved_query"
+
+    # Saved queries are backed by raw rows, so samples are meaningful.
+    # Declared explicitly (rather than relying on a fail-open ``getattr``
+    # default) so every member of ``DatasourceDAO.sources`` carries the
+    # capability.
+    supports_samples: bool = True
+
     id = Column(Integer, primary_key=True)
     user_id = Column(Integer, ForeignKey("ab_user.id"), nullable=True)
     db_id = Column(Integer, ForeignKey("dbs.id"), nullable=True)

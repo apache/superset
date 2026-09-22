@@ -5,6 +5,9 @@ on:
   pull_request_target:
     types: [opened]
 
+permissions:
+  contents: read
+
 jobs:
   welcome:
     runs-on: ubuntu-slim

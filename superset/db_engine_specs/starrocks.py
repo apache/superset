@@ -18,13 +18,14 @@
 import logging
 import re
 from re import Pattern
-from typing import Any
+from typing import Any, Callable
 from urllib import parse
 
 from flask_babel import gettext as __
 from sqlalchemy import Float, Integer, Numeric, text, types
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.url import URL
+from sqlalchemy.sql.elements import ColumnElement
 from sqlalchemy.sql.type_api import TypeEngine
 
 from superset import is_feature_enabled
@@ -102,6 +103,12 @@ class StarRocksEngineSpec(MySQLEngineSpec):
     sqlalchemy_uri_placeholder = "starrocks://user:password@host:port[/catalog.db]"
     supports_dynamic_schema = True
     supports_catalog = supports_dynamic_catalog = supports_cross_catalog_queries = True
+
+    # `MySQLEngineSpec._extended_aggregations` (STDDEV_SAMP/VAR_SAMP) is verified
+    # against real MySQL behavior, not StarRocks's OLAP query engine; disable it
+    # here until someone confirms the same expressions against a live StarRocks
+    # instance.
+    _extended_aggregations: dict[str, Callable[[ColumnElement], ColumnElement]] = {}
 
     metadata = {
         "description": (

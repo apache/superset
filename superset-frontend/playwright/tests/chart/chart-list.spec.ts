@@ -76,11 +76,9 @@ test('should delete a chart with confirmation', async ({
   const deleteModal = new DeleteConfirmationModal(page);
   await deleteModal.waitForVisible();
 
-  // Type "DELETE" to confirm
-  await deleteModal.fillConfirmationInput('DELETE');
-
-  // Click the Delete button
-  await deleteModal.clickDelete();
+  // Confirm: types "DELETE" while the modal is destructive, and goes straight
+  // through once SOFT_DELETE makes it a recoverable archive instead.
+  await deleteModal.confirmDeletion();
 
   // Modal should close
   await deleteModal.waitForHidden();
@@ -237,11 +235,9 @@ test('should bulk delete multiple charts', async ({
   const deleteModal = new DeleteConfirmationModal(page);
   await deleteModal.waitForVisible();
 
-  // Type "DELETE" to confirm
-  await deleteModal.fillConfirmationInput('DELETE');
-
-  // Click the Delete button
-  await deleteModal.clickDelete();
+  // Confirm: types "DELETE" while the modal is destructive, and goes straight
+  // through once SOFT_DELETE makes it a recoverable archive instead.
+  await deleteModal.confirmDeletion();
 
   // Modal should close
   await deleteModal.waitForHidden();

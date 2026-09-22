@@ -34,11 +34,13 @@ import {
   isFeatureEnabled,
   FeatureFlag,
   getChartMetadataRegistry,
+  getExtensionsRegistry,
   VizType,
   BinaryQueryObjectFilterClause,
   JsonObject,
   QueryFormData,
 } from '@superset-ui/core';
+import { logging } from '@apache-superset/core/utils';
 import { css, useTheme, styled } from '@apache-superset/core/theme';
 import { useSelector } from 'react-redux';
 import { Menu, MenuItem } from '@superset-ui/core/components/Menu';
@@ -165,6 +167,8 @@ const queueChartResize = () => {
   }, 300);
 };
 
+const extensionsRegistry = getExtensionsRegistry();
+
 const SliceHeaderControls = (
   props: SliceHeaderControlsPropsWithRouter | SliceHeaderControlsProps,
 ) => {
@@ -192,13 +196,22 @@ const SliceHeaderControls = (
       .get(props.slice.viz_type)
       ?.behaviors?.includes(Behavior.InteractiveChart);
   const canExplore = props.supersetCanExplore;
-  const { canDrillToDetail, canViewQuery, canViewTable } = usePermissions();
+  const { canDrillToDetail, canGetDrillInfo, canViewQuery, canViewTable } =
+    usePermissions();
 
+  // Single predicate for the "View as table" entry, so the fetch that feeds its
+  // column headers cannot drift from the set of users who can open it.
+  const canViewResultsTable = canExplore || canViewTable;
+
+  // The dataset's verbose map resolves friendly Labels for both the drill-to-detail
+  // pane and the results grid, and those are separate permissions — so fetch it for
+  // either one, as long as the drill_info endpoint itself is readable (it is gated
+  // by `can_get_drill_info` on Dataset).
   const datasetResource = useDatasetDrillInfo(
     props.slice.datasource,
     props.dashboardId,
     props.formData,
-    !canDrillToDetail,
+    !canGetDrillInfo || !(canDrillToDetail || canViewResultsTable),
   );
 
   const datasetWithVerboseMap =
@@ -514,6 +527,26 @@ const SliceHeaderControls = (
     },
   ];
 
+  const sliceHeaderMenuExtension = extensionsRegistry.get(
+    'dashboard.slice.header.menu',
+  );
+  if (sliceHeaderMenuExtension) {
+    // Isolate the extension: a bad registration (throwing, or returning a
+    // non-array) must not take down the whole dashboard render.
+    try {
+      const extensionItems = sliceHeaderMenuExtension({
+        sliceId: slice.slice_id,
+        sliceName: slice.slice_name,
+        dashboardId,
+      });
+      if (Array.isArray(extensionItems) && extensionItems.length) {
+        newMenuItems.unshift(...extensionItems, { type: 'divider' });
+      }
+    } catch (error) {
+      logging.error('dashboard.slice.header.menu extension failed', error);
+    }
+  }
+
   if (slice.description) {
     newMenuItems.push({
       key: MenuKeys.ToggleChartDescription,
@@ -570,7 +603,7 @@ const SliceHeaderControls = (
     });
   }
 
-  if (canExplore || canViewTable) {
+  if (canViewResultsTable) {
     newMenuItems.push({
       key: MenuKeys.ViewResults,
       label: (

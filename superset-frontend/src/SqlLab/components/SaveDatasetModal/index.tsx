@@ -61,6 +61,9 @@ import type Subject from 'src/types/Subject';
 import { openInNewTab, redirect } from 'src/utils/navigationUtils';
 import { mapSubjectValuesToIds } from 'src/features/subjects/SubjectPicker';
 
+// Derived so it can't drift from what `getClientErrorObject` accepts.
+type SaveErrorSource = Parameters<typeof getClientErrorObject>[0];
+
 interface QueryDatabase {
   id?: number;
 }
@@ -391,9 +394,18 @@ export const SaveDatasetModal = ({
         setDatasetName(getDefaultDatasetName());
         onHide();
       })
-      .catch(() => {
+      .catch((error?: SaveErrorSource) => {
         setLoading(false);
-        addDangerToast(t('An error occurred saving dataset'));
+        // `createDatasource` already toasted the server's message and rejects
+        // with nothing; only the chart-payload step needs its own.
+        if (!error) {
+          return;
+        }
+        getClientErrorObject(error).then(e =>
+          dispatch(
+            addDangerToast(e.error || t('An error occurred saving dataset')),
+          ),
+        );
       });
   };
 

@@ -58,6 +58,8 @@ logger = logging.getLogger(__name__)
         title="Generate explore link",
         readOnlyHint=False,
         destructiveHint=False,
+        idempotentHint=False,
+        openWorldHint=False,
     ),
 )
 async def generate_explore_link(
@@ -278,7 +280,7 @@ async def generate_explore_link(
                 normalized_config,
                 form_data,
                 dataset,
-                run_compile_check=False,
+                run_compile_check=normalized_config.chart_type == "gauge",
             )
         if not compile_result.success:
             await ctx.warning(

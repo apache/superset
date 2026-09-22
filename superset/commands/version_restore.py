@@ -38,6 +38,8 @@ from functools import partial
 from typing import Any, ClassVar
 from uuid import UUID
 
+from sqlalchemy.exc import SQLAlchemyError
+
 from superset import security_manager
 from superset.commands.base import BaseCommand
 from superset.exceptions import SupersetSecurityException
@@ -64,9 +66,10 @@ class BaseRestoreVersionCommand(BaseCommand):
     #: failure modes. ``not_found_exc`` covers "no such entity",
     #: "version_uuid not on this entity", and "capture disabled" (the
     #: route is inert under the kill-switch); the API handler maps each
-    #: to HTTP 404. ``forbidden_exc`` covers the row-level editorship
-    #: denial (HTTP 403). ``failed_exc`` wraps unexpected failures inside
-    #: the transaction (HTTP 422).
+    #: to HTTP 404. ``forbidden_exc`` covers the row-level editorship denial
+    #: and the refusal to restore an externally managed entity (both HTTP
+    #: 403). ``failed_exc`` wraps unexpected failures inside the transaction
+    #: (HTTP 422).
     not_found_exc: ClassVar[type[Exception]]
     forbidden_exc: ClassVar[type[Exception]]
     failed_exc: ClassVar[type[Exception]]
@@ -80,7 +83,20 @@ class BaseRestoreVersionCommand(BaseCommand):
         # reference ``self.failed_exc`` — a per-subclass ClassVar that
         # isn't available when this method is defined on the base (same
         # pattern and rationale as ``BaseRestoreCommand.run``).
-        @transaction(on_error=partial(on_error, reraise=self.failed_exc))
+        # ``catches`` widens past the SQLAlchemyError default so the
+        # restore engine's fail-closed registry guard (``LookupError``
+        # for a model missing from ``_RESTORE_RELATIONS``) maps to
+        # ``failed_exc`` → 422 instead of a raw 500 (sc-115326). The
+        # tuple is deliberately this narrow: other non-SQLAlchemy
+        # exceptions must keep passing through untouched for the
+        # endpoint to map explicitly.
+        @transaction(
+            on_error=partial(
+                on_error,
+                catches=(SQLAlchemyError, LookupError),
+                reraise=self.failed_exc,
+            )
+        )
         def _perform() -> RestoreResult:
             return self._do_restore()
 
@@ -88,6 +104,60 @@ class BaseRestoreVersionCommand(BaseCommand):
 
     def _do_restore(self) -> RestoreResult:
         entity = self.validate()
+
+        # Re-read the live row under a FOR UPDATE lock, refreshing the
+        # in-memory entity (``populate_existing``) from the *current committed*
+        # state, and re-assert it is still active (``deleted_at IS NULL``). A
+        # single locking query closes four races opened between validate()'s
+        # unlocked read and the revert:
+        #   * a concurrent content edit — a plain, non-locking read (bare
+        #     refresh()) returns the transaction's first-read snapshot on
+        #     MySQL/InnoDB REPEATABLE READ and would silently drop the edit
+        #     from the revert UPDATE;
+        #   * a concurrent hard delete — the row is gone, so the query returns
+        #     None;
+        #   * a concurrent soft delete — column loads (get()/refresh()) bypass
+        #     the global active-row filter, so without the explicit
+        #     ``deleted_at IS NULL`` predicate the revert would resurrect an
+        #     archived entity and report success;
+        #   * a concurrent hard delete followed by integer-id REUSE — the new
+        #     row carries a different uuid, so pinning the lock to
+        #     ``(id, uuid)`` (the same defense ``restore_version`` applies to
+        #     the version lookup) reads it as absent. Pinned by ``id`` alone,
+        #     ``populate_existing`` would swap ``entity`` to the stranger and
+        #     ``restore_version``'s uuid check would raise ``ValueError`` — a
+        #     500, not the documented 404.
+        # A None result (hard- or soft-deleted) is surfaced as the documented
+        # 404 — not the transaction wrapper's generic 422, and not via a
+        # refresh() whose missing-row failure is a hard-to-catch
+        # InvalidRequestError. This is the pessimistic (serialise) half; the
+        # restore endpoint does not yet also honor an If-Match precondition to
+        # *detect* (rather than serialise) a concurrent edit — a follow-up.
+        #
+        # This is deliberately its own formulation rather than
+        # ``versioning.api_helpers.lock_entity_for_update`` (the conditional-
+        # write PUT path): that helper locks ``select(model.id)`` by id alone
+        # and returns nothing, whereas restore must also RELOAD the locked
+        # row's content (``populate_existing``), assert the active-row
+        # predicate, and pin the uuid. Both lock the same primary-key row, so
+        # the two paths still serialise against each other; only the extra
+        # needs of restore live here.
+        entity = (
+            db.session.query(self.model_cls)
+            .populate_existing()
+            # Disable eager loaders before FOR UPDATE. A ``lazy="subquery"``
+            # relationship (e.g. ``Slice.table``) wraps the primary query into
+            # ``SELECT DISTINCT … FOR UPDATE`` to fetch its related rows, and
+            # Postgres rejects ``FOR UPDATE`` with ``DISTINCT``. We only need the
+            # locked row's own columns here; relationships load lazily after.
+            .enable_eagerloads(False)
+            .filter_by(id=entity.id, uuid=self._uuid, deleted_at=None)
+            .with_for_update()
+            .one_or_none()
+        )
+        if entity is None:
+            raise self.not_found_exc()
+
         resolved = resolve_version(
             self.model_cls, self._uuid, self._version_uuid, entity=entity
         )
@@ -129,8 +199,10 @@ class BaseRestoreVersionCommand(BaseCommand):
             self.model_cls, self._uuid, transaction_id, entity=entity
         )
         if result is None:
-            # Race: entity deleted, or the target version row pruned,
-            # between validate()/resolve and the engine's re-check.
+            # Race: the target version row was pruned, or the entity deleted,
+            # between resolve and the engine's re-check. (A hard/soft delete
+            # before the lock is already caught by the locking query above;
+            # this covers the narrower window after it.)
             raise self.not_found_exc()
         return result
 
@@ -138,8 +210,8 @@ class BaseRestoreVersionCommand(BaseCommand):
         # With capture off, Continuum's write listeners are detached: a
         # revert would mutate the live entity with NO new version row —
         # a destructive, untracked write. The whole restore surface is
-        # therefore inert under the kill-switch, matching the read-side
-        # convention (404, indistinguishable from "no such version").
+        # therefore inert under the kill-switch (404, indistinguishable from
+        # "no such version"). Existing history remains readable.
         if not capture_enabled():
             raise self.not_found_exc()
         entity = find_active_by_uuid(self.model_cls, self._uuid)
@@ -149,4 +221,15 @@ class BaseRestoreVersionCommand(BaseCommand):
             security_manager.raise_for_editorship(entity)
         except SupersetSecurityException as ex:
             raise self.forbidden_exc() from ex
+        # Restore is withheld from externally managed entities: their source of
+        # truth lives outside Superset and would overwrite the restore on the
+        # next sync (documented in version-history.mdx). This must be enforced
+        # server-side, not only in the browser — an authorized editor could
+        # otherwise call the endpoint directly. Raised as forbidden_exc (HTTP
+        # 403); FAB's response_403 returns a fixed ``{"message": "Forbidden"}``
+        # body with no reason detail, identical to the editorship denial above,
+        # so the refusal discloses nothing but also can't be distinguished from
+        # a permission denial.
+        if entity.is_managed_externally:
+            raise self.forbidden_exc()
         return entity

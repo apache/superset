@@ -65,12 +65,16 @@ export type AntdExposedProps = Pick<
   | 'onOpenChange'
   | 'optionRender'
   | 'placeholder'
+  | 'prefix'
   | 'showArrow'
   | 'showSearch'
   | 'tokenSeparators'
   | 'virtual'
   | 'getPopupContainer'
   | 'menuItemSelectedIcon'
+  // lets a caller with long option labels stop the popup inheriting the
+  // trigger's width, which otherwise truncates every option
+  | 'popupMatchSelectWidth'
 >;
 
 export type SelectOptionsType = Exclude<AntdProps['options'], undefined>;
@@ -201,6 +205,21 @@ export interface SelectProps extends BaseSelectProps {
    * True by default.
    * */
   allowSelectAll?: boolean;
+  /**
+   * When true, the bulk "Select all" / "Clear" controls operate on the full
+   * loaded option set instead of the search-filtered subset, so their counts
+   * stay stable and the controls stay visible while searching. Clicking
+   * "Select all" selects every selectable option in the loaded set regardless
+   * of the active search, and "Clear" removes the corresponding selections;
+   * options with a falsy value (e.g. `0`, `''`, `false`, `<NULL>`), disabled
+   * options, and the transient "create new option" entry are not selectable.
+   * "Full set" here means the currently loaded options, which for async or
+   * row-limited selects may be fewer than the column's full cardinality.
+   * Intended for the native Value filter, whose "Select all" targets the whole
+   * column.
+   * Default false.
+   * */
+  stableSelectAll?: boolean;
   /**
    * It defines the options of the Select.
    * The options can be static, an array of options.

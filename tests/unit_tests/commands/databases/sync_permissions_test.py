@@ -100,7 +100,7 @@ def test_sync_permissions_command_async_mode(
         "superset.commands.database.sync_permissions.DatabaseDAO"
     )
     mock_database_dao.find_by_id.return_value = database_with_catalog
-    mocker.patch(
+    mock_user = mocker.patch(
         "superset.commands.database.sync_permissions.security_manager.get_user_by_username"
     )
     async_task_mock = mocker.patch(
@@ -110,7 +110,7 @@ def test_sync_permissions_command_async_mode(
 
     cmmd = SyncPermissionsCommand(1, "admin")
     cmmd.run()
-    async_task_mock.delay.assert_called_once_with(1, "admin", "my_db")
+    async_task_mock.delay.assert_called_once_with(1, mock_user.return_value.id, "my_db")
 
 
 @with_config({"SYNC_DB_PERMISSIONS_IN_ASYNC_MODE": False})
@@ -219,7 +219,7 @@ def test_sync_permissions_command_async_mode_new_db_name(
     Test ``SyncPermissionsCommand`` in async mode when the
     database name changed.
     """
-    mocker.patch(
+    mock_user = mocker.patch(
         "superset.commands.database.sync_permissions.security_manager.get_user_by_username"
     )
     async_task_mock = mocker.patch(
@@ -233,7 +233,9 @@ def test_sync_permissions_command_async_mode_new_db_name(
     )
     cmmd.run()
 
-    async_task_mock.delay.assert_called_once_with(1, "admin", "Old Name")
+    async_task_mock.delay.assert_called_once_with(
+        1, mock_user.return_value.id, "Old Name"
+    )
 
 
 def test_sync_permissions_command_get_catalogs(database_with_catalog: MagicMock):

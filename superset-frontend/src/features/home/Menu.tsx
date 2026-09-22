@@ -29,6 +29,7 @@ import { NavLink, useLocation } from 'react-router-dom';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { Typography } from '@superset-ui/core/components/Typography';
 import { useUiConfig } from 'src/components/UiConfigContext';
+import { useIsMobile } from 'src/hooks/useIsMobile';
 import { URL_PARAMS } from 'src/constants';
 import {
   MenuObjectChildProps,
@@ -110,6 +111,16 @@ const StyledMainNav = styled(MainNav)`
         align-items: center;
         height: 100%;
         padding: 0 ${theme.sizeUnit * 4}px;
+      }
+
+      [data-icon='down'] {
+        color: ${theme.colorIcon};
+        /* sizeXS (an antd token, always computed) rather than fontSizeXS
+           (a Superset custom token seeded only via THEME_DEFAULT in
+           config.py) so this stays small in contexts that construct a
+           theme without that seed, e.g. Storybook and Jest. Both resolve
+           to the same 8px in the app's default theme. */
+        font-size: ${theme.sizeXS}px;
       }
 
       &:hover,
@@ -199,6 +210,7 @@ export function Menu({
   isFrontendRoute = () => false,
 }: MenuProps) {
   const screens = useBreakpoint();
+  const isMobile = useIsMobile();
   const uiConfig = useUiConfig();
   const theme = useTheme();
   // screens.md is undefined on the first render before breakpoints are measured;
@@ -409,7 +421,18 @@ export function Menu({
       aria-label={t('Main navigation')}
     >
       <StyledRow>
-        <StyledCol md={16} xs={24}>
+        {/* Mobile: left placeholder for future icon */}
+        {isMobile && <Col xs={4} />}
+        <StyledCol
+          md={16}
+          xs={isMobile ? 16 : 24}
+          css={
+            isMobile &&
+            css`
+              justify-content: center;
+            `
+          }
+        >
           {!brand.hide_logo && (
             <Tooltip
               id="brand-tooltip"
@@ -425,40 +448,44 @@ export function Menu({
               <span>{brand.text}</span>
             </StyledBrandText>
           )}
-          <StyledMainNav
-            mode={isMd ? 'horizontal' : 'inline'}
-            data-test="navbar-top"
-            className="main-nav"
-            selectedKeys={activeTabs}
-            disabledOverflow
-            items={menu.map(item => {
-              const props = {
-                ...item,
-                label: t(item.label),
-                isFrontendRoute: isFrontendRoute(item.url),
-                childs: item.childs?.map(c => {
-                  if (typeof c === 'string') {
-                    return c;
-                  }
+          {/* Consumption mode: hide nav items on mobile (drawer holds them) */}
+          {!isMobile && (
+            <StyledMainNav
+              mode={isMd ? 'horizontal' : 'inline'}
+              data-test="navbar-top"
+              className="main-nav"
+              selectedKeys={activeTabs}
+              disabledOverflow
+              items={menu.map(item => {
+                const props = {
+                  ...item,
+                  label: t(item.label),
+                  isFrontendRoute: isFrontendRoute(item.url),
+                  childs: item.childs?.map(c => {
+                    if (typeof c === 'string') {
+                      return c;
+                    }
 
-                  return {
-                    ...c,
-                    isFrontendRoute: isFrontendRoute(c.url),
-                  };
-                }),
-              };
+                    return {
+                      ...c,
+                      isFrontendRoute: isFrontendRoute(c.url),
+                    };
+                  }),
+                };
 
-              return buildMenuItem(props);
-            })}
-          />
+                return buildMenuItem(props);
+              })}
+            />
+          )}
         </StyledCol>
-        <Col md={8} xs={24}>
+        <Col md={8} xs={isMobile ? 4 : 24}>
           <RightMenu
-            align={isMd ? 'flex-end' : 'flex-start'}
+            align={isMd || isMobile ? 'flex-end' : 'flex-start'}
             settings={settings}
             navbarRight={navbarRight}
             isFrontendRoute={isFrontendRoute}
             environmentTag={environmentTag}
+            menu={menu}
           />
         </Col>
       </StyledRow>

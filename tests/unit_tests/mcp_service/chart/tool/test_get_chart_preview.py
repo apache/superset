@@ -29,6 +29,7 @@ import pytest
 from superset.mcp_service.chart.schemas import (
     AccessibilityMetadata,
     ASCIIPreview,
+    ChartError,
     ChartPreview,
     GetChartPreviewRequest,
     InteractivePreview,
@@ -41,13 +42,205 @@ from superset.mcp_service.chart.tool.get_chart_preview import (
     _build_chart_description,
     _build_query_columns,
     _build_query_metrics,
-    _sanitize_chart_preview_for_llm_context,
+    _first_query_has_fields,
+    _no_query_fields_error,
     ASCIIPreviewStrategy,
     PreviewFormatStrategy,
     TablePreviewStrategy,
+    VegaLitePreviewStrategy,
 )
-from superset.mcp_service.utils import sanitize_for_llm_context
 from superset.utils import json as utils_json
+
+
+def _gauge_chart() -> SimpleNamespace:
+    """Build a saved Gauge chart with its native form_data controls."""
+    return SimpleNamespace(
+        id=104,
+        slice_name="SLA Gauge",
+        viz_type="gauge_chart",
+        datasource_id=1,
+        datasource_type="table",
+        params=utils_json.dumps(
+            {
+                "viz_type": "gauge_chart",
+                "metric": "saved_sla",
+                "groupby": ["team"],
+                "row_limit": 3,
+                "min_val": 0,
+                "max_val": 100,
+                "value_formatter": "{value}%",
+            }
+        ),
+    )
+
+
+@patch("superset.commands.chart.data.get_data_command.ChartDataCommand")
+@patch(
+    "superset.mcp_service.chart.tool.get_chart_preview."
+    "build_query_context_from_form_data"
+)
+def test_saved_gauge_ascii_preview_uses_native_row_limit_and_renderer(
+    mock_build_query_context, mock_command
+) -> None:
+    query_context = SimpleNamespace(
+        queries=[SimpleNamespace(metrics=["saved_sla"], columns=["team"])]
+    )
+    mock_build_query_context.return_value = query_context
+    mock_command.return_value.validate.return_value = None
+    mock_command.return_value.run.return_value = {
+        "queries": [{"data": [{"team": "Blue", "saved_sla": 88}]}]
+    }
+
+    preview = ASCIIPreviewStrategy(
+        _gauge_chart(), GetChartPreviewRequest(identifier=104, format="ascii")
+    ).generate()
+
+    assert isinstance(preview, ASCIIPreview)
+    assert "Gauge Chart" in preview.ascii_content
+    assert "Blue" in preview.ascii_content
+    assert "88%" in preview.ascii_content
+    assert mock_build_query_context.call_args.kwargs["row_limit"] == 3
+
+
+def _bubble_chart() -> SimpleNamespace:
+    """Build a saved Bubble chart with its native form_data controls."""
+    return SimpleNamespace(
+        id=109,
+        slice_name="GDP vs life expectancy",
+        viz_type="bubble_v2",
+        datasource_id=1,
+        datasource_type="table",
+        params=utils_json.dumps(
+            {
+                "viz_type": "bubble_v2",
+                "entity": "country",
+                "series": "continent",
+                "x": {"label": "AVG(gdp)"},
+                "y": {"label": "AVG(life_expectancy)"},
+                "size": {"label": "SUM(population)"},
+                "row_limit": 100,
+            }
+        ),
+    )
+
+
+@patch("superset.commands.chart.data.get_data_command.ChartDataCommand")
+@patch(
+    "superset.mcp_service.chart.tool.get_chart_preview."
+    "build_query_context_from_form_data"
+)
+def test_saved_chart_preview_forwards_its_own_sort_direction(
+    mock_build_query_context, mock_command
+) -> None:
+    """The preview must not assert a sort direction the chart did not ask for.
+
+    These strategies used to pass a hardcoded order_desc=True. Since an
+    explicit argument outranks form_data in the query builder, that silently
+    flipped a saved ascending sort to descending — with a row limit, it
+    changes which rows come back, not just their order.
+    """
+    chart = _bubble_chart()
+    chart.params = utils_json.dumps(
+        {
+            "viz_type": "bubble_v2",
+            "entity": "country",
+            "x": {"label": "AVG(gdp)"},
+            "y": {"label": "AVG(life_expectancy)"},
+            "size": {"label": "SUM(population)"},
+            "orderby": {"label": "SUM(population)"},
+            "order_desc": False,
+            "row_limit": 1,
+        }
+    )
+    mock_build_query_context.return_value = SimpleNamespace(
+        queries=[SimpleNamespace(metrics=["SUM(population)"], columns=["country"])]
+    )
+    mock_command.return_value.validate.return_value = None
+    mock_command.return_value.run.return_value = {
+        "queries": [{"data": [{"country": "France", "SUM(population)": 67000000}]}]
+    }
+
+    VegaLitePreviewStrategy(
+        chart, GetChartPreviewRequest(identifier=109, format="vega_lite")
+    ).generate()
+
+    assert mock_build_query_context.call_args.kwargs["order_desc"] is False
+
+
+@patch("superset.commands.chart.data.get_data_command.ChartDataCommand")
+@patch(
+    "superset.mcp_service.chart.tool.get_chart_preview."
+    "build_query_context_from_form_data"
+)
+def test_saved_bubble_vega_preview_encodes_its_three_metrics(
+    mock_build_query_context, mock_command
+) -> None:
+    """A saved bubble chart must reach the bubble renderer, not the fallback.
+
+    The generic spec builder reads positions off the first columns it finds,
+    which for bubble result rows means x=country, y=continent and no size or
+    color encoding at all.
+    """
+    mock_build_query_context.return_value = SimpleNamespace(
+        queries=[
+            SimpleNamespace(
+                metrics=["AVG(gdp)", "AVG(life_expectancy)", "SUM(population)"],
+                columns=["country", "continent"],
+            )
+        ]
+    )
+    mock_command.return_value.validate.return_value = None
+    mock_command.return_value.run.return_value = {
+        "queries": [
+            {
+                "data": [
+                    {
+                        "country": "France",
+                        "continent": "Europe",
+                        "AVG(gdp)": 44.5,
+                        "AVG(life_expectancy)": 82.5,
+                        "SUM(population)": 67000000,
+                    }
+                ]
+            }
+        ]
+    }
+
+    preview = VegaLitePreviewStrategy(
+        _bubble_chart(), GetChartPreviewRequest(identifier=109, format="vega_lite")
+    ).generate()
+
+    assert isinstance(preview, VegaLitePreview)
+    assert preview.specification["mark"] == "circle"
+    encoding = preview.specification["encoding"]
+    assert encoding["x"]["field"] == "AVG(gdp)"
+    assert encoding["y"]["field"] == "AVG(life_expectancy)"
+    assert encoding["size"]["field"] == "SUM(population)"
+    assert encoding["color"]["field"] == "continent"
+
+
+@patch("superset.commands.chart.data.get_data_command.ChartDataCommand")
+@patch(
+    "superset.mcp_service.chart.tool.get_chart_preview."
+    "build_query_context_from_form_data"
+)
+def test_saved_gauge_vega_preview_surfaces_runtime_metric_error(
+    mock_build_query_context, mock_command
+) -> None:
+    mock_build_query_context.return_value = SimpleNamespace(
+        queries=[SimpleNamespace(metrics=["saved_sla"], columns=["team"])]
+    )
+    mock_command.return_value.validate.return_value = None
+    mock_command.return_value.run.return_value = {
+        "queries": [{"data": [{"team": "Blue", "saved_sla": "bad"}]}]
+    }
+
+    preview = VegaLitePreviewStrategy(
+        _gauge_chart(), GetChartPreviewRequest(identifier=104, format="vega_lite")
+    ).generate()
+
+    assert isinstance(preview, ChartError)
+    assert preview.error_type == "NonNumericGaugeMetric"
 
 
 class TestPreviewXAxisInQueryContext:
@@ -506,6 +699,127 @@ class TestGetChartPreview:
         assert query["metrics"] == [metric]
         assert query["row_limit"] == 50
 
+    def test_ascii_preview_ignores_populated_query_after_empty_first_query(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """Preview validation must match the first query result it renders."""
+        query_context_factory_module = importlib.import_module(
+            "superset.common.query_context_factory"
+        )
+        get_data_command_module = importlib.import_module(
+            "superset.commands.chart.data.get_data_command"
+        )
+
+        class QueryContextFactory:
+            def create(self, **kwargs: Any) -> object:
+                queries = [
+                    SimpleNamespace(metrics=q.get("metrics"), columns=q.get("columns"))
+                    for q in kwargs["queries"]
+                ]
+                queries.append(SimpleNamespace(metrics=["secondary"], columns=[]))
+                return SimpleNamespace(queries=queries)
+
+        command_calls: list[str] = []
+
+        class ChartDataCommand:
+            def __init__(self, query_context: object) -> None:
+                self.query_context = query_context
+
+            def validate(self) -> None:
+                command_calls.append("validate")
+
+            def run(self) -> dict[str, Any]:
+                command_calls.append("run")
+                raise AssertionError("ChartDataCommand.run() should not be called")
+
+        monkeypatch.setattr(
+            query_context_factory_module,
+            "QueryContextFactory",
+            QueryContextFactory,
+        )
+        monkeypatch.setattr(
+            get_data_command_module, "ChartDataCommand", ChartDataCommand
+        )
+
+        chart = SimpleNamespace(
+            id=96,
+            slice_name="Big Number Preview",
+            viz_type="big_number",
+            datasource_id=1,
+            datasource_type="table",
+            params=utils_json.dumps({"viz_type": "big_number"}),
+        )
+
+        preview = ASCIIPreviewStrategy(
+            chart,
+            GetChartPreviewRequest(identifier=96, format="ascii"),
+        ).generate()
+
+        assert isinstance(preview, ChartError)
+        assert preview.error_type == "NoQueryFields"
+        assert "no metrics or columns" in preview.error
+        assert command_calls == []
+
+    def test_ascii_preview_handles_none_data_gracefully(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """A query result with an explicit ``"data": None`` (as opposed to a
+        missing key) must not crash ASCII rendering."""
+        query_context_factory_module = importlib.import_module(
+            "superset.common.query_context_factory"
+        )
+        get_data_command_module = importlib.import_module(
+            "superset.commands.chart.data.get_data_command"
+        )
+
+        class QueryContextFactory:
+            def create(self, **kwargs: Any) -> object:
+                return object()
+
+        class ChartDataCommand:
+            def __init__(self, query_context: object) -> None:
+                self.query_context = query_context
+
+            def validate(self) -> None:
+                pass
+
+            def run(self) -> dict[str, Any]:
+                return {"queries": [{"data": None, "colnames": [], "rowcount": 0}]}
+
+        monkeypatch.setattr(
+            query_context_factory_module,
+            "QueryContextFactory",
+            QueryContextFactory,
+        )
+        monkeypatch.setattr(
+            get_data_command_module, "ChartDataCommand", ChartDataCommand
+        )
+
+        chart = SimpleNamespace(
+            id=103,
+            slice_name="Line Chart Preview",
+            viz_type="echarts_timeseries_line",
+            datasource_id=1,
+            datasource_type="table",
+            params=utils_json.dumps(
+                {
+                    "viz_type": "echarts_timeseries_line",
+                    "metrics": ["count"],
+                    "x_axis": "date",
+                }
+            ),
+        )
+
+        preview = ASCIIPreviewStrategy(
+            chart,
+            GetChartPreviewRequest(identifier=103, format="ascii"),
+        ).generate()
+
+        assert isinstance(preview, ASCIIPreview)
+        assert "No data" in preview.ascii_content
+
     @pytest.mark.asyncio
     async def test_form_data_key_overrides_saved_params_for_table_preview(
         self,
@@ -664,6 +978,137 @@ class TestGetChartPreview:
         assert query["filters"] == [{"col": "gender", "op": "==", "val": "boy"}]
 
     @pytest.mark.asyncio
+    @pytest.mark.parametrize("preview_format", ["table", "ascii", "vega_lite"])
+    async def test_extra_form_data_filters_reach_preview_query(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+        preview_format: str,
+    ) -> None:
+        """extra_form_data (e.g. a dashboard's active native filters) must merge
+        into the preview query so the preview reflects the filtered view, for
+        every render format (each strategy builds its own query context)."""
+        from contextlib import nullcontext
+
+        get_chart_preview_module = importlib.import_module(
+            "superset.mcp_service.chart.tool.get_chart_preview"
+        )
+        query_context_factory_module = importlib.import_module(
+            "superset.common.query_context_factory"
+        )
+        get_data_command_module = importlib.import_module(
+            "superset.commands.chart.data.get_data_command"
+        )
+
+        class AsyncContext:
+            async def debug(self, *args: Any, **kwargs: Any) -> None:
+                pass
+
+            async def error(self, *args: Any, **kwargs: Any) -> None:
+                pass
+
+            async def info(self, *args: Any, **kwargs: Any) -> None:
+                pass
+
+            async def report_progress(self, *args: Any, **kwargs: Any) -> None:
+                pass
+
+            async def warning(self, *args: Any, **kwargs: Any) -> None:
+                pass
+
+        captured_query_contexts: list[dict[str, Any]] = []
+
+        class QueryContextFactory:
+            def create(self, **kwargs: Any) -> object:
+                captured_query_contexts.append(kwargs)
+                return object()
+
+        class ChartDataCommand:
+            def __init__(self, query_context: object) -> None:
+                self.query_context = query_context
+
+            def validate(self) -> None:
+                pass
+
+            def run(self) -> dict[str, Any]:
+                return {
+                    "queries": [
+                        {
+                            "data": [{"gender": "girl", "count": 1}],
+                            "colnames": ["gender", "count"],
+                            "rowcount": 1,
+                        }
+                    ]
+                }
+
+        chart = SimpleNamespace(
+            id=42,
+            slice_name="Saved Chart Preview",
+            viz_type="table",
+            datasource_id=1,
+            datasource_type="table",
+            params=utils_json.dumps(
+                {
+                    "viz_type": "table",
+                    "groupby": ["gender"],
+                    "metrics": ["count"],
+                    "adhoc_filters": [],
+                }
+            ),
+        )
+
+        monkeypatch.setattr(
+            get_chart_preview_module,
+            "find_chart_by_identifier",
+            lambda identifier: chart,
+        )
+        monkeypatch.setattr(
+            get_chart_preview_module,
+            "validate_chart_dataset",
+            lambda *args, **kwargs: SimpleNamespace(
+                is_valid=True,
+                warnings=[],
+                error=None,
+            ),
+        )
+        monkeypatch.setattr(
+            get_chart_preview_module.db.session,
+            "refresh",
+            lambda chart: None,
+        )
+        monkeypatch.setattr(
+            get_chart_preview_module.event_logger,
+            "log_context",
+            lambda **kwargs: nullcontext(),
+        )
+        monkeypatch.setattr(
+            query_context_factory_module,
+            "QueryContextFactory",
+            QueryContextFactory,
+        )
+        monkeypatch.setattr(
+            get_data_command_module,
+            "ChartDataCommand",
+            ChartDataCommand,
+        )
+
+        await get_chart_preview_module._get_chart_preview_internal(
+            GetChartPreviewRequest(
+                identifier=42,
+                format=preview_format,
+                extra_form_data={
+                    "filters": [{"col": "gender", "op": "==", "val": "girl"}]
+                },
+            ),
+            AsyncContext(),
+        )
+
+        # Each strategy builds its own query context; assert the forwarded filter
+        # reached the query regardless of render format (the capture happens before
+        # any format-specific rendering).
+        query = captured_query_contexts[0]["queries"][0]
+        assert {"col": "gender", "op": "==", "val": "girl"} in query["filters"]
+
+    @pytest.mark.asyncio
     async def test_preview_dimensions(self):
         """Test preview dimensions in response."""
         # Standard dimensions that may appear in preview responses
@@ -734,11 +1179,11 @@ class TestGetChartPreview:
         assert len(metadata.optimization_suggestions) == 1
 
 
-class TestChartPreviewSanitization:
-    """Tests for chart preview read-path sanitization."""
+class TestChartPreviewValuePreservation:
+    """Tests for chart preview read-path value preservation."""
 
-    def test_sanitize_chart_preview_wraps_ascii_and_alt_text(self) -> None:
-        """ASCII previews should be wrapped while operational URLs stay raw."""
+    def test_chart_preview_preserves_ascii_and_alt_text(self) -> None:
+        """ASCII preview values and operational URLs remain exact."""
         preview = ChartPreview(
             chart_id=3,
             chart_name="Regional Trend",
@@ -754,20 +1199,16 @@ class TestChartPreviewSanitization:
             performance=PerformanceMetadata(query_duration_ms=8, cache_status="miss"),
         )
 
-        result = _sanitize_chart_preview_for_llm_context(preview)
+        result = preview
 
-        assert result.chart_name == sanitize_for_llm_context("Regional Trend")
+        assert result.chart_name == ("Regional Trend")
         assert result.explore_url == "http://localhost:8088/explore/?slice_id=3"
-        assert result.chart_description == sanitize_for_llm_context(
-            "Preview of line: Regional Trend"
-        )
-        assert result.content.ascii_content == sanitize_for_llm_context("North > South")
-        assert result.accessibility.alt_text == sanitize_for_llm_context(
-            "Preview of Regional Trend"
-        )
+        assert result.chart_description == ("Preview of line: Regional Trend")
+        assert result.content.ascii_content == ("North > South")
+        assert result.accessibility.alt_text == ("Preview of Regional Trend")
 
-    def test_sanitize_chart_preview_wraps_vega_lite_data_values(self):
-        """Vega-Lite previews should wrap description and row string values."""
+    def test_chart_preview_preserves_vega_lite_data_values(self):
+        """Vega-Lite descriptions and row string values remain exact."""
         preview = ChartPreview(
             chart_id=4,
             chart_name="Category Share",
@@ -799,24 +1240,20 @@ class TestChartPreviewSanitization:
             format="vega_lite",
         )
 
-        result = _sanitize_chart_preview_for_llm_context(preview)
+        result = preview
         specification = result.content.specification
 
         assert specification["$schema"] == (
             "https://vega.github.io/schema/vega-lite/v5.json"
         )
-        assert specification["description"] == sanitize_for_llm_context(
-            "Pie chart for category share"
-        )
-        assert specification["data"]["values"][0][
-            "category"
-        ] == sanitize_for_llm_context("Retail")
-        assert specification["data"]["values"][0]["url"] == sanitize_for_llm_context(
+        assert specification["description"] == ("Pie chart for category share")
+        assert specification["data"]["values"][0]["category"] == ("Retail")
+        assert specification["data"]["values"][0]["url"] == (
             "https://example.com/retail"
         )
         assert specification["data"]["values"][0]["value"] == 10
 
-    def test_sanitize_chart_preview_leaves_non_mapping_vega_lite_data_unchanged(
+    def test_chart_preview_leaves_non_mapping_vega_lite_data_unchanged(
         self,
     ) -> None:
         """Non-mapping Vega-Lite data should not be treated as inline values."""
@@ -841,15 +1278,13 @@ class TestChartPreviewSanitization:
             format="vega_lite",
         )
 
-        result = _sanitize_chart_preview_for_llm_context(preview)
+        result = preview
         specification = result.content.specification
 
-        assert specification["description"] == sanitize_for_llm_context(
-            "Pie chart for category share"
-        )
+        assert specification["description"] == ("Pie chart for category share")
         assert specification["data"] == "named_dataset"
 
-    def test_sanitize_chart_preview_wraps_table_content(self):
+    def test_chart_preview_preserves_table_content(self):
         preview = ChartPreview(
             chart_id=5,
             chart_name="Top Customers",
@@ -869,15 +1304,13 @@ class TestChartPreviewSanitization:
             performance=PerformanceMetadata(query_duration_ms=9, cache_status="miss"),
         )
 
-        result = _sanitize_chart_preview_for_llm_context(preview)
+        result = preview
 
-        assert result.content.table_data == sanitize_for_llm_context(
-            "Customer | Revenue\nAcme | 100"
-        )
+        assert result.content.table_data == ("Customer | Revenue\nAcme | 100")
         assert result.content.row_count == 1
         assert result.content.supports_sorting is True
 
-    def test_sanitize_chart_preview_wraps_interactive_html_but_keeps_urls(self):
+    def test_chart_preview_preserves_interactive_html_and_urls(self):
         preview = ChartPreview(
             chart_id=6,
             chart_name="Interactive Trend",
@@ -901,11 +1334,9 @@ class TestChartPreviewSanitization:
             height=600,
         )
 
-        result = _sanitize_chart_preview_for_llm_context(preview)
+        result = preview
 
-        assert result.content.html_content == sanitize_for_llm_context(
-            "<div>Revenue by region</div>"
-        )
+        assert result.content.html_content == ("<div>Revenue by region</div>")
         assert (
             result.content.preview_url == "/superset/explore/?slice_id=6&standalone=1"
         )
@@ -1039,6 +1470,51 @@ def test_build_query_metrics_mixed_timeseries():
 
 def test_build_query_metrics_empty():
     assert _build_query_metrics({}) == []
+
+
+def test_first_query_has_fields_true_with_metrics():
+    query_context = SimpleNamespace(
+        queries=[SimpleNamespace(metrics=["count"], columns=[])]
+    )
+    assert _first_query_has_fields(query_context) is True
+
+
+def test_first_query_has_fields_true_with_columns():
+    query_context = SimpleNamespace(
+        queries=[SimpleNamespace(metrics=[], columns=["region"])]
+    )
+    assert _first_query_has_fields(query_context) is True
+
+
+def test_first_query_has_fields_false_when_both_empty():
+    query_context = SimpleNamespace(queries=[SimpleNamespace(metrics=[], columns=[])])
+    assert _first_query_has_fields(query_context) is False
+
+
+def test_first_query_has_fields_ignores_later_populated_query():
+    # Preview strategies render only the first query result, so a populated
+    # secondary mixed-timeseries query must not make an empty preview valid.
+    query_context = SimpleNamespace(
+        queries=[
+            SimpleNamespace(metrics=[], columns=[]),
+            SimpleNamespace(metrics=["count"], columns=[]),
+        ]
+    )
+    assert _first_query_has_fields(query_context) is False
+
+
+def test_first_query_has_fields_defers_when_queries_attr_missing():
+    # Test doubles / unexpected objects without a `.queries` attribute
+    # should not be treated as "no fields" — defer to normal execution.
+    assert _first_query_has_fields(object()) is True
+
+
+def test_no_query_fields_error_mentions_chart_and_viz_type():
+    chart = SimpleNamespace(id=96, slice_name="Total Sales", viz_type="big_number")
+    error = _no_query_fields_error(chart)
+    assert error.error_type == "NoQueryFields"
+    assert "Total Sales" in error.error
+    assert "big_number" in error.error
 
 
 def test_build_query_columns_pivot_overlapping_rows_and_columns():
@@ -1286,3 +1762,80 @@ def test_authorize_guest_query_noop_for_non_guest() -> None:
         strategy._authorize_guest_query(MagicMock())
 
     mock_authorize.assert_not_called()
+
+
+@pytest.mark.parametrize("stored_viz_type", [None, "table", "gauge_chart"])
+@pytest.mark.parametrize(
+    "strategy", [ASCIIPreviewStrategy, TablePreviewStrategy, VegaLitePreviewStrategy]
+)
+def test_saved_gauge_dispatch_and_validation_agree(
+    stored_viz_type: str | None, strategy: type[PreviewFormatStrategy]
+) -> None:
+    """Saved chart identity drives query construction and numeric validation."""
+    chart = _gauge_chart()
+    form_data = utils_json.loads(chart.params)
+    form_data["viz_type"] = stored_viz_type
+    chart.params = utils_json.dumps(form_data)
+    with (
+        patch(
+            "superset.mcp_service.chart.tool.get_chart_preview.build_query_context_from_form_data"
+        ) as build,
+        patch(
+            "superset.commands.chart.data.get_data_command.ChartDataCommand"
+        ) as command,
+    ):
+        build.return_value = SimpleNamespace(
+            queries=[SimpleNamespace(metrics=["saved_sla"])]
+        )
+        command.return_value.run.return_value = {
+            "queries": [{"data": [{"team": "Blue", "saved_sla": "bad"}]}]
+        }
+        result = strategy(chart, GetChartPreviewRequest(identifier=104)).generate()
+    assert isinstance(result, ChartError)
+    assert result.error_type == "NonNumericGaugeMetric"
+    assert build.call_args.args[0]["viz_type"] == "gauge_chart"
+
+
+@pytest.mark.parametrize(
+    "strategy", [ASCIIPreviewStrategy, TablePreviewStrategy, VegaLitePreviewStrategy]
+)
+def test_saved_gauge_preview_skips_empty_aggregate_groups(
+    strategy: type[PreviewFormatStrategy],
+) -> None:
+    """Every saved preview format retains the finite dial from mixed query output."""
+    chart = _gauge_chart()
+    with (
+        patch(
+            "superset.mcp_service.chart.tool.get_chart_preview.build_query_context_from_form_data"
+        ) as build,
+        patch(
+            "superset.commands.chart.data.get_data_command.ChartDataCommand"
+        ) as command,
+    ):
+        build.return_value = SimpleNamespace(
+            queries=[SimpleNamespace(metrics=["saved_sla"])]
+        )
+        command.return_value.run.return_value = {
+            "queries": [
+                {
+                    "data": [
+                        {"team": "Empty", "saved_sla": None},
+                        {"team": "NaN", "saved_sla": float("nan")},
+                        {"team": "Blue", "saved_sla": 42},
+                    ]
+                }
+            ]
+        }
+        result = strategy(chart, GetChartPreviewRequest(identifier=104)).generate()
+    assert not isinstance(result, ChartError)
+    if isinstance(result, VegaLitePreview):
+        assert [row["saved_sla"] for row in result.specification["data"]["values"]] == [
+            42
+        ]
+    elif isinstance(result, TablePreview):
+        assert result.row_count == 1
+        assert "Blue" in result.table_data
+        assert "Empty" not in result.table_data
+    else:
+        assert "Blue" in result.ascii_content
+        assert "Empty" not in result.ascii_content

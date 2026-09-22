@@ -35,7 +35,7 @@ down_revision = "743a117f0d98"
 
 def upgrade():
     bind = op.get_bind()
-    metadata = sa.MetaData(bind=bind)
+    metadata = sa.MetaData()
     insp = sa.engine.reflection.Inspector.from_engine(bind)
 
     rls_filter_tables = create_table(
@@ -53,7 +53,7 @@ def upgrade():
 
     for row in bind.execute(filter_ids):
         move_table_id = rls_filter_tables.insert().values(
-            rls_filter_id=row["id"], table_id=row["table_id"]
+            rls_filter_id=row._mapping["id"], table_id=row._mapping["table_id"]
         )
         bind.execute(move_table_id)
 
@@ -68,7 +68,7 @@ def upgrade():
 
 def downgrade():
     bind = op.get_bind()
-    metadata = sa.MetaData(bind=bind)
+    metadata = sa.MetaData()
 
     op.add_column(
         "row_level_security_filters",

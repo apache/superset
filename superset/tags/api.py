@@ -486,6 +486,64 @@ class TagRestApi(BaseSupersetModelRestApi):
             )
             return self.response_422(message=str(ex))
 
+    @expose("/<pk>", methods=("DELETE",))
+    @protect()
+    @safe
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.delete",
+        log_to_statsd=False,
+    )
+    def delete(self, pk: int) -> Response:
+        """Deletes a Tag
+        ---
+        delete:
+          description: >-
+            Delete a Tag by id. This will remove all tagged objects with
+            this tag.
+          parameters:
+          - in: path
+            schema:
+              type: integer
+            name: pk
+          responses:
+            200:
+              description: Tag deleted
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      message:
+                        type: string
+            401:
+              $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
+            404:
+              $ref: '#/components/responses/404'
+            422:
+              $ref: '#/components/responses/422'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        # Overrides the FAB-generated single-object delete route (which would
+        # otherwise call self.datamodel.delete directly, bypassing
+        # DeleteTagsCommand's ownership and system-tag checks) so both the
+        # single-object and bulk-delete routes share the same validation.
+        tag = TagDAO.find_by_id(pk)
+        if not tag:
+            return self.response_404()
+        try:
+            DeleteTagsCommand([tag.name]).run()
+            return self.response(200, message="OK")
+        except TagNotFoundError:
+            return self.response_404()
+        except TagInvalidError as ex:
+            return self.response_422(message=ex.normalized_messages())
+        except TagDeleteFailedError as ex:
+            return self.response_422(message=str(ex))
+
     @expose("/", methods=("DELETE",))
     @protect()
     @safe

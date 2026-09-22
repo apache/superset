@@ -228,6 +228,13 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
     max_column_name_length = 128
     disable_ssh_tunneling = True
 
+    # BigQuery quotes identifiers with backticks rather than ANSI double quotes,
+    # and escapes an embedded backtick with a backslash rather than by
+    # doubling it (GoogleSQL, unlike MySQL/MariaDB backticks).
+    identifier_quote_start: str = "`"
+    identifier_quote_end: str = "`"
+    identifier_quote_escape_by_doubling: bool = False
+
     parameters_schema = BigQueryParametersSchema()
     default_driver = "bigquery"
     sqlalchemy_uri_placeholder = "bigquery://{project_id}"
