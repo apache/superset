@@ -712,16 +712,17 @@ def test_datasets_trimmed_for_slices_keeps_colliding_ids_separate() -> None:
     """
     table_datasource = Mock(spec=BaseDatasource)
     table_datasource.table_name = "orders"
+    table_datasource.data_for_slices.return_value = {"cols": ["column"]}
 
     sesh_table_slice = Mock()
     sesh_table_slice.datasource_id = 1
     sesh_table_slice.datasource_type = "table"
-    sesh_table_slice.datasource = table_datasource
+    sesh_table_slice.resolved_datasource = table_datasource
 
     semantic_view_slice = Mock()
     semantic_view_slice.datasource_id = 1
     semantic_view_slice.datasource_type = "semantic_view"
-    semantic_view_slice.datasource = None
+    semantic_view_slice.resolved_datasource = None
 
     dash = Dashboard()
     with patch.object(
@@ -734,5 +735,5 @@ def test_datasets_trimmed_for_slices_keeps_colliding_ids_separate() -> None:
 
     # Only the table-backed chart is kept; its datasource must be reported
     # with the exact slice list (no semantic-view slice leaking into it).
-    assert result == [(table_datasource, table_datasource.data_for_slices.return_value)]
+    assert result == [(table_datasource, {"cols": ["column"]})]
     table_datasource.data_for_slices.assert_called_once_with([sesh_table_slice])
