@@ -71,7 +71,7 @@ github:
     master:
       required_status_checks:
         # strict means "Require branches to be up to date before merging".
-        strict: false
+        strict: true
         # contexts are the names of checks that must pass
         # unfortunately AFAICT for `matrix:` jobs, we have to itemize every
         # combination here.
