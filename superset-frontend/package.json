@@ -42,7 +42,7 @@
     "build-dev": "cross-env NODE_OPTIONS=--max_old_space_size=8192 NODE_ENV=development webpack --mode=development --color",
     "build-instrumented": "cross-env NODE_ENV=production BABEL_ENV=instrumented webpack --mode=production --color",
     "build-storybook": "storybook build",
-    "build-translation": "scripts/po2json.sh",
+    "build-translation": "python3 ../scripts/translations/compile_po.py",
     "translations:build-index": "python3 ../scripts/translations/build_translation_index.py",
     "translations:backfill": "python3 ../scripts/translations/backfill_po.py",
     "bundle-stats": "cross-env BUNDLE_ANALYZER=true npm run build && npx open-cli ../superset/static/stats/statistics.html",

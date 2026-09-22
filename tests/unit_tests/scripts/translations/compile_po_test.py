@@ -14,346 +14,284 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+"""Tests for ``scripts/translations/compile_po.py``.
+
+The script is not installed as a package, so it is loaded via importlib from
+its filesystem path.
+"""
 
 from __future__ import annotations
 
-import subprocess
-import sys
+import importlib.util
+import json  # noqa: TID251 - testing a standalone script that uses stdlib json
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
 
-import scripts.compile_po as compile_po
+_SCRIPT_PATH = (
+    Path(__file__).resolve().parents[4] / "scripts" / "translations" / "compile_po.py"
+)
+_spec = importlib.util.spec_from_file_location("compile_po", _SCRIPT_PATH)
+assert _spec is not None, f"Could not load {_SCRIPT_PATH}"
+assert _spec.loader is not None, f"No loader on spec for {_SCRIPT_PATH}"
+compile_po = importlib.util.module_from_spec(_spec)
+_spec.loader.exec_module(compile_po)
+
 
 # ---------------------------------------------------------------------------
-# run_command
+# resolve_node_entry
 # ---------------------------------------------------------------------------
 
 
-def test_run_command_success() -> None:
-    """run_command returns 0 when the process succeeds."""
-    with patch("subprocess.run") as mock_run:
-        mock_run.return_value = MagicMock(returncode=0)
-        rc = compile_po.run_command(["echo", "hello"])
-        assert rc == 0
-
-
-def test_run_command_shell_flag() -> None:
-    """run_command passes shell=False to subprocess.run to prevent command injection."""
-    with patch("subprocess.run") as mock_run:
-        mock_run.return_value = MagicMock(returncode=0)
-        compile_po.run_command(["echo", "hello"])
-        mock_run.assert_called_once()
-        _, kwargs = mock_run.call_args
-        assert kwargs["shell"] is False
-
-
-def test_format_cmd_arg() -> None:
-    """_format_cmd_arg quotes arguments with spaces or cmd metacharacters."""
-    assert compile_po._format_cmd_arg("") == '""'
-    assert compile_po._format_cmd_arg("normal") == "normal"
-    assert compile_po._format_cmd_arg("hello world") == '"hello world"'
-    assert compile_po._format_cmd_arg("file&calc.po") == '"file&calc.po"'
-    assert compile_po._format_cmd_arg("file|more.json") == '"file|more.json"'
-    assert compile_po._format_cmd_arg('file"name') == '"file""name"'
-    assert (
-        compile_po._format_cmd_arg('file "with" spaces.po')
-        == '"file ""with"" spaces.po"'
+def test_resolve_node_entry_dict_bin(tmp_path: Path) -> None:
+    """A dict "bin" field is resolved by package name, not the first key."""
+    pkg_dir = tmp_path / "node_modules" / "po2json"
+    pkg_dir.mkdir(parents=True)
+    (pkg_dir / "package.json").write_text(
+        json.dumps({"bin": {"po2json": "bin/po2json"}})
     )
-    assert compile_po._format_cmd_arg("dir with space\\") == '"dir with space\\\\"'
-    assert compile_po._format_cmd_arg('file\\"name') == '"file\\\\""name"'
+    (pkg_dir / "bin").mkdir()
+    entry = pkg_dir / "bin" / "po2json"
+    entry.touch()
+
+    with patch.object(compile_po, "FRONTEND_DIR", str(tmp_path)):
+        resolved = compile_po.resolve_node_entry("po2json")
+    assert resolved == str(entry)
 
 
-def test_run_command_quotes_cmd_metacharacters() -> None:
-    """run_command formats command line with quoted metacharacters on Windows."""
-    with patch("subprocess.run") as mock_run:
-        mock_run.return_value = MagicMock(returncode=0)
-        with patch("os.name", "nt"):
-            compile_po.run_command(["po2json.cmd", "file&calc.po", 'file"name.json'])
-            mock_run.assert_called_once()
-            args, _ = mock_run.call_args
-            assert args[0] == 'po2json.cmd "file&calc.po" "file""name.json"'
+def test_resolve_node_entry_string_bin(tmp_path: Path) -> None:
+    """A plain string "bin" field (single-command package shorthand) resolves too."""
+    pkg_dir = tmp_path / "node_modules" / "oxfmt"
+    pkg_dir.mkdir(parents=True)
+    (pkg_dir / "package.json").write_text(json.dumps({"bin": "bin/oxfmt"}))
+    (pkg_dir / "bin").mkdir()
+    entry = pkg_dir / "bin" / "oxfmt"
+    entry.touch()
+
+    with patch.object(compile_po, "FRONTEND_DIR", str(tmp_path)):
+        resolved = compile_po.resolve_node_entry("oxfmt")
+    assert resolved == str(entry)
 
 
-def test_run_command_formats_trailing_backslash_on_windows() -> None:
-    """run_command doubles trailing backslashes for CommandLineToArgvW."""
-    with patch("subprocess.run") as mock_run:
-        mock_run.return_value = MagicMock(returncode=0)
-        with patch("os.name", "nt"):
-            compile_po.run_command(["compile_po", "path with space\\", "next_arg"])
-            mock_run.assert_called_once()
-            args, _ = mock_run.call_args
-            assert args[0] == 'compile_po "path with space\\\\" next_arg'
+def test_resolve_node_entry_missing_package(tmp_path: Path) -> None:
+    """Returns None when the package isn't installed at all."""
+    with patch.object(compile_po, "FRONTEND_DIR", str(tmp_path)):
+        assert compile_po.resolve_node_entry("po2json") is None
 
 
-def test_run_command_failure() -> None:
-    """run_command returns nonzero returncode on failure."""
-    with patch("subprocess.run") as mock_run:
-        mock_run.return_value = MagicMock(returncode=1)
-        rc = compile_po.run_command(["false"])
-        assert rc == 1
+def test_resolve_node_entry_missing_bin_field(tmp_path: Path) -> None:
+    """Returns None when package.json has no "bin" field."""
+    pkg_dir = tmp_path / "node_modules" / "po2json"
+    pkg_dir.mkdir(parents=True)
+    (pkg_dir / "package.json").write_text(json.dumps({"name": "po2json"}))
+
+    with patch.object(compile_po, "FRONTEND_DIR", str(tmp_path)):
+        assert compile_po.resolve_node_entry("po2json") is None
 
 
-def test_run_command_handles_timeout() -> None:
-    """run_command returns 1 on TimeoutExpired without raising."""
-    with patch("subprocess.run", side_effect=subprocess.TimeoutExpired(["cmd"], 10)):
-        assert compile_po.run_command(["cmd"]) == 1
+def test_resolve_node_entry_entry_file_missing(tmp_path: Path) -> None:
+    """Returns None when package.json declares a bin entry that doesn't exist
+    on disk (a partially-installed / corrupted node_modules)."""
+    pkg_dir = tmp_path / "node_modules" / "po2json"
+    pkg_dir.mkdir(parents=True)
+    (pkg_dir / "package.json").write_text(
+        json.dumps({"bin": {"po2json": "bin/po2json"}})
+    )
 
-
-def test_run_command_handles_file_not_found() -> None:
-    """run_command returns 1 when the executable does not exist."""
-    with patch("subprocess.run", side_effect=FileNotFoundError):
-        assert compile_po.run_command(["nonexistent_command"]) == 1
-
-
-def test_run_command_handles_os_error() -> None:
-    """run_command returns 1 on generic OSError."""
-    with patch("subprocess.run", side_effect=OSError("permission denied")):
-        assert compile_po.run_command(["cmd"]) == 1
-
-
-# ---------------------------------------------------------------------------
-# find_command and find_node_bin
-# ---------------------------------------------------------------------------
-
-
-def test_find_command_found() -> None:
-    """find_command returns path when binary is in PATH."""
-    with patch("shutil.which", return_value="/usr/bin/npm"):
-        assert compile_po.find_command(["npm"]) == "/usr/bin/npm"
-
-
-def test_find_command_not_found() -> None:
-    """find_command returns None when no executable matches."""
-    with patch("shutil.which", return_value=None):
-        assert compile_po.find_command(["nonexistent_binary"]) is None
-
-
-def test_find_node_bin_finds_in_frontend_node_modules(tmp_path: Path) -> None:
-    """find_node_bin locates binaries in superset-frontend/node_modules/.bin."""
-    bin_dir = tmp_path / "superset-frontend" / "node_modules" / ".bin"
-    bin_dir.mkdir(parents=True)
-    target = bin_dir / "oxfmt"
-    target.touch()
-
-    found = compile_po.find_node_bin(str(tmp_path), "oxfmt")
-    assert found is not None
-    assert Path(found).resolve() == target.resolve()
-
-
-def test_find_node_bin_returns_none_when_missing(tmp_path: Path) -> None:
-    """find_node_bin returns None when the binary does not exist."""
-    assert compile_po.find_node_bin(str(tmp_path), "oxfmt") is None
+    with patch.object(compile_po, "FRONTEND_DIR", str(tmp_path)):
+        assert compile_po.resolve_node_entry("po2json") is None
 
 
 # ---------------------------------------------------------------------------
-# install_npm_packages
+# run
 # ---------------------------------------------------------------------------
 
 
-def test_install_npm_packages_calls_npm(tmp_path: Path) -> None:
-    """install_npm_packages calls npm install with the required flags."""
-    with patch.object(compile_po, "run_command", return_value=0) as mock_run:
-        ok = compile_po.install_npm_packages(
-            "/usr/bin/npm", str(tmp_path), ["po2json", "oxfmt"]
-        )
-        assert ok is True
-        mock_run.assert_called_once_with(
-            [
-                "/usr/bin/npm",
-                "install",
-                "--no-save",
-                "--prefer-offline",
-                "po2json",
-                "oxfmt",
-            ],
-            cwd=str(tmp_path),
+def test_run_returns_process_returncode() -> None:
+    """run() returns the child process's exit code and never shells out."""
+    with patch.object(compile_po.subprocess, "run") as mock_run:
+        mock_run.return_value = MagicMock(returncode=3)
+        rc = compile_po.run(["node", "script.js"])
+        assert rc == 3
+        args, kwargs = mock_run.call_args
+        assert args[0] == ["node", "script.js"]
+        assert "shell" not in kwargs
+
+
+# ---------------------------------------------------------------------------
+# convert_po_to_json
+# ---------------------------------------------------------------------------
+
+
+def test_convert_po_to_json_success(tmp_path: Path) -> None:
+    """Builds the po2json argv and writes to the .po file's .json sibling."""
+    po_file = tmp_path / "fr" / "LC_MESSAGES" / "messages.po"
+    po_file.parent.mkdir(parents=True)
+    po_file.write_text('msgid ""\nmsgstr ""\n')
+
+    with patch.object(compile_po, "run", return_value=0) as mock_run:
+        ok = compile_po.convert_po_to_json(
+            "/usr/bin/node", "/pkg/bin/po2json", str(po_file)
         )
 
+    assert ok is True
+    mock_run.assert_called_once_with(
+        [
+            "/usr/bin/node",
+            "/pkg/bin/po2json",
+            "--domain",
+            "superset",
+            "--format",
+            "jed1.x",
+            "--fuzzy",
+            str(po_file),
+            str(po_file.with_suffix(".json")),
+        ]
+    )
+
+
+def test_convert_po_to_json_failure() -> None:
+    """Reports failure when po2json returns non-zero."""
+    with patch.object(compile_po, "run", return_value=1):
+        ok = compile_po.convert_po_to_json("/usr/bin/node", "/pkg/bin/po2json", "x.po")
+    assert ok is False
+
+
+def test_convert_po_to_json_preserves_locale_in_path(tmp_path: Path) -> None:
+    """Regression: two locales' messages.po must not collide on one .json
+    output -- the destination is derived from the full glob path (which
+    includes the locale and LC_MESSAGES components), not a locale-stripped
+    relative path."""
+    fr_po = tmp_path / "fr" / "LC_MESSAGES" / "messages.po"
+    de_po = tmp_path / "de" / "LC_MESSAGES" / "messages.po"
+    for f in (fr_po, de_po):
+        f.parent.mkdir(parents=True)
+        f.touch()
+
+    destinations = []
+    with patch.object(compile_po, "run", return_value=0) as mock_run:
+        for po_file in (fr_po, de_po):
+            compile_po.convert_po_to_json(
+                "/usr/bin/node", "/pkg/bin/po2json", str(po_file)
+            )
+            destinations.append(mock_run.call_args.args[0][-1])
+
+    assert destinations[0] != destinations[1]
+    assert destinations[0] == str(fr_po.with_suffix(".json"))
+    assert destinations[1] == str(de_po.with_suffix(".json"))
+
 
 # ---------------------------------------------------------------------------
-# convert_po_file
+# main
 # ---------------------------------------------------------------------------
 
 
-def test_convert_po_file_success(tmp_path: Path) -> None:
-    """convert_po_file constructs jed1.x command and outputs to .json."""
-    po_file = tmp_path / "messages.po"
-    po_file.write_text('msgid ""\nmsgstr ""\n', encoding="utf-8")
-
-    with patch.object(compile_po, "run_command", return_value=0) as mock_run:
-        ok, path, err = compile_po.convert_po_file(str(po_file), ["po2json"])
-        assert ok is True
-        assert path == str(po_file)
-        assert err == ""
-        json_dest = str(tmp_path / "messages.json")
-        mock_run.assert_called_once_with(
-            [
-                "po2json",
-                "--domain",
-                "superset",
-                "--format",
-                "jed1.x",
-                "--fuzzy",
-                str(po_file),
-                json_dest,
-            ],
-            timeout=60,
-        )
+def test_main_missing_node() -> None:
+    """Returns 1 when node isn't on PATH."""
+    with patch.object(compile_po.shutil, "which", return_value=None):
+        assert compile_po.main() == 1
 
 
-def test_convert_po_file_failure(tmp_path: Path) -> None:
-    """convert_po_file reports failure when po2json returns non-zero."""
-    po_file = tmp_path / "messages.po"
-    po_file.write_text('msgid ""\nmsgstr ""\n', encoding="utf-8")
-
-    with patch.object(compile_po, "run_command", return_value=1):
-        ok, path, err = compile_po.convert_po_file(str(po_file), ["po2json"])
-        assert ok is False
-        assert path == str(po_file)
-        assert "po2json failed" in err
-
-
-# ---------------------------------------------------------------------------
-# compile_translations end-to-end flow
-# ---------------------------------------------------------------------------
-
-
-def test_compile_translations_missing_babel(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Returns 1 if babel module is not installed."""
-    with patch.dict(sys.modules, {"babel": None}):
-        with patch(
-            "builtins.__import__", side_effect=ImportError("No module named babel")
-        ):
-            assert compile_po.compile_translations() == 1
-
-
-def test_compile_translations_missing_node_tools() -> None:
-    """Returns 1 if npm or npx is not found."""
+def test_main_missing_npm_packages() -> None:
+    """Returns 1 when po2json or oxfmt aren't installed."""
     with (
-        patch.dict(sys.modules, {"babel": MagicMock()}),
-        patch.object(compile_po, "find_command", return_value=None),
+        patch.object(compile_po.shutil, "which", return_value="/usr/bin/node"),
+        patch.object(compile_po, "resolve_node_entry", return_value=None),
     ):
-        assert compile_po.compile_translations() == 1
+        assert compile_po.main() == 1
 
 
-def test_compile_translations_missing_translations_dir(tmp_path: Path) -> None:
-    """Returns 1 if the translations directory does not exist."""
+def test_main_missing_translations_dir(tmp_path: Path) -> None:
+    """Returns 1 when the translations directory doesn't exist."""
     with (
-        patch.dict(sys.modules, {"babel": MagicMock()}),
-        patch.object(compile_po, "find_command", return_value="/usr/bin/node"),
-        patch(
-            "os.path.isdir",
-            side_effect=lambda p: False if "translations" in p else True,
-        ),
+        patch.object(compile_po.shutil, "which", return_value="/usr/bin/node"),
+        patch.object(compile_po, "resolve_node_entry", return_value="/pkg/bin/x"),
+        patch.object(compile_po, "TRANSLATIONS_DIR", str(tmp_path / "nope")),
     ):
-        assert compile_po.compile_translations() == 1
+        assert compile_po.main() == 1
 
 
-def test_compile_translations_pybabel_failure() -> None:
-    """Returns 1 if pybabel compile step fails."""
-    with (
-        patch.dict(sys.modules, {"babel": MagicMock()}),
-        patch.object(compile_po, "find_command", return_value="/usr/bin/npm"),
-        patch("os.path.isdir", return_value=True),
-        patch.object(compile_po, "run_command", return_value=1),
-    ):
-        assert compile_po.compile_translations() == 1
-
-
-def test_compile_translations_conversion_failure(tmp_path: Path) -> None:
-    """Returns 1 if any .po file conversion fails."""
-    po_file = tmp_path / "messages.po"
+def test_main_reports_conversion_failures(tmp_path: Path) -> None:
+    """Returns 1 and does not run oxfmt when any .po conversion fails."""
+    po_file = tmp_path / "fr" / "LC_MESSAGES" / "messages.po"
+    po_file.parent.mkdir(parents=True)
     po_file.touch()
 
     with (
-        patch.dict(sys.modules, {"babel": MagicMock()}),
-        patch.object(compile_po, "find_command", return_value="/usr/bin/npm"),
-        patch("os.path.isdir", return_value=True),
-        patch(
-            "glob.glob",
-            side_effect=lambda pattern, **kwargs: (
-                [str(po_file)] if "*.po" in pattern else []
-            ),
-        ),
-        patch.object(compile_po, "run_command", return_value=0),
-        patch.object(
-            compile_po,
-            "convert_po_file",
-            return_value=(False, str(po_file), "conversion error"),
-        ),
+        patch.object(compile_po.shutil, "which", return_value="/usr/bin/node"),
+        patch.object(compile_po, "resolve_node_entry", return_value="/pkg/bin/x"),
+        patch.object(compile_po, "TRANSLATIONS_DIR", str(tmp_path)),
+        patch.object(compile_po, "convert_po_to_json", return_value=False),
+        patch.object(compile_po, "run") as mock_run,
     ):
-        assert compile_po.compile_translations() == 1
+        assert compile_po.main() == 1
+        mock_run.assert_not_called()
 
 
-def test_compile_translations_oxfmt_failure(tmp_path: Path) -> None:
-    """Returns 1 if oxfmt formatting step fails."""
-    po_file = tmp_path / "messages.po"
-    json_file = tmp_path / "messages.json"
+def test_main_runs_oxfmt_on_generated_json(tmp_path: Path) -> None:
+    """On success, oxfmt is invoked on the generated JSON with the gitignore
+    workaround flag, and main() returns 0."""
+    po_file = tmp_path / "fr" / "LC_MESSAGES" / "messages.po"
+    po_file.parent.mkdir(parents=True)
     po_file.touch()
+    json_file = po_file.with_suffix(".json")
     json_file.touch()
 
-    def _run_side_effect(cmd: list[str], **kwargs: object) -> int:
-        if any("oxfmt" in arg for arg in cmd):
-            return 1
-        return 0
-
     with (
-        patch.dict(sys.modules, {"babel": MagicMock()}),
-        patch.object(compile_po, "find_command", return_value="/usr/bin/npm"),
-        patch("os.path.isdir", return_value=True),
-        patch(
-            "glob.glob",
-            side_effect=lambda pattern, **kwargs: (
-                [str(po_file)] if "*.po" in pattern else [str(json_file)]
-            ),
-        ),
-        patch.object(compile_po, "run_command", side_effect=_run_side_effect),
-        patch.object(
-            compile_po, "convert_po_file", return_value=(True, str(po_file), "")
-        ),
+        patch.object(compile_po.shutil, "which", return_value="/usr/bin/node"),
+        patch.object(compile_po, "resolve_node_entry", return_value="/pkg/bin/x"),
+        patch.object(compile_po, "TRANSLATIONS_DIR", str(tmp_path)),
+        patch.object(compile_po, "convert_po_to_json", return_value=True),
+        patch.object(compile_po, "run", return_value=0) as mock_run,
     ):
-        assert compile_po.compile_translations() == 1
+        rc = compile_po.main()
+
+    assert rc == 0
+    mock_run.assert_called_once()
+    oxfmt_args = mock_run.call_args.args[0]
+    assert "--write" in oxfmt_args
+    assert "--no-error-on-unmatched-pattern" in oxfmt_args
+    assert str(json_file) in oxfmt_args
 
 
-def test_compile_translations_success(tmp_path: Path) -> None:
-    """Returns 0 on successful compilation, conversion, and oxfmt formatting."""
-    po_file = tmp_path / "messages.po"
-    json_file = tmp_path / "messages.json"
+def test_main_reports_oxfmt_failure(tmp_path: Path) -> None:
+    """Returns 1 when the oxfmt formatting step fails."""
+    po_file = tmp_path / "fr" / "LC_MESSAGES" / "messages.po"
+    po_file.parent.mkdir(parents=True)
     po_file.touch()
-    json_file.touch()
-
-    executed_commands: list[list[str]] = []
-
-    def _run_side_effect(cmd: list[str], **kwargs: object) -> int:
-        executed_commands.append(cmd)
-        return 0
+    po_file.with_suffix(".json").touch()
 
     with (
-        patch.dict(sys.modules, {"babel": MagicMock()}),
-        patch.object(compile_po, "find_command", return_value="/usr/bin/npm"),
-        patch.object(
-            compile_po,
-            "find_node_bin",
-            return_value="/workspace/node_modules/.bin/oxfmt",
-        ),
-        patch("os.path.isdir", return_value=True),
-        patch(
-            "glob.glob",
-            side_effect=lambda pattern, **kwargs: (
-                [str(po_file)] if "*.po" in pattern else [str(json_file)]
-            ),
-        ),
-        patch.object(compile_po, "run_command", side_effect=_run_side_effect),
-        patch.object(
-            compile_po, "convert_po_file", return_value=(True, str(po_file), "")
-        ),
+        patch.object(compile_po.shutil, "which", return_value="/usr/bin/node"),
+        patch.object(compile_po, "resolve_node_entry", return_value="/pkg/bin/x"),
+        patch.object(compile_po, "TRANSLATIONS_DIR", str(tmp_path)),
+        patch.object(compile_po, "convert_po_to_json", return_value=True),
+        patch.object(compile_po, "run", return_value=1),
     ):
-        rc = compile_po.compile_translations()
-        assert rc == 0
-        # Verify oxfmt was called with --no-error-on-unmatched-pattern
-        oxfmt_calls = [c for c in executed_commands if any("oxfmt" in arg for arg in c)]
-        assert len(oxfmt_calls) >= 1
-        assert "--no-error-on-unmatched-pattern" in oxfmt_calls[0]
-        assert "--write" in oxfmt_calls[0]
+        assert compile_po.main() == 1
+
+
+@pytest.mark.parametrize("os_name", ["nt", "posix"])
+def test_main_never_touches_a_shell(tmp_path: Path, os_name: str) -> None:
+    """The whole pipeline runs with no shell involved on any platform -- the
+    thing the previous shell-metacharacter/`%VAR%`-expansion bugs required.
+    """
+    po_file = tmp_path / "fr" / "LC_MESSAGES" / "messages.po"
+    po_file.parent.mkdir(parents=True)
+    po_file.touch()
+    po_file.with_suffix(".json").touch()
+
+    with (
+        patch.object(compile_po.os, "name", os_name),
+        patch.object(compile_po.shutil, "which", return_value="/usr/bin/node"),
+        patch.object(compile_po, "resolve_node_entry", return_value="/pkg/bin/x"),
+        patch.object(compile_po, "TRANSLATIONS_DIR", str(tmp_path)),
+        patch.object(compile_po.subprocess, "run") as mock_subprocess_run,
+    ):
+        mock_subprocess_run.return_value = MagicMock(returncode=0)
+        assert compile_po.main() == 0
+
+    for call in mock_subprocess_run.call_args_list:
+        assert call.args[0][0] == "/usr/bin/node"
+        assert "shell" not in call.kwargs
