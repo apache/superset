@@ -645,9 +645,6 @@ class BaseSQLStatement(Generic[InternalRepresentation]):
         """
         Return the client-side file-transfer command head, if this is one.
 
-        Abstract so that a new statement type cannot silently opt out of the
-        check by inheriting a permissive default.
-
         :return: The uppercased command head (e.g. ``"PUT"``), else ``None``.
         """
         raise NotImplementedError()
