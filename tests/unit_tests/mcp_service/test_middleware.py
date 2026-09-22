@@ -47,7 +47,10 @@ from superset.mcp_service.middleware import (
     StructuredContentStripperMiddleware,
     ToolResultCompatibilityMiddleware,
 )
-from superset.mcp_service.utils.token_utils import estimate_token_count
+from superset.mcp_service.utils.response_size_utils import (
+    get_response_size_bytes,
+    UNMEASURABLE_RESPONSE_BYTES,
+)
 from superset.utils import json as utils_json
 from superset.utils.log import DBEventLogger
 
@@ -58,21 +61,21 @@ class TestResponseSizeGuardMiddleware:
     def test_init_default_values(self) -> None:
         """Should initialize with default values."""
         middleware = ResponseSizeGuardMiddleware()
-        assert middleware.token_limit == 25_000
+        assert middleware.max_bytes == 50_000
         assert middleware.warn_threshold_pct == 80
-        assert middleware.warn_threshold == 20000
+        assert middleware.warn_threshold == 40_000
         assert middleware.excluded_tools == set()
         assert middleware.max_list_items == 100
 
     def test_init_custom_values(self) -> None:
         """Should initialize with custom values."""
         middleware = ResponseSizeGuardMiddleware(
-            token_limit=10000,
+            max_bytes=10000,
             warn_threshold_pct=70,
             excluded_tools=["health_check", "get_chart_preview"],
             max_list_items=50,
         )
-        assert middleware.token_limit == 10000
+        assert middleware.max_bytes == 10000
         assert middleware.warn_threshold_pct == 70
         assert middleware.warn_threshold == 7000
         assert middleware.excluded_tools == {"health_check", "get_chart_preview"}
@@ -95,8 +98,8 @@ class TestResponseSizeGuardMiddleware:
 
     @pytest.mark.asyncio
     async def test_allows_small_response(self) -> None:
-        """Should allow responses under token limit."""
-        middleware = ResponseSizeGuardMiddleware(token_limit=25000)
+        """Should allow responses under the byte limit."""
+        middleware = ResponseSizeGuardMiddleware(max_bytes=25000)
 
         # Create mock context
         context = MagicMock()
@@ -118,8 +121,8 @@ class TestResponseSizeGuardMiddleware:
 
     @pytest.mark.asyncio
     async def test_blocks_large_response(self) -> None:
-        """Should block responses over token limit."""
-        middleware = ResponseSizeGuardMiddleware(token_limit=100)  # Very low limit
+        """Should block responses over the byte limit."""
+        middleware = ResponseSizeGuardMiddleware(max_bytes=100)  # Very low limit
 
         # Create mock context
         context = MagicMock()
@@ -148,7 +151,7 @@ class TestResponseSizeGuardMiddleware:
     async def test_skips_excluded_tools(self) -> None:
         """Should skip checking for excluded tools."""
         middleware = ResponseSizeGuardMiddleware(
-            token_limit=100, excluded_tools=["health_check"]
+            max_bytes=100, excluded_tools=["health_check"]
         )
 
         # Create mock context for excluded tool
@@ -168,14 +171,10 @@ class TestResponseSizeGuardMiddleware:
     async def test_logs_warning_at_threshold(self) -> None:
         """Should log warning when approaching limit.
 
-        Mocks the token estimator to return a specific value above the
-        warn threshold but below the hard limit, decoupling the test
-        from whichever tokenizer (tiktoken or char heuristic) happens
-        to be loaded.
+        Mocks the size measurement to return a specific value above the
+        warn threshold but below the hard limit.
         """
-        middleware = ResponseSizeGuardMiddleware(
-            token_limit=1000, warn_threshold_pct=80
-        )
+        middleware = ResponseSizeGuardMiddleware(max_bytes=1000, warn_threshold_pct=80)
 
         context = MagicMock()
         context.message.name = "list_charts"
@@ -188,7 +187,7 @@ class TestResponseSizeGuardMiddleware:
             patch("superset.mcp_service.middleware.get_user_id", return_value=1),
             patch("superset.mcp_service.middleware.event_logger"),
             patch(
-                "superset.mcp_service.middleware.estimate_response_tokens",
+                "superset.mcp_service.middleware.get_response_size_bytes",
                 return_value=850,
             ),
             patch("superset.mcp_service.middleware.logger") as mock_logger,
@@ -203,7 +202,7 @@ class TestResponseSizeGuardMiddleware:
     @pytest.mark.asyncio
     async def test_error_includes_suggestions(self) -> None:
         """Should include suggestions in error message."""
-        middleware = ResponseSizeGuardMiddleware(token_limit=100)
+        middleware = ResponseSizeGuardMiddleware(max_bytes=100)
 
         context = MagicMock()
         context.message.name = "list_charts"
@@ -226,9 +225,37 @@ class TestResponseSizeGuardMiddleware:
         assert "page_size" in error_message.lower() or "limit" in error_message.lower()
 
     @pytest.mark.asyncio
+    async def test_unmeasurable_response_is_treated_as_oversized(self) -> None:
+        """A response whose size cannot be measured must not slip through.
+
+        The size helper never raises; it reports an unmeasurable response as
+        larger than any limit, so the guard takes the oversized path even
+        when ``max_bytes`` is configured above any fixed fallback value.
+        """
+        middleware = ResponseSizeGuardMiddleware(max_bytes=10_000_000)
+
+        context = MagicMock()
+        context.message.name = "list_charts"
+        context.message.arguments = {}
+        call_next = AsyncMock(return_value={"charts": []})
+
+        with (
+            patch("superset.mcp_service.middleware.get_user_id", return_value=1),
+            patch("superset.mcp_service.middleware.event_logger"),
+            patch(
+                "superset.mcp_service.middleware.get_response_size_bytes",
+                return_value=UNMEASURABLE_RESPONSE_BYTES,
+            ),
+            pytest.raises(ToolError) as exc_info,
+        ):
+            await middleware.on_call_tool(context, call_next)
+
+        assert "size could not be measured" in str(exc_info.value)
+
+    @pytest.mark.asyncio
     async def test_logs_size_exceeded_event(self) -> None:
         """Should log to event logger when size exceeded."""
-        middleware = ResponseSizeGuardMiddleware(token_limit=100)
+        middleware = ResponseSizeGuardMiddleware(max_bytes=100)
 
         context = MagicMock()
         context.message.name = "list_charts"
@@ -252,7 +279,7 @@ class TestResponseSizeGuardMiddleware:
     @pytest.mark.asyncio
     async def test_truncates_info_tool_instead_of_blocking(self) -> None:
         """Should truncate info tool responses instead of blocking them."""
-        middleware = ResponseSizeGuardMiddleware(token_limit=500)
+        middleware = ResponseSizeGuardMiddleware(max_bytes=1000)
 
         context = MagicMock()
         context.message.name = "get_dataset_info"
@@ -279,9 +306,38 @@ class TestResponseSizeGuardMiddleware:
         assert "[truncated" in result["description"]
 
     @pytest.mark.asyncio
+    async def test_truncates_info_tool_under_small_byte_budget(self) -> None:
+        """A budget below the fixed string clip must degrade, not block.
+
+        Clipping a string to a fixed 500 chars can never fit a 500-byte
+        budget, so the clip length has to follow the budget; otherwise the
+        info tool raises ToolError instead of returning a truncated response.
+        """
+        middleware = ResponseSizeGuardMiddleware(max_bytes=500)
+
+        context = MagicMock()
+        context.message.name = "get_dataset_info"
+        context.message.arguments = {}
+        call_next = AsyncMock(
+            return_value={"id": 1, "table_name": "test", "description": "x" * 50000}
+        )
+
+        with (
+            patch("superset.mcp_service.middleware.get_user_id", return_value=1),
+            patch("superset.mcp_service.middleware.event_logger"),
+        ):
+            result = await middleware.on_call_tool(context, call_next)
+
+        assert isinstance(result, dict)
+        assert result["id"] == 1
+        assert result["_response_truncated"] is True
+        assert "[truncated" in result["description"]
+        assert get_response_size_bytes(result) <= 500
+
+    @pytest.mark.asyncio
     async def test_truncates_chart_info_with_large_form_data(self) -> None:
         """Should truncate get_chart_info with large form_data."""
-        middleware = ResponseSizeGuardMiddleware(token_limit=500)
+        middleware = ResponseSizeGuardMiddleware(max_bytes=500)
 
         context = MagicMock()
         context.message.name = "get_chart_info"
@@ -307,7 +363,7 @@ class TestResponseSizeGuardMiddleware:
     @pytest.mark.asyncio
     async def test_still_blocks_non_info_tools(self) -> None:
         """Should still block non-info tools that exceed limit."""
-        middleware = ResponseSizeGuardMiddleware(token_limit=100)
+        middleware = ResponseSizeGuardMiddleware(max_bytes=100)
 
         context = MagicMock()
         context.message.name = "list_charts"  # Not an info tool
@@ -326,7 +382,7 @@ class TestResponseSizeGuardMiddleware:
     @pytest.mark.asyncio
     async def test_logs_truncation_event(self) -> None:
         """Should log mcp_response_truncated event on successful truncation."""
-        middleware = ResponseSizeGuardMiddleware(token_limit=500)
+        middleware = ResponseSizeGuardMiddleware(max_bytes=1000)
 
         context = MagicMock()
         context.message.name = "get_dashboard_info"
@@ -359,7 +415,7 @@ class TestResponseSizeGuardMiddleware:
         verifies the cap is now threaded through from the middleware
         constructor rather than hardcoded.
         """
-        middleware = ResponseSizeGuardMiddleware(token_limit=3000, max_list_items=50)
+        middleware = ResponseSizeGuardMiddleware(max_bytes=6000, max_list_items=50)
 
         context = MagicMock()
         context.message.name = "get_dashboard_info"
@@ -389,7 +445,7 @@ class TestResponseSizeGuardMiddleware:
     @pytest.mark.asyncio
     async def test_truncates_execute_sql_rows_instead_of_blocking(self) -> None:
         """execute_sql should truncate rows, not raise ToolError."""
-        middleware = ResponseSizeGuardMiddleware(token_limit=500)
+        middleware = ResponseSizeGuardMiddleware(max_bytes=1500)
 
         context = MagicMock()
         context.message.name = "execute_sql"
@@ -419,7 +475,7 @@ class TestResponseSizeGuardMiddleware:
     @pytest.mark.asyncio
     async def test_truncates_query_dataset_data_field(self) -> None:
         """query_dataset should truncate the 'data' list, not raise ToolError."""
-        middleware = ResponseSizeGuardMiddleware(token_limit=500)
+        middleware = ResponseSizeGuardMiddleware(max_bytes=500)
 
         context = MagicMock()
         context.message.name = "query_dataset"
@@ -448,7 +504,7 @@ class TestResponseSizeGuardMiddleware:
     @pytest.mark.asyncio
     async def test_truncates_get_chart_data_rows(self) -> None:
         """get_chart_data should truncate rows, not raise ToolError."""
-        middleware = ResponseSizeGuardMiddleware(token_limit=500)
+        middleware = ResponseSizeGuardMiddleware(max_bytes=500)
 
         context = MagicMock()
         context.message.name = "get_chart_data"
@@ -477,8 +533,8 @@ class TestResponseSizeGuardMiddleware:
 
     @pytest.mark.asyncio
     async def test_truncates_multi_query_chart_rows_across_whole_response(self) -> None:
-        """All query results share the response's token budget."""
-        middleware = ResponseSizeGuardMiddleware(token_limit=500)
+        """All query results share the response's byte budget."""
+        middleware = ResponseSizeGuardMiddleware(max_bytes=1500)
         context = MagicMock()
         context.message.name = "get_chart_data"
         context.message.arguments = {}
@@ -512,8 +568,8 @@ class TestResponseSizeGuardMiddleware:
 
     @pytest.mark.asyncio
     async def test_multi_query_truncation_result_fits_budget(self) -> None:
-        """The final multi-query truncation note stays within the token budget."""
-        middleware = ResponseSizeGuardMiddleware(token_limit=700)
+        """The final multi-query truncation note stays within the byte budget."""
+        middleware = ResponseSizeGuardMiddleware(max_bytes=1500)
         context = MagicMock()
         context.message.name = "get_chart_data"
         context.message.arguments = {}
@@ -537,13 +593,13 @@ class TestResponseSizeGuardMiddleware:
             )
 
         assert isinstance(result, dict)
-        assert estimate_token_count(utils_json.dumps(result)) <= 700
+        assert get_response_size_bytes(result) <= 1500
         assert " of 400 rows returned" in result["_truncation_notes"][0]
 
     @pytest.mark.asyncio
     async def test_data_query_truncation_updates_row_count(self) -> None:
         """row_count should reflect the truncated count, not the original."""
-        middleware = ResponseSizeGuardMiddleware(token_limit=500)
+        middleware = ResponseSizeGuardMiddleware(max_bytes=500)
 
         context = MagicMock()
         context.message.name = "execute_sql"
@@ -569,7 +625,7 @@ class TestResponseSizeGuardMiddleware:
     @pytest.mark.asyncio
     async def test_data_query_truncation_note_mentions_limit_clause(self) -> None:
         """Truncation note must tell the caller to add a LIMIT clause."""
-        middleware = ResponseSizeGuardMiddleware(token_limit=500)
+        middleware = ResponseSizeGuardMiddleware(max_bytes=500)
 
         context = MagicMock()
         context.message.name = "execute_sql"
@@ -596,7 +652,7 @@ class TestResponseSizeGuardMiddleware:
     @pytest.mark.asyncio
     async def test_data_query_truncation_logs_truncation_event(self) -> None:
         """Should log mcp_response_truncated (not size_exceeded) for query tools."""
-        middleware = ResponseSizeGuardMiddleware(token_limit=500)
+        middleware = ResponseSizeGuardMiddleware(max_bytes=500)
 
         context = MagicMock()
         context.message.name = "execute_sql"
@@ -624,7 +680,7 @@ class TestResponseSizeGuardMiddleware:
     @pytest.mark.asyncio
     async def test_truncates_get_chart_data_csv_export(self) -> None:
         """CSV exports (data=[], payload in csv_data) should be truncated too."""
-        middleware = ResponseSizeGuardMiddleware(token_limit=500)
+        middleware = ResponseSizeGuardMiddleware(max_bytes=500)
 
         context = MagicMock()
         context.message.name = "get_chart_data"
@@ -659,10 +715,10 @@ class TestResponseSizeGuardMiddleware:
 
         ``_bisect_row_limit`` always keeps at least one row when the
         original list is non-empty, even if that one row alone exceeds the
-        token limit. The middleware must re-check the truncated size and
+        byte limit. The middleware must re-check the truncated size and
         fall back to the hard error rather than treating this as success.
         """
-        middleware = ResponseSizeGuardMiddleware(token_limit=50)
+        middleware = ResponseSizeGuardMiddleware(max_bytes=50)
 
         context = MagicMock()
         context.message.name = "execute_sql"
@@ -686,7 +742,7 @@ class TestResponseSizeGuardMiddleware:
     @pytest.mark.asyncio
     async def test_data_query_under_limit_passes_through(self) -> None:
         """Small query results should pass through unchanged."""
-        middleware = ResponseSizeGuardMiddleware(token_limit=25000)
+        middleware = ResponseSizeGuardMiddleware(max_bytes=25000)
 
         context = MagicMock()
         context.message.name = "execute_sql"
@@ -720,7 +776,7 @@ class TestResponseSizeGuardMiddleware:
         payload. The guard must report success with a truncation marker so a
         retrying agent doesn't replay an already-successful mutation.
         """
-        middleware = ResponseSizeGuardMiddleware(token_limit=500)
+        middleware = ResponseSizeGuardMiddleware(max_bytes=500)
 
         context = MagicMock()
         context.message.name = "update_chart"
@@ -765,7 +821,7 @@ class TestResponseSizeGuardMiddleware:
         degrade to a minimal success response rather than ever raising
         ToolError -- unlike INFO_TOOLS, which fall through to a hard error
         in this situation (see test_still_blocks_non_info_tools)."""
-        middleware = ResponseSizeGuardMiddleware(token_limit=500)
+        middleware = ResponseSizeGuardMiddleware(max_bytes=500)
 
         context = MagicMock()
         context.message.name = "update_chart"
@@ -785,7 +841,7 @@ class TestResponseSizeGuardMiddleware:
             # Keep every estimate over budget, including both _fits checks,
             # to exercise the minimal fallback and its full shrink path.
             patch(
-                "superset.mcp_service.middleware.estimate_response_tokens",
+                "superset.mcp_service.middleware.get_response_size_bytes",
                 return_value=600,
             ),
         ):
@@ -803,9 +859,9 @@ class TestResponseSizeGuardMiddleware:
 
     def test_minimal_response_already_fits_without_shrinking(self) -> None:
         """A minimal payload that fits must retain its fields without clipping."""
-        from superset.mcp_service.utils.token_utils import COMMITTED_WRITE_SPECS
+        from superset.mcp_service.utils.response_size_utils import COMMITTED_WRITE_SPECS
 
-        middleware = ResponseSizeGuardMiddleware(token_limit=500)
+        middleware = ResponseSizeGuardMiddleware(max_bytes=500)
         minimal = {
             "chart": {"id": 7, "description": "Keep this non-identity field"},
             "success": True,
@@ -814,7 +870,7 @@ class TestResponseSizeGuardMiddleware:
         }
         original = utils_json.loads(utils_json.dumps(minimal))
 
-        assert estimate_token_count(utils_json.dumps(minimal)) <= 500
+        assert get_response_size_bytes(minimal) <= 500
         middleware._shrink_minimal_response(
             minimal, COMMITTED_WRITE_SPECS["update_chart"]
         )
@@ -826,12 +882,11 @@ class TestResponseSizeGuardMiddleware:
         self, oversized_field: str
     ) -> None:
         """Real over-budget measurements must drive reduction, not mock errors."""
-        from superset.mcp_service.utils.token_utils import (
+        from superset.mcp_service.utils.response_size_utils import (
             COMMITTED_WRITE_SPECS,
-            estimate_response_tokens,
         )
 
-        middleware = ResponseSizeGuardMiddleware(token_limit=500)
+        middleware = ResponseSizeGuardMiddleware(max_bytes=2000)
         minimal: dict[str, Any] = {
             "chart": {"id": 7, "is_unsaved_state": True},
             "success": False,
@@ -849,17 +904,17 @@ class TestResponseSizeGuardMiddleware:
         else:
             minimal["explore_url"] = "http://host/explore/?key=" + "k" * 40000
 
-        assert estimate_response_tokens(minimal) > middleware.token_limit
+        assert get_response_size_bytes(minimal) > middleware.max_bytes
         with patch(
-            "superset.mcp_service.middleware.estimate_response_tokens",
-            wraps=estimate_response_tokens,
+            "superset.mcp_service.middleware.get_response_size_bytes",
+            wraps=get_response_size_bytes,
         ) as estimate:
             middleware._shrink_minimal_response(
                 minimal, COMMITTED_WRITE_SPECS["update_chart"]
             )
 
         assert estimate.call_count == 2
-        assert estimate_response_tokens(minimal) <= middleware.token_limit
+        assert get_response_size_bytes(minimal) <= middleware.max_bytes
         assert minimal["chart"] == {
             "id": 7,
             "is_unsaved_state": True,
@@ -890,9 +945,9 @@ class TestResponseSizeGuardMiddleware:
         self, changed_fields: list[Any], retained: bool
     ) -> None:
         """Keep useful patch confirmations without admitting unbounded lists."""
-        from superset.mcp_service.utils.token_utils import COMMITTED_WRITE_SPECS
+        from superset.mcp_service.utils.response_size_utils import COMMITTED_WRITE_SPECS
 
-        middleware = ResponseSizeGuardMiddleware(token_limit=500)
+        middleware = ResponseSizeGuardMiddleware(max_bytes=2000)
         spec = COMMITTED_WRITE_SPECS["update_dashboard"]
         minimal = middleware._select_confirmation_fields(
             {
@@ -909,7 +964,7 @@ class TestResponseSizeGuardMiddleware:
         if retained:
             assert minimal["changed_fields"] == changed_fields
         assert minimal["dashboard"]["id"] == 7
-        assert estimate_token_count(utils_json.dumps(minimal)) <= 500
+        assert get_response_size_bytes(minimal) <= 2000
 
     @pytest.mark.asyncio
     async def test_update_dashboard_committed_write_is_not_hard_blocked(
@@ -923,7 +978,7 @@ class TestResponseSizeGuardMiddleware:
         update_chart on this path. Hard-blocking here would report a
         completed write as a failure and let a retrying client replay it.
         """
-        middleware = ResponseSizeGuardMiddleware(token_limit=500)
+        middleware = ResponseSizeGuardMiddleware(max_bytes=500)
 
         context = MagicMock()
         context.message.name = "update_dashboard"
@@ -969,7 +1024,7 @@ class TestResponseSizeGuardMiddleware:
         dashboard response would protect nothing and clear the very field
         that says which dashboard was written.
         """
-        middleware = ResponseSizeGuardMiddleware(token_limit=500)
+        middleware = ResponseSizeGuardMiddleware(max_bytes=500)
 
         context = MagicMock()
         context.message.name = "update_dashboard"
@@ -1016,7 +1071,7 @@ class TestResponseSizeGuardMiddleware:
         ``success``; synthesizing them would hand the caller a payload its
         own output schema does not describe.
         """
-        middleware = ResponseSizeGuardMiddleware(token_limit=500)
+        middleware = ResponseSizeGuardMiddleware(max_bytes=500)
 
         context = MagicMock()
         context.message.name = "update_dashboard"
@@ -1035,7 +1090,7 @@ class TestResponseSizeGuardMiddleware:
             patch("superset.mcp_service.middleware.event_logger"),
             # Force the minimal-response fallback to be the path under test.
             patch(
-                "superset.mcp_service.middleware.estimate_response_tokens",
+                "superset.mcp_service.middleware.get_response_size_bytes",
                 return_value=600,
             ),
         ):
@@ -1046,7 +1101,7 @@ class TestResponseSizeGuardMiddleware:
             assert absent not in result
         # ...while still confirming which dashboard was written, bounded.
         assert result["dashboard"]["id"] == 7
-        assert estimate_token_count(utils_json.dumps(result)) <= 500
+        assert get_response_size_bytes(result) <= 2000
         assert result["changed_fields"] == ["css"]
         assert "re-read the dashboard" in result["_truncation_notes"][0]
 
@@ -1062,7 +1117,7 @@ class TestResponseSizeGuardMiddleware:
         untruncated payload, so any one of them can keep the "minimal"
         response far over budget.
         """
-        middleware = ResponseSizeGuardMiddleware(token_limit=500)
+        middleware = ResponseSizeGuardMiddleware(max_bytes=500)
 
         context = MagicMock()
         context.message.name = "update_chart"
@@ -1090,7 +1145,7 @@ class TestResponseSizeGuardMiddleware:
             # Keep every estimate over budget, including both _fits checks,
             # to exercise the minimal fallback and its full shrink path.
             patch(
-                "superset.mcp_service.middleware.estimate_response_tokens",
+                "superset.mcp_service.middleware.get_response_size_bytes",
                 return_value=600,
             ),
         ):
@@ -1104,7 +1159,7 @@ class TestResponseSizeGuardMiddleware:
         assert result["chart"]["uuid"] == "abc"
 
         # ...but nothing unbounded rides along with it.
-        assert estimate_token_count(utils_json.dumps(result)) <= 500
+        assert get_response_size_bytes(result) <= 2000
         for value in (
             result["chart"]["slice_name"],
             result["error"],
@@ -1122,7 +1177,7 @@ class TestResponseSizeGuardMiddleware:
         ``validation_errors``. Treating ``error`` as a string would bound only
         a shape the tools never emit and leave the real one to blow the limit.
         """
-        middleware = ResponseSizeGuardMiddleware(token_limit=500)
+        middleware = ResponseSizeGuardMiddleware(max_bytes=500)
 
         context = MagicMock()
         context.message.name = "update_chart"
@@ -1148,14 +1203,14 @@ class TestResponseSizeGuardMiddleware:
             patch("superset.mcp_service.middleware.get_user_id", return_value=1),
             patch("superset.mcp_service.middleware.event_logger"),
             patch(
-                "superset.mcp_service.middleware.estimate_response_tokens",
+                "superset.mcp_service.middleware.get_response_size_bytes",
                 return_value=600,
             ),
         ):
             result = await middleware.on_call_tool(context, call_next)
 
         assert isinstance(result, dict)
-        assert estimate_token_count(utils_json.dumps(result)) <= 500
+        assert get_response_size_bytes(result) <= 2000
 
         # The error still identifies itself -- only the unbounded context goes.
         assert result["error"]["error_type"] == "execution"
@@ -1175,7 +1230,7 @@ class TestResponseSizeGuardMiddleware:
         chart to identifying fields must keep it, or the size guard turns a
         preview into something indistinguishable from a committed update.
         """
-        middleware = ResponseSizeGuardMiddleware(token_limit=500)
+        middleware = ResponseSizeGuardMiddleware(max_bytes=500)
 
         context = MagicMock()
         context.message.name = "update_chart"
@@ -1198,7 +1253,7 @@ class TestResponseSizeGuardMiddleware:
             patch("superset.mcp_service.middleware.get_user_id", return_value=1),
             patch("superset.mcp_service.middleware.event_logger"),
             patch(
-                "superset.mcp_service.middleware.estimate_response_tokens",
+                "superset.mcp_service.middleware.get_response_size_bytes",
                 return_value=600,
             ),
         ):
@@ -1225,7 +1280,7 @@ class TestResponseSizeGuardMiddleware:
         from fastmcp.tools.tool import ToolResult
         from mcp.types import TextContent
 
-        middleware = ResponseSizeGuardMiddleware(token_limit=500)
+        middleware = ResponseSizeGuardMiddleware(max_bytes=500)
 
         context = MagicMock()
         context.message.name = tool_name
@@ -1238,7 +1293,7 @@ class TestResponseSizeGuardMiddleware:
             patch("superset.mcp_service.middleware.get_user_id", return_value=1),
             patch("superset.mcp_service.middleware.event_logger"),
             patch(
-                "superset.mcp_service.middleware.estimate_response_tokens",
+                "superset.mcp_service.middleware.get_response_size_bytes",
                 return_value=600,
             ),
             patch.object(
@@ -1263,7 +1318,7 @@ class TestResponseSizeGuardMiddleware:
         from fastmcp.tools.tool import ToolResult
         from mcp.types import TextContent
 
-        middleware = ResponseSizeGuardMiddleware(token_limit=500)
+        middleware = ResponseSizeGuardMiddleware(max_bytes=500)
 
         context = MagicMock()
         context.message.name = "update_chart"
@@ -1279,7 +1334,7 @@ class TestResponseSizeGuardMiddleware:
             patch("superset.mcp_service.middleware.get_user_id", return_value=1),
             patch("superset.mcp_service.middleware.event_logger"),
             patch(
-                "superset.mcp_service.middleware.estimate_response_tokens",
+                "superset.mcp_service.middleware.get_response_size_bytes",
                 return_value=600,
             ),
         ):
@@ -1295,7 +1350,7 @@ class TestResponseSizeGuardMiddleware:
         """get_chart_sql has no limit/row lever -- the oversized 'sql' field
         itself must be bisected down instead of hard-blocking or emitting
         the unactionable 'Reduction needed: ~0%' guidance."""
-        middleware = ResponseSizeGuardMiddleware(token_limit=500)
+        middleware = ResponseSizeGuardMiddleware(max_bytes=500)
 
         context = MagicMock()
         context.message.name = "get_chart_sql"
@@ -1343,7 +1398,7 @@ class TestCreateResponseSizeGuardMiddleware:
         """Should create middleware when enabled in config."""
         mock_config = {
             "enabled": True,
-            "token_limit": 30000,
+            "max_bytes": 30000,
             "warn_threshold_pct": 75,
             "excluded_tools": ["health_check"],
         }
@@ -1359,7 +1414,7 @@ class TestCreateResponseSizeGuardMiddleware:
 
         assert middleware is not None
         assert isinstance(middleware, ResponseSizeGuardMiddleware)
-        assert middleware.token_limit == 30000
+        assert middleware.max_bytes == 30000
         assert middleware.warn_threshold_pct == 75
         assert "health_check" in middleware.excluded_tools
 
@@ -1392,7 +1447,7 @@ class TestCreateResponseSizeGuardMiddleware:
             middleware = create_response_size_guard_middleware()
 
         assert middleware is not None
-        assert middleware.token_limit == 25_000  # Default
+        assert middleware.max_bytes == 50_000  # Default
         assert middleware.warn_threshold_pct == 80  # Default
 
     def test_falls_back_to_default_when_max_list_items_is_none(self) -> None:
@@ -1629,7 +1684,7 @@ class TestToolResultWrapping:
 
         from superset.utils import json
 
-        middleware = ResponseSizeGuardMiddleware(token_limit=500)
+        middleware = ResponseSizeGuardMiddleware(max_bytes=1000)
         context = MagicMock()
         context.message.name = "get_dataset_info"
         context.message.arguments = {}
@@ -1653,9 +1708,9 @@ class TestToolResultWrapping:
 
     @pytest.mark.asyncio
     async def test_small_tool_result_passes_through_unchanged(self) -> None:
-        """Should return the original ToolResult when within the token limit."""
+        """Should return the original ToolResult when within the byte limit."""
 
-        middleware = ResponseSizeGuardMiddleware(token_limit=25000)
+        middleware = ResponseSizeGuardMiddleware(max_bytes=25000)
         context = MagicMock()
         context.message.name = "get_chart_info"
         context.message.arguments = {}
@@ -1675,7 +1730,7 @@ class TestToolResultWrapping:
     @pytest.mark.asyncio
     async def test_large_non_info_tool_result_is_blocked(self) -> None:
         """Should raise ToolError for a non-info ToolResult that exceeds the limit."""
-        middleware = ResponseSizeGuardMiddleware(token_limit=100)
+        middleware = ResponseSizeGuardMiddleware(max_bytes=100)
         context = MagicMock()
         context.message.name = "list_charts"
         context.message.arguments = {}
@@ -1706,7 +1761,7 @@ class TestToolResultWrapping:
 
         from superset.utils import json
 
-        middleware = ResponseSizeGuardMiddleware(token_limit=500)
+        middleware = ResponseSizeGuardMiddleware(max_bytes=500)
         context = MagicMock()
         context.message.name = "execute_sql"
         context.message.arguments = {}
@@ -1738,7 +1793,7 @@ class TestToolResultWrapping:
 
         from superset.utils import json
 
-        middleware = ResponseSizeGuardMiddleware(token_limit=500)
+        middleware = ResponseSizeGuardMiddleware(max_bytes=1000)
         context = MagicMock()
         context.message.name = "get_dashboard_info"
         context.message.arguments = {}
@@ -1772,7 +1827,7 @@ class TestMiddlewareIntegration:
             id: int
             name: str
 
-        middleware = ResponseSizeGuardMiddleware(token_limit=25000)
+        middleware = ResponseSizeGuardMiddleware(max_bytes=25000)
 
         context = MagicMock()
         context.message.name = "get_chart_info"
@@ -1792,7 +1847,7 @@ class TestMiddlewareIntegration:
     @pytest.mark.asyncio
     async def test_list_response(self) -> None:
         """Should handle list responses."""
-        middleware = ResponseSizeGuardMiddleware(token_limit=25000)
+        middleware = ResponseSizeGuardMiddleware(max_bytes=25000)
 
         context = MagicMock()
         context.message.name = "list_charts"
@@ -1812,7 +1867,7 @@ class TestMiddlewareIntegration:
     @pytest.mark.asyncio
     async def test_string_response(self) -> None:
         """Should handle string responses."""
-        middleware = ResponseSizeGuardMiddleware(token_limit=25000)
+        middleware = ResponseSizeGuardMiddleware(max_bytes=25000)
 
         context = MagicMock()
         context.message.name = "health_check"

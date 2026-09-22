@@ -66,13 +66,13 @@ test('should tell the user how to recover rather than blaming the database', () 
   expect(screen.queryByText('DB engine Error')).not.toBeInTheDocument();
 });
 
-test("should render error message in compact mode if 'compact' is true", () => {
+test("should render error message in compact mode if 'compact' is true", async () => {
   render(<CsrfErrorMessage {...mockedProps} compact />, { useRedux: true });
 
   expect(
     screen.queryByText('Reload the page and try again to continue.'),
   ).not.toBeInTheDocument();
-  userEvent.click(screen.getByRole('button'));
+  await userEvent.click(screen.getByRole('button'));
   expect(
     screen.getByText('Reload the page and try again to continue.'),
   ).toBeInTheDocument();
