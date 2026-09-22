@@ -39,7 +39,15 @@ import { SortSeriesType, LegendPaddingType } from '@superset-ui/chart-controls';
 import { format } from 'echarts/core';
 import type { LegendComponentOption } from 'echarts/components';
 import type { SeriesOption } from 'echarts';
-import { escape, isEmpty, maxBy, meanBy, minBy, orderBy, sumBy } from 'lodash-es';
+import {
+  escape,
+  isEmpty,
+  maxBy,
+  meanBy,
+  minBy,
+  orderBy,
+  sumBy,
+} from 'lodash-es';
 import {
   NULL_STRING,
   StackControlsValue,

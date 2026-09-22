@@ -1222,9 +1222,9 @@ describe('getLegendProps', () => {
     );
     const formatter = (result.tooltip as any)?.formatter;
     // Name with HTML must be escaped; escape('<b>') → '&lt;b&gt;'
-    expect(formatter({ name: '<script>alert(1)</script> long name here' })).toBe(
-      '&lt;script&gt;alert(1)&lt;/script&gt; long name here',
-    );
+    expect(
+      formatter({ name: '<script>alert(1)</script> long name here' }),
+    ).toBe('&lt;script&gt;alert(1)&lt;/script&gt; long name here');
   });
 
   test('legend tooltip position callback centers tooltip above legend item', () => {
@@ -1242,7 +1242,10 @@ describe('getLegendProps', () => {
     expect(position).toBeDefined();
 
     const elRect = { x: 100, y: 50, width: 80, height: 20 };
-    const size = { contentSize: [60, 24] as [number, number], viewSize: [800, 600] as [number, number] };
+    const size = {
+      contentSize: [60, 24] as [number, number],
+      viewSize: [800, 600] as [number, number],
+    };
     const [x, y] = position([0, 0], {}, {}, elRect, size);
 
     // x should center the 60px tooltip over the 80px item starting at x=100
@@ -1267,7 +1270,10 @@ describe('getLegendProps', () => {
 
     // Item near the right edge — tooltip should be clamped so it doesn't overflow
     const elRect = { x: 780, y: 50, width: 80, height: 20 };
-    const size = { contentSize: [120, 24] as [number, number], viewSize: [800, 600] as [number, number] };
+    const size = {
+      contentSize: [120, 24] as [number, number],
+      viewSize: [800, 600] as [number, number],
+    };
     const [x] = position([0, 0], {}, {}, elRect, size);
     // max x = 800 - 120 = 680
     expect(x).toBe(680);

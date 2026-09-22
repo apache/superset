@@ -23,7 +23,7 @@ import controlPanel from '../../src/Pie/controlPanel';
  */
 function findControl(name: string) {
   for (const section of controlPanel.controlPanelSections ?? []) {
-    for (const row of section.controlSetRows ?? []) {
+    for (const row of section?.controlSetRows ?? []) {
       for (const item of row) {
         if (
           item &&
@@ -88,4 +88,3 @@ test('label_overflow visibility is false when label_max_width is 0', () => {
     }),
   ).toBe(false);
 });
-
