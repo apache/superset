@@ -584,25 +584,13 @@ class TestChartsUpdateCommand(SupersetTestCase):
         EMBEDDED_SUPERSET=True,
     )
     @patch("superset.commands.chart.update.ChartDAO.find_by_id")
-    @patch("superset.commands.chart.update.g")
-    @patch("superset.tasks.utils.g")
-    @patch("superset.utils.core.g")
-    @patch("superset.security.manager.g")
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
-    def test_query_context_update_denies_guest(
-        self, mock_sm_g, mock_core_g, mock_tasks_g, mock_update_g, mock_find_by_id
-    ) -> None:
+    def test_query_context_update_denies_guest(self, mock_find_by_id) -> None:
         """
         The relaxed path gates on chart access, which a guest token does pass
         for the member charts of the dashboard it embeds. A guest nonetheless
         holds no write capability, so a query-context-only update is denied.
         """
-        # Clear ``g.user`` before touching the session. Any autoflush stamps
-        # AuditMixin's ``changed_by_fk`` via ``get_user_id()``, and the mock the
-        # decorators install would otherwise hand SQLAlchemy a mock attribute.
-        mock_core_g.user = mock_sm_g.user = None
-        mock_tasks_g.user = mock_update_g.user = None
-
         dashboard = self.get_dash_by_slug("births")
         chart = dashboard.slices[0]
         pk = chart.id
@@ -629,25 +617,21 @@ class TestChartsUpdateCommand(SupersetTestCase):
                 "exp": 20,
             }
         )
-        # ``is_guest_user`` resolves the current user via
-        # ``superset.tasks.utils.get_current_user``, so that module's ``g`` has
-        # to carry the guest too.
-        mock_core_g.user = mock_sm_g.user = guest
-        mock_tasks_g.user = mock_update_g.user = guest
 
         # Bypass ChartFilter so the command's own gates decide the outcome.
         mock_find_by_id.return_value = chart
-
-        # Precondition: this guest clears the access gate, so the deny below can
-        # only come from the guest check itself.
-        security_manager.raise_for_access(chart=chart)
 
         json_obj = {
             "query_context_generation": True,
             "query_context": json.dumps({"foo": "bar"}),
         }
-        with pytest.raises(ChartForbiddenError):
-            UpdateChartCommand(pk, json_obj).run()
+        with override_user(guest):
+            # Precondition: this guest clears the access gate, so the deny below
+            # can only come from the guest check itself.
+            security_manager.raise_for_access(chart=chart)
+
+            with pytest.raises(ChartForbiddenError):
+                UpdateChartCommand(pk, json_obj).run()
 
     @patch("superset.commands.chart.update.g")
     @patch("superset.utils.core.g")

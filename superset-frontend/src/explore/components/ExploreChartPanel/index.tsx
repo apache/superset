@@ -256,12 +256,18 @@ const ExploreChartPanel = ({
   );
 
   useEffect(() => {
-    // Backfilling the stored query context is best-effort: the caller may lack
-    // the rights to persist it, in which case the PUT resolves to a rejected
-    // promise. Swallow it quietly so it never surfaces as an unhandled
-    // rejection or a user-facing error; the chart still renders either way.
+    // Best-effort backfill: the chart renders whether or not it succeeds, so
+    // catch instead of letting it surface as an unhandled rejection. A 403 is
+    // an expected outcome (the caller may not be allowed to write the chart,
+    // and a managed chart refuses the write on every visit), so it stays at
+    // debug; anything else is unexpected and worth seeing.
     updateQueryContext().catch(error => {
-      logging.debug('Skipped background query context backfill', error);
+      const message = 'Skipped background query context backfill';
+      if (error?.status === 403) {
+        logging.debug(message, error);
+      } else {
+        logging.warn(message, error);
+      }
     });
   }, [updateQueryContext]);
 
