@@ -374,27 +374,9 @@ const ResultSet = ({
         schema: query?.schema,
       };
 
-      const downloadCsv = async () => {
-        let downloadReason = '';
-        if (isDownloadReasonRequired()) {
-          const reason = await requestDownloadReason();
-          if (reason === null) {
-            return; // the user cancelled the download reason dialog
-          }
-          downloadReason = reason;
-        }
-        // Only log once the download really starts (not on a cancelled dialog).
-        logAction(LOG_ACTIONS_SQLLAB_DOWNLOAD_CSV, {});
-        // `getExportCsvUrl` already runs the path through `makeUrl`;
-        // `redirect` re-applies `ensureAppRoot` idempotently and routes
-        // the sink through navigationUtils' barriers (scheme allowlist,
-        // userinfo rejection, backslash rejection), which is a
-        // strict superset of what `sanitizeUrl` from master PR #40546
-        // provides.
-        redirect(withDownloadReason(getExportCsvUrl(query.id), downloadReason));
-      };
-
-      const handleDownloadCsv = (event: React.MouseEvent<HTMLElement>) => {
+      const handleDownloadCsv = async (
+        event: React.MouseEvent<HTMLElement>,
+      ) => {
         const confirmLimit =
           limitingFactor === LimitingFactor.Dropdown && limit === rowsCount;
         if (!isDownloadReasonRequired() && !confirmLimit) {
@@ -403,8 +385,32 @@ const ResultSet = ({
           logAction(LOG_ACTIONS_SQLLAB_DOWNLOAD_CSV, {});
           return;
         }
-        // Take over the navigation so the confirm / reason dialog runs first.
+        // Take over the navigation so the reason / confirm dialog runs first.
         event.preventDefault();
+
+        // Ask for the reason before the LIMIT confirm so the dialogs never stack.
+        let downloadReason = '';
+        if (isDownloadReasonRequired()) {
+          const reason = await requestDownloadReason();
+          if (reason === null) {
+            return; // the user cancelled the download reason dialog
+          }
+          downloadReason = reason;
+        }
+
+        const downloadCsv = () => {
+          // Only log once the download really starts (not on a cancelled dialog).
+          logAction(LOG_ACTIONS_SQLLAB_DOWNLOAD_CSV, {});
+          // `getExportCsvUrl` already runs the path through `makeUrl`;
+          // `redirect` re-applies `ensureAppRoot` idempotently and routes
+          // the sink through navigationUtils' barriers (scheme allowlist,
+          // userinfo rejection, backslash rejection), which is a
+          // strict superset of what `sanitizeUrl` from master PR #40546
+          // provides.
+          redirect(
+            withDownloadReason(getExportCsvUrl(query.id), downloadReason),
+          );
+        };
 
         if (confirmLimit) {
           showConfirm({

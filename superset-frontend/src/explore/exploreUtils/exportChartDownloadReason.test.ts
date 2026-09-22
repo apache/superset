@@ -69,6 +69,7 @@ test('csv export asks for a reason and sends it as download_reason', async () =>
   mockRequestReason.mockResolvedValue('WP-1 audit');
   await exportChart({ formData, resultFormat: 'csv' });
   expect(mockRequestReason).toHaveBeenCalledTimes(1);
+  expect(mockPostBlob).toHaveBeenCalledTimes(1);
   const [[url]] = mockPostBlob.mock.calls;
   expect(url).toBe('/api/v1/chart/data?download_reason=WP-1%20audit');
 });
@@ -77,13 +78,15 @@ test('xlsx export is gated too', async () => {
   mockRequestReason.mockResolvedValue('r');
   await exportChart({ formData, resultFormat: 'xlsx' });
   expect(mockRequestReason).toHaveBeenCalledTimes(1);
+  expect(mockPostBlob).toHaveBeenCalledTimes(1);
   const [[url]] = mockPostBlob.mock.calls;
-  expect(url).toContain('download_reason=r');
+  expect(url).toBe('/api/v1/chart/data?download_reason=r');
 });
 
 test('json export is not gated and never prompts', async () => {
   await exportChart({ formData, resultFormat: 'json' });
   expect(mockRequestReason).not.toHaveBeenCalled();
+  expect(mockPostBlob).toHaveBeenCalledTimes(1);
   const [[url]] = mockPostBlob.mock.calls;
   expect(url).toBe('/api/v1/chart/data');
 });

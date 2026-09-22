@@ -17,6 +17,7 @@
  * under the License.
  */
 import type { ReactElement } from 'react';
+import { render, screen } from 'spec/helpers/testing-library';
 import { FeatureFlag, isFeatureEnabled } from '@superset-ui/core';
 import { Modal } from '@superset-ui/core/components';
 import {
@@ -38,6 +39,7 @@ type ReasonInputProps = { onChange: (value: string) => void };
 
 /** The dialog config passed to Modal.confirm on the last call. */
 const lastConfig = () => {
+  expect(mockConfirm).toHaveBeenCalled();
   const [[config]] = mockConfirm.mock.calls;
   return config;
 };
@@ -85,6 +87,17 @@ test('keeps the dialog open when the reason is blank', async () => {
   requestDownloadReason();
   typeReason('   ');
   await expect(lastConfig().onOk?.()).rejects.toThrow(
+    'A download reason is required',
+  );
+});
+
+test('shows the validation message inline when the reason is blank', async () => {
+  mockFeatureEnabled.mockReturnValue(true);
+  requestDownloadReason();
+  render(lastConfig().content as ReactElement);
+  expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  await expect(lastConfig().onOk?.()).rejects.toThrow();
+  expect(await screen.findByRole('alert')).toHaveTextContent(
     'A download reason is required',
   );
 });
