@@ -531,14 +531,16 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
           label: undefined,
         },
       });
-      // A Search-all query lives in ownState.search and a debounced onSearch
-      // callback may still be pending. Cancel and reset both so the option
-      // list is not silently re-scoped to a stale search term while the
-      // filter shows an empty input. Only search-all filters carry a
-      // server-side search at all: a plain filter re-emitting ownState at
-      // staging (pre-Apply) would reload its options before Apply is clicked.
+      // A pending debounced onSearch would fire setSearch(staleTerm) after the
+      // reset, re-adding a creatable option, so cancel it regardless of filter
+      // type. A Search-all query additionally lives in ownState.search: reset
+      // that ownState so the option list is not silently re-scoped to a stale
+      // search term while the filter shows an empty input. Only search-all
+      // filters carry a server-side search at all: a plain filter re-emitting
+      // ownState at staging (pre-Apply) would reload its options before Apply
+      // is clicked.
+      onSearch.cancel();
       if (searchAllOptions) {
-        onSearch.cancel();
         dispatchDataMask({
           type: 'ownState',
           ownState: { search: '' },

@@ -99,6 +99,20 @@ const EXCLUDED_URL_PARAMS: string[] = [
 
 const EMPTY_DATA_MASK_RECORD: Record<string, DataMask> = {};
 
+// Canonical cleared value for a filter of a given type. Range filters stage
+// [null, null] (bare null is ignored by RangeFilterPlugin's sync effect),
+// everything else stages null so the select plugin treats it as a cleared
+// value rather than an uninitialized one that re-applies defaults. A
+// defaultToFirstItem stage is one exception: it resolves to the first option
+// of its new scope and must stage undefined for the select's init effect to
+// re-seed it.
+const getClearedValue = (filterType?: string, defaultToFirstItem?: boolean) =>
+  defaultToFirstItem
+    ? undefined
+    : filterType === 'filter_range'
+      ? [null, null]
+      : null;
+
 const publishDataMask = debounce(
   async (
     history,
@@ -374,14 +388,10 @@ const FilterBar: FC<FiltersBarProps> = ({
               // Select plugin's init effect re-seeds the first option of the
               // newly-scoped set: clearing it to null would leave it empty even
               // though its whole purpose is to resolve to the first value.
-              // Mirror handleClearAll otherwise: range filters use [null, null]
-              // as the canonical cleared value. Bare null would be ignored by
-              // RangeFilterPlugin's sync effect, leaving stale UI.
-              filterState.value = childFilter?.controlValues?.defaultToFirstItem
-                ? undefined
-                : childFilter?.filterType === 'filter_range'
-                  ? [null, null]
-                  : null;
+              filterState.value = getClearedValue(
+                childFilter?.filterType,
+                childFilter?.controlValues?.defaultToFirstItem,
+              );
               // Out-of-scope descendants are staged Apply-safe: an error
               // status would disable Apply one tab away, and getFiltersToApply
               // skips their empty staged value until they enter scope.
@@ -616,7 +626,7 @@ const FilterBar: FC<FiltersBarProps> = ({
       // undefined: the select plugin's init effect treats undefined as
       // "uninitialized" and would re-apply default values once the clear-all
       // trigger completes.
-      const clearedValue = filterType === 'filter_range' ? [null, null] : null;
+      const clearedValue = getClearedValue(filterType);
       const isRequired = !!filter.controlValues?.enableEmptyFilter;
       if (dataMaskSelected[id]) {
         // Stage the cleared value locally; do NOT dispatch to Redux here.
