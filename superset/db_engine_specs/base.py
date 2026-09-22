@@ -1953,6 +1953,15 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         }
 
     @classmethod
+    def register_engine_events(cls, engine: Engine) -> None:
+        """
+        Attach SQLAlchemy event listeners to a freshly created engine.
+
+        Called once per engine creation, before the engine is cached, so
+        listeners must not be added or removed once it is shared.
+        """
+
+    @classmethod
     def get_prequeries(
         cls,
         database: Database,  # pylint: disable=unused-argument

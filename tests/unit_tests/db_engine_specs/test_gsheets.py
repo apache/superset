@@ -180,6 +180,9 @@ def test_validate_parameters_catalog(
     g.user.email = "admin@example.com"
 
     create_engine = mocker.patch("superset.db_engine_specs.gsheets.create_engine")
+    register_engine_events = mocker.patch.object(
+        GSheetsEngineSpec, "register_engine_events"
+    )
     conn = create_engine.return_value.connect.return_value
     results = conn.execute.return_value
     results.fetchall.side_effect = [
@@ -262,6 +265,7 @@ def test_validate_parameters_catalog(
             }
         },
     )
+    register_engine_events.assert_called_once_with(create_engine.return_value)
 
 
 def test_validate_parameters_catalog_and_credentials(

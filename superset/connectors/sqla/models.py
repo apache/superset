@@ -71,7 +71,10 @@ from superset_core.common.models import Dataset as CoreDataset
 
 from superset import db, is_feature_enabled, security_manager
 from superset.common.db_query_status import QueryStatus
-from superset.connectors.sqla.partition_mapping import resolve_partition_mapping
+from superset.connectors.sqla.partition_mapping import (
+    is_transform_active,
+    resolve_partition_mapping,
+)
 from superset.connectors.sqla.utils import (
     get_columns_description,
     get_physical_table_metadata,
@@ -1941,10 +1944,12 @@ class SqlaTable(
         referenced by none of them, so anything reading it out of
         `datasource.columns` would work in Explore and break on dashboards.
 
-        `active` is derived from cheap signals only. This property is serialized
-        on every chart and dashboard load, so parsing the transform here would
-        put a per-request cost on a hot path for a value that only changes on
-        save.
+        `active` is the save path's own verdict rather than an approximation of
+        it. A transform that fails validation -- one missing `:value`, one that
+        does not parse -- is saved inactive on purpose, so a cheaper signal here
+        would advertise a mapping that never mirrors a filter. The parse this
+        costs is memoized on `(transform, engine)` in `is_transform_active`, and
+        datasets without a partition column never reach it.
         """
         if not self.partition_column:
             return None
@@ -1956,7 +1961,9 @@ class SqlaTable(
             self.partition_column in columns_by_name
             and mapped_column is not None
             and mapped_column_name != self.partition_column
-            and (mapped_column.partition_value_transform or "").strip()
+            and is_transform_active(
+                mapped_column.partition_value_transform, self.database.backend
+            )
         )
         return {
             "partition_column": self.partition_column,

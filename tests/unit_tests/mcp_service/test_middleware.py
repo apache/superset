@@ -708,6 +708,618 @@ class TestResponseSizeGuardMiddleware:
         assert result == small_response
         assert "_response_truncated" not in result
 
+    @pytest.mark.asyncio
+    async def test_update_chart_write_committed_before_size_check_still_succeeds(
+        self,
+    ) -> None:
+        """A committed update_chart write must never surface as ToolError.
+
+        UpdateChartCommand.run() commits the write (via @transaction) before
+        the middleware ever inspects the response size -- call_next below
+        mutates ``chart_state`` the same way, then returns an oversized
+        payload. The guard must report success with a truncation marker so a
+        retrying agent doesn't replay an already-successful mutation.
+        """
+        middleware = ResponseSizeGuardMiddleware(token_limit=500)
+
+        context = MagicMock()
+        context.message.name = "update_chart"
+        context.message.arguments = {"identifier": 42}
+
+        chart_state = {"slice_name": "Original"}
+
+        async def call_next_committing_write(_ctx: Any) -> dict[str, Any]:
+            # Mirrors the real tool: the DB write commits here, before the
+            # middleware ever sees the (oversized) response.
+            chart_state["slice_name"] = "Updated Q1 Revenue"
+            return {
+                "chart": {
+                    "id": 42,
+                    "slice_name": "Updated Q1 Revenue",
+                    "url": "http://example.test/explore/?slice_id=42",
+                },
+                "success": True,
+                "error": None,
+                "form_data": {f"key_{i}": f"value_{i}" for i in range(100)},
+            }
+
+        with (
+            patch("superset.mcp_service.middleware.get_user_id", return_value=1),
+            patch("superset.mcp_service.middleware.event_logger"),
+        ):
+            result = await middleware.on_call_tool(context, call_next_committing_write)
+
+        # The write committed regardless of what the guard does afterward.
+        assert chart_state["slice_name"] == "Updated Q1 Revenue"
+        # The guard must not report the completed write as a failure.
+        assert isinstance(result, dict)
+        assert result["success"] is True
+        assert result["chart"]["id"] == 42
+        assert result.get("_response_truncated") is True
+
+    @pytest.mark.asyncio
+    async def test_committed_write_falls_back_to_minimal_response_not_error(
+        self,
+    ) -> None:
+        """If truncation somehow still can't fit, a committed write must
+        degrade to a minimal success response rather than ever raising
+        ToolError -- unlike INFO_TOOLS, which fall through to a hard error
+        in this situation (see test_still_blocks_non_info_tools)."""
+        middleware = ResponseSizeGuardMiddleware(token_limit=500)
+
+        context = MagicMock()
+        context.message.name = "update_chart"
+        context.message.arguments = {"identifier": 7}
+
+        large_response = {
+            "chart": {"id": 7, "slice_name": "Wide Table", "url": "http://x"},
+            "success": True,
+            "error": None,
+            "form_data": {f"key_{i}": f"value_{i}" for i in range(200)},
+        }
+        call_next = AsyncMock(return_value=large_response)
+
+        with (
+            patch("superset.mcp_service.middleware.get_user_id", return_value=1),
+            patch("superset.mcp_service.middleware.event_logger"),
+            # Keep every estimate over budget, including both _fits checks,
+            # to exercise the minimal fallback and its full shrink path.
+            patch(
+                "superset.mcp_service.middleware.estimate_response_tokens",
+                return_value=600,
+            ),
+        ):
+            result = await middleware.on_call_tool(context, call_next)
+
+        assert isinstance(result, dict)
+        assert result["success"] is True
+        assert result["chart"]["id"] == 7
+        assert result.get("_response_truncated") is True
+        # The note must not claim the write "committed" -- update_chart
+        # defaults to generate_preview=True, which persists nothing.
+        note = result["_truncation_notes"][0]
+        assert "was not rolled back by this size limit" in note
+        assert "committed" not in note
+
+    def test_minimal_response_already_fits_without_shrinking(self) -> None:
+        """A minimal payload that fits must retain its fields without clipping."""
+        from superset.mcp_service.utils.token_utils import COMMITTED_WRITE_SPECS
+
+        middleware = ResponseSizeGuardMiddleware(token_limit=500)
+        minimal = {
+            "chart": {"id": 7, "description": "Keep this non-identity field"},
+            "success": True,
+            "_response_truncated": True,
+            "_truncation_notes": ["Non-essential fields were dropped."],
+        }
+        original = utils_json.loads(utils_json.dumps(minimal))
+
+        assert estimate_token_count(utils_json.dumps(minimal)) <= 500
+        middleware._shrink_minimal_response(
+            minimal, COMMITTED_WRITE_SPECS["update_chart"]
+        )
+
+        assert minimal == original
+
+    @pytest.mark.parametrize("oversized_field", ["chart", "error", "explore_url"])
+    def test_minimal_response_shrinks_with_real_estimates(
+        self, oversized_field: str
+    ) -> None:
+        """Real over-budget measurements must drive reduction, not mock errors."""
+        from superset.mcp_service.utils.token_utils import (
+            COMMITTED_WRITE_SPECS,
+            estimate_response_tokens,
+        )
+
+        middleware = ResponseSizeGuardMiddleware(token_limit=500)
+        minimal: dict[str, Any] = {
+            "chart": {"id": 7, "is_unsaved_state": True},
+            "success": False,
+            "error": {"message": "Query failed"},
+            "explore_url": "/explore/",
+            "_response_truncated": True,
+            "_truncation_notes": [],
+        }
+        if oversized_field == "chart":
+            minimal["chart"].update(slice_name="N" * 40000, query_context="Q" * 40000)
+        elif oversized_field == "error":
+            minimal["error"].update(
+                details="D" * 40000, query_info={"sql": "S" * 40000}
+            )
+        else:
+            minimal["explore_url"] = "http://host/explore/?key=" + "k" * 40000
+
+        assert estimate_response_tokens(minimal) > middleware.token_limit
+        with patch(
+            "superset.mcp_service.middleware.estimate_response_tokens",
+            wraps=estimate_response_tokens,
+        ) as estimate:
+            middleware._shrink_minimal_response(
+                minimal, COMMITTED_WRITE_SPECS["update_chart"]
+            )
+
+        assert estimate.call_count == 2
+        assert estimate_response_tokens(minimal) <= middleware.token_limit
+        assert minimal["chart"] == {
+            "id": 7,
+            "is_unsaved_state": True,
+            **(
+                {"slice_name": "N" * 200 + "... [truncated]"}
+                if oversized_field == "chart"
+                else {}
+            ),
+        }
+        assert minimal["success"] is False
+        assert minimal["error"]["message"] == "Query failed"
+        assert "query_info" not in minimal["error"]
+
+    @pytest.mark.parametrize(
+        "changed_fields, retained",
+        [
+            ([], True),
+            (["css", "dashboard_title"], True),
+            (["x" * 10] * 20, True),
+            (["x" * 201], False),
+            (["x" * 11] * 20, False),
+            ([""] * 21, False),
+            ([{"field": "css"}], False),
+            (["css", 1], False),
+        ],
+    )
+    def test_minimal_response_retains_only_bounded_string_lists(
+        self, changed_fields: list[Any], retained: bool
+    ) -> None:
+        """Keep useful patch confirmations without admitting unbounded lists."""
+        from superset.mcp_service.utils.token_utils import COMMITTED_WRITE_SPECS
+
+        middleware = ResponseSizeGuardMiddleware(token_limit=500)
+        spec = COMMITTED_WRITE_SPECS["update_dashboard"]
+        minimal = middleware._select_confirmation_fields(
+            {
+                "dashboard": {"id": 7, "dashboard_title": "D" * 40000},
+                "changed_fields": changed_fields,
+                "error": None,
+            },
+            spec,
+        )
+        minimal["_truncation_notes"] = []
+        middleware._shrink_minimal_response(minimal, spec)
+
+        assert ("changed_fields" in minimal) is retained
+        if retained:
+            assert minimal["changed_fields"] == changed_fields
+        assert minimal["dashboard"]["id"] == 7
+        assert estimate_token_count(utils_json.dumps(minimal)) <= 500
+
+    @pytest.mark.asyncio
+    async def test_update_dashboard_committed_write_is_not_hard_blocked(
+        self,
+    ) -> None:
+        """A committed update_dashboard write must never surface as ToolError.
+
+        update_dashboard commits (``db.session.commit()``) before it builds
+        UpdateDashboardResponse, so by the time the size guard runs the
+        dashboard is already written -- the same invariant that puts
+        update_chart on this path. Hard-blocking here would report a
+        completed write as a failure and let a retrying client replay it.
+        """
+        middleware = ResponseSizeGuardMiddleware(token_limit=500)
+
+        context = MagicMock()
+        context.message.name = "update_dashboard"
+        context.message.arguments = {"identifier": 42}
+
+        dashboard_state = {"dashboard_title": "Original"}
+
+        async def call_next_committing_write(_ctx: Any) -> dict[str, Any]:
+            # Mirrors the real tool: the commit happens here, before the
+            # middleware ever sees the (oversized) response.
+            dashboard_state["dashboard_title"] = "Q1 Revenue"
+            return {
+                "dashboard": {
+                    "id": 42,
+                    "uuid": "dash-uuid",
+                    "dashboard_title": "Q1 Revenue",
+                    "url": "/superset/dashboard/42/",
+                },
+                "dashboard_url": "/superset/dashboard/42/",
+                "changed_fields": ["dashboard_title"],
+                "error": None,
+                "position_json": {f"key_{i}": f"value_{i}" for i in range(200)},
+            }
+
+        with (
+            patch("superset.mcp_service.middleware.get_user_id", return_value=1),
+            patch("superset.mcp_service.middleware.event_logger"),
+        ):
+            result = await middleware.on_call_tool(context, call_next_committing_write)
+
+        assert dashboard_state["dashboard_title"] == "Q1 Revenue"
+        assert isinstance(result, dict)
+        assert result["dashboard"]["id"] == 42
+        assert result.get("_response_truncated") is True
+
+    @pytest.mark.asyncio
+    async def test_update_dashboard_identifying_field_survives_nuclear_phase(
+        self,
+    ) -> None:
+        """The protected field must follow the tool, not a hardcoded 'chart'.
+
+        Phase 5 empties every unprotected dict, so protecting 'chart' on a
+        dashboard response would protect nothing and clear the very field
+        that says which dashboard was written.
+        """
+        middleware = ResponseSizeGuardMiddleware(token_limit=500)
+
+        context = MagicMock()
+        context.message.name = "update_dashboard"
+        context.message.arguments = {"identifier": 7}
+
+        large_response: dict[str, Any] = {
+            "dashboard": {
+                "id": 7,
+                "uuid": "dash-uuid",
+                "dashboard_title": "Wide Dashboard",
+            },
+            "dashboard_url": "/superset/dashboard/7/",
+            "changed_fields": ["css"],
+            "error": None,
+        }
+        # Dicts small enough to escape Phase 4's summarizer (<= 20 keys) and
+        # strings short enough to escape the Phase 1/3 clippers, but together
+        # far over budget -- so truncation has to reach Phase 5, the only
+        # phase that would empty the 'dashboard' dict.
+        for index in range(6):
+            large_response[f"filter_scope_{index}"] = {
+                f"key_{i}": "v" * 100 for i in range(20)
+            }
+        call_next = AsyncMock(return_value=large_response)
+
+        with (
+            patch("superset.mcp_service.middleware.get_user_id", return_value=1),
+            patch("superset.mcp_service.middleware.event_logger"),
+        ):
+            result = await middleware.on_call_tool(context, call_next)
+
+        assert isinstance(result, dict)
+        # The write confirmation survived the destructive phases intact.
+        assert result["dashboard"]["id"] == 7
+        assert result["dashboard"]["dashboard_title"] == "Wide Dashboard"
+
+    @pytest.mark.asyncio
+    async def test_minimal_response_adds_no_fields_the_schema_lacks(
+        self,
+    ) -> None:
+        """The minimal confirmation must not invent chart-shaped fields.
+
+        UpdateDashboardResponse declares no ``chart``, ``explore_url`` or
+        ``success``; synthesizing them would hand the caller a payload its
+        own output schema does not describe.
+        """
+        middleware = ResponseSizeGuardMiddleware(token_limit=500)
+
+        context = MagicMock()
+        context.message.name = "update_dashboard"
+        context.message.arguments = {"identifier": 7}
+
+        large_response = {
+            "dashboard": {"id": 7, "dashboard_title": "D" * 40000},
+            "dashboard_url": "/superset/dashboard/7/",
+            "changed_fields": ["css"],
+            "error": None,
+        }
+        call_next = AsyncMock(return_value=large_response)
+
+        with (
+            patch("superset.mcp_service.middleware.get_user_id", return_value=1),
+            patch("superset.mcp_service.middleware.event_logger"),
+            # Force the minimal-response fallback to be the path under test.
+            patch(
+                "superset.mcp_service.middleware.estimate_response_tokens",
+                return_value=600,
+            ),
+        ):
+            result = await middleware.on_call_tool(context, call_next)
+
+        assert isinstance(result, dict)
+        for absent in ("chart", "explore_url", "success"):
+            assert absent not in result
+        # ...while still confirming which dashboard was written, bounded.
+        assert result["dashboard"]["id"] == 7
+        assert estimate_token_count(utils_json.dumps(result)) <= 500
+        assert result["changed_fields"] == ["css"]
+        assert "re-read the dashboard" in result["_truncation_notes"][0]
+
+    @pytest.mark.asyncio
+    async def test_minimal_response_is_bounded_by_every_unbounded_field(
+        self,
+    ) -> None:
+        """The minimal confirmation must be small whichever field was huge.
+
+        Reducing ``chart`` to identifying fields is not by itself enough:
+        ``error``, ``explore_url`` and the identifying ``slice_name``/``url``
+        scalars are all free-form strings copied verbatim from the
+        untruncated payload, so any one of them can keep the "minimal"
+        response far over budget.
+        """
+        middleware = ResponseSizeGuardMiddleware(token_limit=500)
+
+        context = MagicMock()
+        context.message.name = "update_chart"
+        context.message.arguments = {"identifier": 7}
+
+        # Each of these fields survives the chart-to-identifying-fields
+        # reduction, so each one alone must still be cut down.
+        large_response = {
+            "chart": {
+                "id": 7,
+                "uuid": "abc",
+                "slice_name": "N" * 40000,
+                "url": "/explore/?slice_id=7",
+                "query_context": "Q" * 40000,
+            },
+            "success": True,
+            "error": "E" * 40000,
+            "explore_url": "http://host/explore/?form_data_key=" + "k" * 40000,
+        }
+        call_next = AsyncMock(return_value=large_response)
+
+        with (
+            patch("superset.mcp_service.middleware.get_user_id", return_value=1),
+            patch("superset.mcp_service.middleware.event_logger"),
+            # Keep every estimate over budget, including both _fits checks,
+            # to exercise the minimal fallback and its full shrink path.
+            patch(
+                "superset.mcp_service.middleware.estimate_response_tokens",
+                return_value=600,
+            ),
+        ):
+            result = await middleware.on_call_tool(context, call_next)
+
+        # The write confirmation survives: the caller still learns what was
+        # written, which is the entire point of this fallback.
+        assert isinstance(result, dict)
+        assert result["success"] is True
+        assert result["chart"]["id"] == 7
+        assert result["chart"]["uuid"] == "abc"
+
+        # ...but nothing unbounded rides along with it.
+        assert estimate_token_count(utils_json.dumps(result)) <= 500
+        for value in (
+            result["chart"]["slice_name"],
+            result["error"],
+            result["explore_url"],
+        ):
+            assert len(value) < 300
+
+    @pytest.mark.asyncio
+    async def test_minimal_response_bounds_structured_error_object(self) -> None:
+        """``error`` is a nested model, not a string, in every real response.
+
+        ``update_chart`` returns ``GenerateChartResponse``, whose ``error`` is
+        a ``ChartGenerationError`` -- so once the ToolResult payload is parsed
+        it reaches the guard as a dict carrying unbounded ``query_info`` and
+        ``validation_errors``. Treating ``error`` as a string would bound only
+        a shape the tools never emit and leave the real one to blow the limit.
+        """
+        middleware = ResponseSizeGuardMiddleware(token_limit=500)
+
+        context = MagicMock()
+        context.message.name = "update_chart"
+        context.message.arguments = {"request": {"identifier": 7}}
+
+        large_response = {
+            "chart": {"id": 7, "uuid": "abc", "slice_name": "Chart"},
+            "success": False,
+            "error": {
+                "error_type": "execution",
+                "message": "Query failed",
+                "error": "Query failed",
+                "details": "D" * 40000,
+                "validation_errors": [
+                    {"field": f"f_{i}", "message": "M" * 200} for i in range(200)
+                ],
+                "query_info": {"sql": "S" * 40000},
+            },
+        }
+        call_next = AsyncMock(return_value=large_response)
+
+        with (
+            patch("superset.mcp_service.middleware.get_user_id", return_value=1),
+            patch("superset.mcp_service.middleware.event_logger"),
+            patch(
+                "superset.mcp_service.middleware.estimate_response_tokens",
+                return_value=600,
+            ),
+        ):
+            result = await middleware.on_call_tool(context, call_next)
+
+        assert isinstance(result, dict)
+        assert estimate_token_count(utils_json.dumps(result)) <= 500
+
+        # The error still identifies itself -- only the unbounded context goes.
+        assert result["error"]["error_type"] == "execution"
+        assert result["error"]["message"] == "Query failed"
+        assert "query_info" not in result["error"]
+        assert "validation_errors" not in result["error"]
+        assert len(result["error"]["details"]) < 300
+        assert "[truncated]" in result["error"]["details"]
+
+    @pytest.mark.asyncio
+    async def test_minimal_response_keeps_unsaved_state_flag(self) -> None:
+        """Shrinking must not drop the preview-vs-persisted signal.
+
+        update_chart defaults to ``generate_preview=True``, which caches an
+        unsaved preview and persists nothing; ``chart.is_unsaved_state`` is
+        how the caller tells that apart from a persisted write. Reducing the
+        chart to identifying fields must keep it, or the size guard turns a
+        preview into something indistinguishable from a committed update.
+        """
+        middleware = ResponseSizeGuardMiddleware(token_limit=500)
+
+        context = MagicMock()
+        context.message.name = "update_chart"
+        context.message.arguments = {"request": {"identifier": 7}}
+
+        large_response = {
+            "chart": {
+                "id": 7,
+                "slice_name": "Preview",
+                "url": "/explore/?form_data_key=abc",
+                "is_unsaved_state": True,
+                "form_data": {f"key_{i}": "v" * 200 for i in range(200)},
+            },
+            "success": True,
+            "error": None,
+        }
+        call_next = AsyncMock(return_value=large_response)
+
+        with (
+            patch("superset.mcp_service.middleware.get_user_id", return_value=1),
+            patch("superset.mcp_service.middleware.event_logger"),
+            patch(
+                "superset.mcp_service.middleware.estimate_response_tokens",
+                return_value=600,
+            ),
+        ):
+            result = await middleware.on_call_tool(context, call_next)
+
+        assert isinstance(result, dict)
+        assert result["chart"]["is_unsaved_state"] is True
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        "tool_name", ["get_dashboard_info", "get_chart_sql", "execute_sql"]
+    )
+    async def test_opaque_tool_result_is_blocked_not_returned_as_dict(
+        self,
+        tool_name: str,
+    ) -> None:
+        """An unparseable ToolResult must not degrade to a dict on any path.
+
+        truncate_oversized_response would model_dump() the ToolResult wrapper
+        itself and the middleware would hand FastMCP a plain dict, failing in
+        to_mcp_result(). Declining to truncate surfaces the normal size-limit
+        error instead.
+        """
+        from fastmcp.tools.tool import ToolResult
+        from mcp.types import TextContent
+
+        middleware = ResponseSizeGuardMiddleware(token_limit=500)
+
+        context = MagicMock()
+        context.message.name = tool_name
+        context.message.arguments = {}
+
+        opaque = ToolResult(content=[TextContent(type="text", text="<html>" * 500)])
+        call_next = AsyncMock(return_value=opaque)
+
+        with (
+            patch("superset.mcp_service.middleware.get_user_id", return_value=1),
+            patch("superset.mcp_service.middleware.event_logger"),
+            patch(
+                "superset.mcp_service.middleware.estimate_response_tokens",
+                return_value=600,
+            ),
+            patch.object(
+                ToolResult, "model_dump", wraps=opaque.model_dump
+            ) as model_dump,
+            pytest.raises(ToolError),
+        ):
+            await middleware.on_call_tool(context, call_next)
+
+        model_dump.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_committed_write_fallback_rewraps_unparseable_tool_result(
+        self,
+    ) -> None:
+        """An unparseable ToolResult must still come back as a ToolResult.
+
+        Returning a bare dict here would fail in FastMCP's
+        ``to_mcp_result()``, surfacing the completed write as an internal
+        error -- exactly what this fallback exists to prevent.
+        """
+        from fastmcp.tools.tool import ToolResult
+        from mcp.types import TextContent
+
+        middleware = ResponseSizeGuardMiddleware(token_limit=500)
+
+        context = MagicMock()
+        context.message.name = "update_chart"
+        context.message.arguments = {"identifier": 7}
+
+        # Not valid JSON, so _extract_payload_from_tool_result returns None.
+        unparseable = ToolResult(
+            content=[TextContent(type="text", text="<not json>" * 500)]
+        )
+        call_next = AsyncMock(return_value=unparseable)
+
+        with (
+            patch("superset.mcp_service.middleware.get_user_id", return_value=1),
+            patch("superset.mcp_service.middleware.event_logger"),
+            patch(
+                "superset.mcp_service.middleware.estimate_response_tokens",
+                return_value=600,
+            ),
+        ):
+            result = await middleware.on_call_tool(context, call_next)
+
+        assert isinstance(result, ToolResult)
+        payload = utils_json.loads(result.content[0].text)
+        assert payload["success"] is True
+        assert payload["_response_truncated"] is True
+
+    @pytest.mark.asyncio
+    async def test_truncates_get_chart_sql_by_bisecting_sql_field(self) -> None:
+        """get_chart_sql has no limit/row lever -- the oversized 'sql' field
+        itself must be bisected down instead of hard-blocking or emitting
+        the unactionable 'Reduction needed: ~0%' guidance."""
+        middleware = ResponseSizeGuardMiddleware(token_limit=500)
+
+        context = MagicMock()
+        context.message.name = "get_chart_sql"
+        context.message.arguments = {"identifier": 5}
+
+        large_response: dict[str, Any] = {
+            "chart_id": 5,
+            "chart_name": "Revenue by Region",
+            "sql": "SELECT " + ", ".join(f"col_{i}" for i in range(2000)),
+            "language": "sql",
+        }
+        call_next = AsyncMock(return_value=large_response)
+
+        with (
+            patch("superset.mcp_service.middleware.get_user_id", return_value=1),
+            patch("superset.mcp_service.middleware.event_logger"),
+        ):
+            result = await middleware.on_call_tool(context, call_next)
+
+        assert isinstance(result, dict)
+        assert result["chart_id"] == 5
+        assert result["_response_truncated"] is True
+        assert 0 < len(result["sql"]) < len(large_response["sql"])
+
 
 class TestCreateResponseSizeGuardMiddleware:
     """Test create_response_size_guard_middleware factory function."""
