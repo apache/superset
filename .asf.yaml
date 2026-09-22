@@ -103,3 +103,92 @@ github:
         required_approving_review_count: 1
 
       required_signatures: false
+
+  # GitHub's merge queue rule type only exists on rulesets, not on the classic
+  # `protected_branches` API above -- the two mechanisms coexist (GitHub
+  # evaluates both), so this adds a merge queue on `master` without touching
+  # the existing classic config, which still gates PR-entry-into-queue
+  # readiness (review count, code-owner approval, etc).
+  #
+  # Raw payload syntax, not the newer `merge_queue` convenience key: that key
+  # is still pending in apache/infrastructure-asfyaml#119 as of this writing
+  # and isn't deployed yet, so using it here would fail INFRA-bot validation.
+  # Switch this entry to the convenience syntax once that PR merges.
+  #
+  # `required_status_checks` below intentionally omits two checks that are
+  # required in the classic config above: `lint-check` (validates the PR's
+  # own title -- meaningless once re-run against the queue's synthetic
+  # merge-group ref) and `dependency-review` (actions/dependency-review-action
+  # has a confirmed, unfixed bug against merge_group events as of this
+  # writing -- see actions/dependency-review-action#843 -- it destructures
+  # `github.event.pull_request`, which merge_group doesn't have, and crashes).
+  # Both still gate a PR before a committer can add it to the queue via the
+  # classic `required_status_checks` above; they just don't re-run once it's
+  # in the queue.
+  rulesets:
+    - name: "Merge Queue"
+      target: branch
+      enforcement: active
+      conditions:
+        ref_name:
+          include:
+            - "~DEFAULT_BRANCH"
+          exclude: []
+      rules:
+        - type: required_status_checks
+          parameters:
+            strict_required_status_checks_policy: false
+            required_status_checks:
+              - context: enforce-single-migration-head
+                integration_id: -1
+              - context: pre-commit (current)
+                integration_id: -1
+              - context: frontend-build
+                integration_id: -1
+              - context: cypress-matrix-required
+                integration_id: -1
+              - context: playwright-tests-required
+                integration_id: -1
+              - context: test-mysql
+                integration_id: -1
+              - context: test-postgres-required
+                integration_id: -1
+              - context: test-postgres-hive
+                integration_id: -1
+              - context: test-postgres-presto
+                integration_id: -1
+              - context: test-sqlite
+                integration_id: -1
+              - context: unit-tests-required
+                integration_id: -1
+        - type: merge_queue
+          parameters:
+            # How long a queued entry waits for its required checks to report
+            # a conclusion before GitHub gives up on it and removes it from
+            # the queue. This CI matrix runs full E2E/integration suites
+            # (Playwright, Cypress, MySQL/Postgres/Hive/Presto), which can
+            # legitimately take 40+ minutes; 60 leaves headroom without
+            # letting a genuinely hung run block the queue indefinitely.
+            check_response_timeout_minutes: 60
+            # ALLGREEN (not HEADGREEN): every entry in a batch must pass
+            # before any of them merge, so a batch never ships a change on
+            # the strength of a check result computed against a different
+            # commit than the one landing. Slower under failure, but this
+            # matrix is expensive enough that re-running it per-entry on a
+            # HEADGREEN downgrade would be costly too.
+            grouping_strategy: ALLGREEN
+            # How many entries the queue will build/merge together at once.
+            # Kept modest given how large and slow this required-check matrix
+            # already is (Playwright, Cypress, and 4 backend DB flavors) --
+            # a bigger batch multiplies the cost of any single entry's
+            # unrelated failure evicting the whole group.
+            max_entries_to_build: 5
+            max_entries_to_merge: 5
+            # Matches enabled_merge_buttons above: squash is the only merge
+            # method this repo has enabled.
+            merge_method: SQUASH
+            min_entries_to_merge: 1
+            # How long the queue waits to see if more PRs arrive to batch
+            # together before proceeding with whatever's queued so far. Short
+            # enough that a lone PR isn't stuck waiting on nothing.
+            min_entries_to_merge_wait_minutes: 5
