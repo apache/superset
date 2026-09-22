@@ -17,7 +17,6 @@
  * under the License.
  */
 
-import { act } from 'react';
 import * as reduxHooks from 'react-redux';
 import { Provider } from 'react-redux';
 import { createStore, Store } from 'redux';
