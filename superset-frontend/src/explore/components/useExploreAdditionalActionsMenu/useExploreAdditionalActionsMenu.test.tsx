@@ -225,9 +225,9 @@ test('shows 413 error toast when exportCSV fails with 413', async () => {
 
   render(<TestComponent {...defaultProps} />, { useRedux: true });
 
-  userEvent.hover(await screen.findByText('Data Export Options'));
-  userEvent.hover(await screen.findByText('Export All Data'));
-  userEvent.click(await screen.findByText('Export to original .CSV'));
+  await userEvent.hover(await screen.findByText('Data Export Options'));
+  await userEvent.hover(await screen.findByText('Export All Data'));
+  await userEvent.click(await screen.findByText('Export to original .CSV'));
 
   await waitFor(() => {
     expect(mockAddDangerToast).toHaveBeenCalledWith(
@@ -241,9 +241,9 @@ test('shows 413 error toast when exportCSVPivoted fails with 413', async () => {
 
   render(<TestComponent {...defaultProps} />, { useRedux: true });
 
-  userEvent.hover(await screen.findByText('Data Export Options'));
-  userEvent.hover(await screen.findByText('Export All Data'));
-  userEvent.click(await screen.findByText('Export to pivoted .CSV'));
+  await userEvent.hover(await screen.findByText('Data Export Options'));
+  await userEvent.hover(await screen.findByText('Export All Data'));
+  await userEvent.click(await screen.findByText('Export to pivoted .CSV'));
 
   await waitFor(() => {
     expect(mockAddDangerToast).toHaveBeenCalledWith(
@@ -267,9 +267,9 @@ test('shows 413 error toast when Export Current View CSV server path fails with 
     { useRedux: true },
   );
 
-  userEvent.hover(await screen.findByText('Data Export Options'));
-  userEvent.hover(await screen.findByText('Export Current View'));
-  userEvent.click(await screen.findByText('Export to .CSV'));
+  await userEvent.hover(await screen.findByText('Data Export Options'));
+  await userEvent.hover(await screen.findByText('Export Current View'));
+  await userEvent.click(await screen.findByText('Export to .CSV'));
 
   await waitFor(() => {
     expect(mockAddDangerToast).toHaveBeenCalledWith(
@@ -298,9 +298,9 @@ test('Export Current View CSV takes the client path for a filter that matches ze
     { useRedux: true },
   );
 
-  userEvent.hover(await screen.findByText('Data Export Options'));
-  userEvent.hover(await screen.findByText('Export Current View'));
-  userEvent.click(await screen.findByText('Export to .CSV'));
+  await userEvent.hover(await screen.findByText('Data Export Options'));
+  await userEvent.hover(await screen.findByText('Export Current View'));
+  await userEvent.click(await screen.findByText('Export to .CSV'));
 
   // The client path builds and clicks a download link directly rather than
   // calling exportChart; asserting exportChart was never called is what
