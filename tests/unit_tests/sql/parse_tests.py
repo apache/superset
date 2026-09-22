@@ -2089,6 +2089,20 @@ def test_is_mutating_replace_function_is_read(engine: str) -> None:
         # so a body that merely names a column after one is not flagged.
         ("EXECUTE IMMEDIATE $$ SELECT remove FROM t $$", None),
         ("EXECUTE IMMEDIATE $$ SELECT put, rm FROM t $$", None),
+        # Commented-out code in a body never runs, so it is not a command.
+        ("EXECUTE IMMEDIATE $$ -- GET @my_stage file:///tmp/\nSELECT 1 $$", None),
+        ("EXECUTE IMMEDIATE $$ /* PUT file:///tmp/a @s */ SELECT 1 $$", None),
+        # A `--` inside a literal opens no comment, so the text after it is
+        # still scanned.
+        ("EXECUTE IMMEDIATE $$ CALL p('a--b'); RM @my_stage/c $$", "RM"),
+        # A body runs dynamic SQL out of a literal, so a head inside one is
+        # matched: the literal is the statement the server executes.
+        ("CALL run('PUT file:///tmp/data.csv @my_stage')", "PUT"),
+        # A nested literal carries its own quotes doubled, so the scan has to
+        # look past a run of them rather than a single one.
+        ("EXECUTE IMMEDIATE 'PUT ''file:///tmp/data.csv'' @my_stage'", "PUT"),
+        ("CALL run('PUT ''file:///tmp/data.csv'' @my_stage')", "PUT"),
+        ("EXECUTE IMMEDIATE 'GET @my_stage ''file:///tmp/'''", "GET"),
         ("CALL some_procedure()", None),
     ],
 )
@@ -5859,6 +5873,12 @@ def test_get_disallowed_tables_search_path_change(
         ("SELECT set_config('statement_timeout', '0', true)", False),
         # An unrelated (non-`set_config`) function call is not a change either.
         ("SELECT my_custom_func(1)", False),
+        # The nested-body text is scanned with comments removed, so a rebind
+        # that is only commented out is not a change, while one carried in a
+        # string literal (the body's dynamic SQL) still is.
+        ("DO $$ BEGIN -- SET search_path TO evil\nPERFORM 1; END $$", False),
+        ("DO $$ BEGIN /* SET search_path TO evil */ PERFORM 1; END $$", False),
+        ("EXECUTE IMMEDIATE 'SET search_path TO evil'", True),
         ("SELECT 1", False),
     ],
 )
@@ -5935,6 +5955,11 @@ def test_changes_search_path(sql: str, expected: bool) -> None:
         ("EXPLAIN SET SCHEMA 'tenant_b'", "postgresql", False),
         ("EXPLAIN VERBOSE SELECT * FROM orders", "postgresql", False),
         ("EXPLAIN (COSTS) SELECT * FROM orders", "postgresql", False),
+        # The nested-body text is scanned with comments removed, so a rebind
+        # that is only commented out is not a change, while one carried in a
+        # string literal (the body's dynamic SQL) still is.
+        ("DO $$ BEGIN -- SET SCHEMA 'evil'\nPERFORM 1; END $$", "postgresql", False),
+        ("EXECUTE IMMEDIATE 'SET SCHEMA ''evil'''", "postgresql", True),
         # Engines without a sqlglot AST (e.g. Kusto KQL) do not rebind schema
         # resolution through these forms.
         ("print x = 1", "kustokql", False),

@@ -998,10 +998,13 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
     # and so is matched on its raw text. A stage reference (``@stage``) or a
     # ``file://`` URL has to follow the head, since these words are ordinary
     # identifiers elsewhere and a bare keyword match would flag a body that
-    # merely selects a column named ``remove``.
+    # merely selects a column named ``remove``. Any run of quote characters is
+    # skipped rather than a single one: a body nested inside a string literal
+    # carries its own quotes doubled (``EXECUTE IMMEDIATE 'PUT ''file://...'''
+    # ``), so requiring exactly one would miss the escaped form.
     _CLIENT_FILE_TRANSFER_NESTED_BODY_RE = re.compile(
         rf"\b({'|'.join(sorted(_CLIENT_FILE_TRANSFER_COMMAND_NAMES))})"
-        r"""\s+['"]?(?:@|file://)""",
+        r"""\s+['"]*(?:@|file://)""",
         re.IGNORECASE,
     )
 
@@ -1181,14 +1184,49 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
 
         The body of a :attr:`_NESTED_BODY_COMMAND_NAMES` command is invisible
         to node-type matching and cannot be re-parsed, so gates that inspect
-        the tree fall back to scanning this text.
+        the tree fall back to scanning this text. Comments are stripped here
+        rather than by each caller, so every such gate scans the same text:
+        commented-out code never runs, so no gate should classify on it.
 
-        :return: The raw body text, or ``None`` when this statement does not
-            carry a nested body
+        :return: The body text with comments removed, or ``None`` when this
+            statement does not carry a nested body
         """
         if self._command_head() not in self._NESTED_BODY_COMMAND_NAMES:
             return None
-        return str(self._parsed.expression)
+        body = self._parsed.expression
+        # sqlglot keeps the body as a literal node, whose `str()` re-renders it
+        # as a quoted SQL string: the whole body gets wrapped in quotes and the
+        # quotes inside it are doubled. Reading the value off the node yields
+        # the body as written, so a scan sees the same text the server runs.
+        text = body.name if isinstance(body, exp.Literal) else str(body)
+        return self._strip_comments(text)
+
+    # Alternation ordered so a string literal is consumed whole before either
+    # comment form can match inside it, keeping a `--` or `/*` that is merely
+    # part of a literal from truncating the text after it.
+    _COMMENT_RE = re.compile(
+        r"""('(?:[^']|'')*'|"(?:[^"]|"")*")|--[^\n]*|/\*.*?\*/""",
+        re.DOTALL,
+    )
+
+    @classmethod
+    def _strip_comments(cls, text: str) -> str:
+        """
+        Blank out SQL comments in raw statement text, preserving literals.
+
+        Raw-text scans have to ignore commented-out code, which never runs and
+        so cannot be what a gate is looking for. String literals are
+        deliberately kept, and returned untouched: a nested body runs dynamic
+        SQL out of a literal (``EXECUTE IMMEDIATE '...'``), so dropping
+        literals would blind such a scan to the very form it exists to catch.
+        Keeping them also means this can only ever remove text that never
+        executes, so it cannot turn a matching gate into a silent miss.
+
+        :param text: The raw statement text to scan
+        :return: The text with each comment replaced by a single space, so
+            tokens either side of a removed comment stay separated
+        """
+        return cls._COMMENT_RE.sub(lambda m: m.group(1) or " ", text)
 
     def _explain_analyze_body(self) -> str | None:
         """
@@ -1407,12 +1445,9 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
         # sqlglot models only the quoted-path forms structurally
         # (``PUT 'file://...' @s`` -> ``exp.Put``, whose ``key`` is the head
         # lowercased); every other form falls back to an opaque ``exp.Command``.
-        head = (
-            self._parsed.key.upper()
-            if isinstance(self._parsed, (exp.Put, exp.Get))
-            else self._command_head()
-        )
-        if head in self._CLIENT_FILE_TRANSFER_COMMAND_NAMES:
+        if isinstance(self._parsed, (exp.Put, exp.Get)):
+            return self._parsed.key.upper()
+        if (head := self._command_head()) in self._CLIENT_FILE_TRANSFER_COMMAND_NAMES:
             return head
         # A nested body executes for real yet is invisible to the head match
         # above, so it is scanned as raw text, as `changes_search_path` does
