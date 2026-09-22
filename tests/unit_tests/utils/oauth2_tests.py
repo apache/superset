@@ -19,17 +19,30 @@
 
 import base64
 import hashlib
+import logging
+import traceback
 from datetime import datetime
 from typing import cast
 
 import pytest
 from freezegun import freeze_time
 from pytest_mock import MockerFixture
+from sqlalchemy import Column, create_engine, DateTime, Integer, String
+from sqlalchemy.orm import declarative_base, sessionmaker
+from sqlalchemy.pool import StaticPool
 
+from superset.db_engine_specs.base import BaseEngineSpec
+from superset.exceptions import (
+    OAuth2Error,
+    OAuth2RedirectError,
+    OAuth2TokenRefreshError,
+)
 from superset.superset_typing import OAuth2ClientConfig
 from superset.utils.oauth2 import (
+    check_for_oauth2,
     decode_oauth2_state,
     encode_oauth2_state,
+    execute_with_oauth2_retry,
     generate_code_challenge,
     generate_code_verifier,
     get_oauth2_access_token,
@@ -110,8 +123,262 @@ def test_get_oauth2_access_token_base_no_refresh(mocker: MockerFixture) -> None:
     db.session.delete.assert_called_with(token)
 
 
+def test_refresh_oauth2_token_force_refreshes_valid_token(
+    mocker: MockerFixture,
+) -> None:
+    """A forced refresh must not reuse an unexpired access token."""
+    db = mocker.patch("superset.utils.oauth2.db")
+    mocker.patch("superset.utils.oauth2.Session", return_value=db.session)
+    mocker.patch("superset.utils.oauth2.DistributedLock")
+    db_engine_spec = mocker.MagicMock()
+    db_engine_spec.get_oauth2_fresh_token.return_value = {
+        "access_token": "new-token",
+        "expires_in": 3600,
+    }
+    token = mocker.MagicMock()
+    token.access_token = "stale-token"  # noqa: S105
+    token.access_token_expiration = datetime(2024, 1, 2)
+    token.refresh_token = "refresh-token"  # noqa: S105
+    db.session.query().populate_existing().filter_by().one_or_none.return_value = token
+
+    with freeze_time("2024-01-01"):
+        result = refresh_oauth2_token(
+            DUMMY_OAUTH2_CONFIG, 1, 1, db_engine_spec, force=True
+        )
+
+    assert result == "new-token"
+    db_engine_spec.get_oauth2_fresh_token.assert_called_once_with(
+        DUMMY_OAUTH2_CONFIG, "refresh-token"
+    )
+    db.session.commit.assert_called_once_with()
+
+
+def test_force_refresh_reuses_concurrently_refreshed_token(
+    mocker: MockerFixture,
+) -> None:
+    """A lock waiter must not exchange a rotated refresh token again."""
+    db = mocker.patch("superset.utils.oauth2.db")
+    mocker.patch("superset.utils.oauth2.Session", return_value=db.session)
+    mocker.patch("superset.utils.oauth2.DistributedLock")
+    db_engine_spec = mocker.MagicMock()
+    token = mocker.MagicMock(access_token="winning-token")  # noqa: S106
+    db.session.query().populate_existing().filter_by().one_or_none.return_value = token
+
+    result = refresh_oauth2_token(
+        DUMMY_OAUTH2_CONFIG,
+        1,
+        1,
+        db_engine_spec,
+        force=True,
+        rejected_access_token="rejected-token",  # noqa: S106
+    )
+
+    assert result == "winning-token"
+    db_engine_spec.get_oauth2_fresh_token.assert_not_called()
+    db.session.delete.assert_not_called()
+
+
+def test_force_refresh_commits_deletion_without_refresh_token(
+    mocker: MockerFixture,
+) -> None:
+    """The isolated forced-refresh session durably removes unusable rows."""
+    db = mocker.patch("superset.utils.oauth2.db")
+    mocker.patch("superset.utils.oauth2.Session", return_value=db.session)
+    mocker.patch("superset.utils.oauth2.DistributedLock")
+    token = mocker.MagicMock(
+        access_token="rejected-token",  # noqa: S106
+        refresh_token=None,
+    )
+    db.session.query().populate_existing().filter_by().one_or_none.return_value = token
+
+    result = refresh_oauth2_token(
+        DUMMY_OAUTH2_CONFIG,
+        1,
+        1,
+        mocker.MagicMock(),
+        force=True,
+        rejected_access_token="rejected-token",  # noqa: S106
+    )
+
+    assert result is None
+    db.session.delete.assert_called_once_with(token)
+    db.session.commit.assert_called_once_with()
+
+
+def test_execute_with_oauth2_retry_forces_refresh_once(
+    mocker: MockerFixture,
+) -> None:
+    """A tightly classified auth error triggers one refresh and one retry."""
+    auth_error = RuntimeError("stale OAuth token")
+    operation = mocker.Mock(side_effect=[auth_error, "result"])
+    database = mocker.MagicMock()
+    database.id = 1
+    database.is_oauth2_enabled.return_value = True
+    database.db_engine_spec.engine = "snowflake"
+    database.db_engine_spec.needs_oauth2.return_value = True
+    database.get_oauth2_config.return_value = DUMMY_OAUTH2_CONFIG
+    mocker.patch("superset.utils.oauth2.g").user.id = 2
+    db = mocker.patch("superset.utils.oauth2.db")
+    token = mocker.MagicMock(access_token="stale-token")  # noqa: S106
+    db.session.query().filter_by().one_or_none.return_value = token
+    refresh = mocker.patch(
+        "superset.utils.oauth2.refresh_oauth2_token", return_value="new-token"
+    )
+
+    assert execute_with_oauth2_retry(database, operation) == "result"
+
+    assert operation.call_count == 2
+    refresh.assert_called_once_with(
+        DUMMY_OAUTH2_CONFIG,
+        1,
+        2,
+        database.db_engine_spec,
+        force=True,
+        rejected_access_token="stale-token",  # noqa: S106
+    )
+    db.session.expire.assert_called_once_with(token)
+
+
+def test_execute_with_oauth2_retry_expires_token_from_ambient_session(
+    mocker: MockerFixture,
+) -> None:
+    """The retry observes a forced refresh committed by an isolated session."""
+    base = declarative_base()
+
+    class OAuthToken(base):  # type: ignore[valid-type,misc]
+        __tablename__ = "oauth_token"
+
+        id = Column(Integer, primary_key=True)
+        user_id = Column(Integer, nullable=False)
+        database_id = Column(Integer, nullable=False)
+        access_token = Column(String, nullable=True)
+        access_token_expiration = Column(DateTime, nullable=True)
+        refresh_token = Column(String, nullable=True)
+
+    engine = create_engine(
+        "sqlite://",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
+    base.metadata.create_all(engine)
+    ambient_session = sessionmaker(bind=engine)()
+    ambient_session.add(
+        OAuthToken(
+            user_id=2,
+            database_id=1,
+            access_token="stale-token",  # noqa: S106
+            access_token_expiration=datetime(2024, 1, 2),
+            refresh_token="refresh-token",  # noqa: S106
+        )
+    )
+    ambient_session.commit()
+
+    db = mocker.patch("superset.utils.oauth2.db")
+    db.session = ambient_session
+    mocker.patch("superset.models.core.DatabaseUserOAuth2Tokens", OAuthToken)
+    mocker.patch("superset.utils.oauth2.DistributedLock")
+    mocker.patch("superset.utils.oauth2.g").user.id = 2
+
+    auth_error = RuntimeError("stale OAuth token")
+    observed_tokens: list[str | None] = []
+
+    def operation() -> str:
+        if not observed_tokens:
+            observed_tokens.append(None)
+            raise auth_error
+        observed_tokens.append(
+            ambient_session.query(OAuthToken)
+            .filter_by(user_id=2, database_id=1)
+            .one()
+            .access_token
+        )
+        return "result"
+
+    database = mocker.MagicMock(id=1)
+    database.is_oauth2_enabled.return_value = True
+    database.db_engine_spec.engine = "snowflake"
+    database.db_engine_spec.needs_oauth2.return_value = True
+    database.db_engine_spec.oauth2_exception = OAuth2TokenRefreshError
+    database.db_engine_spec.get_oauth2_fresh_token.return_value = {
+        "access_token": "new-token",
+        "expires_in": 3600,
+        "refresh_token": "rotated-refresh-token",
+    }
+    database.get_oauth2_config.return_value = DUMMY_OAUTH2_CONFIG
+
+    assert execute_with_oauth2_retry(database, operation) == "result"
+    assert observed_tokens == [None, "new-token"]
+
+
+def test_execute_with_oauth2_retry_does_not_retry_unrelated_error(
+    mocker: MockerFixture,
+) -> None:
+    """Network and other unclassified failures must not discard valid tokens."""
+    network_error = RuntimeError("connection timed out")
+    operation = mocker.Mock(side_effect=network_error)
+    database = mocker.MagicMock()
+    database.is_oauth2_enabled.return_value = True
+    database.db_engine_spec.needs_oauth2.return_value = False
+    db = mocker.patch("superset.utils.oauth2.db")
+    db.session.query().filter_by().one_or_none.return_value = None
+    refresh = mocker.patch("superset.utils.oauth2.refresh_oauth2_token")
+
+    with pytest.raises(RuntimeError, match="connection timed out"):
+        execute_with_oauth2_retry(database, operation)
+
+    operation.assert_called_once_with()
+    refresh.assert_not_called()
+
+
+def test_execute_with_oauth2_retry_propagates_second_auth_error(
+    mocker: MockerFixture,
+) -> None:
+    """A second authentication failure is surfaced without another refresh."""
+    auth_error = RuntimeError("stale OAuth token")
+    operation = mocker.Mock(side_effect=auth_error)
+    database = mocker.MagicMock(id=1)
+    database.is_oauth2_enabled.return_value = True
+    database.db_engine_spec.needs_oauth2.return_value = True
+    database.get_oauth2_config.return_value = DUMMY_OAUTH2_CONFIG
+    mocker.patch("superset.utils.oauth2.g").user.id = 2
+    db = mocker.patch("superset.utils.oauth2.db")
+    db.session.query().filter_by().one_or_none.return_value = None
+    refresh = mocker.patch(
+        "superset.utils.oauth2.refresh_oauth2_token", return_value="new-token"
+    )
+
+    with pytest.raises(RuntimeError, match="stale OAuth token"):
+        execute_with_oauth2_retry(database, operation)
+
+    assert operation.call_count == 2
+    refresh.assert_called_once()
+
+
+def test_execute_with_oauth2_retry_does_not_replay_after_progress(
+    mocker: MockerFixture,
+) -> None:
+    """Completed statements prevent replay of a multi-statement query."""
+    auth_error = RuntimeError("stale OAuth token")
+    operation = mocker.Mock(side_effect=auth_error)
+    database = mocker.MagicMock(id=1)
+    database.is_oauth2_enabled.return_value = True
+    database.db_engine_spec.needs_oauth2.return_value = True
+    mocker.patch("superset.utils.oauth2.g").user.id = 2
+    db = mocker.patch("superset.utils.oauth2.db")
+    db.session.query().filter_by().one_or_none.return_value = None
+    refresh = mocker.patch("superset.utils.oauth2.refresh_oauth2_token")
+
+    with pytest.raises(RuntimeError, match="stale OAuth token"):
+        execute_with_oauth2_retry(database, operation, can_retry=lambda: False)
+
+    operation.assert_called_once_with()
+    refresh.assert_not_called()
+    database.start_oauth2_dance.assert_called_once_with()
+
+
 def test_refresh_oauth2_token_deletes_token_on_oauth2_exception(
     mocker: MockerFixture,
+    caplog: pytest.LogCaptureFixture,
 ) -> None:
     """
     Test that refresh_oauth2_token deletes the token on OAuth2-specific exception.
@@ -126,24 +393,91 @@ def test_refresh_oauth2_token_deletes_token_on_oauth2_exception(
         pass
 
     db_engine_spec = mocker.MagicMock()
+    db_engine_spec.engine = "postgresql"
     db_engine_spec.oauth2_exception = OAuth2ExceptionError
     db_engine_spec.get_oauth2_fresh_token.side_effect = OAuth2ExceptionError(
-        "Token revoked"
+        "provider-error-sentinel"
     )
     token = mocker.MagicMock()
     token.access_token = None
-    token.refresh_token = "refresh-token"  # noqa: S105
+    token.refresh_token = "refresh-token-sentinel"  # noqa: S105
     db.session.query().filter_by().one_or_none.return_value = token
 
-    with pytest.raises(OAuth2ExceptionError):
+    with (
+        caplog.at_level(logging.WARNING, logger="superset.utils.oauth2"),
+        pytest.raises(OAuth2TokenRefreshError) as exc_info,
+    ):
         refresh_oauth2_token(DUMMY_OAUTH2_CONFIG, 1, 1, db_engine_spec)
 
     db.session.delete.assert_called_with(token)
     db.session.flush.assert_called_once()
+    assert (
+        "OAuth2 token refresh failed: database_id=1 engine=postgresql "
+        "error_type=OAuth2ExceptionError; deleting token"
+    ) in caplog.messages
+    assert "refresh-token-sentinel" not in caplog.text
+    assert "provider-error-sentinel" not in caplog.text
+    assert "provider-error-sentinel" not in "".join(
+        traceback.format_exception(exc_info.value)
+    )
+
+
+def test_refresh_oauth2_token_starts_dance_for_vendor_exception(
+    mocker: MockerFixture,
+) -> None:
+    """A sanitized vendor refresh failure must still start re-authentication."""
+    db = mocker.patch("superset.utils.oauth2.db")
+    mocker.patch("superset.utils.oauth2.DistributedLock")
+
+    class VendorOAuthError(Exception):
+        pass
+
+    class VendorEngineSpec(BaseEngineSpec):
+        engine = "vendor"
+        oauth2_exception = VendorOAuthError
+
+    mocker.patch.object(
+        VendorEngineSpec,
+        "get_oauth2_fresh_token",
+        side_effect=VendorOAuthError("provider-payload-sentinel"),
+    )
+    needs_oauth2 = mocker.patch.object(
+        VendorEngineSpec,
+        "needs_oauth2",
+        return_value=False,
+    )
+    redirect = OAuth2RedirectError(
+        "https://provider.example/authorize",
+        "tab-id",
+        "https://superset.example/oauth2/",
+    )
+    start_oauth2_dance = mocker.patch.object(
+        VendorEngineSpec,
+        "start_oauth2_dance",
+        side_effect=redirect,
+    )
+    database = mocker.MagicMock()
+    database.is_oauth2_enabled.return_value = True
+    database.db_engine_spec = VendorEngineSpec
+    token = mocker.MagicMock()
+    token.access_token = None
+    token.refresh_token = "refresh-token-sentinel"  # noqa: S105
+    db.session.query().filter_by().one_or_none.return_value = token
+
+    with pytest.raises(OAuth2RedirectError) as exc_info:
+        with check_for_oauth2(database):
+            refresh_oauth2_token(DUMMY_OAUTH2_CONFIG, 1, 1, VendorEngineSpec)
+
+    assert exc_info.value is redirect
+    db.session.delete.assert_called_once_with(token)
+    db.session.flush.assert_called_once()
+    start_oauth2_dance.assert_called_once_with(database)
+    needs_oauth2.assert_not_called()
 
 
 def test_refresh_oauth2_token_keeps_token_on_other_exception(
     mocker: MockerFixture,
+    caplog: pytest.LogCaptureFixture,
 ) -> None:
     """
     Test that refresh_oauth2_token keeps the token on non-OAuth2 exceptions.
@@ -159,17 +493,32 @@ def test_refresh_oauth2_token_keeps_token_on_other_exception(
         pass
 
     db_engine_spec = mocker.MagicMock()
+    db_engine_spec.engine = "postgresql"
     db_engine_spec.oauth2_exception = OAuth2ExceptionError
-    db_engine_spec.get_oauth2_fresh_token.side_effect = Exception("Network error")
+    db_engine_spec.get_oauth2_fresh_token.side_effect = Exception(
+        "Network error: provider-payload-sentinel"
+    )
     token = mocker.MagicMock()
     token.access_token = None
-    token.refresh_token = "refresh-token"  # noqa: S105
+    token.refresh_token = "refresh-token-sentinel"  # noqa: S105
     db.session.query().filter_by().one_or_none.return_value = token
 
-    with pytest.raises(Exception, match="Network error"):
+    with (
+        caplog.at_level(logging.ERROR, logger="superset.utils.oauth2"),
+        pytest.raises(OAuth2Error) as exc_info,
+    ):
         refresh_oauth2_token(DUMMY_OAUTH2_CONFIG, 1, 1, db_engine_spec)
 
     db.session.delete.assert_not_called()
+    assert (
+        "OAuth2 token refresh failed: database_id=1 engine=postgresql "
+        "error_type=Exception"
+    ) in caplog.messages
+    assert "refresh-token-sentinel" not in caplog.text
+    assert "provider-payload-sentinel" not in caplog.text
+    assert "provider-payload-sentinel" not in "".join(
+        traceback.format_exception(exc_info.value)
+    )
 
 
 def test_refresh_oauth2_token_no_access_token_in_response(

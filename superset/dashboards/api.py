@@ -17,14 +17,15 @@
 # pylint: disable=too-many-lines
 import functools
 import logging
+import time
 import uuid
 from datetime import datetime
 from io import BytesIO
-from typing import Any, Callable, cast
+from typing import Any, Callable, cast, ClassVar
 from zipfile import is_zipfile, ZipFile
 
 import rison
-from flask import current_app, g, redirect, request, Response, send_file, url_for
+from flask import current_app, g, redirect, request, Response, url_for
 from flask_appbuilder import permission_name
 from flask_appbuilder.api import (
     expose,
@@ -74,6 +75,7 @@ from superset.commands.dashboard.export_example import ExportExampleCommand
 from superset.commands.dashboard.fave import AddFavoriteDashboardCommand
 from superset.commands.dashboard.importers.dispatcher import ImportDashboardsCommand
 from superset.commands.dashboard.permalink.create import CreateDashboardPermalinkCommand
+from superset.commands.dashboard.permalink.get import GetDashboardPermalinkCommand
 from superset.commands.dashboard.restore import RestoreDashboardCommand
 from superset.commands.dashboard.unfave import DelFavoriteDashboardCommand
 from superset.commands.dashboard.update import (
@@ -88,9 +90,10 @@ from superset.commands.distributed_lock.release import ReleaseDistributedLock
 from superset.commands.exceptions import TagForbiddenError
 from superset.commands.importers.exceptions import NoValidFilesFoundError
 from superset.commands.importers.v1.utils import get_contents_from_bundle
-from superset.commands.purge import PurgeArchivedCommand, SoftDeleteBinding
+from superset.commands.purge import SoftDeleteBinding
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.daos.dashboard import DashboardDAO, EmbeddedDashboardDAO
+from superset.dashboards.filter_scope import derive_json_metadata
 from superset.dashboards.filters import (
     DashboardAccessFilter,
     DashboardCertifiedFilter,
@@ -104,6 +107,7 @@ from superset.dashboards.filters import (
     DashboardTagNameFilter,
     DashboardTitleOrSlugFilter,
 )
+from superset.dashboards.permalink.exceptions import DashboardPermalinkGetFailedError
 from superset.dashboards.permalink.types import DashboardPermalinkState
 from superset.dashboards.schemas import (
     CacheScreenshotSchema,
@@ -130,8 +134,11 @@ from superset.dashboards.schemas import (
     TabsPayloadSchema,
     thumbnail_query_schema,
 )
+from superset.distributed_lock import DistributedLock
 from superset.exceptions import (
+    AcquireDistributedLockFailedException,
     LockAlreadyHeldException,
+    ReleaseDistributedLockFailedException,
     ScreenshotImageNotAvailableException,
     SupersetSecurityException,
 )
@@ -139,7 +146,11 @@ from superset.extensions import event_logger, security_manager
 from superset.models.dashboard import Dashboard
 from superset.models.embedded_dashboard import EmbeddedDashboard
 from superset.security.guest_token import GuestUser
-from superset.security.manager import get_extra_editor_subject_ids
+from superset.security.manager import (
+    get_extra_editor_subject_ids,
+    get_extra_editors_by_pk,
+)
+from superset.semantic_layers.models import SemanticView
 from superset.subjects.filters import (
     FilterRelatedSubjects,
     subject_type_filter,
@@ -156,12 +167,13 @@ from superset.tasks.thumbnails import (
 )
 from superset.tasks.utils import get_current_user
 from superset.utils import json
-from superset.utils.core import parse_boolean_string, sanitize_cookie_token
+from superset.utils.core import parse_boolean_string, send_export_zip
 from superset.utils.file import get_filename
 from superset.utils.pdf import build_pdf_from_screenshots
 from superset.utils.screenshots import (
     DashboardScreenshot,
     DEFAULT_DASHBOARD_WINDOW_SIZE,
+    ScreenshotCacheError,
     ScreenshotCachePayload,
 )
 from superset.utils.urls import get_url_path
@@ -191,6 +203,18 @@ from superset.views.filters import (
 )
 
 logger = logging.getLogger(__name__)
+
+SCREENSHOT_API_LOCK_NAMESPACE = "dashboard_screenshot_api"
+SCREENSHOT_API_LOCK_WAIT_SECONDS = 1.0
+SCREENSHOT_API_LOCK_RETRY_SECONDS = 0.05
+# A short reservation grace coalesces one user action fanning out across multiple
+# web workers. Explicit force requests can still replace an abandoned generation
+# after this bound instead of waiting for the full computing TTL.
+SCREENSHOT_API_FORCE_RETRY_SECONDS = 1.0
+# Keep a crashed producer from retaining its reservation for the global 30-second
+# lock default. This still gives ordinary broker publication twice the coalescing
+# window before another forced request can take over.
+SCREENSHOT_API_LOCK_TTL_SECONDS = 2
 
 _DASHBOARD_PURGE_BINDING = SoftDeleteBinding(
     dao=DashboardDAO,
@@ -267,12 +291,60 @@ CUSTOM_TAG_LIST_COLUMNS = BASE_LIST_COLUMNS + [
     "custom_tags.type",
 ]
 
+# Fields dropped from a dashboard member dataset when the caller cannot access
+# that datasource on its own: everything describing the dataset's schema,
+# connection, and query construction. The identifying fields the dashboard
+# needs to render its charts are kept. This is a stricter version of the
+# narrowing DashboardDatasetSchema.post_dump already applies to guest users.
+DASHBOARD_DATASET_INACCESSIBLE_FIELDS = (
+    "sql",
+    "select_star",
+    "fetch_values_predicate",
+    "template_params",
+    "params",
+    "perm",
+    "edit_url",
+    "database",
+    "parent",
+    "semantic_view_features",
+    "columns",
+    "column_names",
+    "column_types",
+    "metrics",
+    "verbose_map",
+    "order_by_choices",
+    "main_dttm_col",
+    "granularity_sqla",
+    "time_grain_sqla",
+)
+
 
 # pylint: disable=too-many-public-methods
 class DashboardRestApi(
     SoftDeleteApiMixin, CustomTagsOptimizationMixin, BaseSupersetModelRestApi
 ):
     datamodel = SQLAInterface(Dashboard)
+
+    restore_command_cls: ClassVar[type[RestoreDashboardCommand]] = (
+        RestoreDashboardCommand
+    )
+    soft_delete_not_found_errors: ClassVar[tuple[type[Exception], ...]] = (
+        DashboardNotFoundError,
+    )
+    soft_delete_forbidden_errors: ClassVar[tuple[type[Exception], ...]] = (
+        DashboardForbiddenError,
+    )
+    restore_failed_errors: ClassVar[tuple[type[Exception], ...]] = (
+        DashboardRestoreFailedError,
+    )
+    restore_conflict_errors: ClassVar[tuple[type[Exception], ...]] = (
+        DashboardSlugConflictError,
+    )
+    soft_delete_logger: ClassVar[logging.Logger] = logger
+    purge_binding: ClassVar[SoftDeleteBinding] = _DASHBOARD_PURGE_BINDING
+    purge_failed_errors: ClassVar[tuple[type[Exception], ...]] = (
+        DashboardDeleteFailedError,
+    )
 
     include_route_methods = RouteMethod.REST_MODEL_VIEW_CRUD_SET | {
         RouteMethod.EXPORT,
@@ -392,7 +464,8 @@ class DashboardRestApi(
                       result:
                         type: array
                         items:
-                          type: object
+                          $ref: >-
+                            #/components/schemas/{{self.__class__.__name__}}.get_list
             400:
               $ref: '#/components/responses/400'
             401:
@@ -403,6 +476,15 @@ class DashboardRestApi(
               $ref: '#/components/responses/500'
         """
         return super().get_list(**kwargs)
+
+    def pre_get_list(self, data: dict[str, Any]) -> None:
+        """Attach ``extra_editors`` to each row, matching the single-object GET."""
+        super().pre_get_list(data)
+        ids = data.get("ids", [])
+        extra_editors_by_id = get_extra_editors_by_pk(Dashboard, ids)
+        for row, row_id in zip(data.get("result", []), ids, strict=False):
+            if row_id in extra_editors_by_id:
+                row["extra_editors"] = extra_editors_by_id[row_id]
 
     list_select_columns = list_columns + ["changed_on", "created_on", "changed_by_fk"]
     order_columns = [
@@ -438,6 +520,7 @@ class DashboardRestApi(
         "changed_by",
         "dashboard_title",
         "id",
+        "is_managed_externally",
         "uuid",
         "editors",
         "viewers",
@@ -543,6 +626,9 @@ class DashboardRestApi(
         EmbeddedDashboardResponseSchema,
         DashboardScreenshotPostSchema,
         VersionListItemSchema,
+        DashboardChartCustomizationsConfigUpdateSchema,
+        DashboardColorsConfigUpdateSchema,
+        DashboardNativeFiltersConfigUpdateSchema,
     )
     apispec_parameter_schemas = {
         "get_delete_ids_schema": get_delete_ids_schema,
@@ -628,6 +714,21 @@ class DashboardRestApi(
             schema = self.dashboard_get_response_schema
 
         result = schema.dump(dash)
+        if json_metadata := result.get("json_metadata"):
+            # The stored scope caches (``chartsInScope``, ``tabsInScope``,
+            # ``chart_configuration``) go stale as soon as the layout changes;
+            # derive them so callers see the same document the dashboard client
+            # computes for itself.
+            result["json_metadata"] = derive_json_metadata(dash, json_metadata)
+        if "charts" in result:
+            # Only name the member charts the caller can access, consistent with
+            # the per-object narrowing applied to the dashboard's datasets and
+            # charts sub-resources.
+            result["charts"] = [
+                slc.chart
+                for slc in dash.slices
+                if security_manager.can_access_chart(slc)
+            ]
         if current_app.config.get("EXTRA_EDITORS_RESOLVER"):
             result["extra_editors"] = get_extra_editor_subject_ids(dash)
         add_extra_log_payload(
@@ -694,19 +795,22 @@ class DashboardRestApi(
     def _serialize_dashboard_dataset(
         self, datasource: Any, payload: dict[str, Any]
     ) -> dict[str, Any]:
+        """Dump a member dataset, narrowed when the caller cannot access it."""
         serialized = self.dashboard_dataset_schema.dump(payload)
+        if isinstance(datasource, SemanticView):
+            # Redux keys dashboard datasets by Slice.form_data["datasource"],
+            # whereas SemanticView.uid is the provider's independent identity.
+            serialized["uid"] = f"{datasource.id}__{datasource.type}"
         if not security_manager.can_access_datasource(datasource):
-            for key in (
-                "sql",
-                "select_star",
-                "fetch_values_predicate",
-                "template_params",
-                "params",
-            ):
+            for key in DASHBOARD_DATASET_INACCESSIBLE_FIELDS:
                 serialized.pop(key, None)
-            for collection_key in ("columns", "metrics"):
-                for item in serialized.get(collection_key) or ():
-                    item.pop("expression", None)
+        return serialized
+
+    def _serialize_dashboard_chart(self, chart: Any) -> dict[str, Any]:
+        """Dump a member chart, narrowed when the caller cannot access it."""
+        serialized = self.chart_entity_response_schema.dump(chart)
+        if not security_manager.can_access_chart(chart):
+            serialized.pop("form_data", None)
         return serialized
 
     @expose("/<id_or_slug>/tabs", methods=("GET",))
@@ -812,7 +916,7 @@ class DashboardRestApi(
         """
         try:
             charts = DashboardDAO.get_charts_for_dashboard(id_or_slug)
-            result = [self.chart_entity_response_schema.dump(chart) for chart in charts]
+            result = [self._serialize_dashboard_chart(chart) for chart in charts]
             return self.response(200, result=result)
         except DashboardAccessDeniedError:
             return self.response_403()
@@ -1440,23 +1544,7 @@ class DashboardRestApi(
             500:
               $ref: '#/components/responses/500'
         """
-        try:
-            RestoreDashboardCommand(uuid).run()
-            return self.response(200, message="OK")
-        except DashboardNotFoundError:
-            return self.response_404()
-        except DashboardForbiddenError:
-            return self.response_403()
-        except DashboardSlugConflictError as ex:
-            return self.response_422(message=str(ex))
-        except DashboardRestoreFailedError as ex:
-            logger.error(
-                "Error restoring model %s: %s",
-                self.__class__.__name__,
-                str(ex),
-                exc_info=True,
-            )
-            return self.response_422(message=str(ex))
+        return self._restore_soft_deleted(uuid)
 
     @expose("/<uuid>/purge", methods=("POST",))
     @protect()
@@ -1501,21 +1589,7 @@ class DashboardRestApi(
             500:
               $ref: '#/components/responses/500'
         """
-        try:
-            PurgeArchivedCommand(uuid, _DASHBOARD_PURGE_BINDING).run()
-            return self.response(200, message="OK")
-        except DashboardNotFoundError:
-            return self.response_404()
-        except DashboardForbiddenError:
-            return self.response_403()
-        except DashboardDeleteFailedError as ex:
-            logger.error(
-                "Error purging model %s: %s",
-                self.__class__.__name__,
-                str(ex),
-                exc_info=True,
-            )
-            return self.response_422(message=str(ex))
+        return self._purge_soft_deleted(uuid)
 
     @expose("/export/", methods=("GET",))
     @protect()
@@ -1574,15 +1648,7 @@ class DashboardRestApi(
                 return self.response_404()
         buf.seek(0)
 
-        response = send_file(
-            buf,
-            mimetype="application/zip",
-            as_attachment=True,
-            download_name=filename,
-        )
-        if token := sanitize_cookie_token(request.args.get("token")):
-            response.set_cookie(token, "done", max_age=600)
-        return response
+        return send_export_zip(buf, filename)
 
     @expose("/<pk>/export_as_example/", methods=("GET",))
     @protect()
@@ -1665,15 +1731,7 @@ class DashboardRestApi(
 
         filename = f"{safe_name}_example.zip"
 
-        response = send_file(
-            buf,
-            mimetype="application/zip",
-            as_attachment=True,
-            download_name=filename,
-        )
-        if token := sanitize_cookie_token(request.args.get("token")):
-            response.set_cookie(token, "done", max_age=600)
-        return response
+        return send_export_zip(buf, filename)
 
     @expose("/<pk>/export_xlsx/", methods=("POST",))
     @protect()
@@ -1801,6 +1859,43 @@ class DashboardRestApi(
             raise
         return self.response(202, job_id=job_id)
 
+    def _validate_permalink_for_dashboard(
+        self, permalink_key: str, dashboard: Dashboard
+    ) -> WerkzeugResponse | None:
+        """
+        Resolve (and access-check, as the calling user) a caller-supplied
+        permalink key, and confirm it belongs to `dashboard`.
+
+        A permalink key is resolved as the calling user, before it's ever
+        handed to the (potentially more-privileged) screenshot executor --
+        otherwise a caller with access only to `dashboard` could pass the
+        permalink key of a dashboard they can't access and have it rendered
+        under the executor's identity.
+
+        :returns: An error response if the key doesn't resolve, isn't
+            accessible to the caller, or belongs to a different dashboard;
+            ``None`` if it's valid for `dashboard`.
+        """
+        try:
+            permalink_value = GetDashboardPermalinkCommand(permalink_key).run()
+        except DashboardPermalinkGetFailedError:
+            return self.response_404()
+        except DashboardAccessDeniedError:
+            return self.response_403()
+        if not permalink_value:
+            return self.response_404()
+        try:
+            permalink_dashboard = DashboardDAO.get_by_id_or_slug(
+                permalink_value["dashboardId"]
+            )
+        except DashboardAccessDeniedError:
+            return self.response_403()
+        except DashboardNotFoundError:
+            return self.response_404()
+        if permalink_dashboard.id != dashboard.id:
+            return self.response_403()
+        return None
+
     @expose("/<pk>/cache_dashboard_screenshot/", methods=("POST",))
     @validate_feature_flags(["THUMBNAILS", "ENABLE_DASHBOARD_SCREENSHOT_ENDPOINTS"])
     @protect()
@@ -1813,7 +1908,9 @@ class DashboardRestApi(
         ),
         log_to_statsd=False,
     )
-    def cache_dashboard_screenshot(self, pk: int, **kwargs: Any) -> WerkzeugResponse:
+    def cache_dashboard_screenshot(  # noqa: C901
+        self, pk: int, **kwargs: Any
+    ) -> WerkzeugResponse:
         """Compute and cache a screenshot.
         ---
         post:
@@ -1829,6 +1926,12 @@ class DashboardRestApi(
                   schema:
                     $ref: '#/components/schemas/DashboardScreenshotPostSchema'
           responses:
+            200:
+              description: Existing dashboard screenshot task status
+              content:
+                application/json:
+                  schema:
+                    $ref: "#/components/schemas/DashboardCacheScreenshotResponseSchema"
             202:
               description: Dashboard async result
               content:
@@ -1843,6 +1946,8 @@ class DashboardRestApi(
               $ref: '#/components/responses/404'
             500:
               $ref: '#/components/responses/500'
+            503:
+              description: Screenshot cache unavailable
         """
         if is_feature_enabled(
             "GRANULAR_EXPORT_CONTROLS"
@@ -1871,52 +1976,306 @@ class DashboardRestApi(
 
         # if the permalink key is provided, dashboard_state will be ignored
         # else, create a permalink key from the dashboard_state
-        permalink_key = (
-            payload.get("permalinkKey", None)
-            or CreateDashboardPermalinkCommand(
+        permalink_key = payload.get("permalinkKey", None)
+        if permalink_key:
+            if error_response := self._validate_permalink_for_dashboard(
+                permalink_key, dashboard
+            ):
+                return error_response
+        else:
+            permalink_key = CreateDashboardPermalinkCommand(
                 dashboard_id=str(dashboard.id),
                 state=dashboard_state,
             ).run()
-        )
 
         dashboard_url = get_url_path("Superset.dashboard_permalink", key=permalink_key)
         screenshot_obj = DashboardScreenshot(dashboard_url, dashboard.digest)
-        cache_key = screenshot_obj.get_cache_key(window_size, thumb_size, permalink_key)
-        image_url = get_url_path(
-            "DashboardRestApi.screenshot", pk=dashboard.id, digest=cache_key
-        )
-        cache_payload = (
-            screenshot_obj.get_from_cache_key(cache_key) or ScreenshotCachePayload()
+        cache_scope = f"dashboard:{dashboard.id}"
+        request_cache_key = screenshot_obj.get_api_request_cache_key(
+            window_size,
+            thumb_size,
+            permalink_key,
+            cache_scope,
         )
 
-        def build_response(status_code: int) -> WerkzeugResponse:
+        def build_response(
+            status_code: int,
+            cache_key: str,
+            cache_payload: ScreenshotCachePayload,
+        ) -> WerkzeugResponse:
             return self.response(
                 status_code,
                 cache_key=cache_key,
                 dashboard_url=dashboard_url,
-                image_url=image_url,
+                image_url=get_url_path(
+                    "DashboardRestApi.screenshot",
+                    pk=dashboard.id,
+                    digest=cache_key,
+                ),
+                task_timeout_seconds=(
+                    2 * current_app.config["THUMBNAIL_COMPUTING_CACHE_TTL"]
+                ),
                 task_updated_at=cache_payload.get_timestamp(),
                 task_status=cache_payload.get_status(),
             )
 
-        if cache_payload.should_trigger_task(force):
-            logger.info("Triggering screenshot ASYNC")
-            cache_dashboard_screenshot.delay(
-                username=get_current_user(),
-                guest_token=(
-                    g.user.guest_token
-                    if get_current_user() and isinstance(g.user, GuestUser)
+        def get_current_cache_key() -> str | None:
+            return screenshot_obj.get_current_api_generation_cache_key(
+                request_cache_key,
+                cache_scope,
+            )
+
+        def get_generation(
+            cache_key: str | None = None,
+        ) -> tuple[str | None, ScreenshotCachePayload | None]:
+            cache_key = cache_key or get_current_cache_key()
+            return (
+                cache_key,
+                (
+                    screenshot_obj.get_from_cache_key(
+                        cache_key,
+                        raise_on_error=True,
+                    )
+                    if cache_key
                     else None
                 ),
-                dashboard_id=dashboard.id,
-                dashboard_url=dashboard_url,
-                thumb_size=thumb_size,
-                window_size=window_size,
-                cache_key=cache_key,
-                force=force,
             )
-            return build_response(202)
-        return build_response(200)
+
+        def should_enqueue(cache_payload: ScreenshotCachePayload) -> bool:
+            return cache_payload.should_enqueue_task(
+                force,
+                expected_scope=cache_scope,
+                force_retry_after_seconds=SCREENSHOT_API_FORCE_RETRY_SECONDS,
+            )
+
+        try:
+            observed_cache_key, observed_payload = get_generation()
+        except ScreenshotCacheError:
+            logger.exception("Screenshot cache read failed: %s", request_cache_key)
+            return self.response(
+                503,
+                message=gettext("Screenshot cache is unavailable"),
+            )
+
+        if (
+            observed_cache_key
+            and observed_payload
+            and not should_enqueue(observed_payload)
+        ):
+            return build_response(200, observed_cache_key, observed_payload)
+
+        # Publish Pending before broker I/O so contenders can join it without
+        # waiting for the producer lock's full lease. Keep broker publication
+        # inside the lock to coalesce simultaneous forced requests, but never
+        # mutate the pointer after broker I/O because the lease may have expired.
+        lock_deadline = time.monotonic() + SCREENSHOT_API_LOCK_WAIT_SECONDS
+        while True:
+            lock_response: WerkzeugResponse | None = None
+            try:
+                with DistributedLock(
+                    namespace=SCREENSHOT_API_LOCK_NAMESPACE,
+                    request_cache_key=request_cache_key,
+                    ttl_seconds=SCREENSHOT_API_LOCK_TTL_SECONDS,
+                ):
+                    try:
+                        cache_key, cached_payload = get_generation()
+                    except ScreenshotCacheError:
+                        logger.exception(
+                            "Screenshot cache read failed: %s",
+                            request_cache_key,
+                        )
+                        lock_response = self.response(
+                            503,
+                            message=gettext("Screenshot cache is unavailable"),
+                        )
+                        return lock_response
+
+                    cache_payload = cached_payload or ScreenshotCachePayload(
+                        scope=cache_scope
+                    )
+                    if cached_payload is not None:
+                        if cache_key is None:
+                            logger.error(
+                                "Screenshot generation payload has no cache key: %s",
+                                request_cache_key,
+                            )
+                            lock_response = self.response(
+                                503,
+                                message=gettext("Screenshot cache is unavailable"),
+                            )
+                            return lock_response
+                        if cache_key != observed_cache_key or not should_enqueue(
+                            cache_payload
+                        ):
+                            lock_response = build_response(
+                                200, cache_key, cache_payload
+                            )
+                            return lock_response
+
+                    logger.info("Triggering screenshot ASYNC")
+                    next_cache_key = screenshot_obj.get_next_api_generation_cache_key(
+                        request_cache_key,
+                        cache_key,
+                    )
+                    cache_payload = ScreenshotCachePayload(scope=cache_scope)
+                    cache_payload.pending()
+                    try:
+                        screenshot_obj.store_cache_payload(
+                            next_cache_key,
+                            cache_payload,
+                        )
+                        # Make the reservation visible before broker I/O. A
+                        # failed publish is converted to terminal Error, and an
+                        # explicit force can replace an abandoned reservation
+                        # after the producer lease.
+                        published = screenshot_obj.set_current_api_generation_cache_key(
+                            request_cache_key,
+                            next_cache_key,
+                            cache_scope,
+                            cache_key,
+                        )
+                    except ScreenshotCacheError:
+                        logger.exception(
+                            "Screenshot task preparation failed: %s",
+                            next_cache_key,
+                        )
+                        lock_response = self.response(
+                            503,
+                            message=gettext("Screenshot cache is unavailable"),
+                        )
+                        return lock_response
+
+                    if not published:
+                        try:
+                            winner_cache_key, winner_payload = get_generation()
+                        except ScreenshotCacheError:
+                            logger.exception(
+                                "Screenshot generation winner read failed: %s",
+                                request_cache_key,
+                            )
+                            lock_response = self.response(
+                                503,
+                                message=gettext("Screenshot cache is unavailable"),
+                            )
+                            return lock_response
+                        if winner_cache_key is None or winner_payload is None:
+                            logger.error(
+                                "Screenshot generation publication lost without a "
+                                "readable winner: %s",
+                                request_cache_key,
+                            )
+                            lock_response = self.response(
+                                503,
+                                message=gettext("Screenshot cache is unavailable"),
+                            )
+                            return lock_response
+                        lock_response = build_response(
+                            200,
+                            winner_cache_key,
+                            winner_payload,
+                        )
+                        return lock_response
+
+                    try:
+                        cache_dashboard_screenshot.delay(
+                            username=get_current_user(),
+                            guest_token=(
+                                g.user.guest_token
+                                if get_current_user() and isinstance(g.user, GuestUser)
+                                else None
+                            ),
+                            dashboard_id=dashboard.id,
+                            dashboard_url=dashboard_url,
+                            thumb_size=thumb_size,
+                            window_size=window_size,
+                            cache_key=next_cache_key,
+                            # The API selected a unique generation. Duplicate
+                            # deliveries should never force a completed result
+                            # to recompute.
+                            force=False,
+                        )
+                    except Exception:  # pylint: disable=broad-except
+                        screenshot_obj.mark_cache_error_if_incomplete(
+                            next_cache_key,
+                            cache_scope,
+                        )
+                        raise
+                    lock_response = build_response(202, next_cache_key, cache_payload)
+                    return lock_response
+            except ReleaseDistributedLockFailedException:
+                if lock_response is not None:
+                    logger.warning(
+                        "Screenshot request completed but its producer lock could "
+                        "not be released: %s",
+                        request_cache_key,
+                        exc_info=True,
+                    )
+                    return lock_response
+                logger.exception(
+                    "Could not release screenshot producer lock: %s",
+                    request_cache_key,
+                )
+                return self.response(
+                    503,
+                    message=gettext("Screenshot request is temporarily unavailable"),
+                )
+            except LockAlreadyHeldException:
+                try:
+                    cache_key = get_current_cache_key()
+                except ScreenshotCacheError:
+                    logger.exception(
+                        "Screenshot request pointer read failed while awaiting "
+                        "producer: %s",
+                        request_cache_key,
+                    )
+                    return self.response(
+                        503,
+                        message=gettext("Screenshot cache is unavailable"),
+                    )
+
+                if cache_key and cache_key != observed_cache_key:
+                    try:
+                        _, current_payload = get_generation(cache_key)
+                    except ScreenshotCacheError:
+                        logger.exception(
+                            "Screenshot cache read failed while awaiting producer: %s",
+                            request_cache_key,
+                        )
+                        return self.response(
+                            503,
+                            message=gettext("Screenshot cache is unavailable"),
+                        )
+                    if current_payload is None:
+                        logger.error(
+                            "Published screenshot generation has no payload: %s",
+                            cache_key,
+                        )
+                        return self.response(
+                            503,
+                            message=gettext("Screenshot cache is unavailable"),
+                        )
+                    return build_response(200, cache_key, current_payload)
+                if time.monotonic() >= lock_deadline:
+                    logger.warning(
+                        "Timed out waiting for screenshot producer: %s",
+                        request_cache_key,
+                    )
+                    return self.response(
+                        503,
+                        message=gettext(
+                            "Screenshot request is temporarily unavailable"
+                        ),
+                    )
+                time.sleep(SCREENSHOT_API_LOCK_RETRY_SECONDS)
+            except AcquireDistributedLockFailedException:
+                logger.exception(
+                    "Could not coordinate screenshot request: %s",
+                    request_cache_key,
+                )
+                return self.response(
+                    503,
+                    message=gettext("Screenshot request is temporarily unavailable"),
+                )
 
     @expose("/<pk>/screenshot/<digest>/", methods=("GET",))
     @validate_feature_flags(["THUMBNAILS", "ENABLE_DASHBOARD_SCREENSHOT_ENDPOINTS"])
@@ -1978,10 +2337,20 @@ class DashboardRestApi(
         # fetch the dashboard screenshot using the current user and cache if set
 
         if cache_payload := DashboardScreenshot.get_from_cache_key(digest):
+            # The digest is caller-supplied and cache entries are shared across
+            # every dashboard (and, via the same backend, charts) -- without
+            # this check any cache_key learned for one dashboard would serve
+            # its image under a different, merely-accessible `pk`.
+            if cache_payload.get_scope() != f"dashboard:{dashboard.id}":
+                return self.response_404()
             try:
                 image = cache_payload.get_image()
             except ScreenshotImageNotAvailableException:
-                return self.response_404()
+                return self.response(
+                    404,
+                    message=gettext("Not found"),
+                    extra={"task_status": cache_payload.get_status()},
+                )
 
             filename = get_filename(
                 dashboard.dashboard_title or "screenshot", dashboard.id, skip_id=True

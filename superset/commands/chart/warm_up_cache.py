@@ -68,8 +68,9 @@ class ChartWarmUpCacheCommand(BaseCommand):
         # Apply dashboard filters if dashboard_id is provided
         if dashboard_filters := self._get_dashboard_filters(chart.id):
             for query in query_context.queries:
-                query.filter.extend(
+                query.filter = (
                     cast(list[QueryObjectFilterClause], dashboard_filters)
+                    + query.filter
                 )
 
         query_context.force = True

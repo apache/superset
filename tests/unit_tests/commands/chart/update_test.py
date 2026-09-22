@@ -14,14 +14,133 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from unittest.mock import Mock
+
 import pytest
+from flask import g
 from pytest_mock import MockerFixture
 
-from superset.commands.chart.exceptions import ChartForbiddenError, ChartInvalidError
+from superset.charts.schemas import ChartPutSchema
+from superset.commands.chart.exceptions import (
+    ChartForbiddenError,
+    ChartInvalidError,
+    DatasourceTypeUpdateRequiredValidationError,
+)
 from superset.commands.chart.update import UpdateChartCommand
+from superset.commands.exceptions import (
+    DatasourceNotFoundValidationError,
+    DatasourceTypeInvalidError,
+)
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetSecurityException
+from superset.models.slice import Slice
 from superset.utils import json
+
+
+@pytest.mark.parametrize("datasource_type", ["table", "semantic_view"])
+def test_update_rejects_null_type_without_mutating_chart(
+    mocker: MockerFixture, datasource_type: str
+) -> None:
+    """Explicit empty types must fail before updating a chart or its permissions."""
+    chart: Slice = Slice(
+        id=1,
+        datasource_id=42,
+        datasource_type=datasource_type,
+        perm="original datasource permission",
+        catalog_perm="original catalog permission",
+        schema_perm="original schema permission",
+        is_managed_externally=False,
+    )
+    mocker.patch(
+        "superset.commands.chart.update.ChartDAO.find_by_id", return_value=chart
+    )
+    mocker.patch("superset.commands.chart.update.security_manager.raise_for_editorship")
+    mocker.patch("superset.commands.chart.update.compute_subjects")
+    mocker.patch.object(g, "user", Mock(), create=True)
+    update: Mock = mocker.patch("superset.commands.chart.update.ChartDAO.update")
+    commit: Mock = mocker.patch("superset.db.session.commit")
+    mocker.patch("superset.db.session.rollback")
+    error: pytest.ExceptionInfo[ChartInvalidError]
+    with pytest.raises(ChartInvalidError) as error:
+        UpdateChartCommand(
+            chart.id, ChartPutSchema().load({"datasource_type": None})
+        ).run()
+
+    assert any(
+        isinstance(exception, DatasourceTypeUpdateRequiredValidationError)
+        for exception in error.value._exceptions
+    )
+    update.assert_not_called()
+    commit.assert_not_called()
+    assert chart.datasource_id == 42
+    assert chart.datasource_type == datasource_type
+    assert chart.perm == "original datasource permission"
+    assert chart.catalog_perm == "original catalog permission"
+    assert chart.schema_perm == "original schema permission"
+
+
+@pytest.mark.parametrize("datasource_type", ["table", "semantic_view"])
+@pytest.mark.parametrize(
+    "outcome", ["allowed", "denied", "missing", "no_id", "null_id"]
+)
+def test_type_only_update_checks_retained_datasource(
+    mocker: MockerFixture, datasource_type: str, outcome: str
+) -> None:
+    """Changing only type must authorize the new kind at the stored ID."""
+    chart: Mock = Mock(
+        id=1,
+        datasource_id=None if outcome == "no_id" else 42,
+        datasource_type="table",
+        is_managed_externally=False,
+        tags=[],
+        dashboards=[],
+    )
+    mocker.patch(
+        "superset.commands.chart.update.ChartDAO.find_by_id", return_value=chart
+    )
+    mocker.patch("superset.commands.chart.update.security_manager.raise_for_editorship")
+    mocker.patch("superset.commands.chart.update.compute_subjects")
+    datasource: Mock = Mock()
+    datasource.name = "semantic name"
+    lookup: Mock = mocker.patch(
+        "superset.commands.chart.update.get_datasource_by_id",
+        return_value=datasource,
+        side_effect=DatasourceNotFoundValidationError()
+        if outcome == "missing"
+        else None,
+    )
+    access: Mock = mocker.patch(
+        "superset.commands.chart.update.security_manager.raise_for_access",
+        side_effect=_access_exc() if outcome == "denied" else None,
+    )
+    command: UpdateChartCommand = UpdateChartCommand(
+        1,
+        {
+            "datasource_type": datasource_type,
+            **({"datasource_id": None} if outcome == "null_id" else {}),
+        },
+    )
+    if outcome in {"missing", "no_id", "null_id"}:
+        error: pytest.ExceptionInfo[ChartInvalidError]
+        with pytest.raises(ChartInvalidError) as error:
+            command.validate()
+        assert any(
+            isinstance(exception, DatasourceNotFoundValidationError)
+            for exception in error.value._exceptions
+        )
+        access.assert_not_called()
+    elif outcome == "denied":
+        with pytest.raises(ChartForbiddenError):
+            command.validate()
+    else:
+        command.validate()
+        assert command._properties["datasource_name"] == "semantic name"
+    if outcome in {"no_id", "null_id"}:
+        lookup.assert_not_called()
+    else:
+        lookup.assert_called_once_with(42, datasource_type)
+    if outcome in {"allowed", "denied"}:
+        access.assert_called_once_with(datasource=datasource)
 
 
 def _editorship_exc() -> SupersetSecurityException:
@@ -49,7 +168,9 @@ def test_update_chart_editorship_enforced_for_regular_update(
 ) -> None:
     """Non-editors must not be able to update a chart via a regular payload."""
     find_by_id = mocker.patch("superset.commands.chart.update.ChartDAO.find_by_id")
-    find_by_id.return_value = mocker.MagicMock(id=1, tags=[], dashboards=[])
+    find_by_id.return_value = mocker.MagicMock(
+        is_managed_externally=False, id=1, tags=[], dashboards=[]
+    )
     raise_for_editorship = mocker.patch(
         "superset.commands.chart.update.security_manager.raise_for_editorship",
         side_effect=_editorship_exc(),
@@ -67,7 +188,9 @@ def test_update_chart_query_context_skips_editorship_check(
 ) -> None:
     """Query-context-only updates skip editorship but still require chart access."""
     find_by_id = mocker.patch("superset.commands.chart.update.ChartDAO.find_by_id")
-    find_by_id.return_value = mocker.MagicMock(id=1, tags=[], dashboards=[])
+    find_by_id.return_value = mocker.MagicMock(
+        is_managed_externally=False, id=1, tags=[], dashboards=[]
+    )
     raise_for_editorship = mocker.patch(
         "superset.commands.chart.update.security_manager.raise_for_editorship",
         side_effect=_editorship_exc(),
@@ -91,7 +214,9 @@ def test_update_chart_query_context_requires_chart_access(
     """A query-context-only update by someone without access to the chart is
     rejected, even though the editorship check is relaxed for this path."""
     find_by_id = mocker.patch("superset.commands.chart.update.ChartDAO.find_by_id")
-    find_by_id.return_value = mocker.MagicMock(id=1, tags=[], dashboards=[])
+    find_by_id.return_value = mocker.MagicMock(
+        is_managed_externally=False, id=1, tags=[], dashboards=[]
+    )
     mocker.patch(
         "superset.commands.chart.update.security_manager.raise_for_access",
         side_effect=_access_exc(),
@@ -110,7 +235,9 @@ def test_update_chart_query_context_non_editor_with_access_allowed(
     datasource access, or a report worker) can perform a query-context-only
     backfill: editorship is relaxed and ``raise_for_access`` does not deny."""
     find_by_id = mocker.patch("superset.commands.chart.update.ChartDAO.find_by_id")
-    find_by_id.return_value = mocker.MagicMock(id=1, tags=[], dashboards=[])
+    find_by_id.return_value = mocker.MagicMock(
+        is_managed_externally=False, id=1, tags=[], dashboards=[]
+    )
     raise_for_editorship = mocker.patch(
         "superset.commands.chart.update.security_manager.raise_for_editorship",
         side_effect=_editorship_exc(),
@@ -134,7 +261,9 @@ def test_update_chart_editor_can_perform_regular_update(
     """Chart editors can perform regular updates and pass editor changes."""
     editor = mocker.MagicMock(id=1)
     find_by_id = mocker.patch("superset.commands.chart.update.ChartDAO.find_by_id")
-    chart = mocker.MagicMock(id=1, tags=[], dashboards=[], editors=[editor])
+    chart = mocker.MagicMock(
+        is_managed_externally=False, id=1, tags=[], dashboards=[], editors=[editor]
+    )
     find_by_id.return_value = chart
     raise_for_editorship = mocker.patch(
         "superset.commands.chart.update.security_manager.raise_for_editorship"
@@ -164,6 +293,7 @@ def _query_context_payload(datasource: object) -> dict[str, object]:
     "datasource_type",
     [
         "table",
+        "semantic_view",
         "query",  # non-table datasource types must also be accepted when matching
     ],
 )
@@ -174,6 +304,7 @@ def test_update_chart_query_context_matching_datasource_is_allowed(
     """A query context that targets the chart's own datasource is accepted."""
     find_by_id = mocker.patch("superset.commands.chart.update.ChartDAO.find_by_id")
     find_by_id.return_value = mocker.MagicMock(
+        is_managed_externally=False,
         id=1,
         tags=[],
         dashboards=[],
@@ -205,7 +336,12 @@ def test_update_chart_query_context_mismatched_datasource_is_rejected(
     """A query context pointing at a different datasource is rejected with a 4xx."""
     find_by_id = mocker.patch("superset.commands.chart.update.ChartDAO.find_by_id")
     find_by_id.return_value = mocker.MagicMock(
-        id=1, tags=[], dashboards=[], datasource_id=42, datasource_type="table"
+        is_managed_externally=False,
+        id=1,
+        tags=[],
+        dashboards=[],
+        datasource_id=42,
+        datasource_type="table",
     )
     mocker.patch("superset.commands.chart.update.security_manager.raise_for_editorship")
     mocker.patch("superset.commands.chart.update.security_manager.raise_for_access")
@@ -229,7 +365,12 @@ def test_update_chart_query_context_without_datasource_is_allowed(
     """Payloads with no verifiable datasource fall back to the chart's own."""
     find_by_id = mocker.patch("superset.commands.chart.update.ChartDAO.find_by_id")
     find_by_id.return_value = mocker.MagicMock(
-        id=1, tags=[], dashboards=[], datasource_id=42, datasource_type="table"
+        is_managed_externally=False,
+        id=1,
+        tags=[],
+        dashboards=[],
+        datasource_id=42,
+        datasource_type="table",
     )
     mocker.patch("superset.commands.chart.update.security_manager.raise_for_editorship")
     mocker.patch("superset.commands.chart.update.security_manager.raise_for_access")
@@ -238,3 +379,106 @@ def test_update_chart_query_context_without_datasource_is_allowed(
         1,
         {"query_context": query_context, "query_context_generation": True},
     ).validate()
+
+
+@pytest.mark.parametrize("datasource_type", ["saved_query", "query"])
+def test_update_chart_rejects_repointing_to_non_table_datasource(
+    mocker: MockerFixture, datasource_type: str
+) -> None:
+    """Repointing a chart's datasource_id must be rejected the same way
+    CreateChartCommand rejects it (apache/superset#29697): Slice.datasource
+    only ever resolves the ``table`` relationship, so repointing at a
+    saved_query or query datasource would "succeed" but leave the chart
+    permanently unable to render -- or, for saved_query specifically, crash
+    on SavedQuery's missing ``.name`` attribute before that point is even
+    reached. This is a regular (non-query-context) update, so it goes
+    through editorship + compute_subjects, unlike the query-context-only
+    tests above."""
+    find_by_id = mocker.patch("superset.commands.chart.update.ChartDAO.find_by_id")
+    find_by_id.return_value = mocker.MagicMock(
+        is_managed_externally=False, id=1, tags=[], dashboards=[]
+    )
+    mocker.patch("superset.commands.chart.update.security_manager.raise_for_editorship")
+    mocker.patch(
+        "superset.commands.chart.update.compute_subjects",
+        side_effect=lambda model, properties, exceptions: None,
+    )
+    get_datasource_by_id = mocker.patch(
+        "superset.commands.chart.update.get_datasource_by_id"
+    )
+
+    with pytest.raises(ChartInvalidError) as exc_info:
+        UpdateChartCommand(
+            1, {"datasource_id": 11, "datasource_type": datasource_type}
+        ).validate()
+
+    assert any(
+        isinstance(ex, DatasourceTypeInvalidError) for ex in exc_info.value._exceptions
+    )
+    get_datasource_by_id.assert_not_called()
+
+
+def test_update_chart_missing_datasource_type_keeps_required_error(
+    mocker: MockerFixture,
+) -> None:
+    """When datasource_id is given without datasource_type, the response
+    must keep reporting DatasourceTypeUpdateRequiredValidationError
+    ("Datasource type is required") rather than having it overwritten by
+    DatasourceTypeInvalidError ("Datasource type is invalid") -- both
+    exceptions key their message under ``datasource_type``, and
+    normalized_messages() only keeps the last one written for a given key."""
+    find_by_id = mocker.patch("superset.commands.chart.update.ChartDAO.find_by_id")
+    find_by_id.return_value = mocker.MagicMock(
+        is_managed_externally=False, id=1, tags=[], dashboards=[]
+    )
+    mocker.patch("superset.commands.chart.update.security_manager.raise_for_editorship")
+    mocker.patch(
+        "superset.commands.chart.update.compute_subjects",
+        side_effect=lambda model, properties, exceptions: None,
+    )
+    get_datasource_by_id = mocker.patch(
+        "superset.commands.chart.update.get_datasource_by_id"
+    )
+
+    with pytest.raises(ChartInvalidError) as exc_info:
+        UpdateChartCommand(1, {"datasource_id": 11}).validate()
+
+    assert any(
+        isinstance(ex, DatasourceTypeUpdateRequiredValidationError)
+        for ex in exc_info.value._exceptions
+    )
+    assert not any(
+        isinstance(ex, DatasourceTypeInvalidError) for ex in exc_info.value._exceptions
+    )
+    get_datasource_by_id.assert_not_called()
+
+
+@pytest.mark.parametrize("datasource_type", ["saved_query", "query"])
+def test_update_chart_rejects_type_only_non_table_datasource(
+    mocker: MockerFixture, datasource_type: str
+) -> None:
+    """A type-only update (datasource_type given without datasource_id)
+    must be rejected the same way a repointing update is: leaving
+    datasource_id untouched while flipping datasource_type away from
+    ``table`` would still break Slice.datasource, since its relationship
+    only ever resolves the ``table`` type."""
+    find_by_id = mocker.patch("superset.commands.chart.update.ChartDAO.find_by_id")
+    find_by_id.return_value = mocker.MagicMock(
+        is_managed_externally=False, id=1, tags=[], dashboards=[]
+    )
+    mocker.patch("superset.commands.chart.update.security_manager.raise_for_editorship")
+    mocker.patch(
+        "superset.commands.chart.update.compute_subjects",
+        side_effect=lambda model, properties, exceptions: None,
+    )
+    get_datasource_by_id = mocker.patch(
+        "superset.commands.chart.update.get_datasource_by_id"
+    )
+
+    with pytest.raises(ChartInvalidError) as exc_info:
+        UpdateChartCommand(1, {"datasource_type": datasource_type}).validate()
+
+    assert any(
+        isinstance(ex, DatasourceTypeInvalidError) for ex in exc_info.value._exceptions
+    )
+    get_datasource_by_id.assert_not_called()

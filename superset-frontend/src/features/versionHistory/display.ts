@@ -23,6 +23,7 @@ import type {
   ActivityEntityKind,
   ActivityRecord,
   SaveGroup,
+  CreationKind,
 } from './types';
 
 /** Activity timestamps are naive UTC; parse as UTC, render local. */
@@ -306,7 +307,24 @@ export function describeRecord(record: ActivityRecord): string {
  * the save's date/time heads the group and the descriptive per-change rows
  * render beneath it.
  */
+/**
+ * Display copy for the synthetic starting-version row, keyed by the
+ * API's machine `creation_kind`. THE single place these strings live —
+ * final copy is a design call (Figma thread 2411-657); swapping a label
+ * is a one-line change here.
+ */
+export const CREATION_LABELS: Record<CreationKind, string> = {
+  unknown: t('Starting version'),
+  pre_tracking: t('Original version'),
+  created: t('Created'),
+  imported: t('Imported'),
+};
+
 export function groupHeadline(group: SaveGroup): string {
+  if (group.creationKind) {
+    // The starting-version row (sc-120488) — oldest entry, one label.
+    return CREATION_LABELS[group.creationKind];
+  }
   if (group.actionKind === 'restore') {
     return group.restoredToVersion != null
       ? t('Restored to version %s', group.restoredToVersion)

@@ -26,15 +26,21 @@ from typing import Any, Dict
 from unittest.mock import patch
 
 import pytest
+from pydantic import TypeAdapter
 
+from superset.extensions import feature_flag_manager
 from superset.mcp_service.chart.schemas import (
+    ChartConfig,
     ColumnRef,
     FilterConfig,
+    GenerateChartRequest,
     PivotTableChartConfig,
     TableChartConfig,
+    TableColumnConfig,
     XYChartConfig,
 )
 from superset.mcp_service.chart.validation.dataset_validator import DatasetValidator
+from superset.mcp_service.chart.validation.pipeline import ValidationPipeline
 from superset.mcp_service.common.error_schemas import DatasetContext
 
 
@@ -56,6 +62,63 @@ def mock_dataset_context() -> DatasetContext:
             {"name": "TotalRevenue", "expression": "SUM(Sales)", "description": None},
         ],
     )
+
+
+@pytest.mark.parametrize(
+    "chart_type,roles",
+    [
+        ("pie", {"dimension": "column", "metric": "metric"}),
+        ("xy", {"x": "column", "y": "metrics"}),
+        ("table", {"columns": "columns"}),
+        ("big_number", {"metric": "metric"}),
+        ("gauge", {"metric": "metric"}),
+        ("histogram", {"column": "column"}),
+        ("box_plot", {"metrics": "metrics", "distribute_across": "columns"}),
+        ("treemap_v2", {"groupby": "columns", "metric": "metric"}),
+        ("pivot_table", {"rows": "columns", "metrics": "metrics"}),
+        ("interactive_pivot", {"rows": "columns", "metrics": "metrics"}),
+        ("mixed_timeseries", {"x": "column", "y": "metrics", "y_secondary": "metrics"}),
+        ("waterfall", {"x_axis": "column", "metric": "metric"}),
+        ("handlebars", {"metrics": "metrics"}),
+    ],
+)
+@pytest.mark.parametrize("updates", [{}, {"filters": []}, {"filters": None}])
+def test_normalization_preserves_explicit_fields(
+    chart_type: str,
+    roles: dict[str, str],
+    updates: dict[str, Any],
+    mock_dataset_context: DatasetContext,
+) -> None:
+    """Column normalization must not turn omitted controls into explicit updates."""
+    column = {"name": "orderdate"}
+    metric = {"name": "sales", "aggregate": "SUM"}
+    values = {
+        "column": column,
+        "columns": [column],
+        "metric": metric,
+        "metrics": [metric],
+    }
+    data = {
+        "chart_type": chart_type,
+        **{key: values[role] for key, role in roles.items()},
+    }
+    if chart_type == "handlebars":
+        data["handlebars_template"] = "{{#each data}}{{Sales}}{{/each}}"
+    config = TypeAdapter(ChartConfig).validate_python({**data, **updates})
+    original = config.model_dump()
+    with patch.object(feature_flag_manager, "is_feature_enabled", return_value=True):
+        normalized = DatasetValidator.normalize_column_names(
+            config, dataset_id=18, dataset_context=mock_dataset_context
+        )
+    assert normalized.model_fields_set == config.model_fields_set
+    assert normalized.filters == config.filters
+    assert config.model_dump() == original
+    for key, role in roles.items():
+        refs = getattr(normalized, key)
+        if not isinstance(refs, list):
+            refs = [refs]
+        expected_name = "Sales" if role.startswith("metric") else "OrderDate"
+        assert all(ref.name == expected_name for ref in refs)
 
 
 class TestGetCanonicalColumnName:
@@ -187,6 +250,71 @@ class TestNormalizeColumnNames:
         assert normalized.columns[0].name == "OrderDate"
         assert normalized.columns[1].name == "ProductLine"
         assert normalized.columns[2].name == "Sales"
+
+    @patch.object(DatasetValidator, "_get_dataset_context")
+    def test_table_normalization_preserves_partial_column_config(
+        self, mock_get_context, mock_dataset_context: DatasetContext
+    ) -> None:
+        """Normalization must not materialize omitted formatting fields as null."""
+        mock_get_context.return_value = mock_dataset_context
+        config = TableChartConfig(
+            chart_type="table",
+            columns=[ColumnRef(name="sales", aggregate="SUM")],
+            column_config={"SUM(Sales)": TableColumnConfig(columnWidth=120)},
+        )
+
+        normalized = DatasetValidator.normalize_column_names(config, dataset_id=18)
+
+        assert normalized.columns[0].name == "Sales"
+        assert normalized.column_config is not None
+        assert normalized.column_config["SUM(Sales)"].model_dump(
+            by_alias=True, exclude_unset=True
+        ) == {"columnWidth": 120}
+
+    def test_pipeline_preserves_partial_table_column_config(
+        self, mock_dataset_context: DatasetContext
+    ) -> None:
+        """The request round trip must not turn omitted formats into nulls."""
+        request = GenerateChartRequest.model_validate(
+            {
+                "dataset_id": 18,
+                "config": {
+                    "chart_type": "table",
+                    "columns": [{"name": "sales", "aggregate": "SUM"}],
+                    "column_config": {"SUM(Sales)": {"columnWidth": 120}},
+                },
+            }
+        )
+
+        normalized = ValidationPipeline._normalize_column_names(
+            request,
+            mock_dataset_context,
+            typed_config=request.config,
+        )
+
+        assert isinstance(normalized.config, TableChartConfig)
+        assert normalized.config.column_config is not None
+        assert normalized.config.column_config["SUM(Sales)"].model_dump(
+            by_alias=True, exclude_unset=True
+        ) == {"columnWidth": 120}
+
+    @patch.object(DatasetValidator, "_get_dataset_context")
+    def test_table_normalization_canonicalizes_raw_column_config_key(
+        self, mock_get_context, mock_dataset_context: DatasetContext
+    ) -> None:
+        mock_get_context.return_value = mock_dataset_context
+        config = TableChartConfig(
+            chart_type="table",
+            columns=[ColumnRef(name="orderdate")],
+            column_config={"orderdate": TableColumnConfig(d3TimeFormat="%Y-%m-%d")},
+        )
+
+        normalized = DatasetValidator.normalize_column_names(config, dataset_id=18)
+
+        assert normalized.columns[0].name == "OrderDate"
+        assert normalized.column_config is not None
+        assert "orderdate" not in normalized.column_config
+        assert normalized.column_config["OrderDate"].d3_time_format == "%Y-%m-%d"
 
     @patch.object(DatasetValidator, "_get_dataset_context")
     def test_table_sql_expression_column_skips_name_normalization(

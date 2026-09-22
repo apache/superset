@@ -26,7 +26,16 @@ from typing import Any, Callable, TYPE_CHECKING
 import wtforms_json
 from colorama import Fore, Style
 from deprecation import deprecated
-from flask import abort, current_app, Flask, redirect, request, session, url_for
+from flask import (
+    abort,
+    current_app,
+    Flask,
+    has_app_context,
+    redirect,
+    request,
+    session,
+    url_for,
+)
 from flask_appbuilder import expose, IndexView
 from flask_appbuilder.api import safe
 from flask_appbuilder.utils.base import get_safe_redirect
@@ -41,16 +50,15 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 
 from superset.commands.database.exceptions import DatabaseInvalidError
 from superset.constants import (
-    CHANGE_ME_GLOBAL_ASYNC_QUERIES_JWT_SECRET,
     CHANGE_ME_GUEST_TOKEN_JWT_SECRET,
     CHANGE_ME_SECRET_KEY,
+    CHANGE_ME_WEBSOCKET_JWT_SECRET,
 )
 from superset.databases.utils import make_url_safe
 from superset.extensions import (
     _event_logger,
     APP_DIR,
     appbuilder,
-    async_query_manager_factory,
     cache_manager,
     celery_app,
     csrf,
@@ -147,8 +155,16 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             # pylint: disable=too-few-public-methods
             abstract = True
 
-            # Grab each call into the task and set up an app context
+            # Grab each call into the task and set up an app context, unless
+            # one is already active on this thread (e.g. Celery eager mode
+            # invoked from within an existing request/test context) - Flask-
+            # SQLAlchemy 3.x scopes db.session by the active app context's
+            # object identity rather than by thread, so pushing a redundant
+            # nested context here would silently hand the task a second,
+            # blind session unable to see the caller's uncommitted work.
             def __call__(self, *args: Any, **kwargs: Any) -> Any:
+                if has_app_context():
+                    return task_base.__call__(self, *args, **kwargs)
                 with superset_app.app_context():
                     return task_base.__call__(self, *args, **kwargs)
 
@@ -164,7 +180,6 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         from superset.advanced_data_type.api import AdvancedDataTypeRestApi
         from superset.annotation_layers.annotations.api import AnnotationRestApi
         from superset.annotation_layers.api import AnnotationLayerRestApi
-        from superset.async_events.api import AsyncEventsRestApi
         from superset.available_domains.api import AvailableDomainsRestApi
         from superset.cachekeys.api import CacheRestApi
         from superset.charts.api import ChartRestApi
@@ -254,7 +269,6 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         #
         appbuilder.add_api(AnnotationRestApi)
         appbuilder.add_api(AnnotationLayerRestApi)
-        appbuilder.add_api(AsyncEventsRestApi)
         appbuilder.add_api(AdvancedDataTypeRestApi)
         appbuilder.add_api(AvailableDomainsRestApi)
         appbuilder.add_api(CacheRestApi)
@@ -774,16 +788,9 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         Must be called after all versioned model classes have been imported so
         that VERSIONED_MODELS can be populated and configure_mappers() has run.
 
-        ``ENABLE_VERSIONING_CAPTURE`` (ships default ``False``) gates the two
-        before-flush listener registrations. The flag is operational, not
-        feature: with it off the infrastructure is inert (no save writes
-        shadow rows); flipping it on activates capture. The switch also lets
-        an operator who observes a versioning-induced regression (e.g. a
-        save-path slowdown attributable to the change-record listener)
-        disable capture in ``superset_config.py`` and restart workers — a
-        30-second recovery instead of revert-and-redeploy. Shadow tables
-        already created by the migration stay; they just stop accumulating
-        new rows.
+        ``ENABLE_VERSIONING_CAPTURE`` gates the baseline and change-record
+        listener registrations. When disabled, initialization also detaches
+        SQLAlchemy-Continuum's write listeners.
 
         The fallback here is ``False`` so that any app-factory path that
         does not load ``superset.config`` (some test factories, embedded
@@ -895,6 +902,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
 
     _RETENTION_TASK_NAME: str = "version_history.prune_old_versions"
     _PURGE_TASK_NAME: str = "deletion_retention.purge_soft_deleted"
+    _PRUNE_AUDIT_TASK_NAME: str = "deletion_retention.prune_purge_audit"
     #: Module each task lives in. A beat entry alone is not enough — a worker
     #: that never imported the module answers ``NotRegistered`` when the task
     #: fires, which is the same silent non-execution one layer down.
@@ -902,30 +910,32 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
     _PURGE_TASK_MODULE: str = "superset.tasks.deletion_retention"
 
     def _warn_if_retention_beat_missing(self) -> None:
-        """WARN at startup when the resolved Celery beat schedule is
-        missing a time-based retention task:
+        """WARN when the Celery configuration omits a retention task.
 
         * ``version_history.prune_old_versions`` — checked always, since
           shadow rows written by prior deploys keep ageing even when
           capture is off;
-        Each task needs an entry in ``beat_schedule``. When ``imports`` is
-        explicitly configured, its module is checked there as well. An absent
-        ``imports`` setting is not diagnosed because Celery may register tasks
-        through ``include``, autodiscovery, or worker startup imports.
-
         * ``deletion_retention.purge_soft_deleted`` — checked only when
           ``SOFT_DELETE`` is enabled, because the purge task itself
           no-ops while the flag is off, so a missing entry is only
           actionable once soft delete is statically configured. Dynamic
           request-time feature resolvers are intentionally excluded from this
-          startup diagnostic.
+          startup diagnostic; and
+        * ``deletion_retention.prune_purge_audit`` — checked whenever audit
+          pruning is enabled, because historical audit rows remain after
+          ``SOFT_DELETE`` is turned off.
+
+        Each task needs an entry in ``beat_schedule``. When ``imports`` is
+        explicitly configured, its module is checked there as well. An absent
+        ``imports`` setting is not diagnosed because Celery may register tasks
+        through ``include``, autodiscovery, or worker startup imports.
 
         Operators who redefine ``CeleryConfig`` in ``superset_config.py``
         — instead of subclassing or merging the default — silently lose
         these tasks. Capture continues writing rows; the prune
         never runs; disk grows until paged. Archived objects likewise
         accumulate forever instead of purging after the retention window.
-        The default config carries both entries; this check makes the
+        The default config carries all three entries; this check makes the
         misconfiguration visible in the deploy log before disk pressure
         makes it visible at 03:00.
 
@@ -946,7 +956,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             return  # Celery disabled entirely; no retention task to warn about.
         if isinstance(celery_config, str):
             return  # Celery resolves dotted config references in its loader.
-        beat_schedule = (
+        beat_schedule: Any = (
             celery_config.get("beat_schedule")
             if isinstance(celery_config, dict)
             else getattr(celery_config, "beat_schedule", None)
@@ -964,7 +974,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             if isinstance(celery_imports, (list, tuple, set, frozenset))
             else ()
         )
-        imports_configured = celery_imports is not None
+        imports_configured: bool = celery_imports is not None
         # Match on the ``task`` each entry runs, not the schedule entry key:
         # an operator may register the retention task under any key (e.g.
         # ``{"prune_versions": {"task": "version_history.prune_old_versions"}}``),
@@ -992,11 +1002,26 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
                 "CeleryConfig or add the module to your override.",
                 self._RETENTION_TASK_MODULE,
             )
-        default_flags = self.config.get("DEFAULT_FEATURE_FLAGS", {})
-        configured_flags = self.config.get("FEATURE_FLAGS", {})
-        soft_delete_enabled = bool(
+        default_flags: dict[str, Any] = self.config.get("DEFAULT_FEATURE_FLAGS", {})
+        configured_flags: dict[str, Any] = self.config.get("FEATURE_FLAGS", {})
+        soft_delete_enabled: bool = bool(
             configured_flags.get("SOFT_DELETE", default_flags.get("SOFT_DELETE", False))
         )
+        audit_pruning_switch: Any = self.config.get(
+            "PURGE_AUDIT_PRUNING_ENABLED", False
+        )
+        if not isinstance(audit_pruning_switch, bool):
+            # The task fails closed on anything but the literal True, so a
+            # typo such as "true" or 1 silently leaves the audit log
+            # growing. Surface it here, where the operator is looking.
+            logger.warning(
+                "soft-delete: PURGE_AUDIT_PRUNING_ENABLED=%r is not a boolean — "
+                "audit pruning stays disabled (the prune task removes nothing "
+                "unless the value is exactly True) and the purge audit log "
+                "will grow without bound. Set it to True or False.",
+                audit_pruning_switch,
+            )
+        audit_pruning_enabled: bool = audit_pruning_switch is True
         if soft_delete_enabled and (
             not beat_schedule or self._PURGE_TASK_NAME not in registered_tasks
         ):
@@ -1020,6 +1045,30 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
                 "module to your override.",
                 self._PURGE_TASK_MODULE,
             )
+        if audit_pruning_enabled and (
+            not beat_schedule or self._PRUNE_AUDIT_TASK_NAME not in registered_tasks
+        ):
+            logger.warning(
+                "soft-delete: CELERY_CONFIG.beat_schedule is missing the "
+                "%r entry — the purge audit log will never be pruned and "
+                "will grow without bound. Either inherit from the default "
+                "CeleryConfig or add the entry to your override.",
+                self._PRUNE_AUDIT_TASK_NAME,
+            )
+        if (
+            audit_pruning_enabled
+            and imports_configured
+            and self._PURGE_TASK_MODULE not in imported_modules
+            and not soft_delete_enabled
+        ):
+            logger.warning(
+                "soft-delete: CELERY_CONFIG.imports is missing %r — workers "
+                "will not register the audit-prune task, so a scheduled run "
+                "fails with NotRegistered and the purge audit log grows "
+                "without bound. Either inherit from the default CeleryConfig "
+                "or add the module to your override.",
+                self._PURGE_TASK_MODULE,
+            )
 
     def init_app_in_ctx(self) -> None:
         """
@@ -1030,10 +1079,10 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         self.configure_url_map_converters()
         self.configure_data_sources()
         self.configure_auth_provider()
-        self.configure_async_queries()
         self.configure_ssh_manager()
         self.configure_stats_manager()
         self.configure_task_manager()
+        self.configure_websocket()
 
         # Hook that provides administrators a handle on the Flask APP
         # after initialization
@@ -1121,31 +1170,86 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         )
         sys.exit(1)
 
-    def check_async_query_secret(self) -> None:
-        """Refuse to start with the default async JWT secret when GAQ is enabled."""
-        if not feature_flag_manager.is_feature_enabled("GLOBAL_ASYNC_QUERIES"):
+    def check_websocket_secret(self) -> None:
+        """Refuse to start with a default/weak websocket JWT secret when enabled."""
+        if not self.config.get("WEBSOCKET_ENABLE"):
             return
-        if (
-            self.config.get("GLOBAL_ASYNC_QUERIES_JWT_SECRET")
-            != CHANGE_ME_GLOBAL_ASYNC_QUERIES_JWT_SECRET
-        ):
+        secret = self.config.get("WEBSOCKET_JWT_SECRET") or ""
+        if secret != CHANGE_ME_WEBSOCKET_JWT_SECRET and len(secret) >= 32:
             return
         self._log_config_warning(
-            "GLOBAL_ASYNC_QUERIES is enabled but GLOBAL_ASYNC_QUERIES_JWT_SECRET "
-            "has not been changed from its default value.\n"
-            "The default value is publicly known and must be replaced before "
-            "running in production.\n"
-            "Set a strong random value (at least 32 bytes) in superset_config.py:\n"
-            "  GLOBAL_ASYNC_QUERIES_JWT_SECRET = "
-            "'<output of: openssl rand -base64 42>'"
+            "WEBSOCKET_ENABLE is on but WEBSOCKET_JWT_SECRET is the default "
+            "placeholder or shorter than 32 bytes.\n"
+            "The default is publicly known; a weak secret lets an attacker forge "
+            "channel tokens and subscribe to another user's private channel.\n"
+            "Set a strong random value in superset_config.py:\n"
+            "  WEBSOCKET_JWT_SECRET = '<output of: openssl rand -base64 42>'"
         )
         if self.superset_app.debug or self.superset_app.config["TESTING"] or is_test():
             return
         logger.error(
-            "Refusing to start: insecure GLOBAL_ASYNC_QUERIES_JWT_SECRET "
-            "with GLOBAL_ASYNC_QUERIES enabled"
+            "Refusing to start: insecure WEBSOCKET_JWT_SECRET with WEBSOCKET_ENABLE"
         )
         sys.exit(1)
+
+    def check_encryption_engine(self) -> None:
+        """Warn when app-encrypted fields use the legacy AES-CBC engine.
+
+        ``SQLALCHEMY_ENCRYPTED_FIELD_ENGINE`` defaults to ``"aes"`` for backward
+        compatibility: every secret an existing install has ever written through
+        this mechanism (database passwords, SSH tunnel credentials, OAuth2
+        tokens, and similar) is stored in that engine's ciphertext format, and
+        there is no per-value marker recording which engine produced it — the
+        engine is a single, global setting shared by every encrypted column.
+
+        Unlike ``check_secret_key`` and its siblings, this never refuses to
+        start. ``"aes"`` is a working, still-supported configuration, not a
+        known-bad placeholder value: blocking startup on it would turn an
+        opt-in hardening step into a forced-migration outage for every
+        deployment that has not yet run the engine migration. It only warns,
+        on every boot, so operators have a documented path to the
+        authenticated ``"aes-gcm"`` engine (see ``superset re-encrypt-secrets``
+        and ``docs/sip/authenticated-encryption-at-rest.md``).
+        """
+        # pylint: disable=import-outside-toplevel
+        from superset.utils.encrypt import (
+            BackwardCompatibleAesEngine,
+            DEFAULT_ENCRYPTION_ENGINE_NAME,
+            resolve_encryption_engine,
+        )
+
+        engine_name = self.config.get(
+            "SQLALCHEMY_ENCRYPTED_FIELD_ENGINE", DEFAULT_ENCRYPTION_ENGINE_NAME
+        )
+        try:
+            engine_cls = resolve_encryption_engine(engine_name)
+        except ValueError:
+            # An unrecognized value already fails closed at field construction
+            # (see ``resolve_encryption_engine``); nothing more to warn about.
+            return
+        # "aes" resolves to BackwardCompatibleAesEngine (see superset.utils.encrypt),
+        # not the raw sqlalchemy_utils AesEngine, so check against that subclass.
+        if engine_cls is not BackwardCompatibleAesEngine:
+            return
+        self._log_config_warning(
+            "SQLALCHEMY_ENCRYPTED_FIELD_ENGINE is set to the legacy 'aes' "
+            "engine (AES-CBC, unauthenticated). App-encrypted fields — "
+            "database passwords, SSH tunnel credentials, OAuth2 tokens, and "
+            "similar — would benefit from the authenticated 'aes-gcm' engine "
+            "instead.\n"
+            "Switching engines on a populated database requires "
+            "re-encrypting existing values first, since the two ciphertext "
+            "formats are not interchangeable:\n"
+            "  1. Back up the metadata database.\n"
+            "  2. superset re-encrypt-secrets --engine aes-gcm\n"
+            "  3. Set SQLALCHEMY_ENCRYPTED_FIELD_ENGINE = 'aes-gcm' in "
+            "superset_config.py.\n"
+            "  4. Restart Superset, then re-run the command above once more "
+            "to sweep up any values written during the cutover.\n"
+            "See UPDATING.md and "
+            "docs/sip/authenticated-encryption-at-rest.md for the full "
+            "runbook."
+        )
 
     def configure_session(self) -> None:
         if self.config["SESSION_SERVER_SIDE"]:
@@ -1227,7 +1331,10 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
                     default=json.pessimistic_json_iso_dttm_ser,
                 )
 
-            return {"bootstrap_data": serialize_bootstrap_data}
+            return {
+                "bootstrap_data": serialize_bootstrap_data,
+                "is_feature_enabled": feature_flag_manager.is_feature_enabled,
+            }
 
     def check_and_warn_database_connection(self) -> None:
         """Check database connection and warn if unavailable"""
@@ -1268,7 +1375,8 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         # conditionally
         self.configure_feature_flags()
         self.check_guest_token_secret()
-        self.check_async_query_secret()
+        self.check_websocket_secret()
+        self.check_encryption_engine()
         self.configure_db_encrypt()
         self.setup_db()
 
@@ -1285,6 +1393,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         self.configure_cache()
         self.set_db_default_isolation()
         self.configure_sqlglot_dialects()
+        self.configure_extra_post_processing_ops()
 
         with self.superset_app.app_context():
             self.init_app_in_ctx()
@@ -1317,7 +1426,15 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
                 set_isolation_level_to,
             )
             with self.superset_app.app_context():
-                db.engine.execution_options(isolation_level=set_isolation_level_to)
+                # update_execution_options mutates the engine in place.
+                # Its generative sibling execution_options() returns a NEW
+                # engine and leaves this one untouched — using it here
+                # silently discarded the isolation default for years,
+                # leaving MySQL deployments on InnoDB's REPEATABLE READ
+                # while this method logged the opposite (sc-120480).
+                db.engine.update_execution_options(
+                    isolation_level=set_isolation_level_to
+                )
 
     def configure_auth_provider(self) -> None:
         machine_auth_provider_factory.init_app(self.superset_app)
@@ -1357,6 +1474,22 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             extensions = extensions()
 
         SQLGLOT_DIALECTS.update(extensions)
+
+    def configure_extra_post_processing_ops(self) -> None:
+        from superset.utils.pandas_postprocessing import (
+            __all__ as builtin_ops,
+            build_extra_ops_map,
+        )
+
+        extra = self.config.get("EXTRA_PANDAS_POSTPROCESSING_OPS", [])
+        for name in build_extra_ops_map(extra):
+            if name in builtin_ops:
+                logger.warning(
+                    "EXTRA_PANDAS_POSTPROCESSING_OPS: '%s' conflicts with a "
+                    "built-in post-processing operation and will never fire. "
+                    "Rename the custom function to avoid the conflict.",
+                    name,
+                )
 
     @transaction()
     def configure_fab(self) -> None:
@@ -1532,26 +1665,19 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             for ex in csrf_exempt_list:
                 csrf.exempt(ex)
 
-    def configure_async_queries(self) -> None:
-        if feature_flag_manager.is_feature_enabled("GLOBAL_ASYNC_QUERIES"):
-            # In production, check_async_query_secret() already aborts startup when
-            # the default secret is present, so this branch is never reached with it.
-            # In debug/testing the check only warns, so skip async-query init here to
-            # avoid AsyncQueryManager.init_app() hard-failing on the too-short default
-            # secret and crashing startup despite the warn-only intent.
-            if (
-                self.config.get("GLOBAL_ASYNC_QUERIES_JWT_SECRET")
-                == CHANGE_ME_GLOBAL_ASYNC_QUERIES_JWT_SECRET
-            ):
-                return
-            async_query_manager_factory.init_app(self.superset_app)
-
     def configure_task_manager(self) -> None:
         """Initialize the TaskManager for GTF realtime notifications."""
         if feature_flag_manager.is_feature_enabled("GLOBAL_TASK_FRAMEWORK"):
             from superset.tasks.manager import TaskManager
 
             TaskManager.init_app(self.superset_app)
+
+    def configure_websocket(self) -> None:
+        """Mint the websocket channel-token cookie when the transport is enabled."""
+        if self.config.get("WEBSOCKET_ENABLE"):
+            from superset.websocket.channel import register_ws_channel_cookie
+
+            register_ws_channel_cookie(self.superset_app)
 
     def register_blueprints(self) -> None:
         # Register custom blueprints from config

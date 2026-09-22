@@ -15,9 +15,13 @@
 # specific language governing permissions and limitations
 # under the License.
 import gzip
+import io
+import ipaddress
 import logging
 import os
 import re
+import socket
+from http.client import HTTPConnection, HTTPResponse, HTTPSConnection
 from typing import Any
 from urllib import request
 from urllib.parse import urljoin, urlparse
@@ -25,6 +29,7 @@ from urllib.request import HTTPRedirectHandler
 
 import pandas as pd
 from flask import current_app as app
+from jinja2.exceptions import TemplateError
 from pandas.errors import OutOfBoundsDatetime
 from sqlalchemy import BigInteger, Boolean, Date, DateTime, Float, String, Text
 from sqlalchemy.exc import MultipleResultsFound
@@ -37,17 +42,21 @@ from superset.commands.dataset.exceptions import (
     MultiCatalogDisabledValidationError,
 )
 from superset.commands.exceptions import ImportFailedError
-from superset.commands.importers.v1.utils import find_existing_for_import
+from superset.commands.importers.exceptions import IncorrectFormatError
+from superset.commands.importers.v1.utils import (
+    find_existing_by_import_identity,
+    find_existing_for_import,
+)
 from superset.connectors.sqla.models import SqlaTable
 from superset.constants import SKIP_VISIBILITY_FILTER_CLASSES
 from superset.daos.dataset import DatasetDAO
-from superset.exceptions import SupersetSecurityException
+from superset.exceptions import SupersetParseError, SupersetSecurityException
 from superset.models.core import Database
 from superset.models.helpers import ChildMultipleResultsFound
 from superset.sql.parse import Table
 from superset.utils import json
 from superset.utils.core import get_user
-from superset.utils.network import is_safe_host
+from superset.utils.network import is_safe_host, is_safe_ip
 
 logger = logging.getLogger(__name__)
 
@@ -74,6 +83,47 @@ class _ValidatingRedirectHandler(HTTPRedirectHandler):
         absolute_url = urljoin(req.full_url, newurl)
         validate_data_uri(absolute_url)
         return super().redirect_request(req, fp, code, msg, headers, newurl)
+
+
+def _raise_for_unsafe_peer(sock: socket.socket) -> None:
+    """
+    Validate that an established connection's actual peer is publicly
+    routable, so the address reached matches the policy applied to the host.
+    """
+    peer = sock.getpeername()[0]
+    if not is_safe_ip(ipaddress.ip_address(peer)):
+        raise DatasetForbiddenDataURI()
+
+
+class _PeerValidatingHTTPConnection(HTTPConnection):
+    """HTTP connection that validates the peer address on connect."""
+
+    def connect(self) -> None:
+        super().connect()
+        _raise_for_unsafe_peer(self.sock)
+
+
+class _PeerValidatingHTTPSConnection(HTTPSConnection):
+    """HTTPS connection that validates the peer address after the handshake."""
+
+    def connect(self) -> None:
+        super().connect()
+        _raise_for_unsafe_peer(self.sock)
+
+
+class _PeerValidatingHTTPHandler(request.HTTPHandler):
+    """Opens HTTP connections through the peer-validating connection class."""
+
+    def http_open(self, req: request.Request) -> HTTPResponse:
+        return self.do_open(_PeerValidatingHTTPConnection, req)
+
+
+class _PeerValidatingHTTPSHandler(request.HTTPSHandler):
+    """Opens HTTPS connections through the peer-validating connection class."""
+
+    def https_open(self, req: request.Request) -> HTTPResponse:
+        context = self._context  # type: ignore[attr-defined]
+        return self.do_open(_PeerValidatingHTTPSConnection, req, context=context)
 
 
 CHUNKSIZE = 512
@@ -198,6 +248,25 @@ def validate_catalog(config: dict[str, Any]) -> None:
         raise MultiCatalogDisabledValidationError()
 
 
+def _get_template_params(dataset: SqlaTable) -> dict[str, Any]:
+    """
+    Return a dataset's template params as a dict for the access check.
+
+    Delegates to ``template_params_dict`` so the check reads the params the
+    same way rendering does, but tolerates the two inputs that property does
+    not guard: it raises on malformed JSON and passes non-dict JSON through.
+    Either yields an empty dict so the check still runs against the raw SQL.
+    """
+    try:
+        params = dataset.template_params_dict
+    except json.JSONDecodeError:
+        logger.warning(
+            "Unable to decode template_params for dataset %s", dataset.table_name
+        )
+        return {}
+    return params if isinstance(params, dict) else {}
+
+
 def import_dataset(  # noqa: C901
     config: dict[str, Any],
     overwrite: bool = False,
@@ -248,7 +317,15 @@ def import_dataset(  # noqa: C901
     # implicit-restore re-import is a clean replacement, not a merge.
     is_soft_deleted_match = False
 
-    if existing := find_existing_for_import(SqlaTable, config["uuid"]):
+    existing = find_existing_for_import(SqlaTable, config["uuid"])
+    if not existing and can_write:
+        # A fresh UUID over the (database, catalog, schema, table) identity of
+        # an existing dataset is still matched-and-updated by
+        # ``import_from_dict``, so resolving only the UUID would leave that
+        # update ungated. Resolve the identity the same way the import will.
+        # (Soft-deleted twins are handled in the create branch further down.)
+        existing = find_existing_by_import_identity(SqlaTable, config)
+    if existing:
         if existing.deleted_at is not None:
             # RESTORE path — re-importing a soft-deleted UUID is an implicit
             # restore-with-update, a distinct operation from overwriting an
@@ -475,10 +552,8 @@ def import_dataset(  # noqa: C901
         # raise so the operator can resolve the legacy-NULL-schema
         # ambiguity before re-uploading.
         if is_soft_deleted_match:
-            # ``is_soft_deleted_match`` is only ever set inside the
-            # ``if existing := ...`` walrus block, so ``existing`` is
-            # guaranteed non-None here. The assert pins the invariant
-            # for mypy.
+            # Set only inside the ``if existing:`` block above; the assert
+            # pins that invariant for mypy.
             assert existing is not None
             existing.deleted_at = original_deleted_at
             db.session.flush()
@@ -489,17 +564,20 @@ def import_dataset(  # noqa: C901
                 "manually before retrying."
             ) from ex
         # On the non-soft-deleted overwrite path the legacy contract
-        # holds: return the existing row unmodified. Bypasses the
-        # visibility filter so a soft-deleted duplicate can be located
-        # too — without the bypass the listener would hide the row and
-        # the ``.one()`` would raise NoResultFound, masking the
-        # original MultipleResultsFound.
-        dataset = (
-            db.session.query(SqlaTable)
-            .execution_options(**{SKIP_VISIBILITY_FILTER_CLASSES: {SqlaTable}})
-            .filter_by(uuid=config["uuid"])
-            .one()
-        )
+        # holds: return the existing row unmodified. Prefer the row already
+        # resolved above — on an identity match the incoming uuid belongs to
+        # no row at all, so looking it up again would raise NoResultFound and
+        # mask the original MultipleResultsFound. Falling back to the uuid
+        # lookup bypasses the visibility filter so a soft-deleted duplicate
+        # can still be located, for the same reason.
+        dataset = existing
+        if dataset is None:
+            dataset = (
+                db.session.query(SqlaTable)
+                .execution_options(**{SKIP_VISIBILITY_FILTER_CLASSES: {SqlaTable}})
+                .filter_by(uuid=config["uuid"])
+                .one()
+            )
 
     if dataset.id is None:
         db.session.flush()
@@ -507,22 +585,55 @@ def import_dataset(  # noqa: C901
     if not ignore_permissions:
         try:
             security_manager.raise_for_access(datasource=dataset)
+            # For virtual datasets, also validate access to the tables the
+            # SQL references, matching the create and update commands.
+            if dataset.sql:
+                security_manager.raise_for_access(
+                    database=dataset.database,
+                    sql=dataset.sql,
+                    # Empty strings would qualify table names against a
+                    # nonexistent catalog/schema, so they are normalized to
+                    # None to let the check fall back to the defaults.
+                    catalog=dataset.catalog or None,
+                    schema=dataset.schema or None,
+                    # Jinja-templated SQL only reveals the tables it really
+                    # references once the params are applied, so they are
+                    # forwarded rather than left to default to empty.
+                    template_params=_get_template_params(dataset),
+                )
         except SupersetSecurityException as ex:
             raise DatasetAccessDeniedError() from ex
+        # SQL that can't be parsed or rendered can't be access-checked, so fail
+        # closed, but as an invalid payload (422) rather than an access denial
+        # or a server error.
+        except SupersetParseError as ex:
+            raise IncorrectFormatError(f"Invalid SQL: {ex.error.message}") from ex
+        except TemplateError as ex:
+            raise IncorrectFormatError(f"Invalid SQL: {ex}") from ex
 
-    try:
-        table_exists = dataset.database.has_table(
-            Table(dataset.table_name, dataset.schema, dataset.catalog),
-        )
-    except Exception:  # pylint: disable=broad-except
-        # MySQL doesn't play nice with GSheets table names
-        logger.warning(
-            "Couldn't check if table %s exists, assuming it does", dataset.table_name
-        )
-        table_exists = True
+    # `has_table` opens a live connection to the target database to run a
+    # schema-introspection query. Its result is only ever consulted below to
+    # decide whether to call `load_data`, which itself is a no-op unless
+    # `data_uri` is set - so for imports that don't carry inline data (the
+    # common case when bulk-importing dataset *metadata*, e.g. hundreds of
+    # datasets at once), this was an unconditional, unnecessary round trip
+    # to every target database on every single dataset, and a major
+    # contributor to bulk imports timing out.
+    if data_uri:
+        try:
+            table_exists = dataset.database.has_table(
+                Table(dataset.table_name, dataset.schema, dataset.catalog),
+            )
+        except Exception:  # pylint: disable=broad-except
+            # MySQL doesn't play nice with GSheets table names
+            logger.warning(
+                "Couldn't check if table %s exists, assuming it does",
+                dataset.table_name,
+            )
+            table_exists = True
 
-    if data_uri and (not table_exists or force_data):
-        load_data(data_uri, dataset, dataset.database)
+        if not table_exists or force_data:
+            load_data(data_uri, dataset, dataset.database)
 
     if user:
         from superset.subjects.utils import get_user_subject
@@ -567,6 +678,29 @@ def _convert_temporal_columns(df: pd.DataFrame, dtype: dict[str, Any]) -> None:
                 df[column_name] = converted
 
 
+def _read_bounded(stream: Any, max_bytes: int) -> io.BytesIO:
+    """
+    Read ``stream`` into memory, failing once more than ``max_bytes`` bytes
+    have been produced.
+
+    Bounds both the raw download and gzip decompression amplification for
+    dataset data URIs: the ``.gz`` path had no analogue of
+    ``check_is_safe_zip`` and allowed unbounded expansion from a small
+    payload.
+    """
+    buffer = io.BytesIO()
+    while chunk := stream.read(1024 * 1024):
+        # Both http.client responses and gzip.open() yield bytes; a handful
+        # of tests substitute a text stream, so normalize either shape.
+        if isinstance(chunk, str):
+            chunk = chunk.encode("utf-8")
+        buffer.write(chunk)
+        if buffer.tell() > max_bytes:
+            raise ImportFailedError("Data URI payload exceeds the maximum allowed size")
+    buffer.seek(0)
+    return buffer
+
+
 def load_data(data_uri: str, dataset: SqlaTable, database: Database) -> None:
     """
     Load data from a data URI into a dataset.
@@ -581,11 +715,27 @@ def load_data(data_uri: str, dataset: SqlaTable, database: Database) -> None:
 
     validate_data_uri(data_uri)
     logger.info("Downloading data from %s", data_uri)
-    opener = request.build_opener(_ValidatingRedirectHandler)
+    handlers: list[request.BaseHandler | type[request.BaseHandler]] = [
+        _ValidatingRedirectHandler
+    ]
+    if not app.config["DATASET_IMPORT_ALLOW_INTERNAL_DATA_URLS"]:
+        # Also enforce the policy at the socket layer: re-check the peer of
+        # every connection, including each redirect hop. Disable proxies so the
+        # connection is made directly to the destination and the peer check
+        # validates the destination address rather than a proxy's.
+        handlers.append(request.ProxyHandler({}))
+        handlers.extend([_PeerValidatingHTTPHandler, _PeerValidatingHTTPSHandler])
+    opener = request.build_opener(*handlers)
     data = opener.open(data_uri)  # pylint: disable=consider-using-with  # noqa: S310
+    # Cap the bytes materialized from the download, before and after gzip
+    # decompression (same per-file knob as ZIP bundle uploads): a gzip
+    # stream can carry oversized headers, trailing data, or additional
+    # members that would otherwise let the raw (compressed) download exceed
+    # the limit even when the decompressed CSV stays within it.
+    max_bytes = app.config["ZIPPED_FILE_MAX_SIZE"]
     if data_uri.endswith(".gz"):
-        data = gzip.open(data)
-    df = pd.read_csv(data, encoding="utf-8")
+        data = gzip.open(_read_bounded(data, max_bytes))
+    df = pd.read_csv(_read_bounded(data, max_bytes), encoding="utf-8")
     dtype = get_dtype(df, dataset)
 
     _convert_temporal_columns(df, dtype)

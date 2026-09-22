@@ -245,6 +245,11 @@ def test_database_connection(
                 "supports_oauth2": True,
                 "supports_offset": True,
                 "supports_schemas": True,
+                "identifier_quote": {
+                    "start": '"',
+                    "end": '"',
+                    "escape_by_doubling": True,
+                },
             },
             "expose_in_sqllab": True,
             "extra": '{\n    "metadata_params": {},\n    "engine_params": {},\n    "metadata_cache_timeout": {},\n    "schemas_allowed_for_file_upload": []\n}\n',  # noqa: E501
@@ -336,6 +341,11 @@ def test_database_connection(
                 "supports_oauth2": True,
                 "supports_offset": True,
                 "supports_schemas": True,
+                "identifier_quote": {
+                    "start": '"',
+                    "end": '"',
+                    "escape_by_doubling": True,
+                },
             },
             "expose_in_sqllab": True,
             "force_ctas_schema": None,
@@ -345,6 +355,83 @@ def test_database_connection(
             "uuid": "02feae18-2dd6-4bb4-a9c0-49e9d4f29d58",
         },
     }
+
+
+@pytest.mark.parametrize("full_payload", [False, True])
+@pytest.mark.parametrize("change", [None, "password", "database_name"])
+@pytest.mark.parametrize("with_tunnel", [False, True])
+def test_update_unreachable_database(
+    mocker: MockerFixture,
+    session: Session,
+    client: Any,
+    full_api_access: None,
+    full_payload: bool,
+    change: str | None,
+    with_tunnel: bool,
+) -> None:
+    """Persist offline metadata edits, but roll back changed credentials or names."""
+    from superset import security_manager
+    from superset.databases.api import DatabaseRestApi
+    from superset.databases.ssh_tunnel.models import SSHTunnel
+    from superset.models.core import Database
+
+    mocker.patch.object(DatabaseRestApi.datamodel, "_session", session)
+    Database.metadata.create_all(session.get_bind())  # pylint: disable=no-member
+    database = Database(
+        database_name="Druid",
+        expose_in_sqllab=True,
+        encrypted_extra='{"connect_args": {"jwt": "original-token"}}',
+    )
+    database.set_sqlalchemy_uri("druid://user:secret@localhost:8082/druid/v2/sql/")
+    if with_tunnel:
+        database.ssh_tunnel = SSHTunnel(
+            server_address="localhost",
+            server_port=22,
+            username="ssh-user",
+            password="ssh-secret",  # noqa: S106
+        )
+    session.add(database)
+    session.commit()
+    database_id = database.id
+
+    mocker.patch("superset.utils.log.DBEventLogger.log")
+    mocker.patch("superset.commands.database.update.get_username", return_value="admin")
+    mocker.patch.object(security_manager, "get_user_by_username")
+    mocker.patch.object(Database, "get_sqla_engine")
+    ping = mocker.patch(
+        "superset.commands.database.sync_permissions.ping",
+        side_effect=ConnectionError("Database unavailable"),
+    )
+    properties: dict[str, Any] = {}
+    if full_payload:
+        response = client.get(f"/api/v1/database/{database_id}/connection")
+        assert response.status_code == 200
+        properties = response.json["result"]
+    properties["expose_in_sqllab"] = False
+    if change == "password":
+        properties["sqlalchemy_uri"] = (
+            "druid://user:changed@localhost:8082/druid/v2/sql/"
+        )
+    elif change == "database_name":
+        properties["database_name"] = "Renamed"
+
+    response = client.put(f"/api/v1/database/{database_id}", json=properties)
+
+    assert response.status_code == (422 if change else 200)
+    if change:
+        assert response.json == {
+            "message": "Connection failed, please check your connection settings"
+        }
+    session.expire_all()
+    stored = session.get(Database, database_id)
+    assert stored is not None
+    assert stored.expose_in_sqllab is bool(change)
+    assert stored.database_name == "Druid"
+    assert stored.password == "secret"  # noqa: S105
+    assert json.loads(stored.encrypted_extra)["connect_args"]["jwt"] == "original-token"
+    if with_tunnel:
+        assert stored.ssh_tunnel.password == "ssh-secret"  # noqa: S105
+    ping.assert_called_once()
 
 
 @pytest.mark.skip(reason="Works locally but fails on CI")
@@ -700,6 +787,10 @@ def test_oauth2_happy_path(
         return_value=None,
     )
 
+    mocker.patch(
+        "superset.commands.database.oauth2.get_user_id",
+        return_value=1,
+    )
     state: OAuth2State = {
         "user_id": 1,
         "database_id": 1,
@@ -776,6 +867,10 @@ def test_oauth2_permissions(
         return_value=None,
     )
 
+    mocker.patch(
+        "superset.commands.database.oauth2.get_user_id",
+        return_value=1,
+    )
     state: OAuth2State = {
         "user_id": 1,
         "database_id": 1,
@@ -857,6 +952,10 @@ def test_oauth2_multiple_tokens(
         return_value=None,
     )
 
+    mocker.patch(
+        "superset.commands.database.oauth2.get_user_id",
+        return_value=1,
+    )
     state: OAuth2State = {
         "user_id": 1,
         "database_id": 1,
@@ -930,6 +1029,58 @@ def test_oauth2_error(
                 "file": (create_csv_file(), "out.csv"),
                 "table_name": "table1",
                 "delimiter": ",",
+            },
+            (
+                1,
+                "table1",
+                ANY,
+                None,
+                ANY,
+            ),
+            (
+                {
+                    "type": "csv",
+                    "already_exists": "fail",
+                    "delimiter": ",",
+                    "file": ANY,
+                    "table_name": "table1",
+                },
+            ),
+        ),
+        (
+            # an unset schema stringified by a broken client must be treated
+            # as absent (see #36305)
+            {
+                "type": "csv",
+                "file": (create_csv_file(), "out.csv"),
+                "table_name": "table1",
+                "delimiter": ",",
+                "schema": "undefined",
+            },
+            (
+                1,
+                "table1",
+                ANY,
+                None,
+                ANY,
+            ),
+            (
+                {
+                    "type": "csv",
+                    "already_exists": "fail",
+                    "delimiter": ",",
+                    "file": ANY,
+                    "table_name": "table1",
+                },
+            ),
+        ),
+        (
+            {
+                "type": "csv",
+                "file": (create_csv_file(), "out.csv"),
+                "table_name": "table1",
+                "delimiter": ",",
+                "schema": "",
             },
             (
                 1,
@@ -1043,6 +1194,38 @@ def test_csv_upload(
     assert response.json == {"message": "OK"}
     init_mock.assert_called_with(*upload_called_with)
     reader_mock.assert_called_with(*reader_called_with)
+
+
+@pytest.mark.parametrize(
+    "schema_in,schema_out",
+    [
+        ("", None),
+        ("  ", None),
+        ("undefined", None),
+        ("null", None),
+        (None, None),
+        # only the exact JS stringification artifacts are dropped — a quoted
+        # schema actually named ``NULL``/``Undefined`` or an identifier with
+        # surrounding whitespace is preserved verbatim
+        ("NULL", "NULL"),
+        ("Undefined", "Undefined"),
+        (" public ", " public "),
+        ("myschema", "myschema"),
+    ],
+)
+def test_upload_post_schema_normalizes_schema(
+    schema_in: str | None,
+    schema_out: str | None,
+) -> None:
+    """
+    Empty/whitespace-only values and the exact stringified-unset artifacts
+    ("undefined"/"null") are dropped; every other value is preserved verbatim.
+    """
+    from superset.databases.schemas import UploadPostSchema
+
+    data = {} if schema_in is None else {"schema": schema_in}
+    result = UploadPostSchema().load(data, partial=True)
+    assert result.get("schema") == schema_out
 
 
 @pytest.mark.parametrize(

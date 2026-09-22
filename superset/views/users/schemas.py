@@ -14,17 +14,22 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from typing import Any
+
 from flask_appbuilder.security.sqla.apis.user.schema import User
 from flask_appbuilder.security.sqla.apis.user.validator import (
     PasswordComplexityValidator,
 )
-from marshmallow import fields, Schema
+from marshmallow import fields, Schema, validates_schema, ValidationError
 from marshmallow.fields import Boolean, Integer, String
 from marshmallow.validate import Length
 
 first_name_description = "The current user's first name"
 last_name_description = "The current user's last name"
 password_description = "The current user's password for authentication"  # noqa: S105
+# Required, and verified against the account's existing password, whenever
+# ``password`` is included in the payload.
+current_password_description = "The current user's existing password"  # noqa: S105
 
 
 class UserGroupSchema(Schema):
@@ -64,3 +69,24 @@ class CurrentUserPutSchema(Schema):
         validate=[PasswordComplexityValidator()],
         metadata={"description": password_description},
     )
+    current_password = fields.String(
+        required=False,
+        load_only=True,
+        metadata={"description": current_password_description},
+    )
+
+    @validates_schema
+    def validate_current_password_required_with_password(
+        self, data: dict[str, Any], **kwargs: object
+    ) -> None:
+        """Require ``current_password`` whenever ``password`` is being set.
+
+        This only checks that the field was supplied -- whether it actually
+        matches the account's existing password is verified against the
+        database in ``CurrentUserRestApi.pre_update``, which has access to
+        the user record this schema doesn't.
+        """
+        if data.get("password") and not data.get("current_password"):
+            raise ValidationError(
+                {"current_password": ["This field is required to change the password."]}
+            )

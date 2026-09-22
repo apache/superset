@@ -42,6 +42,7 @@ import {
 import { getDatasetByName } from '../../helpers/api/dataset';
 import { extractIdFromResponse } from '../../helpers/api/assertions';
 import { DashboardPage } from '../../pages/DashboardPage';
+import { TIMEOUT } from '../../utils/constants';
 import {
   buildFilterJsonMetadata,
   buildSelectFilter,
@@ -54,6 +55,11 @@ const FILTER_VALUE = 'boy';
 testWithAssets(
   'Mixed chart applies dashboard filter to both queries (#29519)',
   async ({ page, testAssets }) => {
+    // Four API round-trips of setup precede a full dashboard load with a
+    // preselected native filter, matching the other dashboard specs that build
+    // their fixtures over the API rather than importing them.
+    testWithAssets.setTimeout(TIMEOUT.SLOW_TEST);
+
     const dataset = await getDatasetByName(page, DATASET_NAME);
     if (!dataset) {
       throw new Error(`Dataset ${DATASET_NAME} not found`);

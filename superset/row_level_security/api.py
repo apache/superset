@@ -237,6 +237,8 @@ class RLSRestApi(BaseSupersetModelRestApi):
                 exc_info=True,
             )
             return self.response_422(message=str(ex))
+        except ValidationError as error:
+            return self.response_422(message=error.messages)
         except RLSDatasourceForbiddenError as ex:
             logger.warning(
                 "Forbidden datasource while creating RLS rule %s: %s",
@@ -330,6 +332,8 @@ class RLSRestApi(BaseSupersetModelRestApi):
                 exc_info=True,
             )
             return self.response_422(message=str(ex))
+        except ValidationError as error:
+            return self.response_422(message=error.messages)
         except RLSDatasourceForbiddenError as ex:
             logger.warning(
                 "Forbidden datasource while updating RLS rule %s: %s",

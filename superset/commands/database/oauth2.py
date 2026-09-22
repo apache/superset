@@ -15,11 +15,13 @@
 # specific language governing permissions and limitations
 # under the License.
 
+import logging
 from datetime import datetime, timedelta
 from functools import partial
 from typing import cast
 from uuid import UUID
 
+from superset import db, security_manager
 from superset.commands.base import BaseCommand
 from superset.commands.database.exceptions import DatabaseNotFoundError
 from superset.daos.database import DatabaseUserOAuth2TokensDAO
@@ -29,8 +31,11 @@ from superset.exceptions import OAuth2Error
 from superset.key_value.types import JsonKeyValueCodec, KeyValueResource
 from superset.models.core import Database, DatabaseUserOAuth2Tokens
 from superset.superset_typing import OAuth2State
+from superset.utils.core import get_user_id
 from superset.utils.decorators import on_error, transaction
 from superset.utils.oauth2 import decode_oauth2_state
+
+logger = logging.getLogger(__name__)
 
 
 class OAuth2StoreTokenCommand(BaseCommand):
@@ -71,11 +76,21 @@ class OAuth2StoreTokenCommand(BaseCommand):
                 code_verifier = kv_value.get("code_verifier")
                 KeyValueDAO.delete_entry(KeyValueResource.PKCE_CODE_VERIFIER, tab_uuid)
 
-        token_response = self._database.db_engine_spec.get_oauth2_token(
-            oauth2_config,
-            self._parameters["code"],
-            code_verifier=code_verifier,
-        )
+        engine_spec = self._database.db_engine_spec
+        try:
+            token_response = engine_spec.get_oauth2_token(
+                oauth2_config,
+                self._parameters["code"],
+                code_verifier=code_verifier,
+            )
+        except Exception as ex:
+            logger.error(
+                "OAuth2 token exchange failed: database_id=%s engine=%s error_type=%s",
+                self._database.id,
+                engine_spec.engine,
+                type(ex).__name__,
+            )
+            raise OAuth2Error("Token exchange failed") from None
 
         # delete old tokens
         if existing := DatabaseUserOAuth2TokensDAO.find_one_or_none(
@@ -83,6 +98,11 @@ class OAuth2StoreTokenCommand(BaseCommand):
             database_id=self._state["database_id"],
         ):
             DatabaseUserOAuth2TokensDAO.delete([existing])
+            # flush the delete before inserting the replacement -- the unit
+            # of work otherwise emits INSERTs before DELETEs within a single
+            # flush, which would trip the (user_id, database_id) unique
+            # index below on the old row.
+            db.session.flush()
 
         # store tokens
         expiration = datetime.now() + timedelta(seconds=token_response["expires_in"])
@@ -101,6 +121,14 @@ class OAuth2StoreTokenCommand(BaseCommand):
             raise OAuth2Error(error)
 
         self._state = decode_oauth2_state(self._parameters["state"])
+
+        # Bind the callback to the current session: require an authenticated,
+        # non-guest user whose id matches the one carried in the state.
+        user_id = get_user_id()
+        if user_id is None or security_manager.is_guest_user():
+            raise OAuth2Error("The OAuth2 callback requires an authenticated user")
+        if user_id != self._state["user_id"]:
+            raise OAuth2Error("The OAuth2 state belongs to a different user")
 
         if database := DatabaseUserOAuth2TokensDAO.get_database(
             self._state["database_id"]

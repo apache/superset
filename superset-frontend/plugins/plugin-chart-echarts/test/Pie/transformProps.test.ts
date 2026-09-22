@@ -311,6 +311,26 @@ describe('Pie label string template', () => {
     ).toEqual('Tablet:123,456\n55.50%');
   });
 
+  test('should format percentages using a percentage number format', () => {
+    expect(
+      format({
+        label_type: 'template',
+        label_template: '{name}:{value}\n{percent}',
+        number_format: '.1%',
+      }),
+    ).toEqual('Tablet:12345600.0%\n55.5%');
+  });
+
+  test('should use the default percentage format when number format is absent', () => {
+    expect(
+      format({
+        label_type: 'template',
+        label_template: '{name}:{value}\n{percent}',
+        number_format: undefined,
+      }),
+    ).toEqual('Tablet:123k\n55.50%');
+  });
+
   test('should be compatible with ECharts raw variable syntax', () => {
     expect(
       format({

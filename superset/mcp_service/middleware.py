@@ -19,6 +19,7 @@ import logging
 import re
 import secrets
 import time
+import warnings
 from contextvars import ContextVar
 from typing import Any, Awaitable, Callable, Sequence
 
@@ -41,6 +42,7 @@ from superset.exceptions import SupersetException, SupersetSecurityException
 from superset.extensions import event_logger, stats_logger_manager
 from superset.mcp_service.auth import (
     _get_app_context_manager,
+    _mcp_user_id_var,
     get_user_from_request,
     is_tool_visible_to_current_user,
     MCPNoAuthSourceError,
@@ -52,12 +54,17 @@ from superset.mcp_service.constants import (
     DEFAULT_WARN_THRESHOLD_PCT,
 )
 from superset.mcp_service.utils.token_utils import (
+    COMMITTED_WRITE_SPECS,
+    COMMITTED_WRITE_TOOLS,
+    CommittedWriteSpec,
     DATA_QUERY_TOOLS,
     estimate_response_tokens,
     format_size_limit_error,
     INFO_TOOLS,
+    STRING_FIELD_TRUNCATION_TOOLS,
     truncate_oversized_response,
     truncate_query_result,
+    truncate_string_field_response,
 )
 from superset.utils.core import get_user_id
 
@@ -68,6 +75,43 @@ _mcp_call_id_var: ContextVar[str | None] = ContextVar("mcp_call_id", default=Non
 # Matches registered tool names (snake_case, plus dots for extension-prefixed
 # tools) while rejecting StatsD metadata characters and unbounded lengths.
 _METRIC_TOOL_NAME_RE = re.compile(r"[A-Za-z0-9_][A-Za-z0-9_.\-]{0,127}")
+
+# Character cap for the free-form string fields kept in a minimal committed-write
+# confirmation (see ``_shrink_minimal_response``). Generous enough to keep a
+# chart name or a short error readable, small enough that the whole confirmation
+# stays bounded no matter how large the fields were in the original payload.
+_MINIMAL_FIELD_CHARS = 200
+
+# Bound both list overhead and total string content in write confirmations.
+_MINIMAL_LIST_ITEMS = 20
+
+# Identifying fields kept when a structured ``error`` has to be reduced to fit
+# (see ``_clip_error``). Everything else on ``MCPBaseError`` and its subclasses
+# is an unbounded container -- ``validation_errors``, ``dataset_context``,
+# ``query_info``, ``suggestions`` -- any of which can dwarf the write
+# confirmation it is riding on. ``error`` mirrors ``message`` as a
+# backward-compatible alias, so both are kept.
+_MINIMAL_ERROR_FIELDS = ("error_type", "error", "message", "error_code", "details")
+
+# Scalar fields kept when a committed write's identifying object (a nested
+# ``chart``/``dashboard``/``metric`` dict) has to be reduced to fit. These are
+# the names across the info models that answer "what was written" --
+# everything else on them is either unbounded or irrelevant to that question.
+# ``is_unsaved_state`` is here because update_chart defaults to
+# ``generate_preview=True`` and then persists nothing, so it is the caller's
+# only in-band way to tell a cached preview from a persisted write.
+_MINIMAL_IDENTITY_FIELDS = (
+    "id",
+    "uuid",
+    "url",
+    "slice_name",
+    "dashboard_title",
+    "metric_name",
+    "table_name",
+    "dataset_name",
+    "label",
+    "is_unsaved_state",
+)
 
 
 def _sanitize_error_for_logging(error: Exception) -> str:
@@ -217,18 +261,30 @@ _SENSITIVE_PARAM_KEYS = frozenset(
 )
 
 
+def _sanitize_value(value: Any) -> Any:
+    """Apply ``_sanitize_params`` recursively to any dict/list container."""
+    if isinstance(value, dict):
+        return _sanitize_params(value)
+    if isinstance(value, list):
+        return [_sanitize_value(item) for item in value]
+    return value
+
+
 def _sanitize_params(params: dict[str, Any]) -> dict[str, Any]:
-    """Remove sensitive fields from params before logging."""
+    """Remove sensitive fields from params before logging.
+
+    Recurses into nested containers, including lists of lists, so sensitive
+    keys are redacted no matter which wrapper they arrive under
+    (``arguments``, ``request``, etc.).
+    """
     if not isinstance(params, dict):
         return params
     result: dict[str, Any] = {}
     for k, v in params.items():
         if k.lower() in _SENSITIVE_PARAM_KEYS:
             result[k] = "[REDACTED]"
-        elif k == "arguments" and isinstance(v, dict):
-            result[k] = _sanitize_params(v)
         else:
-            result[k] = v
+            result[k] = _sanitize_value(v)
     return result
 
 
@@ -625,6 +681,24 @@ class LoggingMiddleware(Middleware):
             success = False
             raise
         finally:
+            # user_id was captured before call_next() ran the tool, i.e.
+            # before the @tool auth decorator (superset/mcp_service/auth.py)
+            # resolves the user. It sets g.user on a per-call app context
+            # that _get_app_context_manager() pushes and pops around the
+            # tool's execution (see its docstring), so g.user/get_user_id()
+            # are back to their pre-call state by the time we get here —
+            # re-reading get_user_id() would still yield the stale value.
+            # _mcp_user_id_var is a plain ContextVar (not tied to that Flask
+            # app-context lifecycle) that _setup_user_context() sets before
+            # the context pops, so it survives to this point.
+            resolved_user_id = _mcp_user_id_var.get(None)
+            if resolved_user_id is not None:
+                user_id = resolved_user_id
+            # Reset so a later on_call_tool/on_message in the same asyncio
+            # task (e.g. an unprotected tool or resource/prompt read that
+            # never calls _setup_user_context()) doesn't inherit this call's
+            # resolved user id.
+            _mcp_user_id_var.set(None)
             duration_ms = int((time.time() - start_time) * 1000)
             self._log_call_tool_result(
                 context=context,
@@ -666,54 +740,64 @@ class LoggingMiddleware(Middleware):
             self._extract_context_info(context)
         )
         try:
-            with _get_app_context_manager():
-                event_logger.log(
-                    user_id=user_id,
-                    action="mcp_message",
-                    dashboard_id=dashboard_id,
-                    duration_ms=None,
-                    slice_id=slice_id,
-                    referrer=None,
-                    curated_payload={
-                        "tool": getattr(context.message, "name", None),
-                        "agent_id": agent_id,
-                        "params": _sanitize_params(params),
-                        "method": context.method,
-                        "dashboard_id": dashboard_id,
-                        "slice_id": slice_id,
-                        "dataset_id": dataset_id,
-                    },
-                )
-        except Exception as log_error:  # noqa: BLE001
-            logger.warning("Failed to log mcp_message event: %s", log_error)
-        logger.info(
-            "MCP message: tool=%s, agent_id=%s, user_id=%s, method=%s",
-            getattr(context.message, "name", None),
-            agent_id,
-            user_id,
-            context.method,
-        )
-        return await call_next(context)
+            return await call_next(context)
+        finally:
+            # See the matching comment in on_call_tool: g.user/get_user_id()
+            # are stale here because the per-call app context has already
+            # been popped. _mcp_user_id_var survives it.
+            resolved_user_id = _mcp_user_id_var.get(None)
+            if resolved_user_id is not None:
+                user_id = resolved_user_id
+            # See the matching reset in on_call_tool.
+            _mcp_user_id_var.set(None)
+            try:
+                with _get_app_context_manager():
+                    event_logger.log(
+                        user_id=user_id,
+                        action="mcp_message",
+                        dashboard_id=dashboard_id,
+                        duration_ms=None,
+                        slice_id=slice_id,
+                        referrer=None,
+                        curated_payload={
+                            "tool": getattr(context.message, "name", None),
+                            "agent_id": agent_id,
+                            "params": _sanitize_params(params),
+                            "method": context.method,
+                            "dashboard_id": dashboard_id,
+                            "slice_id": slice_id,
+                            "dataset_id": dataset_id,
+                        },
+                    )
+            except Exception as log_error:  # noqa: BLE001
+                logger.warning("Failed to log mcp_message event: %s", log_error)
+            logger.info(
+                "MCP message: tool=%s, agent_id=%s, user_id=%s, method=%s",
+                getattr(context.message, "name", None),
+                agent_id,
+                user_id,
+                context.method,
+            )
 
 
-class StructuredContentStripperMiddleware(Middleware):
-    """Strip ``outputSchema`` and ``structured_content`` to prevent encoding errors.
+class ToolResultCompatibilityMiddleware(Middleware):
+    """Gate structured results while providing a last-resort error boundary.
 
     FastMCP 3.x auto-generates ``outputSchema`` in tool definitions
     (``tools/list``) and ``structuredContent`` in tool call responses
     (``tools/call``) when the tool has a typed return annotation.
 
-    Some MCP client transports (e.g. Claude.ai's MCP bridge) cannot handle
-    ``structuredContent`` dicts, causing ``TypeError: encoding without a
-    string argument``.  Additionally, if ``outputSchema`` is advertised but
-    ``structuredContent`` is stripped from the response, clients may raise
-    ``Output validation error: outputSchema defined but no structured output
-    returned``.
-
-    This middleware handles both sides:
-    - ``on_list_tools``: removes ``output_schema`` from every tool definition
-    - ``on_call_tool``: removes ``structured_content`` from every tool result
+    Structured output is part of the MCP contract, but some transport bridges
+    cannot encode it. When ``structured_output_enabled`` is false, this
+    middleware preserves the legacy text-only contract by stripping both sides
+    of that contract: ``outputSchema`` from discovery and ``structuredContent``
+    from successful calls. It always converts exceptions that escape the inner
+    error handler into a sanitized text result and returns an empty tool list if
+    discovery itself fails.
     """
+
+    def __init__(self, *, structured_output_enabled: bool = False) -> None:
+        self.structured_output_enabled = structured_output_enabled
 
     async def on_list_tools(
         self,
@@ -728,18 +812,20 @@ class StructuredContentStripperMiddleware(Middleware):
             # list, not an error object — causing "encoding without a string argument".
             # Return an empty list; GlobalErrorHandlerMiddleware already logged it.
             return []
+        if self.structured_output_enabled:
+            return tools
         return [
-            t.model_copy(update={"output_schema": None})
-            if t.output_schema is not None
-            else t
-            for t in tools
+            tool.model_copy(update={"output_schema": None})
+            if tool.output_schema is not None
+            else tool
+            for tool in tools
         ]
 
     async def on_call_tool(
         self,
         context: MiddlewareContext[mt.CallToolRequestParams],
-        call_next: Callable[[MiddlewareContext], Awaitable[ToolResult]],
-    ) -> ToolResult:
+        call_next: Callable[[MiddlewareContext], Awaitable[Any]],
+    ) -> Any:
         try:
             result = await call_next(context)
         except Exception as e:
@@ -786,13 +872,45 @@ class StructuredContentStripperMiddleware(Middleware):
                         "duration_ms": None,
                     },
                 )
+            # Flag the failure so clients can distinguish it from a
+            # successful call. This still serializes to
+            # CallToolResult(isError=True) (see ToolResult.to_mcp_result);
+            # what keeps it encodable is that structured_content stays None
+            # and only the boolean flips false->true, not the structured
+            # payload implicated in transport-level encoding failures.
             return ToolResult(
                 content=[mt.TextContent(type="text", text=error_text)],
                 meta={"mcp_call_id": mcp_call_id} if mcp_call_id else None,
+                is_error=True,
             )
-        if isinstance(result, ToolResult) and result.structured_content is not None:
-            result = ToolResult(content=result.content, meta=result.meta)
+        if (
+            not self.structured_output_enabled
+            and isinstance(result, ToolResult)
+            and result.structured_content is not None
+        ):
+            return ToolResult(
+                content=result.content,
+                # A non-null meta value makes ToolResult.to_mcp_result() retain
+                # the CallToolResult envelope. Without it, FastMCP returns a bare
+                # content list and the MCP SDK rejects the missing structured
+                # content against the live tool's outputSchema.
+                meta=result.meta or {},
+                is_error=result.is_error,
+            )
         return result
+
+
+class StructuredContentStripperMiddleware(ToolResultCompatibilityMiddleware):
+    """Deprecated compatibility middleware that retains its stripping behavior."""
+
+    def __init__(self) -> None:
+        warnings.warn(
+            "StructuredContentStripperMiddleware is deprecated; use "
+            "ToolResultCompatibilityMiddleware(structured_output_enabled=False)",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        super().__init__(structured_output_enabled=False)
 
 
 class RBACToolVisibilityMiddleware(Middleware):
@@ -976,7 +1094,9 @@ class GlobalErrorHandlerMiddleware(Middleware):
             ) from error
         elif isinstance(error, HTTPException):
             # HTTP errors from screenshot endpoints or API calls
-            raise ToolError(f"Service error in {tool_name}: {error.detail}") from error
+            raise ToolError(
+                f"Service error in {tool_name}: {_sanitize_error_for_logging(error)}"
+            ) from error
         elif isinstance(error, MCPPermissionDeniedError):
             # MCP RBAC permission denied — convert to structured ToolError.
             # Must come before the generic PermissionError branch because
@@ -991,7 +1111,8 @@ class GlobalErrorHandlerMiddleware(Middleware):
         elif isinstance(error, ValueError):
             # Value/parameter errors from tool code
             raise ToolError(
-                f"Invalid parameter in {tool_name}: {str(error)}"
+                f"Invalid parameter in {tool_name}: "
+                f"{_sanitize_error_for_logging(error)}"
             ) from error
         elif isinstance(error, (ObjectNotFoundError, CommandInvalidError)):
             # Superset command: not found (404) or validation (422)
@@ -1124,6 +1245,7 @@ class ResponseSizeGuardMiddleware(Middleware):
         tool_name: str,
         response: Any,
         estimated_tokens: int,
+        protected_keys: frozenset[str] = frozenset(),
     ) -> Any | None:
         """Attempt to dynamically truncate an info tool response to fit the limit.
 
@@ -1133,9 +1255,24 @@ class ResponseSizeGuardMiddleware(Middleware):
         every tool return value), the actual data lives inside
         ``content[0].text`` as a JSON string.  We parse that string, run the
         truncation phases on the resulting dict, then re-wrap the result.
+
+        ``protected_keys`` is forwarded to ``truncate_oversized_response`` so
+        callers (e.g. committed-write tools) can keep an identifying field
+        intact even through the final "clear everything" phase.
         """
         # Unwrap ToolResult so truncation operates on the real payload
         extracted = self._extract_payload_from_tool_result(response)
+        if extracted is None and isinstance(response, ToolResult):
+            # A ToolResult whose payload can't be parsed is opaque: truncating
+            # it would model_dump() the wrapper itself and hand FastMCP a
+            # plain dict, which then fails in to_mcp_result(). Decline instead
+            # and let the caller fall through to its own fallback.
+            logger.warning(
+                "Cannot truncate %s: ToolResult payload is not a JSON object",
+                tool_name,
+            )
+            return None
+
         if extracted is not None:
             truncation_target = extracted
         else:
@@ -1151,6 +1288,7 @@ class ResponseSizeGuardMiddleware(Middleware):
                 truncation_target,
                 self.token_limit,
                 max_list_items=self.max_list_items,
+                protected_keys=protected_keys,
             )
         except (MemoryError, RecursionError) as trunc_error:
             logger.warning(
@@ -1218,6 +1356,17 @@ class ResponseSizeGuardMiddleware(Middleware):
         Returns the truncated response if successful, None otherwise.
         """
         extracted = self._extract_payload_from_tool_result(response)
+        if extracted is None and isinstance(response, ToolResult):
+            # A ToolResult whose payload can't be parsed is opaque: truncating
+            # it would model_dump() the wrapper itself and hand FastMCP a
+            # plain dict, which then fails in to_mcp_result(). Decline instead
+            # and let the caller fall through to its own fallback.
+            logger.warning(
+                "Cannot truncate %s: ToolResult payload is not a JSON object",
+                tool_name,
+            )
+            return None
+
         truncation_target = extracted if extracted is not None else response
 
         try:
@@ -1278,6 +1427,272 @@ class ResponseSizeGuardMiddleware(Middleware):
 
         return truncated
 
+    def _try_truncate_string_field_response(
+        self,
+        tool_name: str,
+        response: Any,
+        estimated_tokens: int,
+        field: str,
+    ) -> Any | None:
+        """Attempt to truncate a response by bisecting one oversized string field.
+
+        Returns the truncated response if successful, None otherwise.
+        """
+        extracted = self._extract_payload_from_tool_result(response)
+        if extracted is None and isinstance(response, ToolResult):
+            # A ToolResult whose payload can't be parsed is opaque: truncating
+            # it would model_dump() the wrapper itself and hand FastMCP a
+            # plain dict, which then fails in to_mcp_result(). Decline instead
+            # and let the caller fall through to its own fallback.
+            logger.warning(
+                "Cannot truncate %s: ToolResult payload is not a JSON object",
+                tool_name,
+            )
+            return None
+
+        truncation_target = extracted if extracted is not None else response
+
+        try:
+            truncated, was_truncated, notes = truncate_string_field_response(
+                truncation_target, self.token_limit, field
+            )
+        except Exception as trunc_error:  # noqa: BLE001
+            logger.warning(
+                "String field truncation failed for %s due to %s: %s",
+                tool_name,
+                type(trunc_error).__name__,
+                trunc_error,
+            )
+            return None
+
+        if not was_truncated:
+            return None
+
+        truncated_tokens = estimate_response_tokens(truncated)
+        if truncated_tokens > self.token_limit:
+            return None
+
+        logger.warning(
+            "Response for %s truncated from ~%d to ~%d tokens (limit: %d). %s",
+            tool_name,
+            estimated_tokens,
+            truncated_tokens,
+            self.token_limit,
+            "; ".join(notes),
+        )
+
+        try:
+            user_id = get_user_id()
+            event_logger.log(
+                user_id=user_id,
+                action="mcp_response_truncated",
+                dashboard_id=None,
+                duration_ms=None,
+                slice_id=None,
+                referrer=None,
+                curated_payload={
+                    "tool": tool_name,
+                    "original_tokens": estimated_tokens,
+                    "truncated_tokens": truncated_tokens,
+                    "token_limit": self.token_limit,
+                    "truncation_notes": notes,
+                },
+            )
+        except Exception as log_error:  # noqa: BLE001
+            logger.warning("Failed to log truncation event: %s", log_error)
+
+        if extracted is not None and isinstance(truncated, dict):
+            return self._rewrap_as_tool_result(truncated, response)
+
+        return truncated
+
+    def _minimal_committed_write_response(
+        self,
+        tool_name: str,
+        response: Any,
+        estimated_tokens: int,
+    ) -> Any:
+        """Build a guaranteed-small success response for a committed write.
+
+        Last-resort fallback for COMMITTED_WRITE_TOOLS: reached only when
+        even the nuclear phase of ``truncate_oversized_response`` can't bring
+        the response under budget (in practice this should not happen, since
+        the protected identifying fields alone are tiny). The underlying
+        mutation already committed by the time this middleware runs, so this
+        path must never raise -- it keeps only what confirms the write
+        succeeded and drops everything else.
+        """
+        spec = COMMITTED_WRITE_SPECS[tool_name]
+        if (extracted := self._extract_payload_from_tool_result(response)) is not None:
+            payload = extracted
+        elif isinstance(response, dict):
+            payload = response
+        else:
+            payload = {}
+        truncation_notes = [
+            f"Response for {tool_name} exceeded the size limit even after "
+            "truncation; non-essential fields were dropped. The tool call "
+            "itself completed and was not rolled back by this size limit -- "
+            f"re-read the {spec.resource} to see its full state."
+        ]
+        minimal = self._select_confirmation_fields(payload, spec)
+        minimal["_response_truncated"] = True
+        minimal["_truncation_notes"] = truncation_notes
+        self._shrink_minimal_response(minimal, spec)
+        logger.warning(
+            "Response for %s could not fit under the size limit after full "
+            "truncation (~%d tokens, limit %d); returning a minimal write "
+            "confirmation instead of blocking a completed write.",
+            tool_name,
+            estimated_tokens,
+            self.token_limit,
+        )
+        try:
+            user_id = get_user_id()
+            event_logger.log(
+                user_id=user_id,
+                action="mcp_response_truncated",
+                dashboard_id=None,
+                duration_ms=None,
+                slice_id=None,
+                referrer=None,
+                curated_payload={
+                    "tool": tool_name,
+                    "original_tokens": estimated_tokens,
+                    "token_limit": self.token_limit,
+                    "truncation_notes": truncation_notes,
+                },
+            )
+        except Exception as log_error:  # noqa: BLE001
+            logger.warning("Failed to log truncation event: %s", log_error)
+
+        # Rewrap whenever the tool returned a ToolResult, including the case
+        # where its payload could not be parsed: returning a bare dict there
+        # would blow up in FastMCP's ``result.to_mcp_result()`` and surface
+        # the completed write as an internal error after all.
+        if isinstance(response, ToolResult):
+            return self._rewrap_as_tool_result(minimal, response)
+        return minimal
+
+    @staticmethod
+    def _select_confirmation_fields(
+        payload: dict[str, Any], spec: CommittedWriteSpec
+    ) -> dict[str, Any]:
+        """Keep only the payload keys that confirm the write happened.
+
+        Selecting from the payload's *own* keys rather than a fixed list is
+        what makes this work for every committed-write tool. A dashboard
+        response has no ``chart``, ``explore_url`` or ``success`` to copy, and
+        synthesizing them would put fields on the response that its model
+        never declares. Conversely, the fields worth keeping differ per tool
+        (``explore_url`` for charts, ``dashboard_url`` for dashboards), so
+        keeping scalars names them without a per-tool list. Free-form strings
+        are bounded by ``_shrink_minimal_response``. Short string lists such
+        as ``changed_fields`` are also kept, bounded by item count and total
+        character count.
+
+        Other containers are dropped, except identifying fields and errors,
+        which are reduced by ``_shrink_minimal_response`` if needed.
+        """
+        minimal: dict[str, Any] = {
+            key: value
+            for key, value in payload.items()
+            if key in spec.identifying_fields
+            or key == "error"
+            or not isinstance(value, (list, dict))
+            or (
+                isinstance(value, list)
+                and len(value) <= _MINIMAL_LIST_ITEMS
+                and all(isinstance(item, str) for item in value)
+                and sum(len(item) for item in value) <= _MINIMAL_FIELD_CHARS
+            )
+        }
+        if spec.reports_success:
+            # An unparseable payload yields nothing to copy, but a tool whose
+            # schema has ``success`` must still say the write succeeded.
+            # Assume a completed call succeeded if its payload cannot be parsed.
+            minimal.setdefault("success", True)
+        return minimal
+
+    def _shrink_minimal_response(
+        self, minimal: dict[str, Any], spec: CommittedWriteSpec
+    ) -> None:
+        """Force ``minimal`` under the token limit, degrading fields in place.
+
+        Every value here is copied from the *untruncated* payload, so a
+        "minimal" response is only actually small once each unbounded field
+        has been cut down:
+
+        - each identifying field is a nested object (``chart``, ``dashboard``,
+          ``metric``) that is reduced to identifying scalars -- including
+          ``is_unsaved_state``, since update_chart defaults to
+          ``generate_preview=True`` and then persists nothing, so that flag is
+          the caller's only in-band way to tell a cached preview from a
+          persisted write, and shrinking must not be what drops it;
+        - those scalars (``slice_name``, ``dashboard_title``, ``url``) are
+          themselves free-form strings, so they are clipped;
+        - the remaining top-level values are scalars or bounded string lists
+          (see ``_select_confirmation_fields``), but a scalar can still be a
+          free-form string -- ``explore_url``, ``dashboard_url``, ``message``
+          -- so every one of them is clipped too;
+        - ``error`` is not a string at all in most of the shapes the tools
+          return -- it is often a nested error model that arrives here as a
+          dict -- so it gets the same identifying-scalars treatment as the
+          identifying fields rather than a plain clip (see ``_clip_error``).
+
+        Reducing every unbounded field is what makes the result bounded by
+        construction: identifying scalars plus fixed-text notes. A failed
+        measurement counts as "too big" so the payload is degraded rather
+        than optimistically returned, and the written object's identity is
+        never dropped just because the estimator errored -- surfacing what
+        was written is the whole point of this fallback.
+
+        With an extremely small ``token_limit`` even the fully clipped form
+        can exceed it. Returning it anyway is deliberate: this path exists so
+        a completed write is never reported as a failure, and there is
+        nothing further to give up without losing that confirmation.
+        """
+        if _fits(minimal, self.token_limit):
+            return
+
+        for field in sorted(spec.identifying_fields):
+            if field not in minimal:
+                continue
+            value = minimal[field]
+            if isinstance(value, dict):
+                minimal[field] = {
+                    key: _clip_string(value[key])
+                    for key in _MINIMAL_IDENTITY_FIELDS
+                    if key in value
+                }
+                minimal["_truncation_notes"].append(
+                    f"'{field}' reduced to identifying fields only."
+                )
+            elif isinstance(value, list):
+                minimal[field] = []
+                minimal["_truncation_notes"].append(
+                    f"'{field}' list cleared to fit the size limit."
+                )
+
+        for key in list(minimal):
+            if key in spec.identifying_fields or key.startswith("_"):
+                continue
+            current = minimal[key]
+            clipped = _clip_error(current) if key == "error" else _clip_string(current)
+            if clipped is not current:
+                minimal[key] = clipped
+                minimal["_truncation_notes"].append(
+                    f"'{key}' was reduced to fit the size limit."
+                )
+
+        if not _fits(minimal, self.token_limit):
+            logger.warning(
+                "Minimal write confirmation still estimates over the token "
+                "limit (%d) after full reduction; returning it anyway rather "
+                "than reporting a completed write as a failure.",
+                self.token_limit,
+            )
+
     def _handle_oversized_response(
         self,
         tool_name: str,
@@ -1287,20 +1702,30 @@ class ResponseSizeGuardMiddleware(Middleware):
     ) -> Any:
         """Attempt truncation for known tool categories; block everything else.
 
-        For info tools (``INFO_TOOLS``) and data-query tools
-        (``DATA_QUERY_TOOLS``), tries dynamic truncation first and returns
-        the truncated result if successful.  Falls through to a hard
-        ``ToolError`` for all other tools, or when truncation cannot reduce
-        the response to fit the limit.
+        For info tools (``INFO_TOOLS``), committed-write tools
+        (``COMMITTED_WRITE_TOOLS``), data-query tools (``DATA_QUERY_TOOLS``),
+        and single-string-field tools (``STRING_FIELD_TRUNCATION_TOOLS``),
+        tries dynamic truncation first and returns the truncated result if
+        successful. Falls through to a hard ``ToolError`` for all other
+        tools, or when truncation cannot reduce the response to fit the
+        limit -- except for COMMITTED_WRITE_TOOLS, whose transaction already
+        committed, so they degrade to a minimal success response instead of
+        ever raising (see ``_minimal_committed_write_response``).
 
         Raises:
             ToolError: When the response exceeds the limit and cannot be
-                truncated.
+                truncated (never for COMMITTED_WRITE_TOOLS).
         """
-        # Info tools: field-level truncation (strings, lists, dicts).
-        if tool_name in INFO_TOOLS:
+        # Info tools and committed-write tools: field-level truncation
+        # (strings, lists, dicts). Committed-write tools protect their own
+        # identifying fields -- 'chart', 'dashboard', 'metric', or none at
+        # all where the identity is top-level scalars the phases never drop
+        # -- so write confirmation survives even the most aggressive phase.
+        if tool_name in INFO_TOOLS or tool_name in COMMITTED_WRITE_TOOLS:
+            spec = COMMITTED_WRITE_SPECS.get(tool_name)
+            protected_keys = spec.identifying_fields if spec else frozenset()
             truncated = self._try_truncate_info_response(
-                tool_name, response, estimated_tokens
+                tool_name, response, estimated_tokens, protected_keys=protected_keys
             )
             if truncated is not None:
                 return truncated
@@ -1312,6 +1737,25 @@ class ResponseSizeGuardMiddleware(Middleware):
             )
             if truncated is not None:
                 return truncated
+
+        # Tools whose payload is dominated by one large string field with no
+        # size-reduction lever (e.g. get_chart_sql's rendered SQL).
+        if tool_name in STRING_FIELD_TRUNCATION_TOOLS:
+            truncated = self._try_truncate_string_field_response(
+                tool_name,
+                response,
+                estimated_tokens,
+                STRING_FIELD_TRUNCATION_TOOLS[tool_name],
+            )
+            if truncated is not None:
+                return truncated
+
+        if tool_name in COMMITTED_WRITE_TOOLS:
+            # The mutation already committed -- never report it as a failed
+            # call, no matter how badly truncation underperformed.
+            return self._minimal_committed_write_response(
+                tool_name, response, estimated_tokens
+            )
 
         # Log the blocked response (user-caused: requested too much data)
         logger.warning(
@@ -1403,6 +1847,52 @@ class ResponseSizeGuardMiddleware(Middleware):
             )
 
         return response
+
+
+def _clip_string(value: Any, max_chars: int = _MINIMAL_FIELD_CHARS) -> Any:
+    """Clip an over-long string, returning non-strings and short strings as-is.
+
+    Returning the original object unchanged (identity, not just equality) lets
+    callers detect whether anything was actually clipped.
+    """
+    if isinstance(value, str) and len(value) > max_chars:
+        return value[:max_chars] + "... [truncated]"
+    return value
+
+
+def _clip_error(value: Any) -> Any:
+    """Bound an ``error`` field of either shape it can arrive in.
+
+    Tool responses type ``error`` as a nested model (``ChartGenerationError``),
+    which reaches this middleware as a dict once the ToolResult payload is
+    parsed -- so bounding only the plain-string shape would leave the shape the
+    tools actually return untouched, and a large ``query_info`` or
+    ``validation_errors`` would still push the confirmation over the limit.
+    A dict is reduced to clipped identifying scalars; a string is clipped.
+
+    Returns the original object unchanged (identity, not just equality) when
+    nothing needed bounding, so callers can detect whether anything changed.
+    """
+    if isinstance(value, dict):
+        reduced = {
+            key: _clip_string(value[key])
+            for key in _MINIMAL_ERROR_FIELDS
+            if key in value
+        }
+        return value if reduced == value else reduced
+    return _clip_string(value)
+
+
+def _fits(payload: Any, token_limit: int) -> bool:
+    """Best-effort check that ``payload`` estimates under ``token_limit``.
+
+    Treats an estimation failure as "does not fit" so callers degrade the
+    payload further rather than optimistically returning something oversized.
+    """
+    try:
+        return estimate_response_tokens(payload) <= token_limit
+    except Exception:  # noqa: BLE001
+        return False
 
 
 def _safe_int_config(config: dict[str, Any], key: str, default: int) -> int:

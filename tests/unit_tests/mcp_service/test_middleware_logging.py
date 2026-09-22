@@ -36,6 +36,7 @@ from fastmcp.tools.tool import ToolResult
 from mcp import types as mt
 from sqlalchemy.exc import OperationalError
 
+from superset.mcp_service.auth import _mcp_user_id_var
 from superset.mcp_service.middleware import LoggingMiddleware
 
 
@@ -120,7 +121,7 @@ class TestLoggingMiddlewareOnCallTool:
 
         This simulates the real middleware chain: GlobalErrorHandler catches
         tool exceptions and re-raises them as ToolError. Since LoggingMiddleware
-        sits between GlobalErrorHandler and StructuredContentStripper, it
+        sits between GlobalErrorHandler and ToolResultCompatibility, it
         catches the ToolError directly.
         """
         middleware = LoggingMiddleware()
@@ -417,6 +418,108 @@ class TestLoggingMiddlewareOnMessage:
         assert payload["error_type"] == "PermissionError"
 
 
+class TestLoggingMiddlewareUserIdContextVar:
+    """Tests for _mcp_user_id_var overriding the pre-call user_id snapshot.
+
+    _extract_context_info() runs *before* call_next(), i.e. before the
+    tool's auth decorator (superset/mcp_service/auth.py) has resolved a
+    user, so get_user_id() there is always pre-auth (typically None).
+    _setup_user_context() sets _mcp_user_id_var while running inside
+    call_next(), right before the per-call app context (which g.user
+    depends on) is popped. These tests simulate that by setting the
+    ContextVar from within call_next(), mirroring the real auth decorator.
+    """
+
+    @patch("superset.mcp_service.middleware.event_logger")
+    @patch("superset.mcp_service.middleware.get_user_id", return_value=None)
+    @pytest.mark.asyncio
+    async def test_on_call_tool_uses_contextvar_set_during_call_next(
+        self, mock_get_user_id, mock_event_logger
+    ) -> None:
+        """Logged user_id reflects auth resolved during call_next(), not
+        the pre-call snapshot."""
+        middleware = LoggingMiddleware()
+        ctx = _make_context(name="list_charts")
+
+        async def fake_call_next(_ctx):
+            _mcp_user_id_var.set(42)
+            return "tool_result"
+
+        token = _mcp_user_id_var.set(None)
+        try:
+            result = await middleware.on_call_tool(ctx, fake_call_next)
+        finally:
+            _mcp_user_id_var.reset(token)
+
+        assert result == "tool_result"
+        call_kwargs = mock_event_logger.log.call_args[1]
+        assert call_kwargs["user_id"] == 42
+
+    @patch("superset.mcp_service.middleware.event_logger")
+    @patch("superset.mcp_service.middleware.get_user_id", return_value=7)
+    @pytest.mark.asyncio
+    async def test_on_call_tool_falls_back_when_contextvar_unset(
+        self, mock_get_user_id, mock_event_logger
+    ) -> None:
+        """When the call never runs _setup_user_context() (ContextVar
+        stays at its default), the pre-call get_user_id() value is used
+        as-is -- no regression for paths that don't set the ContextVar."""
+        middleware = LoggingMiddleware()
+        ctx = _make_context(name="health_check")
+        call_next = AsyncMock(return_value="ok")
+
+        token = _mcp_user_id_var.set(None)
+        try:
+            await middleware.on_call_tool(ctx, call_next)
+        finally:
+            _mcp_user_id_var.reset(token)
+
+        call_kwargs = mock_event_logger.log.call_args[1]
+        assert call_kwargs["user_id"] == 7
+
+    @patch("superset.mcp_service.middleware.event_logger")
+    @patch("superset.mcp_service.middleware.get_user_id", return_value=None)
+    @pytest.mark.asyncio
+    async def test_on_message_uses_contextvar_set_during_call_next(
+        self, mock_get_user_id, mock_event_logger
+    ) -> None:
+        middleware = LoggingMiddleware()
+        ctx = _make_context(method="resources/read", name="instance/metadata")
+
+        async def fake_call_next(_ctx):
+            _mcp_user_id_var.set(99)
+            return "resource_data"
+
+        token = _mcp_user_id_var.set(None)
+        try:
+            result = await middleware.on_message(ctx, fake_call_next)
+        finally:
+            _mcp_user_id_var.reset(token)
+
+        assert result == "resource_data"
+        call_kwargs = mock_event_logger.log.call_args[1]
+        assert call_kwargs["user_id"] == 99
+
+    @patch("superset.mcp_service.middleware.event_logger")
+    @patch("superset.mcp_service.middleware.get_user_id", return_value=13)
+    @pytest.mark.asyncio
+    async def test_on_message_falls_back_when_contextvar_unset(
+        self, mock_get_user_id, mock_event_logger
+    ) -> None:
+        middleware = LoggingMiddleware()
+        ctx = _make_context(method="resources/read", name="instance/metadata")
+        call_next = AsyncMock(return_value="resource_data")
+
+        token = _mcp_user_id_var.set(None)
+        try:
+            await middleware.on_message(ctx, call_next)
+        finally:
+            _mcp_user_id_var.reset(token)
+
+        call_kwargs = mock_event_logger.log.call_args[1]
+        assert call_kwargs["user_id"] == 13
+
+
 class TestResolveToolName:
     """Tests for LoggingMiddleware._resolve_tool_name()."""
 
@@ -647,7 +750,7 @@ class TestExtractOutputIds:
 class TestMiddlewareChainOrder:
     """Test that the middleware order from server.py logs failures correctly.
 
-    If the order is wrong (StructuredContentStripper innermost),
+    If the order is wrong (ToolResultCompatibility innermost),
     it swallows exceptions before LoggingMiddleware can see them,
     causing success=True for failures.
     """
@@ -675,7 +778,7 @@ class TestMiddlewareChainOrder:
         ctx = _make_context(name="get_chart_info")
         result = await chain(ctx)
 
-        # StructuredContentStripper (outermost) must catch the re-raised
+        # ToolResultCompatibility (outermost) must catch the re-raised
         # exception and convert it to a safe ToolResult with "Error:" text.
         # If it's not outermost, the exception would leak to the MCP SDK.
         assert isinstance(result, ToolResult)
@@ -683,7 +786,7 @@ class TestMiddlewareChainOrder:
 
         # LoggingMiddleware must log
         # success=False. If the middleware order is wrong
-        # (StructuredContentStripper innermost), this would be
+        # (ToolResultCompatibility innermost), this would be
         # success=True because the exception gets swallowed
         # before LoggingMiddleware sees it.
         log_calls = [
@@ -693,9 +796,9 @@ class TestMiddlewareChainOrder:
         ]
         assert len(log_calls) == 1
         assert log_calls[0][1]["curated_payload"]["success"] is False, (
-            "Middleware order is wrong: StructuredContentStripper is "
+            "Middleware order is wrong: ToolResultCompatibility is "
             "swallowing exceptions before LoggingMiddleware can detect "
-            "them. Ensure StructuredContentStripper is outermost "
+            "them. Ensure ToolResultCompatibility is outermost "
             "(first added) in build_middleware_list()."
         )
 
@@ -706,7 +809,7 @@ class TestMiddlewareChainOrder:
         self, mock_get_user_id, mock_event_logger
     ) -> None:
         """When a tool raises, the error ToolResult from
-        StructuredContentStripper still carries mcp_call_id in meta."""
+        ToolResultCompatibility still carries mcp_call_id in meta."""
         from superset.mcp_service.server import build_middleware_list
 
         middleware_list = build_middleware_list()
@@ -733,7 +836,7 @@ class TestMiddlewareChainOrder:
 
         ToolError raised by GlobalErrorHandlerMiddleware cannot be encoded
         by the MCP SDK in a tools/list response, producing "encoding without
-        a string argument". StructuredContentStripperMiddleware.on_list_tools
+        a string argument". ToolResultCompatibilityMiddleware.on_list_tools
         must catch it and return an empty list.
         """
         from superset.mcp_service.server import build_middleware_list

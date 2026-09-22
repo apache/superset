@@ -73,7 +73,7 @@ The tables below (generated via `python superset/db_engine_specs/lib.py`) summar
 | Apache Spark SQL | 140 | Supported | Not supported | Supported | Partial | Partial | Partial |
 | Databricks Interactive Cluster | 140 | Supported | Not supported | Supported | Partial | Partial | Partial |
 | base | 109 | Supported | Partial | Supported | Partial | Partial | Partial |
-| Aurora PostgreSQL (Data API) | 104 | Supported | Partial | Supported | Partial | Partial | Partial |
+| Aurora PostgreSQL (Data API) | 94 | Supported | Partial | Supported | Partial | Partial | Partial |
 | CockroachDB | 94 | Supported | Partial | Supported | Partial | Partial | Partial |
 | RisingWave | 94 | Supported | Partial | Supported | Partial | Partial | Partial |
 | Google BigQuery | 83 | Supported | Partial | Supported | Partial | Partial | Partial |
@@ -83,7 +83,7 @@ The tables below (generated via `python superset/db_engine_specs/lib.py`) summar
 | Databricks (legacy) | 70 | Supported | Partial | Supported | Partial | Partial | Not supported |
 | StarRocks | 69 | Supported | Partial | Supported | Partial | Partial | Partial |
 | SingleStore | 68 | Supported | Partial | Supported | Not supported | Partial | Not supported |
-| ClickHouse Connect (Superset) | 61 | Supported | Partial | Partial | Partial | Partial | Not supported |
+| ClickHouse Connect (Superset) | 62 | Supported | Partial | Supported | Partial | Partial | Not supported |
 | Google Sheets | 61 | Supported | Partial | Supported | Supported | Partial | Partial |
 | Aurora MySQL (Data API) | 59 | Supported | Partial | Supported | Partial | Partial | Not supported |
 | MariaDB | 59 | Supported | Partial | Supported | Partial | Partial | Not supported |
@@ -91,7 +91,7 @@ The tables below (generated via `python superset/db_engine_specs/lib.py`) summar
 | OceanBase | 59 | Supported | Partial | Supported | Partial | Partial | Not supported |
 | MotherDuck | 58 | Supported | Partial | Supported | Not supported | Partial | Not supported |
 | KustoSQL | 54 | Supported | Partial | Supported | Partial | Partial | Not supported |
-| ClickHouse | 51 | Supported | Partial | Partial | Partial | Partial | Not supported |
+| ClickHouse | 52 | Supported | Partial | Supported | Partial | Partial | Not supported |
 | Databend | 51 | Supported | Partial | Supported | Partial | Partial | Not supported |
 | Apache Drill | 50 | Supported | Partial | Supported | Partial | Partial | Partial |
 | Apache Druid | 47 | Partial | Partial | Supported | Partial | Partial | Not supported |
@@ -293,8 +293,8 @@ The tables below (generated via `python superset/db_engine_specs/lib.py`) summar
 | Aurora MySQL (Data API) | True | True | True | True | True | True | True | True |
 | Aurora PostgreSQL (Data API) | True | True | True | True | True | True | True | True |
 | Azure Synapse | True | True | True | True | True | True | True | True |
-| ClickHouse | False | True | True | True | True | True | True | True |
-| ClickHouse Connect (Superset) | False | True | True | True | True | True | True | True |
+| ClickHouse | True | True | True | True | True | True | True | True |
+| ClickHouse Connect (Superset) | True | True | True | True | True | True | True | True |
 | CockroachDB | True | True | True | True | True | True | True | True |
 | Couchbase | True | True | True | True | False | True | True | True |
 | CrateDB | True | True | True | True | True | True | True | True |
@@ -504,7 +504,7 @@ Integration with platform features and metadata handling.
 | Apache Spark SQL | True | True | True | False |
 | Ascend | False | False | False | False |
 | Aurora MySQL (Data API) | False | False | False | False |
-| Aurora PostgreSQL (Data API) | False | False | True | True |
+| Aurora PostgreSQL (Data API) | False | False | True | False |
 | Azure Synapse | False | False | False | False |
 | ClickHouse | False | False | False | False |
 | ClickHouse Connect (Superset) | False | False | False | False |
@@ -1363,7 +1363,7 @@ The `query_cost_formatter` can be overridden with an arbitrary function via the 
 
 A few databases support validating the syntax of the SQL as the user is typing it, indicating in SQL Lab any errors. This is usually done using an `EXPLAIN` query and, because it gets called every few seconds as the user types, it's important that the database returns the result quickly.
 
-This is currently implement for Presto and Postgres, via custom classes in `superset/sql_validators` that should be enabled in the configuration. Implementing this as custom classes, instead of a `validate_sql` method in the DB engine spec offers no advantages, and ideally in the future we should move the logic to DB engine specs.
+This is implemented for Presto, via a custom class in `superset/sql_validators` that is enabled by default in the configuration. A SQLite-family validator also ships there, but it is opt-in: it requires the optional `syntaqlite` package and an explicit `SQL_VALIDATORS_BY_ENGINE` entry, so the tables above report it as unsupported. Implementing this as custom classes, instead of a `validate_sql` method in the DB engine spec offers no advantages, and ideally in the future we should move the logic to DB engine specs.
 
 ## Testing DB engine specs
 

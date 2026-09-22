@@ -305,7 +305,7 @@ export default function dashboardStateReducer(
         ...state,
         refreshFrequency: action.refreshFrequency,
         shouldPersistRefreshFrequency: action.isPersistent,
-        hasUnsavedChanges: action.isPersistent,
+        hasUnsavedChanges: action.isPersistent || state.hasUnsavedChanges,
       };
     },
     [ON_REFRESH](): DashboardStateShape {

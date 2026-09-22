@@ -17,14 +17,12 @@
  * under the License.
  */
 import { useCallback, useMemo, ReactNode } from 'react';
-import rison from 'rison';
 import { t } from '@apache-superset/core/translation';
 import {
   isFeatureEnabled,
   FeatureFlag,
-  JsonResponse,
-  ClientErrorObject,
   getClientErrorObject,
+  selectClientErrorMessage,
 } from '@superset-ui/core';
 import { AsyncSelect } from '@superset-ui/core/components';
 import { cachedSupersetGet } from 'src/utils/cachedSupersetGet';
@@ -32,6 +30,7 @@ import {
   Dataset,
   DatasetSelectLabel,
 } from 'src/features/datasets/DatasetSelectLabel';
+import { fetchDatasourceList } from 'src/features/datasets/fetchDatasourceList';
 import {
   datasetLabel,
   datasetLabelLower,
@@ -47,14 +46,6 @@ interface DatasetSelectProps {
   value?: { label: string | ReactNode; value: number; kind?: string };
   excludeDatasetIds?: number[];
 }
-
-const getErrorMessage = ({ error, message }: ClientErrorObject) => {
-  let errorText = message || error || t('An error has occurred');
-  if (message === 'Forbidden') {
-    errorText = t('You do not have permission to edit this dashboard');
-  }
-  return errorText;
-};
 
 /**
  * Builds a unique select-option value for the combined datasource endpoint.
@@ -95,27 +86,10 @@ export const loadDatasetOptions = async (
   excludeDatasetIds: number[] = [],
 ) => {
   const useSemanticLayers = isFeatureEnabled(FeatureFlag.SemanticLayers);
-  const query = rison.encode({
-    ...(useSemanticLayers
-      ? {}
-      : {
-          columns: ['id', 'table_name', 'database.database_name', 'schema'],
-        }),
-    filters: [{ col: 'table_name', opr: 'ct', value: search }],
-    page,
-    page_size: pageSize,
-    order_column: 'table_name',
-    order_direction: 'asc',
-  });
-  const endpoint = useSemanticLayers
-    ? `/api/v1/datasource/?q=${query}`
-    : `/api/v1/dataset/?q=${query}`;
-  return cachedSupersetGet({
-    endpoint,
-  })
-    .then((response: JsonResponse) => {
-      const filteredResult = response.json.result.filter(
-        (item: Dataset) => !isExcludedDatasource(item, excludeDatasetIds),
+  return fetchDatasourceList(search, page, pageSize, { get: cachedSupersetGet })
+    .then(({ result, count }) => {
+      const filteredResult = result.filter(
+        item => !isExcludedDatasource(item, excludeDatasetIds),
       );
 
       const list: {
@@ -123,7 +97,7 @@ export const loadDatasetOptions = async (
         value: string | number;
         table_name: string;
         kind?: string;
-      }[] = filteredResult.map((item: Dataset) => ({
+      }[] = filteredResult.map(item => ({
         ...item,
         label: DatasetSelectLabel(item),
         value: useSemanticLayers
@@ -134,11 +108,15 @@ export const loadDatasetOptions = async (
       }));
       return {
         data: list,
-        totalCount: response.json.count ?? 0,
+        totalCount: count,
       };
     })
     .catch(async error => {
-      const errorMessage = getErrorMessage(await getClientErrorObject(error));
+      const errorMessage = selectClientErrorMessage(
+        await getClientErrorObject(error),
+        t('An error has occurred'),
+        { 403: t('You do not have permission to edit this dashboard') },
+      );
       throw new Error(errorMessage);
     });
 };
