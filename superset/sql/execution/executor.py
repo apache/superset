@@ -610,7 +610,7 @@ class SQLExecutor:
                 SupersetError(
                     message=(
                         "Disallowed client-side file-transfer command(s): "
-                        f"{', '.join(sorted(file_transfer_commands))}"
+                        f"{', '.join(file_transfer_commands)}"
                     ),
                     error_type=SupersetErrorType.INVALID_SQL_ERROR,
                     level=ErrorLevel.ERROR,

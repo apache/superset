@@ -2114,6 +2114,22 @@ def test_is_mutating_replace_function_is_read(engine: str) -> None:
         # `--` inside it opens no comment and the argument after it is scanned.
         ("CALL p($$--$$, 'PUT file:///tmp/a @my_stage')", "PUT"),
         ("CALL p($q$--$q$, 'GET @my_stage file:///tmp/a')", "GET"),
+        # An opener with no matching closer delimits nothing, so there is no
+        # wrapper to peel: the body is scanned as written and the command
+        # after the stray opener is still caught.
+        ("EXECUTE IMMEDIATE 'SELECT $q$ ; RM @my_stage/c'", "RM"),
+        # The body a literal carries is what the server runs, so a comment
+        # wedged inside it is stripped like any other: it cannot be used to
+        # split a head from its argument and slip the command past the scan.
+        ("EXECUTE IMMEDIATE 'PUT/*x*/file:///tmp/a @my_stage'", "PUT"),
+        ("EXECUTE IMMEDIATE 'PUT -- x\nfile:///tmp/a @my_stage'", "PUT"),
+        ("CALL p('REMOVE/*x*/@my_stage/b')", "REMOVE"),
+        # Stripping inside a literal stops at its closing delimiter, so a `--`
+        # in one still cannot comment out the statements that follow it.
+        ("EXECUTE IMMEDIATE $$ CALL p('--'); RM @my_stage/c $$", "RM"),
+        # A head that really is commented out inside the body still does not
+        # run, so it is still not reported.
+        ("EXECUTE IMMEDIATE 'SELECT 1 -- PUT file:///tmp/a @my_stage'", None),
         ("CALL some_procedure()", None),
     ],
 )
@@ -2128,20 +2144,50 @@ def test_get_client_file_transfer_command(sql: str, expected: str | None) -> Non
 @pytest.mark.parametrize(
     "sql, expected",
     [
-        ("PUT file:///tmp/data.csv @my_stage", {"PUT"}),
-        ("SELECT 1; GET @my_stage file:///tmp/", {"GET"}),
-        ("SELECT 1; PUT 'file:///tmp/data.csv' @my_stage", {"PUT"}),
-        ("PUT file:///a @s; REMOVE @s/b", {"PUT", "REMOVE"}),
-        ("SELECT 1; EXECUTE IMMEDIATE $$ REMOVE @s/b $$", {"REMOVE"}),
-        ("SELECT 1", set()),
+        ("PUT file:///tmp/data.csv @my_stage", ["PUT"]),
+        ("SELECT 1; GET @my_stage file:///tmp/", ["GET"]),
+        ("SELECT 1; PUT 'file:///tmp/data.csv' @my_stage", ["PUT"]),
+        # Heads are deduplicated and returned in sorted order, so the error
+        # messages built from them read the same on every run. Written here in
+        # the reverse of the order the statements appear in.
+        ("REMOVE @s/b; PUT file:///a @s", ["PUT", "REMOVE"]),
+        ("PUT file:///a @s; PUT file:///b @s", ["PUT"]),
+        ("SELECT 1; EXECUTE IMMEDIATE $$ REMOVE @s/b $$", ["REMOVE"]),
+        ("SELECT 1", []),
     ],
 )
-def test_get_client_file_transfer_commands_script(sql: str, expected: set[str]) -> None:
+def test_get_client_file_transfer_commands_script(
+    sql: str, expected: list[str]
+) -> None:
     """
     `SQLScript.get_client_file_transfer_commands` collects every file-transfer
-    command head across the statements in a multi-statement script.
+    command head across the statements in a multi-statement script, sorted and
+    deduplicated.
     """
     assert SQLScript(sql, "snowflake").get_client_file_transfer_commands() == expected
+
+
+def test_strip_comments_bounds_literal_nesting() -> None:
+    """
+    `_strip_comments` stops descending into nested literals past a fixed depth,
+    so a body whose nesting a user controls cannot exhaust the stack. Past the
+    bound the text is left as found rather than dropped, so it stays visible to
+    the gates that scan it.
+    """
+    statement = SQLStatement("SELECT 1", "postgresql")
+    depth = SQLStatement._MAX_LITERAL_NESTING + 1
+    # Each `$t<n>$ ... $t<n>$` region is one level of literal nesting.
+    nested = "/* c */"
+    for level in range(depth):
+        nested = f"$t{level}${nested}$t{level}$"
+
+    stripped = statement._strip_comments(nested)
+
+    # The whole structure survives, and the comment below the bound does not.
+    assert stripped.startswith("$t%d$" % (depth - 1))
+    assert "/* c */" in stripped
+    # The same comment one level above the bound is stripped.
+    assert "/* c */" not in statement._strip_comments("$t0$/* c */$t0$")
 
 
 @pytest.mark.parametrize(
@@ -5983,6 +6029,10 @@ def test_changes_search_path(sql: str, expected: bool) -> None:
         ("CALL p(1--2, 'SET SCHEMA evil')", "mysql", True),
         ("CALL p(1, 'x') -- SET SCHEMA evil", "mysql", False),
         ("CALL p(1--2, 'SET SCHEMA evil')", "postgresql", False),
+        # SingleStore speaks the MySQL wire protocol and takes the same rule,
+        # so it must not lose the rest of the body to an unspaced `--`.
+        ("CALL p(1--2, 'SET SCHEMA evil')", "singlestoredb", True),
+        ("CALL p(1, 'x') -- SET SCHEMA evil", "singlestoredb", False),
         # Engines without a sqlglot AST (e.g. Kusto KQL) do not rebind schema
         # resolution through these forms.
         ("print x = 1", "kustokql", False),

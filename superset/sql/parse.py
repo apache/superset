@@ -1058,13 +1058,25 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
         re.DOTALL | re.VERBOSE,
     )
 
-    _SPACED_DASH_COMMENT_DIALECTS: frozenset[Dialects] = frozenset(
+    _SPACED_DASH_COMMENT_DIALECTS: frozenset[DialectType] = frozenset(
         {
             Dialects.MYSQL,
             Dialects.DORIS,
             Dialects.STARROCKS,
+            # SingleStore speaks the MySQL wire protocol and shares its
+            # tokenizer, but sqlglot exposes no `Dialects` member for it, so
+            # the class itself is what the resolved dialect compares equal to.
+            SingleStore,
         }
     )
+
+    # A literal nests once per level of dynamic-SQL indirection (an
+    # `EXECUTE IMMEDIATE` inside an `EXECUTE IMMEDIATE`), so a handful covers
+    # every form that actually executes. The bound is what stops a body of
+    # deeply nested `$tag$` regions, whose nesting a user controls, from
+    # recursing once per level and exhausting the stack; past it the text is
+    # left as found, which keeps it visible to the gates rather than removed.
+    _MAX_LITERAL_NESTING = 32
 
     # Command-fallback heads that are only mutating on dialects where the
     # structured form (`exp.Set`) is reserved for benign session variables,
@@ -1249,7 +1261,7 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
         :return: The body text with comments removed, or ``None`` when this
             statement does not carry a nested body
         """
-        if self._command_head() not in self._NESTED_BODY_COMMAND_NAMES:
+        if (head := self._command_head()) not in self._NESTED_BODY_COMMAND_NAMES:
             return None
         body = self._parsed.expression
         # sqlglot keeps the body as a literal node, whose `str()` re-renders it
@@ -1262,10 +1274,10 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
         # runs -- so it is peeled off before the strip, leaving the text either
         # side of it in place. Any `$tag$` region still nested inside really is
         # a literal, and is preserved as one.
-        text = self._peel_dollar_quote(text)
+        text = self._peel_dollar_quote(text, head)
         return self._strip_comments(text)
 
-    def _peel_dollar_quote(self, text: str) -> str:
+    def _peel_dollar_quote(self, text: str, head: str | None) -> str:
         """
         Remove the delimiters of the body's dollar-quoted code wrapper, keeping
         its contents and the text either side of it.
@@ -1284,6 +1296,8 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
         quadratic on input a user controls.
 
         :param text: The raw body text to peel
+        :param head: The statement's command head, which decides whether a
+            region that stops short of the end is a wrapper or an argument
         :return: The text with the wrapper's delimiters removed, or unchanged
             when the body has no dollar-quoted wrapper
         """
@@ -1293,7 +1307,7 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
         closer = text.find(delimiter, opener.end())
         if closer == -1:
             return text
-        if self._command_head() != "DO" and text[closer + len(delimiter) :].strip():
+        if head != "DO" and text[closer + len(delimiter) :].strip():
             return text
         return (
             text[: opener.start()]
@@ -1301,19 +1315,44 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
             + text[closer + len(delimiter) :]
         )
 
-    def _strip_comments(self, text: str) -> str:
+    @staticmethod
+    def _split_literal(literal: str) -> tuple[str, str, str]:
+        """
+        Split a matched literal into its delimiters and the text between them.
+
+        :param literal: The literal as matched, delimiters included
+        :return: The opening delimiter, the interior, and the closing
+            delimiter, which is empty when the literal is unterminated
+        """
+        if not literal.startswith("$"):
+            # `'...'` and `"..."` both delimit with a single character.
+            return literal[0], literal[1:-1], literal[-1]
+        delimiter = literal[: literal.index("$", 1) + 1]
+        interior = literal[len(delimiter) :]
+        if not interior.endswith(delimiter):
+            return delimiter, interior, ""
+        return delimiter, interior[: -len(delimiter)], delimiter
+
+    def _strip_comments(self, text: str, depth: int = 0) -> str:
         """
         Blank out SQL comments in raw statement text, preserving literals.
 
         Commented-out code never runs, so no gate should classify on it.
         Literals are deliberately kept: a nested body runs its dynamic SQL out
         of a literal (``EXECUTE IMMEDIATE '...'``), so dropping them would
-        blind such a scan to the very form it exists to catch. Quoted regions
-        are recognised in all three SQL spellings, so a `--` or `/*` inside one
-        is data and stays put: only text that never executes is removed, and a
-        gate that would have matched still matches.
+        blind such a scan to the very form it exists to catch.
+
+        That same reason makes the text *inside* a literal executable, so its
+        comments are stripped too, one literal at a time. Rescanning only the
+        interior is what keeps that safe: a `--` inside a literal can blank out
+        the rest of that literal, but never reaches past the closing delimiter
+        to truncate the statements after it. Without this a comment wedged into
+        a quoted body (``EXECUTE IMMEDIATE 'PUT/**/file:///a @s'``) would split
+        a head from its argument and hide it from every gate that scans here,
+        while the dollar-quoted spelling of the same statement was caught.
 
         :param text: The raw statement text to scan
+        :param depth: How many levels of literal this text is already inside
         :return: The text with each comment replaced by a single space, so
             tokens either side of a removed comment stay separated
         """
@@ -1322,7 +1361,16 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
             if self._dialect in self._SPACED_DASH_COMMENT_DIALECTS
             else self._COMMENT_RE
         )
-        return pattern.sub(lambda m: m.group("literal") or " ", text)
+
+        def replace(match: re.Match[str]) -> str:
+            if (literal := match.group("literal")) is None:
+                return " "
+            if depth >= self._MAX_LITERAL_NESTING:
+                return literal
+            opening, interior, closing = self._split_literal(literal)
+            return opening + self._strip_comments(interior, depth + 1) + closing
+
+        return pattern.sub(replace, text)
 
     def _explain_analyze_body(self) -> str | None:
         """
@@ -2656,17 +2704,24 @@ class SQLScript:
         """
         return any(statement.is_mutating() for statement in self.statements)
 
-    def get_client_file_transfer_commands(self) -> set[str]:
+    def get_client_file_transfer_commands(self) -> list[str]:
         """
         Return the client-side file-transfer command heads in the script.
 
-        :return: The set of uppercased command heads found (empty when none).
+        Sorted here so that every caller renders the heads in the same order:
+        the set these are deduplicated into iterates arbitrarily, which would
+        otherwise leave each error message to remember to sort for itself.
+
+        :return: The sorted, deduplicated uppercased command heads found
+            (empty when none).
         """
-        return {
-            command
-            for statement in self.statements
-            if (command := statement.get_client_file_transfer_command()) is not None
-        }
+        return sorted(
+            {
+                command
+                for statement in self.statements
+                if (command := statement.get_client_file_transfer_command()) is not None
+            }
+        )
 
     def has_destructive(self) -> bool:
         """
