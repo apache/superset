@@ -736,3 +736,81 @@ class TestQueryContextFactory:
         self.factory._add_currency_column(query_object, form_data, datasource)
 
         assert query_object.columns == ["col1"]
+
+    def test_apply_granularity_legacy_query_context_uses_granularity_sqla(self):
+        """Test _apply_granularity resolves a legacy chart's temporal column.
+
+        A query_context stored by an older version carries no ``granularity``
+        and no adhoc x-axis, keeping its temporal column in ``params`` as
+        ``granularity_sqla``. It therefore never satisfies
+        ``should_infer_filter_granularity`` and reaches ``models/helpers.py``
+        with ``is_timeseries`` set and no granularity, which raises.
+        """
+        query_object = Mock(spec=QueryObject)
+        query_object.granularity = None
+        query_object.is_timeseries = True
+        query_object.columns = ["ds"]
+        query_object.post_processing = []
+        query_object.filter = []
+        query_object.time_range = None
+        query_object.from_dttm = None
+        query_object.to_dttm = None
+
+        form_data = {"granularity_sqla": "ds"}
+        datasource = Mock()
+        datasource.columns = [
+            {"column_name": "ds", "is_dttm": True},
+            {"column_name": "other_time", "is_dttm": True},
+        ]
+        # Deliberately not the main column, so this asserts precedence rather
+        # than merely that some temporal column was picked.
+        datasource.main_dttm_col = "other_time"
+
+        self.factory._apply_granularity(query_object, form_data, datasource)
+
+        assert query_object.granularity == "ds"
+
+    def test_apply_granularity_legacy_query_context_falls_back_to_main_dttm_col(self):
+        """Test _apply_granularity uses the dataset's main temporal column.
+
+        Same legacy shape, but with no ``granularity_sqla`` to fall back on.
+        """
+        query_object = Mock(spec=QueryObject)
+        query_object.granularity = None
+        query_object.is_timeseries = True
+        query_object.columns = ["ds"]
+        query_object.post_processing = []
+        query_object.filter = []
+        query_object.time_range = None
+        query_object.from_dttm = None
+        query_object.to_dttm = None
+
+        form_data: dict[str, object] = {}
+        datasource = Mock()
+        datasource.columns = [{"column_name": "other_time", "is_dttm": True}]
+        datasource.main_dttm_col = "other_time"
+
+        self.factory._apply_granularity(query_object, form_data, datasource)
+
+        assert query_object.granularity == "other_time"
+
+    def test_apply_granularity_does_not_override_explicit_granularity(self):
+        """Test _apply_granularity leaves an existing granularity untouched."""
+        query_object = Mock(spec=QueryObject)
+        query_object.granularity = "P1D"
+        query_object.is_timeseries = True
+        query_object.columns = ["ds"]
+        query_object.post_processing = []
+        query_object.filter = []
+        query_object.time_range = None
+        query_object.from_dttm = None
+        query_object.to_dttm = None
+
+        form_data = {"granularity_sqla": "ds"}
+        datasource = Mock()
+        datasource.columns = [{"column_name": "ds", "is_dttm": True}]
+        datasource.main_dttm_col = "ds"
+
+        self.factory._apply_granularity(query_object, form_data, datasource)
+
+        assert query_object.granularity == "P1D"
