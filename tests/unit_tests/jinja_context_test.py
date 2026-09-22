@@ -3665,6 +3665,7 @@ def test_template_processor_resolves_a_table_against_the_query_location() -> Non
     database.db_engine_spec.latest_partition.return_value = (None, ["2026-01-01"])
 
     def resolved(**kwargs: Any) -> tuple[str | None, str | None]:
+        """The schema and catalog ``latest_partition`` looked the table up in."""
         processor = PrestoTemplateProcessor(database=database, **kwargs)
         processor.latest_partition("events")
         table = database.db_engine_spec.latest_partition.call_args.kwargs["table"]

@@ -27,9 +27,6 @@ from functools import lru_cache, partial
 from typing import Any, Callable, cast, TYPE_CHECKING, TypedDict, Union
 
 from flask import current_app, g, has_request_context, request
-# ``__`` is the lazy alias here because ``_`` is already bound to the eager
-# ``gettext`` used throughout this module. Both are extraction keywords
-# (``pybabel extract -k _ -k __``), which a bare ``lazy_gettext`` is not.
 from flask_babel import gettext as _, lazy_gettext as __, ngettext
 from flask_babel.speaklater import LazyString
 from jinja2 import DebugUndefined, Environment, TemplateSyntaxError, UndefinedError
@@ -952,7 +949,9 @@ class SupersetSandboxedEnvironment(SandboxedEnvironment):
 
 # Lazy on purpose: evaluated at import time, an eager constant would be
 # frozen in the default locale (see the same convention in views/core.py).
-# Callers ``str()`` it inside the request that reports it.
+# Callers ``str()`` it inside the request that reports it. Aliased to ``__``
+# rather than called bare because ``pybabel extract`` only recognises
+# ``-k _ -k __ -k t -k tn -k tct``, and ``_`` is the eager alias here.
 PARAMETER_MISSING_ERR: LazyString = __(
     "Please check your template parameters for syntax errors and make sure "
     "they match across your SQL query and Set Parameters. Then, try running "
