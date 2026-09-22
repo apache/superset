@@ -215,13 +215,19 @@ export default function transformProps(chartProps: EchartsGanttChartProps) {
   const categoryLines: { yAxis: number; name?: string }[] = [];
   let sum = 0;
   let prevSum = 0;
+
   Array.from(seriesInCategoriesMap.entries()).forEach(([key, map]) => {
     sum += map.size;
+
+    const name = key === null || key === undefined ? undefined : String(key);
+
     categoryLines.push({
       yAxis: seriesCount - (sum + prevSum) / 2,
-      name: key ? String(key) : undefined,
+      name,
     });
+
     borderLines.push({ yAxis: seriesCount - sum });
+
     prevSum = sum;
   });
 
@@ -273,10 +279,13 @@ export default function transformProps(chartProps: EchartsGanttChartProps) {
       .second(time.second());
   }
 
+  const addYAxisTitleOffset =
+    !!yAxisTitle && convertInteger(yAxisTitleMargin) !== 0;
+
   const padding = getPadding(
     showLegend,
     legendOrientation,
-    false,
+    addYAxisTitleOffset,
     zoomable,
     legendMargin,
     !!xAxisTitle,
@@ -402,7 +411,7 @@ export default function transformProps(chartProps: EchartsGanttChartProps) {
     const adjustedPadding = getPadding(
       showLegend,
       legendOrientation,
-      false,
+      addYAxisTitleOffset,
       zoomable,
       legendLayout.effectiveMargin,
       !!xAxisTitle,

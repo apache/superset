@@ -19,20 +19,22 @@
 import { useCallback, useState, useMemo, useEffect } from 'react';
 import rison from 'rison';
 import { t } from '@apache-superset/core/translation';
-import { GenericDataType } from '@apache-superset/core/common';
 import {
   Column,
   DatasourceType,
   ensureIsArray,
-  JsonResponse,
   useChangeEffect,
   getClientErrorObject,
+  selectClientErrorMessage,
 } from '@superset-ui/core';
 import { type FormInstance, Select } from '@superset-ui/core/components';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
 import { cachedSupersetGet } from 'src/utils/cachedSupersetGet';
 import { NativeFiltersForm, NativeFiltersFormItem } from '../types';
-import { mapSemanticTypeToGenericDataType } from './utils';
+import {
+  fetchSemanticViewStructure,
+  semanticViewDimensionsToColumns,
+} from './utils';
 
 interface ColumnSelectProps {
   allowClear?: boolean;
@@ -107,32 +109,18 @@ export function ColumnSelect({
       const handleError = async (
         badResponse: Parameters<typeof getClientErrorObject>[0],
       ) => {
-        const { error, message } = await getClientErrorObject(badResponse);
-        let errorText = message || error || t('An error has occurred');
-        if (message === 'Forbidden') {
-          errorText = t('You do not have permission to edit this dashboard');
-        }
+        const errorText = selectClientErrorMessage(
+          await getClientErrorObject(badResponse),
+          t('An error has occurred'),
+          { 403: t('You do not have permission to edit this dashboard') },
+        );
         addDangerToast(errorText);
       };
 
       if (datasourceType === DatasourceType.SemanticView) {
-        cachedSupersetGet({
-          endpoint: `/api/v1/semantic_view/${datasetId}/structure`,
-        })
-          .then((response: JsonResponse) => {
-            const { dimensions = [] } = response.json?.result ?? {};
-            const cols: Column[] = dimensions.map(
-              (dim: { name: string; type: string }) => {
-                const mappedType = mapSemanticTypeToGenericDataType(dim.type);
-                return {
-                  column_name: dim.name,
-                  type: dim.type,
-                  is_dttm: mappedType === GenericDataType.Temporal,
-                  type_generic: mappedType,
-                  filterable: true,
-                };
-              },
-            );
+        fetchSemanticViewStructure(datasetId)
+          .then(({ dimensions }) => {
+            const cols: Column[] = semanticViewDimensionsToColumns(dimensions);
             const lookupValue = Array.isArray(value) ? value : [value];
             const valueExists = cols.some((column: Column) =>
               lookupValue?.includes(column.column_name),

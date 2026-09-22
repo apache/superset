@@ -259,6 +259,10 @@ describe('Gantt transformProps', () => {
           position: 'start',
           formatter: '{b}',
           color: 'rgba(0,0,0,0.88)',
+          // Must match the font size measureTextWidth assumed when reserving
+          // `categoryLabelWidth`, or the rendered label overflows the room
+          // that was reserved for it.
+          fontSize: supersetTheme.fontSizeSM,
           // room reserved for the category name, truncated past the cap
           width: expect.any(Number),
           overflow: 'truncate',
