@@ -40,7 +40,12 @@ export const DATE_ONLY_REGEX = /^(\d{4}-\d{2}-\d{2})$/;
 
 export default function normalizeTimestamp(value: string): string {
   if (TS_REGEX_TZ_AWARE.test(value)) {
-    return value;
+    // The ECMA-262 Date Time String Format only recognizes an offset with a
+    // colon (`±hh:mm`); a compact offset (`+0330`) is outside that grammar,
+    // so `new Date(...)` on the result is implementation-defined and known
+    // to disagree across browsers. Insert the colon: it doesn't change the
+    // instant the offset represents, only its string form.
+    return value.replace(/([+-]\d{2})(\d{2})$/, '$1:$2');
   }
   const match = value.match(TS_REGEX);
   if (match) {
