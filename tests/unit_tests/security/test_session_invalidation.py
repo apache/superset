@@ -20,10 +20,13 @@ from types import SimpleNamespace
 from typing import Any
 from unittest.mock import MagicMock, patch
 
+from flask import session
+from flask_jwt_extended.exceptions import NoAuthorizationError
 from sqlalchemy.exc import IntegrityError
 
 from superset.security.session_invalidation import (
     _as_utc_timestamp,
+    _FLASK_LOGIN_USER_KEY,
     enforce_session_validity,
     invalidate_user_sessions,
     is_session_invalidated,
@@ -111,6 +114,77 @@ def test_enforce_skips_health_check_before_resolving_user(app: Any) -> None:
                 current.__bool__.assert_not_called()
                 warning.assert_not_called()
                 logout.assert_not_called()
+
+
+def test_enforce_skips_request_without_session_login(app: Any) -> None:
+    """
+    A request carrying no session login has no session to invalidate, so the
+    hook must return without resolving ``current_user``.
+    """
+    with app.test_request_context("/superset/welcome/"):
+        with (
+            patch(f"{MODULE}.current_user") as current,
+            patch(f"{MODULE}.logger.warning") as warning,
+            patch(f"{MODULE}.logout_user") as logout,
+        ):
+            assert enforce_session_validity() is None
+            current.__bool__.assert_not_called()
+            warning.assert_not_called()
+            logout.assert_not_called()
+
+
+def test_enforce_runs_for_request_with_session_login(app: Any) -> None:
+    """A session login is enforced: the user's epoch is looked up."""
+    with app.test_request_context("/superset/welcome/"):
+        session[_FLASK_LOGIN_USER_KEY] = "1"
+        with (
+            patch(f"{MODULE}.current_user", _user()),
+            patch(f"{MODULE}._get_user_invalidated_at", return_value=None) as get_epoch,
+            patch(f"{MODULE}.logout_user") as logout,
+        ):
+            assert enforce_session_validity() is None
+            get_epoch.assert_called_once()
+            logout.assert_not_called()
+
+
+def test_enforce_runs_for_remember_me_cookie(app: Any) -> None:
+    """
+    Flask-Login restores a "remember me" login while resolving ``current_user``,
+    after this hook runs, so the cookie alone must keep the check enabled.
+    """
+    with app.test_request_context(
+        "/superset/welcome/", headers={"Cookie": "remember_token=abc"}
+    ):
+        with (
+            patch(f"{MODULE}.current_user", _user()),
+            patch(f"{MODULE}._get_user_invalidated_at", return_value=None) as get_epoch,
+        ):
+            assert enforce_session_validity() is None
+            get_epoch.assert_called_once()
+
+
+def test_enforce_logs_raising_request_loader_at_debug(app: Any) -> None:
+    """
+    Deployments can install a Flask-Login ``request_loader`` that raises rather
+    than returning the anonymous user. That is an ordinary unauthenticated
+    request: allow it, and do not log it as a failure.
+    """
+
+    class _RaisingUser:
+        def __bool__(self) -> bool:
+            raise NoAuthorizationError("Missing JWT in headers or cookies")
+
+    with app.test_request_context("/superset/welcome/"):
+        session[_FLASK_LOGIN_USER_KEY] = "1"
+        with (
+            patch(f"{MODULE}.current_user", _RaisingUser()),
+            patch(f"{MODULE}.logger") as logger,
+            patch(f"{MODULE}.logout_user") as logout,
+        ):
+            assert enforce_session_validity() is None
+            logger.warning.assert_not_called()
+            logger.debug.assert_called_once()
+            logout.assert_not_called()
 
 
 def test_enforce_skips_guest_user() -> None:
