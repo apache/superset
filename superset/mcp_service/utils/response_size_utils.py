@@ -425,14 +425,8 @@ def _spec(
 #   - ``generate_explore_link`` and ``update_chart_preview`` persist nothing
 #     to the metadata database -- they only cache a form_data key -- so a
 #     retry re-caches rather than replaying a mutation.
-#
-# ``apply_dashboard_filters`` leaves the dashboard itself untouched, but the
-# permalink it commits is the whole result of the call: hard-erroring would
-# strand that row and lose the key the caller needs, and a retry would commit
-# a second one.
 COMMITTED_WRITE_SPECS: Dict[str, CommittedWriteSpec] = {
     "add_chart_to_existing_dashboard": _spec("dashboard", "dashboard"),
-    "apply_dashboard_filters": _spec("dashboard"),
     "create_dataset": _spec("dataset"),
     "create_theme": _spec("theme", reports_success=True),
     "create_virtual_dataset": _spec("dataset"),
