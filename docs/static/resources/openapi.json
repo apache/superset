@@ -3711,6 +3711,10 @@
             "description": "The status of the async screenshot",
             "type": "string"
           },
+          "task_timeout_seconds": {
+            "description": "The client wait budget for the Pending and Computing task states",
+            "type": "integer"
+          },
           "task_updated_at": {
             "description": "The timestamp of the last change in status",
             "type": "string"
@@ -3904,6 +3908,9 @@
           "params": {
             "type": "string"
           },
+          "parent": {
+            "type": "object"
+          },
           "perm": {
             "type": "string"
           },
@@ -3913,8 +3920,20 @@
           "select_star": {
             "type": "string"
           },
+          "semantic_view_features": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
           "sql": {
             "type": "string"
+          },
+          "supports_drill_to_detail": {
+            "type": "boolean"
+          },
+          "supports_samples": {
+            "type": "boolean"
           },
           "table_name": {
             "type": "string"
@@ -19370,6 +19389,16 @@
           }
         },
         "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DashboardCacheScreenshotResponseSchema"
+                }
+              }
+            },
+            "description": "Existing dashboard screenshot task status"
+          },
           "202": {
             "content": {
               "application/json": {
@@ -19391,6 +19420,9 @@
           },
           "500": {
             "$ref": "#/components/responses/500"
+          },
+          "503": {
+            "description": "Screenshot cache unavailable"
           }
         },
         "security": [
@@ -19990,6 +20022,13 @@
             "required": true,
             "schema": {
               "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "tab_id",
+            "schema": {
+              "type": "integer"
             }
           }
         ],
@@ -25739,6 +25778,13 @@
             "required": true,
             "schema": {
               "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "tab_id",
+            "schema": {
+              "type": "integer"
             }
           }
         ],

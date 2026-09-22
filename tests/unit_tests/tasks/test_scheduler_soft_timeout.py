@@ -22,6 +22,23 @@ import pytest
 from celery.exceptions import SoftTimeLimitExceeded
 
 
+def test_legacy_retry_is_logged_without_executing() -> None:
+    """Legacy retry tasks are rejected observably rather than losing fencing."""
+    from superset.tasks.scheduler import execute
+
+    with (
+        patch("superset.tasks.scheduler.current_app") as app,
+        patch("superset.tasks.scheduler.AsyncExecuteReportScheduleCommand") as command,
+        patch("superset.tasks.scheduler.logger") as logger,
+    ):
+        execute(1234, "2026-09-15T00:00:00")
+    command.assert_not_called()
+    app.config["STATS_LOGGER"].incr.assert_any_call(
+        "reports.execute.legacy_retry_discarded"
+    )
+    assert "reason=missing_execution_owner" in logger.warning.call_args.args[0]
+
+
 def test_soft_timeout_handler_is_shared_by_alerts() -> None:
     """The ``reports.execute`` soft-timeout handler is type-unconditional.
 
