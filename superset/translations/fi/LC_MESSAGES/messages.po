@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-21 02:18+0000\n"
+"POT-Creation-Date: 2026-09-22 03:02+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: fi\n"
@@ -4324,9 +4324,6 @@ msgstr "Säädä sarakkeen leveys automaattisesti käytettävissä olevan tilan 
 msgid "Automatically adjust column width based on content"
 msgstr "Säädä sarakkeen leveys automaattisesti sisällön mukaan"
 
-msgid "Automatically retry sending the report when delivery fails."
-msgstr ""
-
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, fr, ja,
 # lv, ru, sk, uk]
 #, fuzzy
@@ -7179,7 +7176,7 @@ msgstr "Määritä koontinäytön ulkoasu, värit ja mukautettu CSS"
 msgid "Configure filter scopes"
 msgstr "Määritä suodatinalueet"
 
-msgid "Configure retry behavior on delivery failure."
+msgid "Configure retries when alert or report generation fails before delivery."
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
@@ -7310,6 +7307,9 @@ msgid "Connection failed, please check your connection settings."
 msgstr "Yhteys epäonnistui, tarkista yhteysasetuksesi."
 
 msgid "Connection looks good!"
+msgstr ""
+
+msgid "Contact the report owner for error details."
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: fr, ja, lv,
@@ -14772,6 +14772,12 @@ msgstr "Tammikuu"
 msgid "Jinja templating"
 msgstr "Jinja-mallinnus"
 
+msgid ""
+"Jinja templating is not supported in a partition value transform. The "
+"transform is evaluated in a different context and at a different time "
+"from the chart query, so a template would not render the same way."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, tr, uk, zh, zh_TW]
 #, fuzzy
@@ -15942,6 +15948,10 @@ msgstr "Mapbox (API-avain vaaditaan)"
 #, fuzzy
 msgid "Mapbox requires a MAPBOX_API_KEY to be configured on the server."
 msgstr "Mapbox vaatii MAPBOX_API_KEY:n määrittämistä palvelimella."
+
+#, python-format
+msgid "Mapped column %(name)s is not a column on this dataset."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, it, ja, ko, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, tr, uk,
@@ -17547,6 +17557,11 @@ msgstr ""
 "Nimeltä %(validator_name)s olevaa validaattoria ei löydy (määritetty "
 "%(engine_spec)s-moottorille)"
 
+msgid ""
+"No value transform is set, so no filter will be mirrored onto the "
+"partition column."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, fuzzy
@@ -18678,6 +18693,10 @@ msgstr "Osioraja"
 #, fuzzy
 msgid "Partition Threshold"
 msgstr "Osiokynnysarvo"
+
+#, python-format
+msgid "Partition column %(name)s is not a column on this dataset."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -20788,9 +20807,6 @@ msgstr ""
 msgid "Resume auto-refresh"
 msgstr "Aseta automaattinen päivitys"
 
-msgid "Retries are not supported for alerts"
-msgstr ""
-
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: fr, ja, lv,
 # ru, uk]
 #, fuzzy
@@ -20802,6 +20818,11 @@ msgstr "Yritä uudelleen"
 #, fuzzy
 msgid "Retry fetching results"
 msgstr "Yritä hakea tulokset uudelleen"
+
+msgid ""
+"Retry generation failures before delivery starts. Alerts re-check their "
+"condition on each attempt. Delivery failures are not replayed."
+msgstr ""
 
 msgid "Retrying"
 msgstr ""
@@ -21782,6 +21803,12 @@ msgstr "Laajuus"
 #, fuzzy
 msgid "Scoping"
 msgstr "Laajuuden määritys"
+
+msgid "Screenshot cache is unavailable"
+msgstr ""
+
+msgid "Screenshot request is temporarily unavailable"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -24043,12 +24070,6 @@ msgstr "Pahoittelemme, tapahtui virhe"
 #, fuzzy
 msgid "Sorry, an error occurred"
 msgstr "Pahoittelemme, tapahtui virhe"
-
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
-# de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
-#, fuzzy
-msgid "Sorry, an unknown error occurred"
-msgstr "Pahoittelemme, tapahtui tuntematon virhe"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
@@ -26345,6 +26366,12 @@ msgid_plural "The following parameters in your query are undefined: %(parameters
 msgstr[0] "Parametri %(parameters)s kyselyssäsi on määrittelemätön."
 msgstr[1] "Seuraavat parametrit kyselyssäsi ovat määrittelemättömiä: %(parameters)s."
 
+#, python-format
+msgid ""
+"The partition column cannot be mapped onto itself. %(name)s is both the "
+"partition column and the mapped column."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, fuzzy, python-format
@@ -26987,6 +27014,24 @@ msgstr "Käyttäjätunnusta \"%(username)s\" ei ole olemassa."
 #, fuzzy
 msgid "The username provided when connecting to a database is not valid."
 msgstr "Tietokantaan yhdistettäessä annettu käyttäjätunnus ei ole kelvollinen."
+
+#, python-format
+msgid ""
+"The value transform calls %(functions)s, whose result depends on when and"
+" where it runs. The transform is evaluated in a separate session and the "
+"result is cached, so the emitted predicate would freeze a snapshot of "
+"that moment."
+msgstr ""
+
+msgid ""
+"The value transform could not be parsed. The mapping is saved but stays "
+"inactive until it does."
+msgstr ""
+
+msgid ""
+"The value transform must contain the :value placeholder, which stands for"
+" the filter value being mirrored."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, fr, ja,
 # lv, ru, sk, uk]

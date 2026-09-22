@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: avsarcoteli@gmail.com\n"
-"POT-Creation-Date: 2026-09-21 02:18+0000\n"
+"POT-Creation-Date: 2026-09-22 03:02+0000\n"
 "PO-Revision-Date: 2024-02-25 14:00+0300\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: tr\n"
@@ -2803,9 +2803,6 @@ msgstr "Otomatik olarak mevcut alana dayanan sütun genişliğini ayarlayın"
 msgid "Automatically adjust column width based on content"
 msgstr "Otomatik olarak sütun genişliğini içerik tabanlı olarak ayarlar"
 
-msgid "Automatically retry sending the report when delivery fails."
-msgstr ""
-
 msgid "Automatically sync columns"
 msgstr "Otomatik olarak senkronize sütunlar"
 
@@ -4534,7 +4531,7 @@ msgstr "Panel görünümü, renkler ve özel CSS"
 msgid "Configure filter scopes"
 msgstr "Filtre kapsamı"
 
-msgid "Configure retry behavior on delivery failure."
+msgid "Configure retries when alert or report generation fails before delivery."
 msgstr ""
 
 msgid "Configure the basics of your Annotation Layer."
@@ -4605,6 +4602,9 @@ msgid "Connection failed, please check your connection settings."
 msgstr "Bağlantı başarısız oldu, lütfen bağlantı ayarlarını kontrol edin."
 
 msgid "Connection looks good!"
+msgstr ""
+
+msgid "Contact the report owner for error details."
 msgstr ""
 
 #, fuzzy
@@ -9164,6 +9164,12 @@ msgstr "Ocak"
 msgid "Jinja templating"
 msgstr "Jinja çekicilating"
 
+msgid ""
+"Jinja templating is not supported in a partition value transform. The "
+"transform is evaluated in a different context and at a different time "
+"from the chart query, so a template would not render the same way."
+msgstr ""
+
 msgid "July"
 msgstr "Temmuz"
 
@@ -9897,6 +9903,10 @@ msgstr "Mapbox (API anahtarı gerekli)"
 #, fuzzy
 msgid "Mapbox requires a MAPBOX_API_KEY to be configured on the server."
 msgstr "Mapbox için sunucuda bir MAPBOX_API_KEY yapılandırılması gerekir."
+
+#, python-format
+msgid "Mapped column %(name)s is not a column on this dataset."
+msgstr ""
 
 msgid "March"
 msgstr "Mart"
@@ -10857,6 +10867,11 @@ msgstr ""
 "%(engine_spec)s %(validator_name)s adında hiçbir doğrulama bulunamadı "
 "(foto 1   motoru için yapılandırıldı)"
 
+msgid ""
+"No value transform is set, so no filter will be mirrored onto the "
+"partition column."
+msgstr ""
+
 msgid "Node label position"
 msgstr "Node etiket pozisyonu"
 
@@ -11527,6 +11542,10 @@ msgstr "Katılımcı Sınırı"
 
 msgid "Partition Threshold"
 msgstr "Partition Threshold"
+
+#, python-format
+msgid "Partition column %(name)s is not a column on this dataset."
+msgstr ""
 
 msgid ""
 "Partitions whose height to parent height proportions are below this value"
@@ -12801,9 +12820,6 @@ msgstr "Asynchronous sorgular için gerekli sonuçlar yapılandırılmıyor."
 msgid "Resume auto-refresh"
 msgstr "Otomatik yenilemeyi sürdür"
 
-msgid "Retries are not supported for alerts"
-msgstr ""
-
 #, fuzzy
 msgid "Retry"
 msgstr "her"
@@ -12811,6 +12827,11 @@ msgstr "her"
 #, fuzzy
 msgid "Retry fetching results"
 msgstr "Grafikleri getirirken hata"
+
+msgid ""
+"Retry generation failures before delivery starts. Alerts re-check their "
+"condition on each attempt. Delivery failures are not replayed."
+msgstr ""
 
 msgid "Retrying"
 msgstr ""
@@ -13381,6 +13402,12 @@ msgstr "Kapsam"
 
 msgid "Scoping"
 msgstr "Scoping"
+
+msgid "Screenshot cache is unavailable"
+msgstr ""
+
+msgid "Screenshot request is temporarily unavailable"
+msgstr ""
 
 msgid "Screenshot width"
 msgstr "Ekran genişliği"
@@ -14851,9 +14878,6 @@ msgstr "Üzgünüm, Bir hata oluştu"
 msgid "Sorry, an error occurred"
 msgstr "Üzgünüm, bir hata oluştu"
 
-msgid "Sorry, an unknown error occurred"
-msgstr "Üzgünüm, bilinmeyen bir hata oluştu"
-
 msgid "Sorry, an unknown error occurred."
 msgstr "Üzgünüm, bilinmeyen bir hata oluştu."
 
@@ -16320,6 +16344,12 @@ msgid_plural "The following parameters in your query are undefined: %(parameters
 msgstr[0] "Parametre   %(parameters)s in your query is undefined."
 
 #, python-format
+msgid ""
+"The partition column cannot be mapped onto itself. %(name)s is both the "
+"partition column and the mapped column."
+msgstr ""
+
+#, python-format
 msgid "The password provided for username \"%(username)s\" is incorrect."
 msgstr "Kullanıcı adı \"  %(username)s \" için sağlanan şifre yanlış."
 
@@ -16755,6 +16785,24 @@ msgid "The username provided when connecting to a database is not valid."
 msgstr ""
 "Bir veritabanına bağlantılandığında verilen kullanıcı adı geçerli "
 "değildir."
+
+#, python-format
+msgid ""
+"The value transform calls %(functions)s, whose result depends on when and"
+" where it runs. The transform is evaluated in a separate session and the "
+"result is cached, so the emitted predicate would freeze a snapshot of "
+"that moment."
+msgstr ""
+
+msgid ""
+"The value transform could not be parsed. The mapping is saved but stays "
+"inactive until it does."
+msgstr ""
+
+msgid ""
+"The value transform must contain the :value placeholder, which stands for"
+" the filter value being mirrored."
+msgstr ""
 
 msgid "The values overlap other breakpoint values"
 msgstr "Değerler diğer uç noktaları değerleri örtüşür"

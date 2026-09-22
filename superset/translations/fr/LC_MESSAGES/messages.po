@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-21 02:18+0000\n"
+"POT-Creation-Date: 2026-09-22 03:02+0000\n"
 "PO-Revision-Date: 2025-06-26 15:34+0200\n"
 "Last-Translator: \n"
 "Language: fr\n"
@@ -2744,9 +2744,6 @@ msgstr ""
 msgid "Automatically adjust column width based on content"
 msgstr "Ajuster automatiquement la largeur des colonnes en fonction du contenu"
 
-msgid "Automatically retry sending the report when delivery fails."
-msgstr ""
-
 msgid "Automatically sync columns"
 msgstr "Synchroniser automatiquement les colonnes"
 
@@ -4428,7 +4425,7 @@ msgstr ""
 msgid "Configure filter scopes"
 msgstr "Configurer la portée du filtre"
 
-msgid "Configure retry behavior on delivery failure."
+msgid "Configure retries when alert or report generation fails before delivery."
 msgstr ""
 
 msgid "Configure the basics of your Annotation Layer."
@@ -4498,6 +4495,9 @@ msgstr "La connexion a échoué, veuillez vérifier vos paramètres de connexion
 
 msgid "Connection looks good!"
 msgstr "La connexion fonctionne !"
+
+msgid "Contact the report owner for error details."
+msgstr ""
 
 msgid "Contains"
 msgstr "Contient"
@@ -8872,6 +8872,12 @@ msgstr "Janvier"
 msgid "Jinja templating"
 msgstr "Modèles Jinja"
 
+msgid ""
+"Jinja templating is not supported in a partition value transform. The "
+"transform is evaluated in a different context and at a different time "
+"from the chart query, so a template would not render the same way."
+msgstr ""
+
 msgid "July"
 msgstr "Juillet"
 
@@ -9550,6 +9556,10 @@ msgid "Mapbox requires a MAPBOX_API_KEY to be configured on the server."
 msgstr ""
 "Il est nécessaire de configurer la variable MAPBOX_API_KEY sur le serveur"
 " pour utiliser Mapbox."
+
+#, python-format
+msgid "Mapped column %(name)s is not a column on this dataset."
+msgstr ""
 
 msgid "March"
 msgstr "Mars"
@@ -10462,6 +10472,11 @@ msgstr ""
 "Aucun validateur nommé %(validator_name)s trouvé (configuré pour le "
 "moteur %(engine_spec)s)"
 
+msgid ""
+"No value transform is set, so no filter will be mirrored onto the "
+"partition column."
+msgstr ""
+
 msgid "Node label position"
 msgstr "Position de l'étiquette du nœud"
 
@@ -11138,6 +11153,10 @@ msgstr "Limite de partition"
 
 msgid "Partition Threshold"
 msgstr "Seuil de partition"
+
+#, python-format
+msgid "Partition column %(name)s is not a column on this dataset."
+msgstr ""
 
 msgid ""
 "Partitions whose height to parent height proportions are below this value"
@@ -12393,14 +12412,16 @@ msgstr ""
 msgid "Resume auto-refresh"
 msgstr "Reprendre le rafraîchissement automatique"
 
-msgid "Retries are not supported for alerts"
-msgstr ""
-
 msgid "Retry"
 msgstr "Réessayer"
 
 msgid "Retry fetching results"
 msgstr "relancer la récupération des résultats"
+
+msgid ""
+"Retry generation failures before delivery starts. Alerts re-check their "
+"condition on each attempt. Delivery failures are not replayed."
+msgstr ""
 
 msgid "Retrying"
 msgstr ""
@@ -12947,6 +12968,12 @@ msgstr "Portée"
 
 msgid "Scoping"
 msgstr "Établissement de la portée"
+
+msgid "Screenshot cache is unavailable"
+msgstr ""
+
+msgid "Screenshot request is temporarily unavailable"
+msgstr ""
 
 msgid "Screenshot width"
 msgstr "Largeur de la capture d'écran"
@@ -14326,9 +14353,6 @@ msgstr "Désolé, une erreur s'est produite"
 
 msgid "Sorry, an error occurred"
 msgstr "Désolé, une erreur s'est produite"
-
-msgid "Sorry, an unknown error occurred"
-msgstr "Désolé, une erreur inconnue s'est produite"
 
 msgid "Sorry, an unknown error occurred."
 msgstr "Désolé, une erreur inconnue s'est produite."
@@ -15786,6 +15810,12 @@ msgstr[0] "Le paramètre %(parameters)s de votre requête est indéfini."
 msgstr[1] "Les paramètres suivants de votre requête sont indéfinis : %(parameters)s."
 
 #, python-format
+msgid ""
+"The partition column cannot be mapped onto itself. %(name)s is both the "
+"partition column and the mapped column."
+msgstr ""
+
+#, python-format
 msgid "The password provided for username \"%(username)s\" is incorrect."
 msgstr "Le mot de passe fourni pour l'utilisateur « %(username)s » est incorrect."
 
@@ -16243,6 +16273,24 @@ msgid "The username provided when connecting to a database is not valid."
 msgstr ""
 "Le nom d'utilisateur·rice fourni lors de la connexion à une base de "
 "données n'est pas valide."
+
+#, python-format
+msgid ""
+"The value transform calls %(functions)s, whose result depends on when and"
+" where it runs. The transform is evaluated in a separate session and the "
+"result is cached, so the emitted predicate would freeze a snapshot of "
+"that moment."
+msgstr ""
+
+msgid ""
+"The value transform could not be parsed. The mapping is saved but stays "
+"inactive until it does."
+msgstr ""
+
+msgid ""
+"The value transform must contain the :value placeholder, which stands for"
+" the filter value being mirrored."
+msgstr ""
 
 msgid "The values overlap other breakpoint values"
 msgstr "Les valeurs se chevauchent avec d'autres valeurs de points d'arrêt"

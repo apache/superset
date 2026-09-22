@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-21 02:18+0000\n"
+"POT-Creation-Date: 2026-09-22 03:02+0000\n"
 "PO-Revision-Date: 2024-05-14 13:30+0900\n"
 "Last-Translator: Yuri Umezaki <bungoume@gmail.com>\n"
 "Language: ja\n"
@@ -2487,9 +2487,6 @@ msgstr "利用可能なスペースに基づいて列幅を自動調整"
 msgid "Automatically adjust column width based on content"
 msgstr "コンテンツに基づいて列幅を自動調整"
 
-msgid "Automatically retry sending the report when delivery fails."
-msgstr ""
-
 msgid "Automatically sync columns"
 msgstr "列を自動同期"
 
@@ -4016,7 +4013,7 @@ msgstr "ダッシュボードの外観、配色、およびカスタムCSS設定
 msgid "Configure filter scopes"
 msgstr "フィルターの適用範囲を設定"
 
-msgid "Configure retry behavior on delivery failure."
+msgid "Configure retries when alert or report generation fails before delivery."
 msgstr ""
 
 msgid "Configure the basics of your Annotation Layer."
@@ -4084,6 +4081,9 @@ msgstr "接続に失敗しました。接続設定を確認してください。
 
 msgid "Connection looks good!"
 msgstr "正常に接続できました！"
+
+msgid "Contact the report owner for error details."
+msgstr ""
 
 msgid "Contains"
 msgstr "含む"
@@ -8109,6 +8109,12 @@ msgstr "1月"
 msgid "Jinja templating"
 msgstr "Jinjaテンプレート"
 
+msgid ""
+"Jinja templating is not supported in a partition value transform. The "
+"transform is evaluated in a different context and at a different time "
+"from the chart query, so a template would not render the same way."
+msgstr ""
+
 msgid "July"
 msgstr "7月"
 
@@ -8745,6 +8751,10 @@ msgstr "Mapbox (APIキー必須)"
 
 msgid "Mapbox requires a MAPBOX_API_KEY to be configured on the server."
 msgstr "Mapbox を使用するには、サーバーに MAPBOX_API_KEY を設定する必要があります。"
+
+#, python-format
+msgid "Mapped column %(name)s is not a column on this dataset."
+msgstr ""
 
 msgid "March"
 msgstr "3月"
@@ -9601,6 +9611,11 @@ msgid ""
 "%(engine_spec)s engine)"
 msgstr "%(engine_spec)s エンジンに設定された「%(validator_name)s」という名前のバリデータが見つかりません"
 
+msgid ""
+"No value transform is set, so no filter will be mirrored onto the "
+"partition column."
+msgstr ""
+
 msgid "Node label position"
 msgstr "ノードラベルの位置"
 
@@ -10209,6 +10224,10 @@ msgstr "パーティション制限"
 
 msgid "Partition Threshold"
 msgstr "パーティションしきい値"
+
+#, python-format
+msgid "Partition column %(name)s is not a column on this dataset."
+msgstr ""
 
 msgid ""
 "Partitions whose height to parent height proportions are below this value"
@@ -11382,14 +11401,16 @@ msgstr "非同期クエリに必要な結果バックエンドが設定されて
 msgid "Resume auto-refresh"
 msgstr "自動更新を再開"
 
-msgid "Retries are not supported for alerts"
-msgstr ""
-
 msgid "Retry"
 msgstr "再試行"
 
 msgid "Retry fetching results"
 msgstr "結果の取得を再試行"
+
+msgid ""
+"Retry generation failures before delivery starts. Alerts re-check their "
+"condition on each attempt. Delivery failures are not replayed."
+msgstr ""
 
 msgid "Retrying"
 msgstr ""
@@ -11912,6 +11933,12 @@ msgstr "スコープ"
 
 msgid "Scoping"
 msgstr "スコーピング"
+
+msgid "Screenshot cache is unavailable"
+msgstr ""
+
+msgid "Screenshot request is temporarily unavailable"
+msgstr ""
 
 msgid "Screenshot width"
 msgstr "スクリーンショットの幅"
@@ -13118,9 +13145,6 @@ msgstr "申し訳ありません、エラーが発生しました"
 
 msgid "Sorry, an error occurred"
 msgstr "申し訳ありません、エラーが発生しました"
-
-msgid "Sorry, an unknown error occurred"
-msgstr "申し訳ありません、不明なエラーが発生しました"
 
 msgid "Sorry, an unknown error occurred."
 msgstr "申し訳ありません、不明なエラーが発生しました。"
@@ -14395,6 +14419,12 @@ msgid_plural "The following parameters in your query are undefined: %(parameters
 msgstr[0] "クエリ内のパラメータ %(parameters)s が定義されていません。"
 
 #, python-format
+msgid ""
+"The partition column cannot be mapped onto itself. %(name)s is both the "
+"partition column and the mapped column."
+msgstr ""
+
+#, python-format
 msgid "The password provided for username \"%(username)s\" is incorrect."
 msgstr "ユーザー「%(username)s」のパスワードが正しくありません。"
 
@@ -14747,6 +14777,24 @@ msgstr "ユーザー名「%(username)s」は存在しません。"
 
 msgid "The username provided when connecting to a database is not valid."
 msgstr "データベース接続時に指定されたユーザー名が無効です。"
+
+#, python-format
+msgid ""
+"The value transform calls %(functions)s, whose result depends on when and"
+" where it runs. The transform is evaluated in a separate session and the "
+"result is cached, so the emitted predicate would freeze a snapshot of "
+"that moment."
+msgstr ""
+
+msgid ""
+"The value transform could not be parsed. The mapping is saved but stays "
+"inactive until it does."
+msgstr ""
+
+msgid ""
+"The value transform must contain the :value placeholder, which stands for"
+" the filter value being mirrored."
+msgstr ""
 
 msgid "The values overlap other breakpoint values"
 msgstr "この値は他のブレークポイント値と重複しています"

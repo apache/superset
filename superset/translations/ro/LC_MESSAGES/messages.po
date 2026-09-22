@@ -22,7 +22,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-21 02:18+0000\n"
+"POT-Creation-Date: 2026-09-22 03:02+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: ro\n"
@@ -2902,9 +2902,6 @@ msgstr "Ajustează automat lățimea coloanei pe baza spațiului disponibil"
 msgid "Automatically adjust column width based on content"
 msgstr "Ajustează automat lățimea coloanei pe baza conținutului"
 
-msgid "Automatically retry sending the report when delivery fails."
-msgstr ""
-
 msgid "Automatically sync columns"
 msgstr "Sincronizează automat coloanele"
 
@@ -4651,7 +4648,7 @@ msgstr "Configurează aspectul panoului de control, culorile și CSS-ul personal
 msgid "Configure filter scopes"
 msgstr "Configurează domeniile de aplicare ale filtrelor"
 
-msgid "Configure retry behavior on delivery failure."
+msgid "Configure retries when alert or report generation fails before delivery."
 msgstr ""
 
 msgid "Configure the basics of your Annotation Layer."
@@ -4723,6 +4720,9 @@ msgid "Connection failed, please check your connection settings."
 msgstr "Conexiunea a eșuat, vă rugăm să verificați setările de conexiune."
 
 msgid "Connection looks good!"
+msgstr ""
+
+msgid "Contact the report owner for error details."
 msgstr ""
 
 msgid "Contains"
@@ -9398,6 +9398,12 @@ msgstr "Ianuarie"
 msgid "Jinja templating"
 msgstr "Șabloane Jinja"
 
+msgid ""
+"Jinja templating is not supported in a partition value transform. The "
+"transform is evaluated in a different context and at a different time "
+"from the chart query, so a template would not render the same way."
+msgstr ""
+
 msgid "July"
 msgstr "Iulie"
 
@@ -10122,6 +10128,10 @@ msgstr "Mapbox (cheie API necesară)"
 #, fuzzy
 msgid "Mapbox requires a MAPBOX_API_KEY to be configured on the server."
 msgstr "Mapbox necesită configurarea unui MAPBOX_API_KEY pe server."
+
+#, python-format
+msgid "Mapped column %(name)s is not a column on this dataset."
+msgstr ""
 
 msgid "March"
 msgstr "Martie"
@@ -11097,6 +11107,11 @@ msgstr ""
 "Niciun validator numit %(validator_name)s găsit (configurat pentru "
 "motorul %(engine_spec)s)"
 
+msgid ""
+"No value transform is set, so no filter will be mirrored onto the "
+"partition column."
+msgstr ""
+
 msgid "Node label position"
 msgstr "Poziție etichetă nod"
 
@@ -11771,6 +11786,10 @@ msgstr "Limită partiție"
 
 msgid "Partition Threshold"
 msgstr "Prag partiție"
+
+#, python-format
+msgid "Partition column %(name)s is not a column on this dataset."
+msgstr ""
 
 msgid ""
 "Partitions whose height to parent height proportions are below this value"
@@ -13066,14 +13085,16 @@ msgstr ""
 msgid "Resume auto-refresh"
 msgstr "Reluați reîmprospătarea automată"
 
-msgid "Retries are not supported for alerts"
-msgstr ""
-
 msgid "Retry"
 msgstr "Reîncearcă"
 
 msgid "Retry fetching results"
 msgstr "Reîncearcă preluarea rezultatelor"
+
+msgid ""
+"Retry generation failures before delivery starts. Alerts re-check their "
+"condition on each attempt. Delivery failures are not replayed."
+msgstr ""
 
 msgid "Retrying"
 msgstr ""
@@ -13651,6 +13672,12 @@ msgstr "Domeniu"
 
 msgid "Scoping"
 msgstr "Domeniu de aplicare"
+
+msgid "Screenshot cache is unavailable"
+msgstr ""
+
+msgid "Screenshot request is temporarily unavailable"
+msgstr ""
 
 msgid "Screenshot width"
 msgstr "Lățime captură ecran"
@@ -15129,9 +15156,6 @@ msgstr "Ne pare rău, a apărut o eroare"
 
 msgid "Sorry, an error occurred"
 msgstr "Ne pare rău, a apărut o eroare"
-
-msgid "Sorry, an unknown error occurred"
-msgstr "Ne pare rău, a apărut o eroare necunoscută"
 
 msgid "Sorry, an unknown error occurred."
 msgstr "Ne pare rău, a apărut o eroare necunoscută."
@@ -16649,6 +16673,12 @@ msgstr[1] "Următorii parametri din interogarea dvs. sunt nedefiniți: %(paramet
 msgstr[2] "Următorii parametri din interogarea dvs. sunt nedefiniți: %(parameters)s."
 
 #, python-format
+msgid ""
+"The partition column cannot be mapped onto itself. %(name)s is both the "
+"partition column and the mapped column."
+msgstr ""
+
+#, python-format
 msgid "The password provided for username \"%(username)s\" is incorrect."
 msgstr ""
 "Parola furnizată pentru numele de utilizator \"%(username)s\" este "
@@ -17103,6 +17133,24 @@ msgid "The username provided when connecting to a database is not valid."
 msgstr ""
 "Numele de utilizator furnizat la conectarea la o bază de date nu este "
 "valid."
+
+#, python-format
+msgid ""
+"The value transform calls %(functions)s, whose result depends on when and"
+" where it runs. The transform is evaluated in a separate session and the "
+"result is cached, so the emitted predicate would freeze a snapshot of "
+"that moment."
+msgstr ""
+
+msgid ""
+"The value transform could not be parsed. The mapping is saved but stays "
+"inactive until it does."
+msgstr ""
+
+msgid ""
+"The value transform must contain the :value placeholder, which stands for"
+" the filter value being mirrored."
+msgstr ""
 
 msgid "The values overlap other breakpoint values"
 msgstr "Valorile se suprapun cu alte valori de prag"

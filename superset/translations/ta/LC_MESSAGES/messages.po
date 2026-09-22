@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-21 02:18+0000\n"
+"POT-Creation-Date: 2026-09-22 03:02+0000\n"
 "PO-Revision-Date: 2026-03-31 02:00-0700\n"
 "Last-Translator: Maazin Ahamed\n"
 "Language: ta\n"
@@ -2695,9 +2695,6 @@ msgstr "கிடைக்கக்கூடிய இடத்திற்க�
 msgid "Automatically adjust column width based on content"
 msgstr "உள்ளடக்கத்திற்கு ஏற்ப நெடுவரிசை அகலத்தைத் தானாகச் சரிசெய்யவும்"
 
-msgid "Automatically retry sending the report when delivery fails."
-msgstr ""
-
 msgid "Automatically sync columns"
 msgstr "நெடுவரிசைகளைத் தானாக ஒத்திசைக்கவும்"
 
@@ -4343,7 +4340,7 @@ msgstr "டேஷ்போர்டு தோற்றம், நிறங்க
 msgid "Configure filter scopes"
 msgstr "வடிகட்டி வரம்புகளை (filter scopes) உள்ளமைக்கவும்"
 
-msgid "Configure retry behavior on delivery failure."
+msgid "Configure retries when alert or report generation fails before delivery."
 msgstr ""
 
 msgid "Configure the basics of your Annotation Layer."
@@ -4420,6 +4417,9 @@ msgstr "இணைப்பு தோல்வியுற்றது, உங்
 #, fuzzy
 msgid "Connection looks good!"
 msgstr "இணைப்பு"
+
+msgid "Contact the report owner for error details."
+msgstr ""
 
 msgid "Contains"
 msgstr "கொண்டுள்ளது (Contains)"
@@ -8684,6 +8684,12 @@ msgstr "ஜனவரி"
 msgid "Jinja templating"
 msgstr "Jinja டெம்ப்ளேட்டிங்"
 
+msgid ""
+"Jinja templating is not supported in a partition value transform. The "
+"transform is evaluated in a different context and at a different time "
+"from the chart query, so a template would not render the same way."
+msgstr ""
+
 msgid "July"
 msgstr "ஜூலை"
 
@@ -9335,6 +9341,10 @@ msgid "Mapbox (API key required)"
 msgstr ""
 
 msgid "Mapbox requires a MAPBOX_API_KEY to be configured on the server."
+msgstr ""
+
+#, python-format
+msgid "Mapped column %(name)s is not a column on this dataset."
 msgstr ""
 
 msgid "March"
@@ -10209,6 +10219,11 @@ msgid ""
 "%(engine_spec)s engine)"
 msgstr "%(validator_name)s என்ற பெயரில் சரிபார்ப்பான் இல்லை."
 
+msgid ""
+"No value transform is set, so no filter will be mirrored onto the "
+"partition column."
+msgstr ""
+
 msgid "Node label position"
 msgstr "நோட் லேபிள் நிலை"
 
@@ -10827,6 +10842,10 @@ msgstr "பகிர்வு வரம்பு"
 
 msgid "Partition Threshold"
 msgstr "பகிர்வு வரம்பு (Threshold)"
+
+#, python-format
+msgid "Partition column %(name)s is not a column on this dataset."
+msgstr ""
 
 msgid ""
 "Partitions whose height to parent height proportions are below this value"
@@ -12039,14 +12058,16 @@ msgstr "ஒத்திசைவற்ற வினவல்களுக்க�
 msgid "Resume auto-refresh"
 msgstr "தானியங்கி புதுப்பித்தலை அமைக்கவும்"
 
-msgid "Retries are not supported for alerts"
-msgstr ""
-
 msgid "Retry"
 msgstr "மீண்டும் முயற்சி"
 
 msgid "Retry fetching results"
 msgstr "முடிவுகளை மீண்டும் பெற முயற்சி செய்"
+
+msgid ""
+"Retry generation failures before delivery starts. Alerts re-check their "
+"condition on each attempt. Delivery failures are not replayed."
+msgstr ""
 
 msgid "Retrying"
 msgstr ""
@@ -12564,6 +12585,12 @@ msgstr "எல்லை (Scope)"
 
 msgid "Scoping"
 msgstr "எல்லை வரையறுத்தல்"
+
+msgid "Screenshot cache is unavailable"
+msgstr ""
+
+msgid "Screenshot request is temporarily unavailable"
+msgstr ""
 
 msgid "Screenshot width"
 msgstr "திரைக்காட்சி (Screenshot) அகலம்"
@@ -13862,9 +13889,6 @@ msgstr "மன்னிக்கவும், ஒரு பிழை ஏற்�
 
 msgid "Sorry, an error occurred"
 msgstr "மன்னிக்கவும், ஒரு பிழை ஏற்பட்டது"
-
-msgid "Sorry, an unknown error occurred"
-msgstr "மன்னிக்கவும், தெரியாத பிழை ஏற்பட்டது"
 
 msgid "Sorry, an unknown error occurred."
 msgstr "மன்னிக்கவும், தெரியாத பிழை ஏற்பட்டது."
@@ -15195,6 +15219,12 @@ msgstr[1] ""
 "%(parameters)s."
 
 #, python-format
+msgid ""
+"The partition column cannot be mapped onto itself. %(name)s is both the "
+"partition column and the mapped column."
+msgstr ""
+
+#, python-format
 msgid "The password provided for username \"%(username)s\" is incorrect."
 msgstr "பயனர் பெயர் \"%(username)s\" க்காக வழங்கப்பட்ட கடவுச்சொல் தவறானது."
 
@@ -15568,6 +15598,24 @@ msgstr "பயனர் பெயர் \"%(username)s\" இல்லை."
 
 msgid "The username provided when connecting to a database is not valid."
 msgstr "தரவுத்தளத்துடன் இணைக்கும்போது வழங்கப்பட்ட பயனர் பெயர் செல்லாதது."
+
+#, python-format
+msgid ""
+"The value transform calls %(functions)s, whose result depends on when and"
+" where it runs. The transform is evaluated in a separate session and the "
+"result is cached, so the emitted predicate would freeze a snapshot of "
+"that moment."
+msgstr ""
+
+msgid ""
+"The value transform could not be parsed. The mapping is saved but stays "
+"inactive until it does."
+msgstr ""
+
+msgid ""
+"The value transform must contain the :value placeholder, which stands for"
+" the filter value being mirrored."
+msgstr ""
 
 msgid "The values overlap other breakpoint values"
 msgstr "மதிப்புகள் மற்ற இடைவெளி மதிப்புகளுடன் மேலெழுகின்றன"
