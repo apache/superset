@@ -28,7 +28,7 @@ from superset.constants import CHANGE_ME_GUEST_TOKEN_JWT_SECRET
 from superset.mcp_service.composite_token_verifier import CompositeTokenVerifier
 from superset.mcp_service.constants import (
     DEFAULT_MAX_LIST_ITEMS,
-    DEFAULT_TOKEN_LIMIT,
+    DEFAULT_MAX_RESPONSE_BYTES,
     DEFAULT_WARN_THRESHOLD_PCT,
 )
 from superset.mcp_service.guest_token_verifier import GuestTokenVerifier
@@ -392,12 +392,13 @@ MCP_CACHE_CONFIG: dict[str, Any] = {
 # Overview:
 # ---------
 # The Response Size Guard prevents oversized responses from overwhelming LLM
-# clients (e.g., Claude Desktop). When a tool response exceeds the token limit,
+# clients (e.g., Claude Desktop). When a tool response exceeds the byte limit,
 # it returns a helpful error with suggestions for reducing the response size.
 #
 # How it works:
 # -------------
-# 1. After a tool executes, the middleware estimates the response's token count
+# 1. After a tool executes, the middleware measures the response's serialized
+#    UTF-8 byte size
 # 2. If the response exceeds the configured limit, it blocks the response
 # 3. Instead, it returns an error message with smart suggestions:
 #    - Reduce page_size/limit
@@ -408,24 +409,26 @@ MCP_CACHE_CONFIG: dict[str, Any] = {
 # Configuration:
 # --------------
 # - enabled: Toggle the guard on/off (default: True)
-# - token_limit: Maximum estimated tokens per response (default: 25,000)
+# - max_bytes: Maximum serialized response size in bytes (default: 50,000)
 # - excluded_tools: Tools to skip checking (e.g., streaming tools)
 # - warn_threshold_pct: Log warnings above this % of limit (default: 80%)
 # - max_list_items: Cap applied to list fields (e.g. ``charts``,
 #   ``native_filters``) during Phase 2 of dynamic truncation for the "info"
 #   tools (get_chart_info, get_dataset_info, get_dashboard_info,
-#   get_instance_info) when a response exceeds token_limit (default: 100).
+#   get_instance_info) when a response exceeds max_bytes (default: 100).
 #   Operators with tenants that have unusually large dashboards (hundreds of
 #   charts/filters) can raise this value to return more complete responses.
 #
-# Token Estimation:
-# -----------------
-# Uses character-based heuristic (~3.5 chars per token for JSON).
-# This is intentionally conservative to avoid underestimating.
+# Size Measurement:
+# ------------------
+# Uses the exact serialized UTF-8 byte length of the response. This is not an
+# LLM token estimate: an MCP server cannot know which client (Claude, GPT,
+# Gemini, a local model) or tokenizer is consuming a given response, so byte
+# size is used as a deterministic, tokenizer-agnostic proxy for response size.
 # =============================================================================
 MCP_RESPONSE_SIZE_CONFIG: dict[str, Any] = {
     "enabled": True,  # Enabled by default to protect LLM clients
-    "token_limit": DEFAULT_TOKEN_LIMIT,
+    "max_bytes": DEFAULT_MAX_RESPONSE_BYTES,
     "warn_threshold_pct": DEFAULT_WARN_THRESHOLD_PCT,
     "max_list_items": DEFAULT_MAX_LIST_ITEMS,
     "excluded_tools": [  # Tools to skip size checking
