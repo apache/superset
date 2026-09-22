@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-21 02:18+0000\n"
+"POT-Creation-Date: 2026-09-22 13:32-0700\n"
 "PO-Revision-Date: 2026-05-18 15:42+0200\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: sk\n"
@@ -1932,9 +1932,6 @@ msgstr ""
 msgid "Altered"
 msgstr "Zmenené"
 
-msgid "Alternate the row background color to make rows easier to scan."
-msgstr ""
-
 msgid "Always filter main datetime column"
 msgstr "Vždy filtrovať hlavní stĺpec data a času"
 
@@ -3529,9 +3526,6 @@ msgstr "Zmena tejto sady dat je zakázána"
 msgid "Changing this task is forbidden"
 msgstr "Zmena tejto sady dat je zakázána"
 
-msgid "Changing this theme is forbidden"
-msgstr ""
-
 msgid "Character to interpret as decimal point"
 msgstr "Znak, ktorý sa má interpretovať ako desetinná čiarka"
 
@@ -4700,11 +4694,6 @@ msgstr "Nemožno preložiť názov hostitele: „%(host)s“."
 msgid "Could not validate the user in the current session."
 msgstr "Nepodarilo sa overiť používateľa v aktuálny relácii."
 
-msgid ""
-"Could not verify which dimensions are compatible. All dimensions are "
-"shown."
-msgstr ""
-
 msgid "Count"
 msgstr "Počet"
 
@@ -4911,11 +4900,6 @@ msgstr "Vlastný fariebné palety"
 
 msgid "Custom column name (leave blank for default)"
 msgstr "Vlastný názov stĺpce (ponechte prázdne pre predvolený)"
-
-msgid ""
-"Custom column values are not supported here. Select a saved dimension to "
-"replace this value."
-msgstr ""
 
 msgid "Custom conditional formatting"
 msgstr "Vlastný podmienené formátovanie"
@@ -6070,9 +6054,6 @@ msgstr "Dimenze"
 #, fuzzy, python-format
 msgid "Dimensions (%s)"
 msgstr "Dimenze"
-
-msgid "Dimensions and metrics"
-msgstr ""
 
 msgid ""
 "Dimensions contain qualitative values such as names, dates, or "
@@ -7774,9 +7755,6 @@ msgstr "Filtre"
 #, fuzzy
 msgid "Filters and controls"
 msgstr "Filtre a ovládací prvky"
-
-msgid "Filters applied from chat"
-msgstr ""
 
 msgid "Filters by columns"
 msgstr "Filtre popodľa stĺpcov"
@@ -10539,9 +10517,6 @@ msgstr "Nebyly nalezeny žiadne uložené výrazy"
 msgid "No saved metrics found"
 msgstr "Nebyly nalezeny žiadne uložené metriky"
 
-msgid "No selection modes are available for this control."
-msgstr ""
-
 msgid "No stored results found, you need to re-run your query"
 msgstr "Nebyly nalezeny žiadne uložené výsledky, musíte dotaz spustiť znovu"
 
@@ -11079,9 +11054,6 @@ msgstr "Pôvodný"
 
 msgid "Original value"
 msgstr "Pôvodný hodnota"
-
-msgid "Original version"
-msgstr ""
 
 msgid "Orthogonal"
 msgstr "Ortogonální"
@@ -11742,9 +11714,6 @@ msgstr ""
 msgid "Preview"
 msgstr "Náhľad"
 
-msgid "Preview this version"
-msgstr ""
-
 msgid "Preview uploaded file"
 msgstr "Náhľad nahraného súboru"
 
@@ -12140,6 +12109,9 @@ msgstr "Znovu načítať"
 #, fuzzy
 msgid "Reload SQL Lab"
 msgstr "Znovu načítať SQL Lab"
+
+msgid "Reload the page and try again to continue."
+msgstr ""
 
 msgid "Remove"
 msgstr "Odstrániť"
@@ -13073,6 +13045,12 @@ msgstr "Rozsah"
 msgid "Scoping"
 msgstr "Rozsah platnosti"
 
+msgid "Screenshot cache is unavailable"
+msgstr ""
+
+msgid "Screenshot request is temporarily unavailable"
+msgstr ""
+
 msgid "Screenshot width"
 msgstr "Šírka snímku obrazovky"
 
@@ -13195,6 +13173,9 @@ msgstr "Zabezpečené extra"
 
 msgid "Security"
 msgstr "Zabezpečenie"
+
+msgid "Security token error"
+msgstr ""
 
 #, fuzzy
 msgid "See "
@@ -14357,12 +14338,6 @@ msgstr "Vstup posuvník a rozsah"
 msgid "Slug"
 msgstr "Slug"
 
-#, python-format
-msgid ""
-"Slug %(slug)s belongs to the soft-deleted dashboard %(uuid)s. Restore it "
-"via POST /api/v1/dashboard/%(uuid)s/restore, or use a different slug."
-msgstr ""
-
 msgid "Small"
 msgstr "Malý"
 
@@ -14463,9 +14438,6 @@ msgstr "Omlouváme se, došlo k chybe"
 
 msgid "Sorry, an error occurred"
 msgstr "Omlouváme se, došlo k chybe"
-
-msgid "Sorry, an unknown error occurred"
-msgstr "Omlouváme se, došlo k neznámé chybe"
 
 msgid "Sorry, an unknown error occurred."
 msgstr "Omlouváme se, došlo k neznámé chybe."
@@ -14708,9 +14680,6 @@ msgstr ""
 
 msgid "Started"
 msgstr "Spustené"
-
-msgid "Starting version"
-msgstr ""
 
 #, fuzzy
 msgid "Starts With"
@@ -15279,6 +15248,9 @@ msgstr "Sada dat propojená s týmto grafem mohla být zmazaná."
 #, python-format
 msgid "The API response from %s does not match the IDatabaseTable interface."
 msgstr "Odpoveď API z %s neodpovídá rozhraní IDatabaseTable."
+
+msgid "The CSRF token could not be validated."
+msgstr ""
 
 msgid ""
 "The CSS for individual dashboards can be altered here, or in the "
@@ -16372,12 +16344,6 @@ msgstr "Téma"
 msgid "Theme colors"
 msgstr ""
 
-msgid "Theme could not be created."
-msgstr ""
-
-msgid "Theme could not be updated."
-msgstr ""
-
 #, fuzzy
 msgid "Theme imported"
 msgstr "Téma importováno"
@@ -16385,9 +16351,6 @@ msgstr "Téma importováno"
 #, fuzzy
 msgid "Theme not found."
 msgstr "Téma nebolo nájdené."
-
-msgid "Theme parameters are invalid."
-msgstr ""
 
 msgid "Themes"
 msgstr "Témata"
@@ -16944,11 +16907,6 @@ msgstr "Táto sada dat je spravována externe a nemožno ji upravovať v Superse
 msgid "This defines the element to be plotted on the chart"
 msgstr "Toto definuje prvek, ktorý sa má vykreslit v grafu"
 
-msgid ""
-"This dimension is not compatible with the current selections. Select a "
-"compatible dimension."
-msgstr ""
-
 #, fuzzy
 msgid ""
 "This email is already associated with an account. Please choose another "
@@ -17098,11 +17056,6 @@ msgid ""
 "a misleadingly large number."
 msgstr ""
 
-msgid ""
-"This metric is not compatible with the current selections. Select a "
-"compatible metric."
-msgstr ""
-
 #, fuzzy, python-format
 msgid "This metric might be incompatible with current %s"
 msgstr "Táto metrika môže být nekompatibilný s aktuálny sadou dat"
@@ -17170,11 +17123,6 @@ msgstr "Toto téma je nastavené lokálne."
 
 msgid "This theme is set locally for your session"
 msgstr "Toto téma je nastavené lokálne pre vaši relácii."
-
-msgid ""
-"This theme is the active default/dark theme - only Admins can edit it - "
-"Read Only"
-msgstr ""
 
 msgid ""
 "This theme uses the dark algorithm. It will be rendered with the light "
@@ -17933,9 +17881,6 @@ msgid "Undefined window for rolling operation"
 msgstr "Nedefinované okno pre plovoucí operaci"
 
 msgid "Undid or redid a change"
-msgstr ""
-
-msgid "Undo"
 msgstr ""
 
 msgid "Undo the action"
@@ -19354,9 +19299,6 @@ msgstr ""
 "jepřepíšete, môže dojít ke ztráte části vaší práce. Opravdu "
 "chceteprepísať?"
 
-msgid "You are not an editor of this theme - Read Only"
-msgstr ""
-
 msgid ""
 "You are viewing this chart in a dashboard context with labels shared "
 "across multiple charts.\n"
@@ -19740,9 +19682,6 @@ msgstr "kľúč z-a"
 
 msgid "ZIP file contains multiple file types"
 msgstr "Súbor ZIP obsahuje viac typů súborov"
-
-msgid "Zebra striping"
-msgstr ""
 
 msgid "Zero imputation"
 msgstr "Imputace nulou"

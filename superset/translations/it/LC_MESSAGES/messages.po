@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-21 02:18+0000\n"
+"POT-Creation-Date: 2026-09-22 13:32-0700\n"
 "PO-Revision-Date: 2018-02-11 22:26+0200\n"
 "Last-Translator: Raffaele Spangaro <raffa@raffaelespangaro.it>\n"
 "Language: it\n"
@@ -2322,9 +2322,6 @@ msgstr "Sovrascrivi anche tutti gli asset (grafici, dataset e database)"
 msgid "Altered"
 msgstr "Alterato"
 
-msgid "Alternate the row background color to make rows easier to scan."
-msgstr ""
-
 msgid "Always filter main datetime column"
 msgstr "Filtra sempre sulla colonna temporale principale"
 
@@ -4282,9 +4279,6 @@ msgstr "La modifica di questa vista semantica è vietata"
 msgid "Changing this task is forbidden"
 msgstr "La modifica di questo task è vietata"
 
-msgid "Changing this theme is forbidden"
-msgstr ""
-
 msgid "Character to interpret as decimal point"
 msgstr "Carattere da interpretare come virgola decimale"
 
@@ -5784,11 +5778,6 @@ msgstr "Impossibile risolvere il nome host: \"%(host)s\"."
 msgid "Could not validate the user in the current session."
 msgstr "Impossibile convalidare l'utente nella sessione corrente."
 
-msgid ""
-"Could not verify which dimensions are compatible. All dimensions are "
-"shown."
-msgstr ""
-
 msgid "Count"
 msgstr "Conteggio"
 
@@ -6036,11 +6025,6 @@ msgid "Custom column name (leave blank for default)"
 msgstr ""
 "Nome della colonna personalizzata (lascia vuoto per impostazione "
 "predefinita)"
-
-msgid ""
-"Custom column values are not supported here. Select a saved dimension to "
-"replace this value."
-msgstr ""
 
 msgid "Custom conditional formatting"
 msgstr "Formattazione condizionale personalizzata"
@@ -7347,9 +7331,6 @@ msgstr "Dimensioni"
 #, python-format
 msgid "Dimensions (%s)"
 msgstr "Dimensioni (%s)"
-
-msgid "Dimensions and metrics"
-msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, ro, ru, sk, sl, sr, sr_Latn, tr, uk, zh,
@@ -9407,9 +9388,6 @@ msgstr "Filtri"
 
 msgid "Filters and controls"
 msgstr "Filtri e controlli"
-
-msgid "Filters applied from chat"
-msgstr ""
 
 msgid "Filters by columns"
 msgstr "Controlli del filtro"
@@ -12983,9 +12961,6 @@ msgstr "Nessuna espressione salvata trovata"
 msgid "No saved metrics found"
 msgstr "Nessuna metrica salvata trovata"
 
-msgid "No selection modes are available for this control."
-msgstr ""
-
 msgid "No stored results found, you need to re-run your query"
 msgstr ""
 "Nessun risultato memorizzato trovato, è necessario eseguire nuovamente la"
@@ -13687,9 +13662,6 @@ msgstr "Originale"
 # tr, uk, zh, zh_TW]
 msgid "Original value"
 msgstr "Valore originale"
-
-msgid "Original version"
-msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -14568,9 +14540,6 @@ msgstr ""
 msgid "Preview"
 msgstr "Anteprima"
 
-msgid "Preview this version"
-msgstr ""
-
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fa, ja, lv, mi, ro, ru, sk, sl, sr, sr_Latn, uk]
 msgid "Preview uploaded file"
@@ -15054,6 +15023,9 @@ msgstr "Ricarica"
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
 msgid "Reload SQL Lab"
 msgstr "Ricarica SQL Lab"
+
+msgid "Reload the page and try again to continue."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -16224,6 +16196,12 @@ msgstr "Ambito"
 msgid "Scoping"
 msgstr "Ambito"
 
+msgid "Screenshot cache is unavailable"
+msgstr ""
+
+msgid "Screenshot request is temporarily unavailable"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk, zh, zh_TW]
@@ -16361,6 +16339,9 @@ msgstr "Sicurezza"
 
 msgid "Security"
 msgstr "Sicurezza"
+
+msgid "Security token error"
+msgstr ""
 
 msgid "See "
 msgstr "Mostra "
@@ -17743,12 +17724,6 @@ msgstr "Dispositivo di scorrimento e input intervallo"
 msgid "Slug"
 msgstr "Slug"
 
-#, python-format
-msgid ""
-"Slug %(slug)s belongs to the soft-deleted dashboard %(uuid)s. Restore it "
-"via POST /api/v1/dashboard/%(uuid)s/restore, or use a different slug."
-msgstr ""
-
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk, zh, zh_TW]
@@ -17872,9 +17847,6 @@ msgstr "Si è verificato un errore"
 
 msgid "Sorry, an error occurred"
 msgstr "Si è verificato un errore"
-
-msgid "Sorry, an unknown error occurred"
-msgstr "Si è verificato un errore sconosciuto"
 
 msgid "Sorry, an unknown error occurred."
 msgstr "Si è verificato un errore sconosciuto."
@@ -18152,9 +18124,6 @@ msgstr ""
 
 msgid "Started"
 msgstr "Iniziato"
-
-msgid "Starting version"
-msgstr ""
 
 msgid "Starts With"
 msgstr "Inizia Con"
@@ -18854,6 +18823,9 @@ msgstr "Il %s collegato a questo grafico potrebbe essere stato eliminato."
 #, python-format
 msgid "The API response from %s does not match the IDatabaseTable interface."
 msgstr "La risposta API da %s non corrisponde all'interfaccia IDatabaseTable."
+
+msgid "The CSRF token could not be validated."
+msgstr ""
 
 msgid ""
 "The CSS for individual dashboards can be altered here, or in the "
@@ -20255,20 +20227,11 @@ msgstr "Tema"
 msgid "Theme colors"
 msgstr ""
 
-msgid "Theme could not be created."
-msgstr ""
-
-msgid "Theme could not be updated."
-msgstr ""
-
 msgid "Theme imported"
 msgstr "Tema importato"
 
 msgid "Theme not found."
 msgstr "Tema non trovato"
-
-msgid "Theme parameters are invalid."
-msgstr ""
 
 msgid "Themes"
 msgstr "Temi"
@@ -20951,11 +20914,6 @@ msgstr ""
 msgid "This defines the element to be plotted on the chart"
 msgstr "Ciò definisce l'elemento da tracciare sul grafico"
 
-msgid ""
-"This dimension is not compatible with the current selections. Select a "
-"compatible dimension."
-msgstr ""
-
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, fr, ja,
 # lv, ro, ru, sr, sr_Latn, tr, uk]
 msgid ""
@@ -21147,11 +21105,6 @@ msgid ""
 "a misleadingly large number."
 msgstr ""
 
-msgid ""
-"This metric is not compatible with the current selections. Select a "
-"compatible metric."
-msgstr ""
-
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
 #, python-format
@@ -21246,11 +21199,6 @@ msgstr "Questo tema è impostato localmente"
 # ja, lv, pt_BR, ro, ru, sk, sr, sr_Latn, tr, uk]
 msgid "This theme is set locally for your session"
 msgstr "Questo tema è impostato localmente per la tua sessione"
-
-msgid ""
-"This theme is the active default/dark theme - only Admins can edit it - "
-"Read Only"
-msgstr ""
 
 msgid ""
 "This theme uses the dark algorithm. It will be rendered with the light "
@@ -22201,9 +22149,6 @@ msgid "Undefined window for rolling operation"
 msgstr "Finestra non definita per l'operazione di rotazione"
 
 msgid "Undid or redid a change"
-msgstr ""
-
-msgid "Undo"
 msgstr ""
 
 msgid "Undo the action"
@@ -24122,9 +24067,6 @@ msgstr ""
 "potrebbe causare la perdita di parte del tuo lavoro. Sei sicuro di voler "
 "sovrascrivere?"
 
-msgid "You are not an editor of this theme - Read Only"
-msgstr ""
-
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fr, ja, lv, mi, ro, ru, sk, sr, sr_Latn, tr, uk]
 msgid ""
@@ -24584,9 +24526,6 @@ msgstr "Z-A"
 # es, fa, fr, ja, lv, mi, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr, uk]
 msgid "ZIP file contains multiple file types"
 msgstr "Il file ZIP contiene più tipi di file"
-
-msgid "Zebra striping"
-msgstr ""
 
 msgid "Zero imputation"
 msgstr "Imputazione zero"

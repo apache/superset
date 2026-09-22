@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-21 02:18+0000\n"
+"POT-Creation-Date: 2026-09-22 13:32-0700\n"
 "PO-Revision-Date: 2026-03-27 14:01+0200\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: lv\n"
@@ -1925,9 +1925,6 @@ msgstr ""
 msgid "Altered"
 msgstr "Izmainīts"
 
-msgid "Alternate the row background color to make rows easier to scan."
-msgstr ""
-
 msgid "Always filter main datetime column"
 msgstr "Vienmēr filtrēt galveno datuma/laika kolonnu"
 
@@ -3495,9 +3492,6 @@ msgstr "Šīs datu kopas maiņa ir aizliegta"
 msgid "Changing this task is forbidden"
 msgstr "Šīs datu kopas maiņa ir aizliegta"
 
-msgid "Changing this theme is forbidden"
-msgstr ""
-
 msgid "Character to interpret as decimal point"
 msgstr "Simbols, ko interpretēt kā decimālpunktu"
 
@@ -4643,11 +4637,6 @@ msgstr "Nevarēja atrisināt resursdatora nosaukumu: \"%(host)s\"."
 msgid "Could not validate the user in the current session."
 msgstr "Nevarēja validēt lietotāju pašreizējā sesijā."
 
-msgid ""
-"Could not verify which dimensions are compatible. All dimensions are "
-"shown."
-msgstr ""
-
 msgid "Count"
 msgstr "Skaits"
 
@@ -4849,11 +4838,6 @@ msgstr "Pielāgotas krāsu paletes"
 
 msgid "Custom column name (leave blank for default)"
 msgstr "Pielāgots kolonnas nosaukums (atstājiet tukšu noklusējumam)"
-
-msgid ""
-"Custom column values are not supported here. Select a saved dimension to "
-"replace this value."
-msgstr ""
 
 msgid "Custom conditional formatting"
 msgstr "Pielāgots nosacījumu formatējums"
@@ -5976,9 +5960,6 @@ msgstr "Dimensijas"
 #, fuzzy, python-format
 msgid "Dimensions (%s)"
 msgstr "Dimensijas"
-
-msgid "Dimensions and metrics"
-msgstr ""
 
 msgid ""
 "Dimensions contain qualitative values such as names, dates, or "
@@ -7622,9 +7603,6 @@ msgstr "Filtri"
 
 msgid "Filters and controls"
 msgstr "Filtri un vadības elementi"
-
-msgid "Filters applied from chat"
-msgstr ""
 
 msgid "Filters by columns"
 msgstr "Filtri pēc kolonnām"
@@ -10321,9 +10299,6 @@ msgstr "Nav atrastas saglabātas izteiksmes"
 msgid "No saved metrics found"
 msgstr "Nav atrasti saglabāti rādītāji"
 
-msgid "No selection modes are available for this control."
-msgstr ""
-
 msgid "No stored results found, you need to re-run your query"
 msgstr "Nav atrasti saglabāti rezultāti, jāpalaiž vaicājums atkārtoti"
 
@@ -10857,9 +10832,6 @@ msgstr "Oriģināls"
 
 msgid "Original value"
 msgstr "Sākotnējā vērtība"
-
-msgid "Original version"
-msgstr ""
 
 msgid "Orthogonal"
 msgstr "Ortogonāls"
@@ -11504,9 +11476,6 @@ msgstr ""
 msgid "Preview"
 msgstr "Priekšskatījums"
 
-msgid "Preview this version"
-msgstr ""
-
 msgid "Preview uploaded file"
 msgstr "Priekšskatīt augšupielādēto failu"
 
@@ -11894,6 +11863,9 @@ msgstr "Pārlādēt"
 #, fuzzy
 msgid "Reload SQL Lab"
 msgstr "Pārlādēt SQL Lab"
+
+msgid "Reload the page and try again to continue."
+msgstr ""
 
 msgid "Remove"
 msgstr "Noņemt"
@@ -12809,6 +12781,12 @@ msgstr "Tvērums"
 msgid "Scoping"
 msgstr "Tvēruma noteikšana"
 
+msgid "Screenshot cache is unavailable"
+msgstr ""
+
+msgid "Screenshot request is temporarily unavailable"
+msgstr ""
+
 msgid "Screenshot width"
 msgstr "Ekrānuzņēmuma platums"
 
@@ -12928,6 +12906,9 @@ msgstr "Drošības papildus iestatījumi"
 
 msgid "Security"
 msgstr "Drošība"
+
+msgid "Security token error"
+msgstr ""
 
 #, fuzzy
 msgid "See "
@@ -14060,12 +14041,6 @@ msgstr "Slīdnis un diapazona ievade"
 msgid "Slug"
 msgstr "Slug"
 
-#, python-format
-msgid ""
-"Slug %(slug)s belongs to the soft-deleted dashboard %(uuid)s. Restore it "
-"via POST /api/v1/dashboard/%(uuid)s/restore, or use a different slug."
-msgstr ""
-
 msgid "Small"
 msgstr "Mazs"
 
@@ -14167,9 +14142,6 @@ msgstr "Diemžēl, radās kļūda"
 
 msgid "Sorry, an error occurred"
 msgstr "Diemžēl, radās kļūda"
-
-msgid "Sorry, an unknown error occurred"
-msgstr "Diemžēl, radās nezināma kļūda"
 
 msgid "Sorry, an unknown error occurred."
 msgstr "Diemžēl, radās nezināma kļūda."
@@ -14406,9 +14378,6 @@ msgstr ""
 
 msgid "Started"
 msgstr "Sākts"
-
-msgid "Starting version"
-msgstr ""
 
 msgid "Starts With"
 msgstr "Sākas ar"
@@ -14970,6 +14939,9 @@ msgstr "Ar šo diagrammu saistītā datu kopa, iespējams, ir dzēsta."
 #, python-format
 msgid "The API response from %s does not match the IDatabaseTable interface."
 msgstr "API atbilde no %s neatbilst IDatabaseTable saskarnei."
+
+msgid "The CSRF token could not be validated."
+msgstr ""
 
 msgid ""
 "The CSS for individual dashboards can be altered here, or in the "
@@ -16056,20 +16028,11 @@ msgstr "Motīvs"
 msgid "Theme colors"
 msgstr ""
 
-msgid "Theme could not be created."
-msgstr ""
-
-msgid "Theme could not be updated."
-msgstr ""
-
 msgid "Theme imported"
 msgstr "Motīvs importēts"
 
 msgid "Theme not found."
 msgstr "Motīvs nav atrasts."
-
-msgid "Theme parameters are invalid."
-msgstr ""
 
 msgid "Themes"
 msgstr "Motīvi"
@@ -16607,11 +16570,6 @@ msgid "This defines the element to be plotted on the chart"
 msgstr "Tas definē elementu, kas tiks attēlots diagrammā"
 
 msgid ""
-"This dimension is not compatible with the current selections. Select a "
-"compatible dimension."
-msgstr ""
-
-msgid ""
 "This email is already associated with an account. Please choose another "
 "one."
 msgstr "Šis e-pasts jau ir saistīts ar kontu. Lūdzu, izvēlieties citu."
@@ -16754,11 +16712,6 @@ msgid ""
 "a misleadingly large number."
 msgstr ""
 
-msgid ""
-"This metric is not compatible with the current selections. Select a "
-"compatible metric."
-msgstr ""
-
 #, fuzzy, python-format
 msgid "This metric might be incompatible with current %s"
 msgstr "Šī metrika var būt nesaderīga ar pašreizējo datu kopu"
@@ -16823,11 +16776,6 @@ msgstr "Šis motīvs ir iestatīts lokāli"
 
 msgid "This theme is set locally for your session"
 msgstr "Šis motīvs ir iestatīts lokāli jūsu sesijai"
-
-msgid ""
-"This theme is the active default/dark theme - only Admins can edit it - "
-"Read Only"
-msgstr ""
 
 msgid ""
 "This theme uses the dark algorithm. It will be rendered with the light "
@@ -17574,9 +17522,6 @@ msgid "Undefined window for rolling operation"
 msgstr "Nedefinēts logs ritošajai operācijai"
 
 msgid "Undid or redid a change"
-msgstr ""
-
-msgid "Undo"
 msgstr ""
 
 msgid "Undo the action"
@@ -18972,9 +18917,6 @@ msgstr ""
 "var izraisīt daļēju jūsu darba zaudēšanu. Vai tiešām vēlaties tos "
 "pārrakstīt?"
 
-msgid "You are not an editor of this theme - Read Only"
-msgstr ""
-
 msgid ""
 "You are viewing this chart in a dashboard context with labels shared "
 "across multiple charts.\n"
@@ -19357,9 +19299,6 @@ msgstr "atslēga z-a"
 
 msgid "ZIP file contains multiple file types"
 msgstr "ZIP fails satur vairākus failu veidus"
-
-msgid "Zebra striping"
-msgstr ""
 
 msgid "Zero imputation"
 msgstr "Nulles imputācija"

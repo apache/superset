@@ -18,7 +18,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-21 02:18+0000\n"
+"POT-Creation-Date: 2026-09-22 13:32-0700\n"
 "PO-Revision-Date: 2023-04-07 19:45+0200\n"
 "Last-Translator: Holger Bruch <holger.bruch@wattbewerb.de>\n"
 "Language: de\n"
@@ -1878,9 +1878,6 @@ msgstr ""
 msgid "Altered"
 msgstr "Geändert"
 
-msgid "Alternate the row background color to make rows easier to scan."
-msgstr ""
-
 msgid "Always filter main datetime column"
 msgstr "Hauptdatums-Spalte immer filtern"
 
@@ -3463,9 +3460,6 @@ msgstr "Das Ändern dieser semantischen Sicht ist verboten"
 msgid "Changing this task is forbidden"
 msgstr "Das Ändern dieser Aufgabe ist verboten"
 
-msgid "Changing this theme is forbidden"
-msgstr ""
-
 msgid "Character to interpret as decimal point"
 msgstr "Zeichen, das als Dezimaltrenner zu interpretieren ist"
 
@@ -4627,11 +4621,6 @@ msgstr ""
 "Der/Die Benutzer*in konnte in der aktuellen Sitzung nicht authentifiziert"
 " werden."
 
-msgid ""
-"Could not verify which dimensions are compatible. All dimensions are "
-"shown."
-msgstr ""
-
 msgid "Count"
 msgstr "Anzahl"
 
@@ -4830,11 +4819,6 @@ msgstr "Benutzerdefinierte Farbpaletten"
 
 msgid "Custom column name (leave blank for default)"
 msgstr "Benutzerdefinierter Spaltenname (für den Standardwert leer lassen)"
-
-msgid ""
-"Custom column values are not supported here. Select a saved dimension to "
-"replace this value."
-msgstr ""
 
 msgid "Custom conditional formatting"
 msgstr "Benutzerdefinierte bedingte Formatierung"
@@ -5940,9 +5924,6 @@ msgstr "Dimensionen"
 #, python-format
 msgid "Dimensions (%s)"
 msgstr "Dimensionen (%s)"
-
-msgid "Dimensions and metrics"
-msgstr ""
 
 msgid ""
 "Dimensions contain qualitative values such as names, dates, or "
@@ -7582,9 +7563,6 @@ msgstr "Filter"
 
 msgid "Filters and controls"
 msgstr "Filter und Bedienelemente"
-
-msgid "Filters applied from chat"
-msgstr ""
 
 msgid "Filters by columns"
 msgstr "Nach Spalten filtern"
@@ -10247,9 +10225,6 @@ msgstr "Keine gespeicherten Ausdrücke gefunden"
 msgid "No saved metrics found"
 msgstr "Keine gespeicherten Metriken gefunden"
 
-msgid "No selection modes are available for this control."
-msgstr ""
-
 msgid "No stored results found, you need to re-run your query"
 msgstr ""
 "Keine gespeicherten Ergebnisse gefunden. Sie müssen Ihre Abfrage erneut "
@@ -10788,9 +10763,6 @@ msgstr "Original"
 
 msgid "Original value"
 msgstr "Ursprünglicher Wert"
-
-msgid "Original version"
-msgstr ""
 
 msgid "Orthogonal"
 msgstr "Orthogonal"
@@ -11448,9 +11420,6 @@ msgstr ""
 msgid "Preview"
 msgstr "Vorschau"
 
-msgid "Preview this version"
-msgstr ""
-
 msgid "Preview uploaded file"
 msgstr "Vorschau der hochgeladenen Datei"
 
@@ -11828,6 +11797,9 @@ msgstr "Neu laden"
 #, fuzzy
 msgid "Reload SQL Lab"
 msgstr "SQL Lab neu laden"
+
+msgid "Reload the page and try again to continue."
+msgstr ""
 
 msgid "Remove"
 msgstr "Entfernen"
@@ -12740,6 +12712,12 @@ msgstr "Geltungsbereich"
 msgid "Scoping"
 msgstr "Auswahlverfahren"
 
+msgid "Screenshot cache is unavailable"
+msgstr ""
+
+msgid "Screenshot request is temporarily unavailable"
+msgstr ""
+
 msgid "Screenshot width"
 msgstr "Bildschirmfotobreite"
 
@@ -12857,6 +12835,9 @@ msgstr "Sicherheit extra"
 
 msgid "Security"
 msgstr "Sicherheit"
+
+msgid "Security token error"
+msgstr ""
 
 msgid "See "
 msgstr "Sie finden in der "
@@ -13958,12 +13939,6 @@ msgstr "Schieberegler und Bereichseingabe"
 msgid "Slug"
 msgstr "Kopfzeile"
 
-#, python-format
-msgid ""
-"Slug %(slug)s belongs to the soft-deleted dashboard %(uuid)s. Restore it "
-"via POST /api/v1/dashboard/%(uuid)s/restore, or use a different slug."
-msgstr ""
-
 msgid "Small"
 msgstr "Klein"
 
@@ -14062,9 +14037,6 @@ msgstr "Leider ist ein Fehler aufgetreten"
 
 msgid "Sorry, an error occurred"
 msgstr "Leider ist ein Fehler aufgetreten"
-
-msgid "Sorry, an unknown error occurred"
-msgstr "Leider ist ein unbekannter Fehler aufgetreten"
 
 msgid "Sorry, an unknown error occurred."
 msgstr "Leider ist ein unbekannter Fehler aufgetreten."
@@ -14300,9 +14272,6 @@ msgstr ""
 
 msgid "Started"
 msgstr "Gestartet"
-
-msgid "Starting version"
-msgstr ""
 
 msgid "Starts With"
 msgstr "Beginnt mit"
@@ -14855,6 +14824,9 @@ msgid "The API response from %s does not match the IDatabaseTable interface."
 msgstr ""
 "Die API-Antwort von %s stimmt nicht mit der IDatabaseTable-Schnittstelle "
 "überein."
+
+msgid "The CSRF token could not be validated."
+msgstr ""
 
 msgid ""
 "The CSS for individual dashboards can be altered here, or in the "
@@ -15982,20 +15954,11 @@ msgstr "Design"
 msgid "Theme colors"
 msgstr ""
 
-msgid "Theme could not be created."
-msgstr ""
-
-msgid "Theme could not be updated."
-msgstr ""
-
 msgid "Theme imported"
 msgstr "Design importiert"
 
 msgid "Theme not found."
 msgstr "Design nicht gefunden."
-
-msgid "Theme parameters are invalid."
-msgstr ""
 
 msgid "Themes"
 msgstr "Designs"
@@ -16569,11 +16532,6 @@ msgid "This defines the element to be plotted on the chart"
 msgstr "Definiert das Element, das im Diagramm dargestellt werden soll"
 
 msgid ""
-"This dimension is not compatible with the current selections. Select a "
-"compatible dimension."
-msgstr ""
-
-msgid ""
 "This email is already associated with an account. Please choose another "
 "one."
 msgstr ""
@@ -16720,11 +16678,6 @@ msgid ""
 "a misleadingly large number."
 msgstr ""
 
-msgid ""
-"This metric is not compatible with the current selections. Select a "
-"compatible metric."
-msgstr ""
-
 #, python-format
 msgid "This metric might be incompatible with current %s"
 msgstr "Diese Metrik ist möglicherweise nicht kompatibel mit dem/der aktuellen %s"
@@ -16795,11 +16748,6 @@ msgstr "Dieses Design ist lokal eingestellt"
 
 msgid "This theme is set locally for your session"
 msgstr "Dieses Design wird lokal für Ihre Sitzung festgelegt"
-
-msgid ""
-"This theme is the active default/dark theme - only Admins can edit it - "
-"Read Only"
-msgstr ""
 
 msgid ""
 "This theme uses the dark algorithm. It will be rendered with the light "
@@ -17531,9 +17479,6 @@ msgid "Undefined window for rolling operation"
 msgstr "Undefiniertes Fenster für rollierende Operation"
 
 msgid "Undid or redid a change"
-msgstr ""
-
-msgid "Undo"
 msgstr ""
 
 msgid "Undo the action"
@@ -18956,9 +18901,6 @@ msgstr ""
 " Überschreiben kann dazu führen, dass Sie einen Teil Ihrer Arbeit "
 "verlieren. Sind Sie sicher, dass Sie diese überschreiben möchten?"
 
-msgid "You are not an editor of this theme - Read Only"
-msgstr ""
-
 msgid ""
 "You are viewing this chart in a dashboard context with labels shared "
 "across multiple charts.\n"
@@ -19344,9 +19286,6 @@ msgstr "Z-A"
 
 msgid "ZIP file contains multiple file types"
 msgstr "ZIP-Datei enthält mehrere Dateitypen"
-
-msgid "Zebra striping"
-msgstr ""
 
 msgid "Zero imputation"
 msgstr "Fehlende-Werte-Ersetzung"

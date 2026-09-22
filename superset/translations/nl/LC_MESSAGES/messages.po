@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version:  superset-ds\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-21 02:18+0000\n"
+"POT-Creation-Date: 2026-09-22 13:32-0700\n"
 "PO-Revision-Date: 2024-05-08 14:41+0000\n"
 "Last-Translator: \n"
 "Language: nl\n"
@@ -1992,9 +1992,6 @@ msgstr ""
 msgid "Altered"
 msgstr "Gewijzigd"
 
-msgid "Alternate the row background color to make rows easier to scan."
-msgstr ""
-
 msgid "Always filter main datetime column"
 msgstr "Filter altijd de hoofdkolom datumtijd"
 
@@ -3729,9 +3726,6 @@ msgstr "Veranderen van deze dataset is verboden"
 msgid "Changing this task is forbidden"
 msgstr "Veranderen van deze dataset is verboden"
 
-msgid "Changing this theme is forbidden"
-msgstr ""
-
 msgid "Character to interpret as decimal point"
 msgstr "Teken te interpreteren als decimaalteken"
 
@@ -4989,11 +4983,6 @@ msgstr "Kan de hostname niet omzetten: \"%(host)s\"."
 msgid "Could not validate the user in the current session."
 msgstr "De gebruiker in de huidige sessie kon niet worden gevalideerd."
 
-msgid ""
-"Could not verify which dimensions are compatible. All dimensions are "
-"shown."
-msgstr ""
-
 msgid "Count"
 msgstr "Tel"
 
@@ -5208,11 +5197,6 @@ msgstr "Automatisch aanvullen"
 #, fuzzy
 msgid "Custom column name (leave blank for default)"
 msgstr "Aangepaste kolomnaam (leeg laten voor standaard)"
-
-msgid ""
-"Custom column values are not supported here. Select a saved dimension to "
-"replace this value."
-msgstr ""
 
 #, fuzzy
 msgid "Custom conditional formatting"
@@ -6427,9 +6411,6 @@ msgstr "Dimensies"
 #, fuzzy, python-format
 msgid "Dimensions (%s)"
 msgstr "Dimensies"
-
-msgid "Dimensions and metrics"
-msgstr ""
 
 msgid ""
 "Dimensions contain qualitative values such as names, dates, or "
@@ -8270,9 +8251,6 @@ msgstr "Filters"
 #, fuzzy
 msgid "Filters and controls"
 msgstr "Extra bediening"
-
-msgid "Filters applied from chat"
-msgstr ""
 
 msgid "Filters by columns"
 msgstr "Filter op kolommen"
@@ -11240,9 +11218,6 @@ msgstr "Geen opgeslagen expressies gevonden"
 msgid "No saved metrics found"
 msgstr "Geen opgeslagen metrieken gevonden"
 
-msgid "No selection modes are available for this control."
-msgstr ""
-
 msgid "No stored results found, you need to re-run your query"
 msgstr "Geen opgeslagen resultaten gevonden, u moet uw query opnieuw uitvoeren"
 
@@ -11807,9 +11782,6 @@ msgstr "Origineel"
 
 msgid "Original value"
 msgstr "Originele waarde"
-
-msgid "Original version"
-msgstr ""
 
 msgid "Orthogonal"
 msgstr "Orthogonaal"
@@ -12511,9 +12483,6 @@ msgstr ""
 msgid "Preview"
 msgstr "Voorvertoning"
 
-msgid "Preview this version"
-msgstr ""
-
 #, fuzzy
 msgid "Preview uploaded file"
 msgstr "Upload Excel-bestand"
@@ -12928,6 +12897,9 @@ msgstr "Herlaad"
 #, fuzzy
 msgid "Reload SQL Lab"
 msgstr "SQL Lab herladen"
+
+msgid "Reload the page and try again to continue."
+msgstr ""
 
 msgid "Remove"
 msgstr "Verwijder"
@@ -13905,6 +13877,12 @@ msgstr "Scope"
 msgid "Scoping"
 msgstr "Scoping"
 
+msgid "Screenshot cache is unavailable"
+msgstr ""
+
+msgid "Screenshot request is temporarily unavailable"
+msgstr ""
+
 msgid "Screenshot width"
 msgstr "Schermafbeelding breedte"
 
@@ -14027,6 +14005,9 @@ msgstr "Beveilig extra"
 
 msgid "Security"
 msgstr "Beveiliging"
+
+msgid "Security token error"
+msgstr ""
 
 #, fuzzy
 msgid "See "
@@ -15292,12 +15273,6 @@ msgstr "Schuifregelaar en bereiksinvoer"
 msgid "Slug"
 msgstr "Slak"
 
-#, python-format
-msgid ""
-"Slug %(slug)s belongs to the soft-deleted dashboard %(uuid)s. Restore it "
-"via POST /api/v1/dashboard/%(uuid)s/restore, or use a different slug."
-msgstr ""
-
 msgid "Small"
 msgstr "Klein"
 
@@ -15407,9 +15382,6 @@ msgstr "Sorry, er is een fout opgetreden"
 
 msgid "Sorry, an error occurred"
 msgstr "Sorry, er is een fout opgetreden"
-
-msgid "Sorry, an unknown error occurred"
-msgstr "Sorry, er is een onbekende fout opgetreden"
 
 msgid "Sorry, an unknown error occurred."
 msgstr "Sorry, er is een onbekende fout opgetreden."
@@ -15658,9 +15630,6 @@ msgstr ""
 
 msgid "Started"
 msgstr "Gestart"
-
-msgid "Starting version"
-msgstr ""
 
 #, fuzzy
 msgid "Starts With"
@@ -16268,6 +16237,9 @@ msgstr "De aan deze grafiek gekoppelde dataset is mogelijk verwijderd."
 #, python-format
 msgid "The API response from %s does not match the IDatabaseTable interface."
 msgstr "De API-reactie van %s komt niet overeen met de IDatabaseTable interface."
+
+msgid "The CSRF token could not be validated."
+msgstr ""
 
 msgid ""
 "The CSS for individual dashboards can be altered here, or in the "
@@ -17504,12 +17476,6 @@ msgstr "Tijd"
 msgid "Theme colors"
 msgstr ""
 
-msgid "Theme could not be created."
-msgstr ""
-
-msgid "Theme could not be updated."
-msgstr ""
-
 #, fuzzy
 msgid "Theme imported"
 msgstr "Dataset geïmporteerd"
@@ -17517,9 +17483,6 @@ msgstr "Dataset geïmporteerd"
 #, fuzzy
 msgid "Theme not found."
 msgstr "CSS sjabloon niet gevonden."
-
-msgid "Theme parameters are invalid."
-msgstr ""
 
 #, fuzzy
 msgid "Themes"
@@ -18090,11 +18053,6 @@ msgstr "Deze dataset wordt extern beheerd en kan niet worden bewerkt in Superset
 msgid "This defines the element to be plotted on the chart"
 msgstr "Dit definieert het element dat op de grafiek moet worden uitgezet"
 
-msgid ""
-"This dimension is not compatible with the current selections. Select a "
-"compatible dimension."
-msgstr ""
-
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, fr, ja,
 # lv, ro, ru, sr, sr_Latn, tr, uk]
 #, fuzzy
@@ -18280,11 +18238,6 @@ msgid ""
 "a misleadingly large number."
 msgstr ""
 
-msgid ""
-"This metric is not compatible with the current selections. Select a "
-"compatible metric."
-msgstr ""
-
 #, fuzzy, python-format
 msgid "This metric might be incompatible with current %s"
 msgstr "Deze metriek is mogelijk niet compatibel met huidig dataset"
@@ -18367,11 +18320,6 @@ msgstr "Dit thema is lokaal ingesteld"
 #, fuzzy
 msgid "This theme is set locally for your session"
 msgstr "Dit thema is lokaal ingesteld voor uw sessie"
-
-msgid ""
-"This theme is the active default/dark theme - only Admins can edit it - "
-"Read Only"
-msgstr ""
 
 msgid ""
 "This theme uses the dark algorithm. It will be rendered with the light "
@@ -19176,9 +19124,6 @@ msgid "Undefined window for rolling operation"
 msgstr "Onbepaald venster voor rolling operation"
 
 msgid "Undid or redid a change"
-msgstr ""
-
-msgid "Undo"
 msgstr ""
 
 msgid "Undo the action"
@@ -20682,9 +20627,6 @@ msgstr ""
 "U importeert één of meer datasets die al bestaan. Overschrijven kan "
 "leiden tot verlies van je werk. Weet je zeker dat je wilt overschrijven?"
 
-msgid "You are not an editor of this theme - Read Only"
-msgstr ""
-
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fr, ja, lv, mi, ro, ru, sk, sr, sr_Latn, tr, uk]
 #, fuzzy
@@ -21095,9 +21037,6 @@ msgstr "sleutel z-a"
 #, fuzzy
 msgid "ZIP file contains multiple file types"
 msgstr "ZIP-bestand bevat meerdere bestandstypen"
-
-msgid "Zebra striping"
-msgstr ""
 
 msgid "Zero imputation"
 msgstr "Null imputatie"

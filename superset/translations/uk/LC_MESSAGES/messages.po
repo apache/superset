@@ -18,7 +18,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version:  \n"
 "Report-Msgid-Bugs-To: ted.korostiled@gmail.com\n"
-"POT-Creation-Date: 2026-09-21 02:18+0000\n"
+"POT-Creation-Date: 2026-09-22 13:32-0700\n"
 "PO-Revision-Date: 2026-04-30 22:04+0300\n"
 "Last-Translator: Danylo Korostil\n"
 "Language: uk\n"
@@ -1942,9 +1942,6 @@ msgstr ""
 msgid "Altered"
 msgstr "Змінено"
 
-msgid "Alternate the row background color to make rows easier to scan."
-msgstr ""
-
 msgid "Always filter main datetime column"
 msgstr "Завжди фільтрувати основну колонку дати/часу"
 
@@ -3498,9 +3495,6 @@ msgstr "Редагування цього набору даних заборон
 msgid "Changing this task is forbidden"
 msgstr "Редагування цього набору даних заборонено"
 
-msgid "Changing this theme is forbidden"
-msgstr ""
-
 msgid "Character to interpret as decimal point"
 msgstr "Символ для позначення десяткової крапки"
 
@@ -4647,11 +4641,6 @@ msgstr "Не вдалося розпізнати вузол: «%(host)s»."
 msgid "Could not validate the user in the current session."
 msgstr "Не вдалося підтвердити користувача в поточному сеансі."
 
-msgid ""
-"Could not verify which dimensions are compatible. All dimensions are "
-"shown."
-msgstr ""
-
 msgid "Count"
 msgstr "Кількість"
 
@@ -4853,11 +4842,6 @@ msgstr "Нетипова палітра кольорів"
 
 msgid "Custom column name (leave blank for default)"
 msgstr "Власна назва стовпця (якщо не порожня)"
-
-msgid ""
-"Custom column values are not supported here. Select a saved dimension to "
-"replace this value."
-msgstr ""
 
 msgid "Custom conditional formatting"
 msgstr "Нетипове умовне форматування"
@@ -5989,9 +5973,6 @@ msgstr "Виміри"
 #, fuzzy, python-format
 msgid "Dimensions (%s)"
 msgstr "Виміри"
-
-msgid "Dimensions and metrics"
-msgstr ""
 
 msgid ""
 "Dimensions contain qualitative values such as names, dates, or "
@@ -7637,9 +7618,6 @@ msgstr "Фільтри"
 
 msgid "Filters and controls"
 msgstr "Фільтри та контролі"
-
-msgid "Filters applied from chat"
-msgstr ""
 
 msgid "Filters by columns"
 msgstr "Фільтри за стовпцями"
@@ -10322,9 +10300,6 @@ msgstr "Не знайдено жодного збереженого виразу
 msgid "No saved metrics found"
 msgstr "Не знайдено жодного збереженого показника"
 
-msgid "No selection modes are available for this control."
-msgstr ""
-
 msgid "No stored results found, you need to re-run your query"
 msgstr ""
 "Не знайдено жодних збережених результатів, потрібно повторно запустити "
@@ -10855,9 +10830,6 @@ msgstr "Початковий"
 
 msgid "Original value"
 msgstr "Початкове значення"
-
-msgid "Original version"
-msgstr ""
 
 msgid "Orthogonal"
 msgstr "Прямокутний"
@@ -11501,9 +11473,6 @@ msgstr ""
 msgid "Preview"
 msgstr "Огляд"
 
-msgid "Preview this version"
-msgstr ""
-
 msgid "Preview uploaded file"
 msgstr "Попередній огляд файла"
 
@@ -11890,6 +11859,9 @@ msgstr "Перезавантажити"
 #, fuzzy
 msgid "Reload SQL Lab"
 msgstr "Перезавантажити SQL Lab"
+
+msgid "Reload the page and try again to continue."
+msgstr ""
 
 msgid "Remove"
 msgstr "Вилучити"
@@ -12812,6 +12784,12 @@ msgstr "Межі застосування"
 msgid "Scoping"
 msgstr "Межі застосування"
 
+msgid "Screenshot cache is unavailable"
+msgstr ""
+
+msgid "Screenshot request is temporarily unavailable"
+msgstr ""
+
 msgid "Screenshot width"
 msgstr "Ширина знімка екрана"
 
@@ -12931,6 +12909,9 @@ msgstr "Додаткова безпека"
 
 msgid "Security"
 msgstr "Безпека"
+
+msgid "Security token error"
+msgstr ""
 
 #, fuzzy
 msgid "See "
@@ -14064,12 +14045,6 @@ msgstr "Повзунок і смужка діапазону"
 msgid "Slug"
 msgstr "Хвостик"
 
-#, python-format
-msgid ""
-"Slug %(slug)s belongs to the soft-deleted dashboard %(uuid)s. Restore it "
-"via POST /api/v1/dashboard/%(uuid)s/restore, or use a different slug."
-msgstr ""
-
 msgid "Small"
 msgstr "Маленький"
 
@@ -14173,9 +14148,6 @@ msgstr "На жаль, трапилась помилка"
 
 msgid "Sorry, an error occurred"
 msgstr "На жаль, трапилась помилка"
-
-msgid "Sorry, an unknown error occurred"
-msgstr "На жаль, трапилась невідома помилка"
 
 msgid "Sorry, an unknown error occurred."
 msgstr "На жаль, трапилась невідома помилка."
@@ -14410,9 +14382,6 @@ msgstr ""
 
 msgid "Started"
 msgstr "Розпочато"
-
-msgid "Starting version"
-msgstr ""
 
 msgid "Starts With"
 msgstr "Почати з"
@@ -14976,6 +14945,9 @@ msgstr "Набір даних, пов'язаний з цією діаграмо�
 #, python-format
 msgid "The API response from %s does not match the IDatabaseTable interface."
 msgstr "Відповідь API з %s не відповідає інтерфейсу IDatabaseTable."
+
+msgid "The CSRF token could not be validated."
+msgstr ""
 
 msgid ""
 "The CSS for individual dashboards can be altered here, or in the "
@@ -16059,20 +16031,11 @@ msgstr "Тема"
 msgid "Theme colors"
 msgstr ""
 
-msgid "Theme could not be created."
-msgstr ""
-
-msgid "Theme could not be updated."
-msgstr ""
-
 msgid "Theme imported"
 msgstr "Тему імпортовано"
 
 msgid "Theme not found."
 msgstr "Тему не знайдено."
-
-msgid "Theme parameters are invalid."
-msgstr ""
 
 msgid "Themes"
 msgstr "Теми"
@@ -16608,11 +16571,6 @@ msgid "This defines the element to be plotted on the chart"
 msgstr "Визначає елемент, який показується на діаграмі"
 
 msgid ""
-"This dimension is not compatible with the current selections. Select a "
-"compatible dimension."
-msgstr ""
-
-msgid ""
 "This email is already associated with an account. Please choose another "
 "one."
 msgstr ""
@@ -16757,11 +16715,6 @@ msgid ""
 "a misleadingly large number."
 msgstr ""
 
-msgid ""
-"This metric is not compatible with the current selections. Select a "
-"compatible metric."
-msgstr ""
-
 #, fuzzy, python-format
 msgid "This metric might be incompatible with current %s"
 msgstr "Цей показник може бути несумісним із поточним набором даних"
@@ -16827,11 +16780,6 @@ msgstr "Місцева тема"
 
 msgid "This theme is set locally for your session"
 msgstr "Місцева тема для вашого сеансу"
-
-msgid ""
-"This theme is the active default/dark theme - only Admins can edit it - "
-"Read Only"
-msgstr ""
 
 msgid ""
 "This theme uses the dark algorithm. It will be rendered with the light "
@@ -17577,9 +17525,6 @@ msgid "Undefined window for rolling operation"
 msgstr "Не визначено вікно для ковзної операції"
 
 msgid "Undid or redid a change"
-msgstr ""
-
-msgid "Undo"
 msgstr ""
 
 msgid "Undo the action"
@@ -18977,9 +18922,6 @@ msgstr ""
 "призвести до втрати частини напрацювань. Впевнені, що бажаєте "
 "перезаписати?"
 
-msgid "You are not an editor of this theme - Read Only"
-msgstr ""
-
 msgid ""
 "You are viewing this chart in a dashboard context with labels shared "
 "across multiple charts.\n"
@@ -19361,9 +19303,6 @@ msgstr "абетка я-а"
 
 msgid "ZIP file contains multiple file types"
 msgstr "Файл ZIP містить кілька типів файлів"
-
-msgid "Zebra striping"
-msgstr ""
 
 msgid "Zero imputation"
 msgstr "Нульове значення"

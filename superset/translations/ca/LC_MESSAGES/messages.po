@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-21 02:18+0000\n"
+"POT-Creation-Date: 2026-09-22 13:32-0700\n"
 "PO-Revision-Date: 2025-06-27 12:56+0200\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: ca\n"
@@ -1951,9 +1951,6 @@ msgstr ""
 msgid "Altered"
 msgstr "Modificat"
 
-msgid "Alternate the row background color to make rows easier to scan."
-msgstr ""
-
 msgid "Always filter main datetime column"
 msgstr "Sempre filtrar columna principal de data/hora"
 
@@ -3643,9 +3640,6 @@ msgstr "Canviar aquest conjunt de dades està prohibit"
 msgid "Changing this task is forbidden"
 msgstr "Canviar aquest conjunt de dades està prohibit"
 
-msgid "Changing this theme is forbidden"
-msgstr ""
-
 msgid "Character to interpret as decimal point"
 msgstr "Caràcter a interpretar com a punt decimal"
 
@@ -4857,11 +4851,6 @@ msgstr "No s'ha pogut resoldre el nom del servidor: \"%(host)s\"."
 msgid "Could not validate the user in the current session."
 msgstr "No s'ha pogut validar l'usuari a la sessió actual."
 
-msgid ""
-"Could not verify which dimensions are compatible. All dimensions are "
-"shown."
-msgstr ""
-
 msgid "Count"
 msgstr "Recompte"
 
@@ -5071,11 +5060,6 @@ msgstr "Paletes de colors personalitzades"
 
 msgid "Custom column name (leave blank for default)"
 msgstr "Nom de columna personalitzat (deixa en blanc per defecte)"
-
-msgid ""
-"Custom column values are not supported here. Select a saved dimension to "
-"replace this value."
-msgstr ""
 
 msgid "Custom conditional formatting"
 msgstr "Format Condicional Personalitzat"
@@ -6265,9 +6249,6 @@ msgstr "Dimensions"
 #, fuzzy, python-format
 msgid "Dimensions (%s)"
 msgstr "Dimensions"
-
-msgid "Dimensions and metrics"
-msgstr ""
 
 msgid ""
 "Dimensions contain qualitative values such as names, dates, or "
@@ -8050,9 +8031,6 @@ msgstr "Filtres"
 #, fuzzy
 msgid "Filters and controls"
 msgstr "Controls Extres"
-
-msgid "Filters applied from chat"
-msgstr ""
 
 msgid "Filters by columns"
 msgstr "Filtres per columnes"
@@ -10914,9 +10892,6 @@ msgstr "Cap expressió desada trobada"
 msgid "No saved metrics found"
 msgstr "Cap mètrica desada trobada"
 
-msgid "No selection modes are available for this control."
-msgstr ""
-
 msgid "No stored results found, you need to re-run your query"
 msgstr "Cap resultat emmagatzemat trobat, necessites re-executar la teva consulta"
 
@@ -11473,9 +11448,6 @@ msgstr "Original"
 
 msgid "Original value"
 msgstr "Valor original"
-
-msgid "Original version"
-msgstr ""
 
 msgid "Orthogonal"
 msgstr "Ortogonal"
@@ -12145,9 +12117,6 @@ msgstr ""
 msgid "Preview"
 msgstr "Vista prèvia"
 
-msgid "Preview this version"
-msgstr ""
-
 msgid "Preview uploaded file"
 msgstr "Vista prèvia de l'arxiu pujat"
 
@@ -12555,6 +12524,9 @@ msgstr "Recarregar"
 #, fuzzy
 msgid "Reload SQL Lab"
 msgstr "Torna a carregar SQL Lab"
+
+msgid "Reload the page and try again to continue."
+msgstr ""
 
 msgid "Remove"
 msgstr "Eliminar"
@@ -13503,6 +13475,12 @@ msgstr "Àmbit"
 msgid "Scoping"
 msgstr "Àmbit d'aplicació"
 
+msgid "Screenshot cache is unavailable"
+msgstr ""
+
+msgid "Screenshot request is temporarily unavailable"
+msgstr ""
+
 msgid "Screenshot width"
 msgstr "Amplada de captura de pantalla"
 
@@ -13625,6 +13603,9 @@ msgstr "Extra segur"
 
 msgid "Security"
 msgstr "Seguretat"
+
+msgid "Security token error"
+msgstr ""
 
 #, fuzzy
 msgid "See "
@@ -14864,12 +14845,6 @@ msgstr "Control lliscant i entrada d'interval"
 msgid "Slug"
 msgstr "Slug"
 
-#, python-format
-msgid ""
-"Slug %(slug)s belongs to the soft-deleted dashboard %(uuid)s. Restore it "
-"via POST /api/v1/dashboard/%(uuid)s/restore, or use a different slug."
-msgstr ""
-
 msgid "Small"
 msgstr "Petit"
 
@@ -14974,9 +14949,6 @@ msgstr "Ho sentim, s'ha produït un error"
 
 msgid "Sorry, an error occurred"
 msgstr "Ho sentim, s'ha produït un error"
-
-msgid "Sorry, an unknown error occurred"
-msgstr "Ho sentim, s'ha produït un error desconegut"
 
 msgid "Sorry, an unknown error occurred."
 msgstr "Ho sentim, s'ha produït un error desconegut."
@@ -15227,9 +15199,6 @@ msgstr ""
 
 msgid "Started"
 msgstr "Iniciat"
-
-msgid "Starting version"
-msgstr ""
 
 #, fuzzy
 msgid "Starts With"
@@ -15818,6 +15787,9 @@ msgstr "El dataset enllaçat a aquest gràfic pot haver estat eliminat."
 #, python-format
 msgid "The API response from %s does not match the IDatabaseTable interface."
 msgstr "La resposta de l'API de %s no coincideix amb la interfície IDatabaseTable."
+
+msgid "The CSRF token could not be validated."
+msgstr ""
 
 msgid ""
 "The CSS for individual dashboards can be altered here, or in the "
@@ -16974,12 +16946,6 @@ msgstr "Temps"
 msgid "Theme colors"
 msgstr ""
 
-msgid "Theme could not be created."
-msgstr ""
-
-msgid "Theme could not be updated."
-msgstr ""
-
 #, fuzzy
 msgid "Theme imported"
 msgstr "Dades importades"
@@ -16987,9 +16953,6 @@ msgstr "Dades importades"
 #, fuzzy
 msgid "Theme not found."
 msgstr "Plantilla CSS no trobada."
-
-msgid "Theme parameters are invalid."
-msgstr ""
 
 #, fuzzy
 msgid "Themes"
@@ -17551,11 +17514,6 @@ msgstr "Aquest dataset es gestiona externament, i no es pot editar a Superset"
 msgid "This defines the element to be plotted on the chart"
 msgstr "Això defineix l'element a ser traçat al gràfic"
 
-msgid ""
-"This dimension is not compatible with the current selections. Select a "
-"compatible dimension."
-msgstr ""
-
 #, fuzzy
 msgid ""
 "This email is already associated with an account. Please choose another "
@@ -17736,11 +17694,6 @@ msgid ""
 "a misleadingly large number."
 msgstr ""
 
-msgid ""
-"This metric is not compatible with the current selections. Select a "
-"compatible metric."
-msgstr ""
-
 #, fuzzy, python-format
 msgid "This metric might be incompatible with current %s"
 msgstr "Aquesta mètrica pot ser incompatible amb el dataset actual"
@@ -17816,11 +17769,6 @@ msgstr "Aquest tema s'ha establert localment"
 #, fuzzy
 msgid "This theme is set locally for your session"
 msgstr "Aquest tema s'ha establert localment per a la vostra sessió"
-
-msgid ""
-"This theme is the active default/dark theme - only Admins can edit it - "
-"Read Only"
-msgstr ""
 
 msgid ""
 "This theme uses the dark algorithm. It will be rendered with the light "
@@ -18604,9 +18552,6 @@ msgid "Undefined window for rolling operation"
 msgstr "Finestra indefinida per operació de desplaçament"
 
 msgid "Undid or redid a change"
-msgstr ""
-
-msgid "Undo"
 msgstr ""
 
 msgid "Undo the action"
@@ -20075,9 +20020,6 @@ msgstr ""
 "Estàs important un o més datasets que ja existeixen. Sobreescriure podria"
 " fer que perdis part del teu treball. Estàs segur que vols sobreescriure?"
 
-msgid "You are not an editor of this theme - Read Only"
-msgstr ""
-
 msgid ""
 "You are viewing this chart in a dashboard context with labels shared "
 "across multiple charts.\n"
@@ -20474,9 +20416,6 @@ msgstr "clau z-a"
 
 msgid "ZIP file contains multiple file types"
 msgstr "L'arxiu ZIP conté múltiples tipus de fitxer"
-
-msgid "Zebra striping"
-msgstr ""
 
 msgid "Zero imputation"
 msgstr "Imputació zero"

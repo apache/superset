@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-21 02:18+0000\n"
+"POT-Creation-Date: 2026-09-22 13:32-0700\n"
 "PO-Revision-Date: 2026-01-25 16:09+1300\n"
 "Last-Translator: karo.co.nz\n"
 "Language: mi\n"
@@ -1937,9 +1937,6 @@ msgstr ""
 msgid "Altered"
 msgstr "Kua Whakarereke"
 
-msgid "Alternate the row background color to make rows easier to scan."
-msgstr ""
-
 msgid "Always filter main datetime column"
 msgstr "Tātari i te tīwae wā matua i ngā wā katoa"
 
@@ -3600,9 +3597,6 @@ msgstr "He tapu te whakarereke i tēnei rārangi raraunga"
 msgid "Changing this task is forbidden"
 msgstr "He tapu te whakarereke i tēnei rārangi raraunga"
 
-msgid "Changing this theme is forbidden"
-msgstr ""
-
 msgid "Character to interpret as decimal point"
 msgstr "Pūāhua hei whakamāori hei tohu ira"
 
@@ -4811,11 +4805,6 @@ msgstr "Kāore i taea te whakaoti i te ingoa tūmau: \"%(host)s\"."
 msgid "Could not validate the user in the current session."
 msgstr "Kāore i taea te manatoko i te kaiwhakamahi i te wātaka o nāianei."
 
-msgid ""
-"Could not verify which dimensions are compatible. All dimensions are "
-"shown."
-msgstr ""
-
 msgid "Count"
 msgstr "Tatau"
 
@@ -5020,11 +5009,6 @@ msgstr "Paka tae ritenga"
 
 msgid "Custom column name (leave blank for default)"
 msgstr "Ingoa tīwae ritenga (waiho kau mō te taunoa)"
-
-msgid ""
-"Custom column values are not supported here. Select a saved dimension to "
-"replace this value."
-msgstr ""
 
 msgid "Custom conditional formatting"
 msgstr "Hōputu āhuatanga ritenga"
@@ -6191,9 +6175,6 @@ msgstr "Āhuahanga"
 #, fuzzy, python-format
 msgid "Dimensions (%s)"
 msgstr "Āhuahanga"
-
-msgid "Dimensions and metrics"
-msgstr ""
 
 msgid ""
 "Dimensions contain qualitative values such as names, dates, or "
@@ -7965,9 +7946,6 @@ msgstr "Tātari"
 #, fuzzy
 msgid "Filters and controls"
 msgstr "Whakahaere Taapiri"
-
-msgid "Filters applied from chat"
-msgstr ""
 
 msgid "Filters by columns"
 msgstr "Tātari mā ngā tīwae"
@@ -10822,9 +10800,6 @@ msgstr "Kāore i kitea he kīanga kua tiakina"
 msgid "No saved metrics found"
 msgstr "Kāore i kitea he ine kua tiakina"
 
-msgid "No selection modes are available for this control."
-msgstr ""
-
 msgid "No stored results found, you need to re-run your query"
 msgstr "Kāore i kitea he hua kua penapena, me whakahaere anō koe i tō pātai"
 
@@ -11376,9 +11351,6 @@ msgstr "Taketake"
 
 msgid "Original value"
 msgstr "Uara taketake"
-
-msgid "Original version"
-msgstr ""
 
 msgid "Orthogonal"
 msgstr "Hāngai"
@@ -12049,9 +12021,6 @@ msgstr ""
 msgid "Preview"
 msgstr "Arokite"
 
-msgid "Preview this version"
-msgstr ""
-
 msgid "Preview uploaded file"
 msgstr "Arokite kōnae kua tukuaketia"
 
@@ -12459,6 +12428,9 @@ msgstr "Uta-anō"
 #, fuzzy
 msgid "Reload SQL Lab"
 msgstr "Utahia anō te SQL Lab"
+
+msgid "Reload the page and try again to continue."
+msgstr ""
 
 msgid "Remove"
 msgstr "Tango"
@@ -13416,6 +13388,12 @@ msgstr "Korahi"
 msgid "Scoping"
 msgstr "Korahi"
 
+msgid "Screenshot cache is unavailable"
+msgstr ""
+
+msgid "Screenshot request is temporarily unavailable"
+msgstr ""
+
 msgid "Screenshot width"
 msgstr "Whānui hopuataata"
 
@@ -13540,6 +13518,9 @@ msgstr "Taapiri haumaru"
 
 msgid "Security"
 msgstr "Haumaru"
+
+msgid "Security token error"
+msgstr ""
 
 #, fuzzy
 msgid "See "
@@ -14764,12 +14745,6 @@ msgstr "Paheke me te tāuru āhua"
 msgid "Slug"
 msgstr "Slug"
 
-#, python-format
-msgid ""
-"Slug %(slug)s belongs to the soft-deleted dashboard %(uuid)s. Restore it "
-"via POST /api/v1/dashboard/%(uuid)s/restore, or use a different slug."
-msgstr ""
-
 msgid "Small"
 msgstr "Iti"
 
@@ -14875,9 +14850,6 @@ msgstr "Aroha mai, I puta he hapa"
 
 msgid "Sorry, an error occurred"
 msgstr "Aroha mai, i puta he hapa"
-
-msgid "Sorry, an unknown error occurred"
-msgstr "Aroha mai, i puta he hapa kāore e mōhiotia ana"
 
 msgid "Sorry, an unknown error occurred."
 msgstr "Aroha mai, i puta he hapa kāore e mōhiotia ana."
@@ -15128,9 +15100,6 @@ msgstr ""
 
 msgid "Started"
 msgstr "Kua Tīmata"
-
-msgid "Starting version"
-msgstr ""
 
 #, fuzzy
 msgid "Starts With"
@@ -15722,6 +15691,9 @@ msgid "The API response from %s does not match the IDatabaseTable interface."
 msgstr ""
 "Karekau te whakautu API mai i %s e hāngai ana ki te papatohu "
 "IDatabaseTable."
+
+msgid "The CSRF token could not be validated."
+msgstr ""
 
 msgid ""
 "The CSS for individual dashboards can be altered here, or in the "
@@ -16861,12 +16833,6 @@ msgstr "Wā"
 msgid "Theme colors"
 msgstr ""
 
-msgid "Theme could not be created."
-msgstr ""
-
-msgid "Theme could not be updated."
-msgstr ""
-
 #, fuzzy
 msgid "Theme imported"
 msgstr "Raraunga kua kawemai"
@@ -16874,9 +16840,6 @@ msgstr "Raraunga kua kawemai"
 #, fuzzy
 msgid "Theme not found."
 msgstr "Kāore i kitea te tauira CSS."
-
-msgid "Theme parameters are invalid."
-msgstr ""
 
 #, fuzzy
 msgid "Themes"
@@ -17441,11 +17404,6 @@ msgstr ""
 msgid "This defines the element to be plotted on the chart"
 msgstr "Ka tautuhi tēnei i te huānga ka whakatakotohia ki te kauwhata"
 
-msgid ""
-"This dimension is not compatible with the current selections. Select a "
-"compatible dimension."
-msgstr ""
-
 #, fuzzy
 msgid ""
 "This email is already associated with an account. Please choose another "
@@ -17623,11 +17581,6 @@ msgid ""
 "a misleadingly large number."
 msgstr ""
 
-msgid ""
-"This metric is not compatible with the current selections. Select a "
-"compatible metric."
-msgstr ""
-
 #, fuzzy, python-format
 msgid "This metric might be incompatible with current %s"
 msgstr "Kāhore pea e hāngai tēnei ine ki te rārangi raraunga o nāianei"
@@ -17701,11 +17654,6 @@ msgstr "Ka tūria tēnei āhua ā-rohe"
 #, fuzzy
 msgid "This theme is set locally for your session"
 msgstr "Ka tūria tēnei āhua ā-rohe mō tō tūnga"
-
-msgid ""
-"This theme is the active default/dark theme - only Admins can edit it - "
-"Read Only"
-msgstr ""
 
 msgid ""
 "This theme uses the dark algorithm. It will be rendered with the light "
@@ -18483,9 +18431,6 @@ msgid "Undefined window for rolling operation"
 msgstr "Matapihi kāore i tautuhia mō te mahinga takahuri"
 
 msgid "Undid or redid a change"
-msgstr ""
-
-msgid "Undo"
 msgstr ""
 
 msgid "Undo the action"
@@ -19948,9 +19893,6 @@ msgstr ""
 "te tuhirua ka ngaro pea ētahi o ō mahi. Kei te tino hiahia koe ki te "
 "tuhirua?"
 
-msgid "You are not an editor of this theme - Read Only"
-msgstr ""
-
 msgid ""
 "You are viewing this chart in a dashboard context with labels shared "
 "across multiple charts.\n"
@@ -20347,9 +20289,6 @@ msgstr "kī z-a"
 
 msgid "ZIP file contains multiple file types"
 msgstr "Kei te kōnae ZIP he momo kōnae maha"
-
-msgid "Zebra striping"
-msgstr ""
 
 msgid "Zero imputation"
 msgstr "Whakakapi kore"

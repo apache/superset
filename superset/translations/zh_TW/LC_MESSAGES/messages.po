@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Apache Superset 0.22.1\n"
 "Report-Msgid-Bugs-To: bestlong168@gmail.com\n"
-"POT-Creation-Date: 2026-09-21 02:18+0000\n"
+"POT-Creation-Date: 2026-09-22 13:32-0700\n"
 "PO-Revision-Date: 2019-01-04 22:19+0800\n"
 "Last-Translator: Shao Yu-Lung <bestlong168@gmail.com>\n"
 "Language: zh_TW\n"
@@ -2008,9 +2008,6 @@ msgstr ""
 msgid "Altered"
 msgstr "已更改"
 
-msgid "Alternate the row background color to make rows easier to scan."
-msgstr ""
-
 #, fuzzy
 msgid "Always filter main datetime column"
 msgstr "主日期列"
@@ -3725,9 +3722,6 @@ msgstr "没有權限更新此數據集"
 msgid "Changing this task is forbidden"
 msgstr "没有權限更新此數據集"
 
-msgid "Changing this theme is forbidden"
-msgstr ""
-
 #, fuzzy
 msgid "Character to interpret as decimal point"
 msgstr "將字符解释為小數點的字符。"
@@ -5006,11 +5000,6 @@ msgstr "無法解析主機名稱：\"%(host)s\"。"
 msgid "Could not validate the user in the current session."
 msgstr "無法在目前的工作階段中驗證使用者。"
 
-msgid ""
-"Could not verify which dimensions are compatible. All dimensions are "
-"shown."
-msgstr ""
-
 #, fuzzy
 msgid "Count"
 msgstr "計數"
@@ -5244,11 +5233,6 @@ msgstr "自動補全"
 #, fuzzy
 msgid "Custom column name (leave blank for default)"
 msgstr "自訂欄名（留空以使用預設值）"
-
-msgid ""
-"Custom column values are not supported here. Select a saved dimension to "
-"replace this value."
-msgstr ""
 
 #, fuzzy
 msgid "Custom conditional formatting"
@@ -6454,9 +6438,6 @@ msgstr "维度"
 #, fuzzy, python-format
 msgid "Dimensions (%s)"
 msgstr "维度"
-
-msgid "Dimensions and metrics"
-msgstr ""
 
 msgid ""
 "Dimensions contain qualitative values such as names, dates, or "
@@ -8336,9 +8317,6 @@ msgstr "過濾"
 #, fuzzy
 msgid "Filters and controls"
 msgstr "額外控件"
-
-msgid "Filters applied from chat"
-msgstr ""
 
 msgid "Filters by columns"
 msgstr "按列過濾"
@@ -11419,9 +11397,6 @@ msgstr "没有已保存的表達式"
 msgid "No saved metrics found"
 msgstr "没有已保存的指標"
 
-msgid "No selection modes are available for this control."
-msgstr ""
-
 msgid "No stored results found, you need to re-run your query"
 msgstr "找不到儲存的结果，需要重新運行查詢"
 
@@ -12003,9 +11978,6 @@ msgstr "起點"
 
 msgid "Original value"
 msgstr "原始值"
-
-msgid "Original version"
-msgstr ""
 
 msgid "Orthogonal"
 msgstr "正交化"
@@ -12726,9 +12698,6 @@ msgstr ""
 msgid "Preview"
 msgstr "預覽"
 
-msgid "Preview this version"
-msgstr ""
-
 #, fuzzy
 msgid "Preview uploaded file"
 msgstr "上傳 Excel"
@@ -13168,6 +13137,9 @@ msgstr "重新加载"
 #, fuzzy
 msgid "Reload SQL Lab"
 msgstr "重新載入 SQL Lab"
+
+msgid "Reload the page and try again to continue."
+msgstr ""
 
 msgid "Remove"
 msgstr "删除"
@@ -14165,6 +14137,12 @@ msgstr "範圍"
 msgid "Scoping"
 msgstr "範圍"
 
+msgid "Screenshot cache is unavailable"
+msgstr ""
+
+msgid "Screenshot request is temporarily unavailable"
+msgstr ""
+
 msgid "Screenshot width"
 msgstr "截圖寬度"
 
@@ -14306,6 +14284,9 @@ msgstr "安全"
 
 msgid "Security"
 msgstr "安全"
+
+msgid "Security token error"
+msgstr ""
 
 #, fuzzy
 msgid "See "
@@ -15531,12 +15512,6 @@ msgstr "滑桿和範圍輸入"
 msgid "Slug"
 msgstr "Slug"
 
-#, python-format
-msgid ""
-"Slug %(slug)s belongs to the soft-deleted dashboard %(uuid)s. Restore it "
-"via POST /api/v1/dashboard/%(uuid)s/restore, or use a different slug."
-msgstr ""
-
 msgid "Small"
 msgstr "小"
 
@@ -15642,10 +15617,6 @@ msgstr "抱歉，發生錯誤"
 
 #, fuzzy
 msgid "Sorry, an error occurred"
-msgstr "抱歉，發生錯誤"
-
-#, fuzzy
-msgid "Sorry, an unknown error occurred"
 msgstr "抱歉，發生錯誤"
 
 #, fuzzy
@@ -15914,9 +15885,6 @@ msgstr "從零開始 Y 軸。取消選中以從數據中的最小值開始 Y 軸
 #, fuzzy
 msgid "Started"
 msgstr "開始了"
-
-msgid "Starting version"
-msgstr ""
 
 #, fuzzy
 msgid "Starts With"
@@ -16545,6 +16513,9 @@ msgstr "這個圖表所链接的數據集可能被删除了。"
 #, fuzzy, python-format
 msgid "The API response from %s does not match the IDatabaseTable interface."
 msgstr "來自 %s 的 API 回應與 IDatabaseTable 介面不符。"
+
+msgid "The CSRF token could not be validated."
+msgstr ""
 
 msgid ""
 "The CSS for individual dashboards can be altered here, or in the "
@@ -17656,12 +17627,6 @@ msgstr "時間"
 msgid "Theme colors"
 msgstr ""
 
-msgid "Theme could not be created."
-msgstr ""
-
-msgid "Theme could not be updated."
-msgstr ""
-
 #, fuzzy
 msgid "Theme imported"
 msgstr "數據集已導入"
@@ -17669,9 +17634,6 @@ msgstr "數據集已導入"
 #, fuzzy
 msgid "Theme not found."
 msgstr "CSS 模板未找到"
-
-msgid "Theme parameters are invalid."
-msgstr ""
 
 #, fuzzy
 msgid "Themes"
@@ -18241,11 +18203,6 @@ msgstr "此資料集由外部管理，無法在 Superset 中編輯"
 msgid "This defines the element to be plotted on the chart"
 msgstr "這定義了要在圖表上繪制的元素"
 
-msgid ""
-"This dimension is not compatible with the current selections. Select a "
-"compatible dimension."
-msgstr ""
-
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, fr, ja,
 # lv, ro, ru, sr, sr_Latn, tr, uk]
 #, fuzzy
@@ -18412,11 +18369,6 @@ msgid ""
 "a misleadingly large number."
 msgstr ""
 
-msgid ""
-"This metric is not compatible with the current selections. Select a "
-"compatible metric."
-msgstr ""
-
 #, fuzzy, python-format
 msgid "This metric might be incompatible with current %s"
 msgstr "此圖表可能與過濾器不兼容(數據集不匹配)"
@@ -18492,11 +18444,6 @@ msgstr "此主題已在本機設定"
 #, fuzzy
 msgid "This theme is set locally for your session"
 msgstr "此主題已為您的工作階段在本機設定"
-
-msgid ""
-"This theme is the active default/dark theme - only Admins can edit it - "
-"Read Only"
-msgstr ""
 
 msgid ""
 "This theme uses the dark algorithm. It will be rendered with the light "
@@ -19310,9 +19257,6 @@ msgid "Undefined window for rolling operation"
 msgstr "未定義滚動操作窗口"
 
 msgid "Undid or redid a change"
-msgstr ""
-
-msgid "Undo"
 msgstr ""
 
 #, fuzzy
@@ -20775,9 +20719,6 @@ msgid ""
 "overwrite?"
 msgstr "您正在導入一個或多個已存在的數據集。覆盖可能會導致您丢失一些工作。確定要覆盖嗎？"
 
-msgid "You are not an editor of this theme - Read Only"
-msgstr ""
-
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fr, ja, lv, mi, ro, ru, sk, sr, sr_Latn, tr, uk]
 #, fuzzy
@@ -21197,9 +21138,6 @@ msgstr "z-a 鍵"
 #, fuzzy
 msgid "ZIP file contains multiple file types"
 msgstr "ZIP 檔案包含多種檔案類型"
-
-msgid "Zebra striping"
-msgstr ""
 
 #, fuzzy
 msgid "Zero imputation"

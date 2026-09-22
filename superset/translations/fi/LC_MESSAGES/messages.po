@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-21 02:18+0000\n"
+"POT-Creation-Date: 2026-09-22 13:32-0700\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: fi\n"
@@ -2978,9 +2978,6 @@ msgstr ""
 msgid "Altered"
 msgstr "Muutettu"
 
-msgid "Alternate the row background color to make rows easier to scan."
-msgstr ""
-
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, ru, sk, sl, uk]
 #, fuzzy
@@ -5651,9 +5648,6 @@ msgstr "Tämän tietojoukon muuttaminen on kielletty"
 msgid "Changing this task is forbidden"
 msgstr "Tämän tietojoukon muuttaminen on kielletty"
 
-msgid "Changing this theme is forbidden"
-msgstr ""
-
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
 #, fuzzy
@@ -7621,11 +7615,6 @@ msgstr "Isäntänimeä \"%(host)s\" ei voitu ratkaista."
 msgid "Could not validate the user in the current session."
 msgstr "Käyttäjää ei voitu vahvistaa nykyisessä istunnossa."
 
-msgid ""
-"Could not verify which dimensions are compatible. All dimensions are "
-"shown."
-msgstr ""
-
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, tr, uk]
 #, fuzzy
@@ -8002,11 +7991,6 @@ msgstr "Mukautetut väripaletit"
 #, fuzzy
 msgid "Custom column name (leave blank for default)"
 msgstr "Mukautettu sarakkeen nimi (jätä tyhjäksi oletusarvoa varten)"
-
-msgid ""
-"Custom column values are not supported here. Select a saved dimension to "
-"replace this value."
-msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fa, fr, ja, lv, mi, ru, sk, sl, uk]
@@ -9906,9 +9890,6 @@ msgstr "Dimensiot"
 #, fuzzy, python-format
 msgid "Dimensions (%s)"
 msgstr "Dimensiot"
-
-msgid "Dimensions and metrics"
-msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, ru, sk, sl, uk, zh, zh_TW]
@@ -12750,9 +12731,6 @@ msgstr "Suodattimet"
 #, fuzzy
 msgid "Filters and controls"
 msgstr "Suodattimet ja ohjaimet"
-
-msgid "Filters applied from chat"
-msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, it, ja, ko, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh,
@@ -17478,9 +17456,6 @@ msgstr "Tallennettuja lausekkeita ei löydy"
 msgid "No saved metrics found"
 msgstr "Tallennettuja mittareita ei löydy"
 
-msgid "No selection modes are available for this control."
-msgstr ""
-
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, fuzzy
@@ -18396,9 +18371,6 @@ msgstr "Alkuperäinen"
 #, fuzzy
 msgid "Original value"
 msgstr "Alkuperäinen arvo"
-
-msgid "Original version"
-msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -19519,9 +19491,6 @@ msgstr ""
 msgid "Preview"
 msgstr "Esikatselu"
 
-msgid "Preview this version"
-msgstr ""
-
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fa, ja, lv, mi, ru, sk, sl, uk]
 #, fuzzy
@@ -20217,6 +20186,9 @@ msgstr "Lataa uudelleen"
 #, fuzzy
 msgid "Reload SQL Lab"
 msgstr "Lataa SQL Lab uudelleen"
+
+msgid "Reload the page and try again to continue."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -21783,6 +21755,12 @@ msgstr "Laajuus"
 msgid "Scoping"
 msgstr "Laajuuden määritys"
 
+msgid "Screenshot cache is unavailable"
+msgstr ""
+
+msgid "Screenshot request is temporarily unavailable"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, fuzzy
@@ -21998,6 +21976,9 @@ msgstr "Lisäsuojaus"
 #, fuzzy
 msgid "Security"
 msgstr "Turvallisuus"
+
+msgid "Security token error"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
@@ -23900,12 +23881,6 @@ msgstr "Liukusäädin ja alueen syöttö"
 msgid "Slug"
 msgstr "Slug"
 
-#, python-format
-msgid ""
-"Slug %(slug)s belongs to the soft-deleted dashboard %(uuid)s. Restore it "
-"via POST /api/v1/dashboard/%(uuid)s/restore, or use a different slug."
-msgstr ""
-
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, tr, uk, zh, zh_TW]
 #, fuzzy
@@ -24043,12 +24018,6 @@ msgstr "Pahoittelemme, tapahtui virhe"
 #, fuzzy
 msgid "Sorry, an error occurred"
 msgstr "Pahoittelemme, tapahtui virhe"
-
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
-# de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
-#, fuzzy
-msgid "Sorry, an unknown error occurred"
-msgstr "Pahoittelemme, tapahtui tuntematon virhe"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
@@ -24489,9 +24458,6 @@ msgstr ""
 #, fuzzy
 msgid "Started"
 msgstr "Aloitettu"
-
-msgid "Starting version"
-msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja, lv, ru,
 # uk]
@@ -25441,6 +25407,9 @@ msgstr "Tähän kaavioon linkitetty tietojoukko on saattanut tulla poistetuksi."
 #, fuzzy, python-format
 msgid "The API response from %s does not match the IDatabaseTable interface."
 msgstr "API:n vastaus kohteesta %s ei vastaa IDatabaseTable-rajapintaa."
+
+msgid "The CSRF token could not be validated."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, it, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, uk, zh,
@@ -27055,12 +27024,6 @@ msgstr "Teema"
 msgid "Theme colors"
 msgstr ""
 
-msgid "Theme could not be created."
-msgstr ""
-
-msgid "Theme could not be updated."
-msgstr ""
-
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: fr, ja, lv,
 # ru, uk]
 #, fuzzy
@@ -27072,9 +27035,6 @@ msgstr "Teema tuotu"
 #, fuzzy
 msgid "Theme not found."
 msgstr "Teemaa ei löydy."
-
-msgid "Theme parameters are invalid."
-msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, fr, ja,
 # lv, ru, sk, uk]
@@ -27888,11 +27848,6 @@ msgstr ""
 msgid "This defines the element to be plotted on the chart"
 msgstr "Tämä määrittää kaavioon piirrettävän elementin"
 
-msgid ""
-"This dimension is not compatible with the current selections. Select a "
-"compatible dimension."
-msgstr ""
-
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: fr, ja, lv,
 # ru, uk]
 #, fuzzy
@@ -28099,11 +28054,6 @@ msgid ""
 "a misleadingly large number."
 msgstr ""
 
-msgid ""
-"This metric is not compatible with the current selections. Select a "
-"compatible metric."
-msgstr ""
-
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
 #, fuzzy, python-format
@@ -28205,11 +28155,6 @@ msgstr "Tämä teema on asetettu paikallisesti"
 #, fuzzy
 msgid "This theme is set locally for your session"
 msgstr "Tämä teema on asetettu paikallisesti istuntoasi varten"
-
-msgid ""
-"This theme is the active default/dark theme - only Admins can edit it - "
-"Read Only"
-msgstr ""
 
 msgid ""
 "This theme uses the dark algorithm. It will be rendered with the light "
@@ -29406,9 +29351,6 @@ msgid "Undefined window for rolling operation"
 msgstr "Määrittelemätön ikkuna liukuvalle toiminnolle"
 
 msgid "Undid or redid a change"
-msgstr ""
-
-msgid "Undo"
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
@@ -31732,9 +31674,6 @@ msgstr ""
 "Tuot yhden tai useamman teeman, joka on jo olemassa. Korvaaminen saattaa "
 "aiheuttaa joidenkin töidesi menettämisen. Haluatko varmasti korvata?"
 
-msgid "You are not an editor of this theme - Read Only"
-msgstr ""
-
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, es,
 # fr, ja, lv, mi, ru, sk, uk]
 #, fuzzy
@@ -32293,9 +32232,6 @@ msgstr "avain z-a"
 #, fuzzy
 msgid "ZIP file contains multiple file types"
 msgstr "ZIP-tiedosto sisältää useita tiedostotyyppejä"
-
-msgid "Zebra striping"
-msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]

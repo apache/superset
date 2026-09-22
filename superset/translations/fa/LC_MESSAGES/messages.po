@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-21 02:18+0000\n"
+"POT-Creation-Date: 2026-09-22 13:32-0700\n"
 "PO-Revision-Date: 2024-10-20 00:07+0330\n"
 "Last-Translator: Emad Rad <codewithemad@gmail.com>\n"
 "Language: fa\n"
@@ -1963,9 +1963,6 @@ msgstr ""
 msgid "Altered"
 msgstr "ویرایش شده"
 
-msgid "Alternate the row background color to make rows easier to scan."
-msgstr ""
-
 msgid "Always filter main datetime column"
 msgstr "همیشه ستون اصلی تاریخ و زمان را فیلتر کنید"
 
@@ -3630,9 +3627,6 @@ msgstr "تغییر این مجموعه داده ممنوع است"
 msgid "Changing this task is forbidden"
 msgstr "تغییر این مجموعه داده ممنوع است"
 
-msgid "Changing this theme is forbidden"
-msgstr ""
-
 msgid "Character to interpret as decimal point"
 msgstr "کاراکتر برای تفسیر به عنوان نقطه اعشاری"
 
@@ -4865,11 +4859,6 @@ msgstr "نتوانستم نام میزبان را شناسایی کنم: \"%(hos
 msgid "Could not validate the user in the current session."
 msgstr "تأیید هویت کاربر در جلسه فعلی امکان‌پذیر نبود."
 
-msgid ""
-"Could not verify which dimensions are compatible. All dimensions are "
-"shown."
-msgstr ""
-
 msgid "Count"
 msgstr "شمارش"
 
@@ -5077,11 +5066,6 @@ msgstr "پالت‌های رنگی سفارشی"
 #, fuzzy
 msgid "Custom column name (leave blank for default)"
 msgstr "نام ستون سفارشی (برای مقدار پیش‌فرض خالی بگذارید)"
-
-msgid ""
-"Custom column values are not supported here. Select a saved dimension to "
-"replace this value."
-msgstr ""
 
 msgid "Custom conditional formatting"
 msgstr "قالب‌بندی شرطی سفارشی"
@@ -6261,9 +6245,6 @@ msgstr "ابعاد"
 #, fuzzy, python-format
 msgid "Dimensions (%s)"
 msgstr "ابعاد"
-
-msgid "Dimensions and metrics"
-msgstr ""
 
 msgid ""
 "Dimensions contain qualitative values such as names, dates, or "
@@ -8075,9 +8056,6 @@ msgstr "فیلترها"
 #, fuzzy
 msgid "Filters and controls"
 msgstr "کنترل‌های اضافی"
-
-msgid "Filters applied from chat"
-msgstr ""
 
 msgid "Filters by columns"
 msgstr "فیلترها بر اساس ستون‌ها"
@@ -10988,9 +10966,6 @@ msgstr "هیچ عبارت ذخیره‌شده‌ای یافت نشد"
 msgid "No saved metrics found"
 msgstr "هیچ متریک ذخیره‌شده‌ای پیدا نشد"
 
-msgid "No selection modes are available for this control."
-msgstr ""
-
 msgid "No stored results found, you need to re-run your query"
 msgstr "هیچ نتیجه‌ای ذخیره شده یافت نشد، شما باید کوئریی خود را دوباره اجرا کنید."
 
@@ -11538,9 +11513,6 @@ msgstr "متن اصلی"
 
 msgid "Original value"
 msgstr "مقدار اصلی"
-
-msgid "Original version"
-msgstr ""
 
 msgid "Orthogonal"
 msgstr "عمودى"
@@ -12229,9 +12201,6 @@ msgstr ""
 msgid "Preview"
 msgstr "پیش‌نمایش"
 
-msgid "Preview this version"
-msgstr ""
-
 msgid "Preview uploaded file"
 msgstr "پیش‌نمایش فایل بارگذاری‌شده"
 
@@ -12641,6 +12610,9 @@ msgstr "بارگذاری مجدد"
 #, fuzzy
 msgid "Reload SQL Lab"
 msgstr "بارگذاری مجدد SQL Lab"
+
+msgid "Reload the page and try again to continue."
+msgstr ""
 
 msgid "Remove"
 msgstr "حذف"
@@ -13598,6 +13570,12 @@ msgstr "دامنه"
 msgid "Scoping"
 msgstr "دامنه‌گذاری"
 
+msgid "Screenshot cache is unavailable"
+msgstr ""
+
+msgid "Screenshot request is temporarily unavailable"
+msgstr ""
+
 msgid "Screenshot width"
 msgstr "عرض عکس‌برداری"
 
@@ -13720,6 +13698,9 @@ msgstr "ایمن اضافه"
 
 msgid "Security"
 msgstr "امنیت"
+
+msgid "Security token error"
+msgstr ""
 
 #, fuzzy
 msgid "See "
@@ -14955,12 +14936,6 @@ msgstr "لغزنده و ورودی محدوده"
 msgid "Slug"
 msgstr "اسلاگ"
 
-#, python-format
-msgid ""
-"Slug %(slug)s belongs to the soft-deleted dashboard %(uuid)s. Restore it "
-"via POST /api/v1/dashboard/%(uuid)s/restore, or use a different slug."
-msgstr ""
-
 msgid "Small"
 msgstr "کوچک"
 
@@ -15064,9 +15039,6 @@ msgstr "متاسفم، یک خطا رخ داده است"
 
 msgid "Sorry, an error occurred"
 msgstr "متأسفم، یک خطا رخ داد"
-
-msgid "Sorry, an unknown error occurred"
-msgstr "متاسفیم، یک خطای ناشناخته رخ داده است."
 
 msgid "Sorry, an unknown error occurred."
 msgstr "متأسفم، یک خطای ناشناس رخ داد."
@@ -15317,9 +15289,6 @@ msgstr ""
 
 msgid "Started"
 msgstr "شروع شد"
-
-msgid "Starting version"
-msgstr ""
 
 #, fuzzy
 msgid "Starts With"
@@ -15923,6 +15892,9 @@ msgstr "ممکن است مجموعه داده مرتبط با این نمودا�
 #, python-format
 msgid "The API response from %s does not match the IDatabaseTable interface."
 msgstr "پاسخ API از %s با رابط IDatabaseTable همخوانی ندارد."
+
+msgid "The CSRF token could not be validated."
+msgstr ""
 
 msgid ""
 "The CSS for individual dashboards can be altered here, or in the "
@@ -17068,12 +17040,6 @@ msgstr "زمان"
 msgid "Theme colors"
 msgstr ""
 
-msgid "Theme could not be created."
-msgstr ""
-
-msgid "Theme could not be updated."
-msgstr ""
-
 #, fuzzy
 msgid "Theme imported"
 msgstr "داده‌ها وارد شدند"
@@ -17081,9 +17047,6 @@ msgstr "داده‌ها وارد شدند"
 #, fuzzy
 msgid "Theme not found."
 msgstr "قالب CSS پیدا نشد."
-
-msgid "Theme parameters are invalid."
-msgstr ""
 
 #, fuzzy
 msgid "Themes"
@@ -17653,11 +17616,6 @@ msgstr ""
 msgid "This defines the element to be plotted on the chart"
 msgstr "این عنصر را برای ترسیم روی نمودار تعریف می‌کند."
 
-msgid ""
-"This dimension is not compatible with the current selections. Select a "
-"compatible dimension."
-msgstr ""
-
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, fr, ja,
 # lv, ro, ru, sr, sr_Latn, tr, uk]
 #, fuzzy
@@ -17835,11 +17793,6 @@ msgid ""
 "a misleadingly large number."
 msgstr ""
 
-msgid ""
-"This metric is not compatible with the current selections. Select a "
-"compatible metric."
-msgstr ""
-
 #, fuzzy, python-format
 msgid "This metric might be incompatible with current %s"
 msgstr "این متریک ممکن است با مجموعه داده‌های کنونی سازگار نباشد."
@@ -17915,11 +17868,6 @@ msgstr "این پوسته به صورت محلی تنظیم شده است"
 #, fuzzy
 msgid "This theme is set locally for your session"
 msgstr "این پوسته به صورت محلی برای جلسه شما تنظیم شده است"
-
-msgid ""
-"This theme is the active default/dark theme - only Admins can edit it - "
-"Read Only"
-msgstr ""
 
 msgid ""
 "This theme uses the dark algorithm. It will be rendered with the light "
@@ -18700,9 +18648,6 @@ msgid "Undefined window for rolling operation"
 msgstr "پنجره نامشخص برای عملیات متحرک"
 
 msgid "Undid or redid a change"
-msgstr ""
-
-msgid "Undo"
 msgstr ""
 
 msgid "Undo the action"
@@ -20164,9 +20109,6 @@ msgstr ""
 "بازنویسی ممکن است باعث از دست رفتن برخی از کارهای شما شود. آیا مطمئن "
 "هستید که می‌خواهید بازنویسی کنید؟"
 
-msgid "You are not an editor of this theme - Read Only"
-msgstr ""
-
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fr, ja, lv, mi, ro, ru, sk, sr, sr_Latn, tr, uk]
 #, fuzzy
@@ -20571,9 +20513,6 @@ msgstr "کلید z-a"
 
 msgid "ZIP file contains multiple file types"
 msgstr "فایل ZIP شامل انواع مختلف فایل است."
-
-msgid "Zebra striping"
-msgstr ""
 
 msgid "Zero imputation"
 msgstr "ارجاع صفر"

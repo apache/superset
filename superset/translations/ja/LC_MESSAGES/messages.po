@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-21 02:18+0000\n"
+"POT-Creation-Date: 2026-09-22 13:32-0700\n"
 "PO-Revision-Date: 2024-05-14 13:30+0900\n"
 "Last-Translator: Yuri Umezaki <bungoume@gmail.com>\n"
 "Language: ja\n"
@@ -1746,9 +1746,6 @@ msgstr ""
 msgid "Altered"
 msgstr "変更済み"
 
-msgid "Alternate the row background color to make rows easier to scan."
-msgstr ""
-
 msgid "Always filter main datetime column"
 msgstr "常にメインの日時列をフィルタリングする"
 
@@ -3191,9 +3188,6 @@ msgstr "このセマンティックビューの変更は禁止されています
 msgid "Changing this task is forbidden"
 msgstr "このタスクの変更は禁止されています"
 
-msgid "Changing this theme is forbidden"
-msgstr ""
-
 msgid "Character to interpret as decimal point"
 msgstr "小数点として解釈する文字"
 
@@ -4266,11 +4260,6 @@ msgstr "ホスト名「%(host)s」を解決できませんでした。"
 msgid "Could not validate the user in the current session."
 msgstr "現在のセッションのユーザーを検証できませんでした。"
 
-msgid ""
-"Could not verify which dimensions are compatible. All dimensions are "
-"shown."
-msgstr ""
-
 msgid "Count"
 msgstr "カウント (件数)"
 
@@ -4460,11 +4449,6 @@ msgstr "カスタムカラーパレット"
 
 msgid "Custom column name (leave blank for default)"
 msgstr "カスタム列名 (空欄の場合は既定値を使用)"
-
-msgid ""
-"Custom column values are not supported here. Select a saved dimension to "
-"replace this value."
-msgstr ""
 
 msgid "Custom conditional formatting"
 msgstr "カスタム条件付き書式"
@@ -5472,9 +5456,6 @@ msgstr "ディメンション"
 #, python-format
 msgid "Dimensions (%s)"
 msgstr "ディメンション (%s)"
-
-msgid "Dimensions and metrics"
-msgstr ""
 
 msgid ""
 "Dimensions contain qualitative values such as names, dates, or "
@@ -7030,9 +7011,6 @@ msgstr "フィルター"
 
 msgid "Filters and controls"
 msgstr "フィルターとコントロール"
-
-msgid "Filters applied from chat"
-msgstr ""
 
 msgid "Filters by columns"
 msgstr "列によるフィルター"
@@ -9565,9 +9543,6 @@ msgstr "保存済み数式が見つかりません"
 msgid "No saved metrics found"
 msgstr "保存済みメトリックが見つかりません"
 
-msgid "No selection modes are available for this control."
-msgstr ""
-
 msgid "No stored results found, you need to re-run your query"
 msgstr "保存された結果が見つかりません。クエリを再実行してください"
 
@@ -10057,9 +10032,6 @@ msgstr "オリジナル"
 
 msgid "Original value"
 msgstr "元の値"
-
-msgid "Original version"
-msgstr ""
 
 msgid "Orthogonal"
 msgstr "直交レイアウト"
@@ -10656,9 +10628,6 @@ msgstr ""
 msgid "Preview"
 msgstr "プレビュー"
 
-msgid "Preview this version"
-msgstr ""
-
 msgid "Preview uploaded file"
 msgstr "アップロードしたファイルをプレビュー"
 
@@ -11034,6 +11003,9 @@ msgstr "再読み込み"
 
 msgid "Reload SQL Lab"
 msgstr "SQL Labを再読み込み"
+
+msgid "Reload the page and try again to continue."
+msgstr ""
 
 msgid "Remove"
 msgstr "削除"
@@ -11913,6 +11885,12 @@ msgstr "スコープ"
 msgid "Scoping"
 msgstr "スコーピング"
 
+msgid "Screenshot cache is unavailable"
+msgstr ""
+
+msgid "Screenshot request is temporarily unavailable"
+msgstr ""
+
 msgid "Screenshot width"
 msgstr "スクリーンショットの幅"
 
@@ -12028,6 +12006,9 @@ msgstr "セキュア設定"
 
 msgid "Security"
 msgstr "セキュリティ"
+
+msgid "Security token error"
+msgstr ""
 
 msgid "See "
 msgstr "参照 "
@@ -13026,12 +13007,6 @@ msgstr "スライダーと範囲入力"
 msgid "Slug"
 msgstr "スラッグ"
 
-#, python-format
-msgid ""
-"Slug %(slug)s belongs to the soft-deleted dashboard %(uuid)s. Restore it "
-"via POST /api/v1/dashboard/%(uuid)s/restore, or use a different slug."
-msgstr ""
-
 msgid "Small"
 msgstr "小"
 
@@ -13118,9 +13093,6 @@ msgstr "申し訳ありません、エラーが発生しました"
 
 msgid "Sorry, an error occurred"
 msgstr "申し訳ありません、エラーが発生しました"
-
-msgid "Sorry, an unknown error occurred"
-msgstr "申し訳ありません、不明なエラーが発生しました"
 
 msgid "Sorry, an unknown error occurred."
 msgstr "申し訳ありません、不明なエラーが発生しました。"
@@ -13342,9 +13314,6 @@ msgstr "Y軸を0から開始します。チェックを外すと、データ内�
 
 msgid "Started"
 msgstr "開始済み"
-
-msgid "Starting version"
-msgstr ""
 
 msgid "Starts With"
 msgstr "で始まる"
@@ -13866,6 +13835,9 @@ msgstr "このチャートにリンクされている %s は削除された可�
 #, python-format
 msgid "The API response from %s does not match the IDatabaseTable interface."
 msgstr "%s からの API レスポンスが IDatabaseTable インターフェースと一致しません。"
+
+msgid "The CSRF token could not be validated."
+msgstr ""
 
 msgid ""
 "The CSS for individual dashboards can be altered here, or in the "
@@ -14783,20 +14755,11 @@ msgstr "テーマ"
 msgid "Theme colors"
 msgstr ""
 
-msgid "Theme could not be created."
-msgstr ""
-
-msgid "Theme could not be updated."
-msgstr ""
-
 msgid "Theme imported"
 msgstr "テーマをインポートしました"
 
 msgid "Theme not found."
 msgstr "テーマが見つかりません。"
-
-msgid "Theme parameters are invalid."
-msgstr ""
 
 msgid "Themes"
 msgstr "テーマ"
@@ -15287,11 +15250,6 @@ msgid "This defines the element to be plotted on the chart"
 msgstr "チャートにプロットされる要素を定義します"
 
 msgid ""
-"This dimension is not compatible with the current selections. Select a "
-"compatible dimension."
-msgstr ""
-
-msgid ""
 "This email is already associated with an account. Please choose another "
 "one."
 msgstr "このメールアドレスは既にアカウントに登録されています。別のものを選択してください。"
@@ -15409,11 +15367,6 @@ msgid ""
 "a misleadingly large number."
 msgstr ""
 
-msgid ""
-"This metric is not compatible with the current selections. Select a "
-"compatible metric."
-msgstr ""
-
 #, python-format
 msgid "This metric might be incompatible with current %s"
 msgstr "このメトリックは現在の %s と互換性がない可能性があります"
@@ -15467,11 +15420,6 @@ msgstr "このテーマはローカルで設定されています"
 
 msgid "This theme is set locally for your session"
 msgstr "このテーマはこのセッションの間だけローカルに設定されています"
-
-msgid ""
-"This theme is the active default/dark theme - only Admins can edit it - "
-"Read Only"
-msgstr ""
 
 msgid ""
 "This theme uses the dark algorithm. It will be rendered with the light "
@@ -16142,9 +16090,6 @@ msgid "Undefined window for rolling operation"
 msgstr "ローリング処理のウィンドウが未定義です"
 
 msgid "Undid or redid a change"
-msgstr ""
-
-msgid "Undo"
 msgstr ""
 
 msgid "Undo the action"
@@ -17395,9 +17340,6 @@ msgid ""
 "overwrite?"
 msgstr "既に存在するテーマをインポートしようとしています。上書きすると作業内容の一部が失われる可能性があります。上書きしてもよろしいですか？"
 
-msgid "You are not an editor of this theme - Read Only"
-msgstr ""
-
 msgid ""
 "You are viewing this chart in a dashboard context with labels shared "
 "across multiple charts.\n"
@@ -17744,9 +17686,6 @@ msgstr "Z-A"
 
 msgid "ZIP file contains multiple file types"
 msgstr "ZIPファイルに複数のファイル形式が含まれています"
-
-msgid "Zebra striping"
-msgstr ""
 
 msgid "Zero imputation"
 msgstr "ゼロ補完"

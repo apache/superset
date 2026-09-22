@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-21 02:18+0000\n"
+"POT-Creation-Date: 2026-09-22 13:32-0700\n"
 "PO-Revision-Date: 2021-11-16 17:33+0100\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: fr\n"
@@ -2044,9 +2044,6 @@ msgstr ""
 msgid "Altered"
 msgstr "Zmodyfikowano"
 
-msgid "Alternate the row background color to make rows easier to scan."
-msgstr ""
-
 #, fuzzy
 msgid "Always filter main datetime column"
 msgstr "Zawsze filtruj główną kolumnę daty i czasu"
@@ -3736,9 +3733,6 @@ msgstr "Zmiana tego zestawu danych jest zabroniona"
 msgid "Changing this task is forbidden"
 msgstr "Zmiana tego zestawu danych jest zabroniona"
 
-msgid "Changing this theme is forbidden"
-msgstr ""
-
 msgid "Character to interpret as decimal point"
 msgstr "Znak interpretowany jako separator dziesiętny"
 
@@ -5029,11 +5023,6 @@ msgstr "Nie udało się rozpoznać nazwy hosta: \"%(host)s\"."
 msgid "Could not validate the user in the current session."
 msgstr "Nie udało się zweryfikować użytkownika w bieżącej sesji."
 
-msgid ""
-"Could not verify which dimensions are compatible. All dimensions are "
-"shown."
-msgstr ""
-
 #, fuzzy
 msgid "Count"
 msgstr "Liczba"
@@ -5267,11 +5256,6 @@ msgstr "Niestandardowe palety kolorów"
 #, fuzzy
 msgid "Custom column name (leave blank for default)"
 msgstr "Niestandardowa nazwa kolumny (pozostaw puste, aby użyć domyślnej)"
-
-msgid ""
-"Custom column values are not supported here. Select a saved dimension to "
-"replace this value."
-msgstr ""
 
 #, fuzzy
 msgid "Custom conditional formatting"
@@ -6506,9 +6490,6 @@ msgstr "Wymiary"
 #, fuzzy, python-format
 msgid "Dimensions (%s)"
 msgstr "Wymiary"
-
-msgid "Dimensions and metrics"
-msgstr ""
 
 msgid ""
 "Dimensions contain qualitative values such as names, dates, or "
@@ -8402,9 +8383,6 @@ msgstr "Filtry"
 #, fuzzy
 msgid "Filters and controls"
 msgstr "Dodatkowe kontrole"
-
-msgid "Filters applied from chat"
-msgstr ""
 
 msgid "Filters by columns"
 msgstr "Filtry według kolumn"
@@ -11407,9 +11385,6 @@ msgstr "Nie znaleziono zapisanych wyrażeń"
 msgid "No saved metrics found"
 msgstr "Nie znaleziono zapisanych metryk"
 
-msgid "No selection modes are available for this control."
-msgstr ""
-
 msgid "No stored results found, you need to re-run your query"
 msgstr "Nie znaleziono zapisanych wyników, musisz ponownie uruchomić zapytanie"
 
@@ -11968,9 +11943,6 @@ msgstr "Oryginalny"
 
 msgid "Original value"
 msgstr "Wartość oryginalna"
-
-msgid "Original version"
-msgstr ""
 
 msgid "Orthogonal"
 msgstr "Prostopadły"
@@ -12691,9 +12663,6 @@ msgstr ""
 msgid "Preview"
 msgstr "Podgląd"
 
-msgid "Preview this version"
-msgstr ""
-
 #, fuzzy
 msgid "Preview uploaded file"
 msgstr "Podgląd przesłanego pliku"
@@ -13134,6 +13103,9 @@ msgstr "Przeładuj"
 #, fuzzy
 msgid "Reload SQL Lab"
 msgstr "Przeładuj SQL Lab"
+
+msgid "Reload the page and try again to continue."
+msgstr ""
 
 msgid "Remove"
 msgstr "Usuń"
@@ -14152,6 +14124,12 @@ msgstr "Zakres"
 msgid "Scoping"
 msgstr "Określanie zakresu"
 
+msgid "Screenshot cache is unavailable"
+msgstr ""
+
+msgid "Screenshot request is temporarily unavailable"
+msgstr ""
+
 msgid "Screenshot width"
 msgstr "Szerokość zrzutu ekranu"
 
@@ -14279,6 +14257,9 @@ msgstr "Dodatkowe zabezpieczenie"
 
 msgid "Security"
 msgstr "Bezpieczeństwo"
+
+msgid "Security token error"
+msgstr ""
 
 #, fuzzy
 msgid "See "
@@ -15586,12 +15567,6 @@ msgstr "Suwak i wprowadzanie zakresu"
 msgid "Slug"
 msgstr "Slug"
 
-#, python-format
-msgid ""
-"Slug %(slug)s belongs to the soft-deleted dashboard %(uuid)s. Restore it "
-"via POST /api/v1/dashboard/%(uuid)s/restore, or use a different slug."
-msgstr ""
-
 msgid "Small"
 msgstr "Mały"
 
@@ -15702,10 +15677,6 @@ msgstr "Przepraszamy, wystąpił błąd"
 #, fuzzy
 msgid "Sorry, an error occurred"
 msgstr "Przepraszamy, wystąpił błąd"
-
-#, fuzzy
-msgid "Sorry, an unknown error occurred"
-msgstr "Przepraszamy, wystąpił nieznany błąd"
 
 #, fuzzy
 msgid "Sorry, an unknown error occurred."
@@ -15978,9 +15949,6 @@ msgstr ""
 #, fuzzy
 msgid "Started"
 msgstr "Rozpoczęto"
-
-msgid "Starting version"
-msgstr ""
 
 #, fuzzy
 msgid "Starts With"
@@ -16617,6 +16585,9 @@ msgstr "Zestaw danych powiązany z tym wykresem mógł zostać usunięty."
 #, python-format
 msgid "The API response from %s does not match the IDatabaseTable interface."
 msgstr "Odpowiedź API z %s nie pasuje do interfejsu IDatabaseTable."
+
+msgid "The CSRF token could not be validated."
+msgstr ""
 
 msgid ""
 "The CSS for individual dashboards can be altered here, or in the "
@@ -17808,12 +17779,6 @@ msgstr "Czas"
 msgid "Theme colors"
 msgstr ""
 
-msgid "Theme could not be created."
-msgstr ""
-
-msgid "Theme could not be updated."
-msgstr ""
-
 #, fuzzy
 msgid "Theme imported"
 msgstr "Zaimportowany zestaw danych"
@@ -17821,9 +17786,6 @@ msgstr "Zaimportowany zestaw danych"
 #, fuzzy
 msgid "Theme not found."
 msgstr "Nie znaleziono szablonu CSS."
-
-msgid "Theme parameters are invalid."
-msgstr ""
 
 #, fuzzy
 msgid "Themes"
@@ -18409,11 +18371,6 @@ msgstr ""
 msgid "This defines the element to be plotted on the chart"
 msgstr "To definiuje element, który zostanie przedstawiony na wykresie."
 
-msgid ""
-"This dimension is not compatible with the current selections. Select a "
-"compatible dimension."
-msgstr ""
-
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, fr, ja,
 # lv, ro, ru, sr, sr_Latn, tr, uk]
 #, fuzzy
@@ -18592,11 +18549,6 @@ msgid ""
 "a misleadingly large number."
 msgstr ""
 
-msgid ""
-"This metric is not compatible with the current selections. Select a "
-"compatible metric."
-msgstr ""
-
 #, fuzzy, python-format
 msgid "This metric might be incompatible with current %s"
 msgstr "Ta metryka może być niezgodna z bieżącym zbiorem danych."
@@ -18673,11 +18625,6 @@ msgstr "Ten motyw jest ustawiony lokalnie"
 #, fuzzy
 msgid "This theme is set locally for your session"
 msgstr "Ten motyw jest ustawiony lokalnie dla Twojej sesji"
-
-msgid ""
-"This theme is the active default/dark theme - only Admins can edit it - "
-"Read Only"
-msgstr ""
 
 msgid ""
 "This theme uses the dark algorithm. It will be rendered with the light "
@@ -19509,9 +19456,6 @@ msgid "Undefined window for rolling operation"
 msgstr "Niezdefiniowane okno dla operacji kroczącej"
 
 msgid "Undid or redid a change"
-msgstr ""
-
-msgid "Undo"
 msgstr ""
 
 #, fuzzy
@@ -21030,9 +20974,6 @@ msgstr ""
 "Nadpisanie może spowodować utratę części Twojej pracy. Czy na pewno "
 "chcesz nadpisać?"
 
-msgid "You are not an editor of this theme - Read Only"
-msgstr ""
-
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fr, ja, lv, mi, ro, ru, sk, sr, sr_Latn, tr, uk]
 #, fuzzy
@@ -21448,9 +21389,6 @@ msgstr "klucz z-a"
 
 msgid "ZIP file contains multiple file types"
 msgstr "Plik ZIP zawiera wiele typów plików"
-
-msgid "Zebra striping"
-msgstr ""
 
 #, fuzzy
 msgid "Zero imputation"

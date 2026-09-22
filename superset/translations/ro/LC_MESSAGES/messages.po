@@ -22,7 +22,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-21 02:18+0000\n"
+"POT-Creation-Date: 2026-09-22 13:32-0700\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: ro\n"
@@ -2039,9 +2039,6 @@ msgstr ""
 msgid "Altered"
 msgstr "Modificat"
 
-msgid "Alternate the row background color to make rows easier to scan."
-msgstr ""
-
 msgid "Always filter main datetime column"
 msgstr "Filtrează întotdeauna coloana principală de dată/timp"
 
@@ -3702,9 +3699,6 @@ msgstr "Modificarea acestei vizualizări semantice este interzisă"
 msgid "Changing this task is forbidden"
 msgstr "Modificarea acestei sarcini este interzisă"
 
-msgid "Changing this theme is forbidden"
-msgstr ""
-
 msgid "Character to interpret as decimal point"
 msgstr "Caracter de interpretat ca punct zecimal"
 
@@ -4918,11 +4912,6 @@ msgstr "Nu s-a putut rezolva numele de gazdă: \"%(host)s\"."
 msgid "Could not validate the user in the current session."
 msgstr "Nu s-a putut valida utilizatorul în sesiunea curentă."
 
-msgid ""
-"Could not verify which dimensions are compatible. All dimensions are "
-"shown."
-msgstr ""
-
 msgid "Count"
 msgstr "Numără"
 
@@ -5139,11 +5128,6 @@ msgstr "Palete de culori personalizate"
 
 msgid "Custom column name (leave blank for default)"
 msgstr "Nume coloană personalizat (lăsați gol pentru implicit)"
-
-msgid ""
-"Custom column values are not supported here. Select a saved dimension to "
-"replace this value."
-msgstr ""
 
 msgid "Custom conditional formatting"
 msgstr "Formatare condiționată personalizată"
@@ -6355,9 +6339,6 @@ msgstr "Dimensiuni"
 #, fuzzy, python-format
 msgid "Dimensions (%s)"
 msgstr "Dimensiuni (%s)"
-
-msgid "Dimensions and metrics"
-msgstr ""
 
 msgid ""
 "Dimensions contain qualitative values such as names, dates, or "
@@ -8149,9 +8130,6 @@ msgstr "Filtre"
 #, fuzzy
 msgid "Filters and controls"
 msgstr "Filtre și controale"
-
-msgid "Filters applied from chat"
-msgstr ""
 
 msgid "Filters by columns"
 msgstr "Filtrează după coloane"
@@ -11054,9 +11032,6 @@ msgstr "Nicio expresie salvată găsită"
 msgid "No saved metrics found"
 msgstr "Nu s-au găsit indicatori salvați"
 
-msgid "No selection modes are available for this control."
-msgstr ""
-
 msgid "No stored results found, you need to re-run your query"
 msgstr "Niciun rezultat stocat găsit, trebuie să rulezi din nou interogarea"
 
@@ -11597,9 +11572,6 @@ msgstr "Original"
 
 msgid "Original value"
 msgstr "Valoare originală"
-
-msgid "Original version"
-msgstr ""
 
 msgid "Orthogonal"
 msgstr "Ortogonal"
@@ -12281,9 +12253,6 @@ msgstr ""
 msgid "Preview"
 msgstr "Previzualizare"
 
-msgid "Preview this version"
-msgstr ""
-
 msgid "Preview uploaded file"
 msgstr "Previzualizare fișier încărcat"
 
@@ -12685,6 +12654,9 @@ msgstr "Reîncarcă"
 #, fuzzy
 msgid "Reload SQL Lab"
 msgstr "Reîncărcați SQL Lab"
+
+msgid "Reload the page and try again to continue."
+msgstr ""
 
 msgid "Remove"
 msgstr "Elimină"
@@ -13652,6 +13624,12 @@ msgstr "Domeniu"
 msgid "Scoping"
 msgstr "Domeniu de aplicare"
 
+msgid "Screenshot cache is unavailable"
+msgstr ""
+
+msgid "Screenshot request is temporarily unavailable"
+msgstr ""
+
 msgid "Screenshot width"
 msgstr "Lățime captură ecran"
 
@@ -13784,6 +13762,9 @@ msgstr "Extra securizat"
 
 msgid "Security"
 msgstr "Securitate"
+
+msgid "Security token error"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, it, ja,
 # sr, sr_Latn]
@@ -15021,12 +15002,6 @@ msgstr "Glisor și intrare interval"
 msgid "Slug"
 msgstr "Slug"
 
-#, python-format
-msgid ""
-"Slug %(slug)s belongs to the soft-deleted dashboard %(uuid)s. Restore it "
-"via POST /api/v1/dashboard/%(uuid)s/restore, or use a different slug."
-msgstr ""
-
 msgid "Small"
 msgstr "Mic"
 
@@ -15129,9 +15104,6 @@ msgstr "Ne pare rău, a apărut o eroare"
 
 msgid "Sorry, an error occurred"
 msgstr "Ne pare rău, a apărut o eroare"
-
-msgid "Sorry, an unknown error occurred"
-msgstr "Ne pare rău, a apărut o eroare necunoscută"
 
 msgid "Sorry, an unknown error occurred."
 msgstr "Ne pare rău, a apărut o eroare necunoscută."
@@ -15376,9 +15348,6 @@ msgstr ""
 
 msgid "Started"
 msgstr "Început"
-
-msgid "Starting version"
-msgstr ""
 
 msgid "Starts With"
 msgstr "Începe cu"
@@ -15994,6 +15963,9 @@ msgstr "%s legat de acest grafic poate fi șters."
 #, python-format
 msgid "The API response from %s does not match the IDatabaseTable interface."
 msgstr "Răspunsul API de la %s nu se potrivește cu interfața IDatabaseTable."
+
+msgid "The CSRF token could not be validated."
+msgstr ""
 
 msgid ""
 "The CSS for individual dashboards can be altered here, or in the "
@@ -17144,20 +17116,11 @@ msgstr "Temă"
 msgid "Theme colors"
 msgstr ""
 
-msgid "Theme could not be created."
-msgstr ""
-
-msgid "Theme could not be updated."
-msgstr ""
-
 msgid "Theme imported"
 msgstr "Temă importată"
 
 msgid "Theme not found."
 msgstr "Temă nu a fost găsită."
-
-msgid "Theme parameters are invalid."
-msgstr ""
 
 msgid "Themes"
 msgstr "Teme"
@@ -17738,11 +17701,6 @@ msgid "This defines the element to be plotted on the chart"
 msgstr "Aceasta definește elementul de reprezentat pe grafic"
 
 msgid ""
-"This dimension is not compatible with the current selections. Select a "
-"compatible dimension."
-msgstr ""
-
-msgid ""
 "This email is already associated with an account. Please choose another "
 "one."
 msgstr "Acest email este deja asociat cu un cont. Vă rugăm să alegeți altul."
@@ -17917,11 +17875,6 @@ msgid ""
 "a misleadingly large number."
 msgstr ""
 
-msgid ""
-"This metric is not compatible with the current selections. Select a "
-"compatible metric."
-msgstr ""
-
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, fr, ja,
 # sr, sr_Latn]
 #, fuzzy, python-format
@@ -17994,11 +17947,6 @@ msgstr "Această temă este setată local"
 
 msgid "This theme is set locally for your session"
 msgstr "Această temă este setată local pentru sesiunea dvs."
-
-msgid ""
-"This theme is the active default/dark theme - only Admins can edit it - "
-"Read Only"
-msgstr ""
 
 msgid ""
 "This theme uses the dark algorithm. It will be rendered with the light "
@@ -18781,9 +18729,6 @@ msgid "Undefined window for rolling operation"
 msgstr "Fereastră nedefinită pentru operația glisantă"
 
 msgid "Undid or redid a change"
-msgstr ""
-
-msgid "Undo"
 msgstr ""
 
 msgid "Undo the action"
@@ -20256,9 +20201,6 @@ msgstr ""
 " determina pierderea unei părți din munca dvs. Sigur doriți să "
 "suprascrieți?"
 
-msgid "You are not an editor of this theme - Read Only"
-msgstr ""
-
 msgid ""
 "You are viewing this chart in a dashboard context with labels shared "
 "across multiple charts.\n"
@@ -20667,9 +20609,6 @@ msgstr "Z-A"
 
 msgid "ZIP file contains multiple file types"
 msgstr "Fișierul ZIP conține mai multe tipuri de fișiere"
-
-msgid "Zebra striping"
-msgstr ""
 
 msgid "Zero imputation"
 msgstr "Imputare zero"

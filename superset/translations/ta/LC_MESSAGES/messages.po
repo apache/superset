@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-21 02:18+0000\n"
+"POT-Creation-Date: 2026-09-22 13:32-0700\n"
 "PO-Revision-Date: 2026-03-31 02:00-0700\n"
 "Last-Translator: Maazin Ahamed\n"
 "Language: ta\n"
@@ -1885,9 +1885,6 @@ msgstr ""
 msgid "Altered"
 msgstr "மாற்றப்பட்டது"
 
-msgid "Alternate the row background color to make rows easier to scan."
-msgstr ""
-
 msgid "Always filter main datetime column"
 msgstr "எப்போதும் முக்கிய தேதியிடப்பட்ட (datetime) நெடுவரிசையை வடிகட்டவும்"
 
@@ -3450,9 +3447,6 @@ msgstr "இந்தத் தரவுத்தொகுப்பை மாற�
 msgid "Changing this task is forbidden"
 msgstr "இந்தத் தரவுத்தொகுப்பை மாற்றுவதற்குத் தடை விதிக்கப்பட்டுள்ளது"
 
-msgid "Changing this theme is forbidden"
-msgstr ""
-
 msgid "Character to interpret as decimal point"
 msgstr "தசமப் புள்ளியாக (decimal point) கருதப்பட வேண்டிய எழுத்து"
 
@@ -4609,11 +4603,6 @@ msgstr "\"%(host)s\" ஹோஸ்ட் பெயரைத் தீர்க்
 msgid "Could not validate the user in the current session."
 msgstr "தற்போதைய அமர்வில் (session) பயனரைச் சரிபார்க்க முடியவில்லை."
 
-msgid ""
-"Could not verify which dimensions are compatible. All dimensions are "
-"shown."
-msgstr ""
-
 msgid "Count"
 msgstr "எண்ணிக்கை (Count)"
 
@@ -4821,11 +4810,6 @@ msgstr "தனிப்பயன் வண்ணத் தட்டுகள்"
 
 msgid "Custom column name (leave blank for default)"
 msgstr "தனிப்பயன் நெடுவரிசைப் பெயர் (இயல்புநிலைக்குக் காலியாக விடவும்)"
-
-msgid ""
-"Custom column values are not supported here. Select a saved dimension to "
-"replace this value."
-msgstr ""
 
 msgid "Custom conditional formatting"
 msgstr "தனிப்பயன் நிபந்தனை வடிவமைப்பு"
@@ -5907,9 +5891,6 @@ msgstr "பரிமாணங்கள்"
 #, fuzzy, python-format
 msgid "Dimensions (%s)"
 msgstr "பரிமாணங்கள்"
-
-msgid "Dimensions and metrics"
-msgstr ""
 
 msgid ""
 "Dimensions contain qualitative values such as names, dates, or "
@@ -7559,9 +7540,6 @@ msgstr "வடிகட்டிகள்"
 
 msgid "Filters and controls"
 msgstr "வடிகட்டிகள் மற்றும் கட்டுப்பாடுகள்"
-
-msgid "Filters applied from chat"
-msgstr ""
 
 msgid "Filters by columns"
 msgstr "நெடுவரிசைகள் மூலம் வடிகட்டுதல்"
@@ -10172,9 +10150,6 @@ msgstr "சேமிக்கப்பட்ட கோவைகள் (expressio
 msgid "No saved metrics found"
 msgstr "சேமிக்கப்பட்ட அளவீடுகள் எதுவும் காணப்படவில்லை"
 
-msgid "No selection modes are available for this control."
-msgstr ""
-
 msgid "No stored results found, you need to re-run your query"
 msgstr "சேமிக்கப்பட்ட முடிவுகள் இல்லை, உங்கள் வினவலை மீண்டும் இயக்க வேண்டும்"
 
@@ -10674,9 +10649,6 @@ msgstr "அசல்"
 
 msgid "Original value"
 msgstr "அசல் மதிப்பு"
-
-msgid "Original version"
-msgstr ""
 
 msgid "Orthogonal"
 msgstr "ஆர்த்தோகனல் (Orthogonal)"
@@ -11299,9 +11271,6 @@ msgstr ""
 msgid "Preview"
 msgstr "முன்னோட்டம்"
 
-msgid "Preview this version"
-msgstr ""
-
 msgid "Preview uploaded file"
 msgstr "பதிவேற்றிய கோப்பை முன்னோட்டம் செய்க"
 
@@ -11682,6 +11651,9 @@ msgstr "மீண்டும் ஏற்று (Reload)"
 #, fuzzy
 msgid "Reload SQL Lab"
 msgstr "SQL லேப்"
+
+msgid "Reload the page and try again to continue."
+msgstr ""
 
 msgid "Remove"
 msgstr "நீக்கு"
@@ -12565,6 +12537,12 @@ msgstr "எல்லை (Scope)"
 msgid "Scoping"
 msgstr "எல்லை வரையறுத்தல்"
 
+msgid "Screenshot cache is unavailable"
+msgstr ""
+
+msgid "Screenshot request is temporarily unavailable"
+msgstr ""
+
 msgid "Screenshot width"
 msgstr "திரைக்காட்சி (Screenshot) அகலம்"
 
@@ -12688,6 +12666,9 @@ msgstr "பாதுகாப்பான கூடுதல் (Secure extra)"
 
 msgid "Security"
 msgstr "பாதுகாப்பு"
+
+msgid "Security token error"
+msgstr ""
 
 #, fuzzy
 msgid "See "
@@ -13761,12 +13742,6 @@ msgstr "ஸ்லைடர் மற்றும் வரம்பு உள்
 msgid "Slug"
 msgstr "ஸ்லக் (Slug)"
 
-#, python-format
-msgid ""
-"Slug %(slug)s belongs to the soft-deleted dashboard %(uuid)s. Restore it "
-"via POST /api/v1/dashboard/%(uuid)s/restore, or use a different slug."
-msgstr ""
-
 msgid "Small"
 msgstr "சிறிய"
 
@@ -13862,9 +13837,6 @@ msgstr "மன்னிக்கவும், ஒரு பிழை ஏற்�
 
 msgid "Sorry, an error occurred"
 msgstr "மன்னிக்கவும், ஒரு பிழை ஏற்பட்டது"
-
-msgid "Sorry, an unknown error occurred"
-msgstr "மன்னிக்கவும், தெரியாத பிழை ஏற்பட்டது"
 
 msgid "Sorry, an unknown error occurred."
 msgstr "மன்னிக்கவும், தெரியாத பிழை ஏற்பட்டது."
@@ -14098,9 +14070,6 @@ msgstr ""
 
 msgid "Started"
 msgstr "தொடங்கியது"
-
-msgid "Starting version"
-msgstr ""
 
 msgid "Starts With"
 msgstr "இதில் தொடங்குவது"
@@ -14641,6 +14610,9 @@ msgstr "இந்த சார்ட்டுடன் இணைக்கப்�
 #, python-format
 msgid "The API response from %s does not match the IDatabaseTable interface."
 msgstr "%s இலிருந்து வரும் API பதில் IDatabaseTable இடைமுகத்துடன் பொருந்தவில்லை."
+
+msgid "The CSRF token could not be validated."
+msgstr ""
 
 msgid ""
 "The CSS for individual dashboards can be altered here, or in the "
@@ -15604,20 +15576,11 @@ msgstr "தீம் (Theme)"
 msgid "Theme colors"
 msgstr ""
 
-msgid "Theme could not be created."
-msgstr ""
-
-msgid "Theme could not be updated."
-msgstr ""
-
 msgid "Theme imported"
 msgstr "தீம் இறக்குமதி செய்யப்பட்டது"
 
 msgid "Theme not found."
 msgstr "தீம் காணப்படவில்லை."
-
-msgid "Theme parameters are invalid."
-msgstr ""
 
 msgid "Themes"
 msgstr "தீம்கள்"
@@ -16146,11 +16109,6 @@ msgid "This defines the element to be plotted on the chart"
 msgstr "இது சார்ட்டில் வரையப்பட வேண்டிய உறுப்பை வரையறுக்கிறது"
 
 msgid ""
-"This dimension is not compatible with the current selections. Select a "
-"compatible dimension."
-msgstr ""
-
-msgid ""
 "This email is already associated with an account. Please choose another "
 "one."
 msgstr ""
@@ -16274,11 +16232,6 @@ msgid ""
 "a misleadingly large number."
 msgstr ""
 
-msgid ""
-"This metric is not compatible with the current selections. Select a "
-"compatible metric."
-msgstr ""
-
 #, fuzzy, python-format
 msgid "This metric might be incompatible with current %s"
 msgstr "இந்த மெட்ரிக் தற்போதைய தரவுத்தொகுப்பிற்குப் பொருந்தாமல் இருக்கலாம்"
@@ -16342,11 +16295,6 @@ msgstr "இந்த தீம் உள்ளூர் அளவில் அ�
 
 msgid "This theme is set locally for your session"
 msgstr "இந்த தீம் உங்கள் அமர்வுக்காக உள்ளூர் அளவில் அமைக்கப்பட்டுள்ளது"
-
-msgid ""
-"This theme is the active default/dark theme - only Admins can edit it - "
-"Read Only"
-msgstr ""
 
 msgid ""
 "This theme uses the dark algorithm. It will be rendered with the light "
@@ -17046,9 +16994,6 @@ msgid "Undefined window for rolling operation"
 msgstr "உருளும் செயல்பாட்டிற்கு வரையறுக்கப்படாத சாளரம்"
 
 msgid "Undid or redid a change"
-msgstr ""
-
-msgid "Undo"
 msgstr ""
 
 msgid "Undo the action"
@@ -18414,9 +18359,6 @@ msgstr ""
 "ஏற்கனவே உள்ள தீம்களை இறக்குமதி செய்கிறீர்கள். மேலெழுதுவது உங்கள் வேலையை "
 "இழக்கச் செய்யலாம்."
 
-msgid "You are not an editor of this theme - Read Only"
-msgstr ""
-
 msgid ""
 "You are viewing this chart in a dashboard context with labels shared "
 "across multiple charts.\n"
@@ -18781,9 +18723,6 @@ msgstr ""
 
 msgid "ZIP file contains multiple file types"
 msgstr "ZIP கோப்பில் பல கோப்பு வகைகள் உள்ளன"
-
-msgid "Zebra striping"
-msgstr ""
 
 msgid "Zero imputation"
 msgstr "பூஜ்ஜிய மதிப்பீடு (Zero imputation)"

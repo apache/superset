@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-21 02:18+0000\n"
+"POT-Creation-Date: 2026-09-22 13:32-0700\n"
 "PO-Revision-Date: 2019-02-02 22:28+0900\n"
 "Last-Translator: \n"
 "Language: ko\n"
@@ -2640,9 +2640,6 @@ msgstr ""
 msgid "Altered"
 msgstr "변경됨"
 
-msgid "Alternate the row background color to make rows easier to scan."
-msgstr ""
-
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, ro, ru, sk, sl, sr, sr_Latn, tr, uk]
 #, fuzzy
@@ -5021,9 +5018,6 @@ msgstr "이 차트를 변경하는 것은 불가능합니다"
 msgid "Changing this task is forbidden"
 msgstr "이 차트를 변경하는 것은 불가능합니다"
 
-msgid "Changing this theme is forbidden"
-msgstr ""
-
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk]
@@ -6786,11 +6780,6 @@ msgstr "호스트 이름을 확인할 수 없습니다: \"%(host)s\"."
 msgid "Could not validate the user in the current session."
 msgstr "현재 세션에서 사용자를 확인할 수 없습니다."
 
-msgid ""
-"Could not verify which dimensions are compatible. All dimensions are "
-"shown."
-msgstr ""
-
 #, fuzzy
 msgid "Count"
 msgstr "컬럼 추가"
@@ -7093,11 +7082,6 @@ msgstr "커스텀 색상 팔레트"
 #, fuzzy
 msgid "Custom column name (leave blank for default)"
 msgstr "커스텀 열 이름 (기본값으로 사용하려면 비워두세요)"
-
-msgid ""
-"Custom column values are not supported here. Select a saved dimension to "
-"replace this value."
-msgstr ""
 
 #, fuzzy
 msgid "Custom conditional formatting"
@@ -8653,9 +8637,6 @@ msgstr "차원"
 #, fuzzy, python-format
 msgid "Dimensions (%s)"
 msgstr "원본 값"
-
-msgid "Dimensions and metrics"
-msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, ro, ru, sk, sl, sr, sr_Latn, tr, uk, zh,
@@ -11244,9 +11225,6 @@ msgstr "필터"
 #, fuzzy
 msgid "Filters and controls"
 msgstr "컬럼 목록"
-
-msgid "Filters applied from chat"
-msgstr ""
 
 msgid "Filters by columns"
 msgstr "컬럼 목록"
@@ -15604,9 +15582,6 @@ msgstr "표현식"
 msgid "No saved metrics found"
 msgstr "저장된 Query"
 
-msgid "No selection modes are available for this control."
-msgstr ""
-
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk, zh, zh_TW]
@@ -16452,9 +16427,6 @@ msgstr "원본 값"
 
 msgid "Original value"
 msgstr "원본 값"
-
-msgid "Original version"
-msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -17549,9 +17521,6 @@ msgstr ""
 msgid "Preview"
 msgstr "데이터 미리보기"
 
-msgid "Preview this version"
-msgstr ""
-
 #, fuzzy
 msgid "Preview uploaded file"
 msgstr "엑셀 업로드"
@@ -18168,6 +18137,9 @@ msgstr "생성자"
 #, fuzzy
 msgid "Reload SQL Lab"
 msgstr "SQL Lab 다시 로드"
+
+msgid "Reload the page and try again to continue."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -19578,6 +19550,12 @@ msgstr "범위"
 msgid "Scoping"
 msgstr "범위 지정"
 
+msgid "Screenshot cache is unavailable"
+msgstr ""
+
+msgid "Screenshot request is temporarily unavailable"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk, zh, zh_TW]
@@ -19758,6 +19736,9 @@ msgstr "보안"
 
 msgid "Security"
 msgstr "보안"
+
+msgid "Security token error"
+msgstr ""
 
 #, fuzzy
 msgid "See "
@@ -21377,12 +21358,6 @@ msgstr "슬라이더 및 범위 입력"
 msgid "Slug"
 msgstr "슬러그"
 
-#, python-format
-msgid ""
-"Slug %(slug)s belongs to the soft-deleted dashboard %(uuid)s. Restore it "
-"via POST /api/v1/dashboard/%(uuid)s/restore, or use a different slug."
-msgstr ""
-
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk, zh, zh_TW]
@@ -21521,12 +21496,6 @@ msgstr "죄송합니다, 오류가 발생했습니다"
 #, fuzzy
 msgid "Sorry, an error occurred"
 msgstr "죄송합니다, 오류가 발생했습니다"
-
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
-# de, es, fa, fr, ja, lv, mi, nl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr, uk]
-#, fuzzy
-msgid "Sorry, an unknown error occurred"
-msgstr "죄송합니다, 알 수 없는 오류가 발생했습니다"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr, uk]
@@ -21931,9 +21900,6 @@ msgstr "y축을 0에서 시작합니다. 체크 해제 시 데이터의 최솟�
 #, fuzzy
 msgid "Started"
 msgstr "상태"
-
-msgid "Starting version"
-msgstr ""
 
 #, fuzzy
 msgid "Starts With"
@@ -22778,6 +22744,9 @@ msgstr "이 차트에 연결된 %s이(가) 삭제되었을 수 있습니다."
 #, fuzzy, python-format
 msgid "The API response from %s does not match the IDatabaseTable interface."
 msgstr "%s의 API 응답이 IDatabaseTable 인터페이스와 일치하지 않습니다."
+
+msgid "The CSRF token could not be validated."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, it, ja, lv, mi, nl, pl, pt, pt_BR, ro, ru, sk, sl, sr,
@@ -24320,12 +24289,6 @@ msgstr "Query 공유"
 msgid "Theme colors"
 msgstr ""
 
-msgid "Theme could not be created."
-msgstr ""
-
-msgid "Theme could not be updated."
-msgstr ""
-
 #, fuzzy
 msgid "Theme imported"
 msgstr "데이터베이스"
@@ -24333,9 +24296,6 @@ msgstr "데이터베이스"
 #, fuzzy
 msgid "Theme not found."
 msgstr "CSS 템플릿을 찾을수 없습니다."
-
-msgid "Theme parameters are invalid."
-msgstr ""
 
 #, fuzzy
 msgid "Themes"
@@ -25078,11 +25038,6 @@ msgstr "이 데이터셋은 외부에서 관리되며 Superset에서 편집할 �
 msgid "This defines the element to be plotted on the chart"
 msgstr "이는 차트에 표시될 요소를 정의합니다"
 
-msgid ""
-"This dimension is not compatible with the current selections. Select a "
-"compatible dimension."
-msgstr ""
-
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, fr, ja,
 # lv, ro, ru, sr, sr_Latn, tr, uk]
 #, fuzzy
@@ -25280,11 +25235,6 @@ msgid ""
 "a misleadingly large number."
 msgstr ""
 
-msgid ""
-"This metric is not compatible with the current selections. Select a "
-"compatible metric."
-msgstr ""
-
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
 #, fuzzy, python-format
@@ -25384,11 +25334,6 @@ msgstr "이 테마는 로컬에서 설정되어 있습니다"
 #, fuzzy
 msgid "This theme is set locally for your session"
 msgstr "이 테마는 현재 세션에 로컬로 설정되어 있습니다"
-
-msgid ""
-"This theme is the active default/dark theme - only Admins can edit it - "
-"Read Only"
-msgstr ""
 
 msgid ""
 "This theme uses the dark algorithm. It will be rendered with the light "
@@ -26512,9 +26457,6 @@ msgid "Undefined window for rolling operation"
 msgstr "롤링 작업에 대한 창이 정의되지 않았습니다"
 
 msgid "Undid or redid a change"
-msgstr ""
-
-msgid "Undo"
 msgstr ""
 
 #, fuzzy
@@ -28725,9 +28667,6 @@ msgid ""
 "overwrite?"
 msgstr "이미 존재하는 테마를 하나 이상 가져오고 있습니다. 덮어쓰면 일부 작업이 손실될 수 있습니다. 정말로 덮어쓰시겠습니까?"
 
-msgid "You are not an editor of this theme - Read Only"
-msgstr ""
-
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fr, ja, lv, mi, ro, ru, sk, sr, sr_Latn, tr, uk]
 #, fuzzy
@@ -29283,9 +29222,6 @@ msgstr "Z-A"
 #, fuzzy
 msgid "ZIP file contains multiple file types"
 msgstr "ZIP 파일에 여러 파일 형식이 포함되어 있습니다"
-
-msgid "Zebra striping"
-msgstr ""
 
 #, fuzzy
 msgid "Zero imputation"

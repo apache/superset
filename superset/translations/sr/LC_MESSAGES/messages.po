@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-21 02:18+0000\n"
+"POT-Creation-Date: 2026-09-22 13:32-0700\n"
 "PO-Revision-Date: 2026-06-14 13:20+0200\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: sr\n"
@@ -2273,9 +2273,6 @@ msgstr ""
 msgid "Altered"
 msgstr "Измењено"
 
-msgid "Alternate the row background color to make rows easier to scan."
-msgstr ""
-
 # de, es, fa, fr, ja, lv, mi, nl, ru, sk, sl, uk]
 msgid "Always filter main datetime column"
 msgstr "Увек филтрирај главну колону датума и времена"
@@ -4197,9 +4194,6 @@ msgstr "Промена овог семантичког приказа је за�
 msgid "Changing this task is forbidden"
 msgstr "Промена овог задатка је забрањена"
 
-msgid "Changing this theme is forbidden"
-msgstr ""
-
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
 msgid "Character to interpret as decimal point"
 msgstr "Знак који се тумачи као децимална тачка"
@@ -5613,11 +5607,6 @@ msgstr "Није могуће разрешити назив хоста: \"%(host
 msgid "Could not validate the user in the current session."
 msgstr "Није могуће потврдити корисника у тренутној сесији."
 
-msgid ""
-"Could not verify which dimensions are compatible. All dimensions are "
-"shown."
-msgstr ""
-
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, tr, uk]
 msgid "Count"
 msgstr "Број"
@@ -5872,11 +5861,6 @@ msgstr "Прилагођене палете боја"
 # fr, ja, lv, mi, ru, sk, uk]
 msgid "Custom column name (leave blank for default)"
 msgstr "Прилагођено име колоне (оставите празно за подразумевано)"
-
-msgid ""
-"Custom column values are not supported here. Select a saved dimension to "
-"replace this value."
-msgstr ""
 
 # es, fa, fr, ja, lv, mi, ru, sk, sl, uk]
 msgid "Custom conditional formatting"
@@ -7271,9 +7255,6 @@ msgstr "Димензије"
 #, python-format
 msgid "Dimensions (%s)"
 msgstr "Димензије (%s)"
-
-msgid "Dimensions and metrics"
-msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, ru, sk, sl, uk, zh, zh_TW]
 msgid ""
@@ -9298,9 +9279,6 @@ msgstr "Филтери"
 # uk]
 msgid "Filters and controls"
 msgstr "Филтери и контроле"
-
-msgid "Filters applied from chat"
-msgstr ""
 
 # de, es, fa, fr, it, ja, ko, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh,
 # zh_TW]
@@ -12606,9 +12584,6 @@ msgstr "Нису пронађени сачувани изрази"
 msgid "No saved metrics found"
 msgstr "Нису пронађене сачуване метрике"
 
-msgid "No selection modes are available for this control."
-msgstr ""
-
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "No stored results found, you need to re-run your query"
 msgstr "Нису пронађени сачувани резултати, потребно је да поново извршите упит"
@@ -13263,9 +13238,6 @@ msgstr "Оригинал"
 # de, es, fa, fr, ja, ko, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Original value"
 msgstr "Оригинална вредност"
-
-msgid "Original version"
-msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Orthogonal"
@@ -14061,9 +14033,6 @@ msgstr ""
 msgid "Preview"
 msgstr "Преглед"
 
-msgid "Preview this version"
-msgstr ""
-
 # es, fa, ja, lv, mi, ru, sk, sl, uk]
 msgid "Preview uploaded file"
 msgstr "Преглед отпремљене датотеке"
@@ -14549,6 +14518,9 @@ msgstr "Поново учитај"
 #, fuzzy
 msgid "Reload SQL Lab"
 msgstr "Поново учитај SQL Lab"
+
+msgid "Reload the page and try again to continue."
+msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Remove"
@@ -15688,6 +15660,12 @@ msgstr "Опсег"
 msgid "Scoping"
 msgstr "Опсег"
 
+msgid "Screenshot cache is unavailable"
+msgstr ""
+
+msgid "Screenshot request is temporarily unavailable"
+msgstr ""
+
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Screenshot width"
 msgstr "Ширина снимка екрана"
@@ -15834,6 +15812,9 @@ msgstr "Безбедносни додатак"
 # zh, zh_TW]
 msgid "Security"
 msgstr "Безбедност"
+
+msgid "Security token error"
+msgstr ""
 
 msgid "See "
 msgstr "Погледајте "
@@ -17156,12 +17137,6 @@ msgstr "Клизач и унос опсега"
 msgid "Slug"
 msgstr "Slug"
 
-#, python-format
-msgid ""
-"Slug %(slug)s belongs to the soft-deleted dashboard %(uuid)s. Restore it "
-"via POST /api/v1/dashboard/%(uuid)s/restore, or use a different slug."
-msgstr ""
-
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, tr, uk, zh, zh_TW]
 msgid "Small"
 msgstr "Мало"
@@ -17268,10 +17243,6 @@ msgstr "Жао нам је, дошло је до грешке"
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
 msgid "Sorry, an error occurred"
 msgstr "Жао нам је, дошло је до грешке"
-
-# de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
-msgid "Sorry, an unknown error occurred"
-msgstr "Жао нам је, дошло је до непознате грешке"
 
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
 msgid "Sorry, an unknown error occurred."
@@ -17571,9 +17542,6 @@ msgstr ""
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
 msgid "Started"
 msgstr "Покренуто"
-
-msgid "Starting version"
-msgstr ""
 
 # uk]
 msgid "Starts With"
@@ -18258,6 +18226,9 @@ msgstr "%s повезан са овим графиконом је можда о�
 #, python-format
 msgid "The API response from %s does not match the IDatabaseTable interface."
 msgstr "Одговор API-ја са %s не одговара интерфејсу IDatabaseTable."
+
+msgid "The CSRF token could not be validated."
+msgstr ""
 
 # de, es, fa, fr, it, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, uk, zh,
 # zh_TW]
@@ -19499,12 +19470,6 @@ msgstr "Тема"
 msgid "Theme colors"
 msgstr ""
 
-msgid "Theme could not be created."
-msgstr ""
-
-msgid "Theme could not be updated."
-msgstr ""
-
 # ru, uk]
 msgid "Theme imported"
 msgstr "Тема је увезена"
@@ -19512,9 +19477,6 @@ msgstr "Тема је увезена"
 # uk]
 msgid "Theme not found."
 msgstr "Тема није пронађена."
-
-msgid "Theme parameters are invalid."
-msgstr ""
 
 # lv, ru, sk, uk]
 msgid "Themes"
@@ -20145,11 +20107,6 @@ msgstr ""
 msgid "This defines the element to be plotted on the chart"
 msgstr "Ово дефинише елемент који ће бити приказан на графикону"
 
-msgid ""
-"This dimension is not compatible with the current selections. Select a "
-"compatible dimension."
-msgstr ""
-
 # ru, uk]
 msgid ""
 "This email is already associated with an account. Please choose another "
@@ -20307,11 +20264,6 @@ msgid ""
 "a misleadingly large number."
 msgstr ""
 
-msgid ""
-"This metric is not compatible with the current selections. Select a "
-"compatible metric."
-msgstr ""
-
 #, python-format
 msgid "This metric might be incompatible with current %s"
 msgstr "Ова метрика можда није компатибилна са тренутним %s"
@@ -20391,11 +20343,6 @@ msgstr "Ова тема је подешена локално"
 # lv, pt_BR, ru, sk, uk]
 msgid "This theme is set locally for your session"
 msgstr "Ова тема је подешена локално за вашу сесију"
-
-msgid ""
-"This theme is the active default/dark theme - only Admins can edit it - "
-"Read Only"
-msgstr ""
 
 msgid ""
 "This theme uses the dark algorithm. It will be rendered with the light "
@@ -21269,9 +21216,6 @@ msgid "Undefined window for rolling operation"
 msgstr "Недефинисан прозор за операцију клизања"
 
 msgid "Undid or redid a change"
-msgstr ""
-
-msgid "Undo"
 msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
@@ -22976,9 +22920,6 @@ msgstr ""
 "Увозите једну или више тема које већ постоје. Преписивање може довести до"
 " губитка дела вашег рада. Да ли сте сигурни да желите да препишете?"
 
-msgid "You are not an editor of this theme - Read Only"
-msgstr ""
-
 # fr, ja, lv, mi, ru, sk, uk]
 msgid ""
 "You are viewing this chart in a dashboard context with labels shared "
@@ -23416,9 +23357,6 @@ msgstr "З-А"
 # es, fa, fr, ja, lv, mi, pl, pt_BR, ru, sk, sl, uk]
 msgid "ZIP file contains multiple file types"
 msgstr "ZIP датотека садржи више типова датотека"
-
-msgid "Zebra striping"
-msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
 msgid "Zero imputation"

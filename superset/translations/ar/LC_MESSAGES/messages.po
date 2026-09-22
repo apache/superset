@@ -24,7 +24,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version:  \n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-21 02:18+0000\n"
+"POT-Creation-Date: 2026-09-22 13:32-0700\n"
 "PO-Revision-Date: 2024-07-14 15:10+0300\n"
 "Last-Translator: Abdalrahim G. Fakhouri <abdilra7eem@yahoo.com>\n"
 "Language: ar\n"
@@ -2111,9 +2111,6 @@ msgstr ""
 msgid "Altered"
 msgstr "تغيير"
 
-msgid "Alternate the row background color to make rows easier to scan."
-msgstr ""
-
 msgid "Always filter main datetime column"
 msgstr "تصفية عمود التاريخ والوقت الرئيسي دائما"
 
@@ -3794,9 +3791,6 @@ msgstr "يحظر تغيير مجموعة البيانات هذه"
 msgid "Changing this task is forbidden"
 msgstr "يحظر تغيير مجموعة البيانات هذه"
 
-msgid "Changing this theme is forbidden"
-msgstr ""
-
 msgid "Character to interpret as decimal point"
 msgstr "حرف لتفسيره كعلامة عشرية"
 
@@ -5055,11 +5049,6 @@ msgstr "تعذر حل اسم المضيف: \"%(host)s\"."
 msgid "Could not validate the user in the current session."
 msgstr "تعذر التحقق من صحة المستخدم في الجلسة الحالية."
 
-msgid ""
-"Could not verify which dimensions are compatible. All dimensions are "
-"shown."
-msgstr ""
-
 msgid "Count"
 msgstr "عد"
 
@@ -5275,11 +5264,6 @@ msgstr "الإكمال التلقائي"
 #, fuzzy
 msgid "Custom column name (leave blank for default)"
 msgstr "اسم العمود المخصص (اتركه فارغاً للقيمة الافتراضية)"
-
-msgid ""
-"Custom column values are not supported here. Select a saved dimension to "
-"replace this value."
-msgstr ""
 
 #, fuzzy
 msgid "Custom conditional formatting"
@@ -6523,9 +6507,6 @@ msgstr "أبعاد"
 #, fuzzy, python-format
 msgid "Dimensions (%s)"
 msgstr "أبعاد"
-
-msgid "Dimensions and metrics"
-msgstr ""
 
 msgid ""
 "Dimensions contain qualitative values such as names, dates, or "
@@ -8386,9 +8367,6 @@ msgstr "مرشحات"
 #, fuzzy
 msgid "Filters and controls"
 msgstr "عناصر تحكم إضافية"
-
-msgid "Filters applied from chat"
-msgstr ""
 
 msgid "Filters by columns"
 msgstr "الفلاتر حسب الأعمدة"
@@ -11333,9 +11311,6 @@ msgstr "لم يتم العثور على تعبيرات محفوظة"
 msgid "No saved metrics found"
 msgstr "لم يتم العثور على مقاييس محفوظة"
 
-msgid "No selection modes are available for this control."
-msgstr ""
-
 msgid "No stored results found, you need to re-run your query"
 msgstr "لم يتم العثور على نتائج مخزنة، تحتاج إلى إعادة تشغيل الاستعلام"
 
@@ -11893,9 +11868,6 @@ msgstr "أصلي"
 
 msgid "Original value"
 msgstr "القيمة الأصلية"
-
-msgid "Original version"
-msgstr ""
 
 msgid "Orthogonal"
 msgstr "متعامد"
@@ -12601,9 +12573,6 @@ msgstr ""
 msgid "Preview"
 msgstr "استطلاع"
 
-msgid "Preview this version"
-msgstr ""
-
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fa, ja, lv, mi, ro, ru, sk, sl, sr, sr_Latn, uk]
 #, fuzzy
@@ -13020,6 +12989,9 @@ msgstr "إعادة تحميل"
 #, fuzzy
 msgid "Reload SQL Lab"
 msgstr "إعادة تحميل SQL Lab"
+
+msgid "Reload the page and try again to continue."
+msgstr ""
 
 msgid "Remove"
 msgstr "ازاله"
@@ -13997,6 +13969,12 @@ msgstr "نطاق"
 msgid "Scoping"
 msgstr "تحديد النطاق"
 
+msgid "Screenshot cache is unavailable"
+msgstr ""
+
+msgid "Screenshot request is temporarily unavailable"
+msgstr ""
+
 msgid "Screenshot width"
 msgstr "عرض لقطة الشاشة"
 
@@ -14131,6 +14109,9 @@ msgstr "سيكيور إكسترا"
 
 msgid "Security"
 msgstr "الأمان"
+
+msgid "Security token error"
+msgstr ""
 
 #, fuzzy
 msgid "See "
@@ -15374,12 +15355,6 @@ msgstr "شريط التمرير وإدخال النطاق"
 msgid "Slug"
 msgstr "سبيكة"
 
-#, python-format
-msgid ""
-"Slug %(slug)s belongs to the soft-deleted dashboard %(uuid)s. Restore it "
-"via POST /api/v1/dashboard/%(uuid)s/restore, or use a different slug."
-msgstr ""
-
 msgid "Small"
 msgstr "صغير"
 
@@ -15478,9 +15453,6 @@ msgstr "عذرًا، حدث خطأ"
 
 msgid "Sorry, an error occurred"
 msgstr "عذرًا، حدث خطأ"
-
-msgid "Sorry, an unknown error occurred"
-msgstr "عذرًا، حدث خطأ غير معروف"
 
 msgid "Sorry, an unknown error occurred."
 msgstr "عذرًا، حدث خطأ غير معروف."
@@ -15728,9 +15700,6 @@ msgstr ""
 
 msgid "Started"
 msgstr "بدأت"
-
-msgid "Starting version"
-msgstr ""
 
 #, fuzzy
 msgid "Starts With"
@@ -16347,6 +16316,9 @@ msgstr "ربما تم حذف مجموعة البيانات المرتبطة به
 #, python-format
 msgid "The API response from %s does not match the IDatabaseTable interface."
 msgstr "لا تتطابق استجابة API من %s مع واجهة IDatabaseTable."
+
+msgid "The CSRF token could not be validated."
+msgstr ""
 
 msgid ""
 "The CSS for individual dashboards can be altered here, or in the "
@@ -17521,12 +17493,6 @@ msgstr "زمن"
 msgid "Theme colors"
 msgstr ""
 
-msgid "Theme could not be created."
-msgstr ""
-
-msgid "Theme could not be updated."
-msgstr ""
-
 #, fuzzy
 msgid "Theme imported"
 msgstr "مجموعة البيانات المستوردة"
@@ -17534,9 +17500,6 @@ msgstr "مجموعة البيانات المستوردة"
 #, fuzzy
 msgid "Theme not found."
 msgstr "لم يتم العثور على قالب CSS."
-
-msgid "Theme parameters are invalid."
-msgstr ""
 
 #, fuzzy
 msgid "Themes"
@@ -18099,11 +18062,6 @@ msgstr "تتم إدارة مجموعة البيانات هذه خارجيًا، 
 msgid "This defines the element to be plotted on the chart"
 msgstr "هذا يحدد العنصر الذي سيتم رسمه على الرسم البياني"
 
-msgid ""
-"This dimension is not compatible with the current selections. Select a "
-"compatible dimension."
-msgstr ""
-
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, fr, ja,
 # lv, ro, ru, sr, sr_Latn, tr, uk]
 #, fuzzy
@@ -18278,11 +18236,6 @@ msgid ""
 "a misleadingly large number."
 msgstr ""
 
-msgid ""
-"This metric is not compatible with the current selections. Select a "
-"compatible metric."
-msgstr ""
-
 #, fuzzy, python-format
 msgid "This metric might be incompatible with current %s"
 msgstr "قد يكون هذا المقياس غير متوافق مع مجموعة البيانات الحالية"
@@ -18362,11 +18315,6 @@ msgstr "تم تعيين هذا المظهر محليًا"
 #, fuzzy
 msgid "This theme is set locally for your session"
 msgstr "تم تعيين هذا المظهر محليًا لجلستك"
-
-msgid ""
-"This theme is the active default/dark theme - only Admins can edit it - "
-"Read Only"
-msgstr ""
 
 msgid ""
 "This theme uses the dark algorithm. It will be rendered with the light "
@@ -19173,9 +19121,6 @@ msgid "Undefined window for rolling operation"
 msgstr "نافذة غير محددة لعملية التدحرج"
 
 msgid "Undid or redid a change"
-msgstr ""
-
-msgid "Undo"
 msgstr ""
 
 msgid "Undo the action"
@@ -20664,9 +20609,6 @@ msgstr ""
 "تقوم باستيراد مجموعة بيانات واحدة أو أكثر موجودة بالفعل. قد تؤدي الكتابة "
 "الاستعلائية إلى فقدان بعض أعمالك. هل تريد بالتأكيد الكتابة فوقها؟"
 
-msgid "You are not an editor of this theme - Read Only"
-msgstr ""
-
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fr, ja, lv, mi, ro, ru, sk, sr, sr_Latn, tr, uk]
 #, fuzzy
@@ -21074,9 +21016,6 @@ msgstr "مفتاح z-a"
 #, fuzzy
 msgid "ZIP file contains multiple file types"
 msgstr "ملف ZIP يحتوي على أنواع ملفات متعددة"
-
-msgid "Zebra striping"
-msgstr ""
 
 msgid "Zero imputation"
 msgstr "الإسناد الصفري"
