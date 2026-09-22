@@ -156,8 +156,13 @@ const AddMoreLink = styled.button`
     margin-top: ${theme.sizeUnit * 2}px;
     display: inline-block;
 
-    &:hover {
+    &:hover:not(:disabled) {
       text-decoration: underline;
+    }
+
+    &:disabled {
+      color: ${theme.colorTextTertiary};
+      cursor: not-allowed;
     }
 
     &:focus-visible {
@@ -314,14 +319,22 @@ const LabelColorMapping = ({
   };
 
   const handleAddRow = () => {
-    setRows(currentRows => [
-      ...currentRows,
-      {
-        id: generateId(),
-        label: '',
-        color: DEFAULT_NEW_COLOR,
-      },
-    ]);
+    setRows(currentRows => {
+      const hasEmptyRow = currentRows.some(row => row.label.trim() === '');
+
+      if (hasEmptyRow) {
+        return currentRows;
+      }
+
+      return [
+        ...currentRows,
+        {
+          id: generateId(),
+          label: '',
+          color: DEFAULT_NEW_COLOR,
+        },
+      ];
+    });
   };
 
   const handleUpdateRow = (id: string, newLabel: string, newColor: string) => {
@@ -351,6 +364,8 @@ const LabelColorMapping = ({
       Array.from(new Set(rows.map(row => row.label.trim()).filter(Boolean))),
     [rows],
   );
+
+  const hasEmptyRow = rows.some(row => row.label.trim() === '');
 
   if (!isValidJson) {
     return (
@@ -469,7 +484,7 @@ const LabelColorMapping = ({
         );
       })}
 
-      <AddMoreLink onClick={handleAddRow} type="button">
+      <AddMoreLink onClick={handleAddRow} type="button" disabled={hasEmptyRow}>
         + {t('Add more')}
       </AddMoreLink>
     </Container>
