@@ -20,23 +20,33 @@
 from __future__ import annotations
 
 import base64
+from collections import deque, UserDict
+from collections.abc import Callable
 from decimal import Decimal
+from types import MappingProxyType
 from typing import Any
+from unittest.mock import patch
 
 import numpy as np
 import pandas as pd
 import pytest
 from fastmcp.tools.base import default_serializer
+from pydantic import TypeAdapter, ValidationError
+from pydantic_core import to_jsonable_python
 
 from superset.mcp_service.utils.serialization import (
     BINARY_PREFIX,
     coerce_int,
     coerce_optional_int,
     is_missing_value,
+    JsonSafeMapping,
+    JsonSafeRows,
+    JsonSafeValues,
     MAX_DEPTH,
+    OptionalRowCount,
+    RowCount,
     sanitize_json_value,
     sanitize_mapping,
-    sanitize_sequence,
 )
 from superset.utils.json import loads as json_loads
 
@@ -182,10 +192,6 @@ def test_deep_nesting_is_capped_instead_of_recursing() -> None:
     assert json_loads(default_serializer(sanitize_json_value(value)))
 
 
-def test_sanitize_sequence_leaves_non_lists_to_pydantic() -> None:
-    assert sanitize_sequence("not a list") == "not a list"
-
-
 def test_sanitize_mapping_leaves_non_mappings_to_pydantic() -> None:
     assert sanitize_mapping(5) == 5
     assert sanitize_mapping({"a": b"\xff"}) == {
@@ -214,3 +220,75 @@ def test_coerce_int_falls_back_to_zero() -> None:
     assert coerce_int(None) == 0
     assert coerce_int("nonsense") == 0
     assert coerce_int(5.9) == 5
+
+
+@pytest.mark.parametrize("container", [list, tuple, set, frozenset, iter, deque])
+@pytest.mark.parametrize("value", [b"\xff", pd.NaT, float("inf"), "\ud800"])
+def test_json_safe_values_sanitize_coerced_iterables(
+    container: Callable[[list[Any]], Any], value: Any
+) -> None:
+    """Every accepted iterable must sanitize its elements before serialization."""
+    values = TypeAdapter(JsonSafeValues).validate_python(container([value]))
+    expected = [sanitize_json_value(value)]
+    assert json_loads(default_serializer(values)) == expected
+    assert to_jsonable_python(values) == expected
+
+
+def test_json_safe_values_sanitize_generator() -> None:
+    """One-shot generators must be consumed once and sanitized element by element."""
+    values = TypeAdapter(JsonSafeValues).validate_python(
+        value for value in [b"\xff", pd.NaT]
+    )
+    assert json_loads(default_serializer(values)) == ["base64:/w==", None]
+    assert to_jsonable_python(values) == ["base64:/w==", None]
+
+
+@pytest.mark.parametrize("container", [dict, MappingProxyType, UserDict])
+def test_json_safe_mapping_sanitizes_general_mappings(
+    container: Callable[[dict[str, Any]], Any],
+) -> None:
+    """Mapping implementations and nested mappings retain their JSON object shape."""
+    mapping = TypeAdapter(JsonSafeMapping).validate_python(
+        container({"blob": b"\xff", "nested": container({"ts": pd.NaT})})
+    )
+    expected = {"blob": "base64:/w==", "nested": {"ts": None}}
+    assert json_loads(default_serializer(mapping)) == expected
+    assert to_jsonable_python(mapping) == expected
+
+
+@pytest.mark.parametrize("container", [list, tuple, iter, deque])
+def test_json_safe_rows_sanitize_coerced_iterables(
+    container: Callable[[list[Any]], Any],
+) -> None:
+    """Row mappings must be sanitized after the outer iterable is coerced."""
+    rows = TypeAdapter(JsonSafeRows).validate_python(
+        container([MappingProxyType({"blob": b"\xff", "ts": pd.NaT})])
+    )
+    expected = [{"blob": "base64:/w==", "ts": None}]
+    assert json_loads(default_serializer(rows)) == expected
+    assert to_jsonable_python(rows) == expected
+
+
+@pytest.mark.parametrize("value", ["text", b"bytes", bytearray(b"bytes"), {}, 5, None])
+@pytest.mark.parametrize("alias", [JsonSafeRows, JsonSafeValues])
+def test_json_safe_sequences_reject_invalid_containers(value: Any, alias: Any) -> None:
+    """Sanitization must not broaden the list schema's accepted input types."""
+    with pytest.raises(ValidationError):
+        TypeAdapter(alias).validate_python(value)
+
+
+@pytest.mark.parametrize("value", [True, False, np.bool_(True), np.bool_(False)])
+def test_boolean_counts_are_unavailable(value: Any) -> None:
+    """Booleans are not warehouse row counts, including numpy booleans."""
+    assert coerce_optional_int(value) is None
+    assert coerce_int(value) == 0
+    assert TypeAdapter(OptionalRowCount).validate_python(value) is None
+    assert TypeAdapter(RowCount).validate_python(value) == 0
+
+
+def test_string_missing_check_does_not_call_pandas() -> None:
+    """Literal strings cannot represent missing scalars and need no pandas call."""
+    with patch("superset.mcp_service.utils.serialization.pd.isna") as isna:
+        for value in ("", "NaN", "NaT", "None", "ordinary"):
+            assert is_missing_value(value) is False
+    isna.assert_not_called()

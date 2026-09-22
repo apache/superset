@@ -49,6 +49,7 @@ from __future__ import annotations
 
 import base64
 import math
+from collections.abc import Mapping
 from datetime import date, datetime, time, timedelta
 from typing import Annotated, Any
 from uuid import UUID
@@ -141,7 +142,7 @@ def _sanitize_scalar(value: Any) -> Any:
 
 def _sanitize_other(value: Any, depth: int) -> Any:
     """Sanitize containers and the long tail of warehouse value types."""
-    if isinstance(value, dict):
+    if isinstance(value, Mapping):
         return {
             _sanitize_str(key if isinstance(key, str) else str(key)): (
                 sanitize_json_value(item, depth + 1)
@@ -182,25 +183,19 @@ def sanitize_json_value(value: Any, depth: int = 0) -> Any:
     return _sanitize_other(value, depth)
 
 
-def sanitize_sequence(value: Any) -> Any:
-    """Sanitize a list of result rows or values, leaving other input to
-    pydantic so it reports the usual validation error."""
-    if not isinstance(value, list):
-        return value
-    return [sanitize_json_value(item) for item in value]
-
-
 def sanitize_mapping(value: Any) -> Any:
     """Sanitize a mapping, leaving non-mapping input to pydantic."""
-    if not isinstance(value, dict):
+    if not isinstance(value, Mapping):
         return value
     return sanitize_json_value(value)
 
 
 def coerce_optional_int(value: Any) -> Any:
     """Coerce an engine-reported count to ``int``, or ``None`` when it is not
-    a number (e.g. a ``float`` ``rowcount``, or ``NaN``)."""
-    if value is None or isinstance(value, int):  # bool is an int subclass
+    a usable count (e.g. a boolean or ``NaN``)."""
+    if isinstance(value, (bool, np.bool_)):
+        return None
+    if value is None or isinstance(value, int):
         return value
     try:
         coerced = int(value)
@@ -218,12 +213,12 @@ def coerce_int(value: Any) -> Any:
     return 0 if coerced is None else coerced
 
 
-#: Result rows, sanitized element by element.
-JsonSafeRows = Annotated[list[dict[str, Any]], BeforeValidator(sanitize_sequence)]
-#: A list of arbitrary values drawn from result data (e.g. column samples).
-JsonSafeValues = Annotated[list[Any], BeforeValidator(sanitize_sequence)]
 #: A mapping of arbitrary values drawn from result data (e.g. column stats).
 JsonSafeMapping = Annotated[dict[str, Any], BeforeValidator(sanitize_mapping)]
+#: Result rows, sanitized element by element after pydantic coerces the iterable.
+JsonSafeRows = list[JsonSafeMapping]
+#: Column samples, sanitized after pydantic coerces the iterable to a list.
+JsonSafeValues = list[Annotated[Any, BeforeValidator(sanitize_json_value)]]
 #: A non-nullable row count reported by the query engine.
 RowCount = Annotated[int, BeforeValidator(coerce_int)]
 #: A nullable row count reported by the query engine.

@@ -84,6 +84,7 @@ def _serialize(response: BaseModel) -> dict[str, Any]:
 
 
 def _assert_row_is_safe(row: dict[str, Any]) -> None:
+    """Assert that binary, missing, and nested result values are JSON-safe."""
     assert row["blob"].startswith(BINARY_PREFIX)
     assert row["ts"] is None
     assert row["ratio"] is None
@@ -91,6 +92,7 @@ def _assert_row_is_safe(row: dict[str, Any]) -> None:
 
 
 def _execute_sql_response() -> ExecuteSqlResponse:
+    """Build a SQL Lab response with hostile rows and statement data."""
     return ExecuteSqlResponse(
         success=True,
         rows=[HOSTILE_ROW],
@@ -123,6 +125,7 @@ def _data_column() -> DataColumn:
 
 
 def _chart_data() -> ChartData:
+    """Build a chart response with hostile rows, metadata, and query results."""
     return ChartData(
         chart_id=1,
         chart_name="chart",
@@ -153,6 +156,7 @@ def _chart_data() -> ChartData:
 
 
 def _query_dataset_response() -> QueryDatasetResponse:
+    """Build a dataset response with hostile rows and column metadata."""
     return QueryDatasetResponse(
         dataset_id=1,
         dataset_name="dataset",
@@ -164,6 +168,7 @@ def _query_dataset_response() -> QueryDatasetResponse:
 
 
 def _get_table_response() -> GetTableResponse:
+    """Build a semantic-layer table response with hostile warehouse values."""
     return GetTableResponse(
         columns=[_data_column()],
         data=[HOSTILE_ROW],
@@ -175,6 +180,7 @@ def _get_table_response() -> GetTableResponse:
 
 
 def _dashboard_chart_data() -> DashboardChartData:
+    """Build a dashboard chart response with hostile samples and query data."""
     return DashboardChartData(
         chart_id=1,
         chart_name="chart",
@@ -271,8 +277,15 @@ def test_column_metadata_is_sanitized(build: Callable[[], BaseModel]) -> None:
 
 @pytest.mark.parametrize(
     "count,expected",
-    [(5.7, 5), (float("nan"), None), ("unknown", None), (None, None)],
-    ids=["fractional-float", "nan", "non-numeric", "missing"],
+    [
+        (5.7, 5),
+        (float("nan"), None),
+        ("unknown", None),
+        (None, None),
+        (True, None),
+        (False, None),
+    ],
+    ids=["fractional-float", "nan", "non-numeric", "missing", "true", "false"],
 )
 def test_unusable_nullable_count_becomes_null(count: Any, expected: int | None) -> None:
     """A count the engine reports in an unusable form must not fail the call."""
