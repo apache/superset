@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-22 03:02+0000\n"
+"POT-Creation-Date: 2026-09-22 18:53+0000\n"
 "PO-Revision-Date: 2024-05-14 13:30+0900\n"
 "Last-Translator: Yuri Umezaki <bungoume@gmail.com>\n"
 "Language: ja\n"
@@ -5572,6 +5572,9 @@ msgid ""
 "correctly first; this only changes how they are displayed."
 msgstr ""
 
+msgid "Display format"
+msgstr ""
+
 msgid "Display headers for each column at the top of the matrix"
 msgstr "マトリックスの上部に各列のヘッダーを表示"
 
@@ -11054,6 +11057,9 @@ msgstr "再読み込み"
 msgid "Reload SQL Lab"
 msgstr "SQL Labを再読み込み"
 
+msgid "Reload the page and try again to continue."
+msgstr ""
+
 msgid "Remove"
 msgstr "削除"
 
@@ -12055,6 +12061,9 @@ msgstr "セキュア設定"
 
 msgid "Security"
 msgstr "セキュリティ"
+
+msgid "Security token error"
+msgstr ""
 
 msgid "See "
 msgstr "参照 "
@@ -13890,6 +13899,9 @@ msgstr "このチャートにリンクされている %s は削除された可�
 #, python-format
 msgid "The API response from %s does not match the IDatabaseTable interface."
 msgstr "%s からの API レスポンスが IDatabaseTable インターフェースと一致しません。"
+
+msgid "The CSRF token could not be validated."
+msgstr ""
 
 msgid ""
 "The CSS for individual dashboards can be altered here, or in the "

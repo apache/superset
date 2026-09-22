@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-22 03:02+0000\n"
+"POT-Creation-Date: 2026-09-22 18:53+0000\n"
 "PO-Revision-Date: 2016-05-02 08:49-0700\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: es\n"
@@ -6299,6 +6299,9 @@ msgid ""
 "correctly first; this only changes how they are displayed."
 msgstr ""
 
+msgid "Display format"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: fr, ru]
 #, fuzzy
 msgid "Display headers for each column at the top of the matrix"
@@ -12455,6 +12458,9 @@ msgstr "Volver a cargar"
 msgid "Reload SQL Lab"
 msgstr "Recargar SQL Lab"
 
+msgid "Reload the page and try again to continue."
+msgstr ""
+
 msgid "Remove"
 msgstr "Eliminar"
 
@@ -13542,6 +13548,9 @@ msgstr "Seguridad adicional"
 
 msgid "Security"
 msgstr "Seguridad"
+
+msgid "Security token error"
+msgstr ""
 
 msgid "See "
 msgstr "Ver "
@@ -15689,6 +15698,9 @@ msgstr "Es posible que se haya eliminado el %s vinculado a este gráfico."
 #, python-format
 msgid "The API response from %s does not match the IDatabaseTable interface."
 msgstr "La respuesta de la API de %s no concuerda con la interfaz IDatabaseTable."
+
+msgid "The CSRF token could not be validated."
+msgstr ""
 
 msgid ""
 "The CSS for individual dashboards can be altered here, or in the "

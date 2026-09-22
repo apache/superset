@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-22 03:02+0000\n"
+"POT-Creation-Date: 2026-09-22 18:53+0000\n"
 "PO-Revision-Date: 2026-07-17 09:44+0100\n"
 "Last-Translator: Daniel Checheta\n"
 "Language: ru\n"
@@ -5973,6 +5973,9 @@ msgid ""
 "correctly first; this only changes how they are displayed."
 msgstr ""
 
+msgid "Display format"
+msgstr ""
+
 msgid "Display headers for each column at the top of the matrix"
 msgstr "Отображать заголовки для каждого столбца в верхней части матрицы"
 
@@ -11718,6 +11721,9 @@ msgstr "Обновить"
 msgid "Reload SQL Lab"
 msgstr "Перезагрузить SQL Lab"
 
+msgid "Reload the page and try again to continue."
+msgstr ""
+
 msgid "Remove"
 msgstr "Удалить"
 
@@ -12745,6 +12751,9 @@ msgstr "Безопасность"
 
 msgid "Security"
 msgstr "Безопасность"
+
+msgid "Security token error"
+msgstr ""
 
 #, fuzzy
 msgid "See "
@@ -14700,6 +14709,9 @@ msgstr "Похоже, %s, связанный с этой диаграммой, �
 #, python-format
 msgid "The API response from %s does not match the IDatabaseTable interface."
 msgstr "Ответ API от %s не соответствует интерфейсу IDatabaseTable."
+
+msgid "The CSRF token could not be validated."
+msgstr ""
 
 msgid ""
 "The CSS for individual dashboards can be altered here, or in the "

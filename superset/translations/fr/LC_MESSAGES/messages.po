@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-22 03:02+0000\n"
+"POT-Creation-Date: 2026-09-22 18:53+0000\n"
 "PO-Revision-Date: 2025-06-26 15:34+0200\n"
 "Last-Translator: \n"
 "Language: fr\n"
@@ -6134,6 +6134,9 @@ msgid ""
 "correctly first; this only changes how they are displayed."
 msgstr ""
 
+msgid "Display format"
+msgstr ""
+
 msgid "Display headers for each column at the top of the matrix"
 msgstr "Afficher les en-têtes de chaque colonne en haut de la matrice"
 
@@ -12035,6 +12038,9 @@ msgstr "Recharger"
 msgid "Reload SQL Lab"
 msgstr "Recharger SQL Lab"
 
+msgid "Reload the page and try again to continue."
+msgstr ""
+
 msgid "Remove"
 msgstr "Supprimer"
 
@@ -13096,6 +13102,9 @@ msgstr "Secure Extra"
 
 msgid "Security"
 msgstr "Sécurité"
+
+msgid "Security token error"
+msgstr ""
 
 msgid "See "
 msgstr "Voir "
@@ -15149,6 +15158,9 @@ msgstr "Le/la %s lié(s) à ce graphique semble avoir été effacé(e)."
 #, python-format
 msgid "The API response from %s does not match the IDatabaseTable interface."
 msgstr "La réponse API de %s ne correspond pas à l'interface IDatabaseTable."
+
+msgid "The CSRF token could not be validated."
+msgstr ""
 
 msgid ""
 "The CSS for individual dashboards can be altered here, or in the "

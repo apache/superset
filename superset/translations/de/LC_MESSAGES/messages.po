@@ -18,7 +18,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-22 03:02+0000\n"
+"POT-Creation-Date: 2026-09-22 18:53+0000\n"
 "PO-Revision-Date: 2023-04-07 19:45+0200\n"
 "Last-Translator: Holger Bruch <holger.bruch@wattbewerb.de>\n"
 "Language: de\n"
@@ -6045,6 +6045,9 @@ msgid ""
 "correctly first; this only changes how they are displayed."
 msgstr ""
 
+msgid "Display format"
+msgstr ""
+
 msgid "Display headers for each column at the top of the matrix"
 msgstr "Spaltenüberschriften für jede Spalte oberhalb der Matrix anzeigen"
 
@@ -11848,6 +11851,9 @@ msgstr "Neu laden"
 msgid "Reload SQL Lab"
 msgstr "SQL Lab neu laden"
 
+msgid "Reload the page and try again to continue."
+msgstr ""
+
 msgid "Remove"
 msgstr "Entfernen"
 
@@ -12884,6 +12890,9 @@ msgstr "Sicherheit extra"
 
 msgid "Security"
 msgstr "Sicherheit"
+
+msgid "Security token error"
+msgstr ""
 
 msgid "See "
 msgstr "Sie finden in der "
@@ -14879,6 +14888,9 @@ msgid "The API response from %s does not match the IDatabaseTable interface."
 msgstr ""
 "Die API-Antwort von %s stimmt nicht mit der IDatabaseTable-Schnittstelle "
 "überein."
+
+msgid "The CSRF token could not be validated."
+msgstr ""
 
 msgid ""
 "The CSS for individual dashboards can be altered here, or in the "

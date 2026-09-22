@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-22 03:02+0000\n"
+"POT-Creation-Date: 2026-09-22 18:53+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: th\n"
@@ -9899,6 +9899,9 @@ msgid ""
 "Display each cell as a percentage of its row, column, or grand total, "
 "instead of its actual value. Totals and subtotals are still computed "
 "correctly first; this only changes how they are displayed."
+msgstr ""
+
+msgid "Display format"
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, fr, ja,
@@ -19994,6 +19997,9 @@ msgstr "โหลดใหม่"
 msgid "Reload SQL Lab"
 msgstr "โหลด SQL Lab ใหม่"
 
+msgid "Reload the page and try again to continue."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, fuzzy
@@ -21778,6 +21784,9 @@ msgstr "การรักษาความปลอดภัยเพิ่ม
 #, fuzzy
 msgid "Security"
 msgstr "ความปลอดภัย"
+
+msgid "Security token error"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
@@ -25185,6 +25194,9 @@ msgstr "ชุดข้อมูลที่เชื่อมโยงกับ
 #, fuzzy, python-format
 msgid "The API response from %s does not match the IDatabaseTable interface."
 msgstr "การตอบกลับ API จาก %s ไม่ตรงกับอินเทอร์เฟซ IDatabaseTable"
+
+msgid "The CSRF token could not be validated."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, it, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, uk, zh,

@@ -22,7 +22,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-22 03:02+0000\n"
+"POT-Creation-Date: 2026-09-22 18:53+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: ro\n"
@@ -6482,6 +6482,9 @@ msgid ""
 "correctly first; this only changes how they are displayed."
 msgstr ""
 
+msgid "Display format"
+msgstr ""
+
 msgid "Display headers for each column at the top of the matrix"
 msgstr "Afișează antete pentru fiecare coloană în partea de sus a matricei"
 
@@ -12705,6 +12708,9 @@ msgstr "Reîncarcă"
 msgid "Reload SQL Lab"
 msgstr "Reîncărcați SQL Lab"
 
+msgid "Reload the page and try again to continue."
+msgstr ""
+
 msgid "Remove"
 msgstr "Elimină"
 
@@ -13811,6 +13817,9 @@ msgstr "Extra securizat"
 
 msgid "Security"
 msgstr "Securitate"
+
+msgid "Security token error"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, it, ja,
 # sr, sr_Latn]
@@ -16018,6 +16027,9 @@ msgstr "%s legat de acest grafic poate fi șters."
 #, python-format
 msgid "The API response from %s does not match the IDatabaseTable interface."
 msgstr "Răspunsul API de la %s nu se potrivește cu interfața IDatabaseTable."
+
+msgid "The CSRF token could not be validated."
+msgstr ""
 
 msgid ""
 "The CSS for individual dashboards can be altered here, or in the "

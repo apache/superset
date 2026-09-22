@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-22 03:02+0000\n"
+"POT-Creation-Date: 2026-09-22 18:53+0000\n"
 "PO-Revision-Date: 2026-03-27 14:01+0200\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: lv\n"
@@ -6081,6 +6081,9 @@ msgid ""
 "correctly first; this only changes how they are displayed."
 msgstr ""
 
+msgid "Display format"
+msgstr ""
+
 msgid "Display headers for each column at the top of the matrix"
 msgstr "Rādīt katras kolonnas virsrakstus matricas augšdaļā"
 
@@ -11914,6 +11917,9 @@ msgstr "Pārlādēt"
 msgid "Reload SQL Lab"
 msgstr "Pārlādēt SQL Lab"
 
+msgid "Reload the page and try again to continue."
+msgstr ""
+
 msgid "Remove"
 msgstr "Noņemt"
 
@@ -12955,6 +12961,9 @@ msgstr "Drošības papildus iestatījumi"
 
 msgid "Security"
 msgstr "Drošība"
+
+msgid "Security token error"
+msgstr ""
 
 #, fuzzy
 msgid "See "
@@ -14994,6 +15003,9 @@ msgstr "Ar šo diagrammu saistītā datu kopa, iespējams, ir dzēsta."
 #, python-format
 msgid "The API response from %s does not match the IDatabaseTable interface."
 msgstr "API atbilde no %s neatbilst IDatabaseTable saskarnei."
+
+msgid "The CSRF token could not be validated."
+msgstr ""
 
 msgid ""
 "The CSS for individual dashboards can be altered here, or in the "

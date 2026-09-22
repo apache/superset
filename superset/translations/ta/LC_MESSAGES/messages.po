@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-22 03:02+0000\n"
+"POT-Creation-Date: 2026-09-22 18:53+0000\n"
 "PO-Revision-Date: 2026-03-31 02:00-0700\n"
 "Last-Translator: Maazin Ahamed\n"
 "Language: ta\n"
@@ -6011,6 +6011,9 @@ msgid ""
 "correctly first; this only changes how they are displayed."
 msgstr ""
 
+msgid "Display format"
+msgstr ""
+
 msgid "Display headers for each column at the top of the matrix"
 msgstr "மேட்ரிக்ஸின் மேற்புறத்தில் ஒவ்வொரு நெடுவரிசைக்கும் தலைப்புகளைக் காட்டு"
 
@@ -11702,6 +11705,9 @@ msgstr "மீண்டும் ஏற்று (Reload)"
 msgid "Reload SQL Lab"
 msgstr "SQL லேப்"
 
+msgid "Reload the page and try again to continue."
+msgstr ""
+
 msgid "Remove"
 msgstr "நீக்கு"
 
@@ -12715,6 +12721,9 @@ msgstr "பாதுகாப்பான கூடுதல் (Secure extra)"
 
 msgid "Security"
 msgstr "பாதுகாப்பு"
+
+msgid "Security token error"
+msgstr ""
 
 #, fuzzy
 msgid "See "
@@ -14665,6 +14674,9 @@ msgstr "இந்த சார்ட்டுடன் இணைக்கப்�
 #, python-format
 msgid "The API response from %s does not match the IDatabaseTable interface."
 msgstr "%s இலிருந்து வரும் API பதில் IDatabaseTable இடைமுகத்துடன் பொருந்தவில்லை."
+
+msgid "The CSRF token could not be validated."
+msgstr ""
 
 msgid ""
 "The CSS for individual dashboards can be altered here, or in the "
