@@ -28,6 +28,8 @@ from pydantic import BaseModel
 from superset.mcp_service.utils.response_size_utils import (
     _bisect_string_length,
     _MAX_DICT_KEYS,
+    _MAX_STRING_CHARS,
+    _MIN_STRING_CHARS,
     _replace_collections_with_summaries,
     _STRING_FIELD_TRUNCATION_MARKERS,
     _summarize_large_dicts,
@@ -41,10 +43,12 @@ from superset.mcp_service.utils.response_size_utils import (
     generate_size_reduction_suggestions,
     get_response_size_bytes,
     INFO_TOOLS,
+    string_clip_chars,
     STRING_FIELD_TRUNCATION_TOOLS,
     truncate_oversized_response,
     truncate_query_result,
     truncate_string_field_response,
+    UNMEASURABLE_RESPONSE_BYTES,
 )
 
 
@@ -93,6 +97,41 @@ class TestGetResponseSizeBytes:
         small = {"items": [{"name": f"item{i}"} for i in range(10)]}
         large = {"items": [{"name": f"item{i}"} for i in range(1000)]}
         assert get_response_size_bytes(large) > get_response_size_bytes(small)
+
+    def test_unmeasurable_response_reads_as_oversized(self) -> None:
+        """A serialization failure must exceed any configurable limit.
+
+        A fixed fallback (say 1 MB) would count as "fits" for an operator who
+        set ``max_bytes`` at or above it, letting an unmeasured response
+        through the guard.
+        """
+        with patch("superset.utils.json.dumps", side_effect=MemoryError("boom")):
+            result = get_response_size_bytes({"data": "x"})
+        assert result == UNMEASURABLE_RESPONSE_BYTES
+        assert result > 1_000_000_000
+
+
+class TestStringClipChars:
+    """Test the budget-derived string clip length."""
+
+    def test_default_budget_keeps_full_clip_length(self) -> None:
+        """The 100 KB default budget must not change the historical clip."""
+        assert string_clip_chars(100_000) == _MAX_STRING_CHARS
+
+    def test_small_budget_scales_clip_length_down(self) -> None:
+        """A budget below ``4 * ceiling`` shrinks the clip proportionally."""
+        assert string_clip_chars(500) == 125
+        assert string_clip_chars(1000) == 250
+
+    def test_floor_keeps_strings_recognizable(self) -> None:
+        """Even a tiny budget leaves ``_MIN_STRING_CHARS`` of each string."""
+        assert string_clip_chars(50) == _MIN_STRING_CHARS
+        assert string_clip_chars(0) == _MIN_STRING_CHARS
+
+    def test_ceiling_is_respected(self) -> None:
+        """A caller-supplied ceiling (e.g. committed-write fields) is honored."""
+        assert string_clip_chars(100_000, ceiling=200) == 200
+        assert string_clip_chars(400, ceiling=200) == 100
 
 
 class TestExtractQueryParams:
@@ -825,6 +864,22 @@ class TestTruncateOversizedResponse:
         assert isinstance(result, dict)
         assert result["chart"] == {"id": 42}
         assert any("form_data" in n for n in notes)
+
+    def test_small_budget_scales_string_clip_to_fit(self) -> None:
+        """A budget below the fixed clip length must still converge.
+
+        With a 500-byte budget, clipping a string to the fixed 500 chars
+        (plus its marker) can never fit, so the clip length has to follow
+        the budget instead of leaving the response over the limit.
+        """
+        response: dict[str, Any] = {"id": 1, "description": "x" * 50_000}
+        result, was_truncated, notes = truncate_oversized_response(response, 500)
+        assert was_truncated is True
+        assert isinstance(result, dict)
+        assert get_response_size_bytes(result) <= 500
+        assert result["description"].startswith("x" * _MIN_STRING_CHARS)
+        assert "[truncated from 50000 chars]" in result["description"]
+        assert notes == ["Field 'description' truncated from 50000 chars"]
 
 
 class TestTruncateStringFieldResponse:

@@ -61,6 +61,7 @@ from superset.mcp_service.utils.response_size_utils import (
     format_size_limit_error,
     get_response_size_bytes,
     INFO_TOOLS,
+    string_clip_chars,
     STRING_FIELD_TRUNCATION_TOOLS,
     truncate_oversized_response,
     truncate_query_result,
@@ -80,6 +81,7 @@ _METRIC_TOOL_NAME_RE = re.compile(r"[A-Za-z0-9_][A-Za-z0-9_.\-]{0,127}")
 # confirmation (see ``_shrink_minimal_response``). Generous enough to keep a
 # chart name or a short error readable, small enough that the whole confirmation
 # stays bounded no matter how large the fields were in the original payload.
+# Small byte budgets lower it further (see ``string_clip_chars``).
 _MINIMAL_FIELD_CHARS = 200
 
 # Bound both list overhead and total string content in write confirmations.
@@ -1655,13 +1657,17 @@ class ResponseSizeGuardMiddleware(Middleware):
         if _fits(minimal, self.max_bytes):
             return
 
+        # Clip proportionally under small budgets so the clipped fields do
+        # not by themselves exceed the limit they are being shrunk to fit.
+        max_chars = string_clip_chars(self.max_bytes, _MINIMAL_FIELD_CHARS)
+
         for field in sorted(spec.identifying_fields):
             if field not in minimal:
                 continue
             value = minimal[field]
             if isinstance(value, dict):
                 minimal[field] = {
-                    key: _clip_string(value[key])
+                    key: _clip_string(value[key], max_chars)
                     for key in _MINIMAL_IDENTITY_FIELDS
                     if key in value
                 }
@@ -1678,7 +1684,11 @@ class ResponseSizeGuardMiddleware(Middleware):
             if key in spec.identifying_fields or key.startswith("_"):
                 continue
             current = minimal[key]
-            clipped = _clip_error(current) if key == "error" else _clip_string(current)
+            clipped = (
+                _clip_error(current, max_chars)
+                if key == "error"
+                else _clip_string(current, max_chars)
+            )
             if clipped is not current:
                 minimal[key] = clipped
                 minimal["_truncation_notes"].append(
@@ -1815,18 +1825,10 @@ class ResponseSizeGuardMiddleware(Middleware):
         extracted = self._extract_payload_from_tool_result(response)
         estimation_target = extracted if extracted is not None else response
 
-        try:
-            actual_bytes = get_response_size_bytes(estimation_target)
-        except MemoryError as me:
-            logger.warning(
-                "MemoryError while measuring response size for %s: %s", tool_name, me
-            )
-            # Treat as over limit to avoid further serialization
-            actual_bytes = self.max_bytes + 1
-        except Exception as e:  # noqa: BLE001
-            logger.warning("Failed to measure response size for %s: %s", tool_name, e)
-            # Conservative fallback: block rather than risk OOM
-            actual_bytes = self.max_bytes + 1
+        # Never raises: a response that cannot be serialized measures as
+        # UNMEASURABLE_RESPONSE_BYTES, which exceeds any limit and so takes
+        # the oversized path below rather than slipping through unmeasured.
+        actual_bytes = get_response_size_bytes(estimation_target)
 
         # Log warning if approaching limit
         if actual_bytes > self.warn_threshold:
@@ -1858,7 +1860,7 @@ def _clip_string(value: Any, max_chars: int = _MINIMAL_FIELD_CHARS) -> Any:
     return value
 
 
-def _clip_error(value: Any) -> Any:
+def _clip_error(value: Any, max_chars: int = _MINIMAL_FIELD_CHARS) -> Any:
     """Bound an ``error`` field of either shape it can arrive in.
 
     Tool responses type ``error`` as a nested model (``ChartGenerationError``),
@@ -1873,24 +1875,22 @@ def _clip_error(value: Any) -> Any:
     """
     if isinstance(value, dict):
         reduced = {
-            key: _clip_string(value[key])
+            key: _clip_string(value[key], max_chars)
             for key in _MINIMAL_ERROR_FIELDS
             if key in value
         }
         return value if reduced == value else reduced
-    return _clip_string(value)
+    return _clip_string(value, max_chars)
 
 
 def _fits(payload: Any, max_bytes: int) -> bool:
-    """Best-effort check that ``payload`` measures under ``max_bytes``.
+    """Check that ``payload`` measures under ``max_bytes``.
 
-    Treats a measurement failure as "does not fit" so callers degrade the
-    payload further rather than optimistically returning something oversized.
+    A measurement failure reads as "does not fit" (the helper reports it as
+    ``UNMEASURABLE_RESPONSE_BYTES``), so callers degrade the payload further
+    rather than optimistically returning something oversized.
     """
-    try:
-        return get_response_size_bytes(payload) <= max_bytes
-    except Exception:  # noqa: BLE001
-        return False
+    return get_response_size_bytes(payload) <= max_bytes
 
 
 def _safe_int_config(config: dict[str, Any], key: str, default: int) -> int:

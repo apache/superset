@@ -32,6 +32,7 @@ that cannot be known. Byte length is deterministic and tokenizer-agnostic.
 from __future__ import annotations
 
 import logging
+import sys
 from typing import Any, Dict, List, NamedTuple, Union
 
 from pydantic import BaseModel
@@ -44,10 +45,19 @@ logger = logging.getLogger(__name__)
 # Type alias for MCP tool responses (Pydantic models, dicts, lists, strings, bytes)
 ToolResponse: TypeAlias = Union[BaseModel, Dict[str, Any], List[Any], str, bytes]
 
+# Reported by ``get_response_size_bytes`` when a response cannot be serialized
+# and so cannot be measured. It exceeds any configurable ``max_bytes``, so an
+# unmeasurable response is always treated as oversized rather than allowed
+# through on a guess that happens to sit under the operator's limit.
+UNMEASURABLE_RESPONSE_BYTES = sys.maxsize
+
 
 def get_response_size_bytes(response: ToolResponse) -> int:
     """
     Get the size of a response in bytes.
+
+    Never raises: a response that cannot be serialized measures as
+    ``UNMEASURABLE_RESPONSE_BYTES`` so that callers treat it as oversized.
 
     Args:
         response: The response object
@@ -72,9 +82,9 @@ def get_response_size_bytes(response: ToolResponse) -> int:
         return len(response_str.encode("utf-8"))
     except Exception as e:  # noqa: BLE001
         logger.warning("Failed to get response size: %s", e)
-        # Return a conservative large value to avoid allowing oversized responses
-        # to bypass size checks (returning 0 would underestimate)
-        return 1_000_000  # 1MB fallback
+        # A fixed fallback would read as "fits" under any limit configured
+        # above it, so report the size as unknown-and-oversized instead.
+        return UNMEASURABLE_RESPONSE_BYTES
 
 
 def extract_query_params(params: Dict[str, Any] | None) -> Dict[str, Any]:
@@ -491,8 +501,25 @@ _DATA_ROW_FIELDS = ("rows", "data")
 
 # Maximum character length for string fields before truncation
 _MAX_STRING_CHARS = 500
+# Floor for the budget-derived clip length (see ``string_clip_chars``), so a
+# clipped string stays recognizable even under a very small byte budget.
+_MIN_STRING_CHARS = 32
 # Maximum keys to keep when summarizing large dict fields
 _MAX_DICT_KEYS = 20
+
+
+def string_clip_chars(max_bytes: int, ceiling: int = _MAX_STRING_CHARS) -> int:
+    """Derive the per-string clip length from the response byte budget.
+
+    A fixed clip length only works while the budget dwarfs it: a single
+    clipped field plus its truncation marker must not exhaust the whole
+    budget by itself, or string truncation can never bring a response under
+    the limit. Above ``4 * ceiling`` bytes the ceiling applies unchanged (the
+    default 100 KB budget keeps the full ``_MAX_STRING_CHARS``); smaller
+    budgets shrink the clip length proportionally, down to
+    ``_MIN_STRING_CHARS``.
+    """
+    return min(ceiling, max(_MIN_STRING_CHARS, max_bytes // 4))
 
 
 def _truncate_strings(
@@ -679,9 +706,12 @@ def truncate_oversized_response(
         return response, False, notes
 
     was_truncated = False
+    # Clip length scales down with small budgets so the string phases can
+    # actually converge instead of leaving one clipped field over the limit.
+    max_chars = string_clip_chars(max_bytes)
 
     # Phase 1: Truncate long string fields
-    was_truncated |= _truncate_strings(data, notes)
+    was_truncated |= _truncate_strings(data, notes, max_chars)
     if _is_under_limit(data, max_bytes):
         return data, was_truncated, notes
 
@@ -692,7 +722,7 @@ def truncate_oversized_response(
 
     # Phase 3: Recursively truncate strings inside nested structures
     # (e.g. charts[i].description, native_filters[i].config, etc.)
-    was_truncated |= _truncate_strings_recursive(data, notes)
+    was_truncated |= _truncate_strings_recursive(data, notes, max_chars)
     if _is_under_limit(data, max_bytes):
         return data, was_truncated, notes
 
@@ -1088,8 +1118,13 @@ def format_size_limit_error(
         tool_name, params, actual_bytes, max_bytes, response
     )
 
+    size_text = (
+        "size could not be measured"
+        if actual_bytes >= UNMEASURABLE_RESPONSE_BYTES
+        else f"{actual_bytes:,} bytes"
+    )
     error_lines = [
-        f"Response too large: {actual_bytes:,} bytes (limit: {max_bytes:,})",
+        f"Response too large: {size_text} (limit: {max_bytes:,})",
         "",
         "This response would overwhelm the LLM context window.",
         "Please modify your query to reduce the response size:",

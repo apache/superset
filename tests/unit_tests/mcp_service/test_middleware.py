@@ -47,7 +47,10 @@ from superset.mcp_service.middleware import (
     StructuredContentStripperMiddleware,
     ToolResultCompatibilityMiddleware,
 )
-from superset.mcp_service.utils.response_size_utils import get_response_size_bytes
+from superset.mcp_service.utils.response_size_utils import (
+    get_response_size_bytes,
+    UNMEASURABLE_RESPONSE_BYTES,
+)
 from superset.utils import json as utils_json
 from superset.utils.log import DBEventLogger
 
@@ -222,6 +225,34 @@ class TestResponseSizeGuardMiddleware:
         assert "page_size" in error_message.lower() or "limit" in error_message.lower()
 
     @pytest.mark.asyncio
+    async def test_unmeasurable_response_is_treated_as_oversized(self) -> None:
+        """A response whose size cannot be measured must not slip through.
+
+        The size helper never raises; it reports an unmeasurable response as
+        larger than any limit, so the guard takes the oversized path even
+        when ``max_bytes`` is configured above any fixed fallback value.
+        """
+        middleware = ResponseSizeGuardMiddleware(max_bytes=10_000_000)
+
+        context = MagicMock()
+        context.message.name = "list_charts"
+        context.message.arguments = {}
+        call_next = AsyncMock(return_value={"charts": []})
+
+        with (
+            patch("superset.mcp_service.middleware.get_user_id", return_value=1),
+            patch("superset.mcp_service.middleware.event_logger"),
+            patch(
+                "superset.mcp_service.middleware.get_response_size_bytes",
+                return_value=UNMEASURABLE_RESPONSE_BYTES,
+            ),
+            pytest.raises(ToolError) as exc_info,
+        ):
+            await middleware.on_call_tool(context, call_next)
+
+        assert "size could not be measured" in str(exc_info.value)
+
+    @pytest.mark.asyncio
     async def test_logs_size_exceeded_event(self) -> None:
         """Should log to event logger when size exceeded."""
         middleware = ResponseSizeGuardMiddleware(max_bytes=100)
@@ -273,6 +304,35 @@ class TestResponseSizeGuardMiddleware:
         assert result["id"] == 1
         assert result["_response_truncated"] is True
         assert "[truncated" in result["description"]
+
+    @pytest.mark.asyncio
+    async def test_truncates_info_tool_under_small_byte_budget(self) -> None:
+        """A budget below the fixed string clip must degrade, not block.
+
+        Clipping a string to a fixed 500 chars can never fit a 500-byte
+        budget, so the clip length has to follow the budget; otherwise the
+        info tool raises ToolError instead of returning a truncated response.
+        """
+        middleware = ResponseSizeGuardMiddleware(max_bytes=500)
+
+        context = MagicMock()
+        context.message.name = "get_dataset_info"
+        context.message.arguments = {}
+        call_next = AsyncMock(
+            return_value={"id": 1, "table_name": "test", "description": "x" * 50000}
+        )
+
+        with (
+            patch("superset.mcp_service.middleware.get_user_id", return_value=1),
+            patch("superset.mcp_service.middleware.event_logger"),
+        ):
+            result = await middleware.on_call_tool(context, call_next)
+
+        assert isinstance(result, dict)
+        assert result["id"] == 1
+        assert result["_response_truncated"] is True
+        assert "[truncated" in result["description"]
+        assert get_response_size_bytes(result) <= 500
 
     @pytest.mark.asyncio
     async def test_truncates_chart_info_with_large_form_data(self) -> None:
