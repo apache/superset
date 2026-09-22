@@ -16,36 +16,23 @@
 # under the License.
 
 """
-Token counting and response size utilities for MCP service.
+Response size utilities for the MCP service.
 
-This module provides utilities to estimate token counts and generate smart
+This module provides utilities to measure response size and generate smart
 suggestions when responses exceed configured limits. This prevents large
 responses from overwhelming LLM clients like Claude Desktop.
 
-Token counting strategy:
-
-1. ``tiktoken`` with the ``cl100k_base`` encoding when the package is
-   installed (it is shipped as part of the ``fastmcp`` extra). This is a
-   real BPE tokenizer trained on a similar vocabulary to Claude's; for
-   English and JSON-heavy MCP payloads it tracks Claude's tokenizer
-   within roughly ±10%, which is far more accurate than the legacy
-   character heuristic.
-2. A character-based fallback (``CHARS_PER_TOKEN``) when tiktoken is not
-   importable. The fallback uses a slightly more conservative ratio than
-   before (3.0 chars/token instead of 3.5) so that JSON-heavy responses
-   are not under-counted, which previously let oversized payloads slip
-   past the response-size guard.
-
-The exact-Claude tokenizer is only available via Anthropic's network
-``count_tokens`` API; calling it from a synchronous middleware on every
-tool result is too slow and adds an external dependency on every
-response. ``tiktoken`` is the closest approximation we can ship without
-that risk.
+Response size is measured as the exact serialized UTF-8 byte length, not an
+estimated LLM token count. An MCP server has no way to know which client
+(Claude, GPT, Gemini, a local model) or tokenizer is actually consuming a
+given response, so any token estimate would be a guess about a vocabulary
+that cannot be known. Byte length is deterministic and tokenizer-agnostic.
 """
 
 from __future__ import annotations
 
 import logging
+import sys
 from typing import Any, Dict, List, NamedTuple, Union
 
 from pydantic import BaseModel
@@ -58,127 +45,19 @@ logger = logging.getLogger(__name__)
 # Type alias for MCP tool responses (Pydantic models, dicts, lists, strings, bytes)
 ToolResponse: TypeAlias = Union[BaseModel, Dict[str, Any], List[Any], str, bytes]
 
-# Fallback character-to-token ratio used when tiktoken is unavailable.
-# 3.0 is conservative for JSON content (the previous 3.5 under-counted
-# JSON-heavy payloads relative to Claude's actual tokenizer, which let
-# oversized responses slip past the response-size guard).
-CHARS_PER_TOKEN = 3.0
-
-# Encoding used when tiktoken is available. cl100k_base is OpenAI's
-# tokenizer for GPT-3.5/4; it is BPE-based with a vocabulary similar to
-# Claude's and tracks Claude's token counts within roughly ±10% for
-# English and JSON-heavy MCP responses.
-_TIKTOKEN_ENCODING_NAME = "cl100k_base"
-
-
-def _load_tiktoken_encoding() -> Any:
-    """Return a tiktoken encoding instance, or None if tiktoken is unavailable.
-
-    Imported lazily so the module can be used in environments without
-    tiktoken installed. The encoding is small (~1 MB) so we cache it on
-    first use.
-    """
-    try:
-        import tiktoken
-    except ImportError:
-        logger.info(
-            "tiktoken not installed; falling back to char-based token "
-            "estimation (CHARS_PER_TOKEN=%s). Install the 'fastmcp' extra "
-            "for accurate counts.",
-            CHARS_PER_TOKEN,
-        )
-        return None
-
-    try:
-        return tiktoken.get_encoding(_TIKTOKEN_ENCODING_NAME)
-    except (KeyError, ValueError) as exc:
-        # tiktoken installed but the requested encoding is missing — this
-        # only happens on partial installs. Treat as no tokenizer rather
-        # than crashing on every tool call.
-        logger.warning(
-            "tiktoken encoding '%s' unavailable: %s; falling back to "
-            "char-based token estimation",
-            _TIKTOKEN_ENCODING_NAME,
-            exc,
-        )
-        return None
-
-
-# Cached encoding instance (None if tiktoken not importable).
-_ENCODING = _load_tiktoken_encoding()
-
-
-def estimate_token_count(text: str | bytes) -> int:
-    """
-    Estimate the token count for a given text.
-
-    Uses tiktoken's ``cl100k_base`` encoding when available for
-    Claude-aligned accuracy (within ~10%), falling back to a
-    character-based heuristic otherwise.
-
-    Args:
-        text: The text to estimate tokens for (string or bytes)
-
-    Returns:
-        Estimated number of tokens
-    """
-    if isinstance(text, bytes):
-        text = text.decode("utf-8", errors="replace")
-
-    if not text:
-        return 0
-
-    if _ENCODING is not None:
-        try:
-            return len(_ENCODING.encode(text))
-        except (ValueError, UnicodeError) as exc:
-            # Defensive: if tiktoken chokes on a specific input, fall
-            # back to the char heuristic for this call rather than
-            # raising — the response size guard must never fail-open.
-            logger.warning("tiktoken encode failed (%s); using fallback", exc)
-
-    return max(1, int(len(text) / CHARS_PER_TOKEN))
-
-
-def estimate_response_tokens(response: ToolResponse) -> int:
-    """
-    Estimate token count for an MCP tool response.
-
-    Handles various response types including Pydantic models, dicts, and strings.
-
-    Args:
-        response: The response object to estimate
-
-    Returns:
-        Estimated number of tokens
-    """
-    try:
-        from superset.utils import json
-
-        # Convert response to JSON string for accurate estimation
-        if hasattr(response, "model_dump"):
-            # Pydantic model
-            response_str = json.dumps(response.model_dump())
-        elif isinstance(response, (dict, list)):
-            response_str = json.dumps(response)
-        elif isinstance(response, bytes):
-            # Delegate to estimate_token_count which handles decoding safely
-            return estimate_token_count(response)
-        elif isinstance(response, str):
-            response_str = response
-        else:
-            response_str = str(response)
-
-        return estimate_token_count(response_str)
-    except Exception as e:  # noqa: BLE001
-        logger.warning("Failed to estimate response tokens: %s", e)
-        # Return a high estimate to be safe (conservative fallback)
-        return 100000
+# Reported by ``get_response_size_bytes`` when a response cannot be serialized
+# and so cannot be measured. It exceeds any configurable ``max_bytes``, so an
+# unmeasurable response is always treated as oversized rather than allowed
+# through on a guess that happens to sit under the operator's limit.
+UNMEASURABLE_RESPONSE_BYTES = sys.maxsize
 
 
 def get_response_size_bytes(response: ToolResponse) -> int:
     """
     Get the size of a response in bytes.
+
+    Never raises: a response that cannot be serialized measures as
+    ``UNMEASURABLE_RESPONSE_BYTES`` so that callers treat it as oversized.
 
     Args:
         response: The response object
@@ -203,9 +82,9 @@ def get_response_size_bytes(response: ToolResponse) -> int:
         return len(response_str.encode("utf-8"))
     except Exception as e:  # noqa: BLE001
         logger.warning("Failed to get response size: %s", e)
-        # Return a conservative large value to avoid allowing oversized responses
-        # to bypass size checks (returning 0 would underestimate)
-        return 1_000_000  # 1MB fallback
+        # A fixed fallback would read as "fits" under any limit configured
+        # above it, so report the size as unknown-and-oversized instead.
+        return UNMEASURABLE_RESPONSE_BYTES
 
 
 def extract_query_params(params: Dict[str, Any] | None) -> Dict[str, Any]:
@@ -244,8 +123,8 @@ def extract_query_params(params: Dict[str, Any] | None) -> Dict[str, Any]:
 def generate_size_reduction_suggestions(
     tool_name: str,
     params: Dict[str, Any] | None,
-    estimated_tokens: int,
-    token_limit: int,
+    actual_bytes: int,
+    max_bytes: int,
     response: ToolResponse | None = None,
 ) -> List[str]:
     """
@@ -256,8 +135,8 @@ def generate_size_reduction_suggestions(
     Args:
         tool_name: Name of the MCP tool
         params: The tool parameters
-        estimated_tokens: Estimated token count of the response
-        token_limit: Configured token limit
+        actual_bytes: Actual size of the response in bytes
+        max_bytes: Configured byte limit
         response: Optional response object for additional analysis
 
     Returns:
@@ -265,10 +144,8 @@ def generate_size_reduction_suggestions(
     """
     suggestions = []
     query_params = extract_query_params(params)
-    reduction_needed = estimated_tokens - token_limit
-    reduction_pct = (
-        int((reduction_needed / estimated_tokens) * 100) if estimated_tokens else 0
-    )
+    reduction_needed = actual_bytes - max_bytes
+    reduction_pct = int((reduction_needed / actual_bytes) * 100) if actual_bytes else 0
 
     # Suggestion 1: Reduce page_size or limit
     raw_page_size = query_params.get("page_size") or query_params.get("limit")
@@ -280,9 +157,7 @@ def generate_size_reduction_suggestions(
         # Calculate suggested new limit based on reduction needed
         suggested_limit = max(
             1,
-            int(current_page_size * (token_limit / estimated_tokens))
-            if estimated_tokens
-            else 1,
+            int(current_page_size * (max_bytes / actual_bytes)) if actual_bytes else 1,
         )
         suggestions.append(
             f"Reduce page_size/limit from {current_page_size} to {suggested_limit} "
@@ -478,7 +353,7 @@ INFO_TOOLS = frozenset(
 )
 
 # Data-query tools that return tabular results.  When the response exceeds the
-# token limit, these tools are truncated by dropping tail rows rather than
+# byte limit, these tools are truncated by dropping tail rows rather than
 # raising a hard ToolError.  A truncation note is appended so the caller
 # knows the result is partial and how to narrow the query.
 DATA_QUERY_TOOLS = frozenset(
@@ -626,8 +501,28 @@ _DATA_ROW_FIELDS = ("rows", "data")
 
 # Maximum character length for string fields before truncation
 _MAX_STRING_CHARS = 500
+# Floor for the budget-derived clip length (see ``string_clip_chars``), so a
+# clipped string stays recognizable even under a very small byte budget.
+_MIN_STRING_CHARS = 32
+# Above `_CLIP_BUDGET_DIVISOR * ceiling` bytes, string_clip_chars leaves the
+# ceiling unchanged; smaller budgets shrink the clip length proportionally.
+_CLIP_BUDGET_DIVISOR = 4
 # Maximum keys to keep when summarizing large dict fields
 _MAX_DICT_KEYS = 20
+
+
+def string_clip_chars(max_bytes: int, ceiling: int = _MAX_STRING_CHARS) -> int:
+    """Derive the per-string clip length from the response byte budget.
+
+    A fixed clip length only works while the budget dwarfs it: a single
+    clipped field plus its truncation marker must not exhaust the whole
+    budget by itself, or string truncation can never bring a response under
+    the limit. Above ``_CLIP_BUDGET_DIVISOR * ceiling`` bytes the ceiling
+    applies unchanged (the default 50 KB budget keeps the full
+    ``_MAX_STRING_CHARS``); smaller budgets shrink the clip length
+    proportionally, down to ``_MIN_STRING_CHARS``.
+    """
+    return min(ceiling, max(_MIN_STRING_CHARS, max_bytes // _CLIP_BUDGET_DIVISOR))
 
 
 def _truncate_strings(
@@ -767,22 +662,20 @@ def _replace_collections_with_summaries(
     return changed
 
 
-def _is_under_limit(data: Dict[str, Any], token_limit: int) -> bool:
-    """Check if the serialized data fits within the token limit."""
-    from superset.utils import json as utils_json
-
-    return estimate_token_count(utils_json.dumps(data)) <= token_limit
+def _is_under_limit(data: Dict[str, Any], max_bytes: int) -> bool:
+    """Check if the serialized data fits within the byte limit."""
+    return get_response_size_bytes(data) <= max_bytes
 
 
 def truncate_oversized_response(
     response: ToolResponse,
-    token_limit: int,
+    max_bytes: int,
     # Configurable via MCP_RESPONSE_SIZE_CONFIG["max_list_items"]
     max_list_items: int = DEFAULT_MAX_LIST_ITEMS,
     protected_keys: frozenset[str] = frozenset(),
 ) -> tuple[ToolResponse, bool, list[str]]:
     """
-    Dynamically truncate large fields in a response to fit within the token limit.
+    Dynamically truncate large fields in a response to fit within the byte limit.
 
     Applies five progressive phases of truncation:
     1. Truncate long top-level string fields
@@ -793,14 +686,14 @@ def truncate_oversized_response(
 
     Args:
         response: The tool response (Pydantic model, dict, or other).
-        token_limit: Maximum estimated tokens allowed.
+        max_bytes: Maximum serialized response size in bytes.
         max_list_items: Maximum items to keep in list fields during Phase 2.
         protected_keys: Top-level keys the destructive phases (4 and 5) must
             never summarize or clear, even if the response is still over
             budget afterward. Used for committed-write tools so their
             identifying field (e.g. ``chart``) always survives. Callers that
             pass this must be prepared for the returned response to still
-            exceed ``token_limit``.
+            exceed ``max_bytes``.
 
     Returns:
         A tuple of (possibly-truncated response, was_truncated, list of notes).
@@ -816,27 +709,30 @@ def truncate_oversized_response(
         return response, False, notes
 
     was_truncated = False
+    # Clip length scales down with small budgets so the string phases can
+    # actually converge instead of leaving one clipped field over the limit.
+    max_chars = string_clip_chars(max_bytes)
 
     # Phase 1: Truncate long string fields
-    was_truncated |= _truncate_strings(data, notes)
-    if _is_under_limit(data, token_limit):
+    was_truncated |= _truncate_strings(data, notes, max_chars)
+    if _is_under_limit(data, max_bytes):
         return data, was_truncated, notes
 
     # Phase 2: Truncate large list fields
     was_truncated |= _truncate_lists(data, notes, max_list_items)
-    if _is_under_limit(data, token_limit):
+    if _is_under_limit(data, max_bytes):
         return data, was_truncated, notes
 
     # Phase 3: Recursively truncate strings inside nested structures
     # (e.g. charts[i].description, native_filters[i].config, etc.)
-    was_truncated |= _truncate_strings_recursive(data, notes)
-    if _is_under_limit(data, token_limit):
+    was_truncated |= _truncate_strings_recursive(data, notes, max_chars)
+    if _is_under_limit(data, max_bytes):
         return data, was_truncated, notes
 
     # Phase 4: Aggressively reduce lists and summarize large dicts
     was_truncated |= _truncate_lists(data, notes, max_items=10)
     was_truncated |= _summarize_large_dicts(data, notes, protected_keys=protected_keys)
-    if _is_under_limit(data, token_limit):
+    if _is_under_limit(data, max_bytes):
         return data, was_truncated, notes
 
     # Phase 5: Nuclear — replace all collections with empty values
@@ -851,7 +747,7 @@ def _bisect_row_limit(
     data: Dict[str, Any],
     row_field: str,
     original_rows: List[Any],
-    token_limit: int,
+    max_bytes: int,
 ) -> int:
     """Binary-search for the largest row prefix that keeps data under limit.
 
@@ -859,13 +755,11 @@ def _bisect_row_limit(
     kept count on return.  Returns the number of rows kept (>= 1 if the
     original list was non-empty).
     """
-    from superset.utils import json as utils_json
-
     lo, hi = 0, len(original_rows)
     while lo < hi:
         mid = (lo + hi + 1) // 2
         data[row_field] = original_rows[:mid]
-        if estimate_token_count(utils_json.dumps(data)) <= token_limit:
+        if get_response_size_bytes(data) <= max_bytes:
             lo = mid
         else:
             hi = mid - 1
@@ -884,7 +778,7 @@ def _bisect_string_length(
     data: Dict[str, Any],
     field: str,
     original_value: str,
-    token_limit: int,
+    max_bytes: int,
     suffix: str = "",
 ) -> int:
     """Binary-search for the largest string prefix that keeps data under limit.
@@ -895,13 +789,11 @@ def _bisect_string_length(
     pushing the payload back over the limit afterward. It is only appended
     when the value is actually shortened.
     """
-    from superset.utils import json as utils_json
-
     lo, hi = 0, len(original_value)
     while lo < hi:
         mid = (lo + hi + 1) // 2
         data[field] = original_value[:mid] + suffix
-        if estimate_token_count(utils_json.dumps(data)) <= token_limit:
+        if get_response_size_bytes(data) <= max_bytes:
             lo = mid
         else:
             hi = mid - 1
@@ -931,7 +823,7 @@ _DEFAULT_ROW_LIMIT_ADVICE = (
 def _truncate_rows_field(
     data: Dict[str, Any],
     row_field: str,
-    token_limit: int,
+    max_bytes: int,
     advice: str,
 ) -> list[str] | None:
     """Try to bisect ``data[row_field]`` down to fit the limit.
@@ -952,17 +844,17 @@ def _truncate_rows_field(
     # longest the real note can ever be (kept <= original_count).
     placeholder_note = (
         f"Result truncated: {original_count} of {original_count} rows returned "
-        f"(limit ~{token_limit:,} tokens). {advice}"
+        f"(limit ~{max_bytes:,} bytes). {advice}"
     )
     data["_response_truncated"] = True
     data["_truncation_notes"] = [placeholder_note]
 
-    kept = _bisect_row_limit(data, row_field, original_rows, token_limit)
+    kept = _bisect_row_limit(data, row_field, original_rows, max_bytes)
 
     if kept < original_count:
         notes = [
             f"Result truncated: {kept} of {original_count} rows returned "
-            f"(limit ~{token_limit:,} tokens). {advice}"
+            f"(limit ~{max_bytes:,} bytes). {advice}"
         ]
         data["_truncation_notes"] = notes
         if "row_count" in data:
@@ -977,11 +869,9 @@ def _truncate_rows_field(
 
 
 def _truncate_chart_query_results(
-    data: Dict[str, Any], token_limit: int, advice: str
+    data: Dict[str, Any], max_bytes: int, advice: str
 ) -> list[str] | None:
     """Apply one response-wide row cap to every result of a multi-query chart."""
-    from superset.utils import json as utils_json
-
     query_results = data.get("query_results")
     if not isinstance(query_results, list) or not query_results:
         return None
@@ -1001,7 +891,7 @@ def _truncate_chart_query_results(
     data["_truncation_notes"] = [
         f"Result truncated: {original_count} of {original_count} rows returned "
         f"across multiple queries "
-        f"(limit ~{token_limit:,} tokens). {advice}"
+        f"(limit ~{max_bytes:,} bytes). {advice}"
     ]
 
     lo, hi = 0, max(len(rows) for rows in originals)
@@ -1009,7 +899,7 @@ def _truncate_chart_query_results(
         cap = (lo + hi + 1) // 2
         for rows, original in zip(row_lists, originals, strict=False):
             rows[:] = original[:cap]
-        if estimate_token_count(utils_json.dumps(data)) <= token_limit:
+        if get_response_size_bytes(data) <= max_bytes:
             lo = cap
         else:
             hi = cap - 1
@@ -1029,7 +919,7 @@ def _truncate_chart_query_results(
             result["row_count"] = len(result["data"])
     data["_truncation_notes"] = [
         f"Result truncated: {kept_count} of {original_count} rows returned "
-        f"across multiple queries (limit ~{token_limit:,} tokens). {advice}"
+        f"across multiple queries (limit ~{max_bytes:,} bytes). {advice}"
     ]
     return data["_truncation_notes"]
 
@@ -1037,7 +927,7 @@ def _truncate_chart_query_results(
 def _truncate_named_string_field(
     data: Dict[str, Any],
     field: str,
-    token_limit: int,
+    max_bytes: int,
     advice: str,
     label: str | None = None,
     suffix_marker: str = "",
@@ -1072,19 +962,19 @@ def _truncate_named_string_field(
     # character count rather than a row count.
     placeholder_note = (
         f"{label} truncated: kept {original_len:,} of {original_len:,} "
-        f"characters (limit ~{token_limit:,} tokens). {advice}"
+        f"characters (limit ~{max_bytes:,} bytes). {advice}"
     )
 
     data["_response_truncated"] = True
     data["_truncation_notes"] = [placeholder_note]
 
     kept_len = _bisect_string_length(
-        data, field, value, token_limit, suffix=suffix_marker
+        data, field, value, max_bytes, suffix=suffix_marker
     )
     if kept_len < original_len:
         notes = [
             f"{label} truncated: kept {kept_len:,} of {original_len:,} "
-            f"characters (limit ~{token_limit:,} tokens). {advice}"
+            f"characters (limit ~{max_bytes:,} bytes). {advice}"
         ]
         data["_truncation_notes"] = notes
         return notes
@@ -1096,10 +986,10 @@ def _truncate_named_string_field(
 
 def truncate_query_result(
     response: ToolResponse,
-    token_limit: int,
+    max_bytes: int,
     tool_name: str | None = None,
 ) -> tuple[ToolResponse, bool, list[str]]:
-    """Truncate a data-query tool response to fit within the token limit.
+    """Truncate a data-query tool response to fit within the byte limit.
 
     Unlike ``truncate_oversized_response`` (which targets info-tool dict
     fields), this function targets the rows/data list directly: it performs
@@ -1116,15 +1006,13 @@ def truncate_query_result(
 
     Args:
         response: The tool response containing tabular row data.
-        token_limit: Maximum estimated tokens allowed.
+        max_bytes: Maximum serialized response size in bytes.
         tool_name: Name of the calling tool, used to tailor the truncation
             advice (e.g. ``limit`` vs. ``row_limit`` vs. SQL ``LIMIT``).
 
     Returns:
         A tuple of (possibly-truncated response, was_truncated, list of notes).
     """
-    from superset.utils import json as utils_json
-
     advice = _ROW_LIMIT_ADVICE.get(tool_name or "", _DEFAULT_ROW_LIMIT_ADVICE)
 
     if hasattr(response, "model_dump"):
@@ -1143,19 +1031,19 @@ def truncate_query_result(
 
     if row_field is None:
         # No recognised row field — fall back to generic field truncation.
-        return truncate_oversized_response(response, token_limit)
+        return truncate_oversized_response(response, max_bytes)
 
-    if estimate_token_count(utils_json.dumps(data)) <= token_limit:
+    if get_response_size_bytes(data) <= max_bytes:
         return data, False, []
 
-    notes = _truncate_chart_query_results(data, token_limit, advice)
+    notes = _truncate_chart_query_results(data, max_bytes, advice)
     if notes is None:
-        notes = _truncate_rows_field(data, row_field, token_limit, advice)
+        notes = _truncate_rows_field(data, row_field, max_bytes, advice)
     if notes is None:
         notes = _truncate_named_string_field(
             data,
             "csv_data",
-            token_limit,
+            max_bytes,
             advice,
             label="CSV content",
             suffix_marker=_STRING_FIELD_TRUNCATION_MARKERS.get("csv_data", ""),
@@ -1166,7 +1054,7 @@ def truncate_query_result(
 
 def truncate_string_field_response(
     response: ToolResponse,
-    token_limit: int,
+    max_bytes: int,
     field: str,
 ) -> tuple[ToolResponse, bool, list[str]]:
     """Truncate a response whose bulk is one string field with no size lever.
@@ -1179,14 +1067,12 @@ def truncate_string_field_response(
 
     Args:
         response: The tool response containing the oversized string field.
-        token_limit: Maximum estimated tokens allowed.
+        max_bytes: Maximum serialized response size in bytes.
         field: Name of the string field to truncate.
 
     Returns:
         A tuple of (possibly-truncated response, was_truncated, list of notes).
     """
-    from superset.utils import json as utils_json
-
     if hasattr(response, "model_dump"):
         data = response.model_dump()
     elif isinstance(response, dict):
@@ -1194,7 +1080,7 @@ def truncate_string_field_response(
     else:
         return response, False, []
 
-    if estimate_token_count(utils_json.dumps(data)) <= token_limit:
+    if get_response_size_bytes(data) <= max_bytes:
         return data, False, []
 
     advice = (
@@ -1204,7 +1090,7 @@ def truncate_string_field_response(
     notes = _truncate_named_string_field(
         data,
         field,
-        token_limit,
+        max_bytes,
         advice,
         suffix_marker=_STRING_FIELD_TRUNCATION_MARKERS.get(field, ""),
     )
@@ -1214,29 +1100,34 @@ def truncate_string_field_response(
 def format_size_limit_error(
     tool_name: str,
     params: Dict[str, Any] | None,
-    estimated_tokens: int,
-    token_limit: int,
+    actual_bytes: int,
+    max_bytes: int,
     response: ToolResponse | None = None,
 ) -> str:
     """
-    Format a user-friendly error message when response exceeds token limit.
+    Format a user-friendly error message when response exceeds the byte limit.
 
     Args:
         tool_name: Name of the MCP tool
         params: The tool parameters
-        estimated_tokens: Estimated token count
-        token_limit: Configured token limit
+        actual_bytes: Actual size of the response in bytes
+        max_bytes: Configured byte limit
         response: Optional response for analysis
 
     Returns:
         Formatted error message with suggestions
     """
     suggestions = generate_size_reduction_suggestions(
-        tool_name, params, estimated_tokens, token_limit, response
+        tool_name, params, actual_bytes, max_bytes, response
     )
 
+    size_text = (
+        "size could not be measured"
+        if actual_bytes == UNMEASURABLE_RESPONSE_BYTES
+        else f"{actual_bytes:,} bytes"
+    )
     error_lines = [
-        f"Response too large: ~{estimated_tokens:,} tokens (limit: {token_limit:,})",
+        f"Response too large: {size_text} (limit: {max_bytes:,})",
         "",
         "This response would overwhelm the LLM context window.",
         "Please modify your query to reduce the response size:",
@@ -1247,9 +1138,7 @@ def format_size_limit_error(
         error_lines.append(f"{i}. {suggestion}")
 
     reduction_pct = (
-        (estimated_tokens - token_limit) / estimated_tokens * 100
-        if estimated_tokens
-        else 0
+        (actual_bytes - max_bytes) / actual_bytes * 100 if actual_bytes else 0
     )
     error_lines.extend(
         [
