@@ -29,6 +29,7 @@ import {
   JsonObject,
   getExtensionsRegistry,
 } from '@superset-ui/core';
+import { logging } from '@apache-superset/core/utils';
 import { URL_PARAMS } from 'src/constants';
 import { getUrlParam } from 'src/utils/urlUtils';
 import { css, styled, useTheme } from '@apache-superset/core/theme';
@@ -255,7 +256,13 @@ const ExploreChartPanel = ({
   );
 
   useEffect(() => {
-    updateQueryContext();
+    // Backfilling the stored query context is best-effort: the caller may lack
+    // the rights to persist it, in which case the PUT resolves to a rejected
+    // promise. Swallow it quietly so it never surfaces as an unhandled
+    // rejection or a user-facing error; the chart still renders either way.
+    updateQueryContext().catch(error => {
+      logging.debug('Skipped background query context backfill', error);
+    });
   }, [updateQueryContext]);
 
   useEffect(() => {
