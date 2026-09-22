@@ -1138,6 +1138,39 @@ def test_fetch_metadata_does_not_bump_changed_on_for_kept_virtual_columns(
     assert table.changed_on == original_changed_on
 
 
+def test_fetch_metadata_keeps_dotted_calculated_column(
+    mocker: MockerFixture,
+) -> None:
+    """A user calculated column with a dotted name must survive a refresh.
+
+    Only Trino's quoted-path expression signature for expanded ``ROW``
+    fields identifies a leftover as physical; a bare dot in the name is
+    not enough, since ``DatasetColumnsPutSchema.column_name`` allows any
+    name up to 255 characters. See #43918.
+    """
+    table = _table_for_fetch_metadata(
+        mocker,
+        source_columns=[{"column_name": "id", "type": "INTEGER"}],
+        existing=[
+            {"column_name": "id", "type": "INTEGER"},
+            {
+                "column_name": "revenue.usd",
+                "type": "INTEGER",
+                "expression": "revenue * fx_rate",
+            },
+        ],
+    )
+    original_changed_on = datetime(2024, 6, 1, 12, 0, 0)
+    table.changed_on = original_changed_on
+
+    with freeze_time("2024-06-01 12:00:05"):
+        result = table.fetch_metadata()
+
+    assert "revenue.usd" in result.removed
+    assert any(col.column_name == "revenue.usd" for col in table.columns)
+    assert table.changed_on == original_changed_on
+
+
 @pytest.mark.parametrize(
     "supports_cross_catalog,table_name,catalog,schema,expected_name,expected_schema",
     [

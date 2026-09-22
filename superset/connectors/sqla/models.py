@@ -158,13 +158,20 @@ def _is_calculated_column(column: TableColumn) -> bool:
 
     ``fetch_metadata`` keeps calculated columns that the source table does
     not list. Engine specs such as Trino also store an ``expression`` on
-    expanded nested ``ROW`` fields (dotted names like ``metadata.uuid``).
-    Those are still physical columns: if the source no longer lists them
-    they must be dropped so chart cache keys invalidate. See #43918.
+    expanded nested ``ROW`` fields, whose name is the dotted path (e.g.
+    ``metadata.uuid``) and whose expression is always that same path
+    quoted per-part (e.g. ``"metadata"."uuid"``). Those are still physical
+    columns: if the source no longer lists them they must be dropped so
+    chart cache keys invalidate. A user-authored calculated column can
+    also have a dotted name, so the dot alone cannot be the signal; only
+    drop columns whose expression matches Trino's quoted-path pattern for
+    its own name. See #43918.
     """
     if not column.expression:
         return False
-    return "." not in (column.column_name or "")
+    name = column.column_name or ""
+    quoted_path = ".".join(f'"{part}"' for part in name.split("."))
+    return column.expression != quoted_path
 
 
 METRIC_FORM_DATA_PARAMS = [
