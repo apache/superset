@@ -47,9 +47,11 @@ from __future__ import annotations
 import logging
 import re
 from dataclasses import dataclass
+from functools import lru_cache
 
 from flask_babel import lazy_gettext as _
 
+from superset.constants import LRU_CACHE_MAX_SIZE
 from superset.exceptions import SupersetParseError
 from superset.sql.parse import SQLStatement
 
@@ -322,3 +324,27 @@ def validate_transform(
         ]
 
     return []
+
+
+@lru_cache(maxsize=LRU_CACHE_MAX_SIZE)
+def is_transform_active(transform: str | None, engine: str) -> bool:
+    """
+    Whether Superset will mirror filters through this transform.
+
+    `validate_transform` with the messages discarded, so the Explore indicator
+    cannot advertise a mapping the save path recorded as inactive. Anything
+    cheaper here would be a second, weaker statement of the same rule, free to
+    drift from the one the save path applies.
+
+    Blocking issues count too. Jinja and non-deterministic transforms are
+    rejected on PUT, but `CreateDatasetCommand` and import do not validate the
+    mapping, so one can still reach the database -- and it would never mirror a
+    filter either.
+
+    Memoized because `partition_filter_mapping_summary` is serialized on every
+    Explore and dashboard load and this parses the transform. The key is
+    everything the answer depends on: `validate_transform` reads no session, no
+    locale and no config beyond `SQL_MAX_PARSE_LENGTH`, which bounds the parser
+    rather than changing a verdict within that bound.
+    """
+    return not validate_transform(transform, engine)
