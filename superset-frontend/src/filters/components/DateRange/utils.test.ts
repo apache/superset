@@ -31,6 +31,12 @@ test('parseTimeRange returns null for empty or invalid input', () => {
   expect(parseTimeRange('not a range')).toBeNull();
 });
 
+test('parseTimeRange returns null for a single date with no separator', () => {
+  // dayjs(undefined) resolves to "now", which is valid — a missing end
+  // date must be rejected explicitly rather than relying on that quirk.
+  expect(parseTimeRange('2024-01-01')).toBeNull();
+});
+
 test('formatTimeRange formats a date pair as "start : end" with no time-of-day', () => {
   const range = formatTimeRange([dayjs('2024-01-01'), dayjs('2024-01-31')]);
   expect(range).toBe('2024-01-01 : 2024-01-31');

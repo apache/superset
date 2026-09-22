@@ -25,7 +25,9 @@ export type DateRangeValue = [Dayjs | null, Dayjs | null] | null;
 
 export function parseTimeRange(value?: string | null): DateRangeValue {
   if (!value) return null;
-  const [start, end] = value.split(RANGE_SEPARATOR);
+  const parts = value.split(RANGE_SEPARATOR);
+  if (parts.length !== 2) return null;
+  const [start, end] = parts;
   const startDate = dayjs(start);
   const endDate = dayjs(end);
   if (!startDate.isValid() || !endDate.isValid()) return null;
