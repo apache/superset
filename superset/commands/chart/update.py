@@ -155,10 +155,12 @@ class UpdateChartCommand(UpdateMixin, BaseCommand):
         dashboard_ids = self._properties.get("dashboards")
         tag_ids: Optional[list[int]] = self._properties.get("tags")
 
-        # Validate if datasource_id is provided datasource_type is required
+        # A supplied type cannot clear the chart's datasource namespace.
         datasource_id = self._properties.get("datasource_id")
         datasource_type = self._properties.get("datasource_type", "")
-        if datasource_id is not None and not datasource_type:
+        if (
+            datasource_id is not None or "datasource_type" in self._properties
+        ) and not datasource_type:
             exceptions.append(DatasourceTypeUpdateRequiredValidationError())
 
         # Validate/populate model exists
