@@ -20,6 +20,7 @@ import { t } from '@apache-superset/core/translation';
 import { GenericDataType } from '@apache-superset/core/common';
 import {
   ControlPanelConfig,
+  CustomControlItem,
   getStandardizedControls,
   sharedControls,
   sections,
@@ -34,6 +35,30 @@ import {
   showMetricNameControl,
   metricNameFontSizeWithVisibility,
 } from '../sharedControls';
+
+// Shared base for the `increase_color` / `decrease_color` pickers so the
+// presets, token resolution, output format and visibility rule can't drift
+// apart. No static default: charts saved before these controls existed only
+// have `comparison_color_scheme` ('Green' | 'Red', where 'Red' reverses
+// increase/decrease colors). Leaving each control's value undefined lets
+// `resolveComparisonColorKeys` (see BigNumberPeriodOverPeriod/utils.ts)
+// resolve the correct color from that legacy scheme at render time. A
+// hardcoded default here would win over the legacy fallback via
+// `applyDefaultFormData` and silently repaint old dashboards.
+const comparisonColorControlConfig: CustomControlItem['config'] = {
+  type: 'ColorPickerControl',
+  renderTrigger: true,
+  presets: [
+    {
+      label: t('Semantic colors'),
+      colors: [ColorSchemeEnum.Green, ColorSchemeEnum.Red],
+    },
+  ],
+  resolveThemeTokens: true,
+  outputFormat: 'hex',
+  visibility: ({ controls }) =>
+    controls?.comparison_color_enabled?.value === true,
+};
 
 const config: ControlPanelConfig = {
   controlPanelSections: [
@@ -102,27 +127,8 @@ const config: ControlPanelConfig = {
           {
             name: 'increase_color',
             config: {
-              type: 'ColorPickerControl',
+              ...comparisonColorControlConfig,
               label: t('Color for increase'),
-              // No static default: charts saved before this control existed
-              // only have `comparison_color_scheme` ('Green' | 'Red', where
-              // 'Red' reverses increase/decrease colors). Leaving this
-              // control's value undefined lets `resolveComparisonColorKeys`
-              // (see BigNumberPeriodOverPeriod/utils.ts) resolve the correct
-              // color from that legacy scheme at render time. A hardcoded
-              // default here would win over the legacy fallback via
-              // `applyDefaultFormData` and silently repaint old dashboards.
-              renderTrigger: true,
-              presets: [
-                {
-                  label: t('Semantic colors'),
-                  colors: [ColorSchemeEnum.Green, ColorSchemeEnum.Red],
-                },
-              ],
-              resolveThemeTokens: true,
-              outputFormat: 'hex',
-              visibility: ({ controls }) =>
-                controls?.comparison_color_enabled?.value === true,
               description: t(
                 'Color used for the arrow and symbols when the metric ' +
                   'increased from the comparison value. Defaults to green.',
@@ -132,22 +138,8 @@ const config: ControlPanelConfig = {
           {
             name: 'decrease_color',
             config: {
-              type: 'ColorPickerControl',
+              ...comparisonColorControlConfig,
               label: t('Color for decrease'),
-              // See the comment on `increase_color` above: no static
-              // default, so `resolveComparisonColorKeys` can apply the
-              // legacy `comparison_color_scheme` fallback for old charts.
-              renderTrigger: true,
-              presets: [
-                {
-                  label: t('Semantic colors'),
-                  colors: [ColorSchemeEnum.Green, ColorSchemeEnum.Red],
-                },
-              ],
-              resolveThemeTokens: true,
-              outputFormat: 'hex',
-              visibility: ({ controls }) =>
-                controls?.comparison_color_enabled?.value === true,
               description: t(
                 'Color used for the arrow and symbols when the metric ' +
                   'decreased from the comparison value. Defaults to red.',
