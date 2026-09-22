@@ -1,3 +1,4 @@
+import { getClientErrorObject } from "src/utils/getClientErrorObject";
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -26,6 +27,7 @@ import {
   getLabelsColorMap,
   SupersetClient,
   getErrorText,
+  getClientErrorObject,
   getCategoricalSchemeRegistry,
   promiseTimeout,
   JsonObject,
