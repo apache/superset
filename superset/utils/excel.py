@@ -19,7 +19,6 @@ from datetime import datetime
 from typing import Any, Optional
 
 import pandas as pd
-from pandas.api.types import is_datetime64tz_dtype
 
 from superset.utils.core import GenericDataType
 
@@ -114,7 +113,7 @@ def strip_timezones_for_excel(df: pd.DataFrame) -> pd.DataFrame:
         df.columns = _naive_index(df.columns)
     for position in range(len(df.columns)):
         series = df.iloc[:, position]
-        if is_datetime64tz_dtype(series.dtype):
+        if isinstance(series.dtype, pd.DatetimeTZDtype):
             df.isetitem(position, series.dt.tz_localize(None))
         elif pd.api.types.is_object_dtype(series.dtype):
             df.isetitem(position, series.map(_drop_timezone))
@@ -225,15 +224,17 @@ def apply_column_types(
                 )
             except ValueError:
                 series = series.astype(str)
-        elif is_datetime64tz_dtype(series.dtype):
+        elif isinstance(series.dtype, pd.DatetimeTZDtype):
             # Excel has no timezone type. Keep the wall-clock components so
             # the cell stays a date/time instead of a formatted string.
             series = series.dt.tz_localize(None)
         else:
-            converted = series.map(_drop_timezone)
-            if converted.equals(series):
-                continue
-            series = converted
+            # Object-dtype tz-aware values (e.g. mixed columns holding
+            # individual Timestamp/datetime objects) are handled by
+            # ``strip_timezones_for_excel``, which every ``df_to_excel`` call
+            # already runs -- doing the same ``_drop_timezone`` scan here
+            # would just walk every object column twice.
+            continue
         # ``isetitem`` replaces the column at that position, which is both
         # unambiguous under duplicate labels and free of the in-place dtype
         # casting that ``iloc`` assignment attempts.
