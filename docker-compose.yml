@@ -37,7 +37,7 @@ x-superset-volumes: &superset-volumes
   - ./local_extensions:/app/local_extensions
 x-common-build: &common-build
   context: .
-  target: ${SUPERSET_BUILD_TARGET:-dev} # can use `dev` (default) or `lean`
+  target: ${SUPERSET_BUILD_TARGET:-dev} # dev (default, live-reload); also `superset` (batteries-included) or `lean` (minimal)
   cache_from:
     - apache/superset-cache:3.11-slim-trixie
   args:
@@ -217,7 +217,24 @@ services:
         required: true
       - path: docker/.env-local # optional override
         required: false
-    volumes: *superset-volumes
+    # Same shared bind mounts as the other services (repeated rather than
+    # aliased so an anonymous volume can be added over node_modules, keeping
+    # it container-managed). docker-frontend.sh now runs `npm ci`, which
+    # deletes node_modules before reinstalling; without this the delete+
+    # recreate lands directly on the host's bind-mounted directory, and this
+    # container has no `user: *superset-user` override (unlike
+    # superset-init/superset/superset-worker*), so it runs as the image's
+    # default root user and leaves the host copy root-owned.
+    volumes:
+      - ./docker:/app/docker
+      - ./superset:/app/superset
+      - ./superset-core:/app/superset-core
+      - ./superset-frontend:/app/superset-frontend
+      - /app/superset-frontend/node_modules
+      - superset_home:/app/superset_home
+      - ./tests:/app/tests
+      - superset_data:/app/data
+      - ./local_extensions:/app/local_extensions
 
   superset-worker:
     build:
@@ -240,7 +257,7 @@ services:
       - "host.docker.internal:host-gateway"
     healthcheck:
       test: ["CMD-SHELL", "celery -A superset.tasks.celery_app:app inspect ping -d celery@$$HOSTNAME"]
-    # Bump memory limit if processing selenium / thumbnails on superset-worker
+    # Bump memory limit if processing screenshots / thumbnails on superset-worker
     # mem_limit: 2038m
     # mem_reservation: 128M
 

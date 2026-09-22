@@ -18,7 +18,7 @@
  */
 import { extendedDayjs as dayjs } from '@superset-ui/core/utils/dates';
 import { Dayjs } from 'dayjs';
-import { TimeRangePicker } from 'src/components/TimePicker';
+import { TimeRangePicker } from '@superset-ui/core/components';
 import ControlHeader, { ControlHeaderProps } from '../../ControlHeader';
 
 type TimeRangeValueType = [string, string];

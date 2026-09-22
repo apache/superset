@@ -28,7 +28,7 @@ from superset.constants import CHANGE_ME_GUEST_TOKEN_JWT_SECRET
 from superset.mcp_service.composite_token_verifier import CompositeTokenVerifier
 from superset.mcp_service.constants import (
     DEFAULT_MAX_LIST_ITEMS,
-    DEFAULT_TOKEN_LIMIT,
+    DEFAULT_MAX_RESPONSE_BYTES,
     DEFAULT_WARN_THRESHOLD_PCT,
 )
 from superset.mcp_service.guest_token_verifier import GuestTokenVerifier
@@ -62,6 +62,11 @@ WEBDRIVER_BASEURL_USER_FRIENDLY = WEBDRIVER_BASEURL
 # When unset, the tool falls back to a neutral default that points at the
 # user's Superset administrator and the Apache Superset issue tracker.
 MCP_BUG_REPORT_CONTACT: str | None = None
+
+# Optional dataset routing mode: effective role names -> registered dataset UUIDs.
+# None preserves the complete MCP tool surface; {} permits no datasets.
+# This only narrows access and is not a substitute for permissions or RLS.
+MCP_DATASET_ROLE_ALLOWLIST: dict[str, list[str]] | None = None
 
 # MCP Debug mode - shows suppressed initialization output in stdio mode
 MCP_DEBUG = False
@@ -101,6 +106,13 @@ MCP_RBAC_ENABLED = True
 #   MCP_DISABLED_TOOLS = {"extensions.myorg.myext.some_tool"}
 MCP_DISABLED_TOOLS: set[str] = set()
 
+# Structured MCP tool output is opt-in because some clients and transport
+# bridges cannot handle outputSchema and structuredContent consistently. False
+# preserves the legacy text-only wire contract by removing both fields at the
+# outer compatibility middleware. Enable only after validating every MCP client
+# and bridge used by the deployment.
+MCP_STRUCTURED_OUTPUT_ENABLED = False
+
 # Pluggable error-capture hook, invoked for system-class MCP tool errors
 # (unexpected exceptions — database down, bugs — not user errors like bad
 # params or permission denials). Lets operators forward failures to an
@@ -114,7 +126,7 @@ MCP_DISABLED_TOOLS: set[str] = set()
 # "user_id", "error_type", "sanitized_message", and "duration_ms" — but
 # values may be unavailable depending on the capture path: "user_id" and
 # "duration_ms" are None on the last-resort path
-# (StructuredContentStripperMiddleware), "mcp_call_id" is None outside a
+# (ToolResultCompatibilityMiddleware), "mcp_call_id" is None outside a
 # tool call, and "tool_name" falls back to "unknown" for non-tool
 # messages. Only "sanitized_message" is scrubbed — the ``error`` argument
 # is the RAW exception and may contain sensitive data (connection
@@ -204,6 +216,7 @@ MCP_EMBEDDED_GUEST_AUTH_ENABLED: bool = False
 MCP_GUEST_ALLOWED_TOOLS: set[str] = {
     "get_dashboard_info",
     "get_dashboard_layout",
+    "get_dashboard_data",
     "list_dashboards",
     "list_charts",
     "get_chart_info",
@@ -353,6 +366,7 @@ MCP_CACHE_CONFIG: dict[str, Any] = {
     # non-read-only tool is added without also being added here.
     "excluded_tools": [
         "add_chart_to_existing_dashboard",
+        "apply_dashboard_filters",
         "create_dataset",
         "create_theme",
         "create_virtual_dataset",
@@ -385,12 +399,13 @@ MCP_CACHE_CONFIG: dict[str, Any] = {
 # Overview:
 # ---------
 # The Response Size Guard prevents oversized responses from overwhelming LLM
-# clients (e.g., Claude Desktop). When a tool response exceeds the token limit,
+# clients (e.g., Claude Desktop). When a tool response exceeds the byte limit,
 # it returns a helpful error with suggestions for reducing the response size.
 #
 # How it works:
 # -------------
-# 1. After a tool executes, the middleware estimates the response's token count
+# 1. After a tool executes, the middleware measures the response's serialized
+#    UTF-8 byte size
 # 2. If the response exceeds the configured limit, it blocks the response
 # 3. Instead, it returns an error message with smart suggestions:
 #    - Reduce page_size/limit
@@ -401,24 +416,26 @@ MCP_CACHE_CONFIG: dict[str, Any] = {
 # Configuration:
 # --------------
 # - enabled: Toggle the guard on/off (default: True)
-# - token_limit: Maximum estimated tokens per response (default: 25,000)
+# - max_bytes: Maximum serialized response size in bytes (default: 50,000)
 # - excluded_tools: Tools to skip checking (e.g., streaming tools)
 # - warn_threshold_pct: Log warnings above this % of limit (default: 80%)
 # - max_list_items: Cap applied to list fields (e.g. ``charts``,
 #   ``native_filters``) during Phase 2 of dynamic truncation for the "info"
 #   tools (get_chart_info, get_dataset_info, get_dashboard_info,
-#   get_instance_info) when a response exceeds token_limit (default: 100).
+#   get_instance_info) when a response exceeds max_bytes (default: 100).
 #   Operators with tenants that have unusually large dashboards (hundreds of
 #   charts/filters) can raise this value to return more complete responses.
 #
-# Token Estimation:
-# -----------------
-# Uses character-based heuristic (~3.5 chars per token for JSON).
-# This is intentionally conservative to avoid underestimating.
+# Size Measurement:
+# ------------------
+# Uses the exact serialized UTF-8 byte length of the response. This is not an
+# LLM token estimate: an MCP server cannot know which client (Claude, GPT,
+# Gemini, a local model) or tokenizer is consuming a given response, so byte
+# size is used as a deterministic, tokenizer-agnostic proxy for response size.
 # =============================================================================
 MCP_RESPONSE_SIZE_CONFIG: dict[str, Any] = {
     "enabled": True,  # Enabled by default to protect LLM clients
-    "token_limit": DEFAULT_TOKEN_LIMIT,
+    "max_bytes": DEFAULT_MAX_RESPONSE_BYTES,
     "warn_threshold_pct": DEFAULT_WARN_THRESHOLD_PCT,
     "max_list_items": DEFAULT_MAX_LIST_ITEMS,
     "excluded_tools": [  # Tools to skip size checking
@@ -886,11 +903,13 @@ def get_mcp_config(app_config: dict[str, Any] | None = None) -> dict[str, Any]:
         "MCP_STATELESS_HTTP": MCP_STATELESS_HTTP,
         "MCP_RBAC_ENABLED": MCP_RBAC_ENABLED,
         "MCP_DISABLED_TOOLS": set(MCP_DISABLED_TOOLS),
+        "MCP_STRUCTURED_OUTPUT_ENABLED": MCP_STRUCTURED_OUTPUT_ENABLED,
         "MCP_DISABLED_CHART_PLUGINS": MCP_DISABLED_CHART_PLUGINS,
         "MCP_CHART_PLUGIN_ENABLED_FUNC": MCP_CHART_PLUGIN_ENABLED_FUNC,
         "MCP_EMBEDDED_GUEST_AUTH_ENABLED": MCP_EMBEDDED_GUEST_AUTH_ENABLED,
         "MCP_GUEST_ALLOWED_TOOLS": set(MCP_GUEST_ALLOWED_TOOLS),
         "MCP_RESTRICTED_TOOL_POLICY": MCP_RESTRICTED_TOOL_POLICY,
+        "MCP_DATASET_ROLE_ALLOWLIST": MCP_DATASET_ROLE_ALLOWLIST,
         **MCP_SESSION_CONFIG,
         **MCP_CSRF_CONFIG,
     }

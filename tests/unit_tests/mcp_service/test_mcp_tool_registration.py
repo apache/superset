@@ -19,14 +19,217 @@
 
 import asyncio
 import logging
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 import pytest
 
 from superset.mcp_service.app import get_default_instructions, init_fastmcp_server, mcp
+from superset.mcp_service.utils.response_size_utils import COMMITTED_WRITE_SPECS
 
 # Patch target for the feature_flag_manager imported inside _apply_config_guards
 _FFM_PATH = "superset.extensions.feature_flag_manager"
+
+
+# One response-specific field per native tool. Keeping the complete inventory
+# here makes every new tool go through the metadata review below, while the
+# field assertion rejects missing or fully unconstrained output schemas.
+EXPECTED_TOOL_OUTPUT_FIELDS = {
+    "add_chart_to_existing_dashboard": "dashboard_url",
+    "apply_dashboard_filters": "permalink_key",
+    "create_dataset": "table_name",
+    "create_theme": "theme_name",
+    "create_virtual_dataset": "dataset_name",
+    "delete_chart": "deleted_id",
+    "delete_dashboard": "deleted_id",
+    "duplicate_dashboard": "duplicated_slices",
+    "execute_sql": "statements",
+    "find_users": "users",
+    "generate_bug_report": "report",
+    "generate_chart": "chart",
+    "generate_dashboard": "dashboard",
+    "generate_explore_link": "form_data_key",
+    "get_annotation_layer_info": "descr",
+    "get_chart_data": "query_results",
+    "get_chart_info": "slice_name",
+    "get_chart_preview": "explore_url",
+    "get_chart_sql": "sql",
+    "get_chart_type_schema": "chart_type",
+    "get_compatible_dimensions": "compatible_dimensions",
+    "get_compatible_metrics": "compatible_metrics",
+    "get_dashboard_data": "charts_returned",
+    "get_dashboard_datasets": "datasets",
+    "get_dashboard_info": "dashboard_title",
+    "get_dashboard_layout": "tabs",
+    "get_database_info": "database_name",
+    "get_dataset_info": "table_name",
+    "get_instance_info": "instance_summary",
+    "get_layer_annotation_info": "short_descr",
+    "get_query_info": "executed_sql",
+    "get_report_info": "crontab",
+    "get_rls_filter_info": "clause",
+    "get_role_info": "permissions",
+    "get_saved_query_info": "label",
+    "get_schema": "schema_info",
+    "get_table": "source",
+    "get_tag_info": "name",
+    "get_task_info": "task_type",
+    "get_theme_info": "theme_name",
+    "get_user_info": "username",
+    "health_check": "status",
+    "list_annotation_layers": "annotation_layers",
+    "list_charts": "charts",
+    "list_dashboards": "dashboards",
+    "list_databases": "databases",
+    "list_datasets": "datasets",
+    "list_layer_annotations": "annotations",
+    "list_metrics": "metrics",
+    "list_queries": "queries",
+    "list_reports": "reports",
+    "list_rls_filters": "rls_filters",
+    "list_roles": "roles",
+    "list_saved_queries": "saved_queries",
+    "list_tags": "tags",
+    "list_tasks": "tasks",
+    "list_themes": "themes",
+    "list_users": "users",
+    "manage_dashboard_certification": "changed_fields",
+    "manage_dashboard_owners": "owners",
+    "manage_dashboard_roles": "roles",
+    "manage_native_filters": "filters",
+    "open_sql_lab_with_context": "title",
+    "query_dataset": "applied_filters",
+    "remove_chart_from_dashboard": "removed_layout_keys",
+    "restore_chart": "restored_id",
+    "restore_dashboard": "restored_id",
+    "save_sql_query": "label",
+    "update_chart": "chart",
+    "update_chart_preview": "previous_form_data_key",
+    "update_dashboard": "changed_fields",
+    "update_dataset_metric": "updated_properties",
+}
+
+# Representative full top-level contracts guard against partial schema drift,
+# including fields whose names overlap JSON Schema annotations.
+EXPECTED_TOP_LEVEL_OUTPUT_FIELDS = {
+    "get_chart_info": {"id", "slice_name", "viz_type", "form_data"},
+    "get_dashboard_info": {"dashboard_title", "charts", "filter_state"},
+    "get_dataset_info": {"table_name", "schema", "columns", "metrics"},
+    "open_sql_lab_with_context": {"url", "title", "database_id"},
+    "update_chart_preview": {"chart", "error", "form_data", "success"},
+}
+
+MUTATING_TOOLS = {
+    "add_chart_to_existing_dashboard",
+    "apply_dashboard_filters",
+    "create_dataset",
+    "create_theme",
+    "create_virtual_dataset",
+    "delete_chart",
+    "delete_dashboard",
+    "duplicate_dashboard",
+    "execute_sql",
+    "generate_chart",
+    "generate_dashboard",
+    "generate_explore_link",
+    "manage_dashboard_certification",
+    "manage_dashboard_owners",
+    "manage_dashboard_roles",
+    "manage_native_filters",
+    "remove_chart_from_dashboard",
+    "restore_chart",
+    "restore_dashboard",
+    "save_sql_query",
+    "update_chart",
+    "update_chart_preview",
+    "update_dashboard",
+    "update_dataset_metric",
+}
+
+# Mutating tools deliberately outside COMMITTED_WRITE_SPECS. Each is excluded
+# for a reason about *what* it commits, not about how large its response is:
+# execute_sql commits against the analytics database rather than Superset
+# metadata (and degrades via row truncation), while the two preview tools
+# persist nothing to the metadata database -- they only cache a form_data key,
+# so a retry re-caches instead of replaying a mutation.
+NON_COMMITTING_MUTATING_TOOLS = {
+    "execute_sql",
+    "generate_explore_link",
+    "update_chart_preview",
+}
+
+
+DESTRUCTIVE_TOOLS = {
+    "delete_chart",
+    "delete_dashboard",
+    "execute_sql",
+    "manage_dashboard_owners",
+    "manage_dashboard_roles",
+    "manage_native_filters",
+    "remove_chart_from_dashboard",
+    "update_chart",
+    "update_dashboard",
+    "update_dataset_metric",
+}
+
+
+def _schema_property_names(value: Any) -> set[str]:
+    """Collect declared property names from a nested JSON Schema."""
+    if isinstance(value, list):
+        names: set[str] = set()
+        for item in value:
+            names.update(_schema_property_names(item))
+        return names
+    if not isinstance(value, dict):
+        return set()
+
+    names = set(value.get("properties", {}))
+    for item in value.values():
+        names.update(_schema_property_names(item))
+    return names
+
+
+def _top_level_schema_property_names(
+    schema: dict[str, Any], root_schema: dict[str, Any] | None = None
+) -> set[str]:
+    """Collect properties at the root or its composed response variants."""
+    root_schema = root_schema or schema
+    if reference := schema.get("$ref"):
+        if isinstance(reference, str) and reference.startswith("#/$defs/"):
+            definition = root_schema.get("$defs", {}).get(
+                reference.removeprefix("#/$defs/"), {}
+            )
+            if isinstance(definition, dict):
+                return _top_level_schema_property_names(definition, root_schema)
+
+    names = set(schema.get("properties", {}))
+    for keyword in ("anyOf", "oneOf", "allOf"):
+        alternatives = schema.get(keyword, [])
+        if isinstance(alternatives, list):
+            for alternative in alternatives:
+                if isinstance(alternative, dict):
+                    names.update(
+                        _top_level_schema_property_names(alternative, root_schema)
+                    )
+    return names
+
+
+def test_schema_title_annotations_do_not_remove_title_fields() -> None:
+    """Generated titles are noise, but a response field named title is data."""
+    from superset.core.mcp.core_mcp_injection import _strip_schema_titles
+
+    schema = {
+        "title": "Response",
+        "type": "object",
+        "properties": {
+            "title": {"title": "Title", "type": "string"},
+        },
+    }
+
+    assert _strip_schema_titles(schema) == {
+        "type": "object",
+        "properties": {"title": {"type": "string"}},
+    }
 
 
 @pytest.fixture(autouse=True)
@@ -57,8 +260,8 @@ def test_mcp_app_imports_successfully():
     assert "list_charts" in tool_names
 
 
-def test_all_registered_tools_have_complete_annotations():
-    """Every advertised tool declares all MCP safety annotations."""
+def test_all_registered_tools_have_complete_metadata():  # noqa: C901
+    """Every native tool declares reviewed safety hints and useful output."""
     required_fields = (
         "title",
         "readOnlyHint",
@@ -66,10 +269,17 @@ def test_all_registered_tools_have_complete_annotations():
         "openWorldHint",
     )
     missing_by_tool = {}
+    missing_output_fields = {}
+    missing_top_level_output_fields = {}
     open_world_tools = []
     idempotent_mutating_tools = []
+    incorrect_read_only_tools = []
+    incorrect_destructive_tools = []
 
-    for registered_tool in _run(mcp.list_tools()):
+    registered_tools = _run(mcp.list_tools())
+    assert {tool.name for tool in registered_tools} == set(EXPECTED_TOOL_OUTPUT_FIELDS)
+
+    for registered_tool in registered_tools:
         annotations = registered_tool.annotations
         missing = [
             field
@@ -81,10 +291,37 @@ def test_all_registered_tools_have_complete_annotations():
                 missing.append("idempotentHint")
             elif annotations.idempotentHint is not False:
                 idempotent_mutating_tools.append(registered_tool.name)
+        if annotations is not None:
+            if annotations.readOnlyHint is not (
+                registered_tool.name not in MUTATING_TOOLS
+            ):
+                incorrect_read_only_tools.append(registered_tool.name)
+            if annotations.destructiveHint is not (
+                registered_tool.name in DESTRUCTIVE_TOOLS
+            ):
+                incorrect_destructive_tools.append(registered_tool.name)
         if missing:
             missing_by_tool[registered_tool.name] = missing
         elif annotations.openWorldHint is not False:
             open_world_tools.append(registered_tool.name)
+
+        output_schema = registered_tool.output_schema
+        expected_field = EXPECTED_TOOL_OUTPUT_FIELDS[registered_tool.name]
+        if output_schema is None or expected_field not in _schema_property_names(
+            output_schema
+        ):
+            missing_output_fields[registered_tool.name] = expected_field
+        if registered_tool.name in EXPECTED_TOP_LEVEL_OUTPUT_FIELDS:
+            actual_top_level_fields = _top_level_schema_property_names(
+                output_schema or {}
+            )
+            expected_top_level_fields = EXPECTED_TOP_LEVEL_OUTPUT_FIELDS[
+                registered_tool.name
+            ]
+            if missing_fields := expected_top_level_fields - actual_top_level_fields:
+                missing_top_level_output_fields[registered_tool.name] = sorted(
+                    missing_fields
+                )
 
     assert not missing_by_tool, (
         f"Registered MCP tools have incomplete annotations: {missing_by_tool}"
@@ -96,6 +333,22 @@ def test_all_registered_tools_have_complete_annotations():
     assert not idempotent_mutating_tools, (
         "Mutating tools must not claim idempotency (idempotentHint=False): "
         f"{idempotent_mutating_tools}"
+    )
+    assert not incorrect_read_only_tools, (
+        f"Tools have incorrect readOnlyHint classifications: "
+        f"{incorrect_read_only_tools}"
+    )
+    assert not incorrect_destructive_tools, (
+        f"Tools have incorrect destructiveHint classifications: "
+        f"{incorrect_destructive_tools}"
+    )
+    assert not missing_output_fields, (
+        "Registered MCP tools have missing or unconstrained output schemas: "
+        f"{missing_output_fields}"
+    )
+    assert not missing_top_level_output_fields, (
+        "Representative MCP output schemas lost top-level fields: "
+        f"{missing_top_level_output_fields}"
     )
 
 
@@ -403,3 +656,71 @@ def test_instructions_generated_after_disabled_tools_removed() -> None:
     # get_default_instructions must have been called with the disabled set
     assert len(captured) == 1
     assert "execute_sql" in captured[0]
+
+
+def test_committed_write_specs_cover_every_committing_mutating_tool() -> None:
+    """Every mutating tool that commits before the size guard runs needs a spec.
+
+    The size guard only spares a tool from a hard ToolError -- and so only
+    stops a retrying client replaying an already-committed mutation -- when
+    the tool is in this table. Deriving the expectation from MUTATING_TOOLS
+    means a newly added write tool fails here instead of silently getting the
+    hard-block behaviour.
+    """
+    assert set(COMMITTED_WRITE_SPECS) == MUTATING_TOOLS - NON_COMMITTING_MUTATING_TOOLS
+
+
+def test_committed_write_specs_match_registered_output_schemas() -> None:
+    """Each spec must describe the response the tool actually returns.
+
+    The spec drives which fields survive truncation, so an identifying field
+    that is not on the response would protect nothing, and a wrong
+    ``reports_success`` would either drop the write confirmation or invent a
+    field the schema never declares.
+    """
+    registered = {tool.name: tool for tool in _run(mcp.list_tools())}
+    problems: dict[str, str] = {}
+
+    for name, spec in COMMITTED_WRITE_SPECS.items():
+        top_level = _top_level_schema_property_names(
+            registered[name].output_schema or {}
+        )
+        if missing := spec.identifying_fields - top_level:
+            problems[name] = (
+                f"identifying fields absent from response: {sorted(missing)}"
+            )
+        elif spec.reports_success is not ("success" in top_level):
+            problems[name] = (
+                f"reports_success={spec.reports_success} but 'success' in "
+                f"response schema is {'success' in top_level}"
+            )
+
+    assert not problems, problems
+
+
+def test_committed_write_identifying_fields_are_the_container_ones() -> None:
+    """Only list/dict fields need naming; scalars survive truncation anyway.
+
+    ``truncate_oversized_response`` only summarizes dicts and empties
+    collections -- no phase drops a top-level scalar. So a response whose
+    identity is scalars (delete_chart's ``deleted_id``, create_dataset's
+    ``id``/``table_name``) correctly maps to an empty set, and naming a scalar
+    here would be dead weight that hides that reasoning.
+    """
+    registered = {tool.name: tool for tool in _run(mcp.list_tools())}
+    scalar_types = {"string", "integer", "number", "boolean"}
+    named_scalars: dict[str, list[str]] = {}
+
+    for name, spec in COMMITTED_WRITE_SPECS.items():
+        schema = registered[name].output_schema or {}
+        properties = schema.get("properties", {})
+        for field in sorted(spec.identifying_fields):
+            declared = properties.get(field)
+            if not isinstance(declared, dict):
+                continue
+            # A scalar field declares a plain scalar "type" and nothing else;
+            # object/array fields use $ref, anyOf or an explicit container type.
+            if declared.get("type") in scalar_types and "$ref" not in declared:
+                named_scalars.setdefault(name, []).append(field)
+
+    assert not named_scalars, named_scalars
