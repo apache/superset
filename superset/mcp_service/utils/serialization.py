@@ -113,6 +113,8 @@ def is_missing_value(value: Any) -> bool:
     if isinstance(value, (float, np.floating)):
         # NaN and the infinities, at every numpy width.
         return not math.isfinite(value)
+    if isinstance(value, str):
+        return False
     try:
         missing = pd.isna(value)
     except (TypeError, ValueError):

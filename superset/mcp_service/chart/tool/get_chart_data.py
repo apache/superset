@@ -881,7 +881,13 @@ async def execute_chart_data(  # noqa: C901
                         null_count=sum(
                             1 for row in data if is_missing_value(row.get(col_name))
                         ),
-                        unique_count=len({str(row.get(col_name)) for row in data}),
+                        unique_count=len(
+                            {
+                                str(row.get(col_name))
+                                for row in data
+                                if not is_missing_value(row.get(col_name))
+                            }
+                        ),
                     )
                 )
 
@@ -1219,7 +1225,13 @@ async def _query_from_form_data(  # noqa: C901
                     null_count=sum(
                         1 for row in data if is_missing_value(row.get(col_name))
                     ),
-                    unique_count=len({str(row.get(col_name)) for row in data}),
+                    unique_count=len(
+                        {
+                            str(row.get(col_name))
+                            for row in data
+                            if not is_missing_value(row.get(col_name))
+                        }
+                    ),
                 )
             )
 
