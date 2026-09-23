@@ -38,6 +38,11 @@ Row counts are a second failure source: a DBAPI cursor may report ``rowcount``
 as a ``float``, which fails validation of an ``int`` field before serialisation
 is even reached.
 
+Finite Decimals are preserved exactly and therefore render as JSON strings in
+Pydantic, uniformly even when a value is representable as a float. Converting
+``Decimal("0.10000000000000000001")`` to a float silently collapses its precision
+to ``0.1``. Non-finite Decimals (including signaling NaN) render as JSON ``null``.
+
 The annotated types exported here (:data:`JsonSafeRows`,
 :data:`JsonSafeValues`, :data:`JsonSafeMapping`, :data:`RowCount`,
 :data:`OptionalRowCount`) attach the coercion as a ``BeforeValidator``, so any
@@ -51,6 +56,7 @@ import base64
 import math
 from collections.abc import Mapping
 from datetime import date, datetime, time, timedelta
+from decimal import Decimal
 from typing import Annotated, Any
 from uuid import UUID
 
@@ -111,6 +117,8 @@ def is_missing_value(value: Any) -> bool:
     """
     if value is None:
         return True
+    if isinstance(value, Decimal):
+        return not Decimal.is_finite(value)
     if isinstance(value, (float, np.floating)):
         # NaN and the infinities, at every numpy width.
         return not math.isfinite(value)
@@ -135,6 +143,9 @@ def _sanitize_scalar(value: Any) -> Any:
     if isinstance(value, float):
         # Covers numpy.float64 (a float subclass) and NaN/Infinity.
         return float(value) if math.isfinite(value) else None
+    if isinstance(value, Decimal):
+        # Call the base descriptor, not subclass hooks or float conversion.
+        return value if Decimal.is_finite(value) else None
     if isinstance(value, (bytes, bytearray, memoryview)):
         return _decode_binary(value)
     return _UNHANDLED
@@ -161,7 +172,7 @@ def _sanitize_other(value: Any, depth: int) -> Any:
     if isinstance(value, _PASSTHROUGH_TYPES):
         return value
     try:
-        # Normalises ndarrays, sets, Decimal and similar; the result may itself
+        # Normalises ndarrays, sets and similar; the result may itself
         # be a container or string that needs another pass. Recursion is bounded
         # by MAX_DEPTH.
         converted = base_json_conv(value)
