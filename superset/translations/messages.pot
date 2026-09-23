@@ -326,6 +326,10 @@ msgid "%s aggregates(s)"
 msgstr ""
 
 #, python-format
+msgid "%s bytes"
+msgstr ""
+
+#, python-format
 msgid "%s column"
 msgid_plural "%s columns"
 msgstr[0] ""
@@ -378,6 +382,10 @@ msgid "%s min ago"
 msgid_plural "%s min ago"
 msgstr[0] ""
 msgstr[1] ""
+
+#, python-format
+msgid "%s ms"
+msgstr ""
 
 #, python-format
 msgid ""
@@ -2633,6 +2641,9 @@ msgstr ""
 msgid "Cached %s"
 msgstr ""
 
+msgid "Cached queries"
+msgstr ""
+
 msgid "Cached value not found"
 msgstr ""
 
@@ -2955,6 +2966,9 @@ msgid "Chart height"
 msgstr ""
 
 msgid "Chart imported"
+msgstr ""
+
+msgid "Chart load time"
 msgstr ""
 
 msgid "Chart name"
@@ -8757,6 +8771,9 @@ msgstr ""
 msgid "No records found"
 msgstr ""
 
+msgid "No response data is available yet."
+msgstr ""
+
 msgid "No results"
 msgstr ""
 
@@ -9932,6 +9949,9 @@ msgstr ""
 msgid "Query in a new tab"
 msgstr ""
 
+msgid "Query inspector"
+msgstr ""
+
 msgid "Query is too complex and takes too long to run."
 msgstr ""
 
@@ -10403,6 +10423,12 @@ msgstr ""
 msgid "Resource was removed before editorship could be verified"
 msgstr ""
 
+msgid "Response"
+msgstr ""
+
+msgid "Response size"
+msgstr ""
+
 msgid "Restore filter"
 msgstr ""
 
@@ -10432,6 +10458,9 @@ msgid "Return to Superset"
 msgstr ""
 
 msgid "Return to specific datetime."
+msgstr ""
+
+msgid "Returned rows"
 msgstr ""
 
 msgid "Reverse Lat & Long"
@@ -12247,6 +12276,9 @@ msgid "State"
 msgstr ""
 
 msgid "Statistical"
+msgstr ""
+
+msgid "Stats"
 msgstr ""
 
 msgid "Status"
@@ -14327,6 +14359,11 @@ msgid "Time filter"
 msgstr ""
 
 msgid "Time format"
+msgstr ""
+
+msgid ""
+"Time from chart update start until rendering completes; this is not query"
+" execution time."
 msgstr ""
 
 msgid "Time grain"

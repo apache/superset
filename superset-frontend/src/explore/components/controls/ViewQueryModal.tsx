@@ -16,14 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import {
-  FC,
-  Fragment,
-  useCallback,
-  useEffect,
-  useMemo,
-  useState,
-} from 'react';
+import { FC, Fragment, useCallback, useEffect, useMemo, useState } from 'react';
 
 import { omit } from 'lodash-es';
 import { t } from '@apache-superset/core/translation';
@@ -257,7 +250,7 @@ const ViewQueryModal: FC<Props> = ({
                 </LargeResponseContainer>
               ) : (
                 <CodeSyntaxHighlighter language="json" showLineNumbers>
-                  {serializedResponse}
+                  {serializedResponse ?? ''}
                 </CodeSyntaxHighlighter>
               )
             ) : (
