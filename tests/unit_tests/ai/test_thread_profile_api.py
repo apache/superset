@@ -42,16 +42,13 @@ pytestmark = [
 
 
 @pytest.fixture
-def thread(session: Session, mocker: MockerFixture) -> Any:
+def thread(client: FlaskClient, session: Session, mocker: MockerFixture) -> Any:
     """Real metadata rows; route identity and broker delivery are controlled."""
     from superset import security_manager
     from superset.models.ai import AIChatFeedback, AIChatMessage, AIChatThread
 
     for model in (AIChatThread, AIChatMessage, AIChatFeedback):
         model.__table__.create(session.bind)
-    conversation = AIChatThread(created_by_fk=1, agent_key="analyst")
-    session.add(conversation)
-    session.flush()
     mocker.patch("superset.ai.api.AIRestApi._reject_if_unconfigured", return_value=None)
     mocker.patch("superset.ai.api.AIRestApi._user_id", return_value=1)
     mocker.patch("superset.utils.log.DBEventLogger.log")
@@ -68,6 +65,10 @@ def thread(session: Session, mocker: MockerFixture) -> Any:
             },
         },
     )
+    response = client.post("/api/v1/ai/thread/", json={"agent_key": "analyst"})
+    assert response.status_code == 201
+    conversation = session.query(AIChatThread).one()
+    assert str(conversation.uuid) == response.json["result"]["uuid"]
     return conversation
 
 
