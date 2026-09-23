@@ -22,6 +22,7 @@ import {
   ensureIsArray,
   getNumberFormatter,
   getTimeFormatter,
+  getTimeFormatterForGranularity,
   isSavedMetric,
   NumberFormats,
   NumberFormatter,
@@ -35,10 +36,6 @@ import {
 } from '@superset-ui/core';
 import { TIMESERIES_CONSTANTS } from '../constants';
 
-// Renders quarter-grained temporal axes as e.g. "2024-Q1" instead of a
-// month/year smart date. `%q` is the d3-time-format quarter specifier.
-export const QUARTER_TIME_FORMAT = '%Y-Q%q';
-
 export const getSmartDateDetailedFormatter = () =>
   getTimeFormatter(SMART_DATE_DETAILED_ID);
 
@@ -50,8 +47,11 @@ export const getSmartDateFormatter = (timeGrain?: string) => {
     return baseFormatter;
   }
 
+  // SMART_DATE has no quarter concept, so reuse the core grain formatter
+  // (`TimeFormatsForGranularity[QUARTER]` = `%Y Q%q`) instead of collapsing
+  // to a month or year.
   if (timeGrain === TimeGranularity.QUARTER) {
-    return getTimeFormatter(QUARTER_TIME_FORMAT);
+    return getTimeFormatterForGranularity(TimeGranularity.QUARTER);
   }
 
   // Create a wrapper that normalizes dates based on time grain
@@ -187,13 +187,10 @@ export function getTooltipTimeFormatter(
   timeGrain?: TimeGranularity,
 ): TimeFormatter | StringConstructor {
   // When a time grain is active and the user hasn't pinned an explicit format,
-  // honor the grain so tooltips read "Jan 2021", "2021-Q1", "2021", weekly
+  // honor the grain so tooltips read "Jan 2021", "2021 Q1", "2021", weekly
   // ranges, etc. instead of a fixed timestamp. An explicit custom format is
   // always respected verbatim.
   if (!format || format === SMART_DATE_ID) {
-    if (timeGrain === TimeGranularity.QUARTER) {
-      return getTimeFormatter(QUARTER_TIME_FORMAT);
-    }
     if (timeGrain) {
       return getTimeFormatter(undefined, timeGrain);
     }
