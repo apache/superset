@@ -336,12 +336,10 @@ def test_save_rejects_repoint_to_database_without_access(
     """
     mock_orm = _save_orm_dataset()
     mock_get_datasource.return_value = mock_orm
-    # Caller owns the dataset, so that check passes...
-    mock_security_manager.raise_for_editorship.return_value = None
 
     mock_new_database = MagicMock()
     mock_get_database_by_id.return_value = mock_new_database
-    # ...but the caller is not authorised for the new database.
+    # The caller owns the dataset but is not authorised for the new database.
     mock_security_manager.raise_for_access.side_effect = _security_exception()
 
     with pytest.raises(DatasetForbiddenError):
@@ -400,11 +398,9 @@ def test_save_allows_repoint_to_database_with_access(
     """
     mock_orm = _save_orm_dataset(**orm_overrides)
     mock_get_datasource.return_value = mock_orm
-    mock_security_manager.raise_for_editorship.return_value = None
 
     mock_new_database = MagicMock()
     mock_get_database_by_id.return_value = mock_new_database
-    mock_security_manager.raise_for_access.return_value = None
 
     _run_save(database={"id": 999}, **payload)
 

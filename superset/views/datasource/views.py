@@ -147,8 +147,7 @@ class Datasource(BaseSupersetView):
             raise DatasetForbiddenError() from ex
 
         database_changed = database_id != orm_datasource.database_id
-        # The target ``update_from_object`` (below) will apply, omitted keys
-        # included -- see its docstring for the replace semantics.
+        # The table this request lands on: an omitted key clears the field.
         requested_table = Table(
             datasource_dict.get("table_name"),
             datasource_dict.get("schema") or None,
