@@ -591,7 +591,7 @@ test('derives header groups from time comparison when header_groups is empty', (
   ]);
 });
 
-test('keeps renamed time comparison header groups', () => {
+test('refreshes time comparison header group labels from verboseMap', () => {
   const result = transformProps(
     createMockChartProps({
       rawFormData: {
@@ -613,6 +613,13 @@ test('keeps renamed time comparison header groups', () => {
           },
         ],
       },
+      datasource: {
+        columns: [],
+        metrics: [],
+        columnFormats: {},
+        currencyFormats: {},
+        verboseMap: { revenue: 'Net revenue' },
+      } as unknown as TableChartProps['datasource'],
       queriesData: [
         {
           data: [{ revenue: 100 }],
@@ -626,7 +633,7 @@ test('keeps renamed time comparison header groups', () => {
     }),
   );
 
-  expect(result.headerGroups?.[0].label).toBe('Renamed');
+  expect(result.headerGroups?.[0].label).toBe('Net revenue');
 });
 
 test('does not create time comparison header groups for non-numeric metrics', () => {

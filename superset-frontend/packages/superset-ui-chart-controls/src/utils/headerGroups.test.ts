@@ -472,8 +472,32 @@ test('syncTimeComparisonGroups adds missing auto groups and keeps edits', () => 
     'time-compare-revenue',
     'time-compare-profit',
   ]);
-  expect(next[1].label).toBe('Renamed');
+  expect(next[1].label).toBe('Revenue');
   expect(next[1].columns).toEqual(comparisonRevenueColumns);
+});
+
+test('syncTimeComparisonGroups updates an auto-group label from the current verbose map', () => {
+  const next = syncTimeComparisonGroups(
+    [
+      {
+        id: 'time-compare-revenue',
+        label: 'Revenue',
+        columns: comparisonRevenueColumns,
+        source: 'time_compare',
+      },
+    ],
+    [
+      {
+        id: 'time-compare-revenue',
+        label: 'Net revenue',
+        columns: comparisonRevenueColumns,
+        source: 'time_compare',
+      },
+    ],
+  );
+
+  expect(next[0].label).toBe('Net revenue');
+  expect(next[0].columns).toEqual(comparisonRevenueColumns);
 });
 
 test('syncTimeComparisonGroups stores locale-independent keys on user groups', () => {
@@ -652,7 +676,7 @@ test('resolveHeaderGroups derives time comparison groups without saved header_gr
   ).toEqual([]);
 });
 
-test('resolveHeaderGroups keeps user groups and renamed auto groups', () => {
+test('resolveHeaderGroups keeps user groups and refreshes auto-group labels', () => {
   const next = resolveHeaderGroups(
     [
       { id: 'custom', label: 'Custom', columns: ['region'] },
@@ -675,7 +699,7 @@ test('resolveHeaderGroups keeps user groups and renamed auto groups', () => {
     'time-compare-revenue',
     'time-compare-profit',
   ]);
-  expect(next[1].label).toBe('Renamed');
+  expect(next[1].label).toBe('Revenue');
   expect(next[2].label).toBe('Profit');
 });
 
@@ -685,6 +709,11 @@ test('headerGroupsHaveSameColumns compares ids and nested columns', () => {
   expect(
     headerGroupsHaveSameColumns(chartGroups, [
       { ...chartGroups[0], columns: ['profit'] },
+    ]),
+  ).toBe(false);
+  expect(
+    headerGroupsHaveSameColumns(chartGroups, [
+      { ...chartGroups[0], label: 'Other' },
     ]),
   ).toBe(false);
 });

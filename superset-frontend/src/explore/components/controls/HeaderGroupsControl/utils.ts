@@ -85,11 +85,7 @@ export function collectHeaderGroupColumns(
 }
 
 function getClaimedColumnKeys(identifier: string): string[] {
-  return [
-    identifier,
-    `%${identifier}`,
-    ...getTimeComparisonColumnKeys(identifier),
-  ];
+  return [identifier, ...getTimeComparisonColumnKeys(identifier)];
 }
 
 export function collectUsedHeaderGroupColumns(

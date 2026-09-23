@@ -583,6 +583,7 @@ test('does not persist an empty name or last column while editing', async () => 
     target: { value: '' },
   });
   expect(screen.getByLabelText('Group name')).toHaveValue('');
+  expect(screen.getByRole('alert')).toHaveTextContent('Name is required');
   expect(onChange).not.toHaveBeenCalled();
 
   fireEvent.change(screen.getByLabelText('Group name'), {
@@ -829,9 +830,13 @@ test('removes stale columns that are no longer available', () => {
     />,
   );
 
-  expect(onChange).toHaveBeenCalledWith([
-    expect.objectContaining({
-      columns: ['SUM(sales)'],
-    }),
-  ]);
+  expect(onChange).toHaveBeenCalledWith(
+    [
+      expect.objectContaining({
+        columns: ['SUM(sales)'],
+      }),
+    ],
+    undefined,
+    { programmatic: true },
+  );
 });

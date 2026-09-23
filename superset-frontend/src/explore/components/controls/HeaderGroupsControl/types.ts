@@ -32,9 +32,15 @@ export type HeaderGroupColumnOption = {
   label: string;
 };
 
-export type HeaderGroupsControlProps = ControlComponentProps<
-  HeaderGroupConfig[]
+export type HeaderGroupsControlProps = Omit<
+  ControlComponentProps<HeaderGroupConfig[]>,
+  'onChange'
 > & {
   columnOptions?: HeaderGroupColumnOption[];
   timeComparisonGroups?: HeaderGroupConfig[];
+  onChange?: (
+    value: HeaderGroupConfig[],
+    errors?: unknown[],
+    options?: { programmatic?: boolean },
+  ) => void;
 };

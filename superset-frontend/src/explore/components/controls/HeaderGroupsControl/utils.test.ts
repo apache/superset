@@ -160,6 +160,19 @@ test('collectUsedHeaderGroupColumns hides a base metric claimed by comparison co
   expect(used).not.toContain('AVG(sales)');
 });
 
+test('collectUsedHeaderGroupColumns does not claim a percent metric from its base metric', () => {
+  const used = collectUsedHeaderGroupColumns(
+    [{ id: 'sales', label: 'Sales', columns: ['revenue'] }],
+    [
+      { value: 'revenue', label: 'revenue' },
+      { value: '%revenue', label: '%revenue' },
+      { value: 'profit', label: 'profit' },
+    ],
+  );
+  expect(used).toEqual(['revenue']);
+  expect(used).not.toContain('%revenue');
+});
+
 test('moveHeaderGroupAt no-ops on an empty path', () => {
   expect(moveHeaderGroupAt(groups, [], 1)).toBe(groups);
 });
@@ -361,7 +374,7 @@ test('syncTimeComparisonGroups adds missing and drops stale auto groups', () => 
     'time-compare-sales',
     'time-compare-profit',
   ]);
-  expect(next[1].label).toBe('Renamed sales');
+  expect(next[1].label).toBe('Sales');
   expect(next[1].columns).toEqual(['Main SUM(sales)', '# SUM(sales)']);
 });
 

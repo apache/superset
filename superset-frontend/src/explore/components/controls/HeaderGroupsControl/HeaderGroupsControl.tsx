@@ -84,8 +84,8 @@ const CloseButton = styled.button`
     border-right: solid 1px ${theme.colorBorder};
     padding: 0;
     outline: none;
-    border-bottom-left-radius: 3px;
-    border-top-left-radius: 3px;
+    border-bottom-left-radius: ${theme.borderRadius}px;
+    border-top-left-radius: ${theme.borderRadius}px;
 
     &:focus-visible {
       outline: 2px solid ${theme.colorPrimary};
@@ -199,7 +199,7 @@ export default function HeaderGroupsControl({
     }
     const next = pruneStaleHeaderGroupColumns(groups, columnOptions);
     if (!headerGroupsHaveSameColumns(groups, next)) {
-      onChange(next);
+      onChange(next, undefined, { programmatic: true });
     }
   }, [columnOptions, groups, onChange]);
 

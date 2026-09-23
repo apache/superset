@@ -261,9 +261,11 @@ function refreshTimeComparisonGroup(
   group: HeaderGroupConfig,
   currentKeys: string[],
   replaceColumns: boolean,
+  nextLabel?: string,
 ): HeaderGroupConfig {
   return {
     ...group,
+    ...(replaceColumns && nextLabel !== undefined ? { label: nextLabel } : {}),
     columns: replaceColumns
       ? currentKeys
       : remapTimeComparisonColumns(group.columns ?? [], currentKeys),
@@ -310,7 +312,12 @@ export function syncTimeComparisonGroups(
         return remapUserGroupComparisonColumns(group, comparisonKeys);
       }
       const fresh = autoById.get(group.id) as HeaderGroupConfig;
-      return refreshTimeComparisonGroup(group, fresh.columns, true);
+      return refreshTimeComparisonGroup(
+        group,
+        fresh.columns,
+        true,
+        fresh.label,
+      );
     });
   const missing = timeComparisonGroups.filter(
     group => !existingAutoIds.has(group.id),
@@ -329,6 +336,7 @@ export function headerGroupsHaveSameColumns(
     const other = right[index];
     if (
       group.id !== other.id ||
+      group.label !== other.label ||
       group.columns.length !== other.columns.length ||
       group.columns.some(
         (column, colIndex) => column !== other.columns[colIndex],

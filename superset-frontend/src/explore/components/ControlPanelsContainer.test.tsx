@@ -696,7 +696,7 @@ describe('ControlPanelsContainer', () => {
   test('does not rewrite header groups that already match time comparison', async () => {
     const autoGroup = {
       id: 'time-compare-revenue',
-      label: 'Renamed',
+      label: 'revenue',
       columns: ['Main revenue', '# revenue', '△ revenue', '% revenue'],
       source: 'time_compare' as const,
     };

@@ -111,6 +111,13 @@ const FieldLabel = styled.span`
   `}
 `;
 
+const FieldError = styled.span`
+  ${({ theme }) => css`
+    color: ${theme.colorError};
+    font-size: ${theme.fontSizeSM}px;
+  `}
+`;
+
 const NestedCard = styled.div`
   ${({ theme }) => css`
     display: flex;
@@ -231,6 +238,8 @@ function HeaderGroupForm({
   );
   const [localCollapsed, setLocalCollapsed] = useState(false);
   const canSave = canSaveHeaderGroup(group);
+  const nameError =
+    !onApply && !group.label?.trim() ? t('Name is required') : undefined;
   const isTimeCompareGroup = group.source === 'time_compare';
   const isTopLevel = path.length === 1;
   const hasSubgroups = (group.children ?? []).length > 0;
@@ -289,10 +298,12 @@ function HeaderGroupForm({
               aria-label={t('Group name')}
               value={group.label}
               placeholder={t('Enter group name')}
+              status={nameError ? 'error' : undefined}
               onChange={event =>
                 onChange(path, { ...group, label: event.target.value })
               }
             />
+            {nameError && <FieldError role="alert">{nameError}</FieldError>}
           </FieldRow>
           <FieldRow>
             <FieldLabel>{t('Columns')}</FieldLabel>
