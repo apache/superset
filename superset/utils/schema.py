@@ -20,6 +20,7 @@ from urllib.parse import urlparse
 from marshmallow import fields, pre_load, Schema, validate, ValidationError
 
 from superset.utils import json
+from superset.utils.core import DatasourceType
 
 ALLOWED_URL_SCHEMES = frozenset({"http", "https"})
 
@@ -64,21 +65,28 @@ def is_query_context_metadata_complete(value: Any) -> bool:
     without them fails every subsequent read with a raw ``TypeError`` instead
     of a clear error at save time. ``datasource`` must be a mapping carrying
     the ``id``/``type`` keys ``DatasourceDict`` requires -- ``_convert_to_model``
-    indexes both directly and raises ``KeyError`` if either is absent -- but
-    ``queries`` may legitimately be an empty list (a chart with no query
-    objects yet still round-trips through ``create()`` without error), so only
-    its presence as a list is checked, not its truthiness.
+    indexes both directly and raises ``KeyError`` if either is absent, and
+    passes ``type`` straight to ``DatasourceType(...)``, which raises
+    ``ValueError`` for a value outside that enum -- but ``queries`` may
+    legitimately be an empty list (a chart with no query objects yet still
+    round-trips through ``create()`` without error), so only its presence as
+    a list is checked, not its truthiness.
 
     :param value: the object obtained by JSON-decoding a query_context string
     """
     if not isinstance(value, dict) or not isinstance(value.get("queries"), list):
         return False
     datasource = value.get("datasource")
-    return (
-        isinstance(datasource, dict)
-        and bool(datasource.get("id"))
-        and bool(datasource.get("type"))
-    )
+    if not isinstance(datasource, dict) or not datasource.get("id"):
+        return False
+    datasource_type = datasource.get("type")
+    if not isinstance(datasource_type, str):
+        return False
+    try:
+        DatasourceType(datasource_type)
+    except ValueError:
+        return False
+    return True
 
 
 def validate_query_context_metadata(value: Union[bytes, bytearray, str]) -> None:
