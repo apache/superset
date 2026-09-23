@@ -18,7 +18,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version:  \n"
 "Report-Msgid-Bugs-To: ted.korostiled@gmail.com\n"
-"POT-Creation-Date: 2026-09-23 04:54+0000\n"
+"POT-Creation-Date: 2026-09-23 14:58+0000\n"
 "PO-Revision-Date: 2026-04-30 22:04+0300\n"
 "Last-Translator: Danylo Korostil\n"
 "Language: uk\n"
@@ -28,7 +28,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Generated-By: Babel 2.10.3\n"
+"Generated-By: Babel 2.17.0\n"
 
 #, python-format
 msgid ""
@@ -20432,9 +20432,6 @@ msgstr "значення за зростанням"
 
 msgid "value descending"
 msgstr "значення за спаданням"
-
-msgid "valuename"
-msgstr ""
 
 msgid "var"
 msgstr "дисперсія"

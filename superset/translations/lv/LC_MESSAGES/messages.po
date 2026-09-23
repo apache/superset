@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-23 04:54+0000\n"
+"POT-Creation-Date: 2026-09-23 14:58+0000\n"
 "PO-Revision-Date: 2026-03-27 14:01+0200\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: lv\n"
@@ -31,7 +31,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Generated-By: Babel 2.10.3\n"
+"Generated-By: Babel 2.17.0\n"
 
 #, python-format
 msgid ""
@@ -20428,9 +20428,6 @@ msgstr "vērtība augošā secībā"
 
 msgid "value descending"
 msgstr "vērtība dilstošā secībā"
-
-msgid "valuename"
-msgstr ""
 
 msgid "var"
 msgstr "dispersija"

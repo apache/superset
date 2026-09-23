@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-23 04:54+0000\n"
+"POT-Creation-Date: 2026-09-23 14:58+0000\n"
 "PO-Revision-Date: 2026-01-25 16:09+1300\n"
 "Last-Translator: karo.co.nz\n"
 "Language: mi\n"
@@ -30,7 +30,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Generated-By: Babel 2.10.3\n"
+"Generated-By: Babel 2.17.0\n"
 
 #, python-format
 msgid ""
@@ -21450,9 +21450,6 @@ msgstr "uara piki"
 
 msgid "value descending"
 msgstr "uara heke"
-
-msgid "valuename"
-msgstr ""
 
 msgid "var"
 msgstr "var"

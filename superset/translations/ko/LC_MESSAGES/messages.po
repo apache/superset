@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-23 04:54+0000\n"
+"POT-Creation-Date: 2026-09-23 14:58+0000\n"
 "PO-Revision-Date: 2019-02-02 22:28+0900\n"
 "Last-Translator: \n"
 "Language: ko\n"
@@ -26,7 +26,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Generated-By: Babel 2.10.3\n"
+"Generated-By: Babel 2.17.0\n"
 
 #, python-format
 msgid ""
@@ -30955,9 +30955,6 @@ msgstr "값 오름차순"
 #, fuzzy
 msgid "value descending"
 msgstr "값 내림차순"
-
-msgid "valuename"
-msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr, uk]

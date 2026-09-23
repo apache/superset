@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-23 04:54+0000\n"
+"POT-Creation-Date: 2026-09-23 14:58+0000\n"
 "PO-Revision-Date: 2023-05-22 08:04-0400\n"
 "Last-Translator: \n"
 "Language: pt_BR\n"
@@ -26,7 +26,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Generated-By: Babel 2.10.3\n"
+"Generated-By: Babel 2.17.0\n"
 
 #, python-format
 msgid ""
@@ -22276,9 +22276,6 @@ msgstr "valor crescente"
 
 msgid "value descending"
 msgstr "valor decrescente"
-
-msgid "valuename"
-msgstr ""
 
 msgid "var"
 msgstr "var"

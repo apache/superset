@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-23 04:54+0000\n"
+"POT-Creation-Date: 2026-09-23 14:58+0000\n"
 "PO-Revision-Date: 2026-03-31 02:00-0700\n"
 "Last-Translator: Maazin Ahamed\n"
 "Language: ta\n"
@@ -26,7 +26,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Generated-By: Babel 2.10.3\n"
+"Generated-By: Babel 2.17.0\n"
 
 #, python-format
 msgid ""
@@ -19801,9 +19801,6 @@ msgstr "மதிப்பு ஏறுவரிசை"
 
 msgid "value descending"
 msgstr "மதிப்பு இறங்குவரிசை"
-
-msgid "valuename"
-msgstr ""
 
 msgid "var"
 msgstr "var"
