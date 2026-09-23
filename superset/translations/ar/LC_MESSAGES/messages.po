@@ -24,7 +24,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version:  \n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-23 22:55+0300\n"
+"POT-Creation-Date: 2026-09-23 23:01+0300\n"
 "PO-Revision-Date: 2024-07-14 15:10+0300\n"
 "Last-Translator: Abdalrahim G. Fakhouri <abdilra7eem@yahoo.com>\n"
 "Language: ar\n"
@@ -147,9 +147,6 @@ msgstr "التفاصيل"
 #, fuzzy, python-format
 msgid " near '%(highlight)s'"
 msgstr " بالقرب من '%(highlight)s'"
-
-msgid " source code of Superset's sandboxed parser"
-msgstr ""
 
 msgid ""
 " standard to ensure that the lexicographical ordering\n"
@@ -663,16 +660,6 @@ msgstr "%s المحدد"
 #, fuzzy, python-format
 msgid "%s recipients"
 msgstr "الأخيرة"
-
-#, python-format
-msgid "%s record"
-msgid_plural "%s records..."
-msgstr[0] ""
-msgstr[1] ""
-msgstr[2] ""
-msgstr[3] ""
-msgstr[4] ""
-msgstr[5] ""
 
 #, fuzzy, python-format
 msgid "%s record..."
@@ -1411,12 +1398,6 @@ msgstr "AQE"
 msgid "AUG"
 msgstr "اغسطس"
 
-msgid "AXIS TITLE MARGIN"
-msgstr ""
-
-msgid "AXIS TITLE POSITION"
-msgstr ""
-
 #, fuzzy
 msgid "Aborted"
 msgstr "بدأت"
@@ -1589,9 +1570,6 @@ msgstr "تفاصيل الشهادة"
 
 msgid "Add color for positive/negative change"
 msgstr "إضافة لون للتغيير الإيجابي / السلبي"
-
-msgid "Add colors to cell bars for +/-"
-msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
@@ -1892,11 +1870,6 @@ msgstr ""
 "المجموعة."
 
 msgid ""
-"Aggregate function to apply when pivoting and computing the total rows "
-"and columns"
-msgstr ""
-
-msgid ""
 "Aggregates data within the boundary of grid cells and maps the aggregated"
 " values to a dynamic color scale"
 msgstr ""
@@ -1909,9 +1882,6 @@ msgstr "تجميع"
 #, fuzzy
 msgid "Aggregation Method"
 msgstr "تجميع"
-
-msgid "Aggregation function"
-msgstr ""
 
 msgid ""
 "Aggregation used for the summary row. By default each metric keeps its "
@@ -2925,9 +2895,6 @@ msgstr ""
 msgid "Arrow"
 msgstr "سهم"
 
-msgid "Ascending"
-msgstr ""
-
 msgid "Assign a set of parameters as"
 msgstr "تعيين مجموعة من المعلمات ك"
 
@@ -3028,9 +2995,6 @@ msgstr "تخصيص الأعمدة"
 msgid "Autosize all columns"
 msgstr "تخصيص الأعمدة"
 
-msgid "Available Handlebars Helpers in Superset:"
-msgstr ""
-
 msgid "Available sorting modes:"
 msgstr "أوضاع الفرز المتاحة:"
 
@@ -3108,9 +3072,6 @@ msgstr "مخطط شريطي"
 msgid "Bar Charts are used to show metrics as a series of bars."
 msgstr "تستخدم المخططات الشريطية لإظهار المقاييس كسلسلة من الأشرطة."
 
-msgid "Bar Values"
-msgstr ""
-
 msgid "Bar orientation"
 msgstr "اتجاه الشريط"
 
@@ -3140,10 +3101,6 @@ msgstr ""
 #, fuzzy, python-format
 msgid "Base layer map style. See MapLibre documentation: %s"
 msgstr "نمط خريطة الطبقة الأساسية. راجع وثائق Mapbox: %s"
-
-#, python-format
-msgid "Base layer map style. See Mapbox documentation: %s"
-msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fr, ja, lv, mi, ro, ru, sk, sr, sr_Latn, tr, uk]
@@ -3331,9 +3288,6 @@ msgstr ""
 
 msgid "Bubble Chart"
 msgstr "مخطط فقاعي"
-
-msgid "Bubble Chart (legacy)"
-msgstr ""
 
 msgid "Bubble Color"
 msgstr "لون الفقاعة"
@@ -4759,12 +4713,6 @@ msgstr ""
 " مجموعة إلى صف ويتم تصور التغيير بمرور الوقت لأطوال الأشرطة واللون."
 
 msgid ""
-"Compares metrics between different time periods. Displays time series "
-"data across multiple periods (like weeks or months) to show period-over-"
-"period trends and patterns."
-msgstr ""
-
-msgid ""
 "Compares the current time period against equivalent past periods by "
 "overlaying them on a shared time axis. The current period is drawn boldly"
 " while prior periods fade with age."
@@ -5146,18 +5094,6 @@ msgstr ""
 msgid "Count"
 msgstr "عد"
 
-msgid "Count Unique Values"
-msgstr ""
-
-msgid "Count as Fraction of Columns"
-msgstr ""
-
-msgid "Count as Fraction of Rows"
-msgstr ""
-
-msgid "Count as Fraction of Total"
-msgstr ""
-
 msgid "Country"
 msgstr "بلد"
 
@@ -5219,12 +5155,6 @@ msgstr "فهرس إطار البيانات"
 
 msgid "Create dataset"
 msgstr "إنشاء مجموعة بيانات"
-
-msgid "Create matrix columns by placing charts side-by-side"
-msgstr ""
-
-msgid "Create matrix rows by stacking charts vertically"
-msgstr ""
 
 msgid "Create new chart"
 msgstr "إنشاء مخطط جديد"
@@ -6115,21 +6045,6 @@ msgstr ""
 "يتم تعيين القيمة الافتراضية تلقائيًا عند تحديد «تحديد قيمة التصفية الأولى"
 " افتراضيًا»"
 
-msgid ""
-"Define a function that receives the input and outputs the content for a "
-"tooltip"
-msgstr ""
-
-msgid "Define a function that returns a URL to navigate to when user clicks"
-msgstr ""
-
-msgid ""
-"Define a javascript function that receives the data array used in the "
-"visualization and is expected to return a modified version of that array."
-" This can be used to alter properties of the data, filter, or enrich the "
-"array."
-msgstr ""
-
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, fr,
 # ja, lv, pt_BR, ro, ru, sk, sr, sr_Latn, tr, uk]
 #, fuzzy
@@ -6524,9 +6439,6 @@ msgid "Depends on"
 msgstr ""
 
 msgid "Deployment default"
-msgstr ""
-
-msgid "Descending"
 msgstr ""
 
 msgid "Description"
@@ -7103,9 +7015,6 @@ msgstr ""
 msgid "Duration in ms (10500 => 0:00:10.5)"
 msgstr "المدة بالمللي ثانية (66000 => 1 م 6 ثانية)"
 
-msgid "Duration in ms (10500 => 0:10.5)"
-msgstr ""
-
 msgid "Duration in ms (66000 => 1m 6s)"
 msgstr "المدة بالمللي ثانية (66000 => 1 م 6 ثانية)"
 
@@ -7467,9 +7376,6 @@ msgstr "تمكين التنبؤ"
 msgid "Enable graph roaming"
 msgstr "تمكين تجوال الرسم البياني"
 
-msgid "Enable horizontal layout (columns)"
-msgstr ""
-
 #, fuzzy
 msgid "Enable icons"
 msgstr "أعمدة الجدول"
@@ -7495,9 +7401,6 @@ msgstr "تمكين توسيع الصفوف في المخططات"
 
 msgid "Enable server side pagination of results (experimental feature)"
 msgstr "تمكين ترقيم الصفحات من جانب الخادم (ميزة تجريبية)"
-
-msgid "Enable vertical layout (rows)"
-msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
 # lv, pt_BR, ru, sk, sr, sr_Latn, tr, uk]
@@ -8098,9 +8001,6 @@ msgstr "عناصر تحكم إضافية"
 msgid "Extra Parameters"
 msgstr "المعلمات الإضافية"
 
-msgid "Extra data for JS"
-msgstr ""
-
 #, python-brace-format
 msgid ""
 "Extra data to specify table metadata, such as `{ \"warning_markdown\": "
@@ -8672,11 +8572,6 @@ msgstr ""
 msgid "For further instructions, consult the"
 msgstr "لمزيد من التعليمات، راجع"
 
-msgid ""
-"For more information about objects are in context in the scope of this "
-"function, refer to the"
-msgstr ""
-
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, ja, tr]
 #, fuzzy
 msgid ""
@@ -8985,9 +8880,6 @@ msgstr "أكبر أو يساوي (>=)"
 msgid "Greater than (>)"
 msgstr "أكبر من (>)"
 
-msgid "Green for increase, red for decrease"
-msgstr ""
-
 msgid "Grid"
 msgstr "جريد"
 
@@ -9144,9 +9036,6 @@ msgstr "أفقي (أعلى)"
 
 msgid "Horizontal alignment"
 msgstr "محاذاة أفقية"
-
-msgid "Horizontal layout (columns)"
-msgstr ""
 
 msgid "Host"
 msgstr "المضيف"
@@ -9758,9 +9647,6 @@ msgstr ""
 msgid "It’s not recommended to truncate Y axis in Bar chart."
 msgstr "لا يوصى باقتطاع المحور في المخطط الشريطي."
 
-msgid "It’s not recommended to truncate axis in Bar chart."
-msgstr ""
-
 msgid "JAN"
 msgstr "يناير"
 
@@ -9804,15 +9690,6 @@ msgstr "يونيو"
 
 msgid "January"
 msgstr "كانون الثاني"
-
-msgid "JavaScript data interceptor"
-msgstr ""
-
-msgid "JavaScript onClick href"
-msgstr ""
-
-msgid "JavaScript tooltip generator"
-msgstr ""
 
 msgid "Jinja templating"
 msgstr "قالب جينجا"
@@ -9926,15 +9803,6 @@ msgstr "وضع العلامات"
 
 msgid "Labels"
 msgstr "ملصقات"
-
-msgid "Labels for the marker lines"
-msgstr ""
-
-msgid "Labels for the markers"
-msgstr ""
-
-msgid "Labels for the ranges"
-msgstr ""
 
 #, fuzzy
 msgid "Languages"
@@ -10200,9 +10068,6 @@ msgid ""
 "does not already have. Leave empty for legacy RBAC-only behavior."
 msgstr ""
 
-msgid "Limits the number of cells that get retrieved."
-msgstr ""
-
 msgid ""
 "Limits the number of cells that get retrieved. Not applied when non-"
 "additive metrics (e.g. ratios, COUNT_DISTINCT, AVG, percentiles) are "
@@ -10306,9 +10171,6 @@ msgstr "رقم منقسم"
 msgid "List Roles"
 msgstr "قائمة الأدوار"
 
-msgid "List Unique Values"
-msgstr ""
-
 #, fuzzy
 msgid "List Users"
 msgstr "رقم منقسم"
@@ -10318,21 +10180,12 @@ msgid ""
 "toggles it on the chart"
 msgstr ""
 
-msgid "List of extra columns made available in JavaScript functions"
-msgstr ""
-
 msgid "List of n+1 values for bucketing metric into n buckets."
 msgstr "قائمة بقيم n+1 لإدراج المقاييس في مجموعات n."
 
 #, fuzzy
 msgid "List of the column names that should be read"
 msgstr "قائمة Json بأسماء الأعمدة التي يجب قراءتها"
-
-msgid "List of values to mark with lines"
-msgstr ""
-
-msgid "List of values to mark with triangles"
-msgstr ""
 
 msgid "List updated"
 msgstr "تم تحديث القائمة"
@@ -10728,9 +10581,6 @@ msgstr "متوسط القيم خلال فترة محددة"
 msgid "Mean values"
 msgstr "القيم المتوسطة"
 
-msgid "Median"
-msgstr ""
-
 msgid ""
 "Median edge width, the thickest edge will be 4 times thicker than the "
 "thinnest."
@@ -10913,9 +10763,6 @@ msgstr "المقاييس"
 #, fuzzy, python-format
 msgid "Metrics (%s)"
 msgstr "المقاييس"
-
-msgid "Metrics / Dimensions"
-msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
@@ -12473,9 +12320,6 @@ msgstr "اختر اسمًا لمساعدتك في تحديد قاعدة البي
 msgid "Pick a nickname for how the database will display in Superset."
 msgstr "اختر اسمًا مستعارًا لكيفية عرض قاعدة البيانات في Superset."
 
-msgid "Pick a set of deck.gl charts to layer on top of one another"
-msgstr ""
-
 msgid "Pick a title for you annotation."
 msgstr "اختر عنوانًا للتعليق التوضيحي الخاص بك."
 
@@ -13091,9 +12935,6 @@ msgstr "نوع النطاق"
 msgid "Ranges"
 msgstr "النطاقات"
 
-msgid "Ranges to highlight with shading"
-msgstr ""
-
 msgid "Ranking"
 msgstr "الترتيب"
 
@@ -13149,21 +12990,8 @@ msgstr "مستطيل"
 msgid "Recurring (every)"
 msgstr "متكرر (كل)"
 
-msgid "Red for increase, green for decrease"
-msgstr ""
-
 msgid "Redo the action"
 msgstr "أعد الإجراء"
-
-msgid "Reduce X ticks"
-msgstr ""
-
-msgid ""
-"Reduces the number of X-axis ticks to be rendered. If true, the x-axis "
-"will not overflow and labels may be missing. If false, a minimum width "
-"will be applied to columns and the width may overflow into an horizontal "
-"scroll."
-msgstr ""
 
 msgid "Refer to the"
 msgstr "ارجع إلى"
@@ -13737,9 +13565,6 @@ msgstr "تلميح الأدوات الغني"
 msgid "Right"
 msgstr "صحيح"
 
-msgid "Right Axis Format"
-msgstr ""
-
 msgid "Right Axis Metric"
 msgstr "مقياس المحور الأيمن"
 
@@ -14280,10 +14105,6 @@ msgstr "انتقل إلى الأسفل لتمكين تغييرات الكتاب�
 
 msgid "Search"
 msgstr "ابحث"
-
-#, python-format
-msgid "Search %s records"
-msgstr ""
 
 msgid "Search / Filter"
 msgstr "البحث\\ التصفية"
@@ -15317,9 +15138,6 @@ msgstr "عرض أسماء المقاييس"
 msgid "Show Null Values"
 msgstr ""
 
-msgid "Show Range Filter"
-msgstr ""
-
 #, fuzzy
 msgid "Show SQL"
 msgstr "سجل العرض"
@@ -15404,9 +15222,6 @@ msgstr "عرض المجموع الفرعي للأعمدة"
 
 msgid "Show columns total"
 msgstr "عرض إجمالي الأعمدة"
-
-msgid "Show data points as circle markers on the lines"
-msgstr ""
 
 msgid "Show empty columns"
 msgstr "عرض الأعمدة الفارغة"
@@ -15509,9 +15324,6 @@ msgid "Show summary"
 msgstr "عرض الملخص"
 
 msgid "Show the main ticks on axes."
-msgstr ""
-
-msgid "Show the value on top of the bar"
 msgstr ""
 
 #, fuzzy
@@ -15874,9 +15686,6 @@ msgstr "عرض الأسطورة"
 msgid "Sort metric"
 msgstr "مقياس الفرز"
 
-msgid "Sort order"
-msgstr ""
-
 #, fuzzy
 msgid "Sort query by"
 msgstr "استعلام التصدير"
@@ -15976,9 +15785,6 @@ msgstr "سلسلة Stack فوق بعضها البعض"
 
 msgid "Stacked"
 msgstr "مكدسة"
-
-msgid "Stacked Bars"
-msgstr ""
 
 msgid "Stacked Style"
 msgstr "أسلوب مكدس"
@@ -16216,15 +16022,6 @@ msgstr ""
 
 msgid "Sum"
 msgstr "مجموع"
-
-msgid "Sum as Fraction of Columns"
-msgstr ""
-
-msgid "Sum as Fraction of Rows"
-msgstr ""
-
-msgid "Sum as Fraction of Total"
-msgstr ""
 
 msgid "Sum of values over specified period"
 msgstr "مجموع القيم خلال فترة محددة"
@@ -17413,13 +17210,6 @@ msgid ""
 "                expressions."
 msgstr ""
 
-msgid ""
-"The periodicity over which to pivot time. Users can provide\n"
-"            \"Pandas\" offset alias.\n"
-"            Click on the info bubble for more details on accepted "
-"\"freq\" expressions."
-msgstr ""
-
 msgid "The pixel radius"
 msgstr "نصف قطر البكسل"
 
@@ -18480,9 +18270,6 @@ msgstr "هذا المجلد يدعم الأعمدة فقط"
 msgid "This folder only supports metrics"
 msgstr "هذا المجلد يدعم المقاييس فقط"
 
-msgid "This functionality is disabled in your environment for security reasons."
-msgstr ""
-
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
 # lv, ru, sk, sr, sr_Latn, tr, uk]
 #, fuzzy
@@ -18948,9 +18735,6 @@ msgstr ""
 "السلسلة الزمنية غامضة. يرجى تحديد [منذ %(human_readable)s] أو [بعد "
 "%(human_readable)s]."
 
-msgid "Time-series Percent Change"
-msgstr ""
-
 msgid "Time-series Period Pivot"
 msgstr "محور فترة السلاسل الزمنية"
 
@@ -19110,10 +18894,6 @@ msgstr "الإجمالي"
 #, python-format
 msgid "Total (%(aggfunc)s)"
 msgstr "المجموع (%(aggfunc)s)"
-
-#, python-format
-msgid "Total (%(aggregatorName)s)"
-msgstr ""
 
 msgid ""
 "Total angle covered by the chart, in degrees. 360° draws a full circle "
@@ -19786,9 +19566,6 @@ msgstr ""
 msgid "Use a log scale"
 msgstr "استخدم مقياس لوغاريتمي"
 
-msgid "Use a log scale for the X-axis"
-msgstr ""
-
 msgid "Use a log scale for the Y-axis"
 msgstr "استخدم مقياسًا لوغاريتميًا للمحور Y"
 
@@ -20079,9 +19856,6 @@ msgstr "عمودي"
 msgid "Vertical (Left)"
 msgstr "عمودي (يسار)"
 
-msgid "Vertical layout (rows)"
-msgstr ""
-
 msgid "View"
 msgstr "منظر"
 
@@ -20256,12 +20030,6 @@ msgstr ""
 "تصور كيف يختلف مقياس واحد عبر التقسيمات الفرعية الرئيسية للبلد (الولايات "
 "والمقاطعات وما إلى ذلك) على خريطة choropleth. يتم رفع قيمة كل قسم فرعي "
 "عندما تحوم فوق الحدود الجغرافية المقابلة."
-
-msgid ""
-"Visualizes many different time-series objects in a single chart. This "
-"chart is being deprecated and we recommend using the Time-series Chart "
-"instead."
-msgstr ""
 
 msgid ""
 "Visualizes the words in a column that appear the most often. Bigger font "
@@ -20665,12 +20433,6 @@ msgstr "ما إذا كان سيتم عرض اسم المقياس كعنوان"
 msgid "Whether to display the metric name as a title"
 msgstr "ما إذا كان سيتم عرض اسم المقياس كعنوان"
 
-msgid "Whether to display the min and max values of the X-axis"
-msgstr ""
-
-msgid "Whether to display the min and max values of the Y-axis"
-msgstr ""
-
 #, fuzzy
 msgid "Whether to display the numbered column"
 msgstr "ما إذا كان سيتم عرض خط الاتجاه"
@@ -20684,9 +20446,6 @@ msgstr "ما إذا كان سيتم تضمين النسبة المئوية في 
 
 msgid "Whether to display the stroke"
 msgstr "ما إذا كان سيتم عرض الحد"
-
-msgid "Whether to display the time range interactive selector"
-msgstr ""
 
 msgid "Whether to display the timestamp"
 msgstr "ما إذا كان سيتم عرض الطابع الزمني"
@@ -20765,9 +20524,6 @@ msgstr "ما إذا كنت تريد الفرز تنازليًا أو تصاعد�
 msgid "Whether to sort results by the selected metric in descending order."
 msgstr "ما إذا كان سيتم فرز النتائج حسب المقياس المحدد بترتيب تنازلي."
 
-msgid "Whether to sort tooltip by the selected metric in descending order."
-msgstr ""
-
 msgid ""
 "Whether to sort tooltip by the selected metric in descending order. On "
 "stacked charts, values are shown in ascending order."
@@ -20833,9 +20589,6 @@ msgstr "اكتب وصفًا لاستعلامك"
 msgid "Write a handlebars template to render the data"
 msgstr "اكتب قالب المقاود لعرض البيانات"
 
-msgid "X AXIS TITLE MARGIN"
-msgstr ""
-
 msgid "X Axis"
 msgstr "المحور X"
 
@@ -20866,17 +20619,11 @@ msgstr "هامش عنوان المحور Y"
 msgid "X Axis title margin"
 msgstr ""
 
-msgid "X Log Scale"
-msgstr ""
-
 msgid "X Tick Layout"
 msgstr "تخطيط علامة X"
 
 msgid "X axis title margin"
 msgstr "هامش عنوان المحور X"
-
-msgid "X bounds"
-msgstr ""
 
 msgid "X-Axis Sort Ascending"
 msgstr "فرز المحور السيني تصاعديًا"
@@ -20894,17 +20641,8 @@ msgstr "الفاصل الزمني للمقياس"
 msgid "XYZ"
 msgstr ""
 
-msgid "Y 2 bounds"
-msgstr ""
-
-msgid "Y AXIS TITLE MARGIN"
-msgstr ""
-
 msgid "Y Axis"
 msgstr "المحور Y"
-
-msgid "Y Axis 2 Bounds"
-msgstr ""
 
 msgid "Y Axis Bounds"
 msgstr "حدود المحور Y"
@@ -20932,9 +20670,6 @@ msgstr "مقياس Y الطويل"
 
 msgid "Y axis title margin"
 msgstr "هامش عنوان المحور Y"
-
-msgid "Y bounds"
-msgstr ""
 
 #, fuzzy
 msgid "Y-Axis"
@@ -21115,9 +20850,6 @@ msgid ""
 msgstr ""
 "لا يمكنك حذف عامل التصفية الزمني الأخير لأنه يُستخدم لفلاتر النطاق الزمني"
 " في لوحات المعلومات."
-
-msgid "You cannot use 45° tick layout along with the time range filter"
-msgstr ""
 
 #, python-format
 msgid "You do not have access to the data behind this chart (tables: %s)."
@@ -21336,9 +21068,6 @@ msgstr ""
 #, fuzzy
 msgid "You need to"
 msgstr "تحتاج إلى"
-
-msgid "You need to configure HTML sanitization to use CSS"
-msgstr ""
 
 msgid ""
 "You updated the values in the control panel, but the chart was not "
@@ -21633,9 +21362,6 @@ msgstr "خلفية"
 msgid "banana"
 msgstr "موزة"
 
-msgid "basis"
-msgstr ""
-
 #, fuzzy
 msgid "begins with"
 msgstr "تسجيل الدخول باستخدام"
@@ -21676,9 +21402,6 @@ msgstr "باستخدام"
 
 msgid "cannot be empty"
 msgstr "لا يمكن أن تكون فارغة"
-
-msgid "cardinal"
-msgstr ""
 
 #, fuzzy
 msgid "cell bar"
@@ -21848,9 +21571,6 @@ msgstr "deck.gl سكاتربلوت"
 msgid "deck.gl Screen Grid"
 msgstr "شبكة شاشة deck.gl"
 
-msgid "deck.gl charts"
-msgstr ""
-
 #, fuzzy
 msgid "deck.gl layers (charts)"
 msgstr "الرسوم البيانية deck.gl"
@@ -21958,9 +21678,6 @@ msgstr "صف فارغ"
 
 msgid "entries"
 msgstr "إدخالات"
-
-msgid "entries per page"
-msgstr ""
 
 #. do-not-translate
 msgid "error_message"
@@ -22160,9 +21877,6 @@ msgstr "اليسار"
 msgid "less than {min} {name}"
 msgstr "أقل من {min} {name}"
 
-msgid "linear"
-msgstr ""
-
 #, fuzzy
 msgid "locale_key"
 msgstr "مقياس لوغاريتمي"
@@ -22207,9 +21921,6 @@ msgstr "دقيقة"
 
 msgid "minute(s)"
 msgstr "دقيقة (دقائق)"
-
-msgid "monotone"
-msgstr ""
 
 msgid "month"
 msgstr "الشهر"
@@ -22284,9 +21995,6 @@ msgstr "رقمية"
 
 msgid "numeric type icon"
 msgstr "رمز النوع الرقمي"
-
-msgid "nvd3"
-msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, fr,
 # ja, lv, ro, ru, sk, sr, sr_Latn, tr, uk]
@@ -22478,14 +22186,6 @@ msgstr "مترنح"
 
 msgid "std"
 msgstr "الأمراض المنقولة جنسيا"
-
-#. do-not-translate
-msgid "step-after"
-msgstr ""
-
-#. do-not-translate
-msgid "step-before"
-msgstr ""
 
 msgid "stopped"
 msgstr "توقفت"
