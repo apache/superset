@@ -179,7 +179,7 @@ def test_saved_query_exposes_perm_properties() -> None:
     )
 
     assert saved_query.perm == "[my_db].[My saved query](id:1)"
-    assert saved_query.schema_perm == "my_db.main"
+    assert saved_query.schema_perm == "[my_db].[main]"
     assert saved_query.catalog_perm is None
 
 
@@ -249,7 +249,7 @@ def test_slice_set_related_perm_does_not_crash_on_saved_query_datasource() -> No
         set_related_perm(MagicMock(), MagicMock(), slice_)
 
     assert slice_.perm == "[my_db].[My saved query](id:1)"
-    assert slice_.schema_perm == "my_db.main"
+    assert slice_.schema_perm == "[my_db].[main]"
     assert slice_.catalog_perm is None
 
 
