@@ -48,6 +48,7 @@ from superset.commands.utils import (
 )
 from superset.daos.dashboard import DashboardDAO, reconcile_position_json
 from superset.daos.report import ReportScheduleDAO
+from superset.dashboards.layout import repair_position
 from superset.exceptions import SupersetSecurityException
 from superset.models.dashboard import Dashboard
 from superset.reports.models import ReportSchedule
@@ -135,6 +136,8 @@ class UpdateDashboardCommand(UpdateMixin, BaseCommand):
             ) and not metadata_carries_positions:
                 positions: object = json.loads(position_json)
                 reconcile_position_json(positions, self._model.id)
+                if isinstance(positions, dict):
+                    positions = repair_position(positions, self._model_id)
                 self._properties["position_json"] = json.dumps(positions)
 
             dashboard = DashboardDAO.update(
