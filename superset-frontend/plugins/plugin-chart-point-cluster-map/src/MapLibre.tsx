@@ -45,6 +45,9 @@ maplibregl.setWorkerUrl(`${__webpack_public_path__}maplibre-gl-worker.mjs`);
 
 const DEFAULT_MAP_STYLE = 'https://tiles.openfreemap.org/styles/liberty';
 
+const isSafari = () =>
+  /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+
 interface Viewport {
   longitude: number;
   latitude: number;
@@ -198,34 +201,51 @@ function MapLibre({
     );
   }
 
-  const MapComponent = mapProvider === 'mapbox' ? MapboxMap : MapLibreMap;
-  const mapboxProps =
-    mapProvider === 'mapbox' ? { mapboxAccessToken: mapboxApiKey } : {};
+  const overlay = (
+    <ScatterPlotOverlay
+      locations={clusters}
+      dotRadius={pointRadius}
+      pointRadiusUnit={pointRadiusUnit}
+      rgb={rgb}
+      globalOpacity={globalOpacity}
+      compositeOperation="screen"
+      renderWhileDragging={renderWhileDragging}
+      aggregation={hasCustomMetric ? aggregatorName : undefined}
+      zoom={viewport.zoom}
+      lngLatAccessor={(location: GeoJSONLocation) => {
+        const { coordinates } = location.geometry;
+        return [coordinates[0], coordinates[1]];
+      }}
+    />
+  );
+
+  if (mapProvider === 'mapbox') {
+    return (
+      <MapboxMap
+        {...viewport}
+        mapboxAccessToken={mapboxApiKey}
+        style={{ width, height }}
+        mapStyle={resolvedMapStyle}
+        onMove={handleMove}
+        preserveDrawingBuffer={isSafari()}
+      >
+        {overlay}
+      </MapboxMap>
+    );
+  }
 
   return (
-    <MapComponent
+    <MapLibreMap
       {...viewport}
-      {...mapboxProps}
       style={{ width, height }}
       mapStyle={resolvedMapStyle}
       onMove={handleMove}
+      canvasContextAttributes={
+        isSafari() ? { preserveDrawingBuffer: true } : undefined
+      }
     >
-      <ScatterPlotOverlay
-        locations={clusters}
-        dotRadius={pointRadius}
-        pointRadiusUnit={pointRadiusUnit}
-        rgb={rgb}
-        globalOpacity={globalOpacity}
-        compositeOperation="screen"
-        renderWhileDragging={renderWhileDragging}
-        aggregation={hasCustomMetric ? aggregatorName : undefined}
-        zoom={viewport.zoom}
-        lngLatAccessor={(location: GeoJSONLocation) => {
-          const { coordinates } = location.geometry;
-          return [coordinates[0], coordinates[1]];
-        }}
-      />
-    </MapComponent>
+      {overlay}
+    </MapLibreMap>
   );
 }
 

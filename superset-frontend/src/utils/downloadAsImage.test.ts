@@ -1189,3 +1189,72 @@ test('shows a warning toast when the html2canvas capture rejects on Safari', asy
 
   document.body.removeChild(container);
 });
+
+test('keeps ag-grid print layout and full dimensions when capturing on Safari', async () => {
+  jest.useFakeTimers();
+  mockIsSafari.mockReturnValue(true);
+  const { container, agContainer, agRootWrapper, cleanup } =
+    buildAgGridElement();
+  const api = attachMockApi(agContainer);
+  Object.defineProperty(agRootWrapper, 'scrollHeight', {
+    get: () => 900,
+    configurable: true,
+  });
+  Object.defineProperty(agRootWrapper, 'offsetWidth', {
+    get: () => 700,
+    configurable: true,
+  });
+  const toDataURL = jest.fn(() => 'data:image/jpeg;base64,safari');
+  mockHtml2Canvas.mockResolvedValue({ toDataURL });
+
+  const handler = downloadAsImageOptimized('div', 'My Chart');
+  const exportPromise = handler(syntheticEventFor(container));
+  await jest.runAllTimersAsync();
+  await exportPromise;
+
+  expect(api.setGridOption).toHaveBeenCalledWith('domLayout', 'print');
+  expect(mockHtml2Canvas).toHaveBeenCalledWith(
+    agRootWrapper,
+    expect.objectContaining({ height: 900, width: 700, scale: 1 }),
+  );
+  expect(api.setGridOption).toHaveBeenCalledWith('domLayout', 'normal');
+  expect(mockToJpeg).not.toHaveBeenCalled();
+
+  cleanup();
+});
+
+test('preserves canvas content in the html2canvas clone on Safari', async () => {
+  const { drawImage, restore } = stubCanvasContext();
+  mockIsSafari.mockReturnValue(true);
+  const container = document.createElement('div');
+  const canvas = document.createElement('canvas');
+  canvas.width = 400;
+  canvas.height = 300;
+  container.appendChild(canvas);
+  document.body.appendChild(container);
+  const toDataURL = jest.fn(() => 'data:image/png;base64,safari');
+
+  mockHtml2Canvas.mockImplementation(
+    (
+      _element,
+      options: { onclone: (document: Document, clone: HTMLElement) => void },
+    ) => {
+      options.onclone(document, container.cloneNode(true) as HTMLElement);
+      return Promise.resolve({ toDataURL });
+    },
+  );
+
+  const handler = downloadAsImageOptimized(
+    'div',
+    'Deck Chart',
+    false,
+    undefined,
+    { format: 'png' },
+  );
+  await handler(syntheticEventFor(container));
+
+  expect(drawImage).toHaveBeenCalledWith(canvas, 0, 0);
+
+  restore();
+  document.body.removeChild(container);
+});

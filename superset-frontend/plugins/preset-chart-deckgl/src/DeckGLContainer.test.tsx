@@ -34,12 +34,20 @@ jest.mock('react-map-gl/maplibre', () => ({
     children,
     mapStyle,
     onMove,
+    canvasContextAttributes,
   }: {
     children: ReactNode;
     mapStyle: unknown;
     onMove: (evt: { viewState: Record<string, number> }) => void;
+    canvasContextAttributes?: { preserveDrawingBuffer?: boolean };
   }) => (
-    <div data-test="maplibre-map" data-map-style={JSON.stringify(mapStyle)}>
+    <div
+      data-test="maplibre-map"
+      data-map-style={JSON.stringify(mapStyle)}
+      data-preserve-drawing-buffer={String(
+        canvasContextAttributes?.preserveDrawingBuffer ?? false,
+      )}
+    >
       <button
         type="button"
         aria-label="move map"
@@ -54,8 +62,20 @@ jest.mock('react-map-gl/maplibre', () => ({
 }));
 
 jest.mock('react-map-gl/mapbox', () => ({
-  Map: ({ children, mapStyle }: { children: ReactNode; mapStyle: unknown }) => (
-    <div data-test="mapbox-map" data-map-style={JSON.stringify(mapStyle)}>
+  Map: ({
+    children,
+    mapStyle,
+    preserveDrawingBuffer,
+  }: {
+    children: ReactNode;
+    mapStyle: unknown;
+    preserveDrawingBuffer?: boolean;
+  }) => (
+    <div
+      data-test="mapbox-map"
+      data-map-style={JSON.stringify(mapStyle)}
+      data-preserve-drawing-buffer={String(preserveDrawingBuffer ?? false)}
+    >
       {children}
     </div>
   ),
@@ -105,6 +125,10 @@ const renderContainer = (
 afterEach(() => {
   jest.useRealTimers();
   jest.clearAllMocks();
+  Object.defineProperty(navigator, 'userAgent', {
+    value: 'Chrome',
+    configurable: true,
+  });
 });
 
 test('DeckGLContainer converts OSM raster tile templates into MapLibre style objects', () => {
@@ -165,6 +189,25 @@ test('DeckGLContainer passes Mapbox styles through when a key exists', () => {
   expect(screen.getByTestId('mapbox-map')).toHaveAttribute(
     'data-map-style',
     JSON.stringify('mapbox://styles/mapbox/dark-v9'),
+  );
+});
+
+test('DeckGLContainer preserves map canvases on Safari', () => {
+  Object.defineProperty(navigator, 'userAgent', {
+    value: 'Version/17.0 Safari/605.1.15',
+    configurable: true,
+  });
+
+  renderContainer({ mapProvider: 'maplibre' });
+  expect(screen.getByTestId('maplibre-map')).toHaveAttribute(
+    'data-preserve-drawing-buffer',
+    'true',
+  );
+
+  renderContainer({ mapProvider: 'mapbox', mapboxApiKey: 'pk.test' });
+  expect(screen.getByTestId('mapbox-map')).toHaveAttribute(
+    'data-preserve-drawing-buffer',
+    'true',
   );
 });
 

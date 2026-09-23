@@ -18,7 +18,6 @@
  */
 import { SyntheticEvent } from 'react';
 import domToImage from 'dom-to-image-more';
-import html2canvas from 'html2canvas';
 import { kebabCase } from 'lodash-es';
 import { t } from '@apache-superset/core/translation';
 import { SupersetTheme } from '@apache-superset/core/theme';
@@ -461,42 +460,6 @@ export default function downloadAsImageOptimized(
         ? 'transparent'
         : theme?.colorBgContainer;
 
-    // `dom-to-image-more` rasterizes by wrapping the DOM in an SVG `<foreignObject>`,
-    // which Safari/WebKit refuses to paint under its stricter security model, so
-    // captures there come out blank or partial. `html2canvas` paints the live DOM
-    // directly, so route Safari through it instead.
-    // See https://github.com/IDisposable/dom-to-image-more#browsers
-    if (isSafari()) {
-      try {
-        const canvas = await html2canvas(elementToPrint as HTMLElement, {
-          backgroundColor:
-            bgcolor === TRANSPARENT_RGBA ? null : (bgcolor ?? null),
-          scale,
-          useCORS: true,
-          logging: false,
-          ignoreElements: element => !filter(element),
-        });
-        triggerDownload(
-          canvas.toDataURL(
-            isPng ? 'image/png' : 'image/jpeg',
-            IMAGE_DOWNLOAD_QUALITY,
-          ),
-          description,
-          isPng,
-        );
-      } catch (error) {
-        console.error('Creating image failed', error);
-        await dispatchWarningToast(
-          t('Image download failed, please refresh and try again.'),
-        );
-      } finally {
-        if (didForceLoad) {
-          restoreVirtualization();
-        }
-      }
-      return;
-    }
-
     // Only apply ag-grid path for single-chart captures.
     // Skip entirely for dashboard-level exports (selector targets the .dashboard root).
     const isDashboardCapture = (
@@ -608,9 +571,34 @@ export default function downloadAsImageOptimized(
           }),
         };
 
-        const dataUrl = isPng
-          ? await domToImage.toPng(agRootWrapper, agImageOptions)
-          : await domToImage.toJpeg(agRootWrapper, agImageOptions);
+        let dataUrl: string;
+        if (isSafari()) {
+          // `dom-to-image-more` relies on SVG <foreignObject>, which WebKit does
+          // not reliably paint. Keep the ag-grid preparation above, then use a
+          // DOM painter for the actual Safari capture.
+          const { default: html2canvas } = await import('html2canvas');
+          const canvas = await html2canvas(agRootWrapper, {
+            backgroundColor:
+              bgcolor === TRANSPARENT_RGBA ? null : (bgcolor ?? null),
+            height: imageHeight,
+            width: originalWidth,
+            scale,
+            useCORS: true,
+            logging: false,
+            ignoreElements: element => !filter(element),
+            onclone: (_document, clone) => {
+              preserveCanvasContent(agRootWrapper, clone);
+            },
+          });
+          dataUrl = canvas.toDataURL(
+            isPng ? 'image/png' : 'image/jpeg',
+            IMAGE_DOWNLOAD_QUALITY,
+          );
+        } else {
+          dataUrl = isPng
+            ? await domToImage.toPng(agRootWrapper, agImageOptions)
+            : await domToImage.toJpeg(agRootWrapper, agImageOptions);
+        }
 
         triggerDownload(dataUrl, description, isPng);
       } catch (error) {
@@ -639,7 +627,7 @@ export default function downloadAsImageOptimized(
       return;
     }
 
-    // All other chart types: use the clone-based approach
+    // All other chart types: preserve canvas contents and expand clipped content.
     let cleanup: (() => void) | null = null;
 
     // Only the PNG path upscales the layout (transform: scale(PNG_SCALE)), so only there does a
@@ -658,6 +646,36 @@ export default function downloadAsImageOptimized(
     }
 
     try {
+      if (isSafari()) {
+        // `dom-to-image-more` serializes through SVG <foreignObject>, which
+        // WebKit does not reliably paint. html2canvas clones the document itself;
+        // restore the clone-path canvas and visibility work in its clone callback.
+        const { default: html2canvas } = await import('html2canvas');
+        const canvas = await html2canvas(elementToPrint as HTMLElement, {
+          backgroundColor:
+            bgcolor === TRANSPARENT_RGBA ? null : (bgcolor ?? null),
+          height: (elementToPrint as HTMLElement).scrollHeight,
+          width: (elementToPrint as HTMLElement).scrollWidth,
+          scale,
+          useCORS: true,
+          logging: false,
+          ignoreElements: element => !filter(element),
+          onclone: (_document, clone) => {
+            processCloneForVisibility(clone, isDashboardCapture);
+            preserveCanvasContent(elementToPrint, clone, getInstanceByDom);
+          },
+        });
+        triggerDownload(
+          canvas.toDataURL(
+            isPng ? 'image/png' : 'image/jpeg',
+            IMAGE_DOWNLOAD_QUALITY,
+          ),
+          description,
+          isPng,
+        );
+        return;
+      }
+
       const { clone, cleanup: cleanupFn } = createEnhancedClone(
         elementToPrint,
         theme,

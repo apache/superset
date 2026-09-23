@@ -51,6 +51,9 @@ const TICK = 250; // milliseconds
 const DEFAULT_MAP_STYLE =
   'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json';
 
+const isSafari = () =>
+  /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+
 export type DeckGLContainerProps = {
   viewport: Viewport;
   setControlValue?: (control: string, value: JsonValue) => void;
@@ -171,6 +174,7 @@ export const DeckGLContainer = memo(
               {...viewState}
               onMove={onMove}
               mapStyle={mapStyle}
+              preserveDrawingBuffer={isSafari()}
               style={{ width, height }}
             >
               <DeckGLOverlayMapbox layers={layers()} />
@@ -180,6 +184,9 @@ export const DeckGLContainer = memo(
               {...viewState}
               onMove={onMove}
               mapStyle={mapStyle}
+              canvasContextAttributes={
+                isSafari() ? { preserveDrawingBuffer: true } : undefined
+              }
               style={{ width, height }}
             >
               <DeckGLOverlayMapLibre layers={layers()} />
