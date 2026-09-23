@@ -27,6 +27,7 @@ import {
 } from 'react';
 
 import { t } from '@apache-superset/core/translation';
+import { logging } from '@apache-superset/core/utils';
 import {
   ChartDataResponseResult,
   Behavior,
@@ -153,6 +154,7 @@ const FilterValue: FC<FilterValueProps> = ({
   const asyncModeOverride = useAsyncModeOverride();
 
   const [error, setError] = useState<ClientErrorObject>();
+  const [isNetworkError, setIsNetworkError] = useState(false);
   const [formData, setFormData] = useState<Partial<QueryFormData>>({
     inView: false,
   });
@@ -292,6 +294,15 @@ const FilterValue: FC<FilterValueProps> = ({
         })
         .catch((error: Response) => {
           getClientErrorObject(error).then(clientErrorObject => {
+            // Raw error details stay in devtools; they are not rendered.
+            logging.warn('Failed to load filter values', clientErrorObject);
+            // `fetch` rejects with a TypeError (in every browser) only when no
+            // response was received; anything else was reported by the server.
+            setIsNetworkError(
+              error instanceof TypeError &&
+                !clientErrorObject.status &&
+                !clientErrorObject.errors?.length,
+            );
             setError(clientErrorObject);
             handleFilterLoadFinish();
           });
@@ -405,11 +416,8 @@ const FilterValue: FC<FilterValueProps> = ({
   );
 
   if (error) {
-    // Errors without a registered `error_type` (e.g. a raw database error) are
-    // rendered by the fallback, so surface their message rather than assuming
-    // a network failure.
-    const errorMessage =
-      error.errors?.[0]?.message || error.error || error.message;
+    // Errors without a registered `error_type` are rendered by the fallback.
+    // Server error text can expose database internals, so it is not shown.
     return (
       <ErrorMessageWithStackTrace
         error={error.errors?.[0]}
@@ -417,11 +425,12 @@ const FilterValue: FC<FilterValueProps> = ({
         fallback={
           <ErrorAlert
             errorType={
-              errorMessage ? t('Cannot load filter') : t('Network error')
+              isNetworkError ? t('Network error') : t('Cannot load filter')
             }
             message={
-              errorMessage ||
-              t('Network error while attempting to fetch resource')
+              isNetworkError
+                ? t('Network error while attempting to fetch resource')
+                : t('Sorry, something went wrong. Try again later.')
             }
             type="error"
             compact
