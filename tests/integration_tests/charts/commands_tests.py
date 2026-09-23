@@ -606,9 +606,13 @@ class TestChartsUpdateCommand(SupersetTestCase):
         dashboard = self.get_dash_by_slug("births")
         chart = dashboard.slices[0]
         original_query_context = chart.query_context
+        # Snapshot before ``upsert``, which returns the existing row when the
+        # dashboard is already embedded: only a row this test inserted may be
+        # deleted below.
         dashboard_was_embedded = bool(dashboard.embedded)
         embedded = EmbeddedDashboardDAO.upsert(dashboard, [])
         db.session.flush()  # the uuid is only populated on flush
+        embedded_uuid = embedded.uuid
 
         # A real guest principal for a dashboard that actually contains the
         # chart, so ``is_guest_user`` and ``raise_for_access`` both run for
@@ -645,13 +649,13 @@ class TestChartsUpdateCommand(SupersetTestCase):
                     UpdateChartCommand(chart.id, json_obj).run()
         finally:
             # Should the guest gate regress, ``run()`` commits before
-            # ``pytest.raises`` fails, persisting both the embedded row and the
-            # new query context. A rollback cannot undo a commit, so clear them
-            # explicitly rather than leaking them into every later test.
+            # ``pytest.raises`` fails, and a rollback cannot undo a commit. Drop
+            # the row this test created rather than leak it into later tests;
+            # on the passing path the rollback already discarded it.
             db.session.rollback()
             if not dashboard_was_embedded:
                 db.session.query(EmbeddedDashboard).filter_by(
-                    dashboard_id=dashboard.id
+                    uuid=embedded_uuid
                 ).delete()
             chart.query_context = original_query_context
             db.session.commit()
