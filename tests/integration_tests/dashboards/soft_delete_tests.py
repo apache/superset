@@ -389,6 +389,9 @@ class TestDashboardRestore(SupersetTestCase):
         self.client.delete(f"/api/v1/dashboard/{dashboard_id}")
         rv = self.client.post(f"/api/v1/dashboard/{dashboard_uuid}/restore")
         assert rv.status_code == 200
+        # the UUID route still resolves to the archived row's integer id
+        log = self.get_latest_log("DashboardRestApi.restore")
+        assert log.dashboard_id == dashboard_id
 
         rv = self.client.get(f"/api/v1/dashboard/{dashboard_id}")
         assert rv.status_code == 200
