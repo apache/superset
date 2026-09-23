@@ -1368,8 +1368,11 @@ function DatasourceEditor({
           : column,
       ),
     );
-    // The partition column stays designated; only the mapping goes away, which
-    // is the 1g state -- hidden from Explore, nothing mirrored onto it.
+    // The partition column stays designated and the override is cleared. A null
+    // `partition_mapped_column` means "follow `main_dttm_col`", so when the
+    // dataset has a default datetime column the mapping returns to it rather
+    // than going away. Only without one does this reach the 1g state -- no
+    // mapped column, nothing mirrored onto the partition column.
     setDatasource(prev => ({ ...prev, partition_mapped_column: null }));
   }, [datasource]);
 
