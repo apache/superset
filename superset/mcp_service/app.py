@@ -135,6 +135,7 @@ Dashboard Management:
 - add_chart_to_existing_dashboard: Add a chart to an existing dashboard (requires write access)
 - delete_dashboard: Delete a dashboard by ID/UUID/slug (requires editor rights — owner or Admin; destructive; does not delete its charts; soft-deletes to trash when the SOFT_DELETE feature flag is on, permanent otherwise)
 - manage_native_filters: Add, update, remove, or reorder native filters on a dashboard (requires write access; supports filter_select and filter_time)
+- manage_dashboard_markdown: Add, update, or remove markdown/header/divider layout components on a dashboard (requires write access)
 - apply_dashboard_filters: Apply values to a dashboard's existing native filters for the calling user and return a shareable permalink (read access; does NOT change the saved dashboard)
 - remove_chart_from_dashboard: Remove a chart from an existing dashboard (requires write access)
 - restore_dashboard: Restore a soft-deleted dashboard from trash by ID/UUID (requires editor rights — owner or Admin; only applies to dashboards trashed under the SOFT_DELETE feature flag)
@@ -520,7 +521,8 @@ Input format:
   duplicate_dashboard, create_dataset, create_virtual_dataset, update_dataset_metric,
   save_sql_query, add_chart_to_existing_dashboard, manage_native_filters,
   remove_chart_from_dashboard, update_chart_preview, manage_dashboard_owners,
-  manage_dashboard_roles, manage_dashboard_certification) require write
+  manage_dashboard_roles, manage_dashboard_certification,
+  manage_dashboard_markdown) require write
   permissions. These tools are only listed for users who have the necessary access.
   If a write tool does not appear in the tool list, the current user lacks write access.
 - execute_sql requires SQL Lab access (execute_sql_query permission), which is separate
@@ -825,6 +827,7 @@ from superset.mcp_service.dashboard.tool import (  # noqa: F401, E402
     get_dashboard_layout,
     list_dashboards,
     manage_dashboard_certification,
+    manage_dashboard_markdown,
     manage_dashboard_owners,
     manage_dashboard_roles,
     manage_native_filters,

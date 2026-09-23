@@ -442,6 +442,7 @@ COMMITTED_WRITE_SPECS: Dict[str, CommittedWriteSpec] = {
     "generate_chart": _spec("chart", "chart", reports_success=True),
     "generate_dashboard": _spec("dashboard", "dashboard"),
     "manage_dashboard_certification": _spec("dashboard"),
+    "manage_dashboard_markdown": _spec("dashboard"),
     "manage_dashboard_owners": _spec("dashboard"),
     "manage_dashboard_roles": _spec("dashboard"),
     "manage_native_filters": _spec("dashboard"),

@@ -378,6 +378,7 @@ MCP_CACHE_CONFIG: dict[str, Any] = {
         "generate_dashboard",
         "generate_explore_link",
         "manage_dashboard_certification",
+        "manage_dashboard_markdown",
         "manage_dashboard_owners",
         "manage_dashboard_roles",
         "manage_native_filters",

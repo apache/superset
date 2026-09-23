@@ -99,6 +99,10 @@ from superset.mcp_service.common.pagination_schemas import (
     PaginatedResponse,
 )
 from superset.mcp_service.common.time_range_validation import validate_time_range
+from superset.mcp_service.dashboard.constants import (
+    GRID_COLUMN_COUNT,
+    GRID_DEFAULT_CHART_WIDTH,
+)
 from superset.mcp_service.privacy import (
     filter_user_directory_fields,
     strip_user_directory_fields_from_schema,
@@ -2336,6 +2340,227 @@ class ManageNativeFiltersResponse(BaseModel):
         description=(
             "True when the operation failed because the current user does "
             "not have edit rights on the target dashboard."
+        ),
+    )
+
+
+# ---------------------------------------------------------------------------
+# manage_dashboard_markdown schemas
+# ---------------------------------------------------------------------------
+
+
+class BaseNewDashboardComponentSpec(BaseModel):
+    """Common placement fields shared by all new markdown/header/divider specs."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    target_tab: str | None = Field(
+        None,
+        description=(
+            "Tab to add the component to, matched by display name or "
+            "component ID (see get_dashboard_layout for available tabs). "
+            "Omit to use the first tab, or the grid if there are no tabs; "
+            "specify a target when the component should land in a "
+            "specific one rather than the first tab."
+        ),
+    )
+
+
+class MarkdownComponentSpec(BaseNewDashboardComponentSpec):
+    """Spec for a new markdown/text tile.
+
+    Placed in its own new row (a MARKDOWN component sits alongside charts,
+    not as a full-width band), so it composes with existing rows/charts on
+    the target grid or tab.
+    """
+
+    component_type: Literal["markdown"] = Field(
+        ..., description="Discriminator - must be 'markdown'"
+    )
+    code: str = Field(
+        ..., min_length=1, description="Markdown (and safe inline HTML) source"
+    )
+    width: int = Field(
+        GRID_DEFAULT_CHART_WIDTH,
+        ge=1,
+        le=GRID_COLUMN_COUNT,
+        description=(
+            f"Tile width in grid columns (1-{GRID_COLUMN_COUNT}, "
+            f"default {GRID_DEFAULT_CHART_WIDTH})"
+        ),
+    )
+    height: int = Field(
+        50,
+        ge=1,
+        description="Tile height in grid units (one unit is 8 pixels; default 50)",
+    )
+
+
+class HeaderComponentSpec(BaseNewDashboardComponentSpec):
+    """Spec for a new section header band.
+
+    Placed directly on the target grid/tab (not inside a row) so it spans
+    the full dashboard width, matching how the dashboard builder places
+    dragged header components.
+    """
+
+    component_type: Literal["header"] = Field(
+        ..., description="Discriminator - must be 'header'"
+    )
+    text: str = Field(..., min_length=1, description="Header display text")
+    header_size: Literal["SMALL_HEADER", "MEDIUM_HEADER", "LARGE_HEADER"] = Field(
+        "MEDIUM_HEADER", description="Header text size"
+    )
+    background: Literal["BACKGROUND_TRANSPARENT", "BACKGROUND_WHITE"] = Field(
+        "BACKGROUND_TRANSPARENT", description="Header band background"
+    )
+
+    @field_validator("text")
+    @classmethod
+    def sanitize_text(cls, v: str) -> str:
+        """Sanitize header text to prevent XSS; it renders as plain title text."""
+        sanitized: str | None = sanitize_user_input(
+            v, "text", max_length=500, allow_empty=True
+        )
+        if not sanitized:
+            raise ValueError("text has no content left after sanitization.")
+        return sanitized
+
+
+class DividerComponentSpec(BaseNewDashboardComponentSpec):
+    """Spec for a new horizontal divider.
+
+    Placed directly on the target grid/tab (not inside a row), same as
+    ``HeaderComponentSpec``. Carries no content — only placement.
+    """
+
+    component_type: Literal["divider"] = Field(
+        ..., description="Discriminator - must be 'divider'"
+    )
+
+
+NewDashboardComponentSpec = Annotated[
+    MarkdownComponentSpec | HeaderComponentSpec | DividerComponentSpec,
+    Field(discriminator="component_type"),
+]
+
+
+class DashboardComponentUpdateSpec(BaseModel):
+    """Partial update for an existing markdown/header/divider component.
+
+    Only ``id`` is required; any other provided field is merged into the
+    existing component. Fields that only apply to one component type (e.g.
+    ``code`` for markdown, ``text``/``header_size`` for header) are rejected
+    when used against the wrong component type. A component's type cannot
+    be changed; remove and re-add instead.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    id: str = Field(..., min_length=1, description="ID of the component to update")
+    code: str | None = Field(
+        None, min_length=1, description="New markdown source (markdown only)"
+    )
+    width: int | None = Field(
+        None,
+        ge=1,
+        le=GRID_COLUMN_COUNT,
+        description="New tile width in grid columns (markdown only)",
+    )
+    height: int | None = Field(
+        None, ge=1, description="New tile height in 8-pixel grid units (markdown only)"
+    )
+    text: str | None = Field(None, description="New header text (header only)")
+    header_size: Literal["SMALL_HEADER", "MEDIUM_HEADER", "LARGE_HEADER"] | None = (
+        Field(None, description="New header text size (header only)")
+    )
+    background: Literal["BACKGROUND_TRANSPARENT", "BACKGROUND_WHITE"] | None = Field(
+        None, description="New header band background (header only)"
+    )
+
+    @field_validator("text")
+    @classmethod
+    def sanitize_text(cls, v: str | None) -> str | None:
+        """Sanitize header text to prevent XSS; it renders as plain title text."""
+        if v is None:
+            return v
+        sanitized: str | None = sanitize_user_input(
+            v, "text", max_length=500, allow_empty=True
+        )
+        if not sanitized:
+            raise ValueError("text has no content left after sanitization.")
+        return sanitized
+
+
+class DashboardComponentSummary(BaseModel):
+    """Summary of a markdown/header/divider component for LLM consumption."""
+
+    id: str = Field(description="Layout component ID")
+    component_type: Literal["markdown", "header", "divider"] = Field(
+        description="Component type"
+    )
+    meta: Dict[str, Any] = Field(
+        default_factory=dict,
+        description=(
+            "Component metadata (e.g. code/width/height for markdown; "
+            "text/headerSize/background for header; empty for divider)"
+        ),
+    )
+
+
+class ManageDashboardMarkdownRequest(BaseModel):
+    """Request schema for the manage_dashboard_markdown tool."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    dashboard_id: int = Field(
+        ..., strict=True, gt=0, description="ID of the dashboard to modify"
+    )
+    add: List[NewDashboardComponentSpec] = Field(
+        default_factory=list,
+        description="New markdown/header/divider components to create.",
+    )
+    update: List[DashboardComponentUpdateSpec] = Field(
+        default_factory=list,
+        description="Partial updates to existing components, addressed by component ID",
+    )
+    remove: List[str] = Field(
+        default_factory=list,
+        description="IDs of markdown/header/divider components to delete",
+    )
+
+    @model_validator(mode="after")
+    def _require_at_least_one_operation(self) -> "ManageDashboardMarkdownRequest":
+        """Reject requests with no component operations."""
+        if not self.add and not self.update and not self.remove:
+            raise ValueError("At least one operation (add, update, remove) is required")
+        return self
+
+
+class ManageDashboardMarkdownResponse(DashboardMutationErrorFields):
+    """Response schema for the manage_dashboard_markdown tool."""
+
+    dashboard_id: int | None = Field(None, description="ID of the dashboard")
+    dashboard_url: str | None = Field(
+        None, description="URL to view the updated dashboard"
+    )
+    added_component_ids: List[str] = Field(
+        default_factory=list,
+        description=(
+            "Server-generated IDs of the newly created components, in request order"
+        ),
+    )
+    updated_component_ids: List[str] = Field(
+        default_factory=list, description="IDs of the components that were updated"
+    )
+    removed_component_ids: List[str] = Field(
+        default_factory=list, description="IDs of the components that were removed"
+    )
+    components: List[DashboardComponentSummary] = Field(
+        default_factory=list,
+        description=(
+            "All markdown/header/divider components on the dashboard after "
+            "the operation"
         ),
     )
 

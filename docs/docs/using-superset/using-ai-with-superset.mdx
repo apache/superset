@@ -295,6 +295,47 @@ Ask your admin for the MCP server URL and any authentication tokens you need.
 | `delete_dashboard`                | Delete a dashboard by ID, UUID, or slug; leaves its charts intact (soft-deletes to trash when `SOFT_DELETE` is enabled; fails if alerts/reports are still attached, checked before editorship; otherwise returns `permission_denied` if the caller isn't an editor of the dashboard — owners, Admins, and explicitly granted editors qualify) |
 | `restore_dashboard`               | Restore a soft-deleted dashboard from trash by ID or UUID (slug lookup does not cover trashed dashboards); not gated on `SOFT_DELETE`, so rows trashed while it was enabled stay recoverable, but only soft-deleted dashboards can be restored — permanently deleted dashboards are unrecoverable; returns `permission_denied` if the caller can see the dashboard but isn't an editor of it, or `NotFound` if the dashboard is outside the caller's RBAC visibility entirely |
 
+### Dashboard text components
+
+Use `manage_dashboard_markdown` to add, update, or remove markdown tiles,
+section headers, and dividers without replacing the dashboard's raw layout.
+The caller needs Dashboard write permission and editorship of the dashboard.
+
+```json
+{
+  "request": {
+    "dashboard_id": 42,
+    "add": [
+      {"component_type": "header", "text": "Sales overview"},
+      {"component_type": "markdown", "code": "**Updated daily**", "width": 12},
+      {"component_type": "divider"}
+    ]
+  }
+}
+```
+
+Markdown tiles are appended in their own rows; headers and dividers are appended
+directly to the grid or tab. Each addition can specify `target_tab` by name or
+component ID (available from `get_dashboard_layout`). Without it, additions use
+the first tab, or the grid on dashboards without tabs. Markdown width is 1–12
+columns (default 4); height is in 8-pixel grid units (default 50).
+
+The response includes generated `added_component_ids` and a `components` summary.
+Reuse those IDs in `update`, for example
+`{"id": "MARKDOWN-…", "code": "Revised notes"}`, or in `remove`, for example
+`["MARKDOWN-…"]`. Updates merge only supplied non-null fields and cannot change a
+component's type or placement. The reserved dashboard-title `HEADER_ID` is not a
+section header and cannot be changed through this tool.
+
+Operations in one request are validated before saving. Existing charts, native
+filters, and unrelated dashboard properties are preserved. Removing a tile prunes
+empty row/column wrappers but retains tabs. Invalid component IDs, incompatible
+fields, invalid layouts, and conflicting update/removal operations return errors
+without saving partial changes. Markdown uses the dashboard's existing renderer
+and HTML sanitization configuration. Concurrent layout edits are last-write-wins;
+avoid simultaneous edits from the UI and MCP clients. This tool does not reorder
+or move existing components; use the dashboard editor for those operations.
+
 ### SQL
 
 | Tool                        | Description                                    |
