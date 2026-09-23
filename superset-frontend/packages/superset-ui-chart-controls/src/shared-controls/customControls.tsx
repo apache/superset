@@ -146,9 +146,7 @@ export const xAxisSortControl = {
       const columns = [controls?.x_axis?.value as QueryFormColumn].filter(
         Boolean,
       );
-      const isSingleSortAvailable =
-        ensureIsArray(controls?.groupby?.value).length === 0;
-      const isMultiSortAvailable =
+      const isMultiSeries =
         !!ensureIsArray(controls?.groupby?.value).length ||
         ensureIsArray(controls?.metrics?.value).length > 1;
       const metrics = [
@@ -156,25 +154,44 @@ export const xAxisSortControl = {
         controls?.timeseries_limit_metric?.value as QueryFormMetric,
       ].filter(Boolean);
       const metricLabels = [...new Set(metrics.map(getMetricLabel))];
+      // The x-axis column and every metric (the "Sort By" limit metric
+      // included) can order the axis with or without dimensions: the backend
+      // sort operator handles the single-series case, and the chart resolves
+      // a metric's pivoted columns through `label_map` when dimensions split
+      // it into several series.
+      const fieldOptions = [
+        ...columns.map(column => {
+          const value = getColumnLabel(column);
+          return { value, label: dataset?.verbose_map?.[value] || value };
+        }),
+        ...metricLabels.map(value => ({
+          value,
+          label: dataset?.verbose_map?.[value] || value,
+        })),
+      ];
+      // Aggregating across series only means something once there is more
+      // than one series per x-axis value.
+      const aggregateOptions = isMultiSeries
+        ? SORT_SERIES_CHOICES.map(choice => ({
+            value: choice[0],
+            label: choice[1],
+          }))
+        : [];
+      // Option values double as the stored `x_axis_sort`, and the aggregate
+      // values (`name`, `sum`, ...) are what the chart matches first, so a
+      // column or metric whose label collides with one is dropped rather
+      // than shadowing the aggregate. The same set also dedupes a column
+      // that shares its label with a metric.
+      const seenValues = new Set(aggregateOptions.map(option => option.value));
       const options = [
-        ...(isSingleSortAvailable
-          ? [
-              ...columns.map(column => {
-                const value = getColumnLabel(column);
-                return { value, label: dataset?.verbose_map?.[value] || value };
-              }),
-              ...metricLabels.map(value => ({
-                value,
-                label: dataset?.verbose_map?.[value] || value,
-              })),
-            ]
-          : []),
-        ...(isMultiSortAvailable
-          ? SORT_SERIES_CHOICES.map(choice => ({
-              value: choice[0],
-              label: choice[1],
-            }))
-          : []),
+        ...fieldOptions.filter(option => {
+          if (seenValues.has(option.value)) {
+            return false;
+          }
+          seenValues.add(option.value);
+          return true;
+        }),
+        ...aggregateOptions,
       ];
 
       const shouldReset = !(
