@@ -375,12 +375,8 @@ def test_save_rejects_repoint_to_database_without_access(
             ("my_table", "public", None),
             id="table_preserved",
         ),
-        # A request that repoints ``database.id`` can also change
-        # ``table_name``/``schema``/``catalog`` in the same payload, and
-        # ``update_from_object`` applies those requested values afterwards. The
-        # check must therefore run against the *requested* table, not the
-        # dataset's current (stale) one, or a caller could pass the check using
-        # a table they are authorised for while repointing to one they are not.
+        # A cross-database repoint can change the table in the same payload,
+        # so the check must run against the requested table, not the stale one.
         pytest.param(
             {"table_name": "authorised_table"},
             {"table_name": "secret_table", "schema": "finance"},
@@ -437,10 +433,8 @@ def test_save_allows_repoint_to_database_with_access(
             ("secret_table", "finance", None),
             id="same_database_repoint",
         ),
-        # Dropping ``sql`` turns a virtual dataset into a physical one, binding
-        # its ``table_name`` label to a real table. That is a repoint even when
-        # the label is unchanged, otherwise the label could be renamed under the
-        # virtual-dataset skip and converted in a second save.
+        # Dropping ``sql`` binds the label to a real table, so the conversion
+        # is a repoint even when the label itself is unchanged.
         pytest.param(
             {"table_name": "secret_table", "schema": "finance", "is_virtual": True},
             {"table_name": "secret_table", "schema": "finance"},
@@ -493,9 +487,8 @@ def test_save_rejects_same_database_repoint_without_access(
 @pytest.mark.parametrize(
     "orm_overrides,payload",
     [
-        # A virtual dataset's ``table_name`` is a label rather than a pointer to
-        # a physical table, so renaming it is not a repoint and must not be
-        # gated on access to a physical table of that name.
+        # A dataset that stays virtual keeps ``table_name`` as a label, so
+        # renaming it is not a repoint.
         pytest.param(
             {"table_name": "my_virtual_dataset", "is_virtual": True},
             {
