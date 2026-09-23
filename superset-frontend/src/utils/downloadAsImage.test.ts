@@ -1258,3 +1258,97 @@ test('preserves canvas content in the html2canvas clone on Safari', async () => 
   restore();
   document.body.removeChild(container);
 });
+
+// `processCloneForVisibility` expands clipped content on the clone, so the source
+// element's measurements understate what the capture must cover. html2canvas reads
+// width/height only after onclone returns, so the callback must widen them or long
+// tables and virtualized lists are cropped to their on-screen size on Safari.
+test('widens the Safari capture to the expanded clone size, not the on-screen size', async () => {
+  mockIsSafari.mockReturnValue(true);
+  const container = document.createElement('div');
+  Object.defineProperty(container, 'scrollHeight', {
+    get: () => 300,
+    configurable: true,
+  });
+  Object.defineProperty(container, 'scrollWidth', {
+    get: () => 400,
+    configurable: true,
+  });
+  document.body.appendChild(container);
+  const toDataURL = jest.fn(() => 'data:image/jpeg;base64,safari');
+
+  let captured: { width?: number; height?: number } | undefined;
+  mockHtml2Canvas.mockImplementation(
+    (
+      _element,
+      options: {
+        width?: number;
+        height?: number;
+        onclone: (document: Document, clone: HTMLElement) => void;
+      },
+    ) => {
+      // The expanded clone is taller and wider than the element it came from.
+      const clone = document.createElement('div');
+      Object.defineProperty(clone, 'scrollHeight', {
+        get: () => 900,
+        configurable: true,
+      });
+      Object.defineProperty(clone, 'scrollWidth', {
+        get: () => 1200,
+        configurable: true,
+      });
+      options.onclone(document, clone);
+      captured = options;
+      return Promise.resolve({ toDataURL });
+    },
+  );
+
+  const handler = downloadAsImageOptimized('div', 'Long Table');
+  await handler(syntheticEventFor(container));
+
+  expect(captured?.height).toBe(900);
+  expect(captured?.width).toBe(1200);
+
+  document.body.removeChild(container);
+});
+
+test('keeps the on-screen capture size as a floor when the clone is not larger', async () => {
+  mockIsSafari.mockReturnValue(true);
+  const container = document.createElement('div');
+  Object.defineProperty(container, 'scrollHeight', {
+    get: () => 1000,
+    configurable: true,
+  });
+  Object.defineProperty(container, 'scrollWidth', {
+    get: () => 800,
+    configurable: true,
+  });
+  document.body.appendChild(container);
+  const toDataURL = jest.fn(() => 'data:image/jpeg;base64,safari');
+
+  let captured: { width?: number; height?: number } | undefined;
+  mockHtml2Canvas.mockImplementation(
+    (
+      _element,
+      options: {
+        width?: number;
+        height?: number;
+        onclone: (document: Document, clone: HTMLElement) => void;
+      },
+    ) => {
+      // A clone that reports nothing usable must not shrink the capture.
+      const clone = document.createElement('div');
+      options.onclone(document, clone);
+      captured = options;
+      return Promise.resolve({ toDataURL });
+    },
+  );
+
+  const handler = downloadAsImageOptimized('div', 'Chart');
+  await handler(syntheticEventFor(container));
+
+  expect(captured?.height).toBe(1000);
+  expect(captured?.width).toBe(800);
+
+  document.body.removeChild(container);
+});
