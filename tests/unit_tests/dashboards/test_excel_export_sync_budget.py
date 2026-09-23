@@ -257,6 +257,100 @@ def test_plan_does_not_treat_timeseries_as_single_row(
     assert plan_inline_export(mock.MagicMock()).requested_rows == 250
 
 
+def test_plan_does_not_treat_a_legacy_groupby_as_single_row(
+    charts: mock.MagicMock,
+) -> None:
+    # ``QueryObject`` promotes ``groupby`` into ``columns``, so this query returns
+    # one row per country even though its ``columns`` list is empty.
+    charts.return_value = [
+        _chart(
+            10,
+            {
+                "columns": [],
+                "groupby": ["country"],
+                "metrics": ["count"],
+                "row_limit": 5000,
+            },
+            saved_metrics=(("count", "COUNT(*)"),),
+        )
+    ]
+
+    assert plan_inline_export(mock.MagicMock()).requested_rows == 5000
+
+
+@pytest.mark.parametrize(
+    "operation",
+    [
+        pytest.param("resample", id="resample fills every period in the range"),
+        pytest.param("prophet", id="prophet appends forecast periods"),
+        pytest.param("my_custom_op", id="operator-registered operation"),
+    ],
+)
+def test_plan_rejects_post_processing_that_can_add_rows(
+    charts: mock.MagicMock, operation: str
+) -> None:
+    charts.return_value = [
+        _chart(
+            10,
+            {
+                "columns": ["order_date"],
+                "metrics": ["count"],
+                "row_limit": 100,
+                "post_processing": [
+                    {"operation": "pivot", "options": {}},
+                    {"operation": operation, "options": {}},
+                ],
+            },
+        )
+    ]
+
+    plan = plan_inline_export(mock.MagicMock())
+
+    assert plan.requested_rows is None
+    assert plan.fits_row_budget is False
+
+
+def test_plan_rejects_resampling_a_single_row_query(charts: mock.MagicMock) -> None:
+    # Padding to the time range lets even one aggregate row resample into many.
+    charts.return_value = [
+        _chart(
+            10,
+            {
+                "columns": [],
+                "metrics": ["count"],
+                "post_processing": [{"operation": "resample", "options": {}}],
+            },
+            saved_metrics=(("count", "COUNT(*)"),),
+        )
+    ]
+
+    assert plan_inline_export(mock.MagicMock()).requested_rows is None
+
+
+def test_plan_keeps_the_row_limit_for_row_preserving_post_processing(
+    charts: mock.MagicMock,
+) -> None:
+    # Empty steps are dropped by ``QueryObject`` before execution.
+    charts.return_value = [
+        _chart(
+            10,
+            {
+                "columns": ["order_date"],
+                "metrics": ["count"],
+                "row_limit": 100,
+                "post_processing": [
+                    {"operation": "pivot", "options": {}},
+                    None,
+                    {"operation": "rename", "options": {}},
+                    {"operation": "flatten", "options": {}},
+                ],
+            },
+        )
+    ]
+
+    assert plan_inline_export(mock.MagicMock()).requested_rows == 100
+
+
 def test_plan_rejects_grouping_sets(charts: mock.MagicMock) -> None:
     charts.return_value = [
         _chart(

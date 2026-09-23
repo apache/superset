@@ -64,7 +64,9 @@ workbook during the request and returns it to the browser. The combined
 by default). A query counts as one row when it groups nothing and every metric
 it selects is a known aggregate; a Custom SQL metric that cannot be shown to
 aggregate counts for its full `row_limit`. Queries without a `row_limit` use
-`ROW_LIMIT`. Queries that use grouping sets require the background path. Keep
+`ROW_LIMIT`. Queries that use grouping sets, or post-processing that can add
+rows (such as the Resample and Forecast options, or a custom
+`EXTRA_PANDAS_POSTPROCESSING_OPS` operation), require the background path. Keep
 this setting within your web server's request timeout.
 
 For larger data exports and all image exports, configure the background path:

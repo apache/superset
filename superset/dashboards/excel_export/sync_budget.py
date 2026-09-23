@@ -35,6 +35,32 @@ from superset.utils.core import AdhocMetricExpressionType
 
 logger = logging.getLogger(__name__)
 
+# Post-processing operations that return at most as many rows as they receive.
+# Any other step is unbounded for planning: ``resample`` fills every period in
+# the range, ``prophet`` appends forecast periods, and operations registered
+# through ``EXTRA_PANDAS_POSTPROCESSING_OPS`` are unknown.
+_ROW_PRESERVING_OPERATIONS = frozenset(
+    {
+        "aggregate",
+        "boxplot",
+        "compare",
+        "contribution",
+        "cum",
+        "diff",
+        "flatten",
+        "geodetic_parse",
+        "geohash_decode",
+        "geohash_encode",
+        "histogram",
+        "pivot",
+        "rank",
+        "rename",
+        "rolling",
+        "select",
+        "sort",
+    }
+)
+
 
 @dataclass(frozen=True)
 class InlineExportPlan:
@@ -108,7 +134,12 @@ def _aggregates(metric: Any, dataset: _Dataset) -> bool:
 
 def _returns_single_row(query: dict[str, Any], chart: Any) -> bool:
     """Return whether the query provably returns exactly one aggregate row."""
-    if query.get("columns") != [] or query.get("is_timeseries"):
+    if (
+        query.get("columns") != []
+        # ``QueryObject`` promotes the deprecated ``groupby`` into ``columns``.
+        or query.get("groupby")
+        or query.get("is_timeseries")
+    ):
         # Anything grouped returns one row per group, bounded by the row limit.
         return False
     metrics = query.get("metrics")
@@ -135,12 +166,29 @@ def _schema_row_limit(value: Any) -> int | None:
     return row_limit if row_limit >= 0 else None
 
 
+def _post_processing_adds_no_rows(query: dict[str, Any]) -> bool:
+    """Return whether every post-processing step keeps the query's row bound."""
+    steps = query.get("post_processing") or []
+    if not isinstance(steps, list):
+        return False
+    # ``QueryObject`` drops empty steps before running the rest.
+    return all(
+        isinstance(step, dict) and step.get("operation") in _ROW_PRESERVING_OPERATIONS
+        for step in steps
+        if step
+    )
+
+
 def _finite_row_limit(query: Any, chart: Any) -> int | None:
     """Return a safe upper bound for one query's result rows."""
     if not isinstance(query, dict):
         return None
     # Grouping sets do not apply row_limit and may fan out into several queries.
     if query.get("grouping_sets"):
+        return None
+    # Checked before the single-row case: resampling one row can still fill
+    # every period of the time range.
+    if not _post_processing_adds_no_rows(query):
         return None
     if _returns_single_row(query, chart):
         return 1

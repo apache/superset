@@ -25,7 +25,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-23 10:56-0300\n"
+"POT-Creation-Date: 2026-09-24 00:04+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -4610,6 +4610,9 @@ msgstr ""
 msgid "Dashboard could not be updated."
 msgstr ""
 
+msgid "Dashboard data exported to Excel"
+msgstr ""
+
 msgid "Dashboard does not exist"
 msgstr ""
 
@@ -6433,9 +6436,6 @@ msgid "Excel Export"
 msgstr ""
 
 msgid "Excel XML Export"
-msgstr ""
-
-msgid "Excel export is not configured on this server."
 msgstr ""
 
 msgid "Excel file format cannot be determined"
@@ -10611,6 +10611,12 @@ msgstr ""
 
 #, python-format
 msgid "Preparing %(count)s charts for export. This may take a moment."
+msgstr ""
+
+msgid "Preparing dashboard Excel export…"
+msgstr ""
+
+msgid "Preparing export…"
 msgstr ""
 
 msgid "Preview"

@@ -934,7 +934,9 @@ EXPORT_STORAGE = {
 Direct downloads are limited by `EXCEL_EXPORT_SYNC_MAX_ROWS` (default
 `100_000`), based on the combined `row_limit` of the planned queries. Superset
 counts aggregate-only queries as one row, uses `ROW_LIMIT` when other queries
-omit it, and requires the background path for grouping sets. It returns `400`
+omit it, and requires the background path for grouping sets and for
+post-processing that can add rows (resample, forecasts, custom operations). It
+returns `400`
 before querying if the total exceeds the limit. Image exports are hidden without
 export storage because they require background webdriver rendering.
 
