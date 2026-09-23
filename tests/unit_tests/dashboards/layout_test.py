@@ -198,6 +198,44 @@ def test_detached_chart_returns_to_the_tab_in_its_stale_parents() -> None:
     ]
 
 
+def test_detached_header_and_markdown_return_to_their_tab_in_order() -> None:
+    stale_parents = ["ROOT_ID", "TABS-t", "TAB-2", "ROW-gone"]
+    position = {
+        "ROOT_ID": {"id": "ROOT_ID", "type": "ROOT", "children": ["TABS-t"]},
+        "TABS-t": {"id": "TABS-t", "type": "TABS", "children": ["TAB-1", "TAB-2"]},
+        "TAB-1": {"id": "TAB-1", "type": "TAB", "children": []},
+        "TAB-2": {"id": "TAB-2", "type": "TAB", "children": []},
+        "CHART-trapped": {
+            "id": "CHART-trapped",
+            "type": "CHART",
+            "children": [],
+            "parents": stale_parents,
+            "meta": {"chartId": 2},
+        },
+        "HEADER-trapped": {
+            "id": "HEADER-trapped",
+            "type": "HEADER",
+            "children": [],
+            "parents": ["ROOT_ID", "TABS-t", "TAB-2"],
+        },
+        "MARKDOWN-trapped": {
+            "id": "MARKDOWN-trapped",
+            "type": "MARKDOWN",
+            "children": [],
+            "parents": stale_parents,
+        },
+    }
+
+    cleaned, _ = remove_unreachable_components(position)
+
+    assert cleaned["TAB-1"]["children"] == []
+    chart_row, header_id, markdown_row = cleaned["TAB-2"]["children"]
+    assert header_id == "HEADER-trapped"
+    assert cleaned["HEADER-trapped"]["parents"] == ["ROOT_ID", "TABS-t", "TAB-2"]
+    assert cleaned[chart_row]["children"] == ["CHART-trapped"]
+    assert cleaned[markdown_row]["children"] == ["MARKDOWN-trapped"]
+
+
 def test_detached_chart_already_placed_is_not_duplicated() -> None:
     position = reachable_position()
     position["CHART-a"]["meta"] = {"chartId": 2}
