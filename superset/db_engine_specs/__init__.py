@@ -41,6 +41,7 @@ import sqlalchemy.dialects
 from flask import current_app as app
 from sqlalchemy.engine.default import DefaultDialect
 from sqlalchemy.exc import NoSuchModuleError
+from sqlalchemy.sql import compiler as sqla_compiler
 
 from superset import feature_flag_manager
 from superset.db_engine_specs.base import BaseEngineSpec
@@ -162,6 +163,16 @@ def get_available_engine_specs() -> dict[type[BaseEngineSpec], set[str]]:  # noq
             continue
 
     # installed 3rd-party dialects
+    #
+    # `ep.load()` runs arbitrary module-level code in the third-party package.
+    # Some dialects (e.g. sqlalchemy-monetdb) mutate SQLAlchemy's shared,
+    # process-global `compiler.OPERATORS` mapping in place on import instead
+    # of subclassing it, which would otherwise silently change SQL rendering
+    # (e.g. `!=` -> `<>`) for every dialect for the rest of the process, not
+    # just the misbehaving one. Snapshot/restore around each load so a
+    # buggy connector can't leak global compiler state into unrelated
+    # dialects just because it was enumerated here.
+    operators_snapshot = dict(sqla_compiler.OPERATORS)
     for ep in entry_points(group="sqlalchemy.dialects"):
         try:
             dialect = ep.load()
@@ -196,6 +207,10 @@ def get_available_engine_specs() -> dict[type[BaseEngineSpec], set[str]]:  # noq
             if isinstance(driver, bytes):
                 driver = driver.decode()
             drivers[backend].add(driver)
+        finally:
+            if sqla_compiler.OPERATORS != operators_snapshot:
+                sqla_compiler.OPERATORS.clear()
+                sqla_compiler.OPERATORS.update(operators_snapshot)
 
     dbs_denylist = app.config["DBS_AVAILABLE_DENYLIST"]
     if not feature_flag_manager.is_feature_enabled("ENABLE_SUPERSET_META_DB"):

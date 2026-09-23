@@ -26,7 +26,7 @@ filelock>=3.20.3,<4.0.0
 brotli>=1.2.0,<2.0.0
 numexpr>=2.9.0
 # Security: CVE-2026-34073 (MEDIUM) - Improper Certificate Validation
-cryptography>=50.0.0,<51.0.0
+cryptography>=50.0.1,<51.0.0
 # Security: Snyk - XSS vulnerability in Mako templates
 mako>=1.4.1,<2.0.0
 # Security: CVE-2024-52338 (CRITICAL) - Deserialization of untrusted data in IPC/Parquet readers

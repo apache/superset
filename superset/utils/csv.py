@@ -16,6 +16,7 @@
 # under the License.
 import logging
 import urllib.request
+from contextlib import closing
 from typing import Any, Optional, Union
 from urllib.error import URLError
 
@@ -119,10 +120,10 @@ def get_chart_csv_data(
         opener.addheaders.append(("Cookie", cookie_str))
         # A missing timeout means the socket blocks forever when the Superset
         # webserver is unreachable, wedging the report schedule in WORKING.
-        response = opener.open(chart_url, timeout=timeout)
-        content = response.read()
-        if response.getcode() != 200:
-            raise URLError(response.getcode())
+        with closing(opener.open(chart_url, timeout=timeout)) as response:
+            content = response.read()
+            if response.getcode() != 200:
+                raise URLError(response.getcode())
     if content:
         return content
     return None

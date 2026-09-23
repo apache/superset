@@ -58,6 +58,7 @@ if TYPE_CHECKING:
     from superset.common.query_context import QueryContext
     from superset.common.query_context_factory import QueryContextFactory
     from superset.connectors.sqla.models import SqlaTable
+    from superset.daos.datasource import Datasource
 
     # avoid circular import: superset.connectors.sqla.models imports this module,
     # and superset.semantic_layers.models -> semantic_layers.mapper imports
@@ -229,6 +230,59 @@ class Slice(  # pylint: disable=too-many-public-methods
         if self.datasource_type == utils.DatasourceType.SEMANTIC_VIEW:
             return self.semantic_view
         return self.table
+
+    @property
+    def resolved_datasource(self) -> Datasource | None:
+        """The chart's datasource, resolved across datasource types.
+
+        ``Slice.datasource`` is pinned to table-backed datasources (the
+        ``table`` relationship joins on ``datasource_type == 'table'``), so
+        charts on other datasource types — semantic views in particular —
+        resolve to ``None`` there. Authorization call sites must use this
+        resolver instead, so those charts participate in access checks
+        rather than silently vanishing from them.
+
+        Returns ``None`` when the datasource row does not exist, the type is
+        unknown, or the resolved model does not participate in access
+        control (no ``perm``, e.g. ``SavedQuery``); callers must treat
+        ``None`` as inaccessible, never as absent. Non-table lookups issue a
+        database query on every access — deduplicate before calling this in
+        a loop.
+        """
+        if not self.datasource_id:
+            return None
+        if self.datasource_type == utils.DatasourceType.TABLE:
+            return self.table
+        if self.datasource_type == utils.DatasourceType.SEMANTIC_VIEW:
+            # Resolved through the type-guarded ``semantic_view`` relationship
+            # rather than a DAO query: identity-map cached, and its join
+            # predicate already enforces the type constraint. ``None`` when
+            # the row is gone, matching the DAO fallback's semantics.
+            return self.semantic_view
+        # pylint: disable=import-outside-toplevel
+        # Deferred to avoid a circular import: superset.daos.datasource
+        # imports connectors and sql_lab models at module top.
+        from superset.daos.datasource import DatasourceDAO
+        from superset.daos.exceptions import (
+            DatasourceNotFound,
+            DatasourceTypeNotSupportedError,
+            DatasourceValueIsIncorrect,
+        )
+
+        try:
+            resolved = DatasourceDAO.get_datasource(
+                self.datasource_type, self.datasource_id
+            )
+        except (
+            DatasourceNotFound,
+            DatasourceTypeNotSupportedError,
+            DatasourceValueIsIncorrect,
+        ):
+            return None
+        # A model without a ``perm`` cannot be authorized by
+        # ``can_access_datasource`` — treat it as inaccessible rather than
+        # letting the access check crash on it.
+        return resolved if hasattr(resolved, "perm") else None
 
     def clone(self) -> Slice:
         return Slice(
@@ -442,7 +496,29 @@ def set_related_perm(_mapper: Mapper, _connection: Connection, target: Slice) ->
     # pylint: disable=import-outside-toplevel
     from superset.daos.datasource import DatasourceDAO
 
-    src_class = DatasourceDAO.sources[target.datasource_type]
+    src_class: type[Datasource] | None = DatasourceDAO.sources.get(
+        target.datasource_type
+    )
+    if src_class is None:
+        # An unknown ``datasource_type`` (a legacy connector, a typo, or an
+        # extension type core does not know yet) has no resolvable datasource.
+        # Guard with ``.get()`` so this before_insert/before_update listener
+        # does not raise KeyError and 500 every save of such a chart. Fail
+        # closed by clearing the denormalized perm columns: a chart whose type
+        # is mutated to an unknown value loses access instead of resolving under
+        # its former datasource's stale perm in list filters. An unresolved
+        # datasource cannot satisfy datasource-derived access; independent
+        # owner/Admin/viewer chart grants retain their usual checks.
+        logger.warning(
+            "Slice %r references unknown datasource_type %r; clearing perm "
+            "columns (fail closed).",
+            target.slice_name,
+            target.datasource_type,
+        )
+        target.perm = None
+        target.catalog_perm = None
+        target.schema_perm = None
+        return
     if id_ := target.datasource_id:
         ds = db.session.query(src_class).filter_by(id=int(id_)).first()
         if ds:

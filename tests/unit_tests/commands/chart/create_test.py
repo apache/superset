@@ -16,22 +16,26 @@
 # under the License.
 """Unit tests for CreateChartCommand.
 
-Regression coverage for apache/superset#29697: POST /api/v1/chart/ with
-datasource_type="saved_query" (or "query") crashes with an unhandled
-AttributeError -- reported to API clients as an opaque 500 "Fatal error" --
-because SavedQuery and Query models have no ``.name`` attribute, and because
-Slice.datasource only ever resolves a ``table``-typed datasource, so even a
-successfully created chart of another type could never actually render.
+Regression coverage for apache/superset#29697: unsupported SQL Lab query
+objects must be rejected before datasource lookup, not fail with an opaque
+500. Table and semantic-view datasources are supported chart sources.
 """
+
+from unittest.mock import Mock
 
 import pytest
 from pytest_mock import MockerFixture
 
 from superset.commands.chart.create import CreateChartCommand
-from superset.commands.chart.exceptions import ChartForbiddenError, ChartInvalidError
+from superset.commands.chart.exceptions import (
+    ChartForbiddenError,
+    ChartInvalidError,
+    ChartQueryContextDatasourceMismatchValidationError,
+)
 from superset.commands.exceptions import DatasourceTypeInvalidError
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetSecurityException
+from superset.utils import json
 
 
 def _base_mocks(mocker: MockerFixture) -> None:
@@ -48,11 +52,9 @@ def _base_mocks(mocker: MockerFixture) -> None:
 def test_create_chart_rejects_non_table_datasource_type(
     mocker: MockerFixture, datasource_type: str
 ) -> None:
-    """A chart can only ever query a table-backed datasource -- Slice.datasource
-    only ever resolves the ``table`` relationship, so any other type would
-    produce a chart that "creates" successfully but can never render.
+    """SQL Lab query objects must not become persistent chart datasources.
 
-    The two types fail differently before this fix, which is exactly why
+    The two unsupported types can fail differently without validation, so
     both are covered here:
     - "saved_query": SavedQuery has no ``.name`` attribute, so validation
       crashes with an unhandled AttributeError -- surfaced to API clients as
@@ -97,7 +99,7 @@ def test_create_chart_rejects_non_table_datasource_type(
 
 
 def test_create_chart_accepts_table_datasource(mocker: MockerFixture) -> None:
-    """The one supported datasource_type must keep working."""
+    """The table datasource_type must keep working."""
     _base_mocks(mocker)
     datasource = mocker.MagicMock(name="table_datasource")
     datasource.name = "my_table"
@@ -152,3 +154,118 @@ def test_create_chart_datasource_access_denied_still_raises_forbidden(
                 "viz_type": "table",
             }
         ).validate()
+
+
+def _create_payload(query_context: str) -> dict[str, object]:
+    return {
+        "datasource_id": 42,
+        "datasource_type": "table",
+        "slice_name": "some_name",
+        "viz_type": "table",
+        "query_context": query_context,
+    }
+
+
+def _mock_table_datasource(mocker: MockerFixture) -> None:
+    _base_mocks(mocker)
+    datasource = mocker.MagicMock()
+    datasource.name = "my_table"
+    mocker.patch(
+        "superset.commands.chart.create.get_datasource_by_id",
+        return_value=datasource,
+    )
+    mocker.patch("superset.commands.chart.create.security_manager.raise_for_access")
+
+
+@pytest.mark.parametrize("context_type", ["semantic_view", "table"])
+def test_semantic_create_query_context_keeps_type_identity(
+    mocker: MockerFixture, context_type: str
+) -> None:
+    """A same-ID table is not a matching semantic query-context target."""
+    _base_mocks(mocker)
+    datasource: Mock = Mock()
+    datasource.name = "semantic name"
+    mocker.patch(
+        "superset.commands.chart.create.get_datasource_by_id", return_value=datasource
+    )
+    mocker.patch("superset.commands.chart.create.security_manager.raise_for_access")
+    payload: dict[str, object] = _create_payload(
+        json.dumps(
+            {
+                "datasource": {"id": 42, "type": context_type},
+                "queries": [],
+            }
+        )
+    )
+    payload["datasource_type"] = "semantic_view"
+    command: CreateChartCommand = CreateChartCommand(payload)
+    if context_type == "semantic_view":
+        command.validate()
+        assert command._properties["datasource_name"] == "semantic name"
+    else:
+        error: pytest.ExceptionInfo[ChartInvalidError]
+        with pytest.raises(ChartInvalidError) as error:
+            command.validate()
+        assert any(
+            isinstance(ex, ChartQueryContextDatasourceMismatchValidationError)
+            for ex in error.value._exceptions
+        )
+
+
+def test_create_chart_query_context_matching_datasource_is_allowed(
+    mocker: MockerFixture,
+) -> None:
+    """A query context targeting the chart's own datasource is accepted."""
+    _mock_table_datasource(mocker)
+
+    CreateChartCommand(
+        _create_payload(
+            json.dumps({"datasource": {"id": 42, "type": "table"}, "queries": []})
+        )
+    ).validate()
+
+
+@pytest.mark.parametrize(
+    "datasource",
+    [
+        {"id": 99, "type": "table"},  # different id
+        {"id": 42, "type": "query"},  # different type
+        {"id": "99", "type": "table"},  # different id as string
+        {"id": 42},  # matching id but missing type
+    ],
+)
+def test_create_chart_query_context_mismatched_datasource_is_rejected(
+    mocker: MockerFixture,
+    datasource: dict[str, object],
+) -> None:
+    """A query context pointing at a different datasource than the one the
+    chart is created against is rejected."""
+    _mock_table_datasource(mocker)
+
+    with pytest.raises(ChartInvalidError) as exc_info:
+        CreateChartCommand(
+            _create_payload(json.dumps({"datasource": datasource, "queries": []}))
+        ).validate()
+
+    assert any(
+        isinstance(ex, ChartQueryContextDatasourceMismatchValidationError)
+        for ex in exc_info.value._exceptions
+    )
+
+
+@pytest.mark.parametrize(
+    "query_context",
+    [
+        "{}",  # no datasource key
+        '{"datasource": null}',  # null datasource
+        "not-json",  # unparseable payload
+    ],
+)
+def test_create_chart_query_context_without_datasource_is_allowed(
+    mocker: MockerFixture,
+    query_context: str,
+) -> None:
+    """Payloads with no verifiable datasource fall back to the chart's own."""
+    _mock_table_datasource(mocker)
+
+    CreateChartCommand(_create_payload(query_context)).validate()

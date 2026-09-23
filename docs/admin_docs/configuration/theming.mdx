@@ -138,6 +138,18 @@ The existing `APP_NAME` Python config key continues to work for backward compati
 Email and alert/report notification subjects are driven by backend settings such as
 `EMAIL_REPORTS_SUBJECT_PREFIX` and `APP_NAME`, not by this theme token.
 
+To hide the entire brand area in the navbar (both the logo image and the
+brand text), set `HIDE_NAVBAR_LOGO` in `superset_config.py`:
+
+```python
+# Hide the entire brand area in the navbar, including the logo image and the
+# brand text (brandAppName / APP_NAME). Defaults to False.
+HIDE_NAVBAR_LOGO = True
+```
+
+`HIDE_NAVBAR_LOGO` is a Python config flag rather than a theme token, so it
+cannot be set through the theme CRUD UI or `THEME_DEFAULT`/`THEME_DARK`.
+
 ### Migration from Configuration to UI
 
 When `ENABLE_UI_THEME_ADMINISTRATION = True`:
@@ -486,6 +498,118 @@ THEME_DEFAULT = {
 ```
 
 This feature provides powerful theming capabilities while maintaining the flexibility of ECharts' extensive configuration options.
+
+## Component Sizing & Style Tokens
+
+:::note
+These tokens landed after the Superset 6.1 release and are only available on
+`master`; they are not present in any tagged release yet.
+:::
+
+Beyond colors and fonts, a handful of Superset-specific tokens let you tune the
+sizing, radius, and outline behavior of individual UI components. All of these
+tokens are optional — omit them and components fall back to their existing
+defaults, so applying them is a zero-visual-change operation until you opt in.
+
+### Button & DropdownButton Sizing
+
+```python
+THEME_DEFAULT = {
+    "token": {
+        # ... other tokens
+        "buttonControlHeight": 32,     # default button height, in px
+        "buttonControlHeightSM": 30,   # small/dropdown button height, in px
+        "buttonControlHeightXS": 22,   # xsmall button height, in px
+        "buttonPaddingInline": 18,     # horizontal padding, in px
+        "buttonPaddingInlineSM": 10,   # horizontal padding for small buttons, in px
+        "buttonFontSize": 14,
+        "buttonBorderRadius": 4,
+    }
+}
+```
+
+`buttonControlHeight` and `buttonBorderRadius` also drive the sizing of the
+menu-trigger button used by `PageHeaderWithActions`, so a single pair of tokens
+keeps page-header icon buttons visually consistent with regular buttons.
+
+For one-off overrides that shouldn't apply to every button in the app, pass a
+`styleConfig` prop directly to `Button` or `DropdownButton` instead of setting
+a theme token:
+
+```tsx
+<Button
+  styleConfig={{
+    controlHeight: 40,
+    paddingInline: 20,
+    fontSize: 16,
+    fontWeight: 700,
+    borderRadius: 8,
+    ctaMinWidth: 120,
+    ctaMinHeight: 40,
+    iconGap: 8,
+  }}
+>
+  Click me
+</Button>
+
+<DropdownButton
+  styleConfig={{
+    controlHeight: 32,
+    fontSize: 14,
+    fontWeight: 500,
+    boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+  }}
+  menu={menuProps}
+>
+  Options
+</DropdownButton>
+```
+
+`styleConfig` values take precedence over the equivalent theme tokens, which in
+turn take precedence over the built-in defaults.
+
+### Label Border Radius
+
+```python
+THEME_DEFAULT = {
+    "token": {
+        "labelBorderRadius": 4,  # defaults to 8px
+    }
+}
+```
+
+### Select Option Outline
+
+By default, hovering or navigating to an option in a `Select` dropdown draws a
+2px outline in `colorPrimary`. Set `selectOptionActiveOutline` to `False` for a
+more subtle hover style with no outline:
+
+```python
+THEME_DEFAULT = {
+    "token": {
+        "selectOptionActiveOutline": False,
+    }
+}
+```
+
+### Dashboard Tile Appearance
+
+Chart tiles on a dashboard (not text/markdown tiles) can be restyled via
+`dashboardTile*` tokens. All fall back to the existing look — a
+`colorBgContainer` background, a `1px solid colorBorder` border, and a
+hairline `box-shadow` while the tile is fading out (e.g. when a filter
+makes it irrelevant):
+
+```python
+THEME_DEFAULT = {
+    "token": {
+        "dashboardTileBg": "#ffffff",
+        "dashboardTileBorder": "1px solid #e0e0e0",
+        "dashboardTileBorderRadius": 8,
+        "dashboardTileBoxShadow": "0 1px 2px rgba(0, 0, 0, 0.08)",
+    }
+}
+```
 
 ## Advanced Features
 

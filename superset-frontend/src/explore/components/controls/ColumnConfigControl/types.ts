@@ -70,5 +70,3 @@ export function isTabLayoutItem(
 ): layoutItem is TabLayoutItem {
   return !!(layoutItem as TabLayoutItem)?.tab;
 }
-
-export default {};

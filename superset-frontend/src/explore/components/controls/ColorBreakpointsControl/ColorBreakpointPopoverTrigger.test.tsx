@@ -75,7 +75,7 @@ describe('ColorBreakpointPopoverTrigger', () => {
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
 
     const triggerButton = screen.getByText('Click to add new breakpoint');
-    userEvent.click(triggerButton);
+    await userEvent.click(triggerButton);
 
     expect(screen.queryByRole('dialog')).toBeInTheDocument();
   });
@@ -123,7 +123,7 @@ describe('ColorBreakpointPopoverTrigger', () => {
     renderComponent();
 
     const triggerButton = screen.getByText('Click to add new breakpoint');
-    userEvent.click(triggerButton);
+    await userEvent.click(triggerButton);
 
     expect(screen.getByText('Color for breakpoint')).toBeInTheDocument();
     expect(screen.getByText('Min value')).toBeInTheDocument();
@@ -134,18 +134,18 @@ describe('ColorBreakpointPopoverTrigger', () => {
     renderComponent({ value: mockEmptyBreakpoint });
 
     const triggerButton = screen.getByText('Click to add new breakpoint');
-    userEvent.click(triggerButton);
+    await userEvent.click(triggerButton);
 
     const minInput = screen.getAllByRole('spinbutton')[0];
     const maxInput = screen.getAllByRole('spinbutton')[1];
 
-    userEvent.type(minInput, '10');
-    userEvent.type(maxInput, '90');
+    await userEvent.type(minInput, '10');
+    await userEvent.type(maxInput, '90');
 
     const saveButton = screen.getByTestId('save-button');
 
     expect(saveButton).toBeEnabled();
-    userEvent.click(saveButton);
+    await userEvent.click(saveButton);
 
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
@@ -154,10 +154,10 @@ describe('ColorBreakpointPopoverTrigger', () => {
     renderComponent();
 
     const triggerButton = screen.getByText('Click to add new breakpoint');
-    userEvent.click(triggerButton);
+    await userEvent.click(triggerButton);
 
     const closeButton = screen.getByTestId('close-button');
-    userEvent.click(closeButton);
+    await userEvent.click(closeButton);
 
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
@@ -166,7 +166,7 @@ describe('ColorBreakpointPopoverTrigger', () => {
     renderComponent({ value: undefined });
 
     const triggerButton = screen.getByText('Click to add new breakpoint');
-    userEvent.click(triggerButton);
+    await userEvent.click(triggerButton);
 
     expect(screen.queryByRole('dialog')).toBeInTheDocument();
     expect(screen.getByText('Color for breakpoint')).toBeInTheDocument();
@@ -177,10 +177,10 @@ describe('ColorBreakpointPopoverTrigger', () => {
 
     const triggerButton = screen.getByText('Click to add new breakpoint');
 
-    userEvent.click(triggerButton);
+    await userEvent.click(triggerButton);
     expect(screen.queryByRole('dialog')).toBeInTheDocument();
 
-    userEvent.click(triggerButton);
+    await userEvent.click(triggerButton);
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
 
@@ -197,7 +197,7 @@ describe('ColorBreakpointPopoverTrigger', () => {
     expect(screen.queryByRole('dialog')).toBeInTheDocument();
 
     const closeButton = screen.getByTestId('close-button');
-    userEvent.click(closeButton);
+    await userEvent.click(closeButton);
 
     expect(toggleVisibility).toHaveBeenCalledWith(false);
   });
@@ -216,7 +216,7 @@ describe('ColorBreakpointPopoverTrigger', () => {
     renderComponent({ colorBreakpoints });
 
     const triggerButton = screen.getByText('Click to add new breakpoint');
-    userEvent.click(triggerButton);
+    await userEvent.click(triggerButton);
 
     expect(screen.queryByRole('dialog')).toBeInTheDocument();
   });
@@ -225,12 +225,12 @@ describe('ColorBreakpointPopoverTrigger', () => {
     renderComponent();
 
     const triggerButton = screen.getByText('Click to add new breakpoint');
-    userEvent.click(triggerButton);
+    await userEvent.click(triggerButton);
 
     expect(screen.queryByRole('dialog')).toBeInTheDocument();
 
     const closeButton = screen.getByTestId('close-button');
-    userEvent.click(closeButton);
+    await userEvent.click(closeButton);
 
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });

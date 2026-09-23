@@ -35,7 +35,7 @@
     "@superset-ui/chart-controls": "*",
     "@superset-ui/core": "*",
     "@testing-library/jest-dom": "*",
-    "@testing-library/react": "^15.0.0",
+    "@testing-library/react": "*",
     "react": "^18.3.0",
     "react-dom": "^18.3.0"
   }

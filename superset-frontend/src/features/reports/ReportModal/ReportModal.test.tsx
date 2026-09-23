@@ -97,13 +97,13 @@ beforeEach(() => {
   );
 });
 
-test('inputs respond correctly', () => {
+test('inputs respond correctly', async () => {
   render(<ReportModal {...defaultProps} />, { useRedux: true });
   // ----- Report name textbox
   const reportNameTextbox = screen.getByTestId('report-name-test');
   expect(reportNameTextbox).toHaveDisplayValue('Weekly Report');
-  userEvent.clear(reportNameTextbox);
-  userEvent.type(reportNameTextbox, 'Report name text test');
+  await userEvent.clear(reportNameTextbox);
+  await userEvent.type(reportNameTextbox, 'Report name text test');
   expect(reportNameTextbox).toHaveDisplayValue('Report name text test');
 
   // ----- Report description textbox
@@ -111,7 +111,10 @@ test('inputs respond correctly', () => {
     'report-description-test',
   );
   expect(reportDescriptionTextbox).toHaveDisplayValue('');
-  userEvent.type(reportDescriptionTextbox, 'Report description text test');
+  await userEvent.type(
+    reportDescriptionTextbox,
+    'Report description text test',
+  );
   expect(reportDescriptionTextbox).toHaveDisplayValue(
     'Report description text test',
   );
@@ -121,7 +124,7 @@ test('inputs respond correctly', () => {
   expect(crontabInputs).toHaveLength(5);
 });
 
-test('does not allow user to create a report without a name', () => {
+test('does not allow user to create a report without a name', async () => {
   render(<ReportModal {...defaultProps} />, { useRedux: true });
   const reportNameTextbox = screen.getByTestId('report-name-test');
   const addButton = screen.getByRole('button', { name: /add/i });
@@ -129,7 +132,7 @@ test('does not allow user to create a report without a name', () => {
   expect(reportNameTextbox).toHaveDisplayValue('Weekly Report');
   expect(addButton).toBeEnabled();
 
-  userEvent.clear(reportNameTextbox);
+  await userEvent.clear(reportNameTextbox);
 
   expect(reportNameTextbox).toHaveDisplayValue('');
   expect(addButton).toBeDisabled();
@@ -154,7 +157,7 @@ test('creates a new email report via modal Add button', async () => {
   render(<ReportModal {...defaultProps} />, { useRedux: true });
 
   const addButton = screen.getByRole('button', { name: /add/i });
-  await waitFor(() => userEvent.click(addButton));
+  await waitFor(async () => await userEvent.click(addButton));
 
   // Verify exactly one POST to the subscribe endpoint
   await waitFor(() => {
@@ -170,8 +173,43 @@ test('creates a new email report via modal Add button', async () => {
   // creation_method, editors, and recipients are set server-side; not in the client payload
   expect(body.creation_method).toBeUndefined();
   expect(body.recipients).toBeUndefined();
+  expect(body.dashboard).toBe(1);
+  expect(body.chart).toBeUndefined();
 
   fetchMock.removeRoute('post-subscribe');
+});
+
+test('creating a chart report in a dashboard context sends only the chart id', async () => {
+  // Explore opened from a dashboard passes a dashboardId alongside the chart;
+  // a payload carrying both ids is rejected by the API with a 422.
+  fetchMock.post(
+    'glob:*/api/v1/report/subscribe',
+    { id: 1, result: {} },
+    { name: 'post-subscribe-chart' },
+  );
+
+  const chartFromDashboardProps = {
+    ...defaultProps,
+    dashboardId: 7,
+    chart: { id: 119, sliceFormData: { viz_type: VizType.Line } },
+    creationMethod: 'charts' as const,
+  };
+  render(<ReportModal {...chartFromDashboardProps} />, { useRedux: true });
+
+  const addButton = screen.getByRole('button', { name: /add/i });
+  await userEvent.click(addButton);
+
+  await waitFor(() => {
+    const postCalls = fetchMock.callHistory.calls('post-subscribe-chart');
+    expect(postCalls).toHaveLength(1);
+  });
+
+  const postCalls = fetchMock.callHistory.calls('post-subscribe-chart');
+  const body = JSON.parse(postCalls[0].options.body as string);
+  expect(body.chart).toBe(119);
+  expect(body.dashboard).toBeUndefined();
+
+  fetchMock.removeRoute('post-subscribe-chart');
 });
 
 test('text-based chart hides screenshot width and shows message content', () => {
@@ -208,7 +246,7 @@ test('non-text chart shows screenshot width and message content', () => {
   expect(screen.getByText('Screenshot width')).toBeInTheDocument();
 });
 
-test('screenshot width input preserves a typed zero instead of dropping it', () => {
+test('screenshot width input preserves a typed zero instead of dropping it', async () => {
   const lineChartProps = {
     ...defaultProps,
     dashboardId: undefined,
@@ -225,11 +263,11 @@ test('screenshot width input preserves a typed zero instead of dropping it', () 
   // The old `|| null` / `|| ''` logic silently coerced a typed 0 to null, so the
   // invalid width was swallowed instead of being submitted and surfaced by the
   // server's min-width validation. The field must preserve the literal value.
-  userEvent.type(widthInput, '0');
+  await userEvent.type(widthInput, '0');
   expect(widthInput).toHaveDisplayValue('0');
 
   // Clearing the field still yields an empty value (parsed NaN → null).
-  userEvent.clear(widthInput);
+  await userEvent.clear(widthInput);
   expect(widthInput).toHaveDisplayValue('');
 });
 
@@ -288,6 +326,76 @@ test('renders edit mode when report exists in store', () => {
   expect(screen.getByRole('button', { name: /save/i })).toBeInTheDocument();
 });
 
+test('edit mode in a dashboard context resolves and saves the chart report', async () => {
+  // With both schedules in the store, the modal must load the chart's own
+  // report, not the dashboard's, and PUT to its id with only the chart set.
+  const dashboardReport = {
+    id: 42,
+    name: 'Existing Dashboard Report',
+    creation_method: 'dashboards',
+    crontab: '0 12 * * 1',
+    dashboard_id: 7,
+    chart_id: null,
+    report_format: 'PNG',
+    active: true,
+    type: 'Report',
+    timezone: 'America/New_York',
+  };
+  const chartReport = {
+    ...dashboardReport,
+    id: 77,
+    name: 'Existing Chart Report',
+    creation_method: 'charts',
+    dashboard_id: null,
+    chart_id: 119,
+  };
+  const store = createStore(
+    {
+      reports: {
+        dashboards: { 7: dashboardReport },
+        charts: { 119: chartReport },
+      },
+    },
+    reducerIndex,
+  );
+
+  fetchMock.put(
+    'glob:*/api/v1/report/77',
+    { id: 77, result: {} },
+    { name: 'put-report-77' },
+  );
+
+  const chartFromDashboardProps = {
+    ...defaultProps,
+    dashboardId: 7,
+    chart: { id: 119, sliceFormData: { viz_type: VizType.Line } },
+    creationMethod: 'charts' as const,
+  };
+  render(<ReportModal {...chartFromDashboardProps} />, {
+    useRedux: true,
+    store,
+  });
+
+  expect(screen.getByTestId('report-name-test')).toHaveDisplayValue(
+    'Existing Chart Report',
+  );
+
+  const saveButton = screen.getByRole('button', { name: /save/i });
+  await userEvent.click(saveButton);
+
+  await waitFor(() => {
+    const calls = fetchMock.callHistory.calls('put-report-77');
+    expect(calls.length).toBeGreaterThan(0);
+  });
+
+  const calls = fetchMock.callHistory.calls('put-report-77');
+  const body = JSON.parse(calls[calls.length - 1].options.body as string);
+  expect(body.chart).toBe(119);
+  expect(body.dashboard).toBeUndefined();
+
+  fetchMock.removeRoute('put-report-77');
+});
+
 test('edit mode dispatches editReport via PUT on save', async () => {
   const existingReport = {
     id: 42,
@@ -329,7 +437,7 @@ test('edit mode dispatches editReport via PUT on save', async () => {
 
   expect(screen.getByText('Edit email report')).toBeInTheDocument();
   const saveButton = screen.getByRole('button', { name: /save/i });
-  await waitFor(() => userEvent.click(saveButton));
+  await waitFor(async () => await userEvent.click(saveButton));
 
   await waitFor(() => {
     const calls = fetchMock.callHistory.calls('put-report-42');
@@ -350,6 +458,67 @@ test('edit mode dispatches editReport via PUT on save', async () => {
   expect(body.recipients[0].type).toBe('Email');
 
   fetchMock.removeRoute('put-report-42');
+});
+
+test('edit mode preserves the fetched report_format on save', async () => {
+  // XLSX is never the visualization default, so this fails if the stored
+  // format is dropped and the save falls back to defaultNotificationFormat.
+  const fetchedReport = {
+    active: true,
+    chart_id: 96,
+    creation_method: 'charts',
+    crontab: '0 12 * * 1',
+    dashboard_id: null,
+    description: '',
+    id: 44,
+    name: 'Existing XLSX Report',
+    report_format: 'XLSX',
+    timezone: 'America/New_York',
+    type: 'Report',
+  };
+  const store = createStore(
+    {
+      reports: {
+        charts: { 96: fetchedReport },
+      },
+    },
+    reducerIndex,
+  );
+
+  fetchMock.put(
+    'glob:*/api/v1/report/44',
+    { id: 44, result: {} },
+    {
+      name: 'put-report-44',
+    },
+  );
+
+  const chartProps = {
+    ...defaultProps,
+    dashboardId: undefined,
+    chart: { id: 96, sliceFormData: { viz_type: VizType.Line } },
+    creationMethod: 'charts' as const,
+  };
+  render(<ReportModal {...chartProps} />, { useRedux: true, store });
+
+  expect(screen.getByText('Edit email report')).toBeInTheDocument();
+  expect(
+    screen.getByRole('radio', { name: 'Formatted Excel attached in email' }),
+  ).toBeChecked();
+
+  const saveButton = screen.getByRole('button', { name: /save/i });
+  await userEvent.click(saveButton);
+
+  await waitFor(() => {
+    const calls = fetchMock.callHistory.calls('put-report-44');
+    expect(calls.length).toBeGreaterThan(0);
+  });
+
+  const calls = fetchMock.callHistory.calls('put-report-44');
+  const body = JSON.parse(calls[calls.length - 1].options.body as string);
+  expect(body.report_format).toBe('XLSX');
+
+  fetchMock.removeRoute('put-report-44');
 });
 
 test('edit mode does not fall back to user id when subject id is unavailable', async () => {
@@ -402,7 +571,7 @@ test('edit mode does not fall back to user id when subject id is unavailable', a
   });
 
   const saveButton = screen.getByRole('button', { name: /save/i });
-  await waitFor(() => userEvent.click(saveButton));
+  await waitFor(async () => await userEvent.click(saveButton));
 
   await waitFor(() => {
     const calls = fetchMock.callHistory.calls('put-report-43');
@@ -428,7 +597,7 @@ test('submit failure dispatches danger toast and keeps modal open', async () => 
   });
 
   const addButton = screen.getByRole('button', { name: /add/i });
-  await waitFor(() => userEvent.click(addButton));
+  await waitFor(async () => await userEvent.click(addButton));
 
   // The addReport action catches 500 errors, dispatches a danger toast, and re-throws
   await waitFor(() => {

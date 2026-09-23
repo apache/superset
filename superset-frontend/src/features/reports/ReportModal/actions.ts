@@ -252,6 +252,8 @@ export interface DeletableReport {
   creation_method?: string;
   dashboard?: number;
   chart?: number;
+  dashboard_id?: number | null;
+  chart_id?: number | null;
 }
 
 export interface DeleteReportAction {

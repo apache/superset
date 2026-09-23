@@ -34,14 +34,14 @@
 
 // Register the TypeScript require hook so ESLint can load the .ts plugin files
 // from eslint-rules/*.
-require('tsx/cjs');
+import 'tsx/cjs';
 
-const tsParser = require('@typescript-eslint/parser');
-const themeColorsPlugin = require('@superset-ui/eslint-plugin-theme-colors');
-const iconsPlugin = require('@superset-ui/eslint-plugin-icons');
-const i18nStringsPlugin = require('@superset-ui/eslint-plugin-i18n-strings');
+import tsParser from '@typescript-eslint/parser';
+import themeColorsPlugin from '@superset-ui/eslint-plugin-theme-colors';
+import iconsPlugin from '@superset-ui/eslint-plugin-icons';
+import i18nStringsPlugin from '@superset-ui/eslint-plugin-i18n-strings';
 
-module.exports = [
+export default [
   // Files this config applies to. Flat config has no `--ext`; globs live here.
   // Only check src/ files where the theme/icon/i18n rules matter.
   {

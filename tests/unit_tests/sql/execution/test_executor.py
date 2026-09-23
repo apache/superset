@@ -44,6 +44,7 @@ from superset_core.queries.types import (
 )
 
 from superset.models.core import Database
+from superset.sql.parse import SQLScript
 
 # Note: database, database_with_dml, mock_db_session fixtures and
 # mock_query_execution helper are imported from conftest.py
@@ -352,6 +353,104 @@ def test_execute_allowed_functions(
     result = database.execute("SELECT COUNT(*) FROM users")
 
     assert result.status == QueryStatus.SUCCESS
+
+
+def test_execute_disallowed_function_names_in_identifiers_are_allowed(
+    mocker: MockerFixture, database: Database, app_context: None
+) -> None:
+    """
+    Test that disallowed function names are not matched inside identifiers.
+
+    The denylist should block actual function calls such as USER() or SCHEMA(),
+    but not column names, table names, or aliases that merely contain those
+    words.
+    """
+    mock_query_execution(
+        mocker,
+        database,
+        return_data=[(10, "example_schema")],
+        column_names=["total_users", "table_schema"],
+    )
+    mocker.patch.dict(
+        current_app.config,
+        {
+            "SQL_QUERY_MUTATOR": None,
+            "SQLLAB_TIMEOUT": 30,
+            "SQL_MAX_ROW": None,
+            "DISALLOWED_SQL_FUNCTIONS": {"sqlite": {"USER", "SCHEMA"}},
+            "QUERY_LOGGER": None,
+        },
+    )
+
+    result = database.execute(
+        """
+        SELECT
+          SUM(metric_user_count) AS total_users,
+          table_schema
+        FROM information_schema_tables
+        GROUP BY table_schema
+        LIMIT 5
+        """,
+    )
+
+    assert result.status == QueryStatus.SUCCESS
+
+
+@pytest.mark.parametrize(
+    ("sql", "expected"),
+    [
+        ("SELECT version()", {"version"}),
+        ("SELECT pg_catalog.version()", {"version"}),
+        ("SELECT conversion FROM metrics", None),
+        ('SELECT "conversions_value" FROM metrics', None),
+        ("SELECT * FROM custom_skill_versions", None),
+        ("SELECT 'version conversion' AS label", None),
+        ("SELECT 1 /* version() conversion */", None),
+    ],
+)
+def test_check_disallowed_functions_matches_ast_function_nodes(
+    mocker: MockerFixture,
+    mock_database: MagicMock,
+    app_context: None,
+    sql: str,
+    expected: set[str] | None,
+) -> None:
+    """Disallowed functions match calls, not SQL text substrings."""
+    from superset.sql.execution.executor import SQLExecutor
+
+    mocker.patch.dict(
+        current_app.config,
+        {"DISALLOWED_SQL_FUNCTIONS": {"postgresql": {"version"}}},
+    )
+
+    executor = SQLExecutor(mock_database)
+    script = SQLScript(sql, engine="postgresql")
+
+    assert executor._check_disallowed_functions(script) == expected
+
+
+def test_check_disallowed_functions_traverses_script_once(
+    mocker: MockerFixture,
+    mock_database: MagicMock,
+    app_context: None,
+) -> None:
+    """The executor checks the complete denylist in one AST traversal."""
+    from superset.sql.execution.executor import SQLExecutor
+
+    disallowed = {"version", "pg_sleep", "lo_export"}
+    mocker.patch.dict(
+        current_app.config,
+        {"DISALLOWED_SQL_FUNCTIONS": {"postgresql": disallowed}},
+    )
+    script = SQLScript("SELECT version()", engine="postgresql")
+    get_disallowed_functions = mocker.spy(
+        script.statements[0], "get_disallowed_functions"
+    )
+
+    executor = SQLExecutor(mock_database)
+
+    assert executor._check_disallowed_functions(script) == {"version"}
+    get_disallowed_functions.assert_called_once_with(disallowed)
 
 
 def test_execute_disallowed_tables(

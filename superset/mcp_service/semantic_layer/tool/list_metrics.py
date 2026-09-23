@@ -248,18 +248,19 @@ async def list_metrics(
 
     This is the primary entry point for semantic layer exploration. Returns a
     unified list of metrics from all data sources the current user can access,
-    with compatible dimensions included inline.
+    with compatible dimensions embedded only on request.
 
     Workflow:
-    1. list_metrics -> discover available metrics and their compatible dimensions
-    2. get_table -> query data using chosen metrics and dimensions
+    1. list_metrics -> discover available metrics
+    2. get_compatible_dimensions -> discover dimensions for the chosen metric
+    3. get_table -> query data using chosen metrics and dimensions
 
     Use ``search`` to filter by metric name or description. Use ``dataset_id``
     or ``view_id`` to scope to a specific data source.
 
     Example:
     ```json
-    {"search": "revenue", "include_compatible_dimensions": true, "page": 1}
+    {"search": "revenue", "page": 1}
     ```
     """
     if ctx is None:

@@ -201,6 +201,76 @@ class TestDashboardRestoreApi(SupersetTestCase):
             f"got {restored_ids}"
         )
 
+    def test_restore_to_tx_after_removal_does_not_reattach_chart(self) -> None:
+        """The inverse of the re-attach case (sc-119907): restoring to a
+        snapshot captured *after* a chart was removed must NOT bring it back.
+
+        Continuum never closes an association shadow row's
+        ``end_transaction_id``, so the removed chart's INSERT row still looks
+        "valid at" any later tx under a naive validity filter — it would be
+        wrongly re-attached. Membership must be derived from paired
+        attach/detach windows: the window ``[attach, remove)`` does not contain
+        the post-removal target tx, so the chart stays off.
+        """
+        from superset.daos.version import derive_version_uuid
+
+        _persist_fixture_state()
+        dashboard: Dashboard = (
+            db.session.query(Dashboard)
+            .filter(Dashboard.dashboard_title == "USA Births Names")
+            .first()
+        )
+        assert dashboard is not None
+        dashboard_uuid = str(dashboard.uuid)
+        dashboard_id = dashboard.id
+        entity_uuid = dashboard.uuid
+        assert entity_uuid is not None
+
+        original_slice_ids = sorted(s.id for s in dashboard.slices)
+        assert len(original_slice_ids) >= 2, (
+            f"fixture expected to attach >= 2 charts; got {original_slice_ids}"
+        )
+        slice_to_drop = dashboard.slices[0]
+        drop_id = slice_to_drop.id
+
+        # Remove the chart and commit — the detach is recorded in history.
+        dashboard.slices.remove(slice_to_drop)
+        db.session.commit()
+
+        # Touch the dashboard AFTER the removal so the restore target snapshot
+        # post-dates the detach.
+        dashboard.dashboard_title = "USA Births Names — post-removal snapshot"
+        db.session.commit()
+
+        ver_cls = version_class(Dashboard)
+        target_tx = (
+            db.session.query(ver_cls.transaction_id)
+            .filter(ver_cls.id == dashboard_id, ver_cls.uuid == entity_uuid)
+            .order_by(ver_cls.transaction_id.desc())
+            .limit(1)
+            .scalar()
+        )
+        assert target_tx is not None
+        target_uuid = str(derive_version_uuid(entity_uuid, target_tx))
+
+        self.login(ADMIN_USERNAME)
+        rv = self._restore(dashboard_uuid, target_uuid)
+        assert rv.status_code == 200, rv.data
+
+        db.session.expire_all()
+        dashboard = (
+            db.session.query(Dashboard).filter(Dashboard.id == dashboard_id).one()
+        )
+        restored_ids = sorted(s.id for s in dashboard.slices)
+        assert drop_id not in restored_ids, (
+            "restore re-attached a chart that was removed before the target "
+            f"snapshot: {drop_id} in {restored_ids}"
+        )
+        survivors = sorted(set(original_slice_ids) - {drop_id})
+        assert restored_ids == survivors, (
+            f"expected the surviving members {survivors}, got {restored_ids}"
+        )
+
     def test_restore_preserves_live_chart_content(self) -> None:
         """Dashboard restore is membership-only: a member chart edited
         AFTER the snapshot keeps its current content — charts are shared

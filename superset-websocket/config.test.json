@@ -8,7 +8,7 @@
     "port": 8125,
     "globalTags": []
   },
-  "redisStreamPrefix": "test-async-events-",
   "jwtSecret": "test123-test123-test123-test123-test123-test123-test123",
-  "jwtCookieName": "test-async-token"
+  "previousJwtSecret": "old123-old123-old123-old123-old123-old123-old123",
+  "jwtCookieName": "test-ws-token"
 }

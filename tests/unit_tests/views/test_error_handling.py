@@ -22,9 +22,13 @@ from unittest.mock import patch
 
 import pytest
 import sshtunnel
-from flask import Flask, Response
+from flask import Flask, Response, session
 from flask_babel import Babel
+from flask_jwt_extended.exceptions import NoAuthorizationError
+from flask_wtf.csrf import CSRFProtect, generate_csrf
+from freezegun import freeze_time
 from sqlalchemy.exc import IntegrityError, OperationalError, ProgrammingError
+from werkzeug.exceptions import GatewayTimeout
 
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import QueryObjectValidationError, SupersetException
@@ -65,6 +69,27 @@ class TestHandleApiExceptionSSHTunnelError:
         assert any(
             record.levelno == logging.WARNING
             and "BaseSSHTunnelForwarderError" in record.message
+            for record in caplog.records
+        )
+
+
+class TestHandleApiExceptionNoAuthorizationError:
+    def test_returns_401_and_logs_at_warning_not_error(
+        self, app, caplog: pytest.LogCaptureFixture
+    ):
+        @handle_api_exception
+        def view(self: object) -> FlaskResponse:
+            raise NoAuthorizationError("Missing JWT in cookies or headers")
+
+        with app.test_request_context():
+            with caplog.at_level(logging.WARNING):
+                response = cast(Response, view(self=object()))
+
+        assert response.status_code == 401
+        assert not any(record.levelno >= logging.ERROR for record in caplog.records)
+        assert any(
+            record.levelno == logging.WARNING
+            and "Api failed- no authorization" in record.message
             for record in caplog.records
         )
 
@@ -328,3 +353,168 @@ class TestGuestErrorSanitization:
         )
 
         assert payload["error"] == str(GENERIC_ERROR_MESSAGE)
+
+
+class TestErrorHandlerNeverTurnsErrorsInto500s:
+    """
+    The guest-user check runs *inside* the HTTP error handler, which has no
+    handler of its own. If resolving the principal raises -- as some Flask-Login
+    user loaders do (e.g. a JWT request loader that raises when a request carries
+    no valid credential) -- Flask discards the intended status and returns a bare
+    500. The check must therefore swallow that failure and keep the real status.
+    """
+
+    def _build_app_with_handlers(self) -> Flask:
+        # A fresh, minimal Flask app per test: `set_app_error_handlers` can only
+        # register handlers before the app has served its first request.
+        test_app = Flask(__name__)
+        test_app.config["DEBUG"] = False
+        Babel(test_app)
+        set_app_error_handlers(test_app)
+
+        @test_app.route("/gateway-timeout")
+        def gateway_timeout_view() -> FlaskResponse:
+            raise GatewayTimeout("upstream took too long")
+
+        return test_app
+
+    def test_gateway_timeout_keeps_its_status_when_principal_cannot_be_resolved(
+        self,
+    ) -> None:
+        client = self._build_app_with_handlers().test_client()
+
+        with patch(
+            "superset.security.SupersetSecurityManager.is_guest_user",
+            side_effect=RuntimeError("no valid credential on request"),
+        ):
+            response = client.get("/gateway-timeout")
+
+        # Without the guard the raising loader propagates out of the handler and
+        # Flask rewrites this to a bare 500.
+        assert response.status_code == 504
+
+    def test_direct_json_error_response_keeps_its_status(self, app: Flask) -> None:
+        with (
+            app.test_request_context(),
+            patch(
+                "superset.security.SupersetSecurityManager.is_guest_user",
+                side_effect=RuntimeError("no valid credential on request"),
+            ),
+        ):
+            response = cast(
+                Response,
+                json_error_response("upstream took too long", status=504),
+            )
+
+        assert response.status_code == 504
+        assert json.loads(response.data)["error"] == "upstream took too long"
+
+
+class TestRefreshCsrfToken:
+    """
+    An expired CSRF token has to be recoverable by the client.
+    """
+
+    RAW_TOKEN = "a" * 40
+
+    def _build_app_with_handlers(self) -> Flask:
+        test_app = Flask(__name__)
+        test_app.config["DEBUG"] = False
+        test_app.config["SECRET_KEY"] = "not-a-secret"  # noqa: S105
+        test_app.config["WTF_CSRF_TIME_LIMIT"] = 5
+        Babel(test_app)
+        CSRFProtect(test_app)
+        set_app_error_handlers(test_app)
+
+        @test_app.route("/api/v1/dataset/1", methods=["PUT"])
+        def save_dataset() -> FlaskResponse:
+            return {"result": "saved"}
+
+        return test_app
+
+    def _put_with_expired_token(self, test_app: Flask, **kwargs: Any) -> Response:
+        client = test_app.test_client()
+        with freeze_time("2026-01-01 00:00:00"):
+            with test_app.test_request_context():
+                session["csrf_token"] = self.RAW_TOKEN
+                token = generate_csrf()
+            with client.session_transaction() as sess:
+                sess["csrf_token"] = self.RAW_TOKEN
+
+        with freeze_time("2026-01-01 00:01:00"):
+            return cast(
+                Response,
+                client.put(
+                    "/api/v1/dataset/1", headers={"X-CSRFToken": token}, **kwargs
+                ),
+            )
+
+    def test_expired_token_on_json_request_reports_a_csrf_error_type(
+        self, caplog: pytest.LogCaptureFixture
+    ) -> None:
+        test_app = self._build_app_with_handlers()
+
+        with caplog.at_level(logging.WARNING):
+            response = self._put_with_expired_token(
+                test_app, json={"description": "edited"}
+            )
+
+        assert response.status_code == 400
+        payload = json.loads(response.data)
+        error = payload["errors"][0]
+        assert error["error_type"] == SupersetErrorType.CSRF_ERROR.value
+        assert "expired" in error["message"]
+        # Issue 1011 ("unexpected error") would be actively misleading here.
+        assert not (error.get("extra") or {}).get("issue_codes")
+
+    def test_expired_token_on_html_request_still_redirects_to_login(self) -> None:
+        """
+        The redirect added in #14675 is what a browser navigation needs; only
+        the JSON branch changed.
+
+        `redirect_to_login` is patched rather than followed: it resolves the
+        Flask-AppBuilder login endpoint, which the minimal app in
+        `_build_app_with_handlers` does not register.
+        """
+        test_app = self._build_app_with_handlers()
+
+        with patch(
+            "superset.views.error_handling.redirect_to_login",
+            return_value=("redirected", 302),
+        ) as redirect_mock:
+            response = self._put_with_expired_token(
+                test_app, data={"description": "edited"}
+            )
+
+        redirect_mock.assert_called_once()
+        assert response.status_code == 302
+
+    def test_csrf_error_type_survives_guest_sanitization(self, app: Flask) -> None:
+        """
+        Embedded dashboards are the likeliest pages to outlive their token, so
+        redacting the type would leave the guest client unable to recover.
+        """
+        with (
+            app.test_request_context(),
+            patch(
+                "superset.security.SupersetSecurityManager.is_guest_user",
+                return_value=True,
+            ),
+        ):
+            response = cast(
+                Response,
+                json_error_response(
+                    [
+                        SupersetError(
+                            message="400 Bad Request: The CSRF token has expired.",
+                            error_type=SupersetErrorType.CSRF_ERROR,
+                            level=ErrorLevel.WARNING,
+                        )
+                    ],
+                    status=400,
+                ),
+            )
+
+        payload = json.loads(response.data)
+        assert payload["errors"][0]["error_type"] == SupersetErrorType.CSRF_ERROR.value
+        assert "expired" in payload["errors"][0]["message"]

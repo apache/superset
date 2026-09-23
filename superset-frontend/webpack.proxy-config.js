@@ -16,13 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-const zlib = require('zlib');
-const { Writable } = require('stream');
-const { pipeline } = require('stream/promises');
-const { ZSTDDecompress } = require('simple-zstd');
+import zlib from 'node:zlib';
+import { Writable } from 'node:stream';
+import { pipeline } from 'node:stream/promises';
+import { ZSTDDecompress } from 'simple-zstd';
 
-const yargs = require('yargs');
-const { hideBin } = require('yargs/helpers');
+import yargs from 'yargs';
+import { hideBin } from 'yargs/helpers';
 
 const parsedArgs = yargs(hideBin(process.argv)).parse();
 
@@ -185,7 +185,7 @@ async function processHTML(proxyResponse, response) {
   response.end(toDevHTML(Buffer.concat(chunks).toString()));
 }
 
-module.exports = newManifest => {
+export default function getProxyConfig(newManifest) {
   manifest = newManifest;
   return {
     context: path => {
@@ -269,4 +269,4 @@ module.exports = newManifest => {
       }
     },
   };
-};
+}

@@ -222,6 +222,7 @@ export type {
   GridState,
   GridReadyEvent,
   CellClickedEvent,
+  CellContextMenuEvent,
   CellKeyDownEvent,
   CellClassParams,
   IMenuActionParams,

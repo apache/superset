@@ -142,7 +142,7 @@ class WaterfallChartPlugin(BaseChartPlugin):
         return "waterfall"
 
     def normalize_column_refs(self, config: Any, dataset_context: Any) -> Any:
-        config_dict = config.model_dump()
+        config_dict = config.model_dump(exclude_unset=True)
 
         for key in ("x_axis", "breakdown"):
             col = config_dict.get(key)

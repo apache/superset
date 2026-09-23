@@ -150,6 +150,18 @@ function getVerticalOutsideLayout(
   };
 }
 
+/** Whether a bar segment's value-axis extent is too small to legibly
+ * display its value label at any position. */
+function isBelowLabelLegibilityFloor(
+  params: LabelLayoutOptionCallbackParams,
+  isHorizontal: boolean,
+): boolean {
+  const segmentSize = isHorizontal
+    ? Math.abs(params.rect.width)
+    : Math.abs(params.rect.height);
+  return segmentSize < MIN_LABEL_SEGMENT_SIZE_PX;
+}
+
 /** Keep fitting labels inside, move oversized labels outside the bar, and
  * suppress labels for segments too small to legibly fit one either way. */
 export function getAutoBarLabelLayout(
@@ -157,10 +169,7 @@ export function getAutoBarLabelLayout(
   isHorizontal: boolean,
   isNegative = false,
 ): LabelLayoutOption {
-  const segmentSize = isHorizontal
-    ? Math.abs(params.rect.width)
-    : Math.abs(params.rect.height);
-  if (segmentSize < MIN_LABEL_SEGMENT_SIZE_PX) {
+  if (isBelowLabelLegibilityFloor(params, isHorizontal)) {
     return HIDDEN_LABEL_LAYOUT;
   }
   const fitsWidth =
@@ -312,6 +321,19 @@ function createAutoBarLabelLayout(
       isNegativeBarDataItem(dataItem, isHorizontal),
     );
   };
+}
+
+/** Suppress the value label on a bar segment too small to legibly display
+ * one at any position, without repositioning anything: manual label
+ * placements keep their configured spot, and only the legibility floor
+ * already applied to the Auto position carries over. */
+function createBarLabelLegibilityFloorLayout(
+  isHorizontal: boolean,
+): LabelLayoutOptionCallback {
+  return params =>
+    isBelowLabelLegibilityFloor(params, isHorizontal)
+      ? HIDDEN_LABEL_LAYOUT
+      : {};
 }
 
 /** Apply the value-end label position to a negative bar datum. */
@@ -610,7 +632,11 @@ export function transformSeries(
       ? {
           labelLayout: createAutoBarLabelLayout(transformedData, isHorizontal),
         }
-      : {}),
+      : plotType === 'bar' && showValue
+        ? {
+            labelLayout: createBarLabelLegibilityFloorLayout(isHorizontal),
+          }
+        : {}),
     label: {
       show: !!showValue,
       // An explicit labelPosition (the generic control still used by
@@ -979,8 +1005,12 @@ export function getPadding(
     legendOrientation,
     margin,
     {
+      // The Y-axis title margin, whether it lands on the top or the left
+      // side, is only reserved when a title is actually rendered. Without
+      // that guard every chart pays for the default margin, which eats a
+      // large share of the plot area on narrow charts.
       top:
-        yAxisTitlePosition && yAxisTitlePosition === 'Top'
+        yAxisTitlePosition === 'Top' && addYAxisTitleOffset
           ? TIMESERIES_CONSTANTS.gridOffsetTop + (Number(yAxisTitleMargin) || 0)
           : yAxisTitlePosition === 'Left'
             ? TIMESERIES_CONSTANTS.gridOffsetTop
@@ -990,7 +1020,7 @@ export function getPadding(
           ? TIMESERIES_CONSTANTS.gridOffsetBottomZoomable + xAxisOffset
           : TIMESERIES_CONSTANTS.gridOffsetBottom + xAxisOffset,
       left:
-        yAxisTitlePosition === 'Left'
+        yAxisTitlePosition === 'Left' && addYAxisTitleOffset
           ? TIMESERIES_CONSTANTS.gridOffsetLeft +
             (Number(yAxisTitleMargin) || 0)
           : TIMESERIES_CONSTANTS.gridOffsetLeft,
@@ -1001,4 +1031,77 @@ export function getPadding(
     },
     isHorizontal,
   );
+}
+
+const MIN_ECHARTS_GRID_HEIGHT = 1;
+
+export function resolveTimeseriesGridOffset(
+  offset: unknown,
+  chartHeight: number,
+) {
+  if (typeof offset === 'number') {
+    return Number.isFinite(offset) ? Math.max(offset, 0) : 0;
+  }
+  if (typeof offset !== 'string') {
+    return 0;
+  }
+
+  const percentage = offset.match(/^\s*(-?\d+(?:\.\d+)?)%\s*$/);
+  const pixels = percentage
+    ? (Number(percentage[1]) / 100) * chartHeight
+    : Number(offset);
+  return Number.isFinite(pixels) ? Math.max(pixels, 0) : 0;
+}
+
+export function getViableTimeseriesEchartOptions<Options extends object>(
+  options: Options,
+  chartHeight: number,
+  zoomable: boolean,
+): Options {
+  const optionWithGrid = options as Options & { grid?: unknown };
+  const gridOption = Array.isArray(optionWithGrid.grid)
+    ? optionWithGrid.grid[0]
+    : optionWithGrid.grid;
+  if (!gridOption || typeof gridOption !== 'object') {
+    return options;
+  }
+
+  const grid = gridOption as Record<string, unknown>;
+  const rawTop = resolveTimeseriesGridOffset(grid.top, chartHeight);
+  const rawBottom = resolveTimeseriesGridOffset(grid.bottom, chartHeight);
+  const isCompact = chartHeight <= TIMESERIES_CONSTANTS.compactChartHeight;
+  const requestedTop = isCompact ? Math.min(rawTop, 12) : rawTop;
+  const requestedBottom =
+    isCompact && !zoomable ? Math.min(rawBottom, 5) : rawBottom;
+  // Cap both reservations so even a tiny canvas retains a coordinate region.
+  const reservationBudget = Math.max(chartHeight - MIN_ECHARTS_GRID_HEIGHT, 0);
+  const top = Math.min(requestedTop, reservationBudget);
+  const bottom = Math.min(
+    requestedBottom,
+    Math.max(reservationBudget - top, 0),
+  );
+  const mustDisableContainLabel =
+    isCompact || requestedTop + requestedBottom > reservationBudget;
+
+  if (
+    top === rawTop &&
+    bottom === rawBottom &&
+    (!mustDisableContainLabel || grid.containLabel === false)
+  ) {
+    return options;
+  }
+
+  const viableGrid = {
+    ...grid,
+    bottom,
+    ...(mustDisableContainLabel ? { containLabel: false } : {}),
+    top,
+  };
+
+  return {
+    ...options,
+    grid: Array.isArray(optionWithGrid.grid)
+      ? [viableGrid, ...optionWithGrid.grid.slice(1)]
+      : viableGrid,
+  } as Options;
 }

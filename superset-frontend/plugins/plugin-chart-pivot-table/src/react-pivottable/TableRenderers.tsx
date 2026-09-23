@@ -44,6 +44,22 @@ import {
 import { PivotData, flatKey } from './utilities';
 import { Styles } from './Styles';
 
+/**
+ * Pivot keys are stringified on their way through `PivotData`, so a temporal
+ * header holding an epoch timestamp arrives as e.g. "1700000000000". Coerce
+ * such numeric strings back to numbers so temporal formatters (which expect
+ * an epoch) render correctly. Only a digit-only string of at least 10 digits
+ * is long enough to plausibly be an epoch in milliseconds; shorter ones are
+ * date keys or plain integers - "2017" is the ISO 8601 year-only form and
+ * "20260903" a YYYYMMDD key - and coercing either would render it as a moment
+ * near 1970. Those are passed through as strings, which the shared
+ * `stringifyTimeInput` in core resolves or returns untouched.
+ */
+const toDateFormatterInput = (value: unknown): unknown =>
+  typeof value === 'string' && /^-?\d{10,}$/.test(value.trim())
+    ? Number(value)
+    : value;
+
 type ClickCallback = (
   e: MouseEvent,
   value: unknown,
@@ -989,15 +1005,9 @@ export function TableRenderer(props: TableRendererProps) {
               />
             );
           };
-          // Coerce numeric timestamp strings to numbers so temporal formatters
-          // (which typically expect an epoch) render correctly.
           const rawHeaderCellValue = colKey[attrIdx];
           const headerCellFormatterValue =
-            typeof rawHeaderCellValue === 'string' &&
-            rawHeaderCellValue.trim() !== '' &&
-            Number.isFinite(Number(rawHeaderCellValue))
-              ? Number(rawHeaderCellValue)
-              : rawHeaderCellValue;
+            toDateFormatterInput(rawHeaderCellValue);
           const headerCellFormattedValue =
             dateFormatters?.[attrName]?.(headerCellFormatterValue) ??
             rawHeaderCellValue;
@@ -1263,14 +1273,7 @@ export function TableRenderer(props: TableRendererProps) {
             ? toggleRowKey(flatRowKeySlice)
             : null;
 
-          // Coerce numeric timestamp strings to numbers so temporal formatters
-          // (which typically expect an epoch) render correctly.
-          const headerFormatterValue =
-            typeof r === 'string' &&
-            r.trim() !== '' &&
-            Number.isFinite(Number(r))
-              ? Number(r)
-              : r;
+          const headerFormatterValue = toDateFormatterInput(r);
           const headerCellFormattedValue =
             dateFormatters?.[settingsRowAttrs[i]]?.(headerFormatterValue) ?? r;
           const isActiveHeader = valueCellClassName.includes('active');

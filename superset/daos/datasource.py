@@ -96,6 +96,7 @@ class DatasourceDAO(BaseDAO[Datasource]):
         name_filter: str | None,
         sql_filter: bool | None,
         database_id: int | None = None,
+        schema_filter: str | None = None,
     ) -> Select:
         """Build a SELECT for datasets, applying access and content filters."""
         ds_table = SqlaTable.__table__
@@ -140,6 +141,9 @@ class DatasourceDAO(BaseDAO[Datasource]):
 
         if database_id is not None:
             ds_q = ds_q.where(SqlaTable.database_id == database_id)
+
+        if schema_filter is not None:
+            ds_q = ds_q.where(SqlaTable.schema == schema_filter)
 
         return ds_q
 

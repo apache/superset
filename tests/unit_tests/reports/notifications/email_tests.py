@@ -105,6 +105,41 @@ def test_error_template_sanitizes_html() -> None:
     assert "<img" not in email_body
     assert "<script>" not in email_body
     assert "onerror=alert(1)" not in email_body
+    assert "DB error near" not in email_body
+    assert "Contact the report owner for error details." in email_body
+
+
+@pytest.mark.parametrize("editor_only", [False, True])
+def test_editor_error_diagnostics_are_sanitized(editor_only: bool) -> None:
+    """Only explicitly editor-restricted error emails preserve useful diagnostics."""
+    from superset.reports.models import ReportRecipients, ReportRecipientType
+    from superset.reports.notifications.base import NotificationContent
+    from superset.reports.notifications.email import EmailNotification
+
+    content = NotificationContent(
+        name="failure",
+        header_data={
+            "notification_format": "PNG",
+            "notification_type": "Alert",
+            "editors": [],
+            "notification_source": None,
+            "chart_id": None,
+            "dashboard_id": None,
+            "slack_channels": None,
+            "execution_id": "test",
+        },
+        is_editor_error=editor_only,
+    )
+    notification = EmailNotification(
+        ReportRecipients(type=ReportRecipientType.EMAIL), content
+    )
+    body = notification._error_template(
+        "DB query failed <script>alert(1)</script><img src=x onerror=alert(2)>"
+    )
+    assert ("DB query failed" in body) is editor_only
+    assert "<script" not in body
+    assert "<img" not in body
+    assert "onerror" not in body
 
 
 def test_cta_link_included_by_default() -> None:
@@ -207,7 +242,8 @@ def test_error_template_cta_link_respects_include_cta() -> None:
         ._get_content()
         .body
     )
-    assert "Report generation failed" in email_body
+    assert "Contact the report owner for error details." in email_body
+    assert "Report generation failed" not in email_body
     assert "Explore in Superset" not in email_body
     assert "http://example.com/superset/dashboard/1/" not in email_body
 

@@ -33,10 +33,189 @@ from superset.exceptions import (
 from superset.models.core import Database
 
 
+def _validate_virtual_dataset(
+    sql: str,
+    engine: str = "postgresql",
+    template_params: str | None = None,
+) -> CreateDatasetCommand:
+    """Validate a virtual dataset while isolating command dependencies."""
+    mock_database = Mock(spec=Database)
+    mock_database.id = 1
+    mock_database.backend = engine
+    mock_database.db_engine_spec.engine = engine
+    mock_database.get_default_catalog.return_value = None
+
+    with (
+        patch(
+            "superset.commands.dataset.create.DatasetDAO.get_database_by_id",
+            return_value=mock_database,
+        ),
+        patch(
+            "superset.commands.dataset.create.DatasetDAO.validate_uniqueness",
+            return_value=True,
+        ),
+        patch("superset.commands.dataset.create.security_manager.raise_for_access"),
+        patch("superset.commands.dataset.create.populate_subjects"),
+    ):
+        properties = {
+            "database": 1,
+            "schema": "information_schema",
+            "table_name": "test_virtual_dataset",
+            "sql": sql,
+        }
+        if template_params is not None:
+            properties["template_params"] = template_params
+        command = CreateDatasetCommand(properties)
+        command.validate()
+
+    return command
+
+
+def test_create_dataset_schema_derived_from_single_schema_query() -> None:
+    """A single explicit query schema replaces the SQL Lab dropdown schema."""
+    command = _validate_virtual_dataset(
+        'select * from public."Vehicle Sales"',
+    )
+
+    assert command._properties["schema"] == "public"
+
+
+def test_create_dataset_keeps_dropdown_schema_when_query_has_no_schema() -> None:
+    """An unqualified query keeps the SQL Lab dropdown schema."""
+    command = _validate_virtual_dataset("select * from t")
+
+    assert command._properties["schema"] == "information_schema"
+
+
+def test_create_dataset_keeps_dropdown_schema_for_multi_schema_query() -> None:
+    """A query spanning multiple explicit schemas keeps the dropdown schema."""
+    command = _validate_virtual_dataset(
+        "select * from a.t1 union all select * from b.t2",
+    )
+
+    assert command._properties["schema"] == "information_schema"
+
+
+def test_create_dataset_keeps_dropdown_schema_for_unqualified_reference() -> None:
+    """A mixed qualified and bare query keeps the dropdown schema."""
+    command = _validate_virtual_dataset(
+        "select * from public.t1 join t2 on public.t1.id = t2.id",
+    )
+
+    assert command._properties["schema"] == "information_schema"
+
+
+def test_create_dataset_keeps_dropdown_schema_after_schema_change() -> None:
+    """A schema-changing statement prevents static schema derivation."""
+    command = _validate_virtual_dataset("use other; select * from public.t1")
+
+    assert command._properties["schema"] == "information_schema"
+
+
+def test_create_dataset_keeps_dropdown_schema_when_sql_is_unparseable() -> None:
+    """A parse failure falls back to the SQL Lab dropdown schema."""
+    command = _validate_virtual_dataset("select * from {{ my_schema }}.t")
+
+    assert command._properties["schema"] == "information_schema"
+
+
+def test_create_dataset_keeps_dropdown_schema_for_unparseable_statement() -> None:
+    """An opaque statement prevents derivation from an incomplete table set."""
+    command = _validate_virtual_dataset(
+        "explain select * from hidden.t; select * from public.t1",
+    )
+
+    assert command._properties["schema"] == "information_schema"
+
+
+def test_create_dataset_keeps_dropdown_schema_for_mutating_query() -> None:
+    """A mutating statement keeps the dropdown rather than its source schema."""
+    command = _validate_virtual_dataset(
+        "insert into secret.t select * from public.s",
+    )
+
+    assert command._properties["schema"] == "information_schema"
+
+
+def test_create_dataset_keeps_dropdown_schema_for_multi_catalog_query() -> None:
+    """The same schema in different catalogs is not a single location."""
+    command = _validate_virtual_dataset(
+        "select * from c1.s.t1 union all select * from c2.s.t2",
+    )
+
+    assert command._properties["schema"] == "information_schema"
+
+
+def test_create_dataset_keeps_dropdown_schema_for_quoted_schema() -> None:
+    """A quoted schema on a case-folding engine prevents unsafe derivation."""
+    command = _validate_virtual_dataset(
+        'select * from "public".t1 union all select * from public.t2',
+        engine="snowflake",
+    )
+
+    assert command._properties["schema"] == "information_schema"
+
+
+def test_create_dataset_keeps_dropdown_schema_for_jinja_macro_table() -> None:
+    """Partition-macro tables participate in the single-location check."""
+    command = _validate_virtual_dataset(
+        "select * from public.t1 where ds = "
+        "'{{ presto.latest_partition(\"secret.audit\") }}'",
+        engine="presto",
+    )
+
+    assert command._properties["schema"] == "information_schema"
+
+
+def test_create_dataset_ignores_empty_table_function_reference() -> None:
+    """An empty parser artifact does not make a qualified query ambiguous."""
+    command = _validate_virtual_dataset(
+        "select * from public.t1 join generate_series(1, 10) on true",
+    )
+
+    assert command._properties["schema"] == "public"
+
+
+def test_create_dataset_keeps_dropdown_schema_for_template_error() -> None:
+    """A Jinja failure in best-effort derivation keeps the dropdown schema."""
+    command = _validate_virtual_dataset("SELECT '{{' AS x FROM public.t")
+
+    assert command._properties["schema"] == "information_schema"
+
+
+def test_create_dataset_schema_uses_template_params() -> None:
+    """Submitted template parameters determine the derived query schema."""
+    command = _validate_virtual_dataset(
+        "select * from {{ source | default('public.t') }}",
+        template_params='{"source": "secret.t"}',
+    )
+
+    assert command._properties["schema"] == "secret"
+
+
+def test_create_dataset_keeps_dropdown_schema_for_show_statement() -> None:
+    """A metadata statement has no meaningful virtual-dataset schema."""
+    command = _validate_virtual_dataset(
+        "show columns from foo from bar",
+        engine="mysql",
+    )
+
+    assert command._properties["schema"] == "information_schema"
+
+
+def test_create_dataset_derives_catalog_and_schema() -> None:
+    """A single three-part reference updates both catalog and schema."""
+    command = _validate_virtual_dataset("select * from prod.sales.orders")
+
+    assert command._properties["schema"] == "sales"
+    assert command._properties["catalog"] == "prod"
+
+
 def test_create_dataset_invalid_sql_parse_error() -> None:
     """Test that invalid SQL returns a 4xx error when caught as SupersetParseError."""
     mock_database = Mock(spec=Database)
     mock_database.id = 1
+    mock_database.backend = "postgresql"
     mock_database.db_engine_spec.engine = "postgresql"
     mock_database.get_default_catalog.return_value = None
 
@@ -88,6 +267,7 @@ def test_create_dataset_valid_sql_with_access_error() -> None:
     """
     mock_database = Mock(spec=Database)
     mock_database.id = 1
+    mock_database.backend = "postgresql"
     mock_database.db_engine_spec.engine = "postgresql"
     mock_database.get_default_catalog.return_value = None
 
