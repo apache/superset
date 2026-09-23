@@ -326,3 +326,40 @@ def test_get_sqla_engine_applies_selected_schema() -> None:
             assert credentials.source == "dbone"
         finally:
             raw_connection.close()
+
+
+def test_get_sqla_table_does_not_qualify_collection() -> None:
+    """
+    Charts built on a MongoDB dataset with a schema hit the same PyMongoSQL
+    ``schema.collection`` resolution bug SQL Lab's Data Preview had before #44141:
+    ``SqlaTable.get_sqla_table`` must build an unqualified FROM clause too, not
+    just ``select_star``. Regression test for #44576.
+    """
+    from sqlalchemy import create_engine, select
+
+    from superset.connectors.sqla.models import SqlaTable
+    from superset.db_engine_specs.mongodb import MongoDBEngineSpec
+    from superset.models.core import Database
+
+    pytest.importorskip("pymongosql")
+
+    assert MongoDBEngineSpec.quote_table_includes_schema is False
+
+    database = Database(
+        database_name="mongo",
+        sqlalchemy_uri="mongodb://user:pass@host:27017/dbone?mode=superset",
+    )
+    dataset = SqlaTable(table_name="orders", database=database, schema="testdb")
+
+    sqla_table = dataset.get_sqla_table()
+
+    # PyMongoSQL doesn't have a real SQLAlchemy dialect to compile against in this
+    # unit test; a generic dialect is enough to verify the FROM-clause identifier
+    # itself is unqualified, which is what PyMongoSQL parses.
+    engine = create_engine("sqlite://")
+    compiled = str(
+        select(sqla_table).compile(engine, compile_kwargs={"literal_binds": True})
+    )
+
+    assert "FROM orders" in compiled
+    assert "testdb" not in compiled
