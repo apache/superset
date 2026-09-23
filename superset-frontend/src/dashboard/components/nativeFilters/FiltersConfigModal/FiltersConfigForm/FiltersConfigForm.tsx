@@ -17,7 +17,12 @@
  * under the License.
  */
 /* eslint-disable react-hooks/rules-of-hooks */
-import { ColumnMeta, Metric } from '@superset-ui/chart-controls';
+import {
+  ColumnMeta,
+  D3_TIME_FORMAT_DOCS,
+  D3_TIME_FORMAT_OPTIONS,
+  Metric,
+} from '@superset-ui/chart-controls';
 import { t } from '@apache-superset/core/translation';
 import {
   Behavior,
@@ -112,7 +117,8 @@ import {
   setNativeFilterFieldValues,
   shouldShowTimeRangePicker,
   useForceUpdate,
-  mapSemanticTypeToGenericDataType,
+  fetchSemanticViewStructure,
+  semanticViewDimensionsToColumns,
   doesChartMatchFilterDatasource,
 } from './utils';
 import {
@@ -645,6 +651,10 @@ const FiltersConfigForm = (
     filterToEdit?.controlValues?.operatorType ??
     SelectFilterOperatorType.Exact;
 
+  const currentDisplayFormat: string | undefined =
+    formFilter?.controlValues?.displayFormat ??
+    filterToEdit?.controlValues?.displayFormat;
+
   const selectedColumnIsString = useMemo(() => {
     const columnName = formFilter?.column;
     if (!columnName || !datasetDetails?.columns) return true;
@@ -663,6 +673,18 @@ const FiltersConfigForm = (
         operatorType: value,
       },
       defaultDataMask: null,
+    });
+    formChanged();
+    forceUpdate();
+  };
+
+  const onDisplayFormatChanged = (value?: string) => {
+    const previous = form.getFieldValue('filters')?.[filterId].controlValues;
+    setNativeFilterFieldValues(form, filterId, {
+      controlValues: {
+        ...previous,
+        displayFormat: value || undefined,
+      },
     });
     formChanged();
     forceUpdate();
@@ -737,34 +759,19 @@ const FiltersConfigForm = (
   useEffect(() => {
     if (datasetId) {
       if (datasourceType === DatasourceType.SemanticView) {
-        cachedSupersetGet({
-          endpoint: `/api/v1/semantic_view/${datasetId}/structure`,
-        })
-          .then((response: JsonResponse) => {
-            const {
-              name: svName,
-              dimensions = [],
-              metrics: svMetrics = [],
-            } = response.json?.result ?? {};
-            const columns = dimensions.map(
-              (dim: { name: string; type: string }) => {
-                const mappedType = mapSemanticTypeToGenericDataType(dim.type);
-                return {
-                  column_name: dim.name,
-                  type: dim.type,
-                  is_dttm: mappedType === GenericDataType.Temporal,
-                  filterable: true,
-                  type_generic: mappedType,
-                };
-              },
-            );
+        fetchSemanticViewStructure(datasetId)
+          .then(({ name: svName, dimensions, metrics: svMetrics }) => {
+            const columns = semanticViewDimensionsToColumns(dimensions);
+            // The /structure wire carries no metric uuid, and this state's
+            // consumers key on metric_name/verbose_name without reading
+            // uuid — so the cast is narrowed to exactly that one absent
+            // property; every other field stays compiler-checked.
             const mappedMetrics = svMetrics.map(
               (m: { name: string; definition: string }) => ({
                 metric_name: m.name,
                 expression: m.definition,
-                verbose_name: null,
               }),
-            );
+            ) as Omit<Metric, 'uuid'>[] as Metric[];
             setMetrics(mappedMetrics);
             setDatasetDetails({
               columns,
@@ -1791,6 +1798,44 @@ const FiltersConfigForm = (
                                       value as SelectFilterOperatorType,
                                     );
                                   }}
+                                />
+                              </StyledRowFormItem>
+                            )}
+                          {!isChartCustomization &&
+                            itemTypeField === 'filter_time' && (
+                              <StyledRowFormItem
+                                expanded={expanded}
+                                name={[
+                                  'filters',
+                                  filterId,
+                                  'controlValues',
+                                  'displayFormat',
+                                ]}
+                                initialValue={currentDisplayFormat}
+                                label={
+                                  <>
+                                    <StyledLabel>
+                                      {t('Display format')}
+                                    </StyledLabel>
+                                    &nbsp;
+                                    <InfoTooltip
+                                      placement="top"
+                                      tooltip={D3_TIME_FORMAT_DOCS}
+                                    />
+                                  </>
+                                }
+                              >
+                                <Select
+                                  allowClear
+                                  allowNewOptions
+                                  ariaLabel={t('Display format')}
+                                  options={D3_TIME_FORMAT_OPTIONS.map(
+                                    ([value, label]) => ({ value, label }),
+                                  )}
+                                  placeholder={t('Default')}
+                                  onChange={value =>
+                                    onDisplayFormatChanged(value as string)
+                                  }
                                 />
                               </StyledRowFormItem>
                             )}

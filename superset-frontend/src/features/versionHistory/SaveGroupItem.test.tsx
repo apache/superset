@@ -16,7 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { fireEvent, render, within } from 'spec/helpers/testing-library';
+import {
+  fireEvent,
+  render,
+  screen,
+  userEvent,
+  within,
+} from 'spec/helpers/testing-library';
 import type { ActivityRecord, SaveGroup } from './types';
 import SaveGroupItem, { SaveGroupItemProps } from './SaveGroupItem';
 
@@ -128,4 +134,87 @@ test('rows of the highlighted group show the active timeline dot', () => {
   expandGroup(current);
   expandGroup(historical);
   expect(dotBorderColor(current)).not.toBe(dotBorderColor(historical));
+});
+
+const creationGroup = (overrides: Partial<SaveGroup> = {}): SaveGroup =>
+  makeGroup({
+    transactionId: 5,
+    versionUuid: 'v-created',
+    issuedAt: '2025-12-05T17:18:00',
+    changedBy: { id: 1, first_name: 'Ada', last_name: 'Lovelace' },
+    creationKind: 'created',
+    ...overrides,
+  });
+
+test('a chart starting group exposes an explicit preview action', async () => {
+  const onPreview = jest.fn();
+  const group = creationGroup();
+  renderItem({ group, onPreview });
+
+  const button = screen.getByRole('button', { name: 'Preview this version' });
+  await userEvent.click(button);
+
+  expect(onPreview).toHaveBeenCalledWith(group);
+});
+
+test('a dashboard starting group exposes the same preview action via keyboard', async () => {
+  const onPreview = jest.fn();
+  const group = creationGroup({ creationKind: 'pre_tracking' });
+  renderItem({ group, onPreview, entityType: 'dashboard' });
+
+  const button = screen.getByRole('button', { name: 'Preview this version' });
+  button.focus();
+  await userEvent.type(button, '{enter}', { skipClick: true });
+
+  expect(onPreview).toHaveBeenCalledWith(group);
+});
+
+test('the current starting version has nothing to preview', () => {
+  renderItem({ group: creationGroup(), isCurrent: true });
+
+  expect(
+    screen.queryByRole('button', { name: 'Preview this version' }),
+  ).not.toBeInTheDocument();
+});
+
+test('a creation-marked group with records gets no creation preview', () => {
+  renderItem({
+    group: creationGroup({
+      creationKind: 'created',
+      records: [
+        {
+          version_uuid: 'v-1',
+          entity_kind: 'chart',
+          entity_uuid: 'e-1',
+          entity_name: 'My chart',
+          entity_deleted: false,
+          entity_deletion_state: null,
+          source: 'self',
+          transaction_id: 5,
+          action_kind: null,
+          issued_at: '2025-12-05T17:18:00',
+          changed_by: null,
+          kind: 'metric',
+          operation: 'add',
+          path: ['params'],
+          from_value: null,
+          to_value: null,
+          summary: '',
+          impact: null,
+        },
+      ],
+    }),
+  });
+
+  expect(
+    screen.queryByRole('button', { name: 'Preview this version' }),
+  ).not.toBeInTheDocument();
+});
+
+test('an empty group with no creationKind gets no preview affordance', () => {
+  renderItem({ group: creationGroup({ creationKind: undefined }) });
+
+  expect(
+    screen.queryByRole('button', { name: 'Preview this version' }),
+  ).not.toBeInTheDocument();
 });

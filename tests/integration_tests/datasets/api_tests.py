@@ -32,6 +32,7 @@ from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import joinedload
 from sqlalchemy.sql import func
+from werkzeug.test import TestResponse
 
 from superset.commands.dataset.exceptions import DatasetCreateFailedError
 from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
@@ -2348,17 +2349,22 @@ class TestDatasetApi(SupersetTestCase):
         """
 
         dataset = self.insert_default_dataset()
-        # delete a column
+        # delete a column so refresh has schema drift to sync
         id_column = (
             db.session.query(TableColumn)
             .filter_by(table_id=dataset.id, column_name="id")
             .one()
         )
-        self.items_to_delete = [id_column]
+        db.session.delete(id_column)
+        db.session.commit()
+        db.session.refresh(dataset)
+        current_changed_on = dataset.changed_on
 
         self.login(ADMIN_USERNAME)
         uri = f"api/v1/dataset/{dataset.id}/refresh"
-        rv = self.put_assert_metric(uri, {}, "refresh")
+        with freeze_time() as frozen:
+            frozen.tick(delta=timedelta(seconds=3))
+            rv = self.put_assert_metric(uri, {}, "refresh")
         assert rv.status_code == 200
         # Assert the column is restored on refresh
         id_column = (
@@ -2367,6 +2373,10 @@ class TestDatasetApi(SupersetTestCase):
             .one()
         )
         assert id_column is not None
+        # Refresh mutates child TableColumn rows only, so changed_on must be
+        # force-bumped or chart cache keys stay stale. See #43918.
+        updated_dataset = db.session.query(SqlaTable).filter_by(id=dataset.id).first()
+        assert updated_dataset.changed_on > current_changed_on
         self.items_to_delete = [dataset]
 
     def test_dataset_item_refresh_not_found(self):
@@ -3967,3 +3977,55 @@ class TestDatasetApi(SupersetTestCase):
             assert rv.status_code == 403
 
         self.items_to_delete = [dash, chart, dataset, dashboard_dataset]
+
+
+class TestRequiresJsonReturns400(SupersetTestCase):
+    """sc-120966: a body-less POST to a @safe + @requires_json endpoint
+    must be the structured 400, not FAB safe's generic 500 "Fatal error".
+
+    ``requires_json`` returns the response directly (built with the same
+    serializer as the app-level SupersetErrorException handler), so the
+    surrounding ``@safe`` never sees an exception to mangle. The dataset
+    purge endpoint is the reported instance; the chart POST pin proves
+    the fix covers every stacked endpoint, not one route.
+    """
+
+    def test_body_less_dataset_purge_is_a_structured_400(self) -> None:
+        self.login(ADMIN_USERNAME)
+        import uuid as uuidlib
+
+        from superset.daos.dataset import DatasetDAO
+
+        table: SqlaTable = SqlaTable(
+            table_name=f"sc120966_{uuidlib.uuid4().hex[:8]}",
+            database=get_main_database(),
+            schema=None,
+        )
+        db.session.add(table)
+        db.session.commit()
+        ds_uuid: str = str(table.uuid)
+        DatasetDAO.soft_delete([table])
+        db.session.commit()
+        try:
+            rv: TestResponse = self.client.post(f"/api/v1/dataset/{ds_uuid}/purge")
+            assert rv.status_code == 400, rv.data
+            body: dict[str, Any] = rv.get_json()
+            assert body["errors"][0]["error_type"] == "INVALID_PAYLOAD_FORMAT_ERROR"
+            assert body["errors"][0]["message"] == "Request is not JSON"
+        finally:
+            from superset.models.helpers import skip_visibility_filter
+
+            with skip_visibility_filter(db.session, SqlaTable):
+                row: SqlaTable | None = (
+                    db.session.query(SqlaTable).filter_by(uuid=table.uuid).first()
+                )
+            if row is not None:
+                db.session.delete(row)
+                db.session.commit()
+
+    def test_body_less_chart_post_is_a_structured_400(self) -> None:
+        self.login(ADMIN_USERNAME)
+        rv: TestResponse = self.client.post("/api/v1/chart/")
+        assert rv.status_code == 400, rv.data
+        body: dict[str, Any] = rv.get_json()
+        assert body["errors"][0]["error_type"] == "INVALID_PAYLOAD_FORMAT_ERROR"

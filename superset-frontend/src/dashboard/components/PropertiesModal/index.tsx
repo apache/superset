@@ -505,16 +505,11 @@ const PropertiesModal = ({
         setIsLoading(false);
       }
 
-      // Fetch themes (excluding system themes)
+      // Fetch all assignable themes, including the system default/dark
+      // themes (THEME_DEFAULT/THEME_DARK), so they can be pinned to a
+      // dashboard like any custom theme.
       const themeQuery = rison.encode({
         columns: ['id', 'theme_name', 'is_system', 'json_data'],
-        filters: [
-          {
-            col: 'is_system',
-            opr: 'eq',
-            value: false,
-          },
-        ],
       });
       SupersetClient.get({ endpoint: `/api/v1/theme/?q=${themeQuery}` })
         .then(({ json }) => {
