@@ -505,8 +505,10 @@ which is why `update_dashboard` dropped its `roles` field.
   that warning is informational only. `raise_for_access` enforces a
   nonempty `viewers` list on a published dashboard regardless of the flag,
   so a role added here restricts access immediately even with
-  `ENABLE_VIEWERS` off. An empty roles list simply means "no role
-  restriction", i.e. normal permissions apply.
+  `ENABLE_VIEWERS` off. Removing every ROLE-type entry only restores normal
+  permissions if no USER- or GROUP-type viewers remain — since
+  `raise_for_access` checks the whole `viewers` list, not just roles, any
+  such subjects left on the dashboard keep it restricted.
 - USER- or GROUP-type viewers already on the dashboard are left untouched.
 - Like `manage_dashboard_owners`, a no-op request returns an empty `roles`
   list instead of the full current set, to avoid a disguised directory

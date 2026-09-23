@@ -171,12 +171,13 @@ def manage_dashboard_roles(
     Add or remove dashboard access roles with explicit operations.
 
     Dashboard access roles restrict who can view a dashboard to members of
-    the listed roles, on top of normal Superset permissions. An empty roles
-    list means "no role restriction" — the dashboard is visible per standard
-    permissions instead. This only takes effect when the ``ENABLE_VIEWERS``
-    feature flag is enabled; the response's ``viewers_enabled`` field
-    reports whether it is, and ``warnings`` notes when a change was applied
-    but has no live effect.
+    the listed roles, on top of normal Superset permissions. Removing every
+    role only restores standard permissions if no USER- or GROUP-type
+    viewers remain on the dashboard — ``raise_for_access`` restricts access
+    whenever the ``viewers`` list is nonempty, regardless of subject type.
+    This only takes effect when the ``ENABLE_VIEWERS`` feature flag is
+    enabled; the response's ``viewers_enabled`` field reports whether it is,
+    and ``warnings`` notes when a change was applied but has no live effect.
 
     Roles are the ROLE-type entries in the dashboard's Subject-based
     ``viewers`` list. Any USER- or GROUP-type viewers already on the
