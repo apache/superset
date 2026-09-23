@@ -311,6 +311,13 @@ function getMaxStackedValueByStack(
   return max;
 }
 
+// A plain integer (optionally signed) is only exactly representable as a JS
+// number up to Number.MAX_SAFE_INTEGER (2^53 - 1); beyond that, Number()
+// can silently collapse distinct values to the same float, e.g.
+// "9007199254740993" and "9007199254740992" - so naturalCompare below
+// switches such pairs to BigInt comparison instead.
+const INTEGER_LIKE = /^-?\d+$/;
+
 // ----- natural sort helper -----
 // Try numeric comparison first for numeric-like strings, fallback to localeCompare.
 function naturalCompare(a: any, b: any): number {
@@ -321,6 +328,14 @@ function naturalCompare(a: any, b: any): number {
   if (sa === '' && sb === '') return 0;
   if (sa === '') return -1;
   if (sb === '') return 1;
+
+  if (INTEGER_LIKE.test(sa) && INTEGER_LIKE.test(sb)) {
+    const ba = BigInt(sa);
+    const bb = BigInt(sb);
+    if (ba < bb) return -1;
+    if (ba > bb) return 1;
+    return 0;
+  }
 
   const na = Number(sa);
   const nb = Number(sb);
@@ -477,12 +492,43 @@ export default function transformProps(
   const rebasePercentChange = Boolean(
     (formData as { rebasePercentChange?: boolean }).rebasePercentChange,
   );
-  const rebasedData = rebasePercentChange
+  const unsortedRebasedData = rebasePercentChange
     ? // the same temporal-alias fallback extractSeries applies, so a chart
       // with no explicit x-axis cannot have its x column rebased as data
       rebaseToPercentChange(forecastRebasedData, xAxisLabel || DTTM_ALIAS)
     : forecastRebasedData;
   const isHorizontal = orientation === OrientationType.Horizontal;
+  const xAxisDataType = dataTypes?.[xAxisLabel] ?? dataTypes?.[xAxisOrig];
+  const xAxisType = getAxisType(
+    stack,
+    xAxisForceCategorical,
+    xAxisDataType,
+    seriesType,
+  );
+  // A category axis renders points in data-array order, not by sorted
+  // x-value: the backend can return string (and numeric-like-string, e.g.
+  // "202401") dimensions in an arbitrary order, which drew line segments
+  // that jumped between non-adjacent categories (#35853). Natural-sorting
+  // here, before extractSeries builds any per-series data, is the single
+  // point of truth for every consumer downstream (series data in every
+  // shape extractSeries/transformSeries can produce, stacked totals, the
+  // legend) rather than re-sorting each series' already-shaped data
+  // separately later. Time axes are unaffected: they already carry a
+  // meaningful numeric order and getAxisType never returns Category for
+  // them.
+  // Bar is excluded: discrete bars have no line-connection artifact to fix,
+  // and Bar's category order is already a deliberate, source-preserving
+  // contract independent of legend display sorting (see "should preserve
+  // source order for color-by-primary-axis legends when label sorting is
+  // enabled" in Bar/transformProps.test.ts) - forcing a natural sort here
+  // would silently override that.
+  const rebasedData =
+    xAxisType === AxisType.Category &&
+    seriesType !== EchartsTimeseriesSeriesType.Bar
+      ? [...unsortedRebasedData].sort((row1, row2) =>
+          naturalCompare(row1[xAxisLabel], row2[xAxisLabel]),
+        )
+      : unsortedRebasedData;
   // rebasedData's keys have already been through rebaseForecastDatum, which
   // renames a key to its verboseMap entry when one is configured for that
   // metric. extraMetricLabels must be mapped the same way, or a sort-only
@@ -503,13 +549,6 @@ export default function transformProps(
   );
 
   const isMultiSeries = groupBy.length || metrics?.length > 1;
-  const xAxisDataType = dataTypes?.[xAxisLabel] ?? dataTypes?.[xAxisOrig];
-  const xAxisType = getAxisType(
-    stack,
-    xAxisForceCategorical,
-    xAxisDataType,
-    seriesType,
-  );
 
   const [allRawSeries, sortedTotalValues, minPositiveValue] = extractSeries(
     rebasedData,
@@ -934,37 +973,6 @@ export default function transformProps(
     }
   });
 
-  // ----- ensure series data are sorted naturally on the x-value -----
-  // Run after all series have been created so each series.data is complete.
-  series.forEach((s: SeriesOption) => {
-    const dataArr = (s as any).data;
-    if (!Array.isArray(dataArr) || dataArr.length <= 1) return;
-
-    (s as any).data = dataArr.sort((row1: any, row2: any) => {
-      // extract the raw x values (support both [x,y] and { x, y } shapes)
-      const rawX1 = Array.isArray(row1) ? row1[0] : row1?.x;
-      const rawX2 = Array.isArray(row2) ? row2[0] : row2?.x;
-
-      // If this chart's x-axis is temporal, coerce to timestamps (numbers) for sorting.
-      // Fallback to original raw values if parsing fails.
-      const getComparableX = (raw: any) => {
-        if (xAxisType === AxisType.Time) {
-          // If it's already a number, use it. Otherwise try to coerce to Date timestamp.
-          if (typeof raw === 'number' && isFinite(raw)) return raw;
-          const parsed = new Date(String(raw)).getTime();
-          return isFinite(parsed) ? parsed : String(raw);
-        }
-        return raw;
-      };
-
-      const x1 = getComparableX(rawX1);
-      const x2 = getComparableX(rawX2);
-
-      // naturalCompare already prefers numeric comparison when possible
-      return naturalCompare(x1, x2);
-    });
-  });
-
   // Add x-axis color legend when colorByPrimaryAxis is enabled
   if (colorByPrimaryAxis && groupBy.length === 0 && series.length > 0) {
     // Hide original series from legend
@@ -1267,14 +1275,16 @@ export default function transformProps(
   if (xAxisDataType === GenericDataType.Temporal) {
     xAxisFormatter = getXAxisFormatter(xAxisTimeFormat, resolvedTimeGrain);
   } else if (xAxisDataType === GenericDataType.Numeric) {
-    // use provided xAxisNumberFormat, fall back to SMART_NUMBER
-    const numericFormat = xAxisNumberFormat ?? NumberFormats.SMART_NUMBER;
-    const numericFormatter = getNumberFormatter(numericFormat) as any;
-    // Ensure formatter.id exists for tests that assert on it
-    if (!numericFormatter.id) {
-      numericFormatter.id = numericFormat;
-    }
-    xAxisFormatter = numericFormatter;
+    // use provided xAxisNumberFormat, fall back to SMART_NUMBER. Every
+    // NumberFormatter (registered or freshly created by getNumberFormatter)
+    // already carries a non-empty .id from its own constructor - it's a
+    // required config field there - so there's nothing to backfill, and
+    // this must never assign onto it: registered formats like SMART_NUMBER
+    // are shared singletons cached in the registry, reused by every other
+    // chart requesting that same format.
+    xAxisFormatter = getNumberFormatter(
+      xAxisNumberFormat ?? NumberFormats.SMART_NUMBER,
+    );
   } else {
     xAxisFormatter = String;
   }

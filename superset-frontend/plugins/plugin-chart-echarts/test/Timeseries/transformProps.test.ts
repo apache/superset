@@ -4155,3 +4155,139 @@ test('tooltip keeps the metric format on a Difference time comparison', () => {
   expect(result).toContain('$ 100');
   expect(result).toContain('$ 25');
 });
+
+describe('natural sort of a category x-axis (#35853)', () => {
+  function categoryChartProps(
+    records: { dim: string; metric: number }[],
+    formDataOverrides: Partial<EchartsTimeseriesFormData> = {},
+  ) {
+    return createTestChartProps({
+      formData: {
+        metrics: ['metric'],
+        groupby: [],
+        x_axis: 'dim',
+        ...formDataOverrides,
+      },
+      queriesData: [
+        createTestQueryData(records, {
+          colnames: ['dim', 'metric'],
+          coltypes: [GenericDataType.String, GenericDataType.Numeric],
+        }),
+      ],
+    });
+  }
+
+  test('reorders numeric-like string dimension values numerically, not lexicographically', () => {
+    // Backend returned these out of order; lexicographic order would put
+    // "202410" before "202402".
+    const chartProps = categoryChartProps([
+      { dim: '202410', metric: 4 },
+      { dim: '202401', metric: 1 },
+      { dim: '202402', metric: 2 },
+    ]);
+
+    const { echartOptions } = transformProps(chartProps);
+    const series = echartOptions.series as SeriesOption[];
+    const data = series[0].data as [string, number][];
+
+    expect(data.map(row => row[0])).toEqual(['202401', '202402', '202410']);
+    expect(data.map(row => row[1])).toEqual([1, 2, 4]);
+  });
+
+  test('still sorts when colorByPrimaryAxis wraps points as {value, itemStyle} objects', () => {
+    // transformSeries applies colorByPrimaryAxis before this data ever
+    // reaches series.push, wrapping each point as { value: [x, y],
+    // itemStyle }. Sorting the raw records before series are built (rather
+    // than each series' already-shaped data afterward) means this shape
+    // never has to be special-cased.
+    const chartProps = categoryChartProps(
+      [
+        { dim: '202410', metric: 4 },
+        { dim: '202401', metric: 1 },
+        { dim: '202402', metric: 2 },
+      ],
+      { colorByPrimaryAxis: true },
+    );
+
+    const { echartOptions } = transformProps(chartProps);
+    const series = echartOptions.series as SeriesOption[];
+    const data = series[0].data as { value: [string, number] }[];
+
+    expect(data.map(row => row.value[0])).toEqual([
+      '202401',
+      '202402',
+      '202410',
+    ]);
+  });
+
+  test('keeps distinct dimension values distinct beyond Number.MAX_SAFE_INTEGER', () => {
+    // 9007199254740993 and ...992 both round-trip to the same float via
+    // Number(), which would collapse them to equal and leave the original
+    // (wrong) order in place.
+    const chartProps = categoryChartProps([
+      { dim: '9007199254740993', metric: 2 },
+      { dim: '9007199254740992', metric: 1 },
+    ]);
+
+    const { echartOptions } = transformProps(chartProps);
+    const series = echartOptions.series as SeriesOption[];
+    const data = series[0].data as [string, number][];
+
+    expect(data.map(row => row[0])).toEqual([
+      '9007199254740992',
+      '9007199254740993',
+    ]);
+  });
+
+  test('does not reorder a temporal x-axis', () => {
+    const ts1 = 1745784000000;
+    const ts2 = 1745870400000;
+    const chartProps = createTestChartProps({
+      formData: {
+        metrics: ['metric'],
+        granularity_sqla: 'ds',
+        x_axis: '__timestamp',
+      },
+      queriesData: [
+        createTestQueryData(
+          [
+            { __timestamp: ts2, metric: 20 },
+            { __timestamp: ts1, metric: 10 },
+          ],
+          {
+            colnames: ['__timestamp', 'metric'],
+            coltypes: [GenericDataType.Temporal, GenericDataType.Numeric],
+          },
+        ),
+      ],
+    });
+
+    const { echartOptions } = transformProps(chartProps);
+    const series = echartOptions.series as SeriesOption[];
+    const data = series[0].data as [number, number][];
+
+    // Unchanged from query order - the fix is scoped to Category axes only.
+    expect(data.map(row => row[0])).toEqual([ts2, ts1]);
+  });
+
+  test('does not reorder a Bar series category axis', () => {
+    // Discrete bars have no line-connection artifact to fix, and Bar's
+    // category order is a deliberate, source-preserving contract (see
+    // Bar/transformProps.test.ts's color-by-primary-axis legend test) -
+    // this must stay untouched even for numeric-like-string dimensions.
+    const chartProps = categoryChartProps(
+      [
+        { dim: '202410', metric: 4 },
+        { dim: '202401', metric: 1 },
+        { dim: '202402', metric: 2 },
+      ],
+      { seriesType: EchartsTimeseriesSeriesType.Bar },
+    );
+
+    const { echartOptions } = transformProps(chartProps);
+    const series = echartOptions.series as SeriesOption[];
+    const data = series[0].data as [string, number][];
+
+    expect(data.map(row => row[0])).toEqual(['202410', '202401', '202402']);
+  });
+});
