@@ -17,6 +17,8 @@
 
 from unittest.mock import MagicMock, patch, PropertyMock
 
+from pytest_mock import MockerFixture
+
 from superset.commands.dashboard.update import UpdateDashboardCommand
 from superset.utils import json
 
@@ -166,3 +168,47 @@ def test_process_native_filter_diff_only_touches_reports_on_the_updated_dashboar
     # NATIVE_FILTER-2 is the only one dropped from the new metadata.
     report_dao.find_by_native_filter_id.assert_called_once_with("NATIVE_FILTER-2")
     report_dao.update.assert_called_once_with(own_report, {"active": False})
+
+
+def test_run_repairs_a_position_json_with_a_detached_cycle(
+    mocker: MockerFixture, app_context: None
+) -> None:
+    """A PUT carrying a corrupted layout is repaired before it is persisted."""
+    position = {
+        "ROOT_ID": {"id": "ROOT_ID", "type": "ROOT", "children": ["GRID_ID"]},
+        "GRID_ID": {"id": "GRID_ID", "type": "GRID", "children": []},
+        # a column dropped into a row nested inside itself: a detached cycle
+        "COLUMN-orphan": {
+            "id": "COLUMN-orphan",
+            "type": "COLUMN",
+            "children": ["CHART-trapped", "ROW-orphan"],
+        },
+        "ROW-orphan": {
+            "id": "ROW-orphan",
+            "type": "ROW",
+            "children": ["COLUMN-orphan"],
+        },
+        "CHART-trapped": {
+            "id": "CHART-trapped",
+            "type": "CHART",
+            "children": [],
+            "meta": {"chartId": 2, "width": 4},
+        },
+    }
+    command = UpdateDashboardCommand(1, {"position_json": json.dumps(position)})
+    command._model = MagicMock()  # noqa: SLF001
+    mocker.patch.object(command, "validate")
+    mocker.patch.object(command, "process_tab_diff")
+    mocker.patch.object(command, "process_native_filter_diff")
+    mocker.patch("superset.db")
+    mocker.patch("superset.commands.dashboard.update.db")
+    dao = mocker.patch("superset.commands.dashboard.update.DashboardDAO")
+
+    command.run()
+
+    saved = json.loads(dao.update.call_args.args[1]["position_json"])
+    assert "COLUMN-orphan" not in saved
+    assert "ROW-orphan" not in saved
+    [new_row_id] = saved["GRID_ID"]["children"]
+    assert saved[new_row_id]["children"] == ["CHART-trapped"]
+    assert saved["CHART-trapped"]["parents"] == ["ROOT_ID", "GRID_ID", new_row_id]
