@@ -63,6 +63,7 @@ from superset.mcp_service.chart.schemas import (
     ChartError,
     GanttChartConfig,
     PerformanceMetadata,
+    TreemapChartConfig,
     UpdateChartPreviewRequest,
     UpdateChartPreviewResponse,
 )
@@ -283,11 +284,9 @@ def update_chart_preview(  # noqa: C901
                 merge_interactive_pivot_ui_config(previous_form_data, new_form_data)
                 if isinstance(config, BulletChartConfig):
                     merge_update_form_data(previous_form_data, new_form_data, config)
-                elif isinstance(config, GanttChartConfig):
-                    # Gantt owns its complete merge contract inside
-                    # merge_chart_form_data, including reconciling its single
-                    # native time predicate. Re-running the generic update
-                    # merges would restore the predicates it just resolved.
+                elif isinstance(config, (GanttChartConfig, TreemapChartConfig)):
+                    # Gantt and Treemap own their temporal/rebind merge contracts.
+                    # Generic merges would restore deliberately removed state.
                     new_form_data = merge_chart_form_data(
                         previous_form_data,
                         new_form_data,

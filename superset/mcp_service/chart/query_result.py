@@ -2030,7 +2030,8 @@ def normalize_chart_query_result(result: Any, form_data: Mapping[str, Any]) -> A
     """Validate chart-specific result contracts before consumers use rows."""
     if form_data.get("viz_type") != "treemap_v2":
         return normalize_gauge_query_result(result, form_data)
-    if failure := query_result_failure(result):
+    _data, failure = query_result_data(result, preserve_nonfinite_floats=True)
+    if failure is not None:
         return failure
     label = metric_result_label(form_data.get("metric"))
     hierarchy = treemap_hierarchy_labels(form_data)

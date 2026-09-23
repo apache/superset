@@ -423,10 +423,10 @@ def _build_replacement_form_data(
     if isinstance(parsed_config, BulletChartConfig):
         merge_update_form_data(existing_form_data, new_form_data, parsed_config)
         merged = new_form_data
-    elif isinstance(parsed_config, GanttChartConfig):
-        # Gantt owns its complete merge contract inside merge_chart_form_data,
-        # including reconciling its single native time predicate. Re-running the
-        # generic update merges would restore the predicates it just resolved.
+    elif isinstance(parsed_config, (GanttChartConfig, TreemapChartConfig)):
+        # Gantt and Treemap own their complete merge contracts, including
+        # temporal predicates and dataset rebinds. Generic update merges would
+        # restore inherited state that those contracts deliberately removed.
         merged = _merge_replacement_config(
             existing_form_data,
             new_form_data,
