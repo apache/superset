@@ -249,7 +249,7 @@ test('getTooltipTimeFormatter respects the time grain for the SMART_DATE path', 
     SMART_DATE_ID,
     TimeGranularity.QUARTER,
   ) as TimeFormatter;
-  expect(quarterFormatter.format(date)).toEqual('2021-Q1');
+  expect(quarterFormatter.format(date)).toEqual('2021 Q1');
 
   const yearFormatter = getTooltipTimeFormatter(
     SMART_DATE_ID,
@@ -282,16 +282,16 @@ test('getTooltipTimeFormatter honors an explicit custom format over the time gra
   );
 });
 
-test('getXAxisFormatter should render quarter grain as %Y-Q%q', () => {
+test('getXAxisFormatter should render quarter grain as %Y Q%q', () => {
   const formatter = getXAxisFormatter(
     SMART_DATE_ID,
     TimeGranularity.QUARTER,
   ) as TimeFormatter;
   expect(formatter).toBeInstanceOf(TimeFormatter);
-  expect(formatter.format(new Date('2024-01-15T00:00:00Z'))).toBe('2024-Q1');
-  expect(formatter.format(new Date('2024-04-01T00:00:00Z'))).toBe('2024-Q2');
-  expect(formatter.format(new Date('2024-07-01T00:00:00Z'))).toBe('2024-Q3');
-  expect(formatter.format(new Date('2024-10-01T00:00:00Z'))).toBe('2024-Q4');
+  expect(formatter.format(new Date('2024-01-15T00:00:00Z'))).toBe('2024 Q1');
+  expect(formatter.format(new Date('2024-04-01T00:00:00Z'))).toBe('2024 Q2');
+  expect(formatter.format(new Date('2024-07-01T00:00:00Z'))).toBe('2024 Q3');
+  expect(formatter.format(new Date('2024-10-01T00:00:00Z'))).toBe('2024 Q4');
 });
 
 test('getXAxisFormatter with an explicit format should ignore quarter grain', () => {
@@ -302,10 +302,10 @@ test('getXAxisFormatter with an explicit format should ignore quarter grain', ()
   expect(formatter.format(new Date('2024-01-15T00:00:00Z'))).toBe('2024-01-15');
 });
 
-test('getSmartDateFormatter should render quarter grain as %Y-Q%q', () => {
+test('getSmartDateFormatter should render quarter grain as %Y Q%q', () => {
   const formatter = getSmartDateFormatter(TimeGranularity.QUARTER);
   expect(formatter).toBeInstanceOf(TimeFormatter);
-  expect(formatter.format(new Date('2024-04-10T00:00:00Z'))).toBe('2024-Q2');
+  expect(formatter.format(new Date('2024-04-10T00:00:00Z'))).toBe('2024 Q2');
 });
 
 test('getXAxisFormatter produces stable SMART_DATE output for a valid Date', () => {
