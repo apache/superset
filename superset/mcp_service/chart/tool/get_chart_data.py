@@ -842,6 +842,7 @@ async def execute_chart_data(  # noqa: C901
             queries_data, query_failure = query_result_data(
                 result,
                 temporal_json_numbers=chart_viz_type == "bullet",
+                preserve_nonfinite_floats=chart_viz_type == "gauge_chart",
             )
             if query_failure is not None:
                 return query_failure
@@ -1181,6 +1182,7 @@ async def _query_from_form_data(  # noqa: C901
         queries_data, query_failure = query_result_data(
             result,
             temporal_json_numbers=viz_type == "bullet",
+            preserve_nonfinite_floats=viz_type == "gauge_chart",
         )
         if query_failure is not None:
             return query_failure

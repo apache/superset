@@ -2383,3 +2383,33 @@ def test_query_result_failure_rejects_envelope_without_a_query() -> None:
 
     assert failure is not None
     assert failure.error_type == "MalformedQueryResult"
+
+
+@pytest.mark.parametrize("value", [float("nan"), float("inf"), -float("inf")])
+def test_raw_gauge_mode_preserves_builtin_float_markers(value: float) -> None:
+    """Raw exports retain float markers without changing strict default validation."""
+    data, failure = query_result_data(
+        {"queries": [{"data": [{"value": value}]}]},
+        preserve_nonfinite_floats=True,
+    )
+    assert failure is None
+    assert data is not None
+    assert data[0][0]["value"] is value
+
+
+def test_raw_gauge_mode_still_rejects_scalar_subclasses() -> None:
+    """Raw export compatibility must not dispatch to arbitrary numeric hooks."""
+
+    class HostileFloat(float):
+        """A subclass that must be rejected without calling its conversion hook."""
+
+        def __float__(self) -> float:
+            raise AssertionError("float hook executed")
+
+    data, failure = query_result_data(
+        {"queries": [{"data": [{"value": HostileFloat("inf")}]}]},
+        preserve_nonfinite_floats=True,
+    )
+    assert data is None
+    assert failure is not None
+    assert failure.error_type == "MalformedQueryResult"

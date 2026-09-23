@@ -820,7 +820,7 @@ class TestUnsavedChartDataQueryConstruction:
         class QueryContextFactory:
             def create(self, **kwargs: Any) -> object:
                 captured.append(kwargs)
-                return object()
+                return _query_context_stub(kwargs.get("form_data"))
 
         class ChartDataCommand:
             def __init__(self, query_context: object) -> None:
@@ -2785,6 +2785,14 @@ def test_recommend_multiple_numeric_suggests_scatter():
 def test_recommend_single_numeric_suggests_kpi():
     cols = [_col("total_revenue", "numeric")]
     result = _recommend_visualizations("table", cols, row_count=1)
+    assert "big number / KPI" in result
+
+
+def test_recommend_single_numeric_excludes_current_gauge() -> None:
+    """Do not recommend the Gauge visualization already in use."""
+    cols = [_col("total_revenue", "numeric")]
+    result = _recommend_visualizations("gauge_chart", cols, row_count=1)
+    assert "gauge chart" not in result
     assert "big number / KPI" in result
 
 

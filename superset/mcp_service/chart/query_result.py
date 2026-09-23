@@ -537,6 +537,9 @@ def _normalized_scalar_json_size(  # noqa: C901
     if value_type is int:
         return _integer_json_size(value)
     if value_type is float:
+        if not math.isfinite(value):
+            # Raw Gauge exports retain these markers; JSON responses use null.
+            return 4
         # Exact builtin repr is hook-free, bounded to a shortest-round-trip
         # spelling, and avoids pessimistically charging 24 bytes for values
         # such as 0.0 across ordinary large numeric datasets.
@@ -1408,7 +1411,11 @@ def _metadata_failure(  # noqa: C901
 
 
 def _normalize_row_value(  # noqa: C901
-    value: Any, budget: _ResultBudget, *, temporal_json_numbers: bool = False
+    value: Any,
+    budget: _ResultBudget,
+    *,
+    temporal_json_numbers: bool = False,
+    preserve_nonfinite_floats: bool = False,
 ) -> str | None:
     """Normalize trusted scalars and return a bounded serialization failure.
 
@@ -1485,7 +1492,13 @@ def _normalize_row_value(  # noqa: C901
             continue
 
         normalized: Any
-        if temporal_json_numbers and _is_chart_data_temporal_scalar(item):
+        if (
+            preserve_nonfinite_floats
+            and type(item) is float
+            and not math.isfinite(item)
+        ):
+            normalized, reason = item, None
+        elif temporal_json_numbers and _is_chart_data_temporal_scalar(item):
             normalized, reason = _chart_data_temporal_number(item)
         elif temporal_json_numbers and _is_chart_data_duration_scalar(item):
             normalized, reason = _chart_data_duration_text(item)
@@ -1511,11 +1524,15 @@ def query_result_data(  # noqa: C901
     result: Any,
     *,
     temporal_json_numbers: bool = False,
+    preserve_nonfinite_floats: bool = False,
 ) -> tuple[list[list[dict[str, Any]]] | None, ChartError | None]:
     """Validate a chart-data envelope and return each query's data array.
 
     Every query is checked before callers use the first one so malformed nested
     entries cannot be hidden behind an otherwise valid leading query.
+    Gauge data inspection can preserve exact builtin non-finite floats for raw
+    CSV/XLSX exports; its response schemas sanitize those values to JSON null.
+    All container, scalar-type, and size checks still apply in that mode.
     """
     if type(result) is not dict:
         return None, _malformed_result("top-level result must be an object")
@@ -1650,7 +1667,10 @@ def query_result_data(  # noqa: C901
                     f"query {index} data row {row_offset + 1} must be an exact object"
                 )
             if reason := _normalize_row_value(
-                row, budget, temporal_json_numbers=temporal_json_numbers
+                row,
+                budget,
+                temporal_json_numbers=temporal_json_numbers,
+                preserve_nonfinite_floats=preserve_nonfinite_floats,
             ):
                 return None, _malformed_result(
                     f"query {index} data row {row_offset + 1} {reason}"

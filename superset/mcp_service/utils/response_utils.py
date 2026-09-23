@@ -69,6 +69,7 @@ if TYPE_CHECKING:
 
 import humanize
 
+from superset.mcp_service.utils.serialization import is_missing_value
 from superset.utils.core import GenericDataType
 
 
@@ -426,7 +427,7 @@ def format_data_columns(
         unique_values: set[tuple[Any, ...]] = set()
         for row in stats_rows:
             value = dict.get(row, col_name)
-            if value is None:
+            if is_missing_value(value):
                 null_count += 1
                 continue
             if len(sample_values) < STATS_SAMPLE_VALUE_ROWS:
