@@ -26,6 +26,8 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
+from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
+from superset.exceptions import SupersetSecurityException
 from superset.mcp_service.chart.schemas import (
     AccessibilityMetadata,
     ASCIIPreview,
@@ -1948,12 +1950,23 @@ async def test_png_preview_authorizes_before_browser(app_context, failure):
         )
         manager.can_access.return_value = False
         if failure == "denied":
-            manager.raise_for_access.side_effect = ValueError("secret denied URL")
+            # raise_for_access raises SupersetSecurityException on denial; the
+            # message must not leak into the client-facing error.
+            manager.raise_for_access.side_effect = SupersetSecurityException(
+                SupersetError(
+                    message="secret denied URL",
+                    error_type=SupersetErrorType.GENERIC_BACKEND_ERROR,
+                    level=ErrorLevel.ERROR,
+                )
+            )
         result = await module._generate_png_preview(
             104, GetChartPreviewRequest(identifier=104, format="png")
         )
         assert isinstance(result, ChartError)
         assert "secret" not in result.error
+        if failure == "denied":
+            # Authorization denials must surface as Forbidden, not RenderError.
+            assert result.error_type == "Forbidden"
         browser.assert_not_called()
 
 

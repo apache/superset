@@ -33,7 +33,12 @@ from superset_core.mcp.decorators import tool, ToolAnnotations
 
 from superset import security_manager
 from superset.commands.exceptions import CommandException
-from superset.exceptions import OAuth2Error, OAuth2RedirectError, SupersetException
+from superset.exceptions import (
+    OAuth2Error,
+    OAuth2RedirectError,
+    SupersetException,
+    SupersetSecurityException,
+)
 from superset.extensions import db, event_logger
 from superset.mcp_service import guest_scope
 from superset.mcp_service.chart.ascii_charts import (
@@ -1182,6 +1187,10 @@ async def _generate_png_preview(
 
     try:
         return await asyncio.to_thread(render)
+    except SupersetSecurityException:
+        # Chart-level access denials raised inside render() must surface as
+        # Forbidden, not as a rendering failure.
+        return ChartError(error="Chart access denied", error_type="Forbidden")
     except Exception:
         # Browser errors may contain URLs or page data. Keep those server-side.
         logger.exception("PNG chart rendering failed")
