@@ -62,34 +62,22 @@ def _authorize_theme_overwrite(existing: "Theme", user: Any | None) -> None:
             "Cannot overwrite the active system-default/dark theme via import"
         )
     # Overwriting an existing theme requires editorship (admins bypass).
-    # The one-time migration that introduced per-theme editors backfilled
-    # `editors` from each theme's creator, but any theme created by a path
-    # that bypasses `CreateThemeCommand` (or predates that backfill running)
-    # can still have a creator who isn't in `editors`. Fall back to
-    # `created_by_fk` so that creator isn't locked out of their own theme --
-    # but only when `editors` is still empty. Once it's populated (whether
-    # by the backfill or an admin's own edit), an empty result from
-    # `is_editor()` is a deliberate revocation, not an unbackfilled gap, and
-    # this fallback must not un-revoke it.
-    is_original_creator = (
-        user is not None and existing.created_by_fk == user.id and not existing.editors
-    )
+    # There is deliberately no `created_by_fk` fallback here: the migration
+    # that introduced per-theme editors backfilled every non-system theme's
+    # creator (and the subjects migration before it seeded a Subject for
+    # every user, so that backfill missed nobody), and every code path that
+    # creates a theme since then seeds its creator/importer as an editor.
+    # An empty `editors` list on a non-system theme therefore means an admin
+    # explicitly revoked edit access (admin-only), not an unbackfilled gap,
+    # and the creator must not be able to overwrite their way back in.
     if (
         user
-        and not is_original_creator
         and not security_manager.is_editor(existing)
         and not security_manager.is_admin()
     ):
         raise ThemeImportError(
             "A theme already exists and user doesn't have permissions to overwrite it"
         )
-    if is_original_creator and user and not security_manager.is_editor(existing):
-        # Backfill so the next overwrite doesn't need the fallback.
-        from superset.subjects.utils import get_user_subject
-
-        subject = get_user_subject(user.id)
-        if subject and subject not in existing.editors:
-            existing.editors.append(subject)
 
 
 def import_theme(config: dict[str, Any], overwrite: bool = False) -> "Theme | None":
