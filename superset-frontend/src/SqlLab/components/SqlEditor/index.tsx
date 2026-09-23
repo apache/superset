@@ -1150,6 +1150,11 @@ const SqlEditor: FC<Props> = ({
             {resolveView(northPaneViewId)}
           </div>
         </Flex>
+      ) : northPaneViewId ? (
+        // The extension providing this view hasn't registered it yet (views
+        // load asynchronously after mount); fall back to the query pane
+        // instead of an empty state so the pane isn't blank while it loads.
+        queryPane()
       ) : showEmptyState && !hasSqlStatement ? (
         <EmptyState
           image="vector.svg"
