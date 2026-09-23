@@ -128,10 +128,11 @@ function renderFilterValue(
 
 beforeEach(() => {
   jest.clearAllMocks();
-  mockGetClientErrorObject.mockResolvedValue({
-    message: 'Something went wrong',
-    errors: [{ message: 'Test error', error_type: 'GENERIC_BACKEND_ERROR' }],
-  });
+  // Exercise the real parsing so each rejection shape is handled as in
+  // production.
+  mockGetClientErrorObject.mockImplementation(
+    jest.requireActual('@superset-ui/core').getClientErrorObject,
+  );
 });
 
 test('renders loading spinner when filter has a data source', () => {
@@ -175,6 +176,28 @@ test('forwards the dashboard async override to the request', async () => {
   );
 });
 
+const FRIENDLY_MESSAGE = 'Sorry, something went wrong. Try again later.';
+const NETWORK_MESSAGE = 'Network error while attempting to fetch resource';
+
+// The compact ErrorAlert shows only its title inline; the message is in a
+// hover tooltip and a click-to-open modal. Open both so every rendered
+// surface is checked.
+async function expectErrorAlert(title: string, message: string) {
+  const trigger = await screen.findByText(title);
+  await userEvent.hover(trigger);
+  expect(await screen.findByRole('tooltip')).toHaveTextContent(
+    `${title}: ${message}`,
+  );
+  await userEvent.click(trigger);
+  expect(await screen.findByRole('dialog')).toHaveTextContent(message);
+}
+
+function expectNotInDocument(...fragments: string[]) {
+  fragments.forEach(fragment => {
+    expect(document.body.textContent).not.toContain(fragment);
+  });
+}
+
 test('renders error state when API call fails', async () => {
   mockRequestChartData.mockRejectedValue(
     new Response(JSON.stringify({ message: 'Server Error' }), { status: 500 }),
@@ -182,67 +205,57 @@ test('renders error state when API call fails', async () => {
 
   renderFilterValue();
 
-  await waitFor(() => {
-    expect(screen.queryByRole('status')).not.toBeInTheDocument();
-  });
-
-  // No ErrorMessageComponent is registered for GENERIC_BACKEND_ERROR in the
-  // test environment, so FilterValue renders its fallback ErrorAlert.
-  expect(await screen.findByText('Cannot load filter')).toBeInTheDocument();
-  expect(screen.queryByText('Network error')).not.toBeInTheDocument();
+  await expectErrorAlert('Cannot load filter', FRIENDLY_MESSAGE);
+  expectNotInDocument('Server Error', 'Network error');
 });
 
-test('shows the database error message when the error has no error_type', async () => {
+test('does not expose database error details without an error_type', async () => {
   const dbError =
-    'Error: Received ClickHouse exception, code: 396, DB::Exception: Limit for temporary files size exceeded. (TOO_MANY_ROWS_OR_BYTES)';
-  mockGetClientErrorObject.mockResolvedValue({
-    error: dbError,
-    errors: [{ message: dbError }],
-  });
-  mockRequestChartData.mockRejectedValue(new Error('query failed'));
-
-  renderFilterValue();
-
-  await userEvent.click(await screen.findByText('Cannot load filter'));
-
-  expect(await screen.findByText(dbError)).toBeInTheDocument();
-  expect(
-    screen.queryByText('Network error while attempting to fetch resource'),
-  ).not.toBeInTheDocument();
-  expect(screen.queryByText('Network error')).not.toBeInTheDocument();
-});
-
-test('shows the client error message when there is no errors array', async () => {
-  mockGetClientErrorObject.mockResolvedValue({
-    error: 'One or more chart-data queries failed',
-  });
+    'Error: Received ClickHouse exception, code: 396, DB::Exception: Limit for temporary files size exceeded. (TOO_MANY_ROWS_OR_BYTES) (for url https://db.internal:8443)';
   mockRequestChartData.mockRejectedValue(
-    new Error('One or more chart-data queries failed'),
+    new Response(JSON.stringify({ errors: [{ message: dbError }] }), {
+      status: 500,
+    }),
   );
 
   renderFilterValue();
 
-  await userEvent.click(await screen.findByText('Cannot load filter'));
-
-  expect(
-    await screen.findByText('One or more chart-data queries failed'),
-  ).toBeInTheDocument();
-  expect(screen.queryByText('Network error')).not.toBeInTheDocument();
+  await expectErrorAlert('Cannot load filter', FRIENDLY_MESSAGE);
+  expectNotInDocument(
+    'ClickHouse',
+    'DB::Exception',
+    'TOO_MANY_ROWS_OR_BYTES',
+    '396',
+    'db.internal',
+    'Network error',
+  );
 });
 
-test('falls back to the network error when no message is available', async () => {
-  mockGetClientErrorObject.mockResolvedValue({ error: '' });
-  mockRequestChartData.mockRejectedValue(new TypeError('Failed to fetch'));
+test('does not expose the message of a server-side failure without a response body', async () => {
+  // e.g. the async query path rejecting after a query task failed
+  mockRequestChartData.mockRejectedValue(new Error('some server message'));
 
   renderFilterValue();
 
-  await userEvent.click(await screen.findByText('Network error'));
-
-  expect(
-    await screen.findByText('Network error while attempting to fetch resource'),
-  ).toBeInTheDocument();
-  expect(screen.queryByText('Cannot load filter')).not.toBeInTheDocument();
+  await expectErrorAlert('Cannot load filter', FRIENDLY_MESSAGE);
+  expectNotInDocument('some server message', 'Network error');
 });
+
+test.each([
+  ['Chromium', 'Failed to fetch'],
+  ['Firefox', 'NetworkError when attempting to fetch resource.'],
+  ['Safari', 'Load failed'],
+])(
+  'shows the network error when the request gets no response (%s)',
+  async (_browser, fetchMessage) => {
+    mockRequestChartData.mockRejectedValue(new TypeError(fetchMessage));
+
+    renderFilterValue();
+
+    await expectErrorAlert('Network error', NETWORK_MESSAGE);
+    expectNotInDocument('Cannot load filter', FRIENDLY_MESSAGE);
+  },
+);
 
 test('does not fetch data when filter has not been in view', () => {
   renderFilterValue({ inView: false });
