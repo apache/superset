@@ -249,6 +249,46 @@ def _run(coro):
     return asyncio.run(coro)
 
 
+# Tools whose request model tells "field omitted" from "field set to null":
+# omitting leaves the stored value alone, passing null clears it. Their
+# optional fields must not advertise a default, or a client that materialises
+# defaults turns every call into a clear of everything it did not mention.
+OMITTED_MEANS_UNCHANGED_TOOLS = (
+    "update_chart",
+    "update_dashboard",
+    "update_dataset_metric",
+)
+
+
+def _request_model_schema(tool: Any) -> dict[str, Any]:
+    """Return the JSON Schema of a tool's ``request`` argument."""
+    schema = tool.parameters or {}
+    request = schema.get("properties", {}).get("request", {})
+    reference = request.get("$ref", "")
+    if reference.startswith("#/$defs/"):
+        return schema.get("$defs", {}).get(reference.split("/")[-1], {})
+    return request
+
+
+def test_partial_update_tools_advertise_no_null_default():
+    """No optional field of a partial-update tool offers null as its default."""
+    registered = {tool.name: tool for tool in _run(mcp.list_tools())}
+    advertised = {}
+    for name in OMITTED_MEANS_UNCHANGED_TOOLS:
+        fields = _request_model_schema(registered[name]).get("properties", {})
+        if offenders := sorted(
+            field
+            for field, spec in fields.items()
+            if "default" in spec and spec["default"] is None
+        ):
+            advertised[name] = offenders
+
+    assert not advertised, (
+        "Partial-update tools must not advertise null defaults, or a client "
+        f"filling them clears values the caller never named: {advertised}"
+    )
+
+
 def test_mcp_app_imports_successfully():
     """Test that the MCP app can be imported without errors."""
     assert mcp is not None

@@ -75,6 +75,7 @@ from superset.mcp_service.utils.sanitization import (
     sanitize_user_input,
     sanitize_user_input_with_changes,
 )
+from superset.mcp_service.utils.schema_utils import OmittedMeansUnchanged
 from superset.mcp_service.utils.serialization import (
     JsonSafeMapping,
     JsonSafeRows,
@@ -3934,7 +3935,9 @@ class GenerateExploreLinkRequest(ChartRequestNormalizerMixin, FormDataCacheContr
     )
 
 
-class UpdateChartRequest(ChartRequestNormalizerMixin, QueryCacheControl):
+class UpdateChartRequest(
+    ChartRequestNormalizerMixin, OmittedMeansUnchanged, QueryCacheControl
+):
     model_config = ConfigDict(populate_by_name=True)
 
     identifier: int | str = Field(

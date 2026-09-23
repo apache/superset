@@ -117,6 +117,7 @@ from superset.mcp_service.utils.sanitization import (
     sanitize_user_input,
     sanitize_user_input_with_changes,
 )
+from superset.mcp_service.utils.schema_utils import OmittedMeansUnchanged
 from superset.mcp_service.utils.serialization import JsonSafeRows, OptionalRowCount
 from superset.mcp_service.utils.url_utils import get_superset_base_url
 from superset.utils.core import DatasourceType
@@ -790,7 +791,7 @@ class GenerateDashboardRequest(BaseModel):
         )
 
 
-class UpdateDashboardRequest(BaseModel):
+class UpdateDashboardRequest(OmittedMeansUnchanged):
     """Request schema for updating an existing dashboard's layout/theme/style.
 
     All fields are optional; only the fields explicitly passed are applied.
