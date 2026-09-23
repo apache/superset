@@ -491,14 +491,26 @@ class AIRestApi(BaseSupersetApi):
         if (unavailable := self._reject_if_unconfigured()) is not None:
             return unavailable
 
+        from superset.ai.factories import get_profiles
         from superset.ai.orchestrator import new_run_id
+        from superset.ai.profiles import AgentProfileError
         from superset.commands.ai import AppendAIChatMessageCommand
+        from superset.daos.ai import AIChatThreadDAO
 
         try:
             payload = MessagePostSchema().load(request.json or {})
         except ValidationError as error:
             return self.response_400(message=error.messages)
         user_id = self._user_id()
+        thread = AIChatThreadDAO.find_by_uuid_for_user(thread_uuid, user_id)
+        if thread is None:
+            return self.response_404()
+        try:
+            payload["agent_key"] = (
+                get_profiles().get(payload.get("agent_key") or thread.agent_key).key
+            )
+        except AgentProfileError as ex:
+            return self.response_422(message=str(ex))
 
         try:
             user_message = AppendAIChatMessageCommand(
@@ -906,6 +918,7 @@ def _record_run_context(
             "page_context": payload.get("page_context"),
         }
     )
+    message.thread.agent_key = payload["agent_key"]
 
 
 def _find_run_message(messages: list[Any], run_id: str) -> Any | None:

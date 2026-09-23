@@ -242,6 +242,7 @@ test('sending shows the message immediately and then the answer', async () => {
   );
   expect(body.content).toBe('why is this wrong?');
   expect(body.request_id).toBeTruthy();
+  expect(body).not.toHaveProperty('agent_key');
   // Page context travels under the key the backend reads.
   expect(body.page_context).toEqual(
     expect.objectContaining({ pageType: expect.any(String) }),

@@ -81,7 +81,12 @@ class MessagePostSchema(Schema):
     )
     agent_key = fields.String(
         allow_none=True,
-        metadata={"description": "Agent profile for this turn."},
+        metadata={
+            "description": (
+                "Select and remember a conversation profile. Omit, null or empty "
+                "uses the stored profile; 'default' explicitly resets it."
+            )
+        },
     )
     model = fields.String(
         allow_none=True,

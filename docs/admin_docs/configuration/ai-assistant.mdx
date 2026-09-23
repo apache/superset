@@ -112,6 +112,15 @@ A profile bundles the decisions that differ between a quick answer and a careful
 investigation: which tools are available, which model tier, and how many steps.
 Two ship by default — `default` and `analyst`.
 
+Each conversation remembers the profile used by its last accepted turn. Opening
+it again or switching tabs restores that profile, independently of other chats.
+Choosing a different profile applies when you send the next message; it does not
+retarget a run already in progress. For API clients, omitting `agent_key` (or
+sending null or an empty string) uses the conversation's stored profile. Send
+`"agent_key": "default"` to explicitly switch back. Profile permissions are
+checked on acceptance and again on execution. A removed or unavailable profile
+falls back to a permitted one; if none is available, no turn is accepted.
+
 **Which tools a model may invoke is a decision each deployment makes**, so
 profiles are fully configurable. `AI_AGENT_PROFILES` maps a profile key to the
 fields you want to override, leaving the rest alone:

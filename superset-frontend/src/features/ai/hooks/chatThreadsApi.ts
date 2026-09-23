@@ -171,4 +171,5 @@ export const threadToTab = (
     ? new Date(thread.changedOn).getTime()
     : undefined,
   threadId: thread.uuid,
+  agentKey: thread.agentKey,
 });
