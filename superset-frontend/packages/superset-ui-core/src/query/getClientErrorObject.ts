@@ -94,9 +94,29 @@ export function checkForHtml(str: string): boolean {
   // a tag — a database syntax error echoing back the offending `<a>`, say —
   // begins with prose, and is the whole point of the response. Only the
   // former may be collapsed into a generic status message.
-  return (
-    !isJsonString(str) && str.trimStart().startsWith('<') && isProbablyHTML(str)
-  );
+  //
+  // A leading `<` alone isn't enough: a message that opens with a quoted,
+  // unclosed tag (`<a> is not valid syntax`) also starts with `<`, and
+  // isProbablyHTML()'s DOMParser auto-closes stray tags on parse, so it
+  // can't tell that case apart either. Requiring the leading tag to actually
+  // close somewhere in the string does: a real fragment like
+  // `<div>500: Internal Server Error</div>` closes what it opens, a quoted
+  // tag doesn't. A `<!doctype html>` preamble is exempt from this check
+  // since isProbablyHTML() already gates that case on its own.
+  if (isJsonString(str)) {
+    return false;
+  }
+  const trimmed = str.trimStart();
+  if (!trimmed.startsWith('<')) {
+    return false;
+  }
+  if (!/^<!doctype html>/i.test(trimmed)) {
+    const leadingTag = trimmed.match(/^<([a-z][a-z0-9]*)\b/i)?.[1];
+    if (!leadingTag || !new RegExp(`</${leadingTag}\\s*>`, 'i').test(str)) {
+      return false;
+    }
+  }
+  return isProbablyHTML(str);
 }
 
 export function parseStringResponse(str: string): string {

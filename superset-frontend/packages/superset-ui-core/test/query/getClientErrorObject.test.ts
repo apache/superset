@@ -337,6 +337,19 @@ test('parseErrorJson keeps a server message that only quotes an HTML tag', () =>
   });
 });
 
+test('parseErrorJson keeps a server message that opens with an unclosed HTML tag', () => {
+  // The tag itself is never closed anywhere in the string, unlike a real
+  // fragment such as `<div>...</div>`, so this isn't an HTML error page —
+  // just a message that happens to start by quoting the offending markup.
+  const message = '<a> is not valid syntax';
+
+  expect(parseErrorJson({ status: 400, message })).toEqual({
+    status: 400,
+    message,
+    error: message,
+  });
+});
+
 test('parseErrorJson with stacktrace', () => {
   expect(
     parseErrorJson({ error: 'error message', stack: 'stacktrace' }),
