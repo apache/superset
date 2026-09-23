@@ -36,6 +36,7 @@ from superset.mcp_service.chart.query_result import (
     first_query_data,
     MAX_RESULT_VALUE_DEPTH,
     metric_result_label,
+    normalize_chart_query_result,
     normalize_gauge_query_result,
 )
 from superset.mcp_service.chart.schemas import (
@@ -49,6 +50,7 @@ from superset.mcp_service.chart.sunburst import (
     resolve_sunburst_result_roles,
     unsupported_sunburst_preview,
 )
+from superset.mcp_service.chart.treemap_preview import treemap_ascii, treemap_vega_lite
 
 logger = logging.getLogger(__name__)
 
@@ -167,7 +169,7 @@ def generate_preview_from_form_data(
         command.validate()
         result = command.run()
 
-        result = normalize_gauge_query_result(result, form_data)
+        result = normalize_chart_query_result(result, form_data)
         if isinstance(result, ChartError):
             return result
 
@@ -207,7 +209,12 @@ def _generate_ascii_preview_from_data(
     viz_type = form_data.get("viz_type", "table")
 
     # Handle different chart types
-    if viz_type == "gauge_chart":
+    if viz_type == "treemap_v2":
+        content_or_error = treemap_ascii(data, form_data)
+        if isinstance(content_or_error, ChartError):
+            return content_or_error
+        content = content_or_error
+    elif viz_type == "gauge_chart":
         content_or_error = generate_gauge_ascii_preview(data, form_data, width=width)
         if isinstance(content_or_error, ChartError):
             return content_or_error
@@ -1359,6 +1366,66 @@ def _is_finite_number(value: Any) -> bool:
     return type(value) is int or (type(value) is float and math.isfinite(value))
 
 
+# Bubble stores its metrics under x/y/size and its dimensions under
+# entity/series, so the generic spec builder below finds neither.
+BUBBLE_VIZ_TYPES: frozenset[str] = frozenset({"bubble", "bubble_v2"})
+
+
+def generate_bubble_vega_lite_preview(
+    data: List[Dict[str, Any]], form_data: Dict[str, Any]
+) -> VegaLitePreview:
+    """Build a Bubble-specific Vega-Lite preview.
+
+    x and y position each bubble, size sets its area and the series (or the
+    entity when no series is set) colors it — mirroring the frontend Bubble
+    encoding rather than the generic x-axis/metrics layout.
+    """
+    sample = data[0] if data else {}
+    encoding: Dict[str, Any] = {}
+
+    for channel in ("x", "y", "size"):
+        field = metric_result_label(form_data.get(channel))
+        if field and field in sample:
+            encoding[channel] = {
+                "field": field,
+                "type": "quantitative",
+                "title": field,
+            }
+
+    entity = form_data.get("entity")
+    color_field = form_data.get("series") or entity
+    if isinstance(color_field, str) and color_field in sample:
+        encoding["color"] = {
+            "field": color_field,
+            "type": "nominal",
+            "title": color_field,
+        }
+
+    tooltip = [
+        {"field": enc["field"], "type": enc["type"]} for enc in encoding.values()
+    ]
+    if isinstance(entity, str) and entity in sample and entity != color_field:
+        tooltip.insert(0, {"field": entity, "type": "nominal"})
+
+    spec: Dict[str, Any] = {
+        "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+        "data": {"values": data},
+        "mark": "circle",
+        "width": "container",
+        "height": 400,
+    }
+    if encoding:
+        if tooltip:
+            encoding["tooltip"] = tooltip
+        spec["encoding"] = encoding
+
+    return VegaLitePreview(
+        specification=spec,
+        data_url=None,
+        supports_streaming=False,
+    )
+
+
 def _generate_vega_lite_preview_from_data(  # noqa: C901
     data: List[Dict[str, Any]], form_data: Dict[str, Any]
 ) -> VegaLitePreview | ChartError:
@@ -1366,10 +1433,14 @@ def _generate_vega_lite_preview_from_data(  # noqa: C901
     viz_type = form_data.get("viz_type", "table")
     if viz_type == "sunburst_v2":
         return unsupported_sunburst_preview("Vega-Lite")
+    if viz_type == "treemap_v2":
+        return treemap_vega_lite(data, form_data)
     if viz_type == "gantt_chart":
         return _generate_gantt_vega_lite_preview(data, form_data)
     if viz_type == "gauge_chart":
         return generate_gauge_vega_lite_preview(data, form_data)
+    if viz_type in BUBBLE_VIZ_TYPES:
+        return generate_bubble_vega_lite_preview(data, form_data)
 
     # Map Superset viz types to Vega-Lite marks
     viz_to_mark = {

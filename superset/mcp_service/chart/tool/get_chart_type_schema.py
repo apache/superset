@@ -22,6 +22,8 @@ MCP tool: get_chart_type_schema
 from __future__ import annotations
 
 import logging
+from copy import deepcopy
+from functools import lru_cache
 from typing import Any, Dict
 
 from pydantic import TypeAdapter
@@ -32,6 +34,7 @@ from superset.extensions import event_logger
 from superset.mcp_service.chart.schemas import (
     BigNumberChartConfig,
     BoxPlotChartConfig,
+    BubbleChartConfig,
     GanttChartConfig,
     GaugeChartConfig,
     HandlebarsChartConfig,
@@ -75,6 +78,7 @@ _CHART_TYPE_ADAPTERS: Dict[str, TypeAdapter[Any]] = {
     "big_number": TypeAdapter(BigNumberChartConfig),
     "histogram": TypeAdapter(HistogramChartConfig),
     "box_plot": TypeAdapter(BoxPlotChartConfig),
+    "bubble_v2": TypeAdapter(BubbleChartConfig),
     "waterfall": TypeAdapter(WaterfallChartConfig),
     "gantt": TypeAdapter(GanttChartConfig),
 }
@@ -229,6 +233,15 @@ _CHART_EXAMPLES: Dict[str, list[Dict[str, Any]]] = {
             "percentile_high": 90,
         },
     ],
+    "bubble_v2": [
+        {
+            "chart_type": "bubble_v2",
+            "entity": {"name": "country"},
+            "x": {"name": "gdp", "aggregate": "AVG"},
+            "y": {"name": "life_expectancy", "aggregate": "AVG"},
+            "size": {"name": "population", "aggregate": "SUM"},
+        },
+    ],
     "waterfall": [
         {
             "chart_type": "waterfall",
@@ -266,8 +279,25 @@ _CHART_EXAMPLES: Dict[str, list[Dict[str, Any]]] = {
             "groupby": [{"name": "region"}, {"name": "product"}],
             "metric": {"name": "revenue", "aggregate": "SUM"},
         },
+        {
+            "chart_type": "treemap_v2",
+            "groupby": ["region", "product"],
+            "metric": "total_revenue",
+            "show_labels": True,
+            "show_upper_labels": True,
+            "label_type": "key_value",
+            "number_format": ",.2f",
+            "sort_by_metric": False,
+            "row_limit": 100,
+        },
     ],
 }
+
+
+@lru_cache(maxsize=len(_CHART_TYPE_ADAPTERS))
+def _compiled_chart_schema(chart_type: str) -> dict[str, Any]:
+    """Compile static adapter schemas once; callers must copy before exposing them."""
+    return _CHART_TYPE_ADAPTERS[chart_type].json_schema()
 
 
 def _get_chart_type_schema_impl(
@@ -324,7 +354,7 @@ def _get_chart_type_schema_impl(
             "valid_chart_types": enabled_types,
         }
 
-    schema = adapter.json_schema()
+    schema = deepcopy(_compiled_chart_schema(chart_type))
     result: ChartTypeSchemaResponse = {
         "chart_type": chart_type,
         "schema": schema,
@@ -356,10 +386,10 @@ def get_chart_type_schema(
     for a chart configuration before calling generate_chart or update_chart.
 
     Valid chart_type values depend on the host deployment. Core types are xy,
-    table, pie, sunburst, gauge, treemap_v2, pivot_table, mixed_timeseries,
-    handlebars, big_number,
-    histogram, box_plot, waterfall, and gantt. Deployments that enable an AG Grid
-    pivot extension also expose interactive_pivot.
+    table, pie, sunburst, gauge, treemap_v2, bubble_v2, pivot_table, mixed_timeseries,
+    handlebars, big_number, histogram, box_plot, waterfall, and gantt.
+    Deployments that enable an AG Grid pivot extension also expose
+    interactive_pivot.
 
     Returns the JSON Schema for the requested chart type, optionally
     with working examples.

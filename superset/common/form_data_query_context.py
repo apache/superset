@@ -1526,6 +1526,38 @@ def _table_queries(  # noqa: C901
     return queries
 
 
+def _treemap_query(form_data: dict[str, Any], query: dict[str, Any]) -> None:
+    """Apply Treemap's bounded metric and hierarchy ordering contract."""
+    hierarchy = _as_list(form_data.get("groupby"))
+    metric = form_data.get("metric")
+    query["columns"] = hierarchy
+    query["metrics"] = [metric] if metric is not None else []
+    granularity = form_data.get("granularity", form_data.get("granularity_sqla"))
+    if granularity is not None:
+        query["granularity"] = granularity
+    ordering = [[metric, False]] if form_data.get("sort_by_metric") and metric else []
+    ordering.extend(
+        [column, True] for column in hierarchy if isinstance(column, str) and column
+    )
+    try:
+        bounded = float(query.get("row_limit") or 0) != 0
+    except (ValueError, TypeError):
+        bounded = True
+    query.pop("orderby", None)
+    if bounded and ordering:
+        query["orderby"] = ordering
+
+
+def _bubble_query(form_data: dict[str, Any], query: dict[str, Any]) -> None:
+    """Preserve Bubble's entity/series roles and explicit sort-metric direction."""
+    query["columns"] = _deduplicate_fields(
+        [*_as_list(form_data.get("entity")), *_as_list(form_data.get("series"))]
+    )
+    query.pop("orderby", None)
+    if sort_metric := next(iter(_as_list(form_data.get("orderby"))), None):
+        query["orderby"] = [[sort_metric, not query.get("order_desc", True)]]
+
+
 def build_query_objects_from_form_data(  # noqa: C901
     form_data: dict[str, Any],
     *,
@@ -1592,16 +1624,15 @@ def build_query_objects_from_form_data(  # noqa: C901
     elif effective_viz == "gauge_chart":
         if form_data.get("sort_by_metric") and form_data.get("metric") is not None:
             query["orderby"] = [[form_data["metric"], False]]
+    elif effective_viz == "treemap_v2":
+        _treemap_query(form_data, query)
     elif effective_viz == "sunburst_v2":
         if not form_data.get("sort_by_metric"):
             query["orderby"] = []
         elif form_data.get("metric") is not None:
             query["orderby"] = [[form_data["metric"], False]]
     elif effective_viz in {"bubble", "bubble_v2"}:
-        # Bubble groups by its entity column; x/y/size already alias to metrics.
-        query["columns"] = _deduplicate_fields(
-            [*_as_list(form_data.get("entity")), *list(query.get("columns") or [])]
-        )
+        _bubble_query(form_data, query)
     elif effective_viz == "ag-grid-pivot-table":
         query["columns"] = _temporalized_columns(
             form_data, _as_list(form_data.get("groupby"))

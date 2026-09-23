@@ -18,7 +18,7 @@
  */
 import { useCallback } from 'react';
 import { useTable, Column } from 'react-table';
-import { render } from '@superset-ui/core/spec';
+import { act, render } from '@superset-ui/core/spec';
 import useSticky from '../../../src/DataTable/hooks/useSticky';
 
 // A value distinguishable from any real scrollbar width, so the width
@@ -47,10 +47,21 @@ const TOTAL_FOOTER_HEIGHT = 30;
 // sticky layout effect computes `hasVerticalScroll: true`.
 const FULL_TABLE_HEIGHT = 400;
 
+// An element inside a `display: none` subtree (an inactive dashboard tab,
+// for instance) generates no box at all, so every measurement of it reads
+// zero. jsdom does no layout, so the fake has to model that itself.
+function isInHiddenSubtree(el: HTMLElement) {
+  for (let node: HTMLElement | null = el; node; node = node.parentElement) {
+    if (node.style?.display === 'none') return true;
+  }
+  return false;
+}
+
 function mockMeasurements() {
   jest
     .spyOn(HTMLElement.prototype, 'clientHeight', 'get')
     .mockImplementation(function mockClientHeight(this: HTMLElement) {
+      if (isInHiddenSubtree(this)) return 0;
       if (this.tagName === 'THEAD') return TOTAL_HEADER_HEIGHT;
       if (this.tagName === 'TFOOT') return TOTAL_FOOTER_HEIGHT;
       if (this.tagName === 'TABLE') return FULL_TABLE_HEIGHT;
@@ -59,7 +70,7 @@ function mockMeasurements() {
   jest
     .spyOn(HTMLElement.prototype, 'getBoundingClientRect')
     .mockImplementation(function mockRect(this: HTMLElement) {
-      const width = this.tagName === 'TH' ? 60 : 0;
+      const width = this.tagName === 'TH' && !isInHiddenSubtree(this) ? 60 : 0;
       return {
         width,
         height: 0,
@@ -202,4 +213,77 @@ test('sticky header/footer width matches the body, independent of the scrollbar-
   expect(footerDiv.className).toBe(bodyDiv.className);
 
   jest.restoreAllMocks();
+});
+
+function installResizeObserverMock() {
+  const callbacks: ResizeObserverCallback[] = [];
+  const original = globalThis.ResizeObserver;
+  globalThis.ResizeObserver = class {
+    constructor(callback: ResizeObserverCallback) {
+      callbacks.push(callback);
+    }
+
+    observe() {}
+
+    unobserve() {}
+
+    disconnect() {}
+  } as unknown as typeof ResizeObserver;
+  return {
+    trigger: () =>
+      callbacks.forEach(callback => callback([], {} as ResizeObserver)),
+    restore: () => {
+      globalThis.ResizeObserver = original;
+    },
+  };
+}
+
+// When useSticky cannot measure, `StickyWrap` renders only its hidden
+// "sizer" table (`visibility: hidden`), which still contains a full tbody.
+// So count only the data cells a user could actually see.
+function visibleDataCellCount(container: HTMLElement) {
+  return Array.from(container.querySelectorAll('tbody td')).filter(cell => {
+    for (
+      let node: HTMLElement | null = cell as HTMLElement;
+      node;
+      node = node.parentElement
+    ) {
+      if (node.style?.visibility === 'hidden') return false;
+    }
+    return true;
+  }).length;
+}
+
+test('sticky table paints once it gains a box, when first rendered inside a hidden dashboard tab', () => {
+  mockMeasurements();
+  const resizeObserver = installResizeObserverMock();
+
+  // An inactive dashboard tab keeps its charts mounted under `display: none`,
+  // so a chart that (re)mounts while its tab is hidden does its one and only
+  // layout measurement against zero-sized boxes.
+  const host = document.createElement('div');
+  host.style.display = 'none';
+  document.body.append(host);
+
+  try {
+    render(<StickyTableHarness />, { container: host });
+
+    expect(visibleDataCellCount(host)).toBe(0);
+
+    // Switching to the tab gives the chart a real box. Neither `maxWidth`,
+    // `maxHeight`, `setStickyState` nor the scrollbar size changes, so
+    // without the ResizeObserver the sticky layout is never recomputed and
+    // the chart stays blank until it is force-refreshed or the window is
+    // resized.
+    host.style.display = '';
+    act(() => {
+      resizeObserver.trigger();
+    });
+
+    expect(visibleDataCellCount(host)).toBe(data.length * columns.length);
+  } finally {
+    host.remove();
+    resizeObserver.restore();
+    jest.restoreAllMocks();
+  }
 });

@@ -38,6 +38,7 @@ from superset.constants import NO_TIME_RANGE
 from superset.mcp_service.chart.schemas import (
     BigNumberChartConfig,
     BoxPlotChartConfig,
+    BubbleChartConfig,
     ChartCapabilities,
     ChartConfig,
     ChartSemantics,
@@ -55,6 +56,7 @@ from superset.mcp_service.chart.schemas import (
     SunburstChartConfig,
     TableChartConfig,
     TreemapChartConfig,
+    TreemapChartUpdateConfig,
     WaterfallChartConfig,
     XYChartConfig,
 )
@@ -880,6 +882,109 @@ def _without_generated_gauge_time_filter(
     ]
 
 
+def resolve_treemap_update_config(
+    config: ChartConfig | TreemapChartUpdateConfig,
+    existing: dict[str, Any],
+    *,
+    dataset_rebind: bool = False,
+) -> ChartConfig:
+    """Fill omitted required roles only from an authorized same-dataset Treemap."""
+    if not isinstance(config, TreemapChartUpdateConfig) or isinstance(
+        config, TreemapChartConfig
+    ):
+        return config
+    values = config.model_dump(exclude_unset=True)
+    if existing.get("viz_type") == "treemap_v2" and not dataset_rebind:
+        for field in ("groupby", "metric"):
+            if field not in config.model_fields_set and field in existing:
+                values[field] = existing[field]
+    resolved = TreemapChartConfig.model_validate(values)
+    resolved.__pydantic_fields_set__ = set(config.model_fields_set)
+    return resolved
+
+
+_TREEMAP_PRESENTATION_KEYS = frozenset(
+    {
+        "color_scheme",
+        "show_labels",
+        "show_upper_labels",
+        "label_type",
+        "label_position",
+        "number_format",
+        "date_format",
+        "currency_format",
+    }
+)
+
+
+def _merge_treemap_filters(
+    existing: dict[str, Any],
+    patch: dict[str, Any],
+    config: TreemapChartConfig,
+    dataset_rebind: bool,
+) -> None:
+    """Separate explicit filter/temporal changes from mapper-generated defaults."""
+    fields = config.model_fields_set
+    if "temporal_column" in fields and config.temporal_column is None:
+        patch["adhoc_filters"] = _without_generated_gauge_time_filter(patch)
+        patch.pop(MCP_DASHBOARD_TIME_FILTER_SUBJECT, None)
+    if dataset_rebind:
+        return
+    if "temporal_column" not in fields:
+        # Discard the mapper's default binding before removing its provenance.
+        patch["adhoc_filters"] = _without_generated_gauge_time_filter(patch)
+        patch.pop(MCP_DASHBOARD_TIME_FILTER_SUBJECT, None)
+        if "filters" in fields and config.filters:
+            if subject := existing.get(MCP_DASHBOARD_TIME_FILTER_SUBJECT):
+                patch[MCP_DASHBOARD_TIME_FILTER_SUBJECT] = subject
+            preserve_previous_adhoc_filters(patch, existing)
+    if "filters" not in fields:
+        if "temporal_column" in fields:
+            inherited = (
+                [] if dataset_rebind else _without_generated_gauge_time_filter(existing)
+            )
+            patch["adhoc_filters"] = [*inherited, *patch.get("adhoc_filters", [])]
+        else:
+            patch.pop("adhoc_filters", None)
+
+
+def _merge_treemap_form_data(
+    existing: dict[str, Any],
+    generated: dict[str, Any],
+    config: TreemapChartConfig,
+    dataset_rebind: bool,
+) -> dict[str, Any]:
+    """Apply only explicit controls; never inherit query roles across datasets."""
+    fields = config.model_fields_set
+    merged = {
+        key: value
+        for key, value in existing.items()
+        if not dataset_rebind or key in _TREEMAP_PRESENTATION_KEYS
+    }
+    patch = dict(generated)
+    for field in type(config).model_fields:
+        if field not in fields and (
+            not dataset_rebind or field in _TREEMAP_PRESENTATION_KEYS
+        ):
+            patch.pop(field, None)
+    _merge_treemap_filters(existing, patch, config, dataset_rebind)
+    merged.update(patch)
+    for field in fields:
+        if getattr(config, field) is None:
+            merged.pop(field, None)
+    if "filters" in fields and not config.filters:
+        merged.pop("adhoc_filters", None)
+        merged.pop(MCP_DASHBOARD_TIME_FILTER_SUBJECT, None)
+    if "temporal_column" in fields and config.temporal_column is None:
+        merged.pop(MCP_DASHBOARD_TIME_FILTER_SUBJECT, None)
+    # Clear the full shared query vocabulary, not just the legacy role aliases.
+    from superset.mcp_service.chart.registry import query_role_keys_for_viz_type
+
+    for key in query_role_keys_for_viz_type("treemap_v2") - {"metric", "groupby"}:
+        merged.pop(key, None)
+    return merged
+
+
 def merge_chart_form_data(  # noqa: C901
     existing_form_data: dict[str, Any],
     new_form_data: dict[str, Any],
@@ -895,6 +1000,10 @@ def merge_chart_form_data(  # noqa: C901
     """
     if existing_form_data.get("viz_type") != new_form_data.get("viz_type"):
         return dict(new_form_data)
+    if isinstance(config, TreemapChartConfig):
+        return _merge_treemap_form_data(
+            existing_form_data, new_form_data, config, dataset_rebind
+        )
     if isinstance(config, GanttChartConfig):
         merged = dict(new_form_data)
         if not dataset_rebind:
@@ -920,6 +1029,11 @@ def merge_chart_form_data(  # noqa: C901
         if "filters" not in fields_set:
             preserve_previous_adhoc_filters(new_form_data, existing_form_data)
         merged = {**existing_form_data, **new_form_data}
+        # Preserve the shared color/limit controls when omitted. Chart-specific
+        # presentation defaults retain their existing mapper behavior.
+        for field in ("color_scheme", "row_limit"):
+            if field not in fields_set and field in existing_form_data:
+                merged[field] = existing_form_data[field]
         # An explicitly empty collection clears the control rather than
         # falling through to the inherited value.
         for config_field, form_data_field in (
@@ -1585,6 +1699,39 @@ def map_treemap_config(config: TreemapChartConfig) -> Dict[str, Any]:
         "row_limit": config.row_limit,
         "color_scheme": config.color_scheme or "supersetColors",
     }
+    for key in _TREEMAP_PRESENTATION_KEYS | {
+        "time_range",
+        "granularity_sqla",
+        "template_params",
+    }:
+        value = getattr(config, key)
+        if value is not None:
+            form_data[key] = (
+                value.to_form_data() if isinstance(value, CurrencyFormat) else value
+            )
+    _add_adhoc_filters(form_data, config.filters)
+    return form_data
+
+
+def map_bubble_config(config: BubbleChartConfig) -> Dict[str, Any]:
+    """Map bubble config to Superset form_data (viz_type ``bubble_v2``).
+
+    Matches the frontend Bubble buildQuery contract: an ``entity`` dimension
+    plus three separate metric keys — ``x``, ``y``, ``size`` — that the query
+    layer aliases into ``metrics``; an optional ``series`` dimension colours
+    the bubbles by group.
+    """
+    form_data: Dict[str, Any] = {
+        "viz_type": "bubble_v2",
+        "entity": config.entity.name,
+        "x": create_metric_object(config.x),
+        "y": create_metric_object(config.y),
+        "size": create_metric_object(config.size),
+        "row_limit": config.row_limit,
+        "color_scheme": config.color_scheme or "supersetColors",
+    }
+    if config.series:
+        form_data["series"] = config.series.name
     _add_adhoc_filters(form_data, config.filters)
     return form_data
 
@@ -2038,6 +2185,13 @@ def merge_form_data_for_update(  # noqa: C901
     starting from saved form data. Cross-viz updates remain bounded by the
     shared preservation registry. Explicit clears are applied last.
     """
+    if isinstance(config, TreemapChartConfig) and existing_form_data.get(
+        "viz_type"
+    ) == new_form_data.get("viz_type"):
+        return _merge_treemap_form_data(
+            existing_form_data, new_form_data, config, dataset_rebind
+        )
+
     if dataset_rebind:
         if isinstance(config, GanttChartConfig):
             # Every Gantt role, including its dependent presentation state, is
@@ -2933,6 +3087,13 @@ def _gauge_chart_what(config: GaugeChartConfig) -> str:
     return f"{metric_label}"
 
 
+def _bubble_chart_what(config: BubbleChartConfig) -> str:
+    """Build the 'what' portion for a bubble chart name."""
+    x_label = config.x.label or config.x.name or config.x.sql_expression
+    y_label = config.y.label or config.y.name or config.y.sql_expression
+    return f"{config.entity.name}: {x_label} vs {y_label}"
+
+
 def _pivot_table_what(config: PivotTableChartConfig) -> str:
     """Build the 'what' portion for a pivot table chart name."""
     # Pivot rows reject sql_expression at validation, so name is set.
@@ -3050,6 +3211,19 @@ def get_table_chart_type_label(viz_type: str | None) -> str | None:
     return TABLE_VIZ_TYPE_LABELS.get(viz_type) if viz_type is not None else None
 
 
+def _as_column_list(value: Any) -> list[Any]:
+    """Normalize a config field that holds one column or a list of them.
+
+    Most chart configs type ``y`` as a list, but some (bubble) carry a single
+    column, so the shared analyzers below must accept either shape.
+    """
+    if value is None:
+        return []
+    if isinstance(value, list):
+        return list(value)
+    return [value]
+
+
 def analyze_chart_capabilities(viz_type: str | None, config: Any) -> ChartCapabilities:
     """Analyze chart capabilities based on type and configuration."""
     if not viz_type:
@@ -3093,7 +3267,7 @@ def analyze_chart_capabilities(viz_type: str | None, config: Any) -> ChartCapabi
     if hasattr(config, "x") and config.x:
         data_types.append("categorical" if not config.x.is_metric else "metric")
     if hasattr(config, "y") and config.y:
-        data_types.extend(["metric"] * len(config.y))
+        data_types.extend(["metric"] * len(_as_column_list(config.y)))
     if isinstance(config, SunburstChartConfig):
         data_types.extend(["categorical", "hierarchical", "metric"])
     if "time" in viz_type or "timeseries" in viz_type:
@@ -3160,12 +3334,16 @@ def analyze_chart_semantics(viz_type: str | None, config: Any) -> ChartSemantics
 
     # Generate data story
     columns = []
+    # SQL metrics have no name; fall back to label or the expression. Bubble
+    # puts a metric in x as well as y, so both sides need the fallback.
     if hasattr(config, "x") and config.x:
-        columns.append(config.x.name)
+        columns.append(config.x.name or config.x.label or config.x.sql_expression)
     if hasattr(config, "y") and config.y:
-        # SQL metrics have no name; fall back to label or the expression.
         columns.extend(
-            [col.name or col.label or col.sql_expression for col in config.y]
+            [
+                col.name or col.label or col.sql_expression
+                for col in _as_column_list(config.y)
+            ]
         )
     if isinstance(config, SunburstChartConfig):
         columns.extend(dimension.name for dimension in config.hierarchy)

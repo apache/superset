@@ -29,6 +29,7 @@ import logging
 from typing import Any, TYPE_CHECKING
 from urllib.parse import parse_qs, urlparse
 
+from superset.common.utils.time_grain_utils import apply_time_grain_to_base_axis
 from superset.constants import EXTRA_FORM_DATA_OVERRIDE_REGULAR_MAPPINGS
 from superset.utils.core import ExtraFiltersReasonType
 
@@ -385,6 +386,8 @@ def merge_form_data_filters_into_query(
         ):
             if key in QUERY_CONTEXT_EXTRA_FORM_DATA_EXTRAS_KEYS:
                 query["extras"] = {**(query.get("extras") or {}), key: form_data[key]}
+                if key == "time_grain_sqla":
+                    apply_time_grain_to_base_axis(query, form_data[key])
             else:
                 query[key] = form_data[key]
 
@@ -794,7 +797,7 @@ def resolve_deck_gl_columns(form_data: dict[str, Any]) -> list[str]:
 
 def resolve_metrics(form_data: dict[str, Any], viz_type: str) -> list[Any]:
     """Extract metrics from form_data, handling chart-type-specific fields."""
-    if viz_type == "bubble":
+    if viz_type in ("bubble", "bubble_v2"):
         return [m for field in ("x", "y", "size") if (m := form_data.get(field))]
 
     metrics = form_data.get("metrics") or []
@@ -849,6 +852,14 @@ def resolve_metrics_and_groupby(
     viz_type = (
         form_data.get("viz_type", getattr(chart, "viz_type", "") if chart else "") or ""
     )
+    if viz_type == "treemap_v2":
+        # Treemap has exactly these roles; stale controls from another plugin
+        # must not override its singular metric or ordered hierarchy.
+        metric = form_data.get("metric")
+        hierarchy = form_data.get("groupby") or []
+        return ([metric] if metric else []), (
+            [hierarchy] if isinstance(hierarchy, str) else list(hierarchy)
+        )
     singular_metric_no_groupby = (
         "big_number",
         "big_number_total",
@@ -992,12 +1003,6 @@ def extract_x_axis_col(form_data: dict[str, Any]) -> str | None:
         col_name = x_axis.get("column_name")
         return col_name if isinstance(col_name, str) and col_name else None
     return None
-
-
-# Deck.gl viz types that conditionally set is_timeseries from time_grain_sqla
-_DECK_TIMESERIES_VIZ_TYPES: frozenset[str] = frozenset(
-    {"deck_arc", "deck_path", "deck_polygon", "deck_scatter", "deck_screengrid"}
-)
 
 
 def _validate_sunburst_simple_filter_clauses(

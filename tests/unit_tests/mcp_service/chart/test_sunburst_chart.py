@@ -62,6 +62,7 @@ from superset.mcp_service.chart.registry import display_name_for_viz_type, get_r
 from superset.mcp_service.chart.schemas import (
     BigNumberChartConfig,
     BoxPlotChartConfig,
+    BubbleChartConfig,
     ChartConfig,
     ChartError,
     ColumnRef,
@@ -376,7 +377,15 @@ def _registered_query_role_matrix() -> list[ChartConfig]:
     ] + [
         PieChartConfig(dimension=ColumnRef(name="region"), metric=metric),
         GaugeChartConfig(metric=metric, groupby=[ColumnRef(name="region")]),
-        TreemapChartConfig(groupby=[ColumnRef(name="region")], metric=metric),
+        TreemapChartConfig(
+            groupby=[ColumnRef(name="region")],
+            metric=metric,
+            row_limit=100,
+            sort_by_metric=True,
+        ),
+        BubbleChartConfig(
+            entity=ColumnRef(name="region"), x=metric, y=metric, size=metric
+        ),
         *[
             XYChartConfig(
                 kind=kind,

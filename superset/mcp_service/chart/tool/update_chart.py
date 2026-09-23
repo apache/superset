@@ -45,6 +45,7 @@ from superset.mcp_service.chart.chart_utils import (
     merge_gantt_ui_config,
     merge_interactive_pivot_ui_config,
     merge_table_column_config,
+    resolve_treemap_update_config,
     scrub_dataset_bound_form_data,
     validate_gantt_form_data,
 )
@@ -790,6 +791,25 @@ async def update_chart(  # noqa: C901
                 }
             )
 
+        if (
+            request.dataset_id is not None
+            and request.dataset_id != getattr(chart, "datasource_id", None)
+            and request.config is None
+            and getattr(chart, "viz_type", None) in ("gauge_chart", "treemap_v2")
+        ):
+            return _validation_error_response(
+                message=(
+                    "Gauge dataset rebind requires a complete Gauge config."
+                    if chart.viz_type == "gauge_chart"
+                    else "Treemap dataset rebind requires a complete Treemap config."
+                ),
+                details=(
+                    "Provide the chart type and complete roles valid on the target "
+                    "dataset. This prevents stale metric, groupby, and filter roles "
+                    "from the previous dataset from being retained."
+                ),
+            )
+
         # Validate dataset access before allowing update.
         # check_chart_data_access is the centralized data-level
         # permission check that complements the class-level RBAC
@@ -821,7 +841,21 @@ async def update_chart(  # noqa: C901
         new_form_data: dict[str, Any] | None = None
 
         # config is already a typed ChartConfig | None (validated by Pydantic)
-        parsed_config = request.config
+        try:
+            parsed_config = (
+                resolve_treemap_update_config(
+                    request.config,
+                    _get_existing_form_data(chart),
+                    dataset_rebind=request.dataset_id is not None
+                    and request.dataset_id != chart.datasource_id,
+                )
+                if request.config is not None
+                else None
+            )
+        except ValueError as ex:
+            return _validation_error_response(
+                "Invalid Treemap update configuration", str(ex)
+            )
         validation_config = parsed_config
         if request.add_columns is not None:
             validation_config = TableChartConfig(columns=request.add_columns)

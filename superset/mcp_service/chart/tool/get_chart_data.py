@@ -46,7 +46,11 @@ from superset.mcp_service.chart.chart_helpers import (
     resolve_form_data_datasource,
 )
 from superset.mcp_service.chart.chart_utils import validate_chart_dataset
-from superset.mcp_service.chart.query_result import validate_query_result_envelope
+from superset.mcp_service.chart.query_result import (
+    normalize_chart_query_result,
+    query_result_failure,
+    validate_query_result_envelope,
+)
 from superset.mcp_service.chart.response_preflight import (
     bounded_exception_message,
     finalize_chart_data_response,
@@ -187,6 +191,7 @@ _VIZ_CATEGORY: dict[str, str] = {
     "area": "area",
     "scatter": "scatter",
     "bubble": "bubble",
+    "bubble_v2": "bubble",
     "treemap_v2": "treemap",
     "sunburst_v2": "sunburst",
     "heatmap_v2": "heatmap",
@@ -790,7 +795,7 @@ async def _get_chart_data(  # noqa: C901
                     chart=chart_facts,
                     extra_form_data=request.extra_form_data,
                     row_limit=row_limit,
-                    order_desc=True,
+                    order_desc=form_data.get("order_desc", True),
                 )
 
                 # Safety net: if we could not extract any metrics or
@@ -916,6 +921,12 @@ async def _get_chart_data(  # noqa: C901
                 none_as_empty=effective_form_data.get("viz_type") != "sunburst_v2",
             ):
                 return result_error
+            if effective_form_data.get("viz_type") == "treemap_v2":
+                result = normalize_chart_query_result(result, effective_form_data)
+                if isinstance(result, ChartError):
+                    return result
+            if query_failure := query_result_failure(result):
+                return query_failure
             if sunburst_error := _sunburst_result_failure(result, effective_form_data):
                 return sunburst_error
 
@@ -1255,6 +1266,12 @@ async def _query_from_form_data(  # noqa: C901
             result, none_as_empty=viz_type != "sunburst_v2"
         ):
             return result_error
+        if form_data.get("viz_type") == "treemap_v2":
+            result = normalize_chart_query_result(result, form_data)
+            if isinstance(result, ChartError):
+                return result
+        if query_failure := query_result_failure(result):
+            return query_failure
         if sunburst_error := _sunburst_result_failure(result, form_data):
             return sunburst_error
 

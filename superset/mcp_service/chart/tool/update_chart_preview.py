@@ -46,6 +46,7 @@ from superset.mcp_service.chart.chart_utils import (
     merge_gantt_ui_config,
     merge_interactive_pivot_ui_config,
     merge_table_column_config,
+    resolve_treemap_update_config,
     scrub_dataset_bound_form_data,
     validate_gantt_form_data,
 )
@@ -242,6 +243,39 @@ def update_chart_preview(  # noqa: C901
                 DatasetValidator,
             )
 
+            warnings: list[str] = []
+            previous_form_data: dict[str, Any] | None = None
+
+            if request.form_data_key:
+                previous_form_data = _get_previous_form_data(request.form_data_key)
+                if previous_form_data is None:
+                    warnings.append(INVALID_FORM_DATA_KEY_WARNING)
+            previous_datasource = str(
+                (previous_form_data or {}).get("datasource")
+                or (previous_form_data or {}).get("datasource_id")
+                or ""
+            ).split("__", 1)[0]
+            dataset_rebind = previous_datasource != str(dataset.id) and (
+                bool(previous_datasource) or config.chart_type == "treemap_v2"
+            )
+            try:
+                config = resolve_treemap_update_config(
+                    config,
+                    previous_form_data or {},
+                    dataset_rebind=dataset_rebind,
+                )
+            except ValueError as ex:
+                return {
+                    "chart": None,
+                    "error": {
+                        "error_type": "ValidationError",
+                        "message": "Invalid Treemap update configuration",
+                        "details": str(ex),
+                    },
+                    "success": False,
+                    "schema_version": "2.0",
+                    "api_version": "v1",
+                }
             dataset_context = build_dataset_context_from_orm(dataset)
             config = DatasetValidator.normalize_column_names(
                 config,
@@ -259,14 +293,6 @@ def update_chart_preview(  # noqa: C901
                 new_form_data,
                 datasource_id=dataset.id,
             )
-            warnings: list[str] = []
-            previous_form_data: dict[str, Any] | None = None
-
-            if request.form_data_key:
-                previous_form_data = _get_previous_form_data(request.form_data_key)
-                if previous_form_data is None:
-                    warnings.append(INVALID_FORM_DATA_KEY_WARNING)
-
             if previous_form_data:
                 previous_dataset_id, _ = resolve_form_data_datasource(
                     previous_form_data
