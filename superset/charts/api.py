@@ -41,7 +41,7 @@ from flask_appbuilder.const import (
 from flask_appbuilder.hooks import before_request
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_babel import ngettext
-from marshmallow import ValidationError
+from marshmallow import Schema, ValidationError
 from sqlalchemy import asc, case, desc
 from sqlalchemy.orm import Query
 from sqlalchemy.orm.util import AliasedClass
@@ -384,7 +384,12 @@ class ChartRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
 
     openapi_spec_tag = "Charts"
     """ Override the name set for this collection of endpoints """
-    openapi_spec_component_schemas = CHART_SCHEMAS + (VersionListItemSchema,)
+    # Annotated as a variable-length tuple (matching the declaration in
+    # BaseSupersetApi) so subclasses can extend it with their own schemas
+    # without tripping mypy's override check on an inferred fixed-length type.
+    openapi_spec_component_schemas: tuple[type[Schema], ...] = CHART_SCHEMAS + (
+        VersionListItemSchema,
+    )
 
     apispec_parameter_schemas = {
         "chart_get_list_schema": chart_get_list_schema,

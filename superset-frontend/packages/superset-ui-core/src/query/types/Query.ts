@@ -172,6 +172,11 @@ export interface QueryContext {
   result_format: string;
   queries: QueryObject[];
   form_data?: QueryFormData;
+  /**
+   * Client-generated id for this chart query, used to locate the query
+   * server-side so it can be cancelled while still running.
+   */
+  client_id?: string;
 }
 
 // Keep in sync with superset/errors.py
