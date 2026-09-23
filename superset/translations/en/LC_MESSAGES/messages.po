@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-23 12:43+0200\n"
+"POT-Creation-Date: 2026-09-23 06:19-0700\n"
 "PO-Revision-Date: 2016-05-02 08:49-0700\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: en\n"
@@ -1602,6 +1602,9 @@ msgstr ""
 msgid "Align +/- for all columns"
 msgstr ""
 
+msgid "Alignment"
+msgstr ""
+
 msgid "All"
 msgstr ""
 
@@ -3012,6 +3015,9 @@ msgid "Cell limit"
 msgstr ""
 
 msgid "Cell title template"
+msgstr ""
+
+msgid "Center"
 msgstr ""
 
 msgid "Center value"
@@ -7508,6 +7514,9 @@ msgid "Horizontal (Top)"
 msgstr ""
 
 msgid "Horizontal alignment"
+msgstr ""
+
+msgid "Horizontal alignment of the metric value and supporting text"
 msgstr ""
 
 msgid "Host"

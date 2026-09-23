@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-23 12:43+0200\n"
+"POT-Creation-Date: 2026-09-23 06:19-0700\n"
 "PO-Revision-Date: 2018-02-11 22:26+0200\n"
 "Last-Translator: Raffaele Spangaro <raffa@raffaelespangaro.it>\n"
 "Language: it\n"
@@ -2167,6 +2167,9 @@ msgstr "Allinea +/-"
 msgid "Align +/- for all columns"
 msgstr "Mostra colonna"
 
+msgid "Alignment"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk, zh, zh_TW]
@@ -4097,6 +4100,9 @@ msgstr "Limite cella"
 
 msgid "Cell title template"
 msgstr "Template per il titolo della cella"
+
+msgid "Center"
+msgstr ""
 
 msgid "Center value"
 msgstr ""
@@ -10166,6 +10172,9 @@ msgstr "Orizzontale (in alto)"
 # uk, zh, zh_TW]
 msgid "Horizontal alignment"
 msgstr "Allineamento orizzontale"
+
+msgid "Horizontal alignment of the metric value and supporting text"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,

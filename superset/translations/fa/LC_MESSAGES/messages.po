@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-23 12:43+0200\n"
+"POT-Creation-Date: 2026-09-23 06:19-0700\n"
 "PO-Revision-Date: 2024-10-20 00:07+0330\n"
 "Last-Translator: Emad Rad <codewithemad@gmail.com>\n"
 "Language: fa\n"
@@ -1828,6 +1828,9 @@ msgstr "هم‌تراز کردن +/-"
 msgid "Align +/- for all columns"
 msgstr "همه ستون‌ها را نمایش بدهید"
 
+msgid "Alignment"
+msgstr ""
+
 msgid "All"
 msgstr "همه"
 
@@ -3476,6 +3479,9 @@ msgstr "محدودیت سلول"
 #, fuzzy
 msgid "Cell title template"
 msgstr "قالب را حذف کنید"
+
+msgid "Center"
+msgstr ""
 
 msgid "Center value"
 msgstr ""
@@ -8673,6 +8679,9 @@ msgstr "افقی (بالا)"
 
 msgid "Horizontal alignment"
 msgstr "تراز افقی"
+
+msgid "Horizontal alignment of the metric value and supporting text"
+msgstr ""
 
 msgid "Host"
 msgstr "میزبان"

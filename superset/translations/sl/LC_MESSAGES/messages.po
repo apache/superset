@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version:  Superset\n"
 "Report-Msgid-Bugs-To: dkrat7 @github.com\n"
-"POT-Creation-Date: 2026-09-23 12:43+0200\n"
+"POT-Creation-Date: 2026-09-23 06:19-0700\n"
 "PO-Revision-Date: 2026-07-29 16:16+0200\n"
 "Last-Translator: lapor-kris <lapor-kris@github.com>\n"
 "Language: sl_SI\n"
@@ -1819,6 +1819,9 @@ msgstr "Poravnaj +/-"
 msgid "Align +/- for all columns"
 msgstr "Poravnajte +/- za vse stolpce"
 
+msgid "Alignment"
+msgstr ""
+
 msgid "All"
 msgstr "Vse"
 
@@ -3394,6 +3397,9 @@ msgstr "Omejitev števila celic"
 
 msgid "Cell title template"
 msgstr "Predloga naslova celice"
+
+msgid "Center"
+msgstr ""
 
 msgid "Center value"
 msgstr ""
@@ -8302,6 +8308,9 @@ msgstr "Vodoravno (zgoraj)"
 
 msgid "Horizontal alignment"
 msgstr "Vodoravna poravnava"
+
+msgid "Horizontal alignment of the metric value and supporting text"
+msgstr ""
 
 msgid "Host"
 msgstr "Gostitelj"

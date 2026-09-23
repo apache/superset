@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-23 12:43+0200\n"
+"POT-Creation-Date: 2026-09-23 06:19-0700\n"
 "PO-Revision-Date: 2026-03-27 14:01+0200\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: lv\n"
@@ -1799,6 +1799,9 @@ msgstr "Izlīdzināt +/-"
 msgid "Align +/- for all columns"
 msgstr "Rādīt visas kolonnas"
 
+msgid "Alignment"
+msgstr ""
+
 msgid "All"
 msgstr "Visi"
 
@@ -3346,6 +3349,9 @@ msgstr "Šūnu limits"
 
 msgid "Cell title template"
 msgstr "Šūnu virsraksta veidne"
+
+msgid "Center"
+msgstr ""
 
 msgid "Center value"
 msgstr ""
@@ -8174,6 +8180,9 @@ msgstr "Horizontāli (augšā)"
 
 msgid "Horizontal alignment"
 msgstr "Horizontālais līdzinājums"
+
+msgid "Horizontal alignment of the metric value and supporting text"
+msgstr ""
 
 msgid "Host"
 msgstr "Resursdators"

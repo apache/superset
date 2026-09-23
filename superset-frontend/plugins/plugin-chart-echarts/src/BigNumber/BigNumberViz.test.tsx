@@ -137,7 +137,7 @@ describe('BigNumberViz alignment', () => {
     const textContainer = container.querySelector('.text-container');
     expect(textContainer).toHaveStyle({ alignItems: 'flex-start' });
     const headerLine = container.querySelector('.header-line');
-    expect(headerLine).toHaveStyle({ textAlign: 'left' });
+    expect(headerLine).toHaveStyle({ justifyContent: 'flex-start' });
   });
 
   test('centers content when headerAlignment is "center"', () => {
@@ -159,7 +159,7 @@ describe('BigNumberViz alignment', () => {
     const textContainer = container.querySelector('.text-container');
     expect(textContainer).toHaveStyle({ alignItems: 'center' });
     const headerLine = container.querySelector('.header-line');
-    expect(headerLine).toHaveStyle({ textAlign: 'center' });
+    expect(headerLine).toHaveStyle({ justifyContent: 'center' });
   });
 
   test('right-aligns content when headerAlignment is "right"', () => {
@@ -181,6 +181,6 @@ describe('BigNumberViz alignment', () => {
     const textContainer = container.querySelector('.text-container');
     expect(textContainer).toHaveStyle({ alignItems: 'flex-end' });
     const headerLine = container.querySelector('.header-line');
-    expect(headerLine).toHaveStyle({ textAlign: 'right' });
+    expect(headerLine).toHaveStyle({ justifyContent: 'flex-end' });
   });
 });

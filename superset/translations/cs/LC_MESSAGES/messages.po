@@ -18,7 +18,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-23 12:43+0200\n"
+"POT-Creation-Date: 2026-09-23 06:19-0700\n"
 "PO-Revision-Date: 2016-05-02 08:49-0700\n"
 "Last-Translator: Jan Šmejkal <jan.smejkal@orgis.cz>\n"
 "Language: cs\n"
@@ -1810,6 +1810,9 @@ msgstr "Zarovnat +/-"
 msgid "Align +/- for all columns"
 msgstr "Zobrazit všechny sloupce"
 
+msgid "Alignment"
+msgstr ""
+
 msgid "All"
 msgstr "Vše"
 
@@ -3378,6 +3381,9 @@ msgstr "Limit buněk"
 #, fuzzy
 msgid "Cell title template"
 msgstr "Šablona názvu buňky"
+
+msgid "Center"
+msgstr ""
 
 msgid "Center value"
 msgstr ""
@@ -8330,6 +8336,9 @@ msgstr "Vodorovný (nahoře)"
 
 msgid "Horizontal alignment"
 msgstr "Vodorovné zarovnání"
+
+msgid "Horizontal alignment of the metric value and supporting text"
+msgstr ""
 
 msgid "Host"
 msgstr "Hostitel"

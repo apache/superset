@@ -18,7 +18,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version:  \n"
 "Report-Msgid-Bugs-To: ted.korostiled@gmail.com\n"
-"POT-Creation-Date: 2026-09-23 12:43+0200\n"
+"POT-Creation-Date: 2026-09-23 06:19-0700\n"
 "PO-Revision-Date: 2026-04-30 22:04+0300\n"
 "Last-Translator: Danylo Korostil\n"
 "Language: uk\n"
@@ -1816,6 +1816,9 @@ msgstr "Коригувати +/-"
 msgid "Align +/- for all columns"
 msgstr "Показати всі стовпці"
 
+msgid "Alignment"
+msgstr ""
+
 msgid "All"
 msgstr "Усе"
 
@@ -3349,6 +3352,9 @@ msgstr "Обмеження комірки"
 
 msgid "Cell title template"
 msgstr "Шаблон заголовку комірки"
+
+msgid "Center"
+msgstr ""
 
 msgid "Center value"
 msgstr ""
@@ -8182,6 +8188,9 @@ msgstr "Горизонтально (зверху)"
 
 msgid "Horizontal alignment"
 msgstr "Горизонтальне вирівнювання"
+
+msgid "Horizontal alignment of the metric value and supporting text"
+msgstr ""
 
 msgid "Host"
 msgstr "Вузол"

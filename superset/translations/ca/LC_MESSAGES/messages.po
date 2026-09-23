@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-23 12:43+0200\n"
+"POT-Creation-Date: 2026-09-23 06:19-0700\n"
 "PO-Revision-Date: 2025-06-27 12:56+0200\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: ca\n"
@@ -1821,6 +1821,9 @@ msgstr "Alinear +/-"
 msgid "Align +/- for all columns"
 msgstr "Mostrar totes les columnes"
 
+msgid "Alignment"
+msgstr ""
+
 msgid "All"
 msgstr "Tot"
 
@@ -3490,6 +3493,9 @@ msgstr "Límit de cel·les"
 #, fuzzy
 msgid "Cell title template"
 msgstr "Eliminar plantilla"
+
+msgid "Center"
+msgstr ""
 
 msgid "Center value"
 msgstr ""
@@ -8644,6 +8650,9 @@ msgstr "Horitzontal (Superior)"
 
 msgid "Horizontal alignment"
 msgstr "Alineació horitzontal"
+
+msgid "Horizontal alignment of the metric value and supporting text"
+msgstr ""
 
 msgid "Host"
 msgstr "Host"

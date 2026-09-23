@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Apache Superset 0.22.1\n"
 "Report-Msgid-Bugs-To: bestlong168@gmail.com\n"
-"POT-Creation-Date: 2026-09-23 12:43+0200\n"
+"POT-Creation-Date: 2026-09-23 06:19-0700\n"
 "PO-Revision-Date: 2019-01-04 22:19+0800\n"
 "Last-Translator: Shao Yu-Lung <bestlong168@gmail.com>\n"
 "Language: zh_TW\n"
@@ -1876,6 +1876,9 @@ msgstr "對齊 +/-"
 msgid "Align +/- for all columns"
 msgstr "顯示所有列"
 
+msgid "Alignment"
+msgstr ""
+
 msgid "All"
 msgstr "所有"
 
@@ -3571,6 +3574,9 @@ msgstr "單元格限制"
 #, fuzzy
 msgid "Cell title template"
 msgstr "删除模板"
+
+msgid "Center"
+msgstr ""
 
 msgid "Center value"
 msgstr ""
@@ -8969,6 +8975,9 @@ msgstr "横向（頂部對齊）"
 
 msgid "Horizontal alignment"
 msgstr "水平對齊"
+
+msgid "Horizontal alignment of the metric value and supporting text"
+msgstr ""
 
 msgid "Host"
 msgstr "主機"

@@ -22,7 +22,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-23 12:43+0200\n"
+"POT-Creation-Date: 2026-09-23 06:19-0700\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: ro\n"
@@ -1906,6 +1906,9 @@ msgstr "Aliniază +/-"
 msgid "Align +/- for all columns"
 msgstr "Aliniază +/- pentru toate coloanele"
 
+msgid "Alignment"
+msgstr ""
+
 msgid "All"
 msgstr "Toate"
 
@@ -3545,6 +3548,9 @@ msgstr "Limită celulă"
 
 msgid "Cell title template"
 msgstr "Șablon titlu celulă"
+
+msgid "Center"
+msgstr ""
 
 msgid "Center value"
 msgstr ""
@@ -8741,6 +8747,9 @@ msgstr "Orizontal (Sus)"
 
 msgid "Horizontal alignment"
 msgstr "Aliniere orizontală"
+
+msgid "Horizontal alignment of the metric value and supporting text"
+msgstr ""
 
 msgid "Host"
 msgstr "Gazdă"

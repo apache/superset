@@ -246,10 +246,12 @@ function BigNumberVis({
         style={{
           display: 'flex',
           alignItems: 'center',
+          // header-line is always a flex container, so text-align has no
+          // effect on the number's position; justify-content does.
+          justifyContent: alignItems,
           fontSize,
           height: 'auto',
           color: numberColor,
-          textAlign: headerAlignment,
         }}
         onContextMenu={handleContextMenu}
       >

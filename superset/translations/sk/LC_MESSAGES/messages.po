@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-23 12:43+0200\n"
+"POT-Creation-Date: 2026-09-23 06:19-0700\n"
 "PO-Revision-Date: 2026-05-18 15:42+0200\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: sk\n"
@@ -1804,6 +1804,9 @@ msgstr "Zarovnat +/-"
 msgid "Align +/- for all columns"
 msgstr "Zobraziť všetky stĺpce"
 
+msgid "Alignment"
+msgstr ""
+
 msgid "All"
 msgstr "Vše"
 
@@ -3379,6 +3382,9 @@ msgstr "Limit bunek"
 #, fuzzy
 msgid "Cell title template"
 msgstr "Šablona názvu bunky"
+
+msgid "Center"
+msgstr ""
 
 msgid "Center value"
 msgstr ""
@@ -8333,6 +8339,9 @@ msgstr "Vodorovný (nahoře)"
 
 msgid "Horizontal alignment"
 msgstr "Vodorovné zarovnanie"
+
+msgid "Horizontal alignment of the metric value and supporting text"
+msgstr ""
 
 msgid "Host"
 msgstr "Hostitel"
