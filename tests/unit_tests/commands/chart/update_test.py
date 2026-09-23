@@ -255,6 +255,31 @@ def test_update_chart_query_context_non_editor_with_access_allowed(
     raise_for_access.assert_called_once_with(chart=find_by_id.return_value)
 
 
+def test_update_chart_query_context_denied_for_guest_user(
+    mocker: MockerFixture,
+) -> None:
+    """An embedded guest token holds no write capability on any resource, so a
+    query-context-only update is refused before the access check even though
+    ``raise_for_access`` admits a guest for the charts its dashboard embeds."""
+    # The guest deny raises before any chart attribute is read, so the default
+    # MagicMock the patch installs is enough of a model here.
+    mocker.patch("superset.commands.chart.update.ChartDAO.find_by_id")
+    mocker.patch(
+        "superset.commands.chart.update.security_manager.is_guest_user",
+        return_value=True,
+    )
+    raise_for_access = mocker.patch(
+        "superset.commands.chart.update.security_manager.raise_for_access",
+    )
+
+    with pytest.raises(ChartForbiddenError):
+        UpdateChartCommand(
+            1, {"query_context": "{}", "query_context_generation": True}
+        ).validate()
+
+    raise_for_access.assert_not_called()
+
+
 def test_update_chart_editor_can_perform_regular_update(
     mocker: MockerFixture,
 ) -> None:

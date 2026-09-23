@@ -29,6 +29,7 @@ import {
   JsonObject,
   getExtensionsRegistry,
 } from '@superset-ui/core';
+import { logging } from '@apache-superset/core/utils';
 import { URL_PARAMS } from 'src/constants';
 import { getUrlParam } from 'src/utils/urlUtils';
 import { css, styled, useTheme } from '@apache-superset/core/theme';
@@ -255,7 +256,16 @@ const ExploreChartPanel = ({
   );
 
   useEffect(() => {
-    updateQueryContext();
+    updateQueryContext().catch(error => {
+      // Best-effort backfill; the chart renders either way. A 403 is expected
+      // (no write access, or a managed chart), so it stays at debug.
+      const message = 'Skipped background query context backfill';
+      if (error?.status === 403) {
+        logging.debug(message, error);
+      } else {
+        logging.warn(message, error);
+      }
+    });
   }, [updateQueryContext]);
 
   useEffect(() => {
