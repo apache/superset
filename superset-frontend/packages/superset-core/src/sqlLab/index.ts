@@ -525,6 +525,13 @@ export interface CreateTabOptions {
    * Schema name for the query context.
    */
   schema?: string | null;
+
+  /**
+   * ID of a view registered at the `sqllab.northPane` location to open the
+   * tab with, in place of the default SQL editor layout. The view must have
+   * been registered via `views.registerView()` (e.g. "my-ext.northPane").
+   */
+  northPaneViewId?: string;
 }
 
 /**
