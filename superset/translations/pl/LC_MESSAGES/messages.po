@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-23 00:48+0300\n"
+"POT-Creation-Date: 2026-09-22 10:58-0700\n"
 "PO-Revision-Date: 2021-11-16 17:33+0100\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: fr\n"
@@ -152,9 +152,6 @@ msgstr "Szczegóły"
 #, fuzzy, python-format
 msgid " near '%(highlight)s'"
 msgstr " w pobliżu '%(highlight)s'"
-
-msgid " source code of Superset's sandboxed parser"
-msgstr ""
 
 msgid ""
 " standard to ensure that the lexicographical ordering\n"
@@ -586,12 +583,6 @@ msgstr "%s Wybrano"
 #, fuzzy, python-format
 msgid "%s recipients"
 msgstr "%s odbiorcy"
-
-#, python-format
-msgid "%s record"
-msgid_plural "%s records..."
-msgstr[0] ""
-msgstr[1] ""
 
 #, fuzzy, python-format
 msgid "%s record..."
@@ -1083,12 +1074,6 @@ msgid ""
 " bars that extend left and right from a central axis."
 msgstr ""
 
-msgid ""
-"A candlestick chart shows opening, closing, high, and low values for each"
-" period. It is commonly used for financial and other time-series range "
-"analysis."
-msgstr ""
-
 #, fuzzy
 msgid "A comma separated list of columns that should be parsed as dates"
 msgstr "Kolumny do przetworzenia jako daty"
@@ -1328,12 +1313,6 @@ msgstr "AQE"
 msgid "AUG"
 msgstr "SIE"
 
-msgid "AXIS TITLE MARGIN"
-msgstr ""
-
-msgid "AXIS TITLE POSITION"
-msgstr ""
-
 #, fuzzy
 msgid "Aborted"
 msgstr "Rozpoczęto"
@@ -1510,9 +1489,6 @@ msgstr "Szczegóły certyfikacji"
 
 msgid "Add color for positive/negative change"
 msgstr "Dodaj kolor dla zmiany pozytywnej/negatywnej"
-
-msgid "Add colors to cell bars for +/-"
-msgstr ""
 
 #, fuzzy
 msgid "Add colors to cell bars for +/- for all columns"
@@ -1815,11 +1791,6 @@ msgstr ""
 " wygenerowania etykiety klastra."
 
 msgid ""
-"Aggregate function to apply when pivoting and computing the total rows "
-"and columns"
-msgstr ""
-
-msgid ""
 "Aggregates data within the boundary of grid cells and maps the aggregated"
 " values to a dynamic color scale"
 msgstr ""
@@ -1833,9 +1804,6 @@ msgstr "Agregacja"
 #, fuzzy
 msgid "Aggregation Method"
 msgstr "Agregacja"
-
-msgid "Aggregation function"
-msgstr ""
 
 msgid ""
 "Aggregation used for the summary row. By default each metric keeps its "
@@ -2866,9 +2834,6 @@ msgstr ""
 msgid "Arrow"
 msgstr "Strzałka"
 
-msgid "Ascending"
-msgstr ""
-
 msgid "Assign a set of parameters as"
 msgstr "Przypisz zestaw parametrów jako"
 
@@ -2964,9 +2929,6 @@ msgstr "Dostosuj kolumny"
 msgid "Autosize all columns"
 msgstr "Dostosuj kolumny"
 
-msgid "Available Handlebars Helpers in Superset:"
-msgstr ""
-
 msgid "Available sorting modes:"
 msgstr "Dostępne tryby sortowania:"
 
@@ -3042,9 +3004,6 @@ msgstr "Wykres słupkowy"
 msgid "Bar Charts are used to show metrics as a series of bars."
 msgstr "Wykresy słupkowe służą do przedstawiania metryk w formie serii słupków."
 
-msgid "Bar Values"
-msgstr ""
-
 msgid "Bar orientation"
 msgstr "Orientacja słupków"
 
@@ -3074,10 +3033,6 @@ msgstr ""
 #, fuzzy, python-format
 msgid "Base layer map style. See MapLibre documentation: %s"
 msgstr "Styl mapy warstwy podstawowej. Zobacz dokumentację Mapbox: %s"
-
-#, python-format
-msgid "Base layer map style. See Mapbox documentation: %s"
-msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fr, ja, lv, mi, ro, ru, sk, sr, sr_Latn, tr, uk]
@@ -3262,9 +3217,6 @@ msgstr ""
 
 msgid "Bubble Chart"
 msgstr "Wykres bąbelkowy"
-
-msgid "Bubble Chart (legacy)"
-msgstr ""
 
 msgid "Bubble Color"
 msgstr "Kolor bąbelków"
@@ -3491,17 +3443,6 @@ msgstr "Anuluj zapytanie podczas zdarzenia zamykania okna"
 #, fuzzy
 msgid "Cancellation not available due to missing abort handler"
 msgstr "Anulowanie niedostępne z powodu braku procedury obsługi przerwania"
-
-msgid "Candlestick"
-msgstr ""
-
-msgid "Candlestick Chart"
-msgstr ""
-
-msgid ""
-"Candlestick draws a filled body between open and close. OHLC draws ticks "
-"for open and close on a high-low stem."
-msgstr ""
 
 msgid "Cannot access the query"
 msgstr "Nie można uzyskać dostępu do zapytania"
@@ -4335,9 +4276,6 @@ msgstr "Zamknij zakładkę"
 msgid "Close version history"
 msgstr ""
 
-msgid "Closing value for each period."
-msgstr ""
-
 msgid "Cluster label aggregator"
 msgstr "Agregator etykiet klastrów"
 
@@ -4436,9 +4374,6 @@ msgstr "Punkty przerwania segmentów"
 msgid "Color by"
 msgstr "Koloruj po"
 
-msgid "Color by direction"
-msgstr ""
-
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
 #, fuzzy
@@ -4468,14 +4403,6 @@ msgstr "Kolor lokalizacji celu"
 
 msgid "Color scheme"
 msgstr "Schemat kolorów"
-
-msgid ""
-"Color used when the close value is greater than or equal to the open "
-"value."
-msgstr ""
-
-msgid "Color used when the close value is less than the open value."
-msgstr ""
 
 msgid ""
 "Color will be shaded based the normalized (0% to 100%) value of a given "
@@ -4713,12 +4640,6 @@ msgstr ""
 "Porównuje, jak metryka zmienia się w czasie między różnymi grupami. Każda"
 " grupa jest mapowana na wiersz, a zmiany w czasie są wizualizowane przez "
 "długość i kolor słupków."
-
-msgid ""
-"Compares metrics between different time periods. Displays time series "
-"data across multiple periods (like weeks or months) to show period-over-"
-"period trends and patterns."
-msgstr ""
 
 msgid ""
 "Compares the current time period against equivalent past periods by "
@@ -5117,18 +5038,6 @@ msgstr ""
 msgid "Count"
 msgstr "Liczba"
 
-msgid "Count Unique Values"
-msgstr ""
-
-msgid "Count as Fraction of Columns"
-msgstr ""
-
-msgid "Count as Fraction of Rows"
-msgstr ""
-
-msgid "Count as Fraction of Total"
-msgstr ""
-
 #, fuzzy
 msgid "Country"
 msgstr "Kraj"
@@ -5196,12 +5105,6 @@ msgstr "Utwórz indeks ramki danych"
 #, fuzzy
 msgid "Create dataset"
 msgstr "Utwórz zestaw danych"
-
-msgid "Create matrix columns by placing charts side-by-side"
-msgstr ""
-
-msgid "Create matrix rows by stacking charts vertically"
-msgstr ""
 
 msgid "Create new chart"
 msgstr "Utwórz nowy wykres"
@@ -6135,21 +6038,6 @@ msgstr ""
 "Domyślna wartość ustawiana automatycznie, gdy zaznaczono opcję „Wybierz "
 "pierwszą wartość filtru jako domyślną”."
 
-msgid ""
-"Define a function that receives the input and outputs the content for a "
-"tooltip"
-msgstr ""
-
-msgid "Define a function that returns a URL to navigate to when user clicks"
-msgstr ""
-
-msgid ""
-"Define a javascript function that receives the data array used in the "
-"visualization and is expected to return a modified version of that array."
-" This can be used to alter properties of the data, filter, or enrich the "
-"array."
-msgstr ""
-
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, fr,
 # ja, lv, pt_BR, ro, ru, sk, sr, sr_Latn, tr, uk]
 #, fuzzy
@@ -6495,9 +6383,6 @@ msgid "Depends on"
 msgstr ""
 
 msgid "Deployment default"
-msgstr ""
-
-msgid "Descending"
 msgstr ""
 
 msgid "Description"
@@ -7090,9 +6975,6 @@ msgstr "Czas trwania w ms (100.40008 => 100ms 400µs 80ns)"
 msgid "Duration in ms (10500 => 0:00:10.5)"
 msgstr "Czas trwania w ms (66000 => 1m 6s)"
 
-msgid "Duration in ms (10500 => 0:10.5)"
-msgstr ""
-
 msgid "Duration in ms (66000 => 1m 6s)"
 msgstr "Czas trwania w ms (66000 => 1m 6s)"
 
@@ -7449,9 +7331,6 @@ msgstr "Włącz prognozy"
 msgid "Enable graph roaming"
 msgstr "Włącz swobodne przesuwanie grafu"
 
-msgid "Enable horizontal layout (columns)"
-msgstr ""
-
 #, fuzzy
 msgid "Enable icons"
 msgstr "Kolumny tabeli"
@@ -7477,9 +7356,6 @@ msgstr "Włącz rozwijanie wierszy w schematach"
 
 msgid "Enable server side pagination of results (experimental feature)"
 msgstr "Włącz stronicowanie wyników po stronie serwera (funkcja eksperymentalna)"
-
-msgid "Enable vertical layout (rows)"
-msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
 # lv, pt_BR, ru, sk, sr, sr_Latn, tr, uk]
@@ -8098,9 +7974,6 @@ msgstr "Dodatkowe kontrole"
 msgid "Extra Parameters"
 msgstr "Dodatkowe parametry"
 
-msgid "Extra data for JS"
-msgstr ""
-
 #, python-brace-format
 msgid ""
 "Extra data to specify table metadata, such as `{ \"warning_markdown\": "
@@ -8586,9 +8459,6 @@ msgstr ""
 "filtr (department = 'Finance' OR department = 'Marketing') AND (region = "
 "'Europe')."
 
-msgid "Financial"
-msgstr ""
-
 #, fuzzy
 msgid "Find"
 msgstr "Znajdź"
@@ -8692,11 +8562,6 @@ msgstr ""
 
 msgid "For further instructions, consult the"
 msgstr "Aby uzyskać dalsze instrukcje, skonsultuj się z"
-
-msgid ""
-"For more information about objects are in context in the scope of this "
-"function, refer to the"
-msgstr ""
 
 #, fuzzy
 msgid ""
@@ -9024,9 +8889,6 @@ msgstr "Większy lub równy (>=)"
 msgid "Greater than (>)"
 msgstr "Większy niż (>)"
 
-msgid "Green for increase, red for decrease"
-msgstr ""
-
 #, fuzzy
 msgid "Grid"
 msgstr "Siatka"
@@ -9166,13 +9028,7 @@ msgstr "Ukrywa linię dla serii czasowej"
 msgid "Hierarchy"
 msgstr "Hierarchia"
 
-msgid "High"
-msgstr ""
-
 msgid "High color"
-msgstr ""
-
-msgid "Highest value for each period."
 msgstr ""
 
 msgid "Histogram"
@@ -9194,9 +9050,6 @@ msgstr "Poziomy (góra)"
 
 msgid "Horizontal alignment"
 msgstr "Wyrównanie poziome"
-
-msgid "Horizontal layout (columns)"
-msgstr ""
 
 msgid "Host"
 msgstr "Host"
@@ -9815,9 +9668,6 @@ msgstr ""
 msgid "It’s not recommended to truncate Y axis in Bar chart."
 msgstr "Nie zaleca się obcinania osi w wykresie słupkowym."
 
-msgid "It’s not recommended to truncate axis in Bar chart."
-msgstr ""
-
 msgid "JAN"
 msgstr "STY"
 
@@ -9862,15 +9712,6 @@ msgstr "CZE"
 
 msgid "January"
 msgstr "Styczeń"
-
-msgid "JavaScript data interceptor"
-msgstr ""
-
-msgid "JavaScript onClick href"
-msgstr ""
-
-msgid "JavaScript tooltip generator"
-msgstr ""
 
 msgid "Jinja templating"
 msgstr "Szablonowanie Jinja"
@@ -9971,26 +9812,11 @@ msgstr "Linia etykiety"
 msgid "Label threshold"
 msgstr "Próg etykiety"
 
-msgid "Label used for decreasing candles in the tooltip."
-msgstr ""
-
-msgid "Label used for increasing candles in the tooltip."
-msgstr ""
-
 msgid "Labelling"
 msgstr "Etykietowanie"
 
 msgid "Labels"
 msgstr "Etykiety"
-
-msgid "Labels for the marker lines"
-msgstr ""
-
-msgid "Labels for the markers"
-msgstr ""
-
-msgid "Labels for the ranges"
-msgstr ""
 
 #, fuzzy
 msgid "Languages"
@@ -10255,9 +10081,6 @@ msgid ""
 "does not already have. Leave empty for legacy RBAC-only behavior."
 msgstr ""
 
-msgid "Limits the number of cells that get retrieved."
-msgstr ""
-
 msgid ""
 "Limits the number of cells that get retrieved. Not applied when non-"
 "additive metrics (e.g. ratios, COUNT_DISTINCT, AVG, percentiles) are "
@@ -10362,9 +10185,6 @@ msgstr "Numer podziału"
 msgid "List Roles"
 msgstr "Lista ról"
 
-msgid "List Unique Values"
-msgstr ""
-
 #, fuzzy
 msgid "List Users"
 msgstr "Numer podziału"
@@ -10374,20 +10194,11 @@ msgid ""
 "toggles it on the chart"
 msgstr ""
 
-msgid "List of extra columns made available in JavaScript functions"
-msgstr ""
-
 msgid "List of n+1 values for bucketing metric into n buckets."
 msgstr "Lista n+1 wartości do podziału metryki na n przedziałów."
 
 msgid "List of the column names that should be read"
 msgstr "Lista nazw kolumn do odczytu"
-
-msgid "List of values to mark with lines"
-msgstr ""
-
-msgid "List of values to mark with triangles"
-msgstr ""
 
 msgid "List updated"
 msgstr "Lista zaktualizowana"
@@ -10516,9 +10327,6 @@ msgstr "Długość i szerokość geograficzna"
 msgid "Longitude of default viewport"
 msgstr "Długość geograficzna domyślnego widoku"
 
-msgid "Low"
-msgstr ""
-
 msgid "Low color"
 msgstr ""
 
@@ -10532,9 +10340,6 @@ msgstr ""
 
 msgid "Lower threshold must be lower than upper threshold"
 msgstr "Niższy próg musi być niższy niż wyższy próg"
-
-msgid "Lowest value for each period."
-msgstr ""
 
 msgid "MAR"
 msgstr "MAR"
@@ -10780,9 +10585,6 @@ msgstr "Średnia wartości w określonym okresie"
 msgid "Mean values"
 msgstr "Średnie wartości"
 
-msgid "Median"
-msgstr ""
-
 msgid ""
 "Median edge width, the thickest edge will be 4 times thicker than the "
 "thinnest."
@@ -10967,9 +10769,6 @@ msgstr "Metryki"
 #, fuzzy, python-format
 msgid "Metrics (%s)"
 msgstr "Metryki"
-
-msgid "Metrics / Dimensions"
-msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
@@ -11198,9 +10997,6 @@ msgstr ""
 msgid "Moves the given set of dates by a specified interval."
 msgstr "Przesuwa podany zestaw dat o określony przedział."
 
-msgid "Moving averages"
-msgstr ""
-
 #, fuzzy
 msgid "Multi-Dimensions"
 msgstr "Wielowymiarowy"
@@ -11315,11 +11111,6 @@ msgstr "Nazwa węzłów docelowych"
 #, fuzzy
 msgid "Name of your tag"
 msgstr "Nazwij swoją bazę danych"
-
-msgid ""
-"Name used for the candlestick series in the legend and tooltip when no "
-"series dimension is set."
-msgstr ""
 
 msgid "Name your database"
 msgstr "Nazwij swoją bazę danych"
@@ -11884,9 +11675,6 @@ msgstr "Podstawowe informacje"
 msgid "OCT"
 msgstr "PAŹ"
 
-msgid "OHLC"
-msgstr ""
-
 msgid "OK"
 msgstr "OK"
 
@@ -12048,9 +11836,6 @@ msgstr ""
 msgid "Opacity, expects values between 0 and 100"
 msgstr "Przezroczystość, oczekiwane wartości od 0 do 100"
 
-msgid "Open"
-msgstr ""
-
 msgid "Open Datasource tab"
 msgstr "Otwórz kartę Źródło danych"
 
@@ -12087,9 +11872,6 @@ msgstr "Otwórz w SQL Lab"
 msgid "Open query in SQL Lab"
 msgstr "Otwórz zapytanie w SQL Lab"
 
-msgid "Opening value for each period."
-msgstr ""
-
 msgid ""
 "Operate the database in asynchronous mode, meaning that the queries are "
 "executed on remote workers as opposed to on the web server itself. This "
@@ -12120,11 +11902,6 @@ msgstr "Opcjonalny format daty d3"
 
 msgid "Optional d3 number format string"
 msgstr "Opcjonalny format liczby d3"
-
-msgid ""
-"Optional dimension used to split the chart into multiple candlestick "
-"series."
-msgstr ""
 
 msgid ""
 "Optional metric used to scale the size of each dot. Dot areas are scaled "
@@ -12256,11 +12033,6 @@ msgstr ""
 "czasu”, aby przesunąć zakres porównania o tę samą długość, co zakres "
 "czasu, lub użyj „Niestandardowy”, aby ustawić niestandardowy zakres "
 "porównania."
-
-msgid ""
-"Overlay simple moving averages of the close price (MA5, MA10, MA15, ...)."
-" Type a custom period to add it."
-msgstr ""
 
 msgid ""
 "Overlays a hexagonal grid on a map, and aggregates data within the "
@@ -12558,9 +12330,6 @@ msgstr "Wybierz nazwę, aby pomóc w identyfikacji tej bazy danych."
 
 msgid "Pick a nickname for how the database will display in Superset."
 msgstr "Wybierz pseudonim dla wyświetlania bazy danych w Superset."
-
-msgid "Pick a set of deck.gl charts to layer on top of one another"
-msgstr ""
 
 msgid "Pick a title for you annotation."
 msgstr "Wybierz tytuł dla swojej adnotacji."
@@ -13197,9 +12966,6 @@ msgstr "TYP ZAKRESU"
 msgid "Ranges"
 msgstr "Zakresy"
 
-msgid "Ranges to highlight with shading"
-msgstr ""
-
 #, fuzzy
 msgid "Ranking"
 msgstr "Ranking"
@@ -13255,21 +13021,8 @@ msgstr "Prostokąt"
 msgid "Recurring (every)"
 msgstr "Powtarzalny (co)"
 
-msgid "Red for increase, green for decrease"
-msgstr ""
-
 msgid "Redo the action"
 msgstr "Powtórz akcję"
-
-msgid "Reduce X ticks"
-msgstr ""
-
-msgid ""
-"Reduces the number of X-axis ticks to be rendered. If true, the x-axis "
-"will not overflow and labels may be missing. If false, a minimum width "
-"will be applied to columns and the width may overflow into an horizontal "
-"scroll."
-msgstr ""
 
 msgid "Refer to the"
 msgstr "Odnosi się do"
@@ -13855,9 +13608,6 @@ msgstr "Szczegółowa podpowiedź"
 msgid "Right"
 msgstr "Prawy"
 
-msgid "Right Axis Format"
-msgstr ""
-
 #, fuzzy
 msgid "Right Axis Metric"
 msgstr "Metryka prawej osi"
@@ -14431,10 +14181,6 @@ msgstr "Przewiń na dół, aby umożliwić nadpisywanie zmian."
 
 msgid "Search"
 msgstr "Szukaj"
-
-#, python-format
-msgid "Search %s records"
-msgstr ""
 
 msgid "Search / Filter"
 msgstr "Szukaj / Filtruj"
@@ -15246,9 +14992,6 @@ msgstr "Styl serii"
 msgid "Series chart type (line, bar etc)"
 msgstr "Typ wykresu serii (linia, słupki itp.)"
 
-msgid "Series colors"
-msgstr ""
-
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
 # lv, ro, ru, sk, sr, sr_Latn, tr, uk]
 #, fuzzy
@@ -15264,15 +15007,9 @@ msgstr "Ustawienie wzrostu serii"
 msgid "Series limit"
 msgstr "Ograniczenie serii"
 
-msgid "Series name"
-msgstr ""
-
 #, fuzzy
 msgid "Series settings"
 msgstr "Ustawienia filtru"
-
-msgid "Series style"
-msgstr ""
 
 #, fuzzy
 msgid "Series total setting"
@@ -15503,9 +15240,6 @@ msgstr "Pokaż nazwy metryk"
 msgid "Show Null Values"
 msgstr ""
 
-msgid "Show Range Filter"
-msgstr ""
-
 #, fuzzy
 msgid "Show SQL"
 msgstr "Pokaż logi"
@@ -15599,9 +15333,6 @@ msgstr "Pokaż sumy częściowe kolumn"
 msgid "Show columns total"
 msgstr "Pokaż sumę kolumn"
 
-msgid "Show data points as circle markers on the lines"
-msgstr ""
-
 #, fuzzy
 msgid "Show empty columns"
 msgstr "Pokaż puste kolumny"
@@ -15661,9 +15392,6 @@ msgstr ""
 msgid "Show or hide the X axis line, ticks, and labels"
 msgstr ""
 
-msgid "Show or hide the Y axis line and labels"
-msgstr ""
-
 msgid "Show or hide the Y axis line, ticks, gridlines, and labels"
 msgstr ""
 
@@ -15708,9 +15436,6 @@ msgid "Show summary"
 msgstr "Pokaż podsumowanie"
 
 msgid "Show the main ticks on axes."
-msgstr ""
-
-msgid "Show the value on top of the bar"
 msgstr ""
 
 #, fuzzy
@@ -16104,9 +15829,6 @@ msgstr "Pokaż legendę"
 msgid "Sort metric"
 msgstr "Sortuj metryki"
 
-msgid "Sort order"
-msgstr ""
-
 #, fuzzy
 msgid "Sort query by"
 msgstr "Eksportuj zapytanie"
@@ -16216,9 +15938,6 @@ msgstr "Układaj serie jedną na drugiej"
 #, fuzzy
 msgid "Stacked"
 msgstr "Zestawiony"
-
-msgid "Stacked Bars"
-msgstr ""
 
 msgid "Stacked Style"
 msgstr "Styl zestawiony"
@@ -16463,15 +16182,6 @@ msgstr ""
 
 msgid "Sum"
 msgstr "Suma"
-
-msgid "Sum as Fraction of Columns"
-msgstr ""
-
-msgid "Sum as Fraction of Rows"
-msgstr ""
-
-msgid "Sum as Fraction of Total"
-msgstr ""
 
 msgid "Sum of values over specified period"
 msgstr "Suma wartości w określonym okresie"
@@ -17690,13 +17400,6 @@ msgid ""
 "                expressions."
 msgstr ""
 
-msgid ""
-"The periodicity over which to pivot time. Users can provide\n"
-"            \"Pandas\" offset alias.\n"
-"            Click on the info bubble for more details on accepted "
-"\"freq\" expressions."
-msgstr ""
-
 msgid "The pixel radius"
 msgstr "Promień w pikselach"
 
@@ -18785,9 +18488,6 @@ msgstr "Ten folder obsługuje tylko kolumny"
 msgid "This folder only supports metrics"
 msgstr "Ten folder obsługuje tylko metryki"
 
-msgid "This functionality is disabled in your environment for security reasons."
-msgstr ""
-
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
 # lv, ru, sk, sr, sr_Latn, tr, uk]
 #, fuzzy
@@ -19007,10 +18707,9 @@ msgstr ""
 
 msgid ""
 "This update would change the connection's effective destination "
-"(host/port, engine parameters, SSH tunnel endpoint, or OAuth2 endpoint "
-"URIs) while reusing the stored credential. Provide the real password (or "
-"SSH tunnel credential / OAuth2 client secret) to confirm a connection "
-"move."
+"(host/port, engine parameters, or SSH tunnel endpoint) while reusing the "
+"stored credential. Provide the real password (or SSH tunnel credential) "
+"to confirm a connection move."
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
@@ -19264,9 +18963,6 @@ msgstr ""
 "Łańcuch czasu jest niejednoznaczny. Proszę określić [%(human_readable)s "
 "temu] lub [%(human_readable)s później]."
 
-msgid "Time-series Percent Change"
-msgstr ""
-
 #, fuzzy
 msgid "Time-series Period Pivot"
 msgstr "Pivot okresowy szeregów czasowych"
@@ -19433,10 +19129,6 @@ msgstr "Razem"
 #, python-format
 msgid "Total (%(aggfunc)s)"
 msgstr "Razem (%(aggfunc)s)"
-
-#, python-format
-msgid "Total (%(aggregatorName)s)"
-msgstr ""
 
 msgid ""
 "Total angle covered by the chart, in degrees. 360° draws a full circle "
@@ -20124,9 +19816,6 @@ msgstr ""
 msgid "Use a log scale"
 msgstr "Użyj skali logarytmicznej"
 
-msgid "Use a log scale for the X-axis"
-msgstr ""
-
 msgid "Use a log scale for the Y-axis"
 msgstr "Użyj skali logarytmicznej dla osi Y"
 
@@ -20431,9 +20120,6 @@ msgstr "Pionowy"
 msgid "Vertical (Left)"
 msgstr "Pionowy (lewy)"
 
-msgid "Vertical layout (rows)"
-msgstr ""
-
 #, fuzzy
 msgid "View"
 msgstr "Widok"
@@ -20613,12 +20299,6 @@ msgstr ""
 "Wizualizuje, jak jedna metryka zmienia się między głównymi podziałami "
 "kraju (stany, prowincje itp.) na mapie choropletycznej. Wartość każdej "
 "jednostki zwiększa się po najechaniu na jej granicę."
-
-msgid ""
-"Visualizes many different time-series objects in a single chart. This "
-"chart is being deprecated and we recommend using the Time-series Chart "
-"instead."
-msgstr ""
 
 msgid ""
 "Visualizes the words in a column that appear the most often. Bigger font "
@@ -20837,12 +20517,6 @@ msgstr ""
 msgid "When checked, the map will zoom to your data after each query"
 msgstr "Po zaznaczeniu mapa będzie przybliżać do danych po każdym zapytaniu."
 
-msgid ""
-"When enabled, increasing candles use the increase color and decreasing "
-"candles use the decrease color. Turn off to use one series color, with a "
-"filled body for increases and a hollow body for decreases."
-msgstr ""
-
 #, fuzzy
 msgid ""
 "When enabled, the axis will display labels for the minimum and maximum "
@@ -21011,12 +20685,6 @@ msgstr "Czy wyświetlać nazwę miary jako tytuł."
 msgid "Whether to display the metric name as a title"
 msgstr "Czy wyświetlać nazwę miary jako tytuł."
 
-msgid "Whether to display the min and max values of the X-axis"
-msgstr ""
-
-msgid "Whether to display the min and max values of the Y-axis"
-msgstr ""
-
 #, fuzzy
 msgid "Whether to display the numbered column"
 msgstr "Czy wyświetlać linię trendu"
@@ -21030,9 +20698,6 @@ msgstr "Czy uwzględniać procent w podpowiedzi"
 
 msgid "Whether to display the stroke"
 msgstr "Czy wyświetlać obrys"
-
-msgid "Whether to display the time range interactive selector"
-msgstr ""
 
 msgid "Whether to display the timestamp"
 msgstr "Czy wyświetlać znacznik czasu"
@@ -21110,9 +20775,6 @@ msgstr "Czy sortować malejąco lub rosnąco"
 msgid "Whether to sort results by the selected metric in descending order."
 msgstr "Czy sortować wyniki według wybranej metryki w kolejności malejącej"
 
-msgid "Whether to sort tooltip by the selected metric in descending order."
-msgstr ""
-
 msgid ""
 "Whether to sort tooltip by the selected metric in descending order. On "
 "stacked charts, values are shown in ascending order."
@@ -21180,9 +20842,6 @@ msgstr "Napisz opis swojego zapytania"
 msgid "Write a handlebars template to render the data"
 msgstr "Napisz szablon handlebars do renderowania danych"
 
-msgid "X AXIS TITLE MARGIN"
-msgstr ""
-
 msgid "X Axis"
 msgstr "Oś X"
 
@@ -21216,17 +20875,11 @@ msgstr "Margines tytułu osi Y"
 msgid "X Axis title margin"
 msgstr ""
 
-msgid "X Log Scale"
-msgstr ""
-
 msgid "X Tick Layout"
 msgstr "Układ znaczników X"
 
 msgid "X axis title margin"
 msgstr "MARGINES TYTUŁU OSI X"
-
-msgid "X bounds"
-msgstr ""
 
 #, fuzzy
 msgid "X-Axis Sort Ascending"
@@ -21247,17 +20900,8 @@ msgstr "Przedział XScale"
 msgid "XYZ"
 msgstr ""
 
-msgid "Y 2 bounds"
-msgstr ""
-
-msgid "Y AXIS TITLE MARGIN"
-msgstr ""
-
 msgid "Y Axis"
 msgstr "Oś Y"
-
-msgid "Y Axis 2 Bounds"
-msgstr ""
 
 msgid "Y Axis Bounds"
 msgstr "Granice osi Y"
@@ -21287,9 +20931,6 @@ msgstr "Skala logarytmiczna Y"
 
 msgid "Y axis title margin"
 msgstr "MARGINES TYTUŁU OSI Y"
-
-msgid "Y bounds"
-msgstr ""
 
 #, fuzzy
 msgid "Y-Axis"
@@ -21482,9 +21123,6 @@ msgid ""
 msgstr ""
 "Nie możesz usunąć ostatniego filtra czasowego, ponieważ jest on używany "
 "do filtrowania zakresów czasowych w pulpitach nawigacyjnych."
-
-msgid "You cannot use 45° tick layout along with the time range filter"
-msgstr ""
 
 #, python-format
 msgid "You do not have access to the data behind this chart (tables: %s)."
@@ -21702,9 +21340,6 @@ msgstr ""
 
 msgid "You need to"
 msgstr "Musisz"
-
-msgid "You need to configure HTML sanitization to use CSS"
-msgstr ""
 
 msgid ""
 "You updated the values in the control panel, but the chart was not "
@@ -21997,9 +21632,6 @@ msgstr "tło"
 msgid "banana"
 msgstr "banan"
 
-msgid "basis"
-msgstr ""
-
 #, fuzzy
 msgid "begins with"
 msgstr "Zaloguj się za pomocą"
@@ -22042,9 +21674,6 @@ msgstr "używając"
 #, fuzzy
 msgid "cannot be empty"
 msgstr "nie może być puste"
-
-msgid "cardinal"
-msgstr ""
 
 #, fuzzy
 msgid "cell bar"
@@ -22230,9 +21859,6 @@ msgstr "deck.gl Wykres punktowy"
 msgid "deck.gl Screen Grid"
 msgstr "deck.gl Siatka ekranowa"
 
-msgid "deck.gl charts"
-msgstr ""
-
 #, fuzzy
 msgid "deck.gl layers (charts)"
 msgstr "deck.gl wykresy"
@@ -22334,9 +21960,6 @@ msgstr "Pusty wiersz"
 #, fuzzy
 msgid "entries"
 msgstr "wpisy"
-
-msgid "entries per page"
-msgstr ""
 
 #. do-not-translate
 #, fuzzy
@@ -22542,9 +22165,6 @@ msgstr "lewo"
 msgid "less than {min} {name}"
 msgstr "mniej niż {min} {name}"
 
-msgid "linear"
-msgstr ""
-
 #, fuzzy
 msgid "locale_key"
 msgstr "Skala logarytmiczna"
@@ -22594,9 +22214,6 @@ msgstr "minuta"
 
 msgid "minute(s)"
 msgstr "minuty"
-
-msgid "monotone"
-msgstr ""
 
 msgid "month"
 msgstr "miesiąc"
@@ -22674,9 +22291,6 @@ msgstr "NUMERYCZNY"
 
 msgid "numeric type icon"
 msgstr "ikona typu numerycznego"
-
-msgid "nvd3"
-msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, fr,
 # ja, lv, ro, ru, sk, sr, sr_Latn, tr, uk]
@@ -22885,14 +22499,6 @@ msgstr "przesunięty"
 msgid "std"
 msgstr "std"
 
-#. do-not-translate
-msgid "step-after"
-msgstr ""
-
-#. do-not-translate
-msgid "step-before"
-msgstr ""
-
 #, fuzzy
 msgid "stopped"
 msgstr "zatrzymany"
@@ -23006,9 +22612,6 @@ msgstr "wartości rosnące"
 #, fuzzy
 msgid "value descending"
 msgstr "wartości malejące"
-
-msgid "valuename"
-msgstr ""
 
 #, fuzzy
 msgid "var"

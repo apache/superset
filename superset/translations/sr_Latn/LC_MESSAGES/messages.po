@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-23 00:48+0300\n"
+"POT-Creation-Date: 2026-09-22 10:58-0700\n"
 "PO-Revision-Date: 2026-06-14 13:20+0200\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: sr_Latn\n"
@@ -152,9 +152,6 @@ msgstr " za detalje."
 #, python-format
 msgid " near '%(highlight)s'"
 msgstr " blizu '%(highlight)s'"
-
-msgid " source code of Superset's sandboxed parser"
-msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, ru, sk, sl, uk, zh, zh_TW]
 msgid ""
@@ -636,13 +633,6 @@ msgstr "%s od %s izabrano"
 #, python-format
 msgid "%s recipients"
 msgstr "%s primalaca"
-
-#, python-format
-msgid "%s record"
-msgid_plural "%s records..."
-msgstr[0] ""
-msgstr[1] ""
-msgstr[2] ""
 
 #, python-format
 msgid "%s record..."
@@ -1200,12 +1190,6 @@ msgid ""
 " bars that extend left and right from a central axis."
 msgstr ""
 
-msgid ""
-"A candlestick chart shows opening, closing, high, and low values for each"
-" period. It is commonly used for financial and other time-series range "
-"analysis."
-msgstr ""
-
 # ru, sk, uk]
 msgid "A comma separated list of columns that should be parsed as dates"
 msgstr "Lista kolona razdvojenih zapetama koje treba tumačiti kao datume"
@@ -1457,12 +1441,6 @@ msgstr "Asinhrono izvršavanje upita"
 msgid "AUG"
 msgstr "AVG"
 
-msgid "AXIS TITLE MARGIN"
-msgstr ""
-
-msgid "AXIS TITLE POSITION"
-msgstr ""
-
 msgid "Aborted"
 msgstr "Prekinuto"
 
@@ -1665,9 +1643,6 @@ msgstr "Dodaj detalje sertifikacije za ovu kontrolnu tablu"
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
 msgid "Add color for positive/negative change"
 msgstr "Dodaj boju za pozitivnu/negativnu promenu"
-
-msgid "Add colors to cell bars for +/-"
-msgstr ""
 
 msgid "Add colors to cell bars for +/- for all columns"
 msgstr "Dodaj boje trakama ćelija za +/- za sve kolone"
@@ -2000,11 +1975,6 @@ msgstr ""
 "Agregatna funkcija primenjena na listu tačaka u svakom klasteru za izradu"
 " oznake klastera."
 
-msgid ""
-"Aggregate function to apply when pivoting and computing the total rows "
-"and columns"
-msgstr ""
-
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
 msgid ""
 "Aggregates data within the boundary of grid cells and maps the aggregated"
@@ -2020,9 +1990,6 @@ msgstr "Agregacija"
 # fr, ja, lv, mi, ru, sk, uk]
 msgid "Aggregation Method"
 msgstr "Metod agregacije"
-
-msgid "Aggregation function"
-msgstr ""
 
 msgid ""
 "Aggregation used for the summary row. By default each metric keeps its "
@@ -3214,9 +3181,6 @@ msgstr ""
 msgid "Arrow"
 msgstr "Strelica"
 
-msgid "Ascending"
-msgstr ""
-
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
 msgid "Assign a set of parameters as"
 msgstr "Dodeli skup parametara kao"
@@ -3314,9 +3278,6 @@ msgstr "Automatska veličina ove kolone"
 msgid "Autosize all columns"
 msgstr "Automatska veličina svih kolona"
 
-msgid "Available Handlebars Helpers in Superset:"
-msgstr ""
-
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Available sorting modes:"
 msgstr "Dostupni režimi sortiranja:"
@@ -3413,9 +3374,6 @@ msgstr ""
 "Stubičasti grafikoni se koriste za prikazivanje metrika kao serije "
 "stubova."
 
-msgid "Bar Values"
-msgstr ""
-
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
 msgid "Bar orientation"
 msgstr "Orijentacija stubova"
@@ -3443,10 +3401,6 @@ msgstr ""
 #, python-format
 msgid "Base layer map style. See MapLibre documentation: %s"
 msgstr "Stil mape osnovnog sloja. Pogledajte MapLibre dokumentaciju: %s"
-
-#, python-format
-msgid "Base layer map style. See Mapbox documentation: %s"
-msgstr ""
 
 # fr, ja, lv, mi, ru, sk, uk]
 msgid "Base slope"
@@ -3655,9 +3609,6 @@ msgstr ""
 # zh_TW]
 msgid "Bubble Chart"
 msgstr "Grafikon mehurića"
-
-msgid "Bubble Chart (legacy)"
-msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Bubble Color"
@@ -3930,17 +3881,6 @@ msgstr "Otkaži upit pri događaju zatvaranja prozora"
 
 msgid "Cancellation not available due to missing abort handler"
 msgstr "Otkazivanje nije moguće zbog nedostatka upravljača prekidom"
-
-msgid "Candlestick"
-msgstr ""
-
-msgid "Candlestick Chart"
-msgstr ""
-
-msgid ""
-"Candlestick draws a filled body between open and close. OHLC draws ticks "
-"for open and close on a high-low stem."
-msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Cannot access the query"
@@ -4876,9 +4816,6 @@ msgstr "Zatvori karticu"
 msgid "Close version history"
 msgstr ""
 
-msgid "Closing value for each period."
-msgstr ""
-
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Cluster label aggregator"
 msgstr "Agregator oznaka klastera"
@@ -4975,9 +4912,6 @@ msgstr "Prelomne tačke boje"
 msgid "Color by"
 msgstr "Boja po"
 
-msgid "Color by direction"
-msgstr ""
-
 msgid "Color field must be a hex color (#rrggbb) or 'rgb(r, g, b)'"
 msgstr "Polje za boju mora biti heksadecimalna boja (#rrggbb) ili 'rgb(r, g, b)'"
 
@@ -5007,14 +4941,6 @@ msgstr "Boja ciljne lokacije"
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Color scheme"
 msgstr "Šema boja"
-
-msgid ""
-"Color used when the close value is greater than or equal to the open "
-"value."
-msgstr ""
-
-msgid "Color used when the close value is less than the open value."
-msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, ru, sk, sl, uk]
 msgid ""
@@ -5270,12 +5196,6 @@ msgstr ""
 "Upoređuje kako se metrika menja tokom vremena između različitih grupa. "
 "Svaka grupa je mapirana na red, a promena tokom vremena se prikazuje "
 "dužinom traka i bojom."
-
-msgid ""
-"Compares metrics between different time periods. Displays time series "
-"data across multiple periods (like weeks or months) to show period-over-"
-"period trends and patterns."
-msgstr ""
 
 msgid ""
 "Compares the current time period against equivalent past periods by "
@@ -5705,18 +5625,6 @@ msgstr ""
 msgid "Count"
 msgstr "Broj"
 
-msgid "Count Unique Values"
-msgstr ""
-
-msgid "Count as Fraction of Columns"
-msgstr ""
-
-msgid "Count as Fraction of Rows"
-msgstr ""
-
-msgid "Count as Fraction of Total"
-msgstr ""
-
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, tr, uk, zh, zh_TW]
 msgid "Country"
 msgstr "Država"
@@ -5791,12 +5699,6 @@ msgstr "Kreiraj indeks dataframe-a"
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, tr, uk]
 msgid "Create dataset"
 msgstr "Kreiraj skup podataka"
-
-msgid "Create matrix columns by placing charts side-by-side"
-msgstr ""
-
-msgid "Create matrix rows by stacking charts vertically"
-msgstr ""
 
 # de, es, fa, fr, it, ja, ko, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, tr, uk,
 # zh, zh_TW]
@@ -6836,21 +6738,6 @@ msgstr ""
 "Podrazumevana vrednost se automatski postavlja kada je označeno "
 "„Podrazumevano izaberi prvu vrednost filtera“"
 
-msgid ""
-"Define a function that receives the input and outputs the content for a "
-"tooltip"
-msgstr ""
-
-msgid "Define a function that returns a URL to navigate to when user clicks"
-msgstr ""
-
-msgid ""
-"Define a javascript function that receives the data array used in the "
-"visualization and is expected to return a modified version of that array."
-" This can be used to alter properties of the data, filter, or enrich the "
-"array."
-msgstr ""
-
 # lv, pt_BR, ru, sk, uk]
 msgid "Define color breakpoints for the data"
 msgstr "Definišite granične vrednosti boja za podatke"
@@ -7258,9 +7145,6 @@ msgid "Depends on"
 msgstr ""
 
 msgid "Deployment default"
-msgstr ""
-
-msgid "Descending"
 msgstr ""
 
 # de, es, fa, fr, it, ja, ko, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, uk, zh,
@@ -7891,9 +7775,6 @@ msgstr "Trajanje u ms (100.40008 => 100ms 400µs 80ns)"
 msgid "Duration in ms (10500 => 0:00:10.5)"
 msgstr "Trajanje u ms (10500 => 0:00:10.5)"
 
-msgid "Duration in ms (10500 => 0:10.5)"
-msgstr ""
-
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Duration in ms (66000 => 1m 6s)"
 msgstr "Trajanje u ms (66000 => 1m 6s)"
@@ -8297,9 +8178,6 @@ msgstr "Omogući prognoziranje"
 msgid "Enable graph roaming"
 msgstr "Omogući slobodno kretanje po grafikonu"
 
-msgid "Enable horizontal layout (columns)"
-msgstr ""
-
 msgid "Enable icons"
 msgstr "Omogući ikone"
 
@@ -8324,9 +8202,6 @@ msgstr "Omogući proširivanje redova u šemama"
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Enable server side pagination of results (experimental feature)"
 msgstr "Omogući paginaciju rezultata na strani servera (eksperimentalna funkcija)"
-
-msgid "Enable vertical layout (rows)"
-msgstr ""
 
 # pt_BR, ru, sk, uk]
 msgid "Enables rendering of icons for GeoJSON points"
@@ -8987,9 +8862,6 @@ msgstr "Dodatne kontrole"
 msgid "Extra Parameters"
 msgstr "Dodatni parametri"
 
-msgid "Extra data for JS"
-msgstr ""
-
 #, python-brace-format
 msgid ""
 "Extra data to specify table metadata, such as `{ \"warning_markdown\": "
@@ -9488,9 +9360,6 @@ msgstr ""
 "(department = 'Finance' OR department = 'Marketing') AND (region = "
 "'Europe')."
 
-msgid "Financial"
-msgstr ""
-
 # de, es, fa, ja, lv, mi, nl, ru, sk, sl, tr, uk]
 msgid "Find"
 msgstr "Pronađi"
@@ -9605,11 +9474,6 @@ msgstr ""
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "For further instructions, consult the"
 msgstr "Za dalja uputstva, pogledajte"
-
-msgid ""
-"For more information about objects are in context in the scope of this "
-"function, refer to the"
-msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, ja, tr]
 #, fuzzy
@@ -9950,9 +9814,6 @@ msgstr "Veće ili jednako (>=)"
 msgid "Greater than (>)"
 msgstr "Veće od (>)"
 
-msgid "Green for increase, red for decrease"
-msgstr ""
-
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
 msgid "Grid"
 msgstr "Mreža"
@@ -10097,13 +9958,7 @@ msgstr "Sakriva liniju za vremensku seriju"
 msgid "Hierarchy"
 msgstr "Hijerarhija"
 
-msgid "High"
-msgstr ""
-
 msgid "High color"
-msgstr ""
-
-msgid "Highest value for each period."
 msgstr ""
 
 msgid "Histogram"
@@ -10128,9 +9983,6 @@ msgstr "Horizontalno (Vrh)"
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Horizontal alignment"
 msgstr "Horizontalno poravnanje"
-
-msgid "Horizontal layout (columns)"
-msgstr ""
 
 msgid "Host"
 msgstr "Host"
@@ -10825,9 +10677,6 @@ msgstr ""
 msgid "It’s not recommended to truncate Y axis in Bar chart."
 msgstr "Nije preporučljivo odsecati Y osu na trakastom grafikonu."
 
-msgid "It’s not recommended to truncate axis in Bar chart."
-msgstr ""
-
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, tr, uk, zh, zh_TW]
 msgid "JAN"
 msgstr "JAN"
@@ -10880,15 +10729,6 @@ msgstr "JUN"
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, tr, uk, zh, zh_TW]
 msgid "January"
 msgstr "Januar"
-
-msgid "JavaScript data interceptor"
-msgstr ""
-
-msgid "JavaScript onClick href"
-msgstr ""
-
-msgid "JavaScript tooltip generator"
-msgstr ""
 
 # de, es, fa, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
 msgid "Jinja templating"
@@ -11002,12 +10842,6 @@ msgstr "Jedinica veličine oznake"
 msgid "Label threshold"
 msgstr "Prag oznake"
 
-msgid "Label used for decreasing candles in the tooltip."
-msgstr ""
-
-msgid "Label used for increasing candles in the tooltip."
-msgstr ""
-
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Labelling"
 msgstr "Označavanje"
@@ -11015,15 +10849,6 @@ msgstr "Označavanje"
 # de, es, fa, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Labels"
 msgstr "Oznake"
-
-msgid "Labels for the marker lines"
-msgstr ""
-
-msgid "Labels for the markers"
-msgstr ""
-
-msgid "Labels for the ranges"
-msgstr ""
 
 # uk]
 msgid "Languages"
@@ -11321,9 +11146,6 @@ msgid ""
 "does not already have. Leave empty for legacy RBAC-only behavior."
 msgstr ""
 
-msgid "Limits the number of cells that get retrieved."
-msgstr ""
-
 msgid ""
 "Limits the number of cells that get retrieved. Not applied when non-"
 "additive metrics (e.g. ratios, COUNT_DISTINCT, AVG, percentiles) are "
@@ -11439,9 +11261,6 @@ msgstr "Lista grupa"
 msgid "List Roles"
 msgstr "Lista uloga"
 
-msgid "List Unique Values"
-msgstr ""
-
 # fr, ja, lv, mi, ru, sk, uk]
 msgid "List Users"
 msgstr "Lista korisnika"
@@ -11451,9 +11270,6 @@ msgid ""
 "toggles it on the chart"
 msgstr ""
 
-msgid "List of extra columns made available in JavaScript functions"
-msgstr ""
-
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
 msgid "List of n+1 values for bucketing metric into n buckets."
 msgstr "Lista od n+1 vrednosti za grupisanje metrike u n grupa."
@@ -11461,12 +11277,6 @@ msgstr "Lista od n+1 vrednosti za grupisanje metrike u n grupa."
 # es, fa, ja, lv, mi, pl, ru, sk, sl, uk]
 msgid "List of the column names that should be read"
 msgstr "Lista naziva kolona koje treba pročitati"
-
-msgid "List of values to mark with lines"
-msgstr ""
-
-msgid "List of values to mark with triangles"
-msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
 msgid "List updated"
@@ -11617,9 +11427,6 @@ msgstr "Geografska dužina i širina"
 msgid "Longitude of default viewport"
 msgstr "Geografska dužina podrazumevanog prikaza"
 
-msgid "Low"
-msgstr ""
-
 msgid "Low color"
 msgstr ""
 
@@ -11635,9 +11442,6 @@ msgstr ""
 # de, es, fa, fr, ja, lv, mi, nl, pl, ru, sk, sl, uk, zh, zh_TW]
 msgid "Lower threshold must be lower than upper threshold"
 msgstr "Donji prag mora biti manji od gornjeg praga"
-
-msgid "Lowest value for each period."
-msgstr ""
 
 msgid "MAR"
 msgstr "MAR"
@@ -11889,9 +11693,6 @@ msgstr "Srednja vrednost vrednosti tokom navedenog perioda"
 msgid "Mean values"
 msgstr "Srednje vrednosti"
 
-msgid "Median"
-msgstr ""
-
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid ""
 "Median edge width, the thickest edge will be 4 times thicker than the "
@@ -12097,9 +11898,6 @@ msgstr "Metrike"
 #, python-format
 msgid "Metrics (%s)"
 msgstr "Metrike (%s)"
-
-msgid "Metrics / Dimensions"
-msgstr ""
 
 msgid "Metrics can't be used for both rows and columns at the same time"
 msgstr "Metrike se ne mogu koristiti istovremeno za redove i kolone"
@@ -12351,9 +12149,6 @@ msgstr ""
 msgid "Moves the given set of dates by a specified interval."
 msgstr "Pomera dati skup datuma za navedeni interval."
 
-msgid "Moving averages"
-msgstr ""
-
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Multi-Dimensions"
 msgstr "Više dimenzija"
@@ -12484,11 +12279,6 @@ msgstr "Naziv ciljnih čvorova"
 # de, es, fa, ja, lv, mi, nl, ru, sk, sl, uk]
 msgid "Name of your tag"
 msgstr "Naziv vaše oznake"
-
-msgid ""
-"Name used for the candlestick series in the legend and tooltip when no "
-"series dimension is set."
-msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Name your database"
@@ -13139,9 +12929,6 @@ msgstr "Informacije o OAuth2 klijentu"
 msgid "OCT"
 msgstr "OKT"
 
-msgid "OHLC"
-msgstr ""
-
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "OK"
 msgstr "OK"
@@ -13330,9 +13117,6 @@ msgstr "Providnost balončića, 0 znači potpuno providno, 1 znači neprovidno"
 msgid "Opacity, expects values between 0 and 100"
 msgstr "Providnost, očekuje vrednosti između 0 i 100"
 
-msgid "Open"
-msgstr ""
-
 # de, es, fa, fr, it, ja, ko, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh,
 # zh_TW]
 msgid "Open Datasource tab"
@@ -13375,9 +13159,6 @@ msgstr "Otvori u SQL Lab-u"
 msgid "Open query in SQL Lab"
 msgstr "Otvori upit u SQL Lab-u"
 
-msgid "Opening value for each period."
-msgstr ""
-
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid ""
 "Operate the database in asynchronous mode, meaning that the queries are "
@@ -13414,11 +13195,6 @@ msgstr "Opcioni niz za d3 format datuma"
 # de, es, fa, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
 msgid "Optional d3 number format string"
 msgstr "Opcioni niz za d3 format broja"
-
-msgid ""
-"Optional dimension used to split the chart into multiple candlestick "
-"series."
-msgstr ""
 
 msgid ""
 "Optional metric used to scale the size of each dot. Dot areas are scaled "
@@ -13566,11 +13342,6 @@ msgstr ""
 "iz vremenskih filtera\" da pomerite period za poređenje za istu dužinu "
 "kao vaš vremenski opseg, i koristite \"Prilagođeno\" da podesite "
 "prilagođeni opseg za poređenje."
-
-msgid ""
-"Overlay simple moving averages of the close price (MA5, MA10, MA15, ...)."
-" Type a custom period to add it."
-msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
 msgid ""
@@ -13895,9 +13666,6 @@ msgstr "Izaberite naziv koji će vam pomoći da identifikujete ovu bazu podataka
 # de, es, fa, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
 msgid "Pick a nickname for how the database will display in Superset."
 msgstr "Izaberite nadimak za prikaz ove baze podataka u Superset-u."
-
-msgid "Pick a set of deck.gl charts to layer on top of one another"
-msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Pick a title for you annotation."
@@ -14603,9 +14371,6 @@ msgstr "Tip opsega"
 msgid "Ranges"
 msgstr "Opsezi"
 
-msgid "Ranges to highlight with shading"
-msgstr ""
-
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Ranking"
 msgstr "Rangiranje"
@@ -14665,22 +14430,9 @@ msgstr "Pravougaonik"
 msgid "Recurring (every)"
 msgstr "Ponavljajuće (svakih)"
 
-msgid "Red for increase, green for decrease"
-msgstr ""
-
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
 msgid "Redo the action"
 msgstr "Ponovi radnju"
-
-msgid "Reduce X ticks"
-msgstr ""
-
-msgid ""
-"Reduces the number of X-axis ticks to be rendered. If true, the x-axis "
-"will not overflow and labels may be missing. If false, a minimum width "
-"will be applied to columns and the width may overflow into an horizontal "
-"scroll."
-msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Refer to the"
@@ -15308,9 +15060,6 @@ msgstr "Detaljan opis alata"
 # de, es, fa, ja, lv, mi, nl, pt_BR, ru, sk, sl, tr, uk, zh, zh_TW]
 msgid "Right"
 msgstr "Desno"
-
-msgid "Right Axis Format"
-msgstr ""
 
 # de, es, fa, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Right Axis Metric"
@@ -15981,10 +15730,6 @@ msgstr "Skrolujte do dna da biste omogućili prepisivanje izmena. "
 # zh, zh_TW]
 msgid "Search"
 msgstr "Pretraga"
-
-#, python-format
-msgid "Search %s records"
-msgstr ""
 
 # de, es, fa, fr, it, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, tr, uk, zh,
 # zh_TW]
@@ -16791,9 +16536,6 @@ msgstr "Stil serije"
 msgid "Series chart type (line, bar etc)"
 msgstr "Tip grafikona serije (linija, traka itd)"
 
-msgid "Series colors"
-msgstr ""
-
 # ru, sk, uk]
 msgid "Series decrease setting"
 msgstr "Podešavanje smanjenja serije"
@@ -16806,15 +16548,9 @@ msgstr "Podešavanje povećanja serije"
 msgid "Series limit"
 msgstr "Ograničenje serija"
 
-msgid "Series name"
-msgstr ""
-
 # uk]
 msgid "Series settings"
 msgstr "Podešavanja serija"
-
-msgid "Series style"
-msgstr ""
 
 # uk]
 msgid "Series total setting"
@@ -17056,9 +16792,6 @@ msgstr "Prikaži nazive metrika"
 msgid "Show Null Values"
 msgstr ""
 
-msgid "Show Range Filter"
-msgstr ""
-
 msgid "Show SQL"
 msgstr "Prikaži SQL"
 
@@ -17155,9 +16888,6 @@ msgstr "Prikaži podzbir kolona"
 msgid "Show columns total"
 msgstr "Prikaži ukupan zbir kolona"
 
-msgid "Show data points as circle markers on the lines"
-msgstr ""
-
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
 msgid "Show empty columns"
 msgstr "Prikaži prazne kolone"
@@ -17223,9 +16953,6 @@ msgstr ""
 msgid "Show or hide the X axis line, ticks, and labels"
 msgstr ""
 
-msgid "Show or hide the Y axis line and labels"
-msgstr ""
-
 msgid "Show or hide the Y axis line, ticks, gridlines, and labels"
 msgstr ""
 
@@ -17274,9 +17001,6 @@ msgid "Show summary"
 msgstr "Prikaži sažetak"
 
 msgid "Show the main ticks on axes."
-msgstr ""
-
-msgid "Show the value on top of the bar"
 msgstr ""
 
 # fr, ja, lv, mi, ru, sk, uk]
@@ -17693,9 +17417,6 @@ msgstr "Sortiraj legendu"
 msgid "Sort metric"
 msgstr "Metrika za sortiranje"
 
-msgid "Sort order"
-msgstr ""
-
 # ja, lv, mi, ru, sk, sl, uk]
 msgid "Sort query by"
 msgstr "Sortiraj upit po"
@@ -17809,9 +17530,6 @@ msgstr "Slaganje serija jedne na druge"
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Stacked"
 msgstr "Slagano"
-
-msgid "Stacked Bars"
-msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Stacked Style"
@@ -18092,15 +17810,6 @@ msgstr ""
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Sum"
 msgstr "Zbir"
-
-msgid "Sum as Fraction of Columns"
-msgstr ""
-
-msgid "Sum as Fraction of Rows"
-msgstr ""
-
-msgid "Sum as Fraction of Total"
-msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Sum of values over specified period"
@@ -19360,13 +19069,6 @@ msgid ""
 "                expressions."
 msgstr ""
 
-msgid ""
-"The periodicity over which to pivot time. Users can provide\n"
-"            \"Pandas\" offset alias.\n"
-"            Click on the info bubble for more details on accepted "
-"\"freq\" expressions."
-msgstr ""
-
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "The pixel radius"
 msgstr "Radijus u pikselima"
@@ -20528,9 +20230,6 @@ msgstr "Ova fascikla podržava samo kolone"
 msgid "This folder only supports metrics"
 msgstr "Ova fascikla podržava samo metrike"
 
-msgid "This functionality is disabled in your environment for security reasons."
-msgstr ""
-
 # ru, sk, uk]
 msgid ""
 "This is a default columns folder. Its name cannot be changed or removed. "
@@ -20743,10 +20442,9 @@ msgstr ""
 
 msgid ""
 "This update would change the connection's effective destination "
-"(host/port, engine parameters, SSH tunnel endpoint, or OAuth2 endpoint "
-"URIs) while reusing the stored credential. Provide the real password (or "
-"SSH tunnel credential / OAuth2 client secret) to confirm a connection "
-"move."
+"(host/port, engine parameters, or SSH tunnel endpoint) while reusing the "
+"stored credential. Provide the real password (or SSH tunnel credential) "
+"to confirm a connection move."
 msgstr ""
 
 # fr, ja, lv, mi, pt_BR, ru, sk, uk]
@@ -21025,9 +20723,6 @@ msgstr ""
 "Vremenski niz je nejasan. Navedite [pre %(human_readable)s] ili "
 "[%(human_readable)s kasnije]."
 
-msgid "Time-series Percent Change"
-msgstr ""
-
 # de, es, fa, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Time-series Period Pivot"
 msgstr "Pivot perioda vremenske serije"
@@ -21202,10 +20897,6 @@ msgstr "Ukupno"
 #, python-format
 msgid "Total (%(aggfunc)s)"
 msgstr "Ukupno (%(aggfunc)s)"
-
-#, python-format
-msgid "Total (%(aggregatorName)s)"
-msgstr ""
 
 msgid ""
 "Total angle covered by the chart, in degrees. 360° draws a full circle "
@@ -21918,9 +21609,6 @@ msgstr ""
 msgid "Use a log scale"
 msgstr "Koristi logaritamsku skalu"
 
-msgid "Use a log scale for the X-axis"
-msgstr ""
-
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Use a log scale for the Y-axis"
 msgstr "Koristi logaritamsku skalu za Y-osu"
@@ -22249,9 +21937,6 @@ msgstr "Vertikalno"
 msgid "Vertical (Left)"
 msgstr "Uspravno (levo)"
 
-msgid "Vertical layout (rows)"
-msgstr ""
-
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
 msgid "View"
 msgstr "Prikaz"
@@ -22454,12 +22139,6 @@ msgstr ""
 "jedinice države (države, provincije itd.) na horoplet mapi. Vrednost "
 "svake jedinice se ističe kada pređete mišem preko odgovarajuće geografske"
 " granice."
-
-msgid ""
-"Visualizes many different time-series objects in a single chart. This "
-"chart is being deprecated and we recommend using the Time-series Chart "
-"instead."
-msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid ""
@@ -22714,12 +22393,6 @@ msgstr "Kada je navedena sekundarna mera, koristi se linearna skala boja."
 msgid "When checked, the map will zoom to your data after each query"
 msgstr "Kada je označeno, mapa će se zumirati na vaše podatke nakon svakog upita"
 
-msgid ""
-"When enabled, increasing candles use the increase color and decreasing "
-"candles use the decrease color. Turn off to use one series color, with a "
-"filled body for increases and a hollow body for decreases."
-msgstr ""
-
 # ru, sk, uk]
 msgid ""
 "When enabled, the axis will display labels for the minimum and maximum "
@@ -22911,12 +22584,6 @@ msgstr "Da li prikazati naziv metrike"
 msgid "Whether to display the metric name as a title"
 msgstr "Da li prikazati naziv metrike kao naslov"
 
-msgid "Whether to display the min and max values of the X-axis"
-msgstr ""
-
-msgid "Whether to display the min and max values of the Y-axis"
-msgstr ""
-
 msgid "Whether to display the numbered column"
 msgstr "Da li prikazati numerisanu kolonu"
 
@@ -22931,9 +22598,6 @@ msgstr "Da li prikazati procentualnu vrednost u oblačiću"
 # de, es, fa, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
 msgid "Whether to display the stroke"
 msgstr "Da li prikazati konturu"
-
-msgid "Whether to display the time range interactive selector"
-msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Whether to display the timestamp"
@@ -23034,9 +22698,6 @@ msgstr "Da li sortirati silazno ili uzlazno"
 msgid "Whether to sort results by the selected metric in descending order."
 msgstr "Da li sortirati rezultate po odabranoj metrici u silaznom redosledu."
 
-msgid "Whether to sort tooltip by the selected metric in descending order."
-msgstr ""
-
 msgid ""
 "Whether to sort tooltip by the selected metric in descending order. On "
 "stacked charts, values are shown in ascending order."
@@ -23118,9 +22779,6 @@ msgstr "Unesite opis za vaš upit"
 msgid "Write a handlebars template to render the data"
 msgstr "Napišite Handlebars šablon za prikaz podataka"
 
-msgid "X AXIS TITLE MARGIN"
-msgstr ""
-
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "X Axis"
 msgstr "X osa"
@@ -23156,9 +22814,6 @@ msgstr "Margina naslova X ose"
 msgid "X Axis title margin"
 msgstr ""
 
-msgid "X Log Scale"
-msgstr ""
-
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "X Tick Layout"
 msgstr "Raspored oznaka X ose"
@@ -23166,9 +22821,6 @@ msgstr "Raspored oznaka X ose"
 # es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sl, uk, zh, zh_TW]
 msgid "X axis title margin"
 msgstr "Margina naslova X ose"
-
-msgid "X bounds"
-msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
 msgid "X-Axis Sort Ascending"
@@ -23191,18 +22843,9 @@ msgstr "Interval skale X"
 msgid "XYZ"
 msgstr "XYZ"
 
-msgid "Y 2 bounds"
-msgstr ""
-
-msgid "Y AXIS TITLE MARGIN"
-msgstr ""
-
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Y Axis"
 msgstr "Y osa"
-
-msgid "Y Axis 2 Bounds"
-msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Y Axis Bounds"
@@ -23238,9 +22881,6 @@ msgstr "Y logaritamska skala"
 # es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sl, uk, zh, zh_TW]
 msgid "Y axis title margin"
 msgstr "Margina naslova Y ose"
-
-msgid "Y bounds"
-msgstr ""
 
 # es, fa, fr, ja, lv, mi, ru, sk, sl, uk]
 msgid "Y-Axis"
@@ -23451,9 +23091,6 @@ msgid ""
 msgstr ""
 "Ne možete obrisati poslednji vremenski filter jer se koristi za filtere "
 "vremenskog opsega u kontrolnim tablama."
-
-msgid "You cannot use 45° tick layout along with the time range filter"
-msgstr ""
 
 #, python-format
 msgid "You do not have access to the data behind this chart (tables: %s)."
@@ -23684,9 +23321,6 @@ msgstr ""
 
 msgid "You need to"
 msgstr "Morate"
-
-msgid "You need to configure HTML sanitization to use CSS"
-msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid ""
@@ -24007,9 +23641,6 @@ msgstr "boja pozadine"
 msgid "banana"
 msgstr "banana"
 
-msgid "basis"
-msgstr ""
-
 # uk]
 msgid "begins with"
 msgstr "počinje sa"
@@ -24057,9 +23688,6 @@ msgstr "koristeći"
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, tr, uk, zh, zh_TW]
 msgid "cannot be empty"
 msgstr "ne može biti prazno"
-
-msgid "cardinal"
-msgstr ""
 
 msgid "cell bar"
 msgstr "traka ćelije"
@@ -24259,9 +23887,6 @@ msgstr "deck.gl dijagram rasejanja"
 msgid "deck.gl Screen Grid"
 msgstr "deck.gl mreža ekrana"
 
-msgid "deck.gl charts"
-msgstr ""
-
 # uk]
 msgid "deck.gl layers (charts)"
 msgstr "deck.gl slojevi (grafikoni)"
@@ -24372,9 +23997,6 @@ msgstr "ceo red"
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
 msgid "entries"
 msgstr "unosi"
-
-msgid "entries per page"
-msgstr ""
 
 # de, es, fa, ja, lv, mi, nl, pt_BR, sk, sl, uk]
 #. do-not-translate
@@ -24587,9 +24209,6 @@ msgstr "levo"
 msgid "less than {min} {name}"
 msgstr "manje od {min} {name}"
 
-msgid "linear"
-msgstr ""
-
 msgid "locale_key"
 msgstr "locale_key"
 
@@ -24643,9 +24262,6 @@ msgstr "minut"
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, tr, uk, zh, zh_TW]
 msgid "minute(s)"
 msgstr "minut(a)"
-
-msgid "monotone"
-msgstr ""
 
 # de, es, fa, fr, it, ja, ko, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, tr, uk,
 # zh, zh_TW]
@@ -24714,9 +24330,6 @@ msgstr "numerički"
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
 msgid "numeric type icon"
 msgstr "ikona numeričkog tipa"
-
-msgid "nvd3"
-msgstr ""
 
 # lv, ru, sk, uk]
 msgid "of"
@@ -24943,14 +24556,6 @@ msgstr "naizmenično"
 msgid "std"
 msgstr "std"
 
-#. do-not-translate
-msgid "step-after"
-msgstr ""
-
-#. do-not-translate
-msgid "step-before"
-msgstr ""
-
 # de, es, fa, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
 msgid "stopped"
 msgstr "zaustavljeno"
@@ -25063,9 +24668,6 @@ msgstr "vrednost rastuće"
 # de, es, fa, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "value descending"
 msgstr "vrednost opadajuće"
-
-msgid "valuename"
-msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
 msgid "var"
