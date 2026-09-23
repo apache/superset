@@ -18,7 +18,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Apache Superset 0.22.1\n"
 "Report-Msgid-Bugs-To: zhouyao94@qq.com\n"
-"POT-Creation-Date: 2026-09-22 18:53+0000\n"
+"POT-Creation-Date: 2026-09-23 14:27+0000\n"
 "PO-Revision-Date: 2019-01-04 22:19+0800\n"
 "Last-Translator: cdmikechen\n"
 "Language: zh\n"
@@ -253,6 +253,10 @@ msgstr "%(label)s 文件"
 #, python-format
 msgid "%(name)s deleted successfully"
 msgstr "%(name)s 已成功删除"
+
+#, python-format
+msgid "%(name)s is not a column on this dataset."
+msgstr ""
 
 #, python-format
 msgid "%(name)s restored successfully"
@@ -10654,6 +10658,9 @@ msgstr "未找到匹配结果"
 msgid "No multilayer deck.gl charts are currently added to this dashboard."
 msgstr "当前仪表板未添加任何多层 deck.gl 图表。"
 
+msgid "No partition column is set."
+msgstr ""
+
 msgid "No records found"
 msgstr "没有找到任何记录"
 
@@ -16123,6 +16130,9 @@ msgid ""
 "partition column and the mapped column."
 msgstr ""
 
+msgid "The partition filter mapping was cleared: its column is gone"
+msgstr ""
+
 #, python-format
 msgid "The password provided for username \"%(username)s\" is incorrect."
 msgstr "用户名 \"%(username)s\" 提供的密码不正确。"
@@ -16453,6 +16463,9 @@ msgstr "每个块的时间单位。应比 domain_granularity 更小。应大于�
 
 msgid "The time unit used for the grouping of blocks"
 msgstr "用于块分组的时间单位"
+
+msgid "The transform could not be evaluated against the database."
+msgstr ""
 
 msgid "The two passwords that you entered do not match!"
 msgstr "两次输入的密码不一致！"
@@ -17365,9 +17378,10 @@ msgstr ""
 
 msgid ""
 "This update would change the connection's effective destination "
-"(host/port, engine parameters, or SSH tunnel endpoint) while reusing the "
-"stored credential. Provide the real password (or SSH tunnel credential) "
-"to confirm a connection move."
+"(host/port, engine parameters, SSH tunnel endpoint, or OAuth2 endpoint "
+"URIs) while reusing the stored credential. Provide the real password (or "
+"SSH tunnel credential / OAuth2 client secret) to confirm a connection "
+"move."
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
@@ -17675,6 +17689,9 @@ msgstr[0] ""
 # lv, ru, sk, sr, sr_Latn, tr, uk]
 msgid "Token Request URI"
 msgstr "令牌请求URI"
+
+msgid "Too many preview requests for this dataset. Wait a moment and try again."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
 #, python-format

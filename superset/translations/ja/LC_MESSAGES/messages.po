@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-22 18:53+0000\n"
+"POT-Creation-Date: 2026-09-23 14:27+0000\n"
 "PO-Revision-Date: 2024-05-14 13:30+0900\n"
 "Last-Translator: Yuri Umezaki <bungoume@gmail.com>\n"
 "Language: ja\n"
@@ -234,6 +234,10 @@ msgstr "%(label)s ファイル"
 
 #, python-format
 msgid "%(name)s deleted successfully"
+msgstr ""
+
+#, python-format
+msgid "%(name)s is not a column on this dataset."
 msgstr ""
 
 #, python-format
@@ -9537,6 +9541,9 @@ msgstr "一致する結果が見つかりません"
 msgid "No multilayer deck.gl charts are currently added to this dashboard."
 msgstr "このダッシュボードにはマルチレイヤーdeck.glチャートはまだ追加されていません。"
 
+msgid "No partition column is set."
+msgstr ""
+
 msgid "No records found"
 msgstr "レコードが見つかりません"
 
@@ -14436,6 +14443,9 @@ msgid ""
 "partition column and the mapped column."
 msgstr ""
 
+msgid "The partition filter mapping was cleared: its column is gone"
+msgstr ""
+
 #, python-format
 msgid "The password provided for username \"%(username)s\" is incorrect."
 msgstr "ユーザー「%(username)s」のパスワードが正しくありません。"
@@ -14744,6 +14754,9 @@ msgstr "各ブロックの時間単位。domain_granularity より小さく、�
 
 msgid "The time unit used for the grouping of blocks"
 msgstr "ブロックのグループ化に使用される時間単位"
+
+msgid "The transform could not be evaluated against the database."
+msgstr ""
 
 msgid "The two passwords that you entered do not match!"
 msgstr "入力された2つのパスワードが一致しません！"
@@ -15545,9 +15558,10 @@ msgstr ""
 
 msgid ""
 "This update would change the connection's effective destination "
-"(host/port, engine parameters, or SSH tunnel endpoint) while reusing the "
-"stored credential. Provide the real password (or SSH tunnel credential) "
-"to confirm a connection move."
+"(host/port, engine parameters, SSH tunnel endpoint, or OAuth2 endpoint "
+"URIs) while reusing the stored credential. Provide the real password (or "
+"SSH tunnel credential / OAuth2 client secret) to confirm a connection "
+"move."
 msgstr ""
 
 msgid "This username is already taken. Please choose another one."
@@ -15828,6 +15842,9 @@ msgstr[0] ""
 
 msgid "Token Request URI"
 msgstr "トークンリクエスト URI"
+
+msgid "Too many preview requests for this dataset. Wait a moment and try again."
+msgstr ""
 
 #, python-format
 msgid ""
