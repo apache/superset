@@ -44,6 +44,26 @@ def test_convert_dttm(
     assert_convert_dttm(spec, target_type, expected_result, dttm)
 
 
+def test_cockroachdb_properties() -> None:
+    from superset.db_engine_specs.cockroachdb import CockroachDbEngineSpec
+    from superset.db_engine_specs.postgres import PostgresEngineSpec
+
+    assert CockroachDbEngineSpec.engine == "cockroachdb"
+    assert CockroachDbEngineSpec.engine_name == "CockroachDB"
+    assert issubclass(CockroachDbEngineSpec, PostgresEngineSpec)
+    assert CockroachDbEngineSpec._extended_aggregations == {}
+
+
+def test_cockroachdb_metadata() -> None:
+    from superset.db_engine_specs.cockroachdb import CockroachDbEngineSpec
+
+    metadata = CockroachDbEngineSpec.metadata
+    assert "CockroachDB is a distributed SQL database" in metadata["description"]
+    assert metadata["logo"] == "cockroachdb.png"
+    assert "sqlalchemy-cockroachdb" in metadata["pypi_packages"]
+    assert metadata["default_port"] == 26257
+
+
 def test_dialect_loads_under_installed_sqlalchemy() -> None:
     """
     ``create_engine`` resolves and imports the ``cockroachdb`` SQLAlchemy

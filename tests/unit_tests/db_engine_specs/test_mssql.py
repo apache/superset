@@ -879,3 +879,21 @@ def test_get_catalog_from_engine_params_empty_database_query_param_falls_back_to
     )
     assert "database" not in url.query
     assert MssqlEngineSpec.get_catalog_from_engine_params(url, {}) == "path_db"
+
+def test_azure_synapse_properties() -> None:
+    from superset.db_engine_specs.mssql import AzureSynapseSpec, MssqlEngineSpec
+
+    assert AzureSynapseSpec.engine == "mssql"
+    assert AzureSynapseSpec.engine_name == "Azure Synapse"
+    assert AzureSynapseSpec.default_driver == "pyodbc"
+    assert issubclass(AzureSynapseSpec, MssqlEngineSpec)
+
+
+def test_azure_synapse_metadata() -> None:
+    from superset.db_engine_specs.mssql import AzureSynapseSpec
+
+    metadata = AzureSynapseSpec.metadata
+    assert "Azure Synapse Analytics" in metadata["description"]
+    assert metadata["logo"] == "azure.svg"
+    assert "pymssql" in metadata["pypi_packages"]
+
