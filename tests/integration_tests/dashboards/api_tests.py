@@ -22,7 +22,7 @@ from collections.abc import Iterator
 from contextlib import contextmanager
 from datetime import datetime, timedelta
 from io import BytesIO
-from time import sleep
+from time import sleep, time as now_epoch
 from unittest.mock import ANY, MagicMock, patch
 from zipfile import is_zipfile, ZipFile
 from werkzeug.test import TestResponse
@@ -4502,6 +4502,60 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
             mock_build.assert_called_once()
             assert isinstance(mock_build.call_args.args[5], GuestUser)
         finally:
+            if permission_added:
+                security_manager.del_permission_role(public_role, export_permission)
+
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
+    @with_config({"EXPORT_STORAGE": {}})
+    @with_feature_flags(EMBEDDED_SUPERSET=True)
+    @patch("superset.dashboards.api.build_workbook")
+    def test_export_xlsx_sync_refuses_revoked_guest_token(self, mock_build):
+        """Dashboard API: a guest token revoked for its embedded dashboard gets
+        no direct download. The request-time guest loader applies the same
+        revocation check the queued task re-runs, so both paths agree."""
+        dashboard = db.session.query(Dashboard).filter_by(slug="world_health").first()
+        embedded = EmbeddedDashboardDAO.upsert(dashboard, ["superset.example"])
+        db.session.commit()
+        public_role = security_manager.get_public_role()
+        export_permission = security_manager.find_permission_view_menu(
+            "can_export", "Dashboard"
+        )
+        assert public_role is not None
+        assert export_permission is not None
+        permission_added = export_permission not in public_role.permissions
+        if permission_added:
+            security_manager.add_permission_role(public_role, export_permission)
+
+        try:
+            token = security_manager.create_guest_access_token(
+                {"username": "xlsx_guest"},
+                [
+                    {
+                        "type": GuestTokenResourceType.DASHBOARD,
+                        "id": str(embedded.uuid),
+                    }
+                ],
+                [],
+            )
+            # Cut off every token issued before a point after this one's iat.
+            embedded.guest_token_revoked_before = int(now_epoch()) + 60
+            db.session.commit()
+
+            rv = self.client.post(
+                f"api/v1/dashboard/{dashboard.id}/export_xlsx/",
+                json={"active_data_mask": {}},
+                headers={
+                    current_app.config["GUEST_TOKEN_HEADER_NAME"]: token.decode("utf-8")
+                    if isinstance(token, bytes)
+                    else token
+                },
+            )
+
+            assert rv.status_code == 401
+            mock_build.assert_not_called()
+        finally:
+            embedded.guest_token_revoked_before = None
+            db.session.commit()
             if permission_added:
                 security_manager.del_permission_role(public_role, export_permission)
 

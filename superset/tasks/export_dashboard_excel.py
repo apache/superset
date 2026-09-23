@@ -54,6 +54,7 @@ from superset.dashboards.excel_export.download_link import (
     mark_export_running,
     STATUS_READY,
 )
+from superset.dashboards.excel_export.storage import is_export_storage_configured
 from superset.dashboards.excel_export.workbook import build_workbook, EXPORT_MODE_DATA
 from superset.exceptions import SupersetException
 from superset.extensions import celery_app
@@ -173,28 +174,31 @@ def _resolve_export_storage(
 ) -> tuple[ExportStorage, str, str]:
     """The configured storage backend, bucket, and this export's object key.
 
-    The API already rejects the request with 501 when either the bucket or
-    the backend is unset, so reaching this unconfigured normally means
-    EXPORT_STORAGE was cleared after the job was enqueued (or the task
-    was invoked directly, bypassing the API). Fail with a clear message
-    instead of an opaque storage-SDK error.
+    The API only queues this task when ``is_export_storage_configured()``
+    holds, so reaching this unconfigured normally means EXPORT_STORAGE was
+    cleared after the job was enqueued (or the task was invoked directly,
+    bypassing the API). Fail with a clear message instead of an opaque
+    storage-SDK error.
     """
-    storage_config = current_app.config["EXPORT_STORAGE"]
-    bucket = storage_config.get("bucket")
-    storage_backend = storage_config.get("backend")
-    if not bucket or storage_backend is None:
+    # Same predicate the API uses to choose the queued path.
+    if not is_export_storage_configured():
         raise SupersetException(
             "Excel export is not configured on this server: "
             "EXPORT_STORAGE needs both a 'bucket' and a 'backend' "
             "(e.g. superset.utils.s3.S3ExportStorage())."
         )
+    storage_config = current_app.config["EXPORT_STORAGE"]
     key_prefix = storage_config.get("key_prefix", "dashboard-exports/")
     if callable(key_prefix):
         # A callable prefix is resolved per export, for deployments where it
         # is only known in task context (e.g. a multi-tenant installation
         # scoping a shared bucket per tenant).
         key_prefix = key_prefix()
-    return storage_backend, bucket, f"{key_prefix}{dashboard_id}/{job_id}.xlsx"
+    return (
+        storage_config["backend"],
+        storage_config["bucket"],
+        f"{key_prefix}{dashboard_id}/{job_id}.xlsx",
+    )
 
 
 def _mark_running(job_id: str) -> None:

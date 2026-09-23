@@ -38,6 +38,7 @@ from superset.utils import json
 MODULE = "superset.tasks.export_dashboard_excel"
 # Workbook building is shared by queued and direct exports.
 WORKBOOK_MODULE = "superset.dashboards.excel_export.workbook"
+STORAGE_MODULE = "superset.dashboards.excel_export.storage"
 
 # export_dashboard_excel always receives a real uuid4 job_id in production (the
 # API generates it); use valid UUIDs here too since the task parses job_id via
@@ -83,8 +84,8 @@ def mocks() -> Iterator[dict[str, Any]]:
     """Patch every external dependency of the task; keep the real xlsx writer."""
     with ExitStack() as stack:
         # A bucket and storage backend must be configured for the task to reach
-        # the upload at all; production only ever calls the task once the API's
-        # own "is this configured" 501 check has passed, so this simulates
+        # the upload at all; production only ever queues the task once the API's
+        # own is_export_storage_configured() check has passed, so this simulates
         # that already-passed state rather than values tests care about.
         storage_backend = mock.MagicMock()
         stack.enter_context(
@@ -408,9 +409,9 @@ def _builder_hook(builder: Any) -> Iterator[None]:
         },
         "EXCEL_EXPORT_LINK_TTL_SECONDS": 3600,
     }.__getitem__
-    # Both the task and workbook read configuration.
+    # The task, workbook, and storage check all read configuration.
     with ExitStack() as stack:
-        for module in (MODULE, WORKBOOK_MODULE):
+        for module in (MODULE, WORKBOOK_MODULE, STORAGE_MODULE):
             stack.enter_context(mock.patch(f"{module}.current_app", fake_app))
         yield
 
