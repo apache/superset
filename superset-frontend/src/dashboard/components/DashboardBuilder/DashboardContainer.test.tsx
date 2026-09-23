@@ -16,12 +16,20 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { render, screen, waitFor } from 'spec/helpers/testing-library';
+import { StrictMode, useState } from 'react';
+import { act, render, screen, waitFor } from 'spec/helpers/testing-library';
 import fetchMock from 'fetch-mock';
 import { storeWithState } from 'spec/fixtures/mockStore';
 import mockState from 'spec/fixtures/mockState';
 import { sliceId } from 'spec/fixtures/mockChartQueries';
-import { ChartCustomizationType, NativeFilterType } from '@superset-ui/core';
+import {
+  ChartCustomizationType,
+  NativeFilterType,
+  CategoricalColorNamespace,
+} from '@superset-ui/core';
+import DashboardGrid from 'src/dashboard/containers/DashboardGrid';
+import { applyDashboardLabelsColorOnLoad } from 'src/dashboard/actions/dashboardState';
+import { dashboardInfoChanged } from 'src/dashboard/actions/dashboardInfo';
 import { CHART_TYPE } from '../../util/componentTypes';
 import DashboardContainer from './DashboardContainer';
 import * as nativeFiltersActions from '../../actions/nativeFilters';
@@ -37,7 +45,7 @@ jest.mock('@visx/responsive', () => ({
 
 jest.mock('src/dashboard/containers/DashboardGrid', () => ({
   __esModule: true,
-  default: () => <div data-test="mock-dashboard-grid" />,
+  default: jest.fn(() => <div data-test="mock-dashboard-grid" />),
 }));
 
 // DashboardContainer dispatches these on mount, so unit tests stub them.
@@ -154,6 +162,12 @@ beforeEach(() => {
 
 afterEach(() => {
   setInScopeStatusMock.mockRestore();
+  jest
+    .mocked(applyDashboardLabelsColorOnLoad)
+    .mockImplementation(() => async () => {});
+  jest
+    .mocked(DashboardGrid)
+    .mockImplementation(() => <div data-test="mock-dashboard-grid" />);
 });
 
 test('calculates chartsInScope correctly for filters', async () => {
@@ -853,3 +867,114 @@ test('does not dispatch setInScopeStatusOfCustomizations when chart_customizatio
     spy.mockRestore();
   }
 });
+
+test.each([false, true])(
+  'applies custom label colors before a cached chart consumes its first color scale (StrictMode=%s)',
+  strict => {
+    const namespace = 'initial-label-colors';
+    CategoricalColorNamespace.getNamespace(namespace).resetColors();
+    jest
+      .mocked(applyDashboardLabelsColorOnLoad)
+      .mockImplementation(
+        jest.requireActual('src/dashboard/actions/dashboardState')
+          .applyDashboardLabelsColorOnLoad,
+      );
+    jest.mocked(DashboardGrid).mockImplementation(function CachedChart() {
+      const [color] = useState(() =>
+        CategoricalColorNamespace.getScale(undefined, namespace).getColor(
+          '20_Passed',
+        ),
+      );
+      return <div data-test="cached-chart" data-color={color} />;
+    });
+
+    const initialState = createTestState({
+      dashboardInfo: {
+        ...mockState.dashboardInfo,
+        metadata: {
+          ...mockState.dashboardInfo.metadata,
+          color_namespace: namespace,
+          color_scheme: '',
+          label_colors: { '20_Passed': '#008000' },
+        },
+      },
+    });
+
+    const { unmount } = render(
+      strict ? (
+        <StrictMode>
+          <DashboardContainer />
+        </StrictMode>
+      ) : (
+        <DashboardContainer />
+      ),
+      { useRedux: true, store: storeWithState(initialState) },
+    );
+
+    expect(screen.getByTestId('cached-chart')).toHaveAttribute(
+      'data-color',
+      '#008000',
+    );
+    unmount();
+    CategoricalColorNamespace.getNamespace(namespace).resetColors();
+  },
+);
+
+test.each([false, true])(
+  'initializes the next dashboard colors before mounting its cached charts (new namespace=%s)',
+  newNamespace => {
+    const namespace = 'navigation-label-colors';
+    let chartNamespace = namespace;
+    CategoricalColorNamespace.getNamespace(namespace).resetColors();
+    jest
+      .mocked(applyDashboardLabelsColorOnLoad)
+      .mockImplementation(
+        jest.requireActual('src/dashboard/actions/dashboardState')
+          .applyDashboardLabelsColorOnLoad,
+      );
+    jest.mocked(DashboardGrid).mockImplementation(function CachedChart() {
+      const [color] = useState(() =>
+        CategoricalColorNamespace.getScale(undefined, chartNamespace).getColor(
+          '20_Passed',
+        ),
+      );
+      return <div data-test="cached-chart" data-color={color} />;
+    });
+    const metadata = {
+      ...mockState.dashboardInfo.metadata,
+      color_namespace: namespace,
+      color_scheme: '',
+      label_colors: { '20_Passed': '#008000' },
+    };
+    const { store, unmount } = setupWithStore({
+      dashboardInfo: { ...mockState.dashboardInfo, metadata },
+    });
+    expect(screen.getByTestId('cached-chart')).toHaveAttribute(
+      'data-color',
+      '#008000',
+    );
+
+    chartNamespace = newNamespace ? 'next-dashboard-colors' : namespace;
+    act(() => {
+      store.dispatch(
+        dashboardInfoChanged({
+          id: mockState.dashboardInfo.id + 1,
+          metadata: {
+            ...store.getState().dashboardInfo.metadata,
+            ...metadata,
+            color_namespace: chartNamespace,
+            label_colors: { '20_Passed': '#ff0000' },
+          },
+        }),
+      );
+    });
+
+    expect(screen.getByTestId('cached-chart')).toHaveAttribute(
+      'data-color',
+      '#ff0000',
+    );
+    unmount();
+    CategoricalColorNamespace.getNamespace(namespace).resetColors();
+    CategoricalColorNamespace.getNamespace(chartNamespace).resetColors();
+  },
+);

@@ -164,8 +164,10 @@ const DashboardContainer: FC<DashboardContainerProps> = ({ topLevelTabs }) => {
 
   const renderedChartIds = useRenderedChartIds();
 
-  const [dashboardLabelsColorInitiated, setDashboardLabelsColorInitiated] =
-    useState(false);
+  const [colorInitializedDashboardId, setColorInitializedDashboardId] =
+    useState<number>();
+  const dashboardLabelsColorInitiated =
+    colorInitializedDashboardId === dashboardInfo?.id;
   const prevRenderedChartIds = useRef<number[]>([]);
   const prevTabIndexRef = useRef<number>();
   const prevFilterScopesRef = useRef<FilterScopeData[]>([]);
@@ -304,7 +306,7 @@ const DashboardContainer: FC<DashboardContainerProps> = ({ topLevelTabs }) => {
     if (dashboardInfo?.id && !dashboardLabelsColorInitiated) {
       dispatch(applyDashboardLabelsColorOnLoad(dashboardInfo.metadata));
       // apply labels color as dictated by stored metadata (if any)
-      setDashboardLabelsColorInitiated(true);
+      setColorInitializedDashboardId(dashboardInfo.id);
     }
 
     return () => {
@@ -379,7 +381,8 @@ const DashboardContainer: FC<DashboardContainerProps> = ({ topLevelTabs }) => {
 
   return (
     <div className="grid-container" data-test="grid-container" ref={parentRef}>
-      {renderParentSizeChildren({ width })}
+      {/* Cached charts can consume their color scales on their first render. */}
+      {dashboardLabelsColorInitiated && renderParentSizeChildren({ width })}
     </div>
   );
 };
