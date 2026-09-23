@@ -60,6 +60,8 @@ const createWrapper = (conf: Record<string, unknown> = {}) => {
     charts: {
       1: { latestQueryFormData: { datasource: '1__table' } },
       2: { latestQueryFormData: { datasource: '2__table' } },
+      // A chart on a tab that has never been visited has no query data yet.
+      3: { latestQueryFormData: {} },
     },
     dashboardInfo: {
       common: { conf },
@@ -177,4 +179,26 @@ test('a silent refresh reports only the affected chart ids to startAutoRefresh, 
   expect(props.onRefresh).toHaveBeenCalledTimes(1);
   expect(mockStartAutoRefresh).toHaveBeenCalledWith([1]);
   expect(mockStartAutoRefresh).not.toHaveBeenCalledWith([1, 2]);
+});
+
+test('a silent refresh excludes charts with no previous query data from both startAutoRefresh and onRefresh', async () => {
+  mockStartAutoRefresh.mockClear();
+  mockUseAutoRefreshTabPause.mockClear();
+  const { props } = renderHeaderAutoRefresh(
+    {},
+    { chartIds: [1, 2, 3], timedRefreshImmuneSlices: [2] },
+  );
+
+  const { onRefresh: handleTabVisibilityRefresh } =
+    mockUseAutoRefreshTabPause.mock.calls[0][0];
+
+  await act(async () => {
+    await handleTabVisibilityRefresh();
+  });
+
+  expect(mockStartAutoRefresh).toHaveBeenCalledTimes(1);
+  expect(mockStartAutoRefresh).toHaveBeenCalledWith([1]);
+  expect(props.onRefresh).toHaveBeenCalledTimes(1);
+  const [refreshedChartIds] = props.onRefresh.mock.calls[0];
+  expect(refreshedChartIds).toEqual([1]);
 });
