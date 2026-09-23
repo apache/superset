@@ -519,10 +519,9 @@ const controlConfigs = {
   ...matrixifyControls,
 };
 
-type RegisteredControl = (typeof controlConfigs)[keyof typeof controlConfigs];
-
-// Each control retains the option type accepted by its renderer.
-const sharedControls: typeof controlConfigs &
-  Record<string, RegisteredControl> = controlConfigs;
+// Each control retains the option type accepted by its renderer. The
+// ...matrixifyControls spread already contributes a string index signature,
+// so dynamic lookups keep working without an extra annotation.
+const sharedControls = controlConfigs;
 
 export default sharedControls;
