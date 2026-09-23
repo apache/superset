@@ -74,7 +74,8 @@ from sqlalchemy.orm.mapper import Mapper
 from sqlalchemy.orm.query import Query as SqlaQuery
 from sqlalchemy.sql import exists
 
-from superset.constants import RouteMethod
+from superset.common.chart_data import ChartDataResultType
+from superset.constants import EMPTY_FILTER_SQL_EXPRESSION, RouteMethod
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
     DatasetInvalidPermissionEvaluationException,
@@ -888,28 +889,68 @@ def _native_filter_query_modified(
     return False
 
 
+def _any_row_expanding_result_type(query_context: "QueryContext") -> bool:
+    """
+    Whether any query in the context asks for a result type that has the
+    server return every column on the datasource
+    (see ``_ROW_EXPANDING_RESULT_TYPES``).
+    """
+    return any(
+        _effective_result_type(
+            getattr(query, "result_type", None),
+            getattr(query_context, "result_type", None),
+        )
+        in _ROW_EXPANDING_RESULT_TYPES
+        for query in query_context.queries
+    )
+
+
+def _drill_by_row_expanding_result_type(query_context: "QueryContext") -> bool:
+    """
+    Whether a chartless Drill By request (``slice_id`` sentinel ``0`` plus a
+    source ``chart_id``) asks for a result type that expands a query to every
+    column on the datasource.
+
+    ``raise_for_access`` grants Drill By only after confirming the requested
+    ``groupby`` dimensions are configured as drillable columns on the source
+    chart's datasource (see ``has_drill_access``); a guest's entitlement there
+    is that specific dimension allowlist, not the whole table. The
+    samples/drill_detail preparers ignore ``groupby`` entirely and return
+    every column, which would bypass that allowlist - unlike Drill to Detail
+    (no ``slice_id``/``chart_id`` at all), which is already meant to expose a
+    full dataset already attached to the dashboard.
+    """
+    form_data = query_context.form_data or {}
+    if not (form_data.get("slice_id") == 0 and form_data.get("chart_id")):
+        return False
+    return _any_row_expanding_result_type(query_context)
+
+
 def _native_filter_request_modified(query_context: "QueryContext") -> bool:
     """
     Validate a chartless data request that targets a native filter.
 
     Only requests identified as native-filter lookups (by the ``NATIVE_FILTER``
-    type marker or a ``native_filter_id``) are constrained; other chartless
+    type marker or a ``native_filter_id``) are constrained here; other chartless
     paths (drill-to-detail, drill-by, samples) carry neither and are validated by
     the datasource-access checks in raise_for_access, so they are not treated as
-    modified here.
+    modified here beyond the Drill By result-type guard in
+    ``_drill_by_row_expanding_result_type``.
 
     A native filter may only read the column(s) it targets on the dashboard it
     belongs to. The request is treated as modified (and therefore rejected for
     guest users) when it cannot be tied to a native filter on the requesting
-    dashboard, or when any value-returning term (column, group-by, series
-    column, metric, series-limit metric, or order-by) references something
-    other than a target column, a simple
-    aggregate over a target column, or the filter's configured sort metric.
-    Free-form SQL terms and saved metrics other than the configured sort metric
-    are rejected. Row-restricting clauses (``filter``/``extras``) are not
-    constrained here: cross-filters legitimately reference other columns and
-    they do not return column values; that blind-inference surface is a separate
-    concern shared with the chart path.
+    dashboard, when it asks for a result type that expands the query to raw
+    datasource rows (see ``_ROW_EXPANDING_RESULT_TYPES``), or when any
+    value-returning term (column, group-by, series column, metric,
+    series-limit metric, or order-by) references something other than a
+    target column, a simple aggregate over a target column, or the filter's
+    configured sort metric. Free-form SQL terms and saved metrics other than
+    the configured sort metric are rejected. Row-restricting clauses
+    (``filter``/``extras``) are not constrained here: cross-filters
+    legitimately reference other columns and they do not return column
+    values; that blind-inference surface is a separate concern shared with
+    the chart path.
     """
     form_data = query_context.form_data or {}
     if not (
@@ -923,6 +964,13 @@ def _native_filter_request_modified(query_context: "QueryContext") -> bool:
     # Empty allowed sets (filter resolved but no matching column/metric target)
     # intentionally deny every value-returning term below.
     allowed_columns, allowed_metrics = targets
+
+    # The samples/drill_detail preparers replace a query's columns with every
+    # column on the datasource - bypassing the target-column allowlist below
+    # entirely - so reject those result types outright; a native filter never
+    # legitimately needs them.
+    if _any_row_expanding_result_type(query_context):
+        return True
 
     return any(
         _native_filter_query_modified(query, allowed_columns, allowed_metrics)
@@ -1225,14 +1273,15 @@ def _orderby_modified(
     return False
 
 
-# The frontend emits ``{expressionType: "SQL", sqlExpression: "1 = 0"}`` when
-# a native Select filter has "Filter value is required" enabled and no value
-# has been selected yet (superset-frontend/src/filters/utils.ts).  After
+# The frontend emits ``{expressionType: "SQL", sqlExpression: <predicate>}``
+# when a native Select filter has "Filter value is required" enabled and no
+# value has been selected yet (superset-frontend/src/filters/utils.ts).  After
 # ``_sanitize_clause`` wraps it in parentheses the resulting ``extras.where``
 # clause is ``(1 = 0)``.  This is safe — it returns zero rows — and must be
 # allowed so that embedded charts are not rejected before the user picks a
-# filter value.
-_EMPTY_FILTER_SENTINEL = "1 = 0"
+# filter value.  It aliases the shared constant every producer of the
+# predicate reads, so the allow-list cannot drift away from what they emit.
+_EMPTY_FILTER_SENTINEL = EMPTY_FILTER_SQL_EXPRESSION
 
 
 def _split_extras_clauses(composed: str) -> list[str]:
@@ -1632,6 +1681,149 @@ def _columns_metrics_modified(
     return False
 
 
+def _annotation_layer_identity(layer: Any) -> Optional[tuple[str, str]]:
+    """
+    Identity of an annotation layer for tamper comparison: the source type and
+    the underlying source it reads (a native annotation-layer id or a chart
+    id). Cosmetic keys (``name``, styling, overrides) are not part of the
+    identity. Returns ``None`` for a malformed (non-dict) layer.
+    """
+    if not isinstance(layer, dict):
+        return None
+    return (
+        freeze_value(layer.get("sourceType")),
+        freeze_value(layer.get("value")),
+    )
+
+
+def _annotation_layers_modified(
+    query_context: "QueryContext",
+    form_data: dict[str, Any],
+    stored_chart: "Slice",
+    stored_query_context: Optional[dict[str, Any]],
+) -> bool:
+    """
+    Whether the request references annotation layers the stored chart does
+    not already carry.
+
+    ``annotation_layers`` is accepted on any query object, and native layers
+    resolve every annotation of each referenced layer id with no further
+    access check, so a guest injecting a layer the chart was not saved with
+    would read data that was never shared with them. Replaying the chart's
+    own stored layers is not tampering.
+
+    Authorization is checked against the chart's current ``params`` only,
+    not the cached ``stored_query_context``: a params-only chart update (see
+    ``is_query_context_update``) can remove a layer from ``params`` without
+    refreshing the stored query context, and a layer that only survives in
+    that stale snapshot is no longer something the chart is saved with.
+    """
+    requested: set[Optional[tuple[str, str]]] = {
+        _annotation_layer_identity(layer)
+        for layer in form_data.get("annotation_layers") or []
+    }
+    requested.update(
+        _annotation_layer_identity(layer)
+        for query in query_context.queries
+        for layer in getattr(query, "annotation_layers", None) or []
+    )
+    if not requested:
+        return False
+    # A malformed (non-dict) layer is nothing the frontend produces from a
+    # stored chart; treat it as tampering rather than crashing on it later.
+    if None in requested:
+        return True
+
+    stored: set[Optional[tuple[str, str]]] = {
+        _annotation_layer_identity(layer)
+        for layer in stored_chart.params_dict.get("annotation_layers") or []
+    }
+    return not requested.issubset(stored)
+
+
+#: Result types that make the server rewrite the query to return raw rows of
+#: every datasource column (``_prepare_samples_query`` and
+#: ``_prepare_drill_detail_query`` in ``superset.common.query_actions``).
+_ROW_EXPANDING_RESULT_TYPES = {
+    ChartDataResultType.SAMPLES.value,
+    ChartDataResultType.DRILL_DETAIL.value,
+}
+
+
+def _result_type_value(result_type: Any) -> str:
+    """Normalize a result type (enum member or raw string) to its value."""
+    return str(getattr(result_type, "value", result_type)).lower()
+
+
+def _effective_result_type(
+    query_result_type: Any, default_result_type: Any
+) -> Optional[str]:
+    """
+    The result type a query actually runs with: its own ``result_type`` if
+    set, else the query context's top-level default.
+
+    Mirrors ``query_obj.result_type or query_context.result_type``
+    (``QueryContextProcessor.get_payload``), so this reads the same value the
+    server uses to pick the samples/drill_detail preparer for that query.
+    """
+    if query_result_type:
+        return _result_type_value(query_result_type)
+    if default_result_type:
+        return _result_type_value(default_result_type)
+    return None
+
+
+def _result_type_modified(
+    query_context: "QueryContext",
+    stored_query_context: Optional[dict[str, Any]],
+) -> bool:
+    """
+    Whether the request asks for a result type that expands one of its
+    queries to raw datasource rows beyond what the stored chart runs at that
+    same query position.
+
+    The ``samples`` and ``drill_detail`` preparers replace a query's columns
+    with every column on the datasource - and drop its metrics - *after*
+    ``raise_for_access`` has run, so the subset comparisons on columns and
+    metrics in ``query_context_modified`` still pass while the response
+    contains the full underlying table. A guest's entitlement is only what
+    each query on the stored chart itself renders, so each requested query's
+    effective result type is compared against its own corresponding stored
+    query's effective result type by position - never against result types
+    used by other queries in the same query context - matching how
+    ``query_obj.result_type or query_context.result_type`` is resolved
+    per-query at runtime.
+    """
+    stored_queries: list[dict[str, Any]] = []
+    stored_default_result_type: Any = None
+    if stored_query_context:
+        stored_default_result_type = stored_query_context.get("result_type")
+        stored_queries = [
+            stored_query
+            for stored_query in stored_query_context.get("queries") or []
+            if isinstance(stored_query, dict)
+        ]
+
+    for index, query in enumerate(query_context.queries):
+        requested = _effective_result_type(
+            getattr(query, "result_type", None),
+            getattr(query_context, "result_type", None),
+        )
+        if requested not in _ROW_EXPANDING_RESULT_TYPES:
+            continue
+        stored = (
+            _effective_result_type(
+                stored_queries[index].get("result_type"), stored_default_result_type
+            )
+            if index < len(stored_queries)
+            else None
+        )
+        if requested != stored:
+            return True
+
+    return False
+
+
 def query_context_modified(query_context: "QueryContext") -> bool:
     """
     Check if a query context has been modified.
@@ -1645,7 +1837,10 @@ def query_context_modified(query_context: "QueryContext") -> bool:
     # Native-filter data requests have no associated chart (no slice_id). Rather
     # than accepting any payload, constrain them to the column(s) the dashboard's
     # native filter is allowed to target; other chartless paths keep prior
-    # behavior (see _native_filter_request_modified).
+    # behavior (see _native_filter_request_modified), except Drill By is still
+    # rejected when it asks for a row-expanding result type, since that would
+    # bypass the drillable-column allowlist raise_for_access checked for it
+    # (see _drill_by_row_expanding_result_type).
     #
     # SQL extras (extras.where/having) are NOT validated on chartless paths:
     # without a stored chart there is nothing to validate against, and
@@ -1654,7 +1849,9 @@ def query_context_modified(query_context: "QueryContext") -> bool:
     # are still protected by datasource-access checks in raise_for_access.
     # The _sql_filters_modified check below covers chart payloads only.
     if stored_chart is None:
-        return _native_filter_request_modified(query_context)
+        return _native_filter_request_modified(
+            query_context
+        ) or _drill_by_row_expanding_result_type(query_context)
 
     if form_data is None:
         return False
@@ -1697,57 +1894,68 @@ def query_context_modified(query_context: "QueryContext") -> bool:
     # Use ``is not None`` so an empty-but-present stored context reads as present.
     stored_context_state = "present" if stored_query_context is not None else "missing"
 
-    # compare columns and metrics in form_data with stored values. Order-by is
-    # handled separately: a strict subset check there would reject a guest
-    # legitimately sorting an embedded chart by one of its existing columns.
-    if _columns_metrics_modified(
-        query_context, form_data, stored_chart, stored_query_context
-    ):
-        logger.warning(
-            "Guest chart payload rejected for slice %s: columns/metrics/group-by "
-            "not a subset of the stored chart (stored query_context %s)",
-            stored_chart.id,
-            stored_context_state,
-        )
-        return True
-
-    if _series_limit_metric_modified(
-        query_context,
-        form_data,
-        stored_chart,
-        stored_query_context,
-    ):
-        logger.warning(
-            "Guest chart payload rejected for slice %s: series-limit metric not "
-            "on the stored chart (stored query_context %s)",
-            stored_chart.id,
-            stored_context_state,
-        )
-        return True
-
-    # Order-by may sort only by columns/metrics already present in the stored
-    # chart; new expressions (e.g. ``random()``) are still rejected.
-    if _orderby_modified(query_context, stored_chart, stored_query_context):
-        logger.warning(
-            "Guest chart payload rejected for slice %s: order-by references a "
-            "term not on the stored chart (stored query_context %s)",
-            stored_chart.id,
-            stored_context_state,
-        )
-        return True
-
-    # SQL predicates (extras.where/having, SQL adhoc filters) must match
-    # what was saved on the chart; injected custom SQL is rejected.
-    if _sql_filters_modified(
-        query_context, form_data, stored_chart, stored_query_context
-    ):
-        logger.warning(
-            "Guest chart payload rejected for slice %s: SQL filter/extras "
-            "not on the stored chart (stored query_context %s)",
-            stored_chart.id,
-            stored_context_state,
-        )
-        return True
+    # Each comparator guards one facet of the payload against the stored chart;
+    # the first one that objects rejects the request, with its reason logged
+    # server-side (no payload values) so a 403 is diagnosable.
+    #
+    # - result type: reject types that would have the server expand the query
+    #   to raw datasource rows regardless of the stored chart's columns/metrics.
+    # - columns/metrics/group-by: must be a subset of the stored chart. Order-by
+    #   is handled separately, since a strict subset check there would reject a
+    #   guest legitimately sorting an embedded chart by one of its own columns.
+    # - order-by: may sort only by columns/metrics already on the stored chart;
+    #   new expressions (e.g. ``random()``) are still rejected.
+    # - SQL predicates (extras.where/having, SQL adhoc filters): must match what
+    #   was saved on the chart; injected custom SQL is rejected.
+    # - annotation layers: native layers resolve every annotation of each
+    #   referenced layer with no further access check on this path, so a layer
+    #   the chart was not saved with reads data never shared with the guest.
+    comparators: list[tuple[Callable[[], bool], str]] = [
+        (
+            lambda: _result_type_modified(query_context, stored_query_context),
+            "result type expands the chart to raw datasource rows",
+        ),
+        (
+            lambda: _columns_metrics_modified(
+                query_context, form_data, stored_chart, stored_query_context
+            ),
+            "columns/metrics/group-by not a subset of the stored chart",
+        ),
+        (
+            lambda: _series_limit_metric_modified(
+                query_context, form_data, stored_chart, stored_query_context
+            ),
+            "series-limit metric not on the stored chart",
+        ),
+        (
+            lambda: _orderby_modified(
+                query_context, stored_chart, stored_query_context
+            ),
+            "order-by references a term not on the stored chart",
+        ),
+        (
+            lambda: _sql_filters_modified(
+                query_context, form_data, stored_chart, stored_query_context
+            ),
+            "SQL filter/extras not on the stored chart",
+        ),
+        (
+            lambda: _annotation_layers_modified(
+                query_context, form_data, stored_chart, stored_query_context
+            ),
+            "annotation layer not on the stored chart",
+        ),
+    ]
+    for is_modified, reason in comparators:
+        if is_modified():
+            logger.warning(
+                "Guest chart payload rejected for slice %s: %s "
+                "(stored query_context %s)",
+                stored_chart.id,
+                reason,
+                stored_context_state,
+            )
+            return True
 
     return False
 
@@ -1908,7 +2116,6 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         ("can_read", "SQLLab"),
         ("can_sqllab_history", "Superset"),
         ("can_sqllab", "Superset"),
-        ("can_test_conn", "Superset"),  # Deprecated permission remove on 3.0.0
         ("can_activate", "TabStateView"),
         ("can_get", "TabStateView"),
         ("can_delete_query", "TabStateView"),
@@ -2250,8 +2457,9 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         Return True if the user can access the schema associated with specified
         datasource, False otherwise.
 
-        For SQL datasources: Checks database → catalog → schema hierarchy
-        For other explorables: Only checks all_datasources permission
+        For SQL datasources and Query-like explorables: Checks database → catalog
+        → schema hierarchy.  For other explorables: Only checks
+        all_datasources permission.
 
         :param datasource: The datasource
         :returns: Whether the user can access the datasource's schema
@@ -2262,17 +2470,26 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         if self.can_access_all_datasources():
             return True
 
-        # SQL-specific hierarchy checks
-        if isinstance(datasource, BaseDatasource):
+        # SQL-specific hierarchy checks.
+        # BaseDatasource always has database, catalog, and schema_perm.
+        # Explorable implementations (e.g. Query) may also carry these
+        # attributes — the isinstance gate below was introduced in the 6.1.0
+        # Explorable refactor and accidentally excluded Query, which is not a
+        # BaseDatasource but does expose the same hierarchy.
+        if isinstance(datasource, BaseDatasource) or (
+            getattr(datasource, "database", None) is not None
+            and hasattr(datasource, "schema_perm")
+        ):
+            database = cast("Database", getattr(datasource, "database", None))
             # Database-level access grants all schemas
-            if self.can_access_database(datasource.database):
+            if self.can_access_database(database):
                 return True
 
             # Catalog-level access grants all schemas in catalog
             if (
                 hasattr(datasource, "catalog")
                 and datasource.catalog
-                and self.can_access_catalog(datasource.database, datasource.catalog)
+                and self.can_access_catalog(database, datasource.catalog)
             ):
                 return True
 
@@ -2324,11 +2541,11 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         return True
 
     def can_drill_dataset_via_dashboard_access(
-        self, dataset: "BaseDatasource", dashboard: "Dashboard"
+        self, datasource: "BaseDatasource | Explorable", dashboard: "Dashboard"
     ) -> bool:
         """
         Return True if an embedded user or viewer (in promiscuous mode) can
-        drill a dataset via dashboard access.
+        drill a dashboard member datasource via dashboard access.
         """
         from superset import is_feature_enabled
 
@@ -2344,7 +2561,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 and self.is_viewer(dashboard)
                 and dashboard.published
             )
-        ) and dataset.id in {dataset.id for dataset in dashboard.datasources}:
+        ) and dashboard.has_member_datasource(datasource):
             return True
 
         return False
@@ -2397,7 +2614,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         if (
             form_data.get("slice_id") is None
             and form_data.get("chart_id") is None
-            and datasource in dashboard.datasources
+            and dashboard.has_member_datasource(datasource)
         ):
             return True
 
@@ -2508,7 +2725,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         """
 
         return _render_permission_instructions_link(
-            datasource_id=str(datasource.data["id"]),
+            datasource_id=str(datasource.id),
             # datasource_name intentionally omitted to prevent name disclosure
         )
 
@@ -2530,7 +2747,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 # is_access_denial lets the frontend show the "Request access"
                 # UI without receiving the dataset name.
                 "is_access_denial": True,
-                "datasource": datasource.data["id"],
+                "datasource": datasource.id,
                 # Legacy placeholder for frontends built before is_access_denial
                 # existed: satisfies their truthy check on datasource_name so
                 # the request-access UI still renders during a rolling deploy,
@@ -4843,6 +5060,8 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                     self.get_table_access_error_object(denied)
                 )
 
+            return
+
         # Guest users MUST not modify the payload so it's requesting a
         # different chart or different ad-hoc metrics from what's saved.
         if (
@@ -5451,10 +5670,12 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             audience = audience()
         return audience
 
-    @staticmethod
-    def validate_guest_token_resources(resources: GuestTokenResources) -> None:
+    def validate_guest_token_resources(
+        self, resources: GuestTokenResources, datasets: Optional[list[int]] = None
+    ) -> None:
         # pylint: disable=import-outside-toplevel
         from superset.commands.dashboard.embedded.exceptions import (
+            EmbeddedDashboardAccessDeniedError,
             EmbeddedDashboardNotFoundError,
         )
         from superset.daos.dashboard import EmbeddedDashboardDAO
@@ -5468,10 +5689,65 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                     embedded = EmbeddedDashboardDAO.find_by_id(str(resource["id"]))
                     if not embedded:
                         raise EmbeddedDashboardNotFoundError()
+                    dashboard = embedded.dashboard
                 elif not dashboard.embedded:
                     # A raw dashboard id must still reference an embedded dashboard;
                     # otherwise a guest token could be scoped to a non-embedded one.
                     raise EmbeddedDashboardNotFoundError()
+
+                # The caller minting the token must themselves be entitled to
+                # the dashboard being scoped. `grant_guest_token` is a
+                # coarse, instance-wide permission -- without this check, an
+                # operator who narrows it to a non-Admin role (a realistic
+                # "embedding backend service" grant) would let that
+                # principal mint a fully valid guest token for *any*
+                # embedded dashboard, not just ones they have access to.
+                try:
+                    self.raise_for_access(dashboard=dashboard)
+                    self._raise_for_guest_token_datasource_access(dashboard, datasets)
+                except SupersetSecurityException as ex:
+                    raise EmbeddedDashboardAccessDeniedError() from ex
+
+    def _raise_for_guest_token_datasource_access(
+        self, dashboard: "Dashboard", datasets: Optional[list[int]]
+    ) -> None:
+        """
+        Require the minting principal to be entitled to every datasource the
+        guest token will grant, not merely to the dashboard.
+
+        A dashboard-scoped guest token reads every member datasource (or the
+        ``datasets`` allowlist, when the token carries one), whereas
+        ``raise_for_access(dashboard=...)`` is satisfied, for a dashboard
+        without explicit viewers, by access to any ONE member datasource. A
+        service role with ``grant_guest_token`` plus access to a single chart
+        could otherwise mint a token exposing charts it cannot read itself.
+        Callers whose dashboard entitlement already covers every member chart
+        (admin, editor, or a viewer of a published RBAC dashboard) need no
+        per-datasource check.
+        """
+        if self.is_admin() or self.is_editor(dashboard):
+            return
+        if dashboard.viewers and dashboard.published and self.is_viewer(dashboard):
+            return
+        seen: set[tuple[str | None, int | None]] = set()
+        for slc in dashboard.slices:
+            key = (slc.datasource_type, slc.datasource_id)
+            if key in seen:
+                continue
+            seen.add(key)
+            resolved = slc.resolved_datasource
+            if resolved is None:
+                # Unresolvable datasource: inaccessible, never absent (same
+                # stance as raise_for_access).
+                raise SupersetSecurityException(
+                    self.get_dashboard_access_error_object(dashboard)
+                )
+            if datasets is not None and resolved.id not in datasets:
+                continue  # the token will not grant this datasource
+            if not self.can_access_datasource(resolved):
+                raise SupersetSecurityException(
+                    self.get_datasource_access_error_object(resolved)
+                )
 
     def create_guest_access_token(
         self,

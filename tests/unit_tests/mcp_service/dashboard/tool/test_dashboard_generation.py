@@ -729,9 +729,11 @@ class TestGenerateDashboard:
         mcp_server,
     ) -> None:
         """An explicit ``position_json`` replaces the auto-generated layout
-        in full — the tool serializes the caller's dict verbatim into the
-        dashboard's ``position_json`` column rather than calling the
-        layout-builder helper."""
+        in full — the tool uses the caller's structure (children, meta) as
+        given rather than calling the layout-builder helper, but rebuilds
+        every component's ``parents`` as the full ancestor chain from
+        ``ROOT_ID`` rather than persisting the caller's ``parents`` (here,
+        omitted entirely) verbatim."""
         from superset.utils import json
 
         charts = [_mock_chart(id=1, slice_name="Sales")]
@@ -773,11 +775,179 @@ class TestGenerateDashboard:
             # and verify the caller's layout — not the auto-generated 2-col
             # grid — was written.
             stored = json.loads(created.position_json)
-            assert stored == custom_layout
             # The auto-generated layout's HEADER/ROW ids wouldn't match
             # `ROW-custom`; this sanity-check guards against regressions
             # where the override silently merges with the default.
             assert "ROW-custom" in stored
+            # children/meta pass through unchanged; only `parents` is
+            # (re)computed from the children edges.
+            assert stored["ROW-custom"]["children"] == ["CHART-1"]
+            assert stored["ROW-custom"]["meta"] == {
+                "background": "BACKGROUND_TRANSPARENT"
+            }
+            assert stored["CHART-1"]["meta"] == {
+                "chartId": 1,
+                "width": 12,
+                "height": 100,
+            }
+            assert "parents" not in stored["ROOT_ID"]
+            assert stored["GRID_ID"]["parents"] == ["ROOT_ID"]
+            assert stored["ROW-custom"]["parents"] == ["ROOT_ID", "GRID_ID"]
+            assert stored["CHART-1"]["parents"] == [
+                "ROOT_ID",
+                "GRID_ID",
+                "ROW-custom",
+            ]
+
+    @patch("superset.models.dashboard.Dashboard")
+    @patch("superset.daos.dashboard.DashboardDAO.find_by_id")
+    @patch("superset.db.session")
+    @pytest.mark.asyncio
+    async def test_generate_dashboard_position_json_override_repairs_truncated_tabs(
+        self,
+        mock_db_session,
+        mock_find_by_id,
+        mock_dashboard_cls,
+        mcp_server,
+    ) -> None:
+        """A caller-supplied TABS layout whose ``parents`` hold only the
+        immediate parent (the shape a dashboard export can carry) is persisted
+        with full ancestor chains from ``ROOT_ID``, so
+        ``superset.dashboards.filter_scope`` derives non-empty
+        ``chartsInScope`` for a dashboard-wide native filter on read."""
+        from superset.utils import json
+
+        charts = [_mock_chart(id=1436, slice_name="Out of production")]
+        mock_dashboard = _mock_dashboard(id=71, title="Tabbed Dashboard")
+        _setup_generate_dashboard_mocks(
+            mock_db_session,
+            mock_find_by_id,
+            mock_dashboard_cls,
+            charts,
+            mock_dashboard,
+        )
+
+        # Each node's `parents` is truncated to only its immediate parent
+        # instead of the full ROOT_ID-rooted chain.
+        truncated_layout = {
+            "DASHBOARD_VERSION_KEY": "v2",
+            "ROOT_ID": {"type": "ROOT", "children": ["GRID_ID"]},
+            "GRID_ID": {
+                "type": "GRID",
+                "children": ["TABS-lthree"],
+                "parents": ["ROOT_ID"],
+            },
+            "TABS-lthree": {
+                "type": "TABS",
+                "children": ["TAB-out-quarter"],
+                "meta": {},
+                "parents": ["GRID_ID"],
+            },
+            "TAB-out-quarter": {
+                "type": "TAB",
+                "children": ["ROW-out-prod"],
+                "meta": {"text": "Q4"},
+                "parents": ["TABS-lthree"],
+            },
+            "ROW-out-prod": {
+                "type": "ROW",
+                "children": ["CHART-1436"],
+                "meta": {},
+                "parents": ["TAB-out-quarter"],
+            },
+            "CHART-1436": {
+                "type": "CHART",
+                "children": [],
+                "meta": {"chartId": 1436},
+                "parents": ["ROW-out-prod"],
+            },
+        }
+        request = {
+            "chart_ids": [1436],
+            "dashboard_title": "Tabbed Dashboard",
+            "position_json": truncated_layout,
+        }
+
+        async with Client(mcp_server) as client:
+            result = await client.call_tool("generate_dashboard", {"request": request})
+
+            assert result.structured_content["error"] is None
+            created = mock_dashboard_cls.return_value
+            stored = json.loads(created.position_json)
+            assert stored["CHART-1436"]["parents"] == [
+                "ROOT_ID",
+                "GRID_ID",
+                "TABS-lthree",
+                "TAB-out-quarter",
+                "ROW-out-prod",
+            ]
+            assert stored["ROW-out-prod"]["parents"] == [
+                "ROOT_ID",
+                "GRID_ID",
+                "TABS-lthree",
+                "TAB-out-quarter",
+            ]
+
+    @patch("superset.models.dashboard.Dashboard")
+    @patch("superset.daos.dashboard.DashboardDAO.find_by_id")
+    @patch("superset.db.session")
+    @pytest.mark.asyncio
+    async def test_generate_dashboard_position_json_root_children_not_a_list(
+        self,
+        mock_db_session,
+        mock_find_by_id,
+        mock_dashboard_cls,
+        mcp_server,
+    ) -> None:
+        """``generate_dashboard`` has no layout pre-flight, so a caller can
+        hand it a ``ROOT_ID`` whose ``children`` is not a list. The rebuild
+        skips the malformed entry instead of raising, leaving the rest of the
+        layout untouched."""
+        from superset.utils import json
+
+        charts = [_mock_chart(id=1436, slice_name="Out of production")]
+        mock_dashboard = _mock_dashboard(id=72, title="Malformed Root")
+        _setup_generate_dashboard_mocks(
+            mock_db_session,
+            mock_find_by_id,
+            mock_dashboard_cls,
+            charts,
+            mock_dashboard,
+        )
+
+        malformed_layout = {
+            "DASHBOARD_VERSION_KEY": "v2",
+            # `children` is an int rather than a list of component ids.
+            "ROOT_ID": {"type": "ROOT", "children": 1},
+            "GRID_ID": {
+                "type": "GRID",
+                "children": ["CHART-1436"],
+                "parents": ["ROOT_ID"],
+            },
+            "CHART-1436": {
+                "type": "CHART",
+                "children": [],
+                "meta": {"chartId": 1436},
+                "parents": ["GRID_ID"],
+            },
+        }
+        request = {
+            "chart_ids": [1436],
+            "dashboard_title": "Malformed Root",
+            "position_json": malformed_layout,
+        }
+
+        async with Client(mcp_server) as client:
+            result = await client.call_tool("generate_dashboard", {"request": request})
+
+            assert result.structured_content["error"] is None
+            created = mock_dashboard_cls.return_value
+            stored = json.loads(created.position_json)
+            # Nothing is reachable from a malformed root, so every component
+            # keeps the `parents` it came in with.
+            assert stored["ROOT_ID"]["children"] == 1
+            assert stored["GRID_ID"]["parents"] == ["ROOT_ID"]
+            assert stored["CHART-1436"]["parents"] == ["GRID_ID"]
 
     @patch("superset.models.dashboard.Dashboard")
     @patch("superset.daos.dashboard.DashboardDAO.find_by_id")
