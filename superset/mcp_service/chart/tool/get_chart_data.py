@@ -61,6 +61,7 @@ from superset.mcp_service.utils.oauth2_utils import (
     build_oauth2_redirect_message,
     OAUTH2_CONFIG_ERROR_MESSAGE,
 )
+from superset.mcp_service.utils.serialization import is_missing_value
 from superset.utils.core import GenericDataType
 
 logger = logging.getLogger(__name__)
@@ -890,7 +891,7 @@ async def execute_chart_data(  # noqa: C901
                 sample_values = [
                     row.get(col_name)
                     for row in data[:3]
-                    if row.get(col_name) is not None
+                    if not is_missing_value(row.get(col_name))
                 ]
 
                 # Use SQL-derived GenericDataType when available,
@@ -910,8 +911,16 @@ async def execute_chart_data(  # noqa: C901
                         display_name=col_name.replace("_", " ").title(),
                         data_type=data_type,
                         sample_values=sample_values[:3],
-                        null_count=sum(1 for row in data if row.get(col_name) is None),
-                        unique_count=len({str(row.get(col_name)) for row in data}),
+                        null_count=sum(
+                            1 for row in data if is_missing_value(row.get(col_name))
+                        ),
+                        unique_count=len(
+                            {
+                                str(row.get(col_name))
+                                for row in data
+                                if not is_missing_value(row.get(col_name))
+                            }
+                        ),
                     )
                 )
 
@@ -1233,7 +1242,9 @@ async def _query_from_form_data(  # noqa: C901
         columns = []
         for col_name in raw_columns:
             sample_values = [
-                row.get(col_name) for row in data[:3] if row.get(col_name) is not None
+                row.get(col_name)
+                for row in data[:3]
+                if not is_missing_value(row.get(col_name))
             ]
             data_type = "string"
             if sample_values and all(
@@ -1246,8 +1257,16 @@ async def _query_from_form_data(  # noqa: C901
                     display_name=col_name.replace("_", " ").title(),
                     data_type=data_type,
                     sample_values=sample_values[:3],
-                    null_count=sum(1 for row in data if row.get(col_name) is None),
-                    unique_count=len({str(row.get(col_name)) for row in data}),
+                    null_count=sum(
+                        1 for row in data if is_missing_value(row.get(col_name))
+                    ),
+                    unique_count=len(
+                        {
+                            str(row.get(col_name))
+                            for row in data
+                            if not is_missing_value(row.get(col_name))
+                        }
+                    ),
                 )
             )
 

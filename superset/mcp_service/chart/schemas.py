@@ -75,6 +75,13 @@ from superset.mcp_service.utils.sanitization import (
     sanitize_user_input,
     sanitize_user_input_with_changes,
 )
+from superset.mcp_service.utils.serialization import (
+    JsonSafeMapping,
+    JsonSafeRows,
+    JsonSafeValues,
+    OptionalRowCount,
+    RowCount,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -4173,7 +4180,7 @@ class DataColumn(BaseModel):
     name: str = Field(..., description="Column name")
     display_name: str = Field(..., description="Human-readable column name")
     data_type: str = Field(..., description="Inferred data type")
-    sample_values: List[Any] = Field(description="Representative sample values")
+    sample_values: JsonSafeValues = Field(description="Representative sample values")
     null_count: int = Field(
         description="Number of null values. Approximate — see 'statistics.sampled_rows'"
         " if the source result set was larger than the row cap used to compute it."
@@ -4183,7 +4190,7 @@ class DataColumn(BaseModel):
         "'statistics.sampled_rows' if the source result set was larger than the "
         "row cap used to compute it."
     )
-    statistics: Dict[str, Any] | None = Field(
+    statistics: JsonSafeMapping | None = Field(
         None,
         description="Additional column statistics, when available. May include "
         "'sampled_rows' (any column type) when null_count/unique_count were "
@@ -4199,9 +4206,9 @@ class ChartQueryResult(BaseModel):
 
     query_index: int = Field(description="Zero-based query position")
     columns: list[str] = Field(description="Column names returned by the query")
-    data: list[dict[str, Any]] = Field(description="Actual data rows")
-    row_count: int = Field(description="Rows returned")
-    total_rows: int | None = Field(None, description="Total available rows")
+    data: JsonSafeRows = Field(description="Actual data rows")
+    row_count: RowCount = Field(description="Rows returned")
+    total_rows: OptionalRowCount = Field(None, description="Total available rows")
 
 
 class ChartData(BaseModel):
@@ -4214,7 +4221,7 @@ class ChartData(BaseModel):
 
     # Enhanced data description
     columns: List[DataColumn] = Field(description="Rich column metadata")
-    data: List[Dict[str, Any]] = Field(description="Actual data rows")
+    data: JsonSafeRows = Field(description="Actual data rows")
     query_results: list[ChartQueryResult] | None = Field(
         None,
         description=(
@@ -4224,18 +4231,8 @@ class ChartData(BaseModel):
     )
 
     # Data insights
-    row_count: int = Field(description="Rows returned")
-    total_rows: int | None = Field(description="Total available rows")
-
-    @field_validator("total_rows", mode="before")
-    @classmethod
-    def _coerce_total_rows(cls, v: Any) -> int | None:
-        if v is None:
-            return None
-        try:
-            return int(v)
-        except (TypeError, ValueError):
-            return None
+    row_count: RowCount = Field(description="Rows returned")
+    total_rows: OptionalRowCount = Field(description="Total available rows")
 
     data_freshness: datetime | None = Field(description="When data was last updated")
 
