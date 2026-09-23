@@ -16,7 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { SqlaFormData, VizType } from '@superset-ui/core';
+import {
+  isPostProcessingPivot,
+  SqlaFormData,
+  VizType,
+} from '@superset-ui/core';
 import buildQuery from '../../src/Timeseries/buildQuery';
 
 describe('Timeseries buildQuery', () => {
@@ -121,12 +125,10 @@ describe('Timeseries buildQuery', () => {
     });
     const [query] = queryContext.queries;
     expect(query.metrics).toEqual(['count', 'na_sales']);
-    const pivot = (query.post_processing || []).find(
-      operator => operator?.operation === 'pivot',
-    );
+    const pivot = (query.post_processing || []).find(isPostProcessingPivot);
     // The sort metric survives the pivot under its base label only; its
     // time-shifted column is dropped along with the rest.
-    expect(Object.keys(pivot?.options?.aggregates ?? {}).sort()).toEqual([
+    expect(Object.keys(pivot?.options.aggregates ?? {}).sort()).toEqual([
       'count',
       'count__1 week ago',
       'na_sales',
