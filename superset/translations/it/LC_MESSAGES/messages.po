@@ -218,6 +218,62 @@ msgstr " per vedere dettagli."
 msgid "!= (Is not equal)"
 msgstr "!= (non è uguale)"
 
+msgid "Add group"
+msgstr "Aggiungi gruppo"
+
+msgid "Add subgroup"
+msgstr "Aggiungi sottogruppo"
+
+msgid "Center"
+msgstr "Centro"
+
+msgid "Collapse settings"
+msgstr "Comprimi impostazioni"
+
+msgid "Column groups"
+msgstr "Gruppi di colonne"
+
+msgid "Enter group name"
+msgstr "Immettere il nome del gruppo"
+
+msgid "Expand settings"
+msgstr "Espandi impostazioni"
+
+#, python-format
+msgid "Group %s"
+msgstr "Gruppo %s"
+
+msgid "Group columns"
+msgstr "Colonne del gruppo"
+
+msgid "Group name"
+msgstr "Nome del gruppo"
+
+msgid "Move group left"
+msgstr "Sposta il gruppo a sinistra"
+
+msgid "Move group right"
+msgstr "Sposta il gruppo a destra"
+
+msgid "Multi-level header"
+msgstr "Intestazione a più livelli"
+
+msgid "Position"
+msgstr "Posizione"
+
+msgid "Remove group"
+msgstr "Rimuovi gruppo"
+
+msgid "Select columns"
+msgstr "Seleziona colonne"
+
+#, python-format
+msgid "Subgroup %s"
+msgstr "Sottogruppo %s"
+
+msgid "Table side"
+msgstr "Lato della tabella"
+
 #, python-format
 msgid "\"%s\" is now the system dark theme"
 msgstr "\"%s\" è ora il tema di sistema scuro"
