@@ -637,7 +637,9 @@ The hook fires for any chart or dashboard created through the REST API
 (including Explore's Save As) and for blank dashboards created from the UI's
 "+ New dashboard" button. MCP-generated charts go through the same path, but
 MCP-generated dashboards currently build the dashboard directly and skip the
-hook.
+hook. The dashboard copy endpoint (`POST /api/v1/dashboard/<id>/copy/`) also
+bypasses it, since it clones the dashboard directly rather than going through
+the create command.
 
 ## Carrying extra data through chart and dashboard exports
 
