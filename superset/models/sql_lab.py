@@ -598,7 +598,9 @@ class SavedQuery(
         treat a ``SavedQuery`` like any other datasource instead of raising
         ``AttributeError``.
         """
-        return f"{self.database.database_name}.{self.schema}"
+        return security_manager.get_schema_perm(
+            self.database.database_name, self.catalog, self.schema
+        )
 
     @property
     def catalog_perm(self) -> Optional[str]:
