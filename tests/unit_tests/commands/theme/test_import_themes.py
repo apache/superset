@@ -176,17 +176,15 @@ def test_import_theme_allows_regular_theme_overwrite(
     assert config["id"] == existing.id
 
 
-@patch("superset.subjects.utils.get_user_subject")
 @patch("superset.utils.core.get_user")
 @patch("superset.security_manager")
 @patch("superset.db")
-def test_import_theme_original_creator_can_overwrite_without_explicit_editor(
-    mock_db, mock_security_manager, mock_get_user, mock_get_user_subject
+def test_import_theme_creator_with_empty_editors_overwrite_denied(
+    mock_db, mock_security_manager, mock_get_user
 ):
-    """A theme's original creator can overwrite it via import even when
-    they're not (yet) in its `editors` list -- e.g. a theme created before
-    per-theme editors shipped. The fallback also backfills `editors` so
-    later overwrites don't need it."""
+    """An empty `editors` list means admin-only. If an admin removed the
+    original creator as the sole editor, that creator must not be able to
+    overwrite the theme via import (there is no `created_by_fk` fallback)."""
     mock_security_manager.can_access.return_value = True
     mock_security_manager.is_editor = Mock(return_value=False)
     mock_security_manager.is_admin = Mock(return_value=False)
@@ -202,21 +200,12 @@ def test_import_theme_original_creator_can_overwrite_without_explicit_editor(
         existing
     )
 
-    subject = Mock()
-    mock_get_user_subject.return_value = subject
+    config = {"uuid": "some-uuid", "theme_name": "hostile", "json_data": "{}"}
 
-    config = {"uuid": "some-uuid", "theme_name": "updated", "json_data": "{}"}
+    with pytest.raises(ThemeImportError):
+        import_theme(config, overwrite=True)
 
-    with patch("superset.models.core.Theme.import_from_dict") as mock_import_from_dict:
-        mock_theme = MagicMock(spec=Theme)
-        mock_theme.id = 1
-        mock_import_from_dict.return_value = mock_theme
-
-        result = import_theme(config, overwrite=True)
-
-    assert result is mock_theme
-    assert config["id"] == existing.id
-    assert subject in existing.editors
+    assert existing.editors == []
 
 
 @patch("superset.utils.core.get_user")
@@ -225,9 +214,8 @@ def test_import_theme_original_creator_can_overwrite_without_explicit_editor(
 def test_import_theme_revoked_creator_overwrite_denied(
     mock_db, mock_security_manager, mock_get_user
 ):
-    """Once `editors` has been populated and no longer includes the
-    original creator, that's a deliberate revocation, not an unbackfilled
-    gap -- the `created_by_fk` fallback must not let them back in."""
+    """A creator who is no longer in a populated `editors` list can't
+    overwrite the theme either."""
     mock_security_manager.can_access.return_value = True
     mock_security_manager.is_editor = Mock(return_value=False)
     mock_security_manager.is_admin = Mock(return_value=False)
