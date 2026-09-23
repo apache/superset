@@ -232,9 +232,11 @@ def cancellable_chart_query(
     captured = False
 
     def _sink(cursor: Any) -> None:
+        # Republish for every cursor rather than only the first: one query
+        # object can execute several statements in turn (e.g. the grouping-sets
+        # fallback), each on whatever connection the pool hands out, and the
+        # handle must always name the session that is executing right now.
         nonlocal captured
-        if captured:
-            return
         cancel_id = capture_cancel_query_id(target, cursor)
         if cancel_id is None:
             return
