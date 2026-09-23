@@ -6394,6 +6394,9 @@
             "nullable": true,
             "type": "string"
           },
+          "supports_partition_filter_mapping": {
+            "readOnly": true
+          },
           "table_name": {
             "maxLength": 250,
             "type": "string"
