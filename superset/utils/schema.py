@@ -56,6 +56,44 @@ def validate_json(value: Union[bytes, bytearray, str]) -> None:
         raise ValidationError("JSON not valid") from ex
 
 
+def is_query_context_metadata_complete(value: Any) -> bool:
+    """
+    Whether a parsed ``query_context`` payload carries the ``datasource`` and
+    ``queries`` keys ``QueryContextFactory.create()`` requires (apache/superset
+    #35774): both are required keyword-only arguments there, and a chart saved
+    without them fails every subsequent read with a raw ``TypeError`` instead
+    of a clear error at save time.
+
+    :param value: the object obtained by JSON-decoding a query_context string
+    """
+    return (
+        isinstance(value, dict)
+        and bool(value.get("datasource"))
+        and bool(value.get("queries"))
+    )
+
+
+def validate_query_context_metadata(value: Union[bytes, bytearray, str]) -> None:
+    """
+    Validator for a chart's ``query_context`` field: beyond being well-formed
+    JSON (see ``validate_json``), it must be a JSON object carrying non-empty
+    ``datasource`` and ``queries`` keys (apache/superset#35774).
+
+    :raises ValidationError: if value is not valid JSON, or is valid JSON that
+        is not an object with non-empty ``datasource``/``queries`` keys
+    :param value: an object that should be parseable to a query_context JSON object
+    """
+    try:
+        parsed = json.loads(value)
+    except json.JSONDecodeError as ex:
+        raise ValidationError("JSON not valid") from ex
+    if not is_query_context_metadata_complete(parsed):
+        raise ValidationError(
+            "query_context must be a JSON object with non-empty "
+            "'datasource' and 'queries' keys"
+        )
+
+
 def validate_external_url(value: Optional[str]) -> None:
     """
     Validator for externally managed object URLs.
