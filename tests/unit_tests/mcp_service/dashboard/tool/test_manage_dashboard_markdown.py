@@ -36,11 +36,14 @@ Covers:
 - "at least one operation" request validation (ToolError at the call boundary)
 """
 
+from collections.abc import Iterator
 from typing import Any
-from unittest.mock import Mock, patch
+from unittest.mock import Mock, patch, PropertyMock
 
 import pytest
-from fastmcp import Client
+from fastmcp import Client, FastMCP
+from fastmcp.exceptions import ToolError
+from sqlalchemy.exc import SQLAlchemyError
 
 from superset.commands.dashboard.exceptions import DashboardNotFoundError
 from superset.exceptions import SupersetSecurityException
@@ -49,7 +52,15 @@ from superset.utils import json
 DAO_GET = "superset.daos.dashboard.DashboardDAO.get_by_id_or_slug"
 
 
+@pytest.fixture(autouse=True)
+def mock_event_logging() -> Iterator[None]:
+    """Isolate dashboard commits from the event logger's separate audit commits."""
+    with patch("superset.extensions.event_logger.log_context"):
+        yield
+
+
 def _empty_grid_layout() -> dict[str, Any]:
+    """Build an empty frontend-compatible grid."""
     return {
         "DASHBOARD_VERSION_KEY": "v2",
         "ROOT_ID": {"type": "ROOT", "id": "ROOT_ID", "children": ["GRID_ID"]},
@@ -58,6 +69,7 @@ def _empty_grid_layout() -> dict[str, Any]:
 
 
 def _grid_layout_with_existing_components() -> dict[str, Any]:
+    """Build a grid with each supported component type."""
     layout = _empty_grid_layout()
     layout["GRID_ID"]["children"] = [
         "ROW-existing1",
@@ -100,6 +112,7 @@ def _grid_layout_with_existing_components() -> dict[str, Any]:
 
 
 def _tabbed_layout() -> dict[str, Any]:
+    """Build a top-level tab layout."""
     return {
         "DASHBOARD_VERSION_KEY": "v2",
         "ROOT_ID": {"type": "ROOT", "id": "ROOT_ID", "children": ["TABS-1"]},
@@ -132,6 +145,7 @@ def _mock_dashboard(
     chart_ids: list[int] | None = None,
     slug: str | None = None,
 ) -> Mock:
+    """Build a dashboard without touching the metadata database."""
     dashboard = Mock()
     dashboard.id = id
     dashboard.dashboard_title = "Test Dashboard"
@@ -148,7 +162,8 @@ def _mock_dashboard(
     return dashboard
 
 
-async def _call(mcp_server: object, request: dict[str, Any]) -> dict[str, Any]:
+async def _call(mcp_server: FastMCP, request: dict[str, Any]) -> dict[str, Any]:
+    """Exercise validation and serialization through the MCP boundary."""
     async with Client(mcp_server) as client:
         result = await client.call_tool(
             "manage_dashboard_markdown", {"request": request}
@@ -162,7 +177,7 @@ async def _call(mcp_server: object, request: dict[str, Any]) -> dict[str, Any]:
 
 
 @pytest.mark.asyncio
-async def test_add_markdown_creates_new_row(mcp_server):
+async def test_add_markdown_creates_new_row(mcp_server: FastMCP) -> None:
     dashboard = _mock_dashboard()
 
     with (
@@ -203,7 +218,7 @@ async def test_add_markdown_creates_new_row(mcp_server):
 
 
 @pytest.mark.asyncio
-async def test_add_header_placed_directly_under_grid(mcp_server):
+async def test_add_header_placed_directly_under_grid(mcp_server: FastMCP) -> None:
     dashboard = _mock_dashboard()
 
     with (
@@ -240,7 +255,7 @@ async def test_add_header_placed_directly_under_grid(mcp_server):
 
 
 @pytest.mark.asyncio
-async def test_add_divider_placed_directly_under_grid(mcp_server):
+async def test_add_divider_placed_directly_under_grid(mcp_server: FastMCP) -> None:
     dashboard = _mock_dashboard()
 
     with (
@@ -262,7 +277,7 @@ async def test_add_divider_placed_directly_under_grid(mcp_server):
 
 
 @pytest.mark.asyncio
-async def test_add_multiple_components_in_request_order(mcp_server):
+async def test_add_multiple_components_in_request_order(mcp_server: FastMCP) -> None:
     dashboard = _mock_dashboard()
 
     with (
@@ -288,7 +303,7 @@ async def test_add_multiple_components_in_request_order(mcp_server):
 
 
 @pytest.mark.asyncio
-async def test_add_to_target_tab_by_name(mcp_server):
+async def test_add_to_target_tab_by_name(mcp_server: FastMCP) -> None:
     dashboard = _mock_dashboard(layout=_tabbed_layout())
 
     with (
@@ -317,7 +332,9 @@ async def test_add_to_target_tab_by_name(mcp_server):
 
 
 @pytest.mark.asyncio
-async def test_add_target_tab_not_found_lists_available_tabs(mcp_server):
+async def test_add_target_tab_not_found_lists_available_tabs(
+    mcp_server: FastMCP,
+) -> None:
     dashboard = _mock_dashboard(layout=_tabbed_layout())
 
     with (
@@ -343,7 +360,7 @@ async def test_add_target_tab_not_found_lists_available_tabs(mcp_server):
 
 
 @pytest.mark.asyncio
-async def test_add_target_tab_on_dashboard_without_tabs(mcp_server):
+async def test_add_target_tab_on_dashboard_without_tabs(mcp_server: FastMCP) -> None:
     dashboard = _mock_dashboard()
 
     with (
@@ -367,7 +384,7 @@ async def test_add_target_tab_on_dashboard_without_tabs(mcp_server):
 
 
 @pytest.mark.asyncio
-async def test_update_markdown_code(mcp_server):
+async def test_update_markdown_code(mcp_server: FastMCP) -> None:
     dashboard = _mock_dashboard(layout=_grid_layout_with_existing_components())
 
     with (
@@ -393,7 +410,7 @@ async def test_update_markdown_code(mcp_server):
 
 
 @pytest.mark.asyncio
-async def test_update_header_fields(mcp_server):
+async def test_update_header_fields(mcp_server: FastMCP) -> None:
     dashboard = _mock_dashboard(layout=_grid_layout_with_existing_components())
 
     with (
@@ -425,7 +442,9 @@ async def test_update_header_fields(mcp_server):
 
 
 @pytest.mark.asyncio
-async def test_update_rejects_field_from_wrong_component_type(mcp_server):
+async def test_update_rejects_field_from_wrong_component_type(
+    mcp_server: FastMCP,
+) -> None:
     dashboard = _mock_dashboard(layout=_grid_layout_with_existing_components())
 
     with (
@@ -444,7 +463,7 @@ async def test_update_rejects_field_from_wrong_component_type(mcp_server):
 
 
 @pytest.mark.asyncio
-async def test_update_unknown_component_id(mcp_server):
+async def test_update_unknown_component_id(mcp_server: FastMCP) -> None:
     dashboard = _mock_dashboard(layout=_grid_layout_with_existing_components())
 
     with (
@@ -463,7 +482,7 @@ async def test_update_unknown_component_id(mcp_server):
 
 
 @pytest.mark.asyncio
-async def test_duplicate_update_ids_rejected(mcp_server):
+async def test_duplicate_update_ids_rejected(mcp_server: FastMCP) -> None:
     dashboard = _mock_dashboard(layout=_grid_layout_with_existing_components())
 
     with (
@@ -490,7 +509,7 @@ async def test_duplicate_update_ids_rejected(mcp_server):
 
 
 @pytest.mark.asyncio
-async def test_remove_header(mcp_server):
+async def test_remove_header(mcp_server: FastMCP) -> None:
     dashboard = _mock_dashboard(layout=_grid_layout_with_existing_components())
 
     with (
@@ -510,7 +529,7 @@ async def test_remove_header(mcp_server):
 
 
 @pytest.mark.asyncio
-async def test_remove_markdown_prunes_empty_wrapping_row(mcp_server):
+async def test_remove_markdown_prunes_empty_wrapping_row(mcp_server: FastMCP) -> None:
     dashboard = _mock_dashboard(layout=_grid_layout_with_existing_components())
 
     with (
@@ -532,7 +551,7 @@ async def test_remove_markdown_prunes_empty_wrapping_row(mcp_server):
 
 
 @pytest.mark.asyncio
-async def test_remove_unknown_id_rejected(mcp_server):
+async def test_remove_unknown_id_rejected(mcp_server: FastMCP) -> None:
     dashboard = _mock_dashboard(layout=_grid_layout_with_existing_components())
 
     with (
@@ -548,7 +567,7 @@ async def test_remove_unknown_id_rejected(mcp_server):
 
 
 @pytest.mark.asyncio
-async def test_update_and_remove_conflict_rejected(mcp_server):
+async def test_update_and_remove_conflict_rejected(mcp_server: FastMCP) -> None:
     dashboard = _mock_dashboard(layout=_grid_layout_with_existing_components())
 
     with (
@@ -574,7 +593,7 @@ async def test_update_and_remove_conflict_rejected(mcp_server):
 
 
 @pytest.mark.asyncio
-async def test_malformed_position_json(mcp_server):
+async def test_malformed_position_json(mcp_server: FastMCP) -> None:
     dashboard = _mock_dashboard()
     dashboard.position_json = "not valid json"
 
@@ -591,7 +610,7 @@ async def test_malformed_position_json(mcp_server):
 
 
 @pytest.mark.asyncio
-async def test_dashboard_not_found(mcp_server):
+async def test_dashboard_not_found(mcp_server: FastMCP) -> None:
     with patch(DAO_GET, side_effect=DashboardNotFoundError()):
         data = await _call(
             mcp_server,
@@ -603,7 +622,7 @@ async def test_dashboard_not_found(mcp_server):
 
 
 @pytest.mark.asyncio
-async def test_permission_denied(mcp_server):
+async def test_permission_denied(mcp_server: FastMCP) -> None:
     dashboard = _mock_dashboard()
 
     with (
@@ -622,12 +641,10 @@ async def test_permission_denied(mcp_server):
 
 
 @pytest.mark.asyncio
-async def test_at_least_one_operation_required(mcp_server):
+async def test_at_least_one_operation_required(mcp_server: FastMCP) -> None:
     """Request-schema validation happens at the MCP tool-call boundary,
     before the tool body runs, so the client raises ToolError rather than
     returning a JSON error body (mirrors manage_native_filters)."""
-    from fastmcp.exceptions import ToolError
-
     dashboard = _mock_dashboard()
 
     with patch(DAO_GET, return_value=dashboard):
@@ -636,7 +653,7 @@ async def test_at_least_one_operation_required(mcp_server):
 
 
 @pytest.mark.asyncio
-async def test_header_text_html_is_sanitized(mcp_server):
+async def test_header_text_html_is_sanitized(mcp_server: FastMCP) -> None:
     dashboard = _mock_dashboard()
 
     with (
@@ -664,9 +681,7 @@ async def test_header_text_html_is_sanitized(mcp_server):
 
 
 @pytest.mark.asyncio
-async def test_header_text_all_html_rejected(mcp_server):
-    from fastmcp.exceptions import ToolError
-
+async def test_header_text_all_html_rejected(mcp_server: FastMCP) -> None:
     dashboard = _mock_dashboard()
 
     with patch(DAO_GET, return_value=dashboard):
@@ -678,3 +693,216 @@ async def test_header_text_all_html_rejected(mcp_server):
                     "add": [{"component_type": "header", "text": "<script></script>"}],
                 },
             )
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "operations",
+    [
+        {"add": [{"component_type": "markdown", "code": "x", "width": 13}]},
+        {"add": [{"component_type": "markdown", "code": "x", "height": 0}]},
+        {"add": [{"component_type": "chart"}]},
+        {"add": [{"component_type": "markdown"}]},
+        {"add": [{"component_type": "divider", "code": "ignored?"}]},
+        {"update": [{"id": "MARKDOWN-existing1", "component_type": "header"}]},
+        {"update": [{"id": "HEADER-existing1", "header_size": "HUGE"}]},
+        {"add": [{"component_type": "divider"}], "dashboard_id": True},
+    ],
+)
+async def test_schema_rejects_invalid_operations(
+    mcp_server: FastMCP, operations: dict[str, Any]
+) -> None:
+    """Invalid inputs cannot reach dashboard lookup or persistence."""
+    with patch(DAO_GET) as lookup:
+        with pytest.raises(ToolError):
+            await _call(mcp_server, {"dashboard_id": 1, **operations})
+    lookup.assert_not_called()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("position_json", ["[]", "null", '{"ROOT_ID": 1}'])
+async def test_malformed_layout_is_not_replaced(
+    mcp_server: FastMCP, position_json: str
+) -> None:
+    """Corrupt layouts are rejected rather than discarded or traversed."""
+    dashboard = _mock_dashboard()
+    dashboard.position_json = position_json
+    with (
+        patch(DAO_GET, return_value=dashboard),
+        patch("superset.extensions.db.session") as session,
+    ):
+        data = await _call(
+            mcp_server, {"dashboard_id": 1, "add": [{"component_type": "divider"}]}
+        )
+    assert "malformed layout" in data["error"]
+    assert dashboard.position_json == position_json
+    session.commit.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_failed_batch_does_not_save_partial_updates(mcp_server: FastMCP) -> None:
+    """A failed add must not persist earlier valid updates and removals."""
+    dashboard = _mock_dashboard(layout=_grid_layout_with_existing_components())
+    before = dashboard.position_json
+    with (
+        patch(DAO_GET, return_value=dashboard),
+        patch("superset.extensions.db.session") as session,
+    ):
+        data = await _call(
+            mcp_server,
+            {
+                "dashboard_id": 1,
+                "update": [{"id": "MARKDOWN-existing1", "code": "changed"}],
+                "remove": ["HEADER-existing1"],
+                "add": [{"component_type": "divider", "target_tab": "missing"}],
+            },
+        )
+    assert data["error"]
+    assert dashboard.position_json == before
+    session.commit.assert_not_called()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("operation", ["update", "remove"])
+async def test_reserved_title_and_charts_cannot_be_mutated(
+    mcp_server: FastMCP, operation: str
+) -> None:
+    """Only text tiles, not dashboard title metadata or charts, are editable."""
+    layout = _grid_layout_with_existing_components()
+    layout["HEADER_ID"] = {
+        "id": "HEADER_ID",
+        "type": "HEADER",
+        "meta": {"text": "Title"},
+    }
+    layout["CHART-1"] = {"id": "CHART-1", "type": "CHART", "meta": {"chartId": 7}}
+    layout["ROW-existing1"]["children"].append("CHART-1")
+    dashboard = _mock_dashboard(layout=layout, chart_ids=[7])
+    before = dashboard.position_json
+    with (
+        patch(DAO_GET, return_value=dashboard),
+        patch("superset.extensions.db.session") as session,
+    ):
+        for component_id in ("HEADER_ID", "CHART-1"):
+            payload: list[dict[str, str]] | list[str]
+            if operation == "update":
+                payload = [{"id": component_id, "text": "changed"}]
+            else:
+                payload = [component_id]
+            data = await _call(mcp_server, {"dashboard_id": 1, operation: payload})
+            assert data["error"]
+    assert dashboard.position_json == before
+    session.commit.assert_not_called()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("target_tab", [None, "TAB-a", "Overview"])
+async def test_markdown_tab_placement_rebuilds_full_ancestry(
+    mcp_server: FastMCP, target_tab: str | None
+) -> None:
+    """Default and explicit tab placement produce filter-scope parent chains."""
+    dashboard = _mock_dashboard(layout=_tabbed_layout())
+    with (
+        patch(DAO_GET, return_value=dashboard),
+        patch("superset.extensions.db.session"),
+    ):
+        data = await _call(
+            mcp_server,
+            {
+                "dashboard_id": 1,
+                "add": [
+                    {
+                        "component_type": "markdown",
+                        "code": "text",
+                        "target_tab": target_tab,
+                    }
+                ],
+            },
+        )
+    assert data["error"] is None
+    layout = json.loads(dashboard.position_json)
+    node = layout[data["added_component_ids"][0]]
+    row_id = layout["TAB-a"]["children"][0]
+    assert node["parents"] == ["ROOT_ID", "TABS-1", "TAB-a", row_id]
+    assert layout["ROOT_ID"]["children"] == ["TABS-1"]
+
+
+@pytest.mark.asyncio
+async def test_batch_preserves_charts_metadata_and_markdown_source(
+    mcp_server: FastMCP,
+) -> None:
+    """Layout edits preserve non-target nodes, associated charts, and filters."""
+    layout = _grid_layout_with_existing_components()
+    layout["CHART-1"] = {
+        "id": "CHART-1",
+        "type": "CHART",
+        "children": [],
+        "meta": {"chartId": 7, "width": 4, "height": 50},
+        "parents": ["ROOT_ID", "GRID_ID", "ROW-existing1"],
+    }
+    layout["ROW-existing1"]["children"].append("CHART-1")
+    dashboard = _mock_dashboard(layout=layout, chart_ids=[7])
+    dashboard.json_metadata = '{"native_filter_configuration": [{"id": "filter-1"}]}'
+    before_metadata, before_slices = dashboard.json_metadata, dashboard.slices
+    source = "## Notes\n\n<div>**bold** & [link](https://example.com)</div>"
+    with (
+        patch(DAO_GET, return_value=dashboard),
+        patch("superset.extensions.db.session") as session,
+    ):
+        data = await _call(
+            mcp_server,
+            {
+                "dashboard_id": 1,
+                "remove": ["MARKDOWN-existing1"],
+                "update": [{"id": "HEADER-existing1", "text": "Revised"}],
+                "add": [{"component_type": "markdown", "code": source}],
+            },
+        )
+    assert data["error"] is None
+    saved = json.loads(dashboard.position_json)
+    assert saved["CHART-1"] == layout["CHART-1"]
+    assert saved["ROW-existing1"]["children"] == ["CHART-1"]
+    assert saved[data["added_component_ids"][0]]["meta"]["code"] == source
+    assert dashboard.slices is before_slices
+    assert dashboard.json_metadata == before_metadata
+    session.commit.assert_called_once()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("failure", ["commit", "refresh"])
+async def test_database_failure_reports_commit_outcome(
+    mcp_server: FastMCP, failure: str
+) -> None:
+    """Rollback failed commits; a refresh failure must not invite duplicate adds."""
+    dashboard = _mock_dashboard()
+    with (
+        patch(DAO_GET, return_value=dashboard),
+        patch("superset.extensions.db.session") as session,
+    ):
+
+        def expire_and_fail(*args: object) -> None:
+            """Simulate inaccessible ORM attributes after a failed refresh."""
+            if failure == "refresh":
+                type(dashboard).id = PropertyMock(
+                    side_effect=SQLAlchemyError("expired")
+                )
+                type(dashboard).slug = PropertyMock(
+                    side_effect=SQLAlchemyError("expired")
+                )
+            raise SQLAlchemyError("database error")
+
+        getattr(session, failure).side_effect = expire_and_fail
+        data = await _call(
+            mcp_server,
+            {
+                "dashboard_id": 1,
+                "add": [{"component_type": "divider"}],
+            },
+        )
+    if failure == "commit":
+        assert data["error"]
+        assert not data["added_component_ids"]
+        session.rollback.assert_called_once()
+    else:
+        assert data["error"] is None
+        assert len(data["added_component_ids"]) == 1
+        session.rollback.assert_not_called()

@@ -133,6 +133,8 @@ def _add_component_to_layout(
 
     layout_type = _LAYOUT_TYPE_BY_COMPONENT_TYPE[spec.component_type]
     component_id = generate_id(layout_type)
+    while component_id in layout:
+        component_id = generate_id(layout_type)
     layout[component_id] = {
         "id": component_id,
         "type": layout_type,
@@ -251,7 +253,7 @@ def _component_summaries(layout: Dict[str, Any]) -> list[DashboardComponentSumma
         openWorldHint=False,
     ),
 )
-def manage_dashboard_markdown(  # noqa: C901 — complexity is structural (layout traversal + multi-step validation), not accidental
+def manage_dashboard_markdown(  # noqa: C901
     request: ManageDashboardMarkdownRequest, ctx: Context
 ) -> ManageDashboardMarkdownResponse:
     """
@@ -379,6 +381,16 @@ def manage_dashboard_markdown(  # noqa: C901 — complexity is structural (layou
                     error=f"Resulting dashboard layout is invalid: {error}",
                 )
 
+        # Capture the receipt before committing. A failed refresh leaves ORM
+        # attributes expired, so reading them afterwards could mask a saved write.
+        result = ManageDashboardMarkdownResponse(
+            dashboard_id=dashboard.id,
+            dashboard_url=dashboard_url(dashboard),
+            added_component_ids=added_ids,
+            updated_component_ids=updated_ids,
+            removed_component_ids=list(request.remove),
+            components=_component_summaries(current_layout),
+        )
         with event_logger.log_context(action="mcp.manage_dashboard_markdown.db_write"):
             dashboard.position_json = json.dumps(current_layout)
             db.session.commit()  # pylint: disable=consider-using-transaction
@@ -387,7 +399,7 @@ def manage_dashboard_markdown(  # noqa: C901 — complexity is structural (layou
             except SQLAlchemyError:
                 logger.warning(
                     "Dashboard %s updated but refresh failed; continuing",
-                    dashboard.id,
+                    request.dashboard_id,
                     exc_info=True,
                 )
 
@@ -420,12 +432,4 @@ def manage_dashboard_markdown(  # noqa: C901 — complexity is structural (layou
         len(request.remove),
     )
 
-    return ManageDashboardMarkdownResponse(
-        dashboard_id=request.dashboard_id,
-        dashboard_url=dashboard_url(dashboard),
-        added_component_ids=added_ids,
-        updated_component_ids=updated_ids,
-        removed_component_ids=list(request.remove),
-        components=_component_summaries(current_layout),
-        error=None,
-    )
+    return result
