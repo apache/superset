@@ -19,6 +19,7 @@
 import { ReactElement, useCallback, memo, useMemo } from 'react';
 import { bindActionCreators } from 'redux';
 import { useSelector, useDispatch } from 'react-redux';
+import { logging } from '@apache-superset/core/utils';
 import { logEvent } from 'src/logger/actions';
 import { addDangerToast } from 'src/components/MessageToasts/actions';
 import { componentLookup } from 'src/dashboard/components/gridComponents';
@@ -156,9 +157,25 @@ const DashboardComponent = (
       return {};
     }, [component, dashboardLayout, props.id]);
 
-  const Component = component
-    ? componentLookup[component.type as keyof typeof componentLookup]
-    : null;
+  // A stored layout is not guaranteed to be a tree: it can name a component
+  // that is also one of its own ancestors. Every nested component renders
+  // through this container, so rendering that repeat would recurse without
+  // end and the dashboard would never appear. Stop at the repeat instead, so
+  // the rest of the dashboard still renders and the layout can be repaired.
+  const isRepeatedAncestor =
+    props.id === props.parentId ||
+    Boolean(parentComponent?.parents?.includes(props.id));
+
+  const Component =
+    component && !isRepeatedAncestor
+      ? componentLookup[component.type as keyof typeof componentLookup]
+      : null;
+
+  if (isRepeatedAncestor) {
+    logging.warn(
+      `The current layout reaches the component with the id: ${props.id} from its own descendant.  Skipping this component`,
+    );
+  }
   // Component is a union of all grid component types; TypeScript
   // cannot narrow the union here, so cast to a generic component type.
   const ResolvedComponent = Component as React.ComponentType<

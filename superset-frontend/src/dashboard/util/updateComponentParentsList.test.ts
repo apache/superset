@@ -167,4 +167,54 @@ describe('updateComponentParentsList with bad inputs', () => {
       }),
     ).not.toThrow();
   });
+
+  /**
+   * A stored layout can reference a component that is also one of its own
+   * ancestors. Following such a reference blindly recurses forever and
+   * overflows the stack, which breaks dashboard hydration and every
+   * subsequent layout action. Walking each component once instead keeps the
+   * dashboard usable so the layout can be repaired.
+   */
+  test('should not recurse forever when the layout contains a cycle', () => {
+    const cyclicLayout: Record<string, LayoutComponent> = {
+      ROOT_ID: { id: 'ROOT_ID', children: ['ROW-a'] },
+      'ROW-a': { id: 'ROW-a', children: ['ROW-b'] },
+      'ROW-b': { id: 'ROW-b', children: ['ROW-a'] },
+    };
+
+    expect(() =>
+      updateComponentParentsList({
+        currentComponent: cyclicLayout[DASHBOARD_ROOT_ID],
+        layout: cyclicLayout,
+      }),
+    ).not.toThrow();
+
+    expect(cyclicLayout['ROW-a'].parents).toEqual(['ROOT_ID']);
+    expect(cyclicLayout['ROW-b'].parents).toEqual(['ROOT_ID', 'ROW-a']);
+  });
+
+  /**
+   * A component reachable from two different parents is not a cycle, but
+   * re-walking it once per path makes a deep layout blow up exponentially.
+   */
+  test('should visit a component reachable from two parents only once', () => {
+    const sharedChildLayout: Record<string, LayoutComponent> = {
+      ROOT_ID: { id: 'ROOT_ID', children: ['ROW-a', 'ROW-b'] },
+      'ROW-a': { id: 'ROW-a', children: ['CHART-shared'] },
+      'ROW-b': { id: 'ROW-b', children: ['CHART-shared'] },
+      'CHART-shared': { id: 'CHART-shared', children: [] },
+    };
+
+    expect(() =>
+      updateComponentParentsList({
+        currentComponent: sharedChildLayout[DASHBOARD_ROOT_ID],
+        layout: sharedChildLayout,
+      }),
+    ).not.toThrow();
+
+    expect(sharedChildLayout['CHART-shared'].parents).toEqual([
+      'ROOT_ID',
+      'ROW-a',
+    ]);
+  });
 });

@@ -28,14 +28,29 @@ interface LayoutComponent {
 interface UpdateComponentParentsListParams {
   currentComponent?: LayoutComponent | null;
   layout?: Record<string, LayoutComponent>;
+  /** Components already walked. Internal to the recursion; callers omit it. */
+  visited?: Set<string>;
 }
 
+/**
+ * Walks the layout from a component down through its children, recording each
+ * component's chain of ancestors.
+ *
+ * A stored layout is not guaranteed to be a tree: a component can appear under
+ * two parents, or under itself. Each component is therefore walked at most
+ * once, keeping the first path that reaches it. Without that guard a
+ * self-referencing layout recurses until the stack overflows, which breaks
+ * dashboard hydration and every layout action that follows it.
+ */
 export default function updateComponentParentsList({
   currentComponent,
   layout = {},
+  visited = new Set<string>(),
 }: UpdateComponentParentsListParams): void {
   if (currentComponent && layout) {
     if (layout[currentComponent.id]) {
+      visited.add(currentComponent.id);
+
       const parentsList = Array.isArray(currentComponent.parents)
         ? currentComponent.parents.slice()
         : [];
@@ -44,7 +59,12 @@ export default function updateComponentParentsList({
 
       if (Array.isArray(currentComponent.children)) {
         currentComponent.children.forEach(childId => {
-          if (layout[childId]) {
+          if (visited.has(childId)) {
+            logging.warn(
+              `The current layout reaches the component with the id: ${childId} more than once.  Skipping this component`,
+            );
+          } else if (layout[childId]) {
+            visited.add(childId);
             // eslint-disable-next-line no-param-reassign
             layout[childId] = {
               ...layout[childId],
@@ -53,6 +73,7 @@ export default function updateComponentParentsList({
             updateComponentParentsList({
               currentComponent: layout[childId],
               layout,
+              visited,
             });
           } else {
             logging.warn(
