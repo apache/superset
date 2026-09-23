@@ -73,8 +73,13 @@ def resolve_node_entry(package: str) -> str | None:
 
 def run(command: list[str]) -> int:
     """Run a command directly, with no shell involved, and return its exit
-    code."""
-    return subprocess.run(command, check=False).returncode  # noqa: S603
+    code.
+
+    ``NODE_NO_WARNINGS=1`` keeps node's own warnings (experimental-feature
+    notices and the like) out of the build log, as po2json.sh did.
+    """
+    env = {**os.environ, "NODE_NO_WARNINGS": "1"}
+    return subprocess.run(command, check=False, env=env).returncode  # noqa: S603
 
 
 def convert_po_to_json(node_bin: str, po2json_entry: str, po_file: str) -> str | None:

@@ -27,8 +27,6 @@ import json  # noqa: TID251 - testing a standalone script that uses stdlib json
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
-import pytest
-
 _SCRIPT_PATH = (
     Path(__file__).resolve().parents[4] / "scripts" / "translations" / "compile_po.py"
 )
@@ -117,6 +115,7 @@ def test_run_returns_process_returncode() -> None:
         args, kwargs = mock_run.call_args
         assert args[0] == ["node", "script.js"]
         assert "shell" not in kwargs
+        assert kwargs["env"]["NODE_NO_WARNINGS"] == "1"
 
 
 # ---------------------------------------------------------------------------
@@ -302,10 +301,10 @@ def test_main_reports_oxfmt_failure(tmp_path: Path) -> None:
         assert compile_po.main() == 1
 
 
-@pytest.mark.parametrize("os_name", ["nt", "posix"])
-def test_main_never_touches_a_shell(tmp_path: Path, os_name: str) -> None:
-    """The whole pipeline runs with no shell involved on any platform -- the
-    thing the previous shell-metacharacter/`%VAR%`-expansion bugs required.
+def test_main_never_touches_a_shell(tmp_path: Path) -> None:
+    """The whole pipeline runs with no shell involved -- the thing the
+    previous shell-metacharacter/`%VAR%`-expansion bugs required. Nothing
+    here branches on the platform, so one run covers them all.
     """
     po_file = tmp_path / "fr" / "LC_MESSAGES" / "messages.po"
     po_file.parent.mkdir(parents=True)
@@ -313,7 +312,6 @@ def test_main_never_touches_a_shell(tmp_path: Path, os_name: str) -> None:
     po_file.with_suffix(".json").touch()
 
     with (
-        patch.object(compile_po.os, "name", os_name),
         patch.object(compile_po.shutil, "which", return_value="/usr/bin/node"),
         patch.object(compile_po, "resolve_node_entry", return_value="/pkg/bin/x"),
         patch.object(compile_po, "TRANSLATIONS_DIR", str(tmp_path)),
