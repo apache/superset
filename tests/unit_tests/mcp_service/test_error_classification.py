@@ -83,6 +83,17 @@ def _dead_table_error() -> SupersetErrorException:
     )
 
 
+def connection_denied(unused: int = 1) -> str:
+    """A connection access denial remains a permission failure."""
+    raise SupersetSecurityException(
+        SupersetError(
+            message="denied",
+            error_type=SupersetErrorType.CONNECTION_ACCESS_DENIED_ERROR,
+            level=ErrorLevel.ERROR,
+        )
+    )
+
+
 def _build_server() -> FastMCP:
     """A FastMCP server with one tool per failure class.
 
@@ -130,6 +141,8 @@ def _build_server() -> FastMCP:
     def malformed_column(unused: int = 1) -> str:
         """Engine reports a bad adhoc column via the GENERIC_DB_ENGINE catch-all."""
         raise SupersetGenericDBErrorException("bad adhoc column expression")
+
+    mcp.tool(connection_denied)
 
     @mcp.tool
     def bad_sql(unused: int = 1) -> str:
@@ -202,7 +215,7 @@ class TestFastMCPWrappingPrecondition:
         assert len(seen) == 1
         assert isinstance(seen[0], ToolError)
         assert isinstance(seen[0].__cause__, PermissionError)
-        # _unwrap_tool_error keys off this prefix to tell FastMCP's wrapper
+        # _unwrap_fastmcp_wrapped_error uses this prefix to identify the wrapper
         # apart from a ToolError tool code chained off another exception.
         assert str(seen[0]).startswith(_FASTMCP_WRAPPED_ERROR_PREFIX)
 
@@ -616,8 +629,17 @@ class TestDatasourceErrorSeverity:
         mock_logger.error.assert_called()
 
     @pytest.mark.asyncio
-    async def test_malformed_adhoc_column_does_not_fire_error_hook(self) -> None:
-        """End to end: a status-400 engine error is the caller's problem."""
+    @pytest.mark.parametrize(
+        ("tool_name", "message_prefix"),
+        [
+            ("malformed_column", "Datasource error in malformed_column:"),
+            ("connection_denied", "Permission denied"),
+        ],
+    )
+    async def test_sub_500_connection_reason_logs_warning_without_error_hook(
+        self, tool_name: str, message_prefix: str
+    ) -> None:
+        """Keep 400 engine errors and 403 denials non-paging through FastMCP."""
         hook_calls: list[Any] = []
 
         with (
@@ -627,9 +649,17 @@ class TestDatasourceErrorSeverity:
             ),
             patch("superset.mcp_service.middleware.logger") as mock_logger,
         ):
-            await _call("malformed_column")
+            message = await _call(tool_name)
 
+        assert message.removeprefix("Error: ").startswith(message_prefix)
         assert hook_calls == []
+        failure_logs = [
+            call
+            for call in mock_logger.warning.call_args_list
+            if call.args[0].startswith("MCP tool call failed:")
+        ]
+        assert len(failure_logs) == 1
+        assert failure_logs[0].kwargs["exc_info"] is False
         mock_logger.error.assert_not_called()
 
 
