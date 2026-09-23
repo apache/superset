@@ -24,7 +24,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version:  \n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-21 02:18+0000\n"
+"POT-Creation-Date: 2026-09-23 12:43+0200\n"
 "PO-Revision-Date: 2024-07-14 15:10+0300\n"
 "Last-Translator: Abdalrahim G. Fakhouri <abdilra7eem@yahoo.com>\n"
 "Language: ar\n"
@@ -2969,9 +2969,6 @@ msgstr "ضبط عرض العمود تلقائياً بناءً على المسا
 msgid "Automatically adjust column width based on content"
 msgstr "ضبط عرض العمود تلقائياً بناءً على المحتوى"
 
-msgid "Automatically retry sending the report when delivery fails."
-msgstr ""
-
 #, fuzzy
 msgid "Automatically sync columns"
 msgstr "تخصيص الأعمدة"
@@ -4768,7 +4765,7 @@ msgstr "تكوين مظهر لوحة التحكم والألوان وCSS الم�
 msgid "Configure filter scopes"
 msgstr "تكوين نطاقات التصفية"
 
-msgid "Configure retry behavior on delivery failure."
+msgid "Configure retries when alert or report generation fails before delivery."
 msgstr ""
 
 msgid "Configure the basics of your Annotation Layer."
@@ -4846,6 +4843,9 @@ msgid "Connection failed, please check your connection settings."
 msgstr "فشل الاتصال ، يرجى التحقق من إعدادات الاتصال الخاصة بك"
 
 msgid "Connection looks good!"
+msgstr ""
+
+msgid "Contact the report owner for error details."
 msgstr ""
 
 #, fuzzy
@@ -6637,6 +6637,9 @@ msgid ""
 "Display each cell as a percentage of its row, column, or grand total, "
 "instead of its actual value. Totals and subtotals are still computed "
 "correctly first; this only changes how they are displayed."
+msgstr ""
+
+msgid "Display format"
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, fr,
@@ -13021,6 +13024,9 @@ msgstr "إعادة تحميل"
 msgid "Reload SQL Lab"
 msgstr "إعادة تحميل SQL Lab"
 
+msgid "Reload the page and try again to continue."
+msgstr ""
+
 msgid "Remove"
 msgstr "ازاله"
 
@@ -13414,9 +13420,6 @@ msgstr "لم يتم تكوين الواجهة الخلفية للنتائج ال
 msgid "Resume auto-refresh"
 msgstr "تعيين الفاصل الزمني للتحديث التلقائي"
 
-msgid "Retries are not supported for alerts"
-msgstr ""
-
 #, fuzzy
 msgid "Retry"
 msgstr "خالق"
@@ -13424,6 +13427,11 @@ msgstr "خالق"
 #, fuzzy
 msgid "Retry fetching results"
 msgstr "نتائج إعادة البحث"
+
+msgid ""
+"Retry generation failures before delivery starts. Alerts re-check their "
+"condition on each attempt. Delivery failures are not replayed."
+msgstr ""
 
 msgid "Retrying"
 msgstr ""
@@ -13997,6 +14005,12 @@ msgstr "نطاق"
 msgid "Scoping"
 msgstr "تحديد النطاق"
 
+msgid "Screenshot cache is unavailable"
+msgstr ""
+
+msgid "Screenshot request is temporarily unavailable"
+msgstr ""
+
 msgid "Screenshot width"
 msgstr "عرض لقطة الشاشة"
 
@@ -14131,6 +14145,9 @@ msgstr "سيكيور إكسترا"
 
 msgid "Security"
 msgstr "الأمان"
+
+msgid "Security token error"
+msgstr ""
 
 #, fuzzy
 msgid "See "
@@ -15479,9 +15496,6 @@ msgstr "عذرًا، حدث خطأ"
 msgid "Sorry, an error occurred"
 msgstr "عذرًا، حدث خطأ"
 
-msgid "Sorry, an unknown error occurred"
-msgstr "عذرًا، حدث خطأ غير معروف"
-
 msgid "Sorry, an unknown error occurred."
 msgstr "عذرًا، حدث خطأ غير معروف."
 
@@ -16347,6 +16361,9 @@ msgstr "ربما تم حذف مجموعة البيانات المرتبطة به
 #, python-format
 msgid "The API response from %s does not match the IDatabaseTable interface."
 msgstr "لا تتطابق استجابة API من %s مع واجهة IDatabaseTable."
+
+msgid "The CSRF token could not be validated."
+msgstr ""
 
 msgid ""
 "The CSS for individual dashboards can be altered here, or in the "
@@ -18380,9 +18397,10 @@ msgstr ""
 
 msgid ""
 "This update would change the connection's effective destination "
-"(host/port, engine parameters, or SSH tunnel endpoint) while reusing the "
-"stored credential. Provide the real password (or SSH tunnel credential) "
-"to confirm a connection move."
+"(host/port, engine parameters, SSH tunnel endpoint, or OAuth2 endpoint "
+"URIs) while reusing the stored credential. Provide the real password (or "
+"SSH tunnel credential / OAuth2 client secret) to confirm a connection "
+"move."
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
