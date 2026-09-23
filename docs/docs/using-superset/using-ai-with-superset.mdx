@@ -300,7 +300,7 @@ Ask your admin for the MCP server URL and any authentication tokens you need.
 | `list_metrics`                | Discover metrics by name/description across built-in datasets and external semantic views, with compatible dimensions included    |
 | `get_table`                   | Query a dataset or semantic view by metric and dimension names, with optional filters, time range, and sorting                    |
 | `get_compatible_dimensions`   | Given metrics/dimensions already selected, return the full set of dimensions compatible with that selection (may include ones already selected) |
-| `get_compatible_metrics`      | Given metrics/dimensions already selected, return the metrics that can still be added (already-selected metrics excluded)          |
+| `get_compatible_metrics`      | Given metrics/dimensions already selected, return the compatible metrics; already-selected metrics are excluded for built-in datasets, while external semantic views return whatever their connector reports and may include ones already selected |
 
 ### Charts
 
