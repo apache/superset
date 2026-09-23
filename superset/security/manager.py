@@ -162,9 +162,21 @@ def get_extra_editor_subject_ids(resource: Model) -> list[int]:
     if not resolver:
         return []
 
+    try:
+        resolved_subjects = resolver(resource) or []
+    except Exception:  # pylint: disable=broad-except
+        # A misbehaving EXTRA_EDITORS_RESOLVER must not turn every read of
+        # this resource into a 500; fail closed on the extra-editors list
+        # instead of failing the whole request.
+        logger.exception(
+            "EXTRA_EDITORS_RESOLVER raised while resolving extra editors for %s",
+            resource,
+        )
+        return []
+
     subject_ids: list[int] = []
     seen: set[int] = set()
-    for subject in resolver(resource) or []:
+    for subject in resolved_subjects:
         subject_id = _get_subject_id(subject)
         if subject_id is not None and subject_id not in seen:
             subject_ids.append(subject_id)

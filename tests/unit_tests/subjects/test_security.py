@@ -95,6 +95,27 @@ def test_get_extra_editor_subject_ids_normalizes_resolver_output():
         assert get_extra_editor_subject_ids(resource) == [10, 20, 30]
 
 
+def test_get_extra_editor_subject_ids_resolver_raises_returns_empty():
+    """A misbehaving resolver must not raise out of this call -- callers use
+    this to serve chart/dashboard GETs, and an unhandled exception here would
+    500 the whole response instead of just omitting extra_editors."""
+    from superset.security.manager import get_extra_editor_subject_ids
+
+    resource = _make_resource()
+
+    def resolver(_: object) -> list[object]:
+        raise RuntimeError("boom")
+
+    with (
+        patch("superset.security.manager.has_app_context", return_value=True),
+        patch(
+            "superset.security.manager.current_app",
+            SimpleNamespace(config={"EXTRA_EDITORS_RESOLVER": resolver}),
+        ),
+    ):
+        assert get_extra_editor_subject_ids(resource) == []
+
+
 def test_is_editor_extra_editors_resolver_match():
     """Dynamic editor subjects grant edit access."""
     sm = _make_sm()
