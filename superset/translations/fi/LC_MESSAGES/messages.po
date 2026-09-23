@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-21 02:18+0000\n"
+"POT-Creation-Date: 2026-09-23 12:43+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: fi\n"
@@ -4324,9 +4324,6 @@ msgstr "Säädä sarakkeen leveys automaattisesti käytettävissä olevan tilan 
 msgid "Automatically adjust column width based on content"
 msgstr "Säädä sarakkeen leveys automaattisesti sisällön mukaan"
 
-msgid "Automatically retry sending the report when delivery fails."
-msgstr ""
-
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, fr, ja,
 # lv, ru, sk, uk]
 #, fuzzy
@@ -7179,7 +7176,7 @@ msgstr "Määritä koontinäytön ulkoasu, värit ja mukautettu CSS"
 msgid "Configure filter scopes"
 msgstr "Määritä suodatinalueet"
 
-msgid "Configure retry behavior on delivery failure."
+msgid "Configure retries when alert or report generation fails before delivery."
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
@@ -7310,6 +7307,9 @@ msgid "Connection failed, please check your connection settings."
 msgstr "Yhteys epäonnistui, tarkista yhteysasetuksesi."
 
 msgid "Connection looks good!"
+msgstr ""
+
+msgid "Contact the report owner for error details."
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: fr, ja, lv,
@@ -10084,6 +10084,9 @@ msgid ""
 "Display each cell as a percentage of its row, column, or grand total, "
 "instead of its actual value. Totals and subtotals are still computed "
 "correctly first; this only changes how they are displayed."
+msgstr ""
+
+msgid "Display format"
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, fr, ja,
@@ -20218,6 +20221,9 @@ msgstr "Lataa uudelleen"
 msgid "Reload SQL Lab"
 msgstr "Lataa SQL Lab uudelleen"
 
+msgid "Reload the page and try again to continue."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, fuzzy
@@ -20788,9 +20794,6 @@ msgstr ""
 msgid "Resume auto-refresh"
 msgstr "Aseta automaattinen päivitys"
 
-msgid "Retries are not supported for alerts"
-msgstr ""
-
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: fr, ja, lv,
 # ru, uk]
 #, fuzzy
@@ -20802,6 +20805,11 @@ msgstr "Yritä uudelleen"
 #, fuzzy
 msgid "Retry fetching results"
 msgstr "Yritä hakea tulokset uudelleen"
+
+msgid ""
+"Retry generation failures before delivery starts. Alerts re-check their "
+"condition on each attempt. Delivery failures are not replayed."
+msgstr ""
 
 msgid "Retrying"
 msgstr ""
@@ -21783,6 +21791,12 @@ msgstr "Laajuus"
 msgid "Scoping"
 msgstr "Laajuuden määritys"
 
+msgid "Screenshot cache is unavailable"
+msgstr ""
+
+msgid "Screenshot request is temporarily unavailable"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, fuzzy
@@ -21998,6 +22012,9 @@ msgstr "Lisäsuojaus"
 #, fuzzy
 msgid "Security"
 msgstr "Turvallisuus"
+
+msgid "Security token error"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
@@ -24047,12 +24064,6 @@ msgstr "Pahoittelemme, tapahtui virhe"
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
 #, fuzzy
-msgid "Sorry, an unknown error occurred"
-msgstr "Pahoittelemme, tapahtui tuntematon virhe"
-
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
-# de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
-#, fuzzy
 msgid "Sorry, an unknown error occurred."
 msgstr "Pahoittelemme, tapahtui tuntematon virhe."
 
@@ -25441,6 +25452,9 @@ msgstr "Tähän kaavioon linkitetty tietojoukko on saattanut tulla poistetuksi."
 #, fuzzy, python-format
 msgid "The API response from %s does not match the IDatabaseTable interface."
 msgstr "API:n vastaus kohteesta %s ei vastaa IDatabaseTable-rajapintaa."
+
+msgid "The CSRF token could not be validated."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, it, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, uk, zh,
@@ -28223,9 +28237,10 @@ msgstr ""
 
 msgid ""
 "This update would change the connection's effective destination "
-"(host/port, engine parameters, or SSH tunnel endpoint) while reusing the "
-"stored credential. Provide the real password (or SSH tunnel credential) "
-"to confirm a connection move."
+"(host/port, engine parameters, SSH tunnel endpoint, or OAuth2 endpoint "
+"URIs) while reusing the stored credential. Provide the real password (or "
+"SSH tunnel credential / OAuth2 client secret) to confirm a connection "
+"move."
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, es,
