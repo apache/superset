@@ -1203,12 +1203,6 @@ base64 strings prefixed with `base64:`. Boolean row counts are treated as
 unavailable, producing `null` for nullable counts and `0` for non-nullable counts,
 rather than being interpreted as one or zero rows.
 
-Finite SQL Decimal values are preserved exactly and returned as JSON strings,
-including values such as `0.5` that can be represented as floats. This uniform
-contract avoids silently rounding `0.10000000000000000001` to `0.1`. Clients
-should parse these strings with a decimal-aware numeric type when needed.
-Decimal NaN, signaling NaN, and infinities remain JSON `null`.
-
 ## Chart data column counts
 
 For saved and unsaved charts, `get_chart_data` column metadata excludes missing

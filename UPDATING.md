@@ -24,15 +24,6 @@ assists people when migrating to a new version.
 
 ## Next
 
-### Exact Decimal values in MCP data responses
-
-Finite Decimal values in MCP row data, column samples, and statistics are
-serialized as exact JSON strings instead of rounded JSON numbers, uniformly
-regardless of whether a particular value is representable as a float. This
-affects `get_chart_data`, `get_dashboard_data`, `query_dataset`, `get_table`, and
-`execute_sql`. Clients requiring numeric arithmetic should parse these strings
-with a decimal-aware type. Non-finite Decimal values remain JSON `null`.
-
 ### MCP response size guard: byte limit instead of estimated token count
 
 The MCP response-size guard no longer estimates LLM token counts (it
