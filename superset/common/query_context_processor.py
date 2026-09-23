@@ -53,6 +53,7 @@ from superset.superset_typing import AdhocColumn, AdhocMetric, Column
 from superset.utils import csv, excel
 from superset.utils.cache import generate_cache_key, set_and_log_cache
 from superset.utils.core import (
+    ANNOTATION_SOURCE_TYPES_WITH_CHART_REFERENCE,
     DatasourceType,
     DTTM_ALIAS,
     error_msg_from_exception,
@@ -820,7 +821,7 @@ class QueryContextProcessor:
         for annotation_layer in [
             layer
             for layer in query_obj.annotation_layers
-            if layer["sourceType"] in ("line", "table")
+            if layer["sourceType"] in ANNOTATION_SOURCE_TYPES_WITH_CHART_REFERENCE
         ]:
             name = annotation_layer["name"]
             annotation_data[name] = self.get_viz_annotation_data(
