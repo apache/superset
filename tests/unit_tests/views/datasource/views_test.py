@@ -372,7 +372,7 @@ def test_save_rejects_repoint_to_database_without_access(
         pytest.param(
             {},
             {"table_name": "my_table", "schema": "public"},
-            ("my_table", "public"),
+            ("my_table", "public", None),
             id="table_preserved",
         ),
         # A request that repoints ``database.id`` can also change
@@ -384,7 +384,7 @@ def test_save_rejects_repoint_to_database_without_access(
         pytest.param(
             {"table_name": "authorised_table"},
             {"table_name": "secret_table", "schema": "finance"},
-            ("secret_table", "finance"),
+            ("secret_table", "finance", None),
             id="table_changed_too",
         ),
     ],
@@ -396,7 +396,7 @@ def test_save_allows_repoint_to_database_with_access(
     mock_db: MagicMock,
     orm_overrides: dict[str, Any],
     payload: dict[str, Any],
-    expected_target: tuple[str, str],
+    expected_target: tuple[str | None, str | None, str | None],
 ) -> None:
     """
     When the caller is authorised for the new database, ``save`` proceeds to
@@ -416,7 +416,7 @@ def test_save_allows_repoint_to_database_with_access(
     call_kwargs = mock_security_manager.raise_for_access.call_args.kwargs
     assert call_kwargs["database"] is mock_new_database
     table = call_kwargs["table"]
-    assert (table.table, table.schema) == expected_target
+    assert (table.table, table.schema, table.catalog) == expected_target
     assert mock_orm.database_id == 999
 
 
