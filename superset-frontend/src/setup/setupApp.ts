@@ -25,6 +25,11 @@ import {
   sanitizeHtml,
 } from '@superset-ui/core';
 import setupErrorMessages from 'src/setup/setupErrorMessages';
+// Registers the AI assistant into the chat host as an import side effect.
+// The module gates itself on the AI_ASSISTANT feature flag, so this is inert
+// when the feature is off. Registration lives in the setup path rather than in
+// a component so that mounting the app is not what decides which features exist.
+import 'src/features/ai';
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 declare global {
@@ -62,14 +67,14 @@ function toggleCheckbox(apiUrlPrefix: string, selector: string) {
 
 export default function setupApp() {
   $(document).ready(function () {
-    $(':checkbox[data-checkbox-api-prefix]').change(
-      function (this: HTMLElement) {
-        const $this = $(this);
-        const prefix = $this.data('checkbox-api-prefix');
-        const id = $this.attr('id');
-        toggleCheckbox(prefix, `#${id}`);
-      },
-    );
+    $(':checkbox[data-checkbox-api-prefix]').change(function (
+      this: HTMLElement,
+    ) {
+      const $this = $(this);
+      const prefix = $this.data('checkbox-api-prefix');
+      const id = $this.attr('id');
+      toggleCheckbox(prefix, `#${id}`);
+    });
 
     // for language picker dropdown
     $<HTMLAnchorElement>('#language-picker a').click(function (
