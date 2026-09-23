@@ -75,7 +75,7 @@ test('does not throw when the target element is not found and no toast callback 
 
   await expect(
     downloadAsPdf('.non-existent-selector', 'test-file', true)({} as any),
-  ).resolves.not.toThrow();
+  ).resolves.toBeUndefined();
 });
 
 test('warns the user via the bound toast callback when PDF generation fails', async () => {
