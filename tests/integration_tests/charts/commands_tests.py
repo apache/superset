@@ -633,18 +633,20 @@ class TestChartsUpdateCommand(SupersetTestCase):
             "query_context_generation": True,
             "query_context": json.dumps({"foo": "bar"}),
         }
-        with override_user(guest):
-            # Precondition: this guest clears the access gate, so the deny below
-            # can only come from the guest check itself.
-            security_manager.raise_for_access(chart=chart)
+        try:
+            with override_user(guest):
+                # Precondition: this guest clears the access gate, so the deny
+                # below can only come from the guest check itself.
+                security_manager.raise_for_access(chart=chart)
 
-            with pytest.raises(ChartForbiddenError):
-                UpdateChartCommand(chart.id, json_obj).run()
-
-        # The embedded row was only flushed, never committed. Drop it explicitly
-        # rather than leaning on the command's own rollback, so a regression in
-        # the guest gate fails this test alone instead of leaking state.
-        db.session.rollback()
+                with pytest.raises(ChartForbiddenError):
+                    UpdateChartCommand(chart.id, json_obj).run()
+        finally:
+            # The embedded row was only flushed, never committed. Drop it in a
+            # ``finally``: should the guest gate regress, the command commits
+            # and ``pytest.raises`` then fails, so an unguarded rollback here
+            # would be skipped and leak both rows into every later test.
+            db.session.rollback()
 
     @patch("superset.commands.chart.update.g")
     @patch("superset.utils.core.g")
