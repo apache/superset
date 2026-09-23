@@ -82,13 +82,24 @@ test('handles adhoc metrics correctly', () => {
   ).toEqual([]);
 });
 
-test('returns empty array if groupby populated', () => {
+test('returns the limit metric when groupby is populated so the chart can sort by its pivoted columns', () => {
   expect(
     extractExtraMetrics({
       ...baseFormData,
       groupby: ['bar'],
       timeseries_limit_metric: 'foo',
       x_axis_sort: 'foo',
+    }),
+  ).toEqual(['foo']);
+});
+
+test('returns empty array with groupby when the axis is sorted by a series aggregate', () => {
+  expect(
+    extractExtraMetrics({
+      ...baseFormData,
+      groupby: ['bar'],
+      timeseries_limit_metric: 'foo',
+      x_axis_sort: 'sum',
     }),
   ).toEqual([]);
 });
