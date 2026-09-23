@@ -149,8 +149,10 @@ class MessageExtra(TypedDict, total=False):
     must tolerate absence.
     """
 
-    agent_key: str
-    model: str
+    run_id: str
+    agent_key: str | None
+    model: str | None
+    page_context: dict[str, Any] | str | None
     tool_calls: list[ToolCallRecord]
     usage: TokenUsage
     outcome: str

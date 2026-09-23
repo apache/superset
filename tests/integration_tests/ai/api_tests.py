@@ -342,7 +342,10 @@ class TestAIApi(SupersetTestCase):
             == second.json["result"]["assistant_message_uuid"]
         )
         assert first.json["result"]["run_id"] == second.json["result"]["run_id"]
-        start_run.assert_called_once()
+        # Both submissions may enqueue the same unclaimed run. The execution
+        # claim, not the broker acknowledgement, prevents repeated inference.
+        assert start_run.call_count == 2
+        assert start_run.call_args_list[0] == start_run.call_args_list[1]
 
         fetched = self.client.get(f"{AI_BASE}/thread/{uuid}")
         user_messages = [

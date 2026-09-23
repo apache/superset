@@ -60,27 +60,26 @@ def test_new_run_id_is_unique() -> None:
 
 def test_a_second_consumer_does_not_run_the_turn(mocker: MockerFixture) -> None:
     """A claimed assistant row makes a duplicate stream a no-op."""
-    from superset.ai.orchestrator import _run, TurnRequest
+    from superset.ai.orchestrator import stream_turn, TurnRequest
 
     mocker.patch("superset.ai.orchestrator._claim_pending", return_value=False)
     profiles = mocker.patch("superset.ai.factories.get_profiles")
-    state: dict[str, Any] = {}
+    start_run = mocker.patch("superset.ai.orchestrator.start_run")
 
     events = list(
-        _run(
+        stream_turn(
             TurnRequest(
                 thread_uuid="t-1",
                 user_id=7,
                 run_id="r-1",
                 assistant_message_uuid="m-1",
             ),
-            state,
         )
     )
 
     assert events == []
-    assert state["finalised"] is True
     profiles.assert_not_called()
+    start_run.assert_not_called()
 
 
 def test_duplicate_consumer_does_not_clear_cancellation(
@@ -333,6 +332,7 @@ def test_a_failed_turn_persists_the_message_the_user_was_shown(
         "superset.ai.orchestrator._run",
         side_effect=RuntimeError("the gateway returned nonsense"),
     )
+    mocker.patch("superset.ai.orchestrator._claim_pending", return_value=True)
 
     events = list(
         stream_turn(
@@ -369,6 +369,7 @@ def test_a_failed_turn_does_not_persist_the_exception(
     leaky = "postgresql://user:hunter2@db-host.example/db"  # noqa: S105
     finalise = mocker.patch("superset.ai.orchestrator._finalise_message")
     mocker.patch("superset.ai.orchestrator._run", side_effect=RuntimeError(leaky))
+    mocker.patch("superset.ai.orchestrator._claim_pending", return_value=True)
 
     list(
         stream_turn(
@@ -412,6 +413,7 @@ def test_a_failed_turn_keeps_the_partial_answer_it_had_produced(
         yield  # pragma: no cover - makes this a generator
 
     mocker.patch("superset.ai.orchestrator._run", fail_after_partial)
+    mocker.patch("superset.ai.orchestrator._claim_pending", return_value=True)
 
     list(
         stream_turn(

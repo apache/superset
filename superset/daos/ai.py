@@ -36,7 +36,7 @@ from uuid import UUID
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 
-from superset.ai.types import MessageRole, MessageStatus, ThreadStatus
+from superset.ai.types import MessageExtra, MessageRole, MessageStatus, ThreadStatus
 from superset.daos.base import BaseDAO
 from superset.extensions import db
 from superset.models.ai import AIChatFeedback, AIChatMessage, AIChatThread
@@ -247,6 +247,7 @@ class AIChatMessageDAO(BaseDAO[AIChatMessage]):
             db.session.query(AIChatMessage)
             .filter(
                 AIChatMessage.uuid == parsed,
+                AIChatMessage.role == MessageRole.ASSISTANT.value,
                 AIChatMessage.status == MessageStatus.PENDING.value,
             )
             .update(
@@ -323,6 +324,7 @@ class AIChatMessageDAO(BaseDAO[AIChatMessage]):
         user_id: int | None = None,
         request_id: str | None = None,
         status: MessageStatus | str | None = None,
+        extra: MessageExtra | None = None,
     ) -> tuple[AIChatMessage, bool]:
         """
         Append a turn, at most once per ``(thread, request_id, role)``.
@@ -340,6 +342,7 @@ class AIChatMessageDAO(BaseDAO[AIChatMessage]):
         :param user_id: The user responsible for the turn
         :param request_id: Optional client-supplied idempotency key
         :param status: Optional initial lifecycle value
+        :param extra: Metadata saved only when inserting a new message
         :returns: The message, and whether this call created it
         """
         role_value = MessageRole(role).value
@@ -363,6 +366,8 @@ class AIChatMessageDAO(BaseDAO[AIChatMessage]):
             attributes["status"] = MessageStatus(status).value
 
         message = AIChatMessage(**attributes)
+        if extra is not None:
+            message.update_extra(extra)
 
         try:
             with db.session.begin_nested():
