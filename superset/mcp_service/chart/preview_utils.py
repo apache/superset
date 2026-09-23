@@ -33,6 +33,7 @@ from typing import Any, Dict, List
 
 from superset.mcp_service.chart.query_result import (
     metric_result_label,
+    normalize_chart_query_result,
     normalize_gauge_query_result,
     safe_exception_message,
 )
@@ -42,6 +43,7 @@ from superset.mcp_service.chart.schemas import (
     TablePreview,
     VegaLitePreview,
 )
+from superset.mcp_service.chart.treemap_preview import treemap_ascii, treemap_vega_lite
 
 logger = logging.getLogger(__name__)
 
@@ -154,7 +156,7 @@ def _generate_preview_from_form_data(  # noqa: C901
         if failure is not None:
             return failure
 
-        result = normalize_gauge_query_result(result, form_data)
+        result = normalize_chart_query_result(result, form_data)
         if isinstance(result, ChartError):
             return result
         if form_data.get("viz_type") == "gauge_chart":
@@ -211,6 +213,11 @@ def _generate_ascii_preview_from_data(
     # Handle different chart types
     if viz_type == "bullet":
         content = _generate_ascii_bullet_chart(data, form_data)
+    elif viz_type == "treemap_v2":
+        content_or_error = treemap_ascii(data, form_data)
+        if isinstance(content_or_error, ChartError):
+            return content_or_error
+        content = content_or_error
     elif viz_type == "gauge_chart":
         content_or_error = generate_gauge_ascii_preview(data, form_data)
         if isinstance(content_or_error, ChartError):
@@ -2182,6 +2189,8 @@ def _generate_vega_lite_preview_from_data(  # noqa: C901
     viz_type = form_data.get("viz_type", "table")
     if viz_type == "bullet":
         return _generate_bullet_vega_lite_preview(data, form_data)
+    elif viz_type == "treemap_v2":
+        return treemap_vega_lite(data, form_data)
     if viz_type == "gantt_chart":
         return _generate_gantt_vega_lite_preview(data, form_data)
     if viz_type == "gauge_chart":
