@@ -217,46 +217,117 @@ def test_put_repairs_a_stored_layout_that_cannot_be_walked(
     ) == json.loads(repaired)
 
 
-def test_export_bundle_is_refused_for_guest_users(
+def test_export_bundle_is_refused_without_a_user_id(
     session: Session,
     client: Any,
     full_api_access: None,
     mocker: MockerFixture,
 ) -> None:
-    """Enabling Excel export for embedded guests means granting ``can_export``
-    on Dashboard, which also authorizes this endpoint. The bundle carries
-    dataset SQL and database metadata the embedded view never exposes."""
-    mocker.patch.object(security_manager, "is_guest_user", return_value=True)
+    """Enabling Excel export for guests or the Public role means granting
+    ``can_export`` on Dashboard, which also authorizes this endpoint (and, for
+    Public, lets FAB serve it unauthenticated). The bundle carries dataset SQL
+    and database metadata a viewer never sees."""
+    mocker.patch("superset.dashboards.api.get_user_id", return_value=None)
 
     response = client.get("/api/v1/dashboard/export/?q=!(1)")
 
     assert response.status_code == 403
 
 
-def test_export_as_example_is_refused_for_guest_users(
+def test_export_as_example_is_refused_without_a_user_id(
     session: Session,
     client: Any,
     full_api_access: None,
     mocker: MockerFixture,
 ) -> None:
     """``export_as_example`` carries ``@permission_name("export")``, so the same
-    guest grant reaches it, and it emits dataset YAML plus Parquet rows."""
-    mocker.patch.object(security_manager, "is_guest_user", return_value=True)
+    grant reaches it, and it emits dataset YAML plus Parquet rows."""
+    mocker.patch("superset.dashboards.api.get_user_id", return_value=None)
 
     response = client.get("/api/v1/dashboard/1/export_as_example/")
 
     assert response.status_code == 403
 
 
-def test_export_bundle_is_not_refused_for_regular_users(
+def test_export_bundle_is_not_refused_for_logged_in_users(
     session: Session,
     client: Any,
     full_api_access: None,
     mocker: MockerFixture,
 ) -> None:
-    # 404 for the missing id, but the guest guard must not be what stops it.
-    mocker.patch.object(security_manager, "is_guest_user", return_value=False)
+    # 404 for the missing id, but the identity guard must not be what stops it.
+    mocker.patch("superset.dashboards.api.get_user_id", return_value=1)
 
     response = client.get("/api/v1/dashboard/export/?q=!(1)")
 
     assert response.status_code != 403
+
+
+def test_download_xlsx_is_never_cached(
+    session: Session,
+    client: Any,
+    mocker: MockerFixture,
+) -> None:
+    """The login-free download URL is a bearer credential with a lifetime
+    enforced by the link record; a shared cache must not outlive it."""
+    from flask import current_app
+
+    mocker.patch(
+        "superset.dashboards.api.resolve_download_link",
+        return_value=("bucket", "key", "unittest.mock.MagicMock"),
+    )
+    backend = MagicMock()
+    backend.download.return_value = (2, iter([b"PK"]))
+    with patch.dict(current_app.config["EXPORT_STORAGE"], {"backend": backend}):
+        response = client.get(
+            "/api/v1/dashboard/export_xlsx/download/00000000-0000-0000-0000-0000000000ab/"
+        )
+
+    assert response.status_code == 200
+    cache_control = response.headers["Cache-Control"]
+    assert "no-store" in cache_control
+    assert "private" in cache_control
+    assert response.headers["Pragma"] == "no-cache"
+
+
+def test_download_xlsx_answers_head_without_a_body(
+    session: Session,
+    client: Any,
+    mocker: MockerFixture,
+) -> None:
+    """The frontend confirms a link with HEAD before navigating to it, so an
+    expired link becomes a toast rather than a navigation to an error page."""
+    from flask import current_app
+
+    mocker.patch(
+        "superset.dashboards.api.resolve_download_link",
+        return_value=("bucket", "key", "unittest.mock.MagicMock"),
+    )
+    backend = MagicMock()
+    backend.download.return_value = (2, iter([b"PK"]))
+    with patch.dict(current_app.config["EXPORT_STORAGE"], {"backend": backend}):
+        response = client.head(
+            "/api/v1/dashboard/export_xlsx/download/00000000-0000-0000-0000-0000000000ab/"
+        )
+
+    assert response.status_code == 200
+    assert response.data == b""
+    assert response.headers["Content-Length"] == "2"
+    assert "attachment" in response.headers["Content-Disposition"]
+
+
+def test_export_status_is_never_cached(
+    session: Session,
+    client: Any,
+    full_api_access: None,
+    mocker: MockerFixture,
+) -> None:
+    # A cached "pending" would strand a poller on a stale answer.
+    mocker.patch("superset.dashboards.api.get_export_status", return_value=None)
+
+    response = client.get(
+        "/api/v1/dashboard/export_xlsx/status/00000000-0000-0000-0000-0000000000ab/"
+    )
+
+    assert response.status_code == 200
+    assert "no-store" in response.headers["Cache-Control"]

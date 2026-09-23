@@ -26,6 +26,7 @@ from zipfile import is_zipfile, ZipFile
 
 import rison
 from flask import (
+    after_this_request,
     current_app,
     g,
     redirect,
@@ -224,6 +225,17 @@ from superset.views.filters import (
 )
 
 logger = logging.getLogger(__name__)
+
+
+def _never_cache(response: WerkzeugResponse) -> WerkzeugResponse:
+    """The download URL is a bearer credential with a TTL of its own, and a
+    cached status would strand a poller; keep both out of every cache."""
+    response.cache_control.no_store = True
+    response.cache_control.no_cache = True
+    response.cache_control.private = True
+    response.cache_control.max_age = 0
+    response.headers["Pragma"] = "no-cache"
+    return response
 
 
 def _link_backend_matches(uploaded_backend: str | None) -> bool:
@@ -1672,9 +1684,9 @@ class DashboardRestApi(
             500:
               $ref: '#/components/responses/500'
         """
-        # A bundle carries dataset SQL and database metadata the embedded view
-        # never exposes, and no guest flow consumes this endpoint.
-        if security_manager.is_guest_user():
+        # A bundle carries dataset SQL and database metadata a viewer never
+        # sees; with ``can_export`` on Public, FAB would serve it unauthenticated.
+        if get_user_id() is None:
             return self.response_403()
 
         requested_ids = kwargs["rison"]
@@ -1751,9 +1763,8 @@ class DashboardRestApi(
             500:
               $ref: '#/components/responses/500'
         """
-        # Same permission as the bundle export: an example bundle carries
-        # dataset YAML and Parquet rows the embedded view never exposes.
-        if security_manager.is_guest_user():
+        # Same permission and the same audience as the bundle export.
+        if get_user_id() is None:
             return self.response_403()
 
         # Get optional query params
@@ -1967,7 +1978,10 @@ class DashboardRestApi(
                 export failed.
             401:
               $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
         """
+        after_this_request(_never_cache)
         payload = get_export_status(job_id)
         if payload is None:
             return self.response(200, status="pending")
@@ -2038,6 +2052,7 @@ class DashboardRestApi(
             501:
               description: Excel export is not configured on this server
         """
+        after_this_request(_never_cache)
         resolved = resolve_download_link(job_id)
         if resolved is None:
             return self.response(410, message="This download link has expired.")
