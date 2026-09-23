@@ -15389,13 +15389,6 @@ msgid ""
 "algorithm instead, so its colors may not look as designed."
 msgstr ""
 
-msgid ""
-"This update would change the connection's effective destination "
-"(host/port, engine parameters, or SSH tunnel endpoint) while reusing the "
-"stored credential. Provide the real password (or SSH tunnel credential) "
-"to confirm a connection move."
-msgstr ""
-
 msgid "This username is already taken. Please choose another one."
 msgstr ""
 
@@ -18625,4 +18618,65 @@ msgstr[0] ""
 msgstr[1] ""
 
 msgid "№"
+msgstr ""
+
+#: superset/commands/database/exceptions.py:57
+msgid ""
+"This update would change the connection's effective destination "
+"(host/port, engine parameters, SSH tunnel endpoint, or OAuth2 endpoint "
+"URIs) while reusing the stored credential. Provide the real password (or "
+"SSH tunnel credential / OAuth2 client secret) to confirm a connection "
+"move."
+msgstr ""
+
+#: superset-frontend/src/dashboard/components/gridComponents/FilterHolder/FilterHolder.tsx:287
+msgid "Label: Top"
+msgstr ""
+
+#: superset-frontend/src/dashboard/components/gridComponents/FilterHolder/FilterHolder.tsx:288
+msgid "Label: Left"
+msgstr ""
+
+#: superset-frontend/src/dashboard/components/gridComponents/FilterHolder/FilterHolder.tsx:295
+msgid "Apply: Instant"
+msgstr ""
+
+#: superset-frontend/src/dashboard/components/gridComponents/FilterHolder/FilterHolder.tsx:296
+msgid "Apply: Button"
+msgstr ""
+
+#: superset-frontend/src/dashboard/components/gridComponents/FilterHolder/FilterHolder.tsx:303
+msgid "Buttons: Bottom"
+msgstr ""
+
+#: superset-frontend/src/dashboard/components/gridComponents/FilterHolder/FilterHolder.tsx:304
+msgid "Buttons: Right (Inline)"
+msgstr ""
+
+#: superset-frontend/src/dashboard/components/gridComponents/FilterHolder/FilterHolder.tsx:305
+msgid "Buttons: Right (Stacked)"
+msgstr ""
+
+#: superset-frontend/src/dashboard/components/gridComponents/FilterHolder/FilterHolder.tsx:524
+msgid "Filter settings"
+msgstr ""
+
+#: superset-frontend/src/dashboard/components/gridComponents/FilterHolder/FilterHolder.tsx:637
+msgid "Assign Native Filter to Canvas"
+msgstr ""
+
+#: superset-frontend/src/dashboard/components/gridComponents/FilterHolder/FilterHolder.tsx:641
+msgid "Select filter..."
+msgstr ""
+
+#: superset-frontend/src/dashboard/components/gridComponents/FilterHolder/FilterHolder.tsx:653
+msgid "No native filters configured. Add a filter first."
+msgstr ""
+
+#: superset-frontend/src/dashboard/components/gridComponents/FilterHolder/FilterHolder.tsx:658
+msgid "Filter not configured"
+msgstr ""
+
+#: superset-frontend/src/dashboard/components/gridComponents/new/NewFilterComponent.tsx:30
+msgid "Filter Card"
 msgstr ""

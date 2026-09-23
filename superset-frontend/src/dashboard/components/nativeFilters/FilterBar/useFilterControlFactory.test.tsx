@@ -140,9 +140,9 @@ test('keeps uninitialized requiredFirst canvas filters mounted until initialized
     },
   );
 
-  expect(
-    result.current.filtersWithValues.map(item => item.id),
-  ).toContain('NATIVE_FILTER-required-canvas');
+  expect(result.current.filtersWithValues.map(item => item.id)).toContain(
+    'NATIVE_FILTER-required-canvas',
+  );
 
   // Once initialized with a value, it is excluded from FilterBar rendering
   rerender({
@@ -153,7 +153,7 @@ test('keeps uninitialized requiredFirst canvas filters mounted until initialized
     },
   });
 
-  expect(
-    result.current.filtersWithValues.map(item => item.id),
-  ).not.toContain('NATIVE_FILTER-required-canvas');
+  expect(result.current.filtersWithValues.map(item => item.id)).not.toContain(
+    'NATIVE_FILTER-required-canvas',
+  );
 });

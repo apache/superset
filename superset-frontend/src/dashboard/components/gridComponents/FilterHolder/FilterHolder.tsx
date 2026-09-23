@@ -247,8 +247,9 @@ const FilterHolder = ({
         extraFormData: {},
       };
       if (applyMode === 'manual') {
-        const hasAppliedValue =
-          !isValueEmpty(dataMask[filter.id]?.filterState?.value);
+        const hasAppliedValue = !isValueEmpty(
+          dataMask[filter.id]?.filterState?.value,
+        );
         if (hasAppliedValue) {
           setStagedDataMask(clearedMask);
         } else {
@@ -599,7 +600,9 @@ const FilterHolder = ({
                         (stagedDataMask !== null &&
                           isValueEmpty(stagedDataMask?.filterState?.value)) ||
                         (!stagedDataMask &&
-                          isValueEmpty(dataMask[filter?.id || '']?.filterState?.value))
+                          isValueEmpty(
+                            dataMask[filter?.id || '']?.filterState?.value,
+                          ))
                       }
                       onClick={handleClearStagedFilter}
                       css={css`
