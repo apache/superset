@@ -60,13 +60,13 @@
     "@saucelabs/theme-github-codeblock": "^0.3.0",
     "@storybook/addon-docs": "^10.6.0",
     "@superset-ui/core": "^0.20.4",
-    "@swc/core": "^1.16.1",
-    "antd": "^6.6.2",
-    "baseline-browser-mapping": "^2.11.21",
+    "@swc/core": "^1.16.2",
+    "antd": "^6.6.4",
+    "baseline-browser-mapping": "^2.11.24",
     "caniuse-lite": "^1.0.30001810",
     "docusaurus-plugin-openapi-docs": "^5.2.0",
     "docusaurus-theme-openapi-docs": "^5.2.0",
-    "js-yaml": "^5.4.1",
+    "js-yaml": "^5.4.2",
     "json-bigint": "^1.0.0",
     "prism-react-renderer": "^2.4.1",
     "react": "^18.3.1",
@@ -78,7 +78,7 @@
     "remark-import-partial": "^0.0.2",
     "reselect": "^5.3.0",
     "storybook": "^10.6.0",
-    "swagger-ui-react": "^5.32.14",
+    "swagger-ui-react": "^5.32.15",
     "swc-loader": "^0.2.7",
     "tinycolor2": "^1.4.2",
     "unist-util-visit": "^5.1.0"
@@ -87,11 +87,11 @@
     "@docusaurus/module-type-aliases": "^3.10.2",
     "@types/js-yaml": "^4.0.9",
     "@types/react": "^19.1.8",
-    "oxfmt": "^0.66.0",
-    "oxlint": "^1.81.0",
+    "oxfmt": "^0.68.0",
+    "oxlint": "^1.83.0",
     "oxlint-tsgolint": "^7.0.2001",
     "typescript": "7.0.2",
-    "webpack": "^5.110.3"
+    "webpack": "^5.111.0"
   },
   "browserslist": {
     "production": [

@@ -828,9 +828,7 @@ class SQLExecutor:
         # Check the parsed AST for real function calls only. A substring check
         # would incorrectly match identifiers such as ``metric_user_count`` or
         # ``information_schema`` when functions like USER or SCHEMA are denied.
-        found = {
-            func for func in engine_disallowed if script.check_functions_present({func})
-        }
+        found = script.get_disallowed_functions(engine_disallowed)
 
         return found if found else None
 

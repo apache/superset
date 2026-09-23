@@ -59,6 +59,7 @@ import { getUrlParam } from 'src/utils/urlUtils';
 import { ensureAppRoot } from 'src/utils/navigationUtils';
 import { URL_PARAMS } from 'src/constants';
 import { Icons } from '@superset-ui/core/components/Icons';
+import { findPermission } from 'src/utils/findPermission';
 import { isUserAdmin } from 'src/dashboard/util/permissionUtils';
 import handleResourceExport from 'src/utils/export';
 import { ExtensionConfigs } from 'src/features/home/types';
@@ -214,6 +215,24 @@ function DatabaseList({
   const theme = useTheme();
   const showSemanticLayers = isFeatureEnabled(SEMANTIC_LAYERS_FLAG);
 
+  const fullUser = useSelector<
+    { user: UserWithPermissionsAndRoles },
+    UserWithPermissionsAndRoles
+  >(state => state.user);
+  const canReadDatabase = findPermission(
+    'can_read',
+    'Database',
+    fullUser.roles,
+  );
+  const canReadLayer = findPermission(
+    'can_read',
+    'SemanticLayer',
+    fullUser.roles,
+  );
+  const canWriteLayer =
+    showSemanticLayers &&
+    findPermission('can_write', 'SemanticLayer', fullUser.roles);
+
   // Standard database list view resource (used when SL flag is OFF)
   const {
     state: {
@@ -228,6 +247,7 @@ function DatabaseList({
     'database',
     databaseLabelLower(),
     addDangerToast,
+    !showSemanticLayers || canReadDatabase,
   );
 
   // Combined endpoint state (used when SL flag is ON)
@@ -311,9 +331,6 @@ function DatabaseList({
   const fetchData = showSemanticLayers ? combinedFetchData : dbFetchData;
   const refreshData = showSemanticLayers ? combinedRefreshData : dbRefreshData;
 
-  const fullUser = useSelector<any, UserWithPermissionsAndRoles>(
-    state => state.user,
-  );
   const shouldSyncPermsInAsyncMode = useSelector<any, boolean>(
     state => state.common?.conf.SYNC_DB_PERMISSIONS_IN_ASYNC_MODE,
   );
@@ -517,7 +534,12 @@ function DatabaseList({
     },
   ];
 
-  const hasFileUploadEnabled = () => {
+  useEffect(() => {
+    if (!canReadDatabase) {
+      setAllowUploads(false);
+      return undefined;
+    }
+    let active = true;
     const payload = {
       filters: [
         { col: 'allow_file_upload', opr: 'upload_is_enabled', value: true },
@@ -525,18 +547,27 @@ function DatabaseList({
     };
     SupersetClient.get({
       endpoint: `/api/v1/database/?q=${rison.encode(payload)}`,
-    }).then(({ json }: Record<string, any>) => {
-      // There might be some existing Gsheets and Clickhouse DBs
-      // with allow_file_upload set as True which is not possible from now on
-      const allowedDatabasesWithFileUpload =
-        json?.result?.filter(
-          (database: any) => database?.engine_information?.supports_file_upload,
-        ) || [];
-      setAllowUploads(allowedDatabasesWithFileUpload?.length >= 1);
-    });
-  };
-
-  useEffect(() => hasFileUploadEnabled(), [databaseModalOpen]);
+    })
+      .then(({ json }) => {
+        // Older GSheets and ClickHouse configurations may allow uploads even
+        // though their engines do not support them.
+        if (active) {
+          setAllowUploads(
+            json?.result?.some(
+              (database: {
+                engine_information?: { supports_file_upload?: boolean };
+              }) => database.engine_information?.supports_file_upload,
+            ) ?? false,
+          );
+        }
+      })
+      .catch(() => {
+        if (active) setAllowUploads(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [databaseModalOpen, canReadDatabase]);
 
   const filteredDropDown = uploadDropdownMenu.reduce((prev, cur) => {
     // eslint-disable-next-line no-param-reassign
@@ -552,7 +583,7 @@ function DatabaseList({
     name: databasesLabel(),
   };
 
-  if (canCreate) {
+  if (canCreate || canWriteLayer) {
     const openDatabaseModal = () =>
       handleDatabaseEditModal({ modalOpen: true });
 
@@ -565,18 +596,26 @@ function DatabaseList({
             <Dropdown
               menu={{
                 items: [
-                  {
-                    key: 'database',
-                    label: t('Database'),
-                    onClick: openDatabaseModal,
-                  },
-                  {
-                    key: 'semantic-layer',
-                    label: t('Semantic Layer'),
-                    onClick: () => {
-                      setSemanticLayerModalOpen(true);
-                    },
-                  },
+                  ...(canCreate
+                    ? [
+                        {
+                          key: 'database',
+                          label: t('Database'),
+                          onClick: openDatabaseModal,
+                        },
+                      ]
+                    : []),
+                  ...(canWriteLayer
+                    ? [
+                        {
+                          key: 'semantic-layer',
+                          label: t('Semantic Layer'),
+                          onClick: () => {
+                            setSemanticLayerModalOpen(true);
+                          },
+                        },
+                      ]
+                    : []),
                 ],
               }}
               trigger={['click']}
@@ -798,41 +837,37 @@ function DatabaseList({
           const isSemanticLayer = original.source_type === 'semantic_layer';
 
           if (isSemanticLayer) {
-            if (!canEdit && !canDelete) return null;
+            if (!canWriteLayer) return null;
             const isLoadingDependents =
               slDeletePreview?.status === 'loading' &&
               slDeletePreview.item.uuid === original.uuid;
             return (
               <div className="actions">
-                {canDelete && (
-                  <ActionButton
-                    label={t('Delete')}
-                    tooltip={
-                      isLoadingDependents
-                        ? t('Loading dependent semantic views')
-                        : t('Delete')
-                    }
-                    placement="bottom"
-                    icon={
-                      isLoadingDependents ? (
-                        <Icons.LoadingOutlined iconSize="l" spin />
-                      ) : (
-                        <Icons.DeleteOutlined iconSize="l" />
-                      )
-                    }
-                    disabled={isLoadingDependents}
-                    onClick={() => openSemanticLayerDeleteModal(original)}
-                  />
-                )}
-                {canEdit && (
-                  <ActionButton
-                    label={t('Edit')}
-                    tooltip={t('Edit')}
-                    placement="bottom"
-                    icon={<Icons.EditOutlined iconSize="l" />}
-                    onClick={() => setSlCurrentlyEditing(original.uuid ?? null)}
-                  />
-                )}
+                <ActionButton
+                  label={t('Delete')}
+                  tooltip={
+                    isLoadingDependents
+                      ? t('Loading dependent semantic views')
+                      : t('Delete')
+                  }
+                  placement="bottom"
+                  icon={
+                    isLoadingDependents ? (
+                      <Icons.LoadingOutlined iconSize="l" spin />
+                    ) : (
+                      <Icons.DeleteOutlined iconSize="l" />
+                    )
+                  }
+                  disabled={isLoadingDependents}
+                  onClick={() => openSemanticLayerDeleteModal(original)}
+                />
+                <ActionButton
+                  label={t('Edit')}
+                  tooltip={t('Edit')}
+                  placement="bottom"
+                  icon={<Icons.EditOutlined iconSize="l" />}
+                  onClick={() => setSlCurrentlyEditing(original.uuid ?? null)}
+                />
               </div>
             );
           }
@@ -894,7 +929,7 @@ function DatabaseList({
         },
         Header: t('Actions'),
         id: 'actions',
-        hidden: !canEdit && !canDelete,
+        hidden: !canEdit && !canDelete && !canExport && !canWriteLayer,
         disableSortBy: true,
       },
       {
@@ -918,6 +953,7 @@ function DatabaseList({
       handleDatabasePermSync,
       openDatabaseDeleteModal,
       openSemanticLayerDeleteModal,
+      canWriteLayer,
       slDeletePreview,
     ],
   );
@@ -942,8 +978,12 @@ function DatabaseList({
         operator: FilterOperator.Equals,
         unfilteredLabel: t('All'),
         selects: [
-          { label: t('Database'), value: 'database' },
-          { label: t('Semantic Layer'), value: 'semantic_layer' },
+          ...(canReadDatabase
+            ? [{ label: t('Database'), value: 'database' }]
+            : []),
+          ...(canReadLayer
+            ? [{ label: t('Semantic Layer'), value: 'semantic_layer' }]
+            : []),
         ],
       });
     }
@@ -1008,7 +1048,7 @@ function DatabaseList({
     }
 
     return baseFilters;
-  }, [showSemanticLayers]);
+  }, [showSemanticLayers, canReadDatabase, canReadLayer]);
 
   return (
     <>
