@@ -99,7 +99,7 @@ test('calls onChange with the full color array when a row color is picked', asyn
   expect(lastCall[1]).toBe('');
 });
 
-test('resets a single row back to "no custom color" without touching the others', () => {
+test('resets a single row back to "no custom color" without touching the others', async () => {
   const onChange = jest.fn();
   render(
     <BulletRangeColorsControl
@@ -111,9 +111,9 @@ test('resets a single row back to "no custom color" without touching the others'
 
   const resetButtons = screen.getAllByText('Use default');
   expect(resetButtons).toHaveLength(2);
-  userEvent.click(resetButtons[0]);
+  await userEvent.click(resetButtons[0]);
 
-  return waitFor(() => {
+  await waitFor(() => {
     expect(onChange).toHaveBeenCalledWith(['', '#00ff00']);
   });
 });
