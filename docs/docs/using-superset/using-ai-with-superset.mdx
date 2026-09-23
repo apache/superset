@@ -133,7 +133,7 @@ views (when your deployment has semantic views registered), without writing SQL:
 
 - **Discover metrics** -- search metrics by name or description across every dataset and semantic view you can access, with each metric's compatible dimensions included
 - **Query by metric and dimension** -- get tabular results by naming metrics and dimensions instead of writing SQL, with optional filters and time ranges
-- **Progressively refine a query** -- given metrics and/or dimensions already picked, find the ones that can still be added without breaking the query
+- **Progressively refine a query** -- given metrics and/or dimensions already picked, see which dimensions and metrics are compatible with that selection
 
 **Example prompts:**
 
@@ -144,7 +144,7 @@ views (when your deployment has semantic views registered), without writing SQL:
 :::tip Recommended workflow
 1. **`list_metrics`** -- search for a metric; note its `dataset_id` (built-in) or `view_id` (external semantic view)
 2. **`get_table`** -- pass that `dataset_id`/`view_id` along with metric and dimension names to get results
-3. **`get_compatible_dimensions`** / **`get_compatible_metrics`** -- as the user adds selections, check what else can validly be combined
+3. **`get_compatible_dimensions`** / **`get_compatible_metrics`** -- as the user adds selections, check what can validly be combined. `get_compatible_dimensions` returns the full compatible set (including dimensions already selected), so filter out your current picks client-side; `get_compatible_metrics` already excludes selected metrics for built-in datasets but not for external semantic views
 
 Built-in datasets accept any combination of saved metrics and groupby-enabled
 columns since a SQL `GROUP BY` has no metric-level constraints. External
