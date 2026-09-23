@@ -754,10 +754,10 @@ async def _exercise_geographic_data_export(
             assert payload["row_count"] == 1
             if export_format == "json":
                 if decimal_coordinates:
-                    # MCP's Pydantic export preserves Decimal precision as text;
-                    # the native chart JSON converter emits numeric coordinates.
+                    # Response serialization normalises Decimal to a JSON
+                    # number, agreeing with the native chart JSON converter.
                     assert payload["data"] == [
-                        {key: str(value) for key, value in rows[0].items()}
+                        {key: float(value) for key, value in rows[0].items()}
                     ]
                     assert isinstance(rows[0]["latitude"], Decimal)
                     assert json.json_int_dttm_ser(rows[0]["latitude"]) == 37.5
