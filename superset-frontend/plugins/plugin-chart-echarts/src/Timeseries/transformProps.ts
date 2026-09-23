@@ -55,6 +55,7 @@ import {
   getOriginalSeries,
   getTimeOffset,
   isDerivedSeries,
+  SortSeriesType,
 } from '@superset-ui/chart-controls';
 import type { EChartsCoreOption } from 'echarts/core';
 import type {
@@ -96,6 +97,7 @@ import {
   getMinAndMaxFromBounds,
   getTemporalAxisTickConfig,
   resolveTemporalTickValues,
+  XAxisSortSeries,
 } from '../utils/series';
 import { resolveLegendLayout } from '../utils/legendLayout';
 import {
@@ -460,14 +462,34 @@ export default function transformProps(
       rebaseToPercentChange(forecastRebasedData, xAxisLabel || DTTM_ALIAS)
     : forecastRebasedData;
   const isHorizontal = orientation === OrientationType.Horizontal;
+  // With dimensions set, the pivot splits a metric into one
+  // `<metric>, <dimension values>` column per series. `label_map` lists each
+  // flattened column as `[metric, ...dimension values]`, so a metric's
+  // columns are resolved through it rather than by matching on the column
+  // name. A single-metric chart with `truncate_metric` drops the metric part
+  // from its value columns, which is fine: only sort-only metrics need
+  // resolving, and those always keep it.
+  const pivotedColumnsOf = (metricLabel: string): string[] =>
+    Object.entries(labelMap)
+      .filter(
+        ([column, parts]) =>
+          column !== metricLabel &&
+          parts.length > 1 &&
+          parts[0] === metricLabel &&
+          !derivedComparisonSeries.has(column),
+      )
+      .map(([column]) => column);
   // rebasedData's keys have already been through rebaseForecastDatum, which
   // renames a key to its verboseMap entry when one is configured for that
   // metric. extraMetricLabels must be mapped the same way, or a sort-only
   // metric with a verbose_name set would silently fail to match here (and in
-  // extractSeries below, which has the same requirement).
+  // extractSeries below, which has the same requirement). The pivoted columns
+  // keep their raw names (verbose mapping only applies to an exact metric
+  // label), and must be excluded too so a sort-only metric is neither
+  // rendered as series nor counted in stacked totals.
   const extraMetricLabels = extractExtraMetrics(chartProps.rawFormData)
     .map(getMetricLabel)
-    .map(label => verboseMap[label] ?? label);
+    .flatMap(label => [verboseMap[label] ?? label, ...pivotedColumnsOf(label)]);
   const { totalStackedValues, thresholdValues } = extractDataTotalValues(
     rebasedData,
     {
@@ -480,6 +502,35 @@ export default function transformProps(
   );
 
   const isMultiSeries = groupBy.length || metrics?.length > 1;
+  // `x_axis_sort` stores either a series aggregate (a `SortSeriesType`) or
+  // the label of the x-axis column or of a metric. A single-series chart is
+  // sorted by the backend sort operator; with several series the rows are
+  // ordered here instead: by axis value, by an aggregate over every series,
+  // or by the sum of the chosen metric's columns. The field is carried
+  // through as-is, so a column or metric that happens to be named like an
+  // aggregate is never guessed at.
+  const sortSeriesTypes = new Set<string>(Object.values(SortSeriesType));
+  const resolveXAxisSortSeries = (): XAxisSortSeries | undefined => {
+    if (!isMultiSeries || typeof xAxisSort !== 'string') {
+      return undefined;
+    }
+    if (sortSeriesTypes.has(xAxisSort)) {
+      return xAxisSort as SortSeriesType;
+    }
+    if (
+      xAxisSort === xAxisLabel ||
+      xAxisSort === getXAxisLabel(chartProps.rawFormData)
+    ) {
+      return SortSeriesType.Name;
+    }
+    const dataColumns = new Set(Object.keys(rebasedData[0] ?? {}));
+    const sumOfColumns = [
+      verboseMap[xAxisSort] ?? xAxisSort,
+      ...pivotedColumnsOf(xAxisSort),
+    ].filter(column => dataColumns.has(column));
+    return sumOfColumns.length ? { sumOfColumns } : undefined;
+  };
+  const xAxisSortSeries = resolveXAxisSortSeries();
   const xAxisDataType = dataTypes?.[xAxisLabel] ?? dataTypes?.[xAxisOrig];
   const xAxisType = getAxisType(
     stack,
@@ -499,8 +550,10 @@ export default function transformProps(
       isHorizontal,
       sortSeriesType,
       sortSeriesAscending,
-      xAxisSortSeries: isMultiSeries ? xAxisSort : undefined,
-      xAxisSortSeriesAscending: isMultiSeries ? xAxisSortAsc : undefined,
+      xAxisSortSeries,
+      xAxisSortSeriesAscending: isDefined(xAxisSortSeries)
+        ? xAxisSortAsc
+        : undefined,
       xAxisType,
     },
   );
