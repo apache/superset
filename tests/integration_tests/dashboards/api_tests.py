@@ -34,7 +34,6 @@ from freezegun import freeze_time
 from sqlalchemy import and_
 from superset import db, security_manager  # noqa: F401
 from superset.commands.dashboard.permalink.create import CreateDashboardPermalinkCommand
-from superset.daos.dashboard import DashboardDAO
 from superset.exceptions import (
     AcquireDistributedLockFailedException,
     LockAlreadyHeldException,
