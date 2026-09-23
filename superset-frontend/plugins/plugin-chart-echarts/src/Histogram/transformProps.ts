@@ -31,7 +31,7 @@ import {
 import { HistogramChartProps, HistogramTransformedProps } from './types';
 import { LegendOrientation, LegendType, Refs } from '../types';
 import { defaultGrid, defaultYAxis } from '../defaults';
-import { getLegendProps } from '../utils/series';
+import { getLegendProps, getLegendScrollDataIndex } from '../utils/series';
 import { getDefaultTooltip } from '../utils/tooltip';
 import { getPercentFormatter } from '../utils/formatters';
 
@@ -188,7 +188,10 @@ export default function transformProps(
         false,
         legendState,
       ),
-      scrollDataIndex: legendIndex || 0,
+      scrollDataIndex: getLegendScrollDataIndex(
+        legendIndex,
+        legendOptions.length,
+      ),
       data: legendOptions,
     },
     tooltip: {

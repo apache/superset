@@ -47,6 +47,7 @@ import { LegendOrientation, Refs } from '../types';
 import {
   getHorizontalLegendAvailableWidth,
   getLegendProps,
+  getLegendScrollDataIndex,
   groupData,
 } from '../utils/series';
 import { resolveLegendLayout } from '../utils/legendLayout';
@@ -452,7 +453,10 @@ export default function transformProps(chartProps: EchartsGanttChartProps) {
         legendState,
         padding,
       ),
-      scrollDataIndex: legendIndex || 0,
+      scrollDataIndex: getLegendScrollDataIndex(
+        legendIndex,
+        legendData.length,
+      ),
       data: legendData,
     },
     grid: {

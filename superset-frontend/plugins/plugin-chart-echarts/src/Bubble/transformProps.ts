@@ -31,7 +31,11 @@ import {
 import { EchartsBubbleChartProps, EchartsBubbleFormData } from './types';
 import { DEFAULT_FORM_DATA, MINIMUM_BUBBLE_SIZE } from './constants';
 import { defaultGrid } from '../defaults';
-import { getLegendProps, getMinAndMaxFromBounds } from '../utils/series';
+import {
+  getLegendProps,
+  getLegendScrollDataIndex,
+  getMinAndMaxFromBounds,
+} from '../utils/series';
 import { resolveLegendLayout } from '../utils/legendLayout';
 import { Refs } from '../types';
 import { parseAxisBound } from '../utils/controls';
@@ -268,7 +272,10 @@ export default function transformProps(chartProps: EchartsBubbleChartProps) {
         false,
         legendState,
       ),
-      scrollDataIndex: legendIndex || 0,
+      scrollDataIndex: getLegendScrollDataIndex(
+        legendIndex,
+        legendData.length,
+      ),
       data: legendData,
     },
     tooltip: {

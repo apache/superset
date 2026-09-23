@@ -93,6 +93,7 @@ import {
   getColtypesMapping,
   getHorizontalLegendAvailableWidth,
   getLegendProps,
+  getLegendScrollDataIndex,
   getMinAndMaxFromBounds,
   getTemporalAxisTickConfig,
   resolveTemporalTickValues,
@@ -1683,7 +1684,10 @@ export default function transformProps(
         legendState,
         padding,
       ),
-      scrollDataIndex: legendIndex || 0,
+      scrollDataIndex: getLegendScrollDataIndex(
+        legendIndex,
+        resolvedLegendData.length,
+      ),
       data: resolvedLegendData,
       // Disable legend selection and buttons when colorByPrimaryAxis is enabled
       ...(usesPrimaryAxisLegend

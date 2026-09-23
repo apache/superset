@@ -38,6 +38,7 @@ import { OpacityEnum } from '../constants';
 import {
   getChartPadding,
   getLegendProps,
+  getLegendScrollDataIndex,
   getColtypesMapping,
   extractGroupbyLabel,
 } from '../utils/series';
@@ -288,7 +289,10 @@ export default function transformProps(
         false,
         legendState,
       ),
-      scrollDataIndex: legendIndex || 0,
+      scrollDataIndex: getLegendScrollDataIndex(
+        legendIndex,
+        legendData.length,
+      ),
       data: legendData,
     },
     xAxis: {

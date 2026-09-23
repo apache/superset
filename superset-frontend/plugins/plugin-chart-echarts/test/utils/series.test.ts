@@ -39,6 +39,7 @@ import {
   getAxisType,
   getChartPadding,
   getLegendProps,
+  getLegendScrollDataIndex,
   getOverMaxHiddenFormatter,
   getMinAndMaxFromBounds,
   capTickMarks,
@@ -1015,6 +1016,12 @@ describe('formatSeriesName', () => {
       }),
     ).toEqual('1995');
   });
+});
+
+test('getLegendScrollDataIndex clamps saved scroll position to legend length', () => {
+  expect(getLegendScrollDataIndex(12, 5)).toBe(4);
+  expect(getLegendScrollDataIndex(undefined, 3)).toBe(0);
+  expect(getLegendScrollDataIndex(2, 0)).toBe(0);
 });
 
 describe('getLegendProps', () => {
