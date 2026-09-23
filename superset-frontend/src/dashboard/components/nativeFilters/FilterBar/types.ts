@@ -45,6 +45,8 @@ interface CommonFiltersBarProps {
   ) => void;
   clearAllTriggers?: Record<string, boolean>;
   onClearAllComplete?: (filterId: string) => void;
+  cascadeClearTriggers?: Record<string, boolean>;
+  onCascadeClearComplete?: (filterId: string) => void;
 }
 
 interface VerticalBarConfig {

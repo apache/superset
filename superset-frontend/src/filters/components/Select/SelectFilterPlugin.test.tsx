@@ -1953,6 +1953,81 @@ test('clear-all resets LIKE input value and calls setDataMask with empty state',
   expect(setDataMaskMock).toHaveBeenCalledTimes(callsBeforeDebounceFlush);
 });
 
+test('cascade clear cancels a pending LIKE debounce so stale text is not re-applied', async () => {
+  jest.useFakeTimers({ advanceTimers: true });
+  const setDataMaskMock = jest.fn();
+  const likeProps = buildSelectFilterProps({
+    formData: { operatorType: SelectFilterOperatorType.Contains },
+    filterState: { value: ['Jen'] },
+    setDataMask: setDataMaskMock,
+  });
+
+  const reduxState = {
+    useRedux: true,
+    initialState: {
+      nativeFilters: {
+        filters: { 'test-filter': { name: 'Test Filter' } },
+      },
+      dataMask: {
+        'test-filter': {
+          extraFormData: {
+            filters: [{ col: 'gender', op: 'ILIKE', val: '%Jen%' }],
+          },
+          filterState: { value: ['Jen'] },
+        },
+      },
+    },
+  };
+
+  const { rerender } = render(
+    <SelectFilterPlugin {...likeProps} />,
+    reduxState,
+  );
+
+  const input = screen.getByPlaceholderText('Type to search (contains)...');
+
+  // Type new text; the LIKE debounce is scheduled but not flushed yet.
+  fireEvent.change(input, {
+    target: { value: 'Mar' },
+  });
+  expect(input).toHaveValue('Mar');
+
+  setDataMaskMock.mockClear();
+
+  // A parent filter change cascades a clear into this dependent filter while
+  // the LIKE debounce is still pending.
+  rerender(
+    <SelectFilterPlugin
+      {...likeProps}
+      cascadeClearTrigger={{ 'test-filter': true }}
+    />,
+  );
+
+  await waitFor(() => {
+    expect(input).toHaveValue('');
+  });
+
+  await waitFor(() => {
+    expect(setDataMaskMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        filterState: expect.objectContaining({
+          value: null,
+        }),
+      }),
+    );
+  });
+
+  const callsBeforeDebounceFlush = setDataMaskMock.mock.calls.length;
+
+  // Without the cancellation fix the pending 'Mar' debounce fires now and
+  // re-applies the stale ILIKE %Mar% clause.
+  act(() => {
+    jest.advanceTimersByTime(500);
+  });
+
+  expect(setDataMaskMock).toHaveBeenCalledTimes(callsBeforeDebounceFlush);
+});
+
 test('pending LIKE debounce still applies after rerender recreates updateDataMask', async () => {
   jest.useFakeTimers({ advanceTimers: true });
   const setDataMaskMock = jest.fn();
