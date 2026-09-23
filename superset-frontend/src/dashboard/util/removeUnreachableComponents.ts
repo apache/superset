@@ -19,9 +19,11 @@
 import { DashboardComponent } from '../types';
 import {
   CHART_TYPE,
+  DASHBOARD_GRID_TYPE,
   HEADER_TYPE,
   MARKDOWN_TYPE,
   ROW_TYPE,
+  TAB_TYPE,
   TABS_TYPE,
 } from './componentTypes';
 import {
@@ -44,6 +46,12 @@ const RESERVED_IDS = new Set<string>([
   DASHBOARD_VERSION_KEY,
 ]);
 
+// containers that accept both new rows and headers
+const REATTACH_CONTAINER_TYPES = new Set<string>([
+  DASHBOARD_GRID_TYPE,
+  TAB_TYPE,
+]);
+
 const childrenOf = (component: unknown): string[] => {
   const children = (component as DashboardComponent | undefined)?.children;
   return Array.isArray(children)
@@ -63,8 +71,10 @@ const isComponent = (value: unknown): value is DashboardComponent =>
  * of a node. A detached subtree containing a cycle is what crashes the filter
  * scope modal with "Maximum call stack size exceeded".
  *
- * A detached chart keeps its layout id and is moved into new rows in the first
- * top-level container. Dropping it would lose the chart's cross-filter
+ * A detached chart keeps its layout id and is moved into new rows in the deepest
+ * container of its stored `parents` that is still reachable, falling back to
+ * the first top-level container. Only the tail of a stale chain is gone, so its
+ * reachable prefix still says e.g. which tab the chart came from. Dropping it would lose the chart's cross-filter
  * configuration, and a chart missing from the charts payload (e.g. archived
  * with SOFT_DELETE) could not be re-added, so the next save would drop its
  * dashboard membership. A chart that is also placed reachably is not duplicated.
@@ -82,21 +92,24 @@ export default function removeUnreachableComponents<
     return layout;
   }
 
-  const reachable = new Set<string>();
-  const stack: string[] = [DASHBOARD_ROOT_ID];
+  // path from ROOT_ID to each reachable id
+  const paths = new Map<string, string[]>();
+  const stack: [string, string[]][] = [[DASHBOARD_ROOT_ID, []]];
 
   while (stack.length) {
-    const id = stack.pop() as string;
+    const [id, parentPath] = stack.pop() as [string, string[]];
     // doubles as the cycle guard: an id already seen is never expanded twice
-    if (!reachable.has(id)) {
-      reachable.add(id);
+    if (!paths.has(id)) {
+      const path = [...parentPath, id];
+      paths.set(id, path);
       childrenOf(layout[id]).forEach(childId => {
         if (isComponent(layout[childId])) {
-          stack.push(childId);
+          stack.push([childId, path]);
         }
       });
     }
   }
+  const reachable = new Set(paths.keys());
 
   const unreachable = Object.keys(layout).filter(
     id =>
@@ -149,42 +162,64 @@ export default function removeUnreachableComponents<
   // mirrors findFirstParentContainerId; the path is built here rather than
   // read from `parents`, which may be stale or missing
   const [firstId] = childrenOf(layout[DASHBOARD_ROOT_ID]);
-  const rowParents =
+  const fallbackPath =
     layout[firstId]?.type === TABS_TYPE
       ? [DASHBOARD_ROOT_ID, firstId, childrenOf(layout[firstId])[0]]
       : [DASHBOARD_ROOT_ID, firstId];
-  const containerId = rowParents[rowParents.length - 1];
-  const container = containerId ? next[containerId] : undefined;
-  if (!rescued.length || !isComponent(container)) {
-    return next;
-  }
 
-  const containerChildren = childrenOf(container);
-  let row: DashboardEntity | undefined;
-  let rowWidth = 0;
+  const homePath = (component: T): string[] => {
+    const parents = Array.isArray(component.parents) ? component.parents : [];
+    for (let i = parents.length - 1; i >= 0; i -= 1) {
+      const path = paths.get(parents[i]);
+      if (path && REATTACH_CONTAINER_TYPES.has(layout[parents[i]].type)) {
+        return path;
+      }
+    }
+    return fallbackPath;
+  };
+
+  const groups = new Map<string, [string[], [string, T][]]>();
   rescued.forEach(([componentKey, component]) => {
-    if (component.type === HEADER_TYPE) {
-      containerChildren.push(componentKey);
-      next[componentKey] = { ...component, parents: rowParents.slice() };
-      row = undefined;
+    const path = homePath(component);
+    const key = path.join('/');
+    const group = groups.get(key) ?? [path, []];
+    group[1].push([componentKey, component]);
+    groups.set(key, group);
+  });
+
+  groups.forEach(([rowParents, components]) => {
+    const containerId = rowParents[rowParents.length - 1];
+    const container = containerId ? next[containerId] : undefined;
+    if (!isComponent(container)) {
       return;
     }
-    const { width: rawWidth } = component.meta ?? {};
-    const width =
-      typeof rawWidth === 'number' && rawWidth > 0
-        ? rawWidth
-        : GRID_DEFAULT_CHART_WIDTH;
-    if (!row || rowWidth + width > GRID_COLUMN_COUNT) {
-      row = newComponentFactory(ROW_TYPE, undefined, rowParents.slice());
-      next[row.id] = row;
-      containerChildren.push(row.id);
-      rowWidth = 0;
-    }
-    row.children.push(componentKey);
-    next[componentKey] = { ...component, parents: [...rowParents, row.id] };
-    rowWidth += width;
+    const containerChildren = childrenOf(container);
+    let row: DashboardEntity | undefined;
+    let rowWidth = 0;
+    components.forEach(([componentKey, component]) => {
+      if (component.type === HEADER_TYPE) {
+        containerChildren.push(componentKey);
+        next[componentKey] = { ...component, parents: rowParents.slice() };
+        row = undefined;
+        return;
+      }
+      const { width: rawWidth } = component.meta ?? {};
+      const width =
+        typeof rawWidth === 'number' && rawWidth > 0
+          ? rawWidth
+          : GRID_DEFAULT_CHART_WIDTH;
+      if (!row || rowWidth + width > GRID_COLUMN_COUNT) {
+        row = newComponentFactory(ROW_TYPE, undefined, rowParents.slice());
+        next[row.id] = row;
+        containerChildren.push(row.id);
+        rowWidth = 0;
+      }
+      row.children.push(componentKey);
+      next[componentKey] = { ...component, parents: [...rowParents, row.id] };
+      rowWidth += width;
+    });
+    next[containerId] = { ...container, children: containerChildren };
   });
-  next[containerId] = { ...container, children: containerChildren };
 
   return next;
 }

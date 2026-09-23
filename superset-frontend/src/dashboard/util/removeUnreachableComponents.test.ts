@@ -160,6 +160,31 @@ test('reattaches a detached chart to the first tab of top-level tabs', () => {
   ]);
 });
 
+test('reattaches a detached chart to the tab recorded in its stale parents', () => {
+  const layout = withVersionKey({
+    ROOT_ID: component('ROOT_ID', 'ROOT', ['TABS-t']),
+    GRID_ID: component('GRID_ID', 'GRID'),
+    'TABS-t': component('TABS-t', 'TABS', ['TAB-1', 'TAB-2']),
+    'TAB-1': component('TAB-1', 'TAB'),
+    'TAB-2': component('TAB-2', 'TAB'),
+    'CHART-trapped': component('CHART-trapped', 'CHART', [], {
+      parents: ['ROOT_ID', 'TABS-t', 'TAB-2', 'ROW-gone', 'COLUMN-gone'],
+      meta: { chartId: 2 },
+    }),
+  });
+
+  const repaired = removeUnreachableComponents(layout);
+
+  expect(repaired['TAB-1'].children).toEqual([]);
+  const [newRowId] = repaired['TAB-2'].children;
+  expect(repaired['CHART-trapped'].parents).toEqual([
+    'ROOT_ID',
+    'TABS-t',
+    'TAB-2',
+    newRowId,
+  ]);
+});
+
 test('does not duplicate a detached chart that is also placed reachably', () => {
   const layout = { ...reachableLayout(), ...trappedComponents({ chartId: 1 }) };
 

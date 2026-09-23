@@ -31,6 +31,8 @@ HEADER_TYPE = "HEADER"
 MARKDOWN_TYPE = "MARKDOWN"
 ROW_TYPE = "ROW"
 TABS_TYPE = "TABS"
+# containers that accept both new rows and headers
+REATTACH_CONTAINER_TYPES = frozenset({"GRID", "TAB"})
 GRID_COLUMN_COUNT = 12
 GRID_DEFAULT_CHART_WIDTH = 4
 # ``HEADER_ID`` is dashboard metadata rather than a rendered child, and a
@@ -108,19 +110,63 @@ def _reattach_components(
     position[container_id] = {**container, "children": children}
 
 
-def _reachable_ids(position: dict[str, Any]) -> set[str]:
-    reachable: set[str] = set()
-    stack: list[str] = [ROOT_ID]
+def _reachable_paths(position: dict[str, Any]) -> dict[str, list[str]]:
+    """Map each id reachable from ``ROOT_ID`` to its path from ``ROOT_ID``."""
+    paths: dict[str, list[str]] = {}
+    stack: list[tuple[str, list[str]]] = [(ROOT_ID, [])]
     while stack:
-        component_id = stack.pop()
+        component_id, parent_path = stack.pop()
         # doubles as the cycle guard: an id already seen is never expanded twice
-        if component_id in reachable:
+        if component_id in paths:
             continue
-        reachable.add(component_id)
+        path = [*parent_path, component_id]
+        paths[component_id] = path
         for child_id in _children(position.get(component_id)):
             if isinstance(position.get(child_id), dict):
-                stack.append(child_id)
-    return reachable
+                stack.append((child_id, path))
+    return paths
+
+
+def _home_container_path(
+    component: dict[str, Any],
+    position: dict[str, Any],
+    paths: dict[str, list[str]],
+) -> list[str] | None:
+    """Path to the deepest still-reachable container in the component's stored
+    ``parents``, so a rescued component returns to e.g. the tab it came from.
+    Only the tail of a stale chain is gone; its reachable prefix is trusted."""
+    parents = component.get("parents")
+    if not isinstance(parents, list):
+        return None
+    for parent_id in reversed(parents):
+        if (
+            isinstance(parent_id, str)
+            and parent_id in paths
+            and position.get(parent_id, {}).get("type") in REATTACH_CONTAINER_TYPES
+        ):
+            return paths[parent_id]
+    return None
+
+
+def _reattach_rescued(
+    position: dict[str, Any],
+    rescued: list[tuple[str, dict[str, Any]]],
+    paths: dict[str, list[str]],
+) -> None:
+    """Reattach each rescued component to its home container, falling back to
+    the first top-level container."""
+    fallback_path = _first_container_path(position)
+    groups: dict[tuple[str, ...], list[tuple[str, dict[str, Any]]]] = {}
+    for component_id, component in rescued:
+        container_path = (
+            _home_container_path(component, position, paths) or fallback_path
+        )
+        if container_path:
+            groups.setdefault(tuple(container_path), []).append(
+                (component_id, component)
+            )
+    for group_path, components in groups.items():
+        _reattach_components(position, components, list(group_path))
 
 
 def remove_unreachable_components(
@@ -134,8 +180,9 @@ def remove_unreachable_components(
     detached subtree holding a cycle is what crashes the filter scope modal with
     "Maximum call stack size exceeded".
 
-    A detached chart is reattached in new rows of the first top-level container
-    instead of dropped, keeping its layout id. That preserves its
+    A detached chart is reattached in new rows of the deepest container in its
+    stored ``parents`` that is still reachable (falling back to the first
+    top-level container) instead of dropped, keeping its layout id. That preserves its
     ``chart_configuration`` (derived scopes drop entries for charts absent from
     the layout) and its dashboard membership even when the chart is archived and
     so absent from the charts the frontend loads. A chart that is also placed
@@ -154,7 +201,8 @@ def remove_unreachable_components(
     if not isinstance(root, dict) or not isinstance(root.get("children"), list):
         return position, []
 
-    reachable = _reachable_ids(position)
+    paths = _reachable_paths(position)
+    reachable = set(paths)
 
     removed = [
         component_id
@@ -197,8 +245,7 @@ def remove_unreachable_components(
         component = repaired.get(component_id)
         if isinstance(component, dict) and component.get("children"):
             repaired[component_id] = {**component, "children": []}
-    if rescued and (container_path := _first_container_path(repaired)):
-        _reattach_components(repaired, rescued, container_path)
+    _reattach_rescued(repaired, rescued, paths)
     return repaired, removed
 
 

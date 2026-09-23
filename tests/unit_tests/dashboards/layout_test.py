@@ -171,6 +171,33 @@ def test_detached_chart_is_reattached_to_the_first_tab() -> None:
     ]
 
 
+def test_detached_chart_returns_to_the_tab_in_its_stale_parents() -> None:
+    position = {
+        "ROOT_ID": {"id": "ROOT_ID", "type": "ROOT", "children": ["TABS-t"]},
+        "TABS-t": {"id": "TABS-t", "type": "TABS", "children": ["TAB-1", "TAB-2"]},
+        "TAB-1": {"id": "TAB-1", "type": "TAB", "children": []},
+        "TAB-2": {"id": "TAB-2", "type": "TAB", "children": []},
+        "CHART-trapped": {
+            "id": "CHART-trapped",
+            "type": "CHART",
+            "children": [],
+            "parents": ["ROOT_ID", "TABS-t", "TAB-2", "ROW-gone", "COLUMN-gone"],
+            "meta": {"chartId": 2},
+        },
+    }
+
+    cleaned, _ = remove_unreachable_components(position)
+
+    assert cleaned["TAB-1"]["children"] == []
+    [new_row_id] = cleaned["TAB-2"]["children"]
+    assert cleaned["CHART-trapped"]["parents"] == [
+        "ROOT_ID",
+        "TABS-t",
+        "TAB-2",
+        new_row_id,
+    ]
+
+
 def test_detached_chart_already_placed_is_not_duplicated() -> None:
     position = reachable_position()
     position["CHART-a"]["meta"] = {"chartId": 2}
