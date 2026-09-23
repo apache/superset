@@ -194,7 +194,7 @@ export default function PartitionMappingSection({
             // a stale auto-check behind.
             onMonotonicChange(columnName, next === IDENTITY_TRANSFORM);
           }}
-          placeholder="unix_timestamp(:value)"
+          placeholder={t('unix_timestamp(:value)')}
           aria-label={t('Value transform')}
           data-test="partition-value-transform"
           css={css`
