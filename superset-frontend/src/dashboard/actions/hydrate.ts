@@ -244,8 +244,8 @@ export const hydrateDashboard =
       }
     });
 
-    // stored `parents` can be stale (e.g. after the repair above), and the drop
-    // indicator trusts them, so always rebuild from `children`
+    // buildActiveFilters reads `parents` for filter scopes before the layout
+    // reducer rebuilds them, and the repair above may have moved components
     updateComponentParentsList({
       currentComponent: layout[DASHBOARD_ROOT_ID] as LayoutItem,
       layout: layout as Record<string, LayoutItem>,
