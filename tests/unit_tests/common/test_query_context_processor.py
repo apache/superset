@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 
+import logging
 from collections.abc import Iterator
 from datetime import datetime, timedelta
 from typing import Any
@@ -235,7 +236,7 @@ def test_annotation_source_scope_reuses_referenced_chart_cache_key(
 
 
 def test_annotation_source_scope_fails_closed_on_any_derivation_error(
-    processor, mock_annotation_chart
+    processor, mock_annotation_chart, caplog
 ) -> None:
     """A lookup failure must fail closed rather than silently deduping onto a
     successfully-derived scope -- and not just for SupersetException: the RLS
@@ -249,8 +250,10 @@ def test_annotation_source_scope_fails_closed_on_any_derivation_error(
     ) as security_manager:
         security_manager.can_access_datasource.return_value = True
         security_manager.get_rls_cache_key.return_value = []
-        scope = processor._annotation_source_scope(1)
+        with caplog.at_level(logging.WARNING):
+            scope = processor._annotation_source_scope(1)
     assert scope == {"access": False, "data_key": []}
+    assert "Could not derive annotation cache key" in caplog.text
 
 
 def test_annotation_source_scope_fallback_lookup_also_fails_closed(
