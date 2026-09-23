@@ -22,15 +22,21 @@ from collections.abc import Generator
 
 import pytest
 import yaml
+from flask_appbuilder.security.sqla.models import User
 from pytest_mock import MockerFixture
 from sqlalchemy.orm.session import Session
 
 from superset import db, security_manager
 from superset.commands.chart.export import ExportChartsCommand
 from superset.commands.chart.importers.v1 import ImportChartsCommand
+from superset.commands.dataset.exceptions import DatasetNotFoundError
+from superset.commands.dataset.export import ExportDatasetsCommand
 from superset.connectors.sqla.models import Database, SqlaTable
 from superset.daos.dataset import DatasetDAO
 from superset.models.slice import Slice
+from superset.subjects.models import Subject
+from superset.subjects.types import SubjectType
+from superset.utils.core import override_user
 
 
 @pytest.fixture
@@ -74,10 +80,42 @@ def permissive_security(mocker: MockerFixture) -> None:
     mocker.patch.object(security_manager, "is_admin", return_value=True)
 
 
-def _export(chart: Slice) -> dict[str, str]:
+@pytest.fixture
+def chart_editor_without_dataset_access(
+    chart_on_dataset: Slice,
+) -> Generator[User, None, None]:
+    """Log in a user who edits the chart but holds no grant on its dataset.
+
+    The user has no role, so no ``all_datasource_access``, ``database_access``,
+    ``datasource_access``, ``schema_access`` or ``catalog_access``, and is not
+    an editor of the dataset, so ``DatasourceFilter`` hides the dataset from
+    them in the trash as well. Editing the chart is what lets ``ChartFilter``
+    hand them the chart.
+    """
+    user = User(
+        first_name="chart",
+        last_name="editor",
+        username="chart_editor",
+        email="chart_editor@example.com",
+        active=True,
+    )
+    db.session.add(user)
+    db.session.flush()
+    chart_on_dataset.editors = [
+        Subject(label="chart_editor", type=SubjectType.USER, user_id=user.id)
+    ]
+    db.session.flush()
+
+    with override_user(user):
+        yield user
+
+
+def _export(chart: Slice, export_related: bool = True) -> dict[str, str]:
     return {
         file_name: file_content()
-        for file_name, file_content in ExportChartsCommand([chart.id]).run()
+        for file_name, file_content in ExportChartsCommand(
+            [chart.id], export_related=export_related
+        ).run()
     }
 
 
@@ -175,3 +213,60 @@ def test_export_chart_omits_dataset_uuid_when_dataset_is_gone(
     assert len(chart_files) == 1
     assert not [name for name in contents if name.startswith("datasets/")]
     assert "dataset_uuid" not in yaml.safe_load(contents[chart_files[0]])
+
+
+@pytest.mark.usefixtures("chart_editor_without_dataset_access")
+@pytest.mark.parametrize("export_related", [True, False])
+def test_export_chart_does_not_leak_deleted_dataset_without_access(
+    app_context: None,
+    chart_on_dataset: Slice,
+    export_related: bool,
+) -> None:
+    """Resolving a soft-deleted dataset must not widen dataset access.
+
+    ``find_chart_dataset`` lifts only the soft-delete filter. A caller who can
+    export the chart but cannot read its dataset gets the chart alone: no
+    ``datasets/`` or ``databases/`` file and no ``dataset_uuid``, the same
+    bundle the export produced for them before the dataset could be resolved
+    out of the trash.
+    """
+    chart = chart_on_dataset
+    dataset_id = chart.table.id
+
+    DatasetDAO.delete([chart.table])
+    db.session.flush()
+    _next_request()
+
+    # The row is still there, so only the missing access keeps it out.
+    assert DatasetDAO.find_by_id(
+        dataset_id, skip_base_filter=True, skip_visibility_filter=True
+    )
+
+    contents = _export(chart, export_related)
+
+    chart_files = [name for name in contents if name.startswith("charts/")]
+    assert len(chart_files) == 1
+    assert not [
+        name for name in contents if name.startswith(("datasets/", "databases/"))
+    ]
+    assert "dataset_uuid" not in yaml.safe_load(contents[chart_files[0]])
+
+
+@pytest.mark.usefixtures("chart_editor_without_dataset_access")
+def test_nested_dataset_export_keeps_access_filter_for_deleted_dataset(
+    app_context: None,
+    chart_on_dataset: Slice,
+) -> None:
+    """``include_deleted`` lifts the soft-delete filter and nothing else.
+
+    The chart export passes it to the nested dataset export, so a caller who
+    cannot read the dataset must still be refused there.
+    """
+    dataset_id = chart_on_dataset.table.id
+
+    DatasetDAO.delete([chart_on_dataset.table])
+    db.session.flush()
+    _next_request()
+
+    with pytest.raises(DatasetNotFoundError):
+        list(ExportDatasetsCommand([dataset_id], include_deleted=True).run())
