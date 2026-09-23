@@ -157,7 +157,10 @@ denied resource pre-filled:
 Only the placeholders that apply to the triggering error type are filled in; the rest are replaced
 with an empty string, so a single URL template can cover both chart/dashboard and SQL Lab denials.
 A URL with no placeholders is used as-is, and leaving `PERMISSION_INSTRUCTIONS_LINK` unset (the
-default) omits the "Request access" link, falling back to owner-contact guidance.
+default) only omits the "Request access" link. The contact guidance shown alongside it doesn't
+depend on the link: chart/dashboard errors name the dataset owners when they're known, while SQL
+Lab/table errors carry no owner information and always tell the viewer to contact their Superset
+administrator.
 
 ### Subjects
 
