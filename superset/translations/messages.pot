@@ -18585,8 +18585,6 @@ msgstr ""
 msgid "value descending"
 msgstr ""
 
-msgid "valuename"
-msgstr ""
 
 msgid "var"
 msgstr ""
