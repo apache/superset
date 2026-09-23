@@ -165,7 +165,7 @@ const DashboardContainer: FC<DashboardContainerProps> = ({ topLevelTabs }) => {
   const renderedChartIds = useRenderedChartIds();
 
   const [colorInitializedDashboardId, setColorInitializedDashboardId] =
-    useState<number>();
+    useState<number | null>(null);
   const dashboardLabelsColorInitiated =
     colorInitializedDashboardId === dashboardInfo?.id;
   const prevRenderedChartIds = useRef<number[]>([]);
@@ -381,7 +381,8 @@ const DashboardContainer: FC<DashboardContainerProps> = ({ topLevelTabs }) => {
 
   return (
     <div className="grid-container" data-test="grid-container" ref={parentRef}>
-      {/* Cached charts can consume their color scales on their first render. */}
+      {/* Defer the grid until hydration and color initialization complete,
+          before cached charts consume their color scales on first render. */}
       {dashboardLabelsColorInitiated && renderParentSizeChildren({ width })}
     </div>
   );

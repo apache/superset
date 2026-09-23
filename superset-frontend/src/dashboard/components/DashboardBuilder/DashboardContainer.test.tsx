@@ -978,3 +978,17 @@ test.each([false, true])(
     CategoricalColorNamespace.getNamespace(chartNamespace).resetColors();
   },
 );
+
+test('waits for dashboard hydration before mounting cached charts', () => {
+  jest.mocked(applyDashboardLabelsColorOnLoad).mockClear();
+  const { store } = setupWithStore({ dashboardInfo: {} });
+  expect(screen.queryByTestId('mock-dashboard-grid')).not.toBeInTheDocument();
+  expect(applyDashboardLabelsColorOnLoad).not.toHaveBeenCalled();
+
+  act(() => {
+    store.dispatch(dashboardInfoChanged({ id: mockState.dashboardInfo.id }));
+  });
+
+  expect(applyDashboardLabelsColorOnLoad).toHaveBeenCalled();
+  expect(screen.getByTestId('mock-dashboard-grid')).toBeInTheDocument();
+});
