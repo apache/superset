@@ -38,7 +38,15 @@ from superset.commands.exceptions import (
     ForbiddenError,
     ObjectNotFoundError,
 )
-from superset.exceptions import SupersetException, SupersetSecurityException
+from superset.errors import SupersetErrorType
+from superset.exceptions import (
+    ColumnNotFoundException,
+    DatabaseNotFound,
+    SupersetErrorsException,
+    SupersetException,
+    SupersetGenericDBErrorException,
+    SupersetSecurityException,
+)
 from superset.extensions import event_logger, stats_logger_manager
 from superset.mcp_service.auth import (
     _get_app_context_manager,
@@ -49,6 +57,7 @@ from superset.mcp_service.auth import (
     MCPPermissionDeniedError,
 )
 from superset.mcp_service.constants import (
+    CONNECTION_ERROR_TYPES,
     DEFAULT_MAX_LIST_ITEMS,
     DEFAULT_MAX_RESPONSE_BYTES,
     DEFAULT_WARN_THRESHOLD_PCT,
@@ -207,6 +216,204 @@ def _invoke_error_hook(error: Exception, hook_context: dict[str, Any]) -> None:
         hook(error, hook_context)
     except Exception as hook_error:  # noqa: BLE001
         logger.warning("MCP_ERROR_HOOK raised an exception: %s", hook_error)
+
+
+# The prefix FastMCP puts on every ToolError it wraps a tool exception in.
+# Pinned by a guard test so an upstream change surfaces as a clear failure
+# rather than silently reinstating the undifferentiated-error bug.
+_FASTMCP_WRAPPED_ERROR_PREFIX = "Error calling tool "
+
+
+def _unwrap_tool_error(error: Exception) -> Exception:
+    """Return the exception a ``ToolError`` was raised from, if any.
+
+    A tool failure is wrapped twice on its way out: FastMCP wraps whatever the
+    tool body raised, and :class:`GlobalErrorHandlerMiddleware` re-raises its
+    classified message as a fresh ``ToolError`` chained off the same cause.
+    Either way the real failure is the ``__cause__``.
+
+    This is for *classification only* — log severity, metrics, and
+    error-tracker capture — where attributing a failure to the wrapper rather
+    than to ``OperationalError`` or ``MCPPermissionDeniedError`` loses the
+    distinction that matters. It does not decide client-facing text; use
+    :func:`_unwrap_fastmcp_wrapped_error` for that.
+    """
+    if isinstance(error, ToolError) and isinstance(error.__cause__, Exception):
+        return error.__cause__
+    return error
+
+
+def _unwrap_fastmcp_wrapped_error(error: Exception) -> Exception:
+    """Return the original exception behind *FastMCP's* ``ToolError`` wrapper.
+
+    FastMCP catches every non-``FastMCPError`` raised inside a tool body and
+    re-raises it as ``ToolError(f"Error calling tool {name!r}: {e}") from e``
+    *before* any middleware error hook runs (see ``FastMCP._call_tool``). By
+    the time :class:`GlobalErrorHandlerMiddleware` sees a tool failure, the
+    concrete type — ``MCPPermissionDeniedError``, ``SupersetException``,
+    ``OperationalError`` — is no longer the exception itself, only its
+    ``__cause__``. Classifying the wrapper instead of the cause collapses
+    every distinct failure into one undifferentiated message.
+
+    A ``ToolError`` raised deliberately by tool code is already formatted for
+    MCP and is returned as-is. Tool code may legitimately chain one off
+    another exception (``raise ToolError(...) from exc``), so ``__cause__``
+    alone does not identify FastMCP's wrapper — the message prefix is
+    required as well, otherwise a tool-authored message would be discarded
+    and replaced by cause-based handling.
+    """
+    if (
+        isinstance(error, ToolError)
+        and isinstance(error.__cause__, Exception)
+        and str(error).startswith(_FASTMCP_WRAPPED_ERROR_PREFIX)
+    ):
+        return error.__cause__
+    return error
+
+
+# Exception classes that mean "the query behind this tool failed", not "the
+# caller used the tool wrong". The tool name and arguments were valid; the
+# datasource, table, column, or connection it reads is broken or gone.
+#
+# Deliberately narrow: only classes that are datasource-scoped *by definition*
+# and that do not reliably carry a recognisable ``SupersetErrorType``. Broader
+# classes are matched by error type instead (see _DATASOURCE_ERROR_TYPES),
+# because the class alone does not establish that the datasource is at fault:
+#
+# - ``SQLAlchemyError`` also covers metadata-database IntegrityError /
+#   ProgrammingError raised while a tool reads Superset's own metastore.
+# - ``SupersetTimeoutException`` is the generic timeout class; SigalrmTimeout
+#   and TimerTimeout raise it with BACKEND_TIMEOUT_ERROR.
+# - ``QueryObjectValidationError`` is raised for missing/invalid query fields
+#   and invalid result types, which are caller or configuration problems.
+#
+# Misclassifying any of those would tell the caller their arguments were valid
+# and blame a datasource that is in fact healthy.
+_DATASOURCE_ERROR_EXCEPTIONS = (
+    ColumnNotFoundException,
+    DatabaseNotFound,
+    SupersetGenericDBErrorException,
+)
+
+# ``SupersetError.error_type`` values in the DB-engine, viz, and SQL Lab
+# families. Superset raises a bare ``SupersetErrorException`` for many of
+# these, so the exception class alone is not enough to classify them. The
+# connection half comes from the shared CONNECTION_ERROR_TYPES set so this
+# cannot drift out of sync with chart compilation's view of the same thing.
+_DATASOURCE_ERROR_TYPES = (
+    frozenset(
+        {
+            SupersetErrorType.COLUMN_DOES_NOT_EXIST_ERROR,
+            SupersetErrorType.DATABASE_NOT_FOUND_ERROR,
+            SupersetErrorType.FAILED_FETCHING_DATASOURCE_INFO_ERROR,
+            SupersetErrorType.INVALID_SQL_ERROR,
+            SupersetErrorType.OBJECT_DOES_NOT_EXIST_ERROR,
+            SupersetErrorType.RESULTS_BACKEND_ERROR,
+            SupersetErrorType.SCHEMA_DOES_NOT_EXIST_ERROR,
+            SupersetErrorType.SQLLAB_TIMEOUT_ERROR,
+            SupersetErrorType.SYNTAX_ERROR,
+            SupersetErrorType.TABLE_DOES_NOT_EXIST_ERROR,
+            SupersetErrorType.TABLE_NOT_FOUND_ERROR,
+            SupersetErrorType.UNKNOWN_DATASOURCE_TYPE_ERROR,
+            SupersetErrorType.VIZ_GET_DF_ERROR,
+        }
+    )
+    | CONNECTION_ERROR_TYPES
+)
+
+# Surfaced when a datasource failure carries no recognised SupersetErrorType.
+# A fixed sentinel, never a Python class name: the reason is part of the
+# client-facing message and must stay a closed, non-sensitive vocabulary.
+_GENERIC_DATASOURCE_REASON = "DATASOURCE_QUERY_FAILED"
+
+# Reasons where the *query* is at fault, not the datasource. For a
+# SQL-authoring tool the query text is itself an argument, so telling the
+# caller "your arguments were valid" would steer an agent away from fixing
+# its own malformed SQL.
+_QUERY_SYNTAX_REASONS = frozenset(
+    {
+        SupersetErrorType.INVALID_SQL_ERROR.value,
+        SupersetErrorType.SYNTAX_ERROR.value,
+    }
+)
+
+# Reasons that mean the connection to the analytics database is unhealthy —
+# an operational problem worth paging on, unlike a missing table.
+_CONNECTION_REASONS = frozenset(t.value for t in CONNECTION_ERROR_TYPES)
+
+
+def _datasource_error_reason(error: Exception) -> str | None:
+    """Return the enumerated reason for a datasource failure, if any.
+
+    Only ``SupersetErrorType`` members are returned — they are a closed,
+    non-sensitive vocabulary. Raw driver output (which can carry SQL, table
+    contents, or connection strings) is never surfaced from here.
+    """
+    errors = getattr(error, "errors", None)
+    single_error = getattr(error, "error", None)
+    if isinstance(error, SupersetErrorsException) and errors:
+        # SupersetErrorsException carries a list of SupersetError. Scan all of
+        # them, not just the first: a datasource failure reported alongside
+        # other errors would otherwise lose its specific reason.
+        candidates = [getattr(err, "error_type", None) for err in errors]
+    elif single_error is not None:
+        # SupersetErrorException carries a single SupersetError.
+        candidates = [getattr(single_error, "error_type", None)]
+    else:
+        # Plain SupersetException exposes error_type directly.
+        candidates = [getattr(error, "error_type", None)]
+    for error_type in candidates:
+        if error_type in _DATASOURCE_ERROR_TYPES:
+            return str(getattr(error_type, "value", error_type))
+    return None
+
+
+def _is_datasource_error(error: Exception) -> bool:
+    """Classify a failure as coming from the datasource behind the tool.
+
+    ``SupersetSecurityException`` subclasses ``SupersetErrorException``, so
+    callers must check for permission failures *before* calling this.
+    """
+    return (
+        isinstance(error, _DATASOURCE_ERROR_EXCEPTIONS)
+        or _datasource_error_reason(error) is not None
+    )
+
+
+def _datasource_error_is_user_error(error: Exception) -> bool | None:
+    """Severity for a datasource failure; ``None`` if it is not one.
+
+    :func:`_is_user_error` keys on ``SupersetException.status``, but Superset
+    raises a *bare* ``SupersetErrorException`` for most datasource failures,
+    and that does not override ``SupersetException.status = 500``. A dropped
+    table therefore logs at ERROR with a traceback and fires
+    ``MCP_ERROR_HOOK``, paging on what is routine MCP traffic — an agent
+    pointing at a chart whose table was renamed.
+
+    Classify by what actually failed instead of by an inherited default: an
+    unreachable or misconfigured *connection* is an operational problem worth
+    paging on; a missing table, column, or schema is not.
+
+    This only ever *de-escalates*. A sub-500 status is a deliberate judgement
+    by the exception class that the caller is at fault, and is never
+    overridden — otherwise the connection half of the allow-list would page
+    on exactly the errors this function exists to stop paging on. The
+    catch-all ``GENERIC_DB_ENGINE_ERROR`` makes that concrete: engines
+    without specific ``CONNECTION_*`` regexes (BigQuery, Snowflake, Athena,
+    Databricks, Trino) report a malformed adhoc column through it, carried by
+    a status-400 ``SupersetGenericDBErrorException``. Genuine connection
+    failures arrive as a bare status-500 ``SupersetErrorException`` and still
+    page.
+
+    Returns ``None`` when no recognised reason is available, leaving the
+    existing status-based judgement in place.
+    """
+    reason = _datasource_error_reason(error)
+    if reason is None:
+        return None
+    if getattr(error, "status", 500) < 500:
+        return True
+    return reason not in _CONNECTION_REASONS
 
 
 # Errors caused by the LLM/user — expected in normal MCP operation.
@@ -669,15 +876,11 @@ class LoggingMiddleware(Middleware):
                 )
             return result
         except Exception as exc:
-            # GlobalErrorHandlerMiddleware (inner) wraps tool exceptions in
-            # ToolError with the original attached as __cause__; unwrap it so
-            # error_type and the user/system classification reflect the real
-            # failure rather than the ToolError wrapper.
-            original = (
-                exc.__cause__
-                if isinstance(exc, ToolError) and exc.__cause__ is not None
-                else exc
-            )
+            # Tool exceptions arrive wrapped in ToolError with the original
+            # attached as __cause__; unwrap it so error_type and the
+            # user/system classification reflect the real failure rather than
+            # the ToolError wrapper.
+            original = _unwrap_tool_error(exc)
             error_type = type(original).__name__
             raised_is_user_error = _is_user_error(original)
             success = False
@@ -998,12 +1201,24 @@ class GlobalErrorHandlerMiddleware(Middleware):
 
     async def _handle_error(  # noqa: C901
         self,
-        error: Exception,
+        wrapped_error: Exception,
         context: MiddlewareContext,
         tool_name: str,
         duration_ms: int,
     ) -> None:
-        """Handle different types of errors with appropriate responses"""
+        """Handle different types of errors with appropriate responses.
+
+        ``wrapped_error`` is what reached the middleware; ``error`` is the
+        real failure. FastMCP re-raises everything a tool body throws as
+        ``ToolError(...) from e`` before any middleware runs, so classifying
+        the exception as received would funnel an RBAC denial, a dead table,
+        and an internal bug into the same message. Every decision below —
+        log severity, error-tracker capture, and the client-facing text — is
+        therefore made on the unwrapped cause. See
+        :func:`_unwrap_fastmcp_wrapped_error`.
+        """
+        error = _unwrap_fastmcp_wrapped_error(wrapped_error)
+
         # Extract user context for logging
         user_id = None
         try:
@@ -1015,6 +1230,12 @@ class GlobalErrorHandlerMiddleware(Middleware):
         # system errors (unexpected) → ERROR
         sanitized_error = _sanitize_error_for_logging(error)
         is_user = _is_user_error(error)
+        # A datasource failure's severity follows what actually broke, not the
+        # 500 status a bare SupersetErrorException inherits. See
+        # _datasource_error_is_user_error.
+        datasource_is_user = _datasource_error_is_user_error(error)
+        if datasource_is_user is not None:
+            is_user = datasource_is_user
         log_fn = logger.warning if is_user else logger.error
         log_fn(
             "MCP tool call failed: tool=%s, user_id=%s, "
@@ -1071,7 +1292,9 @@ class GlobalErrorHandlerMiddleware(Middleware):
 
         # Handle specific error types with appropriate responses
         if isinstance(error, ToolError):
-            # Tool errors are already formatted for MCP
+            # A ToolError that survived _unwrap_fastmcp_wrapped_error was
+            # raised deliberately by tool code (it carries no cause, or no
+            # FastMCP wrapper prefix) and is already formatted for MCP.
             raise error
         elif isinstance(error, ValidationError):
             # Pydantic validation errors
@@ -1100,12 +1323,19 @@ class GlobalErrorHandlerMiddleware(Middleware):
                 f"Service error in {tool_name}: {_sanitize_error_for_logging(error)}"
             ) from error
         elif isinstance(error, MCPPermissionDeniedError):
-            # MCP RBAC permission denied — convert to structured ToolError.
-            # Must come before the generic PermissionError branch because
-            # MCPPermissionDeniedError inherits from PermissionError.
+            # MCP RBAC permission denied. Rendered from the exception's own
+            # structured fields ("Permission denied: <permission> on
+            # <resource>") rather than through _sanitize_error_for_logging,
+            # which flattens every PermissionError to "Access denied" and
+            # would throw away the two facts that make the denial
+            # actionable. Must come before the generic PermissionError
+            # branch because MCPPermissionDeniedError inherits from it.
             raise ToolError(str(error)) from error
         elif isinstance(error, PermissionError):
-            # Permission/authorization errors
+            # Authorization failures that are not raised by the MCP RBAC
+            # decorator still get the "Permission denied" shape, so callers
+            # can tell a denial from a malformed call no matter which layer
+            # refused them.
             raise ToolError(
                 f"Permission denied for {tool_name}: "
                 f"You don't have access to this resource."
@@ -1126,6 +1356,29 @@ class GlobalErrorHandlerMiddleware(Middleware):
             raise ToolError(
                 f"Permission denied for {tool_name}: "
                 f"{_sanitize_error_for_logging(error)}"
+            ) from error
+        elif _is_datasource_error(error):
+            # The query behind the tool failed. The caller must NOT be told to
+            # re-check the tool schema — that advice fits an argument error and
+            # sends them down the wrong path for a dropped table or a dead
+            # connection. Only the enumerated SupersetErrorType is echoed; raw
+            # driver output could carry SQL or connection details.
+            reason = _datasource_error_reason(error) or _GENERIC_DATASOURCE_REASON
+            if reason in _QUERY_SYNTAX_REASONS:
+                # The datasource is fine; the query is malformed. For a
+                # SQL-authoring tool that query is the caller's own argument,
+                # so blaming the datasource would steer an agent away from
+                # the one thing it can actually fix.
+                raise ToolError(
+                    f"Query error in {tool_name}: the datasource rejected the "
+                    f"query as invalid ({reason}). Fix the query itself — the "
+                    f"datasource is reachable."
+                ) from error
+            raise ToolError(
+                f"Datasource error in {tool_name}: the query against the "
+                f"underlying datasource failed ({reason}). The tool name and "
+                f"arguments were valid — the datasource, table, or column it "
+                f"reads may be missing, renamed, or unreachable."
             ) from error
         elif isinstance(error, SupersetException):
             # Other Superset errors — .status determines severity (already
