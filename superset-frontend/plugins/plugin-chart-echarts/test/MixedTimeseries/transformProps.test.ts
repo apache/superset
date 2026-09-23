@@ -216,7 +216,9 @@ test('bar value labels retain their legacy outside position', () => {
   expect(barSeries).not.toHaveLength(0);
   barSeries.forEach(series => {
     expect(series.label).toMatchObject({ show: true, position: 'top' });
-    expect(series.labelLayout).toBeUndefined();
+    // The legacy outside position is kept; the layout callback only applies
+    // the legibility floor (suppressing labels on sub-floor segments).
+    expect(typeof series.labelLayout).toBe('function');
   });
 });
 
