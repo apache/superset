@@ -189,7 +189,6 @@ def test_grype_config_changes_trigger_docker_build() -> None:
     )
 
 
-
 def test_detect_languages_classifies_js_outside_frontend_dir() -> None:
     """A .js file outside superset-frontend/ is still "javascript", even
     though PATTERNS groups it under "python" by directory -- the gap

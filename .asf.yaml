@@ -125,6 +125,11 @@ github:
   # Both still gate a PR before a committer can add it to the queue via the
   # classic `required_status_checks` above; they just don't re-run once it's
   # in the queue.
+  #
+  # SYNC REQUIRED: aside from the two deliberate omissions above, this list
+  # must mirror `protected_branches.master.required_status_checks.contexts`.
+  # A check added there but not here would let the merge queue land a change
+  # without it.
   rulesets:
     - name: "Merge Queue"
       target: branch
