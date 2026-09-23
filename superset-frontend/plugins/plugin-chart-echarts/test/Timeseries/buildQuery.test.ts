@@ -107,6 +107,32 @@ describe('Timeseries buildQuery', () => {
     expect(query.metrics).toEqual(['count']);
   });
 
+  test('should keep the sort-only metric through the pivot with time comparison', () => {
+    const queryContext = buildQuery({
+      ...formData,
+      metrics: ['count'],
+      x_axis: 'genre',
+      groupby: ['platform'],
+      timeseries_limit_metric: 'na_sales',
+      x_axis_sort: 'na_sales',
+      x_axis_sort_asc: false,
+      comparison_type: 'values',
+      time_compare: ['1 week ago'],
+    });
+    const [query] = queryContext.queries;
+    expect(query.metrics).toEqual(['count', 'na_sales']);
+    const pivot = (query.post_processing || []).find(
+      operator => operator?.operation === 'pivot',
+    );
+    // The sort metric survives the pivot under its base label only; its
+    // time-shifted column is dropped along with the rest.
+    expect(Object.keys(pivot?.options?.aggregates ?? {}).sort()).toEqual([
+      'count',
+      'count__1 week ago',
+      'na_sales',
+    ]);
+  });
+
   test('should apply contribution before rename with time comparison', () => {
     // rename strips the `__<offset>` suffix that contribution relies on to
     // compute each time shift separately

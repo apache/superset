@@ -596,6 +596,34 @@ test("extractSeries orders rows by the sum of a metric's pivoted columns and hid
   expect(sortedTotals).toEqual([10, 50, 50]);
 });
 
+test('extractSeries fills stacked null gaps from the sorted neighbors, not the query order', () => {
+  // Sorted by `sales` descending the rows come out S, P, Q, R. In query
+  // order P and R sit next to the only defined `abc` value (Q), while S does
+  // not; on the sorted axis it is the other way around for S and R.
+  const data = [
+    { genre: 'P', abc: null, sales: 10 },
+    { genre: 'Q', abc: 5, sales: 1 },
+    { genre: 'R', abc: null, sales: 0 },
+    { genre: 'S', abc: null, sales: 20 },
+  ];
+  const [series] = extractSeries(data, {
+    xAxis: 'genre',
+    extraMetricLabels: ['sales'],
+    stack: true,
+    fillNeighborValue: 0,
+    totalStackedValues: [0, 5, 0, 0],
+    xAxisSortSeries: { sumOfColumns: ['sales'] },
+    xAxisSortSeriesAscending: false,
+  });
+  expect(series).toHaveLength(1);
+  expect(series[0].data).toEqual([
+    ['S', null],
+    ['P', 0],
+    ['Q', 5],
+    ['R', 0],
+  ]);
+});
+
 describe('extractSeries', () => {
   test('should generate a valid ECharts timeseries series object', () => {
     const data = [

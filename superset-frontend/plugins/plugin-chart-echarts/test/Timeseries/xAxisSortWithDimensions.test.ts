@@ -248,3 +248,101 @@ test('leaves the query order alone when the sort field is not in the data', () =
   });
   expect(axisOrder).toEqual(['Action', 'Puzzle', 'Sports']);
 });
+
+test('sorts the axis by the sort-only metric with a time comparison', () => {
+  // With a time comparison the backend also returns the shifted value
+  // metric, which `renameOperator` relabels to the bare offset, and
+  // `label_map` leads those entries with the offset. The sort-only metric
+  // is pivoted like the value metric; its own shifted column is dropped by
+  // the pivot, so it never reaches the response.
+  const comparisonRows: DataRecord[] = [
+    {
+      genre: 'Action',
+      'count, PS4': 30,
+      'count, XOne': 20,
+      '1 year ago, PS4': 25,
+      '1 year ago, XOne': 15,
+      'SUM(na_sales), PS4': 5,
+      'SUM(na_sales), XOne': 3,
+    },
+    {
+      genre: 'Puzzle',
+      'count, PS4': 5,
+      'count, XOne': 5,
+      '1 year ago, PS4': 4,
+      '1 year ago, XOne': 6,
+      'SUM(na_sales), PS4': 20,
+      'SUM(na_sales), XOne': 10,
+    },
+    {
+      genre: 'Sports',
+      'count, PS4': 40,
+      'count, XOne': 10,
+      '1 year ago, PS4': 35,
+      '1 year ago, XOne': 12,
+      'SUM(na_sales), PS4': 1,
+      'SUM(na_sales), XOne': 1,
+    },
+  ];
+  const comparisonLabelMap = {
+    genre: ['genre'],
+    count: ['count'],
+    'SUM(na_sales)': ['SUM(na_sales)'],
+    'count, PS4': ['count', 'PS4'],
+    'count, XOne': ['count', 'XOne'],
+    '1 year ago, PS4': ['1 year ago', 'PS4'],
+    '1 year ago, XOne': ['1 year ago', 'XOne'],
+    'SUM(na_sales), PS4': ['SUM(na_sales)', 'PS4'],
+    'SUM(na_sales), XOne': ['SUM(na_sales)', 'XOne'],
+  };
+  const chartProps = createEchartsTimeseriesTestChartProps<
+    EchartsTimeseriesFormData,
+    EchartsTimeseriesChartProps
+  >({
+    defaultFormData: DEFAULT_FORM_DATA,
+    defaultVizType: 'echarts_timeseries_bar',
+    formData: {
+      colorScheme: 'bnbColors',
+      seriesType: EchartsTimeseriesSeriesType.Bar,
+      x_axis: 'genre',
+      xAxis: 'genre',
+      metrics: ['count'],
+      groupby: ['platform'],
+      timeseries_limit_metric: naSales,
+      truncate_metric: true,
+      comparison_type: 'values',
+      comparisonType: 'values',
+      time_compare: ['1 year ago'],
+      timeCompare: ['1 year ago'],
+      x_axis_sort: 'SUM(na_sales)',
+      xAxisSort: 'SUM(na_sales)',
+      x_axis_sort_asc: false,
+      xAxisSortAsc: false,
+    } as Partial<EchartsTimeseriesFormData>,
+    queriesData: [
+      {
+        ...queriesData[0],
+        data: comparisonRows,
+        label_map: comparisonLabelMap,
+      } as unknown as ChartDataResponseResult,
+    ],
+  });
+  const series = transformProps(chartProps).echartOptions.series as Series[];
+
+  // SUM(na_sales) totals: Puzzle 30, Action 8, Sports 2.
+  series.forEach(entry => {
+    expect(entry.data.map(([genre]) => genre)).toEqual([
+      'Puzzle',
+      'Action',
+      'Sports',
+    ]);
+  });
+  // The value metric and its comparison are rendered per platform; neither
+  // the sort-only metric's columns nor a shifted variant of them are.
+  expect(series.map(({ name }) => name).sort()).toEqual([
+    '1 year ago, PS4',
+    '1 year ago, XOne',
+    'count, PS4',
+    'count, XOne',
+  ]);
+});

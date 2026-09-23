@@ -714,8 +714,12 @@ export function extractSeries(
         ) {
           minPositiveValue = currentValue;
         }
+        // Neighbors are taken from the sorted rows: once the axis is
+        // reordered, the rows next to this one on the chart are not the ones
+        // next to it in the query result.
         const isNextToDefinedValue =
-          isDefined(rows[idx - 1]?.[name]) || isDefined(rows[idx + 1]?.[name]);
+          isDefined(sortedRows[idx - 1]?.row[name]) ||
+          isDefined(sortedRows[idx + 1]?.row[name]);
         const isFillNeighborValue =
           !isDefined(currentValue) &&
           isNextToDefinedValue &&
