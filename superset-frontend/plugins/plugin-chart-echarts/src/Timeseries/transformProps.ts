@@ -678,7 +678,9 @@ export default function transformProps(
   if (stack && onlyTotal) {
     rawSeries.forEach((entry, idx) => {
       const group = seriesStackIds[idx];
-      if (!Object.prototype.hasOwnProperty.call(perGroupTotalStackedValues, group)) {
+      if (
+        !Object.prototype.hasOwnProperty.call(perGroupTotalStackedValues, group)
+      ) {
         perGroupTotalStackedValues[group] = [];
       }
       const groupTotals = perGroupTotalStackedValues[group];

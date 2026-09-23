@@ -687,7 +687,7 @@ export function transformSeries(
         const resolvedStackGroup = stackGroup ?? DEFAULT_STACK_GROUP;
         const stackShowValueIndexes = Array.isArray(showValueIndexes)
           ? showValueIndexes
-          : (Object.prototype.hasOwnProperty.call(
+          : Object.prototype.hasOwnProperty.call(
                 showValueIndexes,
                 resolvedStackGroup,
               ) && Array.isArray(showValueIndexes[resolvedStackGroup])
@@ -697,10 +697,10 @@ export function transformSeries(
                   DEFAULT_STACK_GROUP,
                 ) && Array.isArray(showValueIndexes[DEFAULT_STACK_GROUP])
               ? showValueIndexes[DEFAULT_STACK_GROUP]
-              : []);
+              : [];
         const resolvedTotalStackedValues = Array.isArray(totalStackedValues)
           ? totalStackedValues
-          : (Object.prototype.hasOwnProperty.call(
+          : Object.prototype.hasOwnProperty.call(
                 totalStackedValues,
                 resolvedStackGroup,
               ) && Array.isArray(totalStackedValues[resolvedStackGroup])
@@ -710,7 +710,7 @@ export function transformSeries(
                   DEFAULT_STACK_GROUP,
                 ) && Array.isArray(totalStackedValues[DEFAULT_STACK_GROUP])
               ? totalStackedValues[DEFAULT_STACK_GROUP]
-              : []);
+              : [];
         if (!onlyTotal) {
           // A stacked segment with no height begins and ends at the same
           // coordinate as the top of the segment beneath it, so its label is

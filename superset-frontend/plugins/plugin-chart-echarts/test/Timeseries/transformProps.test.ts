@@ -1277,8 +1277,12 @@ describe('Does transformProps transform series correctly', () => {
       .series as seriesType[];
 
     expect(transformedSeries).toHaveLength(2);
-    const protoSeries = transformedSeries.find(s => s.name?.includes('__proto__'));
-    const ctorSeries = transformedSeries.find(s => s.name?.includes('constructor'));
+    const protoSeries = transformedSeries.find(s =>
+      s.name?.includes('__proto__'),
+    );
+    const ctorSeries = transformedSeries.find(s =>
+      s.name?.includes('constructor'),
+    );
 
     expect(protoSeries).toBeDefined();
     expect(ctorSeries).toBeDefined();

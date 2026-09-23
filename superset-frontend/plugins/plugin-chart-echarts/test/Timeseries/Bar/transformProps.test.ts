@@ -47,7 +47,9 @@ import { createEchartsTimeseriesTestChartProps } from '../../helpers';
 
 function createTestQueryData(
   data: DataRecord[],
-  overrides?: Partial<ChartDataResponseResult>,
+  overrides?: Partial<ChartDataResponseResult> & {
+    label_map?: Record<string, string[]>;
+  },
 ): ChartDataResponseResult {
   return {
     annotation_data: null,
