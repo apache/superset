@@ -500,12 +500,13 @@ dashboard's Subject-based `viewers` list) via
 guards against silently widening or narrowing who can see a dashboard,
 which is why `update_dashboard` dropped its `roles` field.
 
-- **`ENABLE_VIEWERS` gating**: dashboard access roles only take effect when
-  the `ENABLE_VIEWERS` feature flag is enabled. The response always reports
-  the flag's current state via `viewers_enabled`, and `warnings` notes when
-  a change was applied but has no live effect (the roles list is still
-  stored either way — an empty roles list simply means "no role
-  restriction", i.e. normal permissions apply).
+- **`ENABLE_VIEWERS` reporting**: the response reports the flag's current
+  state via `viewers_enabled` and `warnings` notes when it's disabled — but
+  that warning is informational only. `raise_for_access` enforces a
+  nonempty `viewers` list on a published dashboard regardless of the flag,
+  so a role added here restricts access immediately even with
+  `ENABLE_VIEWERS` off. An empty roles list simply means "no role
+  restriction", i.e. normal permissions apply.
 - USER- or GROUP-type viewers already on the dashboard are left untouched.
 - Like `manage_dashboard_owners`, a no-op request returns an empty `roles`
   list instead of the full current set, to avoid a disguised directory
