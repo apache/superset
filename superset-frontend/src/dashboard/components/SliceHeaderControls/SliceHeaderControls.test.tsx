@@ -198,6 +198,7 @@ test('Injects dashboard.slice.header.menu items at the top of the menu', async (
 
   const injected = screen.getByText('Custom Menu Extension');
   expect(injected).toBeInTheDocument();
+  // Sits above the built-in entries.
   const forceRefresh = screen.getByText('Force refresh');
   expect(
     injected.compareDocumentPosition(forceRefresh) &
@@ -211,6 +212,8 @@ test('Injects nothing when dashboard.slice.header.menu returns no items', async 
   await openMenu();
 
   expect(screen.queryByText('Custom Menu Extension')).not.toBeInTheDocument();
+  // The menu still renders its built-in entries unchanged (no dangling divider
+  // is added since the empty array is guarded).
   expect(screen.getByText('Force refresh')).toBeInTheDocument();
 });
 
@@ -221,6 +224,7 @@ test('Menu survives a dashboard.slice.header.menu extension that throws', async 
   renderWrapper();
   await openMenu();
 
+  // The throw is isolated: the built-in menu still renders.
   expect(screen.getByText('Force refresh')).toBeInTheDocument();
   expect(screen.getByText('Enter fullscreen')).toBeInTheDocument();
 });
@@ -228,6 +232,7 @@ test('Menu survives a dashboard.slice.header.menu extension that throws', async 
 test('Injects nothing when the extension returns a non-array', async () => {
   getExtensionsRegistry().set(
     'dashboard.slice.header.menu',
+    // JS registrations bypass the MenuItem[] type; a bad return must not crash.
     (() => undefined) as never,
   );
   renderWrapper();
@@ -637,7 +642,7 @@ test.each([
   ['rendered', '250 ms'],
   ['stopped', 'Not available'],
 ])(
-  'shows the appropriate query duration for a %s chart',
+  'shows the appropriate chart load time for a %s chart',
   async (chartStatus, duration) => {
     const getChartDataRequestSpy = jest
       .spyOn(chartAction, 'getChartDataRequest')
@@ -665,7 +670,7 @@ test.each([
         JSON.stringify(queriesResponse),
       ]).size.toLocaleString()} bytes`,
     );
-    expect(stats).toHaveTextContent(`Duration${duration}`);
+    expect(stats).toHaveTextContent(`Chart load time${duration}`);
     expect(getChartDataRequestSpy).toHaveBeenCalledTimes(1);
   },
 );
@@ -788,6 +793,9 @@ test('Dataset drill info API call is made for an explore-only user', async () =>
   (global as any).featureFlags = {
     [FeatureFlag.DrillToDetail]: false,
   };
+  // "View as table" is offered to `canExplore || canViewTable`, so the fetch that
+  // feeds its column headers has to cover the same set -- an explore user with
+  // neither `can_samples` nor `can_view_chart_as_table` opens the same modal.
   renderWrapper(createProps(), {
     Gamma: [['can_get_drill_info', 'Dataset']],
   });

@@ -16,7 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { FC, Fragment, useCallback, useEffect, useState } from 'react';
+import {
+  FC,
+  Fragment,
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+} from 'react';
 
 import { omit } from 'lodash-es';
 import { t } from '@apache-superset/core/translation';
@@ -29,12 +36,15 @@ import {
 } from '@superset-ui/core';
 import { Alert } from '@apache-superset/core/components';
 import { styled } from '@apache-superset/core/theme';
-import { Loading, Tabs } from '@superset-ui/core/components';
+import { Button, Loading, Tabs } from '@superset-ui/core/components';
 import CodeSyntaxHighlighter, {
   SupportedLanguage,
 } from '@superset-ui/core/components/CodeSyntaxHighlighter';
+import { CopyToClipboard } from 'src/components';
 import { getChartDataRequest } from 'src/components/Chart/chartAction';
 import ViewQuery from 'src/explore/components/controls/ViewQuery';
+
+const MAX_HIGHLIGHTED_RESPONSE_BYTES = 100 * 1024;
 
 interface Props {
   latestQueryFormData: QueryFormData;
@@ -58,17 +68,15 @@ const ViewQueryModalContainer = styled.div`
   gap: ${({ theme }) => theme.sizeUnit * 4}px;
 `;
 
-const InspectorContainer = styled.div`
-  height: 100%;
+const LargeResponseContainer = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: ${({ theme }) => theme.sizeUnit * 2}px;
 
-  .ant-tabs,
-  .ant-tabs-content,
-  .ant-tabs-tabpane {
-    height: 100%;
-  }
-
-  .ant-tabs-tabpane {
-    overflow: auto;
+  pre {
+    margin: 0;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
   }
 `;
 
@@ -90,7 +98,8 @@ const StatsGrid = styled.dl`
 
 const getResponseStats = (queriesResponse: QueryData[] | null) => {
   const responses = queriesResponse ?? [];
-  const serializedResponse = JSON.stringify(responses, null, 2);
+  const compactResponse =
+    queriesResponse === null ? null : JSON.stringify(responses);
   const returnedRows = responses.reduce((total, response) => {
     const { data } = response as JsonObject;
     return total + (Array.isArray(data) ? data.length : 0);
@@ -103,11 +112,9 @@ const getResponseStats = (queriesResponse: QueryData[] | null) => {
     cachedQueries,
     queryCount: responses.length,
     responseBytes:
-      queriesResponse === null
-        ? null
-        : new Blob([JSON.stringify(responses)]).size,
+      compactResponse === null ? null : new Blob([compactResponse]).size,
     returnedRows,
-    serializedResponse,
+    compactResponse,
   };
 };
 
@@ -122,6 +129,7 @@ const ViewQueryModal: FC<Props> = ({
   const [result, setResult] = useState<Result[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [activeTabKey, setActiveTabKey] = useState('query');
 
   const loadChartData = useCallback(
     (resultType: string) => {
@@ -184,17 +192,38 @@ const ViewQueryModal: FC<Props> = ({
     </ViewQueryModalContainer>
   );
 
-  if (queriesResponse === undefined) {
+  const responseStats = useMemo(
+    () =>
+      queriesResponse === undefined ? null : getResponseStats(queriesResponse),
+    [queriesResponse],
+  );
+
+  const serializedResponse = useMemo(() => {
+    if (
+      !showResponse ||
+      activeTabKey !== 'response' ||
+      !queriesResponse?.length ||
+      !responseStats
+    ) {
+      return null;
+    }
+
+    return JSON.stringify(queriesResponse, null, 2);
+  }, [activeTabKey, queriesResponse, responseStats, showResponse]);
+
+  if (queriesResponse === undefined || responseStats === null) {
     return queryContent;
   }
 
   const {
     cachedQueries,
+    compactResponse,
     queryCount,
     responseBytes,
     returnedRows,
-    serializedResponse,
-  } = getResponseStats(queriesResponse);
+  } = responseStats;
+  const isLargeResponse =
+    responseBytes != null && responseBytes > MAX_HIGHLIGHTED_RESPONSE_BYTES;
   const duration =
     chartUpdateStartTime != null && chartUpdateEndTime != null
       ? Math.max(0, chartUpdateEndTime - chartUpdateStartTime)
@@ -211,9 +240,26 @@ const ViewQueryModal: FC<Props> = ({
             key: 'response',
             label: t('Response'),
             children: queriesResponse?.length ? (
-              <CodeSyntaxHighlighter language="json" showLineNumbers>
-                {serializedResponse}
-              </CodeSyntaxHighlighter>
+              isLargeResponse ? (
+                <LargeResponseContainer>
+                  <CopyToClipboard
+                    text={compactResponse ?? ''}
+                    shouldShowText={false}
+                    copyNode={
+                      <Button buttonStyle="secondary" buttonSize="small">
+                        {t('Copy')}
+                      </Button>
+                    }
+                  />
+                  <pre data-test="query-inspector-response-plain">
+                    {serializedResponse}
+                  </pre>
+                </LargeResponseContainer>
+              ) : (
+                <CodeSyntaxHighlighter language="json" showLineNumbers>
+                  {serializedResponse}
+                </CodeSyntaxHighlighter>
+              )
             ) : (
               <p>{t('No response data is available yet.')}</p>
             ),
@@ -237,7 +283,13 @@ const ViewQueryModal: FC<Props> = ({
               ? t('Not available')
               : t('%s bytes', responseBytes.toLocaleString())}
           </dd>
-          <dt>{t('Duration')}</dt>
+          <dt
+            title={t(
+              'Time from chart update start until rendering completes; this is not query execution time.',
+            )}
+          >
+            {t('Chart load time')}
+          </dt>
           <dd>
             {duration == null ? t('Not available') : t('%s ms', duration)}
           </dd>
@@ -247,9 +299,13 @@ const ViewQueryModal: FC<Props> = ({
   ];
 
   return (
-    <InspectorContainer>
-      <Tabs items={items} />
-    </InspectorContainer>
+    <Tabs
+      fullHeight
+      allowOverflow={false}
+      activeKey={activeTabKey}
+      onChange={setActiveTabKey}
+      items={items}
+    />
   );
 };
 
