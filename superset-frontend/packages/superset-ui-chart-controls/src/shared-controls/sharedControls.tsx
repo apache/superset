@@ -519,9 +519,15 @@ const controlConfigs = {
   ...matrixifyControls,
 };
 
+type RegisteredControl = (typeof controlConfigs)[keyof typeof controlConfigs];
+
 // Each control retains the option type accepted by its renderer. The
-// ...matrixifyControls spread already contributes a string index signature,
-// so dynamic lookups keep working without an extra annotation.
-const sharedControls = controlConfigs;
+// Record<string, RegisteredControl> intersection is load-bearing: a TS object
+// spread does not propagate an index signature into the inferred type, so
+// without it keyof typeof sharedControls would collapse to the literal key
+// union and SharedControlAlias (string literals in controlSetRows, e.g.
+// matrixify.tsx) would no longer type-check.
+const sharedControls: typeof controlConfigs &
+  Record<string, RegisteredControl> = controlConfigs;
 
 export default sharedControls;
