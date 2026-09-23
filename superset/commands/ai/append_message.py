@@ -22,7 +22,7 @@ import logging
 from functools import partial
 from uuid import UUID
 
-from superset.ai.types import MessageRole, MessageStatus
+from superset.ai.types import MessageExtra, MessageRole, MessageStatus
 from superset.commands.ai.exceptions import (
     AIChatMessageCreateFailedError,
     AIChatMessageInvalidError,
@@ -58,6 +58,7 @@ class AppendAIChatMessageCommand(CreateMixin, BaseCommand):
         *,
         request_id: str | None = None,
         status: MessageStatus | str | None = None,
+        extra: MessageExtra | None = None,
     ) -> None:
         """
         :param thread_uuid: The public identifier of the thread
@@ -67,6 +68,7 @@ class AppendAIChatMessageCommand(CreateMixin, BaseCommand):
             row opened before inference starts
         :param request_id: Optional client-supplied idempotency key
         :param status: Optional initial lifecycle value
+        :param extra: Metadata committed with a newly inserted message
         """
         self._thread_uuid = thread_uuid
         self._user_id = user_id
@@ -74,6 +76,7 @@ class AppendAIChatMessageCommand(CreateMixin, BaseCommand):
         self._content = content
         self._request_id = request_id
         self._status: MessageStatus | str | None = status
+        self._extra = extra
         self._model: AIChatThread | None = None
         self._created = False
 
@@ -94,6 +97,7 @@ class AppendAIChatMessageCommand(CreateMixin, BaseCommand):
             user_id=self._user_id,
             request_id=self._request_id,
             status=self._status,
+            extra=self._extra,
         )
         return message
 

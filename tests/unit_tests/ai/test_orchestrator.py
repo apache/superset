@@ -283,6 +283,7 @@ def test_a_failed_turn_persists_the_message_the_user_was_shown(
         "superset.ai.orchestrator._run",
         side_effect=RuntimeError("the gateway returned nonsense"),
     )
+    mocker.patch("superset.ai.orchestrator._claim_pending", return_value=True)
 
     events = list(
         stream_turn(
@@ -319,6 +320,7 @@ def test_a_failed_turn_does_not_persist_the_exception(
     leaky = "postgresql://user:hunter2@db-host.example/db"  # noqa: S105
     finalise = mocker.patch("superset.ai.orchestrator._finalise_message")
     mocker.patch("superset.ai.orchestrator._run", side_effect=RuntimeError(leaky))
+    mocker.patch("superset.ai.orchestrator._claim_pending", return_value=True)
 
     list(
         stream_turn(
@@ -362,6 +364,7 @@ def test_a_failed_turn_keeps_the_partial_answer_it_had_produced(
         yield  # pragma: no cover - makes this a generator
 
     mocker.patch("superset.ai.orchestrator._run", fail_after_partial)
+    mocker.patch("superset.ai.orchestrator._claim_pending", return_value=True)
 
     list(
         stream_turn(
