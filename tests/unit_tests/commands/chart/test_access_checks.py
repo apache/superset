@@ -21,7 +21,8 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from superset import security_manager
-from superset.commands.chart.exceptions import ChartForbiddenError
+from superset.commands.chart.exceptions import ChartForbiddenError, ChartInvalidError
+from superset.commands.exceptions import DatasourceNotFoundValidationError
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetSecurityException
 from superset.models.core import Database
@@ -137,6 +138,32 @@ def test_create_chart_command_supports_saved_query_datasource() -> None:
                     command.validate()  # should not raise AttributeError
 
     assert command._properties["datasource_name"] == "My saved query"
+
+
+def test_create_chart_command_rejects_saved_query_without_database() -> None:
+    """A saved query with no associated database (``db_id`` is nullable)
+    can't back a chart: its ``perm``/``schema_perm``/``data`` properties all
+    dereference ``self.database``. ``CreateChartCommand.validate()`` must
+    surface this as a controlled ``ChartInvalidError`` -- via
+    ``DatasourceDAO.get_datasource`` raising ``DatasourceNotFound`` -- rather
+    than an ``AttributeError`` later on.
+    """
+    from superset.commands.chart.create import CreateChartCommand
+
+    with patch(
+        "superset.commands.chart.create.get_datasource_by_id",
+        side_effect=DatasourceNotFoundValidationError(),
+    ):
+        command = CreateChartCommand(
+            {
+                "slice_name": "test",
+                "viz_type": "bar",
+                "datasource_id": 1,
+                "datasource_type": "saved_query",
+            }
+        )
+        with pytest.raises(ChartInvalidError):
+            command.validate()
 
 
 def test_saved_query_exposes_perm_properties() -> None:

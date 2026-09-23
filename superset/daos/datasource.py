@@ -89,6 +89,18 @@ class DatasourceDAO(BaseDAO[Datasource]):
             )
             raise DatasourceNotFound()
 
+        if isinstance(datasource, SavedQuery) and datasource.db_id is None:
+            # A saved query with no associated database can't back a chart:
+            # its perm/schema_perm/data properties all need `self.database`.
+            # Reject it here with a controlled validation error instead of
+            # letting callers hit an AttributeError further down the line.
+            logger.warning(
+                "SavedQuery %s has no associated database; refusing to use "
+                "it as a chart datasource",
+                database_id_or_uuid,
+            )
+            raise DatasourceNotFound()
+
         return datasource
 
     @staticmethod
