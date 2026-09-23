@@ -29,17 +29,21 @@ from superset.key_value.types import SharedKey
 logger: logging.Logger = logging.getLogger(__name__)
 
 _DEFAULT_RETENTION_DAYS: int = 30
+MAX_RETENTION_DAYS: int = 36500
 
 
 def _config_retention_days() -> int:
     """Return a validated config fallback without breaking scheduled runs."""
-    configured = current_app.config.get(
+    configured: object = current_app.config.get(
         "SOFT_DELETE_RETENTION_DAYS", _DEFAULT_RETENTION_DAYS
     )
     try:
         if isinstance(configured, bool) or not isinstance(configured, (str, int)):
             raise ValueError
-        days = int(configured)
+        days: int = int(configured)
+        if days > MAX_RETENTION_DAYS:
+            logger.warning("deletion_retention: oversized config retention; skipping")
+            return 0
         if days < -1:
             raise ValueError
         return days
@@ -70,7 +74,8 @@ def resolve_retention_window() -> int:
     value is selected with an explicit ``is None`` check — never ``or``,
     which would treat ``0`` as unset. A malformed shared value is
     rejected (logged) and the fallback is used rather than crashing the
-    scheduled task.
+    scheduled task. Oversized integer windows defer purge with zero rather
+    than shortening an operator's intended retention.
     """
     policy: Callable[[], object] | None = current_app.config.get(
         "SOFT_DELETE_RETENTION_DAYS_FUNC"
@@ -83,11 +88,18 @@ def resolve_retention_window() -> int:
                 "deletion_retention: host retention policy unavailable; skipping"
             )
             return 0
-        if isinstance(days, int) and not isinstance(days, bool) and -1 <= days <= 36500:
+        if (
+            isinstance(days, int)
+            and not isinstance(days, bool)
+            and -1 <= days <= MAX_RETENTION_DAYS
+        ):
             return days
         logger.warning("deletion_retention: invalid host retention policy; skipping")
         return 0
     if (shared := get_shared_value(SharedKey.SOFT_DELETE_RETENTION_DAYS)) is not None:
+        if isinstance(shared, int) and shared > MAX_RETENTION_DAYS:
+            logger.warning("deletion_retention: oversized shared retention; skipping")
+            return 0
         if isinstance(shared, bool) or not isinstance(shared, int) or shared < -1:
             logger.warning(
                 "deletion_retention: ignoring malformed shared retention value %r; "

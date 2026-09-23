@@ -29,6 +29,8 @@ operator alerting.
 from __future__ import annotations
 
 from collections.abc import Iterator
+from datetime import datetime
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -237,3 +239,30 @@ def test_terminal_failure_emits_failed_metric_and_swallows(stats: MagicMock) -> 
 
     assert result == {"error": 1}
     stats.incr.assert_called_once_with("superset.versioning.retention.failed")
+
+
+@pytest.mark.parametrize("days", [-1, -2])
+def test_immediate_cutoff_and_invalid_skip(stats: MagicMock, days: int) -> None:
+    """Immediate pruning uses the UTC run clock; invalid negatives skip all work."""
+    now: datetime = datetime(2026, 9, 23, 12, 0)
+    tables: MagicMock
+    run_pass: MagicMock
+    with (
+        patch.object(version_history_retention, "naive_utcnow", return_value=now),
+        patch.object(
+            version_history_retention, "_resolve_shadow_tables", return_value=[]
+        ) as tables,
+        patch.object(
+            version_history_retention, "_run_pass_with_retry", return_value=({}, 0)
+        ) as run_pass,
+    ):
+        result: dict[str, Any] = version_history_retention._prune_old_versions_impl(
+            days
+        )
+    if days == -1:
+        run_pass.assert_called_once_with(now, [], 0)
+        assert result["cutoff"] == now.isoformat()
+    else:
+        assert result == {"skipped": 1}
+        tables.assert_not_called()
+        run_pass.assert_not_called()

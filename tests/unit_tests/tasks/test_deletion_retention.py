@@ -286,3 +286,63 @@ def test_scheduled_purge_fails_closed_when_write_ahead_fails(
     purged, would, failures, blocked = result
     assert (purged, would, blocked) == (0, 0, 0)
     assert failures == 1
+
+
+@pytest.mark.parametrize("days", [-1, -2])
+def test_immediate_cutoff_and_invalid_skip(days: int) -> None:
+    """Immediate eligibility uses now; invalid negatives never start a purge."""
+    import superset.tasks.deletion_retention as mod
+    from superset.models.slice import Slice
+
+    now: datetime = datetime(2026, 9, 23, 12, 0)
+    clock: MagicMock
+    models: MagicMock
+    purge: MagicMock
+    reconcile: MagicMock
+    with (
+        patch.object(mod, "datetime") as clock,
+        patch.object(mod, "_soft_delete_models", return_value=[Slice]) as models,
+        patch.object(mod, "_purge_model", return_value=(0, 0, 0, 0)) as purge,
+        patch.object(mod.audit, "reconcile_pending") as reconcile,
+    ):
+        clock.now.return_value = now
+        result: dict[str, Any] = mod._purge_impl(days, dry_run=False)
+    if days == -1:
+        purge.assert_called_once_with(Slice, now, False)
+    else:
+        assert result == {"skipped": 1}
+        models.assert_not_called()
+        purge.assert_not_called()
+        reconcile.assert_not_called()
+
+
+@pytest.mark.parametrize("source", ["config", "shared"])
+@pytest.mark.parametrize("days, expected", [(36500, 36500), (36501, 0), (1000000, 0)])
+def test_standalone_window_bounds_reach_safe_purge_cutoff(
+    app_config: Config, source: str, days: int, expected: int
+) -> None:
+    """Stored and runtime windows cannot overflow scheduled purge arithmetic."""
+    import superset.tasks.deletion_retention as mod
+    from superset.models.slice import Slice
+
+    app_config["SOFT_DELETE_RETENTION_DAYS"] = days if source == "config" else 30
+    now: datetime = datetime(2026, 9, 23, 12, 0)
+    clock: MagicMock
+    purge: MagicMock
+    with (
+        patch(
+            "superset.commands.deletion_retention.window.get_shared_value",
+            return_value=days if source == "shared" else None,
+        ),
+        patch.object(mod, "datetime") as clock,
+        patch.object(mod, "_soft_delete_models", return_value=[Slice]),
+        patch.object(mod, "_purge_model", return_value=(0, 0, 0, 0)) as purge,
+        patch.object(mod.audit, "reconcile_pending"),
+    ):
+        clock.now.return_value = now
+        result: dict[str, Any] = mod._purge_impl(_resolve(), dry_run=False)
+    if expected == 0:
+        assert result == {"skipped": 1}
+        purge.assert_not_called()
+    else:
+        purge.assert_called_once_with(Slice, now - timedelta(days=expected), False)

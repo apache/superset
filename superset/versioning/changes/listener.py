@@ -68,6 +68,7 @@ from superset.versioning.diff import (
     fold_dashboard_layout_with_chart_changes,
 )
 from superset.versioning.metrics import emit_capture_timing, incr_capture_error
+from superset.versioning.snapshot import reconcile_parent_snapshots
 from superset.versioning.utils import capture_enabled
 
 logger = logging.getLogger(__name__)
@@ -486,6 +487,7 @@ def finalize_change_records(session: Session) -> None:
 
         if buffer:
             _persist_buffered_records(session, tx_id, buffer)
+        reconcile_parent_snapshots(session, tx_id)
     finally:
         session.info.pop(_FINALIZING_KEY, None)
         if start is not None:

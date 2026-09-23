@@ -17,6 +17,7 @@
 # pylint: disable=import-outside-toplevel, unused-argument, redefined-outer-name, invalid-name
 
 import runpy
+import sys
 from functools import partial
 from typing import Any, TYPE_CHECKING
 
@@ -58,8 +59,10 @@ FULL_DTTM_DEFAULTS_EXAMPLE = {
         ("-1", -1),
         ("-2", 0),
         ("36500", 36500),
-        ("36501", 30),
-        ("30d", 30),
+        ("36501", 0),
+        ("1000000000", 0),
+        ("30d", 0),
+        ("", 0),
     ],
 )
 def test_version_history_retention_env_loads_application_config(
@@ -67,6 +70,10 @@ def test_version_history_retention_env_loads_application_config(
 ) -> None:
     """The canonical environment key populates integer application config."""
     from superset import config
+
+    monkeypatch.delenv("SUPERSET_CONFIG_PATH", raising=False)
+    monkeypatch.delenv("SUPERSET_CONFIG", raising=False)
+    monkeypatch.setitem(sys.modules, "superset_config", None)
 
     monkeypatch.delenv("VERSION_HISTORY_RETENTION_DAYS", raising=False)
     if value is not None:
@@ -80,7 +87,7 @@ def test_version_history_retention_env_loads_application_config(
     assert "SUPERSET_VERSION_HISTORY_RETENTION_DAYS" not in app.config
 
 
-def test_invalid_version_history_retention_env_uses_default(
+def test_invalid_version_history_retention_env_defers_cleanup(
     monkeypatch: pytest.MonkeyPatch,
     caplog: pytest.LogCaptureFixture,
 ) -> None:
@@ -89,7 +96,7 @@ def test_invalid_version_history_retention_env_uses_default(
 
     monkeypatch.setenv("VERSION_HISTORY_RETENTION_DAYS", "30d")
 
-    assert config._parse_version_history_retention_days() == 30
+    assert config._parse_version_history_retention_days() == 0
     assert "Invalid VERSION_HISTORY_RETENTION_DAYS='30d'" in caplog.text
 
 
@@ -100,9 +107,12 @@ def test_invalid_version_history_retention_env_uses_default(
         ("360", 360),
         ("0", 0),
         ("-1", -1),
+        ("-2", 0),
         ("36500", 36500),
-        ("36501", 30),
-        ("bad", 30),
+        ("36501", 0),
+        ("1000000000", 0),
+        ("bad", 0),
+        ("", 0),
     ],
 )
 def test_soft_delete_retention_environment_seed(
@@ -110,6 +120,10 @@ def test_soft_delete_retention_environment_seed(
 ) -> None:
     """Bootstrap exports canonical integer days without an environment alias."""
     from superset import config
+
+    monkeypatch.delenv("SUPERSET_CONFIG_PATH", raising=False)
+    monkeypatch.delenv("SUPERSET_CONFIG", raising=False)
+    monkeypatch.setitem(sys.modules, "superset_config", None)
 
     monkeypatch.delenv("SOFT_DELETE_RETENTION_DAYS", raising=False)
     if value is not None:
@@ -119,7 +133,7 @@ def test_soft_delete_retention_environment_seed(
     assert type(loaded["SOFT_DELETE_RETENTION_DAYS"]) is int
 
 
-def test_oversized_version_history_retention_env_uses_default(
+def test_oversized_version_history_retention_env_defers_cleanup(
     monkeypatch: pytest.MonkeyPatch,
     caplog: pytest.LogCaptureFixture,
 ) -> None:
@@ -128,7 +142,7 @@ def test_oversized_version_history_retention_env_uses_default(
 
     monkeypatch.setenv("VERSION_HISTORY_RETENTION_DAYS", "1000000000")
 
-    assert config._parse_version_history_retention_days() == 30
+    assert config._parse_version_history_retention_days() == 0
     assert "exceeds the maximum" in caplog.text
 
 

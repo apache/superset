@@ -33,9 +33,9 @@ explicit cleanup disables. The default remains 30 days; zero disables pruning.
 For both this setting and `SOFT_DELETE_RETENTION_DAYS`, `-1` means immediate
 eligibility on the next scheduled cleanup run, with its clock as cutoff (not a
 future cutoff). Live/current data and normal purge guards remain protected.
-Other negative values are invalid: history retention skips them; the soft-delete
-environment parser retains its 30-day fallback. Invalid or oversized environment
-values otherwise retain the existing 30-day fallback. Host policy failures defer.
+An absent environment value retains the 30-day default. Invalid or oversized
+supplied environment values defer scheduled cleanup with 0 for both settings.
+Host policy failures also defer.
 
 ### Version history API access follows `VERSION_HISTORY`
 
@@ -1350,7 +1350,8 @@ The task ships in the default `CeleryConfig` (both the `superset.tasks.version_h
 ### Deletion retention (soft-deleted entities are eventually purged)
 
 `SOFT_DELETE_RETENTION_DAYS` also accepts an environment seed: an integer from
--1 through 36500, defaulting to 30 when absent or invalid. An optional
+-1 through 36500, defaulting to 30 when absent. Invalid or oversized supplied
+values defer scheduled purge with 0. An optional
 `SOFT_DELETE_RETENTION_DAYS_FUNC` host callback takes precedence over both the
 stored CLI value and config seed. It must return a nonboolean integer in that
 range; invalid results or callback failure defer scheduled purge with 0, without

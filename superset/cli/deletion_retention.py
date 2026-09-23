@@ -74,15 +74,21 @@ def deletion_retention() -> None:
     "-d",
     required=True,
     type=int,
-    help="Retention days; 0 disables, -1 makes deleted rows eligible on the next run.",
+    help=(
+        "Retention days (-1 through 36500); 0 disables, "
+        "-1 makes deleted rows eligible on the next run."
+    ),
 )
 def set_window(days: int) -> None:
     """Store the per-deployment window; an installed host policy takes precedence."""
+    from superset.commands.deletion_retention.window import MAX_RETENTION_DAYS
     from superset.key_value.shared_entries import upsert_shared_value
     from superset.key_value.types import SharedKey
 
     if days < -1:
         raise click.BadParameter("--days must be >= -1")
+    if days > MAX_RETENTION_DAYS:
+        raise click.BadParameter(f"--days must be <= {MAX_RETENTION_DAYS}")
     upsert_shared_value(SharedKey.SOFT_DELETE_RETENTION_DAYS, days)
     click.echo(
         f"Soft-delete retention window set to {days} day(s) for this deployment."

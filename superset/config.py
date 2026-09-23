@@ -1040,7 +1040,7 @@ FEATURE_FLAGS: dict[str, bool] = {}
 # promise above is real on a stock deployment; set SOFT_DELETE_PURGE_DRY_RUN back
 # to True to have the task log ``would_purge`` counts without deleting anything.
 def _parse_soft_delete_retention_days() -> int:
-    """Read the canonical environment seed, preserving the integer default."""
+    """Read the environment seed, deferring purge for invalid supplied values."""
     value: str | None = os.environ.get("SOFT_DELETE_RETENTION_DAYS")
     if value is None:
         return 30
@@ -1050,8 +1050,10 @@ def _parse_soft_delete_retention_days() -> int:
             return days
     except ValueError:
         pass
-    logger.warning("Invalid SOFT_DELETE_RETENTION_DAYS; using 30 days")
-    return 30
+    logger.warning(
+        "Invalid SOFT_DELETE_RETENTION_DAYS=%r; skipping scheduled purge", value
+    )
+    return 0
 
 
 SOFT_DELETE_RETENTION_DAYS: int = _parse_soft_delete_retention_days()
@@ -1831,22 +1833,21 @@ def _parse_version_history_retention_days() -> int:
         retention_days: int = int(value)
     except ValueError:
         logger.warning(
-            "Invalid VERSION_HISTORY_RETENTION_DAYS=%r; using %d",
+            "Invalid VERSION_HISTORY_RETENTION_DAYS=%r; skipping pruning",
             value,
-            _DEFAULT_VERSION_HISTORY_RETENTION_DAYS,
         )
-        return _DEFAULT_VERSION_HISTORY_RETENTION_DAYS
+        return 0
     if retention_days < -1:
         logger.warning("Invalid negative VERSION_HISTORY_RETENTION_DAYS; skipping")
         return 0
     if retention_days > _MAX_VERSION_HISTORY_RETENTION_DAYS:
         logger.warning(
-            "VERSION_HISTORY_RETENTION_DAYS=%r exceeds the maximum of %d; using %d",
+            "VERSION_HISTORY_RETENTION_DAYS=%r exceeds the maximum of %d; "
+            "skipping pruning",
             value,
             _MAX_VERSION_HISTORY_RETENTION_DAYS,
-            _DEFAULT_VERSION_HISTORY_RETENTION_DAYS,
         )
-        return _DEFAULT_VERSION_HISTORY_RETENTION_DAYS
+        return 0
     return retention_days
 
 

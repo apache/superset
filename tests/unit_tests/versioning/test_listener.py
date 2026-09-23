@@ -510,6 +510,9 @@ def test_capture_latency_metric_fires_once_on_the_versioned_write_path(
         "_persist_buffered_records",
         lambda session, tx, buf: persisted.append((tx, dict(buf))),
     )
+    reconciliation: MagicMock = mocker.patch.object(
+        listener, "reconcile_parent_snapshots"
+    )
     # A retained pre-flush state for one versioned entity -> non-empty buffer.
     lifecycle_session.info[listener._INITIAL_STATES_KEY] = {
         ("chart", 7): (object(), {"slice_name": "initial"})
@@ -520,6 +523,7 @@ def test_capture_latency_metric_fires_once_on_the_versioned_write_path(
 
     # The real path ran: records reached persistence for tx 42.
     assert persisted == [(42, {("chart", 7): [record]})]
+    reconciliation.assert_called_once_with(lifecycle_session, 42)
     calls: list[Any] = [
         call
         for call in manager.instance.timing.call_args_list
