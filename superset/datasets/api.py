@@ -23,7 +23,7 @@ from io import BytesIO
 from typing import Any, Callable
 from zipfile import is_zipfile, ZipFile
 
-from flask import request, Response, send_file
+from flask import request, Response
 from flask_appbuilder.api import expose, protect, rison, safe
 from flask_appbuilder.api.schemas import get_item_schema
 from flask_appbuilder.const import (
@@ -82,7 +82,7 @@ from superset.exceptions import (
 )
 from superset.jinja_context import BaseTemplateProcessor, get_template_processor
 from superset.utils import json
-from superset.utils.core import parse_boolean_string
+from superset.utils.core import parse_boolean_string, send_export_zip
 from superset.views.base import DatasourceFilter
 from superset.views.base_api import (
     BaseSupersetModelRestApi,
@@ -570,15 +570,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
                 return self.response_404()
         buf.seek(0)
 
-        response = send_file(
-            buf,
-            mimetype="application/zip",
-            as_attachment=True,
-            download_name=filename,
-        )
-        if token := request.args.get("token"):
-            response.set_cookie(token, "done", max_age=600)
-        return response
+        return send_export_zip(buf, filename)
 
     @expose("/duplicate", methods=("POST",))
     @protect()
