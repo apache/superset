@@ -169,10 +169,9 @@ class UpdateChartCommand(UpdateMixin, BaseCommand):
             raise ChartNotFoundError()
 
         # Check and update editorship; when only updating query context we relax
-        # editorship so background workers can save context. Report and
-        # thumbnail executors are resolved against the schedule or the
-        # requesting user, not the chart, so they are frequently not chart
-        # editors. Chart access is still required.
+        # editorship so background workers can save context. Report and thumbnail
+        # executors resolve against the schedule or the requesting user, not the
+        # chart, so they are frequently not chart editors. Access is still required.
         if not is_query_context_update(self._properties):
             try:
                 security_manager.raise_for_editorship(self._model)
@@ -183,10 +182,10 @@ class UpdateChartCommand(UpdateMixin, BaseCommand):
                 exceptions.append(ex)
             raise_if_managed_externally(self._model, ChartForbiddenError)
         else:
-            # ``raise_for_access`` admits a guest for every chart on the
-            # dashboard its token embeds, and a guest holds no write
-            # capability. The regular path inherits this deny from
-            # ``is_editor``; this branch has to state it.
+            # ``raise_for_access`` admits a guest for every chart on the dashboard
+            # its token embeds, but a guest holds no write capability (see the
+            # capability matrix in ``SECURITY.md``). The strict path inherits this
+            # deny from ``is_editor``; this branch has to state it.
             if security_manager.is_guest_user():
                 raise ChartForbiddenError()
             try:

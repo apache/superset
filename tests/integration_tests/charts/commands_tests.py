@@ -524,19 +524,30 @@ class TestChartsUpdateCommand(SupersetTestCase):
         user = security_manager.find_user(username="alpha")
         mock_g.user = mock_sm_g.user = user
 
-        chart.editors = subjects_from_users([admin])
-        db.session.commit()
-        query_context = json.dumps({"foo": "bar"})
-        json_obj = {
-            "query_context_generation": True,
-            "query_context": query_context,
-        }
-        command = UpdateChartCommand(pk, json_obj)
-        command.run()
-        chart = db.session.query(Slice).get(pk)
-        assert chart.query_context == query_context
-        assert len(chart.editors) == 1
-        assert user_is_editor(admin, chart)
+        # This chart row is shared with every other test that selects one
+        # positionally, and both writes below are committed, so restore them.
+        original_query_context = chart.query_context
+        original_editors = list(chart.editors)
+
+        try:
+            chart.editors = subjects_from_users([admin])
+            db.session.commit()
+            query_context = json.dumps({"foo": "bar"})
+            json_obj = {
+                "query_context_generation": True,
+                "query_context": query_context,
+            }
+            command = UpdateChartCommand(pk, json_obj)
+            command.run()
+            chart = db.session.query(Slice).get(pk)
+            assert chart.query_context == query_context
+            assert len(chart.editors) == 1
+            assert user_is_editor(admin, chart)
+        finally:
+            chart = db.session.query(Slice).get(pk)
+            chart.query_context = original_query_context
+            chart.editors = original_editors
+            db.session.commit()
 
     @patch("superset.commands.chart.update.ChartDAO.find_by_id")
     @patch("superset.commands.chart.update.g")
@@ -593,12 +604,9 @@ class TestChartsUpdateCommand(SupersetTestCase):
         """
         dashboard = self.get_dash_by_slug("births")
         chart = dashboard.slices[0]
-        pk = chart.id
-        EmbeddedDashboardDAO.upsert(dashboard, [])
-        # The uuid is only populated on flush, and ``has_guest_access`` matches
-        # the token against ``dashboard.embedded[0]``.
-        db.session.flush()
-        embedded_uuid = str(dashboard.embedded[0].uuid)
+        embedded = EmbeddedDashboardDAO.upsert(dashboard, [])
+        db.session.flush()  # the uuid is only populated on flush
+        embedded_uuid = str(embedded.uuid)
 
         # A real guest principal for a dashboard that actually contains the
         # chart, so ``is_guest_user`` and ``raise_for_access`` both run for
@@ -631,7 +639,12 @@ class TestChartsUpdateCommand(SupersetTestCase):
             security_manager.raise_for_access(chart=chart)
 
             with pytest.raises(ChartForbiddenError):
-                UpdateChartCommand(pk, json_obj).run()
+                UpdateChartCommand(chart.id, json_obj).run()
+
+        # The embedded row was only flushed, never committed. Drop it explicitly
+        # rather than leaning on the command's own rollback, so a regression in
+        # the guest gate fails this test alone instead of leaking state.
+        db.session.rollback()
 
     @patch("superset.commands.chart.update.g")
     @patch("superset.utils.core.g")

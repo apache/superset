@@ -261,10 +261,9 @@ def test_update_chart_query_context_denied_for_guest_user(
     """An embedded guest token holds no write capability on any resource, so a
     query-context-only update is refused before the access check even though
     ``raise_for_access`` admits a guest for the charts its dashboard embeds."""
-    find_by_id = mocker.patch("superset.commands.chart.update.ChartDAO.find_by_id")
-    find_by_id.return_value = mocker.MagicMock(
-        is_managed_externally=False, id=1, tags=[], dashboards=[]
-    )
+    # The guest deny raises before any chart attribute is read, so the default
+    # MagicMock the patch installs is enough of a model here.
+    mocker.patch("superset.commands.chart.update.ChartDAO.find_by_id")
     mocker.patch(
         "superset.commands.chart.update.security_manager.is_guest_user",
         return_value=True,

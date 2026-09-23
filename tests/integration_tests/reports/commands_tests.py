@@ -384,9 +384,7 @@ def create_report_csv_no_query_context_executor_not_chart_editor(get_user):
     original_query_context = chart.query_context
     original_editors = list(chart.editors)
     chart.query_context = None
-    # Only admin may edit the chart, so the report's executor is not a chart
-    # editor -- the common shape, since report editorship is independent of
-    # chart editorship.
+    # Only admin may edit the chart, so the report's executor is not a chart editor.
     chart.editors = _subjects_for_users([admin])
     report_schedule = create_report_notification(
         email_target="target@email.com",
@@ -397,9 +395,7 @@ def create_report_csv_no_query_context_executor_not_chart_editor(get_user):
     )
     yield report_schedule
 
-    # Restore the shared chart: this fixture nulls its query context and narrows
-    # its editors, both of which change outcomes for any later test that reaches
-    # for the same row. ``cleanup_report_schedule`` commits, which flushes these.
+    # Shared chart row: restore what this fixture changed (cleanup commits).
     chart.query_context = original_query_context
     chart.editors = original_editors
     cleanup_report_schedule(report_schedule)

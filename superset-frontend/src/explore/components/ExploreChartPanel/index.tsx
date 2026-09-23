@@ -256,12 +256,9 @@ const ExploreChartPanel = ({
   );
 
   useEffect(() => {
-    // Best-effort backfill: the chart renders whether or not it succeeds, so
-    // catch instead of letting it surface as an unhandled rejection. A 403 is
-    // an expected outcome (the caller may not be allowed to write the chart,
-    // and a managed chart refuses the write on every visit), so it stays at
-    // debug; anything else is unexpected and worth seeing.
     updateQueryContext().catch(error => {
+      // Best-effort backfill; the chart renders either way. A 403 is expected
+      // (no write access, or a managed chart), so it stays at debug.
       const message = 'Skipped background query context backfill';
       if (error?.status === 403) {
         logging.debug(message, error);
