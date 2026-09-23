@@ -90,6 +90,50 @@ def test_detached_chart_is_reattached_to_the_grid() -> None:
     assert position["GRID_ID"]["children"] == ["ROW-a"]
 
 
+def test_detached_markdown_and_header_are_reattached() -> None:
+    position = reachable_position() | {
+        "COLUMN-orphan": {
+            "id": "COLUMN-orphan",
+            "type": "COLUMN",
+            "children": ["HEADER-trapped", "MARKDOWN-trapped", "ROW-orphan"],
+        },
+        "ROW-orphan": {
+            "id": "ROW-orphan",
+            "type": "ROW",
+            "children": ["COLUMN-orphan"],
+        },
+        "HEADER-trapped": {
+            "id": "HEADER-trapped",
+            "type": "HEADER",
+            "children": [],
+            "meta": {"text": "Section title"},
+        },
+        "MARKDOWN-trapped": {
+            "id": "MARKDOWN-trapped",
+            "type": "MARKDOWN",
+            "children": [],
+            "meta": {"code": "# Notes", "width": 4},
+        },
+    }
+
+    cleaned, removed = remove_unreachable_components(position)
+
+    assert sorted(removed) == [
+        "COLUMN-orphan",
+        "HEADER-trapped",
+        "MARKDOWN-trapped",
+        "ROW-orphan",
+    ]
+    new_row_id = cleaned["GRID_ID"]["children"][-1]
+    # a header is not a valid row child, so it sits directly in the grid
+    assert cleaned["GRID_ID"]["children"] == ["ROW-a", "HEADER-trapped", new_row_id]
+    assert cleaned["HEADER-trapped"]["parents"] == ["ROOT_ID", "GRID_ID"]
+    assert cleaned["HEADER-trapped"]["meta"] == {"text": "Section title"}
+    assert cleaned[new_row_id]["children"] == ["MARKDOWN-trapped"]
+    assert cleaned["MARKDOWN-trapped"]["parents"] == ["ROOT_ID", "GRID_ID", new_row_id]
+    assert cleaned["MARKDOWN-trapped"]["meta"] == {"code": "# Notes", "width": 4}
+
+
 def test_detached_chart_is_reattached_to_the_first_tab() -> None:
     position = {
         "DASHBOARD_VERSION_KEY": "v2",

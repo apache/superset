@@ -27,6 +27,8 @@ logger = logging.getLogger(__name__)
 
 ROOT_ID = "ROOT_ID"
 CHART_TYPE = "CHART"
+HEADER_TYPE = "HEADER"
+MARKDOWN_TYPE = "MARKDOWN"
 ROW_TYPE = "ROW"
 TABS_TYPE = "TABS"
 GRID_COLUMN_COUNT = 12
@@ -64,9 +66,9 @@ def _first_container_path(position: dict[str, Any]) -> list[str] | None:
     return [ROOT_ID, top_level[0]]
 
 
-def _reattach_charts(
+def _reattach_components(
     position: dict[str, Any],
-    charts: list[tuple[str, dict[str, Any]]],
+    components: list[tuple[str, dict[str, Any]]],
     container_path: list[str],
 ) -> None:
     container_id = container_path[-1]
@@ -75,8 +77,14 @@ def _reattach_charts(
     children = _children(container)
     row: dict[str, Any] | None = None
     row_width = 0
-    for chart_key, chart in charts:
-        width = (chart.get("meta") or {}).get("width")
+    for component_key, component in components:
+        # a header is not a valid ROW child, so it goes directly in the container
+        if component.get("type") == HEADER_TYPE:
+            children.append(component_key)
+            position[component_key] = {**component, "parents": list(row_parents)}
+            row = None
+            continue
+        width = (component.get("meta") or {}).get("width")
         if not isinstance(width, int) or width <= 0:
             width = GRID_DEFAULT_CHART_WIDTH
         if row is None or row_width + width > GRID_COLUMN_COUNT:
@@ -91,8 +99,11 @@ def _reattach_charts(
             position[row_id] = row
             children.append(row_id)
             row_width = 0
-        row["children"].append(chart_key)
-        position[chart_key] = {**chart, "parents": [*row_parents, row["id"]]}
+        row["children"].append(component_key)
+        position[component_key] = {
+            **component,
+            "parents": [*row_parents, row["id"]],
+        }
         row_width += width
     position[container_id] = {**container, "children": children}
 
@@ -130,8 +141,12 @@ def remove_unreachable_components(
     so absent from the charts the frontend loads. A chart that is also placed
     reachably is not duplicated.
 
+    Detached markdown and headers are reattached the same way, since their text
+    lives nowhere but ``position_json``. Markdown goes into the new rows; a
+    header, which cannot be a row child, goes directly into the container.
+
     Returns the (possibly unchanged) position and the ids that were detached;
-    reattached charts are among them. Non-dict entries such as
+    reattached components are among them. Non-dict entries such as
     ``DASHBOARD_VERSION_KEY`` are never removed.
     """
     root = position.get(ROOT_ID) if isinstance(position, dict) else None
@@ -159,9 +174,13 @@ def remove_unreachable_components(
     rescued: list[tuple[str, dict[str, Any]]] = []
     for component_id in removed:
         component = position[component_id]
+        component_type = component.get("type")
+        if component_type in (MARKDOWN_TYPE, HEADER_TYPE):
+            rescued.append((component_id, component))
+            continue
         chart_id = _chart_id(component)
         if (
-            component.get("type") == CHART_TYPE
+            component_type == CHART_TYPE
             and chart_id is not None
             and chart_id not in placed_chart_ids
         ):
@@ -179,7 +198,7 @@ def remove_unreachable_components(
         if isinstance(component, dict) and component.get("children"):
             repaired[component_id] = {**component, "children": []}
     if rescued and (container_path := _first_container_path(repaired)):
-        _reattach_charts(repaired, rescued, container_path)
+        _reattach_components(repaired, rescued, container_path)
     return repaired, removed
 
 

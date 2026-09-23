@@ -95,6 +95,48 @@ test('reattaches a detached chart to the grid, keeping its id and meta', () => {
   expect(layout.GRID_ID.children).toEqual(['ROW-a']);
 });
 
+test('reattaches detached markdown to a row and a header to the grid', () => {
+  const layout = {
+    ...reachableLayout(),
+    'COLUMN-orphan': component('COLUMN-orphan', 'COLUMN', [
+      'HEADER-trapped',
+      'MARKDOWN-trapped',
+      'ROW-orphan',
+    ]),
+    'ROW-orphan': component('ROW-orphan', 'ROW', ['COLUMN-orphan']),
+    'HEADER-trapped': component('HEADER-trapped', 'HEADER', [], {
+      meta: { text: 'Section title' },
+    }),
+    'MARKDOWN-trapped': component('MARKDOWN-trapped', 'MARKDOWN', [], {
+      meta: { code: '# Notes', width: 4 },
+    }),
+  };
+
+  const repaired = removeUnreachableComponents(layout);
+
+  expect(repaired['COLUMN-orphan']).toBeUndefined();
+  expect(repaired['ROW-orphan']).toBeUndefined();
+  const newRowId = repaired.GRID_ID.children[2];
+  // a header is not a valid row child, so it sits directly in the grid
+  expect(repaired.GRID_ID.children).toEqual([
+    'ROW-a',
+    'HEADER-trapped',
+    newRowId,
+  ]);
+  expect(repaired['HEADER-trapped']).toMatchObject({
+    parents: ['ROOT_ID', 'GRID_ID'],
+    meta: { text: 'Section title' },
+  });
+  expect(repaired[newRowId]).toMatchObject({
+    type: 'ROW',
+    children: ['MARKDOWN-trapped'],
+  });
+  expect(repaired['MARKDOWN-trapped']).toMatchObject({
+    parents: ['ROOT_ID', 'GRID_ID', newRowId],
+    meta: { code: '# Notes', width: 4 },
+  });
+});
+
 test('reattaches a detached chart to the first tab of top-level tabs', () => {
   const layout = withVersionKey({
     ROOT_ID: component('ROOT_ID', 'ROOT', ['TABS-t']),

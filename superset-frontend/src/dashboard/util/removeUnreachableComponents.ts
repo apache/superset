@@ -17,7 +17,13 @@
  * under the License.
  */
 import { DashboardComponent } from '../types';
-import { CHART_TYPE, ROW_TYPE, TABS_TYPE } from './componentTypes';
+import {
+  CHART_TYPE,
+  HEADER_TYPE,
+  MARKDOWN_TYPE,
+  ROW_TYPE,
+  TABS_TYPE,
+} from './componentTypes';
 import {
   DASHBOARD_GRID_ID,
   DASHBOARD_HEADER_ID,
@@ -50,7 +56,7 @@ const isComponent = (value: unknown): value is DashboardComponent =>
 
 /**
  * Drop components that cannot be reached from ROOT_ID, reattaching detached
- * charts instead of dropping them.
+ * charts, markdown and headers instead of dropping them.
  *
  * Detached components never render, but they survive in position_json and stay
  * visible to code that walks every layout entry or trusts the stale `parents`
@@ -62,6 +68,10 @@ const isComponent = (value: unknown): value is DashboardComponent =>
  * configuration, and a chart missing from the charts payload (e.g. archived
  * with SOFT_DELETE) could not be re-added, so the next save would drop its
  * dashboard membership. A chart that is also placed reachably is not duplicated.
+ *
+ * Detached markdown and headers are reattached the same way, since their text
+ * lives nowhere but position_json. Markdown goes into the new rows; a header,
+ * which cannot be a row child, goes directly into the container.
  * Mirrors `superset/dashboards/layout.py`.
  */
 export default function removeUnreachableComponents<
@@ -105,6 +115,10 @@ export default function removeUnreachableComponents<
   const rescued: [string, T][] = [];
   unreachable.forEach(id => {
     const component = layout[id];
+    if (component.type === MARKDOWN_TYPE || component.type === HEADER_TYPE) {
+      rescued.push([id, component]);
+      return;
+    }
     const chartId = component.meta?.chartId;
     if (
       component.type === CHART_TYPE &&
@@ -148,8 +162,14 @@ export default function removeUnreachableComponents<
   const containerChildren = childrenOf(container);
   let row: DashboardEntity | undefined;
   let rowWidth = 0;
-  rescued.forEach(([chartKey, chart]) => {
-    const { width: rawWidth } = chart.meta ?? {};
+  rescued.forEach(([componentKey, component]) => {
+    if (component.type === HEADER_TYPE) {
+      containerChildren.push(componentKey);
+      next[componentKey] = { ...component, parents: rowParents.slice() };
+      row = undefined;
+      return;
+    }
+    const { width: rawWidth } = component.meta ?? {};
     const width =
       typeof rawWidth === 'number' && rawWidth > 0
         ? rawWidth
@@ -160,8 +180,8 @@ export default function removeUnreachableComponents<
       containerChildren.push(row.id);
       rowWidth = 0;
     }
-    row.children.push(chartKey);
-    next[chartKey] = { ...chart, parents: [...rowParents, row.id] };
+    row.children.push(componentKey);
+    next[componentKey] = { ...component, parents: [...rowParents, row.id] };
     rowWidth += width;
   });
   next[containerId] = { ...container, children: containerChildren };
