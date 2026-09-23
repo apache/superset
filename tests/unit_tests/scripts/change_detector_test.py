@@ -176,3 +176,25 @@ def test_docker_workflow_changes_trigger_docker_build() -> None:
         [".github/workflows/docker.yml"],
         change_detector.PATTERNS["docker"],
     )
+
+
+def test_playwright_workflow_changes_trigger_frontend_tests() -> None:
+    """A change to only superset-playwright.yml must be classified as
+    "frontend". Every job that workflow defines -- experimental, mobile and
+    GAQ -- gates on `needs.changes.outputs.frontend` (or python), so without
+    this a PR that edits only the workflow skips all of them and merges
+    without exercising the job it changed."""
+    assert change_detector.detect_changes(
+        [".github/workflows/superset-playwright.yml"],
+        change_detector.PATTERNS["frontend"],
+    )
+
+
+def test_composite_action_changes_trigger_frontend_tests() -> None:
+    """The Playwright jobs drive their whole setup through composite actions,
+    so a change to one can break them while touching nothing under
+    superset-frontend/."""
+    assert change_detector.detect_changes(
+        [".github/actions/cached-dependencies"],
+        change_detector.PATTERNS["frontend"],
+    )
