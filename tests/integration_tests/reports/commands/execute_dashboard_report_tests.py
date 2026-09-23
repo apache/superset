@@ -31,7 +31,10 @@ from superset.utils.urls import get_url_path
 from tests.integration_tests.fixtures.tabbed_dashboard import (
     tabbed_dashboard,  # noqa: F401
 )
-from tests.integration_tests.reports.utils import create_dashboard_report
+from tests.integration_tests.reports.utils import (
+    create_dashboard_report,
+    SCREENSHOT_FILE,
+)
 
 
 @patch("superset.reports.notifications.email.send_email_smtp")
@@ -47,7 +50,7 @@ def test_report_for_dashboard_with_tabs(
     send_email_smtp_mock: MagicMock,
     tabbed_dashboard: Dashboard,  # noqa: F811
 ) -> None:
-    dashboard_screenshot_mock.get_screenshot.return_value = b"test-image"
+    dashboard_screenshot_mock.return_value.get_screenshot.return_value = SCREENSHOT_FILE
     current_app.config["ALERT_REPORTS_NOTIFICATION_DRY_RUN"] = False
     with create_dashboard_report(
         dashboard=tabbed_dashboard,
@@ -90,7 +93,7 @@ def test_report_with_header_data(
     send_email_smtp_mock: MagicMock,
     tabbed_dashboard: Dashboard,  # noqa: F811
 ) -> None:
-    dashboard_screenshot_mock.get_screenshot.return_value = b"test-image"
+    dashboard_screenshot_mock.return_value.get_screenshot.return_value = SCREENSHOT_FILE
     current_app.config["ALERT_REPORTS_NOTIFICATION_DRY_RUN"] = False
 
     with create_dashboard_report(
