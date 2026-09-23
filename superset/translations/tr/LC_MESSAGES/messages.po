@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: avsarcoteli@gmail.com\n"
-"POT-Creation-Date: 2026-09-21 02:18+0000\n"
+"POT-Creation-Date: 2026-09-22 10:58-0700\n"
 "PO-Revision-Date: 2024-02-25 14:00+0300\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: tr\n"
@@ -2803,9 +2803,6 @@ msgstr "Otomatik olarak mevcut alana dayanan sütun genişliğini ayarlayın"
 msgid "Automatically adjust column width based on content"
 msgstr "Otomatik olarak sütun genişliğini içerik tabanlı olarak ayarlar"
 
-msgid "Automatically retry sending the report when delivery fails."
-msgstr ""
-
 msgid "Automatically sync columns"
 msgstr "Otomatik olarak senkronize sütunlar"
 
@@ -4534,7 +4531,7 @@ msgstr "Panel görünümü, renkler ve özel CSS"
 msgid "Configure filter scopes"
 msgstr "Filtre kapsamı"
 
-msgid "Configure retry behavior on delivery failure."
+msgid "Configure retries when alert or report generation fails before delivery."
 msgstr ""
 
 msgid "Configure the basics of your Annotation Layer."
@@ -4605,6 +4602,9 @@ msgid "Connection failed, please check your connection settings."
 msgstr "Bağlantı başarısız oldu, lütfen bağlantı ayarlarını kontrol edin."
 
 msgid "Connection looks good!"
+msgstr ""
+
+msgid "Contact the report owner for error details."
 msgstr ""
 
 #, fuzzy
@@ -6318,6 +6318,9 @@ msgid ""
 "Display each cell as a percentage of its row, column, or grand total, "
 "instead of its actual value. Totals and subtotals are still computed "
 "correctly first; this only changes how they are displayed."
+msgstr ""
+
+msgid "Display format"
 msgstr ""
 
 msgid "Display headers for each column at the top of the matrix"
@@ -12435,6 +12438,9 @@ msgstr "Reload"
 msgid "Reload SQL Lab"
 msgstr "SQL Lab'ı Yeniden Yükle"
 
+msgid "Reload the page and try again to continue."
+msgstr ""
+
 msgid "Remove"
 msgstr "Kaldırın"
 
@@ -12801,9 +12807,6 @@ msgstr "Asynchronous sorgular için gerekli sonuçlar yapılandırılmıyor."
 msgid "Resume auto-refresh"
 msgstr "Otomatik yenilemeyi sürdür"
 
-msgid "Retries are not supported for alerts"
-msgstr ""
-
 #, fuzzy
 msgid "Retry"
 msgstr "her"
@@ -12811,6 +12814,11 @@ msgstr "her"
 #, fuzzy
 msgid "Retry fetching results"
 msgstr "Grafikleri getirirken hata"
+
+msgid ""
+"Retry generation failures before delivery starts. Alerts re-check their "
+"condition on each attempt. Delivery failures are not replayed."
+msgstr ""
 
 msgid "Retrying"
 msgstr ""
@@ -13382,6 +13390,12 @@ msgstr "Kapsam"
 msgid "Scoping"
 msgstr "Scoping"
 
+msgid "Screenshot cache is unavailable"
+msgstr ""
+
+msgid "Screenshot request is temporarily unavailable"
+msgstr ""
+
 msgid "Screenshot width"
 msgstr "Ekran genişliği"
 
@@ -13512,6 +13526,9 @@ msgstr "Güvenli ekstra"
 
 msgid "Security"
 msgstr "Güvenlik"
+
+msgid "Security token error"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
@@ -14851,9 +14868,6 @@ msgstr "Üzgünüm, Bir hata oluştu"
 msgid "Sorry, an error occurred"
 msgstr "Üzgünüm, bir hata oluştu"
 
-msgid "Sorry, an unknown error occurred"
-msgstr "Üzgünüm, bilinmeyen bir hata oluştu"
-
 msgid "Sorry, an unknown error occurred."
 msgstr "Üzgünüm, bilinmeyen bir hata oluştu."
 
@@ -15701,6 +15715,9 @@ msgstr "Bu grafikle bağlantılı %s silinmiş olabilir."
 #, python-format
 msgid "The API response from %s does not match the IDatabaseTable interface."
 msgstr "%s 'dan gelen API cevabı IDatabaseTable arayüzüyle eşleşmez."
+
+msgid "The CSRF token could not be validated."
+msgstr ""
 
 msgid ""
 "The CSS for individual dashboards can be altered here, or in the "

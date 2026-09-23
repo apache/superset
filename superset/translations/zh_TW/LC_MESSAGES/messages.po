@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Apache Superset 0.22.1\n"
 "Report-Msgid-Bugs-To: bestlong168@gmail.com\n"
-"POT-Creation-Date: 2026-09-21 02:18+0000\n"
+"POT-Creation-Date: 2026-09-22 10:58-0700\n"
 "PO-Revision-Date: 2019-01-04 22:19+0800\n"
 "Last-Translator: Shao Yu-Lung <bestlong168@gmail.com>\n"
 "Language: zh_TW\n"
@@ -2868,9 +2868,6 @@ msgstr "根據可用空間自動調整欄寬"
 msgid "Automatically adjust column width based on content"
 msgstr "根據內容自動調整欄寬"
 
-msgid "Automatically retry sending the report when delivery fails."
-msgstr ""
-
 #, fuzzy
 msgid "Automatically sync columns"
 msgstr "自定義列"
@@ -4701,7 +4698,7 @@ msgstr "設定儀表板外觀、顏色與自訂 CSS"
 msgid "Configure filter scopes"
 msgstr "配置過濾範圍"
 
-msgid "Configure retry behavior on delivery failure."
+msgid "Configure retries when alert or report generation fails before delivery."
 msgstr ""
 
 msgid "Configure the basics of your Annotation Layer."
@@ -4784,6 +4781,9 @@ msgid "Connection failed, please check your connection settings."
 msgstr "連接失敗，請檢查您的連接配置"
 
 msgid "Connection looks good!"
+msgstr ""
+
+msgid "Contact the report owner for error details."
 msgstr ""
 
 #, fuzzy
@@ -6564,6 +6564,9 @@ msgid ""
 "Display each cell as a percentage of its row, column, or grand total, "
 "instead of its actual value. Totals and subtotals are still computed "
 "correctly first; this only changes how they are displayed."
+msgstr ""
+
+msgid "Display format"
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, fr,
@@ -13169,6 +13172,9 @@ msgstr "重新加载"
 msgid "Reload SQL Lab"
 msgstr "重新載入 SQL Lab"
 
+msgid "Reload the page and try again to continue."
+msgstr ""
+
 msgid "Remove"
 msgstr "删除"
 
@@ -13566,9 +13572,6 @@ msgstr "後端未配置異步查詢所需的结果"
 msgid "Resume auto-refresh"
 msgstr "設定自動刷新"
 
-msgid "Retries are not supported for alerts"
-msgstr ""
-
 #, fuzzy
 msgid "Retry"
 msgstr "作者"
@@ -13576,6 +13579,11 @@ msgstr "作者"
 #, fuzzy
 msgid "Retry fetching results"
 msgstr "重新獲取结果"
+
+msgid ""
+"Retry generation failures before delivery starts. Alerts re-check their "
+"condition on each attempt. Delivery failures are not replayed."
+msgstr ""
 
 msgid "Retrying"
 msgstr ""
@@ -14165,6 +14173,12 @@ msgstr "範圍"
 msgid "Scoping"
 msgstr "範圍"
 
+msgid "Screenshot cache is unavailable"
+msgstr ""
+
+msgid "Screenshot request is temporarily unavailable"
+msgstr ""
+
 msgid "Screenshot width"
 msgstr "截圖寬度"
 
@@ -14306,6 +14320,9 @@ msgstr "安全"
 
 msgid "Security"
 msgstr "安全"
+
+msgid "Security token error"
+msgstr ""
 
 #, fuzzy
 msgid "See "
@@ -15645,10 +15662,6 @@ msgid "Sorry, an error occurred"
 msgstr "抱歉，發生錯誤"
 
 #, fuzzy
-msgid "Sorry, an unknown error occurred"
-msgstr "抱歉，發生錯誤"
-
-#, fuzzy
 msgid "Sorry, an unknown error occurred."
 msgstr "抱歉，發生錯誤"
 
@@ -16545,6 +16558,9 @@ msgstr "這個圖表所链接的數據集可能被删除了。"
 #, fuzzy, python-format
 msgid "The API response from %s does not match the IDatabaseTable interface."
 msgstr "來自 %s 的 API 回應與 IDatabaseTable 介面不符。"
+
+msgid "The CSRF token could not be validated."
+msgstr ""
 
 msgid ""
 "The CSS for individual dashboards can be altered here, or in the "
