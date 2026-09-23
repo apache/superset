@@ -53,6 +53,7 @@ from superset.tasks.thumbnails import cache_chart_thumbnail
 from superset.tasks.utils import get_current_user
 from superset.thumbnails.digest import get_chart_digest
 from superset.utils import core as utils, json
+from superset.utils.schema import is_query_context_metadata_complete
 
 if TYPE_CHECKING:
     from superset.common.query_context import QueryContext
@@ -404,12 +405,26 @@ class Slice(  # pylint: disable=too-many-public-methods
     def get_query_context(self) -> QueryContext | None:
         if self.query_context:
             try:
-                return self.get_query_context_factory().create(
-                    **{**json.loads(self.query_context), "current_slice": self}
-                )
+                query_context_payload = json.loads(self.query_context)
             except json.JSONDecodeError as ex:
                 logger.error("Malformed json in slice's query context", exc_info=True)
                 logger.exception(ex)
+                return None
+            # ``QueryContextFactory.create()`` requires ``datasource`` and
+            # ``queries`` as keyword-only arguments; a row saved before the
+            # ChartPostSchema/ChartPutSchema validation added in
+            # apache/superset#35774 can still be missing either, which would
+            # otherwise raise a raw TypeError on every read of this chart.
+            if not is_query_context_metadata_complete(query_context_payload):
+                logger.error(
+                    "Slice %s query_context is missing required "
+                    "'datasource'/'queries' fields",
+                    self.id,
+                )
+                return None
+            return self.get_query_context_factory().create(
+                **{**query_context_payload, "current_slice": self}
+            )
         return None
 
     def get_explore_url(
@@ -449,7 +464,7 @@ class Slice(  # pylint: disable=too-many-public-methods
         # SCRIPT_NAME (the application_root). `Slice.url` itself stays router-
         # relative so frontend callers can apply ensureAppRoot exactly once.
         href = url_for("ExploreView.root", slice_id=self.id)
-        return Markup(f'<a href="{href}">{name}</a>')
+        return Markup('<a href="{}">{}</a>').format(href, name)
 
     @property
     def icons(self) -> str:
