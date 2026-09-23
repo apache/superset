@@ -522,7 +522,7 @@ const controlConfigs = {
 type RegisteredControl = (typeof controlConfigs)[keyof typeof controlConfigs];
 
 // Each control retains the option type accepted by its renderer.
-const sharedControls: typeof controlConfigs & Record<string, RegisteredControl> =
-  controlConfigs;
+const sharedControls: typeof controlConfigs &
+  Record<string, RegisteredControl> = controlConfigs;
 
 export default sharedControls;
