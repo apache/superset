@@ -24,10 +24,105 @@ assists people when migrating to a new version.
 
 ## Next
 
+### MCP response size guard: byte limit instead of estimated token count
+
+The MCP response-size guard no longer estimates LLM token counts (it
+previously used `tiktoken`'s `cl100k_base` encoding, with a character-based
+fallback). An MCP server has no way to know which client or tokenizer is
+actually consuming a response, so token estimation was replaced with the
+exact serialized UTF-8 byte length of the response, which is deterministic
+and tokenizer-agnostic. This also removes the `tiktoken` dependency
+entirely, including the unannounced network request it could make to
+download its vocabulary on a cold cache.
+
+`MCP_RESPONSE_SIZE_CONFIG["token_limit"]` is renamed to
+`MCP_RESPONSE_SIZE_CONFIG["max_bytes"]`, and its default changes from
+25,000 (estimated tokens) to 50,000 (exact bytes). Any deployment that has
+set `token_limit` in `superset_config.py` must rename the key to `max_bytes`
+and adjust the value for byte semantics.
+
+### Scheduled report and alert retry admission
+
+Run `superset db upgrade` before starting workers with this version. The migration
+adds nullable `execution_owner` and `execution_window` columns to `report_schedule`.
+Pause scheduling and drain in-flight executions and queued retry tasks before
+upgrading workers together: older workers do not participate in execution fencing.
+Two-argument retries without ownership evidence are discarded. Older one-argument
+retry messages cannot be distinguished from fresh cron tasks and must be drained;
+they are not reliably discarded by the new workers. Restart scheduling after
+migration and worker replacement.
+Mixed-version workers are not supported for this transition: old workers cannot
+consume the new retry task signature. Drain queued retries as well as active jobs
+before replacement. New workers log `report_retry_discarded` with
+`reason=missing_execution_owner` and increment
+`reports.execute.legacy_retry_discarded` for legacy retry tasks. Rerun any affected
+schedule after the upgrade; discarded retries are not automatically replayed.
+
+In the other direction, a new worker can enqueue a three-argument retry that an
+old worker cannot consume: the old worker raises `TypeError`, loses that retry,
+and can leave the schedule in `RETRYING` until stale-retry recovery. Do not perform
+a mixed-version rolling deployment; stop scheduling, drain active jobs and queued
+retries, then replace all consumers before restarting scheduling.
+
+With `ALERT_REPORTS_RETRY` enabled, alerts can opt into retries as reports do.
+Retries re-evaluate alert conditions. Whole-execution retries stop once delivery
+has started because a failed send may already have reached a recipient. Retry
+notifications no longer include raw provider diagnostics; consult execution logs.
+Ordinary editor-only error emails retain HTML-sanitized diagnostics. Notifications
+to configured recipients, including retry/final-failure notices, remain redacted.
+
+Ownership is rechecked in a short committed transaction before each recipient.
+No schedule-row lock is held during SMTP/Slack I/O. Recovery can fence subsequent
+sends, but cannot recall a notification already in flight; delivery is not atomic
+with database ownership and exactly-once delivery is not guaranteed.
+
+If the fallback ERROR-log transaction cannot commit, the execution still depends
+on working-timeout recovery. Error-notification delivery and its database marker
+are not atomic: a send followed by a marker-write failure can result in a duplicate
+error notice. This does not authorize replay of data-bearing notifications.
+
+- With `SEMANTIC_LAYERS` enabled, combined connection discovery honors `Database.can_read` and `SemanticLayer.can_read` independently. Each permitted source retains its normal row filters, including dynamic database filters for Admin. A source filter never includes rows or counts from a denied source; callers with neither read permission are denied. Feature-off database browsing is unchanged.
+- The combined datasource list (`GET /api/v1/datasource/`) accepts Dataset read without an additional Datasource read grant, regardless of `SEMANTIC_LAYERS`. With the flag enabled, SemanticView read independently permits semantic-view discovery. Existing row-level dataset/chart access remains enforced.
+- The `presto` extra requires PyHive 0.7.0 or later. PyHive 0.6.5 cannot load
+  its Presto dialect under SQLAlchemy 2 because it imports `sqlalchemy.databases`.
+  Upgrade existing installations with `pip install "pyhive[presto]>=0.7.0"`.
+
+- The Pinot extra requires pinotdb[sqlalchemy]>=8.0.0,<10.0.0. Earlier releases declare SQLAlchemy below 2 in their SQLAlchemy extra.
+
+- The Databricks extra requires databricks-sqlalchemy 2.x (at least 2.0.1). The 1.x dialect requires SQLAlchemy below 2.
+
 - `superset deletion-retention force-purge` now exits **1** when the target is
   blocked by a deletion rule or is not found (the messages are unchanged), so a
   scripted compliance erasure cannot mistake a refusal for a completed purge.
   Only a completed purge exits 0; a usage error still exits 2.
+
+### Deprecated permission cleanup may change custom role grants
+
+Two migrations now clean up permissions deprecated in past releases that
+previously stuck around forever after an upgrade (#33272). If a custom role
+holds one of these permissions, upgrading will either:
+
+- **Delete it outright**, for permissions whose underlying feature has no
+  live equivalent (e.g. the access-request workflow), or whose only live
+  successor would grant a role a materially broader capability than it ever
+  had -- for example `can_testconn` is deleted rather than resurrected as
+  `Database.can_write`, which would let the role create, edit, or delete any
+  database connection, not just test one; or
+- **Migrate it to a verified live successor** (e.g. `can_explore_json` ->
+  `can_read` on Chart), preserving the role's effective access.
+
+`can_copy_dash` is the exception to this rule. Although its live successor,
+`Dashboard.can_write`, is broader than the historical permission, the current
+dashboard-copy endpoint is itself authorized by `Dashboard.can_write`. It is
+therefore migrated rather than deleted so existing access to dashboard
+copying is preserved.
+
+If a custom role in your deployment relies on one of the deleted
+permissions, re-grant the appropriate live permission to it manually after
+upgrading. See the two migrations' docstrings (`superset/migrations/versions/
+2026-09-10_00-00_1f5f4fb8bfc1_delete_deprecated_permissions_33272.py` and
+`..._00-01_3ce9a4572f8a_rename_deprecated_permissions_33272.py`) for the full
+per-permission mapping and reasoning.
 
 ### MySQL metadata database now actually defaults to READ COMMITTED
 
@@ -47,6 +142,17 @@ behavior explicitly:
 ```python
 SQLALCHEMY_ENGINE_OPTIONS = {"isolation_level": "REPEATABLE READ"}
 ```
+
+### MCP metric discovery defaults and embedded dimensions
+
+`list_metrics` defaults to 25 metrics per page and does not embed compatible
+dimensions. Clients needing those dimensions should call `get_compatible_dimensions`
+for the chosen metrics, or explicitly request `include_compatible_dimensions=true`
+with `page_size` at most 8 for every scope, including built-in `dataset_id`
+requests. Non-embedded requests retain the 500-metric ceiling.
+This fixed embedding cap is independent of the operator's
+`MCP_RESPONSE_SIZE_CONFIG['max_bytes']` (50,000 by default); it does not guarantee
+that every payload fits a configured response limit.
 
 ### Default Docker image is now batteries-included; the minimal image moves to `-lean`
 
@@ -70,6 +176,22 @@ but under `-lean` tags: `latest-lean`, `master-lean`, `5.0.0-lean`, `<sha>-lean`
 - **No config change is required** for most deployments; the metadata-database
   drivers most installations need are now present out of the box.
 - The `-dev` images (`latest-dev`, `master-dev`, …) are unchanged.
+
+### Docker image publishing now excludes standalone `websocket` and `dockerize` images
+
+The Apache Superset Docker Hub repository no longer publishes standalone
+`apache/superset:*websocket` or `apache/superset:*dockerize` image tags. The
+realtime WebSocket server is bundled in the `superset`, `lean`, and `dev` images
+and can be launched with `/app/docker/entrypoints/run-websocket.sh`. Helm init
+containers use the main Superset image for dependency checks.
+
+After this policy is cherry-picked into each active release branch, its pushes
+will validate the Docker build locally instead of publishing Docker Hub images
+or cache layers. Until then, those branches retain their previous publishing
+behavior. Official release tags (`X.Y.Z`, `latest`, and
+their preset variants) are published only by the release workflow after release
+manager sign-off. The scheduled release-image refresh workflow was removed, so
+official release tag digests are not overwritten outside release publishing.
 
 ### Report capture readiness is rechecked immediately before screenshots
 
@@ -97,6 +219,19 @@ Resample projections remain capped by `MAX_RESAMPLE_ROWS` (default
 `1_000_000`). That cap now also covers calendar frequencies (month, quarter,
 year, …) that previously skipped the check because they have no fixed
 `Timedelta`.
+
+### Dashboard read fallback requires a published dashboard
+
+The object-read gate's datasource-based fallback — including the admit for dashboards with no charts — now applies to **published** dashboards only. For the datasource branch this matches the list filter's fallback, which was already published-only; for the no-charts admit the list filter still never yields chart-less dashboards to ordinary users, a deliberate pre-existing asymmetry that this change narrows but does not remove (the object gate admits opening a published chart-less dashboard; the list filter does not surface it). Previously an *unpublished* dashboard with an empty viewers list was readable by any authenticated user who could access one member datasource (or by every authenticated user, when it had no charts — including markdown-only dashboards), even though it appeared in no default list; and removing the last viewer subject from a dashboard silently widened access, because the viewer branch is published-gated while the fallback was not. Owners (folded into editors by the subjects model), editors — including resolver-granted editors — and admins are unaffected: they are admitted before the fallback regardless of published state.
+
+Everything consuming the gate inherits the tightening — including **alert and report execution**, not only schedule creation/validation. An already-scheduled report against an *unpublished, no-viewers* dashboard whose execution principal is a datasource-entitled non-editor will fail on its next run after upgrade.
+
+Before upgrading, audit report schedules targeting unpublished dashboards. For each one, first identify the principal the report actually runs as: that is decided by `ALERT_REPORTS_EXECUTORS`, not by who owns the schedule. Then apply one of:
+
+- **Publish the dashboard** (and confirm the execution principal keeps the read access the gate still requires — viewer membership when the dashboard has viewers, or access to a member datasource when it does not). For the unpublished, no-viewers, datasource-entitled case above, publishing alone supplies the missing prerequisite.
+- **Grant the execution principal dashboard editorship**, where that privilege is appropriate — editors are admitted ahead of the fallback regardless of published state.
+
+Adding the principal to the dashboard's **viewers is not a remedy on its own**: the viewer branch is itself published-gated, so a viewer of an unpublished dashboard is still refused. Re-owning the schedule is not a reliable substitute either — with a `FixedExecutor` (a service or selenium account) the resolved user does not follow schedule ownership at all, and the ownership-sensitive executor types have their own creator/modifier/editor selection rules.
 
 ### Tagging is on by default
 
@@ -414,10 +549,13 @@ theme editor picker.
   a skipped run's `carried_over=0` does not establish that the backlog is empty.
   The ceiling keeps repeated window-scope binds below SQLite's historical
   999-variable limit; custom limits below 750 require a smaller batch.
-  MySQL before 8.0, MariaDB before 10.2 and unknown MySQL-family versions use
-  equivalent correlated predecessor probes instead of window tables. That
-  legacy plan may be slower on deep histories; measure the selected path and
+  MySQL before 8.0, MariaDB before 10.2, SQLite before 3.25 and unknown
+  MySQL-family/SQLite versions use equivalent correlated predecessor probes
+  instead of window tables. That legacy plan may be slower on deep histories;
+  measure the selected path and
   writer wait on the target backend rather than reusing timings from another plan.
+  MySQL-family dispatch trusts the dialect's `SELECT VERSION()` banner: a proxy advertising
+  MySQL 8.x in front of MySQL 5.7 selects `LAG` and fails at runtime.
   Ten batches are shared across all categories per run, so the removal upper
   bound is **500 at the default or 1,000 at the ceiling**, and can be lower
   when rechecks reject candidates or categories use short batches. The default
@@ -444,6 +582,8 @@ theme editor picker.
   `PURGE_AUDIT_PRUNING_BATCH_SIZE` (default 50, maximum 100); lock-hold time is
   workload-dependent, not time-bounded. Run pruning off-peak if the overlap is
   noticeable.
+
+- The chart list applies the same type-aware datasource visibility as the dashboard list: charts on semantic views (and other non-table datasource types carrying a permission) are now listed for users holding `datasource_access` on the datasource or on its parent semantic layer — previously such charts never appeared in the chart list — and a chart on a non-table datasource is no longer listed to users whose only entitlement is a database/schema/catalog grant matching an unrelated table that shares its numeric id. Table-backed chart visibility, explicit viewer/editor grants, and embedded-guest scoping are unchanged.
 - `SAMPLES_ROW_LIMIT` is now the default for `/datasource/samples` requests without a valid explicit `per_page`, rather than a hard per-request ceiling; explicit limits are honored up to the existing global row-limit ceiling, matching `/chart/data` SAMPLES requests.
 - The `cockroachdb` extra (`pip install apache-superset[cockroachdb]`) now installs `sqlalchemy-cockroachdb` instead of the abandoned `cockroachdb` package, whose SQLAlchemy dialect could not be imported under SQLAlchemy 2.0. Existing environments with the old package installed must `pip uninstall cockroachdb` before reinstalling the extra -- both packages register the same `cockroachdb` SQLAlchemy dialect entry point, so leaving the old one in place can still load the abandoned implementation.
 
@@ -499,6 +639,7 @@ the old counter to use the outcome-specific replacements.
 - [42393](https://github.com/apache/superset/pull/42393): Exported dataset YAML now carries a `uuid` for each metric and column so that custom folder assignments (which reference metrics/columns by UUID) survive an import into another workspace. This affects any export bundle that contains datasets, not just a dataset export: chart, dashboard, database and full-asset exports all embed the same dataset YAML, so a dashboard exported from this release also fails to import into an older one even though no dataset was exported directly. As with `folders` and `currency_code_column`, the affected `datasets/` files fail schema validation (`Unknown field: uuid`) when imported into Superset releases that predate this change; regenerate or hand-edit exports for older targets in mixed-version fleets.
 - [42300](https://github.com/apache/superset/pull/42300): Timeseries charts (line/area/bar) with a Y-axis bound in effect — either an explicit `yAxisBounds` or one derived from `truncateYAxis` — now clamp out-of-range data points to that bound instead of letting ECharts drop the point (and the line segments around it) entirely. Any existing chart with a configured Y-axis bound and data outside it will look different after upgrading: a gap becomes a point pinned to the boundary. The clamp also rewrites the value ECharts reads for that point's tooltip and data label, so the displayed value is the bound rather than the true observation.
 - [42087](https://github.com/apache/superset/pull/42087): Stored calculated-column and metric expressions are validated when a query is built, under the same sub-query policy already applied to adhoc expressions. Previously only the dataset update path checked them on save, so expressions written by v1 import, by dataset duplication, or before that check existed were never validated. Since `ALLOW_ADHOC_SUBQUERY` defaults to `False` (see [19242](https://github.com/apache/superset/pull/19242)), a dataset whose stored expression contains a sub-query works before upgrading and afterwards fails at chart render with `Custom SQL fields cannot contain sub-queries.` There is no migration step, and the error does not name the offending dataset column, so audit stored expressions before upgrading: either rewrite them without the sub-query, or set `ALLOW_ADHOC_SUBQUERY = True` to keep the previous behaviour for both stored and adhoc expressions.
+- [43020](https://github.com/apache/superset/pull/43020): The PostgreSQL SQL Lab query validator (`PostgreSQLValidator`) has been removed, along with its default `SQL_VALIDATORS_BY_ENGINE` mapping and the `pgsanity` dependency. It shelled out to the external `ecpg` binary, which had to be present in the runtime image and behaved differently across `ecpg`/PostgreSQL versions. PostgreSQL databases no longer get live syntax annotations in SQL Lab; syntax errors surface when the query is run. `PrestoDBSQLValidator` and `SQLiteSQLValidator` are unaffected. A deployment that explicitly sets `SQL_VALIDATORS_BY_ENGINE` with a `"postgresql": "PostgreSQLValidator"` entry must drop that entry, otherwise validation requests for those databases fail with `No validator named PostgreSQLValidator found`.
 
 ### Selenium support removed — Playwright is now required for screenshots
 
@@ -878,14 +1019,16 @@ become active dashboard Viewers after migration.
 API clients and automation should send and read `editors`, `viewers`, and `subjects` instead
 of the legacy fields.
 
-Subject pickers support users, groups, and roles, but only users and groups are selectable by
-default. Roles remain supported as Subject types for backwards compatibility with RLS role
+Subject pickers support users, groups, and roles. Dashboard, chart, and alert/report pickers show
+only users and groups by default, while the RLS picker also shows roles to preserve role-based RLS
+workflows. Roles remain supported as Subject types for backwards compatibility with RLS role
 assignments and the previous `DASHBOARD_RBAC` model, but they are not recommended for new
 resource-specific assignments. Prefer groups for membership-based access and keep roles focused
 on capability grants. Existing Role subject assignments remain effective after migration even when
-Roles are hidden from the default dropdown values; configure the relevant `SUBJECTS_RELATED_TYPES_*`
-setting to make Roles selectable when editing subject lists. See the [Security documentation](docs/admin_docs/security/security.mdx#subjects)
-for the full Subject model and picker configuration guidance.
+Roles are hidden from a picker's dropdown values; configure the relevant
+`SUBJECTS_RELATED_TYPES_*` setting to make Roles selectable in non-RLS subject lists. See the
+[Security documentation](docs/admin_docs/security/security.mdx#subjects) for the full Subject model
+and picker configuration guidance.
 
 To make roles selectable everywhere:
 
@@ -899,15 +1042,13 @@ SUBJECTS_RELATED_TYPES = [
 ]
 ```
 
-To make roles selectable for RLS while other pickers keep the user and group default, use the
-RLS-specific override:
+The RLS picker includes users, roles, and groups by default. To customize it, use the RLS-specific
+override. For example, to show only roles:
 
 ```python
 from superset.subjects.types import SubjectType
 
 SUBJECTS_RELATED_TYPES_RLS = [
-    SubjectType.USER,
-    SubjectType.GROUP,
     SubjectType.ROLE,
 ]
 ```

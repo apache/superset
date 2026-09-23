@@ -350,11 +350,13 @@ def _in_current_streak(target: sa.FromClause, now: datetime) -> sa.ColumnElement
 def _repeat_path() -> Literal["legacy", "window"]:
     """Select a query using initialized, vendor-normalized server capabilities."""
     dialect: sa.engine.Dialect = db.session.get_bind().dialect
-    if dialect.name not in {"mysql", "mariadb"}:
+    if dialect.name not in {"mysql", "mariadb", "sqlite"}:
         return "window"
     if dialect.server_version_info is None:
         dialect = db.session.connection().dialect
     version: tuple[int, ...] | None = dialect.server_version_info
+    if dialect.name == "sqlite":
+        return "window" if version is not None and version >= (3, 25) else "legacy"
     if getattr(dialect, "is_mariadb", False):
         version = getattr(dialect, "_mariadb_normalized_version_info", None)
         return "window" if version is not None and version >= (10, 2) else "legacy"
@@ -368,7 +370,8 @@ def _repeats_an_earlier_block(
 ) -> sa.ColumnElement[bool]:
     """Select the repeat query supported by the metadata server.
 
-    MySQL before 8.0 and MariaDB before 10.2 need the correlated query.
+    MySQL before 8.0, MariaDB before 10.2 and SQLite before 3.25 need the
+    correlated query.
     Unknown server versions use that conservative path. The dialect's
     server version is initialized on connection, not inferred from its name.
     Discovery initializes it before the coordination-locked re-check.
@@ -385,7 +388,7 @@ def _legacy_repeats_an_earlier_block(
     table: sa.FromClause,
     now: datetime,
 ) -> sa.ColumnElement[bool]:
-    """Use predecessor probes for older or unknown MySQL-family versions.
+    """Use predecessor probes for older or unknown MySQL-family/SQLite versions.
 
     This compatibility path retains correlated probes rather than the window
     optimization; its cost depends on each candidate's entity history.
@@ -474,9 +477,9 @@ def _window_repeats_an_earlier_block(
     roughly five sequential passes over the batch's timestamp groups. A named
     window is the SQL-level way to say "this is the same window" so MySQL
     evaluates it once; PostgreSQL and SQLite (>= 3.25) accept the same syntax
-    unchanged. Only servers routed here run this clause: the MySQL<8 and
-    MariaDB<10.2 fallback in :func:`_legacy_repeats_an_earlier_block` never
-    reaches it.
+    unchanged. Only servers routed here run this clause: the MySQL<8,
+    MariaDB<10.2 and SQLite<3.25 fallback in
+    :func:`_legacy_repeats_an_earlier_block` never reaches it.
 
     An equality join back to a *second* instance of the timestamp-groups
     derived table (fetching P's aggregates via
@@ -844,7 +847,7 @@ def _evidence_candidates(now: datetime, cutoff: datetime, limit: int) -> sa.sql.
     """
     table: sa.Table = PurgeAuditLog.__table__
     return (
-        sa.select(table.c.id, table.c.entity_type, table.c.entity_uuid)
+        sa.select(table.c.id)
         .where(*_evidence_predicates(table, now, cutoff))
         .order_by(table.c.created_on)
         .limit(limit)

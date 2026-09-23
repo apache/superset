@@ -1287,8 +1287,8 @@ CACHE_WARMUP_EXECUTORS = [ExecutorType.EDITOR]
 # ---------------------------------------------------
 # Thumbnail config (behind feature flag)
 # ---------------------------------------------------
-# By default, thumbnails are rendered per user, and will fall back to the Selenium
-# user for anonymous users. Similar to Alerts & Reports, thumbnails
+# By default, thumbnails are rendered as the user who requests them. Similar to
+# Alerts & Reports, thumbnails
 # can be configured to always be rendered as a fixed user. See
 # `superset.tasks.types.ExecutorType` for a full list of executor options.
 # To always use a fixed user account (admin in this example, use the following
@@ -1365,6 +1365,7 @@ SUPERSET_CACHE_WARMUP_USER: str | None = None
 SCREENSHOT_LOCATE_WAIT = int(timedelta(seconds=10).total_seconds())
 # Time before screenshot capture times out while waiting for chart readiness.
 SCREENSHOT_LOAD_WAIT = int(timedelta(minutes=1).total_seconds())
+# "SELENIUM" in the next two key names is historical; both apply to Playwright.
 # Give the browser an initial headstart, in seconds
 SCREENSHOT_SELENIUM_HEADSTART = 3
 # Wait for the chart animation, in seconds
@@ -2713,7 +2714,6 @@ DEFAULT_RELATIVE_END_TIME = "today"
 # Configure which SQL validator to use for each engine
 SQL_VALIDATORS_BY_ENGINE = {
     "presto": "PrestoDBSQLValidator",
-    "postgresql": "PostgreSQLValidator",
     # SQLite-based engines (SQLite, GSheets, Shillelagh) can use the
     # SQLiteSQLValidator, but it requires the optional syntaqlite package:
     #
@@ -2776,6 +2776,15 @@ DATABASE_OAUTH2_JWT_ALGORITHM = "HS256"
 
 # Timeout when fetching access and refresh tokens.
 DATABASE_OAUTH2_TIMEOUT = timedelta(seconds=30)
+
+# When True, the OAuth2 authorization/token endpoint URIs configured for a
+# database (either via DATABASE_OAUTH2_CLIENTS or, per-connection, via a
+# database's own encrypted_extra.oauth2_client_info) are permitted to target
+# hosts in private/internal IP ranges (RFC-1918, loopback, link-local).
+# Intended for deployments with a legitimately internal identity provider.
+# Leave False (the default) in any deployment where untrusted users can
+# create or edit database connections.
+DATABASE_OAUTH2_ALLOW_INTERNAL_HOSTS: bool = False
 
 # Enable/disable CSP warning
 CONTENT_SECURITY_POLICY_WARNING = True
@@ -3229,7 +3238,13 @@ SUBJECTS_RELATED_TYPES: list[SubjectType] | None = [
 # None = inherit global behavior.
 SUBJECTS_RELATED_TYPES_DASHBOARDS: list[SubjectType] | None = None
 SUBJECTS_RELATED_TYPES_CHARTS: list[SubjectType] | None = None
-SUBJECTS_RELATED_TYPES_RLS: list[SubjectType] | None = None
+# Row level security rules are commonly scoped to a role, so the RLS rule
+# editor's Subjects picker exposes roles in addition to the global default.
+SUBJECTS_RELATED_TYPES_RLS: list[SubjectType] | None = [
+    SubjectType.USER,
+    SubjectType.ROLE,
+    SubjectType.GROUP,
+]
 SUBJECTS_RELATED_TYPES_ALERT_REPORTS: list[SubjectType] | None = None
 SUBJECTS_RELATED_TYPES_THEMES: list[SubjectType] | None = None
 

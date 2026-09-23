@@ -163,7 +163,7 @@ describe('useResultsPane query data reuse', () => {
     expect(screen.getByText('2 rows')).toBeVisible();
     expect(mockedGetChartDataRequest).not.toHaveBeenCalled();
 
-    userEvent.hover(screen.getByText('2 rows'));
+    await userEvent.hover(screen.getByText('2 rows'));
     expect(await screen.findByRole('tooltip')).toHaveTextContent(
       'The row limit set for the chart was reached',
     );
@@ -192,7 +192,7 @@ describe('useResultsPane query data reuse', () => {
     const rowCountLabel = await screen.findByTestId('row-count-label');
     expect(rowCountLabel).toHaveTextContent('1k rows');
 
-    userEvent.hover(rowCountLabel);
+    await userEvent.hover(rowCountLabel);
     const tooltip = await screen.findByRole('tooltip');
     expect(tooltip).toHaveTextContent(
       'The row limit selected for this pane was reached',

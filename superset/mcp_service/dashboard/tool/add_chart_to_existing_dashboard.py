@@ -36,6 +36,7 @@ from superset.mcp_service.dashboard.constants import (
     GRID_COLUMN_COUNT,
     GRID_DEFAULT_CHART_WIDTH,
 )
+from superset.mcp_service.dashboard.layout_validation import rebuild_parent_chains
 from superset.mcp_service.dashboard.schemas import (
     AddChartToDashboardRequest,
     AddChartToDashboardResponse,
@@ -208,7 +209,10 @@ def _add_chart_to_layout(
     Add chart, column, and row components to the dashboard layout.
 
     Creates the proper ``ROW > COLUMN > CHART`` hierarchy that the
-    frontend expects for rendering.
+    frontend expects for rendering. ``parents`` is left empty on each new
+    node — the caller rebuilds it for the whole layout via
+    ``rebuild_parent_chains`` after this function links the new row into
+    its parent container's ``children``.
 
     Args:
         layout: The mutable layout dict to update.
@@ -225,19 +229,6 @@ def _add_chart_to_layout(
     chart_width = GRID_DEFAULT_CHART_WIDTH
     chart_height = 50  # Good height for most chart types
 
-    # Build the parents chain up to the parent container
-    if (parent_component := layout.get(parent_id)) is not None:
-        parent_parents = parent_component.get("parents", [])
-    elif parent_id == "GRID_ID":
-        # Empty layout: GRID_ID will be created by _ensure_layout_structure
-        # with parents=["ROOT_ID"], so mirror that here.
-        parent_parents = ["ROOT_ID"]
-    else:
-        parent_parents = []
-    row_parents = list(parent_parents) + [parent_id]
-    column_parents = row_parents + [row_key]
-    chart_parents = column_parents + [column_key]
-
     # Add chart component
     layout[chart_key] = {
         "children": [],
@@ -249,7 +240,7 @@ def _add_chart_to_layout(
             "uuid": str(chart.uuid) if chart.uuid else f"chart-{chart_id}",
             "width": chart_width,
         },
-        "parents": chart_parents,
+        "parents": [],
         "type": "CHART",
     }
 
@@ -261,7 +252,7 @@ def _add_chart_to_layout(
             "background": "BACKGROUND_TRANSPARENT",
             "width": GRID_COLUMN_COUNT,
         },
-        "parents": column_parents,
+        "parents": [],
         "type": "COLUMN",
     }
 
@@ -270,7 +261,7 @@ def _add_chart_to_layout(
         "children": [column_key],
         "id": row_key,
         "meta": {"background": "BACKGROUND_TRANSPARENT"},
-        "parents": row_parents,
+        "parents": [],
         "type": "ROW",
     }
 
@@ -523,6 +514,14 @@ def add_chart_to_existing_dashboard(  # noqa: C901 — complexity is structural 
 
             # Ensure proper layout structure
             _ensure_layout_structure(current_layout, row_key, parent_id)
+
+            # The new row/column/chart nodes were added with empty
+            # ``parents`` (see ``_add_chart_to_layout``); rebuild every
+            # reachable component's parents from the actual children edges
+            # so filter-scope derivation sees a correct tree, regardless of
+            # what the stored layout carried beforehand. See
+            # superset.dashboards.filter_scope.get_chart_ids_in_scope.
+            current_layout = rebuild_parent_chains(current_layout)
 
         # Update the dashboard
         with event_logger.log_context(action="mcp.add_chart_to_dashboard.db_write"):

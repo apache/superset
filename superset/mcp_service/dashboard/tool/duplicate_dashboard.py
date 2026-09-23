@@ -31,6 +31,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from superset_core.mcp.decorators import tool, ToolAnnotations
 
 from superset.extensions import event_logger
+from superset.mcp_service.dashboard.layout_validation import rebuild_parent_chains
 from superset.mcp_service.dashboard.schemas import (
     DashboardInfo,
     DuplicateDashboardRequest,
@@ -100,6 +101,11 @@ def _build_copy_payload(
     if not isinstance(positions, dict):
         positions = {}
 
+    # The source layout may carry truncated `parents` (from before this
+    # repair existed, or from a non-MCP writer); repair it in the copy too,
+    # so the duplicate doesn't inherit empty native-filter chartsInScope. See
+    # superset.dashboards.filter_scope.get_chart_ids_in_scope.
+    positions = rebuild_parent_chains(positions)
     metadata["positions"] = positions
 
     payload = {

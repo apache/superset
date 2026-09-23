@@ -136,6 +136,13 @@ jest.mock('src/dashboard/containers/DashboardGrid', () => {
 });
 // The real component renders null, so mock it with a visible marker to let
 // tests assert whether DashboardBuilder mounts it.
+jest.mock('src/features/versionHistory/DashboardVersionHistory', () => ({
+  __esModule: true,
+  // Renders a marker inside the column so placement can be asserted; the
+  // real component's restore modal portals out, which is irrelevant here.
+  default: () => <aside data-test="mock-dashboard-version-history" />,
+}));
+
 jest.mock('src/dashboard/components/Header/HeadlessAutoRefresh', () => {
   const MockHeadlessAutoRefresh = () => (
     <div data-test="mock-headless-auto-refresh" />
@@ -150,15 +157,6 @@ jest.mock('src/hooks/useIsMobile', () => ({
 jest.mock('src/dashboard/util/isEmbedded', () => ({
   isEmbedded: jest.fn(() => false),
 }));
-// Lazy-loaded behind the VersionHistory flag; a visible marker lets tests
-// assert whether DashboardBuilder mounts it at all.
-jest.mock('src/features/versionHistory/DashboardVersionHistory', () => {
-  const MockDashboardVersionHistory = () => (
-    <div data-test="mock-dashboard-version-history" />
-  );
-  MockDashboardVersionHistory.displayName = 'MockDashboardVersionHistory';
-  return { __esModule: true, default: MockDashboardVersionHistory };
-});
 
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('DashboardBuilder', () => {
@@ -237,6 +235,133 @@ describe('DashboardBuilder', () => {
       );
     } finally {
       rectSpy.mockRestore();
+    }
+  });
+
+  test('mounts the version-history panel inside the dashboard content area, below the header, on every breakpoint', async () => {
+    // sc-120489: the sc-119737 overflow fix had turned the panel into a
+    // fixed, full-viewport overlay (z 101) that covered the global nav and
+    // the dashboard's Share / Edit / ⋯ controls. It must instead live in the
+    // content area like the chart panel in Explore.
+    window.featureFlags = { [FeatureFlag.VersionHistory]: true };
+    const rectSpy = mockHeaderHeight(120);
+    try {
+      const { findByTestId, getByTestId, container } = setup();
+      const column = await findByTestId('dashboard-version-history-column');
+      expect(
+        await findByTestId('mock-dashboard-version-history'),
+      ).toBeInTheDocument();
+
+      // In the dashboard's own grid, not portaled to the body.
+      expect(container.contains(column)).toBe(true);
+      expect(column.parentElement).not.toBe(document.body);
+      // The header and its controls precede the panel in the document flow.
+      const header = getByTestId('dashboard-header-wrapper');
+      expect(
+        header.compareDocumentPosition(column) &
+          Node.DOCUMENT_POSITION_FOLLOWING,
+      ).toBeTruthy();
+
+      // Wide: an in-flow third column beside the content, in the content
+      // row only — never spanning the header row.
+      expect(column).toHaveStyleRule('grid-row', '2');
+      expect(column).toHaveStyleRule('grid-column', '3');
+      expect(column).toHaveStyleRule('position', 'sticky');
+      expect(column).toHaveStyleRule('top', '120px');
+      expect(column).toHaveStyleRule('height', 'calc(100vh - 120px)');
+      expect(column).toHaveStyleRule('display', 'none', { target: ':empty' });
+
+      // Below XXL: anchored absolutely inside the CONTENT cell (column 2,
+      // row 2) — not fixed to the viewport — and stacked below the sticky
+      // header (99) so the header stays clickable.
+      const narrow = { media: `(max-width: ${supersetTheme.screenXLMax}px)` };
+      expect(column).toHaveStyleRule('position', 'absolute', narrow);
+      expect(column).toHaveStyleRule('grid-column', '2', narrow);
+      expect(column).toHaveStyleRule('right', '0', narrow);
+      expect(column).toHaveStyleRule('align-self', 'stretch', narrow);
+      expect(column).toHaveStyleRule('z-index', '98', narrow);
+      expect(column).not.toHaveStyleRule('position', 'fixed', narrow);
+      // The panel itself sticks below the measured header height while the
+      // page scrolls, so it never slides under the header.
+      expect(column).toHaveStyleRule('top', '120px', {
+        ...narrow,
+        target: 'aside',
+      });
+    } finally {
+      rectSpy.mockRestore();
+      window.featureFlags = {};
+    }
+  });
+
+  test('resizes history below the visible header as the navigation scrolls away', async () => {
+    window.featureFlags = { [FeatureFlag.VersionHistory]: true };
+    const addListenerSpy = jest.spyOn(window, 'addEventListener');
+    const removeListenerSpy = jest.spyOn(window, 'removeEventListener');
+    let headerTop = 64;
+    const rectSpy = jest
+      .spyOn(HTMLElement.prototype, 'getBoundingClientRect')
+      .mockImplementation(function measure(this: HTMLElement) {
+        return this.dataset.test === 'dashboard-header-wrapper'
+          ? new DOMRect(0, headerTop, 1000, 120)
+          : new DOMRect();
+      });
+    try {
+      const { findByTestId, unmount } = setup();
+      const column = await findByTestId('dashboard-version-history-column');
+      expect(column).toHaveStyleRule('height', 'calc(100vh - 184px)');
+      headerTop = 0;
+      fireEvent.scroll(column);
+      expect(column).toHaveStyleRule('height', 'calc(100vh - 120px)');
+      expect(column).toHaveStyleRule('height', 'calc(100vh - 120px)', {
+        media: `(max-width: ${supersetTheme.screenXLMax}px)`,
+        target: 'aside',
+      });
+      headerTop = -200;
+      fireEvent.scroll(column);
+      expect(column).toHaveStyleRule('height', 'calc(100vh - 120px)');
+      headerTop = 64;
+      fireEvent.scroll(window);
+      expect(column).toHaveStyleRule('height', 'calc(100vh - 184px)');
+      expect(column).toHaveStyleRule('height', 'calc(100vh - 184px)', {
+        media: `(max-width: ${supersetTheme.screenXLMax}px)`,
+        target: 'aside',
+      });
+      const scrollListener = addListenerSpy.mock.calls.find(
+        ([type, , options]) =>
+          type === 'scroll' &&
+          typeof options === 'object' &&
+          options.capture &&
+          options.passive,
+      )?.[1];
+      expect(scrollListener).toBeDefined();
+      unmount();
+      expect(removeListenerSpy).toHaveBeenCalledWith(
+        'scroll',
+        scrollListener,
+        true,
+      );
+      expect(removeListenerSpy).toHaveBeenCalledWith('resize', scrollListener);
+    } finally {
+      rectSpy.mockRestore();
+      addListenerSpy.mockRestore();
+      removeListenerSpy.mockRestore();
+      window.featureFlags = {};
+    }
+  });
+
+  test('does not measure history on scroll when its flag is off', async () => {
+    window.featureFlags = { [FeatureFlag.VersionHistory]: false };
+    const rectSpy = jest.spyOn(HTMLElement.prototype, 'getBoundingClientRect');
+    try {
+      const { findByTestId, unmount } = setup();
+      await findByTestId('dashboard-header-wrapper');
+      rectSpy.mockClear();
+      fireEvent.scroll(window);
+      expect(rectSpy).not.toHaveBeenCalled();
+      unmount();
+    } finally {
+      rectSpy.mockRestore();
+      window.featureFlags = {};
     }
   });
 

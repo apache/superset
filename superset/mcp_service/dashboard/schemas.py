@@ -69,7 +69,7 @@ from __future__ import annotations
 import logging
 import re
 from datetime import datetime, timezone
-from typing import Annotated, Any, Dict, List, Literal, TYPE_CHECKING
+from typing import Annotated, Any, cast, Dict, List, Literal, TYPE_CHECKING
 
 from pydantic import (
     AliasChoices,
@@ -82,9 +82,13 @@ from pydantic import (
 )
 
 if TYPE_CHECKING:
+    from superset.connectors.sqla.models import SqlaTable
+    from superset.models.core import Database
     from superset.models.dashboard import Dashboard
+    from superset.semantic_layers.models import SemanticLayer, SemanticView
 
 from superset.daos.base import ColumnOperator, ColumnOperatorEnum
+from superset.exceptions import SupersetSecurityException
 from superset.mcp_service.common.cache_schemas import (
     CreatedByMeMixin,
     EditedByMeMixin,
@@ -113,7 +117,9 @@ from superset.mcp_service.utils.sanitization import (
     sanitize_user_input,
     sanitize_user_input_with_changes,
 )
+from superset.mcp_service.utils.serialization import JsonSafeRows, OptionalRowCount
 from superset.mcp_service.utils.url_utils import get_superset_base_url
+from superset.utils.core import DatasourceType
 from superset.utils.json import loads as json_loads
 
 
@@ -277,7 +283,11 @@ class GetDashboardInfoRequest(MetadataCacheControl):
         description=(
             "Active filters supplied directly rather than via a permalink, so the "
             "tool can describe the dashboard as the user currently views it, "
-            'filtered. Shape: {"applied_filters": [{"col", "op", "val"}]}. Ignored '
+            'filtered. Accepts dashboard dataMask state, e.g. {"dataMask": '
+            '{"<configured filter ID>": {"filterState": {"value": ["EMEA"]}}}}, '
+            'or {"applied_filters": [{"col": "region", "op": "IN", '
+            '"val": ["EMEA"]}]}. Native mask values '
+            "are projected without column metadata for restricted users. Ignored "
             "when permalink_key is provided."
         ),
     )
@@ -451,7 +461,7 @@ class DashboardInfo(BaseModel):
         description=(
             "Charts on this dashboard. May be capped below chart_count "
             "(cap: MCP_RESPONSE_SIZE_CONFIG['max_list_items']) when the full "
-            "response would exceed the token budget. "
+            "response would exceed the size budget. "
             "Compare len(charts) to chart_count to detect this. For "
             "dashboards with more charts than the cap, call list_charts "
             "with filters=[{'col': 'dashboards', 'opr': 'eq', "
@@ -501,10 +511,14 @@ class DashboardInfo(BaseModel):
     filter_state: Dict[str, Any] | None = Field(
         default=None,
         description=(
-            "Filter state from permalink. Contains dataMask (native filter values), "
-            "activeTabs, anchor, and urlParams. When present, represents the actual "
-            "filters the user has applied to the dashboard. For users without "
-            "data-model metadata access, dataMask and chartStates are omitted."
+            "Filter state from a permalink snapshot or caller-supplied context. "
+            "Contains dataMask (native filter values), activeTabs, anchor, and "
+            "urlParams. A shared snapshot does not prove the requesting user "
+            "selected these values. For users without "
+            "data-model metadata access, dataMask and chartStates are omitted. "
+            "native_filter_values provides configured filter names, types and selected "
+            "values without targets. native_filter_values_incomplete signals omitted "
+            "context; never interpret missing context as an unfiltered dashboard."
         ),
     )
     is_permalink_state: bool = Field(
@@ -1785,15 +1799,128 @@ def serialize_chart_summary(
     )
 
 
+def _native_filter_value_is_valid(filter_type: str, value: Any) -> bool:
+    """Validate display-value shapes without interpreting them as predicates."""
+    if value is None:
+        return True
+    if filter_type == "filter_time":
+        return isinstance(value, str)
+    if filter_type == "filter_range":
+        return (
+            isinstance(value, list)
+            and len(value) == 2
+            and all(
+                item is None
+                or (isinstance(item, (int, float)) and not isinstance(item, bool))
+                for item in value
+            )
+        )
+    if filter_type == "filter_timegrain":
+        return (
+            isinstance(value, list)
+            and len(value) <= 1
+            and all(isinstance(item, str) for item in value)
+        )
+    # Select values may be JSON scalars or flat scalar lists, never nested metadata.
+    values = value if isinstance(value, list) else [value]
+    return all(
+        item is None or isinstance(item, (str, int, float, bool)) for item in values
+    )
+
+
 def redact_filter_state_data_model_metadata(
     filter_state: Dict[str, Any],
+    native_filters: list[NativeFilterSummary] | None = None,
 ) -> Dict[str, Any]:
-    """Remove permalink filter state fields that expose data-model metadata."""
-    return {
+    """Hide raw metadata, retaining known native filters' display values.
+
+    Match IDs and types against dashboard configuration, not caller-supplied
+    mask metadata. Time-column and custom filters can carry column names even
+    in their value or label, and therefore are not projected.
+    """
+    result = {
         key: value
         for key, value in filter_state.items()
-        if key not in {"dataMask", "chartStates"}
+        if key
+        not in {
+            "dataMask",
+            "chartStates",
+            "native_filter_values",
+            "native_filter_values_incomplete",
+        }
     }
+    if native_filters is None or not (
+        {"dataMask", "chartStates"} & filter_state.keys()
+    ):
+        return result
+
+    summaries: list[dict[str, Any]] = []
+    mask = filter_state.get("dataMask", {})
+    incomplete = bool(filter_state.get("chartStates")) or not isinstance(mask, dict)
+    known_filters = {item.id: item for item in native_filters}
+    for filter_id, entry in mask.items() if isinstance(mask, dict) else []:
+        native_filter = known_filters.get(filter_id)
+        if (
+            native_filter is None
+            or native_filter.filter_type
+            not in {
+                "filter_select",
+                "filter_range",
+                "filter_time",
+                "filter_timegrain",
+            }
+            or not isinstance(entry, dict)
+            or not isinstance(entry.get("filterState"), dict)
+            or "value" not in entry["filterState"]
+        ):
+            incomplete = True
+            continue
+        extra = entry.get("extraFormData", {})
+        # Filter IDs survive type changes. A saved time-column mask can contain
+        # column names even when the dashboard config describes a supported type.
+        if not isinstance(extra, dict) or "granularity_sqla" in extra:
+            incomplete = True
+            continue
+        # A display value does not describe SQL predicates or wildcard
+        # matching. Signal that the summary cannot express these semantics.
+        predicates = extra.get("filters", [])
+        supported_ops = {
+            "filter_select": ("IN", "NOT IN"),
+            "filter_range": (">=", "<=", "=="),
+        }.get(native_filter.filter_type, ())
+        if (
+            extra.get("adhoc_filters")
+            or not isinstance(predicates, list)
+            or any(
+                not isinstance(predicate, dict)
+                or predicate.get("op") not in supported_ops
+                for predicate in predicates
+            )
+        ):
+            incomplete = True
+        state = entry["filterState"]
+        value = state.get("value")
+        # Cleared or not-yet-applied masks can retain display values without
+        # predicates. Keep that context, but do not claim it is complete.
+        if not extra and value is not None and value != []:
+            incomplete = True
+        if not _native_filter_value_is_valid(native_filter.filter_type, value):
+            incomplete = True
+            continue
+        summary = {
+            "id": filter_id,
+            "name": native_filter.name,
+            "filter_type": native_filter.filter_type,
+            "value": value,
+        }
+        if isinstance(state.get("label"), str):
+            summary["label"] = state["label"]
+        if isinstance(state.get("excludeFilterValues"), bool):
+            summary["excludeFilterValues"] = state["excludeFilterValues"]
+        summaries.append(summary)
+    result["native_filter_values"] = summaries
+    result["native_filter_values_incomplete"] = incomplete
+    return result
 
 
 def _safe_user_label(value: Any) -> str | None:
@@ -2214,6 +2341,164 @@ class ManageNativeFiltersResponse(BaseModel):
 
 
 # ---------------------------------------------------------------------------
+# apply_dashboard_filters schemas
+# ---------------------------------------------------------------------------
+
+# The JSON scalars a filter_select selection can hold. Mirrors the value array
+# the frontend stores in a native filter's ``filterState.value``.
+FilterSelectValue = bool | int | float | str | None
+
+
+class ApplyFilterValueSpec(BaseModel):
+    """A value to apply to one existing native filter.
+
+    Exactly one of ``values`` (filter_select) or ``time_range``
+    (filter_time) must be supplied, and it must match the target filter's
+    type. An empty ``values`` list clears the filter's selection.
+    """
+
+    filter_name_or_id: str = Field(
+        ...,
+        min_length=1,
+        description=(
+            "The filter to apply a value to, given as either its display "
+            "name (matched case-insensitively) or its filter ID. Use "
+            "get_dashboard_info to list a dashboard's native filters."
+        ),
+    )
+    values: List[FilterSelectValue] | None = Field(
+        None,
+        description=(
+            "Values to select, for a filter_select filter. Pass an empty "
+            "list to clear the filter's current selection."
+        ),
+    )
+    time_range: str | None = Field(
+        None,
+        description=(
+            "Time range to apply, for a filter_time filter, e.g. "
+            "'Last week', 'Last month', '2024-01-01 : 2024-12-31'. Pass "
+            "'No filter' to clear the filter."
+        ),
+    )
+
+    @field_validator("time_range")
+    @classmethod
+    def _validate_time_range(cls, v: str | None) -> str | None:
+        """Validate the time range with the shared dashboard parser."""
+        return validate_time_range(v)
+
+    @model_validator(mode="after")
+    def _require_exactly_one_value(self) -> "ApplyFilterValueSpec":
+        """Require exactly one value field.
+
+        Presence is tested with ``is None`` rather than truthiness so an
+        empty ``values`` list still counts as a supplied value: that is the
+        way a caller clears a filter_select selection.
+        """
+        supplied = [
+            name
+            for name, value in (
+                ("values", self.values),
+                ("time_range", self.time_range),
+            )
+            if value is not None
+        ]
+        if len(supplied) != 1:
+            raise ValueError(
+                "Provide exactly one of values (filter_select) or time_range "
+                f"(filter_time) for filter '{self.filter_name_or_id}'; "
+                f"got {supplied or 'neither'}."
+            )
+        return self
+
+
+class ApplyDashboardFiltersRequest(BaseModel):
+    """Request schema for the apply_dashboard_filters tool."""
+
+    dashboard_id: int = Field(..., description="ID of the dashboard to filter")
+    base_permalink_key: str | None = Field(
+        None,
+        min_length=1,
+        description=(
+            "For follow-up turns, pass the previous response's permalink_key "
+            "to keep prior filter selections. New values replace the same "
+            "filter's prior entry; unmentioned filters persist. Omit to start "
+            "from dashboard defaults. Invalid, expired, inaccessible, or "
+            "wrong-dashboard keys fail rather than resetting filters."
+        ),
+    )
+    filters: List[ApplyFilterValueSpec] = Field(
+        ...,
+        min_length=1,
+        description=(
+            "Values to apply, one entry per native filter. Filters that are "
+            "not listed keep their base permalink value when base_permalink_key "
+            "is supplied, otherwise the dashboard's default value."
+        ),
+    )
+
+
+class AppliedFilterSummary(BaseModel):
+    """One filter's resolved value in an apply_dashboard_filters result."""
+
+    id: str = Field(description="ID of the filter the value was applied to")
+    name: str | None = Field(None, description="Filter display name")
+    filter_type: str | None = Field(
+        None, description="Filter type (filter_select or filter_time)"
+    )
+    values: List[FilterSelectValue] | None = Field(
+        None, description="Selected values, for a filter_select filter"
+    )
+    time_range: str | None = Field(
+        None, description="Applied time range, for a filter_time filter"
+    )
+
+
+class ApplyDashboardFiltersResponse(BaseModel):
+    """Response schema for the apply_dashboard_filters tool."""
+
+    dashboard_id: int | None = Field(None, description="ID of the dashboard")
+    dashboard_url: str | None = Field(
+        None,
+        description=(
+            "Shareable '/dashboard/p/<key>/' permalink URL that opens the "
+            "dashboard with the requested filter values applied."
+        ),
+    )
+    permalink_key: str | None = Field(
+        None,
+        description=(
+            "Key of the created permalink. On the next turn, pass this as "
+            "base_permalink_key to apply_dashboard_filters to preserve these "
+            "selections while adding or replacing filters. Also pass it to "
+            "get_dashboard_info or get_dashboard_layout as permalink_key to "
+            "read the applied filter state."
+        ),
+    )
+    applied_filters: List[AppliedFilterSummary] = Field(
+        default_factory=list,
+        description="The filters that received a value, in request order",
+    )
+    live_update_pushed: bool = Field(
+        default=False,
+        description=(
+            "True when a realtime notification was published to the caller. "
+            "This does not confirm browser delivery or application. "
+            "Open dashboard_url as the fallback."
+        ),
+    )
+    error: str | None = Field(None, description="Error message, if the call failed")
+    permission_denied: bool = Field(
+        default=False,
+        description=(
+            "True when the caller lacks read access to the dashboard (do not "
+            "retry; ask the user)."
+        ),
+    )
+
+
+# ---------------------------------------------------------------------------
 # get_dashboard_datasets schemas
 # ---------------------------------------------------------------------------
 
@@ -2249,13 +2534,31 @@ class DashboardDatasetDatabaseInfo(BaseModel):
     backend: str | None = Field(None, description="Database backend (engine)")
 
 
+class DashboardDatasetSemanticLayerInfo(BaseModel):
+    """Semantic layer summary for a dashboard's semantic view."""
+
+    # SemanticLayer is keyed by UUID (it has no integer id); views carry an
+    # integer id, so the two are addressed differently on purpose.
+    uuid: str | None = Field(None, description="Semantic layer UUID")
+    name: str | None = Field(None, description="Semantic layer name")
+
+
 class DashboardDatasetSummary(BaseModel):
-    """A dataset used by a dashboard's charts, with columns and metrics."""
+    """A dataset or semantic view used by a dashboard's charts."""
 
     model_config = ConfigDict(populate_by_name=True)
 
     id: int | None = Field(None, description="Dataset ID")
     uuid: str | None = Field(None, description="Dataset UUID")
+    datasource_type: Literal["table", "semantic_view"] = Field(
+        "table",
+        description="Explorable kind: table for a SQL dataset, "
+        "semantic_view for a semantic-layer view",
+    )
+    name: str | None = Field(None, description="Explorable display name")
+    semantic_layer: DashboardDatasetSemanticLayerInfo | None = Field(
+        None, description="Semantic layer the view belongs to; None for SQL datasets"
+    )
     table_name: str | None = Field(None, description="Table name")
     schema_name: str | None = Field(None, description="Schema name", alias="schema")
     database: DashboardDatasetDatabaseInfo | None = Field(
@@ -2311,7 +2614,8 @@ class DashboardDatasets(BaseModel):
         0,
         description=(
             "Number of datasets used by the dashboard that the current user "
-            "cannot access (excluded from 'datasets')"
+            "cannot access or whose metadata could not be loaded "
+            "(excluded from 'datasets')"
         ),
     )
     datasets: List[DashboardDatasetSummary] = Field(
@@ -2321,7 +2625,9 @@ class DashboardDatasets(BaseModel):
 
 
 def _serialize_dashboard_dataset(
-    datasource: Any, chart_count: int
+    datasource: SqlaTable | SemanticView,
+    chart_count: int,
+    datasource_type: Literal["table", "semantic_view"] = "table",
 ) -> DashboardDatasetSummary:
     """Serialize a datasource to a lean, LLM-safe dataset summary."""
     all_columns = list(getattr(datasource, "columns", None) or [])
@@ -2345,7 +2651,21 @@ def _serialize_dashboard_dataset(
         for metric in all_metrics[:MAX_DASHBOARD_DATASET_METRICS]
     ]
 
-    database = getattr(datasource, "database", None)
+    is_view: bool = datasource_type == DatasourceType.SEMANTIC_VIEW
+    layer: SemanticLayer | None = (
+        getattr(datasource, "semantic_layer", None) if is_view else None
+    )
+    layer_info: DashboardDatasetSemanticLayerInfo | None = (
+        DashboardDatasetSemanticLayerInfo(
+            uuid=str(layer.uuid) if getattr(layer, "uuid", None) else None,
+            name=getattr(layer, "name", None),
+        )
+        if layer is not None
+        else None
+    )
+    database: Database | None = (
+        None if is_view else getattr(datasource, "database", None)
+    )
     database_info = (
         DashboardDatasetDatabaseInfo(
             id=getattr(database, "id", None),
@@ -2360,8 +2680,11 @@ def _serialize_dashboard_dataset(
     return DashboardDatasetSummary(
         id=getattr(datasource, "id", None),
         uuid=str(dataset_uuid) if dataset_uuid else None,
-        table_name=getattr(datasource, "table_name", None),
-        schema_name=getattr(datasource, "schema", None),
+        datasource_type=datasource_type,
+        name=getattr(datasource, "name" if is_view else "table_name", None),
+        semantic_layer=layer_info,
+        table_name=None if is_view else getattr(datasource, "table_name", None),
+        schema_name=None if is_view else getattr(datasource, "schema", None),
         database=database_info,
         chart_count=chart_count,
         columns=columns,
@@ -2373,16 +2696,43 @@ def _serialize_dashboard_dataset(
     )
 
 
+def _has_dashboard_dataset_access(
+    datasource: SqlaTable | SemanticView, datasource_type: str
+) -> bool:
+    """Use view permissions separately from BaseDatasource-only table checks.
+
+    security_manager.can_access_datasource expects a BaseDatasource; semantic
+    views implement their own view-or-layer permission rule in raise_for_access.
+    """
+    # Preserve the serializer's deferred auth import during MCP initialization.
+    from superset.mcp_service.auth import has_dataset_access
+
+    if datasource_type != DatasourceType.SEMANTIC_VIEW:
+        return has_dataset_access(cast("SqlaTable", datasource))
+    try:
+        datasource.raise_for_access()
+        return True
+    except SupersetSecurityException:
+        return False
+    except Exception as exc:  # noqa: BLE001
+        logger.warning(
+            "Error checking semantic view access for id=%s: %s", datasource.id, exc
+        )
+        return False
+
+
 def dashboard_datasets_serializer(dashboard: "Dashboard") -> DashboardDatasets:
-    """Serialize a Dashboard model to the datasets used by its charts.
+    """List the datasets and semantic views used by a dashboard's charts.
 
     Groups the dashboard's charts by datasource (mirroring
     ``Dashboard.datasets_trimmed_for_slices``) but keeps the full column and
     metric lists (capped) since native-filter configuration regularly needs
     columns that no chart references. Datasets the current user cannot
-    access are excluded and only counted.
+    access, or whose semantic provider metadata cannot be loaded, are excluded
+    and only counted. Provider failures are logged.
+    Each entry identifies its datasource_type and display name, with
+    semantic_layer metadata for views and database metadata for tables.
     """
-    from superset.mcp_service.auth import has_dataset_access
 
     slices_by_datasource: Dict[tuple[int, str], List[Any]] = {}
     for slc in getattr(dashboard, "slices", None) or []:
@@ -2396,21 +2746,40 @@ def dashboard_datasets_serializer(dashboard: "Dashboard") -> DashboardDatasets:
 
     datasets: List[DashboardDatasetSummary] = []
     inaccessible_count: int = 0
-    for slices in slices_by_datasource.values():
-        datasource = next(
+    for (_, source_type), slices in slices_by_datasource.items():
+        kind: Literal["table", "semantic_view"] = (
+            "semantic_view" if source_type == DatasourceType.SEMANTIC_VIEW else "table"
+        )
+        relationship_name: str = (
+            "semantic_view" if kind == "semantic_view" else "datasource"
+        )
+        datasource: SqlaTable | SemanticView | None = next(
             (
-                getattr(slc, "datasource", None)
+                getattr(slc, relationship_name, None)
                 for slc in slices
-                if getattr(slc, "datasource", None) is not None
+                if getattr(slc, relationship_name, None) is not None
             ),
             None,
         )
         if datasource is None:
             continue
-        if not has_dataset_access(datasource):
+        if not _has_dashboard_dataset_access(datasource, kind):
             inaccessible_count += 1
             continue
-        datasets.append(_serialize_dashboard_dataset(datasource, len(slices)))
+        try:
+            summary: DashboardDatasetSummary = _serialize_dashboard_dataset(
+                datasource, len(slices), kind
+            )
+        except Exception as exc:  # noqa: BLE001
+            if kind != "semantic_view":
+                raise
+            # Provider discovery can fail independently of other datasources.
+            logger.warning(
+                "Could not serialize semantic view id=%s: %s", datasource.id, exc
+            )
+            inaccessible_count += 1
+            continue
+        datasets.append(summary)
 
     datasets.sort(key=lambda dataset: dataset.id or 0)
 
@@ -2539,11 +2908,11 @@ class DashboardChartQueryData(BaseModel):
 
     query_index: int = Field(..., description="Zero-based query position")
     columns: list[str] = Field(default_factory=list, description="Result column names")
-    sample_data: list[dict[str, Any]] = Field(
+    sample_data: JsonSafeRows = Field(
         default_factory=list, description="A few example data rows"
     )
-    row_count: int | None = Field(None, description="Rows returned by this query")
-    total_rows: int | None = Field(
+    row_count: OptionalRowCount = Field(None, description="Rows returned by this query")
+    total_rows: OptionalRowCount = Field(
         None, description="Total rows available for this query when known"
     )
     truncated: bool = Field(
@@ -2558,11 +2927,11 @@ class DashboardChartData(BaseModel):
     chart_name: str = Field(..., description="Chart name")
     chart_type: str = Field(..., description="Chart viz type")
     columns: list[str] = Field(default_factory=list, description="Result column names")
-    sample_data: list[dict[str, Any]] = Field(
+    sample_data: JsonSafeRows = Field(
         default_factory=list, description="A few example data rows"
     )
-    row_count: int | None = Field(None, description="Rows returned by the query")
-    total_rows: int | None = Field(
+    row_count: OptionalRowCount = Field(None, description="Rows returned by the query")
+    total_rows: OptionalRowCount = Field(
         None,
         description=(
             "Total rows available when known; null when the fetch was capped with "
