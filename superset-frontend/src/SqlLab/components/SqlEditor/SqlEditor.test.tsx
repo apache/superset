@@ -468,10 +468,11 @@ describe('SqlEditor', () => {
       ...mockInitialState,
       sqlLab: {
         ...mockInitialState.sqlLab,
-        queryEditors: [
-          ...mockInitialState.sqlLab.queryEditors,
-          { ...extraQueryEditor1, northPaneViewId: 'test.northPane' },
-        ],
+        queryEditors: mockInitialState.sqlLab.queryEditors.map(qe =>
+          qe.id === extraQueryEditor1.id
+            ? { ...qe, northPaneViewId: 'test.northPane' }
+            : qe,
+        ),
         tabHistory: [extraQueryEditor1.id],
       },
     });
