@@ -405,14 +405,24 @@ const FilterValue: FC<FilterValueProps> = ({
   );
 
   if (error) {
+    // Errors without a registered `error_type` (e.g. a raw database error) are
+    // rendered by the fallback, so surface their message rather than assuming
+    // a network failure.
+    const errorMessage =
+      error.errors?.[0]?.message || error.error || error.message;
     return (
       <ErrorMessageWithStackTrace
         error={error.errors?.[0]}
         compact
         fallback={
           <ErrorAlert
-            errorType={t('Network error')}
-            message={t('Network error while attempting to fetch resource')}
+            errorType={
+              errorMessage ? t('Cannot load filter') : t('Network error')
+            }
+            message={
+              errorMessage ||
+              t('Network error while attempting to fetch resource')
+            }
             type="error"
             compact
           />

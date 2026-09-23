@@ -16,7 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { render, screen, waitFor } from 'spec/helpers/testing-library';
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+} from 'spec/helpers/testing-library';
 import { Provider } from 'react-redux';
 import configureStore from 'redux-mock-store';
 import thunk from 'redux-thunk';
@@ -25,6 +30,7 @@ import type { Filter } from '@superset-ui/core';
 import FilterValue from './FilterValue';
 
 const mockRequestChartData = jest.fn();
+const mockGetClientErrorObject = jest.fn();
 jest.mock('src/components/Chart/chartAction', () => ({
   requestChartDataResolved: (...args: unknown[]) =>
     mockRequestChartData(...args),
@@ -43,13 +49,8 @@ jest.mock('@superset-ui/core', () => {
       </div>
     ),
     isFeatureEnabled: () => false,
-    getClientErrorObject: (_err: unknown) =>
-      Promise.resolve({
-        message: 'Something went wrong',
-        errors: [
-          { message: 'Test error', error_type: 'GENERIC_BACKEND_ERROR' },
-        ],
-      }),
+    getClientErrorObject: (...args: unknown[]) =>
+      mockGetClientErrorObject(...args),
   };
 });
 
@@ -127,6 +128,10 @@ function renderFilterValue(
 
 beforeEach(() => {
   jest.clearAllMocks();
+  mockGetClientErrorObject.mockResolvedValue({
+    message: 'Something went wrong',
+    errors: [{ message: 'Test error', error_type: 'GENERIC_BACKEND_ERROR' }],
+  });
 });
 
 test('renders loading spinner when filter has a data source', () => {
@@ -183,7 +188,60 @@ test('renders error state when API call fails', async () => {
 
   // No ErrorMessageComponent is registered for GENERIC_BACKEND_ERROR in the
   // test environment, so FilterValue renders its fallback ErrorAlert.
-  expect(await screen.findByText('Network error')).toBeInTheDocument();
+  expect(await screen.findByText('Cannot load filter')).toBeInTheDocument();
+  expect(screen.queryByText('Network error')).not.toBeInTheDocument();
+});
+
+test('shows the database error message when the error has no error_type', async () => {
+  const dbError =
+    'Error: Received ClickHouse exception, code: 396, DB::Exception: Limit for temporary files size exceeded. (TOO_MANY_ROWS_OR_BYTES)';
+  mockGetClientErrorObject.mockResolvedValue({
+    error: dbError,
+    errors: [{ message: dbError }],
+  });
+  mockRequestChartData.mockRejectedValue(new Error('query failed'));
+
+  renderFilterValue();
+
+  await userEvent.click(await screen.findByText('Cannot load filter'));
+
+  expect(await screen.findByText(dbError)).toBeInTheDocument();
+  expect(
+    screen.queryByText('Network error while attempting to fetch resource'),
+  ).not.toBeInTheDocument();
+  expect(screen.queryByText('Network error')).not.toBeInTheDocument();
+});
+
+test('shows the client error message when there is no errors array', async () => {
+  mockGetClientErrorObject.mockResolvedValue({
+    error: 'One or more chart-data queries failed',
+  });
+  mockRequestChartData.mockRejectedValue(
+    new Error('One or more chart-data queries failed'),
+  );
+
+  renderFilterValue();
+
+  await userEvent.click(await screen.findByText('Cannot load filter'));
+
+  expect(
+    await screen.findByText('One or more chart-data queries failed'),
+  ).toBeInTheDocument();
+  expect(screen.queryByText('Network error')).not.toBeInTheDocument();
+});
+
+test('falls back to the network error when no message is available', async () => {
+  mockGetClientErrorObject.mockResolvedValue({ error: '' });
+  mockRequestChartData.mockRejectedValue(new TypeError('Failed to fetch'));
+
+  renderFilterValue();
+
+  await userEvent.click(await screen.findByText('Network error'));
+
+  expect(
+    await screen.findByText('Network error while attempting to fetch resource'),
+  ).toBeInTheDocument();
+  expect(screen.queryByText('Cannot load filter')).not.toBeInTheDocument();
 });
 
 test('does not fetch data when filter has not been in view', () => {
