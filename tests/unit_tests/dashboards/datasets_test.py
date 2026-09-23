@@ -96,7 +96,6 @@ def test_inaccessible_semantic_dataset_never_discovers_provider(
     assert "columns" not in payload
     assert "metrics" not in payload
     assert "parent" not in payload
-    assert "semantic_view_features" not in payload
 
 
 def test_guest_token_semantic_payload_hides_provider_metadata() -> None:
@@ -121,7 +120,6 @@ def test_guest_token_semantic_payload_hides_provider_metadata() -> None:
                 "name": "Orders View",
                 "database": {"name": "Warehouse"},
                 "parent": {"name": "Secret layer name"},
-                "semantic_view_features": ["provider-feature"],
             }
         )
     assert payload == {
@@ -217,10 +215,8 @@ def test_dashboard_semantic_dataset_serialization_preserves_access_narrowing(
     assert payload["supports_samples"] is False
     if is_guest or not can_access:
         assert "parent" not in payload
-        assert "semantic_view_features" not in payload
     else:
         assert payload["parent"] == {"name": "Test Layer"}
-        assert payload["semantic_view_features"] == []
     if can_access:
         assert {column["column_name"] for column in payload["columns"]} == {
             "order_date",

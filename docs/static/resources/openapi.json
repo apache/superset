@@ -3937,12 +3937,6 @@
           "select_star": {
             "type": "string"
           },
-          "semantic_view_features": {
-            "items": {
-              "type": "string"
-            },
-            "type": "array"
-          },
           "sql": {
             "type": "string"
           },

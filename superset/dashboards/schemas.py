@@ -342,7 +342,6 @@ class DashboardDatasetSchema(Schema):
     supports_drill_to_detail: fields.Bool = fields.Bool()
     supports_samples: fields.Bool = fields.Bool()
     parent: fields.Dict = fields.Dict()
-    semantic_view_features: fields.List = fields.List(fields.Str())
     id = fields.Int()
     uid = fields.Str()
     column_formats = fields.Dict()
@@ -386,7 +385,6 @@ class DashboardDatasetSchema(Schema):
         if security_manager.is_guest_user():
             serialized.pop("database", None)
             serialized.pop("parent", None)
-            serialized.pop("semantic_view_features", None)
             serialized.pop("editors", None)
             # Guest users should never receive fields that expose internal
             # connection or query details.
