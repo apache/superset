@@ -618,7 +618,13 @@ The hook receives the model instance and the asset type string (`"chart"` or
 
 ```python
 # superset_config.py
+from superset import db
+
+
 def _after_asset_create(model, asset_type):
+    # The model is pending in the session but may not be flushed yet, so
+    # flush first if you need database-assigned fields like ``id``.
+    db.session.flush()
     audit_log.write(f"{asset_type} {model.id} created by {model.created_by}")
 
 
@@ -631,7 +637,10 @@ dashboard creation behaves exactly as it did before this hook existed.
 The hook runs before the surrounding database transaction commits, so an
 exception raised inside it aborts the chart or dashboard creation. Keep it
 fast and side-effect-light, and avoid raising unless you intend to cancel
-the creation.
+the creation. On the REST API path the model has been added to the session
+but not flushed when the hook is called, so `id`, `created_by`, and other
+database-assigned fields are still `None` unless the hook flushes the
+session itself, as in the example above.
 
 The hook fires for any chart or dashboard created through the REST API
 (including Explore's Save As) and for blank dashboards created from the UI's
