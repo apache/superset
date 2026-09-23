@@ -48,7 +48,8 @@ export const ViewLocations = {
     queryHistory: 'sqllab.queryHistory',
     // Extensions can register a full-pane replacement here. SqlEditor renders
     // the registered view instead of the default editor+SouthPane split when
-    // a tab was opened in that mode.
+    // a tab was opened in that mode, i.e. created via
+    // sqlLab.createTab({ northPaneViewId }) from a newTab command handler.
     northPane: 'sqllab.northPane',
     // Extensions register tab-type commands here. When any are present the
     // "+" new-tab button becomes a dropdown listing all registered tab types
@@ -56,17 +57,3 @@ export const ViewLocations = {
     newTab: 'sqllab.newTab',
   },
 } as const;
-
-/**
- * localStorage key an extension sets before calling createTab() to declare
- * which northPane view the new tab should open with.  The value must be the
- * view ID passed to views.registerView() (e.g. "my-ext.northPane").  SqlEditor
- * consumes and removes this key during initialization, then persists the chosen
- * view ID under a per-tab key so the mode survives page reloads.
- *
- * @example
- * // In an extension's newTab command handler:
- * localStorage.setItem(PENDING_NORTH_PANE_VIEW_KEY, 'my-ext.northPane');
- * sqlLab.createTab({ title: 'My View' });
- */
-export const PENDING_NORTH_PANE_VIEW_KEY = 'sqllab.pendingNorthPaneView';

@@ -124,10 +124,7 @@ import KeyboardShortcutButton, {
 } from '../KeyboardShortcutButton';
 import SqlEditorTopBar from '../SqlEditorTopBar';
 import SqlEditorLeftBar from '../SqlEditorLeftBar';
-import {
-  ViewLocations,
-  PENDING_NORTH_PANE_VIEW_KEY,
-} from 'src/SqlLab/contributions';
+import { ViewLocations } from 'src/SqlLab/contributions';
 import { resolveView, useViews } from 'src/core/views';
 
 /** Per-tab localStorage key storing the active northPane view ID. */
@@ -317,26 +314,16 @@ const SqlEditor: FC<Props> = ({
   const northPaneStorageId = queryEditor.tabViewId ?? queryEditor.id;
 
   // ID of the northPane view active for this tab, or null for the default
-  // SQL editor layout.  Set by an extension via PENDING_NORTH_PANE_VIEW_KEY
-  // before calling createTab(); persisted per-tab in localStorage. Only the
-  // active tab may consume the pending key: newly created tabs are made
-  // active via tabHistory, so gating on isActive keeps a stale key (e.g. left
-  // behind by a failed createTab()) from being picked up by an unrelated tab
-  // mounting later, such as during a page reload that restores several tabs.
-  const [northPaneViewId, setNorthPaneViewId] = useState<string | null>(() => {
-    const pendingViewId = isActive
-      ? readNorthPaneStorage(PENDING_NORTH_PANE_VIEW_KEY)
-      : null;
-    if (pendingViewId) {
-      writeNorthPaneStorage(PENDING_NORTH_PANE_VIEW_KEY, null);
-      writeNorthPaneStorage(
-        NORTH_PANE_VIEW_KEY(northPaneStorageId),
-        pendingViewId,
-      );
-      return pendingViewId;
-    }
-    return readNorthPaneStorage(NORTH_PANE_VIEW_KEY(northPaneStorageId));
-  });
+  // SQL editor layout. A tab created through the extension API carries the
+  // requested view on its own query editor state, so it can never be picked
+  // up by another tab. Editors hydrated from the backend on reload don't
+  // carry the field, so fall back to the per-tab localStorage entry that the
+  // effect below keeps in sync.
+  const [northPaneViewId, setNorthPaneViewId] = useState<string | null>(
+    () =>
+      queryEditor.northPaneViewId ??
+      readNorthPaneStorage(NORTH_PANE_VIEW_KEY(northPaneStorageId)),
+  );
 
   // Tracks the storage id last written so that, when a tab syncs to the
   // backend and `tabViewId` arrives, the entry under the old id-keyed key is
