@@ -20,14 +20,17 @@
 import json  # noqa: TID251
 import logging
 from types import SimpleNamespace
-from typing import Any, Callable, Optional
+from typing import Any, Optional
 from unittest.mock import MagicMock
 
 import pytest
 from flask import current_app
+from flask_appbuilder.actions import ActionItem
 from flask_appbuilder.const import AUTH_DB, AUTH_REMOTE_USER
 from flask_appbuilder.security.sqla.models import Role, User
+from flask_appbuilder.security.views import ResetMyPasswordView, ResetPasswordView
 from pytest_mock import MockerFixture
+from werkzeug.exceptions import NotFound
 
 from superset.common.chart_data import ChartDataResultType
 from superset.common.query_object import QueryObject
@@ -4670,8 +4673,6 @@ def test_skip_legacy_fab_password_view_registration_keeps_forced_change_target(
     expected_registered: set[str],
 ) -> None:
     """Forced password changes require the self-service reset view."""
-    from flask import current_app
-    from flask_appbuilder.security.views import ResetMyPasswordView, ResetPasswordView
 
     class NonPasswordView:
         pass
@@ -4699,18 +4700,76 @@ def test_skip_legacy_fab_password_view_registration_keeps_forced_change_target(
     )
     current_app.config["ENABLE_FORCE_PASSWORD_CHANGE"] = enable_force_password_change
 
-    original_add_view_no_menu: Callable[..., Any] = fake_appbuilder.add_view_no_menu
     try:
-        original_add_view_no_menu = sm._skip_legacy_fab_password_view_registration()
+        sm._skip_legacy_fab_password_view_registration()
 
         fake_appbuilder.add_view_no_menu(ResetPasswordView)
         fake_appbuilder.add_view_no_menu(ResetMyPasswordView)
         fake_appbuilder.add_view_no_menu(NonPasswordView)
     finally:
         current_app.config.update(previous_config)
-        fake_appbuilder.add_view_no_menu = original_add_view_no_menu
 
     assert set(registered) == expected_registered
+
+
+@pytest.mark.parametrize(
+    "enable_legacy_password_views,enable_force_password_change,expected_disabled",
+    [
+        (False, False, {"resetpasswords", "resetmypassword"}),
+        (False, True, {"resetpasswords"}),
+        (True, False, set()),
+    ],
+)
+def test_disable_legacy_password_reset_launchers_matches_skipped_views(
+    app_context: None,
+    enable_legacy_password_views: bool,
+    enable_force_password_change: bool,
+    expected_disabled: set[str],
+) -> None:
+    """The user view's reset buttons are hidden exactly when their target is.
+
+    FAB's ``UserDBModelView`` actions redirect to the reset views via
+    ``url_for``, so an action whose view is not registered must be hidden from
+    the show/list widgets and answer 404 rather than raise ``BuildError``;
+    the others (and unrelated actions) stay untouched.
+    """
+
+    def launcher(item: Any) -> str:
+        return "redirect"
+
+    actions = {
+        name: ActionItem(name, name, None, "fa-lock", False, True, launcher)
+        for name in ("resetpasswords", "resetmypassword", "userinfoedit")
+    }
+    sm = SupersetSecurityManager.__new__(SupersetSecurityManager)
+    sm.user_view = SimpleNamespace(actions=actions)
+
+    previous_config = {
+        "ENABLE_LEGACY_FAB_PASSWORD_VIEWS": current_app.config[
+            "ENABLE_LEGACY_FAB_PASSWORD_VIEWS"
+        ],
+        "ENABLE_FORCE_PASSWORD_CHANGE": current_app.config[
+            "ENABLE_FORCE_PASSWORD_CHANGE"
+        ],
+    }
+    current_app.config["ENABLE_LEGACY_FAB_PASSWORD_VIEWS"] = (
+        enable_legacy_password_views
+    )
+    current_app.config["ENABLE_FORCE_PASSWORD_CHANGE"] = enable_force_password_change
+    try:
+        sm._disable_legacy_password_reset_launchers()
+    finally:
+        current_app.config.update(previous_config)
+
+    for name, action in actions.items():
+        if name in expected_disabled:
+            assert action.single is False
+            assert action.multiple is False
+            with pytest.raises(NotFound):
+                action.func(None)
+        else:
+            assert action.single is True
+            assert action.func(None) == "redirect"
 
 
 def test_reset_password_self_service_clears_flag(

@@ -122,16 +122,20 @@ class TestCore(SupersetTestCase):
         assert resp.status_code == 404
 
     def test_admin_only_menu_views(self) -> None:
+        """Admin-only view menus are granted to Admin and to no other role.
+
+        ``ResetPasswordView`` is only asserted absent for non-admin roles: whether
+        Admin holds it depends on ``ENABLE_LEGACY_FAB_PASSWORD_VIEWS`` and on
+        when the test database last ran ``sync_role_definitions``, and the unit
+        tests cover that role-sync behavior directly.
+        """
+
         def assert_admin_view_menus_in(
             role_name: str, assert_func: Callable[[str, list[str]], None]
         ) -> None:
             role = security_manager.find_role(role_name)
             view_menus = [p.view_menu.name for p in role.permissions]
-            if role_name == "Admin" and current_app.config.get(
-                "ENABLE_LEGACY_FAB_PASSWORD_VIEWS", False
-            ):
-                assert "ResetPasswordView" in view_menus
-            else:
+            if role_name != "Admin":
                 assert "ResetPasswordView" not in view_menus
             assert_func("RoleRestAPI", view_menus)
             assert_func("Security", view_menus)
@@ -142,6 +146,13 @@ class TestCore(SupersetTestCase):
         assert_admin_view_menus_in("Gamma", self.assertNotIn)
 
     def test_legacy_fab_password_views_are_not_registered(self) -> None:
+        """The legacy FAB reset routes follow the two config flags.
+
+        ``ResetPasswordView`` is only registered when
+        ``ENABLE_LEGACY_FAB_PASSWORD_VIEWS`` is on; ``ResetMyPasswordView`` is
+        registered when either that flag or ``ENABLE_FORCE_PASSWORD_CHANGE`` is
+        on, since the forced-change redirect needs it.
+        """
         endpoints: set[str] = {
             rule.endpoint for rule in current_app.url_map.iter_rules()
         }

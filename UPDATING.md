@@ -156,13 +156,19 @@ that every payload fits a configured response limit.
 
 ### Legacy FAB password reset routes are no longer registered by default
 
-The legacy Flask-AppBuilder SSR password reset views are no longer registered
-by default. `/superset/resetpassword` (admin-triggered password reset) is no
-longer reachable, and `/superset/resetmypassword` (self-service password
-reset) is also skipped unless `ENABLE_FORCE_PASSWORD_CHANGE` is enabled.
-Deployments that still link to either of these routes should set
+The legacy Flask-AppBuilder server-rendered password reset views are no longer
+registered by default. `/resetpassword/form` (admin-triggered password reset)
+is no longer reachable, and `/resetmypassword/form` (self-service password
+reset) is also skipped unless `ENABLE_FORCE_PASSWORD_CHANGE` is enabled. The
+"Reset Password" and "Reset my password" buttons on the FAB user pages that
+led to them are hidden accordingly. Users can still change their own password
+from the profile page in the SPA, and the users REST API (`PUT
+/api/v1/security/users/<id>` with a `password` field) still accepts admin
+resets. Deployments that still link to either of these routes should set
 `ENABLE_LEGACY_FAB_PASSWORD_VIEWS = True` in `superset_config.py` to restore
-them.
+them. The setting is read at app startup, and the views' permissions are only
+(re)assigned to roles by `superset init`, so after changing it (or
+`ENABLE_FORCE_PASSWORD_CHANGE`) restart the app and run `superset init`.
 
 ### Default Docker image is now batteries-included; the minimal image moves to `-lean`
 

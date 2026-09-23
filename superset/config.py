@@ -2164,11 +2164,16 @@ FAB_ADD_SECURITY_PERMISSION_VIEWS_VIEW = False
 FAB_API_KEY_ENABLED = False
 FAB_API_KEY_PREFIXES = ["sst_"]
 
-# When False (default), the legacy FAB SSR admin password reset route
-# (/superset/resetpassword) is not registered. The self-service password reset
-# route (/superset/resetmypassword) is also skipped unless forced password
-# changes are enabled, since that flow still needs a reachable reset form.
-# Set to True to re-enable direct URL access to those views (e.g. during migration).
+# When False (default), the legacy Flask-AppBuilder server-rendered admin
+# password reset view (/resetpassword/form) is not registered, and neither is
+# the self-service one (/resetmypassword/form) unless ENABLE_FORCE_PASSWORD_CHANGE
+# is on, since that flow redirects users to it. The matching "Reset Password"
+# and "Reset my password" buttons on the FAB user pages are hidden as well.
+# Set to True to register those views again (e.g. during a migration).
+# Like every other FAB view-registration setting this is read once at app
+# startup, and the views' permissions are only (re)assigned to roles by
+# `superset init`, so changing it (or ENABLE_FORCE_PASSWORD_CHANGE) needs a
+# restart followed by `superset init`.
 ENABLE_LEGACY_FAB_PASSWORD_VIEWS: bool = False
 
 # The link to a page containing common errors and their resolutions
