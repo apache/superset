@@ -159,15 +159,13 @@ export const xAxisSortControl = {
       // sort operator handles the single-series case, and the chart resolves
       // a metric's pivoted columns through `label_map` when dimensions split
       // it into several series.
+      const withVerboseLabel = (value: string) => ({
+        value,
+        label: dataset?.verbose_map?.[value] || value,
+      });
       const fieldOptions = [
-        ...columns.map(column => {
-          const value = getColumnLabel(column);
-          return { value, label: dataset?.verbose_map?.[value] || value };
-        }),
-        ...metricLabels.map(value => ({
-          value,
-          label: dataset?.verbose_map?.[value] || value,
-        })),
+        ...columns.map(column => withVerboseLabel(getColumnLabel(column))),
+        ...metricLabels.map(withVerboseLabel),
       ];
       // Aggregating across series only means something once there is more
       // than one series per x-axis value.
