@@ -897,10 +897,12 @@ class QueryContextProcessor:
             if not (query_context := chart.get_query_context()):
                 raise QueryObjectValidationError(
                     _(
-                        f"""The query context for chart ID {chart.id} (referenced
-                        by annotation layer '{annotation_layer["name"]}') was not found.
-                        Please ensure the chart is properly configured and has a valid
-                        query context."""
+                        "The query context for chart ID %(chart_id)s (referenced "
+                        "by annotation layer '%(layer_name)s') was not found. "
+                        "Please ensure the chart is properly configured and has a "
+                        "valid query context.",
+                        chart_id=chart.id,
+                        layer_name=annotation_layer["name"],
                     )
                 )
 

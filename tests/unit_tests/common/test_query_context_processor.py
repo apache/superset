@@ -2742,3 +2742,38 @@ def test_contribution_uses_decimal_totals_rather_than_zero():
         contribution_totals={"unrelated_metric": Decimal("40.0")},
     )
     assert collapsed["%decimal_metric"].tolist() == [0, 0]
+
+
+def test_get_viz_annotation_data_reports_missing_chart(app_context) -> None:
+    with patch(
+        "superset.common.query_context_processor.ChartDAO.find_by_id",
+        return_value=None,
+    ):
+        with pytest.raises(QueryObjectValidationError) as excinfo:
+            QueryContextProcessor.get_viz_annotation_data(
+                {"value": 42, "name": "My layer"}, force=False
+            )
+
+    assert str(excinfo.value.message) == (
+        "Chart with ID 42 (referenced by annotation layer 'My layer') was not "
+        "found. Please verify that the chart exists and is accessible."
+    )
+
+
+def test_get_viz_annotation_data_reports_missing_query_context(app_context) -> None:
+    chart = MagicMock(id=42)
+    chart.get_query_context.return_value = None
+    with patch(
+        "superset.common.query_context_processor.ChartDAO.find_by_id",
+        return_value=chart,
+    ):
+        with pytest.raises(QueryObjectValidationError) as excinfo:
+            QueryContextProcessor.get_viz_annotation_data(
+                {"value": 42, "name": "My layer"}, force=False
+            )
+
+    assert str(excinfo.value.message) == (
+        "The query context for chart ID 42 (referenced by annotation layer "
+        "'My layer') was not found. Please ensure the chart is properly "
+        "configured and has a valid query context."
+    )
