@@ -179,6 +179,17 @@ export default defineConfig({
           {
             name: 'chromium-gaq',
             testMatch: '**/global-async-query*.spec.ts',
+            // Every dashboard fixture here creates charts as the same admin
+            // user, and Superset's tag listener (superset/tags/models.py,
+            // get_tag) resolves the shared `editor:<id>` tag with an
+            // unguarded SELECT-then-INSERT against tag.name's unique index.
+            // Concurrent fixtures lose that race and the chart POST comes
+            // back 422 "Chart could not be created" (tag_name_key), which
+            // retries then paper over. Serializing the suite keeps that
+            // upstream bug out of this suite's signal; note this only orders
+            // tests *within* a file -- `--workers=1` in playwright-run-gaq
+            // is what also stops the three GAQ spec files racing each other.
+            fullyParallel: false,
             use: {
               browserName: 'chromium' as const,
               testIdAttribute: 'data-test',

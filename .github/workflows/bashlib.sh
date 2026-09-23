@@ -443,7 +443,13 @@ playwright-run-gaq() {
   local report="${GITHUB_WORKSPACE}/superset-frontend/playwright-gaq-report.json"
   rm -f "$report"
   export PLAYWRIGHT_JSON_OUTPUT_NAME="$report"
-  export PLAYWRIGHT_EXTRA_ARGS="--reporter=list,json"
+  # --workers=1: the fixtures all create charts as the same admin user, and
+  # Superset's tag listener races on the shared `editor:<id>` tag (see the
+  # chromium-gaq project in playwright.config.ts). That project's
+  # `fullyParallel: false` only orders tests within one file -- Playwright
+  # still runs separate files concurrently -- and this suite spans three, so
+  # one worker is what actually serializes it.
+  export PLAYWRIGHT_EXTRA_ARGS="--reporter=list,json --workers=1"
 
   # `set -e` is on: without the guard a failing run would exit before the
   # worker log is emitted and before the did-it-actually-run check below.
