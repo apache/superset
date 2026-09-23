@@ -16,7 +16,7 @@
 # under the License.
 
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from types import SimpleNamespace
 from typing import Any
 
@@ -111,7 +111,7 @@ def test_get_object_ids_from_view_args_resolves_slug_and_uuid(
         dashboard_title="audited",
         slug="audited-slug",
         uuid=uuid.uuid4(),
-        deleted_at=datetime.now(),
+        deleted_at=datetime.now(timezone.utc),
     )
     session.add(dashboard)
     session.commit()
