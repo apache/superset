@@ -139,7 +139,7 @@ describe('ControlPanelsContainer', () => {
       ).toHaveLength(4);
     });
     expect(screen.getByRole('tab', { name: /customize/i })).toBeInTheDocument();
-    userEvent.click(screen.getByRole('tab', { name: /customize/i }));
+    await userEvent.click(screen.getByRole('tab', { name: /customize/i }));
     await waitFor(() => {
       expect(
         screen.getAllByTestId('collapsible-control-panel-header'),
