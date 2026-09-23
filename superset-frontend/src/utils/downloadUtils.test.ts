@@ -17,7 +17,6 @@
  * under the License.
  */
 import { isFeatureEnabled } from '@superset-ui/core';
-import { addInfoToast } from 'src/components/MessageToasts/actions';
 import {
   FORCE_IN_VIEW_EVENT,
   RESTORE_VIRTUALIZATION_EVENT,
@@ -43,10 +42,6 @@ jest.mock('@apache-superset/core/translation', () => ({
 
 jest.mock('@apache-superset/core/utils', () => ({
   logging: { warn: jest.fn() },
-}));
-
-jest.mock('src/components/MessageToasts/actions', () => ({
-  addInfoToast: jest.fn(),
 }));
 
 const mockIsFeatureEnabled = isFeatureEnabled as jest.Mock;
@@ -145,12 +140,18 @@ test('forceLoadAllCharts dispatches a single force-in-view event when rows fit i
   const container = document.createElement('div');
   container.append(makeRow('a'), makeRow('b'), makeRow('c'));
 
-  const promise = forceLoadAllCharts(container);
+  const mockAddInfoToast = jest.fn();
+  const promise = forceLoadAllCharts(
+    container,
+    undefined,
+    undefined,
+    mockAddInfoToast,
+  );
   await jest.advanceTimersByTimeAsync(2000);
   const result = await promise;
 
   expect(result).toBe(true);
-  expect(addInfoToast).not.toHaveBeenCalled();
+  expect(mockAddInfoToast).not.toHaveBeenCalled();
   const forceEvents = dispatchSpy.mock.calls
     .map(([event]) => event as Event)
     .filter(event => event.type === FORCE_IN_VIEW_EVENT);
@@ -167,7 +168,13 @@ test('forceLoadAllCharts batches rows in groups rather than forcing everything a
   rowIds.forEach(id => container.appendChild(makeRow(id)));
 
   const onProgress = jest.fn();
-  const promise = forceLoadAllCharts(container, onProgress);
+  const mockAddInfoToast = jest.fn();
+  const promise = forceLoadAllCharts(
+    container,
+    onProgress,
+    undefined,
+    mockAddInfoToast,
+  );
 
   // 3 sequential batch waits + the final whole-container check, ~1s each
   // since nothing is ever `.loading`.
@@ -175,7 +182,12 @@ test('forceLoadAllCharts batches rows in groups rather than forcing everything a
   const result = await promise;
 
   expect(result).toBe(true);
-  expect(addInfoToast).toHaveBeenCalledTimes(1);
+  // Goes through the bound callback, never the raw action creator (which
+  // would only build an action object this module has no way to dispatch).
+  expect(mockAddInfoToast).toHaveBeenCalledTimes(1);
+  expect(mockAddInfoToast).toHaveBeenCalledWith(
+    expect.stringContaining('Preparing %(count)s charts for export'),
+  );
 
   const forceEvents = dispatchSpy.mock.calls
     .map(([event]) => event as CustomEvent<{ rowIds: string[] }>)

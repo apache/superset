@@ -45,6 +45,8 @@ const generateFileStem = (description: string, date = new Date()) =>
  * @param addWarningToast bound via `useToasts()`/`bindActionCreators`, not the raw
  *   action creator from `actions.ts`: this module has no dispatch of its own, so an
  *   unbound creator would only build a Redux action object and never render a toast.
+ * @param addInfoToast same contract as `addWarningToast`; announces a multi-batch
+ *   export while charts are being forced into view.
  * @returns event handler
  */
 export default function downloadAsPdf(
@@ -52,6 +54,7 @@ export default function downloadAsPdf(
   description: string,
   isExactSelector = false,
   addWarningToast?: (message: string) => void,
+  addInfoToast?: (message: string) => void,
 ) {
   return async (event: SyntheticEvent) => {
     const elementToPrint = isExactSelector
@@ -71,6 +74,7 @@ export default function downloadAsPdf(
       elementToPrint,
       undefined,
       addWarningToast,
+      addInfoToast,
     );
 
     const options = {

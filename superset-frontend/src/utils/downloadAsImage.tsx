@@ -411,10 +411,12 @@ export default function downloadAsImageOptimized(
   isExactSelector = false,
   theme?: SupersetTheme,
   options: DownloadImageOptions = {},
-  // Bound via `useToasts()`/`bindActionCreators`, not the raw action creator
-  // from `actions.ts`: this module has no dispatch of its own, so an unbound
-  // creator would only build a Redux action object and never render a toast.
+  // Both bound via `useToasts()`/`bindActionCreators`, not the raw action
+  // creators from `actions.ts`: this module has no dispatch of its own, so an
+  // unbound creator would only build a Redux action object and never render
+  // a toast.
   addWarningToast?: (message: string) => void,
+  addInfoToast?: (message: string) => void,
 ) {
   const { format = 'jpeg', backgroundType = 'solid' } = options;
 
@@ -437,6 +439,7 @@ export default function downloadAsImageOptimized(
       elementToPrint,
       undefined,
       addWarningToast,
+      addInfoToast,
     );
 
     const filter = (node: Element) =>
