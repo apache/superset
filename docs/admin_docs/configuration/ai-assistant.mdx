@@ -212,7 +212,15 @@ usable connection.
 
 A turn is deliberately **not** retried after a worker crash: inference costs
 money, and re-running a turn the user may already have partly seen would charge
-twice. The message records that it failed and the user can ask again.
+twice. A hard-killed worker can leave a non-terminal message; stale-run recovery
+is not automatic.
+
+Retry a failed message submission with the same `request_id`. The assistant
+keeps the original run identifier and its accepted context. An unclaimed run
+can be queued again after an uncertain broker acknowledgement; only one delivery
+can claim it for execution. Retrying a completed turn does not regenerate its
+answer. An inline reconnect waits for the original producer's stored result
+rather than starting another inference; live deltas still belong to that producer.
 
 ## Safety and limits
 

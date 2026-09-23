@@ -32,7 +32,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import uuid as uuid_module
-from collections.abc import AsyncIterator, Iterator
+from collections.abc import AsyncIterator, Generator, Iterator
 from dataclasses import dataclass
 from typing import Any
 
@@ -171,7 +171,7 @@ def clear_cancel(run_id: str) -> None:
         logger.debug("Could not clear cancellation flag for AI run %s", run_id)
 
 
-def stream_turn(request: TurnRequest) -> Iterator[StreamEvent]:
+def stream_turn(request: TurnRequest) -> Generator[StreamEvent, None, None]:
     """
     Answer a turn, yielding events as they happen.
 
@@ -181,10 +181,14 @@ def stream_turn(request: TurnRequest) -> Iterator[StreamEvent]:
     web workers, and a turn that published to one process's in-memory queue
     while the browser's stream landed on another would appear to hang forever.
 
-    Never raises for an operational failure: a failure is an ``error`` event and
-    an ``error`` message status, because the caller may already have flushed
-    response headers or may be a worker with no one to report to.
+    Execution failures are ``error`` events and an ``error`` message status.
+    A database claim failure raises without rewriting the shared message: the
+    caller has not established ownership of its execution.
     """
+    if not _claim_pending(request.assistant_message_uuid):
+        logger.info("AI message %s is already claimed", request.assistant_message_uuid)
+        return
+
     recorder = start_run(
         run_id=request.run_id,
         thread_uuid=request.thread_uuid,
@@ -317,8 +321,6 @@ def _run(request: TurnRequest, state: dict[str, Any]) -> Iterator[StreamEvent]:
         or _config("AI_AGENT_TIMEOUT_SECONDS", 300),
         should_cancel=lambda: is_cancelled(request.run_id),
     )
-
-    _mark_streaming(request.assistant_message_uuid)
 
     # The runtime is async and this is a synchronous generator, so the async
     # events are drained into a list per batch rather than bridged with a
@@ -457,14 +459,11 @@ def _build_system_prompt(tools: Any, rendered_context: str) -> str:
 
 
 @transaction()
-def _mark_streaming(message_uuid: str) -> None:
-    """Move the placeholder assistant message into its in-flight state."""
+def _claim_pending(message_uuid: str) -> bool:
+    """Claim a placeholder once, before any inference can start."""
     from superset.daos.ai import AIChatMessageDAO
 
-    message = AIChatMessageDAO.find_one_or_none(uuid=uuid_module.UUID(message_uuid))
-    if message is None:
-        return
-    message.status = MessageStatus.STREAMING.value
+    return AIChatMessageDAO.claim_pending(message_uuid)
 
 
 def _finalise_message(
