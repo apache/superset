@@ -152,6 +152,7 @@ export default function transformProps(
     inContextMenu,
     emitCrossFilters,
     legendState,
+    legendIndex,
   } = chartProps;
 
   let focusedSeries: string | null = null;
@@ -798,7 +799,12 @@ export default function transformProps(
     xAxisTitleMarginPx,
   );
 
-  const { setDataMask = () => {}, onContextMenu } = hooks;
+  const {
+    setDataMask = () => {},
+    onContextMenu,
+    onLegendStateChanged,
+    onLegendScroll,
+  } = hooks;
   const alignTicks = yAxisIndex !== yAxisIndexB;
 
   // Both queries share the axis, so a bucket contributed by either needs a tick.
@@ -997,6 +1003,7 @@ export default function transformProps(
         legendState,
         chartPadding,
       ),
+      scrollDataIndex: legendIndex || 0,
       data: legendData,
     },
     series: dedupSeries(reorderForecastSeries(series) as SeriesOption[]),
@@ -1059,6 +1066,8 @@ export default function transformProps(
     selectedValues: filterState.selectedValues || [],
     onContextMenu,
     onFocusedSeries,
+    onLegendStateChanged,
+    onLegendScroll,
     xValueFormatter: tooltipFormatter,
     xAxis: {
       label: xAxisLabel,

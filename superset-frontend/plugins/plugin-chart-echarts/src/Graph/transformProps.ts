@@ -167,6 +167,8 @@ export default function transformProps(
     filterState,
     emitCrossFilters,
     theme,
+    legendState,
+    legendIndex,
   } = chartProps;
   const data: DataRecord[] = queriesData[0].data || [];
   const coltypeMapping = getColtypesMapping(queriesData[0]);
@@ -373,13 +375,17 @@ export default function transformProps(
         legendOrientation,
         showLegend,
         theme,
+        false,
+        legendState,
       ),
+      scrollDataIndex: legendIndex || 0,
       data: legendData,
     },
     series,
   };
 
-  const { onContextMenu, setDataMask } = hooks;
+  const { onContextMenu, setDataMask, onLegendStateChanged, onLegendScroll } =
+    hooks;
 
   return {
     width,
@@ -388,6 +394,8 @@ export default function transformProps(
     echartOptions,
     onContextMenu,
     setDataMask,
+    onLegendStateChanged,
+    onLegendScroll,
     filterState,
     refs,
     emitCrossFilters,

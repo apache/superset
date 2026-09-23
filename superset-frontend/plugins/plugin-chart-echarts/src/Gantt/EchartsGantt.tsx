@@ -16,12 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { sharedControlComponents } from '@superset-ui/chart-controls';
 import { t } from '@apache-superset/core/translation';
+import { LegendState } from '@superset-ui/core';
 import Echart from '../components/Echart';
 import { EchartsGanttChartTransformedProps } from './types';
 import { EventHandlers } from '../types';
+import { useLegendEventHandlers } from '../utils/legendEventHandlers';
 
 const { RadioButtonControl } = sharedControlComponents;
 
@@ -35,6 +37,7 @@ export default function EchartsGantt(props: EchartsGanttChartTransformedProps) {
     formData,
     setControlValue,
     onLegendStateChanged,
+    onLegendScroll,
   } = props;
   const extraControlRef = useRef<HTMLDivElement>(null);
   const [extraHeight, setExtraHeight] = useState(0);
@@ -44,23 +47,19 @@ export default function EchartsGantt(props: EchartsGanttChartTransformedProps) {
     setExtraHeight(updatedHeight);
   }, [formData.showExtraControls]);
 
-  const eventHandlers: EventHandlers = {
-    legendselectchanged: payload => {
+  const deferLegendStateChange = useCallback(
+    (legendState: LegendState) => {
       requestAnimationFrame(() => {
-        onLegendStateChanged?.(payload.selected);
+        onLegendStateChanged?.(legendState);
       });
     },
-    legendselectall: payload => {
-      requestAnimationFrame(() => {
-        onLegendStateChanged?.(payload.selected);
-      });
-    },
-    legendinverseselect: payload => {
-      requestAnimationFrame(() => {
-        onLegendStateChanged?.(payload.selected);
-      });
-    },
-  };
+    [onLegendStateChanged],
+  );
+
+  const eventHandlers: EventHandlers = useLegendEventHandlers(
+    deferLegendStateChange,
+    onLegendScroll,
+  );
 
   return (
     <>

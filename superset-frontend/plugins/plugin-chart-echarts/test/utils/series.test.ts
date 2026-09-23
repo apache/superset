@@ -122,6 +122,7 @@ const {
 } = require('../../src/utils/legendLayout');
 
 const expectedThemeProps = {
+  animation: false,
   selector: ['all', 'inverse'],
   selected: {},
   selectorLabel: {

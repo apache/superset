@@ -46,11 +46,12 @@ export default function transformProps(
     height,
     hooks,
     legendState = {},
+    legendIndex,
     queriesData,
     theme,
     width,
   } = chartProps;
-  const { onLegendStateChanged } = hooks;
+  const { onLegendStateChanged, onLegendScroll } = hooks;
   const {
     colorScheme,
     column,
@@ -187,6 +188,7 @@ export default function transformProps(
         false,
         legendState,
       ),
+      scrollDataIndex: legendIndex || 0,
       data: legendOptions,
     },
     tooltip: {
@@ -204,5 +206,6 @@ export default function transformProps(
     echartOptions,
     onFocusedSeries,
     onLegendStateChanged,
+    onLegendScroll,
   };
 }

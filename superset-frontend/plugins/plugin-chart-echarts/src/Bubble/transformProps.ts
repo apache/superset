@@ -97,8 +97,17 @@ export function formatTooltip(
 }
 
 export default function transformProps(chartProps: EchartsBubbleChartProps) {
-  const { height, width, hooks, queriesData, formData, inContextMenu, theme } =
-    chartProps;
+  const {
+    height,
+    width,
+    hooks,
+    queriesData,
+    formData,
+    inContextMenu,
+    theme,
+    legendState,
+    legendIndex,
+  } = chartProps;
 
   const { data = [] } = queriesData[0];
   const {
@@ -256,7 +265,10 @@ export default function transformProps(chartProps: EchartsBubbleChartProps) {
         legendOrientation,
         showLegend,
         theme,
+        false,
+        legendState,
       ),
+      scrollDataIndex: legendIndex || 0,
       data: legendData,
     },
     tooltip: {
@@ -276,7 +288,12 @@ export default function transformProps(chartProps: EchartsBubbleChartProps) {
     grid: { ...defaultGrid, ...padding },
   };
 
-  const { onContextMenu, setDataMask = () => {} } = hooks;
+  const {
+    onContextMenu,
+    setDataMask = () => {},
+    onLegendStateChanged,
+    onLegendScroll,
+  } = hooks;
 
   return {
     refs,
@@ -285,6 +302,8 @@ export default function transformProps(chartProps: EchartsBubbleChartProps) {
     echartOptions,
     onContextMenu,
     setDataMask,
+    onLegendStateChanged,
+    onLegendScroll,
     formData,
   };
 }

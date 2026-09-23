@@ -85,6 +85,7 @@ export default function transformProps(
     height,
     formData,
     legendState,
+    legendIndex,
     queriesData,
     hooks,
     theme,
@@ -94,7 +95,12 @@ export default function transformProps(
   } = chartProps;
   const refs: Refs = {};
   const { data = [] } = queriesData[0];
-  const { setDataMask = () => {}, onContextMenu, onLegendStateChanged } = hooks;
+  const {
+    setDataMask = () => {},
+    onContextMenu,
+    onLegendStateChanged,
+    onLegendScroll,
+  } = hooks;
 
   const {
     currencyFormat,
@@ -282,6 +288,7 @@ export default function transformProps(
         false,
         legendState,
       ),
+      scrollDataIndex: legendIndex || 0,
       data: legendData,
     },
     xAxis: {
@@ -344,6 +351,7 @@ export default function transformProps(
     setDataMask,
     onContextMenu,
     onLegendStateChanged,
+    onLegendScroll,
     groupby: groupbyColumns,
     labelMap,
     selectedValues,

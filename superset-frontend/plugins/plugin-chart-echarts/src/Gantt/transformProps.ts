@@ -120,6 +120,7 @@ export default function transformProps(chartProps: EchartsGanttChartProps) {
     emitCrossFilters,
     datasource,
     legendState,
+    legendIndex,
   } = chartProps;
 
   const {
@@ -151,7 +152,7 @@ export default function transformProps(chartProps: EchartsGanttChartProps) {
     ...formData,
   };
 
-  const { setControlValue, onLegendStateChanged } = hooks;
+  const { setControlValue, onLegendStateChanged, onLegendScroll } = hooks;
 
   const { data = [], colnames = [], coltypes = [] } = queriesData[0];
   const refs: Refs = {};
@@ -451,6 +452,7 @@ export default function transformProps(chartProps: EchartsGanttChartProps) {
         legendState,
         padding,
       ),
+      scrollDataIndex: legendIndex || 0,
       data: legendData,
     },
     grid: {
@@ -524,5 +526,6 @@ export default function transformProps(chartProps: EchartsGanttChartProps) {
     refs,
     setControlValue,
     onLegendStateChanged,
+    onLegendScroll,
   };
 }
