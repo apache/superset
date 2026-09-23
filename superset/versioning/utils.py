@@ -23,7 +23,7 @@ from contextlib import contextmanager
 from typing import Any, Callable
 
 import sqlalchemy as sa
-from flask import current_app
+from flask import current_app, has_app_context
 from sqlalchemy.orm import Session
 
 # Host contract: version API feature gates, transaction-scoped capture/restore,
@@ -55,6 +55,9 @@ def capture_enabled(session: Session | None = None) -> bool:
     The host owns tenant identity, bounded transaction memoization and expected
     service-failure handling. Database/programming errors are not suppressed.
     """
+    # Continuum observes unrelated SQLAlchemy sessions, including broker sessions.
+    if not has_app_context():
+        return False
     if not current_app.config.get("ENABLE_VERSIONING_CAPTURE", False):
         return False
     predicate: Callable[[Session], bool] | None = current_app.config.get(

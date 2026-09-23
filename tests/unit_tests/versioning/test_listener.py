@@ -17,15 +17,18 @@
 """Tests for version-change listener transaction lifecycle behavior."""
 
 from collections.abc import Iterator
+from contextvars import Context
 from typing import Any
 from unittest.mock import MagicMock
 
 import pytest
 import sqlalchemy as sa
+from flask import has_app_context
 from sqlalchemy.orm import Session, sessionmaker
 
 from superset.versioning.changes import listener
 from superset.versioning.diff import ChangeRecord
+from superset.versioning.unit_of_work import CaptureUnitOfWork
 
 
 @pytest.mark.parametrize(
@@ -140,6 +143,30 @@ def lifecycle_session() -> Iterator[Session]:
     finally:
         session.close()
         engine.dispose()
+
+
+def test_unrelated_session_flush_without_app_context_skips_capture(
+    lifecycle_session: Session,
+) -> None:
+    """A broker session must not depend on a Flask application context."""
+    from sqlalchemy_continuum import versioning_manager
+
+    unit_of_work: CaptureUnitOfWork = CaptureUnitOfWork(versioning_manager)
+
+    def before_flush(
+        session: Session, _flush_context: object, _instances: object
+    ) -> None:
+        unit_of_work.process_before_flush(session)
+
+    sa.event.listen(lifecycle_session, "before_flush", before_flush)
+
+    def commit_without_app_context() -> None:
+        assert not has_app_context()
+        lifecycle_session.add(LifecycleRow(value="broker queue"))
+        lifecycle_session.commit()
+
+    Context().run(commit_without_app_context)
+    assert lifecycle_session.scalar(sa.select(LifecycleRow.value)) == "broker queue"
 
 
 def test_before_commit_can_force_final_flush_without_reentry(

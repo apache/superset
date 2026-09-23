@@ -741,8 +741,8 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # Enable Table V2 time comparison feature
     # @lifecycle: development
     "TABLE_V2_TIME_COMPARISON_ENABLED": False,
-    # Enables the version history panel and the chart, dashboard, and dataset
-    # version-list, snapshot, activity, and version-restore API endpoints.
+    # Enables chart and dashboard version history panels and their supporting
+    # API endpoints.
     # History only accrues while ``ENABLE_VERSIONING_CAPTURE`` is also on;
     # with capture off the panel renders empty or stale history, so the two
     # ship with matching defaults and should be changed together.
