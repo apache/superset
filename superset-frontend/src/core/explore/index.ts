@@ -26,10 +26,7 @@ import type {
 import { setControlValue } from 'src/explore/actions/exploreActions';
 import { getFormDataFromControls } from 'src/explore/controlUtils';
 import { QUERY_MODE_REQUISITES } from 'src/explore/constants';
-import {
-  getChartDataRequest,
-  handleChartDataResponse,
-} from 'src/components/Chart/chartAction';
+import { requestChartDataResolved } from 'src/components/Chart/chartAction';
 import { store, RootState } from 'src/views/store';
 import { navigation } from '../navigation';
 
@@ -103,16 +100,15 @@ const setControlValues: typeof exploreApi.setControlValues = async (
 
 const getQuery: typeof exploreApi.getQuery = async () => {
   const formData = requireFormData();
-  const { response, json } = await getChartDataRequest({
+  // With GLOBAL_ASYNC_QUERIES enabled, an uncached request comes back as a
+  // 202 job envelope rather than the result array, so this must go through
+  // the same async-response handling as a normal chart query.
+  const results = await requestChartDataResolved({
     formData,
     resultFormat: 'json',
     resultType: 'query',
     ownState: getOwnState(getChartId()),
   });
-  // With GLOBAL_ASYNC_QUERIES enabled, an uncached request comes back as a
-  // 202 job envelope rather than the result array, so this must go through
-  // the same async-response handling as a normal chart query.
-  const results = await handleChartDataResponse(response, json);
   const result = results?.[0] as ChartDataResponseResult | undefined;
   if (!result || result.error) {
     throw new Error(result?.error ?? 'Failed to retrieve the query');
@@ -122,16 +118,15 @@ const getQuery: typeof exploreApi.getQuery = async () => {
 
 const getChartData: typeof exploreApi.getChartData = async () => {
   const formData = requireFormData();
-  const { response, json } = await getChartDataRequest({
+  // With GLOBAL_ASYNC_QUERIES enabled, an uncached request comes back as a
+  // 202 job envelope rather than the result array, so this must go through
+  // the same async-response handling as a normal chart query.
+  const results = await requestChartDataResolved({
     formData,
     resultFormat: 'json',
     resultType: 'full',
     ownState: getOwnState(getChartId()),
   });
-  // With GLOBAL_ASYNC_QUERIES enabled, an uncached request comes back as a
-  // 202 job envelope rather than the result array, so this must go through
-  // the same async-response handling as a normal chart query.
-  const results = await handleChartDataResponse(response, json);
   const result = results?.[0] as ChartDataResponseResult | undefined;
   if (!result || result.error) {
     throw new Error(result?.error ?? 'Failed to export chart data');
