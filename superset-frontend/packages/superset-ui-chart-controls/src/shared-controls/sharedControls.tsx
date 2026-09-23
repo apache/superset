@@ -467,7 +467,7 @@ const echart_options: SharedControlConfig<'JSEditorControl'> = {
   validators: [],
 };
 
-const sharedControls: Record<string, SharedControlConfig<any>> = {
+const controlConfigs = {
   metrics: dndAdhocMetricsControl,
   metric: dndAdhocMetricControl,
   datasource: datasourceControl,
@@ -518,5 +518,11 @@ const sharedControls: Record<string, SharedControlConfig<any>> = {
   // Add all Matrixify controls
   ...matrixifyControls,
 };
+
+type RegisteredControl = (typeof controlConfigs)[keyof typeof controlConfigs];
+
+// Each control retains the option type accepted by its renderer.
+const sharedControls: typeof controlConfigs & Record<string, RegisteredControl> =
+  controlConfigs;
 
 export default sharedControls;
