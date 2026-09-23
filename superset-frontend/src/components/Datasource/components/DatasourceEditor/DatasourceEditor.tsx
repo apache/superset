@@ -989,6 +989,13 @@ function DatasourceEditor({
     propsDatasource.datasource_type === 'table' ||
       propsDatasource.type === 'table',
   );
+  // Captured once when the editor opens: onChange round-trips through the
+  // parent (e.g. DatasourceModal) and echoes the edit back down as a new
+  // `datasource` prop, so comparing against the live prop would immediately
+  // erase the "just toggled" signal this baseline is used to detect.
+  const [normalizeColumnsBaseline] = useState(
+    propsDatasource.normalize_columns,
+  );
   const [isEditMode, setIsEditMode] = useState(false);
   const [databaseColumns, setDatabaseColumns] = useState<Column[]>(
     propsDatasource.columns.filter(col => !col.expression),
@@ -1900,6 +1907,18 @@ function DatasourceEditor({
           )}
           control={<CheckboxControl />}
         />
+        {datasource.normalize_columns && !normalizeColumnsBaseline && (
+          <Alert
+            css={themeParam => ({ marginBottom: themeParam.sizeUnit * 4 })}
+            type="warning"
+            showIcon
+            message={t(
+              'Changing this setting will change the casing for all columns in this dataset, ' +
+                'which will break any existing charts and dashboard filters that reference the ' +
+                'current column names.',
+            )}
+          />
+        )}
         <Field
           inline
           fieldKey="always_filter_main_dttm"
@@ -1911,7 +1930,7 @@ function DatasourceEditor({
         />
       </Fieldset>
     ),
-    [datasource, onDatasourcePropChange, isSqla],
+    [datasource, onDatasourcePropChange, isSqla, normalizeColumnsBaseline],
   );
 
   const renderSourceFieldset = useCallback(
