@@ -221,6 +221,10 @@ def execute_sql_with_cursor(
         Returns empty list if stopped. Raises exception on error (fail-fast).
     """
     from superset.result_set import SupersetResultSet
+    from superset.sql.execution.cancellation import (
+        check_query_deadline,
+        query_executed,
+    )
 
     total = len(statements)
     if total == 0:
@@ -229,6 +233,7 @@ def execute_sql_with_cursor(
     results: list[tuple[str, SupersetResultSet | None, float, int]] = []
 
     for i, statement in enumerate(statements):
+        check_query_deadline()
         # Check if query was stopped (async cancellation)
         if check_stopped_fn and check_stopped_fn():
             return results
@@ -266,12 +271,14 @@ def execute_sql_with_cursor(
         else:
             database.db_engine_spec.execute(cursor, stmt_sql, database)
 
+        query_executed()
         stmt_execution_time = (time.time() - stmt_start_time) * 1000
 
         # Fetch results from ALL statements
         description = cursor.description
         if description:
             rows = database.db_engine_spec.fetch_data(cursor)
+            check_query_deadline()
             result_set = SupersetResultSet(
                 rows,
                 description,
@@ -392,7 +399,16 @@ class SQLExecutor:
             timeout = opts.timeout_seconds or app.config.get("SQLLAB_TIMEOUT", 30)
             timeout_msg = f"Query exceeded the {timeout} seconds timeout."
 
-            with utils.timeout(seconds=timeout, error_message=timeout_msg):
+            from superset.sql.execution.cancellation import cursor_scope
+
+            # MCP's owner enforces a per-call deadline off the transport loop.
+            # A process-wide SIGALRM is neither thread-safe nor cancellable.
+            timeout_context = (
+                contextlib.nullcontext()
+                if cursor_scope.get() is not None
+                else utils.timeout(seconds=timeout, error_message=timeout_msg)
+            )
+            with timeout_context:
                 statement_results = self._execute_statements(
                     original_script,
                     transformed_script,
@@ -651,7 +667,12 @@ class SQLExecutor:
             with self.database.get_raw_connection(
                 catalog=catalog, schema=schema
             ) as conn:
-                with contextlib.closing(conn.cursor()) as cursor:
+                from superset.sql.execution.cancellation import cancellable_cursor
+
+                with (
+                    contextlib.closing(conn.cursor()) as cursor,
+                    cancellable_cursor(self.database, cursor, catalog, schema),
+                ):
                     return execute_sql_with_cursor(
                         database=self.database,
                         cursor=cursor,

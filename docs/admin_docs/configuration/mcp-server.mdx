@@ -41,6 +41,28 @@ flowchart LR
     C --> D[("Database<br/>(Postgres)")]
 ```
 
+## Tool deadlines and concurrency
+
+Async MCP tools run in isolated thread workers, each with its own Flask app
+context and metadata database session. Warehouse I/O does not run on the
+transport event loop. This includes SQL execution, chart data and previews,
+chart compilation, dataset queries, and tools that discover warehouse metadata.
+
+`MCP_TOOL_WORKERS` sets the maximum admitted calls per application/process
+(default: `16`). A full pool immediately returns an **MCP server busy** error;
+it does not queue requests behind slow queries.
+
+`execute_sql` uses its request's `timeout` (default: 30 seconds). Tools without
+a timeout parameter use `SQLLAB_TIMEOUT`. The deadline covers the complete tool
+call, including composed queries, and returns a clear timeout error with a call
+ID. Superset requests warehouse cancellation using its engine cancellation
+hooks, on a separate bounded pool. Drivers without cancellation support can
+continue running after the caller receives the timeout; the worker retains its
+slot and owns session cleanup until it finishes. A stuck cancellation also
+retains its call's slot rather than exhausting cancellation capacity for new
+calls. One warning with the call ID records abandonment. A timeout does not guarantee that warehouse writes were
+rolled back, so do not blindly retry mutating SQL.
+
 ## Dashboard filter notifications
 
 `apply_dashboard_filters` supports exact-match select filters without inverse

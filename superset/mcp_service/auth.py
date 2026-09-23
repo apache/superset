@@ -1040,6 +1040,10 @@ def _setup_user_context() -> MCPUser | None:
     # cleared (already reset above) rather than raise.
     if (user_id := getattr(user, "id", None)) is not None:
         _mcp_user_id_var.set(user_id)
+    from superset.mcp_service.worker import _active_call
+
+    if call := _active_call.get():
+        call.user_id = _mcp_user_id_var.get()
     return user
 
 
@@ -1087,7 +1091,7 @@ def _remove_session_safe() -> None:
             exc,
         )
         try:
-            db.session.invalidate()
+            db.session().invalidate()
         except Exception as invalidate_exc:
             logger.debug(
                 "Could not invalidate session after connection error: %s",
@@ -1121,6 +1125,14 @@ def _get_app_context_manager() -> AbstractContextManager[None]:
     from both ``mcp_auth_hook`` (tool execution) and
     ``RBACToolVisibilityMiddleware`` (tools/list filtering).
     """
+    from contextlib import nullcontext
+
+    from superset.mcp_service.worker import _active_call
+
+    if _active_call.get() is not None:
+        # The worker owns a fresh context/session for its entire lifetime,
+        # including any nested tool calls and post-timeout cleanup.
+        return nullcontext()
     if has_request_context():
         return _request_tool_call_context()
     return _mcp_tool_call_context()
@@ -1156,7 +1168,10 @@ def _mcp_tool_call_context() -> Generator[None, None, None]:
             # Push a new context for the CURRENT app (not get_flask_app()
             # which may return a different instance in test environments).
             with current_app._get_current_object().app_context():
-                yield
+                try:
+                    yield
+                finally:
+                    _remove_session_safe()
         else:
             # Deferred: importing at module level would trigger create_app()
             # before Superset is fully initialised (e.g. during unit-test
@@ -1164,7 +1179,10 @@ def _mcp_tool_call_context() -> Generator[None, None, None]:
             from superset.mcp_service.flask_singleton import get_flask_app
 
             with get_flask_app().app_context():
-                yield
+                try:
+                    yield
+                finally:
+                    _remove_session_safe()
     finally:
         # Reset only after the app context popped, so teardown's
         # db.session.remove() still resolves to this call's session.
@@ -1259,7 +1277,27 @@ def mcp_auth_hook(tool_func: F, *, tool_name: str | None = None) -> F:  # noqa: 
                     _cleanup_session_on_error()
                     raise
 
-        wrapper = async_wrapper
+        @functools.wraps(tool_func)
+        async def worker_wrapper(*args: Any, **kwargs: Any) -> Any:
+            from superset.mcp_service.worker import run_in_worker
+
+            bound = _tool_sig.bind_partial(*args, **kwargs)
+            request = bound.arguments.get("request")
+            seconds = getattr(request, "timeout", None)
+            if seconds is None:
+                if has_app_context():
+                    seconds = current_app.config.get("SQLLAB_TIMEOUT", 30)
+                else:
+                    from superset.mcp_service.flask_singleton import get_flask_app
+
+                    seconds = get_flask_app().config.get("SQLLAB_TIMEOUT", 30)
+            # Bind ctx once on the transport loop, including positional callers.
+            bound.arguments.update(_inject_ctx(dict(bound.arguments)))
+            return await run_in_worker(
+                async_wrapper, (), dict(bound.arguments), seconds
+            )
+
+        wrapper = worker_wrapper
 
     else:
 

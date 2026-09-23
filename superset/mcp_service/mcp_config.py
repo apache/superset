@@ -68,6 +68,12 @@ MCP_BUG_REPORT_CONTACT: str | None = None
 # This only narrows access and is not a substitute for permissions or RLS.
 MCP_DATASET_ROLE_ALLOWLIST: dict[str, list[str]] | None = None
 
+# Maximum admitted tool calls per application/process. There is no waiting
+# queue: a saturated pool returns a server-busy error. Timed-out calls retain
+# their slots until query/cancellation I/O finishes. Cancellation has a separate
+# equally bounded pool so a stuck query cannot starve its own cancellation.
+MCP_TOOL_WORKERS = 16
+
 # MCP Debug mode - shows suppressed initialization output in stdio mode
 MCP_DEBUG = False
 
