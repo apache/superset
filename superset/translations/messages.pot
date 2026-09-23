@@ -25,7 +25,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-22 10:58-0700\n"
+"POT-Creation-Date: 2026-09-23 11:02+0500\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -416,6 +416,10 @@ msgstr[0] ""
 msgstr[1] ""
 
 #, python-format
+msgid "%s failed"
+msgstr ""
+
+#, python-format
 msgid "%s field"
 msgid_plural "%s fields"
 msgstr[0] ""
@@ -516,6 +520,10 @@ msgstr[0] ""
 msgstr[1] ""
 
 #, python-format
+msgid "%s row(s)"
+msgstr ""
+
+#, python-format
 msgid "%s s ago"
 msgid_plural "%s s ago"
 msgstr[0] ""
@@ -544,6 +552,10 @@ msgid "%s semantic view(s) failed to add: %s"
 msgstr ""
 
 #, python-format
+msgid "%s step(s)"
+msgstr ""
+
+#, python-format
 msgid "%s tab selected"
 msgstr ""
 
@@ -557,6 +569,22 @@ msgstr ""
 
 #, python-format
 msgid "%s%s"
+msgstr ""
+
+#, python-format
+msgid "%sd"
+msgstr ""
+
+#, python-format
+msgid "%sh"
+msgstr ""
+
+#, python-format
+msgid "%sm"
+msgstr ""
+
+#, python-format
+msgid "%sms"
 msgstr ""
 
 msgid "(Removed)"
@@ -625,6 +653,9 @@ msgid ""
 "%(remaining)s\n"
 "\n"
 "Error: %(text)s\n"
+msgstr ""
+
+msgid "*Response cancelled.*"
 msgstr ""
 
 #, python-format
@@ -1079,6 +1110,33 @@ msgstr ""
 msgid "A-Z"
 msgstr ""
 
+msgid "AI assistant"
+msgstr ""
+
+msgid "AI chat feedback could not be recorded."
+msgstr ""
+
+msgid "AI chat feedback parameters are invalid."
+msgstr ""
+
+msgid "AI chat message could not be created."
+msgstr ""
+
+msgid "AI chat message parameters are invalid."
+msgstr ""
+
+msgid "AI chat thread could not be created."
+msgstr ""
+
+msgid "AI chat thread could not be deleted."
+msgstr ""
+
+msgid "AI chat thread could not be updated."
+msgstr ""
+
+msgid "AI chat thread parameters are invalid."
+msgstr ""
+
 msgid "AND"
 msgstr ""
 
@@ -1487,6 +1545,9 @@ msgstr ""
 msgid ""
 "After making the changes, copy the query and paste in the virtual dataset"
 " SQL snippet settings."
+msgstr ""
+
+msgid "Agent"
 msgstr ""
 
 msgid "Aggregate"
@@ -2401,6 +2462,18 @@ msgstr ""
 msgid "Arrow"
 msgstr ""
 
+msgid "Ask a question about what you are looking at."
+msgstr ""
+
+msgid "Ask questions about your data in natural language."
+msgstr ""
+
+msgid "Ask the AI assistant"
+msgstr ""
+
+msgid "Asked for"
+msgstr ""
+
 msgid "Assign a set of parameters as"
 msgstr ""
 
@@ -2537,6 +2610,9 @@ msgid "Backward values"
 msgstr ""
 
 msgid "Bad formula."
+msgstr ""
+
+msgid "Bad response"
 msgstr ""
 
 msgid "Bar"
@@ -3187,6 +3263,9 @@ msgid_plural "Chart Editors: %s"
 msgstr[0] ""
 msgstr[1] ""
 
+msgid "Chart Explorer"
+msgstr ""
+
 msgid "Chart ID"
 msgstr ""
 
@@ -3194,6 +3273,9 @@ msgid "Chart Options"
 msgstr ""
 
 msgid "Chart Orientation"
+msgstr ""
+
+msgid "Chart Preview"
 msgstr ""
 
 msgid "Chart Source"
@@ -3221,6 +3303,9 @@ msgid "Chart cache timeout"
 msgstr ""
 
 msgid "Chart changes"
+msgstr ""
+
+msgid "Chart configuration not found or expired."
 msgstr ""
 
 msgid "Chart could not be created."
@@ -3254,6 +3339,9 @@ msgid "Chart height"
 msgstr ""
 
 msgid "Chart imported"
+msgstr ""
+
+msgid "Chart loading timed out."
 msgstr ""
 
 msgid "Chart name"
@@ -3302,6 +3390,10 @@ msgstr ""
 msgid "Chart width"
 msgstr ""
 
+#, python-format
+msgid "Chart: %s"
+msgstr ""
+
 msgid "Charts"
 msgstr ""
 
@@ -3319,6 +3411,12 @@ msgid "Charts could not be deleted."
 msgstr ""
 
 msgid "Charts per row"
+msgstr ""
+
+msgid "Chat Query"
+msgstr ""
+
+msgid "Chat agent"
 msgstr ""
 
 msgid "Check for sorting ascending"
@@ -3610,6 +3708,9 @@ msgstr ""
 msgid "Close tab"
 msgstr ""
 
+msgid "Close the assistant"
+msgstr ""
+
 msgid "Close version history"
 msgstr ""
 
@@ -3632,6 +3733,9 @@ msgid "Collapse All"
 msgstr ""
 
 msgid "Collapse Datasource panel"
+msgstr ""
+
+msgid "Collapse SQL code block"
 msgstr ""
 
 msgid "Collapse all"
@@ -4072,6 +4176,9 @@ msgstr ""
 msgid "Content type"
 msgstr ""
 
+msgid "Context used"
+msgstr ""
+
 msgid "Continue"
 msgstr ""
 
@@ -4099,6 +4206,18 @@ msgstr ""
 msgid "Controls labeled "
 msgstr ""
 
+msgid "Conversation history"
+msgstr ""
+
+msgid "Conversation name"
+msgstr ""
+
+msgid "Conversations"
+msgstr ""
+
+msgid "Conversations could not be loaded."
+msgstr ""
+
 msgid "Convert @import to inline CSS"
 msgstr ""
 
@@ -4106,6 +4225,9 @@ msgstr ""
 msgid ""
 "Converted %s @import rule(s) to inline CSS. Review the result before "
 "saving."
+msgstr ""
+
+msgid "Copied to clipboard"
 msgstr ""
 
 msgid "Copied to clipboard!"
@@ -4127,6 +4249,12 @@ msgid "Copy URL"
 msgstr ""
 
 msgid "Copy and Paste JSON credentials"
+msgstr ""
+
+msgid "Copy code"
+msgstr ""
+
+msgid "Copy code block"
 msgstr ""
 
 msgid "Copy code to clipboard"
@@ -4667,6 +4795,10 @@ msgstr ""
 msgid "Dashboard usage"
 msgstr ""
 
+#, python-format
+msgid "Dashboard: %s"
+msgstr ""
+
 msgid "Dashboards"
 msgstr ""
 
@@ -5163,6 +5295,9 @@ msgstr ""
 msgid "Delete component"
 msgstr ""
 
+msgid "Delete conversation"
+msgstr ""
+
 msgid "Delete dashboard tab?"
 msgstr ""
 
@@ -5195,6 +5330,9 @@ msgid "Delete theme"
 msgstr ""
 
 msgid "Delete this container and save to remove this message."
+msgstr ""
+
+msgid "Delete this conversation?"
 msgstr ""
 
 msgid "Delete user"
@@ -5353,6 +5491,10 @@ msgid "Depends on"
 msgstr ""
 
 msgid "Deployment default"
+msgstr ""
+
+#, python-format
+msgid "Describe the tables in the %s schema"
 msgstr ""
 
 msgid "Description"
@@ -5600,6 +5742,9 @@ msgid ""
 msgstr ""
 
 msgid "Do you want a donut or a pie?"
+msgstr ""
+
+msgid "Dock the assistant"
 msgstr ""
 
 msgid "Documentation"
@@ -6396,6 +6541,10 @@ msgstr ""
 msgid "Error: permalink state not found"
 msgstr ""
 
+#, python-format
+msgid "Est. ~%s"
+msgstr ""
+
 msgid "Estimate cost"
 msgstr ""
 
@@ -6477,6 +6626,9 @@ msgstr ""
 msgid "Expand All"
 msgstr ""
 
+msgid "Expand SQL code block"
+msgstr ""
+
 msgid "Expand all"
 msgstr ""
 
@@ -6500,6 +6652,16 @@ msgid "Experimental"
 msgstr ""
 
 msgid "Expired"
+msgstr ""
+
+#, python-format
+msgid "Explain what %s is showing"
+msgstr ""
+
+msgid "Explain what the query in this tab does"
+msgstr ""
+
+msgid "Explain what this chart is showing"
 msgstr ""
 
 msgid "Explore"
@@ -7045,6 +7207,12 @@ msgstr ""
 msgid "Find"
 msgstr ""
 
+msgid "Find a dataset about orders"
+msgstr ""
+
+msgid "Find the mistake in this query"
+msgstr ""
+
 msgid "Finish"
 msgstr ""
 
@@ -7346,6 +7514,9 @@ msgstr ""
 msgid "Gold"
 msgstr ""
 
+msgid "Good response"
+msgstr ""
+
 msgid "Google Sheet Name and URL"
 msgstr ""
 
@@ -7475,6 +7646,9 @@ msgid "Hide layer"
 msgstr ""
 
 msgid "Hide password."
+msgstr ""
+
+msgid "Hide the AI assistant"
 msgstr ""
 
 msgid "Hides the Line for the time series"
@@ -7849,6 +8023,9 @@ msgid "Invalid advanced data type: %(advanced_data_type)s"
 msgstr ""
 
 msgid "Invalid certificate"
+msgstr ""
+
+msgid "Invalid chart configuration: missing visualization type."
 msgstr ""
 
 msgid "Invalid color"
@@ -8526,6 +8703,12 @@ msgstr ""
 msgid "Loading"
 msgstr ""
 
+msgid "Loading chart data..."
+msgstr ""
+
+msgid "Loading chart preview..."
+msgstr ""
+
 msgid "Loading dependent semantic views"
 msgstr ""
 
@@ -8537,6 +8720,9 @@ msgid "Loading historical version · %s"
 msgstr ""
 
 msgid "Loading timezones..."
+msgstr ""
+
+msgid "Loading your conversations..."
 msgstr ""
 
 msgid "Loading..."
@@ -8860,6 +9046,9 @@ msgid "Menu actions trigger"
 msgstr ""
 
 msgid "Message content"
+msgstr ""
+
+msgid "Message the assistant"
 msgstr ""
 
 msgid "Metadata"
@@ -9313,6 +9502,9 @@ msgstr ""
 msgid "New"
 msgstr ""
 
+msgid "New Chat"
+msgstr ""
+
 msgid "New Semantic Layer"
 msgstr ""
 
@@ -9417,6 +9609,9 @@ msgid "No compatible columns found"
 msgstr ""
 
 msgid "No compatible schema found"
+msgstr ""
+
+msgid "No conversations yet"
 msgstr ""
 
 msgid "No data"
@@ -9923,6 +10118,12 @@ msgstr ""
 msgid "Open filters"
 msgstr ""
 
+msgid "Open in Explore"
+msgstr ""
+
+msgid "Open in Explore instead"
+msgstr ""
+
 msgid "Open in SQL Lab"
 msgstr ""
 
@@ -10040,6 +10241,9 @@ msgstr ""
 msgid "Outer edge of Pie chart"
 msgstr ""
 
+msgid "Output was clipped for the model."
+msgstr ""
+
 msgid "Outside End"
 msgstr ""
 
@@ -10120,6 +10324,12 @@ msgid "Page"
 msgstr ""
 
 msgid "Page Size:"
+msgstr ""
+
+msgid "Page context is included in your messages. Click to disable."
+msgstr ""
+
+msgid "Page context is not included. Click to enable."
 msgstr ""
 
 msgid "Page length"
@@ -11069,6 +11279,9 @@ msgstr ""
 msgid "Removed filter on '%s'"
 msgstr ""
 
+msgid "Rename conversation"
+msgstr ""
+
 msgid "Rename tab"
 msgstr ""
 
@@ -11366,6 +11579,9 @@ msgstr ""
 msgid "Return to specific datetime."
 msgstr ""
 
+msgid "Returned"
+msgstr ""
+
 #, python-format
 msgid "Reused by 1 other submission"
 msgid_plural "Reused by %s other submissions"
@@ -11388,6 +11604,9 @@ msgid "Revoke this API key"
 msgstr ""
 
 msgid "Revoked"
+msgstr ""
+
+msgid "Rewrite this query to run faster"
 msgstr ""
 
 msgid "Rich Tooltip"
@@ -11624,6 +11843,13 @@ msgstr ""
 msgid "SQL query"
 msgstr ""
 
+msgid "SQL run"
+msgstr ""
+
+#, python-format
+msgid "SQL run against %s"
+msgstr ""
+
 msgid "SQL was formatted"
 msgstr ""
 
@@ -11680,6 +11906,9 @@ msgid "Sample Standard Deviation"
 msgstr ""
 
 msgid "Sample Variance"
+msgstr ""
+
+msgid "Sample only."
 msgstr ""
 
 msgid "Samples"
@@ -12460,6 +12689,9 @@ msgstr ""
 msgid "Semantic views"
 msgstr ""
 
+msgid "Send"
+msgstr ""
+
 msgid "Send Failed Reports"
 msgstr ""
 
@@ -12796,6 +13028,9 @@ msgstr ""
 msgid "Show legend"
 msgstr ""
 
+msgid "Show less"
+msgstr ""
+
 msgid "Show less columns"
 msgstr ""
 
@@ -12803,6 +13038,9 @@ msgid "Show min/max axis labels"
 msgstr ""
 
 msgid "Show minor ticks on axes."
+msgstr ""
+
+msgid "Show more"
 msgstr ""
 
 msgid "Show only my charts"
@@ -12829,6 +13067,9 @@ msgid "Show pointer"
 msgstr ""
 
 msgid "Show progress"
+msgstr ""
+
+msgid "Show prompt examples"
 msgstr ""
 
 msgid "Show query identifiers"
@@ -12904,6 +13145,10 @@ msgstr ""
 
 #, python-format
 msgid "Showing %s of %s items"
+msgstr ""
+
+#, python-format
+msgid "Showing %s of %s rows."
 msgstr ""
 
 msgid "Shows a list of all series available at that point in time"
@@ -13052,6 +13297,9 @@ msgstr ""
 msgid ""
 "Something went wrong loading the dashboard. Check the dev console for "
 "details."
+msgstr ""
+
+msgid "Something went wrong rendering this chart."
 msgstr ""
 
 msgid "Something went wrong while saving the user info"
@@ -13298,6 +13546,9 @@ msgstr ""
 msgid "Started"
 msgstr ""
 
+msgid "Starting analysis..."
+msgstr ""
+
 msgid "Starting version"
 msgstr ""
 
@@ -13308,6 +13559,9 @@ msgid "Starts with (ILIKE x%)"
 msgstr ""
 
 msgid "State"
+msgstr ""
+
+msgid "Statement clipped for display."
 msgstr ""
 
 msgid "Statistical"
@@ -13354,6 +13608,9 @@ msgid "Stop running (Ctrl + e)"
 msgstr ""
 
 msgid "Stop running (Ctrl + x)"
+msgstr ""
+
+msgid "Stop the assistant"
 msgstr ""
 
 msgid "Stopped an unsafe database connection"
@@ -13453,6 +13710,9 @@ msgstr ""
 msgid "Suffix to apply after the percentage display"
 msgstr ""
 
+msgid "Suggest a better chart type for this data"
+msgstr ""
+
 msgid "Suggestions could not be loaded. You can still type a value."
 msgstr ""
 
@@ -13463,6 +13723,13 @@ msgid "Sum of values over specified period"
 msgstr ""
 
 msgid "Sum values"
+msgstr ""
+
+#, python-format
+msgid "Summarise what %s tells me"
+msgstr ""
+
+msgid "Summarise what this dashboard tells me"
 msgstr ""
 
 msgid "Summary"
@@ -13897,6 +14164,26 @@ msgstr ""
 msgid "The annotation has been updated"
 msgstr ""
 
+#, python-format
+msgid "The assistant could not answer: %s"
+msgstr ""
+
+msgid "The assistant did not finish this run."
+msgstr ""
+
+msgid "The assistant failed."
+msgstr ""
+
+msgid "The assistant sent no stream."
+msgstr ""
+
+#, python-format
+msgid "The assistant stream could not be opened (%s)."
+msgstr ""
+
+msgid "The assistant stream ended before it finished."
+msgstr ""
+
 msgid "The background color of the charts."
 msgstr ""
 
@@ -13976,6 +14263,15 @@ msgid "The column was deleted or renamed in the database."
 msgstr ""
 
 msgid "The configuration for the map layers"
+msgstr ""
+
+msgid "The conversation could not be created."
+msgstr ""
+
+msgid "The conversation could not be deleted."
+msgstr ""
+
+msgid "The conversation could not be loaded."
 msgstr ""
 
 msgid "The corner radius of the chart background"
@@ -14463,6 +14759,11 @@ msgid "The report has been created"
 msgstr ""
 
 msgid "The report will be sent to your email at"
+msgstr ""
+
+msgid ""
+"The response was taking too long and could not be completed. Please try "
+"sending your message again."
 msgstr ""
 
 msgid ""
@@ -15002,6 +15303,9 @@ msgstr ""
 msgid "These are the datasets this filter will be applied to."
 msgstr ""
 
+msgid "Thinking..."
+msgstr ""
+
 #, python-format
 msgid ""
 "This %(type)s will be moved to Recently Archived in the Settings menu. "
@@ -15058,6 +15362,9 @@ msgstr ""
 msgid ""
 "This can be either an IP address (e.g. 127.0.0.1) or a domain name (e.g. "
 "mydatabase.com)."
+msgstr ""
+
+msgid "This cannot be undone."
 msgstr ""
 
 msgid ""
@@ -15391,9 +15698,10 @@ msgstr ""
 
 msgid ""
 "This update would change the connection's effective destination "
-"(host/port, engine parameters, or SSH tunnel endpoint) while reusing the "
-"stored credential. Provide the real password (or SSH tunnel credential) "
-"to confirm a connection move."
+"(host/port, engine parameters, SSH tunnel endpoint, or OAuth2 endpoint "
+"URIs) while reusing the stored credential. Provide the real password (or "
+"SSH tunnel credential / OAuth2 client secret) to confirm a connection "
+"move."
 msgstr ""
 
 msgid "This username is already taken. Please choose another one."
@@ -15453,6 +15761,9 @@ msgstr ""
 msgid ""
 "This will reorganize all metrics and columns into default folders. Any "
 "custom folders will be removed."
+msgstr ""
+
+msgid "Thought process"
 msgstr ""
 
 msgid "Threshold"
@@ -15891,6 +16202,9 @@ msgstr ""
 msgid "Type to search all of them."
 msgstr ""
 
+msgid "Type your message... (up/down for history)"
+msgstr ""
+
 msgid "UI Configuration"
 msgstr ""
 
@@ -15997,6 +16311,9 @@ msgid ""
 " as \"1 month ago\"."
 msgstr ""
 
+msgid "Unable to load chart preview."
+msgstr ""
+
 msgid "Unable to load columns for the selected table."
 msgstr ""
 
@@ -16049,6 +16366,9 @@ msgid "Undo the action"
 msgstr ""
 
 msgid "Undo?"
+msgstr ""
+
+msgid "Undock the assistant"
 msgstr ""
 
 msgid "Unexpected HTTP 401 response. Check your credentials."
@@ -16105,6 +16425,9 @@ msgid "Unknown column used in orderby: %(col)s"
 msgstr ""
 
 msgid "Unknown error"
+msgstr ""
+
+msgid "Unknown error occurred"
 msgstr ""
 
 msgid "Unknown input format"
@@ -16544,6 +16867,9 @@ msgstr ""
 msgid "View as table"
 msgstr ""
 
+msgid "View in Explore instead"
+msgstr ""
+
 msgid "View in SQL Lab"
 msgstr ""
 
@@ -16818,6 +17144,9 @@ msgid_plural ""
 msgstr[0] ""
 msgstr[1] ""
 
+msgid "What dashboards have I looked at recently?"
+msgstr ""
+
 msgid "What should be shown as the label"
 msgstr ""
 
@@ -16828,6 +17157,9 @@ msgid "What should be shown on the label?"
 msgstr ""
 
 msgid "What should happen if the table already exists"
+msgstr ""
+
+msgid "What tables can I query on this database?"
 msgstr ""
 
 msgid ""
@@ -17063,7 +17395,16 @@ msgstr ""
 msgid "Whether to truncate metrics"
 msgstr ""
 
+msgid "Which chart here is the odd one out?"
+msgstr ""
+
+msgid "Which columns of this dataset am I not using?"
+msgstr ""
+
 msgid "Which country to plot the map for?"
+msgstr ""
+
+msgid "Which filters are applied right now?"
 msgstr ""
 
 msgid "Which relatives to highlight on hover"
@@ -17116,6 +17457,12 @@ msgid "Write a description for your query"
 msgstr ""
 
 msgid "Write a handlebars template to render the data"
+msgstr ""
+
+msgid "Write a query I can start from"
+msgstr ""
+
+msgid "Write a query that counts rows per day"
 msgstr ""
 
 msgid "X Axis"
@@ -17467,6 +17814,12 @@ msgid ""
 "You have used all %(historyLength)s undo slots and will not be able to "
 "fully undo subsequent actions. You may save your current state to reset "
 "the history."
+msgstr ""
+
+msgid "You marked this a bad response"
+msgstr ""
+
+msgid "You marked this a good response"
 msgstr ""
 
 #, python-format
@@ -18183,6 +18536,9 @@ msgstr ""
 msgid "is true"
 msgstr ""
 
+msgid "just now"
+msgstr ""
+
 msgid "key a-z"
 msgstr ""
 
@@ -18409,6 +18765,9 @@ msgstr ""
 msgid "restore zoom"
 msgstr ""
 
+msgid "result truncated"
+msgstr ""
+
 msgid "right"
 msgstr ""
 
@@ -18419,6 +18778,9 @@ msgid "rowlevelsecurity"
 msgstr ""
 
 msgid "running"
+msgstr ""
+
+msgid "sample only"
 msgstr ""
 
 msgid "save"
@@ -18588,6 +18950,9 @@ msgid "week ending Saturday"
 msgstr ""
 
 msgid "week starting Sunday"
+msgstr ""
+
+msgid "what the assistant could see on your screen"
 msgstr ""
 
 msgid "working timeout"
