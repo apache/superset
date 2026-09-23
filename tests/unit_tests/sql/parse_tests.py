@@ -2184,7 +2184,7 @@ def test_strip_comments_bounds_literal_nesting() -> None:
     stripped = statement._strip_comments(nested)
 
     # The whole structure survives, and the comment below the bound does not.
-    assert stripped.startswith("$t%d$" % (depth - 1))
+    assert stripped.startswith(f"$t{depth - 1}$")
     assert "/* c */" in stripped
     # The same comment one level above the bound is stripped.
     assert "/* c */" not in statement._strip_comments("$t0$/* c */$t0$")

@@ -24,7 +24,7 @@ import re
 import urllib.parse
 from collections.abc import Callable
 from dataclasses import dataclass
-from functools import lru_cache
+from functools import cached_property, lru_cache
 from typing import Any, Generic, Optional, TYPE_CHECKING, TypeVar
 
 import sqlglot
@@ -1249,6 +1249,7 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
         parsed = self._parsed
         return parsed.name.upper() if isinstance(parsed, exp.Command) else None
 
+    @cached_property
     def _nested_body_text(self) -> str | None:
         """
         Return the raw body of a command that carries a statement as text.
@@ -1258,6 +1259,14 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
         the tree fall back to scanning this text. Comments are stripped here
         rather than by each caller, so every such gate scans the same text;
         see :meth:`_strip_comments` for why.
+
+        Cached because that strip is the expensive part and three gates ask for
+        the same body in a single request, one of them twice. Caching is safe
+        because the two methods that rebuild ``_parsed`` in place cannot reach a
+        statement this returns text for: ``set_limit`` returns early unless the
+        node is an ``exp.Query``, and ``remove_unbounded_top_level_order_by``
+        needs an ``order`` argument, while a nested body is only ever carried by
+        an opaque ``exp.Command``, which is neither.
 
         :return: The body text with comments removed, or ``None`` when this
             statement does not carry a nested body
@@ -1597,7 +1606,7 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
             return self._parsed.key.upper()
         if (head := self._command_head()) in self._CLIENT_FILE_TRANSFER_COMMAND_NAMES:
             return head
-        if (body := self._nested_body_text()) and (
+        if (body := self._nested_body_text) and (
             match := self._CLIENT_FILE_TRANSFER_NESTED_BODY_RE.search(body)
         ):
             return match.group(1).upper()
@@ -1824,7 +1833,7 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
         # because a computed setting name never spells the latter
         # contiguously. Whole-word matching keeps an unrelated identifier that
         # merely embeds one of them (`reset_config`) from being flagged.
-        body = self._nested_body_text()
+        body = self._nested_body_text
         return bool(
             body and re.search(r"\b(search_path|set_config)\b", body, re.IGNORECASE)
         )
@@ -1869,7 +1878,7 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
         # required: a body that merely creates or references one is not a
         # rebind. The optional qualifier mirrors the tokens the non-nested
         # path strips, so `SET LOCAL SCHEMA` is matched in either position.
-        body = self._nested_body_text()
+        body = self._nested_body_text
         if body and re.search(
             r"\bset\s+(?:(?:session|local|current)\s+)?(?:schema|catalog)\b",
             body,
