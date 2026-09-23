@@ -97,6 +97,10 @@ RUN --mount=type=cache,target=/root/.npm \
 # Copy translation files
 COPY superset/translations /app/superset/translations
 
+# compile_po.py (invoked by `npm run build-translation` below) lives outside
+# superset-frontend/, which is the only source tree this stage has copied so far.
+COPY scripts/translations /app/scripts/translations
+
 # Build translations if enabled, then cleanup localization files
 RUN if [ "${BUILD_TRANSLATIONS}" = "true" ]; then \
         npm run build-translation; \
