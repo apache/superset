@@ -17,6 +17,7 @@
  * under the License.
  */
 import React from 'react';
+import fetchMock from 'fetch-mock';
 import {
   act,
   render,
@@ -74,6 +75,7 @@ const createProps = () => ({
 // The default test store has an empty user; most tests exercise a logged-in
 // session with an email on file.
 const loggedInState = { user: { userId: 1, email: 'admin@example.com' } };
+const guestState = { user: {} };
 
 const MenuWrapper = () => {
   const downloadMenuItem = useDownloadMenuItems(createProps());
@@ -94,12 +96,13 @@ const MenuWrapperWithProps = (
   return <Menu forceSubMenuRender items={menuItems} />;
 };
 
-const lastIframeSrc = () => {
-  const iframes = document.body.querySelectorAll('iframe');
-  return iframes.length
-    ? iframes[iframes.length - 1].getAttribute('src')
+// jsdom cannot follow an <a download> click, so record what was clicked.
+let clickedDownloads: { href: string | null; download: string | null }[] = [];
+let anchorClickSpy: jest.SpyInstance;
+const lastDownloadHref = () =>
+  clickedDownloads.length
+    ? clickedDownloads[clickedDownloads.length - 1].href
     : null;
-};
 
 // forceSubMenuRender keeps the items mounted while the submenu is visually
 // closed, so they sit under `pointer-events: none`; and user-event's own delay
@@ -116,6 +119,17 @@ const originalLocation = window.location;
 
 beforeEach(() => {
   jest.clearAllMocks();
+  // The ready link is confirmed with HEAD before the browser is sent to it.
+  fetchMock.head('glob:*/api/v1/dashboard/export_xlsx/download/*', 200);
+  clickedDownloads = [];
+  anchorClickSpy = jest
+    .spyOn(HTMLAnchorElement.prototype, 'click')
+    .mockImplementation(function recordClick(this: HTMLAnchorElement) {
+      clickedDownloads.push({
+        href: this.getAttribute('href'),
+        download: this.getAttribute('download'),
+      });
+    });
   // Reset the implementation each test: clearAllMocks resets call history but
   // not mockReturnValue, so an override in one test would otherwise leak.
   (isFeatureEnabled as jest.Mock).mockReturnValue(false);
@@ -129,6 +143,9 @@ const enableWebDriverScreenshot = () =>
   (isFeatureEnabled as jest.Mock).mockReturnValue(true);
 
 afterEach(() => {
+  fetchMock.removeRoutes();
+  fetchMock.clearHistory();
+  anchorClickSpy.mockRestore();
   window.URL.createObjectURL = originalCreateObjectURL;
   window.URL.revokeObjectURL = originalRevokeObjectURL;
   window.location = originalLocation;
@@ -163,12 +180,24 @@ test('Export Images to Excel is hidden when the webdriver is not enabled', () =>
 });
 
 test('Excel export items are hidden when userCanExport is false', () => {
-  render(<MenuWrapperWithProps userCanExport={false} />, { useRedux: true });
+  render(<MenuWrapperWithProps userCanExport={false} />, {
+    useRedux: true,
+    initialState: loggedInState,
+  });
 
   expect(screen.queryByText('Export Data to Excel')).not.toBeInTheDocument();
   expect(screen.queryByText('Export Images to Excel')).not.toBeInTheDocument();
-  // YAML export is not gated and remains visible
+  // YAML export is not gated on userCanExport and remains visible
   expect(screen.getByText('Export YAML')).toBeInTheDocument();
+});
+
+test('sessions without a user id get the data export but no bundle exports', () => {
+  // The API refuses bundle exports for them, so offering them only yields errors.
+  render(<MenuWrapper />, { useRedux: true, initialState: guestState });
+
+  expect(screen.getByText('Export Data to Excel')).toBeInTheDocument();
+  expect(screen.queryByText('Export YAML')).not.toBeInTheDocument();
+  expect(screen.queryByText('Export as Example')).not.toBeInTheDocument();
 });
 
 test('Export Data to Excel posts mode "data" and shows a pending toast', async () => {
@@ -244,20 +273,20 @@ test('Export Data to Excel polls status and auto-downloads once ready', async ()
     jest.advanceTimersByTime(3000);
   });
 
-  // The download streams through a hidden iframe (no second SupersetClient.get,
-  // so the whole workbook is never buffered in page memory).
+  // The download is handed to the browser via an anchor (no second
+  // SupersetClient.get, so the whole workbook is never buffered in page memory).
   await waitFor(() => {
     expect(mockSupersetClient.get).toHaveBeenCalledWith({
       endpoint: '/api/v1/dashboard/export_xlsx/status/abc/',
     });
-    expect(lastIframeSrc()).toBe('/api/v1/dashboard/export_xlsx/download/abc/');
+    expect(lastDownloadHref()).toBe('/api/v1/dashboard/export_xlsx/download/abc/');
     expect(mockAddSuccessToast).toHaveBeenCalledWith(
       'Your export is ready and downloading.',
     );
   });
 });
 
-test('the ready download streams via iframe and never navigates the page', async () => {
+test('the ready download goes through an anchor and never navigates the page', async () => {
   jest.useFakeTimers();
   mockSupersetClient.post.mockResolvedValue({
     json: { job_id: 'abc' },
@@ -279,12 +308,16 @@ test('the ready download streams via iframe and never navigates the page', async
     jest.advanceTimersByTime(3000);
   });
 
-  // Download goes through a hidden iframe: the dashboard (and an embedding
-  // parent) is never navigated away, and the file is not buffered in memory.
+  // A plain anchor: no frame (so no frame-src CSP exception), no `download`
+  // attribute (Chrome drops those without user activation), and the dashboard
+  // (or an embedding parent) is never navigated away.
   await waitFor(() =>
-    expect(lastIframeSrc()).toBe('/api/v1/dashboard/export_xlsx/download/abc/'),
+    expect(lastDownloadHref()).toBe('/api/v1/dashboard/export_xlsx/download/abc/'),
   );
+  expect(clickedDownloads[0].download).toBeNull();
   expect(window.location.href).toBe(hrefBefore);
+  expect(document.body.querySelectorAll('iframe')).toHaveLength(0);
+  expect(fetchMock.callHistory.calls('glob:*/export_xlsx/download/abc/')).toHaveLength(1);
 });
 
 test('Export Data to Excel keeps polling while status is pending', async () => {
@@ -550,8 +583,6 @@ test('Enabled screenshot items should not show tooltip icon', () => {
 // Explore) is hidden.
 // ---------------------------------------------------------------------------
 
-const guestState = { user: {} };
-
 test('guest session: export toast promises auto-download, not an email', async () => {
   mockSupersetClient.post.mockResolvedValue({
     json: { job_id: 'abc' },
@@ -638,7 +669,7 @@ test('a "running" status restarts the wait window, so queue delay is not counted
     jest.advanceTimersByTime(3000);
   });
   await waitFor(() => {
-    expect(lastIframeSrc()).toBe('/api/v1/dashboard/export_xlsx/download/abc/');
+    expect(lastDownloadHref()).toBe('/api/v1/dashboard/export_xlsx/download/abc/');
     expect(mockAddSuccessToast).toHaveBeenCalledWith(
       'Your export is ready and downloading.',
     );
@@ -674,7 +705,7 @@ test('a transient poll failure keeps polling and still downloads', async () => {
     jest.advanceTimersByTime(3000);
   });
   await waitFor(() => {
-    expect(lastIframeSrc()).toBe('/api/v1/dashboard/export_xlsx/download/abc/');
+    expect(lastDownloadHref()).toBe('/api/v1/dashboard/export_xlsx/download/abc/');
     expect(mockAddSuccessToast).toHaveBeenCalledWith(
       'Your export is ready and downloading.',
     );
@@ -799,51 +830,53 @@ test('the pending toast is announced once, not re-emitted on every poll', async 
 });
 
 const READY_URL = '/api/v1/dashboard/export_xlsx/download/abc/';
-const downloadFrames = () =>
-  document.body.querySelectorAll(`iframe[src="${READY_URL}"]`);
 
-const startReadyDownload = async () => {
+test('a link that fails at download time is reported, not navigated to', async () => {
+  // The narrow race where the object vanishes between the status check and
+  // the click: without the HEAD probe the page would navigate to a 410.
+  jest.useFakeTimers();
+  fetchMock.removeRoutes();
+  fetchMock.head('glob:*/api/v1/dashboard/export_xlsx/download/*', 410);
   mockSupersetClient.post.mockResolvedValue({
     json: { job_id: 'abc' },
   } as never);
   mockSupersetClient.get.mockResolvedValueOnce({
     json: { status: 'ready', download_url: READY_URL },
   } as never);
-  const rendered = render(<MenuWrapper />, {
-    useRedux: true,
-    initialState: loggedInState,
-  });
+  render(<MenuWrapper />, { useRedux: true, initialState: loggedInState });
   await clickMenuItem('Export Data to Excel');
   await waitFor(() => expect(mockSupersetClient.post).toHaveBeenCalled());
   await act(async () => {
     jest.advanceTimersByTime(3000);
   });
-  await waitFor(() => expect(downloadFrames()).toHaveLength(1));
-  return rendered;
-};
 
-test('the download iframe outlives the poll interval', async () => {
-  // Removing the frame before the response commits cancels the request, and
-  // time to first byte is unbounded, so no fixed timer may own its lifetime.
-  jest.useFakeTimers();
-
-  await startReadyDownload();
-
-  await act(async () => {
-    jest.advanceTimersByTime(5 * 60 * 1000);
-  });
-  expect(downloadFrames()).toHaveLength(1);
+  await waitFor(() =>
+    expect(mockAddDangerToast).toHaveBeenCalledWith(
+      'Sorry, something went wrong. Try again later.',
+    ),
+  );
+  expect(clickedDownloads).toHaveLength(0);
+  expect(mockAddSuccessToast).not.toHaveBeenCalled();
 });
 
-test('unmounting removes the download iframe', async () => {
-  // It is appended to document.body, outside the React tree, so React cleanup
-  // alone would leave it behind.
+test('the download anchor is detached again once clicked', async () => {
+  // Nothing is left in document.body to accumulate across repeated exports.
   jest.useFakeTimers();
+  mockSupersetClient.post.mockResolvedValue({
+    json: { job_id: 'abc' },
+  } as never);
+  mockSupersetClient.get.mockResolvedValueOnce({
+    json: { status: 'ready', download_url: READY_URL },
+  } as never);
+  render(<MenuWrapper />, { useRedux: true, initialState: loggedInState });
+  await clickMenuItem('Export Data to Excel');
+  await waitFor(() => expect(mockSupersetClient.post).toHaveBeenCalled());
+  await act(async () => {
+    jest.advanceTimersByTime(3000);
+  });
+  await waitFor(() => expect(lastDownloadHref()).toBe(READY_URL));
 
-  const { unmount } = await startReadyDownload();
-  unmount();
-
-  expect(downloadFrames()).toHaveLength(0);
+  expect(document.body.querySelector(`a[href="${READY_URL}"]`)).toBeNull();
 });
 
 test('unmounting while the export POST is in flight suppresses its follow-up', async () => {

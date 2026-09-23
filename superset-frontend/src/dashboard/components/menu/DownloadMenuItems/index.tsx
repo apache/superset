@@ -91,15 +91,12 @@ export const useDownloadMenuItems = (
   // (and the full-page navigation it would eventually trigger).
   const pollTimerRef = useRef<ReturnType<typeof setTimeout>>();
   const unmountedRef = useRef(false);
-  const downloadFramesRef = useRef<HTMLIFrameElement[]>([]);
   useEffect(
     () => () => {
       unmountedRef.current = true;
       if (pollTimerRef.current) {
         clearTimeout(pollTimerRef.current);
       }
-      downloadFramesRef.current.forEach(frame => frame.remove());
-      downloadFramesRef.current = [];
     },
     [],
   );
@@ -213,22 +210,37 @@ export const useDownloadMenuItems = (
     }
   };
 
-  const triggerExportDownload = (downloadUrl: string) => {
-    // Stream the file straight to disk via a hidden iframe. The endpoint sends
-    // Content-Disposition: attachment, so the browser saves it without
-    // navigating the dashboard away (fatal inside an embedded iframe) and
-    // without buffering the whole workbook in tab memory the way fetch().blob()
-    // would. The status endpoint already confirmed the link is ready and
-    // backend-matched, so the only failure left is the narrow race where the
-    // object is removed between that check and this click; such an error
-    // response loads invisibly in the iframe and leaves the page untouched.
-    const iframe = document.createElement('iframe');
-    iframe.style.display = 'none';
-    iframe.src = downloadUrl;
-    document.body.appendChild(iframe);
-    // Removing it before the response commits cancels the download, and time
-    // to first byte is unbounded, so hold it until unmount.
-    downloadFramesRef.current.push(iframe);
+  const triggerExportDownload = async (downloadUrl: string) => {
+    // A plain anchor to the attachment streams it to disk without leaving the
+    // page or needing a frame (so no frame-src CSP exception). No `download`
+    // attribute: by now polling has consumed any user activation, and Chrome
+    // drops such clicks silently. An error response would navigate instead,
+    // so confirm the exact link first and report a failure as a toast.
+    try {
+      const probe = await fetch(downloadUrl, {
+        method: 'HEAD',
+        credentials: 'same-origin',
+      });
+      if (!probe.ok) {
+        throw new Error(`download link answered ${probe.status}`);
+      }
+    } catch (error) {
+      logging.error(error);
+      if (!unmountedRef.current) {
+        addDangerToast(t('Sorry, something went wrong. Try again later.'));
+      }
+      return false;
+    }
+    if (unmountedRef.current) {
+      return false;
+    }
+    const anchor = document.createElement('a');
+    anchor.href = downloadUrl;
+    anchor.style.display = 'none';
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
+    return true;
   };
 
   const pollExportStatus = (jobId: string, pollState: ExportPollState) => {
@@ -251,8 +263,11 @@ export const useDownloadMenuItems = (
         } = json as ExportStatusResponse;
         if (status === 'ready') {
           if (downloadUrl) {
-            triggerExportDownload(downloadUrl);
-            addSuccessToast(t('Your export is ready and downloading.'));
+            triggerExportDownload(downloadUrl).then(started => {
+              if (started) {
+                addSuccessToast(t('Your export is ready and downloading.'));
+              }
+            });
           } else {
             addDangerToast(t('Sorry, something went wrong. Try again later.'));
           }
@@ -415,12 +430,17 @@ export const useDownloadMenuItems = (
             : []),
         ]
       : []),
-    {
-      key: 'export-yaml',
-      label: t('Export YAML'),
-      onClick: onExportZip,
-    },
-    ...(userCanExport
+    // Bundle exports are refused for sessions without a user id.
+    ...(!isGuestSession
+      ? [
+          {
+            key: 'export-yaml',
+            label: t('Export YAML'),
+            onClick: onExportZip,
+          },
+        ]
+      : []),
+    ...(userCanExport && !isGuestSession
       ? [
           {
             key: 'export-as-example',
