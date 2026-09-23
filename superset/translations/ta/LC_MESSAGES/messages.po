@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-22 10:58-0700\n"
+"POT-Creation-Date: 2026-09-23 06:00+0000\n"
 "PO-Revision-Date: 2026-03-31 02:00-0700\n"
 "Last-Translator: Maazin Ahamed\n"
 "Language: ta\n"
@@ -2990,6 +2990,9 @@ msgstr "குமிழி அளவு"
 
 msgid "Bubble size number format"
 msgstr "குமிழி அளவு எண் வடிவம்"
+
+msgid "Bubble-size metric must be nonnegative"
+msgstr ""
 
 msgid "Bucket break points"
 msgstr "பக்கெட் முறிவுப் புள்ளிகள் (Bucket break points)"
@@ -7021,6 +7024,9 @@ msgstr "வரிசையை விரிவாக்கு"
 msgid "Expand row to edit"
 msgstr "வரிசையை விரிவாக்கு"
 
+msgid "Expected geographic query data to be a list of records"
+msgstr ""
+
 msgid ""
 "Expects a formula with depending time parameter 'x'\n"
 "        in milliseconds since epoch. mathjs is used to evaluate the "
@@ -7034,6 +7040,12 @@ msgid "Experimental"
 msgstr "சோதனைநிலை (Experimental)"
 
 msgid "Expired"
+msgstr ""
+
+msgid ""
+"Explicit formats validate all values against bundled boundaries. "
+"Supported countries: USA, Canada, Australia, Japan, UK. Unrecognized or "
+"ambiguous values fail rather than displaying blank regions."
 msgstr ""
 
 msgid "Explore"
@@ -7909,6 +7921,10 @@ msgstr "GeoJson நெடுவரிசை"
 msgid "GeoJson Settings"
 msgstr "GeoJson அமைப்புகள்"
 
+#, python-format
+msgid "Geographic metric %s must be a finite number"
+msgstr ""
+
 msgid "Geohash"
 msgstr "Geohash"
 
@@ -8138,11 +8154,17 @@ msgstr ""
 msgid "Huge"
 msgstr "மிகப்பெரியது"
 
+msgid "ISO 3166-2"
+msgstr ""
+
 msgid "ISO 3166-2 Codes"
 msgstr "ISO 3166-2 குறியீடுகள்"
 
 msgid "ISO 8601"
 msgstr "ISO 8601"
+
+msgid "ISO suffix / abbreviation"
+msgstr ""
 
 msgid "Icon URL"
 msgstr "ஐகான் URL"
@@ -8932,6 +8954,9 @@ msgstr "இடது மதிப்பு"
 
 msgid "Legacy"
 msgstr "பாரம்பரிய (Legacy)"
+
+msgid "Legacy ISO values"
+msgstr ""
 
 msgid "Legend"
 msgstr "விளக்கக் குறிப்பு (Legend)"
@@ -11640,6 +11665,12 @@ msgstr "சார்ட்டுகளைப் புதுப்பிக்�
 
 msgid "Refreshing columns"
 msgstr "நெடுவரிசைகளைப் புதுப்பிக்கிறது"
+
+msgid "Region name"
+msgstr ""
+
+msgid "Region value format"
+msgstr ""
 
 msgid "Register"
 msgstr "பதிவு செய்"
@@ -16377,9 +16408,10 @@ msgstr ""
 
 msgid ""
 "This update would change the connection's effective destination "
-"(host/port, engine parameters, or SSH tunnel endpoint) while reusing the "
-"stored credential. Provide the real password (or SSH tunnel credential) "
-"to confirm a connection move."
+"(host/port, engine parameters, SSH tunnel endpoint, or OAuth2 endpoint "
+"URIs) while reusing the stored credential. Provide the real password (or "
+"SSH tunnel credential / OAuth2 client secret) to confirm a connection "
+"move."
 msgstr ""
 
 msgid "This username is already taken. Please choose another one."
@@ -17154,6 +17186,11 @@ msgid "Unpin from the result panel"
 msgstr "முடிவு பலகத்தில் (result panel) பின் செய்"
 
 msgid "Unpin from top"
+msgstr ""
+
+msgid ""
+"Unrecognized or duplicate country value; choose the matching country "
+"format or normalize source values before aggregation."
 msgstr ""
 
 msgid "Unsafe link blocked"

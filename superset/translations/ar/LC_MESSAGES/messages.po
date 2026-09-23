@@ -24,7 +24,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version:  \n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-22 10:58-0700\n"
+"POT-Creation-Date: 2026-09-23 06:00+0000\n"
 "PO-Revision-Date: 2024-07-14 15:10+0300\n"
 "Last-Translator: Abdalrahim G. Fakhouri <abdilra7eem@yahoo.com>\n"
 "Language: ar\n"
@@ -3297,6 +3297,9 @@ msgstr "حجم الفقاعة"
 
 msgid "Bubble size number format"
 msgstr "تنسيق رقم حجم الفقاعة"
+
+msgid "Bubble-size metric must be nonnegative"
+msgstr ""
 
 msgid "Bucket break points"
 msgstr "نقاط كسر الجرافة"
@@ -7790,6 +7793,9 @@ msgstr "قم بتوسيع الصف"
 msgid "Expand row to edit"
 msgstr "قم بتوسيع الصف"
 
+msgid "Expected geographic query data to be a list of records"
+msgstr ""
+
 msgid ""
 "Expects a formula with depending time parameter 'x'\n"
 "        in milliseconds since epoch. mathjs is used to evaluate the "
@@ -7806,6 +7812,12 @@ msgstr "تجريبي"
 #, fuzzy
 msgid "Expired"
 msgstr "اكتشف"
+
+msgid ""
+"Explicit formats validate all values against bundled boundaries. "
+"Supported countries: USA, Canada, Australia, Japan, UK. Unrecognized or "
+"ambiguous values fail rather than displaying blank regions."
+msgstr ""
 
 msgid "Explore"
 msgstr "اكتشف"
@@ -8785,6 +8797,10 @@ msgstr "عمود جيوجسون"
 msgid "GeoJson Settings"
 msgstr "إعدادات جيوجسون"
 
+#, python-format
+msgid "Geographic metric %s must be a finite number"
+msgstr ""
+
 msgid "Geohash"
 msgstr "جيوهاش"
 
@@ -9040,11 +9056,17 @@ msgstr ""
 msgid "Huge"
 msgstr "ضخم"
 
+msgid "ISO 3166-2"
+msgstr ""
+
 msgid "ISO 3166-2 Codes"
 msgstr "رموز أيزو 3166-2"
 
 msgid "ISO 8601"
 msgstr "أيزو 8601"
+
+msgid "ISO suffix / abbreviation"
+msgstr ""
 
 #, fuzzy
 msgid "Icon URL"
@@ -9926,6 +9948,9 @@ msgstr "القيمة اليسرى"
 
 msgid "Legacy"
 msgstr "تراث"
+
+msgid "Legacy ISO values"
+msgstr ""
 
 msgid "Legend"
 msgstr "أسطورة"
@@ -12973,6 +12998,12 @@ msgstr "رسوم بيانية مُنعشة"
 
 msgid "Refreshing columns"
 msgstr "أعمدة منعشة"
+
+msgid "Region name"
+msgstr ""
+
+msgid "Region value format"
+msgstr ""
 
 #, fuzzy
 msgid "Register"
@@ -18397,9 +18428,10 @@ msgstr ""
 
 msgid ""
 "This update would change the connection's effective destination "
-"(host/port, engine parameters, or SSH tunnel endpoint) while reusing the "
-"stored credential. Provide the real password (or SSH tunnel credential) "
-"to confirm a connection move."
+"(host/port, engine parameters, SSH tunnel endpoint, or OAuth2 endpoint "
+"URIs) while reusing the stored credential. Provide the real password (or "
+"SSH tunnel credential / OAuth2 client secret) to confirm a connection "
+"move."
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
@@ -19299,6 +19331,11 @@ msgstr "إلغاء التثبيت من لوحة النتائج"
 #, fuzzy
 msgid "Unpin from top"
 msgstr "إلغاء التثبيت من الأعلى"
+
+msgid ""
+"Unrecognized or duplicate country value; choose the matching country "
+"format or normalize source values before aggregation."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
 #, fuzzy

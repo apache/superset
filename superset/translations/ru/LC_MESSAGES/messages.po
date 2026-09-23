@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-22 10:58-0700\n"
+"POT-Creation-Date: 2026-09-23 06:00+0000\n"
 "PO-Revision-Date: 2026-07-17 09:44+0100\n"
 "Last-Translator: Daniel Checheta\n"
 "Language: ru\n"
@@ -2977,6 +2977,9 @@ msgstr "Размер маркера"
 
 msgid "Bubble size number format"
 msgstr "Числовой формат размера пузырька"
+
+msgid "Bubble-size metric must be nonnegative"
+msgstr ""
 
 msgid "Bucket break points"
 msgstr "Точки разбиения на сегменты"
@@ -6969,6 +6972,9 @@ msgstr "Развернуть строку"
 msgid "Expand row to edit"
 msgstr "Развернуть строку"
 
+msgid "Expected geographic query data to be a list of records"
+msgstr ""
+
 msgid ""
 "Expects a formula with depending time parameter 'x'\n"
 "        in milliseconds since epoch. mathjs is used to evaluate the "
@@ -6984,6 +6990,12 @@ msgstr "Экспериментальный"
 #, fuzzy
 msgid "Expired"
 msgstr "Истек"
+
+msgid ""
+"Explicit formats validate all values against bundled boundaries. "
+"Supported countries: USA, Canada, Australia, Japan, UK. Unrecognized or "
+"ambiguous values fail rather than displaying blank regions."
+msgstr ""
 
 msgid "Explore"
 msgstr "Исследовать"
@@ -7851,6 +7863,10 @@ msgstr "Столбец GeoJson"
 msgid "GeoJson Settings"
 msgstr "Настройки GeoJson"
 
+#, python-format
+msgid "Geographic metric %s must be a finite number"
+msgstr ""
+
 msgid "Geohash"
 msgstr "Geohash"
 
@@ -8079,11 +8095,17 @@ msgstr ""
 msgid "Huge"
 msgstr "Огромный"
 
+msgid "ISO 3166-2"
+msgstr ""
+
 msgid "ISO 3166-2 Codes"
 msgstr "Коды ISO 3166-2"
 
 msgid "ISO 8601"
 msgstr "ISO 8601"
+
+msgid "ISO suffix / abbreviation"
+msgstr ""
 
 msgid "Icon URL"
 msgstr "URL значка"
@@ -8880,6 +8902,9 @@ msgstr "Левое значение"
 
 msgid "Legacy"
 msgstr "Устарел"
+
+msgid "Legacy ISO values"
+msgstr ""
 
 msgid "Legend"
 msgstr "Легенда"
@@ -11658,6 +11683,12 @@ msgstr "Обновление диаграмм"
 
 msgid "Refreshing columns"
 msgstr "Обновление столбцов"
+
+msgid "Region name"
+msgstr ""
+
+msgid "Region value format"
+msgstr ""
 
 msgid "Register"
 msgstr "Регистрация"
@@ -16545,9 +16576,10 @@ msgstr ""
 
 msgid ""
 "This update would change the connection's effective destination "
-"(host/port, engine parameters, or SSH tunnel endpoint) while reusing the "
-"stored credential. Provide the real password (or SSH tunnel credential) "
-"to confirm a connection move."
+"(host/port, engine parameters, SSH tunnel endpoint, or OAuth2 endpoint "
+"URIs) while reusing the stored credential. Provide the real password (or "
+"SSH tunnel credential / OAuth2 client secret) to confirm a connection "
+"move."
 msgstr ""
 
 msgid "This username is already taken. Please choose another one."
@@ -17357,6 +17389,11 @@ msgstr "Открепить от панели результатов"
 
 msgid "Unpin from top"
 msgstr "Открепить"
+
+msgid ""
+"Unrecognized or duplicate country value; choose the matching country "
+"format or normalize source values before aggregation."
+msgstr ""
 
 msgid "Unsafe link blocked"
 msgstr "Небезопасная ссылка заблокирована"
