@@ -22,7 +22,7 @@ from collections.abc import Mapping
 from decimal import Decimal
 from functools import lru_cache
 from numbers import Real
-from typing import Any, TypeGuard
+from typing import Any, cast, TypeGuard
 
 from superset.mcp_service.chart.schemas import ChartError
 
@@ -390,10 +390,117 @@ def validate_geographic_query_result(
     return None
 
 
+def column_result_label(column: Any) -> str | None:
+    """Resolve the query-result key using frontend ``getColumnLabel`` rules.
+
+    Explore's ``DndColumnSelect`` stores adhoc Custom SQL entries as objects,
+    so ``groupby`` on a saved chart may hold either a physical column name or
+    an adhoc column whose output key is its label (or raw SQL expression).
+    """
+    if isinstance(column, str):
+        return column or None
+    if not isinstance(column, Mapping):
+        return None
+    for key in ("label", "sqlExpression"):
+        value = column.get(key)
+        if isinstance(value, str) and value:
+            return value
+    return None
+
+
+def treemap_hierarchy_labels(form_data: Mapping[str, Any]) -> list[str] | None:
+    """Map a Treemap ``groupby`` onto the result keys its rows are keyed by.
+
+    Returns ``None`` when the hierarchy is absent, empty, contains an
+    unresolvable entry, or would collapse onto duplicate output labels.
+    """
+    hierarchy = form_data.get("groupby")
+    if not isinstance(hierarchy, list) or not hierarchy:
+        return None
+    labels = [column_result_label(column) for column in hierarchy]
+    if any(label is None for label in labels):
+        return None
+    resolved = cast(list[str], labels)
+    if len(set(resolved)) != len(resolved):
+        return None
+    return resolved
+
+
+def _validate_treemap_rows(
+    rows: list[Any], hierarchy: list[str], label: str
+) -> ChartError | None:
+    """Require complete hierarchy outputs and finite numeric metric values."""
+    for index, row in enumerate(rows):
+        if not isinstance(row, Mapping) or any(
+            column not in row for column in [*hierarchy, label]
+        ):
+            return ChartError(
+                error=f"Treemap row {index} is missing hierarchy or metric outputs.",
+                error_type="InvalidTreemapResult",
+            )
+        value = row[label]
+        try:
+            valid = (
+                not isinstance(value, bool)
+                and isinstance(value, (Real, Decimal))
+                and (
+                    value.is_finite()
+                    if isinstance(value, Decimal)
+                    else math.isfinite(value)
+                )
+            )
+        except (OverflowError, ValueError):
+            valid = False
+        if not valid:
+            return ChartError(
+                error=(
+                    f"Treemap row {index} metric {label!r} must be finite and numeric."
+                ),
+                error_type="InvalidTreemapMetric",
+            )
+        if any(isinstance(row[column], (dict, list)) for column in hierarchy):
+            return ChartError(
+                error=f"Treemap row {index} hierarchy values must be scalar.",
+                error_type="InvalidTreemapResult",
+            )
+    return None
+
+
+def _normalize_treemap_query_result(result: Any, form_data: Mapping[str, Any]) -> Any:
+    """Validate the Treemap hierarchy/metric contract before consumers use rows."""
+    label = metric_result_label(form_data.get("metric"))
+    hierarchy = treemap_hierarchy_labels(form_data)
+    if not label or hierarchy is None or label in hierarchy:
+        return ChartError(
+            error=(
+                "Treemap requires unique hierarchy columns and a distinct metric label."
+            ),
+            error_type="InvalidTreemapFormData",
+        )
+    queries = result.get("queries") if isinstance(result, Mapping) else None
+    if not isinstance(queries, list) or len(queries) != 1:
+        return ChartError(
+            error="Treemap requires exactly one query result.",
+            error_type="InvalidTreemapResult",
+        )
+    query = queries[0]
+    rows = query.get("data") if isinstance(query, Mapping) else None
+    if not isinstance(rows, list):
+        return ChartError(
+            error="Treemap query data must be an array of rows.",
+            error_type="InvalidTreemapResult",
+        )
+    if failure := _validate_treemap_rows(rows, hierarchy, label):
+        return failure
+    return result
+
+
 def normalize_chart_query_result(result: Any, form_data: Mapping[str, Any]) -> Any:
     """Apply typed result contracts without modifying unrelated chart results."""
     if failure := query_result_failure(result):
         return failure
     if failure := validate_geographic_query_result(result, form_data):
         return failure
+    if form_data.get("viz_type") == "treemap_v2":
+        return _normalize_treemap_query_result(result, form_data)
     return normalize_gauge_query_result(result, form_data)

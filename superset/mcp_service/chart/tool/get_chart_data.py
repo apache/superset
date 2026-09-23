@@ -45,6 +45,7 @@ from superset.mcp_service.chart.chart_helpers import (
 )
 from superset.mcp_service.chart.chart_utils import validate_chart_dataset
 from superset.mcp_service.chart.query_result import (
+    normalize_chart_query_result,
     query_result_failure,
     validate_geographic_query_result,
 )
@@ -819,6 +820,10 @@ async def execute_chart_data(  # noqa: C901
                 command.validate()
                 result = command.run()
 
+            if form_data.get("viz_type") == "treemap_v2":
+                result = normalize_chart_query_result(result, form_data)
+                if isinstance(result, ChartError):
+                    return result
             if query_failure := query_result_failure(result):
                 return query_failure
             if geographic_failure := validate_geographic_query_result(
@@ -1196,6 +1201,10 @@ async def _query_from_form_data(  # noqa: C901
             command.validate()
             result = command.run()
 
+        if form_data.get("viz_type") == "treemap_v2":
+            result = normalize_chart_query_result(result, form_data)
+            if isinstance(result, ChartError):
+                return result
         if query_failure := query_result_failure(result):
             return query_failure
         if geographic_failure := validate_geographic_query_result(result, form_data):

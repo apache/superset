@@ -43,6 +43,7 @@ from superset.mcp_service.chart.chart_utils import (
     merge_chart_form_data,
     merge_interactive_pivot_ui_config,
     merge_table_column_config,
+    resolve_treemap_update_config,
     validate_gantt_form_data,
 )
 from superset.mcp_service.chart.compile import validate_and_compile
@@ -56,6 +57,7 @@ from superset.mcp_service.chart.schemas import (
     GeographicChartConfig,
     PerformanceMetadata,
     TableChartConfig,
+    TreemapChartConfig,
     UpdateChartRequest,
 )
 from superset.mcp_service.chart.validation.dataset_validator import (
@@ -377,12 +379,17 @@ def _build_replacement_form_data(
     dataset_rebind = replacement_dataset_id is not None
     if replacement_dataset_id is not None and not isinstance(
         parsed_config,
-        (GanttChartConfig, GaugeChartConfig, GeographicChartConfig),
+        (
+            GanttChartConfig,
+            GaugeChartConfig,
+            GeographicChartConfig,
+            TreemapChartConfig,
+        ),
     ):
         # Drop only the inherited state the replacement dataset cannot
-        # resolve, then merge as a same-dataset update. Gantt, Gauge, and
-        # geographic configs keep the stricter rebind contracts handled
-        # downstream.
+        # resolve, then merge as a same-dataset update. Gantt, Gauge,
+        # Treemap, and geographic configs keep the stricter rebind contracts
+        # handled downstream.
         invalid_keys = _inherited_state_invalid_keys(
             existing_form_data,
             new_form_data,
@@ -821,21 +828,41 @@ async def update_chart(  # noqa: C901
             and request.dataset_id != getattr(chart, "datasource_id", None)
             and request.config is None
             and getattr(chart, "viz_type", None)
-            in {"gauge_chart", "country_map", "world_map", "deck_scatter"}
+            in {
+                "gauge_chart",
+                "treemap_v2",
+                "country_map",
+                "world_map",
+                "deck_scatter",
+            }
         ):
-            return _validation_error_response(
-                message=(
+            rebind_viz_type = getattr(chart, "viz_type", None)
+            if rebind_viz_type == "gauge_chart":
+                rebind_message = (
                     "Gauge dataset rebind requires a complete Gauge config."
-                    if getattr(chart, "viz_type", None) == "gauge_chart"
-                    else "Dataset rebind requires a complete typed geographic config."
-                ),
+                )
+                rebind_lead = (
+                    "Provide chart_type='gauge' and a metric valid on the target "
+                )
+            elif rebind_viz_type == "treemap_v2":
+                rebind_message = (
+                    "Treemap dataset rebind requires a complete Treemap config."
+                )
+                rebind_lead = (
+                    "Provide the chart type and complete roles valid on the target "
+                )
+            else:
+                rebind_message = (
+                    "Dataset rebind requires a complete typed geographic config."
+                )
+                rebind_lead = (
+                    "Provide chart_type and complete geographic/metric roles "
+                    "valid on the target "
+                )
+            return _validation_error_response(
+                message=rebind_message,
                 details=(
-                    (
-                        "Provide chart_type='gauge' and a metric valid on the target "
-                        if getattr(chart, "viz_type", None) == "gauge_chart"
-                        else "Provide chart_type and complete geographic/metric roles "
-                        "valid on the target "
-                    )
+                    rebind_lead
                     + "dataset. This prevents stale metric, groupby, and filter roles "
                     "from the previous dataset from being retained."
                 ),
@@ -872,7 +899,21 @@ async def update_chart(  # noqa: C901
         new_form_data: dict[str, Any] | None = None
 
         # config is already a typed ChartConfig | None (validated by Pydantic)
-        parsed_config = request.config
+        try:
+            parsed_config = (
+                resolve_treemap_update_config(
+                    request.config,
+                    _get_existing_form_data(chart),
+                    dataset_rebind=request.dataset_id is not None
+                    and request.dataset_id != chart.datasource_id,
+                )
+                if request.config is not None
+                else None
+            )
+        except ValueError as ex:
+            return _validation_error_response(
+                "Invalid Treemap update configuration", str(ex)
+            )
         validation_config = parsed_config
         if request.add_columns is not None:
             validation_config = TableChartConfig(columns=request.add_columns)

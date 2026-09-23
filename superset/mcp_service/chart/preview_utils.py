@@ -40,6 +40,7 @@ from superset.mcp_service.chart.schemas import (
     TablePreview,
     VegaLitePreview,
 )
+from superset.mcp_service.chart.treemap_preview import treemap_ascii, treemap_vega_lite
 
 logger = logging.getLogger(__name__)
 
@@ -106,7 +107,6 @@ def generate_preview_from_form_data(
 
         if query_failure := query_result_failure(result):
             return query_failure
-
         result = normalize_chart_query_result(result, form_data)
         if isinstance(result, ChartError):
             return result
@@ -145,7 +145,12 @@ def _generate_ascii_preview_from_data(
     viz_type = form_data.get("viz_type", "table")
 
     # Handle different chart types
-    if viz_type == "gauge_chart":
+    if viz_type == "treemap_v2":
+        content_or_error = treemap_ascii(data, form_data)
+        if isinstance(content_or_error, ChartError):
+            return content_or_error
+        content = content_or_error
+    elif viz_type == "gauge_chart":
         content_or_error = generate_gauge_ascii_preview(data, form_data)
         if isinstance(content_or_error, ChartError):
             return content_or_error
@@ -1259,6 +1264,8 @@ def _generate_vega_lite_preview_from_data(  # noqa: C901
 ) -> VegaLitePreview | ChartError:
     """Generate Vega-Lite preview from raw data and form_data."""
     viz_type = form_data.get("viz_type", "table")
+    if viz_type == "treemap_v2":
+        return treemap_vega_lite(data, form_data)
     if viz_type == "gantt_chart":
         return _generate_gantt_vega_lite_preview(data, form_data)
     if viz_type == "gauge_chart":

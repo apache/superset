@@ -548,6 +548,14 @@ def resolve_metrics_and_groupby(
     viz_type = (
         form_data.get("viz_type", getattr(chart, "viz_type", "") if chart else "") or ""
     )
+    if viz_type == "treemap_v2":
+        # Treemap has exactly these roles; stale controls from another plugin
+        # must not override its singular metric or ordered hierarchy.
+        metric = form_data.get("metric")
+        hierarchy = form_data.get("groupby") or []
+        return ([metric] if metric else []), (
+            [hierarchy] if isinstance(hierarchy, str) else list(hierarchy)
+        )
     singular_metric_no_groupby = (
         "big_number",
         "big_number_total",
@@ -712,6 +720,31 @@ def resolve_sort_metric(form_data: dict[str, Any]) -> Any | None:
     return raw or None
 
 
+def _apply_treemap_query_fields(
+    qd: dict[str, Any],
+    form_data: dict[str, Any],
+    columns: list[Any],
+    effective_row_limit: int | None,
+) -> None:
+    """Apply Treemap temporal binding and bounded hierarchy ordering."""
+    # extractExtras maps the selected SQL time column to QueryObject granularity.
+    # A normalized dashboard override takes precedence, including a clear.
+    granularity = form_data.get("granularity", form_data.get("granularity_sqla"))
+    if granularity is not None:
+        qd["granularity"] = granularity
+    # Match Treemap buildQuery/applyOrderBy, including hierarchy tie-breakers.
+    ordering = qd.pop("orderby", [])
+    ordering.extend(
+        (column, True) for column in columns if isinstance(column, str) and column
+    )
+    try:
+        bounded = float(effective_row_limit or 0) != 0
+    except (ValueError, TypeError):
+        bounded = True
+    if bounded and ordering:
+        qd["orderby"] = ordering
+
+
 def _build_single_query_dict(
     form_data: dict[str, Any],
     columns: list[Any],
@@ -746,6 +779,8 @@ def _build_single_query_dict(
             order_desc if order_desc is not None else form_data.get("order_desc", True)
         )
         qd["orderby"] = [(sort_metric, not descending)]
+    if form_data.get("viz_type") == "treemap_v2":
+        _apply_treemap_query_fields(qd, form_data, columns, effective_row_limit)
     apply_form_data_filters_to_query(qd, form_data)
     return qd
 

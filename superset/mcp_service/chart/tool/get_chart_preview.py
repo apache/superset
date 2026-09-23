@@ -63,6 +63,7 @@ from superset.mcp_service.chart.schemas import (
     URLPreview,
     VegaLitePreview,
 )
+from superset.mcp_service.chart.treemap_preview import treemap_ascii, treemap_vega_lite
 from superset.mcp_service.utils.oauth2_utils import (
     build_oauth2_redirect_message,
     OAUTH2_CONFIG_ERROR_MESSAGE,
@@ -186,9 +187,16 @@ def _no_query_fields_error(chart: ChartLike) -> ChartError:
 
 
 def _preview_row_limit(form_data: dict[str, Any], fallback: int) -> int:
-    """Keep Gauge preview cardinality aligned with its frontend row limit."""
+    """Keep chart previews aligned with their frontend row limits."""
     if form_data.get("mcp_geographic"):
         return min(10000, max(1, int(form_data.get("row_limit") or 10000)))
+    if form_data.get("viz_type") == "treemap_v2":
+        value = form_data.get("row_limit", 100)
+        try:
+            limit = int(value)
+        except (TypeError, ValueError, OverflowError):
+            limit = 100
+        return limit if 1 <= limit <= 10000 else 100
     if form_data.get("viz_type") != "gauge_chart":
         return fallback
     value = form_data.get("row_limit", 10)
@@ -295,12 +303,14 @@ class ASCIIPreviewStrategy(PreviewFormatStrategy):
             if result and "queries" in result and len(result["queries"]) > 0:
                 data = result["queries"][0].get("data") or []
 
-            if form_data.get("viz_type") == "gauge_chart":
+            if form_data.get("viz_type") == "treemap_v2":
+                ascii_chart = treemap_ascii(
+                    data, form_data, self.request.ascii_width or 80
+                )
+            elif form_data.get("viz_type") == "gauge_chart":
                 ascii_chart = generate_gauge_ascii_preview(
                     data, form_data, self.request.ascii_width or 80
                 )
-                if isinstance(ascii_chart, ChartError):
-                    return ascii_chart
             else:
                 ascii_chart = generate_ascii_chart(
                     data,
@@ -309,6 +319,8 @@ class ASCIIPreviewStrategy(PreviewFormatStrategy):
                     self.request.ascii_height or 20,
                 )
 
+            if isinstance(ascii_chart, ChartError):
+                return ascii_chart
             return ASCIIPreview(
                 ascii_content=ascii_chart,
                 width=self.request.ascii_width or 80,
@@ -504,6 +516,8 @@ class VegaLitePreviewStrategy(PreviewFormatStrategy):
                     ),
                     error_type="UnsupportedGeographicPreview",
                 )
+            if form_data.get("viz_type") == "treemap_v2":
+                return treemap_vega_lite(chart_data, form_data)
             if form_data.get("viz_type") == "gauge_chart":
                 return generate_gauge_vega_lite_preview(chart_data, form_data)
             viz_type = getattr(self.chart, "viz_type", None) or form_data.get(
