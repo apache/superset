@@ -22,6 +22,18 @@
   - any-glob-to-any-file:
     - 'scripts/**'
 
+# A chart's `controlPanel` defines the form_data keys persisted on every
+# slice that uses it, and its `transformProps` reads those keys back at
+# render time. Changing either can break charts and dashboards saved
+# against the previous shape. Covers chart plugins, native filters and
+# chart customizations, wherever they live in the frontend.
+"risk:chart-metadata":
+- changed-files:
+  - any-glob-to-any-file:
+    - 'superset-frontend/**/{controlPanel,transformProps}.{ts,tsx}'
+    - 'superset-frontend/**/config/{controlPanel,transformProps}/index.ts'
+    - 'superset-frontend/src/explore/controlPanels/**'
+
 ############################################
 # Dependencies
 ############################################
@@ -29,7 +41,7 @@
 "dependencies:python":
 - changed-files:
   - any-glob-to-any-file:
-    - 'superset/requirements/**'
+    - 'requirements/**'
     - 'superset/translations/requirements.txt'
     - 'RELEASING/requirements.txt'
 

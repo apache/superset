@@ -17,10 +17,13 @@
 # isort:skip_file
 """Unit tests for Superset"""
 
+from collections.abc import Iterator
+from contextlib import contextmanager
 from io import BytesIO
 from time import sleep
 from unittest.mock import ANY, patch
 from zipfile import is_zipfile, ZipFile
+from werkzeug.test import TestResponse
 
 from tests.integration_tests.insert_chart_mixin import InsertChartMixin
 
@@ -30,8 +33,15 @@ import yaml
 
 from freezegun import freeze_time
 from sqlalchemy import and_
+from sqlalchemy.engine.reflection import Inspector
 from superset import db, security_manager  # noqa: F401
-from superset.exceptions import LockAlreadyHeldException
+from superset.commands.dashboard.permalink.create import CreateDashboardPermalinkCommand
+from superset.daos.dashboard import DashboardDAO
+from superset.exceptions import (
+    AcquireDistributedLockFailedException,
+    LockAlreadyHeldException,
+    ReleaseDistributedLockFailedException,
+)
 from superset.models.dashboard import Dashboard
 from superset.models.core import FavStar, FavStarClassName
 from superset.reports.models import ReportSchedule, ReportScheduleType
@@ -40,7 +50,11 @@ from superset.subjects.models import Subject
 from superset.subjects.types import SubjectType
 from superset.tags.models import Tag, TaggedObject, TagType, ObjectType
 from superset.utils.core import backend, override_user
-from superset.utils.screenshots import ScreenshotCachePayload
+from superset.utils.screenshots import (
+    ScreenshotCacheError,
+    ScreenshotCachePayload,
+    StatusValues,
+)
 from superset.utils import json
 
 from tests.conftest import with_config
@@ -93,7 +107,7 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
         "description": "desc_changed",
         "position_json": '{"b": "B"}',
         "css": "css_changed",
-        "json_metadata": '{"refresh_frequency": 30, "timed_refresh_immune_slices": [], "expanded_slices": {}, "color_scheme": "", "label_colors": {}, "shared_label_colors": [], "map_label_colors": {}, "color_scheme_domain": [], "cross_filters_enabled": false}',  # noqa: E501
+        "json_metadata": '{"refresh_frequency": 30, "timed_refresh_immune_slices": [], "expanded_slices": {}, "expand_all_slices": false, "color_scheme": "", "label_colors": {}, "shared_label_colors": [], "map_label_colors": {}, "color_scheme_domain": [], "cross_filters_enabled": false}',  # noqa: E501
         "published": False,
     }
 
@@ -184,6 +198,11 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
                 crontab="* * * * *",
                 dashboard=dashboard,
             )
+            # SQLAlchemy 2.0 removes the legacy cascade_backrefs behavior, so
+            # assigning `dashboard=dashboard` on a transient ReportSchedule no
+            # longer implicitly adds it to the session via the
+            # Dashboard.report_schedules backref - it must be added explicitly.
+            db.session.add(report_schedule)
             db.session.commit()
 
             yield dashboard
@@ -337,19 +356,32 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
         response = self.get_assert_metric(uri, "get_datasets")
         assert response.status_code == 200
         data = json.loads(response.data.decode("utf-8"))
+        assert data["result"]
         for dataset in data["result"]:
+            # Spelled out rather than read from the production constant, so
+            # that dropping a field from that constant fails this test.
             for excluded_key in [
                 "sql",
                 "select_star",
                 "fetch_values_predicate",
                 "template_params",
                 "params",
+                "perm",
+                "edit_url",
+                "database",
+                "columns",
+                "column_names",
+                "column_types",
+                "metrics",
+                "verbose_map",
+                "order_by_choices",
+                "main_dttm_col",
+                "granularity_sqla",
+                "time_grain_sqla",
             ]:
                 assert excluded_key not in dataset
-            for column in dataset.get("columns") or []:
-                assert "expression" not in column
-            for metric in dataset.get("metrics") or []:
-                assert "expression" not in metric
+            # The identifying fields the dashboard needs to render are kept.
+            assert {"id", "uid", "table_name", "type"} <= set(dataset)
 
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
     @patch("superset.utils.log.logger")
@@ -464,6 +496,26 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
         }
         assert result["id"] == dashboard.slices[0].id
         assert result["slice_name"] == dashboard.slices[0].slice_name
+
+    @pytest.mark.usefixtures("create_dashboards")
+    @patch("superset.dashboards.api.security_manager.can_access_chart")
+    def test_get_dashboard_charts_strips_form_data_without_chart_access(
+        self, can_access_chart_mock
+    ):
+        """A caller who cannot access a member chart does not receive its
+        form_data (datasource/query config), only its identifying fields."""
+        can_access_chart_mock.return_value = False
+        self.login(ADMIN_USERNAME)
+        dashboard = self.dashboards[0]
+        uri = f"api/v1/dashboard/{dashboard.id}/charts"
+        response = self.get_assert_metric(uri, "get_charts")
+        assert response.status_code == 200
+        data = json.loads(response.data.decode("utf-8"))
+        assert data["result"]
+        for chart in data["result"]:
+            assert "form_data" not in chart
+            assert "id" in chart
+            assert "slice_name" in chart
 
     @pytest.mark.usefixtures("create_dashboards")
     def test_get_dashboard_charts_by_slug(self):
@@ -605,6 +657,65 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
             ):
                 assert value == expected_result[key]
         # rollback changes
+        db.session.delete(dashboard)
+        db.session.commit()
+
+    def test_get_dashboard_derives_stale_filter_scope(self):
+        """
+        Dashboard API: ``chartsInScope`` is derived from the layout, not read
+        back from the stored cache (sc-116923).
+        """
+        admin = self.get_user("admin")
+        slices = db.session.query(Slice).limit(2).all()
+        positions = {
+            "ROOT_ID": {"id": "ROOT_ID", "type": "ROOT", "children": ["GRID_ID"]},
+            "GRID_ID": {"id": "GRID_ID", "type": "GRID", "parents": ["ROOT_ID"]},
+        }
+        for slc in slices:
+            positions[f"CHART-{slc.id}"] = {
+                "id": f"CHART-{slc.id}",
+                "type": "CHART",
+                "meta": {"chartId": slc.id},
+                "parents": ["ROOT_ID", "GRID_ID"],
+            }
+        # A scope naming charts the dashboard does not contain - the state every
+        # seeded and imported dashboard starts in.
+        stored_metadata = {
+            "native_filter_configuration": [
+                {
+                    "id": "NATIVE_FILTER-1",
+                    "name": "Region",
+                    "scope": {"rootPath": ["ROOT_ID"], "excluded": []},
+                    "chartsInScope": [90001, 90002],
+                    "tabsInScope": ["TAB-gone"],
+                }
+            ]
+        }
+        dashboard = self.insert_dashboard(
+            "scope-cache",
+            "scope-cache",
+            [admin.id],
+            slices=slices,
+            position_json=json.dumps(positions),
+            json_metadata=json.dumps(stored_metadata),
+        )
+
+        self.login(ADMIN_USERNAME)
+        rv = self.get_assert_metric(f"api/v1/dashboard/{dashboard.id}", "get")
+        assert rv.status_code == 200
+
+        response_metadata = json.loads(
+            json.loads(rv.data.decode("utf-8"))["result"]["json_metadata"]
+        )
+        native_filter = response_metadata["native_filter_configuration"][0]
+        assert sorted(native_filter["chartsInScope"]) == sorted(
+            slc.id for slc in slices
+        )
+        assert native_filter["tabsInScope"] == []
+        assert native_filter["name"] == "Region"
+        # Deriving is read-only; the stored document is left alone.
+        assert json.loads(dashboard.json_metadata) == stored_metadata
+
         db.session.delete(dashboard)
         db.session.commit()
 
@@ -824,6 +935,55 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
             db.session.delete(dashboard)
             db.session.commit()
 
+    def test_get_dashboards_list_omits_extra_editors_by_default(self):
+        """No EXTRA_EDITORS_RESOLVER configured: list rows omit extra_editors."""
+        admin = self.get_user("admin")
+        dashboard = self.insert_dashboard(
+            "no_extra_editors_list_dashboard",
+            "no-extra-editors-list-dashboard",
+            [admin.id],
+        )
+        try:
+            self.login(ADMIN_USERNAME)
+            rv = self.client.get("api/v1/dashboard/")
+            assert rv.status_code == 200
+            data = json.loads(rv.data.decode("utf-8"))
+            row = next(
+                d
+                for d in data["result"]
+                if d["dashboard_title"] == dashboard.dashboard_title
+            )
+            assert "extra_editors" not in row
+        finally:
+            db.session.delete(dashboard)
+            db.session.commit()
+
+    @with_config({"EXTRA_EDITORS_RESOLVER": lambda resource: [123]})
+    def test_get_dashboards_list_includes_extra_editors_when_resolver_configured(
+        self,
+    ):
+        """List rows get extra_editors too, mirroring the single-object GET."""
+        admin = self.get_user("admin")
+        dashboard = self.insert_dashboard(
+            "extra_editors_list_dashboard",
+            "extra-editors-list-dashboard",
+            [admin.id],
+        )
+        try:
+            self.login(ADMIN_USERNAME)
+            rv = self.client.get("api/v1/dashboard/")
+            assert rv.status_code == 200
+            data = json.loads(rv.data.decode("utf-8"))
+            row = next(
+                d
+                for d in data["result"]
+                if d["dashboard_title"] == dashboard.dashboard_title
+            )
+            assert row["extra_editors"] == [123]
+        finally:
+            db.session.delete(dashboard)
+            db.session.commit()
+
     def test_get_charts_admin_sees_existing_charts(self):
         """Regression for #25890: GET /api/v1/chart/ as an Admin user should
         return existing charts, not an empty list."""
@@ -842,6 +1002,41 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
             assert chart.slice_name in names, (
                 f"Admin list missing the inserted chart. Got slice_names: {names}"
             )
+        finally:
+            db.session.delete(chart)
+            db.session.commit()
+
+    def test_get_charts_list_omits_extra_editors_by_default(self):
+        """No EXTRA_EDITORS_RESOLVER configured: list rows omit extra_editors."""
+        admin = self.get_user("admin")
+        chart = self.insert_chart(
+            "no_extra_editors_list_chart", [admin.id], 1, params="{}"
+        )
+        try:
+            self.login(ADMIN_USERNAME)
+            rv = self.client.get("api/v1/chart/")
+            assert rv.status_code == 200
+            data = json.loads(rv.data.decode("utf-8"))
+            row = next(c for c in data["result"] if c["slice_name"] == chart.slice_name)
+            assert "extra_editors" not in row
+        finally:
+            db.session.delete(chart)
+            db.session.commit()
+
+    @with_config({"EXTRA_EDITORS_RESOLVER": lambda resource: [123]})
+    def test_get_charts_list_includes_extra_editors_when_resolver_configured(self):
+        """List rows get extra_editors too, mirroring the single-object GET."""
+        admin = self.get_user("admin")
+        chart = self.insert_chart(
+            "extra_editors_list_chart", [admin.id], 1, params="{}"
+        )
+        try:
+            self.login(ADMIN_USERNAME)
+            rv = self.client.get("api/v1/chart/")
+            assert rv.status_code == 200
+            data = json.loads(rv.data.decode("utf-8"))
+            row = next(c for c in data["result"] if c["slice_name"] == chart.slice_name)
+            assert row["extra_editors"] == [123]
         finally:
             db.session.delete(chart)
             db.session.commit()
@@ -1771,6 +1966,144 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
         db.session.delete(model)
         db.session.commit()
 
+    def test_create_dashboard_slug_held_by_soft_deleted(self) -> None:
+        """sc-107581: a slug held by a soft-deleted dashboard is actionable.
+
+        Whether a soft-deleted dashboard still reserves its slug depends on
+        the schema, not the code: migration 9e1f3b8c4d2a gives PostgreSQL and
+        MySQL 8.0+ a partial unique index scoped to live rows (deleted rows
+        release the slug, so the second create SUCCEEDS), while SQLite,
+        MariaDB, and MySQL < 8 keep a full unique constraint (the insert
+        collides at flush). This test introspects which schema it is running
+        against; on a SQLite database that has neither (built by
+        ``create_all`` from the model, which no longer declares the column
+        unique), it creates the full unique index in-test to exercise the
+        collision path the way a migration-built database would.
+
+        In the collision case the response must be a 422 naming the deleted
+        holder's uuid and the restore endpoint instead of the old opaque
+        IntegrityError 422.
+        """
+        from sqlalchemy import inspect as sa_inspect
+        from sqlalchemy import text
+
+        from superset.models.helpers import skip_visibility_filter
+
+        insp: Inspector = sa_inspect(db.engine)
+        slug_reserved_by_deleted: bool = any(
+            uc["column_names"] == ["slug"]
+            for uc in insp.get_unique_constraints("dashboards")
+        ) or any(
+            ix.get("unique")
+            and ix["column_names"] == ["slug"]
+            and ix["name"] != "ix_dashboards_active_slug"
+            for ix in insp.get_indexes("dashboards")
+        )
+        test_index: str | None = None
+        if not slug_reserved_by_deleted and db.engine.dialect.name == "sqlite":
+            test_index = "uq_test_sc107581_dashboards_slug"
+            with db.engine.connect() as conn:
+                conn.execute(
+                    text(f"CREATE UNIQUE INDEX {test_index} ON dashboards (slug)")
+                )
+            slug_reserved_by_deleted = True
+
+        self.login(ADMIN_USERNAME)
+        uri: str = "api/v1/dashboard/"
+        try:
+            first: TestResponse = self.post_assert_metric(
+                uri, {"dashboard_title": "held", "slug": "sc107581-held"}, "post"
+            )
+            assert first.status_code == 201
+            first_id: int = json.loads(first.data.decode("utf-8"))["id"]
+            holder: Dashboard = db.session.query(Dashboard).get(first_id)
+            holder_uuid: str = str(holder.uuid)
+            DashboardDAO.soft_delete([holder])
+            db.session.commit()
+
+            rv: TestResponse = self.post_assert_metric(
+                uri, {"dashboard_title": "reclaim", "slug": "sc107581-held"}, "post"
+            )
+
+            if slug_reserved_by_deleted:
+                assert rv.status_code == 422
+                body: str = rv.data.decode("utf-8")
+                assert holder_uuid in body
+                assert f"/api/v1/dashboard/{holder_uuid}/restore" in body
+            else:
+                # Partial-index schema: the deleted row released the slug.
+                assert rv.status_code == 201
+        finally:
+            db.session.rollback()
+            with skip_visibility_filter(db.session, Dashboard):
+                rows: list[Dashboard] = (
+                    db.session.query(Dashboard)
+                    .filter(Dashboard.slug == "sc107581-held")
+                    .all()
+                )
+            row: Dashboard
+            for row in rows:
+                db.session.delete(row)
+            db.session.commit()
+            if test_index:
+                with db.engine.connect() as conn:
+                    conn.execute(text(f"DROP INDEX {test_index}"))
+
+    def test_create_dashboard_uuid_collision_is_not_slug_guidance(self) -> None:
+        """Do not advise restoring an archived slug holder for a UUID collision."""
+        from superset.models.helpers import skip_visibility_filter
+
+        # UUIDMixin declares uuid with unique=True, so create_all also creates
+        # UUID uniqueness on SQLite; no test-created index is needed here.
+        self.login(ADMIN_USERNAME)
+        uri: str = "api/v1/dashboard/"
+        archived_slug: str = "sc107581-uuid-archived"
+        live_slug: str = "sc107581-uuid-live"
+        try:
+            first: TestResponse = self.post_assert_metric(
+                uri,
+                {"dashboard_title": "archived uuid test", "slug": archived_slug},
+                "post",
+            )
+            assert first.status_code == 201
+            first_id: int = json.loads(first.data.decode("utf-8"))["id"]
+            holder: Dashboard = db.session.query(Dashboard).filter_by(id=first_id).one()
+            holder_uuid: str = str(holder.uuid)
+            DashboardDAO.soft_delete([holder])
+            db.session.commit()
+            live: TestResponse = self.post_assert_metric(
+                uri, {"dashboard_title": "live uuid test", "slug": live_slug}, "post"
+            )
+            assert live.status_code == 201
+            live_uuid: str = json.loads(live.data.decode("utf-8"))["uuid"]
+            response: TestResponse = self.post_assert_metric(
+                uri,
+                {
+                    "dashboard_title": "conflicting uuid",
+                    "slug": archived_slug,
+                    "uuid": live_uuid,
+                },
+                "post",
+            )
+            assert response.status_code == 422
+            body: str = response.data.decode("utf-8")
+            assert "restore" not in body.lower()
+            assert holder_uuid not in body
+            assert archived_slug not in body
+            assert json.loads(body)["message"] == "Dashboards could not be created."
+        finally:
+            db.session.rollback()
+            with skip_visibility_filter(db.session, Dashboard):
+                rows: list[Dashboard] = (
+                    db.session.query(Dashboard)
+                    .filter(Dashboard.slug.in_([archived_slug, live_slug]))
+                    .all()
+                )
+            row: Dashboard
+            for row in rows:
+                db.session.delete(row)
+            db.session.commit()
+
     def test_create_dashboard_via_api_links_charts_from_positions(self):
         """Regression for #32966: creating a dashboard through the REST API with a
         ``position_json`` / ``json_metadata`` that references a chart should link
@@ -2084,6 +2417,7 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
                         "stagger_refresh": True,
                         "stagger_time": 500,
                         "timed_refresh_immune_slices": [1, 2],
+                        "async_mode": "force_off",
                     }
                 )
             },
@@ -2096,6 +2430,7 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
         assert saved_metadata["stagger_refresh"] is True
         assert saved_metadata["stagger_time"] == 500
         assert saved_metadata["timed_refresh_immune_slices"] == [1, 2]
+        assert saved_metadata["async_mode"] == "force_off"
 
         db.session.delete(model)
         db.session.commit()
@@ -3201,6 +3536,14 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
         }
 
     def test_import_dashboard_v0_export(self):
+        """
+        Dashboard API: legacy v0-format exports are rejected by the HTTP
+        import endpoint. The v0 command is not registered in the import
+        dispatcher (see superset/commands/dashboard/importers/dispatcher.py)
+        because it overrides charts/dashboards matched by remote_id with no
+        per-object ownership check. Legacy v0 JSON is still importable via
+        the `legacy_import_dashboards` CLI command.
+        """
         num_dashboards = db.session.query(Dashboard).count()
 
         self.login(ADMIN_USERNAME)
@@ -3215,20 +3558,28 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
         rv = self.client.post(uri, data=form_data, content_type="multipart/form-data")
         response = json.loads(rv.data.decode("utf-8"))
 
-        assert rv.status_code == 200
-        assert response == {"message": "OK"}
-        assert db.session.query(Dashboard).count() == num_dashboards + 1
-
-        dashboard = (
-            db.session.query(Dashboard).filter_by(dashboard_title="Births 2").one()
-        )
-        chart = dashboard.slices[0]
-        dataset = chart.table
-
-        db.session.delete(dashboard)
-        db.session.delete(chart)
-        db.session.delete(dataset)
-        db.session.commit()
+        assert rv.status_code == 422
+        assert response == {
+            "errors": [
+                {
+                    "message": "Could not find a valid command to import file",
+                    "error_type": "GENERIC_COMMAND_ERROR",
+                    "level": "warning",
+                    "extra": {
+                        "issue_codes": [
+                            {
+                                "code": 1010,
+                                "message": (
+                                    "Issue 1010 - Superset encountered an "
+                                    "error while running a command."
+                                ),
+                            }
+                        ]
+                    },
+                }
+            ]
+        }
+        assert db.session.query(Dashboard).count() == num_dashboards
 
     @patch("superset.commands.database.importers.v1.utils.add_permissions")
     def test_import_dashboard_overwrite(self, mock_add_permissions):
@@ -3958,10 +4309,12 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
         security_manager.add_permission_role(gamma_role, write_tags_perm)
         security_manager.add_permission_role(gamma_role, tag_dashboards_perm)
 
-    def _cache_screenshot(self, dashboard_id, payload=None):
+    def _cache_screenshot(self, dashboard_id, payload=None, force=False):
         if payload is None:
             payload = {"dataMask": {}, "activeTabs": [], "anchor": "", "urlParams": []}
         uri = f"/api/v1/dashboard/{dashboard_id}/cache_dashboard_screenshot/"
+        if force:
+            uri = f"{uri}?q={rison.dumps({'force': True})}"
         return self.client.post(uri, json=payload)
 
     def _get_screenshot(self, dashboard_id, cache_key, download_format):
@@ -3969,6 +4322,7 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
         return self.client.get(uri)
 
     @with_feature_flags(THUMBNAILS=True, ENABLE_DASHBOARD_SCREENSHOT_ENDPOINTS=True)
+    @with_config({"THUMBNAIL_COMPUTING_CACHE_TTL": 42})
     @pytest.mark.usefixtures("create_dashboard_with_tag")
     def test_cache_dashboard_screenshot_success(self):
         self.login(ADMIN_USERNAME)
@@ -3979,6 +4333,1063 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
         )
         response = self._cache_screenshot(dashboard.id)
         assert response.status_code == 202
+        assert response.json["task_timeout_seconds"] == 84
+
+    @with_feature_flags(THUMBNAILS=True, ENABLE_DASHBOARD_SCREENSHOT_ENDPOINTS=True)
+    @pytest.mark.usefixtures("create_dashboard_with_tag")
+    @patch("superset.dashboards.api.cache_dashboard_screenshot")
+    @patch(
+        "superset.dashboards.api.DashboardScreenshot.set_current_api_generation_cache_key"
+    )
+    @patch("superset.dashboards.api.DashboardScreenshot.store_cache_payload")
+    @patch(
+        "superset.dashboards.api.DashboardScreenshot.get_next_api_generation_cache_key",
+        return_value="new-cache-key",
+    )
+    @patch(
+        "superset.dashboards.api.DashboardScreenshot.get_current_api_generation_cache_key",
+        return_value=None,
+    )
+    def test_new_screenshot_stores_and_publishes_pending_before_enqueuing(
+        self,
+        mock_current_cache_key,
+        mock_next_cache_key,
+        mock_store_cache_payload,
+        mock_set_current_cache_key,
+        mock_cache_task,
+    ):
+        self.login(ADMIN_USERNAME)
+        dashboard = (
+            db.session.query(Dashboard)
+            .filter(Dashboard.dashboard_title == "dash with tag")
+            .first()
+        )
+        events = []
+        mock_store_cache_payload.side_effect = lambda *_args: events.append("store")
+        mock_cache_task.delay.side_effect = lambda **_kwargs: events.append("enqueue")
+
+        def publish(*_args):
+            events.append("publish")
+            return True
+
+        mock_set_current_cache_key.side_effect = publish
+
+        response = self._cache_screenshot(dashboard.id)
+
+        assert response.status_code == 202
+        assert response.json["cache_key"] == "new-cache-key"
+        assert response.json["task_status"] == "Pending"
+        pending_payload = mock_store_cache_payload.call_args.args[1]
+        assert pending_payload.get_status() == "Pending"
+        assert pending_payload.get_scope() == f"dashboard:{dashboard.id}"
+        mock_store_cache_payload.assert_called_once()
+        mock_set_current_cache_key.assert_called_once()
+        mock_cache_task.delay.assert_called_once()
+        assert mock_cache_task.delay.call_args.kwargs["force"] is False
+        assert events == ["store", "publish", "enqueue"]
+
+    @with_feature_flags(THUMBNAILS=True, ENABLE_DASHBOARD_SCREENSHOT_ENDPOINTS=True)
+    @pytest.mark.usefixtures("create_dashboard_with_tag")
+    @patch("superset.dashboards.api.cache_dashboard_screenshot")
+    @patch(
+        "superset.dashboards.api.DashboardScreenshot.set_current_api_generation_cache_key"
+    )
+    @patch("superset.dashboards.api.DashboardScreenshot.store_cache_payload")
+    @patch(
+        "superset.dashboards.api.DashboardScreenshot.get_next_api_generation_cache_key",
+        return_value="reserved-cache-key",
+    )
+    @patch(
+        "superset.dashboards.api.DashboardScreenshot.get_current_api_generation_cache_key"
+    )
+    @patch("superset.dashboards.api.DashboardScreenshot.get_from_cache_key")
+    def test_slow_enqueue_cannot_replace_a_newer_generation_pointer(
+        self,
+        mock_get_from_cache_key,
+        mock_current_cache_key,
+        mock_next_cache_key,
+        mock_store_cache_payload,
+        mock_set_current_cache_key,
+        mock_cache_task,
+    ):
+        self.login(ADMIN_USERNAME)
+        dashboard = (
+            db.session.query(Dashboard)
+            .filter(Dashboard.dashboard_title == "dash with tag")
+            .first()
+        )
+        scope = f"dashboard:{dashboard.id}"
+        state = {"pointer": "old-cache-key"}
+        payloads = {
+            "old-cache-key": ScreenshotCachePayload(
+                image=b"old image",
+                scope=scope,
+            ),
+            "newer-cache-key": ScreenshotCachePayload(
+                image=b"new image",
+                scope=scope,
+            ),
+        }
+        mock_current_cache_key.side_effect = lambda *_args: state["pointer"]
+        mock_get_from_cache_key.side_effect = lambda cache_key, **_kwargs: payloads.get(
+            cache_key
+        )
+        mock_store_cache_payload.side_effect = (
+            lambda cache_key, payload: payloads.__setitem__(cache_key, payload)
+        )
+
+        def publish(_request_key, cache_key, _scope, _previous_cache_key):
+            state["pointer"] = cache_key
+            return True
+
+        mock_set_current_cache_key.side_effect = publish
+        # Simulate another producer publishing while this request is blocked in
+        # broker I/O after its producer-lock lease would have expired.
+        mock_cache_task.delay.side_effect = lambda **_kwargs: state.__setitem__(
+            "pointer", "newer-cache-key"
+        )
+
+        response = self._cache_screenshot(dashboard.id, force=True)
+
+        assert response.status_code == 202
+        assert response.json["cache_key"] == "reserved-cache-key"
+        assert state["pointer"] == "newer-cache-key"
+        mock_set_current_cache_key.assert_called_once()
+
+    @with_feature_flags(THUMBNAILS=True, ENABLE_DASHBOARD_SCREENSHOT_ENDPOINTS=True)
+    @pytest.mark.usefixtures("create_dashboard_with_tag")
+    @patch("superset.dashboards.api.cache_dashboard_screenshot")
+    @patch(
+        "superset.dashboards.api.DashboardScreenshot.set_current_api_generation_cache_key"
+    )
+    @patch("superset.dashboards.api.DashboardScreenshot.store_cache_payload")
+    @patch(
+        "superset.dashboards.api.DashboardScreenshot.get_next_api_generation_cache_key",
+        return_value="reserved-cache-key",
+    )
+    @patch(
+        "superset.dashboards.api.DashboardScreenshot.get_current_api_generation_cache_key"
+    )
+    @patch("superset.dashboards.api.DashboardScreenshot.get_from_cache_key")
+    def test_slow_pending_write_cannot_replace_a_newer_generation_pointer(
+        self,
+        mock_get_from_cache_key,
+        mock_current_cache_key,
+        mock_next_cache_key,
+        mock_store_cache_payload,
+        mock_set_current_cache_key,
+        mock_cache_task,
+    ):
+        self.login(ADMIN_USERNAME)
+        dashboard = (
+            db.session.query(Dashboard)
+            .filter(Dashboard.dashboard_title == "dash with tag")
+            .first()
+        )
+        scope = f"dashboard:{dashboard.id}"
+        state = {"pointer": "old-cache-key"}
+        payloads = {
+            "old-cache-key": ScreenshotCachePayload(
+                image=b"old image",
+                scope=scope,
+            ),
+            "newer-cache-key": ScreenshotCachePayload(
+                image=b"new image",
+                scope=scope,
+            ),
+        }
+        mock_current_cache_key.side_effect = lambda *_args: state["pointer"]
+        mock_get_from_cache_key.side_effect = lambda cache_key, **_kwargs: payloads.get(
+            cache_key
+        )
+
+        def slow_store(cache_key, payload):
+            payloads[cache_key] = payload
+            # This producer's lease expires while its Pending payload SET is
+            # blocked. A successor publishes and completes before it resumes.
+            state["pointer"] = "newer-cache-key"
+
+        mock_store_cache_payload.side_effect = slow_store
+
+        def publish(_request_key, cache_key, _scope, previous_cache_key):
+            if state["pointer"] != previous_cache_key:
+                return False
+            state["pointer"] = cache_key
+            return True
+
+        mock_set_current_cache_key.side_effect = publish
+
+        response = self._cache_screenshot(dashboard.id, force=True)
+
+        assert response.status_code == 200
+        assert response.json["cache_key"] == "newer-cache-key"
+        assert response.json["task_status"] == "Updated"
+        assert state["pointer"] == "newer-cache-key"
+        mock_cache_task.delay.assert_not_called()
+
+    @with_feature_flags(THUMBNAILS=True, ENABLE_DASHBOARD_SCREENSHOT_ENDPOINTS=True)
+    @pytest.mark.usefixtures("create_dashboard_with_tag")
+    @patch("superset.dashboards.api.cache_dashboard_screenshot")
+    @patch(
+        "superset.dashboards.api.DashboardScreenshot.set_current_api_generation_cache_key"
+    )
+    @patch("superset.dashboards.api.DashboardScreenshot.store_cache_payload")
+    @patch(
+        "superset.dashboards.api.DashboardScreenshot.get_next_api_generation_cache_key",
+        return_value="new-cache-key",
+    )
+    @patch(
+        "superset.dashboards.api.DashboardScreenshot.get_current_api_generation_cache_key",
+        return_value=None,
+    )
+    def test_successful_enqueue_survives_producer_lock_release_failure(
+        self,
+        mock_current_cache_key,
+        mock_next_cache_key,
+        mock_store_cache_payload,
+        mock_set_current_cache_key,
+        mock_cache_task,
+    ):
+        self.login(ADMIN_USERNAME)
+        dashboard = (
+            db.session.query(Dashboard)
+            .filter(Dashboard.dashboard_title == "dash with tag")
+            .first()
+        )
+
+        @contextmanager
+        def release_fails(**_kwargs: object) -> Iterator[None]:
+            yield
+            raise ReleaseDistributedLockFailedException("release failed")
+
+        with patch("superset.dashboards.api.DistributedLock", release_fails):
+            response = self._cache_screenshot(dashboard.id)
+
+        assert response.status_code == 202
+        assert response.json["cache_key"] == "new-cache-key"
+        assert response.json["task_status"] == "Pending"
+        mock_store_cache_payload.assert_called_once()
+        mock_set_current_cache_key.assert_called_once()
+        mock_cache_task.delay.assert_called_once()
+
+    @with_feature_flags(THUMBNAILS=True, ENABLE_DASHBOARD_SCREENSHOT_ENDPOINTS=True)
+    @pytest.mark.usefixtures("create_dashboard_with_tag")
+    @patch("superset.dashboards.api.cache_dashboard_screenshot")
+    @patch(
+        "superset.dashboards.api.DashboardScreenshot.set_current_api_generation_cache_key"
+    )
+    @patch("superset.dashboards.api.DashboardScreenshot.store_cache_payload")
+    @patch(
+        "superset.dashboards.api.DashboardScreenshot.get_next_api_generation_cache_key",
+        return_value="replacement-cache-key",
+    )
+    @patch(
+        "superset.dashboards.api.DashboardScreenshot.get_current_api_generation_cache_key",
+        return_value="active-cache-key",
+    )
+    @patch("superset.dashboards.api.DashboardScreenshot.get_from_cache_key")
+    def test_force_replaces_abandoned_in_progress_screenshot(
+        self,
+        mock_get_from_cache_key,
+        mock_current_cache_key,
+        mock_next_cache_key,
+        mock_store_cache_payload,
+        mock_set_current_cache_key,
+        mock_cache_task,
+    ):
+        from datetime import datetime, timedelta
+
+        self.login(ADMIN_USERNAME)
+        dashboard = (
+            db.session.query(Dashboard)
+            .filter(Dashboard.dashboard_title == "dash with tag")
+            .first()
+        )
+        mock_get_from_cache_key.return_value = ScreenshotCachePayload(
+            status=StatusValues.COMPUTING,
+            timestamp=(datetime.now() - timedelta(seconds=2)).isoformat(),
+            scope=f"dashboard:{dashboard.id}",
+        )
+
+        response = self._cache_screenshot(dashboard.id, force=True)
+
+        assert response.status_code == 202
+        assert response.json["cache_key"] == "replacement-cache-key"
+        assert response.json["task_status"] == "Pending"
+        mock_store_cache_payload.assert_called_once()
+        mock_set_current_cache_key.assert_called_once()
+        mock_cache_task.delay.assert_called_once()
+
+    @with_feature_flags(THUMBNAILS=True, ENABLE_DASHBOARD_SCREENSHOT_ENDPOINTS=True)
+    @pytest.mark.usefixtures("create_dashboard_with_tag")
+    @patch("superset.dashboards.api.cache_dashboard_screenshot")
+    @patch(
+        "superset.dashboards.api.DashboardScreenshot.set_current_api_generation_cache_key"
+    )
+    @patch("superset.dashboards.api.DashboardScreenshot.store_cache_payload")
+    @patch(
+        "superset.dashboards.api.DashboardScreenshot.get_next_api_generation_cache_key",
+        side_effect=["generation-a", "generation-b"],
+    )
+    @patch(
+        "superset.dashboards.api.DashboardScreenshot.get_current_api_generation_cache_key"
+    )
+    @patch("superset.dashboards.api.DashboardScreenshot.get_from_cache_key")
+    def test_simultaneous_force_requests_share_fresh_generation(
+        self,
+        mock_get_from_cache_key,
+        mock_current_cache_key,
+        mock_next_cache_key,
+        mock_store_cache_payload,
+        mock_set_current_cache_key,
+        mock_cache_task,
+    ):
+        from datetime import datetime, timedelta
+
+        self.login(ADMIN_USERNAME)
+        dashboard = (
+            db.session.query(Dashboard)
+            .filter(Dashboard.dashboard_title == "dash with tag")
+            .first()
+        )
+        scope = f"dashboard:{dashboard.id}"
+        state: dict[str, str | None] = {"pointer": None}
+        payloads: dict[str, ScreenshotCachePayload] = {}
+        mock_current_cache_key.side_effect = lambda *_args: state["pointer"]
+        mock_get_from_cache_key.side_effect = lambda cache_key, **_kwargs: payloads.get(
+            cache_key
+        )
+        mock_store_cache_payload.side_effect = (
+            lambda cache_key, payload: payloads.__setitem__(cache_key, payload)
+        )
+
+        def publish(_request_key, cache_key, _scope, previous_cache_key):
+            if state["pointer"] != previous_cache_key:
+                return False
+            state["pointer"] = cache_key
+            return True
+
+        mock_set_current_cache_key.side_effect = publish
+
+        first_response = self._cache_screenshot(dashboard.id, force=True)
+        permalink_key = (
+            first_response.json["dashboard_url"].rstrip("/").rsplit("/", 1)[-1]
+        )
+        second_response = self._cache_screenshot(
+            dashboard.id,
+            payload={"permalinkKey": permalink_key},
+            force=True,
+        )
+
+        assert first_response.status_code == 202
+        assert second_response.status_code == 200
+        assert first_response.json["cache_key"] == "generation-a"
+        assert second_response.json["cache_key"] == "generation-a"
+        mock_cache_task.delay.assert_called_once()
+
+        payloads["generation-a"] = ScreenshotCachePayload(
+            status=StatusValues.PENDING,
+            timestamp=(datetime.now() - timedelta(seconds=2)).isoformat(),
+            scope=scope,
+        )
+        retry_response = self._cache_screenshot(
+            dashboard.id,
+            payload={"permalinkKey": permalink_key},
+            force=True,
+        )
+
+        assert retry_response.status_code == 202
+        assert retry_response.json["cache_key"] == "generation-b"
+        assert retry_response.json["task_status"] == "Pending"
+        assert mock_cache_task.delay.call_count == 2
+        assert mock_next_cache_key.call_count == 2
+        assert mock_store_cache_payload.call_count == 2
+        assert mock_set_current_cache_key.call_count == 2
+
+    @with_feature_flags(THUMBNAILS=True, ENABLE_DASHBOARD_SCREENSHOT_ENDPOINTS=True)
+    @pytest.mark.usefixtures("create_dashboard_with_tag")
+    @patch("superset.dashboards.api.cache_dashboard_screenshot")
+    @patch("superset.dashboards.api.DashboardScreenshot.store_cache_payload")
+    @patch(
+        "superset.dashboards.api.DashboardScreenshot.get_current_api_generation_cache_key",
+        return_value="active-cache-key",
+    )
+    @patch("superset.dashboards.api.DashboardScreenshot.get_from_cache_key")
+    def test_force_times_out_on_held_lock_for_expired_generation(
+        self,
+        mock_get_from_cache_key,
+        mock_current_cache_key,
+        mock_store_cache_payload,
+        mock_cache_task,
+    ):
+        from datetime import datetime, timedelta
+
+        self.login(ADMIN_USERNAME)
+        dashboard = (
+            db.session.query(Dashboard)
+            .filter(Dashboard.dashboard_title == "dash with tag")
+            .first()
+        )
+        scope = f"dashboard:{dashboard.id}"
+        mock_get_from_cache_key.return_value = ScreenshotCachePayload(
+            status=StatusValues.PENDING,
+            timestamp=(datetime.now() - timedelta(seconds=2)).isoformat(),
+            scope=scope,
+        )
+
+        @contextmanager
+        def lock_is_held(**_kwargs: object) -> Iterator[None]:
+            raise LockAlreadyHeldException("producer active")
+            yield
+
+        with (
+            patch("superset.dashboards.api.DistributedLock", lock_is_held),
+            patch(
+                "superset.dashboards.api.time.monotonic",
+                side_effect=[10.0, 10.5, 11.0],
+            ),
+            patch("superset.dashboards.api.time.sleep") as mock_sleep,
+        ):
+            response = self._cache_screenshot(dashboard.id, force=True)
+
+        assert response.status_code == 503
+        mock_sleep.assert_called_once()
+        mock_get_from_cache_key.assert_called_once()
+        mock_store_cache_payload.assert_not_called()
+        mock_cache_task.delay.assert_not_called()
+
+    @with_feature_flags(THUMBNAILS=True, ENABLE_DASHBOARD_SCREENSHOT_ENDPOINTS=True)
+    @pytest.mark.usefixtures("create_dashboard_with_tag")
+    @patch("superset.dashboards.api.cache_dashboard_screenshot")
+    @patch(
+        "superset.dashboards.api.DashboardScreenshot.set_current_api_generation_cache_key"
+    )
+    @patch("superset.dashboards.api.DashboardScreenshot.store_cache_payload")
+    @patch(
+        "superset.dashboards.api.DashboardScreenshot.get_next_api_generation_cache_key",
+        return_value="replacement-cache-key",
+    )
+    @patch(
+        "superset.dashboards.api.DashboardScreenshot.get_current_api_generation_cache_key",
+        return_value="abandoned-cache-key",
+    )
+    @patch("superset.dashboards.api.DashboardScreenshot.get_from_cache_key")
+    def test_force_takes_over_generation_after_short_producer_lease_expires(
+        self,
+        mock_get_from_cache_key,
+        mock_current_cache_key,
+        mock_next_cache_key,
+        mock_store_cache_payload,
+        mock_set_current_cache_key,
+        mock_cache_task,
+    ):
+        from datetime import datetime, timedelta
+
+        self.login(ADMIN_USERNAME)
+        dashboard = (
+            db.session.query(Dashboard)
+            .filter(Dashboard.dashboard_title == "dash with tag")
+            .first()
+        )
+        mock_get_from_cache_key.return_value = ScreenshotCachePayload(
+            status=StatusValues.PENDING,
+            timestamp=(datetime.now() - timedelta(seconds=1.5)).isoformat(),
+            scope=f"dashboard:{dashboard.id}",
+        )
+        lock_attempts: list[dict[str, object]] = []
+
+        @contextmanager
+        def expiring_lock(**kwargs: object) -> Iterator[None]:
+            lock_attempts.append(kwargs)
+            if len(lock_attempts) == 1:
+                raise LockAlreadyHeldException("producer lease still active")
+            yield
+
+        with (
+            patch("superset.dashboards.api.DistributedLock", expiring_lock),
+            patch(
+                "superset.dashboards.api.time.monotonic",
+                side_effect=[10.0, 10.5],
+            ),
+            patch("superset.dashboards.api.time.sleep") as mock_sleep,
+        ):
+            response = self._cache_screenshot(dashboard.id, force=True)
+
+        assert response.status_code == 202
+        assert response.json["cache_key"] == "replacement-cache-key"
+        assert response.json["task_status"] == "Pending"
+        mock_sleep.assert_called_once()
+        assert len(lock_attempts) == 2
+        assert all(attempt["ttl_seconds"] == 2 for attempt in lock_attempts)
+        mock_next_cache_key.assert_called_once()
+        mock_store_cache_payload.assert_called_once()
+        mock_set_current_cache_key.assert_called_once()
+        mock_cache_task.delay.assert_called_once()
+
+    @with_feature_flags(THUMBNAILS=True, ENABLE_DASHBOARD_SCREENSHOT_ENDPOINTS=True)
+    @pytest.mark.usefixtures("create_dashboard_with_tag")
+    @patch("superset.dashboards.api.cache_dashboard_screenshot")
+    @patch("superset.dashboards.api.DashboardScreenshot.store_cache_payload")
+    @patch(
+        "superset.dashboards.api.DashboardScreenshot.get_current_api_generation_cache_key"
+    )
+    @patch("superset.dashboards.api.DashboardScreenshot.get_from_cache_key")
+    def test_force_joins_replacement_published_while_waiting_for_producer_lock(
+        self,
+        mock_get_from_cache_key,
+        mock_current_cache_key,
+        mock_store_cache_payload,
+        mock_cache_task,
+    ):
+        from datetime import datetime, timedelta
+
+        self.login(ADMIN_USERNAME)
+        dashboard = (
+            db.session.query(Dashboard)
+            .filter(Dashboard.dashboard_title == "dash with tag")
+            .first()
+        )
+        scope = f"dashboard:{dashboard.id}"
+        mock_current_cache_key.side_effect = [
+            "active-cache-key",
+            "active-cache-key",
+            "replacement-cache-key",
+        ]
+        mock_get_from_cache_key.side_effect = [
+            ScreenshotCachePayload(
+                status=StatusValues.PENDING,
+                timestamp=(datetime.now() - timedelta(seconds=2)).isoformat(),
+                scope=scope,
+            ),
+            ScreenshotCachePayload(status=StatusValues.PENDING, scope=scope),
+        ]
+
+        @contextmanager
+        def lock_is_held(**_kwargs: object) -> Iterator[None]:
+            raise LockAlreadyHeldException("producer active")
+            yield
+
+        with (
+            patch("superset.dashboards.api.DistributedLock", lock_is_held),
+            patch("superset.dashboards.api.time.monotonic", side_effect=[10.0, 10.5]),
+            patch("superset.dashboards.api.time.sleep") as mock_sleep,
+        ):
+            response = self._cache_screenshot(dashboard.id, force=True)
+
+        assert response.status_code == 200
+        assert response.json["cache_key"] == "replacement-cache-key"
+        assert response.json["task_status"] == "Pending"
+        mock_sleep.assert_called_once()
+        assert [call.args[0] for call in mock_get_from_cache_key.call_args_list] == [
+            "active-cache-key",
+            "replacement-cache-key",
+        ]
+        mock_store_cache_payload.assert_not_called()
+        mock_cache_task.delay.assert_not_called()
+
+    @with_feature_flags(THUMBNAILS=True, ENABLE_DASHBOARD_SCREENSHOT_ENDPOINTS=True)
+    @pytest.mark.usefixtures("create_dashboard_with_tag")
+    @patch("superset.dashboards.api.cache_dashboard_screenshot")
+    @patch("superset.dashboards.api.DashboardScreenshot.store_cache_payload")
+    @patch(
+        "superset.dashboards.api.DashboardScreenshot.get_current_api_generation_cache_key",
+        return_value="wrong-scope-cache-key",
+    )
+    @patch("superset.dashboards.api.DashboardScreenshot.get_from_cache_key")
+    def test_force_does_not_join_wrong_scope_generation_on_lock_timeout(
+        self,
+        mock_get_from_cache_key,
+        mock_current_cache_key,
+        mock_store_cache_payload,
+        mock_cache_task,
+    ):
+        self.login(ADMIN_USERNAME)
+        dashboard = (
+            db.session.query(Dashboard)
+            .filter(Dashboard.dashboard_title == "dash with tag")
+            .first()
+        )
+        mock_get_from_cache_key.return_value = ScreenshotCachePayload(
+            status=StatusValues.PENDING,
+            scope="dashboard:999999",
+        )
+
+        @contextmanager
+        def lock_is_held(**_kwargs: object) -> Iterator[None]:
+            raise LockAlreadyHeldException("producer active")
+            yield
+
+        with (
+            patch("superset.dashboards.api.DistributedLock", lock_is_held),
+            patch("superset.dashboards.api.time.monotonic", side_effect=[10.0, 11.0]),
+            patch("superset.dashboards.api.time.sleep") as mock_sleep,
+        ):
+            response = self._cache_screenshot(dashboard.id, force=True)
+
+        assert response.status_code == 503
+        mock_sleep.assert_not_called()
+        mock_get_from_cache_key.assert_called_once_with(
+            "wrong-scope-cache-key",
+            raise_on_error=True,
+        )
+        mock_store_cache_payload.assert_not_called()
+        mock_cache_task.delay.assert_not_called()
+
+    @with_feature_flags(THUMBNAILS=True, ENABLE_DASHBOARD_SCREENSHOT_ENDPOINTS=True)
+    @pytest.mark.usefixtures("create_dashboard_with_tag")
+    @patch("superset.dashboards.api.cache_dashboard_screenshot")
+    @patch("superset.dashboards.api.DashboardScreenshot.store_cache_payload")
+    @patch(
+        "superset.dashboards.api.DashboardScreenshot.get_current_api_generation_cache_key"
+    )
+    @patch("superset.dashboards.api.DashboardScreenshot.get_from_cache_key")
+    def test_delayed_force_observes_generation_published_by_racing_request(
+        self,
+        mock_get_from_cache_key,
+        mock_current_cache_key,
+        mock_store_cache_payload,
+        mock_cache_task,
+    ):
+        self.login(ADMIN_USERNAME)
+        dashboard = (
+            db.session.query(Dashboard)
+            .filter(Dashboard.dashboard_title == "dash with tag")
+            .first()
+        )
+        scope = f"dashboard:{dashboard.id}"
+        mock_current_cache_key.side_effect = ["old-cache-key", "new-cache-key"]
+        mock_get_from_cache_key.side_effect = [
+            ScreenshotCachePayload(image=b"old image", scope=scope),
+            ScreenshotCachePayload(image=b"new image", scope=scope),
+        ]
+
+        response = self._cache_screenshot(dashboard.id, force=True)
+
+        assert response.status_code == 200
+        assert response.json["cache_key"] == "new-cache-key"
+        assert response.json["task_status"] == "Updated"
+        mock_store_cache_payload.assert_not_called()
+        mock_cache_task.delay.assert_not_called()
+
+    @with_feature_flags(THUMBNAILS=True, ENABLE_DASHBOARD_SCREENSHOT_ENDPOINTS=True)
+    @pytest.mark.usefixtures("create_dashboard_with_tag")
+    @patch("superset.dashboards.api.cache_dashboard_screenshot")
+    @patch(
+        "superset.dashboards.api.DashboardScreenshot.set_current_api_generation_cache_key"
+    )
+    @patch("superset.dashboards.api.DashboardScreenshot.store_cache_payload")
+    @patch(
+        "superset.dashboards.api.DashboardScreenshot.get_next_api_generation_cache_key",
+        return_value="new-cache-key",
+    )
+    @patch(
+        "superset.dashboards.api.DashboardScreenshot.get_current_api_generation_cache_key",
+        return_value="old-cache-key",
+    )
+    @patch("superset.dashboards.api.DashboardScreenshot.get_from_cache_key")
+    def test_force_uses_new_generation_without_invalidating_previous_url(
+        self,
+        mock_get_from_cache_key,
+        mock_current_cache_key,
+        mock_next_cache_key,
+        mock_store_cache_payload,
+        mock_set_current_cache_key,
+        mock_cache_task,
+    ):
+        self.login(ADMIN_USERNAME)
+        dashboard = (
+            db.session.query(Dashboard)
+            .filter(Dashboard.dashboard_title == "dash with tag")
+            .first()
+        )
+        old_payload = ScreenshotCachePayload(
+            image=b"old image",
+            scope=f"dashboard:{dashboard.id}",
+        )
+        mock_get_from_cache_key.return_value = old_payload
+
+        response = self._cache_screenshot(dashboard.id, force=True)
+        old_response = self._get_screenshot(
+            dashboard.id,
+            "old-cache-key",
+            "png",
+        )
+
+        assert response.status_code == 202
+        assert response.json["cache_key"] == "new-cache-key"
+        assert response.json["task_status"] == "Pending"
+        assert old_response.status_code == 200
+        assert old_response.data == b"old image"
+        mock_cache_task.delay.assert_called_once()
+
+    @with_feature_flags(THUMBNAILS=True, ENABLE_DASHBOARD_SCREENSHOT_ENDPOINTS=True)
+    @pytest.mark.usefixtures("create_dashboard_with_tag")
+    @patch("superset.dashboards.api.cache_dashboard_screenshot")
+    @patch(
+        "superset.dashboards.api.DashboardScreenshot.set_current_api_generation_cache_key"
+    )
+    @patch("superset.dashboards.api.DashboardScreenshot.store_cache_payload")
+    @patch(
+        "superset.dashboards.api.DashboardScreenshot.get_next_api_generation_cache_key",
+        return_value="failed-cache-key",
+    )
+    @patch(
+        "superset.dashboards.api.DashboardScreenshot.get_current_api_generation_cache_key",
+        return_value=None,
+    )
+    @patch("superset.dashboards.api.DashboardScreenshot.mark_cache_error_if_incomplete")
+    def test_enqueue_failure_replaces_pending_with_error(
+        self,
+        mock_mark_cache_error,
+        mock_current_cache_key,
+        mock_next_cache_key,
+        mock_store_cache_payload,
+        mock_set_current_cache_key,
+        mock_cache_task,
+    ):
+        self.login(ADMIN_USERNAME)
+        dashboard = (
+            db.session.query(Dashboard)
+            .filter(Dashboard.dashboard_title == "dash with tag")
+            .first()
+        )
+        mock_cache_task.delay.side_effect = RuntimeError("broker unavailable")
+        stored_statuses = []
+        mock_store_cache_payload.side_effect = lambda _cache_key, payload: (
+            stored_statuses.append(payload.get_status())
+        )
+
+        response = self._cache_screenshot(dashboard.id)
+
+        assert response.status_code == 500
+        assert mock_store_cache_payload.call_count == 1
+        assert stored_statuses == ["Pending"]
+        mock_mark_cache_error.assert_called_once_with(
+            "failed-cache-key",
+            f"dashboard:{dashboard.id}",
+        )
+        mock_set_current_cache_key.assert_called_once()
+
+    @with_feature_flags(THUMBNAILS=True, ENABLE_DASHBOARD_SCREENSHOT_ENDPOINTS=True)
+    @pytest.mark.usefixtures("create_dashboard_with_tag")
+    @patch("superset.dashboards.api.cache_dashboard_screenshot")
+    @patch("superset.dashboards.api.DashboardScreenshot.store_cache_payload")
+    @patch(
+        "superset.dashboards.api.DashboardScreenshot.get_current_api_generation_cache_key"
+    )
+    @patch("superset.dashboards.api.DashboardScreenshot.get_from_cache_key")
+    def test_producer_lock_contention_observes_published_generation(
+        self,
+        mock_get_from_cache_key,
+        mock_current_cache_key,
+        mock_store_cache_payload,
+        mock_cache_task,
+    ):
+        self.login(ADMIN_USERNAME)
+        dashboard = (
+            db.session.query(Dashboard)
+            .filter(Dashboard.dashboard_title == "dash with tag")
+            .first()
+        )
+        scope = f"dashboard:{dashboard.id}"
+        mock_current_cache_key.side_effect = ["old-cache-key", "new-cache-key"]
+        mock_get_from_cache_key.side_effect = [
+            ScreenshotCachePayload(image=b"old image", scope=scope),
+            ScreenshotCachePayload(status=StatusValues.PENDING, scope=scope),
+        ]
+
+        @contextmanager
+        def lock_is_held(**_kwargs: object) -> Iterator[None]:
+            raise LockAlreadyHeldException("producer active")
+            yield
+
+        with patch("superset.dashboards.api.DistributedLock", lock_is_held):
+            response = self._cache_screenshot(dashboard.id, force=True)
+
+        assert response.status_code == 200
+        assert response.json["cache_key"] == "new-cache-key"
+        assert response.json["task_status"] == "Pending"
+        mock_store_cache_payload.assert_not_called()
+        mock_cache_task.delay.assert_not_called()
+
+    @with_feature_flags(THUMBNAILS=True, ENABLE_DASHBOARD_SCREENSHOT_ENDPOINTS=True)
+    @pytest.mark.usefixtures("create_dashboard_with_tag")
+    @patch("superset.dashboards.api.cache_dashboard_screenshot")
+    @patch("superset.dashboards.api.DashboardScreenshot.store_cache_payload")
+    @patch(
+        "superset.dashboards.api.DashboardScreenshot.get_current_api_generation_cache_key"
+    )
+    @patch("superset.dashboards.api.DashboardScreenshot.get_from_cache_key")
+    def test_producer_lock_contention_polls_pointer_without_refetching_payload(
+        self,
+        mock_get_from_cache_key,
+        mock_current_cache_key,
+        mock_store_cache_payload,
+        mock_cache_task,
+    ):
+        self.login(ADMIN_USERNAME)
+        dashboard = (
+            db.session.query(Dashboard)
+            .filter(Dashboard.dashboard_title == "dash with tag")
+            .first()
+        )
+        scope = f"dashboard:{dashboard.id}"
+        mock_current_cache_key.side_effect = [
+            "old-cache-key",
+            "old-cache-key",
+            "new-cache-key",
+        ]
+        mock_get_from_cache_key.side_effect = [
+            ScreenshotCachePayload(image=b"old image", scope=scope),
+            ScreenshotCachePayload(status=StatusValues.PENDING, scope=scope),
+        ]
+
+        @contextmanager
+        def lock_is_held(**_kwargs: object) -> Iterator[None]:
+            raise LockAlreadyHeldException("producer active")
+            yield
+
+        with (
+            patch("superset.dashboards.api.DistributedLock", lock_is_held),
+            patch(
+                "superset.dashboards.api.time.monotonic",
+                side_effect=[10.0, 10.5],
+            ),
+            patch("superset.dashboards.api.time.sleep") as mock_sleep,
+        ):
+            response = self._cache_screenshot(dashboard.id, force=True)
+
+        assert response.status_code == 200
+        assert response.json["cache_key"] == "new-cache-key"
+        assert response.json["task_status"] == "Pending"
+        mock_sleep.assert_called_once()
+        assert [call.args[0] for call in mock_get_from_cache_key.call_args_list] == [
+            "old-cache-key",
+            "new-cache-key",
+        ]
+        mock_store_cache_payload.assert_not_called()
+        mock_cache_task.delay.assert_not_called()
+
+    @with_feature_flags(THUMBNAILS=True, ENABLE_DASHBOARD_SCREENSHOT_ENDPOINTS=True)
+    @pytest.mark.usefixtures("create_dashboard_with_tag")
+    @patch("superset.dashboards.api.cache_dashboard_screenshot")
+    @patch("superset.dashboards.api.DashboardScreenshot.store_cache_payload")
+    @patch(
+        "superset.dashboards.api.DashboardScreenshot.get_current_api_generation_cache_key",
+        return_value="old-cache-key",
+    )
+    @patch("superset.dashboards.api.DashboardScreenshot.get_from_cache_key")
+    def test_producer_lock_contention_timeout_returns_503_without_enqueuing(
+        self,
+        mock_get_from_cache_key,
+        mock_current_cache_key,
+        mock_store_cache_payload,
+        mock_cache_task,
+    ):
+        self.login(ADMIN_USERNAME)
+        dashboard = (
+            db.session.query(Dashboard)
+            .filter(Dashboard.dashboard_title == "dash with tag")
+            .first()
+        )
+        mock_get_from_cache_key.return_value = ScreenshotCachePayload(
+            image=b"old image",
+            scope=f"dashboard:{dashboard.id}",
+        )
+
+        @contextmanager
+        def lock_is_held(**_kwargs: object) -> Iterator[None]:
+            raise LockAlreadyHeldException("producer active")
+            yield
+
+        with (
+            patch("superset.dashboards.api.DistributedLock", lock_is_held),
+            patch("superset.dashboards.api.time.monotonic", side_effect=[10.0, 11.0]),
+            patch("superset.dashboards.api.time.sleep") as mock_sleep,
+        ):
+            response = self._cache_screenshot(dashboard.id, force=True)
+
+        assert response.status_code == 503
+        mock_sleep.assert_not_called()
+        mock_get_from_cache_key.assert_called_once_with(
+            "old-cache-key",
+            raise_on_error=True,
+        )
+        mock_store_cache_payload.assert_not_called()
+        mock_cache_task.delay.assert_not_called()
+
+    @with_feature_flags(THUMBNAILS=True, ENABLE_DASHBOARD_SCREENSHOT_ENDPOINTS=True)
+    @pytest.mark.usefixtures("create_dashboard_with_tag")
+    @patch("superset.dashboards.api.cache_dashboard_screenshot")
+    @patch("superset.dashboards.api.DashboardScreenshot.store_cache_payload")
+    @patch(
+        "superset.dashboards.api.DashboardScreenshot.get_current_api_generation_cache_key",
+        return_value=None,
+    )
+    def test_producer_lock_acquire_failure_returns_503_without_enqueuing(
+        self,
+        mock_current_cache_key,
+        mock_store_cache_payload,
+        mock_cache_task,
+    ):
+        self.login(ADMIN_USERNAME)
+        dashboard = (
+            db.session.query(Dashboard)
+            .filter(Dashboard.dashboard_title == "dash with tag")
+            .first()
+        )
+
+        @contextmanager
+        def lock_acquire_fails(**_kwargs: object) -> Iterator[None]:
+            raise AcquireDistributedLockFailedException("cache unavailable")
+            yield
+
+        with patch("superset.dashboards.api.DistributedLock", lock_acquire_fails):
+            response = self._cache_screenshot(dashboard.id)
+
+        assert response.status_code == 503
+        mock_store_cache_payload.assert_not_called()
+        mock_cache_task.delay.assert_not_called()
+
+    @with_feature_flags(THUMBNAILS=True, ENABLE_DASHBOARD_SCREENSHOT_ENDPOINTS=True)
+    @pytest.mark.usefixtures("create_dashboard_with_tag")
+    @patch("superset.dashboards.api.cache_dashboard_screenshot")
+    @patch(
+        "superset.dashboards.api.DashboardScreenshot.get_next_api_generation_cache_key",
+        return_value="new-cache-key",
+    )
+    @patch(
+        "superset.dashboards.api.DashboardScreenshot.get_current_api_generation_cache_key",
+        return_value=None,
+    )
+    @patch("superset.dashboards.api.DashboardScreenshot.store_cache_payload")
+    def test_cache_write_failure_returns_503_without_enqueuing(
+        self,
+        mock_store_cache_payload,
+        mock_current_cache_key,
+        mock_next_cache_key,
+        mock_cache_task,
+    ):
+        self.login(ADMIN_USERNAME)
+        dashboard = (
+            db.session.query(Dashboard)
+            .filter(Dashboard.dashboard_title == "dash with tag")
+            .first()
+        )
+        mock_store_cache_payload.side_effect = ScreenshotCacheError("cache down")
+
+        response = self._cache_screenshot(dashboard.id)
+
+        assert response.status_code == 503
+        mock_cache_task.delay.assert_not_called()
+
+    @with_feature_flags(THUMBNAILS=True, ENABLE_DASHBOARD_SCREENSHOT_ENDPOINTS=True)
+    @pytest.mark.usefixtures("create_dashboard_with_tag")
+    @patch("superset.dashboards.api.cache_dashboard_screenshot")
+    @patch(
+        "superset.dashboards.api.DashboardScreenshot.set_current_api_generation_cache_key"
+    )
+    @patch("superset.dashboards.api.DashboardScreenshot.store_cache_payload")
+    @patch(
+        "superset.dashboards.api.DashboardScreenshot.get_next_api_generation_cache_key",
+        return_value="orphan-cache-key",
+    )
+    @patch(
+        "superset.dashboards.api.DashboardScreenshot.get_current_api_generation_cache_key",
+        return_value=None,
+    )
+    def test_generation_publication_failure_returns_503_without_enqueuing(
+        self,
+        mock_current_cache_key,
+        mock_next_cache_key,
+        mock_store_cache_payload,
+        mock_set_current_cache_key,
+        mock_cache_task,
+    ):
+        self.login(ADMIN_USERNAME)
+        dashboard = (
+            db.session.query(Dashboard)
+            .filter(Dashboard.dashboard_title == "dash with tag")
+            .first()
+        )
+        mock_set_current_cache_key.side_effect = ScreenshotCacheError("cache down")
+
+        response = self._cache_screenshot(dashboard.id)
+
+        assert response.status_code == 503
+        mock_store_cache_payload.assert_called_once()
+        mock_cache_task.delay.assert_not_called()
+
+    @with_feature_flags(THUMBNAILS=True, ENABLE_DASHBOARD_SCREENSHOT_ENDPOINTS=True)
+    @pytest.mark.usefixtures("create_dashboard_with_tag")
+    @patch("superset.dashboards.api.cache_dashboard_screenshot")
+    @patch(
+        "superset.dashboards.api.DashboardScreenshot.set_current_api_generation_cache_key",
+        return_value=False,
+    )
+    @patch("superset.dashboards.api.DashboardScreenshot.store_cache_payload")
+    @patch(
+        "superset.dashboards.api.DashboardScreenshot.get_next_api_generation_cache_key",
+        return_value="orphan-cache-key",
+    )
+    @patch(
+        "superset.dashboards.api.DashboardScreenshot.get_current_api_generation_cache_key",
+        return_value=None,
+    )
+    def test_generation_publication_loser_requires_readable_winner(
+        self,
+        mock_current_cache_key,
+        mock_next_cache_key,
+        mock_store_cache_payload,
+        mock_set_current_cache_key,
+        mock_cache_task,
+    ):
+        self.login(ADMIN_USERNAME)
+        dashboard = (
+            db.session.query(Dashboard)
+            .filter(Dashboard.dashboard_title == "dash with tag")
+            .first()
+        )
+
+        response = self._cache_screenshot(dashboard.id)
+
+        assert response.status_code == 503
+        mock_store_cache_payload.assert_called_once()
+        mock_set_current_cache_key.assert_called_once()
+        mock_cache_task.delay.assert_not_called()
+
+    @with_feature_flags(THUMBNAILS=True, ENABLE_DASHBOARD_SCREENSHOT_ENDPOINTS=True)
+    @pytest.mark.usefixtures("create_dashboard_with_tag")
+    @patch("superset.dashboards.api.cache_dashboard_screenshot")
+    @patch(
+        "superset.dashboards.api.DashboardScreenshot.get_current_api_generation_cache_key",
+        return_value="cache-key",
+    )
+    @patch(
+        "superset.dashboards.api.DashboardScreenshot.get_from_cache_key",
+        side_effect=ScreenshotCacheError("cache down"),
+    )
+    def test_cache_read_failure_returns_503_without_enqueuing(
+        self,
+        mock_get_from_cache_key,
+        mock_current_cache_key,
+        mock_cache_task,
+    ):
+        self.login(ADMIN_USERNAME)
+        dashboard = (
+            db.session.query(Dashboard)
+            .filter(Dashboard.dashboard_title == "dash with tag")
+            .first()
+        )
+
+        response = self._cache_screenshot(dashboard.id)
+
+        assert response.status_code == 503
+        mock_get_from_cache_key.assert_called_once_with(
+            "cache-key",
+            raise_on_error=True,
+        )
+        mock_cache_task.delay.assert_not_called()
 
     @with_feature_flags(THUMBNAILS=True, ENABLE_DASHBOARD_SCREENSHOT_ENDPOINTS=True)
     @pytest.mark.usefixtures("create_dashboard_with_tag")
@@ -3989,8 +5400,50 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
             .filter(Dashboard.dashboard_title == "dash with tag")
             .first()
         )
-        response = self._cache_screenshot(dashboard.id, {"permalinkKey": "1234"})
+        # A permalink key must resolve (and access-check) to `dashboard.id` --
+        # an arbitrary/unresolvable key is now rejected rather than accepted
+        # verbatim.
+        permalink_key = CreateDashboardPermalinkCommand(
+            dashboard_id=str(dashboard.id),
+            state={"dataMask": {}, "activeTabs": [], "anchor": "", "urlParams": []},
+        ).run()
+        response = self._cache_screenshot(dashboard.id, {"permalinkKey": permalink_key})
         assert response.status_code == 202
+
+    @with_feature_flags(THUMBNAILS=True, ENABLE_DASHBOARD_SCREENSHOT_ENDPOINTS=True)
+    @pytest.mark.usefixtures("create_dashboard_with_tag")
+    def test_cache_dashboard_screenshot_rejects_unresolvable_permalink(self):
+        self.login(ADMIN_USERNAME)
+        dashboard = (
+            db.session.query(Dashboard)
+            .filter(Dashboard.dashboard_title == "dash with tag")
+            .first()
+        )
+        response = self._cache_screenshot(dashboard.id, {"permalinkKey": "1234"})
+        assert response.status_code == 404
+
+    @with_feature_flags(THUMBNAILS=True, ENABLE_DASHBOARD_SCREENSHOT_ENDPOINTS=True)
+    @pytest.mark.usefixtures(
+        "load_world_bank_dashboard_with_slices",
+        "load_birth_names_dashboard_with_slices",
+    )
+    def test_cache_dashboard_screenshot_rejects_permalink_for_other_dashboard(self):
+        """
+        A permalink key that resolves to a *different* dashboard than `pk` must
+        be rejected -- otherwise a caller with access to `pk` could pass a
+        permalink key for a dashboard they don't have access to and have it
+        rendered by the (potentially more-privileged) screenshot executor.
+        """
+        self.login(ADMIN_USERNAME)
+        dashboard_a_id, dashboard_b_id = get_dashboards_ids(["world_health", "births"])
+        permalink_key = CreateDashboardPermalinkCommand(
+            dashboard_id=str(dashboard_b_id),
+            state={"dataMask": {}, "activeTabs": [], "anchor": "", "urlParams": []},
+        ).run()
+        response = self._cache_screenshot(
+            dashboard_a_id, {"permalinkKey": permalink_key}
+        )
+        assert response.status_code == 403
 
     @with_feature_flags(THUMBNAILS=True, ENABLE_DASHBOARD_SCREENSHOT_ENDPOINTS=True)
     @pytest.mark.usefixtures("create_dashboard_with_tag")
@@ -4020,21 +5473,27 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
     @with_feature_flags(THUMBNAILS=True, ENABLE_DASHBOARD_SCREENSHOT_ENDPOINTS=True)
     @pytest.mark.usefixtures("create_dashboard_with_tag")
     @patch("superset.dashboards.api.cache_dashboard_screenshot")
+    @patch(
+        "superset.dashboards.api.DashboardScreenshot.get_current_api_generation_cache_key",
+        return_value="cache-key",
+    )
     @patch("superset.dashboards.api.DashboardScreenshot.get_from_cache_key")
-    def test_screenshot_success_png(self, mock_get_from_cache_key, mock_cache_task):
+    def test_screenshot_success_png(
+        self, mock_get_from_cache_key, mock_current_cache_key, mock_cache_task
+    ):
         """
         Validate screenshot returns png
         """
         self.login(ADMIN_USERNAME)
         mock_cache_task.return_value = None
-        mock_get_from_cache_key.return_value = ScreenshotCachePayload(
-            b"fake image data"
-        )
 
         dashboard = (
             db.session.query(Dashboard)
             .filter(Dashboard.dashboard_title == "dash with tag")
             .first()
+        )
+        mock_get_from_cache_key.return_value = ScreenshotCachePayload(
+            b"fake image data", scope=f"dashboard:{dashboard.id}"
         )
         cache_resp = self._cache_screenshot(dashboard.id)
         assert cache_resp.status_code == 200
@@ -4045,18 +5504,25 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
         assert response.mimetype == "image/png"
         assert response.data == b"fake image data"
 
-        mock_get_from_cache_key.return_value = ScreenshotCachePayload()
+        mock_get_from_cache_key.return_value = ScreenshotCachePayload(
+            scope=f"dashboard:{dashboard.id}"
+        )
         cache_resp = self._cache_screenshot(dashboard.id)
-        assert cache_resp.status_code == 202
+        assert cache_resp.status_code == 200
 
     @with_feature_flags(THUMBNAILS=True, ENABLE_DASHBOARD_SCREENSHOT_ENDPOINTS=True)
     @pytest.mark.usefixtures("create_dashboard_with_tag")
     @patch("superset.dashboards.api.cache_dashboard_screenshot")
     @patch("superset.dashboards.api.build_pdf_from_screenshots")
+    @patch(
+        "superset.dashboards.api.DashboardScreenshot.get_current_api_generation_cache_key",
+        return_value="cache-key",
+    )
     @patch("superset.dashboards.api.DashboardScreenshot.get_from_cache_key")
     def test_screenshot_success_pdf(
         self,
         mock_get_from_cache_key,
+        mock_current_cache_key,
         mock_build_pdf,
         mock_cache_task,
     ):
@@ -4065,15 +5531,15 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
         """
         self.login(ADMIN_USERNAME)
         mock_cache_task.return_value = None
-        mock_get_from_cache_key.return_value = ScreenshotCachePayload(
-            b"fake image data"
-        )
         mock_build_pdf.return_value = b"fake pdf data"
 
         dashboard = (
             db.session.query(Dashboard)
             .filter(Dashboard.dashboard_title == "dash with tag")
             .first()
+        )
+        mock_get_from_cache_key.return_value = ScreenshotCachePayload(
+            b"fake image data", scope=f"dashboard:{dashboard.id}"
         )
         cache_resp = self._cache_screenshot(dashboard.id)
         assert cache_resp.status_code == 200
@@ -4084,15 +5550,31 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
         assert response.mimetype == "application/pdf"
         assert response.data == b"fake pdf data"
 
-        mock_get_from_cache_key.return_value = ScreenshotCachePayload()
+        mock_get_from_cache_key.return_value = ScreenshotCachePayload(
+            scope=f"dashboard:{dashboard.id}"
+        )
         cache_resp = self._cache_screenshot(dashboard.id)
-        assert cache_resp.status_code == 202
+        assert cache_resp.status_code == 200
 
     @with_feature_flags(THUMBNAILS=True, ENABLE_DASHBOARD_SCREENSHOT_ENDPOINTS=True)
     @pytest.mark.usefixtures("create_dashboard_with_tag")
     @patch("superset.dashboards.api.cache_dashboard_screenshot")
+    @patch(
+        "superset.dashboards.api.DashboardScreenshot.set_current_api_generation_cache_key",
+        return_value=True,
+    )
+    @patch(
+        "superset.dashboards.api.DashboardScreenshot.get_current_api_generation_cache_key",
+        return_value="cache-key",
+    )
     @patch("superset.dashboards.api.DashboardScreenshot.get_from_cache_key")
-    def test_screenshot_not_in_cache(self, mock_get_cache, mock_cache_task):
+    def test_screenshot_not_in_cache(
+        self,
+        mock_get_cache,
+        mock_current_cache_key,
+        mock_set_current_cache_key,
+        mock_cache_task,
+    ):
         self.login(ADMIN_USERNAME)
         mock_cache_task.return_value = None
         mock_get_cache.return_value = None
@@ -4110,6 +5592,32 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
         assert response.status_code == 404
 
     @with_feature_flags(THUMBNAILS=True, ENABLE_DASHBOARD_SCREENSHOT_ENDPOINTS=True)
+    @pytest.mark.usefixtures("create_dashboard_with_tag")
+    @patch("superset.dashboards.api.DashboardScreenshot.get_from_cache_key")
+    def test_screenshot_error_response_exposes_terminal_task_status(
+        self,
+        mock_get_from_cache_key,
+    ):
+        self.login(ADMIN_USERNAME)
+        dashboard = (
+            db.session.query(Dashboard)
+            .filter(Dashboard.dashboard_title == "dash with tag")
+            .first()
+        )
+        mock_get_from_cache_key.return_value = ScreenshotCachePayload(
+            status=StatusValues.ERROR,
+            scope=f"dashboard:{dashboard.id}",
+        )
+
+        response = self._get_screenshot(dashboard.id, "failed-cache-key", "png")
+
+        assert response.status_code == 404
+        assert response.json == {
+            "extra": {"task_status": "Error"},
+            "message": "Not found",
+        }
+
+    @with_feature_flags(THUMBNAILS=True, ENABLE_DASHBOARD_SCREENSHOT_ENDPOINTS=True)
     def test_screenshot_dashboard_not_found(self):
         self.login(ADMIN_USERNAME)
         non_existent_id = 999
@@ -4119,28 +5627,42 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
     @with_feature_flags(THUMBNAILS=True, ENABLE_DASHBOARD_SCREENSHOT_ENDPOINTS=True)
     @pytest.mark.usefixtures("create_dashboard_with_tag")
     @patch("superset.dashboards.api.cache_dashboard_screenshot")
+    @patch(
+        "superset.dashboards.api.DashboardScreenshot.get_current_api_generation_cache_key",
+        return_value="cache-key",
+    )
     @patch("superset.dashboards.api.DashboardScreenshot.get_from_cache_key")
     def test_screenshot_invalid_download_format(
-        self, mock_get_from_cache_key, mock_cache_task
+        self, mock_get_from_cache_key, mock_current_cache_key, mock_cache_task
     ):
         self.login(ADMIN_USERNAME)
         mock_cache_task.return_value = None
-        mock_get_from_cache_key.return_value = ScreenshotCachePayload(b"fake png data")
 
         dashboard = (
             db.session.query(Dashboard)
             .filter(Dashboard.dashboard_title == "dash with tag")
             .first()
         )
+        mock_get_from_cache_key.return_value = ScreenshotCachePayload(
+            b"fake png data", scope=f"dashboard:{dashboard.id}"
+        )
 
         cache_resp = self._cache_screenshot(dashboard.id)
         assert cache_resp.status_code == 200
         cache_key = json.loads(cache_resp.data.decode("utf-8"))["cache_key"]
 
-        mock_get_from_cache_key.return_value = ScreenshotCachePayload()
+        mock_get_from_cache_key.return_value = ScreenshotCachePayload(
+            scope=f"dashboard:{dashboard.id}"
+        )
         cache_resp = self._cache_screenshot(dashboard.id)
-        assert cache_resp.status_code == 202
+        assert cache_resp.status_code == 200
 
+        # Restore a valid, correctly-scoped payload so the request below
+        # actually reaches the download_format validation instead of
+        # failing the earlier cache-scope check.
+        mock_get_from_cache_key.return_value = ScreenshotCachePayload(
+            b"fake png data", scope=f"dashboard:{dashboard.id}"
+        )
         response = self._get_screenshot(dashboard.id, cache_key, "invalid")
         assert response.status_code == 404
 
@@ -4148,24 +5670,32 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
     @pytest.mark.usefixtures("create_dashboard_with_tag")
     @patch("superset.dashboards.api.cache_dashboard_screenshot")
     @patch("superset.dashboards.api.build_pdf_from_screenshots")
+    @patch(
+        "superset.dashboards.api.DashboardScreenshot.get_current_api_generation_cache_key",
+        return_value="cache-key",
+    )
     @patch("superset.dashboards.api.DashboardScreenshot.get_from_cache_key")
     def test_screenshot_filename_in_header(
-        self, mock_get_from_cache_key, mock_build_pdf, mock_cache_task
+        self,
+        mock_get_from_cache_key,
+        mock_current_cache_key,
+        mock_build_pdf,
+        mock_cache_task,
     ):
         """
         Dashboard API: Test that screenshot download includes proper filename in header
         """
         self.login(ADMIN_USERNAME)
         mock_cache_task.return_value = None
-        mock_get_from_cache_key.return_value = ScreenshotCachePayload(
-            b"fake image data"
-        )
         mock_build_pdf.return_value = b"fake pdf data"
 
         dashboard = (
             db.session.query(Dashboard)
             .filter(Dashboard.dashboard_title == "dash with tag")
             .first()
+        )
+        mock_get_from_cache_key.return_value = ScreenshotCachePayload(
+            b"fake image data", scope=f"dashboard:{dashboard.id}"
         )
 
         cache_resp = self._cache_screenshot(dashboard.id)
@@ -4185,9 +5715,17 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
     @pytest.mark.usefixtures("create_dashboard_with_tag")
     @patch("superset.dashboards.api.cache_dashboard_screenshot")
     @patch("superset.dashboards.api.build_pdf_from_screenshots")
+    @patch(
+        "superset.dashboards.api.DashboardScreenshot.get_current_api_generation_cache_key",
+        return_value="cache-key",
+    )
     @patch("superset.dashboards.api.DashboardScreenshot.get_from_cache_key")
     def test_screenshot_filename_in_header_dashboard_with_no_title(
-        self, mock_get_from_cache_key, mock_build_pdf, mock_cache_task
+        self,
+        mock_get_from_cache_key,
+        mock_current_cache_key,
+        mock_build_pdf,
+        mock_cache_task,
     ):
         """
         Dashboard API: Test that filename in header for screenshot download defaults
@@ -4195,14 +5733,14 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
         """
         self.login(ADMIN_USERNAME)
         mock_cache_task.return_value = None
-        mock_get_from_cache_key.return_value = ScreenshotCachePayload(
-            b"fake image data"
-        )
         mock_build_pdf.return_value = b"fake pdf data"
 
         dashboard = Dashboard()
         db.session.add(dashboard)
         db.session.commit()
+        mock_get_from_cache_key.return_value = ScreenshotCachePayload(
+            b"fake image data", scope=f"dashboard:{dashboard.id}"
+        )
 
         cache_resp = self._cache_screenshot(dashboard.id)
         assert cache_resp.status_code == 200

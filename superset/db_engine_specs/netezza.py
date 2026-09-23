@@ -14,6 +14,10 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from typing import Callable
+
+from sqlalchemy.sql.elements import ColumnElement
+
 from superset.constants import TimeGrain
 from superset.db_engine_specs.base import DatabaseCategory
 from superset.db_engine_specs.postgres import PostgresBaseEngineSpec
@@ -23,6 +27,11 @@ class NetezzaEngineSpec(PostgresBaseEngineSpec):
     engine = "netezza"
     default_driver = "nzpy"
     engine_name = "IBM Netezza Performance Server"
+
+    # `PostgresBaseEngineSpec._extended_aggregations` (MEDIAN/STDDEV_SAMP/VAR_SAMP)
+    # is verified against real Postgres behavior, not Netezza's; disable it here
+    # until someone confirms the same expressions against a live Netezza instance.
+    _extended_aggregations: dict[str, Callable[[ColumnElement], ColumnElement]] = {}
 
     metadata = {
         "description": "IBM Netezza Performance Server is a data warehouse appliance.",

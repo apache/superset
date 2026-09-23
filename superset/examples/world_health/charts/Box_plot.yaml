@@ -24,7 +24,7 @@ params:
   compare_suffix: o10Y
   country_fieldtype: cca3
   entity: country_code
-  granularity_sqla: year
+  granularity: year
   groupby:
   - region
   limit: '25'

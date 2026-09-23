@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { FormatLocaleDefinition } from 'd3-format';
 import { TimeLocaleDefinition } from 'd3-time-format';
 import { isPlainObject } from 'lodash-es';
 import { Languages } from 'src/features/home/LanguagePicker';
@@ -28,6 +27,7 @@ import {
 import type {
   ColorSchemeConfig,
   FeatureFlagMap,
+  FormatLocaleDefinition,
   JsonObject,
   SequentialSchemeConfig,
 } from '@superset-ui/core';
@@ -168,6 +168,7 @@ export interface CommonBootstrapData {
   language_pack: LanguagePack;
   extra_categorical_color_schemes: ColorSchemeConfig[];
   extra_sequential_color_schemes: SequentialSchemeConfig[];
+  extra_theme_tokens: string[];
   theme: BootstrapThemeDataConfig;
   menu_data: MenuData;
   d3_format: Partial<FormatLocaleDefinition>;
@@ -180,7 +181,10 @@ export interface CommonBootstrapData {
 export interface BootstrapData {
   user?: BootstrapUser;
   common: CommonBootstrapData;
-  config?: any;
+  config?: {
+    GUEST_TOKEN_HEADER_NAME?: string;
+    GUEST_TOKEN_HEADER_MAX_BYTES?: number | null;
+  };
   embedded?: {
     dashboard_id: string;
     // Domains allowed to embed this dashboard. An empty/undefined list means

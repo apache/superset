@@ -47,12 +47,23 @@ const getCrossFilterDataMask =
   ) =>
   (value: string) => {
     const selected = Object.values(selectedValues);
-    let values: string[];
-    if (selected.includes(value)) {
-      values = selected.filter(v => v !== value);
-    } else {
-      values = [value];
+    const isCurrentValueSelected = selected.includes(value);
+
+    // Not every click lands on a real category. A pie renders its total as a
+    // graphic text when showTotal is on, rolls small sectors into an
+    // aggregated "Other" slice, and a sector can have an empty name -- none of
+    // which has a labelMap entry. Building a data mask from one produced
+    // filters with no values, and since `[].every(...)` is true, every groupby
+    // column came out as `IS NULL`, so downstream charts filtered on nothing.
+    // Emit no cross-filter at all for those, matching what
+    // contextMenuEventHandler already does when labelMap has no entry.
+    if (!value || (!isCurrentValueSelected && !labelMap[value])) {
+      return undefined;
     }
+
+    const values = isCurrentValueSelected
+      ? selected.filter(v => v !== value)
+      : [value];
 
     const groupbyValues = values
       .map(value => labelMap[value])
@@ -62,7 +73,7 @@ const getCrossFilterDataMask =
       dataMask: {
         extraFormData: {
           filters:
-            values.length === 0
+            values.length === 0 || groupbyValues.length === 0
               ? []
               : groupby.map((col, idx) => {
                   const val = groupbyValues.map(v => {
@@ -86,7 +97,7 @@ const getCrossFilterDataMask =
           selectedValues: values.length ? values : null,
         },
       },
-      isCurrentValueSelected: selected.includes(value),
+      isCurrentValueSelected,
     };
   };
 

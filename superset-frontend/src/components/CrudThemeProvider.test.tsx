@@ -71,6 +71,7 @@ beforeEach(() => {
   jest.restoreAllMocks();
   jest.spyOn(Theme, 'fromConfig').mockReturnValue({
     SupersetThemeProvider: MockSupersetThemeProvider,
+    setConfig: jest.fn(),
   } as unknown as Theme);
   mockNormalizeThemeConfig.mockImplementation(
     config => config as ReturnType<typeof normalizeThemeConfig>,
@@ -332,6 +333,68 @@ test('skips the dashboard theme when an SDK theme config override is active', ()
   expect(
     screen.queryByTestId('dashboard-theme-provider'),
   ).not.toBeInTheDocument();
+});
+
+test('updates the existing Theme in place when the theme changes instead of recreating it', () => {
+  const setConfig = jest.fn();
+  (Theme.fromConfig as jest.Mock).mockReturnValue({
+    SupersetThemeProvider: MockSupersetThemeProvider,
+    setConfig,
+  });
+
+  const themeA = { token: { colorPrimary: '#aaaaaa' } };
+  const { rerender } = render(
+    <CrudThemeProvider
+      theme={{ id: 1, theme_name: 'A', json_data: JSON.stringify(themeA) }}
+    >
+      <div>Dashboard Content</div>
+    </CrudThemeProvider>,
+  );
+  expect(Theme.fromConfig).toHaveBeenCalledTimes(1);
+
+  const themeB = { token: { colorPrimary: '#bbbbbb' } };
+  rerender(
+    <CrudThemeProvider
+      theme={{ id: 2, theme_name: 'B', json_data: JSON.stringify(themeB) }}
+    >
+      <div>Dashboard Content</div>
+    </CrudThemeProvider>,
+  );
+
+  // The Theme instance is reused (not recreated) and updated in place, so the
+  // SupersetThemeProvider identity stays stable and the dashboard subtree is
+  // not remounted when the applied theme changes.
+  expect(Theme.fromConfig).toHaveBeenCalledTimes(1);
+  expect(setConfig).toHaveBeenCalledWith(themeB, expect.anything());
+});
+
+test('warns and keeps rendering when the in-place theme update throws', () => {
+  const setConfig = jest.fn(() => {
+    throw new Error('setConfig failed');
+  });
+  (Theme.fromConfig as jest.Mock).mockReturnValue({
+    SupersetThemeProvider: MockSupersetThemeProvider,
+    setConfig,
+  });
+  jest.spyOn(logging, 'warn').mockImplementation();
+
+  render(
+    <CrudThemeProvider
+      theme={{
+        id: 1,
+        theme_name: 'Custom Theme',
+        json_data: JSON.stringify({ token: { colorPrimary: '#ff0000' } }),
+      }}
+    >
+      <div>Dashboard Content</div>
+    </CrudThemeProvider>,
+  );
+
+  // The stable instance is created, then the in-place update via setConfig
+  // throws in the layout effect; the error is caught and children still render.
+  expect(setConfig).toHaveBeenCalled();
+  expect(logging.warn).toHaveBeenCalled();
+  expect(screen.getByText('Dashboard Content')).toBeInTheDocument();
 });
 
 test('applies the dashboard theme when no SDK theme config override is active', () => {

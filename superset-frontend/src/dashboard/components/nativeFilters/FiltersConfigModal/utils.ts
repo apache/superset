@@ -18,21 +18,15 @@
  */
 import type { FormInstance } from '@superset-ui/core/components';
 import { nanoid } from 'nanoid';
-import { getInitialDataMask } from 'src/dataMask/reducer';
 import {
   FilterConfiguration,
   NativeFilterType,
-  NativeFilterTarget,
-  Filter,
-  Divider,
   ChartCustomizationType,
   ChartCustomizationConfiguration,
   ChartCustomization,
   ChartCustomizationDivider,
 } from '@superset-ui/core';
 import { logging } from '@apache-superset/core/utils';
-import { DASHBOARD_ROOT_ID } from 'src/dashboard/util/constants';
-import { buildNativeFilterTarget } from './transformers/buildTarget';
 import {
   ChartCustomizationsForm,
   FilterChangesType,
@@ -100,70 +94,6 @@ export const validateForm = async (
     return null;
   }
 };
-
-export const createHandleSave =
-  (
-    saveForm: Function,
-    filterChanges: FilterChangesType,
-    values: NativeFiltersForm,
-    filterConfigMap: Record<string, Filter | Divider>,
-  ) =>
-  async () => {
-    const transformFilter = (id: string) => {
-      const formInputs = values.filters?.[id] || filterConfigMap[id];
-      if (!formInputs) {
-        return undefined;
-      }
-      if (formInputs.type === NativeFilterType.Divider) {
-        return {
-          id,
-          type: NativeFilterType.Divider,
-          scope: {
-            rootPath: [DASHBOARD_ROOT_ID],
-            excluded: [],
-          },
-          title: formInputs.title,
-          description: formInputs.description,
-        };
-      }
-
-      const target: Partial<NativeFilterTarget> =
-        buildNativeFilterTarget(formInputs);
-
-      return {
-        id,
-        adhoc_filters: formInputs.adhoc_filters,
-        time_range: formInputs.time_range,
-        controlValues: formInputs.controlValues ?? {},
-        granularity_sqla: formInputs.granularity_sqla,
-        ...(formInputs.time_grains?.length
-          ? { time_grains: formInputs.time_grains }
-          : {}),
-        requiredFirst: Object.values(formInputs.requiredFirst ?? {}).find(
-          rf => rf,
-        ),
-        name: formInputs.name,
-        filterType: formInputs.filterType,
-        targets: [target],
-        defaultDataMask: formInputs.defaultDataMask ?? getInitialDataMask(),
-        cascadeParentIds: formInputs.dependencies || [],
-        scope: formInputs.scope,
-        sortMetric: formInputs.sortMetric,
-        type: formInputs.type,
-        description: (formInputs.description || '').trim(),
-      };
-    };
-
-    const transformedModified = filterChanges.modified
-      .map(transformFilter)
-      .filter(Boolean);
-
-    const newFilterChanges = {
-      ...filterChanges,
-      modified: transformedModified,
-    };
-    await saveForm(newFilterChanges);
-  };
 
 export const createHandleRemoveItem =
   (

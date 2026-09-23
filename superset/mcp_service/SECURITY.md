@@ -74,6 +74,13 @@ MCP_JWT_ALGORITHM = "HS256"
 MCP_JWT_SECRET = "your-shared-secret-key"
 ```
 
+**Multiple Trusted Issuers**: `MCP_JWT_ISSUER` may also be set to a list of
+issuers. The default user resolver maps token claims to Superset users by
+username/email without binding the token's `iss` claim, so trusting more
+than one issuer requires a custom, issuer-aware `MCP_USER_RESOLVER` (e.g.
+one that derives a compound `iss`+`sub` identity). The service refuses to
+start in this configuration until such a resolver is provided.
+
 **JWT Token Structure**:
 
 ```json
@@ -395,7 +402,7 @@ Different MCP tools require different Superset permissions:
 | `update_chart` | `can_write` on Slice + editorship or Admin | Must be a chart editor or Admin |
 | `list_datasets` | `datasource_access` | Returns only accessible datasets |
 | `get_dataset_info` | `datasource_access` | Validates dataset access |
-| `execute_sql` | `can_sql_json` or `can_sqllab` on Database | Executes SQL with RLS |
+| `execute_sql` | `can_execute_sql_query` on SQLLab | Executes SQL with RLS |
 | `generate_dashboard` | `can_write` on Dashboard + dataset access | Creates new dashboard |
 
 **Permission Denied Handling**:

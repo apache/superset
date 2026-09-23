@@ -123,6 +123,7 @@ const pluginApi = makeApi<{}, { result: Plugin[] }>({
 
 const sharedModules = {
   react: () => import('react'),
+  // oxlint-disable-next-line no-restricted-imports
   lodash: () => import('lodash'),
   'react-dom': () => import('react-dom'),
   '@superset-ui/chart-controls': () => import('@superset-ui/chart-controls'),

@@ -142,11 +142,22 @@ class DatasetDAO(BaseDAO[SqlaTable]):
             return None
 
     @staticmethod
-    def get_related_objects(database_id: int) -> dict[str, Any]:
+    def get_related_objects(dataset_id: int) -> dict[str, Any]:
+        return DatasetDAO.get_related_objects_for_datasets([dataset_id])
+
+    @staticmethod
+    def get_related_objects_for_datasets(dataset_ids: list[int]) -> dict[str, Any]:
+        """
+        Return the charts built on any of the datasets and the dashboards those
+        charts appear on. Each chart and dashboard is listed once even if it
+        depends on several of the datasets.
+        """
+        if not dataset_ids:
+            return {"charts": [], "dashboards": []}
         charts = (
             db.session.query(Slice)
             .filter(
-                Slice.datasource_id == database_id,
+                Slice.datasource_id.in_(dataset_ids),
                 Slice.datasource_type == DatasourceType.TABLE,
             )
             .all()
@@ -630,7 +641,7 @@ class DatasetDAO(BaseDAO[SqlaTable]):
         dataset = DatasetDAO.find_by_id(dataset_id)
         if not dataset:
             return None
-        return db.session.query(SqlMetric).get(metric_id)
+        return db.session.get(SqlMetric, metric_id)
 
     @staticmethod
     def get_table_by_name(database_id: int, table_name: str) -> SqlaTable | None:

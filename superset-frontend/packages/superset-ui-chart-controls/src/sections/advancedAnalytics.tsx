@@ -217,5 +217,29 @@ export const advancedAnalyticsControls: ControlPanelSectionConfig = {
         },
       },
     ],
+    [
+      {
+        name: 'resample_fill_time_range',
+        config: {
+          type: 'CheckboxControl',
+          label: t('Fill the entire time range'),
+          default: false,
+          description: t(
+            'Fill missing periods across the whole time range of the chart ' +
+              'instead of only between the first and the last data point. ' +
+              'Useful to keep a series anchored to the selected time range ' +
+              'when the data starts late or ends early.',
+          ),
+          visibility: ({ controls }, { name }) => {
+            // `_b` suffixed controls refer to Query B in mixed timeseries
+            const suffix = name.endsWith('_b') ? '_b' : '';
+            return Boolean(
+              controls[`resample_rule${suffix}`]?.value &&
+              controls[`resample_method${suffix}`]?.value,
+            );
+          },
+        },
+      },
+    ],
   ],
 };

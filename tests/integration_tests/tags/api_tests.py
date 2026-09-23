@@ -124,15 +124,19 @@ class TestTagApi(InsertChartMixin, SupersetTestCase):
                 db.session.delete(tag)
                 db.session.commit()
 
-    def test_get_tag(self):
+    def test_get_tag(self) -> None:
         """
         Query API: Test get query
         """
-        with freeze_time(datetime.now()):
-            tag = self.insert_tag(
+        with freeze_time("2024-01-01 12:00:00"):
+            tag: Tag = Tag(
                 name="test get tag",
-                tag_type="custom",
+                type=TagType.custom,
             )
+            # Defaults capture real datetime.now at import, beyond freezegun's patch.
+            tag.created_on = tag.changed_on = datetime.now()
+            db.session.add(tag)
+            db.session.commit()
             self.login(ADMIN_USERNAME)
             uri = f"api/v1/tag/{tag.id}"
             rv = self.client.get(uri)
@@ -571,6 +575,49 @@ class TestTagApi(InsertChartMixin, SupersetTestCase):
         assert tags.count() == 0
 
     @pytest.mark.usefixtures("create_tags")
+    def test_delete_tag_by_pk(self):
+        """
+        Tag API: the single-object ``DELETE /api/v1/tag/<pk>`` route must
+        share the same ownership/system-tag validation as bulk_delete
+        (DeleteTagsCommand), not the FAB-generated model delete.
+        """
+        tag = db.session.query(Tag).filter(Tag.name == "example_tag_1").one()
+        system_tag = Tag(name="system:pk_delete_example", type=TagType.type)
+        db.session.add(system_tag)
+        db.session.commit()
+
+        try:
+            # a non-admin, non-creator user may not delete via the pk route
+            self.login(GAMMA_USERNAME)
+            rv = self.client.delete(f"api/v1/tag/{tag.id}", follow_redirects=True)
+            assert rv.status_code == 422
+            assert db.session.query(Tag).filter(Tag.id == tag.id).count() == 1
+
+            # system-generated tags are refused outright, even for an admin
+            self.logout()
+            self.login(ADMIN_USERNAME)
+            rv = self.client.delete(
+                f"api/v1/tag/{system_tag.id}", follow_redirects=True
+            )
+            assert rv.status_code == 422
+            assert db.session.query(Tag).filter(Tag.id == system_tag.id).count() == 1
+
+            # an admin may delete a custom tag via the pk route
+            rv = self.client.delete(f"api/v1/tag/{tag.id}", follow_redirects=True)
+            assert rv.status_code == 200
+            assert db.session.query(Tag).filter(Tag.id == tag.id).count() == 0
+        finally:
+            db.session.query(Tag).filter(Tag.id == system_tag.id).delete()
+            db.session.commit()
+
+    def test_delete_tag_by_pk_not_found(self):
+        self.login(ADMIN_USERNAME)
+        existing_ids = [tag_id for (tag_id,) in db.session.query(Tag.id).all()]
+        non_existent_id = max(existing_ids, default=0) + 1
+        rv = self.client.delete(f"api/v1/tag/{non_existent_id}", follow_redirects=True)
+        assert rv.status_code == 404
+
+    @pytest.mark.usefixtures("create_tags")
     def test_delete_favorite_tag(self):
         self.login(ADMIN_USERNAME)
         user_id = self.get_user(username="admin").get_id()
@@ -654,7 +701,13 @@ class TestTagApi(InsertChartMixin, SupersetTestCase):
     @pytest.mark.usefixtures("create_tags")
     def test_add_tag_not_found(self):
         self.login(ADMIN_USERNAME)
-        uri = "api/v1/tag/123/favorites/"  # noqa: F541
+
+        # Pick an id that is genuinely free: the tagging system mints implicit
+        # tags as assets are saved, so no fixed id stays unused.
+        existing_ids = [tag_id for (tag_id,) in db.session.query(Tag.id).all()]
+        non_existent_id = max(existing_ids, default=0) + 1
+
+        uri = f"api/v1/tag/{non_existent_id}/favorites/"
         rv = self.client.post(uri, follow_redirects=True)
 
         assert rv.status_code == 404

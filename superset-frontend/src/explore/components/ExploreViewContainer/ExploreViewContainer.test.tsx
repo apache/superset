@@ -267,7 +267,6 @@ test('generates a new form_data param when none is available', async () => {
     new ChartMetadata({
       name: 'fake table',
       thumbnail: '.png',
-      useLegacyApi: false,
     }),
   );
   const history = createMemoryHistory({ initialEntries: [defaultPath] });
@@ -520,7 +519,6 @@ test('doesnt call replace when pathname is not /explore', async () => {
     new ChartMetadata({
       name: 'fake table',
       thumbnail: '.png',
-      useLegacyApi: false,
     }),
   );
   const history = createMemoryHistory({ initialEntries: ['/dashboard'] });
@@ -682,7 +680,7 @@ test('shows error indicator when controls have validation errors', async () => {
     'query-error-tooltip-trigger',
   );
 
-  userEvent.hover(errorIndicator);
+  await userEvent.hover(errorIndicator);
 
   const tooltip = await screen.findByRole('tooltip');
   expect(tooltip).toBeInTheDocument();
@@ -721,7 +719,7 @@ test('shows error indicator for multiple controls with validation errors', async
     'query-error-tooltip-trigger',
   );
 
-  userEvent.hover(errorIndicator);
+  await userEvent.hover(errorIndicator);
 
   const tooltip = await screen.findByRole('tooltip');
   expect(tooltip).toBeInTheDocument();
@@ -754,7 +752,7 @@ test('shows error indicator for control with multiple validation errors', async 
     'query-error-tooltip-trigger',
   );
 
-  userEvent.hover(errorIndicator);
+  await userEvent.hover(errorIndicator);
 
   const tooltip = await screen.findByRole('tooltip');
   expect(tooltip).toBeInTheDocument();
@@ -791,7 +789,7 @@ test('shows error indicator with function labels', async () => {
     'query-error-tooltip-trigger',
   );
 
-  userEvent.hover(errorIndicator);
+  await userEvent.hover(errorIndicator);
 
   const tooltip = await screen.findByRole('tooltip');
   expect(tooltip).toBeInTheDocument();

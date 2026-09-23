@@ -27,6 +27,7 @@ import { nanoid } from 'nanoid';
 import { SupersetClient } from '@superset-ui/core';
 import { tn } from '@apache-superset/core/translation';
 import rison from 'rison';
+import type { ColumnObject } from 'src/features/datasets/types';
 
 // Type definitions
 
@@ -247,4 +248,30 @@ export async function fetchSyncedColumns(
   )}`;
   const { json } = await SupersetClient.get({ endpoint, signal });
   return json as ColumnMetadata[];
+}
+
+/**
+ * Lift each column's certification out of its `extra` JSON into the flat
+ * fields the datasource editor binds to.
+ */
+export function withCertificationFields(columns: ColumnObject[] = []) {
+  return columns.map(column => {
+    // Malformed `extra` must not take out the whole column list, the way an
+    // uncaught parse would — same fallback as `hydrateMetricExtra`.
+    let parsedExtra;
+    try {
+      parsedExtra = JSON.parse(column.extra || '{}') || {};
+    } catch {
+      parsedExtra = {};
+    }
+    const {
+      certification: { details = '', certified_by: certifiedBy = '' } = {},
+    } = parsedExtra;
+    return {
+      ...column,
+      certification_details: details || '',
+      certified_by: certifiedBy || '',
+      is_certified: details || certifiedBy,
+    };
+  });
 }

@@ -14,6 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import base64
 import logging
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
@@ -29,10 +30,60 @@ from sqlalchemy_utils.types.encrypted.encrypted_type import (
     AesGcmEngine,
     EncryptionDecryptionBaseEngine,
 )
+from sqlalchemy_utils.types.encrypted.padding import (
+    InvalidPaddingError,
+    PADDING_MECHANISM,
+)
 
 
 class EncryptedType(SqlaEncryptedType):
     cache_ok = True
+
+
+class BackwardCompatibleAesEngine(AesEngine):
+    """AES-CBC engine that pads new writes with PKCS5, not sqlalchemy_utils'
+    default "naive" scheme, while still reading values already stored under
+    naive padding without a data migration.
+
+    ``NaivePadding`` pads short plaintext with literal ``*`` bytes and unpads
+    by unconditionally stripping every trailing ``*`` -- so a secret whose
+    real value ends in ``*`` loses that character the next time it's
+    decrypted (apache/superset#32664). PKCS5 encodes the padding length in
+    the padding bytes themselves and validates it on unpad, so it can't
+    silently eat real data, and it's the standard scheme
+    ``sqlalchemy_utils`` ships specifically as the safe alternative to naive
+    padding.
+
+    ``decrypt`` tries PKCS5 first: ``PKCS5Padding.unpad`` is self-validating
+    and raises ``InvalidPaddingError`` for anything that isn't validly
+    PKCS5-padded, so it only succeeds on values this engine (or another
+    PKCS5-padded source) actually wrote. Naive-padded legacy values fail
+    that validation in practice, so decrypt falls back to naive unpadding
+    for them -- every already-stored secret keeps decrypting correctly, no
+    re-encryption pass required, while every new write is safe going
+    forward.
+    """
+
+    def _set_padding_mechanism(self, padding_mechanism: str | None = None) -> None:
+        super()._set_padding_mechanism("pkcs5")
+        self._naive_padding_engine = PADDING_MECHANISM["naive"](self.BLOCK_SIZE)
+
+    def decrypt(self, value: Any) -> str:
+        if isinstance(value, str):
+            value = str(value)
+        decryptor = self.cipher.decryptor()
+        raw: bytes = base64.b64decode(value)
+        raw = decryptor.update(raw) + decryptor.finalize()
+        try:
+            unpadded: Any = self.padding_engine.unpad(raw)
+        except InvalidPaddingError:
+            unpadded = self._naive_padding_engine.unpad(raw)
+        if isinstance(unpadded, str):
+            return unpadded
+        try:
+            return unpadded.decode("utf-8")
+        except UnicodeDecodeError:
+            raise ValueError("Invalid decryption key") from None
 
 
 # Named encryption engines selectable via the ``SQLALCHEMY_ENCRYPTED_FIELD_ENGINE``
@@ -41,8 +92,12 @@ class EncryptedType(SqlaEncryptedType):
 # deployment from "aes" to "aes-gcm" requires re-encrypting all stored secrets
 # first — see the SIP referenced in the docs. Changing this on a populated
 # database without that migration will make existing secrets undecryptable.
+# "aes" resolves to BackwardCompatibleAesEngine, not the raw sqlalchemy_utils
+# AesEngine: it's a drop-in subclass, so this needs no migration of its own
+# (see that class's docstring) — new writes use safe PKCS5 padding, and
+# already-stored naive-padded values keep reading back correctly.
 ENCRYPTION_ENGINES: dict[str, type[EncryptionDecryptionBaseEngine]] = {
-    "aes": AesEngine,
+    "aes": BackwardCompatibleAesEngine,
     "aes-gcm": AesGcmEngine,
 }
 

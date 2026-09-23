@@ -33,9 +33,9 @@ export interface TargetFormInputs {
  * Build the ``NativeFilterTarget`` carried by a native filter or chart
  * customization from its form inputs.
  *
- * Consolidates what used to live in three places — ``filterTransformer``,
- * ``customizationTransformer``, and ``createHandleSave`` — so changes to the
- * target shape only need to happen here.
+ * Consolidates what used to live in ``filterTransformer`` and
+ * ``customizationTransformer`` so changes to the target shape only need to
+ * happen here.
  */
 export function buildNativeFilterTarget(
   formInputs: TargetFormInputs,
@@ -49,7 +49,11 @@ export function buildNativeFilterTarget(
         : formInputs.dataset;
   }
 
-  if (formInputs.datasourceType) {
+  // ``datasourceType`` describes the selected dataset, so it only belongs on a
+  // target that has one. Emitting it for a dataset-less filter (e.g.
+  // ``filter_time``) would make a UI save serialize a target the import and
+  // seed paths write as ``{}``.
+  if (formInputs.dataset != null && formInputs.datasourceType) {
     target.datasourceType = formInputs.datasourceType;
   }
 

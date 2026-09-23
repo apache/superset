@@ -16,9 +16,11 @@
 # under the License.
 
 from .add_chart_to_existing_dashboard import add_chart_to_existing_dashboard
+from .apply_dashboard_filters import apply_dashboard_filters
 from .delete_dashboard import delete_dashboard
 from .duplicate_dashboard import duplicate_dashboard
 from .generate_dashboard import generate_dashboard
+from .get_dashboard_data import get_dashboard_data
 from .get_dashboard_datasets import get_dashboard_datasets
 from .get_dashboard_info import get_dashboard_info
 from .get_dashboard_layout import get_dashboard_layout
@@ -33,12 +35,14 @@ from .update_dashboard import update_dashboard
 
 __all__ = [
     "list_dashboards",
+    "get_dashboard_data",
     "get_dashboard_datasets",
     "get_dashboard_info",
     "get_dashboard_layout",
     "generate_dashboard",
     "duplicate_dashboard",
     "add_chart_to_existing_dashboard",
+    "apply_dashboard_filters",
     "manage_dashboard_certification",
     "manage_dashboard_owners",
     "manage_dashboard_roles",

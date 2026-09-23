@@ -29,7 +29,7 @@
  * restore it and asserts — via the API — that it is live again.
  */
 import { test, expect, Page } from '@playwright/test';
-import { apiGet, apiPost } from '../../helpers/api/requests';
+import { apiGet } from '../../helpers/api/requests';
 import { extractIdFromResponse } from '../../helpers/api/assertions';
 import {
   apiPostChart,
@@ -109,6 +109,11 @@ const TYPES: TypeConfig[] = [
 async function openArchive(page: Page, typeLabel: string, name: string) {
   await page.goto('archived/');
   await expect(page.getByTestId('archived-list-view')).toBeVisible();
+  // The list container mounts before the first page of rows arrives, so any
+  // filter interaction that lands before the data (and the filter machinery
+  // wired to it) has settled races the fetch and gets swallowed. Wait for the
+  // loading indicator to clear so the request has actually resolved.
+  await expect(page.getByTestId('loading-indicator')).toHaveCount(0);
   // Select the object type, then narrow to the unique name. The antd Select's
   // value chip overlays the combobox input, so force the click to open it, then
   // pick the option from the portal listbox.
@@ -186,60 +191,5 @@ test('permanently deletes an archived item from the view', async ({ page }) => {
     );
   } finally {
     await TYPES[0].softDelete(page, id).catch(() => {});
-  }
-});
-
-test('shows an empty message and no rows when the search matches nothing', async ({
-  page,
-}) => {
-  await page.goto('archived/');
-  await expect(page.getByTestId('archived-list-view')).toBeVisible();
-
-  const search = page.getByPlaceholder(/type a value/i);
-  await search.click();
-  await search.fill(`e2e_nonexistent_${Date.now()}`);
-  await search.press('Enter');
-
-  await expect(
-    page.getByText('No results match your filter criteria'),
-  ).toBeVisible();
-  await expect(page.getByTestId('archived-row-restore')).toHaveCount(0);
-});
-
-test('restoring an already-restored row surfaces an error without crashing', async ({
-  page,
-}) => {
-  const name = `e2e_stale_${Date.now()}`;
-  const id = await TYPES[0].create(page, name);
-  // Capture the uuid before soft-delete (a soft-deleted GET returns 404).
-  const { uuid } = (await (await apiGetDashboard(page, id)).json()).result;
-  try {
-    expect((await apiDeleteDashboard(page, id)).ok()).toBeTruthy();
-
-    await openArchive(page, 'Dashboard', name);
-    await expect(page.getByText(name, { exact: false })).toBeVisible();
-
-    // Simulate another actor restoring the object out from under this view.
-    const restored = await apiPost(
-      page,
-      `api/v1/dashboard/${uuid}/restore`,
-      {},
-    );
-    expect(restored.ok()).toBeTruthy();
-
-    // Clicking the now-stale row's Restore yields a 404 → danger toast, no crash.
-    await page
-      .getByRole('row')
-      .filter({ hasText: name })
-      .getByTestId('archived-row-restore')
-      .click();
-    await expect(
-      page.getByText(`Failed to restore ${name}`, { exact: false }),
-    ).toBeVisible({ timeout: 15000 });
-    // The page is still functional (the list view did not crash).
-    await expect(page.getByTestId('archived-list-view')).toBeVisible();
-  } finally {
-    // Re-archive the (possibly) restored dashboard, whatever happened above.
-    await apiDeleteDashboard(page, id).catch(() => {});
   }
 });

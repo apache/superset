@@ -17,12 +17,12 @@
  * under the License.
  */
 import { useEffect, useMemo, useRef } from 'react';
-import { useStore } from 'react-redux';
+import { useSelector, useStore } from 'react-redux';
 import { useAppDispatch } from 'src/SqlLab/hooks/useAppDispatch';
 import { t } from '@apache-superset/core/translation';
 import { getExtensionsRegistry } from '@superset-ui/core';
 
-import type { Editor } from '@superset-ui/core/components';
+import type { AceCompleterKeyword, Editor } from '@superset-ui/core/components';
 import sqlKeywords from 'src/SqlLab/utils/sqlKeywords';
 import { addTable, addDangerToast } from 'src/SqlLab/actions/sqlLab';
 import {
@@ -35,6 +35,7 @@ import { schemaEndpoints } from 'src/hooks/apiResources';
 import { api } from 'src/hooks/apiResources/queryApi';
 import { useDatabaseFunctionsQuery } from 'src/hooks/apiResources/databaseFunctions';
 import useEffectEvent from 'src/hooks/useEffectEvent';
+import type { SqlLabRootState } from 'src/SqlLab/types';
 
 type Params = {
   queryEditorId: string | number;
@@ -54,19 +55,41 @@ const getHelperText = (value: string) =>
   };
 
 // Names that aren't simple identifiers (spaces, punctuation, leading digits)
-// must be double-quoted to be valid SQL, with embedded quotes doubled.
+// must be quoted to be valid SQL. The quote characters (and how an embedded
+// closing-quote character is escaped) are dialect-specific and are provided
+// by the backend's database engine spec via `engine_information` so the
+// mapping isn't duplicated here. Most dialects (ANSI double quotes,
+// MySQL/MariaDB backticks, SQL Server square brackets) escape by doubling
+// the closing character; BigQuery's GoogleSQL backtick identifiers are the
+// documented exception, escaping with a backslash instead.
+type IdentifierQuote = {
+  start: string;
+  end: string;
+  escape_by_doubling?: boolean;
+};
+const ANSI_QUOTE: IdentifierQuote = {
+  start: '"',
+  end: '"',
+  escape_by_doubling: true,
+};
 const SIMPLE_IDENTIFIER_RE = /^[A-Za-z_][A-Za-z0-9_]*$/;
-const quoteIdentifier = (identifier: string) =>
-  SIMPLE_IDENTIFIER_RE.test(identifier)
-    ? identifier
-    : `"${identifier.replace(/"/g, '""')}"`;
+const quoteIdentifier = (
+  identifier: string,
+  { start, end, escape_by_doubling = true }: IdentifierQuote = ANSI_QUOTE,
+) => {
+  if (SIMPLE_IDENTIFIER_RE.test(identifier)) {
+    return identifier;
+  }
+  const escapedEnd = escape_by_doubling ? `${end}${end}` : `\\${end}`;
+  return `${start}${identifier.split(end).join(escapedEnd)}${end}`;
+};
 
 const extensionsRegistry = getExtensionsRegistry();
 
 export function useKeywords(
   { queryEditorId, dbId, catalog, schema, tabViewId }: Params,
   skip = false,
-) {
+): AceCompleterKeyword[] {
   const useCustomKeywords = extensionsRegistry.get(
     'sqleditor.extension.customAutocomplete',
   );
@@ -105,6 +128,16 @@ export function useKeywords(
 
   const store = useStore();
   const apiState = store.getState()[api.reducerPath];
+
+  // Dialect-specific identifier quote characters, provided by the backend's
+  // database engine spec, used to quote non-simple identifiers on insert.
+  const identifierQuote = useSelector<
+    SqlLabRootState,
+    IdentifierQuote | undefined
+  >(
+    ({ sqlLab }) =>
+      sqlLab?.databases?.[dbId ?? '']?.engine_information?.identifier_quote,
+  );
 
   // Normalize catalog for comparison (null/undefined both mean "no catalog")
   const normalizedCatalog = catalog ?? null;
@@ -175,9 +208,11 @@ export function useKeywords(
       );
     }
 
-    let { caption } = data;
-    if (data.meta === 'table' && caption.includes(' ')) {
-      caption = `"${caption}"`;
+    // `caption` is optional on AceCompleterKeywordData; fall back to `name`/
+    // `value` so a missing caption can't quote `undefined` into the editor.
+    let caption = data.caption ?? data.name ?? data.value ?? '';
+    if (data.meta === 'table') {
+      caption = quoteIdentifier(caption, identifierQuote);
     }
 
     // executing https://github.com/thlorenz/brace/blob/3a00c5d59777f9d826841178e1eb36694177f5e6/ext/language_tools.js#L1448
@@ -205,7 +240,7 @@ export function useKeywords(
     () =>
       allCachedTables.map(({ value, label, schema: tableSchema }) => ({
         name: label,
-        value: quoteIdentifier(value),
+        value: quoteIdentifier(value, identifierQuote),
         schema: tableSchema,
         score: TABLE_AUTOCOMPLETE_SCORE,
         meta: 'table',
@@ -214,7 +249,7 @@ export function useKeywords(
         },
         ...getHelperText(value),
       })),
-    [allCachedTables, insertMatch],
+    [allCachedTables, identifierQuote, insertMatch],
   );
 
   const columnKeywords = useMemo(
@@ -244,7 +279,7 @@ export function useKeywords(
     [functionNames, insertMatch],
   );
 
-  const keywords = useMemo(
+  const keywords = useMemo<AceCompleterKeyword[]>(
     () =>
       columnKeywords
         .concat(schemaKeywords)

@@ -14,14 +14,20 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from typing import Any, Dict
+from typing import Any, cast, Dict
 from urllib.parse import urlparse
 
 from flask import current_app
 from marshmallow import ValidationError
 
-from superset.themes.types import ThemeMode
+from superset.themes.types import Theme, ThemeMode
 from superset.utils.core import sanitize_svg_content, sanitize_url
+
+# Algorithm names Ant Design actually understands; ThemeMode also carries
+# "system", which is a mode rather than a mapping algorithm.
+ANTD_ALGORITHMS = frozenset(
+    {ThemeMode.DEFAULT.value, ThemeMode.DARK.value, ThemeMode.COMPACT.value}
+)
 
 
 def _is_valid_theme_mode(mode: str) -> bool:
@@ -50,6 +56,59 @@ def _is_valid_algorithm(algorithm: Any) -> bool:
         )
     else:
         return False
+
+
+def _algorithm_list(algorithm: Any) -> list[str]:
+    """Coerce a theme algorithm field into a list of Ant Design algorithm names."""
+    if isinstance(algorithm, str):
+        candidates = [algorithm]
+    elif isinstance(algorithm, list):
+        candidates = [alg for alg in algorithm if isinstance(alg, str)]
+    else:
+        candidates = []
+
+    return [alg for alg in candidates if alg in ANTD_ALGORITHMS]
+
+
+def enforce_theme_algorithm(theme: Theme, mode: ThemeMode) -> Theme:
+    """Force a theme's algorithm to match the slot it is served in.
+
+    Admins pick which theme fills the system default (light) and system dark
+    slots, and nothing stops them from picking a theme whose own algorithm
+    contradicts the slot. Ant Design then derives a mix of light and dark
+    tokens, which renders as a broken half-themed UI, so the algorithm is
+    rewritten to match the slot while preserving modifiers such as ``compact``.
+
+    Args:
+        theme: Theme configuration to normalize
+        mode: The slot the theme is served in (``DEFAULT`` or ``DARK``)
+
+    Returns:
+        Theme: Theme with a slot-consistent algorithm
+    """
+    if not theme:
+        return theme
+
+    wanted = ThemeMode.DARK.value if mode == ThemeMode.DARK else ThemeMode.DEFAULT.value
+    conflicting = (
+        ThemeMode.DEFAULT.value if mode == ThemeMode.DARK else ThemeMode.DARK.value
+    )
+
+    algorithms = _algorithm_list(theme.get("algorithm"))
+    if wanted in algorithms and conflicting not in algorithms:
+        return theme
+
+    corrected = [wanted] + [
+        alg for alg in algorithms if alg not in (wanted, conflicting)
+    ]
+
+    return cast(
+        Theme,
+        {
+            **theme,
+            "algorithm": corrected[0] if len(corrected) == 1 else corrected,
+        },
+    )
 
 
 def is_valid_theme(theme: Dict[str, Any]) -> bool:

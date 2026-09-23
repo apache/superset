@@ -17,11 +17,15 @@
 # pylint: disable=unused-argument, import-outside-toplevel, protected-access
 
 from datetime import datetime
+from importlib import import_module
+from importlib.metadata import PackageNotFoundError, requires
 from typing import Any, Optional
 from urllib.parse import parse_qs, urlparse
 
 import pytest
+from packaging.requirements import Requirement
 from pytest_mock import MockerFixture
+from sqlalchemy import __version__ as sqlalchemy_version, create_engine, text
 from sqlalchemy.engine.url import make_url
 
 from superset.db_engine_specs.base import OAuth2State
@@ -36,6 +40,40 @@ from superset.utils import json
 from superset.utils.oauth2 import decode_oauth2_state
 from tests.unit_tests.db_engine_specs.utils import assert_convert_dttm
 from tests.unit_tests.fixtures.common import dttm  # noqa: F401
+
+
+def test_dialect_supports_installed_sqlalchemy(mocker: MockerFixture) -> None:
+    """Check optional dialect metadata and construction without network I/O."""
+    try:
+        declared_requirements = requires("databricks-sqlalchemy") or []
+    except PackageNotFoundError:
+        pytest.skip("Install apache-superset[databricks] to test the real dialect")
+    requirements = [Requirement(requirement) for requirement in declared_requirements]
+    sqlalchemy_requirements = [
+        requirement for requirement in requirements if requirement.name == "sqlalchemy"
+    ]
+    assert sqlalchemy_requirements
+    assert all(
+        sqlalchemy_version in requirement.specifier
+        for requirement in sqlalchemy_requirements
+    )
+    dialect = import_module("databricks.sqlalchemy")
+    socket = mocker.patch("socket.socket", side_effect=AssertionError("Network I/O"))
+    engine = create_engine(
+        "databricks://token:test-token@localhost"
+        "?http_path=/sql/1.0/warehouses/test&catalog=main&schema=default"
+    )
+    try:
+        assert isinstance(engine.dialect, dialect.DatabricksDialect)
+        _, connect_args = engine.dialect.create_connect_args(engine.url)
+        assert connect_args["http_path"] == "/sql/1.0/warehouses/test"
+        assert connect_args["catalog"] == "main"
+        assert connect_args["schema"] == "default"
+        assert connect_args["use_inline_params"] is False
+        assert str(text("SELECT :value").compile(engine)) == "SELECT :value"
+    finally:
+        engine.dispose()
+    socket.assert_not_called()
 
 
 def test_get_parameters_from_uri() -> None:
@@ -829,7 +867,10 @@ def test_get_oauth2_token_native(
     """
     Test `get_oauth2_token` for Native engine.
     """
-    requests = mocker.patch("superset.db_engine_specs.base.requests")
+    mock_get_requester = mocker.patch(
+        "superset.db_engine_specs.base.get_ssrf_safe_requester"
+    )
+    requests = mock_get_requester.return_value
     requests.post().json.return_value = {
         "access_token": "access-token",
         "expires_in": 3600,
@@ -857,6 +898,7 @@ def test_get_oauth2_token_native(
             "grant_type": "authorization_code",
         },
         timeout=30.0,
+        allow_redirects=False,
     )
 
 
@@ -867,7 +909,10 @@ def test_get_oauth2_token_python(
     """
     Test `get_oauth2_token` for Python Connector engine.
     """
-    requests = mocker.patch("superset.db_engine_specs.base.requests")
+    mock_get_requester = mocker.patch(
+        "superset.db_engine_specs.base.get_ssrf_safe_requester"
+    )
+    requests = mock_get_requester.return_value
     requests.post().json.return_value = {
         "access_token": "access-token",
         "expires_in": 3600,
@@ -895,6 +940,7 @@ def test_get_oauth2_token_python(
             "grant_type": "authorization_code",
         },
         timeout=30.0,
+        allow_redirects=False,
     )
 
 
@@ -905,7 +951,10 @@ def test_get_oauth2_fresh_token_native(
     """
     Test `get_oauth2_fresh_token` for Native engine.
     """
-    requests = mocker.patch("superset.db_engine_specs.base.requests")
+    mock_get_requester = mocker.patch(
+        "superset.db_engine_specs.base.get_ssrf_safe_requester"
+    )
+    requests = mock_get_requester.return_value
     requests.post().json.return_value = {
         "access_token": "new-access-token",
         "expires_in": 3600,
@@ -932,6 +981,7 @@ def test_get_oauth2_fresh_token_native(
             "grant_type": "refresh_token",
         },
         timeout=30.0,
+        allow_redirects=False,
     )
 
 
@@ -989,6 +1039,10 @@ def test_get_oauth2_authorization_uri_derives_from_workspace_host(
     database = mocker.MagicMock()
     database.url_object.host = host
     mocker.patch("superset.db.session.get", return_value=database)
+    # is_safe_host does live DNS resolution; whether these fixture hosts
+    # happen to resolve depends on real-world DNS state outside test
+    # control, so pin it rather than relying on that.
+    mocker.patch("superset.db_engine_specs.base.is_safe_host", return_value=True)
 
     url = spec.get_oauth2_authorization_uri(
         _unresolved_oauth2_config(), _oauth2_state()
@@ -1064,7 +1118,10 @@ def test_get_oauth2_fresh_token_python(
     """
     Test `get_oauth2_fresh_token` for Python Connector engine.
     """
-    requests = mocker.patch("superset.db_engine_specs.base.requests")
+    mock_get_requester = mocker.patch(
+        "superset.db_engine_specs.base.get_ssrf_safe_requester"
+    )
+    requests = mock_get_requester.return_value
     requests.post().json.return_value = {
         "access_token": "new-access-token",
         "expires_in": 3600,
@@ -1091,4 +1148,53 @@ def test_get_oauth2_fresh_token_python(
             "grant_type": "refresh_token",
         },
         timeout=30.0,
+        allow_redirects=False,
+    )
+
+
+def test_identifier_quote_uses_backticks() -> None:
+    """Databricks SQL is Spark SQL under the hood, so identifiers are quoted
+    with backticks, not the inherited ANSI double quotes."""
+    assert DatabricksNativeEngineSpec.get_public_information()["identifier_quote"] == {
+        "start": "`",
+        "end": "`",
+        "escape_by_doubling": True,
+    }
+    assert DatabricksPythonConnectorEngineSpec.get_public_information()[
+        "identifier_quote"
+    ] == {
+        "start": "`",
+        "end": "`",
+        "escape_by_doubling": True,
+    }
+
+
+def test_get_engine_spec_unrecognized_driver_prefers_python_connector() -> None:
+    """
+    ``get_engine_spec`` falls back to the first backend-matching spec (in module
+    definition order) when the driver string matches no registered spec exactly.
+    For Databricks that fallback must land on the modern Python connector, not
+    the legacy Hive spec, whose ``execute()`` passes an ``async`` kwarg that the
+    real ``databricks.sql.client.Cursor`` rejects (SUPERSET-PYTHON-179V,
+    apache/superset#24786).
+    """
+    from superset.db_engine_specs import get_engine_spec
+    from superset.db_engine_specs.databricks import (
+        DatabricksHiveEngineSpec,
+        DatabricksPythonConnectorEngineSpec,
+    )
+
+    # An unrecognized/legacy driver suffix falls through to the ambiguous
+    # fallback, which must now resolve to the general-purpose connector spec.
+    assert (
+        get_engine_spec("databricks", "some-unrecognized-driver-name")
+        is DatabricksPythonConnectorEngineSpec
+    )
+
+    # Exact driver matches must still resolve to their specific spec; the
+    # relocation must not disturb exact-match resolution.
+    assert get_engine_spec("databricks", "pyhive") is DatabricksHiveEngineSpec
+    assert (
+        get_engine_spec("databricks", "databricks-sql-python")
+        is DatabricksPythonConnectorEngineSpec
     )

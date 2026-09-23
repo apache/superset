@@ -18,19 +18,24 @@ import logging
 from functools import partial
 from typing import Any
 
+from jinja2.exceptions import TemplateError
+from marshmallow import ValidationError
+
 from superset import security_manager
 from superset.commands.base import BaseCommand
+from superset.commands.exceptions import TagNotFoundValidationError
 from superset.commands.tag.exceptions import (
+    TagAccessValidationError,
     TagDeleteFailedError,
+    TagDeleteForbiddenValidationError,
     TaggedObjectDeleteFailedError,
     TaggedObjectNotFoundError,
     TagInvalidError,
-    TagNotFoundError,
 )
 from superset.commands.tag.utils import to_object_model, to_object_type
 from superset.daos.tag import TagDAO
-from superset.exceptions import SupersetSecurityException
-from superset.tags.models import ObjectType
+from superset.exceptions import SupersetParseError, SupersetSecurityException
+from superset.tags.models import ObjectType, TagType
 from superset.utils.decorators import on_error, transaction
 from superset.views.base import DeleteMixin
 
@@ -107,7 +112,29 @@ class DeleteTaggedObjectCommand(DeleteMixin, BaseCommand):
             elif object_type == ObjectType.chart:
                 security_manager.raise_for_access(chart=target_object)
             elif object_type == ObjectType.query:
-                security_manager.raise_for_access(query=target_object)
+                # Authorizing a query without blanket database access parses
+                # its Jinja-templated SQL. Malformed Jinja (``TemplateError``)
+                # or a partition macro that references a table which cannot be
+                # resolved statically (``SupersetParseError``) is a validation
+                # failure, not an opaque 500. Append a ``ValidationError`` so it
+                # composites cleanly into ``TagInvalidError`` (the delete route
+                # calls ``normalized_messages()`` on it).
+                try:
+                    security_manager.raise_for_access(query=target_object)
+                except (TemplateError, SupersetParseError) as ex:
+                    logger.warning(
+                        "Failed to render Jinja SQL while validating access "
+                        "for %s %s: %s",
+                        object_type,
+                        object_id,
+                        ex,
+                    )
+                    exceptions.append(
+                        TagAccessValidationError(
+                            f"Access validation failed for {object_type} "
+                            f"{object_id}: {ex}"
+                        )
+                    )
             elif object_type == ObjectType.dataset:
                 security_manager.raise_for_access(datasource=target_object)
             else:
@@ -134,10 +161,42 @@ class DeleteTagsCommand(DeleteMixin, BaseCommand):
         TagDAO.delete_tags(self._tags)
 
     def validate(self) -> None:
-        exceptions = []
-        # Validate tag exists
-        for tag in self._tags:
-            if not TagDAO.find_by_name(tag):
-                exceptions.append(TagNotFoundError(tag))
+        # Every item appended here must be a ValidationError (or subclass),
+        # since TagInvalidError.normalized_messages() calls
+        # .normalized_messages() on each one to build the aggregated 422
+        # response.
+        exceptions: list[ValidationError] = []
+        for tag_name in self._tags:
+            tag_name = tag_name.strip()
+            tag = TagDAO.find_by_name(tag_name)
+            # Validate tag exists
+            if not tag:
+                exceptions.append(
+                    TagNotFoundValidationError(f"Tag with name {tag_name} not found.")
+                )
+                continue
+            # System-generated tags (type:*, editor:*, favorited_by:*) are
+            # maintained by Superset itself and must not be deletable through
+            # the bulk route.
+            if tag.type is not None and tag.type != TagType.custom:
+                exceptions.append(
+                    TagDeleteForbiddenValidationError(
+                        f"Tag {tag_name} is a system tag and cannot be deleted"
+                    )
+                )
+                continue
+            # Deleting a tag cascades removal of all of its associations
+            # org-wide, so existence is not enough: require the user to be an
+            # admin or the tag's creator (the single-association route
+            # enforces per-object access in DeleteTaggedObjectCommand).
+            if not (
+                security_manager.is_admin()
+                or (tag.created_by and tag.created_by == security_manager.current_user)
+            ):
+                exceptions.append(
+                    TagDeleteForbiddenValidationError(
+                        f"Access denied to tag {tag_name}"
+                    )
+                )
         if exceptions:
             raise TagInvalidError(exceptions=exceptions)

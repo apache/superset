@@ -261,6 +261,7 @@ def _format_report(
         title="Generate bug report",
         readOnlyHint=True,
         destructiveHint=False,
+        openWorldHint=False,
     ),
 )
 async def generate_bug_report(

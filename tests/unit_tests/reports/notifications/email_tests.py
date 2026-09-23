@@ -105,6 +105,242 @@ def test_error_template_sanitizes_html() -> None:
     assert "<img" not in email_body
     assert "<script>" not in email_body
     assert "onerror=alert(1)" not in email_body
+    assert "DB error near" not in email_body
+    assert "Contact the report owner for error details." in email_body
+
+
+@pytest.mark.parametrize("editor_only", [False, True])
+def test_editor_error_diagnostics_are_sanitized(editor_only: bool) -> None:
+    """Only explicitly editor-restricted error emails preserve useful diagnostics."""
+    from superset.reports.models import ReportRecipients, ReportRecipientType
+    from superset.reports.notifications.base import NotificationContent
+    from superset.reports.notifications.email import EmailNotification
+
+    content = NotificationContent(
+        name="failure",
+        header_data={
+            "notification_format": "PNG",
+            "notification_type": "Alert",
+            "editors": [],
+            "notification_source": None,
+            "chart_id": None,
+            "dashboard_id": None,
+            "slack_channels": None,
+            "execution_id": "test",
+        },
+        is_editor_error=editor_only,
+    )
+    notification = EmailNotification(
+        ReportRecipients(type=ReportRecipientType.EMAIL), content
+    )
+    body = notification._error_template(
+        "DB query failed <script>alert(1)</script><img src=x onerror=alert(2)>"
+    )
+    assert ("DB query failed" in body) is editor_only
+    assert "<script" not in body
+    assert "<img" not in body
+    assert "onerror" not in body
+
+
+def test_cta_link_included_by_default() -> None:
+    # `superset.models.helpers`, a dependency of following imports,
+    # requires app context
+    from superset.reports.models import ReportRecipients, ReportRecipientType
+    from superset.reports.notifications.base import NotificationContent
+    from superset.reports.notifications.email import EmailNotification
+
+    content = NotificationContent(
+        name="test alert",
+        description="<p>This is a test alert</p>",
+        url="http://example.com/superset/dashboard/1/",
+        header_data={
+            "notification_format": "PNG",
+            "notification_type": "Alert",
+            "editors": [1],
+            "notification_source": None,
+            "chart_id": None,
+            "dashboard_id": None,
+            "slack_channels": None,
+            "execution_id": "test-execution-id",
+        },
+    )
+    email_body = (
+        EmailNotification(
+            recipient=ReportRecipients(type=ReportRecipientType.EMAIL), content=content
+        )
+        ._get_content()
+        .body
+    )
+    assert (
+        '<b><a href="http://example.com/superset/dashboard/1/">'
+        "Explore in Superset</a></b>" in email_body
+    )
+
+
+def test_cta_link_omitted_when_include_cta_is_false() -> None:
+    # `superset.models.helpers`, a dependency of following imports,
+    # requires app context
+    from superset.reports.models import ReportRecipients, ReportRecipientType
+    from superset.reports.notifications.base import NotificationContent
+    from superset.reports.notifications.email import EmailNotification
+
+    content = NotificationContent(
+        name="test alert",
+        description="<p>This is a test alert</p>",
+        url="http://example.com/superset/dashboard/1/",
+        include_cta=False,
+        header_data={
+            "notification_format": "PNG",
+            "notification_type": "Alert",
+            "editors": [1],
+            "notification_source": None,
+            "chart_id": None,
+            "dashboard_id": None,
+            "slack_channels": None,
+            "execution_id": "test-execution-id",
+        },
+    )
+    email_body = (
+        EmailNotification(
+            recipient=ReportRecipients(type=ReportRecipientType.EMAIL), content=content
+        )
+        ._get_content()
+        .body
+    )
+    assert "Explore in Superset" not in email_body
+    assert "http://example.com/superset/dashboard/1/" not in email_body
+    assert "<p>This is a test alert</p>" in email_body
+
+
+def test_error_template_cta_link_respects_include_cta() -> None:
+    # `superset.models.helpers`, a dependency of following imports,
+    # requires app context
+    from superset.reports.models import ReportRecipients, ReportRecipientType
+    from superset.reports.notifications.base import NotificationContent
+    from superset.reports.notifications.email import EmailNotification
+
+    content = NotificationContent(
+        name="test alert",
+        text="Report generation failed",
+        url="http://example.com/superset/dashboard/1/",
+        include_cta=False,
+        header_data={
+            "notification_format": "PNG",
+            "notification_type": "Alert",
+            "editors": [1],
+            "notification_source": None,
+            "chart_id": None,
+            "dashboard_id": None,
+            "slack_channels": None,
+            "execution_id": "test-execution-id",
+        },
+    )
+    email_body = (
+        EmailNotification(
+            recipient=ReportRecipients(type=ReportRecipientType.EMAIL), content=content
+        )
+        ._get_content()
+        .body
+    )
+    assert "Contact the report owner for error details." in email_body
+    assert "Report generation failed" not in email_body
+    assert "Explore in Superset" not in email_body
+    assert "http://example.com/superset/dashboard/1/" not in email_body
+
+
+@pytest.mark.parametrize(
+    "include_cta",
+    [True, False],
+    ids=["with-cta", "without-cta"],
+)
+def test_retry_error_template_cta_link_respects_include_cta(
+    include_cta: bool,
+) -> None:
+    # `superset.models.helpers`, a dependency of following imports,
+    # requires app context
+    from superset.reports.models import ReportRecipients, ReportRecipientType
+    from superset.reports.notifications.base import NotificationContent
+    from superset.reports.notifications.email import EmailNotification
+
+    content = NotificationContent(
+        name="test alert",
+        text="Report generation failed",
+        url="http://example.com/superset/dashboard/1/",
+        include_cta=include_cta,
+        retry_attempt=1,
+        retry_max_attempts=3,
+        header_data={
+            "notification_format": "PNG",
+            "notification_type": "Alert",
+            "editors": [1],
+            "notification_source": None,
+            "chart_id": None,
+            "dashboard_id": None,
+            "slack_channels": None,
+            "execution_id": "test-execution-id",
+        },
+    )
+    email_body = (
+        EmailNotification(
+            recipient=ReportRecipients(type=ReportRecipientType.EMAIL), content=content
+        )
+        ._get_content()
+        .body
+    )
+    assert "Retry in Progress" in email_body
+    if include_cta:
+        assert "Explore in Superset" in email_body
+        assert "http://example.com/superset/dashboard/1/" in email_body
+    else:
+        assert "Explore in Superset" not in email_body
+        assert "http://example.com/superset/dashboard/1/" not in email_body
+
+
+@pytest.mark.parametrize(
+    "include_cta",
+    [True, False],
+    ids=["with-cta", "without-cta"],
+)
+def test_final_failure_template_cta_link_respects_include_cta(
+    include_cta: bool,
+) -> None:
+    # `superset.models.helpers`, a dependency of following imports,
+    # requires app context
+    from superset.reports.models import ReportRecipients, ReportRecipientType
+    from superset.reports.notifications.base import NotificationContent
+    from superset.reports.notifications.email import EmailNotification
+
+    content = NotificationContent(
+        name="test alert",
+        text="Report generation failed",
+        url="http://example.com/superset/dashboard/1/",
+        include_cta=include_cta,
+        retry_max_attempts=3,
+        header_data={
+            "notification_format": "PNG",
+            "notification_type": "Alert",
+            "editors": [1],
+            "notification_source": None,
+            "chart_id": None,
+            "dashboard_id": None,
+            "slack_channels": None,
+            "execution_id": "test-execution-id",
+        },
+    )
+    email_body = (
+        EmailNotification(
+            recipient=ReportRecipients(type=ReportRecipientType.EMAIL), content=content
+        )
+        ._get_content()
+        .body
+    )
+    assert "failed to generate after" in email_body
+    if include_cta:
+        assert "Explore in Superset" in email_body
+        assert "http://example.com/superset/dashboard/1/" in email_body
+    else:
+        assert "Explore in Superset" not in email_body
+        assert "http://example.com/superset/dashboard/1/" not in email_body
 
 
 @with_feature_flags(DATE_FORMAT_IN_EMAIL_SUBJECT=True)

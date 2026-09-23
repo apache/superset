@@ -22,11 +22,13 @@ import pytest
 
 from superset.commands.exceptions import TagForbiddenError, TagNotFoundValidationError
 from superset.commands.utils import (
+    current_user_can_modify_object,
     Tag,
     TagType,
     update_tags,
     validate_tags,
 )
+from superset.exceptions import SupersetSecurityException
 from superset.tags.models import ObjectType
 
 OBJECT_TYPES = {ObjectType.chart, ObjectType.chart}
@@ -343,3 +345,60 @@ def test_update_tags_no_tags(mock_tag_dao, object_type):
     mock_tag_dao.create_custom_tagged_objects.assert_called_once_with(
         object_type, 1, new_tag_names
     )
+
+
+@patch("superset.commands.utils.security_manager")
+def test_current_user_can_modify_object_editor(mock_sm):
+    """
+    An editor of the resource (or an admin, since ``raise_for_editorship``
+    treats admins as editors of everything) is allowed to modify it.
+    """
+    mock_sm.raise_for_editorship.return_value = None
+    model = MagicMock()
+
+    assert current_user_can_modify_object(model) is True
+
+
+@patch("superset.commands.utils.security_manager")
+def test_current_user_can_modify_object_creator_fallback(mock_sm):
+    """
+    A resource without an ``editors`` relationship (or a user who isn't in
+    it) still allows the object's creator through.
+    """
+    mock_sm.raise_for_editorship = MagicMock(
+        side_effect=SupersetSecurityException(MagicMock())
+    )
+    model = MagicMock()
+    model.created_by = mock_sm.current_user
+
+    assert current_user_can_modify_object(model) is True
+
+
+@patch("superset.commands.utils.security_manager")
+def test_current_user_can_modify_object_denies_non_creator(mock_sm):
+    """
+    A user who is neither an editor nor the creator is denied.
+    """
+    mock_sm.raise_for_editorship = MagicMock(
+        side_effect=SupersetSecurityException(MagicMock())
+    )
+    mock_sm.current_user = MagicMock(name="current_user")
+    model = MagicMock()
+    model.created_by = MagicMock(name="someone_else")
+
+    assert current_user_can_modify_object(model) is False
+
+
+@patch("superset.commands.utils.security_manager")
+def test_current_user_can_modify_object_no_creator(mock_sm):
+    """
+    A resource with no ``created_by`` set (e.g. created programmatically)
+    is denied to non-editors.
+    """
+    mock_sm.raise_for_editorship = MagicMock(
+        side_effect=SupersetSecurityException(MagicMock())
+    )
+    model = MagicMock()
+    model.created_by = None
+
+    assert current_user_can_modify_object(model) is False

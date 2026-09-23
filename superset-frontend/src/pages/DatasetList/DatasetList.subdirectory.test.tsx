@@ -54,10 +54,18 @@ import {
 
 const APP_ROOT = '/superset';
 
-const renderUnderSubdirectory = () => {
+const renderUnderSubdirectory = (preventUnsafeDefaultUrls = false) => {
+  const defaultState = createDefaultStoreState(mockAdminUser);
   const store = createMockStore({
-    ...createDefaultStoreState(mockAdminUser),
+    ...defaultState,
     user: mockAdminUser,
+    common: {
+      ...defaultState.common,
+      conf: {
+        ...defaultState.common?.conf,
+        PREVENT_UNSAFE_DEFAULT_URLS_ON_DATASET: preventUnsafeDefaultUrls,
+      },
+    },
   });
   return render(
     <Provider store={store}>
@@ -113,6 +121,31 @@ test('explore link is single-prefixed under a subdirectory deployment', async ()
     `${APP_ROOT}/explore/?datasource=1__table`,
   );
   expect(exploreLink.getAttribute('href')).not.toContain('/superset/superset');
+});
+
+test('legacy dashboard default URL uses the router basename once', async () => {
+  // A subdirectory user pastes the full browser path, so the saved value
+  // carries both the application root and the legacy `/superset` prefix.
+  // stripAppRoot removes the root and the legacy normalization removes the
+  // prefix, leaving the basename to re-add the root exactly once.
+  const dataset = {
+    ...mockDatasets[0],
+    explore_url: `${APP_ROOT}/superset/dashboard/123/?standalone=1#section`,
+  };
+  mockDatasetListEndpoints({ result: [dataset], count: 1 });
+
+  renderUnderSubdirectory(true);
+
+  const dashboardLink = await screen.findByRole('link', {
+    name: dataset.table_name,
+  });
+  expect(dashboardLink).toHaveAttribute(
+    'href',
+    `${APP_ROOT}/dashboard/123/?standalone=1#section`,
+  );
+  expect(dashboardLink.getAttribute('href')).not.toContain(
+    '/superset/superset',
+  );
 });
 
 test('external default_endpoint passes through unprefixed', async () => {

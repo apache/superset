@@ -32,11 +32,15 @@ type Params = CellParams & {
   getCellContent?: (args: CellParams) => string;
 };
 
+// Result cells carry untrusted warehouse data, so HTML rendering is opt-in:
+// even sanitized markup keeps active capabilities (img/video fetch beacons,
+// phishing anchors), which must not activate by default for data the viewer
+// did not author.
 export const renderResultCell = ({
   cellData,
   getCellContent,
   columnKey,
-  allowHTML = true,
+  allowHTML = false,
 }: Params) => {
   const cellNode =
     getCellContent?.({ cellData, columnKey }) ?? String(cellData);

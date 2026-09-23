@@ -387,6 +387,20 @@ test('should render all the top navbar menu items', async () => {
   });
 });
 
+test('renders the down-chevron caret icon on top-level category dropdowns, not the caret glyph (regression #43531)', async () => {
+  useSelectorMock.mockReturnValue({ roles: user.roles });
+  render(<Menu {...mockedProps} />, {
+    useRedux: true,
+    useQueryParams: true,
+    useRouter: true,
+    useTheme: true,
+  });
+  const sources = await screen.findByText('Sources');
+  const caret = sources.closest('li')?.querySelector('.ant-menu-item-icon');
+  expect(caret).toHaveClass('anticon-down');
+  expect(caret?.querySelector('svg')).toHaveAttribute('data-icon', 'down');
+});
+
 test('should render the top navbar child menu items', async () => {
   useSelectorMock.mockReturnValue({ roles: user.roles });
   const {
@@ -399,7 +413,7 @@ test('should render the top navbar child menu items', async () => {
     useTheme: true,
   });
   const sources = await screen.findByText('Sources');
-  userEvent.hover(sources);
+  await userEvent.hover(sources);
 
   const datasets = await screen.findByText('Datasets');
   const databases = await screen.findByText('Databases');
@@ -419,7 +433,7 @@ test('should render the dropdown items', async () => {
     useTheme: true,
   });
   const dropdown = screen.getByTestId('new-dropdown-icon');
-  userEvent.hover(dropdown);
+  await userEvent.hover(dropdown);
   // todo (philip): test data submenu
   expect(await screen.findByText(dropdownItems[1].label)).toHaveAttribute(
     'href',
@@ -461,7 +475,7 @@ test('should render the Settings menu item', async () => {
     useRouter: true,
     useTheme: true,
   });
-  userEvent.hover(screen.getByText('Settings'));
+  await userEvent.hover(screen.getByText('Settings'));
   const label = await screen.findByText('Security');
   expect(label).toBeInTheDocument();
 });
@@ -477,7 +491,7 @@ test('should render the Settings dropdown child menu items', async () => {
     useRouter: true,
     useTheme: true,
   });
-  userEvent.hover(screen.getByText('Settings'));
+  await userEvent.hover(screen.getByText('Settings'));
   const listUsers = await screen.findByText('List Users');
   expect(listUsers).toHaveAttribute('href', settings[0].childs[0].url);
 });
@@ -519,7 +533,7 @@ test('should render the user actions when user is not anonymous', async () => {
     useRouter: true,
     useTheme: true,
   });
-  userEvent.hover(screen.getByText('Settings'));
+  await userEvent.hover(screen.getByText('Settings'));
   const user = await screen.findByText('User');
   expect(user).toBeInTheDocument();
 
@@ -556,7 +570,7 @@ test('should render the About section and version_string, sha or build_number wh
     useRouter: true,
     useTheme: true,
   });
-  userEvent.hover(screen.getByText('Settings'));
+  await userEvent.hover(screen.getByText('Settings'));
   const about = await screen.findByText('About');
 
   // The version information is rendered as combined text in a single element
@@ -593,7 +607,7 @@ test('should render the Documentation link when available', async () => {
     useRouter: true,
     useTheme: true,
   });
-  userEvent.hover(screen.getByText('Settings'));
+  await userEvent.hover(screen.getByText('Settings'));
   const doc = await screen.findByTitle('Documentation');
   expect(doc).toHaveAttribute('href', documentation_url);
 });
@@ -1077,7 +1091,7 @@ describe('active tab highlighting (regression #36403)', () => {
       // the item is in the DOM (same pattern as the existing "render the top
       // navbar child menu items" test).
       const sources = await screen.findByText('Sources');
-      userEvent.hover(sources);
+      await userEvent.hover(sources);
 
       const datasets = await screen.findByText('Datasets');
       expect(datasets.closest('li')).toHaveClass('ant-menu-item-selected');
@@ -1099,7 +1113,7 @@ describe('active tab highlighting (regression #36403)', () => {
     });
 
     const sources = await screen.findByText('Sources');
-    userEvent.hover(sources);
+    await userEvent.hover(sources);
 
     const datasets = await screen.findByText('Datasets');
     expect(datasets.closest('li')).not.toHaveClass('ant-menu-item-selected');

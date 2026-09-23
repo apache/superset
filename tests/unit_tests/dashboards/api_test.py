@@ -15,11 +15,16 @@
 # specific language governing permissions and limitations
 # under the License.
 
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 import pytest
+from pytest_mock import MockerFixture
+from sqlalchemy.orm.session import Session
 
+from superset import db, security_manager
 from superset.dashboards.schemas import DashboardGetResponseSchema
+from superset.utils import json
 
 
 @pytest.fixture
@@ -136,3 +141,77 @@ def test_schema_includes_all_fields_for_regular_user(
     assert "viewers" in result
     assert "changed_by_name" in result
     assert "changed_by" in result
+
+
+ROOT = {"id": "ROOT_ID", "type": "ROOT", "children": ["GRID_ID"]}
+GRID = {"id": "GRID_ID", "type": "GRID", "children": ["TABS-1"]}
+TAB_1 = {"id": "TAB-1", "type": "TAB", "meta": {"text": "Kept"}, "children": []}
+
+
+def _layout(tabs_children: list[str]) -> dict[str, Any]:
+    return {
+        "ROOT_ID": ROOT,
+        "GRID_ID": GRID,
+        "TABS-1": {"id": "TABS-1", "type": "TABS", "children": tabs_children},
+        "TAB-1": TAB_1,
+    }
+
+
+def _store_dashboard(position_json: str) -> int:
+    from superset.models.dashboard import Dashboard
+
+    Dashboard.metadata.create_all(db.session.get_bind())
+    dashboard = Dashboard(
+        dashboard_title="broken layout",
+        position_json=position_json,
+        json_metadata="{}",
+    )
+    db.session.add(dashboard)
+    db.session.flush()
+    return dashboard.id
+
+
+@pytest.mark.parametrize(
+    "stored",
+    [
+        # A tab bar pointing at a tab the layout does not hold. Walking it is
+        # what used to raise, so the dashboard could not be written again.
+        pytest.param(_layout(["TAB-1", "TAB-2"]), id="dangling child"),
+        # A layout that reaches a node it has already reached. Walking it used
+        # to never finish, so the request hung instead of failing.
+        pytest.param({"ROOT_ID": {**ROOT, "children": ["ROOT_ID"]}}, id="cycle"),
+    ],
+)
+def test_put_repairs_a_stored_layout_that_cannot_be_walked(
+    stored: dict[str, Any],
+    session: Session,
+    client: Any,
+    full_api_access: None,
+    mocker: MockerFixture,
+) -> None:
+    """A dashboard stored with an unwalkable layout can still be repaired.
+
+    The layouts here are JSON-parseable, so they pass validation and reach the
+    metadata database. Reading the tabs off them is what fails, and an update
+    reads the stored tabs to find the deleted ones, so before this change the
+    repair request itself failed and the dashboard stayed unwritable.
+    """
+    from superset.models.dashboard import Dashboard
+
+    # ``full_api_access`` stops at the route decorators, so the row filter and
+    # the editorship check still need a user the request does not have.
+    mocker.patch.object(security_manager, "is_admin", return_value=True)
+    mocker.patch.object(security_manager, "raise_for_editorship")
+
+    dashboard_id = _store_dashboard(json.dumps(stored))
+    repaired = json.dumps(_layout(["TAB-1"]))
+
+    response = client.put(
+        f"/api/v1/dashboard/{dashboard_id}",
+        json={"position_json": repaired},
+    )
+
+    assert response.status_code == 200
+    assert json.loads(
+        db.session.query(Dashboard).get(dashboard_id).position_json
+    ) == json.loads(repaired)

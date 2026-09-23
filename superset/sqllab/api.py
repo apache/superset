@@ -23,6 +23,7 @@ from flask import current_app as app, request, Response
 from flask_appbuilder import permission_name
 from flask_appbuilder.api import expose, protect, rison as parse_rison, safe
 from flask_appbuilder.models.sqla.interface import SQLAInterface
+from jinja2.exceptions import TemplateError
 from marshmallow import ValidationError
 from werkzeug.utils import secure_filename
 
@@ -37,6 +38,8 @@ from superset.commands.sql_lab.streaming_export_command import (
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP
 from superset.daos.database import DatabaseDAO
 from superset.daos.query import QueryDAO
+from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
+from superset.exceptions import SupersetErrorException
 from superset.extensions import event_logger, security_manager
 from superset.jinja_context import get_template_processor
 from superset.models.sql_lab import Query
@@ -255,6 +258,14 @@ class SqlLabRestApi(BaseSupersetApi):
                                 else template_params
                             )
                             if template_params:
+                                # Check access before rendering the Jinja
+                                # template (mirrors the SQL Lab execute path).
+                                security_manager.raise_for_access(
+                                    database=database,
+                                    sql=sql,
+                                    template_params=template_params,
+                                    force_dataset_match=True,
+                                )
                                 template_processor = get_template_processor(
                                     database=database
                                 )
@@ -266,6 +277,15 @@ class SqlLabRestApi(BaseSupersetApi):
                                 "Invalid template parameter %s. Skipping processing",
                                 str(template_params),
                             )
+                        except TemplateError as ex:
+                            raise SupersetErrorException(
+                                SupersetError(
+                                    message=str(ex),
+                                    error_type=SupersetErrorType.GENERIC_COMMAND_ERROR,
+                                    level=ErrorLevel.ERROR,
+                                ),
+                                status=400,
+                            ) from ex
 
             result = SQLScript(sql, model.get("engine", database_engine)).format()
             return self.response(200, result=result)

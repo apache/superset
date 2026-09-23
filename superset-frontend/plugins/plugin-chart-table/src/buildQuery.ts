@@ -19,6 +19,7 @@
 import {
   AdhocColumn,
   BuildQuery,
+  DatasourceType,
   PostProcessingRule,
   QueryFormOrderBy,
   QueryMode,
@@ -31,8 +32,10 @@ import {
 } from '@superset-ui/core';
 
 import {
+  getTotalsMetrics,
   isTimeComparison,
   timeCompareOperator,
+  toTotalsAggregate,
 } from '@superset-ui/chart-controls';
 import { isEmpty } from 'lodash-es';
 import { TableChartFormData } from './types';
@@ -194,6 +197,11 @@ export const buildQuery: BuildQuery<TableChartFormData> = (
             sqlExpression: col,
             label: col,
             expressionType: 'SQL',
+            ...(formData.datasource?.endsWith(
+              `__${DatasourceType.SemanticView}`,
+            )
+              ? { isColumnReference: true }
+              : {}),
           } as AdhocColumn;
           temporalColumnAdded = true;
           return false; // Do not include this in the output; it's added separately
@@ -347,9 +355,11 @@ export const buildQuery: BuildQuery<TableChartFormData> = (
       formData.show_totals &&
       queryMode === QueryMode.Aggregate
     ) {
+      const totalsAggregate = toTotalsAggregate(formData.totals_aggregate);
       extraQueries.push({
         ...queryObject,
         columns: [],
+        metrics: getTotalsMetrics(metrics, totalsAggregate),
         row_limit: 0,
         row_offset: 0,
         // Reapply only the percent-metric contribution rule so the totals row

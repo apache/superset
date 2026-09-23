@@ -91,7 +91,7 @@ test('should handle creating two columns with proper label reset', async () => {
   const firstLabelInput = await screen.findByTestId(
     'AdhocMetricEditTitle#trigger',
   );
-  userEvent.type(firstLabelInput, 'First Custom Column');
+  await userEvent.type(firstLabelInput, 'First Custom Column');
   fireEvent.click(screen.getByTestId('ColumnEdit#save'));
 
   expect(onColumnEditMock).toHaveBeenCalledWith(
@@ -121,7 +121,7 @@ test('should handle creating two columns with proper label reset', async () => {
   const secondLabelInput = await screen.findByTestId(
     'AdhocMetricEditTitle#trigger',
   );
-  userEvent.type(secondLabelInput, 'Second Custom Column');
+  await userEvent.type(secondLabelInput, 'Second Custom Column');
   fireEvent.click(screen.getByTestId('ColumnEdit#save'));
 
   expect(onColumnEditMock).toHaveBeenLastCalledWith(

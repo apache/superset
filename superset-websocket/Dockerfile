@@ -39,13 +39,11 @@ ENV NODE_ENV=production \
     npm_config_fetch_timeout=600000
 WORKDIR /home/superset-websocket
 
+# The server is bundled into a single self-contained CJS file (esbuild inlines
+# every dependency), so only the bundle is needed at runtime — no node_modules.
 COPY --from=build /home/superset-websocket/dist ./dist
-COPY package*.json ./
-
-# Only install production dependencies
-RUN npm ci --omit=dev
 
 # Don't run as root!
 USER node
 
-CMD [ "npm", "start" ]
+CMD [ "node", "dist/index.cjs", "start" ]

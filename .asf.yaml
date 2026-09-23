@@ -79,6 +79,7 @@ github:
           - lint-check
           - cypress-matrix-required
           - dependency-review
+          - enforce-single-migration-head
           - frontend-build
           - playwright-tests-required
           - pre-commit (current)

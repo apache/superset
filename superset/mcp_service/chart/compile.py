@@ -33,6 +33,7 @@ tier(s) appropriate for its SLA.
 from __future__ import annotations
 
 import logging
+from copy import deepcopy
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Literal
 
@@ -40,9 +41,16 @@ from sqlalchemy.exc import SQLAlchemyError
 
 from superset.commands.exceptions import CommandException
 from superset.errors import SupersetErrorType
+from superset.mcp_service.chart.query_result import (
+    normalize_gauge_query_result,
+    query_result_failure,
+)
+from superset.mcp_service.chart.schemas import ChartError
 from superset.mcp_service.chart.validation.dataset_validator import (
+    AmbiguousDatasetReferenceError,
     build_dataset_context_from_orm,
     DatasetValidator,
+    resolve_dataset_reference,
 )
 from superset.mcp_service.common.error_schemas import (
     ChartGenerationError,
@@ -116,39 +124,21 @@ def _compile_chart(
         ChartDataCacheLoadError,
         ChartDataQueryFailedError,
     )
-    from superset.common.query_context_factory import QueryContextFactory
-    from superset.mcp_service.chart.chart_utils import adhoc_filters_to_query_filters
-    from superset.mcp_service.chart.preview_utils import _build_query_columns
+    from superset.mcp_service.chart.chart_helpers import (
+        build_query_context_from_form_data,
+    )
 
     try:
-        columns = _build_query_columns(form_data)
-        query_filters = adhoc_filters_to_query_filters(
-            form_data.get("adhoc_filters", [])
-        )
-
-        # Big Number charts use singular "metric" instead of "metrics"
-        metrics = form_data.get("metrics", [])
-        if not metrics and form_data.get("metric"):
-            metrics = [form_data["metric"]]
-
-        # Big Number with trendline uses granularity_sqla as the time column
-        if not columns and form_data.get("granularity_sqla"):
-            columns = [form_data["granularity_sqla"]]
-
-        factory = QueryContextFactory()
-        query_context = factory.create(
-            datasource={"id": dataset_id, "type": "table"},
-            queries=[
-                {
-                    "columns": columns,
-                    "metrics": metrics,
-                    "orderby": form_data.get("orderby", []),
-                    "row_limit": 2,
-                    "filters": query_filters,
-                    "time_range": form_data.get("time_range", "No filter"),
-                }
-            ],
-            form_data=form_data,
+        query_form_data = deepcopy(form_data)
+        query_form_data["datasource"] = f"{dataset_id}__table"
+        query_form_data["datasource_id"] = dataset_id
+        query_form_data["datasource_type"] = "table"
+        query_context = build_query_context_from_form_data(
+            query_form_data,
+            row_limit=min(10, int(form_data.get("row_limit") or 10))
+            if form_data.get("viz_type") == "gauge_chart"
+            else 2,
+            force=False,
         )
 
         command = ChartDataCommand(query_context)
@@ -157,16 +147,34 @@ def _compile_chart(
 
         warnings: List[str] = []
         row_count = 0
+        if query_failure := query_result_failure(result):
+            error_str = query_failure.error
+            return CompileResult(
+                success=False,
+                error=error_str,
+                error_code="CHART_COMPILE_FAILED",
+                tier="compile",
+                error_obj=_build_compile_error(error_str),
+            )
+        result = normalize_gauge_query_result(result, form_data)
+        if isinstance(result, ChartError):
+            return CompileResult(
+                success=False,
+                error=result.error,
+                error_code="INVALID_GAUGE_RESULT",
+                tier="compile",
+                error_obj=ChartGenerationError(
+                    error_type=result.error_type,
+                    message="Gauge metric query returned invalid values",
+                    details=result.error,
+                    suggestions=[
+                        "Use a numeric-producing metric",
+                        "Check the metric alias and SQL expression",
+                    ],
+                    error_code="INVALID_GAUGE_RESULT",
+                ),
+            )
         for query in result.get("queries", []):
-            if query.get("error"):
-                error_str = str(query["error"])
-                return CompileResult(
-                    success=False,
-                    error=error_str,
-                    error_code="CHART_COMPILE_FAILED",
-                    tier="compile",
-                    error_obj=_build_compile_error(error_str),
-                )
             row_count += len(query.get("data", []))
 
         return CompileResult(success=True, warnings=warnings, row_count=row_count)
@@ -224,9 +232,13 @@ def _adhoc_filter_column_valid(
     """
     if clause == "HAVING":
         return DatasetValidator._column_exists(column, dataset_context)
-    return any(
-        col["name"].lower() == column.lower()
-        for col in dataset_context.available_columns
+    return (
+        resolve_dataset_reference(
+            column,
+            (col["name"] for col in dataset_context.available_columns),
+            "physical column",
+        )
+        is not None
     )
 
 
@@ -242,11 +254,9 @@ def _validate_adhoc_filter_columns(
     represented on the new config — those would otherwise bypass validation
     and surface only when Explore tries to run the query.
     """
-    adhoc_filters = form_data.get("adhoc_filters") or []
+    adhoc_filters = _active_adhoc_filters(form_data.get("adhoc_filters") or [])
     invalid: List[str] = []
     for f in adhoc_filters:
-        if not isinstance(f, dict):
-            continue
         # SIMPLE filters expose the column via "subject"; SQL-expression
         # filters carry a free-form ``sqlExpression`` we can't safely parse,
         # so skip those.
@@ -256,8 +266,11 @@ def _validate_adhoc_filter_columns(
         if not column or not isinstance(column, str):
             continue
         clause = f.get("clause", "WHERE").upper()
-        if not _adhoc_filter_column_valid(column, clause, dataset_context):
-            invalid.append(column)
+        try:
+            if not _adhoc_filter_column_valid(column, clause, dataset_context):
+                invalid.append(column)
+        except AmbiguousDatasetReferenceError as ex:
+            return DatasetValidator._build_ambiguous_reference_error(ex)
 
     if not invalid:
         return None
@@ -282,11 +295,33 @@ def _validate_adhoc_filter_columns(
         details=(
             "Adhoc filter columns must exist on the dataset. "
             "If these filters were preserved from a previous chart preview, "
-            "remove them or pass an explicit ``filters`` list on the new config."
+            "pass an explicit 'filters' list on the new config; use "
+            "'filters': [] to clear them."
         ),
         suggestions=suggestions,
         error_code="CHART_VALIDATION_FAILED",
     )
+
+
+def _is_inert_adhoc_filter(filter_: dict[str, Any]) -> bool:
+    """Whether a saved filter is Superset's non-filtering placeholder."""
+    operator = filter_.get("operator", filter_.get("op"))
+    comparator = filter_.get("comparator", filter_.get("val"))
+    return (
+        isinstance(operator, str)
+        and operator.casefold() == "temporal_range"
+        and isinstance(comparator, str)
+        and comparator.casefold() == "no filter"
+    )
+
+
+def _active_adhoc_filters(filters: list[Any]) -> list[dict[str, Any]]:
+    """Return structurally valid filters that can produce a predicate."""
+    return [
+        filter_
+        for filter_ in filters
+        if isinstance(filter_, dict) and not _is_inert_adhoc_filter(filter_)
+    ]
 
 
 def _classify_as_database_error(exc: BaseException, dataset_id: int) -> bool:

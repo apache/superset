@@ -40,6 +40,38 @@ class DatabaseNotFoundValidationError(ValidationError):
         super().__init__(_("Database does not exist"), field_name="database")
 
 
+class AlertQueryMultipleStatementsValidationError(ValidationError):
+    """
+    Marshmallow validation error for alert SQL containing multiple statements
+    """
+
+    def __init__(self) -> None:
+        super().__init__(
+            _("Alert query must be a single statement"),
+            field_name="sql",
+        )
+
+
+class AlertQueryDMLNotAllowedValidationError(ValidationError):
+    """
+    Marshmallow validation error for alert SQL that mutates state on a
+    database that does not allow DML
+    """
+
+    def __init__(self) -> None:
+        super().__init__(_("Alert query must be read-only"), field_name="sql")
+
+
+class AlertQueryDataAccessValidationError(ValidationError):
+    """
+    Marshmallow validation error for alert SQL referencing tables the user
+    is not authorized to query
+    """
+
+    def __init__(self, message: str) -> None:
+        super().__init__(message, field_name="sql")
+
+
 class ReportScheduleDatabaseNotAllowedValidationError(ValidationError):
     """
     Marshmallow validation error for database reference on a Report type schedule

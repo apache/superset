@@ -30,6 +30,7 @@ from pydantic import ValidationError
 from superset.mcp_service.chart.schemas import (
     GenerateChartRequest,
     GenerateExploreLinkRequest,
+    InteractivePivotChartConfig,
     TableChartConfig,
     UpdateChartPreviewRequest,
     UpdateChartRequest,
@@ -168,6 +169,21 @@ class TestVizTypeTranslation:
             }
         )
         assert request.config.chart_type == "big_number"
+
+    def test_ag_grid_pivot_maps_to_interactive_pivot(self) -> None:
+        request = GenerateChartRequest.model_validate(
+            {
+                "dataset_id": 23,
+                "config": {
+                    "viz_type": "ag-grid-pivot-table",
+                    "rows": [{"name": "region"}],
+                    "metrics": [{"name": "revenue", "aggregate": "SUM"}],
+                },
+            }
+        )
+
+        assert isinstance(request.config, InteractivePivotChartConfig)
+        assert request.config.chart_type == "interactive_pivot"
 
 
 class TestRequestModelsShareNormalization:

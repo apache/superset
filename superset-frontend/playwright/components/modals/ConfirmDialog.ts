@@ -22,7 +22,7 @@ import { Modal } from '../core/Modal';
 
 /**
  * Confirm Dialog component for Ant Design Modal.confirm dialogs.
- * These are the "OK" / "Cancel" confirmation dialogs used throughout Superset.
+ * These are the "Confirm" / "Cancel" confirmation dialogs used throughout Superset.
  * Uses getByRole with name to target specific confirm dialogs when multiple are open.
  */
 export class ConfirmDialog extends Modal {
@@ -43,7 +43,7 @@ export class ConfirmDialog extends Modal {
   }
 
   /**
-   * Clicks the OK button to confirm.
+   * Clicks the Confirm button to confirm.
    * @param options.timeout - If provided, silently returns if dialog doesn't appear
    *                          within timeout. If not provided, waits indefinitely (strict mode).
    */
@@ -53,7 +53,7 @@ export class ConfirmDialog extends Modal {
         state: 'visible',
         timeout: options?.timeout,
       });
-      await this.clickFooterButton('OK');
+      await this.clickFooterButton('Confirm');
       await this.waitForHidden();
     } catch (error) {
       // Only swallow TimeoutError when timeout was explicitly provided

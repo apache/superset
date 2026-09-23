@@ -19,6 +19,7 @@
 
 import type {
   ChartStateConverter,
+  ChartStateConverterOptions,
   BackendOwnState,
   JsonObject,
 } from '@superset-ui/core';
@@ -44,14 +45,18 @@ class ChartStateConverterRegistry {
    * Convert chart-specific state to backend-compatible ownState format.
    * Returns an empty object if no converter is registered for the viz type.
    */
-  convert(vizType: string, chartState: JsonObject): Partial<BackendOwnState> {
+  convert(
+    vizType: string,
+    chartState: JsonObject,
+    options?: ChartStateConverterOptions,
+  ): Partial<BackendOwnState> {
     const converter = this.converters.get(vizType);
     if (!converter) {
       return {};
     }
 
     try {
-      return converter(chartState);
+      return converter(chartState, options);
     } catch (error) {
       // Log error but don't throw - graceful degradation
       console.warn(
@@ -115,8 +120,9 @@ export function registerChartStateConverter(
 export function convertChartStateToOwnState(
   vizType: string,
   chartState: JsonObject,
+  options?: ChartStateConverterOptions,
 ): Partial<BackendOwnState> {
-  return registry.convert(vizType, chartState);
+  return registry.convert(vizType, chartState, options);
 }
 
 /**

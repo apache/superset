@@ -17,9 +17,13 @@
  * under the License.
  */
 
-import { ControlPanelState } from '@superset-ui/chart-controls';
+import {
+  ControlPanelState,
+  ControlStateMapping,
+} from '@superset-ui/chart-controls';
 import { OSM_TILE_STYLE_URL } from '@superset-ui/core/utils/mapStyles';
-import { mapProvider, maplibreStyle } from './Shared_DeckGL';
+import { fillColorPicker, mapProvider, maplibreStyle } from './Shared_DeckGL';
+import { COLOR_SCHEME_TYPES } from './utils';
 
 const setBootstrap = ({
   conf = {},
@@ -158,4 +162,51 @@ test('deck.gl map style accepts well-formed tile overrides', () => {
     ['https://tiles.example.com/style.json', 'Custom'],
   ]);
   expect(props.default).toBe('https://tiles.example.com/style.json');
+});
+
+// fillColorPicker visibility tests
+type FillColorPickerConfig = typeof fillColorPicker.config & {
+  visibility: (ctx: { controls: ControlStateMapping }) => boolean;
+};
+
+const fillColorPickerVisibility = (controls: ControlStateMapping) =>
+  (fillColorPicker.config as FillColorPickerConfig).visibility({ controls });
+
+const makeControls = (schemeType?: string): ControlStateMapping =>
+  schemeType === undefined
+    ? ({} as ControlStateMapping)
+    : ({
+        color_scheme_type: { value: schemeType },
+      } as unknown as ControlStateMapping);
+
+test('fillColorPicker is visible when color_scheme_type is absent (legacy form)', () => {
+  expect(fillColorPickerVisibility(makeControls(undefined))).toBe(true);
+});
+
+test('fillColorPicker is visible when color_scheme_type is fixed_color', () => {
+  expect(
+    fillColorPickerVisibility(makeControls(COLOR_SCHEME_TYPES.fixed_color)),
+  ).toBe(true);
+});
+
+test('fillColorPicker is hidden when color_scheme_type is categorical_palette', () => {
+  expect(
+    fillColorPickerVisibility(
+      makeControls(COLOR_SCHEME_TYPES.categorical_palette),
+    ),
+  ).toBe(false);
+});
+
+test('fillColorPicker is hidden when color_scheme_type is color_breakpoints', () => {
+  expect(
+    fillColorPickerVisibility(
+      makeControls(COLOR_SCHEME_TYPES.color_breakpoints),
+    ),
+  ).toBe(false);
+});
+
+test('fillColorPicker is hidden when color_scheme_type is linear_palette', () => {
+  expect(
+    fillColorPickerVisibility(makeControls(COLOR_SCHEME_TYPES.linear_palette)),
+  ).toBe(false);
 });

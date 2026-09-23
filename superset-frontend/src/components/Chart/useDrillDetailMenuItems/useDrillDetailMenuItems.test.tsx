@@ -17,6 +17,7 @@
  * under the License.
  */
 import { useState } from 'react';
+import fetchMock from 'fetch-mock';
 import {
   cleanup,
   render,
@@ -34,6 +35,10 @@ import DrillDetailModal from '../DrillDetail/DrillDetailModal';
 import { useDrillDetailMenuItems, DrillDetailMenuItemsProps } from './index';
 
 /* eslint jest/expect-expect: ["warn", { "assertFunctionNames": ["expect*"] }] */
+
+// Opening the context menu logs an event, and an unmatched request makes
+// fetch-mock throw inside the component.
+fetchMock.post('glob:*/log/?*', {});
 
 jest.mock(
   '../DrillDetail/DrillDetailPane',
@@ -157,7 +162,7 @@ const expectDrillToDetailModal = async (
 ) => {
   if (buttonName) {
     const button = screen.getByRole('menuitem', { name: buttonName });
-    userEvent.click(button);
+    await userEvent.click(button);
   }
   const modal = await screen.findByRole('dialog', {
     name: `Drill to detail: ${chartName}`,
@@ -189,7 +194,7 @@ const expectMenuItemDisabled = async (
   expect(menuItem).toHaveAttribute('aria-disabled', 'true');
   const tooltipTrigger = within(menuItem).queryByTestId('tooltip-trigger');
   if (tooltipContent) {
-    userEvent.hover(tooltipTrigger as HTMLElement);
+    await userEvent.hover(tooltipTrigger as HTMLElement);
     const tooltip = await screen.findByRole('tooltip', {
       name: tooltipContent,
     });
@@ -244,7 +249,7 @@ const expectDrillToDetailByEnabled = async () => {
     .find(menuItem => within(menuItem).queryByText('Drill to detail by'));
   await expectMenuItemEnabled(drillToDetailBy!);
 
-  userEvent.hover(drillToDetailBy!);
+  await userEvent.hover(drillToDetailBy!);
 
   const submenu = await screen.findByRole('menu', {});
   expect(submenu).toBeInTheDocument();
@@ -271,7 +276,7 @@ const expectDrillToDetailByDimension = async (
     name: 'Drill to detail by',
   });
 
-  userEvent.hover(drillByMenuItem);
+  await userEvent.hover(drillByMenuItem);
 
   const submenuPopup = (await waitFor(() =>
     screen
@@ -310,7 +315,7 @@ const expectDrillToDetailByAll = async (
     name: 'Drill to detail by',
   });
 
-  userEvent.hover(drillByMenuItem);
+  await userEvent.hover(drillByMenuItem);
 
   await screen.findByRole('menu');
 
@@ -318,7 +323,7 @@ const expectDrillToDetailByAll = async (
 
   await expectMenuItemEnabled(drillToDetailBySubmenuItem);
 
-  userEvent.click(drillToDetailBySubmenuItem);
+  await userEvent.click(drillToDetailBySubmenuItem);
   await expectDrillToDetailModal(null, filters);
 };
 

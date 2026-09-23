@@ -17,6 +17,9 @@
  * under the License.
  */
 export { default as EchartsBoxPlotChartPlugin } from './BoxPlot';
+export { default as EchartsRoseChartPlugin } from './Rose';
+export { default as EchartsTimePivotChartPlugin } from './TimePivot';
+export { default as EchartsBulletChartPlugin } from './Bullet';
 export { default as EchartsTimeseriesChartPlugin } from './Timeseries';
 export { default as EchartsAreaChartPlugin } from './Timeseries/Area';
 export { default as EchartsTimeseriesBarChartPlugin } from './Timeseries/Regular/Bar';
@@ -43,6 +46,7 @@ export { default as EchartsSunburstChartPlugin } from './Sunburst';
 export { default as EchartsBubbleChartPlugin } from './Bubble';
 export { default as EchartsSankeyChartPlugin } from './Sankey';
 export { default as EchartsWaterfallChartPlugin } from './Waterfall';
+export { default as EchartsButterflyChartPlugin } from './Butterfly';
 export { default as EchartsGanttChartPlugin } from './Gantt';
 
 export { default as BoxPlotTransformProps } from './BoxPlot/transformProps';
@@ -59,6 +63,7 @@ export { default as HeatmapTransformProps } from './Heatmap/transformProps';
 export { default as SunburstTransformProps } from './Sunburst/transformProps';
 export { default as BubbleTransformProps } from './Bubble/transformProps';
 export { default as WaterfallTransformProps } from './Waterfall/transformProps';
+export { default as ButterflyTransformProps } from './Butterfly/transformProps';
 export { default as HistogramTransformProps } from './Histogram/transformProps';
 export { default as SankeyTransformProps } from './Sankey/transformProps';
 export { default as GanttTransformProps } from './Gantt/transformProps';

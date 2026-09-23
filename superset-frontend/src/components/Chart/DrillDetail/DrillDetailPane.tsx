@@ -44,6 +44,7 @@ import TimeCell from '@superset-ui/core/components/Table/cell-renderers/TimeCell
 import { EmptyState, Loading } from '@superset-ui/core/components';
 import { Alert } from '@apache-superset/core/components';
 import { getDatasourceSamples } from 'src/components/Chart/chartAction';
+import { PreformattedErrorDescription } from 'src/components/ErrorMessage/PreformattedErrorDescription';
 import Table, {
   ColumnsType,
   TableSize,
@@ -372,7 +373,11 @@ export default function DrillDetailPane({
           type="error"
           showIcon
           message={t('Failed to load drill-to-detail rows')}
-          description={responseError}
+          description={
+            <PreformattedErrorDescription>
+              {responseError}
+            </PreformattedErrorDescription>
+          }
         />
       </div>
     );

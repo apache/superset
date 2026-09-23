@@ -51,7 +51,11 @@ def _get_user_subjects(users):
     "editor_names,creator_name,config,expected_result",
     [
         (["gamma"], None, [FixedExecutor("admin")], "admin"),
-        (["gamma"], None, [ExecutorType.EDITOR], "gamma"),
+        # EDITOR only resolves to whoever authored the model's current state
+        # (changed_by, then created_by); a bare attached editor with no
+        # authorship on the model is not enough, so gamma must be the creator
+        # here for EDITOR to resolve to them.
+        (["gamma"], "gamma", [ExecutorType.EDITOR], "gamma"),
         (
             ["alpha", "gamma"],
             "gamma",
@@ -104,6 +108,9 @@ def test_execute_query_as_report_executor(
     )
     command = AlertCommand(report_schedule=report_schedule, execution_id=uuid.uuid4())
     override_user_mock = mocker.patch("superset.commands.report.alert.override_user")
+    # override_user is mocked, so no real executor context is set; the alert
+    # authorization check is covered elsewhere, so keep it a no-op here.
+    mocker.patch("superset.commands.report.alert.security_manager.raise_for_access")
     cm = (
         pytest.raises(type(expected_result))
         if isinstance(expected_result, Exception)
@@ -128,6 +135,7 @@ def test_execute_query_mutate_query_enabled(
 
     app.config["MUTATE_ALERT_QUERY"] = True
     mocker.patch("superset.commands.report.alert.override_user")
+    mocker.patch("superset.commands.report.alert.security_manager.raise_for_access")
     mock_df = mocker.MagicMock(spec=pd.DataFrame)
     mock_df.empty = True
     mock_database = get_example_database()
@@ -171,6 +179,7 @@ def test_execute_query_mutate_query_disabled(
 
     app.config["MUTATE_ALERT_QUERY"] = False
     mocker.patch("superset.commands.report.alert.override_user")
+    mocker.patch("superset.commands.report.alert.security_manager.raise_for_access")
     mock_database = mocker.MagicMock()
 
     admin_user = get_user("admin")

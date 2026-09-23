@@ -15,18 +15,12 @@
 # limitations under the License.
 #
 
-[submodule ".github/actions/latest-tag"]
-	path = .github/actions/latest-tag
-	url = https://github.com/EndBug/latest-tag
 [submodule ".github/actions/pr-lint-action"]
 	path = .github/actions/pr-lint-action
 	url = https://github.com/morrisoncole/pr-lint-action
 [submodule ".github/actions/cached-dependencies"]
 	path = .github/actions/cached-dependencies
 	url = https://github.com/apache-superset/cached-dependencies
-[submodule ".github/actions/comment-on-pr"]
-	path = .github/actions/comment-on-pr
-	url = https://github.com/unsplash/comment-on-pr
 [submodule ".github/actions/chart-testing-action"]
 	path = .github/actions/chart-testing-action
 	url = https://github.com/helm/chart-testing-action

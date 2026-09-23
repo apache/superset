@@ -49,7 +49,7 @@ _FRACTION_MAPPING = migration._FRACTION_MAPPING
 
 @pytest.fixture
 def engine():
-    engine = create_engine("sqlite:///:memory:", future=True)
+    engine = create_engine("sqlite:///:memory:")
     migration.Base.metadata.create_all(engine)
     return engine
 
@@ -201,7 +201,7 @@ def test_migrate_query_context_noop_on_invalid_json():
 def test_upgrade_restores_percent_display_only_for_affected_pivot_tables(
     engine,
 ) -> None:
-    with Session(engine, future=True) as seed:
+    with Session(engine) as seed:
         seed.add_all(
             [
                 # Had a fraction display configured before #41184 -- must be
@@ -251,7 +251,7 @@ def test_upgrade_restores_percent_display_only_for_affected_pivot_tables(
     # bind the session to an explicit connection so paginated_update's
     # internal commits are visible once the outer transaction closes.
     with engine.begin() as conn:
-        upgrade_session = Session(bind=conn, future=True)
+        upgrade_session = Session(bind=conn)
         with (
             patch.object(migration, "op") as mock_op,
             patch.object(migration, "db") as mock_db,
@@ -260,7 +260,7 @@ def test_upgrade_restores_percent_display_only_for_affected_pivot_tables(
             mock_db.Session.return_value = upgrade_session
             migration.upgrade()
 
-    with Session(engine, future=True) as verify:
+    with Session(engine) as verify:
         slc1 = verify.get(Slice, 1)
         params1 = json.loads(slc1.params)
         assert params1[_NEW_FIELD] == "percent_total"

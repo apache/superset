@@ -172,7 +172,7 @@ def downgrade_filter_set(filter_set: dict[str, Any]) -> int:
 
 def upgrade():
     bind = op.get_bind()
-    session = db.Session(bind=bind, future=True)
+    session = db.Session(bind=bind)
 
     dashboards = (
         session.query(Dashboard)
@@ -208,7 +208,7 @@ def upgrade():
 
 def downgrade():
     bind = op.get_bind()
-    session = db.Session(bind=bind, future=True)
+    session = db.Session(bind=bind)
 
     dashboards = (
         session.query(Dashboard)
