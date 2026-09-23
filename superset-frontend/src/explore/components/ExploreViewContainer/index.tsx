@@ -601,7 +601,8 @@ function ExploreViewContainer(props: ExploreViewContainerProps) {
         endpoint: '/api/v1/chart/data/stop',
         body: JSON.stringify({ client_id: clientId }),
         headers: { 'Content-Type': 'application/json' },
-      }).catch(() => {
+      }).catch((error: unknown) => {
+        logging.error('Failed to stop chart query', error);
         props.addDangerToast(t('Failed to stop query.'));
       });
     }
