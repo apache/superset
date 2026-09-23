@@ -564,13 +564,39 @@ export function sortAndFilterSeries(
   ).map(({ name }) => name);
 }
 
+/**
+ * Sum of a specific set of columns, used to order the rows of a multi-series
+ * chart by one metric once dimensions have pivoted that metric into a column
+ * per series.
+ */
+export type XAxisSortBySumOfColumns = { sumOfColumns: string[] };
+
+/**
+ * How the rows (one per x-axis value) of a multi-series chart are ordered:
+ * a `SortSeriesType` aggregates every numeric column in the row, while
+ * `XAxisSortBySumOfColumns` only sums the named columns.
+ */
+export type XAxisSortSeries = SortSeriesType | XAxisSortBySumOfColumns;
+
+export function isXAxisSortBySumOfColumns(
+  sort: XAxisSortSeries,
+): sort is XAxisSortBySumOfColumns {
+  return typeof sort === 'object';
+}
+
 export function sortRows(
   rows: DataRecord[],
   totalStackedValues: number[],
   xAxis: string,
-  xAxisSortSeries: SortSeriesType,
+  xAxisSortSeries: XAxisSortSeries,
   xAxisSortSeriesAscending: boolean,
 ) {
+  const sumOfColumns = isXAxisSortBySumOfColumns(xAxisSortSeries)
+    ? new Set(xAxisSortSeries.sumOfColumns)
+    : undefined;
+  const aggregation: SortSeriesType = sumOfColumns
+    ? SortSeriesType.Sum
+    : (xAxisSortSeries as SortSeriesType);
   const sortedRows = rows.map((row, idx) => {
     let sortKey: DataRecordValue = '';
     let aggregate: number | undefined;
@@ -581,17 +607,18 @@ export function sortRows(
         sortKey = value;
       }
       if (
-        xAxisSortSeries === SortSeriesType.Name ||
-        typeof value !== 'number'
+        aggregation === SortSeriesType.Name ||
+        typeof value !== 'number' ||
+        (sumOfColumns && !sumOfColumns.has(key))
       ) {
         return;
       }
 
-      if (!(xAxisSortSeries === SortSeriesType.Avg && !isValueDefined)) {
+      if (!(aggregation === SortSeriesType.Avg && !isValueDefined)) {
         entries += 1;
       }
 
-      switch (xAxisSortSeries) {
+      switch (aggregation) {
         case SortSeriesType.Avg:
         case SortSeriesType.Sum:
           if (aggregate === undefined) {
@@ -617,7 +644,7 @@ export function sortRows(
       }
     });
     if (
-      xAxisSortSeries === SortSeriesType.Avg &&
+      aggregation === SortSeriesType.Avg &&
       entries > 0 &&
       aggregate !== undefined
     ) {
@@ -625,7 +652,7 @@ export function sortRows(
     }
 
     const value =
-      xAxisSortSeries === SortSeriesType.Name
+      aggregation === SortSeriesType.Name
         ? typeof sortKey === 'string'
           ? sortKey.toLowerCase()
           : sortKey
@@ -658,7 +685,7 @@ export function extractSeries(
     isHorizontal?: boolean;
     sortSeriesType?: SortSeriesType;
     sortSeriesAscending?: boolean;
-    xAxisSortSeries?: SortSeriesType;
+    xAxisSortSeries?: XAxisSortSeries;
     xAxisSortSeriesAscending?: boolean;
     xAxisType?: AxisType;
   } = {},

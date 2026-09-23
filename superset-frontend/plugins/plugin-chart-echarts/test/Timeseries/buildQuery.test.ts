@@ -64,6 +64,49 @@ describe('Timeseries buildQuery', () => {
     expect(query.metrics).toEqual(['bar', 'baz']);
   });
 
+  test('should query the sort-only limit metric with dimensions so its pivoted columns can order the axis', () => {
+    const queryContext = buildQuery({
+      ...formData,
+      metrics: ['count'],
+      x_axis: 'genre',
+      groupby: ['platform'],
+      timeseries_limit_metric: 'na_sales',
+      x_axis_sort: 'na_sales',
+      x_axis_sort_asc: false,
+    });
+    const [query] = queryContext.queries;
+    expect(query.metrics).toEqual(['count', 'na_sales']);
+    const pivot = (query.post_processing || []).find(
+      op => op?.operation === 'pivot',
+    );
+    expect(pivot?.options).toMatchObject({
+      index: ['genre'],
+      columns: ['platform'],
+      aggregates: {
+        count: { operator: 'mean' },
+        na_sales: { operator: 'mean' },
+      },
+    });
+    // With dimensions the chart sorts the pivoted rows itself.
+    expect(
+      (query.post_processing || []).map(op => op?.operation),
+    ).not.toContain('sort');
+  });
+
+  test('should not query the limit metric with dimensions when the axis is sorted by a series aggregate', () => {
+    const queryContext = buildQuery({
+      ...formData,
+      metrics: ['count'],
+      x_axis: 'genre',
+      groupby: ['platform'],
+      timeseries_limit_metric: 'na_sales',
+      x_axis_sort: 'sum',
+      x_axis_sort_asc: false,
+    });
+    const [query] = queryContext.queries;
+    expect(query.metrics).toEqual(['count']);
+  });
+
   test('should apply contribution before rename with time comparison', () => {
     // rename strips the `__<offset>` suffix that contribution relies on to
     // compute each time shift separately
