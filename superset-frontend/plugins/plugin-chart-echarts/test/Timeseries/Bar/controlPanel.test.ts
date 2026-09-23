@@ -384,6 +384,9 @@ test.each<[boolean, StackControlsValue | null, boolean]>([
         type: 'SelectControl',
         value: stack,
       }),
-    ).toMatchObject({ disabled });
+    ).toMatchObject({
+      disabled,
+      warning: logAxis ? expect.any(String) : null,
+    });
   },
 );

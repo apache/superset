@@ -246,7 +246,7 @@ function createAxisControl(axis: 'x' | 'y'): ControlSetRow[] {
           label: t('Logarithmic axis'),
           renderTrigger: true,
           default: logAxis,
-          description: t('Logarithmic axis is not available for stacked bars'),
+          description: t('Logarithmic axis'),
           visibility: ({ controls }: ControlPanelsContainerProps) =>
             (!controls?.stack?.value || Boolean(controls?.logAxis?.value)) &&
             (isXAxis ? isHorizontal(controls) : isVertical(controls)),

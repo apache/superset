@@ -8567,9 +8567,6 @@ msgstr ""
 msgid "Logarithmic axis"
 msgstr ""
 
-msgid "Logarithmic axis is not available for stacked bars"
-msgstr ""
-
 msgid "Logarithmic scale on primary y-axis"
 msgstr ""
 
