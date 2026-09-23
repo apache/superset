@@ -28,7 +28,7 @@ DEFAULT_PAGE_SIZE = 10  # Default number of items per page
 MAX_PAGE_SIZE = 100  # Maximum allowed page_size to prevent oversized responses
 
 # Response size guard defaults
-DEFAULT_TOKEN_LIMIT = 25_000  # ~25k tokens prevents overwhelming LLM context windows
+DEFAULT_MAX_RESPONSE_BYTES = 50_000  # ~50KB preserves the former 25K-token guard
 DEFAULT_WARN_THRESHOLD_PCT = 80  # Log warnings above 80% of limit
 # Phase 2 list-field truncation cap; matches MAX_PAGE_SIZE
 DEFAULT_MAX_LIST_ITEMS = 100

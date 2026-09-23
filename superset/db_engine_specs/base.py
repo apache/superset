@@ -35,11 +35,10 @@ from typing import (
     TypedDict,
     Union,
 )
-from urllib.parse import urlencode, urljoin
+from urllib.parse import urlencode, urljoin, urlparse
 from uuid import UUID, uuid4
 
 import pandas as pd
-import requests
 from apispec import APISpec
 from apispec.ext.marshmallow import MarshmallowPlugin
 from deprecation import deprecated
@@ -95,7 +94,12 @@ from superset.utils import core as utils, json
 from superset.utils.core import ColumnSpec, GenericDataType, QuerySource
 from superset.utils.hashing import hash_from_str
 from superset.utils.json import redact_sensitive, reveal_sensitive
-from superset.utils.network import is_hostname_valid, is_port_open
+from superset.utils.network import (
+    get_ssrf_safe_requester,
+    is_hostname_valid,
+    is_port_open,
+    is_safe_host,
+)
 from superset.utils.oauth2 import (
     encode_oauth2_state,
     generate_code_challenge,
@@ -901,6 +905,47 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
 
         return config
 
+    @staticmethod
+    def _validate_oauth2_endpoint_host(uri: str) -> None:
+        """
+        Validate an OAuth2 authorization/token endpoint URI before it's used.
+
+        ``config["authorization_request_uri"]``/``config["token_request_uri"]``
+        can come from a database's own ``encrypted_extra.oauth2_client_info``
+        (editable by anyone with ``can_write`` on Database, not just the
+        deployment operator). The authorization URI is handed to the user's
+        browser as a redirect target; the token URI is POSTed to directly by
+        this server, carrying the connection's ``client_secret`` in the
+        request body. Neither is otherwise validated, so an attacker with
+        write access to one database's config could point either at an
+        internal host, exfiltrating the client secret (token URI) or using
+        Superset as an open redirect into the internal network (authorization
+        URI) -- and since the connection is typically shared, this is
+        exercised by every user who goes through that database's OAuth2 flow,
+        not just the one who configured it.
+
+        Operators with a legitimately internal IdP can opt out via
+        ``DATABASE_OAUTH2_ALLOW_INTERNAL_HOSTS`` -- but that flag only
+        widens which *hosts* are acceptable, not which URI *schemes* are;
+        a non-http(s) scheme is refused unconditionally.
+        """
+        try:
+            parsed = urlparse(uri)
+        except ValueError as ex:
+            # e.g. an unmatched IPv6 bracket -- urlparse raises rather than
+            # returning an unusable result.
+            raise OAuth2Error("Invalid OAuth2 endpoint URI") from ex
+
+        if parsed.scheme not in ("http", "https"):
+            raise OAuth2Error("Invalid OAuth2 endpoint URI")
+
+        if app.config["DATABASE_OAUTH2_ALLOW_INTERNAL_HOSTS"]:
+            return
+
+        if not parsed.hostname or not is_safe_host(parsed.hostname):
+            logger.warning("OAuth2 endpoint refused: target host is not allowed")
+            raise OAuth2Error("Invalid OAuth2 endpoint URI")
+
     @classmethod
     def get_oauth2_authorization_uri(
         cls,
@@ -916,6 +961,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         (e.g., Google's prompt=consent).
         """
         uri = config["authorization_request_uri"]
+        cls._validate_oauth2_endpoint_host(uri)
         params: dict[str, str] = {
             "scope": config["scope"],
             "response_type": "code",
@@ -947,6 +993,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         """
         timeout = app.config["DATABASE_OAUTH2_TIMEOUT"].total_seconds()
         uri = config["token_request_uri"]
+        cls._validate_oauth2_endpoint_host(uri)
         req_body: dict[str, str] = {
             "code": code,
             "client_id": config["id"],
@@ -959,10 +1006,21 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         if code_verifier:
             req_body["code_verifier"] = code_verifier
 
+        # `_validate_oauth2_endpoint_host` only checked the hostname; a
+        # server at that (safe) host could still respond with a 30x
+        # redirecting the actual request to an internal target, or a
+        # low-TTL DNS record could resolve differently by the time this
+        # connects (DNS rebinding). Don't follow redirects, and re-validate
+        # the address actually connected to.
+        requester = get_ssrf_safe_requester(
+            allow_unsafe_hosts=app.config["DATABASE_OAUTH2_ALLOW_INTERNAL_HOSTS"]
+        )
         response = (
-            requests.post(uri, data=req_body, timeout=timeout)
+            requester.post(uri, data=req_body, timeout=timeout, allow_redirects=False)
             if config["request_content_type"] == "data"
-            else requests.post(uri, json=req_body, timeout=timeout)
+            else requester.post(
+                uri, json=req_body, timeout=timeout, allow_redirects=False
+            )
         )
         response.raise_for_status()
         return response.json()
@@ -978,16 +1036,26 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         """
         timeout = app.config["DATABASE_OAUTH2_TIMEOUT"].total_seconds()
         uri = config["token_request_uri"]
+        cls._validate_oauth2_endpoint_host(uri)
         req_body = {
             "client_id": config["id"],
             "client_secret": config["secret"],
             "refresh_token": refresh_token,
             "grant_type": "refresh_token",
         }
+        # See the matching comment in ``get_oauth2_token``: the hostname
+        # check above doesn't protect against a 30x redirect to an internal
+        # target or DNS rebinding, so route through the peer-validating
+        # requester and refuse to follow redirects.
+        requester = get_ssrf_safe_requester(
+            allow_unsafe_hosts=app.config["DATABASE_OAUTH2_ALLOW_INTERNAL_HOSTS"]
+        )
         response = (
-            requests.post(uri, data=req_body, timeout=timeout)
+            requester.post(uri, data=req_body, timeout=timeout, allow_redirects=False)
             if config["request_content_type"] == "data"
-            else requests.post(uri, json=req_body, timeout=timeout)
+            else requester.post(
+                uri, json=req_body, timeout=timeout, allow_redirects=False
+            )
         )
         if response.status_code in (400, 401, 403):
             try:

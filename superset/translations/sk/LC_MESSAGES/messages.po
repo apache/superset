@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-21 02:18+0000\n"
+"POT-Creation-Date: 2026-09-22 10:58-0700\n"
 "PO-Revision-Date: 2026-05-18 15:42+0200\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: sk\n"
@@ -2752,9 +2752,6 @@ msgstr "Automaticky upravovať šírku stĺpca na základe dostupného priestoru
 msgid "Automatically adjust column width based on content"
 msgstr "Automaticky upravovať šírku stĺpca na základe obsahu"
 
-msgid "Automatically retry sending the report when delivery fails."
-msgstr ""
-
 msgid "Automatically sync columns"
 msgstr "Automatické synchronizovanie stĺpcov"
 
@@ -4437,7 +4434,7 @@ msgstr "Konfigurovať vzhled, farby a vlastný CSS pre nástenku"
 msgid "Configure filter scopes"
 msgstr "Konfigurovať rozsahy filtrov"
 
-msgid "Configure retry behavior on delivery failure."
+msgid "Configure retries when alert or report generation fails before delivery."
 msgstr ""
 
 msgid "Configure the basics of your Annotation Layer."
@@ -4506,6 +4503,9 @@ msgid "Connection failed, please check your connection settings."
 msgstr "Pripojenie zlyhalo, skontrolujte prosím nastavenie pripojenie."
 
 msgid "Connection looks good!"
+msgstr ""
+
+msgid "Contact the report owner for error details."
 msgstr ""
 
 #, fuzzy
@@ -6179,6 +6179,9 @@ msgid ""
 "Display each cell as a percentage of its row, column, or grand total, "
 "instead of its actual value. Totals and subtotals are still computed "
 "correctly first; this only changes how they are displayed."
+msgstr ""
+
+msgid "Display format"
 msgstr ""
 
 msgid "Display headers for each column at the top of the matrix"
@@ -12141,6 +12144,9 @@ msgstr "Znovu načítať"
 msgid "Reload SQL Lab"
 msgstr "Znovu načítať SQL Lab"
 
+msgid "Reload the page and try again to continue."
+msgstr ""
+
 msgid "Remove"
 msgstr "Odstrániť"
 
@@ -12504,15 +12510,17 @@ msgstr ""
 msgid "Resume auto-refresh"
 msgstr "Nastaviť interval automatického obnovenie"
 
-msgid "Retries are not supported for alerts"
-msgstr ""
-
 #, fuzzy
 msgid "Retry"
 msgstr "Zkusit znovu"
 
 msgid "Retry fetching results"
 msgstr "Zkusit znovu načítať výsledky"
+
+msgid ""
+"Retry generation failures before delivery starts. Alerts re-check their "
+"condition on each attempt. Delivery failures are not replayed."
+msgstr ""
 
 msgid "Retrying"
 msgstr ""
@@ -13073,6 +13081,12 @@ msgstr "Rozsah"
 msgid "Scoping"
 msgstr "Rozsah platnosti"
 
+msgid "Screenshot cache is unavailable"
+msgstr ""
+
+msgid "Screenshot request is temporarily unavailable"
+msgstr ""
+
 msgid "Screenshot width"
 msgstr "Šírka snímku obrazovky"
 
@@ -13195,6 +13209,9 @@ msgstr "Zabezpečené extra"
 
 msgid "Security"
 msgstr "Zabezpečenie"
+
+msgid "Security token error"
+msgstr ""
 
 #, fuzzy
 msgid "See "
@@ -14464,9 +14481,6 @@ msgstr "Omlouváme se, došlo k chybe"
 msgid "Sorry, an error occurred"
 msgstr "Omlouváme se, došlo k chybe"
 
-msgid "Sorry, an unknown error occurred"
-msgstr "Omlouváme se, došlo k neznámé chybe"
-
 msgid "Sorry, an unknown error occurred."
 msgstr "Omlouváme se, došlo k neznámé chybe."
 
@@ -15279,6 +15293,9 @@ msgstr "Sada dat propojená s týmto grafem mohla být zmazaná."
 #, python-format
 msgid "The API response from %s does not match the IDatabaseTable interface."
 msgstr "Odpoveď API z %s neodpovídá rozhraní IDatabaseTable."
+
+msgid "The CSRF token could not be validated."
+msgstr ""
 
 msgid ""
 "The CSS for individual dashboards can be altered here, or in the "

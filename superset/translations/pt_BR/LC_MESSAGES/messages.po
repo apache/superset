@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-21 02:18+0000\n"
+"POT-Creation-Date: 2026-09-22 10:58-0700\n"
 "PO-Revision-Date: 2023-05-22 08:04-0400\n"
 "Last-Translator: \n"
 "Language: pt_BR\n"
@@ -2835,9 +2835,6 @@ msgstr "Ajustar automaticamente a largura da coluna com base no espaço disponí
 msgid "Automatically adjust column width based on content"
 msgstr "Ajustar automaticamente a largura da coluna com base no conteúdo"
 
-msgid "Automatically retry sending the report when delivery fails."
-msgstr ""
-
 #, fuzzy
 msgid "Automatically sync columns"
 msgstr "Personalizar colunas"
@@ -4673,7 +4670,7 @@ msgstr "Configurar aparência, cores e CSS personalizado do painel"
 msgid "Configure filter scopes"
 msgstr "Configurar os âmbitos de filtragem"
 
-msgid "Configure retry behavior on delivery failure."
+msgid "Configure retries when alert or report generation fails before delivery."
 msgstr ""
 
 msgid "Configure the basics of your Annotation Layer."
@@ -4748,6 +4745,9 @@ msgid "Connection failed, please check your connection settings."
 msgstr "Falha na conexão, por favor verificar suas configurações de conexão"
 
 msgid "Connection looks good!"
+msgstr ""
+
+msgid "Contact the report owner for error details."
 msgstr ""
 
 #, fuzzy
@@ -6533,6 +6533,9 @@ msgid ""
 "Display each cell as a percentage of its row, column, or grand total, "
 "instead of its actual value. Totals and subtotals are still computed "
 "correctly first; this only changes how they are displayed."
+msgstr ""
+
+msgid "Display format"
 msgstr ""
 
 msgid "Display headers for each column at the top of the matrix"
@@ -12996,6 +12999,9 @@ msgstr "Recarregar"
 msgid "Reload SQL Lab"
 msgstr "Recarregar SQL Lab"
 
+msgid "Reload the page and try again to continue."
+msgstr ""
+
 msgid "Remove"
 msgstr "Remover"
 
@@ -13393,9 +13399,6 @@ msgstr ""
 msgid "Resume auto-refresh"
 msgstr "Definir intervalo da atualização automática"
 
-msgid "Retries are not supported for alerts"
-msgstr ""
-
 #, fuzzy
 msgid "Retry"
 msgstr "Criador"
@@ -13403,6 +13406,11 @@ msgstr "Criador"
 #, fuzzy
 msgid "Retry fetching results"
 msgstr "Recuperar resultados"
+
+msgid ""
+"Retry generation failures before delivery starts. Alerts re-check their "
+"condition on each attempt. Delivery failures are not replayed."
+msgstr ""
 
 msgid "Retrying"
 msgstr ""
@@ -13988,6 +13996,12 @@ msgstr "Escopo"
 msgid "Scoping"
 msgstr "Escopo"
 
+msgid "Screenshot cache is unavailable"
+msgstr ""
+
+msgid "Screenshot request is temporarily unavailable"
+msgstr ""
+
 msgid "Screenshot width"
 msgstr "Largura da captura de tela"
 
@@ -14115,6 +14129,9 @@ msgstr "Segurança Extra"
 
 msgid "Security"
 msgstr "Segurança"
+
+msgid "Security token error"
+msgstr ""
 
 #, fuzzy
 msgid "See "
@@ -15496,9 +15513,6 @@ msgstr "Desculpe, ocorreu um erro"
 msgid "Sorry, an error occurred"
 msgstr "Desculpe, ocorreu um erro"
 
-msgid "Sorry, an unknown error occurred"
-msgstr "Desculpe, ocorreu um erro desconhecido"
-
 msgid "Sorry, an unknown error occurred."
 msgstr "Desculpe, ocorreu um erro desconhecido."
 
@@ -16359,6 +16373,9 @@ msgstr "O conjunto de dados vinculado a esse gráfico pode ter sido excluído."
 #, python-format
 msgid "The API response from %s does not match the IDatabaseTable interface."
 msgstr "A resposta da API de %s não corresponde à interface IDatabaseTable."
+
+msgid "The CSRF token could not be validated."
+msgstr ""
 
 msgid ""
 "The CSS for individual dashboards can be altered here, or in the "

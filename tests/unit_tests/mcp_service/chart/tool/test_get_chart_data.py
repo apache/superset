@@ -25,6 +25,7 @@ from types import SimpleNamespace
 from typing import Any
 from unittest.mock import MagicMock, patch
 
+import pandas as pd
 import pytest
 from fastmcp import Client
 
@@ -588,7 +589,10 @@ class TestUnsavedChartDataQueryConstruction:
         assert not isinstance(result, ChartError)
         assert [row["team"] for row in result.data] == ["Empty", "Blue", "NaN"]
         assert result.row_count == result.total_rows == 3
-        assert result.data_quality["completeness"] == pytest.approx(5 / 6)
+        # Both the None and the NaN metric serialize as null, so both count
+        # toward incompleteness: 2 missing cells out of 3 rows x 2 columns.
+        assert result.data_quality["completeness"] == pytest.approx(4 / 6)
+        assert [row["saved_sla"] for row in result.data] == [None, 98.5, None]
         query = captured[0]["queries"][0]
         assert query["metrics"] == ["saved_sla"]
         assert query["orderby"] == [("saved_sla", False)]
@@ -1815,6 +1819,14 @@ class TestSavedChartExtraFormDataFilters:
             {"team": "Infinity", "saved_sla": float("inf")},
             {"team": "Negative infinity", "saved_sla": -float("inf")},
         ]
+        rows.extend(
+            [
+                {"team": "NaT", "saved_sla": pd.NaT},
+                {"team": "NA", "saved_sla": pd.NA},
+            ]
+            if export_format == "json"
+            else []
+        )
         if has_finite:
             rows.append({"team": "Blue", "saved_sla": 42})
         source_rowcount = len(rows) + 7
@@ -1887,9 +1899,18 @@ class TestSavedChartExtraFormDataFilters:
         expected_groups = [row["team"] for row in rows]
         if export_format == "json":
             assert [row["team"] for row in data["data"]] == expected_groups
+            # NaN and the infinities are not valid JSON, so they serialize as
+            # null and count as missing alongside None, NaT and NA: six
+            # missing cells out of len(rows) x 2 columns.
             assert data["data_quality"]["completeness"] == pytest.approx(
-                1 - 1 / (len(rows) * 2)
+                1 - 6 / (len(rows) * 2)
             )
+            assert [row["saved_sla"] for row in data["data"][:6]] == [None] * 6
+            metric_column = next(
+                column for column in data["columns"] if column["name"] == "saved_sla"
+            )
+            assert metric_column["null_count"] == 6
+            assert metric_column["unique_count"] == int(has_finite)
             assert data.get("query_results") is None
         elif export_format == "csv":
             import csv

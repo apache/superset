@@ -59,17 +59,18 @@ from superset.mcp_service.auth import (
 from superset.mcp_service.constants import (
     CONNECTION_ERROR_TYPES,
     DEFAULT_MAX_LIST_ITEMS,
-    DEFAULT_TOKEN_LIMIT,
+    DEFAULT_MAX_RESPONSE_BYTES,
     DEFAULT_WARN_THRESHOLD_PCT,
 )
-from superset.mcp_service.utils.token_utils import (
+from superset.mcp_service.utils.response_size_utils import (
     COMMITTED_WRITE_SPECS,
     COMMITTED_WRITE_TOOLS,
     CommittedWriteSpec,
     DATA_QUERY_TOOLS,
-    estimate_response_tokens,
     format_size_limit_error,
+    get_response_size_bytes,
     INFO_TOOLS,
+    string_clip_chars,
     STRING_FIELD_TRUNCATION_TOOLS,
     truncate_oversized_response,
     truncate_query_result,
@@ -89,6 +90,7 @@ _METRIC_TOOL_NAME_RE = re.compile(r"[A-Za-z0-9_][A-Za-z0-9_.\-]{0,127}")
 # confirmation (see ``_shrink_minimal_response``). Generous enough to keep a
 # chart name or a short error readable, small enough that the whole confirmation
 # stays bounded no matter how large the fields were in the original payload.
+# Small byte budgets lower it further (see ``string_clip_chars``).
 _MINIMAL_FIELD_CHARS = 200
 
 # Bound both list overhead and total string content in write confirmations.
@@ -1410,7 +1412,7 @@ class ResponseSizeGuardMiddleware(Middleware):
     """
     Middleware that prevents oversized responses from overwhelming LLM clients.
 
-    When a tool response exceeds the configured token limit, this middleware
+    When a tool response exceeds the configured byte limit, this middleware
     intercepts it and returns a helpful error message with suggestions for
     reducing the response size.
 
@@ -1419,7 +1421,7 @@ class ResponseSizeGuardMiddleware(Middleware):
 
     Configuration via MCP_RESPONSE_SIZE_CONFIG in superset_config.py:
     - enabled: Toggle the guard on/off (default: True)
-    - token_limit: Maximum estimated tokens per response (default: 25,000)
+    - max_bytes: Maximum serialized response size in bytes (default: 50,000)
     - warn_threshold_pct: Log warnings above this % of limit (default: 80%)
     - max_list_items: Cap for list fields during dynamic truncation (default: 100)
     - excluded_tools: Tools to skip checking
@@ -1427,14 +1429,14 @@ class ResponseSizeGuardMiddleware(Middleware):
 
     def __init__(
         self,
-        token_limit: int = DEFAULT_TOKEN_LIMIT,
+        max_bytes: int = DEFAULT_MAX_RESPONSE_BYTES,
         warn_threshold_pct: int = DEFAULT_WARN_THRESHOLD_PCT,
         excluded_tools: list[str] | str | None = None,
         max_list_items: int = DEFAULT_MAX_LIST_ITEMS,
     ) -> None:
-        self.token_limit = token_limit
+        self.max_bytes = max_bytes
         self.warn_threshold_pct = warn_threshold_pct
-        self.warn_threshold = int(token_limit * warn_threshold_pct / 100)
+        self.warn_threshold = int(max_bytes * warn_threshold_pct / 100)
         if isinstance(excluded_tools, str):
             excluded_tools = [excluded_tools]
         self.excluded_tools = set(excluded_tools or [])
@@ -1497,7 +1499,7 @@ class ResponseSizeGuardMiddleware(Middleware):
         self,
         tool_name: str,
         response: Any,
-        estimated_tokens: int,
+        actual_bytes: int,
         protected_keys: frozenset[str] = frozenset(),
     ) -> Any | None:
         """Attempt to dynamically truncate an info tool response to fit the limit.
@@ -1539,7 +1541,7 @@ class ResponseSizeGuardMiddleware(Middleware):
         try:
             truncated, was_truncated, notes = truncate_oversized_response(
                 truncation_target,
-                self.token_limit,
+                self.max_bytes,
                 max_list_items=self.max_list_items,
                 protected_keys=protected_keys,
             )
@@ -1555,16 +1557,16 @@ class ResponseSizeGuardMiddleware(Middleware):
         if not was_truncated:
             return None
 
-        truncated_tokens = estimate_response_tokens(truncated)
-        if truncated_tokens > self.token_limit:
+        truncated_bytes = get_response_size_bytes(truncated)
+        if truncated_bytes > self.max_bytes:
             return None
 
         logger.warning(
-            "Response for %s truncated from ~%d to ~%d tokens (limit: %d). Fields: %s",
+            "Response for %s truncated from %d to %d bytes (limit: %d). Fields: %s",
             tool_name,
-            estimated_tokens,
-            truncated_tokens,
-            self.token_limit,
+            actual_bytes,
+            truncated_bytes,
+            self.max_bytes,
             "; ".join(notes),
         )
 
@@ -1579,9 +1581,9 @@ class ResponseSizeGuardMiddleware(Middleware):
                 referrer=None,
                 curated_payload={
                     "tool": tool_name,
-                    "original_tokens": estimated_tokens,
-                    "truncated_tokens": truncated_tokens,
-                    "token_limit": self.token_limit,
+                    "original_bytes": actual_bytes,
+                    "truncated_bytes": truncated_bytes,
+                    "max_bytes": self.max_bytes,
                     "truncation_notes": notes,
                 },
             )
@@ -1602,7 +1604,7 @@ class ResponseSizeGuardMiddleware(Middleware):
         self,
         tool_name: str,
         response: Any,
-        estimated_tokens: int,
+        actual_bytes: int,
     ) -> Any | None:
         """Attempt to truncate a data-query tool response by dropping tail rows.
 
@@ -1624,7 +1626,7 @@ class ResponseSizeGuardMiddleware(Middleware):
 
         try:
             truncated, was_truncated, notes = truncate_query_result(
-                truncation_target, self.token_limit, tool_name=tool_name
+                truncation_target, self.max_bytes, tool_name=tool_name
             )
         except Exception as trunc_error:  # noqa: BLE001
             logger.warning(
@@ -1642,16 +1644,16 @@ class ResponseSizeGuardMiddleware(Middleware):
         # response back under the limit (e.g. a single row/scalar field
         # alone exceeds it), fall back to the hard size-limit error instead
         # of shipping an over-budget response.
-        truncated_tokens = estimate_response_tokens(truncated)
-        if truncated_tokens > self.token_limit:
+        truncated_bytes = get_response_size_bytes(truncated)
+        if truncated_bytes > self.max_bytes:
             return None
 
         logger.warning(
-            "Query result for %s truncated from ~%d to ~%d tokens (limit: %d). %s",
+            "Query result for %s truncated from %d to %d bytes (limit: %d). %s",
             tool_name,
-            estimated_tokens,
-            truncated_tokens,
-            self.token_limit,
+            actual_bytes,
+            truncated_bytes,
+            self.max_bytes,
             "; ".join(notes),
         )
 
@@ -1666,9 +1668,9 @@ class ResponseSizeGuardMiddleware(Middleware):
                 referrer=None,
                 curated_payload={
                     "tool": tool_name,
-                    "original_tokens": estimated_tokens,
-                    "truncated_tokens": truncated_tokens,
-                    "token_limit": self.token_limit,
+                    "original_bytes": actual_bytes,
+                    "truncated_bytes": truncated_bytes,
+                    "max_bytes": self.max_bytes,
                     "truncation_notes": notes,
                 },
             )
@@ -1684,7 +1686,7 @@ class ResponseSizeGuardMiddleware(Middleware):
         self,
         tool_name: str,
         response: Any,
-        estimated_tokens: int,
+        actual_bytes: int,
         field: str,
     ) -> Any | None:
         """Attempt to truncate a response by bisecting one oversized string field.
@@ -1707,7 +1709,7 @@ class ResponseSizeGuardMiddleware(Middleware):
 
         try:
             truncated, was_truncated, notes = truncate_string_field_response(
-                truncation_target, self.token_limit, field
+                truncation_target, self.max_bytes, field
             )
         except Exception as trunc_error:  # noqa: BLE001
             logger.warning(
@@ -1721,16 +1723,16 @@ class ResponseSizeGuardMiddleware(Middleware):
         if not was_truncated:
             return None
 
-        truncated_tokens = estimate_response_tokens(truncated)
-        if truncated_tokens > self.token_limit:
+        truncated_bytes = get_response_size_bytes(truncated)
+        if truncated_bytes > self.max_bytes:
             return None
 
         logger.warning(
-            "Response for %s truncated from ~%d to ~%d tokens (limit: %d). %s",
+            "Response for %s truncated from %d to %d bytes (limit: %d). %s",
             tool_name,
-            estimated_tokens,
-            truncated_tokens,
-            self.token_limit,
+            actual_bytes,
+            truncated_bytes,
+            self.max_bytes,
             "; ".join(notes),
         )
 
@@ -1745,9 +1747,9 @@ class ResponseSizeGuardMiddleware(Middleware):
                 referrer=None,
                 curated_payload={
                     "tool": tool_name,
-                    "original_tokens": estimated_tokens,
-                    "truncated_tokens": truncated_tokens,
-                    "token_limit": self.token_limit,
+                    "original_bytes": actual_bytes,
+                    "truncated_bytes": truncated_bytes,
+                    "max_bytes": self.max_bytes,
                     "truncation_notes": notes,
                 },
             )
@@ -1763,7 +1765,7 @@ class ResponseSizeGuardMiddleware(Middleware):
         self,
         tool_name: str,
         response: Any,
-        estimated_tokens: int,
+        actual_bytes: int,
     ) -> Any:
         """Build a guaranteed-small success response for a committed write.
 
@@ -1794,11 +1796,11 @@ class ResponseSizeGuardMiddleware(Middleware):
         self._shrink_minimal_response(minimal, spec)
         logger.warning(
             "Response for %s could not fit under the size limit after full "
-            "truncation (~%d tokens, limit %d); returning a minimal write "
+            "truncation (%d bytes, limit %d); returning a minimal write "
             "confirmation instead of blocking a completed write.",
             tool_name,
-            estimated_tokens,
-            self.token_limit,
+            actual_bytes,
+            self.max_bytes,
         )
         try:
             user_id = get_user_id()
@@ -1811,8 +1813,8 @@ class ResponseSizeGuardMiddleware(Middleware):
                 referrer=None,
                 curated_payload={
                     "tool": tool_name,
-                    "original_tokens": estimated_tokens,
-                    "token_limit": self.token_limit,
+                    "original_bytes": actual_bytes,
+                    "max_bytes": self.max_bytes,
                     "truncation_notes": truncation_notes,
                 },
             )
@@ -1870,7 +1872,7 @@ class ResponseSizeGuardMiddleware(Middleware):
     def _shrink_minimal_response(
         self, minimal: dict[str, Any], spec: CommittedWriteSpec
     ) -> None:
-        """Force ``minimal`` under the token limit, degrading fields in place.
+        """Force ``minimal`` under the byte limit, degrading fields in place.
 
         Every value here is copied from the *untruncated* payload, so a
         "minimal" response is only actually small once each unbounded field
@@ -1900,13 +1902,17 @@ class ResponseSizeGuardMiddleware(Middleware):
         never dropped just because the estimator errored -- surfacing what
         was written is the whole point of this fallback.
 
-        With an extremely small ``token_limit`` even the fully clipped form
+        With an extremely small ``max_bytes`` even the fully clipped form
         can exceed it. Returning it anyway is deliberate: this path exists so
         a completed write is never reported as a failure, and there is
         nothing further to give up without losing that confirmation.
         """
-        if _fits(minimal, self.token_limit):
+        if _fits(minimal, self.max_bytes):
             return
+
+        # Clip proportionally under small budgets so the clipped fields do
+        # not by themselves exceed the limit they are being shrunk to fit.
+        max_chars = string_clip_chars(self.max_bytes, _MINIMAL_FIELD_CHARS)
 
         for field in sorted(spec.identifying_fields):
             if field not in minimal:
@@ -1914,7 +1920,7 @@ class ResponseSizeGuardMiddleware(Middleware):
             value = minimal[field]
             if isinstance(value, dict):
                 minimal[field] = {
-                    key: _clip_string(value[key])
+                    key: _clip_string(value[key], max_chars)
                     for key in _MINIMAL_IDENTITY_FIELDS
                     if key in value
                 }
@@ -1931,26 +1937,30 @@ class ResponseSizeGuardMiddleware(Middleware):
             if key in spec.identifying_fields or key.startswith("_"):
                 continue
             current = minimal[key]
-            clipped = _clip_error(current) if key == "error" else _clip_string(current)
+            clipped = (
+                _clip_error(current, max_chars)
+                if key == "error"
+                else _clip_string(current, max_chars)
+            )
             if clipped is not current:
                 minimal[key] = clipped
                 minimal["_truncation_notes"].append(
                     f"'{key}' was reduced to fit the size limit."
                 )
 
-        if not _fits(minimal, self.token_limit):
+        if not _fits(minimal, self.max_bytes):
             logger.warning(
-                "Minimal write confirmation still estimates over the token "
+                "Minimal write confirmation still estimates over the byte "
                 "limit (%d) after full reduction; returning it anyway rather "
                 "than reporting a completed write as a failure.",
-                self.token_limit,
+                self.max_bytes,
             )
 
     def _handle_oversized_response(
         self,
         tool_name: str,
         response: Any,
-        estimated_tokens: int,
+        actual_bytes: int,
         params: dict[str, Any],
     ) -> Any:
         """Attempt truncation for known tool categories; block everything else.
@@ -1978,7 +1988,7 @@ class ResponseSizeGuardMiddleware(Middleware):
             spec = COMMITTED_WRITE_SPECS.get(tool_name)
             protected_keys = spec.identifying_fields if spec else frozenset()
             truncated = self._try_truncate_info_response(
-                tool_name, response, estimated_tokens, protected_keys=protected_keys
+                tool_name, response, actual_bytes, protected_keys=protected_keys
             )
             if truncated is not None:
                 return truncated
@@ -1986,7 +1996,7 @@ class ResponseSizeGuardMiddleware(Middleware):
         # Data-query tools: row-level truncation.
         if tool_name in DATA_QUERY_TOOLS:
             truncated = self._try_truncate_data_query_response(
-                tool_name, response, estimated_tokens
+                tool_name, response, actual_bytes
             )
             if truncated is not None:
                 return truncated
@@ -1997,7 +2007,7 @@ class ResponseSizeGuardMiddleware(Middleware):
             truncated = self._try_truncate_string_field_response(
                 tool_name,
                 response,
-                estimated_tokens,
+                actual_bytes,
                 STRING_FIELD_TRUNCATION_TOOLS[tool_name],
             )
             if truncated is not None:
@@ -2007,15 +2017,15 @@ class ResponseSizeGuardMiddleware(Middleware):
             # The mutation already committed -- never report it as a failed
             # call, no matter how badly truncation underperformed.
             return self._minimal_committed_write_response(
-                tool_name, response, estimated_tokens
+                tool_name, response, actual_bytes
             )
 
         # Log the blocked response (user-caused: requested too much data)
         logger.warning(
-            "Response blocked for %s: ~%d tokens exceeds limit of %d",
+            "Response blocked for %s: %d bytes exceeds limit of %d",
             tool_name,
-            estimated_tokens,
-            self.token_limit,
+            actual_bytes,
+            self.max_bytes,
         )
 
         try:
@@ -2029,8 +2039,8 @@ class ResponseSizeGuardMiddleware(Middleware):
                 referrer=None,
                 curated_payload={
                     "tool": tool_name,
-                    "estimated_tokens": estimated_tokens,
-                    "token_limit": self.token_limit,
+                    "actual_bytes": actual_bytes,
+                    "max_bytes": self.max_bytes,
                     "params": _sanitize_params(params),
                 },
             )
@@ -2041,8 +2051,8 @@ class ResponseSizeGuardMiddleware(Middleware):
             format_size_limit_error(
                 tool_name=tool_name,
                 params=params,
-                estimated_tokens=estimated_tokens,
-                token_limit=self.token_limit,
+                actual_bytes=actual_bytes,
+                max_bytes=self.max_bytes,
                 response=None,
             )
         )
@@ -2062,41 +2072,31 @@ class ResponseSizeGuardMiddleware(Middleware):
         # Execute the tool
         response = await call_next(context)
 
-        # When the response is a ToolResult, estimate tokens on the actual
-        # payload inside content[0].text rather than on the ToolResult
-        # wrapper (which would double-serialize the JSON string).
+        # When the response is a ToolResult, measure the size of the actual
+        # payload inside content[0].text rather than the ToolResult wrapper
+        # (which would double-serialize the JSON string).
         extracted = self._extract_payload_from_tool_result(response)
         estimation_target = extracted if extracted is not None else response
 
-        try:
-            estimated_tokens = estimate_response_tokens(estimation_target)
-        except MemoryError as me:
-            logger.warning(
-                "MemoryError while estimating tokens for %s: %s", tool_name, me
-            )
-            # Treat as over limit to avoid further serialization
-            estimated_tokens = self.token_limit + 1
-        except Exception as e:  # noqa: BLE001
-            logger.warning(
-                "Failed to estimate response tokens for %s: %s", tool_name, e
-            )
-            # Conservative fallback: block rather than risk OOM
-            estimated_tokens = self.token_limit + 1
+        # Never raises: a response that cannot be serialized measures as
+        # UNMEASURABLE_RESPONSE_BYTES, which exceeds any limit and so takes
+        # the oversized path below rather than slipping through unmeasured.
+        actual_bytes = get_response_size_bytes(estimation_target)
 
         # Log warning if approaching limit
-        if estimated_tokens > self.warn_threshold:
+        if actual_bytes > self.warn_threshold:
             logger.warning(
-                "Response size warning for %s: ~%d tokens (%.0f%% of %d limit)",
+                "Response size warning for %s: %d bytes (%.0f%% of %d limit)",
                 tool_name,
-                estimated_tokens,
-                (estimated_tokens / self.token_limit * 100) if self.token_limit else 0,
-                self.token_limit,
+                actual_bytes,
+                (actual_bytes / self.max_bytes * 100) if self.max_bytes else 0,
+                self.max_bytes,
             )
 
-        if estimated_tokens > self.token_limit:
+        if actual_bytes > self.max_bytes:
             params = getattr(context.message, "arguments", {}) or {}
             return self._handle_oversized_response(
-                tool_name, response, estimated_tokens, params
+                tool_name, response, actual_bytes, params
             )
 
         return response
@@ -2113,7 +2113,7 @@ def _clip_string(value: Any, max_chars: int = _MINIMAL_FIELD_CHARS) -> Any:
     return value
 
 
-def _clip_error(value: Any) -> Any:
+def _clip_error(value: Any, max_chars: int = _MINIMAL_FIELD_CHARS) -> Any:
     """Bound an ``error`` field of either shape it can arrive in.
 
     Tool responses type ``error`` as a nested model (``ChartGenerationError``),
@@ -2128,24 +2128,22 @@ def _clip_error(value: Any) -> Any:
     """
     if isinstance(value, dict):
         reduced = {
-            key: _clip_string(value[key])
+            key: _clip_string(value[key], max_chars)
             for key in _MINIMAL_ERROR_FIELDS
             if key in value
         }
         return value if reduced == value else reduced
-    return _clip_string(value)
+    return _clip_string(value, max_chars)
 
 
-def _fits(payload: Any, token_limit: int) -> bool:
-    """Best-effort check that ``payload`` estimates under ``token_limit``.
+def _fits(payload: Any, max_bytes: int) -> bool:
+    """Check that ``payload`` measures under ``max_bytes``.
 
-    Treats an estimation failure as "does not fit" so callers degrade the
-    payload further rather than optimistically returning something oversized.
+    A measurement failure reads as "does not fit" (the helper reports it as
+    ``UNMEASURABLE_RESPONSE_BYTES``), so callers degrade the payload further
+    rather than optimistically returning something oversized.
     """
-    try:
-        return estimate_response_tokens(payload) <= token_limit
-    except Exception:  # noqa: BLE001
-        return False
+    return get_response_size_bytes(payload) <= max_bytes
 
 
 def _safe_int_config(config: dict[str, Any], key: str, default: int) -> int:
@@ -2199,7 +2197,7 @@ def create_response_size_guard_middleware() -> ResponseSizeGuardMiddleware | Non
         )
 
         middleware = ResponseSizeGuardMiddleware(
-            token_limit=_safe_int_config(config, "token_limit", DEFAULT_TOKEN_LIMIT),
+            max_bytes=_safe_int_config(config, "max_bytes", DEFAULT_MAX_RESPONSE_BYTES),
             warn_threshold_pct=_safe_int_config(
                 config, "warn_threshold_pct", DEFAULT_WARN_THRESHOLD_PCT
             ),
@@ -2208,8 +2206,8 @@ def create_response_size_guard_middleware() -> ResponseSizeGuardMiddleware | Non
         )
 
         logger.info(
-            "Created ResponseSizeGuardMiddleware with token_limit=%d",
-            middleware.token_limit,
+            "Created ResponseSizeGuardMiddleware with max_bytes=%d",
+            middleware.max_bytes,
         )
         return middleware
 
