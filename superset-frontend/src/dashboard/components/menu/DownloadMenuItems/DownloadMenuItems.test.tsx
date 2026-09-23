@@ -279,7 +279,9 @@ test('Export Data to Excel polls status and auto-downloads once ready', async ()
     expect(mockSupersetClient.get).toHaveBeenCalledWith({
       endpoint: '/api/v1/dashboard/export_xlsx/status/abc/',
     });
-    expect(lastDownloadHref()).toBe('/api/v1/dashboard/export_xlsx/download/abc/');
+    expect(lastDownloadHref()).toBe(
+      '/api/v1/dashboard/export_xlsx/download/abc/',
+    );
     expect(mockAddSuccessToast).toHaveBeenCalledWith(
       'Your export is ready and downloading.',
     );
@@ -312,12 +314,16 @@ test('the ready download goes through an anchor and never navigates the page', a
   // attribute (Chrome drops those without user activation), and the dashboard
   // (or an embedding parent) is never navigated away.
   await waitFor(() =>
-    expect(lastDownloadHref()).toBe('/api/v1/dashboard/export_xlsx/download/abc/'),
+    expect(lastDownloadHref()).toBe(
+      '/api/v1/dashboard/export_xlsx/download/abc/',
+    ),
   );
   expect(clickedDownloads[0].download).toBeNull();
   expect(window.location.href).toBe(hrefBefore);
   expect(document.body.querySelectorAll('iframe')).toHaveLength(0);
-  expect(fetchMock.callHistory.calls('glob:*/export_xlsx/download/abc/')).toHaveLength(1);
+  expect(
+    fetchMock.callHistory.calls('glob:*/export_xlsx/download/abc/'),
+  ).toHaveLength(1);
 });
 
 test('Export Data to Excel keeps polling while status is pending', async () => {
@@ -669,7 +675,9 @@ test('a "running" status restarts the wait window, so queue delay is not counted
     jest.advanceTimersByTime(3000);
   });
   await waitFor(() => {
-    expect(lastDownloadHref()).toBe('/api/v1/dashboard/export_xlsx/download/abc/');
+    expect(lastDownloadHref()).toBe(
+      '/api/v1/dashboard/export_xlsx/download/abc/',
+    );
     expect(mockAddSuccessToast).toHaveBeenCalledWith(
       'Your export is ready and downloading.',
     );
@@ -705,7 +713,9 @@ test('a transient poll failure keeps polling and still downloads', async () => {
     jest.advanceTimersByTime(3000);
   });
   await waitFor(() => {
-    expect(lastDownloadHref()).toBe('/api/v1/dashboard/export_xlsx/download/abc/');
+    expect(lastDownloadHref()).toBe(
+      '/api/v1/dashboard/export_xlsx/download/abc/',
+    );
     expect(mockAddSuccessToast).toHaveBeenCalledWith(
       'Your export is ready and downloading.',
     );
