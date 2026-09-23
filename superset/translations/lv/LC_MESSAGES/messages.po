@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-23 00:54+0300\n"
+"POT-Creation-Date: 2026-09-23 00:48+0300\n"
 "PO-Revision-Date: 2026-03-27 14:01+0200\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: lv\n"
@@ -143,6 +143,9 @@ msgstr " sīkāka informācija."
 #, python-format
 msgid " near '%(highlight)s'"
 msgstr " pie '%(highlight)s'"
+
+msgid " source code of Superset's sandboxed parser"
+msgstr ""
 
 msgid ""
 " standard to ensure that the lexicographical ordering\n"
@@ -585,6 +588,13 @@ msgstr "Izvēlēta cilne %s"
 #, python-format
 msgid "%s recipients"
 msgstr "%s saņēmēji"
+
+#, python-format
+msgid "%s record"
+msgid_plural "%s records..."
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
 
 #, fuzzy, python-format
 msgid "%s record..."
@@ -1274,6 +1284,12 @@ msgstr "AQE"
 msgid "AUG"
 msgstr "AUG"
 
+msgid "AXIS TITLE MARGIN"
+msgstr ""
+
+msgid "AXIS TITLE POSITION"
+msgstr ""
+
 #, fuzzy
 msgid "Aborted"
 msgstr "Sākts"
@@ -1424,6 +1440,9 @@ msgstr "Pievienot sertifikācijas informāciju šim informācijas panelim"
 
 msgid "Add color for positive/negative change"
 msgstr "Pievienot krāsu pozitīvām/negatīvām izmaiņām"
+
+msgid "Add colors to cell bars for +/-"
+msgstr ""
 
 #, fuzzy
 msgid "Add colors to cell bars for +/- for all columns"
@@ -1696,6 +1715,11 @@ msgstr ""
 "izveidotu klastera apzīmējumu."
 
 msgid ""
+"Aggregate function to apply when pivoting and computing the total rows "
+"and columns"
+msgstr ""
+
+msgid ""
 "Aggregates data within the boundary of grid cells and maps the aggregated"
 " values to a dynamic color scale"
 msgstr ""
@@ -1707,6 +1731,9 @@ msgstr "Apkopošana"
 
 msgid "Aggregation Method"
 msgstr "Apkopošanas metode"
+
+msgid "Aggregation function"
+msgstr ""
 
 msgid ""
 "Aggregation used for the summary row. By default each metric keeps its "
@@ -2670,6 +2697,9 @@ msgstr ""
 msgid "Arrow"
 msgstr "Bulta"
 
+msgid "Ascending"
+msgstr ""
+
 msgid "Assign a set of parameters as"
 msgstr "Piešķirt parametru kopu kā"
 
@@ -2751,6 +2781,9 @@ msgstr "Automātiski pielāgot šīs kolonnas izmēru"
 msgid "Autosize all columns"
 msgstr "Automātiski izmērot visas kolonnas"
 
+msgid "Available Handlebars Helpers in Superset:"
+msgstr ""
+
 msgid "Available sorting modes:"
 msgstr "Pieejamie kārtošanas režīmi:"
 
@@ -2824,6 +2857,9 @@ msgstr "Joslu diagramma"
 msgid "Bar Charts are used to show metrics as a series of bars."
 msgstr "Joslu diagrammas tiek izmantotas, lai attēlotu rādītājus kā joslu sēriju."
 
+msgid "Bar Values"
+msgstr ""
+
 msgid "Bar orientation"
 msgstr "Joslu orientācija"
 
@@ -2849,6 +2885,10 @@ msgstr "Pamatslāņa kartes stils. Pieņem Mapbox stila URL (mapbox://styles/...
 #, fuzzy, python-format
 msgid "Base layer map style. See MapLibre documentation: %s"
 msgstr "Pamata slāņa kartes stils. Skatīt Mapbox dokumentāciju: %s"
+
+#, python-format
+msgid "Base layer map style. See Mapbox documentation: %s"
+msgstr ""
 
 msgid "Base slope"
 msgstr "Bāzes slīpums"
@@ -3021,6 +3061,9 @@ msgstr ""
 
 msgid "Bubble Chart"
 msgstr "Burbuļu diagramma"
+
+msgid "Bubble Chart (legacy)"
+msgstr ""
 
 msgid "Bubble Color"
 msgstr "Burbuļa krāsa"
@@ -4341,6 +4384,12 @@ msgstr ""
 " joslu garumiem un krāsu."
 
 msgid ""
+"Compares metrics between different time periods. Displays time series "
+"data across multiple periods (like weeks or months) to show period-over-"
+"period trends and patterns."
+msgstr ""
+
+msgid ""
 "Compares the current time period against equivalent past periods by "
 "overlaying them on a shared time axis. The current period is drawn boldly"
 " while prior periods fade with age."
@@ -4682,6 +4731,18 @@ msgstr ""
 msgid "Count"
 msgstr "Skaits"
 
+msgid "Count Unique Values"
+msgstr ""
+
+msgid "Count as Fraction of Columns"
+msgstr ""
+
+msgid "Count as Fraction of Rows"
+msgstr ""
+
+msgid "Count as Fraction of Total"
+msgstr ""
+
 msgid "Country"
 msgstr "Valsts"
 
@@ -4740,6 +4801,12 @@ msgstr "Izveidot datu rāmja indeksu"
 
 msgid "Create dataset"
 msgstr "Izveidot datu kopu"
+
+msgid "Create matrix columns by placing charts side-by-side"
+msgstr ""
+
+msgid "Create matrix rows by stacking charts vertically"
+msgstr ""
 
 msgid "Create new chart"
 msgstr "Izveidot jaunu diagrammu"
@@ -5558,6 +5625,21 @@ msgstr ""
 "Noklusējuma vērtība, kas tiek iestatīta automātiski, kad ir atzīmēta "
 "opcija \"Atlasīt pirmo filtra vērtību pēc noklusējuma\""
 
+msgid ""
+"Define a function that receives the input and outputs the content for a "
+"tooltip"
+msgstr ""
+
+msgid "Define a function that returns a URL to navigate to when user clicks"
+msgstr ""
+
+msgid ""
+"Define a javascript function that receives the data array used in the "
+"visualization and is expected to return a modified version of that array."
+" This can be used to alter properties of the data, filter, or enrich the "
+"array."
+msgstr ""
+
 msgid "Define color breakpoints for the data"
 msgstr "Noteikt krāsu pārtraukuma punktus datiem"
 
@@ -5898,6 +5980,9 @@ msgid "Depends on"
 msgstr ""
 
 msgid "Deployment default"
+msgstr ""
+
+msgid "Descending"
 msgstr ""
 
 msgid "Description"
@@ -6418,6 +6503,9 @@ msgstr "Ilgums ms (100.40008 => 100ms 400µs 80ns)"
 msgid "Duration in ms (10500 => 0:00:10.5)"
 msgstr "Ilgums ms (10500 => 0:00:10.5)"
 
+msgid "Duration in ms (10500 => 0:10.5)"
+msgstr ""
+
 msgid "Duration in ms (66000 => 1m 6s)"
 msgstr "Ilgums ms (66000 => 1m 6s)"
 
@@ -6732,6 +6820,9 @@ msgstr "Iespējot prognozēšanu"
 msgid "Enable graph roaming"
 msgstr "Iespējot grafa pārvietošanu"
 
+msgid "Enable horizontal layout (columns)"
+msgstr ""
+
 msgid "Enable icons"
 msgstr "Iespējot ikonas"
 
@@ -6753,6 +6844,9 @@ msgstr "Iespējot rindu izvēršanu shēmās"
 
 msgid "Enable server side pagination of results (experimental feature)"
 msgstr "Iespējot servera puses rezultātu lapošanu (eksperimentāla funkcija)"
+
+msgid "Enable vertical layout (rows)"
+msgstr ""
 
 msgid "Enables rendering of icons for GeoJSON points"
 msgstr "Ļauj renderēt ikonas GeoJSON punktiem"
@@ -7283,6 +7377,9 @@ msgstr "Papildu vadīklas"
 msgid "Extra Parameters"
 msgstr "Papildu parametri"
 
+msgid "Extra data for JS"
+msgstr ""
+
 #, python-brace-format
 msgid ""
 "Extra data to specify table metadata, such as `{ \"warning_markdown\": "
@@ -7794,6 +7891,11 @@ msgstr ""
 msgid "For further instructions, consult the"
 msgstr "Papildu norādījumiem skatiet"
 
+msgid ""
+"For more information about objects are in context in the scope of this "
+"function, refer to the"
+msgstr ""
+
 #, fuzzy
 msgid ""
 "For regular filters, these are the subjects (users, roles, groups) this "
@@ -8077,6 +8179,9 @@ msgstr "Lielāks vai vienāds (>=)"
 msgid "Greater than (>)"
 msgstr "Lielāks par (>)"
 
+msgid "Green for increase, red for decrease"
+msgstr ""
+
 msgid "Grid"
 msgstr "Režģis"
 
@@ -8214,6 +8319,9 @@ msgstr "Horizontāli (augšā)"
 
 msgid "Horizontal alignment"
 msgstr "Horizontālais līdzinājums"
+
+msgid "Horizontal layout (columns)"
+msgstr ""
 
 msgid "Host"
 msgstr "Resursdators"
@@ -8767,6 +8875,9 @@ msgstr ""
 msgid "It’s not recommended to truncate Y axis in Bar chart."
 msgstr "Nav ieteicams saīsināt Y asi stabiņu diagrammā."
 
+msgid "It’s not recommended to truncate axis in Bar chart."
+msgstr ""
+
 msgid "JAN"
 msgstr "JAN"
 
@@ -8807,6 +8918,15 @@ msgstr "JŪN"
 
 msgid "January"
 msgstr "Janvāris"
+
+msgid "JavaScript data interceptor"
+msgstr ""
+
+msgid "JavaScript onClick href"
+msgstr ""
+
+msgid "JavaScript tooltip generator"
+msgstr ""
 
 msgid "Jinja templating"
 msgstr "Jinja veidņošana"
@@ -8912,6 +9032,15 @@ msgstr "Apzīmēšana"
 
 msgid "Labels"
 msgstr "Apzīmējumi"
+
+msgid "Labels for the marker lines"
+msgstr ""
+
+msgid "Labels for the markers"
+msgstr ""
+
+msgid "Labels for the ranges"
+msgstr ""
 
 msgid "Languages"
 msgstr "Valodas"
@@ -9158,6 +9287,9 @@ msgid ""
 "does not already have. Leave empty for legacy RBAC-only behavior."
 msgstr ""
 
+msgid "Limits the number of cells that get retrieved."
+msgstr ""
+
 msgid ""
 "Limits the number of cells that get retrieved. Not applied when non-"
 "additive metrics (e.g. ratios, COUNT_DISTINCT, AVG, percentiles) are "
@@ -9253,6 +9385,9 @@ msgstr "Grupu saraksts"
 msgid "List Roles"
 msgstr "Lomu saraksts"
 
+msgid "List Unique Values"
+msgstr ""
+
 msgid "List Users"
 msgstr "Lietotāju saraksts"
 
@@ -9261,11 +9396,20 @@ msgid ""
 "toggles it on the chart"
 msgstr ""
 
+msgid "List of extra columns made available in JavaScript functions"
+msgstr ""
+
 msgid "List of n+1 values for bucketing metric into n buckets."
 msgstr "N+1 vērtību saraksts rādītāja sadalīšanai n intervālos."
 
 msgid "List of the column names that should be read"
 msgstr "Kolonnu nosaukumu saraksts, kas jānolasa"
+
+msgid "List of values to mark with lines"
+msgstr ""
+
+msgid "List of values to mark with triangles"
+msgstr ""
 
 msgid "List updated"
 msgstr "Saraksts atjaunināts"
@@ -9628,6 +9772,9 @@ msgstr "Vērtību vidējais norādītajā periodā"
 msgid "Mean values"
 msgstr "Vidējās vērtības"
 
+msgid "Median"
+msgstr ""
+
 msgid ""
 "Median edge width, the thickest edge will be 4 times thicker than the "
 "thinnest."
@@ -9792,6 +9939,9 @@ msgstr "Metrikas"
 #, fuzzy, python-format
 msgid "Metrics (%s)"
 msgstr "Metrikas"
+
+msgid "Metrics / Dimensions"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
@@ -11261,6 +11411,9 @@ msgstr "Izvēlieties nosaukumu, kas palīdzēs identificēt šo datubāzi."
 msgid "Pick a nickname for how the database will display in Superset."
 msgstr "Izvēlieties segvārdu datubāzes attēlošanai Superset."
 
+msgid "Pick a set of deck.gl charts to layer on top of one another"
+msgstr ""
+
 msgid "Pick a title for you annotation."
 msgstr "Izvēlieties virsrakstu savai anotācijai."
 
@@ -11822,6 +11975,9 @@ msgstr "Diapazona tips"
 msgid "Ranges"
 msgstr "Diapazoni"
 
+msgid "Ranges to highlight with shading"
+msgstr ""
+
 msgid "Ranking"
 msgstr "Ranžēšana"
 
@@ -11874,8 +12030,21 @@ msgstr "Taisnstūris"
 msgid "Recurring (every)"
 msgstr "Atkārtots (katru)"
 
+msgid "Red for increase, green for decrease"
+msgstr ""
+
 msgid "Redo the action"
 msgstr "Atkārtot darbību"
+
+msgid "Reduce X ticks"
+msgstr ""
+
+msgid ""
+"Reduces the number of X-axis ticks to be rendered. If true, the x-axis "
+"will not overflow and labels may be missing. If false, a minimum width "
+"will be applied to columns and the width may overflow into an horizontal "
+"scroll."
+msgstr ""
 
 msgid "Refer to the"
 msgstr "Skatiet"
@@ -12397,6 +12566,9 @@ msgstr "Paplašinātais padoms"
 msgid "Right"
 msgstr "Pa labi"
 
+msgid "Right Axis Format"
+msgstr ""
+
 msgid "Right Axis Metric"
 msgstr "Labās ass metrika"
 
@@ -12917,6 +13089,10 @@ msgstr "Ritiniet uz leju, lai iespējotu izmaiņu pārrakstīšanu. "
 
 msgid "Search"
 msgstr "Meklēt"
+
+#, python-format
+msgid "Search %s records"
+msgstr ""
 
 msgid "Search / Filter"
 msgstr "Meklēt / Filtrēt"
@@ -13846,6 +14022,9 @@ msgstr "Rādīt metriku nosaukumus"
 msgid "Show Null Values"
 msgstr ""
 
+msgid "Show Range Filter"
+msgstr ""
+
 #, fuzzy
 msgid "Show SQL"
 msgstr "Rādīt žurnālu"
@@ -13926,6 +14105,9 @@ msgstr "Rādīt kolonnu starpsummu"
 
 msgid "Show columns total"
 msgstr "Rādīt kolonnu kopsummu"
+
+msgid "Show data points as circle markers on the lines"
+msgstr ""
 
 msgid "Show empty columns"
 msgstr "Rādīt tukšas kolonnas"
@@ -14021,6 +14203,9 @@ msgid "Show summary"
 msgstr "Rādīt kopsavilkumu"
 
 msgid "Show the main ticks on axes."
+msgstr ""
+
+msgid "Show the value on top of the bar"
 msgstr ""
 
 msgid "Show total"
@@ -14373,6 +14558,9 @@ msgstr "Kārtot leģendu"
 msgid "Sort metric"
 msgstr "Kārtošanas metrika"
 
+msgid "Sort order"
+msgstr ""
+
 msgid "Sort query by"
 msgstr "Kārtot vaicājumu pēc"
 
@@ -14465,6 +14653,9 @@ msgstr "Sakraut sērijas vienu virs otras"
 
 msgid "Stacked"
 msgstr "Sakrauts"
+
+msgid "Stacked Bars"
+msgstr ""
 
 msgid "Stacked Style"
 msgstr "Sakraušanas stils"
@@ -14684,6 +14875,15 @@ msgstr ""
 
 msgid "Sum"
 msgstr "Summa"
+
+msgid "Sum as Fraction of Columns"
+msgstr ""
+
+msgid "Sum as Fraction of Rows"
+msgstr ""
+
+msgid "Sum as Fraction of Total"
+msgstr ""
 
 msgid "Sum of values over specified period"
 msgstr "Vērtību summa norādītajā periodā"
@@ -15776,6 +15976,13 @@ msgid ""
 "                expressions."
 msgstr ""
 
+msgid ""
+"The periodicity over which to pivot time. Users can provide\n"
+"            \"Pandas\" offset alias.\n"
+"            Click on the info bubble for more details on accepted "
+"\"freq\" expressions."
+msgstr ""
+
 msgid "The pixel radius"
 msgstr "Pikseļu rādiuss"
 
@@ -16764,6 +16971,9 @@ msgstr "Šajā mapē var izmantot tikai kolonnas"
 msgid "This folder only supports metrics"
 msgstr "Šī mape pieņem tikai metrikas"
 
+msgid "This functionality is disabled in your environment for security reasons."
+msgstr ""
+
 msgid ""
 "This is a default columns folder. Its name cannot be changed or removed. "
 "It can stay empty but will only accept column items."
@@ -17178,6 +17388,9 @@ msgstr ""
 "Laika virkne ir neskaidra. Lūdzu, norādiet [%(human_readable)s ago] vai "
 "[%(human_readable)s later]."
 
+msgid "Time-series Percent Change"
+msgstr ""
+
 msgid "Time-series Period Pivot"
 msgstr "Laika rindu periodu šķērsgriezums"
 
@@ -17319,6 +17532,10 @@ msgstr "Kopā"
 #, python-format
 msgid "Total (%(aggfunc)s)"
 msgstr "Kopā (%(aggfunc)s)"
+
+#, python-format
+msgid "Total (%(aggregatorName)s)"
+msgstr ""
 
 msgid ""
 "Total angle covered by the chart, in degrees. 360° draws a full circle "
@@ -17940,6 +18157,9 @@ msgstr ""
 msgid "Use a log scale"
 msgstr "Izmantot logaritmisko skalu"
 
+msgid "Use a log scale for the X-axis"
+msgstr ""
+
 msgid "Use a log scale for the Y-axis"
 msgstr "Izmantot logaritmisko skalu Y asij"
 
@@ -18205,6 +18425,9 @@ msgstr "Vertikāli"
 msgid "Vertical (Left)"
 msgstr "Vertikāls (pa kreisi)"
 
+msgid "Vertical layout (rows)"
+msgstr ""
+
 msgid "View"
 msgstr "Skatīt"
 
@@ -18371,6 +18594,12 @@ msgstr ""
 "Vizualizē, kā viena metrika mainās valsts galvenajos iedalījumos (štatos,"
 " provincēs u.c.) horopletkartē. Katra iedalījuma vērtība tiek izcelta, "
 "novietojot peli virs atbilstošās ģeogrāfiskās robežas."
+
+msgid ""
+"Visualizes many different time-series objects in a single chart. This "
+"chart is being deprecated and we recommend using the Time-series Chart "
+"instead."
+msgstr ""
 
 msgid ""
 "Visualizes the words in a column that appear the most often. Bigger font "
@@ -18750,6 +18979,12 @@ msgstr "Vai parādīt metrikas nosaukumu"
 msgid "Whether to display the metric name as a title"
 msgstr "Vai rādīt metrikas nosaukumu kā virsrakstu"
 
+msgid "Whether to display the min and max values of the X-axis"
+msgstr ""
+
+msgid "Whether to display the min and max values of the Y-axis"
+msgstr ""
+
 #, fuzzy
 msgid "Whether to display the numbered column"
 msgstr "Vai rādīt tendences līniju"
@@ -18762,6 +18997,9 @@ msgstr "Vai rādīt procentuālo vērtību padomā"
 
 msgid "Whether to display the stroke"
 msgstr "Vai rādīt kontūru"
+
+msgid "Whether to display the time range interactive selector"
+msgstr ""
 
 msgid "Whether to display the timestamp"
 msgstr "Vai rādīt laika zīmogu"
@@ -18836,6 +19074,9 @@ msgstr "Vai kārtot dilstošā vai augošā secībā"
 msgid "Whether to sort results by the selected metric in descending order."
 msgstr "Vai kārtot rezultātus pēc atlasītās metrikas dilstošā secībā."
 
+msgid "Whether to sort tooltip by the selected metric in descending order."
+msgstr ""
+
 msgid ""
 "Whether to sort tooltip by the selected metric in descending order. On "
 "stacked charts, values are shown in ascending order."
@@ -18900,6 +19141,9 @@ msgstr "Uzrakstiet aprakstu savam vaicājumam"
 msgid "Write a handlebars template to render the data"
 msgstr "Rakstiet Handlebars veidni datu attēlošanai"
 
+msgid "X AXIS TITLE MARGIN"
+msgstr ""
+
 msgid "X Axis"
 msgstr "X ass"
 
@@ -18927,11 +19171,17 @@ msgstr "X ass virsraksta atkāpe"
 msgid "X Axis title margin"
 msgstr ""
 
+msgid "X Log Scale"
+msgstr ""
+
 msgid "X Tick Layout"
 msgstr "X atzīmju izkārtojums"
 
 msgid "X axis title margin"
 msgstr "X ass virsraksta atkāpe"
+
+msgid "X bounds"
+msgstr ""
 
 msgid "X-Axis Sort Ascending"
 msgstr "X ass kārtot augošā secībā"
@@ -18949,8 +19199,17 @@ msgstr "X skalas intervāls"
 msgid "XYZ"
 msgstr "XYZ"
 
+msgid "Y 2 bounds"
+msgstr ""
+
+msgid "Y AXIS TITLE MARGIN"
+msgstr ""
+
 msgid "Y Axis"
 msgstr "Y ass"
+
+msgid "Y Axis 2 Bounds"
+msgstr ""
 
 msgid "Y Axis Bounds"
 msgstr "Y ass robežas"
@@ -18978,6 +19237,9 @@ msgstr "Y logaritmiskā skala"
 
 msgid "Y axis title margin"
 msgstr "Y ass virsraksta atkāpe"
+
+msgid "Y bounds"
+msgstr ""
 
 msgid "Y-Axis"
 msgstr "Y ass"
@@ -19155,6 +19417,9 @@ msgid ""
 msgstr ""
 "Nevar dzēst pēdējo laika filtru, jo tas tiek izmantots laika diapazona "
 "filtriem paneļos."
+
+msgid "You cannot use 45° tick layout along with the time range filter"
+msgstr ""
 
 #, python-format
 msgid "You do not have access to the data behind this chart (tables: %s)."
@@ -19361,6 +19626,9 @@ msgstr ""
 
 msgid "You need to"
 msgstr "Jums ir nepieciešams"
+
+msgid "You need to configure HTML sanitization to use CSS"
+msgstr ""
 
 msgid ""
 "You updated the values in the control panel, but the chart was not "
@@ -19629,6 +19897,9 @@ msgstr "Fona krāsa"
 msgid "banana"
 msgstr "banāns"
 
+msgid "basis"
+msgstr ""
+
 msgid "begins with"
 msgstr "sākas ar"
 
@@ -19667,6 +19938,9 @@ msgstr "izmantojot"
 
 msgid "cannot be empty"
 msgstr "nevar būt tukšs"
+
+msgid "cardinal"
+msgstr ""
 
 #, fuzzy
 msgid "cell bar"
@@ -19828,6 +20102,9 @@ msgstr "deck.gl izkliedes diagramma"
 msgid "deck.gl Screen Grid"
 msgstr "deck.gl ekrāna režģis"
 
+msgid "deck.gl charts"
+msgstr ""
+
 msgid "deck.gl layers (charts)"
 msgstr "deck.gl slāņi (diagrammas)"
 
@@ -19919,6 +20196,9 @@ msgstr "Visa rinda"
 
 msgid "entries"
 msgstr "ieraksti"
+
+msgid "entries per page"
+msgstr ""
 
 #. do-not-translate
 msgid "error_message"
@@ -20101,6 +20381,9 @@ msgstr "pa kreisi"
 msgid "less than {min} {name}"
 msgstr "mazāk par {min} {name}"
 
+msgid "linear"
+msgstr ""
+
 #, fuzzy
 msgid "locale_key"
 msgstr "Vietējs"
@@ -20144,6 +20427,9 @@ msgstr "minūte"
 
 msgid "minute(s)"
 msgstr "minūte(-es)"
+
+msgid "monotone"
+msgstr ""
 
 msgid "month"
 msgstr "mēnesis"
@@ -20217,6 +20503,9 @@ msgstr "SKAITLISKS"
 
 msgid "numeric type icon"
 msgstr "skaitliskā veida ikona"
+
+msgid "nvd3"
+msgstr ""
 
 msgid "of"
 msgstr "no"
@@ -20399,6 +20688,14 @@ msgstr "pārmaiņus"
 
 msgid "std"
 msgstr "standartnovirze"
+
+#. do-not-translate
+msgid "step-after"
+msgstr ""
+
+#. do-not-translate
+msgid "step-before"
+msgstr ""
 
 msgid "stopped"
 msgstr "apturēts"

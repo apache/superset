@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-23 00:54+0300\n"
+"POT-Creation-Date: 2026-09-23 00:48+0300\n"
 "PO-Revision-Date: 2026-01-25 16:09+1300\n"
 "Last-Translator: karo.co.nz\n"
 "Language: mi\n"
@@ -144,6 +144,9 @@ msgstr "Taipitopito"
 #, python-format
 msgid " near '%(highlight)s'"
 msgstr " tata ki '%(highlight)s'"
+
+msgid " source code of Superset's sandboxed parser"
+msgstr ""
 
 msgid ""
 " standard to ensure that the lexicographical ordering\n"
@@ -561,6 +564,12 @@ msgstr "%s Kua Tīpakohia"
 #, python-format
 msgid "%s recipients"
 msgstr "%s kaiwhakawhiti"
+
+#, python-format
+msgid "%s record"
+msgid_plural "%s records..."
+msgstr[0] ""
+msgstr[1] ""
 
 #, fuzzy, python-format
 msgid "%s record..."
@@ -1258,6 +1267,12 @@ msgstr "AQE"
 msgid "AUG"
 msgstr "HER"
 
+msgid "AXIS TITLE MARGIN"
+msgstr ""
+
+msgid "AXIS TITLE POSITION"
+msgstr ""
+
 #, fuzzy
 msgid "Aborted"
 msgstr "Kua Tīmata"
@@ -1418,6 +1433,9 @@ msgstr "Taipitopito tautūtanga"
 
 msgid "Add color for positive/negative change"
 msgstr "Tāpiri tae mō te panoni pai/kino"
+
+msgid "Add colors to cell bars for +/-"
+msgstr ""
 
 #, fuzzy
 msgid "Add colors to cell bars for +/- for all columns"
@@ -1704,6 +1722,11 @@ msgstr ""
 "whakaputa i te tapanga rāpaki."
 
 msgid ""
+"Aggregate function to apply when pivoting and computing the total rows "
+"and columns"
+msgstr ""
+
+msgid ""
 "Aggregates data within the boundary of grid cells and maps the aggregated"
 " values to a dynamic color scale"
 msgstr ""
@@ -1715,6 +1738,9 @@ msgstr "Whakaarotautanga"
 
 msgid "Aggregation Method"
 msgstr "Tikanga Whakaarotau"
+
+msgid "Aggregation function"
+msgstr ""
 
 msgid ""
 "Aggregation used for the summary row. By default each metric keeps its "
@@ -2727,6 +2753,9 @@ msgstr ""
 msgid "Arrow"
 msgstr "Pere"
 
+msgid "Ascending"
+msgstr ""
+
 msgid "Assign a set of parameters as"
 msgstr "Tūtohua tētahi huinga tawhā hei"
 
@@ -2819,6 +2848,9 @@ msgstr "Tauine Aunoa Tīwae"
 msgid "Autosize all columns"
 msgstr "Tauine aunoa i ngā tīwae katoa"
 
+msgid "Available Handlebars Helpers in Superset:"
+msgstr ""
+
 msgid "Available sorting modes:"
 msgstr "Āhuatanga kōmaka wātea:"
 
@@ -2892,6 +2924,9 @@ msgstr "Kauwhata Pae"
 msgid "Bar Charts are used to show metrics as a series of bars."
 msgstr "Ka whakamahia ngā Kauwhata Pae ki te whakaatu i ngā ine hei raupapa pae."
 
+msgid "Bar Values"
+msgstr ""
+
 msgid "Bar orientation"
 msgstr "Ahunga pae"
 
@@ -2919,6 +2954,10 @@ msgstr ""
 #, fuzzy, python-format
 msgid "Base layer map style. See MapLibre documentation: %s"
 msgstr "Kāhua papa pūtake. Tirohia te tuhinga a Mapbox: %s"
+
+#, python-format
+msgid "Base layer map style. See Mapbox documentation: %s"
+msgstr ""
 
 msgid "Base slope"
 msgstr "Taha pūtake"
@@ -3092,6 +3131,9 @@ msgstr "Ka wāwāhi i te raupapa mā te kāwai kua tohua i tēnei whakahaere."
 
 msgid "Bubble Chart"
 msgstr "Kauwhata Pōro"
+
+msgid "Bubble Chart (legacy)"
+msgstr ""
 
 msgid "Bubble Color"
 msgstr "Tae Pōro"
@@ -4494,6 +4536,12 @@ msgstr ""
 "huringa i te wā mā ngā roa pae me te tae."
 
 msgid ""
+"Compares metrics between different time periods. Displays time series "
+"data across multiple periods (like weeks or months) to show period-over-"
+"period trends and patterns."
+msgstr ""
+
+msgid ""
 "Compares the current time period against equivalent past periods by "
 "overlaying them on a shared time axis. The current period is drawn boldly"
 " while prior periods fade with age."
@@ -4850,6 +4898,18 @@ msgstr ""
 msgid "Count"
 msgstr "Tatau"
 
+msgid "Count Unique Values"
+msgstr ""
+
+msgid "Count as Fraction of Columns"
+msgstr ""
+
+msgid "Count as Fraction of Rows"
+msgstr ""
+
+msgid "Count as Fraction of Total"
+msgstr ""
+
 msgid "Country"
 msgstr "Whenua"
 
@@ -4910,6 +4970,12 @@ msgstr "Hanga kuputohu dataframe"
 
 msgid "Create dataset"
 msgstr "Hanga rārangi raraunga"
+
+msgid "Create matrix columns by placing charts side-by-side"
+msgstr ""
+
+msgid "Create matrix rows by stacking charts vertically"
+msgstr ""
 
 msgid "Create new chart"
 msgstr "Hanga kauwhata hou"
@@ -5766,6 +5832,21 @@ msgstr ""
 "Ka tautuhi aunoa te uara taunoa ina pātia \"Tīpakohia te uara tātari "
 "tuatahi mā te taunoa\""
 
+msgid ""
+"Define a function that receives the input and outputs the content for a "
+"tooltip"
+msgstr ""
+
+msgid "Define a function that returns a URL to navigate to when user clicks"
+msgstr ""
+
+msgid ""
+"Define a javascript function that receives the data array used in the "
+"visualization and is expected to return a modified version of that array."
+" This can be used to alter properties of the data, filter, or enrich the "
+"array."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, fr,
 # ja, lv, pt_BR, ro, ru, sk, sr, sr_Latn, tr, uk]
 #, fuzzy
@@ -6107,6 +6188,9 @@ msgid "Depends on"
 msgstr ""
 
 msgid "Deployment default"
+msgstr ""
+
+msgid "Descending"
 msgstr ""
 
 msgid "Description"
@@ -6662,6 +6746,9 @@ msgstr "Roa i ngā ms (100.40008 => 100ms 400µs 80ns)"
 msgid "Duration in ms (10500 => 0:00:10.5)"
 msgstr "Roa i ngā ms (10500 => 0:00:10.5)"
 
+msgid "Duration in ms (10500 => 0:10.5)"
+msgstr ""
+
 msgid "Duration in ms (66000 => 1m 6s)"
 msgstr "Roa i ngā ms (66000 => 1m 6s)"
 
@@ -6994,6 +7081,9 @@ msgstr "Whakahohe matapae"
 msgid "Enable graph roaming"
 msgstr "Whakahohe kauwhata takahuri"
 
+msgid "Enable horizontal layout (columns)"
+msgstr ""
+
 #, fuzzy
 msgid "Enable icons"
 msgstr "Tīwae ripanga"
@@ -7019,6 +7109,9 @@ msgstr "Whakahohe whakawhānuitanga rārangi i ngā hanga"
 
 msgid "Enable server side pagination of results (experimental feature)"
 msgstr "Whakahohe whārangitanga taha-tūmau o ngā hua (āhuatanga whakamātau)"
+
+msgid "Enable vertical layout (rows)"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
 # lv, pt_BR, ru, sk, sr, sr_Latn, tr, uk]
@@ -7589,6 +7682,9 @@ msgstr "Whakahaere Taapiri"
 msgid "Extra Parameters"
 msgstr "Tawhā Taapiri"
 
+msgid "Extra data for JS"
+msgstr ""
+
 #, python-brace-format
 msgid ""
 "Extra data to specify table metadata, such as `{ \"warning_markdown\": "
@@ -8144,6 +8240,11 @@ msgstr ""
 msgid "For further instructions, consult the"
 msgstr "Mō ētahi tohutohu atu, tirohia te"
 
+msgid ""
+"For more information about objects are in context in the scope of this "
+"function, refer to the"
+msgstr ""
+
 #, fuzzy
 msgid ""
 "For regular filters, these are the subjects (users, roles, groups) this "
@@ -8452,6 +8553,9 @@ msgstr "Nui ake, ōrite rānei (>=)"
 msgid "Greater than (>)"
 msgstr "Nui ake (>)"
 
+msgid "Green for increase, red for decrease"
+msgstr ""
+
 msgid "Grid"
 msgstr "Tukutata"
 
@@ -8604,6 +8708,9 @@ msgstr "Whakapae (Runga)"
 
 msgid "Horizontal alignment"
 msgstr "Whakarite whakapae"
+
+msgid "Horizontal layout (columns)"
+msgstr ""
 
 msgid "Host"
 msgstr "Tūmau"
@@ -9204,6 +9311,9 @@ msgstr ""
 msgid "It’s not recommended to truncate Y axis in Bar chart."
 msgstr "Karekau e tūtohua te porohita i te tukutuku i te kauwhata Pae."
 
+msgid "It’s not recommended to truncate axis in Bar chart."
+msgstr ""
+
 msgid "JAN"
 msgstr "HAU"
 
@@ -9248,6 +9358,15 @@ msgstr "HUI"
 
 msgid "January"
 msgstr "Hānuere"
+
+msgid "JavaScript data interceptor"
+msgstr ""
+
+msgid "JavaScript onClick href"
+msgstr ""
+
+msgid "JavaScript tooltip generator"
+msgstr ""
 
 msgid "Jinja templating"
 msgstr "Tauira Jinja"
@@ -9359,6 +9478,15 @@ msgstr "Tapanga"
 
 msgid "Labels"
 msgstr "Tapanga"
+
+msgid "Labels for the marker lines"
+msgstr ""
+
+msgid "Labels for the markers"
+msgstr ""
+
+msgid "Labels for the ranges"
+msgstr ""
 
 #, fuzzy
 msgid "Languages"
@@ -9611,6 +9739,9 @@ msgid ""
 "does not already have. Leave empty for legacy RBAC-only behavior."
 msgstr ""
 
+msgid "Limits the number of cells that get retrieved."
+msgstr ""
+
 msgid ""
 "Limits the number of cells that get retrieved. Not applied when non-"
 "additive metrics (e.g. ratios, COUNT_DISTINCT, AVG, percentiles) are "
@@ -9710,6 +9841,9 @@ msgstr "Rārangi Tūranga"
 msgid "List Roles"
 msgstr "Rārangi Tūranga"
 
+msgid "List Unique Values"
+msgstr ""
+
 msgid "List Users"
 msgstr "Rārangi Kaiwhakamahi"
 
@@ -9718,11 +9852,20 @@ msgid ""
 "toggles it on the chart"
 msgstr ""
 
+msgid "List of extra columns made available in JavaScript functions"
+msgstr ""
+
 msgid "List of n+1 values for bucketing metric into n buckets."
 msgstr "Rārangi uara n+1 mō te peeke ine ki ngā peeke n."
 
 msgid "List of the column names that should be read"
 msgstr "Rārangi o ngā ingoa tīwae me pānui"
+
+msgid "List of values to mark with lines"
+msgstr ""
+
+msgid "List of values to mark with triangles"
+msgstr ""
 
 msgid "List updated"
 msgstr "Rārangi kua whakahouhia"
@@ -10102,6 +10245,9 @@ msgstr "Toharite o ngā uara i te wā kua tohua"
 msgid "Mean values"
 msgstr "Uara toharite"
 
+msgid "Median"
+msgstr ""
+
 msgid ""
 "Median edge width, the thickest edge will be 4 times thicker than the "
 "thinnest."
@@ -10272,6 +10418,9 @@ msgstr "Ine"
 #, fuzzy, python-format
 msgid "Metrics (%s)"
 msgstr "Ine"
+
+msgid "Metrics / Dimensions"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
@@ -11785,6 +11934,9 @@ msgstr "Tīpakohia he taitara mō tō tohu."
 msgid "Pick a nickname for how the database will display in Superset."
 msgstr "Tīpakohia kotahi ine, nui ake rānei"
 
+msgid "Pick a set of deck.gl charts to layer on top of one another"
+msgstr ""
+
 msgid "Pick a title for you annotation."
 msgstr "Tīpakohia tō reo tohu makau"
 
@@ -12378,6 +12530,9 @@ msgstr "MOMO AWHE"
 msgid "Ranges"
 msgstr "Korahi"
 
+msgid "Ranges to highlight with shading"
+msgstr ""
+
 msgid "Ranking"
 msgstr "Kōmaka"
 
@@ -12430,8 +12585,21 @@ msgstr "Tapawhā Rite"
 msgid "Recurring (every)"
 msgstr "Auau tonu (ia)"
 
+msgid "Red for increase, green for decrease"
+msgstr ""
+
 msgid "Redo the action"
 msgstr "Mahia anō te mahi"
+
+msgid "Reduce X ticks"
+msgstr ""
+
+msgid ""
+"Reduces the number of X-axis ticks to be rendered. If true, the x-axis "
+"will not overflow and labels may be missing. If false, a minimum width "
+"will be applied to columns and the width may overflow into an horizontal "
+"scroll."
+msgstr ""
 
 msgid "Refer to the"
 msgstr "Tirohia te"
@@ -12983,6 +13151,9 @@ msgstr "Kītukutuku whai rawa"
 msgid "Right"
 msgstr "Matau"
 
+msgid "Right Axis Format"
+msgstr ""
+
 msgid "Right Axis Metric"
 msgstr "Ine Tukutuku Matau"
 
@@ -13526,6 +13697,10 @@ msgstr ""
 
 msgid "Search"
 msgstr "Rapu"
+
+#, python-format
+msgid "Search %s records"
+msgstr ""
 
 msgid "Search / Filter"
 msgstr "Rapu / Tātari"
@@ -14531,6 +14706,9 @@ msgstr "Whakaatu Ingoa Ine"
 msgid "Show Null Values"
 msgstr ""
 
+msgid "Show Range Filter"
+msgstr ""
+
 #, fuzzy
 msgid "Show SQL"
 msgstr "Whakaatu Rārangi"
@@ -14615,6 +14793,9 @@ msgstr "Whakaatu tapeke tīwae"
 
 msgid "Show columns total"
 msgstr "Whakaatu tapeke tīwae katoa"
+
+msgid "Show data points as circle markers on the lines"
+msgstr ""
 
 msgid "Show empty columns"
 msgstr "Whakaatu tīwae kau"
@@ -14713,6 +14894,9 @@ msgid "Show summary"
 msgstr "Whakaatu whakarāpopototanga"
 
 msgid "Show the main ticks on axes."
+msgstr ""
+
+msgid "Show the value on top of the bar"
 msgstr ""
 
 msgid "Show total"
@@ -15085,6 +15269,9 @@ msgstr "Whakaatu kōrero"
 msgid "Sort metric"
 msgstr "Kōmaka ine"
 
+msgid "Sort order"
+msgstr ""
+
 msgid "Sort query by"
 msgstr "Kōmaka pātai mā"
 
@@ -15185,6 +15372,9 @@ msgstr "Paparanga raupapa runga ake i tētahi"
 
 msgid "Stacked"
 msgstr "Paparanga"
+
+msgid "Stacked Bars"
+msgstr ""
 
 msgid "Stacked Style"
 msgstr "Kāhua Paparanga"
@@ -15412,6 +15602,15 @@ msgstr ""
 
 msgid "Sum"
 msgstr "Tapeke"
+
+msgid "Sum as Fraction of Columns"
+msgstr ""
+
+msgid "Sum as Fraction of Rows"
+msgstr ""
+
+msgid "Sum as Fraction of Total"
+msgstr ""
 
 msgid "Sum of values over specified period"
 msgstr "Tapeke o ngā uara i te wā kua tohua"
@@ -16559,6 +16758,13 @@ msgid ""
 "                expressions."
 msgstr ""
 
+msgid ""
+"The periodicity over which to pivot time. Users can provide\n"
+"            \"Pandas\" offset alias.\n"
+"            Click on the info bubble for more details on accepted "
+"\"freq\" expressions."
+msgstr ""
+
 msgid "The pixel radius"
 msgstr "Te pūtoro pika"
 
@@ -17610,6 +17816,9 @@ msgstr "Ko ngā tīwae anake e tautokona ana e tēnei kōpaki"
 msgid "This folder only supports metrics"
 msgstr "Ko ngā inenga anake e tautokona ana e tēnei kōpaki"
 
+msgid "This functionality is disabled in your environment for security reasons."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
 # lv, ru, sk, sr, sr_Latn, tr, uk]
 #, fuzzy
@@ -18057,6 +18266,9 @@ msgstr ""
 "He rangirua te aho wā. Tēnā tohua [%(human_readable)s i mua] "
 "[%(human_readable)s ā muri ake nei] rānei."
 
+msgid "Time-series Percent Change"
+msgstr ""
+
 msgid "Time-series Period Pivot"
 msgstr "Hurihuri Wā Raupapa-wā"
 
@@ -18210,6 +18422,10 @@ msgstr "Tapeke"
 #, python-format
 msgid "Total (%(aggfunc)s)"
 msgstr "Tapeke (%(aggfunc)s)"
+
+#, python-format
+msgid "Total (%(aggregatorName)s)"
+msgstr ""
 
 msgid ""
 "Total angle covered by the chart, in degrees. 360° draws a full circle "
@@ -18860,6 +19076,9 @@ msgstr ""
 msgid "Use a log scale"
 msgstr "Whakamahia tauine pūkete"
 
+msgid "Use a log scale for the X-axis"
+msgstr ""
+
 msgid "Use a log scale for the Y-axis"
 msgstr "Whakamahia tauine pūkete mō te tukutuku-Y"
 
@@ -19158,6 +19377,9 @@ msgstr "Poutū"
 msgid "Vertical (Left)"
 msgstr "Poutū (Mauī)"
 
+msgid "Vertical layout (rows)"
+msgstr ""
+
 msgid "View"
 msgstr "Tirohanga"
 
@@ -19330,6 +19552,12 @@ msgstr ""
 "o tētahi whenua (tāone, kawanatanga, me ērā atu) i runga i tētahi mahere "
 "choropleth. Ka whakateiteia te uara o ia wāhanga ina haewē koe i runga i "
 "te rohe takiwā hāngai."
+
+msgid ""
+"Visualizes many different time-series objects in a single chart. This "
+"chart is being deprecated and we recommend using the Time-series Chart "
+"instead."
+msgstr ""
 
 msgid ""
 "Visualizes the words in a column that appear the most often. Bigger font "
@@ -19720,6 +19948,12 @@ msgstr "Mēnā ka whakaatu i te ingoa ine hei taitara"
 msgid "Whether to display the metric name as a title"
 msgstr "Mēnā ka whakaatu i te ingoa ine hei taitara"
 
+msgid "Whether to display the min and max values of the X-axis"
+msgstr ""
+
+msgid "Whether to display the min and max values of the Y-axis"
+msgstr ""
+
 #, fuzzy
 msgid "Whether to display the numbered column"
 msgstr "Mēnā ka whakaatu i te rārangi ia"
@@ -19732,6 +19966,9 @@ msgstr "Mēnā ka whakaatu i te uara ōrau i te kītukutuku"
 
 msgid "Whether to display the stroke"
 msgstr "Mēnā ka whakaatu i te whakapā"
+
+msgid "Whether to display the time range interactive selector"
+msgstr ""
 
 msgid "Whether to display the timestamp"
 msgstr "Mēnā ka whakaatu i te waitohu"
@@ -19807,6 +20044,9 @@ msgstr "Mēnā ka kōmaka heke, piki rānei"
 msgid "Whether to sort results by the selected metric in descending order."
 msgstr "Mēnā ka kōmaka i ngā hua mā te ine kua tīpakohia i te raupapa heke."
 
+msgid "Whether to sort tooltip by the selected metric in descending order."
+msgstr ""
+
 msgid ""
 "Whether to sort tooltip by the selected metric in descending order. On "
 "stacked charts, values are shown in ascending order."
@@ -19872,6 +20112,9 @@ msgstr "Tuhia he whakamārama mō tō pātai"
 msgid "Write a handlebars template to render the data"
 msgstr "Tuhia he tauira handlebars hei whakaatu i ngā raraunga"
 
+msgid "X AXIS TITLE MARGIN"
+msgstr ""
+
 msgid "X Axis"
 msgstr "Tukutuku X"
 
@@ -19901,11 +20144,17 @@ msgstr "Taiapa Taitara Tukutuku X"
 msgid "X Axis title margin"
 msgstr ""
 
+msgid "X Log Scale"
+msgstr ""
+
 msgid "X Tick Layout"
 msgstr "Hoahoa Tika X"
 
 msgid "X axis title margin"
 msgstr "Taiapa taitara tukutuku x"
+
+msgid "X bounds"
+msgstr ""
 
 msgid "X-Axis Sort Ascending"
 msgstr "Kōmaka Tukutuku-X Piki"
@@ -19923,8 +20172,17 @@ msgstr "Wā tauine-X"
 msgid "XYZ"
 msgstr "XYZ"
 
+msgid "Y 2 bounds"
+msgstr ""
+
+msgid "Y AXIS TITLE MARGIN"
+msgstr ""
+
 msgid "Y Axis"
 msgstr "Tukutuku Y"
+
+msgid "Y Axis 2 Bounds"
+msgstr ""
 
 msgid "Y Axis Bounds"
 msgstr "Rohe Tukutuku Y"
@@ -19952,6 +20210,9 @@ msgstr "Tauine Pūkete Y"
 
 msgid "Y axis title margin"
 msgstr "Taiapa taitara tukutuku y"
+
+msgid "Y bounds"
+msgstr ""
 
 msgid "Y-Axis"
 msgstr "Tukutuku-Y"
@@ -20132,6 +20393,9 @@ msgid ""
 msgstr ""
 "Kāore e taea e koe te muku i te tātari wā whakamutunga nō te mea e "
 "whakamahia ana mō ngā tātari awhe wā i ngā papatohu."
+
+msgid "You cannot use 45° tick layout along with the time range filter"
+msgstr ""
 
 #, python-format
 msgid "You do not have access to the data behind this chart (tables: %s)."
@@ -20344,6 +20608,9 @@ msgstr ""
 #, fuzzy
 msgid "You need to"
 msgstr "Me"
+
+msgid "You need to configure HTML sanitization to use CSS"
+msgstr ""
 
 msgid ""
 "You updated the values in the control panel, but the chart was not "
@@ -20621,6 +20888,9 @@ msgstr "Tae Papamuri"
 msgid "banana"
 msgstr "panana"
 
+msgid "basis"
+msgstr ""
+
 #, fuzzy
 msgid "begins with"
 msgstr "Takiuru me"
@@ -20661,6 +20931,9 @@ msgstr "mā te whakamahi i"
 
 msgid "cannot be empty"
 msgstr "kāore e taea te noho kau"
+
+msgid "cardinal"
+msgstr ""
 
 #, fuzzy
 msgid "cell bar"
@@ -20825,6 +21098,9 @@ msgstr "deck.gl Marara"
 msgid "deck.gl Screen Grid"
 msgstr "deck.gl Tukutata Mata"
 
+msgid "deck.gl charts"
+msgstr ""
+
 #, fuzzy
 msgid "deck.gl layers (charts)"
 msgstr "kauwhata deck.gl"
@@ -20921,6 +21197,9 @@ msgstr "Rārangi kau"
 
 msgid "entries"
 msgstr "urunga"
+
+msgid "entries per page"
+msgstr ""
 
 #. do-not-translate
 msgid "error_message"
@@ -21113,6 +21392,9 @@ msgstr "mauī"
 msgid "less than {min} {name}"
 msgstr "iti ake i {min} {name}"
 
+msgid "linear"
+msgstr ""
+
 #, fuzzy
 msgid "locale_key"
 msgstr "Tauine Pūkete"
@@ -21157,6 +21439,9 @@ msgstr "meneti"
 
 msgid "minute(s)"
 msgstr "meneti"
+
+msgid "monotone"
+msgstr ""
 
 msgid "month"
 msgstr "marama"
@@ -21231,6 +21516,9 @@ msgstr "TAU"
 
 msgid "numeric type icon"
 msgstr "tohu momo tau"
+
+msgid "nvd3"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, fr,
 # ja, lv, ro, ru, sk, sr, sr_Latn, tr, uk]
@@ -21418,6 +21706,14 @@ msgstr "tūtuki"
 
 msgid "std"
 msgstr "std"
+
+#. do-not-translate
+msgid "step-after"
+msgstr ""
+
+#. do-not-translate
+msgid "step-before"
+msgstr ""
 
 msgid "stopped"
 msgstr "kua mutua"

@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-23 00:54+0300\n"
+"POT-Creation-Date: 2026-09-23 00:48+0300\n"
 "PO-Revision-Date: 2026-03-31 02:00-0700\n"
 "Last-Translator: Maazin Ahamed\n"
 "Language: ta\n"
@@ -140,6 +140,9 @@ msgstr " விவரங்களுக்கு."
 #, python-format
 msgid " near '%(highlight)s'"
 msgstr " '%(highlight)s' அருகில்"
+
+msgid " source code of Superset's sandboxed parser"
+msgstr ""
 
 msgid ""
 " standard to ensure that the lexicographical ordering\n"
@@ -557,6 +560,12 @@ msgstr "%s தாவல் (tab) தேர்ந்தெடுக்கப்�
 #, python-format
 msgid "%s recipients"
 msgstr "%s பெறுநர்கள்"
+
+#, python-format
+msgid "%s record"
+msgid_plural "%s records..."
+msgstr[0] ""
+msgstr[1] ""
 
 #, fuzzy, python-format
 msgid "%s record..."
@@ -1225,6 +1234,12 @@ msgstr "AQE"
 msgid "AUG"
 msgstr "ஆக (AUG)"
 
+msgid "AXIS TITLE MARGIN"
+msgstr ""
+
+msgid "AXIS TITLE POSITION"
+msgstr ""
+
 msgid "Aborted"
 msgstr ""
 
@@ -1378,6 +1393,9 @@ msgstr "இந்த டேஷ்போர்டிற்கான சான்�
 
 msgid "Add color for positive/negative change"
 msgstr "நேர்மறை/எதிர்மறை மாற்றங்களுக்கு நிறத்தைச் சேர்க்கவும்"
+
+msgid "Add colors to cell bars for +/-"
+msgstr ""
 
 #, fuzzy
 msgid "Add colors to cell bars for +/- for all columns"
@@ -1655,6 +1673,11 @@ msgstr ""
 "புள்ளிகளின் பட்டியலில் பயன்படுத்தப்படும் அக்ரிகேட் ஃபங்க்ஷன்."
 
 msgid ""
+"Aggregate function to apply when pivoting and computing the total rows "
+"and columns"
+msgstr ""
+
+msgid ""
 "Aggregates data within the boundary of grid cells and maps the aggregated"
 " values to a dynamic color scale"
 msgstr ""
@@ -1666,6 +1689,9 @@ msgstr "திரட்டுதல் (Aggregation)"
 
 msgid "Aggregation Method"
 msgstr "திரட்டுதல் முறை"
+
+msgid "Aggregation function"
+msgstr ""
 
 msgid ""
 "Aggregation used for the summary row. By default each metric keeps its "
@@ -2641,6 +2667,9 @@ msgstr ""
 msgid "Arrow"
 msgstr "அம்பு (Arrow)"
 
+msgid "Ascending"
+msgstr ""
+
 msgid "Assign a set of parameters as"
 msgstr "அளவுருக்களின் தொகுப்பை இவ்வாறு ஒதுக்கவும்"
 
@@ -2715,6 +2744,9 @@ msgstr "இந்த நெடுவரிசையைத் தானாக அ
 
 msgid "Autosize all columns"
 msgstr "அனைத்து நெடுவரிசைகளையும் தானாக அளவுமாற்று"
+
+msgid "Available Handlebars Helpers in Superset:"
+msgstr ""
 
 msgid "Available sorting modes:"
 msgstr "கிடைக்கக்கூடிய வரிசைப்படுத்தும் முறைகள்:"
@@ -2791,6 +2823,9 @@ msgstr ""
 "அளவீடுகளைப் பல பட்டைகளாகக் (bars) காட்ட பார் சார்ட்டுகள் "
 "பயன்படுத்தப்படுகின்றன."
 
+msgid "Bar Values"
+msgstr ""
+
 msgid "Bar orientation"
 msgstr "பார் திசையமைப்பு (Bar orientation)"
 
@@ -2813,6 +2848,10 @@ msgstr ""
 #, fuzzy, python-format
 msgid "Base layer map style. See MapLibre documentation: %s"
 msgstr "அடிப்படை அடுக்கு வரைபட நடை. Mapbox ஆவணத்தைப் பார்க்கவும்: %s"
+
+#, python-format
+msgid "Base layer map style. See Mapbox documentation: %s"
+msgstr ""
 
 msgid "Base slope"
 msgstr "அடிமானச் சரிவு (Base slope)"
@@ -2981,6 +3020,9 @@ msgstr ""
 
 msgid "Bubble Chart"
 msgstr "பப்பில் சார்ட் (Bubble Chart)"
+
+msgid "Bubble Chart (legacy)"
+msgstr ""
 
 msgid "Bubble Color"
 msgstr "குமிழி நிறம்"
@@ -4299,6 +4341,12 @@ msgstr ""
 "என்பதை ஒப்பிடுகிறது. ஒவ்வொரு குழுவும் ஒரு வரிசையாகக் காட்டப்படும்."
 
 msgid ""
+"Compares metrics between different time periods. Displays time series "
+"data across multiple periods (like weeks or months) to show period-over-"
+"period trends and patterns."
+msgstr ""
+
+msgid ""
 "Compares the current time period against equivalent past periods by "
 "overlaying them on a shared time axis. The current period is drawn boldly"
 " while prior periods fade with age."
@@ -4648,6 +4696,18 @@ msgstr ""
 msgid "Count"
 msgstr "எண்ணிக்கை (Count)"
 
+msgid "Count Unique Values"
+msgstr ""
+
+msgid "Count as Fraction of Columns"
+msgstr ""
+
+msgid "Count as Fraction of Rows"
+msgstr ""
+
+msgid "Count as Fraction of Total"
+msgstr ""
+
 msgid "Country"
 msgstr "நாடு"
 
@@ -4706,6 +4766,12 @@ msgstr "டேட்டாஃபிரேம் (dataframe) குறியீ�
 
 msgid "Create dataset"
 msgstr "தரவுத்தொகுப்பை உருவாக்கு"
+
+msgid "Create matrix columns by placing charts side-by-side"
+msgstr ""
+
+msgid "Create matrix rows by stacking charts vertically"
+msgstr ""
 
 msgid "Create new chart"
 msgstr "புதிய சார்ட்டை உருவாக்கு"
@@ -5510,6 +5576,21 @@ msgstr ""
 "\"Select first filter value by default\" தேர்ந்தெடுக்கப்பட்டால், "
 "இயல்புநிலை மதிப்பு தானாகவே அமைக்கப்படும்"
 
+msgid ""
+"Define a function that receives the input and outputs the content for a "
+"tooltip"
+msgstr ""
+
+msgid "Define a function that returns a URL to navigate to when user clicks"
+msgstr ""
+
+msgid ""
+"Define a javascript function that receives the data array used in the "
+"visualization and is expected to return a modified version of that array."
+" This can be used to alter properties of the data, filter, or enrich the "
+"array."
+msgstr ""
+
 msgid "Define color breakpoints for the data"
 msgstr "தரவிற்கான வண்ண பிரேக்பாயிண்ட்டுகளை வரையறுக்கவும்"
 
@@ -5839,6 +5920,9 @@ msgid "Depends on"
 msgstr ""
 
 msgid "Deployment default"
+msgstr ""
+
+msgid "Descending"
 msgstr ""
 
 msgid "Description"
@@ -6347,6 +6431,9 @@ msgstr "கால அளவு மி.விநாடியில் (100.40008 
 msgid "Duration in ms (10500 => 0:00:10.5)"
 msgstr "கால அளவு மி.விநாடியில் (10500 => 0:10.5)"
 
+msgid "Duration in ms (10500 => 0:10.5)"
+msgstr ""
+
 msgid "Duration in ms (66000 => 1m 6s)"
 msgstr "கால அளவு மி.விநாடியில் (66000 => 1நி 6வி)"
 
@@ -6666,6 +6753,9 @@ msgstr "முன்கணிப்பை இயக்கு"
 msgid "Enable graph roaming"
 msgstr "வரைபட ரோமிங்கை (roaming) இயக்கு"
 
+msgid "Enable horizontal layout (columns)"
+msgstr ""
+
 msgid "Enable icons"
 msgstr "ஐகான்களை இயக்கு"
 
@@ -6687,6 +6777,9 @@ msgstr "ஸ்கீமாக்களில் வரிசை விரிவ�
 
 msgid "Enable server side pagination of results (experimental feature)"
 msgstr "முடிவுகளின் சர்வர்-சைடு பக்கமாக்கலை இயக்கு (சோதனை அம்சம்)"
+
+msgid "Enable vertical layout (rows)"
+msgstr ""
 
 msgid "Enables rendering of icons for GeoJSON points"
 msgstr "GeoJSON புள்ளிகளுக்கான ஐகான்களை உருவாக்குவதை அனுமதிக்கிறது"
@@ -7215,6 +7308,9 @@ msgstr "கூடுதல் கட்டுப்பாடுகள்"
 msgid "Extra Parameters"
 msgstr "கூடுதல் அளவுருக்கள்"
 
+msgid "Extra data for JS"
+msgstr ""
+
 #, python-brace-format
 msgid ""
 "Extra data to specify table metadata, such as `{ \"warning_markdown\": "
@@ -7724,6 +7820,11 @@ msgstr "Trino க்காக, உள்ளமைக்கப்பட்ட ROW
 msgid "For further instructions, consult the"
 msgstr "மேலதிக வழிமுறைகளுக்கு, இதைப் பார்க்கவும்:"
 
+msgid ""
+"For more information about objects are in context in the scope of this "
+"function, refer to the"
+msgstr ""
+
 #, fuzzy
 msgid ""
 "For regular filters, these are the subjects (users, roles, groups) this "
@@ -8000,6 +8101,9 @@ msgstr "அதிகம் அல்லது சமம் (>=)"
 msgid "Greater than (>)"
 msgstr "விட அதிகம் (>)"
 
+msgid "Green for increase, red for decrease"
+msgstr ""
+
 msgid "Grid"
 msgstr "கட்டம் (Grid)"
 
@@ -8138,6 +8242,9 @@ msgstr "கிடைமட்டம் (மேலே)"
 
 msgid "Horizontal alignment"
 msgstr "கிடைமட்ட சீரமைப்பு"
+
+msgid "Horizontal layout (columns)"
+msgstr ""
 
 msgid "Host"
 msgstr "ஹோஸ்ட் (Host)"
@@ -8687,6 +8794,9 @@ msgstr ""
 msgid "It’s not recommended to truncate Y axis in Bar chart."
 msgstr "பார் சார்ட்டில் (Bar chart) Y அச்சைக் குறைப்பது பரிந்துரைக்கப்படுவதில்லை."
 
+msgid "It’s not recommended to truncate axis in Bar chart."
+msgstr ""
+
 msgid "JAN"
 msgstr "ஜன"
 
@@ -8723,6 +8833,15 @@ msgstr "ஜூன்"
 
 msgid "January"
 msgstr "ஜனவரி"
+
+msgid "JavaScript data interceptor"
+msgstr ""
+
+msgid "JavaScript onClick href"
+msgstr ""
+
+msgid "JavaScript tooltip generator"
+msgstr ""
 
 msgid "Jinja templating"
 msgstr "Jinja டெம்ப்ளேட்டிங்"
@@ -8824,6 +8943,15 @@ msgstr "லேபிளிடுதல்"
 
 msgid "Labels"
 msgstr "லேபிள்கள்"
+
+msgid "Labels for the marker lines"
+msgstr ""
+
+msgid "Labels for the markers"
+msgstr ""
+
+msgid "Labels for the ranges"
+msgstr ""
 
 msgid "Languages"
 msgstr "மொழிகள்"
@@ -9067,6 +9195,9 @@ msgid ""
 "does not already have. Leave empty for legacy RBAC-only behavior."
 msgstr ""
 
+msgid "Limits the number of cells that get retrieved."
+msgstr ""
+
 msgid ""
 "Limits the number of cells that get retrieved. Not applied when non-"
 "additive metrics (e.g. ratios, COUNT_DISTINCT, AVG, percentiles) are "
@@ -9157,6 +9288,9 @@ msgstr "குழுக்களைப் பட்டியலிடு"
 msgid "List Roles"
 msgstr "பொறுப்புகளைப் (Roles) பட்டியலிடு"
 
+msgid "List Unique Values"
+msgstr ""
+
 msgid "List Users"
 msgstr "பயனர்களைப் பட்டியலிடு"
 
@@ -9165,11 +9299,20 @@ msgid ""
 "toggles it on the chart"
 msgstr ""
 
+msgid "List of extra columns made available in JavaScript functions"
+msgstr ""
+
 msgid "List of n+1 values for bucketing metric into n buckets."
 msgstr "அளவீடுகளை n தொகுதிகளாகப் பிரிக்க n+1 மதிப்புகளின் பட்டியல்."
 
 msgid "List of the column names that should be read"
 msgstr "படிக்கப்பட வேண்டிய நெடுவரிசை பெயர்களின் பட்டியல்"
+
+msgid "List of values to mark with lines"
+msgstr ""
+
+msgid "List of values to mark with triangles"
+msgstr ""
 
 msgid "List updated"
 msgstr "பட்டியல் புதுப்பிக்கப்பட்டது"
@@ -9510,6 +9653,9 @@ msgstr "குறிப்பிட்ட காலத்தில் மதி�
 msgid "Mean values"
 msgstr "சராசரி மதிப்புகள்"
 
+msgid "Median"
+msgstr ""
+
 msgid ""
 "Median edge width, the thickest edge will be 4 times thicker than the "
 "thinnest."
@@ -9664,6 +9810,9 @@ msgstr "அளவீடுகள் (Metrics)"
 #, fuzzy, python-format
 msgid "Metrics (%s)"
 msgstr "அளவீடுகள் (Metrics)"
+
+msgid "Metrics / Dimensions"
+msgstr ""
 
 msgid "Metrics can't be used for both rows and columns at the same time"
 msgstr ""
@@ -11062,6 +11211,9 @@ msgstr ""
 "தரவுத்தளம் எவ்வாறு காட்டப்பட வேண்டும் என்பதற்கான புனைப்பெயரைத் "
 "தேர்ந்தெடுக்கவும்."
 
+msgid "Pick a set of deck.gl charts to layer on top of one another"
+msgstr ""
+
 msgid "Pick a title for you annotation."
 msgstr "உங்கள் குறிப்பிற்கு ஒரு தலைப்பைத் தேர்ந்தெடுக்கவும்."
 
@@ -11611,6 +11763,9 @@ msgstr "வரம்பு வகை"
 msgid "Ranges"
 msgstr "வரம்புகள்"
 
+msgid "Ranges to highlight with shading"
+msgstr ""
+
 msgid "Ranking"
 msgstr "தரவரிசை (Ranking)"
 
@@ -11663,8 +11818,21 @@ msgstr "செவ்வகம்"
 msgid "Recurring (every)"
 msgstr "மீண்டும் நிகழும் (ஒவ்வொரு)"
 
+msgid "Red for increase, green for decrease"
+msgstr ""
+
 msgid "Redo the action"
 msgstr "செயலை மீண்டும் செய் (Redo)"
+
+msgid "Reduce X ticks"
+msgstr ""
+
+msgid ""
+"Reduces the number of X-axis ticks to be rendered. If true, the x-axis "
+"will not overflow and labels may be missing. If false, a minimum width "
+"will be applied to columns and the width may overflow into an horizontal "
+"scroll."
+msgstr ""
 
 msgid "Refer to the"
 msgstr "இதைப் பார்க்கவும்"
@@ -12178,6 +12346,9 @@ msgstr "விரிவான டூல்டிப்"
 msgid "Right"
 msgstr "வலது"
 
+msgid "Right Axis Format"
+msgstr ""
+
 msgid "Right Axis Metric"
 msgstr "வலது அச்சு அளவீடு"
 
@@ -12673,6 +12844,10 @@ msgstr "மாற்றங்களை மேலெழுத கீழே ஸ்
 
 msgid "Search"
 msgstr "தேடு"
+
+#, python-format
+msgid "Search %s records"
+msgstr ""
 
 msgid "Search / Filter"
 msgstr "தேடு / வடிகட்டு"
@@ -13554,6 +13729,9 @@ msgstr "மெட்ரிக் பெயர்களைக் காண்ப�
 msgid "Show Null Values"
 msgstr "வெற்று மதிப்புகள் (Null Values)"
 
+msgid "Show Range Filter"
+msgstr ""
+
 #, fuzzy
 msgid "Show SQL"
 msgstr "பதிவைக் காண்பி"
@@ -13635,6 +13813,9 @@ msgstr "நெடுவரிசைகளின் துணை மொத்த�
 
 msgid "Show columns total"
 msgstr "நெடுவரிசைகளின் மொத்தத்தைக் காண்பி"
+
+msgid "Show data points as circle markers on the lines"
+msgstr ""
 
 msgid "Show empty columns"
 msgstr "வெற்று நெடுவரிசைகளைக் காண்பி"
@@ -13729,6 +13910,9 @@ msgid "Show summary"
 msgstr "சுருக்கத்தைக் காண்பி"
 
 msgid "Show the main ticks on axes."
+msgstr ""
+
+msgid "Show the value on top of the bar"
 msgstr ""
 
 msgid "Show total"
@@ -14072,6 +14256,9 @@ msgstr "விளக்கக் குறிப்பை வரிசைப்�
 msgid "Sort metric"
 msgstr "மெட்ரிக்கை வரிசைப்படுத்து"
 
+msgid "Sort order"
+msgstr ""
+
 msgid "Sort query by"
 msgstr "இதன்படி வினவலை வரிசைப்படுத்து"
 
@@ -14157,6 +14344,9 @@ msgstr "தொடர்களை ஒன்றின் மேல் ஒன்ற
 
 msgid "Stacked"
 msgstr "அடுக்கப்பட்டது"
+
+msgid "Stacked Bars"
+msgstr ""
 
 msgid "Stacked Style"
 msgstr "அடுக்கப்பட்ட பாணி"
@@ -14374,6 +14564,15 @@ msgstr ""
 
 msgid "Sum"
 msgstr "கூட்டுத்தொகை"
+
+msgid "Sum as Fraction of Columns"
+msgstr ""
+
+msgid "Sum as Fraction of Rows"
+msgstr ""
+
+msgid "Sum as Fraction of Total"
+msgstr ""
 
 msgid "Sum of values over specified period"
 msgstr "குறிப்பிட்ட காலப்பகுதியில் மதிப்புகளின் கூட்டுத்தொகை"
@@ -15367,6 +15566,13 @@ msgid ""
 "                expressions."
 msgstr ""
 
+msgid ""
+"The periodicity over which to pivot time. Users can provide\n"
+"            \"Pandas\" offset alias.\n"
+"            Click on the info bubble for more details on accepted "
+"\"freq\" expressions."
+msgstr ""
+
 msgid "The pixel radius"
 msgstr "பிக்சல் ஆரம்"
 
@@ -16304,6 +16510,9 @@ msgstr "இந்த கோப்புறை நெடுவரிசைகள�
 msgid "This folder only supports metrics"
 msgstr "இந்த கோப்புறை மெட்ரிக்குகளை மட்டுமே ஏற்கும்"
 
+msgid "This functionality is disabled in your environment for security reasons."
+msgstr ""
+
 msgid ""
 "This is a default columns folder. Its name cannot be changed or removed. "
 "It can stay empty but will only accept column items."
@@ -16693,6 +16902,9 @@ msgstr ""
 "நேர சரம் தெளிவாக இல்லை. [%(human_readable)s முன்பு] அல்லது "
 "[%(human_readable)s பின்பு] எனக் குறிப்பிடவும்."
 
+msgid "Time-series Percent Change"
+msgstr ""
+
 msgid "Time-series Period Pivot"
 msgstr "நேரத் தொடர் காலப் பிவோட்"
 
@@ -16824,6 +17036,10 @@ msgstr "மொத்தம்"
 #, python-format
 msgid "Total (%(aggfunc)s)"
 msgstr "மொத்தம் (%(aggfunc)s)"
+
+#, python-format
+msgid "Total (%(aggregatorName)s)"
+msgstr ""
 
 msgid ""
 "Total angle covered by the chart, in degrees. 360° draws a full circle "
@@ -17402,6 +17618,9 @@ msgstr "தனிப்பயன் டூல்டிப்புகளை உ�
 msgid "Use a log scale"
 msgstr "லாக் அளவைப் (Log scale) பயன்படுத்தவும்"
 
+msgid "Use a log scale for the X-axis"
+msgstr ""
+
 msgid "Use a log scale for the Y-axis"
 msgstr "Y-அச்சிற்கு லாக் அளவைப் பயன்படுத்தவும்"
 
@@ -17658,6 +17877,9 @@ msgstr "செங்குத்து"
 msgid "Vertical (Left)"
 msgstr "செங்குத்து (இடது)"
 
+msgid "Vertical layout (rows)"
+msgstr ""
+
 msgid "View"
 msgstr "பார்வை"
 
@@ -17817,6 +18039,12 @@ msgid ""
 msgstr ""
 "ஒரு நாட்டின் மாநிலங்கள் அல்லது மாகாணங்களில் ஒரு மெட்ரிக் எவ்வாறு "
 "மாறுகிறது என்பதைக் காட்சிப்படுத்துகிறது."
+
+msgid ""
+"Visualizes many different time-series objects in a single chart. This "
+"chart is being deprecated and we recommend using the Time-series Chart "
+"instead."
+msgstr ""
 
 msgid ""
 "Visualizes the words in a column that appear the most often. Bigger font "
@@ -18190,6 +18418,12 @@ msgstr "மெட்ரிக் பெயரைக் காட்ட வேண
 msgid "Whether to display the metric name as a title"
 msgstr "மெட்ரிக் பெயரைத் தலைப்பாகக் காட்ட வேண்டுமா"
 
+msgid "Whether to display the min and max values of the X-axis"
+msgstr ""
+
+msgid "Whether to display the min and max values of the Y-axis"
+msgstr ""
+
 #, fuzzy
 msgid "Whether to display the numbered column"
 msgstr "போக்குக் கோட்டைக் காட்ட வேண்டுமா"
@@ -18202,6 +18436,9 @@ msgstr "டூல்டிப்பில் சதவீத மதிப்ப�
 
 msgid "Whether to display the stroke"
 msgstr "ஸ்ட்ரோக் (விளிம்பு) காட்ட வேண்டுமா"
+
+msgid "Whether to display the time range interactive selector"
+msgstr ""
 
 msgid "Whether to display the timestamp"
 msgstr "நேர முத்திரையைக் காட்ட வேண்டுமா"
@@ -18281,6 +18518,9 @@ msgstr ""
 "தேர்ந்தெடுக்கப்பட்ட மெட்ரிக் படி முடிவுகளை இறங்குவரிசையில் வரிசைப்படுத்த "
 "வேண்டுமா."
 
+msgid "Whether to sort tooltip by the selected metric in descending order."
+msgstr ""
+
 #, fuzzy
 msgid ""
 "Whether to sort tooltip by the selected metric in descending order. On "
@@ -18347,6 +18587,9 @@ msgstr "உங்கள் வினவலுக்கு ஒரு விளக
 msgid "Write a handlebars template to render the data"
 msgstr "தரவைக் காட்ட ஒரு Handlebars டெம்ப்ளேட்டை எழுதுங்கள்"
 
+msgid "X AXIS TITLE MARGIN"
+msgstr ""
+
 msgid "X Axis"
 msgstr "X-அச்சு"
 
@@ -18374,11 +18617,17 @@ msgstr "X-அச்சு தலைப்பு விளிம்பு"
 msgid "X Axis title margin"
 msgstr ""
 
+msgid "X Log Scale"
+msgstr ""
+
 msgid "X Tick Layout"
 msgstr "X குறி அமைப்பு"
 
 msgid "X axis title margin"
 msgstr "X-அச்சு தலைப்பு விளிம்பு"
+
+msgid "X bounds"
+msgstr ""
 
 msgid "X-Axis Sort Ascending"
 msgstr "X-அச்சு ஏறுவரிசை வரிசைப்படுத்தல்"
@@ -18396,8 +18645,17 @@ msgstr "X-அளவுகோல் இடைவெளி"
 msgid "XYZ"
 msgstr "XYZ"
 
+msgid "Y 2 bounds"
+msgstr ""
+
+msgid "Y AXIS TITLE MARGIN"
+msgstr ""
+
 msgid "Y Axis"
 msgstr "Y-அச்சு"
+
+msgid "Y Axis 2 Bounds"
+msgstr ""
 
 msgid "Y Axis Bounds"
 msgstr "Y-அச்சு எல்லைகள்"
@@ -18425,6 +18683,9 @@ msgstr "Y லாக் அளவுகோல்"
 
 msgid "Y axis title margin"
 msgstr "Y-அச்சு தலைப்பு விளிம்பு"
+
+msgid "Y bounds"
+msgstr ""
 
 msgid "Y-Axis"
 msgstr "Y-அச்சு"
@@ -18594,6 +18855,9 @@ msgid ""
 "You cannot delete the last temporal filter as it's used for time range "
 "filters in dashboards."
 msgstr "கடைசி நேர வடிகட்டியை உங்களால் நீக்க முடியாது."
+
+msgid "You cannot use 45° tick layout along with the time range filter"
+msgstr ""
 
 #, python-format
 msgid "You do not have access to the data behind this chart (tables: %s)."
@@ -18792,6 +19056,9 @@ msgid ""
 msgstr ""
 
 msgid "You need to"
+msgstr ""
+
+msgid "You need to configure HTML sanitization to use CSS"
 msgstr ""
 
 msgid ""
@@ -19047,6 +19314,9 @@ msgstr "பின்னணி நிறம்"
 msgid "banana"
 msgstr ""
 
+msgid "basis"
+msgstr ""
+
 msgid "begins with"
 msgstr "இதில் தொடங்குவது"
 
@@ -19084,6 +19354,9 @@ msgstr "பயன்படுத்துவதன் மூலம்"
 
 msgid "cannot be empty"
 msgstr "காலியாக இருக்க முடியாது"
+
+msgid "cardinal"
+msgstr ""
 
 #, fuzzy
 msgid "cell bar"
@@ -19246,6 +19519,9 @@ msgstr "deck.gl Scatterplot"
 msgid "deck.gl Screen Grid"
 msgstr "deck.gl Screen Grid"
 
+msgid "deck.gl charts"
+msgstr ""
+
 msgid "deck.gl layers (charts)"
 msgstr "deck.gl அடுக்குகள் (சார்ட்டுகள்)"
 
@@ -19335,6 +19611,9 @@ msgstr "முழு வரிசைக்கும்"
 
 msgid "entries"
 msgstr "உள்ளீடுகள்"
+
+msgid "entries per page"
+msgstr ""
 
 #. do-not-translate
 msgid "error_message"
@@ -19502,6 +19781,9 @@ msgstr "இடது"
 msgid "less than {min} {name}"
 msgstr "{min} {name} ஐ விடக் குறைவானது"
 
+msgid "linear"
+msgstr ""
+
 msgid "locale_key"
 msgstr ""
 
@@ -19542,6 +19824,9 @@ msgstr "நிமிடம்"
 
 msgid "minute(s)"
 msgstr "நிமிடம்(கள்)"
+
+msgid "monotone"
+msgstr ""
 
 msgid "month"
 msgstr "மாதம்"
@@ -19599,6 +19884,9 @@ msgstr ""
 
 msgid "numeric type icon"
 msgstr "எண் வகை ஐகான்"
+
+msgid "nvd3"
+msgstr ""
 
 msgid "of"
 msgstr "இன்"
@@ -19779,6 +20067,14 @@ msgstr "திடுக்கிடும் (staggered)"
 
 msgid "std"
 msgstr "std"
+
+#. do-not-translate
+msgid "step-after"
+msgstr ""
+
+#. do-not-translate
+msgid "step-before"
+msgstr ""
 
 msgid "stopped"
 msgstr "நிறுத்தப்பட்டது"

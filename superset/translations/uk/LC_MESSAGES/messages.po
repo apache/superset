@@ -18,7 +18,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version:  \n"
 "Report-Msgid-Bugs-To: ted.korostiled@gmail.com\n"
-"POT-Creation-Date: 2026-09-23 00:54+0300\n"
+"POT-Creation-Date: 2026-09-23 00:48+0300\n"
 "PO-Revision-Date: 2026-04-30 22:04+0300\n"
 "Last-Translator: Danylo Korostil\n"
 "Language: uk\n"
@@ -138,6 +138,9 @@ msgstr " для подробиць."
 #, python-format
 msgid " near '%(highlight)s'"
 msgstr " поруч з «%(highlight)s»"
+
+msgid " source code of Superset's sandboxed parser"
+msgstr ""
 
 msgid ""
 " standard to ensure that the lexicographical ordering\n"
@@ -599,6 +602,14 @@ msgstr "%s вкладки вибрано"
 #, python-format
 msgid "%s recipients"
 msgstr "%s отримувачів"
+
+#, python-format
+msgid "%s record"
+msgid_plural "%s records..."
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+msgstr[3] ""
 
 #, fuzzy, python-format
 msgid "%s record..."
@@ -1298,6 +1309,12 @@ msgstr "Асинхронні запити"
 msgid "AUG"
 msgstr "cерп"
 
+msgid "AXIS TITLE MARGIN"
+msgstr ""
+
+msgid "AXIS TITLE POSITION"
+msgstr ""
+
 #, fuzzy
 msgid "Aborted"
 msgstr "Розпочато"
@@ -1446,6 +1463,9 @@ msgstr "Додати подробиці погодження про цей зв�
 
 msgid "Add color for positive/negative change"
 msgstr "Додати колір для відстеження змін"
+
+msgid "Add colors to cell bars for +/-"
+msgstr ""
 
 #, fuzzy
 msgid "Add colors to cell bars for +/- for all columns"
@@ -1715,6 +1735,11 @@ msgstr ""
 " ньому."
 
 msgid ""
+"Aggregate function to apply when pivoting and computing the total rows "
+"and columns"
+msgstr ""
+
+msgid ""
 "Aggregates data within the boundary of grid cells and maps the aggregated"
 " values to a dynamic color scale"
 msgstr ""
@@ -1726,6 +1751,9 @@ msgstr "Агрегація"
 
 msgid "Aggregation Method"
 msgstr "Спосіб агрегації даних"
+
+msgid "Aggregation function"
+msgstr ""
 
 msgid ""
 "Aggregation used for the summary row. By default each metric keeps its "
@@ -2680,6 +2708,9 @@ msgstr ""
 msgid "Arrow"
 msgstr "Стрілка"
 
+msgid "Ascending"
+msgstr ""
+
 msgid "Assign a set of parameters as"
 msgstr "Задайте набір параметрів як"
 
@@ -2761,6 +2792,9 @@ msgstr "Автоматично змінювати розмір стовпця"
 msgid "Autosize all columns"
 msgstr "Автоматично визначати розмір усіх стовпців"
 
+msgid "Available Handlebars Helpers in Superset:"
+msgstr ""
+
 msgid "Available sorting modes:"
 msgstr "Доступні режими сортування:"
 
@@ -2834,6 +2868,9 @@ msgstr "Стовпчикова діаграма"
 msgid "Bar Charts are used to show metrics as a series of bars."
 msgstr "Показує показники у вигляді стовпчиків."
 
+msgid "Bar Values"
+msgstr ""
+
 msgid "Bar orientation"
 msgstr "Напрямок стовпчика"
 
@@ -2859,6 +2896,10 @@ msgstr "Стиль карти базового шару. Приймає URL ст
 #, fuzzy, python-format
 msgid "Base layer map style. See MapLibre documentation: %s"
 msgstr "Стиль карти основного шару. Переглянути документацію Mapbox: %s"
+
+#, python-format
+msgid "Base layer map style. See Mapbox documentation: %s"
+msgstr ""
 
 msgid "Base slope"
 msgstr "Основний нахил"
@@ -3027,6 +3068,9 @@ msgstr ""
 
 msgid "Bubble Chart"
 msgstr "Бульбашкова діаграма"
+
+msgid "Bubble Chart (legacy)"
+msgstr ""
 
 msgid "Bubble Color"
 msgstr "Колір бульбашок"
@@ -4343,6 +4387,12 @@ msgstr ""
 "займає свій рядок, а зміни представлені довжиною стовпців і кольором."
 
 msgid ""
+"Compares metrics between different time periods. Displays time series "
+"data across multiple periods (like weeks or months) to show period-over-"
+"period trends and patterns."
+msgstr ""
+
+msgid ""
 "Compares the current time period against equivalent past periods by "
 "overlaying them on a shared time axis. The current period is drawn boldly"
 " while prior periods fade with age."
@@ -4686,6 +4736,18 @@ msgstr ""
 msgid "Count"
 msgstr "Кількість"
 
+msgid "Count Unique Values"
+msgstr ""
+
+msgid "Count as Fraction of Columns"
+msgstr ""
+
+msgid "Count as Fraction of Rows"
+msgstr ""
+
+msgid "Count as Fraction of Total"
+msgstr ""
+
 msgid "Country"
 msgstr "Країна"
 
@@ -4744,6 +4806,12 @@ msgstr "Створити індекс таблиці даних"
 
 msgid "Create dataset"
 msgstr "Створити набір даних"
+
+msgid "Create matrix columns by placing charts side-by-side"
+msgstr ""
+
+msgid "Create matrix rows by stacking charts vertically"
+msgstr ""
 
 msgid "Create new chart"
 msgstr "Створити нову діаграму"
@@ -5564,6 +5632,21 @@ msgid ""
 "default\" is checked"
 msgstr "Значення задано автоматично, коли використовувати «Вибрати перше значення»"
 
+msgid ""
+"Define a function that receives the input and outputs the content for a "
+"tooltip"
+msgstr ""
+
+msgid "Define a function that returns a URL to navigate to when user clicks"
+msgstr ""
+
+msgid ""
+"Define a javascript function that receives the data array used in the "
+"visualization and is expected to return a modified version of that array."
+" This can be used to alter properties of the data, filter, or enrich the "
+"array."
+msgstr ""
+
 msgid "Define color breakpoints for the data"
 msgstr "Визначити розфарбовані пороги для даних"
 
@@ -5910,6 +5993,9 @@ msgid "Depends on"
 msgstr ""
 
 msgid "Deployment default"
+msgstr ""
+
+msgid "Descending"
 msgstr ""
 
 msgid "Description"
@@ -6429,6 +6515,9 @@ msgstr "Тривалість у мілісекундах (наприклад: 10
 msgid "Duration in ms (10500 => 0:00:10.5)"
 msgstr "Тривалість у мілісекундах (наприклад: 10500 => 0:00:10.5)"
 
+msgid "Duration in ms (10500 => 0:10.5)"
+msgstr ""
+
 msgid "Duration in ms (66000 => 1m 6s)"
 msgstr "Тривалість у мілісекундах (наприклад: 10500 => 1 хв 6 с)"
 
@@ -6743,6 +6832,9 @@ msgstr "Дозволити прогнозування"
 msgid "Enable graph roaming"
 msgstr "Дозволити переміщення графа"
 
+msgid "Enable horizontal layout (columns)"
+msgstr ""
+
 msgid "Enable icons"
 msgstr "Увімкнути піктограми"
 
@@ -6764,6 +6856,9 @@ msgstr "Дозволити розгортання рядків у схемах"
 
 msgid "Enable server side pagination of results (experimental feature)"
 msgstr "Розбивати результат на сторінки через сервер (експериментальна можливість)"
+
+msgid "Enable vertical layout (rows)"
+msgstr ""
 
 msgid "Enables rendering of icons for GeoJSON points"
 msgstr "Дозволяє відтворювати піктограми для точок GeoJSON"
@@ -7294,6 +7389,9 @@ msgstr "Додаткові перемикачі"
 msgid "Extra Parameters"
 msgstr "Додаткові параметри"
 
+msgid "Extra data for JS"
+msgstr ""
+
 #, python-brace-format
 msgid ""
 "Extra data to specify table metadata, such as `{ \"warning_markdown\": "
@@ -7810,6 +7908,11 @@ msgstr ""
 msgid "For further instructions, consult the"
 msgstr "Для одержання додаткових інструкцій звертайтесь до"
 
+msgid ""
+"For more information about objects are in context in the scope of this "
+"function, refer to the"
+msgstr ""
+
 #, fuzzy
 msgid ""
 "For regular filters, these are the subjects (users, roles, groups) this "
@@ -8086,6 +8189,9 @@ msgstr "Більше або дорівнює (>=)"
 msgid "Greater than (>)"
 msgstr "Більше (>)"
 
+msgid "Green for increase, red for decrease"
+msgstr ""
+
 msgid "Grid"
 msgstr "Ґратка"
 
@@ -8222,6 +8328,9 @@ msgstr "Горизонтально (зверху)"
 
 msgid "Horizontal alignment"
 msgstr "Горизонтальне вирівнювання"
+
+msgid "Horizontal layout (columns)"
+msgstr ""
 
 msgid "Host"
 msgstr "Вузол"
@@ -8773,6 +8882,9 @@ msgstr ""
 msgid "It’s not recommended to truncate Y axis in Bar chart."
 msgstr "Не рекомендується обрізати вісь Y у стовпчиковій діаграмі."
 
+msgid "It’s not recommended to truncate axis in Bar chart."
+msgstr ""
+
 msgid "JAN"
 msgstr "Січ"
 
@@ -8812,6 +8924,15 @@ msgstr "Черв"
 
 msgid "January"
 msgstr "Січень"
+
+msgid "JavaScript data interceptor"
+msgstr ""
+
+msgid "JavaScript onClick href"
+msgstr ""
+
+msgid "JavaScript tooltip generator"
+msgstr ""
 
 msgid "Jinja templating"
 msgstr "Шаблонізація Jinja"
@@ -8917,6 +9038,15 @@ msgstr "Маркування"
 
 msgid "Labels"
 msgstr "Мітки"
+
+msgid "Labels for the marker lines"
+msgstr ""
+
+msgid "Labels for the markers"
+msgstr ""
+
+msgid "Labels for the ranges"
+msgstr ""
 
 msgid "Languages"
 msgstr "Мови"
@@ -9163,6 +9293,9 @@ msgid ""
 "does not already have. Leave empty for legacy RBAC-only behavior."
 msgstr ""
 
+msgid "Limits the number of cells that get retrieved."
+msgstr ""
+
 msgid ""
 "Limits the number of cells that get retrieved. Not applied when non-"
 "additive metrics (e.g. ratios, COUNT_DISTINCT, AVG, percentiles) are "
@@ -9258,6 +9391,9 @@ msgstr "Перелік груп"
 msgid "List Roles"
 msgstr "Перелік ролей"
 
+msgid "List Unique Values"
+msgstr ""
+
 msgid "List Users"
 msgstr "Перелік користувачів"
 
@@ -9266,11 +9402,20 @@ msgid ""
 "toggles it on the chart"
 msgstr ""
 
+msgid "List of extra columns made available in JavaScript functions"
+msgstr ""
+
 msgid "List of n+1 values for bucketing metric into n buckets."
 msgstr "Перелік зі n+1 значень для розподілу показника на n груп."
 
 msgid "List of the column names that should be read"
 msgstr "Перелік стовпців, які слід вичитувати"
+
+msgid "List of values to mark with lines"
+msgstr ""
+
+msgid "List of values to mark with triangles"
+msgstr ""
 
 msgid "List updated"
 msgstr "Перелік оновлено"
@@ -9631,6 +9776,9 @@ msgstr "Середнє значення за вказаний період"
 msgid "Mean values"
 msgstr "Середні значення"
 
+msgid "Median"
+msgstr ""
+
 msgid ""
 "Median edge width, the thickest edge will be 4 times thicker than the "
 "thinnest."
@@ -9794,6 +9942,9 @@ msgstr "Показники"
 #, fuzzy, python-format
 msgid "Metrics (%s)"
 msgstr "Показники"
+
+msgid "Metrics / Dimensions"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
@@ -11259,6 +11410,9 @@ msgstr "Виберіть назву бази даних, щоб легше її 
 msgid "Pick a nickname for how the database will display in Superset."
 msgstr "Виберіть назву бази даних, яка буде показуватися у Superset."
 
+msgid "Pick a set of deck.gl charts to layer on top of one another"
+msgstr ""
+
 msgid "Pick a title for you annotation."
 msgstr "Виберіть заголовок для вашої анотації."
 
@@ -11819,6 +11973,9 @@ msgstr "Тип діапазону"
 msgid "Ranges"
 msgstr "Діапазони"
 
+msgid "Ranges to highlight with shading"
+msgstr ""
+
 msgid "Ranking"
 msgstr "Ранжування"
 
@@ -11871,8 +12028,21 @@ msgstr "Прямокутник"
 msgid "Recurring (every)"
 msgstr "Повторювати (кожні)"
 
+msgid "Red for increase, green for decrease"
+msgstr ""
+
 msgid "Redo the action"
 msgstr "Скасувати дію"
+
+msgid "Reduce X ticks"
+msgstr ""
+
+msgid ""
+"Reduces the number of X-axis ticks to be rendered. If true, the x-axis "
+"will not overflow and labels may be missing. If false, a minimum width "
+"will be applied to columns and the width may overflow into an horizontal "
+"scroll."
+msgstr ""
 
 msgid "Refer to the"
 msgstr "Зверніться до"
@@ -12394,6 +12564,9 @@ msgstr "Форматована підказка"
 
 msgid "Right"
 msgstr "Справа"
+
+msgid "Right Axis Format"
+msgstr ""
 
 msgid "Right Axis Metric"
 msgstr "Показник правої осі"
@@ -12920,6 +13093,10 @@ msgstr "Пригорнути вниз до кінця, щоб увімкнути
 
 msgid "Search"
 msgstr "Пошук"
+
+#, python-format
+msgid "Search %s records"
+msgstr ""
 
 msgid "Search / Filter"
 msgstr "Пошук / фільтр"
@@ -13848,6 +14025,9 @@ msgstr "Показати назву показника"
 msgid "Show Null Values"
 msgstr ""
 
+msgid "Show Range Filter"
+msgstr ""
+
 #, fuzzy
 msgid "Show SQL"
 msgstr "Показати журнал"
@@ -13929,6 +14109,9 @@ msgstr "Показати проміжні підсумки стовпців"
 
 msgid "Show columns total"
 msgstr "Показати підсумки стовпців"
+
+msgid "Show data points as circle markers on the lines"
+msgstr ""
 
 msgid "Show empty columns"
 msgstr "Показати порожні стовпці"
@@ -14025,6 +14208,9 @@ msgid "Show summary"
 msgstr "Показати підсумки"
 
 msgid "Show the main ticks on axes."
+msgstr ""
+
+msgid "Show the value on top of the bar"
 msgstr ""
 
 msgid "Show total"
@@ -14377,6 +14563,9 @@ msgstr "Впорядкувати легенду"
 msgid "Sort metric"
 msgstr "Впорядкувати показник"
 
+msgid "Sort order"
+msgstr ""
+
 msgid "Sort query by"
 msgstr "Впорядкувати запит за"
 
@@ -14469,6 +14658,9 @@ msgstr "Ряди стосом на одне одному"
 
 msgid "Stacked"
 msgstr "Стосова"
+
+msgid "Stacked Bars"
+msgstr ""
 
 msgid "Stacked Style"
 msgstr "Стосовий стиль"
@@ -14689,6 +14881,15 @@ msgstr ""
 
 msgid "Sum"
 msgstr "Сума"
+
+msgid "Sum as Fraction of Columns"
+msgstr ""
+
+msgid "Sum as Fraction of Rows"
+msgstr ""
+
+msgid "Sum as Fraction of Total"
+msgstr ""
 
 msgid "Sum of values over specified period"
 msgstr "Сума значень протягом вказаного періоду"
@@ -15778,6 +15979,13 @@ msgid ""
 "                expressions."
 msgstr ""
 
+msgid ""
+"The periodicity over which to pivot time. Users can provide\n"
+"            \"Pandas\" offset alias.\n"
+"            Click on the info bubble for more details on accepted "
+"\"freq\" expressions."
+msgstr ""
+
 msgid "The pixel radius"
 msgstr "Радіус у пікселях"
 
@@ -16767,6 +16975,9 @@ msgstr "Ця така може містити лише стовпці"
 msgid "This folder only supports metrics"
 msgstr "Ця така може містити лише показники"
 
+msgid "This functionality is disabled in your environment for security reasons."
+msgstr ""
+
 msgid ""
 "This is a default columns folder. Its name cannot be changed or removed. "
 "It can stay empty but will only accept column items."
@@ -17183,6 +17394,9 @@ msgstr ""
 "Рядок часу неоднозначний. Вкажіть [%(human_readable)s тому] або "
 "[%(human_readable)s пізніше]."
 
+msgid "Time-series Percent Change"
+msgstr ""
+
 msgid "Time-series Period Pivot"
 msgstr "Період часових рядів"
 
@@ -17325,6 +17539,10 @@ msgstr "Всього"
 #, python-format
 msgid "Total (%(aggfunc)s)"
 msgstr "Всього (%(aggfunc)s)"
+
+#, python-format
+msgid "Total (%(aggregatorName)s)"
+msgstr ""
 
 msgid ""
 "Total angle covered by the chart, in degrees. 360° draws a full circle "
@@ -17941,6 +18159,9 @@ msgstr ""
 msgid "Use a log scale"
 msgstr "Використати логарифмічну шкалу"
 
+msgid "Use a log scale for the X-axis"
+msgstr ""
+
 msgid "Use a log scale for the Y-axis"
 msgstr "Використати логарифмічну шкалу для осі Y"
 
@@ -18202,6 +18423,9 @@ msgstr "Вертикальний"
 msgid "Vertical (Left)"
 msgstr "Вертикальний (зліва)"
 
+msgid "Vertical layout (rows)"
+msgstr ""
+
 msgid "View"
 msgstr "Переглянути"
 
@@ -18369,6 +18593,12 @@ msgstr ""
 "Візуалізує, як один показник змінюється в межах основних адміністративних"
 " одиниць країни (штати, області тощо) на хороплеті. Значення для кожної "
 "одиниці підсвічується при наведенні на відповідну географічну межу."
+
+msgid ""
+"Visualizes many different time-series objects in a single chart. This "
+"chart is being deprecated and we recommend using the Time-series Chart "
+"instead."
+msgstr ""
 
 msgid ""
 "Visualizes the words in a column that appear the most often. Bigger font "
@@ -18760,6 +18990,12 @@ msgstr "Чи показувати назву показника"
 msgid "Whether to display the metric name as a title"
 msgstr "Чи показувати назву показника як заголовок"
 
+msgid "Whether to display the min and max values of the X-axis"
+msgstr ""
+
+msgid "Whether to display the min and max values of the Y-axis"
+msgstr ""
+
 #, fuzzy
 msgid "Whether to display the numbered column"
 msgstr "Чи показувати динаміку"
@@ -18772,6 +19008,9 @@ msgstr "Чи показувати відсотки в підказках"
 
 msgid "Whether to display the stroke"
 msgstr "Чи показувати обведення"
+
+msgid "Whether to display the time range interactive selector"
+msgstr ""
 
 msgid "Whether to display the timestamp"
 msgstr "Чи показувати часову мітку"
@@ -18846,6 +19085,9 @@ msgstr "Чи впорядковувати за зростанням або сп�
 msgid "Whether to sort results by the selected metric in descending order."
 msgstr "Чи впорядковувати результати за вибраним показником у порядку спадання."
 
+msgid "Whether to sort tooltip by the selected metric in descending order."
+msgstr ""
+
 msgid ""
 "Whether to sort tooltip by the selected metric in descending order. On "
 "stacked charts, values are shown in ascending order."
@@ -18910,6 +19152,9 @@ msgstr "Напишіть опис для свого запиту"
 msgid "Write a handlebars template to render the data"
 msgstr "Напишіть шаблон Handlebars для відтворення даних"
 
+msgid "X AXIS TITLE MARGIN"
+msgstr ""
+
 msgid "X Axis"
 msgstr "Вісь X"
 
@@ -18937,11 +19182,17 @@ msgstr "Відступ заголовка осі X"
 msgid "X Axis title margin"
 msgstr ""
 
+msgid "X Log Scale"
+msgstr ""
+
 msgid "X Tick Layout"
 msgstr "Розташування поділок осі X"
 
 msgid "X axis title margin"
 msgstr "Відступ заголовка осі X"
+
+msgid "X bounds"
+msgstr ""
 
 msgid "X-Axis Sort Ascending"
 msgstr "Впорядкувати вісь X за спаданням"
@@ -18959,8 +19210,17 @@ msgstr "Інтервал осі X"
 msgid "XYZ"
 msgstr "XYZ"
 
+msgid "Y 2 bounds"
+msgstr ""
+
+msgid "Y AXIS TITLE MARGIN"
+msgstr ""
+
 msgid "Y Axis"
 msgstr "Вісь Y"
+
+msgid "Y Axis 2 Bounds"
+msgstr ""
 
 msgid "Y Axis Bounds"
 msgstr "Межі осі Y"
@@ -18988,6 +19248,9 @@ msgstr "Логарифмічна шкала осі Y"
 
 msgid "Y axis title margin"
 msgstr "Відступ заголовка осі Y"
+
+msgid "Y bounds"
+msgstr ""
 
 msgid "Y-Axis"
 msgstr "Вісь Y"
@@ -19161,6 +19424,9 @@ msgid ""
 msgstr ""
 "Ви не можете вилучити крайній часовий фільтр, оскільки він "
 "використовується для фільтрації періоду у звітах."
+
+msgid "You cannot use 45° tick layout along with the time range filter"
+msgstr ""
 
 #, python-format
 msgid "You do not have access to the data behind this chart (tables: %s)."
@@ -19366,6 +19632,9 @@ msgstr ""
 
 msgid "You need to"
 msgstr "Вам потрібно"
+
+msgid "You need to configure HTML sanitization to use CSS"
+msgstr ""
 
 msgid ""
 "You updated the values in the control panel, but the chart was not "
@@ -19634,6 +19903,9 @@ msgstr "Колі тла"
 msgid "banana"
 msgstr "банан"
 
+msgid "basis"
+msgstr ""
+
 msgid "begins with"
 msgstr "починається з"
 
@@ -19672,6 +19944,9 @@ msgstr "через"
 
 msgid "cannot be empty"
 msgstr "не може бути порожнім"
+
+msgid "cardinal"
+msgstr ""
 
 #, fuzzy
 msgid "cell bar"
@@ -19833,6 +20108,9 @@ msgstr "Deck.gl - Маршрут"
 msgid "deck.gl Screen Grid"
 msgstr "Deck.gl - Екранна сітка"
 
+msgid "deck.gl charts"
+msgstr ""
+
 msgid "deck.gl layers (charts)"
 msgstr "Шари deck.gl (діаграми)"
 
@@ -19924,6 +20202,9 @@ msgstr "Цілий рядок"
 
 msgid "entries"
 msgstr "записи"
+
+msgid "entries per page"
+msgstr ""
 
 #. do-not-translate
 msgid "error_message"
@@ -20106,6 +20387,9 @@ msgstr "зліва"
 msgid "less than {min} {name}"
 msgstr "менше за {min} {name}"
 
+msgid "linear"
+msgstr ""
+
 #, fuzzy
 msgid "locale_key"
 msgstr "Місцева"
@@ -20149,6 +20433,9 @@ msgstr "хвилина"
 
 msgid "minute(s)"
 msgstr "хвилин"
+
+msgid "monotone"
+msgstr ""
 
 msgid "month"
 msgstr "місяць"
@@ -20222,6 +20509,9 @@ msgstr "Числовий"
 
 msgid "numeric type icon"
 msgstr "піктограма для числового типу"
+
+msgid "nvd3"
+msgstr ""
 
 msgid "of"
 msgstr "із"
@@ -20403,6 +20693,14 @@ msgstr "ступінчастий"
 
 msgid "std"
 msgstr "стандартне відхилення"
+
+#. do-not-translate
+msgid "step-after"
+msgstr ""
+
+#. do-not-translate
+msgid "step-before"
+msgstr ""
 
 msgid "stopped"
 msgstr "зупинено"

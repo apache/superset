@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-23 00:54+0300\n"
+"POT-Creation-Date: 2026-09-23 00:48+0300\n"
 "PO-Revision-Date: 2019-02-02 22:28+0900\n"
 "Last-Translator: \n"
 "Language: ko\n"
@@ -152,6 +152,9 @@ msgstr "저장된 Query"
 #, fuzzy, python-format
 msgid " near '%(highlight)s'"
 msgstr " '%(highlight)s' 근처"
+
+msgid " source code of Superset's sandboxed parser"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, ro, ru, sk, sl, sr, sr_Latn, tr, uk, zh,
@@ -625,6 +628,11 @@ msgstr "테이블 선택"
 #, fuzzy, python-format
 msgid "%s recipients"
 msgstr "%s명 수신자"
+
+#, python-format
+msgid "%s record"
+msgid_plural "%s records..."
+msgstr[0] ""
 
 #, fuzzy, python-format
 msgid "%s record..."
@@ -1636,6 +1644,12 @@ msgstr "비동기 쿼리 실행"
 msgid "AUG"
 msgstr "8월"
 
+msgid "AXIS TITLE MARGIN"
+msgstr ""
+
+msgid "AXIS TITLE POSITION"
+msgstr ""
+
 #, fuzzy
 msgid "Aborted"
 msgstr "상태"
@@ -1861,6 +1875,9 @@ msgstr "이 대시보드의 인증 세부 정보 추가"
 #, fuzzy
 msgid "Add color for positive/negative change"
 msgstr "양수/음수 변화에 색상 추가"
+
+msgid "Add colors to cell bars for +/-"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
@@ -2257,6 +2274,11 @@ msgid ""
 "produce the cluster label."
 msgstr "클러스터 레이블을 생성하기 위해 각 클러스터의 포인트 목록에 적용되는 집계 함수입니다."
 
+msgid ""
+"Aggregate function to apply when pivoting and computing the total rows "
+"and columns"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk]
@@ -2273,6 +2295,9 @@ msgstr "생성자"
 #, fuzzy
 msgid "Aggregation Method"
 msgstr "생성자"
+
+msgid "Aggregation function"
+msgstr ""
 
 msgid ""
 "Aggregation used for the summary row. By default each metric keeps its "
@@ -3684,6 +3709,9 @@ msgstr "영역 차트는 동일한 척도로 변수를 나타낸다는 점에서
 msgid "Arrow"
 msgstr "화살표"
 
+msgid "Ascending"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk]
@@ -3815,6 +3843,9 @@ msgstr "컬럼 목록"
 #, fuzzy
 msgid "Autosize all columns"
 msgstr "컬럼 목록"
+
+msgid "Available Handlebars Helpers in Superset:"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -3956,6 +3987,9 @@ msgstr "차트 보기"
 msgid "Bar Charts are used to show metrics as a series of bars."
 msgstr "막대 차트는 지표를 일련의 막대로 표시하는 데 사용됩니다."
 
+msgid "Bar Values"
+msgstr ""
+
 #, fuzzy
 msgid "Bar orientation"
 msgstr "주석"
@@ -3989,6 +4023,10 @@ msgstr "기본 레이어 맵 스타일. Mapbox 스타일 URL(mapbox://styles/...
 #, fuzzy, python-format
 msgid "Base layer map style. See MapLibre documentation: %s"
 msgstr "기본 레이어 맵 스타일. MapLibre 문서를 참조하세요: %s"
+
+#, python-format
+msgid "Base layer map style. See Mapbox documentation: %s"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fr, ja, lv, mi, ro, ru, sk, sr, sr_Latn, tr, uk]
@@ -4243,6 +4281,9 @@ msgstr ""
 
 msgid "Bubble Chart"
 msgstr "버블 차트"
+
+msgid "Bubble Chart (legacy)"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -6276,6 +6317,12 @@ msgstr ""
 "시각화됩니다."
 
 msgid ""
+"Compares metrics between different time periods. Displays time series "
+"data across multiple periods (like weeks or months) to show period-over-"
+"period trends and patterns."
+msgstr ""
+
+msgid ""
 "Compares the current time period against equivalent past periods by "
 "overlaying them on a shared time axis. The current period is drawn boldly"
 " while prior periods fade with age."
@@ -6826,6 +6873,18 @@ msgstr ""
 msgid "Count"
 msgstr "컬럼 추가"
 
+msgid "Count Unique Values"
+msgstr ""
+
+msgid "Count as Fraction of Columns"
+msgstr ""
+
+msgid "Count as Fraction of Rows"
+msgstr ""
+
+msgid "Count as Fraction of Total"
+msgstr ""
+
 #, fuzzy
 msgid "Country"
 msgstr "컬럼 추가"
@@ -6912,6 +6971,12 @@ msgstr "데이터소스 선택"
 #, fuzzy
 msgid "Create dataset"
 msgstr "데이터소스 선택"
+
+msgid "Create matrix columns by placing charts side-by-side"
+msgstr ""
+
+msgid "Create matrix rows by stacking charts vertically"
+msgstr ""
 
 msgid "Create new chart"
 msgstr "새 차트 생성"
@@ -8106,6 +8171,21 @@ msgid ""
 "default\" is checked"
 msgstr "\"기본으로 첫 번째 필터 값 선택\"이 선택된 경우 기본값이 자동으로 설정됩니다"
 
+msgid ""
+"Define a function that receives the input and outputs the content for a "
+"tooltip"
+msgstr ""
+
+msgid "Define a function that returns a URL to navigate to when user clicks"
+msgstr ""
+
+msgid ""
+"Define a javascript function that receives the data array used in the "
+"visualization and is expected to return a modified version of that array."
+" This can be used to alter properties of the data, filter, or enrich the "
+"array."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, fr,
 # ja, lv, pt_BR, ro, ru, sk, sr, sr_Latn, tr, uk]
 #, fuzzy
@@ -8518,6 +8598,9 @@ msgid "Depends on"
 msgstr ""
 
 msgid "Deployment default"
+msgstr ""
+
+msgid "Descending"
 msgstr ""
 
 msgid "Description"
@@ -9318,6 +9401,9 @@ msgstr "밀리초 단위 기간 (100.40008 => 100ms 400µs 80ns)"
 msgid "Duration in ms (10500 => 0:00:10.5)"
 msgstr "밀리초 단위 기간 (10500 => 0:00:10.5)"
 
+msgid "Duration in ms (10500 => 0:10.5)"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk, zh, zh_TW]
@@ -9827,6 +9913,9 @@ msgstr "예측 기능 활성화"
 msgid "Enable graph roaming"
 msgstr "그래프 로밍 활성화"
 
+msgid "Enable horizontal layout (columns)"
+msgstr ""
+
 #, fuzzy
 msgid "Enable icons"
 msgstr "컬럼 수정"
@@ -9868,6 +9957,9 @@ msgstr "스키마에서 행 확장 활성화"
 #, fuzzy
 msgid "Enable server side pagination of results (experimental feature)"
 msgstr "결과의 서버 측 페이지네이션 활성화 (실험적 기능)"
+
+msgid "Enable vertical layout (rows)"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
 # lv, pt_BR, ru, sk, sr, sr_Latn, tr, uk]
@@ -10723,6 +10815,9 @@ msgstr "추가 컨트롤"
 msgid "Extra Parameters"
 msgstr "추가 매개변수"
 
+msgid "Extra data for JS"
+msgstr ""
+
 #, python-brace-format
 msgid ""
 "Extra data to specify table metadata, such as `{ \"warning_markdown\": "
@@ -11504,6 +11599,11 @@ msgstr "Trino의 경우 중첩된 ROW 유형의 전체 스키마를 점으로 �
 msgid "For further instructions, consult the"
 msgstr "추가 지침은 다음을 참조하세요"
 
+msgid ""
+"For more information about objects are in context in the scope of this "
+"function, refer to the"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, ja, tr]
 #, fuzzy
 msgid ""
@@ -11951,6 +12051,9 @@ msgstr "크거나 같음 (>=)"
 msgid "Greater than (>)"
 msgstr "초과 (>)"
 
+msgid "Green for increase, red for decrease"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr, uk]
 #, fuzzy
@@ -12190,6 +12293,9 @@ msgstr "수평 (위)"
 #, fuzzy
 msgid "Horizontal alignment"
 msgstr "수평 정렬"
+
+msgid "Horizontal layout (columns)"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -13087,6 +13193,9 @@ msgstr ""
 msgid "It’s not recommended to truncate Y axis in Bar chart."
 msgstr "막대 차트에서 Y축을 잘라내는 것은 권장하지 않습니다."
 
+msgid "It’s not recommended to truncate axis in Bar chart."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk, zh, zh_TW]
@@ -13163,6 +13272,15 @@ msgstr "6월"
 #, fuzzy
 msgid "January"
 msgstr "1월"
+
+msgid "JavaScript data interceptor"
+msgstr ""
+
+msgid "JavaScript onClick href"
+msgstr ""
+
+msgid "JavaScript tooltip generator"
+msgstr ""
 
 #, fuzzy
 msgid "Jinja templating"
@@ -13332,6 +13450,15 @@ msgstr "레이블링"
 #, fuzzy
 msgid "Labels"
 msgstr "레이블"
+
+msgid "Labels for the marker lines"
+msgstr ""
+
+msgid "Labels for the markers"
+msgstr ""
+
+msgid "Labels for the ranges"
+msgstr ""
 
 #, fuzzy
 msgid "Languages"
@@ -13716,6 +13843,9 @@ msgid ""
 "does not already have. Leave empty for legacy RBAC-only behavior."
 msgstr ""
 
+msgid "Limits the number of cells that get retrieved."
+msgstr ""
+
 msgid ""
 "Limits the number of cells that get retrieved. Not applied when non-"
 "additive metrics (e.g. ratios, COUNT_DISTINCT, AVG, percentiles) are "
@@ -13863,6 +13993,9 @@ msgstr "저장된 Query 수정"
 msgid "List Roles"
 msgstr "역할 목록"
 
+msgid "List Unique Values"
+msgstr ""
+
 #, fuzzy
 msgid "List Users"
 msgstr "저장된 Query 수정"
@@ -13870,6 +14003,9 @@ msgstr "저장된 Query 수정"
 msgid ""
 "List every range, marker and marker line in a legend; clicking an entry "
 "toggles it on the chart"
+msgstr ""
+
+msgid "List of extra columns made available in JavaScript functions"
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
@@ -13884,6 +14020,12 @@ msgstr "메트릭을 n개의 버킷으로 분류하기 위한 n+1개의 값 목�
 #, fuzzy
 msgid "List of the column names that should be read"
 msgstr "읽어야 할 열 이름 목록"
+
+msgid "List of values to mark with lines"
+msgstr ""
+
+msgid "List of values to mark with triangles"
+msgstr ""
 
 #, fuzzy
 msgid "List updated"
@@ -14466,6 +14608,9 @@ msgstr "지정된 기간의 평균값"
 msgid "Mean values"
 msgstr "테이블 명"
 
+msgid "Median"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk, zh, zh_TW]
@@ -14753,6 +14898,9 @@ msgstr "메트릭"
 #, fuzzy, python-format
 msgid "Metrics (%s)"
 msgstr "메트릭"
+
+msgid "Metrics / Dimensions"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
@@ -17073,6 +17221,9 @@ msgstr "이 데이터베이스를 식별하는 데 도움이 되는 이름을 �
 msgid "Pick a nickname for how the database will display in Superset."
 msgstr "Superset에서 데이터베이스가 표시될 별명을 선택하세요."
 
+msgid "Pick a set of deck.gl charts to layer on top of one another"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk, zh, zh_TW]
@@ -18017,6 +18168,9 @@ msgstr "차트 유형"
 msgid "Ranges"
 msgstr "관리"
 
+msgid "Ranges to highlight with shading"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr, uk,
 # zh, zh_TW]
@@ -18097,12 +18251,25 @@ msgstr "직사각형"
 msgid "Recurring (every)"
 msgstr "반복 (매)"
 
+msgid "Red for increase, green for decrease"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk]
 #, fuzzy
 msgid "Redo the action"
 msgstr "작업 다시 실행"
+
+msgid "Reduce X ticks"
+msgstr ""
+
+msgid ""
+"Reduces the number of X-axis ticks to be rendered. If true, the x-axis "
+"will not overflow and labels may be missing. If false, a minimum width "
+"will be applied to columns and the width may overflow into an horizontal "
+"scroll."
+msgstr ""
 
 #, fuzzy
 msgid "Refer to the"
@@ -18879,6 +19046,9 @@ msgstr "상세 툴팁"
 #, fuzzy
 msgid "Right"
 msgstr "오른쪽"
+
+msgid "Right Axis Format"
+msgstr ""
 
 #, fuzzy
 msgid "Right Axis Metric"
@@ -19700,6 +19870,10 @@ msgstr "변경 사항 덮어쓰기를 활성화하려면 맨 아래로 스크롤
 
 msgid "Search"
 msgstr "검색"
+
+#, python-format
+msgid "Search %s records"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, it, ja, lv, mi, nl, pl, pt, pt_BR, ro, ru, sk, sl, sr,
@@ -20997,6 +21171,9 @@ msgstr "메트릭 보기"
 msgid "Show Null Values"
 msgstr ""
 
+msgid "Show Range Filter"
+msgstr ""
+
 #, fuzzy
 msgid "Show SQL"
 msgstr "컬럼 보기"
@@ -21110,6 +21287,9 @@ msgstr "컬럼 보기"
 #, fuzzy
 msgid "Show columns total"
 msgstr "컬럼 보기"
+
+msgid "Show data points as circle markers on the lines"
+msgstr ""
 
 #, fuzzy
 msgid "Show empty columns"
@@ -21257,6 +21437,9 @@ msgid "Show summary"
 msgstr "차트 보기"
 
 msgid "Show the main ticks on axes."
+msgstr ""
+
+msgid "Show the value on top of the bar"
 msgstr ""
 
 #, fuzzy
@@ -21798,6 +21981,9 @@ msgstr "권한 부여"
 msgid "Sort metric"
 msgstr "메트릭"
 
+msgid "Sort order"
+msgstr ""
+
 #, fuzzy
 msgid "Sort query by"
 msgstr "Query 공유"
@@ -21957,6 +22143,9 @@ msgstr "시리즈를 서로 위에 스택"
 #, fuzzy
 msgid "Stacked"
 msgstr "누적"
+
+msgid "Stacked Bars"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -22308,6 +22497,15 @@ msgstr ""
 #, fuzzy
 msgid "Sum"
 msgstr "합계"
+
+msgid "Sum as Fraction of Columns"
+msgstr ""
+
+msgid "Sum as Fraction of Rows"
+msgstr ""
+
+msgid "Sum as Fraction of Total"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -23840,6 +24038,13 @@ msgid ""
 "                expressions."
 msgstr ""
 
+msgid ""
+"The periodicity over which to pivot time. Users can provide\n"
+"            \"Pandas\" offset alias.\n"
+"            Click on the info bubble for more details on accepted "
+"\"freq\" expressions."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk, zh, zh_TW]
@@ -25254,6 +25459,9 @@ msgstr "이 폴더는 열만 지원합니다"
 msgid "This folder only supports metrics"
 msgstr "이 폴더는 지표만 지원합니다"
 
+msgid "This functionality is disabled in your environment for security reasons."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
 # lv, ru, sk, sr, sr_Latn, tr, uk]
 #, fuzzy
@@ -25866,6 +26074,9 @@ msgid ""
 "[%(human_readable)s later]."
 msgstr "시간 문자열이 모호합니다. [%(human_readable)s 전] 또는 [%(human_readable)s 후]로 지정하세요."
 
+msgid "Time-series Percent Change"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, ja, lv, mi, nl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr, uk, zh,
 # zh_TW]
@@ -26076,6 +26287,10 @@ msgstr "합계"
 #, fuzzy, python-format
 msgid "Total (%(aggfunc)s)"
 msgstr "합계 (%(aggfunc)s)"
+
+#, python-format
+msgid "Total (%(aggregatorName)s)"
+msgstr ""
 
 msgid ""
 "Total angle covered by the chart, in degrees. 360° draws a full circle "
@@ -26997,6 +27212,9 @@ msgstr "Handlebars 구문을 사용하여 사용자 정의 툴팁을 만드세�
 msgid "Use a log scale"
 msgstr "로그 척도 사용"
 
+msgid "Use a log scale for the X-axis"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk, zh, zh_TW]
@@ -27416,6 +27634,9 @@ msgstr "수직"
 msgid "Vertical (Left)"
 msgstr "수직 (왼쪽)"
 
+msgid "Vertical layout (rows)"
+msgstr ""
+
 #, fuzzy
 msgid "View"
 msgstr "데이터 미리보기"
@@ -27656,6 +27877,12 @@ msgid ""
 msgstr ""
 "단계 구분도에서 국가의 주요 행정 구역(주, 도 등)에 걸쳐 단일 지표가 어떻게 달라지는지 시각화합니다. 해당 지리적 경계 위에 "
 "마우스를 올리면 각 구역의 값이 강조됩니다."
+
+msgid ""
+"Visualizes many different time-series objects in a single chart. This "
+"chart is being deprecated and we recommend using the Time-series Chart "
+"instead."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -28215,6 +28442,12 @@ msgstr "지표 이름을 표시할지 여부"
 msgid "Whether to display the metric name as a title"
 msgstr "지표 이름을 제목으로 표시할지 여부"
 
+msgid "Whether to display the min and max values of the X-axis"
+msgstr ""
+
+msgid "Whether to display the min and max values of the Y-axis"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
 #, fuzzy
@@ -28239,6 +28472,9 @@ msgstr "툴팁에 백분율 값을 표시할지 여부"
 #, fuzzy
 msgid "Whether to display the stroke"
 msgstr "윤곽선을 표시할지 여부"
+
+msgid "Whether to display the time range interactive selector"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -28397,6 +28633,9 @@ msgstr "내림차순 또는 오름차순으로 정렬할지 여부"
 msgid "Whether to sort results by the selected metric in descending order."
 msgstr "선택한 지표를 기준으로 결과를 내림차순으로 정렬할지 여부."
 
+msgid "Whether to sort tooltip by the selected metric in descending order."
+msgstr ""
+
 msgid ""
 "Whether to sort tooltip by the selected metric in descending order. On "
 "stacked charts, values are shown in ascending order."
@@ -28525,6 +28764,9 @@ msgstr "쿼리에 대한 설명을 작성하세요"
 msgid "Write a handlebars template to render the data"
 msgstr "데이터를 렌더링하기 위한 Handlebars 템플릿을 작성하세요"
 
+msgid "X AXIS TITLE MARGIN"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt, pt_BR, ro, ru, sk, sl, sr, sr_Latn,
 # tr, uk, zh, zh_TW]
@@ -28574,6 +28816,9 @@ msgstr "X 축 제목 여백"
 msgid "X Axis title margin"
 msgstr ""
 
+msgid "X Log Scale"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk, zh, zh_TW]
@@ -28587,6 +28832,9 @@ msgstr "X 눈금 레이아웃"
 #, fuzzy
 msgid "X axis title margin"
 msgstr "X 축 제목 여백"
+
+msgid "X bounds"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr, uk]
@@ -28615,12 +28863,21 @@ msgstr "새로고침 간격"
 msgid "XYZ"
 msgstr ""
 
+msgid "Y 2 bounds"
+msgstr ""
+
+msgid "Y AXIS TITLE MARGIN"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt, pt_BR, ro, ru, sk, sl, sr, sr_Latn,
 # tr, uk, zh, zh_TW]
 #, fuzzy
 msgid "Y Axis"
 msgstr "Y 축"
+
+msgid "Y Axis 2 Bounds"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -28679,6 +28936,9 @@ msgstr "Y 로그 스케일"
 #, fuzzy
 msgid "Y axis title margin"
 msgstr "Y 축 제목 여백"
+
+msgid "Y bounds"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fa, fr, ja, lv, mi, ro, ru, sk, sl, sr, sr_Latn, tr, uk]
@@ -28936,6 +29196,9 @@ msgid ""
 "You cannot delete the last temporal filter as it's used for time range "
 "filters in dashboards."
 msgstr "마지막 시간 필터는 대시보드의 시간 범위 필터에 사용되므로 삭제할 수 없습니다."
+
+msgid "You cannot use 45° tick layout along with the time range filter"
+msgstr ""
 
 #, python-format
 msgid "You do not have access to the data behind this chart (tables: %s)."
@@ -29234,6 +29497,9 @@ msgstr ""
 #, fuzzy
 msgid "You need to"
 msgstr "해야 합니다"
+
+msgid "You need to configure HTML sanitization to use CSS"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -29660,6 +29926,9 @@ msgstr "컬럼 수정"
 msgid "banana"
 msgstr "바나나"
 
+msgid "basis"
+msgstr ""
+
 #, fuzzy
 msgid "begins with"
 msgstr "차트 유형"
@@ -29730,6 +29999,9 @@ msgstr "을(를) 사용하여"
 #, fuzzy
 msgid "cannot be empty"
 msgstr "비울 수 없습니다"
+
+msgid "cardinal"
+msgstr ""
 
 #, fuzzy
 msgid "cell bar"
@@ -29991,6 +30263,9 @@ msgstr "deck.gl 산점도"
 msgid "deck.gl Screen Grid"
 msgstr "deck.gl 화면 격자"
 
+msgid "deck.gl charts"
+msgstr ""
+
 #, fuzzy
 msgid "deck.gl layers (charts)"
 msgstr "차트 추가"
@@ -30156,6 +30431,9 @@ msgstr "D3 포멧"
 #, fuzzy
 msgid "entries"
 msgstr "저장된 Query"
+
+msgid "entries per page"
+msgstr ""
 
 #. do-not-translate
 #, fuzzy
@@ -30433,6 +30711,9 @@ msgstr "삭제"
 msgid "less than {min} {name}"
 msgstr "{min} {name} 미만"
 
+msgid "linear"
+msgstr ""
+
 #, fuzzy
 msgid "locale_key"
 msgstr "레이블"
@@ -30497,6 +30778,9 @@ msgstr "분"
 #, fuzzy
 msgid "minute(s)"
 msgstr "5분"
+
+msgid "monotone"
+msgstr ""
 
 msgid "month"
 msgstr "월"
@@ -30586,6 +30870,9 @@ msgstr "메트릭"
 #, fuzzy
 msgid "numeric type icon"
 msgstr "숫자 유형 아이콘"
+
+msgid "nvd3"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, fr,
 # ja, lv, ro, ru, sk, sr, sr_Latn, tr, uk]
@@ -30871,6 +31158,14 @@ msgstr "엇갈린"
 #, fuzzy
 msgid "std"
 msgstr "표준편차"
+
+#. do-not-translate
+msgid "step-after"
+msgstr ""
+
+#. do-not-translate
+msgid "step-before"
+msgstr ""
 
 #, fuzzy
 msgid "stopped"
