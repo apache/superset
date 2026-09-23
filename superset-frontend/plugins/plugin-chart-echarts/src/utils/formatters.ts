@@ -280,12 +280,18 @@ export function createDedupXAxisFormatter(
  *
  * The forced axis boundary labels (domainMin/domainMax) are never blanked by
  * the spacing check so they stay visible regardless of density.
+ *
+ * `showAllLabels` (the "All" X Axis Label Interval option) skips the spacing
+ * check so every tick renders, even ones that would visually collide. The
+ * identical-text dedup still applies, since that's not density thinning, it
+ * just avoids literally printing the same label twice in a row.
  */
 export function createSpacedXAxisFormatter(
   xAxisFormatter: XAxisFormatterFn | undefined,
   domainMin: number | undefined,
   domainMax: number | undefined,
   plotWidthPx: number,
+  showAllLabels: boolean = false,
 ): (value: number | string) => string {
   const pixelsPerMs =
     domainMin !== undefined && domainMax !== undefined && domainMax > domainMin
@@ -320,6 +326,7 @@ export function createSpacedXAxisFormatter(
     const isBoundary =
       typeof value === 'number' && (value === domainMin || value === domainMax);
     if (
+      !showAllLabels &&
       !isBoundary &&
       typeof value === 'number' &&
       pixelsPerMs !== undefined &&

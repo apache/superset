@@ -27,6 +27,7 @@ import {
   TimeGranularity,
 } from '@superset-ui/core';
 import {
+  createSpacedXAxisFormatter,
   getPercentFormatter,
   getTooltipTimeFormatter,
   getXAxisFormatter,
@@ -348,4 +349,40 @@ test('getSmartDateFormatter SECOND grain distinguishes different seconds', () =>
   const date1 = new Date('2024-01-15T10:35:00Z');
   const date2 = new Date('2024-01-15T10:35:45Z');
   expect(formatter.format(date1)).not.toBe(formatter.format(date2));
+});
+
+test('createSpacedXAxisFormatter blanks labels that would visually collide', () => {
+  const formatter = createSpacedXAxisFormatter(
+    (value: number | string) => String(value),
+    0,
+    1000,
+    100,
+  );
+  const labels = [0, 100, 200, 300, 1000].map(value => formatter(value));
+
+  // Ticks close together at this pixel density collide with the last shown
+  // label and get blanked, until one falls far enough past it.
+  expect(labels).toEqual(['0', '', '', '300', '1000']);
+});
+
+test('createSpacedXAxisFormatter shows every label when showAllLabels bypasses the spacing check', () => {
+  const formatter = createSpacedXAxisFormatter(
+    (value: number | string) => String(value),
+    0,
+    1000,
+    100,
+    true,
+  );
+  const labels = [0, 100, 200, 300, 1000].map(value => formatter(value));
+
+  expect(labels).toEqual(['0', '100', '200', '300', '1000']);
+});
+
+test('createSpacedXAxisFormatter still dedupes identical consecutive labels when showAllLabels is set', () => {
+  // showAllLabels only bypasses density thinning; two ticks that format to
+  // literally the same text are still deduped, since that's not thinning.
+  const formatter = createSpacedXAxisFormatter(() => 'Jan', 0, 1000, 100, true);
+  const labels = [0, 100, 200].map(value => formatter(value));
+
+  expect(labels).toEqual(['Jan', '', '']);
 });

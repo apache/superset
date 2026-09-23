@@ -3290,4 +3290,88 @@ describe('xAxisLabelInterval string "0" is converted to number 0', () => {
     const xAxisRaw = (result.xAxis as any).axisLabel;
     expect(xAxisRaw.interval).toBe(3);
   });
+
+  test('shows every label for closely spaced points when interval is "0", bypassing the spacing formatter too', () => {
+    // hideOverlap alone isn't enough: on a pinned weekly/monthly axis
+    // (resolvedTimeGrain + 0° rotation), labels also go through a spacing
+    // formatter that blanks ones close enough to visually collide (#39899).
+    // "All" has to bypass that too, or it silently keeps thinning despite
+    // interval/hideOverlap both saying "show everything". A 2-point fixture
+    // can't exercise this: there's nothing close enough to collide.
+    const dailyData = Array.from({ length: 30 }, (_, i) => ({
+      __timestamp: Date.UTC(2003, 0, i + 1),
+      sales: i,
+    }));
+    const build = (xAxisLabelInterval: string | number | undefined) =>
+      transformProps(
+        createTestChartProps({
+          formData: {
+            granularity_sqla: 'ds',
+            timeGrainSqla: TimeGranularity.DAY,
+            xAxisTimeFormat: '%Y-%m-%d',
+            seriesType: EchartsTimeseriesSeriesType.Bar,
+            xAxisLabelInterval,
+          },
+          width: 300,
+          queriesData: [
+            createTestQueryData(dailyData, {
+              colnames: ['__timestamp', 'sales'],
+              coltypes: [GenericDataType.Temporal, GenericDataType.Numeric],
+            }),
+          ],
+        }),
+      ).echartOptions;
+
+    const formatAll = (echartOptions: ReturnType<typeof build>) => {
+      const { formatter } = (echartOptions.xAxis as any).axisLabel;
+      return dailyData.map(({ __timestamp }) => formatter(__timestamp));
+    };
+
+    // Sanity check: at this width, 30 daily labels do collide under the
+    // default interval, so the spacing formatter blanks some of them.
+    const defaultLabels = formatAll(build(undefined));
+    expect(defaultLabels.filter(label => label === '')).not.toHaveLength(0);
+
+    const allLabels = formatAll(build('0'));
+    expect(allLabels.filter(label => label === '')).toHaveLength(0);
+  });
+
+  test('uncaps axisTick to match axisLabel on a pinned weekly axis when interval is "0"', () => {
+    // Gridlines/ticks follow axisTick.customValues, which normally stays
+    // capped (at most 60 marks) even when axisLabel goes uncapped, so a
+    // label surviving thinning still lands on a real tick. "All" wants every
+    // label to show, so a capped tick set would leave labels beyond the cap
+    // without a matching gridline, defeating the point.
+    const WEEK_MS = 7 * 24 * 3600 * 1000;
+    const manyMondays = Array.from(
+      { length: 261 },
+      (_, i) => Date.UTC(2021, 0, 4) + i * WEEK_MS,
+    );
+    const result = transformProps(
+      createTestChartProps({
+        formData: {
+          granularity_sqla: 'ds',
+          timeGrainSqla: TimeGranularity.WEEK_STARTING_MONDAY,
+          xAxisTimeFormat: '%m-%d',
+          xAxisLabelInterval: '0',
+        },
+        queriesData: [
+          createTestQueryData(
+            manyMondays.map((__timestamp, i) => ({
+              __timestamp,
+              sales: 100 + i,
+            })),
+            {
+              colnames: ['__timestamp', 'sales'],
+              coltypes: [GenericDataType.Temporal, GenericDataType.Numeric],
+            },
+          ),
+        ],
+      }),
+    ).echartOptions;
+
+    const { xAxis } = result as any;
+    expect(xAxis.axisLabel.customValues).toEqual(manyMondays);
+    expect(xAxis.axisTick.customValues).toEqual(manyMondays);
+  });
 });

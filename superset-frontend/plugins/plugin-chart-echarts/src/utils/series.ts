@@ -1091,12 +1091,22 @@ export function capTickMarks(
  * MixedTimeseries. When temporalTickValues pins the axis to weekly buckets,
  * axisTick.customValues (what splitLine/gridlines follow) is downsampled to
  * avoid combing a long weekly range. axisLabel.customValues (what hideOverlap
- * thins from) uses the same capped set on a non-zoomable axis, so a label
- * surviving hideOverlap thinning always lands on a real tick and gridline
- * rather than a capped-away bucket. On a zoomable axis the full set is used
- * instead — zooming lets the user reach any bucket, but customValues never
- * recomputes on dataZoom, so a capped set there would freeze the visible
- * labels to the pre-zoom subset.
+ * thins from) uses the same capped set on a non-zoomable, non-"All" axis, so
+ * a label surviving hideOverlap thinning always lands on a real tick and
+ * gridline rather than a capped-away bucket.
+ *
+ * On a zoomable axis, axisLabel uses the full set instead — zooming lets the
+ * user reach any bucket, but customValues never recomputes on dataZoom, so a
+ * capped set there would freeze the visible labels to the pre-zoom subset.
+ * axisTick deliberately stays capped in that case; hideOverlap keeps thinning
+ * the (uncapped) labels dynamically, so gridlines don't need to track them
+ * 1:1, and a full weekly gridline set on a long zoomable range is its own
+ * source of clutter.
+ *
+ * When the user picks "All" (interval === 0), the tradeoff is different:
+ * every label is meant to be shown, so a label landing on a capped-away tick
+ * with no matching gridline would defeat the point. axisTick uncaps to match
+ * axisLabel in that case, on both zoomable and non-zoomable axes.
  */
 export function getTemporalAxisTickConfig(
   temporalTickValues: number[] | undefined,
@@ -1120,7 +1130,9 @@ export function getTemporalAxisTickConfig(
   const showAllLabels = xAxisLabelInterval === 0;
   // On a zoomable axis the full set is already used; for "All" we also bypass
   // the cap so every tick gets a label rather than the 60-mark subset.
-  const labelCustomValues = zoomable || showAllLabels
+  const labelCustomValues =
+    zoomable || showAllLabels ? temporalTickValues : cappedTickValues;
+  const tickCustomValues = showAllLabels
     ? temporalTickValues
     : cappedTickValues;
 
@@ -1159,7 +1171,7 @@ export function getTemporalAxisTickConfig(
         }),
       ...(labelCustomValues && { customValues: labelCustomValues }),
     },
-    ...(cappedTickValues && { axisTick: { customValues: cappedTickValues } }),
+    ...(tickCustomValues && { axisTick: { customValues: tickCustomValues } }),
   };
 }
 
