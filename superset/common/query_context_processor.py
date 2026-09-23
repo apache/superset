@@ -50,6 +50,7 @@ from superset.explorables.base import Explorable
 from superset.extensions import cache_manager, security_manager
 from superset.models.helpers import QueryResult
 from superset.superset_typing import AdhocColumn, AdhocMetric, Column
+from superset.tasks.query_cancel import cancellable_chart_query
 from superset.utils import csv, excel
 from superset.utils.cache import generate_cache_key, set_and_log_cache
 from superset.utils.core import (
@@ -303,7 +304,15 @@ class QueryContextProcessor:
                         )
                     )
 
-                query_result = self.get_query_result(query_obj)
+                # Make the warehouse query cancellable by its owner for the span
+                # of its execution, so Explore's Stop button kills the query
+                # rather than just abandoning the response. No-op for engines
+                # without cancel support, and for requests carrying no client_id.
+                with cancellable_chart_query(
+                    self._query_context.client_id,
+                    getattr(self._qc_datasource, "database", None),
+                ):
+                    query_result = self.get_query_result(query_obj)
                 annotation_data = self.get_annotation_data(query_obj)
             except QueryObjectValidationError as ex:
                 cache.error_message = str(ex)
