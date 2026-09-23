@@ -30,6 +30,7 @@ from pydantic import ValidationError
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from superset_core.mcp.decorators import tool, ToolAnnotations
 
+from superset.dashboards.layout import repair_position
 from superset.extensions import db, event_logger
 from superset.mcp_service.dashboard.constants import (
     generate_id,
@@ -277,7 +278,7 @@ def generate_dashboard(  # noqa: C901
                 # ancestor chains so server-side filter-scope derivation
                 # sees the same tree the frontend would after hydration.
                 # See superset.dashboards.filter_scope.get_chart_ids_in_scope.
-                layout = rebuild_parent_chains(request.position_json)
+                layout = rebuild_parent_chains(repair_position(request.position_json))
             else:
                 layout = _create_dashboard_layout(chart_objects)
 
