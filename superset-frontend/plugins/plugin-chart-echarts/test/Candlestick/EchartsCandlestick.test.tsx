@@ -142,3 +142,48 @@ test('opens drill-to-detail with x-axis and series filters on right-click', () =
     }),
   );
 });
+
+test('emits IS NULL when drill-to-detail hits a null x-category', () => {
+  const onContextMenu = jest.fn();
+  const transformed = transformProps(
+    new ChartProps({
+      formData: {
+        datasource: '3__table',
+        x_axis: 'date',
+        open: 'open',
+        close: 'close',
+        high: 'high',
+        low: 'low',
+        moving_averages: [],
+      },
+      width: 800,
+      height: 600,
+      queriesData: [
+        {
+          data: [{ date: null, open: 20, close: 34, low: 10, high: 38 }],
+        },
+      ],
+      theme: supersetTheme,
+      hooks: { onContextMenu },
+    }) as unknown as EchartsCandlestickChartProps,
+  );
+
+  render(<EchartsCandlestick {...transformed} onContextMenu={onContextMenu} />);
+
+  const { eventHandlers } = mockedEchart.mock.calls[0][0] as {
+    eventHandlers: EventHandlers;
+  };
+  eventHandlers.contextmenu({
+    event: { stop: jest.fn(), event: { clientX: 12, clientY: 34 } },
+    dataIndex: 0,
+    seriesType: 'candlestick',
+  });
+
+  expect(onContextMenu).toHaveBeenCalledWith(
+    12,
+    34,
+    expect.objectContaining({
+      drillToDetail: [expect.objectContaining({ col: 'date', op: 'IS NULL' })],
+    }),
+  );
+});

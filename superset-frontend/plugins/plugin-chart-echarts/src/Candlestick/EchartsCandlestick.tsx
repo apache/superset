@@ -56,10 +56,19 @@ function toFilterClause(
   formattedVal: string,
   grain?: TimeGranularity,
 ): BinaryQueryObjectFilterClause {
+  const val = toFilterValue(value);
+  if (val == null) {
+    return {
+      col,
+      op: 'IS NULL' as BinaryQueryObjectFilterClause['op'],
+      val: null,
+      formattedVal,
+    };
+  }
   return {
     col,
     op: '==',
-    val: toFilterValue(value),
+    val,
     formattedVal,
     ...(grain ? { grain } : {}),
   };
