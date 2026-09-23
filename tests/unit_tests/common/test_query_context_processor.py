@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 
+from collections.abc import Iterator
 from datetime import datetime, timedelta
 from typing import Any
 from unittest.mock import MagicMock, patch
@@ -115,7 +116,7 @@ def processor(mock_query_context):
     return processor
 
 
-def test_annotation_cache_key_binds_native_annotation_read_scope(processor):
+def test_annotation_cache_key_binds_native_annotation_read_scope(processor) -> None:
     """The annotation cache key for NATIVE layers must differ when the
     requester's ``can_read`` (Annotation) access differs -- not who they are."""
     query_obj = MagicMock()
@@ -140,7 +141,7 @@ def test_annotation_cache_key_binds_native_annotation_read_scope(processor):
     assert contexts[0] != contexts[1]
 
 
-def test_annotation_cache_key_shares_across_same_access_scope():
+def test_annotation_cache_key_shares_across_same_access_scope() -> None:
     """Two distinct requesters (separate processor/query-object instances,
     standing in for two different requests) with identical access scope must
     produce identical annotation-context material. Reusing a single
@@ -164,7 +165,7 @@ def test_annotation_cache_key_shares_across_same_access_scope():
     assert context_a == context_b
 
 
-def test_query_cache_key_does_not_bind_annotation_scope(processor):
+def test_query_cache_key_does_not_bind_annotation_scope(processor) -> None:
     """The dataframe cache key must stay shared across viewers of the same
     chart, even when the query has annotation layers — only the separate
     annotation cache key (see above) carries access-scope material."""
@@ -181,7 +182,7 @@ def test_query_cache_key_does_not_bind_annotation_scope(processor):
 
 
 @pytest.fixture
-def mock_annotation_chart():
+def mock_annotation_chart() -> Iterator[MagicMock]:
     """A found chart, wired as the referenced chart for
     ``_annotation_source_scope`` tests -- factors out the repeated
     ``ChartDAO.find_by_id`` patch those tests all need."""
@@ -195,7 +196,7 @@ def mock_annotation_chart():
 
 def test_annotation_source_scope_binds_datasource_access(
     processor, mock_annotation_chart
-):
+) -> None:
     """A chart-backed annotation layer's scope must differ when the
     requester's access to the referenced datasource differs."""
     mock_annotation_chart.get_query_context.return_value = None
@@ -214,7 +215,7 @@ def test_annotation_source_scope_binds_datasource_access(
 
 def test_annotation_source_scope_reuses_referenced_chart_cache_key(
     processor, mock_annotation_chart
-):
+) -> None:
     """When the referenced chart has a saved query context, its own cache
     key(s) -- covering RLS and per-user Jinja/virtual-dataset material -- are
     reused rather than re-derived."""
@@ -235,7 +236,7 @@ def test_annotation_source_scope_reuses_referenced_chart_cache_key(
 
 def test_annotation_source_scope_fails_closed_on_any_derivation_error(
     processor, mock_annotation_chart
-):
+) -> None:
     """A lookup failure must fail closed rather than silently deduping onto a
     successfully-derived scope -- and not just for SupersetException: the RLS
     lookup is a real DB query and get_extra_cache_keys() renders Jinja for
@@ -254,7 +255,7 @@ def test_annotation_source_scope_fails_closed_on_any_derivation_error(
 
 def test_annotation_source_scope_fallback_lookup_also_fails_closed(
     processor, mock_annotation_chart
-):
+) -> None:
     """If the fallback's own RLS lookup fails too (e.g. the same DB outage
     that failed the primary derivation), that must not escape either."""
     mock_annotation_chart.get_query_context.side_effect = RuntimeError("db boom")
@@ -268,7 +269,7 @@ def test_annotation_source_scope_fallback_lookup_also_fails_closed(
     assert scope == {"access": False, "data_key": None}
 
 
-def test_annotation_source_scope_none_when_chart_missing(processor):
+def test_annotation_source_scope_none_when_chart_missing(processor) -> None:
     with patch(
         "superset.common.query_context_processor.ChartDAO.find_by_id",
         return_value=None,

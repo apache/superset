@@ -525,12 +525,15 @@ class QueryContextProcessor:
         RLS material — reusing it here avoids re-deriving that logic and
         automatically inherits any future correctness fixes made there.
         """
-        chart = ChartDAO.find_by_id(layer_value) if layer_value is not None else None
-        datasource = chart.datasource if chart else None
-        if chart is None or datasource is None:
-            return {"access": None, "data_key": None}
-
+        datasource = None
         try:
+            chart = (
+                ChartDAO.find_by_id(layer_value) if layer_value is not None else None
+            )
+            datasource = chart.datasource if chart else None
+            if chart is None or datasource is None:
+                return {"access": None, "data_key": None}
+
             access = security_manager.can_access_datasource(datasource)
             # Fall back to the RLS-clause identity when the chart has no saved
             # query context to key on.
@@ -544,8 +547,9 @@ class QueryContextProcessor:
                 else security_manager.get_rls_cache_key(datasource)
             )
         except Exception:  # noqa: BLE001  pylint: disable=broad-except
-            # Derivation can fail well beyond SupersetException: the RLS
-            # lookup is a live DB query and a virtual dataset's
+            # Derivation can fail well beyond SupersetException: the DAO
+            # lookup and lazy ``datasource`` load are themselves live DB
+            # queries, and the RLS lookup / a virtual dataset's
             # get_extra_cache_keys() renders Jinja, either of which can raise
             # a driver/template error. None of that should ever 500 the whole
             # chart-data request; fail closed instead so this scope can't
@@ -557,7 +561,11 @@ class QueryContextProcessor:
                 exc_info=True,
             )
             try:
-                fallback_data_key = security_manager.get_rls_cache_key(datasource)
+                fallback_data_key = (
+                    security_manager.get_rls_cache_key(datasource)
+                    if datasource is not None
+                    else None
+                )
             except Exception:  # noqa: BLE001  pylint: disable=broad-except
                 # The fallback's own lookup can fail the same way (e.g. the
                 # same DB outage that failed the primary derivation) -- don't
