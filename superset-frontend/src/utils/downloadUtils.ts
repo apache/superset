@@ -19,7 +19,6 @@
 import { FeatureFlag, isFeatureEnabled } from '@superset-ui/core';
 import { t } from '@apache-superset/core/translation';
 import { logging } from '@apache-superset/core/utils';
-import { addInfoToast } from 'src/components/MessageToasts/actions';
 import {
   FORCE_IN_VIEW_EVENT,
   RESTORE_VIRTUALIZATION_EVENT,
@@ -129,11 +128,15 @@ function chunk<T>(items: T[], size: number): T[][] {
  *   own, so an unbound creator would only build a Redux action object and
  *   never render a toast. Covers the case where charts still haven't
  *   finished loading once the overall timeout elapses.
+ * @param addInfoToast same contract as `addWarningToast`. Announces that a
+ *   multi-batch export is underway, so only the dashboard-wide export (the one
+ *   caller whose container actually holds rows) ever needs to pass it.
  */
 export async function forceLoadAllCharts(
   container: Element,
   onProgress?: (progress: ForceLoadProgress) => void,
   addWarningToast?: (message: string) => void,
+  addInfoToast?: (message: string) => void,
 ): Promise<boolean> {
   const useVirtualization = isFeatureEnabled(
     FeatureFlag.DashboardVirtualization,
@@ -150,7 +153,7 @@ export async function forceLoadAllCharts(
       // force everything into view in a single pass, same as before batching.
       window.dispatchEvent(new Event(FORCE_IN_VIEW_EVENT));
     } else {
-      addInfoToast(
+      addInfoToast?.(
         t('Preparing %(count)s charts for export. This may take a moment.', {
           count: rowElements.length,
         }),

@@ -154,6 +154,7 @@ export const useDownloadMenuItems = (
         dashboardTitle,
         true,
         addWarningToast,
+        addInfoToast,
       )(e);
     } catch (error) {
       logging.error(error);
@@ -171,6 +172,7 @@ export const useDownloadMenuItems = (
         undefined,
         undefined,
         addWarningToast,
+        addInfoToast,
       )(e);
     } catch (error) {
       logging.error(error);
