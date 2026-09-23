@@ -17,6 +17,8 @@
 from datetime import datetime, timezone
 from unittest.mock import Mock, patch
 
+import pytest
+
 from superset.common.query_context_factory import QueryContextFactory
 from superset.common.query_object import QueryObject
 from superset.models.slice import Slice
@@ -565,6 +567,44 @@ class TestQueryContextFactory:
         )
 
         assert query_object.granularity == "ds"
+
+    @pytest.mark.parametrize(
+        ("granularity", "expected"),
+        [
+            ("event_time", "event_time"),
+            (None, "ds"),
+            ("", "ds"),
+            ("dropped_col", "ds"),
+            ("dimension", "ds"),
+        ],
+    )
+    def test_apply_granularity_prefers_current_form_data_key(
+        self, granularity: str | None, expected: str
+    ) -> None:
+        """Prefer the current key while retaining valid legacy fallbacks."""
+        query_object = Mock(spec=QueryObject)
+        query_object.granularity = None
+        query_object.is_timeseries = True
+        query_object.columns = ["ds"]
+        query_object.post_processing = []
+        query_object.filter = []
+
+        datasource = Mock()
+        datasource.main_dttm_col = "other_dttm"
+        datasource.columns = [
+            {"column_name": "ds", "is_dttm": True},
+            {"column_name": "event_time", "is_dttm": True},
+            {"column_name": "other_dttm", "is_dttm": True},
+            {"column_name": "dimension", "is_dttm": False},
+        ]
+
+        self.factory._apply_granularity(
+            query_object,
+            {"granularity": granularity, "granularity_sqla": "ds"},
+            datasource,
+        )
+
+        assert query_object.granularity == expected
 
     def test_legacy_granularity_preserves_independent_temporal_filter(self) -> None:
         """Legacy fallback preserves a filter on a different datetime column."""

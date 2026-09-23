@@ -289,14 +289,14 @@ class QueryContextFactory:  # pylint: disable=too-few-public-methods
             # stored ``query_context`` verbatim reaches the
             # ``not granularity and is_timeseries`` guard in ``models/helpers``
             # and fails with "Datetime column not provided as part table
-            # configuration". Resolving the legacy key here, and only then the
-            # dataset's main datetime column, gives both kinds of consumer the
-            # same time subject. Candidates are matched against the dataset's
+            # configuration". Prefer ``granularity`` over ``granularity_sqla``,
+            # then the dataset's main datetime column, to match those consumers.
+            # Candidates are matched against the dataset's
             # temporal columns so one that has since been dropped, or is no
             # longer temporal, is ignored.
             candidates = (
-                (form_data or {}).get("granularity_sqla"),
                 (form_data or {}).get("granularity"),
+                (form_data or {}).get("granularity_sqla"),
                 getattr(datasource, "main_dttm_col", None),
             )
             query_object.granularity = next(
