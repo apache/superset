@@ -321,3 +321,39 @@ test('keeps a trapped chart missing from the charts payload in the layout', () =
   expect(layout[rowId].children).toEqual(['CHART-archived']);
   expect(layout['CHART-archived'].meta.chartId).toBe(42);
 });
+
+test('rebuilds stale parents from the layout children', () => {
+  const positionData = {
+    [DASHBOARD_ROOT_ID]: layoutItem(
+      DASHBOARD_ROOT_ID,
+      DASHBOARD_ROOT_TYPE,
+      [DASHBOARD_GRID_ID],
+      [],
+    ),
+    [DASHBOARD_GRID_ID]: layoutItem(
+      DASHBOARD_GRID_ID,
+      DASHBOARD_GRID_TYPE,
+      ['ROW-a'],
+      [DASHBOARD_ROOT_ID],
+    ),
+    'ROW-a': layoutItem('ROW-a', ROW_TYPE, ['COLUMN-a'], [DASHBOARD_ROOT_ID]),
+    'COLUMN-a': layoutItem(
+      'COLUMN-a',
+      COLUMN_TYPE,
+      [],
+      [DASHBOARD_ROOT_ID, DASHBOARD_GRID_ID, 'ROW-stale'],
+    ),
+  };
+
+  const layout = hydrate(positionData).data.dashboardLayout.present;
+
+  expect(layout['ROW-a'].parents).toEqual([
+    DASHBOARD_ROOT_ID,
+    DASHBOARD_GRID_ID,
+  ]);
+  expect(layout['COLUMN-a'].parents).toEqual([
+    DASHBOARD_ROOT_ID,
+    DASHBOARD_GRID_ID,
+    'ROW-a',
+  ]);
+});

@@ -244,17 +244,12 @@ export const hydrateDashboard =
       }
     });
 
-    // make sure that parents tree is built
-    if (
-      Object.values(layout).some(
-        element => element.id !== DASHBOARD_ROOT_ID && !element.parents,
-      )
-    ) {
-      updateComponentParentsList({
-        currentComponent: layout[DASHBOARD_ROOT_ID] as LayoutItem,
-        layout: layout as Record<string, LayoutItem>,
-      });
-    }
+    // stored `parents` can be stale (e.g. after the repair above), and the drop
+    // indicator trusts them, so always rebuild from `children`
+    updateComponentParentsList({
+      currentComponent: layout[DASHBOARD_ROOT_ID] as LayoutItem,
+      layout: layout as Record<string, LayoutItem>,
+    });
 
     buildActiveFilters({
       dashboardFilters: dashboardFilters as Parameters<
