@@ -327,7 +327,6 @@ development = [
     "sqloxide",
     "statsd",
     "syntaqlite>=0.9.0,<0.10.0",
-    "tiktoken==0.14.0",  # reproducible MCP inventory token budgets
 ]
 
 [project.urls]

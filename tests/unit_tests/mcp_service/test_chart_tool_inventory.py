@@ -22,7 +22,6 @@ from copy import deepcopy
 from typing import Any
 
 import pytest
-import tiktoken
 from fastmcp.tools import FunctionTool
 from jsonschema import Draft202012Validator
 from pydantic import BaseModel
@@ -40,14 +39,14 @@ from superset.mcp_service.server import (
 )
 from superset.utils import json
 
-# Compact JSON, UTF-8 bytes and tiktoken 0.14.0 / cl100k_base tokens measured
-# independently (BPE estimates, not a Claude tokenizer or bytes/token conversion).
-# Apache f8f293d2 -> reference-preserving inventory, including tool metadata:
-# generate_chart:        97013 B / 23543 tok -> 49531 B / 11849 tok
-# update_chart:         104163 B / 25227 tok -> 53395 B / 12759 tok
-# generate_explore_link: 96581 B / 23478 tok -> 49230 B / 11806 tok
+# Compact JSON, measured as UTF-8 bytes, including tool metadata.
+# Apache f8f293d2 -> reference-preserving inventory:
+# generate_chart:        97013 B -> 49531 B
+# update_chart:         104163 B -> 53395 B
+# generate_explore_link: 96581 B -> 49230 B
 # update_chart exceeds the proposed 50 kB target; 55 kB retains the entire
-# contract and stays below the 100 kB delivery cap. All use a 20k token budget.
+# contract and stays below the 100 kB delivery cap. Byte budgets catch reference
+# inlining without a tokenizer vocabulary download in the unit-test path.
 TOOL_BUDGETS = [
     ("generate_chart", 50_000),
     ("update_chart", 55_000),
@@ -88,12 +87,8 @@ async def test_chart_tool_inventory_size(name: str, byte_budget: int) -> None:
     assert "inputSchema" in entry  # Summary mode must not mask a size regression.
     text = json.dumps(entry, ensure_ascii=False, separators=(",", ":"))
     byte_count = len(text.encode("utf-8"))
-    token_count = len(
-        tiktoken.get_encoding("cl100k_base").encode(text, disallowed_special=())
-    )
 
     assert byte_count <= byte_budget, (name, byte_count)
-    assert token_count <= 20_000, (name, token_count)
 
 
 @pytest.mark.asyncio

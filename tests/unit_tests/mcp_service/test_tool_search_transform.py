@@ -21,6 +21,7 @@ import logging
 from types import SimpleNamespace
 from unittest.mock import MagicMock, Mock, patch
 
+import pytest
 from fastmcp.server.transforms.search import BM25SearchTransform, RegexSearchTransform
 from flask import Flask, g
 
@@ -475,8 +476,9 @@ def test_create_serializer_truncates_descriptions():
     assert len(result[0]["description"]) <= 53  # 50 + potential "..."
 
 
-def test_create_serializer_disabled():
-    """When compact_schemas=False and max_description_length=0, no compaction."""
+@pytest.mark.parametrize("compact", [False, True])
+def test_create_serializer_disabled(compact: bool) -> None:
+    """An explicit zero description limit disables truncation in either mode."""
     tool = _make_mock_tool(
         "test_tool",
         "A long description " * 20,
@@ -487,7 +489,11 @@ def test_create_serializer_disabled():
     )
 
     serializer = _create_search_result_serializer(
-        {"include_schemas": True, "compact_schemas": False, "max_description_length": 0}
+        {
+            "include_schemas": True,
+            "compact_schemas": compact,
+            "max_description_length": 0,
+        }
     )
     result = serializer([tool])
 
