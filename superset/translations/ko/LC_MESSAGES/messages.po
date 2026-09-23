@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-22 21:43+0530\n"
+"POT-Creation-Date: 2026-09-23 20:25+0530\n"
 "PO-Revision-Date: 2019-02-02 22:28+0900\n"
 "Last-Translator: \n"
 "Language: ko\n"
@@ -18188,6 +18188,9 @@ msgstr "생성자"
 msgid "Reload SQL Lab"
 msgstr "SQL Lab 다시 로드"
 
+msgid "Reload the page and try again to continue."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk, zh, zh_TW]
@@ -19785,6 +19788,9 @@ msgstr "보안"
 
 msgid "Security"
 msgstr "보안"
+
+msgid "Security token error"
+msgstr ""
 
 #, fuzzy
 msgid "See "
@@ -22799,6 +22805,9 @@ msgstr "이 차트에 연결된 %s이(가) 삭제되었을 수 있습니다."
 #, fuzzy, python-format
 msgid "The API response from %s does not match the IDatabaseTable interface."
 msgstr "%s의 API 응답이 IDatabaseTable 인터페이스와 일치하지 않습니다."
+
+msgid "The CSRF token could not be validated."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, it, ja, lv, mi, nl, pl, pt, pt_BR, ro, ru, sk, sl, sr,

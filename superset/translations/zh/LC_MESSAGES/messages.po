@@ -18,7 +18,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Apache Superset 0.22.1\n"
 "Report-Msgid-Bugs-To: zhouyao94@qq.com\n"
-"POT-Creation-Date: 2026-09-22 21:43+0530\n"
+"POT-Creation-Date: 2026-09-23 20:25+0530\n"
 "PO-Revision-Date: 2019-01-04 22:19+0800\n"
 "Last-Translator: cdmikechen\n"
 "Language: zh\n"
@@ -12360,6 +12360,9 @@ msgstr "重新加载"
 msgid "Reload SQL Lab"
 msgstr "重新加载 SQL 工具箱"
 
+msgid "Reload the page and try again to continue."
+msgstr ""
+
 msgid "Remove"
 msgstr "删除"
 
@@ -13444,6 +13447,9 @@ msgstr "安全附加"
 
 msgid "Security"
 msgstr "安全"
+
+msgid "Security token error"
+msgstr ""
 
 msgid "See "
 msgstr "查看 "
@@ -15506,6 +15512,9 @@ msgstr "与此图表关联的 %s 可能已被删除。"
 #, fuzzy, python-format
 msgid "The API response from %s does not match the IDatabaseTable interface."
 msgstr "来自 %s 的 API 响应与 IDatabaseTable 接口不匹配。"
+
+msgid "The CSRF token could not be validated."
+msgstr ""
 
 msgid ""
 "The CSS for individual dashboards can be altered here, or in the "

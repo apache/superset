@@ -24,7 +24,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version:  \n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-22 21:43+0530\n"
+"POT-Creation-Date: 2026-09-23 20:25+0530\n"
 "PO-Revision-Date: 2024-07-14 15:10+0300\n"
 "Last-Translator: Abdalrahim G. Fakhouri <abdilra7eem@yahoo.com>\n"
 "Language: ar\n"
@@ -13040,6 +13040,9 @@ msgstr "إعادة تحميل"
 msgid "Reload SQL Lab"
 msgstr "إعادة تحميل SQL Lab"
 
+msgid "Reload the page and try again to continue."
+msgstr ""
+
 msgid "Remove"
 msgstr "ازاله"
 
@@ -14158,6 +14161,9 @@ msgstr "سيكيور إكسترا"
 
 msgid "Security"
 msgstr "الأمان"
+
+msgid "Security token error"
+msgstr ""
 
 #, fuzzy
 msgid "See "
@@ -16371,6 +16377,9 @@ msgstr "ربما تم حذف مجموعة البيانات المرتبطة به
 #, python-format
 msgid "The API response from %s does not match the IDatabaseTable interface."
 msgstr "لا تتطابق استجابة API من %s مع واجهة IDatabaseTable."
+
+msgid "The CSRF token could not be validated."
+msgstr ""
 
 msgid ""
 "The CSS for individual dashboards can be altered here, or in the "

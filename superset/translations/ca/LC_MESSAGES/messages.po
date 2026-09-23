@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-22 21:43+0530\n"
+"POT-Creation-Date: 2026-09-23 20:25+0530\n"
 "PO-Revision-Date: 2025-06-27 12:56+0200\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: ca\n"
@@ -12575,6 +12575,9 @@ msgstr "Recarregar"
 msgid "Reload SQL Lab"
 msgstr "Torna a carregar SQL Lab"
 
+msgid "Reload the page and try again to continue."
+msgstr ""
+
 msgid "Remove"
 msgstr "Eliminar"
 
@@ -13652,6 +13655,9 @@ msgstr "Extra segur"
 
 msgid "Security"
 msgstr "Seguretat"
+
+msgid "Security token error"
+msgstr ""
 
 #, fuzzy
 msgid "See "
@@ -15842,6 +15848,9 @@ msgstr "El dataset enllaçat a aquest gràfic pot haver estat eliminat."
 #, python-format
 msgid "The API response from %s does not match the IDatabaseTable interface."
 msgstr "La resposta de l'API de %s no coincideix amb la interfície IDatabaseTable."
+
+msgid "The CSRF token could not be validated."
+msgstr ""
 
 msgid ""
 "The CSS for individual dashboards can be altered here, or in the "

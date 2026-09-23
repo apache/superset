@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-22 21:43+0530\n"
+"POT-Creation-Date: 2026-09-23 20:25+0530\n"
 "PO-Revision-Date: 2026-06-14 13:20+0200\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: sr_Latn\n"
@@ -14576,6 +14576,9 @@ msgstr "Ponovo učitaj"
 msgid "Reload SQL Lab"
 msgstr "Ponovo učitaj SQL Lab"
 
+msgid "Reload the page and try again to continue."
+msgstr ""
+
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Remove"
 msgstr "Ukloni"
@@ -15868,6 +15871,9 @@ msgstr "Bezbednosni dodatak"
 # zh, zh_TW]
 msgid "Security"
 msgstr "Bezbednost"
+
+msgid "Security token error"
+msgstr ""
 
 msgid "See "
 msgstr "Pogledajte "
@@ -18289,6 +18295,9 @@ msgstr "%s povezan sa ovim grafikonom je možda obrisan."
 #, python-format
 msgid "The API response from %s does not match the IDatabaseTable interface."
 msgstr "Odgovor API-ja sa %s ne odgovara interfejsu IDatabaseTable."
+
+msgid "The CSRF token could not be validated."
+msgstr ""
 
 # de, es, fa, fr, it, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, uk, zh,
 # zh_TW]
