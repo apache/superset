@@ -33,6 +33,23 @@ assists people when migrating to a new version.
   form that Flask-AppBuilder has no handler for (submitting it returned a 404).
   First-login provisioning is unchanged.
 
+### MCP response size guard: byte limit instead of estimated token count
+
+The MCP response-size guard no longer estimates LLM token counts (it
+previously used `tiktoken`'s `cl100k_base` encoding, with a character-based
+fallback). An MCP server has no way to know which client or tokenizer is
+actually consuming a response, so token estimation was replaced with the
+exact serialized UTF-8 byte length of the response, which is deterministic
+and tokenizer-agnostic. This also removes the `tiktoken` dependency
+entirely, including the unannounced network request it could make to
+download its vocabulary on a cold cache.
+
+`MCP_RESPONSE_SIZE_CONFIG["token_limit"]` is renamed to
+`MCP_RESPONSE_SIZE_CONFIG["max_bytes"]`, and its default changes from
+25,000 (estimated tokens) to 50,000 (exact bytes). Any deployment that has
+set `token_limit` in `superset_config.py` must rename the key to `max_bytes`
+and adjust the value for byte semantics.
+
 ### Scheduled report and alert retry admission
 
 Run `superset db upgrade` before starting workers with this version. The migration
@@ -79,12 +96,42 @@ error notice. This does not authorize replay of data-bearing notifications.
   its Presto dialect under SQLAlchemy 2 because it imports `sqlalchemy.databases`.
   Upgrade existing installations with `pip install "pyhive[presto]>=0.7.0"`.
 
+- The Pinot extra requires pinotdb[sqlalchemy]>=8.0.0,<10.0.0. Earlier releases declare SQLAlchemy below 2 in their SQLAlchemy extra.
+
 - The Databricks extra requires databricks-sqlalchemy 2.x (at least 2.0.1). The 1.x dialect requires SQLAlchemy below 2.
 
 - `superset deletion-retention force-purge` now exits **1** when the target is
   blocked by a deletion rule or is not found (the messages are unchanged), so a
   scripted compliance erasure cannot mistake a refusal for a completed purge.
   Only a completed purge exits 0; a usage error still exits 2.
+
+### Deprecated permission cleanup may change custom role grants
+
+Two migrations now clean up permissions deprecated in past releases that
+previously stuck around forever after an upgrade (#33272). If a custom role
+holds one of these permissions, upgrading will either:
+
+- **Delete it outright**, for permissions whose underlying feature has no
+  live equivalent (e.g. the access-request workflow), or whose only live
+  successor would grant a role a materially broader capability than it ever
+  had -- for example `can_testconn` is deleted rather than resurrected as
+  `Database.can_write`, which would let the role create, edit, or delete any
+  database connection, not just test one; or
+- **Migrate it to a verified live successor** (e.g. `can_explore_json` ->
+  `can_read` on Chart), preserving the role's effective access.
+
+`can_copy_dash` is the exception to this rule. Although its live successor,
+`Dashboard.can_write`, is broader than the historical permission, the current
+dashboard-copy endpoint is itself authorized by `Dashboard.can_write`. It is
+therefore migrated rather than deleted so existing access to dashboard
+copying is preserved.
+
+If a custom role in your deployment relies on one of the deleted
+permissions, re-grant the appropriate live permission to it manually after
+upgrading. See the two migrations' docstrings (`superset/migrations/versions/
+2026-09-10_00-00_1f5f4fb8bfc1_delete_deprecated_permissions_33272.py` and
+`..._00-01_3ce9a4572f8a_rename_deprecated_permissions_33272.py`) for the full
+per-permission mapping and reasoning.
 
 ### MySQL metadata database now actually defaults to READ COMMITTED
 
@@ -113,7 +160,7 @@ for the chosen metrics, or explicitly request `include_compatible_dimensions=tru
 with `page_size` at most 8 for every scope, including built-in `dataset_id`
 requests. Non-embedded requests retain the 500-metric ceiling.
 This fixed embedding cap is independent of the operator's
-`MCP_RESPONSE_SIZE_CONFIG['token_limit']` (25,000 by default); it does not guarantee
+`MCP_RESPONSE_SIZE_CONFIG['max_bytes']` (50,000 by default); it does not guarantee
 that every payload fits a configured response limit.
 
 ### Default Docker image is now batteries-included; the minimal image moves to `-lean`
