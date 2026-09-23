@@ -194,6 +194,17 @@ def _write_chart_sheets(
     json_body["result_type"] = ChartDataResultType.FULL
     json_body.pop("force", None)
 
+    # Guest authorization links a chart to its dashboard through
+    # ``form_data.dashboardId`` (raise_for_access); saved contexts don't carry
+    # it, so stamp it the way the browser does on interactive requests.
+    form_data = dict(json_body.get("form_data") or {})
+    form_data["dashboardId"] = dashboard_id
+    # ``Slice.form_data`` restamps ``slice_id`` on interactive requests, but a
+    # saved context is replayed verbatim, so a chart copied with "Save as" can
+    # carry the source chart's id and fail the guest payload check.
+    form_data["slice_id"] = chart.id
+    json_body["form_data"] = form_data
+
     filter_context = get_dashboard_filter_context(
         dashboard_id=dashboard_id,
         chart_id=chart.id,
@@ -288,15 +299,19 @@ def build_workbook(  # pylint: disable=too-many-arguments
                 )
                 errored.setdefault(email.ERROR_GENERAL, []).append(label)
 
-        # Include skipped charts in the workbook for both delivery paths.
+        # The workbook itself carries the skipped-charts list: direct downloads
+        # and sessions with no email (guests, Public role) have no other way to
+        # learn that part of the requested workbook was omitted.
         if writer.sheet_count == 0 or errored:
-            flat = [label for labels in errored.values() for label in labels]
-            header = (
+            lines = [
                 "No chart data could be exported."
                 if writer.sheet_count == 0
                 else "Charts that could not be exported:"
-            )
-            writer.add_summary_sheet("Export Summary", [header, *flat])
+            ]
+            # Same per-reason notes as the email; some sessions only see this sheet.
+            for note, labels in email.errored_groups(errored):
+                lines.extend(["", str(note), *labels])
+            writer.add_summary_sheet("Export Summary", lines)
     finally:
         writer.close()
     return errored

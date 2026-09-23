@@ -22,5 +22,12 @@ from flask import current_app
 
 
 def is_export_storage_configured() -> bool:
-    """Return whether exports can be uploaded and shared by link."""
-    return bool(current_app.config["EXCEL_EXPORT_S3_BUCKET"])
+    """Return whether exports can be uploaded and shared by link.
+
+    Both a bucket and a backend are required; the task cannot upload without
+    either, so a partial ``EXPORT_STORAGE`` falls back to direct downloads.
+    """
+    storage_config = current_app.config["EXPORT_STORAGE"]
+    return bool(storage_config.get("bucket")) and (
+        storage_config.get("backend") is not None
+    )

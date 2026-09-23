@@ -27,7 +27,17 @@ from typing import Any, Callable, cast, ClassVar
 from zipfile import is_zipfile, ZipFile
 
 import rison
-from flask import current_app, g, redirect, request, Response, send_file, url_for
+from flask import (
+    after_this_request,
+    current_app,
+    g,
+    redirect,
+    request,
+    Response,
+    send_file,
+    stream_with_context,
+    url_for,
+)
 from flask_appbuilder import permission_name
 from flask_appbuilder.api import (
     expose,
@@ -95,6 +105,14 @@ from superset.commands.importers.v1.utils import get_contents_from_bundle
 from superset.commands.purge import SoftDeleteBinding
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.daos.dashboard import DashboardDAO, EmbeddedDashboardDAO
+from superset.dashboards.excel_export.download_link import (
+    download_path,
+    get_export_status,
+    resolve_download_link,
+    STATUS_ERROR,
+    STATUS_READY,
+    STATUS_RUNNING,
+)
 from superset.dashboards.excel_export.storage import is_export_storage_configured
 from superset.dashboards.excel_export.sync_budget import (
     InlineExportPlan,
@@ -158,7 +176,7 @@ from superset.exceptions import (
 from superset.extensions import event_logger, security_manager
 from superset.models.dashboard import Dashboard
 from superset.models.embedded_dashboard import EmbeddedDashboard
-from superset.security.guest_token import GuestUser
+from superset.security.guest_token import GuestToken, GuestUser
 from superset.security.manager import (
     get_extra_editor_subject_ids,
     get_extra_editors_by_pk,
@@ -173,6 +191,7 @@ from superset.tasks.export_dashboard_excel import (
     EXPORT_LOCK_NAMESPACE,
     export_lock_params,
     EXPORT_LOCK_TTL_SECONDS,
+    guest_lock_slot,
 )
 from superset.tasks.thumbnails import (
     cache_dashboard_screenshot,
@@ -180,7 +199,11 @@ from superset.tasks.thumbnails import (
 )
 from superset.tasks.utils import get_current_user
 from superset.utils import json
-from superset.utils.core import parse_boolean_string, send_export_zip
+from superset.utils.core import (
+    get_user_id,
+    parse_boolean_string,
+    send_export_zip,
+)
 from superset.utils.file import get_filename
 from superset.utils.pdf import build_pdf_from_screenshots
 from superset.utils.screenshots import (
@@ -216,6 +239,31 @@ from superset.views.filters import (
 )
 
 logger = logging.getLogger(__name__)
+
+
+def _never_cache(response: WerkzeugResponse) -> WerkzeugResponse:
+    """The download URL is a bearer credential with a TTL of its own, and a
+    cached status would strand a poller; keep both out of every cache."""
+    response.cache_control.no_store = True
+    response.cache_control.no_cache = True
+    response.cache_control.private = True
+    response.cache_control.max_age = 0
+    response.headers["Pragma"] = "no-cache"
+    return response
+
+
+def _link_backend_matches(uploaded_backend: str | None) -> bool:
+    """Whether the configured export storage backend is the one that uploaded
+    the linked file (links refuse to serve across a storage migration). An
+    unconfigured backend is not a mismatch: that case is answered with the
+    download endpoint's explicit 501."""
+    storage_backend = current_app.config["EXPORT_STORAGE"].get("backend")
+    if storage_backend is None or uploaded_backend is None:
+        return True
+    backend_cls = type(storage_backend)
+    configured = f"{backend_cls.__module__}.{backend_cls.__qualname__}"
+    return uploaded_backend == configured
+
 
 SCREENSHOT_API_LOCK_NAMESPACE = "dashboard_screenshot_api"
 SCREENSHOT_API_LOCK_WAIT_SECONDS = 1.0
@@ -384,6 +432,8 @@ class DashboardRestApi(
         "put_colors",
         "export_as_example",
         "export_xlsx",
+        "export_xlsx_status",
+        "download_xlsx",
         "list_versions",
         "get_version",
         "activity",
@@ -408,6 +458,9 @@ class DashboardRestApi(
         # menu item on it) instead of the ``can_export_xlsx`` FAB would otherwise
         # derive from the method name.
         "export_xlsx": "export",
+        # Polling status of an export you already requested is the same
+        # capability as requesting it, not a distinct permission.
+        "export_xlsx_status": "export",
         "purge": "write",
     }
 
@@ -1636,6 +1689,8 @@ class DashboardRestApi(
               $ref: '#/components/responses/400'
             401:
               $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
             404:
               $ref: '#/components/responses/404'
             422:
@@ -1643,6 +1698,11 @@ class DashboardRestApi(
             500:
               $ref: '#/components/responses/500'
         """
+        # A bundle carries dataset SQL and database metadata a viewer never
+        # sees; with ``can_export`` on Public, FAB would serve it unauthenticated.
+        if get_user_id() is None:
+            return self.response_403()
+
         requested_ids = kwargs["rison"]
 
         timestamp = datetime.now().strftime("%Y%m%dT%H%M%S")
@@ -1717,6 +1777,10 @@ class DashboardRestApi(
             500:
               $ref: '#/components/responses/500'
         """
+        # Same permission and the same audience as the bundle export.
+        if get_user_id() is None:
+            return self.response_403()
+
         # Get optional query params
         export_data = request.args.get("export_data", "true").lower() == "true"
         sample_rows = request.args.get("sample_rows", type=int)
@@ -1760,9 +1824,12 @@ class DashboardRestApi(
         post:
           summary: Export dashboard chart data to Excel
           description: >-
-            Writes each chart to a worksheet. With export storage, the work is
-            queued and the user receives a download link by email. Without it,
-            eligible workbooks are returned in the response.
+            Writes each chart to a worksheet. With export storage configured,
+            the work is queued: the requesting user is emailed a download link
+            when they have an address on file, and either way the returned job
+            id can be polled at export_xlsx/status/<job_id>/ for status and,
+            once ready, the download link. Without export storage, eligible
+            data workbooks are returned in the response.
           parameters:
           - in: path
             schema:
@@ -1818,6 +1885,11 @@ class DashboardRestApi(
         ):
             return self.response_404()
 
+        # The webdriver cannot render without a real user identity (guest or
+        # anonymous); same predicate the UI hides the option on.
+        if payload.get("mode") == "images" and get_user_id() is None:
+            return self.response(403, message="Image export requires a signed-in user.")
+
         dashboard = cast(Dashboard, self.datamodel.get(pk, self._base_filters))
         if not dashboard:
             return self.response_404()
@@ -1826,11 +1898,9 @@ class DashboardRestApi(
         except SupersetSecurityException:
             return self.response_403()
 
-        # Both delivery paths require a non-guest account with an email address.
-        if isinstance(g.user, GuestUser) or not getattr(g.user, "email", None):
-            return self.response_400(
-                message="Excel export requires an account with an email address."
-            )
+        # A requester with no email on file (e.g. an embedded/guest session)
+        # still gets a usable export: a queued export is polled at
+        # export_xlsx_status/<job_id>/, and a direct download needs no email.
         if not dashboard.slices:
             return self.response_400(message="Dashboard has no charts to export.")
 
@@ -1842,14 +1912,24 @@ class DashboardRestApi(
             return self.response_400(
                 message=(
                     "Exporting images to Excel runs in the background. "
-                    "Configure EXCEL_EXPORT_S3_BUCKET to use it, or export "
+                    "Configure EXPORT_STORAGE to use it, or export "
                     "the dashboard's data instead."
                 )
             )
 
         # Allow one export per user and dashboard across web and worker processes.
         # The TTL releases the lock if normal cleanup fails.
-        lock_params = export_lock_params(g.user.id, dashboard.id)
+        # A guest/embedded requester has no DB-backed user id (GuestUser carries
+        # no ``id`` attribute at all), so guests get a stable slot derived from
+        # their token; the task reconstructs the guest (with the token's RLS
+        # rules and resource claims) from the token payload passed alongside.
+        user_id = get_user_id()
+        guest_token_payload = (
+            getattr(g.user, "guest_token", None) if user_id is None else None
+        )
+        lock_params = export_lock_params(
+            user_id or guest_lock_slot(guest_token_payload), dashboard.id
+        )
         acquire_lock = AcquireDistributedLock(
             EXPORT_LOCK_NAMESPACE,
             lock_params,
@@ -1869,7 +1949,14 @@ class DashboardRestApi(
         job_id = str(uuid.uuid4())
         if queued:
             return self._export_xlsx_queued(
-                dashboard, active_data_mask, mode, job_id, lock_params, lock_token
+                dashboard,
+                user_id,
+                guest_token_payload,
+                active_data_mask,
+                mode,
+                job_id,
+                lock_params,
+                lock_token,
             )
 
         # Plan after locking because query-context resolution can be expensive.
@@ -1881,9 +1968,9 @@ class DashboardRestApi(
                 return self.response_400(
                     message=(
                         "This dashboard requests too many rows to export in a "
-                        "single request. Configure EXCEL_EXPORT_S3_BUCKET to "
-                        "export it in the background, or lower the row limits of "
-                        "its charts."
+                        "single request. Configure EXPORT_STORAGE to export it "
+                        "in the background, or lower the row limits of its "
+                        "charts."
                     )
                 )
             lock_delegated = True
@@ -1911,21 +1998,24 @@ class DashboardRestApi(
     def _export_xlsx_queued(  # pylint: disable=too-many-arguments
         self,
         dashboard: Dashboard,
+        user_id: int | None,
+        guest_token: GuestToken | None,
         active_data_mask: dict[str, Any],
         mode: str,
         job_id: str,
         lock_params: dict[str, int],
         lock_token: str,
     ) -> WerkzeugResponse:
-        """Queue an export for upload and email delivery."""
+        """Queue an export for upload and delivery by email or status polling."""
         try:
             export_dashboard_excel.apply_async(
                 kwargs={
                     "dashboard_id": dashboard.id,
-                    "user_id": g.user.id,
+                    "user_id": user_id,
                     "active_data_mask": active_data_mask,
                     "job_id": job_id,
                     "mode": mode,
+                    "guest_token": guest_token,
                     "lock_token": lock_token,
                 },
                 task_id=job_id,
@@ -2004,6 +2094,147 @@ class DashboardRestApi(
 
         response.response = ClosingIterator(response.response, [cleanup])
         return response
+
+    @expose("/export_xlsx/status/<uuid:job_id>/", methods=("GET",))
+    @protect()
+    @safe
+    @statsd_metrics
+    def export_xlsx_status(self, job_id: uuid.UUID) -> WerkzeugResponse:
+        """Poll the status of an in-flight or completed Excel export.
+        ---
+        get:
+          summary: Poll the status of a dashboard Excel export job
+          description: >-
+            For a session with no email address to be notified at (e.g. an
+            embedded/guest session), the frontend polls this endpoint with the
+            job_id from the export_xlsx response instead of waiting for an
+            email. Behind the same @protect() as the export request itself,
+            unlike the login-free download_xlsx stream (which also has to
+            work when clicked from a plain email link, possibly with no
+            active session at all).
+          parameters:
+          - in: path
+            schema:
+              type: string
+              format: uuid
+            name: job_id
+            description: The job_id from the export_xlsx response
+          responses:
+            200:
+              description: >-
+                Job status: {"status": "pending"} while queued,
+                {"status": "running"} once a worker has started executing,
+                {"status": "ready", "download_url": "..."} once the file is
+                available, or {"status": "error", "message": "..."} if the
+                export failed.
+            401:
+              $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
+        """
+        after_this_request(_never_cache)
+        payload = get_export_status(job_id)
+        if payload is None:
+            return self.response(200, status="pending")
+        if payload.get("status") == STATUS_READY:
+            # Never report ready for a link the download endpoint will refuse:
+            # an unset backend (config cleared since upload) 501s there, and a
+            # mismatched backend 410s. Both mean the file cannot be served.
+            storage_backend = current_app.config["EXPORT_STORAGE"].get("backend")
+            if storage_backend is None or not _link_backend_matches(
+                payload.get("backend")
+            ):
+                return self.response(
+                    200, status=STATUS_ERROR, message="This download has expired."
+                )
+            return self.response(
+                200, status=STATUS_READY, download_url=download_path(job_id)
+            )
+        if payload.get("status") == STATUS_ERROR:
+            return self.response(
+                200, status=STATUS_ERROR, message=payload.get("message")
+            )
+        if payload.get("status") == STATUS_RUNNING:
+            return self.response(200, status=STATUS_RUNNING)
+        return self.response(200, status="pending")
+
+    def get_method_permission(self, method_name: str) -> str:
+        # download_xlsx is intentionally login-free (no @protect): the
+        # unguessable job_id is the credential, and dashboard access was
+        # already checked when the export was requested. Map it to no
+        # permission so FAB neither requires auth nor advertises a security
+        # requirement for it in the OpenAPI spec.
+        if method_name == "download_xlsx":
+            return ""
+        return super().get_method_permission(method_name)
+
+    @expose("/export_xlsx/download/<uuid:job_id>/", methods=("GET",))
+    @safe
+    @statsd_metrics
+    def download_xlsx(self, job_id: uuid.UUID) -> WerkzeugResponse:
+        """Stream a completed Excel export from storage.
+        ---
+        get:
+          summary: Download a completed dashboard Excel export
+          security: []
+          description: >-
+            Intentionally requires no login: the unguessable job_id, emailed
+            only to the original requester (or handed to their own session
+            via export_xlsx_status), is the credential. The dashboard access
+            check already ran once, when the export was requested -- see
+            security_manager.raise_for_access in export_xlsx. The file
+            streams through Superset with the deployment's own storage
+            credentials instead of redirecting to a signed storage URL, so
+            it works for ambient identities that cannot sign (e.g. workload
+            identity federation) and never mints a bearer URL Superset
+            cannot observe or revoke.
+          parameters:
+          - in: path
+            schema:
+              type: string
+              format: uuid
+            name: job_id
+            description: The job_id from the export_xlsx response
+          responses:
+            200:
+              description: The .xlsx file as an attachment
+            410:
+              description: The link is unknown, expired, or the export failed
+            501:
+              description: Excel export is not configured on this server
+        """
+        after_this_request(_never_cache)
+        resolved = resolve_download_link(job_id)
+        if resolved is None:
+            return self.response(410, message="This download link has expired.")
+        bucket, key, uploaded_backend = resolved
+        storage_backend = current_app.config["EXPORT_STORAGE"].get("backend")
+        if storage_backend is None:
+            # A link can only exist if a backend was configured when the export
+            # ran, so reaching this means the config was cleared since then.
+            return self.response(
+                501, message="Excel export is not configured on this server."
+            )
+        if not _link_backend_matches(uploaded_backend):
+            # Don't read another backend's upload; expire the link instead.
+            return self.response(410, message="This download link has expired.")
+        try:
+            # Existence is checked eagerly, so a missing object is a clean 410.
+            size, chunks = storage_backend.download(bucket, key)
+        except FileNotFoundError:
+            return self.response(410, message="This download link has expired.")
+        return Response(
+            stream_with_context(chunks),
+            mimetype=(
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            ),
+            headers={
+                # With a declared length, a stream that dies midway is a
+                # failed download in the browser, not a corrupt file.
+                "Content-Length": str(size),
+                "Content-Disposition": f'attachment; filename="{job_id}.xlsx"',
+            },
+        )
 
     def _validate_permalink_for_dashboard(
         self, permalink_key: str, dashboard: Dashboard

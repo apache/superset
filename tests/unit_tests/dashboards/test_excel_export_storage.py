@@ -16,6 +16,9 @@
 # under the License.
 from __future__ import annotations
 
+from typing import Any
+from unittest.mock import MagicMock
+
 import pytest
 
 from superset.app import SupersetApp
@@ -23,17 +26,20 @@ from superset.dashboards.excel_export.storage import is_export_storage_configure
 
 
 @pytest.mark.parametrize(
-    ("bucket", "configured"),
+    ("storage", "configured"),
     [
-        ("exports-bucket", True),
-        (None, False),
-        ("", False),
+        ({"bucket": "exports-bucket", "backend": MagicMock()}, True),
+        ({"bucket": "exports-bucket"}, False),
+        ({"bucket": "", "backend": MagicMock()}, False),
+        ({"backend": MagicMock()}, False),
+        ({}, False),
     ],
 )
-def test_storage_is_configured_only_with_a_bucket(
-    app: SupersetApp, bucket: str | None, configured: bool
+def test_storage_is_configured_only_with_a_bucket_and_backend(
+    app: SupersetApp,
+    monkeypatch: pytest.MonkeyPatch,
+    storage: dict[str, Any],
+    configured: bool,
 ) -> None:
-    from flask import current_app
-
-    current_app.config["EXCEL_EXPORT_S3_BUCKET"] = bucket
+    monkeypatch.setitem(app.config, "EXPORT_STORAGE", storage)
     assert is_export_storage_configured() is configured

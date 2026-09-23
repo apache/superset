@@ -199,6 +199,16 @@ Scheduled report and alert captures require chart readiness to remain stable
 immediately before Chromium captures the image. A capture that re-enters a loading
 state during that window fails instead of delivering a screenshot with spinners.
 
+### Improve Db2 Time Grain Expressions
+The Db2 engine spec has been streamlined by using the DATE_TRUNC scalar function,
+which requires Db2 11.1.0 or higher. Per the ISO 8601 standards, the `WEEK` time
+grain now shifts the first day of the week to Monday as part of this change.
+
+### Update IBM Db2 for i Time Grain Expressions
+IBM Db2 for i inherits its engine spec from Db2 but does not support the DATE_TRUNC
+scalar function, so it will use the previous arithmetic expressions defined for Db2.
+Its `WEEK` time grain now uses `DAYOFWEEK_ISO` to align with the Db2 change.
+
 ### Scheduled rendered reports fail closed after capture rejection
 
 Scheduled PDF and PNG delivery requires an accepted report capture context. A
@@ -903,32 +913,64 @@ Note that a retried query returns partial data with no truncation indicator
 (e.g. a filter dropdown may list only a subset of values on tables above the
 row cap).
 
-### Dashboard Excel exports support direct downloads
+### Dashboard "Export Data to Excel": direct downloads, and `EXCEL_EXPORT_S3_*` moves to `EXPORT_STORAGE`
 
 A new dashboard action exports every chart's data to a single multi-sheet
-`.xlsx`. Without an export bucket, Superset builds the workbook during the
-request and returns it to the browser. When `EXCEL_EXPORT_S3_BUCKET` is set, a
-Celery worker builds and uploads the workbook, then emails the user a pre-signed
-download link. This queued path also needs a worker and SMTP transport.
+`.xlsx`. Without export storage, Superset builds the workbook during the request
+and returns it to the browser. When `EXPORT_STORAGE` is configured with both a
+`bucket` and a `backend`, a Celery worker builds and uploads the workbook
+instead, and the browser downloads it once ready. There is no implicit storage
+default:
+
+```python
+from superset.utils.s3 import S3ExportStorage  # or superset.utils.gcs.GCSExportStorage
+
+EXPORT_STORAGE = {
+    "bucket": "my-export-bucket",
+    "backend": S3ExportStorage(),
+}
+```
 
 Direct downloads are limited by `EXCEL_EXPORT_SYNC_MAX_ROWS` (default
 `100_000`), based on the combined `row_limit` of the planned queries. Superset
 counts aggregate-only queries as one row, uses `ROW_LIMIT` when other queries
 omit it, and requires the background path for grouping sets. It returns `400`
 before querying if the total exceeds the limit. Image exports are hidden without
-an export bucket because they require background webdriver rendering.
+export storage because they require background webdriver rendering.
 
 `POST /api/v1/dashboard/<id>/export_xlsx/` returns either `202` with a queued job
-id or `200` with the workbook. It no longer returns `501` when no bucket is set.
+id or `200` with the workbook. It does not return `501` when storage is unset.
 
-New config keys: `EXCEL_EXPORT_S3_BUCKET`, `EXCEL_EXPORT_S3_KEY_PREFIX`,
-`EXCEL_EXPORT_LINK_TTL_SECONDS`, `EXCEL_EXPORT_S3_CLIENT_KWARGS`,
-`EXCEL_EXPORT_SYNC_MAX_ROWS`, `EXCEL_EXPORT_TABLE_VIZ_TYPES`, and
-`EXCEL_EXPORT_QUERY_CONTEXT_BUILDER`.
+**Upgrading from `EXCEL_EXPORT_S3_*`:** the S3-only config keys are removed and
+replaced by the pluggable `EXPORT_STORAGE` above. They are no longer read, so a
+deployment that had background exports working falls back to direct downloads
+(and loses image exports) until the config is ported:
 
-The queued path depends on `boto3`, which is **not** installed by default; install
-it with `pip install apache-superset[excel-export]`. The direct-download path
-does not use it.
+| Removed | Replacement |
+| --- | --- |
+| `EXCEL_EXPORT_S3_BUCKET = "my-bucket"` | `EXPORT_STORAGE["bucket"] = "my-bucket"` |
+| `EXCEL_EXPORT_S3_KEY_PREFIX = "prefix/"` | `EXPORT_STORAGE["key_prefix"] = "prefix/"` |
+| `EXCEL_EXPORT_S3_CLIENT_KWARGS = {...}` | `EXPORT_STORAGE["backend"] = S3ExportStorage(client_kwargs={...})` |
+
+`EXPORT_STORAGE["backend"]` has no default and must be set explicitly, which is
+the part an upgrade cannot infer: the previous config implied S3, so keep the
+same bucket with `S3ExportStorage()`. `EXCEL_EXPORT_LINK_TTL_SECONDS` is
+unchanged in name, but it now bounds a Superset-issued link rather than a
+pre-signed S3 URL, so the AWS seven day ceiling no longer applies.
+
+The background path also requires a running Celery worker. SMTP is optional and
+only used to additionally email logged-in users a download link; every session
+(including guest/Public ones, which have no email) gets the export through
+status polling and automatic download. Config keys: `EXPORT_STORAGE`,
+`EXCEL_EXPORT_LINK_TTL_SECONDS`, `EXCEL_EXPORT_SYNC_MAX_ROWS`,
+`EXCEL_EXPORT_TABLE_VIZ_TYPES`, and `EXCEL_EXPORT_QUERY_CONTEXT_BUILDER`.
+
+The storage backends depend on SDKs that are **not** installed by default:
+install `pip install apache-superset[excel-export]` (boto3) for
+`S3ExportStorage`, or `pip install apache-superset[excel-export-gcs]`
+(google-cloud-storage) for `GCSExportStorage`. A custom backend can be supplied
+by implementing `superset.utils.export_storage.ExportStorage`. The
+direct-download path uses neither.
 
 For `table`, `big_number_total`, `big_number`, and `pie` charts without a saved
 `query_context`, Superset rebuilds a single query from saved form data. Charts
