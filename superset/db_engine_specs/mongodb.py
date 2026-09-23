@@ -157,6 +157,10 @@ class MongoDBEngineSpec(BaseEngineSpec):
 
     @classmethod
     def quote_table(cls, table: Table, dialect: Dialect) -> str:
+        """
+        Quote only the collection name. PyMongoSQL treats the whole FROM reference
+        as the collection, so the schema is applied via the ``database`` connect arg.
+        """
         return dialect.identifier_preparer.quote(table.table)
 
     @classmethod

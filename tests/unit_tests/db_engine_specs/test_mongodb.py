@@ -125,6 +125,7 @@ def test_engine_metadata() -> None:
     assert spec.engine == "mongodb"
     assert spec.engine_name == "MongoDB"
     assert spec.force_column_alias_quotes is False
+    assert spec.supports_dynamic_schema is True
 
 
 @pytest.mark.parametrize(
@@ -252,6 +253,23 @@ def test_get_default_schema() -> None:
         {"engine_params": {"connect_args": {"database": "dbtwo"}}}
     )
     assert MongoDBEngineSpec.get_default_schema(database, None) == "dbtwo"
+
+
+def test_get_default_schema_for_query(mocker: MockerFixture) -> None:
+    """
+    Access checks must resolve unqualified collections against the query schema,
+    which is the database the connection is bound to.
+    """
+    from superset.db_engine_specs.mongodb import MongoDBEngineSpec
+    from superset.models.core import Database
+
+    database = Database(
+        database_name="mongo",
+        sqlalchemy_uri="mongodb://user:pass@host:27017/dbone?mode=superset",
+    )
+    query = mocker.MagicMock(schema="dbtwo", catalog=None)
+
+    assert MongoDBEngineSpec.get_default_schema_for_query(database, query) == "dbtwo"
 
 
 def test_select_star_does_not_qualify_collection(mocker: MockerFixture) -> None:
