@@ -95,14 +95,16 @@ class S3ExportStorage:
         import botocore.exceptions  # pylint: disable=import-outside-toplevel
 
         try:
-            response = client.get_object(Bucket=bucket, Key=key)
+            # Metadata only: the body is opened when the stream is consumed, so
+            # a HEAD (which never iterates it) leaves no connection behind.
+            head = client.head_object(Bucket=bucket, Key=key)
         except botocore.exceptions.ClientError as ex:
             if ex.response.get("Error", {}).get("Code") in ("NoSuchKey", "404"):
                 raise FileNotFoundError(f"s3://{bucket}/{key}") from ex
             raise
 
         def chunks() -> Iterator[bytes]:
-            body = response["Body"]
+            body = client.get_object(Bucket=bucket, Key=key)["Body"]
             # Close the connection even when the consumer abandons the
             # stream (e.g. a cancelled download).
             try:
@@ -110,4 +112,4 @@ class S3ExportStorage:
             finally:
                 body.close()
 
-        return ExportDownload(size=response["ContentLength"], chunks=chunks())
+        return ExportDownload(size=head["ContentLength"], chunks=chunks())

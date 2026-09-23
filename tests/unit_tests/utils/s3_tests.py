@@ -83,14 +83,19 @@ def test_missing_boto3_raises_actionable_error() -> None:
 @patch("boto3.client")
 def test_download_streams_chunks(mock_client_fn: MagicMock) -> None:
     client = mock_client_fn.return_value
+    client.head_object.return_value = {"ContentLength": 4}
     client.get_object.return_value = {
-        "ContentLength": 4,
         "Body": MagicMock(iter_chunks=lambda chunk_size: iter([b"aa", b"bb"])),
     }
 
     size, chunks = S3ExportStorage().download("my-bucket", "exports/1/abc.xlsx")
 
     assert size == 4
+    client.head_object.assert_called_once_with(
+        Bucket="my-bucket", Key="exports/1/abc.xlsx"
+    )
+    # The body is only opened once the stream is consumed.
+    client.get_object.assert_not_called()
     assert list(chunks) == [b"aa", b"bb"]
     client.get_object.assert_called_once_with(
         Bucket="my-bucket", Key="exports/1/abc.xlsx"
@@ -104,8 +109,8 @@ def test_download_missing_object_raises_file_not_found(
     import botocore.exceptions
 
     client = mock_client_fn.return_value
-    client.get_object.side_effect = botocore.exceptions.ClientError(
-        {"Error": {"Code": "NoSuchKey"}}, "GetObject"
+    client.head_object.side_effect = botocore.exceptions.ClientError(
+        {"Error": {"Code": "404"}}, "HeadObject"
     )
 
     with pytest.raises(FileNotFoundError):
@@ -119,8 +124,8 @@ def test_download_unrelated_client_error_propagates(
     import botocore.exceptions
 
     client = mock_client_fn.return_value
-    client.get_object.side_effect = botocore.exceptions.ClientError(
-        {"Error": {"Code": "AccessDenied"}}, "GetObject"
+    client.head_object.side_effect = botocore.exceptions.ClientError(
+        {"Error": {"Code": "AccessDenied"}}, "HeadObject"
     )
 
     with pytest.raises(botocore.exceptions.ClientError):
@@ -131,7 +136,8 @@ def test_download_unrelated_client_error_propagates(
 def test_download_closes_body_after_streaming(mock_client_fn: MagicMock) -> None:
     client = mock_client_fn.return_value
     body = MagicMock(iter_chunks=lambda chunk_size: iter([b"aa"]))
-    client.get_object.return_value = {"ContentLength": 2, "Body": body}
+    client.head_object.return_value = {"ContentLength": 2}
+    client.get_object.return_value = {"Body": body}
 
     _, chunks = S3ExportStorage().download("my-bucket", "k")
     list(chunks)
