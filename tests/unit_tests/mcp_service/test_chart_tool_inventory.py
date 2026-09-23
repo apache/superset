@@ -78,7 +78,7 @@ def _resolve_pointer(schema: dict[str, Any], ref: str) -> Any:
     return target
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 @pytest.mark.parametrize(("name", "byte_budget"), TOOL_BUDGETS)
 async def test_chart_tool_inventory_size(name: str, byte_budget: int) -> None:
     """Measure each real registered inventory entry, not a hand-built schema."""
@@ -96,7 +96,7 @@ async def test_chart_tool_inventory_size(name: str, byte_budget: int) -> None:
     assert token_count <= 20_000, (name, token_count)
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 @pytest.mark.parametrize("name", [row[0] for row in TOOL_BUDGETS])
 async def test_chart_tool_inventory_preserves_complete_schema(name: str) -> None:
     """All constraints and reference targets survive the production serializer."""
@@ -142,7 +142,7 @@ def _explore_fixture(request: GenerateExploreLinkRequest) -> str:
     return request.config.chart_type
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 @pytest.mark.parametrize(
     ("name", "fixture", "model"),
     [
