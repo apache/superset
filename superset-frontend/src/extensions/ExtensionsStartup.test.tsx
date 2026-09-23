@@ -336,3 +336,42 @@ test('renders children and surfaces a warning toast when init fails', async () =
   // Restore original method
   ExtensionsLoader.prototype.initializeExtensions = originalInitialize;
 });
+
+test('surfaces the response detail when the extension list fetch rejects', async () => {
+  mockIsFeatureEnabled.mockImplementation(
+    (flag: FeatureFlag) => flag === FeatureFlag.EnableExtensions,
+  );
+
+  // A failed SupersetClient call rejects with a Response, whose String()
+  // form is "[object Response]" and says nothing about what went wrong.
+  const originalInitialize = ExtensionsLoader.prototype.initializeExtensions;
+  ExtensionsLoader.prototype.initializeExtensions = jest.fn().mockRejectedValue(
+    new Response(JSON.stringify({ message: 'Extensions are disabled' }), {
+      status: 403,
+      statusText: 'Forbidden',
+      headers: { 'Content-Type': 'application/json' },
+    }),
+  );
+
+  const store = createStore(mockInitialState, reducerIndex);
+
+  render(
+    <ExtensionsStartup>
+      <div data-testid="child" />
+    </ExtensionsStartup>,
+    { store, useRouter: true },
+  );
+
+  await waitFor(() => {
+    const { messageToasts } = store.getState() as unknown as {
+      messageToasts: { text: string }[];
+    };
+    const toast = messageToasts.find(({ text }) =>
+      /Extensions failed to load/.test(text),
+    );
+    expect(toast?.text).toContain('Extensions are disabled');
+    expect(toast?.text).not.toContain('[object');
+  });
+
+  ExtensionsLoader.prototype.initializeExtensions = originalInitialize;
+});

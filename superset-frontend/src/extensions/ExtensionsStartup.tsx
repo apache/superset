@@ -17,7 +17,11 @@
  * under the License.
  */
 import { useEffect } from 'react';
-import { FeatureFlag, isFeatureEnabled } from '@superset-ui/core';
+import {
+  FeatureFlag,
+  getClientErrorObject,
+  isFeatureEnabled,
+} from '@superset-ui/core';
 // eslint-disable-next-line no-restricted-syntax
 import * as supersetCore from '@apache-superset/core';
 import { t } from '@apache-superset/core/translation';
@@ -86,9 +90,20 @@ const ExtensionsStartup: React.FC<{ children?: React.ReactNode }> = ({
             );
           }
         })
-        .catch((error: unknown) => {
+        .catch(async (error: unknown) => {
+          // A failed list fetch rejects with a Response-like object whose
+          // String() form is just "[object Response]"; pull the actual
+          // message/status out of it so the toast says what went wrong.
+          const { error: detail, message } = await getClientErrorObject(
+            error as Parameters<typeof getClientErrorObject>[0],
+          );
           dispatch(
-            addWarningToast(t('Extensions failed to load: %s', String(error))),
+            addWarningToast(
+              t(
+                'Extensions failed to load: %s',
+                detail || message || String(error),
+              ),
+            ),
           );
         });
     }
