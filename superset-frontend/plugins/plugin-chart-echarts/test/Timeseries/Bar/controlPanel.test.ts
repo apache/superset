@@ -372,6 +372,7 @@ test.each<[boolean, StackControlsValue | null, boolean]>([
   [true, null, true],
   [false, null, false],
   [true, StackControlsValue.Stack, false],
+  [false, StackControlsValue.Stack, false],
 ])(
   'stack control with log=%s and stack=%s is disabled=%s',
   (logAxis, stack, disabled) => {
