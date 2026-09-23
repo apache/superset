@@ -90,7 +90,8 @@ def touch_dashboards(dashboards: list[Any] | None) -> None:
     Touch the audit metadata (changed_on and changed_by) for the given dashboards.
 
     When charts are linked to dashboards during chart creation or update,
-    this ensures the dashboard's last modified timestamp reflects the change (issue #44305).
+    this ensures the dashboard's last modified timestamp reflects the change
+    (issue #44305).
 
     :param dashboards: list of Dashboard models to touch.
     """
@@ -102,4 +103,3 @@ def touch_dashboards(dashboards: list[Any] | None) -> None:
         dashboard.changed_on = now
         if user is not None:
             dashboard.changed_by = user
-

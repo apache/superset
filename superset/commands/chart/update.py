@@ -106,7 +106,8 @@ class UpdateChartCommand(UpdateMixin, BaseCommand):
             )
 
         # Touch newly linked dashboards to bump changed_on/changed_by (resolves #44305).
-        # Ensures adding a chart to an existing dashboard updates the dashboard's last modified state.
+        # Ensures adding a chart to an existing dashboard updates the dashboard's
+        # last modified state.
         if "dashboards" in self._properties:
             existing_dashboard_ids = {d.id for d in self._model.dashboards}
             newly_added_dashboards = [

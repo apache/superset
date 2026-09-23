@@ -381,4 +381,3 @@ def test_touch_dashboards_with_no_user() -> None:
 
     assert dashboard.changed_on is not None
     assert dashboard.changed_by is None
-

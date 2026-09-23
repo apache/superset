@@ -462,6 +462,7 @@ def test_update_chart_touches_newly_linked_dashboards(
         "superset.commands.chart.update.ChartDAO.find_by_id",
         return_value=chart,
     )
+
     def _find_dashboards_by_ids(ids: list[int], **kwargs: Any) -> list[Any]:
         lookup = {1: existing_dashboard, 2: new_dashboard}
         return [lookup[i] for i in ids if i in lookup]
@@ -627,4 +628,3 @@ def test_update_chart_without_dashboards_in_payload_leaves_dashboards_untouched(
 
     assert dashboard.changed_on is None
     assert dashboard.changed_by is None
-
