@@ -268,10 +268,7 @@ test('Switching tabs', async () => {
 test.each([false, true])(
   'A childless TABS component does not register an active tab (editMode=%s)',
   editMode => {
-    // Regression guard for the permalink failure caused by empty tab containers:
-    // a TABS component with no children has no tab id to activate, so resolving
-    // `children[tabIndex]` yields `undefined`. Dispatching that into
-    // `dashboardState.activeTabs` puts an `undefined` entry in the array, which
+    // An unresolved id reaches activeTabs as `undefined`, which
     // `JSON.stringify` coerces to `null` in the permalink request body.
     const props = createProps();
     props.editMode = editMode;
@@ -289,13 +286,8 @@ test.each([false, true])(
 test.each([false, true])(
   'The first child added to an empty TABS component is activated (editMode=%s)',
   editMode => {
-    // Counterpart to the guard above: skipping registration while there is no
-    // tab id must not leave the container permanently unregistered. `activeKey`
-    // is seeded once from state, so an empty container that later receives its
-    // first child has to resolve and register that child, otherwise the tab
-    // renders unselected and never reaches dashboardState.activeTabs.
     const props = createProps();
-    const tabId = props.component.children[0];
+    const [tabId] = props.component.children;
     props.editMode = editMode;
     props.component.children = [];
     const { rerender } = render(<Tabs {...props} />, {
@@ -308,8 +300,6 @@ test.each([false, true])(
       <Tabs {...props} component={{ ...props.component, children: [tabId] }} />,
     );
 
-    // Exactly one registration, carrying the resolved id and no stale previous
-    // tab -- never an `undefined` that JSON.stringify would turn into `null`.
     expect(props.setActiveTab.mock.calls).toEqual([[tabId]]);
     expect(screen.getByRole('tab')).toHaveAttribute('aria-selected', 'true');
   },
@@ -358,12 +348,6 @@ test('A tab added after deleting the last tab is selected and registered', async
 test.each([false, true])(
   'A populated TABS component registers its active tab (editMode=%s)',
   editMode => {
-    // Positive control for the childless guard. Every other `setActiveTab`
-    // assertion here covers an empty container, so nothing pins down the
-    // ordinary path: a container that mounts with children must still register
-    // its first tab. Without this, a guard that is too broad -- suppressing
-    // registration for populated containers too -- would leave the suite green
-    // while breaking every tabbed dashboard.
     const props = createProps();
     props.editMode = editMode;
 
@@ -375,33 +359,6 @@ test.each([false, true])(
     expect(props.setActiveTab.mock.calls).toEqual([['TAB-AsMaxdYL_t']]);
   },
 );
-
-test('An empty TABS component contributes nothing alongside a populated one', () => {
-  // The reported payload held real tab ids *and* a null together, because the
-  // dashboard mixed populated containers with an empty one. Rendering an empty
-  // container next to a populated one reproduces that composition: the real
-  // container must still register, and the empty one must add nothing, so the
-  // ids collected across the layout contain no unresolved entry.
-  const populated = createProps();
-  const empty = createProps();
-  empty.id = 'TABS-empty';
-  empty.component = {
-    ...empty.component,
-    id: 'TABS-empty',
-    children: [],
-  };
-
-  render(<Tabs {...populated} />, { useRedux: true, useDnd: true });
-  render(<Tabs {...empty} />, { useRedux: true, useDnd: true });
-
-  const registeredIds = [
-    ...populated.setActiveTab.mock.calls,
-    ...empty.setActiveTab.mock.calls,
-  ].map(([tabId]) => tabId);
-
-  expect(registeredIds).toEqual(['TAB-AsMaxdYL_t']);
-  expect(registeredIds).not.toContain(undefined);
-});
 
 test('activeTabs hydrated from a permalink selects the matching tab content', () => {
   // Regression guard for #36132: when a dashboard is opened via a

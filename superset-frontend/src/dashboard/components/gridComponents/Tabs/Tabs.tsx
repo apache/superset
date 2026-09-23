@@ -153,7 +153,7 @@ const Tabs = (props: TabsProps): ReactElement => {
     };
   }, [activeTabs, props.component, directPathToChild]);
 
-  const [activeKey, setActiveKey] = useState<string>(initActiveKey);
+  const [activeKey, setActiveKey] = useState<string | undefined>(initActiveKey);
   const [selectedTabIndex, setSelectedTabIndex] =
     useState<number>(initTabIndex);
   const [dropPosition, setDropPosition] = useState<string | null>(null);
@@ -169,7 +169,10 @@ const Tabs = (props: TabsProps): ReactElement => {
     // Resolve missing or deleted active keys when children become available
     // so a tab added to an empty container is selected and registered.
     const tabId = props.component.children[selectedTabIndex];
-    if (!props.component.children.includes(activeKey) && tabId) {
+    if (
+      tabId &&
+      (!activeKey || !props.component.children.includes(activeKey))
+    ) {
       setActiveKey(tabId);
     }
   }, [activeKey, props.component.children, selectedTabIndex]);

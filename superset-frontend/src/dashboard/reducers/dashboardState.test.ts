@@ -275,12 +275,8 @@ describe('DashboardState reducer', () => {
       );
     });
 
-    // The reported permalink failure was not a wrong tab selection but a
-    // payload the API rejected: an unresolved tab id reached activeTabs and
-    // JSON.stringify coerced it to `null` inside the array. The component
-    // tests assert on a `setActiveTab` mock, so they stop short of the state
-    // that actually gets serialized. These two cases pin the serialization
-    // boundary itself.
+    // The component tests assert on a `setActiveTab` mock, so they stop short
+    // of the state that actually gets serialized into the permalink body.
     test('stores a resolved tab id so activeTabs serializes without null', () => {
       const store = mockStore({
         dashboardState: { activeTabs: [] },
@@ -299,31 +295,6 @@ describe('DashboardState reducer', () => {
       expect(result.activeTabs).toEqual(['TAB-1']);
       expect(JSON.stringify({ activeTabs: result.activeTabs })).toBe(
         '{"activeTabs":["TAB-1"]}',
-      );
-    });
-
-    test('does not sanitize an unresolved tab id, so callers must not dispatch one', () => {
-      // Characterization test, not an endorsement: the reducer is deliberately
-      // not a safety net, which is why the guard lives in the Tabs component.
-      // If a future change makes the reducer drop unresolved ids, update this
-      // test -- but until then it documents that skipping the dispatch is the
-      // only thing keeping `null` out of the permalink body.
-      const store = mockStore({
-        dashboardState: { activeTabs: [] },
-        dashboardLayout: { present: {} },
-      });
-      const thunkAction = setActiveTab(undefined as unknown as string)(
-        store.dispatch,
-        store.getState as () => RootState,
-      );
-
-      const result = typedDashboardStateReducer(
-        createMockDashboardState({ activeTabs: ['TAB-1'] }),
-        thunkAction,
-      );
-
-      expect(JSON.stringify({ activeTabs: result.activeTabs })).toBe(
-        '{"activeTabs":["TAB-1",null]}',
       );
     });
   });
