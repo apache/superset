@@ -151,6 +151,62 @@ msgstr ""
 msgid "!= (Is not equal)"
 msgstr ""
 
+msgid "Add group"
+msgstr ""
+
+msgid "Add subgroup"
+msgstr ""
+
+msgid "Center"
+msgstr ""
+
+msgid "Collapse settings"
+msgstr ""
+
+msgid "Column groups"
+msgstr ""
+
+msgid "Enter group name"
+msgstr ""
+
+msgid "Expand settings"
+msgstr ""
+
+#, python-format
+msgid "Group %s"
+msgstr ""
+
+msgid "Group columns"
+msgstr ""
+
+msgid "Group name"
+msgstr ""
+
+msgid "Move group left"
+msgstr ""
+
+msgid "Move group right"
+msgstr ""
+
+msgid "Multi-level header"
+msgstr ""
+
+msgid "Position"
+msgstr ""
+
+msgid "Remove group"
+msgstr ""
+
+msgid "Select columns"
+msgstr ""
+
+#, python-format
+msgid "Subgroup %s"
+msgstr ""
+
+msgid "Table side"
+msgstr ""
+
 #, python-format
 msgid "\"%s\" is now the system dark theme"
 msgstr ""

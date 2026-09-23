@@ -515,9 +515,15 @@ describe('plugin-chart-table', () => {
       );
     });
 
-    test('should keep renamed time comparison header groups', () => {
+    test('should refresh time comparison header group labels from verboseMap', () => {
       const transformedProps = transformProps({
         ...testData.comparison,
+        datasource: {
+          ...testData.comparison.datasource,
+          verboseMap: {
+            metric_1: 'Metric 1',
+          },
+        },
         rawFormData: {
           ...testData.comparison.rawFormData,
           header_groups: [
@@ -540,7 +546,7 @@ describe('plugin-chart-table', () => {
         transformedProps.headerGroups?.find(
           group => group.id === 'time-compare-metric_1',
         )?.label,
-      ).toBe('Renamed metric');
+      ).toBe('Metric 1');
     });
 
     test('should drop time comparison header groups when time_compare is empty', () => {

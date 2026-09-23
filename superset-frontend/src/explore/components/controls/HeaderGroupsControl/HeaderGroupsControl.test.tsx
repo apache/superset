@@ -496,6 +496,7 @@ test('locks columns on automatically created time comparison groups', async () =
       .getByRole('combobox', { name: 'Group columns' })
       .closest('.ant-select'),
   ).toHaveClass('ant-select-disabled');
+  expect(screen.getByLabelText('Group name')).toBeDisabled();
   expect(
     screen.queryByRole('button', { name: /Add subgroup/ }),
   ).not.toBeInTheDocument();
@@ -565,6 +566,22 @@ test('does not sync time comparison groups when column options are empty', () =>
   );
 
   expect(onChange).not.toHaveBeenCalled();
+});
+
+test('does not show a name error on a new subgroup in edit mode', async () => {
+  render(
+    <HeaderGroupsControl
+      {...baseProps}
+      value={[createGroup()]}
+      onChange={jest.fn()}
+    />,
+  );
+
+  await userEvent.click(screen.getByText('Group 1'));
+  await userEvent.click(screen.getByRole('button', { name: /Add subgroup/ }));
+
+  expect(screen.getByText('Subgroup 1.1')).toBeInTheDocument();
+  expect(screen.queryByRole('alert')).not.toBeInTheDocument();
 });
 
 test('does not persist an empty name or last column while editing', async () => {
@@ -790,6 +807,7 @@ test('adds a subgroup in the add popover before Apply', async () => {
   await userEvent.click(screen.getByRole('button', { name: /Add subgroup/ }));
 
   expect(screen.getByText('Subgroup 1.1')).toBeInTheDocument();
+  expect(screen.queryByRole('alert')).not.toBeInTheDocument();
   expect(onChange).not.toHaveBeenCalled();
   expect(screen.getByRole('button', { name: 'Apply' })).toBeDisabled();
 });

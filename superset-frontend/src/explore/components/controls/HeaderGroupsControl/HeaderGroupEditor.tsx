@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useState, type ReactNode } from 'react';
+import { useRef, useState, type ReactNode } from 'react';
 import { t } from '@apache-superset/core/translation';
 import { css, styled } from '@apache-superset/core/theme';
 import { Button, Input, Popover, Select } from '@superset-ui/core/components';
@@ -216,6 +216,7 @@ function HeaderGroupForm({
   siblingCount = 1,
   settingsCollapsed: settingsCollapsedProp,
   onToggleSettings,
+  showNameError = false,
 }: {
   group: HeaderGroupConfig;
   path: number[];
@@ -230,6 +231,7 @@ function HeaderGroupForm({
   siblingCount?: number;
   settingsCollapsed?: boolean;
   onToggleSettings?: () => void;
+  showNameError?: boolean;
 }) {
   const availableOptions = columnOptions.filter(
     option =>
@@ -237,9 +239,15 @@ function HeaderGroupForm({
       !usedColumns.has(option.value),
   );
   const [localCollapsed, setLocalCollapsed] = useState(false);
+  const [nameTouched, setNameTouched] = useState(false);
+  const hadNameOnOpen = useRef(Boolean(group.label?.trim()));
   const canSave = canSaveHeaderGroup(group);
   const nameError =
-    !onApply && !group.label?.trim() ? t('Name is required') : undefined;
+    showNameError &&
+    !group.label?.trim() &&
+    (hadNameOnOpen.current || nameTouched)
+      ? t('Name is required')
+      : undefined;
   const isTimeCompareGroup = group.source === 'time_compare';
   const isTopLevel = path.length === 1;
   const hasSubgroups = (group.children ?? []).length > 0;
@@ -299,9 +307,11 @@ function HeaderGroupForm({
               value={group.label}
               placeholder={t('Enter group name')}
               status={nameError ? 'error' : undefined}
-              onChange={event =>
-                onChange(path, { ...group, label: event.target.value })
-              }
+              disabled={isTimeCompareGroup}
+              onChange={event => {
+                setNameTouched(true);
+                onChange(path, { ...group, label: event.target.value });
+              }}
             />
             {nameError && <FieldError role="alert">{nameError}</FieldError>}
           </FieldRow>
@@ -390,6 +400,7 @@ function HeaderGroupForm({
                 onMove={onMove}
                 showRemove
                 siblingCount={(group.children ?? []).length}
+                showNameError={showNameError}
               />
             </NestedCard>
           ))}
@@ -536,6 +547,7 @@ export default function HeaderGroupEditor({
           onRemove={handleRemove}
           onMove={handleMove}
           onApply={isAddMode ? handleApply : undefined}
+          showNameError={!isAddMode}
           settingsCollapsed={settingsCollapsed}
         />
       }
