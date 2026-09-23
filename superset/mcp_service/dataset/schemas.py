@@ -627,8 +627,8 @@ class MetricCurrency(BaseModel):
     )
 
 
-class UpdateDatasetMetricRequest(BaseModel):
-    """Request schema for update_dataset_metric."""
+class DatasetMetricProperties(BaseModel):
+    """Dataset identifier and writable saved-metric properties."""
 
     model_config = ConfigDict(populate_by_name=True)
 
@@ -636,12 +636,6 @@ class UpdateDatasetMetricRequest(BaseModel):
         ...,
         description="Dataset identifier — numeric ID or UUID string. "
         "Use list_datasets to find valid IDs.",
-    )
-    metric: int | str = Field(
-        ...,
-        description="Metric to update — numeric metric ID, metric UUID, or "
-        "metric_name (e.g. 'sum_revenue'). Numeric strings are treated as IDs. "
-        "Use get_dataset_info to discover a dataset's saved metrics.",
     )
     metric_name: str | None = Field(
         None,
@@ -691,7 +685,7 @@ class UpdateDatasetMetricRequest(BaseModel):
         )
 
     @model_validator(mode="after")
-    def validate_updates(self) -> "UpdateDatasetMetricRequest":
+    def validate_updates(self) -> "DatasetMetricProperties":
         """Require at least one updatable property and reject empty/invalid values.
 
         Guards against no-op requests, empty ``metric_name``/``expression``, and
@@ -713,6 +707,39 @@ class UpdateDatasetMetricRequest(BaseModel):
             except (ValueError, TypeError) as ex:
                 raise ValueError("extra must be a valid JSON-encoded string") from ex
         return self
+
+
+class UpdateDatasetMetricRequest(DatasetMetricProperties):
+    """Request schema for update_dataset_metric."""
+
+    metric: int | str = Field(
+        ...,
+        description="Metric to update — numeric metric ID, metric UUID, or "
+        "metric_name (e.g. 'sum_revenue'). Numeric strings are treated as IDs. "
+        "Use get_dataset_info to discover a dataset's saved metrics.",
+    )
+
+
+class CreateDatasetMetricRequest(DatasetMetricProperties):
+    """Request schema for create_dataset_metric."""
+
+    metric_name: str = Field(
+        ..., max_length=255, description="Metric name, unique within the dataset."
+    )
+    expression: str = Field(
+        ..., description="SQL aggregation expression (e.g. 'SUM(revenue)')."
+    )
+
+
+class DeleteDatasetMetricRequest(BaseModel):
+    """Request schema for delete_dataset_metric."""
+
+    dataset_id: int | str = Field(
+        ..., description="Dataset identifier — numeric ID or UUID string."
+    )
+    metric: int | str = Field(
+        ..., description="Metric ID, UUID, or metric_name. Numeric strings are IDs."
+    )
 
 
 class DatasetMetricDetail(SqlMetricInfo):
@@ -748,6 +775,42 @@ class UpdateDatasetMetricResponse(BaseModel):
     error: str | None = Field(
         None, description="Error message if the update failed, otherwise null."
     )
+
+
+class CreateDatasetMetricResponse(BaseModel):
+    """Response schema for create_dataset_metric."""
+
+    dataset_id: int | None = Field(None, description="Dataset ID")
+    dataset_name: str | None = Field(None, description="Dataset name")
+    metric: DatasetMetricDetail | None = Field(
+        None, description="Created metric, or null if creation failed."
+    )
+    url: str | None = Field(None, description="Explore URL for the dataset")
+    error: str | None = Field(None, description="Error message, or null on success")
+
+
+class MetricChartReference(BaseModel):
+    """An accessible chart referencing a saved metric by name."""
+
+    id: int = Field(..., description="Chart ID")
+    uuid: str | None = Field(None, description="Chart UUID")
+    slice_name: str = Field(..., description="Chart name")
+
+
+class DeleteDatasetMetricResponse(BaseModel):
+    """Response schema for delete_dataset_metric."""
+
+    dataset_id: int | None = Field(None, description="Dataset ID")
+    dataset_name: str | None = Field(None, description="Dataset name")
+    metric: DatasetMetricDetail | None = Field(
+        None, description="Deleted metric, or null if deletion failed."
+    )
+    affected_charts: list[MetricChartReference] = Field(
+        default_factory=list,
+        description="Accessible charts referencing the deleted metric by name. "
+        "Their definitions are not modified and may need repair.",
+    )
+    error: str | None = Field(None, description="Error message, or null on success")
 
 
 VALID_FILTER_OPS = Literal[

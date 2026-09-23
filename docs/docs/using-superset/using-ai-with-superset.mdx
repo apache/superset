@@ -265,7 +265,24 @@ Ask your admin for the MCP server URL and any authentication tokens you need.
 | `list_datasets`          | List datasets with filtering and search                                                                                      |
 | `get_dataset_info`       | Get dataset metadata (columns, metrics, schema details)                                                                      |
 | `create_virtual_dataset` | Create a virtual dataset from a SQL query                                                                                    |
+| `create_dataset_metric` | Add a saved metric with a unique name and SQL expression; accepts the same optional properties as `update_dataset_metric` (requires dataset editorship) |
+| `delete_dataset_metric` | Delete a saved metric by ID, UUID, or name and report accessible charts referencing it; chart definitions are not modified (requires dataset editorship) |
 | `update_dataset_metric`  | Update a saved metric's expression, name, verbose_name, or format (affects every chart using it; requires dataset ownership) |
+
+Saved-metric creation and deletion accept a dataset ID or UUID and require the
+same dataset write permission and editorship as metric updates. For example,
+call `create_dataset_metric` with
+`{"dataset_id": 123, "metric_name": "sum_revenue", "expression": "SUM(revenue)"}`.
+Optional properties include `verbose_name`, `description`, `d3format`, `currency`,
+`warning_text`, `metric_type`, and `extra`, just as for `update_dataset_metric`.
+Duplicate names are rejected; existing metrics are preserved.
+
+Call `delete_dataset_metric` with
+`{"dataset_id": 123, "metric": "sum_revenue"}` to remove that metric. The response
+includes the deleted metric and `affected_charts`: accessible charts referencing
+its name in saved metric controls, HAVING filters, or query contexts. Warn users
+that those charts may need repair; deletion does not rewrite charts. References
+embedded in SQL expressions are not inferred.
 
 ### Charts
 
