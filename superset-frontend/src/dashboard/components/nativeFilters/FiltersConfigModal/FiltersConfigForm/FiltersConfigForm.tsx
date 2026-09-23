@@ -17,7 +17,12 @@
  * under the License.
  */
 /* eslint-disable react-hooks/rules-of-hooks */
-import { ColumnMeta, Metric } from '@superset-ui/chart-controls';
+import {
+  ColumnMeta,
+  D3_TIME_FORMAT_DOCS,
+  D3_TIME_FORMAT_OPTIONS,
+  Metric,
+} from '@superset-ui/chart-controls';
 import { t } from '@apache-superset/core/translation';
 import {
   Behavior,
@@ -646,6 +651,10 @@ const FiltersConfigForm = (
     filterToEdit?.controlValues?.operatorType ??
     SelectFilterOperatorType.Exact;
 
+  const currentDisplayFormat: string | undefined =
+    formFilter?.controlValues?.displayFormat ??
+    filterToEdit?.controlValues?.displayFormat;
+
   const selectedColumnIsString = useMemo(() => {
     const columnName = formFilter?.column;
     if (!columnName || !datasetDetails?.columns) return true;
@@ -664,6 +673,18 @@ const FiltersConfigForm = (
         operatorType: value,
       },
       defaultDataMask: null,
+    });
+    formChanged();
+    forceUpdate();
+  };
+
+  const onDisplayFormatChanged = (value?: string) => {
+    const previous = form.getFieldValue('filters')?.[filterId].controlValues;
+    setNativeFilterFieldValues(form, filterId, {
+      controlValues: {
+        ...previous,
+        displayFormat: value || undefined,
+      },
     });
     formChanged();
     forceUpdate();
@@ -1777,6 +1798,44 @@ const FiltersConfigForm = (
                                       value as SelectFilterOperatorType,
                                     );
                                   }}
+                                />
+                              </StyledRowFormItem>
+                            )}
+                          {!isChartCustomization &&
+                            itemTypeField === 'filter_time' && (
+                              <StyledRowFormItem
+                                expanded={expanded}
+                                name={[
+                                  'filters',
+                                  filterId,
+                                  'controlValues',
+                                  'displayFormat',
+                                ]}
+                                initialValue={currentDisplayFormat}
+                                label={
+                                  <>
+                                    <StyledLabel>
+                                      {t('Display format')}
+                                    </StyledLabel>
+                                    &nbsp;
+                                    <InfoTooltip
+                                      placement="top"
+                                      tooltip={D3_TIME_FORMAT_DOCS}
+                                    />
+                                  </>
+                                }
+                              >
+                                <Select
+                                  allowClear
+                                  allowNewOptions
+                                  ariaLabel={t('Display format')}
+                                  options={D3_TIME_FORMAT_OPTIONS.map(
+                                    ([value, label]) => ({ value, label }),
+                                  )}
+                                  placeholder={t('Default')}
+                                  onChange={value =>
+                                    onDisplayFormatChanged(value as string)
+                                  }
                                 />
                               </StyledRowFormItem>
                             )}

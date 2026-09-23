@@ -3716,6 +3716,19 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                         msg=error_msg,
                     )
                 ) from ex
+            except TypeError as ex:
+                # Raised when a Python builtin invoked from within the template
+                # receives an unexpected type, e.g. `"','".join(filter_values(...))`
+                # where `filter_values()` returns non-string values (numeric filter
+                # values) and `str.join` fails with "expected str instance, int
+                # found". These are not TemplateError/UndefinedError, so they would
+                # otherwise escape as an unhandled 500.
+                raise QueryObjectValidationError(
+                    _(
+                        "Error while rendering virtual dataset query: %(msg)s",
+                        msg=str(ex),
+                    )
+                ) from ex
 
         script = SQLScript(sql, engine=self.db_engine_spec.engine)
         if len(script.statements) > 1:

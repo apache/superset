@@ -28,6 +28,11 @@ from superset.mcp_service.chart.schemas import DataColumn, PerformanceMetadata
 from superset.mcp_service.common.cache_schemas import CacheStatus
 from superset.mcp_service.common.error_schemas import MCPBaseError
 from superset.mcp_service.common.time_range_validation import validate_time_range
+from superset.mcp_service.utils.serialization import (
+    JsonSafeRows,
+    OptionalRowCount,
+    RowCount,
+)
 
 # ---------------------------------------------------------------------------
 # Shared error schema
@@ -89,10 +94,16 @@ class MetricInfo(BaseModel):
 # ---------------------------------------------------------------------------
 
 
-# Measured with 40 dimensions per metric: 20x40 = 42,336 tokens;
-# 10x40 = 21,186; 8x40 = 16,956 (18,284 fallback), against the default 25,000 limit.
-# The fixed page cap is not a guarantee for every payload or operator token limit.
-EMBEDDED_DIMENSIONS_MAX_PAGE_SIZE: int = 8
+# Measured with get_response_size_bytes on this schema, 40 dimensions per
+# metric: with short descriptive text on every metric and dimension,
+# page_size=4 serializes to ~39 KB, 5 to ~48 KB, 6 to ~58 KB and 8 to ~77 KB
+# (about ~27 / ~34 / ~41 / ~55 KB with names only), against the
+# response-size guard's default MCP_RESPONSE_SIZE_CONFIG['max_bytes'] of
+# 50,000 bytes. 4 is the largest page size with real margin in both variants;
+# 8 (the old cap) already exceeds the default even with no descriptions at
+# all. The fixed page cap is not a guarantee for every payload or
+# operator-configured limit.
+EMBEDDED_DIMENSIONS_MAX_PAGE_SIZE: int = 4
 
 
 class ListMetricsRequest(BaseModel):
@@ -133,9 +144,9 @@ class ListMetricsRequest(BaseModel):
             raise ValueError(
                 "Embedded compatible dimensions require "
                 f"page_size <= {EMBEDDED_DIMENSIONS_MAX_PAGE_SIZE}: each "
-                "metric's dimension list can consume roughly 1–2k tokens or more, "
+                "metric's dimension list can consume several KB or more, "
                 "and the MCP response guard uses "
-                "MCP_RESPONSE_SIZE_CONFIG['token_limit'] (~25k by default). "
+                "MCP_RESPONSE_SIZE_CONFIG['max_bytes'] (~50k by default). "
                 "This fixed page cap does not guarantee that every response fits. "
                 "Reduce page_size or use include_compatible_dimensions=false "
                 "and get_compatible_dimensions for the chosen metric."
@@ -296,9 +307,9 @@ class GetTableResponse(BaseModel):
     """Response schema for get_table."""
 
     columns: list[DataColumn]
-    data: list[dict[str, Any]]
-    row_count: int
-    total_rows: int | None = None
+    data: JsonSafeRows
+    row_count: RowCount
+    total_rows: OptionalRowCount = None
     from_dttm: datetime | None = Field(
         None,
         description=(
