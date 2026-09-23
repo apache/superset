@@ -28,6 +28,11 @@ from superset.mcp_service.chart.schemas import DataColumn, PerformanceMetadata
 from superset.mcp_service.common.cache_schemas import CacheStatus
 from superset.mcp_service.common.error_schemas import MCPBaseError
 from superset.mcp_service.common.time_range_validation import validate_time_range
+from superset.mcp_service.utils.serialization import (
+    JsonSafeRows,
+    OptionalRowCount,
+    RowCount,
+)
 
 # ---------------------------------------------------------------------------
 # Shared error schema
@@ -302,9 +307,9 @@ class GetTableResponse(BaseModel):
     """Response schema for get_table."""
 
     columns: list[DataColumn]
-    data: list[dict[str, Any]]
-    row_count: int
-    total_rows: int | None = None
+    data: JsonSafeRows
+    row_count: RowCount
+    total_rows: OptionalRowCount = None
     from_dttm: datetime | None = Field(
         None,
         description=(
