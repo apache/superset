@@ -31,6 +31,7 @@ import { isFeatureEnabled, getExtensionsRegistry } from '@superset-ui/core';
 import Welcome from 'src/pages/Home';
 import setupCodeOverrides from 'src/setup/setupCodeOverrides';
 import { redirect } from 'src/utils/navigationUtils';
+import { RoutePaths } from 'src/views/routePaths';
 
 const chartsEndpoint = 'glob:*/api/v1/chart/?*';
 const chartInfoEndpoint = 'glob:*/api/v1/chart/_info?*';
@@ -180,10 +181,10 @@ test.each([
   ['missing', undefined],
 ])(
   'Redirects the %s user through the server without fetching Home data',
-  (_, user) => {
+  async (_, user) => {
     render(<Welcome user={user} />, { useRedux: true, useRouter: true });
 
-    expect(redirect).toHaveBeenCalledWith('/welcome/');
+    await waitFor(() => expect(redirect).toHaveBeenCalledWith(RoutePaths.HOME));
     [
       chartsEndpoint,
       dashboardsEndpoint,
@@ -196,11 +197,17 @@ test.each([
   },
 );
 
-test('With sql role - renders', async () => {
-  await renderWelcome();
-  expect(await screen.findByText('Dashboards')).toBeInTheDocument();
-  expect(redirect).not.toHaveBeenCalled();
-});
+test.each([0, mockedProps.user.userId])(
+  'With sql role and user ID %s - renders',
+  async userId => {
+    await renderWelcome({
+      ...mockedProps,
+      user: { ...mockedProps.user, userId },
+    });
+    expect(await screen.findByText('Dashboards')).toBeInTheDocument();
+    expect(redirect).not.toHaveBeenCalled();
+  },
+);
 
 test('With sql role - renders all panels on the page on page load', async () => {
   await renderWelcome();
