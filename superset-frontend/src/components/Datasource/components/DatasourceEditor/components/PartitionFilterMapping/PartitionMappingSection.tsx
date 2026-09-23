@@ -79,6 +79,13 @@ export default function PartitionMappingSection({
   const state = partitionRowState(datasource, columnName);
   const isMonotonic = Boolean(item?.partition_transform_is_monotonic);
   const isTemporal = Boolean(item?.is_dttm);
+  // Clearing the override does not switch mapping off when a default datetime
+  // column exists: `resolveMappedColumn` falls back to `main_dttm_col`, so the
+  // mapping moves there. Say so, rather than calling it "Remove mapping". On the
+  // default column's own row there is nothing to move back to.
+  const returnsToDefault = Boolean(
+    datasource.main_dttm_col && datasource.main_dttm_col !== columnName,
+  );
 
   // The editor's commit path echoes the value back several renders later, so an
   // input driven straight off `value` loses whatever is typed in the meantime.
@@ -322,15 +329,30 @@ export default function PartitionMappingSection({
         />
       )}
 
-      <Flex justify="flex-end">
+      <Flex vertical align="flex-end" gap={theme.sizeUnit}>
         <Button
           buttonStyle="link"
           onClick={onRemoveMapping}
           icon={<Icons.DeleteOutlined iconColor={theme.colorError} />}
           data-test="remove-partition-mapping"
         >
-          <Typography.Text type="danger">{t('Remove mapping')}</Typography.Text>
+          <Typography.Text type="danger">
+            {returnsToDefault
+              ? t('Reset to default datetime column')
+              : t('Remove mapping')}
+          </Typography.Text>
         </Button>
+        {returnsToDefault && (
+          <Typography.Text
+            type="secondary"
+            data-test="remove-partition-mapping-helper"
+          >
+            {t(
+              'The mapping returns to the default datetime column (%(column)s).',
+              { column: datasource.main_dttm_col },
+            )}
+          </Typography.Text>
+        )}
       </Flex>
     </Flex>
   );
