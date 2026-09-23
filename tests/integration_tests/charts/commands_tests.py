@@ -42,6 +42,7 @@ from superset.connectors.sqla.models import SqlaTable
 from superset.daos.chart import ChartDAO
 from superset.daos.dashboard import EmbeddedDashboardDAO
 from superset.models.core import Database
+from superset.models.embedded_dashboard import EmbeddedDashboard
 from superset.models.slice import Slice
 from superset.security.guest_token import GuestTokenResourceType
 from superset.utils import json
@@ -519,8 +520,8 @@ class TestChartsUpdateCommand(SupersetTestCase):
 
         # alpha is not an editor of this chart but has all-datasource access, so
         # ``raise_for_access(chart=...)`` admits it on the relaxed path. Bind the
-        # user before the first commit: committing the chart fires the tagging
-        # listener, which stamps ``created_by_fk`` from ``g.user``.
+        # user before the first commit, so the audit columns the commit stamps
+        # get a real user rather than the bare ``MagicMock``.
         user = security_manager.find_user(username="alpha")
         mock_g.user = mock_sm_g.user = user
 
@@ -604,9 +605,10 @@ class TestChartsUpdateCommand(SupersetTestCase):
         """
         dashboard = self.get_dash_by_slug("births")
         chart = dashboard.slices[0]
+        original_query_context = chart.query_context
+        dashboard_was_embedded = bool(dashboard.embedded)
         embedded = EmbeddedDashboardDAO.upsert(dashboard, [])
         db.session.flush()  # the uuid is only populated on flush
-        embedded_uuid = str(embedded.uuid)
 
         # A real guest principal for a dashboard that actually contains the
         # chart, so ``is_guest_user`` and ``raise_for_access`` both run for
@@ -617,7 +619,7 @@ class TestChartsUpdateCommand(SupersetTestCase):
                 "resources": [
                     {
                         "type": GuestTokenResourceType.DASHBOARD,
-                        "id": embedded_uuid,
+                        "id": str(embedded.uuid),
                     }
                 ],
                 "rls_rules": [],
@@ -642,11 +644,17 @@ class TestChartsUpdateCommand(SupersetTestCase):
                 with pytest.raises(ChartForbiddenError):
                     UpdateChartCommand(chart.id, json_obj).run()
         finally:
-            # The embedded row was only flushed, never committed. Drop it in a
-            # ``finally``: should the guest gate regress, the command commits
-            # and ``pytest.raises`` then fails, so an unguarded rollback here
-            # would be skipped and leak both rows into every later test.
+            # Should the guest gate regress, ``run()`` commits before
+            # ``pytest.raises`` fails, persisting both the embedded row and the
+            # new query context. A rollback cannot undo a commit, so clear them
+            # explicitly rather than leaking them into every later test.
             db.session.rollback()
+            if not dashboard_was_embedded:
+                db.session.query(EmbeddedDashboard).filter_by(
+                    dashboard_id=dashboard.id
+                ).delete()
+            chart.query_context = original_query_context
+            db.session.commit()
 
     @patch("superset.commands.chart.update.g")
     @patch("superset.utils.core.g")
