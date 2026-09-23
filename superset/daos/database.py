@@ -85,6 +85,7 @@ class DatabaseDAO(BaseDAO[Database]):
         query_options: list[Any] | None = None,
         *,
         skip_visibility_filter: bool = False,
+        force_fetch: bool | None = None,
     ) -> Database | None:
         """
         Find a database by id, eagerly loading the SSH tunnel relationship.
@@ -92,7 +93,7 @@ class DatabaseDAO(BaseDAO[Database]):
         all_options = [joinedload(Database.ssh_tunnel)]
         if query_options:
             all_options.extend(query_options)
-        query = db.session.query(cls.model_cls).options(*all_options)
+        query = cls._query(force_fetch).options(*all_options)
         if skip_visibility_filter:
             query = query.execution_options(
                 **{SKIP_VISIBILITY_FILTER_CLASSES: {cls.model_cls}}
@@ -178,11 +179,20 @@ class DatabaseDAO(BaseDAO[Database]):
 
     @staticmethod
     def get_database_by_name(database_name: str) -> Database | None:
-        return (
-            db.session.query(Database)
-            .filter(Database.database_name == database_name)
-            .one_or_none()
+        """
+        Look up a database by name, scoped to the requesting user's object-level
+        visibility (the same ``DatabaseFilter`` boundary ``find_by_id``/
+        ``get_connection`` already apply). An unfiltered lookup would let any
+        principal with class-level ``can_write`` reference an arbitrary
+        existing database by name -- including one they have no catalog,
+        schema, datasource, or database access to -- and ride along with
+        whatever secret-rehydration behavior callers apply to the result.
+        """
+        query = db.session.query(Database).filter(
+            Database.database_name == database_name
         )
+        query = DatabaseDAO._apply_base_filter(query)
+        return query.one_or_none()
 
     @staticmethod
     def build_db_for_connection_test(

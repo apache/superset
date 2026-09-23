@@ -595,6 +595,29 @@ def test_get_sqla_engine(mocker: MockerFixture) -> None:
     )
 
 
+def test_get_sqla_engine_honors_adjusted_connect_args(mocker: MockerFixture) -> None:
+    """
+    ``adjust_engine_params`` returns a *new* ``connect_args`` dict (the base
+    impl merges ``enforce_uri_query_params`` into a fresh copy). The result must
+    be written back into ``engine_kwargs`` so those enforced params actually
+    reach ``create_engine``. Exercised via MySQL, which enforces
+    ``local_infile=0`` this way; before the write-back the enforcement was
+    silently dropped.
+    """
+    from superset.models.core import Database
+
+    create_engine_mock = mocker.patch(
+        "superset.models.core.create_engine",
+        return_value=create_engine("sqlite://"),
+    )
+
+    database = Database(database_name="my_db", sqlalchemy_uri="mysql://u:p@h/db")
+    database._get_sqla_engine(nullpool=False)
+
+    _, kwargs = create_engine_mock.call_args
+    assert kwargs["connect_args"].get("local_infile") == 0
+
+
 def test_get_sqla_engine_caches_engine_per_url(mocker: MockerFixture) -> None:
     """
     Regression for #27897: a single SQLAlchemy ``Engine`` should be created per
@@ -2296,3 +2319,26 @@ def test_prequery_listener_mutation_race_deterministic(
     assert not t_b.is_alive(), "thread B deadlocked"
 
     assert not errors, f"deterministic interleaving raised: {errors!r}"
+
+
+def test_function_names_returns_engine_spec_functions(mocker: MockerFixture) -> None:
+    database = Database(database_name="db", sqlalchemy_uri="sqlite://")
+    spec = mocker.MagicMock()
+    spec.get_function_names.return_value = ["abs", "avg", "cardinality"]
+    database.get_db_engine_spec = mocker.MagicMock(return_value=spec)
+
+    assert database.function_names == ["abs", "avg", "cardinality"]
+    spec.get_function_names.assert_called_once_with(database)
+
+
+def test_function_names_returns_empty_list_when_engine_spec_raises(
+    mocker: MockerFixture,
+) -> None:
+    database = Database(database_name="db", sqlalchemy_uri="sqlite://")
+    spec = mocker.MagicMock()
+    spec.get_function_names.side_effect = Exception("Connection refused")
+    database.get_db_engine_spec = mocker.MagicMock(return_value=spec)
+    logger = mocker.patch("superset.models.core.logger")
+
+    assert database.function_names == []
+    assert logger.error.called

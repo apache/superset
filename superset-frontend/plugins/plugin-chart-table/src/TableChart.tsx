@@ -47,6 +47,7 @@ import {
   extractTextFromHTML,
   TimeGranularity,
   forceHexAlpha,
+  DateWithFormatter,
 } from '@superset-ui/core';
 import {
   styled,
@@ -98,7 +99,6 @@ import { formatColumnValue } from './utils/formatValue';
 import { PAGE_SIZE_OPTIONS, SERVER_PAGE_SIZE_OPTIONS } from './consts';
 import { updateTableOwnState } from './DataTable/utils/externalAPIs';
 import getScrollBarSize from './DataTable/utils/getScrollBarSize';
-import DateWithFormatter from './utils/DateWithFormatter';
 
 type ValueRange = [number, number];
 
@@ -264,7 +264,14 @@ const VisuallyHidden = styled.label`
   border: 0;
 `;
 
-function SearchInput({ value, onChange, onBlur, inputRef }: SearchInputProps) {
+function SearchInput({
+  value,
+  onChange,
+  onBlur,
+  onCompositionStart,
+  onCompositionEnd,
+  inputRef,
+}: SearchInputProps) {
   return (
     <Space direction="vertical" size={4} className="dt-global-filter">
       <span aria-hidden="true">{t('Search')}</span>
@@ -275,6 +282,8 @@ function SearchInput({ value, onChange, onBlur, inputRef }: SearchInputProps) {
         size="small"
         onChange={onChange}
         onBlur={onBlur}
+        onCompositionStart={onCompositionStart}
+        onCompositionEnd={onCompositionEnd}
         ref={inputRef}
       />
     </Space>
@@ -463,12 +472,28 @@ export default function TableChart<D extends DataRecord = DataRecord>(
   // only take relevant page size options
   const pageSizeOptions = useMemo(() => {
     const getServerPagination = (n: number) => n <= rowCount;
-    return (
+    const baseOptions = (
       serverPagination ? SERVER_PAGE_SIZE_OPTIONS : PAGE_SIZE_OPTIONS
-    ).filter(([n]) =>
-      serverPagination ? getServerPagination(n) : n <= 2 * data.length,
     ) as SizeOption[];
-  }, [data.length, rowCount, serverPagination]);
+    const options = baseOptions.filter(([n]) =>
+      serverPagination ? getServerPagination(n) : n <= 2 * data.length,
+    );
+
+    if (serverPagination && serverPageLength) {
+      if (!options.some(([n]) => n === serverPageLength)) {
+        const optionInBase = baseOptions.find(([n]) => n === serverPageLength);
+        options.push(
+          optionInBase || [serverPageLength, String(serverPageLength)],
+        );
+      }
+    }
+
+    // Remove duplicates and sort ascending
+    const uniqueOptions = Array.from(
+      new Map(options.map(opt => [opt[0], opt])).values(),
+    );
+    return uniqueOptions.sort((a, b) => a[0] - b[0]);
+  }, [data.length, rowCount, serverPagination, serverPageLength]);
 
   const getValueRange = useCallback(
     function getValueRange(key: string, alignPositiveNegative: boolean) {
@@ -1138,7 +1163,8 @@ export default function TableChart<D extends DataRecord = DataRecord>(
                 ?.backgroundColor || backgroundColor;
             arrow =
               column.label === comparisonLabels[0]
-                ? basicColorColumnFormatters[row.index]?.[column.key]?.mainArrow
+                ? (basicColorColumnFormatters[row.index]?.[column.key]
+                    ?.mainArrow ?? arrow)
                 : '';
           }
           const rowSurfaceColor =
@@ -1194,30 +1220,36 @@ export default function TableChart<D extends DataRecord = DataRecord>(
             }
           `;
 
-          let arrowStyles = css`
-            color: ${
+          // Plain inline style (rather than the `css` prop) so the arrow's
+          // color is guaranteed to apply regardless of whether the consuming
+          // app's build wires up the emotion JSX pragma for the `css` prop --
+          // notably, this codebase's own Jest/Babel config does not, which
+          // silently no-ops any `css` prop on a plain DOM element.
+          let arrowStyles: CSSProperties = {
+            color:
               basicColorFormatters &&
               basicColorFormatters[row.index]?.[originKey]?.arrowColor ===
                 ColorSchemeEnum.Green
                 ? theme.colorSuccess
-                : theme.colorError
-            };
-            margin-right: ${theme.sizeUnit}px;
-          `;
+                : theme.colorError,
+            marginRight: theme.sizeUnit,
+          };
 
           if (
             basicColorColumnFormatters &&
             basicColorColumnFormatters?.length > 0
           ) {
-            arrowStyles = css`
-              color: ${
-                basicColorColumnFormatters[row.index]?.[column.key]
-                  ?.arrowColor === ColorSchemeEnum.Green
-                  ? theme.colorSuccess
-                  : theme.colorError
+            const columnArrowColor =
+              basicColorColumnFormatters[row.index]?.[column.key]?.arrowColor;
+            if (columnArrowColor) {
+              arrowStyles = {
+                color:
+                  columnArrowColor === ColorSchemeEnum.Green
+                    ? theme.colorSuccess
+                    : theme.colorError,
+                marginRight: theme.sizeUnit,
               };
-              margin-right: ${theme.sizeUnit}px;
-            `;
+            }
           }
 
           const cellProps = {
@@ -1302,12 +1334,12 @@ export default function TableChart<D extends DataRecord = DataRecord>(
                   className="dt-truncate-cell"
                   style={columnWidth ? { width: columnWidth } : undefined}
                 >
-                  {arrow && <span css={arrowStyles}>{arrow}</span>}
+                  {arrow && <span style={arrowStyles}>{arrow}</span>}
                   {text}
                 </div>
               ) : (
                 <>
-                  {arrow && <span css={arrowStyles}>{arrow}</span>}
+                  {arrow && <span style={arrowStyles}>{arrow}</span>}
                   {text}
                 </>
               )}

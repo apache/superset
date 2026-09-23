@@ -16,44 +16,54 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-const Redis = require('ioredis');
-const config = require('../config.json');
-const { randomUUID } = require('crypto');
+import Redis from 'ioredis';
+import config from '../config.json' with { type: 'json' };
+import { randomUUID } from 'crypto';
+
 const redis = new Redis(config.redis);
 
 const numClients = 256;
-const globalEventStreamName = `${config.redisStreamPrefix}full`;
+
+// The single Pub/Sub channel the server tails, mirrored from
+// superset-websocket/src/index.ts: `<REALTIME_CHANNEL_PREFIX>realtime`. Resolve
+// the prefix the same way the server does (env override, else config.json, else
+// empty) so a loadtest points at a prefixed server's channel. Every
+// browser-bound message rides this channel as a self-describing
+// `{topic, scope, routes, payload}` envelope.
+const realtimeChannelPrefix =
+  process.env.REALTIME_CHANNEL_PREFIX || config.realtimeChannelPrefix || '';
+const realtimeChannel = `${realtimeChannelPrefix}realtime`;
+
+let entityId = 0;
 
 function pushData() {
+  const taskId = randomUUID();
+  entityId += 1;
+
+  // Broadcast entity-change nudge (scope `authenticated_global`), carrying only
+  // opaque ids; forwarded to every authenticated socket.
+  redis.publish(
+    realtimeChannel,
+    JSON.stringify({
+      topic: 'entity.changed',
+      scope: 'authenticated_global',
+      payload: { entity_type: 'task', id: entityId },
+    }),
+  );
+
+  // Targeted task-status message per simulated client (scope `principal`), each
+  // routed by the server to that principal's sockets only. Routing keys use the
+  // principal-channel format (`user:<id>`) from superset.tasks.subscription.
   for (let i = 0; i < numClients; i++) {
-    const channelId = String(i);
-    const streamId = `${config.redisStreamPrefix}${channelId}`;
-    const data = {
-      channel_id: channelId,
-      job_id: randomUUID(),
-      status: 'pending',
-    };
-
-    // push to channel stream
-    redis
-      .xadd(streamId, 'MAXLEN', 1000, '*', 'data', JSON.stringify(data))
-      .then(resp => {
-        console.log('stream response', resp);
-      });
-
-    // push to firehose (all events) stream
-    redis
-      .xadd(
-        globalEventStreamName,
-        'MAXLEN',
-        100000,
-        '*',
-        'data',
-        JSON.stringify(data),
-      )
-      .then(resp => {
-        console.log('stream response', resp);
-      });
+    redis.publish(
+      realtimeChannel,
+      JSON.stringify({
+        topic: 'task.status',
+        scope: 'principal',
+        routes: [`user:${i}`],
+        payload: { task_id: taskId, status: 'running' },
+      }),
+    );
   }
 }
 

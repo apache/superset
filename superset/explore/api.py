@@ -136,6 +136,9 @@ class ExploreRestApi(BaseSupersetApi):
         except WrongEndpointError as ex:
             return self.response(302, redirect=ex.redirect)
         except TemporaryCacheAccessDeniedError as ex:
+            # ``check_access`` raises this for chart denials as well as dataset
+            # denials, and the exception carries no datasource identity — so its
+            # own translated message is both accurate and safe to echo.
             return self.response(403, message=str(ex))
         except TemporaryCacheResourceNotFoundError as ex:
             return self.response(404, message=str(ex))

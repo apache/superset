@@ -36,8 +36,11 @@ from superset.mcp_service.chart.chart_utils import (
     is_column_truly_temporal,
     map_config_to_form_data,
     map_filter_operator,
+    map_pie_config,
     map_table_config,
     map_xy_config,
+    merge_chart_form_data,
+    merge_interactive_pivot_ui_config,
     merge_table_column_config,
     validate_chart_dataset,
 )
@@ -46,11 +49,82 @@ from superset.mcp_service.chart.schemas import (
     ColumnRef,
     FilterConfig,
     LegendConfig,
+    PieChartConfig,
     SortByConfig,
     TableChartConfig,
     XYChartConfig,
 )
+from superset.mcp_service.chart.validation.dataset_validator import DatasetValidator
+from superset.mcp_service.common.error_schemas import DatasetContext
 from superset.utils.core import ColumnSpec, FilterOperator, GenericDataType
+
+
+@pytest.mark.parametrize(
+    "updates,expected",
+    [
+        ({}, {"color_scheme": "lyftColors", "row_limit": 42}),
+        (
+            {"color_scheme": "googleCategory10c", "row_limit": 200},
+            {"color_scheme": "googleCategory10c", "row_limit": 200},
+        ),
+        (
+            {"color_scheme": None, "row_limit": 100},
+            {"color_scheme": "supersetColors", "row_limit": 100},
+        ),
+    ],
+)
+def test_merge_chart_preserves_omitted_defaults(
+    updates: dict[str, Any], expected: dict[str, Any]
+) -> None:
+    config = PieChartConfig(
+        dimension=ColumnRef(name="product"),
+        metric=ColumnRef(name="revenue", aggregate="SUM"),
+        **updates,
+    )
+    config = DatasetValidator.normalize_column_names(
+        config,
+        dataset_id=1,
+        dataset_context=DatasetContext(
+            id=1,
+            table_name="sales",
+            database_name="db",
+            available_columns=[{"name": "Product"}, {"name": "Revenue"}],
+            available_metrics=[],
+        ),
+    )
+    assert config.dimension.name == "Product"
+    assert config.metric.name == "Revenue"
+    new_form_data = map_pie_config(config)
+    existing = {
+        "viz_type": new_form_data["viz_type"],
+        "color_scheme": "lyftColors",
+        "row_limit": 42,
+    }
+    merged = merge_chart_form_data(existing, new_form_data, config)
+    assert {key: merged[key] for key in expected} == expected
+    assert merged["metric"] == new_form_data["metric"]
+
+
+@pytest.mark.parametrize("dataset_rebind", [False, True])
+def test_merge_chart_defaults_on_viz_change_or_dataset_rebind(
+    dataset_rebind: bool,
+) -> None:
+    config = PieChartConfig(
+        dimension=ColumnRef(name="product"),
+        metric=ColumnRef(name="revenue", aggregate="SUM"),
+    )
+    new_form_data = map_pie_config(config)
+    existing = {
+        "viz_type": new_form_data["viz_type"] if dataset_rebind else "table",
+        "color_scheme": "lyftColors",
+        "row_limit": 42,
+    }
+    assert (
+        merge_chart_form_data(
+            existing, new_form_data, config, dataset_rebind=dataset_rebind
+        )
+        == new_form_data
+    )
 
 
 class TestGetTableChartTypeLabel:
@@ -231,6 +305,75 @@ class TestMergeTableColumnConfig:
         merge_table_column_config(existing, updated)
 
         assert "column_config" not in updated
+
+
+class TestMergeInteractivePivotUiConfig:
+    @pytest.mark.parametrize(
+        "existing_viz_type,updated_viz_type",
+        [
+            ("ag-grid-pivot-table", "pivot_table_v2"),
+            ("pivot_table_v2", "ag-grid-pivot-table"),
+        ],
+    )
+    def test_does_not_cross_visualization_types(
+        self, existing_viz_type: str, updated_viz_type: str
+    ) -> None:
+        updated = {
+            "viz_type": updated_viz_type,
+            "pivot_table_state": {"rowGroup": {"groupColIds": ["new"]}},
+        }
+
+        merge_interactive_pivot_ui_config(
+            {
+                "viz_type": existing_viz_type,
+                "pivot_table_state": {"filter": {"filterModel": {}}},
+            },
+            updated,
+        )
+
+        assert "filter" not in updated["pivot_table_state"]
+
+    def test_preserves_ui_only_formatting_when_omitted(self) -> None:
+        existing = {
+            "viz_type": "ag-grid-pivot-table",
+            "column_config": {"Revenue": {"d3NumberFormat": "$,.2f"}},
+            "conditional_formatting": [
+                {"column": "Revenue", "operator": ">", "targetValue": 1000}
+            ],
+        }
+        updated: dict[str, Any] = {
+            "viz_type": "ag-grid-pivot-table",
+            "pivot_table_state": {},
+        }
+
+        merge_interactive_pivot_ui_config(existing, updated)
+
+        assert updated["column_config"] == existing["column_config"]
+        assert updated["conditional_formatting"] == existing["conditional_formatting"]
+
+    def test_merges_state_with_new_declarative_sections_winning(self) -> None:
+        existing = {
+            "viz_type": "ag-grid-pivot-table",
+            "pivot_table_state": {
+                "sort": {"sortModel": [{"colId": "Revenue", "sort": "desc"}]},
+                "rowGroup": {"groupColIds": ["old_region"]},
+            },
+        }
+        updated = {
+            "viz_type": "ag-grid-pivot-table",
+            "pivot_table_state": {
+                "rowGroup": {"groupColIds": ["region"]},
+                "pivot": {"pivotMode": True, "pivotColIds": ["quarter"]},
+            },
+        }
+
+        merge_interactive_pivot_ui_config(existing, updated)
+
+        assert updated["pivot_table_state"] == {
+            "sort": {"sortModel": [{"colId": "Revenue", "sort": "desc"}]},
+            "rowGroup": {"groupColIds": ["region"]},
+            "pivot": {"pivotMode": True, "pivotColIds": ["quarter"]},
+        }
 
 
 class TestMapTableConfig:

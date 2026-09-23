@@ -73,17 +73,17 @@ afterEach(() => {
   (mockGridApi.moveColumns as jest.Mock).mockClear();
 });
 
-const setup = (props: HeaderMenuProps = mockedProps) => {
+const setup = async (props: HeaderMenuProps = mockedProps) => {
   const wrapper = render(<HeaderMenu {...props} />);
   const dropdownTrigger = wrapper.getByTestId('dropdown-trigger');
-  userEvent.click(dropdownTrigger);
+  await userEvent.click(dropdownTrigger);
 
   return wrapper;
 };
 
 test('renders copy data', async () => {
-  const { getByText } = setup();
-  userEvent.click(getByText('Copy'));
+  const { getByText } = await setup();
+  await userEvent.click(getByText('Copy'));
   await waitFor(() =>
     expect(mockGridApi.getDataAsCsv).toHaveBeenCalledTimes(1),
   );
@@ -93,31 +93,34 @@ test('renders copy data', async () => {
   });
 });
 
-test('renders buttons pinning both sides', () => {
-  const { queryByText, getByText } = setup();
+test('renders buttons pinning both sides', async () => {
+  const { queryByText, getByText, getByTestId } = await setup();
   expect(queryByText('Pin Left')).toBeInTheDocument();
   expect(queryByText('Pin Right')).toBeInTheDocument();
-  userEvent.click(getByText('Pin Left'));
+  await userEvent.click(getByText('Pin Left'));
   expect(mockGridApi.setColumnsPinned).toHaveBeenCalledTimes(1);
   expect(mockGridApi.setColumnsPinned).toHaveBeenCalledWith(
     [mockedProps.colId],
     'left',
   );
-  userEvent.click(getByText('Pin Right'));
+  // Selecting a menu item closes the dropdown, so reopen it before the
+  // next click, matching how a real user would interact with the menu.
+  await userEvent.click(getByTestId('dropdown-trigger'));
+  await userEvent.click(getByText('Pin Right'));
   expect(mockGridApi.setColumnsPinned).toHaveBeenLastCalledWith(
     [mockedProps.colId],
     'right',
   );
 });
 
-test('renders unpin on pinned left', () => {
-  const { queryByText, getByText } = setup({
+test('renders unpin on pinned left', async () => {
+  const { queryByText, getByText } = await setup({
     ...mockedProps,
     pinnedLeft: true,
   });
   expect(queryByText('Pin Left')).not.toBeInTheDocument();
   expect(queryByText('Unpin')).toBeInTheDocument();
-  userEvent.click(getByText('Unpin'));
+  await userEvent.click(getByText('Unpin'));
   expect(mockGridApi.setColumnsPinned).toHaveBeenCalledTimes(1);
   expect(mockGridApi.setColumnsPinned).toHaveBeenCalledWith(
     [mockedProps.colId],
@@ -125,29 +128,29 @@ test('renders unpin on pinned left', () => {
   );
 });
 
-test('renders unpin on pinned right', () => {
-  const { queryByText } = setup({ ...mockedProps, pinnedRight: true });
+test('renders unpin on pinned right', async () => {
+  const { queryByText } = await setup({ ...mockedProps, pinnedRight: true });
   expect(queryByText('Pin Right')).not.toBeInTheDocument();
   expect(queryByText('Unpin')).toBeInTheDocument();
 });
 
 test('renders autosize column', async () => {
-  const { getByText } = setup();
-  userEvent.click(getByText('Autosize Column'));
+  const { getByText } = await setup();
+  await userEvent.click(getByText('Autosize Column'));
   await waitFor(() =>
     expect(mockGridApi.autoSizeColumns).toHaveBeenCalledTimes(1),
   );
 });
 
 test('renders unhide when invisible column exists', async () => {
-  const { queryByText, getByText } = setup({
+  const { queryByText, getByText } = await setup({
     ...mockedProps,
     invisibleColumns: [mockInvisibleColumn],
   });
   expect(queryByText('Unhide')).toBeInTheDocument();
-  userEvent.click(getByText('Unhide'));
+  await userEvent.click(getByText('Unhide'));
   const unhideColumnsButton = await screen.findByText('column2');
-  userEvent.click(unhideColumnsButton);
+  await userEvent.click(unhideColumnsButton);
   expect(mockGridApi.setColumnsVisible).toHaveBeenCalledTimes(1);
   expect(mockGridApi.setColumnsVisible).toHaveBeenCalledWith(['column2'], true);
 });
@@ -155,8 +158,8 @@ test('renders unhide when invisible column exists', async () => {
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('for main menu', () => {
   test('renders Copy to Clipboard', async () => {
-    const { getByText } = setup({ ...mockedProps, isMain: true });
-    userEvent.click(getByText('Copy the current data'));
+    const { getByText } = await setup({ ...mockedProps, isMain: true });
+    await userEvent.click(getByText('Copy the current data'));
     await waitFor(() =>
       expect(mockGridApi.getDataAsCsv).toHaveBeenCalledTimes(1),
     );
@@ -168,8 +171,8 @@ describe('for main menu', () => {
   });
 
   test('renders Download to CSV', async () => {
-    const { getByText } = setup({ ...mockedProps, isMain: true });
-    userEvent.click(getByText('Download to CSV'));
+    const { getByText } = await setup({ ...mockedProps, isMain: true });
+    await userEvent.click(getByText('Download to CSV'));
     await waitFor(() =>
       expect(mockGridApi.exportDataAsCsv).toHaveBeenCalledTimes(1),
     );
@@ -179,22 +182,22 @@ describe('for main menu', () => {
   });
 
   test('renders autosize column', async () => {
-    const { getByText } = setup({ ...mockedProps, isMain: true });
-    userEvent.click(getByText('Autosize all columns'));
+    const { getByText } = await setup({ ...mockedProps, isMain: true });
+    await userEvent.click(getByText('Autosize all columns'));
     await waitFor(() =>
       expect(mockGridApi.autoSizeAllColumns).toHaveBeenCalledTimes(1),
     );
   });
 
   test('renders all unhide all hidden columns when multiple invisible columns exist', async () => {
-    setup({
+    await setup({
       ...mockedProps,
       isMain: true,
       invisibleColumns: [mockInvisibleColumn, mockInvisibleColumn3],
     });
-    userEvent.click(screen.getByText('Unhide'));
+    await userEvent.click(screen.getByText('Unhide'));
     const unhideColumnsButton = await screen.findByText(`All 2 hidden columns`);
-    userEvent.click(unhideColumnsButton);
+    await userEvent.click(unhideColumnsButton);
     expect(mockGridApi.setColumnsVisible).toHaveBeenCalledTimes(1);
     expect(mockGridApi.setColumnsVisible).toHaveBeenCalledWith(
       [mockInvisibleColumn, mockInvisibleColumn3],
@@ -203,12 +206,12 @@ describe('for main menu', () => {
   });
 
   test('reset columns configuration', async () => {
-    const { getByText } = setup({
+    const { getByText } = await setup({
       ...mockedProps,
       isMain: true,
       invisibleColumns: [mockInvisibleColumn],
     });
-    userEvent.click(getByText('Reset columns'));
+    await userEvent.click(getByText('Reset columns'));
     await waitFor(() =>
       expect(mockGridApi.setColumnsVisible).toHaveBeenCalledTimes(1),
     );

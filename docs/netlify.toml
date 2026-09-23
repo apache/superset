@@ -43,8 +43,11 @@ publish = "build"
 ignore = 'if [ -n "$CACHED_COMMIT_REF" ]; then git diff --quiet "$CACHED_COMMIT_REF" HEAD -- . ../README.md; else git fetch --no-tags origin master >/dev/null 2>&1 || true; i=0; while [ "$i" -lt 10 ] && ! git merge-base origin/master HEAD >/dev/null 2>&1; do git fetch --deepen=200 origin master >/dev/null 2>&1 || break; i=$((i+1)); done; BASE="$(git merge-base origin/master HEAD 2>/dev/null || true)"; if [ -z "$BASE" ]; then exit 1; fi; git diff --quiet "$BASE" HEAD -- . ../README.md; fi'
 
 [build.environment]
-# Node version matching docs/.nvmrc
-NODE_VERSION = "20"
+# Node version is intentionally not pinned here: Netlify auto-detects it
+# from docs/.nvmrc, which is a symlink to the repo's single source of truth
+# at superset-frontend/.nvmrc. Duplicating the version here previously let
+# it drift out of sync (stuck on Node 20 after the repo moved to Node 24),
+# breaking installs once a dependency required a newer Node engine.
 # Yarn version
 YARN_VERSION = "1.22.22"
 # Increase heap size for webpack bundling of Superset UI components

@@ -56,6 +56,8 @@ export const SingleQueryResultPane = ({
   columnDisplayNames,
   rowLimit,
   rowLimitOptions,
+  effectiveRowLimit,
+  limitReachedMessage,
   onRowLimitChange,
   onDownloadCSV,
   onDownloadXLSX,
@@ -86,6 +88,8 @@ export const SingleQueryResultPane = ({
         canDownload={canDownload}
         rowLimit={rowLimit}
         rowLimitOptions={rowLimitOptions}
+        effectiveRowLimit={effectiveRowLimit}
+        limitReachedMessage={limitReachedMessage}
         onRowLimitChange={onRowLimitChange}
         onDownloadCSV={onDownloadCSV}
         onDownloadXLSX={onDownloadXLSX}

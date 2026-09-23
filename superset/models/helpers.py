@@ -58,7 +58,7 @@ from flask_appbuilder.security.sqla.models import User
 from flask_babel import get_locale, lazy_gettext as _
 from jinja2.exceptions import TemplateError, UndefinedError
 from markupsafe import escape, Markup
-from pandas import DateOffset
+from pandas import DateOffset, Timedelta
 from sqlalchemy import and_, Column, or_, UniqueConstraint
 from sqlalchemy.exc import MultipleResultsFound
 from sqlalchemy.ext.hybrid import hybrid_property
@@ -80,7 +80,6 @@ from superset import db, is_feature_enabled
 from superset.advanced_data_type.types import AdvancedDataTypeResponse
 from superset.common.db_query_status import QueryStatus
 from superset.common.grouping_sets import (
-    grouping_id_column,
     grouping_marker_label,
     grouping_sets_clause,
 )
@@ -111,9 +110,11 @@ from superset.exceptions import (
     SupersetParseError,
     SupersetSecurityException,
     SupersetSyntaxErrorException,
+    SupersetTemplateException,
 )
 from superset.extensions import feature_flag_manager
 from superset.jinja_context import BaseTemplateProcessor
+from superset.sql.metric_normalization import normalize_custom_metric
 from superset.sql.parse import has_aggregate, sanitize_clause, SQLScript, SQLStatement
 from superset.superset_typing import (
     AdhocColumn,
@@ -196,6 +197,40 @@ def get_effective_hours_offset(
 
 # Right suffix used for joining offset results
 R_SUFFIX = "__right_suffix"
+
+
+def build_like_predicate(
+    expr: ColumnElement[Any],
+    search: str,
+) -> ColumnElement[Any]:
+    """
+    Build a case-insensitive containment predicate for ``expr``.
+
+    Uses ``contains(..., autoescape=True)`` rather than a raw ``LIKE ...
+    ESCAPE`` clause because BigQuery's GoogleSQL dialect has no ESCAPE
+    keyword and rejects it outright; ``contains()`` lets each dialect's
+    compiler render wildcard-escaping in its own supported syntax (BigQuery's
+    compiler swaps in backslash-escaping instead of an ESCAPE clause).
+
+    ``lower(expr) LIKE lower('%term%')`` is used rather than ``ILIKE`` because
+    the latter is not portable across engines.
+    """
+    return sa.func.lower(expr).contains(search.lower(), autoescape=True)
+
+
+def _is_parenthesized(sqla_col: ColumnElement) -> bool:
+    """
+    Return ``True`` when ``sqla_col`` is already wrapped in a ``Grouping``.
+
+    Calculated columns are parenthesized at the converter level
+    (``Grouping(literal_column(...))``), optionally behind a ``Label``. This
+    guards the filter-loop wrap below from adding a redundant second
+    ``Grouping`` (``((expr))``) for adhoc columns that reference a saved
+    calculated column.
+    """
+    return isinstance(sqla_col, Grouping) or (
+        isinstance(sqla_col, Label) and isinstance(sqla_col.element, Grouping)
+    )
 
 
 def _normalize_mssql_virtual_dataset_sql(
@@ -1293,6 +1328,15 @@ class AuditMixinNullable(AuditMixin):
 _NO_BYPASS: frozenset[type] = frozenset()
 
 
+@dataclasses.dataclass(frozen=True)
+class SqlExpressionContext:
+    """Database context required to validate and render a SQL expression."""
+
+    engine: str
+    schema: str
+    template_processor: BaseTemplateProcessor | None
+
+
 class SoftDeleteMixin:
     """Mixin that adds soft-delete support to a SQLAlchemy model.
 
@@ -1611,16 +1655,28 @@ class ExtraJSONMixin:
         return value
 
 
+_EXTRA_DICT_CACHE_UNSET = object()
+
+
 class CertificationMixin:
     """Mixin to add extra certification fields"""
 
     extra = sa.Column(sa.Text, default="{}")
 
     def get_extra_dict(self) -> dict[str, Any]:
-        try:
-            return json.loads(self.extra)
-        except (TypeError, json.JSONDecodeError):
-            return {}
+        # Cache the parsed ``extra`` payload on the instance, keyed by the raw
+        # string it was parsed from, so callers reading multiple
+        # certification/warning properties off the same object don't each
+        # trigger their own ``json.loads``. The cache is transient (not a
+        # mapped column) and self-invalidates whenever ``extra`` changes.
+        cache_raw = getattr(self, "_extra_dict_cache_raw", _EXTRA_DICT_CACHE_UNSET)
+        if cache_raw is _EXTRA_DICT_CACHE_UNSET or cache_raw != self.extra:
+            try:
+                self._extra_dict_cache = json.loads(self.extra)
+            except (TypeError, json.JSONDecodeError):
+                self._extra_dict_cache = {}
+            self._extra_dict_cache_raw = self.extra
+        return self._extra_dict_cache
 
     @property
     def is_certified(self) -> bool:
@@ -1673,6 +1729,11 @@ class QueryStringExtended(NamedTuple):
     sql: str
     sql_shifted_temporal_labels: set[str]
 
+    @property
+    def full_sql(self) -> str:
+        """The prequeries and the main query as one displayable statement."""
+        return ";\n\n".join([*self.prequeries, self.sql]) + ";"
+
 
 class SqlaQuery(NamedTuple):
     applied_template_filters: list[str]
@@ -1684,6 +1745,15 @@ class SqlaQuery(NamedTuple):
     prequeries: list[str]
     sqla_query: Select
     sql_shifted_temporal_labels: set[str]
+
+
+WEEK_GRAINS = (
+    TimeGrain.WEEK_STARTING_SUNDAY,
+    TimeGrain.WEEK_ENDING_SATURDAY,
+    TimeGrain.WEEK,
+    TimeGrain.WEEK_STARTING_MONDAY,
+    TimeGrain.WEEK_ENDING_SUNDAY,
+)
 
 
 class ExploreMixin:  # pylint: disable=too-many-public-methods
@@ -1845,28 +1915,70 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             )
         return self._denylist_default_schema
 
-    def _process_sql_expression(  # pylint: disable=too-many-arguments
+    def _process_sql_expression(
         self,
         expression: Optional[str],
-        database_id: int,
-        engine: str,
-        schema: str,
-        template_processor: Optional[BaseTemplateProcessor],
+        context: SqlExpressionContext,
     ) -> Optional[str]:
-        if template_processor and expression:
-            expression = template_processor.process_template(expression)
+        return self._process_validated_sql_expression(expression, context)
+
+    def _process_metric_sql_expression(
+        self,
+        expression: Optional[str],
+        context: SqlExpressionContext,
+    ) -> Optional[str]:
+        if context.template_processor and expression:
+            expression = context.template_processor.process_template(expression)
+        if not expression:
+            return expression
+
+        expression = validate_adhoc_subquery(
+            expression,
+            self.database,
+            self.catalog,
+            context.schema,
+            context.engine,
+        )
+        normalized_metric = normalize_custom_metric(
+            expression,
+            context.engine,
+            self.database.db_engine_spec,
+        )
+        return self._process_validated_sql_expression(
+            normalized_metric.expression,
+            context,
+            preserve_source=normalized_metric.may_preserve_source,
+            render_template=False,
+            validate_subquery=False,
+        )
+
+    def _process_validated_sql_expression(  # noqa: C901
+        self,
+        expression: Optional[str],
+        context: SqlExpressionContext,
+        *,
+        preserve_source: bool = False,
+        render_template: bool = True,
+        validate_subquery: bool = True,
+    ) -> Optional[str]:
+        if render_template and context.template_processor and expression:
+            expression = context.template_processor.process_template(expression)
         if expression:
-            expression = validate_adhoc_subquery(
-                expression,
-                self.database,
-                self.catalog,
-                schema,
-                engine,
-            )
+            if validate_subquery:
+                expression = validate_adhoc_subquery(
+                    expression,
+                    self.database,
+                    self.catalog,
+                    context.schema,
+                    context.engine,
+                )
+            source_expression = expression
             try:
-                expression = sanitize_clause(expression, engine)
+                expression = sanitize_clause(expression, context.engine)
             except QueryClauseValidationException as ex:
                 raise QueryObjectValidationError(ex.message) from ex
+            if preserve_source:
+                expression = source_expression.rstrip().rstrip(";").rstrip()
             # Adhoc expressions are user-controlled SQL that ends up inside a
             # `literal_column(...)`. Apply the operator-configured
             # `DISALLOWED_SQL_FUNCTIONS` / `DISALLOWED_SQL_TABLES` gates at the
@@ -1876,9 +1988,11 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             # the same gate applied at query-execution time and gives the
             # adhoc-expression path defense in depth.
             disallowed_functions = app.config["DISALLOWED_SQL_FUNCTIONS"].get(
-                engine, set()
+                context.engine, set()
             )
-            disallowed_tables = app.config["DISALLOWED_SQL_TABLES"].get(engine, set())
+            disallowed_tables = app.config["DISALLOWED_SQL_TABLES"].get(
+                context.engine, set()
+            )
             if disallowed_functions or disallowed_tables:
                 # `_process_select_expression` (and siblings) pre-wraps the
                 # input with `SELECT ...`; other callers pass bare
@@ -1889,7 +2003,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     if expression.strip().upper().startswith("SELECT")
                     else f"SELECT {expression}"
                 )
-                parsed = SQLScript(sql_to_check, engine=engine)
+                parsed = SQLScript(sql_to_check, engine=context.engine)
                 if disallowed_functions and parsed.check_functions_present(
                     disallowed_functions
                 ):
@@ -1916,7 +2030,6 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
     def _process_select_expression(
         self,
         expression: Optional[str],
-        database_id: int,
         engine: str,
         schema: str,
         template_processor: Optional[BaseTemplateProcessor],
@@ -1930,14 +2043,9 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         if expression:
             expression = f"SELECT {expression}"
 
-        if processed := self._process_sql_expression(
-            expression=expression,
-            database_id=database_id,
-            engine=engine,
-            schema=schema,
-            template_processor=template_processor,
-        ):
-            prefix, expression = re.split(
+        context = SqlExpressionContext(engine, schema, template_processor)
+        if processed := self._process_sql_expression(expression, context):
+            _prefix, expression = re.split(
                 r"SELECT\s+",
                 processed,
                 maxsplit=1,
@@ -1947,10 +2055,31 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
 
         return None
 
+    def _process_metric_select_expression(
+        self,
+        expression: Optional[str],
+        engine: str,
+        schema: str,
+        template_processor: Optional[BaseTemplateProcessor],
+    ) -> Optional[str]:
+        """Validate and normalize an ad hoc metric used in SELECT."""
+        if expression:
+            expression = f"SELECT {expression}"
+
+        context = SqlExpressionContext(engine, schema, template_processor)
+        if processed := self._process_metric_sql_expression(expression, context):
+            _prefix, expression = re.split(
+                r"SELECT\s+",
+                processed,
+                maxsplit=1,
+                flags=re.IGNORECASE,
+            )
+            return expression.strip()
+        return None
+
     def _process_orderby_expression(
         self,
         expression: Optional[str],
-        database_id: int,
         engine: str,
         schema: str,
         template_processor: Optional[BaseTemplateProcessor],
@@ -1964,14 +2093,9 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         if expression:
             expression = f"SELECT 1 ORDER BY {expression}"
 
-        if processed := self._process_sql_expression(
-            expression=expression,
-            database_id=database_id,
-            engine=engine,
-            schema=schema,
-            template_processor=template_processor,
-        ):
-            prefix, expression = re.split(
+        context = SqlExpressionContext(engine, schema, template_processor)
+        if processed := self._process_sql_expression(expression, context):
+            _prefix, expression = re.split(
                 r"ORDER\s+BY",
                 processed,
                 maxsplit=1,
@@ -1979,6 +2103,28 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             )
             return expression.strip()
 
+        return None
+
+    def _process_metric_orderby_expression(
+        self,
+        expression: Optional[str],
+        engine: str,
+        schema: str,
+        template_processor: Optional[BaseTemplateProcessor],
+    ) -> Optional[str]:
+        """Validate and normalize an ad hoc metric used in ORDER BY."""
+        if expression:
+            expression = f"SELECT 1 ORDER BY {expression}"
+
+        context = SqlExpressionContext(engine, schema, template_processor)
+        if processed := self._process_metric_sql_expression(expression, context):
+            _prefix, expression = re.split(
+                r"ORDER\s+BY",
+                processed,
+                maxsplit=1,
+                flags=re.IGNORECASE,
+            )
+            return expression.strip()
         return None
 
     def make_sqla_column_compatible(
@@ -2993,6 +3139,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         x_axis_label: str | None = None,
         x_axis_is_temporal: bool = False,
         x_axis_datetime_format: str | None = None,
+        resolved_week_offset: DateOffset | None = None,
     ) -> tuple[pd.DataFrame, list[str]]:
         """Determine appropriate join keys and modify DataFrames if needed."""
         if time_grain and not is_date_range_offset:
@@ -3010,7 +3157,12 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
 
             # Add offset join columns for relative time offsets
             self.add_offset_join_column(
-                df, column_name, time_grain, offset, join_column_producer
+                df,
+                column_name,
+                time_grain,
+                offset,
+                join_column_producer,
+                resolved_week_offset,
             )
             self.add_offset_join_column(
                 offset_df, column_name, time_grain, None, join_column_producer
@@ -3240,6 +3392,19 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 "DATE_RANGE_TIMESHIFTS_ENABLED"
             )
 
+            # Resolved once per offset, from the main series, and reused for
+            # both the join column and (if needed) the full-range coalesce
+            # below so the two cannot drift apart. Skipped entirely when a
+            # custom join_column_producer is configured: that path bypasses
+            # all built-in offset parsing (including normalize_time_delta),
+            # so resolving here could raise on an offset the producer itself
+            # never needs to parse.
+            resolved_week_offset = (
+                None
+                if join_column_producer
+                else self._resolve_week_grain_offset(df, time_grain, offset)
+            )
+
             offset_df, actual_join_keys = self._determine_join_keys(
                 df,
                 offset_df,
@@ -3251,6 +3416,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 x_axis_label,
                 x_axis_is_temporal,
                 x_axis_datetime_format,
+                resolved_week_offset,
             )
 
             # The full-range option is only meaningful for relative offsets aligned
@@ -3267,7 +3433,9 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             df = self._perform_join(df, offset_df, actual_join_keys, how=how)
 
             if use_outer_join:
-                df = self._coalesce_offset_index(df, offset, join_keys)
+                df = self._coalesce_offset_index(
+                    df, offset, join_keys, resolved_week_offset
+                )
 
             df = self._apply_cleanup_logic(
                 df, offset, time_grain, join_keys, is_date_range_offset
@@ -3289,6 +3457,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         df: pd.DataFrame,
         offset: str,
         join_keys: list[str],
+        resolved_week_offset: DateOffset | None = None,
     ) -> pd.DataFrame:
         """
         Rebuild the temporal x-axis after an outer join with an offset DataFrame.
@@ -3299,22 +3468,107 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         right-hand column, expressed in the offset's own time range (e.g. "yesterday
         15:00"). Shifting it forward by the offset places it on the main series'
         axis (e.g. "today 15:00") so the comparison line spans the full period.
+
+        Under a Week grain, ``resolved_week_offset`` is the same whole-week shift
+        used to build the join column (see ``_resolve_week_grain_offset``); reusing
+        it here instead of the raw calendar offset keeps this reconstructed axis
+        value aligned to the same weekday the join matched on.
         """
         x_axis = join_keys[0]
         offset_x_axis = f"{x_axis}{R_SUFFIX}"
         if x_axis not in df.columns or offset_x_axis not in df.columns:
             return df
 
-        # normalize_time_delta returns a negative delta for "... ago" offsets, so
-        # subtracting it shifts the historical timestamp forward onto the main axis.
-        try:
-            forward_shift = DateOffset(**normalize_time_delta(offset))
-        except (ValueError, TimeDeltaAmbiguousError):
-            return df
+        if resolved_week_offset is not None:
+            forward_shift = resolved_week_offset
+        else:
+            # normalize_time_delta returns a negative delta for "... ago"
+            # offsets, so subtracting it shifts the historical timestamp
+            # forward onto the main axis.
+            try:
+                forward_shift = DateOffset(**normalize_time_delta(offset))
+            except (ValueError, TimeDeltaAmbiguousError):
+                return df
 
         shifted = df[offset_x_axis] - forward_shift
         df[x_axis] = df[x_axis].fillna(shifted)
         return df
+
+    @staticmethod
+    def _resolve_week_grain_offset(
+        df: pd.DataFrame,
+        time_grain: str | None,
+        time_offset: str | None,
+    ) -> DateOffset | None:
+        """
+        Resolve a relative time offset applied under a Week grain to a single
+        whole-week ``DateOffset`` shared by every row of ``df``.
+
+        A calendar month/quarter/year is not a whole number of weeks, so
+        applying the raw calendar shift independently to each row rounds to a
+        different number of weeks depending on how many leap days or
+        month-length differences happen to fall inside that particular row's
+        span. Two main-series rows exactly one grain apart can then round to
+        *different* whole-week counts, colliding onto the same shifted date
+        (or skipping one). Resolving the shift once, from a single reference
+        date, and reusing that constant for every row keeps rows exactly as
+        many whole weeks apart as they started -- matching the offset
+        series' own real week-start dates, which are always aligned to the
+        grain's weekday.
+
+        Returns ``None`` when the offset does not apply (no offset, a date
+        range, or a non-Week grain), in which case callers fall back to the
+        original per-call calendar-offset behavior.
+        """
+        if (
+            not time_grain
+            or time_grain not in WEEK_GRAINS
+            or not time_offset
+            or ExploreMixin.is_valid_date_range_static(time_offset)
+            or df.empty
+        ):
+            return None
+
+        reference_column = df.iloc[:, 0]
+        reference_values = reference_column[
+            reference_column.apply(
+                lambda value: hasattr(value, "strftime") and pd.notna(value)
+            )
+        ]
+        if reference_values.empty:
+            return None
+
+        # The reference must be picked by value, not row position: two rows
+        # exactly one grain apart can shift by calendar spans that differ by
+        # up to a whole week (depending on how many leap days fall inside
+        # each row's own span), so whichever row happened to land first
+        # would make the resolved constant depend on DataFrame row order.
+        # The minimum is deterministic for a given set of dates regardless
+        # of ordering.
+        reference = reference_values.min()
+        calendar_offset = DateOffset(**normalize_time_delta(time_offset))
+        calendar_shifted = reference + calendar_offset
+        # Timedelta.days floors toward negative infinity, which would round
+        # e.g. an 83-hour ("< half a week") shift down to a full week instead
+        # of zero; dividing by a one-day Timedelta keeps the exact fraction.
+        exact_days = (calendar_shifted - reference) / Timedelta(days=1)
+        weeks = round(exact_days / 7)
+        if abs(exact_days) < 7:
+            # A sub-week offset (e.g. "3 days ago", "5 days ago") is not the
+            # weekday-drift case this resolution exists to fix -- it does not
+            # touch a calendar unit wider than a week, so per-row rounding
+            # cannot disagree between rows. Checking ``weeks == 0`` here is
+            # not enough: ``round()`` rounds to the nearest whole week rather
+            # than toward zero, so a 4-6 day offset already rounds to a
+            # nonzero week count (e.g. ``round(-5 / 7) == -1``) and would
+            # slip past that guard. Comparing the exact day count against a
+            # full week instead catches every sub-week offset. Returning a
+            # whole-week DateOffset here would override the raw per-row
+            # calendar shift, leaving every row shifted by the wrong number
+            # of days instead of the offset actually requested. Returning
+            # None restores that raw per-row behavior.
+            return None
+        return DateOffset(days=weeks * 7)
 
     def add_offset_join_column(
         self,
@@ -3323,6 +3577,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         time_grain: str,
         time_offset: str | None = None,
         join_column_producer: Any = None,
+        resolved_week_offset: DateOffset | None = None,
     ) -> None:
         """
         Adds an offset join column to the provided DataFrame.
@@ -3334,12 +3589,25 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         :param time_grain: The time grain used to calculate the new column.
         :param time_offset: The time offset used to calculate the new column.
         :param join_column_producer: A function to generate the join column.
+        :param resolved_week_offset: Under a Week grain, the single whole-week
+            ``DateOffset`` to apply to every row (see
+            ``_resolve_week_grain_offset``). Computed from ``df`` when not
+            supplied, so callers that already resolved it for this same
+            ``df`` and ``time_offset`` (e.g. to also reuse it in
+            ``_coalesce_offset_index``) can pass it through instead of
+            recomputing it.
         """
         if join_column_producer:
             df[name] = df.apply(lambda row: join_column_producer(row, 0), axis=1)
         else:
+            if resolved_week_offset is None:
+                resolved_week_offset = self._resolve_week_grain_offset(
+                    df, time_grain, time_offset
+                )
             df[name] = df.apply(
-                lambda row: self.generate_join_column(row, 0, time_grain, time_offset),
+                lambda row: self.generate_join_column(
+                    row, 0, time_grain, time_offset, resolved_week_offset
+                ),
                 axis=1,
             )
 
@@ -3349,12 +3617,16 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         column_index: int,
         time_grain: str,
         time_offset: str | None = None,
+        resolved_week_offset: DateOffset | None = None,
     ) -> str:
         value = row.iloc[column_index]
 
         if hasattr(value, "strftime"):
             if time_offset and not ExploreMixin.is_valid_date_range_static(time_offset):
-                value = value + DateOffset(**normalize_time_delta(time_offset))
+                if resolved_week_offset is not None:
+                    value = value + resolved_week_offset
+                else:
+                    value = value + DateOffset(**normalize_time_delta(time_offset))
 
             if time_grain in (
                 TimeGrain.WEEK_STARTING_SUNDAY,
@@ -3419,17 +3691,35 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                         msg=str(ex),
                     )
                 ) from ex
-            except (TemplateError, SupersetSyntaxErrorException) as ex:
-                # Extract error message from different exception types
+            except (
+                TemplateError,
+                SupersetSyntaxErrorException,
+                SupersetTemplateException,
+            ) as ex:
                 if isinstance(ex, TemplateError):
                     error_msg = ex.message
-                else:  # SupersetSyntaxErrorException
+                elif isinstance(ex, SupersetSyntaxErrorException):
                     error_msg = str(ex.errors[0].message if ex.errors else ex)
+                else:  # SupersetTemplateException
+                    error_msg = str(ex)
 
                 raise QueryObjectValidationError(
                     _(
                         "Error while rendering virtual dataset query: %(msg)s",
                         msg=error_msg,
+                    )
+                ) from ex
+            except TypeError as ex:
+                # Raised when a Python builtin invoked from within the template
+                # receives an unexpected type, e.g. `"','".join(filter_values(...))`
+                # where `filter_values()` returns non-string values (numeric filter
+                # values) and `str.join` fails with "expected str instance, int
+                # found". These are not TemplateError/UndefinedError, so they would
+                # otherwise escape as an unhandled 500.
+                raise QueryObjectValidationError(
+                    _(
+                        "Error while rendering virtual dataset query: %(msg)s",
+                        msg=str(ex),
                     )
                 ) from ex
 
@@ -3492,6 +3782,10 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     from_sql = parsed_script.format()
 
             except Exception as ex:  # pylint: disable=broad-except
+                # A caught DB error can leave db.session in "pending rollback"
+                # state, which would poison unrelated queries later in this request.
+                db.session.rollback()  # pylint: disable=consider-using-transaction
+
                 # RLS injection failures fail closed: only continue when it is
                 # positively confirmed that no RLS predicates apply to the
                 # referenced tables; any other outcome aborts the query.
@@ -3563,7 +3857,12 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             aggregate: Any = metric.get("aggregate")
             metric_column = metric.get("column") or {}
             column_name = cast(str, metric_column.get("column_name"))
-            sqla_column = sa.column(column_name)
+            sqla_column = sa.column(
+                self.db_engine_spec.prepare_identifier(
+                    column_name,
+                    normalize_columns=bool(self.normalize_columns),
+                )
+            )
 
             if isinstance(aggregate, str) and aggregate in self.sqla_aggregations:
                 sqla_metric = self.sqla_aggregations[aggregate](sqla_column)
@@ -3593,9 +3892,8 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 )
 
             if not processed:
-                expression = self._process_select_expression(
+                expression = self._process_metric_select_expression(
                     expression=expression,
-                    database_id=self.database_id,
                     engine=self.database.backend,
                     schema=self.schema,
                     template_processor=template_processor,
@@ -3708,9 +4006,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         return values
 
     def get_query_str(self, query_obj: QueryObjectDict) -> str:
-        query_str_ext = self.get_query_str_extended(query_obj)
-        all_queries = query_str_ext.prequeries + [query_str_ext.sql]
-        return ";\n\n".join(all_queries) + ";"
+        return self.get_query_str_extended(query_obj).full_sql
 
     def _get_series_orderby(
         self,
@@ -3721,7 +4017,11 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
     ) -> Column:
         if utils.is_adhoc_metric(series_limit_metric):
             assert isinstance(series_limit_metric, dict)
-            ob = self.adhoc_metric_to_sqla(series_limit_metric, columns_by_name)
+            ob = self.adhoc_metric_to_sqla(
+                series_limit_metric,
+                columns_by_name,
+                template_processor=template_processor,
+            )
         elif (
             isinstance(series_limit_metric, str)
             and series_limit_metric in metrics_by_name
@@ -4010,6 +4310,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         limit: int = 10000,
         denormalize_column: bool = False,
         array_elements: bool = False,
+        search: str | None = None,
     ) -> list[Any]:
         # denormalize column name before querying for values
         # unless disabled in the dataset configuration
@@ -4047,6 +4348,9 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             .select_from(tbl)
             .distinct()
         )
+        if search:
+            qry = qry.where(build_like_predicate(value_expr, search))
+
         if limit:
             qry = qry.limit(limit)
 
@@ -4260,16 +4564,55 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         type_ = column_spec.sqla_type if column_spec else None
         if expression := tbl_column.expression:
             if template_processor:
-                expression = template_processor.process_template(expression)
+                try:
+                    expression = template_processor.process_template(expression)
+                except UndefinedError as ex:
+                    raise QueryObjectValidationError(
+                        _(
+                            "Calculated column template error: %(msg)s",
+                            msg=str(ex),
+                        )
+                    ) from ex
+                except (
+                    TemplateError,
+                    SupersetSyntaxErrorException,
+                    SupersetTemplateException,
+                ) as ex:
+                    if isinstance(ex, TemplateError):
+                        error_msg = ex.message
+                    elif isinstance(ex, SupersetSyntaxErrorException):
+                        error_msg = str(ex.errors[0].message if ex.errors else ex)
+                    else:  # SupersetTemplateException
+                        error_msg = str(ex)
+                    raise QueryObjectValidationError(
+                        _(
+                            "Error while rendering calculated column "
+                            "expression: %(msg)s",
+                            msg=error_msg,
+                        )
+                    ) from ex
                 if expression != tbl_column.expression:
                     # Re-check the rendered expression before embedding it.
                     expression = validate_rendered_expression(
                         expression, self.database, self.catalog, self.schema
                     )
             expression = self._validate_stored_expression(expression)
-            col = literal_column(expression, type_=type_)
+            if "--" in expression or "#" in expression:
+                # A trailing single-line comment (``--``/``#``) would otherwise
+                # let Grouping's closing paren be swallowed by the comment
+                # (``(... -- x)`` -> unclosed paren); emit it on a new line.
+                expression = f"{expression}\n"
+            # Parenthesize calculated-column expressions so a bare boolean
+            # operator (e.g. OR) inside the expression cannot leak into the
+            # surrounding operator precedence when the column is used in a
+            # SELECT/GROUP BY/ORDER BY, series-limit prequery, or JOIN ON.
+            col = Grouping(literal_column(expression, type_=type_))
         else:
-            col = sa.column(tbl_column.column_name, type_=type_)
+            identifier = db_engine_spec.prepare_identifier(
+                cast(str, tbl_column.column_name),
+                normalize_columns=bool(self.normalize_columns),
+            )
+            col = sa.column(identifier, type_=type_)
         col = self.make_sqla_column_compatible(col, label)
         return col
 
@@ -4427,9 +4770,8 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 # back would change the cache key of a rehydrated query context
                 col = cast(AdhocMetric, dict(col))
                 if col.get("sqlExpression"):
-                    col["sqlExpression"] = self._process_orderby_expression(
+                    col["sqlExpression"] = self._process_metric_orderby_expression(
                         expression=col["sqlExpression"],
-                        database_id=self.database_id,
                         engine=self.database.backend,
                         schema=self.schema,
                         template_processor=template_processor,
@@ -4511,7 +4853,6 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     else:
                         selected = self._process_select_expression(
                             expression=selected,
-                            database_id=self.database_id,
                             engine=self.database.backend,
                             schema=self.schema,
                             template_processor=template_processor,
@@ -4572,7 +4913,6 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 if isinstance(selected, str):
                     selected = self._process_select_expression(
                         expression=quote(selected),
-                        database_id=self.database_id,
                         engine=self.database.backend,
                         schema=self.schema,
                         template_processor=template_processor,
@@ -4690,10 +5030,31 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             and groupby_all_columns
             and db_engine_spec.supports_grouping_sets
         )
+        # Both the GROUPING() marker labels and the `grouping_sets` level
+        # definitions sent by the frontend (see buildQuery.ts) are expressed in
+        # terms of the column's logical/requested label (``.key``), not the
+        # engine-mutated SQL alias (``.name``). BigQuery, for example, mangles
+        # labels containing spaces (e.g. a Custom SQL column named "Test Row")
+        # into something like "Test_Row_a1b2c3" for `.name`, while `.key` keeps
+        # the original "Test Row". Keying by `.name` here would silently drop
+        # such columns from every rollup level (the `col in ...` guard below),
+        # producing an invalid ``GROUP BY GROUPING SETS`` clause that omits a
+        # selected, non-aggregated column.
+        groupby_columns_by_label = {
+            gby_expr.key: gby_expr for gby_expr in groupby_all_columns.values()
+        }
         if use_grouping_sets:
+            # Route the marker through `make_sqla_column_compatible` like every
+            # other selected column: the SQL-level alias is engine-mutated if
+            # required (e.g. BigQuery rejects aliases with spaces), while
+            # `.key` keeps the unmutated marker label so it lines up with the
+            # `groupby_columns_by_label` keys above and with what the frontend
+            # looks for when splitting the combined result back per level.
             select_exprs = select_exprs + [
-                grouping_id_column(gby_expr, grouping_marker_label(name))
-                for name, gby_expr in groupby_all_columns.items()
+                self.make_sqla_column_compatible(
+                    sa.func.grouping(gby_expr), grouping_marker_label(label)
+                )
+                for label, gby_expr in groupby_columns_by_label.items()
             ]
 
         # Expected output columns
@@ -4710,9 +5071,9 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             if use_grouping_sets:
                 gs_levels = [
                     [
-                        groupby_all_columns[col]
+                        groupby_columns_by_label[col]
                         for col in level
-                        if col in groupby_all_columns
+                        if col in groupby_columns_by_label
                     ]
                     for level in grouping_sets or []
                 ]
@@ -4736,6 +5097,10 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             is_metric_filter = (
                 False  # Track if this is a filter on a metric (needs HAVING clause)
             )
+            # Track whether ``sqla_col`` was built from an adhoc expression
+            # (inline dict or referenced by label), so it can be parenthesized
+            # to guard operator precedence regardless of how it was referenced.
+            is_adhoc_sqla_col = False
             if flt_col == utils.DTTM_ALIAS and is_timeseries and dttm_col:
                 col_obj = dttm_col
             elif is_adhoc_column(flt_col):
@@ -4746,6 +5111,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                         template_processor=template_processor,
                     )
                     applied_adhoc_filters_columns.append(flt_col)
+                    is_adhoc_sqla_col = True
                 except ColumnNotFoundException:
                     rejected_adhoc_filters_columns.append(flt_col)
                     continue
@@ -4772,6 +5138,19 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                         template_processor=template_processor
                     )
                     is_metric_filter = True
+                elif (
+                    col_obj is None
+                    and isinstance(flt_col, str)
+                    and flt_col in adhoc_columns_by_label
+                ):
+                    sqla_col, _unused = self.adhoc_column_to_sqla(
+                        col=adhoc_columns_by_label[flt_col],
+                        template_processor=template_processor,
+                    )
+                    if isinstance(sqla_col, ColumnElement):
+                        applied_adhoc_filters_columns.append(flt_col)
+                        is_adhoc_sqla_col = True
+
             filter_grain = flt.get("grain")
 
             # Check if this filter should be skipped because it was handled in
@@ -4805,12 +5184,19 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     sqla_col = self.convert_tbl_column_to_sqla_col(
                         tbl_column=col_obj, template_processor=template_processor
                     )
-                # Parenthesize expression-based columns to prevent operator
-                # precedence issues (e.g. OR in a calculated column breaking
-                # surrounding AND filters). Same pattern as extras.where
-                # wrapping added in PR #38183.
-                if sqla_col is not None and (
-                    (col_obj and col_obj.expression) or is_adhoc_column(flt_col)
+                # Parenthesize adhoc SQL-expression columns (referenced inline
+                # or by label) to prevent operator-precedence issues (e.g. an OR
+                # in the expression breaking surrounding AND filters). Same
+                # pattern as the extras.where wrapping added in PR #38183.
+                # Registered calculated columns are already parenthesized by the
+                # converters (convert_tbl_column_to_sqla_col / get_sqla_col), so
+                # they no longer need wrapping here; the _is_parenthesized guard
+                # avoids a redundant double-wrap for adhoc columns that reference
+                # a saved calculated column.
+                if (
+                    sqla_col is not None
+                    and is_adhoc_sqla_col
+                    and not _is_parenthesized(sqla_col)
                 ):
                     sqla_col = Grouping(sqla_col)
                 col_type = col_obj.type if col_obj else None
@@ -5146,7 +5532,6 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             if where:
                 where = self._process_select_expression(
                     expression=where,
-                    database_id=self.database_id,
                     engine=self.database.backend,
                     schema=self.schema,
                     template_processor=template_processor,
@@ -5156,7 +5541,6 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             if having:
                 having = self._process_select_expression(
                     expression=having,
-                    database_id=self.database_id,
                     engine=self.database.backend,
                     schema=self.schema,
                     template_processor=template_processor,

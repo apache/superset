@@ -17,6 +17,8 @@
  * under the License.
  */
 import { useState, useEffect, useMemo, ChangeEvent } from 'react';
+import { useSelector } from 'react-redux';
+import { Query, QueryState } from '@superset-ui/core';
 import type { DatabaseObject } from 'src/features/databases/types';
 import { t } from '@apache-superset/core/translation';
 import { styled } from '@apache-superset/core/theme';
@@ -37,7 +39,7 @@ import {
 } from 'src/SqlLab/components/SaveDatasetModal';
 import { getDatasourceAsSaveableDataset } from 'src/utils/datasourceUtils';
 import useQueryEditor from 'src/SqlLab/hooks/useQueryEditor';
-import { QueryEditor } from 'src/SqlLab/types';
+import { QueryEditor, SqlLabRootState } from 'src/SqlLab/types';
 import useLogAction from 'src/logger/useLogAction';
 import {
   LOG_ACTIONS_SQLLAB_CREATE_CHART,
@@ -52,7 +54,6 @@ interface SaveQueryProps {
   onUpdate: (arg0: QueryPayload, id: string) => void;
   saveQueryWarning: string | null;
   database: Partial<DatabaseObject> | undefined;
-  canSaveDataset: boolean;
 }
 
 export type QueryPayload = {
@@ -82,7 +83,6 @@ const SaveQuery = ({
   saveQueryWarning,
   database,
   columns,
-  canSaveDataset,
 }: SaveQueryProps) => {
   const queryEditor = useQueryEditor(queryEditorId, [
     'autorun',
@@ -113,6 +113,17 @@ const SaveQuery = ({
   const [label, setLabel] = useState<string>(defaultLabel);
   const [showSave, setShowSave] = useState<boolean>(false);
   const [showSaveDatasetModal, setShowSaveDatasetModal] = useState(false);
+  // Saving a dataset runs the SQL to introspect columns, so it needs a
+  // successful run of the SQL being saved that produced at least one column
+  // -- editing after a run invalidates it, and running a selection only
+  // validates that selection.
+  const latestQuery = useSelector<SqlLabRootState, Query | undefined>(
+    ({ sqlLab }) => sqlLab.queries[queryEditor.latestQueryId || ''],
+  );
+  const canSaveDataset =
+    latestQuery?.state === QueryState.Success &&
+    latestQuery.sql === queryEditor.sql &&
+    columns.length > 0;
   const isSaved = !!query.remoteId;
   const isLabelEmpty = label.trim().length === 0;
   const canExploreDatabase = !!database?.allows_virtual_table_explore;

@@ -93,6 +93,8 @@ def _routes_to_soft_delete() -> bool:
         title="Delete dashboard",
         readOnlyHint=False,
         destructiveHint=True,
+        idempotentHint=False,
+        openWorldHint=False,
     ),
 )
 async def delete_dashboard(

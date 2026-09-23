@@ -264,7 +264,7 @@ def _filter_summary(conf: dict[str, Any]) -> NativeFilterSummary:
     )
 
 
-def _current_native_filter_config(dashboard: Any) -> list[dict[str, Any]]:
+def current_native_filter_config(dashboard: Any) -> list[dict[str, Any]]:
     """Return the dashboard's existing native filter configuration.
 
     ``json_metadata`` may be missing, invalid JSON, or parse to a non-dict
@@ -376,6 +376,8 @@ def _build_native_filters_payload(  # noqa: C901
         title="Manage dashboard native filters",
         readOnlyHint=False,
         destructiveHint=True,
+        idempotentHint=False,
+        openWorldHint=False,
     ),
 )
 def manage_native_filters(
@@ -420,7 +422,7 @@ def manage_native_filters(
                     ),
                 )
 
-            current_config = _current_native_filter_config(dashboard)
+            current_config = current_native_filter_config(dashboard)
             dashboard_chart_ids = [slc.id for slc in dashboard.slices]
 
             try:

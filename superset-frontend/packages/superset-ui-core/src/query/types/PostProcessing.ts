@@ -138,7 +138,7 @@ export type PostProcessingProphet =
 interface _PostProcessingDiff {
   operation: 'diff';
   options: {
-    columns: string[];
+    columns: Record<string, string>;
     periods: number;
     axis: PandasAxis;
   };
@@ -151,7 +151,7 @@ interface _PostProcessingRolling {
     rolling_type: RollingType;
     window: number;
     min_periods: number;
-    columns: string[];
+    columns: Record<string, string>;
   };
 }
 export type PostProcessingRolling =
@@ -161,7 +161,7 @@ export type PostProcessingRolling =
 interface _PostProcessingCum {
   operation: 'cum';
   options: {
-    columns: string[];
+    columns: Record<string, string>;
     operator: NumpyFunction;
   };
 }
@@ -196,6 +196,13 @@ interface _PostProcessingResample {
     method: string;
     rule: string;
     fill_value?: number | null;
+    /**
+     * Pad the result so it covers the whole time range of the query instead of
+     * only the span between the first and last data point. The boundaries are
+     * resolved server side, since a time range may be expressed in natural
+     * language (e.g. `Last week`).
+     */
+    fill_time_range?: boolean;
   };
 }
 export type PostProcessingResample =

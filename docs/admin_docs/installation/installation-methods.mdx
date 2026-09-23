@@ -33,13 +33,13 @@ Ideally you will build your own image of Superset that extends `lean`, adding wh
 
 **Summary:** This is the best-practice way to deploy a production instance of Superset, but has the steepest skill requirement - someone who knows Kubernetes.
 
-You will deploy Superset into a K8s cluster. The most common method is using the community-maintained Helm chart, though work is now underway to implement [SIP-149 - a Kubernetes Operator for Superset](https://github.com/apache/superset/issues/31408).
+You will deploy Superset into a K8s cluster. The recommended method is the official [Apache Superset Kubernetes Operator](https://apache.github.io/superset-kubernetes-operator/). The in-tree Helm chart is deprecated and is not recommended for new deployments.
 
 A K8s deployment can scale up and down based on usage and deploy rolling updates with zero downtime - features that big deployments appreciate.
 
 **Responsibilities**
 
-You will need to build your own Docker image, and back up your metadata DB, both as described in Docker Compose above. You'll also need to customize your Helm chart values and deploy and maintain your Kubernetes cluster.
+You will need to build your own Docker image, and back up your metadata DB, both as described in Docker Compose above. You'll also need to configure the operator's Superset resources and deploy and maintain your Kubernetes cluster.
 
 ## [PyPI (Python)](/admin-docs/installation/pypi)
 

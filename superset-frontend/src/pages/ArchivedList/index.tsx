@@ -46,8 +46,12 @@ import {
   ARCHIVED_TYPES,
   ARCHIVED_TYPE_CONFIG,
   type ArchivedItem,
+  type ArchivedDatasetPurgeModalState,
   type ArchivedType,
+  type PurgeImpactChangedResponse,
+  type PurgeImpactResponse,
 } from './types';
+import { ArchivedDatasetPurgeModal } from './ArchivedDatasetPurgeModal';
 
 /** Cell props shape shared by the column renderers below. */
 type ArchivedCell = { row: { original: ArchivedItem } };
@@ -102,15 +106,29 @@ function ArchivedRowActions({
   name,
   onRestore,
   onPurge,
+  previewBeforePurge = false,
   busy = false,
 }: {
   item: ArchivedItem;
   name: string;
   onRestore: (item: ArchivedItem) => void;
   onPurge: (item: ArchivedItem) => void;
+  previewBeforePurge?: boolean;
   /** A request for this row is in flight; both actions stand down. */
   busy?: boolean;
 }) {
+  const permanentDeleteButton = (onClick: () => void) => (
+    <ActionButton
+      label={t('Delete permanently')}
+      tooltip={t('Delete permanently')}
+      placement="bottom"
+      icon={<Icons.DeleteOutlined iconSize="l" />}
+      dataTest="archived-row-purge"
+      disabled={busy}
+      onClick={onClick}
+    />
+  );
+
   return (
     <StyledActions className="actions">
       <ActionButton
@@ -122,25 +140,19 @@ function ArchivedRowActions({
         disabled={busy}
         onClick={() => onRestore(item)}
       />
-      <ConfirmStatusChange
-        title={t('Delete permanently %(name)s?', { name })}
-        description={t(
-          "If you delete this item, you won't be able to recover it.",
-        )}
-        onConfirm={() => onPurge(item)}
-      >
-        {confirmDelete => (
-          <ActionButton
-            label={t('Delete permanently')}
-            tooltip={t('Delete permanently')}
-            placement="bottom"
-            icon={<Icons.DeleteOutlined iconSize="l" />}
-            dataTest="archived-row-purge"
-            disabled={busy}
-            onClick={confirmDelete}
-          />
-        )}
-      </ConfirmStatusChange>
+      {previewBeforePurge ? (
+        permanentDeleteButton(() => onPurge(item))
+      ) : (
+        <ConfirmStatusChange
+          title={t('Delete permanently %(name)s?', { name })}
+          description={t(
+            "If you delete this item, you won't be able to recover it.",
+          )}
+          onConfirm={() => onPurge(item)}
+        >
+          {confirmDelete => permanentDeleteButton(confirmDelete)}
+        </ConfirmStatusChange>
+      )}
     </StyledActions>
   );
 }
@@ -167,6 +179,7 @@ function ArchivedListBody({
     state: { loading, resourceCount, resourceCollection },
     fetchData,
     refreshData,
+    hasPerm,
   } = useListViewResource<ArchivedItem>(
     config.resource,
     TYPE_LABELS[type](),
@@ -175,11 +188,13 @@ function ArchivedListBody({
     [],
     baseFilters,
   );
+  // Restore and purge both require the selected resource's write permission.
+  const canWrite = hasPerm('can_write');
 
   // Restore is immediate (no confirm dialog). On success, refetch the full page
   // so the server-side count/pagination stays consistent and the row drops out;
-  // on any error surface a danger toast and leave the row in place. The list
-  // read is already owner-scoped, so every visible row is restorable.
+  // on any error surface a danger toast and leave the row in place. List
+  // visibility does not imply write permission; the API also checks ownership.
   // A second activation while a request is in flight races the first: by the
   // time the retry lands the row is already restored (or purged), so the
   // server answers 404 and the user is shown a failure after a success. The
@@ -188,6 +203,9 @@ function ArchivedListBody({
   // so the buttons can render disabled meanwhile.
   const inFlightRef = useRef<Set<string>>(new Set());
   const [inFlight, setInFlight] = useState<readonly string[]>([]);
+  const [datasetPurgeModal, setDatasetPurgeModal] =
+    useState<ArchivedDatasetPurgeModalState>({ status: 'closed' });
+  const impactRequestGeneration = useRef(0);
 
   const beginAction = useCallback((uuid: string): boolean => {
     if (inFlightRef.current.has(uuid)) {
@@ -286,6 +304,125 @@ function ArchivedListBody({
     [performRowAction, addSuccessToast],
   );
 
+  const loadDatasetPurgeImpact = useCallback(async (item: ArchivedItem) => {
+    const generation = impactRequestGeneration.current + 1;
+    impactRequestGeneration.current = generation;
+    setDatasetPurgeModal({ status: 'loading', item });
+
+    try {
+      const { json } = await SupersetClient.get({
+        endpoint: `/api/v1/dataset/${item.uuid}/purge-impact`,
+      });
+      if (impactRequestGeneration.current !== generation) {
+        return;
+      }
+      setDatasetPurgeModal({
+        status: 'ready',
+        item,
+        impact: json as PurgeImpactResponse,
+      });
+    } catch (error) {
+      if (impactRequestGeneration.current !== generation) {
+        return;
+      }
+      const { error: message } = await getClientErrorObject(error);
+      if (impactRequestGeneration.current === generation) {
+        setDatasetPurgeModal({
+          status: 'error',
+          item,
+          message,
+        });
+      }
+    }
+  }, []);
+
+  const closeDatasetPurgeModal = useCallback(() => {
+    impactRequestGeneration.current += 1;
+    setDatasetPurgeModal({ status: 'closed' });
+  }, []);
+
+  const retryDatasetPurgeImpact = useCallback(() => {
+    if (datasetPurgeModal.status !== 'closed') {
+      loadDatasetPurgeImpact(datasetPurgeModal.item);
+    }
+  }, [datasetPurgeModal, loadDatasetPurgeImpact]);
+
+  const confirmDatasetPurge = useCallback(async () => {
+    if (
+      datasetPurgeModal.status !== 'ready' &&
+      datasetPurgeModal.status !== 'changed'
+    ) {
+      return;
+    }
+
+    const { item, impact } = datasetPurgeModal;
+    if (!beginAction(item.uuid)) {
+      return;
+    }
+    const generation = impactRequestGeneration.current + 1;
+    impactRequestGeneration.current = generation;
+    setDatasetPurgeModal({ status: 'submitting', item, impact });
+
+    try {
+      await SupersetClient.post({
+        endpoint: `/api/v1/dataset/${item.uuid}/purge`,
+        body: JSON.stringify({
+          confirmed_impact_token: impact.impact_token,
+        }),
+        headers: { 'Content-Type': 'application/json' },
+      });
+      // The purge succeeded even if the modal was closed while the request
+      // was in flight, so the toast and refresh must not be gated on the
+      // request generation — only the modal state is.
+      const name = String(item[config.nameField] ?? '');
+      addSuccessToast(t('%(name)s deleted successfully', { name }));
+      if (impactRequestGeneration.current === generation) {
+        setDatasetPurgeModal({ status: 'closed' });
+      }
+      await refreshData();
+    } catch (error) {
+      if (impactRequestGeneration.current !== generation) {
+        return;
+      }
+      const parsedError = (await getClientErrorObject(error)) as Awaited<
+        ReturnType<typeof getClientErrorObject>
+      > &
+        Partial<PurgeImpactChangedResponse> & { status?: number };
+      if (
+        parsedError.status === 409 &&
+        parsedError.reason === 'purge_impact_changed' &&
+        parsedError.impact
+      ) {
+        setDatasetPurgeModal({
+          status: 'changed',
+          item,
+          impact: parsedError.impact,
+          message: parsedError.message ?? parsedError.error,
+        });
+      } else if (parsedError.status === 404) {
+        setDatasetPurgeModal({ status: 'closed' });
+        addDangerToast(parsedError.error);
+        await refreshData();
+      } else {
+        setDatasetPurgeModal({
+          status: 'error',
+          item,
+          message: parsedError.error,
+        });
+      }
+    } finally {
+      endAction(item.uuid);
+    }
+  }, [
+    datasetPurgeModal,
+    beginAction,
+    endAction,
+    config.nameField,
+    addSuccessToast,
+    addDangerToast,
+    refreshData,
+  ]);
+
   const columns = useMemo<ListViewProps['columns']>(
     () => [
       {
@@ -297,9 +434,18 @@ function ArchivedListBody({
           // error — the reader is shown what looks like an empty new chart
           // rather than told anything. Neither is a preview, and the silent
           // one is the worse of the two, so no row links out until the object
-          // is recovered.
+          // is recovered. Both audiences get told why: editors are prompted
+          // to recover; readers, who cannot recover, learn the precondition.
           return (
-            <Tooltip title={t('Recover this item to open it')}>
+            <Tooltip
+              title={
+                canWrite
+                  ? t('Recover this item to open it')
+                  : t(
+                      'Archived items must be recovered before they can be opened.',
+                    )
+              }
+            >
               <span>{name}</span>
             </Tooltip>
           );
@@ -349,17 +495,27 @@ function ArchivedListBody({
             item={original}
             name={String(original[config.nameField] ?? '')}
             onRestore={handleRestore}
-            onPurge={handlePurge}
+            onPurge={type === 'dataset' ? loadDatasetPurgeImpact : handlePurge}
+            previewBeforePurge={type === 'dataset'}
             busy={inFlight.includes(original.uuid)}
           />
         ),
         Header: t('Actions'),
         id: 'actions',
+        hidden: !canWrite,
         disableSortBy: true,
         size: 'sm',
       },
     ],
-    [config.nameField, type, handleRestore, handlePurge, inFlight],
+    [
+      config.nameField,
+      canWrite,
+      type,
+      handleRestore,
+      handlePurge,
+      loadDatasetPurgeImpact,
+      inFlight,
+    ],
   );
 
   // Default to most-recently-archived first. `deleted_at` is orderable on all
@@ -421,24 +577,34 @@ function ArchivedListBody({
   );
 
   return (
-    <ListView<ArchivedItem>
-      className="archived-list-view"
-      columns={columns}
-      filters={filters}
-      data={resourceCollection}
-      count={resourceCount}
-      pageSize={PAGE_SIZE}
-      fetchData={fetchData}
-      refreshData={refreshData}
-      addSuccessToast={addSuccessToast}
-      addDangerToast={addDangerToast}
-      loading={loading}
-      initialSort={initialSort}
-      emptyState={{
-        title: t('No archived items'),
-        image: 'empty.svg',
-      }}
-    />
+    <>
+      <ListView<ArchivedItem>
+        className="archived-list-view"
+        columns={columns}
+        filters={filters}
+        data={resourceCollection}
+        count={resourceCount}
+        pageSize={PAGE_SIZE}
+        fetchData={fetchData}
+        refreshData={refreshData}
+        addSuccessToast={addSuccessToast}
+        addDangerToast={addDangerToast}
+        loading={loading}
+        initialSort={initialSort}
+        emptyState={{
+          title: t('No archived items'),
+          image: 'empty.svg',
+        }}
+      />
+      {datasetPurgeModal.status !== 'closed' && (
+        <ArchivedDatasetPurgeModal
+          state={datasetPurgeModal}
+          onConfirm={confirmDatasetPurge}
+          onHide={closeDatasetPurgeModal}
+          onRetry={retryDatasetPurgeImpact}
+        />
+      )}
+    </>
   );
 }
 

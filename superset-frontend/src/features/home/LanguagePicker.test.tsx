@@ -63,7 +63,17 @@ test('should render the items', async () => {
   render(<TestLanguagePicker {...mockedProps} />, {
     useRouter: true,
   });
-  userEvent.hover(screen.getByRole('menuitem'));
+  await userEvent.hover(screen.getByRole('menuitem'));
   expect(await screen.findByText('English')).toBeInTheDocument();
   expect(await screen.findByText('Italian')).toBeInTheDocument();
+});
+
+test('renders the down-chevron caret icon, not the caret glyph (regression #43531)', async () => {
+  render(<TestLanguagePicker {...mockedProps} />, {
+    useRouter: true,
+  });
+  const menuItem = await screen.findByRole('menuitem');
+  const caret = menuItem.querySelector('.ant-menu-item-icon');
+  expect(caret).toHaveClass('anticon-down');
+  expect(caret?.querySelector('svg')).toHaveAttribute('data-icon', 'down');
 });

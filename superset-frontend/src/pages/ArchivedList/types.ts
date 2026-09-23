@@ -103,3 +103,41 @@ export interface ArchivedItem {
   // dynamically via the type config, so the index signature remains.
   [key: string]: unknown;
 }
+
+export interface PurgeImpactItem {
+  uuid: string;
+  name: string;
+  archived: boolean;
+  url?: string | null;
+}
+
+export interface PurgeImpactCollection {
+  count: number;
+  restricted_count: number;
+  result: PurgeImpactItem[];
+}
+
+export interface PurgeImpactResponse {
+  impact_token: string;
+  charts: PurgeImpactCollection;
+  dashboards: PurgeImpactCollection;
+}
+
+export interface PurgeImpactChangedResponse {
+  message: string;
+  reason: 'purge_impact_changed';
+  impact: PurgeImpactResponse;
+}
+
+export type ArchivedDatasetPurgeModalState =
+  | { status: 'closed' }
+  | { status: 'loading'; item: ArchivedItem }
+  | { status: 'ready'; item: ArchivedItem; impact: PurgeImpactResponse }
+  | { status: 'submitting'; item: ArchivedItem; impact: PurgeImpactResponse }
+  | {
+      status: 'changed';
+      item: ArchivedItem;
+      impact: PurgeImpactResponse;
+      message: string;
+    }
+  | { status: 'error'; item: ArchivedItem; message: string };

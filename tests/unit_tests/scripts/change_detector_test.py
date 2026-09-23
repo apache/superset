@@ -166,12 +166,13 @@ def test_image_tag_compose_changes_trigger_python_tests() -> None:
     )
 
 
-def test_compile_po_change_triggers_frontend_translation_build() -> None:
-    """A change limited to ``compile_po.py`` must still be classified as
-    "frontend", or the Translations workflow's `npm run build-translation`
-    step -- which is the only thing that actually exercises this script
-    against real po2json/oxfmt -- gets skipped entirely."""
+def test_docker_workflow_changes_trigger_docker_build() -> None:
+    """A change to only the docker-build workflow file itself (no
+    Dockerfile/docker-compose/app-code changes) must still be classified as
+    "docker", or docker-build's job-level `if:` skips the job entirely and a
+    broken workflow edit -- including to the vulnerability scan step it
+    runs -- is never actually exercised on merge."""
     assert change_detector.detect_changes(
-        ["scripts/translations/compile_po.py"],
-        change_detector.PATTERNS["frontend"],
+        [".github/workflows/docker.yml"],
+        change_detector.PATTERNS["docker"],
     )

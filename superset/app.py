@@ -184,9 +184,6 @@ class SupersetApp(Flask):
         app startup.
         """
         try:
-            # Import here to avoid circular import issues
-            from superset.extensions import feature_flag_manager
-
             # Check if database is up-to-date with migrations
             if not self._is_database_up_to_date():
                 logger.info("Pending database migrations: run 'superset db upgrade'")
@@ -194,11 +191,13 @@ class SupersetApp(Flask):
 
             logger.info("Syncing configuration to database...")
 
-            # Register SQLA event listeners for tagging system
-            if feature_flag_manager.is_feature_enabled("TAGGING_SYSTEM"):
-                from superset.tags.core import register_sqla_event_listeners
+            # Register SQLA event listeners for the tagging system. The
+            # listeners that create tags check TAGGING_SYSTEM when they fire,
+            # and the cleanup listeners must run regardless of the flag so a
+            # deleted object never leaves orphaned `tagged_object` rows behind.
+            from superset.tags.core import register_sqla_event_listeners
 
-                register_sqla_event_listeners()
+            register_sqla_event_listeners()
 
             # Seed system themes from configuration
             from superset.commands.theme.seed import SeedSystemThemesCommand

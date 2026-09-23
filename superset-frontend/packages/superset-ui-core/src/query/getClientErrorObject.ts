@@ -36,6 +36,7 @@ export type ClientErrorObject = {
   message?: string;
   severity?: string;
   stacktrace?: string;
+  status?: number;
   statusText?: string;
 } & Partial<SupersetClientResponse>;
 
@@ -119,6 +120,20 @@ export function retrieveErrorMessage(
   return statusError || parseStringResponse(str);
 }
 
+function getFirstValidationError(message: JsonObject): string | undefined {
+  const [firstError] = Object.values(message);
+
+  if (typeof firstError === 'string') {
+    return firstError;
+  }
+
+  if (Array.isArray(firstError)) {
+    return firstError.find((item): item is string => typeof item === 'string');
+  }
+
+  return undefined;
+}
+
 export function parseErrorJson(responseJson: JsonObject): ClientErrorObject {
   let error = { ...responseJson };
   // Backwards compatibility for old error renderers with the new error object
@@ -126,13 +141,12 @@ export function parseErrorJson(responseJson: JsonObject): ClientErrorObject {
     error.error = error.description = error.errors[0].message;
     error.link = error.errors[0]?.extra?.link;
   }
-  // Marshmallow field validation returns the error message in the format
-  // of { message: { field1: [msg1, msg2], field2: [msg], } }
+  // Marshmallow field validation returns arrays for string messages, but
+  // serializes lazy translation messages as strings instead.
   if (!error.error && error.message) {
     if (typeof error.message === 'object') {
       error.error =
-        Object.values(error.message as Record<string, string[]>)[0]?.[0] ||
-        t('Invalid input');
+        getFirstValidationError(error.message) || t('Invalid input');
     }
     if (typeof error.message === 'string') {
       if (checkForHtml(error.message)) {
@@ -243,9 +257,14 @@ export function getClientErrorObject(
         .catch(() => {
           // fall back to reading as text
           responseObject.text().then((errorText: any) => {
+            const { url, status, statusText, redirected, type } =
+              responseObject;
             resolve({
-              // Destructuring not necessary here
-              ...responseObject,
+              url,
+              status,
+              statusText,
+              redirected,
+              type,
               error: retrieveErrorMessage(errorText, responseObject),
             });
           });
@@ -274,7 +293,7 @@ export async function getErrorText(
   errorObject: ErrorType,
   source: ErrorTextSource,
 ) {
-  const { error, message } = await getClientErrorObject(errorObject);
+  const { error, status } = await getClientErrorObject(errorObject);
   let errorText = t('Sorry, an unknown error occurred.');
 
   if (error) {
@@ -284,10 +303,29 @@ export async function getErrorText(
       error,
     );
   }
-  if (typeof message === 'string' && message === 'Forbidden') {
+  if (status === 403 && error === getErrorFromStatusCode(status)) {
     errorText = t('You do not have permission to edit this %s', source);
   }
   return errorText;
+}
+
+/**
+ * Selects user-facing error text with a consistent precedence:
+ * contextual HTTP status message, normalized server message, then fallback.
+ */
+export function selectClientErrorMessage(
+  { error, message, status }: ClientErrorObject,
+  fallback: string,
+  statusMessages: Partial<Record<number, string>> = {},
+): string {
+  const statusMessage =
+    status === undefined ? undefined : statusMessages[status];
+  if (statusMessage) {
+    return statusMessage;
+  }
+  return (
+    error || (typeof message === 'string' ? message : undefined) || fallback
+  );
 }
 
 export function getClientErrorMessage(

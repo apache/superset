@@ -197,6 +197,7 @@ class GSheetsEngineSpec(ShillelaghEngineSpec):
         from superset.utils.oauth2 import encode_oauth2_state, generate_code_challenge
 
         uri = config["authorization_request_uri"]
+        cls._validate_oauth2_endpoint_host(uri)
         params: dict[str, str] = {
             "scope": config["scope"],
             "response_type": "code",
@@ -393,7 +394,22 @@ class GSheetsEngineSpec(ShillelaghEngineSpec):
         # On create the encrypted credentials are a string,
         # at all other times they are a dict
         if isinstance(encrypted_credentials, str):
-            encrypted_credentials = json.loads(encrypted_credentials)
+            try:
+                encrypted_credentials = json.loads(encrypted_credentials)
+            except json.JSONDecodeError:
+                errors.append(
+                    SupersetError(
+                        message=(
+                            "The service account credentials are not valid JSON. "
+                            "Please check that the field contains a valid service "
+                            "account key."
+                        ),
+                        error_type=SupersetErrorType.INVALID_PAYLOAD_FORMAT_ERROR,
+                        level=ErrorLevel.ERROR,
+                        extra={"invalid": ["service_account_info"]},
+                    ),
+                )
+                return errors
 
         # We need a subject in case domain wide delegation is set, otherwise the
         # check will fail. This means that the admin will be able to add sheets
@@ -412,6 +428,7 @@ class GSheetsEngineSpec(ShillelaghEngineSpec):
                 }
             },
         )
+        cls.register_engine_events(engine)
         conn = engine.connect()
         idx = 0
 

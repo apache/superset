@@ -19,14 +19,19 @@
 import {
   CategoricalColorScale,
   ChartProps,
+  NumberFormatter,
   TimeGranularity,
   getNumberFormatter,
 } from '@superset-ui/core';
 import { GenericDataType } from '@apache-superset/core/common';
 import { supersetTheme } from '@apache-superset/core/theme';
-import type { SeriesOption } from 'echarts';
-import type { ScatterSeriesOption } from 'echarts/charts';
-import { EchartsTimeseriesSeriesType } from '../../src';
+import { init, type SeriesOption } from 'echarts';
+import type {
+  BarSeriesOption,
+  LineSeriesOption,
+  ScatterSeriesOption,
+} from 'echarts/charts';
+import { BarValueLabelPosition, EchartsTimeseriesSeriesType } from '../../src';
 import { StackControlsValue, TIMESERIES_CONSTANTS } from '../../src/constants';
 import {
   LegendOrientation,
@@ -35,6 +40,7 @@ import {
 import {
   transformSeries,
   transformNegativeLabelsPosition,
+  getAutoBarLabelLayout,
   getPadding,
 } from '../../src/Timeseries/transformers';
 import transformProps from '../../src/Timeseries/transformProps';
@@ -159,6 +165,580 @@ describe('transformSeries', () => {
 
     expect((result as ScatterSeriesOption).symbolSize).toBe(7);
   });
+
+  test('does not render a per-series stacked label for a zero-value segment (#42702)', () => {
+    const opts = {
+      seriesType: EchartsTimeseriesSeriesType.Bar,
+      stack: true,
+      onlyTotal: false,
+      isHorizontal: false,
+      timeShiftColor: false,
+      // percentage_threshold defaults to 0, so thresholdValues[dataIndex] is
+      // 0 too — a value of exactly 0 would satisfy `numericValue >= (thresholdValues[dataIndex] || Number.MIN_SAFE_INTEGER)`
+      // without the explicit `numericValue !== 0` guard.
+      thresholdValues: [0],
+      formatter: new NumberFormatter({
+        id: 'test-formatter',
+        formatFunc: (value: number) => `${value}`,
+      }),
+    };
+
+    const result = transformSeries(series, mockColorScale, 'test-key', opts);
+    const { formatter: labelFormatter } = (result as any).label;
+
+    const zeroValueLabel = labelFormatter({
+      value: [null, 0],
+      dataIndex: 0,
+      seriesIndex: 0,
+      seriesName: 'test-series',
+    });
+    expect(zeroValueLabel).toBe('');
+
+    const nonZeroValueLabel = labelFormatter({
+      value: [null, 32],
+      dataIndex: 0,
+      seriesIndex: 0,
+      seriesName: 'test-series',
+    });
+    expect(nonZeroValueLabel).toBe('32');
+  });
+
+  test('still renders a per-series stacked label for a genuine negative value that clears the threshold', () => {
+    const opts = {
+      seriesType: EchartsTimeseriesSeriesType.Bar,
+      stack: true,
+      onlyTotal: false,
+      isHorizontal: false,
+      timeShiftColor: false,
+      // A category whose stacked total is itself negative produces a
+      // negative threshold — a strictly-positive check would wrongly
+      // suppress a real, meaningful negative-value label here.
+      thresholdValues: [-10],
+      formatter: new NumberFormatter({
+        id: 'test-formatter',
+        formatFunc: (value: number) => `${value}`,
+      }),
+    };
+
+    const result = transformSeries(series, mockColorScale, 'test-key', opts);
+    const { formatter: labelFormatter } = (result as any).label;
+
+    const negativeValueLabel = labelFormatter({
+      value: [null, -5],
+      dataIndex: 0,
+      seriesIndex: 0,
+      seriesName: 'test-series',
+    });
+    expect(negativeValueLabel).toBe('-5');
+  });
+});
+
+test('Auto bar labels move outside narrow stacked segments', () => {
+  const result = transformSeries(
+    { name: 'test-series', type: 'bar', data: [[2026, 1]] },
+    mockColorScale,
+    'test-key',
+    {
+      seriesType: EchartsTimeseriesSeriesType.Bar,
+      stack: StackControlsValue.Stack,
+      showValue: true,
+    },
+  ) as BarSeriesOption;
+  const { labelLayout } = result;
+
+  expect(result.label).toMatchObject({
+    show: true,
+    position: 'insideTop',
+  });
+  expect((result.label as { color?: string }).color).toBeUndefined();
+  expect(typeof labelLayout).toBe('function');
+  if (typeof labelLayout !== 'function') return;
+
+  expect(
+    labelLayout({
+      dataIndex: 0,
+      seriesIndex: 0,
+      text: '1,000',
+      align: 'center',
+      verticalAlign: 'middle',
+      rect: { x: 10, y: 20, width: 12, height: 20 },
+      labelRect: { x: 1, y: 22, width: 30, height: 14 },
+    }),
+  ).toEqual({
+    x: 16,
+    y: 15,
+    align: 'center',
+    verticalAlign: 'bottom',
+  });
+});
+
+test('Auto labels stay inside when both dimensions fit within 80% of the bar', () => {
+  const result = transformSeries(
+    { name: 'test-series', type: 'bar', data: [[2026, 1]] },
+    mockColorScale,
+    'test-key',
+    { seriesType: EchartsTimeseriesSeriesType.Bar },
+  ) as BarSeriesOption;
+  const { labelLayout } = result;
+
+  expect(typeof labelLayout).toBe('function');
+  if (typeof labelLayout !== 'function') return;
+
+  expect(
+    labelLayout({
+      dataIndex: 0,
+      seriesIndex: 0,
+      text: '1,000',
+      align: 'center',
+      verticalAlign: 'top',
+      rect: { x: 10, y: 20, width: 50, height: 40 },
+      labelRect: { x: 19, y: 25, width: 32, height: 14 },
+    }),
+  ).toEqual({});
+});
+
+test('Auto moves wide labels outside tall narrow vertical bars', () => {
+  const result = transformSeries(
+    { name: 'test-series', type: 'bar', data: [[2026, 100]] },
+    mockColorScale,
+    'test-key',
+    { seriesType: EchartsTimeseriesSeriesType.Bar },
+  ) as BarSeriesOption;
+  const { labelLayout } = result;
+
+  expect(typeof labelLayout).toBe('function');
+  if (typeof labelLayout !== 'function') return;
+
+  expect(
+    labelLayout({
+      dataIndex: 0,
+      seriesIndex: 0,
+      text: '1,000',
+      align: 'center',
+      verticalAlign: 'top',
+      rect: { x: 10, y: 20, width: 12, height: 200 },
+      labelRect: { x: 1, y: 25, width: 30, height: 14 },
+    }),
+  ).toEqual({
+    x: 16,
+    y: 15,
+    align: 'center',
+    verticalAlign: 'bottom',
+  });
+});
+
+test('Auto overflow uses ECharts outside-label text color', () => {
+  const darkBarColorScale = jest.fn(() => '#111111');
+  const series = transformSeries(
+    { name: 'test-series', type: 'bar', data: [[0, 123456789012]] },
+    darkBarColorScale as unknown as CategoricalColorScale,
+    'test-key',
+    {
+      formatter: getNumberFormatter('d'),
+      seriesType: EchartsTimeseriesSeriesType.Bar,
+      showValue: true,
+    },
+  ) as BarSeriesOption;
+  const chart = init(null, null, {
+    renderer: 'svg',
+    ssr: true,
+    width: 300,
+    height: 220,
+  });
+
+  chart.setOption({
+    animation: false,
+    darkMode: false,
+    xAxis: { type: 'category', data: ['A'], show: false },
+    // A tall bar (well above the segment-legibility floor) whose 12-digit
+    // label is too wide to fit inside, so ECharts still moves it outside.
+    yAxis: { type: 'value', max: 250_000_000_000, show: false },
+    series: [series],
+  });
+
+  expect(chart.renderToSVGString()).toMatch(
+    /fill="#333"[^>]*>123456789012<\/text>/,
+  );
+  chart.dispose();
+});
+
+test('Auto bar labels use horizontal bar length and move to the value end', () => {
+  const result = transformSeries(
+    { name: 'test-series', type: 'bar', data: [[1, 2026]] },
+    mockColorScale,
+    'test-key',
+    { seriesType: EchartsTimeseriesSeriesType.Bar, isHorizontal: true },
+  ) as BarSeriesOption;
+  const { labelLayout } = result;
+
+  expect(typeof labelLayout).toBe('function');
+  if (typeof labelLayout !== 'function') return;
+
+  expect(
+    labelLayout({
+      dataIndex: 0,
+      seriesIndex: 0,
+      text: '1,000',
+      align: 'right',
+      verticalAlign: 'middle',
+      rect: { x: 10, y: 20, width: 20, height: 12 },
+      labelRect: { x: 0, y: 19, width: 30, height: 14 },
+    }),
+  ).toEqual({
+    x: 35,
+    y: 26,
+    align: 'left',
+    verticalAlign: 'middle',
+  });
+});
+
+test.each([
+  [BarValueLabelPosition.InsideEnd, 'insideTop'],
+  [BarValueLabelPosition.OutsideEnd, 'top'],
+  [BarValueLabelPosition.InsideCenter, 'inside'],
+  [BarValueLabelPosition.InsideBase, 'insideBottom'],
+] as const)(
+  'manual %s bar labels use fixed position %s',
+  (position, expected) => {
+    const result = transformSeries(
+      { name: 'test-series', type: 'bar', data: [[2026, 1]] },
+      mockColorScale,
+      'test-key',
+      {
+        seriesType: EchartsTimeseriesSeriesType.Bar,
+        valueLabelPosition: position,
+        theme: supersetTheme,
+      },
+    ) as BarSeriesOption;
+
+    expect(result.labelLayout).toBeUndefined();
+    expect(result.label).toMatchObject({ position: expected });
+    if (position === BarValueLabelPosition.OutsideEnd) {
+      expect(result.label).toMatchObject({ color: supersetTheme.colorText });
+    } else {
+      expect(result.label).not.toHaveProperty('color');
+    }
+  },
+);
+
+test('manual Outside End positions negative stacked segments below the bar', () => {
+  const result = transformSeries(
+    { name: 'test-series', type: 'bar', data: [[2026, -1]] },
+    mockColorScale,
+    'test-key',
+    {
+      seriesType: EchartsTimeseriesSeriesType.Bar,
+      stack: StackControlsValue.Stack,
+      valueLabelPosition: BarValueLabelPosition.OutsideEnd,
+    },
+  ) as BarSeriesOption;
+
+  expect(result.data).toEqual([
+    {
+      value: [2026, -1],
+      label: { position: 'bottom' },
+    },
+  ]);
+  expect(result.labelLayout).toBeUndefined();
+});
+
+test('Auto positions negative stacked segments at their inside end', () => {
+  const result = transformSeries(
+    { name: 'test-series', type: 'bar', data: [[2026, -1]] },
+    mockColorScale,
+    'test-key',
+    {
+      seriesType: EchartsTimeseriesSeriesType.Bar,
+      stack: StackControlsValue.Stack,
+    },
+  ) as BarSeriesOption;
+
+  expect(result.data).toEqual([
+    {
+      value: [2026, -1],
+      label: { position: 'insideBottom' },
+    },
+  ]);
+  expect(typeof result.labelLayout).toBe('function');
+  if (typeof result.labelLayout !== 'function') return;
+  expect(
+    result.labelLayout({
+      dataIndex: 0,
+      seriesIndex: 0,
+      text: '-1,000',
+      align: 'center',
+      verticalAlign: 'bottom',
+      rect: { x: 10, y: 20, width: 12, height: 30 },
+      labelRect: { x: 1, y: 35, width: 30, height: 14 },
+    }),
+  ).toEqual({
+    x: 16,
+    y: 55,
+    align: 'center',
+    verticalAlign: 'top',
+  });
+});
+
+test('Auto moves horizontal negative labels beyond their value end', () => {
+  const result = transformSeries(
+    { name: 'test-series', type: 'bar', data: [[-1, 2026]] },
+    mockColorScale,
+    'test-key',
+    { seriesType: EchartsTimeseriesSeriesType.Bar, isHorizontal: true },
+  ) as BarSeriesOption;
+
+  expect(result.data).toEqual([
+    {
+      value: [-1, 2026],
+      label: { position: 'insideLeft' },
+    },
+  ]);
+  expect(typeof result.labelLayout).toBe('function');
+  if (typeof result.labelLayout !== 'function') return;
+  expect(
+    result.labelLayout({
+      dataIndex: 0,
+      seriesIndex: 0,
+      text: '-1,000',
+      align: 'left',
+      verticalAlign: 'middle',
+      rect: { x: 10, y: 20, width: 20, height: 12 },
+      labelRect: { x: 10, y: 19, width: 30, height: 14 },
+    }),
+  ).toEqual({
+    x: 5,
+    y: 26,
+    align: 'right',
+    verticalAlign: 'middle',
+  });
+});
+
+test('Auto label layout does not change non-Bar series', () => {
+  const result = transformSeries(
+    { name: 'test-series', type: 'line', data: [[2026, 1]] },
+    mockColorScale,
+    'test-key',
+    {
+      seriesType: EchartsTimeseriesSeriesType.Line,
+      theme: supersetTheme,
+    },
+  ) as LineSeriesOption;
+
+  expect(result).not.toHaveProperty('labelLayout');
+  expect(result.label).toMatchObject({
+    position: 'top',
+    color: supersetTheme.colorText,
+  });
+});
+
+test('Auto suppresses the label for a vertical segment below the legibility floor', () => {
+  // A 10px-tall stacked segment can't legibly fit its 14px-tall label inside
+  // or outside without colliding with a neighboring segment's label.
+  expect(
+    getAutoBarLabelLayout(
+      {
+        dataIndex: 0,
+        seriesIndex: 0,
+        text: '0.14',
+        align: 'center',
+        verticalAlign: 'middle',
+        rect: { x: 10, y: 20, width: 40, height: 10 },
+        labelRect: { x: 12, y: 22, width: 20, height: 14 },
+      },
+      false,
+    ),
+  ).toEqual({ fontSize: 0 });
+});
+
+test('Auto keeps placing labels normally for a vertical segment at the legibility floor', () => {
+  expect(
+    getAutoBarLabelLayout(
+      {
+        dataIndex: 0,
+        seriesIndex: 0,
+        text: '0.14',
+        align: 'center',
+        verticalAlign: 'middle',
+        rect: { x: 10, y: 20, width: 40, height: 16 },
+        labelRect: { x: 12, y: 22, width: 20, height: 14 },
+      },
+      false,
+    ),
+  ).not.toEqual({ fontSize: 0 });
+});
+
+test('Auto suppresses the label for a horizontal segment below the legibility floor', () => {
+  // Horizontal bars stack along the x axis, so the value-axis dimension that
+  // matters is rect.width rather than rect.height.
+  expect(
+    getAutoBarLabelLayout(
+      {
+        dataIndex: 0,
+        seriesIndex: 0,
+        text: '0.14',
+        align: 'left',
+        verticalAlign: 'middle',
+        rect: { x: 10, y: 20, width: 10, height: 40 },
+        labelRect: { x: 12, y: 22, width: 20, height: 14 },
+      },
+      true,
+    ),
+  ).toEqual({ fontSize: 0 });
+});
+
+test('Auto suppresses labels for tiny adjacent stacked segments end to end', () => {
+  const result = transformSeries(
+    { name: 'test-series', type: 'bar', data: [[2026, 0.14]] },
+    mockColorScale,
+    'test-key',
+    {
+      seriesType: EchartsTimeseriesSeriesType.Bar,
+      stack: StackControlsValue.Stack,
+      showValue: true,
+    },
+  ) as BarSeriesOption;
+  const { labelLayout } = result;
+
+  expect(typeof labelLayout).toBe('function');
+  if (typeof labelLayout !== 'function') return;
+
+  expect(
+    labelLayout({
+      dataIndex: 0,
+      seriesIndex: 0,
+      text: '0.14',
+      align: 'center',
+      verticalAlign: 'middle',
+      rect: { x: 10, y: 20, width: 40, height: 8 },
+      labelRect: { x: 12, y: 22, width: 20, height: 14 },
+    }),
+  ).toEqual({ fontSize: 0 });
+});
+
+test.each([
+  [BarValueLabelPosition.InsideEnd, 'insideTop'],
+  [BarValueLabelPosition.OutsideEnd, 'top'],
+  [BarValueLabelPosition.InsideCenter, 'inside'],
+  [BarValueLabelPosition.InsideBase, 'insideBottom'],
+] as const)(
+  'manual %s keeps its fixed position and only hides labels below the legibility floor',
+  (position, expected) => {
+    const result = transformSeries(
+      { name: 'test-series', type: 'bar', data: [[2026, 0.14]] },
+      mockColorScale,
+      'test-key',
+      {
+        seriesType: EchartsTimeseriesSeriesType.Bar,
+        stack: StackControlsValue.Stack,
+        valueLabelPosition: position,
+        showValue: true,
+        theme: supersetTheme,
+      },
+    ) as BarSeriesOption;
+
+    // Manual placements don't get the fit-aware Auto callback: their layout
+    // callback only applies the legibility floor and never repositions.
+    expect(result.label).toMatchObject({ position: expected });
+    const { labelLayout } = result;
+    expect(typeof labelLayout).toBe('function');
+    if (typeof labelLayout !== 'function') return;
+
+    // A segment below MIN_LABEL_SEGMENT_SIZE_PX loses its label instead of
+    // colliding with its neighbors' labels next to a large-magnitude outlier.
+    expect(
+      labelLayout({
+        dataIndex: 0,
+        seriesIndex: 0,
+        text: '0.14',
+        align: 'center',
+        verticalAlign: 'middle',
+        rect: { x: 10, y: 20, width: 40, height: 8 },
+        labelRect: { x: 12, y: 22, width: 20, height: 14 },
+      }),
+    ).toEqual({ fontSize: 0 });
+
+    // A legible segment keeps the configured position untouched.
+    expect(
+      labelLayout({
+        dataIndex: 0,
+        seriesIndex: 0,
+        text: '1,000',
+        align: 'center',
+        verticalAlign: 'middle',
+        rect: { x: 10, y: 20, width: 40, height: 60 },
+        labelRect: { x: 12, y: 22, width: 20, height: 14 },
+      }),
+    ).toEqual({});
+  },
+);
+
+test('stacked Outside End labels next to an outlier suppress only sub-floor segments', () => {
+  // Near-zero segments (e.g. -1 next to -4,000,000) render at sub-pixel
+  // height; their labels used to collide at near-identical coordinates.
+  const result = transformSeries(
+    {
+      name: 'test-series',
+      type: 'bar',
+      data: [
+        [2026, -1],
+        [2026, -4000000],
+      ],
+    },
+    mockColorScale,
+    'test-key',
+    {
+      seriesType: EchartsTimeseriesSeriesType.Bar,
+      stack: StackControlsValue.Stack,
+      valueLabelPosition: BarValueLabelPosition.OutsideEnd,
+      showValue: true,
+    },
+  ) as BarSeriesOption;
+  const { labelLayout } = result;
+
+  expect(typeof labelLayout).toBe('function');
+  if (typeof labelLayout !== 'function') return;
+
+  // Sub-pixel segment next to the outlier: label suppressed.
+  expect(
+    labelLayout({
+      dataIndex: 0,
+      seriesIndex: 0,
+      text: '-1',
+      align: 'center',
+      verticalAlign: 'top',
+      rect: { x: 10, y: 20, width: 40, height: 0.5 },
+      labelRect: { x: 12, y: 22, width: 20, height: 14 },
+    }),
+  ).toEqual({ fontSize: 0 });
+
+  // The outlier's own large segment keeps its label.
+  expect(
+    labelLayout({
+      dataIndex: 1,
+      seriesIndex: 0,
+      text: '-4,000,000',
+      align: 'center',
+      verticalAlign: 'top',
+      rect: { x: 60, y: 20, width: 40, height: 300 },
+      labelRect: { x: 62, y: 22, width: 60, height: 14 },
+    }),
+  ).toEqual({});
+});
+
+test('bar series without shown values get no layout callback', () => {
+  const result = transformSeries(
+    { name: 'test-series', type: 'bar', data: [[2026, 1]] },
+    mockColorScale,
+    'test-key',
+    {
+      seriesType: EchartsTimeseriesSeriesType.Bar,
+      stack: StackControlsValue.Stack,
+      valueLabelPosition: BarValueLabelPosition.OutsideEnd,
+      showValue: false,
+    },
+  ) as BarSeriesOption;
+
+  expect(result.labelLayout).toBeUndefined();
 });
 
 describe('transformNegativeLabelsPosition', () => {
@@ -352,6 +932,55 @@ test('#39899 - x-axis dates do not overlap and last label stays visible at 0° r
   expect(axisLabel.hideOverlap).toBe(false);
 });
 
+test('#39899 - closely spaced x-axis time labels do not visually overlap', () => {
+  const formData = {
+    colorScheme: 'bnbColors',
+    datasource: '3__table',
+    granularity_sqla: 'ds',
+    timeGrainSqla: TimeGranularity.MINUTE,
+    x_axis_time_format: '%Y-%m-%d %H:%M:%S',
+    metric: 'sum__num',
+    viz_type: 'my_viz',
+  };
+  const startTime = new Date('2026-01-01T00:00:00Z').getTime();
+  const data = Array.from({ length: 20 }, (_, i) => ({
+    sum__num: i,
+    __timestamp: startTime + i * 60 * 1000,
+  }));
+  const chartProps = new ChartProps({
+    formData,
+    width: 300,
+    height: 400,
+    queriesData: [
+      {
+        data,
+        colnames: ['sum__num', '__timestamp'],
+        coltypes: [GenericDataType.Numeric, GenericDataType.Temporal],
+      },
+    ],
+    theme: supersetTheme,
+  });
+
+  const result = transformProps(
+    chartProps as unknown as EchartsTimeseriesChartProps,
+  );
+  const { axisLabel } = result.echartOptions.xAxis as Record<string, any>;
+  const labels = data.map(({ __timestamp }) =>
+    axisLabel.formatter(__timestamp),
+  );
+
+  // hideOverlap must stay off so ECharts' own collision detection can never
+  // suppress the forced boundary label (#39899 must not regress).
+  expect(axisLabel.hideOverlap).toBe(false);
+  // The formatter itself must thin out labels that are too close together to
+  // render legibly in the available width.
+  expect(labels.filter(label => label === '').length).toBeGreaterThan(0);
+  // The first and last labels are the forced axis boundaries and must always
+  // stay visible.
+  expect(labels[0]).not.toBe('');
+  expect(labels[labels.length - 1]).not.toBe('');
+});
+
 test('last x-axis date is visible and not cut off when rotated -45°', () => {
   const lastDataPointTimestamp = new Date('2026-12-01').getTime();
   const result = transformProps(
@@ -461,6 +1090,33 @@ test('getPadding should only affect left margin when Y axis title position is Le
   }
 });
 
+test('getPadding should not reserve left margin when there is no Y axis title', () => {
+  const getChartPaddingSpy = setupGetChartPaddingMock();
+  try {
+    const result = getPadding(
+      false, // showLegend
+      LegendOrientation.Top, // legendOrientation
+      false, // addYAxisTitleOffset
+      false, // zoomable
+      null, // margin
+      false, // addXAxisTitleOffset
+      'Left', // yAxisTitlePosition
+      50, // yAxisTitleMargin
+      0, // xAxisTitleMargin
+      false, // isHorizontal
+    );
+
+    // The default title margin must not eat into the plot area when no
+    // title is rendered
+    expect(result.left).toBe(TIMESERIES_CONSTANTS.gridOffsetLeft);
+    expect(result.top).toBe(TIMESERIES_CONSTANTS.gridOffsetTop);
+    expect(result.bottom).toBe(TIMESERIES_CONSTANTS.gridOffsetBottom);
+    expect(result.right).toBe(TIMESERIES_CONSTANTS.gridOffsetRight);
+  } finally {
+    getChartPaddingSpy.mockRestore();
+  }
+});
+
 test('getPadding should only affect top margin when Y axis title position is Top', () => {
   const getChartPaddingSpy = setupGetChartPaddingMock();
   try {
@@ -484,6 +1140,33 @@ test('getPadding should only affect top margin when Y axis title position is Top
     // Bottom should be base value
     expect(result.bottom).toBe(TIMESERIES_CONSTANTS.gridOffsetBottom);
     // Right should be base value
+    expect(result.right).toBe(TIMESERIES_CONSTANTS.gridOffsetRight);
+  } finally {
+    getChartPaddingSpy.mockRestore();
+  }
+});
+
+test('getPadding should not reserve top margin when there is no Y axis title', () => {
+  const getChartPaddingSpy = setupGetChartPaddingMock();
+  try {
+    const result = getPadding(
+      false, // showLegend
+      LegendOrientation.Top, // legendOrientation
+      false, // addYAxisTitleOffset
+      false, // zoomable
+      null, // margin
+      false, // addXAxisTitleOffset
+      'Top', // yAxisTitlePosition
+      50, // yAxisTitleMargin
+      0, // xAxisTitleMargin
+      false, // isHorizontal
+    );
+
+    // The default title margin must not eat into the plot area when no
+    // title is rendered
+    expect(result.top).toBe(TIMESERIES_CONSTANTS.gridOffsetTop);
+    expect(result.left).toBe(TIMESERIES_CONSTANTS.gridOffsetLeft);
+    expect(result.bottom).toBe(TIMESERIES_CONSTANTS.gridOffsetBottom);
     expect(result.right).toBe(TIMESERIES_CONSTANTS.gridOffsetRight);
   } finally {
     getChartPaddingSpy.mockRestore();

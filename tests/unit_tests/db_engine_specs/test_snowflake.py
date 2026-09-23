@@ -24,6 +24,7 @@ from unittest import mock
 import pytest
 from pytest_mock import MockerFixture
 from sqlalchemy.engine.url import make_url, URL
+from sqlalchemy.sql import quoted_name
 
 from superset.app import SupersetApp
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
@@ -31,6 +32,32 @@ from superset.superset_typing import OAuth2ClientConfig
 from superset.utils import json
 from tests.unit_tests.db_engine_specs.utils import assert_convert_dttm
 from tests.unit_tests.fixtures.common import dttm  # noqa: F401
+
+
+@pytest.mark.parametrize("name", ["lowercase", "UPPERCASE"])
+def test_prepare_identifier_quotes_exact_case_names(name: str) -> None:
+    from superset.db_engine_specs.snowflake import SnowflakeEngineSpec
+
+    identifier = SnowflakeEngineSpec.prepare_identifier(
+        name,
+        normalize_columns=False,
+    )
+
+    assert isinstance(identifier, quoted_name)
+    assert str(identifier) == name
+    assert identifier.quote is True
+
+
+def test_prepare_identifier_preserves_normalized_name() -> None:
+    from superset.db_engine_specs.snowflake import SnowflakeEngineSpec
+
+    name = "lowercase"
+    identifier = SnowflakeEngineSpec.prepare_identifier(
+        name,
+        normalize_columns=True,
+    )
+
+    assert identifier is name
 
 
 @pytest.mark.parametrize(
@@ -515,7 +542,11 @@ def test_get_oauth2_token(
     """
     from superset.db_engine_specs.snowflake import SnowflakeEngineSpec
 
-    requests: mock.MagicMock = mocker.patch("superset.db_engine_specs.base.requests")
+    mocker.patch("superset.db_engine_specs.base.is_safe_host", return_value=True)
+    mock_get_requester: mock.MagicMock = mocker.patch(
+        "superset.db_engine_specs.base.get_ssrf_safe_requester"
+    )
+    requests = mock_get_requester.return_value
     requests.post().json.return_value = {
         "access_token": "access-token",
         "expires_in": 3600,
@@ -541,6 +572,7 @@ def test_get_oauth2_token(
             "grant_type": "authorization_code",
         },
         timeout=30.0,
+        allow_redirects=False,
     )
 
 
@@ -700,6 +732,18 @@ def test_custom_snowflake_auth_error_matches_raw_dbapi_exception() -> None:
     )
 
     raw_error: Exception = DatabaseError("250001: Invalid OAuth access token.")
+    assert isinstance(raw_error, CustomSnowflakeAuthError)
+
+
+def test_custom_snowflake_auth_error_matches_snowflake_error_code() -> None:
+    """Snowflake's documented OAuth access-token error code is authoritative."""
+    from superset.db_engine_specs.snowflake import (
+        CustomSnowflakeAuthError,
+        DatabaseError,
+    )
+
+    raw_error = DatabaseError("authentication failed")
+    raw_error.errno = 390303
     assert isinstance(raw_error, CustomSnowflakeAuthError)
 
 

@@ -141,6 +141,10 @@ _TRANSIENT_SLACK_API_ERROR_CODES = frozenset(
     }
 )
 
+_AUTH_ERROR_CODES = frozenset(
+    {"not_authed", "invalid_auth", "account_inactive", "token_revoked", "token_expired"}
+)
+
 SLACK_TRANSIENT_TRANSPORT_ERRORS: tuple[type[Exception], ...] = (
     SlackClientNotConnectedError,
     URLError,
@@ -392,12 +396,24 @@ def _get_channels(team_id: Optional[str] = None) -> list[SlackChannel]:
         )
         return channels
     except SlackApiError as ex:
-        logger.error(
-            "Failed to fetch Slack channels after %d pages: %s",
-            page_count,
-            str(ex),
-            exc_info=True,
-        )
+        # Only bot-token auth failures (invalid/revoked/deactivated) are the
+        # expected, already-handled multi-tenant condition this is meant to
+        # quiet down. Rate limits and Slack server/API errors are actionable
+        # outages, so they keep ERROR-level logging with a traceback.
+        error_code = get_slack_api_error_code(ex)
+        if error_code in _AUTH_ERROR_CODES:
+            logger.warning(
+                "Failed to fetch Slack channels after %d pages: %s",
+                page_count,
+                str(ex),
+            )
+        else:
+            logger.error(
+                "Failed to fetch Slack channels after %d pages: %s",
+                page_count,
+                str(ex),
+                exc_info=True,
+            )
         raise
 
 

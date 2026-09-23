@@ -52,6 +52,11 @@ import sqlalchemy as sa
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+from superset.commands.deletion_retention.purge_impact import (
+    collect_dataset_purge_impact,
+    DatasetPurgeImpact,
+    PurgeImpactChangedError,
+)
 from superset.commands.deletion_retention.purge_policy import (
     BlockerReason,
     get_purge_policy,
@@ -192,6 +197,7 @@ def cascade_hard_delete(
     enforce_window: bool,
     cutoff: datetime | None = None,
     require_archived: bool = False,
+    confirmed_impact_token: str | None = None,
 ) -> CascadeResult:
     """Remove *entity* and everything that depends on it in one transaction.
 
@@ -224,6 +230,7 @@ def cascade_hard_delete(
     removed_dashboard_slices = 0
     version_rows = 0
     permission_name: str | None = None
+    confirmed_impact: DatasetPurgeImpact | None = None
 
     try:
         with session.begin_nested():
@@ -241,6 +248,11 @@ def cascade_hard_delete(
             if session.execute(claim.with_for_update()).scalar_one_or_none() is None:
                 raise PurgeRaceLostError
 
+            if entity_type == "dataset" and confirmed_impact_token is not None:
+                confirmed_impact = collect_dataset_purge_impact(session, entity_id)
+                if confirmed_impact.impact_token != confirmed_impact_token:
+                    raise PurgeImpactChangedError(confirmed_impact)
+
             policy.validate(session, policy, entity_id)
             # Captured under the lock: the row is claimed, so the identity
             # the permission name is built from can no longer change.
@@ -248,8 +260,10 @@ def cascade_hard_delete(
             removed_dashboard_slices = policy.count_dashboard_slices(
                 session, policy, entity_id
             )
-            dangling_chart_uuids = policy.collect_dangling_chart_uuids(
-                session, policy, entity_id
+            dangling_chart_uuids = (
+                [chart.uuid for chart in confirmed_impact.charts]
+                if confirmed_impact is not None
+                else policy.collect_dangling_chart_uuids(session, policy, entity_id)
             )
 
             policy.delete_associations(session, policy, entity_id)

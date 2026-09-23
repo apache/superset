@@ -163,6 +163,14 @@ class ImportExamplesCommand(ImportModelsCommand):
         dataset_info: dict[str, dict[str, Any]] = {}
         for file_name, config in configs.items():
             if file_name.startswith("datasets/"):
+                # Some examples ship a dataset config for a table that another
+                # example already defines (same uuid, re-exported under a
+                # different folder). Import each uuid once per run --
+                # reimporting it just repeats the same column/metric sync
+                # against an identical config.
+                if config["uuid"] in dataset_info:
+                    continue
+
                 # find the ID of the corresponding database
                 if config["database_uuid"] not in database_ids:
                     raise Exception(  # pylint: disable=broad-exception-raised

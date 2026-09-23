@@ -32,6 +32,7 @@ import {
   ContextMenuTransformedProps,
   CrossFilterTransformedProps,
   EchartsTimeseriesSeriesType,
+  LabelPositionEnum,
   LegendFormData,
   StackType,
   TitleFormData,
@@ -47,6 +48,8 @@ export type EchartsMixedTimeseriesFormData = QueryFormData & {
   // shared properties
   minorSplitLine: boolean;
   minorTicks: boolean;
+  gridlines: boolean;
+  axisTicks: boolean;
   logAxis: boolean;
   logAxisSecondary: boolean;
   yAxisFormat?: string;
@@ -86,6 +89,18 @@ export type EchartsMixedTimeseriesFormData = QueryFormData & {
   seriesTypeB: EchartsTimeseriesSeriesType;
   showValue: boolean;
   showValueB: boolean;
+  /**
+   * Where the data label sits relative to its data point on query A, applied
+   * when `showValue` is on.
+   *
+   * `'auto'` keeps the orientation-aware default the chart used before this
+   * control existed: `Right` for a horizontal chart, `Top` otherwise. It is
+   * also the value every chart saved before then resolves to, so the default
+   * must stay `'auto'` for those to keep rendering as they did.
+   */
+  labelPosition?: LabelPositionEnum | 'auto';
+  /** The same, for query B. Resolved independently of {@link labelPosition}. */
+  labelPositionB?: LabelPositionEnum | 'auto';
   stack: StackType;
   stackB: StackType;
   yAxisIndex?: number;
@@ -100,6 +115,8 @@ export const DEFAULT_FORM_DATA: EchartsMixedTimeseriesFormData = {
   ...DEFAULT_LEGEND_FORM_DATA,
   annotationLayers: [],
   minorSplitLine: TIMESERIES_DEFAULTS.minorSplitLine,
+  gridlines: TIMESERIES_DEFAULTS.gridlines,
+  axisTicks: TIMESERIES_DEFAULTS.axisTicks,
   truncateYAxis: TIMESERIES_DEFAULTS.truncateYAxis,
   truncateYAxisSecondary: TIMESERIES_DEFAULTS.truncateYAxis,
   logAxis: TIMESERIES_DEFAULTS.logAxis,
@@ -130,6 +147,8 @@ export const DEFAULT_FORM_DATA: EchartsMixedTimeseriesFormData = {
   seriesTypeB: TIMESERIES_DEFAULTS.seriesType,
   showValue: TIMESERIES_DEFAULTS.showValue,
   showValueB: TIMESERIES_DEFAULTS.showValue,
+  labelPosition: 'auto',
+  labelPositionB: 'auto',
   stack: TIMESERIES_DEFAULTS.stack,
   stackB: TIMESERIES_DEFAULTS.stack,
   yAxisIndex: 0,

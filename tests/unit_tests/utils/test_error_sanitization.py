@@ -25,6 +25,7 @@ from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.utils.error_sanitization import (
     GENERIC_ACCESS_MESSAGE,
     GENERIC_ERROR_MESSAGE,
+    is_sanitization_required,
     sanitize_error_dicts,
     sanitize_error_message,
     sanitize_superset_error,
@@ -176,3 +177,19 @@ def test_access_status_selects_the_denial_message(
 ) -> None:
     assert sanitize_error_message("Forbidden", 403) == str(GENERIC_ACCESS_MESSAGE)
     assert sanitize_error_message(DB_ERROR, 404) == str(GENERIC_ERROR_MESSAGE)
+
+
+def test_unresolvable_principal_is_treated_as_non_guest(app: SupersetApp) -> None:
+    """
+    ``is_sanitization_required`` runs inside the HTTP error handler, which has no
+    handler of its own: a raising user loader (e.g. a JWT request loader that
+    raises when no credential is present) would otherwise turn every error
+    response into a bare 500. The lookup must swallow the failure and fall back
+    to treating the request as a non-guest one, leaving the message untouched.
+    """
+    with patch(
+        "superset.security.SupersetSecurityManager.is_guest_user",
+        side_effect=RuntimeError("no valid credential on request"),
+    ):
+        assert is_sanitization_required() is False
+        assert sanitize_error_message(DB_ERROR) == DB_ERROR

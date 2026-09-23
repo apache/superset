@@ -58,8 +58,8 @@ import {
   EmptyState,
   Input,
   Modal,
+  Splitter,
 } from '@superset-ui/core/components';
-import { Splitter } from 'src/components/Splitter';
 import { Skeleton } from '@superset-ui/core/components/Skeleton';
 import { Switch } from '@superset-ui/core/components/Switch';
 import { Menu, MenuItemType } from '@superset-ui/core/components/Menu';
@@ -868,7 +868,6 @@ const SqlEditor: FC<Props> = ({
           }
           saveQueryWarning={saveQueryWarning}
           database={database}
-          canSaveDataset={successful && resultColumns.length > 0}
         />
         <ShareSqlLabQuery queryEditorId={queryEditor.id} />
       </>

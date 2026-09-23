@@ -25,6 +25,7 @@ import {
   AxisType,
   buildCustomFormatters,
   CategoricalColorNamespace,
+  ComparisonType,
   CurrencyFormatter,
   DataRecordValue,
   DTTM_ALIAS,
@@ -41,12 +42,14 @@ import {
   isIntervalAnnotationLayer,
   isPhysicalColumn,
   isTimeseriesAnnotationLayer,
+  LegendState,
   resolveAutoCurrency,
   TimeseriesChartDataResponseResult,
   TimeseriesDataRecord,
   NumberFormats,
 } from '@superset-ui/core';
 import { GenericDataType } from '@apache-superset/core/common';
+import { isThemeDark } from '@apache-superset/core/theme';
 import {
   extractExtraMetrics,
   getOriginalSeries,
@@ -63,8 +66,11 @@ import {
   EchartsTimeseriesChartProps,
   EchartsTimeseriesFormData,
   EchartsTimeseriesSeriesType,
+  BarValueLabelPosition,
   OrientationType,
+  TimeseriesCustomLegend,
   TimeseriesChartTransformedProps,
+  TimeseriesLegendItem,
 } from './types';
 import { DEFAULT_FORM_DATA } from './constants';
 import {
@@ -88,6 +94,8 @@ import {
   getHorizontalLegendAvailableWidth,
   getLegendProps,
   getMinAndMaxFromBounds,
+  getTemporalAxisTickConfig,
+  resolveTemporalTickValues,
 } from '../utils/series';
 import { resolveLegendLayout } from '../utils/legendLayout';
 import {
@@ -108,6 +116,7 @@ import { defaultGrid, defaultYAxis } from '../defaults';
 import {
   getBaselineSeriesForStream,
   getPadding,
+  getViableTimeseriesEchartOptions,
   transformEventAnnotation,
   transformFormulaAnnotation,
   transformIntervalAnnotation,
@@ -122,13 +131,87 @@ import {
 } from '../constants';
 import { getDefaultTooltip } from '../utils/tooltip';
 import {
+  createDedupXAxisFormatter,
+  createSpacedXAxisFormatter,
   getPercentFormatter,
   getTooltipTimeFormatter,
+  getXAxisDomain,
   getXAxisFormatter,
   getYAxisFormatter,
 } from '../utils/formatters';
 import { safeParseEChartOptions } from '../utils/safeEChartOptionsParser';
 import { mergeCustomEChartOptions } from '../utils/mergeCustomEChartOptions';
+
+type LegendSeriesVisual = {
+  itemStyle?: { color?: unknown };
+  lineStyle?: { color?: unknown };
+  name?: string | number;
+};
+
+function getLegendSeriesColor(
+  series: SeriesOption | undefined,
+  fallbackColor: string,
+): string {
+  const visual = series as LegendSeriesVisual | undefined;
+  const color = visual?.itemStyle?.color ?? visual?.lineStyle?.color;
+  return typeof color === 'string' ? color : fallbackColor;
+}
+
+function buildTimeseriesCustomLegend({
+  fallbackColor,
+  grid,
+  interactive,
+  legendNames,
+  legendState,
+  orientation,
+  series,
+}: {
+  fallbackColor: string;
+  grid: TimeseriesCustomLegend['grid'];
+  interactive: boolean;
+  legendNames: string[];
+  legendState?: LegendState;
+  orientation: LegendOrientation.Top | LegendOrientation.Bottom;
+  series: SeriesOption[];
+}): TimeseriesCustomLegend {
+  const firstSeriesByName = new Map<string, SeriesOption>();
+  series.forEach(seriesOption => {
+    const { name } = seriesOption as LegendSeriesVisual;
+    if (name !== undefined && !firstSeriesByName.has(String(name))) {
+      firstSeriesByName.set(String(name), seriesOption);
+    }
+  });
+
+  const seen = new Set<string>();
+  const items = legendNames.flatMap<TimeseriesLegendItem>(name => {
+    if (seen.has(name)) {
+      return [];
+    }
+    seen.add(name);
+
+    const rowBreak = name === '' || name === '\n';
+    const matchingSeries = firstSeriesByName.get(name);
+    if (!rowBreak && !matchingSeries) {
+      return [];
+    }
+
+    return [
+      {
+        color: getLegendSeriesColor(matchingSeries, fallbackColor),
+        interactive: interactive && !rowBreak,
+        name,
+        selected: legendState?.[name] !== false,
+      },
+    ];
+  });
+
+  return {
+    grid,
+    items,
+    orientation,
+    showSelectors: interactive,
+  };
+}
 
 const visibleDashPatterns: ([number, number] | 'dashed' | 'dotted')[] = [
   'dashed',
@@ -283,6 +366,8 @@ export default function transformProps(
     metrics,
     minorSplitLine,
     minorTicks,
+    gridlines,
+    axisTicks,
     onlyTotal,
     opacity,
     orientation,
@@ -291,7 +376,9 @@ export default function transformProps(
     seriesType,
     showLegend,
     showValue,
+    valueLabelPosition,
     size,
+    labelPosition,
     colorByPrimaryAxis,
     sliceId,
     sortSeriesType,
@@ -328,9 +415,16 @@ export default function transformProps(
     zoomable,
     stackDimension,
   }: EchartsTimeseriesFormData = { ...DEFAULT_FORM_DATA, ...formData };
+  const resolvedValueLabelPosition =
+    valueLabelPosition ?? BarValueLabelPosition.OutsideEnd;
 
   const refs: Refs = {};
   const groupBy = ensureIsArray(groupby);
+  // Series whose `label_map` entry led with a time offset, recorded before the shift
+  // below drops it. That leading column is the only structural marker distinguishing a
+  // derived comparison row from a base row whose dimension value happens to read like
+  // the offset, and it is gone from `labelMap` by the time the formatters run.
+  const derivedComparisonSeries = new Set<string>();
   const labelMap: { [key: string]: string[] } = Object.entries(
     label_map,
   ).reduce((acc, entry) => {
@@ -339,6 +433,7 @@ export default function transformProps(
       Array.isArray(timeCompare) &&
       timeCompare.includes(entry[1][0])
     ) {
+      derivedComparisonSeries.add(entry[0]);
       entry[1].shift();
     }
     return { ...acc, [entry[0]]: entry[1] };
@@ -593,6 +688,51 @@ export default function transformProps(
   const array = ensureIsArray(chartProps.rawFormData?.time_compare);
   const inverted = invert(verboseMap);
 
+  // A Percentage or Ratio time comparison replaces the derived series' values with a
+  // dimensionless number, so that row is no longer in the source metric's units and
+  // must not inherit its currency/D3 format.
+  //
+  // `label_map` carries the structured identity behind a rendered series name, and
+  // `renameOperator` puts the offset at the front of a derived row's entry:
+  //
+  //   derived  '1 week ago, East'  -> ['1 week ago', 'East']
+  //   derived  'count, 1 year ago' -> ['1 year ago', 'count']
+  //   base     'sum__num, East'    -> ['sum__num', 'East']
+  //
+  // so the leading column says which it is. Matching the rendered name instead would
+  // misread a base series whose dimension value happens to equal the offset — a region
+  // literally named "1 week ago" gives 'sum__num, 1 week ago', which reads as derived.
+  const isDerivedComparisonSeries = (seriesKey: string) => {
+    // Recorded above, before the offset was shifted off the `label_map` entry.
+    if (derivedComparisonSeries.has(seriesKey)) {
+      return true;
+    }
+    const columns = labelMap?.[seriesKey];
+    // The shift only runs when `timeCompare` is populated; otherwise the entry still
+    // leads with the offset and can be read directly.
+    return columns?.length
+      ? array.includes(columns[0])
+      : array.includes(seriesKey);
+  };
+
+  // Percentage yields `(s - c) / c`, which reads as a percentage. Ratio yields `s / c`,
+  // a plain multiplier, so it takes a unitless number format rather than a percent one.
+  const ratioFormatter = getNumberFormatter(NumberFormats.SMART_NUMBER);
+
+  const getComparisonFormatter = (seriesKey: string) => {
+    if (!isDerivedComparisonSeries(seriesKey)) {
+      return undefined;
+    }
+    switch (chartProps.rawFormData?.comparison_type) {
+      case ComparisonType.Percentage:
+        return percentFormatter;
+      case ComparisonType.Ratio:
+        return ratioFormatter;
+      default:
+        return undefined;
+    }
+  };
+
   // With the "full range" time-shift option, offset series are outer-joined onto
   // the main series, which inserts null rows into the main series wherever the
   // comparison period has data the current period lacks. Connect nulls so the
@@ -738,6 +878,7 @@ export default function transformProps(
               labelMap?.[seriesName]?.[0],
             ) ?? defaultFormatter),
         showValue,
+        valueLabelPosition: resolvedValueLabelPosition,
         onlyTotal,
         totalStackedValues: sortedTotalValues,
         showValueIndexes,
@@ -752,6 +893,7 @@ export default function transformProps(
         theme,
         hasDimensions: (groupBy?.length ?? 0) > 0,
         colorByPrimaryAxis,
+        labelPosition,
       },
     );
     if (transformedSeries) {
@@ -1123,9 +1265,30 @@ export default function transformProps(
     name,
     icon: 'roundRect',
   }));
+  const isSmallChart = height < TIMESERIES_CONSTANTS.compactChartHeight;
+  const usesCompactLayout = height <= TIMESERIES_CONSTANTS.compactChartHeight;
+  const isLegendVisible = showLegend && !usesCompactLayout;
+  const usesPrimaryAxisLegend = colorByPrimaryAxis && groupBy.length === 0;
+  const resolvedLegendData = usesPrimaryAxisLegend
+    ? colorByPrimaryAxisLegendData
+    : sortedLegendData;
+  const resolvedLegendNames = (
+    usesPrimaryAxisLegend ? legendData : sortedLegendData
+  ).map(String);
+  const usesCustomLegend =
+    isLegendVisible &&
+    legendType === LegendType.Plain &&
+    (legendOrientation === LegendOrientation.Top ||
+      legendOrientation === LegendOrientation.Bottom);
+  const nativeLegendVisible = isLegendVisible && !usesCustomLegend;
+  // Use the exact final ordering ECharts receives. Forecast components share
+  // a legend name, and ECharts takes the first matching series as its visual.
+  const renderedSeries = dedupSeries(
+    reorderForecastSeries([...series]) as SeriesOption[],
+  );
   const getLegendLayout = (candidateLegendMargin?: string | number | null) => {
     const padding = getPadding(
-      showLegend,
+      nativeLegendVisible,
       legendOrientation,
       addYAxisLabelOffset,
       zoomable,
@@ -1150,20 +1313,18 @@ export default function transformProps(
           : undefined,
       chartHeight: height,
       chartWidth: width,
-      legendItems:
-        colorByPrimaryAxis && groupBy.length === 0
-          ? colorByPrimaryAxisLegendData
-          : sortedLegendData,
+      legendItems: resolvedLegendData,
       legendMargin: candidateLegendMargin,
       orientation: legendOrientation,
-      show: showLegend,
-      showSelectors: !(colorByPrimaryAxis && groupBy.length === 0),
+      show: nativeLegendVisible,
+      showSelectors: !usesPrimaryAxisLegend,
       theme,
       type: legendType,
     });
   };
   const initialLegendLayout = getLegendLayout(legendMargin);
   const legendLayout =
+    nativeLegendVisible &&
     isHorizontal &&
     legendOrientation === LegendOrientation.Bottom &&
     initialLegendLayout.effectiveLegendType === LegendType.Plain
@@ -1177,7 +1338,7 @@ export default function transformProps(
       ? legendMargin
       : legendLayout.effectiveLegendMargin;
   const padding = getPadding(
-    showLegend,
+    nativeLegendVisible,
     legendOrientation,
     addYAxisLabelOffset,
     zoomable,
@@ -1192,7 +1353,7 @@ export default function transformProps(
   // Reduce grid padding for small charts to maximize the drawing area.
   // Keep enough top padding so the max label doesn't clip against the cell border.
   // Preserve bottom padding when zoomable, since getPadding() reserves space for the dataZoom slider.
-  if (height < TIMESERIES_CONSTANTS.compactChartHeight) {
+  if (usesCompactLayout) {
     padding.top = Math.min(padding.top, 12);
     if (!zoomable) {
       padding.bottom = Math.min(padding.bottom, 5);
@@ -1201,47 +1362,49 @@ export default function transformProps(
 
   // When showMaxLabel is true, ECharts may render a label at the axis
   // boundary that formats identically to the last data-point tick (e.g.
-  // "2005" appears twice with Year grain). Wrap the formatter to suppress
-  // consecutive duplicate labels.
+  // "2005" appears twice with Year grain), and hideOverlap must stay off so
+  // that forced boundary label is never suppressed (#39899). Wrap the
+  // formatter to suppress consecutive duplicate labels and to thin out
+  // labels that would otherwise visually collide, since hideOverlap can no
+  // longer do that for us. The spacing estimate assumes the axis runs along
+  // the bottom of the chart (pixel width, character width); a horizontal
+  // orientation chart puts the time axis on the side instead, so it falls
+  // back to dedup-only there.
   const showMaxLabel =
     xAxisType === AxisType.Time &&
     xAxisLabelRotation === 0 &&
     !!resolvedTimeGrain;
   const deduplicatedFormatter = showMaxLabel
-    ? (() => {
-        let lastLabel: string | undefined;
-        let lastValue: number | undefined;
-        const wrapper = (value: number | string) => {
-          // ECharts formats the labels in repeated ascending passes. Reset the
-          // dedup state when the sequence restarts so a forced boundary label
-          // (e.g. the min date) isn't blanked by the previous pass's last label
-          // when both format identically (e.g. a May-to-May range).
-          if (
-            typeof value === 'number' &&
-            lastValue !== undefined &&
-            value <= lastValue
-          ) {
-            lastLabel = undefined;
-          }
-          if (typeof value === 'number') {
-            lastValue = value;
-          }
-          const label =
-            typeof xAxisFormatter === 'function'
-              ? (xAxisFormatter as Function)(value)
-              : String(value);
-          if (label === lastLabel) {
-            return '';
-          }
-          lastLabel = label;
-          return label;
-        };
-        if (typeof xAxisFormatter === 'function' && 'id' in xAxisFormatter) {
-          (wrapper as any).id = (xAxisFormatter as any).id;
-        }
-        return wrapper;
-      })()
+    ? isHorizontal
+      ? createDedupXAxisFormatter(xAxisFormatter)
+      : createSpacedXAxisFormatter(
+          xAxisFormatter,
+          ...getXAxisDomain(
+            [rebasedData as Record<string, unknown>[]],
+            xAxisLabel,
+          ),
+          Math.max(width - 2 * TIMESERIES_CONSTANTS.gridOffsetLeft, 0),
+        )
     : xAxisFormatter;
+
+  const temporalTickValues = resolveTemporalTickValues(
+    rebasedData,
+    xAxisLabel,
+    xAxisType,
+    resolvedTimeGrain,
+    annotationLayers,
+  );
+
+  const temporalAxisTickConfig = getTemporalAxisTickConfig(
+    temporalTickValues,
+    showMaxLabel,
+    xAxisType,
+    xAxisLabelRotation,
+    xAxisLabelInterval,
+    deduplicatedFormatter,
+    isHorizontal,
+    zoomable,
+  );
 
   let xAxis: any = {
     type: xAxisType,
@@ -1252,32 +1415,13 @@ export default function transformProps(
       groupBy.length === 0 && {
         triggerEvent: true,
       }),
-    axisLabel: {
-      // When rotation is applied on time axes, hideOverlap can
-      // aggressively hide the last label. Rotated labels already
-      // have less overlap, so disabling hideOverlap is safe.
-      // At 0° rotation, also disable hideOverlap when showMaxLabel
-      // is active so the forced boundary label is never suppressed
-      // by ECharts' overlap detection (#39899).
-      hideOverlap: showMaxLabel
-        ? false
-        : !(xAxisType === AxisType.Time && xAxisLabelRotation !== 0),
-      formatter: deduplicatedFormatter,
-      rotate: xAxisLabelRotation,
-      interval: xAxisLabelInterval,
-      // Force the boundary labels on non-rotated time axes so the first
-      // and last dates stay visible: hideOverlap can hide the last label,
-      // and a min date that falls between "nice" ticks otherwise renders
-      // no beginning label. Skipped when rotated to avoid phantom labels
-      // at the axis boundary.
-      ...(showMaxLabel && {
-        showMaxLabel: true,
-        alignMaxLabel: 'right',
-        showMinLabel: true,
-        alignMinLabel: 'left',
-      }),
-    },
+    ...temporalAxisTickConfig,
     minorTick: { show: minorTicks },
+    axisTick: {
+      ...temporalAxisTickConfig.axisTick,
+      show: axisTicks ? 'auto' : false,
+    },
+    ...(gridlines ? {} : { splitLine: { show: false } }),
     minInterval:
       xAxisType === AxisType.Time && resolvedTimeGrain && !forceMaxInterval
         ? (TIMEGRAIN_TO_TIMESTAMP[
@@ -1303,7 +1447,6 @@ export default function transformProps(
   // >= 100px: full axis with proportional tick count
   // 60-99px: show only min/max boundary labels (splitNumber=1), hide lines/ticks
   // < 60px: hide all axis decorations, show line only
-  const isSmallChart = height < TIMESERIES_CONSTANTS.compactChartHeight;
   const isMicroChart = height < TIMESERIES_CONSTANTS.microChartHeight;
   const yAxisSplitNumber = isMicroChart
     ? undefined
@@ -1322,7 +1465,7 @@ export default function transformProps(
     max: yAxisMax,
     minorTick: { show: isSmallChart ? false : minorTicks },
     minorSplitLine: { show: isSmallChart ? false : minorSplitLine },
-    splitLine: { show: !isSmallChart },
+    splitLine: { show: isSmallChart ? false : gridlines },
     axisLabel: {
       show: !isMicroChart,
       showMinLabel: !isMicroChart,
@@ -1336,7 +1479,7 @@ export default function transformProps(
         yAxisFormat,
       ),
     },
-    axisTick: { show: !isSmallChart },
+    axisTick: { show: isSmallChart ? false : axisTicks },
     scale: truncateYAxis,
     name: isSmallChart ? undefined : yAxisTitle,
     nameGap: convertInteger(yAxisTitleMargin),
@@ -1373,9 +1516,16 @@ export default function transformProps(
 
   const echartOptions: EChartsCoreOption = {
     useUTC: true,
+    ...(seriesType === EchartsTimeseriesSeriesType.Bar &&
+    resolvedValueLabelPosition === BarValueLabelPosition.Auto
+      ? { darkMode: isThemeDark(theme) }
+      : {}),
     grid: {
       ...defaultGrid,
       ...padding,
+      // Compact charts prioritize a viable coordinate system over keeping
+      // axis labels inside an already constrained grid rectangle.
+      containLabel: !usesCompactLayout,
     },
     xAxis,
     yAxis,
@@ -1424,6 +1574,31 @@ export default function transformProps(
             value.forecastTrend || value.forecastLower || value.forecastUpper,
         );
 
+        // Resolve the value formatter per series so each metric keeps its own
+        // D3/currency format, matching how the series labels are formatted.
+        // Without the series key, `getCustomFormatter` returns undefined for
+        // multi-metric charts and every row falls back to `defaultFormatter`,
+        // rendering the y-axis/currency format for all metrics.
+        //
+        // The tooltip key is the rendered series name, so resolve it through
+        // `labelMap`, whose values lead with the raw metric label. Series
+        // renamed by a verbose_name are absent from that map, so fall back to
+        // the verbose-name inversion, as MixedTimeseries does. A Percentage or
+        // Ratio comparison row is dimensionless rather than a value in the
+        // metric's units, so it takes its own formatter instead of the metric's.
+        const getSeriesFormatter = (seriesKey: string) =>
+          forcePercentFormatter
+            ? percentFormatter
+            : (getComparisonFormatter(seriesKey) ??
+              getCustomFormatter(
+                customFormatters,
+                metrics,
+                labelMap?.[seriesKey]?.[0] ?? inverted[seriesKey],
+              ) ??
+              defaultFormatter);
+
+        // The total row aggregates every series, so it keeps the chart-level
+        // formatter rather than any single metric's format.
         const formatter = forcePercentFormatter
           ? percentFormatter
           : (getCustomFormatter(customFormatters, metrics) ?? defaultFormatter);
@@ -1454,7 +1629,7 @@ export default function transformProps(
             const row = formatForecastTooltipSeries({
               ...value,
               seriesName: key,
-              formatter,
+              formatter: getSeriesFormatter(key),
               marker,
               truncation: tooltipTruncation,
             });
@@ -1502,27 +1677,23 @@ export default function transformProps(
       ...getLegendProps(
         effectiveLegendType,
         legendOrientation,
-        // Hide legend on compact charts — not enough vertical space
-        isSmallChart ? false : showLegend,
+        nativeLegendVisible,
         theme,
         zoomable,
         legendState,
         padding,
       ),
       scrollDataIndex: legendIndex || 0,
-      data:
-        colorByPrimaryAxis && groupBy.length === 0
-          ? colorByPrimaryAxisLegendData
-          : sortedLegendData,
+      data: resolvedLegendData,
       // Disable legend selection and buttons when colorByPrimaryAxis is enabled
-      ...(colorByPrimaryAxis && groupBy.length === 0
+      ...(usesPrimaryAxisLegend
         ? {
             selectedMode: false, // Disable clicking legend items
             selector: false, // Hide All/Invert buttons
           }
         : {}),
     },
-    series: dedupSeries(reorderForecastSeries(series) as SeriesOption[]),
+    series: renderedSeries,
     toolbox: {
       show: zoomable,
       top: TIMESERIES_CONSTANTS.toolboxTop,
@@ -1579,9 +1750,57 @@ export default function transformProps(
   const mergedEchartOptions = customEchartOptions
     ? mergeCustomEChartOptions(echartOptions, customEchartOptions)
     : echartOptions;
+  const viableEchartOptions = getViableTimeseriesEchartOptions(
+    mergedEchartOptions,
+    height,
+    zoomable,
+  );
+  const mergedSeries = viableEchartOptions.series;
+  const finalSeries = Array.isArray(mergedSeries)
+    ? (mergedSeries as SeriesOption[])
+    : mergedSeries && typeof mergedSeries === 'object'
+      ? [mergedSeries as SeriesOption]
+      : renderedSeries;
+  const mergedGrid = Array.isArray(viableEchartOptions.grid)
+    ? viableEchartOptions.grid[0]
+    : viableEchartOptions.grid;
+  const finalGrid =
+    mergedGrid && typeof mergedGrid === 'object' ? mergedGrid : padding;
+  const customLegend = usesCustomLegend
+    ? buildTimeseriesCustomLegend({
+        fallbackColor: theme.colorTextSecondary,
+        grid: {
+          bottom:
+            typeof finalGrid.bottom === 'number' ||
+            typeof finalGrid.bottom === 'string'
+              ? finalGrid.bottom
+              : padding.bottom,
+          top:
+            typeof finalGrid.top === 'number' ||
+            typeof finalGrid.top === 'string'
+              ? finalGrid.top
+              : padding.top,
+        },
+        interactive: !usesPrimaryAxisLegend,
+        legendNames: resolvedLegendNames,
+        legendState,
+        orientation: legendOrientation,
+        series: finalSeries,
+      })
+    : undefined;
+  const finalEchartOptions = usesCustomLegend
+    ? {
+        ...viableEchartOptions,
+        legend: {
+          ...(viableEchartOptions.legend as Record<string, unknown>),
+          show: false,
+        },
+      }
+    : viableEchartOptions;
 
   return {
-    echartOptions: mergedEchartOptions,
+    customLegend,
+    echartOptions: finalEchartOptions,
     emitCrossFilters,
     formData,
     groupby: groupBy,

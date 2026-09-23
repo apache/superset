@@ -24,6 +24,7 @@ import {
   getTimeFormatter,
   isSavedMetric,
   NumberFormats,
+  NumberFormatter,
   QueryFormMetric,
   SMART_DATE_DETAILED_ID,
   SMART_DATE_ID,
@@ -32,6 +33,7 @@ import {
   TimeGranularity,
   ValueFormatter,
 } from '@superset-ui/core';
+import { TIMESERIES_CONSTANTS } from '../constants';
 
 export const getSmartDateDetailedFormatter = () =>
   getTimeFormatter(SMART_DATE_DETAILED_ID);
@@ -212,4 +214,152 @@ export function getXAxisFormatter(
     return getTimeFormatter(format);
   }
   return String;
+}
+
+type XAxisFormatterFn =
+  | TimeFormatter
+  | NumberFormatter
+  | StringConstructor
+  | ((value: number | string) => string);
+
+/**
+ * Wraps an x-axis time formatter so that consecutive ticks that format to
+ * identical text are blanked (e.g. the boundary label forced by
+ * showMaxLabel duplicating the last real tick).
+ *
+ * Use this instead of createSpacedXAxisFormatter when the axis geometry
+ * doesn't match the spacing model's horizontal-plot assumptions, e.g. a
+ * horizontal orientation chart, where the time axis runs vertically along
+ * the side of the chart rather than along the bottom.
+ */
+export function createDedupXAxisFormatter(
+  xAxisFormatter: XAxisFormatterFn | undefined,
+): (value: number | string) => string {
+  let lastLabel: string | undefined;
+  let lastValue: number | undefined;
+  const wrapper = (value: number | string) => {
+    // ECharts formats the labels in repeated ascending passes. Reset the
+    // dedup state when the sequence restarts so a forced boundary label
+    // (e.g. the min date) isn't blanked by the previous pass's last label
+    // when both format identically (e.g. a May-to-May range).
+    if (
+      typeof value === 'number' &&
+      lastValue !== undefined &&
+      value <= lastValue
+    ) {
+      lastLabel = undefined;
+    }
+    if (typeof value === 'number') {
+      lastValue = value;
+    }
+    const label =
+      typeof xAxisFormatter === 'function'
+        ? (xAxisFormatter as Function)(value)
+        : String(value);
+    if (label === lastLabel) {
+      return '';
+    }
+    lastLabel = label;
+    return label;
+  };
+  if (typeof xAxisFormatter === 'function' && 'id' in xAxisFormatter) {
+    (wrapper as { id?: unknown }).id = (xAxisFormatter as { id?: unknown }).id;
+  }
+  return wrapper;
+}
+
+/**
+ * Wraps an x-axis time formatter so that:
+ * - consecutive ticks that format to identical text are blanked (e.g. the
+ *   boundary label forced by showMaxLabel duplicating the last real tick).
+ * - ticks that would render close enough to visually collide with the
+ *   previously shown label are blanked, since disabling ECharts'
+ *   `hideOverlap` (required to keep the forced boundary label visible, see
+ *   #39899) also disables its native overlap suppression for every other
+ *   label on the axis.
+ *
+ * The forced axis boundary labels (domainMin/domainMax) are never blanked by
+ * the spacing check so they stay visible regardless of density.
+ */
+export function createSpacedXAxisFormatter(
+  xAxisFormatter: XAxisFormatterFn | undefined,
+  domainMin: number | undefined,
+  domainMax: number | undefined,
+  plotWidthPx: number,
+): (value: number | string) => string {
+  const pixelsPerMs =
+    domainMin !== undefined && domainMax !== undefined && domainMax > domainMin
+      ? plotWidthPx / (domainMax - domainMin)
+      : undefined;
+  let lastLabel: string | undefined;
+  let lastValue: number | undefined;
+  let lastShownValue: number | undefined;
+  const wrapper = (value: number | string) => {
+    // ECharts formats the labels in repeated ascending passes. Reset the
+    // dedup/spacing state when the sequence restarts so a forced boundary
+    // label (e.g. the min date) isn't blanked by the previous pass's state
+    // when both format identically (e.g. a May-to-May range).
+    if (
+      typeof value === 'number' &&
+      lastValue !== undefined &&
+      value <= lastValue
+    ) {
+      lastLabel = undefined;
+      lastShownValue = undefined;
+    }
+    if (typeof value === 'number') {
+      lastValue = value;
+    }
+    const label =
+      typeof xAxisFormatter === 'function'
+        ? (xAxisFormatter as Function)(value)
+        : String(value);
+    if (label === lastLabel) {
+      return '';
+    }
+    const isBoundary =
+      typeof value === 'number' && (value === domainMin || value === domainMax);
+    if (
+      !isBoundary &&
+      typeof value === 'number' &&
+      pixelsPerMs !== undefined &&
+      lastShownValue !== undefined &&
+      (value - lastShownValue) * pixelsPerMs <
+        label.length * TIMESERIES_CONSTANTS.xAxisLabelCharWidthPx +
+          TIMESERIES_CONSTANTS.xAxisLabelMinGapPx
+    ) {
+      return '';
+    }
+    lastLabel = label;
+    if (typeof value === 'number') {
+      lastShownValue = value;
+    }
+    return label;
+  };
+  if (typeof xAxisFormatter === 'function' && 'id' in xAxisFormatter) {
+    (wrapper as { id?: unknown }).id = (xAxisFormatter as { id?: unknown }).id;
+  }
+  return wrapper;
+}
+
+/**
+ * Computes the [min, max] of a temporal x-axis column across one or more
+ * data record arrays, for use with createSpacedXAxisFormatter.
+ */
+export function getXAxisDomain(
+  dataRecordArrays: Record<string, unknown>[][],
+  xAxisCol: string,
+): [number | undefined, number | undefined] {
+  let domainMin: number | undefined;
+  let domainMax: number | undefined;
+  dataRecordArrays.forEach(records => {
+    records.forEach(record => {
+      const value = record[xAxisCol];
+      if (typeof value === 'number') {
+        if (domainMin === undefined || value < domainMin) domainMin = value;
+        if (domainMax === undefined || value > domainMax) domainMax = value;
+      }
+    });
+  });
+  return [domainMin, domainMax];
 }

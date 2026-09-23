@@ -16,7 +16,7 @@
 # under the License.
 import io
 from datetime import datetime
-from typing import Any
+from typing import Any, Optional
 
 import pandas as pd
 
@@ -91,7 +91,17 @@ def quote_formulas(df: pd.DataFrame) -> pd.DataFrame:
     return df.rename_axis(index=_quote_formula, columns=_quote_formula)
 
 
-def df_to_excel(df: pd.DataFrame, **kwargs: Any) -> Any:
+def df_to_excel(
+    df: pd.DataFrame, number_format: Optional[str] = None, **kwargs: Any
+) -> Any:
+    """
+    Serialize a DataFrame to an xlsx workbook.
+
+    :param number_format: optional Excel format code applied to the data
+           columns, e.g. ``"0.0%"``. Applying it as a cell format rather than
+           writing formatted text keeps the underlying value numeric, so the
+           spreadsheet still sums and charts it.
+    """
     output = io.BytesIO()
 
     # make sure formulas are quoted, to prevent malicious injections
@@ -100,6 +110,20 @@ def df_to_excel(df: pd.DataFrame, **kwargs: Any) -> Any:
     # pylint: disable=abstract-class-instantiated
     with pd.ExcelWriter(output, engine="xlsxwriter") as writer:
         df.to_excel(writer, **kwargs)
+
+        if number_format and writer.sheets:
+            worksheet = next(iter(writer.sheets.values()))
+            # The sheet may start past column A, and the index occupies the
+            # leading columns when it is written out.
+            first_data_column = kwargs.get("startcol", 0) + (
+                df.index.nlevels if kwargs.get("index", True) else 0
+            )
+            worksheet.set_column(
+                first_data_column,
+                first_data_column + len(df.columns) - 1,
+                None,
+                writer.book.add_format({"num_format": number_format}),
+            )
 
         # Reset workbook document properties so the exported file does not
         # carry identifying details (authoring info, generation timestamps).

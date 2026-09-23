@@ -18,12 +18,14 @@
  * under the License.
  */
 import {
+  AnnotationLayer,
   AxisType,
   ChartDataResponseResult,
   DataRecord,
   DataRecordValue,
   DTTM_ALIAS,
   ensureIsArray,
+  isTimeseriesAnnotationLayer,
   LegendState,
   normalizeTimestamp,
   NumberFormats,
@@ -42,6 +44,7 @@ import {
   NULL_STRING,
   StackControlsValue,
   TIMESERIES_CONSTANTS,
+  WEEKLY_TIME_GRAINS,
 } from '../constants';
 import {
   EchartsTimeseriesSeriesType,
@@ -984,6 +987,167 @@ export function getAxisType(
     return AxisType.Value;
   }
   return AxisType.Category;
+}
+
+// `new Date('2024-04-06')` parses as UTC, but ECharts' own date parser treats
+// zone-less strings as local time — mismatch would offset the pinned tick.
+const DATE_ONLY_RE = /^(\d{4})(?:-(\d{1,2})(?:-(\d{1,2}))?)?$/;
+
+function parseTemporalString(value: string): number {
+  const dateOnly = DATE_ONLY_RE.exec(value);
+  if (dateOnly) {
+    const [, year, month, day] = dateOnly;
+    return new Date(
+      Number(year),
+      Number(month || 1) - 1,
+      Number(day || 1),
+    ).getTime();
+  }
+  return new Date(value).getTime();
+}
+
+/**
+ * Bucket timestamps a temporal axis should tick on, or undefined to let ECharts
+ * choose.
+ *
+ * ECharts generates time ticks from a calendar ladder with no week unit, so for
+ * weekly data it steps days from the 1st of each month instead: labels drift
+ * across weekdays and snap to month starts (#17226). Coarser grains already land
+ * on their data and keep ECharts' calendar-nice labels.
+ */
+export function getTemporalTickValues(
+  data: DataRecord[],
+  xAxisLabel: string,
+  xAxisType: AxisType,
+  timeGrain?: string,
+): number[] | undefined {
+  if (
+    xAxisType !== AxisType.Time ||
+    !timeGrain ||
+    !WEEKLY_TIME_GRAINS.has(timeGrain)
+  ) {
+    return undefined;
+  }
+  const values = new Set<number>();
+  data.forEach(row => {
+    const value = row[xAxisLabel];
+    const timestamp =
+      // eslint-disable-next-line no-nested-ternary
+      value instanceof Date
+        ? value.getTime()
+        : typeof value === 'string'
+          ? parseTemporalString(value)
+          : Number(value ?? NaN);
+    if (Number.isFinite(timestamp)) {
+      values.add(timestamp);
+    }
+  });
+  return values.size ? [...values].sort((a, b) => a - b) : undefined;
+}
+
+/**
+ * Weekly grains: pin the ticks to the buckets ECharts would otherwise miss.
+ * A timeseries annotation contributes its own timestamps and widens the axis
+ * past the buckets, and ECharts clips pinned ticks to the extent, so that
+ * span would render bare — leave those charts on ECharts' own ticks.
+ */
+export function resolveTemporalTickValues(
+  data: DataRecord[],
+  xAxisLabel: string,
+  xAxisType: AxisType,
+  timeGrain: string | undefined,
+  annotationLayers: AnnotationLayer[],
+): number[] | undefined {
+  const hasTimeseriesAnnotation = annotationLayers.some(
+    layer => layer.show && isTimeseriesAnnotationLayer(layer),
+  );
+  return hasTimeseriesAnnotation
+    ? undefined
+    : getTemporalTickValues(data, xAxisLabel, xAxisType, timeGrain);
+}
+
+// Unlike axisLabel, axisTick has no overlap-based thinning, so pinning it to
+// every bucket combs a long weekly range. Downsample evenly, keeping ends.
+const MAX_PINNED_AXIS_TICKS = 60;
+
+export function capTickMarks(
+  values: number[],
+  maxTicks: number = MAX_PINNED_AXIS_TICKS,
+): number[] {
+  if (values.length <= maxTicks) {
+    return values;
+  }
+  const step = Math.ceil(values.length / maxTicks);
+  const capped = values.filter((_, index) => index % step === 0);
+  const last = values[values.length - 1];
+  if (capped[capped.length - 1] !== last) {
+    capped.push(last);
+  }
+  return capped;
+}
+
+/**
+ * axisLabel/axisTick fragment for a temporal x-axis, shared by Timeseries and
+ * MixedTimeseries. When temporalTickValues pins the axis to weekly buckets,
+ * axisTick.customValues (what splitLine/gridlines follow) is downsampled to
+ * avoid combing a long weekly range. axisLabel.customValues (what hideOverlap
+ * thins from) uses the same capped set on a non-zoomable axis, so a label
+ * surviving hideOverlap thinning always lands on a real tick and gridline
+ * rather than a capped-away bucket. On a zoomable axis the full set is used
+ * instead — zooming lets the user reach any bucket, but customValues never
+ * recomputes on dataZoom, so a capped set there would freeze the visible
+ * labels to the pre-zoom subset.
+ */
+export function getTemporalAxisTickConfig(
+  temporalTickValues: number[] | undefined,
+  showMaxLabel: boolean,
+  xAxisType: AxisType,
+  xAxisLabelRotation: number,
+  xAxisLabelInterval: number | string | undefined,
+  formatter: unknown,
+  isHorizontal: boolean = false,
+  zoomable: boolean = false,
+): {
+  axisLabel: Record<string, unknown>;
+  axisTick?: { customValues: number[] };
+} {
+  const cappedTickValues = temporalTickValues
+    ? capTickMarks(temporalTickValues)
+    : undefined;
+  const labelCustomValues = zoomable ? temporalTickValues : cappedTickValues;
+  return {
+    axisLabel: {
+      // Pinned ticks label every bucket, which does crowd, so thinning
+      // always wins there.
+      hideOverlap:
+        !!temporalTickValues ||
+        (showMaxLabel
+          ? false
+          : !(xAxisType === AxisType.Time && xAxisLabelRotation !== 0)),
+      formatter,
+      rotate: xAxisLabelRotation,
+      interval: xAxisLabelInterval,
+      // Force the boundary labels so the first and last dates stay visible:
+      // hideOverlap can hide the last label, and a min date that falls
+      // between "nice" ticks otherwise renders no beginning label. Applied
+      // for pinned axes too — showMaxLabel only shields its immediate
+      // neighbour, so a farther label on a crowded weekly axis can still be
+      // dropped, but that's strictly better than no shielding at all.
+      ...(showMaxLabel && {
+        showMaxLabel: true,
+        showMinLabel: true,
+      }),
+      // The alignments assume the axis runs along the bottom; a horizontal
+      // chart puts this axis on the side, where they misplace the labels.
+      ...(showMaxLabel &&
+        !isHorizontal && {
+          alignMaxLabel: 'right',
+          alignMinLabel: 'left',
+        }),
+      ...(labelCustomValues && { customValues: labelCustomValues }),
+    },
+    ...(cappedTickValues && { axisTick: { customValues: cappedTickValues } }),
+  };
 }
 
 export function getOverMaxHiddenFormatter(

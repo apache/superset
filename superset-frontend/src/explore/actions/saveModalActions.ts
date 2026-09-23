@@ -41,10 +41,7 @@ import type {
   AutomaticNormalizationTransitions,
   ChartNormalizationTrackingState,
 } from 'src/features/versionHistory/types';
-import {
-  matchingAutomaticNormalizationTransitions,
-  stashDropNormalizationTransitions,
-} from 'src/features/versionHistory/normalization';
+import { matchingAutomaticNormalizationTransitions } from 'src/features/versionHistory/normalization';
 
 export interface PayloadSlice extends Slice {
   params: string;
@@ -263,8 +260,14 @@ export const updateSlice =
   ) => {
     const { slice_id: sliceId, editors, form_data: formDataFromSlice } = slice;
     const initialState = getState();
+    // Controls hidden by a form-section's visibility rule are stashed out of
+    // form_data so they don't affect the live query, but that hiding must not
+    // permanently delete the user's saved configuration when they save.
     const formData = JSON.parse(
-      JSON.stringify(initialState.explore?.form_data ?? {}),
+      JSON.stringify({
+        ...initialState.explore?.hiddenFormData,
+        ...initialState.explore?.form_data,
+      }),
     ) as QueryFormData;
     const tracking = initialState.versionHistory?.chartNormalization;
     const saveAttemptId = nanoid();
@@ -289,22 +292,11 @@ export const updateSlice =
         formDataFromSlice,
       );
       const savedFormData = JSON.parse(payload.params ?? '{}') as QueryFormData;
-      // Hydration-time transitions that still hold, plus save-time drops of
-      // keys the stash removed (mutually exclusive per control: a surviving
-      // hydration transition implies the key is present in the payload, a
-      // stash drop implies it is absent).
+      // Hydration-time transitions that still hold. Stashed values are now
+      // always merged back into the saved payload above, so a save can no
+      // longer drop a hidden control's value.
       const matchingTransitions = shouldAttachNormalization
-        ? {
-            ...matchingAutomaticNormalizationTransitions(
-              tracking,
-              savedFormData,
-            ),
-            ...stashDropNormalizationTransitions(
-              (formDataFromSlice ?? {}) as Record<string, unknown>,
-              initialState.explore?.hiddenFormData,
-              savedFormData,
-            ),
-          }
+        ? matchingAutomaticNormalizationTransitions(tracking, savedFormData)
         : {};
       if (
         shouldAttachNormalization &&
@@ -345,8 +337,25 @@ export const createSlice =
       new?: boolean;
     },
   ) =>
-  async (dispatch: Dispatch, getState: () => Partial<QueryFormData>) => {
-    const formData = getState().explore?.form_data;
+  async (
+    dispatch: Dispatch,
+    getState: () => Partial<QueryFormData> & {
+      explore?: {
+        form_data?: QueryFormData;
+        hiddenFormData?: Record<string, unknown>;
+      };
+    },
+  ) => {
+    const exploreState = getState().explore;
+    // See the comment in updateSlice: stashed values from a hidden control
+    // section must not be dropped from the saved chart just because the
+    // section is currently hidden.
+    const formData = JSON.parse(
+      JSON.stringify({
+        ...exploreState?.hiddenFormData,
+        ...exploreState?.form_data,
+      }),
+    ) as QueryFormData;
     try {
       const response = await SupersetClient.post({
         endpoint: `/api/v1/chart/`,
