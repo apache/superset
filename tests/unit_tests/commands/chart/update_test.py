@@ -17,8 +17,10 @@
 from unittest.mock import Mock
 
 import pytest
+from flask import g
 from pytest_mock import MockerFixture
 
+from superset.charts.schemas import ChartPutSchema
 from superset.commands.chart.exceptions import (
     ChartForbiddenError,
     ChartInvalidError,
@@ -31,7 +33,50 @@ from superset.commands.exceptions import (
 )
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetSecurityException
+from superset.models.slice import Slice
 from superset.utils import json
+
+
+@pytest.mark.parametrize("datasource_type", ["table", "semantic_view"])
+def test_update_rejects_null_type_without_mutating_chart(
+    mocker: MockerFixture, datasource_type: str
+) -> None:
+    """Explicit empty types must fail before updating a chart or its permissions."""
+    chart: Slice = Slice(
+        id=1,
+        datasource_id=42,
+        datasource_type=datasource_type,
+        perm="original datasource permission",
+        catalog_perm="original catalog permission",
+        schema_perm="original schema permission",
+        is_managed_externally=False,
+    )
+    mocker.patch(
+        "superset.commands.chart.update.ChartDAO.find_by_id", return_value=chart
+    )
+    mocker.patch("superset.commands.chart.update.security_manager.raise_for_editorship")
+    mocker.patch("superset.commands.chart.update.compute_subjects")
+    mocker.patch.object(g, "user", Mock(), create=True)
+    update: Mock = mocker.patch("superset.commands.chart.update.ChartDAO.update")
+    commit: Mock = mocker.patch("superset.db.session.commit")
+    mocker.patch("superset.db.session.rollback")
+    error: pytest.ExceptionInfo[ChartInvalidError]
+    with pytest.raises(ChartInvalidError) as error:
+        UpdateChartCommand(
+            chart.id, ChartPutSchema().load({"datasource_type": None})
+        ).run()
+
+    assert any(
+        isinstance(exception, DatasourceTypeUpdateRequiredValidationError)
+        for exception in error.value._exceptions
+    )
+    update.assert_not_called()
+    commit.assert_not_called()
+    assert chart.datasource_id == 42
+    assert chart.datasource_type == datasource_type
+    assert chart.perm == "original datasource permission"
+    assert chart.catalog_perm == "original catalog permission"
+    assert chart.schema_perm == "original schema permission"
 
 
 @pytest.mark.parametrize("datasource_type", ["table", "semantic_view"])
