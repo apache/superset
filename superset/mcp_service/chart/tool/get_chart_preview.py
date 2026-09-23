@@ -22,6 +22,7 @@ MCP tool: get_chart_preview
 import asyncio
 import base64
 import logging
+from collections.abc import Callable
 from io import BytesIO
 from typing import Any, Dict, List, Protocol
 
@@ -1099,6 +1100,24 @@ class PreviewFormatGenerator:
         return strategy.generate()
 
 
+async def _run_png_render(
+    render: Callable[[], PNGPreview | ChartError],
+) -> PNGPreview | ChartError:
+    """Run the blocking PNG render in a worker thread with error mapping.
+
+    Chart-level access denials raised inside render() surface as Forbidden,
+    not as a rendering failure. Browser errors may contain URLs or page data,
+    so those stay server-side.
+    """
+    try:
+        return await asyncio.to_thread(render)
+    except SupersetSecurityException:
+        return ChartError(error="Chart access denied", error_type="Forbidden")
+    except Exception:
+        logger.exception("PNG chart rendering failed")
+        return ChartError(error="Chart rendering failed", error_type="RenderError")
+
+
 async def _generate_png_preview(
     chart_id: int, request: GetChartPreviewRequest
 ) -> PNGPreview | ChartError:
@@ -1185,16 +1204,7 @@ async def _generate_png_preview(
                 finally:
                     manager._cleanup()
 
-    try:
-        return await asyncio.to_thread(render)
-    except SupersetSecurityException:
-        # Chart-level access denials raised inside render() must surface as
-        # Forbidden, not as a rendering failure.
-        return ChartError(error="Chart access denied", error_type="Forbidden")
-    except Exception:
-        # Browser errors may contain URLs or page data. Keep those server-side.
-        logger.exception("PNG chart rendering failed")
-        return ChartError(error="Chart rendering failed", error_type="RenderError")
+    return await _run_png_render(render)
 
 
 async def _get_chart_preview_internal(  # noqa: C901
