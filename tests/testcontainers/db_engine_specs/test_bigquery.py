@@ -125,10 +125,13 @@ def test_percent_sign_value_round_trips(engine: Engine) -> None:
 
 
 def test_combined_percent_and_apostrophe_round_trips(engine: Engine) -> None:
+    """Round-trips a value containing both a percent sign and an apostrophe."""
     assert _insert_and_find(engine, "50% off for O'Brien") == ["50% off for O'Brien"]
 
 
-def test_doubled_single_quotes_are_rejected_by_bigquery(bq_client) -> None:
+def test_doubled_single_quotes_are_rejected_by_bigquery(
+    bq_client: bigquery.Client,
+) -> None:
     """
     Documents *why* the fix in #38835 was needed: BigQuery does not accept
     the standard-SQL doubled-single-quote escape convention Superset used to
