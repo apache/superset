@@ -261,6 +261,7 @@ def _run_cancellable(client_id, database, cache, user_id, cancel_id="engine-1"):
 
 
 def test_registry_key_is_scoped_by_user() -> None:
+    """The same ``client_id`` under two users maps to two distinct keys."""
     from superset.tasks.query_cancel import _registry_key
 
     # Same client_id under two users must not collide.
@@ -269,6 +270,7 @@ def test_registry_key_is_scoped_by_user() -> None:
 
 
 def test_cancellable_chart_query_publishes_then_discards_the_handle() -> None:
+    """A captured handle is live for the query's duration, then removed."""
     cache = _FakeCache()
     database = MagicMock()
     database.id = 5
@@ -286,7 +288,40 @@ def test_cancellable_chart_query_publishes_then_discards_the_handle() -> None:
     assert cache.store == {}
 
 
+def test_cancellable_chart_query_republishes_for_each_cursor() -> None:
+    """Every cursor the query opens refreshes the handle to its own session.
+
+    One query object can run several statements in turn (the grouping-sets
+    fallback does), each on whatever pooled connection it gets, so the handle
+    must follow the statement that is executing now rather than the first one.
+    """
+    from superset.tasks.query_cancel import cancellable_chart_query
+
+    cache = _FakeCache()
+    database = MagicMock()
+    database.id = 5
+    seen: list[object] = []
+
+    with _registry_env(1, cache):
+        with patch(
+            "superset.tasks.query_cancel.capture_cancel_query_id",
+            side_effect=["engine-1", "engine-2"],
+        ):
+            with cancellable_chart_query("client-1", database):
+                notify_cursor(MagicMock())
+                seen.append(cache.store["chart-query-cancel:1:client-1"])
+                notify_cursor(MagicMock())
+                seen.append(cache.store["chart-query-cancel:1:client-1"])
+
+    assert seen == [
+        {"database_id": 5, "cancel_query_id": "engine-1"},
+        {"database_id": 5, "cancel_query_id": "engine-2"},
+    ]
+    assert cache.store == {}
+
+
 def test_cancellable_chart_query_is_noop_without_a_client_id() -> None:
+    """Requests that carry no ``client_id`` register nothing."""
     cache = _FakeCache()
     database = MagicMock()
     database.id = 5
@@ -295,12 +330,14 @@ def test_cancellable_chart_query_is_noop_without_a_client_id() -> None:
 
 
 def test_cancellable_chart_query_is_noop_without_a_database() -> None:
+    """Datasources without a database (e.g. annotations) register nothing."""
     cache = _FakeCache()
 
     assert _run_cancellable("client-1", None, cache, user_id=1) == {}
 
 
 def test_cancellable_chart_query_is_noop_for_an_anonymous_request() -> None:
+    """An anonymous request has no user id to scope a handle to."""
     # An anonymous viewer has no user id to scope the handle to, and an unscoped
     # handle would be cancellable by any other anonymous visitor.
     cache = _FakeCache()
@@ -313,6 +350,7 @@ def test_cancellable_chart_query_is_noop_for_an_anonymous_request() -> None:
 def test_cancellable_chart_query_publishes_nothing_when_engine_has_no_cancel_id() -> (
     None
 ):
+    """Engines with no pre-execution cancel id leave the query non-cancellable."""
     cache = _FakeCache()
     database = MagicMock()
     database.id = 5
@@ -321,6 +359,7 @@ def test_cancellable_chart_query_publishes_nothing_when_engine_has_no_cancel_id(
 
 
 def test_cancel_chart_query_for_user_cancels_its_own_query() -> None:
+    """Cancelling one's own registered query hits the engine and cleans up."""
     from superset.tasks.query_cancel import cancel_chart_query_for_user
 
     cache = _FakeCache()
@@ -394,6 +433,7 @@ def test_cancellable_chart_query_cannot_overwrite_another_users_handle() -> None
 
 
 def test_cancel_chart_query_for_user_returns_false_for_anonymous() -> None:
+    """Anonymous callers can never resolve a handle, so nothing is cancelled."""
     from superset.tasks.query_cancel import cancel_chart_query_for_user
 
     cache = _FakeCache()
@@ -404,6 +444,7 @@ def test_cancel_chart_query_for_user_returns_false_for_anonymous() -> None:
 
 
 def test_cancel_chart_query_for_user_returns_false_when_nothing_registered() -> None:
+    """An unknown ``client_id`` is a miss, not an error."""
     from superset.tasks.query_cancel import cancel_chart_query_for_user
 
     cache = _FakeCache()
