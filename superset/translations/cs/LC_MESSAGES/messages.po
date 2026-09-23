@@ -18,7 +18,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-23 12:43+0200\n"
+"POT-Creation-Date: 2026-09-24 00:52+0300\n"
 "PO-Revision-Date: 2016-05-02 08:49-0700\n"
 "Last-Translator: Jan Šmejkal <jan.smejkal@orgis.cz>\n"
 "Language: cs\n"
@@ -140,6 +140,9 @@ msgstr "pro podrobnosti."
 msgid " near '%(highlight)s'"
 msgstr " poblíž '%(highlight)s'"
 
+msgid " source code of Superset's sandboxed parser"
+msgstr ""
+
 msgid ""
 " standard to ensure that the lexicographical ordering\n"
 "                      coincides with the chronological ordering. If the\n"
@@ -195,62 +198,6 @@ msgstr " pro zobrazení podrobností."
 
 msgid "!= (Is not equal)"
 msgstr "!= (Nerovná se)"
-
-msgid "Add group"
-msgstr ""
-
-msgid "Add subgroup"
-msgstr ""
-
-msgid "Center"
-msgstr ""
-
-msgid "Collapse settings"
-msgstr ""
-
-msgid "Column groups"
-msgstr ""
-
-msgid "Enter group name"
-msgstr ""
-
-msgid "Expand settings"
-msgstr ""
-
-#, python-format
-msgid "Group %s"
-msgstr ""
-
-msgid "Group columns"
-msgstr ""
-
-msgid "Group name"
-msgstr ""
-
-msgid "Move group left"
-msgstr ""
-
-msgid "Move group right"
-msgstr ""
-
-msgid "Multi-level header"
-msgstr ""
-
-msgid "Position"
-msgstr ""
-
-msgid "Remove group"
-msgstr ""
-
-msgid "Select columns"
-msgstr ""
-
-#, python-format
-msgid "Subgroup %s"
-msgstr ""
-
-msgid "Table side"
-msgstr ""
 
 #, python-format
 msgid "\"%s\" is now the system dark theme"
@@ -636,6 +583,13 @@ msgstr "%s záložka vybrána"
 #, python-format
 msgid "%s recipients"
 msgstr "%s příjemců"
+
+#, python-format
+msgid "%s record"
+msgid_plural "%s records..."
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
 
 #, fuzzy, python-format
 msgid "%s record..."
@@ -1324,6 +1278,12 @@ msgstr "AQE"
 msgid "AUG"
 msgstr "SRP"
 
+msgid "AXIS TITLE MARGIN"
+msgstr ""
+
+msgid "AXIS TITLE POSITION"
+msgstr ""
+
 #, fuzzy
 msgid "Aborted"
 msgstr "Spuštěno"
@@ -1480,6 +1440,9 @@ msgstr "Přidat podrobnosti certifikace pro tuto nástěnku"
 msgid "Add color for positive/negative change"
 msgstr "Přidat barvu pro kladnou/zápornou změnu"
 
+msgid "Add colors to cell bars for +/-"
+msgstr ""
+
 #, fuzzy
 msgid "Add colors to cell bars for +/- for all columns"
 msgstr "Přidat barvy do sloupců v buňkách pro +/-"
@@ -1543,6 +1506,9 @@ msgstr ""
 msgid "Add folder"
 msgstr "Přidat složku"
 
+msgid "Add group"
+msgstr ""
+
 msgid "Add item"
 msgstr "Přidat položku"
 
@@ -1585,6 +1551,9 @@ msgstr ""
 
 msgid "Add sheet"
 msgstr "Přidat list"
+
+msgid "Add subgroup"
+msgstr ""
 
 msgid "Add tag to entities"
 msgstr "Přidat značku k entitám"
@@ -1759,6 +1728,11 @@ msgstr ""
 "označení shluku."
 
 msgid ""
+"Aggregate function to apply when pivoting and computing the total rows "
+"and columns"
+msgstr ""
+
+msgid ""
 "Aggregates data within the boundary of grid cells and maps the aggregated"
 " values to a dynamic color scale"
 msgstr ""
@@ -1770,6 +1744,9 @@ msgstr "Agregace"
 
 msgid "Aggregation Method"
 msgstr "Metoda agregace"
+
+msgid "Aggregation function"
+msgstr ""
 
 msgid ""
 "Aggregation used for the summary row. By default each metric keeps its "
@@ -2746,6 +2723,9 @@ msgstr ""
 msgid "Arrow"
 msgstr "Šipka"
 
+msgid "Ascending"
+msgstr ""
+
 msgid "Assign a set of parameters as"
 msgstr "Přiřadit sadu parametrů jako"
 
@@ -2830,6 +2810,9 @@ msgstr "Automatická velikost sloupce"
 msgid "Autosize all columns"
 msgstr "Automatická velikost všech sloupců"
 
+msgid "Available Handlebars Helpers in Superset:"
+msgstr ""
+
 msgid "Available sorting modes:"
 msgstr "Dostupné režimy řazení:"
 
@@ -2905,6 +2888,9 @@ msgstr "Sloupcový graf"
 msgid "Bar Charts are used to show metrics as a series of bars."
 msgstr "Sloupcové grafy se používají k zobrazení metrik jako série sloupců."
 
+msgid "Bar Values"
+msgstr ""
+
 msgid "Bar orientation"
 msgstr "Orientace sloupců"
 
@@ -2930,6 +2916,10 @@ msgstr "Styl mapy základní vrstvy. Přijímá URL stylu Mapbox (mapbox://style
 #, fuzzy, python-format
 msgid "Base layer map style. See MapLibre documentation: %s"
 msgstr "Styl mapy základní vrstvy. Viz dokumentaci Mapbox: %s"
+
+#, python-format
+msgid "Base layer map style. See Mapbox documentation: %s"
+msgstr ""
 
 msgid "Base slope"
 msgstr "Sklon základu"
@@ -3103,6 +3093,9 @@ msgstr ""
 
 msgid "Bubble Chart"
 msgstr "Bublinový graf"
+
+msgid "Bubble Chart (legacy)"
+msgstr ""
 
 msgid "Bubble Color"
 msgstr "Barva bublin"
@@ -3434,6 +3427,9 @@ msgstr "Limit buněk"
 #, fuzzy
 msgid "Cell title template"
 msgstr "Šablona názvu buňky"
+
+msgid "Center"
+msgstr ""
 
 msgid "Center value"
 msgstr ""
@@ -4108,6 +4104,9 @@ msgstr "Sbalit datový panel"
 msgid "Collapse row"
 msgstr "Sbalit řádek"
 
+msgid "Collapse settings"
+msgstr ""
+
 msgid "Collapse tab content"
 msgstr "Sbalit obsah karty"
 
@@ -4238,6 +4237,9 @@ msgstr "Sloupec obsahující data o zeměpisné délce"
 
 msgid "Column data types"
 msgstr "Datové typy sloupců"
+
+msgid "Column groups"
+msgstr ""
 
 msgid "Column header tooltip"
 msgstr "Nápověda záhlaví sloupce"
@@ -4413,6 +4415,12 @@ msgstr ""
 "Porovnává, jak se metrika mění v čase mezi různými skupinami. Každá "
 "skupina je mapována na řádek a změna v čase je vizualizována délkou "
 "sloupců a barvou."
+
+msgid ""
+"Compares metrics between different time periods. Displays time series "
+"data across multiple periods (like weeks or months) to show period-over-"
+"period trends and patterns."
+msgstr ""
 
 msgid ""
 "Compares the current time period against equivalent past periods by "
@@ -4761,6 +4769,18 @@ msgstr ""
 msgid "Count"
 msgstr "Počet"
 
+msgid "Count Unique Values"
+msgstr ""
+
+msgid "Count as Fraction of Columns"
+msgstr ""
+
+msgid "Count as Fraction of Rows"
+msgstr ""
+
+msgid "Count as Fraction of Total"
+msgstr ""
+
 msgid "Country"
 msgstr "Země"
 
@@ -4823,6 +4843,12 @@ msgstr "Vytvořit index datového rámce"
 
 msgid "Create dataset"
 msgstr "Vytvořit sadu dat"
+
+msgid "Create matrix columns by placing charts side-by-side"
+msgstr ""
+
+msgid "Create matrix rows by stacking charts vertically"
+msgstr ""
 
 msgid "Create new chart"
 msgstr "Vytvořit nový graf"
@@ -5662,6 +5688,21 @@ msgstr ""
 "Výchozí hodnota se nastaví automaticky, když je zaškrtnuto „Vybrat první "
 "hodnotu filtru jako výchozí“"
 
+msgid ""
+"Define a function that receives the input and outputs the content for a "
+"tooltip"
+msgstr ""
+
+msgid "Define a function that returns a URL to navigate to when user clicks"
+msgstr ""
+
+msgid ""
+"Define a javascript function that receives the data array used in the "
+"visualization and is expected to return a modified version of that array."
+" This can be used to alter properties of the data, filter, or enrich the "
+"array."
+msgstr ""
+
 msgid "Define color breakpoints for the data"
 msgstr "Definujte hranice barev pro data"
 
@@ -6010,6 +6051,9 @@ msgid "Depends on"
 msgstr ""
 
 msgid "Deployment default"
+msgstr ""
+
+msgid "Descending"
 msgstr ""
 
 msgid "Description"
@@ -6549,6 +6593,9 @@ msgstr "Trvání v ms (100.40008 => 100ms 400µs 80ns)"
 msgid "Duration in ms (10500 => 0:00:10.5)"
 msgstr "Trvání v ms (10500 => 0:00:10.5)"
 
+msgid "Duration in ms (10500 => 0:10.5)"
+msgstr ""
+
 msgid "Duration in ms (66000 => 1m 6s)"
 msgstr "Trvání v ms (66000 => 1m 6s)"
 
@@ -6873,6 +6920,9 @@ msgstr "Povolit prognózování"
 msgid "Enable graph roaming"
 msgstr "Povolit pohyb po grafu"
 
+msgid "Enable horizontal layout (columns)"
+msgstr ""
+
 #, fuzzy
 msgid "Enable icons"
 msgstr "Sloupce tabulky"
@@ -6896,6 +6946,9 @@ msgstr "Povolit rozbalení řádků ve schématech"
 
 msgid "Enable server side pagination of results (experimental feature)"
 msgstr "Povolit stránkování výsledků na straně serveru (experimentální funkce)"
+
+msgid "Enable vertical layout (rows)"
+msgstr ""
 
 msgid "Enables rendering of icons for GeoJSON points"
 msgstr "Povolí vykreslování ikon pro GeoJSON body"
@@ -6982,6 +7035,9 @@ msgstr "Zadejte dobu trvání v sekundách"
 
 msgid "Enter fullscreen"
 msgstr "Vstoupit do režimu celé obrazovky"
+
+msgid "Enter group name"
+msgstr ""
 
 msgid "Enter minimum and maximum values for the range filter"
 msgstr "Zadejte minimální a maximální hodnoty pro filtr rozsahu"
@@ -7275,6 +7331,9 @@ msgstr "Rozbalit řádek"
 msgid "Expand row to edit"
 msgstr "Rozbalit řádek"
 
+msgid "Expand settings"
+msgstr ""
+
 msgid ""
 "Expects a formula with depending time parameter 'x'\n"
 "        in milliseconds since epoch. mathjs is used to evaluate the "
@@ -7450,6 +7509,9 @@ msgstr "Další ovládací prvky"
 
 msgid "Extra Parameters"
 msgstr "Další parametry"
+
+msgid "Extra data for JS"
+msgstr ""
 
 #, python-brace-format
 msgid ""
@@ -7972,6 +8034,11 @@ msgstr ""
 msgid "For further instructions, consult the"
 msgstr "Pro další pokyny se obraťte na"
 
+msgid ""
+"For more information about objects are in context in the scope of this "
+"function, refer to the"
+msgstr ""
+
 #, fuzzy
 msgid ""
 "For regular filters, these are the subjects (users, roles, groups) this "
@@ -8251,6 +8318,9 @@ msgstr "Větší nebo rovno (>=)"
 msgid "Greater than (>)"
 msgstr "Větší než (>)"
 
+msgid "Green for increase, red for decrease"
+msgstr ""
+
 msgid "Grid"
 msgstr "Mřížka"
 
@@ -8268,6 +8338,10 @@ msgstr ""
 msgid "Group"
 msgstr "Skupina"
 
+#, python-format
+msgid "Group %s"
+msgstr ""
+
 msgid "Group By"
 msgstr "Seskupit podle"
 
@@ -8279,6 +8353,12 @@ msgstr "Klíč skupiny"
 
 msgid "Group by"
 msgstr "Seskupit podle"
+
+msgid "Group columns"
+msgstr ""
+
+msgid "Group name"
+msgstr ""
 
 msgid "Group remaining as \"Others\""
 msgstr "Zůstávající řádky seskupit do skupiny \"Ostatní\""
@@ -8386,6 +8466,9 @@ msgstr "Vodorovný (nahoře)"
 
 msgid "Horizontal alignment"
 msgstr "Vodorovné zarovnání"
+
+msgid "Horizontal layout (columns)"
+msgstr ""
 
 msgid "Host"
 msgstr "Hostitel"
@@ -8962,6 +9045,9 @@ msgstr ""
 msgid "It’s not recommended to truncate Y axis in Bar chart."
 msgstr "Nedoporučuje se zkracovat osu ve sloupcovém grafu."
 
+msgid "It’s not recommended to truncate axis in Bar chart."
+msgstr ""
+
 msgid "JAN"
 msgstr "LED"
 
@@ -9003,6 +9089,15 @@ msgstr "ČER"
 
 msgid "January"
 msgstr "Leden"
+
+msgid "JavaScript data interceptor"
+msgstr ""
+
+msgid "JavaScript onClick href"
+msgstr ""
+
+msgid "JavaScript tooltip generator"
+msgstr ""
 
 msgid "Jinja templating"
 msgstr "Šablonování Jinja"
@@ -9104,6 +9199,15 @@ msgstr "Označování"
 
 msgid "Labels"
 msgstr "Popisky"
+
+msgid "Labels for the marker lines"
+msgstr ""
+
+msgid "Labels for the markers"
+msgstr ""
+
+msgid "Labels for the ranges"
+msgstr ""
 
 #, fuzzy
 msgid "Languages"
@@ -9355,6 +9459,9 @@ msgid ""
 "does not already have. Leave empty for legacy RBAC-only behavior."
 msgstr ""
 
+msgid "Limits the number of cells that get retrieved."
+msgstr ""
+
 msgid ""
 "Limits the number of cells that get retrieved. Not applied when non-"
 "additive metrics (e.g. ratios, COUNT_DISTINCT, AVG, percentiles) are "
@@ -9452,6 +9559,9 @@ msgstr "Seznam skupin"
 msgid "List Roles"
 msgstr "Seznam rolí"
 
+msgid "List Unique Values"
+msgstr ""
+
 msgid "List Users"
 msgstr "Seznam uživatelů"
 
@@ -9460,11 +9570,20 @@ msgid ""
 "toggles it on the chart"
 msgstr ""
 
+msgid "List of extra columns made available in JavaScript functions"
+msgstr ""
+
 msgid "List of n+1 values for bucketing metric into n buckets."
 msgstr "Seznam n+1 hodnot pro rozdělení metriky do n intervalů."
 
 msgid "List of the column names that should be read"
 msgstr "Seznam názvů sloupců, které by se měly číst"
+
+msgid "List of values to mark with lines"
+msgstr ""
+
+msgid "List of values to mark with triangles"
+msgstr ""
 
 msgid "List updated"
 msgstr "Seznam aktualizován"
@@ -9825,6 +9944,9 @@ msgstr "Průměr hodnot za zadané období"
 msgid "Mean values"
 msgstr "Průměrné hodnoty"
 
+msgid "Median"
+msgstr ""
+
 msgid ""
 "Median edge width, the thickest edge will be 4 times thicker than the "
 "thinnest."
@@ -9990,6 +10112,9 @@ msgstr "Metriky"
 #, fuzzy, python-format
 msgid "Metrics (%s)"
 msgstr "Metriky"
+
+msgid "Metrics / Dimensions"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
@@ -10188,6 +10313,12 @@ msgstr "Více filtrů"
 msgid "MotherDuck token"
 msgstr "Token MotherDuck"
 
+msgid "Move group left"
+msgstr ""
+
+msgid "Move group right"
+msgstr ""
+
 #, fuzzy
 msgid "Move icon"
 msgstr "Pouze přesunout"
@@ -10217,6 +10348,9 @@ msgstr "Více úrovní"
 
 msgid "Multi-Variables"
 msgstr "Více proměnných"
+
+msgid "Multi-level header"
+msgstr ""
 
 msgid "Multiple"
 msgstr "Vícenásobný"
@@ -11458,6 +11592,9 @@ msgstr "Vyberte název, který vám pomůže identifikovat tuto databázi."
 msgid "Pick a nickname for how the database will display in Superset."
 msgstr "Vyberte přezdívku, jak se bude databáze zobrazovat v Supersetu."
 
+msgid "Pick a set of deck.gl charts to layer on top of one another"
+msgstr ""
+
 msgid "Pick a title for you annotation."
 msgstr "Vyberte název pro vaši anotaci."
 
@@ -11742,6 +11879,9 @@ msgstr "Port %(port)s na hostiteli „%(hostname)s“ odmítl připojení."
 
 msgid "Port out of range 0-65535"
 msgstr "Port mimo rozsah 0-65535"
+
+msgid "Position"
+msgstr ""
 
 msgid "Position JSON"
 msgstr "JSON pozice"
@@ -12032,6 +12172,9 @@ msgstr "Typ rozsahu"
 msgid "Ranges"
 msgstr "Rozsahy"
 
+msgid "Ranges to highlight with shading"
+msgstr ""
+
 msgid "Ranking"
 msgstr "Pořadí"
 
@@ -12084,8 +12227,21 @@ msgstr "Obdélník"
 msgid "Recurring (every)"
 msgstr "Opakující se (každý)"
 
+msgid "Red for increase, green for decrease"
+msgstr ""
+
 msgid "Redo the action"
 msgstr "Znovu provést akci"
+
+msgid "Reduce X ticks"
+msgstr ""
+
+msgid ""
+"Reduces the number of X-axis ticks to be rendered. If true, the x-axis "
+"will not overflow and labels may be missing. If false, a minimum width "
+"will be applied to columns and the width may overflow into an horizontal "
+"scroll."
+msgstr ""
 
 msgid "Refer to the"
 msgstr "Odkazovat na"
@@ -12218,6 +12374,9 @@ msgid "Remove filter"
 msgstr "Odstranit položku"
 
 msgid "Remove from favorites"
+msgstr ""
+
+msgid "Remove group"
 msgstr ""
 
 msgid "Remove item"
@@ -12616,6 +12775,9 @@ msgstr "Bohatá nápověda"
 
 msgid "Right"
 msgstr "Vpravo"
+
+msgid "Right Axis Format"
+msgstr ""
 
 msgid "Right Axis Metric"
 msgstr "Metrika pravé osy"
@@ -13146,6 +13308,10 @@ msgstr "Posuňte se dolů pro povolení přepsání změn. "
 msgid "Search"
 msgstr "Hledat"
 
+#, python-format
+msgid "Search %s records"
+msgstr ""
+
 msgid "Search / Filter"
 msgstr "Hledat / Filtrovat"
 
@@ -13443,6 +13609,9 @@ msgstr "Vybrat sloupec"
 #, fuzzy
 msgid "Select column name"
 msgstr "Vybrat sloupec"
+
+msgid "Select columns"
+msgstr ""
 
 msgid ""
 "Select columns that will be displayed in the table. You can multiselect "
@@ -14102,6 +14271,9 @@ msgstr "Zobrazit názvy metrik"
 msgid "Show Null Values"
 msgstr ""
 
+msgid "Show Range Filter"
+msgstr ""
+
 #, fuzzy
 msgid "Show SQL"
 msgstr "Zobrazit protokol"
@@ -14184,6 +14356,9 @@ msgstr "Zobrazit mezisoučet sloupců"
 
 msgid "Show columns total"
 msgstr "Zobrazit součet sloupců"
+
+msgid "Show data points as circle markers on the lines"
+msgstr ""
 
 msgid "Show empty columns"
 msgstr "Zobrazit prázdné sloupce"
@@ -14279,6 +14454,9 @@ msgid "Show summary"
 msgstr "Zobrazit souhrn"
 
 msgid "Show the main ticks on axes."
+msgstr ""
+
+msgid "Show the value on top of the bar"
 msgstr ""
 
 msgid "Show total"
@@ -14640,6 +14818,9 @@ msgstr "Zobrazit legendu"
 msgid "Sort metric"
 msgstr "Řadit metriku"
 
+msgid "Sort order"
+msgstr ""
+
 msgid "Sort query by"
 msgstr "Řadit dotaz podle"
 
@@ -14732,6 +14913,9 @@ msgstr "Skládat série na sebe"
 
 msgid "Stacked"
 msgstr "Skládaný"
+
+msgid "Stacked Bars"
+msgstr ""
 
 msgid "Stacked Style"
 msgstr "Styl skládání"
@@ -14906,6 +15090,10 @@ msgstr "Podkategorie"
 msgid "Subdomain"
 msgstr "Subdoména"
 
+#, python-format
+msgid "Subgroup %s"
+msgstr ""
+
 msgid "Subject"
 msgstr "Subjekt"
 
@@ -14955,6 +15143,15 @@ msgstr ""
 
 msgid "Sum"
 msgstr "Součet"
+
+msgid "Sum as Fraction of Columns"
+msgstr ""
+
+msgid "Sum as Fraction of Rows"
+msgstr ""
+
+msgid "Sum as Fraction of Total"
+msgstr ""
 
 msgid "Sum of values over specified period"
 msgstr "Součet hodnot za zadané období"
@@ -15144,6 +15341,9 @@ msgstr "Název tabulky není definován"
 #, python-format
 msgid "Table or View \"%(table)s\" does not exist."
 msgstr "Tabulka nebo pohled „%(table)s“ neexistuje."
+
+msgid "Table side"
+msgstr ""
 
 msgid ""
 "Table that visualizes paired t-tests, which are used to understand "
@@ -16051,6 +16251,13 @@ msgid ""
 "                Click on the info bubble for more details on accepted "
 "\"freq\"\n"
 "                expressions."
+msgstr ""
+
+msgid ""
+"The periodicity over which to pivot time. Users can provide\n"
+"            \"Pandas\" offset alias.\n"
+"            Click on the info bubble for more details on accepted "
+"\"freq\" expressions."
 msgstr ""
 
 msgid "The pixel radius"
@@ -17062,6 +17269,9 @@ msgstr "Tento složka pouze přijímá sloupce."
 msgid "This folder only supports metrics"
 msgstr "Tento složka pouze přijímá metriky."
 
+msgid "This functionality is disabled in your environment for security reasons."
+msgstr ""
+
 msgid ""
 "This is a default columns folder. Its name cannot be changed or removed. "
 "It can stay empty but will only accept column items."
@@ -17483,6 +17693,9 @@ msgstr ""
 "Časový řetězec je nejednoznačný. Zadejte prosím [%(human_readable)s ago] "
 "nebo [%(human_readable)s later]."
 
+msgid "Time-series Percent Change"
+msgstr ""
+
 msgid "Time-series Period Pivot"
 msgstr "Kontingenční tabulka období časové řady"
 
@@ -17631,6 +17844,10 @@ msgstr "Celkem"
 #, python-format
 msgid "Total (%(aggfunc)s)"
 msgstr "Celkem (%(aggfunc)s)"
+
+#, python-format
+msgid "Total (%(aggregatorName)s)"
+msgstr ""
 
 msgid ""
 "Total angle covered by the chart, in degrees. 360° draws a full circle "
@@ -18258,6 +18475,9 @@ msgstr ""
 msgid "Use a log scale"
 msgstr "Použít logaritmickou stupnici"
 
+msgid "Use a log scale for the X-axis"
+msgstr ""
+
 msgid "Use a log scale for the Y-axis"
 msgstr "Použít logaritmickou stupnici pro osu Y"
 
@@ -18538,6 +18758,9 @@ msgstr "Svislý"
 msgid "Vertical (Left)"
 msgstr "Svislý (vlevo)"
 
+msgid "Vertical layout (rows)"
+msgstr ""
+
 msgid "View"
 msgstr "Zobrazení"
 
@@ -18704,6 +18927,12 @@ msgstr ""
 "země (státy, provincie atd.) na choropletové mapě. Hodnota každého "
 "správního celku je zvýrazněna, když najedete myší na odpovídající "
 "geografickou hranici."
+
+msgid ""
+"Visualizes many different time-series objects in a single chart. This "
+"chart is being deprecated and we recommend using the Time-series Chart "
+"instead."
+msgstr ""
 
 msgid ""
 "Visualizes the words in a column that appear the most often. Bigger font "
@@ -19077,6 +19306,12 @@ msgstr "Zda zobrazit název metriky"
 msgid "Whether to display the metric name as a title"
 msgstr "Zda zobrazit název metriky jako název"
 
+msgid "Whether to display the min and max values of the X-axis"
+msgstr ""
+
+msgid "Whether to display the min and max values of the Y-axis"
+msgstr ""
+
 #, fuzzy
 msgid "Whether to display the numbered column"
 msgstr "Zda zobrazit trendovou čáru"
@@ -19089,6 +19324,9 @@ msgstr "Zda zobrazit procentuální hodnotu v nápovědě"
 
 msgid "Whether to display the stroke"
 msgstr "Zda zobrazit obrys"
+
+msgid "Whether to display the time range interactive selector"
+msgstr ""
 
 msgid "Whether to display the timestamp"
 msgstr "Zda zobrazit časové razítko"
@@ -19164,6 +19402,9 @@ msgstr "Zda řadit sestupně nebo vzestupně"
 msgid "Whether to sort results by the selected metric in descending order."
 msgstr "Zda řadit výsledky podle vybrané metriky sestupně."
 
+msgid "Whether to sort tooltip by the selected metric in descending order."
+msgstr ""
+
 msgid ""
 "Whether to sort tooltip by the selected metric in descending order. On "
 "stacked charts, values are shown in ascending order."
@@ -19229,6 +19470,9 @@ msgstr "Napište popis pro váš dotaz"
 msgid "Write a handlebars template to render the data"
 msgstr "Napište šablonu Handlebars pro vykreslení dat"
 
+msgid "X AXIS TITLE MARGIN"
+msgstr ""
+
 msgid "X Axis"
 msgstr "Osa X"
 
@@ -19258,12 +19502,18 @@ msgstr "Okraj názvu osy X"
 msgid "X Axis title margin"
 msgstr ""
 
+msgid "X Log Scale"
+msgstr ""
+
 msgid "X Tick Layout"
 msgstr "Rozložení značek X"
 
 #, fuzzy
 msgid "X axis title margin"
 msgstr "Okraj názvu osy X"
+
+msgid "X bounds"
+msgstr ""
 
 msgid "X-Axis Sort Ascending"
 msgstr "Řadit osu X vzestupně"
@@ -19281,8 +19531,17 @@ msgstr "Interval stupnice X"
 msgid "XYZ"
 msgstr "XYZ"
 
+msgid "Y 2 bounds"
+msgstr ""
+
+msgid "Y AXIS TITLE MARGIN"
+msgstr ""
+
 msgid "Y Axis"
 msgstr "Osa Y"
+
+msgid "Y Axis 2 Bounds"
+msgstr ""
 
 msgid "Y Axis Bounds"
 msgstr "Hranice osy Y"
@@ -19311,6 +19570,9 @@ msgstr "Logaritmická stupnice Y"
 #, fuzzy
 msgid "Y axis title margin"
 msgstr "Okraj názvu osy Y"
+
+msgid "Y bounds"
+msgstr ""
 
 msgid "Y-Axis"
 msgstr "Osa Y"
@@ -19485,6 +19747,9 @@ msgid ""
 msgstr ""
 "Poslední časový filtr nelze smazat, protože se používá pro filtry "
 "časového rozsahu v nástěnkách."
+
+msgid "You cannot use 45° tick layout along with the time range filter"
+msgstr ""
 
 #, python-format
 msgid "You do not have access to the data behind this chart (tables: %s)."
@@ -19693,6 +19958,9 @@ msgstr ""
 msgid "You need to"
 msgstr "Musíte"
 
+msgid "You need to configure HTML sanitization to use CSS"
+msgstr ""
+
 msgid ""
 "You updated the values in the control panel, but the chart was not "
 "updated automatically. Run the query by clicking on the \"Update chart\" "
@@ -19750,7 +20018,18 @@ msgid ""
 "SUPERSET_DASHBOARD_POSITION_DATA_LIMIT config setting."
 msgstr ""
 
-msgid "Your export is being prepared. You'll receive an email when it's ready."
+msgid ""
+"Your export is being generated and will download automatically when "
+"ready. We'll also email you a download link."
+msgstr ""
+
+msgid "Your export is being generated. Please, do not leave the page."
+msgstr ""
+
+msgid "Your export is ready and downloading."
+msgstr ""
+
+msgid "Your export is taking longer than expected. Try again later."
 msgstr ""
 
 #, python-format
@@ -19961,6 +20240,9 @@ msgstr "Barva pozadí"
 msgid "banana"
 msgstr "banán"
 
+msgid "basis"
+msgstr ""
+
 #, fuzzy
 msgid "begins with"
 msgstr "začíná s"
@@ -20000,6 +20282,9 @@ msgstr "použitím"
 
 msgid "cannot be empty"
 msgstr "nesmí být prázdné"
+
+msgid "cardinal"
+msgstr ""
 
 #, fuzzy
 msgid "cell bar"
@@ -20163,6 +20448,9 @@ msgstr "deck.gl Bodový graf"
 msgid "deck.gl Screen Grid"
 msgstr "deck.gl Mřížka obrazovky"
 
+msgid "deck.gl charts"
+msgstr ""
+
 #, fuzzy
 msgid "deck.gl layers (charts)"
 msgstr "deck.gl vrstvy (grafy)"
@@ -20257,6 +20545,9 @@ msgstr "Na celý řádek"
 
 msgid "entries"
 msgstr "položky"
+
+msgid "entries per page"
+msgstr ""
 
 #. do-not-translate
 msgid "error_message"
@@ -20444,6 +20735,9 @@ msgstr "vlevo"
 msgid "less than {min} {name}"
 msgstr "méně než {min} {name}"
 
+msgid "linear"
+msgstr ""
+
 #, fuzzy
 msgid "locale_key"
 msgstr "Lokalní"
@@ -20488,6 +20782,9 @@ msgstr "minuta"
 
 msgid "minute(s)"
 msgstr "minuta(y)"
+
+msgid "monotone"
+msgstr ""
 
 msgid "month"
 msgstr "měsíc"
@@ -20561,6 +20858,9 @@ msgstr "ČÍSELNÝ"
 
 msgid "numeric type icon"
 msgstr "ikona číselného typu"
+
+msgid "nvd3"
+msgstr ""
 
 msgid "of"
 msgstr "z"
@@ -20746,6 +21046,14 @@ msgstr "rozložený"
 msgid "std"
 msgstr "std"
 
+#. do-not-translate
+msgid "step-after"
+msgstr ""
+
+#. do-not-translate
+msgid "step-before"
+msgstr ""
+
 msgid "stopped"
 msgstr "zastaveno"
 
@@ -20847,6 +21155,9 @@ msgstr "hodnota vzestupně"
 
 msgid "value descending"
 msgstr "hodnota sestupně"
+
+msgid "valuename"
+msgstr ""
 
 msgid "var"
 msgstr "var"

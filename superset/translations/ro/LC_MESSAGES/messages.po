@@ -22,7 +22,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-23 12:43+0200\n"
+"POT-Creation-Date: 2026-09-24 00:52+0300\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: ro\n"
@@ -145,6 +145,9 @@ msgstr " pentru detalii."
 msgid " near '%(highlight)s'"
 msgstr " lângă '%(highlight)s'"
 
+msgid " source code of Superset's sandboxed parser"
+msgstr ""
+
 msgid ""
 " standard to ensure that the lexicographical ordering\n"
 "                      coincides with the chronological ordering. If the\n"
@@ -200,62 +203,6 @@ msgstr " pentru a vedea detalii."
 
 msgid "!= (Is not equal)"
 msgstr "!= (Nu este egal)"
-
-msgid "Add group"
-msgstr ""
-
-msgid "Add subgroup"
-msgstr ""
-
-msgid "Center"
-msgstr ""
-
-msgid "Collapse settings"
-msgstr ""
-
-msgid "Column groups"
-msgstr ""
-
-msgid "Enter group name"
-msgstr ""
-
-msgid "Expand settings"
-msgstr ""
-
-#, python-format
-msgid "Group %s"
-msgstr ""
-
-msgid "Group columns"
-msgstr ""
-
-msgid "Group name"
-msgstr ""
-
-msgid "Move group left"
-msgstr ""
-
-msgid "Move group right"
-msgstr ""
-
-msgid "Multi-level header"
-msgstr ""
-
-msgid "Position"
-msgstr ""
-
-msgid "Remove group"
-msgstr ""
-
-msgid "Select columns"
-msgstr ""
-
-#, python-format
-msgid "Subgroup %s"
-msgstr ""
-
-msgid "Table side"
-msgstr ""
 
 #, python-format
 msgid "\"%s\" is now the system dark theme"
@@ -677,6 +624,13 @@ msgstr "%s din %s selectate"
 #, python-format
 msgid "%s recipients"
 msgstr "%s destinatari"
+
+#, python-format
+msgid "%s record"
+msgid_plural "%s records..."
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, es, it,
 # ja, sr, sr_Latn]
@@ -1392,6 +1346,12 @@ msgstr "AQE"
 msgid "AUG"
 msgstr "AUG"
 
+msgid "AXIS TITLE MARGIN"
+msgstr ""
+
+msgid "AXIS TITLE POSITION"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, es, ja,
 # sr, sr_Latn]
 #, fuzzy
@@ -1559,6 +1519,9 @@ msgstr "Adaugă detalii de certificare pentru acest panou de control"
 msgid "Add color for positive/negative change"
 msgstr "Adaugă culoare pentru schimbare pozitivă/negativă"
 
+msgid "Add colors to cell bars for +/-"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, ja, sr,
 # sr_Latn]
 #, fuzzy
@@ -1631,6 +1594,9 @@ msgstr ""
 msgid "Add folder"
 msgstr "Adaugă folder"
 
+msgid "Add group"
+msgstr ""
+
 msgid "Add item"
 msgstr "Adaugă element"
 
@@ -1678,6 +1644,9 @@ msgstr ""
 
 msgid "Add sheet"
 msgstr "Adaugă foaie"
+
+msgid "Add subgroup"
+msgstr ""
 
 msgid "Add tag to entities"
 msgstr "Adaugă etichetă la entități"
@@ -1851,6 +1820,11 @@ msgstr ""
 "a produce eticheta clusterului."
 
 msgid ""
+"Aggregate function to apply when pivoting and computing the total rows "
+"and columns"
+msgstr ""
+
+msgid ""
 "Aggregates data within the boundary of grid cells and maps the aggregated"
 " values to a dynamic color scale"
 msgstr ""
@@ -1862,6 +1836,9 @@ msgstr "Agregare"
 
 msgid "Aggregation Method"
 msgstr "Metodă de Agregare"
+
+msgid "Aggregation function"
+msgstr ""
 
 msgid ""
 "Aggregation used for the summary row. By default each metric keeps its "
@@ -2886,6 +2863,9 @@ msgstr ""
 msgid "Arrow"
 msgstr "Săgeată"
 
+msgid "Ascending"
+msgstr ""
+
 msgid "Assign a set of parameters as"
 msgstr "Atribuie un set de parametri ca"
 
@@ -2973,6 +2953,9 @@ msgstr "Redimensionare Automată Această Coloană"
 msgid "Autosize all columns"
 msgstr "Redimensionare automată toate coloanele"
 
+msgid "Available Handlebars Helpers in Superset:"
+msgstr ""
+
 msgid "Available sorting modes:"
 msgstr "Moduri de sortare disponibile:"
 
@@ -3050,6 +3033,9 @@ msgstr ""
 "Graficele cu bare sunt utilizate pentru a afișa indicatorii sub formă de "
 "coloane sau bare."
 
+msgid "Bar Values"
+msgstr ""
+
 msgid "Bar orientation"
 msgstr "Orientare bară"
 
@@ -3083,6 +3069,10 @@ msgstr ""
 #, fuzzy, python-format
 msgid "Base layer map style. See MapLibre documentation: %s"
 msgstr "Stilul hărții stratului de bază. Consultați documentația MapLibre: %s"
+
+#, python-format
+msgid "Base layer map style. See Mapbox documentation: %s"
+msgstr ""
 
 msgid "Base slope"
 msgstr "Pantă bază"
@@ -3256,6 +3246,9 @@ msgstr ""
 
 msgid "Bubble Chart"
 msgstr "Grafic Bule"
+
+msgid "Bubble Chart (legacy)"
+msgstr ""
 
 msgid "Bubble Color"
 msgstr "Culoare Bulă"
@@ -3601,6 +3594,9 @@ msgstr "Limită celulă"
 
 msgid "Cell title template"
 msgstr "Șablon titlu celulă"
+
+msgid "Center"
+msgstr ""
 
 msgid "Center value"
 msgstr ""
@@ -4306,6 +4302,9 @@ msgstr "Restrânge panoul de date"
 msgid "Collapse row"
 msgstr "Restrânge rând"
 
+msgid "Collapse settings"
+msgstr ""
+
 msgid "Collapse tab content"
 msgstr "Restrânge conținutul filei"
 
@@ -4444,6 +4443,9 @@ msgstr "Coloană care conține date de longitudine"
 
 msgid "Column data types"
 msgstr "Tipuri de date coloană"
+
+msgid "Column groups"
+msgstr ""
 
 msgid "Column header tooltip"
 msgstr "Tooltip antet coloană"
@@ -4628,6 +4630,12 @@ msgstr ""
 "Compară evoluția unui indicator în timp între diferite grupuri. Fiecare "
 "grup este asociat unui rând, iar schimbarea în timp este vizualizată prin"
 " lungimea barelor și prin culoare."
+
+msgid ""
+"Compares metrics between different time periods. Displays time series "
+"data across multiple periods (like weeks or months) to show period-over-"
+"period trends and patterns."
+msgstr ""
 
 msgid ""
 "Compares the current time period against equivalent past periods by "
@@ -4982,6 +4990,18 @@ msgstr ""
 msgid "Count"
 msgstr "Numără"
 
+msgid "Count Unique Values"
+msgstr ""
+
+msgid "Count as Fraction of Columns"
+msgstr ""
+
+msgid "Count as Fraction of Rows"
+msgstr ""
+
+msgid "Count as Fraction of Total"
+msgstr ""
+
 msgid "Country"
 msgstr "Țară"
 
@@ -5042,6 +5062,12 @@ msgstr "Creează index dataframe"
 
 msgid "Create dataset"
 msgstr "Creează set de date"
+
+msgid "Create matrix columns by placing charts side-by-side"
+msgstr ""
+
+msgid "Create matrix rows by stacking charts vertically"
+msgstr ""
 
 msgid "Create new chart"
 msgstr "Creează grafic nou"
@@ -5941,6 +5967,21 @@ msgstr ""
 "Valoarea implicită setată automat când \"Selectează prima valoare de "
 "filtru în mod implicit\" este bifată"
 
+msgid ""
+"Define a function that receives the input and outputs the content for a "
+"tooltip"
+msgstr ""
+
+msgid "Define a function that returns a URL to navigate to when user clicks"
+msgstr ""
+
+msgid ""
+"Define a javascript function that receives the data array used in the "
+"visualization and is expected to return a modified version of that array."
+" This can be used to alter properties of the data, filter, or enrich the "
+"array."
+msgstr ""
+
 msgid "Define color breakpoints for the data"
 msgstr "Definește puncte de întrerupere de culoare pentru date"
 
@@ -6297,6 +6338,9 @@ msgid "Depends on"
 msgstr ""
 
 msgid "Deployment default"
+msgstr ""
+
+msgid "Descending"
 msgstr ""
 
 msgid "Description"
@@ -6865,6 +6909,9 @@ msgstr "Durată în ms (100.40008 => 100ms 400µs 80ns)"
 msgid "Duration in ms (10500 => 0:00:10.5)"
 msgstr "Durată în ms (10500 => 0:00:10.5)"
 
+msgid "Duration in ms (10500 => 0:10.5)"
+msgstr ""
+
 msgid "Duration in ms (66000 => 1m 6s)"
 msgstr "Durată în ms (66000 => 1m 6s)"
 
@@ -7202,6 +7249,9 @@ msgstr "Activează prognozarea"
 msgid "Enable graph roaming"
 msgstr "Activează roaming grafic"
 
+msgid "Enable horizontal layout (columns)"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, it, ja,
 # lv, ru, sr, sr_Latn, uk]
 #, fuzzy
@@ -7231,6 +7281,9 @@ msgstr "Activează extinderea rândurilor în scheme"
 
 msgid "Enable server side pagination of results (experimental feature)"
 msgstr "Activează paginarea pe server a rezultatelor (funcție experimentală)"
+
+msgid "Enable vertical layout (rows)"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
 # lv, pt_BR, ru, sk, sr, sr_Latn, tr, uk]
@@ -7326,6 +7379,9 @@ msgstr "Introduceți durata în secunde"
 
 msgid "Enter fullscreen"
 msgstr "Intră în ecran complet"
+
+msgid "Enter group name"
+msgstr ""
 
 msgid "Enter minimum and maximum values for the range filter"
 msgstr "Introduceți valorile minime și maxime pentru filtrul de interval"
@@ -7622,6 +7678,9 @@ msgstr "Extinde rând"
 msgid "Expand row to edit"
 msgstr "Extindeți rândul pentru editare"
 
+msgid "Expand settings"
+msgstr ""
+
 msgid ""
 "Expects a formula with depending time parameter 'x'\n"
 "        in milliseconds since epoch. mathjs is used to evaluate the "
@@ -7799,6 +7858,9 @@ msgstr "Controale Suplimentare"
 
 msgid "Extra Parameters"
 msgstr "Parametri Suplimentari"
+
+msgid "Extra data for JS"
+msgstr ""
 
 #, python-brace-format
 msgid ""
@@ -8353,6 +8415,11 @@ msgstr ""
 msgid "For further instructions, consult the"
 msgstr "Pentru instrucțiuni suplimentare, consultă"
 
+msgid ""
+"For more information about objects are in context in the scope of this "
+"function, refer to the"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, ja, tr]
 #, fuzzy
 msgid ""
@@ -8650,6 +8717,9 @@ msgstr "Mai mare sau egal (>=)"
 msgid "Greater than (>)"
 msgstr "Mai mare decât (>)"
 
+msgid "Green for increase, red for decrease"
+msgstr ""
+
 msgid "Grid"
 msgstr "Grilă"
 
@@ -8668,6 +8738,10 @@ msgstr ""
 msgid "Group"
 msgstr "Grup"
 
+#, python-format
+msgid "Group %s"
+msgstr ""
+
 msgid "Group By"
 msgstr "Grupare După"
 
@@ -8681,6 +8755,12 @@ msgstr "Cheie Grup"
 
 msgid "Group by"
 msgstr "Grupare după"
+
+msgid "Group columns"
+msgstr ""
+
+msgid "Group name"
+msgstr ""
 
 msgid "Group remaining as \"Others\""
 msgstr "Grupează restul ca \"Altele\""
@@ -8797,6 +8877,9 @@ msgstr "Orizontal (Sus)"
 
 msgid "Horizontal alignment"
 msgstr "Aliniere orizontală"
+
+msgid "Horizontal layout (columns)"
+msgstr ""
 
 msgid "Host"
 msgstr "Gazdă"
@@ -9413,6 +9496,9 @@ msgstr ""
 msgid "It’s not recommended to truncate Y axis in Bar chart."
 msgstr "Nu se recomandă trunchierea axei Y în graficul cu bare."
 
+msgid "It’s not recommended to truncate axis in Bar chart."
+msgstr ""
+
 msgid "JAN"
 msgstr "IAN"
 
@@ -9453,6 +9539,15 @@ msgstr "IUN"
 
 msgid "January"
 msgstr "Ianuarie"
+
+msgid "JavaScript data interceptor"
+msgstr ""
+
+msgid "JavaScript onClick href"
+msgstr ""
+
+msgid "JavaScript tooltip generator"
+msgstr ""
 
 msgid "Jinja templating"
 msgstr "Șabloane Jinja"
@@ -9564,6 +9659,15 @@ msgstr "Etichetare"
 
 msgid "Labels"
 msgstr "Etichete"
+
+msgid "Labels for the marker lines"
+msgstr ""
+
+msgid "Labels for the markers"
+msgstr ""
+
+msgid "Labels for the ranges"
+msgstr ""
 
 msgid "Languages"
 msgstr "Limbile"
@@ -9824,6 +9928,9 @@ msgid ""
 "does not already have. Leave empty for legacy RBAC-only behavior."
 msgstr ""
 
+msgid "Limits the number of cells that get retrieved."
+msgstr ""
+
 msgid ""
 "Limits the number of cells that get retrieved. Not applied when non-"
 "additive metrics (e.g. ratios, COUNT_DISTINCT, AVG, percentiles) are "
@@ -9919,6 +10026,9 @@ msgstr "Listează Grupuri"
 msgid "List Roles"
 msgstr "Listează Roluri"
 
+msgid "List Unique Values"
+msgstr ""
+
 msgid "List Users"
 msgstr "Listează Utilizatori"
 
@@ -9927,11 +10037,20 @@ msgid ""
 "toggles it on the chart"
 msgstr ""
 
+msgid "List of extra columns made available in JavaScript functions"
+msgstr ""
+
 msgid "List of n+1 values for bucketing metric into n buckets."
 msgstr "Listă de n+1 valori pentru gruparea indicatorului în n intervale."
 
 msgid "List of the column names that should be read"
 msgstr "Listă a numelor de coloane care ar trebui citite"
+
+msgid "List of values to mark with lines"
+msgstr ""
+
+msgid "List of values to mark with triangles"
+msgstr ""
 
 msgid "List updated"
 msgstr "Listă actualizată"
@@ -10313,6 +10432,9 @@ msgstr "Media valorilor pe perioada specificată"
 msgid "Mean values"
 msgstr "Valori medii"
 
+msgid "Median"
+msgstr ""
+
 msgid ""
 "Median edge width, the thickest edge will be 4 times thicker than the "
 "thinnest."
@@ -10484,6 +10606,9 @@ msgstr "Indicatori"
 #, fuzzy, python-format
 msgid "Metrics (%s)"
 msgstr "Metrici (%s)"
+
+msgid "Metrics / Dimensions"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, ja, sr,
 # sr_Latn]
@@ -10692,6 +10817,12 @@ msgstr "Mai multe filtre"
 msgid "MotherDuck token"
 msgstr "Token MotherDuck"
 
+msgid "Move group left"
+msgstr ""
+
+msgid "Move group right"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, fr, it,
 # ja, sr, sr_Latn]
 #, fuzzy
@@ -10723,6 +10854,9 @@ msgstr "Multi-Nivele"
 
 msgid "Multi-Variables"
 msgstr "Multi-Variabile"
+
+msgid "Multi-level header"
+msgstr ""
 
 msgid "Multiple"
 msgstr "Multiplu"
@@ -12000,6 +12134,9 @@ msgstr ""
 "Alege un pseudonim pentru modul în care baza de date va fi afișată în "
 "Superset."
 
+msgid "Pick a set of deck.gl charts to layer on top of one another"
+msgstr ""
+
 msgid "Pick a title for you annotation."
 msgstr "Alege un titlu pentru adnotarea ta."
 
@@ -12290,6 +12427,9 @@ msgstr "Portul %(port)s de pe hostname \"%(hostname)s\" a refuzat conexiunea."
 
 msgid "Port out of range 0-65535"
 msgstr "Port în afara intervalului 0-65535"
+
+msgid "Position"
+msgstr ""
 
 msgid "Position JSON"
 msgstr "Poziție JSON"
@@ -12584,6 +12724,9 @@ msgstr "Tip interval"
 msgid "Ranges"
 msgstr "Intervale"
 
+msgid "Ranges to highlight with shading"
+msgstr ""
+
 msgid "Ranking"
 msgstr "Clasament"
 
@@ -12638,8 +12781,21 @@ msgstr "Dreptunghi"
 msgid "Recurring (every)"
 msgstr "Recurent (fiecare)"
 
+msgid "Red for increase, green for decrease"
+msgstr ""
+
 msgid "Redo the action"
 msgstr "Refă acțiunea"
+
+msgid "Reduce X ticks"
+msgstr ""
+
+msgid ""
+"Reduces the number of X-axis ticks to be rendered. If true, the x-axis "
+"will not overflow and labels may be missing. If false, a minimum width "
+"will be applied to columns and the width may overflow into an horizontal "
+"scroll."
+msgstr ""
 
 msgid "Refer to the"
 msgstr "Vezi"
@@ -12776,6 +12932,9 @@ msgid "Remove filter"
 msgstr "Eliminați filtrul"
 
 msgid "Remove from favorites"
+msgstr ""
+
+msgid "Remove group"
 msgstr ""
 
 msgid "Remove item"
@@ -13196,6 +13355,9 @@ msgstr "Tooltip bogat"
 
 msgid "Right"
 msgstr "Dreapta"
+
+msgid "Right Axis Format"
+msgstr ""
 
 msgid "Right Axis Metric"
 msgstr "Indicator axa dreaptă"
@@ -13740,6 +13902,10 @@ msgstr ""
 msgid "Search"
 msgstr "Caută"
 
+#, python-format
+msgid "Search %s records"
+msgstr ""
+
 msgid "Search / Filter"
 msgstr "Caută / Filtrează"
 
@@ -14053,6 +14219,9 @@ msgstr "Selectează coloană"
 #, fuzzy
 msgid "Select column name"
 msgstr "Selectați numele coloanei"
+
+msgid "Select columns"
+msgstr ""
 
 msgid ""
 "Select columns that will be displayed in the table. You can multiselect "
@@ -14763,6 +14932,9 @@ msgstr "Afișează nume indicatori"
 msgid "Show Null Values"
 msgstr ""
 
+msgid "Show Range Filter"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, it, ja,
 # sr, sr_Latn]
 #, fuzzy
@@ -14850,6 +15022,9 @@ msgstr "Afișează subtotal coloane"
 
 msgid "Show columns total"
 msgstr "Afișează total coloane"
+
+msgid "Show data points as circle markers on the lines"
+msgstr ""
 
 msgid "Show empty columns"
 msgstr "Afișează coloane goale"
@@ -14942,6 +15117,9 @@ msgid "Show summary"
 msgstr "Afișează rezumat"
 
 msgid "Show the main ticks on axes."
+msgstr ""
+
+msgid "Show the value on top of the bar"
 msgstr ""
 
 msgid "Show total"
@@ -15305,6 +15483,9 @@ msgstr "Sortează legenda"
 msgid "Sort metric"
 msgstr "Sortează indicator"
 
+msgid "Sort order"
+msgstr ""
+
 msgid "Sort query by"
 msgstr "Sortează interogare după"
 
@@ -15400,6 +15581,9 @@ msgstr "Stivă serii una peste alta"
 
 msgid "Stacked"
 msgstr "Stivuit"
+
+msgid "Stacked Bars"
+msgstr ""
 
 msgid "Stacked Style"
 msgstr "Stil stivuit"
@@ -15576,6 +15760,10 @@ msgstr "Subcategorii"
 msgid "Subdomain"
 msgstr "Subdomeniu"
 
+#, python-format
+msgid "Subgroup %s"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # fr, it, ja, lv, mi, nl, ru, sk, sl, tr, uk]
 #, fuzzy
@@ -15641,6 +15829,15 @@ msgstr ""
 
 msgid "Sum"
 msgstr "Sumă"
+
+msgid "Sum as Fraction of Columns"
+msgstr ""
+
+msgid "Sum as Fraction of Rows"
+msgstr ""
+
+msgid "Sum as Fraction of Total"
+msgstr ""
 
 msgid "Sum of values over specified period"
 msgstr "Suma valorilor pe perioada specificată"
@@ -15835,6 +16032,9 @@ msgstr "Numele tabelului este nedefinit"
 #, python-format
 msgid "Table or View \"%(table)s\" does not exist."
 msgstr "Tabelul sau Vizualizarea \"%(table)s\" nu există."
+
+msgid "Table side"
+msgstr ""
 
 msgid ""
 "Table that visualizes paired t-tests, which are used to understand "
@@ -16808,6 +17008,13 @@ msgid ""
 "                Click on the info bubble for more details on accepted "
 "\"freq\"\n"
 "                expressions."
+msgstr ""
+
+msgid ""
+"The periodicity over which to pivot time. Users can provide\n"
+"            \"Pandas\" offset alias.\n"
+"            Click on the info bubble for more details on accepted "
+"\"freq\" expressions."
 msgstr ""
 
 msgid "The pixel radius"
@@ -17871,6 +18078,9 @@ msgstr "Acest dosar acceptă doar coloane"
 msgid "This folder only supports metrics"
 msgstr "Acest dosar acceptă doar metrici"
 
+msgid "This functionality is disabled in your environment for security reasons."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
 # lv, ru, sk, sr, sr_Latn, tr, uk]
 #, fuzzy
@@ -18325,6 +18535,9 @@ msgstr ""
 "Șirul de timp este ambiguu. Vă rugăm să specificați [%(human_readable)s "
 "în urmă] sau [%(human_readable)s mai târziu]."
 
+msgid "Time-series Percent Change"
+msgstr ""
+
 msgid "Time-series Period Pivot"
 msgstr "Serie de timp - Pivot perioadă"
 
@@ -18475,6 +18688,10 @@ msgstr "Total"
 #, python-format
 msgid "Total (%(aggfunc)s)"
 msgstr "Total (%(aggfunc)s)"
+
+#, python-format
+msgid "Total (%(aggregatorName)s)"
+msgstr ""
 
 msgid ""
 "Total angle covered by the chart, in degrees. 360° draws a full circle "
@@ -19127,6 +19344,9 @@ msgstr ""
 msgid "Use a log scale"
 msgstr "Folosește o scală logaritmică"
 
+msgid "Use a log scale for the X-axis"
+msgstr ""
+
 msgid "Use a log scale for the Y-axis"
 msgstr "Folosește o scală logaritmică pentru axa Y"
 
@@ -19415,6 +19635,9 @@ msgstr "Vertical"
 msgid "Vertical (Left)"
 msgstr "Vertical (Stânga)"
 
+msgid "Vertical layout (rows)"
+msgstr ""
+
 msgid "View"
 msgstr "Vizualizare"
 
@@ -19590,6 +19813,12 @@ msgstr ""
 "subdiviziunile principale ale unei țări (state, provincii etc.) pe o "
 "hartă coropletă. Valoarea fiecărei subdiviziuni este evidențiată atunci "
 "când treceți cu mouse-ul peste granița geografică corespunzătoare."
+
+msgid ""
+"Visualizes many different time-series objects in a single chart. This "
+"chart is being deprecated and we recommend using the Time-series Chart "
+"instead."
+msgstr ""
 
 msgid ""
 "Visualizes the words in a column that appear the most often. Bigger font "
@@ -19976,6 +20205,12 @@ msgstr "Dacă se afișează numele indicatorului"
 msgid "Whether to display the metric name as a title"
 msgstr "Dacă se afișează numele indicatorului ca titlu"
 
+msgid "Whether to display the min and max values of the X-axis"
+msgstr ""
+
+msgid "Whether to display the min and max values of the Y-axis"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, it, ja,
 # sr, sr_Latn]
 #, fuzzy
@@ -19990,6 +20225,9 @@ msgstr "Dacă să afișeze valoarea procentuală în tooltip"
 
 msgid "Whether to display the stroke"
 msgstr "Dacă să afișeze conturul"
+
+msgid "Whether to display the time range interactive selector"
+msgstr ""
 
 msgid "Whether to display the timestamp"
 msgstr "Dacă să afișeze timestamp-ul"
@@ -20069,6 +20307,9 @@ msgstr ""
 "Dacă se sortează rezultatele după indicatorul selectat în ordine "
 "descrescătoare."
 
+msgid "Whether to sort tooltip by the selected metric in descending order."
+msgstr ""
+
 msgid ""
 "Whether to sort tooltip by the selected metric in descending order. On "
 "stacked charts, values are shown in ascending order."
@@ -20138,6 +20379,9 @@ msgstr "Scrie o descriere pentru interogarea ta"
 msgid "Write a handlebars template to render the data"
 msgstr "Scrie un șablon handlebars pentru a randa datele"
 
+msgid "X AXIS TITLE MARGIN"
+msgstr ""
+
 msgid "X Axis"
 msgstr "Axa X"
 
@@ -20165,11 +20409,17 @@ msgstr "Margine Titlu Axă X"
 msgid "X Axis title margin"
 msgstr ""
 
+msgid "X Log Scale"
+msgstr ""
+
 msgid "X Tick Layout"
 msgstr "Layout Gradații X"
 
 msgid "X axis title margin"
 msgstr "Margine titlu axă X"
+
+msgid "X bounds"
+msgstr ""
 
 msgid "X-Axis Sort Ascending"
 msgstr "Sortare Axă X Crescătoare"
@@ -20187,8 +20437,17 @@ msgstr "interval scală X"
 msgid "XYZ"
 msgstr "XYZ"
 
+msgid "Y 2 bounds"
+msgstr ""
+
+msgid "Y AXIS TITLE MARGIN"
+msgstr ""
+
 msgid "Y Axis"
 msgstr "Axa Y"
+
+msgid "Y Axis 2 Bounds"
+msgstr ""
 
 msgid "Y Axis Bounds"
 msgstr "Limite Axă Y"
@@ -20216,6 +20475,9 @@ msgstr "Scală Logaritmică Y"
 
 msgid "Y axis title margin"
 msgstr "margine titlu axă Y"
+
+msgid "Y bounds"
+msgstr ""
 
 msgid "Y-Axis"
 msgstr "Axă Y"
@@ -20400,6 +20662,9 @@ msgid ""
 msgstr ""
 "Nu puteți șterge ultimul filtru temporal deoarece este folosit pentru "
 "filtrele de interval de timp din panourilor de control."
+
+msgid "You cannot use 45° tick layout along with the time range filter"
+msgstr ""
 
 #, python-format
 msgid "You do not have access to the data behind this chart (tables: %s)."
@@ -20623,6 +20888,9 @@ msgstr ""
 msgid "You need to"
 msgstr "Trebuie să"
 
+msgid "You need to configure HTML sanitization to use CSS"
+msgstr ""
+
 msgid ""
 "You updated the values in the control panel, but the chart was not "
 "updated automatically. Run the query by clicking on the \"Update chart\" "
@@ -20683,7 +20951,18 @@ msgid ""
 "SUPERSET_DASHBOARD_POSITION_DATA_LIMIT config setting."
 msgstr ""
 
-msgid "Your export is being prepared. You'll receive an email when it's ready."
+msgid ""
+"Your export is being generated and will download automatically when "
+"ready. We'll also email you a download link."
+msgstr ""
+
+msgid "Your export is being generated. Please, do not leave the page."
+msgstr ""
+
+msgid "Your export is ready and downloading."
+msgstr ""
+
+msgid "Your export is taking longer than expected. Try again later."
 msgstr ""
 
 #, python-format
@@ -20906,6 +21185,9 @@ msgstr "culoare fundal"
 msgid "banana"
 msgstr "banană"
 
+msgid "basis"
+msgstr ""
+
 msgid "begins with"
 msgstr "începe cu"
 
@@ -20946,6 +21228,9 @@ msgstr "folosind"
 
 msgid "cannot be empty"
 msgstr "nu poate fi gol"
+
+msgid "cardinal"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, it, ja,
 # sr, sr_Latn]
@@ -21121,6 +21406,9 @@ msgstr "deck.gl Diagramă de Dispersie"
 msgid "deck.gl Screen Grid"
 msgstr "deck.gl Rețea Ecran"
 
+msgid "deck.gl charts"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, ja, lv,
 # ru, sr, sr_Latn, tr, uk]
 #, fuzzy
@@ -21217,6 +21505,9 @@ msgstr "rând întreg"
 
 msgid "entries"
 msgstr "intrări"
+
+msgid "entries per page"
+msgstr ""
 
 #. do-not-translate
 msgid "error_message"
@@ -21404,6 +21695,9 @@ msgstr "stânga"
 msgid "less than {min} {name}"
 msgstr "mai mic decât {min} {name}"
 
+msgid "linear"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, it, ja,
 # sr, sr_Latn]
 #, fuzzy
@@ -21452,6 +21746,9 @@ msgstr "minut"
 
 msgid "minute(s)"
 msgstr "minut(e)"
+
+msgid "monotone"
+msgstr ""
 
 msgid "month"
 msgstr "lună"
@@ -21529,6 +21826,9 @@ msgstr "numeric"
 
 msgid "numeric type icon"
 msgstr "iconiță tip numeric"
+
+msgid "nvd3"
+msgstr ""
 
 msgid "of"
 msgstr "din"
@@ -21714,6 +22014,14 @@ msgstr "în eșalon"
 msgid "std"
 msgstr "std"
 
+#. do-not-translate
+msgid "step-after"
+msgstr ""
+
+#. do-not-translate
+msgid "step-before"
+msgstr ""
+
 msgid "stopped"
 msgstr "oprit"
 
@@ -21823,6 +22131,9 @@ msgstr "valoare crescătoare"
 
 msgid "value descending"
 msgstr "valoare descrescătoare"
+
+msgid "valuename"
+msgstr ""
 
 msgid "var"
 msgstr "var"

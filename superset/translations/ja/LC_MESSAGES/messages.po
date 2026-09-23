@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-23 12:43+0200\n"
+"POT-Creation-Date: 2026-09-24 00:52+0300\n"
 "PO-Revision-Date: 2024-05-14 13:30+0900\n"
 "Last-Translator: Yuri Umezaki <bungoume@gmail.com>\n"
 "Language: ja\n"
@@ -124,6 +124,9 @@ msgstr "をご覧ください。"
 msgid " near '%(highlight)s'"
 msgstr "「%(highlight)s」付近"
 
+msgid " source code of Superset's sandboxed parser"
+msgstr ""
+
 msgid ""
 " standard to ensure that the lexicographical ordering\n"
 "                      coincides with the chronological ordering. If the\n"
@@ -171,62 +174,6 @@ msgstr " 詳細を表示。"
 
 msgid "!= (Is not equal)"
 msgstr "≠ (等しくない)"
-
-msgid "Add group"
-msgstr ""
-
-msgid "Add subgroup"
-msgstr ""
-
-msgid "Center"
-msgstr ""
-
-msgid "Collapse settings"
-msgstr ""
-
-msgid "Column groups"
-msgstr ""
-
-msgid "Enter group name"
-msgstr ""
-
-msgid "Expand settings"
-msgstr ""
-
-#, python-format
-msgid "Group %s"
-msgstr ""
-
-msgid "Group columns"
-msgstr ""
-
-msgid "Group name"
-msgstr ""
-
-msgid "Move group left"
-msgstr ""
-
-msgid "Move group right"
-msgstr ""
-
-msgid "Multi-level header"
-msgstr ""
-
-msgid "Position"
-msgstr ""
-
-msgid "Remove group"
-msgstr ""
-
-msgid "Select columns"
-msgstr ""
-
-#, python-format
-msgid "Subgroup %s"
-msgstr ""
-
-msgid "Table side"
-msgstr ""
 
 #, python-format
 msgid "\"%s\" is now the system dark theme"
@@ -557,6 +504,11 @@ msgstr "%s / %s 選択済み"
 #, python-format
 msgid "%s recipients"
 msgstr "%s 名の受信者"
+
+#, python-format
+msgid "%s record"
+msgid_plural "%s records..."
+msgstr[0] ""
 
 #, python-format
 msgid "%s record..."
@@ -1187,6 +1139,12 @@ msgstr "非同期クエリ実行"
 msgid "AUG"
 msgstr "8月"
 
+msgid "AXIS TITLE MARGIN"
+msgstr ""
+
+msgid "AXIS TITLE POSITION"
+msgstr ""
+
 msgid "Aborted"
 msgstr "中止済み"
 
@@ -1331,6 +1289,9 @@ msgstr "このダッシュボードに認証情報を追加"
 msgid "Add color for positive/negative change"
 msgstr "増減に応じた色分けを追加"
 
+msgid "Add colors to cell bars for +/-"
+msgstr ""
+
 msgid "Add colors to cell bars for +/- for all columns"
 msgstr "すべての列のセルバーに +/- の色分けを追加"
 
@@ -1386,6 +1347,9 @@ msgstr ""
 msgid "Add folder"
 msgstr "フォルダーを追加"
 
+msgid "Add group"
+msgstr ""
+
 msgid "Add item"
 msgstr "項目を追加"
 
@@ -1424,6 +1388,9 @@ msgstr "サービスの認証情報を追加する"
 
 msgid "Add sheet"
 msgstr "シートを追加"
+
+msgid "Add subgroup"
+msgstr ""
 
 msgid "Add tag to entities"
 msgstr "エンティティにタグを追加"
@@ -1584,6 +1551,11 @@ msgid ""
 msgstr "クラスターラベルを生成するために、各クラスター内のポイントリストに適用される集計関数です。"
 
 msgid ""
+"Aggregate function to apply when pivoting and computing the total rows "
+"and columns"
+msgstr ""
+
+msgid ""
 "Aggregates data within the boundary of grid cells and maps the aggregated"
 " values to a dynamic color scale"
 msgstr "グリッドセルの境界内でデータを集計し、その集計値を動的なカラースケールにマッピングします"
@@ -1593,6 +1565,9 @@ msgstr "集計"
 
 msgid "Aggregation Method"
 msgstr "集計方法"
+
+msgid "Aggregation function"
+msgstr ""
 
 msgid ""
 "Aggregation used for the summary row. By default each metric keeps its "
@@ -2483,6 +2458,9 @@ msgstr "面グラフは、変数を同じスケールで表すという点で折
 msgid "Arrow"
 msgstr "矢印"
 
+msgid "Ascending"
+msgstr ""
+
 msgid "Assign a set of parameters as"
 msgstr "パラメータセットの割り当て先"
 
@@ -2558,6 +2536,9 @@ msgstr "この列を自動サイズ調整"
 msgid "Autosize all columns"
 msgstr "すべての列を自動サイズ調整"
 
+msgid "Available Handlebars Helpers in Superset:"
+msgstr ""
+
 msgid "Available sorting modes:"
 msgstr "利用可能な並べ替えモード:"
 
@@ -2630,6 +2611,9 @@ msgstr "棒グラフ"
 msgid "Bar Charts are used to show metrics as a series of bars."
 msgstr "棒グラフは、一連の棒としてメトリックを表示するために使用されます。"
 
+msgid "Bar Values"
+msgstr ""
+
 msgid "Bar orientation"
 msgstr "棒の向き"
 
@@ -2651,6 +2635,10 @@ msgstr "ベースレイヤーのマップスタイル。Mapbox スタイルの U
 #, python-format
 msgid "Base layer map style. See MapLibre documentation: %s"
 msgstr "ベースレイヤーのマップスタイル。MapLibre のドキュメントを参照してください: %s"
+
+#, python-format
+msgid "Base layer map style. See Mapbox documentation: %s"
+msgstr ""
 
 msgid "Base slope"
 msgstr "基本の勾配"
@@ -2796,6 +2784,9 @@ msgstr "指定したカテゴリごとに系列を分類します。これによ
 
 msgid "Bubble Chart"
 msgstr "バブルチャート"
+
+msgid "Bubble Chart (legacy)"
+msgstr ""
 
 msgid "Bubble Color"
 msgstr "バブルの色"
@@ -3105,6 +3096,9 @@ msgstr "セルの上限数"
 
 msgid "Cell title template"
 msgstr "セルのタイトルテンプレート"
+
+msgid "Center"
+msgstr ""
 
 msgid "Center value"
 msgstr ""
@@ -3729,6 +3723,9 @@ msgstr "データパネルを閉じる"
 msgid "Collapse row"
 msgstr "行を折りたたむ"
 
+msgid "Collapse settings"
+msgstr ""
+
 msgid "Collapse tab content"
 msgstr "タブの内容を折りたたむ"
 
@@ -3840,6 +3837,9 @@ msgstr "経度データを含む列"
 
 msgid "Column data types"
 msgstr "列のデータ型"
+
+msgid "Column groups"
+msgstr ""
 
 msgid "Column header tooltip"
 msgstr "列ヘッダーのツールチップ"
@@ -3995,6 +3995,12 @@ msgid ""
 "group is mapped to a row and change over time is visualized bar lengths "
 "and color."
 msgstr "異なるグループ間で、メトリックが時間の経過とともにどのように変化するかを比較します。各グループは行に割り当てられ、時間的変化はバーの長さと色で視覚化されます。"
+
+msgid ""
+"Compares metrics between different time periods. Displays time series "
+"data across multiple periods (like weeks or months) to show period-over-"
+"period trends and patterns."
+msgstr ""
 
 msgid ""
 "Compares the current time period against equivalent past periods by "
@@ -4330,6 +4336,18 @@ msgstr ""
 msgid "Count"
 msgstr "カウント (件数)"
 
+msgid "Count Unique Values"
+msgstr ""
+
+msgid "Count as Fraction of Columns"
+msgstr ""
+
+msgid "Count as Fraction of Rows"
+msgstr ""
+
+msgid "Count as Fraction of Total"
+msgstr ""
+
 msgid "Country"
 msgstr "国"
 
@@ -4384,6 +4402,12 @@ msgstr "データフレームのインデックスを作成"
 
 msgid "Create dataset"
 msgstr "データセットを作成"
+
+msgid "Create matrix columns by placing charts side-by-side"
+msgstr ""
+
+msgid "Create matrix rows by stacking charts vertically"
+msgstr ""
 
 msgid "Create new chart"
 msgstr "新しいチャートを作成"
@@ -5138,6 +5162,21 @@ msgid ""
 "default\" is checked"
 msgstr "「既定で最初のフィルター値を選択する」がオンの場合に自動設定される既定値"
 
+msgid ""
+"Define a function that receives the input and outputs the content for a "
+"tooltip"
+msgstr ""
+
+msgid "Define a function that returns a URL to navigate to when user clicks"
+msgstr ""
+
+msgid ""
+"Define a javascript function that receives the data array used in the "
+"visualization and is expected to return a modified version of that array."
+" This can be used to alter properties of the data, filter, or enrich the "
+"array."
+msgstr ""
+
 msgid "Define color breakpoints for the data"
 msgstr "データの色分け境界(ブレークポイント)を定義"
 
@@ -5430,6 +5469,9 @@ msgid "Depends on"
 msgstr ""
 
 msgid "Deployment default"
+msgstr ""
+
+msgid "Descending"
 msgstr ""
 
 msgid "Description"
@@ -5894,6 +5936,9 @@ msgstr "所要時間(ミリ秒) (100.40008 => 100ms 400µs 80ns)"
 msgid "Duration in ms (10500 => 0:00:10.5)"
 msgstr "所要時間(ミリ秒) (10500 => 0:00:10.5)"
 
+msgid "Duration in ms (10500 => 0:10.5)"
+msgstr ""
+
 msgid "Duration in ms (66000 => 1m 6s)"
 msgstr "所要時間(ミリ秒) (66000 => 1分6秒)"
 
@@ -6196,6 +6241,9 @@ msgstr "予測を有効にする"
 msgid "Enable graph roaming"
 msgstr "グラフのローミング(移動)を有効にする"
 
+msgid "Enable horizontal layout (columns)"
+msgstr ""
+
 msgid "Enable icons"
 msgstr "アイコンを有効にする"
 
@@ -6216,6 +6264,9 @@ msgstr "スキーマ内の行展開を有効にする"
 
 msgid "Enable server side pagination of results (experimental feature)"
 msgstr "サーバーサイドでのページネーションを有効にする (試験的機能)"
+
+msgid "Enable vertical layout (rows)"
+msgstr ""
 
 msgid "Enables rendering of icons for GeoJSON points"
 msgstr "GeoJSONポイントに対するアイコンの描画を有効にします"
@@ -6295,6 +6346,9 @@ msgstr "所要時間を秒単位で入力"
 
 msgid "Enter fullscreen"
 msgstr "全画面表示"
+
+msgid "Enter group name"
+msgstr ""
 
 msgid "Enter minimum and maximum values for the range filter"
 msgstr "範囲フィルターの最小値と最大値を入力してください"
@@ -6571,6 +6625,9 @@ msgstr "行を展開"
 msgid "Expand row to edit"
 msgstr "行を展開して編集"
 
+msgid "Expand settings"
+msgstr ""
+
 msgid ""
 "Expects a formula with depending time parameter 'x'\n"
 "        in milliseconds since epoch. mathjs is used to evaluate the "
@@ -6728,6 +6785,9 @@ msgstr "追加コントロール"
 
 msgid "Extra Parameters"
 msgstr "追加パラメータ"
+
+msgid "Extra data for JS"
+msgstr ""
 
 #, python-brace-format
 msgid ""
@@ -7213,6 +7273,11 @@ msgid "For further instructions, consult the"
 msgstr "詳細な手順については次を確認してください"
 
 msgid ""
+"For more information about objects are in context in the scope of this "
+"function, refer to the"
+msgstr ""
+
+msgid ""
 "For regular filters, these are the subjects (users, roles, groups) this "
 "filter will be applied to. For base filters, these are the subjects that "
 "the filter DOES NOT apply to, e.g. Admin if admin should see all data."
@@ -7464,6 +7529,9 @@ msgstr "以上 ≧)"
 msgid "Greater than (>)"
 msgstr "超える (＞)"
 
+msgid "Green for increase, red for decrease"
+msgstr ""
+
 msgid "Grid"
 msgstr "グリッド"
 
@@ -7479,6 +7547,10 @@ msgstr ""
 msgid "Group"
 msgstr "グループ"
 
+#, python-format
+msgid "Group %s"
+msgstr ""
+
 msgid "Group By"
 msgstr "グループ化"
 
@@ -7490,6 +7562,12 @@ msgstr "グループキー"
 
 msgid "Group by"
 msgstr "グループ化"
+
+msgid "Group columns"
+msgstr ""
+
+msgid "Group name"
+msgstr ""
 
 msgid "Group remaining as \"Others\""
 msgstr "残りの項目を「その他」にまとめる"
@@ -7591,6 +7669,9 @@ msgstr "水平 (上)"
 
 msgid "Horizontal alignment"
 msgstr "水平方向の配置"
+
+msgid "Horizontal layout (columns)"
+msgstr ""
 
 msgid "Host"
 msgstr "ホスト"
@@ -8126,6 +8207,9 @@ msgstr ""
 msgid "It’s not recommended to truncate Y axis in Bar chart."
 msgstr "棒グラフでY軸を切り捨てることは推奨されません。"
 
+msgid "It’s not recommended to truncate axis in Bar chart."
+msgstr ""
+
 msgid "JAN"
 msgstr "1月"
 
@@ -8164,6 +8248,15 @@ msgstr "6月"
 
 msgid "January"
 msgstr "1月"
+
+msgid "JavaScript data interceptor"
+msgstr ""
+
+msgid "JavaScript onClick href"
+msgstr ""
+
+msgid "JavaScript tooltip generator"
+msgstr ""
 
 msgid "Jinja templating"
 msgstr "Jinjaテンプレート"
@@ -8257,6 +8350,15 @@ msgstr "ラベリング"
 
 msgid "Labels"
 msgstr "ラベル"
+
+msgid "Labels for the marker lines"
+msgstr ""
+
+msgid "Labels for the markers"
+msgstr ""
+
+msgid "Labels for the ranges"
+msgstr ""
 
 msgid "Languages"
 msgstr "言語"
@@ -8498,6 +8600,9 @@ msgid ""
 "does not already have. Leave empty for legacy RBAC-only behavior."
 msgstr ""
 
+msgid "Limits the number of cells that get retrieved."
+msgstr ""
+
 msgid ""
 "Limits the number of cells that get retrieved. Not applied when non-"
 "additive metrics (e.g. ratios, COUNT_DISTINCT, AVG, percentiles) are "
@@ -8582,6 +8687,9 @@ msgstr "グループ一覧"
 msgid "List Roles"
 msgstr "ロール一覧"
 
+msgid "List Unique Values"
+msgstr ""
+
 msgid "List Users"
 msgstr "ユーザー一覧"
 
@@ -8590,11 +8698,20 @@ msgid ""
 "toggles it on the chart"
 msgstr ""
 
+msgid "List of extra columns made available in JavaScript functions"
+msgstr ""
+
 msgid "List of n+1 values for bucketing metric into n buckets."
 msgstr "メトリックをn個のバケットに分類するための n+1 個の値のリスト。"
 
 msgid "List of the column names that should be read"
 msgstr "読み込む列名のリスト"
+
+msgid "List of values to mark with lines"
+msgstr ""
+
+msgid "List of values to mark with triangles"
+msgstr ""
 
 msgid "List updated"
 msgstr "リストを更新しました"
@@ -8921,6 +9038,9 @@ msgstr "指定期間内の平均値"
 msgid "Mean values"
 msgstr "平均値"
 
+msgid "Median"
+msgstr ""
+
 msgid ""
 "Median edge width, the thickest edge will be 4 times thicker than the "
 "thinnest."
@@ -9073,6 +9193,9 @@ msgstr "メトリック"
 #, python-format
 msgid "Metrics (%s)"
 msgstr "メトリック (%s)"
+
+msgid "Metrics / Dimensions"
+msgstr ""
 
 msgid "Metrics can't be used for both rows and columns at the same time"
 msgstr "メトリックは行と列の両方に同時に使用することはできません"
@@ -9253,6 +9376,12 @@ msgstr "さらにフィルターを表示"
 msgid "MotherDuck token"
 msgstr "MotherDuckトークン"
 
+msgid "Move group left"
+msgstr ""
+
+msgid "Move group right"
+msgstr ""
+
 msgid "Move icon"
 msgstr "移動アイコン"
 
@@ -9281,6 +9410,9 @@ msgstr "マルチレベル"
 
 msgid "Multi-Variables"
 msgstr "マルチ変数"
+
+msgid "Multi-level header"
+msgstr ""
 
 msgid "Multiple"
 msgstr "複数"
@@ -10415,6 +10547,9 @@ msgstr "データベースを識別するための名前を付けてください
 msgid "Pick a nickname for how the database will display in Superset."
 msgstr "Superset内での表示用名称(ニックネーム)を付けてください。"
 
+msgid "Pick a set of deck.gl charts to layer on top of one another"
+msgstr ""
+
 msgid "Pick a title for you annotation."
 msgstr "注釈のタイトルを入力。"
 
@@ -10665,6 +10800,9 @@ msgstr "ホスト「%(hostname)s」のポート %(port)s への接続が拒否�
 
 msgid "Port out of range 0-65535"
 msgstr "ポートが 0 ～ 65535 の範囲外です"
+
+msgid "Position"
+msgstr ""
 
 msgid "Position JSON"
 msgstr "位置JSON"
@@ -10944,6 +11082,9 @@ msgstr "範囲種類"
 msgid "Ranges"
 msgstr "範囲"
 
+msgid "Ranges to highlight with shading"
+msgstr ""
+
 msgid "Ranking"
 msgstr "ランキング"
 
@@ -10995,8 +11136,21 @@ msgstr "長方形"
 msgid "Recurring (every)"
 msgstr "繰り返し (毎)"
 
+msgid "Red for increase, green for decrease"
+msgstr ""
+
 msgid "Redo the action"
 msgstr "操作をやり直す"
+
+msgid "Reduce X ticks"
+msgstr ""
+
+msgid ""
+"Reduces the number of X-axis ticks to be rendered. If true, the x-axis "
+"will not overflow and labels may be missing. If false, a minimum width "
+"will be applied to columns and the width may overflow into an horizontal "
+"scroll."
+msgstr ""
 
 msgid "Refer to the"
 msgstr "参照"
@@ -11119,6 +11273,9 @@ msgid "Remove filter"
 msgstr "フィルターを削除"
 
 msgid "Remove from favorites"
+msgstr ""
+
+msgid "Remove group"
 msgstr ""
 
 msgid "Remove item"
@@ -11495,6 +11652,9 @@ msgstr "詳細なツールチップ"
 
 msgid "Right"
 msgstr "右"
+
+msgid "Right Axis Format"
+msgstr ""
 
 msgid "Right Axis Metric"
 msgstr "右軸のメトリック"
@@ -11999,6 +12159,10 @@ msgstr "変更の上書きを有効にするには、一番下までスクロー
 msgid "Search"
 msgstr "検索"
 
+#, python-format
+msgid "Search %s records"
+msgstr ""
+
 msgid "Search / Filter"
 msgstr "検索 / フィルター"
 
@@ -12270,6 +12434,9 @@ msgstr "列を選択"
 
 msgid "Select column name"
 msgstr "列名を選択"
+
+msgid "Select columns"
+msgstr ""
 
 msgid ""
 "Select columns that will be displayed in the table. You can multiselect "
@@ -12801,6 +12968,9 @@ msgstr "メトリック名を表示"
 msgid "Show Null Values"
 msgstr "NULL値を表示する"
 
+msgid "Show Range Filter"
+msgstr ""
+
 msgid "Show SQL"
 msgstr "SQLを表示"
 
@@ -12877,6 +13047,9 @@ msgstr "列の小計を表示"
 
 msgid "Show columns total"
 msgstr "列の合計を表示"
+
+msgid "Show data points as circle markers on the lines"
+msgstr ""
 
 msgid "Show empty columns"
 msgstr "空の列を表示"
@@ -12967,6 +13140,9 @@ msgid "Show summary"
 msgstr "合計を表示"
 
 msgid "Show the main ticks on axes."
+msgstr ""
+
+msgid "Show the value on top of the bar"
 msgstr ""
 
 msgid "Show total"
@@ -13285,6 +13461,9 @@ msgstr "凡例を並べ替え"
 msgid "Sort metric"
 msgstr "並べ替えメトリック"
 
+msgid "Sort order"
+msgstr ""
+
 msgid "Sort query by"
 msgstr "クエリの並べ替え基準"
 
@@ -13368,6 +13547,9 @@ msgstr "系列を互いに積み上げます"
 
 msgid "Stacked"
 msgstr "積み上げ済み"
+
+msgid "Stacked Bars"
+msgstr ""
 
 msgid "Stacked Style"
 msgstr "積み上げスタイル"
@@ -13525,6 +13707,10 @@ msgstr "サブカテゴリ"
 msgid "Subdomain"
 msgstr "サブドメイン"
 
+#, python-format
+msgid "Subgroup %s"
+msgstr ""
+
 msgid "Subject"
 msgstr "サブジェクト"
 
@@ -13573,6 +13759,15 @@ msgstr ""
 
 msgid "Sum"
 msgstr "合計"
+
+msgid "Sum as Fraction of Columns"
+msgstr ""
+
+msgid "Sum as Fraction of Rows"
+msgstr ""
+
+msgid "Sum as Fraction of Total"
+msgstr ""
 
 msgid "Sum of values over specified period"
 msgstr "指定期間内の値の合計"
@@ -13749,6 +13944,9 @@ msgstr "テーブル名が未定義です"
 #, python-format
 msgid "Table or View \"%(table)s\" does not exist."
 msgstr "テーブルまたはビュー「%(table)s」は存在しません。"
+
+msgid "Table side"
+msgstr ""
 
 msgid ""
 "Table that visualizes paired t-tests, which are used to understand "
@@ -14527,6 +14725,13 @@ msgid ""
 "                Click on the info bubble for more details on accepted "
 "\"freq\"\n"
 "                expressions."
+msgstr ""
+
+msgid ""
+"The periodicity over which to pivot time. Users can provide\n"
+"            \"Pandas\" offset alias.\n"
+"            Click on the info bubble for more details on accepted "
+"\"freq\" expressions."
 msgstr ""
 
 msgid "The pixel radius"
@@ -15404,6 +15609,9 @@ msgstr "このフォルダーは列のみをサポートしています"
 msgid "This folder only supports metrics"
 msgstr "このフォルダーはメトリックのみをサポートしています"
 
+msgid "This functionality is disabled in your environment for security reasons."
+msgstr ""
+
 msgid ""
 "This is a default columns folder. Its name cannot be changed or removed. "
 "It can stay empty but will only accept column items."
@@ -15767,6 +15975,9 @@ msgid ""
 "[%(human_readable)s later]."
 msgstr "時間文字列が曖昧です。「%(human_readable)s 前」または「%(human_readable)s 後」のように指定してください。"
 
+msgid "Time-series Percent Change"
+msgstr ""
+
 msgid "Time-series Period Pivot"
 msgstr "時系列 - 期間ピボット"
 
@@ -15894,6 +16105,10 @@ msgstr "合計"
 #, python-format
 msgid "Total (%(aggfunc)s)"
 msgstr "合計 (%(aggfunc)s)"
+
+#, python-format
+msgid "Total (%(aggregatorName)s)"
+msgstr ""
 
 msgid ""
 "Total angle covered by the chart, in degrees. 360° draws a full circle "
@@ -16458,6 +16673,9 @@ msgstr "Handlebars 構文を使用してカスタムツールチップを作成�
 msgid "Use a log scale"
 msgstr "対数スケールを使用"
 
+msgid "Use a log scale for the X-axis"
+msgstr ""
+
 msgid "Use a log scale for the Y-axis"
 msgstr "Y軸に対数スケールを使用"
 
@@ -16702,6 +16920,9 @@ msgstr "垂直"
 msgid "Vertical (Left)"
 msgstr "垂直 (左)"
 
+msgid "Vertical layout (rows)"
+msgstr ""
+
 msgid "View"
 msgstr "表示"
 
@@ -16840,6 +17061,12 @@ msgid ""
 "subdivision's value is elevated when you hover over the corresponding "
 "geographic boundary."
 msgstr "各国の主要な行政区画(州や県など)における単一メトリックの分布を階級区分図(コロプレス・マップ)で視覚化します。境界線をホバーすると各区画の値が強調されます。"
+
+msgid ""
+"Visualizes many different time-series objects in a single chart. This "
+"chart is being deprecated and we recommend using the Time-series Chart "
+"instead."
+msgstr ""
 
 msgid ""
 "Visualizes the words in a column that appear the most often. Bigger font "
@@ -17155,6 +17382,12 @@ msgstr "メトリック名を表示するかどうか"
 msgid "Whether to display the metric name as a title"
 msgstr "メトリック名をタイトルとして表示するかどうか"
 
+msgid "Whether to display the min and max values of the X-axis"
+msgstr ""
+
+msgid "Whether to display the min and max values of the Y-axis"
+msgstr ""
+
 msgid "Whether to display the numbered column"
 msgstr "番号付き列を表示するかどうか"
 
@@ -17166,6 +17399,9 @@ msgstr "ツールチップ内にパーセンテージを表示するかどうか
 
 msgid "Whether to display the stroke"
 msgstr "ストロークを表示するかどうか"
+
+msgid "Whether to display the time range interactive selector"
+msgstr ""
 
 msgid "Whether to display the timestamp"
 msgstr "タイムスタンプを表示するかどうか"
@@ -17238,6 +17474,9 @@ msgstr "降順または昇順のどちらで並べ替えするか"
 msgid "Whether to sort results by the selected metric in descending order."
 msgstr "選択したメトリックに基づいて結果を降順で並べ替えするかどうか。"
 
+msgid "Whether to sort tooltip by the selected metric in descending order."
+msgstr ""
+
 msgid ""
 "Whether to sort tooltip by the selected metric in descending order. On "
 "stacked charts, values are shown in ascending order."
@@ -17301,6 +17540,9 @@ msgstr "クエリの説明を記述してください"
 msgid "Write a handlebars template to render the data"
 msgstr "データをレンダリングするための Handlebars テンプレートを記述してください"
 
+msgid "X AXIS TITLE MARGIN"
+msgstr ""
+
 msgid "X Axis"
 msgstr "X軸"
 
@@ -17328,11 +17570,17 @@ msgstr "X軸タイトルのマージン"
 msgid "X Axis title margin"
 msgstr ""
 
+msgid "X Log Scale"
+msgstr ""
+
 msgid "X Tick Layout"
 msgstr "X軸目盛りのレイアウト"
 
 msgid "X axis title margin"
 msgstr "X軸タイトルのマージン"
+
+msgid "X bounds"
+msgstr ""
 
 msgid "X-Axis Sort Ascending"
 msgstr "X軸で昇順並べ替え"
@@ -17350,8 +17598,17 @@ msgstr "X スケール間隔"
 msgid "XYZ"
 msgstr "XYZ"
 
+msgid "Y 2 bounds"
+msgstr ""
+
+msgid "Y AXIS TITLE MARGIN"
+msgstr ""
+
 msgid "Y Axis"
 msgstr "Y軸"
+
+msgid "Y Axis 2 Bounds"
+msgstr ""
 
 msgid "Y Axis Bounds"
 msgstr "Y軸の境界"
@@ -17379,6 +17636,9 @@ msgstr "Y軸対数スケール"
 
 msgid "Y axis title margin"
 msgstr "Y軸タイトルのマージン"
+
+msgid "Y bounds"
+msgstr ""
 
 msgid "Y-Axis"
 msgstr "Y軸"
@@ -17528,6 +17788,9 @@ msgid ""
 "You cannot delete the last temporal filter as it's used for time range "
 "filters in dashboards."
 msgstr "ダッシュボードの時間範囲フィルターに使用されているため、最後の時間フィルターは削除できません。"
+
+msgid "You cannot use 45° tick layout along with the time range filter"
+msgstr ""
 
 #, python-format
 msgid "You do not have access to the data behind this chart (tables: %s)."
@@ -17718,6 +17981,9 @@ msgstr "以下のテーブルへのアクセス権、または「all_database_ac
 msgid "You need to"
 msgstr "次のことを行う必要があります"
 
+msgid "You need to configure HTML sanitization to use CSS"
+msgstr ""
+
 msgid ""
 "You updated the values in the control panel, but the chart was not "
 "updated automatically. Run the query by clicking on the \"Update chart\" "
@@ -17769,7 +18035,18 @@ msgstr ""
 "です。ダッシュボードのサイズを縮小するか（たとえば複数のダッシュボードに分割するなど）SUPERSET_DASHBOARD_POSITION_DATA_LIMIT"
 " 設定値を上げてください。"
 
-msgid "Your export is being prepared. You'll receive an email when it's ready."
+msgid ""
+"Your export is being generated and will download automatically when "
+"ready. We'll also email you a download link."
+msgstr ""
+
+msgid "Your export is being generated. Please, do not leave the page."
+msgstr ""
+
+msgid "Your export is ready and downloading."
+msgstr ""
+
+msgid "Your export is taking longer than expected. Try again later."
 msgstr ""
 
 #, python-format
@@ -17962,6 +18239,9 @@ msgstr "背景色"
 msgid "banana"
 msgstr "バナナ"
 
+msgid "basis"
+msgstr ""
+
 msgid "begins with"
 msgstr "で始まる"
 
@@ -17999,6 +18279,9 @@ msgstr "以下を使用して"
 
 msgid "cannot be empty"
 msgstr "空にできません"
+
+msgid "cardinal"
+msgstr ""
 
 msgid "cell bar"
 msgstr "セルバー"
@@ -18153,6 +18436,9 @@ msgstr "deck.gl 散布図"
 msgid "deck.gl Screen Grid"
 msgstr "deck.gl スクリーン・グリッド"
 
+msgid "deck.gl charts"
+msgstr ""
+
 msgid "deck.gl layers (charts)"
 msgstr "deck.gl レイヤー(チャート)"
 
@@ -18240,6 +18526,9 @@ msgstr "行全体"
 
 msgid "entries"
 msgstr "件"
+
+msgid "entries per page"
+msgstr ""
 
 #. do-not-translate
 msgid "error_message"
@@ -18408,6 +18697,9 @@ msgstr "左"
 msgid "less than {min} {name}"
 msgstr "{min} {name} 未満"
 
+msgid "linear"
+msgstr ""
+
 msgid "locale_key"
 msgstr "ロケールキー"
 
@@ -18448,6 +18740,9 @@ msgstr "分"
 
 msgid "minute(s)"
 msgstr "分"
+
+msgid "monotone"
+msgstr ""
 
 msgid "month"
 msgstr "月"
@@ -18505,6 +18800,9 @@ msgstr "数値"
 
 msgid "numeric type icon"
 msgstr "数値型アイコン"
+
+msgid "nvd3"
+msgstr ""
 
 msgid "of"
 msgstr "件中"
@@ -18683,6 +18981,14 @@ msgstr "互い違い"
 msgid "std"
 msgstr "標準偏差"
 
+#. do-not-translate
+msgid "step-after"
+msgstr ""
+
+#. do-not-translate
+msgid "step-before"
+msgstr ""
+
 msgid "stopped"
 msgstr "停止済み"
 
@@ -18772,6 +19078,9 @@ msgstr "値の昇順"
 
 msgid "value descending"
 msgstr "値の降順"
+
+msgid "valuename"
+msgstr ""
 
 msgid "var"
 msgstr "分散"

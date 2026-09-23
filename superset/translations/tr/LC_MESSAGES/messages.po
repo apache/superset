@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: avsarcoteli@gmail.com\n"
-"POT-Creation-Date: 2026-09-23 12:43+0200\n"
+"POT-Creation-Date: 2026-09-24 00:52+0300\n"
 "PO-Revision-Date: 2024-02-25 14:00+0300\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: tr\n"
@@ -136,6 +136,9 @@ msgstr "Detaylar için."
 msgid " near '%(highlight)s'"
 msgstr "'  %(highlight)s ' yakınlarında"
 
+msgid " source code of Superset's sandboxed parser"
+msgstr ""
+
 msgid ""
 " standard to ensure that the lexicographical ordering\n"
 "                      coincides with the chronological ordering. If the\n"
@@ -187,62 +190,6 @@ msgstr "Ayrıntıları görmek için."
 
 msgid "!= (Is not equal)"
 msgstr "."
-
-msgid "Add group"
-msgstr ""
-
-msgid "Add subgroup"
-msgstr ""
-
-msgid "Center"
-msgstr ""
-
-msgid "Collapse settings"
-msgstr ""
-
-msgid "Column groups"
-msgstr ""
-
-msgid "Enter group name"
-msgstr ""
-
-msgid "Expand settings"
-msgstr ""
-
-#, python-format
-msgid "Group %s"
-msgstr ""
-
-msgid "Group columns"
-msgstr ""
-
-msgid "Group name"
-msgstr ""
-
-msgid "Move group left"
-msgstr ""
-
-msgid "Move group right"
-msgstr ""
-
-msgid "Multi-level header"
-msgstr ""
-
-msgid "Position"
-msgstr ""
-
-msgid "Remove group"
-msgstr ""
-
-msgid "Select columns"
-msgstr ""
-
-#, python-format
-msgid "Subgroup %s"
-msgstr ""
-
-msgid "Table side"
-msgstr ""
 
 #, python-format
 msgid "\"%s\" is now the system dark theme"
@@ -609,6 +556,11 @@ msgstr "%s / %s seçildi"
 #, fuzzy, python-format
 msgid "%s recipients"
 msgstr "%s son kullanılanlar"
+
+#, python-format
+msgid "%s record"
+msgid_plural "%s records..."
+msgstr[0] ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, es, sr,
 # sr_Latn]
@@ -1300,6 +1252,12 @@ msgstr "AQE"
 msgid "AUG"
 msgstr "AĞU"
 
+msgid "AXIS TITLE MARGIN"
+msgstr ""
+
+msgid "AXIS TITLE POSITION"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, es, sr,
 # sr_Latn]
 #, fuzzy
@@ -1468,6 +1426,9 @@ msgstr "Bu pano için sertifikasyon ayrıntıları ekleyin"
 msgid "Add color for positive/negative change"
 msgstr "Olumlu/negative değişim için renk ekleyin"
 
+msgid "Add colors to cell bars for +/-"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
 #, fuzzy
@@ -1533,6 +1494,9 @@ msgstr ""
 msgid "Add folder"
 msgstr "Filtre ekle"
 
+msgid "Add group"
+msgstr ""
+
 msgid "Add item"
 msgstr "Ekle item"
 
@@ -1577,6 +1541,9 @@ msgstr ""
 
 msgid "Add sheet"
 msgstr "Sayfa ekle"
+
+msgid "Add subgroup"
+msgstr ""
 
 msgid "Add tag to entities"
 msgstr "Varlıklara etiket ekleyin"
@@ -1748,6 +1715,11 @@ msgstr ""
 "uygulanır."
 
 msgid ""
+"Aggregate function to apply when pivoting and computing the total rows "
+"and columns"
+msgstr ""
+
+msgid ""
 "Aggregates data within the boundary of grid cells and maps the aggregated"
 " values to a dynamic color scale"
 msgstr ""
@@ -1759,6 +1731,9 @@ msgstr "Aggregation"
 
 msgid "Aggregation Method"
 msgstr "Aggregation Method"
+
+msgid "Aggregation function"
+msgstr ""
 
 msgid ""
 "Aggregation used for the summary row. By default each metric keeps its "
@@ -2790,6 +2765,9 @@ msgstr ""
 msgid "Arrow"
 msgstr "Ok"
 
+msgid "Ascending"
+msgstr ""
+
 msgid "Assign a set of parameters as"
 msgstr ""
 "Assign a set of parametre assign a set of parameter assign a set of "
@@ -2876,6 +2854,9 @@ msgstr "Kolon seç"
 msgid "Autosize all columns"
 msgstr "Tüm sütunlar"
 
+msgid "Available Handlebars Helpers in Superset:"
+msgstr ""
+
 msgid "Available sorting modes:"
 msgstr "Mevcut tür modlar:"
 
@@ -2952,6 +2933,9 @@ msgstr "Bar Chart"
 msgid "Bar Charts are used to show metrics as a series of bars."
 msgstr "Bar Charts, bir dizi bar olarak metrik göstermek için kullanılır."
 
+msgid "Bar Values"
+msgstr ""
+
 msgid "Bar orientation"
 msgstr "Bar yönlendirme"
 
@@ -2985,6 +2969,10 @@ msgstr ""
 #, fuzzy, python-format
 msgid "Base layer map style. See MapLibre documentation: %s"
 msgstr "Temel katman harita stili. MapLibre belgelerine bakın: %s"
+
+#, python-format
+msgid "Base layer map style. See Mapbox documentation: %s"
+msgstr ""
 
 msgid "Base slope"
 msgstr "Baz eğim"
@@ -3167,6 +3155,9 @@ msgstr ""
 
 msgid "Bubble Chart"
 msgstr "Bubble Chart"
+
+msgid "Bubble Chart (legacy)"
+msgstr ""
 
 msgid "Bubble Color"
 msgstr "Bubble Color"
@@ -3504,6 +3495,9 @@ msgstr "Hücre limiti"
 #, fuzzy
 msgid "Cell title template"
 msgstr "Şablonu sil"
+
+msgid "Center"
+msgstr ""
 
 msgid "Center value"
 msgstr ""
@@ -4197,6 +4191,9 @@ msgstr "Colalt Data Panel"
 msgid "Collapse row"
 msgstr "Collap row"
 
+msgid "Collapse settings"
+msgstr ""
+
 msgid "Collapse tab content"
 msgstr "Colalt sekme içeriği"
 
@@ -4330,6 +4327,9 @@ msgstr "Uzunlık verileri içeren sütun"
 #, fuzzy
 msgid "Column data types"
 msgstr "Veri tipi"
+
+msgid "Column groups"
+msgstr ""
 
 msgid "Column header tooltip"
 msgstr "Köşe adı"
@@ -4511,6 +4511,12 @@ msgstr ""
 "Farklı gruplar arasında zaman içinde metrik değişiklikler nasıl "
 "karşılanır. Her grup bir sıraya haritalandı ve zamanla değişen bar "
 "uzunluğu ve rengi."
+
+msgid ""
+"Compares metrics between different time periods. Displays time series "
+"data across multiple periods (like weeks or months) to show period-over-"
+"period trends and patterns."
+msgstr ""
 
 msgid ""
 "Compares the current time period against equivalent past periods by "
@@ -4868,6 +4874,18 @@ msgstr ""
 msgid "Count"
 msgstr "Say"
 
+msgid "Count Unique Values"
+msgstr ""
+
+msgid "Count as Fraction of Columns"
+msgstr ""
+
+msgid "Count as Fraction of Rows"
+msgstr ""
+
+msgid "Count as Fraction of Total"
+msgstr ""
+
 msgid "Country"
 msgstr "Ülke"
 
@@ -4932,6 +4950,12 @@ msgstr "Veriseti oluştur"
 
 msgid "Create dataset"
 msgstr "Veriseti oluştur"
+
+msgid "Create matrix columns by placing charts side-by-side"
+msgstr ""
+
+msgid "Create matrix rows by stacking charts vertically"
+msgstr ""
 
 msgid "Create new chart"
 msgstr "Yeni grafik oluştur"
@@ -5813,6 +5837,21 @@ msgstr ""
 "Varsayılan değer otomatik olarak \"ilk filtre değerini varsayılan olarak "
 "seçin\" kontrol edilir"
 
+msgid ""
+"Define a function that receives the input and outputs the content for a "
+"tooltip"
+msgstr ""
+
+msgid "Define a function that returns a URL to navigate to when user clicks"
+msgstr ""
+
+msgid ""
+"Define a javascript function that receives the data array used in the "
+"visualization and is expected to return a modified version of that array."
+" This can be used to alter properties of the data, filter, or enrich the "
+"array."
+msgstr ""
+
 msgid "Define color breakpoints for the data"
 msgstr "Veriler için renk uç noktaları tanımlamak"
 
@@ -6150,6 +6189,9 @@ msgid "Depends on"
 msgstr ""
 
 msgid "Deployment default"
+msgstr ""
+
+msgid "Descending"
 msgstr ""
 
 msgid "Description"
@@ -6689,6 +6731,9 @@ msgstr "ms (100.40008: 100ms 400μs 80n)"
 msgid "Duration in ms (10500 => 0:00:10.5)"
 msgstr "ms cinsinden süre (10500 => 0:00:10.5)"
 
+msgid "Duration in ms (10500 => 0:10.5)"
+msgstr ""
+
 msgid "Duration in ms (66000 => 1m 6s)"
 msgstr "ms (66000 9)"
 
@@ -7023,6 +7068,9 @@ msgstr "Enable tahmin"
 msgid "Enable graph roaming"
 msgstr "Enable grafik roaming"
 
+msgid "Enable horizontal layout (columns)"
+msgstr ""
+
 #, fuzzy
 msgid "Enable icons"
 msgstr "Grafik seçenekleri"
@@ -7050,6 +7098,9 @@ msgid "Enable server side pagination of results (experimental feature)"
 msgstr ""
 "Sonuçların sunucu tarafında sayfalama özelliğini etkinleştir (deneysel "
 "özellik)"
+
+msgid "Enable vertical layout (rows)"
+msgstr ""
 
 msgid "Enables rendering of icons for GeoJSON points"
 msgstr "GeoJSON noktaları için ikonların uygulanması"
@@ -7140,6 +7191,9 @@ msgstr "Saniyede süresi girin"
 
 msgid "Enter fullscreen"
 msgstr "Tam ekrana geç"
+
+msgid "Enter group name"
+msgstr ""
 
 msgid "Enter minimum and maximum values for the range filter"
 msgstr "aralığı filtre için minimum ve maksimum değerler girin"
@@ -7449,6 +7503,9 @@ msgstr "genişletilmiş satır"
 msgid "Expand row to edit"
 msgstr "Düzenlemek için satırı genişlet"
 
+msgid "Expand settings"
+msgstr ""
+
 msgid ""
 "Expects a formula with depending time parameter 'x'\n"
 "        in milliseconds since epoch. mathjs is used to evaluate the "
@@ -7628,6 +7685,9 @@ msgstr "Ekstra Kontroller"
 
 msgid "Extra Parameters"
 msgstr "Ekstra Parametreler"
+
+msgid "Extra data for JS"
+msgstr ""
 
 #, python-brace-format
 msgid ""
@@ -8170,6 +8230,11 @@ msgid "For further instructions, consult the"
 msgstr "Daha fazla talimat için, danışın"
 
 msgid ""
+"For more information about objects are in context in the scope of this "
+"function, refer to the"
+msgstr ""
+
+msgid ""
 "For regular filters, these are the subjects (users, roles, groups) this "
 "filter will be applied to. For base filters, these are the subjects that "
 "the filter DOES NOT apply to, e.g. Admin if admin should see all data."
@@ -8464,6 +8529,9 @@ msgstr "Büyük veya eşit (>=)"
 msgid "Greater than (>)"
 msgstr "Harika (>)"
 
+msgid "Green for increase, red for decrease"
+msgstr ""
+
 msgid "Grid"
 msgstr "Grid"
 
@@ -8482,6 +8550,10 @@ msgstr ""
 msgid "Group"
 msgstr "Grup Grubu"
 
+#, python-format
+msgid "Group %s"
+msgstr ""
+
 msgid "Group By"
 msgstr "Grup Tarafından"
 
@@ -8493,6 +8565,12 @@ msgstr "Grup Anahtar"
 
 msgid "Group by"
 msgstr "Grup Tarafından Grup"
+
+msgid "Group columns"
+msgstr ""
+
+msgid "Group name"
+msgstr ""
 
 msgid "Group remaining as \"Others\""
 msgstr "Grup \"Diğerleri\" olarak kaldı"
@@ -8602,6 +8680,9 @@ msgstr "yatay (Top)"
 
 msgid "Horizontal alignment"
 msgstr "yatay hizalama"
+
+msgid "Horizontal layout (columns)"
+msgstr ""
 
 msgid "Host"
 msgstr "Host"
@@ -9180,6 +9261,9 @@ msgstr ""
 msgid "It’s not recommended to truncate Y axis in Bar chart."
 msgstr "Bar grafiğindeki truncate Y eksenine tavsiye edilmez."
 
+msgid "It’s not recommended to truncate axis in Bar chart."
+msgstr ""
+
 msgid "JAN"
 msgstr "OCA"
 
@@ -9219,6 +9303,15 @@ msgstr "HAZ"
 
 msgid "January"
 msgstr "Ocak"
+
+msgid "JavaScript data interceptor"
+msgstr ""
+
+msgid "JavaScript onClick href"
+msgstr ""
+
+msgid "JavaScript tooltip generator"
+msgstr ""
 
 msgid "Jinja templating"
 msgstr "Jinja çekicilating"
@@ -9325,6 +9418,15 @@ msgstr "Labelling"
 
 msgid "Labels"
 msgstr "Etiketler"
+
+msgid "Labels for the marker lines"
+msgstr ""
+
+msgid "Labels for the markers"
+msgstr ""
+
+msgid "Labels for the ranges"
+msgstr ""
 
 #, fuzzy
 msgid "Languages"
@@ -9594,6 +9696,9 @@ msgid ""
 "does not already have. Leave empty for legacy RBAC-only behavior."
 msgstr ""
 
+msgid "Limits the number of cells that get retrieved."
+msgstr ""
+
 msgid ""
 "Limits the number of cells that get retrieved. Not applied when non-"
 "additive metrics (e.g. ratios, COUNT_DISTINCT, AVG, percentiles) are "
@@ -9692,6 +9797,9 @@ msgstr "Sorguyu düzenle"
 msgid "List Roles"
 msgstr "Liste Roller"
 
+msgid "List Unique Values"
+msgstr ""
+
 #, fuzzy
 msgid "List Users"
 msgstr "Sorguyu düzenle"
@@ -9701,11 +9809,20 @@ msgid ""
 "toggles it on the chart"
 msgstr ""
 
+msgid "List of extra columns made available in JavaScript functions"
+msgstr ""
+
 msgid "List of n+1 values for bucketing metric into n buckets."
 msgstr "n+1 değerlerin kovalama metrik için n kovalar."
 
 msgid "List of the column names that should be read"
 msgstr "Okunacak sütun isimlerinin listesi"
+
+msgid "List of values to mark with lines"
+msgstr ""
+
+msgid "List of values to mark with triangles"
+msgstr ""
 
 msgid "List updated"
 msgstr "Liste güncellendi"
@@ -10085,6 +10202,9 @@ msgstr "Belirtilen süre boyunca değerlerin anlamı"
 msgid "Mean values"
 msgstr "Ortalama değerler"
 
+msgid "Median"
+msgstr ""
+
 msgid ""
 "Median edge width, the thickest edge will be 4 times thicker than the "
 "thinnest."
@@ -10252,6 +10372,9 @@ msgstr "Metriks"
 #, fuzzy, python-format
 msgid "Metrics (%s)"
 msgstr "Metrikler (%s)"
+
+msgid "Metrics / Dimensions"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
@@ -10453,6 +10576,12 @@ msgstr "Daha Fazla filtreler"
 msgid "MotherDuck token"
 msgstr "AnneDuck token"
 
+msgid "Move group left"
+msgstr ""
+
+msgid "Move group right"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
 #, fuzzy
@@ -10484,6 +10613,9 @@ msgstr "Multi-Levels"
 
 msgid "Multi-Variables"
 msgstr "Çok değişken"
+
+msgid "Multi-level header"
+msgstr ""
 
 msgid "Multiple"
 msgstr "Birden çok"
@@ -11755,6 +11887,9 @@ msgstr "Bu veritabanını tanımlamanıza yardımcı olmak için bir isim seçin
 msgid "Pick a nickname for how the database will display in Superset."
 msgstr "Veritabanın Superset'te nasıl sergileyeceği için bir takma adı seçin."
 
+msgid "Pick a set of deck.gl charts to layer on top of one another"
+msgstr ""
+
 msgid "Pick a title for you annotation."
 msgstr "Sizin için bir başlık seçin."
 
@@ -12038,6 +12173,9 @@ msgstr "Port   %(port)s on hostname \"  %(hostname)s \" bağlantıyı reddetti."
 
 msgid "Port out of range 0-65535"
 msgstr "Port out of range 0-65535"
+
+msgid "Position"
+msgstr ""
 
 msgid "Position JSON"
 msgstr "Pozisyon JSON"
@@ -12331,6 +12469,9 @@ msgstr "Filtre tipi"
 msgid "Ranges"
 msgstr "Ranges"
 
+msgid "Ranges to highlight with shading"
+msgstr ""
+
 msgid "Ranking"
 msgstr "Sıralama"
 
@@ -12385,8 +12526,21 @@ msgstr "Rect"
 msgid "Recurring (every)"
 msgstr "(Herkes)"
 
+msgid "Red for increase, green for decrease"
+msgstr ""
+
 msgid "Redo the action"
 msgstr "Redo eylemi"
+
+msgid "Reduce X ticks"
+msgstr ""
+
+msgid ""
+"Reduces the number of X-axis ticks to be rendered. If true, the x-axis "
+"will not overflow and labels may be missing. If false, a minimum width "
+"will be applied to columns and the width may overflow into an horizontal "
+"scroll."
+msgstr ""
 
 msgid "Refer to the"
 msgstr "Refer'e"
@@ -12525,6 +12679,9 @@ msgid "Remove filter"
 msgstr "Filtreyi kaldır"
 
 msgid "Remove from favorites"
+msgstr ""
+
+msgid "Remove group"
 msgstr ""
 
 msgid "Remove item"
@@ -12931,6 +13088,9 @@ msgstr "Zengin alettip"
 
 msgid "Right"
 msgstr "Sağ"
+
+msgid "Right Axis Format"
+msgstr ""
 
 msgid "Right Axis Metric"
 msgstr "Doğru"
@@ -13468,6 +13628,10 @@ msgstr "Yazma değişikliklerini sağlamak için alta çıkın."
 msgid "Search"
 msgstr "Ara"
 
+#, python-format
+msgid "Search %s records"
+msgstr ""
+
 msgid "Search / Filter"
 msgstr "Ara / Filtrele"
 
@@ -13788,6 +13952,9 @@ msgstr "Kolon seç"
 #, fuzzy
 msgid "Select column name"
 msgstr "Sütun adı seçin"
+
+msgid "Select columns"
+msgstr ""
 
 msgid ""
 "Select columns that will be displayed in the table. You can multiselect "
@@ -14488,6 +14655,9 @@ msgstr "Show Metric Names"
 msgid "Show Null Values"
 msgstr ""
 
+msgid "Show Range Filter"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
 #, fuzzy
@@ -14573,6 +14743,9 @@ msgstr "Show columns subtotal"
 
 msgid "Show columns total"
 msgstr "Show columns total"
+
+msgid "Show data points as circle markers on the lines"
+msgstr ""
 
 msgid "Show empty columns"
 msgstr "Boş sütunlar göster"
@@ -14666,6 +14839,9 @@ msgid "Show summary"
 msgstr "Show summary Özet"
 
 msgid "Show the main ticks on axes."
+msgstr ""
+
+msgid "Show the value on top of the bar"
 msgstr ""
 
 #, fuzzy
@@ -15025,6 +15201,9 @@ msgstr "Sort"
 msgid "Sort metric"
 msgstr "Sort metric"
 
+msgid "Sort order"
+msgstr ""
+
 #, fuzzy
 msgid "Sort query by"
 msgstr "Sorguyu Dışa Aktar"
@@ -15121,6 +15300,9 @@ msgstr "Bir diğerinden üst üste Stack serisi"
 
 msgid "Stacked"
 msgstr "Stacked"
+
+msgid "Stacked Bars"
+msgstr ""
 
 msgid "Stacked Style"
 msgstr "Stacked Style"
@@ -15301,6 +15483,10 @@ msgstr "Kategori"
 msgid "Subdomain"
 msgstr "Subdomain"
 
+#, python-format
+msgid "Subgroup %s"
+msgstr ""
+
 msgid "Subject"
 msgstr "Özne"
 
@@ -15355,6 +15541,15 @@ msgstr ""
 
 msgid "Sum"
 msgstr "Sum"
+
+msgid "Sum as Fraction of Columns"
+msgstr ""
+
+msgid "Sum as Fraction of Rows"
+msgstr ""
+
+msgid "Sum as Fraction of Total"
+msgstr ""
 
 msgid "Sum of values over specified period"
 msgstr "Belirtilen süre boyunca değerlerin sum"
@@ -15546,6 +15741,9 @@ msgstr "Masa adı tanımlanmamış"
 #, python-format
 msgid "Table or View \"%(table)s\" does not exist."
 msgstr "Masa veya \"  %(table)s \" yoktur."
+
+msgid "Table side"
+msgstr ""
 
 msgid ""
 "Table that visualizes paired t-tests, which are used to understand "
@@ -16475,6 +16673,13 @@ msgid ""
 "                Click on the info bubble for more details on accepted "
 "\"freq\"\n"
 "                expressions."
+msgstr ""
+
+msgid ""
+"The periodicity over which to pivot time. Users can provide\n"
+"            \"Pandas\" offset alias.\n"
+"            Click on the info bubble for more details on accepted "
+"\"freq\" expressions."
 msgstr ""
 
 msgid "The pixel radius"
@@ -17515,6 +17720,9 @@ msgstr "Bu klasör yalnızca sütunları destekler"
 msgid "This folder only supports metrics"
 msgstr "Bu klasör yalnızca metrikleri destekler"
 
+msgid "This functionality is disabled in your environment for security reasons."
+msgstr ""
+
 msgid ""
 "This is a default columns folder. Its name cannot be changed or removed. "
 "It can stay empty but will only accept column items."
@@ -17932,6 +18140,9 @@ msgstr ""
 "Zaman dizesi belirsizdir. Lütfen [  %(human_readable)s ago] veya [  "
 "%(human_readable)s later] belirt."
 
+msgid "Time-series Percent Change"
+msgstr ""
+
 msgid "Time-series Period Pivot"
 msgstr "Zaman Dizisi"
 
@@ -18079,6 +18290,10 @@ msgstr "Toplam"
 #, python-format
 msgid "Total (%(aggfunc)s)"
 msgstr "Total (  %(aggfunc)s )"
+
+#, python-format
+msgid "Total (%(aggregatorName)s)"
+msgstr ""
 
 msgid ""
 "Total angle covered by the chart, in degrees. 360° draws a full circle "
@@ -18725,6 +18940,9 @@ msgstr ""
 msgid "Use a log scale"
 msgstr "Bir log ölçek kullanın"
 
+msgid "Use a log scale for the X-axis"
+msgstr ""
+
 msgid "Use a log scale for the Y-axis"
 msgstr "Y-axis için bir log ölçek kullanın"
 
@@ -19000,6 +19218,9 @@ msgstr "Dikey"
 msgid "Vertical (Left)"
 msgstr "Dikey (Left)"
 
+msgid "Vertical layout (rows)"
+msgstr ""
+
 msgid "View"
 msgstr "View"
 
@@ -19170,6 +19391,12 @@ msgstr ""
 "Tek bir metrik bir ülkenin ana alt birimlerinde (devletler, şehirler vs) "
 "bir choropleth haritasında nasıl değişir. Her subdivision’un değeri, "
 "ilgili coğrafi sınırın üzerinde yürürken yüksektir."
+
+msgid ""
+"Visualizes many different time-series objects in a single chart. This "
+"chart is being deprecated and we recommend using the Time-series Chart "
+"instead."
+msgstr ""
 
 msgid ""
 "Visualizes the words in a column that appear the most often. Bigger font "
@@ -19527,6 +19754,12 @@ msgstr "metrik adı gösterebilmek"
 msgid "Whether to display the metric name as a title"
 msgstr "metrik adını bir başlık olarak gösterebilmek"
 
+msgid "Whether to display the min and max values of the X-axis"
+msgstr ""
+
+msgid "Whether to display the min and max values of the Y-axis"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
 #, fuzzy
@@ -19541,6 +19774,9 @@ msgstr "Aracıtipte yüzde değerini gösterebilmek"
 
 msgid "Whether to display the stroke"
 msgstr "vuruşu gösterip gösterelim"
+
+msgid "Whether to display the time range interactive selector"
+msgstr ""
 
 msgid "Whether to display the timestamp"
 msgstr "Zamanları gösterelim"
@@ -19615,6 +19851,9 @@ msgstr "Ya da inmek ya da yükselmek"
 msgid "Whether to sort results by the selected metric in descending order."
 msgstr "Aşağıdaki metrik tarafından alınan siparişle sonuç alın."
 
+msgid "Whether to sort tooltip by the selected metric in descending order."
+msgstr ""
+
 msgid ""
 "Whether to sort tooltip by the selected metric in descending order. On "
 "stacked charts, values are shown in ascending order."
@@ -19682,6 +19921,9 @@ msgstr "Sorunuz için bir açıklama yazın"
 msgid "Write a handlebars template to render the data"
 msgstr "Verileri oluşturmak için bir iş çubuğu şablonu yazın"
 
+msgid "X AXIS TITLE MARGIN"
+msgstr ""
+
 msgid "X Axis"
 msgstr "X"
 
@@ -19710,11 +19952,17 @@ msgstr "X Axis Title Margin"
 msgid "X Axis title margin"
 msgstr ""
 
+msgid "X Log Scale"
+msgstr ""
+
 msgid "X Tick Layout"
 msgstr "X Tick Layoutout"
 
 msgid "X axis title margin"
 msgstr "X eksen adı marj"
+
+msgid "X bounds"
+msgstr ""
 
 msgid "X-Axis Sort Ascending"
 msgstr "X-Axis Sort Ascending"
@@ -19732,8 +19980,17 @@ msgstr "X-scale aralığı"
 msgid "XYZ"
 msgstr "XYZ"
 
+msgid "Y 2 bounds"
+msgstr ""
+
+msgid "Y AXIS TITLE MARGIN"
+msgstr ""
+
 msgid "Y Axis"
 msgstr "Y"
+
+msgid "Y Axis 2 Bounds"
+msgstr ""
 
 msgid "Y Axis Bounds"
 msgstr "Y Axis Bounds"
@@ -19761,6 +20018,9 @@ msgstr "Y Log Scale"
 
 msgid "Y axis title margin"
 msgstr "Y eksen adı marj"
+
+msgid "Y bounds"
+msgstr ""
 
 msgid "Y-Axis"
 msgstr "Y-Axis"
@@ -19936,6 +20196,9 @@ msgid ""
 msgstr ""
 "Panolarda zaman aralık filtreleri için kullanılan son zaman filtrelerini "
 "silemezsiniz."
+
+msgid "You cannot use 45° tick layout along with the time range filter"
+msgstr ""
 
 #, python-format
 msgid "You do not have access to the data behind this chart (tables: %s)."
@@ -20161,6 +20424,9 @@ msgstr ""
 msgid "You need to"
 msgstr "Yapmanız gerekiyor"
 
+msgid "You need to configure HTML sanitization to use CSS"
+msgstr ""
+
 msgid ""
 "You updated the values in the control panel, but the chart was not "
 "updated automatically. Run the query by clicking on the \"Update chart\" "
@@ -20218,7 +20484,18 @@ msgid ""
 "SUPERSET_DASHBOARD_POSITION_DATA_LIMIT config setting."
 msgstr ""
 
-msgid "Your export is being prepared. You'll receive an email when it's ready."
+msgid ""
+"Your export is being generated and will download automatically when "
+"ready. We'll also email you a download link."
+msgstr ""
+
+msgid "Your export is being generated. Please, do not leave the page."
+msgstr ""
+
+msgid "Your export is ready and downloading."
+msgstr ""
+
+msgid "Your export is taking longer than expected. Try again later."
 msgstr ""
 
 #, python-format
@@ -20436,6 +20713,9 @@ msgstr "arka plan rengi"
 msgid "banana"
 msgstr "muz"
 
+msgid "basis"
+msgstr ""
+
 #, fuzzy
 msgid "begins with"
 msgstr "Grafik genişliği"
@@ -20477,6 +20757,9 @@ msgstr "kullanarak"
 
 msgid "cannot be empty"
 msgstr "boş bırakılamaz"
+
+msgid "cardinal"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
@@ -20653,6 +20936,9 @@ msgstr "Güverte.gl Scatterplot"
 msgid "deck.gl Screen Grid"
 msgstr "Güverte.gl Ekran"
 
+msgid "deck.gl charts"
+msgstr ""
+
 msgid "deck.gl layers (charts)"
 msgstr "Güverte.gl katmanları (charts)"
 
@@ -20748,6 +21034,9 @@ msgstr "tüm satır"
 
 msgid "entries"
 msgstr "giriş girişleri"
+
+msgid "entries per page"
+msgstr ""
 
 #. do-not-translate
 msgid "error_message"
@@ -20938,6 +21227,9 @@ msgstr "Sol soldan ayrıldı"
 msgid "less than {min} {name}"
 msgstr " {min}     {name}  "
 
+msgid "linear"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
 #, fuzzy
@@ -20981,6 +21273,9 @@ msgstr "dakika"
 
 msgid "minute(s)"
 msgstr "dakika(var)"
+
+msgid "monotone"
+msgstr ""
 
 msgid "month"
 msgstr "ay"
@@ -21054,6 +21349,9 @@ msgstr "sayısal"
 
 msgid "numeric type icon"
 msgstr "numeric tip icon"
+
+msgid "nvd3"
+msgstr ""
 
 msgid "of"
 msgstr "Of"
@@ -21242,6 +21540,14 @@ msgstr "Durmuş"
 msgid "std"
 msgstr "std"
 
+#. do-not-translate
+msgid "step-after"
+msgstr ""
+
+#. do-not-translate
+msgid "step-before"
+msgstr ""
+
 msgid "stopped"
 msgstr "durduruldu"
 
@@ -21350,6 +21656,9 @@ msgstr "değer yükselmeye değer"
 
 msgid "value descending"
 msgstr "Değer inen"
+
+msgid "valuename"
+msgstr ""
 
 msgid "var"
 msgstr "Var"
