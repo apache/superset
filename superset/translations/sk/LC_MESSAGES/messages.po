@@ -12760,9 +12760,9 @@ msgstr "Spustiť výber"
 msgid "Running"
 msgstr "Beží"
 
-#, fuzzy, python-format
+#, python-format
 msgid "Running block %(block_num)s out of %(block_count)s"
-msgstr "Spouští sa príkaz %(statement_num)s z %(statement_count)s"
+msgstr "Spúšťa sa blok %(block_num)s z %(block_count)s"
 
 msgid "SAT"
 msgstr "SO"
