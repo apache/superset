@@ -385,7 +385,6 @@ def test_get_query_context_returns_none_on_malformed_json(
     [
         '{"queries": [{"metrics": ["count"]}]}',  # missing datasource
         '{"datasource": {"id": 1, "type": "table"}}',  # missing queries
-        '{"datasource": {"id": 1, "type": "table"}, "queries": []}',  # empty queries
     ],
 )
 def test_get_query_context_returns_none_when_metadata_incomplete(
@@ -428,5 +427,25 @@ def test_get_query_context_calls_factory_with_complete_metadata() -> None:
     mock_factory.create.assert_called_once_with(
         datasource={"id": 1, "type": "table"},
         queries=[{"metrics": ["count"]}],
+        current_slice=slc,
+    )
+
+
+def test_get_query_context_calls_factory_with_empty_queries() -> None:
+    """An empty 'queries' list is a complete, valid query_context -- it must
+    still reach the factory rather than being treated as missing."""
+    slc = Slice(
+        slice_name="empty-queries",
+        query_context='{"datasource": {"id": 1, "type": "table"}, "queries": []}',
+    )
+    mock_factory = MagicMock()
+    slc.query_context_factory = mock_factory
+
+    result = slc.get_query_context()
+
+    assert result is mock_factory.create.return_value
+    mock_factory.create.assert_called_once_with(
+        datasource={"id": 1, "type": "table"},
+        queries=[],
         current_slice=slc,
     )

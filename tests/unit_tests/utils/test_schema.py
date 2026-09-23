@@ -48,7 +48,6 @@ def test_validate_query_context_metadata_rejects_invalid_json() -> None:
         '{"queries": [{"metrics": ["count"]}]}',  # missing datasource
         '{"datasource": {"id": 1, "type": "table"}}',  # missing queries
         '{"datasource": null, "queries": [{"metrics": ["count"]}]}',  # null datasource
-        '{"datasource": {"id": 1, "type": "table"}, "queries": []}',  # empty queries
         "{}",  # neither
     ],
 )
@@ -58,10 +57,20 @@ def test_validate_query_context_metadata_rejects_missing_fields(
     """apache/superset#35774: QueryContextFactory.create() requires 'datasource'
     and 'queries' as keyword-only arguments; a saved query_context missing
     either fails every read with a raw TypeError instead of a clear error at
-    save time. Both must be present and non-empty."""
+    save time. 'datasource' must be present and non-empty; 'queries' must be
+    present as a list (see the empty-queries acceptance test below)."""
     with pytest.raises(ValidationError) as exc_info:
         validate_query_context_metadata(payload)
     assert "query_context" in str(exc_info.value).lower()
+
+
+def test_validate_query_context_metadata_accepts_empty_queries() -> None:
+    """An empty 'queries' list is a legitimate, complete query_context -- it
+    round-trips through QueryContextFactory.create() without error, so it
+    must not be rejected as 'missing' (see e.g. semantic view chart saves)."""
+    validate_query_context_metadata(
+        '{"datasource": {"id": 1, "type": "table"}, "queries": []}'
+    )
 
 
 @pytest.mark.parametrize(
@@ -85,6 +94,14 @@ def test_is_query_context_metadata_complete_accepts_dict_with_both_fields() -> N
     )
 
 
+def test_is_query_context_metadata_complete_accepts_empty_queries_list() -> None:
+    """An empty 'queries' list is a legitimate, complete value: 'queries' just
+    needs to be present as a list, not non-empty."""
+    assert is_query_context_metadata_complete(
+        {"datasource": {"id": 1, "type": "table"}, "queries": []}
+    )
+
+
 @pytest.mark.parametrize(
     "value",
     [
@@ -97,7 +114,11 @@ def test_is_query_context_metadata_complete_accepts_dict_with_both_fields() -> N
         {"datasource": {"id": 1}},
         {"queries": [{}]},
         {"datasource": {}, "queries": [{}]},
-        {"datasource": {"id": 1}, "queries": []},
+        {"datasource": {"id": 1}, "queries": None},
+        {"datasource": {"id": 1}, "queries": "not-a-list"},
+        {"datasource": {"id": 1}, "queries": []},  # datasource missing 'type'
+        {"datasource": {"type": "table"}, "queries": []},  # datasource missing 'id'
+        {"datasource": "table:1", "queries": []},  # datasource not a mapping
     ],
 )
 def test_is_query_context_metadata_complete_rejects_incomplete_values(value):
