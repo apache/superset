@@ -75,6 +75,14 @@ import pytest
 from pytest_mock import MockerFixture
 from sqlalchemy.orm.session import Session
 
+# Generous thread handshake/join timeouts: CI runs the full unit suite on
+# loaded shards, and both threads here share a single StaticPool sqlite
+# connection, so a momentarily-blocked main thread must not time out the
+# worker's pause. A healthy run finishes these handshakes in well under a
+# second; the timeouts exist only to fail loudly on a genuine deadlock.
+HANDSHAKE_TIMEOUT = 60
+JOIN_TIMEOUT = 120
+
 
 def test_stop_before_worker_starts_marks_stopped_without_dispatch(
     app: Any, session: Session
@@ -256,7 +264,9 @@ def test_stop_during_pre_dispatch_pause_marks_stopped_without_dispatch(
         # but well before the DB connection is opened -- squarely inside the
         # race window from the RCA.
         reached_pause.set()
-        assert release_execution.wait(timeout=5), "test deadlocked waiting for release"
+        assert release_execution.wait(timeout=HANDSHAKE_TIMEOUT), (
+            "test deadlocked waiting for release"
+        )
         return real_apply_limit(query, parsed_statement)
 
     mocker.patch("superset.sql_lab.apply_limit", side_effect=paused_apply_limit)
@@ -269,7 +279,9 @@ def test_stop_during_pre_dispatch_pause_marks_stopped_without_dispatch(
     worker = harness.run_execution(app, query_id, execution_result)
 
     try:
-        assert reached_pause.wait(timeout=5), "execution never reached the pause point"
+        assert reached_pause.wait(timeout=HANDSHAKE_TIMEOUT), (
+            "execution never reached the pause point"
+        )
 
         query = harness.fresh_query(query_id)
         assert query.status == QueryStatus.RUNNING
@@ -285,7 +297,7 @@ def test_stop_during_pre_dispatch_pause_marks_stopped_without_dispatch(
     finally:
         release_execution.set()
 
-    worker.join(timeout=10)
+    worker.join(timeout=JOIN_TIMEOUT)
     assert not worker.is_alive(), "execute_sql_statements did not finish in time"
 
     # The statement itself was never sent to the database -- this is the
@@ -339,7 +351,9 @@ def test_stop_after_dispatch_with_no_cancel_support_raises_honestly(
         # -- i.e. after QUERY_DISPATCHED_KEY is committed, right as the
         # statement is about to be (or already is being) sent to the engine.
         reached_pause.set()
-        assert release_execution.wait(timeout=5), "test deadlocked waiting for release"
+        assert release_execution.wait(timeout=HANDSHAKE_TIMEOUT), (
+            "test deadlocked waiting for release"
+        )
         return real_execute_query(query, cursor, log_params)
 
     execute_query_spy = mocker.patch(
@@ -350,7 +364,9 @@ def test_stop_after_dispatch_with_no_cancel_support_raises_honestly(
     worker = harness.run_execution(app, query_id, execution_result)
 
     try:
-        assert reached_pause.wait(timeout=5), "execution never reached the pause point"
+        assert reached_pause.wait(timeout=HANDSHAKE_TIMEOUT), (
+            "execution never reached the pause point"
+        )
 
         query = harness.fresh_query(query_id)
         assert query.status == QueryStatus.RUNNING
@@ -372,7 +388,7 @@ def test_stop_after_dispatch_with_no_cancel_support_raises_honestly(
     finally:
         release_execution.set()
 
-    worker.join(timeout=10)
+    worker.join(timeout=JOIN_TIMEOUT)
     assert not worker.is_alive(), "execute_sql_statements did not finish in time"
 
     # The statement genuinely ran (real execute_query was called through).
@@ -619,7 +635,9 @@ def test_stop_racing_normal_completion_keeps_payload_and_results_write_consisten
         # payload/results-write built", which is what this test is about.
         result = real_execute_query(query, cursor, log_params)
         reached_pause.set()
-        assert release_execution.wait(timeout=5), "test deadlocked waiting for release"
+        assert release_execution.wait(timeout=HANDSHAKE_TIMEOUT), (
+            "test deadlocked waiting for release"
+        )
         return result
 
     mocker.patch("superset.sql_lab.execute_query", side_effect=paused_execute_query)
@@ -628,7 +646,9 @@ def test_stop_racing_normal_completion_keeps_payload_and_results_write_consisten
     worker = harness.run_execution(app, query_id, execution_result, store_results=True)
 
     try:
-        assert reached_pause.wait(timeout=5), "execution never reached the pause point"
+        assert reached_pause.wait(timeout=HANDSHAKE_TIMEOUT), (
+            "execution never reached the pause point"
+        )
 
         query = harness.fresh_query(query_id)
         assert query.status == QueryStatus.RUNNING
@@ -644,7 +664,7 @@ def test_stop_racing_normal_completion_keeps_payload_and_results_write_consisten
     finally:
         release_execution.set()
 
-    worker.join(timeout=10)
+    worker.join(timeout=JOIN_TIMEOUT)
     assert not worker.is_alive(), "execute_sql_statements did not finish in time"
 
     real_cancel_spy.assert_called_once()
@@ -689,7 +709,9 @@ def test_stop_racing_exception_path_keeps_stopped_not_failed(
 
     def paused_failing_execute_query(query: Any, cursor: Any, log_params: Any) -> Any:
         reached_pause.set()
-        assert release_execution.wait(timeout=5), "test deadlocked waiting for release"
+        assert release_execution.wait(timeout=HANDSHAKE_TIMEOUT), (
+            "test deadlocked waiting for release"
+        )
         raise RuntimeError("simulated unrelated failure")
 
     mocker.patch(
@@ -700,7 +722,9 @@ def test_stop_racing_exception_path_keeps_stopped_not_failed(
     worker = harness.run_execution(app, query_id, execution_result)
 
     try:
-        assert reached_pause.wait(timeout=5), "execution never reached the pause point"
+        assert reached_pause.wait(timeout=HANDSHAKE_TIMEOUT), (
+            "execution never reached the pause point"
+        )
 
         QueryDAO.stop_query(client_id)
         stopped_query = harness.fresh_query(query_id)
@@ -708,7 +732,7 @@ def test_stop_racing_exception_path_keeps_stopped_not_failed(
     finally:
         release_execution.set()
 
-    worker.join(timeout=10)
+    worker.join(timeout=JOIN_TIMEOUT)
     assert not worker.is_alive(), "execute_sql_statements did not finish in time"
 
     final_query = harness.fresh_query(query_id)
@@ -812,7 +836,9 @@ def test_stop_racing_results_backend_write_failure_keeps_stopped_not_failed(
         # statement has already finished executing), then reports failure --
         # the exact window the reviewer's repro targets.
         reached_pause.set()
-        assert release_execution.wait(timeout=5), "test deadlocked waiting for release"
+        assert release_execution.wait(timeout=HANDSHAKE_TIMEOUT), (
+            "test deadlocked waiting for release"
+        )
         return False
 
     results_backend_mock.set.side_effect = paused_failing_set
@@ -842,7 +868,9 @@ def test_stop_racing_results_backend_write_failure_keeps_stopped_not_failed(
     worker.start()
 
     try:
-        assert reached_pause.wait(timeout=5), "execution never reached the pause point"
+        assert reached_pause.wait(timeout=HANDSHAKE_TIMEOUT), (
+            "execution never reached the pause point"
+        )
 
         query = harness.fresh_query(query_id)
         assert query.status == QueryStatus.RUNNING
@@ -853,7 +881,7 @@ def test_stop_racing_results_backend_write_failure_keeps_stopped_not_failed(
     finally:
         release_execution.set()
 
-    worker.join(timeout=10)
+    worker.join(timeout=JOIN_TIMEOUT)
     assert not worker.is_alive(), "execute_sql_statements did not finish in time"
 
     assert "error" not in execution_error, (
@@ -1049,7 +1077,9 @@ def test_timed_out_exception_racing_stop_keeps_stopped_not_resurrected(
 
     def paused_timed_out_execute_query(query: Any, cursor: Any, log_params: Any) -> Any:
         reached_pause.set()
-        assert release_execution.wait(timeout=5), "test deadlocked waiting for release"
+        assert release_execution.wait(timeout=HANDSHAKE_TIMEOUT), (
+            "test deadlocked waiting for release"
+        )
         # Mirrors execute_query()'s own `except SoftTimeLimitExceeded`
         # handler exactly: set status locally (uncommitted), then raise. Also
         # dirties an unrelated field the same way real code paths would
@@ -1075,7 +1105,9 @@ def test_timed_out_exception_racing_stop_keeps_stopped_not_resurrected(
     worker = harness.run_execution(app, query_id, execution_result)
 
     try:
-        assert reached_pause.wait(timeout=5), "execution never reached the pause point"
+        assert reached_pause.wait(timeout=HANDSHAKE_TIMEOUT), (
+            "execution never reached the pause point"
+        )
 
         query = harness.fresh_query(query_id)
         assert query.status == QueryStatus.RUNNING
@@ -1089,7 +1121,7 @@ def test_timed_out_exception_racing_stop_keeps_stopped_not_resurrected(
     finally:
         release_execution.set()
 
-    worker.join(timeout=10)
+    worker.join(timeout=JOIN_TIMEOUT)
     assert not worker.is_alive(), "execute_sql_statements did not finish in time"
 
     final_query = harness.fresh_query(query_id)
