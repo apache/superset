@@ -60,6 +60,11 @@ from superset.mcp_service.system.schemas import (
     TagInfo,
 )
 from superset.mcp_service.utils.response_utils import humanize_timestamp
+from superset.mcp_service.utils.serialization import (
+    JsonSafeRows,
+    OptionalRowCount,
+    RowCount,
+)
 from superset.sql.parse import has_aggregate
 from superset.utils import json
 
@@ -886,11 +891,9 @@ class QueryDatasetResponse(BaseModel):
     columns: List[DataColumn] = Field(
         default_factory=list, description="Column metadata for returned data"
     )
-    data: List[Dict[str, Any]] = Field(
-        default_factory=list, description="Query result rows"
-    )
-    row_count: int = Field(0, description="Number of rows returned")
-    total_rows: int | None = Field(
+    data: JsonSafeRows = Field(default_factory=list, description="Query result rows")
+    row_count: RowCount = Field(0, description="Number of rows returned")
+    total_rows: OptionalRowCount = Field(
         None, description="Total row count from the query engine"
     )
     from_dttm: datetime | None = Field(
