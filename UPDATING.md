@@ -31,7 +31,10 @@ assists people when migrating to a new version.
   deployments have to set `AUTH_USER_REGISTRATION = True` so Flask-AppBuilder
   provisions users on first login, which used to publish a public registration
   form that Flask-AppBuilder has no handler for (submitting it returned a 404).
-  First-login provisioning is unchanged.
+  First-login provisioning is unchanged. This also closes
+  `GET /register/activation/<hash>`, which previously stayed reachable and
+  able to provision a user regardless of `AUTH_USER_REGISTRATION`; it now
+  requires the same gate as `/register/`.
 
 ### MCP response size guard: byte limit instead of estimated token count
 
