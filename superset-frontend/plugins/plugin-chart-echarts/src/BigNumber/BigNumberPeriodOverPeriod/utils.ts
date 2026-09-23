@@ -117,6 +117,12 @@ export const resolveComparisonColorKeys = (
 };
 
 /**
+ * Hex alpha suffix appended to a custom comparison color to build the pill
+ * background tint: 0x1A / 0xFF is roughly 10% opacity.
+ */
+export const COMPARISON_TINT_ALPHA_HEX = '1A';
+
+/**
  * Resolves a single color value (semantic token name or literal hex from
  * the color picker) to the (arrow/text, background, strong-text) triad used
  * across the comparison pills. 'Green' / 'Red' keep using the paired
@@ -160,7 +166,7 @@ export const getComparisonColorTokens = (
     : resolvedColor;
   return {
     text: resolvedColor,
-    background: `${opaqueColor}1A`,
+    background: `${opaqueColor}${COMPARISON_TINT_ALPHA_HEX}`,
     strongText: resolvedColor,
   };
 };
