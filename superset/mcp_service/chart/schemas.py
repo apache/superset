@@ -4199,8 +4199,8 @@ class PNGPreview(BaseModel):
     type: Literal["png"] = "png"
     mime_type: Literal["image/png"] = "image/png"
     data: str = Field(..., description="Base64-encoded PNG image")
-    width: int
-    height: int
+    width: int = Field(..., description="Rendered PNG width in pixels")
+    height: int = Field(..., description="Rendered PNG height in pixels")
 
 
 # Discriminated union preview formats for type safety
