@@ -299,111 +299,6 @@ def _strip_titles(obj: Any, in_properties_map: bool = False) -> Any:
     return obj
 
 
-def _simplify_optional_union(result: dict[str, Any]) -> dict[str, Any]:
-    """Collapse ``anyOf``/``oneOf`` with exactly one non-null variant.
-
-    Pydantic encodes ``Optional[X]`` as ``{"anyOf": [<X>, {"type": "null"}]}``.
-    This replaces the union with the non-null variant while preserving any
-    ``description`` or ``default`` from the parent node.
-    """
-    for union_key in ("anyOf", "oneOf"):
-        variants = result.get(union_key)
-        if not isinstance(variants, list) or len(variants) != 2:
-            continue
-        non_null = [v for v in variants if v.get("type") != "null"]
-        if len(non_null) != 1:
-            continue
-        simplified = dict(non_null[0])
-        for keep in ("description", "default"):
-            if keep in result and keep not in simplified:
-                simplified[keep] = result[keep]
-        result.pop(union_key)
-        result.pop("description", None)
-        result.pop("default", None)
-        result.update(simplified)
-    return result
-
-
-def _resolve_ref(
-    obj: dict[str, Any],
-    defs: dict[str, Any],
-    resolving: frozenset[str],
-) -> Any:
-    """Resolve a ``$ref`` pointer by inlining its definition from *defs*.
-
-    Falls back to ``{"type": "object"}`` when the definition is missing
-    or would cause a circular reference.
-    """
-    ref_path: str = obj["$ref"]
-    ref_name = ref_path.rsplit("/", 1)[-1] if "/" in ref_path else ""
-    definition = defs.get(ref_name) if ref_name else None
-
-    if definition is not None and ref_name not in resolving:
-        inlined = _compact_schema(
-            definition,
-            _defs=defs,
-            _resolving=resolving | {ref_name},
-        )
-        if isinstance(inlined, dict):
-            if desc := obj.get("description"):
-                inlined.setdefault("description", desc)
-        return inlined
-
-    replacement: dict[str, Any] = {"type": "object"}
-    if desc := obj.get("description"):
-        replacement["description"] = desc
-    return replacement
-
-
-def _compact_schema(
-    obj: Any,
-    *,
-    _defs: dict[str, Any] | None = None,
-    _resolving: frozenset[str] | None = None,
-) -> Any:
-    """Collapse ``$defs`` and ``$ref`` pointers in a JSON Schema.
-
-    Search results only need enough schema detail for the LLM to identify
-    which tool to call and construct a basic invocation.  Full schemas
-    (with all nested model definitions) are still available when the tool
-    is actually invoked via ``call_tool``.
-
-    Transformations applied:
-
-    * ``$defs`` sections are removed entirely.
-    * ``{"$ref": "..."}`` is resolved by inlining the referenced
-      definition from ``$defs``.  If the definition cannot be found
-      (or would cause a circular reference), the ref is replaced with
-      ``{"type": "object"}``.
-    * ``anyOf``/``oneOf`` lists containing only a ``$ref`` and
-      ``{"type": "null"}`` (Pydantic's Optional encoding) are collapsed
-      to the simplified non-null variant.
-    """
-    if isinstance(obj, list):
-        return [
-            _compact_schema(item, _defs=_defs, _resolving=_resolving) for item in obj
-        ]
-    if not isinstance(obj, dict):
-        return obj
-
-    # On the first (top-level) call, extract $defs for later resolution.
-    if _defs is None:
-        _defs = obj.get("$defs", {})
-    if _resolving is None:
-        _resolving = frozenset()
-
-    if "$ref" in obj:
-        return _resolve_ref(obj, _defs, _resolving)
-
-    result: dict[str, Any] = {}
-    for key, value in obj.items():
-        if key == "$defs":
-            continue
-        result[key] = _compact_schema(value, _defs=_defs, _resolving=_resolving)
-
-    return _simplify_optional_union(result)
-
-
 def _truncate_description(text: str, max_length: int) -> str:
     """Truncate a tool description for search results.
 
@@ -535,14 +430,13 @@ def _create_search_result_serializer(
     ~80% vs compact mode while still conveying what parameters a tool
     accepts.
 
-    When ``include_schemas`` is True, the full ``compact_schemas``/
-    ``max_description_length`` pipeline applies (existing behavior):
+    When ``include_schemas`` is True, input schemas retain their definitions,
+    references, and validation constraints. Inlining references duplicates shared
+    chart models and can make a single tool exceed client result limits.
 
-    * ``$defs`` sections and ``$ref`` pointers are collapsed when
-      ``compact_schemas`` is True (see :func:`_compact_schema`).
-    * Tool descriptions are truncated to ``max_description_length`` chars.
-
-    Full schemas remain available when the tool is invoked via ``call_tool``.
+    Titles and output schemas are stripped by the base serializer. The legacy
+    ``compact_schemas`` setting only selects the default description limit;
+    ``max_description_length`` explicitly controls description truncation.
     """
     include_schemas = config.get("include_schemas", False)
 
@@ -550,7 +444,6 @@ def _create_search_result_serializer(
         max_desc = config.get("max_description_length", 300)
         return _build_summary_serializer(max_desc)
 
-    # include_schemas=True: apply full compact_schemas/max_description_length pipeline
     compact = config.get("compact_schemas", True)
     # Description truncation defaults to 300 when compact_schemas is on,
     # but is disabled when compact_schemas is off (unless explicitly set).
@@ -563,9 +456,6 @@ def _create_search_result_serializer(
     def _serializer(tools: Sequence[Any]) -> list[dict[str, Any]]:
         results = _serialize_tools_without_output_schema(tools)
         for data in results:
-            if compact:
-                if input_schema := data.get("inputSchema"):
-                    data["inputSchema"] = _compact_schema(input_schema)
             if max_desc and (desc := data.get("description")):
                 data["description"] = _truncate_description(desc, max_desc)
         return results

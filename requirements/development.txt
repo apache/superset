@@ -964,6 +964,8 @@ referencing==0.36.2
     #   jsonschema
     #   jsonschema-path
     #   jsonschema-specifications
+regex==2026.9.10
+    # via tiktoken
 requests==2.33.0
     # via
     #   -c requirements/base-constraint.txt
@@ -977,6 +979,7 @@ requests==2.33.0
     #   requests-cache
     #   requests-oauthlib
     #   shillelagh
+    #   tiktoken
     #   trino
 requests-cache==1.2.1
     # via
@@ -1121,6 +1124,8 @@ tabulate==0.10.0
     #   apache-superset
 testcontainers==4.15.0
     # via -r requirements/development.in
+tiktoken==0.14.0
+    # via apache-superset
 tomli-w==1.2.0
     # via apache-superset-extensions-cli
 tomlkit==0.13.3
