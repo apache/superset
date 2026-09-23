@@ -32,7 +32,7 @@ import {
 } from 'src/dashboard/util/componentTypes';
 
 describe('shouldWrapChildInRow', () => {
-  it('should return true for CHART, COLUMN, MARKDOWN, and FILTER under DASHBOARD_GRID', () => {
+  test('should return true for CHART, COLUMN, MARKDOWN, and FILTER under DASHBOARD_GRID', () => {
     expect(
       shouldWrapChildInRow({
         parentType: DASHBOARD_GRID_TYPE,
@@ -59,7 +59,7 @@ describe('shouldWrapChildInRow', () => {
     ).toBe(true);
   });
 
-  it('should return true for CHART, COLUMN, MARKDOWN, and FILTER under TAB', () => {
+  test('should return true for CHART, COLUMN, MARKDOWN, and FILTER under TAB', () => {
     expect(
       shouldWrapChildInRow({
         parentType: TAB_TYPE,
@@ -86,7 +86,7 @@ describe('shouldWrapChildInRow', () => {
     ).toBe(true);
   });
 
-  it('should return false for other components or parent types', () => {
+  test('should return false for other components or parent types', () => {
     expect(
       shouldWrapChildInRow({
         parentType: DASHBOARD_GRID_TYPE,
