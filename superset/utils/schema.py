@@ -62,25 +62,35 @@ def is_query_context_metadata_complete(value: Any) -> bool:
     ``queries`` keys ``QueryContextFactory.create()`` requires (apache/superset
     #35774): both are required keyword-only arguments there, and a chart saved
     without them fails every subsequent read with a raw ``TypeError`` instead
-    of a clear error at save time.
+    of a clear error at save time. ``datasource`` must be a mapping carrying
+    the ``id``/``type`` keys ``DatasourceDict`` requires -- ``_convert_to_model``
+    indexes both directly and raises ``KeyError`` if either is absent -- but
+    ``queries`` may legitimately be an empty list (a chart with no query
+    objects yet still round-trips through ``create()`` without error), so only
+    its presence as a list is checked, not its truthiness.
 
     :param value: the object obtained by JSON-decoding a query_context string
     """
+    if not isinstance(value, dict) or not isinstance(value.get("queries"), list):
+        return False
+    datasource = value.get("datasource")
     return (
-        isinstance(value, dict)
-        and bool(value.get("datasource"))
-        and bool(value.get("queries"))
+        isinstance(datasource, dict)
+        and bool(datasource.get("id"))
+        and bool(datasource.get("type"))
     )
 
 
 def validate_query_context_metadata(value: Union[bytes, bytearray, str]) -> None:
     """
     Validator for a chart's ``query_context`` field: beyond being well-formed
-    JSON (see ``validate_json``), it must be a JSON object carrying non-empty
-    ``datasource`` and ``queries`` keys (apache/superset#35774).
+    JSON (see ``validate_json``), it must be a JSON object carrying a
+    non-empty ``datasource`` key and a ``queries`` key that is a list
+    (apache/superset#35774).
 
     :raises ValidationError: if value is not valid JSON, or is valid JSON that
-        is not an object with non-empty ``datasource``/``queries`` keys
+        is not an object with a non-empty ``datasource`` key and a ``queries``
+        key holding a list
     :param value: an object that should be parseable to a query_context JSON object
     """
     try:
@@ -89,8 +99,8 @@ def validate_query_context_metadata(value: Union[bytes, bytearray, str]) -> None
         raise ValidationError("JSON not valid") from ex
     if not is_query_context_metadata_complete(parsed):
         raise ValidationError(
-            "query_context must be a JSON object with non-empty "
-            "'datasource' and 'queries' keys"
+            "query_context must be a JSON object with a non-empty "
+            "'datasource' key and a 'queries' key holding a list"
         )
 
 
