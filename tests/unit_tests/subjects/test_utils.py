@@ -672,3 +672,22 @@ def test_get_user_subject_ids_returns_a_copy(app) -> None:
             first = get_user_subject_ids(1)
             first.append(999)
             assert get_user_subject_ids(1) == [7]
+
+
+def test_get_user_subject_ids_serves_a_stale_set_within_the_request(app) -> None:
+    """A subject added mid-request is not seen until the next request.
+
+    This is the staleness window the docstring relies on: a create path can add
+    a subject after the cache is warm, and this call keeps returning the set it
+    first saw. It is safe because a subject created mid-request is not yet listed
+    in any resource's editors or viewers, so a check that omits it returns the
+    same access decision.
+    """
+    with app.test_request_context("/"):
+        with patch("superset.subjects.utils._query_user_subject_ids", return_value=[7]):
+            assert get_user_subject_ids(1) == [7]
+        # Membership changed underneath, same request: the cache still answers 7.
+        with patch(
+            "superset.subjects.utils._query_user_subject_ids", return_value=[7, 99]
+        ):
+            assert get_user_subject_ids(1) == [7]

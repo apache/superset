@@ -209,8 +209,12 @@ def get_user_subject_ids(user_id: int) -> list[int]:
 
     Memoised for the duration of the request, keyed by user id. Authorization
     calls this once per object checked -- ``is_editor``/``is_viewer`` run it for
-    every chart on a dashboard. Nothing reads a user's subjects after changing
-    them within a single request, so the cached set cannot go stale in place.
+    every chart on a dashboard. The cache can miss a subject created earlier in
+    the same request (the create paths in ``commands/utils.py`` read back through
+    here), but that never flips an access decision: a subject created mid-request
+    is not yet listed in any resource's editors or viewers, so an ``is_editor``/
+    ``is_viewer`` check against a cache that omits it still returns the same
+    answer. The staleness window is bounded by the request.
 
     The cache lives on ``flask.request``, not ``g``: ``g`` is bound to the app
     context, which a worker can hold open across many requests, so a ``g``-keyed
