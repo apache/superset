@@ -261,7 +261,7 @@ function extractBaseData(action: QueryAction): {
 
   // Resolve backendId through the same path as every other Tab construction
   // so query-event listeners can correlate the tab with its tabstateview row.
-  const queryEditor = findQueryEditorByAnyId(sqlEditorId);
+  const queryEditor = findQueryEditorByAnyId(sqlEditorId ?? undefined);
   const tab = makeTab(
     sqlEditorId ?? '',
     tabName ?? '',
