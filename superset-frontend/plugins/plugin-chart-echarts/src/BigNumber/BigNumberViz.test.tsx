@@ -117,3 +117,70 @@ describe('BigNumberViz context menu', () => {
     expect(ancestorHandler).not.toHaveBeenCalled();
   });
 });
+
+describe('BigNumberViz alignment', () => {
+  test('defaults to left alignment', () => {
+    const { container } = render(
+      <BigNumberVis
+        width={200}
+        height={100}
+        bigNumber={42}
+        headerFormatter={getNumberFormatter()}
+        headerFontSize={0.3}
+        subheaderFontSize={0.125}
+        subtitleFontSize={0.125}
+        subtitle=""
+        refs={{}}
+      />,
+    );
+
+    const textContainer = container.querySelector('.text-container');
+    expect(textContainer).toHaveStyle({ alignItems: 'flex-start' });
+    const headerLine = container.querySelector('.header-line');
+    expect(headerLine).toHaveStyle({ textAlign: 'left' });
+  });
+
+  test('centers content when headerAlignment is "center"', () => {
+    const { container } = render(
+      <BigNumberVis
+        width={200}
+        height={100}
+        bigNumber={42}
+        headerFormatter={getNumberFormatter()}
+        headerFontSize={0.3}
+        subheaderFontSize={0.125}
+        subtitleFontSize={0.125}
+        subtitle=""
+        refs={{}}
+        headerAlignment="center"
+      />,
+    );
+
+    const textContainer = container.querySelector('.text-container');
+    expect(textContainer).toHaveStyle({ alignItems: 'center' });
+    const headerLine = container.querySelector('.header-line');
+    expect(headerLine).toHaveStyle({ textAlign: 'center' });
+  });
+
+  test('right-aligns content when headerAlignment is "right"', () => {
+    const { container } = render(
+      <BigNumberVis
+        width={200}
+        height={100}
+        bigNumber={42}
+        headerFormatter={getNumberFormatter()}
+        headerFontSize={0.3}
+        subheaderFontSize={0.125}
+        subtitleFontSize={0.125}
+        subtitle=""
+        refs={{}}
+        headerAlignment="right"
+      />,
+    );
+
+    const textContainer = container.querySelector('.text-container');
+    expect(textContainer).toHaveStyle({ alignItems: 'flex-end' });
+    const headerLine = container.querySelector('.header-line');
+    expect(headerLine).toHaveStyle({ textAlign: 'right' });
+  });
+});
