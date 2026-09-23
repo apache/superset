@@ -65,6 +65,12 @@ const config: ControlPanelConfig = {
               choices: sortAxisChoices,
               renderTrigger: false,
               clearable: true,
+              default: 'alpha_asc',
+              description: t(
+                'The Y-axis groupby column has no natural ordering to ' +
+                  'fall back on (unlike a typically-temporal X-axis), so ' +
+                  'it defaults to ascending order for new charts.',
+              ),
             },
           },
         ],
