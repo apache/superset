@@ -23,6 +23,11 @@ export const RANGE_SEPARATOR = ' : ';
 
 export type DateRangeValue = [Dayjs | null, Dayjs | null] | null;
 
+// Superset's time_range filter treats the upper bound as exclusive
+// (`col < end_dttm`, see superset/models/helpers.py get_time_filter), so the
+// stored end date is the day AFTER the one the user picked — otherwise the
+// entire selected end day would be excluded from query results. Displaying
+// it back to the user reverses that offset so round-tripping stays exact.
 export function parseTimeRange(value?: string | null): DateRangeValue {
   if (!value) return null;
   const parts = value.split(RANGE_SEPARATOR);
@@ -31,11 +36,12 @@ export function parseTimeRange(value?: string | null): DateRangeValue {
   const startDate = dayjs(start);
   const endDate = dayjs(end);
   if (!startDate.isValid() || !endDate.isValid()) return null;
-  return [startDate, endDate];
+  return [startDate, endDate.subtract(1, 'day')];
 }
 
 export function formatTimeRange(dates: DateRangeValue): string | undefined {
   const [start, end] = dates ?? [null, null];
   if (!start || !end) return undefined;
-  return `${start.format(DATE_FORMAT)}${RANGE_SEPARATOR}${end.format(DATE_FORMAT)}`;
+  const exclusiveEnd = end.add(1, 'day');
+  return `${start.format(DATE_FORMAT)}${RANGE_SEPARATOR}${exclusiveEnd.format(DATE_FORMAT)}`;
 }
