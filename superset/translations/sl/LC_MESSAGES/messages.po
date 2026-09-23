@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version:  Superset\n"
 "Report-Msgid-Bugs-To: dkrat7 @github.com\n"
-"POT-Creation-Date: 2026-09-22 19:01+0000\n"
+"POT-Creation-Date: 2026-09-23 04:54+0000\n"
 "PO-Revision-Date: 2026-07-29 16:16+0200\n"
 "Last-Translator: lapor-kris <lapor-kris@github.com>\n"
 "Language: sl_SI\n"
@@ -6160,6 +6160,9 @@ msgid ""
 "Display each cell as a percentage of its row, column, or grand total, "
 "instead of its actual value. Totals and subtotals are still computed "
 "correctly first; this only changes how they are displayed."
+msgstr ""
+
+msgid "Display format"
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, fr,
@@ -17079,9 +17082,10 @@ msgstr ""
 
 msgid ""
 "This update would change the connection's effective destination "
-"(host/port, engine parameters, or SSH tunnel endpoint) while reusing the "
-"stored credential. Provide the real password (or SSH tunnel credential) "
-"to confirm a connection move."
+"(host/port, engine parameters, SSH tunnel endpoint, or OAuth2 endpoint "
+"URIs) while reusing the stored credential. Provide the real password (or "
+"SSH tunnel credential / OAuth2 client secret) to confirm a connection "
+"move."
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
