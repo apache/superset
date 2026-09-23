@@ -106,6 +106,7 @@ import getBootstrapData from 'src/utils/getBootstrapData';
 import { getChartDataRequest } from 'src/components/Chart/chartAction';
 import DateFilterControl from 'src/explore/components/controls/DateFilterControl';
 import {
+  DATE_FORMAT,
   parseTimeRange,
   formatTimeRange,
 } from 'src/filters/components/DateRange/utils';
@@ -1710,7 +1711,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
       return (
         <RangePicker
           value={parseTimeRange(filterValues?.[0])}
-          format="YYYY-MM-DD"
+          format={DATE_FORMAT}
           allowClear
           onChange={dates => {
             const timeRange = formatTimeRange(dates);
@@ -1719,7 +1720,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                 filter.nativeFilterId === f.nativeFilterId
                   ? {
                       ...f,
-                      filterValues: [timeRange],
+                      filterValues: timeRange ? [timeRange] : [],
                     }
                   : f,
               ),
