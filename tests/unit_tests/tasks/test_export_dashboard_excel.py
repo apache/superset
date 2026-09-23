@@ -30,6 +30,7 @@ import pytest
 from celery.exceptions import SoftTimeLimitExceeded
 from flask import current_app
 
+from superset.dashboards.excel_export import email as real_email
 from superset.exceptions import SupersetException
 from superset.security.guest_token import GuestToken, GuestTokenResourceType
 from superset.utils import json
@@ -113,10 +114,16 @@ def mocks() -> Iterator[dict[str, Any]]:
                 "email",
                 "ReleaseDistributedLock",
                 "create_download_link",
+                "get_export_status",
                 "mark_export_failed",
                 "mark_export_running",
             )
         }
+        patched["get_export_status"].return_value = None
+        # The sheet groups skipped charts with the real reason keys and notes.
+        patched["email"].ERROR_NO_QUERY_CONTEXT = real_email.ERROR_NO_QUERY_CONTEXT
+        patched["email"].ERROR_GENERAL = real_email.ERROR_GENERAL
+        patched["email"].errored_groups.side_effect = real_email.errored_groups
         user = mock.MagicMock()
         user.email = "user@example.com"
         patched["security_manager"].get_user_by_id.return_value = user
@@ -1257,6 +1264,58 @@ def test_guest_download_link_ttl_is_clamped(mocks: dict[str, Any]) -> None:
     assert expires_at <= limit
 
 
+def test_anonymous_download_link_ttl_is_clamped(mocks: dict[str, Any]) -> None:
+    """A Public-role requester carries no guest token but has no email either;
+    the same polling-window reasoning applies, so the same clamp does."""
+    from datetime import datetime, timedelta
+
+    from superset.tasks.export_dashboard_excel import (
+        export_dashboard_excel,
+        GUEST_LINK_TTL_SECONDS,
+    )
+
+    mocks["get_charts_in_layout_order"].return_value = [_chart(10, "Good")]
+    mocks["ChartDataCommand"].return_value.run.return_value = {
+        "queries": [{"colnames": ["a"], "data": [{"a": 1}]}]
+    }
+
+    export_dashboard_excel(
+        dashboard_id=1, user_id=None, active_data_mask={}, job_id=JOB_ID
+    )
+
+    (_, _, _, expires_at), _ = mocks["create_download_link"].call_args
+    limit = datetime.now() + timedelta(seconds=GUEST_LINK_TTL_SECONDS + 60)
+    assert expires_at <= limit
+
+
+def test_failure_after_a_ready_record_keeps_the_link(
+    mocks: dict[str, Any],
+) -> None:
+    """A soft time limit landing once the ready record is committed must not
+    replace it (and its bucket/key) with a failure the poller then trusts."""
+    from superset.dashboards.excel_export.download_link import STATUS_READY
+    from superset.tasks.export_dashboard_excel import export_dashboard_excel
+
+    mocks["get_charts_in_layout_order"].return_value = [_chart(10, "Good")]
+    mocks["ChartDataCommand"].return_value.run.return_value = {
+        "queries": [{"colnames": ["a"], "data": [{"a": 1}]}]
+    }
+
+    def _committed_then_interrupted(*_args: Any, **_kwargs: Any) -> None:
+        mocks["get_export_status"].return_value = {"status": STATUS_READY}
+        raise SoftTimeLimitExceeded()
+
+    mocks["create_download_link"].side_effect = _committed_then_interrupted
+
+    with pytest.raises(SoftTimeLimitExceeded):
+        export_dashboard_excel(
+            dashboard_id=1, user_id=1, active_data_mask={}, job_id=JOB_ID
+        )
+
+    mocks["mark_export_failed"].assert_not_called()
+    mocks["email"].send_export_email.assert_not_called()
+
+
 def test_status_expiries_are_naive_local(mocks: dict[str, Any]) -> None:
     """KeyValueEntry.is_expired() compares naive local datetime.now(); a
     naive-UTC expiry breaks the store on any non-UTC server. The process
@@ -1315,8 +1374,10 @@ def test_partial_failure_appends_summary_sheet(mocks: dict[str, Any]) -> None:
     _run()
 
     assert "Export Summary" in uploaded["sheets"]
-    flat = [str(cell) for row in uploaded["sheets"]["Export Summary"] for cell in row]
-    assert any("20 - Bad" in cell for cell in flat)
+    lines = [str(cell) for row in uploaded["sheets"]["Export Summary"] for cell in row]
+    # Grouped under the email's per-reason note, not a bare list of names.
+    note = next(i for i, cell in enumerate(lines) if "no saved query context" in cell)
+    assert "20 - Bad" in lines[note + 1]
 
 
 def test_missing_dashboard_records_failure(mocks: dict[str, Any]) -> None:

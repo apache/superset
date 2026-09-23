@@ -61,8 +61,10 @@ from superset.common.form_data_query_context import (
 from superset.dashboards.excel_export import email
 from superset.dashboards.excel_export.download_link import (
     create_download_link,
+    get_export_status,
     mark_export_failed,
     mark_export_running,
+    STATUS_READY,
 )
 from superset.dashboards.excel_export.layout import get_charts_in_layout_order
 from superset.dashboards.excel_export.screenshot import render_chart_image
@@ -451,13 +453,15 @@ def _build_workbook(
         # no email (guests, Public role) have no other way to learn that part
         # of the requested workbook was omitted.
         if writer.sheet_count == 0 or errored:
-            flat = [label for labels in errored.values() for label in labels]
-            header = (
+            lines = [
                 "No chart data could be exported."
                 if writer.sheet_count == 0
                 else "Charts that could not be exported:"
-            )
-            writer.add_summary_sheet("Export Summary", [header, *flat])
+            ]
+            # Same per-reason notes as the email; some sessions only see this sheet.
+            for note, labels in email.errored_groups(errored):
+                lines.extend(["", str(note), *labels])
+            writer.add_summary_sheet("Export Summary", lines)
     finally:
         writer.close()
     return errored
@@ -477,6 +481,20 @@ def _handle_export_failure(
     session with no email, e.g. an embedded/guest dashboard, has no other way
     to learn the export failed than polling ``export_xlsx/status/<job_id>/``).
     """
+    # A soft time limit can land after the upload and its link were recorded;
+    # replacing that record would strand a file that is already downloadable.
+    try:
+        current = get_export_status(uuid.UUID(job_id))
+    except Exception:  # pylint: disable=broad-except
+        logger.exception("Failed to read export status for %s", job_id)
+        current = None
+    if current and current.get("status") == STATUS_READY:
+        logger.warning(
+            "Dashboard excel export %s completed before its failure was handled; "
+            "keeping the download link",
+            job_id,
+        )
+        return
     # Status first: on a soft timeout only 60s remain before the hard kill,
     # and a slow SMTP send must not cost pollers the failure status.
     try:
@@ -631,11 +649,10 @@ def export_dashboard_excel(
 
             storage_backend, bucket, key = _resolve_export_storage(dashboard_id, job_id)
             storage_backend.upload_file(tmp_path, bucket, key)
-            # Naive local time to match KeyValueEntry.is_expired()'s naive
-            # datetime.now() comparison. Guests hold the link only for the
-            # polling window (no email fallback to revisit later), so their
-            # links need not outlive the short credential that authorized them.
-            link_ttl = min(ttl, GUEST_LINK_TTL_SECONDS) if guest_token else ttl
+            # Naive local time to match KeyValueEntry.is_expired(). A session
+            # with no user id (guest or Public) retrieves the file inside the
+            # polling window and has no email to revisit a link from.
+            link_ttl = min(ttl, GUEST_LINK_TTL_SECONDS) if user_id is None else ttl
             expires_at = datetime.now() + timedelta(seconds=link_ttl)
             backend_cls = type(storage_backend)
             download_url = create_download_link(
