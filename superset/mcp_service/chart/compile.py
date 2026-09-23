@@ -108,6 +108,7 @@ class CompileResult:
 def _compile_chart(
     form_data: Dict[str, Any],
     dataset_id: int,
+    datasource_type: str = "table",
 ) -> CompileResult:
     """Execute the chart's query to verify it renders without errors.
 
@@ -130,9 +131,9 @@ def _compile_chart(
 
     try:
         query_form_data = deepcopy(form_data)
-        query_form_data["datasource"] = f"{dataset_id}__table"
+        query_form_data["datasource"] = f"{dataset_id}__{datasource_type}"
         query_form_data["datasource_id"] = dataset_id
-        query_form_data["datasource_type"] = "table"
+        query_form_data["datasource_type"] = datasource_type
         query_context = build_query_context_from_form_data(
             query_form_data,
             row_limit=min(10, int(form_data.get("row_limit") or 10))
@@ -179,7 +180,7 @@ def _compile_chart(
 
         return CompileResult(success=True, warnings=warnings, row_count=row_count)
     except (ChartDataQueryFailedError, ChartDataCacheLoadError) as exc:
-        if _classify_as_database_error(exc, dataset_id):
+        if datasource_type == "table" and _classify_as_database_error(exc, dataset_id):
             logger.warning(
                 "Database connection error during chart compile check: %s: %s",
                 type(exc).__name__,

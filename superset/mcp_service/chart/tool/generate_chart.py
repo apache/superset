@@ -20,6 +20,7 @@ MCP tool: generate_chart (simplified schema)
 
 import logging
 import time
+from typing import Any, TYPE_CHECKING
 
 from fastmcp import Context
 from sqlalchemy.exc import SQLAlchemyError
@@ -33,6 +34,7 @@ from superset.mcp_service.chart.chart_helpers import extract_form_data_key_from_
 from superset.mcp_service.chart.chart_utils import (
     analyze_chart_capabilities,
     analyze_chart_semantics,
+    DatasetValidationResult,
     generate_chart_name,
     get_table_chart_type_label,
     map_config_to_form_data,
@@ -43,6 +45,13 @@ from superset.mcp_service.chart.compile import (
     CompileResult,
     validate_and_compile,
 )
+from superset.mcp_service.chart.datasource_resolver import (
+    ChartDatasource,
+    resolve_semantic_view,
+    validate_semantic_view_config,
+    validate_semantic_view_form_data,
+    view_not_found_error,
+)
 from superset.mcp_service.chart.preview_utils import SUPPORTED_FORM_DATA_PREVIEW_FORMATS
 from superset.mcp_service.chart.schemas import (
     AccessibilityMetadata,
@@ -51,12 +60,21 @@ from superset.mcp_service.chart.schemas import (
     GenerateChartResponse,
     PerformanceMetadata,
 )
+from superset.mcp_service.chart.validation.pipeline import ValidationResult
+from superset.mcp_service.common.error_schemas import (
+    ChartGenerationError,
+    DatasetContext,
+)
 from superset.mcp_service.utils.oauth2_utils import (
     build_oauth2_redirect_message,
     OAUTH2_CONFIG_ERROR_MESSAGE,
 )
 from superset.mcp_service.utils.url_utils import get_superset_base_url
 from superset.utils import json
+
+if TYPE_CHECKING:
+    from superset.connectors.sqla.models import SqlaTable
+    from superset.semantic_layers.models import SemanticView
 
 logger = logging.getLogger(__name__)
 
@@ -85,6 +103,9 @@ async def generate_chart(  # noqa: C901
     - Set save_chart=True to permanently save the chart
     - LLM clients MUST display returned chart URL to users
     - Use numeric dataset ID or UUID (NOT schema.table_name format)
+    - For semantic views pass view_id (UUID or legacy ID), not dataset_id.
+      The two ID spaces are unrelated. Use saved metrics and named dimensions;
+      ad-hoc aggregation and SQL metrics are not supported on semantic views.
     - MUST include chart_type in config (one of: 'xy', 'table', 'pie',
       'gauge', 'treemap_v2', 'bubble_v2', 'pivot_table', 'mixed_timeseries',
       'handlebars', 'big_number', 'histogram', 'box_plot', 'waterfall',
@@ -269,6 +290,16 @@ async def generate_chart(  # noqa: C901
     )
 
     try:
+        target: ChartDatasource | None = None
+        if request.view_id is not None:
+            target = resolve_semantic_view(request.view_id)
+            if target is None:
+                return GenerateChartResponse(
+                    success=False, error=view_not_found_error(request.view_id)
+                )
+        datasource_type: str = (
+            target.datasource_type.value if target is not None else "table"
+        )
         # Run comprehensive validation pipeline
         await ctx.report_progress(1, 5, "Running validation pipeline")
         await ctx.debug(
@@ -277,9 +308,21 @@ async def generate_chart(  # noqa: C901
         with event_logger.log_context(action="mcp.generate_chart.validation"):
             from superset.mcp_service.chart.validation import ValidationPipeline
 
-            validation_result = ValidationPipeline.validate_request_with_warnings(
-                request.model_dump()
-            )
+            validation_result: ValidationResult
+            if target is not None:
+                valid: bool
+                semantic_error: ChartGenerationError | None
+                semantic_context: DatasetContext
+                valid, semantic_error, semantic_context = validate_semantic_view_config(
+                    request.config, target
+                )
+                validation_result = ValidationResult(
+                    is_valid=valid, request=request, error=semantic_error
+                )
+            else:
+                validation_result = ValidationPipeline.validate_request_with_warnings(
+                    request.model_dump()
+                )
 
             if validation_result.is_valid and validation_result.request is not None:
                 # Use the validated request going forward
@@ -321,14 +364,21 @@ async def generate_chart(  # noqa: C901
 
         # Map the simplified config to Superset's form_data format
         # Pass dataset_id to enable column type checking for proper viz_type selection
-        form_data = map_config_to_form_data(config, dataset_id=request.dataset_id)
+        form_data: dict[str, Any] = map_config_to_form_data(
+            config, dataset_id=request.dataset_id
+        )
+        if target is not None:
+            form_data["datasource"] = target.form_data_datasource
+            semantic_error = validate_semantic_view_form_data(form_data, target)
+            if semantic_error is not None:
+                return GenerateChartResponse(success=False, error=semantic_error)
 
         chart = None
         chart_id = None
         chart_slice_name = None
         chart_viz_type = None
         chart_uuid = None
-        explore_url = None
+        explore_url: str | None = None
         form_data_key = None
         response_warnings: list[str] = form_data.pop("_mcp_warnings", [])
 
@@ -342,8 +392,10 @@ async def generate_chart(  # noqa: C901
 
             await ctx.debug("Looking up dataset: dataset_id=%s" % (request.dataset_id,))
             with event_logger.log_context(action="mcp.generate_chart.dataset_lookup"):
-                dataset = None
-                if isinstance(request.dataset_id, int) or (
+                dataset: SqlaTable | SemanticView | None = None
+                if target is not None:
+                    dataset = target.explorable
+                elif isinstance(request.dataset_id, int) or (
                     isinstance(request.dataset_id, str) and request.dataset_id.isdigit()
                 ):
                     dataset_id = (
@@ -362,6 +414,7 @@ async def generate_chart(  # noqa: C901
                         dataset = None  # Treat as not found
                 else:
                     # SECURITY FIX: Try UUID lookup with permission validation
+                    assert request.dataset_id is not None
                     dataset = DatasetDAO.find_by_id(
                         request.dataset_id, id_column="uuid"
                     )
@@ -425,7 +478,13 @@ async def generate_chart(  # noqa: C901
             # Compile before persisting. A failed query must not leave a broken
             # chart row behind and then rely on a later transaction to delete it.
             with event_logger.log_context(action="mcp.generate_chart.compile_check"):
-                compile_result = _compile_chart(form_data, dataset.id)
+                compile_result: CompileResult = (
+                    _compile_chart(
+                        form_data, dataset.id, datasource_type=datasource_type
+                    )
+                    if target is not None
+                    else _compile_chart(form_data, dataset.id)
+                )
             if not compile_result.success:
                 logger.warning(
                     "Compile check failed before chart creation: %s",
@@ -483,7 +542,7 @@ async def generate_chart(  # noqa: C901
                             "slice_name": chart_name,
                             "viz_type": form_data["viz_type"],
                             "datasource_id": dataset.id,
-                            "datasource_type": "table",
+                            "datasource_type": datasource_type,
                             "params": json.dumps(form_data),
                         }
                     )
@@ -532,8 +591,15 @@ async def generate_chart(  # noqa: C901
                 )
 
                 # Post-creation validation: verify the chart's dataset is accessible
-                dataset_check = validate_chart_dataset(
-                    chart_datasource_id, check_access=True
+                dataset_check: DatasetValidationResult = (
+                    DatasetValidationResult(
+                        is_valid=True,
+                        dataset_id=target.id,
+                        dataset_name=target.name,
+                        warnings=[],
+                    )
+                    if target is not None
+                    else validate_chart_dataset(chart_datasource_id, check_access=True)
                 )
                 if not dataset_check.is_valid:
                     # Dataset validation failed - warn but don't fail the operation
@@ -572,13 +638,13 @@ async def generate_chart(  # noqa: C901
                     from superset.utils.core import DatasourceType
 
                     # Add datasource to form_data for the cache
-                    form_data_with_datasource = {
+                    form_data_with_datasource: dict[str, Any] = {
                         **form_data,
-                        "datasource": f"{dataset.id}__table",
+                        "datasource": f"{dataset.id}__{datasource_type}",
                     }
 
-                    cmd_params = CommandParameters(
-                        datasource_type=DatasourceType.TABLE,
+                    cmd_params: CommandParameters = CommandParameters(
+                        datasource_type=DatasourceType(datasource_type),
                         datasource_id=dataset.id,
                         chart_id=chart_id,
                         tab_id=None,
@@ -603,13 +669,12 @@ async def generate_chart(  # noqa: C901
             # Generate explore link with cached form_data for preview-only mode
             from superset.mcp_service.chart.chart_utils import generate_explore_link
 
-            explore_url = generate_explore_link(
-                request.dataset_id, form_data, prefer_permalink=False
-            )
-            await ctx.debug("Generated explore link: explore_url=%s" % (explore_url,))
-
-            # Extract form_data_key from the explore URL
-            form_data_key = extract_form_data_key_from_url(explore_url)
+            if target is None:
+                assert request.dataset_id is not None
+                explore_url = generate_explore_link(
+                    request.dataset_id, form_data, prefer_permalink=False
+                )
+                form_data_key = extract_form_data_key_from_url(explore_url)
 
             # Compile check for preview-only mode
             # Validate dataset existence and user access before running queries
@@ -617,7 +682,9 @@ async def generate_chart(  # noqa: C901
             numeric_dataset_id: int | None = None
             from superset.daos.dataset import DatasetDAO
 
-            if isinstance(request.dataset_id, int) or (
+            if target is not None:
+                numeric_dataset_id = target.id
+            elif isinstance(request.dataset_id, int) or (
                 isinstance(request.dataset_id, str) and request.dataset_id.isdigit()
             ):
                 candidate_id = (
@@ -629,6 +696,7 @@ async def generate_chart(  # noqa: C901
                 if ds and has_dataset_access(ds):
                     numeric_dataset_id = ds.id
             else:
+                assert request.dataset_id is not None
                 ds = DatasetDAO.find_by_id(request.dataset_id, id_column="uuid")
                 if ds and has_dataset_access(ds):
                     numeric_dataset_id = ds.id
@@ -637,7 +705,15 @@ async def generate_chart(  # noqa: C901
                 with event_logger.log_context(
                     action="mcp.generate_chart.compile_check"
                 ):
-                    compile_result = _compile_chart(form_data, numeric_dataset_id)
+                    compile_result = (
+                        _compile_chart(
+                            form_data,
+                            numeric_dataset_id,
+                            datasource_type=datasource_type,
+                        )
+                        if target is not None
+                        else _compile_chart(form_data, numeric_dataset_id)
+                    )
                 if not compile_result.success:
                     await ctx.warning(
                         "Chart compile check failed: error=%s" % (compile_result.error,)
@@ -679,6 +755,17 @@ async def generate_chart(  # noqa: C901
                         }
                     )
                 response_warnings.extend(compile_result.warnings)
+
+            if target is not None:
+                # A failed semantic query must not leave a preview cache entry.
+                explore_url = generate_explore_link(
+                    target.id,
+                    form_data,
+                    prefer_permalink=False,
+                    datasource_type=datasource_type,
+                )
+                form_data_key = extract_form_data_key_from_url(explore_url)
+            await ctx.debug("Generated explore link: explore_url=%s" % (explore_url,))
 
         # Generate semantic analysis
         capabilities = analyze_chart_capabilities(chart_viz_type, config)
@@ -746,7 +833,9 @@ async def generate_chart(  # noqa: C901
                                 )
 
                                 # Convert dataset_id to int only if numeric
-                                if (
+                                if target is not None:
+                                    dataset_id_for_preview = target.id
+                                elif (
                                     isinstance(request.dataset_id, str)
                                     and request.dataset_id.isdigit()
                                 ):
@@ -765,6 +854,11 @@ async def generate_chart(  # noqa: C901
                                     form_data=form_data,
                                     dataset_id=dataset_id_for_preview,
                                     preview_format=format_type,
+                                    **(
+                                        {"datasource_type": datasource_type}
+                                        if target
+                                        else {}
+                                    ),
                                 )
 
                                 if isinstance(preview_result, ChartError):

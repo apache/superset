@@ -182,10 +182,21 @@ def validate_chart_dataset(
         )
 
 
+def _basic_explore_url(
+    base_url: str, datasource_type: str, datasource_id: int | str
+) -> str:
+    """Plain Explore URL for a datasource, used when no form_data can be stored."""
+    return (
+        f"{base_url}/explore/?datasource_type={datasource_type}"
+        f"&datasource_id={datasource_id}"
+    )
+
+
 def generate_explore_link(
     dataset_id: int | str,
     form_data: Dict[str, Any],
     prefer_permalink: bool = True,
+    datasource_type: str = "table",
 ) -> str:
     """Generate an explore link for the given dataset and form data.
 
@@ -210,12 +221,20 @@ def generate_explore_link(
     )
     from superset.utils.core import DatasourceType
 
-    base_url = get_superset_base_url()
-    numeric_dataset_id = None
-    dataset = None
+    base_url: str = get_superset_base_url()
+    numeric_dataset_id: int | None = None
+    dataset: SqlaTable | None = None
 
     try:
-        if isinstance(dataset_id, int) or (
+        source_found: bool = False
+        if datasource_type == DatasourceType.SEMANTIC_VIEW.value:
+            # Non-table Explorables (semantic views) were resolved by the caller
+            # through the Explorable registry; only the numeric id is needed here.
+            numeric_dataset_id = int(dataset_id)
+            source_found = True
+        elif datasource_type != DatasourceType.TABLE.value:
+            raise ValueError(f"Unsupported datasource type: {datasource_type}")
+        elif isinstance(dataset_id, int) or (
             isinstance(dataset_id, str) and dataset_id.isdigit()
         ):
             numeric_dataset_id = (
@@ -228,16 +247,14 @@ def generate_explore_link(
             if dataset:
                 numeric_dataset_id = dataset.id
 
-        if not dataset or numeric_dataset_id is None:
+        if not (source_found or dataset) or numeric_dataset_id is None:
             # Fallback to basic explore URL
-            return (
-                f"{base_url}/explore/?datasource_type=table&datasource_id={dataset_id}"
-            )
+            return _basic_explore_url(base_url, datasource_type, dataset_id)
 
         # Add datasource to form_data
         form_data_with_datasource = {
             **form_data,
-            "datasource": f"{numeric_dataset_id}__table",
+            "datasource": f"{numeric_dataset_id}__{datasource_type}",
         }
 
         # Try durable permalink first (DB-backed key-value store, does not expire).
@@ -262,7 +279,7 @@ def generate_explore_link(
 
         # Fall back to ephemeral form_data_key (Redis-backed cache)
         cmd_params = CommandParameters(
-            datasource_type=DatasourceType.TABLE,
+            datasource_type=DatasourceType(datasource_type),
             datasource_id=numeric_dataset_id,
             chart_id=0,  # 0 for new charts
             tab_id=None,
@@ -282,11 +299,8 @@ def generate_explore_link(
         # silently masked behind a fallback URL.
         logger.debug("Explore link generation fallback due to: %s", e)
         if numeric_dataset_id is not None:
-            return (
-                f"{base_url}/explore/?datasource_type=table"
-                f"&datasource_id={numeric_dataset_id}"
-            )
-        return f"{base_url}/explore/?datasource_type=table&datasource_id={dataset_id}"
+            return _basic_explore_url(base_url, datasource_type, numeric_dataset_id)
+        return _basic_explore_url(base_url, datasource_type, dataset_id)
 
 
 def _find_dataset_by_id_or_uuid(dataset_id: int | str | None) -> "SqlaTable | None":

@@ -110,6 +110,16 @@ class ValidationPipeline:
             # Ensure request is not None
             if request is None:
                 return ValidationResult(is_valid=False, error=error)
+            if request.dataset_id is None:
+                return ValidationResult(
+                    is_valid=False,
+                    request=request,
+                    error=ChartGenerationError(
+                        error_type="invalid_target",
+                        message="The dataset pipeline requires a dataset_id.",
+                        details="Semantic targets use the authorized view validator.",
+                    ),
+                )
 
             # config is already a typed ChartConfig (validated by Pydantic)
             typed_config = request.config
@@ -276,6 +286,8 @@ class ValidationPipeline:
                 GanttSemanticNormalizationError,
             )
 
+            if request.dataset_id is None:
+                return request
             config = typed_config or request.config
             normalized_config = DatasetValidator.normalize_column_names(
                 config,

@@ -38,7 +38,14 @@ from superset.mcp_service.chart.chart_helpers import (
     build_query_context_from_form_data,
     find_chart_by_identifier,
 )
-from superset.mcp_service.chart.chart_utils import validate_chart_dataset
+from superset.mcp_service.chart.chart_utils import (
+    DatasetValidationResult,
+    validate_chart_dataset,
+)
+from superset.mcp_service.chart.datasource_resolver import (
+    resolve_semantic_view,
+    view_not_found_error,
+)
 from superset.mcp_service.chart.preview_utils import (
     _generate_gantt_vega_lite_preview,
     BUBBLE_VIZ_TYPES,
@@ -68,6 +75,7 @@ from superset.mcp_service.utils.oauth2_utils import (
 )
 from superset.mcp_service.utils.url_utils import get_superset_base_url
 from superset.superset_typing import Column, Metric
+from superset.utils.core import DatasourceType
 
 logger = logging.getLogger(__name__)
 
@@ -1284,24 +1292,33 @@ async def _get_chart_preview_internal(  # noqa: C901
         logger.info("Chart datasource_id: %s", getattr(chart, "datasource_id", "NONE"))
 
         # Transient charts have a falsy id of 0, so skip the pre-check for them.
-        # Guests keep the existence check but skip RBAC (dashboard-authorized).
+        # Table guests keep the existence check but skip RBAC (dashboard-authorized).
         if getattr(chart, "id", None):
-            validation_result = validate_chart_dataset(
-                chart.datasource_id, check_access=not guest_scope.is_guest_read()
-            )
-            if not validation_result.is_valid:
-                await ctx.warning(
-                    "Chart found but dataset is not accessible: %s"
-                    % (validation_result.error,)
+            if chart.datasource_type == DatasourceType.SEMANTIC_VIEW.value:
+                # Semantic IDs must not inherit a colliding table's access result.
+                if resolve_semantic_view(chart.datasource_id) is None:
+                    return ChartError(
+                        error=view_not_found_error(chart.datasource_id).message,
+                        error_type="DatasetNotAccessible",
+                    )
+            else:
+                validation_result: DatasetValidationResult = validate_chart_dataset(
+                    chart.datasource_id, check_access=not guest_scope.is_guest_read()
                 )
-                return ChartError(
-                    error=validation_result.error
-                    or "Chart's dataset is not accessible. Dataset may be deleted.",
-                    error_type="DatasetNotAccessible",
-                )
-            # Log any warnings (e.g., virtual dataset warnings)
-            for warning in validation_result.warnings:
-                await ctx.warning("Dataset warning: %s" % (warning,))
+                if not validation_result.is_valid:
+                    await ctx.warning(
+                        "Chart found but dataset is not accessible: %s"
+                        % (validation_result.error,)
+                    )
+                    return ChartError(
+                        error=validation_result.error
+                        or "Chart's dataset is not accessible. Dataset may be deleted.",
+                        error_type="DatasetNotAccessible",
+                    )
+                # Log any warnings (e.g., virtual dataset warnings)
+                warning: str
+                for warning in validation_result.warnings:
+                    await ctx.warning("Dataset warning: %s" % (warning,))
 
         # If form_data_key is provided, override chart.params with cached
         # form_data so the preview reflects what the user actually sees
