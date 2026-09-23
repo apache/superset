@@ -18,7 +18,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Apache Superset 0.22.1\n"
 "Report-Msgid-Bugs-To: zhouyao94@qq.com\n"
-"POT-Creation-Date: 2026-09-23 12:43+0200\n"
+"POT-Creation-Date: 2026-09-23 22:02+0000\n"
 "PO-Revision-Date: 2019-01-04 22:19+0800\n"
 "Last-Translator: cdmikechen\n"
 "Language: zh\n"
@@ -19812,8 +19812,19 @@ msgstr ""
 "您的看板过大，无法保存：序列化布局长度为 %s，但限制为 %s。请减小看板大小（例如，将其拆分为多个看板）或提高 "
 "SUPERSET_DASHBOARD_POSITION_DATA_LIMIT 配置设置。"
 
-msgid "Your export is being prepared. You'll receive an email when it's ready."
-msgstr "您的导出正在准备中。准备就绪后，您将收到一封电子邮件。"
+msgid ""
+"Your export is being generated and will download automatically when "
+"ready. We'll also email you a download link."
+msgstr ""
+
+msgid "Your export is being generated. Please, do not leave the page."
+msgstr ""
+
+msgid "Your export is ready and downloading."
+msgstr ""
+
+msgid "Your export is taking longer than expected. Try again later."
+msgstr ""
 
 #, python-format
 msgid "Your export of \"%(title)s\" could not be completed."

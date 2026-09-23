@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-23 12:43+0200\n"
+"POT-Creation-Date: 2026-09-23 22:02+0000\n"
 "PO-Revision-Date: 2018-02-11 22:26+0200\n"
 "Last-Translator: Raffaele Spangaro <raffa@raffaelespangaro.it>\n"
 "Language: it\n"
@@ -24542,10 +24542,19 @@ msgstr ""
 "dashboard (ad esempio dividendola in più dashboard) o aumenta "
 "l'impostazione di configurazione SUPERSET_DASHBOARD_POSITION_DATA_LIMIT."
 
-msgid "Your export is being prepared. You'll receive an email when it's ready."
+msgid ""
+"Your export is being generated and will download automatically when "
+"ready. We'll also email you a download link."
 msgstr ""
-"La tua esportazione è in preparazione. Riceverai un'email quando sarà "
-"pronta."
+
+msgid "Your export is being generated. Please, do not leave the page."
+msgstr ""
+
+msgid "Your export is ready and downloading."
+msgstr ""
+
+msgid "Your export is taking longer than expected. Try again later."
+msgstr ""
 
 #, python-format
 msgid "Your export of \"%(title)s\" could not be completed."

@@ -33,6 +33,7 @@ import pytest
 from dateutil import tz as dateutil_tz
 
 from superset.mcp_service.chart.compile import (
+    _classify_as_database_error,
     _compile_chart,
     CompileResult,
     validate_and_compile,
@@ -49,6 +50,7 @@ from superset.mcp_service.chart.schemas import (
 from superset.mcp_service.chart.validation.dataset_validator import (
     build_dataset_context_from_orm,
 )
+from superset.mcp_service.constants import CONNECTION_ERROR_TYPES
 
 
 def _orm_dataset(
@@ -1400,3 +1402,38 @@ def test_compile_chart_seeds_form_data_before_query(
     assert result.success
     mock_set_form_data.assert_called_once_with(query_context, 42, "table")
     assert call_order == ["seed", "run"]
+
+
+@pytest.mark.parametrize("error_type", sorted(CONNECTION_ERROR_TYPES))
+def test_compile_classification_uses_shared_types_with_safe_exception(
+    error_type: str,
+) -> None:
+    """Shared connection types still classify safely wrapped adapter errors."""
+
+    class AdapterError(Exception):
+        """Reject accidental conversion of the original adapter exception."""
+
+        def __str__(self) -> str:
+            raise AssertionError("The engine must not receive the original exception")
+
+    original = AdapterError("connection failed " * 1000)
+    engine_spec = Mock()
+    engine_spec.extract_errors.return_value = [Mock(error_type=error_type)]
+    dataset = Mock(database=Mock(db_engine_spec=engine_spec))
+    with patch("superset.daos.dataset.DatasetDAO.find_by_id", return_value=dataset):
+        assert _classify_as_database_error(original, 1)
+
+    engine_spec.extract_errors.assert_called_once()
+    classified = engine_spec.extract_errors.call_args.args[0]
+    assert type(classified) is Exception
+    assert str(classified).startswith("connection failed")
+    assert len(str(classified).encode("utf-8")) <= 2000
+
+
+def test_compile_classification_handles_engine_failure() -> None:
+    """Classification failures retain the bound exception used by safe logging."""
+    engine_spec = Mock()
+    engine_spec.extract_errors.side_effect = RuntimeError("classification failed")
+    dataset = Mock(database=Mock(db_engine_spec=engine_spec))
+    with patch("superset.daos.dataset.DatasetDAO.find_by_id", return_value=dataset):
+        assert not _classify_as_database_error(ValueError("query failed"), 1)
