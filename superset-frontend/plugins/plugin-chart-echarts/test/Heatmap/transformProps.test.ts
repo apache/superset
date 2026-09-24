@@ -152,19 +152,15 @@ describe('Heatmap transformProps', () => {
   });
 
   test('should handle no sort option specified', () => {
-    // transformProps never invents a sort when sortXAxis/sortYAxis are
-    // unset: both axes maintain order of first appearance. Superset
-    // cannot distinguish "user explicitly cleared the sort control" from
-    // "control was never touched" (both collapse to undefined in
-    // formData), so a default is applied further upstream, in
-    // controlPanel.tsx, only for brand-new charts -- never here. See
-    // Heatmap/controlPanel.test.ts.
     const chartProps = createChartProps({});
     const result = transformProps(chartProps as HeatmapChartProps);
 
     const xAxisData = (result.echartOptions.xAxis as any).data;
     const yAxisData = (result.echartOptions.yAxis as any).data;
 
+    // X-axis has no default sort applied; it maintains order of first
+    // appearance since it is often already ordered by the backend query
+    // (e.g. chronologically for a temporal axis).
     expect(xAxisData).toEqual([
       'Monday',
       'Wednesday',
@@ -172,17 +168,15 @@ describe('Heatmap transformProps', () => {
       'Tuesday',
       'Thursday',
     ]);
-    expect(yAxisData).toEqual([9, 14, 11, 16, 10, 15]);
+    // Y-axis has no natural backend ordering to fall back on, so it
+    // defaults to ascending sort when no explicit sort option is chosen.
+    expect(yAxisData).toEqual([9, 10, 11, 14, 15, 16]);
   });
 
-  test('should sort a string Y axis alphabetically when sortYAxis is set (as a fresh chart default now supplies)', () => {
-    // Reproduces the reported bug's data shape: a string Y-axis (e.g.
-    // customer_name) in arbitrary query order. A brand-new chart's
-    // "Sort Y Axis" control now defaults to 'alpha_asc' (see
-    // Heatmap/controlPanel.tsx), so its formData carries sortYAxis
-    // explicitly by the time it reaches transformProps -- this test
-    // documents that transformProps sorts it correctly once that value
-    // is present.
+  test('should default to sorting the Y axis alphabetically when it holds unsorted string values and no sort option is chosen', () => {
+    // Reproduces the reported bug: creating a heatmap with a string Y-axis
+    // (e.g. customer_name) and clicking "Update Chart" without touching the
+    // "Sort Y Axis" control left the axis in arbitrary query order.
     const customerData = [
       { quarter: 'Q1', customer_name: 'Zoe Diaz', count: 3 },
       { quarter: 'Q1', customer_name: 'Amir Cole', count: 5 },
@@ -191,7 +185,7 @@ describe('Heatmap transformProps', () => {
     ];
 
     const chartProps = createChartProps(
-      { xAxis: 'quarter', groupby: ['customer_name'], sortYAxis: 'alpha_asc' },
+      { xAxis: 'quarter', groupby: ['customer_name'] },
       customerData,
     );
     (chartProps as any).queriesData[0].colnames = [
