@@ -83,6 +83,18 @@ class InlineExportPlan:
         """Return whether the export can run during the request."""
         return self.requested_rows <= self.max_rows
 
+    @property
+    def needs_background_export(self) -> bool:
+        """Return whether only a queued export has any chart to run.
+
+        True when no chart has a query to run and at least one was left out
+        for having no known row bound, which only the queued export can run.
+        The download would hold nothing but the summary sheet.
+        """
+        return email.ERROR_UNBOUNDED in self.skipped.values() and all(
+            query_context is None for query_context in self.query_contexts.values()
+        )
+
 
 @dataclass(frozen=True)
 class _Dataset:

@@ -72,7 +72,10 @@ still downloads. That covers queries that use grouping sets (pivot tables with a
 metric other than a simple SUM, COUNT, MIN or MAX, such as AVG, COUNT DISTINCT,
 a saved metric or Custom SQL) and post-processing that can add rows (such as the
 Resample and Forecast options, or a custom `EXTRA_PANDAS_POSTPROCESSING_OPS`
-operation). The background path exports those charts too.
+operation). The background path exports those charts too. If leaving them out
+means no chart is left to run, the direct download is refused with a message
+asking the user to contact an administrator, rather than returning a workbook
+that holds only the summary sheet.
 
 For larger data exports and all image exports, configure the background path:
 

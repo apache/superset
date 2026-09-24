@@ -242,8 +242,9 @@ logger = logging.getLogger(__name__)
 
 
 def _never_cache(response: WerkzeugResponse) -> WerkzeugResponse:
-    """The download URL is a bearer credential with a TTL of its own, and a
-    cached status would strand a poller; keep both out of every cache."""
+    """The download URL is a bearer credential with a TTL of its own, a cached
+    status would strand a poller, and a workbook carries dashboard data; keep
+    all of them out of every cache."""
     response.cache_control.no_store = True
     response.cache_control.no_cache = True
     response.cache_control.private = True
@@ -1975,6 +1976,14 @@ class DashboardRestApi(
                         "lower the row limits of its charts."
                     )
                 )
+            if plan.needs_background_export:
+                return self.response_400(
+                    message=gettext(
+                        "None of this dashboard's charts can be downloaded "
+                        "directly. Ask an administrator to enable background "
+                        "exports."
+                    )
+                )
             lock_delegated = True
             return self._export_xlsx_inline(
                 dashboard,
@@ -2096,6 +2105,8 @@ class DashboardRestApi(
                 os.remove(tmp_path)
 
         response.response = ClosingIterator(response.response, [cleanup])
+        # Same cache policy as a download from export storage.
+        after_this_request(_never_cache)
         return response
 
     @expose("/export_xlsx/status/<uuid:job_id>/", methods=("GET",))

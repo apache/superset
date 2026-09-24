@@ -42,6 +42,7 @@ from sqlalchemy.engine.reflection import Inspector
 from superset import db, security_manager  # noqa: F401
 from superset.commands.dashboard.permalink.create import CreateDashboardPermalinkCommand
 from superset.daos.dashboard import DashboardDAO, EmbeddedDashboardDAO
+from superset.dashboards.excel_export.email import ERROR_UNBOUNDED
 from superset.dashboards.excel_export.sync_budget import InlineExportPlan
 from superset.exceptions import (
     AcquireDistributedLockFailedException,
@@ -4167,6 +4168,8 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
         )
         assert "attachment" in rv.headers["Content-Disposition"]
         assert ".xlsx" in rv.headers["Content-Disposition"]
+        # Cached like a download from export storage: never.
+        assert "no-store" in rv.headers["Cache-Control"]
         # XLSX files are ZIP archives.
         assert rv.data.startswith(b"PK")
         assert is_zipfile(BytesIO(rv.data))
@@ -4264,6 +4267,41 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
     @with_config({"EXPORT_STORAGE": {}})
     @patch("superset.dashboards.api.ReleaseDistributedLock")
     @patch("superset.dashboards.api.AcquireDistributedLock")
+    @patch("superset.dashboards.api.build_workbook")
+    @patch("superset.dashboards.api.plan_inline_export")
+    def test_export_xlsx_sync_refused_when_only_unbounded_charts_remain(
+        self, mock_plan, mock_build, mock_acquire, mock_release
+    ):
+        """Dashboard API: when every chart that could run was left out for having
+        no known row bound, the download would hold only the summary sheet while
+        the UI reported success. It is refused instead, pointing at the queued
+        path that can run those charts."""
+        mock_plan.return_value = InlineExportPlan(
+            query_contexts={20: None},
+            requested_rows=0,
+            max_rows=100_000,
+            skipped={10: ERROR_UNBOUNDED},
+        )
+        self.login(ADMIN_USERNAME)
+        dashboard = db.session.query(Dashboard).filter_by(slug="world_health").first()
+
+        rv = self.client.post(
+            f"api/v1/dashboard/{dashboard.id}/export_xlsx/",
+            json={"active_data_mask": {}},
+        )
+
+        assert rv.status_code == 400
+        message = rv.json["message"]
+        assert "background exports" in message
+        assert "EXPORT_STORAGE" not in message
+        mock_build.assert_not_called()
+        mock_acquire.return_value.run.assert_called_once()
+        mock_release.return_value.run.assert_called_once()
+
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
+    @with_config({"EXPORT_STORAGE": {}})
+    @patch("superset.dashboards.api.ReleaseDistributedLock")
+    @patch("superset.dashboards.api.AcquireDistributedLock")
     @patch("superset.dashboards.api.plan_inline_export")
     def test_export_xlsx_sync_releases_the_lock_when_planning_fails(
         self, mock_plan, mock_acquire, mock_release
@@ -4296,7 +4334,7 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
         need not be deterministic. Charts the plan left out reach the builder
         too, so the workbook lists them instead of running them."""
         measured = {10: {"queries": [{"row_limit": 5}]}, 20: None}
-        skipped = {30: "unbounded-query"}
+        skipped = {30: ERROR_UNBOUNDED}
         mock_plan.return_value = InlineExportPlan(
             query_contexts=measured,
             requested_rows=5,

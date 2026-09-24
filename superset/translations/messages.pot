@@ -9598,6 +9598,11 @@ msgstr ""
 msgid "None -> None"
 msgstr ""
 
+msgid ""
+"None of this dashboard's charts can be downloaded directly. Ask an "
+"administrator to enable background exports."
+msgstr ""
+
 msgid "Normal"
 msgstr ""
 

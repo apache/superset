@@ -25,7 +25,10 @@ from celery.exceptions import SoftTimeLimitExceeded
 from flask import current_app
 
 from superset.dashboards.excel_export import email
-from superset.dashboards.excel_export.sync_budget import plan_inline_export
+from superset.dashboards.excel_export.sync_budget import (
+    InlineExportPlan,
+    plan_inline_export,
+)
 from superset.utils import json
 
 MODULE = "superset.dashboards.excel_export.sync_budget"
@@ -82,6 +85,7 @@ def restore_config() -> Iterator[None]:
 
 
 def test_plan_sums_the_row_limit_of_every_chart(charts: mock.MagicMock) -> None:
+    """Each chart is charged its row limit, and the budget is their sum."""
     charts.return_value = [
         _chart(10, {"row_limit": 1000}),
         _chart(20, {"row_limit": 250}),
@@ -93,7 +97,7 @@ def test_plan_sums_the_row_limit_of_every_chart(charts: mock.MagicMock) -> None:
 def test_plan_counts_every_query_of_a_multi_query_chart(
     charts: mock.MagicMock,
 ) -> None:
-    # Count every query in a multi-query chart.
+    """Count every query in a multi-query chart."""
     charts.return_value = [_chart(10, {"row_limit": 100}, {"row_limit": 400})]
 
     assert plan_inline_export(mock.MagicMock()).requested_rows == 500
@@ -110,7 +114,7 @@ def test_plan_counts_every_query_of_a_multi_query_chart(
 def test_plan_skips_a_chart_without_a_finite_row_limit(
     charts: mock.MagicMock, query: dict[str, Any]
 ) -> None:
-    # Only the unbounded chart is left out; the rest still download.
+    """Only the unbounded chart is left out; the rest still download."""
     charts.return_value = [_chart(10, {"row_limit": 100}), _chart(20, query)]
 
     plan = plan_inline_export(mock.MagicMock())
@@ -125,8 +129,8 @@ def test_plan_skips_a_chart_without_a_finite_row_limit(
 def test_plan_reads_a_row_limit_the_query_schema_accepts(
     charts: mock.MagicMock, row_limit: Any
 ) -> None:
-    # `ChartDataQueryContextSchema` coerces these to 1000 and runs the export, so
-    # planning has to size them instead of refusing the whole dashboard.
+    """`ChartDataQueryContextSchema` coerces these to 1000 and runs the export, so
+    planning has to size them instead of refusing the whole dashboard."""
     charts.return_value = [_chart(10, {"row_limit": row_limit})]
 
     assert plan_inline_export(mock.MagicMock()).requested_rows == 1000
@@ -136,6 +140,7 @@ def test_plan_reads_a_row_limit_the_query_schema_accepts(
 def test_plan_uses_default_when_row_limit_is_omitted(
     charts: mock.MagicMock, query: dict[str, Any]
 ) -> None:
+    """A query with no row limit, or an unset one, is charged ``ROW_LIMIT``."""
     current_app.config["ROW_LIMIT"] = 250
     charts.return_value = [_chart(10, {"row_limit": 100}), _chart(20, query)]
 
@@ -163,6 +168,7 @@ def test_plan_uses_default_when_row_limit_is_omitted(
 def test_plan_counts_aggregate_only_queries_as_one_row(
     charts: mock.MagicMock, metric: Any
 ) -> None:
+    """A query that groups nothing and selects only aggregates returns one row."""
     charts.return_value = [
         _chart(
             chart_id,
@@ -200,8 +206,8 @@ def test_plan_counts_aggregate_only_queries_as_one_row(
 def test_plan_charges_the_row_limit_for_metrics_that_may_not_aggregate(
     charts: mock.MagicMock, metric: Any
 ) -> None:
-    # A metric is only worth one row if it provably collapses the rows it reads:
-    # `SELECT amount FROM t LIMIT 50000` returns 50,000 rows, not one.
+    """A metric is only worth one row if it provably collapses the rows it reads:
+    `SELECT amount FROM t LIMIT 50000` returns 50,000 rows, not one."""
     charts.return_value = [
         _chart(
             10,
@@ -216,6 +222,7 @@ def test_plan_charges_the_row_limit_for_metrics_that_may_not_aggregate(
 def test_plan_charges_the_row_limit_when_one_metric_may_not_aggregate(
     charts: mock.MagicMock,
 ) -> None:
+    """One metric that may not aggregate charges the query its full row limit."""
     charts.return_value = [
         _chart(
             10,
@@ -237,8 +244,8 @@ def test_plan_charges_the_row_limit_when_one_metric_may_not_aggregate(
 def test_plan_charges_the_row_limit_when_the_dataset_cannot_be_read(
     charts: mock.MagicMock,
 ) -> None:
-    # Without the dataset the saved metric's SQL is unknown, so it is not proven
-    # to aggregate and the query keeps its row limit.
+    """Without the dataset the saved metric's SQL is unknown, so it is not proven to
+    aggregate and the query keeps its row limit."""
     chart = _chart(10, {"columns": [], "metrics": ["count"], "row_limit": 50_000})
     type(chart).datasource = mock.PropertyMock(side_effect=RuntimeError("no dataset"))
     charts.return_value = [chart]
@@ -249,6 +256,7 @@ def test_plan_charges_the_row_limit_when_the_dataset_cannot_be_read(
 def test_plan_does_not_treat_timeseries_as_single_row(
     charts: mock.MagicMock,
 ) -> None:
+    """A timeseries query returns a row per time bucket, not a single row."""
     current_app.config["ROW_LIMIT"] = 250
     charts.return_value = [
         _chart(
@@ -263,8 +271,8 @@ def test_plan_does_not_treat_timeseries_as_single_row(
 def test_plan_does_not_treat_a_legacy_groupby_as_single_row(
     charts: mock.MagicMock,
 ) -> None:
-    # ``QueryObject`` promotes ``groupby`` into ``columns``, so this query returns
-    # one row per country even though its ``columns`` list is empty.
+    """``QueryObject`` promotes ``groupby`` into ``columns``, so this query returns
+    one row per country even though its ``columns`` list is empty."""
     charts.return_value = [
         _chart(
             10,
@@ -292,6 +300,7 @@ def test_plan_does_not_treat_a_legacy_groupby_as_single_row(
 def test_plan_skips_post_processing_that_can_add_rows(
     charts: mock.MagicMock, operation: str
 ) -> None:
+    """Post-processing that can add rows after the LIMIT leaves the chart out."""
     charts.return_value = [
         _chart(
             10,
@@ -314,7 +323,7 @@ def test_plan_skips_post_processing_that_can_add_rows(
 
 
 def test_plan_skips_resampling_a_single_row_query(charts: mock.MagicMock) -> None:
-    # Padding to the time range lets even one aggregate row resample into many.
+    """Padding to the time range lets even one aggregate row resample into many."""
     charts.return_value = [
         _chart(
             10,
@@ -333,7 +342,7 @@ def test_plan_skips_resampling_a_single_row_query(charts: mock.MagicMock) -> Non
 def test_plan_keeps_the_row_limit_for_row_preserving_post_processing(
     charts: mock.MagicMock,
 ) -> None:
-    # Empty steps are dropped by ``QueryObject`` before execution.
+    """Empty steps are dropped by ``QueryObject`` before execution."""
     charts.return_value = [
         _chart(
             10,
@@ -366,8 +375,8 @@ def test_plan_keeps_the_row_limit_for_row_preserving_post_processing(
 def test_plan_skips_grouping_sets_without_blocking_other_charts(
     charts: mock.MagicMock, grouping_sets: list[list[str]]
 ) -> None:
-    # Grouping sets run without a LIMIT, so the pivot table is left out, but the
-    # dashboard's other charts still fit the budget and download.
+    """Grouping sets run without a LIMIT, so the pivot table is left out, but the
+    dashboard's other charts still fit the budget and download."""
     pivot = _chart(
         10,
         {
@@ -390,7 +399,7 @@ def test_plan_skips_grouping_sets_without_blocking_other_charts(
 def test_plan_skips_the_whole_chart_when_one_of_its_queries_is_unbounded(
     charts: mock.MagicMock,
 ) -> None:
-    # The bounded query's rows are not charged: none of the chart runs.
+    """The bounded query's rows are not charged: none of the chart runs."""
     charts.return_value = [
         _chart(10, {"row_limit": 100}, {"grouping_sets": [["country"]]}),
     ]
@@ -401,8 +410,62 @@ def test_plan_skips_the_whole_chart_when_one_of_its_queries_is_unbounded(
     assert plan.requested_rows == 0
 
 
+def test_plan_of_only_grouping_sets_needs_background_export(
+    charts: mock.MagicMock,
+) -> None:
+    """A dashboard of pivot tables with non-additive metrics has nothing to
+    download directly, but the queued export can run every chart."""
+    charts.return_value = [
+        _chart(chart_id, {"columns": ["country"], "grouping_sets": [["country"]]})
+        for chart_id in (10, 20)
+    ]
+
+    plan = plan_inline_export(mock.MagicMock())
+
+    assert plan.fits_row_budget is True
+    assert plan.needs_background_export is True
+
+
+@pytest.mark.parametrize(
+    ("query_contexts", "skipped", "needs_background"),
+    [
+        pytest.param({}, {10: email.ERROR_UNBOUNDED}, True, id="only unbounded"),
+        pytest.param(
+            {20: None},
+            {10: email.ERROR_UNBOUNDED},
+            True,
+            id="unbounded and no query context",
+        ),
+        pytest.param(
+            {20: {"queries": [{"row_limit": 5}]}},
+            {10: email.ERROR_UNBOUNDED},
+            False,
+            id="a bounded chart still downloads",
+        ),
+        pytest.param({20: None}, {}, False, id="only no query context"),
+        pytest.param({}, {10: email.ERROR_GENERAL}, False, id="only planning errors"),
+    ],
+)
+def test_plan_needs_background_export_only_when_no_chart_can_run(
+    query_contexts: dict[int, Any],
+    skipped: dict[int, str],
+    needs_background: bool,
+) -> None:
+    """Only charts left out as unbounded are ones a queued export could add.
+    Charts that no path can export keep the download, whose summary sheet says
+    how to fix them."""
+    plan = InlineExportPlan(
+        query_contexts=query_contexts,
+        requested_rows=0,
+        max_rows=100_000,
+        skipped=skipped,
+    )
+
+    assert plan.needs_background_export is needs_background
+
+
 def test_plan_ignores_charts_that_cannot_be_exported(charts: mock.MagicMock) -> None:
-    # Skipped charts add no rows.
+    """Skipped charts add no rows."""
     charts.return_value = [_chart(10, {"row_limit": 100}), _unexportable_chart(20)]
 
     assert plan_inline_export(mock.MagicMock()).requested_rows == 100
@@ -419,12 +482,14 @@ def test_plan_ignores_charts_that_cannot_be_exported(charts: mock.MagicMock) -> 
 def test_plan_fits_totals_up_to_and_including_the_limit(
     charts: mock.MagicMock, row_limit: int, fits: bool
 ) -> None:
+    """A total equal to the limit still downloads directly."""
     charts.return_value = [_chart(10, {"row_limit": row_limit})]
 
     assert plan_inline_export(mock.MagicMock()).fits_row_budget is fits
 
 
 def test_plan_honors_the_configured_limit(charts: mock.MagicMock) -> None:
+    """The budget follows ``EXCEL_EXPORT_SYNC_MAX_ROWS``."""
     charts.return_value = [_chart(10, {"row_limit": 5_000})]
     current_app.config["EXCEL_EXPORT_SYNC_MAX_ROWS"] = 1_000
 
@@ -438,7 +503,7 @@ def test_plan_honors_the_configured_limit(charts: mock.MagicMock) -> None:
 def test_plan_carries_the_resolved_context_of_every_chart(
     charts: mock.MagicMock,
 ) -> None:
-    # Return the contexts used to calculate the budget.
+    """Return the contexts used to calculate the budget."""
     exportable = _chart(10, {"row_limit": 100})
     charts.return_value = [exportable, _unexportable_chart(20)]
 
@@ -451,7 +516,7 @@ def test_plan_carries_the_resolved_context_of_every_chart(
 
 
 def test_plan_resolves_each_chart_exactly_once(charts: mock.MagicMock) -> None:
-    # Resolve each chart once so planning and export use the same context.
+    """Resolve each chart once so planning and export use the same context."""
     first = _chart(10, {"row_limit": 1})
     second = _chart(20, {"row_limit": 2})
     charts.return_value = [first, second]
@@ -466,6 +531,7 @@ def test_plan_resolves_each_chart_exactly_once(charts: mock.MagicMock) -> None:
 def test_plan_skips_a_chart_when_context_resolution_fails(
     charts: mock.MagicMock,
 ) -> None:
+    """A chart whose context cannot be resolved is left out, not the whole plan."""
     first = _chart(10, {"row_limit": 25})
     malformed = _chart(20, {"row_limit": 50})
     charts.return_value = [first, malformed]
@@ -484,6 +550,7 @@ def test_plan_skips_a_chart_when_context_resolution_fails(
 
 
 def test_plan_propagates_soft_time_limits(charts: mock.MagicMock) -> None:
+    """A Celery soft time limit is not swallowed as a per-chart failure."""
     charts.return_value = [_chart(10, {"row_limit": 25})]
 
     with (

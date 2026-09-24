@@ -114,8 +114,8 @@ def test_success_email_omits_empty_reason_groups() -> None:
 
 
 def test_errored_groups_explains_unbounded_charts_in_order() -> None:
-    # The summary sheet of a direct download shows this note; it names who can
-    # include the chart, and sits between the known reasons.
+    """The summary sheet of a direct download shows this note; it names who can
+    include the chart, and sits between the known reasons."""
     groups = email.errored_groups(
         {
             email.ERROR_GENERAL: ["30 - Boom"],

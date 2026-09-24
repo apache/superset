@@ -16,13 +16,28 @@
 # under the License.
 from __future__ import annotations
 
+import logging
+from collections.abc import Iterator
 from typing import Any
 from unittest.mock import MagicMock
 
 import pytest
 
 from superset.app import SupersetApp
-from superset.dashboards.excel_export.storage import is_export_storage_configured
+from superset.dashboards.excel_export.storage import (
+    _warn_partial_storage,
+    is_export_storage_configured,
+)
+
+LOGGER = "superset.dashboards.excel_export.storage"
+
+
+@pytest.fixture(autouse=True)
+def _reset_partial_storage_warning() -> Iterator[None]:
+    """Each test starts as a fresh process that has not warned yet."""
+    _warn_partial_storage.cache_clear()
+    yield
+    _warn_partial_storage.cache_clear()
 
 
 @pytest.mark.parametrize(
@@ -41,5 +56,59 @@ def test_storage_is_configured_only_with_a_bucket_and_backend(
     storage: dict[str, Any],
     configured: bool,
 ) -> None:
+    """Exports are queued only when both halves of the storage config are set."""
     monkeypatch.setitem(app.config, "EXPORT_STORAGE", storage)
     assert is_export_storage_configured() is configured
+
+
+@pytest.mark.parametrize(
+    ("storage", "missing_key"),
+    [
+        ({"bucket": "exports-bucket"}, "backend"),
+        ({"bucket": "", "backend": MagicMock()}, "bucket"),
+        ({"backend": MagicMock()}, "bucket"),
+    ],
+)
+def test_partial_storage_is_logged_once_naming_the_missing_key(
+    app: SupersetApp,
+    monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
+    storage: dict[str, Any],
+    missing_key: str,
+) -> None:
+    """A half-configured ``EXPORT_STORAGE`` silently switches exports to direct
+    downloads, so the operator gets one warning naming what is missing instead
+    of one per page load."""
+    monkeypatch.setitem(app.config, "EXPORT_STORAGE", storage)
+
+    with caplog.at_level(logging.WARNING, logger=LOGGER):
+        is_export_storage_configured()
+        is_export_storage_configured()
+
+    warnings = [record for record in caplog.records if record.name == LOGGER]
+    assert len(warnings) == 1
+    assert f"EXPORT_STORAGE has no {missing_key}," in warnings[0].getMessage()
+
+
+@pytest.mark.parametrize(
+    "storage",
+    [
+        pytest.param({"key_prefix": "dashboard-exports/"}, id="default config"),
+        pytest.param(
+            {"bucket": "exports-bucket", "backend": MagicMock()}, id="complete config"
+        ),
+    ],
+)
+def test_complete_or_absent_storage_logs_nothing(
+    app: SupersetApp,
+    monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
+    storage: dict[str, Any],
+) -> None:
+    """Leaving storage unset is a supported setup, not a misconfiguration."""
+    monkeypatch.setitem(app.config, "EXPORT_STORAGE", storage)
+
+    with caplog.at_level(logging.WARNING, logger=LOGGER):
+        is_export_storage_configured()
+
+    assert [record for record in caplog.records if record.name == LOGGER] == []

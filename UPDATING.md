@@ -938,8 +938,10 @@ omit it, and returns `400` before querying if the total exceeds the limit.
 Charts whose size can't be known before they run (grouping sets, which pivot
 tables use for non-additive metrics, and post-processing that can add rows such
 as resample, forecasts or custom operations) are left out of direct downloads
-and listed on the workbook's "Export Summary" sheet. Image exports are hidden
-without export storage because they require background webdriver rendering.
+and listed on the workbook's "Export Summary" sheet; if that leaves no chart to
+run, the request returns `400` instead of a summary-only workbook. Image exports
+are hidden without export storage because they require background webdriver
+rendering.
 
 `POST /api/v1/dashboard/<id>/export_xlsx/` returns either `202` with a queued job
 id or `200` with the workbook. It does not return `501` when storage is unset.
@@ -957,7 +959,8 @@ deployment that had background exports working falls back to direct downloads
 
 `EXPORT_STORAGE["backend"]` has no default and must be set explicitly, which is
 the part an upgrade cannot infer: the previous config implied S3, so keep the
-same bucket with `S3ExportStorage()`. `EXCEL_EXPORT_LINK_TTL_SECONDS` is
+same bucket with `S3ExportStorage()`. A bucket without a backend (or the
+reverse) logs a warning naming the missing key. `EXCEL_EXPORT_LINK_TTL_SECONDS` is
 unchanged in name, but it now bounds a Superset-issued link rather than a
 pre-signed S3 URL, so the AWS seven day ceiling no longer applies.
 
