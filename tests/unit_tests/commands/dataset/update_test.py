@@ -1387,6 +1387,8 @@ def _mapping_command(
     mapped_column.partition_value_transform = transform
     partition_column = mocker.MagicMock()
     partition_column.column_name = "dt_epoch"
+    # The partition column is the target of a mapping, never the source of one.
+    partition_column.partition_value_transform = None
 
     mock_dataset = mocker.MagicMock(is_managed_externally=False)
     mock_dataset.database.backend = "sqlite"
@@ -1402,6 +1404,7 @@ def _mapping_command(
     return command
 
 
+@with_feature_flags(PARTITION_FILTER_MAPPING=True)
 def test_an_unparseable_transform_does_not_block_the_save(
     mocker: MockerFixture,
 ) -> None:
@@ -1421,6 +1424,7 @@ def test_an_unparseable_transform_does_not_block_the_save(
     gate.assert_not_called()
 
 
+@with_feature_flags(PARTITION_FILTER_MAPPING=True)
 def test_a_parseable_transform_still_goes_through_the_stored_expression_gate(
     mocker: MockerFixture,
 ) -> None:
@@ -1436,6 +1440,7 @@ def test_a_parseable_transform_still_goes_through_the_stored_expression_gate(
     assert ":value" not in gate.call_args.args[-1]
 
 
+@with_feature_flags(PARTITION_FILTER_MAPPING=True)
 def test_a_jinja_transform_is_still_rejected(mocker: MockerFixture) -> None:
     """
     Skipping the gate for unparseable transforms is not a hole for templating:
@@ -1448,3 +1453,39 @@ def test_a_jinja_transform_is_still_rejected(mocker: MockerFixture) -> None:
     command._validate_partition_mapping(exceptions)
 
     assert [exc.field_name for exc in exceptions] == ["partition_value_transform"]
+
+
+@with_feature_flags(PARTITION_FILTER_MAPPING=True)
+def test_a_self_mapping_is_rejected_while_the_feature_is_on(
+    mocker: MockerFixture,
+) -> None:
+    """A column cannot stand in for itself: that is a Tier-1 blocking issue."""
+    mocker.patch("superset.commands.dataset.update.validate_stored_expression")
+    command = _mapping_command(mocker, "unix_timestamp(:value)")
+    command._properties["partition_mapped_column"] = "dt_epoch"
+
+    exceptions: list[ValidationError] = []
+    command._validate_partition_mapping(exceptions)
+
+    assert [exc.field_name for exc in exceptions] == ["partition_column"]
+
+
+@with_feature_flags(PARTITION_FILTER_MAPPING=False)
+def test_no_mapping_validation_runs_while_the_feature_is_off(
+    mocker: MockerFixture,
+) -> None:
+    """
+    With the flag off nothing mirrors, so a stored mapping can never be
+    consumed. Rejecting the save over it would hand the owner a validation
+    error they have no way to act on -- and every path that reads a mapping is
+    gated the same way.
+    """
+    gate = mocker.patch("superset.commands.dataset.update.validate_stored_expression")
+    command = _mapping_command(mocker, "unix_timestamp(:value)")
+    command._properties["partition_mapped_column"] = "dt_epoch"
+
+    exceptions: list[ValidationError] = []
+    command._validate_partition_mapping(exceptions)
+
+    assert exceptions == []
+    gate.assert_not_called()
