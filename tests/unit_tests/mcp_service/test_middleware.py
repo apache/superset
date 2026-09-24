@@ -1379,8 +1379,8 @@ class TestResponseSizeGuardMiddleware:
 class TestCreateResponseSizeGuardMiddleware:
     """Test create_response_size_guard_middleware factory function."""
 
-    def test_default_config_checks_chart_preview(self) -> None:
-        """Should size-check chart preview responses by default."""
+    def test_default_config_excludes_rendered_chart_preview(self) -> None:
+        """PNG previews exceed the default text budget and cannot be truncated."""
         mock_flask_app = MagicMock()
         mock_flask_app.config.get.return_value = MCP_RESPONSE_SIZE_CONFIG
 
@@ -1391,7 +1391,7 @@ class TestCreateResponseSizeGuardMiddleware:
             middleware = create_response_size_guard_middleware()
 
         assert middleware is not None
-        assert "get_chart_preview" not in middleware.excluded_tools
+        assert "get_chart_preview" in middleware.excluded_tools
         assert "health_check" in middleware.excluded_tools
 
     def test_creates_middleware_when_enabled(self) -> None:
