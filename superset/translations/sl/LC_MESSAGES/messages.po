@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version:  Superset\n"
 "Report-Msgid-Bugs-To: dkrat7 @github.com\n"
-"POT-Creation-Date: 2026-09-24 02:42+0000\n"
+"POT-Creation-Date: 2026-09-23 12:43+0200\n"
 "PO-Revision-Date: 2026-07-29 16:16+0200\n"
 "Last-Translator: lapor-kris <lapor-kris@github.com>\n"
 "Language: sl_SI\n"
@@ -5471,9 +5471,6 @@ msgstr "Oblika zapisa datuma"
 
 msgid "Date format string"
 msgstr "Niz za obliko datuma"
-
-msgid "Date range filter"
-msgstr ""
 
 msgid "Date/Time"
 msgstr "Datum/Čas"
@@ -11402,11 +11399,6 @@ msgstr "Piksli"
 
 msgid "Plain"
 msgstr "Preprosto"
-
-msgid ""
-"Plain calendar date-range filter, with no time-of-day or relative-range "
-"options"
-msgstr ""
 
 msgid ""
 "Please check your query and confirm that all template parameters are "

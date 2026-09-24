@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-24 02:42+0000\n"
+"POT-Creation-Date: 2026-09-23 12:43+0200\n"
 "PO-Revision-Date: 2021-11-16 17:33+0100\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: fr\n"
@@ -5896,9 +5896,6 @@ msgstr "Format daty"
 #, fuzzy
 msgid "Date format string"
 msgstr "Ciąg formatu daty"
-
-msgid "Date range filter"
-msgstr ""
 
 msgid "Date/Time"
 msgstr "Data/godzina"
@@ -12418,11 +12415,6 @@ msgstr "Piksele"
 
 msgid "Plain"
 msgstr "Prosty"
-
-msgid ""
-"Plain calendar date-range filter, with no time-of-day or relative-range "
-"options"
-msgstr ""
 
 msgid ""
 "Please check your query and confirm that all template parameters are "

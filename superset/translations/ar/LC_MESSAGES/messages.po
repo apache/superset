@@ -24,7 +24,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version:  \n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-24 02:42+0000\n"
+"POT-Creation-Date: 2026-09-23 12:43+0200\n"
 "PO-Revision-Date: 2024-07-14 15:10+0300\n"
 "Last-Translator: Abdalrahim G. Fakhouri <abdilra7eem@yahoo.com>\n"
 "Language: ar\n"
@@ -5880,9 +5880,6 @@ msgstr "تنسيق التاريخ"
 
 msgid "Date format string"
 msgstr "سلسلة تنسيق التاريخ"
-
-msgid "Date range filter"
-msgstr ""
 
 msgid "Date/Time"
 msgstr "التاريخ/الوقت"
@@ -12331,11 +12328,6 @@ msgstr "بكسل"
 
 msgid "Plain"
 msgstr "عادي"
-
-msgid ""
-"Plain calendar date-range filter, with no time-of-day or relative-range "
-"options"
-msgstr ""
 
 msgid ""
 "Please check your query and confirm that all template parameters are "
