@@ -1331,7 +1331,7 @@ msgid "Add folder"
 msgstr "フォルダーを追加"
 
 msgid "Add group"
-msgstr ""
+msgstr "グループを追加"
 
 msgid "Add item"
 msgstr "項目を追加"
@@ -1373,7 +1373,7 @@ msgid "Add sheet"
 msgstr "シートを追加"
 
 msgid "Add subgroup"
-msgstr ""
+msgstr "サブグループを追加"
 
 msgid "Add tag to entities"
 msgstr "エンティティにタグを追加"
@@ -3057,7 +3057,7 @@ msgid "Cell title template"
 msgstr "セルのタイトルテンプレート"
 
 msgid "Center"
-msgstr ""
+msgstr "中央"
 
 msgid "Center value"
 msgstr ""
@@ -3690,7 +3690,7 @@ msgid "Collapse row"
 msgstr "行を折りたたむ"
 
 msgid "Collapse settings"
-msgstr ""
+msgstr "設定を折りたたむ"
 
 msgid "Collapse tab content"
 msgstr "タブの内容を折りたたむ"
@@ -3805,7 +3805,7 @@ msgid "Column data types"
 msgstr "列のデータ型"
 
 msgid "Column groups"
-msgstr ""
+msgstr "列グループ"
 
 msgid "Column header tooltip"
 msgstr "列ヘッダーのツールチップ"
@@ -6263,7 +6263,7 @@ msgid "Enter fullscreen"
 msgstr "全画面表示"
 
 msgid "Enter group name"
-msgstr ""
+msgstr "グループ名を入力"
 
 msgid "Enter minimum and maximum values for the range filter"
 msgstr "範囲フィルターの最小値と最大値を入力してください"
@@ -6541,7 +6541,7 @@ msgid "Expand row to edit"
 msgstr "行を展開して編集"
 
 msgid "Expand settings"
-msgstr ""
+msgstr "設定を展開"
 
 msgid ""
 "Expects a formula with depending time parameter 'x'\n"
@@ -7453,7 +7453,7 @@ msgstr "グループ"
 
 #, python-format
 msgid "Group %s"
-msgstr ""
+msgstr "グループ %s"
 
 msgid "Group By"
 msgstr "グループ化"
@@ -7468,10 +7468,10 @@ msgid "Group by"
 msgstr "グループ化"
 
 msgid "Group columns"
-msgstr ""
+msgstr "グループの列"
 
 msgid "Group name"
-msgstr ""
+msgstr "グループ名"
 
 msgid "Group remaining as \"Others\""
 msgstr "残りの項目を「その他」にまとめる"
@@ -9236,10 +9236,10 @@ msgid "MotherDuck token"
 msgstr "MotherDuckトークン"
 
 msgid "Move group left"
-msgstr ""
+msgstr "グループを左に移動"
 
 msgid "Move group right"
-msgstr ""
+msgstr "グループを右に移動"
 
 msgid "Move icon"
 msgstr "移動アイコン"
@@ -9271,7 +9271,7 @@ msgid "Multi-Variables"
 msgstr "マルチ変数"
 
 msgid "Multi-level header"
-msgstr ""
+msgstr "多階層ヘッダー"
 
 msgid "Multiple"
 msgstr "複数"
@@ -10658,7 +10658,7 @@ msgid "Port out of range 0-65535"
 msgstr "ポートが 0 ～ 65535 の範囲外です"
 
 msgid "Position"
-msgstr ""
+msgstr "位置"
 
 msgid "Position JSON"
 msgstr "位置JSON"
@@ -11116,7 +11116,7 @@ msgid "Remove from favorites"
 msgstr ""
 
 msgid "Remove group"
-msgstr ""
+msgstr "グループを削除"
 
 msgid "Remove item"
 msgstr "項目を削除"
@@ -12269,7 +12269,7 @@ msgid "Select column name"
 msgstr "列名を選択"
 
 msgid "Select columns"
-msgstr ""
+msgstr "列を選択"
 
 msgid ""
 "Select columns that will be displayed in the table. You can multiselect "
@@ -13527,7 +13527,7 @@ msgstr "サブドメイン"
 
 #, python-format
 msgid "Subgroup %s"
-msgstr ""
+msgstr "サブグループ %s"
 
 msgid "Subject"
 msgstr "サブジェクト"
@@ -13755,7 +13755,7 @@ msgid "Table or View \"%(table)s\" does not exist."
 msgstr "テーブルまたはビュー「%(table)s」は存在しません。"
 
 msgid "Table side"
-msgstr ""
+msgstr "テーブルの側"
 
 msgid ""
 "Table that visualizes paired t-tests, which are used to understand "

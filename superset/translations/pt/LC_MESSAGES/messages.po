@@ -1843,7 +1843,7 @@ msgid "Add folder"
 msgstr "Adicionar pasta"
 
 msgid "Add group"
-msgstr ""
+msgstr "Adicionar grupo"
 
 msgid "Add item"
 msgstr "Adicionar item"
@@ -1899,7 +1899,7 @@ msgid "Add sheet"
 msgstr "Adicionar folha"
 
 msgid "Add subgroup"
-msgstr ""
+msgstr "Adicionar subgrupo"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -4323,7 +4323,7 @@ msgid "Cell title template"
 msgstr "Modelo do título da célula"
 
 msgid "Center"
-msgstr ""
+msgstr "Centro"
 
 msgid "Center value"
 msgstr ""
@@ -5186,7 +5186,7 @@ msgid "Collapse row"
 msgstr "Recolher linha"
 
 msgid "Collapse settings"
-msgstr ""
+msgstr "Recolher definições"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr, uk]
@@ -5342,7 +5342,7 @@ msgid "Column data types"
 msgstr "Tipos de dados da coluna"
 
 msgid "Column groups"
-msgstr ""
+msgstr "Grupos de colunas"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -8780,7 +8780,7 @@ msgid "Enter fullscreen"
 msgstr "Entrar em ecrã completo"
 
 msgid "Enter group name"
-msgstr ""
+msgstr "Introduza o nome do grupo"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
 # lv, pt_BR, ro, ru, sk, sr, sr_Latn, tr, uk]
@@ -9164,7 +9164,7 @@ msgid "Expand row to edit"
 msgstr "Expandir linha para editar"
 
 msgid "Expand settings"
-msgstr ""
+msgstr "Expandir definições"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -10434,7 +10434,7 @@ msgstr "Grupo"
 
 #, python-format
 msgid "Group %s"
-msgstr ""
+msgstr "Grupo %s"
 
 msgid "Group By"
 msgstr "Agrupar por"
@@ -10452,10 +10452,10 @@ msgid "Group by"
 msgstr "Agrupar por"
 
 msgid "Group columns"
-msgstr ""
+msgstr "Colunas do grupo"
 
 msgid "Group name"
-msgstr ""
+msgstr "Nome do grupo"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, fr,
 # ja, lv, ro, ru, sk, sr, sr_Latn, tr, uk]
@@ -12993,10 +12993,10 @@ msgid "MotherDuck token"
 msgstr "Token MotherDuck"
 
 msgid "Move group left"
-msgstr ""
+msgstr "Mover grupo para a esquerda"
 
 msgid "Move group right"
-msgstr ""
+msgstr "Mover grupo para a direita"
 
 msgid "Move icon"
 msgstr "Mover ícone"
@@ -13046,7 +13046,7 @@ msgid "Multi-Variables"
 msgstr "Multi-Variáveis"
 
 msgid "Multi-level header"
-msgstr ""
+msgstr "Cabeçalho de vários níveis"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -15120,7 +15120,7 @@ msgid "Port out of range 0-65535"
 msgstr "Porta fora do intervalo 0-65535"
 
 msgid "Position"
-msgstr ""
+msgstr "Posição"
 
 msgid "Position JSON"
 msgstr "Posição JSON"
@@ -15745,7 +15745,7 @@ msgid "Remove from favorites"
 msgstr ""
 
 msgid "Remove group"
-msgstr ""
+msgstr "Remover grupo"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -17277,7 +17277,7 @@ msgid "Select column name"
 msgstr "Selecionar nome da coluna"
 
 msgid "Select columns"
-msgstr ""
+msgstr "Selecionar colunas"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fa, fr, ja, lv, mi, pl, ro, ru, sk, sl, sr, sr_Latn, tr, uk]
@@ -19089,7 +19089,7 @@ msgstr "Subdomínio"
 
 #, python-format
 msgid "Subgroup %s"
-msgstr ""
+msgstr "Subgrupo %s"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # fr, it, ja, lv, mi, nl, ru, sk, sl, tr, uk]
@@ -19421,7 +19421,7 @@ msgid "Table or View \"%(table)s\" does not exist."
 msgstr "A tabela ou vista \"%(table)s\" não existe."
 
 msgid "Table side"
-msgstr ""
+msgstr "Lado da tabela"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,

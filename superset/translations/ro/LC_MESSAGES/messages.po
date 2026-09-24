@@ -1576,7 +1576,7 @@ msgid "Add folder"
 msgstr "Adaugă folder"
 
 msgid "Add group"
-msgstr ""
+msgstr "Adaugă grup"
 
 msgid "Add item"
 msgstr "Adaugă element"
@@ -1627,7 +1627,7 @@ msgid "Add sheet"
 msgstr "Adaugă foaie"
 
 msgid "Add subgroup"
-msgstr ""
+msgstr "Adaugă subgrup"
 
 msgid "Add tag to entities"
 msgstr "Adaugă etichetă la entități"
@@ -3553,7 +3553,7 @@ msgid "Cell title template"
 msgstr "Șablon titlu celulă"
 
 msgid "Center"
-msgstr ""
+msgstr "Centru"
 
 msgid "Center value"
 msgstr ""
@@ -4267,7 +4267,7 @@ msgid "Collapse row"
 msgstr "Restrânge rând"
 
 msgid "Collapse settings"
-msgstr ""
+msgstr "Restrânge setările"
 
 msgid "Collapse tab content"
 msgstr "Restrânge conținutul filei"
@@ -4409,7 +4409,7 @@ msgid "Column data types"
 msgstr "Tipuri de date coloană"
 
 msgid "Column groups"
-msgstr ""
+msgstr "Grupuri de coloane"
 
 msgid "Column header tooltip"
 msgstr "Tooltip antet coloană"
@@ -7294,7 +7294,7 @@ msgid "Enter fullscreen"
 msgstr "Intră în ecran complet"
 
 msgid "Enter group name"
-msgstr ""
+msgstr "Introduceți numele grupului"
 
 msgid "Enter minimum and maximum values for the range filter"
 msgstr "Introduceți valorile minime și maxime pentru filtrul de interval"
@@ -7592,7 +7592,7 @@ msgid "Expand row to edit"
 msgstr "Extindeți rândul pentru editare"
 
 msgid "Expand settings"
-msgstr ""
+msgstr "Extinde setările"
 
 msgid ""
 "Expects a formula with depending time parameter 'x'\n"
@@ -8642,7 +8642,7 @@ msgstr "Grup"
 
 #, python-format
 msgid "Group %s"
-msgstr ""
+msgstr "Grup %s"
 
 msgid "Group By"
 msgstr "Grupare După"
@@ -8659,10 +8659,10 @@ msgid "Group by"
 msgstr "Grupare după"
 
 msgid "Group columns"
-msgstr ""
+msgstr "Coloanele grupului"
 
 msgid "Group name"
-msgstr ""
+msgstr "Numele grupului"
 
 msgid "Group remaining as \"Others\""
 msgstr "Grupează restul ca \"Altele\""
@@ -10675,10 +10675,10 @@ msgid "MotherDuck token"
 msgstr "Token MotherDuck"
 
 msgid "Move group left"
-msgstr ""
+msgstr "Mută grupul la stânga"
 
 msgid "Move group right"
-msgstr ""
+msgstr "Mută grupul la dreapta"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, fr, it,
 # ja, sr, sr_Latn]
@@ -10713,7 +10713,7 @@ msgid "Multi-Variables"
 msgstr "Multi-Variabile"
 
 msgid "Multi-level header"
-msgstr ""
+msgstr "Antet pe mai multe niveluri"
 
 msgid "Multiple"
 msgstr "Multiplu"
@@ -12283,7 +12283,7 @@ msgid "Port out of range 0-65535"
 msgstr "Port în afara intervalului 0-65535"
 
 msgid "Position"
-msgstr ""
+msgstr "Poziție"
 
 msgid "Position JSON"
 msgstr "Poziție JSON"
@@ -12773,7 +12773,7 @@ msgid "Remove from favorites"
 msgstr ""
 
 msgid "Remove group"
-msgstr ""
+msgstr "Elimină grupul"
 
 msgid "Remove item"
 msgstr "Elimină element"
@@ -14052,7 +14052,7 @@ msgid "Select column name"
 msgstr "Selectați numele coloanei"
 
 msgid "Select columns"
-msgstr ""
+msgstr "Selectează coloane"
 
 msgid ""
 "Select columns that will be displayed in the table. You can multiselect "
@@ -15578,7 +15578,7 @@ msgstr "Subdomeniu"
 
 #, python-format
 msgid "Subgroup %s"
-msgstr ""
+msgstr "Subgrup %s"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # fr, it, ja, lv, mi, nl, ru, sk, sl, tr, uk]
@@ -15841,7 +15841,7 @@ msgid "Table or View \"%(table)s\" does not exist."
 msgstr "Tabelul sau Vizualizarea \"%(table)s\" nu există."
 
 msgid "Table side"
-msgstr ""
+msgstr "Partea tabelului"
 
 msgid ""
 "Table that visualizes paired t-tests, which are used to understand "

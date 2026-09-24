@@ -1478,7 +1478,7 @@ msgid "Add folder"
 msgstr "Filtre ekle"
 
 msgid "Add group"
-msgstr ""
+msgstr "Grup ekle"
 
 msgid "Add item"
 msgstr "Ekle item"
@@ -1526,7 +1526,7 @@ msgid "Add sheet"
 msgstr "Sayfa ekle"
 
 msgid "Add subgroup"
-msgstr ""
+msgstr "Alt grup ekle"
 
 msgid "Add tag to entities"
 msgstr "Varlıklara etiket ekleyin"
@@ -3456,7 +3456,7 @@ msgid "Cell title template"
 msgstr "Şablonu sil"
 
 msgid "Center"
-msgstr ""
+msgstr "Orta"
 
 msgid "Center value"
 msgstr ""
@@ -4158,7 +4158,7 @@ msgid "Collapse row"
 msgstr "Collap row"
 
 msgid "Collapse settings"
-msgstr ""
+msgstr "Ayarları daralt"
 
 msgid "Collapse tab content"
 msgstr "Colalt sekme içeriği"
@@ -4295,7 +4295,7 @@ msgid "Column data types"
 msgstr "Veri tipi"
 
 msgid "Column groups"
-msgstr ""
+msgstr "Kolon grupları"
 
 msgid "Column header tooltip"
 msgstr "Köşe adı"
@@ -7108,7 +7108,7 @@ msgid "Enter fullscreen"
 msgstr "Tam ekrana geç"
 
 msgid "Enter group name"
-msgstr ""
+msgstr "Grup adını girin"
 
 msgid "Enter minimum and maximum values for the range filter"
 msgstr "aralığı filtre için minimum ve maksimum değerler girin"
@@ -7419,7 +7419,7 @@ msgid "Expand row to edit"
 msgstr "Düzenlemek için satırı genişlet"
 
 msgid "Expand settings"
-msgstr ""
+msgstr "Ayarları genişlet"
 
 msgid ""
 "Expects a formula with depending time parameter 'x'\n"
@@ -8456,7 +8456,7 @@ msgstr "Grup Grubu"
 
 #, python-format
 msgid "Group %s"
-msgstr ""
+msgstr "Grup %s"
 
 msgid "Group By"
 msgstr "Grup Tarafından"
@@ -8471,10 +8471,10 @@ msgid "Group by"
 msgstr "Grup Tarafından Grup"
 
 msgid "Group columns"
-msgstr ""
+msgstr "Grup kolonları"
 
 msgid "Group name"
-msgstr ""
+msgstr "Grup adı"
 
 msgid "Group remaining as \"Others\""
 msgstr "Grup \"Diğerleri\" olarak kaldı"
@@ -10436,10 +10436,10 @@ msgid "MotherDuck token"
 msgstr "AnneDuck token"
 
 msgid "Move group left"
-msgstr ""
+msgstr "Grubu sola taşı"
 
 msgid "Move group right"
-msgstr ""
+msgstr "Grubu sağa taşı"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
@@ -10474,7 +10474,7 @@ msgid "Multi-Variables"
 msgstr "Çok değişken"
 
 msgid "Multi-level header"
-msgstr ""
+msgstr "Çok düzeyli başlık"
 
 msgid "Multiple"
 msgstr "Birden çok"
@@ -12031,7 +12031,7 @@ msgid "Port out of range 0-65535"
 msgstr "Port out of range 0-65535"
 
 msgid "Position"
-msgstr ""
+msgstr "Konum"
 
 msgid "Position JSON"
 msgstr "Pozisyon JSON"
@@ -12522,7 +12522,7 @@ msgid "Remove from favorites"
 msgstr ""
 
 msgid "Remove group"
-msgstr ""
+msgstr "Grubu kaldır"
 
 msgid "Remove item"
 msgstr "öğeyi kaldır"
@@ -13787,7 +13787,7 @@ msgid "Select column name"
 msgstr "Sütun adı seçin"
 
 msgid "Select columns"
-msgstr ""
+msgstr "Kolonları seç"
 
 msgid ""
 "Select columns that will be displayed in the table. You can multiselect "
@@ -15303,7 +15303,7 @@ msgstr "Subdomain"
 
 #, python-format
 msgid "Subgroup %s"
-msgstr ""
+msgstr "Alt grup %s"
 
 msgid "Subject"
 msgstr "Özne"
@@ -15552,7 +15552,7 @@ msgid "Table or View \"%(table)s\" does not exist."
 msgstr "Masa veya \"  %(table)s \" yoktur."
 
 msgid "Table side"
-msgstr ""
+msgstr "Tablo tarafı"
 
 msgid ""
 "Table that visualizes paired t-tests, which are used to understand "

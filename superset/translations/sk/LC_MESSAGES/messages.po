@@ -1482,7 +1482,7 @@ msgid "Add folder"
 msgstr "Pridať priečinok"
 
 msgid "Add group"
-msgstr ""
+msgstr "Pridať skupinu"
 
 msgid "Add item"
 msgstr "Pridať položku"
@@ -1526,7 +1526,7 @@ msgid "Add sheet"
 msgstr "Pridať list"
 
 msgid "Add subgroup"
-msgstr ""
+msgstr "Pridať podskupinu"
 
 msgid "Add tag to entities"
 msgstr "Pridať značku k entitám"
@@ -3387,7 +3387,7 @@ msgid "Cell title template"
 msgstr "Šablona názvu bunky"
 
 msgid "Center"
-msgstr ""
+msgstr "Na stred"
 
 msgid "Center value"
 msgstr ""
@@ -4072,7 +4072,7 @@ msgid "Collapse row"
 msgstr "Sbalit riadok"
 
 msgid "Collapse settings"
-msgstr ""
+msgstr "Zbaliť nastavenie"
 
 msgid "Collapse tab content"
 msgstr "Sbalit obsah karty"
@@ -4206,7 +4206,7 @@ msgid "Column data types"
 msgstr "Datové typy stĺpcov"
 
 msgid "Column groups"
-msgstr ""
+msgstr "Skupiny stĺpcov"
 
 msgid "Column header tooltip"
 msgstr "Pomoc záhlavie stĺpce"
@@ -6952,7 +6952,7 @@ msgid "Enter fullscreen"
 msgstr "Prejsť do režimu celej obrazovky"
 
 msgid "Enter group name"
-msgstr ""
+msgstr "Zadajte názov skupiny"
 
 msgid "Enter minimum and maximum values for the range filter"
 msgstr "Zadejte minimální a maximální hodnoty pre filter rozsahu"
@@ -7247,7 +7247,7 @@ msgid "Expand row to edit"
 msgstr "Rozbalit riadok"
 
 msgid "Expand settings"
-msgstr ""
+msgstr "Rozbaliť nastavenie"
 
 msgid ""
 "Expects a formula with depending time parameter 'x'\n"
@@ -8245,7 +8245,7 @@ msgstr "Skupina"
 
 #, python-format
 msgid "Group %s"
-msgstr ""
+msgstr "Skupina %s"
 
 msgid "Group By"
 msgstr "Zoskupiť podle"
@@ -8260,10 +8260,10 @@ msgid "Group by"
 msgstr "Zoskupiť podle"
 
 msgid "Group columns"
-msgstr ""
+msgstr "Stĺpce skupiny"
 
 msgid "Group name"
-msgstr ""
+msgstr "Názov skupiny"
 
 msgid "Group remaining as \"Others\""
 msgstr "Zostávajúce riadky zoskupiť do skupiny \"Ostatné\""
@@ -10178,10 +10178,10 @@ msgid "MotherDuck token"
 msgstr "Token MotherDuck"
 
 msgid "Move group left"
-msgstr ""
+msgstr "Presunúť skupinu doľava"
 
 msgid "Move group right"
-msgstr ""
+msgstr "Presunúť skupinu doprava"
 
 #, fuzzy
 msgid "Move icon"
@@ -10214,7 +10214,7 @@ msgid "Multi-Variables"
 msgstr "Viac promenných"
 
 msgid "Multi-level header"
-msgstr ""
+msgstr "Viacúrovňové záhlavie"
 
 msgid "Multiple"
 msgstr "Vícenásobný"
@@ -11744,7 +11744,7 @@ msgid "Port out of range 0-65535"
 msgstr "Port mimo rozsah 0-65535"
 
 msgid "Position"
-msgstr ""
+msgstr "Pozícia"
 
 msgid "Position JSON"
 msgstr "JSON pozice"
@@ -12224,7 +12224,7 @@ msgid "Remove from favorites"
 msgstr ""
 
 msgid "Remove group"
-msgstr ""
+msgstr "Odstrániť skupinu"
 
 msgid "Remove item"
 msgstr "Odstrániť položku"
@@ -13454,7 +13454,7 @@ msgid "Select column name"
 msgstr "Vybrať stĺpec"
 
 msgid "Select columns"
-msgstr ""
+msgstr "Vybrať stĺpce"
 
 msgid ""
 "Select columns that will be displayed in the table. You can multiselect "
@@ -14907,7 +14907,7 @@ msgstr "Subdoména"
 
 #, python-format
 msgid "Subgroup %s"
-msgstr ""
+msgstr "Podskupina %s"
 
 msgid "Subject"
 msgstr "Subjekt"
@@ -15149,7 +15149,7 @@ msgid "Table or View \"%(table)s\" does not exist."
 msgstr "Tabuľka alebo pohled „%(table)s“ neexistuje."
 
 msgid "Table side"
-msgstr ""
+msgstr "Strana tabuľky"
 
 msgid ""
 "Table that visualizes paired t-tests, which are used to understand "

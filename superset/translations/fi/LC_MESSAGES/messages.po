@@ -2210,7 +2210,7 @@ msgid "Add folder"
 msgstr "Lisää kansio"
 
 msgid "Add group"
-msgstr ""
+msgstr "Lisää ryhmä"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, it, ja, ko, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh,
@@ -2290,7 +2290,7 @@ msgid "Add sheet"
 msgstr "Lisää taulukko"
 
 msgid "Add subgroup"
-msgstr ""
+msgstr "Lisää aliryhmä"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -5431,7 +5431,7 @@ msgid "Cell title template"
 msgstr "Solun otsikkomalli"
 
 msgid "Center"
-msgstr ""
+msgstr "Keskitä"
 
 msgid "Center value"
 msgstr ""
@@ -6577,7 +6577,7 @@ msgid "Collapse row"
 msgstr "Supista rivi"
 
 msgid "Collapse settings"
-msgstr ""
+msgstr "Supista asetukset"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
@@ -6789,7 +6789,7 @@ msgid "Column data types"
 msgstr "Sarakkeiden tietotyypit"
 
 msgid "Column groups"
-msgstr ""
+msgstr "Sarakeryhmät"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
@@ -11383,7 +11383,7 @@ msgid "Enter fullscreen"
 msgstr "Siirry koko näyttö -tilaan"
 
 msgid "Enter group name"
-msgstr ""
+msgstr "Syötä ryhmän nimi"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, ja, lv,
 # pt_BR, ru, sk, uk]
@@ -11888,7 +11888,7 @@ msgid "Expand row to edit"
 msgstr "Laajenna rivi"
 
 msgid "Expand settings"
-msgstr ""
+msgstr "Laajenna asetukset"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
@@ -13527,7 +13527,7 @@ msgstr "Ryhmä"
 
 #, python-format
 msgid "Group %s"
-msgstr ""
+msgstr "Ryhmä %s"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -13555,10 +13555,10 @@ msgid "Group by"
 msgstr "Ryhmittele"
 
 msgid "Group columns"
-msgstr ""
+msgstr "Ryhmän sarakkeet"
 
 msgid "Group name"
-msgstr ""
+msgstr "Ryhmän nimi"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, fr, ja,
 # lv, ru, sk, uk]
@@ -16819,10 +16819,10 @@ msgid "MotherDuck token"
 msgstr "MotherDuck-tunnus"
 
 msgid "Move group left"
-msgstr ""
+msgstr "Siirrä ryhmä vasemmalle"
 
 msgid "Move group right"
-msgstr ""
+msgstr "Siirrä ryhmä oikealle"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -16875,7 +16875,7 @@ msgid "Multi-Variables"
 msgstr "Monimuuttujinen"
 
 msgid "Multi-level header"
-msgstr ""
+msgstr "Monitasoinen otsikko"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -19477,7 +19477,7 @@ msgid "Port out of range 0-65535"
 msgstr "Portti alueen 0-65535 ulkopuolella"
 
 msgid "Position"
-msgstr ""
+msgstr "Sijainti"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, it, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, uk, zh,
@@ -20317,7 +20317,7 @@ msgid "Remove from favorites"
 msgstr ""
 
 msgid "Remove group"
-msgstr ""
+msgstr "Poista ryhmä"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -22397,7 +22397,7 @@ msgid "Select column name"
 msgstr "Valitse sarake"
 
 msgid "Select columns"
-msgstr ""
+msgstr "Valitse sarakkeet"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fa, fr, ja, lv, mi, pl, ru, sk, sl, uk]
@@ -24773,7 +24773,7 @@ msgstr "Aliverkkotunnus"
 
 #, python-format
 msgid "Subgroup %s"
-msgstr ""
+msgstr "Aliryhmä %s"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fa, fr, ja, lv, mi, ru, sk, sl, uk]
@@ -25187,7 +25187,7 @@ msgid "Table or View \"%(table)s\" does not exist."
 msgstr "Taulukkoa tai näkymää \"%(table)s\" ei ole olemassa."
 
 msgid "Table side"
-msgstr ""
+msgstr "Taulukon puoli"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]

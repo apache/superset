@@ -1717,7 +1717,7 @@ msgid "Add folder"
 msgstr "Додај фасциклу"
 
 msgid "Add group"
-msgstr ""
+msgstr "Додај групу"
 
 # de, es, fa, fr, it, ja, ko, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh,
 # zh_TW]
@@ -1772,7 +1772,7 @@ msgid "Add sheet"
 msgstr "Додај лист"
 
 msgid "Add subgroup"
-msgstr ""
+msgstr "Додај подгрупу"
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Add tag to entities"
@@ -4033,7 +4033,7 @@ msgid "Cell title template"
 msgstr "Шаблон наслова ћелије"
 
 msgid "Center"
-msgstr ""
+msgstr "Центар"
 
 msgid "Center value"
 msgstr ""
@@ -4868,7 +4868,7 @@ msgid "Collapse row"
 msgstr "Скупи ред"
 
 msgid "Collapse settings"
-msgstr ""
+msgstr "Скупи подешавања"
 
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
 msgid "Collapse tab content"
@@ -5014,7 +5014,7 @@ msgid "Column data types"
 msgstr "Типови података колоне"
 
 msgid "Column groups"
-msgstr ""
+msgstr "Групе колона"
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
 msgid "Column header tooltip"
@@ -8326,7 +8326,7 @@ msgid "Enter fullscreen"
 msgstr "Уђи у режим целог екрана"
 
 msgid "Enter group name"
-msgstr ""
+msgstr "Унесите назив групе"
 
 # pt_BR, ru, sk, uk]
 msgid "Enter minimum and maximum values for the range filter"
@@ -8684,7 +8684,7 @@ msgid "Expand row to edit"
 msgstr "Прошири ред за измену"
 
 msgid "Expand settings"
-msgstr ""
+msgstr "Прошири подешавања"
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
 msgid ""
@@ -9855,7 +9855,7 @@ msgstr "Група"
 
 #, python-format
 msgid "Group %s"
-msgstr ""
+msgstr "Група %s"
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Group By"
@@ -9875,10 +9875,10 @@ msgid "Group by"
 msgstr "Групиши по"
 
 msgid "Group columns"
-msgstr ""
+msgstr "Колоне групе"
 
 msgid "Group name"
-msgstr ""
+msgstr "Назив групе"
 
 # lv, ru, sk, uk]
 msgid "Group remaining as \"Others\""
@@ -12162,10 +12162,10 @@ msgid "MotherDuck token"
 msgstr "MotherDuck токен"
 
 msgid "Move group left"
-msgstr ""
+msgstr "Помери групу улево"
 
 msgid "Move group right"
-msgstr ""
+msgstr "Помери групу удесно"
 
 msgid "Move icon"
 msgstr "Икона за померање"
@@ -12203,7 +12203,7 @@ msgid "Multi-Variables"
 msgstr "Више променљивих"
 
 msgid "Multi-level header"
-msgstr ""
+msgstr "Вишениво заглавље"
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Multiple"
@@ -14047,7 +14047,7 @@ msgid "Port out of range 0-65535"
 msgstr "Port изван опсега 0-65535"
 
 msgid "Position"
-msgstr ""
+msgstr "Позиција"
 
 # de, es, fa, fr, it, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, uk, zh,
 # zh_TW]
@@ -14635,7 +14635,7 @@ msgid "Remove from favorites"
 msgstr ""
 
 msgid "Remove group"
-msgstr ""
+msgstr "Уклони групу"
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Remove item"
@@ -16126,7 +16126,7 @@ msgid "Select column name"
 msgstr "Изаберите назив колоне"
 
 msgid "Select columns"
-msgstr ""
+msgstr "Изаберите колоне"
 
 # es, fa, fr, ja, lv, mi, pl, ru, sk, sl, uk]
 msgid ""
@@ -17794,7 +17794,7 @@ msgstr "Поддомен"
 
 #, python-format
 msgid "Subgroup %s"
-msgstr ""
+msgstr "Подгрупа %s"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # fr, it, ja, lv, mi, nl, ru, sk, sl, tr, uk]
@@ -18101,7 +18101,7 @@ msgid "Table or View \"%(table)s\" does not exist."
 msgstr "Табела или преглед \"%(table)s\" не постоји."
 
 msgid "Table side"
-msgstr ""
+msgstr "Страна табеле"
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid ""

@@ -1942,7 +1942,7 @@ msgid "Add folder"
 msgstr "테이블 추가"
 
 msgid "Add group"
-msgstr ""
+msgstr "그룹 추가"
 
 msgid "Add item"
 msgstr "테이블 추가"
@@ -2008,7 +2008,7 @@ msgid "Add sheet"
 msgstr "차트 추가"
 
 msgid "Add subgroup"
-msgstr ""
+msgstr "하위 그룹 추가"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -4823,7 +4823,7 @@ msgid "Cell title template"
 msgstr "템플릿 불러오기"
 
 msgid "Center"
-msgstr ""
+msgstr "가운데"
 
 msgid "Center value"
 msgstr ""
@@ -5814,7 +5814,7 @@ msgid "Collapse row"
 msgstr "행 접기"
 
 msgid "Collapse settings"
-msgstr ""
+msgstr "설정 접기"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr, uk]
@@ -6016,7 +6016,7 @@ msgid "Column data types"
 msgstr "차트 유형"
 
 msgid "Column groups"
-msgstr ""
+msgstr "열 그룹"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -9998,7 +9998,7 @@ msgid "Enter fullscreen"
 msgstr "전체 화면으로 전환"
 
 msgid "Enter group name"
-msgstr ""
+msgstr "그룹 이름 입력"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
 # lv, pt_BR, ro, ru, sk, sr, sr_Latn, tr, uk]
@@ -10457,7 +10457,7 @@ msgid "Expand row to edit"
 msgstr "컬럼 보기"
 
 msgid "Expand settings"
-msgstr ""
+msgstr "설정 펼치기"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -11972,7 +11972,7 @@ msgstr "그룹"
 
 #, python-format
 msgid "Group %s"
-msgstr ""
+msgstr "그룹 %s"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -12002,10 +12002,10 @@ msgid "Group by"
 msgstr "그룹화 기준"
 
 msgid "Group columns"
-msgstr ""
+msgstr "그룹 열"
 
 msgid "Group name"
-msgstr ""
+msgstr "그룹 이름"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, fr,
 # ja, lv, ro, ru, sk, sr, sr_Latn, tr, uk]
@@ -15020,10 +15020,10 @@ msgid "MotherDuck token"
 msgstr "MotherDuck 토큰"
 
 msgid "Move group left"
-msgstr ""
+msgstr "그룹을 왼쪽으로 이동"
 
 msgid "Move group right"
-msgstr ""
+msgstr "그룹을 오른쪽으로 이동"
 
 #, fuzzy
 msgid "Move icon"
@@ -15080,7 +15080,7 @@ msgid "Multi-Variables"
 msgstr "다중 변수"
 
 msgid "Multi-level header"
-msgstr ""
+msgstr "다단계 헤더"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -17505,7 +17505,7 @@ msgid "Port out of range 0-65535"
 msgstr "포트가 0-65535 범위를 벗어났습니다"
 
 msgid "Position"
-msgstr ""
+msgstr "위치"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, it, ja, lv, mi, nl, pl, pt, pt_BR, ro, ru, sk, sl, sr,
@@ -18263,7 +18263,7 @@ msgid "Remove from favorites"
 msgstr ""
 
 msgid "Remove group"
-msgstr ""
+msgstr "그룹 제거"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -20097,7 +20097,7 @@ msgid "Select column name"
 msgstr "컬럼 목록"
 
 msgid "Select columns"
-msgstr ""
+msgstr "열 선택"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fa, fr, ja, lv, mi, pl, ro, ru, sk, sl, sr, sr_Latn, tr, uk]
@@ -22189,7 +22189,7 @@ msgstr "서브도메인"
 
 #, python-format
 msgid "Subgroup %s"
-msgstr ""
+msgstr "하위 그룹 %s"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # fr, it, ja, lv, mi, nl, ru, sk, sl, tr, uk]
@@ -22571,7 +22571,7 @@ msgid "Table or View \"%(table)s\" does not exist."
 msgstr "메트릭 '%(metric)s' 이 존재하지 않습니다."
 
 msgid "Table side"
-msgstr ""
+msgstr "테이블 쪽"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,

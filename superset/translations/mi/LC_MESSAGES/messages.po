@@ -1479,7 +1479,7 @@ msgid "Add folder"
 msgstr "Tāpiri tātari"
 
 msgid "Add group"
-msgstr ""
+msgstr "Tāpiri rōpū"
 
 msgid "Add item"
 msgstr "Tāpiri mea"
@@ -1527,7 +1527,7 @@ msgid "Add sheet"
 msgstr "Tāpiri hīti"
 
 msgid "Add subgroup"
-msgstr ""
+msgstr "Tāpiri rōpū-iti"
 
 msgid "Add tag to entities"
 msgstr "Tāpiri tohu ki ngā pūtahi"
@@ -3453,7 +3453,7 @@ msgid "Cell title template"
 msgstr "Muku tauira"
 
 msgid "Center"
-msgstr ""
+msgstr "Waenga"
 
 msgid "Center value"
 msgstr ""
@@ -4168,7 +4168,7 @@ msgid "Collapse row"
 msgstr "Hīngonga rārangi"
 
 msgid "Collapse settings"
-msgstr ""
+msgstr "Whakaiti tautuhinga"
 
 msgid "Collapse tab content"
 msgstr "Hīngonga ihirangi ripa"
@@ -4304,7 +4304,7 @@ msgid "Column data types"
 msgstr "Momo raraunga tīwae"
 
 msgid "Column groups"
-msgstr ""
+msgstr "Ngā rōpū tīwae"
 
 msgid "Column header tooltip"
 msgstr "Kītukutuku pane tīwae"
@@ -7104,7 +7104,7 @@ msgid "Enter fullscreen"
 msgstr "Uru mata katoa"
 
 msgid "Enter group name"
-msgstr ""
+msgstr "Tāuru i te ingoa rōpū"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
 # lv, pt_BR, ro, ru, sk, sr, sr_Latn, tr, uk]
@@ -7409,7 +7409,7 @@ msgid "Expand row to edit"
 msgstr "Whakawhānui rārangi"
 
 msgid "Expand settings"
-msgstr ""
+msgstr "Whakawhānui tautuhinga"
 
 msgid ""
 "Expects a formula with depending time parameter 'x'\n"
@@ -8465,7 +8465,7 @@ msgstr "Rōpū mā"
 
 #, python-format
 msgid "Group %s"
-msgstr ""
+msgstr "Rōpū %s"
 
 msgid "Group By"
 msgstr "Rōpū Mā"
@@ -8480,10 +8480,10 @@ msgid "Group by"
 msgstr "Rōpū mā"
 
 msgid "Group columns"
-msgstr ""
+msgstr "Ngā tīwae o te rōpū"
 
 msgid "Group name"
-msgstr ""
+msgstr "Ingoa rōpū"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, fr,
 # ja, lv, ro, ru, sk, sr, sr_Latn, tr, uk]
@@ -10459,10 +10459,10 @@ msgid "MotherDuck token"
 msgstr "Tohu MotherDuck"
 
 msgid "Move group left"
-msgstr ""
+msgstr "Nuku rōpū ki maui"
 
 msgid "Move group right"
-msgstr ""
+msgstr "Nuku rōpū ki matau"
 
 #, fuzzy
 msgid "Move icon"
@@ -10495,7 +10495,7 @@ msgid "Multi-Variables"
 msgstr "Taurangi-Maha"
 
 msgid "Multi-level header"
-msgstr ""
+msgstr "Pane taumata-maha"
 
 msgid "Multiple"
 msgstr "Maha"
@@ -12051,7 +12051,7 @@ msgid "Port out of range 0-65535"
 msgstr "Tauranga i waho o te korahi 0-65535"
 
 msgid "Position"
-msgstr ""
+msgstr "Tūnga"
 
 msgid "Position JSON"
 msgstr "Tūnga JSON"
@@ -12547,7 +12547,7 @@ msgid "Remove from favorites"
 msgstr ""
 
 msgid "Remove group"
-msgstr ""
+msgstr "Tango rōpū"
 
 msgid "Remove item"
 msgstr "Tango mea"
@@ -13801,7 +13801,7 @@ msgid "Select column name"
 msgstr "Tīpakohia tīwae"
 
 msgid "Select columns"
-msgstr ""
+msgstr "Tīpakohia ngā tīwae"
 
 msgid ""
 "Select columns that will be displayed in the table. You can multiselect "
@@ -15330,7 +15330,7 @@ msgstr "Rohe-iti"
 
 #, python-format
 msgid "Subgroup %s"
-msgstr ""
+msgstr "Rōpū-iti %s"
 
 msgid "Subject"
 msgstr "Kaupapa"
@@ -15582,7 +15582,7 @@ msgid "Table or View \"%(table)s\" does not exist."
 msgstr "Karekau te Ripanga, te Tirohanga \"%(table)s\" rānei."
 
 msgid "Table side"
-msgstr ""
+msgstr "Taha ripanga"
 
 msgid ""
 "Table that visualizes paired t-tests, which are used to understand "

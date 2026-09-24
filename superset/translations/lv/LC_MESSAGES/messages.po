@@ -1482,7 +1482,7 @@ msgid "Add folder"
 msgstr "Pievienot mapi"
 
 msgid "Add group"
-msgstr ""
+msgstr "Pievienot grupu"
 
 msgid "Add item"
 msgstr "Pievienot ierakstu"
@@ -1525,7 +1525,7 @@ msgid "Add sheet"
 msgstr "Pievienot lapu"
 
 msgid "Add subgroup"
-msgstr ""
+msgstr "Pievienot apakšgrupu"
 
 msgid "Add tag to entities"
 msgstr "Pievienot birku ierakstiem"
@@ -3354,7 +3354,7 @@ msgid "Cell title template"
 msgstr "Šūnu virsraksta veidne"
 
 msgid "Center"
-msgstr ""
+msgstr "Centrs"
 
 msgid "Center value"
 msgstr ""
@@ -4026,7 +4026,7 @@ msgid "Collapse row"
 msgstr "Sakļaut rindu"
 
 msgid "Collapse settings"
-msgstr ""
+msgstr "Sakļaut iestatījumus"
 
 msgid "Collapse tab content"
 msgstr "Sakļaut cilnes saturu"
@@ -4157,7 +4157,7 @@ msgid "Column data types"
 msgstr "Kolonnas datu tipi"
 
 msgid "Column groups"
-msgstr ""
+msgstr "Kolonnu grupas"
 
 msgid "Column header tooltip"
 msgstr "Kolonnas galvenes padoms"
@@ -6828,7 +6828,7 @@ msgid "Enter fullscreen"
 msgstr "Pāriet pilnekrāna režīmā"
 
 msgid "Enter group name"
-msgstr ""
+msgstr "Ievadiet grupas nosaukumu"
 
 msgid "Enter minimum and maximum values for the range filter"
 msgstr "Ievadiet minimālās un maksimālās vērtības diapazona filtram"
@@ -7112,7 +7112,7 @@ msgid "Expand row to edit"
 msgstr "Izvērst rindu"
 
 msgid "Expand settings"
-msgstr ""
+msgstr "Izvērst iestatījumus"
 
 msgid ""
 "Expects a formula with depending time parameter 'x'\n"
@@ -8089,7 +8089,7 @@ msgstr "Grupa"
 
 #, python-format
 msgid "Group %s"
-msgstr ""
+msgstr "Grupa %s"
 
 msgid "Group By"
 msgstr "Grupēt pēc"
@@ -8104,10 +8104,10 @@ msgid "Group by"
 msgstr "Grupēt pēc"
 
 msgid "Group columns"
-msgstr ""
+msgstr "Grupas kolonnas"
 
 msgid "Group name"
-msgstr ""
+msgstr "Grupas nosaukums"
 
 msgid "Group remaining as \"Others\""
 msgstr "Grupēt atlikušos kā \"Others\""
@@ -9972,10 +9972,10 @@ msgid "MotherDuck token"
 msgstr "MotherDuck žetons"
 
 msgid "Move group left"
-msgstr ""
+msgstr "Pārvietot grupu pa kreisi"
 
 msgid "Move group right"
-msgstr ""
+msgstr "Pārvietot grupu pa labi"
 
 #, fuzzy
 msgid "Move icon"
@@ -10008,7 +10008,7 @@ msgid "Multi-Variables"
 msgstr "Daudzmainīgo"
 
 msgid "Multi-level header"
-msgstr ""
+msgstr "Vairāklīmeņu galvene"
 
 msgid "Multiple"
 msgstr "Vairāki"
@@ -11506,7 +11506,7 @@ msgid "Port out of range 0-65535"
 msgstr "Ports ārpus diapazona 0-65535"
 
 msgid "Position"
-msgstr ""
+msgstr "Pozīcija"
 
 msgid "Position JSON"
 msgstr "Pozīcijas JSON"
@@ -11978,7 +11978,7 @@ msgid "Remove from favorites"
 msgstr ""
 
 msgid "Remove group"
-msgstr ""
+msgstr "Noņemt grupu"
 
 msgid "Remove item"
 msgstr "Noņemt elementu"
@@ -13179,7 +13179,7 @@ msgid "Select column name"
 msgstr "Atlasīt kolonnu"
 
 msgid "Select columns"
-msgstr ""
+msgstr "Atlasīt kolonnas"
 
 msgid ""
 "Select columns that will be displayed in the table. You can multiselect "
@@ -14602,7 +14602,7 @@ msgstr "Apakšdomēns"
 
 #, python-format
 msgid "Subgroup %s"
-msgstr ""
+msgstr "Apakšgrupa %s"
 
 msgid "Subject"
 msgstr "Subjekts"
@@ -14840,7 +14840,7 @@ msgid "Table or View \"%(table)s\" does not exist."
 msgstr "Tabula vai skats \"%(table)s\" nepastāv."
 
 msgid "Table side"
-msgstr ""
+msgstr "Tabulas puse"
 
 msgid ""
 "Table that visualizes paired t-tests, which are used to understand "

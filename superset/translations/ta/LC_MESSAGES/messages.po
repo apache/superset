@@ -1436,7 +1436,7 @@ msgid "Add folder"
 msgstr "கோப்புறையைச் (folder) சேர்"
 
 msgid "Add group"
-msgstr ""
+msgstr "குழுவைச் சேர்"
 
 msgid "Add item"
 msgstr "உருப்படியைச் சேர்"
@@ -1482,7 +1482,7 @@ msgid "Add sheet"
 msgstr "ஷீட்டைச் (sheet) சேர்"
 
 msgid "Add subgroup"
-msgstr ""
+msgstr "துணைக்குழுவைச் சேர்"
 
 msgid "Add tag to entities"
 msgstr "உருப்படிகளுக்கு டேக் (tag) சேர்க்கவும்"
@@ -3304,7 +3304,7 @@ msgid "Cell title template"
 msgstr "செல் தலைப்பு டெம்ப்ளேட்"
 
 msgid "Center"
-msgstr ""
+msgstr "மையம்"
 
 msgid "Center value"
 msgstr ""
@@ -3994,7 +3994,7 @@ msgid "Collapse row"
 msgstr "வரிசையைச் சுருக்கு"
 
 msgid "Collapse settings"
-msgstr ""
+msgstr "அமைப்புகளைச் சுருக்கு"
 
 msgid "Collapse tab content"
 msgstr "தாவல் உள்ளடக்கத்தைச் சுருக்கு"
@@ -4118,7 +4118,7 @@ msgid "Column data types"
 msgstr "நெடுவரிசைத் தரவு வகைகள்"
 
 msgid "Column groups"
-msgstr ""
+msgstr "நெடுவரிசைக் குழுக்கள்"
 
 msgid "Column header tooltip"
 msgstr "நெடுவரிசைத் தலைப்பு உதவிக்குறிப்பு (tooltip)"
@@ -6762,7 +6762,7 @@ msgid "Enter fullscreen"
 msgstr "முழுத் திரைக்குச் செல்"
 
 msgid "Enter group name"
-msgstr ""
+msgstr "குழுவின் பெயரை உள்ளிடவும்"
 
 msgid "Enter minimum and maximum values for the range filter"
 msgstr ""
@@ -7047,7 +7047,7 @@ msgid "Expand row to edit"
 msgstr "வரிசையை விரிவாக்கு"
 
 msgid "Expand settings"
-msgstr ""
+msgstr "அமைப்புகளை விரிவாக்கு"
 
 msgid ""
 "Expects a formula with depending time parameter 'x'\n"
@@ -8012,7 +8012,7 @@ msgstr "குழு"
 
 #, python-format
 msgid "Group %s"
-msgstr ""
+msgstr "குழு %s"
 
 msgid "Group By"
 msgstr "இதன் படி குழுவாக்கு"
@@ -8029,10 +8029,10 @@ msgid "Group by"
 msgstr "இதன் படி குழுவாக்கு"
 
 msgid "Group columns"
-msgstr ""
+msgstr "குழுவின் நெடுவரிசைகள்"
 
 msgid "Group name"
-msgstr ""
+msgstr "குழுவின் பெயர்"
 
 msgid "Group remaining as \"Others\""
 msgstr "மீதமுள்ளவற்றை \"ஏனையவை\" என குழுவாக்கு"
@@ -9837,10 +9837,10 @@ msgid "MotherDuck token"
 msgstr "MotherDuck டோக்கன்"
 
 msgid "Move group left"
-msgstr ""
+msgstr "குழுவை இடதுபுறம் நகர்த்து"
 
 msgid "Move group right"
-msgstr ""
+msgstr "குழுவை வலதுபுறம் நகர்த்து"
 
 #, fuzzy
 msgid "Move icon"
@@ -9873,7 +9873,7 @@ msgid "Multi-Variables"
 msgstr "பல மாறிகள்"
 
 msgid "Multi-level header"
-msgstr ""
+msgstr "பல நிலை தலைப்பு"
 
 msgid "Multiple"
 msgstr "பல"
@@ -11301,7 +11301,7 @@ msgid "Port out of range 0-65535"
 msgstr "போர்ட் 0-65535 வரம்பிற்கு வெளியே உள்ளது"
 
 msgid "Position"
-msgstr ""
+msgstr "நிலை"
 
 msgid "Position JSON"
 msgstr "நிலை JSON"
@@ -11766,7 +11766,7 @@ msgid "Remove from favorites"
 msgstr ""
 
 msgid "Remove group"
-msgstr ""
+msgstr "குழுவை நீக்கு"
 
 msgid "Remove item"
 msgstr "உருப்படியை நீக்கு"
@@ -12942,7 +12942,7 @@ msgid "Select column name"
 msgstr "நெடுவரிசையைத் தேர்ந்தெடு"
 
 msgid "Select columns"
-msgstr ""
+msgstr "நெடுவரிசைகளைத் தேர்ந்தெடு"
 
 msgid ""
 "Select columns that will be displayed in the table. You can multiselect "
@@ -14288,7 +14288,7 @@ msgstr "துணைக்களம் (Subdomain)"
 
 #, python-format
 msgid "Subgroup %s"
-msgstr ""
+msgstr "துணைக்குழு %s"
 
 #, fuzzy
 msgid "Subject"
@@ -14528,7 +14528,7 @@ msgid "Table or View \"%(table)s\" does not exist."
 msgstr "அட்டவணை அல்லது பார்வை \"%(table)s\" இல்லை."
 
 msgid "Table side"
-msgstr ""
+msgstr "அட்டவணையின் பக்கம்"
 
 msgid ""
 "Table that visualizes paired t-tests, which are used to understand "

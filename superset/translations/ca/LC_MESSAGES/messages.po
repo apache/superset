@@ -1497,7 +1497,7 @@ msgid "Add folder"
 msgstr "Afegir Filtre"
 
 msgid "Add group"
-msgstr ""
+msgstr "Afegeix grup"
 
 msgid "Add item"
 msgstr "Afegir element"
@@ -1543,7 +1543,7 @@ msgid "Add sheet"
 msgstr "Afegir full"
 
 msgid "Add subgroup"
-msgstr ""
+msgstr "Afegeix subgrup"
 
 msgid "Add tag to entities"
 msgstr "Afegir etiqueta a entitats"
@@ -3498,7 +3498,7 @@ msgid "Cell title template"
 msgstr "Eliminar plantilla"
 
 msgid "Center"
-msgstr ""
+msgstr "Centre"
 
 msgid "Center value"
 msgstr ""
@@ -4213,7 +4213,7 @@ msgid "Collapse row"
 msgstr "Col·lapsar fila"
 
 msgid "Collapse settings"
-msgstr ""
+msgstr "Replega la configuració"
 
 msgid "Collapse tab content"
 msgstr "Col·lapsar contingut de la pestanya"
@@ -4349,7 +4349,7 @@ msgid "Column data types"
 msgstr "Tipus de dades de columna"
 
 msgid "Column groups"
-msgstr ""
+msgstr "Grups de columnes"
 
 msgid "Column header tooltip"
 msgstr "Informació d'ajuda de l'encapçalament de columna"
@@ -7185,7 +7185,7 @@ msgid "Enter fullscreen"
 msgstr "Entrar a pantalla completa"
 
 msgid "Enter group name"
-msgstr ""
+msgstr "Introduïu el nom del grup"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
 # lv, pt_BR, ro, ru, sk, sr, sr_Latn, tr, uk]
@@ -7490,7 +7490,7 @@ msgid "Expand row to edit"
 msgstr "Expandir fila"
 
 msgid "Expand settings"
-msgstr ""
+msgstr "Expandeix la configuració"
 
 msgid ""
 "Expects a formula with depending time parameter 'x'\n"
@@ -8545,7 +8545,7 @@ msgstr "Agrupar per"
 
 #, python-format
 msgid "Group %s"
-msgstr ""
+msgstr "Grup %s"
 
 msgid "Group By"
 msgstr "Agrupar Per"
@@ -8560,10 +8560,10 @@ msgid "Group by"
 msgstr "Agrupar per"
 
 msgid "Group columns"
-msgstr ""
+msgstr "Columnes del grup"
 
 msgid "Group name"
-msgstr ""
+msgstr "Nom del grup"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, fr,
 # ja, lv, ro, ru, sk, sr, sr_Latn, tr, uk]
@@ -10548,10 +10548,10 @@ msgid "MotherDuck token"
 msgstr "Token MotherDuck"
 
 msgid "Move group left"
-msgstr ""
+msgstr "Mou el grup a l'esquerra"
 
 msgid "Move group right"
-msgstr ""
+msgstr "Mou el grup a la dreta"
 
 #, fuzzy
 msgid "Move icon"
@@ -10584,7 +10584,7 @@ msgid "Multi-Variables"
 msgstr "Multi-Variables"
 
 msgid "Multi-level header"
-msgstr ""
+msgstr "Capçalera multinivell"
 
 msgid "Multiple"
 msgstr "Múltiple"
@@ -12147,7 +12147,7 @@ msgid "Port out of range 0-65535"
 msgstr "Port fora del rang 0-65535"
 
 msgid "Position"
-msgstr ""
+msgstr "Posició"
 
 msgid "Position JSON"
 msgstr "JSON de Posició"
@@ -12643,7 +12643,7 @@ msgid "Remove from favorites"
 msgstr ""
 
 msgid "Remove group"
-msgstr ""
+msgstr "Eliminar grup"
 
 msgid "Remove item"
 msgstr "Eliminar element"
@@ -13891,7 +13891,7 @@ msgid "Select column name"
 msgstr "Seleccionar columna"
 
 msgid "Select columns"
-msgstr ""
+msgstr "Seleccionar columnes"
 
 msgid ""
 "Select columns that will be displayed in the table. You can multiselect "
@@ -15428,7 +15428,7 @@ msgstr "Subdomini"
 
 #, python-format
 msgid "Subgroup %s"
-msgstr ""
+msgstr "Subgrup %s"
 
 msgid "Subject"
 msgstr "Subjecte"
@@ -15680,7 +15680,7 @@ msgid "Table or View \"%(table)s\" does not exist."
 msgstr "La Taula o Vista \"%(table)s\" no existeix."
 
 msgid "Table side"
-msgstr ""
+msgstr "Costat de la taula"
 
 msgid ""
 "Table that visualizes paired t-tests, which are used to understand "

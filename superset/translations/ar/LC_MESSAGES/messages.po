@@ -1633,7 +1633,7 @@ msgid "Add folder"
 msgstr "إضافة فلتر"
 
 msgid "Add group"
-msgstr ""
+msgstr "إضافة مجموعة"
 
 msgid "Add item"
 msgstr "إضافة عنصر"
@@ -1679,7 +1679,7 @@ msgid "Add sheet"
 msgstr "إضافة ورقة"
 
 msgid "Add subgroup"
-msgstr ""
+msgstr "إضافة مجموعة فرعية"
 
 msgid "Add tag to entities"
 msgstr "إضافة علامة إلى الكيانات"
@@ -3648,7 +3648,7 @@ msgid "Cell title template"
 msgstr "حذف القالب"
 
 msgid "Center"
-msgstr ""
+msgstr "توسيط"
 
 msgid "Center value"
 msgstr ""
@@ -4382,7 +4382,7 @@ msgid "Collapse row"
 msgstr "طي الصف"
 
 msgid "Collapse settings"
-msgstr ""
+msgstr "طي الإعدادات"
 
 msgid "Collapse tab content"
 msgstr "طي محتوى علامة التبويب"
@@ -4516,7 +4516,7 @@ msgid "Column data types"
 msgstr "نوع بيانات العمود"
 
 msgid "Column groups"
-msgstr ""
+msgstr "مجموعات الأعمدة"
 
 msgid "Column header tooltip"
 msgstr "تلميح أداة رأس العمود"
@@ -7485,7 +7485,7 @@ msgid "Enter fullscreen"
 msgstr "أدخل ملء الشاشة"
 
 msgid "Enter group name"
-msgstr ""
+msgstr "أدخل اسم المجموعة"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
 # lv, pt_BR, ro, ru, sk, sr, sr_Latn, tr, uk]
@@ -7816,7 +7816,7 @@ msgid "Expand row to edit"
 msgstr "قم بتوسيع الصف"
 
 msgid "Expand settings"
-msgstr ""
+msgstr "توسيع الإعدادات"
 
 msgid ""
 "Expects a formula with depending time parameter 'x'\n"
@@ -8893,7 +8893,7 @@ msgstr "مجموعة حسب"
 
 #, python-format
 msgid "Group %s"
-msgstr ""
+msgstr "المجموعة %s"
 
 msgid "Group By"
 msgstr "مجموعة حسب"
@@ -8908,10 +8908,10 @@ msgid "Group by"
 msgstr "مجموعة حسب"
 
 msgid "Group columns"
-msgstr ""
+msgstr "أعمدة المجموعة"
 
 msgid "Group name"
-msgstr ""
+msgstr "اسم المجموعة"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, fr,
 # ja, lv, ro, ru, sk, sr, sr_Latn, tr, uk]
@@ -10965,10 +10965,10 @@ msgid "MotherDuck token"
 msgstr "رمز MotherDuck"
 
 msgid "Move group left"
-msgstr ""
+msgstr "نقل المجموعة إلى اليسار"
 
 msgid "Move group right"
-msgstr ""
+msgstr "نقل المجموعة إلى اليمين"
 
 #, fuzzy
 msgid "Move icon"
@@ -11001,7 +11001,7 @@ msgid "Multi-Variables"
 msgstr "متغيرات متعددة"
 
 msgid "Multi-level header"
-msgstr ""
+msgstr "رأس متعدد المستويات"
 
 msgid "Multiple"
 msgstr "متعدد"
@@ -12603,7 +12603,7 @@ msgid "Port out of range 0-65535"
 msgstr "منفذ خارج النطاق 0-65535"
 
 msgid "Position"
-msgstr ""
+msgstr "الموضع"
 
 msgid "Position JSON"
 msgstr "الموضع: جسون"
@@ -13108,7 +13108,7 @@ msgid "Remove from favorites"
 msgstr ""
 
 msgid "Remove group"
-msgstr ""
+msgstr "إزالة المجموعة"
 
 msgid "Remove item"
 msgstr "إزالة العنصر"
@@ -14401,7 +14401,7 @@ msgid "Select column name"
 msgstr "حدد العمود"
 
 msgid "Select columns"
-msgstr ""
+msgstr "تحديد الأعمدة"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fa, fr, ja, lv, mi, pl, ro, ru, sk, sl, sr, sr_Latn, tr, uk]
@@ -15927,7 +15927,7 @@ msgstr "نطاق فرعي"
 
 #, python-format
 msgid "Subgroup %s"
-msgstr ""
+msgstr "المجموعة الفرعية %s"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # fr, it, ja, lv, mi, nl, ru, sk, sl, tr, uk]
@@ -16209,7 +16209,7 @@ msgid "Table or View \"%(table)s\" does not exist."
 msgstr "لا يوجد جدول أو طريقة عرض %(table)s \"»."
 
 msgid "Table side"
-msgstr ""
+msgstr "جانب الجدول"
 
 msgid ""
 "Table that visualizes paired t-tests, which are used to understand "

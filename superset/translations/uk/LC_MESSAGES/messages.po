@@ -1499,7 +1499,7 @@ msgid "Add folder"
 msgstr "Додати теку"
 
 msgid "Add group"
-msgstr ""
+msgstr "Додати групу"
 
 msgid "Add item"
 msgstr "Додати обʼєкт"
@@ -1542,7 +1542,7 @@ msgid "Add sheet"
 msgstr "Додати аркуш"
 
 msgid "Add subgroup"
-msgstr ""
+msgstr "Додати підгрупу"
 
 msgid "Add tag to entities"
 msgstr "Додати мітку для сутностей"
@@ -3357,7 +3357,7 @@ msgid "Cell title template"
 msgstr "Шаблон заголовку комірки"
 
 msgid "Center"
-msgstr ""
+msgstr "По центру"
 
 msgid "Center value"
 msgstr ""
@@ -4030,7 +4030,7 @@ msgid "Collapse row"
 msgstr "Згорнути рядок"
 
 msgid "Collapse settings"
-msgstr ""
+msgstr "Згорнути параметри"
 
 msgid "Collapse tab content"
 msgstr "Згорнути вміст вкладки"
@@ -4160,7 +4160,7 @@ msgid "Column data types"
 msgstr "Типи даних стовпця"
 
 msgid "Column groups"
-msgstr ""
+msgstr "Групи стовпців"
 
 msgid "Column header tooltip"
 msgstr "Підказка для стовпця"
@@ -6839,7 +6839,7 @@ msgid "Enter fullscreen"
 msgstr "На весь екран"
 
 msgid "Enter group name"
-msgstr ""
+msgstr "Введіть назву групи"
 
 msgid "Enter minimum and maximum values for the range filter"
 msgstr "Введіть мінімальне та максимальне значення для фільтра діапазону"
@@ -7123,7 +7123,7 @@ msgid "Expand row to edit"
 msgstr "Розгорнути рядок"
 
 msgid "Expand settings"
-msgstr ""
+msgstr "Розгорнути параметри"
 
 msgid ""
 "Expects a formula with depending time parameter 'x'\n"
@@ -8098,7 +8098,7 @@ msgstr "Група"
 
 #, python-format
 msgid "Group %s"
-msgstr ""
+msgstr "Група %s"
 
 msgid "Group By"
 msgstr "Групувати за"
@@ -8113,10 +8113,10 @@ msgid "Group by"
 msgstr "Групувати за"
 
 msgid "Group columns"
-msgstr ""
+msgstr "Стовпці групи"
 
 msgid "Group name"
-msgstr ""
+msgstr "Назва групи"
 
 msgid "Group remaining as \"Others\""
 msgstr "Згрупувати решту як «Інші»"
@@ -9975,10 +9975,10 @@ msgid "MotherDuck token"
 msgstr "Токен MotherDuck"
 
 msgid "Move group left"
-msgstr ""
+msgstr "Перемістити групу ліворуч"
 
 msgid "Move group right"
-msgstr ""
+msgstr "Перемістити групу праворуч"
 
 #, fuzzy
 msgid "Move icon"
@@ -10011,7 +10011,7 @@ msgid "Multi-Variables"
 msgstr "Багатозначний"
 
 msgid "Multi-level header"
-msgstr ""
+msgstr "Багаторівневий заголовок"
 
 msgid "Multiple"
 msgstr "Декілька"
@@ -11503,7 +11503,7 @@ msgid "Port out of range 0-65535"
 msgstr "Порт поза діапазоном 0-65535"
 
 msgid "Position"
-msgstr ""
+msgstr "Положення"
 
 msgid "Position JSON"
 msgstr "Розміщення (JSON)"
@@ -11974,7 +11974,7 @@ msgid "Remove from favorites"
 msgstr ""
 
 msgid "Remove group"
-msgstr ""
+msgstr "Вилучити групу"
 
 msgid "Remove item"
 msgstr "Вилучити елемент"
@@ -13180,7 +13180,7 @@ msgid "Select column name"
 msgstr "Вибрати стовпець"
 
 msgid "Select columns"
-msgstr ""
+msgstr "Вибрати стовпці"
 
 msgid ""
 "Select columns that will be displayed in the table. You can multiselect "
@@ -14607,7 +14607,7 @@ msgstr "Розділ"
 
 #, python-format
 msgid "Subgroup %s"
-msgstr ""
+msgstr "Підгрупа %s"
 
 msgid "Subject"
 msgstr "Суб’єкт"
@@ -14845,7 +14845,7 @@ msgid "Table or View \"%(table)s\" does not exist."
 msgstr "Таблиця або представлення «%(table)s» не існує."
 
 msgid "Table side"
-msgstr ""
+msgstr "Бік таблиці"
 
 msgid ""
 "Table that visualizes paired t-tests, which are used to understand "

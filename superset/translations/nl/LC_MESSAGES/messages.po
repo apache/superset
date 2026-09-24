@@ -1517,7 +1517,7 @@ msgid "Add folder"
 msgstr "Filter toevoegen"
 
 msgid "Add group"
-msgstr ""
+msgstr "Groep toevoegen"
 
 msgid "Add item"
 msgstr "Voeg item toe"
@@ -1563,7 +1563,7 @@ msgid "Add sheet"
 msgstr "Voeg blad toe"
 
 msgid "Add subgroup"
-msgstr ""
+msgstr "Subgroep toevoegen"
 
 msgid "Add tag to entities"
 msgstr "Voeg tag toe aan entiteiten"
@@ -3582,7 +3582,7 @@ msgid "Cell title template"
 msgstr "Verwijder template"
 
 msgid "Center"
-msgstr ""
+msgstr "Midden"
 
 msgid "Center value"
 msgstr ""
@@ -4308,7 +4308,7 @@ msgid "Collapse row"
 msgstr "Rij inklappen"
 
 msgid "Collapse settings"
-msgstr ""
+msgstr "Instellingen inklappen"
 
 msgid "Collapse tab content"
 msgstr "Tabbladinhoud inklappen"
@@ -4445,7 +4445,7 @@ msgid "Column data types"
 msgstr "Kolom gegevenstypen"
 
 msgid "Column groups"
-msgstr ""
+msgstr "Kolomgroepen"
 
 msgid "Column header tooltip"
 msgstr "Kolomkop tooltip"
@@ -7369,7 +7369,7 @@ msgid "Enter fullscreen"
 msgstr "Open volledig scherm"
 
 msgid "Enter group name"
-msgstr ""
+msgstr "Groepsnaam invoeren"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
 # lv, pt_BR, ro, ru, sk, sr, sr_Latn, tr, uk]
@@ -7697,7 +7697,7 @@ msgid "Expand row to edit"
 msgstr "Rij uitklappen"
 
 msgid "Expand settings"
-msgstr ""
+msgstr "Instellingen uitklappen"
 
 msgid ""
 "Expects a formula with depending time parameter 'x'\n"
@@ -8785,7 +8785,7 @@ msgstr "Groep per"
 
 #, python-format
 msgid "Group %s"
-msgstr ""
+msgstr "Groep %s"
 
 msgid "Group By"
 msgstr "Groeperen op"
@@ -8800,10 +8800,10 @@ msgid "Group by"
 msgstr "Groep per"
 
 msgid "Group columns"
-msgstr ""
+msgstr "Groepskolommen"
 
 msgid "Group name"
-msgstr ""
+msgstr "Groepsnaam"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, fr,
 # ja, lv, ro, ru, sk, sr, sr_Latn, tr, uk]
@@ -10872,10 +10872,10 @@ msgid "MotherDuck token"
 msgstr "MotherDuck-token"
 
 msgid "Move group left"
-msgstr ""
+msgstr "Groep naar links verplaatsen"
 
 msgid "Move group right"
-msgstr ""
+msgstr "Groep naar rechts verplaatsen"
 
 #, fuzzy
 msgid "Move icon"
@@ -10908,7 +10908,7 @@ msgid "Multi-Variables"
 msgstr "Multi-Variabelen"
 
 msgid "Multi-level header"
-msgstr ""
+msgstr "Meerlagige koptekst"
 
 msgid "Multiple"
 msgstr "Meerdere"
@@ -12513,7 +12513,7 @@ msgid "Port out of range 0-65535"
 msgstr "Poort buiten bereik 0-65535"
 
 msgid "Position"
-msgstr ""
+msgstr "Positie"
 
 msgid "Position JSON"
 msgstr "Positie JSON"
@@ -13016,7 +13016,7 @@ msgid "Remove from favorites"
 msgstr ""
 
 msgid "Remove group"
-msgstr ""
+msgstr "Groep verwijderen"
 
 msgid "Remove item"
 msgstr "Item verwijderen"
@@ -14298,7 +14298,7 @@ msgid "Select column name"
 msgstr "Selecteer kolom"
 
 msgid "Select columns"
-msgstr ""
+msgstr "Kolommen selecteren"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fa, fr, ja, lv, mi, pl, ro, ru, sk, sl, sr, sr_Latn, tr, uk]
@@ -15859,7 +15859,7 @@ msgstr "Subdomein"
 
 #, python-format
 msgid "Subgroup %s"
-msgstr ""
+msgstr "Subgroep %s"
 
 msgid "Subject"
 msgstr "Subject"
@@ -16128,7 +16128,7 @@ msgid "Table or View \"%(table)s\" does not exist."
 msgstr "Tabel of Weergave \"%(table)s\" bestaat niet."
 
 msgid "Table side"
-msgstr ""
+msgstr "Tabelzijde"
 
 msgid ""
 "Table that visualizes paired t-tests, which are used to understand "

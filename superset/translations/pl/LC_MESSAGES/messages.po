@@ -1556,7 +1556,7 @@ msgid "Add folder"
 msgstr "Dodaj filtr"
 
 msgid "Add group"
-msgstr ""
+msgstr "Dodaj grupę"
 
 msgid "Add item"
 msgstr "Dodaj element"
@@ -1602,7 +1602,7 @@ msgid "Add sheet"
 msgstr "Dodaj arkusz"
 
 msgid "Add subgroup"
-msgstr ""
+msgstr "Dodaj podgrupę"
 
 msgid "Add tag to entities"
 msgstr "Dodaj tag do jednostek"
@@ -3590,7 +3590,7 @@ msgid "Cell title template"
 msgstr "Usuń szablon"
 
 msgid "Center"
-msgstr ""
+msgstr "Środek"
 
 msgid "Center value"
 msgstr ""
@@ -4328,7 +4328,7 @@ msgid "Collapse row"
 msgstr "Zwiń wiersz"
 
 msgid "Collapse settings"
-msgstr ""
+msgstr "Zwiń ustawienia"
 
 #, fuzzy
 msgid "Collapse tab content"
@@ -4474,7 +4474,7 @@ msgid "Column data types"
 msgstr "Typy danych kolumn"
 
 msgid "Column groups"
-msgstr ""
+msgstr "Grupy kolumn"
 
 msgid "Column header tooltip"
 msgstr "Podpowiedź nagłówka kolumny"
@@ -7478,7 +7478,7 @@ msgid "Enter fullscreen"
 msgstr "Przejdź do trybu pełnoekranowego"
 
 msgid "Enter group name"
-msgstr ""
+msgstr "Wprowadź nazwę grupy"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
 # lv, pt_BR, ro, ru, sk, sr, sr_Latn, tr, uk]
@@ -7817,7 +7817,7 @@ msgid "Expand row to edit"
 msgstr "Rozwiń wiersz"
 
 msgid "Expand settings"
-msgstr ""
+msgstr "Rozwiń ustawienia"
 
 msgid ""
 "Expects a formula with depending time parameter 'x'\n"
@@ -8938,7 +8938,7 @@ msgstr "Grupuj według"
 
 #, python-format
 msgid "Group %s"
-msgstr ""
+msgstr "Grupa %s"
 
 msgid "Group By"
 msgstr "Grupuj według"
@@ -8954,10 +8954,10 @@ msgid "Group by"
 msgstr "Grupuj według"
 
 msgid "Group columns"
-msgstr ""
+msgstr "Kolumny grupy"
 
 msgid "Group name"
-msgstr ""
+msgstr "Nazwa grupy"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, fr,
 # ja, lv, ro, ru, sk, sr, sr_Latn, tr, uk]
@@ -11018,10 +11018,10 @@ msgid "MotherDuck token"
 msgstr "Token MotherDuck"
 
 msgid "Move group left"
-msgstr ""
+msgstr "Przesuń grupę w lewo"
 
 msgid "Move group right"
-msgstr ""
+msgstr "Przesuń grupę w prawo"
 
 #, fuzzy
 msgid "Move icon"
@@ -11055,7 +11055,7 @@ msgid "Multi-Variables"
 msgstr "Wielozmienny"
 
 msgid "Multi-level header"
-msgstr ""
+msgstr "Nagłówek wielopoziomowy"
 
 msgid "Multiple"
 msgstr "Wielokrotny"
@@ -12691,7 +12691,7 @@ msgid "Port out of range 0-65535"
 msgstr "Port poza zakresem 0-65535"
 
 msgid "Position"
-msgstr ""
+msgstr "Pozycja"
 
 msgid "Position JSON"
 msgstr "Pozycja JSON"
@@ -13223,7 +13223,7 @@ msgid "Remove from favorites"
 msgstr ""
 
 msgid "Remove group"
-msgstr ""
+msgstr "Usuń grupę"
 
 msgid "Remove item"
 msgstr "Usuń element"
@@ -14562,7 +14562,7 @@ msgid "Select column name"
 msgstr "Wybierz kolumnę"
 
 msgid "Select columns"
-msgstr ""
+msgstr "Wybierz kolumny"
 
 msgid ""
 "Select columns that will be displayed in the table. You can multiselect "
@@ -16186,7 +16186,7 @@ msgstr "Subdomena"
 
 #, python-format
 msgid "Subgroup %s"
-msgstr ""
+msgstr "Podgrupa %s"
 
 #, fuzzy
 msgid "Subject"
@@ -16462,7 +16462,7 @@ msgid "Table or View \"%(table)s\" does not exist."
 msgstr "Tabela lub widok „%(table)s” nie istnieje."
 
 msgid "Table side"
-msgstr ""
+msgstr "Strona tabeli"
 
 msgid ""
 "Table that visualizes paired t-tests, which are used to understand "

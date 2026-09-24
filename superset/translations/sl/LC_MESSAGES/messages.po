@@ -1498,7 +1498,7 @@ msgid "Add folder"
 msgstr "Dodaj mapo"
 
 msgid "Add group"
-msgstr ""
+msgstr "Dodaj skupino"
 
 msgid "Add item"
 msgstr "Dodaj"
@@ -1540,7 +1540,7 @@ msgid "Add sheet"
 msgstr "Dodaj preglednico"
 
 msgid "Add subgroup"
-msgstr ""
+msgstr "Dodaj podskupino"
 
 msgid "Add tag to entities"
 msgstr "Dodaj oznako elementom"
@@ -3402,7 +3402,7 @@ msgid "Cell title template"
 msgstr "Predloga naslova celice"
 
 msgid "Center"
-msgstr ""
+msgstr "Sredina"
 
 msgid "Center value"
 msgstr ""
@@ -4084,7 +4084,7 @@ msgid "Collapse row"
 msgstr "Skrij vrstico"
 
 msgid "Collapse settings"
-msgstr ""
+msgstr "Strni nastavitve"
 
 msgid "Collapse tab content"
 msgstr "Skrij vsebino zavihka"
@@ -4209,7 +4209,7 @@ msgid "Column data types"
 msgstr "Podatkovni tipi stolpcev"
 
 msgid "Column groups"
-msgstr ""
+msgstr "Skupine stolpcev"
 
 msgid "Column header tooltip"
 msgstr "Opis glave stolpca"
@@ -6919,7 +6919,7 @@ msgid "Enter fullscreen"
 msgstr "Vklopi celozaslonski način"
 
 msgid "Enter group name"
-msgstr ""
+msgstr "Vnesite ime skupine"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
 # lv, pt_BR, ro, ru, sk, sr, sr_Latn, tr, uk]
@@ -7213,7 +7213,7 @@ msgid "Expand row to edit"
 msgstr "Razširite vrstico za urejanje"
 
 msgid "Expand settings"
-msgstr ""
+msgstr "Razširi nastavitve"
 
 msgid ""
 "Expects a formula with depending time parameter 'x'\n"
@@ -8212,7 +8212,7 @@ msgstr "Skupina"
 
 #, python-format
 msgid "Group %s"
-msgstr ""
+msgstr "Skupina %s"
 
 msgid "Group By"
 msgstr "Združevanje po (Group by)"
@@ -8227,10 +8227,10 @@ msgid "Group by"
 msgstr "Združevanje po (Group by)"
 
 msgid "Group columns"
-msgstr ""
+msgstr "Stolpci skupine"
 
 msgid "Group name"
-msgstr ""
+msgstr "Ime skupine"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, fr,
 # ja, lv, ro, ru, sk, sr, sr_Latn, tr, uk]
@@ -10128,10 +10128,10 @@ msgid "MotherDuck token"
 msgstr "Žeton za MotherDuck"
 
 msgid "Move group left"
-msgstr ""
+msgstr "Premakni skupino levo"
 
 msgid "Move group right"
-msgstr ""
+msgstr "Premakni skupino desno"
 
 msgid "Move icon"
 msgstr "Premakni ikono"
@@ -10163,7 +10163,7 @@ msgid "Multi-Variables"
 msgstr "Več spremenljivk"
 
 msgid "Multi-level header"
-msgstr ""
+msgstr "Večnivojska glava"
 
 msgid "Multiple"
 msgstr "Več"
@@ -11655,7 +11655,7 @@ msgid "Port out of range 0-65535"
 msgstr "Vrata v razponu 0-65535"
 
 msgid "Position"
-msgstr ""
+msgstr "Položaj"
 
 msgid "Position JSON"
 msgstr "JSON za postavitev"
@@ -12132,7 +12132,7 @@ msgid "Remove from favorites"
 msgstr ""
 
 msgid "Remove group"
-msgstr ""
+msgstr "Odstrani skupino"
 
 msgid "Remove item"
 msgstr "Odstrani element"
@@ -13342,7 +13342,7 @@ msgid "Select column name"
 msgstr "Izberite ime stolpca"
 
 msgid "Select columns"
-msgstr ""
+msgstr "Izberite stolpce"
 
 msgid ""
 "Select columns that will be displayed in the table. You can multiselect "
@@ -14757,7 +14757,7 @@ msgstr "Poddomena"
 
 #, python-format
 msgid "Subgroup %s"
-msgstr ""
+msgstr "Podskupina %s"
 
 msgid "Subject"
 msgstr "Subjekt"
@@ -15006,7 +15006,7 @@ msgid "Table or View \"%(table)s\" does not exist."
 msgstr "Tabela ali pogled \"%(table)s\" ne obstaja."
 
 msgid "Table side"
-msgstr ""
+msgstr "Stran tabele"
 
 msgid ""
 "Table that visualizes paired t-tests, which are used to understand "

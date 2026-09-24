@@ -1539,7 +1539,7 @@ msgid "Add folder"
 msgstr "增加過濾條件"
 
 msgid "Add group"
-msgstr ""
+msgstr "新增群組"
 
 msgid "Add item"
 msgstr "增加條件"
@@ -1588,7 +1588,7 @@ msgid "Add sheet"
 msgstr "增加 sheet 頁"
 
 msgid "Add subgroup"
-msgstr ""
+msgstr "新增子群組"
 
 msgid "Add tag to entities"
 msgstr "給對象增加標籤"
@@ -3579,7 +3579,7 @@ msgid "Cell title template"
 msgstr "删除模板"
 
 msgid "Center"
-msgstr ""
+msgstr "置中"
 
 msgid "Center value"
 msgstr ""
@@ -4311,7 +4311,7 @@ msgid "Collapse row"
 msgstr "折叠行"
 
 msgid "Collapse settings"
-msgstr ""
+msgstr "摺疊設定"
 
 #, fuzzy
 msgid "Collapse tab content"
@@ -4452,7 +4452,7 @@ msgid "Column data types"
 msgstr "列數據類型"
 
 msgid "Column groups"
-msgstr ""
+msgstr "列群組"
 
 #, fuzzy
 msgid "Column header tooltip"
@@ -7393,7 +7393,7 @@ msgid "Enter fullscreen"
 msgstr "全螢幕"
 
 msgid "Enter group name"
-msgstr ""
+msgstr "輸入群組名稱"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
 # lv, pt_BR, ro, ru, sk, sr, sr_Latn, tr, uk]
@@ -7729,7 +7729,7 @@ msgid "Expand row to edit"
 msgstr "標題行"
 
 msgid "Expand settings"
-msgstr ""
+msgstr "展開設定"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -8855,7 +8855,7 @@ msgstr "分組"
 
 #, python-format
 msgid "Group %s"
-msgstr ""
+msgstr "群組 %s"
 
 msgid "Group By"
 msgstr "分組"
@@ -8871,10 +8871,10 @@ msgid "Group by"
 msgstr "分組"
 
 msgid "Group columns"
-msgstr ""
+msgstr "群組的列"
 
 msgid "Group name"
-msgstr ""
+msgstr "群組名稱"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, fr,
 # ja, lv, ro, ru, sk, sr, sr_Latn, tr, uk]
@@ -11017,10 +11017,10 @@ msgid "MotherDuck token"
 msgstr "MotherDuck 令牌"
 
 msgid "Move group left"
-msgstr ""
+msgstr "將群組向左移動"
 
 msgid "Move group right"
-msgstr ""
+msgstr "將群組向右移動"
 
 #, fuzzy
 msgid "Move icon"
@@ -11053,7 +11053,7 @@ msgid "Multi-Variables"
 msgstr "多元"
 
 msgid "Multi-level header"
-msgstr ""
+msgstr "多層級標題"
 
 msgid "Multiple"
 msgstr "多選"
@@ -12727,7 +12727,7 @@ msgid "Port out of range 0-65535"
 msgstr "端口超過 0-65535 的範圍"
 
 msgid "Position"
-msgstr ""
+msgstr "位置"
 
 msgid "Position JSON"
 msgstr "位置 JSON"
@@ -13257,7 +13257,7 @@ msgid "Remove from favorites"
 msgstr ""
 
 msgid "Remove group"
-msgstr ""
+msgstr "刪除群組"
 
 msgid "Remove item"
 msgstr "删除項"
@@ -14584,7 +14584,7 @@ msgid "Select column name"
 msgstr "選擇列"
 
 msgid "Select columns"
-msgstr ""
+msgstr "選擇列"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fa, fr, ja, lv, mi, pl, ro, ru, sk, sl, sr, sr_Latn, tr, uk]
@@ -16116,7 +16116,7 @@ msgstr "子域"
 
 #, python-format
 msgid "Subgroup %s"
-msgstr ""
+msgstr "子群組 %s"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # fr, it, ja, lv, mi, nl, ru, sk, sl, tr, uk]
@@ -16401,7 +16401,7 @@ msgid "Table or View \"%(table)s\" does not exist."
 msgstr "表或視圖 '%(table)s' 不存在"
 
 msgid "Table side"
-msgstr ""
+msgstr "表格側"
 
 msgid ""
 "Table that visualizes paired t-tests, which are used to understand "

@@ -1716,7 +1716,7 @@ msgid "Add folder"
 msgstr "Dodaj fasciklu"
 
 msgid "Add group"
-msgstr ""
+msgstr "Dodaj grupu"
 
 # de, es, fa, fr, it, ja, ko, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh,
 # zh_TW]
@@ -1771,7 +1771,7 @@ msgid "Add sheet"
 msgstr "Dodaj list"
 
 msgid "Add subgroup"
-msgstr ""
+msgstr "Dodaj podgrupu"
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Add tag to entities"
@@ -4036,7 +4036,7 @@ msgid "Cell title template"
 msgstr "Šablon naslova ćelije"
 
 msgid "Center"
-msgstr ""
+msgstr "Centar"
 
 msgid "Center value"
 msgstr ""
@@ -4871,7 +4871,7 @@ msgid "Collapse row"
 msgstr "Skupi red"
 
 msgid "Collapse settings"
-msgstr ""
+msgstr "Skupi podešavanja"
 
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
 msgid "Collapse tab content"
@@ -5017,7 +5017,7 @@ msgid "Column data types"
 msgstr "Tipovi podataka kolone"
 
 msgid "Column groups"
-msgstr ""
+msgstr "Grupe kolona"
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
 msgid "Column header tooltip"
@@ -8330,7 +8330,7 @@ msgid "Enter fullscreen"
 msgstr "Uđi u režim celog ekrana"
 
 msgid "Enter group name"
-msgstr ""
+msgstr "Unesite naziv grupe"
 
 # pt_BR, ru, sk, uk]
 msgid "Enter minimum and maximum values for the range filter"
@@ -8688,7 +8688,7 @@ msgid "Expand row to edit"
 msgstr "Proširi red za izmenu"
 
 msgid "Expand settings"
-msgstr ""
+msgstr "Proširi podešavanja"
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
 msgid ""
@@ -9862,7 +9862,7 @@ msgstr "Grupa"
 
 #, python-format
 msgid "Group %s"
-msgstr ""
+msgstr "Grupa %s"
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Group By"
@@ -9882,10 +9882,10 @@ msgid "Group by"
 msgstr "Grupiši po"
 
 msgid "Group columns"
-msgstr ""
+msgstr "Kolone grupe"
 
 msgid "Group name"
-msgstr ""
+msgstr "Naziv grupe"
 
 # lv, ru, sk, uk]
 msgid "Group remaining as \"Others\""
@@ -12169,10 +12169,10 @@ msgid "MotherDuck token"
 msgstr "MotherDuck token"
 
 msgid "Move group left"
-msgstr ""
+msgstr "Pomeri grupu ulevo"
 
 msgid "Move group right"
-msgstr ""
+msgstr "Pomeri grupu udesno"
 
 msgid "Move icon"
 msgstr "Ikona za pomeranje"
@@ -12210,7 +12210,7 @@ msgid "Multi-Variables"
 msgstr "Više promenljivih"
 
 msgid "Multi-level header"
-msgstr ""
+msgstr "Višenivo zaglavlje"
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Multiple"
@@ -14054,7 +14054,7 @@ msgid "Port out of range 0-65535"
 msgstr "Port izvan opsega 0-65535"
 
 msgid "Position"
-msgstr ""
+msgstr "Pozicija"
 
 # de, es, fa, fr, it, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, uk, zh,
 # zh_TW]
@@ -14642,7 +14642,7 @@ msgid "Remove from favorites"
 msgstr ""
 
 msgid "Remove group"
-msgstr ""
+msgstr "Ukloni grupu"
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Remove item"
@@ -16133,7 +16133,7 @@ msgid "Select column name"
 msgstr "Izaberite naziv kolone"
 
 msgid "Select columns"
-msgstr ""
+msgstr "Izaberite kolone"
 
 # es, fa, fr, ja, lv, mi, pl, ru, sk, sl, uk]
 msgid ""
@@ -17801,7 +17801,7 @@ msgstr "Poddomen"
 
 #, python-format
 msgid "Subgroup %s"
-msgstr ""
+msgstr "Podgrupa %s"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # fr, it, ja, lv, mi, nl, ru, sk, sl, tr, uk]
@@ -18109,7 +18109,7 @@ msgid "Table or View \"%(table)s\" does not exist."
 msgstr "Tabela ili pregled \"%(table)s\" ne postoji."
 
 msgid "Table side"
-msgstr ""
+msgstr "Strana tabele"
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid ""
