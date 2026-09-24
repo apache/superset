@@ -877,3 +877,82 @@ def test_rows_in_a_null_partition_survive_mirroring(app: Flask) -> None:
     assert "region_key = 'us'" in sql
     assert "region_key IS NULL" in sql
     assert "OR" in sql
+
+
+def test_the_null_escape_covers_the_in_path(app: Flask) -> None:
+    """A row in a NULL partition is dropped by `IN` just as surely as by `=`."""
+    table = _table(
+        transform="lower(:value)",
+        monotonic=False,
+        mapped_column="country",
+        partition_mapped_column="country",
+        partition_column="region_key",
+    )
+
+    with app.app_context():
+        with patch(PROBE, return_value=["us", "ca"]):
+            sql = _query(
+                table,
+                filter=[
+                    {
+                        "col": "country",
+                        "op": FilterOperator.IN.value,
+                        "val": ["US", "CA"],
+                    }
+                ],
+            )
+
+    assert "region_key IN ('us', 'ca')" in sql
+    assert "region_key IS NULL" in sql
+
+
+def test_the_null_escape_wraps_the_whole_conjunction(app: Flask) -> None:
+    """
+    With two bounds the escape has to sit outside both. `a AND (b OR p IS NULL)`
+    would still drop every NULL-partition row on the `a` comparison -- the bug
+    the escape exists to prevent, one bound later.
+    """
+    table = _table()
+
+    with app.app_context():
+        with patch(PROBE, return_value=[1767225600, 1769904000]):
+            sql = _query(
+                table,
+                filter=[
+                    {
+                        "col": "event_time",
+                        "op": FilterOperator.TEMPORAL_RANGE.value,
+                        "val": "2026-01-01 : 2026-02-01",
+                    }
+                ],
+            )
+
+    # SQLAlchemy drops the redundant inner parentheses; AND binds tighter than
+    # OR, so this still parses as `(a AND b) OR p IS NULL`. What matters is that
+    # the escape sits outside *both* comparisons, not between them.
+    assert (
+        "(dt_epoch >= 1767225600 AND dt_epoch < 1769904000 OR dt_epoch IS NULL)"
+    ) in sql
+
+
+def test_a_mapping_that_emits_nothing_emits_no_bare_null_check(app: Flask) -> None:
+    """
+    The escape widens a predicate; with no predicate to widen it would be a
+    bare `p IS NULL`, which keeps only the rows the mirror was meant to spare.
+    """
+    table = _table(monotonic=False)
+
+    with app.app_context():
+        with patch(PROBE, return_value=[1767225600]):
+            sql = _query(
+                table,
+                filter=[
+                    {
+                        "col": "event_time",
+                        "op": FilterOperator.GREATER_THAN.value,
+                        "val": "2026-01-01",
+                    }
+                ],
+            )
+
+    assert "dt_epoch" not in sql

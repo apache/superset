@@ -97,6 +97,18 @@ Negations are never safe. A transform need not be injective: `lower(:value)` wit
 `country != 'US'` would mirror to `region_key != 'us'`, which excludes rows whose `country`
 is already lowercase `'us'` — rows the original filter *keeps*.
 
+**Time grains.** A filter that carries a time grain — drill-to-detail, mostly — compares the
+*truncated* column, so the raw bounds it carries do not describe the rows it keeps: a row in
+the final partial bucket satisfies `DATE_TRUNC(...) < until` while `col < until` excludes it.
+Grained *ranges* still mirror, with both bounds widened by one bucket so the mirror stays no
+narrower than the real filter. A `P1D` drill therefore reads three days of partitions rather
+than one, instead of scanning the table. Grained `=` and `IN` filters do not mirror.
+
+Widening is only applied to grains whose bucket width Superset knows, which means the
+built-in ones. A grain you added through `TIME_GRAIN_ADDONS`, or a built-in grain whose SQL
+you replaced through `TIME_GRAIN_ADDON_EXPRESSIONS`, has no width Superset can rely on and
+simply does not mirror.
+
 Known gaps, all of which are out of scope rather than bugs:
 
 - **Filter-value dropdowns do not prune.** Populating a filter's value list runs its own
@@ -125,9 +137,23 @@ different timezone than the transform resolves, mirrored predicates silently dro
 and charts show quietly wrong numbers. Confirm the invariant with whoever owns the pipeline
 before enabling a mapping on a production dataset.
 
-Related: a predicate like `dt_epoch >= X` also drops rows where `dt_epoch` is `NULL`.
-Partition keys in Hive and Impala are non-null by construction, so this is accepted rather
-than defended against.
+Rows in a `NULL` partition are the one case Superset *does* defend against. A predicate like
+`dt_epoch >= X` is `NULL` — and so drops the row — wherever `dt_epoch` is `NULL`, even when
+the original filter matches it. That is reachable: a dynamic-partition insert on Hive or
+Impala parks rows whose partition key was `NULL` in the default partition
+(`__HIVE_DEFAULT_PARTITION__`), and the column reads back as `NULL` when you query it. A
+transform that returns `NULL` for an input it cannot convert produces the same thing on any
+engine.
+
+The mirrored predicate is therefore emitted as:
+
+```sql
+(dt_epoch >= X AND dt_epoch < Y) OR dt_epoch IS NULL
+```
+
+The mirror only has to be *no narrower* than the filter it stands in for, so admitting the
+`NULL` partition costs one extra partition read and keeps those rows. Engines still prune
+everything else.
 
 ## How the transform is evaluated
 
