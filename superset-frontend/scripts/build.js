@@ -26,13 +26,22 @@
 
 import { spawnSync } from 'node:child_process';
 import fastGlob from 'fast-glob';
-import yargs from 'yargs';
-import { hideBin } from 'yargs/helpers';
+import { parseArgs } from 'node:util';
 
 process.env.PATH = `./node_modules/.bin:${process.env.PATH}`;
 
-const { globs } = yargs(hideBin(process.argv)).parse();
-const glob = globs?.length > 1 ? `{${globs.join(',')}}` : globs?.[0] || '*';
+const cliOptions = {
+  globs: {
+    type: 'string',
+    multiple: true,
+    default: ['*'],
+  },
+};
+
+const { values } = parseArgs({ options: cliOptions });
+
+const glob =
+  values.globs?.length > 1 ? `{${values.globs.join(',')}}` : values.globs?.[0];
 
 const BABEL_CONFIG = '--config-file=../../babel.config.js';
 
