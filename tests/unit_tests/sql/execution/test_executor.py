@@ -29,6 +29,8 @@ These tests cover the SQL execution API including:
 - Async execution
 """
 
+import sqlite3
+from contextlib import closing
 from typing import Any
 from unittest.mock import MagicMock
 
@@ -1477,6 +1479,167 @@ def test_execute_no_limit_for_dml(
 
     # Should not apply limit to DML
     apply_limit_mock.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    "sql,limit,sql_max_row,expected",
+    [
+        ("SELECT 1 LIMIT 5", 10, None, "SELECT 1 LIMIT 5"),
+        ("SELECT 1 LIMIT 10", 5, None, "SELECT 1 LIMIT 5"),
+        ("SELECT 1 LIMIT 5", 5, None, "SELECT 1 LIMIT 5"),
+        ("SELECT 1 LIMIT 5", None, None, "SELECT 1 LIMIT 5"),
+        ("SELECT 1", 5, None, "SELECT 1 LIMIT 5"),
+        ("SELECT 1", None, None, "SELECT 1"),
+        ("SELECT 1 LIMIT 0", 10, None, "SELECT 1 LIMIT 0"),
+        ("SELECT 1 LIMIT 10 OFFSET 2", 5, None, "SELECT 1 LIMIT 5 OFFSET 2"),
+        ("SELECT 1 LIMIT 5 OFFSET 2", 10, None, "SELECT 1 LIMIT 5 OFFSET 2"),
+        (
+            "WITH c AS (SELECT 1 LIMIT 2) SELECT * FROM c LIMIT 10",
+            5,
+            None,
+            "WITH c AS (SELECT 1 LIMIT 2) SELECT * FROM c LIMIT 5",
+        ),
+        (
+            "SELECT * FROM (SELECT 1 LIMIT 2) AS s LIMIT 10",
+            5,
+            None,
+            "SELECT * FROM (SELECT 1 LIMIT 2) AS s LIMIT 5",
+        ),
+        (
+            "SELECT * FROM (SELECT 1 LIMIT 2) AS s",
+            5,
+            None,
+            "SELECT * FROM (SELECT 1 LIMIT 2) AS s LIMIT 5",
+        ),
+        (
+            "SELECT 1 LIMIT 20; SELECT 2 LIMIT 10",
+            5,
+            None,
+            "SELECT 1 LIMIT 20; SELECT 2 LIMIT 5",
+        ),
+        ("SELECT 1 LIMIT 10", 20, 3, "SELECT 1 LIMIT 3"),
+        ("SELECT 1 LIMIT 2", 20, 3, "SELECT 1 LIMIT 2"),
+        ("SELECT 1", 20, 3, "SELECT 1 LIMIT 3"),
+        ("SELECT 1 LIMIT 10", None, 3, "SELECT 1 LIMIT 10"),
+    ],
+)
+def test_apply_limit_to_script_caps_outer_limit(
+    mocker: MockerFixture,
+    database: Database,
+    app_context: None,
+    sql: str,
+    limit: int | None,
+    sql_max_row: int | None,
+    expected: str,
+) -> None:
+    """Cap only the last outer limit, preserving omitted limits and SQL structure."""
+    from superset.sql.execution.executor import SQLExecutor
+
+    mocker.patch.dict(current_app.config, {"SQL_MAX_ROW": sql_max_row})
+    engine = database.db_engine_spec.engine
+    script = SQLScript(sql, engine)
+    SQLExecutor(database)._apply_limit_to_script(script, QueryOptions(limit=limit))
+    assert script.format() == SQLScript(expected, engine).format()
+
+
+@pytest.mark.parametrize(
+    "sql,limit,expected",
+    [
+        ("SELECT 1 LIMIT 5", 10, "SELECT 1 LIMIT 5"),
+        ("SELECT 1 LIMIT 5", 5, "SELECT 1 LIMIT 5"),
+        ("SELECT 1 LIMIT 0", 10, "SELECT 1 LIMIT 0"),
+        ("SELECT 1 LIMIT 10", 5, "SELECT * FROM (SELECT 1 LIMIT 10) LIMIT 5"),
+        ("SELECT 1", 5, "SELECT * FROM (SELECT 1) LIMIT 5"),
+    ],
+)
+def test_apply_limit_to_script_wrap_sql(
+    mocker: MockerFixture,
+    database: Database,
+    app_context: None,
+    sql: str,
+    limit: int,
+    expected: str,
+) -> None:
+    """DB2's WRAP_SQL method must not add a larger or redundant outer limit."""
+    from superset.db_engine_specs.db2 import Db2EngineSpec
+    from superset.sql.execution.executor import SQLExecutor
+    from superset.sql.parse import LimitMethod
+
+    mocker.patch.object(type(database), "db_engine_spec", Db2EngineSpec)
+    mocker.patch.dict(current_app.config, {"SQL_MAX_ROW": None})
+    assert database.db_engine_spec.limit_method == LimitMethod.WRAP_SQL
+    script = SQLScript(sql, Db2EngineSpec.engine)
+    SQLExecutor(database)._apply_limit_to_script(script, QueryOptions(limit=limit))
+    assert script.format() == SQLScript(expected, Db2EngineSpec.engine).format()
+
+
+@pytest.mark.parametrize("run_async", [False, True])
+@pytest.mark.parametrize("sql_limit,request_limit", [(5, 10), (10, 5), (5, None)])
+def test_execute_dry_run_caps_limit(
+    mocker: MockerFixture,
+    database: Database,
+    app_context: None,
+    run_async: bool,
+    sql_limit: int,
+    request_limit: int | None,
+) -> None:
+    """Sync and async dry runs expose capped SQL without executing a query."""
+    mocker.patch.dict(
+        current_app.config, {"SQL_MAX_ROW": None, "SQL_QUERY_MUTATOR": None}
+    )
+    connection = mocker.patch.object(database, "get_raw_connection")
+    sql = f"SELECT 1 LIMIT {sql_limit}"
+    options = QueryOptions(limit=request_limit, dry_run=True)
+    result = (
+        database.execute_async(sql, options).get_result()
+        if run_async
+        else database.execute(sql, options)
+    )
+    assert result.status == QueryStatus.SUCCESS
+    assert (
+        result.statements[0].executed_sql
+        == SQLScript("SELECT 1 LIMIT 5", "sqlite").format()
+    )
+    assert result.statements[0].original_sql == SQLScript(sql, "sqlite").format()
+    connection.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    "sql_limit,request_limit,expected_rows",
+    [(5, 10, 5), (10, 5, 5), (5, 5, 5), (5, None, 5), (None, 5, 5), (0, 10, 0)],
+)
+def test_execute_limit_caps_returned_rows(
+    mocker: MockerFixture,
+    database: Database,
+    app_context: None,
+    sql_limit: int | None,
+    request_limit: int | None,
+    expected_rows: int,
+) -> None:
+    """Execute against in-memory SQLite to verify actual rows, not mocked results."""
+    mocker.patch.dict(
+        current_app.config,
+        {"SQL_MAX_ROW": None, "SQL_QUERY_MUTATOR": None, "QUERY_LOGGER": None},
+    )
+    with closing(sqlite3.connect(":memory:")) as connection:
+        connection.execute("CREATE TABLE numbers (n INTEGER)")
+        connection.executemany(
+            "INSERT INTO numbers VALUES (?)", [(n,) for n in range(20)]
+        )
+        mocker.patch.object(database, "get_raw_connection", return_value=connection)
+        sql = "SELECT n FROM numbers ORDER BY n"
+        if sql_limit is not None:
+            sql += f" LIMIT {sql_limit}"
+        result = database.execute(sql, QueryOptions(limit=request_limit))
+    assert result.status == QueryStatus.SUCCESS
+    statement = result.statements[0]
+    assert statement.row_count == expected_rows
+    assert statement.data is not None
+    assert len(statement.data) == expected_rows
+    assert (
+        SQLScript(statement.executed_sql, "sqlite").statements[0].get_limit_value()
+        == expected_rows
+    )
 
 
 def test_apply_limit_to_script_respects_sql_max_row(

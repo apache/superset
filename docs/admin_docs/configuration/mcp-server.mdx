@@ -1191,6 +1191,19 @@ sub-500 exception remains a warning even if it carries a connection error reason
 the generic engine reason can also describe a caller's malformed column, and a
 connection access denial is still a permission failure.
 
+## SQL execution row limits
+
+The `execute_sql` tool treats an explicit request `limit` as a safety cap on the
+last statement's outer SQL LIMIT. The smaller limit wins: SQL `LIMIT 5` with
+request `limit: 10` returns at most five rows, while SQL `LIMIT 10` with request
+`limit: 5` also returns at most five. Equal limits and SQL `LIMIT 0` are preserved.
+If SQL has no outer limit, the explicit request cap is applied. Inner query and
+CTE limits and SQL offsets are preserved.
+
+Omitting `limit` leaves the SQL limit unchanged. Explicit request caps remain
+subject to the server's `SQL_MAX_ROW` configuration. This behavior also applies
+to `dry_run`, which returns the transformed SQL without executing it.
+
 ## Result serialization
 
 Data-bearing tool responses sanitize row values, column samples, and statistics

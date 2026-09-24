@@ -74,7 +74,10 @@ class ExecuteSqlRequest(BaseModel):
         description=(
             "Maximum number of rows to return. "
             "If not specified, respects the LIMIT in your SQL query. "
-            "If specified, overrides any SQL LIMIT clause."
+            "If specified, caps the last statement's outer SQL LIMIT at the smaller "
+            "of that LIMIT and this value, or adds a limit if none exists. "
+            "Never increases a stricter SQL LIMIT or changes inner query limits. "
+            "Explicit limits are also capped by the server's SQL_MAX_ROW setting."
         ),
         ge=1,
         le=10000,

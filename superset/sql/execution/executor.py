@@ -770,7 +770,7 @@ class SQLExecutor:
 
     def _apply_limit_to_script(self, script: SQLScript, opts: QueryOptions) -> None:
         """
-        Apply limit to the last statement in the script in place.
+        Cap the last statement's outer limit in place without increasing it.
 
         :param script: SQLScript object to modify
         :param opts: Query options
@@ -786,10 +786,13 @@ class SQLExecutor:
 
         # Apply limit to last statement only
         if script.statements:
-            script.statements[-1].set_limit_value(
-                effective_limit,
-                self.database.db_engine_spec.limit_method,
-            )
+            statement = script.statements[-1]
+            current_limit = statement.get_limit_value()
+            if current_limit is None or effective_limit < current_limit:
+                statement.set_limit_value(
+                    effective_limit,
+                    self.database.db_engine_spec.limit_method,
+                )
 
     def _try_get_cached_result(
         self,

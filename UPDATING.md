@@ -24,6 +24,18 @@ assists people when migrating to a new version.
 
 ## Next
 
+### SQL execution request limits are safety caps
+
+The MCP `execute_sql` request's `limit` no longer overrides a smaller outer SQL
+LIMIT. It caps the last statement at the smaller of the SQL LIMIT and the request
+limit, subject to `SQL_MAX_ROW`. For example, SQL `LIMIT 5` with request `limit: 10`
+keeps `LIMIT 5`. To return more rows, increase or remove the SQL LIMIT explicitly.
+Omitting the request limit still leaves SQL limits unchanged. Inner query and CTE
+limits are not changed.
+
+This contract change also applies to the public `Database.execute()` and
+`Database.execute_async()` APIs through `QueryOptions.limit`, including dry runs.
+
 ### MCP response size guard: byte limit instead of estimated token count
 
 The MCP response-size guard no longer estimates LLM token counts (it
