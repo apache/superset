@@ -9096,10 +9096,10 @@ msgid "Label threshold"
 msgstr "Prahová hodnota popisku"
 
 msgid "Label used for decreasing candles in the tooltip."
-msgstr "Popisek klesajících svíček v popisku."
+msgstr "Popisek klesajících svíček v tooltipu."
 
 msgid "Label used for increasing candles in the tooltip."
-msgstr "Popisek rostoucích svíček v popisku."
+msgstr "Popisek rostoucích svíček v tooltipu."
 
 msgid "Labelling"
 msgstr "Označování"
@@ -13934,7 +13934,7 @@ msgid "Series chart type (line, bar etc)"
 msgstr "Typ grafu série (spojnicový, sloupcový atd.)"
 
 msgid "Series colors"
-msgstr "Barvy řad"
+msgstr "Barvy série"
 
 msgid "Series decrease setting"
 msgstr "Nastavení snížení série"
@@ -13946,14 +13946,14 @@ msgid "Series limit"
 msgstr "Limit sérií"
 
 msgid "Series name"
-msgstr "Název řady"
+msgstr "Název série"
 
 #, fuzzy
 msgid "Series settings"
 msgstr "Nastavení sérií"
 
 msgid "Series style"
-msgstr "Styl řady"
+msgstr "Styl série"
 
 #, fuzzy
 msgid "Series total setting"

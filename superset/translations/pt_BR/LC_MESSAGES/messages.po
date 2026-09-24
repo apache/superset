@@ -3404,7 +3404,7 @@ msgstr ""
 "interrupção"
 
 msgid "Candlestick"
-msgstr "Candlestick"
+msgstr "Velas"
 
 msgid "Candlestick Chart"
 msgstr "Gráfico de candlestick"

@@ -8829,10 +8829,10 @@ msgid "Label threshold"
 msgstr "லேபிள் வரம்பு (threshold)"
 
 msgid "Label used for decreasing candles in the tooltip."
-msgstr "உதவிக்குறிப்பில் குறையும் மெழுகுவர்த்திகளுக்கான சிட்டை."
+msgstr "உதவிக்குறிப்பில் குறையும் மெழுகுவர்த்திகளுக்கான லேபிள்."
 
 msgid "Label used for increasing candles in the tooltip."
-msgstr "உதவிக்குறிப்பில் உயரும் மெழுகுவர்த்திகளுக்கான சிட்டை."
+msgstr "உதவிக்குறிப்பில் உயரும் மெழுகுவர்த்திகளுக்கான லேபிள்."
 
 msgid "Labelling"
 msgstr "லேபிளிடுதல்"
@@ -9990,7 +9990,7 @@ msgid ""
 "Name used for the candlestick series in the legend and tooltip when no "
 "series dimension is set."
 msgstr ""
-"தொடர் பரிமாணம் அமைக்கப்படாதபோது புராணத்திலும் உதவிக்குறிப்பிலும் பயன்படும் "
+"தொடர் பரிமாணம் அமைக்கப்படாதபோது விளக்கக் குறிப்பிலும் உதவிக்குறிப்பிலும் பயன்படும் "
 "மெழுகுவர்த்தி தொடர் பெயர்."
 
 msgid "Name your database"

@@ -3431,7 +3431,7 @@ msgid "Cancellation not available due to missing abort handler"
 msgstr "由於缺少中止處理器，無法取消"
 
 msgid "Candlestick"
-msgstr "K線圖"
+msgstr "K線"
 
 msgid "Candlestick Chart"
 msgstr "K線圖"
@@ -9814,10 +9814,10 @@ msgid "Label threshold"
 msgstr "標籤閥值"
 
 msgid "Label used for decreasing candles in the tooltip."
-msgstr "提示中下跌 K 線使用的標籤。"
+msgstr "工具提示中下跌K線使用的標籤。"
 
 msgid "Label used for increasing candles in the tooltip."
-msgstr "提示中上漲 K 線使用的標籤。"
+msgstr "工具提示中上漲K線使用的標籤。"
 
 msgid "Labelling"
 msgstr "標籤"
@@ -11178,7 +11178,7 @@ msgstr "標籤的名稱"
 msgid ""
 "Name used for the candlestick series in the legend and tooltip when no "
 "series dimension is set."
-msgstr "未設定系列維度時，圖例和提示中使用的 K 線系列名稱。"
+msgstr "未設定系列維度時，圖例和工具提示中使用的K線系列名稱。"
 
 msgid "Name your database"
 msgstr "資料庫名稱"
@@ -11775,7 +11775,7 @@ msgid "OCT"
 msgstr "十月"
 
 msgid "OHLC"
-msgstr "OHLC"
+msgstr "開高低收"
 
 msgid "OK"
 msgstr "確認"
@@ -12017,7 +12017,7 @@ msgstr "條件格式設定"
 msgid ""
 "Optional dimension used to split the chart into multiple candlestick "
 "series."
-msgstr "可選維度，用來將圖表拆成多個 K 線系列。"
+msgstr "可選維度，用來將圖表拆成多個 K線系列。"
 
 msgid ""
 "Optional metric used to scale the size of each dot. Dot areas are scaled "
@@ -20396,7 +20396,7 @@ msgid ""
 "When enabled, increasing candles use the increase color and decreasing "
 "candles use the decrease color. Turn off to use one series color, with a "
 "filled body for increases and a hollow body for decreases."
-msgstr "啟用後，陽線使用上漲色，陰線使用下跌色。關閉則使用單一系列顏色：上漲為實心實體，下跌為空心實體。"
+msgstr "啟用後，上漲K線使用上漲色，下跌K線使用下跌色。關閉則使用單一系列顏色：上漲為實心實體，下跌為空心實體。"
 
 #, fuzzy
 msgid ""

@@ -10888,10 +10888,10 @@ msgid "Label threshold"
 msgstr "Праг ознаке"
 
 msgid "Label used for decreasing candles in the tooltip."
-msgstr "Ознака опадајућих свећа у опису."
+msgstr "Ознака опадајућих свећа у облачићу."
 
 msgid "Label used for increasing candles in the tooltip."
-msgstr "Ознака растућих свећа у опису."
+msgstr "Ознака растућих свећа у облачићу."
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Labelling"
@@ -12344,7 +12344,7 @@ msgid ""
 "Name used for the candlestick series in the legend and tooltip when no "
 "series dimension is set."
 msgstr ""
-"Назив свећасте серије у легенди и опису када димензија серије није "
+"Назив свећасте серије у легенди и облачићу када димензија серије није "
 "постављена."
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]

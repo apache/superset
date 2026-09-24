@@ -13436,7 +13436,7 @@ msgid ""
 "Overlay simple moving averages of the close price (MA5, MA10, MA15, ...)."
 " Type a custom period to add it."
 msgstr ""
-"Preklopite proste pokretne prosekе cene zatvaranja (MA5, MA10, MA15, ...). "
+"Preklopite proste pokretne proseke cene zatvaranja (MA5, MA10, MA15, ...). "
 "Unesite prilagođeni period da ga dodate."
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]

@@ -10779,7 +10779,7 @@ msgstr "نام برچسب شما"
 msgid ""
 "Name used for the candlestick series in the legend and tooltip when no "
 "series dimension is set."
-msgstr "نام سری شمعی در راهنما و راهنمای ابزار وقتی بُعد سری تنظیم نشده باشد."
+msgstr "نام سری شمعی در افسانه و راهنمای ابزار وقتی بُعد سری تنظیم نشده باشد."
 
 msgid "Name your database"
 msgstr "نام پایگاه داده خود را وارد کنید"

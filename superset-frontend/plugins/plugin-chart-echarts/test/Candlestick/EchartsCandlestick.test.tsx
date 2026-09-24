@@ -173,12 +173,14 @@ test('emits IS NULL when drill-to-detail hits a null x-category', () => {
   const { eventHandlers } = mockedEchart.mock.calls[0][0] as {
     eventHandlers: EventHandlers;
   };
+  const stop = jest.fn();
   eventHandlers.contextmenu({
-    event: { stop: jest.fn(), event: { clientX: 12, clientY: 34 } },
+    event: { stop, event: { clientX: 12, clientY: 34 } },
     dataIndex: 0,
     seriesType: 'candlestick',
   });
 
+  expect(stop).toHaveBeenCalled();
   expect(onContextMenu).toHaveBeenCalledWith(
     12,
     34,

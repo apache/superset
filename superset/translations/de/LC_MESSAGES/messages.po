@@ -3215,7 +3215,7 @@ msgid "Candlestick"
 msgstr "Kerzenchart"
 
 msgid "Candlestick Chart"
-msgstr "Kerzenchart"
+msgstr "Kerzenstock-Diagramm"
 
 msgid ""
 "Candlestick draws a filled body between open and close. OHLC draws ticks "
@@ -13552,7 +13552,7 @@ msgid "Series chart type (line, bar etc)"
 msgstr "Zeitreihendiagrammtyp (Linie, Balken usw.)"
 
 msgid "Series colors"
-msgstr "Reihenfarben"
+msgstr "Zeitreihenfarben"
 
 msgid "Series decrease setting"
 msgstr "Zeitreiheneinstellungen Rückgang"
@@ -13564,13 +13564,13 @@ msgid "Series limit"
 msgstr "Zeitreihenbegrenzung"
 
 msgid "Series name"
-msgstr "Reihenname"
+msgstr "Zeitreihenname"
 
 msgid "Series settings"
 msgstr "Zeitreiheneinstellungen"
 
 msgid "Series style"
-msgstr "Reihenstil"
+msgstr "Zeitreihenstil"
 
 msgid "Series total setting"
 msgstr "Gesamtbetrageinstellungen der Zeitreihe"
