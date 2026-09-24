@@ -1516,7 +1516,6 @@ msgstr ""
 msgid "Add folder"
 msgstr "Filter toevoegen"
 
-#, fuzzy
 msgid "Add group"
 msgstr "Groep toevoegen"
 
@@ -1563,7 +1562,6 @@ msgstr ""
 msgid "Add sheet"
 msgstr "Voeg blad toe"
 
-#, fuzzy
 msgid "Add subgroup"
 msgstr "Subgroep toevoegen"
 
@@ -3583,7 +3581,6 @@ msgstr "Cel limiet"
 msgid "Cell title template"
 msgstr "Verwijder template"
 
-#, fuzzy
 msgid "Center"
 msgstr "Midden"
 
@@ -4310,7 +4307,6 @@ msgstr "Paneel data samenvouwen"
 msgid "Collapse row"
 msgstr "Rij inklappen"
 
-#, fuzzy
 msgid "Collapse settings"
 msgstr "Instellingen inklappen"
 
@@ -4448,7 +4444,6 @@ msgstr "Kolom met lengtegraad gegevens"
 msgid "Column data types"
 msgstr "Kolom gegevenstypen"
 
-#, fuzzy
 msgid "Column groups"
 msgstr "Kolomgroepen"
 
@@ -7373,7 +7368,6 @@ msgstr "Voer duur in seconden in"
 msgid "Enter fullscreen"
 msgstr "Open volledig scherm"
 
-#, fuzzy
 msgid "Enter group name"
 msgstr "Groepsnaam invoeren"
 
@@ -7702,7 +7696,6 @@ msgstr "Rij uitklappen"
 msgid "Expand row to edit"
 msgstr "Rij uitklappen"
 
-#, fuzzy
 msgid "Expand settings"
 msgstr "Instellingen uitklappen"
 
@@ -8790,7 +8783,7 @@ msgstr ""
 msgid "Group"
 msgstr "Groep per"
 
-#, fuzzy, python-format
+#, python-format
 msgid "Group %s"
 msgstr "Groep %s"
 
@@ -8806,11 +8799,9 @@ msgstr "Groep Sleutel"
 msgid "Group by"
 msgstr "Groep per"
 
-#, fuzzy
 msgid "Group columns"
-msgstr "Groepskolommen"
+msgstr "Kolommen groeperen"
 
-#, fuzzy
 msgid "Group name"
 msgstr "Groepsnaam"
 
@@ -10880,11 +10871,9 @@ msgstr "Meer filters"
 msgid "MotherDuck token"
 msgstr "MotherDuck-token"
 
-#, fuzzy
 msgid "Move group left"
 msgstr "Groep naar links verplaatsen"
 
-#, fuzzy
 msgid "Move group right"
 msgstr "Groep naar rechts verplaatsen"
 
@@ -10918,7 +10907,6 @@ msgstr "Multi-Niveaus"
 msgid "Multi-Variables"
 msgstr "Multi-Variabelen"
 
-#, fuzzy
 msgid "Multi-level header"
 msgstr "Meerlagige koptekst"
 
@@ -12524,7 +12512,6 @@ msgstr "Poort %(port)s op hostnaam “%(hostname)s” weigerde de verbinding."
 msgid "Port out of range 0-65535"
 msgstr "Poort buiten bereik 0-65535"
 
-#, fuzzy
 msgid "Position"
 msgstr "Positie"
 
@@ -13028,7 +13015,6 @@ msgstr "Item verwijderen"
 msgid "Remove from favorites"
 msgstr ""
 
-#, fuzzy
 msgid "Remove group"
 msgstr "Groep verwijderen"
 
@@ -14311,7 +14297,6 @@ msgstr "Selecteer kolom"
 msgid "Select column name"
 msgstr "Selecteer kolom"
 
-#, fuzzy
 msgid "Select columns"
 msgstr "Kolommen selecteren"
 
@@ -15872,7 +15857,7 @@ msgstr "Categorie"
 msgid "Subdomain"
 msgstr "Subdomein"
 
-#, fuzzy, python-format
+#, python-format
 msgid "Subgroup %s"
 msgstr "Subgroep %s"
 
@@ -16142,7 +16127,6 @@ msgstr "Tabelnaam niet gedefinieerd"
 msgid "Table or View \"%(table)s\" does not exist."
 msgstr "Tabel of Weergave \"%(table)s\" bestaat niet."
 
-#, fuzzy
 msgid "Table side"
 msgstr "Tabelzijde"
 

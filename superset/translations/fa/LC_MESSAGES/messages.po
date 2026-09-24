@@ -1500,7 +1500,6 @@ msgstr ""
 msgid "Add folder"
 msgstr "فیلتر اضافه کنید"
 
-#, fuzzy
 msgid "Add group"
 msgstr "افزودن گروه"
 
@@ -1547,7 +1546,6 @@ msgstr ""
 msgid "Add sheet"
 msgstr "برگه اضافه کن"
 
-#, fuzzy
 msgid "Add subgroup"
 msgstr "افزودن زیرگروه"
 
@@ -3485,7 +3483,6 @@ msgstr "محدودیت سلول"
 msgid "Cell title template"
 msgstr "قالب را حذف کنید"
 
-#, fuzzy
 msgid "Center"
 msgstr "مرکز"
 
@@ -4203,7 +4200,6 @@ msgstr "جمع کردن پنل داده"
 msgid "Collapse row"
 msgstr "جمع کردن ردیف"
 
-#, fuzzy
 msgid "Collapse settings"
 msgstr "جمع کردن تنظیمات"
 
@@ -4337,7 +4333,6 @@ msgstr "ستون حاوی داده‌های طول جغرافیایی"
 msgid "Column data types"
 msgstr "نوع داده‌های ستون"
 
-#, fuzzy
 msgid "Column groups"
 msgstr "گروه‌های ستون"
 
@@ -7195,7 +7190,6 @@ msgstr "مدت را به ثانیه وارد کنید"
 msgid "Enter fullscreen"
 msgstr "ورود به حالت تمام صفحه"
 
-#, fuzzy
 msgid "Enter group name"
 msgstr "نام گروه را وارد کنید"
 
@@ -7516,7 +7510,6 @@ msgstr "گسترش ردیف"
 msgid "Expand row to edit"
 msgstr "گسترش ردیف"
 
-#, fuzzy
 msgid "Expand settings"
 msgstr "گسترش تنظیمات"
 
@@ -8578,7 +8571,7 @@ msgstr ""
 msgid "Group"
 msgstr "گروه‌بندی بر اساس"
 
-#, fuzzy, python-format
+#, python-format
 msgid "Group %s"
 msgstr "گروه %s"
 
@@ -8594,11 +8587,9 @@ msgstr "کلید گروه"
 msgid "Group by"
 msgstr "گروه‌بندی بر اساس"
 
-#, fuzzy
 msgid "Group columns"
-msgstr "ستون‌های گروه"
+msgstr "گروه‌بندی ستون‌ها"
 
-#, fuzzy
 msgid "Group name"
 msgstr "نام گروه"
 
@@ -10629,11 +10620,9 @@ msgstr "فیلترهای بیشتر"
 msgid "MotherDuck token"
 msgstr "توکن مادر غاز"
 
-#, fuzzy
 msgid "Move group left"
 msgstr "انتقال گروه به چپ"
 
-#, fuzzy
 msgid "Move group right"
 msgstr "انتقال گروه به راست"
 
@@ -10667,7 +10656,6 @@ msgstr "چند سطحی"
 msgid "Multi-Variables"
 msgstr "متغیرهای چندگانه"
 
-#, fuzzy
 msgid "Multi-level header"
 msgstr "سربرگ چندسطحی"
 
@@ -12242,7 +12230,6 @@ msgstr "پورت %(port)s بر روی نام میزبان \"%(hostname)s\" ات�
 msgid "Port out of range 0-65535"
 msgstr "پورت خارج از محدوده ۰-۶۵۵۳۵"
 
-#, fuzzy
 msgid "Position"
 msgstr "موقعیت"
 
@@ -12741,7 +12728,6 @@ msgstr "حذف آیتم"
 msgid "Remove from favorites"
 msgstr ""
 
-#, fuzzy
 msgid "Remove group"
 msgstr "حذف گروه"
 
@@ -13995,7 +13981,6 @@ msgstr "ستون را انتخاب کنید"
 msgid "Select column name"
 msgstr "ستون را انتخاب کنید"
 
-#, fuzzy
 msgid "Select columns"
 msgstr "ستون‌ها را انتخاب کنید"
 
@@ -15529,7 +15514,7 @@ msgstr "دسته‌بندی"
 msgid "Subdomain"
 msgstr "زیر دامنه"
 
-#, fuzzy, python-format
+#, python-format
 msgid "Subgroup %s"
 msgstr "زیرگروه %s"
 
@@ -15801,7 +15786,6 @@ msgstr "نام جدول تعریف نشده است"
 msgid "Table or View \"%(table)s\" does not exist."
 msgstr "جدول یا نما \"%(table)s\" وجود ندارد."
 
-#, fuzzy
 msgid "Table side"
 msgstr "سمت جدول"
 

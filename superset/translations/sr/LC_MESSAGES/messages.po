@@ -1716,7 +1716,6 @@ msgstr ""
 msgid "Add folder"
 msgstr "Додај фасциклу"
 
-#, fuzzy
 msgid "Add group"
 msgstr "Додај групу"
 
@@ -1772,7 +1771,6 @@ msgstr ""
 msgid "Add sheet"
 msgstr "Додај лист"
 
-#, fuzzy
 msgid "Add subgroup"
 msgstr "Додај подгрупу"
 
@@ -4034,7 +4032,6 @@ msgstr "Ограничење ћелија"
 msgid "Cell title template"
 msgstr "Шаблон наслова ћелије"
 
-#, fuzzy
 msgid "Center"
 msgstr "Центар"
 
@@ -4870,7 +4867,6 @@ msgstr "Скупи панел са подацима"
 msgid "Collapse row"
 msgstr "Скупи ред"
 
-#, fuzzy
 msgid "Collapse settings"
 msgstr "Скупи подешавања"
 
@@ -5017,7 +5013,6 @@ msgstr "Колона која садржи податке о географск�
 msgid "Column data types"
 msgstr "Типови података колоне"
 
-#, fuzzy
 msgid "Column groups"
 msgstr "Групе колона"
 
@@ -8330,7 +8325,6 @@ msgstr "Унесите трајање у секундама"
 msgid "Enter fullscreen"
 msgstr "Уђи у режим целог екрана"
 
-#, fuzzy
 msgid "Enter group name"
 msgstr "Унесите назив групе"
 
@@ -8689,7 +8683,6 @@ msgstr "Прошири ред"
 msgid "Expand row to edit"
 msgstr "Прошири ред за измену"
 
-#, fuzzy
 msgid "Expand settings"
 msgstr "Прошири подешавања"
 
@@ -9860,7 +9853,7 @@ msgstr ""
 msgid "Group"
 msgstr "Група"
 
-#, fuzzy, python-format
+#, python-format
 msgid "Group %s"
 msgstr "Група %s"
 
@@ -9881,11 +9874,9 @@ msgstr "Кључ групе"
 msgid "Group by"
 msgstr "Групиши по"
 
-#, fuzzy
 msgid "Group columns"
-msgstr "Колоне групе"
+msgstr "Групиши колоне"
 
-#, fuzzy
 msgid "Group name"
 msgstr "Назив групе"
 
@@ -12170,11 +12161,9 @@ msgstr "Више филтера"
 msgid "MotherDuck token"
 msgstr "MotherDuck токен"
 
-#, fuzzy
 msgid "Move group left"
 msgstr "Помери групу улево"
 
-#, fuzzy
 msgid "Move group right"
 msgstr "Помери групу удесно"
 
@@ -12213,7 +12202,6 @@ msgstr "Више нивоа"
 msgid "Multi-Variables"
 msgstr "Више променљивих"
 
-#, fuzzy
 msgid "Multi-level header"
 msgstr "Вишениво заглавље"
 
@@ -14058,7 +14046,6 @@ msgstr "Port %(port)s на хосту „%(hostname)s“ је одбио вез�
 msgid "Port out of range 0-65535"
 msgstr "Port изван опсега 0-65535"
 
-#, fuzzy
 msgid "Position"
 msgstr "Позиција"
 
@@ -14647,7 +14634,6 @@ msgstr "Уклони филтер"
 msgid "Remove from favorites"
 msgstr ""
 
-#, fuzzy
 msgid "Remove group"
 msgstr "Уклони групу"
 
@@ -16139,7 +16125,6 @@ msgstr "Изаберите колону"
 msgid "Select column name"
 msgstr "Изаберите назив колоне"
 
-#, fuzzy
 msgid "Select columns"
 msgstr "Изаберите колоне"
 
@@ -17807,7 +17792,7 @@ msgstr "Подкатегорије"
 msgid "Subdomain"
 msgstr "Поддомен"
 
-#, fuzzy, python-format
+#, python-format
 msgid "Subgroup %s"
 msgstr "Подгрупа %s"
 
@@ -18115,7 +18100,6 @@ msgstr "Назив табеле није дефинисан"
 msgid "Table or View \"%(table)s\" does not exist."
 msgstr "Табела или преглед \"%(table)s\" не постоји."
 
-#, fuzzy
 msgid "Table side"
 msgstr "Страна табеле"
 

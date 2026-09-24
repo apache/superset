@@ -1478,7 +1478,6 @@ msgstr ""
 msgid "Add folder"
 msgstr "Tāpiri tātari"
 
-#, fuzzy
 msgid "Add group"
 msgstr "Tāpiri rōpū"
 
@@ -1527,7 +1526,6 @@ msgstr ""
 msgid "Add sheet"
 msgstr "Tāpiri hīti"
 
-#, fuzzy
 msgid "Add subgroup"
 msgstr "Tāpiri rōpū-iti"
 
@@ -3454,7 +3452,6 @@ msgstr "Tepe pūtau"
 msgid "Cell title template"
 msgstr "Muku tauira"
 
-#, fuzzy
 msgid "Center"
 msgstr "Waenga"
 
@@ -4170,7 +4167,6 @@ msgstr "Hīngonga papa raraunga"
 msgid "Collapse row"
 msgstr "Hīngonga rārangi"
 
-#, fuzzy
 msgid "Collapse settings"
 msgstr "Whakaiti tautuhinga"
 
@@ -4307,7 +4303,6 @@ msgstr "Tīwae kei roto ngā raraunga longitude"
 msgid "Column data types"
 msgstr "Momo raraunga tīwae"
 
-#, fuzzy
 msgid "Column groups"
 msgstr "Ngā rōpū tīwae"
 
@@ -7108,7 +7103,6 @@ msgstr "Tāuru roa i ngā hēkona"
 msgid "Enter fullscreen"
 msgstr "Uru mata katoa"
 
-#, fuzzy
 msgid "Enter group name"
 msgstr "Tāuru i te ingoa rōpū"
 
@@ -7414,7 +7408,6 @@ msgstr "Whakawhānui rārangi"
 msgid "Expand row to edit"
 msgstr "Whakawhānui rārangi"
 
-#, fuzzy
 msgid "Expand settings"
 msgstr "Whakawhānui tautuhinga"
 
@@ -8470,7 +8463,7 @@ msgstr ""
 msgid "Group"
 msgstr "Rōpū mā"
 
-#, fuzzy, python-format
+#, python-format
 msgid "Group %s"
 msgstr "Rōpū %s"
 
@@ -8486,11 +8479,9 @@ msgstr "Kī Rōpū"
 msgid "Group by"
 msgstr "Rōpū mā"
 
-#, fuzzy
 msgid "Group columns"
-msgstr "Ngā tīwae o te rōpū"
+msgstr "Whakarōpū tīwae"
 
-#, fuzzy
 msgid "Group name"
 msgstr "Ingoa rōpū"
 
@@ -10467,11 +10458,9 @@ msgstr "Tātari atu"
 msgid "MotherDuck token"
 msgstr "Tohu MotherDuck"
 
-#, fuzzy
 msgid "Move group left"
 msgstr "Nuku rōpū ki maui"
 
-#, fuzzy
 msgid "Move group right"
 msgstr "Nuku rōpū ki matau"
 
@@ -10505,7 +10494,6 @@ msgstr "Taumata-Maha"
 msgid "Multi-Variables"
 msgstr "Taurangi-Maha"
 
-#, fuzzy
 msgid "Multi-level header"
 msgstr "Pane taumata-maha"
 
@@ -12062,7 +12050,6 @@ msgstr ""
 msgid "Port out of range 0-65535"
 msgstr "Tauranga i waho o te korahi 0-65535"
 
-#, fuzzy
 msgid "Position"
 msgstr "Tūnga"
 
@@ -12559,7 +12546,6 @@ msgstr "Tango mea"
 msgid "Remove from favorites"
 msgstr ""
 
-#, fuzzy
 msgid "Remove group"
 msgstr "Tango rōpū"
 
@@ -13814,7 +13800,6 @@ msgstr "Tīpakohia tīwae"
 msgid "Select column name"
 msgstr "Tīpakohia tīwae"
 
-#, fuzzy
 msgid "Select columns"
 msgstr "Tīpakohia ngā tīwae"
 
@@ -15343,7 +15328,7 @@ msgstr "Kāwai"
 msgid "Subdomain"
 msgstr "Rohe-iti"
 
-#, fuzzy, python-format
+#, python-format
 msgid "Subgroup %s"
 msgstr "Rōpū-iti %s"
 
@@ -15596,7 +15581,6 @@ msgstr "Kāore i tautuhia te ingoa ripanga"
 msgid "Table or View \"%(table)s\" does not exist."
 msgstr "Karekau te Ripanga, te Tirohanga \"%(table)s\" rānei."
 
-#, fuzzy
 msgid "Table side"
 msgstr "Taha ripanga"
 

@@ -1715,7 +1715,6 @@ msgstr ""
 msgid "Add folder"
 msgstr "Dodaj fasciklu"
 
-#, fuzzy
 msgid "Add group"
 msgstr "Dodaj grupu"
 
@@ -1771,7 +1770,6 @@ msgstr ""
 msgid "Add sheet"
 msgstr "Dodaj list"
 
-#, fuzzy
 msgid "Add subgroup"
 msgstr "Dodaj podgrupu"
 
@@ -4037,7 +4035,6 @@ msgstr "Ograničenje ćelija"
 msgid "Cell title template"
 msgstr "Šablon naslova ćelije"
 
-#, fuzzy
 msgid "Center"
 msgstr "Centar"
 
@@ -4873,7 +4870,6 @@ msgstr "Skupi panel sa podacima"
 msgid "Collapse row"
 msgstr "Skupi red"
 
-#, fuzzy
 msgid "Collapse settings"
 msgstr "Skupi podešavanja"
 
@@ -5020,7 +5016,6 @@ msgstr "Kolona koja sadrži podatke o geografskoj dužini"
 msgid "Column data types"
 msgstr "Tipovi podataka kolone"
 
-#, fuzzy
 msgid "Column groups"
 msgstr "Grupe kolona"
 
@@ -8334,7 +8329,6 @@ msgstr "Unesite trajanje u sekundama"
 msgid "Enter fullscreen"
 msgstr "Uđi u režim celog ekrana"
 
-#, fuzzy
 msgid "Enter group name"
 msgstr "Unesite naziv grupe"
 
@@ -8693,7 +8687,6 @@ msgstr "Proširi red"
 msgid "Expand row to edit"
 msgstr "Proširi red za izmenu"
 
-#, fuzzy
 msgid "Expand settings"
 msgstr "Proširi podešavanja"
 
@@ -9867,7 +9860,7 @@ msgstr ""
 msgid "Group"
 msgstr "Grupa"
 
-#, fuzzy, python-format
+#, python-format
 msgid "Group %s"
 msgstr "Grupa %s"
 
@@ -9888,11 +9881,9 @@ msgstr "Ključ grupe"
 msgid "Group by"
 msgstr "Grupiši po"
 
-#, fuzzy
 msgid "Group columns"
-msgstr "Kolone grupe"
+msgstr "Grupiši kolone"
 
-#, fuzzy
 msgid "Group name"
 msgstr "Naziv grupe"
 
@@ -12177,11 +12168,9 @@ msgstr "Više filtera"
 msgid "MotherDuck token"
 msgstr "MotherDuck token"
 
-#, fuzzy
 msgid "Move group left"
 msgstr "Pomeri grupu ulevo"
 
-#, fuzzy
 msgid "Move group right"
 msgstr "Pomeri grupu udesno"
 
@@ -12220,7 +12209,6 @@ msgstr "Više nivoa"
 msgid "Multi-Variables"
 msgstr "Više promenljivih"
 
-#, fuzzy
 msgid "Multi-level header"
 msgstr "Višenivo zaglavlje"
 
@@ -14065,7 +14053,6 @@ msgstr "Port %(port)s na hostu „%(hostname)s“ je odbio vezu."
 msgid "Port out of range 0-65535"
 msgstr "Port izvan opsega 0-65535"
 
-#, fuzzy
 msgid "Position"
 msgstr "Pozicija"
 
@@ -14654,7 +14641,6 @@ msgstr "Ukloni filter"
 msgid "Remove from favorites"
 msgstr ""
 
-#, fuzzy
 msgid "Remove group"
 msgstr "Ukloni grupu"
 
@@ -16146,7 +16132,6 @@ msgstr "Izaberite kolonu"
 msgid "Select column name"
 msgstr "Izaberite naziv kolone"
 
-#, fuzzy
 msgid "Select columns"
 msgstr "Izaberite kolone"
 
@@ -17814,7 +17799,7 @@ msgstr "Podkategorije"
 msgid "Subdomain"
 msgstr "Poddomen"
 
-#, fuzzy, python-format
+#, python-format
 msgid "Subgroup %s"
 msgstr "Podgrupa %s"
 
@@ -18123,7 +18108,6 @@ msgstr "Naziv tabele nije definisan"
 msgid "Table or View \"%(table)s\" does not exist."
 msgstr "Tabela ili pregled \"%(table)s\" ne postoji."
 
-#, fuzzy
 msgid "Table side"
 msgstr "Strana tabele"
 

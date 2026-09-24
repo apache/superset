@@ -2134,7 +2134,6 @@ msgstr ""
 msgid "Add folder"
 msgstr "เพิ่มโฟลเดอร์"
 
-#, fuzzy
 msgid "Add group"
 msgstr "เพิ่มกลุ่ม"
 
@@ -2215,7 +2214,6 @@ msgstr ""
 msgid "Add sheet"
 msgstr "เพิ่มแผ่นงาน"
 
-#, fuzzy
 msgid "Add subgroup"
 msgstr "เพิ่มกลุ่มย่อย"
 
@@ -5309,7 +5307,6 @@ msgstr "จำนวนเซลล์สูงสุด"
 msgid "Cell title template"
 msgstr "เทมเพลตชื่อเซลล์"
 
-#, fuzzy
 msgid "Center"
 msgstr "กึ่งกลาง"
 
@@ -6438,7 +6435,6 @@ msgstr "ยุบแผงข้อมูล"
 msgid "Collapse row"
 msgstr "ยุบแถว"
 
-#, fuzzy
 msgid "Collapse settings"
 msgstr "ยุบการตั้งค่า"
 
@@ -6647,7 +6643,6 @@ msgstr "คอลัมน์ที่มีข้อมูลลองจิจ
 msgid "Column data types"
 msgstr "ประเภทข้อมูลของคอลัมน์"
 
-#, fuzzy
 msgid "Column groups"
 msgstr "กลุ่มคอลัมน์"
 
@@ -11192,7 +11187,6 @@ msgstr "ป้อนระยะเวลาเป็นวินาที"
 msgid "Enter fullscreen"
 msgstr "เข้าสู่โหมดเต็มหน้าจอ"
 
-#, fuzzy
 msgid "Enter group name"
 msgstr "ป้อนชื่อกลุ่ม"
 
@@ -11696,7 +11690,6 @@ msgstr "ขยายแถว"
 msgid "Expand row to edit"
 msgstr "ขยายแถว"
 
-#, fuzzy
 msgid "Expand settings"
 msgstr "ขยายการตั้งค่า"
 
@@ -13327,7 +13320,7 @@ msgstr ""
 msgid "Group"
 msgstr "กลุ่ม"
 
-#, fuzzy, python-format
+#, python-format
 msgid "Group %s"
 msgstr "กลุ่ม %s"
 
@@ -13356,11 +13349,9 @@ msgstr "คีย์กลุ่ม"
 msgid "Group by"
 msgstr "จัดกลุ่มตาม"
 
-#, fuzzy
 msgid "Group columns"
-msgstr "คอลัมน์ของกลุ่ม"
+msgstr "จัดกลุ่มคอลัมน์"
 
-#, fuzzy
 msgid "Group name"
 msgstr "ชื่อกลุ่ม"
 
@@ -16606,11 +16597,9 @@ msgstr "ตัวกรองเพิ่มเติม"
 msgid "MotherDuck token"
 msgstr "โทเคน MotherDuck"
 
-#, fuzzy
 msgid "Move group left"
 msgstr "ย้ายกลุ่มไปทางซ้าย"
 
-#, fuzzy
 msgid "Move group right"
 msgstr "ย้ายกลุ่มไปทางขวา"
 
@@ -16664,7 +16653,6 @@ msgstr "หลายระดับ"
 msgid "Multi-Variables"
 msgstr "หลายตัวแปร"
 
-#, fuzzy
 msgid "Multi-level header"
 msgstr "ส่วนหัวหลายระดับ"
 
@@ -19245,7 +19233,6 @@ msgstr "พอร์ต %(port)s บนชื่อโฮสต์ \"%(hostname)
 msgid "Port out of range 0-65535"
 msgstr "พอร์ตอยู่นอกช่วง 0-65535"
 
-#, fuzzy
 msgid "Position"
 msgstr "ตำแหน่ง"
 
@@ -20086,7 +20073,6 @@ msgstr "ลบรายการ"
 msgid "Remove from favorites"
 msgstr ""
 
-#, fuzzy
 msgid "Remove group"
 msgstr "ลบกลุ่ม"
 
@@ -22163,7 +22149,6 @@ msgstr "เลือกคอลัมน์"
 msgid "Select column name"
 msgstr "เลือกคอลัมน์"
 
-#, fuzzy
 msgid "Select columns"
 msgstr "เลือกคอลัมน์"
 
@@ -24511,7 +24496,7 @@ msgstr "หมวดหมู่ย่อย"
 msgid "Subdomain"
 msgstr "ซับโดเมน"
 
-#, fuzzy, python-format
+#, python-format
 msgid "Subgroup %s"
 msgstr "กลุ่มย่อย %s"
 
@@ -24927,7 +24912,6 @@ msgstr "ไม่ได้กำหนดชื่อตาราง"
 msgid "Table or View \"%(table)s\" does not exist."
 msgstr "ตารางหรือมุมมอง \"%(table)s\" ไม่มีอยู่"
 
-#, fuzzy
 msgid "Table side"
 msgstr "ด้านของตาราง"
 

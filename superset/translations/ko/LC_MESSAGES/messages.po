@@ -1941,7 +1941,6 @@ msgstr ""
 msgid "Add folder"
 msgstr "테이블 추가"
 
-#, fuzzy
 msgid "Add group"
 msgstr "그룹 추가"
 
@@ -2008,7 +2007,6 @@ msgstr ""
 msgid "Add sheet"
 msgstr "차트 추가"
 
-#, fuzzy
 msgid "Add subgroup"
 msgstr "하위 그룹 추가"
 
@@ -4824,7 +4822,6 @@ msgstr "구분자"
 msgid "Cell title template"
 msgstr "템플릿 불러오기"
 
-#, fuzzy
 msgid "Center"
 msgstr "가운데"
 
@@ -5816,7 +5813,6 @@ msgstr "데이터 미리보기"
 msgid "Collapse row"
 msgstr "행 접기"
 
-#, fuzzy
 msgid "Collapse settings"
 msgstr "설정 접기"
 
@@ -6019,7 +6015,6 @@ msgstr "경도 데이터를 포함하는 열"
 msgid "Column data types"
 msgstr "차트 유형"
 
-#, fuzzy
 msgid "Column groups"
 msgstr "열 그룹"
 
@@ -10002,7 +9997,6 @@ msgstr "10초"
 msgid "Enter fullscreen"
 msgstr "전체 화면으로 전환"
 
-#, fuzzy
 msgid "Enter group name"
 msgstr "그룹 이름 입력"
 
@@ -10462,7 +10456,6 @@ msgstr "행 확장"
 msgid "Expand row to edit"
 msgstr "컬럼 보기"
 
-#, fuzzy
 msgid "Expand settings"
 msgstr "설정 펼치기"
 
@@ -11977,7 +11970,7 @@ msgstr ""
 msgid "Group"
 msgstr "그룹"
 
-#, fuzzy, python-format
+#, python-format
 msgid "Group %s"
 msgstr "그룹 %s"
 
@@ -12008,11 +12001,9 @@ msgstr "그룹 키"
 msgid "Group by"
 msgstr "그룹화 기준"
 
-#, fuzzy
 msgid "Group columns"
-msgstr "그룹 열"
+msgstr "열 그룹화"
 
-#, fuzzy
 msgid "Group name"
 msgstr "그룹 이름"
 
@@ -15028,11 +15019,9 @@ msgstr "테이블 추가"
 msgid "MotherDuck token"
 msgstr "MotherDuck 토큰"
 
-#, fuzzy
 msgid "Move group left"
 msgstr "그룹을 왼쪽으로 이동"
 
-#, fuzzy
 msgid "Move group right"
 msgstr "그룹을 오른쪽으로 이동"
 
@@ -15090,7 +15079,6 @@ msgstr "다중 수준"
 msgid "Multi-Variables"
 msgstr "다중 변수"
 
-#, fuzzy
 msgid "Multi-level header"
 msgstr "다단계 헤더"
 
@@ -17516,7 +17504,6 @@ msgstr "호스트 이름 \"%(hostname)s\"의 %(port)s 포트가 연결을 거부
 msgid "Port out of range 0-65535"
 msgstr "포트가 0-65535 범위를 벗어났습니다"
 
-#, fuzzy
 msgid "Position"
 msgstr "위치"
 
@@ -18275,7 +18262,6 @@ msgstr "필터"
 msgid "Remove from favorites"
 msgstr ""
 
-#, fuzzy
 msgid "Remove group"
 msgstr "그룹 제거"
 
@@ -20110,7 +20096,6 @@ msgstr "컬럼 목록"
 msgid "Select column name"
 msgstr "컬럼 목록"
 
-#, fuzzy
 msgid "Select columns"
 msgstr "열 선택"
 
@@ -22202,7 +22187,7 @@ msgstr "데이터소스 명"
 msgid "Subdomain"
 msgstr "서브도메인"
 
-#, fuzzy, python-format
+#, python-format
 msgid "Subgroup %s"
 msgstr "하위 그룹 %s"
 
@@ -22585,7 +22570,6 @@ msgstr "테이블 명이 정해지지 않았습니다"
 msgid "Table or View \"%(table)s\" does not exist."
 msgstr "메트릭 '%(metric)s' 이 존재하지 않습니다."
 
-#, fuzzy
 msgid "Table side"
 msgstr "테이블 쪽"
 

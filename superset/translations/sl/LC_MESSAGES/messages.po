@@ -1497,7 +1497,6 @@ msgstr ""
 msgid "Add folder"
 msgstr "Dodaj mapo"
 
-#, fuzzy
 msgid "Add group"
 msgstr "Dodaj skupino"
 
@@ -1540,7 +1539,6 @@ msgstr "Dodaj poverilnice storitve"
 msgid "Add sheet"
 msgstr "Dodaj preglednico"
 
-#, fuzzy
 msgid "Add subgroup"
 msgstr "Dodaj podskupino"
 
@@ -3403,7 +3401,6 @@ msgstr "Omejitev števila celic"
 msgid "Cell title template"
 msgstr "Predloga naslova celice"
 
-#, fuzzy
 msgid "Center"
 msgstr "Sredina"
 
@@ -4086,7 +4083,6 @@ msgstr "Skrij podatkovni panel"
 msgid "Collapse row"
 msgstr "Skrij vrstico"
 
-#, fuzzy
 msgid "Collapse settings"
 msgstr "Strni nastavitve"
 
@@ -4212,7 +4208,6 @@ msgstr "Stolpec s podatki zemljepisne dolžine"
 msgid "Column data types"
 msgstr "Podatkovni tipi stolpcev"
 
-#, fuzzy
 msgid "Column groups"
 msgstr "Skupine stolpcev"
 
@@ -6923,7 +6918,6 @@ msgstr "Vnesite trajanje v sekundah"
 msgid "Enter fullscreen"
 msgstr "Vklopi celozaslonski način"
 
-#, fuzzy
 msgid "Enter group name"
 msgstr "Vnesite ime skupine"
 
@@ -7218,7 +7212,6 @@ msgstr "Razširi vrstico"
 msgid "Expand row to edit"
 msgstr "Razširite vrstico za urejanje"
 
-#, fuzzy
 msgid "Expand settings"
 msgstr "Razširi nastavitve"
 
@@ -8217,7 +8210,7 @@ msgstr ""
 msgid "Group"
 msgstr "Skupina"
 
-#, fuzzy, python-format
+#, python-format
 msgid "Group %s"
 msgstr "Skupina %s"
 
@@ -8233,11 +8226,9 @@ msgstr "Ključ za združevanje"
 msgid "Group by"
 msgstr "Združevanje po (Group by)"
 
-#, fuzzy
 msgid "Group columns"
-msgstr "Stolpci skupine"
+msgstr "Združi stolpce"
 
-#, fuzzy
 msgid "Group name"
 msgstr "Ime skupine"
 
@@ -10136,11 +10127,9 @@ msgstr "Več filtrov"
 msgid "MotherDuck token"
 msgstr "Žeton za MotherDuck"
 
-#, fuzzy
 msgid "Move group left"
 msgstr "Premakni skupino levo"
 
-#, fuzzy
 msgid "Move group right"
 msgstr "Premakni skupino desno"
 
@@ -10173,7 +10162,6 @@ msgstr "Večplastni"
 msgid "Multi-Variables"
 msgstr "Več spremenljivk"
 
-#, fuzzy
 msgid "Multi-level header"
 msgstr "Večnivojska glava"
 
@@ -11666,7 +11654,6 @@ msgstr "Vrata %(port)s na gostitelju \"%(hostname)s\" niso sprejela povezave."
 msgid "Port out of range 0-65535"
 msgstr "Vrata v razponu 0-65535"
 
-#, fuzzy
 msgid "Position"
 msgstr "Položaj"
 
@@ -12144,7 +12131,6 @@ msgstr "Odstranite filter"
 msgid "Remove from favorites"
 msgstr ""
 
-#, fuzzy
 msgid "Remove group"
 msgstr "Odstrani skupino"
 
@@ -13355,7 +13341,6 @@ msgstr "Izberite stolpec"
 msgid "Select column name"
 msgstr "Izberite ime stolpca"
 
-#, fuzzy
 msgid "Select columns"
 msgstr "Izberite stolpce"
 
@@ -14770,7 +14755,7 @@ msgstr "Podkategorije"
 msgid "Subdomain"
 msgstr "Poddomena"
 
-#, fuzzy, python-format
+#, python-format
 msgid "Subgroup %s"
 msgstr "Podskupina %s"
 
@@ -15020,7 +15005,6 @@ msgstr "Ime tabele ni definirano"
 msgid "Table or View \"%(table)s\" does not exist."
 msgstr "Tabela ali pogled \"%(table)s\" ne obstaja."
 
-#, fuzzy
 msgid "Table side"
 msgstr "Stran tabele"
 

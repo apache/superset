@@ -1438,7 +1438,6 @@ msgstr ""
 msgid "Add folder"
 msgstr "Добавить папку"
 
-#, fuzzy
 msgid "Add group"
 msgstr "Добавить группу"
 
@@ -1482,7 +1481,6 @@ msgstr ""
 msgid "Add sheet"
 msgstr "Добавить лист"
 
-#, fuzzy
 msgid "Add subgroup"
 msgstr "Добавить подгруппу"
 
@@ -3298,7 +3296,6 @@ msgstr "Лимит ячеек"
 msgid "Cell title template"
 msgstr "Шаблон заголовка ячейки"
 
-#, fuzzy
 msgid "Center"
 msgstr "По центру"
 
@@ -3962,7 +3959,6 @@ msgstr "Свернуть панель данных"
 msgid "Collapse row"
 msgstr "Свернуть строку"
 
-#, fuzzy
 msgid "Collapse settings"
 msgstr "Свернуть настройки"
 
@@ -4092,7 +4088,6 @@ msgstr "Столбец, содержащий данные о долготе"
 msgid "Column data types"
 msgstr "Типы данных столбцов"
 
-#, fuzzy
 msgid "Column groups"
 msgstr "Группы столбцов"
 
@@ -6718,7 +6713,6 @@ msgstr "Введите время в секундах"
 msgid "Enter fullscreen"
 msgstr "Полноэкранный режим"
 
-#, fuzzy
 msgid "Enter group name"
 msgstr "Введите имя группы"
 
@@ -7000,7 +6994,6 @@ msgstr "Развернуть строку"
 msgid "Expand row to edit"
 msgstr "Развернуть строку"
 
-#, fuzzy
 msgid "Expand settings"
 msgstr "Развернуть настройки"
 
@@ -7959,7 +7952,7 @@ msgstr ""
 msgid "Group"
 msgstr "Группа"
 
-#, fuzzy, python-format
+#, python-format
 msgid "Group %s"
 msgstr "Группа %s"
 
@@ -7975,11 +7968,9 @@ msgstr "Группа"
 msgid "Group by"
 msgstr "Группировать по"
 
-#, fuzzy
 msgid "Group columns"
-msgstr "Столбцы группы"
+msgstr "Группировать столбцы"
 
-#, fuzzy
 msgid "Group name"
 msgstr "Имя группы"
 
@@ -9821,11 +9812,9 @@ msgstr "Еще фильтры"
 msgid "MotherDuck token"
 msgstr "MotherDuck токен"
 
-#, fuzzy
 msgid "Move group left"
 msgstr "Переместить группу влево"
 
-#, fuzzy
 msgid "Move group right"
 msgstr "Переместить группу вправо"
 
@@ -9858,7 +9847,6 @@ msgstr "Многоуровневый"
 msgid "Multi-Variables"
 msgstr "Несколько переменных"
 
-#, fuzzy
 msgid "Multi-level header"
 msgstr "Многоуровневый заголовок"
 
@@ -11331,7 +11319,6 @@ msgstr "Порт %(port)s хоста \"%(hostname)s\" отказал в подк
 msgid "Port out of range 0-65535"
 msgstr "Порт должен быть в диапазоне 0-65535"
 
-#, fuzzy
 msgid "Position"
 msgstr "Положение"
 
@@ -11792,7 +11779,6 @@ msgstr "Удалить фильтр"
 msgid "Remove from favorites"
 msgstr ""
 
-#, fuzzy
 msgid "Remove group"
 msgstr "Удалить группу"
 
@@ -12975,7 +12961,6 @@ msgstr "Выберите столбец"
 msgid "Select column name"
 msgstr "Выберите имя столбца"
 
-#, fuzzy
 msgid "Select columns"
 msgstr "Выберите столбцы"
 
@@ -14327,7 +14312,7 @@ msgstr "Подкатегории"
 msgid "Subdomain"
 msgstr "Подблок"
 
-#, fuzzy, python-format
+#, python-format
 msgid "Subgroup %s"
 msgstr "Подгруппа %s"
 
@@ -14567,7 +14552,6 @@ msgstr "Имя таблицы не определено"
 msgid "Table or View \"%(table)s\" does not exist."
 msgstr "Таблица или представление \"%(table)s\" не существует"
 
-#, fuzzy
 msgid "Table side"
 msgstr "Сторона таблицы"
 

@@ -1471,7 +1471,6 @@ msgstr ""
 msgid "Add folder"
 msgstr "Añadir carpeta"
 
-#, fuzzy
 msgid "Add group"
 msgstr "Añadir grupo"
 
@@ -1520,7 +1519,6 @@ msgstr ""
 msgid "Add sheet"
 msgstr "Añadir hoja"
 
-#, fuzzy
 msgid "Add subgroup"
 msgstr "Añadir subgrupo"
 
@@ -3451,7 +3449,6 @@ msgstr "Límite de celda"
 msgid "Cell title template"
 msgstr "Eliminar plantilla"
 
-#, fuzzy
 msgid "Center"
 msgstr "Centro"
 
@@ -4159,7 +4156,6 @@ msgstr "Contraer el panel de datos"
 msgid "Collapse row"
 msgstr "Contraer fila"
 
-#, fuzzy
 msgid "Collapse settings"
 msgstr "Contraer ajustes"
 
@@ -4297,7 +4293,6 @@ msgstr "Columna que contiene datos de longitud"
 msgid "Column data types"
 msgstr "Tipos de datos de columna"
 
-#, fuzzy
 msgid "Column groups"
 msgstr "Grupos de columnas"
 
@@ -7101,7 +7096,6 @@ msgstr "Introduce la duración en segundos"
 msgid "Enter fullscreen"
 msgstr "Ir a pantalla completa"
 
-#, fuzzy
 msgid "Enter group name"
 msgstr "Introducir el nombre del grupo"
 
@@ -7407,7 +7401,6 @@ msgstr "Expandir fila"
 msgid "Expand row to edit"
 msgstr "Expandir fila"
 
-#, fuzzy
 msgid "Expand settings"
 msgstr "Expandir ajustes"
 
@@ -8444,7 +8437,7 @@ msgstr ""
 msgid "Group"
 msgstr "Grupo"
 
-#, fuzzy, python-format
+#, python-format
 msgid "Group %s"
 msgstr "Grupo %s"
 
@@ -8460,11 +8453,9 @@ msgstr "Clave de grupo"
 msgid "Group by"
 msgstr "Agrupar por"
 
-#, fuzzy
 msgid "Group columns"
-msgstr "Columnas del grupo"
+msgstr "Agrupar columnas"
 
-#, fuzzy
 msgid "Group name"
 msgstr "Nombre del grupo"
 
@@ -10443,11 +10434,9 @@ msgstr "Más filtros"
 msgid "MotherDuck token"
 msgstr "Token de MotherDuck"
 
-#, fuzzy
 msgid "Move group left"
 msgstr "Mover el grupo a la izquierda"
 
-#, fuzzy
 msgid "Move group right"
 msgstr "Mover el grupo a la derecha"
 
@@ -10481,7 +10470,6 @@ msgstr "Multiniveles"
 msgid "Multi-Variables"
 msgstr "Multivariable"
 
-#, fuzzy
 msgid "Multi-level header"
 msgstr "Encabezado de varios niveles"
 
@@ -12043,7 +12031,6 @@ msgstr ""
 msgid "Port out of range 0-65535"
 msgstr "Puerto fuera del intervalo 0-65535"
 
-#, fuzzy
 msgid "Position"
 msgstr "Posición"
 
@@ -12533,7 +12520,6 @@ msgstr "Eliminar elemento"
 msgid "Remove from favorites"
 msgstr ""
 
-#, fuzzy
 msgid "Remove group"
 msgstr "Eliminar grupo"
 
@@ -13786,7 +13772,6 @@ msgstr "Seleccionar columna"
 msgid "Select column name"
 msgstr "Seleccionar columna"
 
-#, fuzzy
 msgid "Select columns"
 msgstr "Seleccionar columnas"
 
@@ -15289,7 +15274,7 @@ msgstr "Categoría"
 msgid "Subdomain"
 msgstr "Subdominio"
 
-#, fuzzy, python-format
+#, python-format
 msgid "Subgroup %s"
 msgstr "Subgrupo %s"
 
@@ -15543,7 +15528,6 @@ msgstr "No se ha definido el nombre de la tabla"
 msgid "Table or View \"%(table)s\" does not exist."
 msgstr "La tabla o vista \"%(table)s\" no existe"
 
-#, fuzzy
 msgid "Table side"
 msgstr "Lado de la tabla"
 

@@ -1632,7 +1632,6 @@ msgstr ""
 msgid "Add folder"
 msgstr "إضافة فلتر"
 
-#, fuzzy
 msgid "Add group"
 msgstr "إضافة مجموعة"
 
@@ -1679,7 +1678,6 @@ msgstr ""
 msgid "Add sheet"
 msgstr "إضافة ورقة"
 
-#, fuzzy
 msgid "Add subgroup"
 msgstr "إضافة مجموعة فرعية"
 
@@ -3649,7 +3647,6 @@ msgstr "حد الخلية"
 msgid "Cell title template"
 msgstr "حذف القالب"
 
-#, fuzzy
 msgid "Center"
 msgstr "توسيط"
 
@@ -4384,7 +4381,6 @@ msgstr "طي لوحة البيانات"
 msgid "Collapse row"
 msgstr "طي الصف"
 
-#, fuzzy
 msgid "Collapse settings"
 msgstr "طي الإعدادات"
 
@@ -4519,7 +4515,6 @@ msgstr "عمود يحتوي على بيانات خط الطول"
 msgid "Column data types"
 msgstr "نوع بيانات العمود"
 
-#, fuzzy
 msgid "Column groups"
 msgstr "مجموعات الأعمدة"
 
@@ -7489,7 +7484,6 @@ msgstr "أدخل المدة بالثواني"
 msgid "Enter fullscreen"
 msgstr "أدخل ملء الشاشة"
 
-#, fuzzy
 msgid "Enter group name"
 msgstr "أدخل اسم المجموعة"
 
@@ -7821,7 +7815,6 @@ msgstr "قم بتوسيع الصف"
 msgid "Expand row to edit"
 msgstr "قم بتوسيع الصف"
 
-#, fuzzy
 msgid "Expand settings"
 msgstr "توسيع الإعدادات"
 
@@ -8898,7 +8891,7 @@ msgstr ""
 msgid "Group"
 msgstr "مجموعة حسب"
 
-#, fuzzy, python-format
+#, python-format
 msgid "Group %s"
 msgstr "المجموعة %s"
 
@@ -8914,11 +8907,9 @@ msgstr "مفتاح المجموعة"
 msgid "Group by"
 msgstr "مجموعة حسب"
 
-#, fuzzy
 msgid "Group columns"
-msgstr "أعمدة المجموعة"
+msgstr "تجميع الأعمدة"
 
-#, fuzzy
 msgid "Group name"
 msgstr "اسم المجموعة"
 
@@ -10973,11 +10964,9 @@ msgstr "المزيد من الفلاتر"
 msgid "MotherDuck token"
 msgstr "رمز MotherDuck"
 
-#, fuzzy
 msgid "Move group left"
 msgstr "نقل المجموعة إلى اليسار"
 
-#, fuzzy
 msgid "Move group right"
 msgstr "نقل المجموعة إلى اليمين"
 
@@ -11011,7 +11000,6 @@ msgstr "مستويات متعددة"
 msgid "Multi-Variables"
 msgstr "متغيرات متعددة"
 
-#, fuzzy
 msgid "Multi-level header"
 msgstr "رأس متعدد المستويات"
 
@@ -12614,7 +12602,6 @@ msgstr "رفض المنفذ الموجود %(port)s على اسم المضيف %
 msgid "Port out of range 0-65535"
 msgstr "منفذ خارج النطاق 0-65535"
 
-#, fuzzy
 msgid "Position"
 msgstr "الموضع"
 
@@ -13120,7 +13107,6 @@ msgstr "إزالة العنصر"
 msgid "Remove from favorites"
 msgstr ""
 
-#, fuzzy
 msgid "Remove group"
 msgstr "إزالة المجموعة"
 
@@ -14414,7 +14400,6 @@ msgstr "حدد العمود"
 msgid "Select column name"
 msgstr "حدد العمود"
 
-#, fuzzy
 msgid "Select columns"
 msgstr "تحديد الأعمدة"
 
@@ -15940,7 +15925,7 @@ msgstr "باب"
 msgid "Subdomain"
 msgstr "نطاق فرعي"
 
-#, fuzzy, python-format
+#, python-format
 msgid "Subgroup %s"
 msgstr "المجموعة الفرعية %s"
 
@@ -16223,7 +16208,6 @@ msgstr "اسم الجدول غير محدد"
 msgid "Table or View \"%(table)s\" does not exist."
 msgstr "لا يوجد جدول أو طريقة عرض %(table)s \"»."
 
-#, fuzzy
 msgid "Table side"
 msgstr "جانب الجدول"
 

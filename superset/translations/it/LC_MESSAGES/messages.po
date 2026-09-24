@@ -10057,7 +10057,7 @@ msgid "Group by"
 msgstr "Raggruppa per"
 
 msgid "Group columns"
-msgstr "Colonne del gruppo"
+msgstr "Raggruppa colonne"
 
 msgid "Group name"
 msgstr "Nome del gruppo"

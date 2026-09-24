@@ -1498,7 +1498,6 @@ msgstr ""
 msgid "Add folder"
 msgstr "Додати теку"
 
-#, fuzzy
 msgid "Add group"
 msgstr "Додати групу"
 
@@ -1542,7 +1541,6 @@ msgstr ""
 msgid "Add sheet"
 msgstr "Додати аркуш"
 
-#, fuzzy
 msgid "Add subgroup"
 msgstr "Додати підгрупу"
 
@@ -3358,7 +3356,6 @@ msgstr "Обмеження комірки"
 msgid "Cell title template"
 msgstr "Шаблон заголовку комірки"
 
-#, fuzzy
 msgid "Center"
 msgstr "По центру"
 
@@ -4032,7 +4029,6 @@ msgstr "Згорнути панель даних"
 msgid "Collapse row"
 msgstr "Згорнути рядок"
 
-#, fuzzy
 msgid "Collapse settings"
 msgstr "Згорнути параметри"
 
@@ -4163,7 +4159,6 @@ msgstr "Стовпець з даними довготи"
 msgid "Column data types"
 msgstr "Типи даних стовпця"
 
-#, fuzzy
 msgid "Column groups"
 msgstr "Групи стовпців"
 
@@ -6843,7 +6838,6 @@ msgstr "Введіть тривалість у секундах"
 msgid "Enter fullscreen"
 msgstr "На весь екран"
 
-#, fuzzy
 msgid "Enter group name"
 msgstr "Введіть назву групи"
 
@@ -7128,7 +7122,6 @@ msgstr "Розгорнути рядок"
 msgid "Expand row to edit"
 msgstr "Розгорнути рядок"
 
-#, fuzzy
 msgid "Expand settings"
 msgstr "Розгорнути параметри"
 
@@ -8103,7 +8096,7 @@ msgstr ""
 msgid "Group"
 msgstr "Група"
 
-#, fuzzy, python-format
+#, python-format
 msgid "Group %s"
 msgstr "Група %s"
 
@@ -8119,11 +8112,9 @@ msgstr "Група"
 msgid "Group by"
 msgstr "Групувати за"
 
-#, fuzzy
 msgid "Group columns"
-msgstr "Стовпці групи"
+msgstr "Групувати стовпці"
 
-#, fuzzy
 msgid "Group name"
 msgstr "Назва групи"
 
@@ -9983,11 +9974,9 @@ msgstr "Ще фільтри"
 msgid "MotherDuck token"
 msgstr "Токен MotherDuck"
 
-#, fuzzy
 msgid "Move group left"
 msgstr "Перемістити групу ліворуч"
 
-#, fuzzy
 msgid "Move group right"
 msgstr "Перемістити групу праворуч"
 
@@ -10021,7 +10010,6 @@ msgstr "Багаторівневий"
 msgid "Multi-Variables"
 msgstr "Багатозначний"
 
-#, fuzzy
 msgid "Multi-level header"
 msgstr "Багаторівневий заголовок"
 
@@ -11514,7 +11502,6 @@ msgstr "Порт %(port)s на вузлі «%(hostname)s» відхилив з�
 msgid "Port out of range 0-65535"
 msgstr "Порт поза діапазоном 0-65535"
 
-#, fuzzy
 msgid "Position"
 msgstr "Положення"
 
@@ -11986,7 +11973,6 @@ msgstr "Вилучити елемент"
 msgid "Remove from favorites"
 msgstr ""
 
-#, fuzzy
 msgid "Remove group"
 msgstr "Вилучити групу"
 
@@ -13193,7 +13179,6 @@ msgstr "Вибрати стовпець"
 msgid "Select column name"
 msgstr "Вибрати стовпець"
 
-#, fuzzy
 msgid "Select columns"
 msgstr "Вибрати стовпці"
 
@@ -14620,7 +14605,7 @@ msgstr "Підкатегорії"
 msgid "Subdomain"
 msgstr "Розділ"
 
-#, fuzzy, python-format
+#, python-format
 msgid "Subgroup %s"
 msgstr "Підгрупа %s"
 
@@ -14859,7 +14844,6 @@ msgstr "Назву таблиці не визначено"
 msgid "Table or View \"%(table)s\" does not exist."
 msgstr "Таблиця або представлення «%(table)s» не існує."
 
-#, fuzzy
 msgid "Table side"
 msgstr "Бік таблиці"
 

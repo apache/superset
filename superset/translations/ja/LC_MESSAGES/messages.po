@@ -1330,7 +1330,6 @@ msgstr ""
 msgid "Add folder"
 msgstr "フォルダーを追加"
 
-#, fuzzy
 msgid "Add group"
 msgstr "グループを追加"
 
@@ -1373,7 +1372,6 @@ msgstr "サービスの認証情報を追加する"
 msgid "Add sheet"
 msgstr "シートを追加"
 
-#, fuzzy
 msgid "Add subgroup"
 msgstr "サブグループを追加"
 
@@ -3058,7 +3056,6 @@ msgstr "セルの上限数"
 msgid "Cell title template"
 msgstr "セルのタイトルテンプレート"
 
-#, fuzzy
 msgid "Center"
 msgstr "中央"
 
@@ -3692,7 +3689,6 @@ msgstr "データパネルを閉じる"
 msgid "Collapse row"
 msgstr "行を折りたたむ"
 
-#, fuzzy
 msgid "Collapse settings"
 msgstr "設定を折りたたむ"
 
@@ -3808,7 +3804,6 @@ msgstr "経度データを含む列"
 msgid "Column data types"
 msgstr "列のデータ型"
 
-#, fuzzy
 msgid "Column groups"
 msgstr "列グループ"
 
@@ -6267,7 +6262,6 @@ msgstr "所要時間を秒単位で入力"
 msgid "Enter fullscreen"
 msgstr "全画面表示"
 
-#, fuzzy
 msgid "Enter group name"
 msgstr "グループ名を入力"
 
@@ -6546,7 +6540,6 @@ msgstr "行を展開"
 msgid "Expand row to edit"
 msgstr "行を展開して編集"
 
-#, fuzzy
 msgid "Expand settings"
 msgstr "設定を展開"
 
@@ -7458,7 +7451,7 @@ msgstr ""
 msgid "Group"
 msgstr "グループ"
 
-#, fuzzy, python-format
+#, python-format
 msgid "Group %s"
 msgstr "グループ %s"
 
@@ -7474,11 +7467,9 @@ msgstr "グループキー"
 msgid "Group by"
 msgstr "グループ化"
 
-#, fuzzy
 msgid "Group columns"
-msgstr "グループの列"
+msgstr "列をグループ化"
 
-#, fuzzy
 msgid "Group name"
 msgstr "グループ名"
 
@@ -9244,11 +9235,9 @@ msgstr "さらにフィルターを表示"
 msgid "MotherDuck token"
 msgstr "MotherDuckトークン"
 
-#, fuzzy
 msgid "Move group left"
 msgstr "グループを左に移動"
 
-#, fuzzy
 msgid "Move group right"
 msgstr "グループを右に移動"
 
@@ -9281,7 +9270,6 @@ msgstr "マルチレベル"
 msgid "Multi-Variables"
 msgstr "マルチ変数"
 
-#, fuzzy
 msgid "Multi-level header"
 msgstr "多階層ヘッダー"
 
@@ -10669,7 +10657,6 @@ msgstr "ホスト「%(hostname)s」のポート %(port)s への接続が拒否�
 msgid "Port out of range 0-65535"
 msgstr "ポートが 0 ～ 65535 の範囲外です"
 
-#, fuzzy
 msgid "Position"
 msgstr "位置"
 
@@ -11128,7 +11115,6 @@ msgstr "フィルターを削除"
 msgid "Remove from favorites"
 msgstr ""
 
-#, fuzzy
 msgid "Remove group"
 msgstr "グループを削除"
 
@@ -12282,7 +12268,6 @@ msgstr "列を選択"
 msgid "Select column name"
 msgstr "列名を選択"
 
-#, fuzzy
 msgid "Select columns"
 msgstr "列を選択"
 
@@ -13540,7 +13525,7 @@ msgstr "サブカテゴリ"
 msgid "Subdomain"
 msgstr "サブドメイン"
 
-#, fuzzy, python-format
+#, python-format
 msgid "Subgroup %s"
 msgstr "サブグループ %s"
 
@@ -13769,7 +13754,6 @@ msgstr "テーブル名が未定義です"
 msgid "Table or View \"%(table)s\" does not exist."
 msgstr "テーブルまたはビュー「%(table)s」は存在しません。"
 
-#, fuzzy
 msgid "Table side"
 msgstr "テーブルの側"
 
