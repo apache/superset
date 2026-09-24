@@ -55,7 +55,7 @@ from superset.themes.schemas import (
     ThemePostSchema,
     ThemePutSchema,
 )
-from superset.utils.core import send_export_zip
+from superset.utils.core import send_export_zip, write_zip_entry
 from superset.utils.decorators import transaction
 from superset.views.base_api import (
     BaseSupersetModelRestApi,
@@ -482,8 +482,9 @@ class ThemeRestApi(BaseSupersetModelRestApi):
         with ZipFile(buf, "w") as bundle:
             try:
                 for file_name, file_content in ExportThemesCommand(requested_ids).run():
-                    with bundle.open(f"{root}/{file_name}", "w") as fp:
-                        fp.write(file_content().encode())
+                    write_zip_entry(
+                        bundle, f"{root}/{file_name}", file_content().encode()
+                    )
             except ThemeNotFoundError:
                 return self.response_404()
         buf.seek(0)
