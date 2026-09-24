@@ -24,6 +24,23 @@ assists people when migrating to a new version.
 
 ## Next
 
+### MCP response size guard: byte limit instead of estimated token count
+
+The MCP response-size guard no longer estimates LLM token counts (it
+previously used `tiktoken`'s `cl100k_base` encoding, with a character-based
+fallback). An MCP server has no way to know which client or tokenizer is
+actually consuming a response, so token estimation was replaced with the
+exact serialized UTF-8 byte length of the response, which is deterministic
+and tokenizer-agnostic. This also removes the `tiktoken` dependency
+entirely, including the unannounced network request it could make to
+download its vocabulary on a cold cache.
+
+`MCP_RESPONSE_SIZE_CONFIG["token_limit"]` is renamed to
+`MCP_RESPONSE_SIZE_CONFIG["max_bytes"]`, and its default changes from
+25,000 (estimated tokens) to 50,000 (exact bytes). Any deployment that has
+set `token_limit` in `superset_config.py` must rename the key to `max_bytes`
+and adjust the value for byte semantics.
+
 ### Scheduled report and alert retry admission
 
 Run `superset db upgrade` before starting workers with this version. The migration
@@ -70,12 +87,42 @@ error notice. This does not authorize replay of data-bearing notifications.
   its Presto dialect under SQLAlchemy 2 because it imports `sqlalchemy.databases`.
   Upgrade existing installations with `pip install "pyhive[presto]>=0.7.0"`.
 
+- The Pinot extra requires pinotdb[sqlalchemy]>=8.0.0,<10.0.0. Earlier releases declare SQLAlchemy below 2 in their SQLAlchemy extra.
+
 - The Databricks extra requires databricks-sqlalchemy 2.x (at least 2.0.1). The 1.x dialect requires SQLAlchemy below 2.
 
 - `superset deletion-retention force-purge` now exits **1** when the target is
   blocked by a deletion rule or is not found (the messages are unchanged), so a
   scripted compliance erasure cannot mistake a refusal for a completed purge.
   Only a completed purge exits 0; a usage error still exits 2.
+
+### Deprecated permission cleanup may change custom role grants
+
+Two migrations now clean up permissions deprecated in past releases that
+previously stuck around forever after an upgrade (#33272). If a custom role
+holds one of these permissions, upgrading will either:
+
+- **Delete it outright**, for permissions whose underlying feature has no
+  live equivalent (e.g. the access-request workflow), or whose only live
+  successor would grant a role a materially broader capability than it ever
+  had -- for example `can_testconn` is deleted rather than resurrected as
+  `Database.can_write`, which would let the role create, edit, or delete any
+  database connection, not just test one; or
+- **Migrate it to a verified live successor** (e.g. `can_explore_json` ->
+  `can_read` on Chart), preserving the role's effective access.
+
+`can_copy_dash` is the exception to this rule. Although its live successor,
+`Dashboard.can_write`, is broader than the historical permission, the current
+dashboard-copy endpoint is itself authorized by `Dashboard.can_write`. It is
+therefore migrated rather than deleted so existing access to dashboard
+copying is preserved.
+
+If a custom role in your deployment relies on one of the deleted
+permissions, re-grant the appropriate live permission to it manually after
+upgrading. See the two migrations' docstrings (`superset/migrations/versions/
+2026-09-10_00-00_1f5f4fb8bfc1_delete_deprecated_permissions_33272.py` and
+`..._00-01_3ce9a4572f8a_rename_deprecated_permissions_33272.py`) for the full
+per-permission mapping and reasoning.
 
 ### MySQL metadata database now actually defaults to READ COMMITTED
 
@@ -104,7 +151,7 @@ for the chosen metrics, or explicitly request `include_compatible_dimensions=tru
 with `page_size` at most 8 for every scope, including built-in `dataset_id`
 requests. Non-embedded requests retain the 500-metric ceiling.
 This fixed embedding cap is independent of the operator's
-`MCP_RESPONSE_SIZE_CONFIG['token_limit']` (25,000 by default); it does not guarantee
+`MCP_RESPONSE_SIZE_CONFIG['max_bytes']` (50,000 by default); it does not guarantee
 that every payload fits a configured response limit.
 
 ### Default Docker image is now batteries-included; the minimal image moves to `-lean`
@@ -151,6 +198,16 @@ official release tag digests are not overwritten outside release publishing.
 Scheduled report and alert captures require chart readiness to remain stable
 immediately before Chromium captures the image. A capture that re-enters a loading
 state during that window fails instead of delivering a screenshot with spinners.
+
+### Improve Db2 Time Grain Expressions
+The Db2 engine spec has been streamlined by using the DATE_TRUNC scalar function,
+which requires Db2 11.1.0 or higher. Per the ISO 8601 standards, the `WEEK` time
+grain now shifts the first day of the week to Monday as part of this change.
+
+### Update IBM Db2 for i Time Grain Expressions
+IBM Db2 for i inherits its engine spec from Db2 but does not support the DATE_TRUNC
+scalar function, so it will use the previous arithmetic expressions defined for Db2.
+Its `WEEK` time grain now uses `DAYOFWEEK_ISO` to align with the Db2 change.
 
 ### Scheduled rendered reports fail closed after capture rejection
 
@@ -856,19 +913,51 @@ Note that a retried query returns partial data with no truncation indicator
 (e.g. a filter dropdown may list only a subset of values on tables above the
 row cap).
 
-### Dashboard "Export Data to Excel" requires a Celery worker and S3 bucket
+### Dashboard "Export Data to Excel" moves from `EXCEL_EXPORT_S3_*` to `EXPORT_STORAGE`
 
 A new dashboard action exports every chart's data to a single multi-sheet
 `.xlsx` asynchronously. It is disabled by default and turns on only when
-`EXCEL_EXPORT_S3_BUCKET` is set (the endpoint returns `501` otherwise). It also
-requires a running Celery worker and a configured SMTP transport, since the task
-emails the requesting user a pre-signed download link. New config keys:
-`EXCEL_EXPORT_S3_BUCKET`, `EXCEL_EXPORT_S3_KEY_PREFIX`,
-`EXCEL_EXPORT_LINK_TTL_SECONDS`, `EXCEL_EXPORT_S3_CLIENT_KWARGS`,
+`EXPORT_STORAGE` is configured with both a `bucket` and a `backend` (the
+endpoint returns `501` otherwise) — there is no implicit storage default:
+
+```python
+from superset.utils.s3 import S3ExportStorage  # or superset.utils.gcs.GCSExportStorage
+
+EXPORT_STORAGE = {
+    "bucket": "my-export-bucket",
+    "backend": S3ExportStorage(),
+}
+```
+
+**Upgrading from `EXCEL_EXPORT_S3_*`:** the S3-only config keys are removed and
+replaced by the pluggable `EXPORT_STORAGE` above. They are no longer read, so a
+deployment that had the export working keeps a valid-looking config while the
+endpoint starts returning `501`. Port each key:
+
+| Removed | Replacement |
+| --- | --- |
+| `EXCEL_EXPORT_S3_BUCKET = "my-bucket"` | `EXPORT_STORAGE["bucket"] = "my-bucket"` |
+| `EXCEL_EXPORT_S3_KEY_PREFIX = "prefix/"` | `EXPORT_STORAGE["key_prefix"] = "prefix/"` |
+| `EXCEL_EXPORT_S3_CLIENT_KWARGS = {...}` | `EXPORT_STORAGE["backend"] = S3ExportStorage(client_kwargs={...})` |
+
+`EXPORT_STORAGE["backend"]` has no default and must be set explicitly, which is
+the part an upgrade cannot infer: the previous config implied S3, so keep the
+same bucket with `S3ExportStorage()`. `EXCEL_EXPORT_LINK_TTL_SECONDS` is
+unchanged in name, but it now bounds a Superset-issued link rather than a
+pre-signed S3 URL, so the AWS seven day ceiling no longer applies.
+
+It also requires a running Celery worker. SMTP is optional and only used to
+additionally email logged-in users a download link; every session (including
+guest/Public ones, which have no email) gets the export through status polling
+and automatic download. Config keys:
+`EXPORT_STORAGE`, `EXCEL_EXPORT_LINK_TTL_SECONDS`,
 `EXCEL_EXPORT_TABLE_VIZ_TYPES`, and `EXCEL_EXPORT_QUERY_CONTEXT_BUILDER`.
 
-The feature depends on `boto3`, which is **not** installed by default; install it
-with `pip install apache-superset[excel-export]`.
+The storage backends depend on SDKs that are **not** installed by default:
+install `pip install apache-superset[excel-export]` (boto3) for
+`S3ExportStorage`, or `pip install apache-superset[excel-export-gcs]`
+(google-cloud-storage) for `GCSExportStorage`. A custom backend can be supplied
+by implementing `superset.utils.export_storage.ExportStorage`.
 
 Charts store their `query_context` only once they have been (re-)saved in
 Explore, so older charts may have none. For a fixed, conservative set of viz
