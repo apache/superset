@@ -1300,7 +1300,7 @@ msgid "Add folder"
 msgstr ""
 
 msgid "Add group"
-msgstr "Add group"
+msgstr ""
 
 msgid "Add item"
 msgstr ""
@@ -1342,7 +1342,7 @@ msgid "Add sheet"
 msgstr ""
 
 msgid "Add subgroup"
-msgstr "Add subgroup"
+msgstr ""
 
 msgid "Add tag to entities"
 msgstr ""
@@ -3021,7 +3021,7 @@ msgid "Cell title template"
 msgstr ""
 
 msgid "Center"
-msgstr "Center"
+msgstr ""
 
 msgid "Center value"
 msgstr ""
@@ -3657,7 +3657,7 @@ msgid "Collapse row"
 msgstr ""
 
 msgid "Collapse settings"
-msgstr "Collapse settings"
+msgstr ""
 
 msgid "Collapse tab content"
 msgstr ""
@@ -3772,7 +3772,7 @@ msgid "Column data types"
 msgstr ""
 
 msgid "Column groups"
-msgstr "Column groups"
+msgstr ""
 
 msgid "Column header tooltip"
 msgstr ""
@@ -6242,7 +6242,7 @@ msgid "Enter fullscreen"
 msgstr ""
 
 msgid "Enter group name"
-msgstr "Enter group name"
+msgstr ""
 
 msgid "Enter minimum and maximum values for the range filter"
 msgstr ""
@@ -6520,7 +6520,7 @@ msgid "Expand row to edit"
 msgstr ""
 
 msgid "Expand settings"
-msgstr "Expand settings"
+msgstr ""
 
 msgid ""
 "Expects a formula with depending time parameter 'x'\n"
@@ -7427,7 +7427,7 @@ msgstr ""
 
 #, python-format
 msgid "Group %s"
-msgstr "Group %s"
+msgstr ""
 
 msgid "Group By"
 msgstr ""
@@ -7442,10 +7442,10 @@ msgid "Group by"
 msgstr ""
 
 msgid "Group columns"
-msgstr "Group columns"
+msgstr ""
 
 msgid "Group name"
-msgstr "Group name"
+msgstr ""
 
 msgid "Group remaining as \"Others\""
 msgstr ""
@@ -9205,10 +9205,10 @@ msgid "MotherDuck token"
 msgstr ""
 
 msgid "Move group left"
-msgstr "Move group left"
+msgstr ""
 
 msgid "Move group right"
-msgstr "Move group right"
+msgstr ""
 
 msgid "Move icon"
 msgstr ""
@@ -9240,7 +9240,7 @@ msgid "Multi-Variables"
 msgstr ""
 
 msgid "Multi-level header"
-msgstr "Multi-level header"
+msgstr ""
 
 msgid "Multiple"
 msgstr ""
@@ -10625,7 +10625,7 @@ msgid "Port out of range 0-65535"
 msgstr ""
 
 msgid "Position"
-msgstr "Position"
+msgstr ""
 
 msgid "Position JSON"
 msgstr ""
@@ -11084,7 +11084,7 @@ msgid "Remove from favorites"
 msgstr ""
 
 msgid "Remove group"
-msgstr "Remove group"
+msgstr ""
 
 msgid "Remove item"
 msgstr ""
@@ -12233,7 +12233,7 @@ msgid "Select column name"
 msgstr ""
 
 msgid "Select columns"
-msgstr "Select columns"
+msgstr ""
 
 msgid ""
 "Select columns that will be displayed in the table. You can multiselect "
@@ -13487,7 +13487,7 @@ msgstr ""
 
 #, python-format
 msgid "Subgroup %s"
-msgstr "Subgroup %s"
+msgstr ""
 
 msgid "Subject"
 msgstr ""
@@ -13715,7 +13715,7 @@ msgid "Table or View \"%(table)s\" does not exist."
 msgstr ""
 
 msgid "Table side"
-msgstr "Table side"
+msgstr ""
 
 msgid ""
 "Table that visualizes paired t-tests, which are used to understand "

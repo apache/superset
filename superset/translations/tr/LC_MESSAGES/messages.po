@@ -1477,6 +1477,7 @@ msgstr ""
 msgid "Add folder"
 msgstr "Filtre ekle"
 
+#, fuzzy
 msgid "Add group"
 msgstr "Grup ekle"
 
@@ -1525,6 +1526,7 @@ msgstr ""
 msgid "Add sheet"
 msgstr "Sayfa ekle"
 
+#, fuzzy
 msgid "Add subgroup"
 msgstr "Alt grup ekle"
 
@@ -3455,6 +3457,7 @@ msgstr "Hücre limiti"
 msgid "Cell title template"
 msgstr "Şablonu sil"
 
+#, fuzzy
 msgid "Center"
 msgstr "Orta"
 
@@ -4157,6 +4160,7 @@ msgstr "Colalt Data Panel"
 msgid "Collapse row"
 msgstr "Collap row"
 
+#, fuzzy
 msgid "Collapse settings"
 msgstr "Ayarları daralt"
 
@@ -4294,6 +4298,7 @@ msgstr "Uzunlık verileri içeren sütun"
 msgid "Column data types"
 msgstr "Veri tipi"
 
+#, fuzzy
 msgid "Column groups"
 msgstr "Kolon grupları"
 
@@ -7107,6 +7112,7 @@ msgstr "Saniyede süresi girin"
 msgid "Enter fullscreen"
 msgstr "Tam ekrana geç"
 
+#, fuzzy
 msgid "Enter group name"
 msgstr "Grup adını girin"
 
@@ -7418,6 +7424,7 @@ msgstr "genişletilmiş satır"
 msgid "Expand row to edit"
 msgstr "Düzenlemek için satırı genişlet"
 
+#, fuzzy
 msgid "Expand settings"
 msgstr "Ayarları genişlet"
 
@@ -8454,7 +8461,7 @@ msgstr ""
 msgid "Group"
 msgstr "Grup Grubu"
 
-#, python-format
+#, fuzzy, python-format
 msgid "Group %s"
 msgstr "Grup %s"
 
@@ -8470,9 +8477,11 @@ msgstr "Grup Anahtar"
 msgid "Group by"
 msgstr "Grup Tarafından Grup"
 
+#, fuzzy
 msgid "Group columns"
 msgstr "Grup kolonları"
 
+#, fuzzy
 msgid "Group name"
 msgstr "Grup adı"
 
@@ -10435,9 +10444,11 @@ msgstr "Daha Fazla filtreler"
 msgid "MotherDuck token"
 msgstr "AnneDuck token"
 
+#, fuzzy
 msgid "Move group left"
 msgstr "Grubu sola taşı"
 
+#, fuzzy
 msgid "Move group right"
 msgstr "Grubu sağa taşı"
 
@@ -10473,6 +10484,7 @@ msgstr "Multi-Levels"
 msgid "Multi-Variables"
 msgstr "Çok değişken"
 
+#, fuzzy
 msgid "Multi-level header"
 msgstr "Çok düzeyli başlık"
 
@@ -12030,6 +12042,7 @@ msgstr "Port   %(port)s on hostname \"  %(hostname)s \" bağlantıyı reddetti."
 msgid "Port out of range 0-65535"
 msgstr "Port out of range 0-65535"
 
+#, fuzzy
 msgid "Position"
 msgstr "Konum"
 
@@ -12521,6 +12534,7 @@ msgstr "Filtreyi kaldır"
 msgid "Remove from favorites"
 msgstr ""
 
+#, fuzzy
 msgid "Remove group"
 msgstr "Grubu kaldır"
 
@@ -13786,6 +13800,7 @@ msgstr "Kolon seç"
 msgid "Select column name"
 msgstr "Sütun adı seçin"
 
+#, fuzzy
 msgid "Select columns"
 msgstr "Kolonları seç"
 
@@ -15301,7 +15316,7 @@ msgstr "Kategori"
 msgid "Subdomain"
 msgstr "Subdomain"
 
-#, python-format
+#, fuzzy, python-format
 msgid "Subgroup %s"
 msgstr "Alt grup %s"
 
@@ -15551,6 +15566,7 @@ msgstr "Masa adı tanımlanmamış"
 msgid "Table or View \"%(table)s\" does not exist."
 msgstr "Masa veya \"  %(table)s \" yoktur."
 
+#, fuzzy
 msgid "Table side"
 msgstr "Tablo tarafı"
 

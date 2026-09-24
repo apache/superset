@@ -20,13 +20,13 @@ import { nanoid } from 'nanoid';
 import {
   expandGroupColumnKey,
   getTimeComparisonColumnKeys,
-  headerGroupsHaveSameColumns,
+  headerGroupsHaveSameContent,
   syncTimeComparisonGroups,
   toStoredTimeComparisonColumnKey,
 } from '@superset-ui/chart-controls';
 import { HeaderGroupColumnOption, HeaderGroupConfig } from './types';
 
-export { headerGroupsHaveSameColumns, syncTimeComparisonGroups };
+export { headerGroupsHaveSameContent, syncTimeComparisonGroups };
 
 export function createHeaderGroup(): HeaderGroupConfig {
   return {

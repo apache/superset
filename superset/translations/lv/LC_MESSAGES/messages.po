@@ -1481,6 +1481,7 @@ msgstr ""
 msgid "Add folder"
 msgstr "Pievienot mapi"
 
+#, fuzzy
 msgid "Add group"
 msgstr "Pievienot grupu"
 
@@ -1524,6 +1525,7 @@ msgstr ""
 msgid "Add sheet"
 msgstr "Pievienot lapu"
 
+#, fuzzy
 msgid "Add subgroup"
 msgstr "Pievienot apakšgrupu"
 
@@ -3353,6 +3355,7 @@ msgstr "Šūnu limits"
 msgid "Cell title template"
 msgstr "Šūnu virsraksta veidne"
 
+#, fuzzy
 msgid "Center"
 msgstr "Centrs"
 
@@ -4025,6 +4028,7 @@ msgstr "Sakļaut datu paneli"
 msgid "Collapse row"
 msgstr "Sakļaut rindu"
 
+#, fuzzy
 msgid "Collapse settings"
 msgstr "Sakļaut iestatījumus"
 
@@ -4156,6 +4160,7 @@ msgstr "Kolonna, kas satur garuma datus"
 msgid "Column data types"
 msgstr "Kolonnas datu tipi"
 
+#, fuzzy
 msgid "Column groups"
 msgstr "Kolonnu grupas"
 
@@ -6827,6 +6832,7 @@ msgstr "Ievadiet ilgumu sekundēs"
 msgid "Enter fullscreen"
 msgstr "Pāriet pilnekrāna režīmā"
 
+#, fuzzy
 msgid "Enter group name"
 msgstr "Ievadiet grupas nosaukumu"
 
@@ -7111,6 +7117,7 @@ msgstr "Izvērst rindu"
 msgid "Expand row to edit"
 msgstr "Izvērst rindu"
 
+#, fuzzy
 msgid "Expand settings"
 msgstr "Izvērst iestatījumus"
 
@@ -8087,7 +8094,7 @@ msgstr ""
 msgid "Group"
 msgstr "Grupa"
 
-#, python-format
+#, fuzzy, python-format
 msgid "Group %s"
 msgstr "Grupa %s"
 
@@ -8103,9 +8110,11 @@ msgstr "Grupas atslēga"
 msgid "Group by"
 msgstr "Grupēt pēc"
 
+#, fuzzy
 msgid "Group columns"
 msgstr "Grupas kolonnas"
 
+#, fuzzy
 msgid "Group name"
 msgstr "Grupas nosaukums"
 
@@ -9971,9 +9980,11 @@ msgstr "Vairāk filtru"
 msgid "MotherDuck token"
 msgstr "MotherDuck žetons"
 
+#, fuzzy
 msgid "Move group left"
 msgstr "Pārvietot grupu pa kreisi"
 
+#, fuzzy
 msgid "Move group right"
 msgstr "Pārvietot grupu pa labi"
 
@@ -10007,6 +10018,7 @@ msgstr "Daudzlīmeņu"
 msgid "Multi-Variables"
 msgstr "Daudzmainīgo"
 
+#, fuzzy
 msgid "Multi-level header"
 msgstr "Vairāklīmeņu galvene"
 
@@ -11505,6 +11517,7 @@ msgstr "Ports %(port)s resursdatorā \"%(hostname)s\" noraidīja savienojumu."
 msgid "Port out of range 0-65535"
 msgstr "Ports ārpus diapazona 0-65535"
 
+#, fuzzy
 msgid "Position"
 msgstr "Pozīcija"
 
@@ -11977,6 +11990,7 @@ msgstr "Noņemt elementu"
 msgid "Remove from favorites"
 msgstr ""
 
+#, fuzzy
 msgid "Remove group"
 msgstr "Noņemt grupu"
 
@@ -13178,6 +13192,7 @@ msgstr "Atlasīt kolonnu"
 msgid "Select column name"
 msgstr "Atlasīt kolonnu"
 
+#, fuzzy
 msgid "Select columns"
 msgstr "Atlasīt kolonnas"
 
@@ -14600,7 +14615,7 @@ msgstr "Apakškategorijas"
 msgid "Subdomain"
 msgstr "Apakšdomēns"
 
-#, python-format
+#, fuzzy, python-format
 msgid "Subgroup %s"
 msgstr "Apakšgrupa %s"
 
@@ -14839,6 +14854,7 @@ msgstr "Tabulas nosaukums nav definēts"
 msgid "Table or View \"%(table)s\" does not exist."
 msgstr "Tabula vai skats \"%(table)s\" nepastāv."
 
+#, fuzzy
 msgid "Table side"
 msgstr "Tabulas puse"
 

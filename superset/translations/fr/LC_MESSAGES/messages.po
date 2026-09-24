@@ -1451,6 +1451,7 @@ msgstr ""
 msgid "Add folder"
 msgstr "Ajouter un répertoire"
 
+#, fuzzy
 msgid "Add group"
 msgstr "Ajouter un groupe"
 
@@ -1495,6 +1496,7 @@ msgstr "Ajouter les paramètres d'authentification du service"
 msgid "Add sheet"
 msgstr "Ajouter une feuille"
 
+#, fuzzy
 msgid "Add subgroup"
 msgstr "Ajouter un sous-groupe"
 
@@ -3382,6 +3384,7 @@ msgstr "Limite de la cellule"
 msgid "Cell title template"
 msgstr "Modèle de titre de cellule"
 
+#, fuzzy
 msgid "Center"
 msgstr "Centre"
 
@@ -4067,6 +4070,7 @@ msgstr "Réduire le panneau de données"
 msgid "Collapse row"
 msgstr "Réduire la ligne"
 
+#, fuzzy
 msgid "Collapse settings"
 msgstr "Réduire les paramètres"
 
@@ -4197,6 +4201,7 @@ msgstr "Colonne contenant des données de longitude"
 msgid "Column data types"
 msgstr "Types de données des colonnes"
 
+#, fuzzy
 msgid "Column groups"
 msgstr "Groupes de colonnes"
 
@@ -6894,6 +6899,7 @@ msgstr "Saisir la durée en secondes"
 msgid "Enter fullscreen"
 msgstr "Passer en plein écran"
 
+#, fuzzy
 msgid "Enter group name"
 msgstr "Saisir le nom du groupe"
 
@@ -7182,6 +7188,7 @@ msgstr "Agrandir la ligne"
 msgid "Expand row to edit"
 msgstr "Développer la ligne à modifier"
 
+#, fuzzy
 msgid "Expand settings"
 msgstr "Développer les paramètres"
 
@@ -8173,7 +8180,7 @@ msgstr ""
 msgid "Group"
 msgstr "Grouper par"
 
-#, python-format
+#, fuzzy, python-format
 msgid "Group %s"
 msgstr "Groupe %s"
 
@@ -8189,9 +8196,11 @@ msgstr "Clé de regroupement"
 msgid "Group by"
 msgstr "Grouper par"
 
+#, fuzzy
 msgid "Group columns"
 msgstr "Colonnes du groupe"
 
+#, fuzzy
 msgid "Group name"
 msgstr "Nom du groupe"
 
@@ -10072,9 +10081,11 @@ msgstr "Plus de filtres"
 msgid "MotherDuck token"
 msgstr "Jeton MotherDuck"
 
+#, fuzzy
 msgid "Move group left"
 msgstr "Déplacer le groupe à gauche"
 
+#, fuzzy
 msgid "Move group right"
 msgstr "Déplacer le groupe à droite"
 
@@ -10107,6 +10118,7 @@ msgstr "Niveaux multiples"
 msgid "Multi-Variables"
 msgstr "Multi-variables"
 
+#, fuzzy
 msgid "Multi-level header"
 msgstr "En-tête à plusieurs niveaux"
 
@@ -11625,6 +11637,7 @@ msgstr "Le port %(port)s sur l'hôte « %(hostname)s » a refusé la connexion
 msgid "Port out of range 0-65535"
 msgstr "Port hors de portée 0-65535"
 
+#, fuzzy
 msgid "Position"
 msgstr "Position"
 
@@ -12096,6 +12109,7 @@ msgstr "Supprimer le filtre"
 msgid "Remove from favorites"
 msgstr ""
 
+#, fuzzy
 msgid "Remove group"
 msgstr "Supprimer le groupe"
 
@@ -13318,6 +13332,7 @@ msgstr "Sélectionner une colonne"
 msgid "Select column name"
 msgstr "Sélectionner un nom de colonne"
 
+#, fuzzy
 msgid "Select columns"
 msgstr "Sélectionner les colonnes"
 
@@ -14757,7 +14772,7 @@ msgstr "Sous-catégories"
 msgid "Subdomain"
 msgstr "Sous-domaine"
 
-#, python-format
+#, fuzzy, python-format
 msgid "Subgroup %s"
 msgstr "Sous-groupe %s"
 
@@ -14997,6 +15012,7 @@ msgstr "Nom de la table non défini"
 msgid "Table or View \"%(table)s\" does not exist."
 msgstr "La table ou la vue « %(table)s » n'existe pas."
 
+#, fuzzy
 msgid "Table side"
 msgstr "Côté de la table"
 

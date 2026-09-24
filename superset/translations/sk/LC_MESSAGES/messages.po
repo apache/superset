@@ -1481,6 +1481,7 @@ msgstr ""
 msgid "Add folder"
 msgstr "Pridať priečinok"
 
+#, fuzzy
 msgid "Add group"
 msgstr "Pridať skupinu"
 
@@ -1525,6 +1526,7 @@ msgstr ""
 msgid "Add sheet"
 msgstr "Pridať list"
 
+#, fuzzy
 msgid "Add subgroup"
 msgstr "Pridať podskupinu"
 
@@ -3386,6 +3388,7 @@ msgstr "Limit bunek"
 msgid "Cell title template"
 msgstr "Šablona názvu bunky"
 
+#, fuzzy
 msgid "Center"
 msgstr "Na stred"
 
@@ -4071,6 +4074,7 @@ msgstr "Sbalit dátový panel"
 msgid "Collapse row"
 msgstr "Sbalit riadok"
 
+#, fuzzy
 msgid "Collapse settings"
 msgstr "Zbaliť nastavenie"
 
@@ -4205,6 +4209,7 @@ msgstr "Stĺpec obsahujúci data o zemepisné dĺžke"
 msgid "Column data types"
 msgstr "Datové typy stĺpcov"
 
+#, fuzzy
 msgid "Column groups"
 msgstr "Skupiny stĺpcov"
 
@@ -6951,6 +6956,7 @@ msgstr "Zadejte dobu trvanie v sekundách"
 msgid "Enter fullscreen"
 msgstr "Prejsť do režimu celej obrazovky"
 
+#, fuzzy
 msgid "Enter group name"
 msgstr "Zadajte názov skupiny"
 
@@ -7246,6 +7252,7 @@ msgstr "Rozbalit riadok"
 msgid "Expand row to edit"
 msgstr "Rozbalit riadok"
 
+#, fuzzy
 msgid "Expand settings"
 msgstr "Rozbaliť nastavenie"
 
@@ -8243,7 +8250,7 @@ msgstr ""
 msgid "Group"
 msgstr "Skupina"
 
-#, python-format
+#, fuzzy, python-format
 msgid "Group %s"
 msgstr "Skupina %s"
 
@@ -8259,9 +8266,11 @@ msgstr "Kľúč skupiny"
 msgid "Group by"
 msgstr "Zoskupiť podle"
 
+#, fuzzy
 msgid "Group columns"
 msgstr "Stĺpce skupiny"
 
+#, fuzzy
 msgid "Group name"
 msgstr "Názov skupiny"
 
@@ -10177,9 +10186,11 @@ msgstr "Viac filtrov"
 msgid "MotherDuck token"
 msgstr "Token MotherDuck"
 
+#, fuzzy
 msgid "Move group left"
 msgstr "Presunúť skupinu doľava"
 
+#, fuzzy
 msgid "Move group right"
 msgstr "Presunúť skupinu doprava"
 
@@ -10213,6 +10224,7 @@ msgstr "Viac úrovní"
 msgid "Multi-Variables"
 msgstr "Viac promenných"
 
+#, fuzzy
 msgid "Multi-level header"
 msgstr "Viacúrovňové záhlavie"
 
@@ -11743,6 +11755,7 @@ msgstr "Port %(port)s na hostiteli „%(hostname)s“ odmítl pripojenie."
 msgid "Port out of range 0-65535"
 msgstr "Port mimo rozsah 0-65535"
 
+#, fuzzy
 msgid "Position"
 msgstr "Pozícia"
 
@@ -12223,6 +12236,7 @@ msgstr "Odstrániť položku"
 msgid "Remove from favorites"
 msgstr ""
 
+#, fuzzy
 msgid "Remove group"
 msgstr "Odstrániť skupinu"
 
@@ -13453,6 +13467,7 @@ msgstr "Vybrať stĺpec"
 msgid "Select column name"
 msgstr "Vybrať stĺpec"
 
+#, fuzzy
 msgid "Select columns"
 msgstr "Vybrať stĺpce"
 
@@ -14905,7 +14920,7 @@ msgstr "Podkategorie"
 msgid "Subdomain"
 msgstr "Subdoména"
 
-#, python-format
+#, fuzzy, python-format
 msgid "Subgroup %s"
 msgstr "Podskupina %s"
 
@@ -15148,6 +15163,7 @@ msgstr "Názov tabuľky nie je definován"
 msgid "Table or View \"%(table)s\" does not exist."
 msgstr "Tabuľka alebo pohled „%(table)s“ neexistuje."
 
+#, fuzzy
 msgid "Table side"
 msgstr "Strana tabuľky"
 

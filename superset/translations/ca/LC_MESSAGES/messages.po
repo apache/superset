@@ -1496,6 +1496,7 @@ msgstr ""
 msgid "Add folder"
 msgstr "Afegir Filtre"
 
+#, fuzzy
 msgid "Add group"
 msgstr "Afegeix grup"
 
@@ -1542,6 +1543,7 @@ msgstr ""
 msgid "Add sheet"
 msgstr "Afegir full"
 
+#, fuzzy
 msgid "Add subgroup"
 msgstr "Afegeix subgrup"
 
@@ -3497,6 +3499,7 @@ msgstr "Límit de cel·les"
 msgid "Cell title template"
 msgstr "Eliminar plantilla"
 
+#, fuzzy
 msgid "Center"
 msgstr "Centre"
 
@@ -4212,6 +4215,7 @@ msgstr "Col·lapsar panell de dades"
 msgid "Collapse row"
 msgstr "Col·lapsar fila"
 
+#, fuzzy
 msgid "Collapse settings"
 msgstr "Replega la configuració"
 
@@ -4348,6 +4352,7 @@ msgstr "Columna que conté dades de longitud"
 msgid "Column data types"
 msgstr "Tipus de dades de columna"
 
+#, fuzzy
 msgid "Column groups"
 msgstr "Grups de columnes"
 
@@ -7184,6 +7189,7 @@ msgstr "Introdueix duració en segons"
 msgid "Enter fullscreen"
 msgstr "Entrar a pantalla completa"
 
+#, fuzzy
 msgid "Enter group name"
 msgstr "Introduïu el nom del grup"
 
@@ -7489,6 +7495,7 @@ msgstr "Expandir fila"
 msgid "Expand row to edit"
 msgstr "Expandir fila"
 
+#, fuzzy
 msgid "Expand settings"
 msgstr "Expandeix la configuració"
 
@@ -8543,7 +8550,7 @@ msgstr ""
 msgid "Group"
 msgstr "Agrupar per"
 
-#, python-format
+#, fuzzy, python-format
 msgid "Group %s"
 msgstr "Grup %s"
 
@@ -8559,9 +8566,11 @@ msgstr "Clau de Grup"
 msgid "Group by"
 msgstr "Agrupar per"
 
+#, fuzzy
 msgid "Group columns"
 msgstr "Columnes del grup"
 
+#, fuzzy
 msgid "Group name"
 msgstr "Nom del grup"
 
@@ -10547,9 +10556,11 @@ msgstr "Més filtres"
 msgid "MotherDuck token"
 msgstr "Token MotherDuck"
 
+#, fuzzy
 msgid "Move group left"
 msgstr "Mou el grup a l'esquerra"
 
+#, fuzzy
 msgid "Move group right"
 msgstr "Mou el grup a la dreta"
 
@@ -10583,6 +10594,7 @@ msgstr "Multi-Nivells"
 msgid "Multi-Variables"
 msgstr "Multi-Variables"
 
+#, fuzzy
 msgid "Multi-level header"
 msgstr "Capçalera multinivell"
 
@@ -12146,6 +12158,7 @@ msgstr "El port %(port)s a l'hostname \"%(hostname)s\" ha refusat la connexió."
 msgid "Port out of range 0-65535"
 msgstr "Port fora del rang 0-65535"
 
+#, fuzzy
 msgid "Position"
 msgstr "Posició"
 
@@ -12642,6 +12655,7 @@ msgstr "Eliminar element"
 msgid "Remove from favorites"
 msgstr ""
 
+#, fuzzy
 msgid "Remove group"
 msgstr "Eliminar grup"
 
@@ -13890,6 +13904,7 @@ msgstr "Seleccionar columna"
 msgid "Select column name"
 msgstr "Seleccionar columna"
 
+#, fuzzy
 msgid "Select columns"
 msgstr "Seleccionar columnes"
 
@@ -15426,7 +15441,7 @@ msgstr "Categoria"
 msgid "Subdomain"
 msgstr "Subdomini"
 
-#, python-format
+#, fuzzy, python-format
 msgid "Subgroup %s"
 msgstr "Subgrup %s"
 
@@ -15679,6 +15694,7 @@ msgstr "Nom de taula no definit"
 msgid "Table or View \"%(table)s\" does not exist."
 msgstr "La Taula o Vista \"%(table)s\" no existeix."
 
+#, fuzzy
 msgid "Table side"
 msgstr "Costat de la taula"
 

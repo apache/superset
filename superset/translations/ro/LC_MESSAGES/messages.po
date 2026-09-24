@@ -1575,6 +1575,7 @@ msgstr ""
 msgid "Add folder"
 msgstr "Adaugă folder"
 
+#, fuzzy
 msgid "Add group"
 msgstr "Adaugă grup"
 
@@ -1626,6 +1627,7 @@ msgstr ""
 msgid "Add sheet"
 msgstr "Adaugă foaie"
 
+#, fuzzy
 msgid "Add subgroup"
 msgstr "Adaugă subgrup"
 
@@ -3552,6 +3554,7 @@ msgstr "Limită celulă"
 msgid "Cell title template"
 msgstr "Șablon titlu celulă"
 
+#, fuzzy
 msgid "Center"
 msgstr "Centru"
 
@@ -4266,6 +4269,7 @@ msgstr "Restrânge panoul de date"
 msgid "Collapse row"
 msgstr "Restrânge rând"
 
+#, fuzzy
 msgid "Collapse settings"
 msgstr "Restrânge setările"
 
@@ -4408,6 +4412,7 @@ msgstr "Coloană care conține date de longitudine"
 msgid "Column data types"
 msgstr "Tipuri de date coloană"
 
+#, fuzzy
 msgid "Column groups"
 msgstr "Grupuri de coloane"
 
@@ -7293,6 +7298,7 @@ msgstr "Introduceți durata în secunde"
 msgid "Enter fullscreen"
 msgstr "Intră în ecran complet"
 
+#, fuzzy
 msgid "Enter group name"
 msgstr "Introduceți numele grupului"
 
@@ -7591,6 +7597,7 @@ msgstr "Extinde rând"
 msgid "Expand row to edit"
 msgstr "Extindeți rândul pentru editare"
 
+#, fuzzy
 msgid "Expand settings"
 msgstr "Extinde setările"
 
@@ -8640,7 +8647,7 @@ msgstr ""
 msgid "Group"
 msgstr "Grup"
 
-#, python-format
+#, fuzzy, python-format
 msgid "Group %s"
 msgstr "Grup %s"
 
@@ -8658,9 +8665,11 @@ msgstr "Cheie Grup"
 msgid "Group by"
 msgstr "Grupare după"
 
+#, fuzzy
 msgid "Group columns"
 msgstr "Coloanele grupului"
 
+#, fuzzy
 msgid "Group name"
 msgstr "Numele grupului"
 
@@ -10674,9 +10683,11 @@ msgstr "Mai multe filtre"
 msgid "MotherDuck token"
 msgstr "Token MotherDuck"
 
+#, fuzzy
 msgid "Move group left"
 msgstr "Mută grupul la stânga"
 
+#, fuzzy
 msgid "Move group right"
 msgstr "Mută grupul la dreapta"
 
@@ -10712,6 +10723,7 @@ msgstr "Multi-Nivele"
 msgid "Multi-Variables"
 msgstr "Multi-Variabile"
 
+#, fuzzy
 msgid "Multi-level header"
 msgstr "Antet pe mai multe niveluri"
 
@@ -12282,6 +12294,7 @@ msgstr "Portul %(port)s de pe hostname \"%(hostname)s\" a refuzat conexiunea."
 msgid "Port out of range 0-65535"
 msgstr "Port în afara intervalului 0-65535"
 
+#, fuzzy
 msgid "Position"
 msgstr "Poziție"
 
@@ -12772,6 +12785,7 @@ msgstr "Eliminați filtrul"
 msgid "Remove from favorites"
 msgstr ""
 
+#, fuzzy
 msgid "Remove group"
 msgstr "Elimină grupul"
 
@@ -14051,6 +14065,7 @@ msgstr "Selectează coloană"
 msgid "Select column name"
 msgstr "Selectați numele coloanei"
 
+#, fuzzy
 msgid "Select columns"
 msgstr "Selectează coloane"
 
@@ -15576,7 +15591,7 @@ msgstr "Subcategorii"
 msgid "Subdomain"
 msgstr "Subdomeniu"
 
-#, python-format
+#, fuzzy, python-format
 msgid "Subgroup %s"
 msgstr "Subgrup %s"
 
@@ -15840,6 +15855,7 @@ msgstr "Numele tabelului este nedefinit"
 msgid "Table or View \"%(table)s\" does not exist."
 msgstr "Tabelul sau Vizualizarea \"%(table)s\" nu există."
 
+#, fuzzy
 msgid "Table side"
 msgstr "Partea tabelului"
 

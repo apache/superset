@@ -21,7 +21,7 @@ import {
   canSaveHeaderGroup,
   collectHeaderGroupColumns,
   createHeaderGroup,
-  headerGroupsHaveSameColumns,
+  headerGroupsHaveSameContent,
   moveHeaderGroup,
   normalizeSelectedColumns,
   collectUsedHeaderGroupColumns,
@@ -378,10 +378,10 @@ test('syncTimeComparisonGroups adds missing and drops stale auto groups', () => 
   expect(next[1].columns).toEqual(['Main SUM(sales)', '# SUM(sales)']);
 });
 
-test('headerGroupsHaveSameColumns compares ids and columns', () => {
-  expect(headerGroupsHaveSameColumns(groups, groups)).toBe(true);
+test('headerGroupsHaveSameContent compares ids, labels, and columns', () => {
+  expect(headerGroupsHaveSameContent(groups, groups)).toBe(true);
   expect(
-    headerGroupsHaveSameColumns(groups, [
+    headerGroupsHaveSameContent(groups, [
       { ...groups[0], columns: ['AVG(sales)'] },
     ]),
   ).toBe(false);

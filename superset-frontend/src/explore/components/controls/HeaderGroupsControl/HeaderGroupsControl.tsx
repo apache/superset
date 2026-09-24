@@ -43,7 +43,7 @@ import HeaderGroupEditor, { getGroupTitle } from './HeaderGroupEditor';
 import { HeaderGroupConfig, HeaderGroupsControlProps } from './types';
 import {
   collectUsedHeaderGroupColumns,
-  headerGroupsHaveSameColumns,
+  headerGroupsHaveSameContent,
   moveHeaderGroup,
   pruneStaleHeaderGroupColumns,
   removeHeaderGroupAt,
@@ -198,7 +198,7 @@ export default function HeaderGroupsControl({
       return;
     }
     const next = pruneStaleHeaderGroupColumns(groups, columnOptions);
-    if (!headerGroupsHaveSameColumns(groups, next)) {
+    if (!headerGroupsHaveSameContent(groups, next)) {
       onChange(next, undefined, { programmatic: true });
     }
   }, [columnOptions, groups, onChange]);

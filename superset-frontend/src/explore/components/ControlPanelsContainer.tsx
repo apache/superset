@@ -56,7 +56,7 @@ import {
   ExpandedControlItem,
   isCustomControlItem,
   getHeaderGroupsControlProps,
-  headerGroupsHaveSameColumns,
+  headerGroupsHaveSameContent,
   isTemporalColumn,
   sections,
   syncTimeComparisonGroups,
@@ -370,7 +370,7 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
       },
     );
     const next = syncTimeComparisonGroups(current, timeComparisonGroups);
-    if (!headerGroupsHaveSameColumns(current, next)) {
+    if (!headerGroupsHaveSameContent(current, next)) {
       setControlValue('header_groups', next, undefined, {
         programmatic: true,
       });

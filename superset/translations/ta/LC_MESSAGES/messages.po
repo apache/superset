@@ -1435,6 +1435,7 @@ msgstr ""
 msgid "Add folder"
 msgstr "கோப்புறையைச் (folder) சேர்"
 
+#, fuzzy
 msgid "Add group"
 msgstr "குழுவைச் சேர்"
 
@@ -1481,6 +1482,7 @@ msgstr "அங்கீகாரத் தகவலைப் பதிவேற�
 msgid "Add sheet"
 msgstr "ஷீட்டைச் (sheet) சேர்"
 
+#, fuzzy
 msgid "Add subgroup"
 msgstr "துணைக்குழுவைச் சேர்"
 
@@ -3303,6 +3305,7 @@ msgstr "செல் வரம்பு"
 msgid "Cell title template"
 msgstr "செல் தலைப்பு டெம்ப்ளேட்"
 
+#, fuzzy
 msgid "Center"
 msgstr "மையம்"
 
@@ -3993,6 +3996,7 @@ msgstr "தரவுப் பலகத்தைச் சுருக்கு"
 msgid "Collapse row"
 msgstr "வரிசையைச் சுருக்கு"
 
+#, fuzzy
 msgid "Collapse settings"
 msgstr "அமைப்புகளைச் சுருக்கு"
 
@@ -4117,6 +4121,7 @@ msgstr "தீர்க்கரேகை (longitude) தரவுகளைக�
 msgid "Column data types"
 msgstr "நெடுவரிசைத் தரவு வகைகள்"
 
+#, fuzzy
 msgid "Column groups"
 msgstr "நெடுவரிசைக் குழுக்கள்"
 
@@ -6761,6 +6766,7 @@ msgstr "கால அளவை விநாடிகளில் உள்ளி
 msgid "Enter fullscreen"
 msgstr "முழுத் திரைக்குச் செல்"
 
+#, fuzzy
 msgid "Enter group name"
 msgstr "குழுவின் பெயரை உள்ளிடவும்"
 
@@ -7046,6 +7052,7 @@ msgstr "வரிசையை விரிவாக்கு"
 msgid "Expand row to edit"
 msgstr "வரிசையை விரிவாக்கு"
 
+#, fuzzy
 msgid "Expand settings"
 msgstr "அமைப்புகளை விரிவாக்கு"
 
@@ -8010,7 +8017,7 @@ msgstr ""
 msgid "Group"
 msgstr "குழு"
 
-#, python-format
+#, fuzzy, python-format
 msgid "Group %s"
 msgstr "குழு %s"
 
@@ -8028,9 +8035,11 @@ msgstr "குழுச் சாவி (Group Key)"
 msgid "Group by"
 msgstr "இதன் படி குழுவாக்கு"
 
+#, fuzzy
 msgid "Group columns"
 msgstr "குழுவின் நெடுவரிசைகள்"
 
+#, fuzzy
 msgid "Group name"
 msgstr "குழுவின் பெயர்"
 
@@ -9836,9 +9845,11 @@ msgstr "கூடுதல் வடிகட்டிகள்"
 msgid "MotherDuck token"
 msgstr "MotherDuck டோக்கன்"
 
+#, fuzzy
 msgid "Move group left"
 msgstr "குழுவை இடதுபுறம் நகர்த்து"
 
+#, fuzzy
 msgid "Move group right"
 msgstr "குழுவை வலதுபுறம் நகர்த்து"
 
@@ -9872,6 +9883,7 @@ msgstr "பல நிலைகள்"
 msgid "Multi-Variables"
 msgstr "பல மாறிகள்"
 
+#, fuzzy
 msgid "Multi-level header"
 msgstr "பல நிலை தலைப்பு"
 
@@ -11300,6 +11312,7 @@ msgstr "ஹோஸ்ட் பெயர் \"%(hostname)s\" இல் உள்�
 msgid "Port out of range 0-65535"
 msgstr "போர்ட் 0-65535 வரம்பிற்கு வெளியே உள்ளது"
 
+#, fuzzy
 msgid "Position"
 msgstr "நிலை"
 
@@ -11765,6 +11778,7 @@ msgstr "உருப்படியை நீக்கு"
 msgid "Remove from favorites"
 msgstr ""
 
+#, fuzzy
 msgid "Remove group"
 msgstr "குழுவை நீக்கு"
 
@@ -12941,6 +12955,7 @@ msgstr "நெடுவரிசையைத் தேர்ந்தெடு"
 msgid "Select column name"
 msgstr "நெடுவரிசையைத் தேர்ந்தெடு"
 
+#, fuzzy
 msgid "Select columns"
 msgstr "நெடுவரிசைகளைத் தேர்ந்தெடு"
 
@@ -14286,7 +14301,7 @@ msgstr "துணைப்பிரிவுகள்"
 msgid "Subdomain"
 msgstr "துணைக்களம் (Subdomain)"
 
-#, python-format
+#, fuzzy, python-format
 msgid "Subgroup %s"
 msgstr "துணைக்குழு %s"
 
@@ -14527,6 +14542,7 @@ msgstr "அட்டவணை பெயர் வரையறுக்கப்�
 msgid "Table or View \"%(table)s\" does not exist."
 msgstr "அட்டவணை அல்லது பார்வை \"%(table)s\" இல்லை."
 
+#, fuzzy
 msgid "Table side"
 msgstr "அட்டவணையின் பக்கம்"
 

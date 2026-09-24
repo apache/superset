@@ -1538,6 +1538,7 @@ msgstr "為控制篩選器的源查詢增加篩選條件，但這只限於自動
 msgid "Add folder"
 msgstr "增加過濾條件"
 
+#, fuzzy
 msgid "Add group"
 msgstr "新增群組"
 
@@ -1587,6 +1588,7 @@ msgstr ""
 msgid "Add sheet"
 msgstr "增加 sheet 頁"
 
+#, fuzzy
 msgid "Add subgroup"
 msgstr "新增子群組"
 
@@ -3578,6 +3580,7 @@ msgstr "單元格限制"
 msgid "Cell title template"
 msgstr "删除模板"
 
+#, fuzzy
 msgid "Center"
 msgstr "置中"
 
@@ -4310,6 +4313,7 @@ msgstr "折叠數據面板"
 msgid "Collapse row"
 msgstr "折叠行"
 
+#, fuzzy
 msgid "Collapse settings"
 msgstr "摺疊設定"
 
@@ -4451,6 +4455,7 @@ msgstr "包含經度數據的列"
 msgid "Column data types"
 msgstr "列數據類型"
 
+#, fuzzy
 msgid "Column groups"
 msgstr "列群組"
 
@@ -7392,6 +7397,7 @@ msgstr "输入間隔時間(秒)"
 msgid "Enter fullscreen"
 msgstr "全螢幕"
 
+#, fuzzy
 msgid "Enter group name"
 msgstr "輸入群組名稱"
 
@@ -7728,6 +7734,7 @@ msgstr "標題行"
 msgid "Expand row to edit"
 msgstr "標題行"
 
+#, fuzzy
 msgid "Expand settings"
 msgstr "展開設定"
 
@@ -8853,7 +8860,7 @@ msgstr ""
 msgid "Group"
 msgstr "分組"
 
-#, python-format
+#, fuzzy, python-format
 msgid "Group %s"
 msgstr "群組 %s"
 
@@ -8870,9 +8877,11 @@ msgstr "分組"
 msgid "Group by"
 msgstr "分組"
 
+#, fuzzy
 msgid "Group columns"
 msgstr "群組的列"
 
+#, fuzzy
 msgid "Group name"
 msgstr "群組名稱"
 
@@ -11016,9 +11025,11 @@ msgstr "更多過濾器"
 msgid "MotherDuck token"
 msgstr "MotherDuck 令牌"
 
+#, fuzzy
 msgid "Move group left"
 msgstr "將群組向左移動"
 
+#, fuzzy
 msgid "Move group right"
 msgstr "將群組向右移動"
 
@@ -11052,6 +11063,7 @@ msgstr "多層次"
 msgid "Multi-Variables"
 msgstr "多元"
 
+#, fuzzy
 msgid "Multi-level header"
 msgstr "多層級標題"
 
@@ -12726,6 +12738,7 @@ msgstr "主機名 \"%(hostname)s\" 上的端口 %(port)s 拒绝連接。"
 msgid "Port out of range 0-65535"
 msgstr "端口超過 0-65535 的範圍"
 
+#, fuzzy
 msgid "Position"
 msgstr "位置"
 
@@ -13256,6 +13269,7 @@ msgstr "删除項"
 msgid "Remove from favorites"
 msgstr ""
 
+#, fuzzy
 msgid "Remove group"
 msgstr "刪除群組"
 
@@ -14583,6 +14597,7 @@ msgstr "選擇列"
 msgid "Select column name"
 msgstr "選擇列"
 
+#, fuzzy
 msgid "Select columns"
 msgstr "選擇列"
 
@@ -16114,7 +16129,7 @@ msgstr "分類"
 msgid "Subdomain"
 msgstr "子域"
 
-#, python-format
+#, fuzzy, python-format
 msgid "Subgroup %s"
 msgstr "子群組 %s"
 
@@ -16400,6 +16415,7 @@ msgstr "表名未定義"
 msgid "Table or View \"%(table)s\" does not exist."
 msgstr "表或視圖 '%(table)s' 不存在"
 
+#, fuzzy
 msgid "Table side"
 msgstr "表格側"
 

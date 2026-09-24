@@ -2209,6 +2209,7 @@ msgstr ""
 msgid "Add folder"
 msgstr "Lisää kansio"
 
+#, fuzzy
 msgid "Add group"
 msgstr "Lisää ryhmä"
 
@@ -2289,6 +2290,7 @@ msgstr ""
 msgid "Add sheet"
 msgstr "Lisää taulukko"
 
+#, fuzzy
 msgid "Add subgroup"
 msgstr "Lisää aliryhmä"
 
@@ -5430,6 +5432,7 @@ msgstr "Soluraja"
 msgid "Cell title template"
 msgstr "Solun otsikkomalli"
 
+#, fuzzy
 msgid "Center"
 msgstr "Keskitä"
 
@@ -6576,6 +6579,7 @@ msgstr "Supista datapaneeli"
 msgid "Collapse row"
 msgstr "Supista rivi"
 
+#, fuzzy
 msgid "Collapse settings"
 msgstr "Supista asetukset"
 
@@ -6788,6 +6792,7 @@ msgstr "Pituusastetiedot sisältävä sarake"
 msgid "Column data types"
 msgstr "Sarakkeiden tietotyypit"
 
+#, fuzzy
 msgid "Column groups"
 msgstr "Sarakeryhmät"
 
@@ -11382,6 +11387,7 @@ msgstr "Syötä kesto sekunneissa"
 msgid "Enter fullscreen"
 msgstr "Siirry koko näyttö -tilaan"
 
+#, fuzzy
 msgid "Enter group name"
 msgstr "Syötä ryhmän nimi"
 
@@ -11887,6 +11893,7 @@ msgstr "Laajenna rivi"
 msgid "Expand row to edit"
 msgstr "Laajenna rivi"
 
+#, fuzzy
 msgid "Expand settings"
 msgstr "Laajenna asetukset"
 
@@ -13525,7 +13532,7 @@ msgstr ""
 msgid "Group"
 msgstr "Ryhmä"
 
-#, python-format
+#, fuzzy, python-format
 msgid "Group %s"
 msgstr "Ryhmä %s"
 
@@ -13554,9 +13561,11 @@ msgstr "Ryhmäavain"
 msgid "Group by"
 msgstr "Ryhmittele"
 
+#, fuzzy
 msgid "Group columns"
 msgstr "Ryhmän sarakkeet"
 
+#, fuzzy
 msgid "Group name"
 msgstr "Ryhmän nimi"
 
@@ -16818,9 +16827,11 @@ msgstr "Lisää suodattimia"
 msgid "MotherDuck token"
 msgstr "MotherDuck-tunnus"
 
+#, fuzzy
 msgid "Move group left"
 msgstr "Siirrä ryhmä vasemmalle"
 
+#, fuzzy
 msgid "Move group right"
 msgstr "Siirrä ryhmä oikealle"
 
@@ -16874,6 +16885,7 @@ msgstr "Monitasoinen"
 msgid "Multi-Variables"
 msgstr "Monimuuttujinen"
 
+#, fuzzy
 msgid "Multi-level header"
 msgstr "Monitasoinen otsikko"
 
@@ -19476,6 +19488,7 @@ msgstr "Portti %(port)s isäntäkoneella \"%(hostname)s\" kieltäytyi yhteydest�
 msgid "Port out of range 0-65535"
 msgstr "Portti alueen 0-65535 ulkopuolella"
 
+#, fuzzy
 msgid "Position"
 msgstr "Sijainti"
 
@@ -20316,6 +20329,7 @@ msgstr "Poista kohde"
 msgid "Remove from favorites"
 msgstr ""
 
+#, fuzzy
 msgid "Remove group"
 msgstr "Poista ryhmä"
 
@@ -22396,6 +22410,7 @@ msgstr "Valitse sarake"
 msgid "Select column name"
 msgstr "Valitse sarake"
 
+#, fuzzy
 msgid "Select columns"
 msgstr "Valitse sarakkeet"
 
@@ -24771,7 +24786,7 @@ msgstr "Alakategoriat"
 msgid "Subdomain"
 msgstr "Aliverkkotunnus"
 
-#, python-format
+#, fuzzy, python-format
 msgid "Subgroup %s"
 msgstr "Aliryhmä %s"
 
@@ -25186,6 +25201,7 @@ msgstr "Taulukon nimi määrittelemätön"
 msgid "Table or View \"%(table)s\" does not exist."
 msgstr "Taulukkoa tai näkymää \"%(table)s\" ei ole olemassa."
 
+#, fuzzy
 msgid "Table side"
 msgstr "Taulukon puoli"
 

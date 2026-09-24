@@ -24,7 +24,7 @@ import {
   getHeaderGroupDepth,
   getHeaderGroupsControlProps,
   getHeaderGroupsMaxDepth,
-  headerGroupsHaveSameColumns,
+  headerGroupsHaveSameContent,
   hasRenderableHeaderGroups,
   isHeaderGroupsTimeComparisonEnabled,
   nestColDefsInHeaderGroups,
@@ -703,16 +703,16 @@ test('resolveHeaderGroups keeps user groups and refreshes auto-group labels', ()
   expect(next[2].label).toBe('Profit');
 });
 
-test('headerGroupsHaveSameColumns compares ids and nested columns', () => {
-  expect(headerGroupsHaveSameColumns(chartGroups, chartGroups)).toBe(true);
-  expect(headerGroupsHaveSameColumns(chartGroups, [])).toBe(false);
+test('headerGroupsHaveSameContent compares ids, labels, and nested columns', () => {
+  expect(headerGroupsHaveSameContent(chartGroups, chartGroups)).toBe(true);
+  expect(headerGroupsHaveSameContent(chartGroups, [])).toBe(false);
   expect(
-    headerGroupsHaveSameColumns(chartGroups, [
+    headerGroupsHaveSameContent(chartGroups, [
       { ...chartGroups[0], columns: ['profit'] },
     ]),
   ).toBe(false);
   expect(
-    headerGroupsHaveSameColumns(chartGroups, [
+    headerGroupsHaveSameContent(chartGroups, [
       { ...chartGroups[0], label: 'Other' },
     ]),
   ).toBe(false);

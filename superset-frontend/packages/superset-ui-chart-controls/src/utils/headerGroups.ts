@@ -325,7 +325,7 @@ export function syncTimeComparisonGroups(
   return missing.length === 0 ? kept : [...kept, ...missing];
 }
 
-export function headerGroupsHaveSameColumns(
+export function headerGroupsHaveSameContent(
   left: HeaderGroupConfig[],
   right: HeaderGroupConfig[],
 ): boolean {
@@ -344,7 +344,7 @@ export function headerGroupsHaveSameColumns(
     ) {
       return false;
     }
-    return headerGroupsHaveSameColumns(
+    return headerGroupsHaveSameContent(
       group.children ?? [],
       other.children ?? [],
     );
