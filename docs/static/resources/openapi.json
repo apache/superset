@@ -7904,6 +7904,8 @@
           },
           "mapped_column": {
             "description": "Column whose filters would be mirrored",
+            "maxLength": 250,
+            "minLength": 1,
             "type": "string"
           },
           "operator": {
@@ -7923,12 +7925,16 @@
           "partition_column": {
             "default": null,
             "description": "Candidate partition column. The editor previews a mapping before it is saved, so this overrides the stored value; omitted, the stored one is used.",
+            "maxLength": 250,
+            "minLength": 1,
             "nullable": true,
             "type": "string"
           },
           "sample_values": {
             "description": "Values to evaluate the transform at. A comparison operator takes one; IN takes the whole list.",
             "items": {
+              "maxLength": 250,
+              "minLength": 1,
               "type": "string"
             },
             "maxItems": 50,
@@ -7937,6 +7943,8 @@
           },
           "value_transform": {
             "description": "SQL expression containing a :value placeholder",
+            "maxLength": 1024,
+            "minLength": 1,
             "nullable": true,
             "type": "string"
           }
