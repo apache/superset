@@ -98,6 +98,7 @@ export const saveChartConfiguration =
         chartConfiguration,
         globalChartConfiguration,
       });
+      dispatch(dashboardSaveSucceeded(id));
     } catch (err) {
       dispatch({
         type: SAVE_CHART_CONFIG_FAIL,
