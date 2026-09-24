@@ -200,7 +200,12 @@ def apply_column_types(
     df: pd.DataFrame, column_types: list[GenericDataType]
 ) -> pd.DataFrame:
     """
-    Applies the column types to the dataframe to prepare for an excel export
+    Applies the column types to the dataframe to prepare for an excel export.
+
+    Timezone-aware ``datetime64`` columns are made naive here so Excel stores
+    them as dates rather than strings. Object-dtype timestamps, indexes, and
+    headers are stripped later by ``strip_timezones_for_excel`` inside
+    ``df_to_excel``.
 
     :param df: The dataframe to apply the column types to
     :param column_types: The types of the columns
