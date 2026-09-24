@@ -22,6 +22,7 @@ import {
   AutoRefreshProvider,
   useAutoRefreshContext,
   useIsAutoRefreshing,
+  useIsChartAutoRefreshing,
   useIsRefreshInFlight,
 } from './AutoRefreshContext';
 
@@ -134,4 +135,72 @@ test('useIsRefreshInFlight hook returns correct value inside provider', () => {
   });
 
   expect(result.current.isRefreshInFlight).toBe(true);
+});
+
+test('autoRefreshingChartIds starts empty', () => {
+  const { result } = renderHook(() => useAutoRefreshContext(), { wrapper });
+  expect(result.current.autoRefreshingChartIds).toEqual([]);
+});
+
+test('startAutoRefresh(chartIds) records only the affected chart ids', () => {
+  const { result } = renderHook(() => useAutoRefreshContext(), { wrapper });
+
+  act(() => {
+    result.current.startAutoRefresh([1, 2, 3]);
+  });
+
+  expect(result.current.isAutoRefreshing).toBe(true);
+  expect(result.current.autoRefreshingChartIds).toEqual([1, 2, 3]);
+});
+
+test('startAutoRefresh() with no chart ids records an empty batch', () => {
+  const { result } = renderHook(() => useAutoRefreshContext(), { wrapper });
+
+  act(() => {
+    result.current.startAutoRefresh();
+  });
+
+  expect(result.current.isAutoRefreshing).toBe(true);
+  expect(result.current.autoRefreshingChartIds).toEqual([]);
+});
+
+test('endAutoRefresh clears autoRefreshingChartIds', () => {
+  const { result } = renderHook(() => useAutoRefreshContext(), { wrapper });
+
+  act(() => {
+    result.current.startAutoRefresh([1, 2, 3]);
+  });
+  expect(result.current.autoRefreshingChartIds).toEqual([1, 2, 3]);
+
+  act(() => {
+    result.current.endAutoRefresh();
+  });
+  expect(result.current.autoRefreshingChartIds).toEqual([]);
+});
+
+test('useIsChartAutoRefreshing only reports true for charts in the in-flight batch', () => {
+  const { result } = renderHook(
+    () => ({
+      context: useAutoRefreshContext(),
+      isChart1AutoRefreshing: useIsChartAutoRefreshing(1),
+      isChart2AutoRefreshing: useIsChartAutoRefreshing(2),
+    }),
+    { wrapper },
+  );
+
+  expect(result.current.isChart1AutoRefreshing).toBe(false);
+  expect(result.current.isChart2AutoRefreshing).toBe(false);
+
+  act(() => {
+    result.current.context.startAutoRefresh([1]);
+  });
+
+  expect(result.current.isChart1AutoRefreshing).toBe(true);
+  expect(result.current.isChart2AutoRefreshing).toBe(false);
+
+  act(() => {
+    result.current.context.endAutoRefresh();
+  });
+
+  expect(result.current.isChart1AutoRefreshing).toBe(false);
 });
