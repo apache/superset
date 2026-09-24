@@ -29,14 +29,17 @@ from superset.mcp_service.utils.permissions_utils import get_user_role_names
 
 
 def _role(name: Any) -> SimpleNamespace:
+    """Build a stand-in role with ``name``."""
     return SimpleNamespace(name=name)
 
 
 def _group(*roles: Any) -> SimpleNamespace:
+    """Build a stand-in group holding ``roles``."""
     return SimpleNamespace(roles=list(roles))
 
 
 def _user(roles: Any = (), groups: Any = ()) -> SimpleNamespace:
+    """Build a stand-in user with direct ``roles`` and ``groups``."""
     return SimpleNamespace(roles=list(roles), groups=groups)
 
 
@@ -55,6 +58,7 @@ class _UserWithDetachedGroups:
 
 
 def test_direct_roles() -> None:
+    """Roles assigned to the user come back in order."""
     assert get_user_role_names(_user([_role("Admin"), _role("Alpha")])) == [
         "Admin",
         "Alpha",
@@ -62,12 +66,14 @@ def test_direct_roles() -> None:
 
 
 def test_roles_granted_only_through_groups() -> None:
+    """A group grants its roles to a user who holds none directly."""
     user = _user(groups=[_group(_role("editor"), _role("sql_lab"))])
 
     assert get_user_role_names(user) == ["editor", "sql_lab"]
 
 
 def test_direct_roles_come_first_and_names_are_kept_once() -> None:
+    """Direct roles lead, and a role reached twice is listed once."""
     user = _user(
         roles=[_role("Admin")],
         groups=[_group(_role("Admin"), _role("editor")), _group(_role("editor"))],
@@ -77,22 +83,27 @@ def test_direct_roles_come_first_and_names_are_kept_once() -> None:
 
 
 def test_user_without_roles_or_groups() -> None:
+    """A user with neither relationship yields no names."""
     assert get_user_role_names(SimpleNamespace()) == []
 
 
 def test_non_iterable_roles() -> None:
+    """Roles that cannot be iterated yield no names rather than raising."""
     assert get_user_role_names(SimpleNamespace(roles=42)) == []
 
 
 def test_non_iterable_groups_keep_direct_roles() -> None:
+    """Groups that cannot be iterated leave the direct roles in place."""
     assert get_user_role_names(_user([_role("Admin")], groups=object())) == ["Admin"]
 
 
 def test_detached_groups_keep_direct_roles() -> None:
+    """A detached ``groups`` relationship leaves the direct roles in place."""
     assert get_user_role_names(_UserWithDetachedGroups()) == ["Admin"]
 
 
 def test_unreadable_role_names_are_skipped() -> None:
+    """A role with no readable string name is skipped, the rest are kept."""
     user = _user(
         roles=[_role("Admin"), _DetachedRole(), _role(None), SimpleNamespace()],
         groups=[_group(_DetachedRole(), _role("editor"))],
@@ -108,6 +119,7 @@ class _GroupWithDetachedRoles:
 
 
 def test_group_with_unreadable_roles_does_not_drop_later_groups() -> None:
+    """One unreadable group does not hide the groups after it."""
     user = _user(
         roles=[_role("Gamma")],
         groups=[_GroupWithDetachedRoles(), _group(_role("editor"))],

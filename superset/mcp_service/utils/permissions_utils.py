@@ -53,6 +53,7 @@ def get_user_role_names(user: Any) -> list[str]:
     names: list[str] = []
 
     def add(roles: Any) -> None:
+        """Append the readable names in ``roles``, keeping each one once."""
         for role in roles or []:
             try:
                 name = role.name
