@@ -17,7 +17,7 @@
 """Unit tests for the change-record shadow queries (sc-120007).
 
 ``_dashboard_slice_uuids_at_tx`` takes a dashboard's precomputed attachment
-windows (from :func:`charts_attached_to_dashboard`, which pairs the
+windows (from :func:`chart_attachment_windows_for_dashboard`, which pairs the
 ``dashboard_slices_version`` INSERT/DELETE rows into ``[attach, detach)``
 intervals) and keeps only the charts whose window contains the target tx. The
 raw association-shadow validity predicate must NOT be used: Continuum never
@@ -191,7 +191,7 @@ def test_child_records_threads_committing_session_into_membership(
     sc-120007 HIGH regression guard: ``_dashboard_child_records_for_tx_from_shadows``
     runs during commit finalization, when the current transaction's association
     rows are flushed-but-not-committed and visible only on the committing
-    connection. It must pass that session to ``charts_attached_to_dashboard``;
+    connection. It must pass that session to ``chart_attachment_windows_for_dashboard``;
     reading via ``db.session`` would miss those rows on a non-scoped committing
     session and silently drop the change record. Asserted at the call site so
     dropping ``session=session`` fails here even though the direct-window tests
@@ -209,7 +209,7 @@ def test_child_records_threads_committing_session_into_membership(
             return_value={7},
         ),
         patch(
-            "superset.versioning.membership.charts_attached_to_dashboard",
+            "superset.versioning.membership.chart_attachment_windows_for_dashboard",
             spy,
         ),
     ):
@@ -220,31 +220,31 @@ def test_child_records_threads_committing_session_into_membership(
     spy.assert_called_once_with(7, session=committing_session)
 
 
-def test_charts_attached_to_dashboard_uses_the_passed_session(
+def test_chart_attachment_windows_for_dashboard_uses_the_passed_session(
     app_context: None,
 ) -> None:
     """The membership helper reads on the passed session, never db.session."""
-    from superset.versioning.membership import charts_attached_to_dashboard
+    from superset.versioning.membership import chart_attachment_windows_for_dashboard
 
     passed = MagicMock(name="passed_session")
     passed.connection.return_value.execute.return_value.all.return_value = []
 
     with patch("superset.versioning.membership.db") as mock_db:
-        charts_attached_to_dashboard(1, session=passed)
+        chart_attachment_windows_for_dashboard(1, session=passed)
 
     passed.connection.assert_called_once_with()
     mock_db.session.connection.assert_not_called()
 
 
-def test_charts_attached_to_dashboard_defaults_to_db_session(
+def test_chart_attachment_windows_for_dashboard_defaults_to_db_session(
     app_context: None,
 ) -> None:
     """With no session, the helper falls back to the Flask-scoped db.session."""
-    from superset.versioning.membership import charts_attached_to_dashboard
+    from superset.versioning.membership import chart_attachment_windows_for_dashboard
 
     with patch("superset.versioning.membership.db") as mock_db:
         db_result = mock_db.session.connection.return_value.execute.return_value
         db_result.all.return_value = []
-        charts_attached_to_dashboard(1)
+        chart_attachment_windows_for_dashboard(1)
 
     mock_db.session.connection.assert_called_once_with()

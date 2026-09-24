@@ -77,7 +77,7 @@ def shadow_valid_at(shadow_table: sa.Table, tx: int) -> sa.ColumnElement[bool]:
 
 
 def shadow_rows_valid_at(
-    session: Session,
+    session: Session | sa.engine.Connection,
     shadow_table: sa.Table,
     fk_col_name: str,
     fk_value: int,
@@ -95,9 +95,14 @@ def shadow_rows_valid_at(
     natural-key diff helpers (``diff_dataset_columns`` etc.).
     """
     fk_col = getattr(shadow_table.c, fk_col_name)
+    # Accept a raw Connection so callers needing snapshot isolation across
+    # SEVERAL reads (get_version's parent + child pair, sc-120012) can run
+    # this on their own transaction instead of the request session's.
+    conn: sa.engine.Connection = (
+        session if isinstance(session, sa.engine.Connection) else session.connection()
+    )
     rows = (
-        session.connection()
-        .execute(
+        conn.execute(
             sa.select(shadow_table).where(
                 fk_col == fk_value,
                 shadow_valid_at(shadow_table, tx),
@@ -258,8 +263,9 @@ def _dashboard_slice_uuids_at_tx(
 ) -> list[str]:
     """Return the uuids of charts attached to a dashboard at *tx*.
 
-    *attached* is :func:`~superset.versioning.membership.charts_attached_to_dashboard`'s
-    output — ``(slice_id, window)`` pairs where each window is the chart's
+    *attached* is the output of
+    :func:`~superset.versioning.membership.chart_attachment_windows_for_dashboard`
+    — ``(slice_id, window)`` pairs where each window is the chart's
     INSERT/DELETE-paired ``[attach, detach)`` interval — so membership at *tx*
     is simply the charts whose window contains *tx*. The raw association-shadow
     validity predicate (``end_transaction_id IS NULL OR > tx`` +
@@ -344,7 +350,7 @@ def _dashboard_child_records_for_tx_from_shadows(
     from sqlalchemy_continuum import version_class
 
     from superset.models.dashboard import Dashboard
-    from superset.versioning.membership import charts_attached_to_dashboard
+    from superset.versioning.membership import chart_attachment_windows_for_dashboard
 
     metadata = version_class(Dashboard).__table__.metadata
     m2m_tbl = metadata.tables.get("dashboard_slices_version")
@@ -371,7 +377,7 @@ def _dashboard_child_records_for_tx_from_shadows(
         # are visible), then take the pre/post membership by which windows
         # contain each tx — the windows are tx-independent, so no need to
         # re-scan the association history for both reads.
-        attached = charts_attached_to_dashboard(dashboard_id, session=session)
+        attached = chart_attachment_windows_for_dashboard(dashboard_id, session=session)
         post_uuids = _dashboard_slice_uuids_at_tx(session, attached, transaction_id)
         pre_uuids = _dashboard_slice_uuids_at_tx(session, attached, prior_tx)
 

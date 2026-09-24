@@ -32,7 +32,13 @@ import {
   RequestConfig,
   ParseMethod,
 } from './types';
-import { DEFAULT_FETCH_RETRY_OPTIONS, DEFAULT_APP_ROOT } from './constants';
+import {
+  CSRF_ERROR_TYPE,
+  DEFAULT_APP_ROOT,
+  DEFAULT_FETCH_RETRY_OPTIONS,
+  HTTP_STATUS_BAD_REQUEST,
+  HTTP_STATUS_UNAUTHORIZED,
+} from './constants';
 
 const defaultUnauthorizedHandlerForPrefix = (appRoot: string) => () => {
   if (!window.location.pathname.startsWith(`${appRoot}/login`)) {
@@ -40,12 +46,35 @@ const defaultUnauthorizedHandlerForPrefix = (appRoot: string) => () => {
   }
 };
 
+async function isCsrfError(rejection: unknown): Promise<boolean> {
+  const response = rejection as Response | undefined;
+  if (
+    response?.status !== HTTP_STATUS_BAD_REQUEST ||
+    typeof response.clone !== 'function'
+  ) {
+    return false;
+  }
+  try {
+    const body = await response.clone().json();
+    return (
+      body?.errors?.some(
+        (error: { error_type?: string }) =>
+          error?.error_type === CSRF_ERROR_TYPE,
+      ) === true
+    );
+  } catch {
+    return false;
+  }
+}
+
 export default class SupersetClientClass {
   credentials: Credentials;
 
   csrfToken?: CsrfToken;
 
   csrfPromise?: CsrfPromise;
+
+  csrfRefreshPromise?: Promise<void>;
 
   guestToken?: string;
 
@@ -224,20 +253,52 @@ export default class SupersetClientClass {
     ...rest
   }: RequestConfig & { parseMethod?: T }) {
     await this.ensureAuth();
-    return callApiAndParseWithTimeout({
-      ...rest,
-      credentials: credentials ?? this.credentials,
-      mode: mode ?? this.mode,
-      url: this.getUrl({ endpoint, host, url }),
-      headers: { ...this.headers, ...headers },
-      timeout: timeout ?? this.timeout,
-      fetchRetryOptions: fetchRetryOptions ?? this.fetchRetryOptions,
-    }).catch(res => {
-      if (res?.status === 401 && !ignoreUnauthorized) {
+
+    const call = () =>
+      callApiAndParseWithTimeout({
+        ...rest,
+        credentials: credentials ?? this.credentials,
+        mode: mode ?? this.mode,
+        url: this.getUrl({ endpoint, host, url }),
+        headers: { ...this.headers, ...headers },
+        timeout: timeout ?? this.timeout,
+        fetchRetryOptions: fetchRetryOptions ?? this.fetchRetryOptions,
+      });
+
+    const handleUnauthorized = (res: { status?: number }) => {
+      if (res?.status === HTTP_STATUS_UNAUTHORIZED && !ignoreUnauthorized) {
         this.handleUnauthorized();
       }
       return Promise.reject(res);
+    };
+
+    return call().catch(async res => {
+      if (res?.status === HTTP_STATUS_UNAUTHORIZED) {
+        return handleUnauthorized(res);
+      }
+      if (!(await isCsrfError(res))) {
+        return Promise.reject(res);
+      }
+      try {
+        await this.refreshCSRFToken();
+      } catch {
+        return Promise.reject(res);
+      }
+      return call().catch(handleUnauthorized);
     });
+  }
+
+  async refreshCSRFToken(): Promise<void> {
+    this.csrfRefreshPromise ??= this.reAuthenticate()
+      .then(() => undefined)
+      .catch(error => {
+        this.csrfPromise = undefined;
+        throw error;
+      })
+      .finally(() => {
+        this.csrfRefreshPromise = undefined;
+      });
+    return this.csrfRefreshPromise;
   }
 
   async ensureAuth(): CsrfPromise {

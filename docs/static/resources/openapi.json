@@ -124,6 +124,7 @@
                           "INVALID_PAYLOAD_FORMAT_ERROR",
                           "INVALID_PAYLOAD_SCHEMA_ERROR",
                           "MARSHMALLOW_ERROR",
+                          "CSRF_ERROR",
                           "REPORT_NOTIFICATION_ERROR"
                         ],
                         "type": "string"
@@ -254,6 +255,18 @@
             "description": "User who produced the change, or ``null`` when the saving user no longer exists in ``ab_user``.",
             "nullable": true
           },
+          "creation_kind": {
+            "description": "Set only on the synthetic starting-version record (``kind == \"__creation__\"``): how the entity came to exist. ``\"pre_tracking\"`` \u2014 a retroactive baseline for an entity that predates versioning; ``\"created\"`` \u2014 a creation with tracking on; ``\"imported\"`` \u2014 an import, attributed to the importing user; ``\"unknown\"`` \u2014 an unstamped starting version whose creation provenance cannot be established. Machine values: display copy is owned by the client.",
+            "enum": [
+              "pre_tracking",
+              "created",
+              "imported",
+              "unknown",
+              null
+            ],
+            "nullable": true,
+            "type": "string"
+          },
           "entity_deleted": {
             "description": "True iff the source entity is hard-deleted (no live row by ``entity_id``). False for live and soft-deleted entities.",
             "type": "boolean"
@@ -324,7 +337,8 @@
               "time_range",
               "color_palette",
               "field",
-              "__meta__"
+              "__meta__",
+              "__creation__"
             ],
             "type": "string"
           },
@@ -1067,8 +1081,18 @@
               }
             },
             "type": "object"
+          },
+          "groupby": {
+            "items": {
+              "description": "Columns by which to group by",
+              "type": "string"
+            },
+            "type": "array"
           }
         },
+        "required": [
+          "groupby"
+        ],
         "type": "object"
       },
       "ChartDataAsyncResponseSchema": {
@@ -1403,6 +1427,14 @@
             "description": "Do not include columns whose entries are all missing (default: `true`).",
             "type": "boolean"
           },
+          "index": {
+            "description": "Columns to group by on the table index (=rows)",
+            "items": {
+              "type": "string"
+            },
+            "minItems": 1,
+            "type": "array"
+          },
           "marginal_distribution_name": {
             "description": "Name of marginal distribution row/column. (default: `All`)",
             "type": "string"
@@ -1416,6 +1448,9 @@
             "type": "number"
           }
         },
+        "required": [
+          "index"
+        ],
         "type": "object"
       },
       "ChartDataPostProcessingOperation": {
@@ -1463,9 +1498,14 @@
             "minimum": 0.0,
             "type": "number"
           },
-          "monthly_seasonality": {
-            "description": "Should monthly seasonality be applied. An integer value will specify Fourier order of seasonality, `None` will automatically detect seasonality.",
+          "daily_seasonality": {
+            "description": "Should daily seasonality be applied. An integer value will specify Fourier order of seasonality, `None` will automatically detect seasonality.",
             "example": false
+          },
+          "index": {
+            "description": "Name of the column holding the x-axis data. Defaults to `__timestamp`.",
+            "example": "__timestamp",
+            "type": "string"
           },
           "periods": {
             "description": "Time periods (in units of `time_grain`) to predict into the future",
@@ -2578,6 +2618,13 @@
             "example": false,
             "type": "boolean"
           },
+          "columns": {
+            "description": "columns on which to perform rolling, mapping source column to target column. For instance, `{'y': 'y'}` will replace the column `y` with the rolling value in `y`, while `{'y': 'y2'}` will add a column `y2` based on rolling values calculated from `y`, leaving the original column `y` unchanged.",
+            "example": {
+              "sales": "weekly_rolling_sales"
+            },
+            "type": "object"
+          },
           "min_periods": {
             "description": "The minimum amount of periods required for a row to be included in the result set.",
             "example": 7,
@@ -2646,6 +2693,7 @@
           }
         },
         "required": [
+          "columns",
           "rolling_type",
           "window"
         ],
@@ -2692,31 +2740,20 @@
       },
       "ChartDataSortOptionsSchema": {
         "properties": {
-          "aggregates": {
-            "description": "The keys are the name of the aggregate column to be created, and the values specify the details of how to apply the aggregation. If an operator requires additional options, these can be passed here to be unpacked in the operator call. The following numpy operators are supported: average, argmin, argmax, cumsum, cumprod, max, mean, median, nansum, nanmin, nanmax, nanmean, nanmedian, min, percentile, prod, product, std, sum, var. Any options required by the operator can be passed to the `options` object.\n\nIn the example, a new column `first_quantile` is created based on values in the column `my_col` using the `percentile` operator with the `q=0.25` parameter.",
-            "example": {
-              "first_quantile": {
-                "column": "my_col",
-                "operator": "percentile",
-                "options": {
-                  "q": 0.25
-                }
-              }
-            },
-            "type": "object"
+          "ascending": {
+            "description": "Sort ascending (the default) or descending. A list of booleans may be given to set the direction per entry in `by`.",
+            "example": true
           },
-          "columns": {
-            "description": "columns by by which to sort. The key specifies the column name, value specifies if sorting in ascending order.",
-            "example": {
-              "country": true,
-              "gender": false
-            },
-            "type": "object"
+          "by": {
+            "description": "Name, or list of names, of the columns to sort by. Ignored when `is_sort_index` is set.",
+            "example": "country"
+          },
+          "is_sort_index": {
+            "description": "Whether to sort by the index rather than by column values.",
+            "example": true,
+            "type": "boolean"
           }
         },
-        "required": [
-          "columns"
-        ],
         "type": "object"
       },
       "ChartDataTiming": {
@@ -3704,6 +3741,10 @@
             "description": "The status of the async screenshot",
             "type": "string"
           },
+          "task_timeout_seconds": {
+            "description": "The client wait budget for the Pending and Computing task states",
+            "type": "integer"
+          },
           "task_updated_at": {
             "description": "The timestamp of the last change in status",
             "type": "string"
@@ -3897,6 +3938,9 @@
           "params": {
             "type": "string"
           },
+          "parent": {
+            "type": "object"
+          },
           "perm": {
             "type": "string"
           },
@@ -3906,8 +3950,20 @@
           "select_star": {
             "type": "string"
           },
+          "semantic_view_features": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
           "sql": {
             "type": "string"
+          },
+          "supports_drill_to_detail": {
+            "type": "boolean"
+          },
+          "supports_samples": {
+            "type": "boolean"
           },
           "table_name": {
             "type": "string"
@@ -13012,6 +13068,12 @@
           "created_by": {
             "$ref": "#/components/schemas/ThemeRestApi.get.User1"
           },
+          "editors": {
+            "items": {
+              "$ref": "#/components/schemas/ThemeRestApi.get.Subject"
+            },
+            "type": "array"
+          },
           "id": {
             "type": "integer"
           },
@@ -13039,6 +13101,25 @@
             "type": "string"
           }
         },
+        "type": "object"
+      },
+      "ThemeRestApi.get.Subject": {
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "label": {
+            "maxLength": 255,
+            "type": "string"
+          },
+          "type": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "label",
+          "type"
+        ],
         "type": "object"
       },
       "ThemeRestApi.get.User": {
@@ -13100,6 +13181,12 @@
             "nullable": true,
             "type": "string"
           },
+          "editors": {
+            "items": {
+              "$ref": "#/components/schemas/ThemeRestApi.get_list.Subject"
+            },
+            "type": "array"
+          },
           "id": {
             "type": "integer"
           },
@@ -13127,6 +13214,25 @@
             "type": "string"
           }
         },
+        "type": "object"
+      },
+      "ThemeRestApi.get_list.Subject": {
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "label": {
+            "maxLength": 255,
+            "type": "string"
+          },
+          "type": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "label",
+          "type"
+        ],
         "type": "object"
       },
       "ThemeRestApi.get_list.User": {
@@ -13171,6 +13277,13 @@
       },
       "ThemeRestApi.post": {
         "properties": {
+          "editors": {
+            "items": {
+              "description": "A list of subject IDs (users, roles, or groups) that are allowed to edit this theme.",
+              "type": "integer"
+            },
+            "type": "array"
+          },
           "json_data": {
             "type": "string"
           },
@@ -13186,6 +13299,13 @@
       },
       "ThemeRestApi.put": {
         "properties": {
+          "editors": {
+            "items": {
+              "description": "A list of subject IDs (users, roles, or groups) that are allowed to edit this theme.",
+              "type": "integer"
+            },
+            "type": "array"
+          },
           "json_data": {
             "type": "string"
           },
@@ -18291,6 +18411,9 @@
           "401": {
             "$ref": "#/components/responses/401"
           },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
           "404": {
             "$ref": "#/components/responses/404"
           },
@@ -18310,6 +18433,79 @@
           }
         ],
         "summary": "Download multiple dashboards as YAML files",
+        "tags": [
+          "Dashboards"
+        ]
+      }
+    },
+    "/api/v1/dashboard/export_xlsx/download/{job_id}/": {
+      "get": {
+        "description": "Intentionally requires no login: the unguessable job_id, emailed only to the original requester (or handed to their own session via export_xlsx_status), is the credential. The dashboard access check already ran once, when the export was requested -- see security_manager.raise_for_access in export_xlsx. The file streams through Superset with the deployment's own storage credentials instead of redirecting to a signed storage URL, so it works for ambient identities that cannot sign (e.g. workload identity federation) and never mints a bearer URL Superset cannot observe or revoke.",
+        "parameters": [
+          {
+            "description": "The job_id from the export_xlsx response",
+            "in": "path",
+            "name": "job_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The .xlsx file as an attachment"
+          },
+          "410": {
+            "description": "The link is unknown, expired, or the export failed"
+          },
+          "501": {
+            "description": "Excel export is not configured on this server"
+          }
+        },
+        "security": [],
+        "summary": "Download a completed dashboard Excel export",
+        "tags": [
+          "Dashboards"
+        ]
+      }
+    },
+    "/api/v1/dashboard/export_xlsx/status/{job_id}/": {
+      "get": {
+        "description": "For a session with no email address to be notified at (e.g. an embedded/guest session), the frontend polls this endpoint with the job_id from the export_xlsx response instead of waiting for an email. Behind the same @protect() as the export request itself, unlike the login-free download_xlsx stream (which also has to work when clicked from a plain email link, possibly with no active session at all).",
+        "parameters": [
+          {
+            "description": "The job_id from the export_xlsx response",
+            "in": "path",
+            "name": "job_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Job status: {\"status\": \"pending\"} while queued, {\"status\": \"running\"} once a worker has started executing, {\"status\": \"ready\", \"download_url\": \"...\"} once the file is available, or {\"status\": \"error\", \"message\": \"...\"} if the export failed."
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          },
+          {
+            "api_key": []
+          }
+        ],
+        "summary": "Poll the status of a dashboard Excel export job",
         "tags": [
           "Dashboards"
         ]
@@ -19299,6 +19495,16 @@
           }
         },
         "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DashboardCacheScreenshotResponseSchema"
+                }
+              }
+            },
+            "description": "Existing dashboard screenshot task status"
+          },
           "202": {
             "content": {
               "application/json": {
@@ -19320,6 +19526,9 @@
           },
           "500": {
             "$ref": "#/components/responses/500"
+          },
+          "503": {
+            "description": "Screenshot cache unavailable"
           }
         },
         "security": [
@@ -19560,7 +19769,7 @@
     },
     "/api/v1/dashboard/{pk}/export_xlsx/": {
       "post": {
-        "description": "Enqueues an async task that writes each chart's data to its own worksheet, uploads the .xlsx to S3, and emails the requesting user a pre-signed download link. Returns immediately with a job id.",
+        "description": "Enqueues an async task that writes each chart's data to its own worksheet, uploads the .xlsx to the configured export storage, and records a download link. The requesting user is emailed the link when they have an address on file; either way the returned job id can be polled at export_xlsx/status/<job_id>/ for status and, once ready, the download link.",
         "parameters": [
           {
             "description": "The dashboard id",
@@ -19920,6 +20129,13 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "in": "query",
+            "name": "tab_id",
+            "schema": {
+              "type": "integer"
+            }
           }
         ],
         "responses": {
@@ -19993,6 +20209,10 @@
               "application/json": {
                 "schema": {
                   "properties": {
+                    "names": {
+                      "description": "A map of native filter id to that filter's human-readable label, for the filter ids present in `value`. Cross-referenced from the dashboard's native filter configuration, since the cached `value` itself has no notion of a filter's label.",
+                      "type": "object"
+                    },
                     "value": {
                       "description": "The stored value",
                       "type": "string"
@@ -23977,7 +24197,7 @@
             }
           },
           {
-            "description": "Optional optimistic-concurrency guard. Pass the ``ETag`` returned by a prior read of this dataset; the update is rejected with 412 if the dataset has changed since.",
+            "description": "Optional optimistic-concurrency guard. Pass the ``ETag`` returned by a prior read of this dataset; the update is rejected with 412 if the dataset has changed since, or with a retryable 409 if a concurrent save won a lock race (see those responses for which action each calls for).",
             "in": "header",
             "name": "If-Match",
             "schema": {
@@ -24059,6 +24279,21 @@
           "404": {
             "$ref": "#/components/responses/404"
           },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "A concurrent save on this dataset won a database lock race, so this conditional request could not be applied. The client's ``If-Match`` token is NOT proven stale: unlike a 412, the correct action is to retry the SAME request (with backoff; a few attempts, then surface the conflict) rather than refetch the entity for a new token."
+          },
           "412": {
             "content": {
               "application/json": {
@@ -24072,7 +24307,7 @@
                 }
               }
             },
-            "description": "The dataset changed since the version identified by the request's ``If-Match`` header; the update was not applied."
+            "description": "The dataset changed since the version identified by the request's ``If-Match`` header; the update was not applied. The token is stale: refetch the entity to pick up the current version before retrying \u2014 retrying the same request unchanged will fail again (contrast the retryable 409 above)."
           },
           "422": {
             "$ref": "#/components/responses/422"
@@ -25649,6 +25884,13 @@
             "required": true,
             "schema": {
               "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "tab_id",
+            "schema": {
+              "type": "integer"
             }
           }
         ],
@@ -34804,6 +35046,9 @@
           },
           "401": {
             "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
           },
           "404": {
             "$ref": "#/components/responses/404"

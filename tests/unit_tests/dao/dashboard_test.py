@@ -24,7 +24,9 @@ from sqlalchemy.orm.session import Session
 from superset import db, security_manager
 from superset.connectors.sqla.models import Database, SqlaTable
 from superset.daos.dashboard import DashboardDAO
+from superset.dashboards.filter_scope import derive_metadata_scopes
 from superset.models.dashboard import Dashboard
+from superset.models.helpers import skip_visibility_filter
 from superset.models.slice import Slice
 from superset.subjects.models import Subject
 from superset.subjects.types import SubjectType
@@ -390,3 +392,140 @@ def test_prefetch_before_the_main_get_access_loop_reads_no_extra_sql(
         n = _count_statements(session, narrow_like_the_get)
 
     assert n == 0, f"the GET access loop issued {n} statements after the prefetch"
+
+
+def _position_with_trapped_chart(
+    placed_chart_id: int, trapped_chart_id: int
+) -> dict[str, Any]:
+    """A layout where a column was dropped into a row nested inside itself."""
+    return {
+        "DASHBOARD_VERSION_KEY": "v2",
+        "ROOT_ID": {"id": "ROOT_ID", "type": "ROOT", "children": ["GRID_ID"]},
+        "GRID_ID": {
+            "id": "GRID_ID",
+            "type": "GRID",
+            "children": ["ROW-a"],
+            "parents": ["ROOT_ID"],
+        },
+        "ROW-a": {
+            "id": "ROW-a",
+            "type": "ROW",
+            "children": ["CHART-placed"],
+            "parents": ["ROOT_ID", "GRID_ID"],
+            "meta": {},
+        },
+        "CHART-placed": {
+            "id": "CHART-placed",
+            "type": "CHART",
+            "children": [],
+            "parents": ["ROOT_ID", "GRID_ID", "ROW-a"],
+            "meta": {"chartId": placed_chart_id, "width": 4, "height": 50},
+        },
+        "COLUMN-orphan": {
+            "id": "COLUMN-orphan",
+            "type": "COLUMN",
+            "children": ["CHART-trapped", "ROW-orphan"],
+            "parents": ["ROOT_ID", "GRID_ID", "ROW-a"],
+            "meta": {},
+        },
+        "ROW-orphan": {
+            "id": "ROW-orphan",
+            "type": "ROW",
+            "children": ["COLUMN-orphan"],
+            "parents": ["ROOT_ID", "GRID_ID", "ROW-a", "COLUMN-orphan"],
+            "meta": {},
+        },
+        "CHART-trapped": {
+            "id": "CHART-trapped",
+            "type": "CHART",
+            "children": [],
+            "parents": ["ROOT_ID", "GRID_ID", "ROW-a", "COLUMN-orphan"],
+            "meta": {"chartId": trapped_chart_id, "width": 4, "height": 50},
+        },
+    }
+
+
+def _make_charts(
+    session: Session, trapped_deleted: bool = False
+) -> tuple[Slice, Slice]:
+    Dashboard.metadata.create_all(session.get_bind())
+    dataset = SqlaTable(
+        table_name="trapped_table",
+        database=Database(database_name="trapped_db", sqlalchemy_uri="sqlite://"),
+    )
+    db.session.add(dataset)
+    db.session.flush()
+    placed = Slice(
+        slice_name="placed", datasource_id=dataset.id, datasource_type="table"
+    )
+    trapped = Slice(
+        slice_name="trapped",
+        datasource_id=dataset.id,
+        datasource_type="table",
+        deleted_at=datetime(2026, 1, 1, tzinfo=timezone.utc)
+        if trapped_deleted
+        else None,
+    )
+    db.session.add_all([placed, trapped])
+    db.session.flush()
+    return placed, trapped
+
+
+def test_set_dash_metadata_keeps_cross_filter_config_of_trapped_chart(
+    session: Session,
+) -> None:
+    placed, trapped = _make_charts(session)
+    dashboard = Dashboard(dashboard_title="trapped", slices=[placed, trapped])
+    db.session.add(dashboard)
+    db.session.flush()
+
+    scope = {"rootPath": ["ROOT_ID"], "excluded": [trapped.id, placed.id]}
+    DashboardDAO.set_dash_metadata(
+        dashboard,
+        {
+            "positions": _position_with_trapped_chart(placed.id, trapped.id),
+            "chart_configuration": {
+                str(trapped.id): {
+                    "id": trapped.id,
+                    "crossFilters": {"scope": scope, "chartsInScope": []},
+                }
+            },
+        },
+    )
+
+    derived = derive_metadata_scopes(dashboard, dashboard.params_dict)
+
+    cross_filters = derived["chart_configuration"][str(trapped.id)]["crossFilters"]
+    assert cross_filters["scope"] == scope
+    assert cross_filters["chartsInScope"] == []
+
+
+@with_feature_flags(SOFT_DELETE=True)
+def test_set_dash_metadata_keeps_archived_trapped_chart_through_resave(
+    session: Session,
+) -> None:
+    placed, trapped = _make_charts(session, trapped_deleted=True)
+    dashboard = Dashboard(dashboard_title="trapped", slices=[placed, trapped])
+    db.session.add(dashboard)
+    db.session.flush()
+
+    DashboardDAO.set_dash_metadata(
+        dashboard,
+        {"positions": _position_with_trapped_chart(placed.id, trapped.id)},
+    )
+    db.session.flush()
+
+    # The client re-saves what it loaded; the archived chart is absent from the
+    # charts payload, so only its layout entry can carry its membership.
+    saved = json.loads(dashboard.position_json)
+    assert "COLUMN-orphan" not in saved
+    assert "ROW-orphan" not in saved
+    assert saved["CHART-trapped"]["parents"][:2] == ["ROOT_ID", "GRID_ID"]
+
+    db.session.expire(dashboard, ["slices"])
+    DashboardDAO.set_dash_metadata(dashboard, {"positions": saved})
+    db.session.flush()
+
+    with skip_visibility_filter(db.session, Slice):
+        db.session.expire(dashboard, ["slices"])
+        assert {chart.id for chart in dashboard.slices} == {placed.id, trapped.id}

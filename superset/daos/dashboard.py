@@ -36,6 +36,7 @@ from superset.commands.dashboard.exceptions import (
 from superset.daos.base import BaseDAO, ColumnOperator, ColumnOperatorEnum
 from superset.dashboards.filter_scope import derive_metadata_scopes
 from superset.dashboards.filters import DashboardAccessFilter
+from superset.dashboards.layout import repair_position
 from superset.exceptions import SupersetSecurityException
 from superset.extensions import db
 from superset.models.core import FavStar, FavStarClassName
@@ -428,6 +429,10 @@ class DashboardDAO(BaseDAO[Dashboard]):
                 ):
                     chart_id = obj["meta"]["chartId"]
                     obj["meta"]["uuid"] = uuid_map.get(chart_id)
+
+            # Repair the layout before it is persisted; detached charts are
+            # reattached so their membership and cross-filter config survive.
+            positions = repair_position(positions, dashboard.id)
 
             # remove leading and trailing white spaces in the dumped json
             dashboard.position_json = json.dumps(

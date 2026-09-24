@@ -67,8 +67,12 @@ let mockState: {
 };
 jest.mock('react-redux', () => ({
   ...jest.requireActual('react-redux'),
-  useDispatch: () => mockDispatch,
   useSelector: (selector: (state: unknown) => unknown) => selector(mockState),
+}));
+
+jest.mock('src/views/store', () => ({
+  ...jest.requireActual('src/views/store'),
+  useAppDispatch: () => mockDispatch,
 }));
 
 const target = {
