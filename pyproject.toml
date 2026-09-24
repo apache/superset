@@ -191,10 +191,18 @@ elasticsearch = ["elasticsearch-dbapi>=0.2.13, <0.3.0"]
 # SQLAlchemy 2.0 core bump has landed (discussion #40273).
 exasol = ["sqlalchemy-exasol>=6.0.0, <8.0"]
 excel = ["xlrd>=2.0.2, <2.1"]
-# Async dashboard "Export Data/Images to Excel": uploads the workbook to S3 and
-# emails a pre-signed link. boto3 is imported lazily by superset.utils.s3, so
-# installing this extra is only required to actually run exports.
+# S3 storage backend for the async dashboard "Export Data/Images to Excel"
+# feature (EXPORT_STORAGE["backend"] = S3ExportStorage()). boto3 is
+# imported lazily by superset.utils.s3, so installing this extra is only
+# required to actually run exports.
 excel-export = ["boto3"]
+# Google Cloud Storage backend for the same feature (EXPORT_STORAGE
+# ["backend"] = GCSExportStorage()), for a deployment whose export bucket is a
+# native GCS bucket rather than S3. google-cloud-storage is imported lazily by
+# superset.utils.gcs, so this extra is an alternative to excel-export, not an
+# addition to it -- pick whichever matches your bucket's provider.
+# >=1.37 for ``Blob.open``, which superset.utils.gcs streams downloads through.
+excel-export-gcs = ["google-cloud-storage>=1.37"]
 fastmcp = [
     "fastmcp>=3.4.7,<4.0",
     # fastmcp 3.x itself requires mcp<2.0; the upper bound here was looser
@@ -390,6 +398,17 @@ module = [
 ]
 warn_unused_ignores = false
 
+# The mirror case: superset-core declares SqlaTable's id/uuid/perm as plain
+# value types, so column expressions like SqlaTable.uuid.in_() only need a
+# type: ignore when superset-core's sources are part of the same mypy run
+# (full-repo lint) and not when only changed files are checked.
+[[tool.mypy.overrides]]
+module = [
+    "superset.mcp_service.dataset_scope",
+    "tests.unit_tests.mcp_service.dataset.tool.test_dataset_tools",
+]
+warn_unused_ignores = false
+
 [tool.ruff]
 # Exclude a variety of commonly ignored directories.
 exclude = [
@@ -447,6 +466,9 @@ select = [
     "F",
     "G",
     "I",
+    # f-strings passed to gettext are never translatable, and on Python
+    # 3.12+ babel extracts bogus msgids from their replacement fields.
+    "INT001",
     "N",
     "PT",
     "Q",
