@@ -14,19 +14,22 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-"""Decides whether `scheduled-docker-image-refresh.yml` needs to override the
-Dockerfile target `supersetbot` resolved for a build preset.
+"""Decides whether `tag-release.yml` needs to override the Dockerfile target
+`supersetbot` resolved for a build preset.
 
 supersetbot's preset -> Dockerfile-target mapping tracks current master, but
-the scheduled refresh builds an arbitrary *historical* release ref. A preset
-introduced after that release won't have a matching stage in its Dockerfile.
-That's what broke in #44220: `superset` was added as both a new Dockerfile
-stage and the preset backing the plain tags (`latest`, `<version>`, per-SHA)
-by #44100. Releases cut before it (5.0.0, 6.0.0, 6.1.0 -- every release
-published as of #44220) still have their plain tags built from the
-pre-existing `lean` stage, so that's the correct substitute for `superset`
-on those releases, not a guess -- see `docs/admin_docs/installation/
-docker-builds.mdx` as of #44100 for the plain tag's pre-split source.
+`tag-release.yml`'s docker-release job can check out an arbitrary
+*historical* release ref mid-job (via `workflow_dispatch` or a
+`release: edited` event) while keeping supersetbot from the triggering
+(current master) revision. A preset introduced after that release won't have
+a matching stage in its Dockerfile. That's what broke in #44220: `superset`
+was added as both a new Dockerfile stage and the preset backing the plain
+tags (`latest`, `<version>`, per-SHA) by #44100. Releases cut before it
+(5.0.0, 6.0.0, 6.1.0 -- every release published as of #44220) still have
+their plain tags built from the pre-existing `lean` stage, so that's the
+correct substitute for `superset` on those releases, not a guess -- see
+`docs/admin_docs/installation/docker-builds.mdx` as of #44100 for the plain
+tag's pre-split source.
 """
 
 import re
