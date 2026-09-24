@@ -22,7 +22,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-23 20:25+0530\n"
+"POT-Creation-Date: 2026-09-28 16:14+0530\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: ro\n"
@@ -33,16 +33,6 @@ msgstr ""
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Generated-By: Babel 2.10.3\n"
-
-#, python-format
-msgid ""
-"\n"
-"                <p>Your report/alert was unable to be generated because "
-"of the following error: %(text)s</p>\n"
-"                <p>Please check your dashboard/chart for errors.</p>\n"
-"                <p><b><a href=\"%(url)s\">%(call_to_action)s</a></b></p>\n"
-"                "
-msgstr ""
 
 #, python-format
 msgid ""
@@ -209,6 +199,14 @@ msgstr "\"%s\" este acum tema implicită a sistemului"
 #, no-python-format
 msgid "% calculation"
 msgstr "% calcul"
+
+#, python-format
+msgid "% of"
+msgstr ""
+
+#, python-format
+msgid "% of column"
+msgstr ""
 
 #, python-format
 msgid "% of column total"
@@ -1082,6 +1080,12 @@ msgstr ""
 msgid ""
 "A butterfly chart compares two metrics across categories using horizontal"
 " bars that extend left and right from a central axis."
+msgstr ""
+
+msgid ""
+"A candlestick chart shows opening, closing, high, and low values for each"
+" period. It is commonly used for financial and other time-series range "
+"analysis."
 msgstr ""
 
 msgid "A comma separated list of columns that should be parsed as dates"
@@ -2907,9 +2911,6 @@ msgstr "Ajustează automat lățimea coloanei pe baza spațiului disponibil"
 msgid "Automatically adjust column width based on content"
 msgstr "Ajustează automat lățimea coloanei pe baza conținutului"
 
-msgid "Automatically retry sending the report when delivery fails."
-msgstr ""
-
 msgid "Automatically sync columns"
 msgstr "Sincronizează automat coloanele"
 
@@ -4251,6 +4252,9 @@ msgstr "Închide filă"
 msgid "Close version history"
 msgstr ""
 
+msgid "Closing value for each period."
+msgstr ""
+
 msgid "Cluster label aggregator"
 msgstr "Agregator etichetă cluster"
 
@@ -4468,6 +4472,9 @@ msgid "Column select"
 msgstr "Selectare coloană"
 
 msgid "Column settings"
+msgstr ""
+
+msgid "Column sum"
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, fr, it,
@@ -4700,7 +4707,7 @@ msgstr "Configurează aspectul panoului de control, culorile și CSS-ul personal
 msgid "Configure filter scopes"
 msgstr "Configurează domeniile de aplicare ale filtrelor"
 
-msgid "Configure retry behavior on delivery failure."
+msgid "Configure retries when alert or report generation fails before delivery."
 msgstr ""
 
 msgid "Configure the basics of your Annotation Layer."
@@ -4824,6 +4831,9 @@ msgstr "Control"
 
 msgid "Control labeled "
 msgstr "Control etichetat "
+
+msgid "Control whether this dashboard loads chart data asynchronously"
+msgstr ""
 
 msgid ""
 "Controls how labels overflow beyond the max width. \"Truncate\" adds an "
@@ -5523,6 +5533,9 @@ msgstr "Date"
 #, fuzzy
 msgid "Data Connections"
 msgstr "Conexiuni de date"
+
+msgid "Data Export Options"
+msgstr ""
 
 msgid "Data Table"
 msgstr "Tabel Date"
@@ -6286,6 +6299,11 @@ msgstr ""
 "orice alerte sau rapoarte conexe. Poți încă să anulezi această acțiune cu"
 
 msgid ""
+"Deleting this dataset is permanent. The affected charts and dashboards "
+"will remain, but they may no longer work."
+msgstr ""
+
+msgid ""
 "Deleting this semantic layer also permanently deletes any semantic views "
 "it contains, and charts built on those views will stop working. The "
 "affected views could not be listed."
@@ -6552,6 +6570,9 @@ msgid ""
 "Display each cell as a percentage of its row, column, or grand total, "
 "instead of its actual value. Totals and subtotals are still computed "
 "correctly first; this only changes how they are displayed."
+msgstr ""
+
+msgid "Display format"
 msgstr ""
 
 msgid "Display headers for each column at the top of the matrix"
@@ -7014,6 +7035,9 @@ msgstr "Editează proprietățile stratului de adnotare"
 msgid "Edit chart"
 msgstr "Editează grafic"
 
+msgid "Edit chart properties"
+msgstr ""
+
 msgid "Edit dashboard"
 msgstr "Editează panoul de control"
 
@@ -7253,6 +7277,9 @@ msgstr "Activează redarea pictogramelor pentru punctele GeoJSON"
 #, fuzzy
 msgid "Enables rendering of labels for GeoJSON points"
 msgstr "Activează redarea etichetelor pentru punctele GeoJSON"
+
+msgid "Encrypted extra field must be a mapping from string keys to values."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, it, ja,
 # sr, sr_Latn]
@@ -7671,6 +7698,12 @@ msgstr "Explorează setul de rezultate în vederea de explorare a datelor"
 msgid "Export"
 msgstr "Exportă"
 
+msgid "Export All Data"
+msgstr ""
+
+msgid "Export Current View"
+msgstr ""
+
 msgid "Export Data to Excel"
 msgstr ""
 
@@ -7750,6 +7783,17 @@ msgstr "Exportă în .CSV complet"
 
 msgid "Export to full Excel"
 msgstr "Exportă în Excel complet"
+
+msgid "Export to original .CSV"
+msgstr ""
+
+msgid "Export to pivoted .CSV"
+msgstr ""
+
+msgid ""
+"Exporting images to Excel requires background exports. Ask an "
+"administrator to enable them, or export the dashboard's data instead."
+msgstr ""
 
 #, python-format
 msgid ""
@@ -7929,6 +7973,10 @@ msgstr "Eșuat la încărcarea datelor graficului."
 msgid "Failed to load columns for %s %s"
 msgstr "Încărcarea coloanelor pentru %s %s a eșuat"
 
+#, python-format
+msgid "Failed to load dimensions for semantic view %s"
+msgstr ""
+
 msgid "Failed to load drill-to-detail rows"
 msgstr ""
 
@@ -8036,6 +8084,9 @@ msgid "Failed to verify select options: %s"
 msgstr "Eșuat la verificarea opțiunilor de selectare: %s"
 
 msgid "Failure Notifications"
+msgstr ""
+
+msgid "Falling back to CSV; Excel export library not available."
 msgstr ""
 
 msgid "False"
@@ -10798,6 +10849,9 @@ msgstr ""
 msgid "Must be between 1 and 10"
 msgstr ""
 
+msgid "Must be one of: {choices}."
+msgstr ""
+
 msgid "Must be unique"
 msgstr "Trebuie să fie unic"
 
@@ -10925,6 +10979,9 @@ msgstr "Nou"
 msgid "New Semantic Layer"
 msgstr "Strat semantic nou"
 
+msgid "New chart"
+msgstr ""
+
 msgid "New dataset"
 msgstr "Set de date nou"
 
@@ -10987,6 +11044,10 @@ msgid "No actions"
 msgstr "Fără acțiuni"
 
 msgid "No actions found"
+msgstr ""
+
+#, python-format
+msgid "No affected %(label)s."
 msgstr ""
 
 msgid "No annotation layers"
@@ -11998,6 +12059,9 @@ msgid "Percent Difference format"
 msgstr "Format diferență procentuală"
 
 msgid "Percent change"
+msgstr ""
+
+msgid "Percent denominator"
 msgstr ""
 
 msgid "Percent of total"
@@ -13228,14 +13292,16 @@ msgstr ""
 msgid "Resume auto-refresh"
 msgstr "Reluați reîmprospătarea automată"
 
-msgid "Retries are not supported for alerts"
-msgstr ""
-
 msgid "Retry"
 msgstr "Reîncearcă"
 
 msgid "Retry fetching results"
 msgstr "Reîncearcă preluarea rezultatelor"
+
+msgid ""
+"Retry generation failures before delivery starts. Alerts re-check their "
+"condition on each attempt. Delivery failures are not replayed."
+msgstr ""
 
 msgid "Retrying"
 msgstr ""
@@ -14928,6 +14994,9 @@ msgid ""
 " Note that row limit does not apply to the result."
 msgstr ""
 
+msgid "Show all"
+msgstr ""
+
 msgid "Show all columns"
 msgstr "Afișează toate coloanele"
 
@@ -15013,6 +15082,9 @@ msgid ""
 msgstr ""
 
 msgid "Show or hide the X axis line, ticks, and labels"
+msgstr ""
+
+msgid "Show or hide the Y axis line and labels"
 msgstr ""
 
 msgid "Show or hide the Y axis line, ticks, gridlines, and labels"
@@ -15773,6 +15845,9 @@ msgstr "Grafic Sunburst"
 
 msgid "Sunday"
 msgstr "Duminică"
+
+msgid "Superset Chart"
+msgstr ""
 
 msgid "Superset Embedded SDK documentation."
 msgstr "Documentația Superset Embedded SDK."
@@ -17352,6 +17427,12 @@ msgstr "Temă"
 msgid "Theme colors"
 msgstr ""
 
+msgid "Theme could not be created."
+msgstr ""
+
+msgid "Theme could not be updated."
+msgstr ""
+
 msgid "Theme imported"
 msgstr "Temă importată"
 
@@ -17720,6 +17801,9 @@ msgid ""
 "You can recover it there."
 msgstr ""
 
+msgid "This CSS uses @import, which cannot be saved"
+msgstr ""
+
 msgid ""
 "This Google Sheets connection impersonates the logged-in user, who has no"
 " e-mail address."
@@ -17802,12 +17886,6 @@ msgid "This chart no longer exists."
 msgstr ""
 
 msgid "This chart only"
-msgstr ""
-
-#, python-format
-msgid ""
-"This chart uses the \"%s\" dataset, which you do not have permission to "
-"view."
 msgstr ""
 
 msgid "This chart will be restored to the following version:"
@@ -18145,6 +18223,11 @@ msgid ""
 "a misleadingly large number."
 msgstr ""
 
+msgid ""
+"This metric is not compatible with the current selections. Select a "
+"compatible metric."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, fr, ja,
 # sr, sr_Latn]
 #, fuzzy, python-format
@@ -18170,12 +18253,6 @@ msgid "This password is too common; please choose a less guessable one."
 msgstr ""
 "Această parolă este prea comună; vă rugăm să alegeți una mai greu de "
 "ghicit."
-
-#, python-format
-msgid ""
-"This query uses the \"%s\" dataset, which you do not have permission to "
-"view."
-msgstr ""
 
 msgid ""
 "This section allows you to configure how to use the slice\n"
@@ -18225,6 +18302,11 @@ msgid "This theme is set locally for your session"
 msgstr "Această temă este setată local pentru sesiunea dvs."
 
 msgid ""
+"This theme is the active default/dark theme - only Admins can edit it - "
+"Read Only"
+msgstr ""
+
+msgid ""
 "This theme uses the dark algorithm. It will be rendered with the light "
 "algorithm instead, so its colors may not look as designed."
 msgstr ""
@@ -18232,6 +18314,14 @@ msgstr ""
 msgid ""
 "This theme uses the light algorithm. It will be rendered with the dark "
 "algorithm instead, so its colors may not look as designed."
+msgstr ""
+
+msgid ""
+"This update would change the connection's effective destination "
+"(host/port, engine parameters, SSH tunnel endpoint, or OAuth2 endpoint "
+"URIs) while reusing the stored credential. Provide the real password (or "
+"SSH tunnel credential / OAuth2 client secret) to confirm a connection "
+"move."
 msgstr ""
 
 msgid "This username is already taken. Please choose another one."
@@ -19004,6 +19094,9 @@ msgid "Undefined window for rolling operation"
 msgstr "Fereastră nedefinită pentru operația glisantă"
 
 msgid "Undid or redid a change"
+msgstr ""
+
+msgid "Undo"
 msgstr ""
 
 msgid "Undo the action"
@@ -20568,6 +20661,9 @@ msgstr ""
 msgid "You do not have access to the following tables: %s."
 msgstr ""
 
+msgid "You do not have permission to access this datasource"
+msgstr ""
+
 #, python-format
 msgid "You do not have permission to edit this %s"
 msgstr "Nu aveți permisiunea de a edita acest %s"
@@ -20588,6 +20684,12 @@ msgid "You do not have permission to read tags"
 msgstr "Nu aveți permisiunea de a citi tag-uri"
 
 msgid "You do not have permission to view any archived object types."
+msgstr ""
+
+msgid "You do not have permission to view this chart’s data."
+msgstr ""
+
+msgid "You do not have permission to view this data."
 msgstr ""
 
 msgid "You do not have permissions to edit this dashboard."
@@ -21753,6 +21855,10 @@ msgstr ""
 
 msgid "permalink state not found"
 msgstr "starea permalink-ului nu a fost găsită"
+
+#. do-not-translate
+msgid "pivoted_xlsx"
+msgstr ""
 
 msgid "pixels"
 msgstr "pixeli"

@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-23 20:25+0530\n"
+"POT-Creation-Date: 2026-09-28 16:14+0530\n"
 "PO-Revision-Date: 2019-02-02 22:28+0900\n"
 "Last-Translator: \n"
 "Language: ko\n"
@@ -27,16 +27,6 @@ msgstr ""
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Generated-By: Babel 2.10.3\n"
-
-#, python-format
-msgid ""
-"\n"
-"                <p>Your report/alert was unable to be generated because "
-"of the following error: %(text)s</p>\n"
-"                <p>Please check your dashboard/chart for errors.</p>\n"
-"                <p><b><a href=\"%(url)s\">%(call_to_action)s</a></b></p>\n"
-"                "
-msgstr ""
 
 #, python-format
 msgid ""
@@ -240,6 +230,14 @@ msgstr "\"%s\"이(가) 시스템 기본 테마로 설정되었습니다"
 #, fuzzy, no-python-format
 msgid "% calculation"
 msgstr "시각화 유형 선택"
+
+#, python-format
+msgid "% of"
+msgstr ""
+
+#, python-format
+msgid "% of column"
+msgstr ""
 
 #, python-format
 msgid "% of column total"
@@ -1314,6 +1312,12 @@ msgstr ""
 msgid ""
 "A butterfly chart compares two metrics across categories using horizontal"
 " bars that extend left and right from a central axis."
+msgstr ""
+
+msgid ""
+"A candlestick chart shows opening, closing, high, and low values for each"
+" period. It is commonly used for financial and other time-series range "
+"analysis."
 msgstr ""
 
 #, fuzzy
@@ -3800,9 +3804,6 @@ msgstr "사용 가능한 공간을 기반으로 열 너비 자동 조정"
 msgid "Automatically adjust column width based on content"
 msgstr "콘텐츠를 기반으로 열 너비 자동 조정"
 
-msgid "Automatically retry sending the report when delivery fails."
-msgstr ""
-
 #, fuzzy
 msgid "Automatically sync columns"
 msgstr "컬럼 목록"
@@ -5780,6 +5781,9 @@ msgstr "탭 닫기"
 msgid "Close version history"
 msgstr ""
 
+msgid "Closing value for each period."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk, zh, zh_TW]
@@ -6086,6 +6090,9 @@ msgid "Column select"
 msgstr "컬럼 추가"
 
 msgid "Column settings"
+msgstr ""
+
+msgid "Column sum"
 msgstr ""
 
 #, fuzzy
@@ -6426,7 +6433,7 @@ msgstr "대시보드 외관, 색상 및 사용자 정의 CSS 구성"
 msgid "Configure filter scopes"
 msgstr "필터 범위 구성"
 
-msgid "Configure retry behavior on delivery failure."
+msgid "Configure retries when alert or report generation fails before delivery."
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
@@ -6620,6 +6627,9 @@ msgstr "컬럼 추가"
 #, fuzzy
 msgid "Control labeled "
 msgstr "레이블이 지정된 컨트롤 "
+
+msgid "Control whether this dashboard loads chart data asynchronously"
+msgstr ""
 
 msgid ""
 "Controls how labels overflow beyond the max width. \"Truncate\" adds an "
@@ -7559,6 +7569,9 @@ msgstr "데이터베이스"
 #, fuzzy
 msgid "Data Connections"
 msgstr "연결 테스트"
+
+msgid "Data Export Options"
+msgstr ""
 
 #, fuzzy
 msgid "Data Table"
@@ -8516,6 +8529,11 @@ msgid ""
 msgstr "탭을 삭제하면 그 안의 모든 콘텐츠가 제거되고 관련 알림 또는 보고서가 비활성화됩니다. 다음을 사용하여 이 작업을 되돌릴 수 있습니다"
 
 msgid ""
+"Deleting this dataset is permanent. The affected charts and dashboards "
+"will remain, but they may no longer work."
+msgstr ""
+
+msgid ""
 "Deleting this semantic layer also permanently deletes any semantic views "
 "it contains, and charts built on those views will stop working. The "
 "affected views could not be listed."
@@ -8880,6 +8898,9 @@ msgid ""
 "Display each cell as a percentage of its row, column, or grand total, "
 "instead of its actual value. Totals and subtotals are still computed "
 "correctly first; this only changes how they are displayed."
+msgstr ""
+
+msgid "Display format"
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, fr,
@@ -9525,6 +9546,9 @@ msgstr "주석 레이어"
 msgid "Edit chart"
 msgstr "차트 수정"
 
+msgid "Edit chart properties"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, de,
 # es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sl, sr, sr_Latn, tr, uk, zh,
 # zh_TW]
@@ -9907,6 +9931,9 @@ msgstr "GeoJSON 포인트에 대한 아이콘 렌더링을 활성화합니다"
 #, fuzzy
 msgid "Enables rendering of labels for GeoJSON points"
 msgstr "GeoJSON 포인트에 대한 레이블 렌더링을 활성화합니다"
+
+msgid "Encrypted extra field must be a mapping from string keys to values."
+msgstr ""
 
 #, fuzzy
 msgid "Encrypted extra fields"
@@ -10547,6 +10574,12 @@ msgstr "데이터 탐색 보기에서 결과 집합 탐색"
 msgid "Export"
 msgstr "내보내기"
 
+msgid "Export All Data"
+msgstr ""
+
+msgid "Export Current View"
+msgstr ""
+
 msgid "Export Data to Excel"
 msgstr ""
 
@@ -10652,6 +10685,17 @@ msgstr "전체 .CSV로 내보내기"
 #, fuzzy
 msgid "Export to full Excel"
 msgstr "전체 Excel로 내보내기"
+
+msgid "Export to original .CSV"
+msgstr ""
+
+msgid "Export to pivoted .CSV"
+msgstr ""
+
+msgid ""
+"Exporting images to Excel requires background exports. Ask an "
+"administrator to enable them, or export the dashboard's data instead."
+msgstr ""
 
 #, python-format
 msgid ""
@@ -10902,6 +10946,10 @@ msgstr "차트 데이터를 로드하지 못했습니다."
 msgid "Failed to load columns for %s %s"
 msgstr ""
 
+#, python-format
+msgid "Failed to load dimensions for semantic view %s"
+msgstr ""
+
 msgid "Failed to load drill-to-detail rows"
 msgstr ""
 
@@ -11044,6 +11092,9 @@ msgid "Failed to verify select options: %s"
 msgstr "선택 옵션 확인에 실패했습니다: %s"
 
 msgid "Failure Notifications"
+msgstr ""
+
+msgid "Falling back to CSV; Excel export library not available."
 msgstr ""
 
 #, fuzzy
@@ -15148,6 +15199,9 @@ msgstr "이 차트를 덮어쓰려면 차트 편집자여야 합니다. 대신 �
 msgid "Must be between 1 and 10"
 msgstr ""
 
+msgid "Must be one of: {choices}."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk, zh, zh_TW]
@@ -15339,6 +15393,9 @@ msgstr "탭 닫기"
 msgid "New Semantic Layer"
 msgstr "주석 레이어"
 
+msgid "New chart"
+msgstr ""
+
 #, fuzzy
 msgid "New dataset"
 msgstr "데이터소스 선택"
@@ -15435,6 +15492,10 @@ msgid "No actions"
 msgstr "주석"
 
 msgid "No actions found"
+msgstr ""
+
+#, python-format
+msgid "No affected %(label)s."
 msgstr ""
 
 #, fuzzy
@@ -16952,6 +17013,9 @@ msgid "Percent Difference format"
 msgstr "D3 포멧"
 
 msgid "Percent change"
+msgstr ""
+
+msgid "Percent denominator"
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
@@ -18840,9 +18904,6 @@ msgstr "비동기 쿼리에 필요한 결과 백엔드가 구성되지 않았습
 msgid "Resume auto-refresh"
 msgstr "새로고침 간격"
 
-msgid "Retries are not supported for alerts"
-msgstr ""
-
 #, fuzzy
 msgid "Retry"
 msgstr "생성자"
@@ -18850,6 +18911,11 @@ msgstr "생성자"
 #, fuzzy
 msgid "Retry fetching results"
 msgstr "검색 결과"
+
+msgid ""
+"Retry generation failures before delivery starts. Alerts re-check their "
+"condition on each attempt. Delivery failures are not replayed."
+msgstr ""
 
 msgid "Retrying"
 msgstr ""
@@ -21119,6 +21185,9 @@ msgid ""
 " Note that row limit does not apply to the result."
 msgstr ""
 
+msgid "Show all"
+msgstr ""
+
 #, fuzzy
 msgid "Show all columns"
 msgstr "컬럼 보기"
@@ -21236,6 +21305,9 @@ msgid ""
 msgstr ""
 
 msgid "Show or hide the X axis line, ticks, and labels"
+msgstr ""
+
+msgid "Show or hide the Y axis line and labels"
 msgstr ""
 
 msgid "Show or hide the Y axis line, ticks, gridlines, and labels"
@@ -22384,6 +22456,9 @@ msgstr "Superset 튜토리얼"
 #, fuzzy
 msgid "Sunday"
 msgstr "일요일"
+
+msgid "Superset Chart"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -24489,6 +24564,12 @@ msgstr "Query 공유"
 msgid "Theme colors"
 msgstr ""
 
+msgid "Theme could not be created."
+msgstr ""
+
+msgid "Theme could not be updated."
+msgstr ""
+
 #, fuzzy
 msgid "Theme imported"
 msgstr "데이터베이스"
@@ -24930,6 +25011,9 @@ msgid ""
 "You can recover it there."
 msgstr ""
 
+msgid "This CSS uses @import, which cannot be saved"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, it, ja, lv, mi, nl, pl, pt, pt_BR, ro, ru, sk, sl, sr,
 # sr_Latn, tr, uk, zh, zh_TW]
@@ -25053,12 +25137,6 @@ msgid "This chart no longer exists."
 msgstr ""
 
 msgid "This chart only"
-msgstr ""
-
-#, python-format
-msgid ""
-"This chart uses the \"%s\" dataset, which you do not have permission to "
-"view."
 msgstr ""
 
 msgid "This chart will be restored to the following version:"
@@ -25464,6 +25542,11 @@ msgid ""
 "a misleadingly large number."
 msgstr ""
 
+msgid ""
+"This metric is not compatible with the current selections. Select a "
+"compatible metric."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
 #, fuzzy, python-format
@@ -25494,12 +25577,6 @@ msgstr "이 페이지는 iframe에 임베드되도록 설계되었지만, 현재
 #, fuzzy
 msgid "This password is too common; please choose a less guessable one."
 msgstr "이 비밀번호는 너무 일반적입니다. 추측하기 어려운 비밀번호를 선택하세요."
-
-#, python-format
-msgid ""
-"This query uses the \"%s\" dataset, which you do not have permission to "
-"view."
-msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, ja, lv, mi, nl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr, uk]
@@ -25571,6 +25648,11 @@ msgid "This theme is set locally for your session"
 msgstr "이 테마는 현재 세션에 로컬로 설정되어 있습니다"
 
 msgid ""
+"This theme is the active default/dark theme - only Admins can edit it - "
+"Read Only"
+msgstr ""
+
+msgid ""
 "This theme uses the dark algorithm. It will be rendered with the light "
 "algorithm instead, so its colors may not look as designed."
 msgstr ""
@@ -25578,6 +25660,14 @@ msgstr ""
 msgid ""
 "This theme uses the light algorithm. It will be rendered with the dark "
 "algorithm instead, so its colors may not look as designed."
+msgstr ""
+
+msgid ""
+"This update would change the connection's effective destination "
+"(host/port, engine parameters, SSH tunnel endpoint, or OAuth2 endpoint "
+"URIs) while reusing the stored credential. Provide the real password (or "
+"SSH tunnel credential / OAuth2 client secret) to confirm a connection "
+"move."
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
@@ -26691,6 +26781,9 @@ msgid "Undefined window for rolling operation"
 msgstr "롤링 작업에 대한 창이 정의되지 않았습니다"
 
 msgid "Undid or redid a change"
+msgstr ""
+
+msgid "Undo"
 msgstr ""
 
 #, fuzzy
@@ -29019,6 +29112,9 @@ msgstr ""
 msgid "You do not have access to the following tables: %s."
 msgstr ""
 
+msgid "You do not have permission to access this datasource"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr, uk]
 #, fuzzy, python-format
@@ -29052,6 +29148,12 @@ msgid "You do not have permission to read tags"
 msgstr "태그를 읽을 권한이 없습니다"
 
 msgid "You do not have permission to view any archived object types."
+msgstr ""
+
+msgid "You do not have permission to view this chart’s data."
+msgstr ""
+
+msgid "You do not have permission to view this data."
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
@@ -30753,6 +30855,10 @@ msgstr "백분위수는 두 개의 숫자 값으로 구성된 목록 또는 튜�
 #, fuzzy
 msgid "permalink state not found"
 msgstr "CSS 템플릿을 찾을수 없습니다."
+
+#. do-not-translate
+msgid "pivoted_xlsx"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, ro, ru, sk, sl, sr, sr_Latn, tr, uk, zh,

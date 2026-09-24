@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-23 20:25+0530\n"
+"POT-Creation-Date: 2026-09-28 16:14+0530\n"
 "PO-Revision-Date: 2026-07-17 14:21+0000\n"
 "Last-Translator: José Teixeira <jose.teixeira@douroeci.com>\n"
 "Language: pt\n"
@@ -27,16 +27,6 @@ msgstr ""
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Generated-By: Babel 2.10.3\n"
-
-#, python-format
-msgid ""
-"\n"
-"                <p>Your report/alert was unable to be generated because "
-"of the following error: %(text)s</p>\n"
-"                <p>Please check your dashboard/chart for errors.</p>\n"
-"                <p><b><a href=\"%(url)s\">%(call_to_action)s</a></b></p>\n"
-"                "
-msgstr ""
 
 #, python-format
 msgid ""
@@ -242,6 +232,14 @@ msgstr "\"%s\" é agora o tema predefinido do sistema"
 
 #, no-python-format
 msgid "% calculation"
+msgstr ""
+
+#, python-format
+msgid "% of"
+msgstr ""
+
+#, python-format
+msgid "% of column"
 msgstr ""
 
 #, python-format
@@ -1271,6 +1269,12 @@ msgstr ""
 msgid ""
 "A butterfly chart compares two metrics across categories using horizontal"
 " bars that extend left and right from a central axis."
+msgstr ""
+
+msgid ""
+"A candlestick chart shows opening, closing, high, and low values for each"
+" period. It is commonly used for financial and other time-series range "
+"analysis."
 msgstr ""
 
 msgid "A comma separated list of columns that should be parsed as dates"
@@ -3445,9 +3449,6 @@ msgstr "Ajustar automaticamente a largura da coluna com base no espaço disponí
 msgid "Automatically adjust column width based on content"
 msgstr "Ajustar automaticamente a largura da coluna com base no conteúdo"
 
-msgid "Automatically retry sending the report when delivery fails."
-msgstr ""
-
 msgid "Automatically sync columns"
 msgstr "Sincronizar colunas automaticamente"
 
@@ -5155,6 +5156,9 @@ msgstr "fechar aba"
 msgid "Close version history"
 msgstr ""
 
+msgid "Closing value for each period."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk, zh, zh_TW]
@@ -5401,6 +5405,9 @@ msgid "Column select"
 msgstr "Seleção de coluna"
 
 msgid "Column settings"
+msgstr ""
+
+msgid "Column sum"
 msgstr ""
 
 msgid "Column to group by"
@@ -5697,7 +5704,7 @@ msgstr "Configurar a aparência, cores e CSS personalizado do painel"
 msgid "Configure filter scopes"
 msgstr "Configurar os âmbitos de filtragem"
 
-msgid "Configure retry behavior on delivery failure."
+msgid "Configure retries when alert or report generation fails before delivery."
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
@@ -5859,6 +5866,9 @@ msgstr "Controlo"
 # zh_TW]
 msgid "Control labeled "
 msgstr "Controlo com etiqueta "
+
+msgid "Control whether this dashboard loads chart data asynchronously"
+msgstr ""
 
 msgid ""
 "Controls how labels overflow beyond the max width. \"Truncate\" adds an "
@@ -6666,6 +6676,9 @@ msgstr "Dados"
 
 msgid "Data Connections"
 msgstr "Ligações de Dados"
+
+msgid "Data Export Options"
+msgstr ""
 
 msgid "Data Table"
 msgstr "Tabela de Dados"
@@ -7501,6 +7514,11 @@ msgstr ""
 "ação com o"
 
 msgid ""
+"Deleting this dataset is permanent. The affected charts and dashboards "
+"will remain, but they may no longer work."
+msgstr ""
+
+msgid ""
 "Deleting this semantic layer also permanently deletes any semantic views "
 "it contains, and charts built on those views will stop working. The "
 "affected views could not be listed."
@@ -7813,6 +7831,9 @@ msgid ""
 "Display each cell as a percentage of its row, column, or grand total, "
 "instead of its actual value. Totals and subtotals are still computed "
 "correctly first; this only changes how they are displayed."
+msgstr ""
+
+msgid "Display format"
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, fr,
@@ -8389,6 +8410,9 @@ msgstr "Editar propriedades da camada de anotação"
 msgid "Edit chart"
 msgstr "Editar gráfico"
 
+msgid "Edit chart properties"
+msgstr ""
+
 msgid "Edit dashboard"
 msgstr "Editar Dashboard"
 
@@ -8710,6 +8734,9 @@ msgstr "Permite a renderização de ícones para pontos GeoJSON"
 # lv, pt_BR, ru, sk, sr, sr_Latn, tr, uk]
 msgid "Enables rendering of labels for GeoJSON points"
 msgstr "Permite a renderização de etiquetas para pontos GeoJSON"
+
+msgid "Encrypted extra field must be a mapping from string keys to values."
+msgstr ""
 
 msgid "Encrypted extra fields"
 msgstr "Campos extra encriptados"
@@ -9243,6 +9270,12 @@ msgstr "Explorar o conjunto de resultados na vista de exploração de dados"
 msgid "Export"
 msgstr "Exportar"
 
+msgid "Export All Data"
+msgstr ""
+
+msgid "Export Current View"
+msgstr ""
+
 msgid "Export Data to Excel"
 msgstr ""
 
@@ -9317,6 +9350,17 @@ msgstr "Exportar para .CSV completo"
 
 msgid "Export to full Excel"
 msgstr "Exportar para Excel completo"
+
+msgid "Export to original .CSV"
+msgstr ""
+
+msgid "Export to pivoted .CSV"
+msgstr ""
+
+msgid ""
+"Exporting images to Excel requires background exports. Ask an "
+"administrator to enable them, or export the dashboard's data instead."
+msgstr ""
 
 #, python-format
 msgid ""
@@ -9531,6 +9575,10 @@ msgstr "Falha ao carregar dados do gráfico."
 msgid "Failed to load columns for %s %s"
 msgstr "Falha ao carregar colunas para %s %s"
 
+#, python-format
+msgid "Failed to load dimensions for semantic view %s"
+msgstr ""
+
 msgid "Failed to load drill-to-detail rows"
 msgstr ""
 
@@ -9661,6 +9709,9 @@ msgid "Failed to verify select options: %s"
 msgstr "Falha ao verificar opções selecionadas: %s"
 
 msgid "Failure Notifications"
+msgstr ""
+
+msgid "Falling back to CSV; Excel export library not available."
 msgstr ""
 
 msgid "False"
@@ -13125,6 +13176,9 @@ msgstr ""
 msgid "Must be between 1 and 10"
 msgstr ""
 
+msgid "Must be one of: {choices}."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk, zh, zh_TW]
@@ -13288,6 +13342,9 @@ msgstr "Novo"
 msgid "New Semantic Layer"
 msgstr "Nova Camada Semântica"
 
+msgid "New chart"
+msgstr ""
+
 msgid "New dataset"
 msgstr "Novo conjunto de dados"
 
@@ -13362,6 +13419,10 @@ msgid "No actions"
 msgstr "Sem ações"
 
 msgid "No actions found"
+msgstr ""
+
+#, python-format
+msgid "No affected %(label)s."
 msgstr ""
 
 msgid "No annotation layers"
@@ -14659,6 +14720,9 @@ msgid "Percent Difference format"
 msgstr "Formato da Diferença Percentual"
 
 msgid "Percent change"
+msgstr ""
+
+msgid "Percent denominator"
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
@@ -16265,14 +16329,16 @@ msgstr ""
 msgid "Resume auto-refresh"
 msgstr "Retomar atualização automática"
 
-msgid "Retries are not supported for alerts"
-msgstr ""
-
 msgid "Retry"
 msgstr "Tentar novamente"
 
 msgid "Retry fetching results"
 msgstr "Tentar obter resultados novamente"
+
+msgid ""
+"Retry generation failures before delivery starts. Alerts re-check their "
+"condition on each attempt. Delivery failures are not replayed."
+msgstr ""
 
 msgid "Retrying"
 msgstr ""
@@ -18207,6 +18273,9 @@ msgid ""
 " Note that row limit does not apply to the result."
 msgstr ""
 
+msgid "Show all"
+msgstr ""
+
 msgid "Show all columns"
 msgstr "Mostrar todas as colunas"
 
@@ -18306,6 +18375,9 @@ msgid ""
 msgstr ""
 
 msgid "Show or hide the X axis line, ticks, and labels"
+msgstr ""
+
+msgid "Show or hide the Y axis line and labels"
 msgstr ""
 
 msgid "Show or hide the Y axis line, ticks, gridlines, and labels"
@@ -19285,6 +19357,9 @@ msgstr "Gráfico Sunburst"
 # uk, zh, zh_TW]
 msgid "Sunday"
 msgstr "Domingo"
+
+msgid "Superset Chart"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -21233,6 +21308,12 @@ msgstr "Tema"
 msgid "Theme colors"
 msgstr ""
 
+msgid "Theme could not be created."
+msgstr ""
+
+msgid "Theme could not be updated."
+msgstr ""
+
 msgid "Theme imported"
 msgstr "Tema importado"
 
@@ -21621,6 +21702,9 @@ msgid ""
 "You can recover it there."
 msgstr ""
 
+msgid "This CSS uses @import, which cannot be saved"
+msgstr ""
+
 msgid ""
 "This Google Sheets connection impersonates the logged-in user, who has no"
 " e-mail address."
@@ -21738,12 +21822,6 @@ msgid "This chart no longer exists."
 msgstr ""
 
 msgid "This chart only"
-msgstr ""
-
-#, python-format
-msgid ""
-"This chart uses the \"%s\" dataset, which you do not have permission to "
-"view."
 msgstr ""
 
 msgid "This chart will be restored to the following version:"
@@ -22132,6 +22210,11 @@ msgid ""
 "a misleadingly large number."
 msgstr ""
 
+msgid ""
+"This metric is not compatible with the current selections. Select a "
+"compatible metric."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
 #, python-format
@@ -22162,12 +22245,6 @@ msgid "This password is too common; please choose a less guessable one."
 msgstr ""
 "Esta palavra-passe é demasiado comum; por favor escolha uma menos "
 "previsível."
-
-#, python-format
-msgid ""
-"This query uses the \"%s\" dataset, which you do not have permission to "
-"view."
-msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, ja, lv, mi, nl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr, uk]
@@ -22233,6 +22310,11 @@ msgid "This theme is set locally for your session"
 msgstr "Este tema está definido localmente para a sua sessão"
 
 msgid ""
+"This theme is the active default/dark theme - only Admins can edit it - "
+"Read Only"
+msgstr ""
+
+msgid ""
 "This theme uses the dark algorithm. It will be rendered with the light "
 "algorithm instead, so its colors may not look as designed."
 msgstr ""
@@ -22240,6 +22322,14 @@ msgstr ""
 msgid ""
 "This theme uses the light algorithm. It will be rendered with the dark "
 "algorithm instead, so its colors may not look as designed."
+msgstr ""
+
+msgid ""
+"This update would change the connection's effective destination "
+"(host/port, engine parameters, SSH tunnel endpoint, or OAuth2 endpoint "
+"URIs) while reusing the stored credential. Provide the real password (or "
+"SSH tunnel credential / OAuth2 client secret) to confirm a connection "
+"move."
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
@@ -23184,6 +23274,9 @@ msgid "Undefined window for rolling operation"
 msgstr "Janela indefinida para operação de deslizamento"
 
 msgid "Undid or redid a change"
+msgstr ""
+
+msgid "Undo"
 msgstr ""
 
 msgid "Undo the action"
@@ -25300,6 +25393,9 @@ msgstr ""
 msgid "You do not have access to the following tables: %s."
 msgstr ""
 
+msgid "You do not have permission to access this datasource"
+msgstr ""
+
 #, python-format
 msgid "You do not have permission to edit this %s"
 msgstr "Não tem permissão para editar este %s"
@@ -25317,6 +25413,12 @@ msgid "You do not have permission to read tags"
 msgstr "Não tem permissão para ler etiquetas"
 
 msgid "You do not have permission to view any archived object types."
+msgstr ""
+
+msgid "You do not have permission to view this chart’s data."
+msgstr ""
+
+msgid "You do not have permission to view this data."
 msgstr ""
 
 msgid "You do not have permissions to edit this dashboard."
@@ -26756,6 +26858,10 @@ msgstr ""
 
 msgid "permalink state not found"
 msgstr "estado do link permanente não encontrado"
+
+#. do-not-translate
+msgid "pivoted_xlsx"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, ro, ru, sk, sl, sr, sr_Latn, tr, uk, zh,
