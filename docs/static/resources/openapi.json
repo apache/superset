@@ -7888,14 +7888,20 @@
         "properties": {
           "mapped_column": {
             "description": "Column whose filters would be mirrored",
+            "maxLength": 250,
+            "minLength": 1,
             "type": "string"
           },
           "sample_value": {
             "description": "Value to evaluate the transform at",
+            "maxLength": 250,
+            "minLength": 1,
             "type": "string"
           },
           "value_transform": {
             "description": "SQL expression containing a :value placeholder",
+            "maxLength": 1024,
+            "minLength": 1,
             "nullable": true,
             "type": "string"
           }
