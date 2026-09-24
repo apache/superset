@@ -215,6 +215,8 @@ def _worker_context(app: Flask) -> Iterator[None]:
     try:
         with app.app_context():
             try:
+                # Clean this scope before loading any ORM user into it.
+                _remove_session_safe()
                 yield
             finally:
                 _remove_session_safe()
@@ -437,7 +439,12 @@ def warehouse_cursor(
         # connection held across failed/abandoned warehouse I/O.
         from superset import db
 
+        # Rollback listeners (including version history) may inspect the live
+        # connection. Finish the transaction before invalidation makes that
+        # inspection fail with PendingRollbackError.
+        db.session.rollback()  # pylint: disable=consider-using-transaction
         db.session().invalidate()
+        db.session.remove()
         raise
     finally:
         after_execute.reset(execute_token)

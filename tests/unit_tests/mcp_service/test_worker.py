@@ -44,16 +44,16 @@ class SleepRequest(BaseModel):
     delay: float = 1.0
 
 
-@pytest.fixture(params=["chart", "sql_lab"])
+@pytest.fixture(params=["chart", "sql_lab", "sync_chart", "sync_sql_lab"])
 def server(app: Any, request: pytest.FixtureRequest) -> Iterator[FastMCP]:
     """Use the real transport and auth wrapper, mocking only user resolution."""
     app.config["MCP_TOOL_WORKERS"] = 2
     install_mcp_session_scoping()
     mcp = FastMCP("worker regression")
 
-    path = request.param
+    path = request.param.removeprefix("sync_")
 
-    async def sleep_query(request: SleepRequest) -> str:
+    def sleep_query(request: SleepRequest) -> str:
         """Exercise the real chart/SQL Lab executor with a sleeping SQL function."""
         from superset.models.core import Database
         from superset.sql.execution.executor import SQLExecutor
@@ -82,12 +82,17 @@ def server(app: Any, request: pytest.FixtureRequest) -> Iterator[FastMCP]:
                 )
         return "finished"
 
+    async def async_sleep_query(request: SleepRequest) -> str:
+        """Exercise an async tool that calls synchronous warehouse APIs."""
+        return sleep_query(request)
+
     async def quick_query() -> str:
         """A second request must finish while the first is inside DBAPI."""
         return "quick"
 
     with patch("superset.mcp_service.auth._setup_user_context", return_value=None):
-        mcp.tool(mcp_auth_hook(sleep_query))
+        query = sleep_query if request.param.startswith("sync_") else async_sleep_query
+        mcp.tool(mcp_auth_hook(query), name="sleep_query")
         mcp.tool(mcp_auth_hook(quick_query))
         yield mcp
 
@@ -319,6 +324,8 @@ async def test_implicit_cursor_cancellation(app: Any) -> None:
 @pytest.mark.asyncio
 async def test_failed_warehouse_discards_metadata_session(app: Any) -> None:
     """A failed query cannot hand its metadata session to the next worker call."""
+    from sqlalchemy_continuum import versioning_manager
+
     from superset.mcp_service.worker import run_in_worker, WorkerPool
     from superset.sql.execution.cancellation import cancellable_cursor
 
@@ -334,13 +341,18 @@ async def test_failed_warehouse_discards_metadata_session(app: Any) -> None:
         sessions.append(session)
         threads.append(threading.get_ident())
         session.execute(text("SELECT 1"))
-        with patch.object(
-            session, "invalidate", wraps=session.invalidate
-        ) as invalidate:
+        # Continuum's rollback listener inspects other tracked connections.
+        # Keep one present to reproduce failure during Session.invalidate().
+        with (
+            db.engine.connect() as other_connection,
+            patch.dict(versioning_manager.units_of_work, {other_connection: Mock()}),
+            patch.object(session, "invalidate", wraps=session.invalidate) as invalidate,
+        ):
             with pytest.raises(RuntimeError, match="warehouse failed"):
                 with cancellable_cursor(database, Mock()):
                     raise RuntimeError("warehouse failed")
             invalidate.assert_called_once()
+            assert db.session.execute(text("SELECT 1")).scalar() == 1
 
     async def healthy() -> None:
         """The same executor thread must receive an entirely new Session."""
@@ -470,3 +482,86 @@ async def test_stuck_cancellation_retains_admission_slot(app: Any) -> None:
         await asyncio.to_thread(pool.executor.shutdown)
         await asyncio.to_thread(pool.cancellations.shutdown)
     assert pool.slots.acquire(blocking=False)
+
+
+@pytest.mark.asyncio
+async def test_prequery_registers_cancellation_before_blocking(app: Any) -> None:
+    """A raw connect-event cursor must be cancellable before engine statements."""
+    from sqlalchemy import create_engine
+
+    from superset.mcp_service.worker import run_in_worker, WorkerPool
+    from superset.models.core import Database
+
+    pool = WorkerPool(1)
+    entered = threading.Event()
+    cancelled = threading.Event()
+    closed = threading.Event()
+    statements = []
+
+    class Cursor(sqlite3.Cursor):
+        """A DBAPI prequery that blocks until driver cancellation arrives."""
+
+        def execute(self, sql: str, parameters: Any = ()) -> Any:
+            """Record whether a subsequent prequery escapes the deadline."""
+            statements.append(sql)
+            if sql == "SELECT 42":
+                entered.set()
+                cancelled.wait(3)
+            return super().execute(sql, parameters)
+
+        def cancel(self) -> None:
+            """Emulate a driver's implicit cancellation hook."""
+            cancelled.set()
+
+        def close(self) -> None:
+            """Signal cursor cleanup after the abandoned prequery returns."""
+            super().close()
+            closed.set()
+
+    class Connection(sqlite3.Connection):
+        """Provide a cancellable cursor for the connect-event prequeries."""
+
+        def cursor(self, factory: Any = Cursor) -> Any:
+            """Use the blocking driver cursor for this warehouse connection."""
+            return super().cursor(factory)
+
+    async def connect() -> None:
+        """Open a real SQLAlchemy engine through the production model path."""
+        database = Database(database_name="prequery-test", sqlalchemy_uri="sqlite://")
+        engine = create_engine(
+            "sqlite://",
+            creator=lambda: sqlite3.connect(":memory:", factory=Connection),
+        )
+        with (
+            patch.object(database, "_get_sqla_engine", return_value=engine),
+            patch.object(
+                database.db_engine_spec,
+                "get_prequeries",
+                return_value=["SELECT 42", "SELECT 43"],
+            ),
+            patch.object(
+                database.db_engine_spec, "has_implicit_cancel", return_value=True
+            ),
+            database.get_sqla_engine() as warehouse,
+            warehouse.connect(),
+        ):
+            pytest.fail("An expired prequery must not proceed to the main query")
+
+    try:
+        with (
+            patch("superset.mcp_service.worker._get_pool", return_value=pool),
+            patch(
+                "superset.tasks.query_cancel.capture_cancel_query_id", return_value=None
+            ),
+        ):
+            with pytest.raises(ToolError, match="timed out"):
+                await run_in_worker(connect, (), {}, 0.15)
+            assert entered.is_set()
+            assert await asyncio.to_thread(cancelled.wait, 1)
+            await asyncio.to_thread(pool.executor.shutdown)
+            assert closed.is_set()
+            assert "SELECT 43" not in statements
+    finally:
+        cancelled.set()
+        await asyncio.to_thread(pool.executor.shutdown)
+        await asyncio.to_thread(pool.cancellations.shutdown)

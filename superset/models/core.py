@@ -614,8 +614,19 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
                             ) -> None:
                                 cursor = dbapi_connection.cursor()
                                 try:
-                                    for prequery in prequeries:
-                                        cursor.execute(prequery)
+                                    from superset.sql.execution.cancellation import (
+                                        cancellable_cursor,
+                                        check_query_deadline,
+                                        query_executed,
+                                    )
+
+                                    with cancellable_cursor(
+                                        self, cursor, catalog, schema
+                                    ):
+                                        for prequery in prequeries:
+                                            check_query_deadline()
+                                            cursor.execute(prequery)
+                                            query_executed()
                                 finally:
                                     cursor.close()
 
