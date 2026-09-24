@@ -23,6 +23,8 @@ import { getMockStoreWithNativeFilters } from 'spec/fixtures/mockStore';
 import chartQueries, { sliceId } from 'spec/fixtures/mockChartQueries';
 import { logEvent } from 'src/logger/actions';
 import { LOG_ACTIONS_DRILL_TO_DETAIL_MODAL_OPENED } from 'src/logger/LogUtils';
+import { useDashboardSlicesStore } from 'src/dashboard/stores';
+import type { Slice } from 'src/dashboard/types';
 import DrillDetailModal from './DrillDetailModal';
 
 jest.mock('./DrillDetailPane', () => () => null);
@@ -68,6 +70,9 @@ const renderModal = async (overrideState: Record<string, any> = {}) => {
     );
   };
 
+  useDashboardSlicesStore.getState().setSlices({
+    [chartId]: { slice_id: chartId, slice_name: chartName } as Slice,
+  });
   render(<DrillDetailModalWrapper />, {
     useRouter: true,
     useRedux: true,

@@ -17,7 +17,6 @@
  * under the License.
  */
 import { useMemo } from 'react';
-import { useSelector } from 'react-redux';
 import { t } from '@apache-superset/core/translation';
 import { isDefined, NativeFilterScope } from '@superset-ui/core';
 import { Alert } from '@apache-superset/core/components';
@@ -27,10 +26,12 @@ import { noOp } from 'src/utils/common';
 import ScopingTree from 'src/dashboard/components/nativeFilters/FiltersConfigModal/FiltersConfigForm/FilterScope/ScopingTree';
 import {
   ChartConfiguration,
-  DashboardLayout,
   isCrossFilterScopeGlobal,
-  RootState,
 } from 'src/dashboard/types';
+import {
+  useDashboardLayout,
+  useCrossFiltersEnabled,
+} from 'src/dashboard/stores';
 import { CHART_TYPE } from 'src/dashboard/util/componentTypes';
 import type { SelectOptionsType } from '@superset-ui/core/components';
 import { NEW_CHART_SCOPING_ID } from './constants';
@@ -61,9 +62,7 @@ const ChartSelect = ({
   chartConfigs: ChartConfiguration;
 }) => {
   const theme = useTheme();
-  const layout = useSelector<RootState, DashboardLayout>(
-    state => state.dashboardLayout.present,
-  );
+  const layout = useDashboardLayout();
   const options: SelectOptionsType = useMemo(() => {
     const chartLayoutItems = Object.values(layout).filter(
       item => item.type === CHART_TYPE,
@@ -130,9 +129,7 @@ export const ScopingTreePanel = ({
   chartConfigs,
 }: ScopingTreePanelProps) => {
   const theme = useTheme();
-  const isCrossFiltersEnabled = useSelector<RootState, boolean>(
-    ({ dashboardInfo }) => dashboardInfo.crossFiltersEnabled,
-  );
+  const isCrossFiltersEnabled = useCrossFiltersEnabled();
   return (
     <div
       data-test="scoping-tree-panel"

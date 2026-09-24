@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-23 12:43+0200\n"
+"POT-Creation-Date: 2026-09-24 14:03-0300\n"
 "PO-Revision-Date: 2025-06-27 12:56+0200\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: ca\n"
@@ -3801,6 +3801,13 @@ msgstr "Els gràfics no s'han pogut eliminar."
 msgid "Chart width"
 msgstr "Amplada del gràfic"
 
+#, python-format
+msgid ""
+"Chart with ID %(chart_id)s (referenced by annotation layer "
+"'%(layer_name)s') was not found. Please verify that the chart exists and "
+"is accessible."
+msgstr ""
+
 msgid "Charts"
 msgstr "Gràfics"
 
@@ -6311,6 +6318,9 @@ msgstr ""
 msgid "Discard"
 msgstr "Descartar"
 
+msgid "Discard changes?"
+msgstr ""
+
 msgid "Display Name"
 msgstr "Nom a Mostrar"
 
@@ -7759,6 +7769,9 @@ msgstr "Ha fallat en carregar dades del gràfic."
 msgid "Failed to load columns for %s %s"
 msgstr "Ha fallat en carregar dades del gràfic"
 
+msgid "Failed to load dashboard properties"
+msgstr ""
+
 #, python-format
 msgid "Failed to load dimensions for semantic view %s"
 msgstr ""
@@ -7834,6 +7847,9 @@ msgstr "Ha fallat en desar l'àmbit del filtre creuat"
 #, fuzzy
 msgid "Failed to save cross-filters setting"
 msgstr "Ha fallat en desar l'àmbit del filtre creuat"
+
+msgid "Failed to save filter changes"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, fr,
 # ja, lv, ro, ru, sk, sr, sr_Latn, tr, uk]
@@ -14983,9 +14999,6 @@ msgstr ""
 "Ho sentim, hi ha hagut un error obtenint informació de la base de dades: "
 "%s"
 
-msgid "Sorry there was an error fetching saved charts: "
-msgstr "Ho sentim, hi ha hagut un error obtenint gràfics desats: "
-
 msgid "Sorry, An error occurred"
 msgstr "Ho sentim, s'ha produït un error"
 
@@ -15002,6 +15015,9 @@ msgstr ""
 
 msgid "Sorry, something went wrong. Please try again."
 msgstr "Ho sentim, alguna cosa va anar malament. Si us plau torna-ho a provar."
+
+msgid "Sorry, something went wrong. The changes could not be saved."
+msgstr ""
 
 msgid "Sorry, something went wrong. Try again later."
 msgstr "Ho sentim, alguna cosa va anar malament. Prova-ho de nou més tard."
@@ -16617,6 +16633,13 @@ msgid "The query contains one or more malformed template parameters."
 msgstr "La consulta conté un o més paràmetres de plantilla mal formats."
 
 msgid "The query context datasource does not match the chart datasource"
+msgstr ""
+
+#, python-format
+msgid ""
+"The query context for chart ID %(chart_id)s (referenced by annotation "
+"layer '%(layer_name)s') was not found. Please ensure the chart is "
+"properly configured and has a valid query context."
 msgstr ""
 
 msgid "The query couldn't be loaded"
@@ -20382,6 +20405,9 @@ msgstr ""
 "actualitzat automàticament. Executa la consulta clicant al botó "
 "\"Actualitzar gràfic\" o"
 
+msgid "You will lose all changes since your last save. This cannot be undone."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
 #, fuzzy, python-format
@@ -20438,7 +20464,18 @@ msgid ""
 "SUPERSET_DASHBOARD_POSITION_DATA_LIMIT config setting."
 msgstr ""
 
-msgid "Your export is being prepared. You'll receive an email when it's ready."
+msgid ""
+"Your export is being generated and will download automatically when "
+"ready. We'll also email you a download link."
+msgstr ""
+
+msgid "Your export is being generated. Please, do not leave the page."
+msgstr ""
+
+msgid "Your export is ready and downloading."
+msgstr ""
+
+msgid "Your export is taking longer than expected. Try again later."
 msgstr ""
 
 #, python-format

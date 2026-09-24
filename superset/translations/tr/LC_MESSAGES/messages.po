@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: avsarcoteli@gmail.com\n"
-"POT-Creation-Date: 2026-09-23 12:43+0200\n"
+"POT-Creation-Date: 2026-09-24 14:03-0300\n"
 "PO-Revision-Date: 2024-02-25 14:00+0300\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: tr\n"
@@ -3758,6 +3758,13 @@ msgstr "Grafikler silinemedi."
 msgid "Chart width"
 msgstr "Grafik genişliği"
 
+#, python-format
+msgid ""
+"Chart with ID %(chart_id)s (referenced by annotation layer "
+"'%(layer_name)s') was not found. Please verify that the chart exists and "
+"is accessible."
+msgstr ""
+
 msgid "Charts"
 msgstr "Grafikler"
 
@@ -6253,6 +6260,9 @@ msgstr "Bu veritabanı için ayrıntılı bir özellik için matkapları ayırt 
 msgid "Discard"
 msgstr "Discard"
 
+msgid "Discard changes?"
+msgstr ""
+
 msgid "Display Name"
 msgstr "Ekran Adı"
 
@@ -7698,6 +7708,9 @@ msgstr "Grafik verileri yüklemek için başarısız oldu."
 msgid "Failed to load columns for %s %s"
 msgstr "%s %s için sütunlar yüklenemedi"
 
+msgid "Failed to load dashboard properties"
+msgstr ""
+
 #, python-format
 msgid "Failed to load dimensions for semantic view %s"
 msgstr ""
@@ -7768,6 +7781,9 @@ msgstr "Cross-filter scoping kurtarmak için başarısız oldu"
 #, fuzzy
 msgid "Failed to save cross-filters setting"
 msgstr "Çapraz filtrelemeyi etkinleştir"
+
+msgid "Failed to save filter changes"
+msgstr ""
 
 msgid "Failed to set local theme: Invalid JSON configuration"
 msgstr "Yerel temayı kurmak için başarısız oldu: Invalid JSON yapılandırma"
@@ -14859,9 +14875,6 @@ msgstr "Bir şey yanlış gitti."
 msgid "Sorry there was an error fetching database information: %s"
 msgstr "Üzgünüm veritabanı bilgileri getiriyor:   %s "
 
-msgid "Sorry there was an error fetching saved charts: "
-msgstr "Üzgünüm, kaydedilen grafikler getiren bir hata vardı:"
-
 msgid "Sorry, An error occurred"
 msgstr "Üzgünüm, Bir hata oluştu"
 
@@ -14876,6 +14889,9 @@ msgstr "Üzgünüm, bir şey yanlış gitti. Gömülülık devre dışı bırak�
 
 msgid "Sorry, something went wrong. Please try again."
 msgstr "Üzgünüm, bir şey yanlış gitti. Lütfen tekrar deneyin."
+
+msgid "Sorry, something went wrong. The changes could not be saved."
+msgstr ""
 
 msgid "Sorry, something went wrong. Try again later."
 msgstr "Üzgünüm, bir şey yanlış gitti. Daha sonra tekrar deneyin."
@@ -16459,6 +16475,13 @@ msgid "The query contains one or more malformed template parameters."
 msgstr "Soru bir veya daha kötü bilgilendirilmiş şablon parametreleri içerir."
 
 msgid "The query context datasource does not match the chart datasource"
+msgstr ""
+
+#, python-format
+msgid ""
+"The query context for chart ID %(chart_id)s (referenced by annotation "
+"layer '%(layer_name)s') was not found. Please ensure the chart is "
+"properly configured and has a valid query context."
 msgstr ""
 
 msgid "The query couldn't be loaded"
@@ -20114,6 +20137,9 @@ msgstr ""
 " güncellenmedi. \"Güncel grafikler\" düğmesine tıklayarak sorguyu "
 "çalıştırın veya"
 
+msgid "You will lose all changes since your last save. This cannot be undone."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
 #, fuzzy, python-format
@@ -20162,7 +20188,18 @@ msgid ""
 "SUPERSET_DASHBOARD_POSITION_DATA_LIMIT config setting."
 msgstr ""
 
-msgid "Your export is being prepared. You'll receive an email when it's ready."
+msgid ""
+"Your export is being generated and will download automatically when "
+"ready. We'll also email you a download link."
+msgstr ""
+
+msgid "Your export is being generated. Please, do not leave the page."
+msgstr ""
+
+msgid "Your export is ready and downloading."
+msgstr ""
+
+msgid "Your export is taking longer than expected. Try again later."
 msgstr ""
 
 #, python-format

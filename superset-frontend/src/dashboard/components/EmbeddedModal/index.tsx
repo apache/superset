@@ -18,11 +18,7 @@
  */
 import { useCallback, useEffect, useState } from 'react';
 import { t } from '@apache-superset/core/translation';
-import {
-  makeApi,
-  SupersetApiError,
-  getExtensionsRegistry,
-} from '@superset-ui/core';
+import { getExtensionsRegistry } from '@superset-ui/core';
 import { Alert } from '@apache-superset/core/components';
 import { styled, css } from '@apache-superset/core/theme';
 import {
@@ -36,7 +32,11 @@ import {
   Space,
 } from '@superset-ui/core/components';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
-import { EmbeddedDashboard } from 'src/dashboard/types';
+import {
+  useEmbeddedDashboard,
+  useEnableEmbedded,
+  useDisableEmbedded,
+} from 'src/dashboard/queries';
 import { Typography } from '@superset-ui/core/components/Typography';
 import { ModalTitleWithIcon } from 'src/components/ModalTitleWithIcon';
 
@@ -47,8 +47,6 @@ type Props = {
   show: boolean;
   onHide: () => void;
 };
-
-type EmbeddedApiPayload = { allowed_domains: string[] };
 
 const stringToList = (stringyList: string): string[] =>
   stringyList.split(/(?:\s|,)+/).filter(x => x);
@@ -61,97 +59,68 @@ const ButtonRow = styled.div`
 
 export const DashboardEmbedControls = ({ dashboardId, onHide }: Props) => {
   const { addInfoToast, addDangerToast } = useToasts();
-  const [ready, setReady] = useState(true); // whether we have initialized yet
-  const [loading, setLoading] = useState(false); // whether we are currently doing an async thing
-  const [embedded, setEmbedded] = useState<EmbeddedDashboard | null>(null); // the embedded dashboard config
   const [allowedDomains, setAllowedDomains] = useState<string>('');
   const [showDeactivateConfirm, setShowDeactivateConfirm] = useState(false);
 
-  const endpoint = `/api/v1/dashboard/${dashboardId}/embedded`;
+  const {
+    data: embedded,
+    isLoading,
+    isError,
+  } = useEmbeddedDashboard(dashboardId);
+  const enableMutation = useEnableEmbedded(dashboardId);
+  const disableMutation = useDisableEmbedded(dashboardId);
+  const loading = enableMutation.isPending || disableMutation.isPending;
+
+  // Sync the editable input from the loaded / saved config.
+  useEffect(() => {
+    setAllowedDomains(embedded ? embedded.allowed_domains.join(', ') : '');
+  }, [embedded]);
+
+  // 404 is treated as "not embedded" inside the query; only real errors toast.
+  useEffect(() => {
+    if (isError) {
+      addDangerToast(t('Sorry, something went wrong. Please try again.'));
+    }
+  }, [isError, addDangerToast]);
+
   // whether saveable changes have been made to the config
   const isDirty =
     !embedded ||
     stringToList(allowedDomains).join() !== embedded.allowed_domains.join();
 
   const enableEmbedded = useCallback(() => {
-    setLoading(true);
-    makeApi<EmbeddedApiPayload, { result: EmbeddedDashboard }>({
-      method: 'POST',
-      endpoint,
-    })({
-      allowed_domains: stringToList(allowedDomains),
-    })
-      .then(
-        ({ result }) => {
-          setEmbedded(result);
-          setAllowedDomains(result.allowed_domains.join(', '));
-          addInfoToast(t('Changes saved.'));
-        },
-        err => {
-          console.error(err);
-          addDangerToast(
-            t(
-              t('Sorry, something went wrong. The changes could not be saved.'),
-            ),
-          );
-        },
-      )
-      .finally(() => {
-        setLoading(false);
-      });
-  }, [endpoint, allowedDomains]);
+    enableMutation.mutate(stringToList(allowedDomains), {
+      onSuccess: () => addInfoToast(t('Changes saved.')),
+      onError: err => {
+        console.error(err);
+        addDangerToast(
+          t('Sorry, something went wrong. The changes could not be saved.'),
+        );
+      },
+    });
+  }, [enableMutation, allowedDomains, addInfoToast, addDangerToast]);
 
   const disableEmbedded = useCallback(() => {
     setShowDeactivateConfirm(true);
   }, []);
 
   const confirmDeactivate = useCallback(() => {
-    setLoading(true);
-    makeApi<{}>({ method: 'DELETE', endpoint })({})
-      .then(
-        () => {
-          setEmbedded(null);
-          setAllowedDomains('');
-          setShowDeactivateConfirm(false);
-          addInfoToast(t('Embedding deactivated.'));
-          onHide();
-        },
-        err => {
-          console.error(err);
-          addDangerToast(
-            t(
-              'Sorry, something went wrong. Embedding could not be deactivated.',
-            ),
-          );
-        },
-      )
-      .finally(() => {
-        setLoading(false);
-      });
-  }, [endpoint, addInfoToast, addDangerToast, onHide]);
+    disableMutation.mutate(undefined, {
+      onSuccess: () => {
+        setShowDeactivateConfirm(false);
+        addInfoToast(t('Embedding deactivated.'));
+        onHide();
+      },
+      onError: err => {
+        console.error(err);
+        addDangerToast(
+          t('Sorry, something went wrong. Embedding could not be deactivated.'),
+        );
+      },
+    });
+  }, [disableMutation, addInfoToast, addDangerToast, onHide]);
 
-  useEffect(() => {
-    setReady(false);
-    makeApi<{}, { result: EmbeddedDashboard }>({
-      method: 'GET',
-      endpoint,
-    })({})
-      .catch(err => {
-        if ((err as SupersetApiError).status === 404) {
-          // 404 just means the dashboard isn't currently embedded
-          return { result: null };
-        }
-        addDangerToast(t('Sorry, something went wrong. Please try again.'));
-        throw err;
-      })
-      .then(({ result }) => {
-        setReady(true);
-        setEmbedded(result);
-        setAllowedDomains(result ? result.allowed_domains.join(', ') : '');
-      });
-  }, [dashboardId]);
-
-  if (!ready) {
+  if (isLoading) {
     return <Loading />;
   }
 

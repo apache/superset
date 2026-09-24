@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-23 12:43+0200\n"
+"POT-Creation-Date: 2026-09-24 14:03-0300\n"
 "PO-Revision-Date: 2026-03-31 02:00-0700\n"
 "Last-Translator: Maazin Ahamed\n"
 "Language: ta\n"
@@ -3602,6 +3602,13 @@ msgstr ""
 msgid "Chart width"
 msgstr "சார்ட் அகலம்"
 
+#, python-format
+msgid ""
+"Chart with ID %(chart_id)s (referenced by annotation layer "
+"'%(layer_name)s') was not found. Please verify that the chart exists and "
+"is accessible."
+msgstr ""
+
 msgid "Charts"
 msgstr "சார்ட்டுகள்"
 
@@ -5950,6 +5957,9 @@ msgstr "இந்தத் தரவுத்தளத்திற்கான �
 msgid "Discard"
 msgstr "கைவிடு (Discard)"
 
+msgid "Discard changes?"
+msgstr ""
+
 msgid "Display Name"
 msgstr "காட்சிப் பெயர்"
 
@@ -7300,6 +7310,9 @@ msgstr "சார்ட் தரவை ஏற்றுவதில் தோல
 msgid "Failed to load columns for %s %s"
 msgstr "%s தரவுத்தொகுப்பிற்கான நெடுவரிசைகளை ஏற்றுவதில் தோல்வி"
 
+msgid "Failed to load dashboard properties"
+msgstr ""
+
 #, python-format
 msgid "Failed to load dimensions for semantic view %s"
 msgstr ""
@@ -7367,6 +7380,9 @@ msgstr "கிராஸ்-ஃபில்டர் ஸ்கோப்பிங�
 
 msgid "Failed to save cross-filters setting"
 msgstr "கிராஸ்-ஃபில்டர் அமைப்பைச் சேமிப்பதில் தோல்வி"
+
+msgid "Failed to save filter changes"
+msgstr ""
 
 msgid "Failed to set local theme: Invalid JSON configuration"
 msgstr "உள்ளூர் தீமை அமைப்பதில் தோல்வி: தவறான JSON உள்ளமைவு"
@@ -13871,9 +13887,6 @@ msgstr "ஏதோ தவறு நிகழ்ந்துவிட்டது.
 msgid "Sorry there was an error fetching database information: %s"
 msgstr "மன்னிக்கவும், தரவுத்தளத் தகவலைப் பெறுவதில் பிழை ஏற்பட்டது: %s"
 
-msgid "Sorry there was an error fetching saved charts: "
-msgstr "மன்னிக்கவும், சேமிக்கப்பட்ட சார்ட்டுகளைப் பெறுவதில் பிழை ஏற்பட்டது: "
-
 msgid "Sorry, An error occurred"
 msgstr "மன்னிக்கவும், ஒரு பிழை ஏற்பட்டது"
 
@@ -13890,6 +13903,9 @@ msgstr ""
 
 msgid "Sorry, something went wrong. Please try again."
 msgstr "மன்னிக்கவும், ஏதோ தவறு நடந்துவிட்டது. மீண்டும் முயற்சிக்கவும்."
+
+msgid "Sorry, something went wrong. The changes could not be saved."
+msgstr ""
 
 msgid "Sorry, something went wrong. Try again later."
 msgstr ""
@@ -15311,6 +15327,13 @@ msgid "The query contains one or more malformed template parameters."
 msgstr "வினவலில் ஒன்று அல்லது அதற்கு மேற்பட்ட தவறான டெம்ப்ளேட் அளவுருக்கள் உள்ளன."
 
 msgid "The query context datasource does not match the chart datasource"
+msgstr ""
+
+#, python-format
+msgid ""
+"The query context for chart ID %(chart_id)s (referenced by annotation "
+"layer '%(layer_name)s') was not found. Please ensure the chart is "
+"properly configured and has a valid query context."
 msgstr ""
 
 msgid "The query couldn't be loaded"
@@ -18705,6 +18728,9 @@ msgstr ""
 "நீங்கள் கட்டுப்பாட்டு பலகத்தில் மதிப்புகளைப் புதுப்பித்துள்ளீர்கள், ஆனால்"
 " சார்ட் தானாகப் புதுப்பிக்கப்படவில்லை."
 
+msgid "You will lose all changes since your last save. This cannot be undone."
+msgstr ""
+
 #, python-format
 msgid ""
 "You'll be removed from this task. It will continue running for %s other "
@@ -18749,7 +18775,18 @@ msgid ""
 "SUPERSET_DASHBOARD_POSITION_DATA_LIMIT config setting."
 msgstr ""
 
-msgid "Your export is being prepared. You'll receive an email when it's ready."
+msgid ""
+"Your export is being generated and will download automatically when "
+"ready. We'll also email you a download link."
+msgstr ""
+
+msgid "Your export is being generated. Please, do not leave the page."
+msgstr ""
+
+msgid "Your export is ready and downloading."
+msgstr ""
+
+msgid "Your export is taking longer than expected. Try again later."
 msgstr ""
 
 #, python-format

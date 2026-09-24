@@ -44,15 +44,15 @@ import {
   FormItem,
 } from '@superset-ui/core/components';
 import { propertyComparator } from '@superset-ui/core/components/Select/utils';
-import { useDispatch, useSelector } from 'react-redux';
-import { RootState } from 'src/dashboard/types';
-import { setPendingChartCustomization } from 'src/dashboard/actions/chartCustomizationActions';
+import { useDataMaskStore } from 'src/dataMask/useDataMaskStore';
+import { setPendingChartCustomization } from 'src/dashboard/stores';
 import { TooltipWithTruncation } from 'src/dashboard/components/nativeFilters/FilterCard/TooltipWithTruncation';
-import { addDangerToast } from 'src/components/MessageToasts/actions';
+import { useToasts } from 'src/components/MessageToasts/withToasts';
 import { dispatchChartCustomizationHoverAction } from './utils';
 import {
   displayControlBindingKey,
   useDisplayControlDatasource,
+  type DisplayControlColumn,
 } from '../../useDisplayControlDatasource';
 import {
   datasetLabel as getDatasetLabel,
@@ -223,6 +223,20 @@ export const createLabelSortComparator =
     return sortAscending ? labelComparator(a, b) : labelComparator(b, a);
   };
 
+/**
+ * Maps a dataset's columns to group-by Select options: drops non-filterable
+ * columns and prefers the verbose name. Extracted for unit testing.
+ */
+export const mapDatasetColumnsToOptions = (
+  columns: DisplayControlColumn[] | undefined,
+): { label: string; value: string }[] =>
+  (columns ?? [])
+    .filter(col => col.filterable !== false)
+    .map(col => ({
+      label: col.verbose_name || col.column_name || col.name || '',
+      value: col.column_name || col.name || '',
+    }));
+
 const GroupByFilterCardContent: FC<{
   customizationItem: ChartCustomization;
   hidePopover: () => void;
@@ -296,7 +310,7 @@ const GroupByFilterCard: FC<GroupByFilterCardProps> = ({
 
   const [isHoverCardVisible, setIsHoverCardVisible] = useState(false);
 
-  const dispatch = useDispatch();
+  const { addDangerToast } = useToasts();
 
   // Legacy persisted targets may carry the id as a number, string, or
   // {value} object; the card owns this normalization and hands the hook
@@ -319,13 +333,7 @@ const GroupByFilterCard: FC<GroupByFilterCardProps> = ({
   } = useDisplayControlDatasource(normalizedDatasetId, datasourceType);
 
   const columnOptions = useMemo(
-    () =>
-      datasourceColumns
-        .filter(col => col.filterable !== false)
-        .map(col => ({
-          label: col.verbose_name || col.column_name || col.name || '',
-          value: col.column_name || col.name || '',
-        })),
+    () => mapDatasetColumnsToOptions(datasourceColumns),
     [datasourceColumns],
   );
 
@@ -348,21 +356,19 @@ const GroupByFilterCard: FC<GroupByFilterCardProps> = ({
       return;
     }
     toastedBindingRef.current = binding;
-    dispatch(
-      addDangerToast(
-        datasourceType === DatasourceType.SemanticView
-          ? t(
-              'Failed to load dimensions for semantic view %s',
-              normalizedDatasetId,
-            )
-          : t(
-              'Failed to load columns for %s %s',
-              datasetLabelLower(),
-              normalizedDatasetId,
-            ),
-      ),
+    addDangerToast(
+      datasourceType === DatasourceType.SemanticView
+        ? t(
+            'Failed to load dimensions for semantic view %s',
+            normalizedDatasetId,
+          )
+        : t(
+            'Failed to load columns for %s %s',
+            datasetLabelLower(),
+            normalizedDatasetId,
+          ),
     );
-  }, [datasourceError, normalizedDatasetId, datasourceType, dispatch]);
+  }, [datasourceError, normalizedDatasetId, datasourceType, addDangerToast]);
 
   const isHorizontalLayout = orientation === 'horizontal';
 
@@ -371,13 +377,13 @@ const GroupByFilterCard: FC<GroupByFilterCardProps> = ({
   }, []);
 
   const setHoveredChartCustomization = useCallback(
-    () => dispatchChartCustomizationHoverAction(dispatch, customizationItem.id),
-    [dispatch, customizationItem.id],
+    () => dispatchChartCustomizationHoverAction(customizationItem.id),
+    [customizationItem.id],
   );
 
   const unsetHoveredChartCustomization = useCallback(
-    () => dispatchChartCustomizationHoverAction(dispatch),
-    [dispatch],
+    () => dispatchChartCustomizationHoverAction(),
+    [],
   );
 
   const isRequired = useMemo(
@@ -385,9 +391,7 @@ const GroupByFilterCard: FC<GroupByFilterCardProps> = ({
     [customizationItem.controlValues?.enableEmptyFilter],
   );
 
-  const dataMask = useSelector<RootState, DataMaskStateWithId>(
-    state => state.dataMask,
-  );
+  const dataMask = useDataMaskStore(s => s.dataMask);
 
   const effectiveDataMask = dataMaskSelected ?? dataMask;
 
@@ -455,12 +459,10 @@ const GroupByFilterCard: FC<GroupByFilterCardProps> = ({
             },
           ] as [Partial<NativeFilterTarget>]);
 
-      dispatch(
-        setPendingChartCustomization({
-          ...customizationItem,
-          targets,
-        }),
-      );
+      setPendingChartCustomization({
+        ...customizationItem,
+        targets,
+      });
 
       const groupbyValue = columnValue
         ? Array.isArray(columnValue)
@@ -489,7 +491,6 @@ const GroupByFilterCard: FC<GroupByFilterCardProps> = ({
       canSelectMultiple,
       dataset,
       datasourceType,
-      dispatch,
       customizationItem,
       onFilterSelectionChange,
     ],

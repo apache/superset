@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-23 12:43+0200\n"
+"POT-Creation-Date: 2026-09-24 14:03-0300\n"
 "PO-Revision-Date: 2026-06-14 13:20+0200\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: sr_Latn\n"
@@ -4390,6 +4390,13 @@ msgstr "Grafikon je sačuvan, ali nije mogao biti dodat na izabranu karticu."
 msgid "Chart width"
 msgstr "Širina grafikona"
 
+#, python-format
+msgid ""
+"Chart with ID %(chart_id)s (referenced by annotation layer "
+"'%(layer_name)s') was not found. Please verify that the chart exists and "
+"is accessible."
+msgstr ""
+
 # de, es, fa, fr, it, ja, ko, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, tr, uk,
 # zh, zh_TW]
 msgid "Charts"
@@ -7328,6 +7335,9 @@ msgstr "Onemogućava funkciju prelaska na detalje za ovu bazu podataka."
 msgid "Discard"
 msgstr "Odbaci"
 
+msgid "Discard changes?"
+msgstr ""
+
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Display Name"
 msgstr "Naziv za prikaz"
@@ -8988,6 +8998,9 @@ msgstr "Neuspelo učitavanje podataka grafikona."
 msgid "Failed to load columns for %s %s"
 msgstr "Neuspelo učitavanje kolona za %s %s"
 
+msgid "Failed to load dashboard properties"
+msgstr ""
+
 #, python-format
 msgid "Failed to load dimensions for semantic view %s"
 msgstr ""
@@ -9062,6 +9075,9 @@ msgstr "Neuspelo čuvanje opsega ukrštenog filtera"
 # uk]
 msgid "Failed to save cross-filters setting"
 msgstr "Neuspelo čuvanje podešavanja ukrštenih filtera"
+
+msgid "Failed to save filter changes"
+msgstr ""
 
 # lv, ru, sk, uk]
 msgid "Failed to set local theme: Invalid JSON configuration"
@@ -17281,10 +17297,6 @@ msgstr ""
 "Žao nam je, došlo je do greške prilikom preuzimanja informacija o bazi "
 "podataka: %s"
 
-# de, es, fa, fr, ja, lv, mi, nl, pl, pt, ru, sk, sl, uk, zh, zh_TW]
-msgid "Sorry there was an error fetching saved charts: "
-msgstr "Žao nam je, došlo je do greške prilikom preuzimanja sačuvanih grafikona: "
-
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Sorry, An error occurred"
 msgstr "Žao nam je, došlo je do greške"
@@ -17304,6 +17316,9 @@ msgstr "Žao nam je, došlo je do greške. Ugrađivanje nije moglo biti deaktivi
 # de, es, fa, fr, ja, lv, mi, nl, ru, sk, sl, uk]
 msgid "Sorry, something went wrong. Please try again."
 msgstr "Žao nam je, došlo je do greške. Pokušajte ponovo."
+
+msgid "Sorry, something went wrong. The changes could not be saved."
+msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Sorry, something went wrong. Try again later."
@@ -19116,6 +19131,13 @@ msgid "The query contains one or more malformed template parameters."
 msgstr "Upit sadrži jedan ili više nepravilno formatiranih parametara šablona."
 
 msgid "The query context datasource does not match the chart datasource"
+msgstr ""
+
+#, python-format
+msgid ""
+"The query context for chart ID %(chart_id)s (referenced by annotation "
+"layer '%(layer_name)s') was not found. Please ensure the chart is "
+"properly configured and has a valid query context."
 msgstr ""
 
 # de, es, fa, fr, it, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, uk, zh,
@@ -23332,6 +23354,9 @@ msgstr ""
 "Ažurirali ste vrednosti na kontrolnoj tabli, ali grafikon nije automatski"
 " ažuriran. Pokrenite upit klikom na dugme „Ažuriraj grafikon” ili"
 
+msgid "You will lose all changes since your last save. This cannot be undone."
+msgstr ""
+
 #, python-format
 msgid ""
 "You'll be removed from this task. It will continue running for %s other "
@@ -23384,7 +23409,18 @@ msgid ""
 "SUPERSET_DASHBOARD_POSITION_DATA_LIMIT config setting."
 msgstr ""
 
-msgid "Your export is being prepared. You'll receive an email when it's ready."
+msgid ""
+"Your export is being generated and will download automatically when "
+"ready. We'll also email you a download link."
+msgstr ""
+
+msgid "Your export is being generated. Please, do not leave the page."
+msgstr ""
+
+msgid "Your export is ready and downloading."
+msgstr ""
+
+msgid "Your export is taking longer than expected. Try again later."
 msgstr ""
 
 #, python-format

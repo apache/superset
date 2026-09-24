@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version:  superset-ds\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-23 12:43+0200\n"
+"POT-Creation-Date: 2026-09-24 14:03-0300\n"
 "PO-Revision-Date: 2024-05-08 14:41+0000\n"
 "Last-Translator: \n"
 "Language: nl\n"
@@ -3886,6 +3886,13 @@ msgstr "Grafieken konden niet worden verwijderd."
 msgid "Chart width"
 msgstr "Grafiek breedte"
 
+#, python-format
+msgid ""
+"Chart with ID %(chart_id)s (referenced by annotation layer "
+"'%(layer_name)s') was not found. Please verify that the chart exists and "
+"is accessible."
+msgstr ""
+
 msgid "Charts"
 msgstr "Grafieken"
 
@@ -6473,6 +6480,9 @@ msgstr "Er zijn geen voorbeelden gevonden voor deze dataset"
 msgid "Discard"
 msgstr "Negeren"
 
+msgid "Discard changes?"
+msgstr ""
+
 msgid "Display Name"
 msgstr "Toon naam"
 
@@ -7973,6 +7983,9 @@ msgstr "Laden van grafiekgegevens mislukt."
 msgid "Failed to load columns for %s %s"
 msgstr "Laden van grafiekgegevens mislukt"
 
+msgid "Failed to load dashboard properties"
+msgstr ""
+
 #, python-format
 msgid "Failed to load dimensions for semantic view %s"
 msgstr ""
@@ -8048,6 +8061,9 @@ msgstr "Opslaan van cross-filter scope mislukt"
 #, fuzzy
 msgid "Failed to save cross-filters setting"
 msgstr "Opslaan van cross-filter scope mislukt"
+
+msgid "Failed to save filter changes"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, fr,
 # ja, lv, ro, ru, sk, sr, sr_Latn, tr, uk]
@@ -15416,9 +15432,6 @@ msgstr ""
 "Sorry er is een fout opgetreden bij het ophalen van database informatie: "
 "%s"
 
-msgid "Sorry there was an error fetching saved charts: "
-msgstr "Sorry er was een fout bij het ophalen van de opgeslagen grafieken: "
-
 msgid "Sorry, An error occurred"
 msgstr "Sorry, er is een fout opgetreden"
 
@@ -15433,6 +15446,9 @@ msgstr "Sorry, er ging iets mis. Embedding kon niet worden gedeactiveerd."
 
 msgid "Sorry, something went wrong. Please try again."
 msgstr "Er is iets fout gegaan. Probeer het opnieuw."
+
+msgid "Sorry, something went wrong. The changes could not be saved."
+msgstr ""
 
 msgid "Sorry, something went wrong. Try again later."
 msgstr "Sorry, er ging iets mis. Probeer het later nog eens."
@@ -17121,6 +17137,13 @@ msgid "The query contains one or more malformed template parameters."
 msgstr "De query bevat een of meer ongeldige sjabloonparameters."
 
 msgid "The query context datasource does not match the chart datasource"
+msgstr ""
+
+#, python-format
+msgid ""
+"The query context for chart ID %(chart_id)s (referenced by annotation "
+"layer '%(layer_name)s') was not found. Please ensure the chart is "
+"properly configured and has a valid query context."
 msgstr ""
 
 msgid "The query couldn't be loaded"
@@ -20998,6 +21021,9 @@ msgstr ""
 " niet automatisch bijgewerkt. Voer de query uit door op de knop 'Grafiek "
 "bijwerken' te klikken of"
 
+msgid "You will lose all changes since your last save. This cannot be undone."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
 #, fuzzy, python-format
@@ -21056,7 +21082,18 @@ msgid ""
 "SUPERSET_DASHBOARD_POSITION_DATA_LIMIT config setting."
 msgstr ""
 
-msgid "Your export is being prepared. You'll receive an email when it's ready."
+msgid ""
+"Your export is being generated and will download automatically when "
+"ready. We'll also email you a download link."
+msgstr ""
+
+msgid "Your export is being generated. Please, do not leave the page."
+msgstr ""
+
+msgid "Your export is ready and downloading."
+msgstr ""
+
+msgid "Your export is taking longer than expected. Try again later."
 msgstr ""
 
 #, python-format

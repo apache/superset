@@ -30,22 +30,28 @@ import {
   waitFor,
   userEvent,
 } from 'spec/helpers/testing-library';
-import { addDangerToast } from 'src/components/MessageToasts/actions';
 import GroupByFilterCard, {
   createLabelSortComparator,
+  mapDatasetColumnsToOptions,
 } from './GroupByFilterCard';
 
-jest.mock('src/dashboard/actions/chartCustomizationActions', () => ({
-  ...jest.requireActual('src/dashboard/actions/chartCustomizationActions'),
-  setPendingChartCustomization: jest.fn(() => ({ type: 'MOCK_SET_PENDING' })),
+jest.mock('src/dashboard/stores', () => ({
+  ...jest.requireActual('src/dashboard/stores'),
+  setPendingChartCustomization: jest.fn(),
 }));
 
-jest.mock('src/components/MessageToasts/actions', () => ({
-  ...jest.requireActual('src/components/MessageToasts/actions'),
-  addDangerToast: jest.fn(() => ({ type: 'MOCK_DANGER_TOAST' })),
-}));
+const mockedAddDangerToast = jest.fn();
 
-const mockedAddDangerToast = addDangerToast as unknown as jest.Mock;
+jest.mock('src/components/MessageToasts/withToasts', () => ({
+  __esModule: true,
+  default: (Component: any) => Component,
+  useToasts: () => ({
+    addDangerToast: mockedAddDangerToast,
+    addSuccessToast: jest.fn(),
+    addInfoToast: jest.fn(),
+    addWarningToast: jest.fn(),
+  }),
+}));
 
 const apple: LabeledValue = { value: 'a', label: 'Apple' };
 const banana: LabeledValue = { value: 'b', label: 'Banana' };
@@ -197,7 +203,7 @@ test('normalizes legacy datasetId shapes: plain number, string, and {value} obje
  */
 
 const { setPendingChartCustomization } = jest.requireMock(
-  'src/dashboard/actions/chartCustomizationActions',
+  'src/dashboard/stores',
 );
 
 test('semantic-view target lists only the view dimensions under an id collision', async () => {
@@ -370,4 +376,20 @@ test('renders the column-loading spinner small and muted', async () => {
   const spinner = await screen.findByTestId('loading-indicator');
   expect(spinner).toHaveClass('inline');
   expect(spinner).toHaveStyle({ opacity: 0.25, width: '40px' });
+});
+
+test('mapDatasetColumnsToOptions drops non-filterable columns and prefers verbose_name', () => {
+  const options = mapDatasetColumnsToOptions([
+    { column_name: 'region', verbose_name: 'Region', filterable: true },
+    { column_name: 'secret', filterable: false },
+    { column_name: 'amount' },
+  ]);
+  expect(options).toEqual([
+    { label: 'Region', value: 'region' },
+    { label: 'amount', value: 'amount' },
+  ]);
+});
+
+test('mapDatasetColumnsToOptions returns [] for undefined columns', () => {
+  expect(mapDatasetColumnsToOptions(undefined)).toEqual([]);
 });

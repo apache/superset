@@ -24,6 +24,15 @@ import type {
 } from '@superset-ui/core/components/DropdownContainer';
 import { SelectFilterPlugin } from 'src/filters/components';
 import { FilterBarOrientation } from 'src/dashboard/types';
+import type { DashboardInfo, DashboardLayout } from 'src/dashboard/types';
+import {
+  useDashboardInfoStore,
+  useDashboardLayoutStore,
+  useDashboardStateStore,
+  useNativeFiltersStore,
+  type FilterEntry,
+} from 'src/dashboard/stores';
+import { useDataMaskStore } from 'src/dataMask/useDataMaskStore';
 import { act, render, waitFor, within } from 'spec/helpers/testing-library';
 import { createSelectNativeFilter } from 'spec/fixtures/mockNativeFilters';
 import FilterControls from './FilterControls';
@@ -142,9 +151,9 @@ const buildHorizontalState = (
   dashboardInfo: {
     id: 1,
     dash_edit_perm: true,
-    filterBarOrientation: FilterBarOrientation.Horizontal,
     metadata: {
       native_filter_configuration: filters,
+      filter_bar_orientation: FilterBarOrientation.Horizontal,
     },
   },
   dashboardLayout: {
@@ -189,11 +198,42 @@ const buildDataMaskSelected = (
     {} as DataMaskStateWithId,
   );
 
+// FilterControls reads dashboardInfo, sliceIds, layout, native filters and
+// dataMask from Zustand rather than the Redux initialState, so mirror the
+// built state into those stores before rendering. Any test that drives
+// FilterControls through a raw render() must seed the stores this way.
+const seedZustandStores = (state: {
+  dashboardInfo: unknown;
+  dashboardState: { sliceIds: number[]; activeTabs: string[] };
+  dashboardLayout: { present: unknown };
+  nativeFilters: { filters: unknown };
+  dataMask: unknown;
+}) => {
+  useDashboardInfoStore.setState({
+    dashboardInfo: state.dashboardInfo as DashboardInfo,
+  });
+  useDashboardStateStore.setState({
+    sliceIds: state.dashboardState.sliceIds,
+    activeTabs: state.dashboardState.activeTabs,
+  });
+  useDashboardLayoutStore.setState({
+    layout: state.dashboardLayout.present as DashboardLayout,
+  });
+  useNativeFiltersStore.setState({
+    filters: state.nativeFilters.filters as Record<string, FilterEntry>,
+  });
+  useDataMaskStore.setState({
+    dataMask: state.dataMask as DataMaskStateWithId,
+  });
+};
+
 const renderHorizontal = (
   filters: ReturnType<typeof createSelectNativeFilter>[],
   dataMaskSelected: DataMaskStateWithId,
-) =>
-  render(
+) => {
+  const state = buildHorizontalState(filters);
+  seedZustandStores(state);
+  return render(
     <FilterControls
       dataMaskSelected={dataMaskSelected}
       onFilterSelectionChange={jest.fn()}
@@ -203,9 +243,10 @@ const renderHorizontal = (
     {
       useRedux: true,
       useRouter: true,
-      initialState: buildHorizontalState(filters),
+      initialState: state,
     },
   );
+};
 
 const latestProps = () =>
   dropdownContainerProps[dropdownContainerProps.length - 1];
@@ -392,10 +433,12 @@ test('a cross-filter chip DropdownContainer has already stopped overflowing does
   // callback via `fireOverflow`). Moving one without the other reproduces
   // the one-render lag that exists in production between DropdownContainer's
   // useLayoutEffect (immediate) and its useEffect (runs one commit later).
+  const state = buildStateWithOneCrossFilter();
+  seedZustandStores(state);
   const { rerender } = render(crossFilterControlsElement, {
     useRedux: true,
     useRouter: true,
-    initialState: buildStateWithOneCrossFilter(),
+    initialState: state,
   });
 
   await waitFor(() => expect(callbackRef.current).toBeTruthy());

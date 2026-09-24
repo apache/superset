@@ -19,6 +19,7 @@
 import configureStore from 'redux-mock-store';
 import { render, waitFor } from 'spec/helpers/testing-library';
 import { overwriteConfirmMetadata } from 'spec/fixtures/mockDashboardState';
+import { useDashboardStateStore } from 'src/dashboard/stores';
 
 import OverwriteConfirm from '.';
 
@@ -35,13 +36,10 @@ test('renders nothing without overwriteConfirmMetadata', () => {
 });
 
 test('renders confirm modal on overwriteConfirmMetadata is provided', async () => {
+  useDashboardStateStore.setState({ overwriteConfirmMetadata });
   const { queryByText } = render(<OverwriteConfirm />, {
     useRedux: true,
-    store: mockStore({
-      dashboardState: {
-        overwriteConfirmMetadata,
-      },
-    }),
+    store: mockStore({ dashboardState: {} }),
   });
   await waitFor(() =>
     expect(queryByText('Confirm overwrite')).toBeInTheDocument(),
