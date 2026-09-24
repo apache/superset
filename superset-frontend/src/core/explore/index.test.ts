@@ -17,10 +17,7 @@
  * under the License.
  */
 import { setControlValue } from 'src/explore/actions/exploreActions';
-import {
-  getChartDataRequest,
-  handleChartDataResponse,
-} from 'src/components/Chart/chartAction';
+import { requestChartDataResolved } from 'src/components/Chart/chartAction';
 import { store } from 'src/views/store';
 import { navigation } from '../navigation';
 import { explore } from './index';
@@ -35,9 +32,11 @@ jest.mock('src/explore/actions/exploreActions', () => ({
   })),
 }));
 
+// requestChartDataResolved already resolves an async 202 job envelope into
+// its final result array (see its own coverage in chartActions.test.ts), so
+// this module only needs to mock that resolved boundary.
 jest.mock('src/components/Chart/chartAction', () => ({
-  getChartDataRequest: jest.fn(),
-  handleChartDataResponse: jest.fn(),
+  requestChartDataResolved: jest.fn(),
 }));
 
 jest.mock('src/views/store', () => ({
@@ -54,8 +53,7 @@ jest.mock('../navigation', () => ({
 const mockGetPage = navigation.getPage as jest.Mock;
 const mockGetState = store.getState as jest.Mock;
 const mockDispatch = store.dispatch as jest.Mock;
-const mockGetChartDataRequest = getChartDataRequest as jest.Mock;
-const mockHandleChartDataResponse = handleChartDataResponse as jest.Mock;
+const mockRequestChartDataResolved = requestChartDataResolved as jest.Mock;
 
 // Mirrors the current controls Explore would be querying with, matching the
 // pre-normalization `form_data` slice used elsewhere in these tests.
@@ -81,11 +79,6 @@ beforeEach(() => {
   jest.clearAllMocks();
   mockGetPage.mockReturnValue('dashboard');
   mockGetState.mockReturnValue({ explore: {}, dataMask: {} });
-  // By default, behave as if GLOBAL_ASYNC_QUERIES is disabled: pass the
-  // result array straight through, as handleChartDataResponse itself does.
-  mockHandleChartDataResponse.mockImplementation(
-    (_response: unknown, json: { result: unknown[] }) => json.result,
-  );
 });
 
 test('getChartId returns undefined when Explore is not the active surface', () => {
@@ -172,15 +165,12 @@ test('getQuery builds form data from the current controls, not stale form_data',
     controls: { ...defaultControls, row_limit: { value: 100 } },
     form_data: { datasource: '1__table', viz_type: 'echarts_timeseries_bar' },
   });
-  mockGetChartDataRequest.mockResolvedValue({
-    response: { status: 200 },
-    json: { result: [{ query: 'SELECT 1' }] },
-  });
+  mockRequestChartDataResolved.mockResolvedValue([{ query: 'SELECT 1' }]);
 
   const sql = await explore.getQuery();
 
   expect(sql).toBe('SELECT 1');
-  expect(mockGetChartDataRequest).toHaveBeenCalledWith({
+  expect(mockRequestChartDataResolved).toHaveBeenCalledWith({
     formData: {
       datasource: '1__table',
       viz_type: 'echarts_timeseries_bar',
@@ -201,53 +191,25 @@ test('getQuery includes the chart’s current ownState (e.g. table pagination)',
     },
     dataMask: { 55: { ownState: { currentPage: 2 } } },
   });
-  mockGetChartDataRequest.mockResolvedValue({
-    response: { status: 200 },
-    json: { result: [{ query: 'SELECT 1' }] },
-  });
+  mockRequestChartDataResolved.mockResolvedValue([{ query: 'SELECT 1' }]);
 
   await explore.getQuery();
 
-  expect(mockGetChartDataRequest).toHaveBeenCalledWith(
+  expect(mockRequestChartDataResolved).toHaveBeenCalledWith(
     expect.objectContaining({ ownState: { currentPage: 2 } }),
-  );
-});
-
-test('getQuery awaits an async job envelope instead of reading it as the result', async () => {
-  activateExplore();
-  // Simulates GLOBAL_ASYNC_QUERIES returning a 202 job envelope rather than
-  // the actual result array.
-  mockGetChartDataRequest.mockResolvedValue({
-    response: { status: 202 },
-    json: { result: [{ job_id: 'abc', channel_id: 'def' }] },
-  });
-  mockHandleChartDataResponse.mockResolvedValue([{ query: 'SELECT 1' }]);
-
-  const sql = await explore.getQuery();
-
-  expect(sql).toBe('SELECT 1');
-  expect(mockHandleChartDataResponse).toHaveBeenCalledWith(
-    { status: 202 },
-    { result: [{ job_id: 'abc', channel_id: 'def' }] },
   );
 });
 
 test('getQuery throws when the result has an error', async () => {
   activateExplore();
-  mockGetChartDataRequest.mockResolvedValue({
-    response: { status: 200 },
-    json: { result: [{ error: 'boom' }] },
-  });
+  mockRequestChartDataResolved.mockResolvedValue([{ error: 'boom' }]);
 
   await expect(explore.getQuery()).rejects.toThrow('boom');
 });
 
 test('getQuery throws a fallback message when no result comes back', async () => {
   activateExplore();
-  mockGetChartDataRequest.mockResolvedValue({
-    response: { status: 200 },
-    json: { result: [] },
-  });
+  mockRequestChartDataResolved.mockResolvedValue([]);
 
   await expect(explore.getQuery()).rejects.toThrow(
     'Failed to retrieve the query',
@@ -262,17 +224,9 @@ test('getChartData throws when Explore is not the active surface', async () => {
 
 test('getChartData requests a full result and returns columns/rows', async () => {
   activateExplore();
-  mockGetChartDataRequest.mockResolvedValue({
-    response: { status: 200 },
-    json: {
-      result: [
-        {
-          colnames: ['region', 'sales'],
-          data: [{ region: 'US', sales: 100 }],
-        },
-      ],
-    },
-  });
+  mockRequestChartDataResolved.mockResolvedValue([
+    { colnames: ['region', 'sales'], data: [{ region: 'US', sales: 100 }] },
+  ]);
 
   const data = await explore.getChartData();
 
@@ -280,7 +234,7 @@ test('getChartData requests a full result and returns columns/rows', async () =>
     columns: ['region', 'sales'],
     rows: [{ region: 'US', sales: 100 }],
   });
-  expect(mockGetChartDataRequest).toHaveBeenCalledWith({
+  expect(mockRequestChartDataResolved).toHaveBeenCalledWith({
     formData: { datasource: '1__table', viz_type: 'echarts_timeseries_bar' },
     resultFormat: 'json',
     resultType: 'full',
@@ -297,49 +251,27 @@ test('getChartData includes the chart’s current ownState (e.g. table paginatio
     },
     dataMask: { 55: { ownState: { currentPage: 2 } } },
   });
-  mockGetChartDataRequest.mockResolvedValue({
-    response: { status: 200 },
-    json: { result: [{ colnames: [], data: [] }] },
-  });
+  mockRequestChartDataResolved.mockResolvedValue([
+    { colnames: [], data: [] },
+  ]);
 
   await explore.getChartData();
 
-  expect(mockGetChartDataRequest).toHaveBeenCalledWith(
+  expect(mockRequestChartDataResolved).toHaveBeenCalledWith(
     expect.objectContaining({ ownState: { currentPage: 2 } }),
   );
 });
 
-test('getChartData awaits an async job envelope instead of reading it as the result', async () => {
-  activateExplore();
-  mockGetChartDataRequest.mockResolvedValue({
-    response: { status: 202 },
-    json: { result: [{ job_id: 'abc', channel_id: 'def' }] },
-  });
-  mockHandleChartDataResponse.mockResolvedValue([
-    { colnames: ['region'], data: [{ region: 'US' }] },
-  ]);
-
-  const data = await explore.getChartData();
-
-  expect(data).toEqual({ columns: ['region'], rows: [{ region: 'US' }] });
-});
-
 test('getChartData defaults columns and rows to [] when the result omits them', async () => {
   activateExplore();
-  mockGetChartDataRequest.mockResolvedValue({
-    response: { status: 200 },
-    json: { result: [{}] },
-  });
+  mockRequestChartDataResolved.mockResolvedValue([{}]);
 
   expect(await explore.getChartData()).toEqual({ columns: [], rows: [] });
 });
 
 test('getChartData throws when the result has an error', async () => {
   activateExplore();
-  mockGetChartDataRequest.mockResolvedValue({
-    response: { status: 200 },
-    json: { result: [{ error: 'boom' }] },
-  });
+  mockRequestChartDataResolved.mockResolvedValue([{ error: 'boom' }]);
 
   await expect(explore.getChartData()).rejects.toThrow('boom');
 });
