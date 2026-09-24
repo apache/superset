@@ -17,12 +17,26 @@
  * under the License.
  */
 import type { AnyAction, Store } from 'redux';
+import fetchMock from 'fetch-mock';
+import { DatasourceType, QueryFormData } from '@superset-ui/core';
+import type { Slice } from 'src/dashboard/types';
+import {
+  updateSlice,
+  createSlice,
+  saveSliceSuccess,
+} from 'src/explore/actions/saveModalActions';
+import saveModalReducer from 'src/explore/reducers/saveModalReducer';
 import { act, render, waitFor } from 'spec/helpers/testing-library';
 import { hydrateExplore } from 'src/explore/actions/hydrateExplore';
 import type { VersionHistoryState } from './types';
 import { fetchExploreRehydrationData } from './api';
 import { useVersionActivity } from './useVersionActivity';
 import ExploreVersionHistory from './ExploreVersionHistory';
+
+jest.mock('src/explore/exploreUtils', () => ({
+  ...jest.requireActual('src/explore/exploreUtils'),
+  buildV1ChartDataPayload: jest.fn(() => ({})),
+}));
 
 jest.mock('./VersionHistoryPanel', () => ({
   __esModule: true,
@@ -80,7 +94,8 @@ interface TestSlice {
 
 interface TestState {
   versionHistory: VersionHistoryState;
-  explore: { slice?: TestSlice };
+  explore: { slice?: TestSlice; form_data?: QueryFormData };
+  saveModal?: ReturnType<typeof saveModalReducer>;
 }
 
 const slice = (changedOn: string): TestSlice => ({
@@ -89,8 +104,7 @@ const slice = (changedOn: string): TestSlice => ({
   changed_on: changedOn,
 });
 
-/** Minimal recording store: dispatched actions are captured, never reduced,
- * so tests drive state transitions explicitly via setState. */
+/** Reduce the real save response; unrelated transitions can be driven explicitly. */
 function makeTestStore(initial: TestState) {
   let state = initial;
   const actions: AnyAction[] = [];
@@ -102,8 +116,13 @@ function makeTestStore(initial: TestState) {
       state = { ...state, ...partial };
       listeners.forEach(listener => listener());
     },
-    dispatch(action: AnyAction) {
+    dispatch<T extends AnyAction>(action: T): T {
       actions.push(action);
+      state = {
+        ...state,
+        saveModal: saveModalReducer(state.saveModal, action),
+      };
+      listeners.forEach(listener => listener());
       return action;
     },
     subscribe(listener: () => void) {
@@ -149,13 +168,17 @@ beforeEach(() => {
 
 afterEach(() => {
   jest.clearAllMocks();
+  fetchMock.clearHistory().removeRoutes();
 });
 
-test('refreshes the timeline when an overwrite save replaces the slice', () => {
+test('overwrite success followed by timestamp hydration refreshes only once', () => {
   const store = makeStore();
   renderAdapter(store);
   expect(refresh).not.toHaveBeenCalled();
 
+  act(() => {
+    store.dispatch(saveSliceSuccess({ id: 1 }));
+  });
   act(() => {
     store.setState({ explore: { slice: slice('2025-12-08T18:00:00') } });
   });
@@ -327,7 +350,7 @@ test('a save landing mid-rehydration wins over the older restore payload', async
 
   // An overwrite save commits while the rehydration is still in flight.
   act(() => {
-    store.setState({ explore: { slice: slice('2025-12-09T09:00:00') } });
+    store.dispatch(saveSliceSuccess({ id: 1 }));
   });
 
   await act(async () => {
@@ -335,4 +358,212 @@ test('a save landing mid-rehydration wins over the older restore payload', async
   });
 
   expect(mockedHydrateExplore).not.toHaveBeenCalled();
+});
+
+const overwriteSlice: Slice = {
+  slice_id: 1,
+  slice_name: 'Example',
+  editors: [],
+  form_data: { datasource: '1__table', viz_type: 'table' },
+  description: '',
+  description_markdown: '',
+  slice_url: '',
+  viz_type: 'table',
+  thumbnail_url: '',
+  changed_on: 0,
+  changed_on_humanized: '',
+  modified: '',
+  datasource_id: 1,
+  datasource_type: DatasourceType.Table,
+  datasource_url: '',
+  datasource_name: '',
+  created_by: { id: 1 },
+};
+
+const makeSaveStore = () =>
+  makeTestStore({
+    versionHistory: versionHistoryState(),
+    explore: {
+      slice: slice('2025-12-08T17:18:00'),
+      form_data: overwriteSlice.form_data,
+    },
+  });
+
+test('real overwrite success refreshes the open panel on every save without changed_on movement', async () => {
+  fetchMock.put('glob:*/api/v1/chart/1', { id: 1, result: {} });
+  const store = makeSaveStore();
+  renderAdapter(store);
+
+  for (let save = 1; save <= 2; save += 1) {
+    await act(async () => {
+      await updateSlice(
+        overwriteSlice,
+        'Example',
+        [],
+      )(store.dispatch, store.getState);
+    });
+    expect(store.getState().explore.slice?.changed_on).toBe(
+      '2025-12-08T17:18:00',
+    );
+    expect(refresh).toHaveBeenCalledTimes(save);
+  }
+  expect(mockedHydrateExplore).not.toHaveBeenCalled();
+});
+
+test('a failed overwrite and a save-as result do not refresh the old chart', async () => {
+  fetchMock.put('glob:*/api/v1/chart/1', 500);
+  fetchMock.post('glob:*/api/v1/chart/', { id: 2, result: {} });
+  const store = makeSaveStore();
+  renderAdapter(store);
+
+  await act(async () => {
+    await expect(
+      updateSlice(
+        overwriteSlice,
+        'Example',
+        [],
+      )(store.dispatch, store.getState),
+    ).rejects.toBeDefined();
+    await createSlice('Copy', [])(store.dispatch, store.getState);
+  });
+  expect(refresh).not.toHaveBeenCalled();
+});
+
+test('overwrite completing after unmount does not refresh the panel', async () => {
+  let finishSave: (value: { id: number }) => void = () => {};
+  fetchMock.put(
+    'glob:*/api/v1/chart/1',
+    () =>
+      new Promise(resolve => {
+        finishSave = resolve;
+      }),
+  );
+  const store = makeSaveStore();
+  const { unmount } = renderAdapter(store);
+  const pending = updateSlice(
+    overwriteSlice,
+    'Example',
+    [],
+  )(store.dispatch, store.getState);
+  await waitFor(() =>
+    expect(fetchMock.callHistory.calls('glob:*/api/v1/chart/1')).toHaveLength(
+      1,
+    ),
+  );
+  unmount();
+  await act(async () => {
+    finishSave({ id: 1 });
+    await pending;
+  });
+  expect(refresh).not.toHaveBeenCalled();
+});
+
+test('a real save with an unchanged timestamp invalidates an older restore hydration', async () => {
+  let finishRestore: (value: object) => void = () => {};
+  mockedFetchRehydration.mockReturnValue(
+    new Promise(resolve => {
+      finishRestore = resolve;
+    }),
+  );
+  fetchMock.put('glob:*/api/v1/chart/1', { id: 1, result: {} });
+  const store = makeSaveStore();
+  renderAdapter(store);
+  act(() => {
+    store.setState({
+      versionHistory: versionHistoryState({
+        restoreCount: 1,
+        lastRestoredEntityUuid: 'chart-uuid',
+      }),
+    });
+  });
+  await act(async () => {
+    await updateSlice(
+      overwriteSlice,
+      'Example',
+      [],
+    )(store.dispatch, store.getState);
+    finishRestore({});
+  });
+  expect(refresh).toHaveBeenCalledTimes(2);
+  expect(mockedHydrateExplore).not.toHaveBeenCalled();
+});
+
+test('a restore of another entity does not suppress a simultaneous real chart save', async () => {
+  fetchMock.put('glob:*/api/v1/chart/1', { id: 1, result: {} });
+  const store = makeSaveStore();
+  renderAdapter(store);
+  await act(async () => {
+    store.setState({
+      versionHistory: versionHistoryState({
+        restoreCount: 1,
+        lastRestoredEntityUuid: 'another-uuid',
+      }),
+    });
+    await updateSlice(
+      overwriteSlice,
+      'Example',
+      [],
+    )(store.dispatch, store.getState);
+  });
+  expect(refresh).toHaveBeenCalledTimes(1);
+  expect(mockedFetchRehydration).not.toHaveBeenCalled();
+});
+
+test('a late overwrite response after chart navigation does not refresh the new chart', async () => {
+  let finishSave: (value: { id: number }) => void = () => {};
+  fetchMock.put(
+    'glob:*/api/v1/chart/1',
+    () =>
+      new Promise(resolve => {
+        finishSave = resolve;
+      }),
+  );
+  const store = makeSaveStore();
+  renderAdapter(store);
+  const pending = updateSlice(
+    overwriteSlice,
+    'Example',
+    [],
+  )(store.dispatch, store.getState);
+  await waitFor(() =>
+    expect(fetchMock.callHistory.calls('glob:*/api/v1/chart/1')).toHaveLength(
+      1,
+    ),
+  );
+  act(() => {
+    store.setState({
+      explore: {
+        slice: {
+          ...slice('2025-12-08T17:18:00'),
+          slice_id: 2,
+          uuid: 'chart-2',
+        },
+      },
+    });
+  });
+  await act(async () => {
+    finishSave({ id: 1 });
+    await pending;
+  });
+  expect(refresh).not.toHaveBeenCalled();
+  expect(mockedFetchRehydration).not.toHaveBeenCalled();
+});
+
+test('save-as navigation lets the new entity load without an extra save refresh', async () => {
+  fetchMock.post('glob:*/api/v1/chart/', { id: 2, result: {} });
+  const store = makeSaveStore();
+  renderAdapter(store);
+  await act(async () => {
+    await createSlice('Copy', [])(store.dispatch, store.getState);
+    store.setState({
+      explore: {
+        slice: {
+          ...slice('2025-12-08T17:18:00'),
+          slice_id: 2,
+          uuid: 'chart-2',
+        },
+      },
+    });
+  });
+  expect(refresh).not.toHaveBeenCalled();
 });
