@@ -102,14 +102,32 @@ const StyledSpace = styled(Space)<{
   width: 100%;
 
   .exclude-select {
-    width: 80px;
-    flex-shrink: 0;
+    width: 100%;
+    min-width: 80px;
   }
 
   &.ant-space {
     .ant-space-item {
       width: ${({ inverseSelection }) => (!inverseSelection ? '100%' : 'auto')};
     }
+
+    ${({ inverseSelection }) =>
+      inverseSelection &&
+      `
+      .ant-space-item:first-of-type {
+        flex: 1 1 25%;
+      }
+
+      .ant-space-item:last-child {
+        flex: 3 1 75%;
+        min-width: 0;
+      }
+
+      .select-container {
+        width: 100% !important;
+        max-width: none !important;
+      }
+    `}
   }
 `;
 
