@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { omit } from 'lodash-es';
 import { explore as exploreApi } from '@apache-superset/core';
 import type {
   ChartDataResponseResult,
@@ -24,8 +23,7 @@ import type {
   QueryFormData,
 } from '@superset-ui/core';
 import { setControlValue } from 'src/explore/actions/exploreActions';
-import { getFormDataFromControls } from 'src/explore/controlUtils';
-import { QUERY_MODE_REQUISITES } from 'src/explore/constants';
+import { getVisibleFormDataFromControls } from 'src/explore/controlUtils';
 import { requestChartDataResolved } from 'src/components/Chart/chartAction';
 import { store, RootState } from 'src/views/store';
 import { navigation } from '../navigation';
@@ -55,20 +53,12 @@ const getControlValue: typeof exploreApi.getControlValue = (name: string) =>
 // Explore queries with the form data derived from the current `controls`
 // state (see ExploreViewContainer's mapStateToProps), not the pre-normalization
 // `form_data` slice, which can lag behind controls filled in by defaults or by
-// mapStateToProps. Building form data the same way keeps getQuery()/
-// getChartData() describing the same data as the chart on screen.
+// mapStateToProps. Sharing getVisibleFormDataFromControls with
+// mapStateToProps keeps getQuery()/getChartData() describing the same data
+// as the chart on screen.
 const getCurrentFormData = (): QueryFormData => {
   const { controls, hiddenFormData } = getExploreState();
-  const hasQueryMode = !!controls?.query_mode?.value;
-  const fieldsToOmit = hasQueryMode
-    ? Object.keys(hiddenFormData ?? {}).filter(
-        key => !QUERY_MODE_REQUISITES.has(key),
-      )
-    : Object.keys(hiddenFormData ?? {});
-  return omit(
-    getFormDataFromControls(controls ?? {}),
-    fieldsToOmit,
-  ) as QueryFormData;
+  return getVisibleFormDataFromControls(controls ?? {}, hiddenFormData);
 };
 
 // Mirrors the currently-applied server-side state (e.g. a Table chart's
