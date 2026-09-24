@@ -1195,6 +1195,9 @@ msgid ""
 " period. It is commonly used for financial and other time-series range "
 "analysis."
 msgstr ""
+"Свећасти графикон приказује вредности отварања, затварања, максимум и "
+"минимум за сваки период. Обично се користи за финансијску и другу анализу "
+"опсега временских серија."
 
 # ru, sk, uk]
 msgid "A comma separated list of columns that should be parsed as dates"
@@ -3886,15 +3889,17 @@ msgid "Cancellation not available due to missing abort handler"
 msgstr "Отказивање није могуће због недостатка управљача прекидом"
 
 msgid "Candlestick"
-msgstr ""
+msgstr "Свећасти графикон"
 
 msgid "Candlestick Chart"
-msgstr ""
+msgstr "Свећасти графикон"
 
 msgid ""
 "Candlestick draws a filled body between open and close. OHLC draws ticks "
 "for open and close on a high-low stem."
 msgstr ""
+"Свеће цртају испуњено тело између отварања и затварања. OHLC црта ознаке "
+"отварања и затварања на стаблу максимум–минимум."
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Cannot access the query"
@@ -4838,7 +4843,7 @@ msgid "Close version history"
 msgstr ""
 
 msgid "Closing value for each period."
-msgstr ""
+msgstr "Вредност затварања за сваки период."
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Cluster label aggregator"
@@ -4937,7 +4942,7 @@ msgid "Color by"
 msgstr "Боја по"
 
 msgid "Color by direction"
-msgstr ""
+msgstr "Боја према смеру"
 
 msgid "Color field must be a hex color (#rrggbb) or 'rgb(r, g, b)'"
 msgstr "Поље за боју мора бити хексадецимална боја (#rrggbb) или 'rgb(р, г, б)'"
@@ -4972,10 +4977,10 @@ msgstr "Шема боја"
 msgid ""
 "Color used when the close value is greater than or equal to the open "
 "value."
-msgstr ""
+msgstr "Боја када је вредност затварања већа или једнака вредности отварања."
 
 msgid "Color used when the close value is less than the open value."
-msgstr ""
+msgstr "Боја када је вредност затварања мања од вредности отварања."
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, ru, sk, sl, uk]
 msgid ""
@@ -9999,7 +10004,7 @@ msgid "High color"
 msgstr ""
 
 msgid "Highest value for each period."
-msgstr ""
+msgstr "Највиша вредност за сваки период."
 
 msgid "Histogram"
 msgstr "Хистограм"
@@ -10883,10 +10888,10 @@ msgid "Label threshold"
 msgstr "Праг ознаке"
 
 msgid "Label used for decreasing candles in the tooltip."
-msgstr ""
+msgstr "Ознака опадајућих свећа у опису."
 
 msgid "Label used for increasing candles in the tooltip."
-msgstr ""
+msgstr "Ознака растућих свећа у опису."
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Labelling"
@@ -11493,7 +11498,7 @@ msgid "Lower threshold must be lower than upper threshold"
 msgstr "Доњи праг мора бити мањи од горњег прага"
 
 msgid "Lowest value for each period."
-msgstr ""
+msgstr "Најнижа вредност за сваки период."
 
 msgid "MAR"
 msgstr "МАР"
@@ -12202,7 +12207,7 @@ msgid "Moves the given set of dates by a specified interval."
 msgstr "Помера дати скуп датума за наведени интервал."
 
 msgid "Moving averages"
-msgstr ""
+msgstr "Покретни просеци"
 
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Multi-Dimensions"
@@ -12339,6 +12344,8 @@ msgid ""
 "Name used for the candlestick series in the legend and tooltip when no "
 "series dimension is set."
 msgstr ""
+"Назив свећасте серије у легенди и опису када димензија серије није "
+"постављена."
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Name your database"
@@ -12990,7 +12997,7 @@ msgid "OCT"
 msgstr "ОКТ"
 
 msgid "OHLC"
-msgstr ""
+msgstr "OHLC"
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "OK"
@@ -13226,7 +13233,7 @@ msgid "Open query in SQL Lab"
 msgstr "Отвори упит у SQL Lab-у"
 
 msgid "Opening value for each period."
-msgstr ""
+msgstr "Вредност отварања за сваки период."
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid ""
@@ -13268,7 +13275,7 @@ msgstr "Опциони низ за д3 формат броја"
 msgid ""
 "Optional dimension used to split the chart into multiple candlestick "
 "series."
-msgstr ""
+msgstr "Опционална димензија која дели графикон на више свећастих серија."
 
 msgid ""
 "Optional metric used to scale the size of each dot. Dot areas are scaled "
@@ -13421,6 +13428,8 @@ msgid ""
 "Overlay simple moving averages of the close price (MA5, MA10, MA15, ...)."
 " Type a custom period to add it."
 msgstr ""
+"Преклопите просте покретне просеке цене затварања (MA5, MA10, MA15, ...). "
+"Унесите прилагођени период да га додате."
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
 msgid ""
@@ -16616,7 +16625,7 @@ msgid "Series chart type (line, bar etc)"
 msgstr "Тип графикона серије (линија, трака итд)"
 
 msgid "Series colors"
-msgstr ""
+msgstr "Боје серија"
 
 # ru, sk, uk]
 msgid "Series decrease setting"
@@ -16631,14 +16640,14 @@ msgid "Series limit"
 msgstr "Ограничење серија"
 
 msgid "Series name"
-msgstr ""
+msgstr "Назив серије"
 
 # uk]
 msgid "Series settings"
 msgstr "Подешавања серија"
 
 msgid "Series style"
-msgstr ""
+msgstr "Стил серије"
 
 # uk]
 msgid "Series total setting"
@@ -22487,6 +22496,9 @@ msgid ""
 "candles use the decrease color. Turn off to use one series color, with a "
 "filled body for increases and a hollow body for decreases."
 msgstr ""
+"Ако је укључено, растуће свеће користе боју раста, а опадајуће боју пада. "
+"Искључите да користите једну боју серије: испуњено тело при расту и шупље "
+"при паду."
 
 # ru, sk, uk]
 msgid ""

@@ -1468,6 +1468,9 @@ msgid ""
 " period. It is commonly used for financial and other time-series range "
 "analysis."
 msgstr ""
+"Kynttiläkaavio näyttää avaus-, päätös-, ylä- ja aliarvot kullekin "
+"jaksolle. Sitä käytetään yleisesti rahoitus- ja muuhun aikasarjojen "
+"vaihteluvälianalyysiin."
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: fr, ja, lv,
 # ru, sk, uk]
@@ -5222,15 +5225,17 @@ msgid "Cancellation not available due to missing abort handler"
 msgstr "Peruutus ei ole käytettävissä puuttuvan keskeyttämiskäsittelijän vuoksi"
 
 msgid "Candlestick"
-msgstr ""
+msgstr "Kynttiläkaavio"
 
 msgid "Candlestick Chart"
-msgstr ""
+msgstr "Kynttiläkaavio"
 
 msgid ""
 "Candlestick draws a filled body between open and close. OHLC draws ticks "
 "for open and close on a high-low stem."
 msgstr ""
+"Kynttilä piirtää täytetyn rungon avauksen ja päätöksen väliin. OHLC "
+"piirtää avaus- ja päätösmerkit korkea–matala-varteen."
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -6528,7 +6533,7 @@ msgid "Close version history"
 msgstr ""
 
 msgid "Closing value for each period."
-msgstr ""
+msgstr "Päätösarvo kullekin jaksolle."
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -6678,7 +6683,7 @@ msgid "Color by"
 msgstr "Väri mukaan"
 
 msgid "Color by direction"
-msgstr ""
+msgstr "Väri suunnan mukaan"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
@@ -6726,10 +6731,10 @@ msgstr "Värikaava"
 msgid ""
 "Color used when the close value is greater than or equal to the open "
 "value."
-msgstr ""
+msgstr "Väri, kun päätösarvo on avausarvoa suurempi tai yhtä suuri."
 
 msgid "Color used when the close value is less than the open value."
-msgstr ""
+msgstr "Väri, kun päätösarvo on avausarvoa pienempi."
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, ru, sk, sl, uk]
@@ -13730,7 +13735,7 @@ msgid "High color"
 msgstr ""
 
 msgid "Highest value for each period."
-msgstr ""
+msgstr "Ylin arvo kullekin jaksolle."
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, it, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, uk, zh,
@@ -14988,10 +14993,10 @@ msgid "Label threshold"
 msgstr "Merkinnän kynnysarvo"
 
 msgid "Label used for decreasing candles in the tooltip."
-msgstr ""
+msgstr "Laskevien kynttilöiden nimiö työkaluvihjeessä."
 
 msgid "Label used for increasing candles in the tooltip."
-msgstr ""
+msgstr "Nousevien kynttilöiden nimiö työkaluvihjeessä."
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -15845,7 +15850,7 @@ msgid "Lower threshold must be lower than upper threshold"
 msgstr "Alemman kynnysarvon on oltava pienempi kuin ylemmän kynnysarvon"
 
 msgid "Lowest value for each period."
-msgstr ""
+msgstr "Alin arvo kullekin jaksolle."
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, tr, uk, zh, zh_TW]
@@ -16866,7 +16871,7 @@ msgid "Moves the given set of dates by a specified interval."
 msgstr "Siirtää annetun päivämääräjoukon määritetyn välin verran."
 
 msgid "Moving averages"
-msgstr ""
+msgstr "Liukuvat keskiarvot"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -17061,6 +17066,8 @@ msgid ""
 "Name used for the candlestick series in the legend and tooltip when no "
 "series dimension is set."
 msgstr ""
+"Kynttiläsarjan nimi selitteessä ja työkaluvihjeessä, kun sarjaulottuvuutta "
+"ei ole asetettu."
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -18000,7 +18007,7 @@ msgid "OCT"
 msgstr "LOKA"
 
 msgid "OHLC"
-msgstr ""
+msgstr "OHLC"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -18321,7 +18328,7 @@ msgid "Open query in SQL Lab"
 msgstr "Avaa kysely SQL Labissa"
 
 msgid "Opening value for each period."
-msgstr ""
+msgstr "Avausarvo kullekin jaksolle."
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -18374,7 +18381,7 @@ msgstr "Valinnainen d3-lukumuodon merkkijono"
 msgid ""
 "Optional dimension used to split the chart into multiple candlestick "
 "series."
-msgstr ""
+msgstr "Valinnainen ulottuvuus, joka jakaa kaavion useiksi kynttiläsarjoiksi."
 
 msgid ""
 "Optional metric used to scale the size of each dot. Dot areas are scaled "
@@ -18574,6 +18581,8 @@ msgid ""
 "Overlay simple moving averages of the close price (MA5, MA10, MA15, ...)."
 " Type a custom period to add it."
 msgstr ""
+"Peitä päätöshinnan yksinkertaiset liukuvat keskiarvot (MA5, MA10, MA15, "
+"...). Lisää jakso kirjoittamalla mukautettu arvo."
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
@@ -23103,7 +23112,7 @@ msgid "Series chart type (line, bar etc)"
 msgstr "Sarjan kaaviotyyppi (viiva, palkki jne.)"
 
 msgid "Series colors"
-msgstr ""
+msgstr "Sarjan värit"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, ja, lv,
 # ru, sk, uk]
@@ -23124,7 +23133,7 @@ msgid "Series limit"
 msgstr "Sarjojen raja"
 
 msgid "Series name"
-msgstr ""
+msgstr "Sarjan nimi"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja, lv, ru,
 # uk]
@@ -23133,7 +23142,7 @@ msgid "Series settings"
 msgstr "Sarjan asetukset"
 
 msgid "Series style"
-msgstr ""
+msgstr "Sarjan tyyli"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja, lv, ru,
 # uk]
@@ -31000,6 +31009,9 @@ msgid ""
 "candles use the decrease color. Turn off to use one series color, with a "
 "filled body for increases and a hollow body for decreases."
 msgstr ""
+"Kun käytössä, nousevat kynttilät käyttävät nousuväriä ja laskevat "
+"laskuväriä. Poista käytöstä käyttääksesi yhtä sarjaväriä: täytetty runko "
+"nousussa ja ontto laskussa."
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, ja, lv,
 # ru, sk, uk]

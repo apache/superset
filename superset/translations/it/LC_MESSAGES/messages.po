@@ -1245,6 +1245,9 @@ msgid ""
 " period. It is commonly used for financial and other time-series range "
 "analysis."
 msgstr ""
+"Un grafico a candele mostra i valori di apertura, chiusura, massimo e "
+"minimo per ogni periodo. È comunemente usato per analisi finanziarie e di "
+"intervallo su serie temporali."
 
 msgid "A comma separated list of columns that should be parsed as dates"
 msgstr ""
@@ -3964,15 +3967,17 @@ msgid "Cancellation not available due to missing abort handler"
 msgstr "Annullamento non disponibile per mancanza del gestore di interruzione"
 
 msgid "Candlestick"
-msgstr ""
+msgstr "Candlestick"
 
 msgid "Candlestick Chart"
-msgstr ""
+msgstr "Grafico a candele"
 
 msgid ""
 "Candlestick draws a filled body between open and close. OHLC draws ticks "
 "for open and close on a high-low stem."
 msgstr ""
+"Le candele disegnano un corpo pieno tra apertura e chiusura. OHLC disegna "
+"tacche di apertura e chiusura su uno stelo massimo-minimo."
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -4923,7 +4928,7 @@ msgid "Close version history"
 msgstr ""
 
 msgid "Closing value for each period."
-msgstr ""
+msgstr "Valore di chiusura per ciascun periodo."
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -5031,7 +5036,7 @@ msgid "Color by"
 msgstr "Colora per"
 
 msgid "Color by direction"
-msgstr ""
+msgstr "Colore in base alla direzione"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
@@ -5071,9 +5076,12 @@ msgid ""
 "Color used when the close value is greater than or equal to the open "
 "value."
 msgstr ""
+"Colore usato quando il valore di chiusura è maggiore o uguale a quello di "
+"apertura."
 
 msgid "Color used when the close value is less than the open value."
 msgstr ""
+"Colore usato quando il valore di chiusura è minore di quello di apertura."
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, ro, ru, sk, sl, sr, sr_Latn, tr, uk]
@@ -10185,7 +10193,7 @@ msgid "High color"
 msgstr ""
 
 msgid "Highest value for each period."
-msgstr ""
+msgstr "Valore massimo per ciascun periodo."
 
 msgid "Histogram"
 msgstr "Istogramma"
@@ -11186,10 +11194,10 @@ msgid "Label threshold"
 msgstr "Soglia etichetta"
 
 msgid "Label used for decreasing candles in the tooltip."
-msgstr ""
+msgstr "Etichetta delle candele in ribasso nel tooltip."
 
 msgid "Label used for increasing candles in the tooltip."
-msgstr ""
+msgstr "Etichetta delle candele in rialzo nel tooltip."
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -11825,7 +11833,7 @@ msgid "Lower threshold must be lower than upper threshold"
 msgstr "La soglia inferiore deve essere inferiore alla soglia superiore"
 
 msgid "Lowest value for each period."
-msgstr ""
+msgstr "Valore minimo per ciascun periodo."
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -12609,7 +12617,7 @@ msgid "Moves the given set of dates by a specified interval."
 msgstr "Sposta l'insieme di date specificato in base a un intervallo specificato."
 
 msgid "Moving averages"
-msgstr ""
+msgstr "Medie mobili"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr, uk,
@@ -12751,6 +12759,8 @@ msgid ""
 "Name used for the candlestick series in the legend and tooltip when no "
 "series dimension is set."
 msgstr ""
+"Nome della serie a candele nella legenda e nel tooltip quando non è "
+"impostata una dimensione di serie."
 
 msgid "Name your database"
 msgstr "Nome del database"
@@ -13371,7 +13381,7 @@ msgid "OCT"
 msgstr "OTT"
 
 msgid "OHLC"
-msgstr ""
+msgstr "OHLC"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -13631,7 +13641,7 @@ msgid "Open query in SQL Lab"
 msgstr "Apri query in SQL Lab"
 
 msgid "Opening value for each period."
-msgstr ""
+msgstr "Valore di apertura per ciascun periodo."
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -13674,6 +13684,7 @@ msgid ""
 "Optional dimension used to split the chart into multiple candlestick "
 "series."
 msgstr ""
+"Dimensione opzionale per suddividere il grafico in più serie a candele."
 
 msgid ""
 "Optional metric used to scale the size of each dot. Dot areas are scaled "
@@ -13857,6 +13868,8 @@ msgid ""
 "Overlay simple moving averages of the close price (MA5, MA10, MA15, ...)."
 " Type a custom period to add it."
 msgstr ""
+"Sovrappone medie mobili semplici del prezzo di chiusura (MA5, MA10, MA15, "
+"...). Digitare un periodo personalizzato per aggiungerlo."
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -17147,7 +17160,7 @@ msgid "Series chart type (line, bar etc)"
 msgstr "Tipo di grafico della serie (linea, barra, ecc.)"
 
 msgid "Series colors"
-msgstr ""
+msgstr "Colori della serie"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
 # lv, ro, ru, sk, sr, sr_Latn, tr, uk]
@@ -17166,13 +17179,13 @@ msgid "Series limit"
 msgstr "Limite di serie"
 
 msgid "Series name"
-msgstr ""
+msgstr "Nome della serie"
 
 msgid "Series settings"
 msgstr "Impostazioni serie"
 
 msgid "Series style"
-msgstr ""
+msgstr "Stile della serie"
 
 msgid "Series total setting"
 msgstr "Impostazioni totale serie"
@@ -23520,6 +23533,9 @@ msgid ""
 "candles use the decrease color. Turn off to use one series color, with a "
 "filled body for increases and a hollow body for decreases."
 msgstr ""
+"Se abilitato, le candele in rialzo usano il colore di aumento e quelle in "
+"ribasso il colore di diminuzione. Disattivare per un solo colore di serie, "
+"con corpo pieno in rialzo e vuoto in ribasso."
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
 # lv, ro, ru, sk, sr, sr_Latn, tr, uk]

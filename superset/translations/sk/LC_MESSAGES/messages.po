@@ -1044,6 +1044,9 @@ msgid ""
 " period. It is commonly used for financial and other time-series range "
 "analysis."
 msgstr ""
+"Sviečkový graf zobrazuje otváracie, uzatváracie, najvyššie a najnižšie "
+"hodnoty za každé obdobie. Bežne sa používa na finančnú a inú analýzu "
+"rozpätia časových radov."
 
 msgid "A comma separated list of columns that should be parsed as dates"
 msgstr "Čárkami oddelený zoznam stĺpcov, ktoré sa majú spracovať ako data"
@@ -3270,15 +3273,17 @@ msgid "Cancellation not available due to missing abort handler"
 msgstr "Zrušenie nie je možné z dôvodu chýbajúceho obsluhovača prerušenia"
 
 msgid "Candlestick"
-msgstr ""
+msgstr "Sviečkový graf"
 
 msgid "Candlestick Chart"
-msgstr ""
+msgstr "Sviečkový graf"
 
 msgid ""
 "Candlestick draws a filled body between open and close. OHLC draws ticks "
 "for open and close on a high-low stem."
 msgstr ""
+"Sviečky kreslia vyplnené telo medzi otvorením a zatvorením. OHLC kreslí "
+"značky otvorenia a zatvorenia na stonke maximum–minimum."
 
 msgid "Cannot access the query"
 msgstr "Nemožno pristúpiť k dotazu"
@@ -4047,7 +4052,7 @@ msgid "Close version history"
 msgstr ""
 
 msgid "Closing value for each period."
-msgstr ""
+msgstr "Uzatváracia hodnota za každé obdobie."
 
 msgid "Cluster label aggregator"
 msgstr "Agregátor popisků shluků"
@@ -4141,7 +4146,7 @@ msgid "Color by"
 msgstr "Farba podle"
 
 msgid "Color by direction"
-msgstr ""
+msgstr "Farba podľa smeru"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
@@ -4175,10 +4180,10 @@ msgstr "Barevné schéma"
 msgid ""
 "Color used when the close value is greater than or equal to the open "
 "value."
-msgstr ""
+msgstr "Farba, ak je uzatváracia hodnota väčšia alebo rovná otváracej."
 
 msgid "Color used when the close value is less than the open value."
-msgstr ""
+msgstr "Farba, ak je uzatváracia hodnota menšia ako otváracia."
 
 msgid ""
 "Color will be shaded based the normalized (0% to 100%) value of a given "
@@ -8361,7 +8366,7 @@ msgid "High color"
 msgstr ""
 
 msgid "Highest value for each period."
-msgstr ""
+msgstr "Najvyššia hodnota za každé obdobie."
 
 msgid "Histogram"
 msgstr "Histogram"
@@ -9096,10 +9101,10 @@ msgid "Label threshold"
 msgstr "Prahová hodnota popisku"
 
 msgid "Label used for decreasing candles in the tooltip."
-msgstr ""
+msgstr "Popisok klesajúcich sviečok v popise."
 
 msgid "Label used for increasing candles in the tooltip."
-msgstr ""
+msgstr "Popisok rastúcich sviečok v popise."
 
 msgid "Labelling"
 msgstr "Označovanie"
@@ -9605,7 +9610,7 @@ msgid "Lower threshold must be lower than upper threshold"
 msgstr "Dolní práh musí byť nižší než horní práh"
 
 msgid "Lowest value for each period."
-msgstr ""
+msgstr "Najnižšia hodnota za každé obdobie."
 
 msgid "MAR"
 msgstr "BŘE"
@@ -10217,7 +10222,7 @@ msgid "Moves the given set of dates by a specified interval."
 msgstr "Posune danou sadu dat o zadaný interval."
 
 msgid "Moving averages"
-msgstr ""
+msgstr "Kĺzavé priemery"
 
 msgid "Multi-Dimensions"
 msgstr "Viac dimenzí"
@@ -10330,6 +10335,8 @@ msgid ""
 "Name used for the candlestick series in the legend and tooltip when no "
 "series dimension is set."
 msgstr ""
+"Názov sviečkového radu v legende a popise, ak nie je nastavená dimenzia "
+"radu."
 
 msgid "Name your database"
 msgstr "Pojmenujte svoju databázy"
@@ -10863,7 +10870,7 @@ msgid "OCT"
 msgstr "ŘÍJ"
 
 msgid "OHLC"
-msgstr ""
+msgstr "OHLC"
 
 msgid "OK"
 msgstr "OK"
@@ -11060,7 +11067,7 @@ msgid "Open query in SQL Lab"
 msgstr "Otvoriť dotaz v SQL Labu"
 
 msgid "Opening value for each period."
-msgstr ""
+msgstr "Otváracia hodnota za každé obdobie."
 
 msgid ""
 "Operate the database in asynchronous mode, meaning that the queries are "
@@ -11096,7 +11103,7 @@ msgstr "Voliteľný reťazec formátu čísla d3"
 msgid ""
 "Optional dimension used to split the chart into multiple candlestick "
 "series."
-msgstr ""
+msgstr "Voliteľná dimenzia, ktorá rozdelí graf na viacero sviečkových radov."
 
 msgid ""
 "Optional metric used to scale the size of each dot. Dot areas are scaled "
@@ -11227,6 +11234,8 @@ msgid ""
 "Overlay simple moving averages of the close price (MA5, MA10, MA15, ...)."
 " Type a custom period to add it."
 msgstr ""
+"Prekryte jednoduché kĺzavé priemery uzatváracej ceny (MA5, MA10, MA15, "
+"...). Vlastné obdobie zadajte na jeho pridanie."
 
 msgid ""
 "Overlays a hexagonal grid on a map, and aggregates data within the "
@@ -13925,7 +13934,7 @@ msgid "Series chart type (line, bar etc)"
 msgstr "Typ grafu série (spojnicový, sloupcový atd.)"
 
 msgid "Series colors"
-msgstr ""
+msgstr "Farby radov"
 
 msgid "Series decrease setting"
 msgstr "Nastavenie sníženie série"
@@ -13937,14 +13946,14 @@ msgid "Series limit"
 msgstr "Limit sérií"
 
 msgid "Series name"
-msgstr ""
+msgstr "Názov radu"
 
 #, fuzzy
 msgid "Series settings"
 msgstr "Nastavenie sérií"
 
 msgid "Series style"
-msgstr ""
+msgstr "Štýl radu"
 
 #, fuzzy
 msgid "Series total setting"
@@ -18985,6 +18994,9 @@ msgid ""
 "candles use the decrease color. Turn off to use one series color, with a "
 "filled body for increases and a hollow body for decreases."
 msgstr ""
+"Ak je zapnuté, rastúce sviečky používajú farbu rastu a klesajúce farbu "
+"poklesu. Vypnite pre jednu farbu radu: vyplnené telo pri raste a prázdne "
+"pri poklese."
 
 msgid ""
 "When enabled, the axis will display labels for the minimum and maximum "

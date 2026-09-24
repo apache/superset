@@ -1422,6 +1422,8 @@ msgid ""
 " period. It is commonly used for financial and other time-series range "
 "analysis."
 msgstr ""
+"แผนภูมิแท่งเทียนแสดงค่าเปิด ปิด สูงสุด และต่ำสุดของแต่ละช่วงเวลา "
+"มักใช้วิเคราะห์ทางการเงินและช่วงของอนุกรมเวลา"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: fr, ja, lv,
 # ru, sk, uk]
@@ -5103,15 +5105,16 @@ msgid "Cancellation not available due to missing abort handler"
 msgstr "ไม่สามารถยกเลิกได้เนื่องจากไม่มี abort handler"
 
 msgid "Candlestick"
-msgstr ""
+msgstr "แท่งเทียน"
 
 msgid "Candlestick Chart"
-msgstr ""
+msgstr "แผนภูมิแท่งเทียน"
 
 msgid ""
 "Candlestick draws a filled body between open and close. OHLC draws ticks "
 "for open and close on a high-low stem."
 msgstr ""
+"แท่งเทียนวาดลำตัวทึบระหว่างราคาเปิดและปิด OHLC วาดขีดเปิดและปิดบนแกนสูง-ต่ำ"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -6387,7 +6390,7 @@ msgid "Close version history"
 msgstr ""
 
 msgid "Closing value for each period."
-msgstr ""
+msgstr "ค่าปิดของแต่ละช่วงเวลา"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -6537,7 +6540,7 @@ msgid "Color by"
 msgstr "สีตาม"
 
 msgid "Color by direction"
-msgstr ""
+msgstr "สีตามทิศทาง"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
@@ -6585,10 +6588,10 @@ msgstr "ชุดสี"
 msgid ""
 "Color used when the close value is greater than or equal to the open "
 "value."
-msgstr ""
+msgstr "สีที่ใช้เมื่อค่าปิดมากกว่าหรือเท่ากับค่าเปิด"
 
 msgid "Color used when the close value is less than the open value."
-msgstr ""
+msgstr "สีที่ใช้เมื่อค่าปิดน้อยกว่าค่าเปิด"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, ru, sk, sl, uk]
@@ -13525,7 +13528,7 @@ msgid "High color"
 msgstr ""
 
 msgid "Highest value for each period."
-msgstr ""
+msgstr "ค่าสูงสุดของแต่ละช่วงเวลา"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, it, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, uk, zh,
@@ -14777,10 +14780,10 @@ msgid "Label threshold"
 msgstr "ค่าขีดเริ่มป้ายกำกับ"
 
 msgid "Label used for decreasing candles in the tooltip."
-msgstr ""
+msgstr "ป้ายของแท่งลงในทูลทิป"
 
 msgid "Label used for increasing candles in the tooltip."
-msgstr ""
+msgstr "ป้ายของแท่งขึ้นในทูลทิป"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -15629,7 +15632,7 @@ msgid "Lower threshold must be lower than upper threshold"
 msgstr "ค่าเกณฑ์ต่ำต้องน้อยกว่าค่าเกณฑ์สูง"
 
 msgid "Lowest value for each period."
-msgstr ""
+msgstr "ค่าต่ำสุดของแต่ละช่วงเวลา"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, tr, uk, zh, zh_TW]
@@ -16645,7 +16648,7 @@ msgid "Moves the given set of dates by a specified interval."
 msgstr "เลื่อนชุดวันที่ที่กำหนดตามช่วงเวลาที่ระบุ"
 
 msgid "Moving averages"
-msgstr ""
+msgstr "ค่าเฉลี่ยเคลื่อนที่"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -16837,7 +16840,7 @@ msgstr "ชื่อแท็กของคุณ"
 msgid ""
 "Name used for the candlestick series in the legend and tooltip when no "
 "series dimension is set."
-msgstr ""
+msgstr "ชื่อซีรีส์แท่งเทียนในคำอธิบายและทูลทิปเมื่อไม่ได้กำหนดมิติซีรีส์"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -17771,7 +17774,7 @@ msgid "OCT"
 msgstr "ต.ค."
 
 msgid "OHLC"
-msgstr ""
+msgstr "OHLC"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -18085,7 +18088,7 @@ msgid "Open query in SQL Lab"
 msgstr "เปิดคิวรีใน SQL Lab"
 
 msgid "Opening value for each period."
-msgstr ""
+msgstr "ค่าเปิดของแต่ละช่วงเวลา"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -18138,7 +18141,7 @@ msgstr "สตริงรูปแบบตัวเลข d3 (ไม่บั�
 msgid ""
 "Optional dimension used to split the chart into multiple candlestick "
 "series."
-msgstr ""
+msgstr "มิติทางเลือกสำหรับแยกแผนภูมิเป็นหลายซีรีส์แท่งเทียน"
 
 msgid ""
 "Optional metric used to scale the size of each dot. Dot areas are scaled "
@@ -18337,6 +18340,8 @@ msgid ""
 "Overlay simple moving averages of the close price (MA5, MA10, MA15, ...)."
 " Type a custom period to add it."
 msgstr ""
+"วางค่าเฉลี่ยเคลื่อนที่อย่างง่ายของราคาปิด (MA5, MA10, MA15, ...) "
+"พิมพ์ช่วงเวลาที่กำหนดเองเพื่อเพิ่ม"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
@@ -22845,7 +22850,7 @@ msgid "Series chart type (line, bar etc)"
 msgstr "ประเภทแผนภูมิซีรีส์ (เส้น, แท่ง เป็นต้น)"
 
 msgid "Series colors"
-msgstr ""
+msgstr "สีซีรีส์"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, ja, lv,
 # ru, sk, uk]
@@ -22866,7 +22871,7 @@ msgid "Series limit"
 msgstr "ขีดจำกัดซีรีส์"
 
 msgid "Series name"
-msgstr ""
+msgstr "ชื่อซีรีส์"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja, lv, ru,
 # uk]
@@ -22875,7 +22880,7 @@ msgid "Series settings"
 msgstr "การตั้งค่าซีรีส์"
 
 msgid "Series style"
-msgstr ""
+msgstr "สไตล์ซีรีส์"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja, lv, ru,
 # uk]
@@ -30621,6 +30626,8 @@ msgid ""
 "candles use the decrease color. Turn off to use one series color, with a "
 "filled body for increases and a hollow body for decreases."
 msgstr ""
+"เมื่อเปิด แท่งขึ้นใช้สีขาขึ้นและแท่งลงใช้สีขาลง ปิดเพื่อใช้สีซีรีส์เดียว "
+"โดยลำตัวทึบเมื่อขึ้นและกลวงเมื่อลง"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, ja, lv,
 # ru, sk, uk]

@@ -1323,7 +1323,7 @@ msgid ""
 "A candlestick chart shows opening, closing, high, and low values for each"
 " period. It is commonly used for financial and other time-series range "
 "analysis."
-msgstr ""
+msgstr "캔들스틱 차트는 각 기간의 시가, 종가, 고가, 저가를 보여 줍니다. 금융 및 기타 시계열 범위 분석에 자주 사용됩니다."
 
 #, fuzzy
 msgid "A comma separated list of columns that should be parsed as dates"
@@ -4615,15 +4615,15 @@ msgid "Cancellation not available due to missing abort handler"
 msgstr "중단 핸들러가 없어 취소를 사용할 수 없습니다"
 
 msgid "Candlestick"
-msgstr ""
+msgstr "캔들스틱"
 
 msgid "Candlestick Chart"
-msgstr ""
+msgstr "캔들스틱 차트"
 
 msgid ""
 "Candlestick draws a filled body between open and close. OHLC draws ticks "
 "for open and close on a high-low stem."
-msgstr ""
+msgstr "캔들스틱은 시가와 종가 사이에 채워진 몸통을 그립니다. OHLC는 고가-저가 줄기에 시가와 종가 눈금을 그립니다."
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -5769,7 +5769,7 @@ msgid "Close version history"
 msgstr ""
 
 msgid "Closing value for each period."
-msgstr ""
+msgstr "각 기간의 종가."
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -5914,7 +5914,7 @@ msgid "Color by"
 msgstr "색상 기준"
 
 msgid "Color by direction"
-msgstr ""
+msgstr "방향별 색상"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
@@ -5963,10 +5963,10 @@ msgstr "색상 구성표"
 msgid ""
 "Color used when the close value is greater than or equal to the open "
 "value."
-msgstr ""
+msgstr "종가가 시가보다 크거나 같을 때 사용하는 색입니다."
 
 msgid "Color used when the close value is less than the open value."
-msgstr ""
+msgstr "종가가 시가보다 작을 때 사용하는 색입니다."
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, ro, ru, sk, sl, sr, sr_Latn, tr, uk]
@@ -12160,7 +12160,7 @@ msgid "High color"
 msgstr ""
 
 msgid "Highest value for each period."
-msgstr ""
+msgstr "각 기간의 고가."
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, it, ja, lv, mi, nl, pl, pt, pt_BR, ro, ru, sk, sl, sr,
@@ -13324,10 +13324,10 @@ msgid "Label threshold"
 msgstr "레이블 임계값"
 
 msgid "Label used for decreasing candles in the tooltip."
-msgstr ""
+msgstr "툴팁에서 하락 캔들에 쓰는 레이블입니다."
 
 msgid "Label used for increasing candles in the tooltip."
-msgstr ""
+msgstr "툴팁에서 상승 캔들에 쓰는 레이블입니다."
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -14121,7 +14121,7 @@ msgid "Lower threshold must be lower than upper threshold"
 msgstr "하한 임계값은 상한 임계값보다 낮아야 합니다"
 
 msgid "Lowest value for each period."
-msgstr ""
+msgstr "각 기간의 저가."
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -15067,7 +15067,7 @@ msgid "Moves the given set of dates by a specified interval."
 msgstr "주어진 날짜 집합을 지정된 간격만큼 이동합니다."
 
 msgid "Moving averages"
-msgstr ""
+msgstr "이동평균"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr, uk,
@@ -15254,7 +15254,7 @@ msgstr "데이터베이스 선택"
 msgid ""
 "Name used for the candlestick series in the legend and tooltip when no "
 "series dimension is set."
-msgstr ""
+msgstr "시리즈 차원이 설정되지 않았을 때 범례와 툴팁에 사용할 캔들스틱 시리즈 이름입니다."
 
 #, fuzzy
 msgid "Name your database"
@@ -16110,7 +16110,7 @@ msgid "OCT"
 msgstr "10월"
 
 msgid "OHLC"
-msgstr ""
+msgstr "OHLC"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -16387,7 +16387,7 @@ msgid "Open query in SQL Lab"
 msgstr "새로운 탭에서 Query실행"
 
 msgid "Opening value for each period."
-msgstr ""
+msgstr "각 기간의 시가."
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -16433,7 +16433,7 @@ msgstr "주석"
 msgid ""
 "Optional dimension used to split the chart into multiple candlestick "
 "series."
-msgstr ""
+msgstr "차트를 여러 캔들스틱 시리즈로 나누는 선택 차원입니다."
 
 msgid ""
 "Optional metric used to scale the size of each dot. Dot areas are scaled "
@@ -16628,7 +16628,7 @@ msgstr ""
 msgid ""
 "Overlay simple moving averages of the close price (MA5, MA10, MA15, ...)."
 " Type a custom period to add it."
-msgstr ""
+msgstr "종가의 단순 이동평균(MA5, MA10, MA15, ...)을 겹칩니다. 사용자 지정 기간을 입력하면 추가됩니다."
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -20678,7 +20678,7 @@ msgid "Series chart type (line, bar etc)"
 msgstr "시리즈 차트 유형 (선형, 막대 등)"
 
 msgid "Series colors"
-msgstr ""
+msgstr "시리즈 색상"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
 # lv, ro, ru, sk, sr, sr_Latn, tr, uk]
@@ -20700,14 +20700,14 @@ msgid "Series limit"
 msgstr "시리즈 제한"
 
 msgid "Series name"
-msgstr ""
+msgstr "시리즈 이름"
 
 #, fuzzy
 msgid "Series settings"
 msgstr "Query 공유"
 
 msgid "Series style"
-msgstr ""
+msgstr "시리즈 스타일"
 
 #, fuzzy
 msgid "Series total setting"
@@ -27985,6 +27985,7 @@ msgid ""
 "candles use the decrease color. Turn off to use one series color, with a "
 "filled body for increases and a hollow body for decreases."
 msgstr ""
+"켜면 상승 캔들은 상승 색, 하락 캔들은 하락 색을 씁니다. 끄면 시리즈 색 하나를 쓰며 상승은 채운 몸통, 하락은 빈 몸통입니다."
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
 # lv, ro, ru, sk, sr, sr_Latn, tr, uk]

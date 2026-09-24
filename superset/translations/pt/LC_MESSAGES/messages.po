@@ -1291,6 +1291,9 @@ msgid ""
 " period. It is commonly used for financial and other time-series range "
 "analysis."
 msgstr ""
+"Um gráfico de velas mostra os valores de abertura, fecho, máximo e mínimo "
+"de cada período. É habitualmente usado em análises financeiras e de "
+"intervalos de séries temporais."
 
 msgid "A comma separated list of columns that should be parsed as dates"
 msgstr ""
@@ -4145,15 +4148,17 @@ msgid "Cancellation not available due to missing abort handler"
 msgstr "Cancelamento não disponível devido à falta do manipulador de interrupção"
 
 msgid "Candlestick"
-msgstr ""
+msgstr "Velas"
 
 msgid "Candlestick Chart"
-msgstr ""
+msgstr "Gráfico de velas"
 
 msgid ""
 "Candlestick draws a filled body between open and close. OHLC draws ticks "
 "for open and close on a high-low stem."
 msgstr ""
+"As velas desenham um corpo preenchido entre a abertura e o fecho. O OHLC "
+"desenha marcas de abertura e fecho num caule de máximo-mínimo."
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -5151,7 +5156,7 @@ msgid "Close version history"
 msgstr ""
 
 msgid "Closing value for each period."
-msgstr ""
+msgstr "Valor de fecho de cada período."
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -5259,7 +5264,7 @@ msgid "Color by"
 msgstr "Cor por"
 
 msgid "Color by direction"
-msgstr ""
+msgstr "Cor por direção"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
@@ -5294,10 +5299,10 @@ msgstr "Esquema de cores"
 msgid ""
 "Color used when the close value is greater than or equal to the open "
 "value."
-msgstr ""
+msgstr "Cor usada quando o valor de fecho é maior ou igual ao de abertura."
 
 msgid "Color used when the close value is less than the open value."
-msgstr ""
+msgstr "Cor usada quando o valor de fecho é menor que o de abertura."
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, ro, ru, sk, sl, sr, sr_Latn, tr, uk]
@@ -10570,7 +10575,7 @@ msgid "High color"
 msgstr ""
 
 msgid "Highest value for each period."
-msgstr ""
+msgstr "Valor máximo de cada período."
 
 msgid "Histogram"
 msgstr "Histograma"
@@ -11566,10 +11571,10 @@ msgid "Label threshold"
 msgstr "Limiar de etiqueta"
 
 msgid "Label used for decreasing candles in the tooltip."
-msgstr ""
+msgstr "Rótulo das velas de descida no tooltip."
 
 msgid "Label used for increasing candles in the tooltip."
-msgstr ""
+msgstr "Rótulo das velas de subida no tooltip."
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -12235,7 +12240,7 @@ msgid "Lower threshold must be lower than upper threshold"
 msgstr "O limiar inferior deve ser inferior ao limiar superior"
 
 msgid "Lowest value for each period."
-msgstr ""
+msgstr "Valor mínimo de cada período."
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -13037,7 +13042,7 @@ msgid "Moves the given set of dates by a specified interval."
 msgstr "Move o conjunto de datas especificado por um intervalo definido."
 
 msgid "Moving averages"
-msgstr ""
+msgstr "Médias móveis"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr, uk,
@@ -13206,6 +13211,8 @@ msgid ""
 "Name used for the candlestick series in the legend and tooltip when no "
 "series dimension is set."
 msgstr ""
+"Nome da série de velas na legenda e no tooltip quando não está definida "
+"uma dimensão de série."
 
 msgid "Name your database"
 msgstr "Dê um nome à sua base de dados"
@@ -13918,7 +13925,7 @@ msgid "OCT"
 msgstr "OUT"
 
 msgid "OHLC"
-msgstr ""
+msgstr "OHLC"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -14181,7 +14188,7 @@ msgid "Open query in SQL Lab"
 msgstr "Abrir query no SQL Lab"
 
 msgid "Opening value for each period."
-msgstr ""
+msgstr "Valor de abertura de cada período."
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -14231,7 +14238,7 @@ msgstr "Cadeia de caracteres opcional de formato de número d3"
 msgid ""
 "Optional dimension used to split the chart into multiple candlestick "
 "series."
-msgstr ""
+msgstr "Dimensão opcional para dividir o gráfico em várias séries de velas."
 
 msgid ""
 "Optional metric used to scale the size of each dot. Dot areas are scaled "
@@ -14399,6 +14406,8 @@ msgid ""
 "Overlay simple moving averages of the close price (MA5, MA10, MA15, ...)."
 " Type a custom period to add it."
 msgstr ""
+"Sobreponha médias móveis simples do preço de fecho (MA5, MA10, MA15, ...). "
+"Escreva um período personalizado para o adicionar."
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -17793,7 +17802,7 @@ msgid "Series chart type (line, bar etc)"
 msgstr "Tipo de gráfico de série (linha, barra, etc.)"
 
 msgid "Series colors"
-msgstr ""
+msgstr "Cores da série"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
 # lv, ro, ru, sk, sr, sr_Latn, tr, uk]
@@ -17809,13 +17818,13 @@ msgid "Series limit"
 msgstr "Limite de série"
 
 msgid "Series name"
-msgstr ""
+msgstr "Nome da série"
 
 msgid "Series settings"
 msgstr "Definições de série"
 
 msgid "Series style"
-msgstr ""
+msgstr "Estilo da série"
 
 msgid "Series total setting"
 msgstr "Definição do total da série"
@@ -24352,6 +24361,9 @@ msgid ""
 "candles use the decrease color. Turn off to use one series color, with a "
 "filled body for increases and a hollow body for decreases."
 msgstr ""
+"Se ativado, as velas de subida usam a cor de aumento e as de descida a de "
+"diminuição. Desative para uma só cor de série, com corpo preenchido nas "
+"subidas e oco nas descidas."
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
 # lv, ro, ru, sk, sr, sr_Latn, tr, uk]

@@ -1017,6 +1017,9 @@ msgid ""
 " period. It is commonly used for financial and other time-series range "
 "analysis."
 msgstr ""
+"Mum grafiği her dönem için açılış, kapanış, en yüksek ve en düşük "
+"değerleri gösterir. Genellikle finansal ve diğer zaman serisi aralık "
+"analizlerinde kullanılır."
 
 #, fuzzy
 msgid "A comma separated list of columns that should be parsed as dates"
@@ -3341,15 +3344,17 @@ msgid "Cancellation not available due to missing abort handler"
 msgstr "İptal işleyicisi eksik olduğundan iptal işlemi kullanılamıyor"
 
 msgid "Candlestick"
-msgstr ""
+msgstr "Mum grafiği"
 
 msgid "Candlestick Chart"
-msgstr ""
+msgstr "Mum grafiği"
 
 msgid ""
 "Candlestick draws a filled body between open and close. OHLC draws ticks "
 "for open and close on a high-low stem."
 msgstr ""
+"Mum grafiği açılış ve kapanış arasında dolu bir gövde çizer. OHLC, "
+"yüksek-düşük sap üzerinde açılış ve kapanış işaretleri çizer."
 
 msgid "Cannot access the query"
 msgstr "Soruya erişemez"
@@ -4132,7 +4137,7 @@ msgid "Close version history"
 msgstr ""
 
 msgid "Closing value for each period."
-msgstr ""
+msgstr "Her dönem için kapanış değeri."
 
 msgid "Cluster label aggregator"
 msgstr "Cluster etiketi aggregator"
@@ -4230,7 +4235,7 @@ msgid "Color by"
 msgstr "Renk"
 
 msgid "Color by direction"
-msgstr ""
+msgstr "Yöne göre renk"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
@@ -4263,9 +4268,10 @@ msgid ""
 "Color used when the close value is greater than or equal to the open "
 "value."
 msgstr ""
+"Kapanış değeri açılış değerinden büyük veya ona eşitken kullanılan renk."
 
 msgid "Color used when the close value is less than the open value."
-msgstr ""
+msgstr "Kapanış değeri açılış değerinden küçükken kullanılan renk."
 
 msgid ""
 "Color will be shaded based the normalized (0% to 100%) value of a given "
@@ -8574,7 +8580,7 @@ msgid "High color"
 msgstr ""
 
 msgid "Highest value for each period."
-msgstr ""
+msgstr "Her dönem için en yüksek değer."
 
 msgid "Histogram"
 msgstr "Histogram"
@@ -9312,10 +9318,10 @@ msgid "Label threshold"
 msgstr "Etiket eşiği"
 
 msgid "Label used for decreasing candles in the tooltip."
-msgstr ""
+msgstr "İpucunda düşen mumlar için etiket."
 
 msgid "Label used for increasing candles in the tooltip."
-msgstr ""
+msgstr "İpucunda yükselen mumlar için etiket."
 
 msgid "Labelling"
 msgstr "Labelling"
@@ -9846,7 +9852,7 @@ msgid "Lower threshold must be lower than upper threshold"
 msgstr "Alt eşik üst eşikten daha düşük olmalıdır"
 
 msgid "Lowest value for each period."
-msgstr ""
+msgstr "Her dönem için en düşük değer."
 
 msgid "MAR"
 msgstr "MAR"
@@ -10477,7 +10483,7 @@ msgid "Moves the given set of dates by a specified interval."
 msgstr "Belirli tarih setini belirli bir aralığı ile taşıyın."
 
 msgid "Moving averages"
-msgstr ""
+msgstr "Hareketli ortalamalar"
 
 msgid "Multi-Dimensions"
 msgstr "Multi-Dimensions"
@@ -10593,6 +10599,8 @@ msgid ""
 "Name used for the candlestick series in the legend and tooltip when no "
 "series dimension is set."
 msgstr ""
+"Seri boyutu ayarlanmadığında gösterge ve ipucunda kullanılan mum serisi "
+"adı."
 
 msgid "Name your database"
 msgstr "Veritabanınızı Adı"
@@ -11141,7 +11149,7 @@ msgid "OCT"
 msgstr "EKİ"
 
 msgid "OHLC"
-msgstr ""
+msgstr "OHLC"
 
 msgid "OK"
 msgstr "Tamam"
@@ -11341,7 +11349,7 @@ msgid "Open query in SQL Lab"
 msgstr "Sorguyu SQL Lab’da aç"
 
 msgid "Opening value for each period."
-msgstr ""
+msgstr "Her dönem için açılış değeri."
 
 msgid ""
 "Operate the database in asynchronous mode, meaning that the queries are "
@@ -11377,7 +11385,7 @@ msgstr "Seçmeli d3 numarası"
 msgid ""
 "Optional dimension used to split the chart into multiple candlestick "
 "series."
-msgstr ""
+msgstr "Grafiği birden fazla mum serisine bölen isteğe bağlı boyut."
 
 msgid ""
 "Optional metric used to scale the size of each dot. Dot areas are scaled "
@@ -11506,6 +11514,8 @@ msgid ""
 "Overlay simple moving averages of the close price (MA5, MA10, MA15, ...)."
 " Type a custom period to add it."
 msgstr ""
+"Kapanış fiyatının basit hareketli ortalamalarını bindirin (MA5, MA10, "
+"MA15, ...). Eklemek için özel bir dönem yazın."
 
 msgid ""
 "Overlays a hexagonal grid on a map, and aggregates data within the "
@@ -14309,7 +14319,7 @@ msgid "Series chart type (line, bar etc)"
 msgstr "Seri grafik türü (line, bar vs)"
 
 msgid "Series colors"
-msgstr ""
+msgstr "Seri renkleri"
 
 msgid "Series decrease setting"
 msgstr "Serisi azalır ayarı"
@@ -14321,14 +14331,14 @@ msgid "Series limit"
 msgstr "Serisi Limit"
 
 msgid "Series name"
-msgstr ""
+msgstr "Seri adı"
 
 #, fuzzy
 msgid "Series settings"
 msgstr "Ayarları Filtrele"
 
 msgid "Series style"
-msgstr ""
+msgstr "Seri stili"
 
 #, fuzzy
 msgid "Series total setting"
@@ -19426,6 +19436,8 @@ msgid ""
 "candles use the decrease color. Turn off to use one series color, with a "
 "filled body for increases and a hollow body for decreases."
 msgstr ""
+"Açıksa yükselen mumlar artış rengini, düşenler azalış rengini kullanır. "
+"Tek seri rengi için kapatın: artışta dolu gövde, düşüşte boş gövde."
 
 msgid ""
 "When enabled, the axis will display labels for the minimum and maximum "

@@ -1097,6 +1097,9 @@ msgid ""
 " period. It is commonly used for financial and other time-series range "
 "analysis."
 msgstr ""
+"Un grafic cu lumânări afișează valorile de deschidere, închidere, maximă "
+"și minimă pentru fiecare perioadă. Este folosit frecvent în analize "
+"financiare și de interval pe serii temporale."
 
 msgid "A comma separated list of columns that should be parsed as dates"
 msgstr "O listă separată prin virgulă de coloane care ar trebui analizate ca date"
@@ -3432,15 +3435,17 @@ msgid "Cancellation not available due to missing abort handler"
 msgstr "Anularea nu este disponibilă din cauza lipsei gestionarului de întrerupere"
 
 msgid "Candlestick"
-msgstr ""
+msgstr "Lumânări"
 
 msgid "Candlestick Chart"
-msgstr ""
+msgstr "Grafic cu lumânări"
 
 msgid ""
 "Candlestick draws a filled body between open and close. OHLC draws ticks "
 "for open and close on a high-low stem."
 msgstr ""
+"Lumânările desenează un corp plin între deschidere și închidere. OHLC "
+"desenează semne de deschidere și închidere pe o tijă maxim-minim."
 
 msgid "Cannot access the query"
 msgstr "Nu se poate accesa interogarea"
@@ -4242,7 +4247,7 @@ msgid "Close version history"
 msgstr ""
 
 msgid "Closing value for each period."
-msgstr ""
+msgstr "Valoarea de închidere pentru fiecare perioadă."
 
 msgid "Cluster label aggregator"
 msgstr "Agregator etichetă cluster"
@@ -4338,7 +4343,7 @@ msgid "Color by"
 msgstr "Culoare după"
 
 msgid "Color by direction"
-msgstr ""
+msgstr "Culoare după direcție"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, ja, sr,
 # sr_Latn]
@@ -4377,9 +4382,13 @@ msgid ""
 "Color used when the close value is greater than or equal to the open "
 "value."
 msgstr ""
+"Culoarea folosită când valoarea de închidere este mai mare sau egală cu "
+"cea de deschidere."
 
 msgid "Color used when the close value is less than the open value."
 msgstr ""
+"Culoarea folosită când valoarea de închidere este mai mică decât cea de "
+"deschidere."
 
 msgid ""
 "Color will be shaded based the normalized (0% to 100%) value of a given "
@@ -8769,7 +8778,7 @@ msgid "High color"
 msgstr ""
 
 msgid "Highest value for each period."
-msgstr ""
+msgstr "Valoarea maximă pentru fiecare perioadă."
 
 msgid "Histogram"
 msgstr "Histogramă"
@@ -9551,10 +9560,10 @@ msgid "Label threshold"
 msgstr "Prag etichetă"
 
 msgid "Label used for decreasing candles in the tooltip."
-msgstr ""
+msgstr "Eticheta lumânărilor în scădere din tooltip."
 
 msgid "Label used for increasing candles in the tooltip."
-msgstr ""
+msgstr "Eticheta lumânărilor în creștere din tooltip."
 
 msgid "Labelling"
 msgstr "Etichetare"
@@ -10073,7 +10082,7 @@ msgid "Lower threshold must be lower than upper threshold"
 msgstr "Pragul inferior trebuie să fie mai mic decât pragul superior"
 
 msgid "Lowest value for each period."
-msgstr ""
+msgstr "Valoarea minimă pentru fiecare perioadă."
 
 msgid "MAR"
 msgstr "MAR"
@@ -10716,7 +10725,7 @@ msgid "Moves the given set of dates by a specified interval."
 msgstr "Mută setul dat de date cu un interval specificat."
 
 msgid "Moving averages"
-msgstr ""
+msgstr "Medii mobile"
 
 msgid "Multi-Dimensions"
 msgstr "Multi-Dimensiuni"
@@ -10828,6 +10837,8 @@ msgid ""
 "Name used for the candlestick series in the legend and tooltip when no "
 "series dimension is set."
 msgstr ""
+"Numele seriei de lumânări din legendă și tooltip când nu este setată o "
+"dimensiune de serie."
 
 msgid "Name your database"
 msgstr "Denumește baza ta de date"
@@ -11383,7 +11394,7 @@ msgid "OCT"
 msgstr "OCT"
 
 msgid "OHLC"
-msgstr ""
+msgstr "OHLC"
 
 msgid "OK"
 msgstr "OK"
@@ -11577,7 +11588,7 @@ msgid "Open query in SQL Lab"
 msgstr "Deschide interogare în SQL Lab"
 
 msgid "Opening value for each period."
-msgstr ""
+msgstr "Valoarea de deschidere pentru fiecare perioadă."
 
 msgid ""
 "Operate the database in asynchronous mode, meaning that the queries are "
@@ -11615,6 +11626,7 @@ msgid ""
 "Optional dimension used to split the chart into multiple candlestick "
 "series."
 msgstr ""
+"Dimensiune opțională care împarte graficul în mai multe serii de lumânări."
 
 msgid ""
 "Optional metric used to scale the size of each dot. Dot areas are scaled "
@@ -11748,6 +11760,8 @@ msgid ""
 "Overlay simple moving averages of the close price (MA5, MA10, MA15, ...)."
 " Type a custom period to add it."
 msgstr ""
+"Suprapune medii mobile simple ale prețului de închidere (MA5, MA10, MA15, "
+"...). Tastați o perioadă personalizată pentru a o adăuga."
 
 msgid ""
 "Overlays a hexagonal grid on a map, and aggregates data within the "
@@ -14578,7 +14592,7 @@ msgid "Series chart type (line, bar etc)"
 msgstr "Tip grafic serie (linie, bară etc)"
 
 msgid "Series colors"
-msgstr ""
+msgstr "Culorile seriei"
 
 msgid "Series decrease setting"
 msgstr "Setare scădere serie"
@@ -14590,13 +14604,13 @@ msgid "Series limit"
 msgstr "Limită serie"
 
 msgid "Series name"
-msgstr ""
+msgstr "Numele seriei"
 
 msgid "Series settings"
 msgstr "Setări serie"
 
 msgid "Series style"
-msgstr ""
+msgstr "Stilul seriei"
 
 msgid "Series total setting"
 msgstr "Setare total serie"
@@ -19865,6 +19879,9 @@ msgid ""
 "candles use the decrease color. Turn off to use one series color, with a "
 "filled body for increases and a hollow body for decreases."
 msgstr ""
+"Dacă este activat, lumânările în creștere folosesc culoarea de creștere, "
+"iar cele în scădere culoarea de scădere. Dezactivați pentru o singură "
+"culoare de serie, cu corp plin la creștere și gol la scădere."
 
 msgid ""
 "When enabled, the axis will display labels for the minimum and maximum "

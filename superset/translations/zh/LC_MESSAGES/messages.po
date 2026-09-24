@@ -1045,7 +1045,7 @@ msgid ""
 "A candlestick chart shows opening, closing, high, and low values for each"
 " period. It is commonly used for financial and other time-series range "
 "analysis."
-msgstr ""
+msgstr "K线图显示每个周期的开盘、收盘、最高和最低值。常用于金融及其他时间序列区间分析。"
 
 #, fuzzy
 msgid "A comma separated list of columns that should be parsed as dates"
@@ -3258,15 +3258,15 @@ msgid "Cancellation not available due to missing abort handler"
 msgstr "由于缺少中止处理程序，无法取消"
 
 msgid "Candlestick"
-msgstr ""
+msgstr "K线图"
 
 msgid "Candlestick Chart"
-msgstr ""
+msgstr "K线图"
 
 msgid ""
 "Candlestick draws a filled body between open and close. OHLC draws ticks "
 "for open and close on a high-low stem."
-msgstr ""
+msgstr "K线在开盘和收盘之间绘制实心实体。OHLC 在最高-最低轴上绘制开盘和收盘刻度。"
 
 msgid "Cannot access the query"
 msgstr "无法访问查询"
@@ -4055,7 +4055,7 @@ msgid "Close version history"
 msgstr ""
 
 msgid "Closing value for each period."
-msgstr ""
+msgstr "每个周期的收盘值。"
 
 msgid "Cluster label aggregator"
 msgstr "聚类标签聚合器"
@@ -4144,7 +4144,7 @@ msgid "Color by"
 msgstr "按颜色"
 
 msgid "Color by direction"
-msgstr ""
+msgstr "按涨跌着色"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
@@ -4176,10 +4176,10 @@ msgstr "配色方案"
 msgid ""
 "Color used when the close value is greater than or equal to the open "
 "value."
-msgstr ""
+msgstr "收盘值大于或等于开盘值时使用的颜色。"
 
 msgid "Color used when the close value is less than the open value."
-msgstr ""
+msgstr "收盘值小于开盘值时使用的颜色。"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, ro, ru, sk, sl, sr, sr_Latn, tr, uk]
@@ -8429,7 +8429,7 @@ msgid "High color"
 msgstr ""
 
 msgid "Highest value for each period."
-msgstr ""
+msgstr "每个周期的最高值。"
 
 msgid "Histogram"
 msgstr "直方图"
@@ -9190,10 +9190,10 @@ msgid "Label threshold"
 msgstr "标签阈值"
 
 msgid "Label used for decreasing candles in the tooltip."
-msgstr ""
+msgstr "提示中下跌 K 线使用的标签。"
 
 msgid "Label used for increasing candles in the tooltip."
-msgstr ""
+msgstr "提示中上涨 K 线使用的标签。"
 
 msgid "Labelling"
 msgstr "标签"
@@ -9715,7 +9715,7 @@ msgid "Lower threshold must be lower than upper threshold"
 msgstr "阈值下限必须比阈值上限小"
 
 msgid "Lowest value for each period."
-msgstr ""
+msgstr "每个周期的最低值。"
 
 msgid "MAR"
 msgstr "三月"
@@ -10356,7 +10356,7 @@ msgid "Moves the given set of dates by a specified interval."
 msgstr "将给定的日期集以指定的间隔进行移动"
 
 msgid "Moving averages"
-msgstr ""
+msgstr "移动平均线"
 
 msgid "Multi-Dimensions"
 msgstr "多维度"
@@ -10471,7 +10471,7 @@ msgstr "标签的名称"
 msgid ""
 "Name used for the candlestick series in the legend and tooltip when no "
 "series dimension is set."
-msgstr ""
+msgstr "未设置系列维度时，图例和提示中使用的 K 线系列名称。"
 
 msgid "Name your database"
 msgstr "为您的数据库命名"
@@ -11027,7 +11027,7 @@ msgid "OCT"
 msgstr "十月"
 
 msgid "OHLC"
-msgstr ""
+msgstr "OHLC"
 
 msgid "OK"
 msgstr "确认"
@@ -11224,7 +11224,7 @@ msgid "Open query in SQL Lab"
 msgstr "在 SQL Lab 中打开查询"
 
 msgid "Opening value for each period."
-msgstr ""
+msgstr "每个周期的开盘值。"
 
 msgid ""
 "Operate the database in asynchronous mode, meaning that the queries are "
@@ -11254,7 +11254,7 @@ msgstr "可选的 d3 数字格式字符串"
 msgid ""
 "Optional dimension used to split the chart into multiple candlestick "
 "series."
-msgstr ""
+msgstr "可选维度，用于将图表拆成多个 K 线系列。"
 
 msgid ""
 "Optional metric used to scale the size of each dot. Dot areas are scaled "
@@ -11374,7 +11374,7 @@ msgstr "从相对时间段覆盖结果。期望自然语言中的相对时间增
 msgid ""
 "Overlay simple moving averages of the close price (MA5, MA10, MA15, ...)."
 " Type a custom period to add it."
-msgstr ""
+msgstr "叠加收盘价的简单移动平均（MA5、MA10、MA15 等）。输入自定义周期即可添加。"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -14098,7 +14098,7 @@ msgid "Series chart type (line, bar etc)"
 msgstr "系列图表类型(折线，柱状图等)"
 
 msgid "Series colors"
-msgstr ""
+msgstr "系列颜色"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
 # lv, ro, ru, sk, sr, sr_Latn, tr, uk]
@@ -14114,13 +14114,13 @@ msgid "Series limit"
 msgstr "系列限制"
 
 msgid "Series name"
-msgstr ""
+msgstr "系列名称"
 
 msgid "Series settings"
 msgstr "系列设置"
 
 msgid "Series style"
-msgstr ""
+msgstr "系列样式"
 
 msgid "Series total setting"
 msgstr "系列总计设置"
@@ -19093,7 +19093,7 @@ msgid ""
 "When enabled, increasing candles use the increase color and decreasing "
 "candles use the decrease color. Turn off to use one series color, with a "
 "filled body for increases and a hollow body for decreases."
-msgstr ""
+msgstr "启用后，阳线使用上涨色，阴线使用下跌色。关闭则使用单一系列颜色：上涨为实心实体，下跌为空心实体。"
 
 msgid ""
 "When enabled, the axis will display labels for the minimum and maximum "

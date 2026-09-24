@@ -944,7 +944,7 @@ msgid ""
 "A candlestick chart shows opening, closing, high, and low values for each"
 " period. It is commonly used for financial and other time-series range "
 "analysis."
-msgstr ""
+msgstr "ローソク足チャートは、各期間の始値、終値、高値、安値を示します。金融やその他の時系列レンジ分析によく使われます。"
 
 msgid "A comma separated list of columns that should be parsed as dates"
 msgstr "日付として解析する列のリスト(カンマ区切り)"
@@ -2946,15 +2946,15 @@ msgid "Cancellation not available due to missing abort handler"
 msgstr "中止ハンドラーが存在しないため、キャンセルは使用できません"
 
 msgid "Candlestick"
-msgstr ""
+msgstr "ローソク足"
 
 msgid "Candlestick Chart"
-msgstr ""
+msgstr "ローソク足チャート"
 
 msgid ""
 "Candlestick draws a filled body between open and close. OHLC draws ticks "
 "for open and close on a high-low stem."
-msgstr ""
+msgstr "ローソク足は始値と終値の間に塗りつぶした実体を描きます。OHLCは高値安値の軸に始値と終値のティックを描きます。"
 
 msgid "Cannot access the query"
 msgstr "クエリにアクセスできません"
@@ -3668,7 +3668,7 @@ msgid "Close version history"
 msgstr ""
 
 msgid "Closing value for each period."
-msgstr ""
+msgstr "各期間の終値。"
 
 msgid "Cluster label aggregator"
 msgstr "クラスターラベル集計"
@@ -3749,7 +3749,7 @@ msgid "Color by"
 msgstr "色分けの基準"
 
 msgid "Color by direction"
-msgstr ""
+msgstr "方向で色分け"
 
 msgid "Color field must be a hex color (#rrggbb) or 'rgb(r, g, b)'"
 msgstr "カラーフィールドは16進数カラー（#rrggbb）または 'rgb(r, g, b)' である必要があります"
@@ -3778,10 +3778,10 @@ msgstr "配色"
 msgid ""
 "Color used when the close value is greater than or equal to the open "
 "value."
-msgstr ""
+msgstr "終値が始値以上のときに使う色。"
 
 msgid "Color used when the close value is less than the open value."
-msgstr ""
+msgstr "終値が始値より小さいときに使う色。"
 
 msgid ""
 "Color will be shaded based the normalized (0% to 100%) value of a given "
@@ -7563,7 +7563,7 @@ msgid "High color"
 msgstr ""
 
 msgid "Highest value for each period."
-msgstr ""
+msgstr "各期間の高値。"
 
 msgid "Histogram"
 msgstr "ヒストグラム"
@@ -8244,10 +8244,10 @@ msgid "Label threshold"
 msgstr "ラベルのしきい値"
 
 msgid "Label used for decreasing candles in the tooltip."
-msgstr ""
+msgstr "ツールチップで陰線に使うラベル。"
 
 msgid "Label used for increasing candles in the tooltip."
-msgstr ""
+msgstr "ツールチップで陽線に使うラベル。"
 
 msgid "Labelling"
 msgstr "ラベリング"
@@ -8724,7 +8724,7 @@ msgid "Lower threshold must be lower than upper threshold"
 msgstr "下限しきい値は上限しきい値より小さい必要があります"
 
 msgid "Lowest value for each period."
-msgstr ""
+msgstr "各期間の安値。"
 
 msgid "MAR"
 msgstr "3月"
@@ -9274,7 +9274,7 @@ msgid "Moves the given set of dates by a specified interval."
 msgstr "指定された一連の日付を、指定した間隔だけ移動(シフト)させます。"
 
 msgid "Moving averages"
-msgstr ""
+msgstr "移動平均"
 
 msgid "Multi-Dimensions"
 msgstr "マルチディメンション"
@@ -9378,7 +9378,7 @@ msgstr "タグの名前"
 msgid ""
 "Name used for the candlestick series in the legend and tooltip when no "
 "series dimension is set."
-msgstr ""
+msgstr "系列ディメンションが未設定のときに、凡例とツールチップで使うローソク足系列の名前。"
 
 msgid "Name your database"
 msgstr "データベースに名前を付けてください"
@@ -9873,7 +9873,7 @@ msgid "OCT"
 msgstr "10月"
 
 msgid "OHLC"
-msgstr ""
+msgstr "OHLC"
 
 msgid "OK"
 msgstr "OK"
@@ -10048,7 +10048,7 @@ msgid "Open query in SQL Lab"
 msgstr "クエリをSQL Labで開く"
 
 msgid "Opening value for each period."
-msgstr ""
+msgstr "各期間の始値。"
 
 msgid ""
 "Operate the database in asynchronous mode, meaning that the queries are "
@@ -10078,7 +10078,7 @@ msgstr "任意のD3数値形式文字列"
 msgid ""
 "Optional dimension used to split the chart into multiple candlestick "
 "series."
-msgstr ""
+msgstr "チャートを複数のローソク足系列に分割する任意のディメンション。"
 
 msgid ""
 "Optional metric used to scale the size of each dot. Dot areas are scaled "
@@ -10192,7 +10192,7 @@ msgstr "相対的な期間の結果をオーバーレイ表示します。24時�
 msgid ""
 "Overlay simple moving averages of the close price (MA5, MA10, MA15, ...)."
 " Type a custom period to add it."
-msgstr ""
+msgstr "終値の単純移動平均（MA5、MA10、MA15 など）を重ねます。期間を入力すると追加できます。"
 
 msgid ""
 "Overlays a hexagonal grid on a map, and aggregates data within the "
@@ -12646,7 +12646,7 @@ msgid "Series chart type (line, bar etc)"
 msgstr "系列のチャート種類 (折れ線、棒など)"
 
 msgid "Series colors"
-msgstr ""
+msgstr "系列の色"
 
 msgid "Series decrease setting"
 msgstr "系列減少の設定"
@@ -12658,13 +12658,13 @@ msgid "Series limit"
 msgstr "系列の制限"
 
 msgid "Series name"
-msgstr ""
+msgstr "系列名"
 
 msgid "Series settings"
 msgstr "系列の設定"
 
 msgid "Series style"
-msgstr ""
+msgstr "系列スタイル"
 
 msgid "Series total setting"
 msgstr "系列合計の設定"
@@ -17072,7 +17072,7 @@ msgid ""
 "When enabled, increasing candles use the increase color and decreasing "
 "candles use the decrease color. Turn off to use one series color, with a "
 "filled body for increases and a hollow body for decreases."
-msgstr ""
+msgstr "有効にすると、陽線は上昇色、陰線は下降色を使います。オフにすると系列色は1つになり、上昇は実体塗り、下降は中空になります。"
 
 msgid ""
 "When enabled, the axis will display labels for the minimum and maximum "

@@ -1054,6 +1054,9 @@ msgid ""
 " period. It is commonly used for financial and other time-series range "
 "analysis."
 msgstr ""
+"Een candlestick-grafiek toont openings-, slot-, hoogste en laagste waarden "
+"per periode. Wordt vaak gebruikt voor financiële en andere "
+"tijdreeks-bereikanalyses."
 
 #, fuzzy
 msgid "A comma separated list of columns that should be parsed as dates"
@@ -3444,15 +3447,17 @@ msgid "Cancellation not available due to missing abort handler"
 msgstr "Annulering niet beschikbaar vanwege een ontbrekende afbreekhandler"
 
 msgid "Candlestick"
-msgstr ""
+msgstr "Candlestick"
 
 msgid "Candlestick Chart"
-msgstr ""
+msgstr "Candlestick-grafiek"
 
 msgid ""
 "Candlestick draws a filled body between open and close. OHLC draws ticks "
 "for open and close on a high-low stem."
 msgstr ""
+"Candlesticks tekenen een gevuld lichaam tussen open en slot. OHLC tekent "
+"ticks voor open en slot op een hoog-laag-steel."
 
 msgid "Cannot access the query"
 msgstr "Kan geen toegang krijgen tot de query"
@@ -4283,7 +4288,7 @@ msgid "Close version history"
 msgstr ""
 
 msgid "Closing value for each period."
-msgstr ""
+msgstr "Slotwaarde voor elke periode."
 
 msgid "Cluster label aggregator"
 msgstr "Cluster label aggregator"
@@ -4377,7 +4382,7 @@ msgid "Color by"
 msgstr "Kleur op"
 
 msgid "Color by direction"
-msgstr ""
+msgstr "Kleur op richting"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
@@ -4412,9 +4417,10 @@ msgid ""
 "Color used when the close value is greater than or equal to the open "
 "value."
 msgstr ""
+"Kleur wanneer de slotwaarde groter dan of gelijk aan de openingswaarde is."
 
 msgid "Color used when the close value is less than the open value."
-msgstr ""
+msgstr "Kleur wanneer de slotwaarde kleiner is dan de openingswaarde."
 
 msgid ""
 "Color will be shaded based the normalized (0% to 100%) value of a given "
@@ -8917,7 +8923,7 @@ msgid "High color"
 msgstr ""
 
 msgid "Highest value for each period."
-msgstr ""
+msgstr "Hoogste waarde voor elke periode."
 
 msgid "Histogram"
 msgstr "Histogram"
@@ -9706,10 +9712,10 @@ msgid "Label threshold"
 msgstr "Label drempelwaarde"
 
 msgid "Label used for decreasing candles in the tooltip."
-msgstr ""
+msgstr "Label voor dalende candles in de tooltip."
 
 msgid "Label used for increasing candles in the tooltip."
-msgstr ""
+msgstr "Label voor stijgende candles in de tooltip."
 
 msgid "Labelling"
 msgstr "Labelen"
@@ -10247,7 +10253,7 @@ msgid "Lower threshold must be lower than upper threshold"
 msgstr "Ondergrens moet lager zijn dan bovengrens"
 
 msgid "Lowest value for each period."
-msgstr ""
+msgstr "Laagste waarde voor elke periode."
 
 msgid "MAR"
 msgstr "MAA"
@@ -10911,7 +10917,7 @@ msgid "Moves the given set of dates by a specified interval."
 msgstr "Verplaatst de gegeven reeks datums met een opgegeven interval."
 
 msgid "Moving averages"
-msgstr ""
+msgstr "Voortschrijdende gemiddelden"
 
 msgid "Multi-Dimensions"
 msgstr "Multi-Dimensies"
@@ -11025,6 +11031,8 @@ msgid ""
 "Name used for the candlestick series in the legend and tooltip when no "
 "series dimension is set."
 msgstr ""
+"Naam van de candlestick-serie in de legenda en tooltip als er geen "
+"seriedimensie is ingesteld."
 
 msgid "Name your database"
 msgstr "Geef uw database een naam"
@@ -11579,7 +11587,7 @@ msgid "OCT"
 msgstr "OKT"
 
 msgid "OHLC"
-msgstr ""
+msgstr "OHLC"
 
 msgid "OK"
 msgstr "OK"
@@ -11785,7 +11793,7 @@ msgid "Open query in SQL Lab"
 msgstr "Open query in SQL Lab"
 
 msgid "Opening value for each period."
-msgstr ""
+msgstr "Openingswaarde voor elke periode."
 
 msgid ""
 "Operate the database in asynchronous mode, meaning that the queries are "
@@ -11822,6 +11830,8 @@ msgid ""
 "Optional dimension used to split the chart into multiple candlestick "
 "series."
 msgstr ""
+"Optionele dimensie om de grafiek in meerdere candlestick-series te "
+"splitsen."
 
 msgid ""
 "Optional metric used to scale the size of each dot. Dot areas are scaled "
@@ -11954,6 +11964,8 @@ msgid ""
 "Overlay simple moving averages of the close price (MA5, MA10, MA15, ...)."
 " Type a custom period to add it."
 msgstr ""
+"Eenvoudige voortschrijdende gemiddelden van de slotkoers overlappen (MA5, "
+"MA10, MA15, ...). Typ een eigen periode om die toe te voegen."
 
 msgid ""
 "Overlays a hexagonal grid on a map, and aggregates data within the "
@@ -14811,7 +14823,7 @@ msgid "Series chart type (line, bar etc)"
 msgstr "Series grafiek type (lijn, staaf etc)"
 
 msgid "Series colors"
-msgstr ""
+msgstr "Seriekleuren"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
 # lv, ro, ru, sk, sr, sr_Latn, tr, uk]
@@ -14829,14 +14841,14 @@ msgid "Series limit"
 msgstr "Serie limiet"
 
 msgid "Series name"
-msgstr ""
+msgstr "Serienaam"
 
 #, fuzzy
 msgid "Series settings"
 msgstr "Filter Instellingen"
 
 msgid "Series style"
-msgstr ""
+msgstr "Seriestijl"
 
 #, fuzzy
 msgid "Series total setting"
@@ -20275,6 +20287,9 @@ msgid ""
 "candles use the decrease color. Turn off to use one series color, with a "
 "filled body for increases and a hollow body for decreases."
 msgstr ""
+"Indien ingeschakeld gebruiken stijgende candles de stijgingskleur en "
+"dalende de dalingskleur. Schakel uit voor één seriekleur: gevuld lichaam "
+"bij stijging en hol bij daling."
 
 #, fuzzy
 msgid ""

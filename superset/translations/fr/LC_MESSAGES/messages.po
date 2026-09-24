@@ -1017,6 +1017,10 @@ msgid ""
 " period. It is commonly used for financial and other time-series range "
 "analysis."
 msgstr ""
+"Un graphique en chandeliers affiche les valeurs d'ouverture, de clôture, "
+"le plus haut et le plus bas de chaque période. Il est couramment utilisé "
+"pour l'analyse financière et d'autres analyses de plage de séries "
+"temporelles."
 
 msgid "A comma separated list of columns that should be parsed as dates"
 msgstr "Liste de Colonnes séparée par des virgules à traiter comme des dates"
@@ -3262,15 +3266,17 @@ msgid "Cancellation not available due to missing abort handler"
 msgstr "Annulation impossible en raison d'un gestionnaire d'annulation manquant"
 
 msgid "Candlestick"
-msgstr ""
+msgstr "Chandeliers"
 
 msgid "Candlestick Chart"
-msgstr ""
+msgstr "Graphique en chandeliers"
 
 msgid ""
 "Candlestick draws a filled body between open and close. OHLC draws ticks "
 "for open and close on a high-low stem."
 msgstr ""
+"Les chandeliers dessinent un corps plein entre l'ouverture et la clôture. "
+"OHLC dessine des marques d'ouverture et de clôture sur une tige haut-bas."
 
 msgid "Cannot access the query"
 msgstr "Impossible d'accéder à la requête"
@@ -4046,7 +4052,7 @@ msgid "Close version history"
 msgstr ""
 
 msgid "Closing value for each period."
-msgstr ""
+msgstr "Valeur de clôture de chaque période."
 
 msgid "Cluster label aggregator"
 msgstr "Agrégateur d'étiquettes en grappe"
@@ -4131,7 +4137,7 @@ msgid "Color by"
 msgstr "Colorer par"
 
 msgid "Color by direction"
-msgstr ""
+msgstr "Couleur selon la direction"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
@@ -4165,9 +4171,13 @@ msgid ""
 "Color used when the close value is greater than or equal to the open "
 "value."
 msgstr ""
+"Couleur utilisée lorsque la valeur de clôture est supérieure ou égale à la "
+"valeur d'ouverture."
 
 msgid "Color used when the close value is less than the open value."
 msgstr ""
+"Couleur utilisée lorsque la valeur de clôture est inférieure à la valeur "
+"d'ouverture."
 
 msgid ""
 "Color will be shaded based the normalized (0% to 100%) value of a given "
@@ -8290,7 +8300,7 @@ msgid "High color"
 msgstr ""
 
 msgid "Highest value for each period."
-msgstr ""
+msgstr "Valeur la plus haute de chaque période."
 
 msgid "Histogram"
 msgstr "Histogramme"
@@ -9013,10 +9023,10 @@ msgid "Label threshold"
 msgstr "Seuil d'étiquette"
 
 msgid "Label used for decreasing candles in the tooltip."
-msgstr ""
+msgstr "Libellé des chandeliers baissiers dans l'info-bulle."
 
 msgid "Label used for increasing candles in the tooltip."
-msgstr ""
+msgstr "Libellé des chandeliers haussiers dans l'info-bulle."
 
 msgid "Labelling"
 msgstr "Étiquetage"
@@ -9510,7 +9520,7 @@ msgid "Lower threshold must be lower than upper threshold"
 msgstr "Le seuil inférieur doit être inférieur au seuil supérieur"
 
 msgid "Lowest value for each period."
-msgstr ""
+msgstr "Valeur la plus basse de chaque période."
 
 msgid "MAR"
 msgstr "MAR"
@@ -10111,7 +10121,7 @@ msgid "Moves the given set of dates by a specified interval."
 msgstr "Décale l'ensemble de dates d'un intervalle spécifié."
 
 msgid "Moving averages"
-msgstr ""
+msgstr "Moyennes mobiles"
 
 msgid "Multi-Dimensions"
 msgstr "Multi-dimensions"
@@ -10222,6 +10232,8 @@ msgid ""
 "Name used for the candlestick series in the legend and tooltip when no "
 "series dimension is set."
 msgstr ""
+"Nom de la série de chandeliers dans la légende et l'info-bulle "
+"lorsqu'aucune dimension de série n'est définie."
 
 msgid "Name your database"
 msgstr "Nom de votre base de données"
@@ -10747,7 +10759,7 @@ msgid "OCT"
 msgstr "OCT"
 
 msgid "OHLC"
-msgstr ""
+msgstr "OHLC"
 
 msgid "OK"
 msgstr "OK"
@@ -10947,7 +10959,7 @@ msgid "Open query in SQL Lab"
 msgstr "Ouvrir une requête dans SQL Lab"
 
 msgid "Opening value for each period."
-msgstr ""
+msgstr "Valeur d'ouverture de chaque période."
 
 msgid ""
 "Operate the database in asynchronous mode, meaning that the queries are "
@@ -10985,6 +10997,8 @@ msgid ""
 "Optional dimension used to split the chart into multiple candlestick "
 "series."
 msgstr ""
+"Dimension facultative pour scinder le graphique en plusieurs séries de "
+"chandeliers."
 
 msgid ""
 "Optional metric used to scale the size of each dot. Dot areas are scaled "
@@ -11120,6 +11134,8 @@ msgid ""
 "Overlay simple moving averages of the close price (MA5, MA10, MA15, ...)."
 " Type a custom period to add it."
 msgstr ""
+"Superposez des moyennes mobiles simples du cours de clôture (MA5, MA10, "
+"MA15, …). Saisissez une période personnalisée pour l'ajouter."
 
 msgid ""
 "Overlays a hexagonal grid on a map, and aggregates data within the "
@@ -13777,7 +13793,7 @@ msgid "Series chart type (line, bar etc)"
 msgstr "Type de graphique de la série (ligne, barre, etc.)"
 
 msgid "Series colors"
-msgstr ""
+msgstr "Couleurs de série"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
 # lv, ro, ru, sk, sr, sr_Latn, tr, uk]
@@ -13793,13 +13809,13 @@ msgid "Series limit"
 msgstr "Limite de série"
 
 msgid "Series name"
-msgstr ""
+msgstr "Nom de la série"
 
 msgid "Series settings"
 msgstr "Paramètres des séries"
 
 msgid "Series style"
-msgstr ""
+msgstr "Style de série"
 
 msgid "Series total setting"
 msgstr "Paramètres du total des séries"
@@ -18920,6 +18936,9 @@ msgid ""
 "candles use the decrease color. Turn off to use one series color, with a "
 "filled body for increases and a hollow body for decreases."
 msgstr ""
+"Si activé, les chandeliers haussiers utilisent la couleur de hausse et les "
+"baissiers celle de baisse. Désactivez pour une seule couleur de série, "
+"avec un corps plein à la hausse et creux à la baisse."
 
 msgid ""
 "When enabled, the axis will display labels for the minimum and maximum "

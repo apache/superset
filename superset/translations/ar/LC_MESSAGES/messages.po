@@ -1165,6 +1165,8 @@ msgid ""
 " period. It is commonly used for financial and other time-series range "
 "analysis."
 msgstr ""
+"يعرض مخطط الشموع قيم الفتح والإغلاق والأعلى والأدنى لكل فترة. يُستخدم "
+"عادةً في التحليل المالي وتحليل نطاق السلاسل الزمنية."
 
 #, fuzzy
 msgid "A comma separated list of columns that should be parsed as dates"
@@ -3514,15 +3516,17 @@ msgid "Cancellation not available due to missing abort handler"
 msgstr "الإلغاء غير متاح بسبب غياب معالج الإيقاف"
 
 msgid "Candlestick"
-msgstr ""
+msgstr "شموع يابانية"
 
 msgid "Candlestick Chart"
-msgstr ""
+msgstr "مخطط الشموع اليابانية"
 
 msgid ""
 "Candlestick draws a filled body between open and close. OHLC draws ticks "
 "for open and close on a high-low stem."
 msgstr ""
+"ترسم الشموع جسمًا مملوءًا بين الفتح والإغلاق. يرسم OHLC علامات الفتح "
+"والإغلاق على ساق الأعلى-الأدنى."
 
 msgid "Cannot access the query"
 msgstr "لا يمكن الوصول إلى الاستعلام"
@@ -4357,7 +4361,7 @@ msgid "Close version history"
 msgstr ""
 
 msgid "Closing value for each period."
-msgstr ""
+msgstr "قيمة الإغلاق لكل فترة."
 
 msgid "Cluster label aggregator"
 msgstr "مجمع تسميات نظام المجموعة"
@@ -4451,7 +4455,7 @@ msgid "Color by"
 msgstr "اللون حسب"
 
 msgid "Color by direction"
-msgstr ""
+msgstr "تلوين حسب الاتجاه"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
@@ -4485,10 +4489,10 @@ msgstr "نظام الألوان"
 msgid ""
 "Color used when the close value is greater than or equal to the open "
 "value."
-msgstr ""
+msgstr "اللون المستخدم عندما تكون قيمة الإغلاق أكبر من أو تساوي قيمة الفتح."
 
 msgid "Color used when the close value is less than the open value."
-msgstr ""
+msgstr "اللون المستخدم عندما تكون قيمة الإغلاق أقل من قيمة الفتح."
 
 msgid ""
 "Color will be shaded based the normalized (0% to 100%) value of a given "
@@ -9024,7 +9028,7 @@ msgid "High color"
 msgstr ""
 
 msgid "Highest value for each period."
-msgstr ""
+msgstr "أعلى قيمة لكل فترة."
 
 msgid "Histogram"
 msgstr "الرسم البياني"
@@ -9800,10 +9804,10 @@ msgid "Label threshold"
 msgstr "عتبة التسمية"
 
 msgid "Label used for decreasing candles in the tooltip."
-msgstr ""
+msgstr "التسمية المستخدمة للشموع الهابطة في التلميح."
 
 msgid "Label used for increasing candles in the tooltip."
-msgstr ""
+msgstr "التسمية المستخدمة للشموع الصاعدة في التلميح."
 
 msgid "Labelling"
 msgstr "وضع العلامات"
@@ -10339,7 +10343,7 @@ msgid "Lower threshold must be lower than upper threshold"
 msgstr "يجب أن يكون الحد الأدنى أقل من الحد الأعلى"
 
 msgid "Lowest value for each period."
-msgstr ""
+msgstr "أدنى قيمة لكل فترة."
 
 msgid "MAR"
 msgstr "مسخ"
@@ -11004,7 +11008,7 @@ msgid "Moves the given set of dates by a specified interval."
 msgstr "ينقل مجموعة التواريخ المحددة بفاصل زمني محدد."
 
 msgid "Moving averages"
-msgstr ""
+msgstr "المتوسطات المتحركة"
 
 msgid "Multi-Dimensions"
 msgstr "أبعاد متعددة"
@@ -11118,6 +11122,8 @@ msgid ""
 "Name used for the candlestick series in the legend and tooltip when no "
 "series dimension is set."
 msgstr ""
+"الاسم المستخدم لسلسلة الشموع في وسيلة الإيضاح والتلميح عندما لا يُحدَّد "
+"بُعد السلسلة."
 
 msgid "Name your database"
 msgstr "قم بتسمية قاعدة البيانات الخاصة بك"
@@ -11674,7 +11680,7 @@ msgid "OCT"
 msgstr "أكتوبر"
 
 msgid "OHLC"
-msgstr ""
+msgstr "OHLC"
 
 msgid "OK"
 msgstr "ok"
@@ -11871,7 +11877,7 @@ msgid "Open query in SQL Lab"
 msgstr "افتح الاستعلام في SQL Lab"
 
 msgid "Opening value for each period."
-msgstr ""
+msgstr "قيمة الفتح لكل فترة."
 
 msgid ""
 "Operate the database in asynchronous mode, meaning that the queries are "
@@ -11907,7 +11913,7 @@ msgstr "سلسلة اختيارية بصيغة رقم d3"
 msgid ""
 "Optional dimension used to split the chart into multiple candlestick "
 "series."
-msgstr ""
+msgstr "بُعد اختياري لتقسيم المخطط إلى عدة سلاسل شموع."
 
 msgid ""
 "Optional metric used to scale the size of each dot. Dot areas are scaled "
@@ -12042,6 +12048,8 @@ msgid ""
 "Overlay simple moving averages of the close price (MA5, MA10, MA15, ...)."
 " Type a custom period to add it."
 msgstr ""
+"أضف متوسطات متحركة بسيطة لسعر الإغلاق (MA5، MA10، MA15، ...). اكتب فترة "
+"مخصصة لإضافتها."
 
 msgid ""
 "Overlays a hexagonal grid on a map, and aggregates data within the "
@@ -14899,7 +14907,7 @@ msgid "Series chart type (line, bar etc)"
 msgstr "نوع مخطط السلسلة (الخط والشريط وما إلى ذلك)"
 
 msgid "Series colors"
-msgstr ""
+msgstr "ألوان السلسلة"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
 # lv, ro, ru, sk, sr, sr_Latn, tr, uk]
@@ -14917,14 +14925,14 @@ msgid "Series limit"
 msgstr "حد السلسلة"
 
 msgid "Series name"
-msgstr ""
+msgstr "اسم السلسلة"
 
 #, fuzzy
 msgid "Series settings"
 msgstr "إعدادات التصفية"
 
 msgid "Series style"
-msgstr ""
+msgstr "نمط السلسلة"
 
 #, fuzzy
 msgid "Series total setting"
@@ -20289,6 +20297,8 @@ msgid ""
 "candles use the decrease color. Turn off to use one series color, with a "
 "filled body for increases and a hollow body for decreases."
 msgstr ""
+"عند التمكين تستخدم الشموع الصاعدة لون الصعود والشموع الهابطة لون الهبوط. "
+"عطّل الخيار لاستخدام لون سلسلة واحد بجسم مملوء للصعود وأجوف للهبوط."
 
 #, fuzzy
 msgid ""

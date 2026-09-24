@@ -1039,6 +1039,9 @@ msgid ""
 " period. It is commonly used for financial and other time-series range "
 "analysis."
 msgstr ""
+"نمودار شمعی مقادیر باز شدن، بسته شدن، بالاترین و پایین‌ترین را برای هر "
+"دوره نشان می‌دهد. معمولاً برای تحلیل مالی و بازه سری‌های زمانی استفاده "
+"می‌شود."
 
 #, fuzzy
 msgid "A comma separated list of columns that should be parsed as dates"
@@ -3347,15 +3350,17 @@ msgid "Cancellation not available due to missing abort handler"
 msgstr "لغو به دلیل نبود کنترل‌کننده قطع در دسترس نیست"
 
 msgid "Candlestick"
-msgstr ""
+msgstr "نمودار شمعی"
 
 msgid "Candlestick Chart"
-msgstr ""
+msgstr "نمودار شمعی"
 
 msgid ""
 "Candlestick draws a filled body between open and close. OHLC draws ticks "
 "for open and close on a high-low stem."
 msgstr ""
+"نمودار شمعی بدنه پرشده‌ای بین باز و بسته شدن رسم می‌کند. OHLC علامت‌های "
+"باز و بسته شدن را روی ساقه بالا-پایین می‌کشد."
 
 msgid "Cannot access the query"
 msgstr "نمی‌توان به کوئری دسترسی پیدا کرد"
@@ -4176,7 +4181,7 @@ msgid "Close version history"
 msgstr ""
 
 msgid "Closing value for each period."
-msgstr ""
+msgstr "مقدار بسته شدن برای هر دوره."
 
 msgid "Cluster label aggregator"
 msgstr "جمع‌آوری برچسب خوشه"
@@ -4270,7 +4275,7 @@ msgid "Color by"
 msgstr "رنگ بر اساس"
 
 msgid "Color by direction"
-msgstr ""
+msgstr "رنگ بر اساس جهت"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
@@ -4305,9 +4310,11 @@ msgid ""
 "Color used when the close value is greater than or equal to the open "
 "value."
 msgstr ""
+"رنگی که وقتی مقدار بسته شدن بزرگ‌تر یا برابر مقدار باز شدن است استفاده "
+"می‌شود."
 
 msgid "Color used when the close value is less than the open value."
-msgstr ""
+msgstr "رنگی که وقتی مقدار بسته شدن کمتر از مقدار باز شدن است استفاده می‌شود."
 
 msgid ""
 "Color will be shaded based the normalized (0% to 100%) value of a given "
@@ -8701,7 +8708,7 @@ msgid "High color"
 msgstr ""
 
 msgid "Highest value for each period."
-msgstr ""
+msgstr "بالاترین مقدار برای هر دوره."
 
 msgid "Histogram"
 msgstr "هیستوگرام"
@@ -9475,10 +9482,10 @@ msgid "Label threshold"
 msgstr "آستانه برچسب"
 
 msgid "Label used for decreasing candles in the tooltip."
-msgstr ""
+msgstr "برچسب شمع‌های نزولی در راهنمای ابزار."
 
 msgid "Label used for increasing candles in the tooltip."
-msgstr ""
+msgstr "برچسب شمع‌های صعودی در راهنمای ابزار."
 
 msgid "Labelling"
 msgstr "برچسب‌گذاری"
@@ -10015,7 +10022,7 @@ msgid "Lower threshold must be lower than upper threshold"
 msgstr "آستانه پایین باید کمتر از آستانه بالا باشد."
 
 msgid "Lowest value for each period."
-msgstr ""
+msgstr "پایین‌ترین مقدار برای هر دوره."
 
 msgid "MAR"
 msgstr "مار"
@@ -10660,7 +10667,7 @@ msgid "Moves the given set of dates by a specified interval."
 msgstr "تاریخ‌های تعیین‌شده را به میزان مشخصی جابه‌جا می‌کند."
 
 msgid "Moving averages"
-msgstr ""
+msgstr "میانگین‌های متحرک"
 
 msgid "Multi-Dimensions"
 msgstr "چندبعدی"
@@ -10772,7 +10779,7 @@ msgstr "نام برچسب شما"
 msgid ""
 "Name used for the candlestick series in the legend and tooltip when no "
 "series dimension is set."
-msgstr ""
+msgstr "نام سری شمعی در راهنما و راهنمای ابزار وقتی بُعد سری تنظیم نشده باشد."
 
 msgid "Name your database"
 msgstr "نام پایگاه داده خود را وارد کنید"
@@ -11320,7 +11327,7 @@ msgid "OCT"
 msgstr "اکتبر"
 
 msgid "OHLC"
-msgstr ""
+msgstr "OHLC"
 
 msgid "OK"
 msgstr "باشه"
@@ -11516,7 +11523,7 @@ msgid "Open query in SQL Lab"
 msgstr "باز کردن کوئری در آزمایشگاه SQL"
 
 msgid "Opening value for each period."
-msgstr ""
+msgstr "مقدار باز شدن برای هر دوره."
 
 msgid ""
 "Operate the database in asynchronous mode, meaning that the queries are "
@@ -11552,7 +11559,7 @@ msgstr "رشته فرمت عدد d3 اختیاری"
 msgid ""
 "Optional dimension used to split the chart into multiple candlestick "
 "series."
-msgstr ""
+msgstr "بُعد اختیاری برای تقسیم نمودار به چند سری شمعی."
 
 msgid ""
 "Optional metric used to scale the size of each dot. Dot areas are scaled "
@@ -11685,6 +11692,8 @@ msgid ""
 "Overlay simple moving averages of the close price (MA5, MA10, MA15, ...)."
 " Type a custom period to add it."
 msgstr ""
+"میانگین‌های متحرک ساده قیمت بسته شدن را همپوشانی کنید (MA5، MA10، MA15، "
+"...). برای افزودن، یک دوره سفارشی بنویسید."
 
 msgid ""
 "Overlays a hexagonal grid on a map, and aggregates data within the "
@@ -14481,7 +14490,7 @@ msgid "Series chart type (line, bar etc)"
 msgstr "نوع نمودار سری (خطی، میله‌ای و غیره)"
 
 msgid "Series colors"
-msgstr ""
+msgstr "رنگ‌های سری"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
 # lv, ro, ru, sk, sr, sr_Latn, tr, uk]
@@ -14499,14 +14508,14 @@ msgid "Series limit"
 msgstr "محدودیت سری"
 
 msgid "Series name"
-msgstr ""
+msgstr "نام سری"
 
 #, fuzzy
 msgid "Series settings"
 msgstr "تنظیمات فایل"
 
 msgid "Series style"
-msgstr ""
+msgstr "سبک سری"
 
 #, fuzzy
 msgid "Series total setting"
@@ -19779,6 +19788,9 @@ msgid ""
 "candles use the decrease color. Turn off to use one series color, with a "
 "filled body for increases and a hollow body for decreases."
 msgstr ""
+"در صورت فعال بودن، شمع‌های صعودی رنگ افزایش و شمع‌های نزولی رنگ کاهش را "
+"دارند. خاموش کنید تا یک رنگ سری استفاده شود: بدنه پر برای افزایش و توخالی "
+"برای کاهش."
 
 #, fuzzy
 msgid ""

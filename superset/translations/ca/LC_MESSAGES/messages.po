@@ -1036,6 +1036,9 @@ msgid ""
 " period. It is commonly used for financial and other time-series range "
 "analysis."
 msgstr ""
+"Un gràfic de candlestick mostra els valors d'obertura, tancament, màxim i "
+"mínim de cada període. S'utilitza habitualment per a anàlisi financera i "
+"d'intervals de sèries temporals."
 
 #, fuzzy
 msgid "A comma separated list of columns that should be parsed as dates"
@@ -3364,15 +3367,17 @@ msgid "Cancellation not available due to missing abort handler"
 msgstr "Cancel·lació no disponible per manca del gestor d'interrupció"
 
 msgid "Candlestick"
-msgstr ""
+msgstr "Candlestick"
 
 msgid "Candlestick Chart"
-msgstr ""
+msgstr "Gràfic de candlestick"
 
 msgid ""
 "Candlestick draws a filled body between open and close. OHLC draws ticks "
 "for open and close on a high-low stem."
 msgstr ""
+"Candlestick dibuixa un cos ple entre l'obertura i el tancament. OHLC "
+"dibuixa marques d'obertura i tancament en una tija de màxim-mínim."
 
 msgid "Cannot access the query"
 msgstr "No es pot accedir a la consulta"
@@ -4188,7 +4193,7 @@ msgid "Close version history"
 msgstr ""
 
 msgid "Closing value for each period."
-msgstr ""
+msgstr "Valor de tancament de cada període."
 
 msgid "Cluster label aggregator"
 msgstr "Agregador d'etiquetes de clúster"
@@ -4282,7 +4287,7 @@ msgid "Color by"
 msgstr "Color per"
 
 msgid "Color by direction"
-msgstr ""
+msgstr "Color per direcció"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
@@ -4317,9 +4322,10 @@ msgid ""
 "Color used when the close value is greater than or equal to the open "
 "value."
 msgstr ""
+"Color quan el valor de tancament és més gran o igual que el d'obertura."
 
 msgid "Color used when the close value is less than the open value."
-msgstr ""
+msgstr "Color quan el valor de tancament és més petit que el d'obertura."
 
 msgid ""
 "Color will be shaded based the normalized (0% to 100%) value of a given "
@@ -8672,7 +8678,7 @@ msgid "High color"
 msgstr ""
 
 msgid "Highest value for each period."
-msgstr ""
+msgstr "Valor màxim de cada període."
 
 msgid "Histogram"
 msgstr "Histograma"
@@ -9441,10 +9447,10 @@ msgid "Label threshold"
 msgstr "Llindar d'etiqueta"
 
 msgid "Label used for decreasing candles in the tooltip."
-msgstr ""
+msgstr "Etiqueta de les veles baixistes al consell emergent."
 
 msgid "Label used for increasing candles in the tooltip."
-msgstr ""
+msgstr "Etiqueta de les veles alcistes al consell emergent."
 
 msgid "Labelling"
 msgstr "Etiquetatge"
@@ -9958,7 +9964,7 @@ msgid "Lower threshold must be lower than upper threshold"
 msgstr "El llindar inferior ha de ser menor que el llindar superior"
 
 msgid "Lowest value for each period."
-msgstr ""
+msgstr "Valor mínim de cada període."
 
 msgid "MAR"
 msgstr "MAR"
@@ -10587,7 +10593,7 @@ msgid "Moves the given set of dates by a specified interval."
 msgstr "Mou el conjunt de dates donat per un interval especificat."
 
 msgid "Moving averages"
-msgstr ""
+msgstr "Mitjanes mòbils"
 
 msgid "Multi-Dimensions"
 msgstr "Multi-Dimensions"
@@ -10700,6 +10706,8 @@ msgid ""
 "Name used for the candlestick series in the legend and tooltip when no "
 "series dimension is set."
 msgstr ""
+"Nom de la sèrie de candlestick a la llegenda i al consell emergent quan no "
+"s'ha definit cap dimensió de sèrie."
 
 msgid "Name your database"
 msgstr "Dona nom a la teva base de dades"
@@ -11248,7 +11256,7 @@ msgid "OCT"
 msgstr "OCT"
 
 msgid "OHLC"
-msgstr ""
+msgstr "OHLC"
 
 msgid "OK"
 msgstr "D'acord"
@@ -11453,7 +11461,7 @@ msgid "Open query in SQL Lab"
 msgstr "Obrir consulta al SQL Lab"
 
 msgid "Opening value for each period."
-msgstr ""
+msgstr "Valor d'obertura de cada període."
 
 msgid ""
 "Operate the database in asynchronous mode, meaning that the queries are "
@@ -11491,6 +11499,7 @@ msgid ""
 "Optional dimension used to split the chart into multiple candlestick "
 "series."
 msgstr ""
+"Dimensió opcional per dividir el gràfic en diverses sèries de candlestick."
 
 msgid ""
 "Optional metric used to scale the size of each dot. Dot areas are scaled "
@@ -11621,6 +11630,8 @@ msgid ""
 "Overlay simple moving averages of the close price (MA5, MA10, MA15, ...)."
 " Type a custom period to add it."
 msgstr ""
+"Superposa mitjanes mòbils simples del preu de tancament (MA5, MA10, MA15, "
+"...). Escriviu un període personalitzat per afegir-lo."
 
 msgid ""
 "Overlays a hexagonal grid on a map, and aggregates data within the "
@@ -14390,7 +14401,7 @@ msgid "Series chart type (line, bar etc)"
 msgstr "Tipus de gràfic de sèries (línia, barra, etc)"
 
 msgid "Series colors"
-msgstr ""
+msgstr "Colors de la sèrie"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
 # lv, ro, ru, sk, sr, sr_Latn, tr, uk]
@@ -14408,14 +14419,14 @@ msgid "Series limit"
 msgstr "Límit de sèries"
 
 msgid "Series name"
-msgstr ""
+msgstr "Nom de la sèrie"
 
 #, fuzzy
 msgid "Series settings"
 msgstr "Configuració del fitxer"
 
 msgid "Series style"
-msgstr ""
+msgstr "Estil de la sèrie"
 
 #, fuzzy
 msgid "Series total setting"
@@ -19687,6 +19698,9 @@ msgid ""
 "candles use the decrease color. Turn off to use one series color, with a "
 "filled body for increases and a hollow body for decreases."
 msgstr ""
+"Si està activat, les veles alcistes usen el color de pujada i les "
+"baixistes el de baixada. Desactiveu-ho per usar un sol color de sèrie, amb "
+"cos ple a les pujades i buit a les baixades."
 
 #, fuzzy
 msgid ""

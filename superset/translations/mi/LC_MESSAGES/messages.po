@@ -1031,6 +1031,9 @@ msgid ""
 " period. It is commonly used for financial and other time-series range "
 "analysis."
 msgstr ""
+"Ka whakaatu te kauwhata kānara i ngā uara whakatuwhera, kati, teitei, me "
+"te iti mō ia wā. He maha ngā wā e whakamahia ana mō te tātari pūtea me "
+"ētahi atu tātari awa wā."
 
 #, fuzzy
 msgid "A comma separated list of columns that should be parsed as dates"
@@ -3317,15 +3320,18 @@ msgid "Cancellation not available due to missing abort handler"
 msgstr "Kāore e taea ana te whakakore nā te kore o te kaitiaki whakamutu"
 
 msgid "Candlestick"
-msgstr ""
+msgstr "Kānara"
 
 msgid "Candlestick Chart"
-msgstr ""
+msgstr "Kauwhata kānara"
 
 msgid ""
 "Candlestick draws a filled body between open and close. OHLC draws ticks "
 "for open and close on a high-low stem."
 msgstr ""
+"Ka tā te kānara i tētahi tinana kī i waenga i te whakatuwhera me te kati. "
+"Ka tā te OHLC i ngā tohu whakatuwhera me te kati ki tētahi kakau "
+"teitei-iti."
 
 msgid "Cannot access the query"
 msgstr "Kāore e taea te uru ki te pātai"
@@ -4143,7 +4149,7 @@ msgid "Close version history"
 msgstr ""
 
 msgid "Closing value for each period."
-msgstr ""
+msgstr "Te uara kati mō ia wā."
 
 msgid "Cluster label aggregator"
 msgstr "Kaiwhakaārotau tapanga rāpaki"
@@ -4237,7 +4243,7 @@ msgid "Color by"
 msgstr "Tae mā"
 
 msgid "Color by direction"
-msgstr ""
+msgstr "Tae mā te ahunga"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
@@ -4271,10 +4277,10 @@ msgstr "Kaupapa tae"
 msgid ""
 "Color used when the close value is greater than or equal to the open "
 "value."
-msgstr ""
+msgstr "Te tae inā nui ake, ōrite rānei te uara kati ki te uara whakatuwhera."
 
 msgid "Color used when the close value is less than the open value."
-msgstr ""
+msgstr "Te tae inā iti iho te uara kati i te uara whakatuwhera."
 
 msgid ""
 "Color will be shaded based the normalized (0% to 100%) value of a given "
@@ -8592,7 +8598,7 @@ msgid "High color"
 msgstr ""
 
 msgid "Highest value for each period."
-msgstr ""
+msgstr "Te uara teitei mō ia wā."
 
 msgid "Histogram"
 msgstr "Kauwhata Auau"
@@ -9356,10 +9362,10 @@ msgid "Label threshold"
 msgstr "Paepae tapanga"
 
 msgid "Label used for decreasing candles in the tooltip."
-msgstr ""
+msgstr "Te tapanga mō ngā kānara heke i te tohu āwhina."
 
 msgid "Label used for increasing candles in the tooltip."
-msgstr ""
+msgstr "Te tapanga mō ngā kānara piki i te tohu āwhina."
 
 msgid "Labelling"
 msgstr "Tapanga"
@@ -9874,7 +9880,7 @@ msgid "Lower threshold must be lower than upper threshold"
 msgstr "Me iti ake te paepae raro i te paepae runga"
 
 msgid "Lowest value for each period."
-msgstr ""
+msgstr "Te uara iti mō ia wā."
 
 msgid "MAR"
 msgstr "MAH"
@@ -10498,7 +10504,7 @@ msgid "Moves the given set of dates by a specified interval."
 msgstr "Ka neke i te huinga rā kua tukuna mā tētahi wā kua tohua."
 
 msgid "Moving averages"
-msgstr ""
+msgstr "Ngā toharite neke"
 
 msgid "Multi-Dimensions"
 msgstr "Āhuahanga-Maha"
@@ -10611,6 +10617,8 @@ msgid ""
 "Name used for the candlestick series in the legend and tooltip when no "
 "series dimension is set."
 msgstr ""
+"Te ingoa mō te raupapa kānara i te pakiwaituhi me te tohu āwhina inā kāore "
+"he matotoru raupapa."
 
 msgid "Name your database"
 msgstr "Tohua he ingoa mō tō pātengi raraunga"
@@ -11153,7 +11161,7 @@ msgid "OCT"
 msgstr "OKO"
 
 msgid "OHLC"
-msgstr ""
+msgstr "OHLC"
 
 msgid "OK"
 msgstr "PAI"
@@ -11355,7 +11363,7 @@ msgid "Open query in SQL Lab"
 msgstr "Huaki pātai i SQL Lab"
 
 msgid "Opening value for each period."
-msgstr ""
+msgstr "Te uara whakatuwhera mō ia wā."
 
 msgid ""
 "Operate the database in asynchronous mode, meaning that the queries are "
@@ -11391,7 +11399,7 @@ msgstr "Aho hōputu tau d3 kōwhiringa"
 msgid ""
 "Optional dimension used to split the chart into multiple candlestick "
 "series."
-msgstr ""
+msgstr "He matotoru kōwhiri hei wehe i te kauwhata ki ētahi raupapa kānara."
 
 msgid ""
 "Optional metric used to scale the size of each dot. Dot areas are scaled "
@@ -11514,6 +11522,8 @@ msgid ""
 "Overlay simple moving averages of the close price (MA5, MA10, MA15, ...)."
 " Type a custom period to add it."
 msgstr ""
+"Whakapirihia ngā toharite neke māmā o te utu kati (MA5, MA10, MA15, ...). "
+"Patohia tētahi wā ritenga hei tāpiri."
 
 msgid ""
 "Overlays a hexagonal grid on a map, and aggregates data within the "
@@ -14299,7 +14309,7 @@ msgid "Series chart type (line, bar etc)"
 msgstr "Momo kauwhata raupapa (rārangi, pae me ērā atu)"
 
 msgid "Series colors"
-msgstr ""
+msgstr "Ngā tae raupapa"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
 # lv, ro, ru, sk, sr, sr_Latn, tr, uk]
@@ -14317,14 +14327,14 @@ msgid "Series limit"
 msgstr "Tepe raupapa"
 
 msgid "Series name"
-msgstr ""
+msgstr "Ingoa raupapa"
 
 #, fuzzy
 msgid "Series settings"
 msgstr "Tautuhinga kōnae"
 
 msgid "Series style"
-msgstr ""
+msgstr "Momotuhi raupapa"
 
 #, fuzzy
 msgid "Series total setting"
@@ -19567,6 +19577,9 @@ msgid ""
 "candles use the decrease color. Turn off to use one series color, with a "
 "filled body for increases and a hollow body for decreases."
 msgstr ""
+"Inā kā, ka whakamahi ngā kānara piki i te tae piki, ngā kānara heke i te "
+"tae heke. Wetekina kia kotahi te tae raupapa, tinana kī mō te piki, tinana "
+"kau mō te heke."
 
 #, fuzzy
 msgid ""
