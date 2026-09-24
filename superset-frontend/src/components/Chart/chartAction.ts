@@ -119,6 +119,7 @@ export const DYNAMIC_PLUGIN_CONTROLS_READY =
 export const TRIGGER_QUERY = 'TRIGGER_QUERY' as const;
 export const RENDER_TRIGGERED = 'RENDER_TRIGGERED' as const;
 export const UPDATE_QUERY_FORM_DATA = 'UPDATE_QUERY_FORM_DATA' as const;
+export const SET_CHART_FORM_DATA = 'SET_CHART_FORM_DATA' as const;
 export const UPDATE_CHART_ID = 'UPDATE_CHART_ID' as const;
 export const ADD_CHART = 'ADD_CHART' as const;
 
@@ -210,6 +211,12 @@ export interface UpdateQueryFormDataAction {
   key: string | number;
 }
 
+export interface SetChartFormDataAction {
+  type: typeof SET_CHART_FORM_DATA;
+  formData: QueryFormData;
+  key: string | number;
+}
+
 export interface UpdateChartIdAction {
   type: typeof UPDATE_CHART_ID;
   newId: number;
@@ -237,6 +244,7 @@ export type ChartAction =
   | TriggerQueryAction
   | RenderTriggeredAction
   | UpdateQueryFormDataAction
+  | SetChartFormDataAction
   | UpdateChartIdAction
   | AddChartAction;
 
@@ -670,6 +678,18 @@ export function updateQueryFormData(
   key: string | number,
 ): UpdateQueryFormDataAction {
   return { type: UPDATE_QUERY_FORM_DATA, value, key };
+}
+
+// Replaces a chart's own base form_data — the config `getFormDataWithExtraFilters`
+// merges dashboard filters into before each query — as opposed to
+// `updateQueryFormData`, which only records the fully-merged data from the
+// last query that actually ran. Used to pick up a chart's latest saved
+// configuration without a full dashboard reload.
+export function setChartFormData(
+  formData: QueryFormData,
+  key: string | number,
+): SetChartFormDataAction {
+  return { type: SET_CHART_FORM_DATA, formData, key };
 }
 
 // in the sql lab -> explore flow, user can inline edit chart title,

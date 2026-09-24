@@ -21,7 +21,6 @@ import {
   DataMaskStateWithId,
   DataRecordFilters,
   DataRecordValue,
-  ensureIsArray,
   getColumnLabel,
   JsonObject,
   PartialFilters,
@@ -336,13 +335,13 @@ function processGroupByCustomizations(
     return datasetMatches && datasourceTypeMatches && chartMatches;
   });
 
-  const chartType = chart.form_data?.viz_type;
+  const chartType = chart.form_data?.viz_type ?? '';
   if (isChartWithoutGroupBy(chartType) || chartType === 'chord') {
     return {};
   }
 
   const existingColumns = buildExistingColumnsSet(chart);
-  const existingGroupBy = ensureIsArray(chart.form_data?.groupby);
+  const existingGroupBy = extractColumnNames(chart.form_data?.groupby ?? []);
   const xAxisColumn = chart.form_data?.x_axis;
 
   const groupByColumns: string[] = [];

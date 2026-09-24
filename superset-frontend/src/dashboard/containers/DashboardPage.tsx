@@ -177,9 +177,12 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
     (hydratedDashboardId === id ? liveDashboardTitle : undefined) ||
     dashboard_title;
 
-  // Get CSS from dashboardInfo (unified properties location)
+  // Get CSS from dashboardInfo (unified properties location). Use `??`, not
+  // `||`, so an explicit empty-string override isn't mistaken for the
+  // pre-hydration unset state and doesn't fall back to the stale fetched
+  // dashboard's CSS.
   const css =
-    useSelector((state: RootState) => state.dashboardInfo.css) ||
+    useSelector((state: RootState) => state.dashboardInfo.css) ??
     dashboard?.css;
 
   useEffect(() => {

@@ -69,6 +69,37 @@ const isFilterChangesEmpty = (filterChanges: SaveFilterChangesType) =>
     array => Array.isArray(array) && !array.length,
   );
 
+/**
+ * Applies a successfully-persisted native filter save to Redux: the
+ * config change itself, the dashboardInfo copy the filter modal reads, and
+ * the resulting dataMask changes (e.g. a new default value taking effect
+ * immediately). Shared by `setFilterConfiguration` (the Filter Bar's "Edit
+ * filters" save flow) and the extension API's `dashboard.saveFilters`, so
+ * the two save paths can't silently diverge.
+ */
+export const applySavedFilterChanges = (
+  dispatch: Dispatch,
+  filterChanges: SaveFilterChangesType,
+  savedFilters: Filter[],
+  oldFilters?: Filters,
+) => {
+  // chartsInScope/tabsInScope are derived from the live layout, and the
+  // response carries the persisted copy for every filter - including the
+  // ones this save never touched, whose copy is whatever was stored when
+  // the dashboard was last saved. Dropping them lets the reducers keep the
+  // scopes calculateScopes already computed for this session.
+  const cleanedFilters = savedFilters.map(
+    filter => omit(filter, ['chartsInScope', 'tabsInScope']) as Filter,
+  );
+  dispatch({
+    type: SET_NATIVE_FILTERS_CONFIG_COMPLETE,
+    filterChanges: cleanedFilters,
+    deletedIds: filterChanges.deleted,
+  });
+  dispatch(nativeFiltersConfigChanged(cleanedFilters));
+  dispatch(setDataMaskForFilterChangesComplete(filterChanges, oldFilters));
+};
+
 export const setFilterConfiguration =
   (filterChanges: SaveFilterChangesType) =>
   async (dispatch: Dispatch, getState: () => RootState) => {
@@ -90,21 +121,12 @@ export const setFilterConfiguration =
     });
     try {
       const response = await updateFilters(filterChanges);
-      // chartsInScope/tabsInScope are derived from the live layout, and the
-      // response carries the persisted copy for every filter - including the
-      // ones this save never touched, whose copy is whatever was stored when
-      // the dashboard was last saved. Dropping them lets the reducers keep the
-      // scopes calculateScopes already computed for this session.
-      const savedFilters = response.result.map(
-        filter => omit(filter, ['chartsInScope', 'tabsInScope']) as Filter,
+      applySavedFilterChanges(
+        dispatch,
+        filterChanges,
+        response.result,
+        oldFilters,
       );
-      dispatch({
-        type: SET_NATIVE_FILTERS_CONFIG_COMPLETE,
-        filterChanges: savedFilters,
-        deletedIds: filterChanges.deleted,
-      });
-      dispatch(nativeFiltersConfigChanged(savedFilters));
-      dispatch(setDataMaskForFilterChangesComplete(filterChanges, oldFilters));
     } catch (err) {
       dispatch({
         type: SET_NATIVE_FILTERS_CONFIG_FAIL,

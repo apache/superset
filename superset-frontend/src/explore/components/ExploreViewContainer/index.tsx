@@ -64,7 +64,6 @@ import {
   LocalStorageKeys,
 } from 'src/utils/localStorageHelpers';
 import { RESERVED_CHART_URL_PARAMS, URL_PARAMS } from 'src/constants';
-import { QUERY_MODE_REQUISITES } from 'src/explore/constants';
 import { areObjectsEqual } from 'src/reduxUtils';
 import * as logActions from 'src/logger/actions';
 import {
@@ -86,7 +85,10 @@ import {
   selectRestoreTarget,
   toChartStateHistoryState,
 } from 'src/explore/exploreUtils/exploreHistory';
-import { getFormDataFromControls } from 'src/explore/controlUtils';
+import {
+  getFormDataFromControls,
+  getVisibleFormDataFromControls,
+} from 'src/explore/controlUtils';
 import * as exploreActions from 'src/explore/actions/exploreActions';
 import * as saveModalActions from 'src/explore/actions/saveModalActions';
 import { useTabId } from 'src/hooks/useTabId';
@@ -1248,13 +1250,6 @@ function ExploreViewContainer(props: ExploreViewContainerProps) {
   );
 }
 
-const retainQueryModeRequirements = (
-  hiddenFormData: Partial<QueryFormData> | undefined,
-): string[] =>
-  Object.keys(hiddenFormData ?? {}).filter(
-    key => !QUERY_MODE_REQUISITES.has(key),
-  );
-
 interface SliceWithSubheader extends Slice {
   form_data?: QueryFormData & {
     subheader?: string;
@@ -1288,15 +1283,10 @@ function mapStateToProps(state: ExploreRootState) {
     saveModal,
   } = state;
   const { controls, slice, datasource, metadata, hiddenFormData } = explore;
-  const hasQueryMode = !!controls?.query_mode?.value;
-  const fieldsToOmit = hasQueryMode
-    ? retainQueryModeRequirements(hiddenFormData)
-    : Object.keys(hiddenFormData ?? {});
-
-  const controlsBasedFormData = omit(
-    getFormDataFromControls(controls),
-    fieldsToOmit,
-  ) as QueryFormData;
+  const controlsBasedFormData = getVisibleFormDataFromControls(
+    controls,
+    hiddenFormData,
+  );
   const isDeckGLChart = explore.form_data?.viz_type === 'deck_multi';
 
   const getDeckGLFormData = (): QueryFormData => {
