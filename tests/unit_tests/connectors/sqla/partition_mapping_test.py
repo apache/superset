@@ -32,6 +32,7 @@ from superset.connectors.sqla.partition_mapping import (
     contains_value_placeholder,
     evaluate_transform,
     find_non_deterministic_functions,
+    is_transform_active,
     MappingValidationIssue,
     MIRRORABLE_ALWAYS,
     MIRRORABLE_IF_MONOTONIC,
@@ -39,6 +40,7 @@ from superset.connectors.sqla.partition_mapping import (
     parse_error_detail,
     resolve_partition_mapping,
     validate_partition_mapping,
+    validate_transform,
 )
 from superset.models.core import Database
 from superset.utils.core import FilterOperator
@@ -826,3 +828,47 @@ def test_probe_cache_key_tracks_the_connection(app: Flask) -> None:
 
     assert before != after_uri
     assert after_uri != after_extra
+
+
+# ---------------------------------------------------------------------------
+# §6 — the read-side predicate the Explore indicator asks
+# ---------------------------------------------------------------------------
+
+#: One transform per branch of ``validate_transform``, blocking and not.
+INACTIVE_TRANSFORMS = [
+    None,
+    "",
+    "   ",
+    "unix_timestamp(:value",
+    "unix_timestamp(event_time)",
+    "unix_timestamp('{{ ds }}', :value)",
+    "date_diff(:value, now())",
+]
+
+
+def test_a_well_formed_transform_is_active() -> None:
+    assert is_transform_active("unix_timestamp(:value)", "hive") is True
+
+
+@pytest.mark.parametrize("transform", INACTIVE_TRANSFORMS)
+def test_every_transform_issue_leaves_it_inactive(transform: str | None) -> None:
+    """
+    Blocking issues count as much as the rest. A Jinja or non-deterministic
+    transform is rejected on PUT, but create and import do not validate the
+    mapping, so one can still be read back -- and it mirrors nothing either.
+    """
+    assert is_transform_active(transform, "hive") is False
+
+
+@pytest.mark.parametrize(
+    "transform",
+    ["unix_timestamp(:value)", "CAST(:value AS BIGINT)", *INACTIVE_TRANSFORMS],
+)
+def test_activity_is_exactly_the_absence_of_issues(transform: str | None) -> None:
+    """
+    The indicator and the save path have to answer the same question. Pinning
+    the equivalence is what stops the two from drifting apart again.
+    """
+    assert is_transform_active(transform, "hive") is (
+        validate_transform(transform, "hive") == []
+    )

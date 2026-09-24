@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Apache Superset 0.22.1\n"
 "Report-Msgid-Bugs-To: bestlong168@gmail.com\n"
-"POT-Creation-Date: 2026-09-21 02:18+0000\n"
+"POT-Creation-Date: 2026-09-24 01:14+0000\n"
 "PO-Revision-Date: 2019-01-04 22:19+0800\n"
 "Last-Translator: Shao Yu-Lung <bestlong168@gmail.com>\n"
 "Language: zh_TW\n"
@@ -250,6 +250,10 @@ msgstr "%(label)s 檔案"
 
 #, python-format
 msgid "%(name)s deleted successfully"
+msgstr ""
+
+#, python-format
+msgid "%(name)s is not a column on this dataset."
 msgstr ""
 
 #, python-format
@@ -2868,9 +2872,6 @@ msgstr "根據可用空間自動調整欄寬"
 msgid "Automatically adjust column width based on content"
 msgstr "根據內容自動調整欄寬"
 
-msgid "Automatically retry sending the report when delivery fails."
-msgstr ""
-
 #, fuzzy
 msgid "Automatically sync columns"
 msgstr "自定義列"
@@ -3900,6 +3901,13 @@ msgstr "圖表無法删除。"
 msgid "Chart width"
 msgstr "圖表寬度"
 
+#, python-format
+msgid ""
+"Chart with ID %(chart_id)s (referenced by annotation layer "
+"'%(layer_name)s') was not found. Please verify that the chart exists and "
+"is accessible."
+msgstr ""
+
 msgid "Charts"
 msgstr "圖表"
 
@@ -4701,7 +4709,7 @@ msgstr "設定儀表板外觀、顏色與自訂 CSS"
 msgid "Configure filter scopes"
 msgstr "配置過濾範圍"
 
-msgid "Configure retry behavior on delivery failure."
+msgid "Configure retries when alert or report generation fails before delivery."
 msgstr ""
 
 msgid "Configure the basics of your Annotation Layer."
@@ -4784,6 +4792,9 @@ msgid "Connection failed, please check your connection settings."
 msgstr "連接失敗，請檢查您的連接配置"
 
 msgid "Connection looks good!"
+msgstr ""
+
+msgid "Contact the report owner for error details."
 msgstr ""
 
 #, fuzzy
@@ -6564,6 +6575,9 @@ msgid ""
 "Display each cell as a percentage of its row, column, or grand total, "
 "instead of its actual value. Totals and subtotals are still computed "
 "correctly first; this only changes how they are displayed."
+msgstr ""
+
+msgid "Display format"
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, fr,
@@ -9657,6 +9671,12 @@ msgstr "一月"
 msgid "Jinja templating"
 msgstr "Jinja 模板"
 
+msgid ""
+"Jinja templating is not supported in a partition value transform. The "
+"transform is evaluated in a different context and at a different time "
+"from the chart query, so a template would not render the same way."
+msgstr ""
+
 msgid "July"
 msgstr "七月"
 
@@ -10421,6 +10441,10 @@ msgstr "需要值"
 #, fuzzy
 msgid "Mapbox requires a MAPBOX_API_KEY to be configured on the server."
 msgstr "Mapbox 需要在伺服器上設定 MAPBOX_API_KEY。"
+
+#, python-format
+msgid "Mapped column %(name)s is not a column on this dataset."
+msgstr ""
 
 msgid "March"
 msgstr "三月"
@@ -11369,6 +11393,9 @@ msgstr "没有找到任何紀錄"
 msgid "No multilayer deck.gl charts are currently added to this dashboard."
 msgstr "此看板中没有過濾條件。"
 
+msgid "No partition column is set."
+msgstr ""
+
 msgid "No records found"
 msgstr "没有找到任何紀錄"
 
@@ -11463,6 +11490,11 @@ msgid ""
 "No validator named %(validator_name)s found (configured for the "
 "%(engine_spec)s engine)"
 msgstr "未找到名為 %(validator_name)s 的驗證器（為 %(engine_spec)s 引擎配置）"
+
+msgid ""
+"No value transform is set, so no filter will be mirrored onto the "
+"partition column."
+msgstr ""
 
 msgid "Node label position"
 msgstr "節點標籤位置"
@@ -12173,6 +12205,10 @@ msgstr "分區限制"
 
 msgid "Partition Threshold"
 msgstr "分區閥值"
+
+#, python-format
+msgid "Partition column %(name)s is not a column on this dataset."
+msgstr ""
 
 msgid ""
 "Partitions whose height to parent height proportions are below this value"
@@ -13169,6 +13205,9 @@ msgstr "重新加载"
 msgid "Reload SQL Lab"
 msgstr "重新載入 SQL Lab"
 
+msgid "Reload the page and try again to continue."
+msgstr ""
+
 msgid "Remove"
 msgstr "删除"
 
@@ -13566,9 +13605,6 @@ msgstr "後端未配置異步查詢所需的结果"
 msgid "Resume auto-refresh"
 msgstr "設定自動刷新"
 
-msgid "Retries are not supported for alerts"
-msgstr ""
-
 #, fuzzy
 msgid "Retry"
 msgstr "作者"
@@ -13576,6 +13612,11 @@ msgstr "作者"
 #, fuzzy
 msgid "Retry fetching results"
 msgstr "重新獲取结果"
+
+msgid ""
+"Retry generation failures before delivery starts. Alerts re-check their "
+"condition on each attempt. Delivery failures are not replayed."
+msgstr ""
 
 msgid "Retrying"
 msgstr ""
@@ -14165,6 +14206,12 @@ msgstr "範圍"
 msgid "Scoping"
 msgstr "範圍"
 
+msgid "Screenshot cache is unavailable"
+msgstr ""
+
+msgid "Screenshot request is temporarily unavailable"
+msgstr ""
+
 msgid "Screenshot width"
 msgstr "截圖寬度"
 
@@ -14306,6 +14353,9 @@ msgstr "安全"
 
 msgid "Security"
 msgstr "安全"
+
+msgid "Security token error"
+msgstr ""
 
 #, fuzzy
 msgid "See "
@@ -15645,10 +15695,6 @@ msgid "Sorry, an error occurred"
 msgstr "抱歉，發生錯誤"
 
 #, fuzzy
-msgid "Sorry, an unknown error occurred"
-msgstr "抱歉，發生錯誤"
-
-#, fuzzy
 msgid "Sorry, an unknown error occurred."
 msgstr "抱歉，發生錯誤"
 
@@ -16546,6 +16592,9 @@ msgstr "這個圖表所链接的數據集可能被删除了。"
 msgid "The API response from %s does not match the IDatabaseTable interface."
 msgstr "來自 %s 的 API 回應與 IDatabaseTable 介面不符。"
 
+msgid "The CSRF token could not be validated."
+msgstr ""
+
 msgid ""
 "The CSS for individual dashboards can be altered here, or in the "
 "dashboard view where changes are immediately visible"
@@ -17193,6 +17242,15 @@ msgid_plural "The following parameters in your query are undefined: %(parameters
 msgstr[0] "查詢中的以下参數未定義：%(parameters)s 。"
 
 #, python-format
+msgid ""
+"The partition column cannot be mapped onto itself. %(name)s is both the "
+"partition column and the mapped column."
+msgstr ""
+
+msgid "The partition filter mapping was cleared: its column is gone"
+msgstr ""
+
+#, python-format
 msgid "The password provided for username \"%(username)s\" is incorrect."
 msgstr "用戶名 \"%(username)s\" 提供的密碼不正確。"
 
@@ -17300,6 +17358,13 @@ msgid "The query contains one or more malformed template parameters."
 msgstr "該查詢包含一個或多個格式不正確的模板参數。"
 
 msgid "The query context datasource does not match the chart datasource"
+msgstr ""
+
+#, python-format
+msgid ""
+"The query context for chart ID %(chart_id)s (referenced by annotation "
+"layer '%(layer_name)s') was not found. Please ensure the chart is "
+"properly configured and has a valid query context."
 msgstr ""
 
 msgid "The query couldn't be loaded"
@@ -17542,6 +17607,9 @@ msgstr "每個块的時間單位。應該是主域域粒度更小的單位。應
 msgid "The time unit used for the grouping of blocks"
 msgstr "用於块分組的時間單位"
 
+msgid "The transform could not be evaluated against the database."
+msgstr ""
+
 #, fuzzy
 msgid "The two passwords that you entered do not match!"
 msgstr "看板不存在"
@@ -17605,6 +17673,24 @@ msgstr "指標 '%(username)s' 不存在"
 
 msgid "The username provided when connecting to a database is not valid."
 msgstr "連接到資料庫時提供的用戶名無效。"
+
+#, python-format
+msgid ""
+"The value transform calls %(functions)s, whose result depends on when and"
+" where it runs. The transform is evaluated in a separate session and the "
+"result is cached, so the emitted predicate would freeze a snapshot of "
+"that moment."
+msgstr ""
+
+msgid ""
+"The value transform could not be parsed. The mapping is saved but stays "
+"inactive until it does."
+msgstr ""
+
+msgid ""
+"The value transform must contain the :value placeholder, which stands for"
+" the filter value being mirrored."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, fr,
 # ja, lv, ro, ru, sk, sr, sr_Latn, tr, uk]
@@ -18510,9 +18596,10 @@ msgstr ""
 
 msgid ""
 "This update would change the connection's effective destination "
-"(host/port, engine parameters, or SSH tunnel endpoint) while reusing the "
-"stored credential. Provide the real password (or SSH tunnel credential) "
-"to confirm a connection move."
+"(host/port, engine parameters, SSH tunnel endpoint, or OAuth2 endpoint "
+"URIs) while reusing the stored credential. Provide the real password (or "
+"SSH tunnel credential / OAuth2 client secret) to confirm a connection "
+"move."
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
@@ -18837,6 +18924,9 @@ msgstr[0] ""
 #, fuzzy
 msgid "Token Request URI"
 msgstr "權杖請求 URI"
+
+msgid "Too many preview requests for this dataset. Wait a moment and try again."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
 #, fuzzy, python-format
@@ -21141,7 +21231,18 @@ msgid ""
 "SUPERSET_DASHBOARD_POSITION_DATA_LIMIT config setting."
 msgstr ""
 
-msgid "Your export is being prepared. You'll receive an email when it's ready."
+msgid ""
+"Your export is being generated and will download automatically when "
+"ready. We'll also email you a download link."
+msgstr ""
+
+msgid "Your export is being generated. Please, do not leave the page."
+msgstr ""
+
+msgid "Your export is ready and downloading."
+msgstr ""
+
+msgid "Your export is taking longer than expected. Try again later."
 msgstr ""
 
 #, python-format

@@ -44,7 +44,7 @@ from superset_core.common.models import Dashboard as CoreDashboard
 
 from superset import db, is_feature_enabled, security_manager
 from superset.connectors.sqla.models import BaseDatasource, SqlaTable
-from superset.daos.datasource import DatasourceDAO
+from superset.daos.datasource import Datasource, DatasourceDAO
 from superset.models.helpers import (
     AuditMixinNullable,
     ImportExportMixin,
@@ -52,6 +52,7 @@ from superset.models.helpers import (
 )
 from superset.models.slice import Slice
 from superset.models.user_attributes import UserAttribute
+from superset.semantic_layers.models import SemanticView
 from superset.subjects.models import (
     dashboard_editors,
     dashboard_viewers,
@@ -374,21 +375,63 @@ class Dashboard(CoreDashboard, SoftDeleteMixin, AuditMixinNullable, ImportExport
 
     def datasets_trimmed_for_slices(
         self,
-    ) -> list[tuple[BaseDatasource, dict[str, Any]]]:
-        slices_by_datasource: dict[int, set[Slice]] = defaultdict(set)
+    ) -> list[tuple[BaseDatasource | SemanticView, dict[str, Any]]]:
+        """Return trimmed chart metadata, keeping datasource types distinct."""
+        # Key by (datasource_type, datasource_id): SqlaTable and SemanticView
+        # have independent auto-increment id spaces, so grouping by the bare
+        # datasource_id would merge unrelated datasources with colliding ids.
+        slices_by_datasource: dict[tuple[str, int], set[Slice]] = defaultdict(set)
 
         for slc in self.slices:
-            slices_by_datasource[slc.datasource_id].add(slc)
+            slices_by_datasource[(slc.datasource_type, slc.datasource_id)].add(slc)
 
-        result: list[tuple[BaseDatasource, dict[str, Any]]] = []
+        result: list[tuple[BaseDatasource | SemanticView, dict[str, Any]]] = []
 
         for _, slices in slices_by_datasource.items():
-            # Use the eagerly-loaded datasource from any slice in the group
-            datasource = next(iter(slices)).datasource
+            # Resolve once per typed datasource, retaining eager-loaded tables.
+            datasource: Datasource | None = next(iter(slices)).resolved_datasource
 
-            if datasource:
+            if isinstance(datasource, (BaseDatasource, SemanticView)):
+                if isinstance(
+                    datasource, SemanticView
+                ) and not security_manager.can_access_datasource(datasource):
+                    # Keep the dashboard lookup identity without instantiating
+                    # a provider or discovering metadata with stored credentials.
+                    result.append(
+                        (
+                            datasource,
+                            {
+                                "id": datasource.id,
+                                "type": datasource.type,
+                                "name": datasource.name,
+                                "supports_samples": datasource.supports_samples,
+                                "supports_drill_to_detail": (
+                                    datasource.supports_drill_to_detail
+                                ),
+                            },
+                        )
+                    )
+                    continue
                 # Filter out unneeded fields from the datasource payload
-                result.append((datasource, datasource.data_for_slices(list(slices))))
+                try:
+                    payload: dict[str, Any] = dict(
+                        datasource.data_for_slices(list(slices))
+                    )
+                except Exception as ex:  # noqa: BLE001
+                    if not isinstance(datasource, SemanticView):
+                        raise
+                    # Provider discovery must not hide other charts' metadata.
+                    # Providers have no shared operational exception contract.
+                    # Exception details may contain credentials or provider URLs.
+                    logger.warning(
+                        "Could not serialize semantic view id=%s "
+                        "layer_uuid=%s error=%s",
+                        datasource.id,
+                        datasource.semantic_layer_uuid,
+                        type(ex).__name__,
+                    )
+                    continue
+                result.append((datasource, payload))
 
         return result
 

@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-21 02:18+0000\n"
+"POT-Creation-Date: 2026-09-24 01:14+0000\n"
 "PO-Revision-Date: 2026-05-18 15:42+0200\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: sk\n"
@@ -256,6 +256,10 @@ msgstr "súbor %(label)s"
 
 #, python-format
 msgid "%(name)s deleted successfully"
+msgstr ""
+
+#, python-format
+msgid "%(name)s is not a column on this dataset."
 msgstr ""
 
 #, python-format
@@ -2752,9 +2756,6 @@ msgstr "Automaticky upravovať šírku stĺpca na základe dostupného priestoru
 msgid "Automatically adjust column width based on content"
 msgstr "Automaticky upravovať šírku stĺpca na základe obsahu"
 
-msgid "Automatically retry sending the report when delivery fails."
-msgstr ""
-
 msgid "Automatically sync columns"
 msgstr "Automatické synchronizovanie stĺpcov"
 
@@ -3686,6 +3687,13 @@ msgstr "Graf bol uložený, ale sa nepodarilo pridať do vybraného panela."
 msgid "Chart width"
 msgstr "Šírka grafu"
 
+#, python-format
+msgid ""
+"Chart with ID %(chart_id)s (referenced by annotation layer "
+"'%(layer_name)s') was not found. Please verify that the chart exists and "
+"is accessible."
+msgstr ""
+
 msgid "Charts"
 msgstr "Grafy"
 
@@ -4437,7 +4445,7 @@ msgstr "Konfigurovať vzhled, farby a vlastný CSS pre nástenku"
 msgid "Configure filter scopes"
 msgstr "Konfigurovať rozsahy filtrov"
 
-msgid "Configure retry behavior on delivery failure."
+msgid "Configure retries when alert or report generation fails before delivery."
 msgstr ""
 
 msgid "Configure the basics of your Annotation Layer."
@@ -4506,6 +4514,9 @@ msgid "Connection failed, please check your connection settings."
 msgstr "Pripojenie zlyhalo, skontrolujte prosím nastavenie pripojenie."
 
 msgid "Connection looks good!"
+msgstr ""
+
+msgid "Contact the report owner for error details."
 msgstr ""
 
 #, fuzzy
@@ -6179,6 +6190,9 @@ msgid ""
 "Display each cell as a percentage of its row, column, or grand total, "
 "instead of its actual value. Totals and subtotals are still computed "
 "correctly first; this only changes how they are displayed."
+msgstr ""
+
+msgid "Display format"
 msgstr ""
 
 msgid "Display headers for each column at the top of the matrix"
@@ -8953,6 +8967,12 @@ msgstr "Leden"
 msgid "Jinja templating"
 msgstr "Šablonovanie Jinja"
 
+msgid ""
+"Jinja templating is not supported in a partition value transform. The "
+"transform is evaluated in a different context and at a different time "
+"from the chart query, so a template would not render the same way."
+msgstr ""
+
 msgid "July"
 msgstr "Červenec"
 
@@ -9650,6 +9670,10 @@ msgstr "Mapbox (vyžaduje sa kľúč API)"
 #, fuzzy
 msgid "Mapbox requires a MAPBOX_API_KEY to be configured on the server."
 msgstr "Mapbox vyžaduje, aby bol MAPBOX_API_KEY nakonfigurovaný na serveri."
+
+#, python-format
+msgid "Mapped column %(name)s is not a column on this dataset."
+msgstr ""
 
 msgid "March"
 msgstr "Březen"
@@ -10494,6 +10518,9 @@ msgstr "Žiadne zodpovedajúci výsledky"
 msgid "No multilayer deck.gl charts are currently added to this dashboard."
 msgstr "Na tejto nástenke nesú v současné dobe pridanýy žiadne filtre."
 
+msgid "No partition column is set."
+msgstr ""
+
 msgid "No records found"
 msgstr "Nebyly nalezeny žiadne záznamy"
 
@@ -10579,6 +10606,11 @@ msgid ""
 msgstr ""
 "Nebyl nalezen žiadny validátor s názvom %(validator_name)s "
 "(nakonfigurovaný pre engine %(engine_spec)s)"
+
+msgid ""
+"No value transform is set, so no filter will be mirrored onto the "
+"partition column."
+msgstr ""
 
 msgid "Node label position"
 msgstr "Pozice popisku uzlu"
@@ -11248,6 +11280,10 @@ msgstr "Limit oddílu"
 
 msgid "Partition Threshold"
 msgstr "Prahová hodnota oddílu"
+
+#, python-format
+msgid "Partition column %(name)s is not a column on this dataset."
+msgstr ""
 
 msgid ""
 "Partitions whose height to parent height proportions are below this value"
@@ -12141,6 +12177,9 @@ msgstr "Znovu načítať"
 msgid "Reload SQL Lab"
 msgstr "Znovu načítať SQL Lab"
 
+msgid "Reload the page and try again to continue."
+msgstr ""
+
 msgid "Remove"
 msgstr "Odstrániť"
 
@@ -12504,15 +12543,17 @@ msgstr ""
 msgid "Resume auto-refresh"
 msgstr "Nastaviť interval automatického obnovenie"
 
-msgid "Retries are not supported for alerts"
-msgstr ""
-
 #, fuzzy
 msgid "Retry"
 msgstr "Zkusit znovu"
 
 msgid "Retry fetching results"
 msgstr "Zkusit znovu načítať výsledky"
+
+msgid ""
+"Retry generation failures before delivery starts. Alerts re-check their "
+"condition on each attempt. Delivery failures are not replayed."
+msgstr ""
 
 msgid "Retrying"
 msgstr ""
@@ -13073,6 +13114,12 @@ msgstr "Rozsah"
 msgid "Scoping"
 msgstr "Rozsah platnosti"
 
+msgid "Screenshot cache is unavailable"
+msgstr ""
+
+msgid "Screenshot request is temporarily unavailable"
+msgstr ""
+
 msgid "Screenshot width"
 msgstr "Šírka snímku obrazovky"
 
@@ -13195,6 +13242,9 @@ msgstr "Zabezpečené extra"
 
 msgid "Security"
 msgstr "Zabezpečenie"
+
+msgid "Security token error"
+msgstr ""
 
 #, fuzzy
 msgid "See "
@@ -14464,9 +14514,6 @@ msgstr "Omlouváme se, došlo k chybe"
 msgid "Sorry, an error occurred"
 msgstr "Omlouváme se, došlo k chybe"
 
-msgid "Sorry, an unknown error occurred"
-msgstr "Omlouváme se, došlo k neznámé chybe"
-
 msgid "Sorry, an unknown error occurred."
 msgstr "Omlouváme se, došlo k neznámé chybe."
 
@@ -15280,6 +15327,9 @@ msgstr "Sada dat propojená s týmto grafem mohla být zmazaná."
 msgid "The API response from %s does not match the IDatabaseTable interface."
 msgstr "Odpoveď API z %s neodpovídá rozhraní IDatabaseTable."
 
+msgid "The CSRF token could not be validated."
+msgstr ""
+
 msgid ""
 "The CSS for individual dashboards can be altered here, or in the "
 "dashboard view where changes are immediately visible"
@@ -15903,6 +15953,15 @@ msgstr[1] "Následující parametre vo vašom dotazu nesú definovány: %(parame
 msgstr[2] "Následující parametre vo vašom dotazu nesú definovány: %(parameters)s."
 
 #, python-format
+msgid ""
+"The partition column cannot be mapped onto itself. %(name)s is both the "
+"partition column and the mapped column."
+msgstr ""
+
+msgid "The partition filter mapping was cleared: its column is gone"
+msgstr ""
+
+#, python-format
 msgid "The password provided for username \"%(username)s\" is incorrect."
 msgstr "Zadané heslo pre používateľské meno „%(username)s“ je nesprávné."
 
@@ -16022,6 +16081,13 @@ msgid "The query contains one or more malformed template parameters."
 msgstr "Dotaz obsahuje jeden alebo viac nesprávne formátovaných parametrů šablony."
 
 msgid "The query context datasource does not match the chart datasource"
+msgstr ""
+
+#, python-format
+msgid ""
+"The query context for chart ID %(chart_id)s (referenced by annotation "
+"layer '%(layer_name)s') was not found. Please ensure the chart is "
+"properly configured and has a valid query context."
 msgstr ""
 
 msgid "The query couldn't be loaded"
@@ -16280,6 +16346,9 @@ msgstr ""
 msgid "The time unit used for the grouping of blocks"
 msgstr "Časová jednotka použitá pre zoskupenie bloků"
 
+msgid "The transform could not be evaluated against the database."
+msgstr ""
+
 #, fuzzy
 msgid "The two passwords that you entered do not match!"
 msgstr "Hesla sa neshodují!"
@@ -16332,6 +16401,24 @@ msgstr "Používateľské meno „%(username)s“ neexistuje."
 
 msgid "The username provided when connecting to a database is not valid."
 msgstr "Používateľské meno zadané pri pripojovanie k databázy nie je platné."
+
+#, python-format
+msgid ""
+"The value transform calls %(functions)s, whose result depends on when and"
+" where it runs. The transform is evaluated in a separate session and the "
+"result is cached, so the emitted predicate would freeze a snapshot of "
+"that moment."
+msgstr ""
+
+msgid ""
+"The value transform could not be parsed. The mapping is saved but stays "
+"inactive until it does."
+msgstr ""
+
+msgid ""
+"The value transform must contain the :value placeholder, which stands for"
+" the filter value being mirrored."
+msgstr ""
 
 msgid "The values overlap other breakpoint values"
 msgstr "Hodnoty překrývají hodnoty iných breakpointů"
@@ -17188,9 +17275,10 @@ msgstr ""
 
 msgid ""
 "This update would change the connection's effective destination "
-"(host/port, engine parameters, or SSH tunnel endpoint) while reusing the "
-"stored credential. Provide the real password (or SSH tunnel credential) "
-"to confirm a connection move."
+"(host/port, engine parameters, SSH tunnel endpoint, or OAuth2 endpoint "
+"URIs) while reusing the stored credential. Provide the real password (or "
+"SSH tunnel credential / OAuth2 client secret) to confirm a connection "
+"move."
 msgstr ""
 
 msgid "This username is already taken. Please choose another one."
@@ -17507,6 +17595,9 @@ msgstr[2] ""
 
 msgid "Token Request URI"
 msgstr "URI žádosti o token"
+
+msgid "Too many preview requests for this dataset. Wait a moment and try again."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
 #, fuzzy, python-format
@@ -19686,7 +19777,18 @@ msgid ""
 "SUPERSET_DASHBOARD_POSITION_DATA_LIMIT config setting."
 msgstr ""
 
-msgid "Your export is being prepared. You'll receive an email when it's ready."
+msgid ""
+"Your export is being generated and will download automatically when "
+"ready. We'll also email you a download link."
+msgstr ""
+
+msgid "Your export is being generated. Please, do not leave the page."
+msgstr ""
+
+msgid "Your export is ready and downloading."
+msgstr ""
+
+msgid "Your export is taking longer than expected. Try again later."
 msgstr ""
 
 #, python-format

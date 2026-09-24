@@ -26,6 +26,7 @@ import {
   getLabelsColorMap,
   SupersetClient,
   getErrorText,
+  getClientErrorObject,
   getCategoricalSchemeRegistry,
   promiseTimeout,
   JsonObject,
@@ -270,13 +271,16 @@ export function savePublished(
           dispatch(togglePublished(isPublished));
         }
       })
-      .catch(() => {
+      .catch(async (response: Response) => {
+        const { error } = await getClientErrorObject(response);
         // Only show error if this is still the current dashboard
         const currentId = getState().dashboardInfo?.id;
         if (currentId === id) {
           dispatch(
             addDangerToast(
-              t('You do not have permissions to edit this dashboard.'),
+              error && error !== 'Forbidden'
+                ? error
+                : t('You do not have permissions to edit this dashboard.'),
             ),
           );
         }

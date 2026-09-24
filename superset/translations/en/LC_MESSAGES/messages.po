@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-21 02:18+0000\n"
+"POT-Creation-Date: 2026-09-24 01:14+0000\n"
 "PO-Revision-Date: 2016-05-02 08:49-0700\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: en\n"
@@ -213,6 +213,10 @@ msgstr ""
 
 #, python-format
 msgid "%(name)s deleted successfully"
+msgstr ""
+
+#, python-format
+msgid "%(name)s is not a column on this dataset."
 msgstr ""
 
 #, python-format
@@ -2457,9 +2461,6 @@ msgstr ""
 msgid "Automatically adjust column width based on content"
 msgstr ""
 
-msgid "Automatically retry sending the report when delivery fails."
-msgstr ""
-
 msgid "Automatically sync columns"
 msgstr ""
 
@@ -3302,6 +3303,13 @@ msgstr ""
 msgid "Chart width"
 msgstr ""
 
+#, python-format
+msgid ""
+"Chart with ID %(chart_id)s (referenced by annotation layer "
+"'%(layer_name)s') was not found. Please verify that the chart exists and "
+"is accessible."
+msgstr ""
+
 msgid "Charts"
 msgstr ""
 
@@ -3981,7 +3989,7 @@ msgstr ""
 msgid "Configure filter scopes"
 msgstr ""
 
-msgid "Configure retry behavior on delivery failure."
+msgid "Configure retries when alert or report generation fails before delivery."
 msgstr ""
 
 msgid "Configure the basics of your Annotation Layer."
@@ -4048,6 +4056,9 @@ msgid "Connection failed, please check your connection settings."
 msgstr ""
 
 msgid "Connection looks good!"
+msgstr ""
+
+msgid "Contact the report owner for error details."
 msgstr ""
 
 msgid "Contains"
@@ -5544,6 +5555,9 @@ msgid ""
 "Display each cell as a percentage of its row, column, or grand total, "
 "instead of its actual value. Totals and subtotals are still computed "
 "correctly first; this only changes how they are displayed."
+msgstr ""
+
+msgid "Display format"
 msgstr ""
 
 msgid "Display headers for each column at the top of the matrix"
@@ -8077,6 +8091,12 @@ msgstr ""
 msgid "Jinja templating"
 msgstr ""
 
+msgid ""
+"Jinja templating is not supported in a partition value transform. The "
+"transform is evaluated in a different context and at a different time "
+"from the chart query, so a template would not render the same way."
+msgstr ""
+
 msgid "July"
 msgstr ""
 
@@ -8711,6 +8731,10 @@ msgid "Mapbox (API key required)"
 msgstr ""
 
 msgid "Mapbox requires a MAPBOX_API_KEY to be configured on the server."
+msgstr ""
+
+#, python-format
+msgid "Mapped column %(name)s is not a column on this dataset."
 msgstr ""
 
 msgid "March"
@@ -9494,6 +9518,9 @@ msgstr ""
 msgid "No multilayer deck.gl charts are currently added to this dashboard."
 msgstr ""
 
+msgid "No partition column is set."
+msgstr ""
+
 msgid "No records found"
 msgstr ""
 
@@ -9569,6 +9596,11 @@ msgstr ""
 msgid ""
 "No validator named %(validator_name)s found (configured for the "
 "%(engine_spec)s engine)"
+msgstr ""
+
+msgid ""
+"No value transform is set, so no filter will be mirrored onto the "
+"partition column."
 msgstr ""
 
 msgid "Node label position"
@@ -10176,6 +10208,10 @@ msgid "Partition Limit"
 msgstr ""
 
 msgid "Partition Threshold"
+msgstr ""
+
+#, python-format
+msgid "Partition column %(name)s is not a column on this dataset."
 msgstr ""
 
 msgid ""
@@ -11003,6 +11039,9 @@ msgstr ""
 msgid "Reload SQL Lab"
 msgstr ""
 
+msgid "Reload the page and try again to continue."
+msgstr ""
+
 msgid "Remove"
 msgstr ""
 
@@ -11351,13 +11390,15 @@ msgstr ""
 msgid "Resume auto-refresh"
 msgstr ""
 
-msgid "Retries are not supported for alerts"
-msgstr ""
-
 msgid "Retry"
 msgstr ""
 
 msgid "Retry fetching results"
+msgstr ""
+
+msgid ""
+"Retry generation failures before delivery starts. Alerts re-check their "
+"condition on each attempt. Delivery failures are not replayed."
 msgstr ""
 
 msgid "Retrying"
@@ -11873,6 +11914,12 @@ msgstr ""
 msgid "Scoping"
 msgstr ""
 
+msgid "Screenshot cache is unavailable"
+msgstr ""
+
+msgid "Screenshot request is temporarily unavailable"
+msgstr ""
+
 msgid "Screenshot width"
 msgstr ""
 
@@ -11987,6 +12034,9 @@ msgid "Secure extra"
 msgstr ""
 
 msgid "Security"
+msgstr ""
+
+msgid "Security token error"
 msgstr ""
 
 msgid "See "
@@ -13080,9 +13130,6 @@ msgstr ""
 msgid "Sorry, an error occurred"
 msgstr ""
 
-msgid "Sorry, an unknown error occurred"
-msgstr ""
-
 msgid "Sorry, an unknown error occurred."
 msgstr ""
 
@@ -13822,6 +13869,9 @@ msgstr ""
 msgid "The API response from %s does not match the IDatabaseTable interface."
 msgstr ""
 
+msgid "The CSRF token could not be validated."
+msgstr ""
+
 msgid ""
 "The CSS for individual dashboards can be altered here, or in the "
 "dashboard view where changes are immediately visible"
@@ -14323,6 +14373,15 @@ msgstr[0] ""
 msgstr[1] ""
 
 #, python-format
+msgid ""
+"The partition column cannot be mapped onto itself. %(name)s is both the "
+"partition column and the mapped column."
+msgstr ""
+
+msgid "The partition filter mapping was cleared: its column is gone"
+msgstr ""
+
+#, python-format
 msgid "The password provided for username \"%(username)s\" is incorrect."
 msgstr ""
 
@@ -14417,6 +14476,13 @@ msgid "The query contains one or more malformed template parameters."
 msgstr ""
 
 msgid "The query context datasource does not match the chart datasource"
+msgstr ""
+
+#, python-format
+msgid ""
+"The query context for chart ID %(chart_id)s (referenced by annotation "
+"layer '%(layer_name)s') was not found. Please ensure the chart is "
+"properly configured and has a valid query context."
 msgstr ""
 
 msgid "The query couldn't be loaded"
@@ -14623,6 +14689,9 @@ msgstr ""
 msgid "The time unit used for the grouping of blocks"
 msgstr ""
 
+msgid "The transform could not be evaluated against the database."
+msgstr ""
+
 msgid "The two passwords that you entered do not match!"
 msgstr ""
 
@@ -14666,6 +14735,24 @@ msgid "The username \"%(username)s\" does not exist."
 msgstr ""
 
 msgid "The username provided when connecting to a database is not valid."
+msgstr ""
+
+#, python-format
+msgid ""
+"The value transform calls %(functions)s, whose result depends on when and"
+" where it runs. The transform is evaluated in a separate session and the "
+"result is cached, so the emitted predicate would freeze a snapshot of "
+"that moment."
+msgstr ""
+
+msgid ""
+"The value transform could not be parsed. The mapping is saved but stays "
+"inactive until it does."
+msgstr ""
+
+msgid ""
+"The value transform must contain the :value placeholder, which stands for"
+" the filter value being mirrored."
 msgstr ""
 
 msgid "The values overlap other breakpoint values"
@@ -15393,9 +15480,10 @@ msgstr ""
 
 msgid ""
 "This update would change the connection's effective destination "
-"(host/port, engine parameters, or SSH tunnel endpoint) while reusing the "
-"stored credential. Provide the real password (or SSH tunnel credential) "
-"to confirm a connection move."
+"(host/port, engine parameters, SSH tunnel endpoint, or OAuth2 endpoint "
+"URIs) while reusing the stored credential. Provide the real password (or "
+"SSH tunnel credential / OAuth2 client secret) to confirm a connection "
+"move."
 msgstr ""
 
 msgid "This username is already taken. Please choose another one."
@@ -15675,6 +15763,9 @@ msgstr[0] ""
 msgstr[1] ""
 
 msgid "Token Request URI"
+msgstr ""
+
+msgid "Too many preview requests for this dataset. Wait a moment and try again."
 msgstr ""
 
 #, python-format
@@ -17580,7 +17671,18 @@ msgid ""
 "SUPERSET_DASHBOARD_POSITION_DATA_LIMIT config setting."
 msgstr ""
 
-msgid "Your export is being prepared. You'll receive an email when it's ready."
+msgid ""
+"Your export is being generated and will download automatically when "
+"ready. We'll also email you a download link."
+msgstr ""
+
+msgid "Your export is being generated. Please, do not leave the page."
+msgstr ""
+
+msgid "Your export is ready and downloading."
+msgstr ""
+
+msgid "Your export is taking longer than expected. Try again later."
 msgstr ""
 
 #, python-format
