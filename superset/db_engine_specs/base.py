@@ -71,6 +71,7 @@ from superset.exceptions import (
     OAuth2Error,
     OAuth2RedirectError,
     OAuth2TokenRefreshError,
+    SupersetGenericDBErrorException,
     SupersetParseError,
 )
 from superset.key_value.types import JsonKeyValueCodec, KeyValueResource
@@ -2737,7 +2738,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
                 extra = json.loads(database.extra)
             except json.JSONDecodeError as ex:
                 logger.error(ex, exc_info=True)
-                raise
+                raise SupersetGenericDBErrorException(message=str(ex)) from ex
         return extra
 
     @staticmethod
@@ -2758,7 +2759,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             params.update(encrypted_extra)
         except json.JSONDecodeError as ex:
             logger.error(ex, exc_info=True)
-            raise
+            raise SupersetGenericDBErrorException(message=str(ex)) from ex
 
     @classmethod
     def array_contains_any(cls, col: ColumnElement, values: list[Any]) -> ColumnElement:
