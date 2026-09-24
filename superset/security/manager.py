@@ -2116,7 +2116,6 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         ("can_read", "SQLLab"),
         ("can_sqllab_history", "Superset"),
         ("can_sqllab", "Superset"),
-        ("can_test_conn", "Superset"),  # Deprecated permission remove on 3.0.0
         ("can_activate", "TabStateView"),
         ("can_get", "TabStateView"),
         ("can_delete_query", "TabStateView"),
@@ -4233,7 +4232,9 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 .values(perm=new_perm)
             )
 
-            # Cascade: update view perms that embed the layer name
+            # Cascade: update view perms that embed the layer name, and
+            # dependent charts so their denormalized perm stays in sync with
+            # the views (chart-list access filters match on Slice.perm).
             sv_table = SemanticView.__table__  # pylint: disable=no-member
             views = connection.execute(
                 sv_table.select().where(sv_table.c.semantic_layer_uuid == target.uuid)
@@ -4252,6 +4253,24 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                     connection.execute(
                         sv_table.update()
                         .where(sv_table.c.id == view_row.id)
+                        .values(perm=new_view_perm)
+                    )
+
+                    # Update dependent charts so their denormalized perm stays
+                    # in sync with the view: chart-list access filters match
+                    # on Slice.perm.
+                    from superset.models.slice import (  # pylint: disable=import-outside-toplevel
+                        Slice,
+                    )
+
+                    chart_table = Slice.__table__  # pylint: disable=no-member
+                    connection.execute(
+                        chart_table.update()
+                        .where(
+                            chart_table.c.datasource_type
+                            == DatasourceType.SEMANTIC_VIEW,
+                            chart_table.c.datasource_id == view_row.id,
+                        )
                         .values(perm=new_view_perm)
                     )
 
@@ -4354,6 +4373,22 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             connection.execute(
                 sv_table.update()
                 .where(sv_table.c.id == target.id)
+                .values(perm=new_perm)
+            )
+
+            # Update dependent charts so their denormalized perm stays in sync
+            # with the view: chart-list access filters match on Slice.perm.
+            from superset.models.slice import (  # pylint: disable=import-outside-toplevel
+                Slice,
+            )
+
+            chart_table = Slice.__table__  # pylint: disable=no-member
+            connection.execute(
+                chart_table.update()
+                .where(
+                    chart_table.c.datasource_type == DatasourceType.SEMANTIC_VIEW,
+                    chart_table.c.datasource_id == target.id,
+                )
                 .values(perm=new_perm)
             )
 
