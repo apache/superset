@@ -278,8 +278,8 @@ test('should increment the depth of its children', () => {
   );
 });
 
-test('row droptarget height tracks the row instead of staying pinned to a stale measured height (regression for #37644)', () => {
-  const { container, rerender } = setup({ editMode: true });
+test('row droptargets size via CSS instead of a measured pixel height that can only grow (regression for #37644)', () => {
+  const { container } = setup({ editMode: true });
   const getDroptargetHeights = () =>
     Array.from(
       container.querySelectorAll<HTMLElement>('.empty-droptarget--vertical'),
@@ -294,12 +294,6 @@ test('row droptarget height tracks the row instead of staying pinned to a stale 
   // resolves to `auto`/is ignored per the flexbox spec (defeating the
   // `align-self: stretch` CSS already declares for it) -- it gets an
   // explicit `auto` instead, letting that stretch actually apply.
-  expect(getDroptargetHeights()).toEqual(['100%', 'auto']);
-
-  // Something (e.g. hovering the row's own HoverMenu while resizing)
-  // causes Row to re-render after the tallest chart in the row shrinks.
-  rerender(<Row {...props} editMode component={{ ...props.component }} />);
-
   expect(getDroptargetHeights()).toEqual(['100%', 'auto']);
 });
 

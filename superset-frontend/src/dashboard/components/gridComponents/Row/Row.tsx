@@ -407,69 +407,68 @@ const Row = memo((props: RowProps) => {
             <div css={emptyRowContentStyles as any}>{t('Empty row')}</div>
           )}
           {rowItems.length > 0 &&
-            rowItems.map((componentId, itemIndex) => (
-              <Fragment key={componentId}>
-                <DashboardComponent
-                  key={componentId}
-                  id={componentId}
-                  parentId={rowComponent.id as string}
-                  depth={depth + 1}
-                  index={itemIndex}
-                  availableColumnCount={remainColumnCount}
-                  columnWidth={columnWidth}
-                  onResizeStart={onResizeStart}
-                  onResize={onResize}
-                  onResizeStop={onResizeStop}
-                  isComponentVisible={isComponentVisible}
-                  onChangeTab={onChangeTab}
-                  isInView={isInView}
-                />
-                {editMode && (
-                  <Droppable
-                    component={rowItems}
-                    parentComponent={rowComponent}
-                    depth={depth}
-                    index={itemIndex + 1}
-                    orientation="row"
-                    onDrop={handleComponentDrop}
-                    className={cx(
-                      'empty-droptarget',
-                      'empty-droptarget--vertical',
-                      remainColumnCount === 0 &&
-                        itemIndex === rowItems.length - 1 &&
-                        'droptarget-side',
-                    )}
-                    editMode
-                    style={{
-                      // Only the last target in a full row (the absolutely
-                      // positioned "side" target) actually resolves a
-                      // percentage height -- for every other, in-flow
-                      // target, GridRow's height is `fit-content`
-                      // (indefinite), and a percentage height on a flex
-                      // item under an indefinite-height parent resolves to
-                      // `auto`/is ignored per the CSS flexbox spec, which
-                      // defeats the `align-self: stretch` the CSS above
-                      // already declares for it. `height: 'auto'` lets that
-                      // stretch actually apply instead of collapsing the
-                      // target to its content size.
-                      height:
-                        remainColumnCount === 0 &&
-                        itemIndex === rowItems.length - 1
-                          ? '100%'
-                          : 'auto',
-                      ...(remainColumnCount === 0 &&
-                        itemIndex === rowItems.length - 1 && { width: 16 }),
-                    }}
-                  >
-                    {({
-                      dropIndicatorProps,
-                    }: {
-                      dropIndicatorProps: JsonObject;
-                    }) => dropIndicatorProps && <div {...dropIndicatorProps} />}
-                  </Droppable>
-                )}
-              </Fragment>
-            ))}
+            rowItems.map((componentId, itemIndex) => {
+              const isTrailingSideTarget =
+                remainColumnCount === 0 && itemIndex === rowItems.length - 1;
+              return (
+                <Fragment key={componentId}>
+                  <DashboardComponent
+                    key={componentId}
+                    id={componentId}
+                    parentId={rowComponent.id as string}
+                    depth={depth + 1}
+                    index={itemIndex}
+                    availableColumnCount={remainColumnCount}
+                    columnWidth={columnWidth}
+                    onResizeStart={onResizeStart}
+                    onResize={onResize}
+                    onResizeStop={onResizeStop}
+                    isComponentVisible={isComponentVisible}
+                    onChangeTab={onChangeTab}
+                    isInView={isInView}
+                  />
+                  {editMode && (
+                    <Droppable
+                      component={rowItems}
+                      parentComponent={rowComponent}
+                      depth={depth}
+                      index={itemIndex + 1}
+                      orientation="row"
+                      onDrop={handleComponentDrop}
+                      className={cx(
+                        'empty-droptarget',
+                        'empty-droptarget--vertical',
+                        isTrailingSideTarget && 'droptarget-side',
+                      )}
+                      editMode
+                      style={{
+                        // Only the last target in a full row (the absolutely
+                        // positioned "side" target) actually resolves a
+                        // percentage height -- for every other, in-flow
+                        // target, GridRow's height is `fit-content`
+                        // (indefinite), and a percentage height on a flex
+                        // item under an indefinite-height parent resolves to
+                        // `auto`/is ignored per the CSS flexbox spec, which
+                        // defeats the `align-self: stretch` the CSS above
+                        // already declares for it. `height: 'auto'` lets that
+                        // stretch actually apply instead of collapsing the
+                        // target to its content size.
+                        height: isTrailingSideTarget ? '100%' : 'auto',
+                        ...(isTrailingSideTarget && { width: 16 }),
+                      }}
+                    >
+                      {({
+                        dropIndicatorProps,
+                      }: {
+                        dropIndicatorProps: JsonObject;
+                      }) =>
+                        dropIndicatorProps && <div {...dropIndicatorProps} />
+                      }
+                    </Droppable>
+                  )}
+                </Fragment>
+              );
+            })}
         </GridRow>
       </WithPopoverMenu>
     ),
