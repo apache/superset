@@ -827,16 +827,30 @@ def preview_partition_mapping(
 
     return {
         "valid": True,
-        "emitted_predicate": (f"{partition_column} >= {_render_literal(evaluated[0])}"),
+        "emitted_predicate": (
+            f"{datasource.quote_identifier(str(partition_column))} >= "
+            f"{_render_literal(datasource.database, evaluated[0])}"
+        ),
     }
 
 
-def _render_literal(value: Any) -> str:
-    """Render a probed value the way it appears in the generated SQL."""
-    if isinstance(value, str):
-        escaped = value.replace("'", "''")
-        return f"'{escaped}'"
-    return str(value)
+def _render_literal(database: Database, value: Any) -> str:
+    """
+    Render a probed value the way it appears in the generated SQL.
+
+    Compiled by the dialect rather than formatted by hand. A probe returns
+    whatever the warehouse gave it -- an epoch integer, a date, a NULL for an
+    input the transform could not convert -- and only the dialect knows how each
+    of those is written. `str()` would render a NULL as `None` and leave a date
+    unquoted, neither of which is SQL; hand-rolled quote-doubling would only
+    ever have been right for strings.
+    """
+    return str(
+        sa.literal(value).compile(
+            dialect=_dialect_for(database),
+            compile_kwargs={"literal_binds": True},
+        )
+    )
 
 
 def build_mirrored_predicates(
