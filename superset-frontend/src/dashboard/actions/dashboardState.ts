@@ -26,6 +26,7 @@ import {
   getLabelsColorMap,
   SupersetClient,
   getErrorText,
+  getClientErrorObject,
   getCategoricalSchemeRegistry,
   promiseTimeout,
   JsonObject,

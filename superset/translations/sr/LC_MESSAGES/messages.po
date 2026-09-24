@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-21 02:18+0000\n"
+"POT-Creation-Date: 2026-09-23 12:43+0200\n"
 "PO-Revision-Date: 2026-06-14 13:20+0200\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: sr\n"
@@ -3257,9 +3257,6 @@ msgstr "Аутоматски прилагоди ширину колоне на �
 msgid "Automatically adjust column width based on content"
 msgstr "Аутоматски прилагоди ширину колоне на основу садржаја"
 
-msgid "Automatically retry sending the report when delivery fails."
-msgstr ""
-
 # lv, ru, sk, uk]
 msgid "Automatically sync columns"
 msgstr "Аутоматски синхронизуј колоне"
@@ -5291,7 +5288,7 @@ msgstr "Конфигуриши изглед контролне табле, бо�
 msgid "Configure filter scopes"
 msgstr "Конфигуриши опсеге филтера"
 
-msgid "Configure retry behavior on delivery failure."
+msgid "Configure retries when alert or report generation fails before delivery."
 msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -5382,6 +5379,9 @@ msgid "Connection failed, please check your connection settings."
 msgstr "Повезивање није успело, провери подешавања везе."
 
 msgid "Connection looks good!"
+msgstr ""
+
+msgid "Contact the report owner for error details."
 msgstr ""
 
 # ru, uk]
@@ -7399,6 +7399,9 @@ msgid ""
 "Display each cell as a percentage of its row, column, or grand total, "
 "instead of its actual value. Totals and subtotals are still computed "
 "correctly first; this only changes how they are displayed."
+msgstr ""
+
+msgid "Display format"
 msgstr ""
 
 # lv, pt_BR, ru, sk, uk]
@@ -14550,6 +14553,9 @@ msgstr "Поново учитај"
 msgid "Reload SQL Lab"
 msgstr "Поново учитај SQL Lab"
 
+msgid "Reload the page and try again to continue."
+msgstr ""
+
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Remove"
 msgstr "Уклони"
@@ -14986,9 +14992,6 @@ msgstr ""
 msgid "Resume auto-refresh"
 msgstr "Настави аутоматско освежавање"
 
-msgid "Retries are not supported for alerts"
-msgstr ""
-
 # ru, uk]
 msgid "Retry"
 msgstr "Покушај поново"
@@ -14996,6 +14999,11 @@ msgstr "Покушај поново"
 # fr, ja, lv, mi, ru, sk, sl, uk]
 msgid "Retry fetching results"
 msgstr "Покушај поново преузимање резултата"
+
+msgid ""
+"Retry generation failures before delivery starts. Alerts re-check their "
+"condition on each attempt. Delivery failures are not replayed."
+msgstr ""
 
 msgid "Retrying"
 msgstr ""
@@ -15688,6 +15696,12 @@ msgstr "Опсег"
 msgid "Scoping"
 msgstr "Опсег"
 
+msgid "Screenshot cache is unavailable"
+msgstr ""
+
+msgid "Screenshot request is temporarily unavailable"
+msgstr ""
+
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Screenshot width"
 msgstr "Ширина снимка екрана"
@@ -15834,6 +15848,9 @@ msgstr "Безбедносни додатак"
 # zh, zh_TW]
 msgid "Security"
 msgstr "Безбедност"
+
+msgid "Security token error"
+msgstr ""
 
 msgid "See "
 msgstr "Погледајте "
@@ -17270,10 +17287,6 @@ msgid "Sorry, an error occurred"
 msgstr "Жао нам је, дошло је до грешке"
 
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
-msgid "Sorry, an unknown error occurred"
-msgstr "Жао нам је, дошло је до непознате грешке"
-
-# de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
 msgid "Sorry, an unknown error occurred."
 msgstr "Жао нам је, дошло је до непознате грешке."
 
@@ -18258,6 +18271,9 @@ msgstr "%s повезан са овим графиконом је можда о�
 #, python-format
 msgid "The API response from %s does not match the IDatabaseTable interface."
 msgstr "Одговор API-ја са %s не одговара интерфејсу IDatabaseTable."
+
+msgid "The CSRF token could not be validated."
+msgstr ""
 
 # de, es, fa, fr, it, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, uk, zh,
 # zh_TW]
@@ -20409,9 +20425,10 @@ msgstr ""
 
 msgid ""
 "This update would change the connection's effective destination "
-"(host/port, engine parameters, or SSH tunnel endpoint) while reusing the "
-"stored credential. Provide the real password (or SSH tunnel credential) "
-"to confirm a connection move."
+"(host/port, engine parameters, SSH tunnel endpoint, or OAuth2 endpoint "
+"URIs) while reusing the stored credential. Provide the real password (or "
+"SSH tunnel credential / OAuth2 client secret) to confirm a connection "
+"move."
 msgstr ""
 
 # fr, ja, lv, mi, pt_BR, ru, sk, uk]
