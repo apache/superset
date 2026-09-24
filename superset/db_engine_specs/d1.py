@@ -18,10 +18,12 @@
 from __future__ import annotations
 
 import re
+from datetime import datetime, time
 from re import Pattern
 from typing import Any, TYPE_CHECKING
 
 from flask_babel import lazy_gettext as _
+from sqlalchemy import types
 
 from superset.db_engine_specs.base import DatabaseCategory
 from superset.db_engine_specs.sqlite import SqliteEngineSpec
@@ -110,6 +112,24 @@ class CloudflareD1EngineSpec(SqliteEngineSpec):
         """
         stripped = LEADING_COMMENTS_REGEX.sub("", query, count=1)
         super().execute(cursor, stripped or query, database, **kwargs)
+
+    @classmethod
+    def convert_dttm(
+        cls, target_type: str, dttm: datetime, db_extra: dict[str, Any] | None = None
+    ) -> str | None:
+        """
+        Write midnight as a bare date for DATE columns.
+
+        D1 keeps a DATE as text such as ``2026-09-20`` and compares it as text, so
+        ``'2026-09-20 00:00:00'`` sorts after the day it starts and a time filter
+        on a DATE column would be one day off. Any other time keeps its time part,
+        which sorts between two days, as a comparison of dates should.
+        """
+        if isinstance(cls.get_sqla_column_type(target_type), types.Date):
+            if dttm.time() == time.min:
+                return f"'{dttm.date().isoformat()}'"
+            return f"""'{dttm.isoformat(sep=" ", timespec="seconds")}'"""
+        return super().convert_dttm(target_type, dttm, db_extra=db_extra)
 
     @classmethod
     def _extract_error_message(cls, ex: Exception) -> str:

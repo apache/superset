@@ -17,14 +17,19 @@
 # pylint: disable=invalid-name, unused-argument, import-outside-toplevel, redefined-outer-name
 from __future__ import annotations
 
+from datetime import datetime
+
 import pytest
 from pytest_mock import MockerFixture
-from sqlalchemy import types
+from sqlalchemy import create_engine, text, types
 from sqlalchemy.engine.url import make_url
 
 from superset.errors import SupersetErrorType
 from superset.utils.core import GenericDataType
-from tests.unit_tests.db_engine_specs.utils import assert_column_spec
+from tests.unit_tests.db_engine_specs.utils import (
+    assert_column_spec,
+    assert_convert_dttm,
+)
 
 
 @pytest.mark.parametrize(
@@ -217,3 +222,73 @@ def test_sql_is_parsed_as_sqlite(sql: str, expected: str) -> None:
     from superset.sql.parse import SQLScript
 
     assert SQLScript(sql, "d1").format() == expected
+
+
+@pytest.mark.parametrize(
+    "target_type,dttm,expected_result",
+    [
+        ("DATE", datetime(2026, 9, 20), "'2026-09-20'"),
+        ("DATE", datetime(2026, 9, 20, 12, 30, 5, 678900), "'2026-09-20 12:30:05'"),
+        ("DATETIME", datetime(2026, 9, 20), "'2026-09-20 00:00:00'"),
+        ("TIMESTAMP", datetime(2026, 9, 20, 12, 30), "'2026-09-20 12:30:00'"),
+        ("TEXT", datetime(2026, 9, 20), "'2026-09-20 00:00:00'"),
+        ("INTEGER", datetime(2026, 9, 20), None),
+    ],
+)
+def test_convert_dttm(
+    target_type: str,
+    dttm: datetime,
+    expected_result: str | None,
+) -> None:
+    """
+    Test that midnight is written as a bare date for DATE columns only.
+    """
+    from superset.db_engine_specs.d1 import CloudflareD1EngineSpec as spec  # noqa: N813
+
+    assert_convert_dttm(spec, target_type, expected_result, dttm)
+
+
+@pytest.mark.parametrize(
+    "start,end,expected",
+    [
+        (
+            datetime(2026, 9, 20),
+            datetime(2026, 9, 22),
+            ["2026-09-20", "2026-09-21"],
+        ),
+        (
+            datetime(2026, 9, 20, 12),
+            datetime(2026, 9, 22, 12),
+            ["2026-09-21", "2026-09-22"],
+        ),
+    ],
+)
+def test_time_filter_on_date_column(
+    start: datetime,
+    end: datetime,
+    expected: list[str],
+) -> None:
+    """
+    Test that a time filter on a DATE column stored as text returns the right days.
+
+    D1 is SQLite, so the comparison runs on an in-memory SQLite database. Each day
+    counts as its midnight, as it would in a comparison of dates.
+    """
+    from superset.db_engine_specs.d1 import CloudflareD1EngineSpec as spec  # noqa: N813
+
+    since = spec.convert_dttm("DATE", start)
+    until = spec.convert_dttm("DATE", end)
+    sql = f"SELECT day FROM t WHERE day >= {since} AND day < {until} ORDER BY day"  # noqa: S608
+
+    engine = create_engine("sqlite://")
+    with engine.connect() as connection:
+        connection.execute(text("CREATE TABLE t (day DATE)"))
+        connection.execute(
+            text(
+                "INSERT INTO t VALUES "
+                "('2026-09-19'), ('2026-09-20'), ('2026-09-21'), ('2026-09-22')"
+            )
+        )
+        rows = connection.execute(text(sql)).fetchall()
+
+    assert [row[0] for row in rows] == expected
