@@ -1910,10 +1910,10 @@ class DashboardRestApi(
         if not queued and mode == EXPORT_MODE_IMAGES:
             # Webdriver rendering is too slow and unbounded for a web request.
             return self.response_400(
-                message=(
-                    "Exporting images to Excel runs in the background. "
-                    "Configure EXPORT_STORAGE to use it, or export "
-                    "the dashboard's data instead."
+                message=gettext(
+                    "Exporting images to Excel requires background exports. "
+                    "Ask an administrator to enable them, or export the "
+                    "dashboard's data instead."
                 )
             )
 
@@ -1966,11 +1966,10 @@ class DashboardRestApi(
             plan: InlineExportPlan = plan_inline_export(dashboard)
             if not plan.fits_row_budget:
                 return self.response_400(
-                    message=(
-                        "This dashboard requests too many rows to export in a "
-                        "single request. Configure EXPORT_STORAGE to export it "
-                        "in the background, or lower the row limits of its "
-                        "charts."
+                    message=gettext(
+                        "This dashboard has too much data to download directly. "
+                        "Ask an administrator to enable background exports, or "
+                        "lower the row limits of its charts."
                     )
                 )
             lock_delegated = True

@@ -612,7 +612,7 @@ test('Export Data to Excel shows an "already in progress" toast when throttled',
 test('Export Data to Excel surfaces the reason an export was refused', async () => {
   // Show the server's actionable refusal.
   const message =
-    'This dashboard requests too many rows to export in a single request.';
+    'This dashboard has too much data to download directly. Ask an administrator to enable background exports, or lower the row limits of its charts.';
   mockSupersetClient.post.mockRejectedValue(new Error('too big'));
   mockGetClientErrorObject.mockResolvedValue({ status: 400, message });
 

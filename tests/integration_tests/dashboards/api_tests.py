@@ -4250,8 +4250,10 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
         )
 
         assert rv.status_code == 400
-        message = rv.data.decode("utf-8")
-        assert "EXPORT_STORAGE" in message
+        message = rv.json["message"]
+        # End users see this message, so it names who can fix it, not a config key.
+        assert "administrator" in message
+        assert "EXPORT_STORAGE" not in message
         # A budget refusal releases the lock without querying charts.
         mock_plan.assert_called_once()
         mock_build.assert_not_called()
@@ -4330,7 +4332,9 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
         )
 
         assert rv.status_code == 400
-        assert "EXPORT_STORAGE" in rv.data.decode("utf-8")
+        message = rv.json["message"]
+        assert "administrator" in message
+        assert "EXPORT_STORAGE" not in message
         mock_build.assert_not_called()
         mock_acquire.return_value.run.assert_not_called()
 
