@@ -983,9 +983,13 @@ class DashboardRestApi(
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.post",
         log_to_statsd=False,
+        allow_extra_payload=True,
     )
     @requires_json
-    def post(self) -> Response:
+    def post(
+        self,
+        add_extra_log_payload: Callable[..., None] = lambda **kwargs: None,
+    ) -> Response:
         """Create a new dashboard.
         ---
         post:
@@ -1025,6 +1029,9 @@ class DashboardRestApi(
             return self.response_400(message=error.messages)
         try:
             new_model = CreateDashboardCommand(item).run()
+            # The id only exists once the command has run, so the event
+            # logger cannot derive it from the route.
+            add_extra_log_payload(dashboard_id=new_model.id)
             return self.response(201, id=new_model.id, result=item, uuid=new_model.uuid)
         except DashboardInvalidError as ex:
             return self.response_422(message=ex.normalized_messages())
