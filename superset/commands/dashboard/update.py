@@ -48,6 +48,7 @@ from superset.commands.utils import (
 )
 from superset.daos.dashboard import DashboardDAO
 from superset.daos.report import ReportScheduleDAO
+from superset.dashboards.layout import repair_position
 from superset.exceptions import SupersetSecurityException
 from superset.models.dashboard import Dashboard
 from superset.reports.models import ReportSchedule
@@ -97,10 +98,12 @@ class UpdateDashboardCommand(UpdateMixin, BaseCommand):
                     ObjectType.dashboard, self._model.id, self._model.tags, tags
                 )
 
-            # Re-serialize position_json to escape 4-byte Unicode characters
+            # Re-serialize position_json to escape 4-byte Unicode characters,
+            # repairing a layout that carries detached components on the way
+            # through.
             if position_json := self._properties.get("position_json"):
                 self._properties["position_json"] = json.dumps(
-                    json.loads(position_json)
+                    repair_position(json.loads(position_json), self._model_id)
                 )
 
             # ``set_dash_metadata`` merges the incoming metadata against
