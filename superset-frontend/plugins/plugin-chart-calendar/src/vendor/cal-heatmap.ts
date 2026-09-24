@@ -1074,7 +1074,7 @@ var CalHeatMap = function () {
         return self.positionSubDomainX(d);
       })
       .attr('y', function (d) {
-        return self.positionSubDomainY(d.t);
+        return self.positionSubDomainY(d);
       })
       .on('click', function (d) {
         if (options.onClick !== null) {
@@ -1242,7 +1242,7 @@ var CalHeatMap = function () {
           return self.positionSubDomainX(d) + options.cellSize / 2;
         })
         .attr('y', function (d) {
-          return self.positionSubDomainY(d.t) + options.cellSize / 2;
+          return self.positionSubDomainY(d) + options.cellSize / 2;
         })
         .attr('text-anchor', 'middle')
         .attr('dominant-baseline', 'central')
@@ -2233,8 +2233,12 @@ CalHeatMap.prototype = {
   positionSubDomainY: function (d) {
     'use strict';
 
+    // Takes the whole subdomain datum, like positionSubDomainX: the
+    // transposed 'x_*' subdomain types map position.y onto another type's
+    // position.x, which is index-based.
     var index = this._domainType[this.options.subDomain].position.y(
-      new Date(d),
+      new Date(d.t),
+      d.i,
     );
     return index * this.options.cellSize + index * this.options.cellPadding;
   },
