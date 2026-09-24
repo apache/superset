@@ -50,6 +50,7 @@ import pandas as pd
 import pytz
 import sqlalchemy as sa
 import yaml
+from dateutil.relativedelta import relativedelta
 from flask import current_app as app, g
 from flask_appbuilder import Model
 from flask_appbuilder.models.decorators import renders
@@ -90,6 +91,7 @@ from superset.common.utils.time_range_utils import (
 )
 from superset.connectors.sqla.partition_mapping import (
     build_mirrored_predicates,
+    grain_bucket_width,
     PartitionMapping,
     resolve_partition_mapping,
 )
@@ -4226,6 +4228,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         column_name: str,
         start_dttm: Optional[sa.DateTime],
         end_dttm: Optional[sa.DateTime],
+        widen_bounds_by: Optional[relativedelta] = None,
     ) -> None:
         """
         Record a time range for mirroring onto the partition column.
@@ -4237,6 +4240,19 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
 
         Either bound may be `None` for an open-ended range, in which case only
         the bound that exists is mirrored.
+
+        `widen_bounds_by` is one grain bucket width, passed when the filter this
+        stands in for compares a *truncated* column. The real predicate then
+        keeps rows the raw bounds exclude, and widening both ends by one bucket
+        is the smallest range guaranteed to contain all of them -- see the "Time
+        grains" section of `superset.connectors.sqla.partition_mapping`. Note
+        the widened upper bound is `<=` rather than `<`: `ts < until + width`
+        only gives `T(ts) <= T(until + width)` for a transform that is monotonic
+        but not strictly so, such as `unix_timestamp` on a sub-second column.
+
+        A widened range can also be wide enough to fail `_bounds_are_ordered`
+        against a tighter filter on the same column. That fails open -- no
+        mirroring, no pruning, no dropped rows.
         """
         if mapping is None or column_name != mapping.mapped_column:
             return
@@ -4250,10 +4266,25 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             (col for col in self.columns if col.column_name == column_name), None
         )
         start_dttm, end_dttm = self.adjust_time_bounds(start_dttm, end_dttm, mapped_col)
+
+        # Adjust first, then widen. `adjust_time_bounds` moves the naive UI
+        # bounds into the frame the column is *stored* in, and the grain
+        # truncation in the real predicate happens in that same frame, so the
+        # bucket width has to be added there too. The two commute for the
+        # hour-offset branch but not for the `ZoneInfo` one, where widening
+        # across a DST boundary first lands an hour out.
+        upper_operator = utils.FilterOperator.LESS_THAN
+        if widen_bounds_by is not None:
+            if start_dttm is not None:
+                start_dttm -= widen_bounds_by
+            if end_dttm is not None:
+                end_dttm += widen_bounds_by
+            upper_operator = utils.FilterOperator.LESS_THAN_OR_EQUALS
+
         if start_dttm is not None:
             sink.append((utils.FilterOperator.GREATER_THAN_OR_EQUALS, start_dttm))
         if end_dttm is not None:
-            sink.append((utils.FilterOperator.LESS_THAN, end_dttm))
+            sink.append((upper_operator, end_dttm))
 
     def _collect_partition_mirror_filter(
         self,
@@ -5395,6 +5426,14 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 # matches: drill-to-detail sends `==` on a bucket start, which
                 # every row in the bucket satisfies once truncated. Mirroring it
                 # raw would keep only the bucket's first instant.
+                #
+                # Grained ranges do mirror, by widening (see the TEMPORAL_RANGE
+                # branch below). The same trick is deferred rather than unsafe
+                # here: `==` on a bucket would have to become a two-sided range,
+                # which needs a monotonic transform -- `EQUALS` mirrors without
+                # one today -- and a parse back into a datetime; and a grained
+                # `IN` would need a union of buckets, which this sink cannot
+                # express because its entries are AND-ed.
                 if (
                     col_obj is not None
                     and op != utils.FilterOperator.TEMPORAL_RANGE
@@ -5689,16 +5728,24 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                             # comparing, so a row in the final partial bucket
                             # satisfies `DATE_TRUNC(...) < until` while the raw
                             # upper bound excludes it. Which direction a grain
-                            # rounds is not knowable here -- "week ending
-                            # Saturday" rounds forward, and TIME_GRAIN_ADDONS
-                            # are arbitrary SQL -- so neither bound is safe.
-                            if not flt_grain:
+                            # rounds is not knowable from the duration -- "week
+                            # ending Saturday" rounds forward, Ocient rounds to
+                            # nearest -- but the displacement is bounded by the
+                            # grain's own bucket width either way, so widening
+                            # both bounds by one bucket is never narrower than
+                            # the real predicate. A grain whose SQL an operator
+                            # supplied has no width we know, and still skips.
+                            widen_by = grain_bucket_width(
+                                flt_grain, db_engine_spec.engine
+                            )
+                            if not flt_grain or widen_by is not None:
                                 self._collect_partition_mirror_range(
                                     partition_mapping,
                                     partition_mirror,
                                     col_obj.column_name,
                                     _since,
                                     _until,
+                                    widen_bounds_by=widen_by,
                                 )
                     else:
                         raise QueryObjectValidationError(

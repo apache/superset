@@ -162,6 +162,10 @@ _DATASET_PURGE_BINDING = SoftDeleteBinding(
 )
 
 
+#: How long one preview budget lasts, in seconds.
+PREVIEW_RATE_LIMIT_WINDOW = 60
+
+
 def _consume_preview_rate_limit(dataset_id: int) -> bool:
     """
     Fixed-window per-user, per-dataset throttle on the preview endpoint.
@@ -169,6 +173,19 @@ def _consume_preview_rate_limit(dataset_id: int) -> bool:
     Debouncing on the client is a courtesy, not a guard: a held keydown, or a
     handful of owners with the editor open, becomes sustained load on a
     production cluster. Returns False once the window's budget is spent.
+
+    Counting is `add` then `inc` rather than read-then-write, which buys two
+    things a `get`/`set` pair cannot. It is atomic where it matters -- on Redis
+    those are `SETNX` and `INCR`, so concurrent previews cannot each read the
+    same sub-limit value and all be let through. And the window is genuinely
+    fixed: only `add` sets a lifetime, so the budget expires a minute after the
+    *first* request rather than a minute after the most recent one, which is
+    what the name promises. (`INCR` leaves the TTL alone; a backend whose `inc`
+    is a read-modify-write may restore its own default lifetime instead, which
+    throttles for longer rather than shorter.)
+
+    Both calls go to the cachelib backend rather than the Flask-Caching wrapper
+    around it, which proxies `add` but not `inc`.
     """
     limit = app.config.get("PARTITION_TRANSFORM_PREVIEW_RATE_LIMIT", 30)
     if not limit:
@@ -176,15 +193,18 @@ def _consume_preview_rate_limit(dataset_id: int) -> bool:
 
     user_id = get_user_id() or 0
     key = f"partition_mapping_preview:{user_id}:{dataset_id}"
+    backend = cache_manager.cache.cache
     try:
-        used = cache_manager.cache.get(key) or 0
-        if used >= limit:
-            return False
-        cache_manager.cache.set(key, used + 1, timeout=60)
+        if backend.add(key, 1, timeout=PREVIEW_RATE_LIMIT_WINDOW):
+            # First request of a fresh window, and the only one that dates it.
+            return True
+        used = backend.inc(key)
     except Exception:  # pylint: disable=broad-except  # noqa: BLE001
         # A cache outage must not take the editor down with it.
         return True
-    return True
+    # `inc` reports None when the backend could not count -- a null cache, or a
+    # write that failed. Unenforceable is not the same as spent.
+    return used is None or used <= limit
 
 
 class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
