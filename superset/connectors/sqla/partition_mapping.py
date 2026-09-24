@@ -995,8 +995,7 @@ def _render_sample_input(
         )
         return f"{quoted} IN ({rendered})"
     return (
-        f"{quoted} {operator.value} "
-        f"{_render_literal(datasource.database, values[0])}"
+        f"{quoted} {operator.value} {_render_literal(datasource.database, values[0])}"
     )
 
 
