@@ -18,11 +18,13 @@
 
 from __future__ import annotations
 
+from datetime import datetime
 from typing import Any, cast
 from unittest.mock import MagicMock, patch
 
 import pandas as pd
 import pytest
+from dateutil.relativedelta import relativedelta
 from flask import Flask
 
 from superset.connectors.sqla.models import SqlaTable, TableColumn
@@ -32,6 +34,8 @@ from superset.connectors.sqla.partition_mapping import (
     contains_value_placeholder,
     evaluate_transform,
     find_non_deterministic_functions,
+    grain_bucket_width,
+    GRAIN_BUCKET_WIDTHS,
     is_transform_active,
     MappingValidationIssue,
     MIRRORABLE_ALWAYS,
@@ -42,6 +46,7 @@ from superset.connectors.sqla.partition_mapping import (
     validate_partition_mapping,
     validate_transform,
 )
+from superset.constants import TimeGrain
 from superset.models.core import Database
 from superset.utils.core import FilterOperator
 
@@ -169,6 +174,90 @@ def test_negations_and_pattern_matches_are_never_mirrorable(
     mirroring it would drop rows the original filter keeps.
     """
     assert operator not in mirrorable_operators(is_monotonic=True)
+
+
+# ---------------------------------------------------------------------------
+# Time grain bucket widths
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize("grain", list(TimeGrain))
+def test_every_builtin_grain_has_a_known_bucket_width(
+    app: Flask, grain: TimeGrain
+) -> None:
+    """
+    The widening is only sound for a grain whose bucket width we know, so a
+    grain added upstream without a width here would silently stop mirroring.
+    This is the test that notices.
+    """
+    with app.app_context():
+        assert grain_bucket_width(grain.value, "sqlite") is not None
+
+
+def test_a_calendar_grain_widens_by_a_calendar_month(app: Flask) -> None:
+    """A month is not thirty days, and the month it lands in decides its width."""
+    with app.app_context():
+        width = grain_bucket_width(TimeGrain.MONTH.value, "sqlite")
+
+    assert width is not None
+    assert datetime(2026, 1, 31) + width == datetime(2026, 2, 28)
+    assert datetime(2026, 2, 1) + width == datetime(2026, 3, 1)
+
+
+def test_a_fractional_grain_has_a_width(app: Flask) -> None:
+    """
+    ``PT0.5H`` and ``P0.25Y`` are why the widths are written out rather than
+    parsed -- and the anchored week grains are intervals ``parse_duration``
+    rejects outright.
+    """
+    with app.app_context():
+        assert grain_bucket_width(TimeGrain.HALF_HOUR.value, "sqlite") == relativedelta(
+            minutes=30
+        )
+        assert grain_bucket_width(
+            TimeGrain.WEEK_ENDING_SATURDAY.value, "sqlite"
+        ) == relativedelta(days=7)
+
+
+def test_an_unknown_grain_has_no_known_width(app: Flask) -> None:
+    with app.app_context():
+        assert grain_bucket_width("P13X", "sqlite") is None
+        assert grain_bucket_width(None, "sqlite") is None
+
+
+def test_an_addon_grain_has_no_known_width(app: Flask) -> None:
+    """An operator-declared grain carries whatever duration string they typed."""
+    with app.app_context():
+        app.config["TIME_GRAIN_ADDONS"] = {"PT2S": "2 second"}
+        try:
+            assert grain_bucket_width("PT2S", "sqlite") is None
+        finally:
+            app.config["TIME_GRAIN_ADDONS"] = {}
+
+
+def test_a_builtin_grain_an_operator_redefined_has_no_known_width(
+    app: Flask,
+) -> None:
+    """
+    ``TIME_GRAIN_ADDON_EXPRESSIONS`` replaces a built-in grain's SQL for one
+    engine, so its duration no longer bounds the displacement *there* -- but it
+    still does on every other engine.
+    """
+    with app.app_context():
+        app.config["TIME_GRAIN_ADDON_EXPRESSIONS"] = {
+            "sqlite": {"P1D": "DATETIME({col}, 'start of year')"}
+        }
+        try:
+            assert grain_bucket_width(TimeGrain.DAY.value, "sqlite") is None
+            assert grain_bucket_width(TimeGrain.DAY.value, "hive") is not None
+        finally:
+            app.config["TIME_GRAIN_ADDON_EXPRESSIONS"] = {}
+
+
+def test_the_width_table_is_keyed_on_grain_durations(app: Flask) -> None:
+    """Keys are the ISO duration a filter carries, not the enum member name."""
+    assert GRAIN_BUCKET_WIDTHS[TimeGrain.DAY] == relativedelta(days=1)
+    assert set(GRAIN_BUCKET_WIDTHS) == {grain.value for grain in TimeGrain}
 
 
 # ---------------------------------------------------------------------------

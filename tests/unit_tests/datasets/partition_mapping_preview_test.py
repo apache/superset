@@ -342,3 +342,163 @@ def test_preview_is_rate_limited_per_user_and_dataset(
 
     assert statuses[:2] == [200, 200]
     assert 429 in statuses[2:]
+
+
+def test_the_budget_is_spent_exactly_once_per_request(
+    app: Flask, client: Any, full_api_access: None, dataset: Any
+) -> None:
+    """
+    Counting is `add` then `inc`, so the first request of a window and every
+    one after it cost the same single unit. A read-then-write pair would let
+    concurrent previews all observe the same sub-limit value and all through.
+    """
+    app.config["PARTITION_TRANSFORM_PREVIEW_RATE_LIMIT"] = 3
+
+    payload = {
+        "mapped_column": "event_time",
+        "value_transform": "unix_timestamp(:value)",
+        "sample_values": ["2026-01-15"],
+    }
+    with patch(PROBE, return_value=[1]):
+        statuses = [
+            client.post(
+                f"/api/v1/dataset/{dataset.id}/partition_mapping/preview/",
+                json={**payload, "sample_values": [f"2026-01-{day:02d}"]},
+            ).status_code
+            for day in range(1, 6)
+        ]
+
+    assert statuses == [200, 200, 200, 429, 429]
+
+
+def test_the_window_is_dated_by_its_first_request_not_its_last(
+    app: Flask, client: Any, full_api_access: None, dataset: Any
+) -> None:
+    """
+    Only `add` sets a lifetime. Re-stamping the key on every increment would
+    make this a sliding window, where sustained typing keeps the budget spent
+    indefinitely instead of recovering a minute after the burst began.
+    """
+    from superset.datasets.api import PREVIEW_RATE_LIMIT_WINDOW
+    from superset.extensions import cache_manager
+
+    app.config["PARTITION_TRANSFORM_PREVIEW_RATE_LIMIT"] = 5
+
+    payload = {
+        "mapped_column": "event_time",
+        "value_transform": "unix_timestamp(:value)",
+        "sample_values": ["2026-01-15"],
+    }
+    timeouts: list[Any] = []
+    backend = cache_manager.cache.cache
+    original_add = backend.add
+
+    def record(key: str, value: Any, timeout: Any = None) -> Any:
+        timeouts.append(timeout)
+        return original_add(key, value, timeout=timeout)
+
+    with patch.object(backend, "add", side_effect=record):
+        with patch(PROBE, return_value=[1]):
+            for day in range(1, 4):
+                client.post(
+                    f"/api/v1/dataset/{dataset.id}/partition_mapping/preview/",
+                    json={**payload, "sample_values": [f"2026-01-{day:02d}"]},
+                )
+
+    # Three requests, three `add` attempts, but only the first one takes -- and
+    # every later one is a no-op that leaves the original expiry alone.
+    assert timeouts == [PREVIEW_RATE_LIMIT_WINDOW] * 3
+
+
+def test_a_cache_that_cannot_count_does_not_lock_the_editor_out(
+    app: Flask, client: Any, full_api_access: None, dataset: Any
+) -> None:
+    """Unenforceable is not the same as spent."""
+    from superset.extensions import cache_manager
+
+    app.config["PARTITION_TRANSFORM_PREVIEW_RATE_LIMIT"] = 1
+
+    payload = {
+        "mapped_column": "event_time",
+        "value_transform": "unix_timestamp(:value)",
+        "sample_values": ["2026-01-15"],
+    }
+    backend = cache_manager.cache.cache
+    with patch.object(backend, "add", return_value=False):
+        with patch.object(backend, "inc", return_value=None):
+            with patch(PROBE, return_value=[1]):
+                response = client.post(
+                    f"/api/v1/dataset/{dataset.id}/partition_mapping/preview/",
+                    json=payload,
+                )
+
+    assert response.status_code == 200
+
+
+def test_a_probe_that_returns_null_reports_a_reason_not_a_predicate(
+    client: Any, full_api_access: None, dataset: Any
+) -> None:
+    """
+    A transform returns NULL for an input it cannot convert. A NULL bound would
+    make the mirrored comparison NULL for every row, so no predicate is emitted
+    at all -- and the editor is told why rather than shown `dt_epoch >= None`.
+    """
+    with patch(PROBE, return_value=[None]):
+        response = client.post(
+            f"/api/v1/dataset/{dataset.id}/partition_mapping/preview/",
+            json={
+                "mapped_column": "event_time",
+                "value_transform": "unix_timestamp(:value)",
+                "sample_values": ["not a date"],
+            },
+        )
+
+    assert response.status_code == 200
+    result = response.json["result"]
+    assert result["valid"] is False
+    assert result["reason"] == "engine"
+    assert "emitted_predicate" not in result
+    assert "None" not in result["sample_input"]
+
+
+def test_a_probed_string_is_quoted_and_escaped_by_the_dialect(
+    client: Any, full_api_access: None, dataset: Any
+) -> None:
+    """Escaping is the dialect's job, not a hand-rolled `replace`."""
+    with patch(PROBE, return_value=["o'hara"]):
+        response = client.post(
+            f"/api/v1/dataset/{dataset.id}/partition_mapping/preview/",
+            json={
+                "mapped_column": "event_time",
+                "value_transform": "lower(:value)",
+                "sample_values": ["O'Hara"],
+            },
+        )
+
+    assert response.status_code == 200
+    result = response.json["result"]
+    assert result["emitted_predicate"] == "dt_epoch = 'o''hara' OR dt_epoch IS NULL"
+    # The sample input is display-only but still reads as SQL, so the value it
+    # echoes back is quoted and escaped the same way.
+    assert result["sample_input"] == "event_time == 'O''Hara'"
+
+
+def test_an_over_long_transform_is_rejected_before_the_engine(
+    client: Any, full_api_access: None, dataset: Any
+) -> None:
+    """
+    The transform is parsed and then run against the warehouse, so an unbounded
+    string is parser time and warehouse time an owner can spend at will.
+    """
+    with patch(PROBE) as probe:
+        response = client.post(
+            f"/api/v1/dataset/{dataset.id}/partition_mapping/preview/",
+            json={
+                "mapped_column": "event_time",
+                "value_transform": "unix_timestamp(:value)" + " " * 2000,
+                "sample_values": ["2026-01-15"],
+            },
+        )
+
+    assert response.status_code == 400
+    probe.assert_not_called()

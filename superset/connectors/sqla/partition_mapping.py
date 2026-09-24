@@ -63,6 +63,27 @@ Monotonicity is a property of the transform, not of the column's data type:
 ``hour(:value)``, ``date_format(:value, 'dd')`` and ``dayofweek(:value)`` are
 all reasonable transforms on a ``TIMESTAMP`` column and none of them preserve
 ordering. It is therefore declared by the owner, not inferred.
+
+Time grains
+-----------
+A grained filter -- drill-to-detail, mostly -- compares the *truncated* column,
+``trunc(col) op v``, so the raw bounds it carries do not describe the rows it
+keeps. A row in the final partial bucket satisfies ``trunc(col) < until`` while
+``col < until`` excludes it.
+
+Which direction a grain rounds is not knowable from the duration alone, and the
+obvious guess is wrong: ``WEEK_ENDING_SATURDAY`` rounds *forward* on Hive and
+Presto, and Ocient's grains are ``ROUND``, i.e. to nearest. What every grain
+does satisfy is a bound on the displacement::
+
+    |trunc(ts) - ts| < width(grain)
+
+so widening *both* bounds by one bucket width is no narrower than the real
+predicate whichever way the grain rounds -- and it needs no monotonicity of
+``trunc`` itself, which is what rescues Hive's oddly-anchored ``P1W``. Width is
+a property of the grain, not of the engine, which is what makes this
+maintainable; see `grain_bucket_width`. A grain whose SQL an operator supplied
+has no known width, and does not mirror at all.
 """
 
 from __future__ import annotations
@@ -75,12 +96,13 @@ from functools import lru_cache
 from typing import Any, cast, TYPE_CHECKING
 
 import sqlalchemy as sa
+from dateutil.relativedelta import relativedelta
 from flask import current_app as app
 from flask_babel import lazy_gettext as _
 from sqlalchemy.engine.interfaces import Dialect
 from sqlalchemy.sql.elements import ColumnElement
 
-from superset.constants import LRU_CACHE_MAX_SIZE
+from superset.constants import LRU_CACHE_MAX_SIZE, TimeGrain
 from superset.exceptions import SupersetParseError
 from superset.extensions import cache_manager, feature_flag_manager
 from superset.sql.parse import SQLStatement
@@ -156,6 +178,70 @@ def mirrorable_operators(is_monotonic: bool) -> set[FilterOperator]:
     if is_monotonic:
         return MIRRORABLE_ALWAYS | MIRRORABLE_IF_MONOTONIC
     return set(MIRRORABLE_ALWAYS)
+
+
+#: How wide one bucket of each built-in time grain is.
+#:
+#: Keyed on the ISO duration a filter carries in its ``grain``. Written out
+#: rather than parsed: four of the week grains are ISO *intervals* with an
+#: anchor (``P1W/1970-01-03T00:00:00Z``) that ``isodate.parse_duration``
+#: rejects outright, and ``PT0.5H`` / ``P0.25Y`` are fractional. A literal
+#: table is also the thing a reviewer can check a line at a time.
+#:
+#: ``relativedelta`` rather than ``timedelta`` so the calendar grains stay
+#: calendar arithmetic: a month is not 30 days.
+GRAIN_BUCKET_WIDTHS: dict[str, relativedelta] = {
+    TimeGrain.SECOND: relativedelta(seconds=1),
+    TimeGrain.FIVE_SECONDS: relativedelta(seconds=5),
+    TimeGrain.THIRTY_SECONDS: relativedelta(seconds=30),
+    TimeGrain.MINUTE: relativedelta(minutes=1),
+    TimeGrain.FIVE_MINUTES: relativedelta(minutes=5),
+    TimeGrain.TEN_MINUTES: relativedelta(minutes=10),
+    TimeGrain.FIFTEEN_MINUTES: relativedelta(minutes=15),
+    TimeGrain.THIRTY_MINUTES: relativedelta(minutes=30),
+    TimeGrain.HALF_HOUR: relativedelta(minutes=30),
+    TimeGrain.HOUR: relativedelta(hours=1),
+    TimeGrain.SIX_HOURS: relativedelta(hours=6),
+    TimeGrain.DAY: relativedelta(days=1),
+    TimeGrain.WEEK: relativedelta(days=7),
+    TimeGrain.WEEK_STARTING_SUNDAY: relativedelta(days=7),
+    TimeGrain.WEEK_STARTING_MONDAY: relativedelta(days=7),
+    TimeGrain.WEEK_ENDING_SATURDAY: relativedelta(days=7),
+    TimeGrain.WEEK_ENDING_SUNDAY: relativedelta(days=7),
+    TimeGrain.MONTH: relativedelta(months=1),
+    TimeGrain.QUARTER: relativedelta(months=3),
+    TimeGrain.QUARTER_YEAR: relativedelta(months=3),
+    TimeGrain.YEAR: relativedelta(years=1),
+}
+
+
+def grain_bucket_width(grain: str | None, engine: str) -> relativedelta | None:
+    """
+    How far a grain's truncation can move a timestamp, or ``None`` if unknown.
+
+    A grained filter compares the *truncated* column, so the raw bounds it
+    carries do not describe the rows it keeps. Widening both bounds by one
+    bucket recovers a predicate that is no narrower than the real one -- see
+    `_collect_partition_mirror_range` for the argument. That only works for a
+    grain whose bucket width Superset knows, which excludes anything an
+    operator supplied.
+
+    :param grain: the ISO duration from the filter's ``grain``
+    :param engine: the engine spec's ``engine``, to check per-engine overrides
+    """
+    if not grain:
+        return None
+
+    # An operator-declared grain carries whatever duration string they typed,
+    # and `TIME_GRAIN_ADDON_EXPRESSIONS` can redefine a *built-in* grain's SQL
+    # per engine -- `P1D` could be anything at all. Neither has a width we can
+    # claim to know, so both fall back to not mirroring.
+    if grain in app.config["TIME_GRAIN_ADDONS"]:
+        return None
+    if grain in app.config["TIME_GRAIN_ADDON_EXPRESSIONS"].get(engine, {}):
+        return None
+
+    return GRAIN_BUCKET_WIDTHS.get(grain)
 
 
 @dataclass(frozen=True)
@@ -844,7 +930,9 @@ def preview_partition_mapping(  # pylint: disable=too-many-return-statements
         value_transform=cast(str, value_transform),
         is_monotonic=is_monotonic,
     )
-    sample_input = _render_sample_input(mapped_column, operator, sample_values)
+    sample_input = _render_sample_input(
+        datasource, mapped_column, operator, sample_values
+    )
 
     if not mapping.mirrors(operator):
         return {
@@ -887,15 +975,29 @@ def preview_partition_mapping(  # pylint: disable=too-many-return-statements
 
 
 def _render_sample_input(
+    datasource: SqlaTable,
     mapped_column: str,
     operator: FilterOperator,
     values: list[str],
 ) -> str:
-    """The filter being previewed, written the way an owner would read it."""
+    """
+    The filter being previewed, written the way an owner would read it.
+
+    Display-only -- it is never executed -- but it is still read as SQL, so the
+    column is quoted and the values are rendered by the dialect rather than
+    concatenated raw. A column named ``order date`` would otherwise come out as
+    two bare words.
+    """
+    quoted = datasource.quote_identifier(mapped_column)
     if operator == FilterOperator.IN:
-        rendered = ", ".join(_render_literal(value) for value in values)
-        return f"{mapped_column} IN ({rendered})"
-    return f"{mapped_column} {operator.value} {_render_literal(values[0])}"
+        rendered = ", ".join(
+            _render_literal(datasource.database, value) for value in values
+        )
+        return f"{quoted} IN ({rendered})"
+    return (
+        f"{quoted} {operator.value} "
+        f"{_render_literal(datasource.database, values[0])}"
+    )
 
 
 def _render_predicate(datasource: SqlaTable, predicate: ColumnElement[Any]) -> str:
@@ -913,12 +1015,21 @@ def _render_predicate(datasource: SqlaTable, predicate: ColumnElement[Any]) -> s
     ).replace("\n", " ")
 
 
-def _render_literal(value: Any) -> str:
-    """Render a probed value the way it appears in the generated SQL."""
-    if isinstance(value, str):
-        escaped = value.replace("'", "''")
-        return f"'{escaped}'"
-    return str(value)
+def _render_literal(database: Database, value: Any) -> str:
+    """
+    Render a value the way it appears in the generated SQL.
+
+    Compiled by the dialect rather than formatted by hand. `str()` would render
+    a NULL as the Python repr `None` and leave a date unquoted, neither of which
+    is SQL, and hand-rolled quote-doubling would only ever have been right for
+    strings.
+    """
+    return str(
+        sa.literal(value).compile(
+            dialect=_dialect_for(database),
+            compile_kwargs={"literal_binds": True},
+        )
+    )
 
 
 def build_mirrored_predicates(

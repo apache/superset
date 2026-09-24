@@ -108,6 +108,7 @@ import {
   applyMappingMove,
   applyPartitionColumnDefaults,
   defaultTransformFor,
+  nextMappedColumnOverride,
   resolveMappedColumn,
 } from './components/PartitionFilterMapping/utils';
 import {
@@ -1308,11 +1309,10 @@ function DatasourceEditor({
       setDatasource(prev => ({
         ...prev,
         partition_column: columnName,
-        // The override only means anything relative to a partition column, and
-        // leaving it behind would silently re-arm the next mapping.
-        partition_mapped_column: columnName
-          ? prev.partition_mapped_column
-          : null,
+        partition_mapped_column: nextMappedColumnOverride(
+          prev.partition_mapped_column,
+          columnName,
+        ),
       }));
       if (columnName) {
         setDatabaseColumns(prev =>
