@@ -148,12 +148,12 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
         return parseaddr(current_app.config["SMTP_MAIL_FROM"])[1].split("@")[1]
 
     def _error_template(self, text: str) -> str:
-        # The error text is derived from exception messages that can embed
-        # data-controlled content (e.g. crafted table/column names in a DB
-        # error). Strip all HTML before interpolating it into the email body,
-        # matching the sanitization applied to the normal content path.
-        # pylint: disable=no-member
-        safe_text = nh3.clean(text, tags=set(), attributes={})
+        # Only send_error's editor-only email may include sanitized diagnostics.
+        safe_text = (
+            nh3.clean(text, tags=set(), attributes={})
+            if self._content.is_editor_error
+            else __("Contact the report owner for error details.")
+        )
         if self._content.include_cta:
             return __(
                 """
@@ -179,7 +179,7 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
         max_attempts = self._content.retry_max_attempts
         retries_remaining = (max_attempts or 0) - (attempt or 0)
         # pylint: disable=no-member
-        safe_text = nh3.clean(text, tags=set(), attributes={})
+        safe_text = __("Contact the report owner for error details.")
         cta_tag = self._render_call_to_action_paragraph()
 
         return textwrap.dedent(
@@ -215,7 +215,7 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
     def _final_failure_template(self, text: str) -> str:
         """HTML body for the final-failure email after all retries are exhausted."""
         # pylint: disable=no-member
-        safe_text = nh3.clean(text, tags=set(), attributes={})
+        safe_text = __("Contact the report owner for error details.")
         cta_tag = self._render_call_to_action_paragraph()
         max_attempts = self._content.retry_max_attempts
 

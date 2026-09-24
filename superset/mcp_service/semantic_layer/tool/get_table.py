@@ -25,7 +25,7 @@ import logging
 import time
 from collections.abc import Iterable
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, TYPE_CHECKING
 
 from fastmcp import Context
 from sqlalchemy.exc import SQLAlchemyError
@@ -55,6 +55,9 @@ from superset.mcp_service.utils.cache_utils import get_cache_status_from_result
 from superset.mcp_service.utils.oauth2_utils import build_oauth2_redirect_message
 from superset.mcp_service.utils.response_utils import format_data_columns
 
+if TYPE_CHECKING:
+    from superset.semantic_layers.models import SemanticView
+
 logger = logging.getLogger(__name__)
 
 
@@ -67,6 +70,7 @@ class _ResolvedDatasource:
     valid_columns: set[str]
     valid_metrics: set[str]
     warnings: list[str] = field(default_factory=list)
+    view: "SemanticView | None" = None
     grain_column: str | None = None
     valid_grains: dict[str, dict[str, str]] | None = None
     temporal_columns: set[str] = field(default_factory=set)
@@ -244,6 +248,7 @@ def _resolve_external_view(
         valid_columns,
         valid_metrics,
         warnings,
+        view=view,
         grain_column=grain_column,
         valid_grains=valid_grains,
         temporal_columns=valid_dttm_columns,
@@ -437,6 +442,32 @@ async def _run_get_table_query(
             error=error_msg,
             error_type="ValidationError",
         )
+
+    required_dimensions: set[str] = (
+        set(request.dimensions)
+        | {query_filter.col for query_filter in request.filters}
+        | (set(request.order_by) & resolved.valid_columns)
+    ) - resolved.temporal_columns
+    if (
+        not is_builtin
+        and resolved.view is not None
+        and request.metrics
+        and required_dimensions
+    ):
+        compatible: set[str] = set(
+            resolved.view.get_compatible_dimensions(request.metrics, [])
+        )
+        incompatible: list[str] = sorted(required_dimensions - compatible)
+        if incompatible:
+            return SemanticLayerError.create(
+                error=(
+                    f"Dimension(s) {incompatible} are not compatible with the selected "
+                    f"metric(s) {sorted(request.metrics)} "
+                    f"for view '{resolved.display_name}'. "
+                    "Call get_compatible_dimensions for the valid combinations."
+                ),
+                error_type="ValidationError",
+            )
 
     await ctx.report_progress(3, 5, "Building query")
     query_dict = _build_query_dict(request, resolved.time_col, resolved.grain_column)
