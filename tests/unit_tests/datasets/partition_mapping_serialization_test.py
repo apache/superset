@@ -150,18 +150,23 @@ def test_the_mapping_summary_narrows_the_operators_without_monotonicity(
 @pytest.mark.parametrize(
     "transform",
     [
-        pytest.param("unix_timestamp(event_time)", id="no-placeholder"),
-        pytest.param("unix_timestamp({{ value }})", id="jinja"),
+        # Missing the placeholder, so there is no filter value to substitute.
+        "unix_timestamp(event_time)",
+        # Unparseable, so nothing can be emitted from it.
+        "unix_timestamp(:value",
+        # Blocking on PUT, but create and import do not validate the mapping,
+        # so it can still be read back.
+        "{{ current_username() }}",
     ],
 )
-def test_the_mapping_summary_reports_inactive_for_an_unmirrorable_transform(
+def test_the_mapping_summary_reports_inactive_for_an_invalid_transform(
     app: Flask,
     transform: str,
 ) -> None:
     """
-    `resolve_partition_mapping` rejects these outright, so the query carries no
-    mirrored predicate. Both checks are a regex, cheap enough for a property
-    serialized on every chart load.
+    A transform that fails validation is saved inactive on purpose. The
+    indicator has to say the same thing, or it advertises a mapping that will
+    never mirror a filter.
     """
     table = _table()
     table.columns[0].partition_value_transform = transform
@@ -197,6 +202,28 @@ def test_the_mapping_summary_reports_inactive_for_an_advanced_data_type(
     assert summary["active"] is False
 
 
+def test_the_mapping_summary_still_names_the_columns_when_inactive(
+    app: Flask,
+) -> None:
+    """
+    An inactive mapping is exactly the one worth naming: the editor has to tell
+    the owner which columns to fix.
+    """
+    table = _table()
+    table.columns[0].partition_value_transform = "unix_timestamp(event_time)"
+
+    with app.app_context():
+        summary = table.data["partition_filter_mapping"]
+
+    assert summary == {
+        "partition_column": "dt_epoch",
+        "mapped_column": "event_time",
+        "active": False,
+        "is_monotonic": True,
+        "mirrorable_operators": ["<", "<=", "==", ">", ">=", "IN", "TEMPORAL_RANGE"],
+    }
+
+
 def test_there_is_no_mapping_summary_without_a_partition_column(
     app: Flask,
 ) -> None:
@@ -223,6 +250,17 @@ def test_put_schema_accepts_the_column_fields() -> None:
     )
     assert loaded["partition_value_transform"] == "unix_timestamp(:value)"
     assert loaded["partition_transform_is_monotonic"] is True
+
+
+def test_put_schema_leaves_out_a_monotonic_flag_the_payload_omits() -> None:
+    """
+    `DatasetDAO.update_columns` applies the loaded payload field by field onto
+    the stored column, so a default here would let a partial column update clear
+    a monotonic flag the request never mentioned -- and silently stop mirroring
+    range filters. Contrast `ImportV1ColumnSchema`, which does default it.
+    """
+    loaded = DatasetColumnsPutSchema().load({"column_name": "event_time"})
+    assert "partition_transform_is_monotonic" not in loaded
 
 
 def test_put_schema_allows_clearing_the_mapping() -> None:

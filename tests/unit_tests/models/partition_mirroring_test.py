@@ -599,3 +599,114 @@ def test_extra_cache_keys_are_unchanged_without_a_mapping(app: Flask) -> None:
 
     with app.app_context():
         assert table.get_extra_cache_keys({}) == []
+
+
+# ---------------------------------------------------------------------------
+# Time grains
+# ---------------------------------------------------------------------------
+
+
+def test_a_grain_bearing_equality_filter_does_not_mirror(app: Flask) -> None:
+    """
+    Drill-to-detail sends the clicked bucket as `==` plus the chart's grain, and
+    the real predicate compares the *truncated* column. Mirroring the raw bucket
+    start would keep only the rows at the bucket's first instant and silently
+    drop the rest of the bucket.
+    """
+    table = _table()
+
+    with app.app_context():
+        with patch(PROBE, return_value=[1767225600]):
+            sql = _query(
+                table,
+                filter=[
+                    {
+                        "col": "event_time",
+                        "op": FilterOperator.EQUALS.value,
+                        "val": "2026-01-05",
+                        "grain": "P1W",
+                    }
+                ],
+            )
+
+    assert "dt_epoch" not in sql
+
+
+def test_a_grain_bearing_temporal_range_does_not_mirror(app: Flask) -> None:
+    """
+    A grained range truncates the column, so a row in the final partial bucket
+    satisfies `DATE_TRUNC(...) < until` while the raw bound excludes it.
+    """
+    table = _table()
+
+    with app.app_context():
+        with patch(PROBE, return_value=[1767225600, 1769904000]):
+            sql = _query(
+                table,
+                filter=[
+                    {
+                        "col": "event_time",
+                        "op": FilterOperator.TEMPORAL_RANGE.value,
+                        "val": "2026-01-01 : 2026-02-01",
+                        "grain": "P1W",
+                    }
+                ],
+            )
+
+    assert "dt_epoch" not in sql
+
+
+def test_an_ungrained_filter_still_mirrors(app: Flask) -> None:
+    """The grain guard must not cost pruning for the ordinary case."""
+    table = _table()
+
+    with app.app_context():
+        with patch(PROBE, return_value=[1767225600, 1769904000]):
+            sql = _query(
+                table,
+                filter=[
+                    {
+                        "col": "event_time",
+                        "op": FilterOperator.TEMPORAL_RANGE.value,
+                        "val": "2026-01-01 : 2026-02-01",
+                    }
+                ],
+            )
+
+    assert "dt_epoch" in sql
+
+
+# ---------------------------------------------------------------------------
+# NULL partition values
+# ---------------------------------------------------------------------------
+
+
+def test_rows_in_a_null_partition_survive_mirroring(app: Flask) -> None:
+    """
+    A mirrored comparison against NULL is NULL, so a row whose partition value
+    is NULL is dropped by the mirror even when the real filter matches it. Hive
+    and Impala park such rows in the default partition, and a transform that
+    returns NULL for an input it cannot convert produces them on any engine.
+    The mirror only has to be *no narrower* than the real filter, so widening it
+    to admit NULL partitions keeps those rows while still pruning.
+    """
+    table = _table(
+        transform="lower(:value)",
+        monotonic=False,
+        mapped_column="country",
+        partition_mapped_column="country",
+        partition_column="region_key",
+    )
+
+    with app.app_context():
+        with patch(PROBE, return_value=["us"]):
+            sql = _query(
+                table,
+                filter=[
+                    {"col": "country", "op": FilterOperator.EQUALS.value, "val": "US"}
+                ],
+            )
+
+    assert "region_key = 'us'" in sql
+    assert "region_key IS NULL" in sql
+    assert "OR" in sql

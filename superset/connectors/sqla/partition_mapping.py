@@ -71,6 +71,7 @@ import hashlib
 import logging
 import re
 from dataclasses import dataclass
+from functools import lru_cache
 from typing import Any, cast, TYPE_CHECKING
 
 import sqlalchemy as sa
@@ -79,6 +80,7 @@ from flask_babel import lazy_gettext as _
 from sqlalchemy.engine.interfaces import Dialect
 from sqlalchemy.sql.elements import ColumnElement
 
+from superset.constants import LRU_CACHE_MAX_SIZE
 from superset.exceptions import SupersetParseError
 from superset.extensions import cache_manager, feature_flag_manager
 from superset.sql.parse import SQLStatement
@@ -516,6 +518,15 @@ def _probe_cache_key(
         [
             database.id,
             database.backend,
+            # The probe asks this connection to evaluate the transform, so the
+            # answer belongs to it. `id` outlives an edit to the URI or to
+            # `extra` (a session timezone, say), which would otherwise serve
+            # values computed against the old environment until the entry
+            # expires. `changed_on` covers the edits that do not show up here,
+            # such as a rotated password, without putting a secret in the key.
+            database.sqlalchemy_uri,
+            database.extra,
+            str(database.changed_on),
             catalog,
             schema,
             transform,
@@ -737,6 +748,30 @@ def validate_transform(
     return []
 
 
+@lru_cache(maxsize=LRU_CACHE_MAX_SIZE)
+def is_transform_active(transform: str | None, engine: str) -> bool:
+    """
+    Whether Superset will mirror filters through this transform.
+
+    `validate_transform` with the messages discarded, so the Explore indicator
+    cannot advertise a mapping the save path recorded as inactive. Anything
+    cheaper here would be a second, weaker statement of the same rule, free to
+    drift from the one the save path applies.
+
+    Blocking issues count too. Jinja and non-deterministic transforms are
+    rejected on PUT, but `CreateDatasetCommand` and import do not validate the
+    mapping, so one can still reach the database -- and it would never mirror a
+    filter either.
+
+    Memoized because `partition_filter_mapping_summary` is serialized on every
+    Explore and dashboard load and this parses the transform. The key is
+    everything the answer depends on: `validate_transform` reads no session, no
+    locale and no config beyond `SQL_MAX_PARSE_LENGTH`, which bounds the parser
+    rather than changing a verdict within that bound.
+    """
+    return not validate_transform(transform, engine)
+
+
 def preview_partition_mapping(  # pylint: disable=too-many-return-statements
     datasource: SqlaTable,
     *,
@@ -954,7 +989,16 @@ def build_mirrored_predicates(
             predicates.append(
                 db_engine_spec.handle_comparison_filter(sqla_col, operator, chunk[0])
             )
-    return predicates
+    if not predicates:
+        return []
+
+    # A comparison against a NULL partition value is NULL, so a row parked in a
+    # NULL partition is dropped by the mirror even when the real filter matches
+    # it -- Hive and Impala's default partition, or a transform that returns
+    # NULL for an input it cannot convert. The mirror only has to be no
+    # narrower than the filter it stands in for, so admitting NULL partitions
+    # keeps those rows. Engines still prune; they read one extra partition.
+    return [sa.or_(sa.and_(*predicates), sqla_col.is_(None))]
 
 
 _LOWER_BOUND_OPS = {

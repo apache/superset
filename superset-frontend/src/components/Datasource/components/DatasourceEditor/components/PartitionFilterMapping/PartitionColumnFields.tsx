@@ -35,7 +35,10 @@ import {
   resolveMappedColumn,
   suggestedMappedColumn,
 } from './utils';
-import type { PartitionMappingColumn, PartitionMappingDatasource } from './types';
+import type {
+  PartitionMappingColumn,
+  PartitionMappingDatasource,
+} from './types';
 
 interface PartitionColumnFieldsProps {
   datasource: PartitionMappingDatasource;

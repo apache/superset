@@ -27,10 +27,12 @@ from flask import Flask
 
 from superset.connectors.sqla.models import SqlaTable, TableColumn
 from superset.connectors.sqla.partition_mapping import (
+    _probe_cache_key,
     contains_jinja,
     contains_value_placeholder,
     evaluate_transform,
     find_non_deterministic_functions,
+    is_transform_active,
     MappingValidationIssue,
     MIRRORABLE_ALWAYS,
     MIRRORABLE_IF_MONOTONIC,
@@ -38,6 +40,7 @@ from superset.connectors.sqla.partition_mapping import (
     parse_error_detail,
     resolve_partition_mapping,
     validate_partition_mapping,
+    validate_transform,
 )
 from superset.models.core import Database
 from superset.utils.core import FilterOperator
@@ -803,3 +806,69 @@ def test_a_failed_probe_stays_silent_without_a_sink(app: Flask) -> None:
 
     with app.app_context():
         assert evaluate_transform(database, None, None, "lower(:value)", ["x"]) is None
+
+
+def test_probe_cache_key_tracks_the_connection(app: Flask) -> None:
+    """
+    The probe asks a specific database to evaluate the transform, so the answer
+    belongs to that connection. ``database.id`` survives an edit to the URI or
+    to ``extra`` (a session timezone, say), which would otherwise serve values
+    computed against the old environment for the whole cache timeout -- and a
+    wrong transformed bound prunes away rows the real filter keeps.
+    """
+    database = Database(database_name="probe_db", sqlalchemy_uri="sqlite://")
+    database.id = 1
+
+    with app.app_context():
+        before = _probe_cache_key(database, None, None, "lower(:value)", ["US"])
+        database.sqlalchemy_uri = "postgresql://host/db"
+        after_uri = _probe_cache_key(database, None, None, "lower(:value)", ["US"])
+        database.extra = '{"engine_params": {"connect_args": {"timezone": "UTC"}}}'
+        after_extra = _probe_cache_key(database, None, None, "lower(:value)", ["US"])
+
+    assert before != after_uri
+    assert after_uri != after_extra
+
+
+# ---------------------------------------------------------------------------
+# §6 — the read-side predicate the Explore indicator asks
+# ---------------------------------------------------------------------------
+
+#: One transform per branch of ``validate_transform``, blocking and not.
+INACTIVE_TRANSFORMS = [
+    None,
+    "",
+    "   ",
+    "unix_timestamp(:value",
+    "unix_timestamp(event_time)",
+    "unix_timestamp('{{ ds }}', :value)",
+    "date_diff(:value, now())",
+]
+
+
+def test_a_well_formed_transform_is_active() -> None:
+    assert is_transform_active("unix_timestamp(:value)", "hive") is True
+
+
+@pytest.mark.parametrize("transform", INACTIVE_TRANSFORMS)
+def test_every_transform_issue_leaves_it_inactive(transform: str | None) -> None:
+    """
+    Blocking issues count as much as the rest. A Jinja or non-deterministic
+    transform is rejected on PUT, but create and import do not validate the
+    mapping, so one can still be read back -- and it mirrors nothing either.
+    """
+    assert is_transform_active(transform, "hive") is False
+
+
+@pytest.mark.parametrize(
+    "transform",
+    ["unix_timestamp(:value)", "CAST(:value AS BIGINT)", *INACTIVE_TRANSFORMS],
+)
+def test_activity_is_exactly_the_absence_of_issues(transform: str | None) -> None:
+    """
+    The indicator and the save path have to answer the same question. Pinning
+    the equivalence is what stops the two from drifting apart again.
+    """
+    assert is_transform_active(transform, "hive") is (
+        validate_transform(transform, "hive") == []
+    )

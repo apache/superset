@@ -127,4 +127,5 @@ export interface DateFilterControlProps {
    * so nothing further has to be checked here.
    */
   partitionMapping?: PartitionFilterMapping | null;
+  displayFormat?: string;
 }

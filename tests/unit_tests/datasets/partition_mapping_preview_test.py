@@ -111,7 +111,7 @@ def test_preview_returns_the_emitted_predicate(
     assert response.json["result"] == {
         "valid": True,
         "sample_input": "event_time == '2026-01-15 00:00:00'",
-        "emitted_predicate": "dt_epoch = 1768435200",
+        "emitted_predicate": "dt_epoch = 1768435200 OR dt_epoch IS NULL",
     }
 
 
@@ -136,7 +136,7 @@ def test_preview_mirrors_a_range_when_the_transform_is_monotonic(
     assert response.json["result"] == {
         "valid": True,
         "sample_input": "event_time >= '2026-01-15 00:00:00'",
-        "emitted_predicate": "dt_epoch >= 1768435200",
+        "emitted_predicate": "dt_epoch >= 1768435200 OR dt_epoch IS NULL",
     }
 
 
@@ -186,7 +186,7 @@ def test_preview_mirrors_in_element_wise(
     assert response.json["result"] == {
         "valid": True,
         "sample_input": "event_time IN ('US', 'CA')",
-        "emitted_predicate": "dt_epoch IN ('us', 'ca')",
+        "emitted_predicate": "dt_epoch IN ('us', 'ca') OR dt_epoch IS NULL",
     }
 
 
