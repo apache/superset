@@ -823,3 +823,13 @@ the calling user, and closes it after capture; images are not stored in the shar
 thumbnail cache. Requested viewport dimensions must be between 64 and 4096 pixels.
 Capture uses the configured screenshot timeouts. Cancelling an MCP request does
 not immediately interrupt its rendering worker.
+
+`get_chart_preview` is excluded from the response-size guard by default because
+base64 PNG images routinely exceed its text budget. All preview formats from
+this tool are therefore not bounded by `MCP_RESPONSE_SIZE_CONFIG["max_bytes"]`.
+Operators can remove the tool from `excluded_tools` to enforce that limit, but
+PNG requests may then fail after rendering.
+
+PNG capture uses a dedicated two-worker executor per MCP process, separate from
+the pool used for transport authentication. Additional captures wait for a
+worker; cancellation does not release a running capture's worker until it exits.
