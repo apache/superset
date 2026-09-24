@@ -27,6 +27,7 @@ import {
   isEmptyDateInput,
 } from '@superset-ui/core';
 import { GenericDataType } from '@apache-superset/core/common';
+import { toTotalsAggregate } from '@superset-ui/chart-controls';
 import {
   useCallback,
   useEffect,
@@ -90,6 +91,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     isUsingTimeComparison,
     colorPositiveNegative,
     totals,
+    totalsAggregate,
     showTotals,
     columnColorFormatters,
     basicColorFormatters,
@@ -199,6 +201,20 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     [setDataMask],
   );
 
+  const effectiveTotalsAggregate =
+    isRawRecords && totalsAggregate === 'ORIGINAL' ? 'SUM' : totalsAggregate;
+  const requestedTotalsAggregate =
+    serverPaginationData?.totalsAggregate === undefined
+      ? effectiveTotalsAggregate
+      : toTotalsAggregate(serverPaginationData.totalsAggregate);
+  // Preserve the requested aggregation across query-driven remounts, where
+  // a newer selection can coexist with the previous request's totals.
+  const lastTotalsAggregateRef = useRef(
+    isRawRecords && requestedTotalsAggregate === 'ORIGINAL'
+      ? 'SUM'
+      : requestedTotalsAggregate,
+  );
+
   // A single effect owns every ownState write derived from render state.
   // updateTableOwnState replaces ownState wholesale, so separate effects that
   // each spread serverPaginationData in the same render would clobber one
@@ -233,9 +249,22 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     // carries the totals query for the active mode.
     if (showTotals && totals === undefined && !requested) {
       patch.totalsRequested = true;
+      patch.totalsAggregate = effectiveTotalsAggregate;
       changed = true;
     } else if (!showTotals && requested) {
       patch.totalsRequested = false;
+      changed = true;
+    }
+
+    // Summary aggregation stays a renderTrigger control in Customize, but
+    // its SQL totals need a refresh even when the previous totals exist.
+    // Retain the last visible aggregation while hidden to refresh on reveal.
+    if (
+      showTotals &&
+      lastTotalsAggregateRef.current !== effectiveTotalsAggregate
+    ) {
+      patch.totalsAggregate = effectiveTotalsAggregate;
+      lastTotalsAggregateRef.current = effectiveTotalsAggregate;
       changed = true;
     }
 
@@ -249,6 +278,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     isRawRecords,
     showTotals,
     totals,
+    effectiveTotalsAggregate,
     rawSummaryColumns,
     serverPaginationData,
     writeOwnState,
