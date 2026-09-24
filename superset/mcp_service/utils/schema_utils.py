@@ -25,7 +25,7 @@ for input parameters, making MCP tools more flexible for different clients.
 from __future__ import annotations
 
 import logging
-from typing import Any, Callable, Dict, List, Type, TypeVar
+from typing import Any, Callable, List, Type, TypeVar
 
 from pydantic import BaseModel, GetJsonSchemaHandler, ValidationError
 
@@ -35,23 +35,23 @@ T = TypeVar("T")
 
 
 class OmittedMeansUnchanged(BaseModel):
-    """Base for update requests where an omitted field leaves the value alone.
+    """Base for models that tell an omitted field from an explicit ``null``.
 
-    These requests tell "not provided" from an explicit ``null`` through
-    ``model_fields_set``: the first leaves the stored value alone, the second
-    clears it. Pydantic advertises ``"default": null`` for every optional
-    field, and a client that materialises those defaults sends nulls the
-    caller never asked for, which the model then reads as deliberate clears.
+    These models read ``model_fields_set``, so leaving a field out is not the
+    same as passing ``null``. Pydantic advertises ``"default": null`` for every
+    optional field, and a client that materialises those defaults then sends
+    nulls the caller never named, which the model reads as deliberate input.
 
     Dropping the advertised default keeps the fields optional without handing
-    clients a value to fill in. Validation is unchanged: omitting a field
-    still leaves it unset, and passing ``null`` still clears.
+    clients a value to fill in. Nothing else changes: an omitted field is still
+    unset, and an explicit ``null`` still means whatever the tool already made
+    it mean.
     """
 
     @classmethod
     def __get_pydantic_json_schema__(
         cls, core_schema: Any, handler: GetJsonSchemaHandler
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         schema = handler(core_schema)
         for field in schema.get("properties", {}).values():
             if "default" in field and field["default"] is None:

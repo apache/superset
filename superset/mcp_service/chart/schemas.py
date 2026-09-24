@@ -746,7 +746,7 @@ class UnknownFieldCheckMixin(BaseModel):
         return _check_unknown_fields(data, cls)
 
 
-class BaseChartConfig(UnknownFieldCheckMixin):
+class BaseChartConfig(UnknownFieldCheckMixin, OmittedMeansUnchanged):
     """Fields shared by every MCP chart configuration."""
 
     temporal_column: str | None = Field(

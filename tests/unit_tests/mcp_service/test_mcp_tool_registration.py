@@ -26,6 +26,7 @@ import pytest
 
 from superset.mcp_service.app import get_default_instructions, init_fastmcp_server, mcp
 from superset.mcp_service.utils.response_size_utils import COMMITTED_WRITE_SPECS
+from superset.mcp_service.utils.schema_utils import OmittedMeansUnchanged
 
 # Patch target for the feature_flag_manager imported inside _apply_config_guards
 _FFM_PATH = "superset.extensions.feature_flag_manager"
@@ -250,9 +251,9 @@ def _run(coro):
 
 
 # Tools whose request model tells "field omitted" from "field set to null":
-# omitting leaves the stored value alone, passing null clears it. Their
-# optional fields must not advertise a default, or a client that materialises
-# defaults turns every call into a clear of everything it did not mention.
+# omitting leaves the stored value alone, an explicit null is deliberate input.
+# Their optional fields must not advertise a default, or a client that
+# materialises defaults sends nulls for everything the caller never named.
 OMITTED_MEANS_UNCHANGED_TOOLS = (
     "update_chart",
     "update_dashboard",
@@ -264,28 +265,78 @@ def _request_model_schema(tool: Any) -> dict[str, Any]:
     """Return the JSON Schema of a tool's ``request`` argument."""
     schema = tool.parameters or {}
     request = schema.get("properties", {}).get("request", {})
-    reference = request.get("$ref", "")
-    if reference.startswith("#/$defs/"):
-        return schema.get("$defs", {}).get(reference.split("/")[-1], {})
-    return request
+    for candidate in (request, *request.get("allOf", [])):
+        if reference := candidate.get("$ref"):
+            name = reference.rpartition("/")[2]
+            for container in ("$defs", "definitions"):
+                if name in schema.get(container, {}):
+                    return schema[container][name]
+            pytest.fail(
+                f"{tool.name}: cannot resolve request schema reference {reference!r}"
+            )
+    if "properties" in request:
+        return request
+    pytest.fail(
+        f"{tool.name}: unrecognised request schema shape {sorted(request)}; "
+        "the null-default check below would silently pass"
+    )
 
 
-def test_partial_update_tools_advertise_no_null_default():
+def _null_defaults(schema: dict[str, Any]) -> list[str]:
+    """Return the fields of one schema that advertise null as their default."""
+    return sorted(
+        field
+        for field, spec in schema.get("properties", {}).items()
+        if "default" in spec and spec["default"] is None
+    )
+
+
+def _omitted_means_unchanged_models() -> list[type[OmittedMeansUnchanged]]:
+    """Return every model built on ``OmittedMeansUnchanged``."""
+    models: list[type[OmittedMeansUnchanged]] = []
+    pending = [OmittedMeansUnchanged]
+    while pending:
+        for subclass in pending.pop().__subclasses__():
+            if subclass not in models:
+                models.append(subclass)
+                pending.append(subclass)
+    return models
+
+
+def test_partial_update_tools_advertise_no_null_default() -> None:
     """No optional field of a partial-update tool offers null as its default."""
     registered = {tool.name: tool for tool in _run(mcp.list_tools())}
     advertised = {}
     for name in OMITTED_MEANS_UNCHANGED_TOOLS:
-        fields = _request_model_schema(registered[name]).get("properties", {})
-        if offenders := sorted(
-            field
-            for field, spec in fields.items()
-            if "default" in spec and spec["default"] is None
-        ):
+        tool = registered.get(name)
+        if tool is None:
+            pytest.fail(f"{name} is not registered, so its schema cannot be checked")
+        if offenders := _null_defaults(_request_model_schema(tool)):
             advertised[name] = offenders
 
     assert not advertised, (
         "Partial-update tools must not advertise null defaults, or a client "
         f"filling them clears values the caller never named: {advertised}"
+    )
+
+
+def test_omitted_means_unchanged_models_advertise_no_null_default() -> None:
+    """Every model on the base keeps null out of its advertised defaults.
+
+    ``update_chart`` reads ``model_fields_set`` on the nested chart config
+    rather than on the request, so the config models carry the base too. This
+    covers them, and any model that joins them later.
+    """
+    models = _omitted_means_unchanged_models()
+    assert models, "OmittedMeansUnchanged has no subclasses; is the import stale?"
+
+    offenders = {
+        model.__name__: null_defaults
+        for model in models
+        if (null_defaults := _null_defaults(model.model_json_schema()))
+    }
+    assert not offenders, (
+        f"Models on OmittedMeansUnchanged must not advertise null defaults: {offenders}"
     )
 
 
