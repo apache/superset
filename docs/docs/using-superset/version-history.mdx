@@ -91,10 +91,15 @@ purge with 0. A host can install `SOFT_DELETE_RETENTION_DAYS_FUNC` to supply
 an authoritative integer window before the stored CLI override. Invalid or
 unavailable callback results defer purge with 0; they do not use stored values.
 Without that callback, the stored CLI window still takes precedence over config.
-The CLI rejects windows outside -1 through 36500. Existing stored integers or
-runtime config values above 36500 defer scheduled purge with 0, preserving data
-until the operator corrects the window. Other malformed standalone values retain
-the config/default fallback.
+The CLI rejects windows outside -1 through 36500. Malformed or oversized stored
+windows and runtime config values defer scheduled purge with 0, preserving data
+until the operator corrects the window. Only an absent stored window falls back
+to config; only an absent config setting uses the 30-day default.
+Runtime invalid-window resolutions and host-policy failures emit the
+`deletion_retention.invalid_window` counter and a warning; intentional `0` does
+not emit this counter. It counts resolutions, including CLI and client-config
+reads, rather than cleanup runs. Invalid environment seeds are converted to `0`
+at startup and reported by a startup warning instead.
 This does not change explicit force-purge or supply downgrade grace protection.
 
 Permanent purge also removes the purged object's related version-history records,

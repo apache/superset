@@ -35,7 +35,9 @@ eligibility on the next scheduled cleanup run, with its clock as cutoff (not a
 future cutoff). Live/current data and normal purge guards remain protected.
 An absent environment value retains the 30-day default. Invalid or oversized
 supplied environment values defer scheduled cleanup with 0 for both settings.
-Host policy failures also defer.
+Host policy failures also defer. Malformed or oversized standalone soft-delete
+runtime config and stored CLI windows likewise defer purge with 0 instead of
+falling back to a shorter retention window. Only absent values use the fallback.
 
 ### Version history API access follows `VERSION_HISTORY`
 

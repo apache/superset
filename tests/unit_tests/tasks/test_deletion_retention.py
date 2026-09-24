@@ -17,7 +17,7 @@
 """Unit tests for deletion-retention configuration and window resolution.
 
 The shared value overrides config, an unset value falls back to config, ``0``
-is preserved as the disable value, and malformed shared values use the fallback.
+is preserved as the disable value, and malformed supplied values defer purge.
 """
 
 import runpy
@@ -126,25 +126,86 @@ def test_immediate_window_from_shared_or_config(
         assert _resolve() == -1
 
 
-def test_malformed_shared_value_falls_back(app_config: Config) -> None:
-    for bad in ("oops", -3, True, 1.5):
-        with patch(
-            "superset.commands.deletion_retention.window.get_shared_value",
-            return_value=bad,
-        ):
-            assert _resolve() == 30
-
-
-@pytest.mark.parametrize("configured", ["oops", -3, True, None])
-def test_malformed_config_value_falls_back(
-    app_config: Config, configured: object
+@pytest.mark.parametrize("source", ["config", "shared"])
+@pytest.mark.parametrize("value", ["oops", "", -2, -3, True, False, 1.5])
+def test_malformed_standalone_window_defers_purge(
+    app_config: Config, source: str, value: object
 ) -> None:
-    app_config["SOFT_DELETE_RETENTION_DAYS"] = configured
+    """Malformed supplied windows never fall through to destructive defaults."""
+    import superset.tasks.deletion_retention as mod
+
+    app_config["SOFT_DELETE_RETENTION_DAYS"] = value if source == "config" else 30
+    app_config["SOFT_DELETE_PURGE_DRY_RUN"] = False
+    models: MagicMock
+    reconcile: MagicMock
+    with (
+        patch.object(mod.feature_flag_manager, "is_feature_enabled", return_value=True),
+        patch(
+            "superset.commands.deletion_retention.window.get_shared_value",
+            return_value=value if source == "shared" else None,
+        ),
+        patch.object(mod, "_soft_delete_models") as models,
+        patch.object(mod.audit, "reconcile_pending") as reconcile,
+    ):
+        assert mod.purge_soft_deleted.run() == {"skipped": 1}
+    models.assert_not_called()
+    reconcile.assert_not_called()
+
+
+def test_explicit_none_config_defers_purge(app_config: Config) -> None:
+    """Only an absent config setting uses the default retention window."""
+    app_config["SOFT_DELETE_RETENTION_DAYS"] = None
     with patch(
         "superset.commands.deletion_retention.window.get_shared_value",
         return_value=None,
     ):
-        assert _resolve() == 30
+        assert _resolve() == 0
+
+
+@pytest.mark.parametrize("source", ["config", "shared", "policy"])
+@pytest.mark.parametrize("value", [-2, True, "bad", 36501, 30.0])
+def test_invalid_window_resolution_is_alertable(
+    app_config: Config, source: str, value: object
+) -> None:
+    """Each invalid resolution emits one distinct counter without purging."""
+    from superset.extensions import stats_logger_manager
+
+    app_config["SOFT_DELETE_RETENTION_DAYS"] = value if source == "config" else 30
+    if source == "policy":
+        app_config["SOFT_DELETE_RETENTION_DAYS_FUNC"] = lambda: value
+    stats: MagicMock
+    with (
+        patch(
+            "superset.commands.deletion_retention.window.get_shared_value",
+            return_value=value if source == "shared" else None,
+        ),
+        patch.object(stats_logger_manager.instance, "incr") as stats,
+    ):
+        assert _resolve() == 0
+    stats.assert_called_once_with("deletion_retention.invalid_window")
+
+
+@pytest.mark.parametrize("source", ["config", "shared", "policy"])
+@pytest.mark.parametrize("days", [-1, 0, 30])
+def test_valid_window_does_not_emit_invalid_metric(
+    app_config: Config, source: str, days: int
+) -> None:
+    """Intentional disable and immediate eligibility are not misconfigurations."""
+    from superset.extensions import stats_logger_manager
+
+    app_config["SOFT_DELETE_RETENTION_DAYS"] = days if source == "config" else 30
+    if source == "policy":
+        app_config["SOFT_DELETE_RETENTION_DAYS_FUNC"] = lambda: days
+    stats: MagicMock
+    with (
+        patch(
+            "superset.commands.deletion_retention.window.get_shared_value",
+            return_value=days if source == "shared" else None,
+        ),
+        patch.object(stats_logger_manager.instance, "incr") as stats,
+    ):
+        assert _resolve() == days
+    stats.assert_not_called()
 
 
 def test_window_zero_disables_the_task(app_context: None) -> None:

@@ -19,7 +19,7 @@
 from collections.abc import Iterator
 from itertools import chain, repeat
 from typing import Any
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 from uuid import UUID
 
 import pytest
@@ -273,6 +273,7 @@ def test_restore_capture_decision_covers_persisted_mutation(
     memo: dict[SessionTransaction, bool] = {}
 
     def predicate(active_session: Session) -> bool:
+        assert active_session is session
         transaction: SessionTransaction | None = active_session.get_transaction()
         if transaction is None:
             return next(decisions)
@@ -280,13 +281,22 @@ def test_restore_capture_decision_covers_persisted_mutation(
             memo[transaction] = next(decisions)
         return memo[transaction]
 
+    from superset.versioning.utils import capture_enabled
+
     monkeypatch.setitem(app.config, "VERSIONING_CAPTURE_PREDICATE", predicate)
-    with patch.object(security_manager, "raise_for_editorship"):
+    capture_gate: MagicMock
+    with (
+        patch.object(security_manager, "raise_for_editorship"),
+        patch(
+            "superset.commands.version_restore.capture_enabled", wraps=capture_enabled
+        ) as capture_gate,
+    ):
         if initially_enabled:
             RestoreDashboardVersionCommand(entity_uuid, target_uuid).run()
         else:
             with pytest.raises(DashboardNotFoundError):
                 RestoreDashboardVersionCommand(entity_uuid, target_uuid).run()
+    capture_gate.assert_called_once_with(session)
     # Both commit and denial/rollback leave no command-owned transaction open.
     assert session.get_transaction() is None
     db.session.remove()

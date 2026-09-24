@@ -23,6 +23,7 @@ from collections.abc import Callable
 
 from flask import current_app
 
+from superset.extensions import stats_logger_manager
 from superset.key_value.shared_entries import get_shared_value
 from superset.key_value.types import SharedKey
 
@@ -30,6 +31,13 @@ logger: logging.Logger = logging.getLogger(__name__)
 
 _DEFAULT_RETENTION_DAYS: int = 30
 MAX_RETENTION_DAYS: int = 36500
+
+
+def _defer_invalid_window(message: str) -> int:
+    """Record invalid resolutions separately from an intentional zero disable."""
+    logger.warning(message)
+    stats_logger_manager.instance.incr("deletion_retention.invalid_window")
+    return 0
 
 
 def _config_retention_days() -> int:
@@ -42,19 +50,16 @@ def _config_retention_days() -> int:
             raise ValueError
         days: int = int(configured)
         if days > MAX_RETENTION_DAYS:
-            logger.warning("deletion_retention: oversized config retention; skipping")
-            return 0
+            return _defer_invalid_window(
+                "deletion_retention: oversized config retention; skipping"
+            )
         if days < -1:
             raise ValueError
         return days
     except (TypeError, ValueError):
-        logger.warning(
-            "deletion_retention: ignoring malformed config retention value %r; "
-            "falling back to %d days",
-            configured,
-            _DEFAULT_RETENTION_DAYS,
+        return _defer_invalid_window(
+            "deletion_retention: malformed config retention; skipping"
         )
-        return _DEFAULT_RETENTION_DAYS
 
 
 def resolve_retention_window() -> int:
@@ -73,8 +78,8 @@ def resolve_retention_window() -> int:
     ``0`` from any source is a meaningful "disable", so the shared
     value is selected with an explicit ``is None`` check — never ``or``,
     which would treat ``0`` as unset. A malformed shared value is
-    rejected (logged) and the fallback is used rather than crashing the
-    scheduled task. Oversized integer windows defer purge with zero rather
+    rejected (logged) and defers purge with zero rather than crashing the
+    scheduled task. Oversized integer windows also defer purge with zero rather
     than shortening an operator's intended retention.
     """
     policy: Callable[[], object] | None = current_app.config.get(
@@ -84,28 +89,26 @@ def resolve_retention_window() -> int:
         try:
             days: object = policy()
         except Exception:  # Host boundary: do not expose service payloads or purge.
-            logger.warning(
+            return _defer_invalid_window(
                 "deletion_retention: host retention policy unavailable; skipping"
             )
-            return 0
         if (
             isinstance(days, int)
             and not isinstance(days, bool)
             and -1 <= days <= MAX_RETENTION_DAYS
         ):
             return days
-        logger.warning("deletion_retention: invalid host retention policy; skipping")
-        return 0
+        return _defer_invalid_window(
+            "deletion_retention: invalid host retention policy; skipping"
+        )
     if (shared := get_shared_value(SharedKey.SOFT_DELETE_RETENTION_DAYS)) is not None:
         if isinstance(shared, int) and shared > MAX_RETENTION_DAYS:
-            logger.warning("deletion_retention: oversized shared retention; skipping")
-            return 0
-        if isinstance(shared, bool) or not isinstance(shared, int) or shared < -1:
-            logger.warning(
-                "deletion_retention: ignoring malformed shared retention value %r; "
-                "falling back to config",
-                shared,
+            return _defer_invalid_window(
+                "deletion_retention: oversized shared retention; skipping"
             )
-        else:
-            return shared
+        if isinstance(shared, bool) or not isinstance(shared, int) or shared < -1:
+            return _defer_invalid_window(
+                "deletion_retention: malformed shared retention; skipping"
+            )
+        return shared
     return _config_retention_days()
