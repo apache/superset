@@ -180,12 +180,11 @@ export default function ExploreVersionHistory() {
   // shows up.
   const restoreCount = useSelector(selectVersionRestoreCount);
   const lastRestoredUuid = useSelector(selectVersionLastRestoredUuid);
-  // The successful PUT response reaches saveModal before Explore rehydrates,
-  // and changed_on may be unchanged across successive saves. Its identity is
-  // a save signal; its id prevents save-as/late results refreshing another chart.
+  // The success marker survives batched Explore hydration and same-second
+  // saves. Its id prevents save-as/late results refreshing another chart.
   const reduxStore = useStore<RootState>();
-  const saveResult = useAppSelector(state => state.saveModal?.data);
-  const lastSaveResultRef = useRef(saveResult);
+  const savedChart = useAppSelector(state => state.saveModal?.lastSavedChart);
+  const lastSavedChartRef = useRef(savedChart);
   const lastSaveSliceIdRef = useRef(sliceId);
   const lastRestoreCountRef = useRef(restoreCount);
   const refreshActivity = activity.refresh;
@@ -209,12 +208,10 @@ export default function ExploreVersionHistory() {
   useEffect(() => {
     const savedThisChart =
       sliceId === lastSaveSliceIdRef.current &&
-      saveResult !== lastSaveResultRef.current &&
-      typeof saveResult === 'object' &&
-      saveResult !== null &&
-      'id' in saveResult &&
-      saveResult.id === sliceId;
-    lastSaveResultRef.current = saveResult;
+      savedChart !== lastSavedChartRef.current &&
+      savedChart !== undefined &&
+      savedChart.id === sliceId;
+    lastSavedChartRef.current = savedChart;
     lastSaveSliceIdRef.current = sliceId;
     if (savedThisChart) {
       // A newer committed save supersedes an in-flight restore hydration,
@@ -237,7 +234,7 @@ export default function ExploreVersionHistory() {
           // already correct, so the stale restore payload is simply dropped.
           const isCurrent = () =>
             restoreHydrationIdRef.current === hydrationId &&
-            reduxStore.getState().saveModal?.data === saveResult;
+            reduxStore.getState().saveModal?.lastSavedChart === savedChart;
           fetchExploreRehydrationData(sliceId)
             .then(result => {
               if (isCurrent()) {
@@ -255,17 +252,18 @@ export default function ExploreVersionHistory() {
         return;
       }
     }
-    if (savedThisChart) {
+    if (savedThisChart && isPanelOpen) {
       refreshActivity();
     }
   }, [
     addDangerToast,
     dispatch,
+    isPanelOpen,
     lastRestoredUuid,
     refreshActivity,
     reduxStore,
     restoreCount,
-    saveResult,
+    savedChart,
     sliceId,
     uuid,
   ]);

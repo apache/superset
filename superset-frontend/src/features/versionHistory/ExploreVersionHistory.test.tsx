@@ -17,6 +17,7 @@
  * under the License.
  */
 import type { AnyAction, Store } from 'redux';
+import { ToastType } from 'src/components/MessageToasts/types';
 import fetchMock from 'fetch-mock';
 import { DatasourceType, QueryFormData } from '@superset-ui/core';
 import type { Slice } from 'src/dashboard/types';
@@ -26,8 +27,19 @@ import {
   saveSliceSuccess,
 } from 'src/explore/actions/saveModalActions';
 import saveModalReducer from 'src/explore/reducers/saveModalReducer';
-import { act, render, waitFor } from 'spec/helpers/testing-library';
-import { hydrateExplore } from 'src/explore/actions/hydrateExplore';
+import {
+  act,
+  render,
+  waitFor,
+  screen,
+  userEvent,
+} from 'spec/helpers/testing-library';
+import {
+  hydrateExplore,
+  HYDRATE_EXPLORE,
+} from 'src/explore/actions/hydrateExplore';
+import PropertiesModal from 'src/explore/components/PropertiesModal';
+import { sliceUpdated } from 'src/explore/actions/exploreActions';
 import type { VersionHistoryState } from './types';
 import { fetchExploreRehydrationData } from './api';
 import { useVersionActivity } from './useVersionActivity';
@@ -58,9 +70,12 @@ jest.mock('./api', () => ({
   fetchExploreRehydrationData: jest.fn(),
 }));
 jest.mock('src/explore/actions/hydrateExplore', () => ({
+  HYDRATE_EXPLORE: 'HYDRATE_EXPLORE',
   hydrateExplore: jest.fn(),
 }));
 jest.mock('src/components/MessageToasts/withToasts', () => ({
+  __esModule: true,
+  ...jest.requireActual('src/components/MessageToasts/withToasts'),
   useToasts: () => ({ addDangerToast: jest.fn() }),
 }));
 
@@ -567,3 +582,85 @@ test('save-as navigation lets the new entity load without an extra save refresh'
   });
   expect(refresh).not.toHaveBeenCalled();
 });
+
+test.each([true, false])(
+  'successful overwrite survives hydration with batched=%s without duplicate refresh',
+  async batched => {
+    fetchMock.put('glob:*/api/v1/chart/1', { id: 1, result: {} });
+    const store = makeSaveStore();
+    renderAdapter(store);
+    await act(async () => {
+      await updateSlice(
+        overwriteSlice,
+        'Renamed chart',
+        [],
+      )(store.dispatch, store.getState);
+      if (batched)
+        store.dispatch({ type: HYDRATE_EXPLORE, data: { saveModal: {} } });
+    });
+    if (!batched) {
+      act(() => {
+        store.dispatch({ type: HYDRATE_EXPLORE, data: { saveModal: {} } });
+      });
+    }
+    expect(store.getState().saveModal?.data).toBeUndefined();
+    expect(refresh).toHaveBeenCalledTimes(1);
+  },
+);
+
+test.each(['open', 'closed', 'other chart', 'failed'])(
+  'properties title save with history %s respects persistence and scope',
+  async scenario => {
+    fetchMock.get('glob:*/api/v1/chart/1*', {
+      result: { ...overwriteSlice, editors: [], viewers: [], tags: [] },
+    });
+    fetchMock.put(
+      'glob:*/api/v1/chart/1',
+      scenario === 'failed' ? 500 : { id: 1, result: {} },
+    );
+    const store = makeSaveStore();
+    if (scenario === 'closed')
+      store.setState({
+        versionHistory: versionHistoryState({ isPanelOpen: false }),
+      });
+    if (scenario === 'other chart')
+      store.setState({
+        explore: {
+          slice: { ...slice('unchanged'), slice_id: 2, uuid: 'other-chart' },
+        },
+      });
+    const onHide = jest.fn();
+    render(
+      <>
+        <ExploreVersionHistory />
+        <PropertiesModal
+          show
+          slice={overwriteSlice}
+          onHide={onHide}
+          onSave={(chart: Parameters<typeof sliceUpdated>[0]) =>
+            store.dispatch(sliceUpdated(chart))
+          }
+        />
+      </>,
+      { store: store as unknown as Store },
+    );
+    const name = await screen.findByRole('textbox', { name: 'Name' });
+    await userEvent.clear(name);
+    await userEvent.type(name, 'Renamed chart');
+    await userEvent.click(screen.getByRole('button', { name: 'Save' }));
+    if (scenario === 'failed') {
+      await waitFor(() =>
+        expect(store.actions).toContainEqual(
+          expect.objectContaining({
+            type: 'ADD_TOAST',
+            payload: expect.objectContaining({ toastType: ToastType.Danger }),
+          }),
+        ),
+      );
+      expect(onHide).not.toHaveBeenCalled();
+    } else {
+      await waitFor(() => expect(onHide).toHaveBeenCalled());
+    }
+    expect(refresh).toHaveBeenCalledTimes(scenario === 'open' ? 1 : 0);
+  },
+);
