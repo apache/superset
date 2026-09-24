@@ -107,7 +107,7 @@ class TableChartPlugin(BaseChartPlugin):
         # Preserve which nested column formatting fields were explicitly supplied.
         # Round-tripping them through model_dump/model_validate would materialize
         # omitted optional fields as None, turning a partial update into a clear.
-        config_dict = config.model_dump(exclude={"column_config"})
+        config_dict = config.model_dump(exclude={"column_config"}, exclude_unset=True)
         get_canonical = DatasetValidator.get_canonical_column_name
         get_canonical_metric = DatasetValidator.get_canonical_metric_name
         raw_column_names: dict[str, str] = {}
