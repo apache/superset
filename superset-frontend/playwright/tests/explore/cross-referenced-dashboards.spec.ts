@@ -24,48 +24,46 @@
  * plural metadata text and the submenu listing), then attaches the rest via
  * the API to reach the SEARCH_THRESHOLD (10) search-input behavior.
  */
+import type { Page } from '@playwright/test';
 import { testWithAssets, expect } from '../../helpers/fixtures';
-import { apiPostChart, apiPutChart } from '../../helpers/api/chart';
+import { apiPutChart } from '../../helpers/api/chart';
 import { createTestDashboard } from '../dashboard/dashboard-test-helpers';
-import { getDatasetByName } from '../../helpers/api/dataset';
-import { extractIdFromResponse } from '../../helpers/api/assertions';
 import { waitForPut } from '../../helpers/api/intercepts';
 import { ExplorePage } from '../../pages/ExplorePage';
 import { TIMEOUT } from '../../utils/constants';
+import { createExploreTestChart } from './explore-test-helpers';
 
-const DATASET_NAME = 'birth_names';
 const TOTAL_DASHBOARDS = 11; // > SEARCH_THRESHOLD (10) to exercise the search input
+
+/** Overwrites the open chart, adding it to an existing dashboard via the Save modal. */
+async function overwriteToDashboard(
+  page: Page,
+  explorePage: ExplorePage,
+  chartId: number,
+  dashboardName: string,
+): Promise<void> {
+  const saveModal = await explorePage.openSaveModal();
+  await saveModal.selectSaveAction('overwrite');
+  await saveModal.selectDashboard(dashboardName);
+  const updated = waitForPut(page, `api/v1/chart/${chartId}`, {
+    pathMatch: true,
+  });
+  await saveModal.clickSave();
+  expect((await updated).ok()).toBe(true);
+  await explorePage.waitForPageLoad();
+}
 
 testWithAssets(
   'chart metadata bar and "On dashboards" submenu reflect dashboard membership',
   async ({ page, testAssets }, testInfo) => {
     testWithAssets.setTimeout(TIMEOUT.SLOW_TEST);
 
-    const dataset = await getDatasetByName(page, DATASET_NAME);
-    if (!dataset) throw new Error(`Dataset ${DATASET_NAME} not found`);
-
-    const uniqueSuffix = `${Date.now()}_${testInfo.parallelIndex}`;
-    const chartName = `xref_chart_${uniqueSuffix}`;
-
-    const chartResp = await apiPostChart(page, {
-      slice_name: chartName,
-      viz_type: 'table',
-      datasource_id: dataset.id,
-      datasource_type: 'table',
-      params: JSON.stringify({
-        datasource: `${dataset.id}__table`,
-        viz_type: 'table',
-        query_mode: 'raw',
-        all_columns: ['name', 'gender', 'num'],
-        adhoc_filters: [],
-        order_by_cols: [],
-        row_limit: 1000,
-        server_pagination: false,
-      }),
-    });
-    expect(chartResp.ok()).toBe(true);
-    const chartId = await extractIdFromResponse(chartResp);
-    testAssets.trackChart(chartId);
+    const { id: chartId } = await createExploreTestChart(
+      page,
+      testAssets,
+      testInfo,
+      { prefix: 'xref_chart' },
+    );
 
     const explorePage = new ExplorePage(page);
     await explorePage.goto(chartId);
@@ -80,22 +78,14 @@ testWithAssets(
 
     // Create dashboards 1 and 2 up front so the UI-save select can find them.
     const dashboard1 = await createTestDashboard(page, testAssets, testInfo, {
-      prefix: `xref_dash_${uniqueSuffix}_1`,
+      prefix: 'xref_dash_1',
     });
     const dashboard2 = await createTestDashboard(page, testAssets, testInfo, {
-      prefix: `xref_dash_${uniqueSuffix}_2`,
+      prefix: 'xref_dash_2',
     });
 
     // UI-save to dashboard 1: verifies singular metadata text.
-    const saveModal1 = await explorePage.openSaveModal();
-    await saveModal1.selectSaveAction('overwrite');
-    await saveModal1.selectDashboard(dashboard1.name);
-    const updated1 = waitForPut(page, `api/v1/chart/${chartId}`, {
-      pathMatch: true,
-    });
-    await saveModal1.clickSave();
-    expect((await updated1).ok()).toBe(true);
-    await explorePage.waitForPageLoad();
+    await overwriteToDashboard(page, explorePage, chartId, dashboard1.name);
 
     await expect(explorePage.getDashboardsMetadataText()).toHaveText(
       'Added to 1 dashboard',
@@ -103,15 +93,7 @@ testWithAssets(
 
     // UI-save to dashboard 2: verifies plural metadata text and that both
     // dashboards are listed in the submenu.
-    const saveModal2 = await explorePage.openSaveModal();
-    await saveModal2.selectSaveAction('overwrite');
-    await saveModal2.selectDashboard(dashboard2.name);
-    const updated2 = waitForPut(page, `api/v1/chart/${chartId}`, {
-      pathMatch: true,
-    });
-    await saveModal2.clickSave();
-    expect((await updated2).ok()).toBe(true);
-    await explorePage.waitForPageLoad();
+    await overwriteToDashboard(page, explorePage, chartId, dashboard2.name);
 
     await expect(explorePage.getDashboardsMetadataText()).toHaveText(
       'Added to 2 dashboards',
@@ -133,7 +115,7 @@ testWithAssets(
     for (let i = 0; i < remainingCount; i += 1) {
       // eslint-disable-next-line no-await-in-loop
       const dash = await createTestDashboard(page, testAssets, testInfo, {
-        prefix: `xref_dash_${uniqueSuffix}_${i + 3}`,
+        prefix: `xref_dash_${i + 3}`,
       });
       remainingDashboards.push(dash);
     }

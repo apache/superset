@@ -22,60 +22,26 @@
  * coverage only; the view-query and iframe cases moved to RTL elsewhere).
  */
 import { testWithAssets, expect } from '../../helpers/fixtures';
-import {
-  apiPostChart,
-  apiGetChart,
-  getChartsByName,
-} from '../../helpers/api/chart';
+import { apiGetChart, getChartsByName } from '../../helpers/api/chart';
 import { getDashboardsByName } from '../../helpers/api/dashboard';
-import { getDatasetByName } from '../../helpers/api/dataset';
 import { waitForPost, waitForPut } from '../../helpers/api/intercepts';
 import { extractIdFromResponse } from '../../helpers/api/assertions';
 import { ExplorePage } from '../../pages/ExplorePage';
 import { TIMEOUT } from '../../utils/constants';
-
-const DATASET_NAME = 'birth_names';
-
-async function createBaseChart(
-  page: import('@playwright/test').Page,
-  name: string,
-  datasetId: number,
-): Promise<number> {
-  const params = {
-    datasource: `${datasetId}__table`,
-    viz_type: 'table',
-    query_mode: 'raw',
-    all_columns: ['name', 'gender', 'num'],
-    adhoc_filters: [],
-    order_by_cols: [],
-    row_limit: 1000,
-    server_pagination: false,
-  };
-  const resp = await apiPostChart(page, {
-    slice_name: name,
-    viz_type: 'table',
-    datasource_id: datasetId,
-    datasource_type: 'table',
-    params: JSON.stringify(params),
-  });
-  expect(resp.ok()).toBe(true);
-  return extractIdFromResponse(resp);
-}
+import { createExploreTestChart } from './explore-test-helpers';
 
 testWithAssets(
   'save as a new chart, then overwrite it (exactly one chart by name)',
   async ({ page, testAssets }, testInfo) => {
     testWithAssets.setTimeout(TIMEOUT.SLOW_TEST);
 
-    const dataset = await getDatasetByName(page, DATASET_NAME);
-    if (!dataset) throw new Error(`Dataset ${DATASET_NAME} not found`);
-
-    const uniqueSuffix = `${Date.now()}_${testInfo.parallelIndex}`;
-    const baseChartName = `explore_save_base_${uniqueSuffix}`;
-    const newChartName = `explore_save_new_${uniqueSuffix}`;
-
-    const baseChartId = await createBaseChart(page, baseChartName, dataset.id);
-    testAssets.trackChart(baseChartId);
+    const { id: baseChartId } = await createExploreTestChart(
+      page,
+      testAssets,
+      testInfo,
+      { prefix: 'explore_save_base' },
+    );
+    const newChartName = `explore_save_new_${Date.now()}_${testInfo.parallelIndex}`;
 
     const explorePage = new ExplorePage(page);
     await explorePage.goto(baseChartId);
@@ -86,8 +52,7 @@ testWithAssets(
     await saveModal.fillChartName(newChartName);
     const created = waitForPost(page, 'api/v1/chart/');
     await saveModal.clickSave();
-    const createdResponse = await created;
-    const newChartId = await extractIdFromResponse(createdResponse);
+    const newChartId = await extractIdFromResponse(await created);
     testAssets.trackChart(newChartId);
 
     await explorePage.waitForPageLoad();
@@ -111,16 +76,15 @@ testWithAssets(
   async ({ page, testAssets }, testInfo) => {
     testWithAssets.setTimeout(TIMEOUT.SLOW_TEST);
 
-    const dataset = await getDatasetByName(page, DATASET_NAME);
-    if (!dataset) throw new Error(`Dataset ${DATASET_NAME} not found`);
-
+    const { id: baseChartId } = await createExploreTestChart(
+      page,
+      testAssets,
+      testInfo,
+      { prefix: 'explore_save_dash_base' },
+    );
     const uniqueSuffix = `${Date.now()}_${testInfo.parallelIndex}`;
-    const baseChartName = `explore_save_dash_base_${uniqueSuffix}`;
     const newChartName = `explore_save_dash_new_${uniqueSuffix}`;
     const dashboardTitle = `explore_save_dash_${uniqueSuffix}`;
-
-    const baseChartId = await createBaseChart(page, baseChartName, dataset.id);
-    testAssets.trackChart(baseChartId);
 
     const explorePage = new ExplorePage(page);
     await explorePage.goto(baseChartId);
@@ -139,16 +103,8 @@ testWithAssets(
     // cleans it up.
     const dashboardId = await extractIdFromResponse(await dashboardCreated);
     testAssets.trackDashboard(dashboardId);
-    const createdResponse = await created;
-    const newChartId = await extractIdFromResponse(createdResponse);
+    const newChartId = await extractIdFromResponse(await created);
     testAssets.trackChart(newChartId);
-
-    const dashboardsAfterCreate = await getDashboardsByName(
-      page,
-      dashboardTitle,
-    );
-    expect(dashboardsAfterCreate.count).toBe(1);
-    expect(dashboardsAfterCreate.result[0].id).toBe(dashboardId);
 
     await explorePage.waitForPageLoad();
 
@@ -162,18 +118,14 @@ testWithAssets(
     await saveModal2.clickSave();
     expect((await updated).ok()).toBe(true);
 
-    const chartsResult = await getChartsByName(page, newChartName);
-    expect(chartsResult.count).toBe(1);
+    expect((await getChartsByName(page, newChartName)).count).toBe(1);
+    expect((await getDashboardsByName(page, dashboardTitle)).count).toBe(1);
 
-    const dashboardsResult = await getDashboardsByName(page, dashboardTitle);
-    expect(dashboardsResult.count).toBe(1);
-
-    // Confirm the chart is actually associated with the dashboard.
-    const chartDetail = await apiGetChart(page, newChartId);
-    const chartBody = await chartDetail.json();
+    // Confirm the chart is associated with the dashboard created on save-as.
+    const chartBody = await (await apiGetChart(page, newChartId)).json();
     const dashboardIds: number[] = (chartBody.result?.dashboards ?? []).map(
       (d: { id: number }) => d.id,
     );
-    expect(dashboardIds).toContain(dashboardsResult.result[0].id);
+    expect(dashboardIds).toContain(dashboardId);
   },
 );

@@ -30,11 +30,19 @@ interface TestChartResult {
 interface CreateTestChartOptions {
   /** Prefix for generated name (default: 'test_chart') */
   prefix?: string;
+  /** Dataset to build the chart on (default: 'members_channels_2') */
+  datasetName?: string;
+  /**
+   * Chart form data. `datasource` and `viz_type` are filled in from the
+   * dataset; when omitted the chart is created with empty params.
+   */
+  params?: Record<string, unknown>;
 }
 
 /**
  * Creates a test chart via the API for E2E testing.
- * Uses the members_channels_2 dataset (loaded via --load-examples).
+ * Uses the members_channels_2 dataset (loaded via --load-examples) unless
+ * `datasetName` is given.
  *
  * @example
  * const { id, name } = await createTestChart(page, testAssets, test.info());
@@ -53,11 +61,11 @@ export async function createTestChart(
   const prefix = options?.prefix ?? 'test_chart';
   const name = `${prefix}_${Date.now()}_${testInfo.parallelIndex}`;
 
-  // Look up the members_channels_2 dataset for chart creation
-  const dataset = await getDatasetByName(page, 'members_channels_2');
+  const datasetName = options?.datasetName ?? 'members_channels_2';
+  const dataset = await getDatasetByName(page, datasetName);
   if (!dataset) {
     throw new Error(
-      'members_channels_2 dataset not found — run Superset with --load-examples',
+      `${datasetName} dataset not found — run Superset with --load-examples`,
     );
   }
 
@@ -66,7 +74,13 @@ export async function createTestChart(
     datasource_id: dataset.id,
     datasource_type: 'table',
     viz_type: 'table',
-    params: '{}',
+    params: options?.params
+      ? JSON.stringify({
+          datasource: `${dataset.id}__table`,
+          viz_type: 'table',
+          ...options.params,
+        })
+      : '{}',
   });
 
   if (!response.ok()) {

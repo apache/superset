@@ -30,7 +30,7 @@ import { Locator, Page } from '@playwright/test';
  * @example
  * const radio = new Radio(page, page.locator('[data-test="radio-group"]'));
  * await radio.select('Save as...');
- * expect(await radio.isSelected('Save as...')).toBe(true);
+ * await expect(radio.getOption('Save as...')).toBeChecked();
  *
  * @param page - The Playwright {@link Page} instance associated with the test.
  * @param locator - The Playwright {@link Locator} targeting the radio container.
@@ -65,21 +65,5 @@ export class Radio {
    */
   async select(label: string): Promise<void> {
     await this.getOption(label).check();
-  }
-
-  /**
-   * Checks if the option with the given label is selected
-   * @param label - The option's visible label
-   */
-  async isSelected(label: string): Promise<boolean> {
-    return this.getOption(label).isChecked();
-  }
-
-  /**
-   * Checks if the option with the given label is enabled
-   * @param label - The option's visible label
-   */
-  async isEnabled(label: string): Promise<boolean> {
-    return this.getOption(label).isEnabled();
   }
 }
