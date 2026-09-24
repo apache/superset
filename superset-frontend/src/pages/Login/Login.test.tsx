@@ -36,6 +36,17 @@ jest.mock('src/utils/getBootstrapData', () => ({
   default: jest.fn(() => defaultBootstrapData),
 }));
 
+const mockAddDangerToast = jest.fn(() => ({ type: 'MOCK_TOAST' }));
+const mockAddInfoToast = jest.fn(() => ({ type: 'MOCK_TOAST' }));
+const mockAddSuccessToast = jest.fn(() => ({ type: 'MOCK_TOAST' }));
+const mockAddWarningToast = jest.fn(() => ({ type: 'MOCK_TOAST' }));
+jest.mock('src/components/MessageToasts/actions', () => ({
+  addDangerToast: (text: string) => mockAddDangerToast(text),
+  addInfoToast: (text: string) => mockAddInfoToast(text),
+  addSuccessToast: (text: string) => mockAddSuccessToast(text),
+  addWarningToast: (text: string) => mockAddWarningToast(text),
+}));
+
 const mockEnsureAppRoot = jest.fn((...args: string[]) => args[0]);
 jest.mock('src/utils/pathUtils', () => ({
   ensureAppRoot: (...args: string[]) => mockEnsureAppRoot(...args),
@@ -44,6 +55,7 @@ jest.mock('src/utils/pathUtils', () => ({
 const mockGetBootstrapData = getBootstrapData as jest.Mock;
 
 beforeEach(() => {
+  jest.clearAllMocks();
   mockGetBootstrapData.mockReturnValue(defaultBootstrapData);
   mockEnsureAppRoot.mockClear();
   mockEnsureAppRoot.mockImplementation((path: string) => path);
@@ -318,4 +330,80 @@ test('should use ensureAppRoot for all generated URLs with deep application root
   expect(
     screen.getByRole('link', { name: /Sign in with Google/ }),
   ).toHaveAttribute('href', '/my-org/superset/login/google');
+});
+
+// --- Auth flash messages ---
+
+test('should show flashed auth failures as danger toasts', () => {
+  mockGetBootstrapData.mockReturnValue({
+    ...defaultBootstrapData,
+    auth_messages: [['warning', 'Invalid login. Please try again.']],
+  });
+
+  render(<Login />, { useRedux: true });
+
+  expect(mockAddWarningToast).toHaveBeenCalledWith(
+    'Invalid login. Please try again.',
+  );
+  expect(mockAddDangerToast).not.toHaveBeenCalled();
+});
+
+test('should show every drained auth message', () => {
+  mockGetBootstrapData.mockReturnValue({
+    ...defaultBootstrapData,
+    auth_messages: [
+      ['warning', 'Invalid login. Please try again.'],
+      ['warning', 'Your session has ended. Please sign in again.'],
+    ],
+  });
+
+  render(<Login />, { useRedux: true });
+
+  expect(mockAddWarningToast).toHaveBeenCalledTimes(2);
+  expect(mockAddWarningToast).toHaveBeenCalledWith(
+    'Your session has ended. Please sign in again.',
+  );
+});
+
+test('should not fabricate a login error without auth messages', () => {
+  render(<Login />, { useRedux: true });
+
+  expect(mockAddDangerToast).not.toHaveBeenCalled();
+  expect(mockAddWarningToast).not.toHaveBeenCalled();
+  expect(mockAddInfoToast).not.toHaveBeenCalled();
+  expect(mockAddSuccessToast).not.toHaveBeenCalled();
+});
+
+test('should map success and info categories to matching toasts', () => {
+  mockGetBootstrapData.mockReturnValue({
+    ...defaultBootstrapData,
+    auth_messages: [
+      ['success', 'Password changed.'],
+      ['message', 'Welcome back.'],
+    ],
+  });
+
+  render(<Login />, { useRedux: true });
+
+  expect(mockAddSuccessToast).toHaveBeenCalledWith('Password changed.');
+  expect(mockAddInfoToast).toHaveBeenCalledWith('Welcome back.');
+  expect(mockAddDangerToast).not.toHaveBeenCalled();
+  expect(mockAddWarningToast).not.toHaveBeenCalled();
+});
+
+test('should map danger and error categories to danger toasts', () => {
+  mockGetBootstrapData.mockReturnValue({
+    ...defaultBootstrapData,
+    auth_messages: [
+      ['danger', 'Login failed.'],
+      ['error', 'Something went wrong.'],
+    ],
+  });
+
+  render(<Login />, { useRedux: true });
+
+  expect(mockAddDangerToast).toHaveBeenCalledTimes(2);
+  expect(mockAddDangerToast).toHaveBeenCalledWith('Login failed.');
+  expect(mockAddDangerToast).toHaveBeenCalledWith('Something went wrong.');
+  expect(mockAddWarningToast).not.toHaveBeenCalled();
 });
