@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-24 00:59+0300\n"
+"POT-Creation-Date: 2026-09-24 09:49+0300\n"
 "PO-Revision-Date: 2026-07-17 14:21+0000\n"
 "Last-Translator: José Teixeira <jose.teixeira@douroeci.com>\n"
 "Language: pt\n"
@@ -4695,6 +4695,13 @@ msgstr ""
 
 msgid "Chart width"
 msgstr "Largura do gráfico"
+
+#, python-format
+msgid ""
+"Chart with ID %(chart_id)s (referenced by annotation layer "
+"'%(layer_name)s') was not found. Please verify that the chart exists and "
+"is accessible."
+msgstr ""
 
 msgid "Charts"
 msgstr "Gráficos"
@@ -20650,6 +20657,13 @@ msgstr ""
 "A origem de dados do contexto da consulta não corresponde à origem de "
 "dados do gráfico"
 
+#, python-format
+msgid ""
+"The query context for chart ID %(chart_id)s (referenced by annotation "
+"layer '%(layer_name)s') was not found. Please ensure the chart is "
+"properly configured and has a valid query context."
+msgstr ""
+
 msgid "The query couldn't be loaded"
 msgstr "Não foi possível carregar a query"
 
@@ -26900,9 +26914,6 @@ msgstr "valor ascendente"
 
 msgid "value descending"
 msgstr "valor descendente"
-
-msgid "valuename"
-msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr, uk]
