@@ -26,9 +26,18 @@ formatting it, and every SQL Lab query fails in that locale.
 """
 
 import re
+from pathlib import Path
 
 import polib  # type: ignore[import-untyped]
 
+_SK_CATALOG = (
+    Path(__file__).resolve().parents[3]
+    / "superset"
+    / "translations"
+    / "sk"
+    / "LC_MESSAGES"
+    / "messages.po"
+)
 _MSGID = "Running block %(block_num)s out of %(block_count)s"
 _PLACEHOLDER_RE = re.compile(r"%\((\w+)\)s")
 
@@ -38,7 +47,7 @@ def _placeholder_names(text: str) -> set[str]:
 
 
 def test_sk_progress_message_placeholders_match_source() -> None:
-    catalog = polib.pofile("superset/translations/sk/LC_MESSAGES/messages.po")
+    catalog = polib.pofile(str(_SK_CATALOG))
     entry = catalog.find(_MSGID)
 
     assert entry is not None, f"msgid not found in sk catalog: {_MSGID!r}"
