@@ -360,9 +360,9 @@ msgstr "%s%s"
 msgid "%s (copy from %s)"
 msgstr ""
 
-#, fuzzy, python-format
+#, python-format
 msgid "%s ENCRYPTED EXTRA"
-msgstr "Додаткова безпека"
+msgstr ""
 
 #, python-format
 msgid "%s Error"
@@ -376,9 +376,9 @@ msgstr ""
 msgid "%s PASSWORD"
 msgstr "Пароль %s"
 
-#, fuzzy, python-format
+#, python-format
 msgid "%s Physical"
-msgstr "Фізичний"
+msgstr ""
 
 #, python-format
 msgid "%s SSH TUNNEL PASSWORD"
@@ -396,9 +396,9 @@ msgstr "Пароль особистого ключа тунелю SSH %s"
 msgid "%s Selected"
 msgstr "%s вибрано"
 
-#, fuzzy, python-format
+#, python-format
 msgid "%s Selected (%s)"
-msgstr "%s вибрано"
+msgstr ""
 
 #, python-format
 msgid "%s Selected (Physical)"
@@ -418,9 +418,9 @@ msgstr "%s Семантичний вигляд"
 msgid "%s URL"
 msgstr "%s Посилання"
 
-#, fuzzy, python-format
+#, python-format
 msgid "%s Virtual"
-msgstr "Віртуальний"
+msgstr ""
 
 #, python-format
 msgid "%s additional restricted chart"
@@ -486,10 +486,10 @@ msgstr[1] ""
 msgstr[2] ""
 msgstr[3] ""
 
-#, fuzzy, python-format
+#, python-format
 msgid "%s day ago"
 msgid_plural "%s days ago"
-msgstr[0] "1 день тому"
+msgstr[0] ""
 msgstr[1] ""
 msgstr[2] ""
 msgstr[3] ""
@@ -510,9 +510,9 @@ msgstr[1] "%s рядки"
 msgstr[2] "%s рядків"
 msgstr[3] "%s рядок"
 
-#, fuzzy, python-format
+#, python-format
 msgid "%s imported"
-msgstr "Дані імпортовано"
+msgstr ""
 
 #, fuzzy, python-format
 msgid "%s item"
@@ -532,18 +532,18 @@ msgid ""
 "all selected objects."
 msgstr "%s обʼєктів неможливо редагувати, бо не до всіх із них у вас є доступ."
 
-#, fuzzy, python-format
+#, python-format
 msgid "%s metric"
 msgid_plural "%s metrics"
-msgstr[0] "Впорядкувати показник"
+msgstr[0] ""
 msgstr[1] ""
 msgstr[2] ""
 msgstr[3] ""
 
-#, fuzzy, python-format
+#, python-format
 msgid "%s min ago"
 msgid_plural "%s min ago"
-msgstr[0] "1 місяць тому"
+msgstr[0] ""
 msgstr[1] ""
 msgstr[2] ""
 msgstr[3] ""
@@ -576,25 +576,25 @@ msgstr[3] "%s варіант"
 msgid "%s option(s)"
 msgstr "%s варіантів"
 
-#, fuzzy, python-format
+#, python-format
 msgid "%s out of %s column"
 msgid_plural "%s out of %s columns"
-msgstr[0] "Автоматична зміна розміру стовпця"
+msgstr[0] ""
 msgstr[1] ""
 msgstr[2] ""
 msgstr[3] ""
 
-#, fuzzy, python-format
+#, python-format
 msgid "%s out of %s metric"
 msgid_plural "%s out of %s metrics"
-msgstr[0] "Впорядкувати показник"
+msgstr[0] ""
 msgstr[1] ""
 msgstr[2] ""
 msgstr[3] ""
 
-#, fuzzy, python-format
+#, python-format
 msgid "%s out of %s selected"
-msgstr "%s вкладки вибрано"
+msgstr ""
 
 #, python-format
 msgid "%s recipients"
@@ -616,10 +616,10 @@ msgstr[1] "%s рядки"
 msgstr[2] "%s рядків"
 msgstr[3] "%s рядок"
 
-#, fuzzy, python-format
+#, python-format
 msgid "%s s ago"
 msgid_plural "%s s ago"
-msgstr[0] "30 днів тому"
+msgstr[0] ""
 msgstr[1] ""
 msgstr[2] ""
 msgstr[3] ""
@@ -628,10 +628,10 @@ msgstr[3] ""
 msgid "%s saved metric(s)"
 msgstr "%s збережених показників"
 
-#, fuzzy, python-format
+#, python-format
 msgid "%s second"
 msgid_plural "%s seconds"
-msgstr[0] "5 секунд"
+msgstr[0] ""
 msgstr[1] ""
 msgstr[2] ""
 msgstr[3] ""
@@ -2028,21 +2028,21 @@ msgid ""
 "administrator."
 msgstr "Не вдалось розгорнути схему таблиці. Зверніться до адміністратора."
 
-#, fuzzy, python-format
+#, python-format
 msgid "An error occurred while fetching %s"
-msgstr "Не вдалось одержати %s: %s"
+msgstr ""
 
 #, python-format
 msgid "An error occurred while fetching %s info: %s"
 msgstr "Не вдалось одержати інформацію про %s: %s"
 
-#, fuzzy, python-format
+#, python-format
 msgid "An error occurred while fetching %s related data"
-msgstr "Не вдалось одержати інформацію про набір даних"
+msgstr ""
 
-#, fuzzy, python-format
+#, python-format
 msgid "An error occurred while fetching %s values: %s"
-msgstr "Не вдалось одержати інформацію про користувача: %s"
+msgstr ""
 
 #, fuzzy, python-format
 msgid "An error occurred while fetching %s: %s"
@@ -2132,16 +2132,15 @@ msgstr "Не вдалось одержати інформацію про схе�
 msgid "An error occurred while fetching semantic layer types"
 msgstr "Не вдалось одержати доступні теми"
 
-#, fuzzy
 msgid "An error occurred while fetching semantic layers"
-msgstr "Не вдалось одержати інформацію про схему: %s"
+msgstr ""
 
 msgid "An error occurred while fetching tab state"
 msgstr "Не вдалось одержати інформацію про вкладку"
 
-#, fuzzy, python-format
+#, python-format
 msgid "An error occurred while fetching table metadata for %s"
-msgstr "Не вдалось одержати метадані таблиці"
+msgstr ""
 
 #, python-format
 msgid "An error occurred while fetching task types: %s"
@@ -2213,9 +2212,8 @@ msgstr "Не вдалося розібрати ключ."
 msgid "An error occurred while pruning logs "
 msgstr "Не вдалося очистити журнали "
 
-#, fuzzy
 msgid "An error occurred while refreshing the configuration schema"
-msgstr "Не вдалося відтворити візуалізацію: %s"
+msgstr ""
 
 msgid "An error occurred while refreshing the runtime schema"
 msgstr ""
@@ -2840,9 +2838,8 @@ msgstr "Основний ступінь"
 msgid "Base height"
 msgstr "Основна висота"
 
-#, fuzzy
 msgid "Base layer map style. Accepts a MapLibre-compatible style URL."
-msgstr "Стиль карти основного шару. Переглянути документацію Mapbox: %s"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
@@ -3703,9 +3700,9 @@ msgstr ""
 msgid "Child label position"
 msgstr "Позиція дочірньої мітки"
 
-#, fuzzy, python-format
+#, python-format
 msgid "Choose a %s"
-msgstr "Виберіть джерело"
+msgstr ""
 
 msgid "Choose a chart for displaying on the map"
 msgstr "Виберіть діаграму для відтворення на карті"
@@ -3843,9 +3840,9 @@ msgstr "Умова"
 msgid "Clear"
 msgstr "Очистити"
 
-#, fuzzy, python-format
+#, python-format
 msgid "Clear %s filter"
-msgstr "Очистити всі фільтри"
+msgstr ""
 
 msgid "Clear Sort"
 msgstr "Скинути сортування"
@@ -4353,9 +4350,9 @@ msgstr "Довірчий інтервал має бути більшим за 0 
 msgid "Configuration"
 msgstr "Параметри"
 
-#, fuzzy, python-format
+#, python-format
 msgid "Configure %s"
-msgstr "Підтвердьте збереження"
+msgstr ""
 
 msgid "Configure Advanced Time Range "
 msgstr "Налаштувати розширений часовий діапазон "
@@ -4729,9 +4726,9 @@ msgstr "Творець"
 msgid "Created by me"
 msgstr "Створено мною"
 
-#, fuzzy, python-format
+#, python-format
 msgid "Created by: %s"
-msgstr "Творець"
+msgstr ""
 
 #, python-format
 msgid "Created from version: %s"
@@ -5004,9 +5001,9 @@ msgstr "Темний режим"
 msgid "Dashboard"
 msgstr "Звіт"
 
-#, fuzzy, python-format
+#, python-format
 msgid "Dashboard %(dashboard_id)s not found"
-msgstr "Діаграму %(id)s не знайдено"
+msgstr ""
 
 msgid "Dashboard Filter"
 msgstr "Фільтр звіту"
@@ -5803,9 +5800,9 @@ msgstr[3] "Вилучено %(num)d тему"
 msgid "Deleted %s"
 msgstr "Вилучено %s"
 
-#, fuzzy, python-format
+#, python-format
 msgid "Deleted %s item(s)"
-msgstr "Вилучити елемент"
+msgstr ""
 
 #, python-format
 msgid "Deleted group: %s"
@@ -5986,9 +5983,9 @@ msgstr "Значення виміру"
 msgid "Dimensions"
 msgstr "Виміри"
 
-#, fuzzy, python-format
+#, python-format
 msgid "Dimensions (%s)"
-msgstr "Виміри"
+msgstr ""
 
 msgid "Dimensions and metrics"
 msgstr ""
@@ -6467,9 +6464,9 @@ msgstr "Ширина ребра"
 msgid "Edit"
 msgstr "Редагувати"
 
-#, fuzzy, python-format
+#, python-format
 msgid "Edit %s"
-msgstr "Редагувати користувача"
+msgstr ""
 
 #, python-format
 msgid "Edit %s in modal"
@@ -7362,9 +7359,9 @@ msgstr "Не вдалося додати мітку до елементів"
 msgid "Failed to generate chart edit URL"
 msgstr "Не вдалося створити посилання для редагування діаграми"
 
-#, fuzzy, python-format
+#, python-format
 msgid "Failed to generate download: %s"
-msgstr "Не вдалося створити посилання для редагування діаграми"
+msgstr ""
 
 msgid "Failed to load chart data"
 msgstr "Не вдалося завантажити дані діаграми"
@@ -7372,9 +7369,9 @@ msgstr "Не вдалося завантажити дані діаграми"
 msgid "Failed to load chart data."
 msgstr "Не вдалося завантажити дані діаграми."
 
-#, fuzzy, python-format
+#, python-format
 msgid "Failed to load columns for %s %s"
-msgstr "Не вдалося завантажити стовпці для набору даних %s"
+msgstr ""
 
 #, python-format
 msgid "Failed to load dimensions for semantic view %s"
@@ -8642,9 +8639,9 @@ msgstr "Неправильний ковзний тип: %(type)s"
 msgid "Invalid state."
 msgstr "Неправильний стан."
 
-#, fuzzy, python-format
+#, python-format
 msgid "Invalid tab ids: %(tab_ids)s"
-msgstr "Неправильні ідентифікатори вкладок: %s(tab_ids)"
+msgstr ""
 
 #, python-format
 msgid "Invalid time range boundary for resample: %(value)s"
@@ -9739,9 +9736,9 @@ msgstr ""
 msgid "Metrics"
 msgstr "Показники"
 
-#, fuzzy, python-format
+#, python-format
 msgid "Metrics (%s)"
-msgstr "Показники"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
@@ -9864,9 +9861,9 @@ msgstr "Хвилина"
 msgid "Minutes %s"
 msgstr "Хвилини %s"
 
-#, fuzzy, python-format
+#, python-format
 msgid "Missing %s"
-msgstr "Бракує набору даних"
+msgstr ""
 
 msgid "Missing OAuth2 token"
 msgstr "Бракує токена OAuth2"
@@ -10194,9 +10191,9 @@ msgstr ""
 msgid "No columns found"
 msgstr "Не знайдено жодного стовпця"
 
-#, fuzzy, python-format
+#, python-format
 msgid "No compatible %s found"
-msgstr "Не знайдено жодної сумісної схеми"
+msgstr ""
 
 msgid "No compatible catalog found"
 msgstr "Не знайдено жодного сумісного каталогу"
@@ -10311,13 +10308,13 @@ msgstr "Немає жодної ролі"
 msgid "No roles yet"
 msgstr "Ще немає ролей"
 
-#, fuzzy, python-format
+#, python-format
 msgid "No rows were returned for this %s"
-msgstr "Немає записів у цьому наборі даних"
+msgstr ""
 
-#, fuzzy, python-format
+#, python-format
 msgid "No samples were returned for this %s"
-msgstr "Немає даних для цього набору даних"
+msgstr ""
 
 msgid "No saved expressions found"
 msgstr "Не знайдено жодного збереженого виразу"
@@ -10341,9 +10338,8 @@ msgstr ""
 msgid "No table columns"
 msgstr "Немає стовпців у таблиці"
 
-#, fuzzy
 msgid "No tasks yet"
-msgstr "Ще немає %s"
+msgstr ""
 
 msgid "No temporal columns found"
 msgstr "Не знайдено часових стовпців"
@@ -11358,9 +11354,9 @@ msgstr "Спочатку збережіть звіт, а потім спробу
 msgid "Please select at least one role or group"
 msgstr "Виберіть щонайменше одну роль або групу"
 
-#, fuzzy, python-format
+#, python-format
 msgid "Please select both a %s and a Chart type to proceed"
-msgstr "Виберіть набір даних і тип діаграми, щоб продовжити"
+msgstr ""
 
 #, python-format
 msgid ""
@@ -12662,9 +12658,9 @@ msgstr "Зберегти (перезаписати)"
 msgid "Save as"
 msgstr "Зберегти як"
 
-#, fuzzy, python-format
+#, python-format
 msgid "Save as %s"
-msgstr "Зберегти як"
+msgstr ""
 
 msgid "Save as Dataset"
 msgstr "Зберегти як набір даних"
@@ -12972,9 +12968,9 @@ msgstr "Показати деталі запиту"
 msgid "Select"
 msgstr "Вибрати"
 
-#, fuzzy, python-format
+#, python-format
 msgid "Select %s or type to search %s"
-msgstr "Виберіть або ведіть назву схеми для пошуку"
+msgstr ""
 
 msgid "Select ..."
 msgstr "Вибрати ..."
@@ -13000,9 +12996,9 @@ msgstr "Вибрати мітки"
 msgid "Select Value"
 msgstr "Вибрати значення"
 
-#, fuzzy, python-format
+#, python-format
 msgid "Select a %s"
-msgstr "Вибрати мітки"
+msgstr ""
 
 msgid "Select a CSS template"
 msgstr "Вибрати шаблон стилю"
@@ -14583,9 +14579,9 @@ msgstr "Успіх"
 msgid "Success message"
 msgstr ""
 
-#, fuzzy, python-format
+#, python-format
 msgid "Successfully changed %s!"
-msgstr "Успішно змінило набір даних!"
+msgstr ""
 
 msgid "Suffix"
 msgstr "Суфікс"
@@ -14638,9 +14634,9 @@ msgstr "Трапилась несподівана помилка."
 msgid "Supported databases"
 msgstr "Підтримувані бази даних"
 
-#, fuzzy, python-format
+#, python-format
 msgid "Swap %s"
-msgstr "Замінити набір даних"
+msgstr ""
 
 msgid "Swap rows and columns"
 msgstr "Поміняти місцями рядки та стовпці"
@@ -14859,9 +14855,9 @@ msgstr "Цільове значення"
 msgid "Task"
 msgstr "мітки"
 
-#, fuzzy, python-format
+#, python-format
 msgid "Task cancelled: %s"
-msgstr "Експорт скасовано"
+msgstr ""
 
 #, fuzzy
 msgid "Task could not be aborted."
@@ -14983,9 +14979,9 @@ msgstr ""
 msgid "The %s"
 msgstr "Одержано %s"
 
-#, fuzzy, python-format
+#, python-format
 msgid "The %s linked to this chart may have been deleted."
-msgstr "Набір даних, пов'язаний з цією діаграмою, могли вилучити."
+msgstr ""
 
 #, python-format
 msgid "The API response from %s does not match the IDatabaseTable interface."
@@ -16249,9 +16245,9 @@ msgstr ""
 msgid "There was an issue archiving: %s"
 msgstr ""
 
-#, fuzzy, python-format
+#, python-format
 msgid "There was an issue cancelling the task: %s"
-msgstr "Трапилась проблема під час вилучення %s: %s"
+msgstr ""
 
 #, python-format
 msgid "There was an issue deleting %s"
@@ -16269,9 +16265,9 @@ msgstr "Трапилась проблема вилучення реєстрац�
 msgid "There was an issue deleting rules: %s"
 msgstr "Трапилась проблема під час вилучення правил: %s"
 
-#, fuzzy, python-format
+#, python-format
 msgid "There was an issue deleting the selected %s"
-msgstr "Трапилась проблема під час вилучення вибраних %s: %s"
+msgstr ""
 
 #, python-format
 msgid "There was an issue deleting the selected %s: %s"
@@ -16309,21 +16305,21 @@ msgstr "Трапилась проблема вилучення вибраних 
 msgid "There was an issue deleting: %s"
 msgstr "Трапилась проблема вилучення: %s"
 
-#, fuzzy, python-format
+#, python-format
 msgid "There was an issue duplicating the %s."
-msgstr "Трапилась проблема створення копії набору даних."
+msgstr ""
 
 #, fuzzy, python-format
 msgid "There was an issue duplicating the selected %s: %s"
 msgstr "Трапилась проблема під час вилучення вибраних %s: %s"
 
-#, fuzzy, python-format
+#, python-format
 msgid "There was an issue exporting the %s"
-msgstr "Трапилась проблема експортування бази даних"
+msgstr ""
 
-#, fuzzy, python-format
+#, python-format
 msgid "There was an issue exporting the selected %s"
-msgstr "Трапилась проблема експортування вибраних тем"
+msgstr ""
 
 msgid "There was an issue exporting the selected charts"
 msgstr "Трапилась проблема експортування вибраних діаграм"
@@ -16489,9 +16485,9 @@ msgstr ""
 msgid "This chart will be restored to the following version:"
 msgstr ""
 
-#, fuzzy, python-format
+#, python-format
 msgid "This column might be incompatible with current %s"
-msgstr "Цей стовпець може бути несумісним з поточним набором даних"
+msgstr ""
 
 msgid "This column might be incompatible with current dataset"
 msgstr "Цей стовпець може бути несумісним з поточним набором даних"
@@ -16661,9 +16657,9 @@ msgstr ""
 msgid "This filter already exist on the report"
 msgstr "Цей фільтр уже існує в доповіді"
 
-#, fuzzy, python-format
+#, python-format
 msgid "This filter might be incompatible with current %s"
-msgstr "Цей фільтр може бути несумісним із поточним набором даних"
+msgstr ""
 
 msgid "This folder is currently empty"
 msgstr "Ця тека наразі порожня"
@@ -16779,9 +16775,9 @@ msgid ""
 "compatible metric."
 msgstr ""
 
-#, fuzzy, python-format
+#, python-format
 msgid "This metric might be incompatible with current %s"
-msgstr "Цей показник може бути несумісним із поточним набором даних"
+msgstr ""
 
 msgid "This name is already taken. Please choose another one."
 msgstr "Ця назва вже існує. Виберіть іншу."
@@ -19181,9 +19177,9 @@ msgstr "У вас немає прав на створення діаграми"
 msgid "You don't have the rights to create a dashboard"
 msgstr "У вас немає прав на створення звіту"
 
-#, fuzzy, python-format
+#, python-format
 msgid "You have been removed from task: %s"
-msgstr "Ви вилучили цей фільтр."
+msgstr ""
 
 msgid "You have removed this filter."
 msgstr "Ви вилучили цей фільтр."
