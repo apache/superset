@@ -23,6 +23,8 @@ import asyncio
 import base64
 import logging
 from collections.abc import Callable
+from concurrent.futures import ThreadPoolExecutor
+from contextvars import copy_context
 from io import BytesIO
 from typing import Any, Dict, List, Protocol
 
@@ -83,6 +85,9 @@ from superset.mcp_service.utils.url_utils import get_superset_base_url
 from superset.superset_typing import Column, Metric
 
 logger = logging.getLogger(__name__)
+
+# Keep browser captures separate from the default pool used for transport auth.
+_PNG_EXECUTOR = ThreadPoolExecutor(max_workers=2, thread_name_prefix="mcp-png")
 
 
 class ChartLike(Protocol):
@@ -1110,7 +1115,10 @@ async def _run_png_render(
     so those stay server-side.
     """
     try:
-        return await asyncio.to_thread(render)
+        context = copy_context()
+        return await asyncio.get_running_loop().run_in_executor(
+            _PNG_EXECUTOR, context.run, render
+        )
     except SupersetSecurityException:
         return ChartError(error="Chart access denied", error_type="Forbidden")
     except Exception:

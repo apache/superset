@@ -2099,3 +2099,79 @@ async def test_png_preview_rejects_invalid_viewport(app_context, dimension, fiel
         )
         assert result.error_type == "ValidationError"
         browser.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_png_preview_passes_default_response_size_guard():
+    import base64
+    import os
+    from io import BytesIO
+    from unittest.mock import AsyncMock
+
+    from PIL import Image
+
+    from superset.mcp_service.chart.schemas import PNGPreview
+    from superset.mcp_service.mcp_config import MCP_RESPONSE_SIZE_CONFIG
+    from superset.mcp_service.middleware import ResponseSizeGuardMiddleware
+    from superset.mcp_service.utils.response_size_utils import get_response_size_bytes
+
+    # Actual PNG bytes with enough detail to exceed the default text budget.
+    png = BytesIO()
+    Image.frombytes("RGB", (800, 600), os.urandom(800 * 600 * 3)).save(
+        png, format="PNG"
+    )
+    preview = PNGPreview(
+        data=base64.b64encode(png.getvalue()).decode("ascii"), width=800, height=600
+    )
+    response = {"content": preview.model_dump()}
+    assert get_response_size_bytes(response) > MCP_RESPONSE_SIZE_CONFIG["max_bytes"]
+    context = MagicMock()
+    context.message.name = "get_chart_preview"
+    context.message.arguments = {"identifier": 104, "format": "png"}
+    call_next = AsyncMock(return_value=response)
+    middleware = ResponseSizeGuardMiddleware(
+        max_bytes=MCP_RESPONSE_SIZE_CONFIG["max_bytes"],
+        excluded_tools=MCP_RESPONSE_SIZE_CONFIG["excluded_tools"],
+    )
+    result = await middleware.on_call_tool(context, call_next)
+    assert PNGPreview.model_validate(result["content"]) == preview
+    call_next.assert_awaited_once_with(context)
+
+
+@pytest.mark.asyncio
+async def test_png_workers_do_not_starve_auth_or_release_on_cancellation():
+    import asyncio
+    import threading
+    from contextvars import ContextVar
+
+    module = importlib.import_module(
+        "superset.mcp_service.chart.tool.get_chart_preview"
+    )
+    started = [threading.Event(), threading.Event(), threading.Event()]
+    release = threading.Event()
+    marker = ContextVar("png_test_marker", default=None)
+    marker.set("caller")
+
+    def render(index):
+        assert marker.get() == "caller"
+        started[index].set()
+        assert release.wait(timeout=10)
+        return None
+
+    tasks = [
+        asyncio.create_task(module._run_png_render(lambda i=i: render(i)))
+        for i in range(3)
+    ]
+    try:
+        for event in started[:2]:
+            assert await asyncio.to_thread(event.wait, 5)
+        assert not started[2].is_set()
+        tasks[0].cancel()
+        with pytest.raises(asyncio.CancelledError):
+            await tasks[0]
+        assert not started[2].is_set()
+        assert await asyncio.wait_for(asyncio.to_thread(lambda: "auth"), 1) == "auth"
+    finally:
+        release.set()
+        await asyncio.gather(*tasks, return_exceptions=True)
+    assert started[2].is_set()
