@@ -72,6 +72,7 @@ export default function DateRangeFilterPlugin(
           format={DATE_FORMAT}
           allowClear
           style={{ width: '100%' }}
+          status={filterState.validateStatus === 'error' ? 'error' : undefined}
           onChange={handleChange}
           onFocus={() => {
             setFilterActive(true);
