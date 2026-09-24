@@ -1550,6 +1550,8 @@ def test_apply_limit_to_script_caps_outer_limit(
         ("SELECT 1 LIMIT 0", 10, "SELECT 1 LIMIT 0"),
         ("SELECT 1 LIMIT 10", 5, "SELECT * FROM (SELECT 1 LIMIT 10) LIMIT 5"),
         ("SELECT 1", 5, "SELECT * FROM (SELECT 1) LIMIT 5"),
+        ("SELECT 1 LIMIT 5", None, "SELECT 1 LIMIT 5"),
+        ("SELECT 1 LIMIT 0", None, "SELECT 1 LIMIT 0"),
     ],
 )
 def test_apply_limit_to_script_wrap_sql(
@@ -1557,20 +1559,21 @@ def test_apply_limit_to_script_wrap_sql(
     database: Database,
     app_context: None,
     sql: str,
-    limit: int,
+    limit: int | None,
     expected: str,
 ) -> None:
-    """DB2's WRAP_SQL method must not add a larger or redundant outer limit."""
-    from superset.db_engine_specs.db2 import Db2EngineSpec
+    """WRAP_SQL must cap explicit limits and preserve omitted limits."""
     from superset.sql.execution.executor import SQLExecutor
     from superset.sql.parse import LimitMethod
 
-    mocker.patch.object(type(database), "db_engine_spec", Db2EngineSpec)
+    # Exercise the wrapping strategy independently of dialect-specific parsers.
+    mocker.patch.object(database.db_engine_spec, "limit_method", LimitMethod.WRAP_SQL)
     mocker.patch.dict(current_app.config, {"SQL_MAX_ROW": None})
     assert database.db_engine_spec.limit_method == LimitMethod.WRAP_SQL
-    script = SQLScript(sql, Db2EngineSpec.engine)
+    engine = database.db_engine_spec.engine
+    script = SQLScript(sql, engine)
     SQLExecutor(database)._apply_limit_to_script(script, QueryOptions(limit=limit))
-    assert script.format() == SQLScript(expected, Db2EngineSpec.engine).format()
+    assert script.format() == SQLScript(expected, engine).format()
 
 
 @pytest.mark.parametrize("run_async", [False, True])
