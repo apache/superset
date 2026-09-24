@@ -487,7 +487,7 @@ class Slice(  # pylint: disable=too-many-public-methods
 def id_or_uuid_filter(id_or_uuid: str | int) -> BinaryExpression:
     if isinstance(id_or_uuid, int):
         return Slice.id == id_or_uuid
-    if id_or_uuid.isdigit():
+    if id_or_uuid.isdecimal():
         return Slice.id == int(id_or_uuid)
     return Slice.uuid == id_or_uuid
 

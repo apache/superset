@@ -437,7 +437,7 @@ class DatasetValidator:
             from superset.daos.dataset import DatasetDAO
 
             if isinstance(dataset_id, int) or (
-                isinstance(dataset_id, str) and dataset_id.isdigit()
+                isinstance(dataset_id, str) and dataset_id.isdecimal()
             ):
                 dataset = DatasetDAO.find_by_id(int(dataset_id))
             else:

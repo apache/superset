@@ -151,7 +151,7 @@ def find_chart_by_identifier(
         {"query_options": query_options} if query_options is not None else {}
     )
     if isinstance(identifier, int) or (
-        isinstance(identifier, str) and identifier.isdigit()
+        isinstance(identifier, str) and identifier.isdecimal()
     ):
         chart_id = int(identifier) if isinstance(identifier, str) else identifier
         return ChartDAO.find_by_id(chart_id, **extra)
@@ -958,7 +958,7 @@ def resolve_form_data_datasource(
     if not datasource_id and (combined := form_data.get("datasource")):
         if isinstance(combined, str) and "__" in combined:
             parts = combined.split("__", 1)
-            datasource_id = int(parts[0]) if parts[0].isdigit() else parts[0]
+            datasource_id = int(parts[0]) if parts[0].isdecimal() else parts[0]
             datasource_type = parts[1] if len(parts) > 1 else None
 
     if not datasource_id and chart:
