@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-01 13:30+0000\n"
+"POT-Creation-Date: 2026-10-01 13:37+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: fi\n"
@@ -28251,6 +28251,11 @@ msgstr ""
 #, fuzzy
 msgid "This filter already exist on the report"
 msgstr "Tämä suodatin on jo raportissa"
+
+msgid ""
+"This filter is also applied to a partition column for faster queries. See"
+" \"View query\" for the generated SQL."
+msgstr ""
 
 #, python-format
 msgid "This filter might be incompatible with current %s"

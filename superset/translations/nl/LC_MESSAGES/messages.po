@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version:  superset-ds\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-01 13:30+0000\n"
+"POT-Creation-Date: 2026-10-01 13:37+0000\n"
 "PO-Revision-Date: 2024-05-08 14:41+0000\n"
 "Last-Translator: \n"
 "Language: nl\n"
@@ -18539,6 +18539,11 @@ msgstr ""
 #, fuzzy
 msgid "This filter already exist on the report"
 msgstr "Filterwaardenlijst kan niet leeg zijn"
+
+msgid ""
+"This filter is also applied to a partition column for faster queries. See"
+" \"View query\" for the generated SQL."
+msgstr ""
 
 #, python-format
 msgid "This filter might be incompatible with current %s"
