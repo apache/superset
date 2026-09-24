@@ -19,6 +19,7 @@
 Unit tests for update_chart_preview MCP tool
 """
 
+import asyncio
 import importlib
 from contextlib import nullcontext
 from typing import Any
@@ -161,8 +162,8 @@ def test_cached_gauge_update_preserves_controls_and_compiles(
         ),
     )
 
-    result = update_chart_preview_module.update_chart_preview(
-        request=request, ctx=Mock()
+    result = asyncio.run(
+        update_chart_preview_module.update_chart_preview(request=request, ctx=Mock())
     )
 
     assert result["success"] is True, result
@@ -212,9 +213,11 @@ class TestUpdateChartPreview:
         with patch.object(
             update_chart_preview_module, "_find_dataset", side_effect=error
         ):
-            result = update_chart_preview_module.update_chart_preview(
-                request=request,
-                ctx=Mock(),
+            result = asyncio.run(
+                update_chart_preview_module.update_chart_preview(
+                    request=request,
+                    ctx=Mock(),
+                )
             )
 
         assert result["success"] is False
@@ -1057,7 +1060,7 @@ class TestUpdateChartPreview:
             preview_formats=["table"],
         )
 
-        result = update_chart_preview_module.update_chart_preview(
+        result = await update_chart_preview_module.update_chart_preview(
             request=request, ctx=Mock()
         )
 
@@ -1135,7 +1138,7 @@ class TestUpdateChartPreview:
             preview_formats=["table"],
         )
 
-        result = update_chart_preview_module.update_chart_preview(
+        result = await update_chart_preview_module.update_chart_preview(
             request=request, ctx=Mock()
         )
 
@@ -1215,7 +1218,7 @@ class TestUpdateChartPreview:
         with patch.object(
             feature_flag_manager, "is_feature_enabled", return_value=True
         ):
-            result = update_chart_preview_module.update_chart_preview(
+            result = await update_chart_preview_module.update_chart_preview(
                 request=request, ctx=Mock()
             )
 
@@ -1294,7 +1297,7 @@ class TestUpdateChartPreview:
             preview_formats=["url", "table"],
         )
 
-        result = update_chart_preview_module.update_chart_preview(
+        result = await update_chart_preview_module.update_chart_preview(
             request=request, ctx=Mock()
         )
 

@@ -17,6 +17,7 @@
 
 """Typed MCP coverage for the existing ECharts Gantt visualization."""
 
+import asyncio
 import importlib
 from contextlib import nullcontext
 from pathlib import Path
@@ -1154,7 +1155,9 @@ def test_update_chart_preview_maps_gantt_semantic_normalization_to_error() -> No
         ),
         patch.object(update_chart_preview_module, "generate_explore_link") as link,
     ):
-        result = update_chart_preview_module.update_chart_preview(request, ctx=Mock())
+        result = asyncio.run(
+            update_chart_preview_module.update_chart_preview(request, ctx=Mock())
+        )
 
     assert result["success"] is False
     assert result["error"]["error_type"] == "gantt_semantic_validation_error"
@@ -1242,8 +1245,10 @@ def test_update_chart_preview_normalizes_all_gantt_refs_before_url_and_query_pre
             data_url=None,
             supports_streaming=False,
         )
-        result = update_chart_preview_module.update_chart_preview(
-            request=request, ctx=Mock()
+        result = asyncio.run(
+            update_chart_preview_module.update_chart_preview(
+                request=request, ctx=Mock()
+            )
         )
 
     assert result["success"] is True
@@ -1400,8 +1405,10 @@ def test_cached_update_chart_preview_preserves_or_replaces_temporal_binding(
         ),
     ):
         validate.return_value = SimpleNamespace(success=True)
-        result = update_chart_preview_module.update_chart_preview(
-            request=request, ctx=Mock()
+        result = asyncio.run(
+            update_chart_preview_module.update_chart_preview(
+                request=request, ctx=Mock()
+            )
         )
 
     assert result["success"] is True
@@ -2145,7 +2152,9 @@ def test_update_chart_preview_rejects_cached_series_colliding_with_new_category(
         ),
         patch.object(update_chart_preview_module, "generate_explore_link") as link,
     ):
-        result = update_chart_preview_module.update_chart_preview(request, ctx=Mock())
+        result = asyncio.run(
+            update_chart_preview_module.update_chart_preview(request, ctx=Mock())
+        )
 
     assert result["success"] is False
     assert result["error"]["error_type"] == "gantt_semantic_validation_error"
