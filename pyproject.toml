@@ -455,6 +455,9 @@ select = [
     "F",
     "G",
     "I",
+    # f-strings passed to gettext are never translatable, and on Python
+    # 3.12+ babel extracts bogus msgids from their replacement fields.
+    "INT001",
     "N",
     "PT",
     "Q",
