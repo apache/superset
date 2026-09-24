@@ -36,10 +36,22 @@ jest.mock('src/utils/getBootstrapData', () => ({
   default: jest.fn(() => defaultBootstrapData),
 }));
 
-const mockAddDangerToast = jest.fn(() => ({ type: 'MOCK_TOAST' }));
-const mockAddInfoToast = jest.fn(() => ({ type: 'MOCK_TOAST' }));
-const mockAddSuccessToast = jest.fn(() => ({ type: 'MOCK_TOAST' }));
-const mockAddWarningToast = jest.fn(() => ({ type: 'MOCK_TOAST' }));
+const mockAddDangerToast = jest.fn((text: string) => ({
+  type: 'MOCK_TOAST',
+  text,
+}));
+const mockAddInfoToast = jest.fn((text: string) => ({
+  type: 'MOCK_TOAST',
+  text,
+}));
+const mockAddSuccessToast = jest.fn((text: string) => ({
+  type: 'MOCK_TOAST',
+  text,
+}));
+const mockAddWarningToast = jest.fn((text: string) => ({
+  type: 'MOCK_TOAST',
+  text,
+}));
 jest.mock('src/components/MessageToasts/actions', () => ({
   addDangerToast: (text: string) => mockAddDangerToast(text),
   addInfoToast: (text: string) => mockAddInfoToast(text),
@@ -334,7 +346,7 @@ test('should use ensureAppRoot for all generated URLs with deep application root
 
 // --- Auth flash messages ---
 
-test('should show flashed auth failures as danger toasts', () => {
+test('should show flashed warnings as warning toasts', () => {
   mockGetBootstrapData.mockReturnValue({
     ...defaultBootstrapData,
     auth_messages: [['warning', 'Invalid login. Please try again.']],
