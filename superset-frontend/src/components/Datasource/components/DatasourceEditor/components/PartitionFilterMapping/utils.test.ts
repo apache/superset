@@ -22,11 +22,13 @@ import {
   defaultTransformFor,
   mappedColumnIsImplicit,
   mappingIsActive,
+  nextMappedColumnOverride,
   partitionRowState,
   previewOperatorFor,
   sampleValuesFor,
   resolveMappedColumn,
   suggestedMappedColumn,
+  transformCanPreview,
 } from './utils';
 import type { PartitionMappingColumn } from './types';
 
@@ -301,4 +303,63 @@ test('a dataset of nothing but the partition column suggests nothing', () => {
   expect(
     suggestedMappedColumn([{ column_name: 'dt_epoch' }], 'dt_epoch'),
   ).toBeNull();
+});
+
+test('a transform without the placeholder is not worth a preview request', () => {
+  // Nothing to substitute, so the transform is inert however well-formed it is
+  // -- and every settled keystroke on the way to writing one would otherwise
+  // spend the per-user budget.
+  expect(transformCanPreview('unix_timestamp(event_time)')).toBe(false);
+  expect(transformCanPreview('unix_timestamp(:values)')).toBe(false);
+  expect(transformCanPreview('unix_timestamp(:value)')).toBe(true);
+});
+
+test('an empty or missing transform is not previewed', () => {
+  expect(transformCanPreview('')).toBe(false);
+  expect(transformCanPreview('   ')).toBe(false);
+  expect(transformCanPreview(null)).toBe(false);
+  expect(transformCanPreview(undefined)).toBe(false);
+});
+
+test('a Jinja transform is not previewed', () => {
+  // Rejected on save, so previewing it only burns budget.
+  expect(transformCanPreview('unix_timestamp({{ current_username() }})')).toBe(
+    false,
+  );
+  expect(transformCanPreview('{% if x %}:value{% endif %}')).toBe(false);
+});
+
+test('a column mapped onto itself is not previewed', () => {
+  // The backend rejects a self-mapping outright.
+  expect(transformCanPreview('lower(:value)', 'dt_epoch', 'dt_epoch')).toBe(
+    false,
+  );
+  expect(transformCanPreview('lower(:value)', 'country', 'region_key')).toBe(
+    true,
+  );
+});
+
+test('the preview gate stays a necessary condition, not a parser', () => {
+  // Unparseable, but only the server can say so -- this must not pretend to.
+  expect(transformCanPreview('unix_timestamp(:value')).toBe(true);
+});
+
+test('choosing a partition column that matches the override clears it', () => {
+  // Keeping it would map the column onto itself, which the backend rejects --
+  // and it is one click away, since the picker offers every column.
+  expect(nextMappedColumnOverride('dt_epoch', 'dt_epoch')).toBeNull();
+});
+
+test('choosing an unrelated partition column keeps the override', () => {
+  expect(nextMappedColumnOverride('event_time', 'dt_epoch')).toBe('event_time');
+});
+
+test('clearing the partition column clears the override with it', () => {
+  // Left behind, it would silently re-arm the next mapping.
+  expect(nextMappedColumnOverride('event_time', null)).toBeNull();
+});
+
+test('no override stays no override', () => {
+  expect(nextMappedColumnOverride(null, 'dt_epoch')).toBeNull();
+  expect(nextMappedColumnOverride(undefined, 'dt_epoch')).toBeNull();
 });

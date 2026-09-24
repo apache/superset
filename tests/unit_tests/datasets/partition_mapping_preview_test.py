@@ -357,13 +357,13 @@ def test_the_budget_is_spent_exactly_once_per_request(
     payload = {
         "mapped_column": "event_time",
         "value_transform": "unix_timestamp(:value)",
-        "sample_value": "2026-01-15",
+        "sample_values": ["2026-01-15"],
     }
     with patch(PROBE, return_value=[1]):
         statuses = [
             client.post(
                 f"/api/v1/dataset/{dataset.id}/partition_mapping/preview/",
-                json={**payload, "sample_value": f"2026-01-{day:02d}"},
+                json={**payload, "sample_values": [f"2026-01-{day:02d}"]},
             ).status_code
             for day in range(1, 6)
         ]
@@ -387,7 +387,7 @@ def test_the_window_is_dated_by_its_first_request_not_its_last(
     payload = {
         "mapped_column": "event_time",
         "value_transform": "unix_timestamp(:value)",
-        "sample_value": "2026-01-15",
+        "sample_values": ["2026-01-15"],
     }
     timeouts: list[Any] = []
     backend = cache_manager.cache.cache
@@ -402,7 +402,7 @@ def test_the_window_is_dated_by_its_first_request_not_its_last(
             for day in range(1, 4):
                 client.post(
                     f"/api/v1/dataset/{dataset.id}/partition_mapping/preview/",
-                    json={**payload, "sample_value": f"2026-01-{day:02d}"},
+                    json={**payload, "sample_values": [f"2026-01-{day:02d}"]},
                 )
 
     # Three requests, three `add` attempts, but only the first one takes -- and
@@ -421,7 +421,7 @@ def test_a_cache_that_cannot_count_does_not_lock_the_editor_out(
     payload = {
         "mapped_column": "event_time",
         "value_transform": "unix_timestamp(:value)",
-        "sample_value": "2026-01-15",
+        "sample_values": ["2026-01-15"],
     }
     backend = cache_manager.cache.cache
     with patch.object(backend, "add", return_value=False):
@@ -435,12 +435,13 @@ def test_a_cache_that_cannot_count_does_not_lock_the_editor_out(
     assert response.status_code == 200
 
 
-def test_a_probed_null_renders_as_sql_null(
+def test_a_probe_that_returns_null_reports_a_reason_not_a_predicate(
     client: Any, full_api_access: None, dataset: Any
 ) -> None:
     """
-    A transform returns NULL for an input it cannot convert. `str()` would put
-    the Python repr `None` in the predicate, which is not SQL.
+    A transform returns NULL for an input it cannot convert. A NULL bound would
+    make the mirrored comparison NULL for every row, so no predicate is emitted
+    at all -- and the editor is told why rather than shown `dt_epoch >= None`.
     """
     with patch(PROBE, return_value=[None]):
         response = client.post(
@@ -448,12 +449,16 @@ def test_a_probed_null_renders_as_sql_null(
             json={
                 "mapped_column": "event_time",
                 "value_transform": "unix_timestamp(:value)",
-                "sample_value": "not a date",
+                "sample_values": ["not a date"],
             },
         )
 
     assert response.status_code == 200
-    assert response.json["result"]["emitted_predicate"] == "dt_epoch >= NULL"
+    result = response.json["result"]
+    assert result["valid"] is False
+    assert result["reason"] == "engine"
+    assert "emitted_predicate" not in result
+    assert "None" not in result["sample_input"]
 
 
 def test_a_probed_string_is_quoted_and_escaped_by_the_dialect(
@@ -466,12 +471,16 @@ def test_a_probed_string_is_quoted_and_escaped_by_the_dialect(
             json={
                 "mapped_column": "event_time",
                 "value_transform": "lower(:value)",
-                "sample_value": "O'Hara",
+                "sample_values": ["O'Hara"],
             },
         )
 
     assert response.status_code == 200
-    assert response.json["result"]["emitted_predicate"] == "dt_epoch >= 'o''hara'"
+    result = response.json["result"]
+    assert result["emitted_predicate"] == "dt_epoch = 'o''hara' OR dt_epoch IS NULL"
+    # The sample input is display-only but still reads as SQL, so the value it
+    # echoes back is quoted and escaped the same way.
+    assert result["sample_input"] == "event_time == 'O''Hara'"
 
 
 def test_an_over_long_transform_is_rejected_before_the_engine(
@@ -487,7 +496,7 @@ def test_an_over_long_transform_is_rejected_before_the_engine(
             json={
                 "mapped_column": "event_time",
                 "value_transform": "unix_timestamp(:value)" + " " * 2000,
-                "sample_value": "2026-01-15",
+                "sample_values": ["2026-01-15"],
             },
         )
 
