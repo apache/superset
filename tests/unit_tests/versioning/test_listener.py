@@ -19,16 +19,65 @@
 from collections.abc import Iterator
 from contextvars import Context
 from typing import Any
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 import pytest
 import sqlalchemy as sa
 from flask import has_app_context
 from sqlalchemy.orm import Session, sessionmaker
+from sqlalchemy_continuum.unit_of_work import UnitOfWork
 
 from superset.versioning.changes import listener
 from superset.versioning.diff import ChangeRecord
 from superset.versioning.unit_of_work import CaptureUnitOfWork
+
+
+def test_shared_connection_capture_decision_survives_helper_session() -> None:
+    """A helper flush cannot discard operations captured by the host session."""
+    from sqlalchemy_continuum import versioning_manager
+
+    host: MagicMock = MagicMock(spec=Session)
+    helper: MagicMock = MagicMock(spec=Session)
+    unit: CaptureUnitOfWork = CaptureUnitOfWork(versioning_manager)
+    unit.pending_statements.append(MagicMock())
+    with (
+        patch(
+            "superset.versioning.unit_of_work.capture_enabled", return_value=True
+        ) as gate,
+        patch.object(UnitOfWork, "process_before_flush") as before,
+        patch.object(UnitOfWork, "process_after_flush") as after,
+    ):
+        unit.process_before_flush(host)
+        unit.process_after_flush(helper)
+    gate.assert_called_once_with(host)
+    before.assert_called_once_with(host)
+    after.assert_called_once_with(helper)
+    assert len(unit.pending_statements) == 1
+    unit.reset()
+    assert unit._capture_allowed is None
+
+
+def test_shared_connection_denial_cannot_be_reenabled_by_helper_session() -> None:
+    """A helper flush cannot turn a denied transaction into captured history."""
+    from sqlalchemy_continuum import versioning_manager
+
+    host: MagicMock = MagicMock(spec=Session)
+    helper: MagicMock = MagicMock(spec=Session)
+    unit: CaptureUnitOfWork = CaptureUnitOfWork(versioning_manager)
+    unit.pending_statements.append(MagicMock())
+    with (
+        patch(
+            "superset.versioning.unit_of_work.capture_enabled", return_value=False
+        ) as gate,
+        patch.object(UnitOfWork, "process_before_flush") as before,
+        patch.object(UnitOfWork, "process_after_flush") as after,
+    ):
+        unit.process_before_flush(host)
+        unit.process_after_flush(helper)
+    gate.assert_called_once_with(host)
+    before.assert_not_called()
+    after.assert_not_called()
+    assert unit.pending_statements == []
 
 
 @pytest.mark.parametrize(

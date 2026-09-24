@@ -26,9 +26,20 @@ from superset.versioning.utils import capture_enabled
 class CaptureUnitOfWork(UnitOfWork):
     """Keep denied mapper/association operations out of later captured flushes."""
 
+    def reset(self, session: Session | None = None) -> None:
+        """Clear the transaction's capture decision with Continuum's state."""
+        super().reset(session)
+        self._capture_allowed: bool | None = None
+
+    def _capture_enabled(self, session: Session) -> bool:
+        """Use one decision for every session sharing this connection's unit."""
+        if self._capture_allowed is None:
+            self._capture_allowed = capture_enabled(session)
+        return self._capture_allowed
+
     def process_before_flush(self, session: Session) -> None:
         """Decide before Continuum creates its transaction or version session."""
-        if session is self.version_session or not capture_enabled(session):
+        if session is self.version_session or not self._capture_enabled(session):
             return
         super().process_before_flush(session)
 
@@ -36,7 +47,7 @@ class CaptureUnitOfWork(UnitOfWork):
         """Discard denied operations, including relationship-table statements."""
         if session is self.version_session:
             return
-        if not capture_enabled(session):
+        if not self._capture_enabled(session):
             self.operations: Operations = Operations()
             self.pending_statements.clear()
             return

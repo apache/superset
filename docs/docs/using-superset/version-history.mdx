@@ -73,6 +73,14 @@ History retention is configured independently with `VERSION_HISTORY_RETENTION_DA
 in `superset_config.py` or the environment variable of the same name. Its default
 is 30 days; set it to `0` to disable pruning. The scheduled retention task preserves
 live versions and prunes eligible closed history older than the configured window.
+The released `SUPERSET_VERSION_HISTORY_RETENTION_DAYS` key remains a deprecated
+fallback: its positive window is preserved and any nonpositive value still
+disables pruning. Migrate a legacy `-1` or other negative disable to the new
+key with value `0`. An explicit new `-1` instead makes closed history eligible
+on the next scheduled run, and logs a startup warning.
+If a custom config star-imports Superset defaults and keeps both keys, an
+inherited new 30-day value is ambiguous; the safer disabled or longer legacy
+window wins. Remove the old key when explicitly migrating in that config.
 The environment seed accepts -1 through 36500. An absent value defaults to 30
 days; invalid supplied values, including non-integers and values outside that
 range, defer pruning with 0. Changing retention does not enable history access

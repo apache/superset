@@ -85,6 +85,69 @@ def test_task_reads_canonical_application_retention(
     stats.incr.assert_not_called()
 
 
+@pytest.mark.parametrize(
+    ("legacy", "expected"),
+    [(180, 180), (0, 0), (-1, 0), (-7, 0), (1000000000, 0)],
+)
+def test_task_preserves_legacy_only_custom_application_config(
+    stats: MagicMock, legacy: int, expected: int
+) -> None:
+    """A wholly custom app config without the new key keeps 7.0 retention."""
+    app: Flask = Flask(__name__)
+    app.config["SUPERSET_VERSION_HISTORY_RETENTION_DAYS"] = legacy
+    prune: MagicMock
+    with (
+        app.app_context(),
+        patch.object(
+            version_history_retention, "_prune_old_versions_impl", return_value={}
+        ) as prune,
+    ):
+        assert version_history_retention.prune_old_versions() == {}
+    prune.assert_called_once_with(expected)
+
+
+@pytest.mark.parametrize(("legacy", "expected"), [(0, 0), (365, 365)])
+def test_task_keeps_legacy_when_custom_module_imports_new_default(
+    stats: MagicMock, legacy: int, expected: int
+) -> None:
+    """A star-imported 30-day default must not shorten a released window."""
+    app: Flask = Flask(__name__)
+    app.config.update(
+        VERSION_HISTORY_RETENTION_DAYS=30,
+        SUPERSET_VERSION_HISTORY_RETENTION_DAYS=legacy,
+    )
+    prune: MagicMock
+    with (
+        app.app_context(),
+        patch.object(
+            version_history_retention, "_prune_old_versions_impl", return_value={}
+        ) as prune,
+    ):
+        assert version_history_retention.prune_old_versions() == {}
+    prune.assert_called_once_with(expected)
+
+
+@pytest.mark.parametrize(("canonical", "legacy"), [(7, 365), (365, 0), (-1, -1)])
+def test_task_honors_explicit_canonical_config_with_legacy_key_present(
+    stats: MagicMock, canonical: int, legacy: int
+) -> None:
+    """A distinct canonical value wins even while an old key remains."""
+    app: Flask = Flask(__name__)
+    app.config.update(
+        VERSION_HISTORY_RETENTION_DAYS=canonical,
+        SUPERSET_VERSION_HISTORY_RETENTION_DAYS=legacy,
+    )
+    prune: MagicMock
+    with (
+        app.app_context(),
+        patch.object(
+            version_history_retention, "_prune_old_versions_impl", return_value={}
+        ) as prune,
+    ):
+        assert version_history_retention.prune_old_versions() == {}
+    prune.assert_called_once_with(canonical)
+
+
 @pytest.mark.parametrize("value", [-1.0, -1.5, True, False, None])
 def test_task_does_not_coerce_invalid_input_to_immediate(
     value: object, stats: MagicMock

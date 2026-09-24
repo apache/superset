@@ -27,9 +27,19 @@ assists people when migrating to a new version.
 ### Version history retention setting
 
 Use `VERSION_HISTORY_RETENTION_DAYS` for both the application setting and
-environment variable. The unreleased `SUPERSET_VERSION_HISTORY_RETENTION_DAYS`
-name is removed without an alias. Update any pre-release configuration, including
-explicit cleanup disables. The default remains 30 days; zero disables pruning.
+environment variable. `SUPERSET_VERSION_HISTORY_RETENTION_DAYS` shipped in 7.0
+and remains a deprecated compatibility alias when the new setting is absent.
+Existing positive windows are preserved; existing zero or negative values still
+disable pruning. Migrate those deployments to `VERSION_HISTORY_RETENTION_DAYS=0`.
+Set the new environment variable to take precedence over a legacy value. In a
+custom config that star-imports defaults, an inherited new 30-day value cannot
+be distinguished from an explicit 30-day override; when the old key is also
+present, the safer disable or longer window is retained. Remove the old key
+when setting the new value in such a config. **Do not copy
+an old `-1` value to the new key:** the new `-1` makes history immediately
+eligible on the next scheduled run instead of disabling pruning. Startup logs
+a warning when the new `-1` is active. The default remains 30 days when neither
+key is set; zero disables pruning.
 For both this setting and `SOFT_DELETE_RETENTION_DAYS`, `-1` means immediate
 eligibility on the next scheduled cleanup run, with its clock as cutoff (not a
 future cutoff). Live/current data and normal purge guards remain protected.
@@ -62,6 +72,9 @@ Existing history and independent retention are unchanged; skipped edits are not
 reconstructed. The first enabled edit of an entity without history may create
 the existing baseline of its then-current state. Expected service failures must
 be handled by the host predicate; programming/database errors are not suppressed.
+Parent and child snapshots are rebuilt in the save transaction after a captured
+edit. If that rebuild fails, the save fails and must be rolled back, so an
+incomplete snapshot is not exposed as restorable history.
 
 ### MCP response size guard: byte limit instead of estimated token count
 

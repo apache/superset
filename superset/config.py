@@ -1827,31 +1827,58 @@ _MAX_VERSION_HISTORY_RETENTION_DAYS: int = 36_500
 def _parse_version_history_retention_days() -> int:
     """Parse the retention window without making invalid input fatal."""
     value: str | None = os.environ.get("VERSION_HISTORY_RETENTION_DAYS")
+    legacy: bool = False
+    if value is None:
+        value = os.environ.get("SUPERSET_VERSION_HISTORY_RETENTION_DAYS")
+        legacy = value is not None
     if value is None:
         return _DEFAULT_VERSION_HISTORY_RETENTION_DAYS
+    return _normalize_version_history_retention_days(value, legacy=legacy)
+
+
+def _normalize_version_history_retention_days(value: object, *, legacy: bool) -> int:
+    """Normalize released legacy values without shortening retention on upgrade."""
+    name: str = (
+        "SUPERSET_VERSION_HISTORY_RETENTION_DAYS"
+        if legacy
+        else "VERSION_HISTORY_RETENTION_DAYS"
+    )
     try:
+        if isinstance(value, bool) or not isinstance(value, (str, int)):
+            raise ValueError("Retention must be integer days")
         retention_days: int = int(value)
     except ValueError:
-        logger.warning(
-            "Invalid VERSION_HISTORY_RETENTION_DAYS=%r; skipping pruning",
-            value,
-        )
+        logger.warning("Invalid %s=%r; skipping pruning", name, value)
         return 0
+    if legacy:
+        logger.warning(
+            "%s is deprecated; use VERSION_HISTORY_RETENTION_DAYS. "
+            "Legacy nonpositive values disable pruning.",
+            name,
+        )
+        if retention_days <= 0:
+            return 0
     if retention_days < -1:
-        logger.warning("Invalid negative VERSION_HISTORY_RETENTION_DAYS; skipping")
+        logger.warning("Invalid negative %s; skipping pruning", name)
         return 0
     if retention_days > _MAX_VERSION_HISTORY_RETENTION_DAYS:
         logger.warning(
-            "VERSION_HISTORY_RETENTION_DAYS=%r exceeds the maximum of %d; "
-            "skipping pruning",
+            "%s=%r exceeds the maximum of %d; skipping pruning",
+            name,
             value,
             _MAX_VERSION_HISTORY_RETENTION_DAYS,
         )
         return 0
+    if retention_days == -1:
+        logger.warning(
+            "VERSION_HISTORY_RETENTION_DAYS=-1 makes history eligible for "
+            "immediate pruning on the next scheduled run; use 0 to disable"
+        )
     return retention_days
 
 
 VERSION_HISTORY_RETENTION_DAYS: int = _parse_version_history_retention_days()
+_version_history_retention_seed: int = VERSION_HISTORY_RETENTION_DAYS
 
 # Adds a warning message on sqllab save query and schedule query modals.
 SQLLAB_SAVE_WARNING_MESSAGE = None
@@ -3527,6 +3554,11 @@ def _config_fingerprint(source: bytes | None) -> str:
     return hashlib.md5(source).hexdigest()[:12]  # noqa: S324
 
 
+_legacy_history_retention_override: bool = False
+_canonical_history_retention_override: bool = False
+_legacy_history_retention_value: object = None
+_canonical_history_retention_value: object = None
+
 if CONFIG_PATH_ENV_VAR in os.environ:
     # Explicitly import config module that is not necessarily in pythonpath; useful
     # for case where app is being executed via pex.
@@ -3543,6 +3575,20 @@ if CONFIG_PATH_ENV_VAR in os.environ:
         exec(  # noqa: S102
             compile(config_source, cfg_path, "exec"), override_conf.__dict__
         )
+        _legacy_history_retention_override = (
+            "SUPERSET_VERSION_HISTORY_RETENTION_DAYS" in override_conf.__dict__
+        )
+        _canonical_history_retention_override = (
+            "VERSION_HISTORY_RETENTION_DAYS" in override_conf.__dict__
+        )
+        if _legacy_history_retention_override:
+            _legacy_history_retention_value = vars(override_conf)[
+                "SUPERSET_VERSION_HISTORY_RETENTION_DAYS"
+            ]
+        if _canonical_history_retention_override:
+            _canonical_history_retention_value = vars(override_conf)[
+                "VERSION_HISTORY_RETENTION_DAYS"
+            ]
         for key in dir(override_conf):
             if key.isupper():
                 setattr(module, key, getattr(override_conf, key))
@@ -3563,6 +3609,21 @@ elif importlib.util.find_spec("superset_config"):
         import superset_config
         from superset_config import *  # noqa: F403, F401
 
+        _legacy_history_retention_override = (
+            "SUPERSET_VERSION_HISTORY_RETENTION_DAYS" in vars(superset_config)
+        )
+        _canonical_history_retention_override = (
+            "VERSION_HISTORY_RETENTION_DAYS" in vars(superset_config)
+        )
+        if _legacy_history_retention_override:
+            _legacy_history_retention_value = vars(superset_config)[
+                "SUPERSET_VERSION_HISTORY_RETENTION_DAYS"
+            ]
+        if _canonical_history_retention_override:
+            _canonical_history_retention_value = vars(superset_config)[
+                "VERSION_HISTORY_RETENTION_DAYS"
+            ]
+
         try:
             with open(superset_config.__file__, "rb") as fh:
                 config_source = fh.read()
@@ -3577,6 +3638,28 @@ elif importlib.util.find_spec("superset_config"):
     except Exception:
         logger.exception("Found but failed to import local superset_config")
         raise
+
+if _canonical_history_retention_override:
+    VERSION_HISTORY_RETENTION_DAYS = _normalize_version_history_retention_days(
+        _canonical_history_retention_value, legacy=False
+    )
+if (
+    _legacy_history_retention_override
+    and "VERSION_HISTORY_RETENTION_DAYS" not in os.environ
+):
+    _legacy_history_retention_days: int = _normalize_version_history_retention_days(
+        _legacy_history_retention_value, legacy=True
+    )
+    if not _canonical_history_retention_override:
+        VERSION_HISTORY_RETENTION_DAYS = _legacy_history_retention_days
+    elif VERSION_HISTORY_RETENTION_DAYS == _version_history_retention_seed:
+        # A star-imported default is indistinguishable from an explicit same-value
+        # override. Keep the non-destructive interpretation when the old key differs.
+        VERSION_HISTORY_RETENTION_DAYS = (
+            0
+            if 0 in (VERSION_HISTORY_RETENTION_DAYS, _legacy_history_retention_days)
+            else max(VERSION_HISTORY_RETENTION_DAYS, _legacy_history_retention_days)
+        )
 
 # Final environment variable processing - must be at the very end
 # to override any config file assignments
