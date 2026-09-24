@@ -3215,7 +3215,7 @@ msgid "Candlestick"
 msgstr "Kerzenchart"
 
 msgid "Candlestick Chart"
-msgstr "Kerzenstock-Diagramm"
+msgstr "Kerzenchart-Diagramm"
 
 msgid ""
 "Candlestick draws a filled body between open and close. OHLC draws ticks "

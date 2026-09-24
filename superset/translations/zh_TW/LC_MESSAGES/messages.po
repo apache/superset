@@ -3439,7 +3439,7 @@ msgstr "K線圖"
 msgid ""
 "Candlestick draws a filled body between open and close. OHLC draws ticks "
 "for open and close on a high-low stem."
-msgstr "K線在開盤和收盤之間繪製實心實體。OHLC 在最高-最低軸上繪製開盤和收盤刻度。"
+msgstr "K線在開盤和收盤之間繪製實心實體。開高低收在最高-最低軸上繪製開盤和收盤刻度。"
 
 msgid "Cannot access the query"
 msgstr "無法訪問查詢"
