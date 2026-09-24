@@ -150,3 +150,36 @@ def test_log_this_with_context_derives_object_id_from_route(
     assert not payload["slice_id"]
     assert payload["records"][0]["dashboard_id"] == 42
     assert payload["records"][0]["pk"] == "42"
+
+
+def test_log_this_with_context_derives_object_id_despite_outer_decorator(
+    app_context: None, mocker: MockerFixture
+) -> None:
+    """``DashboardRestApi.get`` sits behind ``with_dashboard``, which calls the
+    logged view positionally (``f(self, dash)``) after resolving the id,
+    leaving the logger's own ``kwargs`` empty. The id must still come from
+    ``request.view_args``, with no ``add_extra_log_payload`` call in the view.
+    """
+    mock_log = mocker.patch.object(DBEventLogger, "log")
+    logger = DBEventLogger()
+
+    class FakeDashboardRestApi:  # pylint: disable=too-few-public-methods
+        datamodel = SimpleNamespace(obj=_Dashboard)
+
+        @logger.log_this_with_context(action="DashboardRestApi.get")
+        def get(self, dash_id: int) -> str:
+            return f"got {dash_id}"
+
+    def with_dashboard(f: Any) -> Any:
+        def wraps(self: Any, id_or_slug: str) -> Any:
+            return f(self, int(id_or_slug))
+
+        return wraps
+
+    FakeDashboardRestApi.get = with_dashboard(FakeDashboardRestApi.get)  # type: ignore[method-assign]
+
+    with current_app.test_request_context("/api/v1/dashboard/42", method="GET"):
+        assert FakeDashboardRestApi().get("42") == "got 42"
+
+    payload = mock_log.call_args[1]
+    assert payload["dashboard_id"] == 42

@@ -879,6 +879,10 @@ class TestDashboardArchiveListing(SupersetTestCase):
         rv = self.client.post(f"/api/v1/dashboard/{dashboard_uuid}/purge")
         assert rv.status_code == 200, rv.data
 
+        # the UUID resolves to the row's integer id before it's gone for good
+        log = self.get_latest_log("DashboardRestApi.purge")
+        assert log.dashboard_id == dashboard_id
+
         row = (
             db.session.query(Dashboard)
             .execution_options(**{SKIP_VISIBILITY_FILTER_CLASSES: {Dashboard}})

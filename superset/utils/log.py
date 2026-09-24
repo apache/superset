@@ -410,8 +410,17 @@ class AbstractEventLogger(ABC):
             ) as log:
                 # Resolve the object's id before the route runs so that delete
                 # and purge can still identify the row they are about to remove.
+                # Read the URL's own view args (Flask fills request.view_args
+                # from the route regardless of what a decorator above this one
+                # does to the wrapped function's signature) rather than only
+                # this wrapper's own kwargs, which a decorator like
+                # with_dashboard can empty out by calling the wrapped function
+                # positionally (e.g. f(self, dash)) after resolving the id.
                 view = args[0] if args else None
-                log(**kwargs, **get_object_ids_from_view_args(view, kwargs))
+                route_args = dict(kwargs)
+                if has_request_context() and request:
+                    route_args.update(request.view_args or {})
+                log(**kwargs, **get_object_ids_from_view_args(view, route_args))
                 if allow_extra_payload:
                     # add a payload updater to the decorated function
                     value = f(*args, add_extra_log_payload=log, **kwargs)
