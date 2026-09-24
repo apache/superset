@@ -70,6 +70,42 @@ export function mappingIsActive(
   return Boolean(mappedColumn?.partition_value_transform?.trim());
 }
 
+/**
+ * Whether a transform is worth spending a preview request on.
+ *
+ * A necessary condition, never a sufficient one: the server stays the authority
+ * on whether a transform is usable, and anything this cannot see -- an
+ * unparseable expression, a non-deterministic function -- still comes back from
+ * it. What this catches is the cases that are knowably hopeless while the owner
+ * is still typing, which would otherwise spend the per-user preview budget and
+ * leave none for the transform they eventually finish writing.
+ */
+export function transformCanPreview(
+  transform: string | null | undefined,
+  mappedColumn?: string | null,
+  partitionColumn?: string | null,
+): boolean {
+  const trimmed = transform?.trim();
+  if (!trimmed) {
+    return false;
+  }
+  // Without the placeholder there is no value to substitute, so the transform
+  // is inert however well-formed it is.
+  if (!/:value\b/.test(trimmed)) {
+    return false;
+  }
+  // Jinja would render in a different context at a different time from the
+  // chart query, so it is rejected on save -- previewing it is pointless.
+  if (/\{\{|\{%|\{#/.test(trimmed)) {
+    return false;
+  }
+  // A column cannot stand in for itself; the backend rejects this outright.
+  if (mappedColumn && partitionColumn && mappedColumn === partitionColumn) {
+    return false;
+  }
+  return true;
+}
+
 /** Which of the three row-expand treatments a column gets. */
 export function partitionRowState(
   datasource: PartitionMappingDatasource,
@@ -174,6 +210,27 @@ export function applyMappingMove<T extends PartitionMappingColumn>(
  * column exposed can toggle it back, and clearing the partition column later
  * does not undo their choice.
  */
+/**
+ * The mapped-column override that survives choosing a new partition column.
+ *
+ * The override only means anything relative to a partition column, so clearing
+ * the partition column clears it too -- leaving it behind would silently re-arm
+ * the next mapping. It also has to go when it names the column just chosen: a
+ * column cannot stand in for itself, and the backend rejects that outright.
+ *
+ * `null` falls back to the implicit `main_dttm_col`, which is what an owner who
+ * has not chosen an override gets anyway.
+ */
+export function nextMappedColumnOverride(
+  previousOverride: string | null | undefined,
+  partitionColumn: string | null,
+): string | null {
+  if (!partitionColumn || previousOverride === partitionColumn) {
+    return null;
+  }
+  return previousOverride ?? null;
+}
+
 export function applyPartitionColumnDefaults<T extends PartitionMappingColumn>(
   columns: T[],
   partitionColumnName: string,
