@@ -234,6 +234,15 @@ The AI agent sees your tool's:
 
 ### Input Validation Errors
 
+Argument-validation failures return MCP `isError: true`, with schema field paths
+(such as `request.page_size`) and safe reasons (such as `Expected an integer`).
+Supply required wrappers such as `request` rather than passing their fields at
+the top level. Diagnostics omit received values and custom validator messages;
+undeclared fields and dynamic dictionary keys appear as `[field]`. Responses
+include at most eight validation errors with at most eight path segments each.
+Already-structured tool errors retain their content and error flag; this
+validation formatter does not reinterpret domain-error payloads.
+
 1. **Pydantic models**: Ensure field types match expected inputs
 2. **Field constraints**: Check min/max values and string lengths are reasonable
 3. **Required fields**: Verify which parameters are required vs optional

@@ -432,7 +432,8 @@ class TestPerClassClientFacingErrors:
 
         assert "Validation error in needs_id" in message
         assert "id" in message
-        assert "identifier" in message
+        assert "identifier" not in message
+        assert "Unexpected argument" in message
         assert "Permission denied" not in message
 
     @pytest.mark.asyncio
