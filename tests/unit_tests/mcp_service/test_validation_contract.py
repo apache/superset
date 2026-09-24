@@ -106,6 +106,28 @@ async def test_validation_wire_contract(
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("inner_handler", [False, True])
+@pytest.mark.parametrize("key", ["secret", "filters", "request"])
+async def test_validation_masks_keys_colliding_with_declared_fields(
+    inner_handler: bool, key: str
+) -> None:
+    """A field declared elsewhere cannot authorize a free-form dictionary key."""
+    server = make_server(inner_handler=inner_handler, structured=False)
+    async with Client(server) as client:
+        result = await client.call_tool_mcp(
+            "sensitive", {"request": {"filters": {key: "bad"}}}
+        )
+    assert result.isError is True
+    assert result.content == [
+        TextContent(
+            type="text",
+            text="Error: Validation error in sensitive: "
+            "request.filters.[field]: Expected an integer",
+        )
+    ]
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("inner_handler", [False, True])
 async def test_validation_never_echoes_values_or_dynamic_keys(
     inner_handler: bool,
 ) -> None:
@@ -221,3 +243,68 @@ async def test_unstructured_validation_exception_fails_closed(
             "arguments: Invalid arguments; check the input schema",
         )
     ]
+
+
+@pytest.mark.parametrize("definitions", ["$defs", "definitions"])
+@pytest.mark.parametrize("composition", ["anyOf", "oneOf", "allOf"])
+@pytest.mark.parametrize(
+    ("location", "expected"),
+    [
+        (("request", "secret"), "request.secret"),
+        (("request", "filters", "secret"), "request.filters.[field]"),
+        (("request", "filters", 42, "secret"), "request.filters.[field].[field]"),
+        (("request", "rows", 0, "secret"), "request.rows.0.secret"),
+        (("request", "rows", "secret"), "request.rows.[field]"),
+        (("request", "rows", -1, "secret"), "request.rows.[field].[field]"),
+        (("request", "pair", 0, "secret"), "request.pair.0.secret"),
+        (("request", "pair", 1, "secret"), "request.pair.1.[field]"),
+        (("request", "pair", 2, "secret"), "request.pair.2.secret"),
+        (("request", "variant", "secret"), "request.variant.secret"),
+        (
+            ("request", "variant", "unknown-tag", "secret"),
+            "request.variant.[field].[field]",
+        ),
+        (("request", "broken", "secret"), "request.broken.[field]"),
+        (("request", "external", "secret"), "request.external.[field]"),
+        (("request", "cycle", "secret"), "request.cycle.[field]"),
+        (("request", "s" * 64), "request." + "s" * 64),
+        (("request", "s" * 65), "request.[field]"),
+        (("request",) + ("child",) * 9, ".".join(["request"] + ["child"] * 7)),
+        ((), "arguments"),
+    ],
+)
+def test_validation_locations_follow_schema_paths(
+    definitions: str,
+    composition: str,
+    location: tuple[str | int, ...],
+    expected: str,
+) -> None:
+    """References and branches authorize fields only at their own positions."""
+    from superset.mcp_service.utils.validation import _schema_location
+
+    # The escaped definition name also exercises JSON Pointer resolution.
+    leaf = {"$ref": f"#/{definitions}/Leaf~1~0"}
+    request = {"$ref": f"#/{definitions}/Request"}
+    schema = {
+        "properties": {"request": request},
+        definitions: {
+            "Leaf/~": {"properties": {"secret": {"type": "integer"}}},
+            "Cycle": {"$ref": f"#/{definitions}/Cycle"},
+            "Request": {
+                "properties": {
+                    "secret": {"type": "string"},
+                    "filters": {"type": "object", "additionalProperties": leaf},
+                    "rows": {"type": "array", "items": leaf},
+                    "pair": {"prefixItems": [leaf, {}], "items": leaf},
+                    "variant": {composition: [{"type": "null"}, leaf]},
+                    "broken": {"$ref": f"#/{definitions}/Missing"},
+                    "external": {"$ref": "https://example.invalid/schema"},
+                    "cycle": {"$ref": f"#/{definitions}/Cycle"},
+                    "child": request,
+                    "s" * 64: {},
+                    "s" * 65: {},
+                }
+            },
+        },
+    }
+    assert _schema_location(schema, location) == expected

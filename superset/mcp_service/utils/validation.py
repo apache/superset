@@ -17,6 +17,7 @@
 
 """Bounded, input-free diagnostics for MCP argument validation."""
 
+from collections.abc import Iterator
 from typing import Any
 
 from fastmcp.exceptions import ValidationError as FastMCPValidationError
@@ -63,29 +64,68 @@ _REASONS = {
 }
 
 
-def _schema_fields(schema: dict[str, Any]) -> set[str]:
-    """Allow only declared property names, never input-supplied dict keys."""
-    fields: set[str] = set()
-    pending = [schema]
+def _schema_nodes(
+    schema: dict[str, Any], nodes: list[dict[str, Any]]
+) -> Iterator[dict[str, Any]]:
+    """Expand local references and composition branches at one path position."""
+    pending = list(nodes)
+    seen: set[int] = set()
     while pending:
         node = pending.pop()
-        for keyword in ("properties", "$defs", "definitions"):
-            children = node.get(keyword)
-            if isinstance(children, dict):
-                if keyword == "properties":
-                    fields.update(name for name in children if len(name) <= 64)
+        if id(node) in seen:
+            continue
+        seen.add(id(node))
+        if "$ref" in node:
+            ref = node["$ref"]
+            if not isinstance(ref, str) or not ref.startswith("#/"):
+                continue
+            target: Any = schema
+            for part in ref[2:].split("/"):
+                if not isinstance(target, dict):
+                    break
+                target = target.get(part.replace("~1", "/").replace("~0", "~"))
+            if not isinstance(target, dict):
+                continue
+            pending.append(target)
+        yield node
+        for keyword in ("anyOf", "oneOf", "allOf"):
+            branches = node.get(keyword)
+            if isinstance(branches, list):
                 pending.extend(
-                    child for child in children.values() if isinstance(child, dict)
+                    branch for branch in branches if isinstance(branch, dict)
                 )
-        for keyword in ("items", "additionalProperties"):
-            child = node.get(keyword)
+
+
+def _schema_location(schema: dict[str, Any], location: tuple[str | int, ...]) -> str:
+    """Expose only declared fields and array indices along the schema path.
+
+    Never follow additionalProperties: dictionary keys, unknown union tags and
+    other unresolved positions mask the remainder of the path, even if a name
+    is declared elsewhere in the schema.
+    """
+    nodes = [schema]
+    parts = []
+    for part in location[:8]:
+        children: list[dict[str, Any]] = []
+        for node in _schema_nodes(schema, nodes):
+            child: Any = None
+            if isinstance(part, str):
+                properties = node.get("properties")
+                if isinstance(properties, dict):
+                    child = properties.get(part)
+            elif isinstance(part, int) and part >= 0:
+                prefix_items = node.get("prefixItems")
+                if isinstance(prefix_items, list) and part < len(prefix_items):
+                    child = prefix_items[part]
+                else:
+                    child = node.get("items")
             if isinstance(child, dict):
-                pending.append(child)
-        for keyword in ("anyOf", "oneOf", "allOf", "prefixItems"):
-            children = node.get(keyword)
-            if isinstance(children, list):
-                pending.extend(child for child in children if isinstance(child, dict))
-    return fields
+                children.append(child)
+            elif isinstance(child, bool):
+                children.append({})
+        parts.append(str(part) if children and len(str(part)) <= 64 else "[field]")
+        nodes = children
+    return ".".join(parts) or "arguments"
 
 
 async def validation_message(
@@ -98,17 +138,17 @@ async def validation_message(
     Errors without Pydantic's structured API fail closed rather than parsing
     exception text, which can contain input or backend diagnostics.
     """
-    fields: set[str] = set()
+    schema: dict[str, Any] = {}
     prefix = "Request validation failed"
     try:
         if context.fastmcp_context is not None:
             tool = await context.fastmcp_context.fastmcp.get_tool(context.message.name)
             if tool is not None:
-                fields = _schema_fields(tool.parameters)
+                schema = tool.parameters
                 prefix = f"Validation error in {tool.name}"
     except Exception:  # noqa: BLE001
         # Discovery failures must not replace the original validation failure.
-        fields = set()
+        schema = {}
 
     if isinstance(error, FastMCPValidationError) and isinstance(
         error.__cause__, ValidationError
@@ -121,13 +161,11 @@ async def validation_message(
     details = []
     errors = error.errors(include_url=False, include_context=False, include_input=False)
     for item in errors[:8]:
-        location = (
-            ".".join(
-                str(part) if isinstance(part, int) or part in fields else "[field]"
-                for part in item["loc"][:8]
-            )
-            or "arguments"
-        )
+        try:
+            location = _schema_location(schema, item["loc"])
+        except Exception:  # noqa: BLE001
+            # Malformed schemas must not expose unchecked location segments.
+            location = _schema_location({}, item["loc"])
         reason = _REASONS.get(item["type"], "Invalid value; check the field schema")
         details.append(f"{location}: {reason}")
     if len(errors) > 8:

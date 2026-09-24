@@ -238,7 +238,9 @@ Argument-validation failures return MCP `isError: true`, with schema field paths
 (such as `request.page_size`) and safe reasons (such as `Expected an integer`).
 Supply required wrappers such as `request` rather than passing their fields at
 the top level. Diagnostics omit received values and custom validator messages;
-undeclared fields and dynamic dictionary keys appear as `[field]`. Responses
+undeclared fields and dynamic dictionary keys appear as `[field]`, even when a
+key matches a field declared elsewhere in the schema. Only fields declared at
+the corresponding schema path are shown. Responses
 include at most eight validation errors with at most eight path segments each.
 Already-structured tool errors retain their content and error flag; this
 validation formatter does not reinterpret domain-error payloads.
