@@ -38,6 +38,7 @@ import sqlalchemy as sa
 from sqlalchemy.engine import Connection
 from sqlalchemy.orm import Session
 from sqlalchemy_continuum import version_class
+from werkzeug.test import TestResponse
 
 from superset import db
 from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
@@ -599,7 +600,7 @@ class TestDatasetVersionsApi(SupersetTestCase):
                 "superset.versioning.baseline.insertion.CHILD_BASELINE_HANDLERS",
                 {"SqlaTable": fail_children},
             ):
-                rv = self.client.put(
+                rv: TestResponse = self.client.put(
                     f"/api/v1/dataset/{dataset_id}",
                     json={"description": "survives child baseline failure"},
                 )
