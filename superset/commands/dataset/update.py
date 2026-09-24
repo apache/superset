@@ -425,7 +425,15 @@ class UpdateDatasetCommand(UpdateMixin, BaseCommand):
         there costs nothing -- an unparseable transform is never emitted into a
         query -- and it is not a hole for templating, because Jinja in a
         transform is already a Tier-1 blocking issue of its own.
+
+        Every path that *reads* a mapping is gated on the feature flag, so this
+        one is too: with the flag off nothing mirrors, and rejecting a save over
+        a mapping that can never be consumed would be a validation error the
+        owner has no way to act on.
         """
+        if not is_feature_enabled("PARTITION_FILTER_MAPPING"):
+            return
+
         self._model = cast(SqlaTable, self._model)
 
         columns = self._properties.get("columns")
