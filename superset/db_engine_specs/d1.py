@@ -21,7 +21,7 @@ import re
 from re import Pattern
 from typing import Any, TYPE_CHECKING
 
-from flask_babel import gettext as __
+from flask_babel import lazy_gettext as _
 
 from superset.db_engine_specs.base import DatabaseCategory
 from superset.db_engine_specs.sqlite import SqliteEngineSpec
@@ -58,7 +58,7 @@ class CloudflareD1EngineSpec(SqliteEngineSpec):
 
     custom_errors: dict[Pattern[str], tuple[str, SupersetErrorType, dict[str, Any]]] = {
         COLUMN_DOES_NOT_EXIST_REGEX: (
-            __('We can\'t seem to resolve the column "%(column_name)s"'),
+            _('We can\'t seem to resolve the column "%(column_name)s"'),
             SupersetErrorType.COLUMN_DOES_NOT_EXIST_ERROR,
             {},
         ),
