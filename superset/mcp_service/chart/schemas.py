@@ -41,6 +41,7 @@ from pydantic import (
     StrictBool,
     ValidationError,
 )
+from pydantic.json_schema import SkipJsonSchema
 from typing_extensions import Self, TypedDict
 
 from superset.constants import NO_TIME_RANGE, TimeGrain
@@ -3836,7 +3837,7 @@ class GenerateChartRequest(ChartRequestNormalizerMixin, QueryCacheControl):
     preview_formats: List[Literal["url", "ascii", "vega_lite", "table"]] = Field(
         default_factory=lambda: ["url"],
     )
-    sanitization_warnings: List[str] = Field(
+    sanitization_warnings: SkipJsonSchema[List[str]] = Field(
         default_factory=list,
         description=(
             "Internal: warnings emitted when user input was altered by "

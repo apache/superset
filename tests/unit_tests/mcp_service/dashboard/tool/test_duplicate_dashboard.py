@@ -448,6 +448,7 @@ async def test_title_xss_is_sanitized(
                 "request": {
                     "dashboard_id": 1,
                     "dashboard_title": "<script>alert('x')</script>Regional Copy",
+                    "sanitization_warnings": ["caller-controlled warning"],
                 }
             },
         )
@@ -457,7 +458,9 @@ async def test_title_xss_is_sanitized(
     # The sanitized title — not the raw payload — is sent to the command.
     _, cmd_data = mock_copy_cmd_cls.call_args.args
     assert cmd_data["dashboard_title"] == "Regional Copy"
-    assert content["warnings"], "expected a sanitization warning"
+    assert len(content["warnings"]) == 1
+    assert "dashboard_title" in content["warnings"][0]
+    assert "caller-controlled" not in content["warnings"][0]
 
 
 @patch("superset.daos.dashboard.DashboardDAO.find_by_id")
@@ -692,3 +695,19 @@ def test_empty_title_rejected_by_schema() -> None:
 
     with pytest.raises(ValidationError):
         DuplicateDashboardRequest(dashboard_id=1, dashboard_title="")
+
+
+@pytest.mark.asyncio
+async def test_tool_input_schemas_omit_sanitization_warnings(
+    mcp_server: object,
+) -> None:
+    """Tool discovery must not advertise server-generated warning fields."""
+    async with Client(mcp_server) as client:
+        tools = {tool.name: tool for tool in await client.list_tools()}
+    for name in (
+        "generate_chart",
+        "generate_dashboard",
+        "update_dashboard",
+        "duplicate_dashboard",
+    ):
+        assert "sanitization_warnings" not in str(tools[name].inputSchema)
