@@ -353,10 +353,9 @@ def test_get_sqla_table_does_not_qualify_collection() -> None:
 
     sqla_table = dataset.get_sqla_table()
 
-    # PyMongoSQL doesn't have a real SQLAlchemy dialect to compile against in this
-    # unit test; a generic dialect is enough to verify the FROM-clause identifier
-    # itself is unqualified, which is what PyMongoSQL parses.
-    engine = create_engine("sqlite://")
+    # Compile with the engine's own dialect -- the one `get_sqla_table` already
+    # quoted the identifier with -- so the assertion covers the real path.
+    engine = create_engine(database.sqlalchemy_uri)
     compiled = str(
         select(sqla_table).compile(engine, compile_kwargs={"literal_binds": True})
     )

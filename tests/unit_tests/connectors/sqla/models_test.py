@@ -1192,7 +1192,7 @@ def test_get_sqla_table_schema_not_qualified_when_engine_opts_out(
     database = mocker.MagicMock()
     database.db_engine_spec.supports_cross_catalog_queries = False
     database.db_engine_spec.quote_table_includes_schema = False
-    database.db_engine_spec.quote_table = (
+    database.db_engine_spec.quote_table.side_effect = (
         lambda table, dialect: dialect.identifier_preparer.quote(table.table)
     )
     database.get_dialect.return_value = engine.dialect
@@ -1210,6 +1210,7 @@ def test_get_sqla_table_schema_not_qualified_when_engine_opts_out(
 
     assert "FROM orders" in compiled
     assert "testdb" not in compiled
+    database.db_engine_spec.quote_table.assert_called_once()
 
 
 def test_get_sqla_table_schema_qualified_by_default(mocker: MockerFixture) -> None:
