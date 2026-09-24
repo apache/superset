@@ -133,6 +133,16 @@ def _layout_chart_id(node: Any) -> int | None:
     return None
 
 
+def _is_empty_chart_slot(node: object) -> bool:
+    """Recognize legacy copy slots with object metadata but no chart reference."""
+    return (
+        isinstance(node, dict)
+        and node.get("type") == "CHART"
+        and isinstance(node.get("meta"), dict)
+        and node["meta"].get("chartId") is None
+    )
+
+
 def _chart_slot_placeholder(node: dict[str, Any], message: str) -> dict[str, Any]:
     """Preserve slot geometry and tree placement without retaining a chart link."""
     meta: dict[str, Any] = node.get("meta") or {}
@@ -166,7 +176,8 @@ def _repair_dangling_chart_nodes(
 
     Swap every ``CHART`` layout node whose ``chartId`` is absent from
     *valid_chart_ids* for a markdown placeholder, in place, and return how
-    many were repaired (logging a diagnostic when any were, since this mutates
+    many were repaired. Empty legacy copy slots (null/missing chart IDs) are
+    repaired too (logging a diagnostic when any were, since this mutates
     persisted, shared layout data).
 
     ``position_json`` is a plain column with no coordination against
@@ -193,7 +204,9 @@ def _repair_dangling_chart_nodes(
     repaired: int = 0
     for key, node in positions.items():
         chart_id: int | None = _layout_chart_id(node)
-        if chart_id is not None and chart_id not in valid_chart_ids:
+        if _is_empty_chart_slot(node) or (
+            chart_id is not None and chart_id not in valid_chart_ids
+        ):
             positions[key] = _chart_slot_placeholder(node, MISSING_CHART_PLACEHOLDER)
             repaired += 1
     if repaired:
@@ -211,7 +224,9 @@ def _reject_malformed_chart_nodes(positions: dict[str, Any]) -> None:
 
     Used only on the path that rebuilds ``dashboard.slices`` wholesale from
     the layout: there, skipping such a node would silently detach the chart
-    it references. (The pre-reconcile code failed that save too, with a 500
+    it references. Null/missing IDs in object metadata are empty legacy copy
+    slots instead: the repair step converts them to geometry-preserving markdown.
+    (The pre-reconcile code failed non-null malformed IDs too, with a 500
     from the bad ``IN`` value; this is the same fail-closed outcome as a clear
     422.) The repair path leaves malformed nodes untouched instead — it never
     rebuilds membership, so ignoring is safe there.
@@ -222,6 +237,7 @@ def _reject_malformed_chart_nodes(positions: dict[str, Any]) -> None:
         if isinstance(node, dict)
         and node.get("type") == "CHART"
         and _layout_chart_id(node) is None
+        and not _is_empty_chart_slot(node)
     ]
     if malformed:
         raise DashboardLayoutInvalidError(
@@ -276,8 +292,6 @@ def reconcile_position_json(positions: object, dashboard_id: int | None = None) 
         for node in positions.values()
         if (chart_id := _layout_chart_id(node)) is not None
     }
-    if not chart_ids:
-        return 0
     return _repair_dangling_chart_nodes(
         positions, _existing_chart_ids(chart_ids), dashboard_id
     )
@@ -543,7 +557,7 @@ class DashboardDAO(BaseDAO[Dashboard]):
         )
 
         if (positions := data.get("positions")) is not None:
-            # A CHART node whose ``chartId`` cannot be resolved is not merely
+            # A CHART node with a non-null malformed ``chartId`` is not merely
             # "ignored" here: the membership rebuild below is wholesale, so
             # skipping the node would silently detach the chart it references.
             # Fail closed with a clear 422 instead (the pre-reconcile code

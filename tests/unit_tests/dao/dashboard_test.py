@@ -521,8 +521,21 @@ def test_set_dash_metadata_keeps_a_member_referenced_in_numeric_form(
     assert positions["CHART-str"]["meta"]["uuid"] == str(as_string.uuid)
 
 
+@pytest.mark.parametrize(
+    "invalid_meta",
+    [
+        {"chartId": [1]},
+        {"chartId": True},
+        {"chartId": 1.25},
+        {"chartId": "unreadable"},
+        None,
+        [],
+        "invalid",
+    ],
+)
 def test_set_dash_metadata_rejects_a_malformed_chart_node_instead_of_detaching(
     session: Session,
+    invalid_meta: object,
 ) -> None:
     """A CHART node whose chartId cannot be resolved fails the save with a
     422-shaped error naming the slot — it is NOT skipped, because the
@@ -553,7 +566,7 @@ def test_set_dash_metadata_rejects_a_malformed_chart_node_instead_of_detaching(
             "type": "CHART",
             "id": "CHART-bad",
             "children": [],
-            "meta": {"chartId": [1], "width": 4, "height": 50},
+            "meta": invalid_meta,
         },
     }
 
@@ -700,3 +713,26 @@ def test_set_dash_metadata_keeps_archived_trapped_chart_through_resave(
     with skip_visibility_filter(db.session, Slice):
         db.session.expire(dashboard, ["slices"])
         assert {chart.id for chart in dashboard.slices} == {placed.id, trapped.id}
+
+
+@pytest.mark.parametrize(
+    "meta", [{"chartId": None, "width": 4, "height": 50}, {"width": 4, "height": 50}]
+)
+def test_reconcile_empty_chart_slot_without_resolvable_ids(
+    meta: dict[str, object],
+) -> None:
+    """An all-empty layout needs no lookup and retains its slot geometry."""
+    node: dict[str, object] = {
+        "type": "CHART",
+        "id": "CHART-empty",
+        "children": [],
+        "parents": ["ROW-a"],
+        "meta": meta,
+    }
+    positions: dict[str, object] = {"CHART-empty": node}
+    assert reconcile_position_json(positions) == 1
+    assert positions["CHART-empty"] == {
+        **node,
+        "type": "MARKDOWN",
+        "meta": {"width": 4, "height": 50, "code": "This chart no longer exists."},
+    }

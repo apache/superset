@@ -56,6 +56,13 @@ def test_copy_normalizes_legacy_chart_ids(session: Session, legacy_form: str) ->
     positions: dict[str, Any] = {
         "CHART-source": {"type": "CHART", "meta": {"chartId": legacy_id}},
     }
+    empty_node: dict[str, object] = {
+        "id": "CHART-empty",
+        "type": "CHART",
+        "children": [],
+        "meta": {"chartId": None, "width": 4, "height": 50},
+    }
+    positions["CHART-empty"] = empty_node
     source.position_json = json.dumps(positions)
     source_layout: str = source.position_json
     with (
@@ -77,6 +84,11 @@ def test_copy_normalizes_legacy_chart_ids(session: Session, legacy_form: str) ->
     assert clone.id != chart.id
     assert result.position["CHART-source"]["meta"]["chartId"] == clone.id
     assert result.position["CHART-source"]["meta"]["uuid"] == str(clone.uuid)
+    assert result.position["CHART-empty"] == {
+        **empty_node,
+        "type": "MARKDOWN",
+        "meta": {"width": 4, "height": 50, "code": "This chart no longer exists."},
+    }
     assert source.position_json == source_layout
 
 

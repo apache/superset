@@ -131,13 +131,14 @@ class UpdateDashboardCommand(UpdateMixin, BaseCommand):
                 isinstance(metadata, dict) and metadata.get("positions") is not None
             )
             position_json: str | None
-            if (
-                position_json := self._properties.get("position_json")
-            ) and not metadata_carries_positions:
+            if position_json := self._properties.get("position_json"):
                 positions: object = json.loads(position_json)
-                reconcile_position_json(positions, self._model.id)
-                if isinstance(positions, dict):
-                    positions = repair_position(positions, self._model_id)
+                if not metadata_carries_positions:
+                    reconcile_position_json(positions, self._model.id)
+                    if isinstance(positions, dict):
+                        positions = repair_position(positions, self._model_id)
+                # The raw field is flushed before metadata replaces it, so
+                # escape it even when its layout will be superseded.
                 self._properties["position_json"] = json.dumps(positions)
 
             dashboard = DashboardDAO.update(

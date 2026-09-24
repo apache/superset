@@ -62,7 +62,7 @@ async def test_malformed_chart_node_does_not_request_another_title(
     def reject_layout() -> None:
         """Exercise the DAO's actual error type instead of manufacturing it."""
         _reject_malformed_chart_nodes(
-            {"CHART-broken": {"type": "CHART", "meta": {"chartId": None}}}
+            {"CHART-broken": {"type": "CHART", "meta": {"chartId": "unreadable"}}}
         )
 
     mock_command.return_value.run.side_effect = reject_layout
@@ -248,15 +248,21 @@ async def test_duplicate_referencing_same_charts(
 @patch("superset.daos.dashboard.DashboardDAO.find_by_id")
 @patch("superset.commands.dashboard.copy.CopyDashboardCommand")
 @patch("superset.daos.dashboard.DashboardDAO.get_by_id_or_slug")
+@pytest.mark.parametrize("legacy_id", [10, "10", 10.0])
 @pytest.mark.asyncio
 async def test_duplicate_with_duplicate_slices(
     mock_get_by_id_or_slug: Mock,
     mock_copy_cmd_cls: Mock,
     mock_find_by_id: Mock,
     mcp_server: object,
+    legacy_id: int | str | float,
 ) -> None:
     """duplicate_slices=True is forwarded to the command and reported back."""
-    source = _mock_dashboard(id=1, slices=[_mock_chart(id=10)])
+    positions: dict[str, Any] = json.loads(json.dumps(SOURCE_POSITIONS))
+    positions["CHART-10"]["meta"]["chartId"] = legacy_id
+    source: Mock = _mock_dashboard(
+        id=1, slices=[_mock_chart(id=10)], position_json=json.dumps(positions)
+    )
     new_chart = _mock_chart(id=20)
     new_dashboard = _mock_dashboard(id=3, title="Regional Variant", slices=[new_chart])
 

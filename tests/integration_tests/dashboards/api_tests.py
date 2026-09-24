@@ -2405,6 +2405,102 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
         db.session.delete(model)
         db.session.commit()
 
+    def test_update_dashboard_repairs_stored_empty_chart_slots(self) -> None:
+        """Editor saves accept legacy copies with null or missing chart IDs."""
+        from superset.connectors.sqla.models import SqlaTable
+
+        admin: User = self.get_user("admin")
+        dataset_id: int = db.session.query(SqlaTable.id).first()[0]
+        self.login(ADMIN_USERNAME)
+        for missing_id in (False, True):
+            for payload_field in ("json_metadata", "position_json"):
+                dashboard: Dashboard = self.insert_dashboard(
+                    "legacy-empty-slot", None, [admin.id]
+                )
+                chart: Slice = self.insert_chart(
+                    "legacy-empty-slot-member", [admin.id], dataset_id
+                )
+                empty_meta: dict[str, object] = {"width": 4, "height": 50}
+                if not missing_id:
+                    empty_meta["chartId"] = None
+                empty_node: dict[str, object] = {
+                    "id": "CHART-empty",
+                    "type": "CHART",
+                    "children": [],
+                    "parents": ["ROOT_ID", "GRID_ID", "ROW-a"],
+                    "meta": empty_meta,
+                }
+                positions: dict[str, object] = {
+                    "DASHBOARD_VERSION_KEY": "v2",
+                    "ROOT_ID": {
+                        "id": "ROOT_ID",
+                        "type": "ROOT",
+                        "children": ["GRID_ID"],
+                    },
+                    "GRID_ID": {
+                        "id": "GRID_ID",
+                        "type": "GRID",
+                        "children": ["ROW-a"],
+                        "parents": ["ROOT_ID"],
+                    },
+                    "ROW-a": {
+                        "id": "ROW-a",
+                        "type": "ROW",
+                        "children": ["CHART-ok", "CHART-empty"],
+                        "parents": ["ROOT_ID", "GRID_ID"],
+                        "meta": {},
+                    },
+                    "CHART-ok": {
+                        "id": "CHART-ok",
+                        "type": "CHART",
+                        "children": [],
+                        "parents": ["ROOT_ID", "GRID_ID", "ROW-a"],
+                        "meta": {"chartId": chart.id, "width": 4, "height": 50},
+                    },
+                    "CHART-empty": empty_node,
+                }
+                dashboard.slices = [chart]
+                dashboard.position_json = json.dumps(positions)
+                db.session.commit()
+                dashboard_id: int = dashboard.id
+                chart_id: int = chart.id
+                db.session.expire_all()
+                stored_before: Dashboard = db.session.query(Dashboard).get(dashboard_id)
+                assert (
+                    json.loads(stored_before.position_json)["CHART-empty"] == empty_node
+                )
+                payload: dict[str, str] = {
+                    payload_field: json.dumps(
+                        {"positions": positions}
+                        if payload_field == "json_metadata"
+                        else positions
+                    )
+                }
+                try:
+                    response: TestResponse = self.put_assert_metric(
+                        f"api/v1/dashboard/{dashboard_id}", payload, "put"
+                    )
+                    assert response.status_code == 200, response.data
+                    db.session.expire_all()
+                    saved: Dashboard = db.session.query(Dashboard).get(dashboard_id)
+                    layout: dict[str, object] = json.loads(saved.position_json)
+                    assert layout["CHART-empty"] == {
+                        **empty_node,
+                        "type": "MARKDOWN",
+                        "meta": {
+                            "width": 4,
+                            "height": 50,
+                            "code": "This chart no longer exists.",
+                        },
+                    }
+                    assert layout["ROW-a"] == positions["ROW-a"]
+                    assert {member.id for member in saved.slices} == {chart_id}
+                finally:
+                    db.session.rollback()
+                    db.session.delete(db.session.query(Dashboard).get(dashboard_id))
+                    db.session.delete(db.session.query(Slice).get(chart_id))
+                    db.session.commit()
+
     def test_update_dashboard_json_metadata_positions_supersede_raw_position_json(
         self,
     ) -> None:
@@ -2422,6 +2518,7 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
         absent_chart_id: int = 999_999_998  # resolves to no Slice row
         raw_positions: dict[str, Any] = {
             "ROOT_ID": {"id": "ROOT_ID", "type": "ROOT", "children": ["CHART-raw"]},
+            "HEADER_ID": {"type": "HEADER", "meta": {"text": "Chart 🚀"}},
             "CHART-raw": {
                 "id": "CHART-raw",
                 "type": "CHART",
@@ -2439,14 +2536,17 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
             },
         }
         uri: str = f"api/v1/dashboard/{dashboard_id}"
-        with patch(
-            "superset.commands.dashboard.update.reconcile_position_json",
-            wraps=reconcile_position_json,
-        ) as raw_reconcile:
+        with (
+            patch(
+                "superset.commands.dashboard.update.reconcile_position_json",
+                wraps=reconcile_position_json,
+            ) as raw_reconcile,
+            patch.object(DashboardDAO, "update", wraps=DashboardDAO.update) as update,
+        ):
             rv: TestResponse = self.put_assert_metric(
                 uri,
                 {
-                    "position_json": json.dumps(raw_positions),
+                    "position_json": json.dumps(raw_positions, ensure_ascii=False),
                     "json_metadata": json.dumps({"positions": metadata_positions}),
                 },
                 "put",
@@ -2454,6 +2554,11 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
         assert rv.status_code == 200, rv.data
         # The raw-field reconcile did not run: metadata positions supersede it.
         raw_reconcile.assert_not_called()
+        # The superseded raw layout is flushed before metadata replaces it.
+        # Its serialized value must still be safe for narrow MySQL charsets.
+        flushed_positions: str = update.call_args.args[1]["position_json"]
+        assert flushed_positions.isascii()
+        assert json.loads(flushed_positions) == raw_positions
 
         model: Dashboard | None = db.session.query(Dashboard).get(dashboard_id)
         assert model is not None
@@ -4249,7 +4354,7 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
         member: Slice = self.insert_chart("copy-error-member", [admin.id], dataset_id)
         other: Slice = self.insert_chart("copy-error-other", [admin.id], dataset_id)
         dashboard.slices = [member, other]
-        bad_id: int | str | None = other.id if failure == "nonmember" else None
+        bad_id: int | str = other.id if failure == "nonmember" else "unreadable"
         if failure == "unicode_digit":
             bad_id = "²"
         positions: dict[str, Any] = {

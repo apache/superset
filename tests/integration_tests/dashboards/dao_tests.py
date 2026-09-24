@@ -327,7 +327,7 @@ class TestDashboardDAO(SupersetTestCase):
         metadata["positions"]["CHART-malformed"] = {
             "id": "CHART-malformed",
             "type": "CHART",
-            "meta": {"chartId": None},
+            "meta": {"chartId": "unreadable"},
         }
         dash_data: dict[str, Any] = {
             "dashboard_title": "malformed copy",
