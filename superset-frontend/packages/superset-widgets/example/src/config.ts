@@ -44,6 +44,8 @@ export const config = {
   filterColumn: viteEnv.FILTER_COLUMN ?? 'state',
   filterValues: list(viteEnv.FILTER_VALUES),
   metric: viteEnv.EMBED_METRIC ?? 'sum__num',
+  /** A numeric column, for the ad hoc aggregate the saved metric demo contrasts with. */
+  metricColumn: viteEnv.EMBED_METRIC_COLUMN ?? 'num',
   secondMetric: viteEnv.EMBED_SECOND_METRIC ?? 'count',
   /** A low-cardinality column, for the pie and the scoped filter. */
   category: viteEnv.EMBED_CATEGORY ?? 'gender',

@@ -40,6 +40,7 @@ const {
   filterColumn: DIMENSION,
   label,
   metric,
+  metricColumn,
   secondMetric,
 } = config;
 const MISSING_WIDGET_ID = '00000000-0000-0000-0000-000000000000';
@@ -254,16 +255,16 @@ export function Gallery({ themeMode }: { themeMode: ThemeModeName }) {
                     {
                       expressionType: 'SIMPLE',
                       aggregate: 'AVG',
-                      column: { column_name: 'num' },
-                      label: 'avg_num',
+                      column: { column_name: metricColumn },
+                      label: `avg_${metricColumn}`,
                     },
                   ],
                   dimensions: [],
                 }}
                 prefix="~"
-                suffix=" births per row"
+                suffix=" per row"
                 decimals={2}
-                label="Average of num"
+                label={`Average of ${metricColumn}`}
               />
             </Demo>
           </Card>
