@@ -135,6 +135,53 @@ def ssh_tunnel_rebind_unsafe(
     return not has_fresh_credential or stale_private_key_password
 
 
+OAUTH2_ENDPOINT_FIELDS = (
+    "authorization_request_uri",
+    "token_request_uri",
+    "redirect_uri",
+)
+
+
+def oauth2_endpoint_rebind_unsafe(
+    existing_encrypted_extra: str | None, submitted_masked_encrypted_extra: str | None
+) -> bool:
+    """
+    Whether a submitted ``masked_encrypted_extra`` repoints the OAuth2 client
+    at different endpoint URIs while reusing the stored client secret (the
+    ``$.oauth2_client_info.secret`` mask is restored verbatim by
+    ``unmask_encrypted_extra`` before the update persists).
+
+    The URI/engine-params destination check does not see these fields, yet
+    the next token exchange posts the real client secret to whatever
+    ``token_request_uri`` now says -- so an endpoint change must come with a
+    freshly supplied secret, exactly like a host change must come with a
+    fresh password.
+    """
+    try:
+        existing = json.loads(existing_encrypted_extra or "{}")
+        submitted = json.loads(submitted_masked_encrypted_extra or "{}")
+    except (TypeError, ValueError):
+        return False  # malformed payloads are rejected by schema validation elsewhere
+    existing_info = (
+        existing.get("oauth2_client_info") if isinstance(existing, dict) else None
+    )
+    submitted_info = (
+        submitted.get("oauth2_client_info") if isinstance(submitted, dict) else None
+    )
+    if not isinstance(existing_info, dict) or not isinstance(submitted_info, dict):
+        return False
+    if not existing_info.get("secret"):
+        return False  # nothing stored to carry over
+    # Only the mask sentinel restores the stored secret; an absent key drops it,
+    # and a different value is a fresh secret the caller is entitled to attach.
+    secret_reused = submitted_info.get("secret") == PASSWORD_MASK
+    endpoint_changed = any(
+        existing_info.get(field) != submitted_info.get(field)
+        for field in OAUTH2_ENDPOINT_FIELDS
+    )
+    return secret_reused and endpoint_changed
+
+
 def ping(engine: Engine) -> bool:
     try:
         time_delta = app.config["TEST_DATABASE_CONNECTION_TIMEOUT"]
