@@ -42,8 +42,11 @@ from superset.commands.exceptions import CommandInvalidError
 from superset.commands.importers.exceptions import IncorrectVersionError
 from superset.connectors.sqla.models import SqlaTable
 from superset.daos.chart import ChartDAO
+from superset.daos.dashboard import EmbeddedDashboardDAO
 from superset.models.core import Database
+from superset.models.embedded_dashboard import EmbeddedDashboard
 from superset.models.slice import Slice
+from superset.security.guest_token import GuestTokenResourceType
 from superset.utils import json
 from superset.utils.core import override_user
 from tests.integration_tests.base_tests import (
@@ -654,31 +657,47 @@ class TestChartsUpdateCommand(SupersetTestCase):
     @patch("superset.utils.core.g")
     @patch("superset.security.manager.g")
     @pytest.mark.usefixtures("load_energy_table_with_slice")
-    @pytest.mark.skip(reason="This test will be changed to use the api/v1/data")
     def test_query_context_update_command(self, mock_sm_g, mock_g):
         """
-        Test that a user can generate the chart query context
-        payload without affecting editors
+        A query-context-only update requires chart access, not editorship, so a
+        non-editor who has access to the chart's datasource can refresh the
+        stored query context. The editor list is left untouched.
         """
         chart = db.session.query(Slice).all()[0]
         pk = chart.id
         admin = security_manager.find_user(username="admin")
-        chart.editors = subjects_from_users([admin])
-        db.session.commit()
 
+        # alpha is not an editor of this chart but has all-datasource access, so
+        # ``raise_for_access(chart=...)`` admits it on the relaxed path. Bind the
+        # user before the first commit, so the audit columns the commit stamps
+        # get a real user rather than the bare ``MagicMock``.
         user = security_manager.find_user(username="alpha")
         mock_g.user = mock_sm_g.user = user
-        query_context = json.dumps({"foo": "bar"})
-        json_obj = {
-            "query_context_generation": True,
-            "query_context": query_context,
-        }
-        command = UpdateChartCommand(pk, json_obj)
-        command.run()
-        chart = db.session.query(Slice).get(pk)
-        assert chart.query_context == query_context
-        assert len(chart.editors) == 1
-        assert user_is_editor(admin, chart)
+
+        # This chart row is shared with every other test that selects one
+        # positionally, and both writes below are committed, so restore them.
+        original_query_context = chart.query_context
+        original_editors = list(chart.editors)
+
+        try:
+            chart.editors = subjects_from_users([admin])
+            db.session.commit()
+            query_context = json.dumps({"foo": "bar"})
+            json_obj = {
+                "query_context_generation": True,
+                "query_context": query_context,
+            }
+            command = UpdateChartCommand(pk, json_obj)
+            command.run()
+            chart = db.session.query(Slice).get(pk)
+            assert chart.query_context == query_context
+            assert len(chart.editors) == 1
+            assert user_is_editor(admin, chart)
+        finally:
+            chart = db.session.query(Slice).get(pk)
+            chart.query_context = original_query_context
+            chart.editors = original_editors
+            db.session.commit()
 
     @patch("superset.commands.chart.update.ChartDAO.find_by_id")
     @patch("superset.commands.chart.update.g")
@@ -689,13 +708,12 @@ class TestChartsUpdateCommand(SupersetTestCase):
         self, mock_sm_g, mock_core_g, mock_update_g, mock_find_by_id
     ) -> None:
         """
-        A query_context-only update relaxes the editor requirement but must
-        still require access to the chart. We bypass the DAO ``ChartFilter``
-        base filter (by patching ``find_by_id`` to return the chart directly)
-        so the request reaches the new explicit ``raise_for_access`` check, and
-        assert that a non-editor with no access to the chart's datasource is
-        rejected with ``ChartForbiddenError``. This deterministically exercises
-        the new branch and would fail on master, where the check is absent.
+        A query-context-only update relaxes the editor requirement but still
+        gates on chart access via ``raise_for_access(chart=...)``. We bypass the
+        DAO ``ChartFilter`` base filter (by patching ``find_by_id`` to return
+        the chart directly) so the request reaches that check, and assert that a
+        non-editor with no access to the chart's datasource is rejected with
+        ``ChartForbiddenError``.
         """
         chart = db.session.query(Slice).filter_by(slice_name="Energy Sankey").one()
         pk = chart.id
@@ -721,6 +739,75 @@ class TestChartsUpdateCommand(SupersetTestCase):
         }
         with pytest.raises(ChartForbiddenError):
             UpdateChartCommand(pk, json_obj).run()
+
+    @patch.dict(
+        "superset.extensions.feature_flag_manager._feature_flags",
+        EMBEDDED_SUPERSET=True,
+    )
+    @patch("superset.commands.chart.update.ChartDAO.find_by_id")
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    def test_query_context_update_denies_guest(self, mock_find_by_id) -> None:
+        """
+        The relaxed path gates on chart access, which a guest token does pass
+        for the member charts of the dashboard it embeds. A guest nonetheless
+        holds no write capability, so a query-context-only update is denied.
+        """
+        dashboard = self.get_dash_by_slug("births")
+        chart = dashboard.slices[0]
+        original_query_context = chart.query_context
+        # Snapshot before ``upsert``, which returns the existing row when the
+        # dashboard is already embedded: only a row this test inserted may be
+        # deleted below.
+        dashboard_was_embedded = bool(dashboard.embedded)
+        embedded = EmbeddedDashboardDAO.upsert(dashboard, [])
+        db.session.flush()  # the uuid is only populated on flush
+        embedded_uuid = embedded.uuid
+
+        # A real guest principal for a dashboard that actually contains the
+        # chart, so ``is_guest_user`` and ``raise_for_access`` both run for
+        # real rather than a mock standing in for either.
+        guest = security_manager.get_guest_user_from_token(
+            {
+                "user": {},
+                "resources": [
+                    {
+                        "type": GuestTokenResourceType.DASHBOARD,
+                        "id": str(embedded.uuid),
+                    }
+                ],
+                "rls_rules": [],
+                "iat": 10,
+                "exp": 20,
+            }
+        )
+
+        # Bypass ChartFilter so the command's own gates decide the outcome.
+        mock_find_by_id.return_value = chart
+
+        json_obj = {
+            "query_context_generation": True,
+            "query_context": json.dumps({"foo": "bar"}),
+        }
+        try:
+            with override_user(guest):
+                # Precondition: this guest clears the access gate, so the deny
+                # below can only come from the guest check itself.
+                security_manager.raise_for_access(chart=chart)
+
+                with pytest.raises(ChartForbiddenError):
+                    UpdateChartCommand(chart.id, json_obj).run()
+        finally:
+            # Should the guest gate regress, ``run()`` commits before
+            # ``pytest.raises`` fails, and a rollback cannot undo a commit. Drop
+            # the row this test created rather than leak it into later tests;
+            # on the passing path the rollback already discarded it.
+            db.session.rollback()
+            if not dashboard_was_embedded:
+                db.session.query(EmbeddedDashboard).filter_by(
+                    uuid=embedded_uuid
+                ).delete()
+            chart.query_context = original_query_context
+            db.session.commit()
 
     @patch("superset.commands.chart.update.g")
     @patch("superset.utils.core.g")
