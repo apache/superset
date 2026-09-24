@@ -20,7 +20,7 @@
 import { Page, Locator } from '@playwright/test';
 import { TIMEOUT } from '../utils/constants';
 import { AgGrid } from '../components/core/AgGrid';
-import { Menu } from '../components/core';
+import { Button, Menu } from '../components/core';
 import { SaveChartModal } from '../components/modals';
 
 /**
@@ -162,17 +162,20 @@ export class ExplorePage {
   }
 
   /**
-   * Gets the chart header's Save button locator.
+   * The chart header's Save button.
    */
-  getSaveButton(): Locator {
-    return this.page.locator(ExplorePage.SELECTORS.SAVE_BUTTON);
+  get saveButton(): Button {
+    return new Button(
+      this.page,
+      this.page.locator(ExplorePage.SELECTORS.SAVE_BUTTON),
+    );
   }
 
   /**
    * Clicks the Save button and returns a ready-to-use SaveChartModal.
    */
   async openSaveModal(): Promise<SaveChartModal> {
-    await this.getSaveButton().click();
+    await this.saveButton.click();
     const modal = new SaveChartModal(this.page);
     await modal.waitForReady();
     return modal;
@@ -198,17 +201,35 @@ export class ExplorePage {
   }
 
   /**
-   * Opens the chart's "..." actions menu (the `Menu actions trigger` button)
-   * and waits for its popup to render.
+   * The chart header's "..." button that opens the actions menu.
+   */
+  get actionsMenuTrigger(): Button {
+    return new Button(
+      this.page,
+      this.page.getByRole('button', { name: 'Menu actions trigger' }),
+    );
+  }
+
+  /**
+   * The chart actions dropdown menu. Call after {@link openActionsMenu},
+   * which is what makes the menu visible.
+   */
+  private actionsMenu(): Menu {
+    return new Menu(
+      this.page,
+      this.page.locator(ExplorePage.SELECTORS.ACTIONS_MENU_ROOT).first(),
+    );
+  }
+
+  /**
+   * Opens the chart's actions menu and waits for its popup to render.
    */
   async openActionsMenu(): Promise<void> {
-    await this.page
-      .getByRole('button', { name: 'Menu actions trigger' })
-      .click();
-    await this.page
-      .locator(ExplorePage.SELECTORS.ACTIONS_MENU_ROOT)
-      .first()
-      .waitFor({ state: 'visible', timeout: TIMEOUT.FORM_LOAD });
+    await this.actionsMenuTrigger.click();
+    await this.actionsMenu().element.waitFor({
+      state: 'visible',
+      timeout: TIMEOUT.FORM_LOAD,
+    });
   }
 
   /**
@@ -224,10 +245,6 @@ export class ExplorePage {
    */
   async openDashboardsSubmenu(): Promise<Locator> {
     await this.openActionsMenu();
-    const menu = new Menu(
-      this.page,
-      this.page.locator(ExplorePage.SELECTORS.ACTIONS_MENU_ROOT).first(),
-    );
-    return menu.openSubmenu('On dashboards');
+    return this.actionsMenu().openSubmenu('On dashboards');
   }
 }

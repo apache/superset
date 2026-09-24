@@ -88,7 +88,7 @@ testWithAssets(
 
     // UI-save to dashboard 1: verifies singular metadata text.
     const saveModal1 = await explorePage.openSaveModal();
-    await saveModal1.selectOverwrite();
+    await saveModal1.selectSaveAction('overwrite');
     await saveModal1.selectDashboard(dashboard1.name);
     const updated1 = waitForPut(page, `api/v1/chart/${chartId}`, {
       pathMatch: true,
@@ -104,7 +104,7 @@ testWithAssets(
     // UI-save to dashboard 2: verifies plural metadata text and that both
     // dashboards are listed in the submenu.
     const saveModal2 = await explorePage.openSaveModal();
-    await saveModal2.selectOverwrite();
+    await saveModal2.selectSaveAction('overwrite');
     await saveModal2.selectDashboard(dashboard2.name);
     const updated2 = waitForPut(page, `api/v1/chart/${chartId}`, {
       pathMatch: true,

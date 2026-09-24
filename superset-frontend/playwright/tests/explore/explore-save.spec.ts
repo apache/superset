@@ -82,7 +82,7 @@ testWithAssets(
 
     // Save as a brand-new chart.
     const saveModal = await explorePage.openSaveModal();
-    await saveModal.selectSaveAsNew();
+    await saveModal.selectSaveAction('saveas');
     await saveModal.fillChartName(newChartName);
     const created = waitForPost(page, 'api/v1/chart/');
     await saveModal.clickSave();
@@ -94,7 +94,7 @@ testWithAssets(
 
     // Overwrite the newly created chart.
     const saveModal2 = await explorePage.openSaveModal();
-    await saveModal2.selectOverwrite();
+    await saveModal2.selectSaveAction('overwrite');
     const updated = waitForPut(page, `api/v1/chart/${newChartId}`, {
       pathMatch: true,
     });
@@ -127,7 +127,7 @@ testWithAssets(
 
     // Save as a new chart, adding it to a brand-new dashboard (creatable select).
     const saveModal = await explorePage.openSaveModal();
-    await saveModal.selectSaveAsNew();
+    await saveModal.selectSaveAction('saveas');
     await saveModal.fillChartName(newChartName);
     await saveModal.selectDashboard(dashboardTitle);
     const dashboardCreated = waitForPost(page, 'api/v1/dashboard/', {
@@ -154,7 +154,7 @@ testWithAssets(
 
     // Overwrite, selecting the now-existing dashboard by the same title.
     const saveModal2 = await explorePage.openSaveModal();
-    await saveModal2.selectOverwrite();
+    await saveModal2.selectSaveAction('overwrite');
     await saveModal2.selectDashboard(dashboardTitle);
     const updated = waitForPut(page, `api/v1/chart/${newChartId}`, {
       pathMatch: true,

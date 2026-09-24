@@ -18,7 +18,17 @@
  */
 
 import { Page } from '@playwright/test';
-import { Modal, Select } from '../core';
+import { Input, Modal, Radio, Select } from '../core';
+
+/**
+ * Save actions offered by the modal's radio group, keyed to their labels.
+ */
+const SAVE_ACTION_LABELS = {
+  overwrite: 'Save (Overwrite)',
+  saveas: 'Save as...',
+} as const;
+
+export type SaveChartAction = keyof typeof SAVE_ACTION_LABELS;
 
 /**
  * Save chart modal in Explore.
@@ -28,8 +38,7 @@ import { Modal, Select } from '../core';
  */
 export class SaveChartModal extends Modal {
   private static readonly SELECTORS = {
-    OVERWRITE_RADIO: '[data-test="save-overwrite-radio"]',
-    SAVEAS_RADIO: '[data-test="saveas-radio"]',
+    SAVE_ACTION_RADIO: '[data-test="radio-group"]',
     NAME_INPUT: '[data-test="new-chart-name"]',
     // The AsyncSelect forwards `data-test={ariaLabel || name}`; SaveModal passes
     // ariaLabel={t('Select a dashboard')}, and this stays stable regardless of
@@ -42,27 +51,18 @@ export class SaveChartModal extends Modal {
     super(page, '[role="dialog"]:has([data-test="save-modal-body"])');
   }
 
-  /**
-   * Selects the "Save (Overwrite)" radio option.
-   */
-  async selectOverwrite(): Promise<void> {
-    await this.body.locator(SaveChartModal.SELECTORS.OVERWRITE_RADIO).click();
+  private get saveActionRadio(): Radio {
+    return new Radio(
+      this.page,
+      this.body.locator(SaveChartModal.SELECTORS.SAVE_ACTION_RADIO),
+    );
   }
 
-  /**
-   * Selects the "Save as..." radio option.
-   */
-  async selectSaveAsNew(): Promise<void> {
-    await this.body.locator(SaveChartModal.SELECTORS.SAVEAS_RADIO).click();
-  }
-
-  /**
-   * Fills the chart name field (only meaningful in "Save as..." mode).
-   */
-  async fillChartName(name: string): Promise<void> {
-    const input = this.body.locator(SaveChartModal.SELECTORS.NAME_INPUT);
-    await input.fill('');
-    await input.fill(name);
+  private get chartNameInput(): Input {
+    return new Input(
+      this.page,
+      this.body.locator(SaveChartModal.SELECTORS.NAME_INPUT),
+    );
   }
 
   private get dashboardSelect(): Select {
@@ -70,6 +70,21 @@ export class SaveChartModal extends Modal {
       this.page,
       this.body.locator(SaveChartModal.SELECTORS.DASHBOARD_SELECT),
     );
+  }
+
+  /**
+   * Chooses whether the save overwrites the current chart or creates a new one.
+   */
+  async selectSaveAction(action: SaveChartAction): Promise<void> {
+    await this.saveActionRadio.select(SAVE_ACTION_LABELS[action]);
+  }
+
+  /**
+   * Fills the chart name field (only meaningful in "Save as..." mode).
+   */
+  async fillChartName(name: string): Promise<void> {
+    await this.chartNameInput.clear();
+    await this.chartNameInput.fill(name);
   }
 
   /**
