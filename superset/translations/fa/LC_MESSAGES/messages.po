@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-24 01:14+0000\n"
+"POT-Creation-Date: 2026-09-24 02:04+0000\n"
 "PO-Revision-Date: 2024-10-20 00:07+0330\n"
 "Last-Translator: Emad Rad <codewithemad@gmail.com>\n"
 "Language: fa\n"
@@ -296,6 +296,12 @@ msgstr[1] ""
 #, python-format
 msgid "%(object)s does not exist in this database."
 msgstr "%(object)s در این پایگاه داده وجود ندارد."
+
+#, python-format
+msgid ""
+"%(partition)s is hidden from Explore, but no filter is mirrored onto it —"
+" queries will scan every partition until a column is mapped."
+msgstr ""
 
 #, python-format
 msgid "%(prefix)s %(title)s"
@@ -1013,6 +1019,12 @@ msgid ""
 "CSS. Convert it to inline CSS to keep using it."
 msgstr ""
 
+#, python-format
+msgid ""
+"A %(operator)s filter is only mirrored when the transform preserves "
+"ordering, which this one is not declared to do."
+msgstr ""
+
 msgid "A Big Number"
 msgstr "یک عدد بزرگ"
 
@@ -1029,6 +1041,11 @@ msgstr ""
 "گزینه‌های کنترلی را با اولویت بالاتر بازنویسی می‌کند. (مثلاً { title: { "
 "text: \"My Chart\" }, tooltip: { trigger: \"item\" } }). جزئیات: "
 "https://echarts.apache.org/en/option.html. "
+
+msgid ""
+"A SQL expression evaluated against the engine, with :value standing for "
+"the filter bound being mirrored."
+msgstr ""
 
 msgid "A TTL is required for ephemeral state."
 msgstr ""
@@ -3328,6 +3345,9 @@ msgstr "نمی‌توان برگه سطح بالای را به برگه‌های
 msgid "Can select multiple values"
 msgstr "می‌توانید چندین مقدار را انتخاب کنید"
 
+msgid "Can't parse transform"
+msgstr ""
+
 msgid "Cancel"
 msgstr "انصراف"
 
@@ -4369,6 +4389,11 @@ msgstr ""
 msgid "Column type"
 msgstr "نوع داده ستون"
 
+msgid ""
+"Column used for partition pruning on this table. Selecting one hides it "
+"from Explore's dimension and filter pickers by default."
+msgstr ""
+
 #, fuzzy
 msgid "Columnar upload"
 msgstr "بارگذاری ستونی"
@@ -5188,6 +5213,9 @@ msgid "Customize the label for the left series in tooltips and legend"
 msgstr ""
 
 msgid "Customize the label for the right series in tooltips and legend"
+msgstr ""
+
+msgid "Customize the value transform →"
 msgstr ""
 
 #, fuzzy
@@ -7005,6 +7033,9 @@ msgstr "داشبورد نمی‌تواند حذف شود."
 msgid "Embedding deactivated."
 msgstr "گنجاندن غیرفعال شده است."
 
+msgid "Emitted predicate"
+msgstr ""
+
 msgid "Emphasis"
 msgstr "تأکید"
 
@@ -8119,8 +8150,28 @@ msgid "Filters for values less than or equal."
 msgstr "فیلتر برای مقادیر کمتر یا برابر."
 
 #, python-format
+msgid ""
+"Filters on %(mapped)s will automatically apply an equivalent filter to "
+"%(partition)s."
+msgstr ""
+
+msgid ""
+"Filters on the mapped column are mirrored onto this column so the engine "
+"can prune partitions."
+msgstr ""
+
+msgid "Filters on this column are mirrored onto the partition column."
+msgstr ""
+
+msgid "Filters on this column are mirrored onto the partition field."
+msgstr ""
+
+#, python-format
 msgid "Filters out of scope (%d)"
 msgstr "فیلترهای خارج از محدوده (%d)"
+
+msgid "Filters will not be mirrored"
+msgstr ""
 
 msgid ""
 "Filters with the same group key will be ORed together within the group, "
@@ -10053,6 +10104,12 @@ msgstr "رندر زنده"
 msgid "Map Style"
 msgstr "سبک نقشه"
 
+msgid "Map a column →"
+msgstr ""
+
+msgid "Map a different column instead →"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
 #, fuzzy
@@ -10081,6 +10138,9 @@ msgstr "Mapbox نیاز دارد یک MAPBOX_API_KEY روی سرور پیکرب�
 
 #, python-format
 msgid "Mapped column %(name)s is not a column on this dataset."
+msgstr ""
+
+msgid "Maps to partition"
 msgstr ""
 
 msgid "March"
@@ -10580,6 +10640,13 @@ msgstr "بارگذاری یک الگوی CSS"
 msgid "Monday"
 msgstr "دوشنبه"
 
+msgid ""
+"Monotonicity is a property of the transform, not of the column type: "
+"hour(:value) and dayofweek(:value) are reasonable transforms on a "
+"timestamp and neither preserves ordering, so Superset asks rather than "
+"guessing. Unchecked, = and IN still mirror."
+msgstr ""
+
 msgid "Month"
 msgstr "ماه"
 
@@ -10606,6 +10673,9 @@ msgstr "توکن مادر غاز"
 #, fuzzy
 msgid "Move icon"
 msgstr "تنها جابجا کنید"
+
+msgid "Move mapping to this column →"
+msgstr ""
 
 msgid "Move only"
 msgstr "تنها جابجا کنید"
@@ -10955,6 +11025,9 @@ msgstr ""
 msgid "No items"
 msgstr "هیچ فیلترى نیست"
 
+msgid "No mapping"
+msgstr ""
+
 msgid "No matching records found"
 msgstr "هیچ رکوردی پیدا نشد"
 
@@ -11058,6 +11131,12 @@ msgstr ""
 "هیچ اعتبارسنجی با نام %(validator_name)s پیدا نشد (برای موتور "
 "%(engine_spec)s پیکربندی شده است)"
 
+#, python-format
+msgid ""
+"No value transform is set on %(mapped)s, so nothing is mirrored yet and "
+"queries will scan every partition."
+msgstr ""
+
 msgid ""
 "No value transform is set, so no filter will be mirrored onto the "
 "partition column."
@@ -11096,6 +11175,9 @@ msgstr "نام‌های ستون را نرمال‌سازی کنید"
 msgid "Normalized"
 msgstr "نرمال‌سازی"
 
+msgid "Normally the default datetime column, but none is set on this dataset."
+msgstr ""
+
 #, fuzzy
 msgid "Not Contains"
 msgstr "محتوای گزارش"
@@ -11118,6 +11200,9 @@ msgstr "تمام فیلدهای مورد نیاز پر نشده‌اند. لطف
 
 msgid "Not available"
 msgstr "در دسترس نیست"
+
+msgid "Not currently mapped to the partition column."
+msgstr ""
 
 msgid "Not defined"
 msgstr "تعریف نشده است"
@@ -11678,9 +11763,15 @@ msgstr ""
 msgid "Owners"
 msgstr ""
 
+msgid "PARTITION"
+msgstr ""
+
 #, fuzzy
 msgid "PDF download failed, please refresh and try again."
 msgstr "دانلود تصویر ناموفق بود، لطفاً صفحه را تازه‌سازی کرده و دوباره تلاش کنید."
+
+msgid "PREVIEW"
+msgstr ""
 
 #, fuzzy
 msgid "Page"
@@ -11740,8 +11831,17 @@ msgstr "محدودیت پارتیشن"
 msgid "Partition Threshold"
 msgstr "آستانه پارتیشن"
 
+msgid "Partition column"
+msgstr ""
+
 #, python-format
 msgid "Partition column %(name)s is not a column on this dataset."
+msgstr ""
+
+msgid "Partition field:"
+msgstr ""
+
+msgid "Partition filter mapping"
 msgstr ""
 
 msgid ""
@@ -12714,6 +12814,9 @@ msgstr ""
 msgid "Remove item"
 msgstr "حذف آیتم"
 
+msgid "Remove mapping"
+msgstr ""
+
 msgid "Remove notification method"
 msgstr ""
 
@@ -12950,6 +13053,12 @@ msgstr ""
 
 msgid "Required control values have been removed"
 msgstr "مقادیر کنترل مورد نیاز حذف شده‌اند"
+
+msgid "Required for non-temporal columns. Use :value for each value."
+msgstr ""
+
+msgid "Required to mirror range filters, including the time range."
+msgstr ""
 
 msgid "Resample"
 msgstr "نمونه‌برداری مجدد"
@@ -13434,6 +13543,9 @@ msgid "Sample Standard Deviation"
 msgstr ""
 
 msgid "Sample Variance"
+msgstr ""
+
+msgid "Sample input"
 msgstr ""
 
 msgid "Samples"
@@ -14500,6 +14612,11 @@ msgstr "فواصل تازه‌سازی خودکار را تنظیم کنید"
 
 msgid "Set filter mapping"
 msgstr "تنظیم نگاشتی فیلتر"
+
+msgid ""
+"Set from the default datetime column above, so re-pointing that column "
+"moves the mapping with it."
+msgstr ""
 
 #, fuzzy
 msgid "Set local theme for testing"
@@ -16189,6 +16306,11 @@ msgstr "ستونی که قرار است به عنوان هدف لبه استفا
 msgid "The column was deleted or renamed in the database."
 msgstr "ستون در پایگاه داده حذف یا تغییر نام داده شده است."
 
+msgid ""
+"The column whose filters are mirrored. It follows the default datetime "
+"column unless a different column holds the mapping."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fr, ja, lv, mi, ro, ru, sk, sr, sr_Latn, tr, uk]
 #, fuzzy
@@ -16715,6 +16837,11 @@ msgid ""
 "                expressions."
 msgstr ""
 
+msgid ""
+"The physical column the engine partitions on. Filters on the mapped "
+"column are mirrored onto it so the engine can prune partitions."
+msgstr ""
+
 msgid "The pixel radius"
 msgstr "شعاع پیکسل"
 
@@ -16732,6 +16859,9 @@ msgstr "بندر بسته است."
 
 msgid "The port number is invalid."
 msgstr "شماره پورت نامعتبر است."
+
+msgid "The preview could not be loaded."
+msgstr ""
 
 msgid "The primary metric is used to define the arc segment sizes"
 msgstr "معیار اصلی برای تعریف اندازه‌های بخش‌های قوس استفاده می‌شود."
@@ -17031,6 +17161,10 @@ msgstr "واحد زمانی مورد استفاده برای گروه‌بندی
 msgid "The transform could not be evaluated against the database."
 msgstr ""
 
+#, python-format
+msgid "The transform could not be evaluated against the database: %(reason)s"
+msgstr ""
+
 #, fuzzy
 msgid "The two passwords that you entered do not match!"
 msgstr "داشبوردها وجود ندارند"
@@ -17100,6 +17234,12 @@ msgstr ""
 msgid ""
 "The value transform could not be parsed. The mapping is saved but stays "
 "inactive until it does."
+msgstr ""
+
+#, python-format
+msgid ""
+"The value transform could not be parsed: %(detail)s The mapping is saved "
+"but stays inactive until it does."
 msgstr ""
 
 msgid ""
@@ -17593,6 +17733,9 @@ msgid "This chart only"
 msgstr ""
 
 msgid "This chart will be restored to the following version:"
+msgstr ""
+
+msgid "This column holds the mapping instead of the default datetime column."
 msgstr ""
 
 #, fuzzy, python-format
@@ -18438,6 +18581,9 @@ msgstr "مجموع: %s"
 msgid "Track job"
 msgstr "پیگیری شغل"
 
+msgid "Transform preserves ordering"
+msgstr ""
+
 msgid "Transformable"
 msgstr "قابل تبدیل"
 
@@ -19052,6 +19198,9 @@ msgstr "استفاده"
 msgid "Use %s to open in a new tab."
 msgstr "از %s برای باز کردن در یک تب جدید استفاده کنید."
 
+msgid "Use :value for the filter bound."
+msgstr ""
+
 msgid "Use Area Proportions"
 msgstr "استفاده از نسبت‌های مساحتی"
 
@@ -19224,6 +19373,9 @@ msgstr ""
 msgid "Uses the first 25 values if the dimension has more."
 msgstr "اگر بُعد بیشتر داشته باشد، از ۲۵ مقدار اول استفاده می‌کند."
 
+msgid "Valid"
+msgstr ""
+
 #, fuzzy
 msgid "Valid SQL expression"
 msgstr "عبارت SQL"
@@ -19304,6 +19456,9 @@ msgstr "مقدار باید ۰ یا بیشتر باشد"
 
 msgid "Value must be greater than 0"
 msgstr "مقدار باید بزرگتر از ۰ باشد"
+
+msgid "Value transform"
+msgstr ""
 
 #, python-format
 msgid ""
@@ -21665,6 +21820,10 @@ msgstr "جمع"
 msgid "superset.example.com"
 msgstr ""
 
+#, python-format
+msgid "syntax error at position %(position)d."
+msgstr ""
+
 msgid "syntax."
 msgstr "سینتکس."
 
@@ -21714,6 +21873,9 @@ msgstr "بالا"
 
 msgid "undo"
 msgstr "بازگردانی"
+
+msgid "unix_timestamp(:value)"
+msgstr ""
 
 msgid "unknown type icon"
 msgstr "نوع آیکون ناشناخته"
@@ -21800,6 +21962,9 @@ msgstr "منطقه‌ی زوم"
 #, fuzzy
 msgid "© Layer attribution"
 msgstr "© اسناد لایه"
+
+msgid "— set in Default Column Settings · one per dataset"
+msgstr ""
 
 #, python-format
 msgid "…and %s more chart"

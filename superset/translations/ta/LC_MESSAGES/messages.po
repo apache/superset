@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-24 01:14+0000\n"
+"POT-Creation-Date: 2026-09-24 02:04+0000\n"
 "PO-Revision-Date: 2026-03-31 02:00-0700\n"
 "Last-Translator: Maazin Ahamed\n"
 "Language: ta\n"
@@ -303,6 +303,12 @@ msgstr[1] ""
 #, python-format
 msgid "%(object)s does not exist in this database."
 msgstr "இந்தத் தரவுத்தளத்தில் %(object)s இல்லை."
+
+#, python-format
+msgid ""
+"%(partition)s is hidden from Explore, but no filter is mirrored onto it —"
+" queries will scan every partition until a column is mapped."
+msgstr ""
 
 #, python-format
 msgid "%(prefix)s %(title)s"
@@ -985,6 +991,12 @@ msgid ""
 "CSS. Convert it to inline CSS to keep using it."
 msgstr ""
 
+#, python-format
+msgid ""
+"A %(operator)s filter is only mirrored when the transform preserves "
+"ordering, which this one is not declared to do."
+msgstr ""
+
 msgid "A Big Number"
 msgstr "ஒரு பெரிய எண்"
 
@@ -994,6 +1006,11 @@ msgid ""
 "overriding other control options with higher precedence. (i.e. { title: {"
 " text: \"My Chart\" }, tooltip: { trigger: \"item\" } }). Details: "
 "https://echarts.apache.org/en/option.html. "
+msgstr ""
+
+msgid ""
+"A SQL expression evaluated against the engine, with :value standing for "
+"the filter bound being mirrored."
 msgstr ""
 
 msgid "A TTL is required for ephemeral state."
@@ -3175,6 +3192,9 @@ msgstr ""
 msgid "Can select multiple values"
 msgstr "பல மதிப்புகளைத் தேர்ந்தெடுக்கலாம்"
 
+msgid "Can't parse transform"
+msgstr ""
+
 msgid "Cancel"
 msgstr "ரத்து செய்"
 
@@ -4153,6 +4173,11 @@ msgstr ""
 msgid "Column type"
 msgstr "நெடுவரிசை வகை"
 
+msgid ""
+"Column used for partition pruning on this table. Selecting one hides it "
+"from Explore's dimension and filter pickers by default."
+msgstr ""
+
 msgid "Columnar upload"
 msgstr "நெடுவரிசை வாரியானப் பதிவேற்றம்"
 
@@ -4906,6 +4931,9 @@ msgid "Customize the label for the left series in tooltips and legend"
 msgstr ""
 
 msgid "Customize the label for the right series in tooltips and legend"
+msgstr ""
+
+msgid "Customize the value transform →"
 msgstr ""
 
 msgid "Customize tooltips template"
@@ -6593,6 +6621,9 @@ msgstr "உட்பொதிக்கப்பட்ட டேஷ்போர�
 msgid "Embedding deactivated."
 msgstr "உட்பொதித்தல் முடக்கப்பட்டது."
 
+msgid "Emitted predicate"
+msgstr ""
+
 msgid "Emphasis"
 msgstr "முக்கியத்துவம் (Emphasis)"
 
@@ -7596,8 +7627,28 @@ msgid "Filters for values less than or equal."
 msgstr "சிறிய அல்லது சமமான மதிப்புகளை வடிகட்டும்."
 
 #, python-format
+msgid ""
+"Filters on %(mapped)s will automatically apply an equivalent filter to "
+"%(partition)s."
+msgstr ""
+
+msgid ""
+"Filters on the mapped column are mirrored onto this column so the engine "
+"can prune partitions."
+msgstr ""
+
+msgid "Filters on this column are mirrored onto the partition column."
+msgstr ""
+
+msgid "Filters on this column are mirrored onto the partition field."
+msgstr ""
+
+#, python-format
 msgid "Filters out of scope (%d)"
 msgstr "வரம்பிற்கு வெளியே உள்ள வடிகட்டிகள் (%d)"
+
+msgid "Filters will not be mirrored"
+msgstr ""
 
 msgid ""
 "Filters with the same group key will be ORed together within the group, "
@@ -9343,6 +9394,12 @@ msgstr ""
 msgid "Map Style"
 msgstr "வரைபட நடை"
 
+msgid "Map a column →"
+msgstr ""
+
+msgid "Map a different column instead →"
+msgstr ""
+
 msgid "MapLibre (open-source)"
 msgstr ""
 
@@ -9359,6 +9416,9 @@ msgstr ""
 
 #, python-format
 msgid "Mapped column %(name)s is not a column on this dataset."
+msgstr ""
+
+msgid "Maps to partition"
 msgstr ""
 
 msgid "March"
@@ -9796,6 +9856,13 @@ msgstr "\"%s\" டெம்ப்ளேட்டிலிருந்து ம�
 msgid "Monday"
 msgstr "திங்கட்கிழமை"
 
+msgid ""
+"Monotonicity is a property of the transform, not of the column type: "
+"hour(:value) and dayofweek(:value) are reasonable transforms on a "
+"timestamp and neither preserves ordering, so Superset asks rather than "
+"guessing. Unchecked, = and IN still mirror."
+msgstr ""
+
 msgid "Month"
 msgstr "மாதம்"
 
@@ -9822,6 +9889,9 @@ msgstr "MotherDuck டோக்கன்"
 #, fuzzy
 msgid "Move icon"
 msgstr "நகர்த்த மட்டும்"
+
+msgid "Move mapping to this column →"
+msgstr ""
 
 msgid "Move only"
 msgstr "நகர்த்த மட்டும்"
@@ -10145,6 +10215,9 @@ msgstr ""
 msgid "No items"
 msgstr "உருப்படிகள் இல்லை"
 
+msgid "No mapping"
+msgstr ""
+
 msgid "No matching records found"
 msgstr "பொருத்தமான பதிவுகள் எதுவும் காணப்படவில்லை"
 
@@ -10236,6 +10309,12 @@ msgid ""
 "%(engine_spec)s engine)"
 msgstr "%(validator_name)s என்ற பெயரில் சரிபார்ப்பான் இல்லை."
 
+#, python-format
+msgid ""
+"No value transform is set on %(mapped)s, so nothing is mirrored yet and "
+"queries will scan every partition."
+msgstr ""
+
 msgid ""
 "No value transform is set, so no filter will be mirrored onto the "
 "partition column."
@@ -10274,6 +10353,9 @@ msgstr "நெடுவரிசைப் பெயர்களைச் சீ�
 msgid "Normalized"
 msgstr "சீர்மைப்படுத்தப்பட்டது"
 
+msgid "Normally the default datetime column, but none is set on this dataset."
+msgstr ""
+
 msgid "Not Contains"
 msgstr "கொண்டிருக்கவில்லை"
 
@@ -10296,6 +10378,9 @@ msgstr ""
 
 msgid "Not available"
 msgstr "கிடைக்கவில்லை"
+
+msgid "Not currently mapped to the partition column."
+msgstr ""
 
 msgid "Not defined"
 msgstr "வரையறுக்கப்படவில்லை"
@@ -10801,8 +10886,14 @@ msgstr ""
 msgid "Owners"
 msgstr ""
 
+msgid "PARTITION"
+msgstr ""
+
 msgid "PDF download failed, please refresh and try again."
 msgstr "PDF பதிவிறக்கம் தோல்வியுற்றது, தயவுசெய்து மீண்டும் முயற்சிக்கவும்."
+
+msgid "PREVIEW"
+msgstr ""
 
 msgid "Page"
 msgstr "பக்கம்"
@@ -10860,8 +10951,17 @@ msgstr "பகிர்வு வரம்பு"
 msgid "Partition Threshold"
 msgstr "பகிர்வு வரம்பு (Threshold)"
 
+msgid "Partition column"
+msgstr ""
+
 #, python-format
 msgid "Partition column %(name)s is not a column on this dataset."
+msgstr ""
+
+msgid "Partition field:"
+msgstr ""
+
+msgid "Partition filter mapping"
 msgstr ""
 
 msgid ""
@@ -11751,6 +11851,9 @@ msgstr ""
 msgid "Remove item"
 msgstr "உருப்படியை நீக்கு"
 
+msgid "Remove mapping"
+msgstr ""
+
 #, fuzzy
 msgid "Remove notification method"
 msgstr "அறிவிப்பு முறை"
@@ -11980,6 +12083,12 @@ msgstr ""
 
 msgid "Required control values have been removed"
 msgstr "தேவையான கட்டுப்பாட்டு மதிப்புகள் நீக்கப்பட்டுள்ளன"
+
+msgid "Required for non-temporal columns. Use :value for each value."
+msgstr ""
+
+msgid "Required to mirror range filters, including the time range."
+msgstr ""
 
 msgid "Resample"
 msgstr "மறுமாதிரி (Resample)"
@@ -12417,6 +12526,9 @@ msgstr "மாதிரி திட்ட விலக்கம் (Sample Stan
 
 msgid "Sample Variance"
 msgstr "மாதிரி மாறுபாடு (Sample Variance)"
+
+msgid "Sample input"
+msgstr ""
 
 msgid "Samples"
 msgstr "மாதிரிகள் (Samples)"
@@ -13354,6 +13466,11 @@ msgstr "தானியங்கி புதுப்பித்தலை அ�
 
 msgid "Set filter mapping"
 msgstr "வடிகட்டி மேப்பிங்கை அமைக்கவும்"
+
+msgid ""
+"Set from the default datetime column above, so re-pointing that column "
+"moves the mapping with it."
+msgstr ""
 
 msgid "Set local theme for testing"
 msgstr "சோதனைக்காக உள்ளூர் தீம் அமைக்கவும்"
@@ -14860,6 +14977,11 @@ msgstr "விளிம்பின் இலக்காகப் பயன்�
 msgid "The column was deleted or renamed in the database."
 msgstr "தரவுத்தளத்தில் நெடுவரிசை நீக்கப்பட்டது அல்லது மறுபெயரிடப்பட்டது."
 
+msgid ""
+"The column whose filters are mirrored. It follows the default datetime "
+"column unless a different column holds the mapping."
+msgstr ""
+
 msgid "The configuration for the map layers"
 msgstr "வரைபட அடுக்குகளுக்கான உள்ளமைப்பு"
 
@@ -15318,6 +15440,11 @@ msgid ""
 "                expressions."
 msgstr ""
 
+msgid ""
+"The physical column the engine partitions on. Filters on the mapped "
+"column are mirrored onto it so the engine can prune partitions."
+msgstr ""
+
 msgid "The pixel radius"
 msgstr "பிக்சல் ஆரம்"
 
@@ -15332,6 +15459,9 @@ msgstr "போர்ட் (Port) மூடப்பட்டுள்ளது.
 
 msgid "The port number is invalid."
 msgstr "போர்ட் எண் செல்லாதது."
+
+msgid "The preview could not be loaded."
+msgstr ""
 
 msgid "The primary metric is used to define the arc segment sizes"
 msgstr "வில் துண்டு அளவுகளை வரையறுக்க முதன்மை மெட்ரிக் பயன்படுத்தப்படுகிறது"
@@ -15592,6 +15722,10 @@ msgstr "பிளாக்குகளைக் குழுவாக்கப�
 msgid "The transform could not be evaluated against the database."
 msgstr ""
 
+#, python-format
+msgid "The transform could not be evaluated against the database: %(reason)s"
+msgstr ""
+
 msgid "The two passwords that you entered do not match!"
 msgstr "நீங்கள் உள்ளிட்ட இரண்டு கடவுச்சொற்களும் பொருந்தவில்லை!"
 
@@ -15649,6 +15783,12 @@ msgstr ""
 msgid ""
 "The value transform could not be parsed. The mapping is saved but stays "
 "inactive until it does."
+msgstr ""
+
+#, python-format
+msgid ""
+"The value transform could not be parsed: %(detail)s The mapping is saved "
+"but stays inactive until it does."
 msgstr ""
 
 msgid ""
@@ -16099,6 +16239,9 @@ msgid "This chart only"
 msgstr ""
 
 msgid "This chart will be restored to the following version:"
+msgstr ""
+
+msgid "This column holds the mapping instead of the default datetime column."
 msgstr ""
 
 #, fuzzy, python-format
@@ -16829,6 +16972,9 @@ msgstr "மொத்தம்: %s"
 msgid "Track job"
 msgstr "பணியைக் கண்காணிக்கவும்"
 
+msgid "Transform preserves ordering"
+msgstr ""
+
 msgid "Transformable"
 msgstr "மாற்றக்கூடியது"
 
@@ -17373,6 +17519,9 @@ msgstr "பயன்பாடு"
 msgid "Use %s to open in a new tab."
 msgstr "புதிய தாவலில் திறக்க %s ஐப் பயன்படுத்தவும்."
 
+msgid "Use :value for the filter bound."
+msgstr ""
+
 msgid "Use Area Proportions"
 msgstr "பரப்பளவு விகிதாச்சாரத்தைப் பயன்படுத்தவும்"
 
@@ -17521,6 +17670,9 @@ msgstr ""
 msgid "Uses the first 25 values if the dimension has more."
 msgstr ""
 
+msgid "Valid"
+msgstr ""
+
 msgid "Valid SQL expression"
 msgstr "சரியான SQL வெளிப்பாடு"
 
@@ -17589,6 +17741,9 @@ msgstr "மதிப்பு 0 அல்லது அதற்கு மேல�
 
 msgid "Value must be greater than 0"
 msgstr "மதிப்பு 0 ஐ விட அதிகமாக இருக்க வேண்டும்"
+
+msgid "Value transform"
+msgstr ""
 
 #, python-format
 msgid ""
@@ -19789,6 +19944,10 @@ msgstr "கூட்டுத்தொகை"
 msgid "superset.example.com"
 msgstr "superset.example.com"
 
+#, python-format
+msgid "syntax error at position %(position)d."
+msgstr ""
+
 msgid "syntax."
 msgstr "தொடரியல்."
 
@@ -19832,6 +19991,9 @@ msgstr "மேல்"
 
 msgid "undo"
 msgstr "மாற்றியமை (undo)"
+
+msgid "unix_timestamp(:value)"
+msgstr ""
 
 msgid "unknown type icon"
 msgstr "தெரியாத வகை ஐகான்"
@@ -19910,6 +20072,9 @@ msgstr "பெரிதாக்கும் பரப்பு"
 
 msgid "© Layer attribution"
 msgstr "© அடுக்கு பங்களிப்பு"
+
+msgid "— set in Default Column Settings · one per dataset"
+msgstr ""
 
 #, python-format
 msgid "…and %s more chart"

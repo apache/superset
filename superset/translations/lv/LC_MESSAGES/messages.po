@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-24 01:14+0000\n"
+"POT-Creation-Date: 2026-09-24 02:04+0000\n"
 "PO-Revision-Date: 2026-03-27 14:01+0200\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: lv\n"
@@ -305,6 +305,12 @@ msgstr[2] ""
 #, python-format
 msgid "%(object)s does not exist in this database."
 msgstr "%(object)s neeksistē šajā datubāzē."
+
+#, python-format
+msgid ""
+"%(partition)s is hidden from Explore, but no filter is mirrored onto it —"
+" queries will scan every partition until a column is mapped."
+msgstr ""
 
 #, python-format
 msgid "%(prefix)s %(title)s"
@@ -1025,6 +1031,12 @@ msgid ""
 "CSS. Convert it to inline CSS to keep using it."
 msgstr ""
 
+#, python-format
+msgid ""
+"A %(operator)s filter is only mirrored when the transform preserves "
+"ordering, which this one is not declared to do."
+msgstr ""
+
 msgid "A Big Number"
 msgstr "Lielais skaitlis"
 
@@ -1041,6 +1053,11 @@ msgstr ""
 "pārraksta citas vadīklu opcijas ar augstāku prioritāti. (piemēram, { "
 "title: { text: \"My Chart\" }, tooltip: { trigger: \"item\" } }). Sīkāka "
 "informācija: https://echarts.apache.org/en/option.html. "
+
+msgid ""
+"A SQL expression evaluated against the engine, with :value standing for "
+"the filter bound being mirrored."
+msgstr ""
 
 msgid "A TTL is required for ephemeral state."
 msgstr ""
@@ -3220,6 +3237,9 @@ msgstr "Nevar pārvietot augstākā līmeņa cilni uz ligzdotajām cilnēm"
 msgid "Can select multiple values"
 msgstr "Var izvēlēties vairākas vērtības"
 
+msgid "Can't parse transform"
+msgstr ""
+
 msgid "Cancel"
 msgstr "Atcelt"
 
@@ -4190,6 +4210,11 @@ msgstr ""
 msgid "Column type"
 msgstr "Kolonnas tips"
 
+msgid ""
+"Column used for partition pruning on this table. Selecting one hides it "
+"from Explore's dimension and filter pickers by default."
+msgstr ""
+
 msgid "Columnar upload"
 msgstr "Kolonnveida augšupielāde"
 
@@ -4942,6 +4967,9 @@ msgid "Customize the label for the left series in tooltips and legend"
 msgstr ""
 
 msgid "Customize the label for the right series in tooltips and legend"
+msgstr ""
+
+msgid "Customize the value transform →"
 msgstr ""
 
 msgid "Customize tooltips template"
@@ -6659,6 +6687,9 @@ msgstr "Iegulto informācijas paneli nevarēja dzēst."
 msgid "Embedding deactivated."
 msgstr "Iegulšana deaktivizēta."
 
+msgid "Emitted predicate"
+msgstr ""
+
 msgid "Emphasis"
 msgstr "Uzsvērums"
 
@@ -7659,8 +7690,28 @@ msgid "Filters for values less than or equal."
 msgstr "Filtri vērtībām, kas mazākas vai vienādas."
 
 #, python-format
+msgid ""
+"Filters on %(mapped)s will automatically apply an equivalent filter to "
+"%(partition)s."
+msgstr ""
+
+msgid ""
+"Filters on the mapped column are mirrored onto this column so the engine "
+"can prune partitions."
+msgstr ""
+
+msgid "Filters on this column are mirrored onto the partition column."
+msgstr ""
+
+msgid "Filters on this column are mirrored onto the partition field."
+msgstr ""
+
+#, python-format
 msgid "Filters out of scope (%d)"
 msgstr "Filtri ārpus tvēruma (%d)"
+
+msgid "Filters will not be mirrored"
+msgstr ""
 
 msgid ""
 "Filters with the same group key will be ORed together within the group, "
@@ -9446,6 +9497,12 @@ msgstr "Tiešsaistes renderēšana"
 msgid "Map Style"
 msgstr "Kartes stils"
 
+msgid "Map a column →"
+msgstr ""
+
+msgid "Map a different column instead →"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
 #, fuzzy
@@ -9474,6 +9531,9 @@ msgstr "Mapbox prasa, lai serverī būtu konfigurēts MAPBOX_API_KEY."
 
 #, python-format
 msgid "Mapped column %(name)s is not a column on this dataset."
+msgstr ""
+
+msgid "Maps to partition"
 msgstr ""
 
 msgid "March"
@@ -9932,6 +9992,13 @@ msgstr "Pārveidots no “%s” veidnes"
 msgid "Monday"
 msgstr "Pirmdiena"
 
+msgid ""
+"Monotonicity is a property of the transform, not of the column type: "
+"hour(:value) and dayofweek(:value) are reasonable transforms on a "
+"timestamp and neither preserves ordering, so Superset asks rather than "
+"guessing. Unchecked, = and IN still mirror."
+msgstr ""
+
 msgid "Month"
 msgstr "Mēnesis"
 
@@ -9957,6 +10024,9 @@ msgstr "MotherDuck žetons"
 #, fuzzy
 msgid "Move icon"
 msgstr "Tikai pārvietot"
+
+msgid "Move mapping to this column →"
+msgstr ""
 
 msgid "Move only"
 msgstr "Tikai pārvietot"
@@ -10291,6 +10361,9 @@ msgstr ""
 msgid "No items"
 msgstr "Nav vienību"
 
+msgid "No mapping"
+msgstr ""
+
 msgid "No matching records found"
 msgstr "Nav atrasti atbilstoši ieraksti"
 
@@ -10389,6 +10462,12 @@ msgstr ""
 "Nav atrasts validators ar nosaukumu %(validator_name)s (konfigurēts "
 "%(engine_spec)s dzinējam)"
 
+#, python-format
+msgid ""
+"No value transform is set on %(mapped)s, so nothing is mirrored yet and "
+"queries will scan every partition."
+msgstr ""
+
 msgid ""
 "No value transform is set, so no filter will be mirrored onto the "
 "partition column."
@@ -10427,6 +10506,9 @@ msgstr "Normalizēt kolonnu nosaukumus"
 msgid "Normalized"
 msgstr "Normalizēts"
 
+msgid "Normally the default datetime column, but none is set on this dataset."
+msgstr ""
+
 msgid "Not Contains"
 msgstr "Neietver"
 
@@ -10447,6 +10529,9 @@ msgstr "Nav aizpildīti visi obligātie lauki. Lūdzu, norādiet šādu informā
 
 msgid "Not available"
 msgstr "Nav pieejams"
+
+msgid "Not currently mapped to the partition column."
+msgstr ""
 
 msgid "Not defined"
 msgstr "Nav definēts"
@@ -10996,8 +11081,14 @@ msgstr ""
 msgid "Owners"
 msgstr ""
 
+msgid "PARTITION"
+msgstr ""
+
 msgid "PDF download failed, please refresh and try again."
 msgstr "PDF lejupielāde neizdevās. Lūdzu, atsvaidziniet un mēģiniet vēlreiz."
+
+msgid "PREVIEW"
+msgstr ""
 
 msgid "Page"
 msgstr "Lapa"
@@ -11055,8 +11146,17 @@ msgstr "Nodalījumu ierobežojums"
 msgid "Partition Threshold"
 msgstr "Nodalījumu slieksnis"
 
+msgid "Partition column"
+msgstr ""
+
 #, python-format
 msgid "Partition column %(name)s is not a column on this dataset."
+msgstr ""
+
+msgid "Partition field:"
+msgstr ""
+
+msgid "Partition filter mapping"
 msgstr ""
 
 msgid ""
@@ -11963,6 +12063,9 @@ msgstr ""
 msgid "Remove item"
 msgstr "Noņemt elementu"
 
+msgid "Remove mapping"
+msgstr ""
+
 msgid "Remove notification method"
 msgstr ""
 
@@ -12192,6 +12295,12 @@ msgstr ""
 
 msgid "Required control values have been removed"
 msgstr "Obligātās vadīklas vērtības ir noņemtas"
+
+msgid "Required for non-temporal columns. Use :value for each value."
+msgstr ""
+
+msgid "Required to mirror range filters, including the time range."
+msgstr ""
 
 msgid "Resample"
 msgstr "Atkārtota izlase"
@@ -12652,6 +12761,9 @@ msgid "Sample Standard Deviation"
 msgstr ""
 
 msgid "Sample Variance"
+msgstr ""
+
+msgid "Sample input"
 msgstr ""
 
 msgid "Samples"
@@ -13645,6 +13757,11 @@ msgstr "Iestatīt automātisko atsvaidzināšanos"
 
 msgid "Set filter mapping"
 msgstr "Iestatīt filtru kartēšanu"
+
+msgid ""
+"Set from the default datetime column above, so re-pointing that column "
+"moves the mapping with it."
+msgstr ""
 
 msgid "Set local theme for testing"
 msgstr "Iestatiet vietējo motīvu testēšanai"
@@ -15229,6 +15346,11 @@ msgstr "Kolonna, kuru izmantot kā malas mērķi."
 msgid "The column was deleted or renamed in the database."
 msgstr "Kolonna datubāzē tika dzēsta vai pārdēvēta."
 
+msgid ""
+"The column whose filters are mirrored. It follows the default datetime "
+"column unless a different column holds the mapping."
+msgstr ""
+
 msgid "The configuration for the map layers"
 msgstr "Kartes slāņu konfigurācija"
 
@@ -15727,6 +15849,11 @@ msgid ""
 "                expressions."
 msgstr ""
 
+msgid ""
+"The physical column the engine partitions on. Filters on the mapped "
+"column are mirrored onto it so the engine can prune partitions."
+msgstr ""
+
 msgid "The pixel radius"
 msgstr "Pikseļu rādiuss"
 
@@ -15744,6 +15871,9 @@ msgstr "Ports ir slēgts."
 
 msgid "The port number is invalid."
 msgstr "Porta numurs nav derīgs."
+
+msgid "The preview could not be loaded."
+msgstr ""
 
 msgid "The primary metric is used to define the arc segment sizes"
 msgstr "Primārā metrika tiek izmantota loka segmentu izmēru noteikšanai"
@@ -16035,6 +16165,10 @@ msgstr "Laika vienība, kas izmantota bloku grupēšanai"
 msgid "The transform could not be evaluated against the database."
 msgstr ""
 
+#, python-format
+msgid "The transform could not be evaluated against the database: %(reason)s"
+msgstr ""
+
 msgid "The two passwords that you entered do not match!"
 msgstr "Abas ievadītās paroles nesakrīt!"
 
@@ -16096,6 +16230,12 @@ msgstr ""
 msgid ""
 "The value transform could not be parsed. The mapping is saved but stays "
 "inactive until it does."
+msgstr ""
+
+#, python-format
+msgid ""
+"The value transform could not be parsed: %(detail)s The mapping is saved "
+"but stays inactive until it does."
 msgstr ""
 
 msgid ""
@@ -16555,6 +16695,9 @@ msgid "This chart only"
 msgstr ""
 
 msgid "This chart will be restored to the following version:"
+msgstr ""
+
+msgid "This column holds the mapping instead of the default datetime column."
 msgstr ""
 
 #, fuzzy, python-format
@@ -17324,6 +17467,9 @@ msgstr "Kopā: %s"
 msgid "Track job"
 msgstr "Izsekot uzdevumu"
 
+msgid "Transform preserves ordering"
+msgstr ""
+
 msgid "Transformable"
 msgstr "Transformējams"
 
@@ -17909,6 +18055,9 @@ msgstr "Lietojums"
 msgid "Use %s to open in a new tab."
 msgstr "Izmantojiet %s, lai atvērtu jaunā cilnē."
 
+msgid "Use :value for the filter bound."
+msgstr ""
+
 msgid "Use Area Proportions"
 msgstr "Izmantot laukuma proporcijas"
 
@@ -18066,6 +18215,9 @@ msgstr ""
 msgid "Uses the first 25 values if the dimension has more."
 msgstr "Izmanto pirmās 25 vērtības, ja dimensijai ir vairāk."
 
+msgid "Valid"
+msgstr ""
+
 msgid "Valid SQL expression"
 msgstr "Derīga SQL izteiksme"
 
@@ -18134,6 +18286,9 @@ msgstr "Vērtībai jābūt 0 vai lielākai"
 
 msgid "Value must be greater than 0"
 msgstr "Vērtībai jābūt lielākai par 0"
+
+msgid "Value transform"
+msgstr ""
 
 #, python-format
 msgid ""
@@ -20410,6 +20565,10 @@ msgstr "summa"
 msgid "superset.example.com"
 msgstr "superset.example.com"
 
+#, python-format
+msgid "syntax error at position %(position)d."
+msgstr ""
+
 msgid "syntax."
 msgstr "sintakse."
 
@@ -20457,6 +20616,9 @@ msgstr "augšā"
 
 msgid "undo"
 msgstr "atsaukt"
+
+msgid "unix_timestamp(:value)"
+msgstr ""
 
 msgid "unknown type icon"
 msgstr "nezināma veida ikona"
@@ -20537,6 +20699,9 @@ msgstr "tālummaiņas zona"
 
 msgid "© Layer attribution"
 msgstr "© Slāņa attiecinājums"
+
+msgid "— set in Default Column Settings · one per dataset"
+msgstr ""
 
 #, python-format
 msgid "…and %s more chart"
