@@ -310,7 +310,7 @@
     "eslint-import-resolver-typescript": "^4.4.5",
     "eslint-plugin-import": "^2.32.0",
     "eslint-plugin-jest-dom": "^5.10.1",
-    "eslint-plugin-lodash": "^8.0.0",
+    "eslint-plugin-lodash": "^8.1.0",
     "eslint-plugin-no-only-tests": "^3.4.0",
     "eslint-plugin-react-prefer-function-component": "^5.0.0",
     "eslint-plugin-react-you-might-not-need-an-effect": "^1.0.2",
