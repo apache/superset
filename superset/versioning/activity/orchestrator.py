@@ -315,6 +315,38 @@ def get_activity(
     if q:
         records = [r for r in records if _record_matches(r, q)]
 
+    # Synthetic starting-version row (sc-120488): op=0 transactions emit
+    # zero change records by design, so the entity's creation — INSERT,
+    # import, or retroactive pre-tracking baseline — never rides the
+    # stream above. Appended as the OLDEST entry, and only when the
+    # stream truly ends here: never on a truncated stream (older records
+    # exist beyond the clamp, so the end was not reached), never for
+    # include="related" (it is a self record), and honoring the same
+    # since/until bounds and search filter as every fetched record. It
+    # rides the list BEFORE ``total`` so the count endpoint agrees with
+    # the page contents (+1) and pagination places it on the final page.
+    # Gating is inherited, not re-implemented: the endpoint access-gated
+    # the path entity before calling here (requiring edit access),
+    # and the record only ever describes that same path entity.
+    if include != "related" and not truncated:
+        # pylint: disable=import-outside-toplevel
+        from superset.versioning.activity.creation import build_creation_record
+        from superset.versioning.activity.kinds import NAME_COLUMN
+
+        name_attr: str | None = NAME_COLUMN.get(path_kind, (None, None))[1]
+        creation: dict[str, Any] | None = build_creation_record(
+            model_cls,
+            path_entity,
+            getattr(path_entity, name_attr) if name_attr else None,
+        )
+        if (
+            creation is not None
+            and (since is None or creation["issued_at"] >= since)
+            and (until is None or creation["issued_at"] < until)
+            and (not q or _record_matches(creation, q))
+        ):
+            records.append(creation)
+
     total = len(records)
     bounded_size = max(1, min(page_size, _MAX_PAGE_SIZE))
     offset = max(0, page) * bounded_size

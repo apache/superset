@@ -46,6 +46,10 @@ _NUMERIC_TYPE_PATTERN = re.compile(
 )
 
 
+class GanttSemanticNormalizationError(ValueError):
+    """A Gantt canonicalization result violates its typed semantic contract."""
+
+
 class AmbiguousDatasetReferenceError(ValueError):
     """A non-exact reference matches multiple names that differ only by case."""
 
@@ -64,7 +68,12 @@ class AmbiguousDatasetReferenceError(ValueError):
 def resolve_dataset_reference(
     name: str, candidates: Iterable[str], reference_kind: str
 ) -> str | None:
-    """Resolve exact names first and reject ambiguous case-insensitive matches."""
+    """Resolve a dataset reference deterministically.
+
+    Exact spelling wins regardless of metadata order. A single case-insensitive
+    match is canonicalized, while multiple case-insensitive matches require the
+    caller to provide exact casing.
+    """
     candidate_names = list(candidates)
     if name in candidate_names:
         return name
@@ -336,8 +345,9 @@ class DatasetValidator:
                     col_ref.name, metric_names, "saved metric"
                 )
             except AmbiguousDatasetReferenceError:
-                # This non-saved ref is still best explained by the tailored
-                # saved-metric hint rather than choosing one metric arbitrarily.
+                # The ref did not opt into saved-metric lookup, so an ambiguous
+                # metric-only spelling is still best explained by the tailored
+                # saved_metric hint below.
                 resolved_metric = metric_names[0] if metric_names else None
             if resolved_metric is not None:
                 # Name matches a saved metric but the ref didn't opt into
@@ -375,7 +385,7 @@ class DatasetValidator:
     def _build_ambiguous_reference_error(
         error: AmbiguousDatasetReferenceError,
     ) -> ChartGenerationError:
-        """Build an actionable error for case-colliding dataset metadata."""
+        """Build an actionable validation error for case-colliding metadata."""
         return ChartGenerationError(
             error_type="ambiguous_dataset_reference",
             message=(
@@ -478,7 +488,7 @@ class DatasetValidator:
 
     @staticmethod
     def _column_exists(column_name: str, dataset_context: DatasetContext) -> bool:
-        """Check if a physical column or saved metric resolves unambiguously."""
+        """Check if a column or metric resolves without ambiguity."""
         for candidates, reference_kind in (
             (dataset_context.available_columns, "physical column"),
             (dataset_context.available_metrics, "saved metric"),
@@ -501,9 +511,10 @@ class DatasetValidator:
         """
         Get the canonical column name from the dataset.
 
-        Performs case-insensitive matching and returns the actual column name
-        as stored in the dataset. This ensures column names in form_data match
-        exactly with what the frontend expects.
+        Exact spelling wins; a unique case-insensitive match returns the actual
+        physical column name as stored in the dataset. For backward-compatible
+        generic callers, saved metrics are a fallback when no column matches.
+        Ambiguous spellings fail within either namespace.
 
         Args:
             column_name: The column name to normalize

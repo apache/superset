@@ -287,13 +287,14 @@ function Chart({
   const renderErrorMessage = useCallback(
     (queryResponse: ChartErrorType) => {
       const error = queryResponse?.errors?.[0];
-      const message = chartAlert || queryResponse?.message;
+      const message = queryResponse?.message || chartAlert;
 
       // if datasource is still loading, don't render JS errors
-      // but always show backend API errors (which have an errors array)
+      // but always show backend API errors (structured or message-only)
       // so users can see real issues like auth failures
       if (
         !error &&
+        !queryResponse?.message &&
         chartAlert !== undefined &&
         chartAlert !== NONEXISTENT_DATASET &&
         datasource === PLACEHOLDER_DATASOURCE &&

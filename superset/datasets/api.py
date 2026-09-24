@@ -20,7 +20,7 @@ from __future__ import annotations
 import logging
 from datetime import datetime
 from io import BytesIO
-from typing import Any, Callable
+from typing import Any, Callable, ClassVar
 from zipfile import is_zipfile, ZipFile
 
 from flask import request, Response
@@ -32,9 +32,10 @@ from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_babel import gettext as _, ngettext
 from jinja2.exceptions import TemplateError
 from marshmallow import ValidationError
+from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm.exc import MultipleResultsFound
 
-from superset import event_logger, is_feature_enabled, security_manager
+from superset import db, event_logger, is_feature_enabled, security_manager
 from superset.commands.dataset.create import CreateDatasetCommand
 from superset.commands.dataset.delete import DeleteDatasetCommand
 from superset.commands.dataset.duplicate import DuplicateDatasetCommand
@@ -107,16 +108,22 @@ from superset.exceptions import (
 from superset.jinja_context import BaseTemplateProcessor, get_template_processor
 from superset.subjects.filters import FilterRelatedSubjects, subject_type_filter
 from superset.utils import json
-from superset.utils.core import parse_boolean_string, send_export_zip
+from superset.utils.core import (
+    parse_boolean_string,
+    send_export_zip,
+    write_zip_entry,
+)
 from superset.versioning.api_helpers import (
     concurrency_token_from,
     current_entity_version_info,
     entity_concurrency_token,
+    EntityVersionInfo,
     get_version_endpoint,
     list_versions_endpoint,
     lock_entity_for_update,
     restore_version_endpoint,
 )
+from superset.versioning.db_errors import is_lock_contention_error
 from superset.versioning.etag import (
     is_conditional_write,
     raise_for_stale_write,
@@ -152,6 +159,21 @@ _DATASET_PURGE_BINDING = SoftDeleteBinding(
 
 class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
     datamodel = SQLAInterface(SqlaTable)
+
+    restore_command_cls: ClassVar[type[RestoreDatasetCommand]] = RestoreDatasetCommand
+    soft_delete_not_found_errors: ClassVar[tuple[type[Exception], ...]] = (
+        DatasetNotFoundError,
+    )
+    soft_delete_forbidden_errors: ClassVar[tuple[type[Exception], ...]] = (
+        DatasetForbiddenError,
+    )
+    restore_failed_errors: ClassVar[tuple[type[Exception], ...]] = (
+        DatasetRestoreFailedError,
+    )
+    restore_conflict_errors: ClassVar[tuple[type[Exception], ...]] = (
+        DatasetLogicalDuplicateError,
+    )
+    soft_delete_logger: ClassVar[logging.Logger] = logger
     base_filters = [["id", DatasourceFilter, lambda: []]]
 
     resource_name = "dataset"
@@ -571,6 +593,28 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
             logger.exception("Unexpected error in DatasetRestApi.post")
             return self.response_500(message="Fatal error")
 
+    def _lock_contention_response(self) -> Response:
+        """The shared retryable 409 for a conditional save losing a lock race.
+
+        In the direct lock-acquisition and validator-read catches, the
+        rollback is LOAD-BEARING for lock-wait-timeout: with
+        ``innodb_rollback_on_timeout`` OFF (the MySQL default) a 1205
+        rolls back only the failing STATEMENT -- the transaction is still
+        alive and still holds any entity row lock already acquired, and
+        this rollback is what releases it. For a deadlock (1213) InnoDB
+        already rolled the transaction back and this clears the aborted
+        session before responding. The decorated command-failure path
+        already rolls back before raising; this shared cleanup is a
+        harmless no-op on that path, not an additional required rollback.
+        """
+        db.session.rollback()  # pylint: disable=consider-using-transaction
+        return self.response(
+            409,
+            message=_(
+                "Another save is in progress for this dataset. Retry the same request."
+            ),
+        )
+
     @expose("/<pk>", methods=("PUT",))
     @protect()
     @statsd_metrics
@@ -579,7 +623,7 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
         log_to_statsd=False,
     )
     @requires_json
-    def put(self, pk: int) -> Response:
+    def put(self, pk: int) -> Response:  # noqa: C901
         """Update a dataset.
         ---
         put:
@@ -598,9 +642,11 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
               type: string
             name: If-Match
             description: >-
-              Optional optimistic-concurrency guard. Pass the ``ETag`` returned
-              by a prior read of this dataset; the update is rejected with 412
-              if the dataset has changed since.
+              Optional optimistic-concurrency guard. Pass the ``ETag``
+              returned by a prior read of this dataset; the update is
+              rejected with 412 if the dataset has changed since, or
+              with a retryable 409 if a concurrent save won a lock race
+              (see those responses for which action each calls for).
           requestBody:
             description: Dataset schema
             required: true
@@ -677,10 +723,30 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
               $ref: '#/components/responses/403'
             404:
               $ref: '#/components/responses/404'
+            409:
+              description: >-
+                A concurrent save on this dataset won a database lock
+                race, so this conditional request could not be applied.
+                The client's ``If-Match`` token is NOT proven stale:
+                unlike a 412, the correct action is to retry the SAME
+                request (with backoff; a few attempts, then surface the
+                conflict) rather than refetch the entity for a new
+                token.
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      message:
+                        type: string
             412:
               description: >-
                 The dataset changed since the version identified by the
-                request's ``If-Match`` header; the update was not applied.
+                request's ``If-Match`` header; the update was not
+                applied. The token is stale: refetch the entity to pick
+                up the current version before retrying — retrying the
+                same request unchanged will fail again (contrast the
+                retryable 409 above).
               content:
                 application/json:
                   schema:
@@ -706,22 +772,50 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
 
         # Serialise conditional saves on this dataset: the guard below reads
         # the live version, the command writes, and the two must not interleave
-        # with another request's. Only a conditional save pays for the lock; an
+        # with another request's. Only a conditional save pays for the locks; an
         # unconditional PUT behaves exactly as it did before the guard existed.
-        # (On MySQL REPEATABLE READ the version read below is still a plain
-        # consistent read and can predate the lock; see the caveats on
-        # lock_entity_for_update.)
-        if is_conditional_write():
-            # Hold the locked entity for the rest of the request: the
-            # session's identity map references clean objects weakly, so
-            # discarding the return value could let the refreshed object
-            # be collected and the command's find_by_id re-read a stale
-            # row on MySQL REPEATABLE READ (see lock_entity_for_update).
-            _locked_entity = lock_entity_for_update(SqlaTable, pk)
+        # The validator's transaction id uses a locking read. The displayed
+        # version number and lazy child reads can still observe an older
+        # MySQL REPEATABLE READ snapshot; see lock_entity_for_update.
+        conditional: bool = is_conditional_write()
+        if conditional:
+            # Blocking here is the serialisation doing its job; LOSING the
+            # race at this acquisition (deadlock, or lock-wait timeout
+            # after ``innodb_lock_wait_timeout``) is the most common
+            # contention outcome of all three lock points and maps to the
+            # same retryable 409 -- not an uncaught 500. The locked entity
+            # is HELD for the rest of the request: the session's identity
+            # map references clean objects weakly, so discarding the
+            # return value could let the refreshed object be collected and
+            # the command's find_by_id re-read a stale row on MySQL
+            # REPEATABLE READ (see lock_entity_for_update).
+            try:
+                _locked_entity: SqlaTable | None = lock_entity_for_update(SqlaTable, pk)
+            except OperationalError as ex:
+                if not is_lock_contention_error(ex):
+                    raise
+                return self._lock_contention_response()
 
         # Live version identifiers before the update (empty + query-free when
-        # ``ENABLE_VERSIONING_CAPTURE`` is off).
-        old_info = current_entity_version_info(SqlaTable, pk)
+        # ``ENABLE_VERSIONING_CAPTURE`` is off). On the conditional path the
+        # live transaction id is read under an exclusive row lock: a plain
+        # read is served from the request's REPEATABLE READ snapshot on MySQL
+        # and can miss a concurrent commit, letting a stale If-Match token
+        # pass the guard. A lock race lost at that read (deadlock / lock
+        # wait) proves concurrent CONTENTION, not that this request's token
+        # is stale — so it maps to a retryable 409, and the client should
+        # retry the SAME request. (A deadlock at Continuum's version-row
+        # insert inside the command is classified by the
+        # DatasetUpdateFailedError handler below via ``__cause__`` and
+        # returns the same 409.)
+        try:
+            old_info: EntityVersionInfo = current_entity_version_info(
+                SqlaTable, pk, lock_for_stale_check=conditional
+            )
+        except OperationalError as ex:
+            if not (conditional and is_lock_contention_error(ex)):
+                raise
+            return self._lock_contention_response()
 
         try:
             raise_for_stale_write(concurrency_token_from(old_info))
@@ -788,6 +882,8 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
             response = self.response_403()
         except DatasetInvalidError as ex:
             response = self.response_422(message=ex.normalized_messages())
+        except DatasetSoftDeletedTwinExistsError as ex:
+            response = self.response_422(message=str(ex))
         except DatasetRefreshFailedError as ex:
             logger.exception(
                 "Error refreshing dataset during update %s: %s",
@@ -796,11 +892,20 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
             )
             response = self.response_422(message=str(ex))
         except DatasetUpdateFailedError as ex:
-            logger.error(
+            # The gap lock the conditional path's locking read takes on a
+            # zero-live-row range can deadlock against another conditional
+            # writer at Continuum's version-row INSERT inside the command;
+            # on_error chains the driver error as __cause__, and the update
+            # transaction has rolled back. (The post-commit override_columns
+            # refresh raises its own exception type and cannot reach this
+            # branch.) Same retryable classification as the read-point
+            # handler above: the token is not proven stale.
+            if conditional and is_lock_contention_error(ex.__cause__):
+                return self._lock_contention_response()
+            logger.exception(
                 "Error updating model %s: %s",
                 self.__class__.__name__,
                 str(ex),
-                exc_info=True,
             )
             response = self.response_422(message=str(ex))
         return response
@@ -917,8 +1022,9 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
                 for file_name, file_content in ExportDatasetsCommand(
                     requested_ids
                 ).run():
-                    with bundle.open(f"{root}/{file_name}", "w") as fp:
-                        fp.write(file_content().encode())
+                    write_zip_entry(
+                        bundle, f"{root}/{file_name}", file_content().encode()
+                    )
             except DatasetNotFoundError:
                 return self.response_404()
         buf.seek(0)
@@ -1380,23 +1486,7 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
             500:
               $ref: '#/components/responses/500'
         """
-        try:
-            RestoreDatasetCommand(uuid).run()
-            return self.response(200, message="OK")
-        except DatasetNotFoundError:
-            return self.response_404()
-        except DatasetForbiddenError:
-            return self.response_403()
-        except DatasetLogicalDuplicateError as ex:
-            return self.response_422(message=str(ex))
-        except DatasetRestoreFailedError as ex:
-            logger.error(
-                "Error restoring model %s: %s",
-                self.__class__.__name__,
-                str(ex),
-                exc_info=True,
-            )
-            return self.response_422(message=str(ex))
+        return self._restore_soft_deleted(uuid)
 
     @expose("/<uuid>/purge-impact", methods=("GET",))
     @protect()
@@ -1756,7 +1846,10 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
         # physical Postgres/MySQL table stored with a non-NULL schema).
         # If two datasets share the ``table_name`` across schemas and the
         # caller omits ``schema``, surface a 400 with an actionable message
-        # instead of the original 500 ``MultipleResultsFound``.
+        # instead of the original 500 ``MultipleResultsFound``. The same guard
+        # applies when the caller supplies ``schema`` but two legacy rows still
+        # match with ``catalog=None`` (the composite unique constraint treats
+        # NULL catalogs as distinct), so both branches catch the exception.
         # Catalog follows the same literal-pass rule: existing datasets
         # created before multi-catalog support landed are stored with
         # ``catalog=None``, so applying ``database.get_default_catalog()``
@@ -1764,9 +1857,19 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
         schema = body.get("schema") or None
         catalog = body.get("catalog") or None
         if schema:
-            table = DatasetDAO.get_table_by_catalog_schema_and_name(
-                database_id, schema, table_name, catalog=catalog
-            )
+            try:
+                table = DatasetDAO.get_table_by_catalog_schema_and_name(
+                    database_id, schema, table_name, catalog=catalog
+                )
+            except MultipleResultsFound:
+                return self.response_400(
+                    message=(
+                        f"Multiple datasets named '{table_name}' exist in "
+                        f"schema '{schema}' of this database with no catalog "
+                        "set. These are duplicate legacy rows; contact an "
+                        "admin to remove the duplicates."
+                    )
+                )
         else:
             try:
                 table = DatasetDAO.get_table_by_name(database_id, table_name)

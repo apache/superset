@@ -266,8 +266,19 @@ class TestSqlLab(SupersetTestCase):
         self.login(GAMMA_USERNAME)
         for endpoint in ("/sqllab/", "/sqllab/history/"):
             resp = self.client.get(endpoint)
-            # Redirects to the main page
+            # An authenticated user missing the permission is forbidden. Sending
+            # them to the login view would be wrong: they are authenticated, the
+            # failure is one of authorization.
+            assert 403 == resp.status_code
+
+    def test_sqllab_no_access_anonymous(self):
+        self.logout()
+        for endpoint in ("/sqllab/", "/sqllab/history/"):
+            resp = self.client.get(endpoint)
+            # The unauthenticated case is the other half of that distinction and
+            # still redirects to the login view.
             assert 302 == resp.status_code
+            assert "/login/" in resp.headers["Location"]
 
     def test_sql_json_schema_access(self):
         examples_db = get_example_database()

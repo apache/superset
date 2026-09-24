@@ -498,13 +498,13 @@ test('renders 5 sections for reports', () => {
   expect(sections.length).toBe(5);
 });
 
-test('renders 5 sections for alerts', () => {
+test('renders 6 sections for alerts', () => {
   render(<AlertReportModal {...generateMockedProps(false)} />, {
     useRedux: true,
   });
 
   const sections = screen.getAllByRole('tab');
-  expect(sections.length).toBe(5);
+  expect(sections.length).toBe(6);
 });
 
 // Validation
@@ -1579,12 +1579,12 @@ test('adding and removing dashboard filter rows', async () => {
 });
 
 test('alert shows condition section, report does not', () => {
-  // Alert has 5 sections (general, condition, content, schedule, notification)
+  // Alerts also include condition and error-handling sections.
   const { unmount } = render(
     <AlertReportModal {...generateMockedProps(false)} />,
     { useRedux: true },
   );
-  expect(screen.getAllByRole('tab')).toHaveLength(5);
+  expect(screen.getAllByRole('tab')).toHaveLength(6);
   expect(screen.getByTestId('alert-condition-panel')).toBeInTheDocument();
   unmount();
 
@@ -2985,7 +2985,7 @@ test('clearing notification recipients disables submit and prevents API call', a
     useRedux: true,
   });
 
-  // Wait for all validation to pass (5 checkmarks = fully valid alert)
+  // Wait for all alert sections to validate.
   await waitFor(() => {
     expect(
       screen.queryAllByRole('img', { name: /check-circle/i }),
@@ -3048,30 +3048,35 @@ test('renders error handling panel with Enable Retries switch', async () => {
   expect(screen.getByText('Enable Retries')).toBeInTheDocument();
 });
 
-test('shows retry options when Enable Retries is toggled on', async () => {
-  render(<AlertReportModal {...generateMockedProps(true)} />, {
-    useRedux: true,
-  });
-  const errorHandlingTab = screen.getByText('Error handling');
-  await userEvent.click(errorHandlingTab);
+test.each([false, true])(
+  'shows retry options for isReport=%s',
+  async isReport => {
+    render(<AlertReportModal {...generateMockedProps(isReport)} />, {
+      useRedux: true,
+    });
+    const errorHandlingTab = screen.getByText('Error handling');
+    await userEvent.click(errorHandlingTab);
 
-  // Retry options should not be visible initially
-  expect(screen.queryByText('Maximum Retry Attempts')).not.toBeInTheDocument();
+    // Retry options should not be visible initially
+    expect(
+      screen.queryByText('Maximum Retry Attempts'),
+    ).not.toBeInTheDocument();
 
-  // Toggle Enable Retries — the Switch renders as a <button role="switch">
-  const switches = screen.getAllByRole('switch');
-  const enableRetriesSwitch = switches[switches.length - 1];
-  await userEvent.click(enableRetriesSwitch);
+    // Toggle Enable Retries — the Switch renders as a <button role="switch">
+    const switches = screen.getAllByRole('switch');
+    const enableRetriesSwitch = switches[switches.length - 1];
+    await userEvent.click(enableRetriesSwitch);
 
-  // Retry options should now be visible
-  await waitFor(() => {
-    expect(screen.getByText('Maximum Retry Attempts')).toBeInTheDocument();
-    expect(screen.getByText('Send Failed Reports')).toBeInTheDocument();
-    expect(screen.getByText('Failure Notifications')).toBeInTheDocument();
-    expect(screen.getByText('Owners')).toBeInTheDocument();
-    expect(screen.getByText('Report Recipients')).toBeInTheDocument();
-  });
-});
+    // Retry options should now be visible
+    await waitFor(() => {
+      expect(screen.getByText('Maximum Retry Attempts')).toBeInTheDocument();
+      expect(screen.getByText('Send Failed Reports')).toBeInTheDocument();
+      expect(screen.getByText('Failure Notifications')).toBeInTheDocument();
+      expect(screen.getByText('Owners')).toBeInTheDocument();
+      expect(screen.getByText('Report Recipients')).toBeInTheDocument();
+    });
+  },
+);
 
 test('hides retry options and resets state when Enable Retries is toggled off', async () => {
   render(<AlertReportModal {...generateMockedProps(true)} />, {
