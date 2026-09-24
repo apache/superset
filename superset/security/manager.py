@@ -40,7 +40,7 @@ from flask import current_app, Flask, g, has_app_context, Request, Response
 from flask_appbuilder import Model
 from flask_appbuilder.api import expose, permission_name, protect, safe
 from flask_appbuilder.models.filters import BaseFilter
-from flask_appbuilder.security.manager import AUTH_REMOTE_USER
+from flask_appbuilder.security.manager import AUTH_DB, AUTH_OAUTH, AUTH_REMOTE_USER
 from flask_appbuilder.security.sqla.apis import GroupApi, RoleApi, UserApi
 from flask_appbuilder.security.sqla.apis.permission_view_menu.api import (
     PermissionViewMenuApi,
@@ -6347,7 +6347,17 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         # FlaskAppBuilder's AuthRemoteUserView actually claims the route.
         if self.register_superset_auth_view and self.auth_type != AUTH_REMOTE_USER:
             self.auth_view = self.appbuilder.add_view_no_menu(SupersetAuthView)
-        if self.register_superset_registeruser_view:
+        # AUTH_USER_REGISTRATION is what makes FlaskAppBuilder provision users on
+        # first login, so LDAP/SAML/AUTH_REMOTE_USER deployments have to enable
+        # it; that must not publish the "/register/" self-registration page.
+        # FlaskAppBuilder only wires the "/register/form" handler that page posts
+        # to for AUTH_DB and AUTH_OAUTH (see its own register_views), so for any
+        # other auth type the page is a registration form that submits to a 404.
+        if (
+            self.register_superset_registeruser_view
+            and self.auth_user_registration
+            and self.auth_type in (AUTH_DB, AUTH_OAUTH)
+        ):
             self.registeruser_view = self.appbuilder.add_view_no_menu(
                 SupersetRegisterUserView
             )

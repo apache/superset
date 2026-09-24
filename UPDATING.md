@@ -24,6 +24,18 @@ assists people when migrating to a new version.
 
 ## Next
 
+- The `/register/` self-registration page and the login page's "Register" button
+  are only served for the auth types that support self-registration
+  (`AUTH_DB`, and `AUTH_OAUTH` for the page), and only when
+  `AUTH_USER_REGISTRATION` is enabled. LDAP, SAML and `AUTH_REMOTE_USER`
+  deployments have to set `AUTH_USER_REGISTRATION = True` so Flask-AppBuilder
+  provisions users on first login, which used to publish a public registration
+  form that Flask-AppBuilder has no handler for (submitting it returned a 404).
+  First-login provisioning is unchanged. This also closes
+  `GET /register/activation/<hash>`, which previously stayed reachable and
+  able to provision a user regardless of `AUTH_USER_REGISTRATION`; it now
+  requires the same gate as `/register/`.
+
 ### MCP response size guard: byte limit instead of estimated token count
 
 The MCP response-size guard no longer estimates LLM token counts (it
