@@ -358,7 +358,12 @@ DATASET_SORTABLE_COLUMNS = [
     "changed_on_delta_humanized",
     "created_on",
 ]
-DATASET_SEARCH_COLUMNS = ["table_name", "description"]
+# Single source of truth for what ``list_datasets`` searches, so ``get_schema``
+# and the schema resource cannot drift from the tool's actual behavior. ``uuid``
+# is deliberately absent from the generic substring search because its storage
+# representation varies by database. ``list_datasets`` recognizes a complete
+# UUID search separately and converts it to an exact ``uuid`` filter.
+DATASET_SEARCH_COLUMNS = ["table_name", "description", "schema", "sql"]
 DATASET_EXTRA_COLUMNS: dict[str, ColumnMetadata] = {
     "database_name": ColumnMetadata(
         name="database_name",

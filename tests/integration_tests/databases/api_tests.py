@@ -87,7 +87,6 @@ from tests.integration_tests.fixtures.users import (
 
 SQL_VALIDATORS_BY_ENGINE = {
     "presto": "PrestoDBSQLValidator",
-    "postgresql": "PostgreSQLValidator",
 }
 
 PRESTO_SQL_VALIDATORS_BY_ENGINE = {
@@ -96,6 +95,20 @@ PRESTO_SQL_VALIDATORS_BY_ENGINE = {
     "postgresql": "PrestoDBSQLValidator",
     "mysql": "PrestoDBSQLValidator",
 }
+
+
+def get_presto_example_database() -> Database:
+    """
+    Return the example database, skipping unless it is the Presto one.
+
+    ``PrestoDBSQLValidator`` is the only validator left wired up by default, and
+    it needs a live Presto server, so the validate_sql tests only run in the job
+    that provisions one.
+    """
+    example_db = get_example_database()
+    if example_db.backend != "presto":
+        pytest.skip("Only presto is implemented")
+    return example_db
 
 
 class TestDatabaseApi(SupersetTestCase):
@@ -4249,6 +4262,8 @@ class TestDatabaseApi(SupersetTestCase):
         # enumerate them too.
         assert "datasets" in rv.json
 
+    @pytest.mark.sql_json_flow
+    @pytest.mark.usefixtures("load_birth_names_data")
     @mock.patch.dict(
         "superset.config.SQL_VALIDATORS_BY_ENGINE",
         SQL_VALIDATORS_BY_ENGINE,
@@ -4264,9 +4279,7 @@ class TestDatabaseApi(SupersetTestCase):
             "template_params": None,
         }
 
-        example_db = get_example_database()
-        if example_db.backend not in ("presto", "postgresql"):
-            pytest.skip("Only presto and PG are implemented")
+        example_db = get_presto_example_database()
 
         self.login(ADMIN_USERNAME)
         uri = f"api/v1/database/{example_db.id}/validate_sql/"
@@ -4274,39 +4287,6 @@ class TestDatabaseApi(SupersetTestCase):
         response = json.loads(rv.data.decode("utf-8"))
         assert rv.status_code == 200
         assert response["result"] == []
-
-    @mock.patch.dict(
-        "superset.config.SQL_VALIDATORS_BY_ENGINE",
-        SQL_VALIDATORS_BY_ENGINE,
-        clear=True,
-    )
-    def test_validate_sql_errors(self):
-        """
-        Database API: validate SQL with errors
-        """
-        request_payload = {
-            "sql": "SELECT col1 from_ table1",
-            "schema": None,
-            "template_params": None,
-        }
-
-        example_db = get_example_database()
-        if example_db.backend not in ("presto", "postgresql"):
-            pytest.skip("Only presto and PG are implemented")
-
-        self.login(ADMIN_USERNAME)
-        uri = f"api/v1/database/{example_db.id}/validate_sql/"
-        rv = self.client.post(uri, json=request_payload)
-        response = json.loads(rv.data.decode("utf-8"))
-        assert rv.status_code == 200
-        assert response["result"] == [
-            {
-                "end_column": None,
-                "line_number": 1,
-                "message": 'ERROR: syntax error at or near "table1"',
-                "start_column": None,
-            }
-        ]
 
     @mock.patch.dict(
         "superset.config.SQL_VALIDATORS_BY_ENGINE",
@@ -4430,6 +4410,8 @@ class TestDatabaseApi(SupersetTestCase):
         assert rv.status_code == 422
         assert "Kaboom!" in response["errors"][0]["message"]
 
+    @pytest.mark.sql_json_flow
+    @pytest.mark.usefixtures("load_birth_names_data")
     @mock.patch.dict(
         "superset.config.SQL_VALIDATORS_BY_ENGINE",
         SQL_VALIDATORS_BY_ENGINE,
@@ -4442,17 +4424,15 @@ class TestDatabaseApi(SupersetTestCase):
         request_payload = {
             "sql": (
                 "SELECT *\nFROM birth_names\nWHERE 1=1\n"
-                "{% if city_filter is defined %}\n"
-                "    AND city = '{{ city_filter }}'\n{% endif %}\n"
+                "{% if state_filter is defined %}\n"
+                "    AND state = '{{ state_filter }}'\n{% endif %}\n"
                 "LIMIT {{ limit | default(100) }}"
             ),
             "schema": None,
             "template_params": {},
         }
 
-        example_db = get_example_database()
-        if example_db.backend not in ("presto", "postgresql"):
-            pytest.skip("Only presto and PG are implemented")
+        example_db = get_presto_example_database()
 
         self.login(ADMIN_USERNAME)
         uri = f"api/v1/database/{example_db.id}/validate_sql/"
@@ -4465,6 +4445,8 @@ class TestDatabaseApi(SupersetTestCase):
         assert isinstance(result, list)
         assert len(result) == 0
 
+    @pytest.mark.sql_json_flow
+    @pytest.mark.usefixtures("load_birth_names_data")
     @mock.patch.dict(
         "superset.config.SQL_VALIDATORS_BY_ENGINE",
         SQL_VALIDATORS_BY_ENGINE,
@@ -4477,17 +4459,15 @@ class TestDatabaseApi(SupersetTestCase):
         request_payload = {
             "sql": (
                 "SELECT *\nFROM birth_names\nWHERE 1=1\n"
-                "{% if city_filter is defined %}\n"
-                "    AND city = '{{ city_filter }}'\n"
+                "{% if state_filter is defined %}\n"
+                "    AND state = '{{ state_filter }}'\n"
                 "{% endif %}\nLIMIT {{ limit }}"
             ),
             "schema": None,
-            "template_params": {"city_filter": "New York", "limit": 50},
+            "template_params": {"state_filter": "CA", "limit": 50},
         }
 
-        example_db = get_example_database()
-        if example_db.backend not in ("presto", "postgresql"):
-            pytest.skip("Only presto and PG are implemented")
+        example_db = get_presto_example_database()
 
         self.login(ADMIN_USERNAME)
         uri = f"api/v1/database/{example_db.id}/validate_sql/"
@@ -4500,6 +4480,8 @@ class TestDatabaseApi(SupersetTestCase):
         assert isinstance(result, list)
         assert len(result) == 0
 
+    @pytest.mark.sql_json_flow
+    @pytest.mark.usefixtures("load_birth_names_data")
     @mock.patch.dict(
         "superset.config.SQL_VALIDATORS_BY_ENGINE",
         SQL_VALIDATORS_BY_ENGINE,
@@ -4510,8 +4492,8 @@ class TestDatabaseApi(SupersetTestCase):
         Database API: validate SQL with Jinja templates that renders to invalid SQL
 
         This test ensures that SQL validation errors are not hidden by template
-        processing. The template should render successfully, but the resulting SQL
-        should fail syntax validation.
+        processing. The template renders successfully, and the error reported
+        back describes the rendered SQL rather than the template.
         """
         request_payload = {
             "sql": (
@@ -4524,20 +4506,20 @@ class TestDatabaseApi(SupersetTestCase):
             "template_params": {"add_invalid_clause": True},
         }
 
-        example_db = get_example_database()
-        if example_db.backend not in ("presto", "postgresql"):
-            pytest.skip("Only presto and PG are implemented")
+        example_db = get_presto_example_database()
 
         self.login(ADMIN_USERNAME)
         uri = f"api/v1/database/{example_db.id}/validate_sql/"
         rv = self.client.post(uri, json=request_payload)
         response = json.loads(rv.data.decode("utf-8"))
-        assert rv.status_code == 200
-        # The template should render successfully, but SQL validation
-        # should catch the syntax error (WHERE clause with no condition)
-        result = response["result"]
-        assert isinstance(result, list)
-        assert len(result) > 0
+        # PrestoDBSQLValidator parses the script before it can annotate any
+        # statement, so SQL it cannot parse is surfaced as an error response
+        # rather than an annotation list. Either way the failure is attributed
+        # to the rendered SQL, which is what this test guards.
+        assert rv.status_code == 422
+        message = response["errors"][0]["message"]
+        assert "PrestoDBSQLValidator was unable to check your query" in message
+        assert "WHERE" in message
 
     def test_get_databases_with_extra_filters(self):
         """

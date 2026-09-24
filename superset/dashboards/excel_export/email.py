@@ -55,7 +55,7 @@ def _humanize_ttl(seconds: int) -> str:
 
     Whole hours read as "24 hours"; sub-hour and non-hour values keep their
     minutes (e.g. "1 hour 30 minutes", "15 minutes") so the stated lifetime
-    always matches the real pre-signed URL expiration.
+    always matches the link's real expiration.
     """
     hours, remainder = divmod(seconds, 3600)
     parts: list[str] = []
@@ -81,16 +81,16 @@ def build_subject(dashboard_title: str, *, success: bool) -> str:
     )
 
 
-def _errored_section(errored: dict[str, list[str]]) -> str:
-    """Render one labelled, translated sub-list per non-empty error group.
+def errored_groups(errored: dict[str, list[str]]) -> list[tuple[str, list[str]]]:
+    """Pair each non-empty error group with its translated remediation note.
 
     ``errored`` maps a reason key (see the ``ERROR_*`` constants) to the labels
-    of the charts that were omitted for that reason. Known reasons are rendered
-    first, in a stable order, each with its own remediation text; any unknown
-    reason key falls back to a generic message so nothing is silently dropped.
+    of the charts that were omitted for that reason. Known reasons come first,
+    in a stable order; an unknown reason key gets a generic note so nothing is
+    silently dropped. Shared by the email and the workbook's summary sheet.
     """
     if not errored:
-        return ""
+        return []
     notes = {
         ERROR_NO_QUERY_CONTEXT: __(
             "The following charts were omitted because they have no saved query "
@@ -104,12 +104,17 @@ def _errored_section(errored: dict[str, list[str]]) -> str:
     fallback = __("The following charts could not be exported:")
     ordered = [ERROR_NO_QUERY_CONTEXT, ERROR_GENERAL]
     reasons = ordered + [reason for reason in errored if reason not in ordered]
+    return [
+        (str(notes.get(reason, fallback)), labels)
+        for reason in reasons
+        if (labels := errored.get(reason))
+    ]
+
+
+def _errored_section(errored: dict[str, list[str]]) -> str:
+    """Render one labelled sub-list per non-empty error group."""
     sections = []
-    for reason in reasons:
-        labels = errored.get(reason)
-        if not labels:
-            continue
-        note = notes.get(reason, fallback)
+    for note, labels in errored_groups(errored):
         items = "".join(f"<li>{escape(label)}</li>" for label in labels)
         sections.append(f"<p>{note}</p><ul>{items}</ul>")
     return "".join(sections)

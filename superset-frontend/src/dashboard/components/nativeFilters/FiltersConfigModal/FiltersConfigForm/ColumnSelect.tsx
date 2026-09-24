@@ -25,6 +25,7 @@ import {
   ensureIsArray,
   useChangeEffect,
   getClientErrorObject,
+  selectClientErrorMessage,
 } from '@superset-ui/core';
 import { type FormInstance, Select } from '@superset-ui/core/components';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
@@ -108,11 +109,11 @@ export function ColumnSelect({
       const handleError = async (
         badResponse: Parameters<typeof getClientErrorObject>[0],
       ) => {
-        const { error, message } = await getClientErrorObject(badResponse);
-        let errorText = message || error || t('An error has occurred');
-        if (message === 'Forbidden') {
-          errorText = t('You do not have permission to edit this dashboard');
-        }
+        const errorText = selectClientErrorMessage(
+          await getClientErrorObject(badResponse),
+          t('An error has occurred'),
+          { 403: t('You do not have permission to edit this dashboard') },
+        );
         addDangerToast(errorText);
       };
 
