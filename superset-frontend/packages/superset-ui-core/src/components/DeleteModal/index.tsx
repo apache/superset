@@ -43,6 +43,7 @@ export function DeleteModal({
   primaryButtonName,
   primaryButtonStyle,
   disablePrimaryButton = false,
+  disableConfirmationInput = false,
   loading = false,
   confirmationResetKey,
 }: DeleteModalProps) {
@@ -52,13 +53,14 @@ export function DeleteModal({
   const [disableChange, setDisableChange] = useState(true);
   const [confirmation, setConfirmation] = useState<string>('');
   const inputRef = useRef<InputRef>(null);
-  const confirmationBlocked = disablePrimaryButton || loading;
+  const confirmationBlocked =
+    disablePrimaryButton || disableConfirmationInput || loading;
 
   useEffect(() => {
-    if (open && !confirmationBlocked && inputRef.current) {
+    if (open && !disableConfirmationInput && inputRef.current) {
       inputRef.current.focus();
     }
-  }, [confirmationBlocked, open]);
+  }, [disableConfirmationInput, open]);
 
   useEffect(() => {
     setConfirmation('');
@@ -126,7 +128,7 @@ export function DeleteModal({
             type="text"
             id="delete"
             autoComplete="off"
-            disabled={confirmationBlocked}
+            disabled={disableConfirmationInput}
             value={confirmation}
             onChange={onChange}
             onPressEnter={onPressEnter}

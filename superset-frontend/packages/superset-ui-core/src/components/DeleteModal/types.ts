@@ -47,8 +47,10 @@ export interface DeleteModalProps {
    * otherwise `'danger'`. Same precedence as `primaryButtonName`.
    */
   primaryButtonStyle?: ButtonStyle;
-  /** Disable the confirmation input and action independently of the typed-text gate. */
+  /** Disable the primary action independently of the typed-text gate. */
   disablePrimaryButton?: boolean;
+  /** Disable the confirmation input and primary action when deletion is blocked. */
+  disableConfirmationInput?: boolean;
   /** Show progress on the primary action and prevent duplicate submission. */
   loading?: boolean;
   /** Clear and re-arm the typed-text gate when the reviewed data changes. */
