@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-24 01:14+0000\n"
+"POT-Creation-Date: 2026-09-24 02:04+0000\n"
 "PO-Revision-Date: 2019-02-02 22:28+0900\n"
 "Last-Translator: \n"
 "Language: ko\n"
@@ -337,6 +337,12 @@ msgstr[0] ""
 #, fuzzy, python-format
 msgid "%(object)s does not exist in this database."
 msgstr "%(object)s이(가) 이 데이터베이스에 존재하지 않습니다."
+
+#, python-format
+msgid ""
+"%(partition)s is hidden from Explore, but no filter is mirrored onto it —"
+" queries will scan every partition until a column is mapped."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -1298,6 +1304,12 @@ msgid ""
 "CSS. Convert it to inline CSS to keep using it."
 msgstr ""
 
+#, python-format
+msgid ""
+"A %(operator)s filter is only mirrored when the transform preserves "
+"ordering, which this one is not declared to do."
+msgstr ""
+
 #, fuzzy
 msgid "A Big Number"
 msgstr "테이블 명"
@@ -1314,6 +1326,11 @@ msgstr ""
 "ECharts 옵션 사양을 따르는 JavaScript 객체로, 더 높은 우선순위로 다른 컨트롤 옵션을 재정의합니다. (예: { "
 "title: { text: \"My Chart\" }, tooltip: { trigger: \"item\" } }). 자세히 보기:"
 " https://echarts.apache.org/en/option.html. "
+
+msgid ""
+"A SQL expression evaluated against the engine, with :value standing for "
+"the filter bound being mirrored."
+msgstr ""
 
 msgid "A TTL is required for ephemeral state."
 msgstr ""
@@ -4592,6 +4609,9 @@ msgstr "최상위 탭을 중첩 탭으로 이동할 수 없습니다"
 msgid "Can select multiple values"
 msgstr "여러 값을 선택할 수 있습니다"
 
+msgid "Can't parse transform"
+msgstr ""
+
 msgid "Cancel"
 msgstr "취소"
 
@@ -6065,6 +6085,11 @@ msgstr "데이터프레임의 인덱스로 사용할 열. 값이 없으면 Index
 msgid "Column type"
 msgstr "컬럼 추가"
 
+msgid ""
+"Column used for partition pruning on this table. Selecting one hides it "
+"from Explore's dimension and filter pickers by default."
+msgstr ""
+
 #, fuzzy
 msgid "Columnar upload"
 msgstr "컬럼 추가"
@@ -7221,6 +7246,9 @@ msgid "Customize the label for the left series in tooltips and legend"
 msgstr ""
 
 msgid "Customize the label for the right series in tooltips and legend"
+msgstr ""
+
+msgid "Customize the value transform →"
 msgstr ""
 
 #, fuzzy
@@ -9707,6 +9735,9 @@ msgstr "대시보드를 삭제할 수 없습니다."
 msgid "Embedding deactivated."
 msgstr "임베딩이 비활성화되었습니다."
 
+msgid "Emitted predicate"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk, zh, zh_TW]
@@ -11293,12 +11324,32 @@ msgstr "크거나 같은 값을 위한 필터입니다."
 msgid "Filters for values less than or equal."
 msgstr "작거나 같은 값을 위한 필터입니다."
 
+#, python-format
+msgid ""
+"Filters on %(mapped)s will automatically apply an equivalent filter to "
+"%(partition)s."
+msgstr ""
+
+msgid ""
+"Filters on the mapped column are mirrored onto this column so the engine "
+"can prune partitions."
+msgstr ""
+
+msgid "Filters on this column are mirrored onto the partition column."
+msgstr ""
+
+msgid "Filters on this column are mirrored onto the partition field."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk, zh, zh_TW]
 #, fuzzy, python-format
 msgid "Filters out of scope (%d)"
 msgstr "범위 밖의 필터 (%d)"
+
+msgid "Filters will not be mirrored"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -14196,6 +14247,12 @@ msgstr "새로고침 간격"
 msgid "Map Style"
 msgstr "지도 스타일"
 
+msgid "Map a column →"
+msgstr ""
+
+msgid "Map a different column instead →"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
 #, fuzzy
@@ -14222,6 +14279,9 @@ msgstr "Mapbox는 서버에서 MAPBOX_API_KEY를 구성해야 합니다."
 
 #, python-format
 msgid "Mapped column %(name)s is not a column on this dataset."
+msgstr ""
+
+msgid "Maps to partition"
 msgstr ""
 
 msgid "March"
@@ -14974,6 +15034,13 @@ msgstr "CSS 템플릿 불러오기"
 msgid "Monday"
 msgstr "월요일"
 
+msgid ""
+"Monotonicity is a property of the transform, not of the column type: "
+"hour(:value) and dayofweek(:value) are reasonable transforms on a "
+"timestamp and neither preserves ordering, so Superset asks rather than "
+"guessing. Unchecked, = and IN still mirror."
+msgstr ""
+
 msgid "Month"
 msgstr "달"
 
@@ -15005,6 +15072,9 @@ msgstr "MotherDuck 토큰"
 #, fuzzy
 msgid "Move icon"
 msgstr "주석"
+
+msgid "Move mapping to this column →"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -15539,6 +15609,9 @@ msgstr ""
 msgid "No items"
 msgstr "테이블 추가"
 
+msgid "No mapping"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk]
@@ -15692,6 +15765,12 @@ msgid ""
 "%(engine_spec)s engine)"
 msgstr "%(engine_spec)s 엔진에 구성된 %(validator_name)s 이름의 유효성 검사기를 찾을 수 없습니다"
 
+#, python-format
+msgid ""
+"No value transform is set on %(mapped)s, so nothing is mirrored yet and "
+"queries will scan every partition."
+msgstr ""
+
 msgid ""
 "No value transform is set, so no filter will be mirrored onto the "
 "partition column."
@@ -15770,6 +15849,9 @@ msgstr "컬럼 목록"
 msgid "Normalized"
 msgstr "정규화됨"
 
+msgid "Normally the default datetime column, but none is set on this dataset."
+msgstr ""
+
 #, fuzzy
 msgid "Not Contains"
 msgstr "대시보드 가져오기"
@@ -15804,6 +15886,9 @@ msgstr "모든 필수 필드가 완성되지 않았습니다. 다음을 입력�
 #, fuzzy
 msgid "Not available"
 msgstr "사용 불가"
+
+msgid "Not currently mapped to the partition column."
+msgstr ""
 
 #, fuzzy
 msgid "Not defined"
@@ -16652,11 +16737,17 @@ msgstr ""
 msgid "Owners"
 msgstr ""
 
+msgid "PARTITION"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fr, ja, lv, mi, ro, ru, sk, sr, sr_Latn, tr, uk]
 #, fuzzy
 msgid "PDF download failed, please refresh and try again."
 msgstr "PDF 다운로드에 실패했습니다. 새로 고침 후 다시 시도해 주세요."
+
+msgid "PREVIEW"
+msgstr ""
 
 #, fuzzy
 msgid "Page"
@@ -16769,8 +16860,17 @@ msgstr "파티션 제한"
 msgid "Partition Threshold"
 msgstr "파티션 임계값"
 
+msgid "Partition column"
+msgstr ""
+
 #, python-format
 msgid "Partition column %(name)s is not a column on this dataset."
+msgstr ""
+
+msgid "Partition field:"
+msgstr ""
+
+msgid "Partition filter mapping"
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
@@ -18252,6 +18352,9 @@ msgstr ""
 msgid "Remove item"
 msgstr "항목 제거"
 
+msgid "Remove mapping"
+msgstr ""
+
 msgid "Remove notification method"
 msgstr ""
 
@@ -18602,6 +18705,12 @@ msgstr ""
 #, fuzzy
 msgid "Required control values have been removed"
 msgstr "필수 제어 값이 제거되었습니다"
+
+msgid "Required for non-temporal columns. Use :value for each value."
+msgstr ""
+
+msgid "Required to mirror range filters, including the time range."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr, uk,
@@ -19318,6 +19427,9 @@ msgid "Sample Standard Deviation"
 msgstr ""
 
 msgid "Sample Variance"
+msgstr ""
+
+msgid "Sample input"
 msgstr ""
 
 #, fuzzy
@@ -20726,6 +20838,11 @@ msgstr "새로고침 간격"
 #, fuzzy
 msgid "Set filter mapping"
 msgstr "필터 매핑 설정"
+
+msgid ""
+"Set from the default datetime column above, so re-pointing that column "
+"moves the mapping with it."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
 # lv, ru, sk, sr, sr_Latn, tr, uk]
@@ -23094,6 +23211,11 @@ msgstr "에지의 대상으로 사용할 열입니다."
 msgid "The column was deleted or renamed in the database."
 msgstr "데이터베이스에서 열이 삭제되거나 이름이 변경되었습니다."
 
+msgid ""
+"The column whose filters are mirrored. It follows the default datetime "
+"column unless a different column holds the mapping."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fr, ja, lv, mi, ro, ru, sk, sr, sr_Latn, tr, uk]
 #, fuzzy
@@ -23791,6 +23913,11 @@ msgid ""
 "                expressions."
 msgstr ""
 
+msgid ""
+"The physical column the engine partitions on. Filters on the mapped "
+"column are mirrored onto it so the engine can prune partitions."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk, zh, zh_TW]
@@ -23820,6 +23947,9 @@ msgstr "포트가 닫혀 있습니다."
 #, fuzzy
 msgid "The port number is invalid."
 msgstr "차트의 파라미터가 부적절합니다."
+
+msgid "The preview could not be loaded."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -24242,6 +24372,10 @@ msgstr "블록 그룹화에 사용되는 시간 단위"
 msgid "The transform could not be evaluated against the database."
 msgstr ""
 
+#, python-format
+msgid "The transform could not be evaluated against the database: %(reason)s"
+msgstr ""
+
 #, fuzzy
 msgid "The two passwords that you entered do not match!"
 msgstr "대시보드가 존재하지 않습니다"
@@ -24333,6 +24467,12 @@ msgstr ""
 msgid ""
 "The value transform could not be parsed. The mapping is saved but stays "
 "inactive until it does."
+msgstr ""
+
+#, python-format
+msgid ""
+"The value transform could not be parsed: %(detail)s The mapping is saved "
+"but stays inactive until it does."
 msgstr ""
 
 msgid ""
@@ -24968,6 +25108,9 @@ msgid "This chart only"
 msgstr ""
 
 msgid "This chart will be restored to the following version:"
+msgstr ""
+
+msgid "This column holds the mapping instead of the default datetime column."
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
@@ -26090,6 +26233,9 @@ msgstr "합계: %s"
 msgid "Track job"
 msgstr "작업 추적"
 
+msgid "Transform preserves ordering"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk, zh, zh_TW]
@@ -26960,6 +27106,9 @@ msgstr "관리"
 msgid "Use %s to open in a new tab."
 msgstr "새로운 탭에서 Query실행"
 
+msgid "Use :value for the filter bound."
+msgstr ""
+
 #, fuzzy
 msgid "Use Area Proportions"
 msgstr "대시보드"
@@ -27207,6 +27356,9 @@ msgstr ""
 msgid "Uses the first 25 values if the dimension has more."
 msgstr "차원에 더 많은 값이 있으면 처음 25개 값을 사용합니다."
 
+msgid "Valid"
+msgstr ""
+
 #, fuzzy
 msgid "Valid SQL expression"
 msgstr "표현식"
@@ -27318,6 +27470,9 @@ msgstr "값은 0보다 커야합니다"
 
 msgid "Value must be greater than 0"
 msgstr "값은 0보다 커야합니다"
+
+msgid "Value transform"
+msgstr ""
 
 #, python-format
 msgid ""
@@ -30897,6 +31052,10 @@ msgstr "합계"
 msgid "superset.example.com"
 msgstr ""
 
+#, python-format
+msgid "syntax error at position %(position)d."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, ja, lv, mi, nl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr, uk]
 #, fuzzy
@@ -30967,6 +31126,9 @@ msgstr "중지"
 #, fuzzy
 msgid "undo"
 msgstr "실행 취소"
+
+msgid "unix_timestamp(:value)"
+msgstr ""
 
 #, fuzzy
 msgid "unknown type icon"
@@ -31108,6 +31270,9 @@ msgstr "줌 영역"
 #, fuzzy
 msgid "© Layer attribution"
 msgstr "© 레이어 출처"
+
+msgid "— set in Default Column Settings · one per dataset"
+msgstr ""
 
 #, python-format
 msgid "…and %s more chart"

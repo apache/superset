@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Apache Superset 0.22.1\n"
 "Report-Msgid-Bugs-To: bestlong168@gmail.com\n"
-"POT-Creation-Date: 2026-09-24 01:14+0000\n"
+"POT-Creation-Date: 2026-09-24 02:04+0000\n"
 "PO-Revision-Date: 2019-01-04 22:19+0800\n"
 "Last-Translator: Shao Yu-Lung <bestlong168@gmail.com>\n"
 "Language: zh_TW\n"
@@ -288,6 +288,12 @@ msgstr[0] ""
 #, python-format
 msgid "%(object)s does not exist in this database."
 msgstr "資料庫中不存在 %(object)s 。"
+
+#, python-format
+msgid ""
+"%(partition)s is hidden from Explore, but no filter is mirrored onto it —"
+" queries will scan every partition until a column is mapped."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -1026,6 +1032,12 @@ msgid ""
 "CSS. Convert it to inline CSS to keep using it."
 msgstr ""
 
+#, python-format
+msgid ""
+"A %(operator)s filter is only mirrored when the transform preserves "
+"ordering, which this one is not declared to do."
+msgstr ""
+
 msgid "A Big Number"
 msgstr "大數字"
 
@@ -1041,6 +1053,11 @@ msgstr ""
 "一個符合 ECharts 選項規格的 JavaScript 物件，以更高優先順序覆蓋其他控制選項。（例如：{ title: { text: "
 "\"My Chart\" }, tooltip: { trigger: \"item\" } "
 "}）。詳細資訊：https://echarts.apache.org/en/option.html。 "
+
+msgid ""
+"A SQL expression evaluated against the engine, with :value standing for "
+"the filter bound being mirrored."
+msgstr ""
 
 msgid "A TTL is required for ephemeral state."
 msgstr ""
@@ -3412,6 +3429,9 @@ msgstr "無法將頂級選項卡移動到嵌套選項卡中"
 msgid "Can select multiple values"
 msgstr "允許選擇多個值"
 
+msgid "Can't parse transform"
+msgstr ""
+
 msgid "Cancel"
 msgstr "取消"
 
@@ -4488,6 +4508,11 @@ msgstr "欄位作為數據文件的行標籤使用。如果没有索引欄位，
 msgid "Column type"
 msgstr "列數據類型"
 
+msgid ""
+"Column used for partition pruning on this table. Selecting one hides it "
+"from Explore's dimension and filter pickers by default."
+msgstr ""
+
 #, fuzzy
 msgid "Columnar upload"
 msgstr "列式儲存文件"
@@ -5355,6 +5380,9 @@ msgid "Customize the label for the left series in tooltips and legend"
 msgstr ""
 
 msgid "Customize the label for the right series in tooltips and legend"
+msgstr ""
+
+msgid "Customize the value transform →"
 msgstr ""
 
 #, fuzzy
@@ -7202,6 +7230,9 @@ msgstr "看板無法被删除。"
 msgid "Embedding deactivated."
 msgstr "解除嵌入。"
 
+msgid "Emitted predicate"
+msgstr ""
+
 msgid "Emphasis"
 msgstr "重點"
 
@@ -8380,8 +8411,28 @@ msgid "Filters for values less than or equal."
 msgstr "篩選小於或等於的值。"
 
 #, python-format
+msgid ""
+"Filters on %(mapped)s will automatically apply an equivalent filter to "
+"%(partition)s."
+msgstr ""
+
+msgid ""
+"Filters on the mapped column are mirrored onto this column so the engine "
+"can prune partitions."
+msgstr ""
+
+msgid "Filters on this column are mirrored onto the partition column."
+msgstr ""
+
+msgid "Filters on this column are mirrored onto the partition field."
+msgstr ""
+
+#, python-format
 msgid "Filters out of scope (%d)"
 msgstr "過濾器超出範圍(%d)"
+
+msgid "Filters will not be mirrored"
+msgstr ""
 
 msgid ""
 "Filters with the same group key will be ORed together within the group, "
@@ -10418,6 +10469,12 @@ msgstr "實時渲染"
 msgid "Map Style"
 msgstr "地圖樣式"
 
+msgid "Map a column →"
+msgstr ""
+
+msgid "Map a different column instead →"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
 #, fuzzy
@@ -10444,6 +10501,9 @@ msgstr "Mapbox 需要在伺服器上設定 MAPBOX_API_KEY。"
 
 #, python-format
 msgid "Mapped column %(name)s is not a column on this dataset."
+msgstr ""
+
+msgid "Maps to partition"
 msgstr ""
 
 msgid "March"
@@ -10971,6 +11031,13 @@ msgstr "加载一個 CSS 模板"
 msgid "Monday"
 msgstr "星期一"
 
+msgid ""
+"Monotonicity is a property of the transform, not of the column type: "
+"hour(:value) and dayofweek(:value) are reasonable transforms on a "
+"timestamp and neither preserves ordering, so Superset asks rather than "
+"guessing. Unchecked, = and IN still mirror."
+msgstr ""
+
 msgid "Month"
 msgstr "月"
 
@@ -11002,6 +11069,9 @@ msgstr "MotherDuck 令牌"
 #, fuzzy
 msgid "Move icon"
 msgstr "僅移動"
+
+msgid "Move mapping to this column →"
+msgstr ""
 
 msgid "Move only"
 msgstr "僅移動"
@@ -11381,6 +11451,9 @@ msgstr ""
 msgid "No items"
 msgstr "無篩選"
 
+msgid "No mapping"
+msgstr ""
+
 #, fuzzy
 msgid "No matching records found"
 msgstr "没有找到任何紀錄"
@@ -11491,6 +11564,12 @@ msgid ""
 "%(engine_spec)s engine)"
 msgstr "未找到名為 %(validator_name)s 的驗證器（為 %(engine_spec)s 引擎配置）"
 
+#, python-format
+msgid ""
+"No value transform is set on %(mapped)s, so nothing is mirrored yet and "
+"queries will scan every partition."
+msgstr ""
+
 msgid ""
 "No value transform is set, so no filter will be mirrored onto the "
 "partition column."
@@ -11531,6 +11610,9 @@ msgstr "標準化列名稱"
 msgid "Normalized"
 msgstr "標準化"
 
+msgid "Normally the default datetime column, but none is set on this dataset."
+msgstr ""
+
 #, fuzzy
 msgid "Not Contains"
 msgstr "已發送報告"
@@ -11559,6 +11641,9 @@ msgstr "並非所有必填欄位都已填寫完整。請提供以下資訊："
 #, fuzzy
 msgid "Not available"
 msgstr "没有可用訊息"
+
+msgid "Not currently mapped to the partition column."
+msgstr ""
 
 #, fuzzy
 msgid "Not defined"
@@ -12140,9 +12225,15 @@ msgstr ""
 msgid "Owners"
 msgstr ""
 
+msgid "PARTITION"
+msgstr ""
+
 #, fuzzy
 msgid "PDF download failed, please refresh and try again."
 msgstr "圖片發送失敗，請刷新或重試"
+
+msgid "PREVIEW"
+msgstr ""
 
 #, fuzzy
 msgid "Page"
@@ -12206,8 +12297,17 @@ msgstr "分區限制"
 msgid "Partition Threshold"
 msgstr "分區閥值"
 
+msgid "Partition column"
+msgstr ""
+
 #, python-format
 msgid "Partition column %(name)s is not a column on this dataset."
+msgstr ""
+
+msgid "Partition field:"
+msgstr ""
+
+msgid "Partition filter mapping"
 msgstr ""
 
 msgid ""
@@ -13242,6 +13342,9 @@ msgstr ""
 msgid "Remove item"
 msgstr "删除項"
 
+msgid "Remove mapping"
+msgstr ""
+
 msgid "Remove notification method"
 msgstr ""
 
@@ -13487,6 +13590,12 @@ msgstr ""
 
 msgid "Required control values have been removed"
 msgstr "必需的控件值已被移除"
+
+msgid "Required for non-temporal columns. Use :value for each value."
+msgstr ""
+
+msgid "Required to mirror range filters, including the time range."
+msgstr ""
 
 msgid "Resample"
 msgstr "重新採樣"
@@ -13986,6 +14095,9 @@ msgid "Sample Standard Deviation"
 msgstr ""
 
 msgid "Sample Variance"
+msgstr ""
+
+msgid "Sample input"
 msgstr ""
 
 #, fuzzy
@@ -15081,6 +15193,11 @@ msgstr "設定自動刷新"
 
 msgid "Set filter mapping"
 msgstr "設定過濾映射"
+
+msgid ""
+"Set from the default datetime column above, so re-pointing that column "
+"moves the mapping with it."
+msgstr ""
 
 #, fuzzy
 msgid "Set local theme for testing"
@@ -16808,6 +16925,11 @@ msgstr "要作為邊的目標的欄位。"
 msgid "The column was deleted or renamed in the database."
 msgstr "該列已在資料庫中删除或重命名。"
 
+msgid ""
+"The column whose filters are mirrored. It follows the default datetime "
+"column unless a different column holds the mapping."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fr, ja, lv, mi, ro, ru, sk, sr, sr_Latn, tr, uk]
 #, fuzzy
@@ -17324,6 +17446,11 @@ msgid ""
 "                expressions."
 msgstr ""
 
+msgid ""
+"The physical column the engine partitions on. Filters on the mapped "
+"column are mirrored onto it so the engine can prune partitions."
+msgstr ""
+
 msgid "The pixel radius"
 msgstr "像素半徑"
 
@@ -17338,6 +17465,9 @@ msgstr "端口已關闭。"
 
 msgid "The port number is invalid."
 msgstr "端口值無效"
+
+msgid "The preview could not be loaded."
+msgstr ""
 
 msgid "The primary metric is used to define the arc segment sizes"
 msgstr "主計量指標用於定義弧段大小。"
@@ -17610,6 +17740,10 @@ msgstr "用於块分組的時間單位"
 msgid "The transform could not be evaluated against the database."
 msgstr ""
 
+#, python-format
+msgid "The transform could not be evaluated against the database: %(reason)s"
+msgstr ""
+
 #, fuzzy
 msgid "The two passwords that you entered do not match!"
 msgstr "看板不存在"
@@ -17685,6 +17819,12 @@ msgstr ""
 msgid ""
 "The value transform could not be parsed. The mapping is saved but stays "
 "inactive until it does."
+msgstr ""
+
+#, python-format
+msgid ""
+"The value transform could not be parsed: %(detail)s The mapping is saved "
+"but stays inactive until it does."
 msgstr ""
 
 msgid ""
@@ -18175,6 +18315,9 @@ msgid "This chart only"
 msgstr ""
 
 msgid "This chart will be restored to the following version:"
+msgstr ""
+
+msgid "This column holds the mapping instead of the default datetime column."
 msgstr ""
 
 #, fuzzy, python-format
@@ -19018,6 +19161,9 @@ msgstr "總計: %s"
 msgid "Track job"
 msgstr "跟踪任務"
 
+msgid "Transform preserves ordering"
+msgstr ""
+
 msgid "Transformable"
 msgstr "轉换"
 
@@ -19670,6 +19816,9 @@ msgstr "用途"
 msgid "Use %s to open in a new tab."
 msgstr "使用 %s 打開新的選項卡。"
 
+msgid "Use :value for the filter bound."
+msgstr ""
+
 msgid "Use Area Proportions"
 msgstr "使用面積比例"
 
@@ -19836,6 +19985,9 @@ msgstr "使用圆圈來可視化數據在系统不同階段的流動。將鼠標
 msgid "Uses the first 25 values if the dimension has more."
 msgstr "如果維度有更多值，則使用前 25 個值。"
 
+msgid "Valid"
+msgstr ""
+
 #, fuzzy
 msgid "Valid SQL expression"
 msgstr "SQL 表達式"
@@ -19921,6 +20073,9 @@ msgstr "`行偏移量` 必須 大於 或 等於 0"
 
 msgid "Value must be greater than 0"
 msgstr "`行偏移量` 必須 大於 或 等於 0"
+
+msgid "Value transform"
+msgstr ""
 
 #, python-format
 msgid ""
@@ -22396,6 +22551,10 @@ msgstr "求和"
 msgid "superset.example.com"
 msgstr ""
 
+#, python-format
+msgid "syntax error at position %(position)d."
+msgstr ""
+
 #, fuzzy
 msgid "syntax."
 msgstr "語法"
@@ -22448,6 +22607,9 @@ msgstr "頂部"
 #, fuzzy
 msgid "undo"
 msgstr "還原"
+
+msgid "unix_timestamp(:value)"
+msgstr ""
 
 #, fuzzy
 msgid "unknown type icon"
@@ -22557,6 +22719,9 @@ msgstr "縮放面積"
 #, fuzzy
 msgid "© Layer attribution"
 msgstr "© 圖層歸因"
+
+msgid "— set in Default Column Settings · one per dataset"
+msgstr ""
 
 #, python-format
 msgid "…and %s more chart"

@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-24 01:14+0000\n"
+"POT-Creation-Date: 2026-09-24 02:04+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: th\n"
@@ -350,6 +350,12 @@ msgstr[0] ""
 #, fuzzy, python-format
 msgid "%(object)s does not exist in this database."
 msgstr "%(object)s ไม่มีอยู่ในฐานข้อมูลนี้"
+
+#, python-format
+msgid ""
+"%(partition)s is hidden from Explore, but no filter is mirrored onto it —"
+" queries will scan every partition until a column is mapped."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
@@ -1393,6 +1399,12 @@ msgid ""
 "CSS. Convert it to inline CSS to keep using it."
 msgstr ""
 
+#, python-format
+msgid ""
+"A %(operator)s filter is only mirrored when the transform preserves "
+"ordering, which this one is not declared to do."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, fuzzy
@@ -1412,6 +1424,11 @@ msgstr ""
 "โดยแทนที่ตัวเลือกการควบคุมอื่นๆ ด้วยลำดับความสำคัญที่สูงกว่า (เช่น { "
 "title: { text: \"My Chart\" }, tooltip: { trigger: \"item\" } }) "
 "รายละเอียด: https://echarts.apache.org/en/option.html. "
+
+msgid ""
+"A SQL expression evaluated against the engine, with :value standing for "
+"the filter bound being mirrored."
+msgstr ""
 
 msgid "A TTL is required for ephemeral state."
 msgstr ""
@@ -5074,6 +5091,9 @@ msgstr "ไม่สามารถย้ายแท็บระดับบน
 msgid "Can select multiple values"
 msgstr "สามารถเลือกหลายค่าได้"
 
+msgid "Can't parse transform"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, it, ja, ko, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, tr, uk,
 # zh, zh_TW]
@@ -6700,6 +6720,11 @@ msgstr "คอลัมน์ที่ใช้เป็นดัชนีขอ
 msgid "Column type"
 msgstr "ประเภทคอลัมน์"
 
+msgid ""
+"Column used for partition pruning on this table. Selecting one hides it "
+"from Explore's dimension and filter pickers by default."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, es,
 # ja, lv, mi, ru, sk, uk]
 #, fuzzy
@@ -7992,6 +8017,9 @@ msgid "Customize the label for the left series in tooltips and legend"
 msgstr ""
 
 msgid "Customize the label for the right series in tooltips and legend"
+msgstr ""
+
+msgid "Customize the value transform →"
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, fr, ja,
@@ -10885,6 +10913,9 @@ msgstr "ไม่สามารถลบแดชบอร์ดที่ฝั
 msgid "Embedding deactivated."
 msgstr "ปิดใช้งานการฝังตัวแล้ว"
 
+msgid "Emitted predicate"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, fuzzy
@@ -12606,11 +12637,31 @@ msgstr "กรองสำหรับค่าที่มากกว่าห
 msgid "Filters for values less than or equal."
 msgstr "กรองสำหรับค่าที่น้อยกว่าหรือเท่ากัน"
 
+#, python-format
+msgid ""
+"Filters on %(mapped)s will automatically apply an equivalent filter to "
+"%(partition)s."
+msgstr ""
+
+msgid ""
+"Filters on the mapped column are mirrored onto this column so the engine "
+"can prune partitions."
+msgstr ""
+
+msgid "Filters on this column are mirrored onto the partition column."
+msgstr ""
+
+msgid "Filters on this column are mirrored onto the partition field."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, tr, uk, zh, zh_TW]
 #, fuzzy, python-format
 msgid "Filters out of scope (%d)"
 msgstr "ตัวกรองที่อยู่นอกขอบเขต (%d)"
+
+msgid "Filters will not be mirrored"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -15716,6 +15767,12 @@ msgstr "การแสดงผลสด"
 msgid "Map Style"
 msgstr "รูปแบบแผนที่"
 
+msgid "Map a column →"
+msgstr ""
+
+msgid "Map a different column instead →"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
 #, fuzzy
@@ -15746,6 +15803,9 @@ msgstr "Mapbox ต้องกำหนดค่า MAPBOX_API_KEY บนเซ�
 
 #, python-format
 msgid "Mapped column %(name)s is not a column on this dataset."
+msgstr ""
+
+msgid "Maps to partition"
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
@@ -16540,6 +16600,13 @@ msgstr "แก้ไขจากแม่แบบ \"%s\""
 msgid "Monday"
 msgstr "วันจันทร์"
 
+msgid ""
+"Monotonicity is a property of the transform, not of the column type: "
+"hour(:value) and dayofweek(:value) are reasonable transforms on a "
+"timestamp and neither preserves ordering, so Superset asks rather than "
+"guessing. Unchecked, = and IN still mirror."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, ko, lv, mi, nl, pl, pt_BR, ru, sk, sl, tr, uk, zh,
 # zh_TW]
@@ -16585,6 +16652,9 @@ msgstr "โทเคน MotherDuck"
 #, fuzzy
 msgid "Move icon"
 msgstr "เลื่อนเท่านั้น"
+
+msgid "Move mapping to this column →"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -17179,6 +17249,9 @@ msgstr ""
 msgid "No items"
 msgstr "ไม่มีรายการ"
 
+msgid "No mapping"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
 #, fuzzy
@@ -17347,6 +17420,12 @@ msgstr ""
 "ไม่พบตัวตรวจสอบชื่อ %(validator_name)s (ที่กำหนดค่าสำหรับเอ็นจิน "
 "%(engine_spec)s)"
 
+#, python-format
+msgid ""
+"No value transform is set on %(mapped)s, so nothing is mirrored yet and "
+"queries will scan every partition."
+msgstr ""
+
 msgid ""
 "No value transform is set, so no filter will be mirrored onto the "
 "partition column."
@@ -17418,6 +17497,9 @@ msgstr "ทำให้ชื่อคอลัมน์เป็นมาตร
 msgid "Normalized"
 msgstr "ปรับมาตรฐานแล้ว"
 
+msgid "Normally the default datetime column, but none is set on this dataset."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja, lv, ru,
 # uk]
 #, fuzzy
@@ -17459,6 +17541,9 @@ msgstr "ฟิลด์ที่จำเป็นยังไม่ครบท
 #, fuzzy
 msgid "Not available"
 msgstr "ไม่พร้อมใช้งาน"
+
+msgid "Not currently mapped to the partition column."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, ja, lv, mi, nl, pl, ru, sk, sl, uk]
@@ -18356,11 +18441,17 @@ msgstr ""
 msgid "Owners"
 msgstr ""
 
+msgid "PARTITION"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, es,
 # fr, ja, lv, mi, ru, sk, uk]
 #, fuzzy
 msgid "PDF download failed, please refresh and try again."
 msgstr "ดาวน์โหลด PDF ไม่สำเร็จ โปรดรีเฟรชและลองอีกครั้ง"
+
+msgid "PREVIEW"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: fr, ja, lv,
 # ru, uk]
@@ -18472,8 +18563,17 @@ msgstr "ขีดจำกัดพาร์ติชัน"
 msgid "Partition Threshold"
 msgstr "ค่าเกณฑ์พาร์ติชัน"
 
+msgid "Partition column"
+msgstr ""
+
 #, python-format
 msgid "Partition column %(name)s is not a column on this dataset."
+msgstr ""
+
+msgid "Partition field:"
+msgstr ""
+
+msgid "Partition filter mapping"
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
@@ -20062,6 +20162,9 @@ msgstr ""
 msgid "Remove item"
 msgstr "ลบรายการ"
 
+msgid "Remove mapping"
+msgstr ""
+
 msgid "Remove notification method"
 msgstr ""
 
@@ -20425,6 +20528,12 @@ msgstr ""
 #, fuzzy
 msgid "Required control values have been removed"
 msgstr "ค่าการควบคุมที่จำเป็นถูกลบออกแล้ว"
+
+msgid "Required for non-temporal columns. Use :value for each value."
+msgstr ""
+
+msgid "Required to mirror range filters, including the time range."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -21198,6 +21307,9 @@ msgid "Sample Standard Deviation"
 msgstr ""
 
 msgid "Sample Variance"
+msgstr ""
+
+msgid "Sample input"
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
@@ -22896,6 +23008,11 @@ msgstr "ตั้งค่าการรีเฟรชอัตโนมัต
 #, fuzzy
 msgid "Set filter mapping"
 msgstr "ตั้งค่าการแมปตัวกรอง"
+
+msgid ""
+"Set from the default datetime column above, so re-pointing that column "
+"moves the mapping with it."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, ja, lv,
 # ru, sk, uk]
@@ -25491,6 +25608,11 @@ msgstr "คอลัมน์ที่จะใช้เป็นปลายท
 msgid "The column was deleted or renamed in the database."
 msgstr "คอลัมน์ถูกลบหรือเปลี่ยนชื่อในฐานข้อมูล"
 
+msgid ""
+"The column whose filters are mirrored. It follows the default datetime "
+"column unless a different column holds the mapping."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, es,
 # fr, ja, lv, mi, ru, sk, uk]
 #, fuzzy
@@ -26201,6 +26323,11 @@ msgid ""
 "                expressions."
 msgstr ""
 
+msgid ""
+"The physical column the engine partitions on. Filters on the mapped "
+"column are mirrored onto it so the engine can prune partitions."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, fuzzy
@@ -26230,6 +26357,9 @@ msgstr "พอร์ตถูกปิดอยู่"
 #, fuzzy
 msgid "The port number is invalid."
 msgstr "หมายเลขพอร์ตไม่ถูกต้อง"
+
+msgid "The preview could not be loaded."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -26648,6 +26778,10 @@ msgstr "หน่วยเวลาที่ใช้สำหรับการ
 msgid "The transform could not be evaluated against the database."
 msgstr ""
 
+#, python-format
+msgid "The transform could not be evaluated against the database: %(reason)s"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja, lv, ru,
 # uk]
 #, fuzzy
@@ -26747,6 +26881,12 @@ msgstr ""
 msgid ""
 "The value transform could not be parsed. The mapping is saved but stays "
 "inactive until it does."
+msgstr ""
+
+#, python-format
+msgid ""
+"The value transform could not be parsed: %(detail)s The mapping is saved "
+"but stays inactive until it does."
 msgstr ""
 
 msgid ""
@@ -27439,6 +27579,9 @@ msgid "This chart only"
 msgstr ""
 
 msgid "This chart will be restored to the following version:"
+msgstr ""
+
+msgid "This column holds the mapping instead of the default datetime column."
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
@@ -28625,6 +28768,9 @@ msgstr "ผลรวม: %s"
 msgid "Track job"
 msgstr "ติดตามงาน"
 
+msgid "Transform preserves ordering"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, fuzzy
@@ -29539,6 +29685,9 @@ msgstr "การใช้งาน"
 msgid "Use %s to open in a new tab."
 msgstr "ใช้ %s เพื่อเปิดในแท็บใหม่"
 
+msgid "Use :value for the filter bound."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, fuzzy
@@ -29806,6 +29955,9 @@ msgstr ""
 msgid "Uses the first 25 values if the dimension has more."
 msgstr "ใช้ค่า 25 ค่าแรกหากมิติมีค่ามากกว่านั้น"
 
+msgid "Valid"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja, lv, ru,
 # uk]
 #, fuzzy
@@ -29933,6 +30085,9 @@ msgstr "ค่าต้องเป็น 0 หรือมากกว่า"
 #, fuzzy
 msgid "Value must be greater than 0"
 msgstr "ค่าต้องมากกว่า 0"
+
+msgid "Value transform"
+msgstr ""
 
 #, python-format
 msgid ""
@@ -33630,6 +33785,10 @@ msgstr "ผลรวม"
 msgid "superset.example.com"
 msgstr ""
 
+#, python-format
+msgid "syntax error at position %(position)d."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
 #, fuzzy
@@ -33706,6 +33865,9 @@ msgstr "ด้านบน"
 #, fuzzy
 msgid "undo"
 msgstr "เลิกทำ"
+
+msgid "unix_timestamp(:value)"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
@@ -33861,6 +34023,9 @@ msgstr "พื้นที่ซูม"
 #, fuzzy
 msgid "© Layer attribution"
 msgstr "© การระบุแหล่งที่มาของเลเยอร์"
+
+msgid "— set in Default Column Settings · one per dataset"
+msgstr ""
 
 #, python-format
 msgid "…and %s more chart"

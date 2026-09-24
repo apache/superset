@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-24 01:14+0000\n"
+"POT-Creation-Date: 2026-09-24 02:04+0000\n"
 "PO-Revision-Date: 2024-05-14 13:30+0900\n"
 "Last-Translator: Yuri Umezaki <bungoume@gmail.com>\n"
 "Language: ja\n"
@@ -270,6 +270,12 @@ msgstr[0] ""
 #, python-format
 msgid "%(object)s does not exist in this database."
 msgstr "%(object)s はこのデータベース内に存在しません。"
+
+#, python-format
+msgid ""
+"%(partition)s is hidden from Explore, but no filter is mirrored onto it —"
+" queries will scan every partition until a column is mapped."
+msgstr ""
 
 #, python-format
 msgid "%(prefix)s %(title)s"
@@ -922,6 +928,12 @@ msgid ""
 "CSS. Convert it to inline CSS to keep using it."
 msgstr ""
 
+#, python-format
+msgid ""
+"A %(operator)s filter is only mirrored when the transform preserves "
+"ordering, which this one is not declared to do."
+msgstr ""
+
 msgid "A Big Number"
 msgstr "ビッグナンバー"
 
@@ -935,6 +947,11 @@ msgstr ""
 "ECharts のオプション仕様に準拠した JavaScript オブジェクトで、他のコントロールオプションを高い優先度で上書きします。（例: {"
 " title: { text: \"My Chart\" }, tooltip: { trigger: \"item\" } }）。詳細: "
 "https://echarts.apache.org/en/option.html. "
+
+msgid ""
+"A SQL expression evaluated against the engine, with :value standing for "
+"the filter bound being mirrored."
+msgstr ""
 
 msgid "A TTL is required for ephemeral state."
 msgstr ""
@@ -2931,6 +2948,9 @@ msgstr "トップレベルのタブを入れ子になったタブの中に移動
 msgid "Can select multiple values"
 msgstr "複数値の選択が可能"
 
+msgid "Can't parse transform"
+msgstr ""
+
 msgid "Cancel"
 msgstr "キャンセル"
 
@@ -3836,6 +3856,11 @@ msgstr "データフレームのインデックスとして使用する列。未
 msgid "Column type"
 msgstr "列種類"
 
+msgid ""
+"Column used for partition pruning on this table. Selecting one hides it "
+"from Explore's dimension and filter pickers by default."
+msgstr ""
+
 msgid "Columnar upload"
 msgstr "列アップロード"
 
@@ -4544,6 +4569,9 @@ msgid "Customize the label for the left series in tooltips and legend"
 msgstr ""
 
 msgid "Customize the label for the right series in tooltips and legend"
+msgstr ""
+
+msgid "Customize the value transform →"
 msgstr ""
 
 msgid "Customize tooltips template"
@@ -6100,6 +6128,9 @@ msgstr "埋め込みダッシュボードを削除できませんでした。"
 msgid "Embedding deactivated."
 msgstr "埋め込みを無効にしました。"
 
+msgid "Emitted predicate"
+msgstr ""
+
 msgid "Emphasis"
 msgstr "強調表示"
 
@@ -7067,8 +7098,28 @@ msgid "Filters for values less than or equal."
 msgstr "指定値以下のものをフィルターします。"
 
 #, python-format
+msgid ""
+"Filters on %(mapped)s will automatically apply an equivalent filter to "
+"%(partition)s."
+msgstr ""
+
+msgid ""
+"Filters on the mapped column are mirrored onto this column so the engine "
+"can prune partitions."
+msgstr ""
+
+msgid "Filters on this column are mirrored onto the partition column."
+msgstr ""
+
+msgid "Filters on this column are mirrored onto the partition field."
+msgstr ""
+
+#, python-format
 msgid "Filters out of scope (%d)"
 msgstr "スコープ外のフィルター (%d)"
+
+msgid "Filters will not be mirrored"
+msgstr ""
 
 msgid ""
 "Filters with the same group key will be ORed together within the group, "
@@ -8750,6 +8801,12 @@ msgstr "マップレンダラー"
 msgid "Map Style"
 msgstr "地図スタイル"
 
+msgid "Map a column →"
+msgstr ""
+
+msgid "Map a different column instead →"
+msgstr ""
+
 msgid "MapLibre (open-source)"
 msgstr "MapLibre (オープンソース)"
 
@@ -8768,6 +8825,9 @@ msgstr "Mapbox を使用するには、サーバーに MAPBOX_API_KEY を設定�
 
 #, python-format
 msgid "Mapped column %(name)s is not a column on this dataset."
+msgstr ""
+
+msgid "Maps to partition"
 msgstr ""
 
 msgid "March"
@@ -9196,6 +9256,13 @@ msgstr "テンプレート「%s」から変更されました"
 msgid "Monday"
 msgstr "月曜日"
 
+msgid ""
+"Monotonicity is a property of the transform, not of the column type: "
+"hour(:value) and dayofweek(:value) are reasonable transforms on a "
+"timestamp and neither preserves ordering, so Superset asks rather than "
+"guessing. Unchecked, = and IN still mirror."
+msgstr ""
+
 msgid "Month"
 msgstr "月"
 
@@ -9220,6 +9287,9 @@ msgstr "MotherDuckトークン"
 
 msgid "Move icon"
 msgstr "移動アイコン"
+
+msgid "Move mapping to this column →"
+msgstr ""
 
 msgid "Move only"
 msgstr "移動のみ"
@@ -9539,6 +9609,9 @@ msgstr ""
 msgid "No items"
 msgstr "項目なし"
 
+msgid "No mapping"
+msgstr ""
+
 msgid "No matching records found"
 msgstr "一致するレコードが見つかりません"
 
@@ -9628,6 +9701,12 @@ msgid ""
 "%(engine_spec)s engine)"
 msgstr "%(engine_spec)s エンジンに設定された「%(validator_name)s」という名前のバリデータが見つかりません"
 
+#, python-format
+msgid ""
+"No value transform is set on %(mapped)s, so nothing is mirrored yet and "
+"queries will scan every partition."
+msgstr ""
+
 msgid ""
 "No value transform is set, so no filter will be mirrored onto the "
 "partition column."
@@ -9666,6 +9745,9 @@ msgstr "列名を正規化する"
 msgid "Normalized"
 msgstr "正規化済み"
 
+msgid "Normally the default datetime column, but none is set on this dataset."
+msgstr ""
+
 msgid "Not Contains"
 msgstr "含まない"
 
@@ -9686,6 +9768,9 @@ msgstr "必須フィールドが未入力です。以下を入力してくださ
 
 msgid "Not available"
 msgstr "利用不可"
+
+msgid "Not currently mapped to the partition column."
+msgstr ""
 
 msgid "Not defined"
 msgstr "未定義"
@@ -10184,8 +10269,14 @@ msgstr ""
 msgid "Owners"
 msgstr ""
 
+msgid "PARTITION"
+msgstr ""
+
 msgid "PDF download failed, please refresh and try again."
 msgstr "PDFのダウンロードに失敗しました。更新して再試行してください。"
+
+msgid "PREVIEW"
+msgstr ""
 
 msgid "Page"
 msgstr "ページ"
@@ -10242,8 +10333,17 @@ msgstr "パーティション制限"
 msgid "Partition Threshold"
 msgstr "パーティションしきい値"
 
+msgid "Partition column"
+msgstr ""
+
 #, python-format
 msgid "Partition column %(name)s is not a column on this dataset."
+msgstr ""
+
+msgid "Partition field:"
+msgstr ""
+
+msgid "Partition filter mapping"
 msgstr ""
 
 msgid ""
@@ -11101,6 +11201,9 @@ msgstr ""
 msgid "Remove item"
 msgstr "項目を削除"
 
+msgid "Remove mapping"
+msgstr ""
+
 msgid "Remove notification method"
 msgstr "通知方法を削除"
 
@@ -11324,6 +11427,12 @@ msgstr ""
 
 msgid "Required control values have been removed"
 msgstr "必須の制御値が削除されました"
+
+msgid "Required for non-temporal columns. Use :value for each value."
+msgstr ""
+
+msgid "Required to mirror range filters, including the time range."
+msgstr ""
 
 msgid "Resample"
 msgstr "リサンプリング"
@@ -11765,6 +11874,9 @@ msgid "Sample Standard Deviation"
 msgstr ""
 
 msgid "Sample Variance"
+msgstr ""
+
+msgid "Sample input"
 msgstr ""
 
 msgid "Samples"
@@ -12647,6 +12759,11 @@ msgstr "自動更新を設定"
 
 msgid "Set filter mapping"
 msgstr "フィルターマッピングを設定"
+
+msgid ""
+"Set from the default datetime column above, so re-pointing that column "
+"moves the mapping with it."
+msgstr ""
 
 msgid "Set local theme for testing"
 msgstr "テスト用のローカルテーマを設定"
@@ -14092,6 +14209,11 @@ msgstr "エッジのターゲット(終点)として使用する列。"
 msgid "The column was deleted or renamed in the database."
 msgstr "データベース内で列が削除されたか、名前が変更されました。"
 
+msgid ""
+"The column whose filters are mirrored. It follows the default datetime "
+"column unless a different column holds the mapping."
+msgstr ""
+
 msgid "The configuration for the map layers"
 msgstr "マップレイヤーの設定"
 
@@ -14515,6 +14637,11 @@ msgid ""
 "                expressions."
 msgstr ""
 
+msgid ""
+"The physical column the engine partitions on. Filters on the mapped "
+"column are mirrored onto it so the engine can prune partitions."
+msgstr ""
+
 msgid "The pixel radius"
 msgstr "ピクセル半径"
 
@@ -14531,6 +14658,9 @@ msgstr "ポートが閉じています。"
 
 msgid "The port number is invalid."
 msgstr "ポート番号が無効です。"
+
+msgid "The preview could not be loaded."
+msgstr ""
 
 msgid "The primary metric is used to define the arc segment sizes"
 msgstr "主要メトリックは、円セグメントのサイズを定義するために使用されます"
@@ -14772,6 +14902,10 @@ msgstr "ブロックのグループ化に使用される時間単位"
 msgid "The transform could not be evaluated against the database."
 msgstr ""
 
+#, python-format
+msgid "The transform could not be evaluated against the database: %(reason)s"
+msgstr ""
+
 msgid "The two passwords that you entered do not match!"
 msgstr "入力された2つのパスワードが一致しません！"
 
@@ -14828,6 +14962,12 @@ msgstr ""
 msgid ""
 "The value transform could not be parsed. The mapping is saved but stays "
 "inactive until it does."
+msgstr ""
+
+#, python-format
+msgid ""
+"The value transform could not be parsed: %(detail)s The mapping is saved "
+"but stays inactive until it does."
 msgstr ""
 
 msgid ""
@@ -15257,6 +15397,9 @@ msgid "This chart only"
 msgstr ""
 
 msgid "This chart will be restored to the following version:"
+msgstr ""
+
+msgid "This column holds the mapping instead of the default datetime column."
 msgstr ""
 
 #, python-format
@@ -15934,6 +16077,9 @@ msgstr "合計: %s"
 msgid "Track job"
 msgstr "ジョブを追跡"
 
+msgid "Transform preserves ordering"
+msgstr ""
+
 msgid "Transformable"
 msgstr "変換可能"
 
@@ -16464,6 +16610,9 @@ msgstr "使用状況"
 msgid "Use %s to open in a new tab."
 msgstr "新しいタブで開くには %s を使用してください。"
 
+msgid "Use :value for the filter bound."
+msgstr ""
+
 msgid "Use Area Proportions"
 msgstr "面積比率を使用"
 
@@ -16602,6 +16751,9 @@ msgstr "円を用いてシステム内の異なるステージを通るデータ
 msgid "Uses the first 25 values if the dimension has more."
 msgstr "ディメンションに値が25件以上ある場合、最初の25件の値を使用します。"
 
+msgid "Valid"
+msgstr ""
+
 msgid "Valid SQL expression"
 msgstr "有効なSQL式"
 
@@ -16670,6 +16822,9 @@ msgstr "値は 0 以上にする必要があります"
 
 msgid "Value must be greater than 0"
 msgstr "値は 0 より大きくする必要があります"
+
+msgid "Value transform"
+msgstr ""
 
 #, python-format
 msgid ""
@@ -18733,6 +18888,10 @@ msgstr "合計"
 msgid "superset.example.com"
 msgstr "superset.example.com"
 
+#, python-format
+msgid "syntax error at position %(position)d."
+msgstr ""
+
 msgid "syntax."
 msgstr "構文。"
 
@@ -18774,6 +18933,9 @@ msgstr "上"
 
 msgid "undo"
 msgstr "元に戻す"
+
+msgid "unix_timestamp(:value)"
+msgstr ""
 
 msgid "unknown type icon"
 msgstr "不明な種類のアイコン"
@@ -18852,6 +19014,9 @@ msgstr "ズームエリア"
 
 msgid "© Layer attribution"
 msgstr "© レイヤー帰属情報"
+
+msgid "— set in Default Column Settings · one per dataset"
+msgstr ""
 
 #, python-format
 msgid "…and %s more chart"
