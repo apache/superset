@@ -55,10 +55,11 @@ class DatabaseUpdateUnsafeRebindError(ValidationError):
         super().__init__(
             _(
                 "This update would change the connection's effective "
-                "destination (host/port, engine parameters, or SSH tunnel "
-                "endpoint) while reusing the stored credential. Provide "
-                "the real password (or SSH tunnel credential) to confirm "
-                "a connection move."
+                "destination (host/port, engine parameters, SSH tunnel "
+                "endpoint, or OAuth2 endpoint URIs) while reusing the stored "
+                "credential. Provide the real password (or SSH tunnel "
+                "credential / OAuth2 client secret) to confirm a connection "
+                "move."
             ),
             field_name=field_name,
         )
@@ -170,10 +171,12 @@ class DatabaseDeleteSoftDeletedDatasetsExistFailedError(
     # are hidden (soft-deleted) rows even though their dataset list looks empty.
     message = _(
         "Cannot delete a database whose only remaining datasets are "
-        "soft-deleted. Restore them (POST /api/v1/dataset/<uuid>/restore) "
-        "and delete them permanently once a purge capability ships, or "
-        "remove the underlying rows out-of-band, before deleting the "
-        "database."
+        "soft-deleted. Purge each one first — GET "
+        "/api/v1/dataset/<uuid>/purge-impact for its impact token, then "
+        "POST /api/v1/dataset/<uuid>/purge with "
+        '{"confirmed_impact_token": <token>} — before deleting the '
+        "database. Restoring them (POST /api/v1/dataset/<uuid>/restore) "
+        "keeps the datasets, but the database still cannot be deleted."
     )
 
 

@@ -131,6 +131,7 @@ export default function TimeFilterPlugin(props: PluginFilterTimeProps) {
             unsetFocusedFilter();
           }}
           isOverflowingFilterBar={isOverflowingFilterBar}
+          displayFormat={props.formData.displayFormat}
         />
       </ControlContainer>
     </TimeFilterStyles>

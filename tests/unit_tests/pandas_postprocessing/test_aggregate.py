@@ -14,6 +14,10 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import warnings
+
+import numpy as np
+
 from superset.utils.pandas_postprocessing import aggregate
 from tests.unit_tests.fixtures.dataframes import categories_df
 from tests.unit_tests.pandas_postprocessing.utils import series_to_list
@@ -54,6 +58,23 @@ def test_aggregate_string_operators():
     assert series_to_list(df["asc median"])[0] == 50.0
     assert series_to_list(df["asc max"])[0] == 100
     assert series_to_list(df["asc min"])[0] == 0
+
+
+def test_aggregate_callable_operator_avoids_future_warning():
+    """A bare numpy callable operator (e.g. np.median) that pandas maps to its own
+    GroupBy method must be swapped for the string form so GroupBy.agg does not raise
+    a FutureWarning, while producing the same result as the string operator."""
+    aggregates = {
+        "asc median": {"column": "asc_idx", "operator": np.median},
+        "asc mean": {"column": "asc_idx", "operator": np.mean},
+        "asc sum": {"column": "asc_idx", "operator": np.sum},
+    }
+    with warnings.catch_warnings():
+        warnings.simplefilter("error", FutureWarning)
+        df = aggregate(df=categories_df, groupby=["constant"], aggregates=aggregates)
+    assert series_to_list(df["asc median"])[0] == 50.0
+    assert series_to_list(df["asc mean"])[0] == 50.0
+    assert series_to_list(df["asc sum"])[0] == 5050
 
 
 def test_aggregate_count_includes_nulls():

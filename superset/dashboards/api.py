@@ -17,14 +17,24 @@
 # pylint: disable=too-many-lines
 import functools
 import logging
+import time
 import uuid
 from datetime import datetime
 from io import BytesIO
-from typing import Any, Callable, cast
+from typing import Any, Callable, cast, ClassVar
 from zipfile import is_zipfile, ZipFile
 
 import rison
-from flask import current_app, g, redirect, request, Response, url_for
+from flask import (
+    after_this_request,
+    current_app,
+    g,
+    redirect,
+    request,
+    Response,
+    stream_with_context,
+    url_for,
+)
 from flask_appbuilder import permission_name
 from flask_appbuilder.api import (
     expose,
@@ -89,9 +99,17 @@ from superset.commands.distributed_lock.release import ReleaseDistributedLock
 from superset.commands.exceptions import TagForbiddenError
 from superset.commands.importers.exceptions import NoValidFilesFoundError
 from superset.commands.importers.v1.utils import get_contents_from_bundle
-from superset.commands.purge import PurgeArchivedCommand, SoftDeleteBinding
+from superset.commands.purge import SoftDeleteBinding
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.daos.dashboard import DashboardDAO, EmbeddedDashboardDAO
+from superset.dashboards.excel_export.download_link import (
+    download_path,
+    get_export_status,
+    resolve_download_link,
+    STATUS_ERROR,
+    STATUS_READY,
+    STATUS_RUNNING,
+)
 from superset.dashboards.filter_scope import derive_json_metadata
 from superset.dashboards.filters import (
     DashboardAccessFilter,
@@ -133,8 +151,11 @@ from superset.dashboards.schemas import (
     TabsPayloadSchema,
     thumbnail_query_schema,
 )
+from superset.distributed_lock import DistributedLock
 from superset.exceptions import (
+    AcquireDistributedLockFailedException,
     LockAlreadyHeldException,
+    ReleaseDistributedLockFailedException,
     ScreenshotImageNotAvailableException,
     SupersetSecurityException,
 )
@@ -146,6 +167,7 @@ from superset.security.manager import (
     get_extra_editor_subject_ids,
     get_extra_editors_by_pk,
 )
+from superset.semantic_layers.models import SemanticView
 from superset.subjects.filters import (
     FilterRelatedSubjects,
     subject_type_filter,
@@ -155,6 +177,7 @@ from superset.tasks.export_dashboard_excel import (
     EXPORT_LOCK_NAMESPACE,
     export_lock_params,
     EXPORT_LOCK_TTL_SECONDS,
+    guest_lock_slot,
 )
 from superset.tasks.thumbnails import (
     cache_dashboard_screenshot,
@@ -162,12 +185,17 @@ from superset.tasks.thumbnails import (
 )
 from superset.tasks.utils import get_current_user
 from superset.utils import json
-from superset.utils.core import parse_boolean_string, send_export_zip
+from superset.utils.core import (
+    get_user_id,
+    parse_boolean_string,
+    send_export_zip,
+)
 from superset.utils.file import get_filename
 from superset.utils.pdf import build_pdf_from_screenshots
 from superset.utils.screenshots import (
     DashboardScreenshot,
     DEFAULT_DASHBOARD_WINDOW_SIZE,
+    ScreenshotCacheError,
     ScreenshotCachePayload,
 )
 from superset.utils.urls import get_url_path
@@ -197,6 +225,43 @@ from superset.views.filters import (
 )
 
 logger = logging.getLogger(__name__)
+
+
+def _never_cache(response: WerkzeugResponse) -> WerkzeugResponse:
+    """The download URL is a bearer credential with a TTL of its own, and a
+    cached status would strand a poller; keep both out of every cache."""
+    response.cache_control.no_store = True
+    response.cache_control.no_cache = True
+    response.cache_control.private = True
+    response.cache_control.max_age = 0
+    response.headers["Pragma"] = "no-cache"
+    return response
+
+
+def _link_backend_matches(uploaded_backend: str | None) -> bool:
+    """Whether the configured export storage backend is the one that uploaded
+    the linked file (links refuse to serve across a storage migration). An
+    unconfigured backend is not a mismatch: that case is answered with the
+    download endpoint's explicit 501."""
+    storage_backend = current_app.config["EXPORT_STORAGE"].get("backend")
+    if storage_backend is None or uploaded_backend is None:
+        return True
+    backend_cls = type(storage_backend)
+    configured = f"{backend_cls.__module__}.{backend_cls.__qualname__}"
+    return uploaded_backend == configured
+
+
+SCREENSHOT_API_LOCK_NAMESPACE = "dashboard_screenshot_api"
+SCREENSHOT_API_LOCK_WAIT_SECONDS = 1.0
+SCREENSHOT_API_LOCK_RETRY_SECONDS = 0.05
+# A short reservation grace coalesces one user action fanning out across multiple
+# web workers. Explicit force requests can still replace an abandoned generation
+# after this bound instead of waiting for the full computing TTL.
+SCREENSHOT_API_FORCE_RETRY_SECONDS = 1.0
+# Keep a crashed producer from retaining its reservation for the global 30-second
+# lock default. This still gives ordinary broker publication twice the coalescing
+# window before another forced request can take over.
+SCREENSHOT_API_LOCK_TTL_SECONDS = 2
 
 _DASHBOARD_PURGE_BINDING = SoftDeleteBinding(
     dao=DashboardDAO,
@@ -287,6 +352,8 @@ DASHBOARD_DATASET_INACCESSIBLE_FIELDS = (
     "perm",
     "edit_url",
     "database",
+    "parent",
+    "semantic_view_features",
     "columns",
     "column_names",
     "column_types",
@@ -304,6 +371,27 @@ class DashboardRestApi(
     SoftDeleteApiMixin, CustomTagsOptimizationMixin, BaseSupersetModelRestApi
 ):
     datamodel = SQLAInterface(Dashboard)
+
+    restore_command_cls: ClassVar[type[RestoreDashboardCommand]] = (
+        RestoreDashboardCommand
+    )
+    soft_delete_not_found_errors: ClassVar[tuple[type[Exception], ...]] = (
+        DashboardNotFoundError,
+    )
+    soft_delete_forbidden_errors: ClassVar[tuple[type[Exception], ...]] = (
+        DashboardForbiddenError,
+    )
+    restore_failed_errors: ClassVar[tuple[type[Exception], ...]] = (
+        DashboardRestoreFailedError,
+    )
+    restore_conflict_errors: ClassVar[tuple[type[Exception], ...]] = (
+        DashboardSlugConflictError,
+    )
+    soft_delete_logger: ClassVar[logging.Logger] = logger
+    purge_binding: ClassVar[SoftDeleteBinding] = _DASHBOARD_PURGE_BINDING
+    purge_failed_errors: ClassVar[tuple[type[Exception], ...]] = (
+        DashboardDeleteFailedError,
+    )
 
     include_route_methods = RouteMethod.REST_MODEL_VIEW_CRUD_SET | {
         RouteMethod.EXPORT,
@@ -330,6 +418,8 @@ class DashboardRestApi(
         "put_colors",
         "export_as_example",
         "export_xlsx",
+        "export_xlsx_status",
+        "download_xlsx",
         "list_versions",
         "get_version",
         "activity",
@@ -354,6 +444,9 @@ class DashboardRestApi(
         # menu item on it) instead of the ``can_export_xlsx`` FAB would otherwise
         # derive from the method name.
         "export_xlsx": "export",
+        # Polling status of an export you already requested is the same
+        # capability as requesting it, not a distinct permission.
+        "export_xlsx_status": "export",
         "purge": "write",
     }
 
@@ -756,6 +849,10 @@ class DashboardRestApi(
     ) -> dict[str, Any]:
         """Dump a member dataset, narrowed when the caller cannot access it."""
         serialized = self.dashboard_dataset_schema.dump(payload)
+        if isinstance(datasource, SemanticView):
+            # Redux keys dashboard datasets by Slice.form_data["datasource"],
+            # whereas SemanticView.uid is the provider's independent identity.
+            serialized["uid"] = f"{datasource.id}__{datasource.type}"
         if not security_manager.can_access_datasource(datasource):
             for key in DASHBOARD_DATASET_INACCESSIBLE_FIELDS:
                 serialized.pop(key, None)
@@ -1499,23 +1596,7 @@ class DashboardRestApi(
             500:
               $ref: '#/components/responses/500'
         """
-        try:
-            RestoreDashboardCommand(uuid).run()
-            return self.response(200, message="OK")
-        except DashboardNotFoundError:
-            return self.response_404()
-        except DashboardForbiddenError:
-            return self.response_403()
-        except DashboardSlugConflictError as ex:
-            return self.response_422(message=str(ex))
-        except DashboardRestoreFailedError as ex:
-            logger.error(
-                "Error restoring model %s: %s",
-                self.__class__.__name__,
-                str(ex),
-                exc_info=True,
-            )
-            return self.response_422(message=str(ex))
+        return self._restore_soft_deleted(uuid)
 
     @expose("/<uuid>/purge", methods=("POST",))
     @protect()
@@ -1560,21 +1641,7 @@ class DashboardRestApi(
             500:
               $ref: '#/components/responses/500'
         """
-        try:
-            PurgeArchivedCommand(uuid, _DASHBOARD_PURGE_BINDING).run()
-            return self.response(200, message="OK")
-        except DashboardNotFoundError:
-            return self.response_404()
-        except DashboardForbiddenError:
-            return self.response_403()
-        except DashboardDeleteFailedError as ex:
-            logger.error(
-                "Error purging model %s: %s",
-                self.__class__.__name__,
-                str(ex),
-                exc_info=True,
-            )
-            return self.response_422(message=str(ex))
+        return self._purge_soft_deleted(uuid)
 
     @expose("/export/", methods=("GET",))
     @protect()
@@ -1608,6 +1675,8 @@ class DashboardRestApi(
               $ref: '#/components/responses/400'
             401:
               $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
             404:
               $ref: '#/components/responses/404'
             422:
@@ -1615,6 +1684,11 @@ class DashboardRestApi(
             500:
               $ref: '#/components/responses/500'
         """
+        # A bundle carries dataset SQL and database metadata a viewer never
+        # sees; with ``can_export`` on Public, FAB would serve it unauthenticated.
+        if get_user_id() is None:
+            return self.response_403()
+
         requested_ids = kwargs["rison"]
 
         timestamp = datetime.now().strftime("%Y%m%dT%H%M%S")
@@ -1689,6 +1763,10 @@ class DashboardRestApi(
             500:
               $ref: '#/components/responses/500'
         """
+        # Same permission and the same audience as the bundle export.
+        if get_user_id() is None:
+            return self.response_403()
+
         # Get optional query params
         export_data = request.args.get("export_data", "true").lower() == "true"
         sample_rows = request.args.get("sample_rows", type=int)
@@ -1733,8 +1811,12 @@ class DashboardRestApi(
           summary: Export dashboard chart data to Excel
           description: >-
             Enqueues an async task that writes each chart's data to its own
-            worksheet, uploads the .xlsx to S3, and emails the requesting user a
-            pre-signed download link. Returns immediately with a job id.
+            worksheet, uploads the .xlsx to the configured export storage,
+            and records a download link.
+            The requesting user is emailed the link when they have an address
+            on file; either way the returned job id can be polled at
+            export_xlsx/status/<job_id>/ for status and, once ready, the
+            download link.
           parameters:
           - in: path
             schema:
@@ -1766,7 +1848,8 @@ class DashboardRestApi(
             501:
               description: Excel export is not configured on this server
         """
-        if not current_app.config["EXCEL_EXPORT_S3_BUCKET"]:
+        storage_config = current_app.config["EXPORT_STORAGE"]
+        if not storage_config.get("bucket") or storage_config.get("backend") is None:
             return self.response(
                 501, message="Excel export is not configured on this server."
             )
@@ -1789,6 +1872,11 @@ class DashboardRestApi(
         ):
             return self.response_404()
 
+        # The webdriver cannot render without a real user identity (guest or
+        # anonymous); same predicate the UI hides the option on.
+        if payload.get("mode") == "images" and get_user_id() is None:
+            return self.response(403, message="Image export requires a signed-in user.")
+
         dashboard = cast(Dashboard, self.datamodel.get(pk, self._base_filters))
         if not dashboard:
             return self.response_404()
@@ -1797,12 +1885,9 @@ class DashboardRestApi(
         except SupersetSecurityException:
             return self.response_403()
 
-        # Email delivery is the only result channel, so an account with an email
-        # address is required; embedded guest users are excluded in this version.
-        if isinstance(g.user, GuestUser) or not getattr(g.user, "email", None):
-            return self.response_400(
-                message="Excel export requires an account with an email address."
-            )
+        # A requester with no email on file (e.g. an embedded/guest session)
+        # still gets a usable export: they poll export_xlsx_status/<job_id>/
+        # for the download link instead of relying on an email notification.
         if not dashboard.slices:
             return self.response_400(message="Dashboard has no charts to export.")
 
@@ -1811,13 +1896,24 @@ class DashboardRestApi(
         # otherwise) so the guard works across the web server and workers and is
         # not a no-op under the default cache. The task releases it when it
         # settles; the TTL is the backstop if that release is ever lost.
-        lock_params = export_lock_params(g.user.id, dashboard.id)
+        # A guest/embedded requester has no DB-backed user id (GuestUser carries
+        # no ``id`` attribute at all), so all guests share lock slot 0 for the
+        # dashboard; the task reconstructs the guest (with the token's RLS rules
+        # and resource claims) from the token payload passed alongside.
+        user_id = get_user_id()
+        guest_token_payload = (
+            getattr(g.user, "guest_token", None) if user_id is None else None
+        )
+        lock_params = export_lock_params(
+            user_id or guest_lock_slot(guest_token_payload), dashboard.id
+        )
+        acquire = AcquireDistributedLock(
+            EXPORT_LOCK_NAMESPACE,
+            lock_params,
+            ttl_seconds=EXPORT_LOCK_TTL_SECONDS,
+        )
         try:
-            AcquireDistributedLock(
-                EXPORT_LOCK_NAMESPACE,
-                lock_params,
-                ttl_seconds=EXPORT_LOCK_TTL_SECONDS,
-            ).run()
+            acquire.run()
         except LockAlreadyHeldException:
             return self.response(
                 202,
@@ -1829,10 +1925,12 @@ class DashboardRestApi(
             export_dashboard_excel.apply_async(
                 kwargs={
                     "dashboard_id": dashboard.id,
-                    "user_id": g.user.id,
+                    "user_id": user_id,
                     "active_data_mask": payload.get("active_data_mask", {}),
                     "job_id": job_id,
                     "mode": payload.get("mode", "data"),
+                    "guest_token": guest_token_payload,
+                    "lock_token": acquire.token,
                 },
                 task_id=job_id,
             )
@@ -1840,9 +1938,152 @@ class DashboardRestApi(
             # If enqueuing fails (e.g. broker down) the task will never run to
             # release the lock, so free it now rather than block exports until
             # the TTL expires.
-            ReleaseDistributedLock(EXPORT_LOCK_NAMESPACE, lock_params).run()
+            ReleaseDistributedLock(
+                EXPORT_LOCK_NAMESPACE, lock_params, token=acquire.token
+            ).run()
             raise
         return self.response(202, job_id=job_id)
+
+    @expose("/export_xlsx/status/<uuid:job_id>/", methods=("GET",))
+    @protect()
+    @safe
+    @statsd_metrics
+    def export_xlsx_status(self, job_id: uuid.UUID) -> WerkzeugResponse:
+        """Poll the status of an in-flight or completed Excel export.
+        ---
+        get:
+          summary: Poll the status of a dashboard Excel export job
+          description: >-
+            For a session with no email address to be notified at (e.g. an
+            embedded/guest session), the frontend polls this endpoint with the
+            job_id from the export_xlsx response instead of waiting for an
+            email. Behind the same @protect() as the export request itself,
+            unlike the login-free download_xlsx stream (which also has to
+            work when clicked from a plain email link, possibly with no
+            active session at all).
+          parameters:
+          - in: path
+            schema:
+              type: string
+              format: uuid
+            name: job_id
+            description: The job_id from the export_xlsx response
+          responses:
+            200:
+              description: >-
+                Job status: {"status": "pending"} while queued,
+                {"status": "running"} once a worker has started executing,
+                {"status": "ready", "download_url": "..."} once the file is
+                available, or {"status": "error", "message": "..."} if the
+                export failed.
+            401:
+              $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
+        """
+        after_this_request(_never_cache)
+        payload = get_export_status(job_id)
+        if payload is None:
+            return self.response(200, status="pending")
+        if payload.get("status") == STATUS_READY:
+            # Never report ready for a link the download endpoint will refuse:
+            # an unset backend (config cleared since upload) 501s there, and a
+            # mismatched backend 410s. Both mean the file cannot be served.
+            storage_backend = current_app.config["EXPORT_STORAGE"].get("backend")
+            if storage_backend is None or not _link_backend_matches(
+                payload.get("backend")
+            ):
+                return self.response(
+                    200, status=STATUS_ERROR, message="This download has expired."
+                )
+            return self.response(
+                200, status=STATUS_READY, download_url=download_path(job_id)
+            )
+        if payload.get("status") == STATUS_ERROR:
+            return self.response(
+                200, status=STATUS_ERROR, message=payload.get("message")
+            )
+        if payload.get("status") == STATUS_RUNNING:
+            return self.response(200, status=STATUS_RUNNING)
+        return self.response(200, status="pending")
+
+    def get_method_permission(self, method_name: str) -> str:
+        # download_xlsx is intentionally login-free (no @protect): the
+        # unguessable job_id is the credential, and dashboard access was
+        # already checked when the export was requested. Map it to no
+        # permission so FAB neither requires auth nor advertises a security
+        # requirement for it in the OpenAPI spec.
+        if method_name == "download_xlsx":
+            return ""
+        return super().get_method_permission(method_name)
+
+    @expose("/export_xlsx/download/<uuid:job_id>/", methods=("GET",))
+    @safe
+    @statsd_metrics
+    def download_xlsx(self, job_id: uuid.UUID) -> WerkzeugResponse:
+        """Stream a completed Excel export from storage.
+        ---
+        get:
+          summary: Download a completed dashboard Excel export
+          security: []
+          description: >-
+            Intentionally requires no login: the unguessable job_id, emailed
+            only to the original requester (or handed to their own session
+            via export_xlsx_status), is the credential. The dashboard access
+            check already ran once, when the export was requested -- see
+            security_manager.raise_for_access in export_xlsx. The file
+            streams through Superset with the deployment's own storage
+            credentials instead of redirecting to a signed storage URL, so
+            it works for ambient identities that cannot sign (e.g. workload
+            identity federation) and never mints a bearer URL Superset
+            cannot observe or revoke.
+          parameters:
+          - in: path
+            schema:
+              type: string
+              format: uuid
+            name: job_id
+            description: The job_id from the export_xlsx response
+          responses:
+            200:
+              description: The .xlsx file as an attachment
+            410:
+              description: The link is unknown, expired, or the export failed
+            501:
+              description: Excel export is not configured on this server
+        """
+        after_this_request(_never_cache)
+        resolved = resolve_download_link(job_id)
+        if resolved is None:
+            return self.response(410, message="This download link has expired.")
+        bucket, key, uploaded_backend = resolved
+        storage_backend = current_app.config["EXPORT_STORAGE"].get("backend")
+        if storage_backend is None:
+            # A link can only exist if a backend was configured when the export
+            # ran, so reaching this means the config was cleared since then.
+            return self.response(
+                501, message="Excel export is not configured on this server."
+            )
+        if not _link_backend_matches(uploaded_backend):
+            # Don't read another backend's upload; expire the link instead.
+            return self.response(410, message="This download link has expired.")
+        try:
+            # Existence is checked eagerly, so a missing object is a clean 410.
+            size, chunks = storage_backend.download(bucket, key)
+        except FileNotFoundError:
+            return self.response(410, message="This download link has expired.")
+        return Response(
+            stream_with_context(chunks),
+            mimetype=(
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            ),
+            headers={
+                # With a declared length, a stream that dies midway is a
+                # failed download in the browser, not a corrupt file.
+                "Content-Length": str(size),
+                "Content-Disposition": f'attachment; filename="{job_id}.xlsx"',
+            },
+        )
 
     def _validate_permalink_for_dashboard(
         self, permalink_key: str, dashboard: Dashboard
@@ -1893,7 +2134,9 @@ class DashboardRestApi(
         ),
         log_to_statsd=False,
     )
-    def cache_dashboard_screenshot(self, pk: int, **kwargs: Any) -> WerkzeugResponse:
+    def cache_dashboard_screenshot(  # noqa: C901
+        self, pk: int, **kwargs: Any
+    ) -> WerkzeugResponse:
         """Compute and cache a screenshot.
         ---
         post:
@@ -1909,6 +2152,12 @@ class DashboardRestApi(
                   schema:
                     $ref: '#/components/schemas/DashboardScreenshotPostSchema'
           responses:
+            200:
+              description: Existing dashboard screenshot task status
+              content:
+                application/json:
+                  schema:
+                    $ref: "#/components/schemas/DashboardCacheScreenshotResponseSchema"
             202:
               description: Dashboard async result
               content:
@@ -1923,6 +2172,8 @@ class DashboardRestApi(
               $ref: '#/components/responses/404'
             500:
               $ref: '#/components/responses/500'
+            503:
+              description: Screenshot cache unavailable
         """
         if is_feature_enabled(
             "GRANULAR_EXPORT_CONTROLS"
@@ -1965,44 +2216,292 @@ class DashboardRestApi(
 
         dashboard_url = get_url_path("Superset.dashboard_permalink", key=permalink_key)
         screenshot_obj = DashboardScreenshot(dashboard_url, dashboard.digest)
-        cache_key = screenshot_obj.get_cache_key(window_size, thumb_size, permalink_key)
-        image_url = get_url_path(
-            "DashboardRestApi.screenshot", pk=dashboard.id, digest=cache_key
-        )
-        cache_payload = (
-            screenshot_obj.get_from_cache_key(cache_key) or ScreenshotCachePayload()
+        cache_scope = f"dashboard:{dashboard.id}"
+        request_cache_key = screenshot_obj.get_api_request_cache_key(
+            window_size,
+            thumb_size,
+            permalink_key,
+            cache_scope,
         )
 
-        def build_response(status_code: int) -> WerkzeugResponse:
+        def build_response(
+            status_code: int,
+            cache_key: str,
+            cache_payload: ScreenshotCachePayload,
+        ) -> WerkzeugResponse:
             return self.response(
                 status_code,
                 cache_key=cache_key,
                 dashboard_url=dashboard_url,
-                image_url=image_url,
+                image_url=get_url_path(
+                    "DashboardRestApi.screenshot",
+                    pk=dashboard.id,
+                    digest=cache_key,
+                ),
+                task_timeout_seconds=(
+                    2 * current_app.config["THUMBNAIL_COMPUTING_CACHE_TTL"]
+                ),
                 task_updated_at=cache_payload.get_timestamp(),
                 task_status=cache_payload.get_status(),
             )
 
-        if cache_payload.should_trigger_task(
-            force, expected_scope=f"dashboard:{dashboard.id}"
-        ):
-            logger.info("Triggering screenshot ASYNC")
-            cache_dashboard_screenshot.delay(
-                username=get_current_user(),
-                guest_token=(
-                    g.user.guest_token
-                    if get_current_user() and isinstance(g.user, GuestUser)
+        def get_current_cache_key() -> str | None:
+            return screenshot_obj.get_current_api_generation_cache_key(
+                request_cache_key,
+                cache_scope,
+            )
+
+        def get_generation(
+            cache_key: str | None = None,
+        ) -> tuple[str | None, ScreenshotCachePayload | None]:
+            cache_key = cache_key or get_current_cache_key()
+            return (
+                cache_key,
+                (
+                    screenshot_obj.get_from_cache_key(
+                        cache_key,
+                        raise_on_error=True,
+                    )
+                    if cache_key
                     else None
                 ),
-                dashboard_id=dashboard.id,
-                dashboard_url=dashboard_url,
-                thumb_size=thumb_size,
-                window_size=window_size,
-                cache_key=cache_key,
-                force=force,
             )
-            return build_response(202)
-        return build_response(200)
+
+        def should_enqueue(cache_payload: ScreenshotCachePayload) -> bool:
+            return cache_payload.should_enqueue_task(
+                force,
+                expected_scope=cache_scope,
+                force_retry_after_seconds=SCREENSHOT_API_FORCE_RETRY_SECONDS,
+            )
+
+        try:
+            observed_cache_key, observed_payload = get_generation()
+        except ScreenshotCacheError:
+            logger.exception("Screenshot cache read failed: %s", request_cache_key)
+            return self.response(
+                503,
+                message=gettext("Screenshot cache is unavailable"),
+            )
+
+        if (
+            observed_cache_key
+            and observed_payload
+            and not should_enqueue(observed_payload)
+        ):
+            return build_response(200, observed_cache_key, observed_payload)
+
+        # Publish Pending before broker I/O so contenders can join it without
+        # waiting for the producer lock's full lease. Keep broker publication
+        # inside the lock to coalesce simultaneous forced requests, but never
+        # mutate the pointer after broker I/O because the lease may have expired.
+        lock_deadline = time.monotonic() + SCREENSHOT_API_LOCK_WAIT_SECONDS
+        while True:
+            lock_response: WerkzeugResponse | None = None
+            try:
+                with DistributedLock(
+                    namespace=SCREENSHOT_API_LOCK_NAMESPACE,
+                    request_cache_key=request_cache_key,
+                    ttl_seconds=SCREENSHOT_API_LOCK_TTL_SECONDS,
+                ):
+                    try:
+                        cache_key, cached_payload = get_generation()
+                    except ScreenshotCacheError:
+                        logger.exception(
+                            "Screenshot cache read failed: %s",
+                            request_cache_key,
+                        )
+                        lock_response = self.response(
+                            503,
+                            message=gettext("Screenshot cache is unavailable"),
+                        )
+                        return lock_response
+
+                    cache_payload = cached_payload or ScreenshotCachePayload(
+                        scope=cache_scope
+                    )
+                    if cached_payload is not None:
+                        if cache_key is None:
+                            logger.error(
+                                "Screenshot generation payload has no cache key: %s",
+                                request_cache_key,
+                            )
+                            lock_response = self.response(
+                                503,
+                                message=gettext("Screenshot cache is unavailable"),
+                            )
+                            return lock_response
+                        if cache_key != observed_cache_key or not should_enqueue(
+                            cache_payload
+                        ):
+                            lock_response = build_response(
+                                200, cache_key, cache_payload
+                            )
+                            return lock_response
+
+                    logger.info("Triggering screenshot ASYNC")
+                    next_cache_key = screenshot_obj.get_next_api_generation_cache_key(
+                        request_cache_key,
+                        cache_key,
+                    )
+                    cache_payload = ScreenshotCachePayload(scope=cache_scope)
+                    cache_payload.pending()
+                    try:
+                        screenshot_obj.store_cache_payload(
+                            next_cache_key,
+                            cache_payload,
+                        )
+                        # Make the reservation visible before broker I/O. A
+                        # failed publish is converted to terminal Error, and an
+                        # explicit force can replace an abandoned reservation
+                        # after the producer lease.
+                        published = screenshot_obj.set_current_api_generation_cache_key(
+                            request_cache_key,
+                            next_cache_key,
+                            cache_scope,
+                            cache_key,
+                        )
+                    except ScreenshotCacheError:
+                        logger.exception(
+                            "Screenshot task preparation failed: %s",
+                            next_cache_key,
+                        )
+                        lock_response = self.response(
+                            503,
+                            message=gettext("Screenshot cache is unavailable"),
+                        )
+                        return lock_response
+
+                    if not published:
+                        try:
+                            winner_cache_key, winner_payload = get_generation()
+                        except ScreenshotCacheError:
+                            logger.exception(
+                                "Screenshot generation winner read failed: %s",
+                                request_cache_key,
+                            )
+                            lock_response = self.response(
+                                503,
+                                message=gettext("Screenshot cache is unavailable"),
+                            )
+                            return lock_response
+                        if winner_cache_key is None or winner_payload is None:
+                            logger.error(
+                                "Screenshot generation publication lost without a "
+                                "readable winner: %s",
+                                request_cache_key,
+                            )
+                            lock_response = self.response(
+                                503,
+                                message=gettext("Screenshot cache is unavailable"),
+                            )
+                            return lock_response
+                        lock_response = build_response(
+                            200,
+                            winner_cache_key,
+                            winner_payload,
+                        )
+                        return lock_response
+
+                    try:
+                        cache_dashboard_screenshot.delay(
+                            username=get_current_user(),
+                            guest_token=(
+                                g.user.guest_token
+                                if get_current_user() and isinstance(g.user, GuestUser)
+                                else None
+                            ),
+                            dashboard_id=dashboard.id,
+                            dashboard_url=dashboard_url,
+                            thumb_size=thumb_size,
+                            window_size=window_size,
+                            cache_key=next_cache_key,
+                            # The API selected a unique generation. Duplicate
+                            # deliveries should never force a completed result
+                            # to recompute.
+                            force=False,
+                        )
+                    except Exception:  # pylint: disable=broad-except
+                        screenshot_obj.mark_cache_error_if_incomplete(
+                            next_cache_key,
+                            cache_scope,
+                        )
+                        raise
+                    lock_response = build_response(202, next_cache_key, cache_payload)
+                    return lock_response
+            except ReleaseDistributedLockFailedException:
+                if lock_response is not None:
+                    logger.warning(
+                        "Screenshot request completed but its producer lock could "
+                        "not be released: %s",
+                        request_cache_key,
+                        exc_info=True,
+                    )
+                    return lock_response
+                logger.exception(
+                    "Could not release screenshot producer lock: %s",
+                    request_cache_key,
+                )
+                return self.response(
+                    503,
+                    message=gettext("Screenshot request is temporarily unavailable"),
+                )
+            except LockAlreadyHeldException:
+                try:
+                    cache_key = get_current_cache_key()
+                except ScreenshotCacheError:
+                    logger.exception(
+                        "Screenshot request pointer read failed while awaiting "
+                        "producer: %s",
+                        request_cache_key,
+                    )
+                    return self.response(
+                        503,
+                        message=gettext("Screenshot cache is unavailable"),
+                    )
+
+                if cache_key and cache_key != observed_cache_key:
+                    try:
+                        _, current_payload = get_generation(cache_key)
+                    except ScreenshotCacheError:
+                        logger.exception(
+                            "Screenshot cache read failed while awaiting producer: %s",
+                            request_cache_key,
+                        )
+                        return self.response(
+                            503,
+                            message=gettext("Screenshot cache is unavailable"),
+                        )
+                    if current_payload is None:
+                        logger.error(
+                            "Published screenshot generation has no payload: %s",
+                            cache_key,
+                        )
+                        return self.response(
+                            503,
+                            message=gettext("Screenshot cache is unavailable"),
+                        )
+                    return build_response(200, cache_key, current_payload)
+                if time.monotonic() >= lock_deadline:
+                    logger.warning(
+                        "Timed out waiting for screenshot producer: %s",
+                        request_cache_key,
+                    )
+                    return self.response(
+                        503,
+                        message=gettext(
+                            "Screenshot request is temporarily unavailable"
+                        ),
+                    )
+                time.sleep(SCREENSHOT_API_LOCK_RETRY_SECONDS)
+            except AcquireDistributedLockFailedException:
+                logger.exception(
+                    "Could not coordinate screenshot request: %s",
+                    request_cache_key,
+                )
+                return self.response(
+                    503,
+                    message=gettext("Screenshot request is temporarily unavailable"),
+                )
 
     @expose("/<pk>/screenshot/<digest>/", methods=("GET",))
     @validate_feature_flags(["THUMBNAILS", "ENABLE_DASHBOARD_SCREENSHOT_ENDPOINTS"])
@@ -2073,7 +2572,11 @@ class DashboardRestApi(
             try:
                 image = cache_payload.get_image()
             except ScreenshotImageNotAvailableException:
-                return self.response_404()
+                return self.response(
+                    404,
+                    message=gettext("Not found"),
+                    extra={"task_status": cache_payload.get_status()},
+                )
 
             filename = get_filename(
                 dashboard.dashboard_title or "screenshot", dashboard.id, skip_id=True

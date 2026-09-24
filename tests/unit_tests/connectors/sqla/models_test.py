@@ -15,10 +15,13 @@
 # specific language governing permissions and limitations
 # under the License.
 
+from datetime import datetime
 from unittest.mock import MagicMock
 
 import pandas as pd
 import pytest
+from freezegun import freeze_time
+from jinja2.exceptions import UndefinedError
 from pytest_mock import MockerFixture
 from sqlalchemy import create_engine
 from sqlalchemy.dialects import sqlite
@@ -32,12 +35,15 @@ from superset.connectors.sqla.models import (
     validate_stored_expression,
 )
 from superset.daos.dataset import DatasetDAO
+from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
     OAuth2RedirectError,
     QueryObjectValidationError,
     SupersetDisallowedSQLFunctionException,
     SupersetDisallowedSQLTableException,
     SupersetSecurityException,
+    SupersetSyntaxErrorException,
+    SupersetTemplateException,
 )
 from superset.models.core import Database
 from superset.models.helpers import (
@@ -933,6 +939,238 @@ def test_fetch_metadata_empty_comment_field_handling(mocker: MockerFixture) -> N
     assert columns_by_name["col_with_valid_comment"].description == "Valid comment"
 
 
+def _table_for_fetch_metadata(
+    mocker: MockerFixture,
+    source_columns: list[dict[str, str]],
+    existing: list[dict[str, str]] | None = None,
+) -> SqlaTable:
+    """Build a SqlaTable whose ``fetch_metadata`` reads *source_columns*."""
+    database = mocker.MagicMock()
+    database.get_metrics.return_value = []
+    database.db_engine_spec = mocker.MagicMock()
+    table = SqlaTable(table_name="test_table", database=database)
+    table.id = 1
+    existing_cols = [
+        TableColumn(
+            column_name=spec["column_name"],
+            type=spec["type"],
+            table=table,
+            expression=spec.get("expression") or "",
+        )
+        for spec in existing or []
+    ]
+    table.columns = existing_cols
+    mock_session = mocker.patch("superset.connectors.sqla.models.db.session")
+    mock_session.query.return_value.filter.return_value.all.return_value = existing_cols
+    mocker.patch.object(table, "external_metadata", return_value=source_columns)
+    return table
+
+
+def test_fetch_metadata_bumps_changed_on_when_column_type_changes(
+    mocker: MockerFixture,
+) -> None:
+    """Schema drift on an existing column must bump ``changed_on``.
+
+    ``query_cache_key`` includes ``datasource.changed_on``; without this bump
+    a Refresh-columns action would keep serving chart results computed
+    against the previous type. See #43918.
+    """
+    table = _table_for_fetch_metadata(
+        mocker,
+        source_columns=[{"column_name": "revenue", "type": "INTEGER"}],
+        existing=[{"column_name": "revenue", "type": "VARCHAR"}],
+    )
+    table.changed_on = datetime(2024, 6, 1, 12, 0, 0)
+
+    with freeze_time("2024-06-01 12:00:05"):
+        result = table.fetch_metadata()
+
+    assert result.modified == ["revenue"]
+    assert table.changed_on == datetime(2024, 6, 1, 12, 0, 5)
+
+
+def test_fetch_metadata_bumps_changed_on_when_column_added(
+    mocker: MockerFixture,
+) -> None:
+    """A newly discovered source column must bump ``changed_on``."""
+    table = _table_for_fetch_metadata(
+        mocker,
+        source_columns=[
+            {"column_name": "id", "type": "INTEGER"},
+            {"column_name": "name", "type": "VARCHAR"},
+        ],
+        existing=[{"column_name": "id", "type": "INTEGER"}],
+    )
+    table.changed_on = datetime(2024, 6, 1, 12, 0, 0)
+
+    with freeze_time("2024-06-01 12:00:05"):
+        result = table.fetch_metadata()
+
+    assert result.added == ["name"]
+    assert table.changed_on == datetime(2024, 6, 1, 12, 0, 5)
+
+
+def test_fetch_metadata_bumps_changed_on_when_physical_column_removed(
+    mocker: MockerFixture,
+) -> None:
+    """Dropping a physical source column must bump ``changed_on``."""
+    table = _table_for_fetch_metadata(
+        mocker,
+        source_columns=[{"column_name": "id", "type": "INTEGER"}],
+        existing=[
+            {"column_name": "id", "type": "INTEGER"},
+            {"column_name": "name", "type": "VARCHAR"},
+        ],
+    )
+    table.changed_on = datetime(2024, 6, 1, 12, 0, 0)
+
+    with freeze_time("2024-06-01 12:00:05"):
+        result = table.fetch_metadata()
+
+    assert result.removed == ["name"]
+    assert table.changed_on == datetime(2024, 6, 1, 12, 0, 5)
+
+
+def test_fetch_metadata_drops_nested_physical_column_and_bumps_changed_on(
+    mocker: MockerFixture,
+) -> None:
+    """A dropped nested ROW field has an expression but is still physical.
+
+    Keeping it would leave a stale TableColumn and skip the changed_on bump.
+    """
+    table = _table_for_fetch_metadata(
+        mocker,
+        source_columns=[{"column_name": "id", "type": "INTEGER"}],
+        existing=[
+            {"column_name": "id", "type": "INTEGER"},
+            {
+                "column_name": "metadata.uuid",
+                "type": "VARCHAR",
+                "expression": '"metadata"."uuid"',
+            },
+        ],
+    )
+    table.changed_on = datetime(2024, 6, 1, 12, 0, 0)
+
+    with freeze_time("2024-06-01 12:00:05"):
+        result = table.fetch_metadata()
+
+    assert "metadata.uuid" in result.removed
+    assert all(col.column_name != "metadata.uuid" for col in table.columns)
+    assert table.changed_on == datetime(2024, 6, 1, 12, 0, 5)
+
+
+def test_fetch_metadata_bumps_changed_on_when_expression_changes(
+    mocker: MockerFixture,
+) -> None:
+    """A physical expression change is schema drift and must bump ``changed_on``."""
+    table = _table_for_fetch_metadata(
+        mocker,
+        source_columns=[
+            {
+                "column_name": "metadata.uuid",
+                "type": "VARCHAR",
+                "expression": '"metadata"."uuid"',
+            }
+        ],
+        existing=[
+            {
+                "column_name": "metadata.uuid",
+                "type": "VARCHAR",
+                "expression": "",
+            }
+        ],
+    )
+    table.changed_on = datetime(2024, 6, 1, 12, 0, 0)
+
+    with freeze_time("2024-06-01 12:00:05"):
+        result = table.fetch_metadata()
+
+    assert result.modified == ["metadata.uuid"]
+    assert table.changed_on == datetime(2024, 6, 1, 12, 0, 5)
+
+
+def test_fetch_metadata_does_not_bump_changed_on_when_schema_unchanged(
+    mocker: MockerFixture,
+) -> None:
+    """A no-op refresh must not invalidate chart cache keys."""
+    table = _table_for_fetch_metadata(
+        mocker,
+        source_columns=[{"column_name": "revenue", "type": "INTEGER"}],
+        existing=[{"column_name": "revenue", "type": "INTEGER"}],
+    )
+    original_changed_on = datetime(2024, 6, 1, 12, 0, 0)
+    table.changed_on = original_changed_on
+
+    with freeze_time("2024-06-01 12:00:05"):
+        result = table.fetch_metadata()
+
+    assert result.added == []
+    assert result.modified == []
+    assert result.removed == []
+    assert table.changed_on == original_changed_on
+
+
+def test_fetch_metadata_does_not_bump_changed_on_for_kept_virtual_columns(
+    mocker: MockerFixture,
+) -> None:
+    """Calculated columns are reported in ``removed`` but kept; that is not drift."""
+    table = _table_for_fetch_metadata(
+        mocker,
+        source_columns=[{"column_name": "id", "type": "INTEGER"}],
+        existing=[
+            {"column_name": "id", "type": "INTEGER"},
+            {
+                "column_name": "profit",
+                "type": "INTEGER",
+                "expression": "revenue - cost",
+            },
+        ],
+    )
+    original_changed_on = datetime(2024, 6, 1, 12, 0, 0)
+    table.changed_on = original_changed_on
+
+    with freeze_time("2024-06-01 12:00:05"):
+        result = table.fetch_metadata()
+
+    assert "profit" in result.removed
+    assert any(col.column_name == "profit" for col in table.columns)
+    assert table.changed_on == original_changed_on
+
+
+def test_fetch_metadata_keeps_dotted_calculated_column(
+    mocker: MockerFixture,
+) -> None:
+    """A user calculated column with a dotted name must survive a refresh.
+
+    Only Trino's quoted-path expression signature for expanded ``ROW``
+    fields identifies a leftover as physical; a bare dot in the name is
+    not enough, since ``DatasetColumnsPutSchema.column_name`` allows any
+    name up to 255 characters. See #43918.
+    """
+    table = _table_for_fetch_metadata(
+        mocker,
+        source_columns=[{"column_name": "id", "type": "INTEGER"}],
+        existing=[
+            {"column_name": "id", "type": "INTEGER"},
+            {
+                "column_name": "revenue.usd",
+                "type": "INTEGER",
+                "expression": "revenue * fx_rate",
+            },
+        ],
+    )
+    original_changed_on = datetime(2024, 6, 1, 12, 0, 0)
+    table.changed_on = original_changed_on
+
+    with freeze_time("2024-06-01 12:00:05"):
+        result = table.fetch_metadata()
+
+    assert "revenue.usd" in result.removed
+    assert any(col.column_name == "revenue.usd" for col in table.columns)
+    assert table.changed_on == original_changed_on
+
+
 @pytest.mark.parametrize(
     "supports_cross_catalog,table_name,catalog,schema,expected_name,expected_schema",
     [
@@ -1679,6 +1917,215 @@ def test_convert_tbl_column_to_sqla_col_rejects_stored_subquery(
         datasource.convert_tbl_column_to_sqla_col(tbl_column)
 
 
+def test_get_timestamp_expression_wraps_jinja_undefined_error(
+    mocker: MockerFixture,
+) -> None:
+    """``UndefinedError`` from a time column template is wrapped in
+    ``QueryObjectValidationError`` instead of escaping raw — exercised on the
+    real dispatch path (``TableColumn.get_timestamp_expression``), not the
+    unused ``ExploreMixin`` copy."""
+    tc = _stored_col("{{ nonexistent_var.attr }}", "sqlite", mocker)
+    template_processor = mocker.MagicMock()
+    template_processor.process_template.side_effect = UndefinedError(
+        "'nonexistent_var' is undefined"
+    )
+    with pytest.raises(
+        QueryObjectValidationError,
+        match=r"Error in jinja expression in datetime column.*nonexistent_var",
+    ):
+        tc.get_timestamp_expression(
+            time_grain=None, template_processor=template_processor
+        )
+
+
+def test_get_timestamp_expression_wraps_jinja_template_error(
+    mocker: MockerFixture,
+) -> None:
+    """``SupersetSyntaxErrorException`` from ``TableColumn.get_timestamp_expression``
+    is wrapped in ``QueryObjectValidationError`` — injecting the exception type
+    ``process_template`` actually emits for parse-time errors."""
+    tc = _stored_col("{{ bad_syntax }", "sqlite", mocker)
+    syntax_error = SupersetSyntaxErrorException(
+        [
+            SupersetError(
+                message="Jinja2 template error (TemplateSyntaxError): unexpected '}'",
+                error_type=SupersetErrorType.SYNTAX_ERROR,
+                level=ErrorLevel.ERROR,
+            )
+        ]
+    )
+    template_processor = mocker.MagicMock()
+    template_processor.process_template.side_effect = syntax_error
+    with pytest.raises(
+        QueryObjectValidationError,
+        match=r"Error in jinja expression in datetime column.*unexpected '}'",
+    ):
+        tc.get_timestamp_expression(
+            time_grain=None, template_processor=template_processor
+        )
+
+
+def test_get_timestamp_expression_wraps_superset_template_exception(
+    mocker: MockerFixture,
+) -> None:
+    """``SupersetTemplateException`` (e.g. recursion, undefined macro) from
+    ``TableColumn.get_timestamp_expression`` is wrapped in
+    ``QueryObjectValidationError``."""
+    tc = _stored_col("{{ missing_macro() }}", "sqlite", mocker)
+    template_processor = mocker.MagicMock()
+    template_processor.process_template.side_effect = SupersetTemplateException(
+        "Undefined template function: missing_macro"
+    )
+    with pytest.raises(
+        QueryObjectValidationError,
+        match=r"Error in jinja expression in datetime column.*missing_macro",
+    ):
+        tc.get_timestamp_expression(
+            time_grain=None, template_processor=template_processor
+        )
+
+
+def test_convert_tbl_column_to_sqla_col_wraps_jinja_undefined_error(
+    mocker: MockerFixture,
+) -> None:
+    """``UndefinedError`` from a calculated column template is wrapped in
+    ``QueryObjectValidationError`` instead of escaping raw."""
+    datasource = mocker.MagicMock()
+    datasource._validate_stored_expression = (
+        ExploreMixin._validate_stored_expression.__get__(datasource)
+    )
+    datasource.convert_tbl_column_to_sqla_col = (
+        ExploreMixin.convert_tbl_column_to_sqla_col.__get__(datasource)
+    )
+
+    template_processor = mocker.MagicMock()
+    template_processor.process_template.side_effect = UndefinedError(
+        "'nonexistent_var' is undefined"
+    )
+
+    tbl_column = TableColumn(
+        column_name="calc_col",
+        expression="{{ nonexistent_var.attr }}",
+    )
+    with pytest.raises(
+        QueryObjectValidationError,
+        match=r"Calculated column template error.*nonexistent_var",
+    ):
+        datasource.convert_tbl_column_to_sqla_col(
+            tbl_column, template_processor=template_processor
+        )
+
+
+def test_convert_tbl_column_to_sqla_col_wraps_jinja_template_error(
+    mocker: MockerFixture,
+) -> None:
+    """``SupersetSyntaxErrorException`` from a calculated column template is
+    wrapped in ``QueryObjectValidationError`` — injecting the exception type
+    ``process_template`` actually emits for parse-time errors."""
+    datasource = mocker.MagicMock()
+    datasource._validate_stored_expression = (
+        ExploreMixin._validate_stored_expression.__get__(datasource)
+    )
+    datasource.convert_tbl_column_to_sqla_col = (
+        ExploreMixin.convert_tbl_column_to_sqla_col.__get__(datasource)
+    )
+
+    syntax_error = SupersetSyntaxErrorException(
+        [
+            SupersetError(
+                message="Jinja2 template error (TemplateSyntaxError): unexpected '}'",
+                error_type=SupersetErrorType.SYNTAX_ERROR,
+                level=ErrorLevel.ERROR,
+            )
+        ]
+    )
+    template_processor = mocker.MagicMock()
+    template_processor.process_template.side_effect = syntax_error
+
+    tbl_column = TableColumn(
+        column_name="calc_col",
+        expression="{{ bad_syntax }",
+    )
+    with pytest.raises(
+        QueryObjectValidationError,
+        match=r"Error while rendering calculated column expression.*unexpected '}'",
+    ):
+        datasource.convert_tbl_column_to_sqla_col(
+            tbl_column, template_processor=template_processor
+        )
+
+
+def test_convert_tbl_column_to_sqla_col_wraps_superset_template_exception(
+    mocker: MockerFixture,
+) -> None:
+    """``SupersetTemplateException`` from a calculated column template is
+    wrapped in ``QueryObjectValidationError``."""
+    datasource = mocker.MagicMock()
+    datasource._validate_stored_expression = (
+        ExploreMixin._validate_stored_expression.__get__(datasource)
+    )
+    datasource.convert_tbl_column_to_sqla_col = (
+        ExploreMixin.convert_tbl_column_to_sqla_col.__get__(datasource)
+    )
+
+    template_processor = mocker.MagicMock()
+    template_processor.process_template.side_effect = SupersetTemplateException(
+        "Undefined template function: missing_macro"
+    )
+
+    tbl_column = TableColumn(
+        column_name="calc_col",
+        expression="{{ missing_macro() }}",
+    )
+    with pytest.raises(
+        QueryObjectValidationError,
+        match=r"Error while rendering calculated column expression.*missing_macro",
+    ):
+        datasource.convert_tbl_column_to_sqla_col(
+            tbl_column, template_processor=template_processor
+        )
+
+
+def test_get_sqla_col_wraps_jinja_undefined_error(
+    mocker: MockerFixture,
+) -> None:
+    """``UndefinedError`` from a calculated column template in ``get_sqla_col``
+    is wrapped in ``QueryObjectValidationError``."""
+    tc = _stored_col("{{ nonexistent_var.attr }}", "sqlite", mocker)
+    template_processor = mocker.MagicMock()
+    template_processor.process_template.side_effect = UndefinedError(
+        "'nonexistent_var' is undefined"
+    )
+    with pytest.raises(
+        QueryObjectValidationError,
+        match=r"Error in jinja expression in column expression.*nonexistent_var",
+    ):
+        tc.get_sqla_col(template_processor=template_processor)
+
+
+def test_metric_get_sqla_col_wraps_jinja_undefined_error(
+    mocker: MockerFixture,
+) -> None:
+    """``UndefinedError`` from a metric template in ``SqlMetric.get_sqla_col``
+    is wrapped in ``QueryObjectValidationError``."""
+    metric = SqlMetric(metric_name="tmpl", expression="{{ nonexistent_var.attr }}")
+    metric.table = mocker.MagicMock()
+    metric.table.database = _database_for_expression(mocker)
+    metric.table.catalog = None
+    metric.table.schema = "public"
+    metric.table.db_engine_spec.engine = "sqlite"
+
+    template_processor = mocker.MagicMock()
+    template_processor.process_template.side_effect = UndefinedError(
+        "'nonexistent_var' is undefined"
+    )
+    with pytest.raises(
+        QueryObjectValidationError,
+        match=r"Error in jinja expression in metric expression.*nonexistent_var",
+    ):
+        metric.get_sqla_col(template_processor=template_processor)
+
+
 def test_get_sqla_col_falls_back_when_stored_expression_unparseable(
     mocker: MockerFixture,
 ) -> None:
@@ -2001,3 +2448,43 @@ def test_gauge_query_restores_long_sql_metric_label(mocker: MockerFixture) -> No
         )
         is None
     )
+
+
+def test_get_fetch_values_predicate_wraps_undefined_error(
+    mocker: MockerFixture,
+) -> None:
+    """UndefinedError from process_template must be caught and re-raised as
+    QueryObjectValidationError, not bubble as a raw 500."""
+    database = mocker.MagicMock()
+    sqla_table = SqlaTable(
+        table_name="my_sqla_table",
+        columns=[],
+        metrics=[],
+        database=database,
+    )
+    sqla_table.fetch_values_predicate = "{{ foo.bar }} = 1"
+
+    mock_processor = mocker.MagicMock()
+    mock_processor.process_template.side_effect = UndefinedError("'foo' is undefined")
+
+    with pytest.raises(QueryObjectValidationError):
+        sqla_table.get_fetch_values_predicate(template_processor=mock_processor)
+
+
+def test_get_rendered_sql_wraps_type_error(mocker: MockerFixture) -> None:
+    """A ``TypeError`` raised by a Python builtin invoked from within the
+    template (e.g. ``"','".join(filter_values(...))`` when ``filter_values()``
+    returns numeric values) must be caught and re-raised as a
+    ``QueryObjectValidationError``, not bubble up as a raw 500."""
+    datasource = mocker.MagicMock()
+    datasource.sql = "SELECT 1 WHERE id IN ({{ ','.join(filter_values('id')) }})"
+
+    template_processor = mocker.MagicMock()
+    template_processor.process_template.side_effect = TypeError(
+        "sequence item 0: expected str instance, int found"
+    )
+
+    with pytest.raises(QueryObjectValidationError):
+        ExploreMixin.get_rendered_sql.__get__(datasource)(
+            template_processor=template_processor
+        )

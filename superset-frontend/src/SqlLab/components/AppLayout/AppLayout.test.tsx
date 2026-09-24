@@ -29,7 +29,7 @@ import {
 import AppLayout from './index';
 
 jest.mock('src/components/ResizableSidebar/useStoredSidebarWidth');
-jest.mock('src/components/Splitter', () => {
+jest.mock('@superset-ui/core/components/Splitter', () => {
   const Splitter = ({
     onResizeEnd,
     children,
