@@ -27,7 +27,9 @@ from unittest.mock import Mock, patch
 import pytest
 from fastmcp import Client
 
+from superset.commands.dataset.exceptions import DatasetForbiddenError
 from superset.mcp_service.app import mcp
+from superset.mcp_service.dataset.tool.delete_dataset import _count_affected_objects
 
 _RESOLVE = "superset.mcp_service.dataset.tool.delete_dataset.resolve_dataset"
 _COUNT = "superset.mcp_service.dataset.tool.delete_dataset._count_affected_objects"
@@ -208,10 +210,6 @@ async def test_delete_dataset_reports_affected_charts(
 
 def test_count_affected_objects_only_counts_accessible() -> None:
     """Counts must not disclose charts/dashboards the caller cannot access."""
-    from superset.mcp_service.dataset.tool.delete_dataset import (
-        _count_affected_objects,
-    )
-
     visible_chart, hidden_chart = Mock(), Mock()
     visible_dashboard, hidden_dashboard = Mock(), Mock()
     security_manager = Mock()
@@ -242,8 +240,6 @@ async def test_delete_dataset_permission_denied(
 ) -> None:
     """A caller who may not delete the dataset gets Forbidden before any
     dependents are counted or anything is deleted."""
-    from superset.commands.dataset.exceptions import DatasetForbiddenError
-
     mock_resolve.return_value = _mock_dataset(dataset_id=10, table_name="orders")
 
     with patch(_VALIDATE, side_effect=DatasetForbiddenError()):

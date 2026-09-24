@@ -196,6 +196,7 @@ async def test_list_datasets_deleted_state_serializes_deleted_at(
 async def test_list_datasets_deleted_state_invalid_value_rejected(
     mock_list: Mock, mcp_server: object
 ) -> None:
+    """A deleted_state outside the three accepted values is refused."""
     mock_list.return_value = ([], 0)
 
     async with Client(mcp_server) as client:
