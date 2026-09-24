@@ -127,7 +127,13 @@ class TestValidateAndCompileChartTypeCoverage:
         assert not result.success
         assert result.tier == "validation"
         assert result.error_obj is not None
-        assert any("sum_boys" in s for s in (result.error_obj.suggestions or []))
+        assert result.error_obj.error_type == "column_not_found"
+        assert result.error_obj.suggestions[-1].startswith("No matching columns found.")
+        assert all("sum_boys" not in s for s in result.error_obj.suggestions)
+        assert result.error_obj.dataset_context is not None
+        assert {
+            c["name"] for c in result.error_obj.dataset_context.available_columns
+        } == {"ds", "gender", "name", "num"}
 
     def test_pie_bad_metric_column_rejected(self):
         ds = _orm_dataset()
@@ -139,7 +145,13 @@ class TestValidateAndCompileChartTypeCoverage:
         assert not result.success, "Pie chart with bad metric column should fail"
         assert result.tier == "validation"
         assert result.error_obj is not None
-        assert any("sum_boys" in s for s in (result.error_obj.suggestions or []))
+        assert result.error_obj.error_type == "column_not_found"
+        assert result.error_obj.suggestions[-1].startswith("No matching columns found.")
+        assert all("sum_boys" not in s for s in result.error_obj.suggestions)
+        assert result.error_obj.dataset_context is not None
+        assert {
+            c["name"] for c in result.error_obj.dataset_context.available_columns
+        } == {"ds", "gender", "name", "num"}
 
     def test_pie_valid_dimension_and_saved_metric_passes(self):
         ds = _orm_dataset()

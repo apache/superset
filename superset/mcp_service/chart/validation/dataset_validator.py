@@ -435,6 +435,7 @@ class DatasetValidator:
         """Fetch the ORM dataset by ID/UUID and build a :class:`DatasetContext`."""
         try:
             from superset.daos.dataset import DatasetDAO
+            from superset.mcp_service.auth import has_dataset_access
 
             if isinstance(dataset_id, int) or (
                 isinstance(dataset_id, str) and dataset_id.isdigit()
@@ -442,6 +443,9 @@ class DatasetValidator:
                 dataset = DatasetDAO.find_by_id(int(dataset_id))
             else:
                 dataset = DatasetDAO.find_by_id(dataset_id, id_column="uuid")
+
+            if dataset is None or not has_dataset_access(dataset):
+                return None
 
             return build_dataset_context_from_orm(dataset)
 
@@ -646,9 +650,6 @@ class DatasetValidator:
         for col in dataset_context.available_columns:
             all_names.append((col["name"], "column", col.get("type", "UNKNOWN")))
 
-        for metric in dataset_context.available_metrics:
-            all_names.append((metric["name"], "metric", "METRIC"))
-
         # Find close matches
         column_lower = column_name.lower()
         candidate_lookup = [name[0].lower() for name in all_names]
@@ -690,34 +691,43 @@ class DatasetValidator:
         )
 
         if len(invalid_columns) == 1:
-            col = invalid_columns[0]
-            col_name = col.name or "<unknown column>"
-            suggestions = suggestions_map.get(col_name, [])
-
-            if suggestions:
-                return ChartErrorBuilder.column_not_found_error(
-                    col_name, [s.name for s in suggestions]
-                )
-            else:
-                return ChartErrorBuilder.column_not_found_error(col_name)
-        else:
-            # Multiple invalid columns
-            invalid_names: list[str] = [col.name for col in invalid_columns if col.name]
-            return ChartErrorBuilder.build_error(
-                error_type="multiple_invalid_columns",
-                template_key="column_not_found",
-                template_vars={
-                    "column": ", ".join(invalid_names[:3])
-                    + ("..." if len(invalid_names) > 3 else ""),
-                    "suggestions": "Use get_dataset_info to see all available columns",
-                },
-                custom_suggestions=[
-                    f"Invalid columns: {', '.join(invalid_names)}",
-                    "Check spelling and case sensitivity",
-                    "Use get_dataset_info to list available columns",
-                ],
-                error_code="MULTIPLE_INVALID_COLUMNS",
+            col_name = invalid_columns[0].name or "<unknown column>"
+            error = ChartErrorBuilder.column_not_found_error(
+                col_name, [s.name for s in suggestions_map.get(col_name, [])]
             )
+        else:
+            candidates = list(
+                dict.fromkeys(
+                    suggestion.name
+                    for suggestions in suggestions_map.values()
+                    for suggestion in suggestions
+                )
+            )
+            error = ChartErrorBuilder.column_not_found_error(
+                "multiple requested columns", candidates
+            )
+            error.error_type = "multiple_invalid_columns"
+            error.error_code = "MULTIPLE_INVALID_COLUMNS"
+
+        # Return names only, not SQL expressions or unbounded dataset metadata.
+        # Reuse the error builder's escaping and per-value length limit.
+        from superset.mcp_service.utils.error_builder import _sanitize_user_input
+
+        error.dataset_context = DatasetContext(
+            id=dataset_context.id,
+            table_name=_sanitize_user_input(dataset_context.table_name),
+            schema=(
+                _sanitize_user_input(dataset_context.schema_name)
+                if dataset_context.schema_name is not None
+                else None
+            ),
+            database_name=_sanitize_user_input(dataset_context.database_name),
+            available_columns=[
+                {"name": _sanitize_user_input(col["name"])}
+                for col in dataset_context.available_columns[:10]
+            ],
+        )
+        return error
 
     @staticmethod
     def _validate_saved_metrics(
