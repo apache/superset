@@ -4293,10 +4293,15 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
         """Dashboard API: the export runs the query contexts the row budget was
         measured against. Resolving them a second time would risk vouching for one
         set of queries and running another, since a deployment's context builder
-        need not be deterministic."""
+        need not be deterministic. Charts the plan left out reach the builder
+        too, so the workbook lists them instead of running them."""
         measured = {10: {"queries": [{"row_limit": 5}]}, 20: None}
+        skipped = {30: "unbounded-query"}
         mock_plan.return_value = InlineExportPlan(
-            query_contexts=measured, requested_rows=5, max_rows=100_000
+            query_contexts=measured,
+            requested_rows=5,
+            max_rows=100_000,
+            skipped=skipped,
         )
         mock_build.side_effect = self._write_stub_workbook
         self.login(ADMIN_USERNAME)
@@ -4310,6 +4315,7 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
 
         assert rv.status_code == 200
         assert mock_build.call_args.kwargs["query_contexts"] is measured
+        assert mock_build.call_args.kwargs["skipped_charts"] is skipped
 
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
     @with_config({"EXPORT_STORAGE": {}})

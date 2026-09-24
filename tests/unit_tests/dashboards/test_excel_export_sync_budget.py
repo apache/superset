@@ -24,6 +24,7 @@ import pytest
 from celery.exceptions import SoftTimeLimitExceeded
 from flask import current_app
 
+from superset.dashboards.excel_export import email
 from superset.dashboards.excel_export.sync_budget import plan_inline_export
 from superset.utils import json
 
@@ -106,16 +107,18 @@ def test_plan_counts_every_query_of_a_multi_query_chart(
         {"row_limit": [100]},  # not a scalar
     ],
 )
-def test_plan_row_total_is_indeterminate_without_a_finite_row_limit(
+def test_plan_skips_a_chart_without_a_finite_row_limit(
     charts: mock.MagicMock, query: dict[str, Any]
 ) -> None:
-    # Every query needs a finite limit.
+    # Only the unbounded chart is left out; the rest still download.
     charts.return_value = [_chart(10, {"row_limit": 100}), _chart(20, query)]
 
     plan = plan_inline_export(mock.MagicMock())
 
-    assert plan.requested_rows is None
-    assert plan.fits_row_budget is False
+    assert plan.skipped == {20: email.ERROR_UNBOUNDED}
+    assert 20 not in plan.query_contexts
+    assert plan.requested_rows == 100
+    assert plan.fits_row_budget is True
 
 
 @pytest.mark.parametrize("row_limit", ["1000", 1000.0])
@@ -286,7 +289,7 @@ def test_plan_does_not_treat_a_legacy_groupby_as_single_row(
         pytest.param("my_custom_op", id="operator-registered operation"),
     ],
 )
-def test_plan_rejects_post_processing_that_can_add_rows(
+def test_plan_skips_post_processing_that_can_add_rows(
     charts: mock.MagicMock, operation: str
 ) -> None:
     charts.return_value = [
@@ -306,11 +309,11 @@ def test_plan_rejects_post_processing_that_can_add_rows(
 
     plan = plan_inline_export(mock.MagicMock())
 
-    assert plan.requested_rows is None
-    assert plan.fits_row_budget is False
+    assert plan.skipped == {10: email.ERROR_UNBOUNDED}
+    assert plan.requested_rows == 0
 
 
-def test_plan_rejects_resampling_a_single_row_query(charts: mock.MagicMock) -> None:
+def test_plan_skips_resampling_a_single_row_query(charts: mock.MagicMock) -> None:
     # Padding to the time range lets even one aggregate row resample into many.
     charts.return_value = [
         _chart(
@@ -324,7 +327,7 @@ def test_plan_rejects_resampling_a_single_row_query(charts: mock.MagicMock) -> N
         )
     ]
 
-    assert plan_inline_export(mock.MagicMock()).requested_rows is None
+    assert plan_inline_export(mock.MagicMock()).skipped == {10: email.ERROR_UNBOUNDED}
 
 
 def test_plan_keeps_the_row_limit_for_row_preserving_post_processing(
@@ -351,23 +354,51 @@ def test_plan_keeps_the_row_limit_for_row_preserving_post_processing(
     assert plan_inline_export(mock.MagicMock()).requested_rows == 100
 
 
-def test_plan_rejects_grouping_sets(charts: mock.MagicMock) -> None:
+@pytest.mark.parametrize(
+    "grouping_sets",
+    [
+        # A pivot table with a non-additive metric always sends its leaf level,
+        # even with every totals toggle off.
+        pytest.param([["country"]], id="leaf level only"),
+        pytest.param([["country"], []], id="leaf level and grand total"),
+    ],
+)
+def test_plan_skips_grouping_sets_without_blocking_other_charts(
+    charts: mock.MagicMock, grouping_sets: list[list[str]]
+) -> None:
+    # Grouping sets run without a LIMIT, so the pivot table is left out, but the
+    # dashboard's other charts still fit the budget and download.
+    pivot = _chart(
+        10,
+        {
+            "columns": ["country"],
+            "metrics": ["count"],
+            "grouping_sets": grouping_sets,
+            "row_limit": 100,
+        },
+    )
+    charts.return_value = [pivot, _chart(20, {"row_limit": 250})]
+
+    plan = plan_inline_export(mock.MagicMock())
+
+    assert plan.skipped == {10: email.ERROR_UNBOUNDED}
+    assert plan.query_contexts == {20: {"queries": [{"row_limit": 250}]}}
+    assert plan.requested_rows == 250
+    assert plan.fits_row_budget is True
+
+
+def test_plan_skips_the_whole_chart_when_one_of_its_queries_is_unbounded(
+    charts: mock.MagicMock,
+) -> None:
+    # The bounded query's rows are not charged: none of the chart runs.
     charts.return_value = [
-        _chart(
-            10,
-            {
-                "columns": ["country"],
-                "metrics": ["count"],
-                "grouping_sets": [["country"], []],
-                "row_limit": 100,
-            },
-        )
+        _chart(10, {"row_limit": 100}, {"grouping_sets": [["country"]]}),
     ]
 
     plan = plan_inline_export(mock.MagicMock())
 
-    assert plan.requested_rows is None
-    assert plan.fits_row_budget is False
+    assert plan.skipped == {10: email.ERROR_UNBOUNDED}
+    assert plan.requested_rows == 0
 
 
 def test_plan_ignores_charts_that_cannot_be_exported(charts: mock.MagicMock) -> None:
@@ -446,10 +477,9 @@ def test_plan_skips_a_chart_when_context_resolution_fails(
         ]
         plan = plan_inline_export(mock.MagicMock())
 
-    assert plan.query_contexts == {
-        10: {"queries": [{"row_limit": 25}]},
-        20: None,
-    }
+    # Listed as an export error, the same reason the queued path gives it.
+    assert plan.query_contexts == {10: {"queries": [{"row_limit": 25}]}}
+    assert plan.skipped == {20: email.ERROR_GENERAL}
     assert plan.requested_rows == 25
 
 

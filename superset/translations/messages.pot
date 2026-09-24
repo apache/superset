@@ -4629,6 +4629,9 @@ msgstr ""
 msgid "Dashboard exported successfully"
 msgstr ""
 
+msgid "Dashboard has no charts to export."
+msgstr ""
+
 msgid "Dashboard imported"
 msgstr ""
 
@@ -14153,6 +14156,12 @@ msgstr ""
 msgid ""
 "The following charts were omitted because an error occurred while "
 "exporting them:"
+msgstr ""
+
+msgid ""
+"The following charts were omitted because their size cannot be determined"
+" before they run. Ask an administrator to enable background exports to "
+"include them."
 msgstr ""
 
 msgid ""

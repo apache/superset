@@ -113,6 +113,25 @@ def test_success_email_omits_empty_reason_groups() -> None:
     assert "<li>30 - Boom</li>" in html
 
 
+def test_errored_groups_explains_unbounded_charts_in_order() -> None:
+    # The summary sheet of a direct download shows this note; it names who can
+    # include the chart, and sits between the known reasons.
+    groups = email.errored_groups(
+        {
+            email.ERROR_GENERAL: ["30 - Boom"],
+            email.ERROR_UNBOUNDED: ["20 - Pivot"],
+            email.ERROR_NO_QUERY_CONTEXT: ["10 - NoContext"],
+        }
+    )
+
+    assert [labels for _, labels in groups] == [
+        ["10 - NoContext"],
+        ["20 - Pivot"],
+        ["30 - Boom"],
+    ]
+    assert "Ask an administrator to enable background exports" in groups[1][0]
+
+
 def test_success_email_escapes_title() -> None:
     html = email.build_success_email(
         dashboard_title="<script>alert(1)</script>",

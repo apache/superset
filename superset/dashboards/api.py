@@ -122,7 +122,6 @@ from superset.dashboards.excel_export.workbook import (
     build_workbook,
     EXPORT_MODE_DATA,
     EXPORT_MODE_IMAGES,
-    ResolvedQueryContexts,
 )
 from superset.dashboards.filter_scope import derive_json_metadata
 from superset.dashboards.filters import (
@@ -1902,7 +1901,9 @@ class DashboardRestApi(
         # still gets a usable export: a queued export is polled at
         # export_xlsx_status/<job_id>/, and a direct download needs no email.
         if not dashboard.slices:
-            return self.response_400(message="Dashboard has no charts to export.")
+            return self.response_400(
+                message=gettext("Dashboard has no charts to export.")
+            )
 
         active_data_mask = payload.get("active_data_mask", {})
         mode = payload.get("mode", "data")
@@ -1979,7 +1980,7 @@ class DashboardRestApi(
                 job_id,
                 lock_params,
                 lock_token,
-                plan.query_contexts,
+                plan,
             )
         finally:
             if not lock_delegated:
@@ -2034,7 +2035,7 @@ class DashboardRestApi(
         job_id: str,
         lock_params: dict[str, int],
         lock_token: str,
-        query_contexts: ResolvedQueryContexts,
+        plan: InlineExportPlan,
     ) -> WerkzeugResponse:
         """Build a planned data export and return it in the response."""
         tmp_path: str | None = None
@@ -2051,7 +2052,8 @@ class DashboardRestApi(
                 job_id,
                 EXPORT_MODE_DATA,
                 g.user,
-                query_contexts=query_contexts,
+                query_contexts=plan.query_contexts,
+                skipped_charts=plan.skipped,
             )
             # A dashboard may be untitled; fall back the same way the task does.
             filename = get_filename(

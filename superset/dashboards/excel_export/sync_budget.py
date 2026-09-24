@@ -19,12 +19,13 @@
 from __future__ import annotations
 
 import logging
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any
 
 from celery.exceptions import SoftTimeLimitExceeded
 from flask import current_app
 
+from superset.dashboards.excel_export import email
 from superset.dashboards.excel_export.layout import get_charts_in_layout_order
 from superset.dashboards.excel_export.workbook import (
     resolve_query_context,
@@ -66,17 +67,21 @@ _ROW_PRESERVING_OPERATIONS = frozenset(
 class InlineExportPlan:
     """Queries planned for a direct download and their row budget."""
 
-    #: Resolved query contexts by chart id. ``None`` marks a skipped chart.
+    #: Resolved query contexts by chart id. ``None`` marks a chart with no
+    #: query context, which the workbook lists as such.
     query_contexts: ResolvedQueryContexts
-    #: Combined row limit, or ``None`` when any query has no finite limit.
-    requested_rows: int | None
+    #: Combined row limit of the charts in ``query_contexts``.
+    requested_rows: int
     #: Configured limit for direct downloads.
     max_rows: int
+    #: Charts left out of the download, mapped to an ``email.ERROR_*`` reason.
+    #: A chart is never in both this and ``query_contexts``.
+    skipped: dict[int, str] = field(default_factory=dict)
 
     @property
     def fits_row_budget(self) -> bool:
         """Return whether the export can run during the request."""
-        return self.requested_rows is not None and self.requested_rows <= self.max_rows
+        return self.requested_rows <= self.max_rows
 
 
 @dataclass(frozen=True)
@@ -202,38 +207,54 @@ def _finite_row_limit(query: Any, chart: Any) -> int | None:
     return row_limit or default_row_limit
 
 
-def _row_total(
-    query_contexts: ResolvedQueryContexts, charts: dict[int, Any]
-) -> int | None:
-    """Rows every resolved query may return, or ``None`` if any is unbounded."""
+def _chart_row_total(query_context: dict[str, Any], chart: Any) -> int | None:
+    """Rows a chart's queries may return, or ``None`` if any is unbounded."""
     total = 0
-    for chart_id, query_context in query_contexts.items():
-        if query_context is None:
-            # Skipped charts do not add to the row budget.
-            continue
-        for query in query_context["queries"]:
-            row_limit = _finite_row_limit(query, charts[chart_id])
-            if row_limit is None:
-                return None
-            total += row_limit
+    for query in query_context["queries"]:
+        row_limit = _finite_row_limit(query, chart)
+        if row_limit is None:
+            return None
+        total += row_limit
     return total
 
 
 def plan_inline_export(dashboard: Any) -> InlineExportPlan:
-    """Resolve a dashboard's queries and calculate its direct-download size."""
+    """Resolve a dashboard's queries and calculate its direct-download size.
+
+    A chart whose queries cannot be bounded is left out of the download and
+    listed on the summary sheet, so one such chart (a pivot table with
+    non-additive metrics always uses grouping sets) does not block the rest.
+    """
     query_contexts: ResolvedQueryContexts = {}
-    charts: dict[int, Any] = {}
+    skipped: dict[int, str] = {}
+    requested_rows = 0
     for chart in get_charts_in_layout_order(dashboard):
-        charts[chart.id] = chart
         try:
-            query_contexts[chart.id] = resolve_query_context(chart)
+            query_context = resolve_query_context(chart)
         except SoftTimeLimitExceeded:
             raise
         except Exception:  # pylint: disable=broad-except
+            # Same reason the queued export reports for a failed chart.
             logger.exception("Skipping chart %s while planning Excel export", chart.id)
+            skipped[chart.id] = email.ERROR_GENERAL
+            continue
+        if query_context is None:
             query_contexts[chart.id] = None
+            continue
+        chart_rows = _chart_row_total(query_context, chart)
+        if chart_rows is None:
+            logger.info(
+                "Leaving chart %s out of a direct Excel export: its queries "
+                "have no row bound known before they run",
+                chart.id,
+            )
+            skipped[chart.id] = email.ERROR_UNBOUNDED
+            continue
+        query_contexts[chart.id] = query_context
+        requested_rows += chart_rows
     return InlineExportPlan(
         query_contexts=query_contexts,
-        requested_rows=_row_total(query_contexts, charts),
+        requested_rows=requested_rows,
         max_rows=current_app.config["EXCEL_EXPORT_SYNC_MAX_ROWS"],
+        skipped=skipped,
     )

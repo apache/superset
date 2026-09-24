@@ -64,10 +64,15 @@ workbook during the request and returns it to the browser. The combined
 by default). A query counts as one row when it groups nothing and every metric
 it selects is a known aggregate; a Custom SQL metric that cannot be shown to
 aggregate counts for its full `row_limit`. Queries without a `row_limit` use
-`ROW_LIMIT`. Queries that use grouping sets, or post-processing that can add
-rows (such as the Resample and Forecast options, or a custom
-`EXTRA_PANDAS_POSTPROCESSING_OPS` operation), require the background path. Keep
-this setting within your web server's request timeout.
+`ROW_LIMIT`. Keep this setting within your web server's request timeout.
+
+A chart whose size can't be known before it runs is left out of a direct
+download and listed on the **Export Summary** sheet; the rest of the dashboard
+still downloads. That covers queries that use grouping sets (pivot tables with a
+metric other than a simple SUM, COUNT, MIN or MAX, such as AVG, COUNT DISTINCT,
+a saved metric or Custom SQL) and post-processing that can add rows (such as the
+Resample and Forecast options, or a custom `EXTRA_PANDAS_POSTPROCESSING_OPS`
+operation). The background path exports those charts too.
 
 For larger data exports and all image exports, configure the background path:
 

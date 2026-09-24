@@ -934,11 +934,12 @@ EXPORT_STORAGE = {
 Direct downloads are limited by `EXCEL_EXPORT_SYNC_MAX_ROWS` (default
 `100_000`), based on the combined `row_limit` of the planned queries. Superset
 counts aggregate-only queries as one row, uses `ROW_LIMIT` when other queries
-omit it, and requires the background path for grouping sets and for
-post-processing that can add rows (resample, forecasts, custom operations). It
-returns `400`
-before querying if the total exceeds the limit. Image exports are hidden without
-export storage because they require background webdriver rendering.
+omit it, and returns `400` before querying if the total exceeds the limit.
+Charts whose size can't be known before they run (grouping sets, which pivot
+tables use for non-additive metrics, and post-processing that can add rows such
+as resample, forecasts or custom operations) are left out of direct downloads
+and listed on the workbook's "Export Summary" sheet. Image exports are hidden
+without export storage because they require background webdriver rendering.
 
 `POST /api/v1/dashboard/<id>/export_xlsx/` returns either `202` with a queued job
 id or `200` with the workbook. It does not return `501` when storage is unset.

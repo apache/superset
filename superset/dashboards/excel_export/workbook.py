@@ -243,6 +243,7 @@ def build_workbook(  # pylint: disable=too-many-arguments
     mode: str,
     user: Any,
     query_contexts: ResolvedQueryContexts | None = None,
+    skipped_charts: dict[int, str] | None = None,
 ) -> dict[str, list[str]]:
     """Build the workbook on disk.
 
@@ -255,13 +256,19 @@ def build_workbook(  # pylint: disable=too-many-arguments
     :param mode: ``"data"`` or ``"images"``
     :param user: The requesting user (used to render images)
     :param query_contexts: Pre-resolved contexts. Missing charts are resolved here.
+    :param skipped_charts: Charts to list as omitted without running them,
+        mapped to their ``email.ERROR_*`` reason
     """
     errored: dict[str, list[str]] = {}
     resolved = query_contexts or {}
+    skipped = skipped_charts or {}
     writer = StreamingXlsxWriter(path)
     try:
         for chart in get_charts_in_layout_order(dashboard):
             label = chart_label(chart)
+            if (reason := skipped.get(chart.id)) is not None:
+                errored.setdefault(reason, []).append(label)
+                continue
             try:
                 if renders_as_image(chart, mode):
                     # Image charts do not need a query context.

@@ -31,6 +31,7 @@ from unittest import mock
 
 import pytest
 
+from superset.dashboards.excel_export import email
 from superset.dashboards.excel_export.workbook import build_workbook
 from superset.utils import json
 
@@ -110,6 +111,26 @@ def test_a_chart_resolved_to_none_is_skipped_without_resolving_again(
     assert [label for labels in errored.values() for label in labels] == [
         "20 - Skipped"
     ]
+
+
+def test_skipped_charts_are_listed_by_reason_without_running(
+    mocks: dict[str, Any], workbook_path: str
+) -> None:
+    # A chart the plan left out is reported under its reason and never queried,
+    # even though its context resolves; the other chart still exports.
+    exported = _chart(10, "Sales")
+    pivot = _chart(20, "Pivot")
+    mocks["get_charts_in_layout_order"].return_value = [exported, pivot]
+
+    errored = _build(
+        workbook_path,
+        query_contexts={10: {"queries": [{"row_limit": 5}]}},
+        skipped_charts={20: email.ERROR_UNBOUNDED},
+    )
+
+    assert errored == {email.ERROR_UNBOUNDED: ["20 - Pivot"]}
+    mocks["resolve_query_context"].assert_not_called()
+    mocks["ChartDataCommand"].return_value.run.assert_called_once()
 
 
 def test_a_chart_missing_from_the_map_is_resolved_by_the_builder(
