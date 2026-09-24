@@ -153,14 +153,20 @@ async function runOxlintAndProcess() {
     // config has to be passed explicitly or the run reports oxlint's defaults
     // instead of the project's ruleset. Matches the `lint` scripts in
     // package.json.
-    const oxlintOutput = execSync(
-      'npx oxlint --config oxlint.json --format json',
-      {
+    let oxlintOutput = '{}';
+    try {
+      oxlintOutput = execSync('npx oxlint --config oxlint.json --format json', {
         encoding: 'utf8',
         maxBuffer: 50 * 1024 * 1024, // 50MB buffer for large outputs
         stdio: ['pipe', 'pipe', 'ignore'], // Ignore stderr to avoid error output
-      },
-    );
+      });
+    } catch (error) {
+      if (error.stdout) {
+        oxlintOutput = error.stdout.toString();
+      } else {
+        throw error;
+      }
+    }
 
     const results = JSON.parse(oxlintOutput);
     console.log(
@@ -172,14 +178,23 @@ async function runOxlintAndProcess() {
     console.log('Running Oxlint for custom rules...');
     // Run ESLint and capture output directly.
     // Flat config (oxlint.custom-lint-rules.mts) is explicitly selected via --config
-    const oxlintCustomRuleOutput = execSync(
-      'npx oxlint --config oxlint.custom-lint-rules.mts --format json src',
-      {
-        encoding: 'utf8',
-        maxBuffer: 50 * 1024 * 1024, // 50MB buffer for large outputs
-        stdio: ['pipe', 'pipe', 'ignore'], // Ignore stderr
-      },
-    );
+    let oxlintCustomRuleOutput = '{}';
+    try {
+      oxlintCustomRuleOutput = execSync(
+        'npx oxlint --config oxlint.custom-lint-rules.mts --format json src',
+        {
+          encoding: 'utf8',
+          maxBuffer: 50 * 1024 * 1024, // 50MB buffer for large outputs
+          stdio: ['pipe', 'pipe', 'ignore'], // Ignore stderr
+        },
+      );
+    } catch (error) {
+      if (error.stdout) {
+        oxlintCustomRuleOutput = error.stdout.toString();
+      } else {
+        throw error;
+      }
+    }
 
     // Parse Oxlint output for custom rules
     const oxlintCustomRuleResults = JSON.parse(oxlintCustomRuleOutput);
