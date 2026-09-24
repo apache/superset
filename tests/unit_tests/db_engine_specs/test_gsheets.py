@@ -707,7 +707,10 @@ def test_get_oauth2_token(
     """
     from superset.db_engine_specs.gsheets import GSheetsEngineSpec
 
-    requests = mocker.patch("superset.db_engine_specs.base.requests")
+    mock_get_requester = mocker.patch(
+        "superset.db_engine_specs.base.get_ssrf_safe_requester"
+    )
+    requests = mock_get_requester.return_value
     requests.post().json.return_value = {
         "access_token": "access-token",
         "expires_in": 3600,
@@ -733,6 +736,7 @@ def test_get_oauth2_token(
             "grant_type": "authorization_code",
         },
         timeout=30.0,
+        allow_redirects=False,
     )
 
 
@@ -745,7 +749,10 @@ def test_get_oauth2_fresh_token(
     """
     from superset.db_engine_specs.gsheets import GSheetsEngineSpec
 
-    requests = mocker.patch("superset.db_engine_specs.base.requests")
+    mock_get_requester = mocker.patch(
+        "superset.db_engine_specs.base.get_ssrf_safe_requester"
+    )
+    requests = mock_get_requester.return_value
     requests.post().json.return_value = {
         "access_token": "access-token",
         "expires_in": 3600,
@@ -770,6 +777,7 @@ def test_get_oauth2_fresh_token(
             "grant_type": "refresh_token",
         },
         timeout=30.0,
+        allow_redirects=False,
     )
 
 
@@ -904,7 +912,10 @@ def test_get_oauth2_fresh_token_success(
     """
     from superset.db_engine_specs.gsheets import GSheetsEngineSpec
 
-    requests = mocker.patch("superset.db_engine_specs.base.requests")
+    mock_get_requester = mocker.patch(
+        "superset.db_engine_specs.base.get_ssrf_safe_requester"
+    )
+    requests = mock_get_requester.return_value
     requests.post().json.return_value = {
         "access_token": "new-access-token",
         "expires_in": 3600,
@@ -928,7 +939,10 @@ def test_get_oauth2_fresh_token_invalid_grant(
     """
     from superset.db_engine_specs.gsheets import GSheetsEngineSpec
 
-    requests = mocker.patch("superset.db_engine_specs.base.requests")
+    mock_get_requester = mocker.patch(
+        "superset.db_engine_specs.base.get_ssrf_safe_requester"
+    )
+    requests = mock_get_requester.return_value
     requests.post().status_code = 400
     requests.post().text = (
         '{"error": "invalid_grant",'
@@ -955,7 +969,10 @@ def test_get_oauth2_fresh_token_other_http_error(
     http_error = HTTPError()
     http_error.response = mock_response
 
-    requests = mocker.patch("superset.db_engine_specs.base.requests")
+    mock_get_requester = mocker.patch(
+        "superset.db_engine_specs.base.get_ssrf_safe_requester"
+    )
+    requests = mock_get_requester.return_value
     requests.post().raise_for_status.side_effect = http_error
 
     with pytest.raises(HTTPError):
