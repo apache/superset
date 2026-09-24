@@ -200,6 +200,16 @@ Scheduled report and alert captures require chart readiness to remain stable
 immediately before Chromium captures the image. A capture that re-enters a loading
 state during that window fails instead of delivering a screenshot with spinners.
 
+### Improve Db2 Time Grain Expressions
+The Db2 engine spec has been streamlined by using the DATE_TRUNC scalar function,
+which requires Db2 11.1.0 or higher. Per the ISO 8601 standards, the `WEEK` time
+grain now shifts the first day of the week to Monday as part of this change.
+
+### Update IBM Db2 for i Time Grain Expressions
+IBM Db2 for i inherits its engine spec from Db2 but does not support the DATE_TRUNC
+scalar function, so it will use the previous arithmetic expressions defined for Db2.
+Its `WEEK` time grain now uses `DAYOFWEEK_ISO` to align with the Db2 change.
+
 ### Scheduled rendered reports fail closed after capture rejection
 
 Scheduled PDF and PNG delivery requires an accepted report capture context. A
@@ -904,19 +914,51 @@ Note that a retried query returns partial data with no truncation indicator
 (e.g. a filter dropdown may list only a subset of values on tables above the
 row cap).
 
-### Dashboard "Export Data to Excel" requires a Celery worker and S3 bucket
+### Dashboard "Export Data to Excel" moves from `EXCEL_EXPORT_S3_*` to `EXPORT_STORAGE`
 
 A new dashboard action exports every chart's data to a single multi-sheet
 `.xlsx` asynchronously. It is disabled by default and turns on only when
-`EXCEL_EXPORT_S3_BUCKET` is set (the endpoint returns `501` otherwise). It also
-requires a running Celery worker and a configured SMTP transport, since the task
-emails the requesting user a pre-signed download link. New config keys:
-`EXCEL_EXPORT_S3_BUCKET`, `EXCEL_EXPORT_S3_KEY_PREFIX`,
-`EXCEL_EXPORT_LINK_TTL_SECONDS`, `EXCEL_EXPORT_S3_CLIENT_KWARGS`,
+`EXPORT_STORAGE` is configured with both a `bucket` and a `backend` (the
+endpoint returns `501` otherwise) — there is no implicit storage default:
+
+```python
+from superset.utils.s3 import S3ExportStorage  # or superset.utils.gcs.GCSExportStorage
+
+EXPORT_STORAGE = {
+    "bucket": "my-export-bucket",
+    "backend": S3ExportStorage(),
+}
+```
+
+**Upgrading from `EXCEL_EXPORT_S3_*`:** the S3-only config keys are removed and
+replaced by the pluggable `EXPORT_STORAGE` above. They are no longer read, so a
+deployment that had the export working keeps a valid-looking config while the
+endpoint starts returning `501`. Port each key:
+
+| Removed | Replacement |
+| --- | --- |
+| `EXCEL_EXPORT_S3_BUCKET = "my-bucket"` | `EXPORT_STORAGE["bucket"] = "my-bucket"` |
+| `EXCEL_EXPORT_S3_KEY_PREFIX = "prefix/"` | `EXPORT_STORAGE["key_prefix"] = "prefix/"` |
+| `EXCEL_EXPORT_S3_CLIENT_KWARGS = {...}` | `EXPORT_STORAGE["backend"] = S3ExportStorage(client_kwargs={...})` |
+
+`EXPORT_STORAGE["backend"]` has no default and must be set explicitly, which is
+the part an upgrade cannot infer: the previous config implied S3, so keep the
+same bucket with `S3ExportStorage()`. `EXCEL_EXPORT_LINK_TTL_SECONDS` is
+unchanged in name, but it now bounds a Superset-issued link rather than a
+pre-signed S3 URL, so the AWS seven day ceiling no longer applies.
+
+It also requires a running Celery worker. SMTP is optional and only used to
+additionally email logged-in users a download link; every session (including
+guest/Public ones, which have no email) gets the export through status polling
+and automatic download. Config keys:
+`EXPORT_STORAGE`, `EXCEL_EXPORT_LINK_TTL_SECONDS`,
 `EXCEL_EXPORT_TABLE_VIZ_TYPES`, and `EXCEL_EXPORT_QUERY_CONTEXT_BUILDER`.
 
-The feature depends on `boto3`, which is **not** installed by default; install it
-with `pip install apache-superset[excel-export]`.
+The storage backends depend on SDKs that are **not** installed by default:
+install `pip install apache-superset[excel-export]` (boto3) for
+`S3ExportStorage`, or `pip install apache-superset[excel-export-gcs]`
+(google-cloud-storage) for `GCSExportStorage`. A custom backend can be supplied
+by implementing `superset.utils.export_storage.ExportStorage`.
 
 Charts store their `query_context` only once they have been (re-)saved in
 Explore, so older charts may have none. For a fixed, conservative set of viz
