@@ -366,7 +366,7 @@ test('shouldFocusMarkdown returns true when clicking inside markdown container',
     'dashboard-component-chart-holder',
   );
 
-  userEvent.click(markdownContainer);
+  await userEvent.click(markdownContainer);
 
   expect(await screen.findByRole('textbox')).toBeInTheDocument();
 });
@@ -378,11 +378,11 @@ test('shouldFocusMarkdown returns false when clicking outside markdown container
     'dashboard-component-chart-holder',
   );
 
-  userEvent.click(markdownContainer);
+  await userEvent.click(markdownContainer);
 
   expect(await screen.findByRole('textbox')).toBeInTheDocument();
 
-  userEvent.click(document.body);
+  await userEvent.click(document.body);
   await new Promise(resolve => setTimeout(resolve, 50));
 
   expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
@@ -396,16 +396,16 @@ test('should re-enter edit mode on a single click after clicking outside', async
   );
 
   // Click to enter edit mode
-  userEvent.click(markdownContainer);
+  await userEvent.click(markdownContainer);
   expect(await screen.findByRole('textbox')).toBeInTheDocument();
 
   // Click outside to exit edit mode
-  userEvent.click(document.body);
+  await userEvent.click(document.body);
   await new Promise(resolve => setTimeout(resolve, 50));
   expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
 
   // Click back inside — editor should appear on a single click
-  userEvent.click(markdownContainer);
+  await userEvent.click(markdownContainer);
   expect(await screen.findByRole('textbox')).toBeInTheDocument();
 });
 
@@ -416,13 +416,13 @@ test('shouldFocusMarkdown keeps focus when clicking on menu items', async () => 
     'dashboard-component-chart-holder',
   );
 
-  userEvent.click(markdownContainer);
+  await userEvent.click(markdownContainer);
 
   expect(await screen.findByRole('textbox')).toBeInTheDocument();
 
   const editButton = screen.getByText('Edit');
 
-  userEvent.click(editButton);
+  await userEvent.click(editButton);
 
   expect(await screen.findByRole('textbox')).toBeInTheDocument();
 });
@@ -434,7 +434,7 @@ test('should exit edit mode when clicking outside in same row', async () => {
     'dashboard-component-chart-holder',
   );
 
-  userEvent.click(markdownContainer);
+  await userEvent.click(markdownContainer);
 
   expect(await screen.findByRole('textbox')).toBeInTheDocument();
 
@@ -442,7 +442,7 @@ test('should exit edit mode when clicking outside in same row', async () => {
   outsideElement.className = 'grid-row';
   document.body.appendChild(outsideElement);
 
-  userEvent.click(outsideElement);
+  await userEvent.click(outsideElement);
   await new Promise(resolve => setTimeout(resolve, 50));
 
   expect(screen.queryByRole('textbox')).not.toBeInTheDocument();

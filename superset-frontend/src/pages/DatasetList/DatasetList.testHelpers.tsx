@@ -355,6 +355,7 @@ export const mockApiError404 = {
 
 // API endpoint constants
 export const API_ENDPOINTS = {
+  SEMANTIC_LAYERS: 'glob:*/api/v1/semantic_layer/?*',
   DATASETS_INFO: 'glob:*/api/v1/dataset/_info*',
   DATASETS: 'glob:*/api/v1/dataset/?*',
   DATASOURCE_COMBINED: 'glob:*/api/v1/datasource/?*',

@@ -27,6 +27,24 @@ const mockedProps: Omit<ConfirmStatusChangeProps, 'children'> = {
   onConfirm: jest.fn(),
 };
 
+test('forwards the primary button label and style to the opened modal', () => {
+  const { getByTestId, getByRole } = render(
+    <ConfirmStatusChange
+      {...mockedProps}
+      primaryButtonName="Retire"
+      primaryButtonStyle="primary"
+    >
+      {confirm => <Button data-test="trigger" onClick={confirm} />}
+    </ConfirmStatusChange>,
+  );
+
+  fireEvent.click(getByTestId('trigger'));
+
+  const button = getByRole('button', { name: 'Retire' });
+  expect(button).toBeInTheDocument();
+  expect(button).not.toHaveClass('ant-btn-dangerous');
+});
+
 test('renders children with showConfirm function', () => {
   const childrenSpy = jest.fn().mockReturnValue(<div>test content</div>);
 

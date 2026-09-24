@@ -41,3 +41,8 @@ test('normalizeTimestamp should return unmatched timestamps as-is', () => {
   expect(normalizeTimestamp('abcd')).toEqual('abcd');
   expect(normalizeTimestamp('03/11/2023')).toEqual('03/11/2023');
 });
+
+test('normalizeTimestamp should normalize bare date-only strings to UTC midnight', () => {
+  expect(normalizeTimestamp('2023-03-11')).toEqual('2023-03-11T00:00:00Z');
+  expect(normalizeTimestamp('2023-08-01')).toEqual('2023-08-01T00:00:00Z');
+});

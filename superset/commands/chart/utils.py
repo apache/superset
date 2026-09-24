@@ -21,7 +21,19 @@ from marshmallow import ValidationError
 from superset.commands.chart.exceptions import (
     ChartQueryContextDatasourceMismatchValidationError,
 )
+from superset.commands.exceptions import DatasourceTypeInvalidError
 from superset.utils import json
+from superset.utils.core import DatasourceType
+
+
+def validate_chart_datasource_type(datasource_type: str) -> None:
+    """Accept persistent chart sources with names and type-aware access policies.
+
+    SQL Lab queries are registered datasource types but are not persistent
+    chart sources; accepting all DatasourceDAO registrations would include them.
+    """
+    if datasource_type not in (DatasourceType.TABLE, DatasourceType.SEMANTIC_VIEW):
+        raise DatasourceTypeInvalidError()
 
 
 def validate_query_context_datasource(

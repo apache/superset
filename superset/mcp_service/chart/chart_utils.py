@@ -28,6 +28,7 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Any, Dict, TYPE_CHECKING
 
+from pydantic import ValidationError
 from sqlalchemy.exc import SQLAlchemyError
 
 if TYPE_CHECKING:
@@ -37,12 +38,14 @@ from superset.constants import NO_TIME_RANGE
 from superset.mcp_service.chart.schemas import (
     BigNumberChartConfig,
     BoxPlotChartConfig,
+    BubbleChartConfig,
     ChartCapabilities,
     ChartConfig,
     ChartSemantics,
     ColumnRef,
     CurrencyFormat,
     FilterConfig,
+    GanttChartConfig,
     GaugeChartConfig,
     HandlebarsChartConfig,
     HistogramChartConfig,
@@ -52,12 +55,14 @@ from superset.mcp_service.chart.schemas import (
     SortByConfig,
     TableChartConfig,
     TreemapChartConfig,
+    TreemapChartUpdateConfig,
     WaterfallChartConfig,
     XYChartConfig,
 )
 from superset.mcp_service.chart.validation.dataset_validator import (
     is_dataset_column_temporal,
 )
+from superset.mcp_service.common.error_schemas import DatasetContext
 from superset.mcp_service.utils.url_utils import get_superset_base_url
 from superset.utils import json
 from superset.utils.core import FilterOperator
@@ -600,6 +605,29 @@ def merge_interactive_pivot_ui_config(
         new_form_data["pivot_table_state"] = {**existing_state, **new_state}
 
 
+_GANTT_PRESENTATION_KEYS = frozenset(
+    {
+        "color_scheme",
+        "legendMargin",
+        "legendOrientation",
+        "legendSort",
+        "legendType",
+        "show_extra_controls",
+        "show_legend",
+        "subcategories",
+        "tooltipTimeFormat",
+        "tooltipValuesFormat",
+        "x_axis_time_bounds",
+        "x_axis_time_format",
+        "x_axis_title",
+        "x_axis_title_margin",
+        "y_axis_title",
+        "y_axis_title_margin",
+        "zoomable",
+    }
+)
+
+
 _GAUGE_FORM_DATA_FIELD_MAP: dict[str, str] = {
     "groupby": "groupby",
     "sort_by_metric": "sort_by_metric",
@@ -652,6 +680,164 @@ _GAUGE_PRESENTATION_FORM_DATA_KEYS = frozenset(
 )
 
 
+def validate_gantt_form_data(
+    form_data: Mapping[str, Any],
+    dataset_id: int | str | None = None,
+    dataset_context: DatasetContext | None = None,
+) -> GanttChartConfig | None:
+    """Adapt and validate final native Gantt state after presentation merging.
+
+    Update requests are typed before native UI state is preserved, so validating
+    only the request can miss conflicts introduced by the merge. When dataset
+    metadata is available, run the adapted final state through canonical column
+    resolution as well; this catches aliases that resolve to the same physical
+    column rather than comparing native strings in isolation.
+    """
+    if form_data.get("viz_type") != "gantt_chart":
+        return None
+
+    from superset.mcp_service.chart.validation.dataset_validator import (
+        DatasetValidator,
+        GanttSemanticNormalizationError,
+    )
+
+    try:
+        config = GanttChartConfig.model_validate(dict(form_data))
+    except ValidationError as ex:
+        reasons = "; ".join(error["msg"] for error in ex.errors()[:3])
+        raise GanttSemanticNormalizationError(
+            f"Merged Gantt form data is invalid: {reasons}"
+        ) from ex
+
+    if dataset_id is None:
+        return config
+    return DatasetValidator.normalize_column_names(
+        config,
+        dataset_id,
+        dataset_context=dataset_context,
+    )
+
+
+def _preserve_gantt_adhoc_filters(
+    new_form_data: dict[str, Any],
+    previous_form_data: dict[str, Any],
+    config: GanttChartConfig,
+) -> None:
+    """Reconcile Gantt's single time binding while preserving omitted predicates."""
+    previous_filters = previous_form_data.get("adhoc_filters")
+    if not isinstance(previous_filters, list) or not previous_filters:
+        return
+
+    generated_filters = new_form_data.get("adhoc_filters", [])
+    # The marker identifies a temporal subject, not ownership of its current
+    # comparator: Explore edits and earlier MCP updates may set an active range
+    # on that same subject. Only discard inactive placeholders here; reconcile
+    # active predicates below using the fields explicitly supplied by the caller.
+    merged_filters = [
+        filter_
+        for filter_ in previous_filters
+        if not (
+            isinstance(filter_, dict)
+            and filter_.get("operator") == FilterOperator.TEMPORAL_RANGE.value
+            and new_form_data.get(MCP_DASHBOARD_TIME_FILTER_SUBJECT)
+            and filter_.get("comparator") == NO_TIME_RANGE
+            and filter_.get("expressionType") == "SIMPLE"
+            and filter_.get("clause") == "WHERE"
+        )
+    ]
+    native_temporal = [
+        filter_
+        for filter_ in merged_filters
+        if isinstance(filter_, dict)
+        and filter_.get("operator") == FilterOperator.TEMPORAL_RANGE.value
+        and filter_.get("expressionType") == "SIMPLE"
+        and filter_.get("clause") == "WHERE"
+    ]
+    if len(native_temporal) == 1:
+        if {"temporal_column", "time_range"} & config.model_fields_set:
+            # An explicit temporal update replaces the one native time predicate.
+            merged_filters.remove(native_temporal[0])
+        else:
+            # Keep an Explore-authored range instead of adding a second binding.
+            generated_filters = [
+                filter_
+                for filter_ in generated_filters
+                if not (
+                    isinstance(filter_, dict)
+                    and filter_.get("operator") == FilterOperator.TEMPORAL_RANGE.value
+                )
+            ]
+            # The retained predicate is user-owned, not a generated binding.
+            new_form_data.pop(MCP_DASHBOARD_TIME_FILTER_SUBJECT, None)
+
+    for generated_filter in generated_filters:
+        if not isinstance(generated_filter, dict):
+            if generated_filter not in merged_filters:
+                merged_filters.append(generated_filter)
+            continue
+
+        # Replace an equivalent cached filter rather than deduplicating it: an
+        # unchanged temporal subject can still have a newly supplied comparator.
+        merged_filters = [
+            previous_filter
+            for previous_filter in merged_filters
+            if not (
+                isinstance(previous_filter, dict)
+                and previous_filter.get("clause") == generated_filter.get("clause")
+                and previous_filter.get("expressionType")
+                == generated_filter.get("expressionType")
+                and previous_filter.get("subject") == generated_filter.get("subject")
+                and previous_filter.get("operator") == generated_filter.get("operator")
+            )
+        ]
+        merged_filters.append(generated_filter)
+
+    new_form_data["adhoc_filters"] = merged_filters
+
+
+def merge_gantt_ui_config(
+    previous_form_data: Mapping[str, Any], new_form_data: Dict[str, Any]
+) -> GanttChartConfig | None:
+    """Preserve omitted native Gantt presentation and dependent series state.
+
+    ``subcategories`` is only meaningful with ``series``. An omitted pair is
+    preserved together, an explicit series replacement keeps an omitted valid
+    subcategory setting, and explicit series removal disables subcategories.
+    """
+    if (
+        previous_form_data.get("viz_type") != "gantt_chart"
+        or new_form_data.get("viz_type") != "gantt_chart"
+    ):
+        return None
+    series_was_supplied = "series" in new_form_data
+    subcategories_was_supplied = "subcategories" in new_form_data
+
+    if not series_was_supplied and "series" in previous_form_data:
+        new_form_data["series"] = previous_form_data["series"]
+
+    for key in _GANTT_PRESENTATION_KEYS:
+        if key not in new_form_data and key in previous_form_data:
+            new_form_data[key] = previous_form_data[key]
+
+    if not new_form_data.get("series") and new_form_data.get("subcategories"):
+        # Explicit series removal wins over an omitted or stale presentation
+        # value. Persisting subcategories=True without series cannot be rendered
+        # coherently by the frontend.
+        new_form_data["subcategories"] = False
+    elif (
+        not series_was_supplied
+        and not subcategories_was_supplied
+        and not new_form_data.get("series")
+    ):
+        # Do not carry forward an already-inconsistent native payload.
+        new_form_data.pop("subcategories", None)
+
+    # Every caller gets the same post-merge semantic gate. Product paths run
+    # this helper again with dataset metadata before query, cache, or persistence
+    # so physical aliases are resolved canonically as well.
+    return validate_gantt_form_data(new_form_data)
+
+
 def _without_generated_gauge_time_filter(
     form_data: dict[str, Any],
 ) -> list[Any]:
@@ -672,6 +858,115 @@ def _without_generated_gauge_time_filter(
     ]
 
 
+def resolve_treemap_update_config(
+    config: ChartConfig | TreemapChartUpdateConfig,
+    existing: dict[str, Any],
+    *,
+    dataset_rebind: bool = False,
+) -> ChartConfig:
+    """Fill omitted required roles only from an authorized same-dataset Treemap."""
+    if not isinstance(config, TreemapChartUpdateConfig) or isinstance(
+        config, TreemapChartConfig
+    ):
+        return config
+    values = config.model_dump(exclude_unset=True)
+    if existing.get("viz_type") == "treemap_v2" and not dataset_rebind:
+        for field in ("groupby", "metric"):
+            if field not in config.model_fields_set and field in existing:
+                values[field] = existing[field]
+    resolved = TreemapChartConfig.model_validate(values)
+    resolved.__pydantic_fields_set__ = set(config.model_fields_set)
+    return resolved
+
+
+_TREEMAP_PRESENTATION_KEYS = frozenset(
+    {
+        "color_scheme",
+        "show_labels",
+        "show_upper_labels",
+        "label_type",
+        "label_position",
+        "number_format",
+        "date_format",
+        "currency_format",
+    }
+)
+
+
+def _merge_treemap_filters(
+    existing: dict[str, Any],
+    patch: dict[str, Any],
+    config: TreemapChartConfig,
+    dataset_rebind: bool,
+) -> None:
+    """Separate explicit filter/temporal changes from mapper-generated defaults."""
+    fields = config.model_fields_set
+    if "temporal_column" in fields and config.temporal_column is None:
+        patch["adhoc_filters"] = _without_generated_gauge_time_filter(patch)
+        patch.pop(MCP_DASHBOARD_TIME_FILTER_SUBJECT, None)
+    if dataset_rebind:
+        return
+    if "temporal_column" not in fields:
+        # Discard the mapper's default binding before removing its provenance.
+        patch["adhoc_filters"] = _without_generated_gauge_time_filter(patch)
+        patch.pop(MCP_DASHBOARD_TIME_FILTER_SUBJECT, None)
+        if "filters" in fields and config.filters:
+            if subject := existing.get(MCP_DASHBOARD_TIME_FILTER_SUBJECT):
+                patch[MCP_DASHBOARD_TIME_FILTER_SUBJECT] = subject
+            preserve_previous_adhoc_filters(patch, existing)
+    if "filters" not in fields:
+        if "temporal_column" in fields:
+            inherited = (
+                [] if dataset_rebind else _without_generated_gauge_time_filter(existing)
+            )
+            patch["adhoc_filters"] = [*inherited, *patch.get("adhoc_filters", [])]
+        else:
+            patch.pop("adhoc_filters", None)
+
+
+def _merge_treemap_form_data(
+    existing: dict[str, Any],
+    generated: dict[str, Any],
+    config: TreemapChartConfig,
+    dataset_rebind: bool,
+) -> dict[str, Any]:
+    """Apply only explicit controls; never inherit query roles across datasets."""
+    fields = config.model_fields_set
+    merged = {
+        key: value
+        for key, value in existing.items()
+        if not dataset_rebind or key in _TREEMAP_PRESENTATION_KEYS
+    }
+    patch = dict(generated)
+    for field in type(config).model_fields:
+        if field not in fields and (
+            not dataset_rebind or field in _TREEMAP_PRESENTATION_KEYS
+        ):
+            patch.pop(field, None)
+    _merge_treemap_filters(existing, patch, config, dataset_rebind)
+    merged.update(patch)
+    for field in fields:
+        if getattr(config, field) is None:
+            merged.pop(field, None)
+    if "filters" in fields and not config.filters:
+        merged.pop("adhoc_filters", None)
+        merged.pop(MCP_DASHBOARD_TIME_FILTER_SUBJECT, None)
+    if "temporal_column" in fields and config.temporal_column is None:
+        merged.pop(MCP_DASHBOARD_TIME_FILTER_SUBJECT, None)
+    # These roles belong to other plugins and must not affect Treemap queries.
+    for key in (
+        "metrics",
+        "columns",
+        "all_columns",
+        "x_axis",
+        "groupby_b",
+        "metrics_b",
+        "order_by_cols",
+    ):
+        merged.pop(key, None)
+    return merged
+
+
 def merge_chart_form_data(  # noqa: C901
     existing_form_data: dict[str, Any],
     new_form_data: dict[str, Any],
@@ -687,6 +982,28 @@ def merge_chart_form_data(  # noqa: C901
     """
     if existing_form_data.get("viz_type") != new_form_data.get("viz_type"):
         return dict(new_form_data)
+    if isinstance(config, TreemapChartConfig):
+        return _merge_treemap_form_data(
+            existing_form_data, new_form_data, config, dataset_rebind
+        )
+    if isinstance(config, GanttChartConfig):
+        merged = dict(new_form_data)
+        if not dataset_rebind:
+            for config_field, form_key in (
+                ("tooltip_columns", "tooltip_columns"),
+                ("tooltip_metrics", "tooltip_metrics"),
+                ("order_by", "order_by_cols"),
+                ("row_limit", "row_limit"),
+            ):
+                if (
+                    config_field not in config.model_fields_set
+                    and form_key in existing_form_data
+                ):
+                    merged[form_key] = existing_form_data[form_key]
+            merge_gantt_ui_config(existing_form_data, merged)
+            if config.filters is None:
+                _preserve_gantt_adhoc_filters(merged, existing_form_data, config)
+        return merged
     if not isinstance(config, GaugeChartConfig):
         if dataset_rebind:
             return dict(new_form_data)
@@ -694,6 +1011,11 @@ def merge_chart_form_data(  # noqa: C901
         if "filters" not in fields_set:
             preserve_previous_adhoc_filters(new_form_data, existing_form_data)
         merged = {**existing_form_data, **new_form_data}
+        # Preserve the shared color/limit controls when omitted. Chart-specific
+        # presentation defaults retain their existing mapper behavior.
+        for field in ("color_scheme", "row_limit"):
+            if field not in fields_set and field in existing_form_data:
+                merged[field] = existing_form_data[field]
         # An explicitly empty collection clears the control rather than
         # falling through to the inherited value.
         for config_field, form_data_field in (
@@ -986,12 +1308,33 @@ def _ensure_generated_temporal_binding(form_data: Dict[str, Any], column: str) -
         form_data[MCP_DASHBOARD_TIME_FILTER_SUBJECT] = column
 
 
-def _bind_dashboard_time_range_filter(
+def _uses_mapper_owned_temporal_binding(
+    form_data: Dict[str, Any], dataset_id: int | str | None
+) -> bool:
+    """Whether a mapper supplied a validated natural time-filter binding."""
+    existing_binding = form_data.get(MCP_DASHBOARD_TIME_FILTER_SUBJECT)
+    if not isinstance(existing_binding, str) or not any(
+        isinstance(filter_, dict)
+        and filter_.get("operator") == FilterOperator.TEMPORAL_RANGE.value
+        and filter_.get("subject") == existing_binding
+        for filter_ in form_data.get("adhoc_filters", [])
+    ):
+        return False
+    # Mappers such as Gantt own their natural time field even though it is
+    # neither x_axis nor granularity_sqla. Validate the physical type rather
+    # than trusting the internal marker alone.
+    return _is_temporal_for_dashboard_binding(existing_binding, dataset_id)
+
+
+def _bind_dashboard_time_range_filter(  # noqa: C901
     form_data: Dict[str, Any],
     config: ChartConfig,
     dataset_id: int | str | None,
 ) -> None:
     """Bind charts without time configuration to a temporal filter subject."""
+    if _uses_mapper_owned_temporal_binding(form_data, dataset_id):
+        return
+
     if temporal_column := getattr(config, "temporal_column", None):
         if _is_temporal_for_dashboard_binding(temporal_column, dataset_id):
             granularity = form_data.get("granularity_sqla")
@@ -1276,6 +1619,39 @@ def map_treemap_config(config: TreemapChartConfig) -> Dict[str, Any]:
         "row_limit": config.row_limit,
         "color_scheme": config.color_scheme or "supersetColors",
     }
+    for key in _TREEMAP_PRESENTATION_KEYS | {
+        "time_range",
+        "granularity_sqla",
+        "template_params",
+    }:
+        value = getattr(config, key)
+        if value is not None:
+            form_data[key] = (
+                value.to_form_data() if isinstance(value, CurrencyFormat) else value
+            )
+    _add_adhoc_filters(form_data, config.filters)
+    return form_data
+
+
+def map_bubble_config(config: BubbleChartConfig) -> Dict[str, Any]:
+    """Map bubble config to Superset form_data (viz_type ``bubble_v2``).
+
+    Matches the frontend Bubble buildQuery contract: an ``entity`` dimension
+    plus three separate metric keys — ``x``, ``y``, ``size`` — that the query
+    layer aliases into ``metrics``; an optional ``series`` dimension colours
+    the bubbles by group.
+    """
+    form_data: Dict[str, Any] = {
+        "viz_type": "bubble_v2",
+        "entity": config.entity.name,
+        "x": create_metric_object(config.x),
+        "y": create_metric_object(config.y),
+        "size": create_metric_object(config.size),
+        "row_limit": config.row_limit,
+        "color_scheme": config.color_scheme or "supersetColors",
+    }
+    if config.series:
+        form_data["series"] = config.series.name
     _add_adhoc_filters(form_data, config.filters)
     return form_data
 
@@ -1370,6 +1746,87 @@ def map_waterfall_config(config: WaterfallChartConfig) -> Dict[str, Any]:
         form_data["granularity_sqla"] = config.x_axis.name
     add_currency_format(form_data, config.currency_format)
     _add_adhoc_filters(form_data, config.filters)
+    return form_data
+
+
+def map_gantt_config(config: GanttChartConfig) -> Dict[str, Any]:
+    """Map typed Gantt config to the exact ECharts Gantt form-data contract."""
+    form_data: Dict[str, Any] = {
+        "viz_type": "gantt_chart",
+        "start_time": config.start_time.name,
+        "end_time": config.end_time.name,
+        "y_axis": config.category.name,
+        "tooltip_columns": [column.name for column in config.tooltip_columns],
+        "tooltip_metrics": [
+            create_metric_object(metric) for metric in config.tooltip_metrics
+        ],
+        "order_by_cols": [
+            json.dumps([order.column, order.ascending]) for order in config.order_by
+        ],
+        "row_limit": config.row_limit,
+    }
+    if config.series is not None:
+        form_data["series"] = config.series.name
+    elif "series" in config.model_fields_set:
+        # Preserve explicit removal intent for update merges. Native Gantt treats
+        # null the same as an absent series control.
+        form_data["series"] = None
+    if config.time_range is not None:
+        form_data["time_range"] = config.time_range
+
+    # Only explicitly supplied presentation fields are persisted. Update paths
+    # merge native values for omitted controls; fresh charts use frontend defaults.
+    presentation_fields = {
+        "color_scheme": ("color_scheme", config.color_scheme),
+        "show_legend": ("show_legend", config.show_legend),
+        "legend_orientation": ("legendOrientation", config.legend_orientation),
+        "legend_type": ("legendType", config.legend_type),
+        "legend_margin": ("legendMargin", config.legend_margin),
+        "legend_sort": ("legendSort", config.legend_sort),
+        "zoomable": ("zoomable", config.zoomable),
+        "subcategories": ("subcategories", config.subcategories),
+        "show_extra_controls": (
+            "show_extra_controls",
+            config.show_extra_controls,
+        ),
+        "x_axis_time_bounds": (
+            "x_axis_time_bounds",
+            list(config.x_axis_time_bounds) if config.x_axis_time_bounds else None,
+        ),
+        "x_axis_time_format": ("x_axis_time_format", config.x_axis_time_format),
+        "tooltip_time_format": ("tooltipTimeFormat", config.tooltip_time_format),
+        "tooltip_values_format": (
+            "tooltipValuesFormat",
+            config.tooltip_values_format,
+        ),
+        "x_axis_title": ("x_axis_title", config.x_axis_title),
+        "x_axis_title_margin": (
+            "x_axis_title_margin",
+            config.x_axis_title_margin,
+        ),
+        "y_axis_title": ("y_axis_title", config.y_axis_title),
+        "y_axis_title_margin": (
+            "y_axis_title_margin",
+            config.y_axis_title_margin,
+        ),
+    }
+    for field_name, (form_key, value) in presentation_fields.items():
+        if field_name in config.model_fields_set:
+            form_data[form_key] = value
+
+    _add_adhoc_filters(form_data, config.filters)
+    temporal_binding = config.temporal_column or config.start_time.name
+    if temporal_binding:
+        _ensure_generated_temporal_binding(form_data, temporal_binding)
+        if config.time_range:
+            for filter_ in form_data.get("adhoc_filters", []):
+                if (
+                    isinstance(filter_, dict)
+                    and filter_.get("operator") == FilterOperator.TEMPORAL_RANGE.value
+                    and filter_.get("subject") == temporal_binding
+                    and filter_.get("comparator") == NO_TIME_RANGE
+                ):
+                    filter_["comparator"] = config.time_range
     return form_data
 
 
@@ -1813,6 +2270,13 @@ def _treemap_chart_what(config: TreemapChartConfig) -> str:
     return f"{metric_label}"
 
 
+def _bubble_chart_what(config: BubbleChartConfig) -> str:
+    """Build the 'what' portion for a bubble chart name."""
+    x_label = config.x.label or config.x.name or config.x.sql_expression
+    y_label = config.y.label or config.y.name or config.y.sql_expression
+    return f"{config.entity.name}: {x_label} vs {y_label}"
+
+
 def _pivot_table_what(config: PivotTableChartConfig) -> str:
     """Build the 'what' portion for a pivot table chart name."""
     # Pivot rows reject sql_expression at validation, so name is set.
@@ -1919,6 +2383,19 @@ def get_table_chart_type_label(viz_type: str | None) -> str | None:
     return TABLE_VIZ_TYPE_LABELS.get(viz_type) if viz_type is not None else None
 
 
+def _as_column_list(value: Any) -> list[Any]:
+    """Normalize a config field that holds one column or a list of them.
+
+    Most chart configs type ``y`` as a list, but some (bubble) carry a single
+    column, so the shared analyzers below must accept either shape.
+    """
+    if value is None:
+        return []
+    if isinstance(value, list):
+        return list(value)
+    return [value]
+
+
 def analyze_chart_capabilities(viz_type: str | None, config: Any) -> ChartCapabilities:
     """Analyze chart capabilities based on type and configuration."""
     if not viz_type:
@@ -1959,7 +2436,7 @@ def analyze_chart_capabilities(viz_type: str | None, config: Any) -> ChartCapabi
     if hasattr(config, "x") and config.x:
         data_types.append("categorical" if not config.x.is_metric else "metric")
     if hasattr(config, "y") and config.y:
-        data_types.extend(["metric"] * len(config.y))
+        data_types.extend(["metric"] * len(_as_column_list(config.y)))
     if "time" in viz_type or "timeseries" in viz_type:
         data_types.append("time_series")
 
@@ -2020,12 +2497,16 @@ def analyze_chart_semantics(viz_type: str | None, config: Any) -> ChartSemantics
 
     # Generate data story
     columns = []
+    # SQL metrics have no name; fall back to label or the expression. Bubble
+    # puts a metric in x as well as y, so both sides need the fallback.
     if hasattr(config, "x") and config.x:
-        columns.append(config.x.name)
+        columns.append(config.x.name or config.x.label or config.x.sql_expression)
     if hasattr(config, "y") and config.y:
-        # SQL metrics have no name; fall back to label or the expression.
         columns.extend(
-            [col.name or col.label or col.sql_expression for col in config.y]
+            [
+                col.name or col.label or col.sql_expression
+                for col in _as_column_list(config.y)
+            ]
         )
 
     if columns:
