@@ -68,7 +68,14 @@ import SyncDashboardState, {
   getDashboardContextLocalStorage,
 } from '../components/SyncDashboardState';
 import { AutoRefreshProvider } from '../contexts/AutoRefreshContext';
-import { Filter, PartialFilters, SupersetApiError } from '@superset-ui/core';
+import {
+  Filter,
+  Divider,
+  ChartCustomization,
+  ChartCustomizationDivider,
+  PartialFilters,
+  SupersetApiError,
+} from '@superset-ui/core';
 import { RoutePaths } from 'src/views/routePaths';
 import { selectIsDashboardVersionPreviewActive } from 'src/features/versionHistory/reducer';
 import {
@@ -110,7 +117,10 @@ function saveDashboardFilters(
   dashboardId: number,
   userId: number | undefined,
   nativeFilterMask: Record<string, unknown>,
-  nativeFilters: Record<string, any>,
+  nativeFilters: Record<
+    string,
+    Filter | Divider | ChartCustomization | ChartCustomizationDivider
+  >,
 ) {
   try {
     const key = getStorageKey(dashboardId, userId);
