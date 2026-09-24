@@ -293,6 +293,12 @@ class QueryContextFactory:  # pylint: disable=too-few-public-methods
             legacy_granularity = (form_data or {}).get("granularity_sqla") or getattr(
                 datasource, "main_dttm_col", None
             )
+            # ``granularity_sqla`` is only schema-checked as a string on the
+            # chart API; a saved ``form_data`` can still carry an adhoc column
+            # here, and ``temporal_columns`` is a set, so testing membership
+            # with the raw value would raise "unhashable type: 'dict'".
+            if isinstance(legacy_granularity, dict):
+                legacy_granularity = legacy_granularity.get("sqlExpression")
             if legacy_granularity in temporal_columns:
                 query_object.granularity = legacy_granularity
 

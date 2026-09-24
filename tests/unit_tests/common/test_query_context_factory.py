@@ -814,3 +814,32 @@ class TestQueryContextFactory:
         self.factory._apply_granularity(query_object, form_data, datasource)
 
         assert query_object.granularity == "P1D"
+
+    def test_apply_granularity_legacy_adhoc_granularity_sqla(self):
+        """Test _apply_granularity tolerates an adhoc ``granularity_sqla``.
+
+        The chart API types ``granularity_sqla`` as a string, but a saved
+        ``form_data`` can still hold an adhoc column. ``temporal_columns`` is a
+        set, so the raw dict would raise "unhashable type: 'dict'" rather than
+        resolve.
+        """
+        query_object = Mock(spec=QueryObject)
+        query_object.granularity = None
+        query_object.is_timeseries = True
+        query_object.columns = ["ds"]
+        query_object.post_processing = []
+        query_object.filter = []
+        query_object.time_range = None
+        query_object.from_dttm = None
+        query_object.to_dttm = None
+
+        form_data = {
+            "granularity_sqla": {"label": "ds", "sqlExpression": "ds"},
+        }
+        datasource = Mock()
+        datasource.columns = [{"column_name": "ds", "is_dttm": True}]
+        datasource.main_dttm_col = "ds"
+
+        self.factory._apply_granularity(query_object, form_data, datasource)
+
+        assert query_object.granularity == "ds"
