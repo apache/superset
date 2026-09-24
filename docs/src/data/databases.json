@@ -3108,7 +3108,7 @@
       "column_type_mapping": false,
       "function_names": true,
       "user_impersonation": false,
-      "file_upload": true,
+      "file_upload": false,
       "get_extra_table_metadata": false,
       "dbapi_exception_mapping": false,
       "custom_errors": false,
@@ -3122,7 +3122,7 @@
       "expand_data": false,
       "query_cost_estimation": false,
       "sql_validation": false,
-      "score": 41,
+      "score": 31,
       "max_score": 201,
       "documentation": {
         "description": "Cloudflare D1 is a serverless SQLite database.",
@@ -3147,8 +3147,8 @@
       "engine": "d1",
       "engine_name": "Cloudflare D1",
       "engine_aliases": [],
-      "default_driver": "d1",
-      "supports_file_upload": true,
+      "default_driver": "httpx",
+      "supports_file_upload": false,
       "supports_dynamic_schema": false,
       "supports_catalog": false,
       "supports_dynamic_catalog": false

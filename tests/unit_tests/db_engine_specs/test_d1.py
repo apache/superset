@@ -22,6 +22,7 @@ from pytest_mock import MockerFixture
 from sqlalchemy import types
 from sqlalchemy.engine.url import make_url
 
+from superset.errors import SupersetErrorType
 from superset.utils.core import GenericDataType
 from tests.unit_tests.db_engine_specs.utils import assert_column_spec
 
@@ -128,3 +129,91 @@ def test_metadata_points_at_sqlalchemy_d1() -> None:
 
     assert metadata["pypi_packages"] == ["sqlalchemy-d1"]
     assert metadata["install_instructions"] == 'pip install "apache-superset[d1]"'
+
+
+def test_driver_and_file_upload() -> None:
+    """
+    Test that the default driver is the one the ``d1`` dialect reports, and that
+    file upload is off, because D1 has no transactions to undo a failed upload.
+    """
+    from superset.db_engine_specs.d1 import CloudflareD1EngineSpec as spec  # noqa: N813
+
+    assert spec.default_driver == "httpx"
+    assert spec.supports_file_upload is False
+
+
+@pytest.mark.parametrize(
+    "message,error_type,expected",
+    [
+        (
+            'Execute failed: HTTP error 400: {"result":[],"success":false,'
+            '"errors":[{"code":7500,"message":"no such column: nope at offset 9: '
+            'SQLITE_ERROR"}],"messages":[]}',
+            SupersetErrorType.COLUMN_DOES_NOT_EXIST_ERROR,
+            'We can\'t seem to resolve the column "nope"',
+        ),
+        (
+            "Execute failed: D1 API error: no such column: o.nope at offset 7: "
+            "SQLITE_ERROR",
+            SupersetErrorType.COLUMN_DOES_NOT_EXIST_ERROR,
+            'We can\'t seem to resolve the column "o.nope"',
+        ),
+        (
+            'Execute failed: HTTP error 400: {"result":[],"success":false,'
+            '"errors":[{"code":7500,"message":"no such table: nope: SQLITE_ERROR"}],'
+            '"messages":[]}',
+            SupersetErrorType.GENERIC_DB_ENGINE_ERROR,
+            "no such table: nope: SQLITE_ERROR",
+        ),
+        (
+            "Execute failed: HTTP error 502: <html>Bad gateway</html>",
+            SupersetErrorType.GENERIC_DB_ENGINE_ERROR,
+            "Execute failed: HTTP error 502: <html>Bad gateway</html>",
+        ),
+        (
+            'Execute failed: D1 API error: near "{": syntax error',
+            SupersetErrorType.GENERIC_DB_ENGINE_ERROR,
+            'Execute failed: D1 API error: near "{": syntax error',
+        ),
+    ],
+)
+def test_extract_errors(
+    message: str,
+    error_type: SupersetErrorType,
+    expected: str,
+) -> None:
+    """
+    Test that errors show D1's own message rather than the whole JSON reply the
+    DBAPI puts in the exception.
+    """
+    from superset.db_engine_specs.d1 import CloudflareD1EngineSpec as spec  # noqa: N813
+
+    errors = spec.extract_errors(Exception(message))
+
+    assert [(error.error_type, error.message) for error in errors] == [
+        (error_type, expected)
+    ]
+
+
+@pytest.mark.parametrize(
+    "sql,expected",
+    [
+        ("SELECT [order id] FROM orders", 'SELECT\n  "order id"\nFROM orders'),
+        ("SELECT X'CAFE' AS b", "SELECT\n  x'CAFE' AS b"),
+        (
+            "SELECT IIF(amount > 10, 'big', 'small') AS size FROM orders",
+            "SELECT\n  IIF(amount > 10, 'big', 'small') AS size\nFROM orders",
+        ),
+        ("SELECT data ->> '$.a' FROM t", "SELECT\n  data ->> '$.a'\nFROM t"),
+    ],
+)
+def test_sql_is_parsed_as_sqlite(sql: str, expected: str) -> None:
+    """
+    Test that D1 SQL is parsed and written back with the SQLite dialect.
+
+    The generic dialect cannot parse bracket identifiers or blob literals, and
+    rewrites ``->>`` into ``JSON_EXTRACT_SCALAR``, which SQLite does not have.
+    """
+    from superset.sql.parse import SQLScript
+
+    assert SQLScript(sql, "d1").format() == expected

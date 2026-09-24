@@ -602,7 +602,8 @@ theme editor picker.
   packages are retired: the engine spec ships with Superset, and their only
   releases do not install on Python 3.12 or later. Existing environments
   should `pip uninstall superset-engine-d1 dbapi-d1` and reinstall the extra.
-  `d1://` connection strings are unchanged.
+  `d1://` connection strings are unchanged. File upload is now off for D1:
+  D1 has no transactions, so a failed upload could leave a half-written table.
 
 ### Native Value filter "Select all" always targets the whole column
 
