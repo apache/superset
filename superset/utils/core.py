@@ -498,7 +498,7 @@ def cast_to_num(value: float | int | str | None) -> float | int | None:
         return None
     if isinstance(value, (int, float)):
         return value
-    if value.isdigit():
+    if value.isdecimal():
         return int(value)
     try:
         return float(value)
