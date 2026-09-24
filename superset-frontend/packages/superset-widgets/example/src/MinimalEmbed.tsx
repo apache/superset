@@ -17,27 +17,29 @@
  * under the License.
  */
 import { Chart, SupersetProvider } from '@apache-superset/widgets';
+import { config } from './config';
 
 // No backend: requests carry your Superset login session.
-export default function BirthsByState() {
+export default function TopRowsByDimension() {
+  const { supersetUrl, datasetId, metric, filterColumn } = config;
   return (
-    <SupersetProvider supersetDomain="http://localhost:8088">
+    <SupersetProvider supersetDomain={supersetUrl}>
       <Chart
         chartType="bar"
         dataBinding={{
-          datasetId: 17,
-          metrics: ['sum__num'],
-          dimensions: ['state'],
+          datasetId,
+          metrics: [metric],
+          dimensions: [filterColumn],
           rowLimit: 10,
         }}
         echartsOptions={{
           xAxis: {
             type: 'category',
-            data: { $bind: { source: 'dimension', alias: 'state' } },
+            data: { $bind: { source: 'dimension', alias: filterColumn } },
           },
           yAxis: { type: 'value' },
         }}
-        chrome={{ titleText: 'Births by state' }}
+        chrome={{ titleText: `${metric} by ${filterColumn}` }}
       />
     </SupersetProvider>
   );

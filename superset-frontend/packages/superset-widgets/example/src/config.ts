@@ -37,8 +37,19 @@ export const config = {
     'guest' | 'session',
   savedWidgetIds: list(viteEnv.EMBED_WIDGET_IDS),
   datasetId: Number(viteEnv.FILTER_DATASET_ID ?? 17),
+  // The dataset's shape. Defaults describe Superset's own `birth_names`
+  // example; point the app at another dataset and these are what you change.
+  // `filterColumn` doubles as the dimension the charts group by — the host
+  // filter only narrows them if they are grouped by the column it filters.
   filterColumn: viteEnv.FILTER_COLUMN ?? 'state',
   filterValues: list(viteEnv.FILTER_VALUES),
+  metric: viteEnv.EMBED_METRIC ?? 'sum__num',
+  secondMetric: viteEnv.EMBED_SECOND_METRIC ?? 'count',
+  /** A low-cardinality column, for the pie and the scoped filter. */
+  category: viteEnv.EMBED_CATEGORY ?? 'gender',
+  categoryValues: list(viteEnv.EMBED_CATEGORY_VALUES || 'boy,girl'),
+  /** A high-cardinality column, for the table's rows. */
+  label: viteEnv.EMBED_LABEL ?? 'name',
 };
 
 export async function fetchGuestToken(): Promise<string> {

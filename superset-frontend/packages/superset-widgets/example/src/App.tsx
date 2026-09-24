@@ -150,46 +150,55 @@ function Page() {
                   <Frame
                     label="<FilterSelect>"
                     code
-                    detail="datasetId=17 column=gender"
+                    detail={`datasetId=${config.datasetId} column=${config.category}`}
                     kind="superset"
                     className="card small"
                   >
                     <FilterSelect
                       datasetId={config.datasetId}
-                      column="gender"
+                      column={config.category}
                     />
                   </Frame>
                   <Frame
                     label="<MetricTile>"
                     code
-                    detail="sum__num"
+                    detail={config.metric}
                     kind="superset"
                     className="card small"
                   >
                     <MetricTile
-                      dataBinding={binding(['sum__num'], [])}
-                      label="Total births"
+                      dataBinding={binding([config.metric], [])}
+                      label={`Total ${config.metric}`}
                     />
                   </Frame>
                   <Frame
                     label="<Chart chartType=bar>"
                     code
-                    detail="sum__num by state, top 10, crossFilter"
+                    detail={`${config.metric} by ${config.filterColumn}, top 10, crossFilter`}
                     kind="superset"
                     className="card"
                   >
                     <Chart
-                      instanceId="births-by-state"
-                      dataBinding={binding(['sum__num'], ['state'], 10)}
+                      instanceId="by-dimension"
+                      dataBinding={binding(
+                        [config.metric],
+                        [config.filterColumn],
+                        10,
+                      )}
                       chartType="bar"
                       crossFilter
-                      chrome={{ titleText: 'Births by state (top 10)' }}
+                      chrome={{
+                        titleText: `${config.metric} by ${config.filterColumn} (top 10)`,
+                      }}
                       echartsOptions={{
                         tooltip: { trigger: 'axis' },
                         xAxis: {
                           type: 'category',
                           data: {
-                            $bind: { source: 'dimension', alias: 'state' },
+                            $bind: {
+                              source: 'dimension',
+                              alias: config.filterColumn,
+                            },
                           },
                         },
                         yAxis: { type: 'value' },
@@ -199,15 +208,17 @@ function Page() {
                   <Frame
                     label="<Chart> (pie)"
                     code
-                    detail="sum__num by gender, crossFilter"
+                    detail={`${config.metric} by ${config.category}, crossFilter`}
                     kind="superset"
                     className="card"
                   >
                     <Chart
-                      instanceId="births-by-gender"
-                      dataBinding={binding(['sum__num'], ['gender'])}
+                      instanceId="by-category"
+                      dataBinding={binding([config.metric], [config.category])}
                       crossFilter
-                      chrome={{ titleText: 'Births by gender' }}
+                      chrome={{
+                        titleText: `${config.metric} by ${config.category}`,
+                      }}
                       echartsOptions={{
                         tooltip: { trigger: 'item' },
                         series: [
@@ -217,7 +228,10 @@ function Page() {
                             data: {
                               $bind: {
                                 source: 'records',
-                                fields: { name: 'gender', value: 'sum__num' },
+                                fields: {
+                                  name: config.category,
+                                  value: config.metric,
+                                },
                               },
                             },
                           },

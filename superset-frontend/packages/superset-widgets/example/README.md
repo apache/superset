@@ -21,10 +21,11 @@ under the License.
 
 A Vite + React app that renders `@apache-superset/widgets` in its own layout:
 
-- inline widgets on `birth_names` (filter, metric tile, bar chart, pie) that
-  cross-filter each other;
+- inline widgets (filter, metric tile, bar chart, pie) that cross-filter each
+  other, on whichever dataset `.env` names — the defaults describe Superset's
+  own `birth_names` example;
 - saved widgets by id;
-- a host-owned `state` filter;
+- a host-owned filter on `FILTER_COLUMN`;
 - a log of filter and cross-filter events coming out of widgets.
 
 By default the app has **no backend**: widgets call Superset with the viewer's
@@ -57,7 +58,12 @@ do: authenticate your app's user and add RLS rules.
    this app resolves `react`, `antd`, emotion and echarts from there.
 3. Saved widget ids: `GET /api/v1/widget/`, or "Embed widget" on a widget in the
    Dashboard v2 builder.
-4. `cp .env.example .env` and fill it in.
+4. `cp .env.example .env` and fill it in. Against a dataset other than
+   `birth_names`, set `FILTER_DATASET_ID` and the columns/metrics around it
+   (`FILTER_COLUMN`, `EMBED_METRIC`, `EMBED_CATEGORY`, `EMBED_LABEL`, ...) —
+   a widget asking for a column the dataset does not have fails its query.
+   An extension's widget needs `EMBEDDED_EXTENSION_ASSETS_PUBLIC = True` on
+   the Superset side as well, since its bundle loads as a plain `<script>`.
 
 ## Run
 

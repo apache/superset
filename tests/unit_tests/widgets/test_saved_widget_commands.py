@@ -25,6 +25,7 @@ from marshmallow import ValidationError
 from pytest_mock import MockerFixture
 from superset_core.widgets import Widget, WidgetDataNotSupportedError
 
+from superset.commands.chart.exceptions import ChartDataQueryFailedError
 from superset.commands.widget.data import (
     resolve_widget,
     WidgetDataCommand,
@@ -192,6 +193,12 @@ def test_resolve_unknown_saved_widget(mocker: MockerFixture) -> None:
     [
         (WidgetDataNotSupportedError("markdown"), WidgetInvalidError),
         (WidgetDataError("no binding"), WidgetInvalidError),
+        # A column the dataset does not have surfaces as a failed query, not as
+        # a validation error: still the caller's mistake, so 400 not 500.
+        (
+            ChartDataQueryFailedError("Columns missing in dataset: ['gender']"),
+            WidgetInvalidError,
+        ),
         (SupersetSecurityException(MagicMock()), SavedWidgetForbiddenError),
     ],
 )

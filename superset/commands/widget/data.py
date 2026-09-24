@@ -28,6 +28,7 @@ from superset_core.widgets import Widget, WidgetDataNotSupportedError
 
 from superset import security_manager
 from superset.commands.base import BaseCommand
+from superset.commands.chart.exceptions import ChartDataQueryFailedError
 from superset.commands.widget.exceptions import (
     SavedWidgetForbiddenError,
     WidgetInvalidError,
@@ -85,6 +86,12 @@ def _execute(run: Callable[[], T]) -> T:
     except (FilterValidationError, WidgetDataError) as ex:
         raise WidgetInvalidError(str(ex)) from ex
     except QueryObjectValidationError as ex:
+        raise WidgetInvalidError(str(ex.message)) from ex
+    except ChartDataQueryFailedError as ex:
+        # The query layer catches its own validation errors and reports them in
+        # the payload, so they arrive here as a failed query rather than as a
+        # QueryObjectValidationError. A widget naming a column its dataset does
+        # not have is the caller's mistake; 500 tells an embedding host nothing.
         raise WidgetInvalidError(str(ex.message)) from ex
     except SupersetSecurityException as ex:
         raise SavedWidgetForbiddenError() from ex

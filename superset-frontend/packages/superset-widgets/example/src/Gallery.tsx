@@ -35,20 +35,27 @@ import { config, fetchGuestToken } from './config';
 import { Frame } from './structure';
 
 const DATASET = config.datasetId;
+const {
+  category,
+  filterColumn: DIMENSION,
+  label,
+  metric,
+  secondMetric,
+} = config;
 const MISSING_WIDGET_ID = '00000000-0000-0000-0000-000000000000';
 
-const byState = {
+const byDimension = {
   xAxis: {
     type: 'category',
-    data: { $bind: { source: 'dimension', alias: 'state' } },
+    data: { $bind: { source: 'dimension', alias: DIMENSION } },
   },
   yAxis: { type: 'value' },
 };
 
-const byGender = {
+const byCategory = {
   xAxis: {
     type: 'category',
-    data: { $bind: { source: 'dimension', alias: 'gender' } },
+    data: { $bind: { source: 'dimension', alias: category } },
   },
   yAxis: { type: 'value' },
 };
@@ -113,9 +120,9 @@ function TargetedHostFilter() {
         onClick={() =>
           setFilter({
             datasetId: DATASET,
-            column: 'state',
+            column: DIMENSION,
             operator: 'IN',
-            value: ['NY', 'CA'],
+            value: config.filterValues.slice(0, 2),
             targets: ['gallery-host-left'],
           })
         }
@@ -142,7 +149,7 @@ function SharedBusProviders({ themeMode }: { themeMode: ThemeModeName }) {
         {...auth}
       >
         <Demo label="<FilterSelect> (provider A)" className="gallery-plain">
-          <FilterSelect datasetId={DATASET} column="gender" />
+          <FilterSelect datasetId={DATASET} column={category} />
         </Demo>
       </SupersetProvider>
       <SupersetProvider
@@ -156,16 +163,16 @@ function SharedBusProviders({ themeMode }: { themeMode: ThemeModeName }) {
           <Chart
             dataBinding={{
               datasetId: DATASET,
-              metrics: ['sum__num'],
-              dimensions: ['state'],
+              metrics: [metric],
+              dimensions: [DIMENSION],
               rowLimit: 8,
             }}
             echartsOptions={{
-              ...byState,
+              ...byDimension,
               series: [
                 {
                   type: 'bar',
-                  data: { $bind: { source: 'metric', alias: 'sum__num' } },
+                  data: { $bind: { source: 'metric', alias: metric } },
                   itemStyle: {
                     color: {
                       $bind: { source: 'theme', token: 'colorPrimary' },
@@ -221,10 +228,10 @@ export function Gallery({ themeMode }: { themeMode: ThemeModeName }) {
                 props={{
                   dataBinding: {
                     datasetId: DATASET,
-                    metrics: ['count'],
+                    metrics: [secondMetric],
                     dimensions: [],
                   },
-                  label: 'Rows in birth_names',
+                  label: `${secondMetric} in dataset ${DATASET}`,
                 }}
               />
             </Demo>
@@ -274,13 +281,13 @@ export function Gallery({ themeMode }: { themeMode: ThemeModeName }) {
               <Table
                 dataBinding={{
                   datasetId: DATASET,
-                  metrics: ['sum__num'],
-                  dimensions: ['name'],
+                  metrics: [metric],
+                  dimensions: [label],
                   rowLimit: 25,
                 }}
                 columnDefs={[
-                  { field: 'name', headerName: 'Name', flex: 1 },
-                  { field: 'sum__num', headerName: 'Births', width: 120 },
+                  { field: label, headerName: label, flex: 1 },
+                  { field: metric, headerName: metric, width: 120 },
                 ]}
               />
             </Demo>
@@ -308,23 +315,23 @@ export function Gallery({ themeMode }: { themeMode: ThemeModeName }) {
                 chartType="bar"
                 dataBinding={{
                   datasetId: DATASET,
-                  metrics: ['sum__num', 'count'],
-                  dimensions: ['gender'],
+                  metrics: [metric, secondMetric],
+                  dimensions: [category],
                 }}
-                echartsOptions={byGender}
+                echartsOptions={byCategory}
                 customize={{
                   series: {
-                    sum__num: { color: '#2f5d50', displayName: 'Births' },
-                    count: { visible: false },
+                    [metric]: { color: '#2f5d50', displayName: metric },
+                    [secondMetric]: { visible: false },
                   },
                 }}
                 chrome={{
-                  titleText: 'Births by gender',
+                  titleText: `${metric} by ${category}`,
                   legendShow: true,
                   legendPosition: 'bottom',
                   tooltipTrigger: 'axis',
-                  xAxisName: 'Gender',
-                  yAxisName: 'Births',
+                  xAxisName: category,
+                  yAxisName: metric,
                 }}
               />
             </Demo>
@@ -343,17 +350,17 @@ export function Gallery({ themeMode }: { themeMode: ThemeModeName }) {
               <Chart
                 dataBinding={{
                   datasetId: DATASET,
-                  metrics: ['sum__num'],
-                  dimensions: ['gender'],
+                  metrics: [metric],
+                  dimensions: [category],
                 }}
                 echartsOptions={{
-                  ...byGender,
+                  ...byCategory,
                   title: {
                     text: 'First row',
                     subtext: {
                       $bind: {
                         source: 'metric',
-                        alias: 'sum__num',
+                        alias: metric,
                         single: true,
                       },
                     },
@@ -361,7 +368,7 @@ export function Gallery({ themeMode }: { themeMode: ThemeModeName }) {
                   series: [
                     {
                       type: 'bar',
-                      data: { $bind: { source: 'metric', alias: 'sum__num' } },
+                      data: { $bind: { source: 'metric', alias: metric } },
                       itemStyle: {
                         color: {
                           $bind: { source: 'theme', token: 'colorSuccess' },
@@ -389,19 +396,19 @@ export function Gallery({ themeMode }: { themeMode: ThemeModeName }) {
                 chartType="bar"
                 dataBinding={{
                   datasetId: DATASET,
-                  metrics: ['sum__num'],
-                  dimensions: ['state'],
+                  metrics: [metric],
+                  dimensions: [DIMENSION],
                   filters: [
                     {
                       expressionType: 'SIMPLE',
                       clause: 'WHERE',
-                      subject: 'state',
+                      subject: DIMENSION,
                       operator: 'IN',
-                      comparator: ['CA', 'NY', 'TX'],
+                      comparator: config.filterValues.slice(0, 3),
                     },
                   ],
                 }}
-                echartsOptions={byState}
+                echartsOptions={byDimension}
                 chrome={{ titleText: 'CA, NY and TX only' }}
               />
             </Demo>
@@ -419,15 +426,15 @@ export function Gallery({ themeMode }: { themeMode: ThemeModeName }) {
           >
             <Demo label="<FilterSelect scope>" className="gallery-plain">
               <FilterSelect
-                instanceId="gallery-gender-filter"
+                instanceId="gallery-category-filter"
                 datasetId={DATASET}
-                column="gender"
-                options={['boy', 'girl']}
-                defaultSelection={['girl']}
+                column={category}
+                options={config.categoryValues}
+                defaultSelection={config.categoryValues.slice(-1)}
                 scope={{ targets: ['gallery-scoped'] }}
               />
             </Demo>
-            <SelectionReadout instanceId="gallery-gender-filter" />
+            <SelectionReadout instanceId="gallery-category-filter" />
             <div className="gallery-row">
               <Demo label="<Chart> targeted">
                 <Chart
@@ -435,11 +442,11 @@ export function Gallery({ themeMode }: { themeMode: ThemeModeName }) {
                   chartType="bar"
                   dataBinding={{
                     datasetId: DATASET,
-                    metrics: ['sum__num'],
-                    dimensions: ['state'],
+                    metrics: [metric],
+                    dimensions: [DIMENSION],
                     rowLimit: 5,
                   }}
-                  echartsOptions={byState}
+                  echartsOptions={byDimension}
                   chrome={{ titleText: 'Targeted' }}
                 />
               </Demo>
@@ -449,11 +456,11 @@ export function Gallery({ themeMode }: { themeMode: ThemeModeName }) {
                   chartType="bar"
                   dataBinding={{
                     datasetId: DATASET,
-                    metrics: ['sum__num'],
-                    dimensions: ['state'],
+                    metrics: [metric],
+                    dimensions: [DIMENSION],
                     rowLimit: 5,
                   }}
-                  echartsOptions={byState}
+                  echartsOptions={byDimension}
                   chrome={{ titleText: 'Not targeted' }}
                 />
               </Demo>
@@ -477,11 +484,11 @@ export function Gallery({ themeMode }: { themeMode: ThemeModeName }) {
                   chartType="bar"
                   dataBinding={{
                     datasetId: DATASET,
-                    metrics: ['sum__num'],
-                    dimensions: ['state'],
+                    metrics: [metric],
+                    dimensions: [DIMENSION],
                     rowLimit: 6,
                   }}
-                  echartsOptions={byState}
+                  echartsOptions={byDimension}
                   chrome={{ titleText: 'Left' }}
                 />
               </Demo>
@@ -491,11 +498,11 @@ export function Gallery({ themeMode }: { themeMode: ThemeModeName }) {
                   chartType="bar"
                   dataBinding={{
                     datasetId: DATASET,
-                    metrics: ['sum__num'],
-                    dimensions: ['state'],
+                    metrics: [metric],
+                    dimensions: [DIMENSION],
                     rowLimit: 6,
                   }}
-                  echartsOptions={byState}
+                  echartsOptions={byDimension}
                   chrome={{ titleText: 'Right' }}
                 />
               </Demo>
@@ -519,10 +526,10 @@ export function Gallery({ themeMode }: { themeMode: ThemeModeName }) {
                 chartType="bar"
                 dataBinding={{
                   datasetId: DATASET,
-                  metrics: ['sum__num'],
-                  dimensions: ['gender'],
+                  metrics: [metric],
+                  dimensions: [category],
                 }}
-                echartsOptions={byGender}
+                echartsOptions={byCategory}
                 chrome={{ titleText: 'Title hidden by showTitle' }}
               />
             </Demo>
