@@ -426,14 +426,13 @@ class TestPerClassClientFacingErrors:
 
     @pytest.mark.asyncio
     async def test_schema_mismatch_keeps_validation_guidance(self) -> None:
-        """Wrong argument names still get the advice that actually fits:
-        the offending fields, so the caller can match the inputSchema."""
+        """Unknown argument names are masked while validation guidance is kept."""
         message = await _call("needs_id", {"identifier": 5})
 
-        assert "Validation error in needs_id" in message
-        assert "id" in message
-        assert "identifier" in message
-        assert "Permission denied" not in message
+        assert message == (
+            "Error: Validation error in needs_id: "
+            "id: Field required; [field]: Unexpected argument"
+        )
 
     @pytest.mark.asyncio
     async def test_datasource_failure_blames_the_query_not_the_caller(self) -> None:
