@@ -145,6 +145,22 @@ function getSortTypeByDataType(dataType: GenericDataType): DefaultSortTypes {
   return 'basic';
 }
 
+// Parse a cell value into a number when it reads as one. Datasources can
+// deliver numeric columns as strings ("1.00"); bars are geometric and need
+// the numeric magnitude, the same way the XLSX export interprets them.
+function parseNumeric(value: unknown): number | undefined {
+  if (typeof value === 'number') {
+    return value;
+  }
+  if (typeof value === 'string' && value.trim() !== '') {
+    const parsed = Number(value);
+    if (!Number.isNaN(parsed)) {
+      return parsed;
+    }
+  }
+  return undefined;
+}
+
 /**
  * Cell background width calculation for horizontal bar chart
  */
@@ -496,9 +512,14 @@ export default function TableChart<D extends DataRecord = DataRecord>(
   }, [data.length, rowCount, serverPagination, serverPageLength]);
 
   const getValueRange = useCallback(
-    function getValueRange(key: string, alignPositiveNegative: boolean) {
+    function getValueRange(
+      key: string,
+      alignPositiveNegative: boolean,
+      coerceNumeric = false,
+    ) {
       const nums = data
         ?.map(row => row?.[key])
+        .map(value => (coerceNumeric ? parseNumeric(value) : value))
         .filter(value => typeof value === 'number') as number[];
       if (nums.length > 0) {
         return (
@@ -1050,11 +1071,23 @@ export default function TableChart<D extends DataRecord = DataRecord>(
         basicColorFormatters.length > 0;
       const generalShowCellBars =
         config.showCellBars === undefined ? showCellBars : config.showCellBars;
+      // A Cell bar conditional-formatting rule must keep working even when the
+      // generic "Show cell bars" toggle is off: the toggle controls the default
+      // gradient, not whether an explicit formatter rule can draw its bar.
+      const hasCellBarFormatter =
+        hasColumnColorFormatters &&
+        columnColorFormatters.some(
+          formatter =>
+            formatter.objectFormatting === ObjectFormattingEnum.CELL_BAR &&
+            (formatter.columnFormatting
+              ? formatter.columnFormatting === key
+              : formatter.column === key),
+        );
       const valueRange =
         !hasBasicColorFormatters &&
-        generalShowCellBars &&
+        (generalShowCellBars || hasCellBarFormatter) &&
         (isMetric || isRawRecords || isPercentMetric) &&
-        getValueRange(key, alignPositiveNegative);
+        getValueRange(key, alignPositiveNegative, hasCellBarFormatter);
 
       let className = '';
       if (emitCrossFilters && !isMetric) {
@@ -1092,6 +1125,10 @@ export default function TableChart<D extends DataRecord = DataRecord>(
           let valueRangeFlag = true;
           let arrow = '';
           const originKey = column.key.substring(column.label.length).trim();
+          // Cell bar geometry uses the numeric magnitude; string cells that
+          // read as numbers ("1.00") still draw a bar, matching how the rule
+          // engine treats them.
+          const numericValue = parseNumeric(value);
           if (!hasColumnColorFormatters && hasBasicColorFormatters) {
             backgroundColor =
               basicColorFormatters[row.index]?.[originKey]?.backgroundColor;
@@ -1119,8 +1156,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
               } else if (
                 formatter.objectFormatting === ObjectFormattingEnum.CELL_BAR
               ) {
-                if (generalShowCellBars)
-                  backgroundColorCellBar = forceHexAlpha(formatterResult);
+                backgroundColorCellBar = forceHexAlpha(formatterResult);
               } else {
                 backgroundColor = formatterResult;
                 valueRangeFlag = false;
@@ -1139,6 +1175,19 @@ export default function TableChart<D extends DataRecord = DataRecord>(
                   valueToFormat = row.original[formatter.column];
                 } else {
                   valueToFormat = value;
+                }
+                // String cells that read as numbers ("1.00") must compare
+                // numerically, or comparator rules like `= 1` never match.
+                if (
+                  formatter.objectFormatting ===
+                    ObjectFormattingEnum.CELL_BAR &&
+                  valueToFormat !== null &&
+                  valueToFormat !== undefined
+                ) {
+                  const coerced = parseNumeric(valueToFormat);
+                  if (coerced !== undefined) {
+                    valueToFormat = coerced;
+                  }
                 }
                 applyFormatter(formatter, valueToFormat);
               });
@@ -1195,27 +1244,36 @@ export default function TableChart<D extends DataRecord = DataRecord>(
             top: 0;
             ${
               valueRange &&
-              typeof value === 'number' &&
+              numericValue !== undefined &&
               valueRangeFlag &&
               `
                 width: ${`${cellWidth({
-                  value: value as number,
+                  value: numericValue,
                   valueRange,
                   alignPositiveNegative,
                 })}%`};
                 left: ${`${cellOffset({
-                  value: value as number,
+                  value: numericValue,
                   valueRange,
                   alignPositiveNegative,
                 })}%`};
                 background-color: ${
                   backgroundColorCellBar ||
                   cellBackground({
-                    value: value as number,
+                    value: numericValue,
                     colorPositiveNegative,
                     theme,
                   })
                 };
+              `
+            }
+            ${
+              !(valueRange && numericValue !== undefined && valueRangeFlag) &&
+              backgroundColorCellBar &&
+              `
+                width: 100%;
+                left: 0;
+                background-color: ${backgroundColorCellBar};
               `
             }
           `;
@@ -1316,19 +1374,20 @@ export default function TableChart<D extends DataRecord = DataRecord>(
           // render `Cell`. This saves some time for large tables.
           return (
             <StyledCell {...cellProps}>
-              {valueRange && (
+              {(generalShowCellBars ? !!valueRange : false) ||
+              backgroundColorCellBar ? (
                 <div
                   /* The following classes are added to support custom CSS styling */
                   className={cx(
                     'cell-bar',
-                    typeof value === 'number' && value < 0
+                    numericValue !== undefined && numericValue < 0
                       ? 'negative'
                       : 'positive',
                   )}
                   css={cellBarStyles}
                   role="presentation"
                 />
-              )}
+              ) : null}
               {truncateLongCells ? (
                 <div
                   className="dt-truncate-cell"
