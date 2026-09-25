@@ -153,9 +153,12 @@ async def test_execute_sql_limit_schema_is_a_safety_cap(mcp_server: FastMCP) -> 
     limit_schema = request_schema["properties"]["limit"]
     assert limit_schema["default"] is None
     description = limit_schema["description"]
-    assert "caps the last statement's outer SQL LIMIT at the smaller" in description
-    assert "Never increases a stricter SQL LIMIT" in description
-    assert "If not specified, respects the LIMIT" in description
+    assert (
+        "caps the last statement's outer LIMIT at min(SQL LIMIT, this value)"
+        in description
+    )
+    assert "Never raises stricter SQL limits" in description
+    assert "Omitted: respects SQL LIMIT" in description
     assert "overrides any SQL LIMIT" not in description
 
 
