@@ -57,6 +57,7 @@ from tests.integration_tests.fixtures.importexport import (
     database_config,
     dataset_config as dataset_fixture,
 )
+from tests.unit_tests.conftest import with_feature_flags
 
 
 def test_import_dataset(mocker: MockerFixture, session: Session) -> None:
@@ -2804,3 +2805,61 @@ def test_load_data_bounds_gzip_download_before_decompression(
     mock_gzip_open.assert_called_once_with(bounded_raw)
     # ...and the decompressed output is bounded again before parsing.
     assert mock_read_bounded.call_args_list[1].args[0] is decompressed
+
+
+@with_feature_flags(PARTITION_FILTER_MAPPING=True)
+def test_import_drops_a_transform_the_mapping_does_not_mirror(
+    mocker: MockerFixture, session: Session
+) -> None:
+    """
+    An import is a writer like any other, and it bypasses the editor entirely.
+
+    A bundle carrying a transform on a column the mapping does not mirror would
+    otherwise land a value nothing renders and nothing can edit, waiting for the
+    mapped column to resolve back to it.
+    """
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+
+    engine = db.session.get_bind()
+    SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
+    database = Database(database_name="pfm_import_db", sqlalchemy_uri="sqlite://")
+    db.session.add(database)
+    db.session.flush()
+
+    config: dict[str, Any] = {
+        "table_name": "pfm_import_table",
+        "main_dttm_col": "event_time",
+        "schema": "main",
+        "sql": None,
+        "uuid": uuid.uuid4(),
+        "metrics": [],
+        "partition_column": "dt_epoch",
+        "partition_mapped_column": "event_time2",
+        "columns": [
+            {
+                "column_name": "event_time",
+                "is_dttm": True,
+                "partition_value_transform": "unix_timestamp(:value)",
+                "partition_transform_is_monotonic": True,
+            },
+            {
+                "column_name": "event_time2",
+                "is_dttm": True,
+                "partition_value_transform": "to_unixtime(:value)",
+                "partition_transform_is_monotonic": True,
+            },
+            {"column_name": "dt_epoch"},
+        ],
+        "database_uuid": database.uuid,
+        "database_id": database.id,
+    }
+
+    dataset = import_dataset(config)
+    db.session.flush()
+
+    transforms = {c.column_name: c.partition_value_transform for c in dataset.columns}
+    assert transforms == {
+        "event_time": None,
+        "event_time2": "to_unixtime(:value)",
+        "dt_epoch": None,
+    }
