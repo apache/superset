@@ -107,6 +107,10 @@ describe('chart actions', () => {
   let fakeMetadata: { viz_type?: string };
 
   beforeAll(() => {
+    // The `@superset-ui/core` mock above gives this file its own copy of the
+    // module, so the singleton `setupSupersetClient()` configures for every
+    // other test file needs configuring again here too.
+    SupersetClient.configure({ protocol: 'http:', host: 'localhost' }).init();
     fetchMock.get('glob:*api/v1/security/csrf_token/*', { result: '1234' });
   });
 
@@ -737,6 +741,91 @@ describe('chart actions', () => {
         resultType: 'full',
       });
     });
+  });
+
+  test('refreshChart with refreshFormData re-fetches the chart definition and queries with it', async () => {
+    const chartKey = 'refresh_form_data_test';
+    const staleFormData = { slice_id: 1, metric: 'old_metric' };
+    fetchMock.get('glob:*/api/v1/chart/1*', {
+      body: {
+        result: {
+          params: JSON.stringify({ slice_id: 1, metric: 'new_metric' }),
+        },
+      },
+    });
+    const store = mockStore({
+      charts: { [chartKey]: { id: 1, latestQueryFormData: staleFormData } },
+      dashboardInfo: { common: { conf: { SUPERSET_WEBSERVER_TIMEOUT: 60 } } },
+      dataMask: {},
+      common: { conf: {} },
+    });
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await store.dispatch(actions.refreshChart(chartKey, true, 10, true) as any);
+
+    const updateAction = store
+      .getActions()
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .find((a: any) => a.type === actions.UPDATE_CHART_FORM_DATA);
+    expect(updateAction).toEqual(
+      expect.objectContaining({
+        formData: expect.objectContaining({ metric: 'new_metric' }),
+        key: chartKey,
+      }),
+    );
+    expect(buildV1ChartDataPayloadStub).toHaveBeenCalledWith(
+      expect.objectContaining({
+        formData: expect.objectContaining({ metric: 'new_metric' }),
+      }),
+    );
+  });
+
+  test('refreshChart without refreshFormData never fetches the chart definition', async () => {
+    const chartKey = 'refresh_no_fetch_test';
+    const formData = { slice_id: 1, metric: 'cached_metric' };
+    fetchMock.get('glob:*/api/v1/chart/1*', {
+      body: { result: { params: JSON.stringify({ metric: 'unused' }) } },
+    });
+    const store = mockStore({
+      charts: { [chartKey]: { id: 1, latestQueryFormData: formData } },
+      dashboardInfo: { common: { conf: { SUPERSET_WEBSERVER_TIMEOUT: 60 } } },
+      dataMask: {},
+      common: { conf: {} },
+    });
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await store.dispatch(actions.refreshChart(chartKey, true, 10) as any);
+
+    expect(fetchMock.callHistory.calls('glob:*/api/v1/chart/1*')).toHaveLength(
+      0,
+    );
+    expect(buildV1ChartDataPayloadStub).toHaveBeenCalledWith(
+      expect.objectContaining({ formData }),
+    );
+  });
+
+  test('refreshChart with refreshFormData falls back to the cached form data on fetch failure', async () => {
+    const chartKey = 'refresh_form_data_failure_test';
+    const staleFormData = { slice_id: 1, metric: 'cached_metric' };
+    fetchMock.get('glob:*/api/v1/chart/1*', 500);
+    const store = mockStore({
+      charts: { [chartKey]: { id: 1, latestQueryFormData: staleFormData } },
+      dashboardInfo: { common: { conf: { SUPERSET_WEBSERVER_TIMEOUT: 60 } } },
+      dataMask: {},
+      common: { conf: {} },
+    });
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await store.dispatch(actions.refreshChart(chartKey, true, 10, true) as any);
+
+    const dispatchedTypes = store
+      .getActions()
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .map((a: any) => a.type);
+    expect(dispatchedTypes).not.toContain(actions.UPDATE_CHART_FORM_DATA);
+    expect(buildV1ChartDataPayloadStub).toHaveBeenCalledWith(
+      expect.objectContaining({ formData: staleFormData }),
+    );
   });
 });
 
