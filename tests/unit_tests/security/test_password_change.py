@@ -44,6 +44,12 @@ from superset.views.health import health_blueprint
         ("CurrentUserRestApi.get_me", True),
         ("CurrentUserRestApi.update_me", True),
         ("SecurityRestApi.csrf_token", True),
+        # ...and only those endpoints, never the whole API view class: a
+        # flagged user's permissions must not unlock guest tokens, the
+        # permissions search or the roles listing before the change.
+        ("SecurityRestApi.guest_token", False),
+        ("SecurityRestApi.get_list", False),
+        ("CurrentUserRestApi.get_my_roles", False),
         # The legacy FAB reset views are no longer registered, nor exempt.
         ("ResetMyPasswordView.this_form_get", False),
         ("ResetPasswordView.this_form_get", False),
@@ -204,6 +210,16 @@ def test_enforcement_lets_flagged_user_change_password_in_the_spa(
 
         for path in ("/", "/api/v1/dashboard/"):
             response = client.get(path)
+            assert response.status_code == 302, path
+            assert response.headers["Location"].endswith("/user_info/"), path
+
+        # The exemption is per endpoint, not per view class: this user holds
+        # every permission, yet the rest of the security API stays behind the
+        # gate until the password is changed.
+        for path in ("/api/v1/security/guest_token/", "/api/v1/me/roles/"):
+            response = client.open(
+                path, method="POST" if "guest_token" in path else "GET", json={}
+            )
             assert response.status_code == 302, path
             assert response.headers["Location"].endswith("/user_info/"), path
 

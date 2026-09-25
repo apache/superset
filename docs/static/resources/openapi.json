@@ -3686,7 +3686,7 @@
       "CurrentUserPutSchema": {
         "properties": {
           "current_password": {
-            "description": "The current user's existing password",
+            "description": "The current user's existing password; required when the account has one",
             "type": "string",
             "writeOnly": true
           },
@@ -3703,7 +3703,7 @@
             "type": "string"
           },
           "password": {
-            "description": "The current user's new password; requires current_password",
+            "description": "The current user's new password; requires current_password when the account already has one",
             "type": "string"
           }
         },
