@@ -91,6 +91,7 @@ import {
   getAreaScaledSymbolSize,
   getAxisType,
   getColtypesMapping,
+  getGrainBarMaxWidth,
   getHorizontalLegendAvailableWidth,
   getLegendProps,
   getMinAndMaxFromBounds,
@@ -480,12 +481,42 @@ export default function transformProps(
   );
 
   const isMultiSeries = groupBy.length || metrics?.length > 1;
-  const xAxisDataType = dataTypes?.[xAxisLabel] ?? dataTypes?.[xAxisOrig];
+  const rawXAxisDataType = dataTypes?.[xAxisLabel] ?? dataTypes?.[xAxisOrig];
+
+  // A dashboard-level time grain override (e.g. via a filter or the temporal
+  // range control) is delivered in extraFormData and should take precedence
+  // over the chart's own time grain when formatting temporal axes/tooltips.
+  const resolvedTimeGrain =
+    formData.extraFormData?.time_grain_sqla ?? timeGrainSqla;
+
+  // A resolved time grain only applies to a genuinely temporal x-axis
+  // column (time_grain_sqla is meaningless otherwise), so trust it over
+  // `coltypes` when the two disagree. `coltypes` can fail to mark the
+  // designated x-axis column Temporal for reasons unrelated to what the
+  // column actually is (a missing entry, the wrong GenericDataType member,
+  // or a raw SQL-type string in place of the enum) — without this, that
+  // gap silently degrades the axis to Category and renders the raw
+  // timestamp value as a label instead of a formatted date.
+  const xAxisDataType =
+    rawXAxisDataType !== GenericDataType.Temporal && resolvedTimeGrain
+      ? GenericDataType.Temporal
+      : rawXAxisDataType;
   const xAxisType = getAxisType(
     stack,
     xAxisForceCategorical,
     xAxisDataType,
     seriesType,
+  );
+
+  // Size a bar series to its own grain-bucket pixel width instead of a flat
+  // constant, so a sparse bucket doesn't visually spill into neighboring,
+  // unpopulated buckets. See getGrainBarMaxWidth for the exact mechanism.
+  const barMaxWidthPx = getGrainBarMaxWidth(
+    xAxisType,
+    resolvedTimeGrain,
+    [rebasedData as Record<string, unknown>[]],
+    xAxisLabel,
+    width,
   );
 
   const [allRawSeries, sortedTotalValues, minPositiveValue] = extractSeries(
@@ -894,6 +925,7 @@ export default function transformProps(
         hasDimensions: (groupBy?.length ?? 0) > 0,
         colorByPrimaryAxis,
         labelPosition,
+        barMaxWidthPx,
       },
     );
     if (transformedSeries) {
@@ -1192,12 +1224,6 @@ export default function transformProps(
       s.data = clampedData as typeof s.data;
     });
   }
-
-  // A dashboard-level time grain override (e.g. via a filter or the temporal
-  // range control) is delivered in extraFormData and should take precedence
-  // over the chart's own time grain when formatting temporal axes/tooltips.
-  const resolvedTimeGrain =
-    formData.extraFormData?.time_grain_sqla ?? timeGrainSqla;
 
   const tooltipFormatter =
     xAxisDataType === GenericDataType.Temporal
