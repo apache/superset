@@ -582,6 +582,12 @@ def import_dataset(  # noqa: C901
     if dataset.id is None:
         db.session.flush()
 
+    # A bundle can name a mapped column and still carry transforms on other
+    # columns; the editor's client-side guard never runs here. Left in place, a
+    # transform on an unmirrored column is invisible and still stored, ready to
+    # go live the moment the mapped column resolves back to it.
+    DatasetDAO.clear_unmapped_partition_transforms(dataset)
+
     if not ignore_permissions:
         try:
             security_manager.raise_for_access(datasource=dataset)
