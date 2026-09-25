@@ -26,12 +26,13 @@ Omitting `--password` keeps the new password out of the command and shell histor
 For the repository's Docker Compose setup, run it inside the application container:
 
 ```bash
-docker exec -it superset_app superset fab reset-password --username alice
+docker compose exec superset superset fab reset-password --username alice
 ```
 
-Use your deployment's container name if it differs from `superset_app`. If the
-command reports that the user was not found, check the username and metadata
-database configuration before trying again.
+Use the same Compose files and project options that you used to start your
+deployment. The `superset` service name works regardless of the generated container
+name. If the command reports that the user was not found, check the username and
+metadata database configuration before trying again.
 
 For LDAP, OAuth or other externally authenticated accounts, reset the password
 with the identity provider instead. This command updates the password stored in
