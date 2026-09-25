@@ -463,18 +463,17 @@ MCP_RESPONSE_SIZE_CONFIG: dict[str, Any] = {
 # - "bm25": Natural language search using BM25 ranking (recommended)
 # - "regex": Pattern-based search using regular expressions
 #
-# Schema Compaction:
-# ------------------
-# When compact_schemas=True, search results strip $defs sections and replace
-# $ref pointers with {"type": "object"}, and truncate tool descriptions.
-# This reduces per-search token cost by ~40-60%.  Full schemas remain
-# available when the tool is actually invoked via call_tool.
+# Schema Serialization:
+# ---------------------
+# Input schemas preserve $defs, $ref, nullable unions, and validation constraints;
+# titles and output schemas are omitted. Clients should resolve references within
+# each tool's inputSchema. Inlining references duplicates shared chart models.
+# The legacy compact_schemas setting only selects the default description limit
+# (300 when True, 0 when False) if max_description_length is omitted.
 #
 # Rollback:
 # ---------
 # - Set enabled=False to disable tool search entirely (full catalog exposed).
-# - Set compact_schemas=False to disable schema compaction only (full $defs
-#   and descriptions in search results, tool search still active).
 # - Set max_description_length=0 to disable description truncation only.
 #
 # Summary Mode (include_schemas):
@@ -489,8 +488,8 @@ MCP_RESPONSE_SIZE_CONFIG: dict[str, Any] = {
 #   so LLMs can see structured/discriminated-union configs (e.g. chart
 #   generation) without a second round trip. Set include_schemas=False to
 #   switch to summary mode if search_tools response size becomes a problem
-#   again; compact_schemas is ignored when include_schemas=False (no schema to
-#   compact); max_description_length still applies in summary mode.
+#   again; compact_schemas is ignored when include_schemas=False.
+#   max_description_length still applies in summary mode.
 # =============================================================================
 MCP_TOOL_SEARCH_CONFIG: dict[str, Any] = {
     "enabled": True,  # Enabled by default — reduces initial context by ~70%
@@ -502,7 +501,7 @@ MCP_TOOL_SEARCH_CONFIG: dict[str, Any] = {
     ],
     "search_tool_name": "search_tools",  # Name of the search tool
     "call_tool_name": "call_tool",  # Name of the call proxy tool
-    "compact_schemas": True,  # Strip $defs/$ref (requires include_schemas=True)
+    "compact_schemas": True,  # Legacy default description limit for full schemas
     "max_description_length": 300,  # Truncate tool descriptions (0 = no truncation)
     "include_schemas": True,  # full inputSchema in search results
 }

@@ -2220,6 +2220,34 @@ def test_raise_for_access_evaluates_access_before_validate():
     query.validate.assert_not_called()
 
 
+def test_raise_for_access_wraps_template_error_for_query_datasource():
+    """
+    When the datasource is a SQL Lab Query and raise_for_access() Jinja-renders
+    malformed SQL, the raw jinja2 TemplateError must be wrapped in
+    SupersetTemplateException (422) instead of leaking as an unhandled 500.
+    """
+    from jinja2.exceptions import TemplateSyntaxError
+
+    from superset.exceptions import SupersetTemplateException
+    from superset.utils.core import DatasourceType
+
+    query = MagicMock()
+    query_context = MagicMock()
+    query_context.queries = [query]
+    query_context.datasource.type = DatasourceType.QUERY
+
+    processor = QueryContextProcessor(query_context)
+
+    with patch(
+        "superset.common.query_context_processor.security_manager.raise_for_access",
+        side_effect=TemplateSyntaxError("unexpected end of template", lineno=1),
+    ):
+        with pytest.raises(SupersetTemplateException):
+            processor.raise_for_access()
+
+    query.validate.assert_not_called()
+
+
 def test_grouping_sets_fallback_handles_adhoc_and_physical_columns() -> None:
     """
     The fallback used on engines without native GROUPING SETS support must
@@ -2742,3 +2770,38 @@ def test_contribution_uses_decimal_totals_rather_than_zero():
         contribution_totals={"unrelated_metric": Decimal("40.0")},
     )
     assert collapsed["%decimal_metric"].tolist() == [0, 0]
+
+
+def test_get_viz_annotation_data_reports_missing_chart(app_context) -> None:
+    with patch(
+        "superset.common.query_context_processor.ChartDAO.find_by_id",
+        return_value=None,
+    ):
+        with pytest.raises(QueryObjectValidationError) as excinfo:
+            QueryContextProcessor.get_viz_annotation_data(
+                {"value": 42, "name": "My layer"}, force=False
+            )
+
+    assert str(excinfo.value.message) == (
+        "Chart with ID 42 (referenced by annotation layer 'My layer') was not "
+        "found. Please verify that the chart exists and is accessible."
+    )
+
+
+def test_get_viz_annotation_data_reports_missing_query_context(app_context) -> None:
+    chart = MagicMock(id=42)
+    chart.get_query_context.return_value = None
+    with patch(
+        "superset.common.query_context_processor.ChartDAO.find_by_id",
+        return_value=chart,
+    ):
+        with pytest.raises(QueryObjectValidationError) as excinfo:
+            QueryContextProcessor.get_viz_annotation_data(
+                {"value": 42, "name": "My layer"}, force=False
+            )
+
+    assert str(excinfo.value.message) == (
+        "The query context for chart ID 42 (referenced by annotation layer "
+        "'My layer') was not found. Please ensure the chart is properly "
+        "configured and has a valid query context."
+    )
