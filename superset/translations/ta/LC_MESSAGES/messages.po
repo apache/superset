@@ -4201,6 +4201,11 @@ msgstr "வாசிக்க வேண்டிய நெடுவரிசை�
 msgid "Columns to show in the tooltip."
 msgstr "உதவிக்குறிப்பில் காட்ட வேண்டிய நெடுவரிசைகள்."
 
+msgid ""
+"Columns viewers are allowed to group by. Leave empty to allow all "
+"groupable columns."
+msgstr ""
+
 msgid "Combine metrics"
 msgstr "அளவீடுகளை இணைக்கவும்"
 
@@ -7998,6 +8003,9 @@ msgstr "இதன் படி குழுவாக்கு"
 
 msgid "Group remaining as \"Others\""
 msgstr "மீதமுள்ளவற்றை \"ஏனையவை\" என குழுவாக்கு"
+
+msgid "Groupable columns"
+msgstr ""
 
 msgid "Grouping"
 msgstr "குழுவாக்கம்"

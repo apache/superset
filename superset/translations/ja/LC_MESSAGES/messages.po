@@ -3881,6 +3881,11 @@ msgstr "読み込む列"
 msgid "Columns to show in the tooltip."
 msgstr "ツールチップに表示する列"
 
+msgid ""
+"Columns viewers are allowed to group by. Leave empty to allow all "
+"groupable columns."
+msgstr ""
+
 msgid "Combine metrics"
 msgstr "メトリックを結合"
 
@@ -7437,6 +7442,9 @@ msgstr "グループ化"
 
 msgid "Group remaining as \"Others\""
 msgstr "残りの項目を「その他」にまとめる"
+
+msgid "Groupable columns"
+msgstr ""
 
 msgid "Grouping"
 msgstr "グループ化"

@@ -4170,6 +4170,11 @@ msgstr "Столбцы для чтения"
 msgid "Columns to show in the tooltip."
 msgstr "Столбцы для отображения во всплывающей подсказке."
 
+msgid ""
+"Columns viewers are allowed to group by. Leave empty to allow all "
+"groupable columns."
+msgstr ""
+
 msgid "Combine metrics"
 msgstr "Объединить меры"
 
@@ -7938,6 +7943,9 @@ msgstr "Группировать по"
 
 msgid "Group remaining as \"Others\""
 msgstr "Группировать остальное в \"Другое\""
+
+msgid "Groupable columns"
+msgstr ""
 
 msgid "Grouping"
 msgstr "Группировка"

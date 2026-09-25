@@ -4610,6 +4610,11 @@ msgstr "عرض إجمالي الأعمدة"
 msgid "Columns to show in the tooltip."
 msgstr "تلميح أداة رأس العمود"
 
+msgid ""
+"Columns viewers are allowed to group by. Leave empty to allow all "
+"groupable columns."
+msgstr ""
+
 msgid "Combine metrics"
 msgstr "الجمع بين المقاييس"
 
@@ -8880,6 +8885,9 @@ msgstr "مجموعة حسب"
 #, fuzzy
 msgid "Group remaining as \"Others\""
 msgstr "تجميع الباقي كـ \"أخرى\""
+
+msgid "Groupable columns"
+msgstr ""
 
 #, fuzzy
 msgid "Grouping"

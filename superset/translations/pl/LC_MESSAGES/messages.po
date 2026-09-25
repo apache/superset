@@ -4570,6 +4570,11 @@ msgstr "Kolumny do odczytu"
 msgid "Columns to show in the tooltip."
 msgstr "Podpowiedź nagłówka kolumny"
 
+msgid ""
+"Columns viewers are allowed to group by. Leave empty to allow all "
+"groupable columns."
+msgstr ""
+
 #, fuzzy
 msgid "Combine metrics"
 msgstr "Łączenie metryk"
@@ -8926,6 +8931,9 @@ msgstr "Grupuj według"
 #, fuzzy
 msgid "Group remaining as \"Others\""
 msgstr "Grupuj pozostałe jako \"Inne\""
+
+msgid "Groupable columns"
+msgstr ""
 
 #, fuzzy
 msgid "Grouping"

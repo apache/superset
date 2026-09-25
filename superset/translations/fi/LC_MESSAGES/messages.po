@@ -6945,6 +6945,11 @@ msgstr "Luettavat sarakkeet"
 msgid "Columns to show in the tooltip."
 msgstr "Työkaluvinkissä näytettävät sarakkeet."
 
+msgid ""
+"Columns viewers are allowed to group by. Leave empty to allow all "
+"groupable columns."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, fuzzy
@@ -13527,6 +13532,9 @@ msgstr "Ryhmittele"
 #, fuzzy
 msgid "Group remaining as \"Others\""
 msgstr "Ryhmittele loput \"Muut\"-ryhmäksi"
+
+msgid "Groupable columns"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: fr, ja, lv,
 # ru, uk]

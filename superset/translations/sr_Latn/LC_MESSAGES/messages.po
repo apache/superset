@@ -5120,6 +5120,11 @@ msgstr "Kolone za čitanje"
 msgid "Columns to show in the tooltip."
 msgstr "Kolone za prikaz u oblačiću."
 
+msgid ""
+"Columns viewers are allowed to group by. Leave empty to allow all "
+"groupable columns."
+msgstr ""
+
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Combine metrics"
 msgstr "Kombinuj metrike"
@@ -9852,6 +9857,9 @@ msgstr "Grupiši po"
 # lv, ru, sk, uk]
 msgid "Group remaining as \"Others\""
 msgstr "Grupiši preostale kao \"Ostalo\""
+
+msgid "Groupable columns"
+msgstr ""
 
 # ru, uk]
 msgid "Grouping"
