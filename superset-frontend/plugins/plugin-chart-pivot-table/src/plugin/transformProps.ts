@@ -44,6 +44,8 @@ import buildGroupbyCombinations, {
   synthesizeAdditiveLevels,
 } from './utilities';
 
+import { getResultAggregation } from './resultAggregation';
+
 const { DATABASE_DATETIME } = TimeFormats;
 
 function isNumeric(key: string, data: DataRecord[] = []) {
@@ -112,7 +114,18 @@ export default function transformProps(chartProps: ChartProps<QueryFormData>) {
   // very cells being shaded, so letting them in makes the grand total the max
   // and leaves every detail cell nearly unshaded.
   let colorScaleRows: DataRecord[];
-  if (allMetricsAdditive(metricsArr)) {
+  if (getResultAggregation(formData.aggregateFunction)) {
+    const [rows, columns] = formData.transposePivot
+      ? [formData.groupbyColumns, formData.groupbyRows]
+      : [formData.groupbyRows, formData.groupbyColumns];
+    colorScaleRows = queriesData[0].data;
+    data = [
+      {
+        data: colorScaleRows,
+        groupby: { rows: ensureIsArray(rows), columns: ensureIsArray(columns) },
+      },
+    ];
+  } else if (allMetricsAdditive(metricsArr)) {
     // Additive fast-path: a single full-detail query was issued; synthesize
     // each rollup level by reducing the leaf rows on the client (see SIP.md).
     const leafRows = queriesData[0].data;
@@ -274,6 +287,7 @@ export default function transformProps(chartProps: ChartProps<QueryFormData>) {
     currencyFormats,
     metricsLayout,
     showValuesAs,
+    aggregateFunction: formData.aggregateFunction,
     metricColorFormatters,
     dateFormatters,
     onContextMenu,

@@ -396,3 +396,31 @@ test('emits drill filters from formatted column headers', () => {
     ],
   });
 });
+
+test.each([
+  ['Average', '32.5'],
+  ['Median', '14.5'],
+])(
+  'renders saved %s summaries from original results',
+  (aggregateFunction, expected) => {
+    const props = createProps({
+      aggregateFunction,
+      groupbyRows: ['region', 'city'],
+      colTotals: true,
+      rowSubTotals: true,
+      currencyFormat: { symbol: '', symbolPosition: 'prefix' },
+      valueFormat: '.1f',
+      data: toQueryData(
+        [
+          { region: 'A', city: 'a', value: 1 },
+          { region: 'A', city: 'b', value: 9 },
+          { region: 'A', city: 'c', value: 20 },
+          { region: 'B', city: 'd', value: 100 },
+        ],
+        { rows: ['region', 'city'], columns: [] },
+      ),
+    });
+    renderWithTheme(<PivotTableChart {...props} />);
+    expect(screen.getAllByText(expected).length).toBeGreaterThan(0);
+  },
+);

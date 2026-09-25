@@ -173,7 +173,7 @@ const config: ControlPanelConfig = {
             name: 'rowTotals',
             config: {
               type: 'CheckboxControl',
-              label: t('Show rows total'),
+              label: () => t('Show row summaries'),
               default: false,
               renderTrigger: true,
               description: t('Display row level total'),
@@ -197,7 +197,7 @@ const config: ControlPanelConfig = {
             name: 'colTotals',
             config: {
               type: 'CheckboxControl',
-              label: t('Show columns total'),
+              label: () => t('Show column summaries'),
               default: false,
               renderTrigger: true,
               description: t('Display column level total'),
@@ -240,6 +240,45 @@ const config: ControlPanelConfig = {
                   'opposed to each column being displayed side by side for each metric.',
               ),
               renderTrigger: true,
+            },
+          },
+        ],
+        [
+          {
+            name: 'aggregateFunction',
+            config: {
+              type: 'SelectControl',
+              label: () => t('Aggregation function'),
+              default: 'Metric',
+              clearable: false,
+              choices: [
+                ['Metric', t('Use metric definition')],
+                ['Count', t('Count')],
+                ['Count Unique Values', t('Count Unique Values')],
+                ['List Unique Values', t('List Unique Values')],
+                ['Sum', t('Sum')],
+                ['Average', t('Average')],
+                ['Median', t('Median')],
+                ['Sample Variance', t('Sample Variance')],
+                ['Sample Standard Deviation', t('Sample Standard Deviation')],
+                ['Minimum', t('Minimum')],
+                ['Maximum', t('Maximum')],
+                ['First', t('First')],
+                ['Last', t('Last')],
+                ['Sum as Fraction of Total', t('Sum as Fraction of Total')],
+                ['Sum as Fraction of Rows', t('Sum as Fraction of Rows')],
+                ['Sum as Fraction of Columns', t('Sum as Fraction of Columns')],
+                ['Count as Fraction of Total', t('Count as Fraction of Total')],
+                ['Count as Fraction of Rows', t('Count as Fraction of Rows')],
+                [
+                  'Count as Fraction of Columns',
+                  t('Count as Fraction of Columns'),
+                ],
+              ],
+              description: () =>
+                t(
+                  'Use the metric definition for database totals, or aggregate the returned grouped values for cells and summaries. Average gives each returned value equal weight. Query limits apply before result aggregation.',
+                ),
             },
           },
         ],

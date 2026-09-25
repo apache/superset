@@ -20,6 +20,8 @@
 import PropTypes from 'prop-types';
 import { t } from '@apache-superset/core/translation';
 
+import { getResultAggregation } from '../plugin/resultAggregation';
+
 type SortFunction = (
   a: string | number | null,
   b: string | number | null,
@@ -770,12 +772,20 @@ const baseAggregatorTemplates = {
               | undefined;
             const cols = data.props.cols as string[] | undefined;
             const rows = data.props.rows as string[] | undefined;
-            if (metricDim && cols?.includes(metricDim)) {
+            if (
+              !getResultAggregation(data.props.aggregateFunction) &&
+              metricDim &&
+              cols?.includes(metricDim)
+            ) {
               this.metricAxis = {
                 axis: 'col',
                 value: String(record[metricDim]),
               };
-            } else if (metricDim && rows?.includes(metricDim)) {
+            } else if (
+              !getResultAggregation(data.props.aggregateFunction) &&
+              metricDim &&
+              rows?.includes(metricDim)
+            ) {
               this.metricAxis = {
                 axis: 'row',
                 value: String(record[metricDim]),
@@ -1053,29 +1063,95 @@ class PivotData {
     const vals = this.props.vals as string[];
     const fractionType =
       FRACTION_TYPE_BY_SHOW_VALUES_AS[this.props.showValuesAs as string];
-    // Values come pre-aggregated from the database (one query per rollup level),
-    // so the pivot stores them verbatim via `cellValue` instead of aggregating.
-    // When "Show values as" a fraction is active, wrap that passthrough with
-    // the same fractionOf template the pre-SIP-216 "Sum as Fraction of ..."
-    // aggregators used: it divides a cell's own value by the value at the
-    // requested scope (row/column/grand total), each of which is itself one
-    // of these uniformly-wrapped aggregators, so `fractionOf`'s cross-lookup
-    // (`data.getAggregator(...).inner.value()`) resolves correctly no matter
-    // which scope it's called for -- including the totals dividing by
-    // themselves to read 100%. This needs no new query and no per-metric
-    // aggregator-override control (that control is gone, see SIP.md); it's a
-    // pure display transform over values that are already DB-correct.
-    this.aggregator = fractionType
-      ? aggregatorTemplates.fractionOf(
-          cellValue(),
-          fractionType,
-          usFmtPct,
-        )(vals)
-      : cellValue(this.props.defaultFormatter as Formatter)(vals);
+    // Metric mode places precomputed rollups. Result mode feeds original leaf
+    // records to the chosen aggregator at every cell and summary scope.
+    const resultAggregation = getResultAggregation(
+      this.props.aggregateFunction,
+    );
+    const rawResultFactory = resultAggregation
+      ? (aggregators[resultAggregation](vals) as (
+          ...args: unknown[]
+        ) => Aggregator)
+      : undefined;
+    const numericResult =
+      resultAggregation &&
+      [
+        'Sum',
+        'Average',
+        'Median',
+        'Minimum',
+        'Maximum',
+        'Sample Variance',
+        'Sample Standard Deviation',
+        'Sum as Fraction of Total',
+        'Sum as Fraction of Rows',
+        'Sum as Fraction of Columns',
+      ].includes(resultAggregation);
+    const resultFactory = rawResultFactory
+      ? (...args: unknown[]): Aggregator => {
+          const aggregator = rawResultFactory(...args);
+          const push = aggregator.push.bind(aggregator);
+          if (numericResult) {
+            let numericCount = 0;
+            let lastText: string | undefined;
+            const valueOf = aggregator.value.bind(aggregator);
+            aggregator.value = () =>
+              resultAggregation === 'Sum' &&
+              numericCount === 0 &&
+              lastText !== undefined
+                ? lastText
+                : valueOf();
+            aggregator.push = record => {
+              const value = record[vals[0]];
+              if (
+                value != null &&
+                value !== '' &&
+                Number.isFinite(Number(value))
+              ) {
+                numericCount += 1;
+                push({ ...record, [vals[0]]: Number(value) });
+              } else if (typeof value === 'string' && value !== '') {
+                lastText = value;
+              }
+            };
+          }
+          if (
+            this.props.defaultFormatter &&
+            !resultAggregation?.includes(' as Fraction of ') &&
+            resultAggregation !== 'List Unique Values'
+          ) {
+            aggregator.format = fmtNonString(
+              this.props.defaultFormatter as Formatter,
+            );
+          }
+          return aggregator;
+        }
+      : undefined;
+    const percentResultFactory =
+      resultFactory &&
+      fractionType &&
+      !resultAggregation?.includes(' as Fraction of ')
+        ? aggregatorTemplates.fractionOf(
+            () => resultFactory,
+            fractionType,
+            usFmtPct,
+          )(vals)
+        : resultFactory;
+    this.aggregator =
+      percentResultFactory ??
+      (fractionType
+        ? aggregatorTemplates.fractionOf(
+            cellValue(),
+            fractionType,
+            usFmtPct,
+          )(vals)
+        : cellValue(this.props.defaultFormatter as Formatter)(vals));
     // Percentage display always uses a fixed percent format -- a per-metric
     // custom formatter (currency, decimals, etc.) doesn't apply to a ratio.
     this.formattedAggregators =
-      !fractionType && this.props.customFormatters
+      !fractionType &&
+      !resultAggregation?.includes(' as Fraction of ') &&
+      this.props.customFormatters
         ? Object.entries(
             this.props.customFormatters as Record<
               string,
@@ -1091,7 +1167,17 @@ class PivotData {
             ) => {
               acc[key] = {};
               Object.entries(columnFormatter).forEach(([column, formatter]) => {
-                acc[key][column] = cellValue(formatter as Formatter)(vals);
+                acc[key][column] = resultFactory
+                  ? (...args: unknown[]) => {
+                      const aggregator = resultFactory(...args);
+                      if (resultAggregation !== 'List Unique Values') {
+                        aggregator.format = fmtNonString(
+                          formatter as Formatter,
+                        );
+                      }
+                      return aggregator;
+                    }
+                  : cellValue(formatter as Formatter)(vals);
               });
               return acc;
             },
@@ -1223,7 +1309,71 @@ class PivotData {
     return this.rowKeys;
   }
 
+  processResultRecord(record: PivotRecord): void {
+    const rows = this.props.rows as string[];
+    const cols = this.props.cols as string[];
+    const rowKey = rows.map(key =>
+      String(key in record ? record[key] : 'null'),
+    );
+    const colKey = cols.map(key =>
+      String(key in record ? record[key] : 'null'),
+    );
+    // Feed each original record directly to every scope; never aggregate subtotals.
+    const rowDepths = [
+      0,
+      ...rows
+        .map((_, i) => i + 1)
+        .filter(depth => depth === rows.length || this.subtotals.rowEnabled),
+    ];
+    const colDepths = [
+      0,
+      ...cols
+        .map((_, i) => i + 1)
+        .filter(depth => depth === cols.length || this.subtotals.colEnabled),
+    ];
+    rowDepths.forEach(ri =>
+      colDepths.forEach(ci => {
+        if (ri === 0 && ci === 0) {
+          this.allTotal.push(record);
+          return;
+        }
+        const r = rowKey.slice(0, ri);
+        const c = colKey.slice(0, ci);
+        const rk = flatKey(r);
+        const ck = flatKey(c);
+        let target: Record<string, Aggregator>;
+        let key: string;
+        if (ci === 0) {
+          target = this.rowTotals;
+          key = rk;
+          if (!target[key]) this.rowKeys.push(r);
+        } else if (ri === 0) {
+          target = this.colTotals;
+          key = ck;
+          if (!target[key]) this.colKeys.push(c);
+        } else {
+          this.tree[rk] ??= {};
+          target = this.tree[rk];
+          key = ck;
+        }
+        target[key] ??= this.getFormattedAggregator(
+          record,
+          ci === 0 ? r : ri === 0 ? c : undefined,
+        )(this, r, c);
+        target[key].push(record);
+        target[key].isRowSubtotal = ri > 0 && ri < rows.length;
+        target[key].isColSubtotal = ci > 0 && ci < cols.length;
+        target[key].isSubtotal =
+          target[key].isRowSubtotal || target[key].isColSubtotal;
+      }),
+    );
+  }
+
   processRecord(record: PivotRecord): void {
+    if (getResultAggregation(this.props.aggregateFunction)) {
+      this.processResultRecord(record);
+      return;
+    }
     // this code is called in a tight loop.
     // Each record is tagged (in PivotTableChart) with `__rows`/`__columns`:
     // the dimension labels of the rollup level that produced it. The database

@@ -4579,3 +4579,132 @@ def test_apply_client_processing_csv_format_pivot_table_multiple_rows():
         ("London", "Consumer"),
         ("London", "Corporate"),
     }
+
+
+@pytest.mark.parametrize(
+    "aggregate,expected",
+    [("Median", 14.5), ("Average", 32.5), ("Sum", 130), ("Count", 4)],
+)
+def test_result_aggregation_uses_original_values_for_corner(aggregate, expected):
+    """The grand summary must not be a median/mean of intermediate summaries."""
+    data = pd.DataFrame(
+        {
+            "region": ["A", "A", "A", "B"],
+            "city": ["a", "b", "c", "d"],
+            "period": ["x", "y", "z", "x"],
+            "sales": [1, 9, 20, 100],
+        }
+    )
+    result = pivot_table_v2(
+        data,
+        {
+            "groupbyRows": ["region", "city"],
+            "groupbyColumns": ["period"],
+            "metrics": ["sales"],
+            "aggregateFunction": aggregate,
+            "rowTotals": True,
+            "colTotals": True,
+        },
+        apply_number_format=False,
+    )
+    label = f"Total ({aggregate})"
+    assert result.loc[(label, ""), (label, "")] == expected
+
+
+def test_result_median_export_ignores_nulls():
+    """Null metrics are missing observations, not zero-valued observations."""
+    result = pivot_table_v2(
+        pd.DataFrame(
+            {
+                "group": ["a", "b", "c", "d"],
+                "sales": [None, 0, 10, 20],
+            }
+        ),
+        {
+            "groupbyRows": ["group"],
+            "metrics": ["sales"],
+            "aggregateFunction": "Median",
+            "colTotals": True,
+        },
+        apply_number_format=False,
+    )
+    assert result.loc[("Total (Median)",), ("sales",)] == 10
+
+
+@pytest.mark.parametrize(
+    "aggregate,expected", [("Metric", 19), ("Average", 15), ("Median", 15)]
+)
+def test_result_mode_discards_stored_database_rollups(
+    aggregate: str, expected: float
+) -> None:
+    """A stored rollup query must not double-count its precomputed summaries."""
+    result = pivot_table_v2(
+        grouping_sets_df(),
+        {
+            "groupbyRows": ["nation"],
+            "groupbyColumns": ["gender"],
+            "metrics": ["AVG(num)"],
+            "aggregateFunction": aggregate,
+            "rowTotals": True,
+            "colTotals": True,
+        },
+        apply_number_format=False,
+    )
+    assert result.iloc[-1, -1] == expected
+
+
+@pytest.mark.parametrize("layout", ["ROWS", "COLUMNS"])
+@pytest.mark.parametrize("transpose", [True, False])
+def test_result_median_layouts(layout: str, transpose: bool) -> None:
+    """The grand median is independent of the placement of dimensions and metrics."""
+    result = pivot_table_v2(
+        pd.DataFrame(
+            {
+                "region": ["A", "B"],
+                "period": ["x", "y"],
+                "sales": [10, 100],
+                "profit": [20, 200],
+            }
+        ),
+        {
+            "groupbyRows": ["region"],
+            "groupbyColumns": ["period"],
+            "metrics": ["sales", "profit"],
+            "aggregateFunction": "Median",
+            "rowTotals": True,
+            "colTotals": True,
+            "combineMetric": True,
+            "metricsLayout": layout,
+            "transposePivot": transpose,
+        },
+        apply_number_format=False,
+    )
+    assert result.iloc[-1, -1] == 60
+
+
+@pytest.mark.parametrize(
+    "grand,subtotals", [(True, False), (False, True), (True, True)]
+)
+def test_result_summary_visibility(grand: bool, subtotals: bool) -> None:
+    """A subtotal can be visible without a grand total, and vice versa."""
+    result = pivot_table_v2(
+        pd.DataFrame(
+            {
+                "region": ["A", "A", "B"],
+                "city": ["a", "b", "c"],
+                "sales": [10, 20, 100],
+            }
+        ),
+        {
+            "groupbyRows": ["region", "city"],
+            "metrics": ["sales"],
+            "aggregateFunction": "Average",
+            "colTotals": grand,
+            "rowSubTotals": subtotals,
+        },
+        apply_number_format=False,
+    )
+    assert (("Total (Average)", "") in result.index) == grand
+    assert (("A", "Subtotal") in result.index) == subtotals
+    if subtotals:
+        assert result.loc[("A", "Subtotal"), ("sales",)] == 15

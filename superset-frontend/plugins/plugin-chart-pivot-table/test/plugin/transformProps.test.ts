@@ -601,3 +601,16 @@ test('conditional formatting on the additive path uses the raw leaf query rows',
   // Scale spans the leaf cells (max 40), never the client-side grand total 100.
   expect(getColorFromValue(40)).toEqual('#ACE1C4FF');
 });
+
+test('saved Median keeps leaf data for result aggregation, without synthesizing totals', () => {
+  const props = new ChartProps({
+    ...chartProps,
+    formData: { ...formData, aggregateFunction: 'Median' },
+  });
+  const result = transformProps(props);
+  expect(result.aggregateFunction).toBe('Median');
+  expect(result.data).toHaveLength(1);
+  expect(result.data[0].data).toEqual(chartProps.queriesData[0].data);
+  expect(result.data[0].groupby.rows).toEqual(formData.groupbyColumns);
+  expect(result.data[0].groupby.columns).toEqual(formData.groupbyRows);
+});

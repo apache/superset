@@ -24,6 +24,16 @@ assists people when migrating to a new version.
 
 ## Next
 
+### Pivot result aggregation
+
+Pivot charts honor saved `aggregateFunction` choices again. The Aggregation function
+control can summarize returned grouped values (Average, Median, etc.) or use the
+metric definition for database-computed summaries. Existing summary visibility is
+preserved. Numeric result functions ignore null/nonnumeric inputs, and summaries
+are computed from original results rather than intermediate summaries. New charts
+without a saved choice use the metric definition. Switching modes requires a new
+query; open and save charts used by scheduled reports to refresh stored queries.
+
 ### MCP response size guard: byte limit instead of estimated token count
 
 The MCP response-size guard no longer estimates LLM token counts (it

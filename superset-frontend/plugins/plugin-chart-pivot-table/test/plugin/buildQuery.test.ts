@@ -178,3 +178,19 @@ test('should not omit extras.time_grain_sqla from queryContext so dashboards app
   const query = queryContext.queries[queryContext.queries.length - 1];
   expect(query.extras?.time_grain_sqla).toEqual(TimeGranularity.QUARTER);
 });
+
+test.each(['Average', 'Median', 'Count Unique Values'])(
+  '%s queries grouped metric values without database rollups',
+  aggregateFunction => {
+    const { queries } = buildQuery({ ...formData, aggregateFunction });
+    expect(queries).toHaveLength(1);
+    expect(queries[0]).not.toHaveProperty('grouping_sets');
+    expect(queries[0].metrics).toEqual(formData.metrics);
+    expect(queries[0].columns).toHaveLength(4);
+  },
+);
+
+test('explicit metric definition retains database rollups', () => {
+  const { queries } = buildQuery({ ...formData, aggregateFunction: 'Metric' });
+  expect(queries[0]).toHaveProperty('grouping_sets');
+});
