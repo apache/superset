@@ -58,6 +58,8 @@ a timeout parameter use `SQLLAB_TIMEOUT`. The deadline covers the complete tool
 call, including composed queries, and returns a clear timeout error with a call
 ID. Superset requests warehouse cancellation using its engine cancellation
 hooks, including for connection prequeries, on a separate bounded pool.
+Cancellation connections run independently of the expired tool deadline, including
+connection prequeries such as PostgreSQL schema selection.
 Drivers without cancellation support can
 continue running after the caller receives the timeout; the worker retains its
 slot and owns session cleanup until it finishes. A stuck cancellation also

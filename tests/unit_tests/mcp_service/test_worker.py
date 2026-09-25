@@ -21,7 +21,8 @@ import sqlite3
 import threading
 import time
 from collections.abc import Iterator
-from contextlib import contextmanager
+from contextlib import contextmanager, ExitStack
+from contextvars import ContextVar
 from typing import Any
 from unittest.mock import Mock, patch
 
@@ -565,3 +566,79 @@ async def test_prequery_registers_cancellation_before_blocking(app: Any) -> None
         cancelled.set()
         await asyncio.to_thread(pool.executor.shutdown)
         await asyncio.to_thread(pool.cancellations.shutdown)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("inherit_statement_hooks", [False, True])
+async def test_expired_call_cancellation_reaches_engine_after_prequery(
+    app: Any, inherit_statement_hooks: bool
+) -> None:
+    """Cancellation prequeries must not inherit the abandoned execution hooks."""
+    from sqlalchemy import create_engine
+
+    from superset.mcp_service.worker import (
+        _active_call,
+        QueryCancellation,
+        warehouse_cursor,
+        WorkerCall,
+    )
+    from superset.models.core import Database
+    from superset.sql.execution.cancellation import (
+        after_execute,
+        check_deadline,
+        cursor_scope,
+    )
+
+    database = Database(id=42, database_name="cancel-test", sqlalchemy_uri="sqlite://")
+    call = WorkerCall(app, Mock(), 30)
+    engine = create_engine("sqlite://")
+    tenant: ContextVar[str | None] = ContextVar("cancel_test_tenant", default=None)
+    refresh = Mock()
+
+    def cancel(cursor: Any, query: Any, cancel_id: str) -> bool:
+        """Verify prequeries completed and unrelated context survived the copy."""
+        assert cursor.execute("PRAGMA user_version").fetchone() == (42,)
+        assert cancel_id == "warehouse-handle"
+        assert tenant.get() == "tenant-a"
+        assert _active_call.get() is None
+        assert cursor_scope.get() is None
+        assert check_deadline.get() is None
+        assert after_execute.get() is None
+        return True
+
+    try:
+        with ExitStack() as stack:
+            stack.callback(_active_call.reset, _active_call.set(call))
+            stack.callback(cursor_scope.reset, cursor_scope.set(warehouse_cursor))
+            stack.callback(tenant.reset, tenant.set("tenant-a"))
+            deadline = call.check if inherit_statement_hooks else None
+            execute = refresh if inherit_statement_hooks else None
+            stack.callback(check_deadline.reset, check_deadline.set(deadline))
+            stack.callback(after_execute.reset, after_execute.set(execute))
+            cancellation = QueryCancellation(call, database, Mock(), None, "public")
+            cancellation.cancel_id = "warehouse-handle"
+            with (
+                patch.object(db.session, "get", return_value=database),
+                patch.object(database, "_get_sqla_engine", return_value=engine),
+                patch.object(
+                    database.db_engine_spec,
+                    "get_prequeries",
+                    return_value=["PRAGMA user_version = 42"],
+                ),
+                patch.object(
+                    database.db_engine_spec, "cancel_query", side_effect=cancel
+                ) as cancel_hook,
+            ):
+                cancellation.register()
+                call.expired.set()
+                assert call.cancel_query is not None
+                call.cancel_query()
+                cancel_hook.assert_called_once()
+            refresh.assert_not_called()
+            assert _active_call.get() is call
+            assert cursor_scope.get() is warehouse_cursor
+            assert check_deadline.get() == deadline
+            assert after_execute.get() is execute
+            assert tenant.get() == "tenant-a"
+    finally:
+        engine.dispose()

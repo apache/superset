@@ -80,6 +80,27 @@ _engine_scope: ContextVar[tuple[Database, Engine, str | None, str | None] | None
 
 
 @contextmanager
+def without_execution_hooks() -> Iterator[None]:
+    """Keep cancellation I/O independent of the query it is cancelling.
+
+    Preserve unrelated context, such as authentication and tenant routing, while
+    preventing prequeries from checking the abandoned deadline or registering
+    cancellation recursively.
+    """
+    cursor_token = cursor_scope.set(None)
+    deadline_token = check_deadline.set(None)
+    execute_token = after_execute.set(None)
+    engine_token = _engine_scope.set(None)
+    try:
+        yield
+    finally:
+        _engine_scope.reset(engine_token)
+        after_execute.reset(execute_token)
+        check_deadline.reset(deadline_token)
+        cursor_scope.reset(cursor_token)
+
+
+@contextmanager
 def cancellable_engine(
     database: Database, engine: Engine, catalog: str | None, schema: str | None
 ) -> Iterator[None]:

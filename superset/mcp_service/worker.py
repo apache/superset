@@ -392,10 +392,12 @@ class QueryCancellation:
         """Resolve a fresh Database and acting user on the cancellation worker."""
         from superset import db, security_manager
         from superset.models.core import Database
+        from superset.sql.execution.cancellation import without_execution_hooks
         from superset.tasks.query_cancel import cancel_chart_query
 
+        active_token = _active_call.set(None)
         try:
-            with _worker_context(self.call.app):
+            with without_execution_hooks(), _worker_context(self.call.app):
                 if self.call.user_id is not None:
                     g.user = db.session.get(
                         security_manager.user_model, self.call.user_id
@@ -409,6 +411,8 @@ class QueryCancellation:
             logger.warning(
                 "MCP call %s: cancellation failed", self.call.call_id, exc_info=True
             )
+        finally:
+            _active_call.reset(active_token)
 
 
 @contextmanager

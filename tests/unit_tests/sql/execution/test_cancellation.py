@@ -17,7 +17,7 @@
 """Execution-owner hooks must leave ordinary SQLAlchemy execution unchanged."""
 
 from collections.abc import Iterator
-from contextlib import contextmanager
+from contextlib import contextmanager, ExitStack, nullcontext
 from typing import Any
 from unittest.mock import Mock
 
@@ -111,3 +111,38 @@ def test_cursor_and_engine_without_owner() -> None:
                     assert connection.execute(text("SELECT 1")).scalar() == 1
     finally:
         engine.dispose()
+
+
+@pytest.mark.parametrize("fail", [False, True])
+def test_without_execution_hooks_restores_context(fail: bool) -> None:
+    """Suspend only execution hooks, restoring them even when cancellation fails."""
+    scope = Mock()
+    check = Mock()
+    refresh = Mock()
+    engine = Mock()
+    with ExitStack() as stack:
+        stack.callback(
+            cancellation.cursor_scope.reset, cancellation.cursor_scope.set(scope)
+        )
+        stack.callback(
+            cancellation.check_deadline.reset, cancellation.check_deadline.set(check)
+        )
+        stack.callback(
+            cancellation.after_execute.reset, cancellation.after_execute.set(refresh)
+        )
+        stack.enter_context(cancellation.cancellable_engine(Mock(), engine, None, None))
+        engine_scope = cancellation._engine_scope.get()
+        with pytest.raises(RuntimeError) if fail else nullcontext():
+            with cancellation.without_execution_hooks():
+                assert cancellation.cursor_scope.get() is None
+                assert cancellation._engine_scope.get() is None
+                cancellation.check_query_deadline()
+                cancellation.query_executed()
+                check.assert_not_called()
+                refresh.assert_not_called()
+                if fail:
+                    raise RuntimeError("Cancellation failed")
+        assert cancellation.cursor_scope.get() is scope
+        assert cancellation.check_deadline.get() is check
+        assert cancellation.after_execute.get() is refresh
+        assert cancellation._engine_scope.get() is engine_scope
