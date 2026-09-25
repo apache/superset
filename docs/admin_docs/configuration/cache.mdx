@@ -140,10 +140,13 @@ set it in `superset_config.py`:
 DATA_CACHE_MAX_VALUE_SIZE = 20 * 1024 * 1024  # 20 MB
 ```
 
-When a value's serialized size exceeds this threshold it is not written to the data cache. The
-request still returns its data, and the value is recomputed from the datasource the next time it is
-requested. With `GLOBAL_ASYNC_QUERIES`, that includes the follow-up request a chart sends after its
-background query finishes, so an oversized async chart runs its query twice. Each skip emits a
+When a value's serialized size exceeds this threshold it is not written to the data cache, and any
+older cached copy stored under the same key is removed, so stale data is not shown. The request still
+returns its data, and the value is recomputed from the datasource the next time it is requested.
+With `GLOBAL_ASYNC_QUERIES`, that includes the follow-up request a chart sends after its background
+query finishes, so an oversized async chart runs its query twice. That recompute happens inside the
+web request itself, so a very slow, very large query is subject to the web server's request timeout.
+Each skip emits a
 WARNING log naming the key and byte size, and increments the `skip_cache_value_too_large` statsd
 metric. Set to `None` to disable the check entirely (no serialization overhead is then incurred).
 

@@ -49,7 +49,7 @@ from superset.extensions import cache_manager
 from superset.semantic_layers.mapper import SUPPORTED_FILTER_OPERATORS
 from superset.superset_typing import FlaskResponse
 from superset.utils import json
-from superset.utils.cache import exceeds_max_cache_value_size
+from superset.utils.cache import skip_oversized_cache_value
 from superset.utils.core import (
     apply_max_row_limit,
     DatasourceType,
@@ -65,13 +65,14 @@ logger = logging.getLogger(__name__)
 def _set_data_cache(cache_key: str, value: Any, timeout: int) -> None:
     """Write ``value`` to the data cache unless it exceeds
     ``DATA_CACHE_MAX_VALUE_SIZE``. An oversized value is left uncached, so the next
-    request misses and recomputes it from the datasource. With caching disabled
+    request misses and recomputes it from the datasource; any older value under
+    the key is removed so it is not served instead. With caching disabled
     (``NullCache``) nothing is written and the size check is skipped, so the value
     is never serialized."""
     data_cache = cache_manager.data_cache
     if isinstance(data_cache.cache, NullCache):
         return
-    if not exceeds_max_cache_value_size(cache_key, value):
+    if not skip_oversized_cache_value(data_cache, cache_key, value):
         data_cache.set(cache_key, value, timeout=timeout)
 
 

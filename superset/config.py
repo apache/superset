@@ -1425,9 +1425,10 @@ DATA_CACHE_CONFIG: CacheConfig = {"CACHE_TYPE": "NullCache"}
 # Upper bound, in bytes, on the serialized size of a single value written to the
 # data cache (chart and SQL query results, filter dropdown values, and compatible
 # metrics/dimensions). A value whose pickled size exceeds this threshold is NOT
-# written to the cache: the request still succeeds, and the value is recomputed
-# the next time it is requested, including the follow-up request a chart sends
-# after a background (async) query. This protects the cache backend (e.g.
+# written to the cache, and any older value under the same key is removed so it is
+# not served: the request still succeeds, and the value is recomputed the next
+# time it is requested, including the follow-up request a chart sends after a
+# background (async) query. This protects the cache backend (e.g.
 # Redis/Memcached) from being flooded by a heavy tail of very large result sets,
 # which can drive the backend toward its memory limit and evict many smaller,
 # useful entries. Each skip emits a WARNING log naming the key and byte size and

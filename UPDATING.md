@@ -28,11 +28,14 @@ assists people when migrating to a new version.
 
 `DATA_CACHE_MAX_VALUE_SIZE` limits the serialized size of a single value written
 to the data cache. It defaults to `10 * 1024 * 1024` (10 MB) instead of `None`.
-Values larger than the limit are not stored in the cache; the request still
-returns its data, and the value is recomputed from the datasource the next time
-it is requested. This includes the follow-up request a chart sends after a
-background (async) query finishes: that request recomputes the result instead of
-reading it from the cache, so an oversized async chart runs its query twice.
+Values larger than the limit are not stored in the cache, and any older cached
+copy stored under the same key is removed, so stale data is not shown. The
+request still returns its data, and the value is recomputed from the datasource
+the next time it is requested. This includes the follow-up request a chart sends
+after a background (async) query finishes: that request recomputes the result
+instead of reading it from the cache, so an oversized async chart runs its query
+twice. That recompute happens inside the web request itself, so a very slow, very
+large query is subject to the web server's request timeout.
 
 The limit applies to every writer to the data cache: chart results, SQL query
 results from the SQL executor, filter dropdown column values, and compatible

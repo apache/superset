@@ -81,7 +81,7 @@ from superset.exceptions import (
 from superset.extensions import cache_manager
 from superset.sql.parse import SQLScript
 from superset.utils import core as utils
-from superset.utils.cache import exceeds_max_cache_value_size
+from superset.utils.cache import skip_oversized_cache_value
 
 if TYPE_CHECKING:
     from superset_core.queries.types import (
@@ -1028,9 +1028,10 @@ class SQLExecutor:
             "total_execution_time_ms": result.total_execution_time_ms,
         }
 
-        # An oversized result is left uncached; ``_get_from_cache`` then misses and
-        # the query re-runs on the next request.
-        if exceeds_max_cache_value_size(cache_key, cached_data):
+        # An oversized result is left uncached and any older result under the key
+        # is removed; ``_get_from_cache`` then misses and the query re-runs on the
+        # next request.
+        if skip_oversized_cache_value(cache_manager.data_cache, cache_key, cached_data):
             return
 
         cache_manager.data_cache.set(

@@ -2801,6 +2801,8 @@ def test_store_in_cache_skips_oversized_result(
     )
 
     mock_cache_set.assert_not_called()
+    # An older result under the same key is removed so it is not served later.
+    enabled_data_cache.delete.assert_called_once()
     stats_logger.incr.assert_called_once_with("skip_cache_value_too_large")
     mock_logger.warning.assert_called_once()
 
@@ -2817,6 +2819,7 @@ def test_store_in_cache_writes_result_under_cap(
     )
 
     mock_cache_set.assert_called_once()
+    enabled_data_cache.delete.assert_not_called()
     stats_logger.incr.assert_not_called()
 
 
@@ -2857,3 +2860,4 @@ def test_store_in_cache_null_cache_skips_serialization(
 
     mock_dumps.assert_not_called()
     data_cache.set.assert_not_called()
+    data_cache.delete.assert_not_called()
