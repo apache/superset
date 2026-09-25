@@ -117,14 +117,34 @@
     return mintToken();
   }
 
+  // The held first fetch, handed out once so it cannot be settled twice.
+  function takeHeldFirstFetch(action) {
+    const held = rig.heldFirstFetch;
+    if (!held) {
+      log("error", `${action}: no fetchGuestToken() is being held (needs ?slowfirst=1)`);
+      return null;
+    }
+    rig.heldFirstFetch = null;
+    return held;
+  }
+
   // Settle the held first fetch, long after the SDK asked for it.
   window.rigReleaseFirstToken = async () => {
-    const token = await mintToken();
-    rig.heldFirstFetch.resolve(token);
-    log("host", "released the held fetchGuestToken() #1");
+    const held = takeHeldFirstFetch("rigReleaseFirstToken");
+    if (!held) return;
+    try {
+      held.resolve(await mintToken());
+      log("host", "released the held fetchGuestToken() #1");
+    } catch (err) {
+      // Never leave the SDK waiting on a fetch nobody will settle.
+      held.reject(err);
+      log("error", `could not mint the held token, failed fetchGuestToken() #1: ${err.message}`);
+    }
   };
   window.rigFailFirstToken = () => {
-    rig.heldFirstFetch.reject(new Error("rig: host token endpoint is down"));
+    const held = takeHeldFirstFetch("rigFailFirstToken");
+    if (!held) return;
+    held.reject(new Error("rig: host token endpoint is down"));
     log("error", "failed the held fetchGuestToken() #1");
   };
 
@@ -157,13 +177,23 @@
       );
   };
 
+  // The buttons are live before `embedDashboard` resolves, and stay live if it
+  // rejects, so each one checks there is a dashboard to act on.
+  function hasDashboard(action) {
+    if (rig.dashboard) return true;
+    log("error", `${action}: no dashboard yet (embedDashboard is ${rig.embedState})`);
+    return false;
+  }
+
   document.getElementById("theme").onclick = () => {
+    if (!hasDashboard("theme")) return;
     rig.dashboard.setThemeConfig({ token: { colorPrimary: "#ff0066" } });
     rig.dashboard.setThemeMode("dark");
     log("host", "theme pushed");
   };
 
   document.getElementById("tabs").onclick = () => {
+    if (!hasDashboard("getActiveTabs()")) return;
     log("host", "getActiveTabs() called");
     rig.dashboard.getActiveTabs().then(
       (tabs) => log("ok", "getActiveTabs ->", tabs),
@@ -175,6 +205,7 @@
   };
 
   document.getElementById("unmount").onclick = () => {
+    if (!hasDashboard("unmount()")) return;
     rig.dashboard.unmount();
     log("host", "unmount()");
   };

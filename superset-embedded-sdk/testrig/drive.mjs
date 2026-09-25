@@ -75,7 +75,15 @@ class CDP {
     this.pending = new Map();
     this.listeners = [];
     ws.addEventListener("message", (event) => {
-      const msg = JSON.parse(event.data);
+      // Nothing upstream catches a throw from this listener, so a frame that
+      // does not parse is dropped rather than taking the whole run down.
+      let msg;
+      try {
+        msg = JSON.parse(event.data);
+      } catch (err) {
+        if (verbose) console.error(`      [cdp] dropped an unparsable frame: ${err.message}`);
+        return;
+      }
       if (msg.id && this.pending.has(msg.id)) {
         const { resolve, reject } = this.pending.get(msg.id);
         this.pending.delete(msg.id);
@@ -101,6 +109,10 @@ class CDP {
   }
 }
 
+// The `stop` of every browser still running, so an interrupted run can stop
+// them too.
+const runningBrowsers = new Set();
+
 async function launchBrowser() {
   const userDataDir = mkdtempSync(join(tmpdir(), "embedded-sdk-rig-"));
   const args = [
@@ -113,7 +125,40 @@ async function launchBrowser() {
     "--disable-dev-shm-usage",
     "about:blank",
   ];
-  const child = spawn(CHROMIUM, args, { stdio: ["ignore", "pipe", "pipe"] });
+  // In a process group of its own, so the helper processes chromium forks can
+  // be killed along with it: left alive, they write back into the profile
+  // after it has been removed.
+  const child = spawn(CHROMIUM, args, {
+    stdio: ["ignore", "pipe", "pipe"],
+    detached: true,
+  });
+  const exited = new Promise((resolve) => {
+    child.once("exit", resolve);
+    child.once("error", resolve);
+  });
+  let stopping;
+  const stop = () =>
+    (stopping ??= (async () => {
+      runningBrowsers.delete(stop);
+      try {
+        process.kill(-child.pid, "SIGKILL");
+      } catch {
+        // already gone, or never started
+      }
+      await exited;
+      rmSync(userDataDir, { recursive: true, force: true, maxRetries: 3 });
+    })());
+  runningBrowsers.add(stop);
+  // Until `stop` is handed back, nobody else can clean up after this browser.
+  try {
+    return { cdp: await connect(child), stop };
+  } catch (err) {
+    await stop();
+    throw err;
+  }
+}
+
+async function connect(child) {
   const wsUrl = await new Promise((resolve, reject) => {
     let buffered = "";
     const onChunk = (chunk) => {
@@ -126,23 +171,21 @@ async function launchBrowser() {
     child.on("exit", (code) =>
       reject(new Error(`chromium exited (${code}) before listening:\n${buffered}`)),
     );
+    child.on("error", (err) =>
+      reject(new Error(`could not start ${CHROMIUM}: ${err.message}`)),
+    );
     setTimeout(() => reject(new Error("chromium never reported a devtools url")), 20_000);
   });
   const ws = new WebSocket(wsUrl);
   await new Promise((resolve, reject) => {
     ws.addEventListener("open", resolve, { once: true });
-    ws.addEventListener("error", reject, { once: true });
+    ws.addEventListener(
+      "error",
+      () => reject(new Error(`could not connect to chromium's devtools at ${wsUrl}`)),
+      { once: true },
+    );
   });
-  return {
-    cdp: new CDP(ws),
-    stop: () => {
-      try {
-        child.kill("SIGKILL");
-      } finally {
-        rmSync(userDataDir, { recursive: true, force: true });
-      }
-    },
-  };
+  return new CDP(ws);
 }
 
 // ------------------------------------------------------------------- a page
@@ -190,20 +233,31 @@ async function openPage(cdp, url) {
   return { evaluate, sessionId };
 }
 
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+// A rejected predicate counts as "not yet", not as a failure: a navigation that
+// destroys the execution context mid-poll makes `evaluate` reject, and that
+// navigation is exactly the race this rig exists to reproduce.
 async function waitFor(predicate, what, timeoutMs = 15_000, intervalMs = 100) {
   const deadline = Date.now() + timeoutMs;
-  let last;
+  let lastError;
   for (;;) {
-    last = await predicate();
-    if (last) return last;
-    if (Date.now() > deadline) {
-      throw new Error(`timed out waiting for ${what}`);
+    try {
+      const value = await predicate();
+      if (value) return value;
+    } catch (err) {
+      lastError = err;
     }
-    await new Promise((r) => setTimeout(r, intervalMs));
+    if (Date.now() > deadline) {
+      throw new Error(
+        `timed out waiting for ${what}${
+          lastError ? ` (last error: ${lastError.message})` : ""
+        }`,
+      );
+    }
+    await sleep(intervalMs);
   }
 }
-
-const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 // ------------------------------------------------------------------ helpers
 function makeHelpers(evaluate) {
@@ -525,14 +579,28 @@ async function supersededTokenRun(cdp, hostOrigin) {
 }
 
 // --------------------------------------------------------------------- main
+// Everything the bundle is built from, not just the sources: a change to the
+// build config or the dependencies is just as able to make it stale.
+const BUILD_INPUTS = [
+  "webpack.config.js",
+  "babel.config.js",
+  "tsconfig.json",
+  "package.json",
+  "package-lock.json",
+];
+
 function buildIfStale() {
   const bundle = join(sdkRoot, "bundle", "index.js");
-  const newestSrc = Math.max(
-    ...readdirSync(join(sdkRoot, "src")).map((f) =>
-      statSync(join(sdkRoot, "src", f)).mtimeMs,
+  const inputs = [
+    ...readdirSync(join(sdkRoot, "src"), { recursive: true }).map((f) =>
+      join("src", f),
     ),
-  );
-  if (existsSync(bundle) && statSync(bundle).mtimeMs > newestSrc) return;
+    ...BUILD_INPUTS,
+  ]
+    .map((f) => join(sdkRoot, f))
+    .filter((f) => existsSync(f) && statSync(f).isFile());
+  const newestInput = Math.max(...inputs.map((f) => statSync(f).mtimeMs));
+  if (existsSync(bundle) && statSync(bundle).mtimeMs > newestInput) return;
   console.log("building the sdk bundle…");
   execFileSync("npx", ["webpack", "--mode", "development"], {
     cwd: sdkRoot,
@@ -548,16 +616,20 @@ async function main() {
     process.exit(2);
   }
   buildIfStale();
-  const server = await start();
-  const browser = await launchBrowser();
+  // Both are started inside the `try`, so whichever of them did come up is
+  // stopped even when the other one fails to.
+  let server;
+  let browser;
   try {
+    server = await start();
+    browser = await launchBrowser();
     await mainRun(browser.cdp, server.hostOrigin);
     await refreshRun(browser.cdp, server.hostOrigin);
     await staleInitialFetchRun(browser.cdp, server.hostOrigin);
     await supersededTokenRun(browser.cdp, server.hostOrigin);
   } finally {
-    browser.stop();
-    server.stop();
+    await browser?.stop();
+    server?.stop();
   }
 
   const failed = results.filter((r) => !r.ok);
@@ -565,6 +637,16 @@ async function main() {
     `\n${results.length - failed.length}/${results.length} checks passed`,
   );
   process.exit(failed.length ? 1 : 0);
+}
+
+// Chromium runs in its own process group, so a Ctrl-C no longer reaches it on
+// its own. The servers need nothing: they go with this process.
+for (const signal of ["SIGINT", "SIGTERM"]) {
+  process.once(signal, async () => {
+    console.error(`\n${signal}: stopping the rig`);
+    await Promise.all([...runningBrowsers].map((stop) => stop()));
+    process.exit(130);
+  });
 }
 
 main().catch((err) => {

@@ -155,25 +155,38 @@ const supersetServer = createServer(async (req, res) => {
   return send(res, 404, "not found", "text/plain");
 });
 
-export function start() {
-  return new Promise((resolve) => {
-    let listening = 0;
-    const done = () => {
-      listening += 1;
-      if (listening === 2) {
-        resolve({
-          hostOrigin,
-          supersetOrigin,
-          stop: () => {
-            hostServer.close();
-            supersetServer.close();
-          },
-        });
-      }
-    };
-    hostServer.listen(HOST_PORT, done);
-    supersetServer.listen(SUPERSET_PORT, done);
-  });
+// Rejects, rather than hanging, when either port cannot be bound (typically a
+// previous run still holding it), after closing whichever server did come up.
+export async function start() {
+  const servers = [
+    [hostServer, HOST_PORT],
+    [supersetServer, SUPERSET_PORT],
+  ];
+  const stop = () => {
+    for (const [server] of servers) if (server.listening) server.close();
+  };
+  const outcomes = await Promise.allSettled(
+    servers.map(
+      ([server, port]) =>
+        new Promise((resolve, reject) => {
+          server.once("error", reject);
+          server.listen(port, () => {
+            server.off("error", reject);
+            resolve();
+          });
+        }),
+    ),
+  );
+  const failure = outcomes.find((o) => o.status === "rejected");
+  if (failure) {
+    stop();
+    throw new Error(
+      `the rig could not start: ${failure.reason.message} ` +
+        "(set RIG_HOST_PORT / RIG_SUPERSET_PORT to use other ports)",
+      { cause: failure.reason },
+    );
+  }
+  return { hostOrigin, supersetOrigin, stop };
 }
 
 // `node server.mjs` runs the rig for a human; the driver imports `start`.
