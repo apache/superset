@@ -38,6 +38,7 @@ from superset.mcp_service.mcp_config import (
     get_mcp_factory_config,
     MCP_STATELESS_HTTP,
     MCP_STORE_CONFIG,
+    MCP_STRUCTURED_OUTPUT_ENABLED,
     MCP_TOOL_SEARCH_CONFIG,
 )
 from superset.mcp_service.middleware import (
@@ -45,7 +46,7 @@ from superset.mcp_service.middleware import (
     GlobalErrorHandlerMiddleware,
     LoggingMiddleware,
     RBACToolVisibilityMiddleware,
-    StructuredContentStripperMiddleware,
+    ToolResultCompatibilityMiddleware,
 )
 from superset.mcp_service.storage import _create_redis_store
 from superset.utils import json
@@ -298,111 +299,6 @@ def _strip_titles(obj: Any, in_properties_map: bool = False) -> Any:
     return obj
 
 
-def _simplify_optional_union(result: dict[str, Any]) -> dict[str, Any]:
-    """Collapse ``anyOf``/``oneOf`` with exactly one non-null variant.
-
-    Pydantic encodes ``Optional[X]`` as ``{"anyOf": [<X>, {"type": "null"}]}``.
-    This replaces the union with the non-null variant while preserving any
-    ``description`` or ``default`` from the parent node.
-    """
-    for union_key in ("anyOf", "oneOf"):
-        variants = result.get(union_key)
-        if not isinstance(variants, list) or len(variants) != 2:
-            continue
-        non_null = [v for v in variants if v.get("type") != "null"]
-        if len(non_null) != 1:
-            continue
-        simplified = dict(non_null[0])
-        for keep in ("description", "default"):
-            if keep in result and keep not in simplified:
-                simplified[keep] = result[keep]
-        result.pop(union_key)
-        result.pop("description", None)
-        result.pop("default", None)
-        result.update(simplified)
-    return result
-
-
-def _resolve_ref(
-    obj: dict[str, Any],
-    defs: dict[str, Any],
-    resolving: frozenset[str],
-) -> Any:
-    """Resolve a ``$ref`` pointer by inlining its definition from *defs*.
-
-    Falls back to ``{"type": "object"}`` when the definition is missing
-    or would cause a circular reference.
-    """
-    ref_path: str = obj["$ref"]
-    ref_name = ref_path.rsplit("/", 1)[-1] if "/" in ref_path else ""
-    definition = defs.get(ref_name) if ref_name else None
-
-    if definition is not None and ref_name not in resolving:
-        inlined = _compact_schema(
-            definition,
-            _defs=defs,
-            _resolving=resolving | {ref_name},
-        )
-        if isinstance(inlined, dict):
-            if desc := obj.get("description"):
-                inlined.setdefault("description", desc)
-        return inlined
-
-    replacement: dict[str, Any] = {"type": "object"}
-    if desc := obj.get("description"):
-        replacement["description"] = desc
-    return replacement
-
-
-def _compact_schema(
-    obj: Any,
-    *,
-    _defs: dict[str, Any] | None = None,
-    _resolving: frozenset[str] | None = None,
-) -> Any:
-    """Collapse ``$defs`` and ``$ref`` pointers in a JSON Schema.
-
-    Search results only need enough schema detail for the LLM to identify
-    which tool to call and construct a basic invocation.  Full schemas
-    (with all nested model definitions) are still available when the tool
-    is actually invoked via ``call_tool``.
-
-    Transformations applied:
-
-    * ``$defs`` sections are removed entirely.
-    * ``{"$ref": "..."}`` is resolved by inlining the referenced
-      definition from ``$defs``.  If the definition cannot be found
-      (or would cause a circular reference), the ref is replaced with
-      ``{"type": "object"}``.
-    * ``anyOf``/``oneOf`` lists containing only a ``$ref`` and
-      ``{"type": "null"}`` (Pydantic's Optional encoding) are collapsed
-      to the simplified non-null variant.
-    """
-    if isinstance(obj, list):
-        return [
-            _compact_schema(item, _defs=_defs, _resolving=_resolving) for item in obj
-        ]
-    if not isinstance(obj, dict):
-        return obj
-
-    # On the first (top-level) call, extract $defs for later resolution.
-    if _defs is None:
-        _defs = obj.get("$defs", {})
-    if _resolving is None:
-        _resolving = frozenset()
-
-    if "$ref" in obj:
-        return _resolve_ref(obj, _defs, _resolving)
-
-    result: dict[str, Any] = {}
-    for key, value in obj.items():
-        if key == "$defs":
-            continue
-        result[key] = _compact_schema(value, _defs=_defs, _resolving=_resolving)
-
-    return _simplify_optional_union(result)
-
-
 def _truncate_description(text: str, max_length: int) -> str:
     """Truncate a tool description for search results.
 
@@ -527,21 +423,20 @@ def _create_search_result_serializer(
 ) -> Any:
     """Build a search-result serializer from the tool-search config.
 
-    When ``include_schemas`` is False (default), delegates to
+    When ``include_schemas`` is False, delegates to
     :func:`_build_summary_serializer`, which strips ``inputSchema``
     entirely and adds a ``parameters_hint`` field with comma-separated
     top-level parameter names.  This reduces per-search token cost by
     ~80% vs compact mode while still conveying what parameters a tool
     accepts.
 
-    When ``include_schemas`` is True, the full ``compact_schemas``/
-    ``max_description_length`` pipeline applies (existing behavior):
+    When ``include_schemas`` is True, input schemas retain their definitions,
+    references, and validation constraints. Inlining references duplicates shared
+    chart models and can make a single tool exceed client result limits.
 
-    * ``$defs`` sections and ``$ref`` pointers are collapsed when
-      ``compact_schemas`` is True (see :func:`_compact_schema`).
-    * Tool descriptions are truncated to ``max_description_length`` chars.
-
-    Full schemas remain available when the tool is invoked via ``call_tool``.
+    Titles and output schemas are stripped by the base serializer. The legacy
+    ``compact_schemas`` setting only selects the default description limit;
+    ``max_description_length`` explicitly controls description truncation.
     """
     include_schemas = config.get("include_schemas", False)
 
@@ -549,23 +444,18 @@ def _create_search_result_serializer(
         max_desc = config.get("max_description_length", 300)
         return _build_summary_serializer(max_desc)
 
-    # include_schemas=True: apply full compact_schemas/max_description_length pipeline
     compact = config.get("compact_schemas", True)
     # Description truncation defaults to 300 when compact_schemas is on,
     # but is disabled when compact_schemas is off (unless explicitly set).
-    max_desc_default = 300 if compact else 0
-    max_desc = config.get("max_description_length", max_desc_default)
+    max_desc = config.get("max_description_length", 300 if compact else 0)
 
-    if not compact and not max_desc:
+    if not max_desc:
         return _serialize_tools_without_output_schema
 
     def _serializer(tools: Sequence[Any]) -> list[dict[str, Any]]:
         results = _serialize_tools_without_output_schema(tools)
         for data in results:
-            if compact:
-                if input_schema := data.get("inputSchema"):
-                    data["inputSchema"] = _compact_schema(input_schema)
-            if max_desc and (desc := data.get("description")):
+            if desc := data.get("description"):
                 data["description"] = _truncate_description(desc, max_desc)
         return results
 
@@ -696,7 +586,8 @@ def _apply_tool_search_transform(mcp_instance: Any, config: dict[str, Any]) -> N
             if name in {transform._call_tool_name, transform._search_tool_name}:
                 raise ToolError(
                     f"'{name}' is a synthetic search tool and cannot be "
-                    f"called via the call_tool proxy"
+                    f"called via the call_tool proxy",
+                    log_level=logging.WARNING,
                 )
             if arguments:
                 target_tool = await ctx.fastmcp.get_tool(name)
@@ -887,26 +778,37 @@ def _create_auth_provider(flask_app: Any) -> Any | None:
     return auth_provider
 
 
-def build_middleware_list() -> list[Middleware]:
+def build_middleware_list(
+    *, structured_output_enabled: bool = MCP_STRUCTURED_OUTPUT_ENABLED
+) -> list[Middleware]:
     """Build the core MCP middleware list in the correct order.
 
     FastMCP wraps handlers so that the FIRST-added middleware is
     outermost.  Order here is outermost → innermost:
 
-    1. StructuredContentStripper — safety net, converts exceptions
-       to safe ToolResult text for transports that can't encode errors
+    1. ToolResultCompatibility — applies the structured-output compatibility
+       setting and converts exceptions to safe ToolResult text
     2. RBACToolVisibilityMiddleware — filters tools/list by RBAC;
-       positioned inside the Stripper so it sees full tool objects
-       (with outputSchema) before stripping occurs
+       positioned inside the compatibility boundary so it sees full tool objects
+       (with outputSchema) before results are returned
     3. LoggingMiddleware — logs tool calls with success/failure status
     4. GlobalErrorHandler — catches tool exceptions, raises ToolError
     """
     return [
-        StructuredContentStripperMiddleware(),
+        ToolResultCompatibilityMiddleware(
+            structured_output_enabled=structured_output_enabled
+        ),
         RBACToolVisibilityMiddleware(),
         LoggingMiddleware(),
         GlobalErrorHandlerMiddleware(),
     ]
+
+
+def _structured_output_enabled(flask_app: Any) -> bool:
+    """Resolve the structured-output setting for server-managed startup paths."""
+    return flask_app.config.get(
+        "MCP_STRUCTURED_OUTPUT_ENABLED", MCP_STRUCTURED_OUTPUT_ENABLED
+    )
 
 
 def _build_starlette_middleware(
@@ -1007,6 +909,18 @@ def run_server(
         # Use factory configuration for customization
         logging.info("Creating MCP app from factory configuration...")
         factory_config = get_mcp_factory_config()
+        from superset.mcp_service.flask_singleton import (  # noqa: PLC0415
+            get_flask_app,
+        )
+
+        factory_flask_app = get_flask_app()
+        factory_middleware = factory_config.get("middleware") or ()
+        factory_config["middleware"] = [
+            *build_middleware_list(
+                structured_output_enabled=_structured_output_enabled(factory_flask_app)
+            ),
+            *factory_middleware,
+        ]
         mcp_instance = create_mcp_app(**factory_config)
         # The factory path bypasses init_fastmcp_server(), so install the
         # per-tool-call session scoping here as well; without it concurrent
@@ -1035,7 +949,9 @@ def run_server(
         flask_app = get_flask_app()
         auth_provider = _create_auth_provider(flask_app)
 
-        middleware_list = build_middleware_list()
+        middleware_list = build_middleware_list(
+            structured_output_enabled=_structured_output_enabled(flask_app)
+        )
 
         # Add optional middleware (innermost, closest to tool)
         size_guard_middleware = create_response_size_guard_middleware()

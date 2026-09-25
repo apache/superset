@@ -26,8 +26,11 @@ from typing import Any, Dict
 from unittest.mock import patch
 
 import pytest
+from pydantic import TypeAdapter
 
+from superset.extensions import feature_flag_manager
 from superset.mcp_service.chart.schemas import (
+    ChartConfig,
     ColumnRef,
     FilterConfig,
     GenerateChartRequest,
@@ -59,6 +62,63 @@ def mock_dataset_context() -> DatasetContext:
             {"name": "TotalRevenue", "expression": "SUM(Sales)", "description": None},
         ],
     )
+
+
+@pytest.mark.parametrize(
+    "chart_type,roles",
+    [
+        ("pie", {"dimension": "column", "metric": "metric"}),
+        ("xy", {"x": "column", "y": "metrics"}),
+        ("table", {"columns": "columns"}),
+        ("big_number", {"metric": "metric"}),
+        ("gauge", {"metric": "metric"}),
+        ("histogram", {"column": "column"}),
+        ("box_plot", {"metrics": "metrics", "distribute_across": "columns"}),
+        ("treemap_v2", {"groupby": "columns", "metric": "metric"}),
+        ("pivot_table", {"rows": "columns", "metrics": "metrics"}),
+        ("interactive_pivot", {"rows": "columns", "metrics": "metrics"}),
+        ("mixed_timeseries", {"x": "column", "y": "metrics", "y_secondary": "metrics"}),
+        ("waterfall", {"x_axis": "column", "metric": "metric"}),
+        ("handlebars", {"metrics": "metrics"}),
+    ],
+)
+@pytest.mark.parametrize("updates", [{}, {"filters": []}, {"filters": None}])
+def test_normalization_preserves_explicit_fields(
+    chart_type: str,
+    roles: dict[str, str],
+    updates: dict[str, Any],
+    mock_dataset_context: DatasetContext,
+) -> None:
+    """Column normalization must not turn omitted controls into explicit updates."""
+    column = {"name": "orderdate"}
+    metric = {"name": "sales", "aggregate": "SUM"}
+    values = {
+        "column": column,
+        "columns": [column],
+        "metric": metric,
+        "metrics": [metric],
+    }
+    data = {
+        "chart_type": chart_type,
+        **{key: values[role] for key, role in roles.items()},
+    }
+    if chart_type == "handlebars":
+        data["handlebars_template"] = "{{#each data}}{{Sales}}{{/each}}"
+    config = TypeAdapter(ChartConfig).validate_python({**data, **updates})
+    original = config.model_dump()
+    with patch.object(feature_flag_manager, "is_feature_enabled", return_value=True):
+        normalized = DatasetValidator.normalize_column_names(
+            config, dataset_id=18, dataset_context=mock_dataset_context
+        )
+    assert normalized.model_fields_set == config.model_fields_set
+    assert normalized.filters == config.filters
+    assert config.model_dump() == original
+    for key, role in roles.items():
+        refs = getattr(normalized, key)
+        if not isinstance(refs, list):
+            refs = [refs]
+        expected_name = "Sales" if role.startswith("metric") else "OrderDate"
+        assert all(ref.name == expected_name for ref in refs)
 
 
 class TestGetCanonicalColumnName:

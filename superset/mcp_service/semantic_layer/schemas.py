@@ -28,6 +28,11 @@ from superset.mcp_service.chart.schemas import DataColumn, PerformanceMetadata
 from superset.mcp_service.common.cache_schemas import CacheStatus
 from superset.mcp_service.common.error_schemas import MCPBaseError
 from superset.mcp_service.common.time_range_validation import validate_time_range
+from superset.mcp_service.utils.serialization import (
+    JsonSafeRows,
+    OptionalRowCount,
+    RowCount,
+)
 
 # ---------------------------------------------------------------------------
 # Shared error schema
@@ -89,6 +94,18 @@ class MetricInfo(BaseModel):
 # ---------------------------------------------------------------------------
 
 
+# Measured with get_response_size_bytes on this schema, 40 dimensions per
+# metric: with short descriptive text on every metric and dimension,
+# page_size=4 serializes to ~39 KB, 5 to ~48 KB, 6 to ~58 KB and 8 to ~77 KB
+# (about ~27 / ~34 / ~41 / ~55 KB with names only), against the
+# response-size guard's default MCP_RESPONSE_SIZE_CONFIG['max_bytes'] of
+# 50,000 bytes. 4 is the largest page size with real margin in both variants;
+# 8 (the old cap) already exceeds the default even with no descriptions at
+# all. The fixed page cap is not a guarantee for every payload or
+# operator-configured limit.
+EMBEDDED_DIMENSIONS_MAX_PAGE_SIZE: int = 4
+
+
 class ListMetricsRequest(BaseModel):
     """Request schema for list_metrics."""
 
@@ -105,16 +122,36 @@ class ListMetricsRequest(BaseModel):
         description="Filter to metrics from a specific semantic view.",
     )
     include_compatible_dimensions: bool = Field(
-        default=True,
+        default=False,
         description=(
-            "When True, each metric includes its list of compatible dimensions. "
-            "Set to False to reduce response size when dimensions aren't needed."
+            "Embed compatible dimensions only when explicitly requested. "
+            "Use get_compatible_dimensions for the full per-metric list. "
+            "When True, set page_size to at most 8, including built-in datasets."
         ),
     )
     page: int = Field(default=1, ge=1, description="1-based page number.")
     page_size: int = Field(
-        default=50, ge=1, le=500, description="Number of metrics per page."
+        default=25, ge=1, le=500, description="Number of metrics per page."
     )
+
+    @model_validator(mode="after")
+    def validate_embedded_dimensions_page_size(self) -> "ListMetricsRequest":
+        """Reject embedded pages that risk exceeding the MCP response guard."""
+        if (
+            self.include_compatible_dimensions
+            and self.page_size > EMBEDDED_DIMENSIONS_MAX_PAGE_SIZE
+        ):
+            raise ValueError(
+                "Embedded compatible dimensions require "
+                f"page_size <= {EMBEDDED_DIMENSIONS_MAX_PAGE_SIZE}: each "
+                "metric's dimension list can consume several KB or more, "
+                "and the MCP response guard uses "
+                "MCP_RESPONSE_SIZE_CONFIG['max_bytes'] (~50k by default). "
+                "This fixed page cap does not guarantee that every response fits. "
+                "Reduce page_size or use include_compatible_dimensions=false "
+                "and get_compatible_dimensions for the chosen metric."
+            )
+        return self
 
 
 class MetricList(BaseModel):
@@ -200,7 +237,7 @@ class GetTableRequest(BaseModel):
             "Optional time range string. Use Superset relative shorthands "
             "like 'Last 7 days', 'Last 30 days', 'Last year', 'Current "
             "week', 'previous calendar year', or an ISO-8601 range like "
-            "'2024-01-01 : 2024-12-31'. Requires a datetime dimension. "
+            "'2024-01-01 : 2024-12-31'. Requires a temporal dimension. "
             "Bracket shorthands like '[year]' or '[quarter]' are also "
             "accepted and normalized to the equivalent 'Last <unit>' form."
         ),
@@ -208,10 +245,38 @@ class GetTableRequest(BaseModel):
     time_column: str | None = Field(
         default=None,
         description=(
-            "Name of the datetime column/dimension to apply time_range to. "
+            "Name of the temporal column/dimension to apply time_range to. "
             "Inferred from the dataset's main_dttm_col when omitted."
         ),
     )
+    time_grain: str | None = Field(
+        default=None,
+        description=(
+            "Optional time grain for the temporal dimension, as an ISO-8601 "
+            "duration (P1D, P1W, P1M, P3M, P1Y, PT1H, PT1M, PT1S) or its name "
+            "(day, week, month, quarter, year, hour, minute, second). Applies "
+            "to time_column when set, otherwise to the single temporal "
+            "dimension in dimensions. Semantic views only; a view's "
+            "queryable grains are listed in get_table validation errors."
+        ),
+    )
+
+    @field_validator("time_grain")
+    @classmethod
+    def normalize_time_grain(cls, value: str | None) -> str | None:
+        """Normalize grain names while leaving durations for view validation."""
+        from superset_core.semantic_layers.types import Grain, Grains
+
+        if value is None or not value.strip():
+            return None
+        value = value.strip()
+        names: dict[str, str] = {
+            grain.name.casefold(): grain.representation
+            for grain in vars(Grains).values()
+            if isinstance(grain, Grain)
+        }
+        return names.get(value.casefold(), value)
+
     row_limit: int = Field(
         default=1000,
         ge=1,
@@ -242,9 +307,9 @@ class GetTableResponse(BaseModel):
     """Response schema for get_table."""
 
     columns: list[DataColumn]
-    data: list[dict[str, Any]]
-    row_count: int
-    total_rows: int | None = None
+    data: JsonSafeRows
+    row_count: RowCount
+    total_rows: OptionalRowCount = None
     from_dttm: datetime | None = Field(
         None,
         description=(

@@ -25,6 +25,7 @@ import fastmcp
 import pytest
 from fastmcp import Client
 from fastmcp.exceptions import ToolError
+from jsonschema import validate
 
 from superset.mcp_service.app import mcp
 from superset.mcp_service.dataset.schemas import (
@@ -209,7 +210,7 @@ async def test_list_datasets_basic(mock_list, mcp_server):
 
     Note: Dataset tests use json.loads(result.content[0].text) pattern
     for response parsing, which differs from dashboard/chart tests that
-    use result.data directly. This is intentional based on how the
+    use result.structured_content directly. This is intentional based on how the
     dataset tool responses are structured.
     """
     dataset = MagicMock()
@@ -1101,7 +1102,7 @@ async def test_get_dataset_info_not_found(mock_info, mcp_server):
         result = await client.call_tool(
             "get_dataset_info", {"request": {"identifier": 999}}
         )
-        assert result.data["error_type"] == "not_found"
+        assert result.structured_content["error_type"] == "not_found"
 
 
 # TODO (Phase 3+): Add tests for get_dataset_available_filters tool
@@ -1233,12 +1234,25 @@ async def test_get_dataset_info_includes_columns_and_metrics(mock_info, mcp_serv
     mock_info.return_value = dataset
     async with Client(mcp_server) as client:
         result = await client.call_tool(
-            "get_dataset_info", {"request": {"identifier": 10}}
+            "get_dataset_info",
+            {
+                "request": {
+                    "identifier": 10,
+                    "select_columns": [
+                        "id",
+                        "table_name",
+                        "schema",
+                        "columns",
+                        "metrics",
+                    ],
+                }
+            },
         )
         assert result.content is not None
         data = json.loads(result.content[0].text)
         assert data["table_name"] == "Dataset With Columns"
-        assert data["database_name"] == "examples"
+        assert data["schema"] == "main"
+        assert "database_name" not in data
         # Check that columns and metrics are included
         assert len(data["columns"]) == 2
         assert len(data["metrics"]) == 2
@@ -1246,6 +1260,10 @@ async def test_get_dataset_info_includes_columns_and_metrics(mock_info, mcp_serv
         assert data["columns"][1]["column_name"] == "col2"
         assert data["metrics"][0]["metric_name"] == "sum_sales"
         assert data["metrics"][1]["metric_name"] == "count_orders"
+
+    tool = await mcp_server.get_tool("get_dataset_info")
+    assert tool.output_schema is not None
+    validate(instance=result.structured_content, schema=tool.output_schema)
 
 
 @patch("superset.daos.dataset.DatasetDAO.list")
@@ -2621,3 +2639,261 @@ class TestListDatasetsRequestWrapper:
             or "Unexpected" in error_text
             or "request" in error_text
         )
+
+
+@pytest.mark.asyncio
+async def test_description_discovery_uses_dao_search_and_exposes_alternatives(
+    mcp_server: fastmcp.FastMCP,
+) -> None:
+    """Description-only matches are candidates with explicit source identities."""
+    from sqlalchemy import create_engine
+    from sqlalchemy.orm import Session
+
+    from superset.connectors.sqla.models import SqlaTable
+    from superset.daos.dataset import DatasetDAO
+
+    engine = create_engine("sqlite://")
+    SqlaTable.__table__.create(engine)
+    with Session(engine) as session:
+        session.execute(
+            SqlaTable.__table__.insert(),
+            [
+                {
+                    "id": 1,
+                    "database_id": 1,
+                    "table_name": "events",
+                    "description": "Order fulfillment",
+                },
+                {
+                    "id": 2,
+                    "database_id": 1,
+                    "table_name": "shipments",
+                    "description": "Order history",
+                },
+                {
+                    "id": 3,
+                    "database_id": 1,
+                    "table_name": "private",
+                    "description": "Order details",
+                },
+                {
+                    "id": 4,
+                    "database_id": 1,
+                    "table_name": "unrelated",
+                    "description": None,
+                },
+            ],
+        )
+        session.commit()
+        # Keep the production DAO search and pagination; model an access filter
+        # that hides dataset 3 before either matching or counting.
+        with (
+            patch("superset.daos.base.db.session", session),
+            patch.object(
+                DatasetDAO,
+                "_apply_base_filter",
+                side_effect=lambda query, **kwargs: query.filter(SqlaTable.id != 3),
+            ),
+        ):
+            rows, count = DatasetDAO.list(
+                search="ORDER",
+                search_columns=["schema", "sql", "table_name", "description"],
+                columns=["id", "table_name", "description"],
+                order_column="id",
+                order_direction="asc",
+            )
+            assert count == 2
+            assert [row.id for row in rows] == [1, 2]
+            from superset.daos.base import ColumnOperator
+
+            # UUID union (including an inaccessible dataset) is intersected by
+            # the existing access filter before count and page boundaries.
+            identifiers = (
+                session.query(SqlaTable.uuid)
+                .filter(SqlaTable.id.in_([1, 3]))  # type: ignore[attr-defined]
+                .all()
+            )
+            scoped_rows, scoped_count = DatasetDAO.list(
+                search="Order",
+                search_columns=["description"],
+                columns=["id"],
+                column_operators=[
+                    ColumnOperator(
+                        col="uuid",
+                        opr="in",
+                        value=[str(row.uuid) for row in identifiers],
+                    )
+                ],
+                page_size=1,
+                page=1,
+            )
+            assert scoped_count == 1
+            assert scoped_rows == []
+            assert (
+                DatasetDAO.list(
+                    columns=["id"],
+                    column_operators=[ColumnOperator(col="uuid", opr="in", value=[])],
+                )[1]
+                == 0
+            )
+            for search in ("no matching description", "%", "_"):
+                assert (
+                    DatasetDAO.list(
+                        search=search,
+                        search_columns=["description"],
+                        columns=["id"],
+                    )[1]
+                    == 0
+                )
+
+    candidates = [create_mock_dataset(1, "events"), create_mock_dataset(2, "shipments")]
+    for candidate in candidates:
+        candidate.description = "Order fulfillment"
+    with patch.object(DatasetDAO, "list", return_value=(candidates, 2)) as listing:
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "list_datasets", {"request": {"search": "Order"}}
+            )
+        data = json.loads(result.content[0].text)
+    from superset.mcp_service.common.schema_discovery import DATASET_SEARCH_COLUMNS
+
+    # The advertised substring-search columns are the ones actually searched.
+    # Complete UUIDs take the separate, portable exact-filter path below.
+    assert listing.call_args.kwargs["search_columns"] == DATASET_SEARCH_COLUMNS
+    assert "description" in DATASET_SEARCH_COLUMNS
+    assert "uuid" not in DATASET_SEARCH_COLUMNS
+    assert [(row["id"], row["table_name"]) for row in data["datasets"]] == [
+        (1, "events"),
+        (2, "shipments"),
+    ]
+
+
+@pytest.mark.asyncio
+async def test_uuid_search_uses_portable_exact_filter(
+    mcp_server: fastmcp.FastMCP,
+) -> None:
+    """A UUID-shaped search does not depend on engine-specific text casting."""
+    from superset.daos.dataset import DatasetDAO
+
+    identifier = "00000000-0000-0000-0000-000000000001"
+    with patch.object(DatasetDAO, "list", return_value=([], 0)) as listing:
+        async with Client(mcp_server) as client:
+            await client.call_tool(
+                "list_datasets",
+                {"request": {"search": identifier}},
+            )
+
+    kwargs = listing.call_args.kwargs
+    assert kwargs["search"] is None
+    assert [(op.col, op.opr, op.value) for op in kwargs["column_operators"]] == [
+        ("uuid", "eq", identifier)
+    ]
+
+
+@pytest.mark.asyncio
+async def test_non_uuid_search_remains_substring_search(
+    mcp_server: fastmcp.FastMCP,
+) -> None:
+    """Ordinary search terms retain the generic discovery behavior."""
+    from superset.daos.dataset import DatasetDAO
+
+    with patch.object(DatasetDAO, "list", return_value=([], 0)) as listing:
+        async with Client(mcp_server) as client:
+            await client.call_tool(
+                "list_datasets",
+                {"request": {"search": "orders"}},
+            )
+
+    kwargs = listing.call_args.kwargs
+    assert kwargs["search"] == "orders"
+    assert kwargs["column_operators"] == []
+
+
+@pytest.mark.asyncio
+async def test_scoped_discovery_filters_before_pagination_without_echoing_scope(
+    mcp_server: fastmcp.FastMCP,
+) -> None:
+    """The routing filter reaches the DAO without leaking the allowlist back."""
+    from uuid import UUID
+
+    from superset.mcp_service.dataset_scope import DatasetScopeFilter
+
+    uid = UUID("00000000-0000-0000-0000-000000000001")
+    with (
+        patch.object(list_datasets_module, "get_dataset_scope", return_value={uid}),
+        patch("superset.daos.dataset.DatasetDAO.list", return_value=([], 0)) as listing,
+    ):
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "list_datasets",
+                {
+                    "request": {
+                        "filters": [
+                            {"col": "table_name", "opr": "eq", "value": "events"}
+                        ],
+                        "page": 2,
+                        "page_size": 5,
+                    }
+                },
+            )
+        data = json.loads(result.content[0].text)
+
+    kwargs = listing.call_args.kwargs
+    # Caller filters stay caller filters; the scope rides along as a custom
+    # filter, which BaseDAO.list applies before it counts and pages.
+    assert [(op.col, op.opr, op.value) for op in kwargs["column_operators"]] == [
+        ("table_name", "eq", "events")
+    ]
+    scope_filter = kwargs["custom_filters"]["mcp_dataset_scope"]
+    assert isinstance(scope_filter._inner, DatasetScopeFilter)
+    assert scope_filter._value == {uid}
+    assert kwargs["page"] == 1
+
+    # The resolved allowlist may name datasets this caller cannot reach, so it
+    # must never be reflected back in the response.
+    assert data["filters_applied"] == [
+        {"col": "table_name", "opr": "eq", "value": "events"}
+    ]
+    assert str(uid) not in json.dumps(data)
+
+
+@pytest.mark.asyncio
+async def test_unscoped_discovery_adds_no_custom_filter(
+    mcp_server: fastmcp.FastMCP,
+) -> None:
+    """With the feature off, list_datasets queries exactly as it did before."""
+    with (
+        patch.object(list_datasets_module, "get_dataset_scope", return_value=None),
+        patch("superset.daos.dataset.DatasetDAO.list", return_value=([], 0)) as listing,
+    ):
+        async with Client(mcp_server) as client:
+            await client.call_tool("list_datasets", {"request": {}})
+    assert listing.call_args.kwargs["custom_filters"] is None
+
+
+def test_scope_filter_restricts_the_query_to_the_allowlist() -> None:
+    """The custom filter narrows to the allowlist against a real UUID column."""
+    from sqlalchemy import create_engine
+    from sqlalchemy.orm import Session
+
+    from superset.connectors.sqla.models import SqlaTable
+    from superset.mcp_service.dataset_scope import DatasetScopeFilter
+
+    engine = create_engine("sqlite://")
+    SqlaTable.__table__.create(engine)
+    with Session(engine) as session:
+        session.execute(
+            SqlaTable.__table__.insert(),
+            [
+                {"id": 1, "database_id": 1, "table_name": "events"},
+                {"id": 2, "database_id": 1, "table_name": "shipments"},
+            ],
+        )
+        session.commit()
+        allowed = session.query(SqlaTable.uuid).filter(SqlaTable.id == 1).scalar()
+        query = session.query(SqlaTable.id)
+        scope_filter = DatasetScopeFilter.__new__(DatasetScopeFilter)
+        assert [row.id for row in scope_filter.apply(query, frozenset({allowed}))] == [
+            1
+        ]
+        assert scope_filter.apply(query, frozenset()).count() == 0

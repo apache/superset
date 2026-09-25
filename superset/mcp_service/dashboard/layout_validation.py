@@ -310,3 +310,57 @@ def validate_dashboard_layout(  # noqa: C901
         return f"Layout references charts not associated with the dashboard: {unknown}."
 
     return None
+
+
+def rebuild_parent_chains(layout: dict[str, Any]) -> dict[str, Any]:
+    """Return ``layout`` with every reachable component's ``parents`` rebuilt.
+
+    ``parents`` is supposed to hold the full ancestor chain from ``ROOT_ID``,
+    but an MCP-authored layout may carry only the immediate parent (or omit
+    the field). The frontend repairs this on every load via
+    ``updateComponentParentsList`` during hydration; ``superset.dashboards.
+    filter_scope`` trusts the stored value instead, so a truncated chain
+    silently empties every native filter's ``chartsInScope`` on read. This is
+    the server-side equivalent of that client-side repair, run before a
+    layout is persisted.
+
+    Walks ``children`` edges outward from ``ROOT_ID`` rather than trusting
+    the existing ``parents`` field, which may be exactly the stale data being
+    repaired. A component unreachable from ``ROOT_ID`` — a malformed layout,
+    or the detached empty ``GRID_ID`` Superset retains alongside top-level
+    TABS — is left untouched, as is ``ROOT_ID`` itself, which never carries a
+    ``parents`` key. Safe to call on layouts that have not been through
+    ``validate_dashboard_layout``: malformed entries and cycles are skipped
+    rather than raised.
+    """
+    root = layout.get(_ROOT_ID)
+    if not isinstance(root, dict):
+        return layout
+
+    root_children = root.get("children")
+    if not isinstance(root_children, list):
+        root_children = []
+
+    rebuilt = dict(layout)
+    visited: set[str] = {_ROOT_ID}
+    stack: list[tuple[str, list[str]]] = [
+        (child_id, [_ROOT_ID])
+        for child_id in reversed(root_children)
+        if isinstance(child_id, str)
+    ]
+    while stack:
+        component_id, ancestors = stack.pop()
+        if component_id in visited:
+            continue
+        visited.add(component_id)
+        component = rebuilt.get(component_id)
+        if not isinstance(component, dict):
+            continue
+        rebuilt[component_id] = {**component, "parents": ancestors}
+        children = component.get("children")
+        if isinstance(children, list):
+            child_ancestors = ancestors + [component_id]
+            for child_id in reversed(children):
+                if isinstance(child_id, str):
+                    stack.append((child_id, child_ancestors))
+    return rebuilt

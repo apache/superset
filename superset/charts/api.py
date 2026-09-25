@@ -19,7 +19,7 @@ import logging
 from contextvars import ContextVar
 from datetime import datetime
 from io import BytesIO
-from typing import Any, cast, Optional
+from typing import Any, Callable, cast, ClassVar, Optional
 from zipfile import is_zipfile, ZipFile
 
 from flask import current_app, redirect, request, Response, url_for
@@ -103,7 +103,7 @@ from superset.commands.importers.exceptions import (
     NoValidFilesFoundError,
 )
 from superset.commands.importers.v1.utils import get_contents_from_bundle
-from superset.commands.purge import PurgeArchivedCommand, SoftDeleteBinding
+from superset.commands.purge import SoftDeleteBinding
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.daos.chart import ChartDAO
 from superset.exceptions import (
@@ -122,7 +122,7 @@ from superset.subjects.filters import (
 from superset.tasks.thumbnails import cache_chart_thumbnail
 from superset.tasks.utils import get_current_user
 from superset.utils import json
-from superset.utils.core import send_export_zip
+from superset.utils.core import send_export_zip, write_zip_entry
 from superset.utils.screenshots import (
     ChartScreenshot,
     DEFAULT_CHART_WINDOW_SIZE,
@@ -204,6 +204,22 @@ class ChartSQLAInterface(SQLAInterface):
 
 class ChartRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
     datamodel = ChartSQLAInterface(Slice)
+
+    restore_command_cls: ClassVar[type[RestoreChartCommand]] = RestoreChartCommand
+    soft_delete_not_found_errors: ClassVar[tuple[type[Exception], ...]] = (
+        ChartNotFoundError,
+    )
+    soft_delete_forbidden_errors: ClassVar[tuple[type[Exception], ...]] = (
+        ChartForbiddenError,
+    )
+    restore_failed_errors: ClassVar[tuple[type[Exception], ...]] = (
+        ChartRestoreFailedError,
+    )
+    soft_delete_logger: ClassVar[logging.Logger] = logger
+    purge_binding: ClassVar[SoftDeleteBinding] = _CHART_PURGE_BINDING
+    purge_failed_errors: ClassVar[tuple[type[Exception], ...]] = (
+        ChartDeleteFailedError,
+    )
 
     resource_name = "chart"
     allow_browser_login = True
@@ -676,9 +692,13 @@ class ChartRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.post",
         log_to_statsd=False,
+        allow_extra_payload=True,
     )
     @requires_json
-    def post(self) -> Response:
+    def post(
+        self,
+        add_extra_log_payload: Callable[..., None] = lambda **kwargs: None,
+    ) -> Response:
         """Create a new chart.
         ---
         post:
@@ -720,9 +740,14 @@ class ChartRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
             return self.response_400(message=error.messages)
         try:
             new_model = CreateChartCommand(item).run()
+            # The id only exists once the command has run, so the event
+            # logger cannot derive it from the route.
+            add_extra_log_payload(slice_id=new_model.id)
             return self.response(201, id=new_model.id, result=item, uuid=new_model.uuid)
         except DashboardsForbiddenError as ex:
             return self.response(ex.status, message=ex.message)
+        except ChartForbiddenError:
+            return self.response_403()
         except ChartInvalidError as ex:
             return self.response_422(message=ex.normalized_messages())
         except ChartCreateFailedError as ex:
@@ -1049,21 +1074,7 @@ class ChartRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
             500:
               $ref: '#/components/responses/500'
         """
-        try:
-            RestoreChartCommand(uuid).run()
-            return self.response(200, message="OK")
-        except ChartNotFoundError:
-            return self.response_404()
-        except ChartForbiddenError:
-            return self.response_403()
-        except ChartRestoreFailedError as ex:
-            logger.error(
-                "Error restoring model %s: %s",
-                self.__class__.__name__,
-                str(ex),
-                exc_info=True,
-            )
-            return self.response_422(message=str(ex))
+        return self._restore_soft_deleted(uuid)
 
     @expose("/<uuid>/purge", methods=("POST",))
     @protect()
@@ -1108,21 +1119,7 @@ class ChartRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
             500:
               $ref: '#/components/responses/500'
         """
-        try:
-            PurgeArchivedCommand(uuid, _CHART_PURGE_BINDING).run()
-            return self.response(200, message="OK")
-        except ChartNotFoundError:
-            return self.response_404()
-        except ChartForbiddenError:
-            return self.response_403()
-        except ChartDeleteFailedError as ex:
-            logger.error(
-                "Error purging model %s: %s",
-                self.__class__.__name__,
-                str(ex),
-                exc_info=True,
-            )
-            return self.response_422(message=str(ex))
+        return self._purge_soft_deleted(uuid)
 
     @expose("/<pk>/cache_screenshot/", methods=("GET",))
     @protect()
@@ -1429,8 +1426,9 @@ class ChartRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
         with ZipFile(buf, "w") as bundle:
             try:
                 for file_name, file_content in ExportChartsCommand(requested_ids).run():
-                    with bundle.open(f"{root}/{file_name}", "w") as fp:
-                        fp.write(file_content().encode())
+                    write_zip_entry(
+                        bundle, f"{root}/{file_name}", file_content().encode()
+                    )
             except ChartNotFoundError:
                 return self.response_404()
         buf.seek(0)
