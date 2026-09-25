@@ -23,9 +23,10 @@ advanced filtering with clear, unambiguous request schema and metadata cache con
 """
 
 import logging
-from typing import TYPE_CHECKING
+from typing import Annotated, TYPE_CHECKING
 
 from fastmcp import Context
+from pydantic import Field
 from superset_core.mcp.decorators import tool, ToolAnnotations
 
 if TYPE_CHECKING:
@@ -70,7 +71,16 @@ _DEFAULT_LIST_DASHBOARDS_REQUEST = ListDashboardsRequest()
     ),
 )
 async def list_dashboards(
-    request: ListDashboardsRequest | None = None,
+    request: Annotated[
+        ListDashboardsRequest | None,
+        Field(
+            description=(
+                'Wrap parameters as {"request": {"search": "sales"}}; omit request for defaults. '
+                "Do NOT pass search, page, page_size or filters as top-level arguments. "
+                "For people, resolve IDs with find_users and use filters, not search."
+            )
+        ),
+    ] = None,
     ctx: Context = None,
 ) -> DashboardList:
     """List dashboards with filtering and search. Returns dashboard metadata

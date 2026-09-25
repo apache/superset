@@ -23,10 +23,11 @@ advanced filtering with clear, unambiguous request schema and metadata cache con
 """
 
 import logging
-from typing import TYPE_CHECKING
+from typing import Annotated, TYPE_CHECKING
 from uuid import UUID
 
 from fastmcp import Context
+from pydantic import Field
 from superset_core.mcp.decorators import tool, ToolAnnotations
 
 if TYPE_CHECKING:
@@ -83,7 +84,16 @@ _DEFAULT_LIST_DATASETS_REQUEST = ListDatasetsRequest()
 )
 @requires_data_model_metadata_access
 async def list_datasets(
-    request: ListDatasetsRequest | None = None,
+    request: Annotated[
+        ListDatasetsRequest | None,
+        Field(
+            description=(
+                'Wrap parameters as {"request": {"search": "sales"}}; omit request for defaults. '
+                "Do NOT pass search, page, page_size or filters as top-level arguments. "
+                "Search returns candidates, not a ranking. Never substitute a dataset outside MCP scope."
+            )
+        ),
+    ] = None,
     ctx: Context | None = None,
 ) -> DatasetList | DatasetError:
     """List datasets with filtering and search.

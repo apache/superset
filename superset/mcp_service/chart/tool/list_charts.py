@@ -20,9 +20,10 @@ MCP tool: list_charts (advanced filtering with metadata cache control)
 """
 
 import logging
-from typing import cast, TYPE_CHECKING
+from typing import Annotated, cast, TYPE_CHECKING
 
 from fastmcp import Context
+from pydantic import Field
 from superset_core.mcp.decorators import tool, ToolAnnotations
 
 if TYPE_CHECKING:
@@ -75,7 +76,16 @@ _DEFAULT_LIST_CHARTS_REQUEST = ListChartsRequest()
     ),
 )
 async def list_charts(
-    request: ListChartsRequest | None = None,
+    request: Annotated[
+        ListChartsRequest | None,
+        Field(
+            description=(
+                'Wrap parameters as {"request": {"search": "sales"}}; omit request for defaults. '
+                "Do NOT pass search, page, page_size or filters as top-level arguments. "
+                "For people, resolve IDs with find_users and use filters, not search."
+            )
+        ),
+    ] = None,
     ctx: Context = None,
 ) -> ChartList | ChartError:
     """List charts with filtering and search.

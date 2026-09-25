@@ -470,6 +470,8 @@ MCP_RESPONSE_SIZE_CONFIG: dict[str, Any] = {
 # each tool's inputSchema. Inlining references duplicates shared chart models.
 # The legacy compact_schemas setting only selects the default description limit
 # (300 when True, 0 when False) if max_description_length is omitted.
+# Request-property descriptions carry untruncated calling instructions. Their
+# length is deducted from the prose budget; small limits omit prose instead.
 #
 # Rollback:
 # ---------
@@ -480,7 +482,7 @@ MCP_RESPONSE_SIZE_CONFIG: dict[str, Any] = {
 # --------------------------------
 # When include_schemas=False, search results omit inputSchema entirely and
 # include a lightweight "parameters_hint" field listing top-level parameter
-# names (e.g. "page, page_size, search, filters"). This reduces per-search
+# names and any request-wrapper instructions. This reduces per-search
 # token cost by ~80% vs compact mode while still conveying what parameters
 # a tool accepts. Full schemas remain available when invoking the tool via
 # call_tool.
