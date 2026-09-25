@@ -28,6 +28,12 @@
 # metadata lives inside the image so Grype does not attempt to match
 # vulnerabilities against our own package at all; every other package in
 # the image is unaffected and still scanned normally.
+#
+# Trade-off: a genuinely vulnerable dependency pinned in this project's own
+# source (rather than an OS/Python package elsewhere in the image) is now
+# invisible to this particular scan too, not just the false positives. That
+# gap is covered by dependency scanning against the source tree itself
+# (e.g. Dependabot), which this exclusion does not affect.
 exclude:
   - "**/apache_superset-*.dist-info/**"
   - "**/apache_superset.egg-info/**"
