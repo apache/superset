@@ -1198,7 +1198,11 @@ last statement's outer SQL LIMIT. The smaller limit wins: SQL `LIMIT 5` with
 request `limit: 10` returns at most five rows, while SQL `LIMIT 10` with request
 `limit: 5` also returns at most five. Equal limits and SQL `LIMIT 0` are preserved.
 If SQL has no outer limit, the explicit request cap is applied. Inner query and
-CTE limits and SQL offsets are preserved.
+CTE limits and SQL offsets are preserved. Literal `FETCH FIRST` counts and
+parenthesized literal limits follow the same rule. `PERCENT`, `WITH TIES`, and
+limit expressions that cannot be interpreted as a fixed row count are preserved
+inside a subquery with an outer row cap, rather than replaced. This conservative
+fallback cannot increase the original result's row count.
 
 Omitting `limit` leaves the SQL limit unchanged. Explicit request caps remain
 subject to the server's `SQL_MAX_ROW` configuration. This behavior also applies

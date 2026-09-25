@@ -2571,6 +2571,15 @@ LATERAL generate_series(1, value) AS i;
         ),
         # not really valid SQL, but let's roll with it
         ("SELECT * FROM my_table LIMIT invalid", "postgresql", None),
+        ("SELECT TOP 5 PERCENT * FROM t", "mssql", None),
+        ("SELECT TOP 5 WITH TIES * FROM t ORDER BY n", "mssql", None),
+        ("SELECT * FROM t FETCH FIRST 5 ROWS ONLY", "postgresql", 5),
+        ("SELECT * FROM t FETCH FIRST ROW ONLY", "postgresql", 1),
+        ("SELECT * FROM t FETCH FIRST 0 ROWS ONLY", "postgresql", 0),
+        ("SELECT * FROM t ORDER BY n FETCH FIRST 5 ROWS WITH TIES", "postgresql", None),
+        ("SELECT * FROM t LIMIT ((5))", "sqlite", 5),
+        ("SELECT * FROM t LIMIT (0)", "sqlite", 0),
+        ("SELECT * FROM t LIMIT (2 + 3)", "sqlite", None),
         # A ClickHouse `LIMIT ... BY` caps rows per group, not overall, so it is
         # not a row limit. sqlglot hangs the `BY` columns off the `Limit` node,
         # or off the `Offset` node for the `OFFSET` / `m, n` spellings.

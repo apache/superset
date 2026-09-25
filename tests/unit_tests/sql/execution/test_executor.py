@@ -1645,6 +1645,99 @@ def test_execute_limit_caps_returned_rows(
     )
 
 
+@pytest.mark.parametrize(
+    "engine,sql,expected",
+    [
+        (
+            "postgresql",
+            "SELECT * FROM t FETCH FIRST 5 ROWS ONLY",
+            "SELECT * FROM t FETCH FIRST 5 ROWS ONLY",
+        ),
+        (
+            "postgresql",
+            "SELECT * FROM t FETCH FIRST ROW ONLY",
+            "SELECT * FROM t FETCH FIRST ROW ONLY",
+        ),
+        ("sqlite", "SELECT * FROM t LIMIT (5)", "SELECT * FROM t LIMIT (5)"),
+        (
+            "sqlite",
+            "SELECT * FROM t LIMIT (2 + 3)",
+            "SELECT * FROM (SELECT * FROM t LIMIT (2 + 3)) "
+            "AS __superset_limit LIMIT 10",
+        ),
+        (
+            "mssql",
+            "SELECT TOP 5 PERCENT * FROM t",
+            "SELECT TOP 10 * FROM (SELECT TOP 5 PERCENT * FROM t) AS __superset_limit",
+        ),
+        (
+            "mssql",
+            "SELECT TOP 5 WITH TIES * FROM t ORDER BY n",
+            "SELECT TOP 10 * FROM (SELECT TOP 5 WITH TIES * FROM t ORDER BY n) "
+            "AS __superset_limit",
+        ),
+        (
+            "postgresql",
+            "SELECT * FROM t ORDER BY n FETCH FIRST 5 ROWS WITH TIES",
+            "SELECT * FROM (SELECT * FROM t ORDER BY n FETCH FIRST 5 ROWS WITH TIES) "
+            "AS __superset_limit LIMIT 10",
+        ),
+        (
+            "mssql",
+            "WITH t AS (SELECT 1 AS n) SELECT TOP 5 PERCENT * FROM t",
+            "WITH t AS (SELECT 1 AS n) "
+            "SELECT TOP 10 * FROM (SELECT TOP 5 PERCENT * FROM t) AS __superset_limit",
+        ),
+    ],
+)
+@pytest.mark.parametrize("request_limit", [10, 100])
+def test_apply_limit_preserves_nonliteral_and_modified_limits(
+    mocker: MockerFixture,
+    database: Database,
+    app_context: None,
+    engine: str,
+    sql: str,
+    expected: str,
+    request_limit: int,
+) -> None:
+    """Preserve SQL row restrictions while enforcing request and server caps."""
+    from superset.sql.execution.executor import SQLExecutor
+
+    mocker.patch.dict(current_app.config, {"SQL_MAX_ROW": 10})
+    script = SQLScript(sql, engine)
+    SQLExecutor(database)._apply_limit_to_script(
+        script, QueryOptions(limit=request_limit)
+    )
+    assert script.format() == SQLScript(expected, engine).format()
+
+
+@pytest.mark.parametrize(
+    "sql_limit", ["(5)", "(2 + 3)", "(0)", "(1 - 1)", "(15)", "(10 + 5)"]
+)
+def test_execute_expression_limit_never_increases_rows(
+    mocker: MockerFixture,
+    database: Database,
+    app_context: None,
+    sql_limit: str,
+) -> None:
+    """Verify conservative caps on expressions using actual SQLite results."""
+    mocker.patch.dict(
+        current_app.config,
+        {"SQL_MAX_ROW": 10, "SQL_QUERY_MUTATOR": None, "QUERY_LOGGER": None},
+    )
+    with closing(sqlite3.connect(":memory:")) as connection:
+        connection.execute("CREATE TABLE numbers (n INTEGER)")
+        connection.executemany(
+            "INSERT INTO numbers VALUES (?)", [(n,) for n in range(20)]
+        )
+        mocker.patch.object(database, "get_raw_connection", return_value=connection)
+        sql = f"SELECT n FROM numbers ORDER BY n LIMIT {sql_limit}"  # noqa: S608
+        original = connection.execute(sql).fetchall()
+        result = database.execute(sql, QueryOptions(limit=10))
+    assert result.status == QueryStatus.SUCCESS
+    assert result.statements[0].row_count == min(len(original), 10)
+
+
 def test_apply_limit_to_script_respects_sql_max_row(
     mocker: MockerFixture, database: Database, app_context: None
 ) -> None:

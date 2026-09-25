@@ -786,13 +786,10 @@ class SQLExecutor:
 
         # Apply limit to last statement only
         if script.statements:
-            statement = script.statements[-1]
-            current_limit = statement.get_limit_value()
-            if current_limit is None or effective_limit < current_limit:
-                statement.set_limit_value(
-                    effective_limit,
-                    self.database.db_engine_spec.limit_method,
-                )
+            script.statements[-1].cap_limit_value(
+                effective_limit,
+                self.database.db_engine_spec.limit_method,
+            )
 
     def _try_get_cached_result(
         self,
