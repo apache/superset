@@ -36,6 +36,7 @@ import {
   BottomRightResizeHandle,
 } from './ResizableHandle';
 import { isMobileConsumptionEnabled } from 'src/hooks/useIsMobile';
+import { RESIZE_HANDLE_Z_INDEX } from 'src/dashboard/constants';
 import resizableConfig from '../../util/resizableConfig';
 import {
   GRID_BASE_UNIT,
@@ -130,7 +131,7 @@ const StyledResizable = styled(Resizable)`
 
     .resize-handle {
       opacity: 0;
-      z-index: 10;
+      z-index: ${RESIZE_HANDLE_Z_INDEX};
 
       &--bottom-right {
         position: absolute;

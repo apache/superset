@@ -60,7 +60,7 @@ export interface ExploreState {
   slice?: Slice | null;
   sliceName?: string;
   controlsTransferred?: string[];
-  standalone?: boolean;
+  standalone?: number | null;
   force?: boolean;
   common?: {
     conf: {
