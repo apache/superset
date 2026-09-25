@@ -1608,8 +1608,8 @@ async def get_chart_preview(
 
     Returns preview URL or formatted content (ascii, table, vega_lite, png).
 
-    PNG renders saved charts for non-guest users as the calling user. Unsaved
-    state and extra filters are unsupported for PNG.
+    PNG renders saved charts as the calling non-guest user; unsaved state and
+    extra filters are unsupported.
 
     Pass extra_form_data (e.g. a dashboard's active native filters) to render
     the preview over the filtered data rather than the full dataset.
