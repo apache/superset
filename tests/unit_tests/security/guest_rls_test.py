@@ -505,6 +505,24 @@ def test_global_guest_rule_applied_to_virtual_dataset_subquery(
     )
 
 
+def test_global_guest_rule_left_to_outer_query_for_correlated_subquery(
+    app: Flask,
+    mocker: MockerFixture,
+) -> None:
+    """
+    A correlated sub-query is keyed to the virtual dataset's own rows, like a
+    join, so global guest RLS rules are left to the outer query there. A lookup
+    table without the rule's column keeps working.
+    """
+    sql = _apply_virtual_dataset_rls_as_guest(
+        mocker,
+        [GuestTokenRlsRule(dataset=None, clause="org_id = 1")],
+        "SELECT a.*, (SELECT name FROM lookup WHERE lookup.id = a.lid) AS n FROM a",
+    )
+
+    assert "org_id" not in sql, f"Correlated lookup was filtered. Got: {sql}"
+
+
 def test_global_guest_rule_left_to_outer_query_without_subquery(
     app: Flask,
     mocker: MockerFixture,

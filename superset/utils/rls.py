@@ -73,9 +73,10 @@ def apply_rls(
     :param include_global_guest_rls: Also inject global (unscoped) guest RLS
         rules. Pass False only for a virtual dataset's inner SQL, whose outer
         query already applies them to the rows the inner SQL returns. They are
-        still injected into tables read inside a sub-query there, since the
-        outer query does not constrain those. Any other statement, such as a SQL
-        Lab query or an adhoc sub-query, is not constrained by such an outer query.
+        still injected into tables read inside an uncorrelated sub-query there,
+        since the outer query does not constrain those. Any other statement, such
+        as a SQL Lab query or an adhoc sub-query, is not constrained by such an
+        outer query.
     :returns: True if any RLS predicates were actually applied, False otherwise.
     """
     # There are two ways to insert RLS: either replacing the table with a subquery
@@ -105,7 +106,8 @@ def apply_rls(
 
     predicates = collect_predicates(include_global_guest_rls)
     # The outer query only constrains the rows that reach it, so a table read
-    # inside a sub-query still gets the global guest rules left to the outer query.
+    # inside an uncorrelated sub-query still gets the global guest rules left to
+    # the outer query.
     # Only a guest token carries such rules, so other users skip the second lookup.
     subquery_predicates = (
         collect_predicates(True)

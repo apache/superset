@@ -6733,10 +6733,42 @@ def _compact_sql(statement: SQLStatement) -> str:
             id="in-subquery",
         ),
         pytest.param(
+            "SELECT * FROM a WHERE EXISTS (SELECT 1 FROM b WHERE b.x = 1)",
+            "SELECT * FROM a WHERE a.r = 1 AND (EXISTS(SELECT 1 FROM b "
+            "WHERE b.r = 1 AND b.g = 1 AND (b.x = 1)))",
+            id="exists-subquery",
+        ),
+        pytest.param(
+            "SELECT a.x, (SELECT name FROM b WHERE b.id = a.bid) AS n FROM a",
+            "SELECT a.x, (SELECT name FROM b WHERE b.r = 1 AND (b.id = a.bid)) AS n "
+            "FROM a WHERE a.r = 1",
+            id="correlated-subquery",
+        ),
+        pytest.param(
             "SELECT * FROM a WHERE EXISTS (SELECT 1 FROM b WHERE b.k = a.k)",
             "SELECT * FROM a WHERE a.r = 1 AND (EXISTS(SELECT 1 FROM b "
-            "WHERE b.r = 1 AND b.g = 1 AND (b.k = a.k)))",
-            id="exists-subquery",
+            "WHERE b.r = 1 AND (b.k = a.k)))",
+            id="correlated-exists",
+        ),
+        pytest.param(
+            "SELECT a.x, (SELECT name FROM b AS a WHERE a.id = 1) AS n FROM a",
+            "SELECT a.x, (SELECT name FROM b AS a WHERE a.r = 1 AND a.g = 1 AND "
+            "(a.id = 1)) AS n FROM a WHERE a.r = 1",
+            id="alias-shadowing-outer-table",
+        ),
+        pytest.param(
+            "SELECT a.x, (SELECT name FROM b WHERE id = bid) AS n FROM a",
+            "SELECT a.x, (SELECT name FROM b WHERE b.r = 1 AND b.g = 1 AND "
+            "(id = bid)) AS n FROM a WHERE a.r = 1",
+            id="unqualified-reference",
+        ),
+        pytest.param(
+            "SELECT a.x, (SELECT name FROM b WHERE b.id = a.bid "
+            "AND b.k IN (SELECT k FROM a)) AS n FROM a",
+            "SELECT a.x, (SELECT name FROM b WHERE b.r = 1 AND (b.id = a.bid "
+            "AND b.k IN (SELECT k FROM a WHERE a.r = 1 AND a.g = 1))) AS n "
+            "FROM a WHERE a.r = 1",
+            id="uncorrelated-inside-correlated",
         ),
         pytest.param(
             "SELECT a.x, (SELECT COUNT(*) FROM (SELECT * FROM b) AS d) AS n FROM a",

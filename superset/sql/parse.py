@@ -2825,12 +2825,13 @@ def _find_subquery_scopes(scopes: list[Scope]) -> set[int]:
     """
     Find the scopes whose rows only reach a statement through a sub-query.
 
-    That is every ``SUBQUERY`` scope (a scalar, ``IN`` or ``EXISTS`` sub-query), every
-    scope nested inside one, and every CTE one of them reads from, including the
-    scopes nested inside that CTE. A CTE read both from a sub-query and from the
-    statement's ``FROM`` counts as a sub-query, so its reads get the stricter rules.
-    The body of a ``LATERAL`` or ``CROSS APPLY`` is also a ``SUBQUERY`` scope, but its
-    rows reach the output like a join's, so it is left out.
+    That is every uncorrelated ``SUBQUERY`` scope (a scalar, ``IN`` or ``EXISTS``
+    sub-query), every scope nested inside one, and every CTE one of them reads from,
+    including the scopes nested inside that CTE. A CTE read both from a sub-query and
+    from the statement's ``FROM`` counts as a sub-query, so its reads get the stricter
+    rules. A correlated sub-query is keyed to the rows of an enclosing query, like a
+    join, and the body of a ``LATERAL`` or ``CROSS APPLY`` feeds the output like a
+    join, so both are left out.
 
     :param scopes: The scopes of the statement, as returned by ``traverse_scope``
     :returns: The ``id`` of each scope found
@@ -2841,6 +2842,7 @@ def _find_subquery_scopes(scopes: list[Scope]) -> set[int]:
         for scope in scopes
         if scope.scope_type == ScopeType.SUBQUERY
         and not (scope.parent and scope.parent.scope_type == ScopeType.UDTF)
+        and not _is_correlated(scope)
     ]
     while pending:
         scope = pending.pop()
@@ -2854,6 +2856,31 @@ def _find_subquery_scopes(scopes: list[Scope]) -> set[int]:
             if isinstance(source, Scope) and source.scope_type == ScopeType.CTE
         )
     return found
+
+
+def _is_correlated(scope: Scope) -> bool:
+    """
+    Does a sub-query reference a table of an enclosing query?
+
+    Only a column qualified with an enclosing table's name or alias counts, when the
+    sub-query has no table of its own under that name. An unqualified column can't
+    be told apart from one of the sub-query's own, so it is treated as local, which
+    errs toward the sub-query getting the stricter rules. (``Scope``'s own
+    ``is_correlated_subquery`` treats every unqualified column as external.)
+
+    :param scope: A ``SUBQUERY`` scope
+    :returns: True if the sub-query is correlated
+    """
+    enclosing: set[str] = set()
+    parent = scope.parent
+    while parent:
+        enclosing.update(parent.sources)
+        parent = parent.parent
+    return any(
+        column.table in enclosing and column.table not in scope.sources
+        for column in scope.columns
+        if column.table
+    )
 
 
 def is_cte(source: exp.Table, scope: Scope) -> bool:
