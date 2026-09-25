@@ -1382,20 +1382,20 @@ function DatasourceEditor({
   const handleMainDttmColChange = useCallback(
     (value?: string) => {
       // Without an override the mapped column *is* the default datetime column,
-      // so re-pointing it moves the mapping rather than stranding it: the
-      // transform travels to the new column and is gone from the old one, where
-      // it would be invisible and still saved. Tested on the partition column
-      // plus the absent override rather than on `mappedColumnIsImplicit`, which
-      // needs a datetime column already set and so misses the transition that
-      // sets the first one.
+      // so re-pointing it moves the mapping. The value transform stays behind
+      // and is cleared: it was written about the old column, and the mapping
+      // arrives inert rather than mirroring an expression nobody checked
+      // against its new home. Tested on the partition column plus the absent
+      // override rather than on `mappedColumnIsImplicit`, which needs a
+      // datetime column already set and so misses the transition that sets the
+      // first one.
       if (datasource.partition_column && !datasource.partition_mapped_column) {
         setDatabaseColumns(prev =>
           applyImplicitMappingMove(prev, datasource.main_dttm_col, value),
         );
         // A calculated column can be the default datetime column but can never
-        // show a transform, so the mapping never lands there -- but anything
-        // already stored on one still has to go, because it is saved and the
-        // query path reads it.
+        // show a transform, and anything already stored on one still has to go
+        // either way, because it is saved and the query path reads it.
         setCalculatedColumns(prev => clearMappingTransforms(prev));
       }
       setDatasource(prev => ({ ...prev, main_dttm_col: value }));

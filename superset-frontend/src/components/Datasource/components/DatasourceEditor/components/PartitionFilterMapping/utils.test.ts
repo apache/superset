@@ -262,7 +262,10 @@ test('clearing a mapping nothing holds hands back the same columns', () => {
   expect(clearMappingTransforms(columns)).toBe(columns);
 });
 
-test('the mapping follows the default datetime column to its new home', () => {
+test('the value transform does not follow the default datetime column', () => {
+  // A transform states how *this* column relates to the partition column, so
+  // re-asserting it on a different one turns mirroring on with an expression
+  // nobody wrote for it -- and the rows it prunes are silently wrong.
   const columns = [
     {
       column_name: 'event_time',
@@ -279,12 +282,10 @@ test('the mapping follows the default datetime column to its new home', () => {
     partition_value_transform: null,
     partition_transform_is_monotonic: false,
   });
-  // The ordering declaration travels too: leaving it behind would quietly
-  // downgrade a mirrored range to a mirrored equality.
-  expect(moved[1]).toMatchObject({
-    partition_value_transform: 'unix_timestamp(:value)',
-    partition_transform_is_monotonic: true,
-  });
+  // The destination never held a mapping, so it is handed back untouched --
+  // which is the same thing as holding no transform.
+  expect(moved[1].partition_value_transform ?? null).toBeNull();
+  expect(moved[1].partition_transform_is_monotonic ?? false).toBe(false);
 });
 
 test('following the default datetime column leaves no transform behind anywhere', () => {
@@ -309,10 +310,10 @@ test('following the default datetime column leaves no transform behind anywhere'
   });
 });
 
-test('the mapping cannot follow the default datetime column onto a column this list has no row for', () => {
+test('moving the default datetime column onto a column this list has no row for clears too', () => {
   // A calculated column can be the default datetime column but never renders a
-  // transform editor, so carrying one there would make a live mapping the owner
-  // has no way to see or undo.
+  // transform editor, so a transform left live there is one the owner has no
+  // way to see or undo.
   const columns = [
     {
       column_name: 'event_time',
@@ -329,15 +330,17 @@ test('the mapping cannot follow the default datetime column onto a column this l
   });
 });
 
-test('a default datetime column with no transform carries none over', () => {
+test('moving the default datetime column when nothing holds a mapping is not a change', () => {
+  // `clearMappingTransforms` hands back the same array when no column held
+  // anything, and the editor's validation effect keys off column identity.
   const columns = [
     { column_name: 'event_time' },
     { column_name: 'event_time2' },
   ];
 
-  const moved = applyImplicitMappingMove(columns, 'event_time', 'event_time2');
-
-  expect(moved[1].partition_value_transform ?? null).toBeNull();
+  expect(applyImplicitMappingMove(columns, 'event_time', 'event_time2')).toBe(
+    columns,
+  );
 });
 
 test('re-selecting the same default datetime column leaves the mapping alone', () => {

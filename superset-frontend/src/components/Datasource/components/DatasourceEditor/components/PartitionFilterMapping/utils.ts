@@ -263,15 +263,16 @@ export function applyMappingMove<T extends PartitionMappingColumn>(
  * Columns updated for a mapping following the default datetime column.
  *
  * With no override the mapped column *is* `main_dttm_col`, so re-pointing that
- * column moves the mapping whole rather than orphaning it: the transform and its
- * ordering declaration travel to the new column, and the old column is left
- * holding nothing that could come back to life if the default datetime column
- * ever pointed at it again.
+ * column moves the mapping. What does *not* move is the value transform: it
+ * states how one particular column relates to the partition column, and the
+ * owner wrote it about the column they were looking at. Re-asserting it on a
+ * different column turns mirroring on with an expression nobody checked against
+ * it, and the rows it prunes are wrong without anything saying so.
  *
- * A destination this list has no row for -- a calculated column, whose row never
- * renders the transform editor -- carries nothing, and the mapping goes inert
- * and says so. Writing a live transform onto a column the owner cannot see is
- * the very thing this is here to prevent.
+ * So the mapping arrives inert on its new column, and the editor's existing
+ * warning says a transform is still needed. The old column is left holding
+ * nothing either -- a transform waiting there would come back to life the next
+ * time the default datetime column pointed at it.
  */
 export function applyImplicitMappingMove<T extends PartitionMappingColumn>(
   columns: T[],
@@ -283,15 +284,7 @@ export function applyImplicitMappingMove<T extends PartitionMappingColumn>(
   if (previousColumnName === nextColumnName) {
     return columns;
   }
-  const previous = columns.find(
-    column => column.column_name === previousColumnName,
-  );
-  return withMappingOn(
-    columns,
-    nextColumnName,
-    previous?.partition_value_transform ?? null,
-    Boolean(previous?.partition_transform_is_monotonic),
-  );
+  return clearMappingTransforms(columns);
 }
 
 /**
