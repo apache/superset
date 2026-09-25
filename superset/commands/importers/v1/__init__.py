@@ -137,10 +137,12 @@ class ImportModelsCommand(BaseCommand):
                 # Extract detailed error information
                 if hasattr(ex, "messages") and isinstance(ex.messages, dict):
                     for file_name, errors in ex.messages.items():
-                        logger.error("Validation failed for %s: %s", file_name, errors)
+                        logger.warning(
+                            "Validation failed for %s: %s", file_name, errors
+                        )
                         detailed_errors.append(f"{file_name}: {errors}")
                 else:
-                    logger.error("Import validation error: %s", ex)
+                    logger.warning("Import validation error: %s", ex)
                     detailed_errors.append(str(ex))
 
             error_summary = "; ".join(detailed_errors)
