@@ -75,6 +75,28 @@ export const resolveAutoCurrency = (
   return null; // Mixed currencies
 };
 
+/**
+ * Resolves an AUTO currency to the backend-detected one when the currency
+ * code column isn't part of the query results, since CurrencyFormatter can
+ * only detect AUTO per row from that column.
+ */
+export const resolveDetectedCurrency = (
+  currency: Currency | undefined,
+  detectedCurrency: string | null | undefined,
+  currencyCodeColumn: string | undefined,
+  colnames: string[] | undefined,
+): Currency | undefined => {
+  if (
+    currency?.symbol !== AUTO_CURRENCY_SYMBOL ||
+    !detectedCurrency ||
+    (currencyCodeColumn && colnames?.includes(currencyCodeColumn))
+  ) {
+    return currency;
+  }
+  const symbol = normalizeCurrency(detectedCurrency);
+  return symbol ? { ...currency, symbol } : currency;
+};
+
 const getEffectiveCurrencyFormat = (
   resolvedCurrencyFormat: Currency | undefined | null,
   savedFormat: Currency | undefined,
