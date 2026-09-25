@@ -24,7 +24,7 @@ import {
   waitFor,
 } from 'spec/helpers/testing-library';
 import type { User } from 'src/types/bootstrapTypes';
-import { UserInfoEditModal } from './UserInfoModal';
+import { UserInfoEditModal, UserInfoResetPasswordModal } from './UserInfoModal';
 
 const mockToasts = { addDangerToast: jest.fn(), addSuccessToast: jest.fn() };
 
@@ -99,4 +99,50 @@ test('calls onSave exactly once after a successful update', async () => {
     'The user was updated successfully',
   );
   expect(mockToasts.addDangerToast).not.toHaveBeenCalled();
+});
+
+test('the reset password modal sends the current password with the new one', async () => {
+  fetchMock.put(meEndpoint, { status: 200, body: {} });
+  render(<UserInfoResetPasswordModal {...props} />);
+  fireEvent.change(screen.getByPlaceholderText('Enter your current password'), {
+    target: { value: 'OldPassw0rd!' },
+  });
+  fireEvent.change(screen.getByPlaceholderText("Enter the user's password"), {
+    target: { value: 'BrandNewPassw0rd!' },
+  });
+  fireEvent.change(screen.getByPlaceholderText("Confirm the user's password"), {
+    target: { value: 'BrandNewPassw0rd!' },
+  });
+  await waitFor(() =>
+    expect(screen.getByTestId('form-modal-save-button')).toBeEnabled(),
+  );
+  fireEvent.click(screen.getByTestId('form-modal-save-button'));
+
+  await waitFor(() => expect(props.onSave).toHaveBeenCalledTimes(1));
+  const payload = JSON.parse(
+    fetchMock.callHistory.calls(meEndpoint)[0].options?.body as string,
+  );
+  expect(payload).toEqual({
+    current_password: 'OldPassw0rd!',
+    password: 'BrandNewPassw0rd!',
+  });
+  expect(mockToasts.addSuccessToast).toHaveBeenCalledWith(
+    'The password reset was successful',
+  );
+});
+
+test('the reset password modal cannot be saved without the current password', async () => {
+  fetchMock.put(meEndpoint, { status: 200, body: {} });
+  render(<UserInfoResetPasswordModal {...props} />);
+  fireEvent.change(screen.getByPlaceholderText("Enter the user's password"), {
+    target: { value: 'BrandNewPassw0rd!' },
+  });
+  fireEvent.change(screen.getByPlaceholderText("Confirm the user's password"), {
+    target: { value: 'BrandNewPassw0rd!' },
+  });
+
+  await waitFor(() =>
+    expect(screen.getByTestId('form-modal-save-button')).toBeDisabled(),
+  );
+  expect(fetchMock.callHistory.calls(meEndpoint)).toHaveLength(0);
 });

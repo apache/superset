@@ -3703,7 +3703,7 @@
             "type": "string"
           },
           "password": {
-            "description": "The current user's password for authentication",
+            "description": "The current user's new password; requires current_password",
             "type": "string"
           }
         },

@@ -158,3 +158,59 @@ def test_update_me_falsy_password_does_not_blank_stored_hash(
 
     assert admin_user.password == original_hash
     assert admin_user.first_name == "Foo"
+
+
+def test_update_me_password_change_clears_forced_change_flag(
+    admin_user: User,  # noqa: F811
+    after_each: None,  # noqa: F811
+) -> None:
+    """``PUT /api/v1/me/`` is the self-service path (the caller is always the
+    account owner), so a successful password change satisfies a pending forced
+    password change. Anything short of that -- no password, a falsy one, or a
+    wrong ``current_password`` -- must leave the flag alone.
+    """
+    admin_user.password = generate_password_hash("OldPassw0rd!")
+
+    with patch("superset.views.users.api.clear_password_must_change") as mock_clear:
+        _run_update_me(admin_user, {"first_name": "Foo"})
+        _run_update_me(admin_user, {"password": "", "first_name": "Bar"})
+        with pytest.raises(ValidationError):
+            _run_update_me(
+                admin_user,
+                {
+                    "password": "BrandNewPassw0rd!",
+                    "current_password": "WrongPassw0rd!",
+                },
+            )
+        mock_clear.assert_not_called()
+
+        _run_update_me(
+            admin_user,
+            {"password": "BrandNewPassw0rd!", "current_password": "OldPassw0rd!"},
+        )
+        mock_clear.assert_called_once_with(admin_user.id)
+
+
+def test_update_me_password_change_clears_flag_in_the_same_unit_of_work(
+    admin_user: User,  # noqa: F811
+    after_each: None,  # noqa: F811
+) -> None:
+    """The flag is cleared through the session without a commit of its own, so
+    it lands (or rolls back) together with the new password hash."""
+    from superset.models.user_attributes import UserAttribute
+
+    admin_user.password = generate_password_hash("OldPassw0rd!")
+    attr = UserAttribute(user_id=admin_user.id, password_must_change=True)
+    db.session.add(attr)
+    db.session.flush()
+
+    with patch("superset.views.users.api.db.session.commit") as mock_commit:
+        _run_update_me(
+            admin_user,
+            {"password": "BrandNewPassw0rd!", "current_password": "OldPassw0rd!"},
+        )
+    db.session.flush()
+
+    mock_commit.assert_not_called()
+    assert attr.password_must_change is False
+    assert check_password_hash(admin_user.password, "BrandNewPassw0rd!")

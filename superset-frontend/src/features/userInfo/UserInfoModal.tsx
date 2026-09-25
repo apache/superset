@@ -39,7 +39,7 @@ function UserInfoModal({
 
   const requiredFields = isEditMode
     ? ['first_name', 'last_name']
-    : ['password', 'confirm_password'];
+    : ['current_password', 'password', 'confirm_password'];
   const initialValues = isEditMode
     ? {
         first_name: user?.firstName,
@@ -92,8 +92,18 @@ function UserInfoModal({
   const ResetPasswordFields = () => (
     <>
       <FormItem
+        name="current_password"
+        label={t('Current password')}
+        rules={[{ required: true, message: t('Current password is required') }]}
+      >
+        <Input.Password
+          name="current_password"
+          placeholder={t('Enter your current password')}
+        />
+      </FormItem>
+      <FormItem
         name="password"
-        label={t('Password')}
+        label={t('New password')}
         rules={[{ required: true, message: t('Password is required') }]}
       >
         <Input.Password
