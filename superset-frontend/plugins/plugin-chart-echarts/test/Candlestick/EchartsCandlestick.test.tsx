@@ -143,6 +143,66 @@ test('opens drill-to-detail with x-axis and series filters on right-click', () =
   );
 });
 
+test('keeps a numeric series filter value numeric on right-click', () => {
+  const onContextMenu = jest.fn();
+  const transformed = transformProps(
+    new ChartProps({
+      formData: {
+        datasource: '3__table',
+        x_axis: 'date',
+        open: 'open',
+        close: 'close',
+        high: 'high',
+        low: 'low',
+        series: 'store_id',
+        moving_averages: [],
+      },
+      width: 800,
+      height: 600,
+      queriesData: [
+        {
+          data: [
+            {
+              date: '2017-10-24',
+              store_id: 42,
+              open: 20,
+              close: 34,
+              low: 10,
+              high: 38,
+            },
+          ],
+        },
+      ],
+      theme: supersetTheme,
+      hooks: { onContextMenu },
+    }) as unknown as EchartsCandlestickChartProps,
+  );
+
+  render(<EchartsCandlestick {...transformed} onContextMenu={onContextMenu} />);
+
+  const { eventHandlers } = mockedEchart.mock.calls[0][0] as {
+    eventHandlers: EventHandlers;
+  };
+  const stop = jest.fn();
+  eventHandlers.contextmenu({
+    event: { stop, event: { clientX: 12, clientY: 34 } },
+    dataIndex: 0,
+    seriesName: '42',
+    seriesType: 'candlestick',
+  });
+
+  expect(onContextMenu).toHaveBeenCalledWith(
+    12,
+    34,
+    expect.objectContaining({
+      drillToDetail: [
+        expect.objectContaining({ col: 'date', val: '2017-10-24' }),
+        expect.objectContaining({ col: 'store_id', val: 42 }),
+      ],
+    }),
+  );
+});
+
 test('emits IS NULL when drill-to-detail hits a null x-category', () => {
   const onContextMenu = jest.fn();
   const transformed = transformProps(

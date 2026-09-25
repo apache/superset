@@ -224,6 +224,26 @@ test('uses x-axis values as category labels', () => {
   ]);
 });
 
+test('falls back to the temporal column when x_axis is unset but granularity_sqla is set', () => {
+  // buildQuery.ts resolves the same way via getXAxisColumn; a chart saved or
+  // imported without an explicit x_axis (unreachable interactively, but
+  // reachable via the API or a YAML import) must query and read the same
+  // column or every row collapses into one category.
+  const rows = [
+    { __timestamp: '2017-10-24', open: 20, close: 34, low: 10, high: 38 },
+    { __timestamp: '2017-10-25', open: 40, close: 35, low: 30, high: 50 },
+  ];
+  const props = transform(rows, {
+    x_axis: undefined,
+    granularity_sqla: 'date',
+  });
+  const series = extractSeries(props);
+  expect(series[0].data).toEqual([
+    [20, 34, 10, 38],
+    [40, 35, 30, 50],
+  ]);
+});
+
 test('applies increase and decrease colors', () => {
   const series = extractSeries(buildProps());
   expect(series[0]).toEqual(
@@ -680,6 +700,52 @@ test('qualifies MA names when multiple candlestick series are present', () => {
     'AAPL MA2',
     'GOOG MA2',
   ]);
+});
+
+test('keeps a series moving average from gapping at a date only another series has', () => {
+  const seriesData = [
+    { date: '2017-10-24', symbol: 'A', open: 8, close: 10, low: 5, high: 12 },
+    {
+      date: '2017-10-24b',
+      symbol: 'B',
+      open: 900,
+      close: 999,
+      low: 800,
+      high: 1000,
+    },
+    {
+      date: '2017-10-25',
+      symbol: 'A',
+      open: 18,
+      close: 20,
+      low: 15,
+      high: 22,
+    },
+    {
+      date: '2017-10-26',
+      symbol: 'A',
+      open: 28,
+      close: 30,
+      low: 25,
+      high: 32,
+    },
+  ];
+  const props = transformProps(
+    new ChartProps({
+      formData: { ...formData, series: 'symbol', moving_averages: [2] },
+      width: 800,
+      height: 600,
+      queriesData: [{ data: seriesData }],
+      theme: supersetTheme,
+    }) as unknown as EchartsCandlestickChartProps,
+  );
+  const series = extractSeries(props);
+  const aMa = series.find(item => item.name === 'A MA2');
+  // Union category order: A's first date, B's only date, then A's other two
+  // dates. A has no candle at B's date, but its own two adjacent closes
+  // (10, 20) should still average once both are seen, not blank out just
+  // because B's date falls between them.
+  expect(aMa?.data).toEqual(['-', null, 15, 25]);
 });
 
 test('keeps series and x-axis values distinct when they contain the same characters', () => {

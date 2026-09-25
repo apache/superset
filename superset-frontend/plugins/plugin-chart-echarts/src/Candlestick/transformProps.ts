@@ -26,6 +26,7 @@ import {
   getMetricLabel,
   getNumberFormatter,
   getTimeFormatter,
+  getXAxisLabel,
   NumberFormatter,
   rgbToHex,
   tooltipHtml,
@@ -326,7 +327,6 @@ export default function transformProps(
   const coltypeMapping = getColtypesMapping(queryData);
 
   const {
-    xAxis,
     open,
     close,
     high,
@@ -364,7 +364,10 @@ export default function transformProps(
     colorByDirection,
   }: EchartsCandlestickFormData = { ...DEFAULT_FORM_DATA, ...formData };
 
-  const xAxisName = xAxis ? getColumnLabel(xAxis) : '';
+  // Matches buildQuery.ts's getXAxisColumn: an unset x_axis with
+  // granularity_sqla present still queries DTTM_ALIAS, so the transform must
+  // resolve the same column or every row collapses into one empty category.
+  const xAxisName = (getXAxisLabel(chartProps.rawFormData) as string) ?? '';
   const seriesColumns = ensureIsArray(seriesControl).map(getColumnLabel);
   const [seriesName] = seriesColumns;
   const defaultSeriesLabel =
@@ -432,6 +435,7 @@ export default function transformProps(
 
   const seriesKeys: LookupKey[] = [];
   const seriesNames: string[] = [];
+  const seriesRecords: DataRecord[] = [];
   if (seriesName) {
     const seriesKeySet = new Set<LookupKey>();
     data.forEach(datum => {
@@ -441,6 +445,7 @@ export default function transformProps(
       }
       seriesKeySet.add(key);
       seriesKeys.push(key);
+      seriesRecords.push(datum);
       seriesNames.push(
         extractGroupbyLabel({
           datum,
@@ -527,15 +532,38 @@ export default function transformProps(
   const qualifyMaNames = seriesNames.length > 1;
   const movingAverageSeries: LineSeriesOption[] = ohlcBySeries.flatMap(
     (ohlcData, index) => {
-      const closes = ohlcData.map(ohlc => ohlc?.[1] ?? null);
+      // Compute the average over only this series' own trading dates, not the
+      // union of every series' dates: xKeys/ohlcData are padded with null for
+      // dates a *different* series contributed, and calculateMA blanks a whole
+      // window on a single null, so padding here would put gaps in this
+      // series' MA line caused by another series' calendar.
+      const ownIndices: number[] = [];
+      const closes: number[] = [];
+      ohlcData.forEach((ohlc, xIndex) => {
+        if (ohlc) {
+          ownIndices.push(xIndex);
+          closes.push(ohlc[1]);
+        }
+      });
       const seriesLabel = qualifyMaNames ? seriesNames[index] : undefined;
       return periods.map(period => {
         const name = movingAverageName(period, seriesLabel);
         const maColor = colorScale(name, sliceId);
+        const maValues = calculateMA(closes, period);
+        // Scatter the compact result back onto the shared category axis so
+        // it still lines up with the candles; a date this series has no
+        // candle for stays a genuine gap in the MA line.
+        const data: (number | '-' | null)[] = Array.from(
+          { length: xKeys.length },
+          () => null,
+        );
+        ownIndices.forEach((xIndex, i) => {
+          data[xIndex] = maValues[i];
+        });
         return {
           name,
           type: 'line' as const,
-          data: calculateMA(closes, period),
+          data,
           smooth: true,
           showSymbol: false,
           itemStyle: { color: maColor },
@@ -728,8 +756,11 @@ export default function transformProps(
     seriesValues: seriesName
       ? seriesNames.map((name, index) => ({
           name,
-          value:
-            seriesKeys[index] === NULL_LOOKUP_KEY ? null : seriesKeys[index],
+          // The raw datum value, not the stringified lookup key: a numeric or
+          // boolean series column must keep its type so the drill-to-detail
+          // filter this feeds (superset/models/helpers.py's EQUALS handling)
+          // doesn't compare a column to the wrong SQL literal type.
+          value: getOwnValue(seriesRecords[index], seriesName) ?? null,
         }))
       : [],
   };
