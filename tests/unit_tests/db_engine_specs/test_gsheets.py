@@ -571,13 +571,8 @@ def test_impersonate_user_username(mocker: MockerFixture) -> None:
     """
     from superset.db_engine_specs.gsheets import GSheetsEngineSpec
 
-    user = mocker.MagicMock()
-    user.email = "alice@example.org"
-    mocker.patch(
-        "superset.db_engine_specs.gsheets.security_manager.find_user",
-        return_value=user,
-    )
     database = mocker.MagicMock()
+    database.get_impersonation_email.return_value = "alice@example.org"
 
     assert GSheetsEngineSpec.impersonate_user(
         database,
