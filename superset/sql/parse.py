@@ -2828,7 +2828,10 @@ def _find_subquery_scopes(scopes: list[Scope]) -> set[int]:
 
     That is every uncorrelated ``SUBQUERY`` scope (a scalar, ``IN`` or ``EXISTS``
     sub-query), every scope nested inside one, and every CTE one of them reads from,
-    including the scopes nested inside that CTE. A CTE read both from a sub-query and
+    including the scopes nested inside that CTE. Only a CTE named in the sub-query's
+    own ``FROM`` or joins counts, not every CTE in lexical scope (which
+    ``Scope.sources`` holds), so a CTE only joined in the main ``FROM`` keeps the
+    outer query's rules. A CTE read both from a sub-query and
     from the statement's ``FROM`` counts as a sub-query, so its reads get the stricter
     rules. The body of a ``LATERAL`` or ``CROSS APPLY`` feeds the output like a join,
     so it is left out. A correlated sub-query is left out too: it is typically a
@@ -2855,7 +2858,7 @@ def _find_subquery_scopes(scopes: list[Scope]) -> set[int]:
         pending.extend(child for child in scopes if child.parent is scope)
         pending.extend(
             source
-            for source in scope.sources.values()
+            for _, source in scope.selected_sources.values()
             if isinstance(source, Scope) and source.scope_type == ScopeType.CTE
         )
     return found
@@ -2875,18 +2878,27 @@ def _is_correlated(scope: Scope) -> bool:
     (which ``Scope.columns`` includes): a nested correlated sub-query doesn't key the
     wrapping sub-query's tables to the enclosing rows.
 
+    Names are the ones each query reads in its ``FROM`` and joins
+    (``Scope.selected_sources``), not every CTE in lexical scope, so a reference to
+    a CTE the enclosing query reads counts as external. They are compared ignoring
+    letter-case, since most engines fold unquoted names. On one that doesn't, a
+    qualifier matching only when case is ignored either names one of the
+    sub-query's own tables, which errs toward the stricter rules, or names no table
+    at all and the engine rejects the query.
+
     :param scope: A ``SUBQUERY`` scope
     :returns: True if the sub-query is correlated
     """
     enclosing: set[str] = set()
     parent = scope.parent
     while parent:
-        enclosing.update(parent.sources)
+        enclosing.update(name.lower() for name in parent.selected_sources)
         parent = parent.parent
+    local = {name.lower() for name in scope.selected_sources}
     return any(
         isinstance(node, exp.Column)
-        and node.table in enclosing
-        and node.table not in scope.sources
+        and node.table.lower() in enclosing
+        and node.table.lower() not in local
         for node in walk_in_scope(scope.expression)
     )
 

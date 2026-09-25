@@ -34,7 +34,7 @@ virtual dataset's SQL they are injected into the tables read inside an
 uncorrelated sub-query (scalar, `IN` or `EXISTS`, including CTEs such a sub-query
 reads). Tables whose rows reach the virtual dataset's output (`FROM`, joins,
 derived tables, `LATERAL`) or are keyed to them by a correlated sub-query (one
-that itself references an outer table by name or alias, such as
+that itself references an outer table or CTE by name or alias, such as
 `lookup.id = a.lid`; a sub-query nested in it doesn't count) are still left to
 the outer query, which already applies the rules. An
 unqualified outer reference (`WHERE id = lid`) can't be told apart from a local

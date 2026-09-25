@@ -6804,6 +6804,28 @@ def _compact_sql(statement: SQLStatement) -> str:
             "(o.k = a.k)))) AS n FROM a WHERE a.r = 1",
             id="uncorrelated-wrapping-correlated",
         ),
+        pytest.param(
+            "WITH c AS (SELECT * FROM a) "
+            "SELECT c.x, (SELECT name FROM b WHERE b.id = c.bid) AS n FROM c",
+            "WITH c AS (SELECT * FROM a WHERE a.r = 1) "
+            "SELECT c.x, (SELECT name FROM b WHERE b.r = 1 AND (b.id = c.bid)) AS n "
+            "FROM c",
+            id="correlated-to-outer-cte",
+        ),
+        pytest.param(
+            "WITH c AS (SELECT * FROM b) "
+            "SELECT a.x, (SELECT COUNT(*) FROM b) AS n FROM a JOIN c ON c.k = a.k",
+            "WITH c AS (SELECT * FROM b WHERE b.r = 1) "
+            "SELECT a.x, (SELECT COUNT(*) FROM b WHERE b.r = 1 AND b.g = 1) AS n "
+            "FROM a JOIN c ON c.k = a.k WHERE a.r = 1",
+            id="cte-joined-beside-unrelated-subquery",
+        ),
+        pytest.param(
+            "SELECT a.x, (SELECT COUNT(*) FROM b AS A WHERE a.v > 0) AS n FROM a",
+            "SELECT a.x, (SELECT COUNT(*) FROM b AS A WHERE A.r = 1 AND A.g = 1 AND "
+            "(a.v > 0)) AS n FROM a WHERE a.r = 1",
+            id="alias-shadowing-outer-table-case-insensitive",
+        ),
     ],
 )
 def test_rls_subquery_predicates(sql: str, expected: str) -> None:

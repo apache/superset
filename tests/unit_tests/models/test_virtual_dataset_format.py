@@ -507,7 +507,9 @@ def test_get_from_clause_excludes_global_guest_rls(
     The virtual dataset's outer query already applies global guest RLS rules,
     so the inner SQL must opt out of them to avoid applying them twice, both
     when injecting RLS and when checking whether a failed injection matters.
+    It applies the dataset's own RLS too, so the check leaves those out as well.
     """
+    virtual_datasource.id = 99
     _set_virtual_sql(virtual_datasource, "SELECT pen_id FROM public.pens")
 
     with pytest.raises(QueryObjectValidationError):
@@ -515,6 +517,7 @@ def test_get_from_clause_excludes_global_guest_rls(
 
     assert mock_apply_rls.call_args.kwargs["include_global_guest_rls"] is False
     assert mock_get_predicates.call_args.kwargs["include_global_guest_rls"] is False
+    assert mock_get_predicates.call_args.kwargs["exclude_dataset_id"] == 99
 
 
 @patch(
@@ -533,8 +536,10 @@ def test_get_from_clause_fail_closed_counts_global_guest_rls_in_subqueries(
 ) -> None:
     """
     When the inner SQL has a sub-query, ``apply_rls`` would have injected global
-    guest RLS rules into it, so the fail-closed check must count them too.
+    guest RLS rules and the dataset's own RLS into it, so the fail-closed check
+    must count both.
     """
+    virtual_datasource.id = 99
     _set_virtual_sql(
         virtual_datasource,
         "SELECT pen_id, (SELECT COUNT(*) FROM public.inks) AS n FROM public.pens",
@@ -545,5 +550,6 @@ def test_get_from_clause_fail_closed_counts_global_guest_rls_in_subqueries(
     assert mock_get_predicates.call_args_list
     assert all(
         call.kwargs["include_global_guest_rls"] is True
+        and call.kwargs["exclude_dataset_id"] is None
         for call in mock_get_predicates.call_args_list
     )
