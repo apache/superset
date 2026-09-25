@@ -423,7 +423,6 @@ export function transformSeries(
     hasDimensions?: boolean;
     colorByPrimaryAxis?: boolean;
     labelPosition?: string;
-    barMaxWidthPx?: number;
   },
 ): SeriesOption | undefined {
   const { name, data } = series;
@@ -458,7 +457,6 @@ export function transformSeries(
     theme,
     colorByPrimaryAxis = false,
     labelPosition,
-    barMaxWidthPx,
   } = opts;
   const contexts = seriesContexts[name || ''] || [];
   const hasForecast =
@@ -605,13 +603,13 @@ export function transformSeries(
     ...(colorByPrimaryAxis ? {} : { itemStyle }),
     // @ts-ignore
     type: plotType,
-    // Cap bar width so a sparse/single data point doesn't stretch across
-    // several (or all of the) neighboring buckets. barMaxWidthPx, when
-    // provided, is sized to the resolved time grain's own pixel width on
-    // the axis (see getGrainBarMaxWidth in utils/series.ts); 100 remains
-    // the fallback for non-temporal axes or when no grain is resolved.
-    // Bars with many categories auto-size below this cap either way.
-    ...(plotType === 'bar' ? { barMaxWidth: barMaxWidthPx ?? 100 } : {}),
+    // Cap bar width so a single data point doesn't stretch across the
+    // entire chart area. Bars with many categories auto-size below this
+    // cap. For a sub-daily time grain, transformProps.ts overrides this
+    // with a grain-derived value once the chart's real grid padding is
+    // known (see getGrainBarMaxWidth in utils/series.ts) — 100 is the
+    // fallback for everything else (non-temporal axes, no resolved grain).
+    ...(plotType === 'bar' ? { barMaxWidth: 100 } : {}),
     smooth: seriesType === 'smooth',
     triggerLineEvent: true,
     // @ts-expect-error

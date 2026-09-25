@@ -291,16 +291,27 @@ export default function transformProps(
   const resolvedTimeGrain =
     formData.extraFormData?.time_grain_sqla ?? timeGrainSqla;
 
-  // A resolved time grain only applies to a genuinely temporal x-axis
-  // column (time_grain_sqla is meaningless otherwise), so trust it over
-  // `coltypes` only when `coltypes` gave no usable classification at all —
+  // `coltypes` on the query response can fail to mark the designated x-axis
+  // column Temporal for reasons unrelated to what the column actually is —
   // see the matching comment in Timeseries/transformProps.ts for the full
-  // rationale (in short: a *valid* coltype classification, e.g. a
-  // genuinely Numeric x-axis, must never be overridden just because an
-  // unrelated dashboard-level time-grain filter happens to be active).
+  // rationale. Cross-reference the datasource's own column definition for
+  // the x-axis column (`is_dttm`/`type_generic`) instead of a resolved
+  // time grain, which can come from an unrelated dashboard-level
+  // cross-filter that applies to every chart regardless of whether that
+  // chart's own x-axis is temporal.
   const rawXAxisDataTypeIsUsable = typeof rawXAxisDataType === 'number';
+  const rawXAxisColumnName = isPhysicalColumn(chartProps.rawFormData?.x_axis)
+    ? chartProps.rawFormData.x_axis
+    : ((chartProps.rawFormData as { granularity_sqla?: string })
+        ?.granularity_sqla ?? undefined);
+  const xAxisDatasourceColumn = datasource.columns?.find(
+    column => column.column_name === rawXAxisColumnName,
+  );
+  const isDesignatedTemporalColumn =
+    !!xAxisDatasourceColumn?.is_dttm ||
+    xAxisDatasourceColumn?.type_generic === GenericDataType.Temporal;
   const xAxisDataType =
-    !rawXAxisDataTypeIsUsable && resolvedTimeGrain
+    !rawXAxisDataTypeIsUsable && isDesignatedTemporalColumn
       ? GenericDataType.Temporal
       : rawXAxisDataType;
   const xAxisType = getAxisType(
@@ -340,32 +351,6 @@ export default function transformProps(
     totalStackedValues: totalStackedValuesB,
     xAxisType,
   });
-
-  // Size a bar series to its own grain-bucket pixel width instead of a flat
-  // constant, so a sparse bucket doesn't visually spill into neighboring,
-  // unpopulated buckets. Only meaningful when a bar series is actually
-  // rendered — skip the domain scan otherwise. Combines both queries' data
-  // for the domain estimate, matching the same combined-domain approach the
-  // x-axis label spacing formatter below already uses. Unlike Timeseries,
-  // MixedTimeseries has no chart-orientation control (confirmed: no
-  // `orientation`/`OrientationType` field on its form data, no xAxis/yAxis
-  // swap anywhere in this file), so the temporal axis always renders along
-  // `width` here — no horizontal-orientation case to account for. See
-  // getGrainBarMaxWidth for the rest of the mechanism.
-  const barMaxWidthPx =
-    seriesType === EchartsTimeseriesSeriesType.Bar ||
-    seriesTypeB === EchartsTimeseriesSeriesType.Bar
-      ? getGrainBarMaxWidth(
-          xAxisType,
-          resolvedTimeGrain,
-          [
-            rebasedDataA as Record<string, unknown>[],
-            rebasedDataB as Record<string, unknown>[],
-          ],
-          xAxisLabel,
-          Math.max(width - 2 * TIMESERIES_CONSTANTS.gridOffsetLeft, 0),
-        )
-      : undefined;
 
   const series: SeriesOption[] = [];
 
@@ -621,7 +606,6 @@ export default function transformProps(
         theme,
         labelPosition,
         lineStyle,
-        barMaxWidthPx,
       },
     );
 
@@ -730,7 +714,6 @@ export default function transformProps(
         theme,
         labelPosition: labelPositionB,
         lineStyle,
-        barMaxWidthPx,
       },
     );
 
@@ -840,6 +823,46 @@ export default function transformProps(
     yAxisTitleMarginPx,
     xAxisTitleMarginPx,
   );
+
+  // Size a bar series to its own grain-bucket pixel width instead of a flat
+  // constant, so a sparse bucket doesn't visually spill into neighboring,
+  // unpopulated buckets. Computed here — after `chartPadding` (legend,
+  // axis title, zoomable padding) is fully finalized — and applied as a
+  // post-pass over the already-built `series`, so the plot-length used
+  // matches the actual grid area ECharts will render into (a heavily-
+  // padded chart, e.g. a side legend, genuinely has far less plot area
+  // than `width` alone suggests) rather than a flat per-side constant.
+  // Only meaningful when a bar series is actually rendered — skip the
+  // domain scan otherwise. Combines both queries' data for the domain
+  // estimate, matching the same combined-domain approach the x-axis label
+  // spacing formatter below already uses. MixedTimeseries has no
+  // chart-orientation control (confirmed: no `orientation`/
+  // `OrientationType` field on its form data, no xAxis/yAxis swap anywhere
+  // in this file), so the temporal axis always renders along `width` —
+  // no horizontal-orientation case to account for. See getGrainBarMaxWidth
+  // for the domain/grain part of the mechanism.
+  if (
+    seriesType === EchartsTimeseriesSeriesType.Bar ||
+    seriesTypeB === EchartsTimeseriesSeriesType.Bar
+  ) {
+    const barMaxWidthPx = getGrainBarMaxWidth(
+      xAxisType,
+      resolvedTimeGrain,
+      [
+        rebasedDataA as Record<string, unknown>[],
+        rebasedDataB as Record<string, unknown>[],
+      ],
+      xAxisLabel,
+      Math.max(width - chartPadding.left - chartPadding.right, 0),
+    );
+    if (barMaxWidthPx !== undefined) {
+      series.forEach(s => {
+        if (s.type === 'bar') {
+          (s as { barMaxWidth?: number }).barMaxWidth = barMaxWidthPx;
+        }
+      });
+    }
+  }
 
   const { setDataMask = () => {}, onContextMenu } = hooks;
   const alignTicks = yAxisIndex !== yAxisIndexB;

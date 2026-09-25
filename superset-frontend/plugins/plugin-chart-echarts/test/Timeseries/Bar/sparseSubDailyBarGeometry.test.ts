@@ -19,6 +19,7 @@
 import {
   ChartProps,
   ChartDataResponseResult,
+  Column,
   SqlaFormData,
 } from '@superset-ui/core';
 import { GenericDataType } from '@apache-superset/core/common';
@@ -33,6 +34,22 @@ import { getXAxisDomain } from '../../../src/utils/formatters';
 import { TIMESERIES_CONSTANTS } from '../../../src/constants';
 
 const HOUR_GRAIN_MS = 3_600_000; // TIMEGRAIN_TO_TIMESTAMP['PT1H']
+
+// The dataset's own definition of `__timestamp` as the designated temporal
+// column — independent of any given query response's (possibly malformed)
+// `coltypes` — matching the shape the fix now cross-references.
+const DEFAULT_DATASOURCE_COLUMNS: Column[] = [
+  {
+    column_name: 'count',
+    is_dttm: false,
+    type_generic: GenericDataType.Numeric,
+  },
+  {
+    column_name: '__timestamp',
+    is_dttm: true,
+    type_generic: GenericDataType.Temporal,
+  },
+];
 
 const BASE_FORM_DATA: SqlaFormData = {
   ...DEFAULT_FORM_DATA,
@@ -49,10 +66,11 @@ const BASE_FORM_DATA: SqlaFormData = {
 
 function buildOptions(
   width: number,
-  data: Record<string, number>[],
+  data: Record<string, unknown>[],
   overrides: Partial<ChartDataResponseResult> = {},
   formDataOverrides: Partial<SqlaFormData> = {},
   height = 400,
+  datasourceColumns: Column[] = DEFAULT_DATASOURCE_COLUMNS,
 ) {
   const chartProps = new ChartProps({
     width,
@@ -67,13 +85,28 @@ function buildOptions(
     ],
     formData: { ...BASE_FORM_DATA, ...formDataOverrides },
     theme: supersetTheme,
+    datasource: { columns: datasourceColumns },
   });
 
   return transformProps(chartProps as EchartsTimeseriesChartProps)
     .echartOptions;
 }
 
-function xAxisType(xAxis: unknown) {
+// A bare `as XAxisComponentOption` cast is not real narrowing — a malformed
+// or missing xAxis option would silently produce `undefined` and let a
+// `.not.toBe('time')` assertion pass for the wrong reason. Validate the
+// minimal shape first so a broken option object fails loudly instead.
+function xAxisType(xAxis: unknown): unknown {
+  if (
+    typeof xAxis !== 'object' ||
+    xAxis === null ||
+    Array.isArray(xAxis) ||
+    !('type' in xAxis)
+  ) {
+    throw new Error(
+      `expected a single xAxis option object with a "type" property, got: ${JSON.stringify(xAxis)}`,
+    );
+  }
   return (xAxis as XAxisComponentOption).type;
 }
 
@@ -117,6 +150,9 @@ test('a sparse hourly bucket (two sparse points) does not render several grain-w
     [sparseTimestamps.map(__timestamp => ({ __timestamp }))],
     '__timestamp',
   );
+  // No legend/title chrome in this fixture, so the plot area matches the
+  // TIMESERIES_CONSTANTS.gridOffsetLeft-only estimate; the padded-chart
+  // case below (with a left legend) checks the real-padding-aware path.
   const plotWidthPx = Math.max(
     width - 2 * TIMESERIES_CONSTANTS.gridOffsetLeft,
     0,
@@ -257,6 +293,62 @@ test('horizontal orientation: bar width is sized against chart height, not width
   expect(effective).toBeGreaterThan(wrongWidthBasedPxWidth * 2);
 });
 
+test('a chart with heavily-reserved grid space (a left legend on a narrow chart) sizes the bar against the real plot area, not width alone', () => {
+  // The grain-to-pixel computation must derive the plot length from this
+  // codebase's own real grid-padding computation (getPadding, reused via
+  // the `padding` object Timeseries/transformProps.ts already builds for
+  // the chart's actual grid), not a flat per-side constant — a narrow
+  // chart with a left-side legend genuinely has far less plot width than
+  // `width` alone suggests, confirmed independently via an ECharts SSR
+  // render (a 250px-wide chart with a left legend rendered a real bar
+  // around ~5.24px while one hourly bucket actually occupied ~0.69px; a
+  // fix using a flat gridOffsetLeft guess instead of the real legend-aware
+  // padding would compute a cap many times too loose there).
+  const width = 250;
+  const sparseTimestamps = [
+    Date.UTC(2024, 0, 1, 1, 0, 0),
+    Date.UTC(2024, 0, 1, 23, 0, 0),
+  ];
+  const { series, grid } = buildOptions(
+    width,
+    sparseTimestamps.map(__timestamp => ({ count: 1, __timestamp })),
+    {},
+    {
+      showLegend: true,
+      legendOrientation: 'left',
+      groupby: ['count'],
+    },
+  );
+  const [barSeries] = series as BarSeriesOption[];
+  const gridBox = grid as { left?: number; right?: number };
+
+  const [domainMin, domainMax] = getXAxisDomain(
+    [sparseTimestamps.map(__timestamp => ({ __timestamp }))],
+    '__timestamp',
+  );
+  const domainSpanMs = (domainMax as number) - (domainMin as number);
+  // Sanity check that the fixture actually reserves meaningful legend
+  // space, so this test can't pass vacuously if the legend didn't render.
+  const realPlotWidthPx = Math.max(
+    width - (gridBox.left ?? 0) - (gridBox.right ?? 0),
+    0,
+  );
+  expect(realPlotWidthPx).toBeLessThan(
+    width - 2 * TIMESERIES_CONSTANTS.gridOffsetLeft,
+  );
+
+  const correctGrainPxWidth = (HOUR_GRAIN_MS / domainSpanMs) * realPlotWidthPx;
+  // The value a flat-gridOffsetLeft (legend-blind) computation would have
+  // produced, to assert the fix isn't still using that estimate.
+  const flatOffsetPxWidth =
+    (HOUR_GRAIN_MS / domainSpanMs) *
+    Math.max(width - 2 * TIMESERIES_CONSTANTS.gridOffsetLeft, 0);
+
+  const effective = effectiveBarPxWidth(barSeries);
+  expect(effective).toBeLessThanOrEqual(correctGrainPxWidth * 2);
+  expect(effective).toBeLessThan(flatOffsetPxWidth);
+});
+
 describe('sparse sub-daily bar chart: x-axis mislabels raw epoch values when coltypes does not mark the column Temporal', () => {
   // getColtypesMapping (utils/series.ts) builds xAxisDataType purely from
   // colnames[i] -> coltypes[i]; if that lookup doesn't resolve to
@@ -276,7 +368,10 @@ describe('sparse sub-daily bar chart: x-axis mislabels raw epoch values when col
   const data = sparseTimestamps.map(__timestamp => ({ count: 1, __timestamp }));
 
   // The decisive invariant across both mismatch shapes below: a genuinely
-  // temporal x-axis column whose coltype lookup gave no usable
+  // temporal x-axis column (per the dataset's own `is_dttm`/`type_generic`
+  // metadata in datasource.columns — the ticket's actual bug shape: the
+  // dataset says the column is temporal, but this particular query
+  // response's coltypes is malformed) whose coltype lookup gave no usable
   // classification at all (missing entry, or a raw SQL-type string that
   // isn't a GenericDataType member) must still resolve to a `time` axis.
   test('coltypes shorter than colnames (temporal entry missing)', () => {
@@ -293,21 +388,53 @@ describe('sparse sub-daily bar chart: x-axis mislabels raw epoch values when col
     expect(xAxisType(xAxis)).toBe('time');
   });
 
-  // Deliberately NOT covered by the coercion above, and pinned here as a
-  // regression guard rather than a gap: a coltype lookup that resolves to a
-  // *valid* GenericDataType member (Numeric here) is a definite
-  // classification, not a missing one, and is indistinguishable — using
-  // only the signals available in transformProps.ts — from a genuinely
-  // non-temporal x-axis column (e.g. `price`) that happens to coexist with
-  // an unrelated dashboard-level time-grain cross-filter (a real, supported
-  // Superset feature: such a filter can apply to every chart on a
-  // dashboard regardless of whether that chart's own x-axis is temporal).
-  // Coercing on a valid-but-different classification would wrongly turn
-  // that unrelated numeric chart into a time axis, so it must not.
-  test('a coltype-confirmed Numeric x-axis stays non-Temporal even when an unrelated time grain is resolved', () => {
-    const { xAxis } = buildOptions(800, data, {
-      coltypes: [GenericDataType.Numeric, GenericDataType.Numeric],
-    });
+  // A separate, genuinely numeric column (distinct name and values from
+  // the temporal fixtures above) as the designated x-axis, correctly
+  // classified as Numeric by both the query response's coltypes AND the
+  // dataset's own column metadata — with an unrelated dashboard-level
+  // time-grain cross-filter (a real, supported Superset feature: such a
+  // filter can apply to every chart on a dashboard, including ones whose
+  // x-axis has nothing to do with time) still resolved for this chart.
+  // Coercing here would wrongly turn this unrelated numeric chart into a
+  // time axis, so it must not — this is the scenario the datasource-column
+  // cross-reference exists to rule out.
+  test('a genuinely numeric x-axis (price) stays non-Temporal even when an unrelated dashboard time-grain filter is resolved', () => {
+    const priceDatasourceColumns: Column[] = [
+      {
+        column_name: 'price',
+        is_dttm: false,
+        type_generic: GenericDataType.Numeric,
+      },
+      // The dataset has its own, unrelated temporal column — present to
+      // make the fixture realistic (a dataset with a numeric x-axis chart
+      // can still have datetime columns other charts/filters use), not
+      // referenced by this chart's own x-axis.
+      {
+        column_name: 'order_date',
+        is_dttm: true,
+        type_generic: GenericDataType.Temporal,
+      },
+    ];
+    const { xAxis } = buildOptions(
+      800,
+      [
+        { count: 1, price: 10 },
+        { count: 1, price: 20 },
+      ],
+      {
+        colnames: ['count', 'price'],
+        coltypes: [GenericDataType.Numeric, GenericDataType.Numeric],
+      },
+      {
+        x_axis: 'price',
+        granularity_sqla: 'order_date',
+        // Simulates a dashboard-level cross-filter setting a grain that
+        // has nothing to do with this chart's own (non-temporal) x-axis.
+        extraFormData: { time_grain_sqla: 'PT1H' },
+      },
+      400,
+      priceDatasourceColumns,
+    );
     expect(xAxisType(xAxis)).not.toBe('time');
   });
 });
