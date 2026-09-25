@@ -88,9 +88,12 @@ async def list_datasets(
         ListDatasetsRequest | None,
         Field(
             description=(
-                'Wrap parameters as {"request": {"search": "sales"}}; omit request for defaults. '
-                "Do NOT pass search, page, page_size or filters as top-level arguments. "
-                "Search returns candidates, not a ranking. Never substitute a dataset outside MCP scope."
+                'Wrap as {"request": {"search": "x"}}. '
+                "Do NOT pass search/page/filters top-level. "
+                "Candidates, not a ranking: if several fit, explain alternatives, "
+                "clarify before querying. An empty result doesn't prove absence. "
+                "Never substitute out-of-scope datasets. "
+                "People: find_users IDs in filters, not search."
             )
         ),
     ] = None,

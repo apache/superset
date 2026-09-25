@@ -109,11 +109,13 @@ async def get_dashboard_info(
         GetDashboardInfoRequest,
         Field(
             description=(
-                'Wrap as {"request": {"identifier": 123}}. '
-                "For filtered dashboards, supply permalink_key or filter_state. "
-                "Returned filter values are snapshots, not query predicates; "
+                'Wrap as {"request": {"identifier": 1}}. '
+                "If filtered, pass permalink_key or filter_state. "
+                "Values are snapshots, not query predicates; "
                 "respect scope and native_filter_values_incomplete. "
-                "Missing state is not no filters; clarify rather than guess."
+                "Missing state is not no filters. "
+                "Never guess columns or query workspace-wide; clarify. "
+                "All charts: list_charts."
             )
         ),
     ],
