@@ -1,0 +1,549 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+
+body {
+  margin: 0;
+  font-family: system-ui, sans-serif;
+  background: #f5f4f0;
+  color: #1d1d1b;
+}
+
+.app {
+  padding: 24px;
+  min-height: 100vh;
+  box-sizing: border-box;
+}
+
+.app-dark {
+  background: #16171a;
+  color: #e8e8e6;
+}
+
+.app-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.app-header h1 {
+  margin: 0;
+  font-size: 22px;
+}
+
+.app-header p,
+.hint {
+  margin: 4px 0 0;
+  opacity: 0.7;
+  font-size: 13px;
+}
+
+.filter-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin: 16px 0;
+}
+
+.filter-label {
+  font-weight: 600;
+  margin-right: 4px;
+}
+
+.chip {
+  border: 1px solid #d8d6cf;
+  background: transparent;
+  color: inherit;
+  border-radius: 999px;
+  padding: 4px 12px;
+  cursor: pointer;
+}
+
+.chip-active {
+  background: #2f5d50;
+  border-color: #2f5d50;
+  color: #fff;
+}
+
+.chip:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.app-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 300px;
+  gap: 24px;
+}
+
+section h2 {
+  font-size: 15px;
+  margin: 16px 0 4px;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  margin-top: 12px;
+}
+
+.card {
+  background: #fff;
+  border: 1px solid #e4e2dc;
+  border-radius: 8px;
+  padding: 12px;
+  height: 320px;
+  box-sizing: border-box;
+}
+
+.app-dark .card {
+  background: #1f2024;
+  border-color: #2e3036;
+}
+
+.card.small {
+  height: 136px;
+}
+
+.card.wide {
+  grid-column: span 2;
+}
+
+.event-log {
+  height: auto;
+  min-height: 200px;
+}
+
+.event-log h2 {
+  margin-top: 0;
+}
+
+/* Line the sidebar up with the first section heading and keep it in view. */
+.app-body > aside {
+  margin-top: 16px;
+}
+
+.app:not(.app-structure) .app-body > aside {
+  position: sticky;
+  top: 24px;
+  align-self: start;
+}
+
+.event-log ul {
+  list-style: none;
+  padding: 0;
+  margin: 8px 0 0;
+  font-size: 13px;
+}
+
+.event-log li {
+  padding: 6px 0;
+  border-bottom: 1px solid #e4e2dc;
+}
+
+@media (max-width: 900px) {
+  .app-body,
+  .grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .card.wide {
+    grid-column: auto;
+  }
+}
+
+fieldset.filter-bar {
+  margin: 24px 0 0;
+  padding: 0;
+  border: 0;
+  min-width: 0;
+}
+
+legend.filter-label {
+  float: left;
+  padding: 0;
+  font-size: 13px;
+}
+
+/* structure view */
+.app-structure .app-body {
+  grid-template-columns: minmax(0, 1fr) 420px;
+}
+
+.frame {
+  position: relative;
+  outline: 2px dashed var(--frame-color);
+  outline-offset: 3px;
+}
+
+.frame-superset {
+  --frame-color: #1a85a0;
+}
+
+.frame-host {
+  --frame-color: #c46a1d;
+}
+
+.frame-tag {
+  position: absolute;
+  top: -12px;
+  left: 6px;
+  z-index: 2;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: var(--frame-color);
+  color: #fff;
+  font:
+    11px/1.5 ui-monospace,
+    SFMono-Regular,
+    Menlo,
+    monospace;
+  white-space: nowrap;
+  max-width: calc(100% - 12px);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  pointer-events: none;
+}
+
+.card {
+  position: relative;
+}
+
+.structure-panel {
+  height: auto;
+  margin-top: 16px;
+}
+
+.structure-tree ul {
+  list-style: none;
+  margin: 4px 0 0;
+  padding-left: 14px;
+  border-left: 1px solid #e4e2dc;
+  font-size: 12px;
+}
+
+.structure-tree > ul {
+  padding-left: 0;
+  border-left: 0;
+}
+
+.structure-tree li {
+  margin: 4px 0;
+}
+
+.structure-tree code {
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.tree-superset {
+  color: #1a85a0;
+}
+
+.tree-host {
+  color: #c46a1d;
+}
+
+.tree-detail {
+  display: block;
+  opacity: 0.65;
+  font-size: 11px;
+}
+
+.legend {
+  margin: 0;
+  font-size: 11px;
+}
+
+.source summary {
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.source pre {
+  max-height: 480px;
+  overflow: auto;
+  font-size: 11px;
+  line-height: 1.45;
+  margin: 8px 0 0;
+}
+
+.toggles {
+  display: flex;
+  gap: 16px;
+  font-size: 13px;
+}
+
+/* structure view spacing */
+.app-structure .frame:not(.card) {
+  padding: 18px 10px 10px;
+  margin: 18px 0 8px;
+}
+
+.app-structure .frame .frame:not(.card) {
+  margin-top: 10px;
+}
+
+.app-structure .grid {
+  row-gap: 28px;
+}
+
+.legend code {
+  margin-right: 10px;
+}
+
+/* minimal embed example */
+.minimal-embed {
+  margin: 16px 0 8px;
+}
+
+/* Stretch the live chart to the height of the source beside it. */
+.minimal-embed-body > .card {
+  height: auto;
+}
+
+.minimal-embed-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 16px;
+  margin-top: 12px;
+}
+
+.code-block {
+  margin: 0;
+  padding: 14px 16px;
+  border-radius: 8px;
+  background: #1f2024;
+  color: #e8e8e6;
+  font:
+    12.5px/1.55 ui-monospace,
+    SFMono-Regular,
+    Menlo,
+    monospace;
+  overflow: auto;
+}
+
+@media (max-width: 900px) {
+  .minimal-embed-body {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* per-widget header: component name + code button */
+.frame-with-code {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.frame-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: none;
+}
+
+.frame-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 11px;
+  opacity: 0.55;
+}
+
+.frame-superset .frame-name {
+  color: var(--frame-color);
+  opacity: 1;
+}
+
+.frame-body {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+}
+
+.code-toggle {
+  flex: none;
+  padding: 1px 6px;
+  border: 1px solid #d8d6cf;
+  border-radius: 6px;
+  background: #fff;
+  color: #1d1d1b;
+  font:
+    11px/1.5 ui-monospace,
+    SFMono-Regular,
+    Menlo,
+    monospace;
+  cursor: pointer;
+}
+
+.app-dark .code-toggle {
+  border-color: #3a3c42;
+  background: #2a2b30;
+  color: #e8e8e6;
+}
+
+.code-modal {
+  width: min(880px, calc(100vw - 32px));
+  max-height: calc(100vh - 64px);
+  padding: 0;
+  border: 1px solid #3a3c42;
+  border-radius: 10px;
+  background: #1f2024;
+  color: #e8e8e6;
+  box-shadow: 0 24px 64px rgb(0 0 0 / 35%);
+}
+
+.code-modal[open] {
+  display: flex;
+  flex-direction: column;
+}
+
+.code-modal::backdrop {
+  background: rgb(15 16 18 / 55%);
+}
+
+.code-modal-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  border-bottom: 1px solid #3a3c42;
+}
+
+.code-modal-header h2 {
+  flex: 1;
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.code-modal-button {
+  padding: 4px 12px;
+  border: 1px solid #3a3c42;
+  border-radius: 6px;
+  background: #2a2b30;
+  color: #e8e8e6;
+  font:
+    12px/1.5 system-ui,
+    sans-serif;
+  cursor: pointer;
+}
+
+.code-modal-button:hover {
+  background: #34363c;
+}
+
+.code-modal pre {
+  margin: 0;
+  padding: 16px;
+  overflow: auto;
+  font:
+    13px/1.6 ui-monospace,
+    SFMono-Regular,
+    Menlo,
+    monospace;
+}
+
+/* component gallery */
+.gallery {
+  margin-top: 32px;
+}
+
+.gallery-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+  align-items: start;
+  gap: 16px;
+  margin-top: 12px;
+}
+
+.gallery-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid #e4e2dc;
+  border-radius: 8px;
+  background: #fff;
+}
+
+.app-dark .gallery-card {
+  border-color: #2e3036;
+  background: #1f2024;
+}
+
+.gallery-card h3 {
+  margin: 0;
+  font-size: 14px;
+}
+
+.gallery-card .hint {
+  margin: 0;
+}
+
+.gallery-widget {
+  position: relative;
+  height: 260px;
+}
+
+.gallery-widget.short {
+  height: 120px;
+}
+
+.gallery-plain {
+  position: relative;
+}
+
+.gallery-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  align-items: start;
+  gap: 12px;
+}
+
+.gallery-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.custom-widget-frame {
+  box-sizing: border-box;
+  padding: 6px;
+  border: 2px solid #2f5d50;
+  border-radius: 6px;
+}
+
+.gallery-error {
+  padding: 8px;
+  border-radius: 6px;
+  background: #fdecea;
+  color: #8a1c12;
+  font-size: 12px;
+}
+
+/* a free slot for dropping in any widget during a demo */
+.demo-slot {
+  margin-top: 24px;
+}

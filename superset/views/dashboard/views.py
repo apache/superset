@@ -150,3 +150,8 @@ class DashboardBuilderV2View(BaseSupersetView):
     @expose("/new/")
     def new(self) -> FlaskResponse:
         return super().render_app_template()
+
+    @has_access
+    @expose("/<int:pk>/")
+    def show(self, pk: int) -> FlaskResponse:  # pylint: disable=unused-argument
+        return super().render_app_template()

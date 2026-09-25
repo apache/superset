@@ -1,0 +1,15 @@
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "baseUrl": "../..",
+    "outDir": "lib",
+    "rootDir": "src",
+    "declarationDir": "lib"
+  },
+  "include": ["src/**/*", "types/**/*"],
+  "exclude": ["src/**/*.test.*", "src/**/*.stories.*"],
+  "references": [
+    { "path": "../superset-core" },
+    { "path": "../superset-ui-core" }
+  ]
+}

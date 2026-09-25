@@ -27,14 +27,14 @@ from superset.widgets.schema_tools import (
 )
 
 
-def _balloons_schema(control_values=None, series=None):
-    widget = registry.get("balloons")
+def _echarts_schema(control_values=None, series=None):
+    widget = registry.get("echarts")
     assert widget is not None
     return widget.get_control_schema(control_values, series)
 
 
 def test_prune_surfaces_mandatory_leaves_and_collapses_the_rest() -> None:
-    minimal = prune_to_minimal_viable(_balloons_schema())
+    minimal = prune_to_minimal_viable(_echarts_schema())
 
     assert minimal["x-disclosure"] == "minimal"
     # No $defs / $ref leak into the minimal view.
@@ -51,9 +51,9 @@ def test_prune_surfaces_mandatory_leaves_and_collapses_the_rest() -> None:
     assert data_binding["properties"]["rowLimit"]["type"] == "integer"
     # dataBinding has no collapsed (object) children → not partial.
     assert "x-partial" not in data_binding
-    # colorDimension is an optional scalar at the root → inlined, not collapsed.
-    assert minimal["properties"]["colorDimension"]["type"] == "string"
-    assert "x-collapsed" not in minimal["properties"]["colorDimension"]
+    # crossFilter is an optional scalar at the root → inlined, not collapsed.
+    assert minimal["properties"]["crossFilter"]["type"] == "boolean"
+    assert "x-collapsed" not in minimal["properties"]["crossFilter"]
     # customize is an optional OBJECT → collapsed at the root.
     customize = minimal["properties"]["customize"]
     assert customize["x-collapsed"] is True
@@ -62,7 +62,9 @@ def test_prune_surfaces_mandatory_leaves_and_collapses_the_rest() -> None:
     # lives under this branch so it knows to drill in. But the child props
     # themselves are withheld (that's what keeps the first fetch small); they're
     # fetched on demand via get_subtree.
-    assert customize["description"] == "Per-series color and size overrides."
+    assert customize["description"] == (
+        "Per-series color, visibility, and display-name overrides."
+    )
     assert "properties" not in customize
     # customize contains an x-dynamic branch (per-series styling keyed by the
     # query's values), so the marker is flagged dynamic — the consumer knows it
@@ -85,7 +87,7 @@ def test_collapsed_marker_is_static_when_no_dynamic_content() -> None:
 
 
 def test_get_subtree_inlines_a_branch() -> None:
-    subtree = get_subtree(_balloons_schema(), "dataBinding")
+    subtree = get_subtree(_echarts_schema(), "dataBinding")
     props = subtree["properties"]
     assert {"datasetId", "metrics", "dimensions", "rowLimit"} <= set(props)
     # Fully inlined — no dangling refs.
@@ -93,28 +95,24 @@ def test_get_subtree_inlines_a_branch() -> None:
 
 
 def test_get_subtree_reaches_dynamic_series_after_enrichment() -> None:
-    enriched = _balloons_schema(
+    enriched = _echarts_schema(
         {
-            "dataBinding": {
-                "datasetId": 1,
-                "metrics": ["count"],
-                "dimensions": ["gender"],
-            }
-        },
-        ["boy", "girl"],
+            "dataBinding": {"datasetId": 1, "metrics": ["count", "sum__num"]},
+            "chartType": "bar",
+        }
     )
     series = get_subtree(enriched, "customize/series")
-    assert set(series["properties"]) == {"boy", "girl"}
-    assert series["properties"]["boy"]["properties"]["color"]["x-control"] == "color"
+    assert set(series["properties"]) == {"count", "sum__num"}
+    assert series["properties"]["count"]["properties"]["color"]["x-control"] == "color"
 
 
 def test_get_subtree_raises_on_bad_path() -> None:
     with pytest.raises(SchemaPathError):
-        get_subtree(_balloons_schema(), "customize/nope")
+        get_subtree(_echarts_schema(), "customize/nope")
 
 
 def test_get_subtrees_expands_several_paths_in_one_call() -> None:
-    subtrees = get_subtrees(_balloons_schema(), ["dataBinding", "customize"])
+    subtrees = get_subtrees(_echarts_schema(), ["dataBinding", "customize"])
     assert set(subtrees) == {"dataBinding", "customize"}
     assert "datasetId" in subtrees["dataBinding"]["properties"]
     assert "series" in subtrees["customize"]["properties"]
@@ -122,4 +120,4 @@ def test_get_subtrees_expands_several_paths_in_one_call() -> None:
 
 def test_get_subtrees_raises_on_any_bad_path() -> None:
     with pytest.raises(SchemaPathError):
-        get_subtrees(_balloons_schema(), ["dataBinding", "customize/nope"])
+        get_subtrees(_echarts_schema(), ["dataBinding", "customize/nope"])

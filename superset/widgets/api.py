@@ -22,12 +22,32 @@ from typing import Any
 from flask import make_response, request, Response
 from flask_appbuilder.api import expose, protect, safe
 from flask_babel import gettext as _
+from marshmallow import ValidationError
 
+from superset.commands.exceptions import CommandException
+from superset.commands.widget.data import WidgetDataCommand, WidgetValuesCommand
+from superset.commands.widget.exceptions import WidgetInvalidError
+from superset.commands.widget.saved import (
+    CreateSavedWidgetCommand,
+    DeleteSavedWidgetCommand,
+    GetSavedWidgetCommand,
+    ListSavedWidgetsCommand,
+    UpdateSavedWidgetCommand,
+)
+from superset.commands.widget.utils import serialize_saved_widget
 from superset.extensions import event_logger
 from superset.utils import json
 from superset.views.base_api import BaseSupersetApi, statsd_metrics
 from superset.widgets.registry import registry
 from superset.widgets.schema_tools import get_subtrees, SchemaPathError
+from superset.widgets.schemas import (
+    SavedWidgetPostSchema,
+    SavedWidgetPutSchema,
+    SavedWidgetResponseSchema,
+    WidgetDataPostSchema,
+    WidgetDataResponseSchema,
+    WidgetValuesPostSchema,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -308,3 +328,356 @@ class WidgetControlsRestApi(BaseSupersetApi):
             else None
         )
         return self.response(200, result={"errors": [], "values": values})
+
+
+def _command_error(api: BaseSupersetApi, ex: CommandException) -> Response:
+    payload: dict[str, Any] = {"message": str(ex.message)}
+    if isinstance(ex, WidgetInvalidError) and ex.errors:
+        payload["errors"] = ex.errors
+    return api.response(ex.status, **payload)
+
+
+def _result_response(result: Any) -> Response:
+    # Query rows can hold timestamps, decimals and NaN; serialize them the way
+    # the chart data API does so embedded widgets see identical values.
+    response = make_response(
+        json.dumps({"result": result}, default=json.json_int_dttm_ser, ignore_nan=True),
+        200,
+    )
+    response.headers["Content-Type"] = "application/json; charset=utf-8"
+    return response
+
+
+def _dump(widget: Any) -> dict[str, Any]:
+    return SavedWidgetResponseSchema().dump(serialize_saved_widget(widget))
+
+
+class SavedWidgetRestApi(BaseSupersetApi):
+    """Saved widgets and widget data for embedding (experimental)."""
+
+    resource_name = "widget"
+    allow_browser_login = True
+    class_permission_name = "Chart"
+    method_permission_name = {
+        "get_list": "read",
+        "get": "read",
+        "post": "write",
+        "put": "write",
+        "delete": "write",
+        "data": "read",
+        "values": "read",
+    }
+    openapi_spec_tag = "Widgets (experimental)"
+    openapi_spec_component_schemas = (
+        SavedWidgetPostSchema,
+        SavedWidgetPutSchema,
+        SavedWidgetResponseSchema,
+        WidgetDataPostSchema,
+        WidgetDataResponseSchema,
+        WidgetValuesPostSchema,
+    )
+
+    @expose("/", methods=("GET",))
+    @protect()
+    @safe
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.get_list",
+        log_to_statsd=False,
+    )
+    def get_list(self) -> Response:
+        """List saved widgets.
+        ---
+        get:
+          summary: List saved widgets
+          responses:
+            200:
+              description: Saved widgets
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      result:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/SavedWidgetResponseSchema'
+            401:
+              $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
+        """
+        try:
+            widgets = ListSavedWidgetsCommand().run()
+        except CommandException as ex:
+            return _command_error(self, ex)
+        return self.response(200, result=[_dump(widget) for widget in widgets])
+
+    @expose("/", methods=("POST",))
+    @protect()
+    @safe
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.post",
+        log_to_statsd=False,
+    )
+    def post(self) -> Response:
+        """Save a widget.
+        ---
+        post:
+          summary: Save a widget
+          requestBody:
+            required: true
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/SavedWidgetPostSchema'
+          responses:
+            201:
+              description: Widget saved
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      result:
+                        $ref: '#/components/schemas/SavedWidgetResponseSchema'
+            400:
+              $ref: '#/components/responses/400'
+            403:
+              $ref: '#/components/responses/403'
+        """
+        try:
+            body = SavedWidgetPostSchema().load(request.get_json(silent=True) or {})
+        except ValidationError as error:
+            return self.response_400(message=error.messages)
+        try:
+            widget = CreateSavedWidgetCommand(body).run()
+        except CommandException as ex:
+            return _command_error(self, ex)
+        return self.response(201, result=_dump(widget))
+
+    @expose("/<uuid>", methods=("GET",))
+    @protect()
+    @safe
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.get",
+        log_to_statsd=False,
+    )
+    def get(self, uuid: str) -> Response:
+        """Get a saved widget.
+        ---
+        get:
+          summary: Get a saved widget
+          parameters:
+          - in: path
+            schema:
+              type: string
+            name: uuid
+          responses:
+            200:
+              description: Saved widget
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      result:
+                        $ref: '#/components/schemas/SavedWidgetResponseSchema'
+            403:
+              $ref: '#/components/responses/403'
+            404:
+              $ref: '#/components/responses/404'
+        """
+        try:
+            widget = GetSavedWidgetCommand(uuid).run()
+        except CommandException as ex:
+            return _command_error(self, ex)
+        return self.response(200, result=_dump(widget))
+
+    @expose("/<uuid>", methods=("PUT",))
+    @protect()
+    @safe
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.put",
+        log_to_statsd=False,
+    )
+    def put(self, uuid: str) -> Response:
+        """Update a saved widget.
+        ---
+        put:
+          summary: Update a saved widget
+          parameters:
+          - in: path
+            schema:
+              type: string
+            name: uuid
+          requestBody:
+            required: true
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/SavedWidgetPutSchema'
+          responses:
+            200:
+              description: Widget updated
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      result:
+                        $ref: '#/components/schemas/SavedWidgetResponseSchema'
+            400:
+              $ref: '#/components/responses/400'
+            403:
+              $ref: '#/components/responses/403'
+            404:
+              $ref: '#/components/responses/404'
+        """
+        try:
+            body = SavedWidgetPutSchema().load(request.get_json(silent=True) or {})
+        except ValidationError as error:
+            return self.response_400(message=error.messages)
+        try:
+            widget = UpdateSavedWidgetCommand(uuid, body).run()
+        except CommandException as ex:
+            return _command_error(self, ex)
+        return self.response(200, result=_dump(widget))
+
+    @expose("/<uuid>", methods=("DELETE",))
+    @protect()
+    @safe
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.delete",
+        log_to_statsd=False,
+    )
+    def delete(self, uuid: str) -> Response:
+        """Delete a saved widget.
+        ---
+        delete:
+          summary: Delete a saved widget
+          parameters:
+          - in: path
+            schema:
+              type: string
+            name: uuid
+          responses:
+            200:
+              description: Widget deleted
+            403:
+              $ref: '#/components/responses/403'
+            404:
+              $ref: '#/components/responses/404'
+        """
+        try:
+            DeleteSavedWidgetCommand(uuid).run()
+        except CommandException as ex:
+            return _command_error(self, ex)
+        return self.response(200, message="OK")
+
+    @expose("/data", methods=("POST",))
+    @protect()
+    @safe
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.data",
+        log_to_statsd=False,
+    )
+    def data(self) -> Response:
+        """Run a widget's query.
+        ---
+        post:
+          summary: Get a widget's data
+          description: >-
+            The widget is a saved widget (`id`) or an inline spec (`widget`).
+            The query is built on the server from its props; the request can
+            only AND structured column filters onto it.
+          requestBody:
+            required: true
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/WidgetDataPostSchema'
+          responses:
+            200:
+              description: Query result
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      result:
+                        $ref: '#/components/schemas/WidgetDataResponseSchema'
+            400:
+              $ref: '#/components/responses/400'
+            403:
+              $ref: '#/components/responses/403'
+            404:
+              $ref: '#/components/responses/404'
+        """
+        try:
+            body = WidgetDataPostSchema().load(request.get_json(silent=True) or {})
+        except ValidationError as error:
+            return self.response_400(message=error.messages)
+        filters = body.pop("filters")
+        try:
+            result = WidgetDataCommand(body, filters).run()
+        except CommandException as ex:
+            return _command_error(self, ex)
+        return _result_response(result)
+
+    @expose("/values", methods=("POST",))
+    @protect()
+    @safe
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.values",
+        log_to_statsd=False,
+    )
+    def values(self) -> Response:
+        """Distinct values for a filter widget's column.
+        ---
+        post:
+          summary: Get a filter widget's values
+          requestBody:
+            required: true
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/WidgetValuesPostSchema'
+          responses:
+            200:
+              description: Distinct values
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      result:
+                        type: array
+                        items:
+                          oneOf:
+                            - type: string
+                            - type: integer
+                            - type: number
+                            - type: boolean
+            400:
+              $ref: '#/components/responses/400'
+            403:
+              $ref: '#/components/responses/403'
+            404:
+              $ref: '#/components/responses/404'
+        """
+        try:
+            body = WidgetValuesPostSchema().load(request.get_json(silent=True) or {})
+        except ValidationError as error:
+            return self.response_400(message=error.messages)
+        try:
+            result = WidgetValuesCommand(body).run()
+        except CommandException as ex:
+            return _command_error(self, ex)
+        return _result_response(result)

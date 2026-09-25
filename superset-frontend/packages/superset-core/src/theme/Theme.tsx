@@ -202,7 +202,14 @@ export class Theme {
     // Overridden at runtime by SupersetThemeProvider using setThemeState
   }
 
-  SupersetThemeProvider({ children }: { children: React.ReactNode }) {
+  SupersetThemeProvider({
+    children,
+    withGlobalStyles = true,
+  }: {
+    children: React.ReactNode;
+    /** Off when rendering into a page Superset does not own (embedded blocks). */
+    withGlobalStyles?: boolean;
+  }) {
     if (!this.theme || !this.antdConfig) {
       throw new Error('Theme is not initialized.');
     }
@@ -221,7 +228,7 @@ export class Theme {
     return (
       <EmotionCacheProvider value={themeState.emotionCache}>
         <ThemeProvider theme={themeState.theme}>
-          <GlobalStyles />
+          {withGlobalStyles && <GlobalStyles />}
           <ConfigProvider theme={themeState.antdConfig}>
             {children}
           </ConfigProvider>

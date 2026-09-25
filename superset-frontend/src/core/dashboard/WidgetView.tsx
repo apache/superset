@@ -16,18 +16,26 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { forwardRef, type HTMLAttributes } from 'react';
+import { forwardRef, useState, type HTMLAttributes } from 'react';
 import { t } from '@apache-superset/core/translation';
 import { css, styled, useTheme } from '@apache-superset/core/theme';
 import { ActionButton, Flex, Typography } from '@superset-ui/core/components';
 import { Icons } from '@superset-ui/core/components/Icons';
 import type { MenuItem } from '@superset-ui/core/components/Menu';
 import { ErrorBoundary, KebabMenuButton } from 'src/components';
-import { provider, useDashboardRevision } from './store';
-import { resolveWidgetView } from './resolveWidgetView';
+import { useDashboardStore, useDashboardRevision } from './store';
+import { isContainerType } from './DashboardProvider';
+import {
+  isWidgetViewRegistered,
+  resolveWidgetView,
+} from './resolveWidgetView';
 import { widgetLabel } from './widgetLabel';
 import { widgetHeaderControl } from './widgetHeaderControl';
 import RootGrid from './RootGrid';
+// eslint-disable-next-line import/no-cycle
+import StaticGrid from './StaticGrid';
+import { useDashboardViewMode } from './viewMode';
+import EmbedWidgetModal from './EmbedWidgetModal';
 
 /**
  * The overflow menu's contents — the same items, order and grouping as the
@@ -61,7 +69,8 @@ const PLACEHOLDER_MENU_ITEMS: MenuItem[] = [
 
 function UnsupportedBlockPlaceholder({ nodeId }: { nodeId: string }) {
   const theme = useTheme();
-  const node = provider.getNode(nodeId);
+  const store = useDashboardStore();
+  const node = store.getNode(nodeId);
   if (!node) return null;
 
   return (
@@ -256,23 +265,30 @@ interface WidgetViewProps extends HTMLAttributes<HTMLDivElement> {
  */
 const WidgetView = forwardRef<HTMLDivElement, WidgetViewProps>(
   function WidgetView({ nodeId, children, ...rest }, ref) {
-    useDashboardRevision();
+    const store = useDashboardStore();
+    useDashboardRevision(store);
     const theme = useTheme();
-    const node = provider.getNode(nodeId);
+    const editable = useDashboardViewMode() === 'edit';
+    const [embedOpen, setEmbedOpen] = useState(false);
+    const node = store.getNode(nodeId);
     if (!node) return null;
 
-    const selected = provider.getSelection() === nodeId;
+    const selected = editable && store.getSelection() === nodeId;
     // The root is the dashboard itself rather than something on it: it has no
     // name of its own to show, and removing it is refused by the provider, so
     // a header there would be a label saying "Grid" over a button that only
     // ever raises an error.
-    const chrome = nodeId !== provider.getRoot().id;
+    const chrome = nodeId !== store.getRoot().id;
     const isRoot = !chrome;
     // The root's renderer is not looked up in the widget registry —
     // see this component's own doc comment — since the root was never
     // registered there in the first place.
     const resolved = isRoot ? (
-      <RootGrid nodeId={nodeId} />
+      editable ? (
+        <RootGrid nodeId={nodeId} />
+      ) : (
+        <StaticGrid nodeId={nodeId} />
+      )
     ) : (
       resolveWidgetView(node.type, nodeId)
     );
@@ -285,6 +301,8 @@ const WidgetView = forwardRef<HTMLDivElement, WidgetViewProps>(
     const hasTitle = Boolean(label);
 
     return (
+      // A control only in edit mode; in view mode the handlers return early.
+      // eslint-disable-next-line jsx-a11y/no-static-element-interactions
       <div
         ref={ref}
         {...rest}
@@ -303,19 +321,21 @@ const WidgetView = forwardRef<HTMLDivElement, WidgetViewProps>(
         // comment), and a widget's content is interactive in its own right —
         // a chart, a table — which a `button` may not contain.
         // eslint-disable-next-line jsx-a11y/prefer-tag-over-role
-        role="button"
-        tabIndex={0}
-        aria-pressed={selected}
+        role={editable ? 'button' : undefined}
+        tabIndex={editable ? 0 : undefined}
+        aria-pressed={editable ? selected : undefined}
         aria-label={node.type}
         // The propagation stop is what makes a click on a widget inside a
         // container select the widget rather than the container holding it —
         // both are nodes and both render through here, so the innermost one
         // has to claim the gesture.
         onClick={event => {
+          if (!editable) return;
           event.stopPropagation();
-          provider.setSelection(nodeId);
+          store.setSelection(nodeId);
         }}
         onKeyDown={event => {
+          if (!editable) return;
           // Only act on Enter/Space that originated on this wrapper itself —
           // not on a bubbled keypress from an interactive descendant (a tab, a
           // header ActionButton). Hijacking those with preventDefault would
@@ -324,7 +344,7 @@ const WidgetView = forwardRef<HTMLDivElement, WidgetViewProps>(
           if (event.key === 'Enter' || event.key === ' ') {
             event.preventDefault();
             event.stopPropagation();
-            provider.setSelection(nodeId);
+            store.setSelection(nodeId);
           }
         }}
         // A card that lifts slightly on hover, the way the app already
@@ -333,6 +353,7 @@ const WidgetView = forwardRef<HTMLDivElement, WidgetViewProps>(
         // Never on the root: it is the canvas, not a card resting on it.
         css={
           !isRoot &&
+          editable &&
           css`
             transition: box-shadow ${theme.motionDurationMid};
 
@@ -460,7 +481,7 @@ const WidgetView = forwardRef<HTMLDivElement, WidgetViewProps>(
                     tooltip={t('Remove widget')}
                     placement="bottom"
                     dataTest={`widget-remove-${nodeId}`}
-                    onClick={() => provider.removeWidget(nodeId)}
+                    onClick={() => store.removeWidget(nodeId)}
                     // A bin rather than a cross. A cross on a card is the gesture
                     // for dismissing the card — closing it, putting it away — and
                     // this does not put the widget away, it takes it off the
@@ -489,8 +510,29 @@ const WidgetView = forwardRef<HTMLDivElement, WidgetViewProps>(
                     buttonSize="xsmall"
                     buttonStyle="link"
                     iconOrientation="vertical"
-                    menuItems={PLACEHOLDER_MENU_ITEMS}
+                    menuItems={[
+                      {
+                        key: 'embed-widget',
+                        label: t('Embed widget'),
+                        // Embeddable means the server can run it for a host
+                        // page: any registered widget except the containers,
+                        // which only arrange the nodes inside them.
+                        disabled:
+                          !isWidgetViewRegistered(node.type) ||
+                          isContainerType(node.type),
+                        onClick: () => setEmbedOpen(true),
+                      },
+                      { type: 'divider' },
+                      ...PLACEHOLDER_MENU_ITEMS,
+                    ]}
                   />
+                  {embedOpen && (
+                    <EmbedWidgetModal
+                      nodeId={nodeId}
+                      show={embedOpen}
+                      onHide={() => setEmbedOpen(false)}
+                    />
+                  )}
                 </MenuSlot>
               </>
             );
@@ -514,19 +556,21 @@ const WidgetView = forwardRef<HTMLDivElement, WidgetViewProps>(
                 >
                   {label}
                 </Typography.Text>
-                <HeaderTrailingControls>
-                  {trailingControls}
-                </HeaderTrailingControls>
+                {editable && (
+                  <HeaderTrailingControls>
+                    {trailingControls}
+                  </HeaderTrailingControls>
+                )}
               </BlockHeader>
-            ) : (
-              // No title to share a row with (markdown, carousel — see
-              // `widgetLabel`'s UNNAMED set) — floated over the content
-              // instead of reserving a row that would otherwise be nothing
-              // but blank space above it.
+            ) : // No title to share a row with (markdown, carousel — see
+            // `widgetLabel`'s UNNAMED set) — floated over the content
+            // instead of reserving a row that would otherwise be nothing
+            // but blank space above it.
+            editable ? (
               <OverlayControls data-test={`widget-header-${nodeId}`}>
                 {trailingControls}
               </OverlayControls>
-            );
+            ) : null;
           })()}
         {/* The widget's own box — the whole of this element when there's no
             title reserving a row above it (see `hasTitle`), or this

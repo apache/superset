@@ -21,7 +21,10 @@ Re-exported with the redundant-alias form so these are recognized as
 intentional re-exports (this codebase does not use ``__all__``).
 """
 
-from superset_core.widgets.base import Widget as Widget
+from superset_core.widgets.base import (
+    Widget as Widget,
+    WidgetDataNotSupportedError as WidgetDataNotSupportedError,
+)
 from superset_core.widgets.composites import (
     composite_control as composite_control,
     list_composite_controls as list_composite_controls,

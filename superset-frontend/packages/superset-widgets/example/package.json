@@ -1,0 +1,20 @@
+{
+  "name": "superset-widgets-example",
+  "private": true,
+  "version": "0.0.0",
+  "description": "A host React app rendering @apache-superset/widgets in its own layout.",
+  "license": "Apache-2.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "typecheck": "tsc --noEmit",
+    "broker": "node server.mjs"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.5.0",
+    "typescript": "^5.9.3",
+    "vite": "^6.3.5",
+    "vite-plugin-svgr": "^4.3.0"
+  }
+}

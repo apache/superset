@@ -58,7 +58,7 @@ import {
   SCHEMA_REFRESH_DEBOUNCE_MS,
 } from 'src/features/semanticLayers/jsonFormsHelpers';
 import { provider, useDashboardRevision } from 'src/core/dashboard/store';
-import { fetchQueryData } from 'src/core/dashboard/chartData';
+import { fetchQueryData } from '@apache-superset/widgets/chartData';
 import { FormShell } from './PropsForm';
 import { schemaControlRenderers } from './schemaControlRenderers';
 import {
@@ -74,8 +74,8 @@ type WidgetProps = Record<string, unknown>;
  * Distinct values of the widget's color dimension, so a schema with an
  * `x-dynamic` per-series section can enumerate them. This must match the
  * dimension the widget colors by (its `colorDimension`, or the last grouping
- * dimension by default — see `BalloonsWidget`), so the customizable series line
- * up with the balloons on screen. Empty when the binding can't be queried.
+ * dimension by default), so the customizable series line up with what is drawn
+ * on screen. Empty when the binding can't be queried.
  */
 async function loadSeries(
   binding: DataBindingSpec,
@@ -147,7 +147,7 @@ export default function SchemaControlPanel({ nodeId }: { nodeId: string }) {
   const bindingKey = JSON.stringify(binding ?? null);
   // The dimension whose distinct values become the customizable series: the
   // explicit `colorDimension` when it's one of the grouping dimensions, else the
-  // last dimension (mirrors BalloonsWidget's default).
+  // last dimension (the fallback a schema-driven widget is expected to use).
   const dimensions = binding?.dimensions ?? [];
   const explicitColor = props.colorDimension as string | undefined;
   const colorDimension =

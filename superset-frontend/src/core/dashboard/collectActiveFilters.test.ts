@@ -52,7 +52,7 @@ test('a node is a filter source purely by publishing a resolved value, regardles
     resolvedEquals('region', 'west'),
   );
 
-  expect(getActiveFiltersForDataset(DATASET_ID, consumerId)).toEqual([
+  expect(getActiveFiltersForDataset(provider, DATASET_ID, consumerId)).toEqual([
     {
       expressionType: 'SIMPLE',
       subject: 'region',
@@ -68,7 +68,9 @@ test('a node with no resolved value yet is not a filter source', () => {
   provider.addWidget(rootId, 0, { type: 'echarts' });
   const consumerId = provider.addWidget(rootId, 1, { type: 'echarts' });
 
-  expect(getActiveFiltersForDataset(DATASET_ID, consumerId)).toEqual([]);
+  expect(getActiveFiltersForDataset(provider, DATASET_ID, consumerId)).toEqual(
+    [],
+  );
 });
 
 test("scope defaults to the resolved value's own datasource, not an authored prop", () => {
@@ -87,8 +89,10 @@ test("scope defaults to the resolved value's own datasource, not an authored pro
     resolvedEquals('region', 'west', DATASET_ID),
   );
 
-  expect(getActiveFiltersForDataset(DATASET_ID, consumerId)).toHaveLength(1);
-  expect(getActiveFiltersForDataset(999, consumerId)).toEqual([]);
+  expect(
+    getActiveFiltersForDataset(provider, DATASET_ID, consumerId),
+  ).toHaveLength(1);
+  expect(getActiveFiltersForDataset(provider, 999, consumerId)).toEqual([]);
 });
 
 test('a source never applies to itself, even if it targets its own dataset', () => {
@@ -103,7 +107,9 @@ test('a source never applies to itself, even if it targets its own dataset', () 
 
   // A chart cross-filtering on its own click must not narrow its own next
   // fetch down to the point that was just clicked.
-  expect(getActiveFiltersForDataset(DATASET_ID, sourceId)).toEqual([]);
+  expect(getActiveFiltersForDataset(provider, DATASET_ID, sourceId)).toEqual(
+    [],
+  );
 });
 
 test('an explicit scope.targets list overrides the dataset-match default, for any node type', () => {
@@ -120,11 +126,13 @@ test('an explicit scope.targets list overrides the dataset-match default, for an
   );
 
   expect(
-    getActiveFiltersForDataset(DATASET_ID, targetedConsumerId),
+    getActiveFiltersForDataset(provider, DATASET_ID, targetedConsumerId),
   ).toHaveLength(1);
   // Same dataset, but not in the explicit target list — scope replaces
   // the dataset-match default rather than adding to it.
-  expect(getActiveFiltersForDataset(DATASET_ID, otherConsumerId)).toEqual([]);
+  expect(
+    getActiveFiltersForDataset(provider, DATASET_ID, otherConsumerId),
+  ).toEqual([]);
 });
 
 test('an empty scope.targets array is still the dataset-match default, not "target nobody"', () => {
@@ -147,7 +155,9 @@ test('an empty scope.targets array is still the dataset-match default, not "targ
     resolvedEquals('region', 'west'),
   );
 
-  expect(getActiveFiltersForDataset(DATASET_ID, consumerId)).toHaveLength(1);
+  expect(
+    getActiveFiltersForDataset(provider, DATASET_ID, consumerId),
+  ).toHaveLength(1);
 });
 
 test('a scope.targets array holding only a blank string is also the dataset-match default', () => {
@@ -173,7 +183,9 @@ test('a scope.targets array holding only a blank string is also the dataset-matc
     resolvedEquals('region', 'west'),
   );
 
-  expect(getActiveFiltersForDataset(DATASET_ID, consumerId)).toHaveLength(1);
+  expect(
+    getActiveFiltersForDataset(provider, DATASET_ID, consumerId),
+  ).toHaveLength(1);
 });
 
 test('a filter.select source still works exactly as before this generalization', () => {
@@ -190,5 +202,7 @@ test('a filter.select source still works exactly as before this generalization',
     resolvedEquals('region', 'west'),
   );
 
-  expect(getActiveFiltersForDataset(DATASET_ID, consumerId)).toHaveLength(1);
+  expect(
+    getActiveFiltersForDataset(provider, DATASET_ID, consumerId),
+  ).toHaveLength(1);
 });

@@ -860,8 +860,12 @@ from superset.mcp_service.user.tool import (  # noqa: F401, E402
     get_user_info,
     list_users,
 )
+from superset.mcp_service.widgets import prompts as widget_prompts  # noqa: F401, E402
 from superset.mcp_service.widgets.tool import (  # noqa: F401, E402
+    get_saved_widget,
     get_widget_control_schema,
+    get_widget_data,
+    get_widget_values,
     list_widget_types,
     set_widget_control_values,
 )

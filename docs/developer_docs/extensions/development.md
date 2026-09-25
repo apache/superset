@@ -284,6 +284,31 @@ superset-extensions dev
 👀 Watching for changes in: /dataset_references/frontend, /dataset_references/backend
 ```
 
+## Embedding an Extension's Widgets
+
+A widget an extension contributes to `dashboard.widgets` can be rendered outside
+Superset, in any React app that uses `@apache-superset/widgets`. Nothing extra is
+needed in the extension: the host page reads the widget type
+(`extensions.<publisher>.<name>.<type>`), fetches that extension from
+`/api/v1/extensions/<publisher>/<name>`, loads its remote entry, and hands it a
+`@apache-superset/core` whose `views` and `dashboard` namespaces are backed by
+the embedded widget instead of the builder's node tree. `dashboard.getNode`,
+`emit`/`on`/`getValue` and `fetchQueryData` all behave as they do in Superset —
+queries run against the embedded page's credentials (a guest token and its
+dataset allowlist, or the viewer's own session).
+
+Two deployment details make it work:
+
+- The extension's bundle must be built with `publicPath: "auto"` (the value the
+  `superset-extensions` CLI scaffolds), so its chunks load from the Superset
+  that served the remote entry rather than from the host page's origin.
+- Guest-token embedding needs `EMBEDDED_EXTENSION_ASSETS_PUBLIC = True`. A
+  browser loads those chunks with plain `<script>` tags, which carry neither a
+  cross-origin session cookie nor the guest token, so the frontend files have to
+  be readable unauthenticated. This publishes extension JavaScript — the same
+  code any signed-in user already downloads — and nothing else: backends, APIs
+  and data stay protected.
+
 ## Contributing Extension-Compatible Components
 
 Components in `@apache-superset/core` are automatically documented in the Developer Docs. Simply add a component to the package and it will appear in the extension documentation.

@@ -57,6 +57,8 @@
       "@superset-ui/switchboard": ["./packages/superset-ui-switchboard/src"],
       "@apache-superset/core": ["./packages/superset-core/src"],
       "@apache-superset/core/*": ["./packages/superset-core/src/*"],
+      "@apache-superset/widgets": ["./packages/superset-widgets/src"],
+      "@apache-superset/widgets/*": ["./packages/superset-widgets/src/*"],
       "@superset-ui/plugin-chart-*": ["./plugins/plugin-chart-*/src"],
       "@superset-ui/legacy-plugin-chart-*": ["./plugins/legacy-plugin-chart-*/src"],
       "@superset-ui/legacy-preset-chart-*": ["./plugins/legacy-preset-chart-*/src"],
@@ -76,6 +78,7 @@
   ],
   "references": [
     { "path": "./packages/superset-core" },
+    { "path": "./packages/superset-widgets" },
     { "path": "./packages/superset-ui-core" },
     { "path": "./packages/superset-ui-chart-controls" },
     { "path": "./packages/superset-ui-switchboard" },
@@ -99,5 +102,10 @@
     { "path": "./plugins/plugin-chart-table" },
     { "path": "./plugins/plugin-chart-word-cloud" }
   ],
-  "exclude": []
+  "exclude": [
+    // A standalone Vite app with its own tsconfig, toolchain and
+    // node_modules: `./packages/**/*` would otherwise pull it into this
+    // program, where `vite`, its plugins and `?raw` imports do not resolve.
+    "./packages/superset-widgets/example"
+  ]
 }

@@ -19,7 +19,7 @@
 import type { ReactElement } from 'react';
 import { t } from '@apache-superset/core/translation';
 import { css, styled } from '@apache-superset/core/theme';
-import { provider, useDashboardRevision } from '../store';
+import { useDashboardStore, useDashboardRevision } from '../store';
 import { FlowContent } from './flowContent';
 
 /**
@@ -74,8 +74,9 @@ export default function CollapsibleWidget({
 }: {
   nodeId: string;
 }): ReactElement | null {
-  useDashboardRevision();
-  const node = provider.getNode(nodeId);
+  const store = useDashboardStore();
+  useDashboardRevision(store);
+  const node = store.getNode(nodeId);
   if (!node) return null;
 
   const collapsed = Boolean(node.props?.collapsed);

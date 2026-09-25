@@ -55,6 +55,10 @@ from superset_core.widgets.enrichment import (
 logger = logging.getLogger(__name__)
 
 
+class WidgetDataNotSupportedError(Exception):
+    """The widget type has no server-side data (or values) to fetch."""
+
+
 class Widget:
     """
     Base class for a Dashboard V2 widget's backend behavior (the registered
@@ -163,3 +167,29 @@ class Widget:
                 for error in ex.errors()
             ]
         return []
+
+    @classmethod
+    def fetch_data(
+        cls,
+        props: dict[str, Any],
+        filters: list[dict[str, Any]],
+        context: Any,
+    ) -> dict[str, Any]:
+        """
+        Execute the widget's stored query on the server and return
+        ``{"columns": [...], "rows": [...]}``.
+
+        ``props`` are held or validated by the server, never trusted raw client
+        input; ``filters`` are structured ``{column, operator, value}``
+        narrowings the caller may AND on; ``context`` is host-provided (the
+        dataset and, for a saved widget, its uuid) and is what authorization
+        keys on. A widget type that fetches from anywhere else (an external API,
+        say) implements the same hook, so the host never has to know how its
+        data is produced.
+        """
+        raise WidgetDataNotSupportedError(getattr(cls, "widget_type", cls.__name__))
+
+    @classmethod
+    def fetch_values(cls, props: dict[str, Any], context: Any) -> list[Any]:
+        """Distinct selectable values for a filter-like widget."""
+        raise WidgetDataNotSupportedError(getattr(cls, "widget_type", cls.__name__))

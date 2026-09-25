@@ -215,6 +215,7 @@ export const routes: Routes = [
   // Must precede DASHBOARD ("/dashboard/:idOrSlug/") — that pattern is a
   // non-exact prefix match, so it would otherwise shadow this literal path.
   { path: RoutePaths.DASHBOARD_V2_NEW, Component: DashboardBuilderV2 },
+  { path: RoutePaths.DASHBOARD_V2, Component: DashboardBuilderV2 },
   { path: RoutePaths.DASHBOARD, Component: Dashboard },
   { path: RoutePaths.CHART_ADD, Component: ChartCreation },
   { path: RoutePaths.CHART_LIST, Component: ChartList },

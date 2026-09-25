@@ -51,8 +51,8 @@ test('the header carries the dashboard-level affordances', () => {
 test('everything the builder cannot actually do is disabled, not silently dead', () => {
   renderHeader();
 
-  // The builder keeps its tree in memory with no dashboard row behind it:
-  // nothing here can be saved, favourited, published or refreshed, and there
+  // Saving is live; nothing else here acts on the saved dashboard yet:
+  // nothing can be favourited, published or refreshed, and there
   // is no history to step through. A control that looks live and does
   // nothing teaches something false about all of them.
   [
@@ -61,7 +61,6 @@ test('everything the builder cannot actually do is disabled, not silently dead',
     'header-favorite',
     'header-undo',
     'header-redo',
-    'header-save',
   ].forEach(test => expect(screen.getByTestId(test)).toBeDisabled());
 });
 

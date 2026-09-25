@@ -19,15 +19,16 @@
 import { views } from 'src/core/views';
 import { DASHBOARD_WIDGETS_LOCATION } from './resolveWidgetView';
 import { registerContainerType } from './DashboardProvider';
-import MarkdownWidget from './widgets/MarkdownWidget';
-import ChartWidget from './widgets/ChartWidget';
-import AgGridTableWidget from './widgets/AgGridTableWidget';
-import MetricTileWidget from './widgets/MetricTileWidget';
-import BalloonsWidget from './widgets/BalloonsWidget';
+import {
+  AgGridTableNodeWidget,
+  ChartNodeWidget,
+  FilterSelectNodeWidget,
+  MarkdownNodeWidget,
+  MetricTileNodeWidget,
+} from './nodeWidgets';
 import TabsWidget, { TAB_TYPE } from './widgets/TabsWidget';
 import CollapsibleWidget from './widgets/CollapsibleWidget';
 import CarouselWidget, { SLIDE_TYPE } from './widgets/CarouselWidget';
-import FilterSelectWidget from './widgets/FilterSelectWidget';
 import FilterBarWidget from './widgets/FilterBarWidget';
 
 let registered = false;
@@ -56,7 +57,7 @@ export function registerBuiltInWidgets(): void {
       description: 'Renders Markdown content.',
     },
     DASHBOARD_WIDGETS_LOCATION,
-    MarkdownWidget,
+    MarkdownNodeWidget,
   );
   views.registerView(
     {
@@ -65,7 +66,7 @@ export function registerBuiltInWidgets(): void {
       description: 'Renders a chart from an ECharts option object.',
     },
     DASHBOARD_WIDGETS_LOCATION,
-    ChartWidget,
+    ChartNodeWidget,
   );
   views.registerView(
     {
@@ -74,7 +75,7 @@ export function registerBuiltInWidgets(): void {
       description: 'Renders query results as an AG Grid table.',
     },
     DASHBOARD_WIDGETS_LOCATION,
-    AgGridTableWidget,
+    AgGridTableNodeWidget,
   );
   views.registerView(
     {
@@ -83,18 +84,7 @@ export function registerBuiltInWidgets(): void {
       description: 'Renders a single live metric value as a "big number".',
     },
     DASHBOARD_WIDGETS_LOCATION,
-    MetricTileWidget,
-  );
-  views.registerView(
-    {
-      id: 'balloons',
-      name: 'Balloons',
-      description:
-        'Bouncing colored balls, one per query row (Chart Framework v2 POC). ' +
-        'Schema-driven controls served from the backend.',
-    },
-    DASHBOARD_WIDGETS_LOCATION,
-    BalloonsWidget,
+    MetricTileNodeWidget,
   );
   views.registerView(
     {
@@ -103,7 +93,7 @@ export function registerBuiltInWidgets(): void {
       description: 'A value/multi-select dashboard filter.',
     },
     DASHBOARD_WIDGETS_LOCATION,
-    FilterSelectWidget,
+    FilterSelectNodeWidget,
   );
   views.registerView(
     {

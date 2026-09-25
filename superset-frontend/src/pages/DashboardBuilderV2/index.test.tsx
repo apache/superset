@@ -27,7 +27,8 @@ beforeEach(() => {
   provider.reset();
 });
 
-const renderPage = () => render(<DashboardBuilderV2 />, { useRedux: true });
+const renderPage = () =>
+  render(<DashboardBuilderV2 />, { useRedux: true, useRouter: true });
 
 test('a blank dashboard can still be reached', async () => {
   renderPage();

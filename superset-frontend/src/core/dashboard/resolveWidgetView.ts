@@ -17,6 +17,7 @@
  * under the License.
  */
 import type { ReactElement } from 'react';
+import { DASHBOARD_WIDGETS_LOCATION } from '@apache-superset/core/widgets';
 import { resolveView, views } from 'src/core/views';
 
 /**
@@ -27,8 +28,23 @@ import { resolveView, views } from 'src/core/views';
  * The root's own type (`grid`) is deliberately not among them — it is not
  * a Widget, and `WidgetView` resolves its renderer directly
  * rather than through this location.
+ *
+ * It lives in `@apache-superset/core` with the rest of the widget contract:
+ * an extension registers against it, and an embedded page resolves the same
+ * location when it loads that extension's widget.
  */
-export const DASHBOARD_WIDGETS_LOCATION = 'dashboard.widgets';
+export { DASHBOARD_WIDGETS_LOCATION };
+
+/**
+ * Whether `type` is renderable as a widget at all — registered here by the
+ * host or contributed by an extension. Not the same question as whether its
+ * component happens to live in `@apache-superset/widgets`: an extension's
+ * widget is fetched from Superset by whoever renders it, including an
+ * embedding host (see `extensionLoader`).
+ */
+export const isWidgetViewRegistered = (type: string): boolean =>
+  views.getViews(DASHBOARD_WIDGETS_LOCATION)?.some(view => view.id === type) ??
+  false;
 
 /**
  * Resolves a node's registered view, scoped to
@@ -43,9 +59,6 @@ export function resolveWidgetView(
   type: string,
   nodeId: string,
 ): ReactElement | undefined {
-  const isRegistered = views
-    .getViews(DASHBOARD_WIDGETS_LOCATION)
-    ?.some(view => view.id === type);
-  if (!isRegistered) return undefined;
+  if (!isWidgetViewRegistered(type)) return undefined;
   return resolveView(type, { nodeId });
 }

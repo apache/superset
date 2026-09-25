@@ -22,7 +22,7 @@ import { t } from '@apache-superset/core/translation';
 import { css, styled } from '@apache-superset/core/theme';
 import { ActionButton } from '@superset-ui/core/components';
 import { Icons } from '@superset-ui/core/components/Icons';
-import { provider, useDashboardRevision } from '../store';
+import { useDashboardStore, useDashboardRevision } from '../store';
 import { FlowContent } from './flowContent';
 
 /**
@@ -147,8 +147,9 @@ export default function TabsWidget({
 }: {
   nodeId: string;
 }): ReactElement | null {
-  useDashboardRevision();
-  const node = provider.getNode(nodeId);
+  const store = useDashboardStore();
+  useDashboardRevision(store);
+  const node = store.getNode(nodeId);
   const panes = node?.children ?? [];
 
   const [activeTabId, setActiveTabId] = useState<string | undefined>(panes[0]);
@@ -159,7 +160,7 @@ export default function TabsWidget({
   }
 
   const addTab = (): void => {
-    const id = provider.addWidget(nodeId, panes.length, {
+    const id = store.addWidget(nodeId, panes.length, {
       type: TAB_TYPE,
       props: { label: untitledLabel(panes.length) },
     });
@@ -186,7 +187,7 @@ export default function TabsWidget({
     <Root data-test={`tabs-${nodeId}`}>
       <TabBar role="tablist" aria-label={t('Tabs')}>
         {panes.map((paneId, index) => {
-          const pane = provider.getNode(paneId);
+          const pane = store.getNode(paneId);
           const label =
             (pane?.props?.label as string | undefined) || untitledLabel(index);
           const active = paneId === activeTabId;
@@ -214,7 +215,7 @@ export default function TabsWidget({
                   placement="bottom"
                   dataTest={`tab-remove-${paneId}`}
                   icon={<Icons.CloseOutlined iconSize="s" />}
-                  onClick={() => provider.removeWidget(paneId)}
+                  onClick={() => store.removeWidget(paneId)}
                 />
               )}
             </TabItem>

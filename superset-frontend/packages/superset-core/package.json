@@ -81,6 +81,10 @@
     "./storage": {
       "types": "./lib/storage/index.d.ts",
       "default": "./lib/storage/index.js"
+    },
+    "./widgets": {
+      "types": "./lib/widgets/index.d.ts",
+      "default": "./lib/widgets/index.js"
     }
   },
   "files": [

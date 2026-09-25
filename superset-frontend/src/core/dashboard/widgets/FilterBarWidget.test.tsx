@@ -19,7 +19,7 @@
 import { fireEvent, render, screen } from 'spec/helpers/testing-library';
 import DashboardProvider from '../DashboardProvider';
 import { registerBuiltInWidgets } from '../registerBuiltInWidgets';
-import { FILTER_BAR_APPLY_EVENT } from '../filterVocabulary';
+import { FILTER_BAR_APPLY_EVENT } from '@apache-superset/widgets/filterVocabulary';
 import FilterBarWidget from './FilterBarWidget';
 
 const provider = DashboardProvider.getInstance();

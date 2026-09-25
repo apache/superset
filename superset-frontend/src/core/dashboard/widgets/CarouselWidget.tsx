@@ -21,7 +21,7 @@ import type { ReactElement } from 'react';
 import { t } from '@apache-superset/core/translation';
 import { css, styled } from '@apache-superset/core/theme';
 import { EmptyState } from '@superset-ui/core/components';
-import { provider, useDashboardRevision } from '../store';
+import { useDashboardStore, useDashboardRevision } from '../store';
 import { PALETTE_MIME, placeBlock } from '../placement';
 import { FlowContent } from './flowContent';
 
@@ -147,8 +147,9 @@ export default function CarouselWidget({
 }: {
   nodeId: string;
 }): ReactElement | null {
-  useDashboardRevision();
-  const node = provider.getNode(nodeId);
+  const store = useDashboardStore();
+  useDashboardRevision(store);
+  const node = store.getNode(nodeId);
   const slides = node?.children ?? [];
 
   const [activeSlideId, setActiveSlideId] = useState<string | undefined>(
@@ -225,7 +226,7 @@ export default function CarouselWidget({
             if (type !== '') {
               event.preventDefault();
               event.stopPropagation();
-              const slideId = provider.addWidget(nodeId, 0, {
+              const slideId = store.addWidget(nodeId, 0, {
                 type: SLIDE_TYPE,
                 props: { label: untitledSlideLabel(0) },
               });

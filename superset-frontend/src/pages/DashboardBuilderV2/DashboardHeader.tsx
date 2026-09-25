@@ -19,15 +19,24 @@
 import { useEffect, useState } from 'react';
 import type { ReactElement } from 'react';
 import { useSelector } from 'react-redux';
+import { useHistory } from 'react-router-dom';
 import { t } from '@apache-superset/core/translation';
 import { css, styled } from '@apache-superset/core/theme';
-import { Divider, Input, PublishedLabel } from '@superset-ui/core/components';
+import {
+  Button,
+  Divider,
+  Input,
+  PublishedLabel,
+} from '@superset-ui/core/components';
 import MetadataBar, {
   MetadataType,
 } from '@superset-ui/core/components/MetadataBar';
 import { Icons } from '@superset-ui/core/components/Icons';
 import type { BootstrapUser } from 'src/types/bootstrapTypes';
 import { provider, useDashboardRevision } from 'src/core/dashboard/store';
+import { saveDashboardV2 } from 'src/core/dashboard/persistence';
+import { useToasts } from 'src/components/MessageToasts/withToasts';
+import DashboardEmbedModal from 'src/dashboard/components/EmbeddedModal';
 import Inert from './InertControl';
 
 /**
@@ -217,9 +226,40 @@ const Actions = styled.span`
  * the root's own properties now, where a canvas is selected and arranged in
  * one place.
  */
-export default function DashboardHeader(): ReactElement {
+export default function DashboardHeader({
+  dashboardId,
+}: {
+  /** The saved dashboard behind this page; undefined until first saved. */
+  dashboardId?: number;
+}): ReactElement {
   useDashboardRevision();
   const root = provider.getRoot();
+  const history = useHistory();
+  const { addDangerToast, addSuccessToast } = useToasts();
+  const [saving, setSaving] = useState(false);
+  const [showEmbed, setShowEmbed] = useState(false);
+
+  const save = () => {
+    const title = typeof root.props?.title === 'string' ? root.props.title : '';
+    setSaving(true);
+    saveDashboardV2({
+      id: dashboardId,
+      title: title || t('Untitled dashboard'),
+      nodes: provider.getDocument(),
+    })
+      .then(saved => {
+        // The tree is kept rather than reloaded from the response, so a
+        // viewer's live selections survive the save.
+        addSuccessToast(t('Dashboard saved'));
+        if (dashboardId === undefined) {
+          history?.push(`/dashboard/v2/${saved.id}/`);
+        }
+      })
+      .catch(() =>
+        addDangerToast(t('Sorry, there was an error saving this dashboard')),
+      )
+      .finally(() => setSaving(false));
+  };
 
   return (
     <Bar data-test="dashboard-header">
@@ -262,6 +302,15 @@ export default function DashboardHeader(): ReactElement {
             the four of them read as one run of controls. The rule is what
             says where one pair stops and the other starts. */}
         <Divider type="vertical" />
+        <Button
+          buttonStyle="secondary"
+          buttonSize="small"
+          disabled={dashboardId === undefined}
+          onClick={() => setShowEmbed(true)}
+          data-test="header-embed"
+        >
+          {t('Embed')}
+        </Button>
         {/* Saving commits a version; History is the versions already
             committed. One concern, read in one place — so the record sits
             immediately before the button that produces what it lists, rather
@@ -269,9 +318,22 @@ export default function DashboardHeader(): ReactElement {
         <Inert label={t('History')} test="header-history" reads>
           {t('History')}
         </Inert>
-        <Inert label={t('Save')} test="header-save" reads>
+        <Button
+          buttonStyle="primary"
+          buttonSize="small"
+          loading={saving}
+          onClick={save}
+          data-test="header-save"
+        >
           {t('Save')}
-        </Inert>
+        </Button>
+        {dashboardId !== undefined && (
+          <DashboardEmbedModal
+            show={showEmbed}
+            onHide={() => setShowEmbed(false)}
+            dashboardId={String(dashboardId)}
+          />
+        )}
       </Actions>
     </Bar>
   );

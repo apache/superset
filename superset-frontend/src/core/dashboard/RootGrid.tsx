@@ -21,7 +21,7 @@ import type { DragEvent as ReactDragEvent } from 'react';
 import 'gridstack/dist/gridstack.min.css';
 import type { dashboard as dashboardApi } from '@apache-superset/core';
 import { css, styled, useTheme } from '@apache-superset/core/theme';
-import { provider, useDashboardRevision } from './store';
+import { useDashboardStore, useDashboardRevision } from './store';
 import {
   cellAtPoint,
   pixelRectForCell,
@@ -281,16 +281,17 @@ function GridStackItem({
  * not something GridStack (scoped to one grid instance) handles on its own.
  */
 export default function RootGrid({ nodeId }: { nodeId: string }) {
-  useDashboardRevision();
+  const store = useDashboardStore();
+  useDashboardRevision(store);
   const theme = useTheme();
-  const node = provider.getNode(nodeId);
+  const node = store.getNode(nodeId);
   // Ahead of the early return below, and computed off `node?.layout` rather
   // than `node.layout`: every hook this component calls (`useGridStack`
   // among them) has to run on every render, in the same order, whether or
   // not `node` turns out to exist.
   const metrics = resolveGridMetrics(node?.layout, theme);
   const children = node?.children ?? [];
-  const packed = packChildLayout(children, metrics.columns, provider.getNode);
+  const packed = packChildLayout(children, metrics.columns, store.getNode);
 
   // Not shown while hovering a nested container (see `handleGridDragOver`)
   // — that container's own drop target is where the preview belongs, not
@@ -477,8 +478,8 @@ export default function RootGrid({ nodeId }: { nodeId: string }) {
           // the destination's own column count — old coordinates were only
           // ever meaningful in *this* container's grid.
           const destIndex =
-            provider.getNode(targetContainerId)?.children?.length ?? 0;
-          provider.moveWidget(gesture.id, targetContainerId, destIndex);
+            store.getNode(targetContainerId)?.children?.length ?? 0;
+          store.moveWidget(gesture.id, targetContainerId, destIndex);
           return;
         } catch {
           // Dropped onto itself or one of its own descendants — not a valid
@@ -517,7 +518,7 @@ export default function RootGrid({ nodeId }: { nodeId: string }) {
             colSpan: placement.shrink.rect.w,
             rowSpan: placement.shrink.rect.h,
           };
-          provider.updateLayouts(updates);
+          store.updateLayouts(updates);
           return;
         }
       }
@@ -532,7 +533,7 @@ export default function RootGrid({ nodeId }: { nodeId: string }) {
         rowSpan: rect.h,
       };
     });
-    provider.updateLayouts(updates);
+    store.updateLayouts(updates);
   };
   handleGestureEndRef.current = handleGestureEnd;
 
@@ -660,7 +661,7 @@ export default function RootGrid({ nodeId }: { nodeId: string }) {
       readingOrderIndex === -1 ? children.length : readingOrderIndex;
 
     if (shrink) {
-      provider.updateLayouts({
+      store.updateLayouts({
         [shrink.id]: {
           col: shrink.rect.x + 1,
           row: shrink.rect.y + 1,

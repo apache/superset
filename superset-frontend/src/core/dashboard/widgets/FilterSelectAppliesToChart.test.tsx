@@ -34,9 +34,11 @@ import {
 } from 'spec/helpers/testing-library';
 import DashboardProvider from '../DashboardProvider';
 import { registerBuiltInWidgets } from '../registerBuiltInWidgets';
-import FilterSelectWidget from './FilterSelectWidget';
+import {
+  ChartNodeWidget as ChartWidget,
+  FilterSelectNodeWidget as FilterSelectWidget,
+} from '../nodeWidgets';
 import FilterBarWidget from './FilterBarWidget';
-import ChartWidget from './ChartWidget';
 
 interface FakeBinding {
   filters?: unknown[];
@@ -57,7 +59,7 @@ jest.mock('echarts/core', () => ({
   })),
 }));
 
-jest.mock('../chartData', () => ({
+jest.mock('@apache-superset/widgets/chartData', () => ({
   __esModule: true,
   fetchQueryData: (binding: FakeBinding) => mockFetchQueryData(binding),
 }));

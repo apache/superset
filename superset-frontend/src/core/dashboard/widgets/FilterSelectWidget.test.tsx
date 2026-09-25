@@ -26,8 +26,8 @@ import {
 import fetchMock from 'fetch-mock';
 import DashboardProvider from '../DashboardProvider';
 import { registerBuiltInWidgets } from '../registerBuiltInWidgets';
-import { FILTER_BAR_APPLY_EVENT } from '../filterVocabulary';
-import FilterSelectWidget from './FilterSelectWidget';
+import { FILTER_BAR_APPLY_EVENT } from '@apache-superset/widgets/filterVocabulary';
+import { FilterSelectNodeWidget as FilterSelectWidget } from '../nodeWidgets';
 
 const provider = DashboardProvider.getInstance();
 

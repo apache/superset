@@ -100,6 +100,7 @@
   ],
   "dependencies": {
     "@apache-superset/core": "file:packages/superset-core",
+    "@apache-superset/widgets": "file:packages/superset-widgets",
     "@braintree/sanitize-url": "^7.1.2",
     "@deck.gl/aggregation-layers": "~9.2.5",
     "@deck.gl/core": "~9.2.5",

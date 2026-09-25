@@ -679,6 +679,7 @@ function main() {
     /\.stories\./,
     /\/demo\//,
     /\/examples\//,
+    /\/example\//,
     /\/color\/colorSchemes\//,
     /\/cypress\//,
     /\/cypress-base\//,
