@@ -6751,6 +6751,19 @@ def _compact_sql(statement: SQLStatement) -> str:
             "SELECT a.x, (SELECT COUNT(*) FROM c) AS n FROM a WHERE a.r = 1",
             id="cte-read-from-subquery",
         ),
+        pytest.param(
+            "SELECT * FROM a UNION ALL SELECT * FROM b",
+            "SELECT * FROM a WHERE a.r = 1 UNION ALL SELECT * FROM b WHERE b.r = 1",
+            id="union",
+        ),
+        pytest.param(
+            "SELECT a.x, (SELECT COUNT(*) FROM b WHERE b.k IN (SELECT k FROM a)) "
+            "AS n FROM a",
+            "SELECT a.x, (SELECT COUNT(*) FROM b WHERE b.r = 1 AND b.g = 1 AND "
+            "(b.k IN (SELECT k FROM a WHERE a.r = 1 AND a.g = 1))) AS n "
+            "FROM a WHERE a.r = 1",
+            id="nested-subquery",
+        ),
     ],
 )
 def test_rls_subquery_predicates(sql: str, expected: str) -> None:

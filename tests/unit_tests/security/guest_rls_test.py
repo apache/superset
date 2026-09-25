@@ -390,6 +390,10 @@ def _guest_rls_database(
             "superset.models.helpers.is_feature_enabled",
             return_value=True,
         ),
+        patch(
+            "superset.utils.rls.security_manager.get_current_guest_user_if_guest",
+            return_value=guest_user,
+        ),
     ):
         yield database
 
@@ -516,3 +520,41 @@ def test_global_guest_rule_left_to_outer_query_without_subquery(
     )
 
     assert "org_id" not in sql, f"Global guest rule applied twice. Got: {sql}"
+
+
+def test_virtual_dataset_subquery_lookup_skipped_for_non_guest(
+    app: Flask,
+    mocker: MockerFixture,
+) -> None:
+    """
+    Only a guest token carries global guest RLS rules, so for any other user the
+    virtual dataset path looks up each table's predicates once, not twice.
+    """
+    from superset.sql.parse import RLSMethod, SQLStatement
+    from superset.utils.rls import apply_rls
+
+    database = mocker.MagicMock()
+    database.db_engine_spec.get_rls_method.return_value = RLSMethod.AS_PREDICATE
+    mocker.patch(
+        "superset.utils.rls.security_manager.get_current_guest_user_if_guest",
+        return_value=None,
+    )
+    get_predicates = mocker.patch(
+        "superset.utils.rls.get_predicates_for_table",
+        return_value=[],
+    )
+
+    apply_rls(
+        database,
+        None,
+        "public",
+        SQLStatement("SELECT a.x, (SELECT COUNT(*) FROM b) AS n FROM a", "sqlite"),
+        exclude_dataset_id=99,
+        include_global_guest_rls=False,
+    )
+
+    assert get_predicates.call_count == 2
+    assert all(
+        call.kwargs["include_global_guest_rls"] is False
+        for call in get_predicates.call_args_list
+    )

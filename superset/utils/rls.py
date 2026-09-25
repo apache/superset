@@ -106,9 +106,12 @@ def apply_rls(
     predicates = collect_predicates(include_global_guest_rls)
     # The outer query only constrains the rows that reach it, so a table read
     # inside a sub-query still gets the global guest rules left to the outer query.
+    # Only a guest token carries such rules, so other users skip the second lookup.
     subquery_predicates = (
         collect_predicates(True)
-        if not include_global_guest_rls and parsed_statement.has_subquery()
+        if not include_global_guest_rls
+        and security_manager.get_current_guest_user_if_guest()
+        and parsed_statement.has_subquery()
         else None
     )
 

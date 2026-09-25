@@ -2038,9 +2038,7 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
         for node, node_transformer in sorted(
             reads, key=lambda read: read[0].depth, reverse=True
         ):
-            if node_transformer.get_predicate(node) is None:
-                continue
-            applied = True
+            applied = applied or node_transformer.get_predicate(node) is not None
             replacement = node_transformer(node)
             if replacement is not node:
                 node.replace(replacement)
