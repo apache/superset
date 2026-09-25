@@ -297,6 +297,19 @@ test('row droptargets size via CSS instead of a measured pixel height that can o
   expect(getDroptargetHeights()).toEqual(['100%', 'auto']);
 });
 
+test('trailing droptarget also gets a CSS-driven height when the row is full (regression for #37644)', () => {
+  const { container } = setup({ editMode: true, occupiedColumnCount: 12 });
+  const getDroptargetHeights = () =>
+    Array.from(
+      container.querySelectorAll<HTMLElement>('.empty-droptarget--vertical'),
+    ).map(el => el.style.height);
+
+  // With no remaining columns, the droptarget after the last chart is
+  // treated as a side target too (isTrailingSideTarget), so it takes the
+  // same '100%' CSS height as the leading one instead of 'auto'.
+  expect(getDroptargetHeights()).toEqual(['100%', '100%']);
+});
+
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('visibility handling for intersection observers', () => {
   const mockIntersectionObserver = jest.fn();
