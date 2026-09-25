@@ -25,6 +25,7 @@ import {
   Divider,
   NativeFilterType,
 } from '@superset-ui/core';
+import { omit } from 'lodash-es';
 import { DASHBOARD_ROOT_ID } from 'src/dashboard/util/constants';
 import {
   ChartCustomizationsFormItem,
@@ -96,6 +97,32 @@ function buildCustomizationTarget(
   return buildNativeFilterTarget(formInputs);
 }
 
+/**
+ * A Group By allowlist that selects every groupable column is equivalent to
+ * "no restriction". Collapse it back to unset so the saved config does not
+ * freeze a snapshot of the dataset's columns: a column added to the dataset
+ * later then stays available to viewers, exactly like a control that never
+ * stored an allowlist.
+ */
+export function collapseFullColumnsAllowlist(
+  controlValues: ChartCustomizationsFormItem['controlValues'] | undefined,
+  groupableColumns: string[] | undefined,
+): ChartCustomizationsFormItem['controlValues'] {
+  const allowlist = controlValues?.columnsAllowlist;
+  if (
+    !controlValues ||
+    !Array.isArray(allowlist) ||
+    !groupableColumns?.length
+  ) {
+    return controlValues ?? {};
+  }
+  const selected = new Set<string>(allowlist);
+  if (!groupableColumns.every(column => selected.has(column))) {
+    return controlValues;
+  }
+  return omit(controlValues, 'columnsAllowlist');
+}
+
 function transformFormInput(
   id: string,
   formInputs: ChartCustomizationsFormItem,
@@ -113,7 +140,10 @@ function transformFormInput(
     description: (formInputs.description || '').trim(),
     targets: [buildCustomizationTarget(formInputs)],
     scope: formInputs.scope || defaultScope,
-    controlValues: formInputs.controlValues ?? {},
+    controlValues: collapseFullColumnsAllowlist(
+      formInputs.controlValues,
+      formInputs.groupableColumns,
+    ),
     defaultDataMask: buildNativeFilterDefaultDataMask(
       formInputs,
       formInputs.defaultDataMask ?? {},
