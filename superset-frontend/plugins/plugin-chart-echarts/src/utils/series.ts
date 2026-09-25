@@ -1323,13 +1323,20 @@ export function getMinAndMaxFromBounds(
  * span. This function does not change what range ECharts decides to
  * render — only how wide a bar is drawn within whatever range that already
  * is.
+ *
+ * `plotLengthPx` must already be the pixel length of whichever screen
+ * dimension the temporal axis actually renders along — callers are
+ * responsible for accounting for orientation (a horizontal bar chart swaps
+ * the temporal axis onto the chart's vertical/height dimension, not width;
+ * see the call sites in Timeseries/transformProps.ts and
+ * MixedTimeseries/transformProps.ts) before calling this.
  */
 export function getGrainBarMaxWidth(
   xAxisType: AxisType,
   resolvedTimeGrain: string | undefined,
   dataRecordArrays: Record<string, unknown>[][],
   xAxisCol: string,
-  chartWidth: number,
+  plotLengthPx: number,
 ): number | undefined {
   if (xAxisType !== AxisType.Time || !resolvedTimeGrain) {
     return undefined;
@@ -1347,11 +1354,7 @@ export function getGrainBarMaxWidth(
   }
   const domainSpanMs =
     domainMax > domainMin ? domainMax - domainMin : 2 * ONE_DAY_MS;
-  const plotWidthPx = Math.max(
-    chartWidth - 2 * TIMESERIES_CONSTANTS.gridOffsetLeft,
-    0,
-  );
-  return (grainMs / domainSpanMs) * plotWidthPx;
+  return (grainMs / domainSpanMs) * Math.max(plotLengthPx, 0);
 }
 
 /**
