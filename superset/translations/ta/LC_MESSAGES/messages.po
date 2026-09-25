@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-23 12:43+0200\n"
+"POT-Creation-Date: 2026-09-25 13:49-0700\n"
 "PO-Revision-Date: 2026-03-31 02:00-0700\n"
 "Last-Translator: Maazin Ahamed\n"
 "Language: ta\n"
@@ -1229,6 +1229,9 @@ msgstr "வடிவமைத்தல்"
 msgid "About"
 msgstr "பற்றி"
 
+msgid "Accept"
+msgstr ""
+
 #, fuzzy
 msgid "Access"
 msgstr "வெற்றி"
@@ -1660,6 +1663,9 @@ msgstr "திரட்டுதல் (Aggregation)"
 
 msgid "Aggregation Method"
 msgstr "திரட்டுதல் முறை"
+
+msgid "Aggregation function"
+msgstr ""
 
 msgid ""
 "Aggregation used for the summary row. By default each metric keeps its "
@@ -3601,6 +3607,13 @@ msgstr ""
 
 msgid "Chart width"
 msgstr "சார்ட் அகலம்"
+
+#, python-format
+msgid ""
+"Chart with ID %(chart_id)s (referenced by annotation layer "
+"'%(layer_name)s') was not found. Please verify that the chart exists and "
+"is accessible."
+msgstr ""
 
 msgid "Charts"
 msgstr "சார்ட்டுகள்"
@@ -13542,11 +13555,11 @@ msgstr "சார்ட் வினவல் நேர முத்திரை
 msgid "Show column headers"
 msgstr "நெடுவரிசை தலைப்புகளைக் காண்பி"
 
+msgid "Show column summaries"
+msgstr ""
+
 msgid "Show columns subtotal"
 msgstr "நெடுவரிசைகளின் துணை மொத்தத்தைக் காண்பி"
-
-msgid "Show columns total"
-msgstr "நெடுவரிசைகளின் மொத்தத்தைக் காண்பி"
 
 msgid "Show empty columns"
 msgstr "வெற்று நெடுவரிசைகளைக் காண்பி"
@@ -13622,11 +13635,11 @@ msgstr "வினவல் அடையாளங்காட்டிகளை�
 msgid "Show row labels"
 msgstr "வரிசை லேபிள்களைக் காண்பி"
 
+msgid "Show row summaries"
+msgstr ""
+
 msgid "Show rows subtotal"
 msgstr "வரிசைகளின் துணை மொத்தத்தைக் காண்பி"
-
-msgid "Show rows total"
-msgstr "வரிசைகளின் மொத்தத்தைக் காண்பி"
 
 msgid "Show series values on the chart"
 msgstr "சார்ட்டில் தொடர் மதிப்புகளைக் காண்பி"
@@ -15313,6 +15326,13 @@ msgstr "வினவலில் ஒன்று அல்லது அதற்
 msgid "The query context datasource does not match the chart datasource"
 msgstr ""
 
+#, python-format
+msgid ""
+"The query context for chart ID %(chart_id)s (referenced by annotation "
+"layer '%(layer_name)s') was not found. Please ensure the chart is "
+"properly configured and has a valid query context."
+msgstr ""
+
 msgid "The query couldn't be loaded"
 msgstr "வினவலை ஏற்ற முடியவில்லை"
 
@@ -16028,6 +16048,9 @@ msgstr ""
 msgid "This chart only"
 msgstr ""
 
+msgid "This chart was updated to use the restored aggregation"
+msgstr ""
+
 msgid "This chart will be restored to the following version:"
 msgstr ""
 
@@ -16316,6 +16339,13 @@ msgstr ""
 "தெரியவில்லை."
 
 msgid "This password is too common; please choose a less guessable one."
+msgstr ""
+
+msgid ""
+"This pivot table used a legacy per-table aggregation setting that "
+"Superset previously ignored. It now computes correctly, so totals and "
+"subtotals may look different than before. Please validate them, then "
+"accept this notice or save the chart."
 msgstr ""
 
 msgid ""
@@ -17337,8 +17367,18 @@ msgstr ""
 "மெட்ரிக் மதிப்பு நேர முத்திரையாக இல்லாவிட்டாலும் தேதி வடிவமைப்பைப் "
 "பயன்படுத்தவும்"
 
+msgid ""
+"Use each metric’s own definition for cells and summaries (the default "
+"since SIP-216), or aggregate a second time over the metric’s own grouped "
+"results — e.g. the median of a set of per-store averages. Query limits "
+"apply before a result aggregation runs."
+msgstr ""
+
 msgid "Use gradient"
 msgstr "கிரேடியண்ட் (Gradient) பயன்படுத்தவும்"
+
+msgid "Use metric definition"
+msgstr ""
 
 msgid "Use metrics as a top level group for columns or for rows"
 msgstr ""
@@ -18749,7 +18789,18 @@ msgid ""
 "SUPERSET_DASHBOARD_POSITION_DATA_LIMIT config setting."
 msgstr ""
 
-msgid "Your export is being prepared. You'll receive an email when it's ready."
+msgid ""
+"Your export is being generated and will download automatically when "
+"ready. We'll also email you a download link."
+msgstr ""
+
+msgid "Your export is being generated. Please, do not leave the page."
+msgstr ""
+
+msgid "Your export is ready and downloading."
+msgstr ""
+
+msgid "Your export is taking longer than expected. Try again later."
 msgstr ""
 
 #, python-format

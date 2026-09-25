@@ -20,6 +20,8 @@
 import PropTypes from 'prop-types';
 import { t } from '@apache-superset/core/translation';
 
+import { getResultAggregation } from '../plugin/resultAggregation';
+
 type SortFunction = (
   a: string | number | null,
   b: string | number | null,
@@ -384,41 +386,59 @@ const fmtNonString =
     typeof x === 'string' ? x : formatter(x as number);
 
 /*
+ * Tracks which metric (via the `__metricKey`/`__rows`/`__columns` tagging
+ * every record carries, see PivotTableChart.tsx) a series of pushed records
+ * belong to. An aggregator slot opposite the Metric pseudo-dimension (the
+ * Total axis/corner when there's more than one metric -- see `processRecord`'s
+ * "Metric-collapse totals" and `processResultRecord` below) can receive one
+ * record per metric, e.g. MAX(sales) and MEDIAN(msrp) both landing in the
+ * same grand-total cell. There's no single number that means anything for
+ * "max of sales combined with median of msrp" regardless of which metric an
+ * aggregator would otherwise favor, so every aggregator that can land in one
+ * of those shared slots calls `sawMixedMetric` on every push and renders
+ * blank once it returns true, rather than silently guessing.
+ */
+function makeMixedMetricTracker(): {
+  sawMixedMetric: (record: PivotRecord) => boolean;
+} {
+  let seenMetric: string | undefined;
+  let mixedMetrics = false;
+  return {
+    sawMixedMetric(record: PivotRecord): boolean {
+      const metricDim = record.__metricKey as unknown as string | undefined;
+      if (metricDim) {
+        const metric = String(record[metricDim]);
+        if (seenMetric === undefined) {
+          seenMetric = metric;
+        } else if (metric !== seenMetric) {
+          mixedMetrics = true;
+        }
+      }
+      return mixedMetrics;
+    },
+  };
+}
+
+/*
  * Passthrough "aggregator" for the rollup pivot. Because the database already
  * computed every rollup level (via a single GROUPING SETS query where the
  * engine supports it, or one query per level as a fallback otherwise), each
  * cell receives exactly one record per metric, whose value we store verbatim
  * rather than re-aggregating. This is what makes non-additive totals correct.
  * See SIP.md. Currency tracking mirrors the real aggregators for AUTO-mode
- * detection.
- *
- * The "exactly one record per metric" invariant doesn't hold for the Total
- * axis/corner opposite the Metric pseudo-dimension when there's more than one
- * metric (see `processRecord`'s "Metric-collapse totals"): that slot receives
- * one record per metric, e.g. MAX(sales) and MEDIAN(msrp) both landing in the
- * same grand-total cell. There's no single number that means anything for
- * "max of sales combined with median of msrp", so once a second, different
- * metric is pushed into the same cell, `value()` renders blank instead of
- * silently keeping whichever metric happened to be pushed last.
+ * detection. See `makeMixedMetricTracker` above for the one exception (the
+ * Total axis/corner opposite the Metric pseudo-dimension).
  */
 const cellValue =
   (formatter: Formatter = usFmt) =>
   ([attr]: string[]) =>
   () => ({
     val: null as string | number | null,
-    seenMetric: undefined as string | undefined,
+    mixedMetricTracker: makeMixedMetricTracker(),
     mixedMetrics: false,
     currencySet: new Set<string>(),
     push(record: PivotRecord) {
-      const metricDim = record.__metricKey as unknown as string | undefined;
-      if (metricDim) {
-        const metric = String(record[metricDim]);
-        if (this.seenMetric === undefined) {
-          this.seenMetric = metric;
-        } else if (metric !== this.seenMetric) {
-          this.mixedMetrics = true;
-        }
-      }
+      this.mixedMetrics = this.mixedMetricTracker.sawMixedMetric(record);
       this.val = record[attr] as string | number | null;
       if (
         record.__currencyColumn &&
@@ -1073,6 +1093,41 @@ class PivotData {
     const vals = this.props.vals as string[];
     const fractionType =
       FRACTION_TYPE_BY_SHOW_VALUES_AS[this.props.showValuesAs as string];
+    // Result aggregation (see resultAggregation.ts): a second aggregation pass
+    // over a metric's own grouped results (e.g. the median of a set of
+    // per-store SUM(sales) values), restoring the pre-SIP-216 "Aggregation
+    // function" choice, computed correctly this time -- `processResultRecord`
+    // below feeds each scope its own original contributing leaf records,
+    // never another scope's already-computed output. `aggregators` already
+    // has a real template for every choice (it's the same dict the
+    // pre-SIP-216 pivot table used); wrap whichever one is selected so a
+    // shared Total/corner slot that ends up seeing more than one metric (see
+    // `makeMixedMetricTracker`) blanks instead of quietly mixing them.
+    const resultAggregation = getResultAggregation(
+      this.props.aggregateFunction,
+    );
+    const resultFactory = resultAggregation
+      ? (...args: unknown[]): Aggregator => {
+          const build = aggregators[resultAggregation] as (
+            v: string[],
+          ) => (...a: unknown[]) => Aggregator;
+          const inner = build(vals)(...args);
+          const innerValue = inner.value.bind(inner);
+          const innerPush = inner.push.bind(inner);
+          const tracker = makeMixedMetricTracker();
+          let mixed = false;
+          return {
+            ...inner,
+            push(record: PivotRecord) {
+              mixed = tracker.sawMixedMetric(record);
+              innerPush(record);
+            },
+            value() {
+              return mixed ? null : innerValue();
+            },
+          };
+        }
+      : undefined;
     // Values come pre-aggregated from the database (one query per rollup level),
     // so the pivot stores them verbatim via `cellValue` instead of aggregating.
     // When "Show values as" a fraction is active, wrap that passthrough with
@@ -1085,17 +1140,21 @@ class PivotData {
     // themselves to read 100%. This needs no new query and no per-metric
     // aggregator-override control (that control is gone, see SIP.md); it's a
     // pure display transform over values that are already DB-correct.
-    this.aggregator = fractionType
-      ? aggregatorTemplates.fractionOf(
-          cellValue(),
-          fractionType,
-          usFmtPct,
-        )(vals)
-      : cellValue(this.props.defaultFormatter as Formatter)(vals);
+    this.aggregator =
+      resultFactory ??
+      (fractionType
+        ? aggregatorTemplates.fractionOf(
+            cellValue(),
+            fractionType,
+            usFmtPct,
+          )(vals)
+        : cellValue(this.props.defaultFormatter as Formatter)(vals));
     // Percentage display always uses a fixed percent format -- a per-metric
     // custom formatter (currency, decimals, etc.) doesn't apply to a ratio.
+    // A result aggregation supplies its own formatting (and, for the " as
+    // Fraction of " choices, its own percentage) via `resultFactory` above.
     this.formattedAggregators =
-      !fractionType && this.props.customFormatters
+      !fractionType && !resultFactory && this.props.customFormatters
         ? Object.entries(
             this.props.customFormatters as Record<
               string,
@@ -1243,7 +1302,81 @@ class PivotData {
     return this.rowKeys;
   }
 
+  /**
+   * Result aggregation (see resultAggregation.ts): unlike `processRecord`
+   * below, which places each DB-precomputed record into exactly one rollup
+   * slot, every leaf record here is fed directly to every scope it
+   * contributes to -- one cell, one subtotal per enabled row/column depth,
+   * and the grand total -- so each aggregator reduces real original results,
+   * never another aggregator's already-computed value.
+   */
+  processResultRecord(record: PivotRecord): void {
+    const rows = this.props.rows as string[];
+    const cols = this.props.cols as string[];
+    const rowKey = rows.map(key =>
+      String(key in record ? record[key] : 'null'),
+    );
+    const colKey = cols.map(key =>
+      String(key in record ? record[key] : 'null'),
+    );
+    // Depth 0 is the fully collapsed (grand total/opposite-axis) scope;
+    // depth === length is the leaf; anything between is a subtotal, included
+    // only when that axis's subtotals are enabled.
+    const rowDepths = [
+      0,
+      ...rows
+        .map((_, i) => i + 1)
+        .filter(depth => depth === rows.length || this.subtotals.rowEnabled),
+    ];
+    const colDepths = [
+      0,
+      ...cols
+        .map((_, i) => i + 1)
+        .filter(depth => depth === cols.length || this.subtotals.colEnabled),
+    ];
+    rowDepths.forEach(ri =>
+      colDepths.forEach(ci => {
+        if (ri === 0 && ci === 0) {
+          this.allTotal.push(record);
+          return;
+        }
+        const r = rowKey.slice(0, ri);
+        const c = colKey.slice(0, ci);
+        const rk = flatKey(r);
+        const ck = flatKey(c);
+        let target: Record<string, Aggregator>;
+        let key: string;
+        if (ci === 0) {
+          target = this.rowTotals;
+          key = rk;
+          if (!target[key]) this.rowKeys.push(r);
+        } else if (ri === 0) {
+          target = this.colTotals;
+          key = ck;
+          if (!target[key]) this.colKeys.push(c);
+        } else {
+          this.tree[rk] ??= {};
+          target = this.tree[rk];
+          key = ck;
+        }
+        target[key] ??= this.getFormattedAggregator(
+          record,
+          ci === 0 ? r : ri === 0 ? c : undefined,
+        )(this, r, c);
+        target[key].push(record);
+        target[key].isRowSubtotal = ri > 0 && ri < rows.length;
+        target[key].isColSubtotal = ci > 0 && ci < cols.length;
+        target[key].isSubtotal =
+          target[key].isRowSubtotal || target[key].isColSubtotal;
+      }),
+    );
+  }
+
   processRecord(record: PivotRecord): void {
+    if (getResultAggregation(this.props.aggregateFunction)) {
+      this.processResultRecord(record);
+      return;
+    }
     // this code is called in a tight loop.
     // Each record is tagged (in PivotTableChart) with `__rows`/`__columns`:
     // the dimension labels of the rollup level that produced it. The database

@@ -97,3 +97,58 @@ test('grand total still passes through the value for a single metric', () => {
 
   expect(pivotData.getAggregator([], []).value()).toBe(100);
 });
+
+// Leaf records shaped like a real query result: one row per full dimension
+// combination (region, store), each already carrying the metric's own
+// aggregate for that group -- never raw, ungrouped source rows.
+const RESULT_AGGREGATION_LEAVES: PivotRecord[] = [
+  { region: 'North', store: 'A', value: 10 },
+  { region: 'North', store: 'B', value: 20 },
+  { region: 'South', store: 'C', value: 100 },
+] as unknown as PivotRecord[];
+
+test('result aggregation reduces the grand summary from every original leaf record, not from subtotals', () => {
+  const pivotData = new PivotData(
+    {
+      data: RESULT_AGGREGATION_LEAVES,
+      rows: ['region', 'store'],
+      cols: [],
+      vals: ['value'],
+      aggregateFunction: 'Average',
+    },
+    { rowEnabled: true },
+  );
+
+  // North subtotal: average of North's own two leaves (10, 20).
+  expect(pivotData.getAggregator(['North'], []).value()).toBe(15);
+  // Grand summary: average of all three leaves (10, 20, 100) = 43.33 --
+  // not the average of the two region subtotals ((15 + 100) / 2 = 57.5),
+  // which is exactly the pre-SIP-216 bug this restores without repeating.
+  expect(pivotData.getAggregator([], []).value()).toBeCloseTo(43.33, 2);
+});
+
+test('result aggregation blanks a shared total slot that would mix two different metrics', () => {
+  const mixedMetricLeaves: PivotRecord[] = [
+    {
+      Metric: 'MAX(sales)',
+      value: 100,
+      __metricKey: 'Metric',
+    },
+    {
+      Metric: 'MEDIAN(msrp)',
+      value: 50,
+      __metricKey: 'Metric',
+    },
+  ] as unknown as PivotRecord[];
+  const pivotData = new PivotData({
+    data: mixedMetricLeaves,
+    rows: [],
+    cols: ['Metric'],
+    vals: ['value'],
+    aggregateFunction: 'Average',
+  });
+
+  // Not the average of a MAX(sales) value and a MEDIAN(msrp) value blended
+  // together -- there's no single number that means anything for that.
+  expect(pivotData.getAggregator([], []).value()).toBeNull();
+});

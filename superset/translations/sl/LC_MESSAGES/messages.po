@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version:  Superset\n"
 "Report-Msgid-Bugs-To: dkrat7 @github.com\n"
-"POT-Creation-Date: 2026-09-23 12:43+0200\n"
+"POT-Creation-Date: 2026-09-25 13:49-0700\n"
 "PO-Revision-Date: 2026-07-29 16:16+0200\n"
 "Last-Translator: lapor-kris <lapor-kris@github.com>\n"
 "Language: sl_SI\n"
@@ -1298,6 +1298,9 @@ msgstr "Prekinitev"
 msgid "About"
 msgstr "O programu"
 
+msgid "Accept"
+msgstr ""
+
 msgid "Access"
 msgstr "Dostop"
 
@@ -1722,6 +1725,9 @@ msgstr "Agregacija"
 
 msgid "Aggregation Method"
 msgstr "Metoda združevanja"
+
+msgid "Aggregation function"
+msgstr ""
 
 msgid ""
 "Aggregation used for the summary row. By default each metric keeps its "
@@ -3693,6 +3699,13 @@ msgstr ""
 
 msgid "Chart width"
 msgstr "Širina grafikona"
+
+#, python-format
+msgid ""
+"Chart with ID %(chart_id)s (referenced by annotation layer "
+"'%(layer_name)s') was not found. Please verify that the chart exists and "
+"is accessible."
+msgstr ""
 
 msgid "Charts"
 msgstr "Grafikoni"
@@ -13993,11 +14006,11 @@ msgstr "Prikaži časovne žige poizvedbe grafikona"
 msgid "Show column headers"
 msgstr "Prikaži naslove stolpcev"
 
+msgid "Show column summaries"
+msgstr ""
+
 msgid "Show columns subtotal"
 msgstr "Prikaži delne vsote stolpcev"
-
-msgid "Show columns total"
-msgstr "Prikaži vsoto stolpcev"
 
 msgid "Show empty columns"
 msgstr "Prikaži prazne stolpce"
@@ -14074,11 +14087,11 @@ msgstr "Prikaži identifikatorje poizvedbe"
 msgid "Show row labels"
 msgstr "Pokaži oznake vrstic"
 
+msgid "Show row summaries"
+msgstr ""
+
 msgid "Show rows subtotal"
 msgstr "Prikaži delne vsote vrstic"
-
-msgid "Show rows total"
-msgstr "Prikaži vsoto vrstic"
 
 msgid "Show series values on the chart"
 msgstr "Na grafikonu prikaži vrednosti serij"
@@ -15903,6 +15916,13 @@ msgstr "Poizvedba vsebuje enega ali več parametrov predlog z napačno obliko."
 msgid "The query context datasource does not match the chart datasource"
 msgstr "Vir podatkov v kontekstu poizvedbe se ne ujema z virom podatkov grafikona"
 
+#, python-format
+msgid ""
+"The query context for chart ID %(chart_id)s (referenced by annotation "
+"layer '%(layer_name)s') was not found. Please ensure the chart is "
+"properly configured and has a valid query context."
+msgstr ""
+
 msgid "The query couldn't be loaded"
 msgstr "Poizvedbe ni mogoče naložiti"
 
@@ -16657,6 +16677,9 @@ msgstr ""
 msgid "This chart only"
 msgstr ""
 
+msgid "This chart was updated to use the restored aggregation"
+msgstr ""
+
 msgid "This chart will be restored to the following version:"
 msgstr ""
 
@@ -16988,6 +17011,13 @@ msgstr "Ta stran naj bi bila vdelana kot iframe, vendar izgleda, da temu ni tako
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
 msgid "This password is too common; please choose a less guessable one."
 msgstr "To geslo je prepogosto; izberite manj uganljivega."
+
+msgid ""
+"This pivot table used a legacy per-table aggregation setting that "
+"Superset previously ignored. It now computes correctly, so totals and "
+"subtotals may look different than before. Please validate them, then "
+"accept this notice or save the chart."
+msgstr ""
 
 msgid ""
 "This section allows you to configure how to use the slice\n"
@@ -18085,8 +18115,18 @@ msgstr "Uporabi trenutni obseg"
 msgid "Use date formatting even when metric value is not a timestamp"
 msgstr "Oblikovanje datuma uporabi tudi, ko vrednost mere ni časovna značka"
 
+msgid ""
+"Use each metric’s own definition for cells and summaries (the default "
+"since SIP-216), or aggregate a second time over the metric’s own grouped "
+"results — e.g. the median of a set of per-store averages. Query limits "
+"apply before a result aggregation runs."
+msgstr ""
+
 msgid "Use gradient"
 msgstr "Uporabi gradient"
+
+msgid "Use metric definition"
+msgstr ""
 
 msgid "Use metrics as a top level group for columns or for rows"
 msgstr "Uporabi mere kot vrhovni nivo grupiranja za stolpce ali vrstice"
@@ -19556,7 +19596,18 @@ msgstr ""
 "into multiple dashboards) or raise the "
 "SUPERSET_DASHBOARD_POSITION_DATA_LIMIT config setting."
 
-msgid "Your export is being prepared. You'll receive an email when it's ready."
+msgid ""
+"Your export is being generated and will download automatically when "
+"ready. We'll also email you a download link."
+msgstr ""
+
+msgid "Your export is being generated. Please, do not leave the page."
+msgstr ""
+
+msgid "Your export is ready and downloading."
+msgstr ""
+
+msgid "Your export is taking longer than expected. Try again later."
 msgstr ""
 
 #, python-format
