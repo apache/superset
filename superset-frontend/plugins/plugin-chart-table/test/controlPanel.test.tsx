@@ -17,7 +17,11 @@
  * under the License.
  */
 import { GenericDataType } from '@apache-superset/core/common';
-import { QueryFormData } from '@superset-ui/core';
+import {
+  DatasourceType,
+  getChartControlPanelRegistry,
+  QueryFormData,
+} from '@superset-ui/core';
 import {
   ColumnMeta,
   Dataset,
@@ -32,6 +36,10 @@ import config from '../src/controlPanel';
 import { useState } from 'react';
 import { render, screen, userEvent } from 'spec/helpers/testing-library';
 import CheckboxControl from 'src/explore/components/controls/CheckboxControl';
+import {
+  ControlPanelsContainer,
+  ControlPanelsContainerProps,
+} from 'src/explore/components/ControlPanelsContainer';
 
 const findConditionalFormattingControl = (): ControlConfig | null => {
   for (const section of config.controlPanelSections) {
@@ -437,20 +445,6 @@ function getControl(name: string): ControlConfig {
 const pagination = getControl('server_pagination');
 const pageLength = getControl('server_page_length');
 
-test.each([
-  ['server_pagination', pagination],
-  ['server_page_length', pageLength],
-])('%s remaps when datasource capabilities change', (_, control) => {
-  const before = panelState(['ROW_OFFSET']);
-  const after = panelState([]);
-  const controlState = after.controls.server_pagination;
-
-  expect(control.shouldMapStateToProps?.(before, after, controlState)).toBe(true);
-  expect(control.mapStateToProps?.(after, controlState)).toMatchObject({
-    disabled: true,
-  });
-});
-
 function panelState(
   features?: string[],
   type = 'semantic_view',
@@ -468,6 +462,75 @@ function panelState(
     common: {},
   };
 }
+
+test('recomputes pagination controls when datasource metadata changes', () => {
+  const registry = getChartControlPanelRegistry();
+  registry.registerValue('table', {
+    controlPanelSections: [
+      {
+        label: 'Options',
+        expanded: true,
+        controlSetRows: [
+          [{ name: 'server_pagination', config: pagination }],
+          [{ name: 'server_page_length', config: pageLength }],
+        ],
+      },
+    ],
+  });
+  const state = panelState(['ROW_OFFSET']);
+  const props = {
+    actions: { setControlValue: jest.fn() },
+    chart: { chartStatus: 'success', queriesResponse: null },
+    controls: {
+      ...state.controls,
+      server_page_length: { type: 'SelectControl', value: 10 },
+    },
+    datasource_type: DatasourceType.SemanticView,
+    exploreState: state,
+    form_data: state.form_data,
+    isDatasourceMetaLoading: false,
+    errorMessage: null,
+    onQuery: jest.fn(),
+    onStop: jest.fn(),
+    canStopQuery: false,
+    chartIsStale: false,
+  } as unknown as ControlPanelsContainerProps;
+
+  try {
+    const { rerender } = render(<ControlPanelsContainer {...props} />, {
+      useRedux: true,
+    });
+    expect(screen.getByRole('checkbox')).toBeEnabled();
+    rerender(
+      <ControlPanelsContainer
+        {...props}
+        exploreState={{
+          ...props.exploreState,
+          datasource: panelState([]).datasource as Dataset,
+        }}
+      />,
+    );
+    expect(screen.getByRole('checkbox')).toBeDisabled();
+  } finally {
+    registry.remove('table');
+  }
+});
+
+test.each([
+  ['server_pagination', pagination],
+  ['server_page_length', pageLength],
+])('%s remaps when datasource capabilities change', (_, control) => {
+  const before = panelState(['ROW_OFFSET']);
+  const after = panelState([]);
+  const controlState = after.controls.server_pagination;
+
+  expect(control.shouldMapStateToProps?.(before, after, controlState)).toBe(
+    true,
+  );
+  expect(control.mapStateToProps?.(after, controlState)).toMatchObject({
+    disabled: true,
+  });
+});
 
 function renderPagination(state: ControlPanelState, onChange = jest.fn()) {
   return render(

@@ -51,7 +51,13 @@ describe('CheckboxControl', () => {
   });
 
   test('explains a disabled checkbox without a label', () => {
-    render(setup({ label: undefined, disabled: true, disabledReason: 'Unavailable' }));
+    render(
+      setup({
+        label: undefined,
+        disabled: true,
+        disabledReason: 'Unavailable',
+      }),
+    );
 
     const checkbox = screen.getByRole('checkbox');
     expect(checkbox).toHaveAccessibleDescription('Unavailable');
