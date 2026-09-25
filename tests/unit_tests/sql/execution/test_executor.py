@@ -1069,6 +1069,7 @@ def test_execute_multi_statement_updates_query_progress(
 
     # Track progress updates on the Query model
     mock_query = MagicMock(spec=QueryModel)
+    mock_query.limit = None
     mock_query.id = 123
     mocker.patch("superset.models.sql_lab.Query", return_value=mock_query)
 
@@ -1330,6 +1331,7 @@ def test_execute_sql_with_cursor_stopped_mid_execution(
     mock_cursor.fetchall = MagicMock()
 
     mock_query = MagicMock()
+    mock_query.limit = None
     mock_query.schema = "public"
     mock_query.progress = 0
     mock_query.set_extra_json_key = MagicMock()
@@ -1370,6 +1372,7 @@ def test_execute_sql_with_cursor_custom_execute_fn(
     mock_cursor.fetchall = MagicMock()
 
     mock_query = MagicMock()
+    mock_query.limit = None
     mock_query.schema = "public"
     mock_query.progress = 0
     mock_query.set_extra_json_key = MagicMock()
@@ -1668,13 +1671,12 @@ def test_execute_limit_caps_returned_rows(
         (
             "mssql",
             "SELECT TOP 5 PERCENT * FROM t",
-            "SELECT TOP 10 * FROM (SELECT TOP 5 PERCENT * FROM t) AS __superset_limit",
+            "SELECT TOP 5 PERCENT * FROM t",
         ),
         (
             "mssql",
             "SELECT TOP 5 WITH TIES * FROM t ORDER BY n",
-            "SELECT TOP 10 * FROM (SELECT TOP 5 WITH TIES * FROM t ORDER BY n) "
-            "AS __superset_limit",
+            "SELECT TOP 5 WITH TIES * FROM t ORDER BY n",
         ),
         (
             "postgresql",
@@ -1685,8 +1687,7 @@ def test_execute_limit_caps_returned_rows(
         (
             "mssql",
             "WITH t AS (SELECT 1 AS n) SELECT TOP 5 PERCENT * FROM t",
-            "WITH t AS (SELECT 1 AS n) "
-            "SELECT TOP 10 * FROM (SELECT TOP 5 PERCENT * FROM t) AS __superset_limit",
+            "WITH t AS (SELECT 1 AS n) SELECT TOP 5 PERCENT * FROM t",
         ),
     ],
 )
@@ -1709,6 +1710,77 @@ def test_apply_limit_preserves_nonliteral_and_modified_limits(
         script, QueryOptions(limit=request_limit)
     )
     assert script.format() == SQLScript(expected, engine).format()
+
+
+@pytest.mark.parametrize("modifier", ["PERCENT", "WITH TIES"])
+@pytest.mark.parametrize(
+    "projection,source,order_by",
+    [
+        ("1 AS n, 2 AS n", "", "1"),
+        ("COUNT(*)", "FROM t", "COUNT(*)"),
+        ("a.id, b.id", "FROM a JOIN b ON a.id = b.id", "a.id"),
+        ("*", "FROM a JOIN b ON a.id = b.id", "a.id"),
+        ("1 AS n, 2 AS N", "", "1"),
+    ],
+)
+def test_apply_limit_preserves_unsafe_tsql_projections(
+    mocker: MockerFixture,
+    database: Database,
+    app_context: None,
+    modifier: str,
+    projection: str,
+    source: str,
+    order_by: str,
+) -> None:
+    """Do not introduce invalid derived tables for unnamed or duplicate columns."""
+    from superset.sql.execution.executor import SQLExecutor
+
+    mocker.patch.dict(current_app.config, {"SQL_MAX_ROW": 10})
+    sql = f"SELECT TOP 50 {modifier} {projection} {source} ORDER BY {order_by}"
+    script = SQLScript(sql, "mssql")
+    original = script.format()
+
+    SQLExecutor(database)._apply_limit_to_script(script, QueryOptions(limit=10))
+
+    assert script.format() == original
+    assert script.statements[0].get_limit_value() is None
+
+
+@pytest.mark.parametrize(
+    "request_limit,server_limit,expected_rows",
+    [(10, None, 10), (10, 5, 5), (5, 10, 5), (30, None, 20), (None, 5, 20)],
+)
+def test_execute_caps_rows_without_sql_rewrite(
+    mocker: MockerFixture,
+    database: Database,
+    app_context: None,
+    request_limit: int | None,
+    server_limit: int | None,
+    expected_rows: int,
+) -> None:
+    """The shared result path caps the last statement even without a SQL cap."""
+    mocker.patch.dict(
+        current_app.config,
+        {"SQL_MAX_ROW": server_limit, "SQL_QUERY_MUTATOR": None, "QUERY_LOGGER": None},
+    )
+    # SQLite supplies real cursor results without requiring a SQL Server service.
+    mocker.patch("superset.sql.execution.executor.SQLExecutor._apply_limit_to_script")
+    with closing(sqlite3.connect(":memory:")) as connection:
+        connection.execute("CREATE TABLE numbers (n INTEGER)")
+        connection.executemany(
+            "INSERT INTO numbers VALUES (?)", [(n,) for n in range(20)]
+        )
+        mocker.patch.object(database, "get_raw_connection", return_value=connection)
+        result = database.execute(
+            "SELECT n FROM numbers; SELECT n FROM numbers",
+            QueryOptions(limit=request_limit),
+        )
+
+    assert result.status == QueryStatus.SUCCESS
+    assert result.statements[0].row_count == 20
+    assert result.statements[-1].row_count == expected_rows
+    assert result.statements[-1].data is not None
+    assert len(result.statements[-1].data) == expected_rows
 
 
 @pytest.mark.parametrize(
@@ -2403,6 +2475,7 @@ def test_execute_sql_with_cursor_no_rows_or_description(
     mock_cursor.fetchall = MagicMock()
 
     mock_query = MagicMock()
+    mock_query.limit = None
     mock_query.schema = "public"
     mock_query.progress = 0
     mock_query.set_extra_json_key = MagicMock()

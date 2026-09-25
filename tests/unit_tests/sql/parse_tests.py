@@ -2601,6 +2601,27 @@ def test_get_limit_value(sql: str, engine: str, expected: str) -> None:
     assert SQLStatement(sql, engine).get_limit_value() == expected
 
 
+@pytest.mark.parametrize("method", [LimitMethod.FORCE_LIMIT, LimitMethod.WRAP_SQL])
+@pytest.mark.parametrize("top", ["50 PERCENT", "5 WITH TIES", "(@n)"])
+@pytest.mark.parametrize(
+    "projection", ["1 AS n, 2 AS n", "COUNT(*)", "a.id, b.id", "a.*, b.*", "a.id AS n"]
+)
+def test_cap_limit_preserves_tsql_restrictions(
+    method: LimitMethod, top: str, projection: str
+) -> None:
+    """T-SQL restrictions survive caps without imposing derived-table rules."""
+    statement = SQLStatement(
+        f"SELECT TOP {top} {projection} FROM a JOIN b ON a.id = b.id ORDER BY 1",  # noqa: S608
+        "mssql",
+    )
+    original = statement.format()
+
+    statement.cap_limit_value(10, method)
+
+    assert statement.format() == original
+    assert statement.get_limit_value() is None
+
+
 @pytest.mark.parametrize(
     "kql, expected",
     [

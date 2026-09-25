@@ -1812,13 +1812,19 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
         limit: int,
         method: LimitMethod = LimitMethod.FORCE_LIMIT,
     ) -> None:
-        """Preserve nonliteral and modified SQL limits under an outer row cap."""
+        """Preserve complex limits, using a SQL cap only when safe to wrap."""
         if (
             self._parsed.args.get("limit") is not None
             and self.get_limit_value() is None
             and method in {LimitMethod.FORCE_LIMIT, LimitMethod.WRAP_SQL}
             and isinstance(self._parsed, exp.Query)
         ):
+            # SQL Server derived tables reject unnamed or duplicate output
+            # columns, including names hidden behind stars. Preserve the SQL
+            # restriction and let the executor cap returned rows instead.
+            if self._dialect == Dialects.TSQL:
+                return
+
             # PERCENT, WITH TIES and expressions aren't fixed row counts. Keep
             # them intact: replacing them could enlarge a smaller result set.
             self.set_limit_value(limit, LimitMethod.WRAP_SQL)
@@ -1827,7 +1833,7 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
                 "alias",
                 exp.TableAlias(this=exp.to_identifier("__superset_limit")),
             )
-            # SQL Server requires CTEs at statement level, not in a derived table.
+            # Keep CTEs at statement level rather than inside the derived table.
             if cte := subquery.this.args.pop("with_", None):
                 self._parsed.set("with_", cte)
         else:

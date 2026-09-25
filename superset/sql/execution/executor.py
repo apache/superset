@@ -272,6 +272,14 @@ def execute_sql_with_cursor(
         description = cursor.description
         if description:
             rows = database.db_engine_spec.fetch_data(cursor)
+            # SQL restrictions cannot always be safely wrapped or replaced.
+            # Match SQL limit application: cap only the last statement, and
+            # only when the caller supplied a limit (also honoring SQL_MAX_ROW).
+            if i == total - 1 and query.limit is not None:
+                row_limit: int = query.limit
+                if sql_max_row := app.config.get("SQL_MAX_ROW"):
+                    row_limit = min(row_limit, sql_max_row)
+                rows = rows[:row_limit]
             result_set = SupersetResultSet(
                 rows,
                 description,
