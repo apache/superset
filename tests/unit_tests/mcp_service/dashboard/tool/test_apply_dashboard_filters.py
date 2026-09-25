@@ -1250,6 +1250,10 @@ def _mock_values_dataset(
 class _FakeDataCache:
     """A dict-backed stand-in for ``cache_manager.data_cache``."""
 
+    # The backend behind a Flask-Caching ``Cache``; anything but ``NullCache``
+    # means caching is enabled.
+    cache: object = object()
+
     def __init__(self) -> None:
         self.entries: dict[str, Any] = {}
         self.timeouts: dict[str, int] = {}
@@ -1260,6 +1264,10 @@ class _FakeDataCache:
     def set(self, key: str, value: Any, timeout: int) -> None:
         self.entries[key] = value
         self.timeouts[key] = timeout
+
+    def delete(self, key: str) -> bool:
+        self.timeouts.pop(key, None)
+        return self.entries.pop(key, None) is not None
 
 
 @pytest.fixture(autouse=True)

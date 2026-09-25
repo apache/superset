@@ -71,6 +71,7 @@ import pandas as pd
 import pyarrow as pa
 from flask import current_app as app, g, has_app_context
 from flask_babel import gettext as __
+from flask_caching.backends import NullCache
 
 from superset import db
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
@@ -1278,6 +1279,11 @@ class SQLExecutor:
         from superset_core.queries.types import QueryStatus
 
         if result.status != QueryStatus.SUCCESS:
+            return
+
+        # With caching disabled there is nothing to write, so skip building and
+        # measuring the serialized value.
+        if isinstance(cache_manager.data_cache.cache, NullCache):
             return
 
         cache_key = self._generate_cache_key(sql, opts)
