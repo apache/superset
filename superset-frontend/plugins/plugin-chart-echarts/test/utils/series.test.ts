@@ -123,7 +123,6 @@ const {
 } = require('../../src/utils/legendLayout');
 
 const expectedThemeProps = {
-  animation: false,
   selector: ['all', 'inverse'],
   selected: {},
   selectorLabel: {
@@ -132,6 +131,11 @@ const expectedThemeProps = {
     color: theme.colorText,
     borderColor: theme.colorBorder,
   },
+};
+
+const expectedScrollThemeProps = {
+  ...expectedThemeProps,
+  animation: false,
 };
 
 const sortData: DataRecord[] = [
@@ -1040,7 +1044,7 @@ describe('getLegendProps', () => {
       right: 0,
       orient: 'horizontal',
       type: 'scroll',
-      ...expectedThemeProps,
+      ...expectedScrollThemeProps,
     });
   });
 
@@ -1059,7 +1063,7 @@ describe('getLegendProps', () => {
       right: 55,
       orient: 'horizontal',
       type: 'scroll',
-      ...expectedThemeProps,
+      ...expectedScrollThemeProps,
     });
   });
 

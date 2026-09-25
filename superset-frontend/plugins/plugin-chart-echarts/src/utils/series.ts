@@ -827,11 +827,15 @@ export function getLegendProps(
       : 'vertical',
     show,
     type,
-    // A scrolling legend is rebuilt from its first page on every re-render and
-    // then animated back to `scrollDataIndex`, which reads as the legend
-    // sliding away and returning. Turning the animation off makes it render on
-    // the right page to begin with.
-    animation: false,
+    ...(type === LegendType.Scroll
+      ? {
+          // A scrolling legend is rebuilt from its first page on every re-render
+          // and then animated back to `scrollDataIndex`, which reads as the legend
+          // sliding away and returning. Turning the animation off makes it render
+          // on the right page to begin with.
+          animation: false,
+        }
+      : {}),
     selected: legendState ?? {},
     selector: ['all', 'inverse'],
     selectorLabel: {

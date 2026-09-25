@@ -16,10 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { sharedControlComponents } from '@superset-ui/chart-controls';
 import { t } from '@apache-superset/core/translation';
-import { LegendState } from '@superset-ui/core';
 import Echart from '../components/Echart';
 import { EchartsGanttChartTransformedProps } from './types';
 import { EventHandlers } from '../types';
@@ -40,7 +39,6 @@ export default function EchartsGantt(props: EchartsGanttChartTransformedProps) {
     onLegendScroll,
   } = props;
   const extraControlRef = useRef<HTMLDivElement>(null);
-  const legendStateFrameRef = useRef<number>();
   const [extraHeight, setExtraHeight] = useState(0);
 
   useEffect(() => {
@@ -48,30 +46,8 @@ export default function EchartsGantt(props: EchartsGanttChartTransformedProps) {
     setExtraHeight(updatedHeight);
   }, [formData.showExtraControls]);
 
-  useEffect(
-    () => () => {
-      if (legendStateFrameRef.current !== undefined) {
-        cancelAnimationFrame(legendStateFrameRef.current);
-      }
-    },
-    [],
-  );
-
-  const deferLegendStateChange = useCallback(
-    (legendState: LegendState) => {
-      if (legendStateFrameRef.current !== undefined) {
-        cancelAnimationFrame(legendStateFrameRef.current);
-      }
-      legendStateFrameRef.current = requestAnimationFrame(() => {
-        legendStateFrameRef.current = undefined;
-        onLegendStateChanged?.(legendState);
-      });
-    },
-    [onLegendStateChanged],
-  );
-
   const eventHandlers: EventHandlers = useLegendEventHandlers(
-    deferLegendStateChange,
+    onLegendStateChanged,
     onLegendScroll,
   );
 
