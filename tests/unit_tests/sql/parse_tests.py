@@ -18,6 +18,7 @@
 
 
 import logging
+import sqlite3
 
 import pytest
 import sqlglot
@@ -2599,6 +2600,35 @@ LATERAL generate_series(1, value) AS i;
 )
 def test_get_limit_value(sql: str, engine: str, expected: str) -> None:
     assert SQLStatement(sql, engine).get_limit_value() == expected
+
+
+@pytest.mark.parametrize("method", [LimitMethod.FORCE_LIMIT, LimitMethod.WRAP_SQL])
+@pytest.mark.parametrize("limit", [1, 10])
+def test_cap_limit_hoists_cte_with_expression_limit(
+    method: LimitMethod, limit: int
+) -> None:
+    """Hoist CTEs while preserving expression limits and enforcing the outer cap."""
+    sql = (
+        "WITH numbers AS (SELECT 1 AS n UNION ALL SELECT 2 UNION ALL SELECT 3) "
+        "SELECT n FROM numbers ORDER BY n LIMIT (1 + 1)"
+    )
+    statement = SQLStatement(sql, "sqlite")
+    assert statement.get_limit_value() is None
+
+    statement.cap_limit_value(limit, method)
+    rendered = statement.format()
+    parsed = parse_one(rendered, dialect="sqlite")
+    subquery = parsed.args["from_"].this
+
+    assert rendered.startswith("WITH numbers AS (")
+    assert parsed.args["with_"].expressions[0].alias == "numbers"
+    assert subquery.alias == "__superset_limit"
+    assert subquery.this.args.get("with_") is None
+    assert statement.get_limit_value() == limit
+    with sqlite3.connect(":memory:") as connection:
+        original_rows = connection.execute(sql).fetchall()
+        assert original_rows == [(1,), (2,)]
+        assert connection.execute(rendered).fetchall() == original_rows[:limit]
 
 
 @pytest.mark.parametrize("method", [LimitMethod.FORCE_LIMIT, LimitMethod.WRAP_SQL])
