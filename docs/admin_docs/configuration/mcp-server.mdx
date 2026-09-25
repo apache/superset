@@ -1225,7 +1225,9 @@ or unnamed output columns. The executor caps the last statement's returned rows
 at the smaller of the explicit request limit and `SQL_MAX_ROW`, without changing
 percentage, tie, or expression semantics. Cursor reads are bounded by the same
 cap, including across multiple fetch batches, while preserving engine-specific
-result processing. This does not bound the work performed by the database. In
+result processing. This does not bound the work performed by the database.
+Because this cap applies to any row-returning last statement, a non-query
+statement such as `SHOW TABLES` is also truncated to the cap without a warning. In
 `dry_run`, the SQL Server restriction remains unchanged because no results are
 fetched.
 
