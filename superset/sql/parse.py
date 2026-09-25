@@ -799,13 +799,18 @@ class BaseSQLStatement(Generic[InternalRepresentation]):
         schema: str | None,
         predicates: dict[Table, list[InternalRepresentation]],
         method: RLSMethod,
-    ) -> None:
+        subquery_predicates: dict[Table, list[InternalRepresentation]] | None = None,
+    ) -> bool:
         """
         Apply relevant RLS rules to the statement inplace.
 
         :param catalog: The default catalog for non-qualified table names
         :param schema: The default schema for non-qualified table names
         :param method: The method to use for applying the rules.
+        :param subquery_predicates: The rules for tables read inside a sub-query
+            (scalar, ``IN`` or ``EXISTS``), whose rows don't reach the statement's
+            output. Defaults to ``predicates``.
+        :returns: True if any rule was applied, False otherwise.
         """
         raise NotImplementedError()
 
@@ -1974,16 +1979,21 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
         schema: str | None,
         predicates: dict[Table, list[exp.Expression]],
         method: RLSMethod,
-    ) -> None:
+        subquery_predicates: dict[Table, list[exp.Expression]] | None = None,
+    ) -> bool:
         """
         Apply relevant RLS rules to the statement inplace.
 
         :param catalog: The default catalog for non-qualified table names
         :param schema: The default schema for non-qualified table names
         :param method: The method to use for applying the rules.
+        :param subquery_predicates: The rules for tables read inside a sub-query
+            (scalar, ``IN`` or ``EXISTS``), whose rows don't reach the statement's
+            output. Defaults to ``predicates``.
+        :returns: True if any rule was applied, False otherwise.
         """
-        if not predicates:
-            return
+        if not predicates and not subquery_predicates:
+            return False
 
         transformers = {
             RLSMethod.AS_PREDICATE: RLSAsPredicateTransformer,
@@ -1993,13 +2003,24 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
             raise ValueError(f"Invalid RLS method: {method}")
 
         transformer = transformers[method](catalog, schema, predicates)
+        subquery_transformer = transformer
+        scopes = traverse_scope(self._parsed)
+        subquery_scopes: set[int] = set()
+        if subquery_predicates is not None:
+            subquery_transformer = transformers[method](
+                catalog, schema, subquery_predicates
+            )
+            subquery_scopes = _find_subquery_scopes(scopes)
 
         # Rewrite the real table reads -- the same set ``extract_tables_from_statement``
         # authorizes -- so the filtered set equals the authorized set. (A CTE reference
         # sharing a rule's table name is not a read here.)
         seen: set[int] = set()
-        reads: list[exp.Table] = []
-        for scope in traverse_scope(self._parsed):
+        reads: list[tuple[exp.Table, RLSTransformer]] = []
+        for scope in scopes:
+            scope_transformer = (
+                subquery_transformer if id(scope) in subquery_scopes else transformer
+            )
             for source in scope.sources.values():
                 # dedupe by identity: a correlated LATERAL reaches one node twice
                 if (
@@ -2008,15 +2029,23 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
                     and id(source) not in seen
                 ):
                     seen.add(id(source))
-                    reads.append(source)
+                    reads.append((source, scope_transformer))
 
         # Wrap the deepest reads first: a parenthesised-join head carries its join in
         # its args, so wrapping an ancestor before its descendant would strand the
         # descendant read's replacement off the live tree.
-        for node in sorted(reads, key=lambda read: read.depth, reverse=True):
-            replacement = transformer(node)
+        applied = False
+        for node, node_transformer in sorted(
+            reads, key=lambda read: read[0].depth, reverse=True
+        ):
+            if node_transformer.get_predicate(node) is None:
+                continue
+            applied = True
+            replacement = node_transformer(node)
             if replacement is not node:
                 node.replace(replacement)
+
+        return applied
 
 
 class KQLSplitState(enum.Enum):
@@ -2792,6 +2821,41 @@ def _count_weighted_table_references(statement: exp.Expression) -> int:
         for scope in traverse_scope(statement)
         if scope.scope_type != ScopeType.CTE
     )
+
+
+def _find_subquery_scopes(scopes: list[Scope]) -> set[int]:
+    """
+    Find the scopes whose rows only reach a statement through a sub-query.
+
+    That is every ``SUBQUERY`` scope (a scalar, ``IN`` or ``EXISTS`` sub-query), every
+    scope nested inside one, and every CTE one of them reads from, including the
+    scopes nested inside that CTE. A CTE read both from a sub-query and from the
+    statement's ``FROM`` counts as a sub-query, so its reads get the stricter rules.
+    The body of a ``LATERAL`` or ``CROSS APPLY`` is also a ``SUBQUERY`` scope, but its
+    rows reach the output like a join's, so it is left out.
+
+    :param scopes: The scopes of the statement, as returned by ``traverse_scope``
+    :returns: The ``id`` of each scope found
+    """
+    found: set[int] = set()
+    pending = [
+        scope
+        for scope in scopes
+        if scope.scope_type == ScopeType.SUBQUERY
+        and not (scope.parent and scope.parent.scope_type == ScopeType.UDTF)
+    ]
+    while pending:
+        scope = pending.pop()
+        if id(scope) in found:
+            continue
+        found.add(id(scope))
+        pending.extend(child for child in scopes if child.parent is scope)
+        pending.extend(
+            source
+            for source in scope.sources.values()
+            if isinstance(source, Scope) and source.scope_type == ScopeType.CTE
+        )
+    return found
 
 
 def is_cte(source: exp.Table, scope: Scope) -> bool:

@@ -3800,7 +3800,9 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                             self.database,
                             self.database.get_default_catalog(),
                             exclude_dataset_id=self_id,
-                            include_global_guest_rls=False,
+                            # mirrors apply_rls(), which injects global guest
+                            # rules into the sub-queries of the inner SQL
+                            include_global_guest_rls=statement.has_subquery(),
                         )
                         for statement in parsed_script.statements
                         for table in statement.tables

@@ -29,8 +29,11 @@ assists people when migrating to a new version.
 A guest token RLS rule with no `dataset` key applies to every dataset. Such
 rules are now also injected into sub-queries of custom SQL expressions (with
 `ALLOW_ADHOC_SUBQUERY` enabled) and into SQL Lab queries, for every table that
-resolves to a dataset, instead of only into the chart's outer query. A virtual
-dataset's inner SQL is unchanged, since its outer query already applies them.
+resolves to a dataset, instead of only into the chart's outer query. In a
+virtual dataset's SQL they are injected into the tables read inside a sub-query
+(scalar, `IN` or `EXISTS`, including CTEs such a sub-query reads). Tables whose
+rows reach the virtual dataset's output (`FROM`, joins, derived tables,
+`LATERAL`) are still left to the outer query, which already applies the rules.
 
 If a sub-query reads a dataset that lacks a column the rule references, the
 query now fails with a column-not-found error instead of reading rows the rule
