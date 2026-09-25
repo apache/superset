@@ -730,3 +730,60 @@ class TestScreenshotSubclassesDriverBehavior:
 
         assert driver._window == custom_window_size
         assert chart_screenshot.thumb_size == custom_thumb_size
+
+
+class TestScreenshotStandaloneMode:
+    """Pin the standalone mode each screenshot type requests.
+
+    The frontend distinguishes automated captures from live standalone embeds by
+    this value: `isReportScreenshotMode()` in plugin-chart-echarts suppresses
+    animation for captures only, so a capture must not be indistinguishable from
+    a live embed or screenshots can catch a chart mid-draw.
+    """
+
+    def test_chart_screenshot_requests_report_mode(self):
+        """Chart captures request standalone=3, not the live-embed value 1."""
+        from superset.utils.webdriver import ChartStandaloneMode
+
+        chart_screenshot = ChartScreenshot("http://example.com/chart", "digest")
+
+        assert f"standalone={ChartStandaloneMode.REPORT.value}" in chart_screenshot.url
+        assert "standalone=3" in chart_screenshot.url
+        assert "standalone=1" not in chart_screenshot.url
+
+    def test_dashboard_screenshot_requests_report_mode(self):
+        """Dashboard captures already used report mode; keep them aligned."""
+        from superset.utils.screenshots import DashboardScreenshot
+        from superset.utils.webdriver import DashboardStandaloneMode
+
+        dashboard_screenshot = DashboardScreenshot(
+            "http://example.com/dashboard/1/", "digest"
+        )
+
+        assert (
+            f"standalone={DashboardStandaloneMode.REPORT.value}"
+            in dashboard_screenshot.url
+        )
+
+    def test_standalone_modes_are_all_integers(self):
+        """Both enums stay integer-valued so URL modes read consistently.
+
+        `ChartStandaloneMode.HIDE_NAV` was previously the string "true"; the
+        numeric form is what `getUrlParam` normalises legacy "true" links onto.
+        """
+        from superset.utils.webdriver import (
+            ChartStandaloneMode,
+            DashboardStandaloneMode,
+        )
+
+        for mode in (*ChartStandaloneMode, *DashboardStandaloneMode):
+            assert isinstance(mode.value, int), f"{mode!r} is not an int"
+
+    def test_chart_and_dashboard_report_values_match(self):
+        """A single report sentinel keeps the frontend check simple."""
+        from superset.utils.webdriver import (
+            ChartStandaloneMode,
+            DashboardStandaloneMode,
+        )
+
+        assert ChartStandaloneMode.REPORT.value == DashboardStandaloneMode.REPORT.value
