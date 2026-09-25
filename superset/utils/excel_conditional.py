@@ -14,173 +14,365 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-"""
-Apply Table/Pivot Explore conditional formatting to an exported workbook.
+"""Stamp Explore Table / Pivot Table v2 highlights onto an Excel workbook.
 
-Excel color-scale rules paint every cell in a range, including blanks and
-labels. The chart only colors matching numeric cells, so this module fills
-those cells directly instead of attaching a sheet-wide color scale.
+Explore paints matching cells in the browser. Chart XLSX download is written
+in ``QueryContextProcessor.get_data`` before client post-processing, so this
+module is applied there as well as on the reports path.
+
+Rules from ``form_data["conditional_formatting"]`` become native Excel
+conditional formatting (CellIs / formula / color scale / data bar). When that
+list is empty and ``show_cell_bars`` is on, numeric columns get data bars so
+the download matches the Table chart's default gradient.
 """
 
 from __future__ import annotations
 
 import io
-from typing import Any, Mapping, Sequence
+from typing import Any, Optional
 
-from openpyxl.reader.excel import load_workbook
+import pandas as pd
+from openpyxl import load_workbook
+from openpyxl.formatting.rule import (
+    CellIsRule,
+    ColorScaleRule,
+    DataBarRule,
+    FormulaRule,
+)
 from openpyxl.styles import Font, PatternFill
+from openpyxl.utils import get_column_letter
+from openpyxl.workbook import Workbook
+from openpyxl.worksheet.worksheet import Worksheet
 
-# Comparators from ``@superset-ui/chart-controls`` Comparator enum.
-OP_GT = ">"
-OP_LT = "<"
-OP_GTE = "≥"
-OP_LTE = "≤"
-OP_EQ = "="
-OP_NEQ = "≠"
-OP_BETWEEN = "< x <"
-OP_BETWEEN_EQ = "≤ x ≤"
-OP_BETWEEN_LEFT = "≤ x <"
-OP_BETWEEN_RIGHT = "< x ≤"
-OP_NONE = "None"
+from superset.constants import SHOW_VALUES_AS_PERCENT_MODES
+from superset.utils.excel_display import (
+    apply_column_display,
+    refresh_sheet_bounds,
+    styles_from_pivot_form_data,
+    styles_from_table_form_data,
+)
 
+# Theme tokens used by Table / Pivot Table v2 pickers, plus CSS names.
 _NAMED_COLORS = {
-    "Green": (99, 190, 123),
-    "Red": (248, 105, 107),
-    "Yellow": (255, 235, 132),
+    "success": "52C41A",
+    "warning": "FAAD14",
+    "error": "FF4D4F",
+    "red": "FF4D4F",
+    "green": "52C41A",
+    "blue": "1890FF",
+    "yellow": "FAAD14",
+    "orange": "FA8C16",
+    "purple": "722ED1",
+    "cyan": "13C2C2",
+    "colorsuccess": "52C41A",
+    "colorwarning": "FAAD14",
+    "colorerror": "FF4D4F",
+    "colorsuccessbg": "F6FFED",
+    "colorwarningbg": "FFFBE6",
+    "colorerrorbg": "FFF2F0",
 }
 
+_CELL_IS_OPERATORS = {
+    ">": "greaterThan",
+    "<": "lessThan",
+    ">=": "greaterThanOrEqual",
+    "<=": "lessThanOrEqual",
+    "=": "equal",
+    "==": "equal",
+    "!=": "notEqual",
+    "≠": "notEqual",
+    "≥": "greaterThanOrEqual",
+    "≤": "lessThanOrEqual",
+}
 
-def _rgb(color: Any) -> tuple[int, int, int] | None:
-    if isinstance(color, dict) and {"r", "g", "b"} <= set(color):
-        return int(color["r"]), int(color["g"]), int(color["b"])
-    if isinstance(color, str) and color.startswith("#") and len(color) in {7, 9}:
-        return int(color[1:3], 16), int(color[3:5], 16), int(color[5:7], 16)
-    if isinstance(color, str):
-        return _NAMED_COLORS.get(color)
+_RANGE_OPERATORS = {
+    "< x <": (">", "<"),
+    "< x ≤": (">", "<="),
+    "≤ x <": (">=", "<"),
+    "≤ x ≤": (">=", "<="),
+}
+
+_DATA_BAR_POSITIVE = "63BE7B"
+_SCALE_LOW = "FFFFFF"
+_OBJECT_CELL_BAR = "CELL_BAR"
+_OBJECT_TEXT = "TEXT_COLOR"
+
+
+def _hex_rgb(color: Any) -> Optional[str]:
+    """Normalize a picker payload to a 6-digit RGB hex string."""
+    if isinstance(color, dict):
+        hex_value = color.get("hex")
+        if isinstance(hex_value, str):
+            return _hex_rgb(hex_value)
+        red, green, blue = color.get("r"), color.get("g"), color.get("b")
+        if None not in (red, green, blue):
+            return f"{int(red):02X}{int(green):02X}{int(blue):02X}"
+        return None
+    if not isinstance(color, str) or not color:
+        return None
+    token = color.strip().lstrip("#")
+    named = _NAMED_COLORS.get(token.lower().replace("_", "").replace("-", ""))
+    if named:
+        return named
+    if len(token) == 3 and all(ch in "0123456789abcdefABCDEF" for ch in token):
+        return "".join(ch * 2 for ch in token).upper()
+    if len(token) >= 6 and all(ch in "0123456789abcdefABCDEF" for ch in token[:6]):
+        return token[:6].upper()
     return None
 
 
-def _hex(rgb: tuple[int, int, int]) -> str:
-    return f"{rgb[0]:02X}{rgb[1]:02X}{rgb[2]:02X}"
+def _rule_color(rule: dict[str, Any]) -> str:
+    return _hex_rgb(rule.get("colorScheme")) or "52C41A"
 
 
-def _blend(rgb: tuple[int, int, int], opacity: float) -> tuple[int, int, int]:
-    opacity = min(1.0, max(0.0, opacity))
-    red, green, blue = rgb
-    return (
-        int(red * opacity + 255 * (1 - opacity)),
-        int(green * opacity + 255 * (1 - opacity)),
-        int(blue * opacity + 255 * (1 - opacity)),
+def _excel_literal(value: Any) -> str:
+    """Quote a comparison target so Excel treats it as a constant."""
+    if isinstance(value, bool):
+        return "TRUE" if value else "FALSE"
+    if isinstance(value, (int, float)) and not isinstance(value, bool):
+        return str(value)
+    text = str(value).replace('"', '""')
+    return f'"{text}"'
+
+
+def _header_matches(sheet_header: str, column: str) -> bool:
+    """Match a rule column to a header, including Pivot ``SUM(col)`` titles."""
+    left = sheet_header.strip()
+    right = column.strip()
+    if left == right or left.lower() == right.lower():
+        return True
+    return left.endswith(f"({right})") or left.endswith(f"({right.lower()})")
+
+
+def _column_index(sheet: Worksheet, header_row: int, column: str) -> Optional[int]:
+    for col_idx in range(1, sheet.max_column + 1):
+        header_label = ""
+        for row in range(header_row, 0, -1):
+            value = sheet.cell(row=row, column=col_idx).value
+            if value not in (None, ""):
+                header_label = str(value)
+                break
+        if header_label and _header_matches(header_label, column):
+            return col_idx
+    return None
+
+
+def _data_range(sheet: Worksheet, col_idx: int, header_row: int) -> Optional[str]:
+    last_row = sheet.max_row
+    first_row = header_row + 1
+    if last_row < first_row:
+        return None
+    letter = get_column_letter(col_idx)
+    return f"{letter}{first_row}:{letter}{last_row}"
+
+
+def _solid_fill(rgb: str) -> PatternFill:
+    return PatternFill(start_color=rgb, end_color=rgb, fill_type="solid")
+
+
+def _add_formula_rule(
+    sheet: Worksheet,
+    cell_range: str,
+    formula: str,
+    rgb: str,
+    *,
+    text_color: bool,
+) -> None:
+    fill = None if text_color else _solid_fill(rgb)
+    font = Font(color=rgb) if text_color else None
+    sheet.conditional_formatting.add(
+        cell_range,
+        FormulaRule(formula=[formula], fill=fill, font=font),
     )
 
 
-def _as_float(value: Any) -> float | None:
-    if isinstance(value, bool) or value is None:
-        return None
-    try:
-        number = float(value)
-    except (TypeError, ValueError):
-        return None
-    if number != number:  # NaN
-        return None
-    return number
+def _add_cell_is_rule(
+    sheet: Worksheet,
+    cell_range: str,
+    operator: str,
+    formula: list[str],
+    rgb: str,
+    *,
+    text_color: bool,
+) -> None:
+    fill = None if text_color else _solid_fill(rgb)
+    font = Font(color=rgb) if text_color else None
+    sheet.conditional_formatting.add(
+        cell_range,
+        CellIsRule(operator=operator, formula=formula, fill=fill, font=font),
+    )
 
 
-def cell_matches_rule(value: float, rule: Mapping[str, Any]) -> bool:
-    """Whether ``value`` satisfies a chart conditional-formatting comparator."""
-    operator = rule.get("operator") or OP_NONE
-    target = rule.get("targetValue")
-    left = rule.get("targetValueLeft")
-    right = rule.get("targetValueRight")
-    if operator in {OP_NONE, None, ""}:
-        return True
-    if operator == OP_GT:
-        return target is not None and value > target
-    if operator == OP_LT:
-        return target is not None and value < target
-    if operator == OP_GTE:
-        return target is not None and value >= target
-    if operator == OP_LTE:
-        return target is not None and value <= target
-    if operator == OP_EQ:
-        return target is not None and value == target
-    if operator == OP_NEQ:
-        return target is not None and value != target
-    if left is None or right is None:
+def _add_data_bar(sheet: Worksheet, cell_range: str, rgb: str) -> None:
+    sheet.conditional_formatting.add(
+        cell_range,
+        DataBarRule(
+            start_type="min",
+            end_type="max",
+            color=rgb,
+            showValue=True,
+            minLength=None,
+            maxLength=None,
+        ),
+    )
+
+
+def _apply_rule(sheet: Worksheet, header_row: int, rule: dict[str, Any]) -> None:
+    column = rule.get("column")
+    if not isinstance(column, str) or not column:
+        return
+    col_idx = _column_index(sheet, header_row, column)
+    if col_idx is None:
+        return
+    cell_range = _data_range(sheet, col_idx, header_row)
+    if cell_range is None:
+        return
+
+    rgb = _rule_color(rule)
+    operator = rule.get("operator")
+    object_fmt = rule.get("objectFormatting") or ""
+    text_color = object_fmt == _OBJECT_TEXT
+    top_left = cell_range.split(":", 1)[0]
+
+    if object_fmt == _OBJECT_CELL_BAR:
+        _add_data_bar(sheet, cell_range, rgb)
+        return
+
+    if operator in _CELL_IS_OPERATORS:
+        _add_cell_is_rule(
+            sheet,
+            cell_range,
+            _CELL_IS_OPERATORS[operator],
+            [_excel_literal(rule.get("targetValue"))],
+            rgb,
+            text_color=text_color,
+        )
+        return
+
+    if operator in _RANGE_OPERATORS:
+        left_op, right_op = _RANGE_OPERATORS[operator]
+        left = _excel_literal(rule.get("targetValueLeft"))
+        right = _excel_literal(rule.get("targetValueRight"))
+        _add_formula_rule(
+            sheet,
+            cell_range,
+            (
+                f"AND(NOT(ISBLANK({top_left})),"
+                f"{top_left}{left_op}{left},"
+                f"{top_left}{right_op}{right})"
+            ),
+            rgb,
+            text_color=text_color,
+        )
+        return
+
+    if operator in (None, "None", ""):
+        if text_color:
+            _add_formula_rule(
+                sheet,
+                cell_range,
+                f"NOT(ISBLANK({top_left}))",
+                rgb,
+                text_color=True,
+            )
+            return
+        sheet.conditional_formatting.add(
+            cell_range,
+            ColorScaleRule(
+                start_type="min",
+                start_color=_SCALE_LOW,
+                end_type="max",
+                end_color=rgb,
+            ),
+        )
+
+
+def _is_numeric_header(sheet: Worksheet, col_idx: int, header_row: int) -> bool:
+    for row in range(header_row + 1, min(sheet.max_row, header_row + 20) + 1):
+        cell = sheet.cell(row=row, column=col_idx)
+        if cell.value in (None, ""):
+            continue
+        if cell.data_type == "n" or isinstance(cell.value, (int, float)):
+            return True
         return False
-    if operator == OP_BETWEEN:
-        return left < value < right
-    if operator == OP_BETWEEN_EQ:
-        return left <= value <= right
-    if operator == OP_BETWEEN_LEFT:
-        return left <= value < right
-    if operator == OP_BETWEEN_RIGHT:
-        return left < value <= right
     return False
 
 
-def _fill_color(value: float, rule: Mapping[str, Any], column_values: Sequence[float]) -> str | None:
-    rgb = _rgb(rule.get("colorScheme") or rule.get("highColor") or rule.get("lowColor"))
-    if rgb is None:
-        return None
-    use_gradient = rule.get("useGradient")
-    if use_gradient is False:
-        return _hex(rgb)
-    if not column_values:
-        return _hex(rgb)
-    lo, hi = min(column_values), max(column_values)
-    span = hi - lo
-    opacity = 1.0 if span == 0 else 0.15 + 0.85 * abs(value - lo) / span
-    return _hex(_blend(rgb, opacity))
+def _apply_cell_bars(sheet: Worksheet, header_row: int) -> None:
+    """Attach Excel data bars on numeric columns (Table ``show_cell_bars``)."""
+    for col_idx in range(1, sheet.max_column + 1):
+        if not _is_numeric_header(sheet, col_idx, header_row):
+            continue
+        cell_range = _data_range(sheet, col_idx, header_row)
+        if cell_range is None:
+            continue
+        _add_data_bar(sheet, cell_range, _DATA_BAR_POSITIVE)
 
 
 def apply_conditional_formatting(
     workbook_bytes: bytes,
-    rules: Sequence[Mapping[str, Any]] | None,
+    rules: list[dict[str, Any]],
     header_rows: int = 1,
+    *,
+    show_cell_bars: bool = False,
 ) -> bytes:
-    """Paint matching numeric cells on the first sheet."""
-    if not rules:
+    """Attach native Excel CF for Explore rules and optional Table cell bars."""
+    if not rules and not show_cell_bars:
         return workbook_bytes
 
-    workbook = load_workbook(io.BytesIO(workbook_bytes))
+    workbook: Workbook = load_workbook(io.BytesIO(workbook_bytes))
     sheet = workbook.active
+    # xlsxwriter omits a full dimension; without this openpyxl can see only
+    # the header row and skip every highlight.
+    refresh_sheet_bounds(sheet)
     header_row = max(header_rows, 1)
-    headers: dict[int, str] = {}
-    for col_idx in range(1, sheet.max_column + 1):
-        for row in range(header_row, 0, -1):
-            value = sheet.cell(row=row, column=col_idx).value
-            if value not in (None, ""):
-                headers[col_idx] = str(value)
-                break
-
     for rule in rules:
-        column_name = rule.get("column")
-        if not column_name:
-            continue
-        columns = [
-            col for col, header in headers.items()
-            if header == column_name or header.endswith(str(column_name))
-        ]
-        for col_idx in columns:
-            numeric_cells: list[tuple[Any, float]] = []
-            for row in range(header_row + 1, sheet.max_row + 1):
-                cell = sheet.cell(row=row, column=col_idx)
-                number = _as_float(cell.value)
-                if number is None:
-                    continue
-                if cell_matches_rule(number, rule):
-                    numeric_cells.append((cell, number))
-            matching_values = [number for _, number in numeric_cells]
-            for cell, number in numeric_cells:
-                color = _fill_color(number, rule, matching_values)
-                if color is None:
-                    continue
-                if rule.get("toTextColor"):
-                    cell.font = Font(color=color)
-                else:
-                    cell.fill = PatternFill(start_color=color, end_color=color, fill_type="solid")
+        if isinstance(rule, dict):
+            _apply_rule(sheet, header_row, rule)
+    if show_cell_bars and not rules:
+        _apply_cell_bars(sheet, header_row)
 
     output = io.BytesIO()
     workbook.save(output)
     return output.getvalue()
+
+
+def polish_explore_xlsx(
+    workbook_bytes: bytes,
+    df: pd.DataFrame,
+    form_data: dict[str, Any],
+    include_index: bool = False,
+) -> bytes:
+    """Apply Explore number formats and conditional formatting to an XLSX."""
+    viz_type = form_data.get("viz_type")
+    if viz_type not in ("table", "pivot_table_v2"):
+        return workbook_bytes
+
+    header_rows = df.columns.nlevels if isinstance(df.columns, pd.MultiIndex) else 1
+    if include_index:
+        header_rows = max(header_rows, getattr(df.index, "nlevels", 1))
+
+    skip_display = viz_type == "pivot_table_v2" and form_data.get("showValuesAs") in (
+        SHOW_VALUES_AS_PERCENT_MODES
+    )
+    if not skip_display:
+        headers = [str(column) for column in df.columns]
+        if viz_type == "table":
+            styles = styles_from_table_form_data(headers, form_data)
+        else:
+            styles = styles_from_pivot_form_data(headers, form_data)
+        workbook_bytes = apply_column_display(
+            workbook_bytes, styles, header_rows=header_rows
+        )
+
+    rules = form_data.get("conditionalFormatting") or form_data.get(
+        "conditional_formatting"
+    )
+    if not isinstance(rules, list):
+        rules = []
+    return apply_conditional_formatting(
+        workbook_bytes,
+        rules,
+        header_rows=header_rows,
+        show_cell_bars=bool(form_data.get("show_cell_bars")),
+    )

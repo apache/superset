@@ -566,6 +566,15 @@ class QueryContextProcessor:
                 result = excel.df_to_excel(
                     df, index=include_index, **current_app.config["EXCEL_EXPORT"]
                 )
+                # Explore Table / Pivot download uses this path (RESULTS + XLSX),
+                # not apply_client_processing. Stamp formats and CF here.
+                form_data = self._query_context.form_data
+                if isinstance(form_data, dict) and isinstance(result, bytes):
+                    from superset.utils.excel_conditional import polish_explore_xlsx
+
+                    result = polish_explore_xlsx(
+                        result, df, form_data, include_index=include_index
+                    )
             return result or ""
 
         return df.to_dict(orient="records")

@@ -214,6 +214,16 @@ def styles_from_pivot_form_data(
 _NUMERIC_CELL_TYPES = frozenset({"n", "f"})
 
 
+def refresh_sheet_bounds(sheet: Any) -> None:
+    """Drop a stale used-range so max_row/max_column match written cells."""
+    reset = getattr(sheet, "reset_dimensions", None)
+    if callable(reset):
+        reset()
+        return
+    sheet._max_row = None  # noqa: SLF001
+    sheet._max_column = None  # noqa: SLF001
+
+
 def apply_column_display(
     workbook_bytes: bytes,
     styles_by_header: Mapping[str, ExcelColumnDisplay],
@@ -225,6 +235,9 @@ def apply_column_display(
 
     workbook = load_workbook(io.BytesIO(workbook_bytes))
     sheet = workbook.active
+    # xlsxwriter often omits a complete dimension; without this, only the
+    # header row is visible to openpyxl and data cells stay unstyled.
+    refresh_sheet_bounds(sheet)
     header_row = max(header_rows, 1)
     for col_idx in range(1, sheet.max_column + 1):
         header_label = ""

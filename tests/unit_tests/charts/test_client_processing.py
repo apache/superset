@@ -4254,6 +4254,41 @@ def _assert_xlsx_client_processing(index: bool) -> None:
     assert query["rowcount"] == 2
 
 
+@with_config({"EXCEL_EXPORT": {"index": False}})
+def test_apply_client_processing_xlsx_attaches_table_cell_bars() -> None:
+    """Table XLSX export should carry Excel data bars when show_cell_bars is on."""
+    source_df = pd.DataFrame({"city": ["Paris", "London"], "value": [10, 20]})
+    result = {
+        "queries": [
+            {
+                "result_format": ChartDataResultFormat.XLSX,
+                "data": excel.df_to_excel(source_df, index=False),
+            }
+        ]
+    }
+    form_data = {
+        "viz_type": "table",
+        "columns": ["city", "value"],
+        "metrics": ["value"],
+        "show_cell_bars": True,
+        "conditional_formatting": [],
+    }
+
+    processed_result = apply_client_processing(result, form_data)
+    from openpyxl import load_workbook
+    from openpyxl.worksheet.worksheet import Worksheet
+
+    sheet: Worksheet = load_workbook(
+        BytesIO(processed_result["queries"][0]["data"])
+    ).active
+    types = [
+        rule.type
+        for cf_list in sheet.conditional_formatting._cf_rules.values()  # noqa: SLF001
+        for rule in cf_list
+    ]
+    assert "dataBar" in types
+
+
 @with_config({"EXCEL_EXPORT": {"index": True}})
 def test_apply_client_processing_xlsx_format_with_index() -> None:
     """XLSX post-processing should preserve an exported index."""

@@ -1276,42 +1276,14 @@ def _apply_excel_explore_formats(
     include_index: bool,
 ) -> bytes:
     """Apply Explore number/date/alignment formats to an already-written xlsx."""
-    if viz_type == "pivot_table_v2" and form_data.get("showValuesAs") in (
-        SHOW_VALUES_AS_PERCENT_MODES
-    ):
-        return workbook_bytes
+    from superset.utils.excel_conditional import polish_explore_xlsx
 
-    from superset.utils.excel_display import (
-        apply_column_display,
-        styles_from_pivot_form_data,
-        styles_from_table_form_data,
+    merged = dict(form_data)
+    if viz_type:
+        merged["viz_type"] = viz_type
+    return polish_explore_xlsx(
+        workbook_bytes, df, merged, include_index=include_index
     )
-
-    headers = [str(column) for column in df.columns]
-    if viz_type == "table":
-        styles = styles_from_table_form_data(headers, form_data)
-    elif viz_type == "pivot_table_v2":
-        styles = styles_from_pivot_form_data(headers, form_data)
-    else:
-        return workbook_bytes
-
-    header_rows = df.columns.nlevels if isinstance(df.columns, pd.MultiIndex) else 1
-    if include_index:
-        header_rows = max(header_rows, getattr(df.index, "nlevels", 1))
-    workbook_bytes = apply_column_display(workbook_bytes, styles, header_rows=header_rows)
-    from superset.utils.excel_conditional import apply_conditional_formatting
-
-    rules = form_data.get("conditionalFormatting") or form_data.get(
-        "conditional_formatting"
-    )
-    if isinstance(rules, list):
-        workbook_bytes = apply_conditional_formatting(
-            workbook_bytes, rules, header_rows=header_rows
-        )
-    return workbook_bytes
-
-
-def _is_default_index_column(series: pd.Series) -> bool:
 
 
 def _is_default_index_column(series: pd.Series) -> bool:
