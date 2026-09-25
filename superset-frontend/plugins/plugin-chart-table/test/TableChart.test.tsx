@@ -337,15 +337,14 @@ describe('plugin-chart-table', () => {
 
     test('resolves AUTO currency on comparison columns from detected_currency', () => {
       const autoCurrency = { symbol: 'AUTO', symbolPosition: 'prefix' };
+      const comparisonKeys = ['Main metric_1', '# metric_1', '△ metric_1'];
       const transformedProps = transformProps({
         ...testData.comparisonWithConfig,
         rawFormData: {
           ...testData.comparisonWithConfig.rawFormData,
-          column_config: {
-            'Main metric_1': { currencyFormat: autoCurrency },
-            '# metric_1': { currencyFormat: autoCurrency },
-            '△ metric_1': { currencyFormat: autoCurrency },
-          },
+          column_config: Object.fromEntries(
+            comparisonKeys.map(key => [key, { currencyFormat: autoCurrency }]),
+          ),
         },
         datasource: {
           ...testData.comparisonWithConfig.datasource,
@@ -360,7 +359,7 @@ describe('plugin-chart-table', () => {
         ],
       });
 
-      ['Main metric_1', '# metric_1', '△ metric_1'].forEach(key => {
+      comparisonKeys.forEach(key => {
         const formatted = transformedProps.columns
           .find(col => col.key === key)
           ?.formatter?.(100);

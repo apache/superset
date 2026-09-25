@@ -331,6 +331,7 @@ test('does not mistake the all_records percent-metric query for the totals query
 
 test('resolves AUTO currency on comparison columns from detected_currency', () => {
   const autoCurrency = { symbol: 'AUTO', symbolPosition: 'prefix' };
+  const comparisonKeys = ['Main metric_1', '# metric_1', '△ metric_1'];
   const props = createMockChartProps({
     rawFormData: {
       viz_type: 'table',
@@ -339,11 +340,9 @@ test('resolves AUTO currency on comparison columns from detected_currency', () =
       query_mode: QueryMode.Aggregate,
       metrics: ['metric_1'],
       percent_metrics: [],
-      column_config: {
-        'Main metric_1': { currencyFormat: autoCurrency },
-        '# metric_1': { currencyFormat: autoCurrency },
-        '△ metric_1': { currencyFormat: autoCurrency },
-      },
+      column_config: Object.fromEntries(
+        comparisonKeys.map(key => [key, { currencyFormat: autoCurrency }]),
+      ),
       table_timestamp_format: '',
       time_compare: ['1 year ago'],
       comparison_type: 'values',
@@ -369,7 +368,7 @@ test('resolves AUTO currency on comparison columns from detected_currency', () =
   } as unknown as Partial<TableChartProps>);
 
   const { columns } = transformProps(props);
-  ['Main metric_1', '# metric_1', '△ metric_1'].forEach(key => {
+  comparisonKeys.forEach(key => {
     const formatted = columns.find(col => col.key === key)?.formatter?.(100);
     expect(formatted).toContain('£');
   });
