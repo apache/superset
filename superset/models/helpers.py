@@ -50,6 +50,7 @@ import pandas as pd
 import pytz
 import sqlalchemy as sa
 import yaml
+from dateutil.relativedelta import relativedelta
 from flask import current_app as app, g
 from flask_appbuilder import Model
 from flask_appbuilder.models.decorators import renders
@@ -90,6 +91,7 @@ from superset.common.utils.time_range_utils import (
 )
 from superset.connectors.sqla.partition_mapping import (
     build_mirrored_predicates,
+    grain_bucket_width,
     PartitionMapping,
     resolve_partition_mapping,
 )
@@ -204,27 +206,6 @@ def get_effective_hours_offset(
 R_SUFFIX = "__right_suffix"
 
 
-# Escape character for LIKE patterns built from user-supplied search text.
-# Deliberately not a backslash: dialects that escape backslashes when rendering
-# string literals would emit a two-character ESCAPE clause, which is a syntax
-# error on engines that honour standard-conforming strings.
-LIKE_ESCAPE_CHAR = "!"
-
-
-def escape_like_pattern(value: str) -> str:
-    """
-    Neutralize LIKE wildcards in user-supplied search text.
-
-    Without this a user typing ``%`` or ``_`` would match every row, which is
-    both wrong and, on a large table, a scan the search was meant to avoid.
-    """
-    return (
-        value.replace(LIKE_ESCAPE_CHAR, LIKE_ESCAPE_CHAR * 2)
-        .replace("%", f"{LIKE_ESCAPE_CHAR}%")
-        .replace("_", f"{LIKE_ESCAPE_CHAR}_")
-    )
-
-
 def build_like_predicate(
     expr: ColumnElement[Any],
     search: str,
@@ -232,11 +213,16 @@ def build_like_predicate(
     """
     Build a case-insensitive containment predicate for ``expr``.
 
+    Uses ``contains(..., autoescape=True)`` rather than a raw ``LIKE ...
+    ESCAPE`` clause because BigQuery's GoogleSQL dialect has no ESCAPE
+    keyword and rejects it outright; ``contains()`` lets each dialect's
+    compiler render wildcard-escaping in its own supported syntax (BigQuery's
+    compiler swaps in backslash-escaping instead of an ESCAPE clause).
+
     ``lower(expr) LIKE lower('%term%')`` is used rather than ``ILIKE`` because
     the latter is not portable across engines.
     """
-    pattern = f"%{escape_like_pattern(search)}%".lower()
-    return sa.func.lower(expr).like(pattern, escape=LIKE_ESCAPE_CHAR)
+    return sa.func.lower(expr).contains(search.lower(), autoescape=True)
 
 
 def _is_parenthesized(sqla_col: ColumnElement) -> bool:
@@ -3730,6 +3716,19 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                         msg=error_msg,
                     )
                 ) from ex
+            except TypeError as ex:
+                # Raised when a Python builtin invoked from within the template
+                # receives an unexpected type, e.g. `"','".join(filter_values(...))`
+                # where `filter_values()` returns non-string values (numeric filter
+                # values) and `str.join` fails with "expected str instance, int
+                # found". These are not TemplateError/UndefinedError, so they would
+                # otherwise escape as an unhandled 500.
+                raise QueryObjectValidationError(
+                    _(
+                        "Error while rendering virtual dataset query: %(msg)s",
+                        msg=str(ex),
+                    )
+                ) from ex
 
         script = SQLScript(sql, engine=self.db_engine_spec.engine)
         if len(script.statements) > 1:
@@ -4229,6 +4228,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         column_name: str,
         start_dttm: Optional[sa.DateTime],
         end_dttm: Optional[sa.DateTime],
+        widen_bounds_by: Optional[relativedelta] = None,
     ) -> None:
         """
         Record a time range for mirroring onto the partition column.
@@ -4240,6 +4240,19 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
 
         Either bound may be `None` for an open-ended range, in which case only
         the bound that exists is mirrored.
+
+        `widen_bounds_by` is one grain bucket width, passed when the filter this
+        stands in for compares a *truncated* column. The real predicate then
+        keeps rows the raw bounds exclude, and widening both ends by one bucket
+        is the smallest range guaranteed to contain all of them -- see the "Time
+        grains" section of `superset.connectors.sqla.partition_mapping`. Note
+        the widened upper bound is `<=` rather than `<`: `ts < until + width`
+        only gives `T(ts) <= T(until + width)` for a transform that is monotonic
+        but not strictly so, such as `unix_timestamp` on a sub-second column.
+
+        A widened range can also be wide enough to fail `_bounds_are_ordered`
+        against a tighter filter on the same column. That fails open -- no
+        mirroring, no pruning, no dropped rows.
         """
         if mapping is None or column_name != mapping.mapped_column:
             return
@@ -4253,10 +4266,25 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             (col for col in self.columns if col.column_name == column_name), None
         )
         start_dttm, end_dttm = self.adjust_time_bounds(start_dttm, end_dttm, mapped_col)
+
+        # Adjust first, then widen. `adjust_time_bounds` moves the naive UI
+        # bounds into the frame the column is *stored* in, and the grain
+        # truncation in the real predicate happens in that same frame, so the
+        # bucket width has to be added there too. The two commute for the
+        # hour-offset branch but not for the `ZoneInfo` one, where widening
+        # across a DST boundary first lands an hour out.
+        upper_operator = utils.FilterOperator.LESS_THAN
+        if widen_bounds_by is not None:
+            if start_dttm is not None:
+                start_dttm -= widen_bounds_by
+            if end_dttm is not None:
+                end_dttm += widen_bounds_by
+            upper_operator = utils.FilterOperator.LESS_THAN_OR_EQUALS
+
         if start_dttm is not None:
             sink.append((utils.FilterOperator.GREATER_THAN_OR_EQUALS, start_dttm))
         if end_dttm is not None:
-            sink.append((utils.FilterOperator.LESS_THAN, end_dttm))
+            sink.append((upper_operator, end_dttm))
 
     def _collect_partition_mirror_filter(
         self,
@@ -5392,7 +5420,25 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 # than the raw `val`: it is the value the real predicate uses.
                 # `TEMPORAL_RANGE` is collected in its own branch below, where
                 # the range has been resolved into a pair of bounds.
-                if col_obj is not None and op != utils.FilterOperator.TEMPORAL_RANGE:
+                #
+                # A grain makes the real predicate compare the *truncated*
+                # column, so the raw value no longer describes the rows it
+                # matches: drill-to-detail sends `==` on a bucket start, which
+                # every row in the bucket satisfies once truncated. Mirroring it
+                # raw would keep only the bucket's first instant.
+                #
+                # Grained ranges do mirror, by widening (see the TEMPORAL_RANGE
+                # branch below). The same trick is deferred rather than unsafe
+                # here: `==` on a bucket would have to become a two-sided range,
+                # which needs a monotonic transform -- `EQUALS` mirrors without
+                # one today -- and a parse back into a datetime; and a grained
+                # `IN` would need a union of buckets, which this sink cannot
+                # express because its entries are AND-ed.
+                if (
+                    col_obj is not None
+                    and op != utils.FilterOperator.TEMPORAL_RANGE
+                    and not filter_grain
+                ):
                     self._collect_partition_mirror_filter(
                         partition_mapping,
                         partition_mirror,
@@ -5678,13 +5724,29 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                         )
                         if _temporal_filter is not None:
                             target_clause_list.append(_temporal_filter)
-                            self._collect_partition_mirror_range(
-                                partition_mapping,
-                                partition_mirror,
-                                col_obj.column_name,
-                                _since,
-                                _until,
+                            # A grained range truncates the column before
+                            # comparing, so a row in the final partial bucket
+                            # satisfies `DATE_TRUNC(...) < until` while the raw
+                            # upper bound excludes it. Which direction a grain
+                            # rounds is not knowable from the duration -- "week
+                            # ending Saturday" rounds forward, Ocient rounds to
+                            # nearest -- but the displacement is bounded by the
+                            # grain's own bucket width either way, so widening
+                            # both bounds by one bucket is never narrower than
+                            # the real predicate. A grain whose SQL an operator
+                            # supplied has no width we know, and still skips.
+                            widen_by = grain_bucket_width(
+                                flt_grain, db_engine_spec.engine
                             )
+                            if not flt_grain or widen_by is not None:
+                                self._collect_partition_mirror_range(
+                                    partition_mapping,
+                                    partition_mirror,
+                                    col_obj.column_name,
+                                    _since,
+                                    _until,
+                                    widen_bounds_by=widen_by,
+                                )
                     else:
                         raise QueryObjectValidationError(
                             _("Invalid filter operation type: %(op)s", op=op)

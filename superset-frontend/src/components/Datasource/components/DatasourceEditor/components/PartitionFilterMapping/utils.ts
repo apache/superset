@@ -102,6 +102,42 @@ export function mappingIsActive(
   return Boolean(mappedColumn?.partition_value_transform?.trim());
 }
 
+/**
+ * Whether a transform is worth spending a preview request on.
+ *
+ * A necessary condition, never a sufficient one: the server stays the authority
+ * on whether a transform is usable, and anything this cannot see -- an
+ * unparseable expression, a non-deterministic function -- still comes back from
+ * it. What this catches is the cases that are knowably hopeless while the owner
+ * is still typing, which would otherwise spend the per-user preview budget and
+ * leave none for the transform they eventually finish writing.
+ */
+export function transformCanPreview(
+  transform: string | null | undefined,
+  mappedColumn?: string | null,
+  partitionColumn?: string | null,
+): boolean {
+  const trimmed = transform?.trim();
+  if (!trimmed) {
+    return false;
+  }
+  // Without the placeholder there is no value to substitute, so the transform
+  // is inert however well-formed it is.
+  if (!/:value\b/.test(trimmed)) {
+    return false;
+  }
+  // Jinja would render in a different context at a different time from the
+  // chart query, so it is rejected on save -- previewing it is pointless.
+  if (/\{\{|\{%|\{#/.test(trimmed)) {
+    return false;
+  }
+  // A column cannot stand in for itself; the backend rejects this outright.
+  if (mappedColumn && partitionColumn && mappedColumn === partitionColumn) {
+    return false;
+  }
+  return true;
+}
+
 /** Which of the three row-expand treatments a column gets. */
 export function partitionRowState(
   datasource: PartitionMappingDatasource,
@@ -171,45 +207,156 @@ export function previewOperatorFor(
   return column.partition_transform_is_monotonic ? '>=' : '==';
 }
 
+/** Whether a column carries any part of the mapping. */
+function holdsMapping(column: PartitionMappingColumn): boolean {
+  return Boolean(
+    column.partition_value_transform || column.partition_transform_is_monotonic,
+  );
+}
+
+/**
+ * Every column with the mapping's transform cleared.
+ *
+ * Both cardinalities are one, so "no mapping" has to mean no transform on any
+ * column rather than none on whichever column happened to resolve as mapped. A
+ * value left anywhere else is invisible -- only the mapped column's row renders
+ * a transform at all -- and it becomes live again the moment the mapped column
+ * resolves back to it, which re-pointing the default datetime column alone is
+ * enough to do.
+ *
+ * Hands back the array it was given when no column held a transform, so a
+ * caller that clears unconditionally does not invalidate column state whose
+ * identity is what triggers the editor's validation pass.
+ */
+export function clearMappingTransforms<T extends PartitionMappingColumn>(
+  columns: T[],
+): T[] {
+  if (!columns.some(holdsMapping)) {
+    return columns;
+  }
+  return columns.map(column =>
+    holdsMapping(column)
+      ? {
+          ...column,
+          partition_value_transform: null,
+          partition_transform_is_monotonic: false,
+        }
+      : column,
+  );
+}
+
+/**
+ * Columns with the mapping held by `columnName` and nothing else.
+ *
+ * The one place the "exactly one column holds the transform" invariant is
+ * enforced, so the several ways a mapping can move cannot come to disagree
+ * about it. A column name no column answers to -- or no transform to install --
+ * leaves the mapping cleared rather than half-written.
+ */
+function withMappingOn<T extends PartitionMappingColumn>(
+  columns: T[],
+  columnName: string | null | undefined,
+  transform: string | null,
+  isMonotonic: boolean,
+): T[] {
+  const cleared = clearMappingTransforms(columns);
+  if (!columnName || !transform) {
+    return cleared;
+  }
+  return cleared.map(column =>
+    column.column_name === columnName
+      ? {
+          ...column,
+          partition_value_transform: transform,
+          partition_transform_is_monotonic: isMonotonic,
+        }
+      : column,
+  );
+}
+
 /**
  * Columns updated for a mapping moving to `nextColumnName`.
  *
- * Both cardinalities are one, so reassignment replaces: every other column
- * loses its transform. Clearing only the column that *was* mapped would leave
- * a transform behind whenever the mapping moved out of the "no mapping" state,
- * and that stale value would silently become live again the next time the
- * mapped column resolved back to it.
+ * A transform the column already had wins over the engine's default: the owner
+ * wrote it for this column, and offering to overwrite it is not what picking it
+ * up again means. Every other column is cleared, for the reason
+ * `clearMappingTransforms` gives.
  */
 export function applyMappingMove<T extends PartitionMappingColumn>(
   columns: T[],
   nextColumnName: string,
   nextTransform: string,
 ): T[] {
-  return columns.map(column => {
-    if (column.column_name !== nextColumnName) {
-      return column.partition_value_transform ||
-        column.partition_transform_is_monotonic
-        ? {
-            ...column,
-            partition_value_transform: null,
-            partition_transform_is_monotonic: false,
-          }
-        : column;
-    }
-    const nextValue = column.partition_value_transform || nextTransform || null;
-    return {
-      ...column,
-      partition_value_transform: nextValue,
-      // A fresh pre-fill of the identity `:value` may declare monotonicity for
-      // the owner, because that placeholder provably preserves ordering. Any
-      // other pre-fill (an engine default) is the owner's to declare, so leave
-      // whatever the column already carried.
-      partition_transform_is_monotonic:
-        nextValue === IDENTITY_TRANSFORM
-          ? true
-          : column.partition_transform_is_monotonic,
-    };
-  });
+  const next = columns.find(column => column.column_name === nextColumnName);
+  const nextValue = next?.partition_value_transform || nextTransform || null;
+  return withMappingOn(
+    columns,
+    nextColumnName,
+    nextValue,
+    // A fresh pre-fill of the identity `:value` may declare monotonicity for
+    // the owner, because that placeholder provably preserves ordering. Any
+    // other pre-fill (an engine default) is the owner's to declare, so leave
+    // whatever the column already carried.
+    nextValue === IDENTITY_TRANSFORM
+      ? true
+      : Boolean(next?.partition_transform_is_monotonic),
+  );
+}
+
+/**
+ * Columns updated for a mapping following the default datetime column.
+ *
+ * With no override the mapped column *is* `main_dttm_col`, so re-pointing that
+ * column moves the mapping whole rather than orphaning it: the transform and its
+ * ordering declaration travel to the new column, and the old column is left
+ * holding nothing that could come back to life if the default datetime column
+ * ever pointed at it again.
+ *
+ * A destination this list has no row for -- a calculated column, whose row never
+ * renders the transform editor -- carries nothing, and the mapping goes inert
+ * and says so. Writing a live transform onto a column the owner cannot see is
+ * the very thing this is here to prevent.
+ */
+export function applyImplicitMappingMove<T extends PartitionMappingColumn>(
+  columns: T[],
+  previousColumnName: string | null | undefined,
+  nextColumnName: string | null | undefined,
+): T[] {
+  // Re-selecting the column already there is not a move, and reporting it as one
+  // would churn column state the validation pass keys off.
+  if (previousColumnName === nextColumnName) {
+    return columns;
+  }
+  const previous = columns.find(
+    column => column.column_name === previousColumnName,
+  );
+  return withMappingOn(
+    columns,
+    nextColumnName,
+    previous?.partition_value_transform ?? null,
+    Boolean(previous?.partition_transform_is_monotonic),
+  );
+}
+
+/**
+ * The mapped-column override that survives choosing a new partition column.
+ *
+ * The override only means anything relative to a partition column, so clearing
+ * the partition column clears it too -- leaving it behind would silently re-arm
+ * the next mapping. It also has to go when it names the column just chosen: a
+ * column cannot stand in for itself, and the backend rejects that outright.
+ *
+ * `null` falls back to the implicit `main_dttm_col`, which is what an owner who
+ * has not chosen an override gets anyway.
+ */
+export function nextMappedColumnOverride(
+  previousOverride: string | null | undefined,
+  partitionColumn: string | null,
+): string | null {
+  if (!partitionColumn || previousOverride === partitionColumn) {
+    return null;
+  }
+  return previousOverride ?? null;
 }
 
 /**

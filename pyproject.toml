@@ -93,7 +93,6 @@ dependencies = [
     # --------------------------
     "parsedatetime",
     "paramiko>=3.4.0, <4.0", # 4.0 removed DSSKey, still referenced by sshtunnel
-    "pgsanity",
     "Pillow>=12.3.0, <13", # raise floor to match resolved pin; closes SCA false-positive on 11.x-range CVEs already fixed in 12.3.0
     "polyline>=2.0.4, <3.0",
     "pydantic>=2.13.5",
@@ -103,7 +102,7 @@ dependencies = [
     "pygeohash",
     "pyarrow>=25.0.1, <26", # before upgrading pyarrow, check that all db dependencies support this, see e.g. https://github.com/apache/superset/pull/34693
     "pyyaml>=6.0.3, <7.0.0",
-    "PyJWT>=2.13.0, <3.0", # raise floor to match resolved pin; closes SCA false-positive on 2.4.x-range CVEs already fixed in 2.13.0
+    "PyJWT>=2.14.0, <3.0", # raise floor to match resolved pin; closes SCA false-positive on 2.4.x-range CVEs already fixed in 2.13.0
     "redis>=5.0.0, <9.0",
     "rison>=2.0.1, <3.0",
 
@@ -154,7 +153,7 @@ clickhouse = ["clickhouse-connect>=1.8.0, <2.0"]
 # sqlalchemy-cockroachdb itself declares no DBAPI dependency (its own docs
 # require picking one), so pull in the same psycopg2-binary pin as the
 # `postgres` extra -- CockroachDB speaks the Postgres wire protocol.
-cockroachdb = ["sqlalchemy-cockroachdb>=2.0.0, <3", "psycopg2-binary==2.9.12"]
+cockroachdb = ["sqlalchemy-cockroachdb>=2.0.0, <3", "psycopg2-binary==2.9.13"]
 crate = ["sqlalchemy-cratedb>=0.43.1, <1"]
 # sqlalchemy-d1's only release (0.1.0, Nov 2025) pins sqlalchemy<2,>=1.4,
 # explicitly excluding SQLAlchemy 2.0. See superset/db_engine_specs/d1.py's
@@ -167,7 +166,7 @@ d1 = [
 databend = ["databend-sqlalchemy>=0.5.5, <1.0"]
 databricks = [
     "databricks-sql-connector>=4.5.0, <4.6.0",
-    "databricks-sqlalchemy==1.0.5",
+    "databricks-sqlalchemy>=2.0.1, <3",
 ]
 datafusion = ["flightsql-dbapi>=0.2.2, <0.3"]
 db2 = ["ibm-db-sa<=0.4.4, >=0.4.4"]
@@ -192,10 +191,18 @@ elasticsearch = ["elasticsearch-dbapi>=0.2.13, <0.3.0"]
 # SQLAlchemy 2.0 core bump has landed (discussion #40273).
 exasol = ["sqlalchemy-exasol>=6.0.0, <8.0"]
 excel = ["xlrd>=2.0.2, <2.1"]
-# Async dashboard "Export Data/Images to Excel": uploads the workbook to S3 and
-# emails a pre-signed link. boto3 is imported lazily by superset.utils.s3, so
-# installing this extra is only required to actually run exports.
+# S3 storage backend for the async dashboard "Export Data/Images to Excel"
+# feature (EXPORT_STORAGE["backend"] = S3ExportStorage()). boto3 is
+# imported lazily by superset.utils.s3, so installing this extra is only
+# required to actually run exports.
 excel-export = ["boto3"]
+# Google Cloud Storage backend for the same feature (EXPORT_STORAGE
+# ["backend"] = GCSExportStorage()), for a deployment whose export bucket is a
+# native GCS bucket rather than S3. google-cloud-storage is imported lazily by
+# superset.utils.gcs, so this extra is an alternative to excel-export, not an
+# addition to it -- pick whichever matches your bucket's provider.
+# >=1.37 for ``Blob.open``, which superset.utils.gcs streams downloads through.
+excel-export-gcs = ["google-cloud-storage>=1.37"]
 fastmcp = [
     "fastmcp>=3.4.7,<4.0",
     # fastmcp 3.x itself requires mcp<2.0; the upper bound here was looser
@@ -203,10 +210,6 @@ fastmcp = [
     # the conflict (#43876). Capped to match what fastmcp 3.x actually
     # supports until this extra moves to fastmcp 4.x, which accepts mcp 2.x.
     "mcp>=1.29.1,<2.0",
-    # tiktoken backs the response-size-guard token estimator. Without
-    # it, the middleware falls back to a coarser character-based
-    # heuristic that under-counts JSON-heavy MCP responses.
-    "tiktoken>=0.14.0,<1.0",
 ]
 # sqlalchemy-firebird >=2.0.0 unconditionally requires SQLAlchemy 2.0 on
 # Python >=3.8 (which covers Superset's >=3.11 floor), with no dual-compat
@@ -253,9 +256,9 @@ ocient = [
 ]
 oracle = ["oracledb>=4.0.2, <5"]
 parseable = ["sqlalchemy-parseable>=0.1.6,<0.2.0"]
-pinot = ["pinotdb>=5.0.0, <10.0.0"]
+pinot = ["pinotdb[sqlalchemy]>=8.0.0, <10.0.0"]
 playwright = ["playwright>=1.62.0, <2"]
-postgres = ["psycopg2-binary==2.9.12"]
+postgres = ["psycopg2-binary==2.9.13"]
 presto = ["pyhive[presto]>=0.7.0"]
 trino = ["trino>=0.339.0"]
 prophet = ["prophet>=1.4.0, <2"]
@@ -344,7 +347,7 @@ combine_as_imports = true
 include_trailing_comma = true
 line_length = 88
 known_first_party = "superset, apache-superset-core, apache-superset-extensions-cli"
-known_third_party = "alembic, apispec, backoff, celery, click, colorama, cron_descriptor, croniter, cryptography, dateutil, deprecation, flask, flask_appbuilder, flask_babel, flask_caching, flask_compress, flask_jwt_extended, flask_login, flask_migrate, flask_sqlalchemy, flask_talisman, flask_testing, flask_wtf, freezegun, geohash, geopy, holidays, humanize, isodate, jinja2, jwt, markdown, markupsafe, marshmallow, marshmallow-union, msgpack, nh3, numpy, pandas, parameterized, parsedatetime, pgsanity, polyline, rison, progress, pyarrow, sqlalchemy_bigquery, pyhive, pyparsing, pytest, pytest_mock, pytz, redis, requests, setuptools, shillelagh, simplejson, slack, sqlalchemy, sqlalchemy_utils, syntaqlite, typing_extensions, urllib3, werkzeug, wtforms, wtforms_json, yaml"
+known_third_party = "alembic, apispec, backoff, celery, click, colorama, cron_descriptor, croniter, cryptography, dateutil, deprecation, flask, flask_appbuilder, flask_babel, flask_caching, flask_compress, flask_jwt_extended, flask_login, flask_migrate, flask_sqlalchemy, flask_talisman, flask_testing, flask_wtf, freezegun, geohash, geopy, holidays, humanize, isodate, jinja2, jwt, markdown, markupsafe, marshmallow, marshmallow-union, msgpack, nh3, numpy, pandas, parameterized, parsedatetime, polyline, rison, progress, pyarrow, sqlalchemy_bigquery, pyhive, pyparsing, pytest, pytest_mock, pytz, redis, requests, setuptools, shillelagh, simplejson, slack, sqlalchemy, sqlalchemy_utils, syntaqlite, typing_extensions, urllib3, werkzeug, wtforms, wtforms_json, yaml"
 multi_line_output = 3
 order_by_type = false
 
@@ -452,6 +455,9 @@ select = [
     "F",
     "G",
     "I",
+    # f-strings passed to gettext are never translatable, and on Python
+    # 3.12+ babel extracts bogus msgids from their replacement fields.
+    "INT001",
     "N",
     "PT",
     "Q",

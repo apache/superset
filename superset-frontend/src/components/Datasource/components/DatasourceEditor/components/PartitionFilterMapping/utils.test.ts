@@ -17,15 +17,19 @@
  * under the License.
  */
 import {
+  applyImplicitMappingMove,
   applyMappingMove,
+  clearMappingTransforms,
   defaultTransformFor,
   mappedColumnIsImplicit,
   mappingIsActive,
+  nextMappedColumnOverride,
   partitionRowState,
   previewOperatorFor,
   sampleValuesFor,
   resolveMappedColumn,
   suggestedMappedColumn,
+  transformCanPreview,
 } from './utils';
 import type { PartitionMappingColumn } from './types';
 
@@ -217,6 +221,156 @@ test('re-selecting the column already mapped keeps its transform', () => {
   });
 });
 
+test('removing a mapping clears the transform on every column, not just the mapped one', () => {
+  // Removing the override drops the mapping back onto the default datetime
+  // column, so a transform left anywhere else is not dormant -- it is the next
+  // mapping, armed and invisible.
+  const columns = [
+    {
+      column_name: 'event_time',
+      partition_value_transform: 'unix_timestamp(:value)',
+      partition_transform_is_monotonic: true,
+    },
+    {
+      column_name: 'event_time2',
+      partition_value_transform: 'unix_timestamp(:value)',
+      partition_transform_is_monotonic: true,
+    },
+  ];
+
+  const cleared = clearMappingTransforms(columns);
+
+  expect(cleared).toMatchObject([
+    {
+      partition_value_transform: null,
+      partition_transform_is_monotonic: false,
+    },
+    {
+      partition_value_transform: null,
+      partition_transform_is_monotonic: false,
+    },
+  ]);
+});
+
+test('clearing a mapping nothing holds hands back the same columns', () => {
+  // Callers clear unconditionally, and column state's identity is what triggers
+  // the editor's validation pass -- a fresh array every time would run it on
+  // every unrelated edit.
+  const columns = [{ column_name: 'event_time' }, { column_name: 'country' }];
+
+  expect(clearMappingTransforms(columns)).toBe(columns);
+});
+
+test('the mapping follows the default datetime column to its new home', () => {
+  const columns = [
+    {
+      column_name: 'event_time',
+      is_dttm: true,
+      partition_value_transform: 'unix_timestamp(:value)',
+      partition_transform_is_monotonic: true,
+    },
+    { column_name: 'event_time2', is_dttm: true },
+  ];
+
+  const moved = applyImplicitMappingMove(columns, 'event_time', 'event_time2');
+
+  expect(moved[0]).toMatchObject({
+    partition_value_transform: null,
+    partition_transform_is_monotonic: false,
+  });
+  // The ordering declaration travels too: leaving it behind would quietly
+  // downgrade a mirrored range to a mirrored equality.
+  expect(moved[1]).toMatchObject({
+    partition_value_transform: 'unix_timestamp(:value)',
+    partition_transform_is_monotonic: true,
+  });
+});
+
+test('following the default datetime column leaves no transform behind anywhere', () => {
+  const columns = [
+    {
+      column_name: 'event_time',
+      partition_value_transform: 'unix_timestamp(:value)',
+    },
+    { column_name: 'event_time2' },
+    {
+      column_name: 'legacy_time',
+      partition_value_transform: 'to_unixtime(:value)',
+      partition_transform_is_monotonic: true,
+    },
+  ];
+
+  const moved = applyImplicitMappingMove(columns, 'event_time', 'event_time2');
+
+  expect(moved[2]).toMatchObject({
+    partition_value_transform: null,
+    partition_transform_is_monotonic: false,
+  });
+});
+
+test('the mapping cannot follow the default datetime column onto a column this list has no row for', () => {
+  // A calculated column can be the default datetime column but never renders a
+  // transform editor, so carrying one there would make a live mapping the owner
+  // has no way to see or undo.
+  const columns = [
+    {
+      column_name: 'event_time',
+      partition_value_transform: 'unix_timestamp(:value)',
+      partition_transform_is_monotonic: true,
+    },
+  ];
+
+  const moved = applyImplicitMappingMove(columns, 'event_time', 'calc_time');
+
+  expect(moved[0]).toMatchObject({
+    partition_value_transform: null,
+    partition_transform_is_monotonic: false,
+  });
+});
+
+test('a default datetime column with no transform carries none over', () => {
+  const columns = [
+    { column_name: 'event_time' },
+    { column_name: 'event_time2' },
+  ];
+
+  const moved = applyImplicitMappingMove(columns, 'event_time', 'event_time2');
+
+  expect(moved[1].partition_value_transform ?? null).toBeNull();
+});
+
+test('re-selecting the same default datetime column leaves the mapping alone', () => {
+  const columns = [
+    {
+      column_name: 'event_time',
+      partition_value_transform: 'unix_timestamp(:value)',
+    },
+  ];
+
+  expect(applyImplicitMappingMove(columns, 'event_time', 'event_time')).toBe(
+    columns,
+  );
+});
+
+test('clearing the default datetime column clears the mapping transform with it', () => {
+  // With no default datetime column and no override there is no mapped column,
+  // so the transform has nowhere to live and must not wait for one.
+  const columns = [
+    {
+      column_name: 'event_time',
+      partition_value_transform: 'unix_timestamp(:value)',
+      partition_transform_is_monotonic: true,
+    },
+  ];
+
+  const moved = applyImplicitMappingMove(columns, 'event_time', undefined);
+
+  expect(moved[0]).toMatchObject({
+    partition_value_transform: null,
+    partition_transform_is_monotonic: false,
+  });
+});
+
 test('pre-filling the identity :value auto-declares the transform monotonic', () => {
   // `:value` provably preserves ordering, so a fresh pre-fill of it may check
   // the box for the owner rather than making them assert what cannot be false.
@@ -321,4 +475,63 @@ test('a dataset of nothing but the partition column suggests nothing', () => {
   expect(
     suggestedMappedColumn([{ column_name: 'dt_epoch' }], 'dt_epoch'),
   ).toBeNull();
+});
+
+test('a transform without the placeholder is not worth a preview request', () => {
+  // Nothing to substitute, so the transform is inert however well-formed it is
+  // -- and every settled keystroke on the way to writing one would otherwise
+  // spend the per-user budget.
+  expect(transformCanPreview('unix_timestamp(event_time)')).toBe(false);
+  expect(transformCanPreview('unix_timestamp(:values)')).toBe(false);
+  expect(transformCanPreview('unix_timestamp(:value)')).toBe(true);
+});
+
+test('an empty or missing transform is not previewed', () => {
+  expect(transformCanPreview('')).toBe(false);
+  expect(transformCanPreview('   ')).toBe(false);
+  expect(transformCanPreview(null)).toBe(false);
+  expect(transformCanPreview(undefined)).toBe(false);
+});
+
+test('a Jinja transform is not previewed', () => {
+  // Rejected on save, so previewing it only burns budget.
+  expect(transformCanPreview('unix_timestamp({{ current_username() }})')).toBe(
+    false,
+  );
+  expect(transformCanPreview('{% if x %}:value{% endif %}')).toBe(false);
+});
+
+test('a column mapped onto itself is not previewed', () => {
+  // The backend rejects a self-mapping outright.
+  expect(transformCanPreview('lower(:value)', 'dt_epoch', 'dt_epoch')).toBe(
+    false,
+  );
+  expect(transformCanPreview('lower(:value)', 'country', 'region_key')).toBe(
+    true,
+  );
+});
+
+test('the preview gate stays a necessary condition, not a parser', () => {
+  // Unparseable, but only the server can say so -- this must not pretend to.
+  expect(transformCanPreview('unix_timestamp(:value')).toBe(true);
+});
+
+test('choosing a partition column that matches the override clears it', () => {
+  // Keeping it would map the column onto itself, which the backend rejects --
+  // and it is one click away, since the picker offers every column.
+  expect(nextMappedColumnOverride('dt_epoch', 'dt_epoch')).toBeNull();
+});
+
+test('choosing an unrelated partition column keeps the override', () => {
+  expect(nextMappedColumnOverride('event_time', 'dt_epoch')).toBe('event_time');
+});
+
+test('clearing the partition column clears the override with it', () => {
+  // Left behind, it would silently re-arm the next mapping.
+  expect(nextMappedColumnOverride('event_time', null)).toBeNull();
+});
+
+test('no override stays no override', () => {
+  expect(nextMappedColumnOverride(null, 'dt_epoch')).toBeNull();
+  expect(nextMappedColumnOverride(undefined, 'dt_epoch')).toBeNull();
 });

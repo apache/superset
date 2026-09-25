@@ -105,10 +105,12 @@ import {
   PartitionMappingSection,
 } from './components/PartitionFilterMapping';
 import {
+  applyImplicitMappingMove,
   applyMappingMove,
+  clearMappingTransforms,
   defaultTransformFor,
+  nextMappedColumnOverride,
   partitionFilterMappingEnabled,
-  resolveMappedColumn,
 } from './components/PartitionFilterMapping/utils';
 import {
   DEFAULT_COLUMNS_FOLDER_UUID,
@@ -1312,11 +1314,10 @@ function DatasourceEditor({
       setDatasource(prev => ({
         ...prev,
         partition_column: columnName,
-        // The override only means anything relative to a partition column, and
-        // leaving it behind would silently re-arm the next mapping.
-        partition_mapped_column: columnName
-          ? prev.partition_mapped_column
-          : null,
+        partition_mapped_column: nextMappedColumnOverride(
+          prev.partition_mapped_column,
+          columnName,
+        ),
       }));
       // Designating a partition column must not touch the column's own
       // `filterable`/`groupby` flags: hiding it from Explore is a per-column
@@ -1356,25 +1357,20 @@ function DatasourceEditor({
   );
 
   const handleRemoveMapping = useCallback(() => {
-    const mappedColumn = resolveMappedColumn(datasource);
-    setDatabaseColumns(prev =>
-      prev.map(column =>
-        column.column_name === mappedColumn
-          ? {
-              ...column,
-              partition_value_transform: null,
-              partition_transform_is_monotonic: false,
-            }
-          : column,
-      ),
-    );
+    // Every column, not just the one that resolved as mapped: with the override
+    // gone the mapping falls back to the default datetime column, so a
+    // transform left anywhere else would come straight back to life -- which is
+    // the one thing "remove" has to rule out. `main_dttm_col` can name a
+    // calculated column, so both lists are cleared.
+    setDatabaseColumns(prev => clearMappingTransforms(prev));
+    setCalculatedColumns(prev => clearMappingTransforms(prev));
     // The partition column stays designated and the override is cleared. A null
     // `partition_mapped_column` means "follow `main_dttm_col`", so when the
     // dataset has a default datetime column the mapping returns to it rather
     // than going away. Only without one does this reach the 1g state -- no
     // mapped column, nothing mirrored onto the partition column.
     setDatasource(prev => ({ ...prev, partition_mapped_column: null }));
-  }, [datasource]);
+  }, []);
 
   const handleMonotonicChange = useCallback(
     (columnName: string, isMonotonic: boolean) => {
@@ -1387,6 +1383,34 @@ function DatasourceEditor({
       );
     },
     [],
+  );
+
+  const handleMainDttmColChange = useCallback(
+    (value?: string) => {
+      // Without an override the mapped column *is* the default datetime column,
+      // so re-pointing it moves the mapping rather than stranding it: the
+      // transform travels to the new column and is gone from the old one, where
+      // it would be invisible and still saved. Tested on the partition column
+      // plus the absent override rather than on `mappedColumnIsImplicit`, which
+      // needs a datetime column already set and so misses the transition that
+      // sets the first one.
+      if (datasource.partition_column && !datasource.partition_mapped_column) {
+        setDatabaseColumns(prev =>
+          applyImplicitMappingMove(prev, datasource.main_dttm_col, value),
+        );
+        // A calculated column can be the default datetime column but can never
+        // show a transform, so the mapping never lands there -- but anything
+        // already stored on one still has to go, because it is saved and the
+        // query path reads it.
+        setCalculatedColumns(prev => clearMappingTransforms(prev));
+      }
+      setDatasource(prev => ({ ...prev, main_dttm_col: value }));
+    },
+    [
+      datasource.main_dttm_col,
+      datasource.partition_column,
+      datasource.partition_mapped_column,
+    ],
   );
 
   // Effect to trigger validation after user-initiated column changes
@@ -1875,10 +1899,7 @@ function DatasourceEditor({
               options={datetimeColumns}
               value={datasource.main_dttm_col}
               onChange={value =>
-                onDatasourceChange({
-                  ...datasource,
-                  main_dttm_col: value as string | undefined,
-                })
+                handleMainDttmColChange(value as string | undefined)
               }
               placeholder={t('Select datetime column')}
               allowClear
@@ -1925,6 +1946,7 @@ function DatasourceEditor({
     calculatedColumns,
     handlePartitionColumnChange,
     handleNavigateToColumn,
+    handleMainDttmColChange,
     theme?.sizeUnit,
     datasource,
     onDatasourceChange,

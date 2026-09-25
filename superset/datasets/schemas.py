@@ -31,7 +31,6 @@ from marshmallow import (
 from marshmallow.validate import Length, OneOf, Range
 
 from superset import security_manager
-from superset.connectors.sqla.models import SqlaTable
 from superset.connectors.sqla.partition_mapping import MIRRORABLE_OPERATORS
 from superset.exceptions import SupersetMarshmallowValidationError
 from superset.models.sql_types import parse_currency_string
@@ -113,7 +112,12 @@ class DatasetColumnsPutSchema(Schema):
             )
         },
     )
-    partition_transform_is_monotonic = fields.Boolean(load_default=False)
+    # Deliberately no `load_default`: `DatasetDAO.update_columns` applies the
+    # loaded payload field by field onto the stored column, so a default here
+    # would let a partial column payload clear a monotonic flag the request
+    # never mentioned -- and silently stop mirroring range filters. Absent
+    # means "unchanged"; new columns fall back to the model's own default.
+    partition_transform_is_monotonic = fields.Boolean(allow_none=True)
     uuid = fields.UUID(allow_none=True)
 
 
@@ -520,15 +524,26 @@ class GetOrCreateDatasetSchema(Schema):
 
 
 class PartitionMappingPreviewSchema(Schema):
-    """Payload for the dataset editor's partition mapping preview panel."""
+    """
+    Payload for the dataset editor's partition mapping preview panel.
+
+    Every field is bounded. The endpoint parses `value_transform` with sqlglot
+    and then evaluates it against the warehouse, so an unbounded string is
+    parser time and warehouse time an owner can spend at will; the bounds keep
+    a malformed or oversized payload a 400 rather than work.
+    """
 
     mapped_column = fields.String(
         required=True,
+        # Matches the `String(250)` the mapping columns are stored in.
+        validate=Length(1, 250),
         metadata={"description": "Column whose filters would be mirrored"},
     )
     partition_column = fields.String(
         load_default=None,
         allow_none=True,
+        # Matches the `String(250)` the mapping columns are stored in.
+        validate=Length(1, 250),
         metadata={
             "description": (
                 "Candidate partition column. The editor previews a mapping "
@@ -540,10 +555,16 @@ class PartitionMappingPreviewSchema(Schema):
     value_transform = fields.String(
         required=True,
         allow_none=True,
+        # The stored column is `Text`, so this bounds the *request*, not the
+        # feature: a transform is one expression around `:value`, and 1024
+        # characters is far past anything that reads as one.
+        validate=Length(1, 1024),
         metadata={"description": "SQL expression containing a :value placeholder"},
     )
     sample_values = fields.List(
-        fields.String(),
+        # Bound the items as well as the list: fifty unbounded strings is the
+        # same unbounded payload with extra steps.
+        fields.String(validate=Length(1, 250)),
         required=True,
         validate=Length(1, 50),
         metadata={
