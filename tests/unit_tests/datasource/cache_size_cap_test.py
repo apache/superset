@@ -158,3 +158,55 @@ def test_compatible_normal_result_is_cached(
         "compatible_metrics": ["count"],
         "compatible_dimensions": ["country"],
     }
+
+
+@pytest.fixture
+def null_data_cache(mocker: MockerFixture) -> MagicMock:
+    """A data cache backed by ``NullCache`` (caching disabled)."""
+    from flask_caching.backends import NullCache
+
+    cache = mocker.patch("superset.datasource.api.cache_manager").data_cache
+    cache.get.return_value = None
+    cache.cache = NullCache()
+    return cache
+
+
+def test_column_values_null_cache_skips_serialization(
+    client: Any,
+    full_api_access: None,
+    datasource: MagicMock,
+    null_data_cache: MagicMock,
+    stats_logger: MagicMock,
+    mocker: MockerFixture,
+) -> None:
+    """With caching disabled nothing is written and the payload is never pickled
+    to measure it against ``DATA_CACHE_MAX_VALUE_SIZE``."""
+    datasource.values_for_column.return_value = ["a", "b"]
+    mock_dumps = mocker.patch("superset.utils.cache.pickle.dumps")
+
+    response = _get_values(client)
+
+    assert response.status_code == 200
+    assert response.json["result"] == ["a", "b"]
+    mock_dumps.assert_not_called()
+    null_data_cache.set.assert_not_called()
+
+
+def test_compatible_null_cache_skips_serialization(
+    client: Any,
+    full_api_access: None,
+    datasource: MagicMock,
+    null_data_cache: MagicMock,
+    stats_logger: MagicMock,
+    mocker: MockerFixture,
+) -> None:
+    """With caching disabled nothing is written and the result is never pickled."""
+    datasource.get_compatible_metrics.return_value = ["count"]
+    datasource.get_compatible_dimensions.return_value = ["country"]
+    mock_dumps = mocker.patch("superset.utils.cache.pickle.dumps")
+
+    response = _post_compatible(client)
+
+    assert response.status_code == 200
+    mock_dumps.assert_not_called()
+    null_data_cache.set.assert_not_called()

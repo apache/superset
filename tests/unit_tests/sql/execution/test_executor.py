@@ -2683,7 +2683,10 @@ def test_async_handle_cancel_query_not_found(
 
 
 def test_execute_uses_database_cache_timeout(
-    mocker: MockerFixture, database: Database, app_context: None
+    mocker: MockerFixture,
+    database: Database,
+    app_context: None,
+    enabled_data_cache: MagicMock,
 ) -> None:
     """Test that database cache timeout is used when available."""
     from superset.sql.execution.executor import SQLExecutor
@@ -2704,19 +2707,21 @@ def test_execute_uses_database_cache_timeout(
 
     # Mock cache operations
     mocker.patch.object(SQLExecutor, "_get_from_cache", return_value=None)
-    mock_cache_set = mocker.patch("superset.extensions.cache_manager.data_cache.set")
+    mock_cache_set = enabled_data_cache.set
 
     result = database.execute("SELECT * FROM users")
 
     assert result.status == QueryStatus.SUCCESS
     # Verify cache timeout used
-    if mock_cache_set.called:
-        call_kwargs = mock_cache_set.call_args[1]
-        assert call_kwargs.get("timeout") == 600
+    mock_cache_set.assert_called_once()
+    assert mock_cache_set.call_args.kwargs["timeout"] == 600
 
 
 def test_execute_uses_custom_cache_timeout_option(
-    mocker: MockerFixture, database: Database, app_context: None
+    mocker: MockerFixture,
+    database: Database,
+    app_context: None,
+    enabled_data_cache: MagicMock,
 ) -> None:
     """Test that custom cache timeout from options is used."""
     from superset.sql.execution.executor import SQLExecutor
@@ -2735,16 +2740,15 @@ def test_execute_uses_custom_cache_timeout_option(
 
     # Mock cache operations
     mocker.patch.object(SQLExecutor, "_get_from_cache", return_value=None)
-    mock_cache_set = mocker.patch("superset.extensions.cache_manager.data_cache.set")
+    mock_cache_set = enabled_data_cache.set
 
     options = QueryOptions(cache=CacheOptions(timeout=1200))
     result = database.execute("SELECT * FROM users", options=options)
 
     assert result.status == QueryStatus.SUCCESS
     # Verify custom timeout used
-    if mock_cache_set.called:
-        call_kwargs = mock_cache_set.call_args[1]
-        assert call_kwargs.get("timeout") == 1200
+    mock_cache_set.assert_called_once()
+    assert mock_cache_set.call_args.kwargs["timeout"] == 1200
 
 
 # =============================================================================
@@ -2885,7 +2889,10 @@ def test_try_get_cached_result_with_mutation(
 
 
 def test_store_in_cache_with_failed_status(
-    mocker: MockerFixture, database: Database, app_context: None
+    mocker: MockerFixture,
+    database: Database,
+    app_context: None,
+    enabled_data_cache: MagicMock,
 ) -> None:
     """Test that failed queries are not cached."""
     from superset_core.queries.types import QueryResult as QueryResultType
@@ -2899,7 +2906,7 @@ def test_store_in_cache_with_failed_status(
         error_message="Test error",
     )
 
-    mock_cache_set = mocker.patch("superset.extensions.cache_manager.data_cache.set")
+    mock_cache_set = enabled_data_cache.set
 
     executor._store_in_cache(failed_result, "SELECT 1", QueryOptions())
 
@@ -2908,7 +2915,10 @@ def test_store_in_cache_with_failed_status(
 
 
 def test_store_in_cache_with_no_data(
-    mocker: MockerFixture, database: Database, app_context: None
+    mocker: MockerFixture,
+    database: Database,
+    app_context: None,
+    enabled_data_cache: MagicMock,
 ) -> None:
     """Test that DML queries (with no data) are cached."""
     from superset_core.queries.types import (
@@ -2932,7 +2942,7 @@ def test_store_in_cache_with_no_data(
         ],
     )
 
-    mock_cache_set = mocker.patch("superset.extensions.cache_manager.data_cache.set")
+    mock_cache_set = enabled_data_cache.set
 
     executor._store_in_cache(result_no_data, "INSERT INTO t VALUES (1)", QueryOptions())
 
@@ -3344,7 +3354,10 @@ def test_get_from_cache_skips_when_identity_unknown(
 
 
 def test_store_in_cache_skips_when_identity_unknown(
-    mocker: MockerFixture, database: Database, app_context: None
+    mocker: MockerFixture,
+    database: Database,
+    app_context: None,
+    enabled_data_cache: MagicMock,
 ) -> None:
     """
     ``_store_in_cache`` must not write to the cache backend at all when
@@ -3355,13 +3368,12 @@ def test_store_in_cache_skips_when_identity_unknown(
         StatementResult,
     )
 
-    from superset.extensions import cache_manager
     from superset.sql.execution.executor import SQLExecutor
 
     database.impersonate_user = True
     executor = SQLExecutor(database)
     mocker.patch("superset.sql.execution.executor.utils.get_user_id", return_value=None)
-    mock_cache_set = mocker.patch.object(cache_manager.data_cache, "set")
+    mock_cache_set = enabled_data_cache.set
 
     result = QueryResultType(
         status=QueryStatus.SUCCESS,
@@ -3593,12 +3605,12 @@ def test_truncation_survives_cache_round_trip(
     mocker: MockerFixture,
     database: Database,
     app_context: None,
+    enabled_data_cache: MagicMock,
     truncated: bool,
 ) -> None:
     """Cache serialization retains fetch truncation independently of row count."""
     from superset_core.queries.types import QueryResult, StatementResult
 
-    from superset.extensions import cache_manager
     from superset.sql.execution.executor import SQLExecutor
 
     executor = SQLExecutor(database)
@@ -3614,18 +3626,19 @@ def test_truncation_survives_cache_round_trip(
             )
         ],
     )
-    cache_set = mocker.patch.object(cache_manager.data_cache, "set")
+    cache_set = enabled_data_cache.set
     executor._store_in_cache(result, "SELECT 1", QueryOptions())
-    mocker.patch.object(
-        cache_manager.data_cache, "get", return_value=cache_set.call_args.args[1]
-    )
+    enabled_data_cache.get.return_value = cache_set.call_args.args[1]
     cached = executor._get_from_cache("SELECT 1", QueryOptions())
     assert cached is not None
     assert cached.statements[0].truncated is truncated
 
 
 def _store_in_cache_with_cap(
-    mocker: MockerFixture, database: Database, row_count: int
+    mocker: MockerFixture,
+    database: Database,
+    data_cache: MagicMock,
+    row_count: int,
 ) -> tuple[MagicMock, MagicMock, MagicMock]:
     """Run ``_store_in_cache`` for a ``row_count``-row result under a 1 KB cap.
 
@@ -3636,7 +3649,6 @@ def _store_in_cache_with_cap(
         StatementResult,
     )
 
-    from superset.extensions import cache_manager
     from superset.sql.execution.executor import SQLExecutor
 
     stats_logger = MagicMock()
@@ -3648,7 +3660,7 @@ def _store_in_cache_with_cap(
             "CACHE_DEFAULT_TIMEOUT": 300,
         },
     )
-    mock_cache_set = mocker.patch.object(cache_manager.data_cache, "set")
+    mock_cache_set = data_cache.set
     mock_logger = mocker.patch("superset.utils.cache.logger")
 
     result = QueryResultType(
@@ -3671,13 +3683,16 @@ def _store_in_cache_with_cap(
 
 
 def test_store_in_cache_skips_oversized_result(
-    mocker: MockerFixture, database: Database, app_context: None
+    mocker: MockerFixture,
+    database: Database,
+    app_context: None,
+    enabled_data_cache: MagicMock,
 ) -> None:
     """A result larger than ``DATA_CACHE_MAX_VALUE_SIZE`` is not written; the skip
     is logged and counted. A later ``_get_from_cache`` simply misses and the query
     re-runs."""
     mock_cache_set, stats_logger, mock_logger = _store_in_cache_with_cap(
-        mocker, database, row_count=500
+        mocker, database, enabled_data_cache, row_count=500
     )
 
     mock_cache_set.assert_not_called()
@@ -3686,12 +3701,54 @@ def test_store_in_cache_skips_oversized_result(
 
 
 def test_store_in_cache_writes_result_under_cap(
-    mocker: MockerFixture, database: Database, app_context: None
+    mocker: MockerFixture,
+    database: Database,
+    app_context: None,
+    enabled_data_cache: MagicMock,
 ) -> None:
     """A result under ``DATA_CACHE_MAX_VALUE_SIZE`` is cached as usual."""
     mock_cache_set, stats_logger, _ = _store_in_cache_with_cap(
-        mocker, database, row_count=2
+        mocker, database, enabled_data_cache, row_count=2
     )
 
     mock_cache_set.assert_called_once()
     stats_logger.incr.assert_not_called()
+
+
+def test_store_in_cache_null_cache_skips_serialization(
+    mocker: MockerFixture, database: Database, app_context: None
+) -> None:
+    """With caching disabled (``NullCache``) nothing is written and the result is
+    never pickled to measure it against ``DATA_CACHE_MAX_VALUE_SIZE``."""
+    from flask_caching.backends import NullCache
+    from superset_core.queries.types import (
+        QueryResult as QueryResultType,
+        StatementResult,
+    )
+
+    from superset.sql.execution.executor import SQLExecutor
+
+    data_cache = MagicMock()
+    data_cache.cache = NullCache()
+    mocker.patch(
+        "superset.sql.execution.executor.cache_manager",
+        MagicMock(data_cache=data_cache),
+    )
+    mocker.patch.dict(current_app.config, {"DATA_CACHE_MAX_VALUE_SIZE": 1024})
+    mock_dumps = mocker.patch("superset.utils.cache.pickle.dumps")
+
+    result = QueryResultType(
+        status=QueryStatus.SUCCESS,
+        statements=[
+            StatementResult(
+                original_sql="SELECT 1",
+                executed_sql="SELECT 1",
+                data=pd.DataFrame({"a": [1]}),
+                row_count=1,
+            )
+        ],
+    )
+    SQLExecutor(database)._store_in_cache(result, "SELECT 1", QueryOptions())
+
+    mock_dumps.assert_not_called()
+    data_cache.set.assert_not_called()
