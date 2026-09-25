@@ -29,10 +29,15 @@ import {
   getChartControlPanelRegistry,
   isFeatureEnabled,
   FeatureFlag,
+  NO_TIME_RANGE,
 } from '@superset-ui/core';
+import { sharedControls } from '@superset-ui/chart-controls';
 import { defaultControls, defaultState } from 'src/explore/store';
 import { ExplorePageState } from 'src/explore/types';
-import { getFormDataFromControls } from 'src/explore/controlUtils';
+import {
+  getControlStateFromControlConfig,
+  getFormDataFromControls,
+} from 'src/explore/controlUtils';
 import {
   ControlPanelsContainer,
   ControlPanelsContainerProps,
@@ -41,6 +46,7 @@ import {
 jest.mock('@superset-ui/core', () => ({
   ...jest.requireActual('@superset-ui/core'),
   isFeatureEnabled: jest.fn(),
+  fetchTimeRange: jest.fn(async () => ({ value: 'Actual time range' })),
 }));
 
 const mockIsFeatureEnabled = isFeatureEnabled as jest.Mock;
@@ -622,5 +628,124 @@ describe('ControlPanelsContainer', () => {
     getChartControlPanelRegistry().remove('line');
     getChartControlPanelRegistry().remove('bar');
     getChartControlPanelRegistry().remove('pie');
+  });
+
+  // The partition-pruning glyph on the standalone Time Range control is
+  // recomputed here, at render, rather than by the explore reducer: a control
+  // that listed itself in `validationDependencies` was rebuilt by the reducer
+  // from its own superseded value, which dropped every Time Range change on the
+  // charts that still carry this control. `shouldMapStateToProps` gives the
+  // glyph the freshness it needs without the reducer ever touching the value.
+  const PARTITION_FILTER_MAPPING = {
+    partition_column: 'dt_epoch',
+    mapped_column: 'event_time',
+    active: true,
+    is_monotonic: true,
+    mirrorable_operators: ['<', '<=', '==', '>', '>=', 'IN', 'TEMPORAL_RANGE'],
+  };
+
+  const mirroredDatasource = {
+    main_dttm_col: 'event_time',
+    always_filter_main_dttm: false,
+    columns: [{ column_name: 'event_time', is_dttm: true }],
+    metrics: [],
+    partition_filter_mapping: PARTITION_FILTER_MAPPING,
+  };
+
+  /**
+   * Props shaped the way SET_FIELD_VALUE leaves the store: `form_data` and the
+   * control's `value` carry the new range, while the control state still holds
+   * the `partitionMapping` computed for `initialTimeRange`. Recomputing that
+   * stale prop is the container's job, so building the control fresh for each
+   * range would test nothing.
+   */
+  function mirroredTimeRangeProps(
+    timeRange: string,
+    initialTimeRange = timeRange,
+  ) {
+    const controlPanelState = {
+      controls: {},
+      form_data: {
+        viz_type: 'table',
+        granularity_sqla: 'event_time',
+        time_range: initialTimeRange,
+      },
+      datasource: mirroredDatasource,
+    };
+    const controlState = getControlStateFromControlConfig(
+      sharedControls.time_range as Parameters<
+        typeof getControlStateFromControlConfig
+      >[0],
+      controlPanelState as Parameters<
+        typeof getControlStateFromControlConfig
+      >[1],
+      initialTimeRange,
+    )!;
+    const formData = {
+      viz_type: 'table',
+      granularity_sqla: 'event_time',
+      time_range: timeRange,
+    };
+
+    return {
+      ...getDefaultProps(),
+      controls: {
+        time_range: { ...controlState, value: timeRange },
+      } as unknown as ControlPanelsContainerProps['controls'],
+      form_data: formData,
+      exploreState: { form_data: formData, datasource: mirroredDatasource },
+    } as unknown as ControlPanelsContainerProps;
+  }
+
+  function registerTimeRangeOnlyPanel() {
+    getChartControlPanelRegistry().remove('table');
+    getChartControlPanelRegistry().registerValue('table', {
+      controlPanelSections: [
+        {
+          label: t('Time'),
+          expanded: true,
+          controlSetRows: [['time_range']],
+        },
+      ],
+    });
+  }
+
+  test('the partition glyph shows on a time range that is mirrored', async () => {
+    registerTimeRangeOnlyPanel();
+
+    render(
+      <ControlPanelsContainer {...mirroredTimeRangeProps('Last week')} />,
+      {
+        useRedux: true,
+      },
+    );
+
+    expect(
+      await screen.findByTestId('partition-pruning-indicator'),
+    ).toBeInTheDocument();
+  });
+
+  test('the partition glyph drops when the time range becomes "No filter"', async () => {
+    registerTimeRangeOnlyPanel();
+
+    const { rerender } = render(
+      <ControlPanelsContainer {...mirroredTimeRangeProps('Last week')} />,
+      { useRedux: true },
+    );
+    expect(
+      await screen.findByTestId('partition-pruning-indicator'),
+    ).toBeInTheDocument();
+
+    rerender(
+      <ControlPanelsContainer
+        {...mirroredTimeRangeProps(NO_TIME_RANGE, 'Last week')}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(
+        screen.queryByTestId('partition-pruning-indicator'),
+      ).not.toBeInTheDocument();
+    });
   });
 });

@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { NO_TIME_RANGE, QueryFormData } from '@superset-ui/core';
+import { QueryFormData } from '@superset-ui/core';
 import {
   sections,
   sharedControls,
@@ -173,14 +173,17 @@ test('SET_FIELD_VALUE clears the custom-shift date error when time_compare leave
   expect(afterSwitch.controls.start_date_offset.validationErrors).toEqual([]);
 });
 
-// Regression guard for the partition-pruning indicator on the standalone Time
-// Range control. `time_range`'s mapStateToProps decides whether the time range
-// is mirrored onto a partition column, which depends on `time_range` itself and
-// on `granularity_sqla`. SET_FIELD_VALUE rebuilds the changed control against
-// the *pre-action* form data and rebuilds no other control at all, so without
-// `validationDependencies` the glyph keeps rendering after the range is set to
-// "No filter" or the temporal column is switched away from the mapped one --
-// promising a predicate the generated SQL does not carry.
+// Regression guards for the standalone Time Range control.
+//
+// `time_range`'s mapStateToProps decides whether the range is mirrored onto a
+// partition column, and its two inputs are handled by two different mechanisms.
+// The temporal column lives on another control, so `validationDependencies`
+// covers it here. The range itself is recomputed at render from the live
+// explore state (`ControlPanelsContainer`), because a control that named itself
+// as a dependency would be rebuilt by the reducer from its own superseded
+// value -- which silently dropped every Time Range change on the charts that
+// still carry this control. That transition is covered in
+// `src/explore/components/ControlPanelsContainer.test.tsx`.
 const PARTITION_FILTER_MAPPING = {
   partition_column: 'dt_epoch',
   mapped_column: 'event_time',
@@ -221,21 +224,6 @@ function mirroredTimeRangeState(): ExploreState {
   } as ExploreState;
 }
 
-test('SET_FIELD_VALUE drops the time range partition mapping when the range becomes "No filter"', () => {
-  const initialState = mirroredTimeRangeState();
-  expect(initialState.controls.time_range.partitionMapping).toEqual(
-    PARTITION_FILTER_MAPPING,
-  );
-
-  const afterNoFilter = exploreReducer(
-    initialState,
-    setControlValue('time_range', NO_TIME_RANGE) as Parameters<
-      typeof exploreReducer
-    >[1],
-  );
-  expect(afterNoFilter.controls.time_range.partitionMapping).toBeNull();
-});
-
 test('SET_FIELD_VALUE drops the time range partition mapping when the temporal column is not the mapped one', () => {
   const initialState = mirroredTimeRangeState();
 
@@ -248,22 +236,20 @@ test('SET_FIELD_VALUE drops the time range partition mapping when the temporal c
   expect(afterColumnSwitch.controls.time_range.partitionMapping).toBeNull();
 });
 
-test('SET_FIELD_VALUE restores the time range partition mapping when a real range is chosen', () => {
+test('SET_FIELD_VALUE applies the new time range to the control, not just the form data', () => {
   const initialState = mirroredTimeRangeState();
-  const noFilterState = exploreReducer(
-    initialState,
-    setControlValue('time_range', NO_TIME_RANGE) as Parameters<
-      typeof exploreReducer
-    >[1],
-  );
 
   const afterRealRange = exploreReducer(
-    noFilterState,
+    initialState,
     setControlValue('time_range', '2026-03-01 : 2026-04-01') as Parameters<
       typeof exploreReducer
     >[1],
   );
-  expect(afterRealRange.controls.time_range.partitionMapping).toEqual(
-    PARTITION_FILTER_MAPPING,
+
+  expect(afterRealRange.form_data.time_range).toBe('2026-03-01 : 2026-04-01');
+  // The query is built from the controls, not from `form_data`, so a control
+  // left holding the superseded range sends the superseded range.
+  expect(afterRealRange.controls.time_range.value).toBe(
+    '2026-03-01 : 2026-04-01',
   );
 });
