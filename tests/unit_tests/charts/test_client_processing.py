@@ -4579,3 +4579,220 @@ def test_apply_client_processing_csv_format_pivot_table_multiple_rows():
         ("London", "Consumer"),
         ("London", "Corporate"),
     }
+
+
+@pytest.mark.parametrize(
+    "aggregate,expected",
+    [("Median", 14.5), ("Average", 32.5), ("Sum", 130), ("Count", 4)],
+)
+def test_result_aggregation_uses_original_values_for_corner(aggregate, expected):
+    """The grand summary must not be a median/mean of intermediate summaries."""
+    data = pd.DataFrame(
+        {
+            "region": ["A", "A", "A", "B"],
+            "city": ["a", "b", "c", "d"],
+            "period": ["x", "y", "z", "x"],
+            "sales": [1, 9, 20, 100],
+        }
+    )
+    result = pivot_table_v2(
+        data,
+        {
+            "groupbyRows": ["region", "city"],
+            "groupbyColumns": ["period"],
+            "metrics": ["sales"],
+            "aggregateFunction": aggregate,
+            "rowTotals": True,
+            "colTotals": True,
+        },
+        apply_number_format=False,
+    )
+    label = f"Total ({aggregate})"
+    assert result.loc[(label, ""), (label, "")] == expected
+
+
+def test_result_median_export_ignores_nulls():
+    """Null metrics are missing observations, not zero-valued observations."""
+    result = pivot_table_v2(
+        pd.DataFrame(
+            {
+                "group": ["a", "b", "c", "d"],
+                "sales": [None, 0, 10, 20],
+            }
+        ),
+        {
+            "groupbyRows": ["group"],
+            "metrics": ["sales"],
+            "aggregateFunction": "Median",
+            "colTotals": True,
+        },
+        apply_number_format=False,
+    )
+    assert result.loc[("Total (Median)",), ("sales",)] == 10
+
+
+@pytest.mark.parametrize(
+    "aggregate,expected", [("Metric", 19), ("Average", 15), ("Median", 15)]
+)
+def test_result_mode_discards_stored_database_rollups(
+    aggregate: str, expected: float
+) -> None:
+    """A stored rollup query must not double-count its precomputed summaries."""
+    result = pivot_table_v2(
+        grouping_sets_df(),
+        {
+            "groupbyRows": ["nation"],
+            "groupbyColumns": ["gender"],
+            "metrics": ["AVG(num)"],
+            "aggregateFunction": aggregate,
+            "rowTotals": True,
+            "colTotals": True,
+        },
+        apply_number_format=False,
+    )
+    assert result.iloc[-1, -1] == expected
+
+
+@pytest.mark.parametrize("layout", ["ROWS", "COLUMNS"])
+@pytest.mark.parametrize("transpose", [True, False])
+def test_result_median_layouts_blank_mixed_metric_corner(
+    layout: str, transpose: bool
+) -> None:
+    """Mixed metric corners stay blank regardless of metric layout and transpose."""
+    result = pivot_table_v2(
+        pd.DataFrame(
+            {
+                "region": ["A", "B"],
+                "period": ["x", "y"],
+                "sales": [10, 100],
+                "profit": [20, 200],
+            }
+        ),
+        {
+            "groupbyRows": ["region"],
+            "groupbyColumns": ["period"],
+            "metrics": ["sales", "profit"],
+            "aggregateFunction": "Median",
+            "rowTotals": True,
+            "colTotals": True,
+            "combineMetric": True,
+            "metricsLayout": layout,
+            "transposePivot": transpose,
+        },
+        apply_number_format=False,
+    )
+    assert pd.isna(result.iloc[-1, -1])
+
+
+@pytest.mark.parametrize(
+    "grand,subtotals", [(True, False), (False, True), (True, True)]
+)
+def test_result_summary_visibility(grand: bool, subtotals: bool) -> None:
+    """A subtotal can be visible without a grand total, and vice versa."""
+    result = pivot_table_v2(
+        pd.DataFrame(
+            {
+                "region": ["A", "A", "B"],
+                "city": ["a", "b", "c"],
+                "sales": [10, 20, 100],
+            }
+        ),
+        {
+            "groupbyRows": ["region", "city"],
+            "metrics": ["sales"],
+            "aggregateFunction": "Average",
+            "colTotals": grand,
+            "rowSubTotals": subtotals,
+        },
+        apply_number_format=False,
+    )
+    assert (("Total (Average)", "") in result.index) == grand
+    assert (("A", "Subtotal") in result.index) == subtotals
+    if subtotals:
+        assert result.loc[("A", "Subtotal"), ("sales",)] == 15
+
+
+@pytest.mark.parametrize("layout", ["ROWS", "COLUMNS"])
+@pytest.mark.parametrize("combine", [False, True])
+@pytest.mark.parametrize("kind", ["Sum", "Count"])
+@pytest.mark.parametrize(
+    "scope,sum_expected,count_expected",
+    [("Total", 0.1, 0.25), ("Rows", 1 / 3, 0.5), ("Columns", 0.25, 0.5)],
+)
+def test_result_fractions_keep_each_metric_denominator(
+    layout: str,
+    combine: bool,
+    kind: str,
+    scope: str,
+    sum_expected: float,
+    count_expected: float,
+) -> None:
+    """A second metric must not dilute another metric's exported fractions."""
+    result = pivot_table_v2(
+        pd.DataFrame(
+            {
+                "region": ["A", "A", "B", "B"],
+                "period": ["Q1", "Q2", "Q1", "Q2"],
+                "sales": [10, 20, 30, 40],
+                "profit": [100, 200, 300, 400],
+            }
+        ),
+        {
+            "groupbyRows": ["region"],
+            "groupbyColumns": ["period"],
+            "metrics": ["sales", "profit"],
+            "aggregateFunction": f"{kind} as Fraction of {scope}",
+            "rowTotals": True,
+            "colTotals": True,
+            "combineMetric": combine,
+            "metricsLayout": layout,
+        },
+        apply_number_format=False,
+    )
+    row: tuple[str, ...]
+    column: tuple[str, ...]
+    for metric in ("sales", "profit"):
+        if layout == "ROWS":
+            row = ("A", metric) if combine else (metric, "A")
+            column = ("Q1",)
+        else:
+            row = ("A",)
+            column = ("Q1", metric) if combine else (metric, "Q1")
+        expected = sum_expected if kind == "Sum" else count_expected
+        assert result.loc[row, column] == pytest.approx(expected)
+    assert pd.isna(result.iloc[-1, -1])
+
+
+@pytest.mark.parametrize(
+    "aggregate,expected",
+    [
+        ("Sum", 16),
+        ("Average", 4),
+        ("Median", 3),
+        ("Sample Variance", 12),
+        ("Sample Standard Deviation", 12**0.5),
+        ("Minimum", 1),
+        ("Maximum", 9),
+        ("Count", 4),
+        ("Count Unique Values", 3),
+        ("List Unique Values", "1, 3, 9"),
+        ("First", 1),
+        ("Last", 9),
+    ],
+)
+def test_result_export_reducers(aggregate: str, expected: object) -> None:
+    """Every non-fraction choice reduces the same contributing leaf records."""
+    result = pivot_table_v2(
+        pd.DataFrame({"group": ["a", "b", "c", "d"], "sales": [1, 3, 3, 9]}),
+        {
+            "groupbyRows": ["group"],
+            "metrics": ["sales"],
+            "aggregateFunction": aggregate,
+            "colTotals": True,
+        },
+        apply_number_format=False,
+    )
+    actual = result.loc[(f"Total ({aggregate})",), ("sales",)]
+    assert actual == (
+        expected if isinstance(expected, str) else pytest.approx(expected)
+    )
