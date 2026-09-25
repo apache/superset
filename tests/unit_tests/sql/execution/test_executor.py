@@ -2725,3 +2725,76 @@ def test_store_in_cache_skips_when_identity_unknown(
     executor._store_in_cache(result, "SELECT * FROM salaries", QueryOptions())
 
     mock_cache_set.assert_not_called()
+
+
+def _store_in_cache_with_cap(
+    mocker: MockerFixture, database: Database, row_count: int
+) -> tuple[MagicMock, MagicMock, MagicMock]:
+    """Run ``_store_in_cache`` for a ``row_count``-row result under a 1 KB cap.
+
+    :returns: the mocked ``data_cache.set``, stats logger, and cache-module logger
+    """
+    from superset_core.queries.types import (
+        QueryResult as QueryResultType,
+        StatementResult,
+    )
+
+    from superset.extensions import cache_manager
+    from superset.sql.execution.executor import SQLExecutor
+
+    stats_logger = MagicMock()
+    mocker.patch.dict(
+        current_app.config,
+        {
+            "DATA_CACHE_MAX_VALUE_SIZE": 1024,
+            "STATS_LOGGER": stats_logger,
+            "CACHE_DEFAULT_TIMEOUT": 300,
+        },
+    )
+    mock_cache_set = mocker.patch.object(cache_manager.data_cache, "set")
+    mock_logger = mocker.patch("superset.utils.cache.logger")
+
+    result = QueryResultType(
+        status=QueryStatus.SUCCESS,
+        statements=[
+            StatementResult(
+                original_sql="SELECT name FROM users",
+                executed_sql="SELECT name FROM users",
+                data=pd.DataFrame(
+                    {"name": [f"user-{i:05d}" for i in range(row_count)]}
+                ),
+                row_count=row_count,
+            )
+        ],
+    )
+    SQLExecutor(database)._store_in_cache(
+        result, "SELECT name FROM users", QueryOptions()
+    )
+    return mock_cache_set, stats_logger, mock_logger
+
+
+def test_store_in_cache_skips_oversized_result(
+    mocker: MockerFixture, database: Database, app_context: None
+) -> None:
+    """A result larger than ``DATA_CACHE_MAX_VALUE_SIZE`` is not written; the skip
+    is logged and counted. A later ``_get_from_cache`` simply misses and the query
+    re-runs."""
+    mock_cache_set, stats_logger, mock_logger = _store_in_cache_with_cap(
+        mocker, database, row_count=500
+    )
+
+    mock_cache_set.assert_not_called()
+    stats_logger.incr.assert_called_once_with("skip_cache_value_too_large")
+    mock_logger.warning.assert_called_once()
+
+
+def test_store_in_cache_writes_result_under_cap(
+    mocker: MockerFixture, database: Database, app_context: None
+) -> None:
+    """A result under ``DATA_CACHE_MAX_VALUE_SIZE`` is cached as usual."""
+    mock_cache_set, stats_logger, _ = _store_in_cache_with_cap(
+        mocker, database, row_count=2
+    )
+
+    mock_cache_set.assert_called_once()
+    stats_logger.incr.assert_not_called()

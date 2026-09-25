@@ -24,6 +24,26 @@ assists people when migrating to a new version.
 
 ## Next
 
+### `DATA_CACHE_MAX_VALUE_SIZE` now defaults to 10 MB
+
+The upper bound on the serialized size of a single value written to the data
+cache now defaults to `10 * 1024 * 1024` (10 MB) instead of `None`. Values whose
+serialized size exceeds the limit are no longer written to the data cache — the
+request still succeeds, but the next load re-queries the datasource instead of
+getting a cache hit. The limit applies to every data-cache writer: chart results,
+SQL query results from the SQL executor, filter dropdown column values, and
+compatible metrics/dimensions. Each skip emits a WARNING log
+naming the key and byte size and increments the `skip_cache_value_too_large`
+statsd counter. This protects the cache backend (e.g. Redis) from being driven
+toward its memory limit by a heavy tail of very large results. To restore the
+previous unbounded behavior, set `DATA_CACHE_MAX_VALUE_SIZE = None`; to allow
+larger cached results, raise the limit further.
+
+With `GLOBAL_ASYNC_QUERIES` enabled, a chart whose result exceeds the limit now
+fails with a clear error instead of being retried indefinitely, because async
+chart delivery depends on reading the result back from the data cache. Raise the
+limit, narrow the query, or disable async queries for such charts.
+
 ### Guest token RLS rules without a dataset apply inside sub-queries
 
 A guest token RLS rule with no `dataset` key applies to every dataset. Such
