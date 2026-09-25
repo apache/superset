@@ -128,6 +128,36 @@ def _schema_location(schema: dict[str, Any], location: tuple[str | int, ...]) ->
     return ".".join(parts) or "arguments"
 
 
+def _is_unwrapped_request_field(
+    schema: dict[str, Any], location: tuple[str | int, ...]
+) -> bool:
+    """Recognize only a top-level key published directly under request.
+
+    This exception to path masking never applies to dictionary keys, union
+    tags, or nested extras, even when they collide with declared field names.
+    """
+    if len(location) != 1 or not isinstance(location[0], str):
+        return False
+    field = location[0]
+    if len(field) > 64:
+        return False
+    requests: list[dict[str, Any]] = []
+    for node in _schema_nodes(schema, [schema]):
+        properties = node.get("properties")
+        if not isinstance(properties, dict):
+            continue
+        if field in properties:
+            return False
+        request = properties.get("request")
+        if isinstance(request, dict):
+            requests.append(request)
+    for node in _schema_nodes(schema, requests):
+        properties = node.get("properties")
+        if isinstance(properties, dict) and field in properties:
+            return True
+    return False
+
+
 async def validation_message(
     error: Exception,
     context: MiddlewareContext,
@@ -135,6 +165,7 @@ async def validation_message(
     """Format locations from the published schema and reasons from a vocabulary.
 
     Unknown locations (extra arguments, dict keys, union tags) are masked.
+    Misplaced top-level request fields get a schema-backed wrapper hint.
     Errors without Pydantic's structured API fail closed rather than parsing
     exception text, which can contain input or backend diagnostics.
     """
@@ -161,12 +192,17 @@ async def validation_message(
     details = []
     errors = error.errors(include_url=False, include_context=False, include_input=False)
     for item in errors[:8]:
+        reason = _REASONS.get(item["type"], "Invalid value; check the field schema")
         try:
             location = _schema_location(schema, item["loc"])
+            if item["type"] == "unexpected_keyword_argument" and (
+                _is_unwrapped_request_field(schema, item["loc"])
+            ):
+                location = f"request.{item['loc'][0]}"
+                reason = "Unexpected top-level argument (place under request)"
         except Exception:  # noqa: BLE001
             # Malformed schemas must not expose unchecked location segments.
             location = _schema_location({}, item["loc"])
-        reason = _REASONS.get(item["type"], "Invalid value; check the field schema")
         details.append(f"{location}: {reason}")
     if len(errors) > 8:
         details.append("Additional validation errors omitted")

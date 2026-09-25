@@ -26,6 +26,7 @@ from fastmcp.tools.tool import ToolResult
 from mcp.types import TextContent
 from pydantic import BaseModel, field_validator
 
+from superset.mcp_service.chart.schemas import GetChartSqlRequest, ListChartsRequest
 from superset.mcp_service.dataset.schemas import ListDatasetsRequest
 from superset.mcp_service.middleware import (
     GlobalErrorHandlerMiddleware,
@@ -57,8 +58,18 @@ def make_server(*, inner_handler: bool, structured: bool) -> FastMCP:
         server.add_middleware(GlobalErrorHandlerMiddleware())
 
     @server.tool
-    def list_datasets(request: ListDatasetsRequest) -> str:
+    def list_datasets(request: ListDatasetsRequest | None = None) -> str:
         """Accept a wrapped list request."""
+        return "ok"
+
+    @server.tool
+    def list_charts(request: ListChartsRequest | None = None) -> str:
+        """Match the optional wrapper of the production list tool."""
+        return "ok"
+
+    @server.tool
+    def get_chart_sql(request: GetChartSqlRequest) -> str:
+        """Match the required wrapper of the production SQL tool."""
         return "ok"
 
     @server.tool
@@ -73,35 +84,75 @@ def make_server(*, inner_handler: bool, structured: bool) -> FastMCP:
 @pytest.mark.parametrize("structured", [False, True])
 @pytest.mark.parametrize("inner_handler", [False, True])
 @pytest.mark.parametrize(
-    ("arguments", "location", "reason"),
+    ("tool", "arguments", "detail"),
     [
-        ({"request": {"page_size": "lots"}}, "request.page_size", "integer"),
-        ({"page_size": 2}, "request", "required"),
+        (
+            "list_datasets",
+            {"request": {"page_size": "lots"}},
+            "request.page_size: Expected an integer",
+        ),
+        (
+            "list_datasets",
+            {"page_size": 2},
+            "request.page_size: Unexpected top-level argument (place under request)",
+        ),
+        (
+            "list_charts",
+            {"page_size": 2},
+            "request.page_size: Unexpected top-level argument (place under request)",
+        ),
+        (
+            "list_charts",
+            {"request": {"page_size": "lots"}},
+            "request.page_size: Expected an integer",
+        ),
+        ("get_chart_sql", {}, "request: Field required"),
     ],
-    ids=["wrong-type", "missing-wrapper"],
 )
 async def test_validation_wire_contract(
+    tool: str,
     arguments: dict[str, Any],
-    location: str,
-    reason: str,
+    detail: str,
     inner_handler: bool,
     structured: bool,
 ) -> None:
     """Failures carry both the MCP error flag and actionable safe detail."""
     server = make_server(inner_handler=inner_handler, structured=structured)
     async with Client(server) as client:
-        result = await client.call_tool_mcp("list_datasets", arguments)
+        result = await client.call_tool_mcp(tool, arguments)
 
     assert result.isError is True
     text = " ".join(
         block.text for block in result.content if isinstance(block, TextContent)
     )
-    assert location in text
-    assert reason in text.lower()
+    assert text == f"Error: Validation error in {tool}: {detail}"
+    assert "[field]" not in text
     assert "lots" not in text
     assert "input_value" not in text
     assert "input_type" not in text
     assert "errors.pydantic.dev" not in text
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("inner_handler", [False, True])
+@pytest.mark.parametrize("structured", [False, True])
+@pytest.mark.parametrize("tool", ["list_datasets", "list_charts"])
+async def test_validation_masks_undeclared_top_level_keys(
+    inner_handler: bool, structured: bool, tool: str
+) -> None:
+    """Wrapper hints must not disclose an arbitrary caller key or its value."""
+    server = make_server(inner_handler=inner_handler, structured=structured)
+    async with Client(server) as client:
+        result = await client.call_tool_mcp(
+            tool, {"caller-private-key": "caller-private-value"}
+        )
+    assert result.isError is True
+    assert result.content == [
+        TextContent(
+            type="text",
+            text=f"Error: Validation error in {tool}: [field]: Unexpected argument",
+        )
+    ]
 
 
 @pytest.mark.asyncio
@@ -308,3 +359,45 @@ def test_validation_locations_follow_schema_paths(
         },
     }
     assert _schema_location(schema, location) == expected
+
+
+@pytest.mark.parametrize("composition", ["anyOf", "oneOf", "allOf"])
+@pytest.mark.parametrize(
+    ("location", "expected"),
+    [
+        (("page_size",), True),
+        (("s" * 64,), True),
+        (("s" * 65,), False),
+        (("top_level",), False),
+        (("nested_only",), False),
+        (("undeclared",), False),
+        (("request", "page_size"), False),
+        (("request", "filters", "page_size"), False),
+        ((0,), False),
+        ((), False),
+    ],
+)
+def test_wrapper_hint_only_matches_direct_request_properties(
+    composition: str, location: tuple[str | int, ...], expected: bool
+) -> None:
+    """Only misplaced direct request fields qualify, not arbitrary collisions."""
+    from superset.mcp_service.utils.validation import _is_unwrapped_request_field
+
+    schema = {
+        "properties": {
+            "top_level": {},
+            "request": {composition: [{"$ref": "#/$defs/Request"}, {"type": "null"}]},
+        },
+        "$defs": {
+            "Request": {
+                "properties": {
+                    "page_size": {"type": "integer"},
+                    "top_level": {},
+                    "s" * 64: {},
+                    "s" * 65: {},
+                    "filters": {"properties": {"nested_only": {}}},
+                }
+            },
+        },
+    }
+    assert _is_unwrapped_request_field(schema, location) is expected
