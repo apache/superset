@@ -245,7 +245,9 @@ and dynamic dictionary keys appear as `[field]`; dictionary keys and nested
 extras remain masked even when they match a field declared elsewhere in the
 schema. Apart from the top-level wrapper hint, only fields declared at the
 corresponding schema path are shown. Responses include at most eight validation
-errors with at most eight path segments each.
+errors with at most eight path segments each. Failures with more than 128 errors
+return an input-free summary instead of individual details, avoiding eager
+materialization of the entire error collection for diagnostics.
 Already-structured tool errors retain their content and error flag; this
 validation formatter does not reinterpret domain-error payloads.
 

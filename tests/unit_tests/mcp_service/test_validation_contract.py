@@ -18,13 +18,14 @@
 """Producer wire contracts for safe argument-validation failures."""
 
 from typing import Any
+from unittest.mock import patch
 
 import pytest
 from fastmcp import FastMCP
 from fastmcp.client import Client
 from fastmcp.tools.tool import ToolResult
 from mcp.types import TextContent
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel, field_validator, ValidationError
 
 from superset.mcp_service.chart.schemas import GetChartSqlRequest, ListChartsRequest
 from superset.mcp_service.dataset.schemas import ListDatasetsRequest
@@ -265,6 +266,52 @@ async def test_validation_details_are_bounded(inner_handler: bool) -> None:
     assert text.count("Expected an integer") == 8
     assert "Additional validation errors omitted" in text
     assert len(text) < 1024
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("inner_handler", [False, True])
+@pytest.mark.parametrize("error_count", [128, 129, 100_000])
+async def test_validation_extraction_is_bounded(
+    inner_handler: bool, error_count: int
+) -> None:
+    """Oversized failures skip eager extraction but retain the wire error flag."""
+    server = make_server(inner_handler=inner_handler, structured=False)
+    original_errors = ValidationError.errors
+    extracted_counts: list[int] = []
+
+    def bounded_errors(error: ValidationError, **kwargs: Any) -> list[Any]:
+        """Bound diagnostic extraction, not FastMCP's own error handling."""
+        if kwargs == {
+            "include_url": False,
+            "include_context": False,
+            "include_input": False,
+        }:
+            extracted_counts.append(error.error_count())
+            assert error.error_count() <= 128
+        return original_errors(error, **kwargs)
+
+    with patch.object(ValidationError, "errors", bounded_errors):
+        async with Client(server) as client:
+            result = await client.call_tool_mcp(
+                "sensitive",
+                {
+                    "request": {
+                        "filters": {str(i): "invalid" for i in range(error_count)}
+                    }
+                },
+            )
+    text = " ".join(
+        block.text for block in result.content if isinstance(block, TextContent)
+    )
+    assert result.isError is True
+    assert len(text) < 1024
+    if error_count <= 128:
+        assert extracted_counts
+        assert "Additional validation errors omitted" in text
+        assert text.count("Expected an integer") == 8
+    else:
+        assert not extracted_counts
+        assert "arguments: Invalid arguments; check the input schema" in text
 
 
 @pytest.mark.asyncio

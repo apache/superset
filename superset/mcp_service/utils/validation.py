@@ -24,6 +24,9 @@ from fastmcp.exceptions import ValidationError as FastMCPValidationError
 from fastmcp.server.middleware import MiddlewareContext
 from pydantic import ValidationError
 
+# Bound eager extraction independently of the eight-detail response limit.
+_MAX_EXTRACTED_ERRORS = 128
+
 # Never render Pydantic's msg, ctx, input, or arbitrary error type: custom
 # validators can put secrets in any of them. These reasons are server-owned.
 _REASONS = {
@@ -186,7 +189,12 @@ async def validation_message(
     ):
         # FastMCP preserves the structured argument error as the direct cause.
         error = error.__cause__
-    if not isinstance(error, ValidationError):
+    # Pydantic has no bounded/lazy errors API; even with optional fields disabled,
+    # errors() allocates dictionaries and renders messages for every error.
+    if (
+        not isinstance(error, ValidationError)
+        or error.error_count() > _MAX_EXTRACTED_ERRORS
+    ):
         return f"{prefix}: arguments: Invalid arguments; check the input schema"
 
     details = []
