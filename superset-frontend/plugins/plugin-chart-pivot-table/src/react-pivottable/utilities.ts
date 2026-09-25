@@ -391,14 +391,34 @@ const fmtNonString =
  * rather than re-aggregating. This is what makes non-additive totals correct.
  * See SIP.md. Currency tracking mirrors the real aggregators for AUTO-mode
  * detection.
+ *
+ * The "exactly one record per metric" invariant doesn't hold for the Total
+ * axis/corner opposite the Metric pseudo-dimension when there's more than one
+ * metric (see `processRecord`'s "Metric-collapse totals"): that slot receives
+ * one record per metric, e.g. MAX(sales) and MEDIAN(msrp) both landing in the
+ * same grand-total cell. There's no single number that means anything for
+ * "max of sales combined with median of msrp", so once a second, different
+ * metric is pushed into the same cell, `value()` renders blank instead of
+ * silently keeping whichever metric happened to be pushed last.
  */
 const cellValue =
   (formatter: Formatter = usFmt) =>
   ([attr]: string[]) =>
   () => ({
     val: null as string | number | null,
+    seenMetric: undefined as string | undefined,
+    mixedMetrics: false,
     currencySet: new Set<string>(),
     push(record: PivotRecord) {
+      const metricDim = record.__metricKey as unknown as string | undefined;
+      if (metricDim) {
+        const metric = String(record[metricDim]);
+        if (this.seenMetric === undefined) {
+          this.seenMetric = metric;
+        } else if (metric !== this.seenMetric) {
+          this.mixedMetrics = true;
+        }
+      }
       this.val = record[attr] as string | number | null;
       if (
         record.__currencyColumn &&
@@ -408,7 +428,7 @@ const cellValue =
       }
     },
     value() {
-      return this.val;
+      return this.mixedMetrics ? null : this.val;
     },
     getCurrencies() {
       return Array.from(this.currencySet);
@@ -1312,9 +1332,12 @@ class PivotData {
     // would leave the opposite "Total" axis and the grand-total corner empty.
     // When a record's axis holds only the metric (no real dims there), its value
     // is also the collapsed total for that axis, so mirror it into rowTotals /
-    // colTotals / allTotal. (For a single metric this equals the metric column;
-    // for multiple metrics it is the last metric -- a cross-metric total is not
-    // well defined and is left as future work.)
+    // colTotals / allTotal. For a single metric this equals the metric column.
+    // For multiple metrics, more than one record lands in the same slot; a
+    // cross-metric total (e.g. MAX(sales) combined with MEDIAN(msrp)) has no
+    // single meaningful value, so `cellValue`'s `push()` detects the mismatch
+    // and renders that slot blank rather than showing whichever metric was
+    // pushed last.
     const metricKey = record.__metricKey as unknown as string | undefined;
     if (metricKey) {
       const realColCount = levelColumns.filter(c => c !== metricKey).length;

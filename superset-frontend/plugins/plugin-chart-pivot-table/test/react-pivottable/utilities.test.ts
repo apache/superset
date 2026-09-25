@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { aggregators } from '../../src/react-pivottable/utilities';
+import { aggregators, PivotData } from '../../src/react-pivottable/utilities';
 import type { PivotRecord } from '../../src/react-pivottable/utilities';
 
 // Records may legitimately carry null values for an attribute; PivotRecord only
@@ -58,4 +58,42 @@ test('Minimum and Maximum still compute extremes regardless of order', () => {
   const records = [{ x: 3 }, { x: 1 }, { x: 5 }, { x: 2 }];
   expect(aggregate('Minimum', records)).toBe(1);
   expect(aggregate('Maximum', records)).toBe(5);
+});
+
+// Records shaped like PivotTableChart.tsx's real output: the "Metric" pseudo
+// -dimension is the sole column, so each record's own rollup level has no
+// "real" columns -- which is exactly the condition that also mirrors its
+// value into the row-total/grand-total slots (see `processRecord`'s
+// "Metric-collapse totals").
+const metricRecord = (metric: string, value: number): PivotRecord =>
+  ({
+    Metric: metric,
+    value,
+    __metricKey: 'Metric',
+    __rows: [],
+    __columns: ['Metric'],
+  }) as unknown as PivotRecord;
+
+test('grand total renders blank when it would combine two different metrics', () => {
+  const pivotData = new PivotData({
+    data: [metricRecord('MAX(sales)', 100), metricRecord('MEDIAN(msrp)', 50)],
+    rows: [],
+    cols: ['Metric'],
+    vals: ['value'],
+  });
+
+  // Neither metric's own value -- there's no single number that means
+  // "max of sales combined with median of msrp".
+  expect(pivotData.getAggregator([], []).value()).toBeNull();
+});
+
+test('grand total still passes through the value for a single metric', () => {
+  const pivotData = new PivotData({
+    data: [metricRecord('MAX(sales)', 100)],
+    rows: [],
+    cols: ['Metric'],
+    vals: ['value'],
+  });
+
+  expect(pivotData.getAggregator([], []).value()).toBe(100);
 });
