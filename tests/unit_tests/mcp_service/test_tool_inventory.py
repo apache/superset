@@ -76,8 +76,11 @@ TOOL_BUDGETS = {
     "get_user_info": 1_000,
     "health_check": 700,
     "list_annotation_layers": 2_700,
-    "list_charts": 5_100,
-    "list_dashboards": 4_600,
+    # Include the deleted_state edit/restore audience and under-enumeration
+    # caveats from #44128: 5,149 and 4,626 bytes, plus the headroom above.
+    # Keep the complete-schema parity test below alongside these size limits.
+    "list_charts": 5_300,
+    "list_dashboards": 4_800,
     "list_databases": 3_500,
     "list_datasets": 4_600,
     "list_layer_annotations": 2_900,
