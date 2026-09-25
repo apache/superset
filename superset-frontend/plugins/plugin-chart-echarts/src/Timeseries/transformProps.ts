@@ -42,6 +42,7 @@ import {
   isIntervalAnnotationLayer,
   isPhysicalColumn,
   isTimeseriesAnnotationLayer,
+  isXAxisSet,
   LegendState,
   resolveAutoCurrency,
   TimeseriesChartDataResponseResult,
@@ -503,16 +504,28 @@ export default function transformProps(
   // come from an unrelated dashboard-level cross-filter that applies to
   // every chart on a dashboard, including ones whose x-axis has nothing to
   // do with time — trusting grain-presence alone would wrongly coerce a
-  // genuinely non-temporal x-axis (e.g. `price`) in that case. The x-axis
-  // column identifier used to look it up mirrors getXAxisColumn's own
-  // resolution: the physical `x_axis` control value when Generic X-Axis is
-  // in use, else `granularity_sqla` (xAxisLabel/xAxisOrig can't be used
-  // here — for a legacy, non-Generic-X-Axis chart they resolve to the
-  // DTTM_ALIAS query-response key, not the real underlying column name
-  // that datasource.columns indexes by).
+  // genuinely non-temporal x-axis (e.g. `price`) in that case.
+  //
+  // The x-axis column identifier used to look it up mirrors
+  // getXAxisColumn's own precedence exactly (@superset-ui/core's
+  // query/getXAxis.ts): `isXAxisSet` (= isQueryFormColumn(x_axis), true for
+  // EITHER a physical column string OR a valid ad-hoc/computed column) is
+  // what decides whether `x_axis` is "the selected axis" — granularity_sqla
+  // is only the fallback when x_axis isn't set at all, not merely whenever
+  // the selected x_axis happens to be non-physical. An ad-hoc x_axis (e.g.
+  // a computed `double_price` expression) is still "selected" and must not
+  // fall through to an unrelated granularity_sqla column's metadata; it
+  // simply has no datasource.columns entry to look up by name (it isn't a
+  // physical dataset column at all), so the lookup below correctly finds
+  // nothing and leaves it uncoerced. (xAxisLabel/xAxisOrig can't be reused
+  // for this lookup either way — for a legacy, non-Generic-X-Axis chart
+  // they resolve to the DTTM_ALIAS query-response key, not the real
+  // underlying column name that datasource.columns indexes by.)
   const rawXAxisDataTypeIsUsable = typeof rawXAxisDataType === 'number';
-  const rawXAxisColumnName = isPhysicalColumn(chartProps.rawFormData?.x_axis)
-    ? chartProps.rawFormData.x_axis
+  const rawXAxisColumnName = isXAxisSet(chartProps.rawFormData)
+    ? isPhysicalColumn(chartProps.rawFormData.x_axis)
+      ? chartProps.rawFormData.x_axis
+      : undefined
     : ((chartProps.rawFormData as { granularity_sqla?: string })
         ?.granularity_sqla ?? undefined);
   const xAxisDatasourceColumn = datasource.columns?.find(

@@ -34,6 +34,7 @@ import {
   isIntervalAnnotationLayer,
   isPhysicalColumn,
   isTimeseriesAnnotationLayer,
+  isXAxisSet,
   QueryFormData,
   QueryFormMetric,
   resolveAutoCurrency,
@@ -298,10 +299,16 @@ export default function transformProps(
   // the x-axis column (`is_dttm`/`type_generic`) instead of a resolved
   // time grain, which can come from an unrelated dashboard-level
   // cross-filter that applies to every chart regardless of whether that
-  // chart's own x-axis is temporal.
+  // chart's own x-axis is temporal. The column identifier mirrors
+  // getXAxisColumn's own precedence (isXAxisSet, true for either a
+  // physical or a valid ad-hoc x_axis) — see the matching comment in
+  // Timeseries/transformProps.ts for why an ad-hoc x_axis must not fall
+  // through to granularity_sqla's metadata.
   const rawXAxisDataTypeIsUsable = typeof rawXAxisDataType === 'number';
-  const rawXAxisColumnName = isPhysicalColumn(chartProps.rawFormData?.x_axis)
-    ? chartProps.rawFormData.x_axis
+  const rawXAxisColumnName = isXAxisSet(chartProps.rawFormData)
+    ? isPhysicalColumn(chartProps.rawFormData.x_axis)
+      ? chartProps.rawFormData.x_axis
+      : undefined
     : ((chartProps.rawFormData as { granularity_sqla?: string })
         ?.granularity_sqla ?? undefined);
   const xAxisDatasourceColumn = datasource.columns?.find(
