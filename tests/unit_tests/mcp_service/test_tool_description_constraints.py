@@ -27,7 +27,13 @@ from superset.mcp_service.server import _create_search_result_serializer
 CONSTRAINTS = {
     "list_dashboards": ("Do NOT pass", "top-level", '{"request": {'),
     "list_charts": ("Do NOT pass", "top-level", '{"request": {'),
-    "list_datasets": ("Do NOT pass", "top-level", '{"request": {'),
+    "list_datasets": (
+        "Do NOT pass",
+        "search/page/filters",
+        "top-level",
+        "out-of-scope",
+        '{"request": {',
+    ),
     "get_chart_info": (
         "NOT chart name",
         "form_data_key",
@@ -37,7 +43,7 @@ CONSTRAINTS = {
     "get_dashboard_info": (
         "filter_state",
         "permalink_key",
-        "not query predicates",
+        "snapshots, not query predicates",
         '{"request": {',
     ),
     "generate_dashboard": ("Never use as a fallback", "accessible", '{"request": {'),
@@ -122,7 +128,7 @@ async def test_direct_inventory_keeps_bounded_calling_metadata() -> None:
 DOCSTRING_CONSTRAINTS: dict[str, list[tuple[str, tuple[str, ...]]]] = {
     "list_datasets": [
         ("must be wrapped in a ``request`` object", ('{"request": {',)),
-        ("Do NOT pass ``search``", ("Do NOT pass", "top-level")),
+        ("Do NOT pass ``search``, ``page``", ("Do NOT pass", "page", "top-level")),
         ("Results are candidates, not a relevance ranking", ("not a ranking",)),
         (
             "when multiple candidates fit, explain the alternatives and clarify "
@@ -134,7 +140,10 @@ DOCSTRING_CONSTRAINTS: dict[str, list[tuple[str, tuple[str, ...]]]] = {
             "does not exist",
             ("empty result", "prove absence"),
         ),
-        ("Never substitute a different dataset", ("Never substitute",)),
+        (
+            "Never substitute a different dataset for one outside the MCP scope",
+            ("Never substitute", "out-of-scope"),
+        ),
         ("call find_users to resolve the name to a user ID", ("find_users",)),
         ("Do not pass the name as search", ("not search",)),
     ],
@@ -163,7 +172,10 @@ DOCSTRING_CONSTRAINTS: dict[str, list[tuple[str, tuple[str, ...]]]] = {
             "Missing state is not evidence of no filters",
             ("Missing state", "no filters"),
         ),
-        ("not automatically enforced query predicates", ("not query predicates",)),
+        (
+            "snapshot values, not automatically enforced query predicates",
+            ("snapshot", "not query predicates"),
+        ),
         ("Respect filter scope", ("scope",)),
         ("do not guess columns", ("guess columns",)),
         ("query workspace-wide data", ("workspace-wide",)),

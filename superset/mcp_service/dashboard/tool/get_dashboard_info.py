@@ -109,8 +109,9 @@ async def get_dashboard_info(
         GetDashboardInfoRequest,
         Field(
             description=(
-                'Wrap {"request": {...}}. Filtered? Use permalink_key/filter_state; '
-                "not query predicates; heed scope/native_filter_values_incomplete. "
+                'Wrap {"request": {...}}. Filtered? Use permalink_key/filter_state: '
+                "snapshots, not query predicates; "
+                "heed scope/native_filter_values_incomplete. "
                 "Missing state != no filters. "
                 "Don't guess columns/query workspace-wide; clarify. "
                 "Charts: list_charts."
@@ -119,7 +120,7 @@ async def get_dashboard_info(
     ],
     ctx: Context,
 ) -> DashboardInfo | DashboardError:
-    """Get dashboard metadata by ID, UUID, slug, or dashboard permalink.
+    """Get dashboard info by ID, UUID, slug, or permalink.
 
     Returns title, charts, and layout details.
 

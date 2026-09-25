@@ -88,16 +88,17 @@ async def list_datasets(
         ListDatasetsRequest | None,
         Field(
             description=(
-                'Wrap {"request": {...}}; Do NOT pass search/filters top-level. '
-                "Candidates, not a ranking; if several fit, explain alternatives, "
+                'Wrap {"request": {...}}; Do NOT pass search/page/filters top-level. '
+                "Candidates, not a ranking: several fit? explain alternatives, "
                 "clarify before querying; empty result doesn't prove absence. "
-                "Never substitute datasets. People: find_users ID filter, not search."
+                "Never substitute out-of-scope data. "
+                "Users: find_users ID filter, not search."
             )
         ),
     ] = None,
     ctx: Context | None = None,
 ) -> DatasetList | DatasetError:
-    """List datasets with filtering and search.
+    """List/search/filter datasets.
 
     Returns dataset metadata including table name, schema, and last modified
     time. Set ``request.certified`` to true to return only governed,
