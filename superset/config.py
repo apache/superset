@@ -700,6 +700,9 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # Allow metrics and columns to be grouped into folders in the chart builder
     # @lifecycle: development
     "DATASET_FOLDERS": False,
+    # Enable dashboard parameters functionality (Tableau-like parameters)
+    # @lifecycle: development
+    "DASHBOARD_PARAMETERS": False,
     # Enable support for date range timeshifts (e.g., "2015-01-03 : 2015-01-04")
     # in addition to relative timeshifts (e.g., "1 day ago")
     # @lifecycle: development

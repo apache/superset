@@ -182,6 +182,90 @@ def _normalize_postgresql_backslash_escapes(dialect: Dialect) -> None:
         dialect._backslash_escapes = False
 
 
+def _cast_int(name: str, result: Any, default: Any) -> tuple[Any, bool]:
+    if result is not None and result != "":
+        try:
+            return int(result), True
+        except (ValueError, TypeError) as ex:
+            if default is not None:
+                return int(default), True
+            msg = f"Parameter '{name}' value '{result}' cannot be cast to integer."
+            raise SupersetTemplateException(msg) from ex
+    return (int(default) if default is not None else None), True
+
+
+def _cast_float(name: str, result: Any, default: Any) -> tuple[Any, bool]:
+    if result is not None and result != "":
+        try:
+            return float(result), True
+        except (ValueError, TypeError) as ex:
+            if default is not None:
+                return float(default), True
+            msg = f"Parameter '{name}' value '{result}' cannot be cast to float."
+            raise SupersetTemplateException(msg) from ex
+    return (float(default) if default is not None else None), True
+
+
+def _cast_bool(name: str, result: Any, default: Any) -> tuple[Any, bool]:
+    if result is not None:
+        if isinstance(result, bool):
+            val = result
+        elif isinstance(result, str):
+            val = result.lower().strip() in ("true", "1", "yes", "t")
+        else:
+            val = bool(result)
+        return val, True
+    return (bool(default) if default is not None else None), True
+
+
+def _cast_identifier(name: str, result: Any, default: Any) -> tuple[Any, bool]:
+    ident = str(
+        result if result is not None else (default if default is not None else "")
+    )
+    if not ident or not re.match(r"^[A-Za-z_][A-Za-z0-9_]*$", ident):
+        msg = f"Parameter '{name}' value '{ident}' is not a valid SQL identifier."
+        raise SupersetTemplateException(msg)
+    return ident, False
+
+
+def _cast_str(name: str, result: Any, default: Any) -> tuple[Any, bool]:
+    val = (
+        str(result)
+        if result is not None
+        else (str(default) if default is not None else None)
+    )
+    return val, True
+
+
+_PARAMETER_TYPE_CASTERS = {
+    "int": _cast_int,
+    "integer": _cast_int,
+    "float": _cast_float,
+    "number": _cast_float,
+    "decimal": _cast_float,
+    "bool": _cast_bool,
+    "boolean": _cast_bool,
+    "identifier": _cast_identifier,
+    "column": _cast_identifier,
+    "str": _cast_str,
+    "string": _cast_str,
+    "text": _cast_str,
+}
+
+
+def _cast_parameter_value(
+    name: str,
+    result: Any,
+    default: Any,
+    target_type: str,
+) -> tuple[Any, bool]:
+    caster = _PARAMETER_TYPE_CASTERS.get(target_type.lower().strip())
+    if not caster:
+        msg = f"Unsupported target_type '{target_type}' for parameter '{name}'."
+        raise SupersetTemplateException(msg)
+    return caster(name, result, default)
+
+
 class ExtraCache:
     """
     Dummy class that exposes a method used to store additional values used in
@@ -199,6 +283,7 @@ class ExtraCache:
         r"current_user_roles\([^)]*\)|"
         r"cache_key_wrapper\([^)]*\)|"
         r"url_param\([^)]*\)|"
+        r"parameter\([^)]*\)|"
         r"get_guest_user_attribute\([^)]*\)"
         r")"
         r"[^{}]*?(\}\}|\%\})"
@@ -213,6 +298,7 @@ class ExtraCache:
         dialect: Dialect | None = None,
         table: SqlaTable | None = None,
         query_context_filters: list[Any] | None = None,
+        parameters: dict[str, Any] | None = None,
     ):
         self.extra_cache_keys = extra_cache_keys
         self.applied_filters = applied_filters if applied_filters is not None else []
@@ -221,6 +307,7 @@ class ExtraCache:
         self.dialect = dialect
         self.table = table
         self.query_context_filters: list[Any] = query_context_filters or []
+        self.parameters: dict[str, Any] = parameters or {}
 
     def current_user_id(self, add_to_cache_keys: bool = True) -> int | None:
         """
@@ -385,6 +472,69 @@ class ExtraCache:
             result = self._escape_value(result)
         if add_to_cache_keys:
             self.cache_key_wrapper(result)
+        return result
+
+    def _get_parameter_raw(self, name: str) -> Any:
+        # pylint: disable=import-outside-toplevel
+        from superset.views.utils import get_form_data
+
+        if name in self.parameters:
+            return self.parameters[name]
+        if has_request_context() and request.args.get(name) is not None:
+            return request.args.get(name)
+
+        form_data, _ = get_form_data()
+        extra_form_data = form_data.get("extra_form_data") or {}
+        parameters = (
+            extra_form_data.get("parameters") or form_data.get("parameters") or {}
+        )
+        if name in parameters:
+            return parameters[name]
+
+        url_params = form_data.get("url_params") or {}
+        return url_params.get(name)
+
+    def parameter(
+        self,
+        name: str,
+        default: Any = None,
+        target_type: str | None = None,
+        add_to_cache_keys: bool = True,
+        escape_result: bool = True,
+    ) -> Any:
+        """
+        Read a dashboard parameter value and use it in your SQL Lab query or dataset.
+
+        Parameters can be passed from the dashboard filter bar, URL parameters,
+        or form data. When defined in the query, e.g.
+        ``WHERE sales > {{ parameter('threshold', 0, target_type='int') }}``,
+        the parameter value is interpolated at runtime.
+
+        :param name: Name of the parameter
+        :param default: Default value to return if parameter is not set
+        :param target_type: Optional type validation/casting ('int', 'float',
+            'bool', 'identifier', 'str')
+        :param add_to_cache_keys: Whether to include in cache key calculation
+        :param escape_result: Whether string/list/dict results should be SQL-escaped
+        :return: Parameter value or default
+        """
+        result = self._get_parameter_raw(name)
+        if result is None:
+            result = default
+
+        if target_type:
+            result, should_escape = _cast_parameter_value(
+                name, result, default, target_type
+            )
+            escape_result = escape_result and should_escape
+
+        if add_to_cache_keys:
+            cache_value = json.dumps(result, sort_keys=True)
+            self.cache_key_wrapper(f"parameter:{name}:{cache_value}")
+
+        if result is not None and escape_result:
+            result = self._escape_value(result)
+
         return result
 
     def get_guest_user_attribute(
@@ -1100,11 +1250,13 @@ class JinjaTemplateProcessor(BaseTemplateProcessor):
             dialect=self._database.get_dialect(),
             table=self._table,
             query_context_filters=self._context.get("filter") or [],
+            parameters=self._context.get("parameters") or {},
         )
 
         self._context.update(
             {
                 "url_param": partial(safe_proxy, extra_cache.url_param),
+                "parameter": partial(safe_proxy, extra_cache.parameter),
                 "current_user_id": partial(safe_proxy, extra_cache.current_user_id),
                 "current_username": partial(safe_proxy, extra_cache.current_username),
                 "current_user_email": partial(

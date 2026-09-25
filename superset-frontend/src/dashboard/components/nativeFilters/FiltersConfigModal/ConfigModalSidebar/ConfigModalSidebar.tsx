@@ -16,9 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { FC, ReactNode, useCallback, useState } from 'react';
+import { FC, ReactNode, useCallback, useMemo, useState } from 'react';
 import { t } from '@apache-superset/core/translation';
-import { NativeFilterType, ChartCustomizationType } from '@superset-ui/core';
+import {
+  NativeFilterType,
+  ChartCustomizationType,
+  FeatureFlag,
+  isFeatureEnabled,
+} from '@superset-ui/core';
 import { styled } from '@apache-superset/core/theme';
 import { Collapse, EmptyState, Flex } from '@superset-ui/core/components';
 import type { DragEndEvent } from '@dnd-kit/core';
@@ -92,7 +97,7 @@ export interface ConfigModalSidebarProps {
   customizationErroredItems: string[];
   activeCollapseKeys: string[];
   getItemTitle: (id: string) => string;
-  onAddFilter: (type: NativeFilterType) => void;
+  onAddFilter: (type: NativeFilterType, defaultFilterType?: string) => void;
   onAddCustomization: (type: ChartCustomizationType) => void;
   onChange: (id: string) => void;
   onRearrange: (dragIndex: number, targetIndex: number, itemId: string) => void;
@@ -107,6 +112,7 @@ export interface ConfigModalSidebarProps {
   ) => void;
   itemTitles?: Record<string, string>;
   formValuesVersion?: number;
+  isParameter?: (id: string) => boolean;
 }
 
 const ConfigModalSidebar: FC<ConfigModalSidebarProps> = ({
@@ -131,6 +137,7 @@ const ConfigModalSidebar: FC<ConfigModalSidebarProps> = ({
   onCrossListDrop,
   itemTitles,
   formValuesVersion,
+  isParameter,
 }) => {
   const getTitle = useCallback(
     (id: string) => itemTitles?.[id] ?? getItemTitle(id),
@@ -256,9 +263,39 @@ const ConfigModalSidebar: FC<ConfigModalSidebarProps> = ({
       onCrossListDrop(sourceId, targetIndex, sourceType, 'customization');
     }
   };
+  const regularFilterOrderedIds = useMemo(
+    () =>
+      isParameter
+        ? filterOrderedIds.filter(id => !isParameter(id))
+        : filterOrderedIds,
+    [filterOrderedIds, isParameter],
+  );
+
+  const parameterOrderedIds = useMemo(
+    () => (isParameter ? filterOrderedIds.filter(id => isParameter(id)) : []),
+    [filterOrderedIds, isParameter],
+  );
+
+  const regularFilterIds = useMemo(
+    () =>
+      isParameter ? filterIds.filter(id => !isParameter(id)) : filterIds,
+    [filterIds, isParameter],
+  );
+
+  const parameterIds = useMemo(
+    () => (isParameter ? filterIds.filter(id => isParameter(id)) : []),
+    [filterIds, isParameter],
+  );
+
   const filtersHeader: ReactNode = (
     <div>
-      {t('Filters')} ({filterIds.length})
+      {t('Filters')} ({regularFilterIds.length})
+    </div>
+  );
+
+  const parametersHeader: ReactNode = (
+    <div>
+      {t('Parameters')} ({parameterIds.length})
     </div>
   );
 
@@ -306,21 +343,59 @@ const ConfigModalSidebar: FC<ConfigModalSidebarProps> = ({
             <StyledCollapse.Panel key="filters" header={filtersHeader}>
               <ItemSectionContent
                 currentItemId={currentItemId}
-                items={filterOrderedIds}
+                items={regularFilterOrderedIds}
                 removedItems={filterRemovedItems}
                 erroredItems={filterErroredItems}
                 getItemTitle={getTitle}
                 onChange={onChange}
-                onRearrange={onRearrange}
+                onRearrange={(dragIndex, targetIndex) => {
+                  const sourceId = regularFilterOrderedIds[dragIndex];
+                  const targetId = regularFilterOrderedIds[targetIndex];
+                  onRearrange(
+                    filterOrderedIds.indexOf(sourceId),
+                    filterOrderedIds.indexOf(targetId),
+                    sourceId,
+                  );
+                }}
                 onRemove={onRemove}
                 restoreItem={restoreItem}
                 dataTestId="filter-title-container"
                 deleteAltText={t('Remove filter')}
                 dragType={FILTER_TYPE}
-                isCurrentSection={isFilterId(currentItemId)}
+                isCurrentSection={
+                  isFilterId(currentItemId) && !isParameter?.(currentItemId)
+                }
                 onCrossListDrop={handleFilterCrossListDrop}
               />
             </StyledCollapse.Panel>
+
+            {isFeatureEnabled(FeatureFlag.DashboardParameters) && (
+              <StyledCollapse.Panel key="parameters" header={parametersHeader}>
+                <ItemSectionContent
+                  currentItemId={currentItemId}
+                  items={parameterOrderedIds}
+                  removedItems={filterRemovedItems}
+                  erroredItems={filterErroredItems}
+                  getItemTitle={getTitle}
+                  onChange={onChange}
+                  onRearrange={(dragIndex, targetIndex) => {
+                    const sourceId = parameterOrderedIds[dragIndex];
+                    const targetId = parameterOrderedIds[targetIndex];
+                    onRearrange(
+                      filterOrderedIds.indexOf(sourceId),
+                      filterOrderedIds.indexOf(targetId),
+                      sourceId,
+                    );
+                  }}
+                  onRemove={onRemove}
+                  restoreItem={restoreItem}
+                  dataTestId="parameter-title-container"
+                  deleteAltText={t('Remove parameter')}
+                  dragType={FILTER_TYPE}
+                  isCurrentSection={isParameter?.(currentItemId) ?? false}
+                />
+              </StyledCollapse.Panel>
+            )}
 
             <StyledCollapse.Panel
               key="chartCustomizations"

@@ -95,6 +95,54 @@ function buildFilterTarget(
   return buildNativeFilterTarget(formInputs);
 }
 
+function normalizeDefaultDataMask(
+  defaultDataMask: any,
+  name?: string,
+  filterType?: string,
+): any {
+  if (defaultDataMask === null || defaultDataMask === undefined) {
+    return getInitialDataMask();
+  }
+  if (
+    typeof defaultDataMask === 'string' ||
+    typeof defaultDataMask === 'number' ||
+    typeof defaultDataMask === 'boolean'
+  ) {
+    return {
+      filterState: {
+        value: defaultDataMask,
+      },
+      extraFormData:
+        filterType === 'filter_parameter' && name
+          ? {
+              parameters: {
+                [name]: defaultDataMask,
+              },
+            }
+          : {},
+    };
+  }
+  if (
+    filterType === 'filter_parameter' &&
+    name &&
+    defaultDataMask.filterState &&
+    defaultDataMask.filterState.value !== undefined &&
+    defaultDataMask.filterState.value !== null
+  ) {
+    return {
+      ...defaultDataMask,
+      extraFormData: {
+        ...defaultDataMask.extraFormData,
+        parameters: {
+          ...defaultDataMask.extraFormData?.parameters,
+          [name]: defaultDataMask.filterState.value,
+        },
+      },
+    };
+  }
+  return defaultDataMask;
+}
+
 function transformFormInput(
   id: string,
   formInputs: NativeFiltersFormItem,
@@ -113,7 +161,11 @@ function transformFormInput(
     targets: [buildFilterTarget(formInputs)],
     scope: formInputs.scope || defaultScope,
     controlValues: formInputs.controlValues ?? {},
-    defaultDataMask: formInputs.defaultDataMask ?? getInitialDataMask(),
+    defaultDataMask: normalizeDefaultDataMask(
+      formInputs.defaultDataMask,
+      formInputs.name,
+      formInputs.filterType,
+    ),
     cascadeParentIds: formInputs.dependencies || [],
     adhoc_filters: formInputs.adhoc_filters,
     time_range: formInputs.time_range,
@@ -136,6 +188,11 @@ function transformSavedFilter(id: string, filter: Filter): Filter {
     ...filter,
     id,
     description: (filter.description || '').trim(),
+    defaultDataMask: normalizeDefaultDataMask(
+      filter.defaultDataMask,
+      filter.name,
+      filter.filterType,
+    ),
   };
 }
 

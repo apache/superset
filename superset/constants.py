@@ -215,6 +215,7 @@ EXTRA_FORM_DATA_OVERRIDE_REGULAR_MAPPINGS = {
 EXTRA_FORM_DATA_OVERRIDE_EXTRA_KEYS = {
     "relative_start",
     "relative_end",
+    "parameters",
 }
 
 EXTRA_FORM_DATA_OVERRIDE_KEYS = (

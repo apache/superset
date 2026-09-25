@@ -1242,6 +1242,13 @@ class ChartDataExtrasSchema(Schema):
         },
         allow_none=True,
     )
+    parameters = fields.Dict(
+        keys=fields.String(),
+        metadata={
+            "description": "Dashboard parameter values to interpolate in queries via Jinja."
+        },
+        allow_none=True,
+    )
 
 
 class AnnotationLayerSchema(Schema):
@@ -1552,6 +1559,19 @@ class ChartDataQueryObjectSchema(Schema):
     extras = fields.Nested(
         ChartDataExtrasSchema,
         metadata={"description": "Extra parameters to add to the query."},
+        allow_none=True,
+    )
+    parameters = fields.Dict(
+        keys=fields.String(),
+        metadata={
+            "description": "Dashboard parameter values to interpolate in queries via Jinja."
+        },
+        allow_none=True,
+    )
+    extra_form_data = fields.Dict(
+        metadata={
+            "description": "Extra form data from dashboard filters/parameters."
+        },
         allow_none=True,
     )
     columns = fields.List(

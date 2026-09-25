@@ -22,6 +22,8 @@ import {
   Checkbox,
   FormItem,
   InfoTooltip,
+  Input,
+  Select,
   Tooltip,
   type FormInstance,
 } from '@superset-ui/core/components';
@@ -180,6 +182,89 @@ export default function getControlItemsMap({
         filterToEdit?.controlValues?.[controlItem.name] ??
         customizationToEdit?.controlValues?.[controlItem.name] ??
         controlItem?.config?.default;
+
+      if (controlItem?.config?.type === 'SelectControl') {
+        const options = (controlItem.config.choices || []).map((choice: any) =>
+          Array.isArray(choice)
+            ? { value: choice[0], label: choice[1] }
+            : { value: choice, label: choice },
+        );
+        const element = (
+          <StyledFormItem
+            expanded={expanded}
+            key={controlItem.name}
+            name={['filters', filterId, 'controlValues', controlItem.name]}
+            initialValue={initialValue}
+            label={
+              <StyledLabel>
+                {typeof controlItem.config?.label === 'function'
+                  ? (controlItem.config.label as Function)()
+                  : controlItem.config?.label}
+                {controlItem.config.description && (
+                  <InfoTooltip
+                    placement="top"
+                    tooltip={
+                      typeof controlItem.config.description === 'function'
+                        ? (controlItem.config.description as Function)()
+                        : (controlItem.config.description as React.ReactNode)
+                    }
+                  />
+                )}
+              </StyledLabel>
+            }
+          >
+            <Select
+              ariaLabel={controlItem.name}
+              options={options}
+              onChange={() => {
+                formChanged();
+                forceUpdate();
+              }}
+            />
+          </StyledFormItem>
+        );
+        mapControlItems[controlItem.name] = { element, checked: initialValue };
+        return;
+      }
+
+      if (controlItem?.config?.type === 'TextControl') {
+        const element = (
+          <StyledFormItem
+            expanded={expanded}
+            key={controlItem.name}
+            name={['filters', filterId, 'controlValues', controlItem.name]}
+            initialValue={initialValue}
+            label={
+              <StyledLabel>
+                {typeof controlItem.config?.label === 'function'
+                  ? (controlItem.config.label as Function)()
+                  : controlItem.config?.label}
+                {controlItem.config.description && (
+                  <InfoTooltip
+                    placement="top"
+                    tooltip={
+                      typeof controlItem.config.description === 'function'
+                        ? (controlItem.config.description as Function)()
+                        : (controlItem.config.description as React.ReactNode)
+                    }
+                  />
+                )}
+              </StyledLabel>
+            }
+          >
+            <Input
+              aria-label={controlItem.name}
+              onChange={() => {
+                formChanged();
+                forceUpdate();
+              }}
+            />
+          </StyledFormItem>
+        );
+        mapControlItems[controlItem.name] = { element, checked: initialValue };
+        return;
+      }
+
       const element = (
         <>
           <CleanFormItem
