@@ -117,6 +117,7 @@ from superset.utils.core import (
     get_user_id,
     parse_boolean_string,
     send_export_zip,
+    write_zip_entry,
 )
 from superset.versioning.api_helpers import (
     concurrency_token_from,
@@ -1094,8 +1095,9 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
                 for file_name, file_content in ExportDatasetsCommand(
                     requested_ids
                 ).run():
-                    with bundle.open(f"{root}/{file_name}", "w") as fp:
-                        fp.write(file_content().encode())
+                    write_zip_entry(
+                        bundle, f"{root}/{file_name}", file_content().encode()
+                    )
             except DatasetNotFoundError:
                 return self.response_404()
         buf.seek(0)
