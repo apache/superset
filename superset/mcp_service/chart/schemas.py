@@ -2741,66 +2741,47 @@ class XYChartConfig(BaseChartConfig):
 
 
 class BulletChartConfig(BaseChartConfig):
-    """Typed contract for the ECharts Bullet visualization (viz_type ``bullet``).
+    """Config for bullet charts (viz_type ``bullet``)."""
 
-    Semantic field names are exposed to MCP clients while validation aliases and
-    the native adapter accept saved Explore ``form_data`` without weakening the
-    unknown-field checks that catch misspelled controls.
-    """
-
+    # Semantic field names are exposed to MCP clients; validation aliases and the
+    # native adapter accept saved Explore ``form_data`` without weakening the
+    # unknown-field checks that catch misspelled controls.
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
     chart_type: Literal["bullet"] = "bullet"
     metric: ColumnRef = Field(
         ...,
-        description=(
-            "Numeric measure shown by each bullet bar. Use aggregate for a SIMPLE "
-            "metric, saved_metric=True for a dataset metric, or sql_expression "
-            "with a unique label."
-        ),
+        description="Numeric measure shown by each bullet bar",
     )
     dimensions: List[ColumnRef] | None = Field(
         None,
         validation_alias=AliasChoices("dimensions", "groupby"),
         description=(
-            "Optional category hierarchy; the frontend renders one bullet row per "
-            "unique combination (native form_data: groupby). Omit to preserve a "
-            "saved hierarchy on update; pass [] to clear it."
+            "Category hierarchy; one bullet row per unique combination. Omit to "
+            "keep the saved hierarchy on update; [] clears it."
         ),
         max_length=20,
     )
-    filters: List[FilterConfig] | None = Field(
-        None,
-        description=(
-            "Structured WHERE filters. Native SIMPLE adhoc_filters are accepted; "
-            "free-form SQL filters are rejected."
-        ),
-        max_length=100,
-    )
+    filters: List[FilterConfig] | None = Field(None, max_length=100)
     time_range: str | None = Field(
         None,
         min_length=1,
         max_length=1000,
         description=(
-            "Optional Superset time range such as 'Last 30 days' or "
-            "'2025-01-01 : 2025-12-31'. Set temporal_column to choose its column."
+            "Superset time range, e.g. 'Last 30 days' or '2025-01-01 : 2025-12-31'"
         ),
     )
     row_limit: int = Field(
         10000,
         ge=1,
         le=50000,
-        description="Maximum grouped bullet rows returned by the query",
+        description="Maximum bullet rows",
     )
     order_by: List[SortByConfig] = Field(
         default_factory=list,
         validation_alias=AliasChoices("order_by", "orderby", "order_by_cols"),
         max_length=20,
-        description=(
-            "Stable row ordering by a dimension name or by the metric's output "
-            "label/name. Native orderby pairs and order_by_cols JSON pairs are "
-            "accepted for saved-form-data round trips."
-        ),
+        description="Row order by a dimension name or the metric output label/name",
     )
 
     # Presentation fields map one-for-one onto Bullet/transformProps.ts controls.
@@ -4220,10 +4201,6 @@ ChartConfig = Annotated[
         discriminator="chart_type",
         description=(
             "Chart configuration - specify chart_type as 'xy', 'bullet', 'table', "
-            "'pie', 'gauge_chart', 'pivot_table', 'interactive_pivot', "
-            "'mixed_timeseries', "
-            "'handlebars', "
-            "Chart configuration - specify chart_type as 'xy', 'table', "
             "'pie', 'gauge', 'treemap_v2', 'bubble_v2', 'pivot_table', "
             "'interactive_pivot', 'mixed_timeseries', 'handlebars', "
             "'big_number', 'histogram', 'box_plot', 'waterfall', or 'gantt'"
