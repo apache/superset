@@ -222,8 +222,47 @@ def test_every_request_introduced_join_target_is_checked(
 
     _run(virtual_datasource)
 
-    checked = {call.kwargs["table"].table for call in raise_for_access.call_args_list}
-    assert checked == {"secret_a", "secret_b"}
+    # Each request-introduced JOIN target must be checked individually: an
+    # implementation that walked only the first FROM target and skipped the
+    # additional JOIN target would make exactly one call, so assert on both the
+    # per-table set and the call count.
+    checked = [call.kwargs["table"].table for call in raise_for_access.call_args_list]
+    assert raise_for_access.call_count == 2
+    assert sorted(checked) == ["secret_a", "secret_b"]
+
+
+def test_undetermined_declared_set_checks_every_rendered_table(
+    virtual_datasource: MagicMock,
+    app: Flask,
+    mocker: MockerFixture,
+) -> None:
+    """When the declared-table set cannot be determined (both the render and the
+    static fallback fail to parse, so ``_declared_tables`` returns ``None``),
+    every rendered table is treated as request-resolved and access-checked. A
+    regression that read an unknown declared set as "authorize nothing" would
+    leave the rendered tables unchecked, so assert each one is checked and that
+    the count matches the rendered tables (fail closed, not fail open)."""
+    raise_for_access = mocker.patch("superset.security_manager.raise_for_access")
+
+    # Force the declared-table set to be undeterminable.
+    virtual_datasource._declared_tables = MagicMock(return_value=None)
+    virtual_datasource.sql = (
+        "SELECT * FROM {{ url_param('a') }} JOIN {{ url_param('b') }} AS y ON y.id = 1"
+    )
+    # The rendered statement itself parses cleanly into two tables; only the
+    # declared set is unknown, which alone must trip the fail-closed path.
+    parsed_script = SQLScript(
+        "SELECT * FROM public.secret_a JOIN public.secret_b AS y ON y.id = 1",
+        engine="postgresql",
+    )
+    assert parsed_script.has_unparseable_statement is False
+    assert parsed_script.changes_default_schema() is False
+
+    virtual_datasource._authorize_request_resolved_tables(parsed_script)
+
+    checked = [call.kwargs["table"].table for call in raise_for_access.call_args_list]
+    assert raise_for_access.call_count == 2
+    assert sorted(checked) == ["secret_a", "secret_b"]
 
 
 def test_unauthorized_request_table_is_rejected(

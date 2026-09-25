@@ -114,7 +114,11 @@ from superset.exceptions import (
     SupersetTemplateException,
 )
 from superset.extensions import feature_flag_manager
-from superset.jinja_context import BaseTemplateProcessor, JinjaTemplateProcessor
+from superset.jinja_context import (
+    BaseTemplateProcessor,
+    JinjaTemplateProcessor,
+    safe_proxy,
+)
 from superset.sql.metric_normalization import normalize_custom_metric
 from superset.sql.parse import (
     has_aggregate,
@@ -3868,6 +3872,17 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         }
 
     @staticmethod
+    def _declared_table_sentinel() -> str:
+        """A random, unpredictable placeholder identifier substituted for a
+        request-controllable Jinja expression when building the declared-table
+        set. Randomness matters: a caller must not be able to name a real table
+        that collides with the placeholder and thereby drop it from the set. The
+        ``superset_declared_`` prefix + ``uuid4`` hex format lives here so both
+        the render path (``_render_declared_sql``) and the static fallback
+        (``_neutralize_jinja``) stay identical."""
+        return f"superset_declared_{uuid.uuid4().hex}"
+
+    @staticmethod
     def _neutralize_jinja(sql: str) -> str:
         """
         Static fallback for ``_declared_tables`` when the stored SQL cannot be
@@ -3882,7 +3897,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         may then read as request-introduced; that is the conservative
         (fail-closed) outcome only reached when rendering is unavailable.
         """
-        placeholder = f"superset_declared_{uuid.uuid4().hex}"
+        placeholder = ExploreMixin._declared_table_sentinel()
         sql = re.sub(r"\{\{.*?\}\}", placeholder, sql, flags=re.DOTALL)
         sql = re.sub(r"\{%.*?%\}", " ", sql, flags=re.DOTALL)
         sql = re.sub(r"\{#.*?#\}", " ", sql, flags=re.DOTALL)
@@ -3902,8 +3917,6 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         Returns ``None`` when a template processor is unavailable or the render
         fails, so the caller falls back to static neutralization.
         """
-        from superset.jinja_context import safe_proxy  # noqa: PLC0415
-
         try:
             processor = self.get_template_processor()
         except Exception:  # pylint: disable=broad-except
@@ -3913,7 +3926,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         # ``FROM``/``JOIN`` position yields a parseable placeholder table that a
         # caller cannot predict and therefore cannot make the live render
         # resolve to (which would hide it from the request-introduced set).
-        sentinel = f"superset_declared_{uuid.uuid4().hex}"
+        sentinel = self._declared_table_sentinel()
 
         def _sentinel_macro(*_args: Any, **_kwargs: Any) -> str:
             return sentinel
