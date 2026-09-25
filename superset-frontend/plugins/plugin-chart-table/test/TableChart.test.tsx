@@ -335,6 +335,39 @@ describe('plugin-chart-table', () => {
       expect(formattedPercentMetric).toBe('0.123');
     });
 
+    test('resolves AUTO currency on comparison columns from detected_currency', () => {
+      const autoCurrency = { symbol: 'AUTO', symbolPosition: 'prefix' };
+      const transformedProps = transformProps({
+        ...testData.comparisonWithConfig,
+        rawFormData: {
+          ...testData.comparisonWithConfig.rawFormData,
+          column_config: {
+            'Main metric_1': { currencyFormat: autoCurrency },
+            '# metric_1': { currencyFormat: autoCurrency },
+            '△ metric_1': { currencyFormat: autoCurrency },
+          },
+        },
+        datasource: {
+          ...testData.comparisonWithConfig.datasource,
+          currencyCodeColumn: 'currency_code',
+        },
+        queriesData: [
+          {
+            ...testData.comparisonWithConfig.queriesData[0],
+            detected_currency: 'GBP',
+          },
+          testData.comparisonWithConfig.queriesData[1],
+        ],
+      });
+
+      ['Main metric_1', '# metric_1', '△ metric_1'].forEach(key => {
+        const formatted = transformedProps.columns
+          .find(col => col.key === key)
+          ?.formatter?.(100);
+        expect(formatted).toContain('£');
+      });
+    });
+
     test('should set originalLabel for comparison columns when time_compare and comparison_type are set', () => {
       const transformedProps = transformProps(testData.comparison);
 

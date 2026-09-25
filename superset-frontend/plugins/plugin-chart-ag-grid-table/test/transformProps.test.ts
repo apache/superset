@@ -329,6 +329,52 @@ test('does not mistake the all_records percent-metric query for the totals query
   expect(result.totals).toEqual({ sum__num: 42 });
 });
 
+test('resolves AUTO currency on comparison columns from detected_currency', () => {
+  const autoCurrency = { symbol: 'AUTO', symbolPosition: 'prefix' };
+  const props = createMockChartProps({
+    rawFormData: {
+      viz_type: 'table',
+      datasource: '1__table',
+      slice_id: 1,
+      query_mode: QueryMode.Aggregate,
+      metrics: ['metric_1'],
+      percent_metrics: [],
+      column_config: {
+        'Main metric_1': { currencyFormat: autoCurrency },
+        '# metric_1': { currencyFormat: autoCurrency },
+        '△ metric_1': { currencyFormat: autoCurrency },
+      },
+      table_timestamp_format: '',
+      time_compare: ['1 year ago'],
+      comparison_type: 'values',
+    },
+    datasource: {
+      columns: [],
+      metrics: [],
+      columnFormats: {},
+      currencyFormats: {},
+      verboseMap: {},
+      currencyCodeColumn: 'currency_code',
+    },
+    queriesData: [
+      {
+        data: [{ metric_1: 100, 'metric_1__1 year ago': 80 }],
+        colnames: ['metric_1', 'metric_1__1 year ago'],
+        coltypes: [GenericDataType.Numeric, GenericDataType.Numeric],
+        rowcount: 1,
+        detected_currency: 'GBP',
+      },
+      { data: [{ rowcount: 1 }] },
+    ] as unknown as TableChartProps['queriesData'],
+  } as unknown as Partial<TableChartProps>);
+
+  const { columns } = transformProps(props);
+  ['Main metric_1', '# metric_1', '△ metric_1'].forEach(key => {
+    const formatted = columns.find(col => col.key === key)?.formatter?.(100);
+    expect(formatted).toContain('£');
+  });
+});
+
 test('excludes Green/Red color-scheme rules from columnColorFormatters', () => {
   // Green/Red rules are rendered via the increase/decrease path, so they must
   // not reach getColorFormatters, which would treat the scheme name as a hex
