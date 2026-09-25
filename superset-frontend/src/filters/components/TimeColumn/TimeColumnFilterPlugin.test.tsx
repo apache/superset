@@ -16,20 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { NO_TIME_RANGE } from '@superset-ui/core';
-import { act, render } from 'spec/helpers/testing-library';
-import TimeFilterPlugin from './TimeFilterPlugin';
-import { PluginFilterTimeProps } from './types';
-
-const capturedProps: Array<Record<string, unknown>> = [];
-jest.mock(
-  'src/explore/components/controls/DateFilterControl',
-  () =>
-    function MockDateFilterControl(props: Record<string, unknown>) {
-      capturedProps.push(props);
-      return null;
-    },
-);
+import { GenericDataType } from '@apache-superset/core/common';
+import { render } from 'spec/helpers/testing-library';
+import TimeColumnFilterPlugin from './TimeColumnFilterPlugin';
+import { PluginFilterTimeColumnProps } from './types';
 
 const mockSetDataMask = jest.fn();
 const mockSetFilterActive = jest.fn();
@@ -38,12 +28,15 @@ const mockUnsetHoveredFilter = jest.fn();
 const mockSetFocusedFilter = jest.fn();
 const mockUnsetFocusedFilter = jest.fn();
 
-const defaultProps: PluginFilterTimeProps = {
+const defaultProps: PluginFilterTimeColumnProps = {
   behaviors: [],
-  data: [],
+  data: [
+    { column_name: 'ds', verbose_name: null, dtype: GenericDataType.Temporal },
+    { column_name: 'ts', verbose_name: null, dtype: GenericDataType.Temporal },
+  ],
   formData: {
     datasource: '3__table',
-    viz_type: 'filter_time',
+    viz_type: 'filter_timecolumn',
     groupby: [],
     adhoc_filters: [],
     extra_filters: [],
@@ -55,6 +48,7 @@ const defaultProps: PluginFilterTimeProps = {
     width: 300,
     nativeFilterId: 'filter-1',
     inView: true,
+    defaultValue: null,
   },
   filterState: {
     value: null,
@@ -73,61 +67,44 @@ const defaultProps: PluginFilterTimeProps = {
 };
 
 beforeEach(() => {
-  capturedProps.length = 0;
   mockSetDataMask.mockClear();
 });
 
-test('passes formData.displayFormat through to the underlying date filter control', () => {
-  render(
-    <TimeFilterPlugin
+test('syncing a selected time column from filterState emits granularity_sqla through setDataMask', () => {
+  const { rerender } = render(<TimeColumnFilterPlugin {...defaultProps} />);
+  mockSetDataMask.mockClear();
+
+  rerender(
+    <TimeColumnFilterPlugin
       {...defaultProps}
-      formData={{ ...defaultProps.formData, displayFormat: '%d-%m-%Y' }}
+      filterState={{ ...defaultProps.filterState, value: ['ts'] }}
     />,
   );
 
-  expect(capturedProps).toHaveLength(1);
-  expect(capturedProps[0]).toMatchObject({ displayFormat: '%d-%m-%Y' });
-});
-
-test('passes an undefined displayFormat through when none is configured', () => {
-  render(<TimeFilterPlugin {...defaultProps} />);
-
-  expect(capturedProps).toHaveLength(1);
-  expect(capturedProps[0].displayFormat).toBeUndefined();
-});
-
-const chooseTimeRange = (value?: string) => {
-  const { onChange } = capturedProps[capturedProps.length - 1] as {
-    onChange: (timeRange?: string) => void;
-  };
-  act(() => onChange(value));
-};
-
-test('choosing a time range emits time_range through setDataMask', () => {
-  render(<TimeFilterPlugin {...defaultProps} />);
-  mockSetDataMask.mockClear();
-
-  chooseTimeRange('Last week');
-
   expect(mockSetDataMask).toHaveBeenCalledWith({
-    extraFormData: { time_range: 'Last week' },
-    filterState: { value: 'Last week' },
+    extraFormData: { granularity_sqla: 'ts' },
+    filterState: { value: ['ts'] },
   });
 });
 
-test('clearing the time range emits an empty value through setDataMask', () => {
-  render(
-    <TimeFilterPlugin
+test('syncing a cleared time column from filterState emits a null value through setDataMask', () => {
+  const { rerender } = render(
+    <TimeColumnFilterPlugin
       {...defaultProps}
-      filterState={{ ...defaultProps.filterState, value: 'Last week' }}
+      filterState={{ ...defaultProps.filterState, value: ['ds'] }}
     />,
   );
   mockSetDataMask.mockClear();
 
-  chooseTimeRange(NO_TIME_RANGE);
+  rerender(
+    <TimeColumnFilterPlugin
+      {...defaultProps}
+      filterState={{ ...defaultProps.filterState, value: null }}
+    />,
+  );
 
   expect(mockSetDataMask).toHaveBeenCalledWith({
     extraFormData: {},
-    filterState: { value: undefined },
+    filterState: { value: null },
   });
 });
