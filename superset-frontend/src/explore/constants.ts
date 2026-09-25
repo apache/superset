@@ -223,6 +223,12 @@ export const POPOVER_INITIAL_WIDTH = 320;
 export const CONTROL_SECTIONS_ID = 'controlSections';
 export const UNSAVED_CHART_ID = 0;
 
+export enum ExploreStandaloneMode {
+  None = 0,
+  HideNav = 1,
+  HideNavShowControls = 2,
+}
+
 export const QUERY_MODE_REQUISITES = new Set([
   'all_columns',
   'groupby',
