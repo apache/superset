@@ -60,6 +60,7 @@ def apply_rls(
     schema: str,
     parsed_statement: BaseSQLStatement[Any],
     exclude_dataset_id: int | None = None,
+    include_global_guest_rls: bool = False,
 ) -> bool:
     """
     Modify statement inplace to ensure RLS rules are applied.
@@ -69,6 +70,10 @@ def apply_rls(
         on top of the outer-WHERE application (avoids double-apply when the
         virtual dataset's table_name collides with a table in its own SQL — for
         example, after converting a physical dataset with RLS to virtual).
+    :param include_global_guest_rls: Also inject global (unscoped) guest RLS
+        rules. Leave False for a virtual dataset's inner SQL, whose outer query
+        already applies them; pass True when the statement is not constrained
+        by an outer query that applies them, such as an adhoc sub-query.
     :returns: True if any RLS predicates were actually applied, False otherwise.
     """
     # There are two ways to insert RLS: either replacing the table with a subquery
@@ -88,6 +93,7 @@ def apply_rls(
                 database,
                 default_catalog,
                 exclude_dataset_id=exclude_dataset_id,
+                include_global_guest_rls=include_global_guest_rls,
             )
             if predicate
         ]
@@ -186,6 +192,7 @@ def get_predicates_for_table(
     database: Database,
     default_catalog: str | None,
     exclude_dataset_id: int | None = None,
+    include_global_guest_rls: bool = False,
 ) -> list[str]:
     """
     Get the RLS predicates for a table.
@@ -193,6 +200,9 @@ def get_predicates_for_table(
     This is used to inject RLS rules into SQL statements run in SQL Lab. Note that the
     table must be fully qualified, with catalog (null if the DB doesn't support) and
     schema.
+
+    :param include_global_guest_rls: Also return global (unscoped) guest RLS rules.
+        See ``apply_rls``.
     """
     datasets = _find_datasets(
         table,
@@ -215,8 +225,8 @@ def get_predicates_for_table(
     if not datasets:
         return []
 
-    # Exclude global (unscoped) guest RLS to prevent double application in
-    # virtual datasets. Global guest rules will be applied to the outer query
+    # By default, exclude global (unscoped) guest RLS to prevent double application
+    # in virtual datasets. Global guest rules will be applied to the outer query
     # via get_sqla_row_level_filters() on the virtual dataset itself.
     # Dataset-scoped guest rules are still included here because they target
     # this specific physical dataset and won't match on the outer query.
@@ -233,7 +243,7 @@ def get_predicates_for_table(
         str(predicate.compile(dialect=dialect, compile_kwargs={"literal_binds": True}))
         for dataset in datasets
         for predicate in dataset.get_sqla_row_level_filters(
-            include_global_guest_rls=False
+            include_global_guest_rls=include_global_guest_rls
         )
     )
 

@@ -511,8 +511,15 @@ def validate_adhoc_subquery(
                 )
             )
 
-        # enforce RLS rules in any relevant tables
-        rls_applied = apply_rls(database, catalog, default_schema, parsed_statement)
+        # Enforce RLS rules in any relevant tables. Global guest rules are included
+        # because the outer query's WHERE clause does not constrain a sub-query.
+        rls_applied = apply_rls(
+            database,
+            catalog,
+            default_schema,
+            parsed_statement,
+            include_global_guest_rls=True,
+        )
 
     # Only regenerate the SQL if RLS predicates were actually applied;
     # unnecessary round-tripping through sqlglot can alter dialect-specific

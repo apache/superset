@@ -656,12 +656,14 @@ def test_apply_rls(mocker: MockerFixture) -> None:
                 database,
                 "examples",
                 exclude_dataset_id=None,
+                include_global_guest_rls=False,
             ),
             mocker.call(
                 Table("t2", "public", "examples"),
                 database,
                 "examples",
                 exclude_dataset_id=None,
+                include_global_guest_rls=False,
             ),
         ]
     )
