@@ -83,6 +83,13 @@ beforeEach(() => {
   jest.clearAllMocks();
 });
 
+afterEach(() => {
+  fetchMock.removeRoute('index-create-filter-key');
+  fetchMock.removeRoute('index-create-filter-key-2');
+  fetchMock.removeRoute('index-update-filter-key');
+  window.history.pushState(null, '', '/');
+});
+
 const getTestId = testWithId<string>(FILTER_BAR_TEST_ID, true);
 const getModalTestId = testWithId<string>(FILTERS_CONFIG_MODAL_TEST_ID, true);
 
@@ -1228,6 +1235,168 @@ test('required filter with a default value auto-applies on load without touching
   expect(screen.getByTestId(getTestId('apply-button'))).toBeDisabled();
 
   updateDataMaskSpy.mockRestore();
+});
+
+test('FilterBar POSTs a new filter state key and writes it to the URL when none exists', async () => {
+  window.history.pushState(null, '', '/dashboard/1/');
+
+  fetchMock.post(
+    'glob:*/api/v1/dashboard/1/filter_state*',
+    { key: 'brand-new-key' },
+    { name: 'index-create-filter-key' },
+  );
+  // Isolate this test's assertions from any debounced publishDataMask call
+  // left pending by an earlier test sharing the same module-level debounce.
+  fetchMock.clearHistory();
+
+  const filterId = 'NATIVE_FILTER-create-key-test';
+  const selectFilter = createFilter({
+    id: filterId,
+    name: 'Region',
+    filterType: 'filter_select',
+    targets: [{ datasetId: 7, column: { name: 'region' } }],
+    defaultDataMask: { filterState: { value: null }, extraFormData: {} },
+    chartsInScope: [18],
+  });
+  const stateWithSelect = {
+    ...stateWithoutNativeFilters,
+    dashboardInfo: {
+      id: 1,
+      dash_edit_perm: true,
+      filterBarOrientation: FilterBarOrientation.Vertical,
+      metadata: {
+        native_filter_configuration: [selectFilter],
+        chart_configuration: {},
+      },
+    },
+    dashboardState: {
+      ...stateWithoutNativeFilters.dashboardState,
+      activeTabs: ['ROOT_ID'],
+    },
+    dataMask: {
+      [filterId]: createDataMask(filterId, ['East'], {
+        filters: [{ col: 'region', op: 'IN', val: ['East'] }],
+      }),
+    },
+    nativeFilters: {
+      filters: { [filterId]: selectFilter },
+      filtersState: {},
+    },
+  };
+
+  const props = createOpenedBarProps();
+  renderFilterBar(props, stateWithSelect);
+  await act(async () => {
+    jest.advanceTimersByTime(1000);
+  });
+
+  await waitFor(() => {
+    expect(
+      fetchMock.callHistory.calls('index-create-filter-key').length,
+    ).toBeGreaterThanOrEqual(1);
+  });
+  const createCalls = fetchMock.callHistory.calls('index-create-filter-key');
+  const createCall = createCalls[createCalls.length - 1];
+  expect(createCall.options?.method).toBe('post');
+  expect(JSON.parse(createCall.options?.body as string).value).toContain(
+    'East',
+  );
+
+  await waitFor(() => {
+    expect(window.location.search).toContain(
+      'native_filters_key=brand-new-key',
+    );
+  });
+});
+
+test('FilterBar PUTs the filter state key already present in the URL on Apply instead of creating a new one', async () => {
+  window.history.pushState(null, '', '/dashboard/1/');
+
+  fetchMock.post(
+    'glob:*/api/v1/dashboard/1/filter_state*',
+    { key: 'mount-key' },
+    { name: 'index-create-filter-key-2' },
+  );
+  fetchMock.put(
+    'glob:*/api/v1/dashboard/1/filter_state/mount-key*',
+    { message: 'Value updated' },
+    { name: 'index-update-filter-key' },
+  );
+  fetchMock.clearHistory();
+
+  const filterId = 'NATIVE_FILTER-update-key-test';
+  const selectFilter = createFilter({
+    id: filterId,
+    name: 'Region',
+    filterType: 'filter_select',
+    targets: [{ datasetId: 7, column: { name: 'region' } }],
+    defaultDataMask: { filterState: { value: null }, extraFormData: {} },
+    chartsInScope: [18],
+  });
+  const stateWithSelect = {
+    ...stateWithoutNativeFilters,
+    dashboardInfo: {
+      id: 1,
+      dash_edit_perm: true,
+      filterBarOrientation: FilterBarOrientation.Vertical,
+      metadata: {
+        native_filter_configuration: [selectFilter],
+        chart_configuration: {},
+      },
+    },
+    dashboardState: {
+      ...stateWithoutNativeFilters.dashboardState,
+      activeTabs: ['ROOT_ID'],
+    },
+    dataMask: {
+      [filterId]: createDataMask(filterId, ['East'], {
+        filters: [{ col: 'region', op: 'IN', val: ['East'] }],
+      }),
+    },
+    nativeFilters: {
+      filters: { [filterId]: selectFilter },
+      filtersState: {},
+    },
+  };
+
+  const props = createOpenedBarProps();
+  renderFilterBar(props, stateWithSelect);
+  await act(async () => {
+    jest.advanceTimersByTime(1000);
+  });
+
+  // The initial mount always creates a fresh key (the update-vs-create branch
+  // only takes the update path once an Apply has happened in this session).
+  await waitFor(() => {
+    expect(window.location.search).toContain('native_filters_key=mount-key');
+  });
+  fetchMock.clearHistory();
+
+  const clearBtn = screen.getByTestId(getTestId('clear-button'));
+  expect(clearBtn).not.toBeDisabled();
+  await act(async () => {
+    await userEvent.click(clearBtn);
+  });
+  const applyBtn = screen.getByTestId(getTestId('apply-button'));
+  expect(applyBtn).not.toBeDisabled();
+  await act(async () => {
+    await userEvent.click(applyBtn);
+  });
+
+  await waitFor(() => {
+    expect(
+      fetchMock.callHistory.calls('index-update-filter-key').length,
+    ).toBeGreaterThanOrEqual(1);
+  });
+  expect(fetchMock.callHistory.calls('index-create-filter-key-2')).toHaveLength(
+    0,
+  );
+  const updateCalls = fetchMock.callHistory.calls('index-update-filter-key');
+  const updateCall = updateCalls[updateCalls.length - 1];
+  const updatedDataMask = JSON.parse(
+    JSON.parse(updateCall.options?.body as string).value,
+  );
+  expect(updatedDataMask[filterId].filterState.value).toBeNull();
 });
 
 test('FilterBar with orientation=Vertical renders Vertical layout (sanity counterpart to the horizontal routing test)', () => {
