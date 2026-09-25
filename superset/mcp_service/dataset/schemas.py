@@ -615,7 +615,7 @@ UPDATABLE_METRIC_FIELDS: frozenset[str] = frozenset(
 )
 
 
-class MetricCurrency(BaseModel):
+class MetricCurrency(OmittedMeansUnchanged):
     """Currency formatting configuration for a metric."""
 
     symbol: str | None = Field(

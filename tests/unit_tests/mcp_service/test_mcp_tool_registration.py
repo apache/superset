@@ -271,30 +271,42 @@ def _request_model_schema(tool: Any) -> dict[str, Any]:
             for container in ("$defs", "definitions"):
                 if name in schema.get(container, {}):
                     return schema[container][name]
-            pytest.fail(
+            raise AssertionError(
                 f"{tool.name}: cannot resolve request schema reference {reference!r}"
             )
     if "properties" in request:
         return request
-    pytest.fail(
+    raise AssertionError(
         f"{tool.name}: unrecognised request schema shape {sorted(request)}; "
         "the null-default check below would silently pass"
     )
 
 
-def _null_defaults(schema: dict[str, Any]) -> list[str]:
-    """Return the fields of one schema that advertise null as their default."""
-    return sorted(
-        field
-        for field, spec in schema.get("properties", {}).items()
-        if "default" in spec and spec["default"] is None
-    )
+def _null_defaults(schema: Any, path: str = "") -> list[str]:
+    """Return every field at or under ``schema`` that defaults to null.
+
+    The walk goes all the way down on purpose. A tool's advertised parameters
+    arrive fully inlined, while ``model_json_schema()`` puts nested models in
+    ``$defs``, and a null default is a hazard wherever it sits: the fields of
+    a nested model are merged into stored state the same way.
+    """
+    hits: list[str] = []
+    if isinstance(schema, dict):
+        for name, spec in (schema.get("properties") or {}).items():
+            if isinstance(spec, dict) and "default" in spec and spec["default"] is None:
+                hits.append(f"{path}/{name}")
+        for key, value in schema.items():
+            hits.extend(_null_defaults(value, f"{path}/{key}"))
+    elif isinstance(schema, list):
+        for index, value in enumerate(schema):
+            hits.extend(_null_defaults(value, f"{path}/{index}"))
+    return sorted(hits)
 
 
 def _omitted_means_unchanged_models() -> list[type[OmittedMeansUnchanged]]:
     """Return every model built on ``OmittedMeansUnchanged``."""
     models: list[type[OmittedMeansUnchanged]] = []
-    pending = [OmittedMeansUnchanged]
+    pending: list[type[OmittedMeansUnchanged]] = [OmittedMeansUnchanged]
     while pending:
         for subclass in pending.pop().__subclasses__():
             if subclass not in models:
@@ -308,9 +320,11 @@ def test_partial_update_tools_advertise_no_null_default() -> None:
     registered = {tool.name: tool for tool in _run(mcp.list_tools())}
     advertised = {}
     for name in OMITTED_MEANS_UNCHANGED_TOOLS:
-        tool = registered.get(name)
+        tool: Any = registered.get(name)
         if tool is None:
-            pytest.fail(f"{name} is not registered, so its schema cannot be checked")
+            raise AssertionError(
+                f"{name} is not registered, so its schema cannot be checked"
+            )
         if offenders := _null_defaults(_request_model_schema(tool)):
             advertised[name] = offenders
 
