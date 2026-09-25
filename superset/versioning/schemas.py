@@ -26,6 +26,7 @@ from __future__ import annotations
 from marshmallow import fields, Schema, validate
 
 from superset.versioning.changes import ACTION_KINDS
+from superset.versioning.creation_kinds import CREATION_KINDS, CREATION_RECORD_KIND
 
 
 class VersionChangedBySchema(Schema):
@@ -204,6 +205,7 @@ ACTIVITY_CHANGE_KINDS: tuple[str, ...] = (
     # whose record's ``to_value`` carries the restored-to
     # ``version_uuid`` / ``version_number``.
     "__meta__",
+    CREATION_RECORD_KIND,
 )
 
 #: Allowed values for ``ActivityRecordSchema.operation`` — the per-record
@@ -475,6 +477,23 @@ class ActivityRecordSchema(Schema):
                 "that affected 4 charts on the path dashboard at the "
                 'change\'s transaction. Absent for ``source: "self"`` '
                 "records and for related records without dependents."
+            )
+        },
+    )
+    creation_kind: fields.String = fields.String(
+        allow_none=True,
+        validate=validate.OneOf(CREATION_KINDS),
+        metadata={
+            "description": (
+                "Set only on the synthetic starting-version record "
+                '(``kind == "__creation__"``): how the entity came to '
+                'exist. ``"pre_tracking"`` — a retroactive baseline for '
+                'an entity that predates versioning; ``"created"`` — '
+                'a creation with tracking on; ``"imported"`` — an '
+                "import, attributed to the importing user; "
+                '``"unknown"`` — an unstamped starting version whose '
+                "creation provenance cannot be established. Machine "
+                "values: display copy is owned by the client."
             )
         },
     )

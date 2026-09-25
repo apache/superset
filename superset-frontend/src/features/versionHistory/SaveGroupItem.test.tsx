@@ -16,8 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { fireEvent, render, within } from 'spec/helpers/testing-library';
-import type { ActivityRecord, SaveGroup } from './types';
+import {
+  fireEvent,
+  render,
+  screen,
+  userEvent,
+  within,
+} from 'spec/helpers/testing-library';
+import type { ActivityRecord, SaveGroup, VersionedEntityType } from './types';
 import SaveGroupItem, { SaveGroupItemProps } from './SaveGroupItem';
 
 const makeGroup = (overrides: Partial<SaveGroup> = {}): SaveGroup => ({
@@ -129,3 +135,176 @@ test('rows of the highlighted group show the active timeline dot', () => {
   expandGroup(historical);
   expect(dotBorderColor(current)).not.toBe(dotBorderColor(historical));
 });
+
+const creationGroup = (overrides: Partial<SaveGroup> = {}): SaveGroup =>
+  makeGroup({
+    transactionId: 5,
+    versionUuid: 'v-created',
+    issuedAt: '2025-12-05T17:18:00',
+    changedBy: { id: 1, first_name: 'Ada', last_name: 'Lovelace' },
+    creationKind: 'created',
+    ...overrides,
+  });
+
+test('a chart starting group exposes an explicit preview action', async () => {
+  const onPreview = jest.fn();
+  const group = creationGroup();
+  renderItem({ group, onPreview });
+
+  const button = screen.getByRole('button', { name: 'Preview this version' });
+  await userEvent.click(button);
+
+  expect(onPreview).toHaveBeenCalledWith(group);
+});
+
+test('a dashboard starting group exposes the same preview action via keyboard', async () => {
+  const onPreview = jest.fn();
+  const group = creationGroup({ creationKind: 'pre_tracking' });
+  renderItem({ group, onPreview, entityType: 'dashboard' });
+
+  const button = screen.getByRole('button', { name: 'Preview this version' });
+  button.focus();
+  await userEvent.type(button, '{enter}', { skipClick: true });
+
+  expect(onPreview).toHaveBeenCalledWith(group);
+});
+
+test('the current starting version has nothing to preview', () => {
+  renderItem({ group: creationGroup(), isCurrent: true });
+
+  expect(
+    screen.queryByRole('button', { name: 'Preview this version' }),
+  ).not.toBeInTheDocument();
+});
+
+test('a creation-marked group with records gets no creation preview', () => {
+  renderItem({
+    group: creationGroup({
+      creationKind: 'created',
+      records: [
+        {
+          version_uuid: 'v-1',
+          entity_kind: 'chart',
+          entity_uuid: 'e-1',
+          entity_name: 'My chart',
+          entity_deleted: false,
+          entity_deletion_state: null,
+          source: 'self',
+          transaction_id: 5,
+          action_kind: null,
+          issued_at: '2025-12-05T17:18:00',
+          changed_by: null,
+          kind: 'metric',
+          operation: 'add',
+          path: ['params'],
+          from_value: null,
+          to_value: null,
+          summary: '',
+          impact: null,
+        },
+      ],
+    }),
+  });
+
+  expect(
+    screen.queryByRole('button', { name: 'Preview this version' }),
+  ).not.toBeInTheDocument();
+});
+
+test('an empty group with no creationKind gets no preview affordance', () => {
+  renderItem({ group: creationGroup({ creationKind: undefined }) });
+
+  expect(
+    screen.queryByRole('button', { name: 'Preview this version' }),
+  ).not.toBeInTheDocument();
+});
+
+test.each<{ entityType: VersionedEntityType; isCurrent: boolean }>([
+  { entityType: 'chart', isCurrent: false },
+  { entityType: 'chart', isCurrent: true },
+  { entityType: 'dashboard', isCurrent: false },
+  { entityType: 'dashboard', isCurrent: true },
+])(
+  '$entityType change rows preview without duplicating group actions (current: $isCurrent)',
+  async ({ entityType, isCurrent }) => {
+    const records: ActivityRecord[] = ['metrics', 'filters'].map(kind => ({
+      version_uuid: 'version-uuid',
+      entity_kind: entityType,
+      entity_uuid: 'entity-uuid',
+      entity_name: 'Example',
+      entity_deleted: false,
+      entity_deletion_state: null,
+      source: 'self',
+      transaction_id: 7,
+      action_kind: null,
+      issued_at: '2026-08-31T17:46:00',
+      changed_by: null,
+      kind,
+      operation: 'update',
+      path: [kind],
+      from_value: null,
+      to_value: null,
+      summary: '',
+      impact: null,
+    }));
+    const group = makeGroup({ records });
+    const onPreview = jest.fn();
+    const onExitPreview = jest.fn();
+    const onOpenAsNew = jest.fn();
+    const onRestore = jest.fn();
+    renderItem({
+      entityType,
+      isCurrent,
+      group,
+      onPreview,
+      onExitPreview,
+      onOpenAsNew,
+      onRestore,
+    });
+
+    await userEvent.click(screen.getByRole('button', { name: /Aug 31, 2026/ }));
+    const rows = screen.getAllByTestId('version-history-action-row');
+    expect(rows).toHaveLength(2);
+    rows.forEach(row => {
+      expect(
+        within(row).queryByRole('button', { name: 'More actions' }),
+      ).not.toBeInTheDocument();
+    });
+    expect(
+      screen.getAllByRole('button', { name: 'More actions' }),
+    ).toHaveLength(1);
+
+    await userEvent.click(rows[0]);
+    rows[1].focus();
+    fireEvent.keyDown(rows[1], { key: 'Enter' });
+    fireEvent.keyDown(rows[1], { key: ' ' });
+    if (isCurrent) {
+      expect(onExitPreview).toHaveBeenCalledTimes(3);
+      expect(onPreview).not.toHaveBeenCalled();
+    } else {
+      expect(onPreview).toHaveBeenCalledTimes(3);
+      expect(onPreview).toHaveBeenLastCalledWith(group);
+      expect(onExitPreview).not.toHaveBeenCalled();
+    }
+
+    await userEvent.click(screen.getByRole('button', { name: 'More actions' }));
+    if (isCurrent) {
+      expect(
+        screen.queryByRole('menuitem', { name: 'Restore this version' }),
+      ).not.toBeInTheDocument();
+    } else {
+      expect(
+        screen.getByRole('menuitem', { name: 'Restore this version' }),
+      ).toBeInTheDocument();
+    }
+    await userEvent.click(
+      screen.getByRole('menuitem', { name: `Open as new ${entityType}` }),
+    );
+    expect(onOpenAsNew).toHaveBeenCalledTimes(1);
+    expect(onOpenAsNew).toHaveBeenCalledWith(group);
+    expect(onRestore).not.toHaveBeenCalled();
+    expect(onPreview).toHaveBeenCalledTimes(isCurrent ? 0 : 3);
+    expect(onExitPreview).toHaveBeenCalledTimes(isCurrent ? 3 : 0);
+    expect(screen.getAllByTestId('version-history-action-row')).toHaveLength(2);
+  },
+);

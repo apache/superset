@@ -101,49 +101,15 @@ export const doesColumnMatchFilterType = (filterType: string, column: Column) =>
     filterType as keyof typeof FILTER_SUPPORTED_TYPES
   ]?.includes(column.type_generic);
 
-export const mapSemanticTypeToGenericDataType = (
-  semanticType?: string | null,
-): GenericDataType | undefined => {
-  if (!semanticType) {
-    return undefined;
-  }
-
-  const normalized = semanticType.toLowerCase();
-
-  if (
-    /^(struct|list|map|array|fixed_size_list|large_list|union|dictionary)\b/.test(
-      normalized,
-    )
-  ) {
-    return undefined;
-  }
-
-  if (normalized.includes('bool')) {
-    return GenericDataType.Boolean;
-  }
-
-  if (/(date|time|timestamp|datetime)/.test(normalized)) {
-    return GenericDataType.Temporal;
-  }
-
-  if (
-    /(\b(u?int\d*)\b|\bfloat\d*\b|\bdouble\b|\bdecimal\d*\b|\bnumber\b)/.test(
-      normalized,
-    )
-  ) {
-    return GenericDataType.Numeric;
-  }
-
-  if (
-    /(\bstr(ing)?\b|\butf8\b|\blarge_string\b|\bbinary\b|\bjson\b|\buuid\b)/.test(
-      normalized,
-    )
-  ) {
-    return GenericDataType.String;
-  }
-
-  return undefined;
-};
+// Shared semantic-view structure helpers live in a layer-neutral module so
+// non-dashboard consumers (e.g. the dataset drill-info hook) need not import
+// from this filter-form utility. Re-exported here for existing call sites.
+export {
+  mapSemanticTypeToGenericDataType,
+  fetchSemanticViewStructure,
+  semanticViewDimensionsToColumns,
+} from 'src/utils/semanticViewStructure';
+export type { SemanticViewStructure } from 'src/utils/semanticViewStructure';
 
 // Validates that a filter default value is present when the default value option is enabled.
 // For range filters, at least one of the two values must be non-null.

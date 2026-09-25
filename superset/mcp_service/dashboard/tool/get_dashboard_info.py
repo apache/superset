@@ -111,6 +111,16 @@ async def get_dashboard_info(
 
     Returns title, charts, and layout details.
 
+    Before answering about a filtered dashboard, supply its permalink_key or
+    filter_state to this tool and use the returned filter_state as context.
+    Restricted users receive native_filter_values (names, types, selected values,
+    labels and exclusion flags), not raw dataMask or column targets. Check
+    native_filter_values_incomplete: unsupported filters and chart state cannot
+    be summarized safely. Missing state is not evidence of no filters.
+    These are snapshot values, not automatically enforced query predicates.
+    Respect filter scope; do not guess columns or query workspace-wide data when
+    the available context is insufficient. Ask for clarification instead.
+
     For dashboards with many charts or native filters, the ``charts`` and
     ``native_filters`` lists may be capped below their true size (see
     ``chart_count`` for the real total, and ``_truncation_notes`` in the
@@ -191,6 +201,7 @@ async def get_dashboard_info(
                         result.id,
                         result.uuid,
                         result.slug,
+                        result.native_filters,
                     )
                     if permalink_state is None:
                         await ctx.warning(
@@ -223,7 +234,9 @@ async def get_dashboard_info(
                 await ctx.info("Applying caller-supplied filter_state")
                 filter_state = request.filter_state
                 if not user_can_view_data_model_metadata():
-                    filter_state = redact_filter_state_data_model_metadata(filter_state)
+                    filter_state = redact_filter_state_data_model_metadata(
+                        filter_state, result.native_filters
+                    )
                 result = _apply_permalink_state(
                     result, None, filter_state, is_permalink=False
                 )

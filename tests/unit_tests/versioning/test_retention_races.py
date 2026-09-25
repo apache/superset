@@ -61,6 +61,10 @@ def version_store() -> Iterator[SimpleNamespace]:
         sa.Column("issued_at", sa.DateTime),
         sa.Column("user_id", sa.Integer),
         sa.Column("remote_addr", sa.String(100)),
+        # Mirrors VersionTransactionFactory's real column: the baseline
+        # writer stamps action_kind='baseline' on the tx it mints
+        # (sc-120488).
+        sa.Column("action_kind", sa.String(32)),
     )
     ver_table = sa.Table(
         "things_version",
