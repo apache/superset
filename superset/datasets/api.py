@@ -108,7 +108,11 @@ from superset.exceptions import (
 from superset.jinja_context import BaseTemplateProcessor, get_template_processor
 from superset.subjects.filters import FilterRelatedSubjects, subject_type_filter
 from superset.utils import json
-from superset.utils.core import parse_boolean_string, send_export_zip
+from superset.utils.core import (
+    parse_boolean_string,
+    send_export_zip,
+    write_zip_entry,
+)
 from superset.versioning.api_helpers import (
     concurrency_token_from,
     current_entity_version_info,
@@ -1019,8 +1023,9 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
                 for file_name, file_content in ExportDatasetsCommand(
                     requested_ids
                 ).run():
-                    with bundle.open(f"{root}/{file_name}", "w") as fp:
-                        fp.write(file_content().encode())
+                    write_zip_entry(
+                        bundle, f"{root}/{file_name}", file_content().encode()
+                    )
             except DatasetNotFoundError:
                 return self.response_404()
         buf.seek(0)
