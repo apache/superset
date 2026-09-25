@@ -389,16 +389,27 @@ describe('sparse sub-daily bar chart: x-axis mislabels raw epoch values when col
   });
 
   // A separate, genuinely numeric column (distinct name and values from
-  // the temporal fixtures above) as the designated x-axis, correctly
-  // classified as Numeric by both the query response's coltypes AND the
-  // dataset's own column metadata — with an unrelated dashboard-level
-  // time-grain cross-filter (a real, supported Superset feature: such a
-  // filter can apply to every chart on a dashboard, including ones whose
-  // x-axis has nothing to do with time) still resolved for this chart.
-  // Coercing here would wrongly turn this unrelated numeric chart into a
-  // time axis, so it must not — this is the scenario the datasource-column
-  // cross-reference exists to rule out.
-  test('a genuinely numeric x-axis (price) stays non-Temporal even when an unrelated dashboard time-grain filter is resolved', () => {
+  // the temporal fixtures above) as the designated x-axis, whose own
+  // dataset column metadata correctly says it's Numeric — with an
+  // unrelated dashboard-level time-grain cross-filter (a real, supported
+  // Superset feature: such a filter can apply to every chart on a
+  // dashboard, including ones whose x-axis has nothing to do with time)
+  // still resolved for this chart. Coercing here would wrongly turn this
+  // unrelated numeric chart into a time axis, so it must not — this is the
+  // scenario the datasource-column cross-reference exists to rule out.
+  //
+  // The query response's own coltype for `price` is deliberately
+  // *unusable* here (a raw SQL-type string, not a GenericDataType member)
+  // rather than a valid `Numeric` classification: with a usable coltype,
+  // `rawXAxisDataTypeIsUsable` is already `true` and the function returns
+  // early without ever reaching the datasource-metadata lookup at all — a
+  // test built that way would pass identically against the code from
+  // before the metadata fix existed, providing no actual regression
+  // protection for it. An unusable coltype forces the function through the
+  // same "no usable classification, fall back to *something*" branch the
+  // ticket's real bug takes, so the assertion only passes if the
+  // datasource lookup itself correctly says `price` isn't temporal.
+  test('a genuinely numeric x-axis (price) stays non-Temporal even with an unusable coltype and an unrelated dashboard time-grain filter', () => {
     const priceDatasourceColumns: Column[] = [
       {
         column_name: 'price',
@@ -423,7 +434,7 @@ describe('sparse sub-daily bar chart: x-axis mislabels raw epoch values when col
       ],
       {
         colnames: ['count', 'price'],
-        coltypes: [GenericDataType.Numeric, GenericDataType.Numeric],
+        coltypes: ['BIGINT'] as unknown as GenericDataType[], // unusable: missing entry
       },
       {
         x_axis: 'price',
@@ -435,6 +446,60 @@ describe('sparse sub-daily bar chart: x-axis mislabels raw epoch values when col
       400,
       priceDatasourceColumns,
     );
-    expect(xAxisType(xAxis)).not.toBe('time');
+    // Exact type, not just `.not.toBe('time')`: with seriesType Bar and a
+    // non-Temporal classification, getAxisType (utils/series.ts) always
+    // falls through to Category — asserting the real fallback value avoids
+    // an assertion that would also pass for an axis option that's merely
+    // missing its `type` altogether.
+    expect(xAxisType(xAxis)).toBe('category');
+  });
+
+  // An ad-hoc (computed/expression, not physical) x_axis is still "the
+  // selected axis" per getXAxisColumn's own precedence (isXAxisSet =
+  // isQueryFormColumn(x_axis), true for either a physical or a valid
+  // ad-hoc column) — granularity_sqla is only ever a fallback for when
+  // x_axis isn't set at all. A chart with an ad-hoc, genuinely non-temporal
+  // x-axis (`double_price`) must not have its axis type decided by an
+  // unrelated, genuinely temporal `granularity_sqla` column's metadata,
+  // even though `double_price` itself has no datasource.columns entry to
+  // confirm it either way (it's a computed expression, not a physical
+  // column).
+  test("an ad-hoc, non-physical x-axis does not fall back to granularity_sqla's (unrelated) column metadata", () => {
+    const { xAxis } = buildOptions(
+      800,
+      [
+        { count: 1, double_price: 10 },
+        { count: 1, double_price: 20 },
+      ],
+      {
+        colnames: ['count', 'double_price'],
+        coltypes: [GenericDataType.Numeric], // unusable: missing entry for double_price
+      },
+      {
+        x_axis: {
+          label: 'double_price',
+          sqlExpression: 'price * 2',
+          expressionType: 'SQL',
+        } as unknown as string,
+        granularity_sqla: 'order_date',
+        extraFormData: { time_grain_sqla: 'PT1H' },
+      },
+      400,
+      [
+        {
+          column_name: 'count',
+          is_dttm: false,
+          type_generic: GenericDataType.Numeric,
+        },
+        // Real, genuinely temporal column — present on the dataset, but
+        // not what this chart's x-axis actually is.
+        {
+          column_name: 'order_date',
+          is_dttm: true,
+          type_generic: GenericDataType.Temporal,
+        },
+      ],
+    );
+    expect(xAxisType(xAxis)).toBe('category');
   });
 });
