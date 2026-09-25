@@ -17,6 +17,7 @@
 
 """Tests for MCP tool search transform configuration and application."""
 
+import logging
 from types import SimpleNamespace
 from unittest.mock import MagicMock, Mock, patch
 
@@ -1229,6 +1230,45 @@ def test_create_serializer_include_schemas_true_with_compact():
 
 
 # -- search_tools optional query tests --
+
+
+def test_call_tool_proxy_rejects_synthetic_names_with_warning_log_level() -> None:
+    """call_tool proxy raises ToolError(log_level=WARNING) for synthetic names.
+
+    FastMCP logs ToolError at the exception's log_level before middleware sees
+    it.  Synthetic-name rejections are LLM misuse (a 400-class error), not
+    system failures, so WARNING prevents them from reaching Sentry via the
+    ERROR-level LoggingIntegration.
+    """
+    import asyncio
+
+    from fastmcp.exceptions import ToolError as FastMCPToolError
+
+    mock_mcp = MagicMock()
+    config = {
+        "strategy": "bm25",
+        "max_results": 5,
+        "always_visible": [],
+        "search_tool_name": "search_tools",
+        "call_tool_name": "call_tool",
+    }
+    _apply_tool_search_transform(mock_mcp, config)
+    transform = mock_mcp.add_transform.call_args[0][0]
+    call_tool_obj = transform._make_call_tool()
+
+    async def _run_and_capture(name: str) -> FastMCPToolError:
+        import pytest
+
+        with pytest.raises(FastMCPToolError) as exc_info:
+            await call_tool_obj.fn(name=name, arguments=None, ctx=None)
+        return exc_info.value
+
+    for synthetic_name in ("search_tools", "call_tool"):
+        exc = asyncio.run(_run_and_capture(synthetic_name))
+        assert exc.log_level == logging.WARNING, (
+            f"Expected WARNING for '{synthetic_name}', got {exc.log_level}"
+        )
+        assert synthetic_name in str(exc)
 
 
 def test_search_tool_query_is_optional_in_schema() -> None:

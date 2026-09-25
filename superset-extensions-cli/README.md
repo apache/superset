@@ -62,6 +62,11 @@ superset-extensions bundle [--output/-o <path>]
 superset-extensions dev
 ```
 
+If a frontend build fails, `build` and `bundle` exit non-zero without writing
+a new manifest or bundle. An existing bundle is not removed; callers must check
+the exit status before using it. In `dev` mode, failed frontend rebuilds are
+reported and the watcher remains available for subsequent changes.
+
 ## 📋 Extension Structure
 
 The CLI scaffolds extensions with the following structure:

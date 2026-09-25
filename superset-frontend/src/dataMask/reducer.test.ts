@@ -31,6 +31,7 @@ import {
   NativeFilterType,
   ChartCustomizationType,
 } from '@superset-ui/core';
+import { getSelectExtraFormData } from 'src/filters/utils';
 import { HYDRATE_DASHBOARD } from 'src/dashboard/actions/hydrate';
 
 // Helper to create minimal filter for testing
@@ -215,3 +216,100 @@ test('HYDRATE_DASHBOARD handles chart_customization_config that is entirely null
   );
   expect(customizationKeys).toHaveLength(0);
 });
+
+test.each<[null | [], boolean]>([
+  [null, false],
+  [[], false],
+  [null, true],
+  [[], true],
+])(
+  'HYDRATE_DASHBOARD preserves an explicit required select clear (value: %j, UI mask: %j) from a permalink',
+  (value, useUiMask) => {
+    const id = 'NATIVE_FILTER-region';
+    const filter: Filter = {
+      ...createFilter(id, 'region', { enableEmptyFilter: true }),
+      defaultDataMask: {
+        filterState: { value: ['APAC'] },
+        extraFormData: {
+          filters: [{ col: 'region', op: 'IN', val: ['APAC'] }],
+        },
+      },
+    };
+    // The mask produced by apply_dashboard_filters for values: [].
+    const dataMask: DataMaskStateWithId = {
+      [id]: {
+        id,
+        ownState: {},
+        filterState: { value },
+        extraFormData: {
+          adhoc_filters: [
+            {
+              expressionType: 'SQL',
+              clause: 'WHERE',
+              sqlExpression: '1 = 0',
+            },
+          ],
+        },
+      },
+    };
+    if (useUiMask) {
+      dataMask[id].extraFormData = getSelectExtraFormData('region', [], true);
+    }
+    const action = hydrateAction([], [filter]);
+    action.data.dataMask = dataMask;
+
+    expect(reducer({}, action)[id]).toEqual(dataMask[id]);
+  },
+);
+
+test('HYDRATE_DASHBOARD still restores a required select default for an incomplete permalink', () => {
+  const id = 'NATIVE_FILTER-region';
+  const filter: Filter = {
+    ...createFilter(id, 'region', { enableEmptyFilter: true }),
+    defaultDataMask: {
+      filterState: { value: ['APAC'] },
+      extraFormData: {
+        filters: [{ col: 'region', op: 'IN', val: ['APAC'] }],
+      },
+    },
+  };
+  const action = hydrateAction([], [filter]);
+  action.data.dataMask = {
+    [id]: { id, filterState: { value: null }, extraFormData: {} },
+  };
+  const result = reducer({}, action)[id];
+
+  expect(result.filterState).toEqual(filter.defaultDataMask.filterState);
+  expect(result.extraFormData).toEqual(filter.defaultDataMask.extraFormData);
+});
+
+test.each([null, 'invalid', {}, 1, [null], [undefined], [1], [{}]])(
+  'HYDRATE_DASHBOARD restores a required select default for malformed adhoc filters (%j)',
+  adhocFilters => {
+    const id = 'NATIVE_FILTER-region';
+    const filter: Filter = {
+      ...createFilter(id, 'region', { enableEmptyFilter: true }),
+      defaultDataMask: {
+        filterState: { value: ['APAC'] },
+        extraFormData: {
+          filters: [{ col: 'region', op: 'IN', val: ['APAC'] }],
+        },
+      },
+    };
+    const action = hydrateAction([], [filter]);
+    action.data.dataMask = {
+      [id]: {
+        id,
+        filterState: { value: null },
+        // Permalinks are runtime input and may violate the TypeScript schema.
+        extraFormData: {
+          adhoc_filters: adhocFilters,
+        } as unknown as DataMaskStateWithId[string]['extraFormData'],
+      },
+    };
+
+    const result = reducer({}, action)[id];
+    expect(result.filterState).toEqual(filter.defaultDataMask.filterState);
+    expect(result.extraFormData).toEqual(filter.defaultDataMask.extraFormData);
+  },
+);

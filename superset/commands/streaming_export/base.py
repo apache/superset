@@ -30,12 +30,47 @@ from typing import Any, Callable, Generator
 
 from flask import current_app as app, g, has_app_context
 from sqlalchemy import text
+from werkzeug.local import LocalProxy
 
 from superset import db
 from superset.commands.base import BaseCommand
 from superset.utils.csv import escape_value
 
 logger = logging.getLogger(__name__)
+
+
+def capture_g_context() -> dict[str, Any]:
+    """
+    Snapshot ``flask.g`` so a streaming generator can replay it later.
+
+    Values held on ``g`` may be request-bound ``LocalProxy`` objects rather
+    than plain values. The most important one is ``g.user``, which
+    Flask-AppBuilder's ``before_request`` sets to Flask-Login's
+    ``current_user``: that proxy resolves through ``has_request_context()``
+    and therefore evaluates to ``None`` once the request context is gone,
+    which is exactly the situation the generator runs in.
+
+    Copying such a proxy verbatim would hand the generator a ``g.user`` that
+    silently resolves to nobody, so resolve each proxy to the concrete object
+    it currently points at while the request context is still around.
+
+    Returns:
+        Dictionary of g attributes, with request-bound proxies resolved
+    """
+    if not has_app_context():
+        return {}
+
+    captured: dict[str, Any] = {}
+    for key, value in g._get_current_object().__dict__.items():
+        if isinstance(value, LocalProxy):
+            try:
+                value = value._get_current_object()
+            except RuntimeError:
+                # Nothing is bound to the proxy, so there is no value worth
+                # carrying into the generator.
+                continue
+        captured[key] = value
+    return captured
 
 
 @contextmanager
@@ -49,7 +84,7 @@ def preserve_g_context(
     app context but needs access to request-scoped data from the original request.
 
     Args:
-        captured_g: Dictionary of g attributes captured before context switch
+        captured_g: Dictionary of g attributes captured by capture_g_context()
     """
     for key, value in captured_g.items():
         setattr(g, key, value)
@@ -322,9 +357,7 @@ class BaseStreamingCSVExportCommand(BaseCommand):
         limit = self._get_row_limit()
         # Capture flask.g attributes to preserve request-scoped data
         # when the streaming generator runs in a new app context.
-        captured_g = (
-            g._get_current_object().__dict__.copy() if has_app_context() else {}
-        )
+        captured_g = capture_g_context()
 
         def csv_generator() -> Generator[str, None, None]:
             """Generator that yields CSV data chunks."""
