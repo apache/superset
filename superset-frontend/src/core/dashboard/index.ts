@@ -60,6 +60,9 @@ const getDashboardId: typeof dashboardApi.getDashboardId = () =>
 const getLayout: typeof dashboardApi.getLayout = () =>
   isDashboardActive() ? { ...getState().dashboardLayout.present } : {};
 
+const getActiveTabs: typeof dashboardApi.getActiveTabs = () =>
+  isDashboardActive() ? [...(getState().dashboardState.activeTabs ?? [])] : [];
+
 const updateLayoutNode: typeof dashboardApi.updateLayoutNode = async (
   nodeId: string,
   meta: Record<string, unknown>,
@@ -200,6 +203,7 @@ const refreshChart: typeof dashboardApi.refreshChart = async (
 export const dashboard: typeof dashboardApi = {
   getDashboardId,
   getLayout,
+  getActiveTabs,
   updateLayoutNode,
   getCss,
   setCss,
