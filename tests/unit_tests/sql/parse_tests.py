@@ -6033,6 +6033,10 @@ def test_changes_search_path(sql: str, expected: bool) -> None:
         # so it must not lose the rest of the body to an unspaced `--`.
         ("CALL p(1--2, 'SET SCHEMA evil')", "singlestoredb", True),
         ("CALL p(1, 'x') -- SET SCHEMA evil", "singlestoredb", False),
+        # The family is identified by subclassing `MySQL`, so an engine that
+        # joins it without being named anywhere here takes the rule too.
+        ("CALL p(1--2, 'SET SCHEMA evil')", "pinot", True),
+        ("CALL p(1, 'x') -- SET SCHEMA evil", "pinot", False),
         # Engines without a sqlglot AST (e.g. Kusto KQL) do not rebind schema
         # resolution through these forms.
         ("print x = 1", "kustokql", False),
@@ -6594,12 +6598,13 @@ def test_backtick_invalid_sql_still_fails() -> None:
         SQLScript(sql, "base")
 
 
-def test_base_sql_statement_get_client_file_transfer_command_not_implemented() -> None:
+def test_base_sql_statement_get_client_file_transfer_command_defaults_to_none() -> None:
     """
-    BaseSQLStatement.get_client_file_transfer_command is abstract.
+    BaseSQLStatement.get_client_file_transfer_command defaults to None, so a
+    dialect without such commands inherits the safe answer rather than having
+    to override it.
     """
-    with pytest.raises(NotImplementedError):
-        BaseSQLStatement.get_client_file_transfer_command(object())  # type: ignore[arg-type]  # noqa: E501
+    assert BaseSQLStatement.get_client_file_transfer_command(object()) is None  # type: ignore[arg-type]  # noqa: E501
 
 
 def test_kusto_kql_has_no_client_file_transfer_command() -> None:

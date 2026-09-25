@@ -37,6 +37,7 @@ from sqlglot.dialects.dialect import (
     DialectType,
     NormalizationStrategy,
 )
+from sqlglot.dialects.mysql import MySQL
 from sqlglot.dialects.singlestore import SingleStore
 from sqlglot.errors import OptimizeError, ParseError
 from sqlglot.generator import Generator
@@ -646,9 +647,11 @@ class BaseSQLStatement(Generic[InternalRepresentation]):
         """
         Return the client-side file-transfer command head, if this is one.
 
+        Defaults to ``None``; engines that have such commands override this.
+
         :return: The uppercased command head (e.g. ``"PUT"``), else ``None``.
         """
-        raise NotImplementedError()
+        return None
 
     def optimize(self) -> BaseSQLStatement[InternalRepresentation]:
         """
@@ -1059,18 +1062,6 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
         re.DOTALL | re.VERBOSE,
     )
 
-    _SPACED_DASH_COMMENT_DIALECTS: frozenset[DialectType] = frozenset(
-        {
-            Dialects.MYSQL,
-            Dialects.DORIS,
-            Dialects.STARROCKS,
-            # SingleStore speaks the MySQL wire protocol and shares its
-            # tokenizer, but sqlglot exposes no `Dialects` member for it, so
-            # the class itself is what the resolved dialect compares equal to.
-            SingleStore,
-        }
-    )
-
     # A literal nests once per level of dynamic-SQL indirection (an
     # `EXECUTE IMMEDIATE` inside an `EXECUTE IMMEDIATE`), so a handful covers
     # every form that actually executes. The bound is what stops a body of
@@ -1260,8 +1251,9 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
         rather than by each caller, so every such gate scans the same text;
         see :meth:`_strip_comments` for why.
 
-        Cached because that strip is the expensive part and three gates ask for
-        the same body in a single request, one of them twice. Caching is safe
+        Cached because three gates ask for the same body in a single request,
+        one of them twice, so the strip would otherwise run about five times
+        over identical text. Caching is safe
         because the two methods that rebuild ``_parsed`` in place cannot reach a
         statement this returns text for: ``set_limit`` returns early unless the
         node is an ``exp.Query``, and ``remove_unbounded_top_level_order_by``
@@ -1287,7 +1279,32 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
         text = self._peel_dollar_quote(text, head)
         return self._strip_comments(text)
 
-    def _peel_dollar_quote(self, text: str, head: str | None) -> str:
+    @cached_property
+    def _comment_re(self) -> re.Pattern[str]:
+        """
+        Return the comment pattern this statement's dialect is lexed with.
+
+        The MySQL family is identified by subclassing rather than by a list of
+        dialects: sqlglot models the family that way (``Doris``, ``StarRocks``
+        and ``SingleStore`` all subclass ``MySQL``, as does this repo's own
+        ``Pinot``), so a list would have to be kept in step with it by hand and
+        would silently lex a missing member with the wrong ``--`` rule.
+
+        Resolved once per statement rather than per call: ``_strip_comments``
+        recurses once per literal it descends into, and the choice cannot
+        change between those calls.
+
+        :return: The compiled comment pattern for this statement's dialect
+        """
+        dialect = Dialect.get_or_raise(self._dialect) if self._dialect else None
+        return (
+            self._COMMENT_RE_SPACED_DASH
+            if isinstance(dialect, MySQL)
+            else self._COMMENT_RE
+        )
+
+    @classmethod
+    def _peel_dollar_quote(cls, text: str, head: str | None) -> str:
         """
         Remove the delimiters of the body's dollar-quoted code wrapper, keeping
         its contents and the text either side of it.
@@ -1311,7 +1328,7 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
         :return: The text with the wrapper's delimiters removed, or unchanged
             when the body has no dollar-quoted wrapper
         """
-        if not (opener := self._DOLLAR_QUOTE_OPEN_RE.search(text)):
+        if not (opener := cls._DOLLAR_QUOTE_OPEN_RE.search(text)):
             return text
         delimiter = opener.group()
         closer = text.find(delimiter, opener.end())
@@ -1366,21 +1383,22 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
         :return: The text with each comment replaced by a single space, so
             tokens either side of a removed comment stay separated
         """
-        pattern = (
-            self._COMMENT_RE_SPACED_DASH
-            if self._dialect in self._SPACED_DASH_COMMENT_DIALECTS
-            else self._COMMENT_RE
-        )
 
         def replace(match: re.Match[str]) -> str:
             if (literal := match.group("literal")) is None:
                 return " "
-            if depth >= self._MAX_LITERAL_NESTING:
+            # A literal carrying neither comment opener has nothing to strip,
+            # and descending anyway costs a full scan per literal on text a
+            # user controls: a body of nothing but quotes is one recursion per
+            # `''` pair, which is ~20x the per-character cost of ordinary text.
+            if depth >= self._MAX_LITERAL_NESTING or (
+                "--" not in literal and "/*" not in literal
+            ):
                 return literal
             opening, interior, closing = self._split_literal(literal)
             return opening + self._strip_comments(interior, depth + 1) + closing
 
-        return pattern.sub(replace, text)
+        return self._comment_re.sub(replace, text)
 
     def _explain_analyze_body(self) -> str | None:
         """
@@ -2498,12 +2516,6 @@ class KustoKQLStatement(BaseSQLStatement[str]):
         :return: True if the statement mutates data.
         """
         return self._parsed.startswith(".") and not self._parsed.startswith(".show")
-
-    def get_client_file_transfer_command(self) -> str | None:
-        """
-        Kusto KQL has no client-side file-transfer commands.
-        """
-        return None
 
     def is_destructive(self) -> bool:
         """
