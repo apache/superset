@@ -762,8 +762,8 @@ MCP_TOOL_SEARCH_CONFIG = {
     ],
     "search_tool_name": "search_tools",
     "call_tool_name": "call_tool",
-    "include_schemas": False,  # False=summary mode (name + parameters_hint)
-    "compact_schemas": True,   # Strip $defs (only applies when include_schemas=True)
+    "include_schemas": True,  # False=summary mode (name + parameters_hint)
+    "compact_schemas": True,   # Default description limit when include_schemas=True
     "max_description_length": 300,
 }
 ```
@@ -774,8 +774,8 @@ MCP_TOOL_SEARCH_CONFIG = {
 | `strategy`               | `"bm25"`  | Search ranking algorithm. `"bm25"` supports natural language; `"regex"` supports pattern matching                                                                                                                                                                                                                  |
 | `max_results`            | `5`       | Maximum tools returned per search query                                                                                                                                                                                                                                                                            |
 | `always_visible`         | See above | Tools that always appear in `list_tools`, regardless of search                                                                                                                                                                                                                                                     |
-| `include_schemas`        | `False`   | When `False` (default, "summary mode"), search results omit `inputSchema` entirely and include a lightweight `parameters_hint` listing top-level parameter names. Set to `True` to include the full `inputSchema` in search results. Full schemas are always used when a tool is actually invoked via `call_tool`. |
-| `compact_schemas`        | `True`    | Strip `$defs` / `$ref` and replace with `{"type": "object"}` in search results to reduce token cost. Only takes effect when `include_schemas=True` — ignored in summary mode.                                                                                                                                      |
+| `include_schemas`        | `True`    | Include the full `inputSchema` in search results by default. When `False` ("summary mode"), search results omit `inputSchema` entirely and include a lightweight `parameters_hint` listing top-level parameter names. Full schemas are always used when a tool is actually invoked via `call_tool`. |
+| `compact_schemas`        | `True`    | Legacy setting selecting the default description limit (300 when `True`, 0 when `False`) if `max_description_length` is omitted. Input schemas preserve `$defs`, `$ref`, nullable unions, and constraints in either mode; titles are omitted. Clients should resolve references within each tool's `inputSchema`.                                                                                                                                      |
 | `max_description_length` | `300`     | Truncate tool descriptions in search results (0 = no truncation). Applies in both summary and full-schema modes.                                                                                                                                                                                                   |
 
 :::tip
