@@ -53,7 +53,7 @@ const FILTER_COLUMN = 'gender';
 const FILTER_VALUE = 'boy';
 
 testWithAssets(
-  'Mixed chart applies dashboard filter to both queries (#29519)',
+  'Mixed chart applies dashboard filter to both queries',
   async ({ page, testAssets }) => {
     // Four API round-trips of setup precede a full dashboard load with a
     // preselected native filter, matching the other dashboard specs that build

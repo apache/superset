@@ -35,7 +35,7 @@ const DATASET_NAME = 'birth_names';
 const CHART_DATA_PATH = '/api/v1/chart/data';
 
 testWithAssets(
-  'Results tab reuses chart data without a duplicate query (#38165)',
+  'Results tab reuses chart data without a duplicate query',
   async ({ page, testAssets }) => {
     testWithAssets.setTimeout(TIMEOUT.SLOW_TEST);
 
