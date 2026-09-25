@@ -251,9 +251,7 @@ test('getChartData includes the chart’s current ownState (e.g. table paginatio
     },
     dataMask: { 55: { ownState: { currentPage: 2 } } },
   });
-  mockRequestChartDataResolved.mockResolvedValue([
-    { colnames: [], data: [] },
-  ]);
+  mockRequestChartDataResolved.mockResolvedValue([{ colnames: [], data: [] }]);
 
   await explore.getChartData();
 
