@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-23 12:43+0200\n"
+"POT-Creation-Date: 2026-09-25 18:43+1000\n"
 "PO-Revision-Date: 2026-01-25 16:09+1300\n"
 "Last-Translator: karo.co.nz\n"
 "Language: mi\n"
@@ -1709,6 +1709,9 @@ msgstr "Whakaarotautanga"
 
 msgid "Aggregation Method"
 msgstr "Tikanga Whakaarotau"
+
+msgid "Aggregation function"
+msgstr ""
 
 msgid ""
 "Aggregation used for the summary row. By default each metric keeps its "
@@ -3758,6 +3761,13 @@ msgstr "Kāore i taea te muku i ngā kauwhata."
 msgid "Chart width"
 msgstr "Whānui kauwhata"
 
+#, python-format
+msgid ""
+"Chart with ID %(chart_id)s (referenced by annotation layer "
+"'%(layer_name)s') was not found. Please verify that the chart exists and "
+"is accessible."
+msgstr ""
+
 msgid "Charts"
 msgstr "Kauwhata"
 
@@ -4818,6 +4828,18 @@ msgstr ""
 
 msgid "Count"
 msgstr "Tatau"
+
+msgid "Count Unique Values"
+msgstr ""
+
+msgid "Count as Fraction of Columns"
+msgstr ""
+
+msgid "Count as Fraction of Rows"
+msgstr ""
+
+msgid "Count as Fraction of Total"
+msgstr ""
 
 msgid "Country"
 msgstr "Whenua"
@@ -9664,6 +9686,9 @@ msgstr "Rārangi Tūranga"
 msgid "List Roles"
 msgstr "Rārangi Tūranga"
 
+msgid "List Unique Values"
+msgstr ""
+
 msgid "List Users"
 msgstr "Rārangi Kaiwhakamahi"
 
@@ -10049,6 +10074,9 @@ msgstr "Toharite o ngā uara i te wā kua tohua"
 
 msgid "Mean values"
 msgstr "Uara toharite"
+
+msgid "Median"
+msgstr ""
 
 msgid ""
 "Median edge width, the thickest edge will be 4 times thicker than the "
@@ -14522,11 +14550,11 @@ msgstr "Whakaatu Waitohu"
 msgid "Show column headers"
 msgstr "Te tapanga pane tīwae"
 
+msgid "Show column summaries"
+msgstr ""
+
 msgid "Show columns subtotal"
 msgstr "Whakaatu tapeke tīwae"
-
-msgid "Show columns total"
-msgstr "Whakaatu tapeke tīwae katoa"
 
 msgid "Show empty columns"
 msgstr "Whakaatu tīwae kau"
@@ -14606,11 +14634,11 @@ msgstr "Tirohia ngā taipitopito pātai"
 msgid "Show row labels"
 msgstr "Whakaatu Tapanga"
 
+msgid "Show row summaries"
+msgstr ""
+
 msgid "Show rows subtotal"
 msgstr "Whakaatu tapeke rārangi"
-
-msgid "Show rows total"
-msgstr "Whakaatu tapeke rārangi katoa"
 
 msgid "Show series values on the chart"
 msgstr "Whakaatu uara raupapa i te kauwhata"
@@ -15321,6 +15349,15 @@ msgstr ""
 
 msgid "Sum"
 msgstr "Tapeke"
+
+msgid "Sum as Fraction of Columns"
+msgstr ""
+
+msgid "Sum as Fraction of Rows"
+msgstr ""
+
+msgid "Sum as Fraction of Total"
+msgstr ""
 
 msgid "Sum of values over specified period"
 msgstr "Tapeke o ngā uara i te wā kua tohua"
@@ -16507,6 +16544,13 @@ msgid "The query contains one or more malformed template parameters."
 msgstr "Kei roto i te pātai tētahi, nui ake rānei tawhā tauira kua hē."
 
 msgid "The query context datasource does not match the chart datasource"
+msgstr ""
+
+#, python-format
+msgid ""
+"The query context for chart ID %(chart_id)s (referenced by annotation "
+"layer '%(layer_name)s') was not found. Please ensure the chart is "
+"properly configured and has a valid query context."
 msgstr ""
 
 msgid "The query couldn't be loaded"
@@ -18802,6 +18846,9 @@ msgstr "Whakamahia hōputu rā ahakoa karekau te uara ine he waitohu"
 msgid "Use gradient"
 msgstr "Māeneene wā"
 
+msgid "Use metric definition"
+msgstr ""
+
 msgid "Use metrics as a top level group for columns or for rows"
 msgstr ""
 "Whakamahia ngā ine hei rōpū taumata runga mō ngā tīwae, mō ngā rārangi "
@@ -18812,6 +18859,12 @@ msgstr "Whakamahia kotahi uara anake."
 
 msgid "Use the Advanced Analytics options below"
 msgstr "Whakamahia ngā kōwhiringa Tātaritanga Aromatawai i raro nei"
+
+msgid ""
+"Use the metric definition for database totals, or aggregate the returned "
+"grouped values for cells and summaries. Average gives each returned value"
+" equal weight. Query limits apply before result aggregation."
+msgstr ""
 
 msgid "Use this section if you want a query that aggregates"
 msgstr ""
@@ -20311,7 +20364,18 @@ msgid ""
 "SUPERSET_DASHBOARD_POSITION_DATA_LIMIT config setting."
 msgstr ""
 
-msgid "Your export is being prepared. You'll receive an email when it's ready."
+msgid ""
+"Your export is being generated and will download automatically when "
+"ready. We'll also email you a download link."
+msgstr ""
+
+msgid "Your export is being generated. Please, do not leave the page."
+msgstr ""
+
+msgid "Your export is ready and downloading."
+msgstr ""
+
+msgid "Your export is taking longer than expected. Try again later."
 msgstr ""
 
 #, python-format

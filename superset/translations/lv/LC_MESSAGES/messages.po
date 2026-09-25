@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-23 12:43+0200\n"
+"POT-Creation-Date: 2026-09-25 18:43+1000\n"
 "PO-Revision-Date: 2026-03-27 14:01+0200\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: lv\n"
@@ -1701,6 +1701,9 @@ msgstr "Apkopošana"
 
 msgid "Aggregation Method"
 msgstr "Apkopošanas metode"
+
+msgid "Aggregation function"
+msgstr ""
 
 msgid ""
 "Aggregation used for the summary row. By default each metric keeps its "
@@ -3645,6 +3648,13 @@ msgstr "Diagramma tika saglabāta, bet to nevarēja pievienot izvēlētajai ciln
 msgid "Chart width"
 msgstr "Diagrammas platums"
 
+#, python-format
+msgid ""
+"Chart with ID %(chart_id)s (referenced by annotation layer "
+"'%(layer_name)s') was not found. Please verify that the chart exists and "
+"is accessible."
+msgstr ""
+
 msgid "Charts"
 msgstr "Diagrammas"
 
@@ -4650,6 +4660,18 @@ msgstr ""
 
 msgid "Count"
 msgstr "Skaits"
+
+msgid "Count Unique Values"
+msgstr ""
+
+msgid "Count as Fraction of Columns"
+msgstr ""
+
+msgid "Count as Fraction of Rows"
+msgstr ""
+
+msgid "Count as Fraction of Total"
+msgstr ""
 
 msgid "Country"
 msgstr "Valsts"
@@ -9207,6 +9229,9 @@ msgstr "Grupu saraksts"
 msgid "List Roles"
 msgstr "Lomu saraksts"
 
+msgid "List Unique Values"
+msgstr ""
+
 msgid "List Users"
 msgstr "Lietotāju saraksts"
 
@@ -9575,6 +9600,9 @@ msgstr "Vērtību vidējais norādītajā periodā"
 
 msgid "Mean values"
 msgstr "Vidējās vērtības"
+
+msgid "Median"
+msgstr ""
 
 msgid ""
 "Median edge width, the thickest edge will be 4 times thicker than the "
@@ -13833,11 +13861,11 @@ msgstr "Rādīt diagrammas vaicājumu laika zīmogus"
 msgid "Show column headers"
 msgstr "Rādīt kolonnas virsrakstus"
 
+msgid "Show column summaries"
+msgstr ""
+
 msgid "Show columns subtotal"
 msgstr "Rādīt kolonnu starpsummu"
-
-msgid "Show columns total"
-msgstr "Rādīt kolonnu kopsummu"
 
 msgid "Show empty columns"
 msgstr "Rādīt tukšas kolonnas"
@@ -13914,11 +13942,11 @@ msgstr "Rādīt vaicājumu identifikatorus"
 msgid "Show row labels"
 msgstr "Rādīt rindu apzīmējumus"
 
+msgid "Show row summaries"
+msgstr ""
+
 msgid "Show rows subtotal"
 msgstr "Rādīt rindu starpsummu"
-
-msgid "Show rows total"
-msgstr "Rādīt rindu kopsummu"
 
 msgid "Show series values on the chart"
 msgstr "Rādīt sēriju vērtības diagrammā"
@@ -14593,6 +14621,15 @@ msgstr ""
 
 msgid "Sum"
 msgstr "Summa"
+
+msgid "Sum as Fraction of Columns"
+msgstr ""
+
+msgid "Sum as Fraction of Rows"
+msgstr ""
+
+msgid "Sum as Fraction of Total"
+msgstr ""
 
 msgid "Sum of values over specified period"
 msgstr "Vērtību summa norādītajā periodā"
@@ -15725,6 +15762,13 @@ msgstr ""
 "parametrus."
 
 msgid "The query context datasource does not match the chart datasource"
+msgstr ""
+
+#, python-format
+msgid ""
+"The query context for chart ID %(chart_id)s (referenced by annotation "
+"layer '%(layer_name)s') was not found. Please ensure the chart is "
+"properly configured and has a valid query context."
 msgstr ""
 
 msgid "The query couldn't be loaded"
@@ -17878,6 +17922,9 @@ msgstr "Izmantot datuma formatēšanu pat tad, kad metrikas vērtība nav laika 
 msgid "Use gradient"
 msgstr "Izmantojiet gradientu"
 
+msgid "Use metric definition"
+msgstr ""
+
 msgid "Use metrics as a top level group for columns or for rows"
 msgstr "Izmantot metriku kā augstākā līmeņa grupu kolonnām vai rindām"
 
@@ -17886,6 +17933,12 @@ msgstr "Izmantojiet tikai vienu vērtību."
 
 msgid "Use the Advanced Analytics options below"
 msgstr "Izmantojiet tālāk norādītās papildu analītikas opcijas"
+
+msgid ""
+"Use the metric definition for database totals, or aggregate the returned "
+"grouped values for cells and summaries. Average gives each returned value"
+" equal weight. Query limits apply before result aggregation."
+msgstr ""
 
 msgid "Use this section if you want a query that aggregates"
 msgstr "Izmantojiet šo sadaļu, ja vēlaties vaicājumu, kas apkopo"
@@ -19322,7 +19375,18 @@ msgid ""
 "SUPERSET_DASHBOARD_POSITION_DATA_LIMIT config setting."
 msgstr ""
 
-msgid "Your export is being prepared. You'll receive an email when it's ready."
+msgid ""
+"Your export is being generated and will download automatically when "
+"ready. We'll also email you a download link."
+msgstr ""
+
+msgid "Your export is being generated. Please, do not leave the page."
+msgstr ""
+
+msgid "Your export is ready and downloading."
+msgstr ""
+
+msgid "Your export is taking longer than expected. Try again later."
 msgstr ""
 
 #, python-format

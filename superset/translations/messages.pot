@@ -25,7 +25,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-23 14:29-0700\n"
+"POT-Creation-Date: 2026-09-25 18:43+1000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -1512,6 +1512,9 @@ msgid "Aggregation"
 msgstr ""
 
 msgid "Aggregation Method"
+msgstr ""
+
+msgid "Aggregation function"
 msgstr ""
 
 msgid ""
@@ -4247,6 +4250,18 @@ msgid ""
 msgstr ""
 
 msgid "Count"
+msgstr ""
+
+msgid "Count Unique Values"
+msgstr ""
+
+msgid "Count as Fraction of Columns"
+msgstr ""
+
+msgid "Count as Fraction of Rows"
+msgstr ""
+
+msgid "Count as Fraction of Total"
 msgstr ""
 
 msgid "Country"
@@ -8495,6 +8510,9 @@ msgstr ""
 msgid "List Roles"
 msgstr ""
 
+msgid "List Unique Values"
+msgstr ""
+
 msgid "List Users"
 msgstr ""
 
@@ -8830,6 +8848,9 @@ msgid "Mean of values over specified period"
 msgstr ""
 
 msgid "Mean values"
+msgstr ""
+
+msgid "Median"
 msgstr ""
 
 msgid ""
@@ -12765,10 +12786,10 @@ msgstr ""
 msgid "Show column headers"
 msgstr ""
 
-msgid "Show columns subtotal"
+msgid "Show column summaries"
 msgstr ""
 
-msgid "Show columns total"
+msgid "Show columns subtotal"
 msgstr ""
 
 msgid "Show empty columns"
@@ -12844,10 +12865,10 @@ msgstr ""
 msgid "Show row labels"
 msgstr ""
 
-msgid "Show rows subtotal"
+msgid "Show row summaries"
 msgstr ""
 
-msgid "Show rows total"
+msgid "Show rows subtotal"
 msgstr ""
 
 msgid "Show series values on the chart"
@@ -13464,6 +13485,15 @@ msgid "Suggestions could not be loaded. You can still type a value."
 msgstr ""
 
 msgid "Sum"
+msgstr ""
+
+msgid "Sum as Fraction of Columns"
+msgstr ""
+
+msgid "Sum as Fraction of Rows"
+msgstr ""
+
+msgid "Sum as Fraction of Total"
 msgstr ""
 
 msgid "Sum of values over specified period"
@@ -16324,6 +16354,9 @@ msgstr ""
 msgid "Use gradient"
 msgstr ""
 
+msgid "Use metric definition"
+msgstr ""
+
 msgid "Use metrics as a top level group for columns or for rows"
 msgstr ""
 
@@ -16331,6 +16364,9 @@ msgid "Use only a single value."
 msgstr ""
 
 msgid "Use the Advanced Analytics options below"
+msgstr ""
+
+msgid "Use the metric definition for database totals, or aggregate the returned grouped values for cells and summaries. Average gives each returned value equal weight. Query limits apply before result aggregation."
 msgstr ""
 
 msgid "Use this section if you want a query that aggregates"

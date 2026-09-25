@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-23 12:43+0200\n"
+"POT-Creation-Date: 2026-09-25 18:43+1000\n"
 "PO-Revision-Date: 2021-11-16 17:33+0100\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: fr\n"
@@ -1804,6 +1804,9 @@ msgstr "Agregacja"
 #, fuzzy
 msgid "Aggregation Method"
 msgstr "Agregacja"
+
+msgid "Aggregation function"
+msgstr ""
 
 msgid ""
 "Aggregation used for the summary row. By default each metric keeps its "
@@ -3895,6 +3898,13 @@ msgstr "Nie można usunąć wykresów."
 msgid "Chart width"
 msgstr "Szerokość wykresu"
 
+#, python-format
+msgid ""
+"Chart with ID %(chart_id)s (referenced by annotation layer "
+"'%(layer_name)s') was not found. Please verify that the chart exists and "
+"is accessible."
+msgstr ""
+
 msgid "Charts"
 msgstr "Wykresy"
 
@@ -5037,6 +5047,18 @@ msgstr ""
 #, fuzzy
 msgid "Count"
 msgstr "Liczba"
+
+msgid "Count Unique Values"
+msgstr ""
+
+msgid "Count as Fraction of Columns"
+msgstr ""
+
+msgid "Count as Fraction of Rows"
+msgstr ""
+
+msgid "Count as Fraction of Total"
+msgstr ""
 
 #, fuzzy
 msgid "Country"
@@ -10185,6 +10207,9 @@ msgstr "Numer podziału"
 msgid "List Roles"
 msgstr "Lista ról"
 
+msgid "List Unique Values"
+msgstr ""
+
 #, fuzzy
 msgid "List Users"
 msgstr "Numer podziału"
@@ -10584,6 +10609,9 @@ msgstr "Średnia wartości w określonym okresie"
 
 msgid "Mean values"
 msgstr "Średnie wartości"
+
+msgid "Median"
+msgstr ""
 
 msgid ""
 "Median edge width, the thickest edge will be 4 times thicker than the "
@@ -15325,13 +15353,12 @@ msgstr "Pokaż znacznik czasu"
 msgid "Show column headers"
 msgstr "Etykieta nagłówka kolumny."
 
+msgid "Show column summaries"
+msgstr ""
+
 #, fuzzy
 msgid "Show columns subtotal"
 msgstr "Pokaż sumy częściowe kolumn"
-
-#, fuzzy
-msgid "Show columns total"
-msgstr "Pokaż sumę kolumn"
 
 #, fuzzy
 msgid "Show empty columns"
@@ -15418,12 +15445,12 @@ msgstr "Zobacz szczegóły zapytania"
 msgid "Show row labels"
 msgstr "Pokaż etykiety"
 
+msgid "Show row summaries"
+msgstr ""
+
 #, fuzzy
 msgid "Show rows subtotal"
 msgstr "Pokaż sumy częściowe wierszy"
-
-msgid "Show rows total"
-msgstr "Pokaż sumę wierszy"
 
 msgid "Show series values on the chart"
 msgstr "Pokaż wartości serii na wykresie"
@@ -16182,6 +16209,15 @@ msgstr ""
 
 msgid "Sum"
 msgstr "Suma"
+
+msgid "Sum as Fraction of Columns"
+msgstr ""
+
+msgid "Sum as Fraction of Rows"
+msgstr ""
+
+msgid "Sum as Fraction of Total"
+msgstr ""
 
 msgid "Sum of values over specified period"
 msgstr "Suma wartości w określonym okresie"
@@ -17439,6 +17475,13 @@ msgid "The query contains one or more malformed template parameters."
 msgstr "Zapytanie zawiera jeden lub więcej źle sformułowanych parametrów szablonu."
 
 msgid "The query context datasource does not match the chart datasource"
+msgstr ""
+
+#, python-format
+msgid ""
+"The query context for chart ID %(chart_id)s (referenced by annotation "
+"layer '%(layer_name)s') was not found. Please ensure the chart is "
+"properly configured and has a valid query context."
 msgstr ""
 
 msgid "The query couldn't be loaded"
@@ -19852,6 +19895,9 @@ msgstr ""
 msgid "Use gradient"
 msgstr "Jednostka czasu"
 
+msgid "Use metric definition"
+msgstr ""
+
 msgid "Use metrics as a top level group for columns or for rows"
 msgstr "Użyj miar jako grupy najwyższego poziomu dla kolumn lub wierszy"
 
@@ -19860,6 +19906,12 @@ msgstr "Użyj tylko jednej wartości."
 
 msgid "Use the Advanced Analytics options below"
 msgstr "Skorzystaj z opcji zaawansowanej analityki poniżej"
+
+msgid ""
+"Use the metric definition for database totals, or aggregate the returned "
+"grouped values for cells and summaries. Average gives each returned value"
+" equal weight. Query limits apply before result aggregation."
+msgstr ""
 
 msgid "Use this section if you want a query that aggregates"
 msgstr "Skorzystaj z tej sekcji, jeśli chcesz zapytania, które agreguje dane"
@@ -21410,7 +21462,18 @@ msgid ""
 "SUPERSET_DASHBOARD_POSITION_DATA_LIMIT config setting."
 msgstr ""
 
-msgid "Your export is being prepared. You'll receive an email when it's ready."
+msgid ""
+"Your export is being generated and will download automatically when "
+"ready. We'll also email you a download link."
+msgstr ""
+
+msgid "Your export is being generated. Please, do not leave the page."
+msgstr ""
+
+msgid "Your export is ready and downloading."
+msgstr ""
+
+msgid "Your export is taking longer than expected. Try again later."
 msgstr ""
 
 #, python-format

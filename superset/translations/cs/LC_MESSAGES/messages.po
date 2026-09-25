@@ -18,7 +18,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-23 12:43+0200\n"
+"POT-Creation-Date: 2026-09-25 18:43+1000\n"
 "PO-Revision-Date: 2016-05-02 08:49-0700\n"
 "Last-Translator: Jan Šmejkal <jan.smejkal@orgis.cz>\n"
 "Language: cs\n"
@@ -1714,6 +1714,9 @@ msgstr "Agregace"
 
 msgid "Aggregation Method"
 msgstr "Metoda agregace"
+
+msgid "Aggregation function"
+msgstr ""
 
 msgid ""
 "Aggregation used for the summary row. By default each metric keeps its "
@@ -3682,6 +3685,13 @@ msgstr "Graf byl uložen, ale se nepodařilo přidat do vybraného panelu."
 msgid "Chart width"
 msgstr "Šířka grafu"
 
+#, python-format
+msgid ""
+"Chart with ID %(chart_id)s (referenced by annotation layer "
+"'%(layer_name)s') was not found. Please verify that the chart exists and "
+"is accessible."
+msgstr ""
+
 msgid "Charts"
 msgstr "Grafy"
 
@@ -4704,6 +4714,18 @@ msgstr ""
 
 msgid "Count"
 msgstr "Počet"
+
+msgid "Count Unique Values"
+msgstr ""
+
+msgid "Count as Fraction of Columns"
+msgstr ""
+
+msgid "Count as Fraction of Rows"
+msgstr ""
+
+msgid "Count as Fraction of Total"
+msgstr ""
 
 msgid "Country"
 msgstr "Země"
@@ -9396,6 +9418,9 @@ msgstr "Seznam skupin"
 msgid "List Roles"
 msgstr "Seznam rolí"
 
+msgid "List Unique Values"
+msgstr ""
+
 msgid "List Users"
 msgstr "Seznam uživatelů"
 
@@ -9768,6 +9793,9 @@ msgstr "Průměr hodnot za zadané období"
 
 msgid "Mean values"
 msgstr "Průměrné hodnoty"
+
+msgid "Median"
+msgstr ""
 
 msgid ""
 "Median edge width, the thickest edge will be 4 times thicker than the "
@@ -14123,11 +14151,11 @@ msgstr "Zobrazit časové razítka dotazů na graf"
 msgid "Show column headers"
 msgstr "Zobrazit záhlaví sloupců"
 
+msgid "Show column summaries"
+msgstr ""
+
 msgid "Show columns subtotal"
 msgstr "Zobrazit mezisoučet sloupců"
-
-msgid "Show columns total"
-msgstr "Zobrazit součet sloupců"
 
 msgid "Show empty columns"
 msgstr "Zobrazit prázdné sloupce"
@@ -14207,11 +14235,11 @@ msgstr "Zobrazit identifikátory dotazů"
 msgid "Show row labels"
 msgstr "Zobrazit popisky řádků"
 
+msgid "Show row summaries"
+msgstr ""
+
 msgid "Show rows subtotal"
 msgstr "Zobrazit mezisoučet řádků"
-
-msgid "Show rows total"
-msgstr "Zobrazit součet řádků"
 
 msgid "Show series values on the chart"
 msgstr "Zobrazit hodnoty sérií v grafu"
@@ -14899,6 +14927,15 @@ msgstr ""
 
 msgid "Sum"
 msgstr "Součet"
+
+msgid "Sum as Fraction of Columns"
+msgstr ""
+
+msgid "Sum as Fraction of Rows"
+msgstr ""
+
+msgid "Sum as Fraction of Total"
+msgstr ""
 
 msgid "Sum of values over specified period"
 msgstr "Součet hodnot za zadané období"
@@ -16035,6 +16072,13 @@ msgid "The query contains one or more malformed template parameters."
 msgstr "Dotaz obsahuje jeden nebo více chybně formátovaných parametrů šablony."
 
 msgid "The query context datasource does not match the chart datasource"
+msgstr ""
+
+#, python-format
+msgid ""
+"The query context for chart ID %(chart_id)s (referenced by annotation "
+"layer '%(layer_name)s') was not found. Please ensure the chart is "
+"properly configured and has a valid query context."
 msgstr ""
 
 msgid "The query couldn't be loaded"
@@ -18233,6 +18277,9 @@ msgstr "Použít formátování data, i když hodnota metriky není časové raz
 msgid "Use gradient"
 msgstr "Použít gradient"
 
+msgid "Use metric definition"
+msgstr ""
+
 msgid "Use metrics as a top level group for columns or for rows"
 msgstr "Použít metriky jako skupinu nejvyšší úrovně pro sloupce nebo řádky"
 
@@ -18241,6 +18288,12 @@ msgstr "Použít pouze jednu hodnotu."
 
 msgid "Use the Advanced Analytics options below"
 msgstr "Použijte níže uvedené možnosti Pokročilé analytiky"
+
+msgid ""
+"Use the metric definition for database totals, or aggregate the returned "
+"grouped values for cells and summaries. Average gives each returned value"
+" equal weight. Query limits apply before result aggregation."
+msgstr ""
 
 msgid "Use this section if you want a query that aggregates"
 msgstr "Použijte tuto sekci, pokud chcete dotaz, který agreguje"
@@ -19694,7 +19747,18 @@ msgid ""
 "SUPERSET_DASHBOARD_POSITION_DATA_LIMIT config setting."
 msgstr ""
 
-msgid "Your export is being prepared. You'll receive an email when it's ready."
+msgid ""
+"Your export is being generated and will download automatically when "
+"ready. We'll also email you a download link."
+msgstr ""
+
+msgid "Your export is being generated. Please, do not leave the page."
+msgstr ""
+
+msgid "Your export is ready and downloading."
+msgstr ""
+
+msgid "Your export is taking longer than expected. Try again later."
 msgstr ""
 
 #, python-format

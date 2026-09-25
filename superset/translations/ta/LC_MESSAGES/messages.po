@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-23 12:43+0200\n"
+"POT-Creation-Date: 2026-09-25 18:43+1000\n"
 "PO-Revision-Date: 2026-03-31 02:00-0700\n"
 "Last-Translator: Maazin Ahamed\n"
 "Language: ta\n"
@@ -1660,6 +1660,9 @@ msgstr "திரட்டுதல் (Aggregation)"
 
 msgid "Aggregation Method"
 msgstr "திரட்டுதல் முறை"
+
+msgid "Aggregation function"
+msgstr ""
 
 msgid ""
 "Aggregation used for the summary row. By default each metric keeps its "
@@ -3602,6 +3605,13 @@ msgstr ""
 msgid "Chart width"
 msgstr "சார்ட் அகலம்"
 
+#, python-format
+msgid ""
+"Chart with ID %(chart_id)s (referenced by annotation layer "
+"'%(layer_name)s') was not found. Please verify that the chart exists and "
+"is accessible."
+msgstr ""
+
 msgid "Charts"
 msgstr "சார்ட்டுகள்"
 
@@ -4616,6 +4626,18 @@ msgstr ""
 
 msgid "Count"
 msgstr "எண்ணிக்கை (Count)"
+
+msgid "Count Unique Values"
+msgstr ""
+
+msgid "Count as Fraction of Columns"
+msgstr ""
+
+msgid "Count as Fraction of Rows"
+msgstr ""
+
+msgid "Count as Fraction of Total"
+msgstr ""
 
 msgid "Country"
 msgstr "நாடு"
@@ -9111,6 +9133,9 @@ msgstr "குழுக்களைப் பட்டியலிடு"
 msgid "List Roles"
 msgstr "பொறுப்புகளைப் (Roles) பட்டியலிடு"
 
+msgid "List Unique Values"
+msgstr ""
+
 msgid "List Users"
 msgstr "பயனர்களைப் பட்டியலிடு"
 
@@ -9457,6 +9482,9 @@ msgstr "குறிப்பிட்ட காலத்தில் மதி�
 
 msgid "Mean values"
 msgstr "சராசரி மதிப்புகள்"
+
+msgid "Median"
+msgstr ""
 
 msgid ""
 "Median edge width, the thickest edge will be 4 times thicker than the "
@@ -13542,11 +13570,11 @@ msgstr "சார்ட் வினவல் நேர முத்திரை
 msgid "Show column headers"
 msgstr "நெடுவரிசை தலைப்புகளைக் காண்பி"
 
+msgid "Show column summaries"
+msgstr ""
+
 msgid "Show columns subtotal"
 msgstr "நெடுவரிசைகளின் துணை மொத்தத்தைக் காண்பி"
-
-msgid "Show columns total"
-msgstr "நெடுவரிசைகளின் மொத்தத்தைக் காண்பி"
 
 msgid "Show empty columns"
 msgstr "வெற்று நெடுவரிசைகளைக் காண்பி"
@@ -13622,11 +13650,11 @@ msgstr "வினவல் அடையாளங்காட்டிகளை�
 msgid "Show row labels"
 msgstr "வரிசை லேபிள்களைக் காண்பி"
 
+msgid "Show row summaries"
+msgstr ""
+
 msgid "Show rows subtotal"
 msgstr "வரிசைகளின் துணை மொத்தத்தைக் காண்பி"
-
-msgid "Show rows total"
-msgstr "வரிசைகளின் மொத்தத்தைக் காண்பி"
 
 msgid "Show series values on the chart"
 msgstr "சார்ட்டில் தொடர் மதிப்புகளைக் காண்பி"
@@ -14283,6 +14311,15 @@ msgstr ""
 
 msgid "Sum"
 msgstr "கூட்டுத்தொகை"
+
+msgid "Sum as Fraction of Columns"
+msgstr ""
+
+msgid "Sum as Fraction of Rows"
+msgstr ""
+
+msgid "Sum as Fraction of Total"
+msgstr ""
 
 msgid "Sum of values over specified period"
 msgstr "குறிப்பிட்ட காலப்பகுதியில் மதிப்புகளின் கூட்டுத்தொகை"
@@ -15311,6 +15348,13 @@ msgid "The query contains one or more malformed template parameters."
 msgstr "வினவலில் ஒன்று அல்லது அதற்கு மேற்பட்ட தவறான டெம்ப்ளேட் அளவுருக்கள் உள்ளன."
 
 msgid "The query context datasource does not match the chart datasource"
+msgstr ""
+
+#, python-format
+msgid ""
+"The query context for chart ID %(chart_id)s (referenced by annotation "
+"layer '%(layer_name)s') was not found. Please ensure the chart is "
+"properly configured and has a valid query context."
 msgstr ""
 
 msgid "The query couldn't be loaded"
@@ -17340,6 +17384,9 @@ msgstr ""
 msgid "Use gradient"
 msgstr "கிரேடியண்ட் (Gradient) பயன்படுத்தவும்"
 
+msgid "Use metric definition"
+msgstr ""
+
 msgid "Use metrics as a top level group for columns or for rows"
 msgstr ""
 "நெடுவரிசைகள் அல்லது வரிசைகளுக்கு மேல் நிலைக் குழுவாக மெட்ரிக்குகளைப் "
@@ -17350,6 +17397,12 @@ msgstr "ஒற்றை மதிப்பை மட்டும் பயன்
 
 msgid "Use the Advanced Analytics options below"
 msgstr "கீழே உள்ள மேம்பட்ட பகுப்பாய்வு விருப்பங்களைப் பயன்படுத்தவும்"
+
+msgid ""
+"Use the metric definition for database totals, or aggregate the returned "
+"grouped values for cells and summaries. Average gives each returned value"
+" equal weight. Query limits apply before result aggregation."
+msgstr ""
 
 msgid "Use this section if you want a query that aggregates"
 msgstr "திரட்டப்பட்ட (Aggregated) வினவல் தேவையெனில் இந்தப் பிரிவைப் பயன்படுத்தவும்"
@@ -18749,7 +18802,18 @@ msgid ""
 "SUPERSET_DASHBOARD_POSITION_DATA_LIMIT config setting."
 msgstr ""
 
-msgid "Your export is being prepared. You'll receive an email when it's ready."
+msgid ""
+"Your export is being generated and will download automatically when "
+"ready. We'll also email you a download link."
+msgstr ""
+
+msgid "Your export is being generated. Please, do not leave the page."
+msgstr ""
+
+msgid "Your export is ready and downloading."
+msgstr ""
+
+msgid "Your export is taking longer than expected. Try again later."
 msgstr ""
 
 #, python-format

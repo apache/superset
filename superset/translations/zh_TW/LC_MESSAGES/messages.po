@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Apache Superset 0.22.1\n"
 "Report-Msgid-Bugs-To: bestlong168@gmail.com\n"
-"POT-Creation-Date: 2026-09-23 12:43+0200\n"
+"POT-Creation-Date: 2026-09-25 18:43+1000\n"
 "PO-Revision-Date: 2019-01-04 22:19+0800\n"
 "Last-Translator: Shao Yu-Lung <bestlong168@gmail.com>\n"
 "Language: zh_TW\n"
@@ -1779,6 +1779,9 @@ msgstr "合計"
 #, fuzzy
 msgid "Aggregation Method"
 msgstr "合計"
+
+msgid "Aggregation function"
+msgstr ""
 
 msgid ""
 "Aggregation used for the summary row. By default each metric keeps its "
@@ -3897,6 +3900,13 @@ msgstr "圖表無法删除。"
 msgid "Chart width"
 msgstr "圖表寬度"
 
+#, python-format
+msgid ""
+"Chart with ID %(chart_id)s (referenced by annotation layer "
+"'%(layer_name)s') was not found. Please verify that the chart exists and "
+"is accessible."
+msgstr ""
+
 msgid "Charts"
 msgstr "圖表"
 
@@ -5014,6 +5024,18 @@ msgstr ""
 #, fuzzy
 msgid "Count"
 msgstr "計數"
+
+msgid "Count Unique Values"
+msgstr ""
+
+msgid "Count as Fraction of Columns"
+msgstr ""
+
+msgid "Count as Fraction of Rows"
+msgstr ""
+
+msgid "Count as Fraction of Total"
+msgstr ""
 
 msgid "Country"
 msgstr "國家"
@@ -10149,6 +10171,9 @@ msgstr "數字"
 msgid "List Roles"
 msgstr "角色列表"
 
+msgid "List Unique Values"
+msgstr ""
+
 #, fuzzy
 msgid "List Users"
 msgstr "數字"
@@ -10568,6 +10593,9 @@ msgstr "特定時期内的平均值"
 #, fuzzy
 msgid "Mean values"
 msgstr "平均值"
+
+msgid "Median"
+msgstr ""
 
 msgid ""
 "Median edge width, the thickest edge will be 4 times thicker than the "
@@ -15294,12 +15322,12 @@ msgstr "顯示時間戳"
 msgid "Show column headers"
 msgstr "列的標題"
 
+msgid "Show column summaries"
+msgstr ""
+
 #, fuzzy
 msgid "Show columns subtotal"
 msgstr "顯示列小計"
-
-msgid "Show columns total"
-msgstr "顯示列總計"
 
 #, fuzzy
 msgid "Show empty columns"
@@ -15382,12 +15410,12 @@ msgstr "查看查詢詳情"
 msgid "Show row labels"
 msgstr "顯示標籤"
 
+msgid "Show row summaries"
+msgstr ""
+
 #, fuzzy
 msgid "Show rows subtotal"
 msgstr "顯示行小計"
-
-msgid "Show rows total"
-msgstr "顯示行總計"
 
 msgid "Show series values on the chart"
 msgstr "在圖表上顯示系列值"
@@ -16124,6 +16152,15 @@ msgstr ""
 
 msgid "Sum"
 msgstr "求和"
+
+msgid "Sum as Fraction of Columns"
+msgstr ""
+
+msgid "Sum as Fraction of Rows"
+msgstr ""
+
+msgid "Sum as Fraction of Total"
+msgstr ""
 
 msgid "Sum of values over specified period"
 msgstr "指定期間内的值總和"
@@ -17316,6 +17353,13 @@ msgid "The query contains one or more malformed template parameters."
 msgstr "該查詢包含一個或多個格式不正確的模板参數。"
 
 msgid "The query context datasource does not match the chart datasource"
+msgstr ""
+
+#, python-format
+msgid ""
+"The query context for chart ID %(chart_id)s (referenced by annotation "
+"layer '%(layer_name)s') was not found. Please ensure the chart is "
+"properly configured and has a valid query context."
 msgstr ""
 
 msgid "The query couldn't be loaded"
@@ -19646,6 +19690,9 @@ msgstr "即使指標值不是時間戳記，也使用日期格式"
 msgid "Use gradient"
 msgstr "時間粒度（grain）"
 
+msgid "Use metric definition"
+msgstr ""
+
 msgid "Use metrics as a top level group for columns or for rows"
 msgstr "將指標作為列或行的頂級組使用"
 
@@ -19654,6 +19701,12 @@ msgstr "只使用一個值"
 
 msgid "Use the Advanced Analytics options below"
 msgstr "使用下面的高級分析選項"
+
+msgid ""
+"Use the metric definition for database totals, or aggregate the returned "
+"grouped values for cells and summaries. Average gives each returned value"
+" equal weight. Query limits apply before result aggregation."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -21158,7 +21211,18 @@ msgid ""
 "SUPERSET_DASHBOARD_POSITION_DATA_LIMIT config setting."
 msgstr ""
 
-msgid "Your export is being prepared. You'll receive an email when it's ready."
+msgid ""
+"Your export is being generated and will download automatically when "
+"ready. We'll also email you a download link."
+msgstr ""
+
+msgid "Your export is being generated. Please, do not leave the page."
+msgstr ""
+
+msgid "Your export is ready and downloading."
+msgstr ""
+
+msgid "Your export is taking longer than expected. Try again later."
 msgstr ""
 
 #, python-format

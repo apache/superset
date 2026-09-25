@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-23 12:43+0200\n"
+"POT-Creation-Date: 2026-09-25 18:43+1000\n"
 "PO-Revision-Date: 2026-07-17 09:44+0100\n"
 "Last-Translator: Daniel Checheta\n"
 "Language: ru\n"
@@ -1658,6 +1658,9 @@ msgstr "Агрегация"
 
 msgid "Aggregation Method"
 msgstr "Метод агрегации"
+
+msgid "Aggregation function"
+msgstr ""
 
 msgid ""
 "Aggregation used for the summary row. By default each metric keeps its "
@@ -3581,6 +3584,13 @@ msgstr "Диаграмма сохранена, но не может быть д�
 msgid "Chart width"
 msgstr "Ширина диаграммы"
 
+#, python-format
+msgid ""
+"Chart with ID %(chart_id)s (referenced by annotation layer "
+"'%(layer_name)s') was not found. Please verify that the chart exists and "
+"is accessible."
+msgstr ""
+
 msgid "Charts"
 msgstr "Диаграммы"
 
@@ -4574,6 +4584,18 @@ msgstr ""
 
 msgid "Count"
 msgstr "Количество"
+
+msgid "Count Unique Values"
+msgstr ""
+
+msgid "Count as Fraction of Columns"
+msgstr ""
+
+msgid "Count as Fraction of Rows"
+msgstr ""
+
+msgid "Count as Fraction of Total"
+msgstr ""
 
 msgid "Country"
 msgstr "Страна"
@@ -9060,6 +9082,9 @@ msgstr "Список групп"
 msgid "List Roles"
 msgstr "Список ролей"
 
+msgid "List Unique Values"
+msgstr ""
+
 msgid "List Users"
 msgstr "Список пользователей"
 
@@ -9417,6 +9442,9 @@ msgstr "Среднее значений за указанный период"
 
 msgid "Mean values"
 msgstr "Средние значения"
+
+msgid "Median"
+msgstr ""
 
 msgid ""
 "Median edge width, the thickest edge will be 4 times thicker than the "
@@ -13559,11 +13587,11 @@ msgstr "Показывать метки времени запросов диаг
 msgid "Show column headers"
 msgstr "Показывать заголовки столбцов"
 
+msgid "Show column summaries"
+msgstr ""
+
 msgid "Show columns subtotal"
 msgstr "Показать подытоги по столбцам"
-
-msgid "Show columns total"
-msgstr "Показать итог по столбцам"
 
 msgid "Show empty columns"
 msgstr "Показывать пустые столбцы"
@@ -13640,11 +13668,11 @@ msgstr "Показать идентификаторы запросов"
 msgid "Show row labels"
 msgstr "Показывать подписи строк"
 
+msgid "Show row summaries"
+msgstr ""
+
 msgid "Show rows subtotal"
 msgstr "Показать подытоги по строкам"
-
-msgid "Show rows total"
-msgstr "Показать общий итог по строкам"
 
 msgid "Show series values on the chart"
 msgstr "Показать значения категорий на диаграмме"
@@ -14305,6 +14333,15 @@ msgstr ""
 
 msgid "Sum"
 msgstr "Сумма"
+
+msgid "Sum as Fraction of Columns"
+msgstr ""
+
+msgid "Sum as Fraction of Rows"
+msgstr ""
+
+msgid "Sum as Fraction of Total"
+msgstr ""
 
 msgid "Sum of values over specified period"
 msgstr "Сумма значений за обозначенный период"
@@ -15419,6 +15456,13 @@ msgstr ""
 "параметров шаблона"
 
 msgid "The query context datasource does not match the chart datasource"
+msgstr ""
+
+#, python-format
+msgid ""
+"The query context for chart ID %(chart_id)s (referenced by annotation "
+"layer '%(layer_name)s') was not found. Please ensure the chart is "
+"properly configured and has a valid query context."
 msgstr ""
 
 msgid "The query couldn't be loaded"
@@ -17545,6 +17589,9 @@ msgstr "Отформатировать как дату, даже если мер
 msgid "Use gradient"
 msgstr "Использовать градиент"
 
+msgid "Use metric definition"
+msgstr ""
+
 msgid "Use metrics as a top level group for columns or for rows"
 msgstr "Использовать меры как группы верхнего уровня для столбцов или строк"
 
@@ -17553,6 +17600,12 @@ msgstr "Используйте только одно значение"
 
 msgid "Use the Advanced Analytics options below"
 msgstr "Используйте настройки Расширенной аналитики ниже"
+
+msgid ""
+"Use the metric definition for database totals, or aggregate the returned "
+"grouped values for cells and summaries. Average gives each returned value"
+" equal weight. Query limits apply before result aggregation."
+msgstr ""
 
 msgid "Use this section if you want a query that aggregates"
 msgstr "Используйте эту секцию для получения агрегированных данных"
@@ -18970,7 +19023,18 @@ msgid ""
 "SUPERSET_DASHBOARD_POSITION_DATA_LIMIT config setting."
 msgstr ""
 
-msgid "Your export is being prepared. You'll receive an email when it's ready."
+msgid ""
+"Your export is being generated and will download automatically when "
+"ready. We'll also email you a download link."
+msgstr ""
+
+msgid "Your export is being generated. Please, do not leave the page."
+msgstr ""
+
+msgid "Your export is ready and downloading."
+msgstr ""
+
+msgid "Your export is taking longer than expected. Try again later."
 msgstr ""
 
 #, python-format

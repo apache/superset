@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-23 12:43+0200\n"
+"POT-Creation-Date: 2026-09-25 18:43+1000\n"
 "PO-Revision-Date: 2024-05-14 13:30+0900\n"
 "Last-Translator: Yuri Umezaki <bungoume@gmail.com>\n"
 "Language: ja\n"
@@ -1537,6 +1537,9 @@ msgstr "集計"
 
 msgid "Aggregation Method"
 msgstr "集計方法"
+
+msgid "Aggregation function"
+msgstr ""
 
 msgid ""
 "Aggregation used for the summary row. By default each metric keeps its "
@@ -3333,6 +3336,13 @@ msgstr "チャートは保存されましたが、選択したタブに追加で
 msgid "Chart width"
 msgstr "チャートの幅"
 
+#, python-format
+msgid ""
+"Chart with ID %(chart_id)s (referenced by annotation layer "
+"'%(layer_name)s') was not found. Please verify that the chart exists and "
+"is accessible."
+msgstr ""
+
 msgid "Charts"
 msgstr "チャート"
 
@@ -4273,6 +4283,18 @@ msgstr ""
 
 msgid "Count"
 msgstr "カウント (件数)"
+
+msgid "Count Unique Values"
+msgstr ""
+
+msgid "Count as Fraction of Columns"
+msgstr ""
+
+msgid "Count as Fraction of Rows"
+msgstr ""
+
+msgid "Count as Fraction of Total"
+msgstr ""
 
 msgid "Country"
 msgstr "国"
@@ -8526,6 +8548,9 @@ msgstr "グループ一覧"
 msgid "List Roles"
 msgstr "ロール一覧"
 
+msgid "List Unique Values"
+msgstr ""
+
 msgid "List Users"
 msgstr "ユーザー一覧"
 
@@ -8864,6 +8889,9 @@ msgstr "指定期間内の平均値"
 
 msgid "Mean values"
 msgstr "平均値"
+
+msgid "Median"
+msgstr ""
 
 msgid ""
 "Median edge width, the thickest edge will be 4 times thicker than the "
@@ -12816,11 +12844,11 @@ msgstr "チャートクエリのタイムスタンプを表示"
 msgid "Show column headers"
 msgstr "列ヘッダーを表示"
 
+msgid "Show column summaries"
+msgstr ""
+
 msgid "Show columns subtotal"
 msgstr "列の小計を表示"
-
-msgid "Show columns total"
-msgstr "列の合計を表示"
 
 msgid "Show empty columns"
 msgstr "空の列を表示"
@@ -12895,11 +12923,11 @@ msgstr "クエリ識別子を表示"
 msgid "Show row labels"
 msgstr "行ラベルを表示"
 
+msgid "Show row summaries"
+msgstr ""
+
 msgid "Show rows subtotal"
 msgstr "行の小計を表示"
-
-msgid "Show rows total"
-msgstr "行の合計を表示"
 
 msgid "Show series values on the chart"
 msgstr "チャート上に系列の値を表示"
@@ -13517,6 +13545,15 @@ msgstr ""
 
 msgid "Sum"
 msgstr "合計"
+
+msgid "Sum as Fraction of Columns"
+msgstr ""
+
+msgid "Sum as Fraction of Rows"
+msgstr ""
+
+msgid "Sum as Fraction of Total"
+msgstr ""
 
 msgid "Sum of values over specified period"
 msgstr "指定期間内の値の合計"
@@ -14509,6 +14546,13 @@ msgstr "クエリに1つ以上の不正なテンプレートパラメータが�
 
 msgid "The query context datasource does not match the chart datasource"
 msgstr "クエリのコンテキストのデータソースが、チャートのデータソースと一致しません"
+
+#, python-format
+msgid ""
+"The query context for chart ID %(chart_id)s (referenced by annotation "
+"layer '%(layer_name)s') was not found. Please ensure the chart is "
+"properly configured and has a valid query context."
+msgstr ""
 
 msgid "The query couldn't be loaded"
 msgstr "クエリを読み込めませんでした"
@@ -16431,6 +16475,9 @@ msgstr "メトリック値がタイムスタンプでない場合も日付フォ
 msgid "Use gradient"
 msgstr "グラデーションを使用"
 
+msgid "Use metric definition"
+msgstr ""
+
 msgid "Use metrics as a top level group for columns or for rows"
 msgstr "メトリックを列または行の最上位グループとして使用"
 
@@ -16439,6 +16486,12 @@ msgstr "単一の値のみを使用してください。"
 
 msgid "Use the Advanced Analytics options below"
 msgstr "以下の「高度な分析」オプションを使用してください"
+
+msgid ""
+"Use the metric definition for database totals, or aggregate the returned "
+"grouped values for cells and summaries. Average gives each returned value"
+" equal weight. Query limits apply before result aggregation."
+msgstr ""
 
 msgid "Use this section if you want a query that aggregates"
 msgstr "集計クエリを作成する場合はこのセクションを使用してください"
@@ -17713,7 +17766,18 @@ msgstr ""
 "です。ダッシュボードのサイズを縮小するか（たとえば複数のダッシュボードに分割するなど）SUPERSET_DASHBOARD_POSITION_DATA_LIMIT"
 " 設定値を上げてください。"
 
-msgid "Your export is being prepared. You'll receive an email when it's ready."
+msgid ""
+"Your export is being generated and will download automatically when "
+"ready. We'll also email you a download link."
+msgstr ""
+
+msgid "Your export is being generated. Please, do not leave the page."
+msgstr ""
+
+msgid "Your export is ready and downloading."
+msgstr ""
+
+msgid "Your export is taking longer than expected. Try again later."
 msgstr ""
 
 #, python-format

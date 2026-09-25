@@ -18,7 +18,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version:  \n"
 "Report-Msgid-Bugs-To: ted.korostiled@gmail.com\n"
-"POT-Creation-Date: 2026-09-23 12:43+0200\n"
+"POT-Creation-Date: 2026-09-25 18:43+1000\n"
 "PO-Revision-Date: 2026-04-30 22:04+0300\n"
 "Last-Translator: Danylo Korostil\n"
 "Language: uk\n"
@@ -1720,6 +1720,9 @@ msgstr "Агрегація"
 
 msgid "Aggregation Method"
 msgstr "Спосіб агрегації даних"
+
+msgid "Aggregation function"
+msgstr ""
 
 msgid ""
 "Aggregation used for the summary row. By default each metric keeps its "
@@ -3651,6 +3654,13 @@ msgstr "Діаграму збережено, але не вдалося дода
 msgid "Chart width"
 msgstr "Ширина діаграми"
 
+#, python-format
+msgid ""
+"Chart with ID %(chart_id)s (referenced by annotation layer "
+"'%(layer_name)s') was not found. Please verify that the chart exists and "
+"is accessible."
+msgstr ""
+
 msgid "Charts"
 msgstr "Діаграми"
 
@@ -4654,6 +4664,18 @@ msgstr ""
 
 msgid "Count"
 msgstr "Кількість"
+
+msgid "Count Unique Values"
+msgstr ""
+
+msgid "Count as Fraction of Columns"
+msgstr ""
+
+msgid "Count as Fraction of Rows"
+msgstr ""
+
+msgid "Count as Fraction of Total"
+msgstr ""
 
 msgid "Country"
 msgstr "Країна"
@@ -9212,6 +9234,9 @@ msgstr "Перелік груп"
 msgid "List Roles"
 msgstr "Перелік ролей"
 
+msgid "List Unique Values"
+msgstr ""
+
 msgid "List Users"
 msgstr "Перелік користувачів"
 
@@ -9578,6 +9603,9 @@ msgstr "Середнє значення за вказаний період"
 
 msgid "Mean values"
 msgstr "Середні значення"
+
+msgid "Median"
+msgstr ""
 
 msgid ""
 "Median edge width, the thickest edge will be 4 times thicker than the "
@@ -13836,11 +13864,11 @@ msgstr "Показати час запиту діаграми"
 msgid "Show column headers"
 msgstr "Показати заголовки стовпців"
 
+msgid "Show column summaries"
+msgstr ""
+
 msgid "Show columns subtotal"
 msgstr "Показати проміжні підсумки стовпців"
-
-msgid "Show columns total"
-msgstr "Показати підсумки стовпців"
 
 msgid "Show empty columns"
 msgstr "Показати порожні стовпці"
@@ -13918,11 +13946,11 @@ msgstr "Показати ідентифікатори запитів"
 msgid "Show row labels"
 msgstr "Показати мітки рядків"
 
+msgid "Show row summaries"
+msgstr ""
+
 msgid "Show rows subtotal"
 msgstr "Показати проміжні підсумки рядків"
-
-msgid "Show rows total"
-msgstr "Показати проміжки рядків"
 
 msgid "Show series values on the chart"
 msgstr "Показати значення ряду на діаграмі"
@@ -14598,6 +14626,15 @@ msgstr ""
 
 msgid "Sum"
 msgstr "Сума"
+
+msgid "Sum as Fraction of Columns"
+msgstr ""
+
+msgid "Sum as Fraction of Rows"
+msgstr ""
+
+msgid "Sum as Fraction of Total"
+msgstr ""
 
 msgid "Sum of values over specified period"
 msgstr "Сума значень протягом вказаного періоду"
@@ -15727,6 +15764,13 @@ msgid "The query contains one or more malformed template parameters."
 msgstr "Запит містить один або кілька неправильно сформованих параметрів шаблону."
 
 msgid "The query context datasource does not match the chart datasource"
+msgstr ""
+
+#, python-format
+msgid ""
+"The query context for chart ID %(chart_id)s (referenced by annotation "
+"layer '%(layer_name)s') was not found. Please ensure the chart is "
+"properly configured and has a valid query context."
 msgstr ""
 
 msgid "The query couldn't be loaded"
@@ -17879,6 +17923,9 @@ msgstr "Форматувати як дату, навіть коли показн
 msgid "Use gradient"
 msgstr "Використовувати градієнт"
 
+msgid "Use metric definition"
+msgstr ""
+
 msgid "Use metrics as a top level group for columns or for rows"
 msgstr "Використовуйте показники як групу вищого рівня для стовпців або рядків"
 
@@ -17887,6 +17934,12 @@ msgstr "Використовуйте лише одне значення."
 
 msgid "Use the Advanced Analytics options below"
 msgstr "Використайте Розширену аналітику нижче"
+
+msgid ""
+"Use the metric definition for database totals, or aggregate the returned "
+"grouped values for cells and summaries. Average gives each returned value"
+" equal weight. Query limits apply before result aggregation."
+msgstr ""
 
 msgid "Use this section if you want a query that aggregates"
 msgstr "Використовуйте цей розділ, якщо бажаєте агрегувати запит"
@@ -19326,7 +19379,18 @@ msgid ""
 "SUPERSET_DASHBOARD_POSITION_DATA_LIMIT config setting."
 msgstr ""
 
-msgid "Your export is being prepared. You'll receive an email when it's ready."
+msgid ""
+"Your export is being generated and will download automatically when "
+"ready. We'll also email you a download link."
+msgstr ""
+
+msgid "Your export is being generated. Please, do not leave the page."
+msgstr ""
+
+msgid "Your export is ready and downloading."
+msgstr ""
+
+msgid "Your export is taking longer than expected. Try again later."
 msgstr ""
 
 #, python-format
