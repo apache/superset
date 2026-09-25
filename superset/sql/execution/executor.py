@@ -81,6 +81,7 @@ from superset.extensions import cache_manager
 from superset.sql.parse import SQLScript
 from superset.superset_typing import FetchedRows
 from superset.utils import core as utils
+from superset.utils.cache import exceeds_max_cache_value_size
 
 if TYPE_CHECKING:
     from superset_core.queries.types import (
@@ -1156,6 +1157,11 @@ class SQLExecutor:
             ],
             "total_execution_time_ms": result.total_execution_time_ms,
         }
+
+        # An oversized result is left uncached; ``_get_from_cache`` then misses and
+        # the query re-runs on the next request.
+        if exceeds_max_cache_value_size(cache_key, cached_data):
+            return
 
         cache_manager.data_cache.set(
             cache_key,
