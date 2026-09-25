@@ -23,10 +23,12 @@ import {
   ChartCustomizationType,
   getChartMetadataRegistry,
 } from '@superset-ui/core';
-import { Form } from '@superset-ui/core/components';
+import { Form, type FormInstance } from '@superset-ui/core/components';
 import fetchMock from 'fetch-mock';
 import { render, screen, waitFor, within } from 'spec/helpers/testing-library';
 import { ChartCustomizationPlugins } from 'src/constants';
+import { transformCustomizationForSave } from '../transformers/customizationTransformer';
+import { ChartCustomizationsFormItem, NativeFiltersForm } from '../types';
 import FiltersConfigForm from './FiltersConfigForm';
 
 // Register a minimal Group By customization so the config form treats it as a
@@ -50,6 +52,19 @@ fetchMock.get('glob:*/api/v1/dataset/1?*', {
   },
 });
 
+// A column whose `filterable` flag is null (legacy rows; the column is
+// nullable in the metadata DB). The viewer offers it, so the allowlist must
+// too.
+fetchMock.get('glob:*/api/v1/dataset/2?*', {
+  result: {
+    columns: [
+      { column_name: 'country', is_dttm: false, filterable: true },
+      { column_name: 'legacy_col', is_dttm: false, filterable: null },
+      { column_name: 'internal_only', is_dttm: false, filterable: false },
+    ],
+  },
+});
+
 const FILTER_ID = 'CHART_CUSTOMIZATION-groupby';
 
 const noop = () => {};
@@ -57,12 +72,17 @@ const noop = () => {};
 function renderForm({
   customizationToEdit,
   initialControlValues,
+  datasetId = 1,
+  onForm,
 }: {
   customizationToEdit?: ChartCustomization;
   initialControlValues?: Record<string, unknown>;
+  datasetId?: number;
+  onForm?: (form: FormInstance<NativeFiltersForm>) => void;
 } = {}) {
   function Harness() {
-    const [form] = Form.useForm();
+    const [form] = Form.useForm<NativeFiltersForm>();
+    onForm?.(form);
     return (
       <Form
         form={form}
@@ -70,7 +90,7 @@ function renderForm({
           filters: {
             [FILTER_ID]: {
               filterType: ChartCustomizationPlugins.DynamicGroupBy,
-              dataset: { value: 1, label: 'sales' },
+              dataset: { value: datasetId, label: 'sales' },
               ...(initialControlValues
                 ? { controlValues: initialControlValues }
                 : {}),
@@ -172,4 +192,90 @@ test('does not overwrite an existing narrowed allowlist when editing', async () 
   await waitFor(() =>
     expect(allowlist.queryByText('state')).not.toBeInTheDocument(),
   );
+});
+
+test('offers and seeds columns whose filterable flag is null, matching the viewer', async () => {
+  renderForm({ datasetId: 2 });
+
+  const allowlist = await getAllowlistScope();
+  expect(await allowlist.findByText('country')).toBeInTheDocument();
+  expect(await allowlist.findByText('legacy_col')).toBeInTheDocument();
+  // Explicitly non-filterable columns stay out, as in the viewer.
+  expect(allowlist.queryByText('internal_only')).not.toBeInTheDocument();
+});
+
+const legacyCustomization: ChartCustomization = {
+  ...customizationWithNarrowedAllowlist,
+  // Saved before the allowlist existed: no columnsAllowlist at all.
+  controlValues: { canSelectMultiple: true },
+};
+
+const saveFormValues = async (form: FormInstance<NativeFiltersForm>) => {
+  const values = (await form.validateFields()) as NativeFiltersForm;
+  return transformCustomizationForSave(
+    FILTER_ID,
+    values.filters[FILTER_ID] as unknown as ChartCustomizationsFormItem,
+  ) as ChartCustomization;
+};
+
+test('editing a legacy control leaves columnsAllowlist unset on save unless narrowed', async () => {
+  let form!: FormInstance<NativeFiltersForm>;
+  renderForm({
+    customizationToEdit: legacyCustomization,
+    initialControlValues: { canSelectMultiple: true },
+    onForm: f => {
+      form = f;
+    },
+  });
+
+  // The control shows "all selected" once the columns load...
+  const allowlist = await getAllowlistScope();
+  expect(await allowlist.findByText('state')).toBeInTheDocument();
+
+  // ...but saving without narrowing does not freeze that snapshot.
+  // (This harness registers no control-panel checkboxes, so only the
+  // allowlist field is part of the validated controlValues.)
+  const saved = await saveFormValues(form);
+  expect(saved.controlValues).not.toHaveProperty('columnsAllowlist');
+});
+
+test('saves a narrowed allowlist as-is', async () => {
+  let form!: FormInstance<NativeFiltersForm>;
+  renderForm({
+    customizationToEdit: customizationWithNarrowedAllowlist,
+    initialControlValues: { columnsAllowlist: ['country'] },
+    onForm: f => {
+      form = f;
+    },
+  });
+
+  const allowlist = await getAllowlistScope();
+  expect(await allowlist.findByText('country')).toBeInTheDocument();
+  await waitFor(() =>
+    expect(
+      (
+        form.getFieldValue('filters')?.[
+          FILTER_ID
+        ] as unknown as ChartCustomizationsFormItem
+      )?.groupableColumns,
+    ).toEqual(['country', 'state']),
+  );
+
+  const saved = await saveFormValues(form);
+  expect(saved.controlValues).toEqual({ columnsAllowlist: ['country'] });
+});
+
+test('loading the allowlist columns does not reset the unrelated column field', async () => {
+  let form!: FormInstance<NativeFiltersForm>;
+  renderForm({
+    customizationToEdit: legacyCustomization,
+    initialControlValues: { canSelectMultiple: true },
+    onForm: f => {
+      form = f;
+    },
+  });
+
+  const allowlist = await getAllowlistScope();
+  expect(await allowlist.findByText('state')).toBeInTheDocument();
+  expect(form.getFieldValue(['filters', FILTER_ID, 'column'])).toBeUndefined();
 });

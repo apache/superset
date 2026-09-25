@@ -90,6 +90,13 @@ test('keeps only allowlisted columns and preserves their order', () => {
   ]);
 });
 
+test('keeps an applied value that the allowlist excludes', () => {
+  expect(applyColumnAllowlist(columnOptions, ['country'], ['state'])).toEqual([
+    { label: 'Country', value: 'country' },
+    { label: 'State', value: 'state' },
+  ]);
+});
+
 test('ignores allowlist entries that are not real columns', () => {
   expect(
     applyColumnAllowlist(columnOptions, ['state', 'does_not_exist']),
@@ -447,4 +454,37 @@ test('offers every groupable column when no allowlist is configured', async () =
   expect(await screen.findByText('Country')).toBeInTheDocument();
   expect(screen.getByText('State')).toBeInTheDocument();
   expect(screen.getByText('City')).toBeInTheDocument();
+});
+
+test('keeps an applied selection that a narrowed allowlist excludes, with its label', async () => {
+  fetchMock.get('glob:*/api/v1/dataset/322', allowlistDataset);
+
+  // The viewer grouped by 'state' before the builder narrowed the allowlist to
+  // ['country']. The applied selection is kept (not silently dropped) and
+  // still renders with its verbose label rather than the raw column name.
+  render(
+    <GroupByFilterCard
+      customizationItem={{
+        ...customization([{ datasetId: 322 }]),
+        controlValues: { columnsAllowlist: ['country'] },
+      }}
+    />,
+    {
+      useRedux: true,
+      initialState: {
+        ...initialState,
+        dataMask: {
+          'cc-1': { id: 'cc-1', filterState: { value: ['state'] } },
+        },
+      },
+    },
+  );
+
+  expect(await screen.findByText('State')).toBeInTheDocument();
+  expect(screen.queryByText('state')).not.toBeInTheDocument();
+
+  // Other excluded columns are still not offered.
+  userEvent.click(await screen.findByRole('combobox'));
+  expect(await screen.findByText('Country')).toBeInTheDocument();
+  expect(screen.queryByText('City')).not.toBeInTheDocument();
 });

@@ -97,6 +97,17 @@ export function ColumnSelect({
     [columns, filterColumnNames],
   );
 
+  // Whether the current selection still matches a loaded column. An empty
+  // selection has nothing to look up and is legitimate (e.g. a cleared
+  // multi-select), so it must not trigger a reset of the form field.
+  const isValueInColumns = (cols: Column[]) => {
+    const lookupValue = ensureIsArray(value);
+    return (
+      lookupValue.length === 0 ||
+      cols.some((column: Column) => lookupValue.includes(column.column_name))
+    );
+  };
+
   const currentFilterType =
     form.getFieldValue('filters')?.[filterId].filterType;
   const currentColumn = useMemo(
@@ -137,11 +148,7 @@ export function ColumnSelect({
         fetchSemanticViewStructure(datasetId)
           .then(({ dimensions }) => {
             const cols: Column[] = semanticViewDimensionsToColumns(dimensions);
-            const lookupValue = Array.isArray(value) ? value : [value];
-            const valueExists = cols.some((column: Column) =>
-              lookupValue?.includes(column.column_name),
-            );
-            if (!valueExists) {
+            if (!isValueInColumns(cols)) {
               resetColumnField();
             }
             setColumns(cols);
@@ -160,11 +167,7 @@ export function ColumnSelect({
           })}`,
         })
           .then(({ json: { result } }) => {
-            const lookupValue = Array.isArray(value) ? value : [value];
-            const valueExists = result.columns.some((column: Column) =>
-              lookupValue?.includes(column.column_name),
-            );
-            if (!valueExists) {
+            if (!isValueInColumns(result.columns)) {
               resetColumnField();
             }
             setColumns(result.columns);

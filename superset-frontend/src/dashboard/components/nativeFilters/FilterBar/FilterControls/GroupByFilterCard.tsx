@@ -22,6 +22,7 @@ import {
   DataMask,
   DataMaskStateWithId,
   DatasourceType,
+  ensureIsArray,
   Filter,
   useTruncation,
   ChartCustomization,
@@ -215,14 +216,21 @@ const DescriptionTooltip = ({ description }: { description: string }) => (
 // An unset or empty allowlist means "no restriction" so existing Group By
 // customizations (which never stored an allowlist) keep offering every
 // groupable column, preserving backwards compatibility.
+//
+// `appliedValues` are the viewer's currently applied group-by columns. They
+// stay in the options even when a later-narrowed allowlist excludes them, so
+// an applied selection keeps rendering with its verbose label instead of a
+// bare column name. The viewer can still clear it, and once cleared it is no
+// longer offered.
 export const applyColumnAllowlist = <T extends { value: string }>(
   options: T[],
   allowlist?: string[] | null,
+  appliedValues: string[] = [],
 ): T[] => {
   if (!Array.isArray(allowlist) || allowlist.length === 0) {
     return options;
   }
-  const allowed = new Set(allowlist);
+  const allowed = new Set([...allowlist, ...appliedValues]);
   return options.filter(option => allowed.has(option.value));
 };
 
@@ -435,8 +443,13 @@ const GroupByFilterCard: FC<GroupByFilterCardProps> = ({
     | undefined;
 
   const allowedColumnOptions = useMemo(
-    () => applyColumnAllowlist(columnOptions, columnsAllowlist),
-    [columnOptions, columnsAllowlist],
+    () =>
+      applyColumnAllowlist(
+        columnOptions,
+        columnsAllowlist,
+        ensureIsArray<string>(currentValue),
+      ),
+    [columnOptions, columnsAllowlist, currentValue],
   );
 
   const columnDisplayName = useMemo(() => {

@@ -98,6 +98,53 @@ test('persists the Group By column allowlist from controlValues on save', () => 
   });
 });
 
+const groupByFormItem = (
+  controlValues: Record<string, unknown>,
+  groupableColumns?: string[],
+) =>
+  ({
+    ...baseFormItem,
+    name: 'Group by',
+    filterType: 'chart_customization_dynamic_groupby',
+    dataset: { value: 42, label: 'sales' },
+    controlValues,
+    groupableColumns,
+  }) as unknown as ChartCustomizationsFormItem;
+
+test('collapses an allowlist that selects every groupable column back to unset on save', () => {
+  const result = transformCustomizationForSave(
+    'CHART_CUSTOMIZATION-full',
+    groupByFormItem(
+      { canSelectMultiple: true, columnsAllowlist: ['country', 'region'] },
+      ['region', 'country'],
+    ),
+  ) as ChartCustomization;
+
+  // "All selected" is saved as "no restriction", so columns added to the
+  // dataset later stay available to viewers.
+  expect(result.controlValues).toEqual({ canSelectMultiple: true });
+  expect(result).not.toHaveProperty('groupableColumns');
+});
+
+test('keeps a narrowed allowlist on save', () => {
+  const result = transformCustomizationForSave(
+    'CHART_CUSTOMIZATION-narrow',
+    groupByFormItem({ columnsAllowlist: ['country'] }, ['region', 'country']),
+  ) as ChartCustomization;
+
+  expect(result.controlValues).toEqual({ columnsAllowlist: ['country'] });
+  expect(result).not.toHaveProperty('groupableColumns');
+});
+
+test('keeps the allowlist when the groupable columns never loaded', () => {
+  const result = transformCustomizationForSave(
+    'CHART_CUSTOMIZATION-unloaded',
+    groupByFormItem({ columnsAllowlist: ['country'] }),
+  ) as ChartCustomization;
+
+  expect(result.controlValues).toEqual({ columnsAllowlist: ['country'] });
+});
+
 test('passes an already-saved ChartCustomization through untouched', () => {
   const saved: ChartCustomization = {
     id: 'CHART_CUSTOMIZATION-ghi',

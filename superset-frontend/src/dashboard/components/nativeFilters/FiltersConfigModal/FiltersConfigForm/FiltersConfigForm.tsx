@@ -594,31 +594,40 @@ const FiltersConfigForm = (
     [filterId, form, formChanged],
   );
 
-  // Seed a NEW Dynamic Group By control's allowlist with every groupable
-  // column so it defaults to "all selected" (builders can then deselect to
-  // restrict). Only seeds when no allowlist is set yet — a freshly created
-  // control, or one whose dataset just changed (which clears the allowlist).
-  // An existing selection, including a deliberately narrowed or emptied one,
-  // is never overwritten. The column names come from the same source that
-  // populates the multi-select options, so the default matches exactly what
-  // the builder can choose from. Seeding does not mark the form as changed, so
-  // editing a legacy control that never stored an allowlist stays a no-op
-  // unless the builder actually narrows the selection.
+  // Seed a Dynamic Group By control's allowlist with every groupable column so
+  // it defaults to "all selected" (builders can then deselect to restrict).
+  // Only seeds when no allowlist is set yet: a freshly created control, a
+  // legacy control that never stored one, or one whose dataset just changed
+  // (which clears the allowlist). An existing selection, including a
+  // deliberately narrowed or emptied one, is never overwritten. The column
+  // names come from the same source that populates the multi-select options,
+  // so the default matches exactly what the builder can choose from.
+  //
+  // The full groupable set is also recorded in the form-only
+  // `groupableColumns` field. On save, an allowlist that still selects every
+  // groupable column collapses back to unset (see
+  // collapseFullColumnsAllowlist), so the seed never freezes a snapshot of
+  // the dataset's columns into the saved config.
   const seedGroupByAllowlist = useCallback(
     (columnNames: string[]) => {
-      if (!isDynamicGroupBy || columnNames.length === 0) {
+      if (!isDynamicGroupBy) {
         return;
       }
       const currentControlValues =
         form.getFieldValue(['filters', filterId, 'controlValues']) || {};
-      if (currentControlValues.columnsAllowlist !== undefined) {
-        return;
-      }
+      const shouldSeed =
+        columnNames.length > 0 &&
+        currentControlValues.columnsAllowlist === undefined;
       setNativeFilterFieldValues(form, filterId, {
-        controlValues: {
-          ...currentControlValues,
-          columnsAllowlist: columnNames,
-        },
+        groupableColumns: columnNames,
+        ...(shouldSeed
+          ? {
+              controlValues: {
+                ...currentControlValues,
+                columnsAllowlist: columnNames,
+              },
+            }
+          : {}),
       });
       forceUpdate();
     },
@@ -1223,6 +1232,7 @@ const FiltersConfigForm = (
                                         ...formFilter?.controlValues,
                                         columnsAllowlist: undefined,
                                       },
+                                      groupableColumns: undefined,
                                     }
                                   : {}),
                               });
@@ -1269,51 +1279,68 @@ const FiltersConfigForm = (
                                 {isDynamicGroupBy &&
                                   hasDataset &&
                                   showDataset && (
-                                    <StyledRowFormItem
-                                      expanded={expanded}
-                                      name={[
-                                        'filters',
-                                        filterId,
-                                        'controlValues',
-                                        'columnsAllowlist',
-                                      ]}
-                                      initialValue={
-                                        customizationToEdit?.controlValues
-                                          ?.columnsAllowlist
-                                      }
-                                      label={
-                                        <>
-                                          <StyledLabel>
-                                            {t('Groupable columns')}
-                                          </StyledLabel>
-                                          &nbsp;
-                                          <InfoTooltip
-                                            placement="top"
-                                            tooltip={t(
-                                              'Columns viewers are allowed to group by. Leave empty to allow all groupable columns.',
-                                            )}
-                                          />
-                                        </>
-                                      }
-                                      data-test="groupby-columns-allowlist"
-                                    >
-                                      <ColumnSelect
-                                        mode="multiple"
-                                        allowClear
-                                        form={form}
-                                        filterId={filterId}
-                                        datasetId={datasetId}
-                                        datasourceType={datasourceType}
-                                        filterValues={(column: Column) =>
-                                          !!column?.filterable
-                                        }
-                                        onColumnsLoaded={seedGroupByAllowlist}
-                                        onChange={() => {
-                                          forceUpdate();
-                                          formChanged();
-                                        }}
+                                    <>
+                                      {/* Registers the form-only groupableColumns
+                                        field so validateFields returns it to the
+                                        save transform. */}
+                                      <FormItem
+                                        hidden
+                                        name={[
+                                          'filters',
+                                          filterId,
+                                          'groupableColumns',
+                                        ]}
                                       />
-                                    </StyledRowFormItem>
+                                      <StyledRowFormItem
+                                        expanded={expanded}
+                                        name={[
+                                          'filters',
+                                          filterId,
+                                          'controlValues',
+                                          'columnsAllowlist',
+                                        ]}
+                                        initialValue={
+                                          customizationToEdit?.controlValues
+                                            ?.columnsAllowlist
+                                        }
+                                        label={
+                                          <>
+                                            <StyledLabel>
+                                              {t('Groupable columns')}
+                                            </StyledLabel>
+                                            &nbsp;
+                                            <InfoTooltip
+                                              placement="top"
+                                              tooltip={t(
+                                                'Columns viewers are allowed to group by. Leave empty to allow all groupable columns.',
+                                              )}
+                                            />
+                                          </>
+                                        }
+                                        data-test="groupby-columns-allowlist"
+                                      >
+                                        <ColumnSelect
+                                          mode="multiple"
+                                          allowClear
+                                          form={form}
+                                          filterId={filterId}
+                                          datasetId={datasetId}
+                                          datasourceType={datasourceType}
+                                          // Match the viewer, which offers every
+                                          // column not explicitly marked
+                                          // non-filterable (filterable can be
+                                          // null for legacy columns).
+                                          filterValues={(column: Column) =>
+                                            column?.filterable !== false
+                                          }
+                                          onColumnsLoaded={seedGroupByAllowlist}
+                                          onChange={() => {
+                                            forceUpdate();
+                                            formChanged();
+                                          }}
+                                        />
+                                      </StyledRowFormItem>
+                                    </>
                                   )}
                                 {canDependOnOtherFilters &&
                                   (hasAvailableFilters ||
