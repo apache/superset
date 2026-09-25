@@ -26,6 +26,19 @@ assists people when migrating to a new version.
 
 - Semantic-view Table charts omit recognized dormant time grains from frontend-generated aggregate queries when no temporal axis is present. The saved grain and Time Grain control visibility are unchanged. Direct API payloads and saved chart-data GET requests that bypass frontend rebuilding retain strict validation; some old stored query contexts can therefore still fail. Deploy updated frontend assets with this change.
 
+### Guest token RLS rules without a dataset apply inside sub-queries
+
+A guest token RLS rule with no `dataset` key applies to every dataset. Such
+rules are now also injected into sub-queries of custom SQL expressions (with
+`ALLOW_ADHOC_SUBQUERY` enabled) and into SQL Lab queries, for every table that
+resolves to a dataset, instead of only into the chart's outer query. A virtual
+dataset's inner SQL is unchanged, since its outer query already applies them.
+
+If a sub-query reads a dataset that lacks a column the rule references, the
+query now fails with a column-not-found error instead of reading rows the rule
+was meant to exclude. To keep such charts working, set `dataset` on the rule so
+it only targets the datasets that have the column.
+
 ### MCP response size guard: byte limit instead of estimated token count
 
 The MCP response-size guard no longer estimates LLM token counts (it
