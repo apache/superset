@@ -833,3 +833,9 @@ PNG requests may then fail after rendering.
 PNG capture uses a dedicated two-worker executor per MCP process, separate from
 the pool used for transport authentication. Additional captures wait for a
 worker; cancellation does not release a running capture's worker until it exits.
+
+The executor lives for the MCP process lifetime. Start each MCP worker after any
+process fork, and do not fork a worker after it has begun rendering. Python waits
+for running captures when the process exits, so shutdown can wait for a browser
+operation to finish or reach its configured timeout. Cancellation does not
+terminate that browser operation or free its slot early.
