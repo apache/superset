@@ -44,14 +44,12 @@ logger = logging.getLogger(__name__)
 # Flask endpoints take the form ``<ViewClass>.<method>`` (or a bare name for
 # function views). The following must remain reachable while a password change
 # is pending, otherwise the redirect would loop: the auth views (login/logout
-# for every auth backend), the SPA profile page and the APIs its password
-# change modal needs (the current-user API it submits to and the CSRF token
-# endpoint), the legacy user-info-edit view, static assets, and the health
-# blueprint. We match the *view-class* component (the part before the dot)
-# exactly against the allow-list below rather than doing a substring search, so
-# unrelated endpoints that merely share a substring (e.g. an "Author"-named
-# view, or any name containing "health"/"static") are not accidentally exempted
-# from enforcement.
+# for every auth backend), the SPA profile page, the legacy user-info-edit view,
+# static assets, and the health blueprint. We match the *view-class* component
+# (the part before the dot) exactly against the allow-list below rather than
+# doing a substring search, so unrelated endpoints that merely share a substring
+# (e.g. an "Author"-named view, or any name containing "health"/"static") are
+# not accidentally exempted from enforcement.
 _EXEMPT_VIEW_CLASSES = frozenset(
     {
         "AuthDBView",
@@ -59,8 +57,6 @@ _EXEMPT_VIEW_CLASSES = frozenset(
         "AuthOAuthView",
         "AuthOIDView",
         "AuthRemoteUserView",
-        "CurrentUserRestApi",
-        "SecurityRestApi",
         "UserInfoEditView",
         "UserInfoView",
     }
@@ -69,8 +65,23 @@ _EXEMPT_VIEW_CLASSES = frozenset(
 # The SPA profile page, where a user changes their own password.
 _PROFILE_PAGE_ENDPOINT = "UserInfoView.list"
 
-# Exact endpoint names (function views / Flask built-ins) that are always exempt.
-_EXEMPT_ENDPOINTS = frozenset({"static", "appbuilder.static"})
+# Exact endpoint names that are always exempt: Flask's static routes, plus the
+# few API endpoints the profile page and its "Reset my password" modal call
+# (the current-user read the page renders from, the update the modal submits
+# to, and the CSRF token the client fetches before a mutating request). These
+# are listed individually rather than by view class on purpose: the same view
+# classes also serve ``guest_token``, the permissions search and the roles
+# listing, none of which a flagged user needs, and a flagged user's own
+# permissions must not unlock them before the password is changed.
+_EXEMPT_ENDPOINTS = frozenset(
+    {
+        "static",
+        "appbuilder.static",
+        "CurrentUserRestApi.get_me",
+        "CurrentUserRestApi.update_me",
+        "SecurityRestApi.csrf_token",
+    }
+)
 
 
 def _get_user_attribute(user_id: int) -> Optional[Any]:

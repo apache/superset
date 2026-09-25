@@ -53,26 +53,57 @@ def _run_update_me(user: User, data: dict[str, Any]) -> None:
         UserDAO.update(item=user, attributes=data)
 
 
-def test_current_user_put_schema_has_current_password_field() -> None:
+def test_current_user_put_schema_current_password_is_optional() -> None:
     """The payload schema for ``PUT /api/v1/me/`` carries a field for proving
-    knowledge of the existing password, required whenever ``password`` is
-    supplied.
+    knowledge of the existing password, but does not require it by itself:
+    an account with no stored password yet (e.g. provisioned by an external
+    auth backend) has nothing to prove, and the schema cannot see the user
+    record to tell the two cases apart. That decision, and the check that the
+    value matches, live in ``CurrentUserRestApi.pre_update``.
     """
     schema = CurrentUserPutSchema()
 
     assert "password" in schema.fields
     assert "current_password" in schema.fields
 
-    with pytest.raises(ValidationError):
-        schema.load({"password": "BrandNewPassw0rd!"})
+    loaded = schema.load({"password": "BrandNewPassw0rd!"})
+    assert "current_password" not in loaded
 
-    # Present alongside "password", it loads fine (the schema only checks
-    # that it was *supplied*; whether it's actually correct is verified
-    # against the database in ``CurrentUserRestApi.pre_update``).
     loaded = schema.load(
         {"password": "BrandNewPassw0rd!", "current_password": "OldPassw0rd!"}
     )
     assert loaded["current_password"] == "OldPassw0rd!"  # noqa: S105
+
+
+def test_update_me_current_password_required_only_when_one_is_stored(
+    admin_user: User,  # noqa: F811
+    after_each: None,  # noqa: F811
+) -> None:
+    """Whether ``current_password`` is needed depends on the account, not on
+    the schema: an account with no stored password may set one without it,
+    while an account that has one gets "Incorrect current password." whether
+    the field is missing or wrong. Every payload goes through the schema
+    first, the same way ``update_me`` loads it.
+    """
+    schema = CurrentUserPutSchema()
+
+    # ``admin_user`` starts with no password set: the first-password path.
+    assert not admin_user.password
+    _run_update_me(admin_user, schema.load({"password": "FirstPassw0rd!"}))
+    db.session.flush()
+    assert check_password_hash(admin_user.password, "FirstPassw0rd!")
+
+    stored_hash = admin_user.password
+    for payload in (
+        {"password": "BrandNewPassw0rd!"},
+        {"password": "BrandNewPassw0rd!", "current_password": "WrongPassw0rd!"},
+    ):
+        with pytest.raises(ValidationError) as excinfo:
+            _run_update_me(admin_user, schema.load(payload))
+        assert excinfo.value.messages == {
+            "current_password": ["Incorrect current password."]
+        }
+        assert admin_user.password == stored_hash
 
 
 def test_update_me_rejects_password_change_without_correct_current_password(

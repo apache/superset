@@ -131,18 +131,32 @@ test('the reset password modal sends the current password with the new one', asy
   );
 });
 
-test('the reset password modal cannot be saved without the current password', async () => {
+test('the reset password modal leaves out a blank current password', async () => {
+  // An account with no stored password (e.g. from an external auth backend)
+  // sets its first one without a current password; the API decides whether
+  // one is needed, so the field is optional here and only sent when filled.
   fetchMock.put(meEndpoint, { status: 200, body: {} });
   render(<UserInfoResetPasswordModal {...props} />);
+  expect(
+    screen.getByText('Required if your account already has a password'),
+  ).toBeInTheDocument();
   fireEvent.change(screen.getByPlaceholderText("Enter the user's password"), {
     target: { value: 'BrandNewPassw0rd!' },
   });
   fireEvent.change(screen.getByPlaceholderText("Confirm the user's password"), {
     target: { value: 'BrandNewPassw0rd!' },
   });
-
   await waitFor(() =>
-    expect(screen.getByTestId('form-modal-save-button')).toBeDisabled(),
+    expect(screen.getByTestId('form-modal-save-button')).toBeEnabled(),
   );
-  expect(fetchMock.callHistory.calls(meEndpoint)).toHaveLength(0);
+  fireEvent.click(screen.getByTestId('form-modal-save-button'));
+
+  await waitFor(() => expect(props.onSave).toHaveBeenCalledTimes(1));
+  const payload = JSON.parse(
+    fetchMock.callHistory.calls(meEndpoint)[0].options?.body as string,
+  );
+  expect(payload).toEqual({ password: 'BrandNewPassw0rd!' });
+  expect(mockToasts.addSuccessToast).toHaveBeenCalledWith(
+    'The password reset was successful',
+  );
 });

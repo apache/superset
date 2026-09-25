@@ -39,7 +39,7 @@ function UserInfoModal({
 
   const requiredFields = isEditMode
     ? ['first_name', 'last_name']
-    : ['current_password', 'password', 'confirm_password'];
+    : ['password', 'confirm_password'];
   const initialValues = isEditMode
     ? {
         first_name: user?.firstName,
@@ -48,10 +48,20 @@ function UserInfoModal({
     : {};
   const handleFormSubmit = async (values: FormValues) => {
     try {
-      const { confirm_password: _confirm_password, ...payload } = values;
+      const {
+        confirm_password: _confirm_password,
+        current_password,
+        ...payload
+      } = values;
       await SupersetClient.put({
         endpoint: `/api/v1/me/`,
-        jsonPayload: { ...payload },
+        // The API verifies current_password only when the account already has
+        // a stored password; one without (e.g. from an external auth backend)
+        // sets its first password without it, so a blank field is left out
+        // rather than sent as an empty string.
+        jsonPayload: current_password
+          ? { ...payload, current_password }
+          : payload,
       });
       addSuccessToast(
         isEditMode
@@ -94,7 +104,7 @@ function UserInfoModal({
       <FormItem
         name="current_password"
         label={t('Current password')}
-        rules={[{ required: true, message: t('Current password is required') }]}
+        extra={t('Required if your account already has a password')}
       >
         <Input.Password
           name="current_password"
