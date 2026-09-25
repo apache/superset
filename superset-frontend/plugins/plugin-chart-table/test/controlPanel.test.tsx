@@ -437,6 +437,20 @@ function getControl(name: string): ControlConfig {
 const pagination = getControl('server_pagination');
 const pageLength = getControl('server_page_length');
 
+test.each([
+  ['server_pagination', pagination],
+  ['server_page_length', pageLength],
+])('%s remaps when datasource capabilities change', (_, control) => {
+  const before = panelState(['ROW_OFFSET']);
+  const after = panelState([]);
+  const controlState = after.controls.server_pagination;
+
+  expect(control.shouldMapStateToProps?.(before, after, controlState)).toBe(true);
+  expect(control.mapStateToProps?.(after, controlState)).toMatchObject({
+    disabled: true,
+  });
+});
+
 function panelState(
   features?: string[],
   type = 'semantic_view',

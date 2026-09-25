@@ -408,6 +408,7 @@ const config: ControlPanelConfig = {
                 'Enable server side pagination of results (experimental feature)',
               ),
               default: false,
+              shouldMapStateToProps: () => true,
               mapStateToProps: state => ({
                 disabled: isServerPaginationUnsupported(state),
                 disabledReason: t(
@@ -427,6 +428,7 @@ const config: ControlPanelConfig = {
               label: t('Server Page Length'),
               default: 10,
               choices: SERVER_PAGE_SIZE_OPTIONS,
+              shouldMapStateToProps: () => true,
               mapStateToProps: state => ({
                 disabled: isServerPaginationUnsupported(state),
               }),

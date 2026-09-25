@@ -76,6 +76,9 @@ export default function CheckboxControl({
       {disabled ? label : undefined}
     </Checkbox>
   );
+  const explanation = disabled && disabledReason && (
+    <p id={explanationId}>{disabledReason}</p>
+  );
 
   if (label) {
     return (
@@ -90,14 +93,20 @@ export default function CheckboxControl({
             onClick={handleChange}
           />
         )}
-        {disabled && disabledReason && (
-          <p id={explanationId}>{disabledReason}</p>
-        )}
+        {explanation}
         {disabled && value && resetLabel && (
           <Button buttonSize="small" onClick={() => onChange(false)}>
             {resetLabel}
           </Button>
         )}
+      </CheckBoxControlWrapper>
+    );
+  }
+  if (explanation) {
+    return (
+      <CheckBoxControlWrapper>
+        {checkbox}
+        {explanation}
       </CheckBoxControlWrapper>
     );
   }
