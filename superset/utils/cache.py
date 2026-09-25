@@ -57,13 +57,13 @@ def generate_cache_key(values_dict: dict[str, Any], key_prefix: str = "") -> str
 def exceeds_max_cache_value_size(cache_key: str, value: Any) -> bool:
     """Check a value against ``DATA_CACHE_MAX_VALUE_SIZE`` before a data-cache write.
 
-    Every writer to the data cache calls this so that one oversized value cannot
-    flood the cache backend (e.g. Redis/Memcached) and evict many smaller entries.
-    When the serialized (pickled) size of ``value`` is larger than the limit, a
-    WARNING naming the key and size is logged and the
-    ``skip_cache_value_too_large`` statsd counter is incremented; the caller must
-    then skip the write. A skipped write is an ordinary cache miss: the next read
-    re-runs the query.
+    This keeps one oversized value from flooding the cache backend (e.g.
+    Redis/Memcached) and evicting many smaller entries. When the serialized
+    (pickled) size of ``value`` is larger than the limit, a WARNING naming the key
+    and size is logged and the ``skip_cache_value_too_large`` statsd counter is
+    incremented; the caller must then skip the write. Cache writers use
+    :func:`skip_oversized_cache_value`, which also removes any older value stored
+    under the key.
 
     :returns: ``True`` when the value is too large and must not be cached. Always
         ``False`` when ``DATA_CACHE_MAX_VALUE_SIZE`` is ``None``, in which case the
@@ -83,6 +83,35 @@ def exceeds_max_cache_value_size(cache_key: str, value: Any) -> bool:
         max_value_size,
     )
     app.config["STATS_LOGGER"].incr("skip_cache_value_too_large")
+    return True
+
+
+def skip_oversized_cache_value(
+    cache_instance: Cache, cache_key: str, value: Any
+) -> bool:
+    """Decide whether a data-cache write must be skipped for size, and if so remove
+    any older value stored under the same key.
+
+    Every writer to the data cache calls this before writing. Without the delete,
+    an older, smaller value under ``cache_key`` would survive the skipped write and
+    be served on the next read, even though a fresher result was just computed.
+    With the delete, the next read misses and recomputes. Deleting is best-effort:
+    a failure is logged and never raised, and it is a no-op for ``NullCache``.
+
+    :returns: ``True`` when ``value`` exceeds ``DATA_CACHE_MAX_VALUE_SIZE`` and the
+        caller must not write it (see :func:`exceeds_max_cache_value_size`).
+    """
+    if not exceeds_max_cache_value_size(cache_key, value):
+        return False
+    if not isinstance(cache_instance.cache, NullCache):
+        try:
+            cache_instance.delete(cache_key)
+        except Exception:  # pylint: disable=broad-except
+            logger.warning(
+                "Could not delete cache key %s after skipping an oversized value",
+                cache_key,
+                exc_info=True,
+            )
     return True
 
 
@@ -122,9 +151,10 @@ def set_and_log_cache(
 
         # Skip caching results that are too large to protect the cache backend
         # (e.g. Redis/Memcached) from being flooded by huge result sets. The chart
-        # still renders; the value is simply not cached, causing a re-query on the
-        # next load instead of a cache hit.
-        if exceeds_max_cache_value_size(cache_key, value):
+        # still renders; the value is not cached and any older value under the
+        # key is removed, so the next load re-queries instead of reading a cache
+        # entry.
+        if skip_oversized_cache_value(cache_instance, cache_key, value):
             return False
 
         # Flask-Caching's set() returns bool | None: cachelib backends can report

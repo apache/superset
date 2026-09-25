@@ -143,3 +143,30 @@ def test_normal_size_result_is_read_from_cache_on_follow_up(
     assert processor.get_query_result.call_count == 1
     assert follow_up_payload["is_cached"] is True
     assert follow_up_payload["rowcount"] == 2
+
+
+def test_oversized_refresh_removes_older_cached_result(
+    mocker: MockerFixture, data_cache: Cache
+) -> None:
+    """A result too large to cache removes the older cached copy under its key.
+
+    A small result is cached, the data then grows past the cap, and a forced
+    refresh computes the large result (which cannot be stored). The next ordinary
+    load must recompute rather than serve the older, smaller cached result.
+    """
+    # 1. An ordinary load caches a small result.
+    _processor(mocker, rows=10, force=False).get_df_payload_result(_query_object(None))
+    assert data_cache.get(CACHE_KEY) is not None
+
+    # 2-3. The data grows; a forced refresh (background task and its follow-up)
+    # recomputes the full, now oversized, result.
+    _run_task_then_follow_up(mocker, rows=2000, force=True)
+    assert data_cache.get(CACHE_KEY) is None
+
+    # 4. The next ordinary load recomputes instead of serving the old 10 rows.
+    processor = _processor(mocker, rows=2000, force=False)
+    payload = processor.get_df_payload_result(_query_object(None)).payload
+
+    processor.get_query_result.assert_called_once()
+    assert not payload["is_cached"]
+    assert payload["rowcount"] == 2000
