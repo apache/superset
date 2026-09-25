@@ -39,7 +39,7 @@ import zlib
 from collections.abc import Collection, Iterable, Iterator, Sequence
 from contextlib import closing, contextmanager
 from dataclasses import dataclass
-from datetime import timedelta
+from datetime import datetime, timedelta
 from email.mime.application import MIMEApplication
 from email.mime.image import MIMEImage
 from email.mime.multipart import MIMEMultipart
@@ -60,7 +60,7 @@ from typing import (
     TypeVar,
 )
 from urllib.parse import unquote_plus, urlparse
-from zipfile import ZipFile
+from zipfile import ZipFile, ZipInfo
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 import markdown as md
@@ -498,7 +498,7 @@ def cast_to_num(value: float | int | str | None) -> float | int | None:
         return None
     if isinstance(value, (int, float)):
         return value
-    if value.isdigit():
+    if value.isdecimal():
         return int(value)
     try:
         return float(value)
@@ -2222,12 +2222,31 @@ def apply_max_row_limit(
     return max_limit
 
 
+def write_zip_entry(bundle: ZipFile, filename: str, contents: bytes) -> None:
+    """Add a file to an open ZIP bundle, stamped with the current local time.
+
+    ``ZipFile.open(name, "w")`` falls back to the 1980-01-01 DOS epoch, which
+    extractors surface as a bogus (Windows Explorer) or empty (7-Zip)
+    modification date on every extracted file. Passing an explicit ``ZipInfo``
+    gives the entry the time the export was generated instead.
+    """
+    info = ZipInfo(filename=filename, date_time=datetime.now().timetuple()[:6])
+    # A pre-built ZipInfo bypasses the bundle's own compression settings, which
+    # zipfile only copies onto entries it creates from a plain filename, so pass
+    # both through explicitly.
+    bundle.writestr(
+        info,
+        contents,
+        compress_type=bundle.compression,
+        compresslevel=bundle.compresslevel,
+    )
+
+
 def create_zip(files: dict[str, Any]) -> BytesIO:
     buf = BytesIO()
     with ZipFile(buf, "w") as bundle:
         for filename, contents in files.items():
-            with bundle.open(filename, "w") as fp:
-                fp.write(contents)
+            write_zip_entry(bundle, filename, contents)
     buf.seek(0)
     return buf
 
