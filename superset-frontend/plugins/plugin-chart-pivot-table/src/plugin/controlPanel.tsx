@@ -34,6 +34,7 @@ import {
   QueryFormColumn,
 } from '@superset-ui/core';
 import { MetricsLayoutEnum, ShowValuesAsEnum } from '../types';
+import { RESULT_AGGREGATIONS } from './resultAggregation';
 
 const config: ControlPanelConfig = {
   controlPanelSections: [
@@ -173,7 +174,10 @@ const config: ControlPanelConfig = {
             name: 'rowTotals',
             config: {
               type: 'CheckboxControl',
-              label: t('Show rows total'),
+              // The displayed value may be a result aggregation (Median,
+              // Average, ...) rather than a plain total once `aggregateFunction`
+              // is set below, so "summary" rather than "total".
+              label: () => t('Show row summaries'),
               default: false,
               renderTrigger: true,
               description: t('Display row level total'),
@@ -197,7 +201,7 @@ const config: ControlPanelConfig = {
             name: 'colTotals',
             config: {
               type: 'CheckboxControl',
-              label: t('Show columns total'),
+              label: () => t('Show column summaries'),
               default: false,
               renderTrigger: true,
               description: t('Display column level total'),
@@ -240,6 +244,33 @@ const config: ControlPanelConfig = {
                   'opposed to each column being displayed side by side for each metric.',
               ),
               renderTrigger: true,
+            },
+          },
+        ],
+        [
+          {
+            name: 'aggregateFunction',
+            config: {
+              type: 'SelectControl',
+              label: () => t('Aggregation function'),
+              default: 'Metric',
+              clearable: false,
+              // Not a renderTrigger: switching in or out of a result
+              // aggregation changes whether the query uses GROUPING SETS at
+              // all (see buildQuery.ts), so it needs a real requery.
+              choices: [
+                ['Metric', t('Use metric definition')],
+                ...RESULT_AGGREGATIONS.map(
+                  name => [name, t(name)] as [string, string],
+                ),
+              ],
+              description: t(
+                'Use each metric’s own definition for cells and ' +
+                  'summaries (the default since SIP-216), or aggregate a ' +
+                  'second time over the metric’s own grouped results — ' +
+                  'e.g. the median of a set of per-store averages. Query ' +
+                  'limits apply before a result aggregation runs.',
+              ),
             },
           },
         ],

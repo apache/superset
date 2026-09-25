@@ -27,6 +27,7 @@ import {
   TimeGranularity,
 } from '@superset-ui/core';
 import { Groupby, PivotTableQueryFormData } from '../types';
+import { getResultAggregation } from './resultAggregation';
 import buildGroupbyCombinations, { allMetricsAdditive } from './utilities';
 
 // Build the query `columns` for a single rollup level (one prefix of row dims
@@ -86,17 +87,23 @@ export default function buildQuery(formData: PivotTableQueryFormData) {
   //    per displayed total/subtotal) so the database computes every level; the
   //    backend falls back to per-level queries on engines without native
   //    support. transformProps splits the combined result by level.
+  //  - result aggregation (see resultAggregation.ts): always a full-detail
+  //    query, regardless of additivity -- every scope reduces its own
+  //    original leaf records client-side, so there is nothing for the
+  //    database to roll up in advance.
   const additive = allMetricsAdditive(ensureIsArray(formData.metrics));
-  const groupingSets = additive
-    ? undefined
-    : buildGroupbyCombinations(formData).map(level =>
-        // A dimension placed on both axes (a valid, if unusual, config) would
-        // otherwise appear twice in the same level, producing a duplicate
-        // column in the GROUPING SETS tuple sent to the database.
-        Array.from(
-          new Set([...level.rows, ...level.columns].map(getColumnLabel)),
-        ),
-      );
+  const resultAggregation = getResultAggregation(formData.aggregateFunction);
+  const groupingSets =
+    additive || resultAggregation
+      ? undefined
+      : buildGroupbyCombinations(formData).map(level =>
+          // A dimension placed on both axes (a valid, if unusual, config) would
+          // otherwise appear twice in the same level, producing a duplicate
+          // column in the GROUPING SETS tuple sent to the database.
+          Array.from(
+            new Set([...level.rows, ...level.columns].map(getColumnLabel)),
+          ),
+        );
 
   return buildQueryContext(formData, baseQueryObject => {
     const { series_limit_metric, metrics, order_desc } = baseQueryObject;
