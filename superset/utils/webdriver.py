@@ -164,8 +164,14 @@ class DashboardStandaloneMode(Enum):
 
 
 class ChartStandaloneMode(Enum):
-    HIDE_NAV = "true"
     SHOW_NAV = 0
+    HIDE_NAV = 1
+    HIDE_NAV_SHOW_CONTROLS = 2
+    # Report/thumbnail captures, mirroring DashboardStandaloneMode.REPORT. Kept
+    # distinct from HIDE_NAV so the frontend can tell an automated capture from a
+    # live chart-only embed: ECharts suppresses animation for captures only, and
+    # treating a live embed as a capture would disable its animation too.
+    REPORT = 3
 
 
 # pylint: disable=too-few-public-methods
