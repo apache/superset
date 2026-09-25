@@ -290,6 +290,16 @@ export interface BaseControlConfig<
   warning?: ReactNode;
   error?: ReactNode;
   /**
+   * Names of *other* controls whose value this control's validation or
+   * `mapStateToProps` depends on. When one of them changes, the explore reducer
+   * rebuilds this control against the new form data.
+   *
+   * A control must not name itself: the rebuild reuses the value held before
+   * the action, so a self-naming control overwrites the value that action just
+   * set. Use `shouldMapStateToProps` to recompute a control's own props.
+   */
+  validationDependencies?: string[];
+  /**
    * Add additional props to chart control.
    */
   shouldMapStateToProps?: (
