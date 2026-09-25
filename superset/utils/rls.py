@@ -69,7 +69,9 @@ def apply_rls(
         pass the virtual dataset's id here so its own RLS isn't injected again
         on top of the outer-WHERE application (avoids double-apply when the
         virtual dataset's table_name collides with a table in its own SQL — for
-        example, after converting a physical dataset with RLS to virtual).
+        example, after converting a physical dataset with RLS to virtual). Like
+        global guest rules, its RLS is still injected into tables read inside an
+        uncorrelated sub-query, which the outer query does not constrain.
     :param include_global_guest_rls: Also inject global (unscoped) guest RLS
         rules. Pass False only for a virtual dataset's inner SQL, whose outer
         query already applies them to the rows the inner SQL returns. They are
@@ -87,7 +89,9 @@ def apply_rls(
     # collect all RLS predicates for all tables in the query
     default_catalog = database.get_default_catalog()
 
-    def collect_predicates(include_global: bool) -> dict[Table, list[Any]]:
+    def collect_predicates(
+        include_global: bool, exclude_id: int | None
+    ) -> dict[Table, list[Any]]:
         predicates: dict[Table, list[Any]] = {}
         for table in parsed_statement.tables:
             table = table.qualify(catalog=catalog, schema=schema)
@@ -97,29 +101,45 @@ def apply_rls(
                     table,
                     database,
                     default_catalog,
-                    exclude_dataset_id=exclude_dataset_id,
+                    exclude_dataset_id=exclude_id,
                     include_global_guest_rls=include_global,
                 )
                 if predicate
             ]
         return predicates
 
-    predicates = collect_predicates(include_global_guest_rls)
+    predicates = collect_predicates(include_global_guest_rls, exclude_dataset_id)
     # The outer query only constrains the rows that reach it, so a table read
-    # inside an uncorrelated sub-query still gets the global guest rules left to
-    # the outer query.
-    # Only a guest token carries such rules, so other users skip the second lookup.
+    # inside an uncorrelated sub-query still gets the rules left to the outer
+    # query: the global guest rules and the excluded dataset's own RLS. The
+    # second lookup is skipped when neither applies: only a guest token carries
+    # global guest rules, and most virtual datasets have no RLS of their own.
+    needs_subquery_predicates = parsed_statement.has_subquery() and (
+        (
+            not include_global_guest_rls
+            and security_manager.get_current_guest_user_if_guest() is not None
+        )
+        or (exclude_dataset_id is not None and _dataset_has_rls(exclude_dataset_id))
+    )
     subquery_predicates = (
-        collect_predicates(True)
-        if not include_global_guest_rls
-        and security_manager.get_current_guest_user_if_guest()
-        and parsed_statement.has_subquery()
-        else None
+        collect_predicates(True, None) if needs_subquery_predicates else None
     )
 
     return parsed_statement.apply_rls(
         catalog, schema, predicates, method, subquery_predicates
     )
+
+
+def _dataset_has_rls(dataset_id: int) -> bool:
+    """
+    Does the dataset have RLS predicates for the current user?
+
+    :param dataset_id: The dataset's id
+    """
+    from superset.connectors.sqla.models import SqlaTable
+
+    dataset = db.session.get(SqlaTable, dataset_id)
+    return dataset is not None and bool(dataset.get_sqla_row_level_filters())
 
 
 def _identifier_predicate(column: Any, value: str | None, fold: bool) -> Any:

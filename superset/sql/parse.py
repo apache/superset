@@ -47,6 +47,7 @@ from sqlglot.optimizer.scope import (
     Scope,
     ScopeType,
     traverse_scope,
+    walk_in_scope,
 )
 
 from superset.exceptions import QueryClauseValidationException, SupersetParseError
@@ -2829,9 +2830,11 @@ def _find_subquery_scopes(scopes: list[Scope]) -> set[int]:
     sub-query), every scope nested inside one, and every CTE one of them reads from,
     including the scopes nested inside that CTE. A CTE read both from a sub-query and
     from the statement's ``FROM`` counts as a sub-query, so its reads get the stricter
-    rules. A correlated sub-query is keyed to the rows of an enclosing query, like a
-    join, and the body of a ``LATERAL`` or ``CROSS APPLY`` feeds the output like a
-    join, so both are left out.
+    rules. The body of a ``LATERAL`` or ``CROSS APPLY`` feeds the output like a join,
+    so it is left out. A correlated sub-query is left out too: it is typically a
+    lookup keyed to the enclosing rows, often over a table without the rule's
+    columns, which the rules would break the same way they would break a join. The
+    outer query doesn't scope such a sub-query's tables either (UPDATING.md).
 
     :param scopes: The scopes of the statement, as returned by ``traverse_scope``
     :returns: The ``id`` of each scope found
@@ -2868,6 +2871,10 @@ def _is_correlated(scope: Scope) -> bool:
     errs toward the sub-query getting the stricter rules. (``Scope``'s own
     ``is_correlated_subquery`` treats every unqualified column as external.)
 
+    Only the sub-query's own columns count, not those of a sub-query nested in it
+    (which ``Scope.columns`` includes): a nested correlated sub-query doesn't key the
+    wrapping sub-query's tables to the enclosing rows.
+
     :param scope: A ``SUBQUERY`` scope
     :returns: True if the sub-query is correlated
     """
@@ -2877,9 +2884,10 @@ def _is_correlated(scope: Scope) -> bool:
         enclosing.update(parent.sources)
         parent = parent.parent
     return any(
-        column.table in enclosing and column.table not in scope.sources
-        for column in scope.columns
-        if column.table
+        isinstance(node, exp.Column)
+        and node.table in enclosing
+        and node.table not in scope.sources
+        for node in walk_in_scope(scope.expression)
     )
 
 

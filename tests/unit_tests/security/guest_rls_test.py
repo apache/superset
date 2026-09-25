@@ -31,6 +31,7 @@ from contextlib import contextmanager
 from typing import Callable
 from unittest.mock import MagicMock, patch
 
+import pytest
 from flask import Flask
 from pytest_mock import MockerFixture
 from sqlalchemy.sql.elements import TextClause
@@ -510,9 +511,9 @@ def test_global_guest_rule_left_to_outer_query_for_correlated_subquery(
     mocker: MockerFixture,
 ) -> None:
     """
-    A correlated sub-query is keyed to the virtual dataset's own rows, like a
-    join, so global guest RLS rules are left to the outer query there. A lookup
-    table without the rule's column keeps working.
+    Global guest RLS rules are left out of a correlated sub-query, which is
+    typically a lookup keyed to the virtual dataset's own rows, so a lookup table
+    without the rule's column keeps working.
     """
     sql = _apply_virtual_dataset_rls_as_guest(
         mocker,
@@ -546,7 +547,8 @@ def test_virtual_dataset_subquery_lookup_skipped_for_non_guest(
 ) -> None:
     """
     Only a guest token carries global guest RLS rules, so for any other user the
-    virtual dataset path looks up each table's predicates once, not twice.
+    virtual dataset path looks up each table's predicates once, not twice, unless
+    the virtual dataset has RLS of its own.
     """
     from superset.sql.parse import RLSMethod, SQLStatement
     from superset.utils.rls import apply_rls
@@ -557,6 +559,7 @@ def test_virtual_dataset_subquery_lookup_skipped_for_non_guest(
         "superset.utils.rls.security_manager.get_current_guest_user_if_guest",
         return_value=None,
     )
+    mocker.patch("superset.utils.rls._dataset_has_rls", return_value=False)
     get_predicates = mocker.patch(
         "superset.utils.rls.get_predicates_for_table",
         return_value=[],
@@ -576,3 +579,53 @@ def test_virtual_dataset_subquery_lookup_skipped_for_non_guest(
         call.kwargs["include_global_guest_rls"] is False
         for call in get_predicates.call_args_list
     )
+
+
+@pytest.mark.parametrize("is_guest", [False, True])
+def test_virtual_dataset_own_rls_applied_to_subquery(
+    app: Flask,
+    mocker: MockerFixture,
+    is_guest: bool,
+) -> None:
+    """
+    The outer query only applies a virtual dataset's own RLS to the rows its SQL
+    returns, so a sub-query reading the table the dataset is named after gets that
+    RLS instead of being excluded, for guests and other users alike.
+    """
+    from superset.sql.parse import RLSMethod, SQLStatement
+    from superset.utils.rls import apply_rls
+
+    database = mocker.MagicMock()
+    database.get_default_catalog.return_value = None
+    database.db_engine_spec.get_rls_method.return_value = RLSMethod.AS_PREDICATE
+    mocker.patch(
+        "superset.utils.rls.security_manager.get_current_guest_user_if_guest",
+        return_value=_make_guest_user(rules=[]) if is_guest else None,
+    )
+    mocker.patch("superset.utils.rls._dataset_has_rls", return_value=True)
+    # the virtual dataset (id 99) is named after the physical table ``b``
+    mocker.patch(
+        "superset.utils.rls.get_predicates_for_table",
+        side_effect=lambda table, *args, exclude_dataset_id, **kwargs: (
+            ["region = 'EU'"]
+            if table.table == "b" and exclude_dataset_id is None
+            else []
+        ),
+    )
+    statement = SQLStatement(
+        "SELECT b.x, (SELECT COUNT(*) FROM b AS inner_b) AS n FROM b", "sqlite"
+    )
+
+    apply_rls(
+        database,
+        None,
+        "public",
+        statement,
+        exclude_dataset_id=99,
+        include_global_guest_rls=False,
+    )
+
+    sql = statement.format(comments=False)
+    subquery, outer = sql.split(") AS n", 1)
+    assert "inner_b.region = 'EU'" in subquery, f"Sub-query not scoped. Got: {sql}"
+    assert "region" not in outer, f"Own RLS applied twice. Got: {sql}"

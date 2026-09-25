@@ -6796,6 +6796,14 @@ def _compact_sql(statement: SQLStatement) -> str:
             "FROM a WHERE a.r = 1",
             id="nested-subquery",
         ),
+        pytest.param(
+            "SELECT a.x, (SELECT COUNT(*) FROM b WHERE EXISTS "
+            "(SELECT 1 FROM a AS o WHERE o.k = a.k)) AS n FROM a",
+            "SELECT a.x, (SELECT COUNT(*) FROM b WHERE b.r = 1 AND b.g = 1 AND "
+            "(EXISTS(SELECT 1 FROM a AS o WHERE o.r = 1 AND o.g = 1 AND "
+            "(o.k = a.k)))) AS n FROM a WHERE a.r = 1",
+            id="uncorrelated-wrapping-correlated",
+        ),
     ],
 )
 def test_rls_subquery_predicates(sql: str, expected: str) -> None:
