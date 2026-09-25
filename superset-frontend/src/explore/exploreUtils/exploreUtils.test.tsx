@@ -23,6 +23,7 @@ import {
   getExploreUrl,
   getSimpleSQLExpression,
   getQuerySettings,
+  mountExploreUrl,
 } from 'src/explore/exploreUtils';
 import { DashboardStandaloneMode } from 'src/dashboard/util/constants';
 import * as hostNamesConfig from 'src/utils/hostNamesConfig';
@@ -270,6 +271,30 @@ describe('exploreUtils', () => {
 
       exploreChart({ ...formData, viz_type: 'my_custom_viz' });
       expect(postFormSpy).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
+  describe('.mountExploreUrl() standalone mode', () => {
+    // Explore calls history.replace with this URL after interactions. Writing
+    // HideNav unconditionally downgraded mode 2 to mode 1 on the first click,
+    // collapsing the editor to a bare chart.
+    test('preserves a caller-supplied mode 2', () => {
+      expect(mountExploreUrl('standalone', { standalone: 2 })).toContain(
+        'standalone=2',
+      );
+    });
+
+    test('keeps mode 1 as mode 1', () => {
+      expect(mountExploreUrl('standalone', { standalone: 1 })).toContain(
+        'standalone=1',
+      );
+    });
+
+    test('falls back to HideNav when the caller supplies nothing', () => {
+      expect(mountExploreUrl('standalone')).toContain(
+        `standalone=${DashboardStandaloneMode.HideNav}`,
+      );
     });
   });
 });

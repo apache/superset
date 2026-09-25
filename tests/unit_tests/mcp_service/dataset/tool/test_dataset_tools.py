@@ -2709,7 +2709,9 @@ async def test_description_discovery_uses_dao_search_and_exposes_alternatives(
             # UUID union (including an inaccessible dataset) is intersected by
             # the existing access filter before count and page boundaries.
             identifiers = (
-                session.query(SqlaTable.uuid).filter(SqlaTable.id.in_([1, 3])).all()
+                session.query(SqlaTable.uuid)
+                .filter(SqlaTable.id.in_([1, 3]))  # type: ignore[attr-defined]
+                .all()
             )
             scoped_rows, scoped_count = DatasetDAO.list(
                 search="Order",

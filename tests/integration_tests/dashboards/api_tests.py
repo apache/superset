@@ -1663,6 +1663,8 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
         assert rv.status_code == 200
         model = db.session.query(Dashboard).get(dashboard_id)
         assert model is None
+        log = self.get_latest_log("DashboardRestApi.delete")
+        assert log.dashboard_id == dashboard_id
 
     def test_delete_bulk_dashboards(self):
         """
@@ -1690,6 +1692,11 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
         for dashboard_id in dashboard_ids:
             model = db.session.query(Dashboard).get(dashboard_id)
             assert model is None
+        # a single integer column cannot hold every id, so the full list is
+        # recorded in the JSON payload instead
+        log = self.get_latest_log("DashboardRestApi.bulk_delete")
+        assert log.dashboard_id is None
+        assert json.loads(log.json)["dashboard_ids"] == dashboard_ids
 
     def test_delete_bulk_embedded_dashboards(self):
         """
@@ -1967,6 +1974,8 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
         # uuid should be returned in the response
         assert "uuid" in data
         assert str(model.uuid) == str(data["uuid"])
+        log = self.get_latest_log("DashboardRestApi.post")
+        assert log.dashboard_id == model.id
         db.session.delete(model)
         db.session.commit()
 
@@ -2330,6 +2339,8 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
         uri = f"api/v1/dashboard/{dashboard_id}"
         rv = self.put_assert_metric(uri, self.dashboard_data, "put")
         assert rv.status_code == 200
+        log = self.get_latest_log("DashboardRestApi.put")
+        assert log.dashboard_id == dashboard_id
         model = db.session.query(Dashboard).get(dashboard_id)
         assert model.dashboard_title == self.dashboard_data["dashboard_title"]
         assert model.slug == self.dashboard_data["slug"]
@@ -2449,6 +2460,8 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
         uri = f"api/v1/dashboard/{dashboard_id}/filters"
         rv = self.put_assert_metric(uri, self.dashboard_put_filters_data, "put_filters")
         assert rv.status_code == 200
+        log = self.get_latest_log("DashboardRestApi.put_filters")
+        assert log.dashboard_id == dashboard_id
         model = db.session.query(Dashboard).get(dashboard_id)
         json_metadata = model.json_metadata
         native_filter_config = json.loads(json_metadata)["native_filter_configuration"]
@@ -2622,6 +2635,8 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
         }
         rv = self.put_assert_metric(uri, put_data, "put_chart_customizations")
         assert rv.status_code == 200
+        log = self.get_latest_log("DashboardRestApi.put_chart_customizations")
+        assert log.dashboard_id == dashboard_id
         model = db.session.query(Dashboard).get(dashboard_id)
         json_metadata = model.json_metadata
         chart_customization_config = json.loads(json_metadata)[
@@ -4419,6 +4434,8 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
         assert rv.status_code == 200
         response = json.loads(rv.data.decode("utf-8"))
         assert response == {"result": {"id": ANY, "last_modified_time": ANY}}
+        log = self.get_latest_log("DashboardRestApi.copy_dash")
+        assert log.dashboard_id == pk
 
         dash = (
             db.session.query(Dashboard)
@@ -4849,8 +4866,8 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
         mock_get_from_cache_key.side_effect = lambda cache_key, **_kwargs: payloads.get(
             cache_key
         )
-        mock_store_cache_payload.side_effect = (
-            lambda cache_key, payload: payloads.__setitem__(cache_key, payload)
+        mock_store_cache_payload.side_effect = lambda cache_key, payload: (
+            payloads.__setitem__(cache_key, payload)
         )
 
         def publish(_request_key, cache_key, _scope, _previous_cache_key):
@@ -5074,8 +5091,8 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
         mock_get_from_cache_key.side_effect = lambda cache_key, **_kwargs: payloads.get(
             cache_key
         )
-        mock_store_cache_payload.side_effect = (
-            lambda cache_key, payload: payloads.__setitem__(cache_key, payload)
+        mock_store_cache_payload.side_effect = lambda cache_key, payload: (
+            payloads.__setitem__(cache_key, payload)
         )
 
         def publish(_request_key, cache_key, _scope, previous_cache_key):
@@ -6236,6 +6253,8 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
         uri = f"api/v1/dashboard/{dashboard.id}/colors"
         rv = self.client.put(uri, json=colors)
         assert rv.status_code == 200
+        log = self.get_latest_log("DashboardRestApi.put_colors")
+        assert log.dashboard_id == dashboard.id
 
         updated_dashboard = db.session.query(Dashboard).get(dashboard.id)
         updated_label_colors = json.loads(updated_dashboard.json_metadata).get(
