@@ -23,6 +23,7 @@ import {
   isChartCustomizationDivider,
   getItemType,
   getItemTypeInfo,
+  hasCircularDependency,
   NATIVE_FILTER_DIVIDER_PREFIX,
   CHART_CUSTOMIZATION_DIVIDER_PREFIX,
   NATIVE_FILTER_PREFIX,
@@ -136,4 +137,45 @@ test('getItemTypeInfo returns correct info for customization type', () => {
   expect(info.dividerPrefix).toBe(CHART_CUSTOMIZATION_DIVIDER_PREFIX);
   expect(info.dividerType).toBe(ChartCustomizationType.Divider);
   expect(info.itemTypeName).toBe('customization');
+});
+
+test('hasCircularDependency returns false for a linear chain with no cycle', () => {
+  const dependencyMap = new Map<string, string[]>([
+    ['a', []],
+    ['b', ['a']],
+    ['c', ['b']],
+  ]);
+  expect(hasCircularDependency(dependencyMap, 'c')).toBe(false);
+});
+
+test('hasCircularDependency returns true for a filter that depends on itself', () => {
+  const dependencyMap = new Map<string, string[]>([['a', ['a']]]);
+  expect(hasCircularDependency(dependencyMap, 'a')).toBe(true);
+});
+
+test('hasCircularDependency returns true for a 2-node cycle', () => {
+  const dependencyMap = new Map<string, string[]>([
+    ['a', ['b']],
+    ['b', ['a']],
+  ]);
+  expect(hasCircularDependency(dependencyMap, 'a')).toBe(true);
+});
+
+test('hasCircularDependency returns true for a longer 3-node cycle', () => {
+  const dependencyMap = new Map<string, string[]>([
+    ['a', ['b']],
+    ['b', ['c']],
+    ['c', ['a']],
+  ]);
+  expect(hasCircularDependency(dependencyMap, 'a')).toBe(true);
+});
+
+test('hasCircularDependency returns false for a diamond with a shared ancestor', () => {
+  const dependencyMap = new Map<string, string[]>([
+    ['d', ['b', 'c']],
+    ['b', ['a']],
+    ['c', ['a']],
+    ['a', []],
+  ]);
+  expect(hasCircularDependency(dependencyMap, 'd')).toBe(false);
 });
