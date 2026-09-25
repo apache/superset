@@ -27,6 +27,7 @@ from uuid import uuid4
 
 import pytest
 import sqlalchemy as sa
+from freezegun import freeze_time
 from pytest_mock import MockerFixture
 from sqlalchemy.orm import sessionmaker
 
@@ -391,7 +392,13 @@ def test_stale_retry_recovers_at_max_delay(
 ) -> None:
     """Admission must not add the execution budget to the retry recovery delay."""
     now = utc_now().replace(microsecond=0)
-    with sessions() as session:
+    # Freeze time: the admission check below compares against a fresh
+    # datetime.utcnow() (not the `now` passed to claim_execution), and this
+    # test sits exactly on the 3600s boundary. Without freezing, any real
+    # delay between the setup below and that internal check (e.g. under a
+    # loaded CI run) shifts the effective age across the boundary and flips
+    # the assertion.
+    with freeze_time(now), sessions() as session:
         schedule = session.query(ReportSchedule).one()
         schedule.last_state = ReportState.RETRYING
         schedule.execution_owner = "owner"
