@@ -303,6 +303,22 @@ def default_sql_config(mocker: MockerFixture) -> None:
 
 
 @pytest.fixture
+def enabled_data_cache(mocker: MockerFixture) -> MagicMock:
+    """Give the executor a data cache that is not a ``NullCache``.
+
+    The unit-test app configures no data cache, so ``_store_in_cache`` would
+    return before writing. Returns the mocked data cache; its ``get`` misses.
+    """
+    data_cache = MagicMock()
+    data_cache.get.return_value = None
+    mocker.patch(
+        "superset.sql.execution.executor.cache_manager",
+        MagicMock(data_cache=data_cache),
+    )
+    return data_cache
+
+
+@pytest.fixture
 def mock_celery_task(mocker: MockerFixture) -> MagicMock:
     """Mock the Celery task for SQL execution."""
     return mocker.patch("superset.sql.execution.celery_task.execute_sql_task")

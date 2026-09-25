@@ -21,6 +21,7 @@ from typing import Any
 from flask import current_app as app, make_response, request, Response
 from flask_appbuilder.api import expose, protect, rison, safe
 from flask_appbuilder.api.schemas import get_list_schema
+from flask_caching.backends import NullCache
 from marshmallow import ValidationError
 
 from superset import event_logger, is_feature_enabled, security_manager
@@ -64,9 +65,14 @@ logger = logging.getLogger(__name__)
 def _set_data_cache(cache_key: str, value: Any, timeout: int) -> None:
     """Write ``value`` to the data cache unless it exceeds
     ``DATA_CACHE_MAX_VALUE_SIZE``. An oversized value is left uncached, so the next
-    request misses and recomputes it from the datasource."""
+    request misses and recomputes it from the datasource. With caching disabled
+    (``NullCache``) nothing is written and the size check is skipped, so the value
+    is never serialized."""
+    data_cache = cache_manager.data_cache
+    if isinstance(data_cache.cache, NullCache):
+        return
     if not exceeds_max_cache_value_size(cache_key, value):
-        cache_manager.data_cache.set(cache_key, value, timeout=timeout)
+        data_cache.set(cache_key, value, timeout=timeout)
 
 
 # Cache lifetime for search-filtered column values, in seconds.

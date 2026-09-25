@@ -132,18 +132,20 @@ retention policy, it keeps async results in the cache longer and modestly increa
 
 Very large chart or SQL query results can flood the cache backend (Redis/Memcached), evicting many
 smaller useful entries or exhausting memory. The size of any single value written to the data cache
-(chart and SQL query results, filter dropdown values, and compatible metrics/dimensions) is bounded by `DATA_CACHE_MAX_VALUE_SIZE` (in bytes), which defaults to `10 * 1024 * 1024` (10 MB). To
-change it, set it in `superset_config.py`:
+(chart and SQL query results, filter dropdown values, and compatible metrics/dimensions) is bounded
+by `DATA_CACHE_MAX_VALUE_SIZE` (in bytes), which defaults to `10 * 1024 * 1024` (10 MB). To change it,
+set it in `superset_config.py`:
 
 ```python
 DATA_CACHE_MAX_VALUE_SIZE = 20 * 1024 * 1024  # 20 MB
 ```
 
-When a result's serialized size exceeds this threshold it is not written to the data cache — the
-chart still renders, but the next load re-queries the datasource instead of getting a cache hit. Each
-skip emits a WARNING log naming the key and byte size, and increments the `skip_cache_value_too_large`
-statsd metric. Set to `None` to disable the check entirely (no serialization overhead is then
-incurred).
+When a value's serialized size exceeds this threshold it is not written to the data cache. The
+request still returns its data, and the value is recomputed from the datasource the next time it is
+requested. With `GLOBAL_ASYNC_QUERIES`, that includes the follow-up request a chart sends after its
+background query finishes, so an oversized async chart runs its query twice. Each skip emits a
+WARNING log naming the key and byte size, and increments the `skip_cache_value_too_large` statsd
+metric. Set to `None` to disable the check entirely (no serialization overhead is then incurred).
 
 ## SQL Lab Query Results
 
