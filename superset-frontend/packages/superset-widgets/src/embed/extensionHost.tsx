@@ -111,12 +111,18 @@ interface ExtensionInstance {
 const instances = new Map<string, ExtensionInstance>();
 
 /**
- * The instance whose extension code is running. `dashboard.fetchQueryData`
- * carries no node id, so it is attributed to the widget that rendered last —
- * the one calling it, unless a page mounts several instances of the same
- * extension within a single render pass.
+ * The page services the last rendered extension widget was given.
+ * `dashboard.fetchQueryData` carries no node id, so it runs through these:
+ * every widget under one provider shares a client and a bus, and the id only
+ * decides which filters a widget excludes as its own.
+ *
+ * Deliberately not cleared when a widget unmounts. A widget fetches from an
+ * effect, and React runs a child's effects before its parent's — so anything
+ * this pointer had to be restored by the adapter would already be gone by the
+ * time the extension's own effect asks for it (strict mode makes that the
+ * normal path, not an edge case).
  */
-let currentInstanceId: string | undefined;
+let active: { id: string; bus: WidgetBus; client: WidgetDataClient } | undefined;
 
 const buses = new Set<WidgetBus>();
 
@@ -145,18 +151,6 @@ function trackBus(bus: WidgetBus): void {
   );
 }
 
-function requireInstance(api: string): {
-  id: string;
-  instance: ExtensionInstance;
-} {
-  const id = currentInstanceId;
-  const instance = id ? instances.get(id) : undefined;
-  if (!id || !instance) {
-    throw new Error(`${api} must be called while an extension widget renders.`);
-  }
-  return { id, instance };
-}
-
 function getNode(id: string): dashboardApi.DashboardNode | undefined {
   const instance = instances.get(id);
   if (!instance) return undefined;
@@ -175,11 +169,16 @@ function updateProps(id: string, props: Record<string, unknown>): void {
 }
 
 function fetchQueryData(binding: DataBindingSpec): Promise<QueryDataResult> {
-  const { id, instance } = requireInstance('dashboard.fetchQueryData');
-  return instance.client.fetchData({
+  if (!active) {
+    throw new Error(
+      'dashboard.fetchQueryData is only available to a rendered widget.',
+    );
+  }
+  const { id, bus, client } = active;
+  return client.fetchData({
     instanceId: id,
     widget: { type: QUERY_WIDGET_TYPE, props: { dataBinding: binding } },
-    filters: getActiveResolvedFilters(instance.bus, binding.datasetId, id),
+    filters: getActiveResolvedFilters(bus, binding.datasetId, id),
   });
 }
 
@@ -248,7 +247,7 @@ export function adaptExtensionWidget(
       rerender,
     };
     instances.set(instanceId, instance.current);
-    currentInstanceId = instanceId;
+    active = { id: instanceId, bus, client };
     trackBus(bus);
 
     useEffect(() => {
@@ -257,7 +256,6 @@ export function adaptExtensionWidget(
       if (instance.current) instances.set(instanceId, instance.current);
       return () => {
         instances.delete(instanceId);
-        if (currentInstanceId === instanceId) currentInstanceId = undefined;
       };
     }, [instanceId]);
 
@@ -359,5 +357,5 @@ export function resetExtensionHost(): void {
   buses.clear();
   subscriptions.clear();
   registeredViews.clear();
-  currentInstanceId = undefined;
+  active = undefined;
 }

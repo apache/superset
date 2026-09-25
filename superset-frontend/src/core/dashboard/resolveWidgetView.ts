@@ -36,6 +36,17 @@ import { resolveView, views } from 'src/core/views';
 export { DASHBOARD_WIDGETS_LOCATION };
 
 /**
+ * Whether `type` is renderable as a widget at all — registered here by the
+ * host or contributed by an extension. Not the same question as whether its
+ * component happens to live in `@apache-superset/widgets`: an extension's
+ * widget is fetched from Superset by whoever renders it, including an
+ * embedding host (see `extensionLoader`).
+ */
+export const isWidgetViewRegistered = (type: string): boolean =>
+  views.getViews(DASHBOARD_WIDGETS_LOCATION)?.some(view => view.id === type) ??
+  false;
+
+/**
  * Resolves a node's registered view, scoped to
  * `DASHBOARD_WIDGETS_LOCATION` — `resolveView` alone resolves by id
  * only, ignoring location, so without this check a node whose `type`
@@ -48,9 +59,6 @@ export function resolveWidgetView(
   type: string,
   nodeId: string,
 ): ReactElement | undefined {
-  const isRegistered = views
-    .getViews(DASHBOARD_WIDGETS_LOCATION)
-    ?.some(view => view.id === type);
-  if (!isRegistered) return undefined;
+  if (!isWidgetViewRegistered(type)) return undefined;
   return resolveView(type, { nodeId });
 }

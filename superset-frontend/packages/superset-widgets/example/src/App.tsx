@@ -242,6 +242,38 @@ function Page() {
                 </div>
               </Frame>
 
+              {config.extensionWidgetType && (
+                <Frame label="Extension widget" kind="host" as="section">
+                  <h2>From an extension</h2>
+                  <p className="hint">
+                    Nothing about this widget is bundled here. The type names
+                    the extension that draws it, so the provider fetched it from
+                    Superset and loaded its code into this page.
+                  </p>
+                  <div className="grid">
+                    <Frame
+                      label={`<Widget type="${config.extensionWidgetType}">`}
+                      code
+                      detail={`${config.metric} by ${config.category}`}
+                      kind="superset"
+                      className="card"
+                    >
+                      <Widget
+                        type={config.extensionWidgetType}
+                        instanceId="from-extension"
+                        props={{
+                          dataBinding: binding(
+                            [config.metric],
+                            [config.category],
+                          ),
+                          colorDimension: config.category,
+                        }}
+                      />
+                    </Frame>
+                  </div>
+                </Frame>
+              )}
+
               <Frame label="Saved widgets" kind="host" as="section">
                 <h2>Saved widgets</h2>
                 {config.savedWidgetIds.length > 0 ? (
@@ -296,16 +328,7 @@ function Page() {
           kind="superset"
           className="card demo-slot"
         >
-          <Widget id="a4c570e0-6b2a-4b41-bd2c-99bc3c2c184c" />
-        </Frame>
-
-        <Frame
-          label="<Widget id>"
-          code
-          kind="superset"
-          className="card demo-slot"
-        >
-          <Widget id="a4d4c0aa-7d14-409d-81b7-8ee6266e2896" />
+          <Widget id="4d9d1484-ac65-4812-81b1-1920138de4da" />
         </Frame>
       </SupersetProvider>
 

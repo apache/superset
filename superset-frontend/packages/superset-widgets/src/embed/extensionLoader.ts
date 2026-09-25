@@ -155,12 +155,20 @@ export function createExtensionWidgetLoader(
         `Extension ${id} did not register the container "${containerName}".`,
       );
     }
+    const core = createExtensionCore(extension);
+    // Superset's own loader puts the platform API on `window.superset`, and an
+    // extension built with `externals: {'@apache-superset/core': 'superset'}`
+    // reads it from there rather than from the share scope below. One global
+    // for the page: with several extensions loaded, the last one's context
+    // wins, exactly as it does in the host.
+    (window as unknown as Record<string, unknown>).superset ??= core;
+
     await container.init({
       react: shareEntry(React, versionOf(React)),
       'react-dom': shareEntry(ReactDOM, versionOf(ReactDOM)),
       antd: shareEntry(antd, versionOf(antd)),
       '@apache-superset/core': shareEntry(
-        createExtensionCore(extension),
+        core,
         '0.1.0',
       ),
       ...options.shared,

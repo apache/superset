@@ -31,7 +31,7 @@ from __future__ import annotations
 
 from typing import Any, ClassVar, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field
 from pydantic.json_schema import SkipJsonSchema
 from superset_core.widgets import MetricControl
 
@@ -142,112 +142,6 @@ class AgGridTableControls(BaseModel):
     )
 
 
-class SeriesStyle(BaseModel):
-    """Per-series balloon styling, populated dynamically once the grouping
-    dimension is set and its distinct values are known."""
-
-    color: str = Field(
-        default="#e74c3c",
-        title="Color",
-        json_schema_extra={"x-control": "color"},
-    )
-    size_scale: float = Field(
-        default=1.0,
-        ge=0.25,
-        le=4.0,
-        alias="sizeScale",
-        title="Size scale (×)",
-        description=(
-            "Multiplier on the metric-derived balloon size for this series "
-            "(1 = as-is, 2 = twice as big)."
-        ),
-        json_schema_extra={"x-step": 0.25},
-    )
-
-
-class Customization(BaseModel):
-    """Per-series customization for the balloons widget.
-
-    ``series`` is ``x-dynamic``: empty until the ``dataBinding`` grouping
-    dimension is set, then the backend fills in one styled entry per distinct
-    dimension value the frontend discovered from the query results.
-    """
-
-    series: dict[str, SeriesStyle] = Field(
-        default_factory=dict,
-        title="Per-series styling",
-        json_schema_extra={
-            "x-dynamic": True,
-            "x-dependsOn": ["dataBinding"],
-            # The valid keys of this map are the distinct values of the widget's
-            # color dimension — named by the ``colorDimension`` prop, or the last
-            # ``dataBinding`` dimension when that's unset. Declaring the source
-            # lets a generic client enumerate/validate the keys (rather than a
-            # consumer guessing values like "F" for "girl").
-            "x-key-source": {
-                "dimensionFromProp": "colorDimension",
-                "fallback": "lastDimension",
-            },
-        },
-    )
-
-
-class BalloonsControls(BaseModel):
-    """Controls for the ``balloons`` chart widget (Chart Framework v2 POC).
-
-    One balloon per query row, colored and sized per series (the distinct
-    values of the first grouping dimension). ``customize`` is optional and
-    populated on demand.
-    """
-
-    model_config = ConfigDict(populate_by_name=True)
-
-    data_binding: DataBinding = Field(
-        alias="dataBinding",
-        title="Data",
-        description=(
-            "The query behind the balloons. Group by one or more dimensions "
-            "(one balloon per resulting row); the metric sizes each balloon."
-        ),
-    )
-    color_dimension: str = Field(
-        default="",
-        alias="colorDimension",
-        title="Color dimension",
-        description=(
-            "Which grouping dimension colors the balloons — its distinct values "
-            "become the customizable series. The value MUST be one of "
-            "`dataBinding.dimensions`; if the dimension you want to color by "
-            "isn't grouped yet, add it to `dimensions` as well (it is not enough "
-            "to name it here). Leave empty to color by the last dimension. "
-            'E.g. to color by gender: set this to "gender" AND include "gender" '
-            'in dimensions (e.g. dimensions ["name", "gender"]).'
-        ),
-        json_schema_extra={"x-control": "column"},
-    )
-    customize: Customization = Field(
-        default_factory=Customization,
-        title="Customize",
-        description="Per-series color and size overrides.",
-    )
-
-    @model_validator(mode="after")
-    def _color_dimension_must_be_grouped(self) -> "BalloonsControls":
-        """``colorDimension`` colors balloons by a dimension's distinct values,
-        so that dimension must actually be grouped. Naming it here without
-        adding it to ``dataBinding.dimensions`` would silently color by nothing;
-        surface it as a validation error instead (the message tells the caller
-        exactly what to fix)."""
-        dimensions = self.data_binding.dimensions
-        if self.color_dimension and self.color_dimension not in dimensions:
-            raise ValueError(
-                f'colorDimension "{self.color_dimension}" must be one of the '
-                f"dataBinding dimensions {dimensions}; add it to `dimensions` "
-                f"as well."
-            )
-        return self
-
-
 class MarkdownControls(BaseModel):
     """Controls for the ``markdown`` widget (rich text)."""
 
@@ -320,8 +214,8 @@ class EchartsChrome(BaseModel):
     Deliberately flat (not grouped into `title`/`legend`/`tooltip`/`xAxis`/
     `yAxis` sub-objects — the natural modeling) rather than nested two levels
     under `chrome`: JsonForms' generated control panel only renders one level
-    of nested-object properties (the same depth `DataBinding`/`Customization`
-    already rely on), so a `chrome.title.text`-style double nesting would
+    of nested-object properties (the same depth `DataBinding` already relies
+    on), so a `chrome.title.text`-style double nesting would
     render an empty group with no fields inside it.
     """
 

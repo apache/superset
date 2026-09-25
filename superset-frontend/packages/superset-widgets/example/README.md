@@ -58,10 +58,11 @@ do: authenticate your app's user and add RLS rules.
    this app resolves `react`, `antd`, emotion and echarts from there.
 3. Saved widget ids: `GET /api/v1/widget/`, or "Embed widget" on a widget in the
    Dashboard v2 builder.
-4. `cp .env.example .env` and fill it in. Against a dataset other than
-   `birth_names`, set `FILTER_DATASET_ID` and the columns/metrics around it
-   (`FILTER_COLUMN`, `EMBED_METRIC`, `EMBED_CATEGORY`, `EMBED_LABEL`, ...) —
-   a widget asking for a column the dataset does not have fails its query.
+4. `cp .env.example .env` and fill it in. In session mode the dataset and its
+   columns are a preference: the app resolves `FILTER_DATASET_TABLE` by name
+   and replaces anything the dataset turns out not to have, so it keeps
+   working when example dataset ids shift. Guest mode cannot read the dataset
+   API, so there the values are used as written.
    An extension's widget needs `EMBEDDED_EXTENSION_ASSETS_PUBLIC = True` on
    the Superset side as well, since its bundle loads as a plain `<script>`.
 

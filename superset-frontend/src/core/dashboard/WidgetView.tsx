@@ -22,10 +22,13 @@ import { css, styled, useTheme } from '@apache-superset/core/theme';
 import { ActionButton, Flex, Typography } from '@superset-ui/core/components';
 import { Icons } from '@superset-ui/core/components/Icons';
 import type { MenuItem } from '@superset-ui/core/components/Menu';
-import { getWidgetComponent } from '@apache-superset/widgets/registry';
 import { ErrorBoundary, KebabMenuButton } from 'src/components';
 import { useDashboardStore, useDashboardRevision } from './store';
-import { resolveWidgetView } from './resolveWidgetView';
+import { isContainerType } from './DashboardProvider';
+import {
+  isWidgetViewRegistered,
+  resolveWidgetView,
+} from './resolveWidgetView';
 import { widgetLabel } from './widgetLabel';
 import { widgetHeaderControl } from './widgetHeaderControl';
 import RootGrid from './RootGrid';
@@ -511,7 +514,12 @@ const WidgetView = forwardRef<HTMLDivElement, WidgetViewProps>(
                       {
                         key: 'embed-widget',
                         label: t('Embed widget'),
-                        disabled: !getWidgetComponent(node.type),
+                        // Embeddable means the server can run it for a host
+                        // page: any registered widget except the containers,
+                        // which only arrange the nodes inside them.
+                        disabled:
+                          !isWidgetViewRegistered(node.type) ||
+                          isContainerType(node.type),
                         onClick: () => setEmbedOpen(true),
                       },
                       { type: 'divider' },
