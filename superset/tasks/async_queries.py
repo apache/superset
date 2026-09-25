@@ -33,6 +33,7 @@ from superset.common.query_serialization import (
 from superset.constants import CacheRegion
 from superset.exceptions import SupersetException
 from superset.extensions import (
+    cache_manager,
     security_manager,
 )
 from superset.tasks.ambient_context import get_context
@@ -318,6 +319,25 @@ def execute_chart_query(
         with _capture_query_cancellation(query_context):
             result = query_context.get_df_payload_result(query_obj)
         if cache_key := result.payload.get(CACHE_KEY_PAYLOAD_KEY):
+            # Async delivery works by the client reading this result back from the
+            # DATA cache under ``cache_key``. When the query succeeded but the value
+            # was not persisted -- most commonly because its serialized size exceeds
+            # DATA_CACHE_MAX_VALUE_SIZE and the oversized-value skip dropped it -- the
+            # read-back would miss and the client would resubmit this task without
+            # end (its force_cached read raises CacheLoadError, which the chart-data
+            # endpoint treats as "not ready yet" and reschedules). Fail loudly here
+            # instead so the user sees a clear terminal error rather than an
+            # invisible retry loop. (Async is never scheduled against a NullCache
+            # DATA backend, so a missing entry here means a real skipped write.)
+            if not result.payload.get("error") and not cache_manager.data_cache.has(
+                cache_key
+            ):
+                raise SupersetException(
+                    "The query result could not be cached and cannot be returned "
+                    "asynchronously. This usually means it exceeds "
+                    "DATA_CACHE_MAX_VALUE_SIZE; narrow the query, raise the limit, "
+                    "or run the request without async."
+                )
             # Write synchronously: a dependent contribution query reads this
             # cache key via get_dependency_payloads once the DAG gate releases,
             # so it must not sit in the throttle buffer.

@@ -169,6 +169,11 @@ def test_execute_chart_query_publishes_cache_key_payload(
         "superset.tasks.async_queries.get_context",
         return_value=task_context,
     )
+    # The result was persisted, so the client's read-back will hit.
+    mocker.patch(
+        "superset.tasks.async_queries.cache_manager.data_cache.has",
+        return_value=True,
+    )
 
     execute_chart_query.func(_serialized_query(), user_id=7)
 
@@ -176,6 +181,58 @@ def test_execute_chart_query_publishes_cache_key_payload(
     task_context.update_task.assert_called_once_with(
         payload={"cache_key": "chart-cache-key"}, immediate=True
     )
+
+
+def test_execute_chart_query_fails_loudly_when_result_not_cached(
+    mocker: MockerFixture,
+) -> None:
+    """A successful-but-unpersisted result fails the task instead of resubmitting.
+
+    When a result exceeds ``DATA_CACHE_MAX_VALUE_SIZE`` the cache write is skipped
+    but the query still succeeds. Async delivery relies on the client reading the
+    result back from the DATA cache, so a missing entry makes the endpoint's
+    ``force_cached`` read raise ``CacheLoadError`` and reschedule this task. If the
+    task reported success, the client would resubmit it endlessly. The task must
+    raise so the client sees a clear terminal error, and must not publish a
+    cache-key payload that would drive another read-back/resubmit cycle.
+    """
+    from superset.exceptions import SupersetException
+    from superset.tasks.async_queries import execute_chart_query
+
+    query_obj = mocker.MagicMock()
+    query_context = mocker.MagicMock()
+    query_context.queries = [query_obj]
+    # Query succeeded (no "error"), but the value was skipped for size.
+    query_context.get_df_payload_result.return_value.payload = {
+        "cache_key": "oversized-cache-key",
+        "error": None,
+    }
+    task_context = mocker.MagicMock()
+
+    mocker.patch(
+        "superset.tasks.async_queries._resolve_user",
+        return_value=mocker.MagicMock(),
+    )
+    mocker.patch("superset.tasks.async_queries.override_user")
+    mocker.patch(
+        "superset.tasks.async_queries.load_serialized_query",
+        return_value=query_context,
+    )
+    mocker.patch(
+        "superset.tasks.async_queries.get_context",
+        return_value=task_context,
+    )
+    # The oversized value was never written, so the read-back would miss.
+    mocker.patch(
+        "superset.tasks.async_queries.cache_manager.data_cache.has",
+        return_value=False,
+    )
+
+    with pytest.raises(SupersetException, match="DATA_CACHE_MAX_VALUE_SIZE"):
+        execute_chart_query.func(_serialized_query(), user_id=7)
+
+    # It must NOT publish a cache-key payload the client would resubmit against.
+    task_context.update_task.assert_not_called()
 
 
 def test_execute_chart_query_reestablishes_form_data(
@@ -292,6 +349,10 @@ def test_execute_chart_query_reads_totals_key_from_dependency_payload(
     mocker.patch(
         "superset.tasks.async_queries.get_context",
         return_value=task_context,
+    )
+    mocker.patch(
+        "superset.tasks.async_queries.cache_manager.data_cache.has",
+        return_value=True,
     )
 
     execute_chart_query.func(_serialized_query(), user_id=7, requires_totals=True)
