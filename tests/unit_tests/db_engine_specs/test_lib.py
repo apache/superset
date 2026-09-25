@@ -19,7 +19,10 @@ import ast
 import re
 from pathlib import Path
 
-from superset.db_engine_specs.lib import SQL_VALIDATION_ENGINES
+from superset.db_engine_specs.lib import diagnose, SQL_VALIDATION_ENGINES
+from superset.db_engine_specs.mysql import MySQLEngineSpec
+from superset.db_engine_specs.postgres import PostgresEngineSpec
+from superset.db_engine_specs.sqlite import SqliteEngineSpec
 
 REPO_ROOT = Path(__file__).parents[3]
 CONFIG_PY = REPO_ROOT / "superset" / "config.py"
@@ -82,3 +85,29 @@ def test_sql_validation_engines_matches_docs_generator() -> None:
     wrong ``sql_validation`` flag and score in docs/src/data/databases.json.
     """
     assert SQL_VALIDATION_ENGINES == get_docs_generator_engines()
+
+
+def test_diagnose_reports_extended_aggregations() -> None:
+    """
+    ``diagnose()`` must report per-engine MEDIAN/STDDEV_SAMP/VAR_SAMP support
+    so the generated database docs (docs/src/data/databases.json, via
+    docs/scripts/generate-database-docs.mjs's Flask-context path) reflect it,
+    instead of these silently never appearing anywhere outside the source.
+    """
+    assert diagnose(PostgresEngineSpec)["extended_aggregations"] == {
+        "MEDIAN": True,
+        "STDDEV_SAMP": True,
+        "VAR_SAMP": True,
+    }
+    # MySQL has no native MEDIAN (see MySQLEngineSpec._extended_aggregations).
+    assert diagnose(MySQLEngineSpec)["extended_aggregations"] == {
+        "MEDIAN": False,
+        "STDDEV_SAMP": True,
+        "VAR_SAMP": True,
+    }
+    # SQLite never opted in to any of the three.
+    assert diagnose(SqliteEngineSpec)["extended_aggregations"] == {
+        "MEDIAN": False,
+        "STDDEV_SAMP": False,
+        "VAR_SAMP": False,
+    }
