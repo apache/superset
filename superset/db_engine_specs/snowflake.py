@@ -23,6 +23,7 @@ from re import Pattern
 from typing import Any, Callable, cast, Optional, TYPE_CHECKING, TypedDict
 from urllib import parse
 
+import sqlalchemy as sa
 from apispec import APISpec
 from apispec.ext.marshmallow import MarshmallowPlugin
 from cryptography.hazmat.backends import default_backend
@@ -142,10 +143,19 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
     force_column_alias_quotes = True
     max_column_name_length = 256
 
-    # `PostgresBaseEngineSpec._extended_aggregations` (MEDIAN/STDDEV_SAMP/VAR_SAMP)
-    # is verified against real Postgres behavior, not Snowflake's; disable it here
-    # until someone confirms the same expressions against a live Snowflake instance.
-    _extended_aggregations: dict[str, Callable[[ColumnElement], ColumnElement]] = {}
+    # Snowflake documents native MEDIAN/STDDEV_SAMP/VAR_SAMP aggregate functions
+    # (docs.snowflake.com/en/sql-reference/functions/{median,stddev_samp,var_samp}),
+    # confirmed against that reference, not a live Snowflake instance. STDDEV_SAMP/
+    # VAR_SAMP are plain function calls, same spelling as inherited from
+    # `PostgresBaseEngineSpec`, so those are reused directly. MEDIAN is overridden:
+    # Snowflake's own `MEDIAN(x)` is a plain function call, unlike Postgres's
+    # `percentile_cont(0.5) WITHIN GROUP (ORDER BY x)` (Postgres has no native
+    # MEDIAN), so there is no reason to compile the more complex inherited form.
+    _extended_aggregations: dict[str, Callable[[ColumnElement], ColumnElement]] = {
+        "MEDIAN": sa.func.median,
+        "STDDEV_SAMP": PostgresBaseEngineSpec._extended_aggregations["STDDEV_SAMP"],
+        "VAR_SAMP": PostgresBaseEngineSpec._extended_aggregations["VAR_SAMP"],
+    }
 
     # Snowflake doesn't support IS true/false syntax, use = true/false instead
     use_equality_for_boolean_filters = True

@@ -807,3 +807,28 @@ def test_snowflake_oauth2_exception_catches_refresh_token_error() -> None:
             "OAuth2TokenRefreshError must be caught by "
             "SnowflakeEngineSpec.oauth2_exception"
         )
+
+
+def test_extended_aggregation_func_median_uses_native_snowflake_syntax() -> None:
+    """
+    Snowflake documents a native `MEDIAN(x)` function, so MEDIAN is
+    overridden rather than inherited from `PostgresBaseEngineSpec` (which
+    compiles to `percentile_cont(0.5) WITHIN GROUP (ORDER BY col)`, since
+    Postgres has no native MEDIAN). STDDEV_SAMP/VAR_SAMP are plain function
+    calls with the same spelling on both engines, so those are inherited.
+    """
+    from sqlalchemy import column
+
+    from superset.db_engine_specs.snowflake import SnowflakeEngineSpec
+
+    col = column("sales")
+
+    median_func = SnowflakeEngineSpec.get_extended_aggregation_func("MEDIAN")
+    assert median_func is not None
+    assert (
+        str(median_func(col).compile(compile_kwargs={"literal_binds": True}))
+        == "median(sales)"
+    )
+
+    for aggregate in ("STDDEV_SAMP", "VAR_SAMP"):
+        assert SnowflakeEngineSpec.get_extended_aggregation_func(aggregate) is not None
