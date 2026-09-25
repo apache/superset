@@ -17,13 +17,24 @@
  * under the License.
  */
 
-import { QueryFormData } from '@superset-ui/core';
+import { QueryFormData, getChartControlPanelRegistry } from '@superset-ui/core';
 import {
   sections,
   sharedControls,
+  ControlPanelConfig,
   CustomControlItem,
 } from '@superset-ui/chart-controls';
-import { getControlStateFromControlConfig } from 'src/explore/controlUtils';
+import calendarControlPanel from '@superset-ui/plugin-chart-calendar/controlPanel';
+import horizonControlPanel from '@superset-ui/plugin-chart-horizon/controlPanel';
+import roseControlPanel from '@superset-ui/plugin-chart-echarts/Rose/controlPanel';
+import timePivotControlPanel from '@superset-ui/plugin-chart-echarts/TimePivot/controlPanel';
+import pairedTTestControlPanel from '@superset-ui/plugin-chart-paired-t-test/controlPanel';
+import partitionControlPanel from '@superset-ui/plugin-chart-partition/controlPanel';
+import { controlPanel as timeTableControlPanel } from 'src/visualizations/TimeTable/config/controlPanel/controlPanel';
+import {
+  getControlConfig,
+  getControlStateFromControlConfig,
+} from 'src/explore/controlUtils';
 import exploreReducer, { ExploreState } from './exploreReducer';
 import {
   setCompatibility,
@@ -277,3 +288,61 @@ test('SET_FIELD_VALUE ignores a control that names itself as a dependency', () =
 
   expect(afterChange.controls.row_limit.value).toBe(500);
 });
+
+// Every chart that still carries the standalone Time Range control, resolved
+// through the registry the reducer itself reads. These are the charts the
+// self-referencing dependency broke, so this is the list that has to stay
+// fixed -- modern charts express the range as a TEMPORAL_RANGE clause in
+// `adhoc_filters` and never dispatch SET_FIELD_VALUE for `time_range`.
+const CHARTS_WITH_A_TIME_RANGE_CONTROL: [string, ControlPanelConfig][] = [
+  ['calendar_heatmap', calendarControlPanel],
+  ['horizon', horizonControlPanel],
+  ['rose', roseControlPanel],
+  ['time_pivot', timePivotControlPanel],
+  ['paired_ttest', pairedTTestControlPanel],
+  ['partition', partitionControlPanel],
+  ['time_table', timeTableControlPanel],
+];
+
+test.each(CHARTS_WITH_A_TIME_RANGE_CONTROL)(
+  'a new time range reaches the control on %s',
+  (vizType, controlPanelConfig) => {
+    getChartControlPanelRegistry().registerValue(vizType, controlPanelConfig);
+    try {
+      const form_data = {
+        viz_type: vizType,
+        time_range: 'Last week',
+      } as unknown as QueryFormData;
+      // Resolved the way the app resolves it: through the chart's own control
+      // panel, so a per-chart override would show up here rather than be
+      // assumed away.
+      const controlConfig = getControlConfig('time_range', vizType);
+      const state = {
+        form_data,
+        controls: {
+          time_range: getControlStateFromControlConfig(
+            controlConfig as Parameters<
+              typeof getControlStateFromControlConfig
+            >[0],
+            { controls: {}, form_data } as Parameters<
+              typeof getControlStateFromControlConfig
+            >[1],
+            'Last week',
+          )!,
+        },
+      } as unknown as ExploreState;
+
+      const afterChange = exploreReducer(
+        state,
+        setControlValue('time_range', 'Last quarter') as Parameters<
+          typeof exploreReducer
+        >[1],
+      );
+
+      expect(afterChange.controls.time_range.value).toBe('Last quarter');
+      expect(afterChange.form_data.time_range).toBe('Last quarter');
+    } finally {
+      getChartControlPanelRegistry().remove(vizType);
+    }
+  },
+);
