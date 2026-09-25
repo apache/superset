@@ -1408,6 +1408,74 @@ def test_quoted_name_prevents_double_quoting(mocker: MockerFixture) -> None:
     assert '"MY_DB"."MY_SCHEMA"."MY_TABLE"' in compiled
 
 
+def test_get_sqla_table_schema_not_qualified_when_engine_opts_out(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Engines that set ``quote_table_includes_schema = False`` (e.g. MongoDB, whose
+    PyMongoSQL driver resolves ``schema.collection`` as a literal collection name
+    instead of parsing it) must get an unqualified FROM-clause identifier from
+    ``get_sqla_table``, built through the engine spec's own ``quote_table``, the
+    same way ``select_star`` builds it for SQL Lab's Data Preview. Regression test
+    for datasets on such engines returning no rows once a schema is set.
+    """
+    from sqlalchemy import create_engine, select
+
+    engine = create_engine("sqlite://")
+
+    database = mocker.MagicMock()
+    database.db_engine_spec.supports_cross_catalog_queries = False
+    database.db_engine_spec.quote_table_includes_schema = False
+    database.db_engine_spec.quote_table.side_effect = (
+        lambda table, dialect: dialect.identifier_preparer.quote(table.table)
+    )
+    database.get_dialect.return_value = engine.dialect
+
+    table = SqlaTable(
+        table_name="orders",
+        database=database,
+        schema="testdb",
+    )
+
+    sqla_table = table.get_sqla_table()
+    compiled = str(
+        select(sqla_table).compile(engine, compile_kwargs={"literal_binds": True})
+    )
+
+    assert "FROM orders" in compiled
+    assert "testdb" not in compiled
+    database.db_engine_spec.quote_table.assert_called_once()
+
+
+def test_get_sqla_table_schema_qualified_by_default(mocker: MockerFixture) -> None:
+    """
+    Engines that don't override ``quote_table_includes_schema`` (the default,
+    ``True``) keep qualifying the FROM clause with the schema, unaffected by the
+    opt-out path above.
+    """
+    from sqlalchemy import create_engine, select
+
+    engine = create_engine("postgresql://user:pass@host/db")
+
+    database = mocker.MagicMock()
+    database.db_engine_spec.supports_cross_catalog_queries = False
+    database.db_engine_spec.quote_table_includes_schema = True
+
+    table = SqlaTable(
+        table_name="My-Table",
+        database=database,
+        schema="My-Schema",
+    )
+
+    sqla_table = table.get_sqla_table()
+    compiled = str(
+        select(sqla_table).compile(engine, compile_kwargs={"literal_binds": True})
+    )
+
+    assert '"My-Schema"."My-Table"' in compiled
+    database.db_engine_spec.quote_table.assert_not_called()
+
+
 def test_sqla_table_currency_code_column_property() -> None:
     """
     Test currency_code_column property on SqlaTable.

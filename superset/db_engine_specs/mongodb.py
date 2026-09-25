@@ -52,6 +52,15 @@ class MongoDBEngineSpec(BaseEngineSpec):
     # the default ``authSource``.
     supports_dynamic_schema = True
 
+    # `quote_table` below emits only the bare, quoted collection name -- PyMongoSQL
+    # resolves the whole FROM reference as a literal collection name, so a
+    # schema-qualified identifier would never match. `SqlaTable.get_sqla_table`
+    # (charts) consults this flag; `select_star` (SQL Lab) reaches the same
+    # unqualified FROM clause through the `quote_table` override above. Both
+    # rely on `adjust_engine_params` to select the schema at the connection
+    # level instead.
+    quote_table_includes_schema = False
+
     metadata = {
         "description": ("MongoDB is a document-oriented, operational NoSQL database."),
         "logo": "mongodb.png",
