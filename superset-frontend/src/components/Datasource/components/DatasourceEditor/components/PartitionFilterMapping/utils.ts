@@ -170,37 +170,128 @@ export function previewOperatorFor(
   return column.partition_transform_is_monotonic ? '>=' : '==';
 }
 
+/** Whether a column carries any part of the mapping. */
+function holdsMapping(column: PartitionMappingColumn): boolean {
+  return Boolean(
+    column.partition_value_transform || column.partition_transform_is_monotonic,
+  );
+}
+
+/**
+ * Every column with the mapping's transform cleared.
+ *
+ * Both cardinalities are one, so "no mapping" has to mean no transform on any
+ * column rather than none on whichever column happened to resolve as mapped. A
+ * value left anywhere else is invisible -- only the mapped column's row renders
+ * a transform at all -- and it becomes live again the moment the mapped column
+ * resolves back to it, which re-pointing the default datetime column alone is
+ * enough to do.
+ *
+ * Hands back the array it was given when no column held a transform, so a
+ * caller that clears unconditionally does not invalidate column state whose
+ * identity is what triggers the editor's validation pass.
+ */
+export function clearMappingTransforms<T extends PartitionMappingColumn>(
+  columns: T[],
+): T[] {
+  if (!columns.some(holdsMapping)) {
+    return columns;
+  }
+  return columns.map(column =>
+    holdsMapping(column)
+      ? {
+          ...column,
+          partition_value_transform: null,
+          partition_transform_is_monotonic: false,
+        }
+      : column,
+  );
+}
+
+/**
+ * Columns with the mapping held by `columnName` and nothing else.
+ *
+ * The one place the "exactly one column holds the transform" invariant is
+ * enforced, so the several ways a mapping can move cannot come to disagree
+ * about it. A column name no column answers to -- or no transform to install --
+ * leaves the mapping cleared rather than half-written.
+ */
+function withMappingOn<T extends PartitionMappingColumn>(
+  columns: T[],
+  columnName: string | null | undefined,
+  transform: string | null,
+  isMonotonic: boolean,
+): T[] {
+  const cleared = clearMappingTransforms(columns);
+  if (!columnName || !transform) {
+    return cleared;
+  }
+  return cleared.map(column =>
+    column.column_name === columnName
+      ? {
+          ...column,
+          partition_value_transform: transform,
+          partition_transform_is_monotonic: isMonotonic,
+        }
+      : column,
+  );
+}
+
 /**
  * Columns updated for a mapping moving to `nextColumnName`.
  *
- * Both cardinalities are one, so reassignment replaces: every other column
- * loses its transform. Clearing only the column that *was* mapped would leave
- * a transform behind whenever the mapping moved out of the "no mapping" state,
- * and that stale value would silently become live again the next time the
- * mapped column resolved back to it.
+ * A transform the column already had wins over the engine's default: the owner
+ * wrote it for this column, and offering to overwrite it is not what picking it
+ * up again means. Every other column is cleared, for the reason
+ * `clearMappingTransforms` gives.
  */
 export function applyMappingMove<T extends PartitionMappingColumn>(
   columns: T[],
   nextColumnName: string,
   nextTransform: string,
 ): T[] {
-  return columns.map(column => {
-    if (column.column_name !== nextColumnName) {
-      return column.partition_value_transform ||
-        column.partition_transform_is_monotonic
-        ? {
-            ...column,
-            partition_value_transform: null,
-            partition_transform_is_monotonic: false,
-          }
-        : column;
-    }
-    return {
-      ...column,
-      partition_value_transform:
-        column.partition_value_transform || nextTransform || null,
-    };
-  });
+  const next = columns.find(column => column.column_name === nextColumnName);
+  return withMappingOn(
+    columns,
+    nextColumnName,
+    next?.partition_value_transform || nextTransform || null,
+    Boolean(next?.partition_transform_is_monotonic),
+  );
+}
+
+/**
+ * Columns updated for a mapping following the default datetime column.
+ *
+ * With no override the mapped column *is* `main_dttm_col`, so re-pointing that
+ * column moves the mapping whole rather than orphaning it: the transform and its
+ * ordering declaration travel to the new column, and the old column is left
+ * holding nothing that could come back to life if the default datetime column
+ * ever pointed at it again.
+ *
+ * A destination this list has no row for -- a calculated column, whose row never
+ * renders the transform editor -- carries nothing, and the mapping goes inert
+ * and says so. Writing a live transform onto a column the owner cannot see is
+ * the very thing this is here to prevent.
+ */
+export function applyImplicitMappingMove<T extends PartitionMappingColumn>(
+  columns: T[],
+  previousColumnName: string | null | undefined,
+  nextColumnName: string | null | undefined,
+): T[] {
+  // Re-selecting the column already there is not a move, and reporting it as one
+  // would churn column state the validation pass keys off.
+  if (previousColumnName === nextColumnName) {
+    return columns;
+  }
+  const previous = columns.find(
+    column => column.column_name === previousColumnName,
+  );
+  return withMappingOn(
+    columns,
+    nextColumnName,
+    previous?.partition_value_transform ?? null,
+    Boolean(previous?.partition_transform_is_monotonic),
+  );
 }
 
 /**
