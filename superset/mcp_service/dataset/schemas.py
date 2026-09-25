@@ -892,6 +892,7 @@ class UpdateDatasetRequest(BaseModel):
         ...,
         description="Dataset identifier — numeric ID or UUID string. "
         "Use list_datasets to find valid IDs.",
+        validation_alias=AliasChoices("dataset_id", "identifier"),
     )
     table_name: str | None = Field(
         None,

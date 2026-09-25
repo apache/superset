@@ -564,3 +564,11 @@ async def test_update_dataset_lookup_db_error_is_structured(
     assert data["error"] == "Dataset lookup failed due to a database error."
     assert "down" not in data["error"]
     update_cls.assert_not_called()
+
+
+def test_update_dataset_accepts_identifier_alias() -> None:
+    """``identifier`` is accepted for the dataset, as the read tools spell it."""
+    request = UpdateDatasetRequest.model_validate({"identifier": 7, "description": "x"})
+
+    assert request.dataset_id == 7
+    assert request.updates() == {"description": "x"}

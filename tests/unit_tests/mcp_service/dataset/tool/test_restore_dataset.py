@@ -30,6 +30,7 @@ from uuid import UUID
 import pytest
 from fastmcp import Client
 
+from superset.commands.dataset.exceptions import DatasetForbiddenError
 from superset.mcp_service.app import mcp
 
 _FIND = "superset.daos.dataset.DatasetDAO.find_by_id_or_uuid"
@@ -159,8 +160,6 @@ async def test_restore_dataset_permission_denied(
     mock_find: Mock, mock_command: Mock, mcp_server: object
 ) -> None:
     """DatasetForbiddenError from the command maps to permission_denied."""
-    from superset.commands.dataset.exceptions import DatasetForbiddenError
-
     mock_find.return_value = _mock_dataset(dataset_id=10, table_name="orders")
     mock_command.return_value.run.side_effect = DatasetForbiddenError()
 
