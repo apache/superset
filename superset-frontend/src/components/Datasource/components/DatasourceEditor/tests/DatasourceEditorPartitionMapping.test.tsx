@@ -128,10 +128,12 @@ test('removing the mapping does not leave the default datetime column mirroring'
   });
 });
 
-test('re-pointing the default datetime column takes the mapping with it', async () => {
+test('re-pointing the default datetime column leaves the value transform behind', async () => {
   // With no override the mapped column *is* `main_dttm_col`, so the mapping
-  // moves either way. What must not happen is the transform staying behind on
-  // the old column, invisible but saved and ready to go live again.
+  // moves either way. The transform does not travel with it: it was written
+  // about the old column, and asserting it on a new one mirrors an expression
+  // nobody checked there. It must not stay behind on the old column either --
+  // invisible but saved, and ready to go live again.
   const props = createProps();
   props.datasource.main_dttm_col = 'ds';
   props.datasource.partition_column = 'num';
@@ -160,20 +162,21 @@ test('re-pointing the default datetime column takes the mapping with it', async 
 
   await waitFor(() => {
     const columns = lastSavedColumns(props);
-    expect(columnNamed(columns, 'ingest_time')).toMatchObject({
-      partition_value_transform: 'unix_timestamp(:value)',
-      partition_transform_is_monotonic: true,
-    });
+    // The new default never held a mapping, so it is handed back untouched --
+    // which is the same thing as holding no transform.
+    const arrived = columnNamed(columns, 'ingest_time');
+    expect(arrived?.partition_value_transform ?? null).toBeNull();
+    expect(arrived?.partition_transform_is_monotonic ?? false).toBe(false);
     expect(columnNamed(columns, 'ds')).toMatchObject({
       partition_value_transform: null,
       partition_transform_is_monotonic: false,
     });
   });
 
+  // The mapping is designated but inert, and the editor says so rather than
+  // promising a mirror it is not performing.
   expect(
-    await screen.findByText(
-      /Filters on ingest_time will automatically apply an equivalent filter to num/,
-    ),
+    await screen.findByText(/No value transform is set on ingest_time/),
   ).toBeInTheDocument();
 });
 
