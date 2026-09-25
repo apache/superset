@@ -178,3 +178,24 @@ test('should not omit extras.time_grain_sqla from queryContext so dashboards app
   const query = queryContext.queries[queryContext.queries.length - 1];
   expect(query.extras?.time_grain_sqla).toEqual(TimeGranularity.QUARTER);
 });
+
+test.each(['Average', 'Median', 'Count Unique Values'])(
+  'result aggregation (%s) queries leaf detail without database rollups',
+  aggregateFunction => {
+    const queryContext = buildQuery({ ...formData, aggregateFunction });
+    const query = queryContext.queries[queryContext.queries.length - 1];
+    expect(query).not.toHaveProperty('grouping_sets');
+  },
+);
+
+test('an unrecognized aggregateFunction value falls back to database rollups', () => {
+  // Covers both "Metric" (the control's explicit default) and any other
+  // value that isn't one of RESULT_AGGREGATIONS -- e.g. a stale form_data
+  // value from a chart saved against an older version of the control.
+  const queryContext = buildQuery({
+    ...formData,
+    aggregateFunction: 'Metric',
+  });
+  const query = queryContext.queries[queryContext.queries.length - 1];
+  expect(query).toHaveProperty('grouping_sets');
+});
