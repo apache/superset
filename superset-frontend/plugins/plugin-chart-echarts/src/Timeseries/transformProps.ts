@@ -491,14 +491,20 @@ export default function transformProps(
 
   // A resolved time grain only applies to a genuinely temporal x-axis
   // column (time_grain_sqla is meaningless otherwise), so trust it over
-  // `coltypes` when the two disagree. `coltypes` can fail to mark the
-  // designated x-axis column Temporal for reasons unrelated to what the
-  // column actually is (a missing entry, the wrong GenericDataType member,
-  // or a raw SQL-type string in place of the enum) — without this, that
-  // gap silently degrades the axis to Category and renders the raw
-  // timestamp value as a label instead of a formatted date.
+  // `coltypes` when `coltypes` gave no usable classification at all for
+  // this column (a missing entry, or a raw SQL-type string instead of a
+  // GenericDataType member — neither of which is a valid enum value) —
+  // without this, that gap silently degrades the axis to Category and
+  // renders the raw timestamp value as a label instead of a formatted
+  // date. Deliberately narrower than "any mismatch": a resolved time grain
+  // can also come from a dashboard-level cross-filter that applies to every
+  // chart regardless of whether that chart's own x-axis is temporal, so a
+  // *valid* coltype classification (e.g. a genuinely Numeric x-axis column
+  // like `price`) is trusted as-is and never overridden, even if some
+  // unrelated time-grain filter happens to be active.
+  const rawXAxisDataTypeIsUsable = typeof rawXAxisDataType === 'number';
   const xAxisDataType =
-    rawXAxisDataType !== GenericDataType.Temporal && resolvedTimeGrain
+    !rawXAxisDataTypeIsUsable && resolvedTimeGrain
       ? GenericDataType.Temporal
       : rawXAxisDataType;
   const xAxisType = getAxisType(
@@ -510,14 +516,31 @@ export default function transformProps(
 
   // Size a bar series to its own grain-bucket pixel width instead of a flat
   // constant, so a sparse bucket doesn't visually spill into neighboring,
-  // unpopulated buckets. See getGrainBarMaxWidth for the exact mechanism.
-  const barMaxWidthPx = getGrainBarMaxWidth(
-    xAxisType,
-    resolvedTimeGrain,
-    [rebasedData as Record<string, unknown>[]],
-    xAxisLabel,
-    width,
-  );
+  // unpopulated buckets. Only meaningful when a bar series is actually
+  // rendered — skip the domain scan otherwise. Horizontal orientation swaps
+  // the temporal axis onto the chart's height (see the xAxis/yAxis swap
+  // below), so the plot-length dimension must follow suit; gridOffsetLeft
+  // (used for the vertical/width case) is specifically the left-grid
+  // offset and doesn't apply to the height dimension, hence
+  // gridOffsetTop/gridOffsetBottom instead. See getGrainBarMaxWidth for the
+  // rest of the mechanism.
+  const barMaxWidthPx =
+    seriesType === EchartsTimeseriesSeriesType.Bar
+      ? getGrainBarMaxWidth(
+          xAxisType,
+          resolvedTimeGrain,
+          [rebasedData as Record<string, unknown>[]],
+          xAxisLabel,
+          isHorizontal
+            ? Math.max(
+                height -
+                  TIMESERIES_CONSTANTS.gridOffsetTop -
+                  TIMESERIES_CONSTANTS.gridOffsetBottom,
+                0,
+              )
+            : Math.max(width - 2 * TIMESERIES_CONSTANTS.gridOffsetLeft, 0),
+        )
+      : undefined;
 
   const [allRawSeries, sortedTotalValues, minPositiveValue] = extractSeries(
     rebasedData,

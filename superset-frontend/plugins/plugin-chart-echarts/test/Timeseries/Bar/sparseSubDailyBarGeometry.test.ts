@@ -24,6 +24,7 @@ import {
 import { GenericDataType } from '@apache-superset/core/common';
 import { supersetTheme } from '@apache-superset/core/theme';
 import type { BarSeriesOption } from 'echarts/charts';
+import type { XAxisComponentOption } from 'echarts';
 import transformProps from '../../../src/Timeseries/transformProps';
 import { DEFAULT_FORM_DATA } from '../../../src/Timeseries/constants';
 import { EchartsTimeseriesSeriesType } from '../../../src/Timeseries/types';
@@ -51,10 +52,11 @@ function buildOptions(
   data: Record<string, number>[],
   overrides: Partial<ChartDataResponseResult> = {},
   formDataOverrides: Partial<SqlaFormData> = {},
+  height = 400,
 ) {
   const chartProps = new ChartProps({
     width,
-    height: 400,
+    height,
     queriesData: [
       {
         data,
@@ -69,6 +71,10 @@ function buildOptions(
 
   return transformProps(chartProps as EchartsTimeseriesChartProps)
     .echartOptions;
+}
+
+function xAxisType(xAxis: unknown) {
+  return (xAxis as XAxisComponentOption).type;
 }
 
 // ECharts applies barMinWidth/barMaxWidth as a hard ceiling/floor on top of
@@ -202,6 +208,55 @@ test('the effective bar-width constraint scales with chart pixel width instead o
   expect(wide.effective).toBeLessThanOrEqual(wide.correctGrainPxWidth * 2);
 });
 
+test('horizontal orientation: bar width is sized against chart height, not width, since the temporal axis renders along height there', () => {
+  // In horizontal orientation, Timeseries/transformProps.ts swaps the built
+  // xAxis/yAxis option objects (`[xAxis, yAxis] = [yAxis, xAxis]`), so the
+  // temporal axis ends up on the chart's *vertical* dimension. A fix that
+  // still divided the grain by `width` there would compute a cap many
+  // times too loose (confirmed independently via an ECharts SSR render: a
+  // 3000x400 horizontal chart with hourly points 22h apart renders an
+  // actual bar around ~124px, one hour is genuinely ~16px, but dividing by
+  // `width` alone there yields a ~8x-too-generous cap). Pick a narrow
+  // width and a tall height so the two dimensions would produce very
+  // different caps, to decisively catch a width/height mixup either way.
+  const width = 400;
+  const height = 3000;
+  const sparseTimestamps = [
+    Date.UTC(2024, 0, 1, 1, 0, 0),
+    Date.UTC(2024, 0, 1, 23, 0, 0),
+  ];
+  const { series } = buildOptions(
+    width,
+    sparseTimestamps.map(__timestamp => ({ count: 1, __timestamp })),
+    {},
+    { orientation: 'horizontal' },
+    height,
+  );
+  const [barSeries] = series as BarSeriesOption[];
+
+  const [domainMin, domainMax] = getXAxisDomain(
+    [sparseTimestamps.map(__timestamp => ({ __timestamp }))],
+    '__timestamp',
+  );
+  const domainSpanMs = (domainMax as number) - (domainMin as number);
+  const plotHeightPx = Math.max(
+    height -
+      TIMESERIES_CONSTANTS.gridOffsetTop -
+      TIMESERIES_CONSTANTS.gridOffsetBottom,
+    0,
+  );
+  const correctGrainPxWidth = (HOUR_GRAIN_MS / domainSpanMs) * plotHeightPx;
+  // The (wrong) width-based value a `width`-only computation would have
+  // produced, to assert the fix isn't accidentally still using it.
+  const wrongWidthBasedPxWidth =
+    (HOUR_GRAIN_MS / domainSpanMs) *
+    Math.max(width - 2 * TIMESERIES_CONSTANTS.gridOffsetLeft, 0);
+
+  const effective = effectiveBarPxWidth(barSeries);
+  expect(effective).toBeLessThanOrEqual(correctGrainPxWidth * 2);
+  expect(effective).toBeGreaterThan(wrongWidthBasedPxWidth * 2);
+});
+
 describe('sparse sub-daily bar chart: x-axis mislabels raw epoch values when coltypes does not mark the column Temporal', () => {
   // getColtypesMapping (utils/series.ts) builds xAxisDataType purely from
   // colnames[i] -> coltypes[i]; if that lookup doesn't resolve to
@@ -220,33 +275,39 @@ describe('sparse sub-daily bar chart: x-axis mislabels raw epoch values when col
   ];
   const data = sparseTimestamps.map(__timestamp => ({ count: 1, __timestamp }));
 
-  // The decisive, uniform invariant across all three mismatch shapes below:
-  // a genuinely temporal x-axis column must resolve to a `time` axis. This
-  // is checked instead of "the label isn't the raw stringified number"
-  // because the mis-typed-as-Numeric case formats through
-  // getNumberFormatter instead of String — producing a SMART_NUMBER
-  // abbreviation like "1.7T" rather than the literal digit string. That's
-  // still wrong (an epoch-derived number, not a date), but it would make a
-  // raw-string-equality check a false negative for that one shape; the
-  // xAxis.type check catches all three uniformly.
+  // The decisive invariant across both mismatch shapes below: a genuinely
+  // temporal x-axis column whose coltype lookup gave no usable
+  // classification at all (missing entry, or a raw SQL-type string that
+  // isn't a GenericDataType member) must still resolve to a `time` axis.
   test('coltypes shorter than colnames (temporal entry missing)', () => {
     const { xAxis } = buildOptions(800, data, {
       coltypes: [GenericDataType.Numeric],
     });
-    expect((xAxis as any).type).toBe('time');
-  });
-
-  test('coltypes present but the x-axis column is mis-typed as Numeric', () => {
-    const { xAxis } = buildOptions(800, data, {
-      coltypes: [GenericDataType.Numeric, GenericDataType.Numeric],
-    });
-    expect((xAxis as any).type).toBe('time');
+    expect(xAxisType(xAxis)).toBe('time');
   });
 
   test('coltypes as raw SQL type strings (matches the shape already used by Bar/transformProps.test.ts\'s own fixtures, e.g. "TIMESTAMP")', () => {
     const { xAxis } = buildOptions(800, data, {
       coltypes: ['BIGINT', 'TIMESTAMP'] as unknown as GenericDataType[],
     });
-    expect((xAxis as any).type).toBe('time');
+    expect(xAxisType(xAxis)).toBe('time');
+  });
+
+  // Deliberately NOT covered by the coercion above, and pinned here as a
+  // regression guard rather than a gap: a coltype lookup that resolves to a
+  // *valid* GenericDataType member (Numeric here) is a definite
+  // classification, not a missing one, and is indistinguishable — using
+  // only the signals available in transformProps.ts — from a genuinely
+  // non-temporal x-axis column (e.g. `price`) that happens to coexist with
+  // an unrelated dashboard-level time-grain cross-filter (a real, supported
+  // Superset feature: such a filter can apply to every chart on a
+  // dashboard regardless of whether that chart's own x-axis is temporal).
+  // Coercing on a valid-but-different classification would wrongly turn
+  // that unrelated numeric chart into a time axis, so it must not.
+  test('a coltype-confirmed Numeric x-axis stays non-Temporal even when an unrelated time grain is resolved', () => {
+    const { xAxis } = buildOptions(800, data, {
+      coltypes: [GenericDataType.Numeric, GenericDataType.Numeric],
+    });
+    expect(xAxisType(xAxis)).not.toBe('time');
   });
 });

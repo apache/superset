@@ -293,10 +293,14 @@ export default function transformProps(
 
   // A resolved time grain only applies to a genuinely temporal x-axis
   // column (time_grain_sqla is meaningless otherwise), so trust it over
-  // `coltypes` when the two disagree — see the matching comment in
-  // Timeseries/transformProps.ts for the full rationale.
+  // `coltypes` only when `coltypes` gave no usable classification at all —
+  // see the matching comment in Timeseries/transformProps.ts for the full
+  // rationale (in short: a *valid* coltype classification, e.g. a
+  // genuinely Numeric x-axis, must never be overridden just because an
+  // unrelated dashboard-level time-grain filter happens to be active).
+  const rawXAxisDataTypeIsUsable = typeof rawXAxisDataType === 'number';
   const xAxisDataType =
-    rawXAxisDataType !== GenericDataType.Temporal && resolvedTimeGrain
+    !rawXAxisDataTypeIsUsable && resolvedTimeGrain
       ? GenericDataType.Temporal
       : rawXAxisDataType;
   const xAxisType = getAxisType(
@@ -339,20 +343,29 @@ export default function transformProps(
 
   // Size a bar series to its own grain-bucket pixel width instead of a flat
   // constant, so a sparse bucket doesn't visually spill into neighboring,
-  // unpopulated buckets. Combines both queries' data for the domain
-  // estimate, matching the same combined-domain approach the x-axis label
-  // spacing formatter below already uses. See getGrainBarMaxWidth for the
-  // exact mechanism.
-  const barMaxWidthPx = getGrainBarMaxWidth(
-    xAxisType,
-    resolvedTimeGrain,
-    [
-      rebasedDataA as Record<string, unknown>[],
-      rebasedDataB as Record<string, unknown>[],
-    ],
-    xAxisLabel,
-    width,
-  );
+  // unpopulated buckets. Only meaningful when a bar series is actually
+  // rendered — skip the domain scan otherwise. Combines both queries' data
+  // for the domain estimate, matching the same combined-domain approach the
+  // x-axis label spacing formatter below already uses. Unlike Timeseries,
+  // MixedTimeseries has no chart-orientation control (confirmed: no
+  // `orientation`/`OrientationType` field on its form data, no xAxis/yAxis
+  // swap anywhere in this file), so the temporal axis always renders along
+  // `width` here — no horizontal-orientation case to account for. See
+  // getGrainBarMaxWidth for the rest of the mechanism.
+  const barMaxWidthPx =
+    seriesType === EchartsTimeseriesSeriesType.Bar ||
+    seriesTypeB === EchartsTimeseriesSeriesType.Bar
+      ? getGrainBarMaxWidth(
+          xAxisType,
+          resolvedTimeGrain,
+          [
+            rebasedDataA as Record<string, unknown>[],
+            rebasedDataB as Record<string, unknown>[],
+          ],
+          xAxisLabel,
+          Math.max(width - 2 * TIMESERIES_CONSTANTS.gridOffsetLeft, 0),
+        )
+      : undefined;
 
   const series: SeriesOption[] = [];
 
