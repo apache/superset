@@ -150,17 +150,19 @@ class TestConditionalTokenLockingRead(SupersetTestCase):
         original: str | None
         chart, original = self._versioned_chart()
         try:
+            chart_uuid: UUID = chart.uuid
+            assert chart_uuid is not None
             plain: int | None = VersionDAO.current_live_transaction_id(
-                Slice, chart.id, chart.uuid
+                Slice, chart.id, chart_uuid
             )
             locked: int | None = VersionDAO.current_live_transaction_id_locked(
-                Slice, chart.id, chart.uuid
+                Slice, chart.id, chart_uuid
             )
             assert plain is not None
             assert locked == plain
 
             info: EntityVersionInfo = current_entity_version_info(
-                Slice, chart.id, chart.uuid, lock_for_stale_check=True
+                Slice, chart.id, chart_uuid, lock_for_stale_check=True
             )
             assert info.transaction_id == plain
         finally:
@@ -180,6 +182,8 @@ class TestConditionalTokenLockingRead(SupersetTestCase):
         original: str | None
         chart, original = self._versioned_chart()
         try:
+            chart_uuid: UUID = chart.uuid
+            assert chart_uuid is not None
             db.session.execute(
                 sa.text("DELETE FROM slices_version WHERE id = :id"),
                 {"id": chart.id},
@@ -187,12 +191,12 @@ class TestConditionalTokenLockingRead(SupersetTestCase):
             db.session.commit()
 
             locked: int | None = VersionDAO.current_live_transaction_id_locked(
-                Slice, chart.id, chart.uuid
+                Slice, chart.id, chart_uuid
             )
             assert locked is None
 
             info: EntityVersionInfo = current_entity_version_info(
-                Slice, chart.id, chart.uuid, lock_for_stale_check=True
+                Slice, chart.id, chart_uuid, lock_for_stale_check=True
             )
             assert info.version_uuid is None
             assert info.entity_uuid == chart.uuid
@@ -239,6 +243,7 @@ class TestConditionalTokenLockingRead(SupersetTestCase):
         chart, original = self._versioned_chart()
         chart_id: int = chart.id
         chart_uuid: UUID = chart.uuid
+        assert chart_uuid is not None
         try:
             self._force_repeatable_read()
             # Opening the read view: this first consistent read is what
@@ -303,6 +308,7 @@ class TestConditionalTokenLockingRead(SupersetTestCase):
         chart, original = self._versioned_chart()
         chart_id: int = chart.id
         chart_uuid: UUID = chart.uuid
+        assert chart_uuid is not None
         ver_tbl: sa.Table = version_class(Slice).__table__
         try:
             template: sa.RowMapping | None = (

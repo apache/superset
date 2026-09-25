@@ -15,10 +15,12 @@
 # specific language governing permissions and limitations
 # under the License.
 
+from datetime import datetime
 from unittest.mock import MagicMock
 
 import pandas as pd
 import pytest
+from freezegun import freeze_time
 from jinja2.exceptions import UndefinedError
 from pytest_mock import MockerFixture
 from sqlalchemy import create_engine
@@ -937,6 +939,238 @@ def test_fetch_metadata_empty_comment_field_handling(mocker: MockerFixture) -> N
     assert columns_by_name["col_with_valid_comment"].description == "Valid comment"
 
 
+def _table_for_fetch_metadata(
+    mocker: MockerFixture,
+    source_columns: list[dict[str, str]],
+    existing: list[dict[str, str]] | None = None,
+) -> SqlaTable:
+    """Build a SqlaTable whose ``fetch_metadata`` reads *source_columns*."""
+    database = mocker.MagicMock()
+    database.get_metrics.return_value = []
+    database.db_engine_spec = mocker.MagicMock()
+    table = SqlaTable(table_name="test_table", database=database)
+    table.id = 1
+    existing_cols = [
+        TableColumn(
+            column_name=spec["column_name"],
+            type=spec["type"],
+            table=table,
+            expression=spec.get("expression") or "",
+        )
+        for spec in existing or []
+    ]
+    table.columns = existing_cols
+    mock_session = mocker.patch("superset.connectors.sqla.models.db.session")
+    mock_session.query.return_value.filter.return_value.all.return_value = existing_cols
+    mocker.patch.object(table, "external_metadata", return_value=source_columns)
+    return table
+
+
+def test_fetch_metadata_bumps_changed_on_when_column_type_changes(
+    mocker: MockerFixture,
+) -> None:
+    """Schema drift on an existing column must bump ``changed_on``.
+
+    ``query_cache_key`` includes ``datasource.changed_on``; without this bump
+    a Refresh-columns action would keep serving chart results computed
+    against the previous type. See #43918.
+    """
+    table = _table_for_fetch_metadata(
+        mocker,
+        source_columns=[{"column_name": "revenue", "type": "INTEGER"}],
+        existing=[{"column_name": "revenue", "type": "VARCHAR"}],
+    )
+    table.changed_on = datetime(2024, 6, 1, 12, 0, 0)
+
+    with freeze_time("2024-06-01 12:00:05"):
+        result = table.fetch_metadata()
+
+    assert result.modified == ["revenue"]
+    assert table.changed_on == datetime(2024, 6, 1, 12, 0, 5)
+
+
+def test_fetch_metadata_bumps_changed_on_when_column_added(
+    mocker: MockerFixture,
+) -> None:
+    """A newly discovered source column must bump ``changed_on``."""
+    table = _table_for_fetch_metadata(
+        mocker,
+        source_columns=[
+            {"column_name": "id", "type": "INTEGER"},
+            {"column_name": "name", "type": "VARCHAR"},
+        ],
+        existing=[{"column_name": "id", "type": "INTEGER"}],
+    )
+    table.changed_on = datetime(2024, 6, 1, 12, 0, 0)
+
+    with freeze_time("2024-06-01 12:00:05"):
+        result = table.fetch_metadata()
+
+    assert result.added == ["name"]
+    assert table.changed_on == datetime(2024, 6, 1, 12, 0, 5)
+
+
+def test_fetch_metadata_bumps_changed_on_when_physical_column_removed(
+    mocker: MockerFixture,
+) -> None:
+    """Dropping a physical source column must bump ``changed_on``."""
+    table = _table_for_fetch_metadata(
+        mocker,
+        source_columns=[{"column_name": "id", "type": "INTEGER"}],
+        existing=[
+            {"column_name": "id", "type": "INTEGER"},
+            {"column_name": "name", "type": "VARCHAR"},
+        ],
+    )
+    table.changed_on = datetime(2024, 6, 1, 12, 0, 0)
+
+    with freeze_time("2024-06-01 12:00:05"):
+        result = table.fetch_metadata()
+
+    assert result.removed == ["name"]
+    assert table.changed_on == datetime(2024, 6, 1, 12, 0, 5)
+
+
+def test_fetch_metadata_drops_nested_physical_column_and_bumps_changed_on(
+    mocker: MockerFixture,
+) -> None:
+    """A dropped nested ROW field has an expression but is still physical.
+
+    Keeping it would leave a stale TableColumn and skip the changed_on bump.
+    """
+    table = _table_for_fetch_metadata(
+        mocker,
+        source_columns=[{"column_name": "id", "type": "INTEGER"}],
+        existing=[
+            {"column_name": "id", "type": "INTEGER"},
+            {
+                "column_name": "metadata.uuid",
+                "type": "VARCHAR",
+                "expression": '"metadata"."uuid"',
+            },
+        ],
+    )
+    table.changed_on = datetime(2024, 6, 1, 12, 0, 0)
+
+    with freeze_time("2024-06-01 12:00:05"):
+        result = table.fetch_metadata()
+
+    assert "metadata.uuid" in result.removed
+    assert all(col.column_name != "metadata.uuid" for col in table.columns)
+    assert table.changed_on == datetime(2024, 6, 1, 12, 0, 5)
+
+
+def test_fetch_metadata_bumps_changed_on_when_expression_changes(
+    mocker: MockerFixture,
+) -> None:
+    """A physical expression change is schema drift and must bump ``changed_on``."""
+    table = _table_for_fetch_metadata(
+        mocker,
+        source_columns=[
+            {
+                "column_name": "metadata.uuid",
+                "type": "VARCHAR",
+                "expression": '"metadata"."uuid"',
+            }
+        ],
+        existing=[
+            {
+                "column_name": "metadata.uuid",
+                "type": "VARCHAR",
+                "expression": "",
+            }
+        ],
+    )
+    table.changed_on = datetime(2024, 6, 1, 12, 0, 0)
+
+    with freeze_time("2024-06-01 12:00:05"):
+        result = table.fetch_metadata()
+
+    assert result.modified == ["metadata.uuid"]
+    assert table.changed_on == datetime(2024, 6, 1, 12, 0, 5)
+
+
+def test_fetch_metadata_does_not_bump_changed_on_when_schema_unchanged(
+    mocker: MockerFixture,
+) -> None:
+    """A no-op refresh must not invalidate chart cache keys."""
+    table = _table_for_fetch_metadata(
+        mocker,
+        source_columns=[{"column_name": "revenue", "type": "INTEGER"}],
+        existing=[{"column_name": "revenue", "type": "INTEGER"}],
+    )
+    original_changed_on = datetime(2024, 6, 1, 12, 0, 0)
+    table.changed_on = original_changed_on
+
+    with freeze_time("2024-06-01 12:00:05"):
+        result = table.fetch_metadata()
+
+    assert result.added == []
+    assert result.modified == []
+    assert result.removed == []
+    assert table.changed_on == original_changed_on
+
+
+def test_fetch_metadata_does_not_bump_changed_on_for_kept_virtual_columns(
+    mocker: MockerFixture,
+) -> None:
+    """Calculated columns are reported in ``removed`` but kept; that is not drift."""
+    table = _table_for_fetch_metadata(
+        mocker,
+        source_columns=[{"column_name": "id", "type": "INTEGER"}],
+        existing=[
+            {"column_name": "id", "type": "INTEGER"},
+            {
+                "column_name": "profit",
+                "type": "INTEGER",
+                "expression": "revenue - cost",
+            },
+        ],
+    )
+    original_changed_on = datetime(2024, 6, 1, 12, 0, 0)
+    table.changed_on = original_changed_on
+
+    with freeze_time("2024-06-01 12:00:05"):
+        result = table.fetch_metadata()
+
+    assert "profit" in result.removed
+    assert any(col.column_name == "profit" for col in table.columns)
+    assert table.changed_on == original_changed_on
+
+
+def test_fetch_metadata_keeps_dotted_calculated_column(
+    mocker: MockerFixture,
+) -> None:
+    """A user calculated column with a dotted name must survive a refresh.
+
+    Only Trino's quoted-path expression signature for expanded ``ROW``
+    fields identifies a leftover as physical; a bare dot in the name is
+    not enough, since ``DatasetColumnsPutSchema.column_name`` allows any
+    name up to 255 characters. See #43918.
+    """
+    table = _table_for_fetch_metadata(
+        mocker,
+        source_columns=[{"column_name": "id", "type": "INTEGER"}],
+        existing=[
+            {"column_name": "id", "type": "INTEGER"},
+            {
+                "column_name": "revenue.usd",
+                "type": "INTEGER",
+                "expression": "revenue * fx_rate",
+            },
+        ],
+    )
+    original_changed_on = datetime(2024, 6, 1, 12, 0, 0)
+    table.changed_on = original_changed_on
+
+    with freeze_time("2024-06-01 12:00:05"):
+        result = table.fetch_metadata()
+
+    assert "revenue.usd" in result.removed
+    assert any(col.column_name == "revenue.usd" for col in table.columns)
+    assert table.changed_on == original_changed_on
+
+
 @pytest.mark.parametrize(
     "supports_cross_catalog,table_name,catalog,schema,expected_name,expected_schema",
     [
@@ -1172,6 +1406,74 @@ def test_quoted_name_prevents_double_quoting(mocker: MockerFixture) -> None:
     # Should have each part quoted separately:
     # GOOD: "MY_DB"."MY_SCHEMA"."MY_TABLE"
     assert '"MY_DB"."MY_SCHEMA"."MY_TABLE"' in compiled
+
+
+def test_get_sqla_table_schema_not_qualified_when_engine_opts_out(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Engines that set ``quote_table_includes_schema = False`` (e.g. MongoDB, whose
+    PyMongoSQL driver resolves ``schema.collection`` as a literal collection name
+    instead of parsing it) must get an unqualified FROM-clause identifier from
+    ``get_sqla_table``, built through the engine spec's own ``quote_table``, the
+    same way ``select_star`` builds it for SQL Lab's Data Preview. Regression test
+    for datasets on such engines returning no rows once a schema is set.
+    """
+    from sqlalchemy import create_engine, select
+
+    engine = create_engine("sqlite://")
+
+    database = mocker.MagicMock()
+    database.db_engine_spec.supports_cross_catalog_queries = False
+    database.db_engine_spec.quote_table_includes_schema = False
+    database.db_engine_spec.quote_table.side_effect = (
+        lambda table, dialect: dialect.identifier_preparer.quote(table.table)
+    )
+    database.get_dialect.return_value = engine.dialect
+
+    table = SqlaTable(
+        table_name="orders",
+        database=database,
+        schema="testdb",
+    )
+
+    sqla_table = table.get_sqla_table()
+    compiled = str(
+        select(sqla_table).compile(engine, compile_kwargs={"literal_binds": True})
+    )
+
+    assert "FROM orders" in compiled
+    assert "testdb" not in compiled
+    database.db_engine_spec.quote_table.assert_called_once()
+
+
+def test_get_sqla_table_schema_qualified_by_default(mocker: MockerFixture) -> None:
+    """
+    Engines that don't override ``quote_table_includes_schema`` (the default,
+    ``True``) keep qualifying the FROM clause with the schema, unaffected by the
+    opt-out path above.
+    """
+    from sqlalchemy import create_engine, select
+
+    engine = create_engine("postgresql://user:pass@host/db")
+
+    database = mocker.MagicMock()
+    database.db_engine_spec.supports_cross_catalog_queries = False
+    database.db_engine_spec.quote_table_includes_schema = True
+
+    table = SqlaTable(
+        table_name="My-Table",
+        database=database,
+        schema="My-Schema",
+    )
+
+    sqla_table = table.get_sqla_table()
+    compiled = str(
+        select(sqla_table).compile(engine, compile_kwargs={"literal_binds": True})
+    )
+
+    assert '"My-Schema"."My-Table"' in compiled
+    database.db_engine_spec.quote_table.assert_not_called()
 
 
 def test_sqla_table_currency_code_column_property() -> None:
@@ -2235,3 +2537,22 @@ def test_get_fetch_values_predicate_wraps_undefined_error(
 
     with pytest.raises(QueryObjectValidationError):
         sqla_table.get_fetch_values_predicate(template_processor=mock_processor)
+
+
+def test_get_rendered_sql_wraps_type_error(mocker: MockerFixture) -> None:
+    """A ``TypeError`` raised by a Python builtin invoked from within the
+    template (e.g. ``"','".join(filter_values(...))`` when ``filter_values()``
+    returns numeric values) must be caught and re-raised as a
+    ``QueryObjectValidationError``, not bubble up as a raw 500."""
+    datasource = mocker.MagicMock()
+    datasource.sql = "SELECT 1 WHERE id IN ({{ ','.join(filter_values('id')) }})"
+
+    template_processor = mocker.MagicMock()
+    template_processor.process_template.side_effect = TypeError(
+        "sequence item 0: expected str instance, int found"
+    )
+
+    with pytest.raises(QueryObjectValidationError):
+        ExploreMixin.get_rendered_sql.__get__(datasource)(
+            template_processor=template_processor
+        )

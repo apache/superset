@@ -23,7 +23,6 @@ Database.execute() API with RLS, template rendering, and security validation.
 """
 
 import logging
-from decimal import Decimal
 from typing import Any
 
 import pandas as pd
@@ -311,22 +310,6 @@ async def _log_execution_result(
         )
 
 
-def _sanitize_row_values(rows: list[dict[str, Any]]) -> None:
-    """Sanitize non-serializable values in rows for JSON serialization."""
-    for row in rows:
-        for key, value in row.items():
-            if isinstance(value, (bytes, memoryview)):
-                raw = bytes(value) if isinstance(value, memoryview) else value
-                try:
-                    row[key] = raw.decode("utf-8")
-                except (UnicodeDecodeError, AttributeError):
-                    row[key] = raw.hex()
-            elif isinstance(value, Decimal):
-                row[key] = float(value)
-            elif not isinstance(value, (str, int, float, bool, type(None), list, dict)):
-                row[key] = str(value)
-
-
 def _data_to_statement_data(data: Any) -> StatementData:
     """Convert statement data (DataFrame, list, dict, bytes) to StatementData.
 
@@ -343,7 +326,6 @@ def _data_to_statement_data(data: Any) -> StatementData:
             rows_data = [rows_data]
     elif isinstance(data, pd.DataFrame):
         rows_data = data.to_dict(orient="records")
-        _sanitize_row_values(rows_data)
         return StatementData(
             rows=rows_data,
             columns=[
@@ -359,7 +341,6 @@ def _data_to_statement_data(data: Any) -> StatementData:
     else:
         rows_data = [{"value": str(data)}]
 
-    _sanitize_row_values(rows_data)
     col_names = list(rows_data[0].keys()) if rows_data else []
     return StatementData(
         rows=rows_data,

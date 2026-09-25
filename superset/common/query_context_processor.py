@@ -26,6 +26,7 @@ import pandas as pd
 import pyarrow as pa
 from flask import current_app
 from flask_babel import gettext as _
+from jinja2.exceptions import TemplateError
 from pandas.api.types import infer_dtype
 
 from superset import db
@@ -46,6 +47,7 @@ from superset.daos.chart import ChartDAO
 from superset.exceptions import (
     QueryObjectValidationError,
     SupersetException,
+    SupersetTemplateException,
 )
 from superset.explorables.base import Explorable
 from superset.extensions import cache_manager, security_manager
@@ -895,9 +897,11 @@ class QueryContextProcessor:
         if not (chart := ChartDAO.find_by_id(annotation_layer["value"])):
             raise QueryObjectValidationError(
                 _(
-                    f"""Chart with ID {annotation_layer["value"]} (referenced by
-                    annotation layer '{annotation_layer["name"]}') was not found.
-                    Please verify that the chart exists and is accessible."""
+                    "Chart with ID %(chart_id)s (referenced by annotation layer "
+                    "'%(layer_name)s') was not found. Please verify that the "
+                    "chart exists and is accessible.",
+                    chart_id=annotation_layer["value"],
+                    layer_name=annotation_layer["name"],
                 )
             )
 
@@ -905,10 +909,12 @@ class QueryContextProcessor:
             if not (query_context := chart.get_query_context()):
                 raise QueryObjectValidationError(
                     _(
-                        f"""The query context for chart ID {chart.id} (referenced
-                        by annotation layer '{annotation_layer["name"]}') was not found.
-                        Please ensure the chart is properly configured and has a valid
-                        query context."""
+                        "The query context for chart ID %(chart_id)s (referenced "
+                        "by annotation layer '%(layer_name)s') was not found. "
+                        "Please ensure the chart is properly configured and has a "
+                        "valid query context.",
+                        chart_id=chart.id,
+                        layer_name=annotation_layer["name"],
                     )
                 )
 
@@ -943,7 +949,10 @@ class QueryContextProcessor:
         # come first to avoid rendering caller-supplied input for a resource the
         # caller is not allowed to access.
         if self._qc_datasource.type == DatasourceType.QUERY:
-            security_manager.raise_for_access(query=self._qc_datasource)
+            try:
+                security_manager.raise_for_access(query=self._qc_datasource)
+            except TemplateError as ex:
+                raise SupersetTemplateException(str(ex)) from ex
         else:
             security_manager.raise_for_access(query_context=self._query_context)
 

@@ -896,6 +896,11 @@ class WhereInMacro:  # pylint: disable=too-few-public-methods
             for bind in binds
         ]
         joined_values = ", ".join(string_representations)
+        # The macro returns literal SQL, not a DBAPI parameterized statement.
+        # Undo only the compiler's percent escaping, as compile_sqla_query does;
+        # SQL Lab executes the rendered query without a parameters object.
+        if self.dialect.identifier_preparer._double_percents:  # pylint: disable=protected-access
+            joined_values = joined_values.replace("%%", "%")
         result = (
             f"({joined_values})" if (joined_values or not default_to_none) else None
         )

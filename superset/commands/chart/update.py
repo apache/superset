@@ -155,10 +155,12 @@ class UpdateChartCommand(UpdateMixin, BaseCommand):
         dashboard_ids = self._properties.get("dashboards")
         tag_ids: Optional[list[int]] = self._properties.get("tags")
 
-        # Validate if datasource_id is provided datasource_type is required
+        # A supplied type cannot clear the chart's datasource namespace.
         datasource_id = self._properties.get("datasource_id")
         datasource_type = self._properties.get("datasource_type", "")
-        if datasource_id is not None and not datasource_type:
+        if (
+            datasource_id is not None or "datasource_type" in self._properties
+        ) and not datasource_type:
             exceptions.append(DatasourceTypeUpdateRequiredValidationError())
 
         # Validate/populate model exists
@@ -167,8 +169,9 @@ class UpdateChartCommand(UpdateMixin, BaseCommand):
             raise ChartNotFoundError()
 
         # Check and update editorship; when only updating query context we relax
-        # editorship so report workers can save context. We still require chart
-        # access so users cannot rewrite query context for charts they cannot access.
+        # editorship so background workers can save context. Report and thumbnail
+        # executors resolve against the schedule or the requesting user, not the
+        # chart, so they are frequently not chart editors. Access is still required.
         if not is_query_context_update(self._properties):
             try:
                 security_manager.raise_for_editorship(self._model)
@@ -179,6 +182,12 @@ class UpdateChartCommand(UpdateMixin, BaseCommand):
                 exceptions.append(ex)
             raise_if_managed_externally(self._model, ChartForbiddenError)
         else:
+            # ``raise_for_access`` admits a guest for every chart on the dashboard
+            # its token embeds, but a guest holds no write capability (see the
+            # capability matrix in ``SECURITY.md``). The strict path inherits this
+            # deny from ``is_editor``; this branch has to state it.
+            if security_manager.is_guest_user():
+                raise ChartForbiddenError()
             try:
                 security_manager.raise_for_access(chart=self._model)
             except SupersetSecurityException as ex:
