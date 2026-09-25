@@ -49,9 +49,22 @@ context and metadata database session. Warehouse I/O does not run on the
 transport event loop. This includes SQL execution, chart data and previews,
 chart compilation, dataset queries, and tools that discover warehouse metadata.
 
-`MCP_TOOL_WORKERS` sets the maximum admitted calls per application/process
-(default: `16`). A full pool immediately returns an **MCP server busy** error;
-it does not queue requests behind slow queries.
+`MCP_TOOL_WORKERS` sets the maximum admitted calls per application/process.
+A full pool immediately returns an **MCP server busy** error; it does not queue
+requests behind slow queries.
+
+An admitted call can hold a metadata database connection for the whole of its
+warehouse query, and cancelling it needs another. Admission is therefore capped
+at `(capacity - 1) // 2`, where capacity is the metadata pool's
+`pool_size + max_overflow`, so cancellations and the server's own metadata
+lookups (tool-list filtering, audit logging) always find a connection. By
+default (`None`) up to 16 calls are admitted within that cap. With SQLAlchemy's
+default pool (5 + 10 connections), that is 7 calls. To admit 16, raise the
+pool for the MCP process, for example
+`SQLALCHEMY_ENGINE_OPTIONS = {"pool_size": 20, "max_overflow": 20}`. A larger
+explicit `MCP_TOOL_WORKERS` is reduced to the cap with a startup warning, and
+a pool with fewer than 3 connections is rejected at startup. The server never
+waits for a metadata connection on its event loop.
 
 `execute_sql` uses its request's `timeout` (default: 30 seconds). Tools without
 a timeout parameter use `SQLLAB_TIMEOUT`. The deadline covers the complete tool

@@ -22,6 +22,7 @@ Supports both single-pod (in-memory) and multi-pod (Redis) deployments.
 For multi-pod deployments, configure MCP_EVENT_STORE_CONFIG with Redis URL.
 """
 
+import asyncio
 import logging
 import os
 from collections.abc import Sequence
@@ -770,7 +771,9 @@ def _create_search_transform(  # noqa: C901
             async def _get_visible_tools(self, ctx: Context) -> Sequence[Any]:
                 """Return only tools visible to the current authenticated user."""
                 tools = await super()._get_visible_tools(ctx)
-                return _filter_tools_by_current_user_permission(tools)
+                return await asyncio.to_thread(
+                    _filter_tools_by_current_user_permission, tools
+                )
 
             def _make_call_tool(self) -> Any:
                 """Build the normalized ``call_tool`` proxy for regex search."""
@@ -790,7 +793,11 @@ def _create_search_transform(  # noqa: C901
         async def _get_visible_tools(self, ctx: Context) -> Sequence[Any]:
             """Return only tools visible to the current authenticated user."""
             tools = await super()._get_visible_tools(ctx)
-            return _filter_tools_by_current_user_permission(tools)
+            # Permission lookups need a metadata connection; see
+            # RBACToolVisibilityMiddleware.on_list_tools.
+            return await asyncio.to_thread(
+                _filter_tools_by_current_user_permission, tools
+            )
 
         def _make_call_tool(self) -> Any:
             """Build the normalized ``call_tool`` proxy for BM25 search."""
@@ -1090,6 +1097,13 @@ def run_server(
                 size_guard_middleware.excluded_tools.add(search_name)
 
     _register_health_endpoint(mcp_instance)
+
+    # Size tool admission against the metadata pool before serving traffic, so
+    # an unusable pool configuration fails at startup rather than per call.
+    from superset.mcp_service.flask_singleton import get_flask_app
+    from superset.mcp_service.worker import _get_pool
+
+    _get_pool(get_flask_app())
 
     # Create EventStore for session management (Redis for multi-pod, None for in-memory)
     event_store = create_event_store(event_store_config)

@@ -40,6 +40,7 @@ from fastmcp.exceptions import ToolError
 from flask import current_app, g, has_app_context, has_request_context
 from sqlalchemy import inspect as sa_inspect
 from sqlalchemy.orm.state import InstanceState
+from sqlalchemy.pool import QueuePool
 
 from superset.mcp_service.session_scope import _mcp_session_token
 
@@ -107,11 +108,68 @@ class WorkerPool:
         return True
 
 
+DEFAULT_TOOL_WORKERS = 16
+
+
+def _metadata_pool_capacity(app: Flask) -> int | None:
+    """Return how many metadata connections can be checked out at once.
+
+    ``None`` means a checkout never waits for another holder to return one
+    (e.g. ``NullPool``, per-thread pools, or unlimited overflow).
+    """
+    from superset import db
+
+    with app.app_context():
+        pool = db.engine.pool
+    if not isinstance(pool, QueuePool):
+        return None
+    # SQLAlchemy has no public accessor for the configured overflow limit.
+    max_overflow = pool._max_overflow  # pylint: disable=protected-access
+    return None if max_overflow < 0 else pool.size() + max_overflow
+
+
+def tool_worker_count(app: Flask) -> int:
+    """Admit only as many calls as the metadata pool can always serve.
+
+    An admitted call can hold one metadata connection for the whole of its
+    warehouse I/O, and its cancellation needs another. ``2 * workers + 1``
+    connections therefore always leave one that is only held by short metadata
+    lookups, so cancellation and transport-side lookups (tools/list filtering,
+    audit logging) never wait for a warehouse query to end on its own.
+    """
+    configured = app.config.get("MCP_TOOL_WORKERS")
+    capacity = _metadata_pool_capacity(app)
+    if capacity is None:
+        return DEFAULT_TOOL_WORKERS if configured is None else configured
+    limit = (capacity - 1) // 2
+    if limit < 1:
+        raise ValueError(
+            f"The metadata database pool allows {capacity} connections; "
+            "MCP tool execution needs at least 3"
+        )
+    if configured is None:
+        return min(DEFAULT_TOOL_WORKERS, limit)
+    if configured > limit:
+        logger.warning(
+            "MCP_TOOL_WORKERS=%s needs %s metadata database connections, but the "
+            "pool allows %s; admitting %s concurrent tool calls. Raise the pool's "
+            "pool_size/max_overflow in SQLALCHEMY_ENGINE_OPTIONS to admit more.",
+            configured,
+            2 * configured + 1,
+            capacity,
+            limit,
+        )
+        return limit
+    return configured
+
+
 def _get_pool(app: Flask) -> WorkerPool:
     """Lazily create a pool for this application, without import-time threads."""
     with _pools_lock:
         if app not in _pools:
-            _pools[app] = WorkerPool(app.config.get("MCP_TOOL_WORKERS", 16))
+            size = tool_worker_count(app)
+            logger.info("MCP tool calls admitted concurrently: %s", size)
+            _pools[app] = WorkerPool(size)
         return _pools[app]
 
 
