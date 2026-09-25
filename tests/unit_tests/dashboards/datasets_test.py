@@ -314,6 +314,7 @@ def test_dashboard_table_serialization_includes_capabilities_and_parent() -> Non
         "sql",
         "columns",
         "metrics",
+        "editors",
         "order_by_choices",
         "verbose_map",
         "select_star",
