@@ -253,3 +253,27 @@ test('SET_FIELD_VALUE applies the new time range to the control, not just the fo
     '2026-03-01 : 2026-04-01',
   );
 });
+
+test('SET_FIELD_VALUE ignores a control that names itself as a dependency', () => {
+  // `validationDependencies` names *other* controls. The rebuild it triggers
+  // reuses the value held before the action, so a self-naming control would
+  // overwrite the value just set. Nothing in the tree does this, and the
+  // reducer makes sure nothing can.
+  const selfDependentState = {
+    form_data: { row_limit: 100 } as unknown as QueryFormData,
+    controls: {
+      row_limit: {
+        type: 'SelectControl',
+        value: 100,
+        validationDependencies: ['row_limit'],
+      },
+    },
+  } as unknown as ExploreState;
+
+  const afterChange = exploreReducer(
+    selfDependentState,
+    setControlValue('row_limit', 500) as Parameters<typeof exploreReducer>[1],
+  );
+
+  expect(afterChange.controls.row_limit.value).toBe(500);
+});

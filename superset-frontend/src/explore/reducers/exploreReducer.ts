@@ -460,7 +460,14 @@ export default function exploreReducer(
       >;
       const dependantControls = Object.entries(controlsTyped)
         .filter(
-          ([, item]) =>
+          ([key, item]) =>
+            // A control is never its own dependant. Rebuilding one here uses
+            // the value held *before* this action, so a control that named
+            // itself would overwrite the value this action just set -- the
+            // control and `form_data` would then disagree for the rest of the
+            // session, and the query is built from the controls. Recomputing a
+            // control's own derived props belongs in `shouldMapStateToProps`.
+            key !== controlName &&
             Array.isArray(item?.validationDependencies) &&
             item.validationDependencies.includes(controlName),
         )
