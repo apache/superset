@@ -17,6 +17,7 @@
  * under the License.
  */
 import {
+  BinaryAdhocFilter,
   ComparisonType,
   FreeFormAdhocFilter,
   RollingType,
@@ -106,7 +107,8 @@ test('should compile query object A', () => {
     row_offset: undefined,
     series_columns: ['foo'],
     series_limit: 5,
-    series_limit_metric: undefined,
+    series_limit_metric: 'count',
+    order_desc: true,
     group_others_when_limit_reached: false,
     url_params: {},
     custom_params: {},
@@ -167,6 +169,7 @@ test('should compile query object B', () => {
     series_columns: [],
     series_limit: 0,
     series_limit_metric: undefined,
+    order_desc: false,
     group_others_when_limit_reached: false,
     url_params: {},
     custom_params: {},
@@ -195,6 +198,38 @@ test('should compile query object B', () => {
   });
 });
 
+test('should compile Matrixify filters for both mixed timeseries queries', () => {
+  // Matrixify injects a per-cell dimension filter into `adhoc_filters` and every
+  // query-specific `adhoc_filters_*` collection. Query A reads `adhoc_filters`
+  // and query B reads `adhoc_filters_b`, so both queries must end up filtered.
+  const matrixifyCountryFilter: BinaryAdhocFilter = {
+    clause: 'WHERE',
+    expressionType: 'SIMPLE',
+    subject: 'country',
+    operator: '==',
+    comparator: 'USA',
+    isExtra: false,
+  };
+  const formData = {
+    ...formDataMixedChart,
+    adhoc_filters: [
+      ...formDataMixedChart.adhoc_filters,
+      matrixifyCountryFilter,
+    ],
+    adhoc_filters_b: [
+      ...formDataMixedChart.adhoc_filters_b,
+      matrixifyCountryFilter,
+    ],
+  };
+
+  const [queryA, queryB] = buildQuery(formData).queries;
+
+  expect(queryA.filters).toEqual([{ col: 'country', op: '==', val: 'USA' }]);
+  expect(queryB.filters).toEqual([{ col: 'country', op: '==', val: 'USA' }]);
+  // The pre-existing free-form filter on query B is preserved in `extras`.
+  expect(queryB.extras?.where).toBe("(name in ('c', 'd'))");
+});
+
 test('should compile AA in query A', () => {
   const query = buildQuery(formDataMixedChartWithAA).queries[0];
   // time comparison
@@ -217,19 +252,13 @@ test('should compile AA in query A', () => {
   });
   // cumsum
   expect(
-    // prettier-ignore
-    query
-      .post_processing
-      ?.find(operator => operator?.operation === 'cum')
+    query.post_processing?.find(operator => operator?.operation === 'cum')
       ?.operation,
   ).toEqual('cum');
 
   // resample
   expect(
-    // prettier-ignore
-    query
-      .post_processing
-      ?.find(operator => operator?.operation === 'resample'),
+    query.post_processing?.find(operator => operator?.operation === 'resample'),
   ).toEqual({
     operation: 'resample',
     options: {
@@ -247,10 +276,7 @@ test('should compile AA in query B', () => {
 
   // rolling total
   expect(
-    // prettier-ignore
-    query
-      .post_processing
-      ?.find(operator => operator?.operation === 'rolling'),
+    query.post_processing?.find(operator => operator?.operation === 'rolling'),
   ).toEqual({
     operation: 'rolling',
     options: {
@@ -266,10 +292,7 @@ test('should compile AA in query B', () => {
 
   // resample
   expect(
-    // prettier-ignore
-    query
-      .post_processing
-      ?.find(operator => operator?.operation === 'resample'),
+    query.post_processing?.find(operator => operator?.operation === 'resample'),
   ).toEqual({
     operation: 'resample',
     options: {
@@ -373,4 +396,36 @@ test('ensure correct pivot columns', () => {
       },
     },
   });
+});
+
+test('preserves order_desc and series_limit_metric for both queries', () => {
+  // Regression for sc-107146: toggling "Sort Descending" off in a Mixed Chart
+  // updated the displayed SQL but not the rendered result. The backend
+  // series-limit subquery picks the top-N series from `order_desc`, so dropping
+  // it (as `normalizeOrderBy` does) made the sort direction silently ignored.
+  const ascendingFormData = {
+    ...formDataMixedChart,
+    order_desc: false,
+    order_desc_b: false,
+    timeseries_limit_metric_b: 'count',
+  };
+  const { queries } = buildQuery(ascendingFormData);
+
+  // Query A: ascending sort by its explicit sort metric must survive.
+  expect(queries[0]).toEqual(
+    expect.objectContaining({
+      order_desc: false,
+      series_limit_metric: 'count',
+      orderby: [['count', true]],
+    }),
+  );
+
+  // Query B: the `_b` query must independently keep its own direction/metric.
+  expect(queries[1]).toEqual(
+    expect.objectContaining({
+      order_desc: false,
+      series_limit_metric: 'count',
+      orderby: [['count', true]],
+    }),
+  );
 });

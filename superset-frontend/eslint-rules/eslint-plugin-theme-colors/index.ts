@@ -159,4 +159,4 @@ const plugin: { rules: Record<string, Rule.RuleModule> } = {
   },
 };
 
-module.exports = plugin;
+export default plugin;

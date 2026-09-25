@@ -64,15 +64,15 @@ NumberFormats.PERCENT; // ,.2%
 NumberFormats.PERCENT_3_POINT; // ,.3%
 ```
 
-There is also a formatter based on [pretty-ms](https://www.npmjs.com/package/pretty-ms) that can be
+There is also a formatter based on [Intl.DurationFormat](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Intl/DurationFormat) that can be
 used to format time durations:
 
 ```js
 import { createDurationFormatter, formatNumber, getNumberFormatterRegistry } from '@superset-ui-number-format';
 
-getNumberFormatterRegistry().registerValue('my_duration_format', createDurationFormatter({ colonNotation: true });
+getNumberFormatterRegistry().registerValue('my_duration_format', createDurationFormatter({ style: 'digital' }));
 console.log(formatNumber('my_duration_format', 95500))
-// prints '1:35.5'
+// prints '0:01:35'
 ```
 
 #### API

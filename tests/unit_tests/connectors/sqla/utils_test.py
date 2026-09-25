@@ -15,14 +15,25 @@
 # specific language governing permissions and limitations
 # under the License.
 
+import sqlite3
+from contextlib import closing
+from pathlib import Path
+
 import pytest
+from jinja2 import UndefinedError
 from pytest_mock import MockerFixture
 
 from superset.connectors.sqla.utils import (
     get_columns_description,
     get_virtual_table_metadata,
 )
-from superset.exceptions import SupersetSecurityException
+from superset.db_engine_specs.exceptions import SupersetDBAPIConnectionError
+from superset.exceptions import (
+    OAuth2RedirectError,
+    SupersetSecurityException,
+    SupersetVirtualTableParseException,
+)
+from superset.models.core import Database
 
 
 # Returns column descriptions when given valid database, catalog, schema, and query
@@ -48,6 +59,7 @@ def test_returns_column_descriptions(mocker: MockerFixture) -> None:
     database.mutate_sql_based_on_config.return_value = "SELECT * FROM table LIMIT 1"
     db_engine_spec.fetch_data.return_value = [("col1", "col1", "STRING", None, False)]
     db_engine_spec.get_datatype.return_value = "STRING"
+    db_engine_spec.resolve_column_type.return_value = "STRING"
     db_engine_spec.get_column_spec.return_value.is_dttm = False
     db_engine_spec.get_column_spec.return_value.generic_type = "STRING"
 
@@ -96,6 +108,255 @@ def test_returns_column_descriptions(mocker: MockerFixture) -> None:
     ]
 
 
+def test_get_columns_description_propagates_oauth2_redirect(
+    mocker: MockerFixture,
+) -> None:
+    """
+    ``get_columns_description`` wraps every exception raised while executing
+    the metadata query into ``SupersetGenericDBErrorException`` -- but an
+    ``OAuth2RedirectError`` raised by the driver (e.g. a database requiring
+    per-user OAuth2 tokens) must reach the caller unchanged so the frontend
+    can start the OAuth2 dance, instead of being flattened into an opaque
+    generic DB error.
+    """
+    database = mocker.MagicMock()
+    cursor = mocker.MagicMock()
+    oauth2_error = OAuth2RedirectError("https://example.org/oauth2", "tab-id", "uri")
+
+    database.get_raw_connection.return_value.__enter__.return_value.cursor.return_value = cursor  # noqa: E501
+    database.db_engine_spec.execute.side_effect = oauth2_error
+
+    with pytest.raises(OAuth2RedirectError):
+        get_columns_description(database, "catalog", "schema", "SELECT * FROM table")
+
+
+def test_get_columns_description_propagates_dbapi_error(
+    mocker: MockerFixture,
+) -> None:
+    """
+    A connection failure normalized by ``db_engine_spec.execute`` into a
+    ``SupersetDBAPIConnectionError`` must also reach the caller unchanged --
+    not be re-flattened into an opaque ``SupersetGenericDBErrorException`` --
+    so callers like ``CreateDatasetCommand`` can let it propagate with its
+    own status instead of misreporting an infra failure as bad user input.
+    """
+    database = mocker.MagicMock()
+    cursor = mocker.MagicMock()
+    connection_error = SupersetDBAPIConnectionError(
+        "could not connect to server: Connection refused"
+    )
+
+    database.get_raw_connection.return_value.__enter__.return_value.cursor.return_value = cursor  # noqa: E501
+    database.db_engine_spec.execute.side_effect = connection_error
+
+    with pytest.raises(SupersetDBAPIConnectionError):
+        get_columns_description(database, "catalog", "schema", "SELECT * FROM table")
+
+
+def _create_zero_row_database(tmp_path: Path) -> tuple[Database, str]:
+    """
+    Create a real SQLite-backed ``Database`` and a query that matches zero rows.
+
+    The table itself contains data, but the ``WHERE`` clause filters everything
+    out — mirroring the repro steps in issue #37609 (a virtual dataset whose
+    date filter matches no rows).
+    """
+    db_path = tmp_path / "zero_rows.db"
+    with closing(sqlite3.connect(db_path)) as conn:
+        conn.execute("CREATE TABLE events (id INTEGER, name TEXT, event_date TEXT)")
+        conn.execute("INSERT INTO events VALUES (1, 'a', '2026-01-01')")
+        conn.commit()
+
+    database = Database(
+        id=1,
+        database_name="zero_rows_db",
+        sqlalchemy_uri=f"sqlite:///{db_path}",
+    )
+    query = "SELECT id, name, event_date FROM events WHERE event_date = '2026-02-01'"
+    return database, query
+
+
+def test_get_columns_description_zero_row_query(tmp_path: Path) -> None:
+    """
+    Column metadata must be derived from the cursor description even when the
+    query returns zero rows.
+
+    Executes a real query against a real (SQLite) database instead of mocking
+    the cursor, so this covers the full path used when a virtual dataset's
+    columns are synced: ``get_columns_description`` -> raw connection ->
+    ``SupersetResultSet.columns``.
+
+    Regression test for https://github.com/apache/superset/issues/37609
+    """
+    database, query = _create_zero_row_database(tmp_path)
+
+    columns = get_columns_description(database, None, None, query)
+
+    assert [col["column_name"] for col in columns] == ["id", "name", "event_date"]
+    assert all(col["name"] for col in columns)
+
+
+def test_get_virtual_table_metadata_zero_row_query(
+    mocker: MockerFixture, tmp_path: Path
+) -> None:
+    """
+    ``get_virtual_table_metadata`` (the entry point used by "Sync columns from
+    source" / dataset metadata refresh) must return the column metadata for a
+    virtual dataset whose query returns zero rows.
+
+    Regression test for https://github.com/apache/superset/issues/37609
+    """
+    database, query = _create_zero_row_database(tmp_path)
+
+    dataset = mocker.MagicMock(
+        sql=query,
+        catalog=None,
+        schema=None,
+        database=database,
+        template_params_dict={},
+    )
+    dataset.get_template_processor().process_template.return_value = query
+
+    columns = get_virtual_table_metadata(dataset=dataset)
+
+    assert [col["column_name"] for col in columns] == ["id", "name", "event_date"]
+
+
+def test_get_columns_description_retries_with_comment_safe_sql_when_empty(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Regression test for SC-114843: when the mutated query comes back with an
+    empty cursor.description (e.g. clickhouse-connect 0.14.1 failing to
+    backfill metadata for a comment-prefixed, zero-row query), and the engine
+    spec provides a comment-safe retry query via
+    ``get_column_description_retry_sql``, ``get_columns_description`` must
+    retry once with that query rather than giving up.
+    """
+    database = mocker.MagicMock()
+    cursor = mocker.MagicMock()
+
+    retry_sql = (
+        "SELECT * FROM (\n-- comment\nSELECT 1\n) AS __superset_type_probe LIMIT 0"
+    )
+    db_engine_spec = mocker.MagicMock()
+    db_engine_spec.get_column_description_retry_sql.return_value = retry_sql
+
+    database.get_raw_connection.return_value.__enter__.return_value.cursor.return_value = cursor  # noqa: E501
+    database.db_engine_spec = db_engine_spec
+    database.apply_limit_to_sql.return_value = "SELECT 1 WHERE false"
+    database.mutate_sql_based_on_config.return_value = (
+        "-- comment\nSELECT 1 WHERE false"
+    )
+
+    # First SupersetResultSet() (empty) has no columns; second (after retry)
+    # does.
+    empty_result_set = mocker.MagicMock(columns=[])
+    real_result_set = mocker.MagicMock(columns=[{"name": "Duration"}])
+    mocker.patch(
+        "superset.connectors.sqla.utils.SupersetResultSet",
+        side_effect=[empty_result_set, real_result_set],
+    )
+
+    columns = get_columns_description(
+        database, "catalog", "schema", "SELECT 1 WHERE false"
+    )
+
+    assert columns == [{"name": "Duration"}]
+    db_engine_spec.get_column_description_retry_sql.assert_called_once_with(
+        "-- comment\nSELECT 1 WHERE false"
+    )
+    # The original mutated (comment-prefixed) query is executed once via
+    # db_engine_spec.execute() -- the only statement dispatch -- and then,
+    # because the first metadata result came back empty, a second time with
+    # the comment-safe retry query.
+    assert cursor.execute.call_count == 0
+    assert db_engine_spec.execute.call_count == 2
+    assert db_engine_spec.execute.call_args_list[0].args[:2] == (
+        cursor,
+        "-- comment\nSELECT 1 WHERE false",
+    )
+    assert db_engine_spec.execute.call_args_list[1].args[:2] == (cursor, retry_sql)
+
+
+def test_get_columns_description_no_retry_when_engine_has_no_hook(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Engines that don't opt into ``get_column_description_retry_sql`` (i.e.
+    the default ``None`` from BaseEngineSpec) must not have their behavior
+    changed by this fix, even when a query legitimately returns zero
+    columns.
+    """
+    database = mocker.MagicMock()
+    cursor = mocker.MagicMock()
+    cursor.description = []
+
+    result_set = mocker.MagicMock(columns=[])
+    db_engine_spec = mocker.MagicMock()
+    db_engine_spec.get_column_description_retry_sql.return_value = None
+
+    database.get_raw_connection.return_value.__enter__.return_value.cursor.return_value = cursor  # noqa: E501
+    database.db_engine_spec = db_engine_spec
+    database.apply_limit_to_sql.return_value = "SELECT * FROM table"
+    database.mutate_sql_based_on_config.return_value = "SELECT * FROM table"
+
+    mocker.patch(
+        "superset.connectors.sqla.utils.SupersetResultSet", return_value=result_set
+    )
+
+    columns = get_columns_description(
+        database, "catalog", "schema", "SELECT * FROM table"
+    )
+
+    assert columns == []
+    assert db_engine_spec.execute.call_count == 1, (
+        "no retry should be attempted when the engine spec has no comment-safe "
+        "retry query to offer"
+    )
+
+
+def test_get_columns_description_executes_probe_statement_once(
+    tmp_path: Path,
+    mocker: MockerFixture,
+) -> None:
+    """
+    The column probe must send the statement to the database exactly once.
+    ``db_engine_spec.execute`` is the single statement-dispatch point (it
+    calls ``cursor.execute`` itself, with per-engine overrides for Impala's
+    async API and Kusto's ARRAY() unwrapping), so an extra direct
+    ``cursor.execute`` before it runs the same statement twice against the
+    target database -- doubling probe cost and doubling whatever per-statement
+    timeout the administrator configured. Asserted at the driver level, with
+    a real SQLite connection counting every statement it executes.
+    """
+    db_path = tmp_path / "probe_once.db"
+    with closing(sqlite3.connect(db_path)) as conn:
+        conn.execute("CREATE TABLE events (id INTEGER, name TEXT)")
+        conn.commit()
+
+    statements: list[str] = []
+    raw_conn = sqlite3.connect(db_path)
+    raw_conn.set_trace_callback(statements.append)
+
+    database = Database(
+        id=1,
+        database_name="probe_once_db",
+        sqlalchemy_uri=f"sqlite:///{db_path}",
+    )
+    mocker.patch.object(database, "get_raw_connection", return_value=closing(raw_conn))
+
+    columns = get_columns_description(
+        database, None, None, "SELECT id, name FROM events"
+    )
+
+    assert [column["name"] for column in columns] == ["id", "name"]
+    assert len(statements) == 1, (
+        f"the probe statement must be sent to the database exactly once, "
+        f"got {len(statements)} executions: {statements}"
+    )
+
+
 def test_get_virtual_table_metadata(mocker: MockerFixture) -> None:
     """
     Test the `get_virtual_table_metadata` function.
@@ -137,3 +398,71 @@ def test_get_virtual_table_metadata_multiple(mocker: MockerFixture) -> None:
     with pytest.raises(SupersetSecurityException) as excinfo:
         get_virtual_table_metadata(dataset)
     assert str(excinfo.value) == "Only single queries supported"
+
+
+def test_get_virtual_table_metadata_render_undefined_error(
+    mocker: MockerFixture,
+) -> None:
+    """Regression: a virtual dataset SQL template like
+    ``SELECT {{ nonexistent_var + 1 }}`` raises a raw ``jinja2.UndefinedError``
+    from the Jinja *render* step (not the parse step), which the
+    ``except SupersetSyntaxErrorException`` branch alone doesn't catch. Must
+    be softened to ``SupersetVirtualTableParseException`` like the sibling
+    parse-time UndefinedError case.
+    """
+    dataset = mocker.MagicMock(template_params_dict={})
+    dataset.database.db_engine_spec.engine = "postgresql"
+    dataset.get_template_processor().process_template.side_effect = UndefinedError(
+        "'nonexistent_var' is undefined"
+    )
+
+    with pytest.raises(SupersetVirtualTableParseException):
+        get_virtual_table_metadata(dataset)
+
+
+def test_get_virtual_table_metadata_renders_jinja(mocker: MockerFixture) -> None:
+    """Regression for #25839: Jinja templates in a virtual dataset's SQL must
+    be rendered via the template processor before SQL parsing. Otherwise the
+    raw Jinja tokens reach sqlglot and the parser rejects them as a syntax
+    error (the user-visible symptom is "Invalid SQL" when clicking
+    "SYNC COLUMNS FROM SOURCE" on a dataset that uses Jinja macros).
+    """
+    mock_get_columns_description = mocker.patch(
+        "superset.connectors.sqla.utils.get_columns_description",
+        return_value=[{"name": "rendered_col", "type": "INTEGER"}],
+    )
+
+    raw_sql = "SELECT * FROM tbl WHERE user_id = {{ current_user_id() }}"
+    rendered_sql = "SELECT * FROM tbl WHERE user_id = 42"
+
+    dataset = mocker.MagicMock(sql=raw_sql)
+    dataset.database.db_engine_spec.engine = "postgresql"
+    dataset.template_params_dict = {}
+    dataset.get_template_processor().process_template.return_value = rendered_sql
+
+    # If Jinja rendering is skipped, sqlglot tries to parse the raw {{ ... }}
+    # and raises SupersetGenericDBErrorException / SupersetParseError.
+    assert get_virtual_table_metadata(dataset) == [
+        {"name": "rendered_col", "type": "INTEGER"}
+    ]
+
+    # The template processor MUST have been called with the raw SQL (the
+    # whole point of the bug fix). A future regression that re-introduces
+    # the "Jinja not rendered" path would either skip this call or call it
+    # with the wrong input.
+    dataset.get_template_processor().process_template.assert_any_call(
+        raw_sql, **dataset.template_params_dict
+    )
+
+    # End-to-end guard: the rendered SQL must reach get_columns_description,
+    # not the raw Jinja string. A regression where rendering is used for
+    # parsing only and the raw SQL leaks downstream would pass the
+    # process_template assertion above but fail this one.
+    call_args = mock_get_columns_description.call_args
+    assert call_args is not None, "get_columns_description was never called"
+    passed_query = call_args.kwargs.get("query")
+    if passed_query is None and call_args.args:
+        passed_query = call_args.args[-1]
+    assert passed_query == rendered_sql, (
+        f"get_columns_description received unrendered SQL: {passed_query!r}"
+    )

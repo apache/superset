@@ -28,6 +28,12 @@ type UseUnsavedChangesPromptProps = {
   onSave: () => Promise<void> | void;
   isSaveModalVisible?: boolean;
   manualSaveOnUnsavedChanges?: boolean;
+  /**
+   * Transitions that keep the user on the current page - Explore, for one, adds
+   * an entry per chart state so that Back undoes it - aren't navigation away
+   * and shouldn't prompt.
+   */
+  isInPlaceTransition?: (state: Location['state']) => boolean;
 };
 
 export const useUnsavedChangesPrompt = ({
@@ -35,6 +41,7 @@ export const useUnsavedChangesPrompt = ({
   onSave,
   isSaveModalVisible = false,
   manualSaveOnUnsavedChanges = false,
+  isInPlaceTransition,
 }: UseUnsavedChangesPromptProps) => {
   const history = useHistory();
   const [showModal, setShowModal] = useState(false);
@@ -88,6 +95,10 @@ export const useUnsavedChangesPrompt = ({
         return undefined;
       }
 
+      if (isInPlaceTransition?.(state)) {
+        return undefined;
+      }
+
       if (manualSaveRef.current) {
         manualSaveRef.current = false;
         return undefined;
@@ -105,7 +116,7 @@ export const useUnsavedChangesPrompt = ({
       setShowModal(true);
       return false;
     },
-    [history],
+    [history, isInPlaceTransition],
   );
 
   useEffect(() => {

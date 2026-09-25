@@ -17,6 +17,7 @@
  * under the License.
  */
 import type { ReactNode } from 'react';
+import type { ButtonStyle } from '../Button/types';
 
 export type Callback = (...args: any[]) => void;
 
@@ -25,4 +26,19 @@ export interface ConfirmStatusChangeProps {
   description: ReactNode;
   onConfirm: Callback;
   children: (showConfirm: Callback) => ReactNode;
+  /**
+   * Forwarded to the underlying DeleteModal: recoverable (soft-delete) mode
+   * drops the "type DELETE to confirm" step and uses a primary confirm button.
+   */
+  recoverable?: boolean;
+  /** Forwarded to the underlying DeleteModal: overrides the confirm label only. */
+  primaryButtonName?: string;
+  /** Forwarded to the underlying DeleteModal: overrides the confirm style only. */
+  primaryButtonStyle?: ButtonStyle;
+  /**
+   * Forwarded to the underlying DeleteModal: keeps the confirm button disabled
+   * regardless of the typed-text gate, e.g. while the caller is still loading
+   * information the user needs before confirming.
+   */
+  disablePrimaryButton?: boolean;
 }

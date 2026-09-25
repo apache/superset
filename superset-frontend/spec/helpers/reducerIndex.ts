@@ -30,6 +30,7 @@ import saveModal from 'src/explore/reducers/saveModalReducer';
 import explore from 'src/explore/reducers/exploreReducer';
 import sqlLab from 'src/SqlLab/reducers/sqlLab';
 import reports from 'src/features/reports/ReportModal/reducer';
+import versionHistory from 'src/features/versionHistory/reducer';
 import getBootstrapData from 'src/utils/getBootstrapData';
 
 const impressionId = (state = '') => state;
@@ -60,6 +61,7 @@ export default {
   sqlLab,
   localStorageUsageInKilobytes: noopReducer(0),
   reports,
+  versionHistory,
   common: noopReducer(common),
   user: noopReducer(user),
 };

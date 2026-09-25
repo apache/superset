@@ -18,7 +18,7 @@
  */
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useResizeDetector } from 'react-resize-detector';
-import { uniqWith } from 'lodash';
+import { uniqWith } from 'lodash-es';
 import { styled } from '@apache-superset/core/theme';
 import { Tooltip } from '../Tooltip';
 import { TooltipPlacement } from '../Tooltip/types';
@@ -89,6 +89,7 @@ const StyledItem = styled.div<{
     & .metadata-text {
       color: ${theme.colorTextSecondary};
       min-width: ${TEXT_MIN_WIDTH}px;
+      max-width: ${TEXT_MAX_WIDTH}px;
       overflow: hidden;
       text-overflow: ${collapsed ? 'unset' : 'ellipsis'};
       white-space: nowrap;

@@ -28,6 +28,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from superset_core.mcp.decorators import tool, ToolAnnotations
 
 from superset.commands.exceptions import CommandException
+from superset.common.form_data_query_context import is_raw_query_mode
 from superset.exceptions import OAuth2Error, OAuth2RedirectError
 from superset.extensions import event_logger
 from superset.mcp_service.chart.chart_helpers import (
@@ -39,15 +40,28 @@ from superset.mcp_service.chart.chart_utils import (
     analyze_chart_semantics,
     generate_chart_name,
     map_config_to_form_data,
+    merge_chart_form_data,
+    merge_interactive_pivot_ui_config,
+    merge_table_column_config,
+    resolve_treemap_update_config,
+    validate_gantt_form_data,
 )
 from superset.mcp_service.chart.compile import validate_and_compile
 from superset.mcp_service.chart.schemas import (
     AccessibilityMetadata,
+    ChartConfig,
+    ColumnRef,
+    GanttChartConfig,
+    GaugeChartConfig,
     GenerateChartResponse,
     PerformanceMetadata,
+    TableChartConfig,
+    TreemapChartConfig,
     UpdateChartRequest,
 )
-from superset.mcp_service.utils import escape_llm_context_delimiters
+from superset.mcp_service.chart.validation.dataset_validator import (
+    GanttSemanticNormalizationError,
+)
 from superset.mcp_service.utils.oauth2_utils import (
     build_oauth2_redirect_message,
     OAUTH2_CONFIG_ERROR_MESSAGE,
@@ -56,6 +70,20 @@ from superset.mcp_service.utils.url_utils import get_superset_base_url
 from superset.utils import json
 
 logger = logging.getLogger(__name__)
+
+
+def _get_existing_form_data(chart: Any) -> dict[str, Any]:
+    """Return a chart's saved form data, treating malformed params as empty."""
+    if not getattr(chart, "params", None):
+        return {}
+    try:
+        parsed = json.loads(chart.params)
+    except (ValueError, TypeError):
+        parsed = None
+    if not isinstance(parsed, dict):
+        logger.warning("Failed to parse existing chart.params for chart %s", chart.id)
+        return {}
+    return parsed
 
 
 def _validation_error_response(message: str, details: str) -> GenerateChartResponse:
@@ -76,12 +104,307 @@ def _validation_error_response(message: str, details: str) -> GenerateChartRespo
 
 def _missing_config_or_name_error() -> GenerateChartResponse:
     return _validation_error_response(
-        message="Either 'config' or 'chart_name' must be provided.",
+        message=(
+            "Either 'config', 'add_columns', 'chart_name', or 'dataset_id' must be "
+            "provided."
+        ),
         details=(
-            "Either 'config' or 'chart_name' must be provided. "
-            "Use config for visualization changes, chart_name for renaming."
+            "Use config for full visualization changes, add_columns to append table "
+            "columns without replacing existing columns, chart_name for renaming, "
+            "or dataset_id to rebind the chart to a different dataset."
         ),
     )
+
+
+def _wrapped_form_data_for_response(
+    new_form_data: dict[str, Any] | None,
+) -> dict[str, Any]:
+    """Return form data without changing SQL metric strings."""
+    payload = dict(new_form_data) if new_form_data is not None else {}
+    return payload
+
+
+def _entry_key(entry: Any) -> str:
+    """Stable identity for a form_data column or metric entry.
+
+    Metric lists mix saved-metric names with adhoc metric dicts, so entries
+    are not reliably hashable. Serializing gives every shape a comparable
+    key without dropping the unhashable ones.
+    """
+    return json.dumps(entry, sort_keys=True, default=str)
+
+
+def _extend_without_duplicates(existing: list[Any], additions: Any) -> list[Any]:
+    """Append entries that are not already present, preserving order.
+
+    Column and metric order drives the rendered table layout, so appending
+    keeps first-occurrence position rather than rebuilding from a set.
+    """
+    merged = list(existing)
+    seen = {_entry_key(entry) for entry in merged}
+    for entry in additions:
+        key = _entry_key(entry)
+        if key in seen:
+            continue
+        seen.add(key)
+        merged.append(entry)
+    return merged
+
+
+def _append_table_columns(
+    existing_form_data: dict[str, Any],
+    columns: list[ColumnRef],
+) -> dict[str, Any] | GenerateChartResponse:
+    """Append table columns/metrics without replacing the saved column lists."""
+    if existing_form_data.get("viz_type") not in {"table", "ag-grid-table"}:
+        return _validation_error_response(
+            message="'add_columns' is only supported for table charts.",
+            details=(
+                "Use 'config' to replace the full configuration of a non-table chart."
+            ),
+        )
+
+    merged = dict(existing_form_data)
+    metric_columns = [column for column in columns if column.is_metric]
+    dimension_columns = [column for column in columns if not column.is_metric]
+    if is_raw_query_mode(existing_form_data):
+        if metric_columns:
+            return _validation_error_response(
+                message="Cannot add metrics to a table in raw query mode.",
+                details=(
+                    "Raw tables accept only unaggregated columns in 'add_columns'. "
+                    "Use 'config' with query_mode='aggregate' and the complete table "
+                    "configuration to convert the chart before adding metrics."
+                ),
+            )
+        merged["all_columns"] = _extend_without_duplicates(
+            list(existing_form_data.get("all_columns") or []),
+            (column.name for column in columns if column.name is not None),
+        )
+        return merged
+
+    # map_config_to_form_data() infers query_mode from the columns handed to
+    # it, so a dimension-only patch compiles to a raw table whose groupby is
+    # empty. Route each kind by is_metric instead, to keep an aggregate chart
+    # aggregate no matter which mix of columns is appended.
+    metric_patch = (
+        map_config_to_form_data(TableChartConfig(columns=metric_columns))
+        if metric_columns
+        else {}
+    )
+    merged["groupby"] = _extend_without_duplicates(
+        list(existing_form_data.get("groupby") or []),
+        (column.name for column in dimension_columns if column.name is not None),
+    )
+    merged["metrics"] = _extend_without_duplicates(
+        list(existing_form_data.get("metrics") or []),
+        metric_patch.get("metrics") or [],
+    )
+    return merged
+
+
+def _merge_replacement_config(
+    existing_form_data: dict[str, Any],
+    new_form_data: dict[str, Any],
+    parsed_config: ChartConfig,
+    *,
+    dataset_rebind: bool = False,
+) -> dict[str, Any]:
+    """Delegate update semantics to the shared form-data merge helper."""
+    return merge_chart_form_data(
+        existing_form_data,
+        new_form_data,
+        parsed_config,
+        dataset_rebind=dataset_rebind,
+    )
+
+
+def _valid_dataset_reference(
+    value: Any,
+    columns: set[str],
+    metrics: set[str],
+    *,
+    allow_metric: bool = False,
+) -> bool:
+    """Return whether a form_data reference resolves against a dataset."""
+    if not isinstance(value, str):
+        return True
+    normalized = value.casefold()
+    return normalized in columns or (allow_metric and normalized in metrics)
+
+
+def _inherited_metrics_match_dataset(
+    existing_form_data: dict[str, Any],
+    columns: set[str],
+    metrics: set[str],
+) -> bool:
+    for metric in existing_form_data.get("metrics") or []:
+        if isinstance(metric, str) and not _valid_dataset_reference(
+            metric, columns, metrics, allow_metric=True
+        ):
+            return False
+        if isinstance(metric, dict):
+            column = metric.get("column")
+            if isinstance(column, dict) and not _valid_dataset_reference(
+                column.get("column_name"), columns, metrics
+            ):
+                return False
+    return True
+
+
+def _inherited_sort_matches_dataset(
+    order_by_cols: Any, columns: set[str], metrics: set[str]
+) -> bool:
+    for order_by in order_by_cols or []:
+        try:
+            column = json.loads(order_by)[0]
+        except (TypeError, ValueError, IndexError):
+            return False
+        if not _valid_dataset_reference(column, columns, metrics, allow_metric=True):
+            return False
+    return True
+
+
+def _inherited_filters_match_dataset(
+    filters: Any, columns: set[str], metrics: set[str]
+) -> bool:
+    for filter_ in filters or []:
+        if not isinstance(filter_, dict):
+            return False
+        if filter_.get("expressionType") not in (None, "SIMPLE"):
+            return False
+        subject = filter_.get("subject") or filter_.get("col")
+        allow_metric = str(filter_.get("clause", "WHERE")).upper() == "HAVING"
+        if not _valid_dataset_reference(
+            subject, columns, metrics, allow_metric=allow_metric
+        ):
+            return False
+    return True
+
+
+#: form_data keys carrying query roles, mapped to the config field that
+#: sets them explicitly. An explicit field is the caller's stated intent,
+#: so it is never treated as inherited state.
+_INHERITED_QUERY_ROLE_FIELDS = {
+    "groupby": "group_by",
+    "groupby_b": "group_by_secondary",
+    "all_columns": None,
+    "columns": None,
+    "x_axis": None,
+    "granularity_sqla": None,
+    "metrics": None,
+    "order_by_cols": "sort_by",
+    "adhoc_filters": "filters",
+}
+
+_INHERITED_COLUMN_LIST_KEYS = frozenset(
+    {"groupby", "groupby_b", "all_columns", "columns"}
+)
+_INHERITED_COLUMN_SCALAR_KEYS = frozenset({"x_axis", "granularity_sqla"})
+
+
+def _inherited_state_invalid_keys(
+    existing_form_data: dict[str, Any],
+    new_form_data: dict[str, Any],
+    parsed_config: ChartConfig,
+    dataset_id: int,
+) -> set[str]:
+    """Return inherited query fields that are invalid for a new dataset.
+
+    A dataset rebind only has to discard the state that cannot resolve
+    against the replacement dataset; everything else stays valid and is
+    preserved so the update does not silently reset the chart.
+    """
+    fields_set = parsed_config.model_fields_set
+    inherited_keys = {
+        key
+        for key, config_field in _INHERITED_QUERY_ROLE_FIELDS.items()
+        if key not in new_form_data
+        and config_field not in fields_set
+        and existing_form_data.get(key)
+    }
+    if not inherited_keys:
+        return set()
+
+    from superset.daos.dataset import DatasetDAO
+    from superset.mcp_service.chart.validation.dataset_validator import (
+        build_dataset_context_from_orm,
+    )
+
+    context = build_dataset_context_from_orm(DatasetDAO.find_by_id(dataset_id))
+    if context is None:
+        # The replacement dataset cannot be inspected, so no inherited
+        # reference can be shown to be safe.
+        return inherited_keys
+    columns = {column["name"].casefold() for column in context.available_columns}
+    metrics = {metric["name"].casefold() for metric in context.available_metrics}
+
+    invalid_keys: set[str] = set()
+    for key in inherited_keys & _INHERITED_COLUMN_LIST_KEYS:
+        values = existing_form_data.get(key)
+        if isinstance(values, list) and not all(
+            _valid_dataset_reference(value, columns, metrics) for value in values
+        ):
+            invalid_keys.add(key)
+    for key in inherited_keys & _INHERITED_COLUMN_SCALAR_KEYS:
+        if not _valid_dataset_reference(existing_form_data.get(key), columns, metrics):
+            invalid_keys.add(key)
+    if "metrics" in inherited_keys and not _inherited_metrics_match_dataset(
+        existing_form_data, columns, metrics
+    ):
+        invalid_keys.add("metrics")
+    if "order_by_cols" in inherited_keys and not _inherited_sort_matches_dataset(
+        existing_form_data.get("order_by_cols"), columns, metrics
+    ):
+        invalid_keys.add("order_by_cols")
+    if "adhoc_filters" in inherited_keys and not _inherited_filters_match_dataset(
+        existing_form_data.get("adhoc_filters"), columns, metrics
+    ):
+        invalid_keys.add("adhoc_filters")
+    return invalid_keys
+
+
+def _build_replacement_form_data(
+    existing_form_data: dict[str, Any],
+    parsed_config: ChartConfig,
+    effective_dataset_id: int | None,
+    replacement_dataset_id: int | None = None,
+) -> dict[str, Any]:
+    """Map and merge a replacement config for preview and save paths."""
+    new_form_data = map_config_to_form_data(
+        parsed_config, dataset_id=effective_dataset_id
+    )
+    new_form_data.pop("_mcp_warnings", None)
+    dataset_rebind = replacement_dataset_id is not None
+    if replacement_dataset_id is not None and not isinstance(
+        parsed_config, (GanttChartConfig, GaugeChartConfig, TreemapChartConfig)
+    ):
+        # Drop only the inherited state the replacement dataset cannot
+        # resolve, then merge as a same-dataset update. Gantt and Gauge keep the
+        # stricter rebind contracts handled downstream.
+        invalid_keys = _inherited_state_invalid_keys(
+            existing_form_data,
+            new_form_data,
+            parsed_config,
+            replacement_dataset_id,
+        )
+        existing_form_data = {
+            key: value
+            for key, value in existing_form_data.items()
+            if key not in invalid_keys
+        }
+        dataset_rebind = False
+    merge_table_column_config(existing_form_data, new_form_data)
+    merge_interactive_pivot_ui_config(existing_form_data, new_form_data)
+    merged = _merge_replacement_config(
+        existing_form_data,
+        new_form_data,
+        parsed_config,
+        dataset_rebind=dataset_rebind,
+    )
+    if replacement_dataset_id is not None:
+        merged["datasource"] = f"{replacement_dataset_id}__table"
+    return merged
 
 
 def _build_update_payload(
@@ -92,13 +415,26 @@ def _build_update_payload(
     """Build the update payload for a chart update.
 
     Returns a dict payload on success, or a GenerateChartResponse error
-    when neither config nor chart_name is provided.
+    when neither config nor chart_name nor dataset_id is provided.
     ``parsed_config`` is the pre-parsed chart config from the caller.
     """
+    effective_dataset_id = (
+        request.dataset_id
+        if request.dataset_id is not None
+        else (chart.datasource_id if chart.datasource_id else None)
+    )
+
     if parsed_config is not None:
-        dataset_id = chart.datasource_id if chart.datasource_id else None
-        new_form_data = map_config_to_form_data(parsed_config, dataset_id=dataset_id)
-        new_form_data.pop("_mcp_warnings", None)
+        new_form_data = _build_replacement_form_data(
+            _get_existing_form_data(chart),
+            parsed_config,
+            effective_dataset_id,
+            replacement_dataset_id=(
+                request.dataset_id
+                if request.dataset_id != getattr(chart, "datasource_id", None)
+                else None
+            ),
+        )
 
         chart_name = (
             request.chart_name
@@ -106,13 +442,47 @@ def _build_update_payload(
             else chart.slice_name or generate_chart_name(parsed_config)
         )
 
-        return {
+        payload: dict[str, Any] = {
             "slice_name": chart_name,
             "viz_type": new_form_data["viz_type"],
             "params": json.dumps(new_form_data),
             # Clear stale query_context so get_chart_data uses the updated params.
             "query_context": None,
         }
+        if request.dataset_id is not None:
+            payload["datasource_id"] = request.dataset_id
+            payload["datasource_type"] = "table"
+        return payload
+
+    if request.add_columns is not None:
+        try:
+            existing_form_data = json.loads(chart.params) if chart.params else {}
+        except (ValueError, TypeError):
+            existing_form_data = {}
+        patched = _append_table_columns(existing_form_data, request.add_columns)
+        if isinstance(patched, GenerateChartResponse):
+            return patched
+        chart_name = request.chart_name or chart.slice_name
+        additive_payload: dict[str, Any] = {
+            "slice_name": chart_name,
+            "viz_type": patched["viz_type"],
+            "params": json.dumps(patched),
+            "query_context": None,
+        }
+        if request.dataset_id is not None:
+            additive_payload["datasource_id"] = request.dataset_id
+            additive_payload["datasource_type"] = "table"
+        return additive_payload
+
+    # Dataset-only update: rebind chart to a different dataset without changing viz
+    if request.dataset_id is not None:
+        payload = {
+            "datasource_id": request.dataset_id,
+            "datasource_type": "table",
+        }
+        if request.chart_name:
+            payload["slice_name"] = request.chart_name
+        return payload
 
     # Name-only update: keep existing visualization, just rename
     if not request.chart_name:
@@ -132,23 +502,32 @@ def _build_preview_form_data(
     GenerateChartResponse error when neither config nor chart_name is given.
     ``parsed_config`` is the pre-parsed chart config from the caller.
     """
-    existing_form_data: dict[str, Any] = {}
-    if getattr(chart, "params", None):
-        try:
-            existing_form_data = json.loads(chart.params) or {}
-        except (ValueError, TypeError):
-            logger.warning(
-                "Failed to parse existing chart.params for chart %s", chart.id
-            )
-            existing_form_data = {}
+    existing_form_data = _get_existing_form_data(chart)
+
+    effective_dataset_id = (
+        request.dataset_id
+        if request.dataset_id is not None
+        else (chart.datasource_id if chart.datasource_id else None)
+    )
 
     if parsed_config is not None:
-        dataset_id = chart.datasource_id if chart.datasource_id else None
-        new_form_data = map_config_to_form_data(parsed_config, dataset_id=dataset_id)
-        new_form_data.pop("_mcp_warnings", None)
-        merged = {**existing_form_data, **new_form_data}
+        merged = _build_replacement_form_data(
+            existing_form_data,
+            parsed_config,
+            effective_dataset_id,
+            replacement_dataset_id=(
+                request.dataset_id
+                if request.dataset_id != getattr(chart, "datasource_id", None)
+                else None
+            ),
+        )
+    elif request.add_columns is not None:
+        patched = _append_table_columns(existing_form_data, request.add_columns)
+        if isinstance(patched, GenerateChartResponse):
+            return patched
+        merged = patched
     else:
-        if not request.chart_name:
+        if not request.chart_name and request.dataset_id is None:
             return _missing_config_or_name_error()
         merged = dict(existing_form_data)
 
@@ -158,8 +537,8 @@ def _build_preview_form_data(
         merged["slice_name"] = chart.slice_name
 
     merged["slice_id"] = chart.id
-    if chart.datasource_id:
-        merged["datasource"] = f"{chart.datasource_id}__table"
+    if effective_dataset_id:
+        merged["datasource"] = f"{effective_dataset_id}__table"
 
     return merged
 
@@ -168,27 +547,39 @@ def _validate_update_against_dataset(
     parsed_config: Any,
     form_data: dict[str, Any],
     chart: Any,
+    dataset_id: int | None = None,
+    run_compile_check: bool = True,
 ) -> GenerateChartResponse | None:
     """Run Tier 1 (schema) + Tier 2 (compile) validation against the chart's
     dataset. Returns ``None`` on success, or a :class:`GenerateChartResponse`
     error envelope on failure that callers should return as-is.
+
+    When ``dataset_id`` is provided, validates against that dataset instead of
+    the chart's existing datasource (used when rebinding to a new dataset).
+    Pass ``run_compile_check=False`` to skip the Tier 2 live-query check (used
+    for dataset-only rebinds where no new chart config is provided).
     """
     from superset.daos.dataset import DatasetDAO
 
-    dataset = getattr(chart, "datasource", None)
-    if dataset is None and getattr(chart, "datasource_id", None) is not None:
-        dataset = DatasetDAO.find_by_id(chart.datasource_id)
+    if dataset_id is not None:
+        dataset = DatasetDAO.find_by_id(dataset_id)
+    else:
+        dataset = getattr(chart, "datasource", None)
+        if dataset is None and getattr(chart, "datasource_id", None) is not None:
+            dataset = DatasetDAO.find_by_id(chart.datasource_id)
     if dataset is None:
+        missing_id = (
+            dataset_id
+            if dataset_id is not None
+            else getattr(chart, "datasource_id", None)
+        )
         return GenerateChartResponse.model_validate(
             {
                 "chart": None,
                 "error": {
                     "error_type": "DatasetNotAccessible",
-                    "message": "Chart's dataset is not accessible",
-                    "details": (
-                        f"Dataset {getattr(chart, 'datasource_id', None)} "
-                        "is missing or inaccessible."
-                    ),
+                    "message": "Dataset is not accessible",
+                    "details": (f"Dataset {missing_id} is missing or inaccessible."),
                 },
                 "success": False,
                 "schema_version": "2.0",
@@ -196,8 +587,24 @@ def _validate_update_against_dataset(
             }
         )
 
+    try:
+        merged_gantt_config = validate_gantt_form_data(
+            form_data,
+            dataset.id,
+        )
+    except GanttSemanticNormalizationError as ex:
+        return _validation_error_response(
+            message="Gantt chart column roles are invalid",
+            details=str(ex),
+        )
+    if merged_gantt_config is not None:
+        # Validation must describe the state that will actually be queried or
+        # persisted, including any omitted series/subcategory values restored
+        # from the saved chart.
+        parsed_config = merged_gantt_config
+
     compile_result = validate_and_compile(
-        parsed_config, form_data, dataset, run_compile_check=True
+        parsed_config, form_data, dataset, run_compile_check=run_compile_check
     )
     if compile_result.success:
         return None
@@ -229,12 +636,18 @@ def _validate_update_against_dataset(
 
 
 def _create_preview_url(
-    chart: Any, form_data: dict[str, Any]
+    chart: Any,
+    form_data: dict[str, Any],
+    datasource_id: int | None = None,
 ) -> tuple[str, str | None, list[str]]:
     """Cache form_data and return (explore_url, form_data_key, warnings).
 
     The URL includes both ``slice_id`` and ``form_data_key`` so that when the
     user clicks Save in Explore, the edits overwrite the original chart.
+
+    When ``datasource_id`` is provided, uses that datasource for the form_data
+    cache instead of the chart's existing datasource (used when rebinding to a
+    new dataset).
     """
     from superset.commands.explore.form_data.parameters import CommandParameters
     from superset.mcp_service.commands.create_form_data import MCPCreateFormDataCommand
@@ -242,7 +655,11 @@ def _create_preview_url(
 
     base_url = get_superset_base_url()
 
-    if not chart.datasource_id:
+    effective_datasource_id = (
+        datasource_id if datasource_id is not None else chart.datasource_id
+    )
+
+    if not effective_datasource_id:
         warning = (
             "Chart has no datasource; the preview URL shows the saved chart "
             "state, not the pending changes. Open the URL and apply the "
@@ -257,7 +674,7 @@ def _create_preview_url(
 
     cmd_params = CommandParameters(
         datasource_type=DatasourceType.TABLE,
-        datasource_id=chart.datasource_id,
+        datasource_id=effective_datasource_id,
         chart_id=chart.id,
         tab_id=None,
         form_data=json.dumps(form_data),
@@ -276,6 +693,8 @@ def _create_preview_url(
         title="Update chart",
         readOnlyHint=False,
         destructiveHint=True,
+        idempotentHint=False,
+        openWorldHint=False,
     ),
 )
 async def update_chart(  # noqa: C901
@@ -291,6 +710,7 @@ async def update_chart(  # noqa: C901
     - LLM clients MUST display the returned explore URL to users.
     - Use numeric ID or UUID string to identify the chart (NOT chart name).
     - config is optional — omit it to rename a chart without changing its visualization
+    - To append table columns without restating the existing list, use add_columns
 
     Example usage (preview, default):
     ```json
@@ -322,6 +742,44 @@ async def update_chart(  # noqa: C901
     }
     ```
 
+    Add a table column while preserving existing columns and metrics:
+    ```json
+    {
+        "identifier": 123,
+        "add_columns": [{"name": "go_live_date", "aggregate": "MIN"}]
+    }
+    ```
+
+    add_columns combines with chart_name to append and rename in one call.
+    Columns already on the chart are ignored, so repeating a column is safe:
+    ```json
+    {
+        "identifier": 123,
+        "chart_name": "Go-Live Tracker",
+        "add_columns": [{"name": "region"}]
+    }
+    ```
+
+    Example usage with a custom SQL metric (ratios, conditional aggregations,
+    unit conversions). Pass 'sql_expression' instead of 'name'+'aggregate'.
+    A 'label' is required:
+    ```json
+    {
+        "identifier": 123,
+        "config": {
+            "chart_type": "xy",
+            "x": {"name": "date"},
+            "y": [{
+                "sql_expression":
+                    "COUNT(CASE WHEN closed_won THEN 1 END)::numeric / "
+                    "NULLIF(COUNT(*), 0)",
+                "label": "Win Rate"
+            }],
+            "kind": "line"
+        }
+    }
+    ```
+
     Use when:
     - Modifying existing saved chart
     - Updating title, filters, or visualization settings
@@ -338,9 +796,9 @@ async def update_chart(  # noqa: C901
             chart = find_chart_by_identifier(request.identifier)
 
         if not chart:
-            safe_id = escape_llm_context_delimiters(str(request.identifier)[:200])
+            display_id = str(request.identifier)[:200]
             not_found_msg = (
-                f"No chart found with identifier: {safe_id}."
+                f"No chart found with identifier: {display_id}."
                 " Use list_charts to get valid chart IDs."
             )
             return GenerateChartResponse.model_validate(
@@ -355,6 +813,25 @@ async def update_chart(  # noqa: C901
                     "schema_version": "2.0",
                     "api_version": "v1",
                 }
+            )
+
+        if (
+            request.dataset_id is not None
+            and request.dataset_id != getattr(chart, "datasource_id", None)
+            and request.config is None
+            and getattr(chart, "viz_type", None) in ("gauge_chart", "treemap_v2")
+        ):
+            return _validation_error_response(
+                message=(
+                    "Gauge dataset rebind requires a complete Gauge config."
+                    if chart.viz_type == "gauge_chart"
+                    else "Treemap dataset rebind requires a complete Treemap config."
+                ),
+                details=(
+                    "Provide the chart type and complete roles valid on the target "
+                    "dataset. This prevents stale metric, groupby, and filter roles "
+                    "from the previous dataset from being retained."
+                ),
             )
 
         # Validate dataset access before allowing update.
@@ -388,7 +865,60 @@ async def update_chart(  # noqa: C901
         new_form_data: dict[str, Any] | None = None
 
         # config is already a typed ChartConfig | None (validated by Pydantic)
-        parsed_config = request.config
+        try:
+            parsed_config = (
+                resolve_treemap_update_config(
+                    request.config,
+                    _get_existing_form_data(chart),
+                    dataset_rebind=request.dataset_id is not None
+                    and request.dataset_id != chart.datasource_id,
+                )
+                if request.config is not None
+                else None
+            )
+        except ValueError as ex:
+            return _validation_error_response(
+                "Invalid Treemap update configuration", str(ex)
+            )
+        validation_config = parsed_config
+        if request.add_columns is not None:
+            validation_config = TableChartConfig(columns=request.add_columns)
+
+        # Normalize column case to match dataset canonical names
+        # (mirrors generate_chart pipeline layer 4)
+        # When rebinding to a new dataset, normalize against the target dataset —
+        # not the chart's current datasource — so canonical names are resolved
+        # against the schema that will actually be used after the update.
+        effective_norm_dataset_id = (
+            request.dataset_id
+            if request.dataset_id is not None
+            else getattr(chart, "datasource_id", None)
+        )
+        if validation_config is not None and effective_norm_dataset_id is not None:
+            from superset.mcp_service.chart.validation.dataset_validator import (
+                DatasetValidator,
+                NORMALIZATION_EXCEPTIONS,
+            )
+
+            try:
+                validation_config = DatasetValidator.normalize_column_names(
+                    validation_config, effective_norm_dataset_id
+                )
+                if parsed_config is not None:
+                    parsed_config = validation_config
+                else:
+                    request = request.model_copy(
+                        update={"add_columns": validation_config.columns}
+                    )
+            except GanttSemanticNormalizationError as ex:
+                return _validation_error_response(
+                    message="Gantt chart column roles are invalid",
+                    details=str(ex),
+                )
+            except NORMALIZATION_EXCEPTIONS as e:
+                logger.warning(
+                    "Column normalization failed for chart %s: %s", chart.id, e
+                )
 
         if not request.generate_preview:
             from superset.commands.chart.update import UpdateChartCommand
@@ -403,12 +933,29 @@ async def update_chart(  # noqa: C901
 
             # Validate before persisting — catches bad column refs and runtime
             # SQL errors so we don't commit a chart that can't be queried.
-            # Renames (no parsed_config) skip validation since form_data is
-            # untouched.
-            if parsed_config is not None and new_form_data is not None:
+            # Renames (no parsed_config and no dataset_id) skip validation since
+            # form_data is untouched and no rebind is requested.
+            if validation_config is not None and new_form_data is not None:
                 with event_logger.log_context(action="mcp.update_chart.validation"):
                     validation_error = _validate_update_against_dataset(
-                        parsed_config, new_form_data, chart
+                        validation_config,
+                        new_form_data,
+                        chart,
+                        dataset_id=request.dataset_id,
+                    )
+                if validation_error is not None:
+                    return validation_error
+            elif request.dataset_id is not None:
+                # Dataset-only rebind: verify the target dataset exists before
+                # writing. Skip compile check — there is no new chart config to
+                # execute against the new dataset.
+                with event_logger.log_context(action="mcp.update_chart.validation"):
+                    validation_error = _validate_update_against_dataset(
+                        None,
+                        {},
+                        chart,
+                        dataset_id=request.dataset_id,
+                        run_compile_check=False,
                     )
                 if validation_error is not None:
                     return validation_error
@@ -424,24 +971,42 @@ async def update_chart(  # noqa: C901
             preview_or_error = _build_preview_form_data(request, chart, parsed_config)
             if isinstance(preview_or_error, GenerateChartResponse):
                 return preview_or_error
+            new_form_data = preview_or_error
 
             # Validate before caching the form_data — same rationale as above.
-            if parsed_config is not None:
+            if validation_config is not None:
                 with event_logger.log_context(action="mcp.update_chart.validation"):
                     validation_error = _validate_update_against_dataset(
-                        parsed_config, preview_or_error, chart
+                        validation_config,
+                        preview_or_error,
+                        chart,
+                        dataset_id=request.dataset_id,
+                    )
+                if validation_error is not None:
+                    return validation_error
+            elif request.dataset_id is not None:
+                # Dataset-only rebind: verify the target dataset exists before
+                # caching. Skip compile check — no new config to execute.
+                with event_logger.log_context(action="mcp.update_chart.validation"):
+                    validation_error = _validate_update_against_dataset(
+                        None,
+                        {},
+                        chart,
+                        dataset_id=request.dataset_id,
+                        run_compile_check=False,
                     )
                 if validation_error is not None:
                     return validation_error
 
             with event_logger.log_context(action="mcp.update_chart.preview_link"):
                 explore_url, form_data_key, warnings = _create_preview_url(
-                    chart, preview_or_error
+                    chart, preview_or_error, datasource_id=request.dataset_id
                 )
 
         chart_for_analysis = updated_chart if saved else chart
-        capabilities = analyze_chart_capabilities(chart_for_analysis, parsed_config)
-        semantics = analyze_chart_semantics(chart_for_analysis, parsed_config)
+        viz_type_for_analysis = getattr(chart_for_analysis, "viz_type", None)
+        capabilities = analyze_chart_capabilities(viz_type_for_analysis, parsed_config)
+        semantics = analyze_chart_semantics(viz_type_for_analysis, parsed_config)
 
         execution_time = int((time.time() - start_time) * 1000)
         performance = PerformanceMetadata(
@@ -532,8 +1097,7 @@ async def update_chart(  # noqa: C901
             },
             "error": None,
             "warnings": warnings,
-            # Include form_data so callers can verify what was saved.
-            "form_data": new_form_data if new_form_data is not None else {},
+            "form_data": _wrapped_form_data_for_response(new_form_data),
             "previews": previews,
             "capabilities": capabilities.model_dump() if capabilities else None,
             "semantics": semantics.model_dump() if semantics else None,
@@ -553,6 +1117,11 @@ async def update_chart(  # noqa: C901
         }
         return GenerateChartResponse.model_validate(result)
 
+    except GanttSemanticNormalizationError as ex:
+        return _validation_error_response(
+            message="Gantt chart column roles are invalid",
+            details=str(ex),
+        )
     except OAuth2RedirectError as ex:
         await ctx.warning(
             "Chart update requires OAuth authentication: identifier=%s"

@@ -25,6 +25,13 @@ export const RESPONSIVE_WIDTH = 0;
 export const FilterPluginStyle = styled.div<PluginFilterStylesProps>`
   min-height: ${({ height }) => height}px;
   width: ${({ width }) => (width === RESPONSIVE_WIDTH ? '100%' : `${width}px`)};
+  /* Filter value controls (Input / InputNumber / the Select search field) */
+  /* resolve 'text-align' by inheritance. Pin the wrapper to the inline start */
+  /* so the caret and typed text stay at the inline-start edge even when a */
+  /* centered 'text-align' is inherited from an ancestor (e.g. a host-app */
+  /* theme or css-in-js override). 'start' is the CSS default, so this is a */
+  /* no-op unless a centered value is inherited, and it is RTL-safe. */
+  text-align: start;
 `;
 
 export const StyledFormItem = styled(FormItem)`

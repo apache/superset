@@ -130,7 +130,7 @@ const TagModal: FC<TagModalProps> = ({
           setChartsToTag(resourceMap[TaggableResources.Chart]);
           setSavedQueriesToTag(resourceMap[TaggableResources.SavedQuery]);
         },
-        (error: Response) => {
+        (_error: Response) => {
           addDangerToast('Error Fetching Tagged Objects');
         },
       );
@@ -312,8 +312,11 @@ const TagModal: FC<TagModalProps> = ({
         </Flex>
 
         <Flex vertical gap={theme.sizeUnit}>
-          <FormLabel>{t('Description')}</FormLabel>
+          <FormLabel htmlFor="tag-description">
+            {t('Tag description')}
+          </FormLabel>
           <Input
+            id="tag-description"
             className="tag-input"
             onChange={handleDescriptionChange}
             placeholder={t('Add description of your tag')}

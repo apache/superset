@@ -59,7 +59,7 @@
  * 4. Run npm publish with appropriate access rights
  */
 
-const { spawn, execSync } = require('child_process');
+const { spawn, execSync, execFileSync } = require('child_process');
 const path = require('path');
 const fs = require('fs');
 
@@ -176,7 +176,7 @@ function checkEnvironment() {
 
     // Check if Superset is installed
     try {
-        execSync(`${python} -c "import superset"`, {
+        execFileSync(python, ['-c', 'import superset'], {
             env: { ...process.env, PYTHONPATH: supersetRoot },
             stdio: 'ignore'
         });

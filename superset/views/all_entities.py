@@ -31,7 +31,7 @@ logger = logging.getLogger(__name__)
 
 
 class TaggedObjectsModelView(SupersetModelView):
-    route_base = "/superset/all_entities"
+    route_base = "/all_entities"
     datamodel = SQLAInterface(Tag)
     class_permission_name = "Tags"
     include_route_methods = {RouteMethod.LIST}

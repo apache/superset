@@ -36,6 +36,7 @@ import type {
   QueryResponse,
   TimeFormatter,
 } from '@superset-ui/core';
+import { type RGBColor } from '@superset-ui/core/components';
 import { GenericDataType } from '@apache-superset/core/common';
 import { sharedControls, sharedControlComponents } from './shared-controls';
 
@@ -86,7 +87,7 @@ export interface Dataset {
   name?: string;
   description: string | null;
   uid?: string;
-  owners?: Owner[];
+  editors?: Owner[];
   filter_select?: boolean;
   filter_select_enabled?: boolean;
   column_names?: string[];
@@ -97,6 +98,11 @@ export interface Dataset {
   normalize_columns?: boolean;
   always_filter_main_dttm?: boolean;
   extra?: object | string;
+  /**
+   * Stable string values of the features a semantic view's provider declares.
+   * Only present for semantic views; absent elsewhere.
+   */
+  semantic_view_features?: string[];
 }
 
 export interface ControlPanelState {
@@ -204,8 +210,14 @@ export type TabOverride = 'data' | 'customize' | 'matrixify' | boolean;
  * these configs will be passed to the UI component for control as props.
  *
  * - type: the control type, referencing a React component of the same name
- * - label: the label as shown in the control's header
- * - description: shown in the info tooltip of the control's header
+ * - label: the label as shown in the control's header. When the value involves
+ *   `t()`/`tn()`, prefer the arrow-function form (`label: () => t('Foo')`) so
+ *   the lookup runs at render time rather than at module load — eager
+ *   `label: t('Foo')` captures the fallback language before i18n initializes
+ *   and does not update on runtime language change. The
+ *   `i18n-strings/no-eager-t-in-config` lint rule autofixes this.
+ * - description: shown in the info tooltip of the control's header. Same
+ *   lazy-form guidance as `label`.
  * - default: the default value when opening a new chart, or changing visualization type
  * - renderTrigger: a bool that defines whether the visualization should be re-rendered
  *    when changed. This should `true` for controls that only affect the rendering (client side)
@@ -482,18 +494,36 @@ export const MultipleValueComparators = [
   Comparator.BetweenOrRightEqual,
 ];
 
+export enum BoundUnit {
+  Value = 'value',
+  Percent = 'percent',
+}
+
+export enum PercentDenominator {
+  Sum = 'sum',
+  Max = 'max',
+}
+
 export type ConditionalFormattingConfig = {
   operator?: Comparator;
   targetValue?: number | string;
   targetValueLeft?: number;
   targetValueRight?: number;
   column?: string;
-  colorScheme?: string;
+  colorScheme?: RGBColor | string;
   toAllRow?: boolean;
   toTextColor?: boolean;
   useGradient?: boolean;
   columnFormatting?: string;
   objectFormatting?: ObjectFormattingEnum;
+  minBound?: number;
+  maxBound?: number;
+  centerValue?: number;
+  lowColor?: RGBColor | string;
+  midColor?: RGBColor | string;
+  highColor?: RGBColor | string;
+  boundUnit?: BoundUnit;
+  percentDenominator?: PercentDenominator;
 };
 
 export type ColorFormatters = {
@@ -511,8 +541,6 @@ export type ResolvedColorFormatterResult = {
   backgroundColor?: string;
   color?: string;
 };
-
-export default {};
 
 export function isColumnMeta(column: AnyDict): column is ColumnMeta {
   return !!column && 'column_name' in column;
@@ -671,7 +699,9 @@ export interface ServerPaginationData {
 
 export type TableColumnConfig = {
   d3NumberFormat?: string;
-  d3SmallNumberFormat?: string;
+  // Allow null to match JSON round-trips, where an unset value deserializes
+  // from the metadata DB as `null` rather than `undefined`.
+  d3SmallNumberFormat?: string | null;
   d3TimeFormat?: string;
   columnWidth?: number;
   horizontalAlign?: 'left' | 'right' | 'center';
@@ -705,4 +735,5 @@ export interface DataColumnMeta {
   isChildColumn?: boolean;
   description?: string;
   currencyCodeColumn?: string;
+  isFilterable?: boolean;
 }

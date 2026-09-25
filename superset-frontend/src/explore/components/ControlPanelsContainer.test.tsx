@@ -139,7 +139,7 @@ describe('ControlPanelsContainer', () => {
       ).toHaveLength(4);
     });
     expect(screen.getByRole('tab', { name: /customize/i })).toBeInTheDocument();
-    userEvent.click(screen.getByRole('tab', { name: /customize/i }));
+    await userEvent.click(screen.getByRole('tab', { name: /customize/i }));
     await waitFor(() => {
       expect(
         screen.getAllByTestId('collapsible-control-panel-header'),
@@ -232,6 +232,26 @@ describe('ControlPanelsContainer', () => {
     expect(getByTestId('mock-formdata')).not.toHaveTextContent(
       'percent_metrics',
     );
+  });
+
+  test('renders section with function label and description', async () => {
+    getChartControlPanelRegistry().remove('table');
+    getChartControlPanelRegistry().registerValue('table', {
+      controlPanelSections: [
+        {
+          label: () => t('Dynamic Section Label'),
+          description: () => t('Dynamic section description'),
+          expanded: true,
+          controlSetRows: [['groupby']],
+        },
+      ],
+    });
+    render(<ControlPanelsContainer {...getDefaultProps()} />, {
+      useRedux: true,
+    });
+    await waitFor(() => {
+      expect(screen.getByText('Dynamic Section Label')).toBeInTheDocument();
+    });
   });
 
   test('hidden state of controls is correctly applied', async () => {

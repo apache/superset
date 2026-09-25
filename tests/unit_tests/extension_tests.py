@@ -96,11 +96,11 @@ def test_spa_template_standalone_body_has_min_height():
     )
 
     appbuilder = Mock()
-    appbuilder.app.config = {"FAVICONS": []}
 
     def render(standalone_mode: bool) -> str:
         return env.get_template("spa.html").render(
             appbuilder=appbuilder,
+            config={"FAVICONS": []},
             assets_prefix="",
             bootstrap_data="{}",
             entry="spa",

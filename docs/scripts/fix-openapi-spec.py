@@ -287,7 +287,6 @@ def add_missing_operation_ids(spec: dict[str, Any]) -> int:
 TAG_DESCRIPTIONS = {
     "Advanced Data Type": "Advanced data type operations and conversions.",
     "Annotation Layers": "Manage annotation layers and annotations for charts.",
-    "AsyncEventsRestApi": "Real-time event streaming via Server-Sent Events (SSE).",
     "Available Domains": "Get available domains for the Superset instance.",
     "CSS Templates": "Manage CSS templates for custom dashboard styling.",
     "CacheRestApi": "Cache management and invalidation operations.",

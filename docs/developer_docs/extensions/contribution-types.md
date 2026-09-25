@@ -34,15 +34,14 @@ Frontend contribution types allow extensions to extend Superset's user interface
 
 Extensions can add new views or panels to the host application, such as custom SQL Lab panels, dashboards, or other UI components. Contribution areas are uniquely identified (e.g., `sqllab.panels` for SQL Lab panels), enabling seamless integration into specific parts of the application.
 
-```tsx
-import React from 'react';
+```typescript
 import { views } from '@apache-superset/core';
 import MyPanel from './MyPanel';
 
 views.registerView(
   { id: 'my-extension.main', name: 'My Panel Name' },
   'sqllab.panels',
-  () => <MyPanel />,
+  MyPanel,
 );
 ```
 
@@ -112,6 +111,24 @@ editors.registerEditor(
 
 See [Editors Extension Point](./extension-points/editors.md) for implementation details.
 
+### Chat
+
+Extensions can add a chat interface to Superset by registering a trigger component and a panel component. The host owns the layout, open/close state, and display mode — the extension only provides the UI. The panel can be displayed as a floating overlay or docked as a resizable sidebar beside the page content, and the user's preference is persisted across reloads.
+
+```tsx
+import { chat } from '@apache-superset/core';
+import ChatTrigger from './ChatTrigger';
+import ChatPanel from './ChatPanel';
+
+chat.registerChat(
+  { id: 'my-org.my-chat', name: 'My Chat' },
+  ChatTrigger,
+  ChatPanel,
+);
+```
+
+See [Chat](./extension-points/chat.md) for implementation details.
+
 ## Backend
 
 Backend contribution types allow extensions to extend Superset's server-side capabilities. Backend contributions are registered at startup via classes and functions imported from the auto-discovered `entrypoint.py` file.
@@ -152,6 +169,7 @@ from .api import MyExtensionAPI
 - **Host context**: `/api/v1/` with original ID
 
 For an extension with publisher `my-org` and name `dataset-tools`, the endpoint above would be accessible at:
+
 ```
 /extensions/my-org/dataset-tools/hello
 ```
@@ -273,3 +291,46 @@ class MySemanticLayer(SemanticLayer[MyConfig, MySemanticView]):
 - **Host context**: Original ID used as-is
 
 The decorator registers the class in the semantic layers registry, making it available in the UI for users to create connections. The `configuration_class` should be a Pydantic model that defines the fields needed to connect (credentials, project, database, etc.). Superset uses the model's JSON schema to render the configuration form dynamically.
+
+#### Declaring semantic view features
+
+A `SemanticView` advertises what its backend supports through the `features`
+frozenset. Declaration is opt-in: a view that declares nothing gets the most
+conservative behavior, so a new provider is safe by default.
+
+```python
+from superset_core.semantic_layers.view import SemanticView, SemanticViewFeature
+
+
+class MySemanticView(SemanticView):
+    features = frozenset(
+        {
+            # The backend accepts simple/custom-SQL column expressions built
+            # in Explore. Omit this member if it only accepts the view's own
+            # dimensions.
+            SemanticViewFeature.ADHOC_COLUMN_EXPRESSIONS,
+            SemanticViewFeature.GROUP_LIMIT,
+        }
+    )
+```
+
+The declared members are serialized to the Explore datasource payload as
+`semantic_view_features` (their stable string values). The provider's registry
+key is deliberately **not** sent: because the `@semantic_layer` decorator
+prefixes extension IDs, no stable bare key exists to publish, and behavior
+keyed off provider identity would not survive that prefixing.
+
+Explore translates `semantic_view_features` exactly once, in the
+datasource-to-picker-capabilities adapter
+(`superset-frontend/src/explore/components/controls/DndColumnSelectControl/utils/pickerCapabilities.ts`),
+into a provider-neutral `ColumnPickerCapabilities` value. That adapter is the
+anti-corruption boundary between provider metadata and generic UI: picker
+components consume capabilities and must not read `semantic_view_features`, a
+registry key, or a user-editable display name. New provider-specific behavior
+belongs in a capability, not in a comparison inside a picker component.
+
+A view that does not declare `ADHOC_COLUMN_EXPRESSIONS` gets a Saved-only
+column picker: its dimensions are listed as Saved options and the Simple and
+Custom SQL modes are visible but disabled, so users cannot build an expression
+the backend would reject. Unknown feature strings and payloads with no
+`semantic_view_features` field are ignored, preserving existing behavior.

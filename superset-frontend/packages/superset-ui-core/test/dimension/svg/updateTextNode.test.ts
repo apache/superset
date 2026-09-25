@@ -65,7 +65,7 @@ describe('updateTextNode(node, options)', () => {
   test('handles setting font', () => {
     const node = updateTextNode(createTextNode(), {
       style: {
-        font: 'italic 30px Lobster 700',
+        font: 'italic 700 30px Lobster',
       },
     });
     expect(node.getAttribute('class')).toEqual('');

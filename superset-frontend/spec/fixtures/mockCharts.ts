@@ -23,12 +23,6 @@ export interface ChartListChart {
   url: string;
   last_saved_at: null | string;
   last_saved_by: null | { id: number; first_name: string; last_name: string };
-  owners: {
-    id: number;
-    first_name: string;
-    last_name: string;
-    username: string;
-  }[];
   dashboards: { id: number; dashboard_title: string }[];
 }
 
@@ -40,7 +34,6 @@ const MOCK_CHART: ChartListChart = {
   last_saved_at: null,
   dashboards: [],
   last_saved_by: null,
-  owners: [],
 };
 
 /**

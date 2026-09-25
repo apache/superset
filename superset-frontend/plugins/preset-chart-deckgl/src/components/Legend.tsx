@@ -1,6 +1,5 @@
 /* eslint-disable react/jsx-sort-default-props */
 /* eslint-disable react/sort-prop-types */
-/* eslint-disable jsx-a11y/anchor-is-valid */
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -43,11 +42,18 @@ const StyledLegend = styled.div`
       padding-left: 0;
       margin: 0;
 
-      & li a {
+      & li button {
+        appearance: none;
+        border: none;
+        background: none;
+        font: inherit;
+        width: 100%;
+        text-align: left;
         display: flex;
         color: ${theme.colorText};
         text-decoration: none;
         padding: ${theme.sizeUnit}px 0;
+        cursor: pointer;
 
         & span {
           margin-right: ${theme.sizeUnit}px;
@@ -59,10 +65,37 @@ const StyledLegend = styled.div`
 
 const categoryDelimiter = ' - ';
 
+const OPENING_BRACKETS = '[(';
+const CLOSING_BRACKETS = '])';
+
+// Recognize half-open interval labels like "[1, 81)" or "[81, 212]" emitted by
+// getBuckets: brackets on the ends, two comma-separated bounds in between.
+// Returns the parsed pieces, or null when the label isn't interval notation.
+const parseInterval = (label: string) => {
+  const open = label[0];
+  const close = label[label.length - 1];
+  if (!OPENING_BRACKETS.includes(open) || !CLOSING_BRACKETS.includes(close)) {
+    return null;
+  }
+
+  const bounds = label.slice(1, -1).split(',');
+  if (bounds.length !== 2) {
+    return null;
+  }
+
+  const lower = bounds[0].trim();
+  const upper = bounds[1].trim();
+  if (!lower || !upper) {
+    return null;
+  }
+
+  return { open, lower, upper, close };
+};
+
 export type LegendProps = {
   format: string | null;
   forceCategorical?: boolean;
-  position?: null | 'tl' | 'tr' | 'bl' | 'br';
+  position?: null | 'none' | 'tl' | 'tr' | 'bl' | 'br';
   categories: Record<string, { enabled: boolean; color: Color | undefined }>;
   toggleCategory?: (key: string) => void;
   showSingleCategory?: (key: string) => void;
@@ -91,6 +124,15 @@ const Legend = ({
       return k;
     }
 
+    // Format each numeric bound of an interval label while preserving the
+    // brackets and separator, e.g. "[1, 81)" -> "[1.00, 81.00)".
+    const interval = parseInterval(k);
+    if (interval) {
+      const { open, lower, upper, close } = interval;
+
+      return `${open}${format(lower)}, ${format(upper)}${close}`;
+    }
+
     if (k.includes(categoryDelimiter)) {
       const values = k.split(categoryDelimiter);
 
@@ -100,30 +142,52 @@ const Legend = ({
     return format(k);
   };
 
-  if (Object.keys(categoriesObject).length === 0 || position === null) {
+  // Hide the legend when there are no categories, or when Legend Position is
+  // "None". "None" is the 'none' sentinel from the control; null/'' are also
+  // treated as hidden so charts saved under the older null-valued choice keep
+  // working. An unset position (undefined) keeps the 'tr' default so layers
+  // without a Legend Position control (e.g. Hex, Path) still show their legend.
+  if (
+    Object.keys(categoriesObject).length === 0 ||
+    !position ||
+    position === 'none'
+  ) {
     return null;
   }
 
   const categories = Object.entries(categoriesObject).map(([k, v]) => {
-    const style = { color: `rgba(${v.color?.join(', ')})` };
-    const icon = v.enabled ? '\u25FC' : '\u25FB';
+    const [r, g, b, a] = v.color ?? [];
+    // deck.gl colour arrays express alpha as 0-255, but CSS rgba() expects
+    // an alpha channel of 0-1, so it must be normalized before use.
+    const color =
+      a === undefined
+        ? `rgba(${r}, ${g}, ${b})`
+        : `rgba(${r}, ${g}, ${b}, ${a / 255})`;
+    // Render the swatch as a real coloured box rather than a colour-tinted
+    // text glyph. U+25FC/U+25FB are in Unicode's Emoji set but lack
+    // Emoji_Presentation, so Chromium resolves them to a colour-emoji font
+    // whose glyphs carry baked-in colour and ignore the CSS `color` property,
+    // producing a black square regardless of the category colour. A bordered
+    // box has no such dependency: filled when enabled, hollow when disabled.
+    const swatchStyle = {
+      display: 'inline-block',
+      width: '12px',
+      height: '12px',
+      border: `1px solid ${color}`,
+      backgroundColor: v.enabled ? color : 'transparent',
+      alignSelf: 'center',
+      flex: '0 0 auto',
+    };
 
     return (
       <li key={k}>
-        <a
-          href="#"
-          role="button"
-          onClick={e => {
-            e.preventDefault();
-            toggleCategory(k);
-          }}
-          onDoubleClick={e => {
-            e.preventDefault();
-            showSingleCategory(k);
-          }}
+        <button
+          type="button"
+          onClick={() => toggleCategory(k)}
+          onDoubleClick={() => showSingleCategory(k)}
         >
-          <span style={style}>{icon}</span> {formatCategoryLabel(k)}
-        </a>
+          <span aria-hidden style={swatchStyle} /> {formatCategoryLabel(k)}
+        </button>
       </li>
     );
   });
@@ -137,7 +201,7 @@ const Legend = ({
   };
 
   return (
-    <StyledLegend className="dupa" style={style}>
+    <StyledLegend style={style}>
       <ul>{categories}</ul>
     </StyledLegend>
   );

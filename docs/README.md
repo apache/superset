@@ -53,7 +53,7 @@ Also: confirm `master` CI is green, and that your local checkout matches the SHA
 
 ```bash
 # Main Documentation
-yarn version:add:docs 1.2.0
+yarn version:add:user_docs 1.2.0
 
 # Admin Docs
 yarn version:add:admin_docs 1.2.0
@@ -66,6 +66,7 @@ yarn version:add:components 1.2.0
 ```
 
 What the script does:
+
 1. Refreshes auto-generated content via `generate:smart` (database pages, API reference, component pages).
 2. Calls `yarn docusaurus docs:version` (or the per-section equivalent) to snapshot the section.
 3. Freezes any data-file imports (`@site/static/*.json`, `../../data/*.json`) into a snapshot-local `_versioned_data/` dir so the historical version doesn't silently mutate when the source files change.
@@ -73,6 +74,7 @@ What the script does:
 5. Updates `versions-config.json` and `<section>_versions.json`.
 
 **Do NOT use** the native Docusaurus commands directly (`yarn docusaurus docs:version`), as they will:
+
 - ❌ Create version files but NOT update `versions-config.json`
 - ❌ Skip auto-gen refresh, freezing whatever was on disk
 - ❌ Skip data-import freezing, leaving the snapshot pointed at live data
@@ -82,9 +84,11 @@ What the script does:
 ### Managing Versions
 
 #### With Automated Scripts
+
 The automated scripts handle all configuration updates automatically. No manual editing required!
 
 #### Manual Configuration
+
 If creating versions manually, you'll need to:
 
 1. **Update `versions-config.json`** (or `docusaurus.config.ts` if not using dynamic config):
@@ -98,7 +102,7 @@ If creating versions manually, you'll need to:
    - **Versioned sidebars**: `[section]_versioned_sidebars/version-X.X.X-sidebars.json`
    - **Versions list**: `[section]_versions.json`
 
-   Note: For main docs, the prefix is omitted (e.g., `versioned_docs/` instead of `docs_versioned_docs/`)
+   All four sections (`user_docs`, `admin_docs`, `developer_docs`, `components`) follow this naming pattern uniformly.
 
 3. **Important**: After adding a version, restart the development server to see changes:
    ```bash
@@ -109,9 +113,10 @@ If creating versions manually, you'll need to:
 ### Removing a Version
 
 #### Using Automated Scripts (Recommended)
+
 ```bash
 # Main Documentation
-yarn version:remove:docs 1.0.0
+yarn version:remove:user_docs 1.0.0
 
 # Admin Docs
 yarn version:remove:admin_docs 1.0.0
@@ -124,22 +129,23 @@ yarn version:remove:components 1.0.0
 ```
 
 #### Manual Removal
+
 To manually remove a version:
 
 1. **Delete the version folder** from the appropriate location:
-   - Main docs: `versioned_docs/version-X.X.X/` (no prefix for main)
+   - User Docs: `user_docs_versioned_docs/version-X.X.X/`
    - Admin Docs: `admin_docs_versioned_docs/version-X.X.X/`
    - Developer Docs: `developer_docs_versioned_docs/version-X.X.X/`
    - Components: `components_versioned_docs/version-X.X.X/`
 
 2. **Delete the version metadata file**:
-   - Main docs: `versioned_sidebars/version-X.X.X-sidebars.json` (no prefix)
+   - User Docs: `user_docs_versioned_sidebars/version-X.X.X-sidebars.json`
    - Admin Docs: `admin_docs_versioned_sidebars/version-X.X.X-sidebars.json`
    - Developer Docs: `developer_docs_versioned_sidebars/version-X.X.X-sidebars.json`
    - Components: `components_versioned_sidebars/version-X.X.X-sidebars.json`
 
 3. **Update the versions list file**:
-   - Main docs: `versions.json`
+   - User Docs: `user_docs_versions.json`
    - Admin Docs: `admin_docs_versions.json`
    - Developer Docs: `developer_docs_versions.json`
    - Components: `components_versions.json`
@@ -153,6 +159,7 @@ To manually remove a version:
 ### Version Configuration Examples
 
 #### Main Documentation (default plugin)
+
 ```typescript
 docs: {
   includeCurrentVersion: true,
@@ -174,6 +181,7 @@ docs: {
 ```
 
 #### Developer Docs & Components (custom plugins)
+
 ```typescript
 {
   id: 'developer_docs',
@@ -210,23 +218,28 @@ docs: {
 #### Version Not Showing After Creation
 
 If you accidentally used `yarn docusaurus docs:version` instead of `yarn version:add`:
+
 1. **Problem**: The version files were created but `versions-config.json` wasn't updated
 2. **Solution**: Either:
-   - Revert the changes: `git restore versions.json && rm -rf versioned_docs/ versioned_sidebars/`
-   - Then use the correct command: `yarn version:add:docs <version>`
+   - Revert the changes: `git restore user_docs_versions.json && rm -rf user_docs_versioned_docs/ user_docs_versioned_sidebars/`
+   - Then use the correct command: `yarn version:add:user_docs <version>`
 
 For other issues:
+
 - **Restart the server**: Changes to version configuration require a server restart
 - **Check config file**: Ensure `versions-config.json` includes the new version
 - **Verify files exist**: Check that versioned docs folder was created
 
 #### Broken Links in Versioned Documentation
+
 When creating a new version, links in the documentation are preserved as-is. Common issues:
+
 - **Cross-section links**: Links between sections (e.g., from developer_docs to docs) need to be version-aware
 - **Absolute vs relative paths**: Use relative paths within the same section
 - **Version-specific URLs**: Update hardcoded URLs to use version variables
 
 To fix broken links:
+
 1. Use `type: 'doc'` with `docId` for version-aware navigation in navbar
 2. Use relative paths within the same documentation section
 3. Test all versions after creation to identify broken links

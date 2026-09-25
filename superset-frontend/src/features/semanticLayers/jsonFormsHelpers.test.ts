@@ -16,15 +16,24 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import type { JsonSchema } from '@jsonforms/core';
+import type { JsonSchema, UISchemaElement } from '@jsonforms/core';
 
 import {
+  stableSerialize,
   areDependenciesSatisfied,
   sanitizeSchema,
   buildUiSchema,
   getDynamicDependencies,
   serializeDependencyValues,
+  multiEnumEntry,
+  enumNamesEntry,
 } from './jsonFormsHelpers';
+
+const control = {
+  type: 'Control',
+  scope: '#',
+} as unknown as UISchemaElement;
+const ctx = { rootSchema: {} as JsonSchema, config: {} };
 
 test('areDependenciesSatisfied returns true for present dependency values', () => {
   expect(
@@ -147,4 +156,61 @@ test('serializeDependencyValues is stable and sorted by key', () => {
   expect(serializeDependencyValues(dynamicDeps, data)).toBe(
     JSON.stringify({ database: 'analytics', warehouse: 'compute_wh' }),
   );
+});
+
+test('multiEnumEntry.tester matches array schemas with non-empty items.enum', () => {
+  const schema = {
+    type: 'array',
+    items: { enum: ['a', 'b'] },
+  } as unknown as JsonSchema;
+  expect(multiEnumEntry.tester(control, schema, ctx)).toBe(35);
+});
+
+test.each([
+  ['empty items.enum', { type: 'array', items: { enum: [] } }],
+  ['items without enum', { type: 'array', items: { type: 'string' } }],
+  ['array without items', { type: 'array' }],
+  ['scalar enum', { type: 'string', enum: ['a', 'b'] }],
+])('multiEnumEntry.tester does not match %s', (_label, schema) => {
+  expect(multiEnumEntry.tester(control, schema as JsonSchema, ctx)).toBe(-1);
+});
+
+test('enumNamesEntry.tester matches scalar enum with x-enumNames', () => {
+  const schema = {
+    type: 'string',
+    enum: ['a', 'b'],
+    'x-enumNames': ['Alpha', 'Beta'],
+  } as JsonSchema;
+  expect(enumNamesEntry.tester(control, schema, ctx)).toBe(5);
+});
+
+test('enumNamesEntry.tester does not match array schemas (multiEnum owns those)', () => {
+  const schema = {
+    type: 'array',
+    items: { enum: ['a'], 'x-enumNames': ['Alpha'] },
+    'x-enumNames': ['Alpha'],
+  } as JsonSchema;
+  expect(enumNamesEntry.tester(control, schema, ctx)).toBe(-1);
+});
+
+test('stableSerialize ignores object key order', () => {
+  const a = { properties: { m: { enum: ['x', 'y'] }, d: { type: 'array' } } };
+  const b = { properties: { d: { type: 'array' }, m: { enum: ['x', 'y'] } } };
+  expect(stableSerialize(a)).toEqual(stableSerialize(b));
+});
+
+test('stableSerialize keeps array order significant', () => {
+  // x-propertyOrder / enum ordering can be meaningful, so reordered arrays
+  // must NOT compare equal.
+  expect(stableSerialize({ enum: ['a', 'b'] })).not.toEqual(
+    stableSerialize({ enum: ['b', 'a'] }),
+  );
+});
+
+test('stableSerialize preserves __proto__ keys from parsed payloads', () => {
+  // A plain-object accumulator would treat __proto__ as a prototype
+  // assignment and drop it, making two different schemas compare equal.
+  const withProto = JSON.parse('{"properties":{"b":1},"__proto__":{"a":1}}');
+  const without = JSON.parse('{"properties":{"b":1}}');
+  expect(stableSerialize(withProto)).not.toEqual(stableSerialize(without));
 });

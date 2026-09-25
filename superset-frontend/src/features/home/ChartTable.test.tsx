@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { mockUserSubjectsBootstrapData } from 'spec/helpers/mockBootstrapData';
 import {
   render,
   screen,
@@ -24,7 +25,7 @@ import {
 } from 'spec/helpers/testing-library';
 import { VizType } from '@superset-ui/core';
 import fetchMock from 'fetch-mock';
-import { act } from 'react-dom/test-utils';
+import { act } from 'react';
 import handleResourceExport from 'src/utils/export';
 import { LocalStorageKeys } from 'src/utils/localStorageHelpers';
 import ChartTable from './ChartTable';
@@ -34,6 +35,10 @@ jest.mock('src/utils/export', () => ({
   __esModule: true,
   default: jest.fn(),
 }));
+
+jest.mock('src/utils/getBootstrapData', () =>
+  mockUserSubjectsBootstrapData([2]),
+);
 
 const mockExport = handleResourceExport as jest.MockedFunction<
   typeof handleResourceExport
@@ -52,6 +57,7 @@ const mockCharts = Array.from({ length: 3 }).map((_, i) => ({
   viz_type: VizType.Bar,
   datasource_title: `ds${i}`,
   thumbnail_url: '',
+  editors: [{ id: 2, label: 'Admin User', type: 1 }],
 }));
 
 fetchMock.get(
@@ -116,7 +122,7 @@ test('renders with EmptyState if no data present', async () => {
 
 test('fetches chart favorites and renders chart cards', async () => {
   await renderChartTable(mockedProps);
-  userEvent.click(screen.getByText(/favorite/i));
+  await userEvent.click(screen.getByText(/favorite/i));
   await waitFor(() => {
     expect(
       fetchMock.callHistory.calls(chartFavoriteStatusEndpoint),
@@ -132,7 +138,7 @@ test('renders other tab by default', async () => {
 
 test('renders mine tab on click', async () => {
   await renderChartTable(mineTabProps);
-  userEvent.click(screen.getByText(/mine/i));
+  await userEvent.click(screen.getByText(/mine/i));
   await waitFor(() => {
     expect(screen.getAllByText(/cool chart/i)).toHaveLength(3);
   });
@@ -153,7 +159,7 @@ test('handles chart export with correct ID and shows spinner', async () => {
   await renderChartTable(mineTabProps);
 
   // Click Mine tab to see charts
-  userEvent.click(screen.getByText(/mine/i));
+  await userEvent.click(screen.getByText(/mine/i));
 
   await waitFor(() => {
     expect(screen.getAllByText(/cool chart/i)).toHaveLength(3);

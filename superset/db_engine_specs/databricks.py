@@ -16,15 +16,19 @@
 # under the License.
 from __future__ import annotations
 
+import logging
+import re
 from datetime import datetime
-from typing import Any, Callable, TYPE_CHECKING, TypedDict, Union
+from re import Pattern
+from typing import Any, Callable, cast, TYPE_CHECKING, TypedDict, Union
 
 from apispec import APISpec
 from apispec.ext.marshmallow import MarshmallowPlugin
+from flask import g
 from flask_babel import gettext as __
 from marshmallow import fields, Schema
 from marshmallow.validate import Range
-from sqlalchemy import types
+from sqlalchemy import text, types
 from sqlalchemy.engine.default import DefaultDialect
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.url import URL
@@ -38,12 +42,25 @@ from superset.db_engine_specs.base import (
 )
 from superset.db_engine_specs.hive import HiveEngineSpec
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
+from superset.exceptions import OAuth2Error
 from superset.utils import json
 from superset.utils.core import get_user_agent, QuerySource
 from superset.utils.network import is_hostname_valid, is_port_open
 
 if TYPE_CHECKING:
     from superset.models.core import Database
+    from superset.superset_typing import (
+        OAuth2ClientConfig,
+        OAuth2State,
+        OAuth2TokenResponse,
+    )
+
+
+logger = logging.getLogger(__name__)
+
+INSUFFICIENT_PERMISSIONS_REGEX: Pattern[str] = re.compile(
+    r"\[INSUFFICIENT_PERMISSIONS\]|\bSQLSTATE:\s*42501\b"
+)
 
 
 try:
@@ -221,26 +238,13 @@ time_grain_expressions: dict[str | None, str] = {
 }
 
 
-class DatabricksHiveEngineSpec(HiveEngineSpec):
-    """Databricks engine spec using Hive connector for Interactive Clusters."""
-
-    engine_name = "Databricks Interactive Cluster"
-
-    engine = "databricks"
-    drivers = {"pyhive": "Hive driver for Interactive Cluster"}
-    default_driver = "pyhive"
-
-    # Note: Primary metadata is in DatabricksPythonConnectorEngineSpec which
-    # consolidates all Databricks connection methods. This spec exists for
-    # backwards compatibility with Interactive Cluster connections.
-
-    _show_functions_column = "function"
-
-    _time_grain_expressions = time_grain_expressions
-
-
 class DatabricksBaseEngineSpec(BaseEngineSpec):
     _time_grain_expressions = time_grain_expressions
+
+    # Databricks SQL is Spark SQL under the hood: identifiers are quoted with
+    # backticks, not the inherited ANSI double quotes.
+    identifier_quote_start: str = "`"
+    identifier_quote_end: str = "`"
 
     @classmethod
     def convert_dttm(
@@ -252,19 +256,24 @@ class DatabricksBaseEngineSpec(BaseEngineSpec):
     def epoch_to_dttm(cls) -> str:
         return HiveEngineSpec.epoch_to_dttm()
 
-
-class DatabricksODBCEngineSpec(DatabricksBaseEngineSpec):
-    """Databricks engine spec using ODBC driver for SQL Endpoints."""
-
-    engine_name = "Databricks SQL Endpoint"
-
-    engine = "databricks"
-    drivers = {"pyodbc": "ODBC driver for SQL endpoint"}
-    default_driver = "pyodbc"
-
-    # Note: Primary metadata is in DatabricksPythonConnectorEngineSpec which
-    # consolidates all Databricks connection methods. This spec exists for
-    # backwards compatibility with ODBC connections to SQL Endpoints.
+    @classmethod
+    def extract_errors(
+        cls,
+        ex: Exception,
+        context: dict[str, Any] | None = None,
+        database_name: str | None = None,
+    ) -> list[SupersetError]:
+        raw_message = cls._extract_error_message(ex)
+        if INSUFFICIENT_PERMISSIONS_REGEX.search(raw_message):
+            return [
+                SupersetError(
+                    error_type=SupersetErrorType.CONNECTION_DATABASE_PERMISSIONS_ERROR,
+                    message=raw_message,
+                    level=ErrorLevel.WARNING,
+                    extra={"engine_name": cls.engine_name},
+                )
+            ]
+        return super().extract_errors(ex, context, database_name)
 
 
 class DatabricksDynamicBaseEngineSpec(BasicParametersMixin, DatabricksBaseEngineSpec):
@@ -276,6 +285,168 @@ class DatabricksDynamicBaseEngineSpec(BasicParametersMixin, DatabricksBaseEngine
         "host": "hostname",
         "port": "port",
     }
+
+    # The Databricks SQL driver has no dedicated authentication exception, so an
+    # expired or missing token surfaces as a generic driver error. These case-
+    # insensitive substrings flag the errors that should bootstrap a re-auth.
+    oauth2_auth_failure_signals = (
+        "http 401",
+        "unauthorized",
+        "unauthenticated",
+        "invalid access token",
+        "invalid token",
+        "expired token",
+        "token expired",
+        # Raised by the databricks-sql-connector when no usable credentials are
+        # present (e.g. an OAuth2 token that has been cleared/expired).
+        "no valid authentication settings",
+    )
+
+    @classmethod
+    def _workspace_oauth2_endpoint(cls, database: Database, path: str) -> str:
+        """
+        Build a Databricks OAuth2 (U2M) endpoint from the workspace host.
+
+        Databricks fronts the user-to-machine OAuth2 flow on every workspace at
+        ``https://<workspace-host>/oidc/v1/{authorize,token}`` across AWS, Azure
+        and GCP, so the endpoints derive directly from the connection host and
+        need no account or tenant identifier.
+        """
+        host = database.url_object.host
+        if not host:
+            raise OAuth2Error(
+                "Databricks OAuth2 endpoint could not be resolved: the database "
+                "connection has no host."
+            )
+        return f"https://{host}/oidc/v1/{path}"
+
+    @classmethod
+    def needs_oauth2(cls, ex: Exception) -> bool:
+        """
+        Identify driver errors that should trigger the OAuth2 dance.
+
+        Unlike Trino (``TrinoAuthError``) or GSheets (``UnauthenticatedError``),
+        the Databricks driver raises no dedicated auth exception, so in addition
+        to the base ``isinstance`` check we match the auth signals above on the
+        error message (mirrors ``GSheetsEngineSpec.needs_oauth2``).
+        """
+        if not (g and hasattr(g, "user")):
+            return False
+        if isinstance(ex, cls.oauth2_exception):
+            return True
+        message = str(ex).lower()
+        return any(signal in message for signal in cls.oauth2_auth_failure_signals)
+
+    @classmethod
+    def get_oauth2_authorization_uri(
+        cls,
+        config: "OAuth2ClientConfig",
+        state: "OAuth2State",
+        code_verifier: str | None = None,
+    ) -> str:
+        """
+        Return the URI for the initial OAuth2 request.
+
+        A fully-resolved ``authorization_request_uri`` from
+        ``DATABASE_OAUTH2_CLIENTS`` is preserved; otherwise the endpoint is
+        derived from the workspace host (``https://<host>/oidc/v1/authorize``),
+        which is valid on AWS, Azure and GCP.
+        """
+        if not config.get("authorization_request_uri"):
+            from superset import db
+            from superset.models.core import Database
+
+            database_id = state["database_id"]
+            if database := db.session.get(Database, database_id):
+                config = cast(
+                    "OAuth2ClientConfig",
+                    dict(config)
+                    | {
+                        "authorization_request_uri": cls._workspace_oauth2_endpoint(
+                            database, "authorize"
+                        )
+                    },
+                )
+
+        return super().get_oauth2_authorization_uri(config, state, code_verifier)
+
+    @classmethod
+    def get_oauth2_token(
+        cls,
+        config: "OAuth2ClientConfig",
+        code: str,
+        code_verifier: str | None = None,
+    ) -> "OAuth2TokenResponse":
+        """
+        Exchange the authorization code for refresh/access tokens.
+
+        Token exchange runs in a separate request with no database context, so
+        the workspace host is not available to derive the endpoint here. Require
+        a configured ``token_request_uri``
+        (``https://<workspace-host>/oidc/v1/token``) and fail fast rather than
+        POST to an unresolved endpoint.
+        """
+        if not config.get("token_request_uri"):
+            raise OAuth2Error(
+                "Databricks OAuth2 token endpoint is not configured: set "
+                "`token_request_uri` to https://<workspace-host>/oidc/v1/token "
+                "in DATABASE_OAUTH2_CLIENTS."
+            )
+
+        return super().get_oauth2_token(config, code, code_verifier)
+
+    @classmethod
+    def impersonate_user(
+        cls,
+        database: Database,
+        username: str | None,
+        user_token: str | None,
+        url: URL,
+        engine_kwargs: dict[str, Any],
+    ) -> tuple[URL, dict[str, Any]]:
+        """
+        Update connection with the user's OAuth2 access token for impersonation.
+
+        When impersonation is enabled but no user token is available yet (e.g. the
+        first connection, before the OAuth2 dance has run), the stored credential
+        is cleared rather than left in place. The driver then raises a "no valid
+        authentication settings" error, which ``needs_oauth2`` catches to bootstrap
+        the OAuth2 flow instead of silently connecting with a stale credential.
+        """
+        # Replace the credential in the URL with the user's OAuth2 token, falling
+        # back to an empty string to force re-authentication when none is set.
+        url = url.set(password=user_token or "")
+
+        # The Python connector passes the token via ``connect_args`` instead of the
+        # URL password, so keep it in sync (clearing it likewise forces re-auth).
+        connect_args = engine_kwargs.setdefault("connect_args", {})
+        if "access_token" in connect_args:
+            connect_args["access_token"] = user_token or ""
+
+        return url, engine_kwargs
+
+    @staticmethod
+    def update_params_from_encrypted_extra(
+        database: Database, params: dict[str, Any]
+    ) -> None:
+        """
+        Merge ``encrypted_extra`` into the connection params, dropping the
+        ``oauth2_client_info`` block.
+
+        ``oauth2_client_info`` holds the per-database OAuth2 client configuration
+        consumed by ``Database.get_oauth2_config``; it is not a Databricks driver
+        connection argument, so it must be stripped here to avoid poisoning the
+        connection when OAuth2 is configured on the database itself.
+        """
+        if not database.encrypted_extra:
+            return
+        try:
+            encrypted_extra = json.loads(database.encrypted_extra)
+        except json.JSONDecodeError as ex:
+            logger.error(ex, exc_info=True)
+            raise
+        encrypted_extra.pop("oauth2_client_info", None)
+        params.update(encrypted_extra)
 
     @staticmethod
     def get_extra_params(
@@ -317,46 +488,15 @@ class DatabricksDynamicBaseEngineSpec(BasicParametersMixin, DatabricksBaseEngine
         context: dict[str, Any] | None = None,
         database_name: str | None = None,
     ) -> list[SupersetError]:
-        raw_message = cls._extract_error_message(ex)
-
         context = context or {}
 
         # access_token isn't currently parseable from the
         # databricks error response, but adding it in here
         # for reference if their error message changes
-
         for key, value in cls.context_key_mapping.items():
             context[key] = context.get(value)
 
-        db_engine_custom_errors = cls.get_database_custom_errors(database_name)
-        if not isinstance(db_engine_custom_errors, dict):
-            db_engine_custom_errors = {}
-
-        for regex, (message, error_type, extra) in [
-            *db_engine_custom_errors.items(),
-            *cls.custom_errors.items(),
-        ]:
-            match = regex.search(raw_message)
-            if match:
-                params = {**context, **match.groupdict()}
-                extra["engine_name"] = cls.engine_name
-                return [
-                    SupersetError(
-                        error_type=error_type,
-                        message=message % params,
-                        level=ErrorLevel.ERROR,
-                        extra=extra,
-                    )
-                ]
-
-        return [
-            SupersetError(
-                error_type=SupersetErrorType.GENERIC_DB_ENGINE_ERROR,
-                message=cls._extract_error_message(ex),
-                level=ErrorLevel.ERROR,
-                extra={"engine_name": cls.engine_name},
-            )
-        ]
+        return super().extract_errors(ex, context, database_name)
 
     @classmethod
     def validate_parameters(  # type: ignore
@@ -367,6 +507,7 @@ class DatabricksDynamicBaseEngineSpec(BasicParametersMixin, DatabricksBaseEngine
         ],
     ) -> list[SupersetError]:
         errors: list[SupersetError] = []
+        connect_args: dict[str, Any] = {}
         if extra := json.loads(properties.get("extra")):  # type: ignore
             engine_params = extra.get("engine_params", {})
             connect_args = engine_params.get("connect_args", {})
@@ -441,150 +582,17 @@ class DatabricksDynamicBaseEngineSpec(BasicParametersMixin, DatabricksBaseEngine
         return errors
 
 
-class DatabricksNativeEngineSpec(DatabricksDynamicBaseEngineSpec):
-    """Legacy Databricks connector using databricks-dbapi."""
-
-    engine = "databricks"
-    engine_name = "Databricks (legacy)"
-    drivers = {"connector": "Native all-purpose driver"}
-    default_driver = "connector"
-
-    parameters_schema = DatabricksNativeSchema()
-    properties_schema = DatabricksNativePropertiesSchema()
-
-    sqlalchemy_uri_placeholder = (
-        "databricks+connector://token:{access_token}@{host}:{port}/{database_name}"
-    )
-
-    # Note: Primary metadata is in DatabricksPythonConnectorEngineSpec which
-    # consolidates all Databricks connection methods. This spec exists for
-    # backwards compatibility with legacy databricks-dbapi connections.
-    context_key_mapping = {
-        **DatabricksDynamicBaseEngineSpec.context_key_mapping,
-        "database": "database",
-        "username": "username",
-    }
-    required_parameters = DatabricksDynamicBaseEngineSpec.required_parameters | {
-        "database",
-        "extra",
-    }
-
-    supports_dynamic_schema = True
-    supports_catalog = True
-    supports_dynamic_catalog = True
-    supports_cross_catalog_queries = True
-
-    @classmethod
-    def build_sqlalchemy_uri(  # type: ignore
-        cls, parameters: DatabricksNativeParametersType, *_
-    ) -> str:
-        query = {}
-        if parameters.get("encryption"):
-            if not cls.encryption_parameters:
-                raise Exception(  # pylint: disable=broad-exception-raised
-                    "Unable to build a URL with encryption enabled"
-                )
-            query.update(cls.encryption_parameters)
-
-        return str(
-            URL.create(
-                f"{cls.engine}+{cls.default_driver}".rstrip("+"),
-                username="token",
-                password=parameters.get("access_token"),
-                host=parameters["host"],
-                port=parameters["port"],
-                database=parameters["database"],
-                query=query,
-            )
-        )
-
-    @classmethod
-    def get_parameters_from_uri(  # type: ignore
-        cls, uri: str, *_, **__
-    ) -> DatabricksNativeParametersType:
-        url = make_url_safe(uri)
-        encryption = all(
-            item in url.query.items() for item in cls.encryption_parameters.items()
-        )
-        return {
-            "access_token": url.password,
-            "host": url.host,
-            "port": url.port,
-            "database": url.database,
-            "encryption": encryption,
-        }
-
-    @classmethod
-    def parameters_json_schema(cls) -> Any:
-        """
-        Return configuration parameters as OpenAPI.
-        """
-        if not cls.properties_schema:
-            return None
-
-        spec = APISpec(
-            title="Database Parameters",
-            version="1.0.0",
-            openapi_version="3.0.2",
-            plugins=[MarshmallowPlugin()],
-        )
-        spec.components.schema(cls.__name__, schema=cls.properties_schema)
-        return spec.to_dict()["components"]["schemas"][cls.__name__]
-
-    @classmethod
-    def get_default_catalog(cls, database: Database) -> str:
-        """
-        Return the default catalog.
-
-        It's optionally specified in `connect_args.catalog`. If not:
-
-        The default behavior for Databricks is confusing. When Unity Catalog is not
-        enabled we have (the DB engine spec hasn't been tested with it enabled):
-
-            > SHOW CATALOGS;
-            spark_catalog
-            > SELECT current_catalog();
-            hive_metastore
-
-        To handle permissions correctly we use the result of `SHOW CATALOGS` when a
-        single catalog is returned.
-        """
-        connect_args = cls.get_extra_params(database)["engine_params"]["connect_args"]
-        if default_catalog := connect_args.get("catalog"):
-            return default_catalog
-
-        with database.get_sqla_engine() as engine:
-            catalogs = {catalog for (catalog,) in engine.execute("SHOW CATALOGS")}
-            if len(catalogs) == 1:
-                return catalogs.pop()
-
-            return engine.execute("SELECT current_catalog()").scalar()
-
-    @classmethod
-    def get_prequeries(
-        cls,
-        database: Database,
-        catalog: str | None = None,
-        schema: str | None = None,
-    ) -> list[str]:
-        prequeries = []
-        if catalog:
-            escaped_catalog = catalog.replace("`", "``")
-            prequeries.append(f"USE CATALOG `{escaped_catalog}`")
-        if schema:
-            escaped_schema = schema.replace("`", "``")
-            prequeries.append(f"USE SCHEMA `{escaped_schema}`")
-        return prequeries
-
-    @classmethod
-    def get_catalog_names(
-        cls,
-        database: Database,
-        inspector: Inspector,
-    ) -> set[str]:
-        return {catalog for (catalog,) in inspector.bind.execute("SHOW CATALOGS")}
-
-
+# NOTE: The order in which the concrete Databricks specs are defined in this file
+# matters. `get_engine_spec` in `superset/db_engine_specs/__init__.py` resolves a
+# (backend, driver) pair by exact driver match first, but when the stored
+# SQLAlchemy URI carries a driver string that matches no registered spec exactly
+# (e.g. a legacy or hand-written suffix) it falls back to the *first*
+# backend-matching spec in module-definition order. This general-purpose Python
+# connector spec must therefore be defined *before* the other, more niche
+# Databricks specs so the ambiguous-driver fallback lands here rather than on the
+# legacy Hive spec — whose `HiveEngineSpec.execute()` passes an `async` kwarg that
+# the real `databricks.sql.client.Cursor` rejects (SUPERSET-PYTHON-179V,
+# apache/superset#24786).
 class DatabricksPythonConnectorEngineSpec(DatabricksDynamicBaseEngineSpec):
     engine = "databricks"
     engine_name = "Databricks"
@@ -614,6 +622,10 @@ class DatabricksPythonConnectorEngineSpec(DatabricksDynamicBaseEngineSpec):
         ],
         "pypi_packages": ["apache-superset[databricks]"],
         "install_instructions": "pip install apache-superset[databricks]",
+        "version_requirements": (
+            "The Databricks extra requires databricks-sqlalchemy 2.x (at least 2.0.1)."
+            " The 1.x dialect requires SQLAlchemy below 2."
+        ),
         "connection_string": (
             "databricks://token:{access_token}@{host}:{port}"
             "?http_path={http_path}&catalog={catalog}&schema={schema}"
@@ -685,6 +697,16 @@ class DatabricksPythonConnectorEngineSpec(DatabricksDynamicBaseEngineSpec):
 
     supports_dynamic_schema = supports_catalog = supports_dynamic_catalog = True
 
+    # OAuth 2.0 support. The flow (endpoint resolution from the workspace host,
+    # `needs_oauth2` detection) is shared via `DatabricksDynamicBaseEngineSpec`.
+    supports_oauth2 = True
+    oauth2_scope = "sql"
+
+    # Authorization endpoint is derived from the workspace host at runtime; the
+    # token endpoint must be configured (no DB context at exchange time).
+    oauth2_authorization_request_uri = ""
+    oauth2_token_request_uri = ""
+
     @classmethod
     def build_sqlalchemy_uri(  # type: ignore
         cls, parameters: DatabricksPythonConnectorParametersType, *_
@@ -699,16 +721,18 @@ class DatabricksPythonConnectorEngineSpec(DatabricksDynamicBaseEngineSpec):
         if parameters.get("encryption"):
             query.update(cls.encryption_parameters)
 
-        return str(
-            URL.create(
-                cls.engine,
-                username="token",
-                password=parameters.get("access_token"),
-                host=parameters["host"],
-                port=parameters["port"],
-                query=query,
-            )
-        )
+        # SQLAlchemy 2.0 made URL.__str__() hide the password by default
+        # (it rendered in full under 1.4); render_as_string(hide_password=
+        # False) is required here since this URI is stored/used to actually
+        # connect, not just displayed.
+        return URL.create(
+            cls.engine,
+            username="token",
+            password=parameters.get("access_token"),
+            host=parameters["host"],
+            port=parameters["port"],
+            query=query,
+        ).render_as_string(hide_password=False)
 
     @classmethod
     def get_parameters_from_uri(  # type: ignore
@@ -746,7 +770,8 @@ class DatabricksPythonConnectorEngineSpec(DatabricksDynamicBaseEngineSpec):
         database: Database,
         inspector: Inspector,
     ) -> set[str]:
-        return {catalog for (catalog,) in inspector.bind.execute("SHOW CATALOGS")}
+        with inspector.engine.connect() as conn:
+            return {catalog for (catalog,) in conn.execute(text("SHOW CATALOGS"))}
 
     @classmethod
     def adjust_engine_params(
@@ -763,6 +788,203 @@ class DatabricksPythonConnectorEngineSpec(DatabricksDynamicBaseEngineSpec):
             uri = uri.update_query_dict({"schema": schema})
 
         return uri, connect_args
+
+
+class DatabricksNativeEngineSpec(DatabricksDynamicBaseEngineSpec):
+    """Legacy Databricks connector using databricks-dbapi."""
+
+    engine = "databricks"
+    engine_name = "Databricks (legacy)"
+    drivers = {"connector": "Native all-purpose driver"}
+    default_driver = "connector"
+
+    parameters_schema = DatabricksNativeSchema()
+    properties_schema = DatabricksNativePropertiesSchema()
+
+    sqlalchemy_uri_placeholder = (
+        "databricks+connector://token:{access_token}@{host}:{port}/{database_name}"
+    )
+
+    # Note: Primary metadata is in DatabricksPythonConnectorEngineSpec which
+    # consolidates all Databricks connection methods. This spec exists for
+    # backwards compatibility with legacy databricks-dbapi connections.
+    context_key_mapping = {
+        **DatabricksDynamicBaseEngineSpec.context_key_mapping,
+        "database": "database",
+        "username": "username",
+    }
+    required_parameters = DatabricksDynamicBaseEngineSpec.required_parameters | {
+        "database",
+        "extra",
+    }
+
+    supports_dynamic_schema = True
+    supports_catalog = True
+    supports_dynamic_catalog = True
+    supports_cross_catalog_queries = True
+
+    # OAuth 2.0 support. The flow (endpoint resolution from the workspace host,
+    # `needs_oauth2` detection) is shared via `DatabricksDynamicBaseEngineSpec`.
+    supports_oauth2 = True
+    oauth2_scope = "sql"
+
+    # Authorization endpoint is derived from the workspace host at runtime; the
+    # token endpoint must be configured (no DB context at exchange time).
+    oauth2_authorization_request_uri = ""
+    oauth2_token_request_uri = ""
+
+    @classmethod
+    def build_sqlalchemy_uri(  # type: ignore
+        cls, parameters: DatabricksNativeParametersType, *_
+    ) -> str:
+        query = {}
+        if parameters.get("encryption"):
+            if not cls.encryption_parameters:
+                raise Exception(  # pylint: disable=broad-exception-raised
+                    "Unable to build a URL with encryption enabled"
+                )
+            query.update(cls.encryption_parameters)
+
+        # SQLAlchemy 2.0 made URL.__str__() hide the password by default
+        # (it rendered in full under 1.4); render_as_string(hide_password=
+        # False) is required here since this URI is stored/used to actually
+        # connect, not just displayed.
+        return URL.create(
+            f"{cls.engine}+{cls.default_driver}".rstrip("+"),
+            username="token",
+            password=parameters.get("access_token"),
+            host=parameters["host"],
+            port=parameters["port"],
+            database=parameters["database"],
+            query=query,
+        ).render_as_string(hide_password=False)
+
+    @classmethod
+    def get_parameters_from_uri(  # type: ignore
+        cls, uri: str, *_, **__
+    ) -> DatabricksNativeParametersType:
+        url = make_url_safe(uri)
+        encryption = all(
+            item in url.query.items() for item in cls.encryption_parameters.items()
+        )
+        return {
+            "access_token": url.password,
+            "host": url.host,
+            "port": url.port,
+            "database": url.database,
+            "encryption": encryption,
+        }
+
+    @classmethod
+    def parameters_json_schema(cls) -> Any:
+        """
+        Return configuration parameters as OpenAPI.
+        """
+        if not cls.properties_schema:
+            return None
+
+        spec = APISpec(
+            title="Database Parameters",
+            version="1.0.0",
+            openapi_version="3.0.2",
+            plugins=[MarshmallowPlugin()],
+        )
+        spec.components.schema(cls.__name__, schema=cls.properties_schema)
+        return spec.to_dict()["components"]["schemas"][cls.__name__]
+
+    @classmethod
+    def get_default_catalog(cls, database: Database) -> str:
+        """
+        Return the default catalog.
+
+        It's optionally specified in `connect_args.catalog`. If not:
+
+        The default behavior for Databricks is confusing. When Unity Catalog is not
+        enabled we have (the DB engine spec hasn't been tested with it enabled):
+
+            > SHOW CATALOGS;
+            spark_catalog
+            > SELECT current_catalog();
+            hive_metastore
+
+        To handle permissions correctly we use the result of `SHOW CATALOGS` when a
+        single catalog is returned.
+        """
+        connect_args = cls.get_extra_params(database)["engine_params"]["connect_args"]
+        if default_catalog := connect_args.get("catalog"):
+            return default_catalog
+
+        with database.get_sqla_engine() as engine:
+            with engine.connect() as conn:
+                catalogs = {
+                    catalog for (catalog,) in conn.execute(text("SHOW CATALOGS"))
+                }
+                if len(catalogs) == 1:
+                    return catalogs.pop()
+
+                return conn.execute(text("SELECT current_catalog()")).scalar()
+
+    @classmethod
+    def get_prequeries(
+        cls,
+        database: Database,
+        catalog: str | None = None,
+        schema: str | None = None,
+    ) -> list[str]:
+        prequeries = []
+        if catalog:
+            escaped_catalog = catalog.replace("`", "``")
+            prequeries.append(f"USE CATALOG `{escaped_catalog}`")
+        if schema:
+            escaped_schema = schema.replace("`", "``")
+            prequeries.append(f"USE SCHEMA `{escaped_schema}`")
+        return prequeries
+
+    @classmethod
+    def get_catalog_names(
+        cls,
+        database: Database,
+        inspector: Inspector,
+    ) -> set[str]:
+        with inspector.engine.connect() as conn:
+            return {catalog for (catalog,) in conn.execute(text("SHOW CATALOGS"))}
+
+
+class DatabricksODBCEngineSpec(DatabricksBaseEngineSpec):
+    """Databricks engine spec using ODBC driver for SQL Endpoints."""
+
+    engine_name = "Databricks SQL Endpoint"
+
+    engine = "databricks"
+    drivers = {"pyodbc": "ODBC driver for SQL endpoint"}
+    default_driver = "pyodbc"
+
+    # Note: Primary metadata is in DatabricksPythonConnectorEngineSpec which
+    # consolidates all Databricks connection methods. This spec exists for
+    # backwards compatibility with ODBC connections to SQL Endpoints.
+
+
+# NOTE: This legacy Interactive-Cluster Hive spec must stay defined *after*
+# `DatabricksPythonConnectorEngineSpec` (see the ordering note on that class): the
+# ambiguous-driver fallback in `get_engine_spec` picks the first backend-matching
+# spec by definition order, and this spec's inherited `HiveEngineSpec.execute()`
+# crashes on the `databricks.sql.client.Cursor` used by unrecognized-driver URIs.
+class DatabricksHiveEngineSpec(HiveEngineSpec):
+    """Databricks engine spec using Hive connector for Interactive Clusters."""
+
+    engine_name = "Databricks Interactive Cluster"
+
+    engine = "databricks"
+    drivers = {"pyhive": "Hive driver for Interactive Cluster"}
+    default_driver = "pyhive"
+
+    # Note: Primary metadata is in DatabricksPythonConnectorEngineSpec which
+    # consolidates all Databricks connection methods. This spec exists for
+    # backwards compatibility with Interactive Cluster connections.
+
+    _show_functions_column = "function"
+
+    _time_grain_expressions = time_grain_expressions
 
 
 # TODO: remove once we've upgraded to SQLAlchemy>=2.0 and databricks-sql-python>=3.x

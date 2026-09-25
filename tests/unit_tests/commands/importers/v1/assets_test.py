@@ -51,11 +51,15 @@ def test_import_new_assets(mocker: MockerFixture, session: Session) -> None:
     Test that all new assets are imported correctly.
     """
     from superset import db, security_manager
-    from superset.commands.importers.v1.assets import ImportAssetsCommand
+    from superset.commands.importers.v1.assets import (
+        feature_flag_manager,
+        ImportAssetsCommand,
+    )
     from superset.models.dashboard import dashboard_slices
     from superset.models.slice import Slice
 
     mocker.patch.object(security_manager, "can_access", return_value=True)
+    mocker.patch.object(feature_flag_manager, "is_feature_enabled", return_value=True)
 
     engine = db.session.get_bind()
     Slice.metadata.create_all(engine)  # pylint: disable=no-member
@@ -281,6 +285,9 @@ def test_import_threads_overwrite_flag(mocker: MockerFixture, session: Session) 
     mocker.patch.object(assets_module, "find_chart_uuids", return_value=[])
     mocker.patch.object(assets_module, "update_id_refs", side_effect=lambda c, *_: c)
     mocker.patch.object(assets_module, "migrate_dashboard")
+    # tag import isn't under test here; mock it out so this test doesn't
+    # depend on the TAGGING_SYSTEM feature flag default or a real tag table
+    mocker.patch.object(assets_module, "import_tag")
     mocker.patch("superset.db.session.execute")
 
     configs = {
@@ -574,6 +581,11 @@ def test_import_removes_dashboard_charts(
     expected_number_of_charts = len(charts_config_2)
 
     ImportAssetsCommand._import(base_configs)
+    # Commit between imports, as production does: ``run()`` carries
+    # ``@transaction()``, so two imports are two transactions. Without this the
+    # add and the remove of one association share a Continuum transaction and
+    # collide on ``dashboard_slices_version``'s composite key.
+    db.session.commit()
     ImportAssetsCommand._import(new_configs)
     dashboard_ids = db.session.scalars(
         select(dashboard_slices.c.dashboard_id).distinct()

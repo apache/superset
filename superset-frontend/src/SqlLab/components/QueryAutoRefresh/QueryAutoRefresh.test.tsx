@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { act } from 'react-dom/test-utils';
+import { act } from 'react';
 import { QueryState } from '@superset-ui/core';
 import fetchMock from 'fetch-mock';
 import configureStore from 'redux-mock-store';

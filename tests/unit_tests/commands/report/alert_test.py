@@ -20,10 +20,15 @@ from uuid import uuid4
 import numpy as np
 import pandas as pd
 import pytest
+from jinja2.exceptions import TemplateError
 from pytest_mock import MockerFixture
 
 from superset.commands.report.alert import AlertCommand
-from superset.commands.report.exceptions import AlertValidatorConfigError
+from superset.commands.report.exceptions import (
+    AlertQueryError,
+    AlertValidatorConfigError,
+    ReportScheduleExecutorNotFoundError,
+)
 from superset.reports.models import ReportScheduleValidatorType, ReportState
 
 
@@ -494,3 +499,73 @@ def test_not_null_validator_with_empty_result_does_not_trigger(
 
     assert triggered is False, "NOT_NULL with empty result should not trigger"
     assert command._result is None
+
+
+def test_execute_query_raises_when_executor_user_missing(
+    mocker: MockerFixture,
+) -> None:
+    """
+    When the configured executor user cannot be resolved
+    (``security_manager.find_user`` returns ``None``), the alert-query path
+    raises a dedicated ``ReportScheduleExecutorNotFoundError`` naming the
+    username, rather than swallowing it into an opaque ``AlertQueryError`` (or
+    surfacing a NoneType/AttributeError from the downstream auth flow).
+    """
+    template_processor_mock = mocker.Mock()
+    template_processor_mock.process_template.return_value = "SELECT value FROM metrics"
+    mocker.patch(
+        "superset.commands.report.alert.jinja_context.get_template_processor",
+        return_value=template_processor_mock,
+    )
+    mocker.patch(
+        "superset.commands.report.alert.get_executor",
+        return_value=("executor", "ghost_user"),
+    )
+    mocker.patch(
+        "superset.commands.report.alert.security_manager.find_user",
+        return_value=None,
+    )
+
+    report_schedule_mock = mocker.Mock()
+    report_schedule_mock.id = 1
+    report_schedule_mock.sql = "SELECT value FROM metrics"
+    report_schedule_mock.database.backend = "sqlite"
+    report_schedule_mock.database.allow_dml = False
+
+    command = AlertCommand(
+        report_schedule=report_schedule_mock,
+        execution_id=uuid4(),
+    )
+
+    with pytest.raises(ReportScheduleExecutorNotFoundError, match="ghost_user"):
+        command._execute_query()
+
+
+def test_execute_query_wraps_template_rendering_error(
+    mocker: MockerFixture,
+) -> None:
+    """
+    A Jinja rendering error raised while templating the alert's SQL (e.g. an
+    undefined variable in the alert query) must surface as the documented
+    ``AlertQueryError``, not propagate as a raw ``jinja2.exceptions.TemplateError``.
+    """
+    template_processor_mock = mocker.Mock()
+    template_processor_mock.process_template.side_effect = TemplateError(
+        "'foo' is undefined"
+    )
+    mocker.patch(
+        "superset.commands.report.alert.jinja_context.get_template_processor",
+        return_value=template_processor_mock,
+    )
+
+    report_schedule_mock = mocker.Mock()
+    report_schedule_mock.id = 1
+    report_schedule_mock.sql = "SELECT {{ foo }} FROM metrics"
+
+    command = AlertCommand(
+        report_schedule=report_schedule_mock,
+        execution_id=uuid4(),
+    )
+
+    with pytest.raises(AlertQueryError):
+        command._execute_query()

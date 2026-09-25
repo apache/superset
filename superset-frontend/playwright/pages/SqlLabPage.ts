@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { Page, Locator, Response } from '@playwright/test';
+import { Page, Locator, Response, expect } from '@playwright/test';
 import { AceEditor } from '../components/core/AceEditor';
 import { AgGrid } from '../components/core/AgGrid';
 import { Button } from '../components/core/Button';
@@ -25,6 +25,7 @@ import { EditableTabs } from '../components/core/EditableTabs';
 import { Popover } from '../components/core/Popover';
 import { Select } from '../components/core/Select';
 import { waitForPost } from '../helpers/api/intercepts';
+import { gotoWithRetry } from '../helpers/navigation';
 import { URL } from '../utils/urls';
 import { TIMEOUT } from '../utils/constants';
 
@@ -62,12 +63,17 @@ export class SqlLabPage {
   // ── Navigation ──
 
   async goto(): Promise<void> {
-    await this.page.goto(URL.SQLLAB, { waitUntil: 'domcontentloaded' });
+    await gotoWithRetry(this.page, URL.SQLLAB, {
+      waitUntil: 'domcontentloaded',
+    });
   }
 
   async waitForPageLoad(options?: { timeout?: number }): Promise<void> {
-    // SQL Lab with dev server can be slow on first load (webpack HMR + React hydration)
-    const timeout = options?.timeout ?? TIMEOUT.QUERY_EXECUTION;
+    // SQL Lab is the heaviest bundle in Superset — the editor tabs container
+    // doesn't render until the lazy chunk and async tab state (tabstateview)
+    // both resolve. On cold-cache CI workers under werkzeug load this can
+    // exceed 15 s, so use SLOW_TEST (60 s) rather than QUERY_EXECUTION here.
+    const timeout = options?.timeout ?? TIMEOUT.SLOW_TEST;
     await this.editorTabs.element.waitFor({ state: 'visible', timeout });
   }
 
@@ -310,15 +316,28 @@ export class SqlLabPage {
    */
   async executeQuery(sql: string): Promise<Response> {
     await this.setQuery(sql);
+    // Run Query is disabled until BOTH sql is set (just done) AND a
+    // database is selected. On fresh CI users the default database may
+    // not be populated when ensureEditorReady() returns, so block here
+    // until the button is actually clickable before kicking off the
+    // response/loading watchers — otherwise their 15 s timers run out
+    // before the click can even fire. Use SLOW_TEST: under werkzeug
+    // load default-db bootstrap can take >15 s.
+    await expect(this.runQueryButton.element).toBeEnabled({
+      timeout: TIMEOUT.SLOW_TEST,
+    });
+    // Use SLOW_TEST for /sqllab/execute/ — under werkzeug stress the
+    // round-trip can exceed 15 s even for trivial queries because the
+    // dev server time-shares a single Python thread across all workers.
     const responsePromise = waitForPost(this.page, 'api/v1/sqllab/execute/', {
-      timeout: TIMEOUT.QUERY_EXECUTION,
+      timeout: TIMEOUT.SLOW_TEST,
     });
     // Start observing the loading indicator BEFORE clicking Run so we
     // catch it even for fast queries. QueryStatusBar (.ant-steps) appears
     // when SQL Lab enters the running state and unmounts the results grid.
     const loadingStarted = this.resultsPane
       .locator('.ant-steps')
-      .waitFor({ state: 'visible', timeout: TIMEOUT.QUERY_EXECUTION });
+      .waitFor({ state: 'visible', timeout: TIMEOUT.SLOW_TEST });
     await this.runQueryButton.click();
     const [, response] = await Promise.all([loadingStarted, responsePromise]);
     return response;
@@ -335,7 +354,11 @@ export class SqlLabPage {
     expectHeader: string,
     options?: { timeout?: number },
   ): Promise<void> {
-    const timeout = options?.timeout ?? TIMEOUT.QUERY_EXECUTION;
+    // AG Grid is heavy and lazy-rendered. Under werkzeug stress the FE
+    // sometimes takes >15 s to hydrate results after the query returns.
+    // Default to SLOW_TEST so a slow grid mount doesn't masquerade as a
+    // query failure (the response status was already asserted upstream).
+    const timeout = options?.timeout ?? TIMEOUT.SLOW_TEST;
     // Wait for QueryStatusBar to disappear — proves the loading → ready
     // transition completed. If already hidden (fast query finished before
     // this call), resolves immediately since executeQuery() already observed

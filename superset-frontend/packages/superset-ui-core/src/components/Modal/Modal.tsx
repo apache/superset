@@ -16,20 +16,34 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { isValidElement, cloneElement, useMemo, useRef, useState } from 'react';
-import { isNil } from 'lodash';
+import {
+  isValidElement,
+  cloneElement,
+  useMemo,
+  useRef,
+  useState,
+  type ComponentType,
+} from 'react';
+import { isNil } from 'lodash-es';
 import { t } from '@apache-superset/core/translation';
 import { css, styled, useTheme } from '@apache-superset/core/theme';
 import { Modal as AntdModal, ModalProps as AntdModalProps } from 'antd';
 import { Resizable } from 're-resizable';
-import Draggable, {
+import RawDraggable, {
   DraggableBounds,
   DraggableData,
   DraggableEvent,
+  DraggableProps,
 } from 'react-draggable';
 import { Icons } from '../Icons';
 import { Button } from '../Button';
 import type { ModalProps, StyledModalProps } from './types';
+
+// react-draggable 4.6.0 ships generated types that mark every Draggable prop as
+// required (its LibraryManagedAttributes no longer honors defaultProps), even
+// though the component accepts a Partial<DraggableProps> at runtime. Re-type the
+// component so optional props stay optional, preserving the prior behavior.
+const Draggable = RawDraggable as ComponentType<Partial<DraggableProps>>;
 
 const MODAL_HEADER_HEIGHT = 55;
 const MODAL_MIN_CONTENT_HEIGHT = 54;
@@ -59,16 +73,18 @@ export const StyledModal = styled(BaseModal)<StyledModalProps>`
     const closeButtonWidth = theme.sizeUnit * 14;
 
     return css`
-      ${responsive &&
-      css`
-        max-width: ${maxWidth ?? '900px'};
-        padding-left: ${theme.sizeUnit * 3}px;
-        padding-right: ${theme.sizeUnit * 3}px;
-        padding-bottom: 0;
-        top: 0;
-      `}
+      ${
+        responsive &&
+        css`
+          max-width: ${maxWidth ?? '900px'};
+          padding-left: ${theme.sizeUnit * 3}px;
+          padding-right: ${theme.sizeUnit * 3}px;
+          padding-bottom: 0;
+          top: 0;
+        `
+      }
 
-      .ant-modal-content {
+      .ant-modal-container {
         background-color: ${theme.colorBgContainer};
         display: flex;
         flex-direction: column;
@@ -104,8 +120,8 @@ export const StyledModal = styled(BaseModal)<StyledModalProps>`
         right: 0;
         display: flex;
         justify-content: center;
-        // Keep the close button clickable when modal body content uses
-        // position: sticky with elevated z-index (e.g. DatabaseModal header).
+        /* Keep the close button clickable when modal body content uses */
+        /* position: sticky with elevated z-index (e.g. DatabaseModal header). */
         z-index: ${theme.zIndexPopupBase + 1};
       }
 
@@ -154,40 +170,46 @@ export const StyledModal = styled(BaseModal)<StyledModalProps>`
         padding: 0;
       }
 
-      ${draggable &&
-      css`
-        .ant-modal-header {
-          padding: 0;
+      ${
+        draggable &&
+        css`
+          .ant-modal-header {
+            padding: 0;
 
-          .draggable-trigger {
-            cursor: move;
-            padding: ${theme.sizeUnit * 4}px ${closeButtonWidth}px
-              ${theme.sizeUnit * 4}px ${theme.sizeUnit * 4}px;
-            width: 100%;
-          }
-        }
-      `}
-
-      ${resizable &&
-      css`
-        .resizable {
-          pointer-events: all;
-
-          .resizable-wrapper {
-            height: 100%;
-          }
-
-          .ant-modal-content {
-            height: 100%;
-
-            .ant-modal-body {
-              height: ${hideFooter
-                ? `calc(100% - ${MODAL_HEADER_HEIGHT}px)`
-                : `calc(100% - ${MODAL_HEADER_HEIGHT}px - ${MODAL_FOOTER_HEIGHT}px)`};
+            .draggable-trigger {
+              cursor: move;
+              padding: ${theme.sizeUnit * 4}px ${closeButtonWidth}px
+                ${theme.sizeUnit * 4}px ${theme.sizeUnit * 4}px;
+              width: 100%;
             }
           }
-        }
-      `}
+        `
+      }
+
+      ${
+        resizable &&
+        css`
+          .resizable {
+            pointer-events: all;
+
+            .resizable-wrapper {
+              height: 100%;
+            }
+
+            .ant-modal-container {
+              height: 100%;
+
+              .ant-modal-body {
+                height: ${
+                  hideFooter
+                    ? `calc(100% - ${MODAL_HEADER_HEIGHT}px)`
+                    : `calc(100% - ${MODAL_HEADER_HEIGHT}px - ${MODAL_FOOTER_HEIGHT}px)`
+                };
+              }
+            }
+          }
+        `
+      }
     `;
   }}
 `;
@@ -210,6 +232,29 @@ const defaultResizableConfig = (hideFooter: boolean | undefined) => ({
     right: true,
   },
 });
+
+/** Merge caller overrides without dropping default resize-handle guards. */
+export function mergeResizableConfig(
+  hideFooter: boolean | undefined,
+  overrides: ModalProps['resizableConfig'] = {},
+): NonNullable<ModalProps['resizableConfig']> {
+  const defaults = defaultResizableConfig(hideFooter);
+  if (!overrides || Object.keys(overrides).length === 0) {
+    return defaults;
+  }
+  const { enable: enableOverride, ...restOverrides } = overrides;
+  return {
+    ...defaults,
+    ...restOverrides,
+    enable:
+      enableOverride === false
+        ? false
+        : {
+            ...defaults.enable,
+            ...(typeof enableOverride === 'object' ? enableOverride : {}),
+          },
+  };
+}
 
 const CustomModal = ({
   children,
@@ -246,8 +291,7 @@ const CustomModal = ({
     [bodyStyle, stylesProp],
   );
   const draggableRef = useRef<HTMLDivElement>(null);
-  const [bounds, setBounds] = useState<DraggableBounds>();
-  const [dragDisabled, setDragDisabled] = useState<boolean>(true);
+  const [bounds, setBounds] = useState<DraggableBounds>({});
   const theme = useTheme();
 
   const handleOnHide = () => {
@@ -309,25 +353,13 @@ const CustomModal = ({
     }
   };
 
-  const getResizableConfig = useMemo(() => {
-    if (Object.keys(resizableConfig).length === 0) {
-      return defaultResizableConfig(hideFooter);
-    }
-    return resizableConfig;
-  }, [hideFooter, resizableConfig]);
+  const getResizableConfig = useMemo(
+    () => mergeResizableConfig(hideFooter, resizableConfig),
+    [hideFooter, resizableConfig],
+  );
 
   const ModalTitle = () =>
-    draggable ? (
-      <div
-        className="draggable-trigger"
-        onMouseOver={() => dragDisabled && setDragDisabled(false)}
-        onMouseOut={() => !dragDisabled && setDragDisabled(true)}
-      >
-        {title}
-      </div>
-    ) : (
-      <>{title}</>
-    );
+    draggable ? <div className="draggable-trigger">{title}</div> : <>{title}</>;
 
   return (
     <StyledModal
@@ -354,10 +386,19 @@ const CustomModal = ({
       modalRender={modal =>
         resizable || draggable ? (
           <Draggable
-            disabled={!draggable || dragDisabled}
-            bounds={bounds}
+            bounds={bounds ?? false}
             onStart={(event, uiData) => onDragStart(event, uiData)}
             {...draggableConfig}
+            // `disabled` and `handle` are applied after the spread so callers
+            // can't use `draggableConfig` to re-enable dragging on a
+            // non-draggable modal or move the drag handle off the title bar.
+            // A caller opting a draggable modal out via
+            // `draggableConfig.disabled` is still honored.
+            disabled={!draggable || !!draggableConfig?.disabled}
+            handle={draggable ? '.draggable-trigger' : undefined}
+            // Pass nodeRef so react-draggable does not fall back to
+            // ReactDOM.findDOMNode (deprecated in React 18+ Strict Mode).
+            nodeRef={draggableRef}
           >
             {resizable ? (
               <Resizable className="resizable" {...getResizableConfig}>

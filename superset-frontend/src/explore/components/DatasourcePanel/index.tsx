@@ -286,14 +286,21 @@ export default function DataSourcePanel({
                 message=""
                 description={
                   <>
-                    <span
-                      role="button"
-                      tabIndex={0}
+                    <button
+                      type="button"
                       onClick={() => setShowSaveDatasetModal(true)}
                       className="add-dataset-alert-description"
+                      css={css`
+                        appearance: none;
+                        border: none;
+                        background: none;
+                        padding: 0;
+                        font: inherit;
+                        cursor: pointer;
+                      `}
                     >
                       {t('Create a dataset')}
-                    </span>
+                    </button>
                     {t(' to edit or add columns and metrics.')}
                   </>
                 }

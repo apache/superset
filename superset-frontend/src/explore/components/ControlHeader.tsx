@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { handleKeyboardActivation } from '@superset-ui/core';
 import { FC, ReactNode } from 'react';
 import { t } from '@apache-superset/core/translation';
 import { css, useTheme, SupersetTheme } from '@apache-superset/core/theme';
@@ -37,6 +38,7 @@ export type ControlHeaderProps = {
   tooltipOnClick?: () => void;
   warning?: string;
   danger?: string;
+  onDescriptionHoverChange?: (hovered: boolean) => void;
   // Allow extra props from control spread patterns (e.g. {...this.props})
   [key: string]: unknown;
 };
@@ -70,6 +72,7 @@ const ControlHeader: FC<ControlHeaderProps> = ({
   tooltipOnClick = () => {},
   warning,
   danger,
+  onDescriptionHoverChange,
 }) => {
   const theme = useTheme();
 
@@ -84,28 +87,48 @@ const ControlHeader: FC<ControlHeaderProps> = ({
 
     return (
       <span
-        css={() => css`
-          position: absolute;
-          top: 50%;
-          right: 0;
+        css={(theme: SupersetTheme) => css`
+          display: inline-flex;
+          align-items: center;
+          z-index: 1;
           padding-left: ${theme.sizeUnit}px;
-          transform: translate(100%, -50%);
           white-space: nowrap;
+          pointer-events: auto;
         `}
       >
         {description && (
-          <span>
+          <>
             <Tooltip
               id="description-tooltip"
               title={description}
               placement="top"
+              mouseLeaveDelay={0}
+              trigger={['hover', 'focus']}
             >
-              <Icons.InfoCircleOutlined
-                css={iconStyles}
+              <button
+                type="button"
+                data-test={`${name}-description-icon`}
+                aria-label={t('Show info tooltip')}
+                onMouseEnter={() => onDescriptionHoverChange?.(true)}
+                onMouseLeave={() => onDescriptionHoverChange?.(false)}
+                onFocus={() => onDescriptionHoverChange?.(true)}
+                onBlur={() => onDescriptionHoverChange?.(false)}
                 onClick={tooltipOnClick}
-              />
+                onKeyDown={handleKeyboardActivation(tooltipOnClick)}
+                css={css`
+                  background: none;
+                  border: none;
+                  padding: 0;
+                  display: inline-flex;
+                  align-items: center;
+                  cursor: pointer;
+                  line-height: 1;
+                `}
+              >
+                <Icons.InfoCircleOutlined css={iconStyles} />
+              </button>
             </Tooltip>{' '}
-          </span>
+          </>
         )}
         {renderTrigger && (
           <span>
@@ -123,10 +146,17 @@ const ControlHeader: FC<ControlHeaderProps> = ({
 
   return (
     <div className="ControlHeader" data-test={`${name}-header`}>
-      <div className="pull-left">
+      <div
+        className="pull-left"
+        css={(theme: SupersetTheme) => css`
+          display: inline-flex;
+          align-items: center;
+          margin-bottom: ${theme.sizeUnit * 0.5}px;
+        `}
+      >
         <FormLabel
           css={(theme: SupersetTheme) => css`
-            margin-bottom: ${theme.sizeUnit * 0.5}px;
+            margin-bottom: 0;
             position: relative;
             font-size: ${theme.fontSizeSM}px;
             overflow: visible;
@@ -135,10 +165,16 @@ const ControlHeader: FC<ControlHeaderProps> = ({
           htmlFor={name}
         >
           {leftNode && <span>{leftNode} </span>}
+          {/* This label text sits inside FormLabel's <label>, and HTML5
+              prohibits interactive content (including <button>) as a
+              descendant of <label>, so a real button tag isn't an option
+              here. */}
           <span
+            // eslint-disable-next-line jsx-a11y/prefer-tag-over-role
             role="button"
             tabIndex={0}
             onClick={onClick}
+            onKeyDown={onClick ? handleKeyboardActivation(onClick) : undefined}
             style={{ cursor: onClick ? 'pointer' : '' }}
           >
             {label}
@@ -182,8 +218,8 @@ const ControlHeader: FC<ControlHeaderProps> = ({
               </Tooltip>{' '}
             </span>
           )}
-          {renderOptionalIcons()}
         </FormLabel>
+        {renderOptionalIcons()}
       </div>
       {rightNode && <div className="pull-right">{rightNode}</div>}
       <div className="clearfix" />

@@ -18,9 +18,14 @@
 from __future__ import annotations
 
 import json
+import zipfile
+from collections.abc import Callable
+from pathlib import Path
 from unittest.mock import Mock, patch
 
+import click
 import pytest
+from click.testing import CliRunner, Result
 from superset_extensions_cli.cli import (
     app,
     build_manifest,
@@ -145,20 +150,22 @@ def test_build_command_success_flow(
 
 
 @pytest.mark.cli
+@pytest.mark.parametrize("command", ["build", "bundle"])
 @patch("superset_extensions_cli.cli.validate_npm")
 @patch("superset_extensions_cli.cli.init_frontend_deps")
 @patch("superset_extensions_cli.cli.rebuild_frontend")
 @patch("superset_extensions_cli.cli.read_toml")
 def test_build_command_handles_frontend_build_failure(
-    mock_read_toml,
-    mock_rebuild_frontend,
-    mock_init_frontend_deps,
-    mock_validate_npm,
-    cli_runner,
-    isolated_filesystem,
-    extension_with_build_structure,
-):
-    """Test build command handles frontend build failure."""
+    mock_read_toml: Mock,
+    mock_rebuild_frontend: Mock,
+    mock_init_frontend_deps: Mock,
+    mock_validate_npm: Mock,
+    cli_runner: CliRunner,
+    isolated_filesystem: Path,
+    extension_with_build_structure: Callable[..., dict[str, Path | None]],
+    command: str,
+) -> None:
+    """A failed frontend prevents manifest publication and archive creation."""
     # Setup mocks
     mock_rebuild_frontend.return_value = None  # Indicates failure
     mock_read_toml.return_value = {
@@ -173,11 +180,97 @@ def test_build_command_handles_frontend_build_failure(
     # Create extension structure
     extension_with_build_structure(isolated_filesystem)
 
-    result = cli_runner.invoke(app, ["build"])
+    result: Result = cli_runner.invoke(app, [command])
 
-    # Command should complete and create manifest even with frontend failure
+    assert result.exit_code == 1
+    assert "✅ Full build completed in dist/" not in result.output
+    assert "✅ Bundle created" not in result.output
+    assert not (isolated_filesystem / "dist" / "manifest.json").exists()
+    assert not list(isolated_filesystem.glob("*.supx"))
+
+
+@pytest.mark.cli
+@pytest.mark.parametrize("command", ["build", "bundle"])
+@pytest.mark.parametrize("return_code", [0, 1])
+def test_commands_propagate_frontend_result(
+    cli_runner: CliRunner,
+    isolated_filesystem: Path,
+    extension_with_build_structure: Callable[..., dict[str, Path | None]],
+    command: str,
+    return_code: int,
+) -> None:
+    """Exercise the real rebuild, manifest and bundle paths around the compiler."""
+    extension_with_build_structure(isolated_filesystem, include_backend=False)
+    frontend_dist: Path = isolated_filesystem / "frontend" / "dist"
+    frontend_dist.mkdir()
+    (frontend_dist / "remoteEntry.abc123.js").write_text("// compiled entry")
+    archive: Path = isolated_filesystem / "test-extension-1.0.0.supx"
+    with (
+        patch("superset_extensions_cli.cli.validate_npm"),
+        patch("superset_extensions_cli.cli.init_frontend_deps"),
+        patch(
+            "superset_extensions_cli.cli.run_frontend_build",
+            return_value=Mock(returncode=return_code),
+        ),
+    ):
+        result: Result = cli_runner.invoke(app, [command])
+    assert result.exit_code == return_code
+    if return_code:
+        assert "❌ Frontend build failed" in result.output
+        assert "✅ Full build completed" not in result.output
+        assert "✅ Bundle created" not in result.output
+        assert not (isolated_filesystem / "dist" / "manifest.json").exists()
+        assert not archive.exists()
+    else:
+        assert "✅ Full build completed" in result.output
+        assert (isolated_filesystem / "dist" / "manifest.json").exists()
+        if command == "bundle":
+            with zipfile.ZipFile(archive) as bundle_file:
+                assert "frontend/dist/remoteEntry.abc123.js" in bundle_file.namelist()
+
+
+@pytest.mark.cli
+def test_dev_watcher_recovers_after_frontend_failure(
+    cli_runner: CliRunner,
+    isolated_filesystem: Path,
+    extension_with_build_structure: Callable[..., dict[str, Path | None]],
+) -> None:
+    """A failed watcher rebuild returns normally and a later success publishes."""
+    extension_with_build_structure(isolated_filesystem, include_backend=False)
+    frontend_dist: Path = isolated_filesystem / "frontend" / "dist"
+    frontend_dist.mkdir()
+    (frontend_dist / "remoteEntry.abc123.js").write_text("// compiled entry")
+    observer: Mock = Mock()
+    with (
+        patch("superset_extensions_cli.cli.Observer", return_value=observer),
+        patch("superset_extensions_cli.cli.init_frontend_deps"),
+        patch(
+            "superset_extensions_cli.cli.run_frontend_build",
+            side_effect=[Mock(returncode=0), Mock(returncode=1), Mock(returncode=0)],
+        ) as compiler,
+        patch("superset_extensions_cli.cli.write_manifest") as write_manifest,
+    ):
+
+        def rebuild_then_stop(_: float) -> None:
+            """Drive the registered watcher synchronously without a live thread."""
+            trigger: Callable[[], None] = observer.schedule.call_args.args[
+                0
+            ].trigger_build
+            trigger()
+            assert write_manifest.call_count == 1
+            trigger()
+            assert write_manifest.call_count == 2
+            raise KeyboardInterrupt
+
+        with patch(
+            "superset_extensions_cli.cli.time.sleep", side_effect=rebuild_then_stop
+        ):
+            result: Result = cli_runner.invoke(app, ["dev"])
     assert result.exit_code == 0
-    assert "✅ Full build completed in dist/" in result.output
+    assert "❌ Frontend build failed" in result.output
+    assert compiler.call_count == 3
+    observer.stop.assert_called_once()
+    observer.join.assert_called_once()
 
 
 # Clean Dist Tests
@@ -400,32 +493,33 @@ def test_run_frontend_build_with_output_messages(isolated_filesystem):
     [
         (0, "remoteEntry.abc123.js"),
         (1, None),
+        (2, None),
     ],
 )
 def test_rebuild_frontend_handles_build_results(
-    isolated_filesystem, return_code, expected_result
-):
-    """Test rebuild_frontend handles different build results."""
+    isolated_filesystem: Path, return_code: int, expected_result: str | None
+) -> None:
+    """Failed rebuilds return None rather than raising into the watcher."""
     from superset_extensions_cli.cli import rebuild_frontend
 
     # Create frontend structure
-    frontend_dir = isolated_filesystem / "frontend"
+    frontend_dir: Path = isolated_filesystem / "frontend"
     frontend_dir.mkdir()
 
     if return_code == 0:
         # Create frontend/dist with remoteEntry for success case
-        frontend_dist = frontend_dir / "dist"
+        frontend_dist: Path = frontend_dir / "dist"
         frontend_dist.mkdir()
         (frontend_dist / "remoteEntry.abc123.js").write_text("content")
 
         # Create dist directory
-        dist_dir = isolated_filesystem / "dist"
+        dist_dir: Path = isolated_filesystem / "dist"
         dist_dir.mkdir()
 
     with patch("superset_extensions_cli.cli.run_frontend_build") as mock_build:
         mock_build.return_value = Mock(returncode=return_code)
 
-        result = rebuild_frontend(isolated_filesystem, frontend_dir)
+        result: str | None = rebuild_frontend(isolated_filesystem, frontend_dir)
 
         assert result == expected_result
 
@@ -623,6 +717,155 @@ exclude = []
     assert_file_exists(
         dist_dir / "backend" / "src" / "test_org" / "test_ext" / "main.py"
     )
+
+
+@pytest.mark.unit
+def test_copy_backend_files_supports_legitimate_nested_patterns(isolated_filesystem):
+    """Test copy_backend_files copies deeply nested files via recursive globs."""
+    backend_dir = isolated_filesystem / "backend"
+    nested = backend_dir / "src" / "test_org" / "test_ext" / "deep" / "deeper"
+    nested.mkdir(parents=True)
+    (nested / "module.py").write_text("# nested module")
+
+    pyproject_content = """[project]
+name = "test_org-test_ext"
+version = "1.0.0"
+license = "Apache-2.0"
+
+[tool.apache_superset_extensions.build]
+include = [
+    "src/test_org/test_ext/**/*.py",
+]
+exclude = []
+"""
+    (backend_dir / "pyproject.toml").write_text(pyproject_content)
+
+    extension_data = {
+        "publisher": "test-org",
+        "name": "test-ext",
+        "displayName": "Test Extension",
+        "version": "1.0.0",
+        "permissions": [],
+    }
+    (isolated_filesystem / "extension.json").write_text(json.dumps(extension_data))
+
+    clean_dist(isolated_filesystem)
+    copy_backend_files(isolated_filesystem)
+
+    dist_dir = isolated_filesystem / "dist"
+    assert_file_exists(
+        dist_dir
+        / "backend"
+        / "src"
+        / "test_org"
+        / "test_ext"
+        / "deep"
+        / "deeper"
+        / "module.py"
+    )
+
+
+@pytest.mark.unit
+@pytest.mark.parametrize(
+    "bad_pattern",
+    [
+        "../../.ssh/*",
+        "../config",
+        "src/../../secret.txt",
+        "/etc/passwd",
+    ],
+)
+def test_copy_backend_files_rejects_patterns_escaping_backend_dir(
+    isolated_filesystem, bad_pattern
+):
+    """Test copy_backend_files refuses include patterns that escape backend_dir."""
+    # Create a sensitive file outside the backend directory.
+    (isolated_filesystem / "secret.txt").write_text("SECRET")
+    (isolated_filesystem / "config").write_text("SECRET")
+
+    backend_dir = isolated_filesystem / "backend"
+    backend_src = backend_dir / "src" / "test_org" / "test_ext"
+    backend_src.mkdir(parents=True)
+    (backend_src / "__init__.py").write_text("# init")
+
+    pyproject_content = f"""[project]
+name = "test_org-test_ext"
+version = "1.0.0"
+license = "Apache-2.0"
+
+[tool.apache_superset_extensions.build]
+include = [
+    "{bad_pattern}",
+]
+exclude = []
+"""
+    (backend_dir / "pyproject.toml").write_text(pyproject_content)
+
+    extension_data = {
+        "publisher": "test-org",
+        "name": "test-ext",
+        "displayName": "Test Extension",
+        "version": "1.0.0",
+        "permissions": [],
+    }
+    (isolated_filesystem / "extension.json").write_text(json.dumps(extension_data))
+
+    clean_dist(isolated_filesystem)
+
+    with pytest.raises(click.ClickException):
+        copy_backend_files(isolated_filesystem)
+
+    # Nothing outside the backend directory should have been staged into dist,
+    # including paths reachable via ".." from inside dist/backend.
+    dist_dir = isolated_filesystem / "dist"
+    assert not (dist_dir / "secret.txt").exists()
+    assert not (dist_dir / "config").exists()
+
+
+@pytest.mark.unit
+def test_copy_backend_files_stages_symlink_at_matched_path(isolated_filesystem):
+    """Symlinked files inside backend are staged at the matched path, not the target."""
+    backend_dir = isolated_filesystem / "backend"
+    target_dir = backend_dir / "src" / "common"
+    target_dir.mkdir(parents=True)
+    (target_dir / "module.py").write_text("# shared module")
+
+    link_dir = backend_dir / "src" / "test_org" / "test_ext" / "common"
+    link_dir.mkdir(parents=True)
+    link = link_dir / "module.py"
+    link.symlink_to(target_dir / "module.py")
+
+    pyproject_content = """[project]
+name = "test_org-test_ext"
+version = "1.0.0"
+license = "Apache-2.0"
+
+[tool.apache_superset_extensions.build]
+include = [
+    "src/test_org/test_ext/**/*.py",
+]
+exclude = []
+"""
+    (backend_dir / "pyproject.toml").write_text(pyproject_content)
+
+    extension_data = {
+        "publisher": "test-org",
+        "name": "test-ext",
+        "displayName": "Test Extension",
+        "version": "1.0.0",
+        "permissions": [],
+    }
+    (isolated_filesystem / "extension.json").write_text(json.dumps(extension_data))
+
+    clean_dist(isolated_filesystem)
+    copy_backend_files(isolated_filesystem)
+
+    dist_dir = isolated_filesystem / "dist"
+    # Staged at the configured (symlink) path, not the resolved target path.
+    assert_file_exists(
+        dist_dir / "backend" / "src" / "test_org" / "test_ext" / "common" / "module.py"
+    )
+    assert not (dist_dir / "backend" / "src" / "common" / "module.py").exists()
 
 
 # Removed obsolete tests:

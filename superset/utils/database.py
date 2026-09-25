@@ -87,6 +87,42 @@ def remove_database(database: Database) -> None:
     db.session.flush()
 
 
+def warm_and_release_connection(instance: Any, *relationships: str) -> None:
+    """
+    Eagerly load the named relationships on ``instance``, then release the
+    current session's DB connection back to the pool without detaching any
+    object in the session.
+
+    Prefer this over ``db.session.close()`` before slow, non-DB work (a
+    long-running cursor execution, a results-backend fetch, CPU-bound
+    decompress/deserialize work) that still needs attributes already
+    loaded on session objects: ``close()`` detaches every object in the
+    session -- including ``g.user``, not just ``instance`` -- so a later
+    attribute access anywhere in the request can raise on a detached
+    instance or silently open a fresh connection. Committing with
+    ``expire_on_commit`` disabled instead releases the connection while
+    keeping objects attached and their already-loaded attributes valid.
+    """
+    # pylint: disable=import-outside-toplevel
+    from superset import db
+
+    for relationship in relationships:
+        getattr(instance, relationship)
+
+    # ``db.session`` is a ``scoped_session`` proxy: it only forwards a fixed
+    # allowlist of attributes to the real ``Session`` (bind, dirty, deleted,
+    # new, identity_map, is_active, autoflush, no_autoflush, info).
+    # ``expire_on_commit`` isn't on that list, so setting it on ``db.session``
+    # directly would silently no-op -- it has to be set on the real Session
+    # returned by calling the proxy.
+    session = db.session()
+    session.expire_on_commit = False
+    try:
+        session.commit()  # pylint: disable=consider-using-transaction
+    finally:
+        session.expire_on_commit = True
+
+
 def apply_mariadb_ddl_fix() -> None:
     """
     Fix MariaDB "NO CYCLE" syntax issue - MariaDB uses "NOCYCLE" (no space).

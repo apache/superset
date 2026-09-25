@@ -114,3 +114,26 @@ test('hasTimeOffset returns false when series name is not a string', () => {
   const timeCompare = ['1 year ago'];
   expect(hasTimeOffset(series, timeCompare)).toBe(false);
 });
+
+test('getTimeOffset correctly matches offsets that share a numeric prefix', () => {
+  const timeCompare = ['1 year ago', '11 year ago'];
+  expect(
+    getTimeOffset({ name: '11 year ago, Alexander' }, timeCompare),
+  ).toEqual('11 year ago');
+  expect(getTimeOffset({ name: '1 year ago, Alexander' }, timeCompare)).toEqual(
+    '1 year ago',
+  );
+  expect(getTimeOffset({ name: 'Births__11 year ago' }, timeCompare)).toEqual(
+    '11 year ago',
+  );
+});
+
+test('getOriginalSeries correctly strips offsets that share a numeric prefix', () => {
+  const timeCompare = ['1 year ago', '11 year ago'];
+  expect(getOriginalSeries('11 year ago, Alexander', timeCompare)).toEqual(
+    'Alexander',
+  );
+  expect(getOriginalSeries('1 year ago, Alexander', timeCompare)).toEqual(
+    'Alexander',
+  );
+});

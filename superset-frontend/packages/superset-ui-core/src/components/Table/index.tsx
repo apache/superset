@@ -198,7 +198,7 @@ const StyledTable = styled(AntTable as FC<AntTableProps>)<{ height?: number }>(
       scrollbar-color: ${theme.colorFillSecondary} ${theme.colorFillQuaternary};
     }
 
-    .ant-spin-nested-loading .ant-spin .ant-spin-dot {
+    .ant-spin .ant-spin-dot {
       width: ${theme.sizeXXL}px;
       height: unset;
     }
@@ -295,6 +295,7 @@ export function Table<RecordType extends object>(
     onRow,
     allowHTML = false,
     childrenColumnName,
+    expandable: expandableProp,
     ...rest
   } = props;
 
@@ -427,6 +428,7 @@ export function Table<RecordType extends object>(
     bordered,
     expandable: {
       childrenColumnName,
+      ...expandableProp,
     },
   };
 

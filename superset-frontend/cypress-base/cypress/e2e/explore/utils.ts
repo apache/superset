@@ -17,7 +17,9 @@
  * under the License.
  */
 
-import { interceptGet as interceptDashboardGet } from '../dashboard/utils';
+export function interceptDashboardGet() {
+  cy.intercept('GET', '**/api/v1/dashboard/*').as('get');
+}
 
 export function interceptFiltering() {
   cy.intercept('GET', `**/api/v1/chart/?q=*`).as('filtering');
@@ -53,13 +55,11 @@ export function saveChartToDashboard(chartName: string, dashboardName: string) {
     .then($modal => {
       cy.wait(500);
       cy.wrap($modal)
-        .find(
-          '.ant-select-selection-search-input[aria-label*="Select a dashboard"]',
-        )
+        .find('.ant-select-input[aria-label*="Select a dashboard"]')
         .type(dashboardName, { force: true });
-      cy.wrap($modal)
-        .find(`.ant-select-item-option[title="${dashboardName}"]`)
-        .click();
+
+      cy.get(`.ant-select-item-option[title="${dashboardName}"]`).click();
+
       cy.getBySel('btn-modal-save').click();
       cy.wait('@update');
     });

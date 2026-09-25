@@ -76,9 +76,10 @@ const createMockUser = (overrides = {}) => ({
 const createMockStore = (initialState: any = {}) =>
   configureStore({
     reducer: {
-      user: (state = initialState.user || {}, action: any) => state,
-      common: (state = initialState.common || {}, action: any) => state,
-      dashboards: (state = initialState.dashboards || {}, action: any) => state,
+      user: (state = initialState.user || {}, _action: any) => state,
+      common: (state = initialState.common || {}, _action: any) => state,
+      dashboards: (state = initialState.dashboards || {}, _action: any) =>
+        state,
     },
     preloadedState: initialState,
     middleware: getDefaultMiddleware =>
@@ -185,7 +186,7 @@ describe('DashboardList - Permission-based UI Tests', () => {
 
     // Verify admin controls are visible
     expect(
-      screen.getByRole('button', { name: /dashboard/i }),
+      screen.getByRole('button', { name: /dashboard$/i }),
     ).toBeInTheDocument();
     expect(screen.getByTestId('import-button')).toBeInTheDocument();
     expect(screen.getByTestId('bulk-select')).toBeInTheDocument();
@@ -214,7 +215,7 @@ describe('DashboardList - Permission-based UI Tests', () => {
 
     // Verify permission-gated elements are hidden
     expect(
-      screen.queryByRole('button', { name: /dashboard/i }),
+      screen.queryByRole('button', { name: /dashboard$/i }),
     ).not.toBeInTheDocument();
     expect(screen.queryByTestId('import-button')).not.toBeInTheDocument();
   });
@@ -302,7 +303,7 @@ describe('DashboardList - Permission-based UI Tests', () => {
     await screen.findByTestId('dashboard-list-view');
 
     expect(
-      screen.getByRole('button', { name: /dashboard/i }),
+      screen.getByRole('button', { name: /dashboard$/i }),
     ).toBeInTheDocument();
     expect(screen.getByTestId('import-button')).toBeInTheDocument();
   });
@@ -312,7 +313,7 @@ describe('DashboardList - Permission-based UI Tests', () => {
     await screen.findByTestId('dashboard-list-view');
 
     expect(
-      screen.queryByRole('button', { name: /dashboard/i }),
+      screen.queryByRole('button', { name: /dashboard$/i }),
     ).not.toBeInTheDocument();
     expect(screen.queryByTestId('import-button')).not.toBeInTheDocument();
   });
@@ -322,7 +323,7 @@ describe('DashboardList - Permission-based UI Tests', () => {
     await screen.findByTestId('dashboard-list-view');
 
     expect(
-      screen.queryByRole('button', { name: /dashboard/i }),
+      screen.queryByRole('button', { name: /dashboard$/i }),
     ).not.toBeInTheDocument();
     expect(screen.queryByTestId('import-button')).not.toBeInTheDocument();
   });

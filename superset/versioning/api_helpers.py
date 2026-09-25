@@ -1,0 +1,521 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+"""Shared handlers for the ``/versions/`` and ``/activity/`` REST endpoints.
+
+Each ``ChartRestApi`` / ``DashboardRestApi`` / ``DatasetRestApi`` carries
+the same read endpoint methods — ``list_versions`` and ``get_version`` —
+plus the ``activity`` endpoint on each resource. The bodies are
+byte-for-byte identical apart from the model class; authorization is a
+single object-level editorship gate in ``resolve_endpoint_path_entity``
+(``security_manager.raise_for_editorship``). Extracting the bodies here
+lets each per-resource method collapse to a single delegation call, while
+the OpenAPI docstring + FAB decorators stay at the method site where they
+belong.
+
+The write side follows the same pattern: ``restore_version_endpoint``
+holds the shared body of the three ``POST .../versions/<uuid>/restore``
+routes; authorization and the capture kill-switch gate live in the
+restore command's ``validate()``, not here.
+"""
+
+from __future__ import annotations
+
+import functools
+import logging
+from dataclasses import dataclass
+from typing import Any
+from uuid import UUID
+
+import sqlalchemy as sa
+from flask import Response
+from flask_appbuilder import Model
+
+from superset.daos.version import VersionDAO
+from superset.extensions import db, security_manager
+from superset.versioning.etag import set_version_etag_by_uuid
+from superset.versioning.schemas import VersionListItemSchema
+
+#: Serializer for version rows (list items and the ``_version`` block of a
+#: single-version snapshot — same shape). Dumping through marshmallow
+#: instead of handing raw dicts to ``jsonify`` keeps ``issued_at``
+#: ISO-8601 (Flask's default JSON provider renders datetimes as RFC-1123
+#: http-dates) and ``version_uuid`` consistently a string (the list rows
+#: carry UUID instances, the snapshot block pre-stringifies).
+_version_item_schema = VersionListItemSchema()
+
+logger = logging.getLogger(__name__)
+
+
+@dataclass
+class EntityVersionInfo:
+    """Live version identifiers for a write-endpoint response.
+
+    Every field is ``None`` when ``ENABLE_VERSIONING_CAPTURE`` is off — the
+    write endpoints then issue no version queries at all, so they stay inert
+    under the kill-switch rather than paying save-path latency the flag is
+    meant to eliminate.
+    """
+
+    version: int | None = None
+    transaction_id: int | None = None
+    version_uuid: str | None = None
+    #: Resolved uuid of the entity itself, carried so callers that need a
+    #: concurrency token for an entity with no version rows yet don't have to
+    #: re-run the ``SELECT uuid`` this helper already issued. Not part of the
+    #: API response.
+    entity_uuid: UUID | None = None
+
+
+def _capture_enabled() -> bool:
+    # Delegates to the shared gate so the read helpers and the restore
+    # command can't disagree about what "capture is on" means.
+    from superset.versioning.utils import (  # pylint: disable=import-outside-toplevel
+        capture_enabled,
+    )
+
+    return capture_enabled()
+
+
+def current_entity_version_info(
+    model_cls: type[Model],
+    entity_id: int | None,
+    entity_uuid: UUID | None = None,
+    *,
+    lock_for_stale_check: bool = False,
+) -> EntityVersionInfo:
+    """Resolve the live version number, transaction id, and version uuid.
+
+    Returns an empty (all-``None``) record and issues *no* queries when
+    capture is disabled. When *entity_uuid* is not supplied it is resolved
+    with a single ``SELECT uuid`` rather than loading the whole entity row.
+
+    With ``lock_for_stale_check`` the live ``transaction_id`` — the input
+    to the ``If-Match`` token — is read under an exclusive row lock so it
+    reflects committed state even on MySQL REPEATABLE READ, where a plain
+    read is served from the request's pre-lock snapshot (see
+    :func:`~superset.versioning.queries.current_live_transaction_id_locked`
+    for the mechanism, lock-strength rationale, and residuals). Only
+    conditional writes should pay for the lock. The displayed version
+    *number* still comes from a plain aggregate read: a concurrently
+    committed row can leave it one behind in response metadata, but the
+    guard itself never consults it. The entity-uuid resolution also stays
+    a plain read: the uuid is immutable for the life of the row.
+    """
+    if entity_id is None or not _capture_enabled():
+        return EntityVersionInfo()
+    try:
+        # PUT routes declare ``/<pk>`` (a string segment), so ``entity_id`` can
+        # arrive as a non-numeric string. Coerce here and bail to empty info on
+        # a bad id, so this pre-command version lookup doesn't raise a raw SQL
+        # type-cast error ahead of the command layer's normal 404 handling.
+        entity_id = int(entity_id)
+    except (TypeError, ValueError):
+        return EntityVersionInfo()
+    if entity_uuid is None:
+        entity_uuid = db.session.scalar(
+            sa.select(model_cls.uuid).where(model_cls.id == entity_id)
+        )
+    if entity_uuid is None:
+        return EntityVersionInfo()
+    version: int | None
+    transaction_id: int | None
+    version, transaction_id = VersionDAO.current_version_info(
+        model_cls, entity_id, entity_uuid
+    )
+    if lock_for_stale_check:
+        transaction_id = VersionDAO.current_live_transaction_id_locked(
+            model_cls, entity_id, entity_uuid
+        )
+    version_uuid = (
+        VersionDAO.derive_version_uuid(entity_uuid, transaction_id)
+        if transaction_id is not None
+        else None
+    )
+    return EntityVersionInfo(
+        version=version,
+        transaction_id=transaction_id,
+        version_uuid=str(version_uuid) if version_uuid else None,
+        entity_uuid=entity_uuid,
+    )
+
+
+def current_entity_etag_uuid(
+    model_cls: type[Model],
+    entity_id: int | None,
+    entity_uuid: UUID | None,
+) -> str | None:
+    """Resolve only the live version uuid (for an ETag), gated by capture.
+
+    Returns ``None`` without querying when capture is off or either id is
+    missing.
+    """
+    if entity_id is None or entity_uuid is None or not _capture_enabled():
+        return None
+    version_uuid = VersionDAO.current_live_version_uuid(
+        model_cls, entity_id, entity_uuid
+    )
+    return str(version_uuid) if version_uuid else None
+
+
+# Sentinel Continuum transaction id for an entity that has no version rows
+# yet. Continuum sequences start at 1, so it can never collide with a real
+# one, and the derived uuid stops matching the moment the first version row
+# lands — which is exactly the transition a concurrency guard must catch.
+_UNVERSIONED_TRANSACTION_ID = 0
+
+
+def unversioned_entity_token(entity_uuid: UUID) -> str:
+    """Concurrency token for an entity Continuum hasn't versioned yet."""
+    return str(VersionDAO.derive_version_uuid(entity_uuid, _UNVERSIONED_TRANSACTION_ID))
+
+
+def entity_concurrency_token(
+    model_cls: type[Model],
+    entity_id: int | None,
+    entity_uuid: UUID | None,
+) -> str | None:
+    """Resolve the optimistic-concurrency validator for *entity*.
+
+    Differs from :func:`current_entity_etag_uuid` in what it does for an
+    entity with no version rows: baseline rows are written lazily, on the
+    first update after the versioning migration, so a never-since-saved
+    entity has none. Reporting ``None`` there would leave the *first*
+    concurrent save on every such entity unguarded — the exact case a
+    two-tab race hits on a pristine entity. Those entities get a
+    deterministic unversioned token instead.
+
+    ``None`` still means "no validator exists": capture is off, or the
+    entity is missing.
+    """
+    if entity_id is None or entity_uuid is None or not _capture_enabled():
+        return None
+    return current_entity_etag_uuid(
+        model_cls, entity_id, entity_uuid
+    ) or unversioned_entity_token(entity_uuid)
+
+
+def lock_entity_for_update(
+    model_cls: type[Model], entity_id: int | None
+) -> Model | None:
+    """Row-lock *entity*, refresh it to committed data, and return it.
+
+    ``If-Match`` is verified against a read taken before the update command
+    runs. Without a lock two overlapping requests can both read the same live
+    version, both pass the check, and then commit one after the other,
+    reintroducing the lost update the check exists to prevent. The lock is
+    held until the command commits, because both run in the same scoped
+    session.
+
+    An id-only locking ``SELECT`` would serialise writers without fixing
+    what this transaction can *see*: InnoDB's default REPEATABLE READ pins
+    every consistent read to the snapshot established by the transaction's
+    first read (the request's auth queries), so an entity load issued after
+    such a lock still returns the pre-lock snapshot -- and the ORM, which
+    only emits UPDATEs for attributes that differ from the *loaded* values,
+    can silently discard a concurrent commit that landed before the lock.
+
+    The lock is therefore taken as a full-entity ORM read.
+    ``with_for_update()`` makes it a locking read, exempt from the
+    REPEATABLE READ snapshot, returning current committed data;
+    ``populate_existing()`` writes that data into the identity-map object,
+    which a later plain lookup (e.g. the update command's ``find_by_id``)
+    returns without re-hydrating from its own stale row. Call this before
+    the session's entity is modified: the refresh overwrites pending
+    attribute state, and the query's autoflush would flush earlier
+    mutations mid-request.
+
+    The caller MUST hold the returned entity for as long as the refreshed
+    state matters (through the update command's run). The identity map
+    references clean persistent objects weakly, so a discarded return
+    value can be garbage-collected immediately -- after which the
+    command's lookup re-hydrates a new object from a plain read, which on
+    MySQL REPEATABLE READ is the pre-lock snapshot again, silently
+    undoing the refresh.
+
+    The refresh covers the entity row itself. Lazy-loaded child
+    collections (columns, metrics) and the displayed version number remain
+    plain consistent reads and can observe the pre-lock snapshot on MySQL
+    REPEATABLE READ. The conditional ``If-Match`` comparison instead uses
+    a locking read of the live transaction id.
+
+    Postgres (READ COMMITTED) and SQLite are not exposed to the staleness,
+    and the refresh is harmless there. (Version restore has the same
+    staleness class; the matching locking-refresh fix is proposed in
+    apache/superset#44015.)
+
+    Renders no ``FOR UPDATE`` on SQLite, which serialises writers anyway.
+
+    Missing rows are not this function's concern: ``None`` is returned
+    (soft-deleted rows filter out like any ORM read), and existence keeps
+    being decided by the update command's own lookup (404 semantics
+    unchanged).
+    """
+    try:
+        # The PUT route declares ``/<pk>`` (a string segment), so a non-numeric
+        # id must not raise a SQL cast error ahead of the command's 404.
+        entity_id = int(entity_id)  # type: ignore[arg-type]
+    except (TypeError, ValueError):
+        return None
+    return (
+        db.session.query(model_cls)
+        .populate_existing()
+        .filter(model_cls.id == entity_id)
+        .with_for_update()
+        .one_or_none()
+    )
+
+
+def concurrency_token_from(info: EntityVersionInfo) -> str | None:
+    """Concurrency token for an already-resolved :class:`EntityVersionInfo`.
+
+    Lets a write endpoint reuse the pre-update version lookup it already
+    made rather than issuing a second one.
+    """
+    if info.entity_uuid is None:
+        return None
+    return info.version_uuid or unversioned_entity_token(info.entity_uuid)
+
+
+@functools.cache
+def _version_endpoint_models() -> tuple[type, ...]:
+    """The exact model classes wired for the version endpoint families.
+
+    An explicit allowlist so a future entity added to the versioning
+    surface without an authorization decision fails closed rather than
+    silently inheriting a gate. Compared by class IDENTITY, not name —
+    an unrelated class that happens to be called ``Slice`` /
+    ``Dashboard`` / ``SqlaTable`` must not slip through. Deferred
+    imports keep this module out of the model-import cycle.
+    """
+    # pylint: disable=import-outside-toplevel
+    from superset.connectors.sqla.models import SqlaTable
+    from superset.models.dashboard import Dashboard
+    from superset.models.slice import Slice
+
+    return (Slice, Dashboard, SqlaTable)
+
+
+class PathEntityResponseError(Exception):
+    """Carry a pre-built error response from endpoint path resolution.
+
+    Endpoints catch it and return
+    the carried response directly. The shape exists so the
+    UUID-parse + find-by-uuid + editorship check can live in one
+    place across the ``/versions/`` and ``/activity/`` endpoint
+    families."""
+
+    def __init__(self, response: Any) -> None:
+        super().__init__("PathEntityResponseError")
+        self.response = response
+
+
+def resolve_endpoint_path_entity(
+    api: Any, model_cls: type[Model], uuid_str: str
+) -> tuple[Any, UUID]:
+    """Run path-entity preflight for a versions or activity endpoint.
+
+    1. Parse *uuid_str* into a UUID (or raise → 400).
+    2. Look up the live entity via ``VersionDAO.find_active_by_uuid``
+       (or raise → 404).
+    3. Enforce object-level editorship via
+       ``security_manager.raise_for_editorship`` (or raise → 403).
+
+    Returns ``(entity, entity_uuid)`` on success — the parsed UUID is
+    threaded out so callers don't re-parse the path-string. Raises
+    :class:`PathEntityResponseError` carrying the appropriate error
+    Response on any failure; the endpoint method should::
+
+        try:
+            entity, entity_uuid = resolve_endpoint_path_entity(
+                self, Dashboard, uuid_str
+            )
+        except PathEntityResponseError as exc:
+            return exc.response
+
+    *api* is the FAB ``ModelRestApi`` instance — we call
+    ``api.response_400`` / ``api.response_403`` / ``api.response_404``
+    on it. Pass ``self`` from the endpoint method.
+    """
+    # Static wiring validation runs first: an unwired model must fail
+    # closed loudly before any parsing or database work, not surface as
+    # an incidental AttributeError inside the DAO lookup.
+    if model_cls not in _version_endpoint_models():
+        raise LookupError(
+            f"Model {model_cls.__name__!r} is not wired for version endpoints"
+        )
+
+    try:
+        entity_uuid = UUID(uuid_str)
+    except ValueError as exc:
+        raise PathEntityResponseError(api.response_400(message="Invalid UUID")) from exc
+
+    # M10 / SECURITY.md's guest row: an embedded guest's capability is
+    # reading the dashboards its token authorizes — never their change
+    # logs (author identities, field-level diffs). ``is_editor`` itself
+    # refuses guest principals; the extra deny here runs BEFORE the
+    # database lookup so a guest probing UUIDs gets a uniform 403 whether
+    # or not the entity exists — the 403-vs-404 split would otherwise
+    # disclose which UUIDs exist to a principal with no read visibility
+    # into them.
+    if security_manager.is_guest_user():
+        raise PathEntityResponseError(api.response_403())
+
+    entity = VersionDAO.find_active_by_uuid(model_cls, entity_uuid)
+    if entity is None:
+        raise PathEntityResponseError(api.response_404())
+    # Version history is EDIT-gated, not read-gated (sc-120001 decision,
+    # following the sc-103156 SIP): the full change log — author
+    # identities, timestamps, field-level before/after diffs — is for
+    # principals who may alter the entity, matching the UI's edit-gated
+    # menu and the restore command's gate. Object-level editorship
+    # (owner/editor/admin via ``raise_for_editorship``) rather than
+    # model-level ``can_write``, so a write-capable role cannot read the
+    # history of entities it does not own. Related-entity records inside
+    # the ACTIVITY stream additionally pass per-record read-visibility
+    # filtering (AV-008's silent filter), which is unchanged.
+    # Same predicate as ``raise_for_editorship`` (the restore command's
+    # gate) without its soft-delete re-query: that re-query exists for
+    # callers holding a bypass-loaded row, and ``find_active_by_uuid``
+    # just loaded this entity live — re-fetching it would double the
+    # entity lookups on the hottest paths in this module.
+    if not security_manager.is_editor(entity):
+        raise PathEntityResponseError(api.response_403())
+
+    return entity, entity_uuid
+
+
+def list_versions_endpoint(
+    api: Any,
+    model_cls: type[Model],
+    uuid_str: str,
+) -> Response:
+    """Body of ``GET /api/v1/{resource}/<uuid>/versions/``."""
+    try:
+        entity, entity_uuid = resolve_endpoint_path_entity(api, model_cls, uuid_str)
+    except PathEntityResponseError as exc:
+        return exc.response
+
+    versions = VersionDAO.list_versions(model_cls, entity_uuid, entity=entity)
+    if versions is None:
+        return api.response_404()
+    result = _version_item_schema.dump(versions, many=True)
+    return set_version_etag_by_uuid(
+        api.response(200, result=result, count=len(result)),
+        model_cls,
+        entity_uuid,
+        entity_id=entity.id,
+    )
+
+
+def get_version_endpoint(
+    api: Any,
+    model_cls: type[Model],
+    uuid_str: str,
+    version_uuid_str: str,
+) -> Response:
+    """Body of ``GET /api/v1/{resource}/<uuid>/versions/<version_uuid>/``."""
+    try:
+        entity, entity_uuid = resolve_endpoint_path_entity(api, model_cls, uuid_str)
+    except PathEntityResponseError as exc:
+        return exc.response
+
+    try:
+        version_uuid = UUID(version_uuid_str)
+    except ValueError:
+        return api.response_400(message="Invalid version UUID")
+
+    snapshot = VersionDAO.get_version(
+        model_cls, entity_uuid, version_uuid, entity=entity
+    )
+    if snapshot is None:
+        return api.response_404()
+    # Normalize the version-level block through the schema; the entity
+    # scalar fields stay as the DAO shaped them (their keys are
+    # entity-specific by design).
+    if "_version" in snapshot:
+        snapshot["_version"] = _version_item_schema.dump(snapshot["_version"])
+    return set_version_etag_by_uuid(
+        api.response(200, result=snapshot),
+        model_cls,
+        entity_uuid,
+        entity_id=entity.id,
+    )
+
+
+def restore_version_endpoint(
+    api: Any,
+    model_cls: type[Model],
+    command_cls: type[Any],
+    uuid_str: str,
+    version_uuid_str: str,
+) -> Response:
+    """Body of ``POST /api/v1/{resource}/<uuid>/versions/<version_uuid>/restore``.
+
+    *command_cls* is the entity's ``BaseRestoreVersionCommand`` subclass;
+    its ``not_found_exc`` / ``forbidden_exc`` / ``failed_exc`` ClassVars
+    drive the exception→HTTP mapping, so this body stays generic.
+    Authorization and the ``ENABLE_VERSIONING_CAPTURE`` kill-switch gate
+    live in the command's ``validate()`` — with capture off the route is
+    inert (404) because a revert without Continuum's write listeners
+    would be a destructive, untracked write.
+    """
+    try:
+        entity_uuid = UUID(uuid_str)
+    except ValueError:
+        return api.response_400(message="Invalid UUID")
+    try:
+        version_uuid = UUID(version_uuid_str)
+    except ValueError:
+        return api.response_400(message="Invalid version UUID")
+
+    # pylint: disable=import-outside-toplevel
+    # Deferred: restore.py pulls the model/versioning graph (same
+    # bootstrap-cycle rationale as this module's other local imports).
+    from superset.versioning.restore import PrunedChildHistoryError
+
+    try:
+        result = command_cls(entity_uuid, version_uuid).run()
+    except command_cls.not_found_exc:
+        return api.response_404()
+    except command_cls.forbidden_exc:
+        return api.response_403()
+    except PrunedChildHistoryError as ex:
+        # Fail-closed refusal (sc-120012): needed child history was
+        # pruned by retention; the entity was left unchanged. The
+        # exception's message is user-facing. Passes through the
+        # command's @transaction untouched (on_error re-raises
+        # non-SQLAlchemy exceptions as-is).
+        return api.response_422(message=str(ex))
+    except command_cls.failed_exc as ex:
+        logger.exception("Error restoring %s version", model_cls.__name__)
+        return api.response_422(message=str(ex))
+
+    message = "OK"
+    if result.skipped_slice_ids:
+        message = (
+            f"OK; {len(result.skipped_slice_ids)} chart(s) referenced by "
+            "the snapshot no longer exist and were not reattached"
+        )
+    return set_version_etag_by_uuid(
+        api.response(200, message=message),
+        model_cls,
+        entity_uuid,
+        # The command already loaded the entity; passing its id skips the
+        # extra id-by-uuid SELECT (same optimization as the sibling
+        # list/get endpoints).
+        entity_id=result.entity.id,
+    )

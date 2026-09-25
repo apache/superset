@@ -35,12 +35,19 @@ import {
   BuildQuery,
 } from '@superset-ui/core';
 import {
+  getTotalsMetrics,
   isTimeComparison,
   timeCompareOperator,
+  toTotalsAggregate,
 } from '@superset-ui/chart-controls';
-import { isEmpty } from 'lodash';
+import { isEmpty } from 'lodash-es';
 import { TableChartFormData } from './types';
 import { updateTableOwnState } from './utils/externalAPIs';
+import {
+  convertAgGridFiltersToSQL,
+  type AgGridFilterModel,
+  type SQLAlchemyFilter,
+} from './utils/agGridFilterConverter';
 
 /**
  * Infer query mode from form data. If `all_columns` is set, then raw records mode,
@@ -58,7 +65,7 @@ export function getQueryMode(formData: TableChartFormData) {
   return hasRawColumns ? QueryMode.Raw : QueryMode.Aggregate;
 }
 
-const buildQuery: BuildQuery<TableChartFormData> = (
+export const buildQueryUncached: BuildQuery<TableChartFormData> = (
   formData: TableChartFormData,
   options,
 ) => {
@@ -90,6 +97,13 @@ const buildQuery: BuildQuery<TableChartFormData> = (
     let { metrics, orderby = [], columns = [] } = baseQueryObject;
     const { extras = {} } = baseQueryObject;
     let postProcessing: PostProcessingRule[] = [];
+    // Capture the percent-metric `contribution` rule so it can be reused for
+    // the totals query below. The totals query must rename percent-metric
+    // columns the same way (`metric` -> `%metric`) so the footer can look them
+    // up; without it the totals row renders 0.000%. We deliberately reuse only
+    // this rule and not the full `postProcessing` array, which may also contain
+    // a time-comparison operator that must not run on the single totals row.
+    let contributionPostProcessing: PostProcessingRule | undefined;
     const nonCustomNorInheritShifts = ensureIsArray(
       formData.time_compare,
     ).filter((shift: string) => shift !== 'custom' && shift !== 'inherit');
@@ -157,15 +171,14 @@ const buildQuery: BuildQuery<TableChartFormData> = (
           metrics.concat(percentMetrics),
           getMetricLabel,
         );
-        postProcessing = [
-          {
-            operation: 'contribution',
-            options: {
-              columns: percentMetricLabels,
-              rename_columns: percentMetricLabels.map(x => `%${x}`),
-            },
+        contributionPostProcessing = {
+          operation: 'contribution',
+          options: {
+            columns: percentMetricLabels,
+            rename_columns: percentMetricLabels.map(x => `%${x}`),
           },
-        ];
+        };
+        postProcessing = [contributionPostProcessing];
       }
       // Add the operator for the time comparison if some is selected
       if (!isEmpty(timeOffsets)) {
@@ -203,6 +216,24 @@ const buildQuery: BuildQuery<TableChartFormData> = (
 
     const moreProps: Partial<QueryObject> = {};
     const ownState = options?.ownState ?? {};
+    // AG Grid header filters applied to a download query as structured filters
+    // (see the isDownloadQuery branch). Tracked so the totals/summary query can
+    // exclude them and keep its prior "start from pre-filter extras" behavior.
+    const agGridDownloadSimpleFilters: SQLAlchemyFilter[] = [];
+    // Server pagination sizing, shared between the per-page request below and
+    // the filter-change reset further down.
+    const pageSize =
+      Number(ownState.pageSize ?? formDataCopy.server_page_length) || 0;
+    const configuredRowLimit = Number(formDataCopy.row_limit) || 0;
+    // row_limit for the first page, capped by the configured row limit. Used
+    // when a filter change resets pagination back to page 0. A pageSize of 0
+    // means "no pagination", so the configured row limit applies directly.
+    const firstPageRowLimit =
+      pageSize > 0
+        ? configuredRowLimit > 0
+          ? Math.min(pageSize, configuredRowLimit)
+          : pageSize
+        : configuredRowLimit;
 
     // Build Query flag to check if its for either download as csv, excel or json
     const isDownloadQuery =
@@ -216,11 +247,36 @@ const buildQuery: BuildQuery<TableChartFormData> = (
     }
 
     if (!isDownloadQuery && formDataCopy.server_pagination) {
-      const pageSize = ownState.pageSize ?? formDataCopy.server_page_length;
-      const currentPage = ownState.currentPage ?? 0;
+      if (pageSize > 0) {
+        // Never page past the configured row limit. Clamping the page to the
+        // last one that still falls within the limit keeps the request inside
+        // the cap and avoids emitting row_limit: 0, which the backend treats
+        // as "no limit" rather than "no rows" (see helpers.py get_sqla_query).
+        const lastPage =
+          configuredRowLimit > 0
+            ? Math.max(Math.ceil(configuredRowLimit / pageSize) - 1, 0)
+            : Number(ownState.currentPage) || 0;
+        const currentPage = Math.min(
+          Number(ownState.currentPage) || 0,
+          lastPage,
+        );
+        const rowOffset = currentPage * pageSize;
+        const remainingRows =
+          configuredRowLimit > 0
+            ? Math.max(configuredRowLimit - rowOffset, 0)
+            : pageSize;
 
-      moreProps.row_limit = pageSize;
-      moreProps.row_offset = currentPage * pageSize;
+        moreProps.row_limit =
+          configuredRowLimit > 0 ? Math.min(pageSize, remainingRows) : pageSize;
+        moreProps.row_offset = rowOffset;
+      } else {
+        // A pageSize of 0 means "no pagination" (server_page_length: 0), so
+        // request a single unpaginated result capped at the configured row
+        // limit. Feeding 0 into the paging math would emit row_limit: 0,
+        // which the backend treats as "no limit".
+        moreProps.row_limit = configuredRowLimit;
+        moreProps.row_offset = 0;
+      }
     }
 
     let sortByFromOwnState: QueryFormOrderBy[] | undefined;
@@ -367,16 +423,27 @@ const buildQuery: BuildQuery<TableChartFormData> = (
     };
 
     if (
+      !isDownloadQuery &&
       formData.server_pagination &&
       options?.extras?.cachedChanges?.[formData.slice_id] &&
       JSON.stringify(options?.extras?.cachedChanges?.[formData.slice_id]) !==
         JSON.stringify(queryObject.filters)
     ) {
-      queryObject = { ...queryObject, row_offset: 0 };
+      // Reset to the first page: restore the full first-page row_limit rather
+      // than carrying over the last page's capped value. Skipped for download
+      // queries so CSV/JSON exports keep the full configured row_limit instead
+      // of being capped to the page size.
+      queryObject = {
+        ...queryObject,
+        row_offset: 0,
+        row_limit: firstPageRowLimit,
+      };
       const modifiedOwnState = {
         ...options?.ownState,
         currentPage: 0,
-        pageSize: queryObject.row_limit ?? 0,
+        // Persist the user-selected page size, not the per-request row_limit,
+        // which may be capped to the remaining rows on the last page.
+        pageSize,
         lastFilteredColumn: undefined,
         lastFilteredInputPosition: undefined,
       };
@@ -395,43 +462,6 @@ const buildQuery: BuildQuery<TableChartFormData> = (
         ...new Set([...queryObject.columns, ...interactiveGroupBy]),
       ];
     }
-
-    /**
-     * Helper to determine if a column is a metric (needs HAVING) or dimension (needs WHERE)
-     */
-    const isMetricColumn = (colId: string): boolean => {
-      const metricLabels = new Set(
-        (metrics || []).map(m =>
-          typeof m === 'string' ? m : getMetricLabel(m),
-        ),
-      );
-      return metricLabels.has(colId) || colId.startsWith('%');
-    };
-
-    /**
-     * Helper to classify SQL clauses into WHERE (for dimensions) and HAVING (for metrics)
-     */
-    const classifySQLClauses = (
-      sqlClauses: Record<string, string>,
-    ): { whereClause?: string; havingClause?: string } => {
-      const whereClauses: string[] = [];
-      const havingClauses: string[] = [];
-
-      Object.entries(sqlClauses).forEach(([colId, sqlClause]) => {
-        if (isMetricColumn(colId)) {
-          havingClauses.push(sqlClause);
-        } else {
-          whereClauses.push(sqlClause);
-        }
-      });
-
-      return {
-        whereClause:
-          whereClauses.length > 0 ? whereClauses.join(' AND ') : undefined,
-        havingClause:
-          havingClauses.length > 0 ? havingClauses.join(' AND ') : undefined,
-      };
-    };
 
     if (formData.server_pagination) {
       // Add search filter if search text exists
@@ -591,20 +621,57 @@ const buildQuery: BuildQuery<TableChartFormData> = (
         ];
       }
 
-      // Apply AG Grid filters as SQL WHERE/HAVING clauses
-      if (ownState.sqlClauses) {
-        const { whereClause, havingClause } = classifySQLClauses(
-          ownState.sqlClauses as Record<string, string>,
+      // Apply AG Grid header filters. Simple single-condition, non-metric
+      // filters are sent as structured `{ col, op, val }` filters so the
+      // backend (SQLAlchemy) quotes each identifier for the target dialect.
+      // Unlike a raw `extras.where` string, this works for column names with
+      // spaces or reserved words across ClickHouse/Postgres/MySQL/BigQuery --
+      // a raw fragment like `Destination Address Street ILIKE '%x%'` fails
+      // backend clause validation, and no fixed quote character is valid for
+      // every dialect. Compound (AND/OR) and metric (HAVING) filters remain
+      // free-form SQL, matching the live in-grid path.
+      if (ownState.agGridFilterModel) {
+        // Percent metrics (`%<label>`) and time-comparison columns
+        // (`% <label>`) are classified as metrics inside convertAgGridFiltersToSQL
+        // via a `%`-prefix check, so only the plain metric labels are needed here.
+        const metricColumns = (metrics || []).map(m =>
+          typeof m === 'string' ? m : getMetricLabel(m),
         );
+        const { simpleFilters, complexWhere, havingClause } =
+          convertAgGridFiltersToSQL(
+            ownState.agGridFilterModel as AgGridFilterModel,
+            metricColumns,
+          );
 
-        if (whereClause || havingClause) {
+        if (simpleFilters.length > 0) {
+          // Drop any placeholder TEMPORAL_RANGE filters on the same columns so
+          // an AG Grid date filter fully replaces the "No filter" default.
+          const filteredCols = new Set(simpleFilters.map(f => f.col));
+          const existingFilters = (queryObject.filters || []).filter(
+            filter =>
+              !(
+                filter &&
+                typeof filter === 'object' &&
+                typeof filter.col === 'string' &&
+                filter.op === 'TEMPORAL_RANGE' &&
+                filteredCols.has(filter.col)
+              ),
+          );
+          agGridDownloadSimpleFilters.push(...simpleFilters);
+          queryObject.filters = [
+            ...existingFilters,
+            ...simpleFilters,
+          ] as QueryObject['filters'];
+        }
+
+        if (complexWhere || havingClause) {
           queryObject.extras = {
             ...queryObject.extras,
             transpile_to_dialect: true,
-            ...(whereClause && {
+            ...(complexWhere && {
               where: queryObject.extras?.where
-                ? `${queryObject.extras.where} AND ${whereClause}`
-                : whereClause,
+                ? `${queryObject.extras.where} AND ${complexWhere}`
+                : complexWhere,
             }),
             ...(havingClause && {
               having: queryObject.extras?.having
@@ -616,49 +683,108 @@ const buildQuery: BuildQuery<TableChartFormData> = (
       }
     }
 
+    // Build the "all records" percent-metric denominator query AFTER all
+    // filter mutations (interactive group-by, search, AG Grid WHERE/HAVING)
+    // above, so its denominator reflects the same filtered result set as the
+    // main query instead of a stale pre-filter snapshot.
+    const calculationMode = formData.percent_metric_calculation || 'row_limit';
+
+    if (
+      calculationMode === 'all_records' &&
+      percentMetrics &&
+      percentMetrics.length > 0
+    ) {
+      extraQueries.push({
+        ...queryObject,
+        columns: [],
+        metrics: percentMetrics,
+        post_processing: [],
+        row_limit: 0,
+        row_offset: 0,
+        orderby: [],
+        is_timeseries: false,
+      });
+    }
+
     // Create totals query AFTER all filters (including AG Grid filters) are applied
     // This ensures we can properly exclude AG Grid WHERE filters from the totals
-    if (
+    // In raw records mode the summary is a SUM over the numeric columns primed
+    // into ownState by the chart (see rawSummaryColumns in transformProps).
+    // Own state can outlive a datasource or column-selection change, so bound
+    // the primed summary columns to the current raw selection: a stale name
+    // must never reach a SUM metric or the whole chart query fails before the
+    // chart can re-prime its own state.
+    const selectedRawColumns = new Set(
+      ensureIsArray(formData.all_columns).map(getColumnLabel),
+    );
+    const rawSummaryColumns =
+      queryMode === QueryMode.Raw && formData.show_totals
+        ? ensureIsArray(
+            ownState.rawSummaryColumns as string[] | undefined,
+          ).filter(columnName => selectedRawColumns.has(columnName))
+        : [];
+    const showAggregateTotals = Boolean(
       metrics?.length &&
       formData.show_totals &&
-      queryMode === QueryMode.Aggregate
-    ) {
-      // Create a copy of extras without the AG Grid WHERE clause
-      // AG Grid filters in extras.where can reference calculated columns
-      // which aren't available in the totals subquery
-      const totalsExtras = { ...queryObject.extras };
-      if (ownState.agGridComplexWhere) {
-        // Remove AG Grid WHERE clause from totals query
-        const whereClause = totalsExtras.where;
-        if (whereClause) {
-          // Remove the AG Grid filter part from the WHERE clause using string methods
-          const agGridWhere = ownState.agGridComplexWhere;
-          let newWhereClause = whereClause;
+      queryMode === QueryMode.Aggregate,
+    );
+    const totalsAggregate = toTotalsAggregate(formData.totals_aggregate);
+    // Raw-mode summary columns have no metric of their own to preserve, so
+    // ORIGINAL has nothing to fall back to; sum them as before.
+    const rawSummaryAggregate =
+      totalsAggregate === 'ORIGINAL' ? 'SUM' : totalsAggregate;
+    const totalsMetrics =
+      rawSummaryColumns.length > 0
+        ? rawSummaryColumns.map(columnName => ({
+            expressionType: 'SIMPLE' as const,
+            aggregate: rawSummaryAggregate,
+            column: { column_name: columnName },
+            label: columnName,
+          }))
+        : showAggregateTotals
+          ? getTotalsMetrics(metrics ?? [], totalsAggregate)
+          : undefined;
 
-          // Try to remove with " AND " before
-          newWhereClause = newWhereClause.replace(` AND ${agGridWhere}`, '');
-          // Try to remove with " AND " after
-          newWhereClause = newWhereClause.replace(`${agGridWhere} AND `, '');
-          // If it's the only clause, remove it entirely
-          if (newWhereClause === agGridWhere) {
-            newWhereClause = '';
-          }
-
-          if (newWhereClause.trim()) {
-            totalsExtras.where = newWhereClause;
-          } else {
-            delete totalsExtras.where;
-          }
-        }
+    if (showAggregateTotals || rawSummaryColumns.length > 0) {
+      // Start from the original, pre-filter extras (captured before any AG Grid
+      // complexWhere/havingClause fragments were merged in above) rather than
+      // trying to subtract those fragments back out of the now-combined
+      // `queryObject.extras` string. AG Grid filters can reference calculated
+      // columns that aren't available once the totals subquery drops all
+      // grouping columns (columns: []), and that applies to HAVING just as much
+      // as WHERE — starting clean avoids having to special-case each source.
+      // The structured simpleFilters are stripped separately below.
+      const totalsExtras = { ...extras };
+      if (!totalsExtras.where) {
+        delete totalsExtras.where;
+      }
+      if (!totalsExtras.having) {
+        delete totalsExtras.having;
       }
 
       extraQueries.push({
         ...queryObject,
         columns: [],
+        // Exclude AG Grid download filters here for the same reason the extras
+        // above start clean: the totals subquery drops grouping columns, so its
+        // result set is computed without the interactive AG Grid filtering.
+        filters: (queryObject.filters || []).filter(
+          filter =>
+            !agGridDownloadSimpleFilters.includes(
+              filter as unknown as SQLAlchemyFilter,
+            ),
+        ),
+        ...(totalsMetrics ? { metrics: totalsMetrics } : {}),
         extras: totalsExtras, // Use extras with AG Grid WHERE removed
         row_limit: 0,
         row_offset: 0,
-        post_processing: [],
+        // Reapply only the percent-metric contribution rule so the totals row
+        // exposes `%metric` keys (value/value = 100% on the single aggregated
+        // row). The time-comparison operator from the main query is omitted on
+        // purpose; it must not run against the single-row totals query.
+        post_processing: contributionPostProcessing
+          ? [contributionPostProcessing]
+          : [],
         order_desc: undefined, // we don't need orderby stuff here,
         orderby: undefined, // because this query will be used for get total aggregation.
       });
@@ -695,7 +821,7 @@ export const cachedBuildQuery = (): BuildQuery<TableChartFormData> => {
   };
 
   return (formData, options) =>
-    buildQuery(
+    buildQueryUncached(
       { ...formData },
       {
         extras: { cachedChanges },

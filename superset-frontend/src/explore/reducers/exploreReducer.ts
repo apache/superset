@@ -28,7 +28,7 @@ import {
   ControlStateMapping,
   Dataset,
 } from '@superset-ui/chart-controls';
-import { omit, pick } from 'lodash';
+import { omit, pick } from 'lodash-es';
 import { DYNAMIC_PLUGIN_CONTROLS_READY } from 'src/components/Chart/chartAction';
 import { getControlsState } from 'src/explore/store';
 import {
@@ -40,7 +40,7 @@ import {
 import * as actions from 'src/explore/actions/exploreActions';
 import { HYDRATE_EXPLORE, HydrateExplore } from '../actions/hydrateExplore';
 import { Slice } from 'src/types/Chart';
-import { SaveActionType } from 'src/explore/types';
+import { CompatibilityResult, SaveActionType } from 'src/explore/types';
 
 // Type definitions for explore state
 export interface ExploreState {
@@ -60,7 +60,7 @@ export interface ExploreState {
   slice?: Slice | null;
   sliceName?: string;
   controlsTransferred?: string[];
-  standalone?: boolean;
+  standalone?: number | null;
   force?: boolean;
   common?: {
     conf: {
@@ -68,11 +68,9 @@ export interface ExploreState {
     };
   };
   metadata?: {
-    owners?: string[] | null;
+    editors?: string[] | null;
   };
-  compatibleMetrics?: string[] | null;
-  compatibleDimensions?: string[] | null;
-  compatibilityLoading?: boolean;
+  compatibility?: CompatibilityResult;
   saveAction?: SaveActionType | null;
   chartStates?: Record<number, JsonObject>;
 }
@@ -157,14 +155,14 @@ interface SetStashFormDataAction {
   isHidden: boolean;
 }
 
-// Owner can be either a number (user ID) or an object with value/label
+// Editor can be either a number (subject ID) or an object with value/label
 // This handles both Slice format (number[]) and select control format ({value, label}[])
-type OwnerItem = number | { value: number; label: string };
+type EditorItem = number | { value: number; label: string };
 
 interface SliceUpdatedAction {
   type: typeof actions.SLICE_UPDATED;
-  slice: Omit<Slice, 'owners'> & {
-    owners?: OwnerItem[];
+  slice: Omit<Slice, 'editors'> & {
+    editors?: EditorItem[];
     slice_name?: string;
   };
 }
@@ -183,9 +181,7 @@ interface UpdateExploreChartStateAction {
 
 interface SetCompatibilityAction {
   type: typeof actions.SET_COMPATIBILITY;
-  compatibleMetrics: string[] | null;
-  compatibleDimensions: string[] | null;
-  compatibilityLoading: boolean;
+  compatibility: CompatibilityResult;
 }
 
 type ExploreAction =
@@ -614,26 +610,26 @@ export default function exploreReducer(
     },
     [actions.SLICE_UPDATED]() {
       const typedAction = action as SliceUpdatedAction;
-      // Handle owners that can be either number[] or Array<{value, label}>
-      const getOwnerId = (owner: OwnerItem): number =>
-        typeof owner === 'number' ? owner : owner.value;
-      const getOwnerLabel = (owner: OwnerItem): string | null =>
-        typeof owner === 'number' ? null : owner.label;
+      // Handle editors that can be either number[] or Array<{value, label}>
+      const getEditorId = (editor: EditorItem): number =>
+        typeof editor === 'number' ? editor : editor.value;
+      const getEditorLabel = (editor: EditorItem): string | null =>
+        typeof editor === 'number' ? null : editor.label;
       return {
         ...state,
         slice: {
           ...state.slice,
           ...typedAction.slice,
-          owners: typedAction.slice.owners
-            ? typedAction.slice.owners.map(getOwnerId)
+          editors: typedAction.slice.editors
+            ? typedAction.slice.editors.map(getEditorId)
             : null,
         } as Slice,
         sliceName: typedAction.slice.slice_name ?? state.sliceName,
         metadata: {
           ...state.metadata,
-          owners: typedAction.slice.owners
-            ? (typedAction.slice.owners
-                .map(getOwnerLabel)
+          editors: typedAction.slice.editors
+            ? (typedAction.slice.editors
+                .map(getEditorLabel)
                 .filter((x): x is string => x !== null) as string[])
             : null,
         },
@@ -650,9 +646,7 @@ export default function exploreReducer(
       const typedAction = action as SetCompatibilityAction;
       return {
         ...state,
-        compatibleMetrics: typedAction.compatibleMetrics,
-        compatibleDimensions: typedAction.compatibleDimensions,
-        compatibilityLoading: typedAction.compatibilityLoading,
+        compatibility: typedAction.compatibility,
       };
     },
     [actions.UPDATE_EXPLORE_CHART_STATE]() {

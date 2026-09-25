@@ -17,16 +17,17 @@
  * under the License.
  */
 import { ReactNode, MouseEvent as ReactMouseEvent } from 'react';
-import { TableInstance, Row, UseRowSelectRowProps } from 'react-table';
+import { Row, UseRowSelectRowProps } from 'react-table';
 import { styled } from '@apache-superset/core/theme';
+import { isMobileConsumptionEnabled } from 'src/hooks/useIsMobile';
 import cx from 'classnames';
 
-interface CardCollectionProps {
+interface CardCollectionProps<T extends object = any> {
   bulkSelectEnabled?: boolean;
   loading: boolean;
-  prepareRow: TableInstance['prepareRow'];
+  prepareRow: (row: Row<T>) => void;
   renderCard?: (row: any) => ReactNode;
-  rows: TableInstance['rows'];
+  rows: Row<T>[];
   showThumbnails?: boolean;
 }
 
@@ -35,13 +36,25 @@ const CardContainer = styled.div<{ showThumbnails?: boolean }>`
     display: grid;
     justify-content: start;
     grid-gap: ${theme.sizeUnit * 12}px ${theme.sizeUnit * 4}px;
-    grid-template-columns: repeat(auto-fit, 300px);
+    grid-template-columns: repeat(auto-fit, ${theme.sizeUnit * 75}px);
     margin-top: ${theme.sizeUnit * -6}px;
     padding: ${
       showThumbnails
         ? `${theme.sizeUnit * 8 + 3}px ${theme.sizeUnit * 20}px`
         : `${theme.sizeUnit * 8 + 1}px ${theme.sizeUnit * 20}px`
     };
+
+    /* Full-width cards on mobile (consumption mode) */
+    ${
+      isMobileConsumptionEnabled()
+        ? `@media (max-width: ${theme.screenSMMax}px) {
+      grid-template-columns: 1fr;
+      grid-gap: ${theme.sizeUnit * 4}px;
+      padding-left: ${theme.sizeUnit * 4}px;
+      padding-right: ${theme.sizeUnit * 4}px;
+    }`
+        : ''
+    }
   `}
 `;
 
@@ -55,14 +68,14 @@ const CardWrapper = styled.div`
   }
 `;
 
-export default function CardCollection({
+export default function CardCollection<T extends object = any>({
   bulkSelectEnabled,
   loading,
   prepareRow,
   renderCard,
   rows,
   showThumbnails,
-}: CardCollectionProps) {
+}: CardCollectionProps<T>) {
   function handleClick(
     event: ReactMouseEvent<HTMLDivElement, MouseEvent>,
     toggleRowSelected: (value?: boolean) => void,
@@ -91,14 +104,14 @@ export default function CardCollection({
               className={cx({
                 'card-selected':
                   bulkSelectEnabled &&
-                  (row as Row & UseRowSelectRowProps<any>).isSelected,
+                  (row as Row<T> & UseRowSelectRowProps<T>).isSelected,
                 'bulk-select': bulkSelectEnabled,
               })}
               key={row.id}
               onClick={e =>
                 handleClick(
                   e,
-                  (row as Row & UseRowSelectRowProps<any>).toggleRowSelected,
+                  (row as Row<T> & UseRowSelectRowProps<T>).toggleRowSelected,
                 )
               }
               role="none"

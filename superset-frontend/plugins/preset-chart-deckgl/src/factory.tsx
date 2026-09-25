@@ -17,7 +17,7 @@
  * under the License.
  */
 import { memo, useCallback, useEffect, useRef, useState } from 'react';
-import { isEqual } from 'lodash';
+import { isEqual } from 'lodash-es';
 import type { Layer } from '@deck.gl/core';
 import { getMapboxApiKey } from './utils/mapbox';
 import {
@@ -31,6 +31,7 @@ import {
   FilterState,
   JsonValue,
   ContextMenuFilters,
+  getMapProviderMapStyle,
 } from '@superset-ui/core';
 
 import {
@@ -184,6 +185,12 @@ export function createDeckGLComponent(
     }, [computeLayers, prevFormData, prevFilterState, prevPayload, props]);
 
     const { formData, setControlValue, height, width } = props;
+    const selectedMap = getMapProviderMapStyle({
+      mapProvider: formData.map_renderer,
+      maplibreStyle: formData.maplibre_style,
+      mapboxStyle: formData.mapbox_style,
+      legacyMapStyle: formData.map_style,
+    });
 
     return (
       <div style={{ position: 'relative' }}>
@@ -191,14 +198,8 @@ export function createDeckGLComponent(
           ref={containerRef}
           viewport={viewport}
           layers={layers}
-          mapStyle={
-            formData.map_renderer === 'mapbox'
-              ? formData.mapbox_style
-              : formData.maplibre_style
-          }
-          mapProvider={
-            formData.map_renderer === 'mapbox' ? 'mapbox' : 'maplibre'
-          }
+          mapStyle={selectedMap.mapStyle}
+          mapProvider={selectedMap.mapProvider}
           mapboxApiKey={getMapboxApiKey()}
           setControlValue={setControlValue}
           width={width}

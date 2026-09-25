@@ -61,7 +61,7 @@ class TestTagging(SupersetTestCase):
         test_dataset = SqlaTable(
             table_name="foo",
             schema=None,
-            owners=[],
+            editors=[],
             database=get_main_database(),
             sql=None,
             extra='{"certification": 1}',
@@ -180,8 +180,8 @@ class TestTagging(SupersetTestCase):
         assert 2 == len(tags)
 
         assert "ObjectType.query" == str(tags[0].object_type)
-        assert "owner:None" == str(tags[0].tag.name)
-        assert "TagType.owner" == str(tags[0].tag.type)
+        assert "editor:None" == str(tags[0].tag.name)
+        assert "TagType.editor" == str(tags[0].tag.type)
         assert test_saved_query.id == tags[0].object_id
 
         assert "ObjectType.query" == str(tags[1].object_type)
@@ -245,7 +245,7 @@ class TestTagging(SupersetTestCase):
         test_dataset = SqlaTable(
             table_name="foo",
             schema=None,
-            owners=[],
+            editors=[],
             database=get_main_database(),
             sql=None,
             extra='{"certification": 1}',

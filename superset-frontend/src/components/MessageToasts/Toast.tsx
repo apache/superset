@@ -26,6 +26,7 @@ import { t } from '@apache-superset/core/translation';
 import cx from 'classnames';
 import { Interweave } from 'interweave';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { Button } from '@superset-ui/core/components';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { ToastType, ToastMeta } from './types';
 
@@ -35,7 +36,7 @@ const ToastContainer = styled.div`
     align-items: flex-start;
     gap: ${theme.sizeUnit * 2}px;
 
-    // Content container for icon and text
+    /* Content container for icon and text */
     .toast__content {
       display: flex;
       align-items: flex-start;
@@ -97,7 +98,9 @@ export default function Toast({ toast, onCloseToast }: ToastPresenterProps) {
 
   useEffect(() => {
     setTimeout(showToast);
-    if (toast.duration > 0) {
+    // Interactive notifications remain available until the user activates or
+    // dismisses them, so keyboard and assistive-technology users are not raced.
+    if (!toast.action && toast.duration > 0) {
       hideTimer.current = setTimeout(handleClosePress, toast.duration);
     }
     return () => {
@@ -152,10 +155,22 @@ export default function Toast({ toast, onCloseToast }: ToastPresenterProps) {
         {icon}
         <Interweave content={toast.text} noHtml={!toast.allowHtml} />
       </div>
+      {toast.action && (
+        <Button
+          size="small"
+          onClick={() => {
+            toast.action?.onClick();
+            handleClosePress();
+          }}
+        >
+          {toast.action.label}
+        </Button>
+      )}
+      {/* role is auto-computed by BaseIconComponent as "button" since
+          onClick is present, so no explicit role needed here. */}
       <Icons.CloseOutlined
         iconSize="m"
         className="toast__close pointer"
-        role="button"
         tabIndex={0}
         onClick={handleClosePress}
         aria-label={t('Close')}

@@ -17,12 +17,45 @@
  * under the License.
  */
 
+import { createRef } from 'react';
 import { render, fireEvent, screen } from '@superset-ui/core/spec';
-import { NoAnimationDropdown } from '.';
+import { MenuDotsDropdown, NoAnimationDropdown } from '.';
 
 const props = {
   overlay: <div>Test Overlay</div>,
 };
+
+describe('MenuDotsDropdown', () => {
+  test('renders a focusable, labeled button trigger', () => {
+    render(<MenuDotsDropdown {...props} />);
+    expect(screen.getByTestId('dropdown-trigger')).toEqual(
+      screen.getByRole('button', { name: 'Actions' }),
+    );
+  });
+
+  test('forwards a ref to the trigger so callers can focus it programmatically', () => {
+    const ref = createRef<HTMLButtonElement>();
+    render(<MenuDotsDropdown {...props} ref={ref} />);
+    ref.current?.focus();
+    expect(screen.getByTestId('dropdown-trigger')).toHaveFocus();
+  });
+
+  test('opens the menu when activated with the keyboard', async () => {
+    // Callers (e.g. the SQL Lab tab menu) open the dropdown on click, since
+    // antd's default trigger is hover, which keyboard activation can't
+    // reach.
+    render(<MenuDotsDropdown {...props} trigger={['click']} />);
+    const trigger = screen.getByTestId('dropdown-trigger');
+    trigger.focus();
+    // A native <button> converts an Enter keypress into a click once
+    // activated, so we simulate that browser behavior directly since
+    // jsdom does not implement it for us.
+    fireEvent.keyDown(trigger, { key: 'Enter', code: 'Enter' });
+    fireEvent.click(trigger);
+    expect(await screen.findByText('Test Overlay')).toBeInTheDocument();
+  });
+});
+
 describe('NoAnimationDropdown', () => {
   test('requires children', () => {
     expect(() => {

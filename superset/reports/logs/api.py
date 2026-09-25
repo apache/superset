@@ -31,6 +31,7 @@ from flask_appbuilder.models.sqla.interface import SQLAInterface
 
 from superset import is_feature_enabled
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
+from superset.reports.filters import ReportExecutionLogFilter
 from superset.reports.logs.schemas import openapi_spec_methods_override
 from superset.reports.models import ReportExecutionLog
 from superset.views.base_api import BaseSupersetModelRestApi
@@ -53,6 +54,13 @@ class ReportExecutionLogRestApi(BaseSupersetModelRestApi):
     class_permission_name = "ReportSchedule"
     resource_name = "report"
     allow_browser_login = True
+    # Ownership scoping. Without a base filter the only scoping on these
+    # routes is the caller-controlled ``pk`` path parameter (folded into the
+    # rison filters below), so any role with ReportSchedule read could
+    # iterate every schedule's logs deployment-wide. Mirrors the
+    # ReportScheduleFilter applied by the schedule API
+    # (superset/reports/api.py).
+    base_filters = [["id", ReportExecutionLogFilter, lambda: []]]
 
     show_columns = [
         "id",

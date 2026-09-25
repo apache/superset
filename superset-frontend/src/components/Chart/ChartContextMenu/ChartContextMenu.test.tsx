@@ -17,7 +17,7 @@
  * under the License.
  */
 import { useRef, useState } from 'react';
-import { FeatureFlag, VizType } from '@superset-ui/core';
+import { ContextMenuFilters, FeatureFlag, VizType } from '@superset-ui/core';
 import { render, screen, waitFor } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
 import mockState from 'spec/fixtures/mockState';
@@ -30,6 +30,48 @@ import ChartContextMenu, {
 
 jest.mock('src/utils/cachedSupersetGet');
 
+// The scope-selector behavior within the submenu (which filters get built
+// for x-axis/series/both) is covered by DrillBySubmenu.test.tsx. Here we
+// only need a stand-in that lets us trigger onDrillBy with a distinguishable
+// config, so we can assert ChartContextMenu wires it into the modal.
+jest.mock('../DrillBy/DrillBySubmenu', () => ({
+  DrillBySubmenu: ({ onDrillBy, onCloseMenu, dataset }: any) => (
+    <>
+      <button
+        type="button"
+        data-test="fake-drill-by-submenu"
+        onClick={() => {
+          // Mirrors DrillBySubmenu's real handleSelection, which calls
+          // onDrillBy and onCloseMenu together once a column is picked.
+          onDrillBy(
+            { column_name: 'city', groupby: true },
+            { id: 1, columns: [], metrics: [] },
+            {
+              filters: [{ col: 'selected_scope' }],
+              groupbyFieldName: 'groupby',
+            },
+          );
+          onCloseMenu?.();
+        }}
+      >
+        Fake Drill By
+      </button>
+      <div data-test="drillable-columns">
+        {(dataset?.drillable_columns ?? [])
+          .map((col: any) => col.column_name)
+          .join(',')}
+      </div>
+    </>
+  ),
+}));
+
+jest.mock('src/components/Chart/DrillBy/DrillByModal', () => ({
+  __esModule: true,
+  default: ({ drillByConfig }: any) => (
+    <div data-test="drill-by-modal">{JSON.stringify(drillByConfig)}</div>
+  ),
+}));
+
 const mockCachedSupersetGet = cachedSupersetGet as jest.MockedFunction<
   typeof cachedSupersetGet
 >;
@@ -39,7 +81,11 @@ const defaultFormData = {
   viz_type: VizType.Pie,
 };
 
-const TestWrapper = () => {
+const TestWrapper = ({
+  openFilters = {},
+}: {
+  openFilters?: ContextMenuFilters;
+}) => {
   const contextMenuRef = useRef<ChartContextMenuRef>(null);
   const [isTooltipVisible, setIsTooltipVisible] = useState(true);
 
@@ -51,7 +97,7 @@ const TestWrapper = () => {
     <>
       <button
         type="button"
-        onClick={() => contextMenuRef.current?.open(100, 100, {})}
+        onClick={() => contextMenuRef.current?.open(100, 100, openFilters)}
         data-test="open-context-menu"
       >
         Open Context Menu
@@ -71,8 +117,8 @@ const TestWrapper = () => {
   );
 };
 
-const setup = () =>
-  render(<TestWrapper />, {
+const setup = (openFilters?: ContextMenuFilters) =>
+  render(<TestWrapper openFilters={openFilters} />, {
     useRedux: true,
     initialState: {
       ...mockState,
@@ -118,7 +164,7 @@ test('tooltip is restored when user clicks outside to close context menu', async
   setup();
 
   const openButton = screen.getByTestId('open-context-menu');
-  userEvent.click(openButton);
+  await userEvent.click(openButton);
 
   await waitFor(() => {
     expect(screen.getByTestId('chart-context-menu')).toBeInTheDocument();
@@ -126,7 +172,7 @@ test('tooltip is restored when user clicks outside to close context menu', async
 
   expect(screen.getByTestId('tooltip-visible')).toBeInTheDocument();
 
-  userEvent.click(document.body);
+  await userEvent.click(document.body);
 
   await waitFor(() => {
     expect(screen.getByTestId('tooltip-visible')).toBeInTheDocument();
@@ -137,16 +183,188 @@ test('tooltip is restored when user selects a menu item', async () => {
   setup();
 
   const openButton = screen.getByTestId('open-context-menu');
-  userEvent.click(openButton);
+  await userEvent.click(openButton);
 
   await waitFor(() => {
     expect(screen.getByTestId('chart-context-menu')).toBeInTheDocument();
   });
 
   const menuItem = screen.getByText('Drill to detail');
-  userEvent.click(menuItem);
+  await userEvent.click(menuItem);
 
   await waitFor(() => {
     expect(screen.getByTestId('tooltip-visible')).toBeInTheDocument();
+  });
+});
+
+test('drill by modal uses the scope selected in the submenu over the raw context filters', async () => {
+  setup({
+    drillBy: {
+      filters: [{ col: 'raw_scope', op: '==', val: 'raw' }],
+      groupbyFieldName: 'groupby',
+    },
+  });
+
+  await userEvent.click(screen.getByTestId('open-context-menu'));
+
+  await waitFor(() => {
+    expect(screen.getByTestId('chart-context-menu')).toBeInTheDocument();
+  });
+
+  const submenuButton = await screen.findByTestId('fake-drill-by-submenu');
+  await userEvent.click(submenuButton);
+
+  await waitFor(() => {
+    expect(screen.getByTestId('drill-by-modal')).toBeInTheDocument();
+  });
+
+  const modalConfig = JSON.parse(
+    screen.getByTestId('drill-by-modal').textContent || '{}',
+  );
+  expect(modalConfig.filters).toEqual([{ col: 'selected_scope' }]);
+});
+
+test('context menu can be reopened after Drill By closes it via onCloseMenu', async () => {
+  // Ant Design's Dropdown keeps its overlay mounted and toggles an
+  // `ant-dropdown-hidden` class rather than unmounting, so open/closed is
+  // asserted on that class instead of the overlay's presence in the DOM.
+  const isMenuOpen = () =>
+    !screen
+      .getByTestId('chart-context-menu')
+      .closest('.ant-dropdown')
+      ?.classList.contains('ant-dropdown-hidden');
+
+  setup();
+
+  const openButton = screen.getByTestId('open-context-menu');
+  await userEvent.click(openButton);
+
+  await waitFor(() => {
+    expect(isMenuOpen()).toBe(true);
+  });
+
+  const submenuButton = await screen.findByTestId('fake-drill-by-submenu');
+  await userEvent.click(submenuButton);
+
+  await waitFor(() => {
+    expect(isMenuOpen()).toBe(false);
+  });
+
+  await userEvent.click(openButton);
+
+  await waitFor(() => {
+    expect(isMenuOpen()).toBe(true);
+  });
+});
+
+test('drill by only offers dimension columns', async () => {
+  // drill_info returns every column so the results grid can label non-dimension
+  // ones; narrowing to dimensions is this component's job, not the API's.
+  mockCachedSupersetGet.mockResolvedValue({
+    response: {} as Response,
+    json: {
+      result: {
+        columns: [
+          { column_name: 'city', verbose_name: 'City', groupby: true },
+          { column_name: 'revenue', verbose_name: 'Revenue', groupby: false },
+        ],
+        metrics: [],
+      },
+    },
+  } as any);
+  setup({
+    drillBy: {
+      filters: [{ col: 'raw_scope', op: '==', val: 'raw' }],
+      groupbyFieldName: 'groupby',
+    },
+  });
+
+  await userEvent.click(screen.getByTestId('open-context-menu'));
+
+  await waitFor(() => {
+    expect(screen.getByTestId('drillable-columns')).toHaveTextContent('city');
+  });
+  expect(screen.getByTestId('drillable-columns')).not.toHaveTextContent(
+    'revenue',
+  );
+});
+
+/**
+ * sc-111089 T014: a semantic-view datasource resolves its drill metadata
+ * from the view's structure — never from the colliding regular dataset's
+ * drill_info — and the menu renders cleanly against the narrowed
+ * (dimension-derived) column shape. The mapped dimensions carry groupby:
+ * true and pass the dimension-only drillable filter.
+ */
+test('semantic-view datasource resolves via the structure endpoint and renders the menu', async () => {
+  mockCachedSupersetGet.mockResolvedValue({
+    response: {} as Response,
+    json: {
+      result: {
+        name: 'orders',
+        dimensions: [{ name: 'Orders Status', type: 'VARCHAR' }],
+        metrics: [],
+      },
+    },
+  });
+
+  const SemanticWrapper = () => {
+    const contextMenuRef = useRef<ChartContextMenuRef>(null);
+    return (
+      <>
+        <button
+          type="button"
+          onClick={() => contextMenuRef.current?.open(100, 100, {})}
+          data-test="open-semantic-context-menu"
+        >
+          Open
+        </button>
+        <ChartContextMenu
+          ref={contextMenuRef}
+          id={sliceId}
+          formData={{ datasource: '1__semantic_view', viz_type: VizType.Pie }}
+          onSelection={jest.fn()}
+          onClose={jest.fn()}
+          displayedItems={ContextMenuItem.All}
+        />
+      </>
+    );
+  };
+
+  render(<SemanticWrapper />, {
+    useRedux: true,
+    initialState: {
+      ...mockState,
+      user: {
+        ...mockState.user,
+        roles: {
+          Admin: [
+            ['can_explore', 'Superset'],
+            ['can_samples', 'Datasource'],
+            ['can_write', 'ExploreFormDataRestApi'],
+            ['can_get_drill_info', 'Dataset'],
+          ],
+        },
+      },
+    },
+  });
+
+  userEvent.click(screen.getByTestId('open-semantic-context-menu'));
+  // The menu opens without crashing on the dimension-derived shape.
+  expect(await screen.findByRole('menu')).toBeInTheDocument();
+
+  await waitFor(() =>
+    expect(mockCachedSupersetGet).toHaveBeenCalledWith({
+      endpoint: '/api/v1/semantic_view/1/structure',
+    }),
+  );
+  const drillInfoCalls = mockCachedSupersetGet.mock.calls.filter(call =>
+    String(call[0]?.endpoint).includes('/drill_info/'),
+  );
+  expect(drillInfoCalls).toHaveLength(0);
+  await waitFor(() => {
+    expect(screen.getByTestId('drillable-columns')).toHaveTextContent(
+      'Orders Status',
+    );
   });
 });

@@ -153,6 +153,19 @@ export default class AdhocMetric {
       ) {
         return `COUNT(DISTINCT ${column.slice(1, -1)})`;
       }
+      // MEDIAN(column) isn't a real function on every engine this PR
+      // verifies it for -- PostgreSQL/Redshift compile it to
+      // PERCENTILE_CONT(0.5) WITHIN GROUP instead. `transformCountDistinct`
+      // signals this call is prefilling the *editable, executable* Custom
+      // SQL tab (not just a display label), so use the portable,
+      // standards-based spelling there instead of the raw aggregate name.
+      if (
+        params.transformCountDistinct &&
+        aggregate === AGGREGATES.MEDIAN &&
+        /^\(.*\)$/.test(column)
+      ) {
+        return `PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY ${column.slice(1, -1)})`;
+      }
       return aggregate + column;
     }
     if (this.expressionType === EXPRESSION_TYPES.SQL) {
@@ -223,4 +236,28 @@ export function isDictionaryForAdhocMetric(
  */
 export function fromCoreAdhocMetric(metric: CoreAdhocMetric): AdhocMetric {
   return new AdhocMetric(metric as AdhocMetricInput);
+}
+
+/**
+ * Metrics are identified by `optionName` when editing, so two metrics sharing
+ * one (a saved chart can carry duplicate optionNames, e.g. from a duplicated
+ * metric) would let an edit to one bleed into the other. Given a `seen` set
+ * shared across a list, return the metric unchanged the first time its
+ * optionName is encountered, or a copy with a freshly generated optionName on a
+ * collision, so each metric keeps a unique identity.
+ */
+export function dedupeAdhocMetricOptionName(
+  metric: AdhocMetric,
+  seenOptionNames: Set<string>,
+): AdhocMetric {
+  if (!seenOptionNames.has(metric.optionName)) {
+    seenOptionNames.add(metric.optionName);
+    return metric;
+  }
+  const deduped = new AdhocMetric({
+    ...(metric as unknown as Record<string, unknown>),
+    optionName: undefined,
+  });
+  seenOptionNames.add(deduped.optionName);
+  return deduped;
 }

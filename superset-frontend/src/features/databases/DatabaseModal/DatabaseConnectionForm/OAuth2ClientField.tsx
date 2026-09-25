@@ -17,10 +17,14 @@
  * under the License.
  */
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { t } from '@apache-superset/core/translation';
-import { Input, Collapse, FormItem } from '@superset-ui/core/components';
-import { CustomParametersChangeType, FieldPropTypes } from '../../types';
+import { Input, Collapse, Form, FormItem } from '@superset-ui/core/components';
+import {
+  CustomParametersChangeType,
+  Engines,
+  FieldPropTypes,
+} from '../../types';
 
 const LABELS = {
   CLIENT_ID: t('Client ID'),
@@ -42,22 +46,56 @@ export const OAuth2ClientField = ({
   changeMethods,
   db,
   default_value: defaultValue,
+  isPublic = true,
 }: FieldPropTypes) => {
-  const encryptedExtra = JSON.parse(db?.masked_encrypted_extra || '{}');
-  const [oauth2ClientInfo, setOauth2ClientInfo] = useState<OAuth2ClientInfo>({
-    id: encryptedExtra.oauth2_client_info?.id || '',
-    secret: encryptedExtra.oauth2_client_info?.secret || '',
-    authorization_request_uri:
-      encryptedExtra.oauth2_client_info?.authorization_request_uri ||
-      defaultValue?.authorization_request_uri ||
-      '',
-    token_request_uri:
-      encryptedExtra.oauth2_client_info?.token_request_uri ||
-      defaultValue?.token_request_uri ||
-      '',
-    scope:
-      encryptedExtra.oauth2_client_info?.scope || defaultValue?.scope || '',
-  });
+  const deriveOauth2ClientInfo = (): OAuth2ClientInfo => {
+    // `masked_encrypted_extra` is user/backend-supplied and historically
+    // sometimes the string "null" — JSON.parse('null') returns null, and
+    // malformed JSON throws. Defend against both so a single bad value
+    // can't crash the component.
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(db?.masked_encrypted_extra || '{}');
+    } catch (e) {
+      // Only swallow JSON.parse's own SyntaxError; let real programmer
+      // errors (RangeError, TypeError from a broken stub, etc.) propagate.
+      if (!(e instanceof SyntaxError)) throw e;
+      parsed = {};
+    }
+    const encryptedExtra =
+      parsed && typeof parsed === 'object' && !Array.isArray(parsed)
+        ? (parsed as { oauth2_client_info?: Partial<OAuth2ClientInfo> })
+        : {};
+    const info = encryptedExtra.oauth2_client_info;
+    return {
+      id: info?.id || '',
+      secret: info?.secret || '',
+      authorization_request_uri:
+        info?.authorization_request_uri ||
+        defaultValue?.authorization_request_uri ||
+        '',
+      token_request_uri:
+        info?.token_request_uri || defaultValue?.token_request_uri || '',
+      scope: info?.scope || defaultValue?.scope || '',
+    };
+  };
+
+  const [oauth2ClientInfo, setOauth2ClientInfo] = useState<OAuth2ClientInfo>(
+    deriveOauth2ClientInfo,
+  );
+
+  // Re-sync local state when masked_encrypted_extra changes (e.g., when the
+  // gsheets dropdown toggles back to private after we cleared stored creds).
+  useEffect(() => {
+    setOauth2ClientInfo(deriveOauth2ClientInfo());
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- `defaultValue` is a
+    // static per-engine default that doesn't change after the form opens;
+    // depending on it would cause spurious re-syncs when the parent re-renders.
+  }, [db?.masked_encrypted_extra]);
+
+  if (db?.engine === Engines.GSheet && isPublic) {
+    return null;
+  }
 
   const handleChange = (key: any) => (e: any) => {
     const updatedInfo = {
@@ -84,7 +122,7 @@ export const OAuth2ClientField = ({
           key: 'oauth2-client-information',
           label: t('OAuth2 client information'),
           children: (
-            <>
+            <Form layout="vertical">
               <FormItem label={LABELS.CLIENT_ID}>
                 <Input
                   data-test="client-id"
@@ -123,7 +161,7 @@ export const OAuth2ClientField = ({
                   onChange={handleChange('scope')}
                 />
               </FormItem>
-            </>
+            </Form>
           ),
         },
       ]}

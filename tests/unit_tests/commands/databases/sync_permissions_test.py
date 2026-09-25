@@ -100,7 +100,7 @@ def test_sync_permissions_command_async_mode(
         "superset.commands.database.sync_permissions.DatabaseDAO"
     )
     mock_database_dao.find_by_id.return_value = database_with_catalog
-    mocker.patch(
+    mock_user = mocker.patch(
         "superset.commands.database.sync_permissions.security_manager.get_user_by_username"
     )
     async_task_mock = mocker.patch(
@@ -110,7 +110,7 @@ def test_sync_permissions_command_async_mode(
 
     cmmd = SyncPermissionsCommand(1, "admin")
     cmmd.run()
-    async_task_mock.delay.assert_called_once_with(1, "admin", "my_db")
+    async_task_mock.delay.assert_called_once_with(1, mock_user.return_value.id, "my_db")
 
 
 @with_config({"SYNC_DB_PERMISSIONS_IN_ASYNC_MODE": False})
@@ -219,7 +219,7 @@ def test_sync_permissions_command_async_mode_new_db_name(
     Test ``SyncPermissionsCommand`` in async mode when the
     database name changed.
     """
-    mocker.patch(
+    mock_user = mocker.patch(
         "superset.commands.database.sync_permissions.security_manager.get_user_by_username"
     )
     async_task_mock = mocker.patch(
@@ -233,7 +233,9 @@ def test_sync_permissions_command_async_mode_new_db_name(
     )
     cmmd.run()
 
-    async_task_mock.delay.assert_called_once_with(1, "admin", "Old Name")
+    async_task_mock.delay.assert_called_once_with(
+        1, mock_user.return_value.id, "Old Name"
+    )
 
 
 def test_sync_permissions_command_get_catalogs(database_with_catalog: MagicMock):
@@ -408,4 +410,50 @@ def test_sync_permissions_command_rename_db_in_perms(
     assert mock_chart.catalog_perm == f"[{database_with_catalog.name}].[catalog1]"
     assert (
         mock_chart.schema_perm == f"[{database_with_catalog.name}].[catalog1].[schema1]"
+    )
+
+
+def test_sync_permissions_command_rename_bypasses_visibility_filter(
+    mocker: MockerFixture, database_with_catalog: MagicMock
+):
+    """The dataset/chart perm rewrite must run with the soft-delete
+    visibility filter bypassed for ``SqlaTable`` and ``Slice``.
+
+    A soft-deleted dataset's ``schema_perm``/``catalog_perm`` (and its
+    charts') must still be rewritten on a database rename; without the
+    bypass, the listener hides those rows from ``get_datasets`` and a
+    later restore resurrects stale perm strings referencing the old
+    database name — matchable by a ``schema_access`` grant on a new
+    database reusing that name.
+    """
+    from superset.connectors.sqla.models import SqlaTable
+    from superset.constants import SKIP_VISIBILITY_FILTER_CLASSES
+    from superset.models.slice import Slice
+
+    mocker.patch(
+        "superset.commands.database.sync_permissions."
+        "security_manager.find_permission_view_menu",
+        return_value=None,
+    )
+    observed_bypass: list[set[type]] = []
+
+    def capture_bypass(*args, **kwargs):
+        observed_bypass.append(
+            set(db.session.info.get(SKIP_VISIBILITY_FILTER_CLASSES, set()))
+        )
+        return []
+
+    mock_database_dao = mocker.patch(
+        "superset.commands.database.sync_permissions.DatabaseDAO"
+    )
+    mock_database_dao.get_datasets.side_effect = capture_bypass
+
+    cmmd = SyncPermissionsCommand(
+        1, None, old_db_connection_name="old_name", db_connection=database_with_catalog
+    )
+    cmmd._rename_database_in_permissions("catalog1", ["schema1"])
+
+    assert observed_bypass, "get_datasets was never called"
+    assert all({SqlaTable, Slice} <= bypass for bypass in observed_bypass), (
+        "dataset perm rewrite ran without the soft-delete visibility bypass"
     )

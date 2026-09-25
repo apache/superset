@@ -41,6 +41,7 @@ import sqlalchemy.dialects
 from flask import current_app as app
 from sqlalchemy.engine.default import DefaultDialect
 from sqlalchemy.exc import NoSuchModuleError
+from sqlalchemy.sql import compiler as sqla_compiler
 
 from superset import feature_flag_manager
 from superset.db_engine_specs.base import BaseEngineSpec
@@ -80,6 +81,14 @@ def load_engine_specs() -> list[type[BaseEngineSpec]]:
             engine_spec = ep.load()
         except Exception:  # pylint: disable=broad-except
             logger.warning("Unable to load Superset DB engine spec: %s", ep.name)
+            continue
+        # Validate that the engine spec is a proper subclass of BaseEngineSpec
+        if not is_engine_spec(engine_spec):
+            logger.warning(
+                "Skipping invalid DB engine spec %s: "
+                "not a valid BaseEngineSpec subclass",
+                ep.name,
+            )
             continue
         engine_specs.append(engine_spec)
 
@@ -136,11 +145,14 @@ def get_available_engine_specs() -> dict[type[BaseEngineSpec], set[str]]:  # noq
                 issubclass(dialect, DefaultDialect)
                 and hasattr(dialect, "driver")
                 # adodbapi dialect is removed in SQLA 1.4 and doesn't implement the
-                # `dbapi` method, hence needs to be ignored to avoid logging a warning
+                # DBAPI import method, hence needs to be ignored to avoid a warning
                 and dialect.driver != "adodbapi"
             ):
                 try:
-                    dialect.dbapi()
+                    if hasattr(dialect, "import_dbapi"):
+                        dialect.import_dbapi()
+                    else:
+                        dialect.dbapi()
                 except ModuleNotFoundError:
                     continue
                 except Exception as ex:  # pylint: disable=broad-except
@@ -151,21 +163,54 @@ def get_available_engine_specs() -> dict[type[BaseEngineSpec], set[str]]:  # noq
             continue
 
     # installed 3rd-party dialects
+    #
+    # `ep.load()` runs arbitrary module-level code in the third-party package.
+    # Some dialects (e.g. sqlalchemy-monetdb) mutate SQLAlchemy's shared,
+    # process-global `compiler.OPERATORS` mapping in place on import instead
+    # of subclassing it, which would otherwise silently change SQL rendering
+    # (e.g. `!=` -> `<>`) for every dialect for the rest of the process, not
+    # just the misbehaving one. Snapshot/restore around each load so a
+    # buggy connector can't leak global compiler state into unrelated
+    # dialects just because it was enumerated here.
+    operators_snapshot = dict(sqla_compiler.OPERATORS)
     for ep in entry_points(group="sqlalchemy.dialects"):
         try:
             dialect = ep.load()
         except Exception as ex:  # pylint: disable=broad-except
             logger.debug("Unable to load SQLAlchemy dialect %s: %s", ep.name, ex)
         else:
-            backend = dialect.name
+            # A third-party entry point can load successfully yet not resolve to
+            # a usable dialect. Validate the same dialect contract as the native
+            # loop so malformed connectors are neither advertised nor allowed to
+            # abort the whole enumeration.
+            backend = getattr(dialect, "name", None)
+            if (
+                not isinstance(dialect, type)
+                or not issubclass(dialect, DefaultDialect)
+                or not isinstance(backend, (str, bytes))
+                or not hasattr(dialect, "driver")
+                or dialect.driver == "adodbapi"
+            ):
+                logger.warning(
+                    "Skipping SQLAlchemy dialect entry point %r: %r did not "
+                    "resolve to a usable dialect (%r)",
+                    ep.name,
+                    ep.value,
+                    dialect,
+                )
+                continue
             if isinstance(backend, bytes):
                 backend = backend.decode()
             backend = backend_replacements.get(backend, backend)
 
-            driver = getattr(dialect, "driver", dialect.name)
+            driver = dialect.driver
             if isinstance(driver, bytes):
                 driver = driver.decode()
             drivers[backend].add(driver)
+        finally:
+            if sqla_compiler.OPERATORS != operators_snapshot:
+                sqla_compiler.OPERATORS.clear()
+                sqla_compiler.OPERATORS.update(operators_snapshot)
 
     dbs_denylist = app.config["DBS_AVAILABLE_DENYLIST"]
     if not feature_flag_manager.is_feature_enabled("ENABLE_SUPERSET_META_DB"):

@@ -158,8 +158,9 @@ describe('AdhocFilterEditPopover', () => {
     const subjectSelect = screen.getByTestId('select-element');
     await userEvent.click(subjectSelect);
 
-    // Select a value from the dropdown
-    const valueOption = screen.getByText('value');
+    // Select a value from the dropdown (scope to the listbox option, since the
+    // selected subject label also renders the text "value" in antd v6)
+    const valueOption = screen.getByRole('option', { name: 'value' });
     await userEvent.click(valueOption);
 
     // Find and update the value input
@@ -178,6 +179,29 @@ describe('AdhocFilterEditPopover', () => {
       'adhoc-filter-edit-popover-save-button',
     );
     expect(saveButton).toBeDisabled();
+  });
+
+  test('disables save button when a boolean column has no value selected', async () => {
+    const booleanColumn = { type: 'BOOL', column_name: 'is_intro' };
+    renderPopover({
+      adhocFilter: new AdhocFilter({
+        expressionType: ExpressionTypes.Simple,
+        clause: Clauses.Where,
+      }),
+      options: [booleanColumn],
+      datasource: { columns: [booleanColumn], filter_select: false },
+    });
+
+    // Picking the subject resets the comparator to `undefined`; the value
+    // control is then left untouched, mirroring the reported repro.
+    await userEvent.click(screen.getByTestId('select-element'));
+    await userEvent.click(
+      await screen.findByRole('option', { name: /is_intro/ }),
+    );
+
+    expect(
+      screen.getByTestId('adhoc-filter-edit-popover-save-button'),
+    ).toBeDisabled();
   });
 
   test('initiates resize when resize handle is dragged', async () => {

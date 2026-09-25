@@ -23,6 +23,7 @@ import {
   getExploreUrl,
   getSimpleSQLExpression,
   getQuerySettings,
+  mountExploreUrl,
 } from 'src/explore/exploreUtils';
 import { DashboardStandaloneMode } from 'src/dashboard/util/constants';
 import * as hostNamesConfig from 'src/utils/hostNamesConfig';
@@ -66,7 +67,7 @@ describe('exploreUtils', () => {
         force: false,
         curUrl: 'http://superset.com',
       });
-      compareURI(URI(url!), URI('/superset/explore_json/'));
+      compareURI(URI(url!), URI('/explore/'));
     });
     test('generates proper json forced url', () => {
       const url = getExploreUrl({
@@ -75,22 +76,7 @@ describe('exploreUtils', () => {
         force: true,
         curUrl: 'superset.com',
       });
-      compareURI(
-        URI(url!),
-        URI('/superset/explore_json/').search({ force: 'true' }),
-      );
-    });
-    test('generates proper csv URL', () => {
-      const url = getExploreUrl({
-        formData,
-        endpointType: 'csv',
-        force: false,
-        curUrl: 'superset.com',
-      });
-      compareURI(
-        URI(url!),
-        URI('/superset/explore_json/').search({ csv: 'true' }),
-      );
+      compareURI(URI(url!), URI('/explore/').search({ force: 'true' }));
     });
     test('generates proper standalone URL', () => {
       const url = getExploreUrl({
@@ -113,10 +99,7 @@ describe('exploreUtils', () => {
         force: false,
         curUrl: 'superset.com?foo=bar',
       });
-      compareURI(
-        URI(url!),
-        URI('/superset/explore_json/').search({ foo: 'bar' }),
-      );
+      compareURI(URI(url!), URI('/explore/').search({ foo: 'bar' }));
     });
     test('generate proper save slice url', () => {
       const url = getExploreUrl({
@@ -125,10 +108,7 @@ describe('exploreUtils', () => {
         force: false,
         curUrl: 'superset.com?foo=bar',
       });
-      compareURI(
-        URI(url!),
-        URI('/superset/explore_json/').search({ foo: 'bar' }),
-      );
+      compareURI(URI(url!), URI('/explore/').search({ foo: 'bar' }));
     });
   });
 
@@ -214,49 +194,33 @@ describe('exploreUtils', () => {
   // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('getQuerySettings', () => {
     beforeAll(() => {
-      getChartMetadataRegistry()
-        .registerValue('my_legacy_viz', {
-          useLegacyApi: true,
-        } as unknown as ChartMetadata)
-        .registerValue('my_v1_viz', {
-          useLegacyApi: false,
-        } as unknown as ChartMetadata);
+      getChartMetadataRegistry().registerValue('my_custom_parse_viz', {
+        parseMethod: 'json',
+      } as unknown as ChartMetadata);
     });
 
     afterAll(() => {
-      getChartMetadataRegistry().remove('my_legacy_viz').remove('my_v1_viz');
+      getChartMetadataRegistry().remove('my_custom_parse_viz');
     });
 
-    test('returns true for legacy viz', () => {
-      const [useLegacyApi, parseMethod] = getQuerySettings({
+    test('returns the parse method for a registered viz', () => {
+      const [parseMethod] = getQuerySettings({
         ...formData,
-        viz_type: 'my_legacy_viz',
+        viz_type: 'my_custom_parse_viz',
       });
-      expect(useLegacyApi).toBe(true);
-      expect(parseMethod).toBe('json-bigint');
+      expect(parseMethod).toBe('json');
     });
 
-    test('returns false for v1 viz', () => {
-      const [useLegacyApi, parseMethod] = getQuerySettings({
-        ...formData,
-        viz_type: 'my_v1_viz',
-      });
-      expect(useLegacyApi).toBe(false);
-      expect(parseMethod).toBe('json-bigint');
-    });
-
-    test('returns false for formData with unregistered viz_type', () => {
-      const [useLegacyApi, parseMethod] = getQuerySettings({
+    test('defaults the parse method for unregistered viz types', () => {
+      const [parseMethod] = getQuerySettings({
         ...formData,
         viz_type: 'undefined_viz',
       });
-      expect(useLegacyApi).toBe(false);
       expect(parseMethod).toBe('json-bigint');
     });
 
-    test('returns false for formData without viz_type', () => {
-      const [useLegacyApi, parseMethod] = getQuerySettings(formData);
-      expect(useLegacyApi).toBe(false);
+    test('defaults the parse method without a viz_type', () => {
+      const [parseMethod] = getQuerySettings(formData);
       expect(parseMethod).toBe('json-bigint');
     });
   });
@@ -307,6 +271,30 @@ describe('exploreUtils', () => {
 
       exploreChart({ ...formData, viz_type: 'my_custom_viz' });
       expect(postFormSpy).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
+  describe('.mountExploreUrl() standalone mode', () => {
+    // Explore calls history.replace with this URL after interactions. Writing
+    // HideNav unconditionally downgraded mode 2 to mode 1 on the first click,
+    // collapsing the editor to a bare chart.
+    test('preserves a caller-supplied mode 2', () => {
+      expect(mountExploreUrl('standalone', { standalone: 2 })).toContain(
+        'standalone=2',
+      );
+    });
+
+    test('keeps mode 1 as mode 1', () => {
+      expect(mountExploreUrl('standalone', { standalone: 1 })).toContain(
+        'standalone=1',
+      );
+    });
+
+    test('falls back to HideNav when the caller supplies nothing', () => {
+      expect(mountExploreUrl('standalone')).toContain(
+        `standalone=${DashboardStandaloneMode.HideNav}`,
+      );
     });
   });
 });

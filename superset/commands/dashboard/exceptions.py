@@ -14,12 +14,16 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from typing import Optional
+from typing import Optional, TYPE_CHECKING
 
-from flask_babel import lazy_gettext as _
+from flask_babel import gettext as __, lazy_gettext as _
 from marshmallow.validate import ValidationError
 
+if TYPE_CHECKING:
+    from superset.models.dashboard import Dashboard
+
 from superset.commands.exceptions import (
+    CommandException,
     CommandInvalidError,
     CreateFailedError,
     DeleteFailedError,
@@ -41,6 +45,25 @@ class DashboardSlugExistsValidationError(ValidationError):
 
 class DashboardInvalidError(CommandInvalidError):
     message = _("Dashboard parameters are invalid.")
+
+
+class DashboardSlugReservedValidationError(ValidationError):
+    """The slug is held by a soft-deleted dashboard (full-constraint dialects)."""
+
+    def __init__(self, slug: str, holder: "Dashboard") -> None:
+        super().__init__(
+            [
+                __(
+                    "Slug %(slug)s belongs to the soft-deleted dashboard "
+                    "%(uuid)s. Restore it via POST "
+                    "/api/v1/dashboard/%(uuid)s/restore, or use a different "
+                    "slug.",
+                    slug=slug,
+                    uuid=holder.uuid,
+                )
+            ],
+            field_name="slug",
+        )
 
 
 class DashboardNotFoundError(ObjectNotFoundError):
@@ -68,6 +91,23 @@ class DashboardChartCustomizationsUpdateFailedError(UpdateFailedError):
 
 class DashboardColorsConfigUpdateFailedError(UpdateFailedError):
     message = _("Dashboard color configuration could not be updated.")
+
+
+class DashboardRestoreFailedError(UpdateFailedError):
+    # Restore semantically clears ``deleted_at``; it is an UPDATE, not a new
+    # row. ``UpdateFailedError`` is the nearest typed middle-tier base in the
+    # codebase. A dedicated ``RestoreFailedError`` in
+    # ``superset/commands/exceptions.py`` would be more precise across the
+    # entity rollouts; extracting it there is left as a cross-entity follow-up.
+    message = _("Dashboard could not be restored.")
+
+
+class DashboardSlugConflictError(CommandException):
+    status = 422
+    message = _(
+        "Dashboard cannot be restored because its slug is now used by "
+        "another active dashboard. Rename one of the dashboards and retry."
+    )
 
 
 class DashboardDeleteFailedError(DeleteFailedError):

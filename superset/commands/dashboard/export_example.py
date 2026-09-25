@@ -31,12 +31,15 @@ import yaml
 
 from superset.commands.base import BaseCommand
 from superset.commands.dashboard.exceptions import DashboardNotFoundError
+from superset.common.db_query_status import QueryStatus
 from superset.daos.dashboard import DashboardDAO
+from superset.exceptions import SupersetSecurityException
 
 if TYPE_CHECKING:
     from superset.connectors.sqla.models import SqlaTable
     from superset.models.dashboard import Dashboard
     from superset.models.slice import Slice
+    from superset.superset_typing import QueryObjectDict
 
 from superset.sql.parse import SQLStatement, Table
 
@@ -235,8 +238,6 @@ def export_dataset_data(
     sample_rows: int | None = None,
 ) -> bytes | None:
     """Export dataset data to Parquet format. Returns bytes or None on failure."""
-    import pandas as pd  # pylint: disable=import-outside-toplevel
-
     from superset import db  # pylint: disable=import-outside-toplevel
 
     # Ensure dataset is attached to session and relationships are loaded
@@ -251,35 +252,50 @@ def export_dataset_data(
         logger.warning("Dataset %s has no database", dataset.table_name)
         return None
 
+    # Only export rows the requester is entitled to read. The dataset's own
+    # access check is applied here, and the rows below are fetched through the
+    # dataset's query builder (the same path the chart-data API uses) so that
+    # per-row filters are applied consistently. A requester without access to
+    # the dataset yields no data file rather than the raw underlying table.
+    try:
+        dataset.raise_for_access()
+    except SupersetSecurityException:
+        logger.info(
+            "Skipping data export for dataset %s: requester not entitled",
+            dataset.table_name,
+        )
+        return None
+
+    columns = [col.column_name for col in dataset.columns if not col.expression]
+    if not columns:
+        logger.warning("No columns to export for %s", dataset.table_name)
+        return None
+
     try:
         logger.info("Exporting data for %s to Parquet...", dataset.table_name)
 
-        # Check if this is a virtual dataset (SQL-based)
-        if dataset.sql:
-            sql = dataset.sql
-        else:
-            # For physical tables, build SELECT query from columns
-            columns = [col.column_name for col in dataset.columns if not col.expression]
-
-            if not columns:
-                logger.warning("No columns to export for %s", dataset.table_name)
-                return None
-
-            # Build simple SELECT query (quote identifiers to handle spaces/keywords)
-            column_list = ", ".join(f'"{c}"' for c in columns)
-            quoted_table = f'"{dataset.table_name}"'
-            if dataset.schema:
-                table_ref = f'"{dataset.schema}".{quoted_table}'
-            else:
-                table_ref = quoted_table
-            sql = f"SELECT {column_list} FROM {table_ref}"  # noqa: S608
-
-        with dataset.database.get_sqla_engine() as engine:
-            df = pd.read_sql(sql, engine)
-
-        if sample_rows and len(df) > sample_rows:
-            df = df.head(sample_rows)
-            logger.info("Sampled to %d rows", sample_rows)
+        # Fetch through the dataset's query builder so that the projection,
+        # per-row filters, and (for virtual datasets) the wrapping query are
+        # produced the same way as the chart-data path. The row cap is applied
+        # at the SQL level via row_limit rather than after a full table read.
+        query_obj: QueryObjectDict = {
+            "columns": columns,
+            "metrics": [],
+            "orderby": [],
+            "is_timeseries": False,
+            "filter": [],
+            "extras": {},
+            "row_limit": sample_rows,
+        }
+        result = dataset.query(query_obj)
+        if result.status == QueryStatus.FAILED:
+            # The query path reports failures via status rather than raising;
+            # omit the data file instead of writing an empty/partial Parquet.
+            logger.warning(
+                "Query failed while exporting data for %s", dataset.table_name
+            )
+            return None
+        df = result.df
 
         # Write to bytes buffer
         buf = BytesIO()

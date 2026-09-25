@@ -34,6 +34,27 @@ import { isWfsLayerConf, isWmsLayerConf, isXyzLayerConf } from '../typeguards';
 import { isVersionBelow } from './serviceUtil';
 
 /**
+ * Escape HTML special characters in a layer attribution string.
+ *
+ * OpenLayers' Attribution control renders attribution strings via innerHTML,
+ * and the attribution here comes from creator-supplied chart form data, so it
+ * must be treated as untrusted text rather than markup to prevent stored XSS.
+ *
+ * @param attribution The attribution string from the layer configuration
+ *
+ * @returns The attribution with HTML special characters escaped
+ */
+export const escapeAttribution = (attribution?: string): string | undefined =>
+  attribution === undefined
+    ? undefined
+    : attribution
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+
+/**
  * Create a WMS layer.
  *
  * @param wmsLayerConf The layer configuration
@@ -49,7 +70,7 @@ export const createWmsLayer = (wmsLayerConf: WmsLayerConf) => {
         LAYERS: layersParam,
         VERSION: version,
       },
-      attributions: attribution,
+      attributions: escapeAttribution(attribution),
     }),
   });
 };
@@ -66,7 +87,7 @@ export const createXyzLayer = (xyzLayerConf: XyzLayerConf) => {
   return new TileLayer({
     source: new XyzSource({
       url,
-      attributions: attribution,
+      attributions: escapeAttribution(attribution),
     }),
   });
 };
@@ -90,7 +111,7 @@ export const createWfsLayer = async (wfsLayerConf: WfsLayerConf) => {
 
   const wfsSource = new VectorSource({
     format: new GeoJSON(),
-    attributions: attribution,
+    attributions: escapeAttribution(attribution),
     url: extent => {
       const requestUrl = new URL(url);
       const params = requestUrl.searchParams;

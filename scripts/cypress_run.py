@@ -113,12 +113,6 @@ def main() -> None:
         help="Use Cypress Dashboard for parallelization",
     )
     parser.add_argument(
-        "--parallelism", type=int, default=10, help="Number of parallel groups"
-    )
-    parser.add_argument(
-        "--parallelism-id", type=int, required=True, help="ID of the parallelism group"
-    )
-    parser.add_argument(
         "--filter", type=str, required=False, default=None, help="Filter to test"
     )
     parser.add_argument("--group", type=str, default="Default", help="Group name")
@@ -153,20 +147,8 @@ def main() -> None:
                 )
     print(f"Found {file_count} test files ({skipped_count} skipped).")
 
-    # Initialize groups for round-robin distribution
-    groups: dict[int, list[str]] = {i: [] for i in range(args.parallelism)}
-
-    # Sort test files to ensure deterministic distribution
-    sorted_test_files = sorted(test_files)
-
-    # Distribute test files in a round-robin manner
-    for index, test_file in enumerate(sorted_test_files):
-        group_index = index % args.parallelism
-        groups[group_index].append(test_file)
-
-    # Only run tests for the group that matches the parallelism ID
-    group_id = args.parallelism_id
-    spec_list = groups[group_id]
+    # Sort test files for deterministic, readable run order.
+    spec_list = sorted(test_files)
 
     # Run each test file independently with retry logic or dry-run
     processed_file_count: int = 0

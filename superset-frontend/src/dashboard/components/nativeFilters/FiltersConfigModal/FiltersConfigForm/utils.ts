@@ -16,11 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { flatMapDeep } from 'lodash';
+import { flatMapDeep } from 'lodash-es';
 import type { FormInstance } from '@superset-ui/core/components';
 import { useState, useCallback } from 'react';
 import { CustomControlItem, Dataset } from '@superset-ui/chart-controls';
-import { Column, ensureIsArray } from '@superset-ui/core';
+import { Column, DatasourceType, ensureIsArray } from '@superset-ui/core';
 import { GenericDataType } from '@apache-superset/core/common';
 import { DatasourcesState, ChartsState } from 'src/dashboard/types';
 import { FILTER_SUPPORTED_TYPES } from './constants';
@@ -101,6 +101,16 @@ export const doesColumnMatchFilterType = (filterType: string, column: Column) =>
     filterType as keyof typeof FILTER_SUPPORTED_TYPES
   ]?.includes(column.type_generic);
 
+// Shared semantic-view structure helpers live in a layer-neutral module so
+// non-dashboard consumers (e.g. the dataset drill-info hook) need not import
+// from this filter-form utility. Re-exported here for existing call sites.
+export {
+  mapSemanticTypeToGenericDataType,
+  fetchSemanticViewStructure,
+  semanticViewDimensionsToColumns,
+} from 'src/utils/semanticViewStructure';
+export type { SemanticViewStructure } from 'src/utils/semanticViewStructure';
+
 // Validates that a filter default value is present when the default value option is enabled.
 // For range filters, at least one of the two values must be non-null.
 // For other filters (e.g., filter_select), the value must be non-empty.
@@ -143,4 +153,49 @@ export const mostUsedDataset = (
   });
 
   return datasets[mostUsedDataset]?.id;
+};
+
+const normalizeDatasourceType = (datasourceType?: string): string =>
+  datasourceType || DatasourceType.Table;
+
+const parseDatasourceUid = (
+  datasourceUid?: string,
+): { id?: number; type?: string } => {
+  if (!datasourceUid) {
+    return {};
+  }
+
+  const [rawId, type] = String(datasourceUid).split('__');
+  const id = Number(rawId);
+  if (Number.isNaN(id)) {
+    return {};
+  }
+
+  return { id, type };
+};
+
+export const doesChartMatchFilterDatasource = (
+  chartDatasourceUid: string | undefined,
+  loadedDatasets: DatasourcesState,
+  filterDatasetId: number,
+  filterDatasourceType?: DatasourceType,
+): boolean => {
+  const expectedType = normalizeDatasourceType(filterDatasourceType);
+  const loadedDataset = chartDatasourceUid
+    ? loadedDatasets[chartDatasourceUid]
+    : undefined;
+
+  if (loadedDataset) {
+    const loadedType = normalizeDatasourceType(
+      loadedDataset.datasource_type || loadedDataset.type,
+    );
+
+    return loadedDataset.id === filterDatasetId && loadedType === expectedType;
+  }
+
+  const parsed = parseDatasourceUid(chartDatasourceUid);
+  return (
+    parsed.id === filterDatasetId &&
+    normalizeDatasourceType(parsed.type) === expectedType
+  );
 };

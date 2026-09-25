@@ -33,11 +33,13 @@ from functools import partial
 from typing import Any
 from uuid import UUID
 
+from flask import current_app
 from superset_core.tasks.types import TaskProperties, TaskStatus
 
 from superset.commands.base import BaseCommand
 from superset.commands.tasks.exceptions import TaskUpdateFailedError
 from superset.daos.tasks import TaskDAO
+from superset.tasks.manager import TaskManager
 from superset.utils.decorators import on_error, transaction
 
 logger = logging.getLogger(__name__)
@@ -82,8 +84,21 @@ class InternalUpdateTaskCommand(BaseCommand):
         """No validation needed for internal command."""
         pass
 
-    @transaction(on_error=partial(on_error, reraise=TaskUpdateFailedError))
     def run(self) -> bool:
+        """Write, then nudge realtime consumers of the change (post-commit).
+
+        The nudge is emitted after the transaction commits (so a client that
+        re-fetches sees the new state) on every throttled progress/payload write,
+        not just terminal completion, so realtime list views reflect intermediate
+        state live.
+        """
+        updated = self._run_in_transaction()
+        if updated:
+            TaskManager.publish_entity_change(self._task_uuid)
+        return updated
+
+    @transaction(on_error=partial(on_error, reraise=TaskUpdateFailedError))
+    def _run_in_transaction(self) -> bool:
         """
         Execute zero-read update.
 
@@ -167,8 +182,32 @@ class InternalStatusTransitionCommand(BaseCommand):
         """No validation needed for internal command."""
         pass
 
-    @transaction(on_error=partial(on_error, reraise=TaskUpdateFailedError))
     def run(self) -> bool:
+        """Transition, then nudge realtime consumers of the change (post-commit).
+
+        Emitted on every status transition, not just terminal ones (see
+        :meth:`InternalUpdateTaskCommand.run`).
+        """
+        updated = self._run_in_transaction()
+        if updated:
+            # Track every lifecycle transition (gtf.task.transition.<status>) so
+            # completion/abort/timeout/failure rates are observable.
+            status_value = (
+                self._new_status.value
+                if isinstance(self._new_status, TaskStatus)
+                else self._new_status
+            )
+            current_app.config["STATS_LOGGER"].incr(
+                f"gtf.task.transition.{status_value}"
+            )
+            TaskManager.publish_entity_change(self._task_uuid)
+            # A prerequisite's status is shown on its dependents' rows, so refresh
+            # them too (no-op when this task has no dependents).
+            TaskManager.publish_required_by_changed(self._task_uuid)
+        return updated
+
+    @transaction(on_error=partial(on_error, reraise=TaskUpdateFailedError))
+    def _run_in_transaction(self) -> bool:
         """
         Execute atomic conditional status update.
 

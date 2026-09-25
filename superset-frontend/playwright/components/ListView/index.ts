@@ -19,3 +19,4 @@
 
 // ListView-specific Playwright Components for Superset
 export { BulkSelect } from './BulkSelect';
+export type { BulkSelectActionKey } from './BulkSelect';

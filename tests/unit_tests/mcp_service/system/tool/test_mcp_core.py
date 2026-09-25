@@ -155,7 +155,7 @@ def test_model_list_tool_keeps_single_filter_when_created_by_me_is_used():
         "superset.mcp_service.mcp_core.get_current_user",
         return_value=current_user,
     ):
-        tool.run_tool(
+        result = tool.run_tool(
             filters={"col": "name", "opr": "eq", "value": "foo"},
             created_by_me=True,
         )
@@ -164,6 +164,7 @@ def test_model_list_tool_keeps_single_filter_when_created_by_me_is_used():
     assert captured["filters"][0].col == "created_by_fk"
     assert captured["filters"][0].value == 42
     assert captured["filters"][1] == {"col": "name", "opr": "eq", "value": "foo"}
+    assert result.filters_applied == []
 
 
 def test_model_list_tool_rejects_only_user_directory_select_columns():
@@ -179,7 +180,83 @@ def test_model_list_tool_rejects_only_user_directory_select_columns():
     )
 
     with pytest.raises(ValueError, match="contains no valid columns"):
-        tool.run_tool(select_columns=["created_by", "owners"])
+        tool.run_tool(select_columns=["created_by", "editors"])
+
+
+def test_model_list_tool_rejects_columns_not_in_all_columns():
+    """Columns absent from all_columns are silently dropped from columns_loaded."""
+    captured: dict = {}
+
+    class CapturingDAO:
+        @classmethod
+        def list(cls, columns=None, **kwargs):
+            captured["columns"] = columns
+            return [], 0
+
+    tool = ModelListCore(
+        dao_class=CapturingDAO,
+        output_schema=DummyOutputSchema,
+        item_serializer=dummy_serializer,
+        filter_type=None,
+        default_columns=["id", "name"],
+        search_columns=["name"],
+        list_field_name="items",
+        output_list_schema=DummyListSchema,
+        all_columns=["id", "name"],  # "password" intentionally absent
+    )
+
+    result = tool.run_tool(select_columns=["id", "password", "name"])
+
+    assert result.columns_requested == ["id", "name"]
+    assert result.columns_loaded == ["id", "name"]
+    assert "password" not in (captured.get("columns") or [])
+
+
+def test_model_list_tool_rejects_only_excluded_columns_raises():
+    """When all requested columns are outside all_columns, ValueError is raised."""
+    tool = ModelListCore(
+        dao_class=DummyDAO,
+        output_schema=DummyOutputSchema,
+        item_serializer=dummy_serializer,
+        filter_type=None,
+        default_columns=["id", "name"],
+        search_columns=["name"],
+        list_field_name="items",
+        output_list_schema=DummyListSchema,
+        all_columns=["id", "name"],  # "password"/"sqlalchemy_uri" absent
+    )
+
+    with pytest.raises(ValueError, match="contains no valid columns"):
+        tool.run_tool(select_columns=["password", "sqlalchemy_uri"])
+
+
+def test_model_list_tool_without_explicit_all_columns_allows_non_default_columns():
+    """Without an explicit all_columns, select_columns is not restricted to
+    default_columns — only USER_DIRECTORY_FIELDS are filtered out."""
+    captured: dict = {}
+
+    class CapturingDAO:
+        @classmethod
+        def list(cls, columns=None, **kwargs):
+            captured["columns"] = columns
+            return [], 0
+
+    tool = ModelListCore(
+        dao_class=CapturingDAO,
+        output_schema=DummyOutputSchema,
+        item_serializer=dummy_serializer,
+        filter_type=None,
+        default_columns=["id", "name"],
+        search_columns=["name"],
+        list_field_name="items",
+        output_list_schema=DummyListSchema,
+        # all_columns intentionally not passed
+    )
+
+    result = tool.run_tool(select_columns=["id", "description"])
+
+    assert "description" in result.columns_requested
+    assert "description" in (captured.get("columns") or [])
 
 
 def test_model_list_tool_rejects_private_order_column():
@@ -199,9 +276,43 @@ def test_model_list_tool_rejects_private_order_column():
         tool.run_tool(order_column="created_by_fk")
 
 
-def test_model_list_tool_allows_order_column_when_sortable_columns_not_declared():
-    """When sortable_columns is not provided, order_column is passed through to the DAO
-    without validation (backward-compatible behaviour)."""
+def test_model_list_tool_resolves_changed_on_delta_humanized_alias():
+    """order_column='changed_on_delta_humanized' is accepted when declared in
+    sortable_columns and is translated to the real 'changed_on' column before
+    reaching the DAO — the humanized value is a Python property (rendered via
+    FAB's @renders("changed_on")), not a queryable SQLAlchemy column, so
+    passing it straight through would break DAO.list()'s
+    `getattr(model, order_column)` sort.
+    """
+    captured: dict = {}
+
+    class CapturingDAO:
+        @classmethod
+        def list(cls, order_column=None, **kwargs):
+            captured["order_column"] = order_column
+            return [], 0
+
+    tool = ModelListCore(
+        dao_class=CapturingDAO,
+        output_schema=DummyOutputSchema,
+        item_serializer=dummy_serializer,
+        filter_type=None,
+        default_columns=["id", "name"],
+        search_columns=["name"],
+        list_field_name="items",
+        output_list_schema=DummyListSchema,
+        sortable_columns=["id", "name", "changed_on", "changed_on_delta_humanized"],
+    )
+
+    # Should not raise, and the DAO must receive the real column name.
+    tool.run_tool(order_column="changed_on_delta_humanized")
+
+    assert captured["order_column"] == "changed_on"
+
+
+def test_model_list_tool_rejects_unknown_order_column_even_with_alias_declared():
+    """A genuinely unknown order_column must still raise, even when the tool
+    also declares the changed_on_delta_humanized alias as sortable."""
     tool = ModelListCore(
         dao_class=DummyDAO,
         output_schema=DummyOutputSchema,
@@ -211,10 +322,39 @@ def test_model_list_tool_allows_order_column_when_sortable_columns_not_declared(
         search_columns=["name"],
         list_field_name="items",
         output_list_schema=DummyListSchema,
+        sortable_columns=["id", "name", "changed_on", "changed_on_delta_humanized"],
+    )
+
+    with pytest.raises(ValueError, match="Invalid order_column 'random'"):
+        tool.run_tool(order_column="random")
+
+
+def test_model_list_tool_allows_order_column_when_sortable_columns_not_declared():
+    """When sortable_columns is not provided, order_column is passed through to the DAO
+    without validation (backward-compatible behaviour)."""
+    captured: dict = {}
+
+    class CapturingDAO:
+        @classmethod
+        def list(cls, order_column=None, **kwargs):
+            captured["order_column"] = order_column
+            return [], 0
+
+    tool = ModelListCore(
+        dao_class=CapturingDAO,
+        output_schema=DummyOutputSchema,
+        item_serializer=dummy_serializer,
+        filter_type=None,
+        default_columns=["id", "name"],
+        search_columns=["name"],
+        list_field_name="items",
+        output_list_schema=DummyListSchema,
         # sortable_columns intentionally omitted
     )
-    # Should not raise even though "name" is not in the (empty) sortable list
-    tool.run_tool(order_column="name")
+    # The no-allowlist path preserves the order column without alias resolution.
+    tool.run_tool(order_column="changed_on_delta_humanized")
+
+    assert captured["order_column"] == "changed_on_delta_humanized"
 
 
 def test_model_list_tool_injects_current_user_id_for_created_by_me():
@@ -246,10 +386,11 @@ def test_model_list_tool_injects_current_user_id_for_created_by_me():
         "superset.mcp_service.mcp_core.get_current_user",
         return_value=current_user,
     ):
-        tool.run_tool(created_by_me=True)
+        result = tool.run_tool(created_by_me=True)
 
     assert captured["filters"][0].col == "created_by_fk"
     assert captured["filters"][0].value == 42
+    assert result.filters_applied == []
 
 
 def test_model_list_tool_created_by_me_requires_authenticated_user():
@@ -276,8 +417,8 @@ def test_model_list_tool_created_by_me_requires_authenticated_user():
             tool.run_tool(created_by_me=True)
 
 
-def test_model_list_tool_injects_current_user_id_for_owned_by_me():
-    """owned_by_me=True adds an owner filter with the current user's ID."""
+def test_model_list_tool_injects_current_user_id_for_edited_by_me():
+    """edited_by_me=True adds an editor filter with the current user's ID."""
     current_user = Mock()
     current_user.is_authenticated = True
     current_user.id = 99
@@ -305,14 +446,15 @@ def test_model_list_tool_injects_current_user_id_for_owned_by_me():
         "superset.mcp_service.mcp_core.get_current_user",
         return_value=current_user,
     ):
-        tool.run_tool(owned_by_me=True)
+        result = tool.run_tool(edited_by_me=True)
 
-    assert captured["filters"][0].col == "owner"
+    assert captured["filters"][0].col == "editor"
     assert captured["filters"][0].value == 99
+    assert result.filters_applied == []
 
 
 def test_model_list_tool_both_flags_uses_combined_or_filter():
-    """created_by_me=True + owned_by_me=True generates a single OR filter."""
+    """created_by_me=True + edited_by_me=True generates a single OR filter."""
     current_user = Mock()
     current_user.is_authenticated = True
     current_user.id = 55
@@ -340,15 +482,16 @@ def test_model_list_tool_both_flags_uses_combined_or_filter():
         "superset.mcp_service.mcp_core.get_current_user",
         return_value=current_user,
     ):
-        tool.run_tool(created_by_me=True, owned_by_me=True)
+        result = tool.run_tool(created_by_me=True, edited_by_me=True)
 
     assert len(captured["filters"]) == 1
-    assert captured["filters"][0].col == "created_by_fk_or_owner"
+    assert captured["filters"][0].col == "created_by_fk_or_editor"
     assert captured["filters"][0].value == 55
+    assert result.filters_applied == []
 
 
-def test_model_list_tool_owned_by_me_requires_authenticated_user():
-    """owned_by_me=True raises when no authenticated user is present."""
+def test_model_list_tool_edited_by_me_requires_authenticated_user():
+    """edited_by_me=True raises when no authenticated user is present."""
     current_user = Mock()
     current_user.is_authenticated = False
 
@@ -368,7 +511,7 @@ def test_model_list_tool_owned_by_me_requires_authenticated_user():
         return_value=current_user,
     ):
         with pytest.raises(ValueError, match="authenticated user"):
-            tool.run_tool(owned_by_me=True)
+            tool.run_tool(edited_by_me=True)
 
 
 def test_user_directory_fields_include_last_saved_relationships():

@@ -29,35 +29,133 @@ import logging
 from typing import Any, TYPE_CHECKING
 from urllib.parse import parse_qs, urlparse
 
+from superset.common.utils.time_grain_utils import apply_time_grain_to_base_axis
 from superset.constants import EXTRA_FORM_DATA_OVERRIDE_REGULAR_MAPPINGS
+from superset.utils.core import ExtraFiltersReasonType
 
 if TYPE_CHECKING:
+    from superset.mcp_service.chart.schemas import AppliedDashboardFilter
     from superset.models.slice import Slice
 
 logger = logging.getLogger(__name__)
 
+# extra_form_data override targets that the query object actually reads. Note
+# that ``time_grain`` is deliberately absent: the query object has no such field
+# and nothing downstream consumes it, matching the REST path, where
+# form_data_query_context reads only ``time_grain_sqla``. Listing it here would
+# write a key that ChartDataQueryObjectSchema (``unknown = EXCLUDE``) discards.
 QUERY_CONTEXT_EXTRA_FORM_DATA_OVERRIDE_KEYS = {
     "granularity",
-    "time_grain",
     "time_grain_sqla",
     "time_range",
 }
 
+# Of the keys above, these are not query object fields: the query object carries
+# the time grain inside ``extras`` (see ChartDataExtrasSchema), mirroring how
+# form_data is translated in superset.common.form_data_query_context. Writing
+# them at the top level instead means ChartDataQueryObjectSchema, which is
+# configured with ``unknown = EXCLUDE``, silently drops the override.
+QUERY_CONTEXT_EXTRA_FORM_DATA_EXTRAS_KEYS = {
+    "time_grain_sqla",
+}
 
-def find_chart_by_identifier(identifier: int | str) -> Slice | None:
+
+class ChartNotOnDashboardError(ValueError):
+    """Raised when a chart is not part of the given dashboard's slices."""
+
+
+def requested_filter_columns(extra_form_data: dict[str, Any] | None) -> set[str]:
+    """Return simple column names explicitly requested through extra form data."""
+    if not extra_form_data:
+        return set()
+
+    columns: set[str] = set()
+    for filter_ in extra_form_data.get("filters") or []:
+        if isinstance(filter_, dict) and isinstance(column := filter_.get("col"), str):
+            columns.add(column)
+    for filter_ in extra_form_data.get("adhoc_filters") or []:
+        if (
+            isinstance(filter_, dict)
+            and filter_.get("expressionType") == "SIMPLE"
+            and isinstance(column := filter_.get("subject"), str)
+        ):
+            columns.add(column)
+    return columns
+
+
+def rejected_columns_in_query(query: Any) -> set[str]:
+    """Return the rejected filter column names reported by one query payload.
+
+    Query construction reports dropped filters as ``rejected_filters`` entries
+    (``{"reason": ..., "column": ...}``), the shape every consumer of a
+    chart-data or query payload sees. The raw ``rejected_filter_columns`` list
+    is still accepted for payloads captured before that conversion.
+    """
+    if not isinstance(query, dict):
+        return set()
+
+    # QUERY results retain the datasource-only list so temporal pseudo-filter
+    # rejections cannot be mistaken for ordinary filters with the same name.
+    # Prefer it whenever present, including when it is empty.
+    if "rejected_filter_columns" in query:
+        return {
+            column
+            for column in query.get("rejected_filter_columns") or []
+            if isinstance(column, str)
+        }
+
+    columns = {
+        column
+        for entry in query.get("rejected_filters") or []
+        if isinstance(entry, dict)
+        and entry.get("reason") != ExtraFiltersReasonType.NO_TEMPORAL_COLUMN
+        and isinstance(column := entry.get("column"), str)
+    }
+    return columns
+
+
+def rejected_requested_filter_columns(
+    result: Any, extra_form_data: dict[str, Any] | None
+) -> list[str]:
+    """Find request filters rejected by datasource query construction.
+
+    Only columns the caller asked for are reported, so a stale filter stored in
+    an older chart configuration cannot fail the request.
+    """
+    if not isinstance(result, dict):
+        return []
+    requested = requested_filter_columns(extra_form_data)
+    rejected = {
+        column
+        for query in result.get("queries", [])
+        for column in rejected_columns_in_query(query)
+    }
+    return sorted(requested & rejected)
+
+
+def find_chart_by_identifier(
+    identifier: int | str,
+    query_options: list[Any] | None = None,
+) -> Slice | None:
     """Find a chart by numeric ID or UUID string.
 
     Accepts an integer ID, a string that looks like a digit (e.g. "123"),
     or a UUID string. Returns the Slice model instance or None.
+
+    ``query_options`` is forwarded to the DAO so callers can eager-load
+    relationships needed after the request-scoped session is detached.
     """
     from superset.daos.chart import ChartDAO  # avoid circular import
 
+    extra: dict[str, Any] = (
+        {"query_options": query_options} if query_options is not None else {}
+    )
     if isinstance(identifier, int) or (
         isinstance(identifier, str) and identifier.isdigit()
     ):
         chart_id = int(identifier) if isinstance(identifier, str) else identifier
-        return ChartDAO.find_by_id(chart_id)
-    return ChartDAO.find_by_id(identifier, id_column="uuid")
+        return ChartDAO.find_by_id(chart_id, **extra)
+    return ChartDAO.find_by_id(identifier, id_column="uuid", **extra)
 
 
 def get_cached_form_data(form_data_key: str) -> str | None:
@@ -185,6 +283,8 @@ def apply_form_data_filters_to_query(
         query["where"] = where
     if having := form_data.get("having"):
         query["having"] = having
+    if extras := form_data.get("extras"):
+        query["extras"] = {**(query.get("extras") or {}), **extras}
 
 
 def _join_sql_clause(existing_clause: str, additional_clause: str) -> str:
@@ -233,7 +333,12 @@ def merge_form_data_filters_into_query(
             and key in form_data
             and form_data[key] is not None
         ):
-            query[key] = form_data[key]
+            if key in QUERY_CONTEXT_EXTRA_FORM_DATA_EXTRAS_KEYS:
+                query["extras"] = {**(query.get("extras") or {}), key: form_data[key]}
+                if key == "time_grain_sqla":
+                    apply_time_grain_to_base_axis(query, form_data[key])
+            else:
+                query[key] = form_data[key]
 
     for clause in ("where", "having"):
         if additional_clause := form_data.get(clause):
@@ -241,6 +346,9 @@ def merge_form_data_filters_into_query(
                 query[clause] = _join_sql_clause(existing_clause, additional_clause)
             else:
                 query[clause] = additional_clause
+
+    if extras := form_data.get("extras"):
+        query["extras"] = {**(query.get("extras") or {}), **extras}
 
 
 def merge_extra_form_data_filters_into_query(
@@ -260,12 +368,127 @@ def merge_extra_form_data_filters_into_query(
     merge_form_data_filters_into_query(query, extra_query_form_data)
 
 
+def _deck_gl_spatial_cols(spatial: dict[str, Any] | None) -> list[str]:
+    """Return the column names referenced by a single Deck.gl spatial control."""
+    if not isinstance(spatial, dict):
+        return []
+    spatial_type = spatial.get("type")
+    if spatial_type == "latlong":
+        return [c for c in [spatial.get("lonCol"), spatial.get("latCol")] if c]
+    if spatial_type == "delimited":
+        return [c for c in [spatial.get("lonlatCol")] if c]
+    if spatial_type == "geohash":
+        return [c for c in [spatial.get("geohashCol")] if c]
+    return []
+
+
+def _is_metric_ref(value: Any) -> bool:
+    """Return True if value is a metric reference (dict or non-numeric string).
+
+    Deck.gl size/metric fields hold either a dict metric definition or a
+    simple saved-metric string key (e.g. "count"). Scalar numeric strings
+    like "100" are fixed display settings and must not be treated as metrics.
+    Note: float() accepts "inf", "-inf", and "nan", so those strings would be
+    excluded here too — they are not valid metric names in practice.
+    """
+    if isinstance(value, dict):
+        return True
+    if isinstance(value, str) and value:
+        try:
+            float(value)
+            return False
+        except ValueError:
+            return True
+    return False
+
+
+def _deck_gl_null_filters(form_data: dict[str, Any]) -> list[dict[str, Any]]:
+    """Build IS NOT NULL simple filters for Deck.gl spatial and data columns.
+
+    Mirrors BaseDeckGLViz.add_null_filters() behavior: spatial control columns,
+    line_column, and the geojson column are filtered for non-null values by
+    default.
+    """
+    seen: set[str] = set()
+    result: list[dict[str, Any]] = []
+    for key in ("spatial", "start_spatial", "end_spatial"):
+        for col in _deck_gl_spatial_cols(form_data.get(key)):
+            if col not in seen:
+                seen.add(col)
+                result.append({"col": col, "op": "IS NOT NULL", "val": ""})
+    for field in ("line_column", "geojson"):
+        data_col = form_data.get(field)
+        if isinstance(data_col, str) and data_col and data_col not in seen:
+            seen.add(data_col)
+            result.append({"col": data_col, "op": "IS NOT NULL", "val": ""})
+    return result
+
+
+def _resolve_deck_gl_metrics(
+    form_data: dict[str, Any], viz_type: str = ""
+) -> list[Any]:
+    """Extract metrics for Deck.gl chart types.
+
+    deck_geojson.query_obj() forces metrics=[] regardless of form_data.
+    For other types, size/metric values are included when they are metric
+    references (dicts or non-numeric strings); numeric scalars like "100"
+    are fixed display settings and are excluded.
+    deck_scatter and deck_polygon can additionally store metric-backed
+    values in point_radius_fixed (radius for scatter, elevation for polygon).
+    """
+    if viz_type == "deck_geojson":
+        return []
+    metrics: list[Any] = []
+    for field in ("size", "metric"):
+        m = form_data.get(field)
+        if _is_metric_ref(m):
+            metrics.append(m)
+    prf = form_data.get("point_radius_fixed")
+    if isinstance(prf, dict) and prf.get("type") == "metric":
+        value = prf.get("value")
+        if value:
+            metrics.append(value)
+    elif isinstance(prf, str) and _is_metric_ref(prf):
+        # Legacy deck_scatter: point_radius_fixed as a bare non-numeric metric key
+        logger.debug("Legacy point_radius_fixed string metric encountered: %s", prf)
+        metrics.append(prf)
+    return metrics
+
+
+def resolve_deck_gl_columns(form_data: dict[str, Any]) -> list[str]:
+    """Extract SQL column names for Deck.gl chart types from form_data.
+
+    Deck.gl charts use spatial controls (lat/lon pairs, geohash, etc.)
+    rather than the standard metrics/groupby structure. This function
+    maps those spatial control configs to the actual column names
+    needed by the SQL query.
+    """
+    seen: set[str] = set()
+    columns: list[str] = []
+
+    def _add(col: str | None) -> None:
+        if col and isinstance(col, str) and col not in seen:
+            seen.add(col)
+            columns.append(col)
+
+    # Most Deck.gl types use "spatial"; arc charts use start/end spatial
+    for key in ("spatial", "start_spatial", "end_spatial"):
+        for col in _deck_gl_spatial_cols(form_data.get(key)):
+            _add(col)
+
+    # deck_path / deck_polygon use a line column; deck_geojson uses geojson
+    for field in ("line_column", "geojson", "dimension"):
+        _add(form_data.get(field))
+
+    return columns
+
+
 def resolve_metrics(form_data: dict[str, Any], viz_type: str) -> list[Any]:
     """Extract metrics from form_data, handling chart-type-specific fields."""
-    if viz_type == "bubble":
+    if viz_type in ("bubble", "bubble_v2"):
         return [m for field in ("x", "y", "size") if (m := form_data.get(field))]
 
-    metrics = form_data.get("metrics", [])
+    metrics = form_data.get("metrics") or []
     if not metrics and (metric := form_data.get("metric")):
         metrics = [metric]
     return metrics
@@ -308,19 +531,149 @@ def resolve_metrics_and_groupby(
     chart: Any | None = None,
 ) -> tuple[list[Any], list[Any]]:
     """Resolve metrics and groupby columns from form_data."""
-    viz_type = form_data.get(
-        "viz_type", getattr(chart, "viz_type", "") if chart else ""
+    viz_type = (
+        form_data.get("viz_type", getattr(chart, "viz_type", "") if chart else "") or ""
     )
+    if viz_type == "treemap_v2":
+        # Treemap has exactly these roles; stale controls from another plugin
+        # must not override its singular metric or ordered hierarchy.
+        metric = form_data.get("metric")
+        hierarchy = form_data.get("groupby") or []
+        return ([metric] if metric else []), (
+            [hierarchy] if isinstance(hierarchy, str) else list(hierarchy)
+        )
     singular_metric_no_groupby = (
         "big_number",
         "big_number_total",
         "pop_kpi",
     )
     if viz_type in singular_metric_no_groupby:
-        metrics: list[Any] = [metric] if (metric := form_data.get("metric")) else []
-        return metrics, []
+        metric = form_data.get("metric")
+        if not metric:
+            # Some saved/migrated form_data stores the metric under the
+            # plural "metrics" key even for single-metric chart types.
+            plural_metrics = form_data.get("metrics") or []
+            metric = plural_metrics[0] if plural_metrics else None
+        return ([metric] if metric else []), []
 
     return resolve_metrics(form_data, viz_type), resolve_groupby(form_data)
+
+
+def resolve_big_number_columns(form_data: dict[str, Any]) -> list[Any]:
+    """Resolve the temporal column used by Big Number with Trendline.
+
+    The frontend accepts the temporal binding through either ``x_axis`` or the
+    legacy ``granularity_sqla`` control. MCP preview and compile historically
+    used the physical granularity column when ``x_axis`` was absent; preserve
+    that contract rather than reducing every Big Number query to a total.
+
+    ``big_number_total`` intentionally does not use this helper because its
+    frontend query has no temporal dimension.
+    """
+    x_axis = form_data.get("x_axis")
+    if isinstance(x_axis, str) and x_axis:
+        return [x_axis]
+    if isinstance(x_axis, dict):
+        if (
+            isinstance(x_axis.get("sqlExpression"), str)
+            and x_axis.get("sqlExpression")
+            and isinstance(x_axis.get("label"), str)
+            and x_axis.get("label")
+            and x_axis.get("expressionType") in (None, "SQL")
+        ):
+            return [x_axis]
+        column_name = x_axis.get("column_name")
+        if isinstance(column_name, str) and column_name:
+            return [column_name]
+
+    granularity = form_data.get("granularity_sqla")
+    return [granularity] if isinstance(granularity, str) and granularity else []
+
+
+def resolve_gantt_query_fields(  # noqa: C901
+    form_data: dict[str, Any],
+) -> tuple[list[Any], list[Any], list[list[Any]], list[Any]]:
+    """Mirror the ECharts Gantt ``buildQuery`` field extraction contract.
+
+    Returns ``(columns, metrics, orderby, series_columns)``. Saved form data is
+    user-editable, so malformed or oversized native ordering is rejected rather
+    than silently dropped or passed into ``QueryContextFactory``.
+    """
+    from superset.utils import json as utils_json
+
+    def require_column(value: Any, field_name: str) -> Any:
+        if isinstance(value, str) and value:
+            return value
+        if isinstance(value, dict) and 0 < len(value) <= 20:
+            # QueryFormColumn objects use column_name for physical columns or
+            # expressionType/sqlExpression/label for adhoc columns.
+            if value.get("column_name") or (
+                value.get("expressionType") and value.get("label")
+            ):
+                return value
+        raise ValueError(f"Gantt {field_name} must be a column reference")
+
+    start_time = require_column(form_data.get("start_time"), "start_time")
+    end_time = require_column(form_data.get("end_time"), "end_time")
+    category = require_column(form_data.get("y_axis"), "y_axis")
+
+    raw_series = form_data.get("series")
+    series_columns = (
+        [require_column(raw_series, "series")] if raw_series is not None else []
+    )
+
+    raw_tooltip_columns = form_data.get("tooltip_columns") or []
+    raw_tooltip_metrics = form_data.get("tooltip_metrics") or []
+    if not isinstance(raw_tooltip_columns, list) or len(raw_tooltip_columns) > 50:
+        raise ValueError("Gantt tooltip_columns must contain at most 50 entries")
+    if not isinstance(raw_tooltip_metrics, list) or len(raw_tooltip_metrics) > 50:
+        raise ValueError("Gantt tooltip_metrics must contain at most 50 entries")
+    tooltip_columns = [
+        require_column(column, f"tooltip_columns[{index}]")
+        for index, column in enumerate(raw_tooltip_columns)
+    ]
+
+    raw_order = form_data.get("order_by_cols") or []
+    if not isinstance(raw_order, list) or len(raw_order) > 100:
+        raise ValueError("Gantt order_by_cols must contain at most 100 entries")
+    orderby: list[list[Any]] = []
+    for index, entry in enumerate(raw_order):
+        if isinstance(entry, str):
+            if len(entry) > 1000:
+                raise ValueError(f"Gantt order_by_cols[{index}] is too long")
+            try:
+                entry = utils_json.loads(entry)
+            except (TypeError, ValueError) as ex:
+                raise ValueError(
+                    f"Gantt order_by_cols[{index}] is not valid JSON"
+                ) from ex
+        if (
+            not isinstance(entry, (list, tuple))
+            or len(entry) != 2
+            or not isinstance(entry[0], str)
+            or not entry[0]
+            or not isinstance(entry[1], bool)
+        ):
+            raise ValueError(
+                f"Gantt order_by_cols[{index}] must be [column, ascending_boolean]"
+            )
+        orderby.append([entry[0], entry[1]])
+
+    columns: list[Any] = []
+    seen: set[str] = set()
+    for column in (
+        start_time,
+        end_time,
+        category,
+        *series_columns,
+        *tooltip_columns,
+        *(entry[0] for entry in orderby),
+    ):
+        key = utils_json.dumps(column, sort_keys=True, default=str)
+        if key not in seen:
+            seen.add(key)
+            columns.append(column)
+    return columns, list(raw_tooltip_metrics), orderby, series_columns
 
 
 def extract_x_axis_col(form_data: dict[str, Any]) -> str | None:
@@ -334,6 +687,46 @@ def extract_x_axis_col(form_data: dict[str, Any]) -> str | None:
     return None
 
 
+# Viz types whose buildQuery reads a single "Sort query by" metric from
+# form_data['orderby'] (the dndSortByControl) rather than a sort flag.
+_SORT_METRIC_VIZ_TYPES: frozenset[str] = frozenset({"bubble", "bubble_v2"})
+
+
+def resolve_sort_metric(form_data: dict[str, Any]) -> Any | None:
+    """Extract the "Sort query by" metric for viz types that carry one."""
+    if form_data.get("viz_type") not in _SORT_METRIC_VIZ_TYPES:
+        return None
+    raw = form_data.get("orderby")
+    if isinstance(raw, (list, tuple)):
+        raw = raw[0] if raw else None
+    return raw or None
+
+
+def _apply_treemap_query_fields(
+    qd: dict[str, Any],
+    form_data: dict[str, Any],
+    columns: list[Any],
+    effective_row_limit: int | None,
+) -> None:
+    """Apply Treemap temporal binding and bounded hierarchy ordering."""
+    # extractExtras maps the selected SQL time column to QueryObject granularity.
+    # A normalized dashboard override takes precedence, including a clear.
+    granularity = form_data.get("granularity", form_data.get("granularity_sqla"))
+    if granularity is not None:
+        qd["granularity"] = granularity
+    # Match Treemap buildQuery/applyOrderBy, including hierarchy tie-breakers.
+    ordering = qd.pop("orderby", [])
+    ordering.extend(
+        (column, True) for column in columns if isinstance(column, str) and column
+    )
+    try:
+        bounded = float(effective_row_limit or 0) != 0
+    except (ValueError, TypeError):
+        bounded = True
+    if bounded and ordering:
+        qd["orderby"] = ordering
+
+
 def _build_single_query_dict(
     form_data: dict[str, Any],
     columns: list[Any],
@@ -343,6 +736,9 @@ def _build_single_query_dict(
 ) -> dict[str, Any]:
     """Build one query entry for QueryContextFactory from form_data fields."""
     qd: dict[str, Any] = {"columns": columns, "metrics": metrics}
+    # Saved query-shaped ordering is distinct from typed sort_by/order_by_cols.
+    if form_data.get("orderby"):
+        qd["orderby"] = form_data["orderby"]
     effective_row_limit = row_limit
     if effective_row_limit is None:
         effective_row_limit = form_data.get("row_limit")
@@ -350,8 +746,60 @@ def _build_single_query_dict(
         qd["row_limit"] = effective_row_limit
     if order_desc is not None:
         qd["order_desc"] = order_desc
+    # sort_by_metric charts (pie/funnel/treemap/sankey/gauge) order by the
+    # metric descending. buildQuery derives this on the frontend; translate
+    # the flag here when there is no explicit ordering or a row_limit truncates
+    # an unordered result (dropping the heaviest rows rather than the top-N).
+    if form_data.get("sort_by_metric") and metrics and not qd.get("orderby"):
+        qd["orderby"] = [(metrics[0], False)]
+    elif sort_metric := resolve_sort_metric(form_data):
+        # Bubble's buildQuery pairs its "Sort query by" metric with the
+        # negated order_desc flag; order_desc defaults to True (descending).
+        # An explicit argument wins, or qd["order_desc"] set above would
+        # contradict the direction emitted here.
+        descending = (
+            order_desc if order_desc is not None else form_data.get("order_desc", True)
+        )
+        qd["orderby"] = [(sort_metric, not descending)]
+    if form_data.get("viz_type") == "treemap_v2":
+        _apply_treemap_query_fields(qd, form_data, columns, effective_row_limit)
     apply_form_data_filters_to_query(qd, form_data)
     return qd
+
+
+def _build_gantt_or_big_number_query_dicts(
+    form_data: dict[str, Any],
+    viz_type: str,
+    metrics: list[Any],
+    row_limit: int | None,
+    order_desc: bool | None,
+) -> list[dict[str, Any]] | None:
+    """Build query dictionaries for the two specialized MCP chart contracts."""
+    if viz_type == "gantt_chart":
+        columns, gantt_metrics, orderby, series_columns = resolve_gantt_query_fields(
+            form_data
+        )
+        query = _build_single_query_dict(
+            form_data,
+            columns,
+            gantt_metrics,
+            row_limit=row_limit,
+        )
+        query["orderby"] = orderby
+        query["series_columns"] = series_columns
+        return [query]
+
+    if viz_type == "big_number":
+        return [
+            _build_single_query_dict(
+                form_data,
+                resolve_big_number_columns(form_data),
+                metrics,
+                row_limit=row_limit,
+                order_desc=order_desc,
+            )
+        ]
+    return None
 
 
 def _build_mixed_timeseries_secondary(
@@ -371,8 +819,9 @@ def _build_mixed_timeseries_secondary(
     if x_axis_col and x_axis_col not in groupby_b:
         groupby_b = [x_axis_col] + groupby_b
 
+    # Each series owns its ordering; primary metrics may not exist in query B.
     qd = _build_single_query_dict(
-        form_data,
+        {**form_data, "orderby": form_data.get("orderby_b")},
         groupby_b,
         metrics_b,
         row_limit=row_limit,
@@ -396,6 +845,12 @@ def _build_mixed_timeseries_secondary(
             else:
                 qd.pop(clause, None)
     return qd
+
+
+# Deck.gl viz types that conditionally set is_timeseries from time_grain_sqla
+_DECK_TIMESERIES_VIZ_TYPES: frozenset[str] = frozenset(
+    {"deck_arc", "deck_path", "deck_polygon", "deck_scatter", "deck_screengrid"}
+)
 
 
 def build_query_dicts_from_form_data(
@@ -423,6 +878,43 @@ def build_query_dicts_from_form_data(
         or (getattr(chart, "viz_type", "") if chart else "")
         or ""
     )
+
+    if specialized_queries := _build_gantt_or_big_number_query_dicts(
+        form_data,
+        viz_type,
+        metrics,
+        row_limit,
+        order_desc,
+    ):
+        return specialized_queries
+
+    # Deck.gl charts use spatial column configs rather than the standard
+    # metrics / groupby fields. Extract columns from the spatial controls.
+    if viz_type.startswith("deck_"):
+        deck_columns = resolve_deck_gl_columns(form_data)
+        deck_metrics = _resolve_deck_gl_metrics(form_data, viz_type)
+        qd = _build_single_query_dict(
+            form_data,
+            deck_columns,
+            deck_metrics,
+            row_limit=row_limit,
+            order_desc=order_desc,
+        )
+        if deck_metrics:
+            # Mirror BaseDeckGLViz.query_obj(): order by first metric descending
+            qd["orderby"] = [(deck_metrics[0], not form_data.get("order_desc", True))]
+        if viz_type in _DECK_TIMESERIES_VIZ_TYPES and (
+            time_grain := form_data.get("time_grain_sqla")
+        ):
+            qd["is_timeseries"] = True
+            qd["granularity"] = form_data.get("granularity_sqla")
+            qd.setdefault("extras", {})["time_grain_sqla"] = time_grain
+        if form_data.get("filter_nulls", True):
+            null_filters = _deck_gl_null_filters(form_data)
+            if null_filters:
+                qd["filters"] = [*(qd.get("filters") or []), *null_filters]
+        return [qd]
+
     is_timeseries = (
         viz_type.startswith("echarts_timeseries") or viz_type == "mixed_timeseries"
     )
@@ -487,6 +979,7 @@ def build_query_context_from_form_data(
     order_desc: bool | None = None,
     result_type: Any = None,
     force: bool = False,
+    custom_cache_timeout: int | None = None,
 ) -> Any:
     """Build a QueryContext from chart-type-aware Explore form_data."""
     # avoid circular import
@@ -515,6 +1008,7 @@ def build_query_context_from_form_data(
         form_data=form_data,
         result_type=result_type,
         force=force,
+        custom_cache_timeout=custom_cache_timeout,
     )
 
 
@@ -528,3 +1022,118 @@ def extract_form_data_key_from_url(url: str | None) -> str | None:
     parsed = urlparse(url)
     values = parse_qs(parsed.query).get("form_data_key", [])
     return values[0] if values else None
+
+
+def _match_adhoc_by_subject(
+    adhoc_filters: Any, column: str | None
+) -> tuple[str | None, Any] | None:
+    if not column or not isinstance(adhoc_filters, list):
+        return None
+    for af in adhoc_filters:
+        if isinstance(af, dict) and af.get("subject") == column:
+            return af.get("operator"), af.get("comparator")
+    return None
+
+
+def _match_legacy_by_col(
+    legacy_filters: Any, column: str | None
+) -> tuple[str | None, Any] | None:
+    if not column or not isinstance(legacy_filters, list):
+        return None
+    for f in legacy_filters:
+        if isinstance(f, dict) and f.get("col") == column:
+            return f.get("op"), f.get("val")
+    return None
+
+
+def _resolve_filter_operator_and_value(
+    extra_form_data: dict[str, Any] | None,
+    column: str | None,
+) -> tuple[str | None, Any]:
+    """Pull operator and value for a dashboard filter from its
+    default extra_form_data, matching on target column where applicable."""
+    if not extra_form_data:
+        return None, None
+
+    if match := _match_adhoc_by_subject(extra_form_data.get("adhoc_filters"), column):
+        return match
+    if match := _match_legacy_by_col(extra_form_data.get("filters"), column):
+        return match
+    # Temporal filters contribute time_range with no target column
+    if time_range := extra_form_data.get("time_range"):
+        return "TIME_RANGE", time_range
+    return None, None
+
+
+def build_applied_dashboard_filters(
+    dashboard_id: int, chart_id: int
+) -> list[AppliedDashboardFilter]:
+    """Resolve dashboard-level native filters in scope for a chart.
+
+    Validates that the dashboard exists, the caller has access, and the chart
+    is on the dashboard. Returns one AppliedDashboardFilter per non-DIVIDER
+    native filter whose scope includes the chart, populated with the filter's
+    default operator and value.
+
+    Raises DashboardNotFoundError if the dashboard is missing,
+    ChartNotOnDashboardError if the chart is not on it, and
+    SupersetSecurityException if the caller cannot access the dashboard.
+    """
+    # Local imports avoid circular deps at module load
+    from superset import db, security_manager
+    from superset.charts.data.dashboard_filter_context import (
+        _extract_filter_extra_form_data,
+        _get_filter_target_column,
+        _is_filter_in_scope_for_chart,
+    )
+    from superset.commands.dashboard.exceptions import DashboardNotFoundError
+    from superset.mcp_service.chart.schemas import AppliedDashboardFilter
+    from superset.models.dashboard import Dashboard
+    from superset.utils import json
+
+    dashboard = db.session.query(Dashboard).filter_by(id=dashboard_id).one_or_none()
+    if not dashboard:
+        raise DashboardNotFoundError(dashboard_id=str(dashboard_id))
+
+    security_manager.raise_for_access(dashboard=dashboard)
+
+    slice_ids = {slc.id for slc in dashboard.slices}
+    if chart_id not in slice_ids:
+        raise ChartNotOnDashboardError(
+            f"Chart {chart_id} is not on dashboard {dashboard_id}"
+        )
+
+    metadata = json.loads(dashboard.json_metadata or "{}")
+    native_filter_config = metadata.get("native_filter_configuration", [])
+    if not isinstance(native_filter_config, list):
+        return []
+    position_json = json.loads(dashboard.position_json or "{}")
+    if not isinstance(position_json, dict):
+        position_json = {}
+
+    applied: list[AppliedDashboardFilter] = []
+    for flt in native_filter_config:
+        if not isinstance(flt, dict):
+            continue
+        if flt.get("type", "") == "DIVIDER":
+            continue
+        if not _is_filter_in_scope_for_chart(flt, chart_id, position_json):
+            continue
+
+        extra_form_data, status = _extract_filter_extra_form_data(flt)
+        column = _get_filter_target_column(flt)
+        operator, value = _resolve_filter_operator_and_value(extra_form_data, column)
+
+        applied.append(
+            AppliedDashboardFilter(
+                id=flt.get("id"),
+                name=flt.get("name"),
+                filter_type=flt.get("filterType"),
+                column=column,
+                operator=operator,
+                value=value,
+                status=status.value,
+            )
+        )
+
+    return applied

@@ -59,6 +59,16 @@ describe('extractQueryFields', () => {
     ).toEqual(['metric_1', 'metric_2', 'my_custom_metric']);
   });
 
+  test('should extract butterfly chart metrics', () => {
+    expect(
+      extractQueryFields({
+        groupby: ['category'],
+        left_metric: 'left_sum',
+        right_metric: 'right_sum',
+      }).metrics,
+    ).toEqual(['left_sum', 'right_sum']);
+  });
+
   test('should extract columns', () => {
     expect(extractQueryFields({ columns: 'col_1' })).toEqual({
       columns: ['col_1'],

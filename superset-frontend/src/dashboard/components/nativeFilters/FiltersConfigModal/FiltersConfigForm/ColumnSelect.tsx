@@ -21,14 +21,20 @@ import rison from 'rison';
 import { t } from '@apache-superset/core/translation';
 import {
   Column,
+  DatasourceType,
   ensureIsArray,
   useChangeEffect,
   getClientErrorObject,
+  selectClientErrorMessage,
 } from '@superset-ui/core';
 import { type FormInstance, Select } from '@superset-ui/core/components';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
 import { cachedSupersetGet } from 'src/utils/cachedSupersetGet';
 import { NativeFiltersForm, NativeFiltersFormItem } from '../types';
+import {
+  fetchSemanticViewStructure,
+  semanticViewDimensionsToColumns,
+} from './utils';
 
 interface ColumnSelectProps {
   allowClear?: boolean;
@@ -37,6 +43,7 @@ interface ColumnSelectProps {
   formField?: keyof NativeFiltersFormItem;
   filterId: string;
   datasetId?: number;
+  datasourceType?: DatasourceType;
   value?: string | string[];
   onChange?: (value: string) => void;
   mode?: 'multiple';
@@ -51,6 +58,7 @@ export function ColumnSelect({
   formField = 'column',
   filterId,
   datasetId,
+  datasourceType,
   value,
   onChange,
   mode,
@@ -86,25 +94,55 @@ export function ColumnSelect({
     }
   }, [currentColumn, currentFilterType, resetColumnField]);
 
-  useChangeEffect(datasetId, previous => {
+  // Use a compound key so the effect re-fires when either the dataset ID or
+  // the datasource type changes.  Datasets and semantic views have independent
+  // ID sequences, so switching between them with the same numeric ID must still
+  // trigger a column re-fetch.
+  const datasourceKey = `${datasetId}__${datasourceType || DatasourceType.Table}`;
+  useChangeEffect(datasourceKey, previous => {
     if (previous != null) {
       setColumns([]);
       resetColumnField();
     }
     if (datasetId != null) {
       setLoading(true);
-      cachedSupersetGet({
-        endpoint: `/api/v1/dataset/${datasetId}?q=${rison.encode({
-          columns: [
-            'columns.column_name',
-            'columns.is_dttm',
-            'columns.type_generic',
-            'columns.filterable',
-          ],
-        })}`,
-      })
-        .then(
-          ({ json: { result } }) => {
+      const handleError = async (
+        badResponse: Parameters<typeof getClientErrorObject>[0],
+      ) => {
+        const errorText = selectClientErrorMessage(
+          await getClientErrorObject(badResponse),
+          t('An error has occurred'),
+          { 403: t('You do not have permission to edit this dashboard') },
+        );
+        addDangerToast(errorText);
+      };
+
+      if (datasourceType === DatasourceType.SemanticView) {
+        fetchSemanticViewStructure(datasetId)
+          .then(({ dimensions }) => {
+            const cols: Column[] = semanticViewDimensionsToColumns(dimensions);
+            const lookupValue = Array.isArray(value) ? value : [value];
+            const valueExists = cols.some((column: Column) =>
+              lookupValue?.includes(column.column_name),
+            );
+            if (!valueExists) {
+              resetColumnField();
+            }
+            setColumns(cols);
+          }, handleError)
+          .finally(() => setLoading(false));
+      } else {
+        cachedSupersetGet({
+          endpoint: `/api/v1/dataset/${datasetId}?q=${rison.encode({
+            columns: [
+              'columns.column_name',
+              'columns.is_dttm',
+              'columns.type_generic',
+              'columns.filterable',
+            ],
+          })}`,
+        })
+          .then(({ json: { result } }) => {
             const lookupValue = Array.isArray(value) ? value : [value];
             const valueExists = result.columns.some((column: Column) =>
               lookupValue?.includes(column.column_name),
@@ -113,19 +151,9 @@ export function ColumnSelect({
               resetColumnField();
             }
             setColumns(result.columns);
-          },
-          async badResponse => {
-            const { error, message } = await getClientErrorObject(badResponse);
-            let errorText = message || error || t('An error has occurred');
-            if (message === 'Forbidden') {
-              errorText = t(
-                'You do not have permission to edit this dashboard',
-              );
-            }
-            addDangerToast(errorText);
-          },
-        )
-        .finally(() => setLoading(false));
+          }, handleError)
+          .finally(() => setLoading(false));
+      }
     }
   });
 

@@ -25,6 +25,7 @@ from sqlalchemy.orm.session import Session
 
 from superset import db
 from superset.commands.exceptions import ImportFailedError
+from superset.constants import PASSWORD_MASK
 from superset.utils import json
 
 
@@ -56,7 +57,9 @@ def test_import_database(mocker: MockerFixture, session: Session) -> None:
     assert database.allow_dml is True
     assert database.allow_file_upload is True
     assert database.extra == "{}"
-    assert database.uuid == "b8a1ccd3-779d-4ab7-8ad8-9ab119d7fe89"
+    # ``uuid`` is coerced to a ``UUID`` object on assignment (UUIDMixin
+    # validator); compare by string form.
+    assert str(database.uuid) == "b8a1ccd3-779d-4ab7-8ad8-9ab119d7fe89"
     assert database.is_managed_externally is False
     assert database.external_url is None
 
@@ -89,7 +92,7 @@ def test_import_database_no_creds(mocker: MockerFixture, session: Session) -> No
     assert database.database_name == "imported_database_no_creds"
     assert database.sqlalchemy_uri == "bigquery://test-db/"
     assert database.extra == "{}"
-    assert database.uuid == "2ff17edc-f3fa-4609-a5ac-b484281225bc"
+    assert str(database.uuid) == "2ff17edc-f3fa-4609-a5ac-b484281225bc"
 
 
 def test_import_database_sqlite_invalid(
@@ -341,6 +344,129 @@ def test_import_database_with_masked_encrypted_extra_existing_db(
     assert encrypted["credentials_info"]["private_key"] != PASSWORD_MASK
 
 
+def test_import_database_existing_no_overwrite_backfills_permissions(
+    mocker: MockerFixture,
+    session: Session,
+) -> None:
+    """
+    ``import_database(config, overwrite=False)`` is called unconditionally by
+    the chart, dataset, and saved-query bundle importers
+    (``superset/commands/chart/importers/v1/__init__.py``,
+    ``superset/commands/dataset/importers/v1/__init__.py``, and
+    ``superset/commands/query/importers/v1/__init__.py``), and by the
+    dashboard importer (``superset/commands/dashboard/importers/v1/__init__.py``)
+    whenever both ``overwrite``/``overwrite_all`` aren't simultaneously
+    ``True`` -- the common case -- whenever the bundle references a
+    database, including one that already exists in the target, eg because a
+    prior import already created it. Before this fix, the early return for
+    an existing, non-overwritten database skipped ``add_permissions()``
+    entirely, so a schema added to the live connection since that database
+    was first imported would never get a first-time grant through this path
+    either.
+    """
+    from superset import security_manager
+    from superset.commands.database.importers.v1.utils import import_database
+    from superset.models.core import Database
+    from tests.integration_tests.fixtures.importexport import database_config
+
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+    mock_add_permissions = mocker.patch(
+        "superset.commands.database.importers.v1.utils.add_permissions"
+    )
+
+    engine = db.session.get_bind()
+    Database.metadata.create_all(engine)  # pylint: disable=no-member
+
+    config = copy.deepcopy(database_config)
+    existing = import_database(config)
+    mock_add_permissions.reset_mock()
+
+    again = copy.deepcopy(database_config)
+    result = import_database(again, overwrite=False)
+
+    assert result.id == existing.id
+    mock_add_permissions.assert_called_once_with(existing)
+
+
+def test_import_database_existing_no_overwrite_no_permission_skips_backfill(
+    mocker: MockerFixture,
+    session: Session,
+) -> None:
+    """
+    The permission backfill added for the existing/no-overwrite branch must
+    stay behind the same ``can_write`` gate as every other permission-view
+    creation in ``import_database()`` -- a principal without database-write
+    access must not trigger it just by importing a
+    chart/dataset/saved-query/dashboard bundle that happens to reference an
+    existing database.
+    """
+    from superset import security_manager
+    from superset.commands.database.importers.v1.utils import import_database
+    from superset.models.core import Database
+    from tests.integration_tests.fixtures.importexport import database_config
+
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+    mock_add_permissions = mocker.patch(
+        "superset.commands.database.importers.v1.utils.add_permissions"
+    )
+
+    engine = db.session.get_bind()
+    Database.metadata.create_all(engine)  # pylint: disable=no-member
+
+    config = copy.deepcopy(database_config)
+    existing = import_database(config)
+    mock_add_permissions.reset_mock()
+
+    mocker.patch.object(security_manager, "can_access", return_value=False)
+
+    again = copy.deepcopy(database_config)
+    result = import_database(again, overwrite=False)
+
+    assert result.id == existing.id
+    mock_add_permissions.assert_not_called()
+
+
+def test_import_database_existing_no_overwrite_backfill_oauth2_redirect_is_nonfatal(
+    mocker: MockerFixture,
+    session: Session,
+) -> None:
+    """
+    The permission backfill on the existing/no-overwrite branch must tolerate
+    an ``OAuth2RedirectError`` from ``add_permissions()`` the same way the
+    fresh-import path already does (see
+    ``test_import_database_oauth2_redirect_is_nonfatal``) -- logged, not
+    propagated, so the import still returns the existing database normally.
+    """
+    from superset import security_manager
+    from superset.commands.database.importers.v1.utils import import_database
+    from superset.exceptions import OAuth2RedirectError
+    from superset.models.core import Database
+    from tests.integration_tests.fixtures.importexport import database_config
+
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+    mock_add_permissions = mocker.patch(
+        "superset.commands.database.importers.v1.utils.add_permissions"
+    )
+
+    engine = db.session.get_bind()
+    Database.metadata.create_all(engine)  # pylint: disable=no-member
+
+    config = copy.deepcopy(database_config)
+    existing = import_database(config)
+    mock_add_permissions.reset_mock()
+    mock_add_permissions.side_effect = OAuth2RedirectError(
+        url="https://oauth.example.com/authorize",
+        tab_id="abc-123",
+        redirect_uri="https://superset.example.com/callback",
+    )
+
+    again = copy.deepcopy(database_config)
+    result = import_database(again, overwrite=False)
+
+    assert result.id == existing.id
+    mock_add_permissions.assert_called_once_with(existing)
+
+
 def test_import_database_oauth2_redirect_is_nonfatal(
     mocker: MockerFixture,
     session: Session,
@@ -373,3 +499,474 @@ def test_import_database_oauth2_redirect_is_nonfatal(
 
     assert database.database_name == "imported_database"
     mock_add_perms.assert_called_once_with(database)
+
+
+def test_import_database_dbapi_error_during_backfill_is_nonfatal(
+    mocker: MockerFixture,
+    session: Session,
+) -> None:
+    """
+    ``add_permissions()`` calls ``get_all_catalog_names()`` for catalog
+    discovery outside of its own per-catalog error handling, so a mapped
+    DBAPI error from that call -- not just a connection failure -- must be
+    tolerated the same way an ``OAuth2RedirectError`` already is, instead of
+    failing the whole import.
+    """
+    from superset import security_manager
+    from superset.commands.database.importers.v1.utils import import_database
+    from superset.db_engine_specs.exceptions import SupersetDBAPIProgrammingError
+    from superset.models.core import Database
+    from tests.integration_tests.fixtures.importexport import database_config
+
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+    mock_add_permissions = mocker.patch(
+        "superset.commands.database.importers.v1.utils.add_permissions"
+    )
+
+    engine = db.session.get_bind()
+    Database.metadata.create_all(engine)  # pylint: disable=no-member
+
+    config = copy.deepcopy(database_config)
+    existing = import_database(config)
+    mock_add_permissions.reset_mock()
+    mock_add_permissions.side_effect = SupersetDBAPIProgrammingError(
+        "permission denied for catalog discovery"
+    )
+
+    again = copy.deepcopy(database_config)
+    result = import_database(again, overwrite=False)
+
+    assert result.id == existing.id
+    mock_add_permissions.assert_called_once_with(existing)
+
+
+def test_import_datasources_cli_encrypts_password(
+    mocker: MockerFixture,
+    session: Session,
+) -> None:
+    """
+    Regression for #31983: import_datasources must encrypt sqlalchemy_uri passwords,
+    not store them as cleartext.
+
+    The ``superset import_datasources -p file.yaml`` CLI command uses the legacy v0
+    YAML format (a dict with a top-level ``databases`` key).  Internally it calls
+    ``Database.import_from_dict``, which historically set ``sqlalchemy_uri`` directly
+    on the model — bypassing ``set_sqlalchemy_uri`` and leaving the plaintext password
+    stored in the DB.
+
+    After the fix, the stored ``sqlalchemy_uri`` must contain the password mask
+    (``XXXXXXXXXX``) rather than the cleartext secret, and ``database.password``
+    must hold the real credential so that connections still work.
+    """
+    from superset import db
+    from superset.commands.dataset.importers.v0 import import_from_dict
+    from superset.constants import PASSWORD_MASK
+    from superset.models.core import Database
+
+    engine = db.session.get_bind()
+    Database.metadata.create_all(engine)  # pylint: disable=no-member
+
+    plaintext_password = "secret-password"  # noqa: S105
+    plaintext_uri = (
+        f"postgresql://user:{plaintext_password}@db.example.org:5432/superset_data"
+    )
+
+    # This is the exact YAML structure produced by the Helm chart / docs example
+    # referenced in issue #31983.
+    data: dict[str, list[dict[str, object]]] = {
+        "databases": [
+            {
+                "database_name": "issue_31983_regression",
+                "sqlalchemy_uri": plaintext_uri,
+                "expose_in_sqllab": True,
+                "allow_run_async": False,
+                "allow_ctas": False,
+                "allow_cvas": False,
+                "allow_dml": False,
+                "allow_file_upload": False,
+                "tables": [],
+            }
+        ]
+    }
+
+    import_from_dict(data)
+    db.session.flush()
+
+    database = (
+        db.session.query(Database)
+        .filter_by(database_name="issue_31983_regression")
+        .one()
+    )
+
+    # The stored URI must NOT contain the plaintext password.
+    assert plaintext_password not in database.sqlalchemy_uri, (
+        f"Bug #31983: plaintext password found in sqlalchemy_uri: "
+        f"{database.sqlalchemy_uri!r}"
+    )
+
+    # The stored URI must contain the password mask (same behaviour as the REST API).
+    assert PASSWORD_MASK in database.sqlalchemy_uri, (
+        f"Bug #31983: expected password mask {PASSWORD_MASK!r} in "
+        f"sqlalchemy_uri, got: {database.sqlalchemy_uri!r}"
+    )
+
+    # The real password must be recoverable via the encrypted ``password`` column
+    # so that existing connections continue to work after import.
+    assert database.password == plaintext_password, (  # noqa: S105
+        f"Bug #31983: expected real password to be stored in the encrypted "
+        f"``password`` column, got: {database.password!r}"
+    )
+
+
+def test_import_datasources_cli_no_password_does_not_clobber_existing(
+    mocker: MockerFixture,
+    session: Session,
+) -> None:
+    """
+    Guard against the Copilot-identified regression: importing a URI that has no
+    password segment must not overwrite an existing encrypted ``password`` value.
+
+    Users commonly keep secrets out of YAML and rely on the ``password`` column
+    populated during a prior import.  Before the guard, calling
+    ``set_sqlalchemy_uri`` on a password-less URI would set ``password = None``
+    and break existing connections.
+    """
+    from superset import db
+    from superset.commands.dataset.importers.v0 import import_from_dict
+    from superset.models.core import Database
+
+    engine = db.session.get_bind()
+    Database.metadata.create_all(engine)  # pylint: disable=no-member
+
+    # URI with no password segment — this is the "secret kept out of YAML" pattern.
+    no_password_uri = "postgresql://user@db.example.org:5432/superset_data"  # noqa: S105
+
+    data: dict[str, list[dict[str, object]]] = {
+        "databases": [
+            {
+                "database_name": "no_password_uri_test",
+                "sqlalchemy_uri": no_password_uri,
+                "expose_in_sqllab": True,
+                "allow_run_async": False,
+                "allow_ctas": False,
+                "allow_cvas": False,
+                "allow_dml": False,
+                "allow_file_upload": False,
+                "tables": [],
+            }
+        ]
+    }
+
+    import_from_dict(data)
+    db.session.flush()
+
+    database = (
+        db.session.query(Database).filter_by(database_name="no_password_uri_test").one()
+    )
+
+    # The ``password`` column must not have been set to None by
+    # set_sqlalchemy_uri — it should remain at whatever value import_from_dict
+    # left it (None for a brand-new record with no password in the URI).
+    # The critical invariant is that a subsequent import of the same no-password
+    # URI does not overwrite a password that was stored by a prior import.
+    assert database.password is None
+
+    # Simulate a prior import having stored an encrypted password (e.g. from a
+    # previous import run that included the password in the URI).
+    stored_password = "previously-stored-secret"  # noqa: S105
+    database.password = stored_password
+    db.session.flush()
+
+    # Re-import with the same no-password URI — must not clobber the stored value.
+    import_from_dict(data)
+    db.session.flush()
+
+    database = (
+        db.session.query(Database).filter_by(database_name="no_password_uri_test").one()
+    )
+    assert database.password == stored_password, (
+        "Importing a URI with no password segment must not overwrite an "
+        f"existing encrypted password; got: {database.password!r}"
+    )
+
+
+def test_import_database_host_change_requires_new_credentials(
+    mocker: MockerFixture, session: Session
+) -> None:
+    """
+    An overwrite that repoints an existing database at a different host must
+    not silently reuse the stored password (the database UUID is public in
+    every exported bundle, so this would exfiltrate the credential).
+    """
+    from superset import security_manager
+    from superset.commands.database.importers.v1.utils import import_database
+    from superset.models.core import Database
+    from tests.integration_tests.fixtures.importexport import database_config
+
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+    mocker.patch("superset.commands.database.importers.v1.utils.add_permissions")
+
+    engine = db.session.get_bind()
+    Database.metadata.create_all(engine)  # pylint: disable=no-member
+
+    config = copy.deepcopy(database_config)
+    database = import_database(config)
+    assert database.password == "pass"  # noqa: S105
+
+    hostile = copy.deepcopy(database_config)
+    hostile["sqlalchemy_uri"] = (
+        "postgresql://user:XXXXXXXXXX@attacker.example.com:5432/prod"
+    )
+    with pytest.raises(ImportFailedError):
+        import_database(hostile, overwrite=True)
+
+    # the same-host case (a normal re-import of an exported bundle) still works
+    unchanged = copy.deepcopy(database_config)
+    unchanged["sqlalchemy_uri"] = "postgresql://user:XXXXXXXXXX@host1"
+    unchanged["password"] = "pass"  # noqa: S105
+    database = import_database(unchanged, overwrite=True)
+    assert database.password == "pass"  # noqa: S105
+
+
+def test_import_database_host_change_with_new_credentials(
+    mocker: MockerFixture, session: Session
+) -> None:
+    """
+    A deliberate connection move is still possible when the import supplies
+    fresh credentials for the new endpoint.
+    """
+    from superset import security_manager
+    from superset.commands.database.importers.v1.utils import import_database
+    from superset.models.core import Database
+    from tests.integration_tests.fixtures.importexport import database_config
+
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+    mocker.patch("superset.commands.database.importers.v1.utils.add_permissions")
+
+    engine = db.session.get_bind()
+    Database.metadata.create_all(engine)  # pylint: disable=no-member
+
+    config = copy.deepcopy(database_config)
+    import_database(config)
+
+    moved = copy.deepcopy(database_config)
+    moved["sqlalchemy_uri"] = "postgresql://user:newpass@host2:5432/prod"
+    database = import_database(moved, overwrite=True)
+    assert database.password == "newpass"  # noqa: S105
+
+
+def test_import_database_engine_params_change_requires_new_credentials(
+    mocker: MockerFixture, session: Session
+) -> None:
+    """
+    An overwrite that changes `extra.engine_params` (e.g.
+    `connect_args.host`/`port`, which the DBAPI merges into the actual
+    connection target ahead of anything carried in `sqlalchemy_uri`) must
+    not silently reuse the stored password: the submitted URI can still
+    match the stored host, while the DBAPI actually connects elsewhere.
+    """
+    from superset import security_manager
+    from superset.commands.database.importers.v1.utils import import_database
+    from superset.models.core import Database
+    from tests.integration_tests.fixtures.importexport import database_config
+
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+    mocker.patch("superset.commands.database.importers.v1.utils.add_permissions")
+
+    engine = db.session.get_bind()
+    Database.metadata.create_all(engine)  # pylint: disable=no-member
+
+    config = copy.deepcopy(database_config)
+    database = import_database(config)
+    assert database.password == "pass"  # noqa: S105
+
+    hostile = copy.deepcopy(database_config)
+    hostile["sqlalchemy_uri"] = f"postgresql://user:{PASSWORD_MASK}@host1"
+    hostile["extra"] = {
+        "engine_params": {
+            "connect_args": {"host": "attacker.example.com", "port": 15432}
+        }
+    }
+    with pytest.raises(ImportFailedError):
+        import_database(hostile, overwrite=True)
+
+    # the same engine_params (a normal re-import of an exported bundle) still works
+    unchanged = copy.deepcopy(database_config)
+    unchanged["sqlalchemy_uri"] = f"postgresql://user:{PASSWORD_MASK}@host1"
+    unchanged["password"] = "pass"  # noqa: S105
+    database = import_database(unchanged, overwrite=True)
+    assert database.password == "pass"  # noqa: S105
+
+
+def test_import_database_unparseable_uri_treated_as_change(
+    mocker: MockerFixture, session: Session
+) -> None:
+    """
+    An unparseable ``sqlalchemy_uri`` cannot be compared to the stored one,
+    so it must be treated as a connection change (raising, rather than
+    silently reusing the stored credential) instead of propagating the
+    underlying parser exception.
+    """
+    from superset import security_manager
+    from superset.commands.database.importers.v1.utils import import_database
+    from superset.models.core import Database
+    from tests.integration_tests.fixtures.importexport import database_config
+
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+    mocker.patch("superset.commands.database.importers.v1.utils.add_permissions")
+
+    engine = db.session.get_bind()
+    Database.metadata.create_all(engine)  # pylint: disable=no-member
+
+    config = copy.deepcopy(database_config)
+    import_database(config)
+
+    hostile = copy.deepcopy(database_config)
+    hostile["sqlalchemy_uri"] = "not a valid uri"
+    with pytest.raises(ImportFailedError):
+        import_database(hostile, overwrite=True)
+
+
+def test_import_database_ssh_tunnel_host_change_requires_new_credentials(
+    mocker: MockerFixture, session: Session
+) -> None:
+    """
+    Repointing an existing database's SSH tunnel at a different server must
+    not silently reuse the stored tunnel credentials.
+    """
+    from superset import security_manager
+    from superset.commands.database.importers.v1.utils import import_database
+    from superset.models.core import Database
+    from tests.integration_tests.fixtures.importexport import database_config
+
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+    mocker.patch("superset.commands.database.importers.v1.utils.add_permissions")
+
+    engine = db.session.get_bind()
+    Database.metadata.create_all(engine)  # pylint: disable=no-member
+
+    ssh_tunnel = {
+        "server_address": "10.0.0.1",
+        "server_port": 22,
+        "username": "tunnel_user",
+        "password": "tunnel_pass",
+    }
+    config = copy.deepcopy(database_config)
+    config["ssh_tunnel"] = copy.deepcopy(ssh_tunnel)
+    database = import_database(config)
+    assert database.ssh_tunnel.server_address == "10.0.0.1"
+
+    hostile = copy.deepcopy(database_config)
+    hostile["ssh_tunnel"] = copy.deepcopy(ssh_tunnel)
+    hostile["ssh_tunnel"]["server_address"] = "attacker.example.com"
+    hostile["ssh_tunnel"]["password"] = PASSWORD_MASK
+    with pytest.raises(ImportFailedError):
+        import_database(hostile, overwrite=True)
+
+    # a deliberate move with a fresh tunnel credential still works
+    moved = copy.deepcopy(database_config)
+    moved["ssh_tunnel"] = copy.deepcopy(ssh_tunnel)
+    moved["ssh_tunnel"]["server_address"] = "10.0.0.2"
+    moved["ssh_tunnel"]["password"] = "new-tunnel-pass"  # noqa: S105
+    database = import_database(moved, overwrite=True)
+    assert database.ssh_tunnel.server_address == "10.0.0.2"
+    assert database.ssh_tunnel.password == "new-tunnel-pass"  # noqa: S105
+
+
+def test_import_database_ssh_tunnel_private_key_password_not_carried_over(
+    mocker: MockerFixture, session: Session
+) -> None:
+    """
+    A repoint that supplies a fresh SSH tunnel private_key but omits
+    private_key_password must not silently keep the old, real passphrase
+    attached to the new key — the importer must ask for it too.
+    """
+    from superset import security_manager
+    from superset.commands.database.importers.v1.utils import import_database
+    from superset.models.core import Database
+    from tests.integration_tests.fixtures.importexport import database_config
+
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+    mocker.patch("superset.commands.database.importers.v1.utils.add_permissions")
+
+    engine = db.session.get_bind()
+    Database.metadata.create_all(engine)  # pylint: disable=no-member
+
+    ssh_tunnel = {
+        "server_address": "10.0.0.1",
+        "server_port": 22,
+        "username": "tunnel_user",
+        "private_key": "-----BEGIN PRIVATE KEY-----\nOriginalKey\n-----END PRIVATE KEY-----\n",  # noqa: E501
+        "private_key_password": "original-passphrase",
+    }
+    config = copy.deepcopy(database_config)
+    config["ssh_tunnel"] = copy.deepcopy(ssh_tunnel)
+    import_database(config)
+
+    # fresh private_key supplied, but private_key_password is omitted
+    # entirely (not just masked) -- the old passphrase must not survive
+    # onto the new key at a different endpoint.
+    hostile = copy.deepcopy(database_config)
+    hostile["ssh_tunnel"] = copy.deepcopy(ssh_tunnel)
+    hostile["ssh_tunnel"]["server_address"] = "attacker.example.com"
+    hostile["ssh_tunnel"]["private_key"] = (
+        "-----BEGIN PRIVATE KEY-----\nAttackerKey\n-----END PRIVATE KEY-----\n"
+    )
+    del hostile["ssh_tunnel"]["private_key_password"]
+    with pytest.raises(ImportFailedError):
+        import_database(hostile, overwrite=True)
+
+    # same scenario, but explicitly masked instead of omitted
+    hostile_masked = copy.deepcopy(database_config)
+    hostile_masked["ssh_tunnel"] = copy.deepcopy(hostile["ssh_tunnel"])
+    hostile_masked["ssh_tunnel"]["private_key_password"] = PASSWORD_MASK
+    with pytest.raises(ImportFailedError):
+        import_database(hostile_masked, overwrite=True)
+
+    # supplying a fresh private_key_password alongside the fresh private_key
+    # is a deliberate move and must succeed
+    moved = copy.deepcopy(database_config)
+    moved["ssh_tunnel"] = copy.deepcopy(ssh_tunnel)
+    moved["ssh_tunnel"]["server_address"] = "10.0.0.2"
+    moved["ssh_tunnel"]["private_key"] = (
+        "-----BEGIN PRIVATE KEY-----\nNewKey\n-----END PRIVATE KEY-----\n"
+    )
+    moved["ssh_tunnel"]["private_key_password"] = "new-passphrase"  # noqa: S105
+    database = import_database(moved, overwrite=True)
+    assert database.ssh_tunnel.server_address == "10.0.0.2"
+    assert database.ssh_tunnel.private_key_password == "new-passphrase"  # noqa: S105
+
+
+def test_import_database_masked_encrypted_extra_not_revealed_on_host_change(
+    mocker: MockerFixture, session: Session
+) -> None:
+    """
+    An overwrite that repoints the connection at a different host, using a
+    fresh main password, must still not reveal the stored encrypted_extra
+    secrets onto the new endpoint: those are a separate credential from the
+    main connection password and stay masked until confirmed too.
+    """
+    from superset import security_manager
+    from superset.commands.database.importers.v1.utils import import_database
+    from superset.models.core import Database
+    from tests.integration_tests.fixtures.importexport import database_config
+
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+    mocker.patch("superset.commands.database.importers.v1.utils.add_permissions")
+
+    engine = db.session.get_bind()
+    Database.metadata.create_all(engine)  # pylint: disable=no-member
+
+    config = copy.deepcopy(database_config)
+    config["masked_encrypted_extra"] = json.dumps({"my_secret": "original-value"})
+    import_database(config)
+
+    moved = copy.deepcopy(database_config)
+    moved["sqlalchemy_uri"] = "postgresql://user:newpass@host2:5432/prod"
+    moved["password"] = "newpass"  # noqa: S105
+    moved["masked_encrypted_extra"] = json.dumps({"my_secret": PASSWORD_MASK})
+    database = import_database(moved, overwrite=True)
+
+    assert database.password == "newpass"  # noqa: S105
+    encrypted = json.loads(database.encrypted_extra)
+    assert encrypted["my_secret"] == PASSWORD_MASK

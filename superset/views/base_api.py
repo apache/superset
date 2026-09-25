@@ -18,9 +18,9 @@ from __future__ import annotations
 
 import functools
 import logging
-from typing import Any, Callable, cast
+from typing import Any, Callable, cast, Optional, overload
 
-from flask import request, Response
+from flask import current_app, request, Response
 from flask_appbuilder import Model, ModelRestApi
 from flask_appbuilder.api import (
     BaseApi,
@@ -29,10 +29,14 @@ from flask_appbuilder.api import (
     rison as parse_rison,
     safe,
 )
+from flask_appbuilder.const import API_FILTERS_RIS_KEY
 from flask_appbuilder.models.filters import BaseFilter, Filters
 from flask_appbuilder.models.sqla.filters import FilterStartsWith
 from flask_appbuilder.models.sqla.interface import SQLAInterface
+from flask_appbuilder.security.decorators import permission_name
 from flask_babel import lazy_gettext as _
+from flask_jwt_extended import verify_jwt_in_request
+from flask_login import current_user
 from marshmallow import fields, Schema
 from sqlalchemy import and_, distinct, func
 from sqlalchemy.orm.query import Query
@@ -47,7 +51,7 @@ from superset.schemas import error_payload_content
 from superset.sql_lab import Query as SqllabQuery
 from superset.superset_typing import FlaskResponse
 from superset.utils.core import get_user_id, time_function
-from superset.views.error_handling import handle_api_exception
+from superset.views.error_handling import handle_api_exception, json_error_response
 
 logger = logging.getLogger(__name__)
 get_related_schema = {
@@ -59,6 +63,66 @@ get_related_schema = {
         "filter": {"type": "string"},
     },
 }
+
+
+def protect_read(
+    *view_names: str,
+) -> Callable[[Callable[..., FlaskResponse]], Callable[..., FlaskResponse]]:
+    """Protect a combined read API using independently granted FAB view permissions.
+
+    Preserve FAB's public, API-key, browser-session and JWT authentication paths.
+    Public grants are checked per resource name, not the API class: public
+    ``can_read Dataset`` admits anonymous callers to ``/api/v1/datasource/``,
+    without granting SemanticView read or bypassing row-level filters.
+    Callers must still scope each result source to its own permission and apply
+    object-level filters; passing this gate never grants access to every source.
+    The decorated method must map to ``read`` in ``method_permission_name``.
+    """
+
+    def decorate(
+        function: Callable[..., FlaskResponse],
+    ) -> Callable[..., FlaskResponse]:
+        @functools.wraps(function)
+        @permission_name("read")
+        def wrapped(self: BaseApi, *args: Any, **kwargs: Any) -> FlaskResponse:
+            if "can_read" not in self.base_permissions:
+                return self.response_403()
+            if any(
+                security_manager.is_item_public("can_read", name) for name in view_names
+            ):
+                return function(self, *args, **kwargs)
+
+            api_key: str | None
+            if (
+                current_app.config.get("FAB_API_KEY_ENABLED", False)
+                and (api_key := security_manager.extract_api_key_from_request())
+                is not None
+            ):
+                if not security_manager.validate_api_key(api_key):
+                    return self.response_401()
+                if any(
+                    security_manager.has_access("can_read", name) for name in view_names
+                ):
+                    return function(self, *args, **kwargs)
+                logger.warning(
+                    "Access denied: can_read on one of %s", ", ".join(view_names)
+                )
+                return self.response_403()
+
+            if not self.allow_browser_login or not current_user.is_authenticated:
+                verify_jwt_in_request()
+            if any(
+                security_manager.has_access("can_read", name) for name in view_names
+            ):
+                return function(self, *args, **kwargs)
+            logger.warning(
+                "Access denied: can_read on one of %s", ", ".join(view_names)
+            )
+            return self.response_403()
+
+        return wrapped
+
+    return decorate
 
 
 class RelatedResultResponseSchema(Schema):
@@ -89,12 +153,24 @@ class DistincResponseSchema(Schema):
 
 def requires_json(f: Callable[..., Any]) -> Callable[..., Any]:
     """
-    Require JSON-like formatted request to the REST API
+    Require JSON-like formatted request to the REST API.
+
+    Returns the structured 400 RESPONSE directly instead of raising:
+    most call sites stack FAB's ``@safe`` outside this decorator, and
+    ``safe`` converts any non-``BadRequest`` exception — including a
+    status-400 ``SupersetErrorException`` — into a generic 500 "Fatal
+    error" before the app-level error handler can render it (sc-120966:
+    every body-less POST to such an endpoint 500'd). Building the
+    response with the same serializer the app handler uses keeps the
+    error envelope byte-identical for the call sites without ``@safe``.
     """
 
     def wraps(self: BaseSupersetModelRestApi, *args: Any, **kwargs: Any) -> Response:
         if not request.is_json:
-            raise InvalidPayloadFormatError(message="Request is not JSON")
+            ex: InvalidPayloadFormatError = InvalidPayloadFormatError(
+                message="Request is not JSON"
+            )
+            return json_error_response([ex.error], status=ex.status)
         return f(self, *args, **kwargs)
 
     return functools.update_wrapper(wraps, f)
@@ -115,26 +191,67 @@ def requires_form_data(f: Callable[..., Any]) -> Callable[..., Any]:
     return functools.update_wrapper(wraps, f)
 
 
-def statsd_metrics(f: Callable[..., Any]) -> Callable[..., Any]:
+@overload
+def statsd_metrics(
+    f: Callable[..., Any],
+    *,
+    best_effort: bool = False,
+) -> Callable[..., Any]: ...
+
+
+@overload
+def statsd_metrics(
+    f: None = None,
+    *,
+    best_effort: bool = False,
+) -> Callable[[Callable[..., Any]], Callable[..., Any]]: ...
+
+
+def statsd_metrics(
+    f: Callable[..., Any] | None = None,
+    *,
+    best_effort: bool = False,
+) -> Callable[..., Any]:
     """
-    Handle sending all statsd metrics from the REST API
+    Handle sending all StatsD metrics from the REST API.
+
+    When ``best_effort`` is true, a metrics backend failure is logged and ignored so
+    it cannot replace the endpoint response or exception.
     """
 
-    def wraps(self: BaseSupersetApiMixin, *args: Any, **kwargs: Any) -> Response:
-        func_name = f.__name__
-        try:
-            duration, response = time_function(f, self, *args, **kwargs)
-        except Exception as ex:
-            if hasattr(ex, "status") and ex.status < 500:  # pylint: disable=no-member
-                self.incr_stats("warning", func_name)
-            else:
-                self.incr_stats("error", func_name)
-            raise
+    def decorate(func: Callable[..., Any]) -> Callable[..., Any]:
+        def wraps(self: BaseSupersetApiMixin, *args: Any, **kwargs: Any) -> Response:
+            func_name = func.__name__
 
-        self.send_stats_metrics(response, func_name, duration)
-        return response
+            def emit_metrics(callback: Callable[[], None]) -> None:
+                try:
+                    callback()
+                except Exception as ex:  # pylint: disable=broad-except
+                    if not best_effort:
+                        raise
+                    logger.warning(
+                        "REST API metrics emission failed: endpoint=%s error_type=%s",
+                        func.__qualname__,
+                        type(ex).__name__,
+                    )
 
-    return functools.update_wrapper(wraps, f)
+            try:
+                duration, response = time_function(func, self, *args, **kwargs)
+            except Exception as ex:
+                action = (
+                    "warning"
+                    if hasattr(ex, "status") and ex.status < 500  # pylint: disable=no-member
+                    else "error"
+                )
+                emit_metrics(lambda: self.incr_stats(action, func_name))
+                raise
+
+            emit_metrics(lambda: self.send_stats_metrics(response, func_name, duration))
+            return response
+
+        return functools.update_wrapper(wraps, func)
+
+    return decorate(f) if f is not None else decorate
 
 
 def validate_feature_flags(
@@ -220,6 +337,29 @@ class BaseSupersetApiMixin:
         """
         stats_logger_manager.instance.incr(
             f"{self.__class__.__name__}.{func_name}.{action}"
+        )
+
+    def log_rejected_field_access(self, func_name: str, column_name: str) -> None:
+        """Emit a security log event when a related/distinct field is rejected.
+
+        The allowlist check itself blocks the request; this records the attempt
+        in the structured log (alongside the existing statsd counter) so that
+        rejected field access is visible to security monitoring and forensics,
+        with the caller's identity, the endpoint, and the attempted value.
+        """
+        # Sanitize the user-supplied column name to a single, bounded token so
+        # it cannot inject newlines or forge extra key=value tokens in the log
+        # line. Restrict to a safe character set (column names are alphanumeric
+        # plus ``_-.``) and replace anything else with ``?``.
+        sanitized_column = "".join(
+            ch if (ch.isalnum() or ch in "_-.") else "?" for ch in str(column_name)
+        )[:200]
+        logger.warning(
+            "Rejected disallowed field access: user_id=%s endpoint=%s.%s column=%s",
+            get_user_id(),
+            self.__class__.__name__,
+            func_name,
+            sanitized_column,
         )
 
     def timing_stats(self, action: str, func_name: str, value: float) -> None:
@@ -330,7 +470,7 @@ class BaseSupersetModelRestApi(BaseSupersetApiMixin, ModelRestApi):
         }
     """
 
-    extra_fields_rel_fields: dict[str, list[str]] = {"owners": ["email", "active"]}
+    extra_fields_rel_fields: dict[str, list[str]] = {}
     """
     Declare extra fields for the representation of the Model object::
 
@@ -376,6 +516,35 @@ class BaseSupersetModelRestApi(BaseSupersetApiMixin, ModelRestApi):
         if self.add_columns is None and not self.add_model_schema:
             self.add_columns = [model_id]
         super()._init_properties()
+
+    def _handle_filters_args(self, rison_args: dict[str, Any]) -> Filters:
+        """
+        Build a request-scoped ``Filters`` instance from Rison-encoded args.
+
+        Overrides :meth:`flask_appbuilder.api.ModelRestApi._handle_filters_args`,
+        which mutates ``self._filters`` (a single instance shared across
+        requests on the same API view). Under concurrent traffic that shared
+        state can leak filters from one request into another — e.g. two
+        parallel ``GET /api/v1/<resource>/`` calls filtering by different
+        values can return mixed results.
+
+        Returning a fresh ``Filters`` per call keeps each request isolated.
+        Applies to every subclass of ``BaseSupersetModelRestApi``
+        (datasets, charts, dashboards, saved queries, queries, databases,
+        etc.) — see issue #33828 for the original report on the dataset
+        endpoint.
+
+        :param rison_args: Arguments parsed from the API request's
+            Rison-encoded ``q`` parameter.
+        :returns: A request-scoped ``Filters`` instance joined with the
+            API's base filters.
+        """
+        filters = self.datamodel.get_filters(
+            search_columns=self.search_columns,
+            search_filters=self.search_filters,
+        )
+        filters.rest_add_filters(rison_args.get(API_FILTERS_RIS_KEY, []))
+        return filters.get_joined_filters(self._base_filters)
 
     def _get_related_filter(
         self, datamodel: SQLAInterface, column_name: str, value: str
@@ -448,8 +617,15 @@ class BaseSupersetModelRestApi(BaseSupersetApiMixin, ModelRestApi):
             values = [row["value"] for row in result]
             ids = [id_ for id_ in ids if id_ not in values]
             pk_col = datamodel.get_pk()
-            # Fetch requested values from ids
-            extra_rows = db.session.query(datamodel.obj).filter(pk_col.in_(ids)).all()
+            # Fetch requested values from ids, applying the same scoping as the
+            # unforced query so ``include_ids`` cannot resolve rows the
+            # related-field filters deliberately hide.
+            query = db.session.query(datamodel.obj).filter(pk_col.in_(ids))
+            if base_filters := self.base_related_field_filters.get(column_name):
+                query = datamodel.apply_filters(
+                    query, datamodel.get_filters().add_filter_list(base_filters)
+                )
+            extra_rows = query.all()
             result += self._get_result_from_rows(datamodel, extra_rows, column_name)
 
     @event_logger.log_this_with_context(
@@ -536,6 +712,14 @@ class BaseSupersetModelRestApi(BaseSupersetApiMixin, ModelRestApi):
         self.send_stats_metrics(response, self.delete.__name__, duration)
         return response
 
+    def ensure_access_list_write_access(self, column_name: str) -> Optional[Response]:
+        """Restrict access-list related fields to users with write access."""
+        if column_name in {"editors", "viewers"} and not security_manager.can_access(
+            "can_write", self.class_permission_name
+        ):
+            return self.response_403()
+        return None
+
     @expose("/related/<column_name>", methods=("GET",))
     @protect()
     @safe
@@ -570,13 +754,18 @@ class BaseSupersetModelRestApi(BaseSupersetApiMixin, ModelRestApi):
               $ref: '#/components/responses/400'
             401:
               $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
             404:
               $ref: '#/components/responses/404'
             500:
               $ref: '#/components/responses/500'
         """
+        if response := self.ensure_access_list_write_access(column_name):
+            return response
         if column_name not in self.allowed_rel_fields:
             self.incr_stats("error", self.related.__name__)
+            self.log_rejected_field_access(self.related.__name__, column_name)
             return self.response_404()
         args = kwargs.get("rison", {})
 
@@ -655,7 +844,8 @@ class BaseSupersetModelRestApi(BaseSupersetApiMixin, ModelRestApi):
               $ref: '#/components/responses/500'
         """
         if column_name not in self.allowed_distinct_fields:
-            self.incr_stats("error", self.related.__name__)
+            self.incr_stats("error", self.distinct.__name__)
+            self.log_rejected_field_access(self.distinct.__name__, column_name)
             return self.response_404()
         args = kwargs.get("rison", {})
         # handle pagination

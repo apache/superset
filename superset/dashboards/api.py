@@ -17,13 +17,24 @@
 # pylint: disable=too-many-lines
 import functools
 import logging
+import time
+import uuid
 from datetime import datetime
 from io import BytesIO
-from typing import Any, Callable, cast
+from typing import Any, Callable, cast, ClassVar
 from zipfile import is_zipfile, ZipFile
 
 import rison
-from flask import current_app, g, redirect, request, Response, send_file, url_for
+from flask import (
+    after_this_request,
+    current_app,
+    g,
+    redirect,
+    request,
+    Response,
+    stream_with_context,
+    url_for,
+)
 from flask_appbuilder import permission_name
 from flask_appbuilder.api import (
     expose,
@@ -64,6 +75,8 @@ from superset.commands.dashboard.exceptions import (
     DashboardInvalidError,
     DashboardNativeFiltersUpdateFailedError,
     DashboardNotFoundError,
+    DashboardRestoreFailedError,
+    DashboardSlugConflictError,
     DashboardUpdateFailedError,
 )
 from superset.commands.dashboard.export import ExportDashboardsCommand
@@ -71,6 +84,8 @@ from superset.commands.dashboard.export_example import ExportExampleCommand
 from superset.commands.dashboard.fave import AddFavoriteDashboardCommand
 from superset.commands.dashboard.importers.dispatcher import ImportDashboardsCommand
 from superset.commands.dashboard.permalink.create import CreateDashboardPermalinkCommand
+from superset.commands.dashboard.permalink.get import GetDashboardPermalinkCommand
+from superset.commands.dashboard.restore import RestoreDashboardCommand
 from superset.commands.dashboard.unfave import DelFavoriteDashboardCommand
 from superset.commands.dashboard.update import (
     UpdateDashboardChartCustomizationsCommand,
@@ -79,22 +94,37 @@ from superset.commands.dashboard.update import (
     UpdateDashboardNativeFiltersCommand,
 )
 from superset.commands.database.exceptions import DatasetValidationError
+from superset.commands.distributed_lock.acquire import AcquireDistributedLock
+from superset.commands.distributed_lock.release import ReleaseDistributedLock
 from superset.commands.exceptions import TagForbiddenError
 from superset.commands.importers.exceptions import NoValidFilesFoundError
 from superset.commands.importers.v1.utils import get_contents_from_bundle
+from superset.commands.purge import SoftDeleteBinding
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.daos.dashboard import DashboardDAO, EmbeddedDashboardDAO
+from superset.dashboards.excel_export.download_link import (
+    download_path,
+    get_export_status,
+    resolve_download_link,
+    STATUS_ERROR,
+    STATUS_READY,
+    STATUS_RUNNING,
+)
+from superset.dashboards.filter_scope import derive_json_metadata
 from superset.dashboards.filters import (
     DashboardAccessFilter,
     DashboardCertifiedFilter,
     DashboardCreatedByMeFilter,
+    DashboardDeletedRecencyFilter,
+    DashboardDeletedStateFilter,
+    DashboardEditableFilter,
     DashboardFavoriteFilter,
     DashboardHasCreatedByFilter,
     DashboardTagIdFilter,
     DashboardTagNameFilter,
     DashboardTitleOrSlugFilter,
-    FilterRelatedRoles,
 )
+from superset.dashboards.permalink.exceptions import DashboardPermalinkGetFailedError
 from superset.dashboards.permalink.types import DashboardPermalinkState
 from superset.dashboards.schemas import (
     CacheScreenshotSchema,
@@ -103,6 +133,8 @@ from superset.dashboards.schemas import (
     DashboardColorsConfigUpdateSchema,
     DashboardCopySchema,
     DashboardDatasetSchema,
+    DashboardExportXlsxPostSchema,
+    DashboardExportXlsxResponseSchema,
     DashboardGetResponseSchema,
     DashboardNativeFiltersConfigUpdateSchema,
     DashboardPostSchema,
@@ -119,26 +151,64 @@ from superset.dashboards.schemas import (
     TabsPayloadSchema,
     thumbnail_query_schema,
 )
-from superset.exceptions import ScreenshotImageNotAvailableException
+from superset.distributed_lock import DistributedLock
+from superset.exceptions import (
+    AcquireDistributedLockFailedException,
+    LockAlreadyHeldException,
+    ReleaseDistributedLockFailedException,
+    ScreenshotImageNotAvailableException,
+    SupersetSecurityException,
+)
 from superset.extensions import event_logger, security_manager
 from superset.models.dashboard import Dashboard
 from superset.models.embedded_dashboard import EmbeddedDashboard
 from superset.security.guest_token import GuestUser
+from superset.security.manager import (
+    get_extra_editor_subject_ids,
+    get_extra_editors_by_pk,
+)
+from superset.semantic_layers.models import SemanticView
+from superset.subjects.filters import (
+    FilterRelatedSubjects,
+    subject_type_filter,
+)
+from superset.tasks.export_dashboard_excel import (
+    export_dashboard_excel,
+    EXPORT_LOCK_NAMESPACE,
+    export_lock_params,
+    EXPORT_LOCK_TTL_SECONDS,
+    guest_lock_slot,
+)
 from superset.tasks.thumbnails import (
     cache_dashboard_screenshot,
     cache_dashboard_thumbnail,
 )
 from superset.tasks.utils import get_current_user
 from superset.utils import json
-from superset.utils.core import parse_boolean_string
+from superset.utils.core import (
+    get_user_id,
+    parse_boolean_string,
+    send_export_zip,
+    write_zip_entry,
+)
 from superset.utils.file import get_filename
 from superset.utils.pdf import build_pdf_from_screenshots
 from superset.utils.screenshots import (
     DashboardScreenshot,
     DEFAULT_DASHBOARD_WINDOW_SIZE,
+    ScreenshotCacheError,
     ScreenshotCachePayload,
 )
 from superset.utils.urls import get_url_path
+from superset.versioning.api_helpers import (
+    current_entity_etag_uuid,
+    current_entity_version_info,
+    get_version_endpoint,
+    list_versions_endpoint,
+    restore_version_endpoint,
+)
+from superset.versioning.etag import set_version_etag
+from superset.versioning.schemas import VersionListItemSchema
 from superset.views.base_api import (
     BaseSupersetModelRestApi,
     RelatedFieldFilter,
@@ -150,12 +220,56 @@ from superset.views.base_api import (
 from superset.views.custom_tags_api_mixin import CustomTagsOptimizationMixin
 from superset.views.error_handling import handle_api_exception
 from superset.views.filters import (
-    BaseFilterRelatedRoles,
     BaseFilterRelatedUsers,
-    FilterRelatedOwners,
+    FilterRelatedUsers,
+    SoftDeleteApiMixin,
 )
 
 logger = logging.getLogger(__name__)
+
+
+def _never_cache(response: WerkzeugResponse) -> WerkzeugResponse:
+    """The download URL is a bearer credential with a TTL of its own, and a
+    cached status would strand a poller; keep both out of every cache."""
+    response.cache_control.no_store = True
+    response.cache_control.no_cache = True
+    response.cache_control.private = True
+    response.cache_control.max_age = 0
+    response.headers["Pragma"] = "no-cache"
+    return response
+
+
+def _link_backend_matches(uploaded_backend: str | None) -> bool:
+    """Whether the configured export storage backend is the one that uploaded
+    the linked file (links refuse to serve across a storage migration). An
+    unconfigured backend is not a mismatch: that case is answered with the
+    download endpoint's explicit 501."""
+    storage_backend = current_app.config["EXPORT_STORAGE"].get("backend")
+    if storage_backend is None or uploaded_backend is None:
+        return True
+    backend_cls = type(storage_backend)
+    configured = f"{backend_cls.__module__}.{backend_cls.__qualname__}"
+    return uploaded_backend == configured
+
+
+SCREENSHOT_API_LOCK_NAMESPACE = "dashboard_screenshot_api"
+SCREENSHOT_API_LOCK_WAIT_SECONDS = 1.0
+SCREENSHOT_API_LOCK_RETRY_SECONDS = 0.05
+# A short reservation grace coalesces one user action fanning out across multiple
+# web workers. Explicit force requests can still replace an abandoned generation
+# after this bound instead of waiting for the full computing TTL.
+SCREENSHOT_API_FORCE_RETRY_SECONDS = 1.0
+# Keep a crashed producer from retaining its reservation for the global 30-second
+# lock default. This still gives ordinary broker publication twice the coalescing
+# window before another forced request can take over.
+SCREENSHOT_API_LOCK_TTL_SECONDS = 2
+
+_DASHBOARD_PURGE_BINDING = SoftDeleteBinding(
+    dao=DashboardDAO,
+    not_found=DashboardNotFoundError,
+    forbidden=DashboardForbiddenError,
+    delete_failed=DashboardDeleteFailedError,
+)
 
 
 def with_dashboard(
@@ -186,8 +300,8 @@ BASE_LIST_COLUMNS = [
     "published",
     "status",
     "slug",
+    "description",
     "url",
-    "thumbnail_url",
     "certified_by",
     "certification_details",
     "changed_by.first_name",
@@ -201,12 +315,12 @@ BASE_LIST_COLUMNS = [
     "created_by.id",
     "created_by.last_name",
     "dashboard_title",
-    "owners.id",
-    "owners.first_name",
-    "owners.last_name",
-    "owners.email",
-    "roles.id",
-    "roles.name",
+    "editors.id",
+    "editors.label",
+    "editors.type",
+    "viewers.id",
+    "viewers.label",
+    "viewers.type",
     "is_managed_externally",
     "uuid",
 ]
@@ -225,16 +339,68 @@ CUSTOM_TAG_LIST_COLUMNS = BASE_LIST_COLUMNS + [
     "custom_tags.type",
 ]
 
+# Fields dropped from a dashboard member dataset when the caller cannot access
+# that datasource on its own: everything describing the dataset's schema,
+# connection, and query construction. The identifying fields the dashboard
+# needs to render its charts are kept. This is a stricter version of the
+# narrowing DashboardDatasetSchema.post_dump already applies to guest users.
+DASHBOARD_DATASET_INACCESSIBLE_FIELDS = (
+    "sql",
+    "select_star",
+    "fetch_values_predicate",
+    "template_params",
+    "params",
+    "perm",
+    "edit_url",
+    "database",
+    "parent",
+    "semantic_view_features",
+    "columns",
+    "column_names",
+    "column_types",
+    "metrics",
+    "verbose_map",
+    "order_by_choices",
+    "main_dttm_col",
+    "granularity_sqla",
+    "time_grain_sqla",
+)
+
 
 # pylint: disable=too-many-public-methods
-class DashboardRestApi(CustomTagsOptimizationMixin, BaseSupersetModelRestApi):
+class DashboardRestApi(
+    SoftDeleteApiMixin, CustomTagsOptimizationMixin, BaseSupersetModelRestApi
+):
     datamodel = SQLAInterface(Dashboard)
+
+    restore_command_cls: ClassVar[type[RestoreDashboardCommand]] = (
+        RestoreDashboardCommand
+    )
+    soft_delete_not_found_errors: ClassVar[tuple[type[Exception], ...]] = (
+        DashboardNotFoundError,
+    )
+    soft_delete_forbidden_errors: ClassVar[tuple[type[Exception], ...]] = (
+        DashboardForbiddenError,
+    )
+    restore_failed_errors: ClassVar[tuple[type[Exception], ...]] = (
+        DashboardRestoreFailedError,
+    )
+    restore_conflict_errors: ClassVar[tuple[type[Exception], ...]] = (
+        DashboardSlugConflictError,
+    )
+    soft_delete_logger: ClassVar[logging.Logger] = logger
+    purge_binding: ClassVar[SoftDeleteBinding] = _DASHBOARD_PURGE_BINDING
+    purge_failed_errors: ClassVar[tuple[type[Exception], ...]] = (
+        DashboardDeleteFailedError,
+    )
 
     include_route_methods = RouteMethod.REST_MODEL_VIEW_CRUD_SET | {
         RouteMethod.EXPORT,
         RouteMethod.IMPORT,
         RouteMethod.RELATED,
         "bulk_delete",  # not using RouteMethod since locally defined
+        "restore",
+        "purge",
         "favorite_status",
         "add_favorite",
         "remove_favorite",
@@ -252,12 +418,38 @@ class DashboardRestApi(CustomTagsOptimizationMixin, BaseSupersetModelRestApi):
         "put_chart_customizations",
         "put_colors",
         "export_as_example",
+        "export_xlsx",
+        "export_xlsx_status",
+        "download_xlsx",
+        "list_versions",
+        "get_version",
+        "activity",
+        "restore_version",
     }
     resource_name = "dashboard"
     allow_browser_login = True
 
     class_permission_name = "Dashboard"
-    method_permission_name = MODEL_API_RW_METHOD_PERMISSION_MAP
+    # Custom methods (``restore``) need an explicit entry; FAB's @protect()
+    # decorator falls back to ``can_<method>_<class>`` (i.e.
+    # ``can_restore_Dashboard``) when the mapping is missing, which standard
+    # roles don't carry. Mirrors the permission model documented for
+    # ``DELETE`` / ``bulk_delete``: endpoint-level ``can_write`` plus
+    # resource-level ``raise_for_editorship``. See themes/api.py for the
+    # established pattern.
+    method_permission_name = {
+        **MODEL_API_RW_METHOD_PERMISSION_MAP,
+        "restore": "write",
+        "restore_version": "write",
+        # Reuse the dashboard ``can_export`` permission (the frontend gates the
+        # menu item on it) instead of the ``can_export_xlsx`` FAB would otherwise
+        # derive from the method name.
+        "export_xlsx": "export",
+        # Polling status of an export you already requested is the same
+        # capability as requesting it, not a distinct permission.
+        "export_xlsx_status": "export",
+        "purge": "write",
+    }
 
     # Default list_columns (used if config not set)
     list_columns = FULL_TAG_LIST_COLUMNS
@@ -325,7 +517,8 @@ class DashboardRestApi(CustomTagsOptimizationMixin, BaseSupersetModelRestApi):
                       result:
                         type: array
                         items:
-                          type: object
+                          $ref: >-
+                            #/components/schemas/{{self.__class__.__name__}}.get_list
             400:
               $ref: '#/components/responses/400'
             401:
@@ -337,12 +530,24 @@ class DashboardRestApi(CustomTagsOptimizationMixin, BaseSupersetModelRestApi):
         """
         return super().get_list(**kwargs)
 
+    def pre_get_list(self, data: dict[str, Any]) -> None:
+        """Attach ``extra_editors`` to each row, matching the single-object GET."""
+        super().pre_get_list(data)
+        ids = data.get("ids", [])
+        extra_editors_by_id = get_extra_editors_by_pk(Dashboard, ids)
+        for row, row_id in zip(data.get("result", []), ids, strict=False):
+            if row_id in extra_editors_by_id:
+                row["extra_editors"] = extra_editors_by_id[row_id]
+
     list_select_columns = list_columns + ["changed_on", "created_on", "changed_by_fk"]
     order_columns = [
         "changed_by.first_name",
         "changed_on_delta_humanized",
         "created_by.first_name",
         "dashboard_title",
+        # Exposed so the Recently-Deleted view can sort archived dashboards by
+        # deletion time (sc-111760).
+        "deleted_at",
         "published",
         "changed_on",
     ]
@@ -352,8 +557,9 @@ class DashboardRestApi(CustomTagsOptimizationMixin, BaseSupersetModelRestApi):
         "certification_details",
         "dashboard_title",
         "slug",
-        "owners",
-        "roles",
+        "description",
+        "editors",
+        "viewers",
         "position_json",
         "css",
         "theme_id",
@@ -367,17 +573,28 @@ class DashboardRestApi(CustomTagsOptimizationMixin, BaseSupersetModelRestApi):
         "changed_by",
         "dashboard_title",
         "id",
+        "is_managed_externally",
         "uuid",
-        "owners",
+        "editors",
+        "viewers",
         "published",
-        "roles",
         "slug",
+        "description",
+        # Exposed so the Recently-Deleted view can filter archived dashboards by
+        # a deletion-time cutoff (e.g. ``deleted_at`` ``gt`` cutoff) — sc-111760.
+        "deleted_at",
         "tags",
         "uuid",
     )
     search_filters = {
+        "deleted_at": [DashboardDeletedRecencyFilter],
         "dashboard_title": [DashboardTitleOrSlugFilter],
-        "id": [DashboardFavoriteFilter, DashboardCertifiedFilter],
+        "id": [
+            DashboardFavoriteFilter,
+            DashboardCertifiedFilter,
+            DashboardEditableFilter,
+            DashboardDeletedStateFilter,
+        ],
         "created_by": [DashboardCreatedByMeFilter, DashboardHasCreatedByFilter],
         "tags": [DashboardTagIdFilter, DashboardTagNameFilter],
     }
@@ -404,23 +621,48 @@ class DashboardRestApi(CustomTagsOptimizationMixin, BaseSupersetModelRestApi):
 
     order_rel_fields = {
         "slices": ("slice_name", "asc"),
-        "owners": ("first_name", "asc"),
-        "roles": ("name", "asc"),
+        "editors": ("label", "asc"),
+        "viewers": ("label", "asc"),
+    }
+    text_field_rel_fields = {
+        "editors": "label",
+        "viewers": "label",
     }
     base_related_field_filters = {
-        "owners": [["id", BaseFilterRelatedUsers, lambda: []]],
         "created_by": [["id", BaseFilterRelatedUsers, lambda: []]],
         "changed_by": [["id", BaseFilterRelatedUsers, lambda: []]],
-        "roles": [["id", BaseFilterRelatedRoles, lambda: []]],
+        "editors": [
+            [
+                "type",
+                subject_type_filter("SUBJECTS_RELATED_TYPES_DASHBOARDS"),
+                lambda: [],
+            ]
+        ],
+        "viewers": [
+            [
+                "type",
+                subject_type_filter("SUBJECTS_RELATED_TYPES_DASHBOARDS"),
+                lambda: [],
+            ]
+        ],
     }
 
     related_field_filters = {
-        "owners": RelatedFieldFilter("first_name", FilterRelatedOwners),
-        "roles": RelatedFieldFilter("name", FilterRelatedRoles),
-        "created_by": RelatedFieldFilter("first_name", FilterRelatedOwners),
-        "changed_by": RelatedFieldFilter("first_name", FilterRelatedOwners),
+        "created_by": RelatedFieldFilter("first_name", FilterRelatedUsers),
+        "changed_by": RelatedFieldFilter("first_name", FilterRelatedUsers),
+        "editors": RelatedFieldFilter("label", FilterRelatedSubjects),
+        "viewers": RelatedFieldFilter("label", FilterRelatedSubjects),
     }
-    allowed_rel_fields = {"owners", "roles", "created_by", "changed_by"}
+    allowed_rel_fields = {
+        "created_by",
+        "changed_by",
+        "editors",
+        "viewers",
+    }
+    extra_fields_rel_fields = {
+        "editors": ["type", "active", "secondary_label", "img"],
+        "viewers": ["type", "active", "secondary_label", "img"],
+    }
 
     openapi_spec_tag = "Dashboards"
     """ Override the name set for this collection of endpoints """
@@ -430,10 +672,16 @@ class DashboardRestApi(CustomTagsOptimizationMixin, BaseSupersetModelRestApi):
         DashboardCopySchema,
         DashboardGetResponseSchema,
         DashboardDatasetSchema,
+        DashboardExportXlsxPostSchema,
+        DashboardExportXlsxResponseSchema,
         TabsPayloadSchema,
         GetFavStarIdsSchema,
         EmbeddedDashboardResponseSchema,
         DashboardScreenshotPostSchema,
+        VersionListItemSchema,
+        DashboardChartCustomizationsConfigUpdateSchema,
+        DashboardColorsConfigUpdateSchema,
+        DashboardNativeFiltersConfigUpdateSchema,
     )
     apispec_parameter_schemas = {
         "get_delete_ids_schema": get_delete_ids_schema,
@@ -519,10 +767,30 @@ class DashboardRestApi(CustomTagsOptimizationMixin, BaseSupersetModelRestApi):
             schema = self.dashboard_get_response_schema
 
         result = schema.dump(dash)
+        if json_metadata := result.get("json_metadata"):
+            # The stored scope caches (``chartsInScope``, ``tabsInScope``,
+            # ``chart_configuration``) go stale as soon as the layout changes;
+            # derive them so callers see the same document the dashboard client
+            # computes for itself.
+            result["json_metadata"] = derive_json_metadata(dash, json_metadata)
+        if "charts" in result:
+            # Only name the member charts the caller can access, consistent with
+            # the per-object narrowing applied to the dashboard's datasets and
+            # charts sub-resources.
+            result["charts"] = [
+                slc.chart
+                for slc in dash.slices
+                if security_manager.can_access_chart(slc)
+            ]
+        if current_app.config.get("EXTRA_EDITORS_RESOLVER"):
+            result["extra_editors"] = get_extra_editor_subject_ids(dash)
         add_extra_log_payload(
             dashboard_id=dash.id, action=f"{self.__class__.__name__}.get"
         )
-        return self.response(200, result=result)
+        return set_version_etag(
+            self.response(200, result=result),
+            current_entity_etag_uuid(Dashboard, dash.id, dash.uuid),
+        )
 
     @expose("/<id_or_slug>/datasets", methods=("GET",))
     @protect()
@@ -570,11 +838,33 @@ class DashboardRestApi(CustomTagsOptimizationMixin, BaseSupersetModelRestApi):
         try:
             datasets = DashboardDAO.get_datasets_for_dashboard(id_or_slug)
             result = [
-                self.dashboard_dataset_schema.dump(dataset) for dataset in datasets
+                self._serialize_dashboard_dataset(datasource, payload)
+                for datasource, payload in datasets
             ]
             return self.response(200, result=result)
         except (TypeError, ValueError) as err:
             raise DatasetValidationError(err) from err
+
+    def _serialize_dashboard_dataset(
+        self, datasource: Any, payload: dict[str, Any]
+    ) -> dict[str, Any]:
+        """Dump a member dataset, narrowed when the caller cannot access it."""
+        serialized = self.dashboard_dataset_schema.dump(payload)
+        if isinstance(datasource, SemanticView):
+            # Redux keys dashboard datasets by Slice.form_data["datasource"],
+            # whereas SemanticView.uid is the provider's independent identity.
+            serialized["uid"] = f"{datasource.id}__{datasource.type}"
+        if not security_manager.can_access_datasource(datasource):
+            for key in DASHBOARD_DATASET_INACCESSIBLE_FIELDS:
+                serialized.pop(key, None)
+        return serialized
+
+    def _serialize_dashboard_chart(self, chart: Any) -> dict[str, Any]:
+        """Dump a member chart, narrowed when the caller cannot access it."""
+        serialized = self.chart_entity_response_schema.dump(chart)
+        if not security_manager.can_access_chart(chart):
+            serialized.pop("form_data", None)
+        return serialized
 
     @expose("/<id_or_slug>/tabs", methods=("GET",))
     @protect()
@@ -679,7 +969,7 @@ class DashboardRestApi(CustomTagsOptimizationMixin, BaseSupersetModelRestApi):
         """
         try:
             charts = DashboardDAO.get_charts_for_dashboard(id_or_slug)
-            result = [self.chart_entity_response_schema.dump(chart) for chart in charts]
+            result = [self._serialize_dashboard_chart(chart) for chart in charts]
             return self.response(200, result=result)
         except DashboardAccessDeniedError:
             return self.response_403()
@@ -693,9 +983,13 @@ class DashboardRestApi(CustomTagsOptimizationMixin, BaseSupersetModelRestApi):
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.post",
         log_to_statsd=False,
+        allow_extra_payload=True,
     )
     @requires_json
-    def post(self) -> Response:
+    def post(
+        self,
+        add_extra_log_payload: Callable[..., None] = lambda **kwargs: None,
+    ) -> Response:
         """Create a new dashboard.
         ---
         post:
@@ -735,7 +1029,10 @@ class DashboardRestApi(CustomTagsOptimizationMixin, BaseSupersetModelRestApi):
             return self.response_400(message=error.messages)
         try:
             new_model = CreateDashboardCommand(item).run()
-            return self.response(201, id=new_model.id, result=item)
+            # The id only exists once the command has run, so the event
+            # logger cannot derive it from the route.
+            add_extra_log_payload(dashboard_id=new_model.id)
+            return self.response(201, id=new_model.id, result=item, uuid=new_model.uuid)
         except DashboardInvalidError as ex:
             return self.response_422(message=ex.normalized_messages())
         except DashboardCreateFailedError as ex:
@@ -787,6 +1084,48 @@ class DashboardRestApi(CustomTagsOptimizationMixin, BaseSupersetModelRestApi):
                         $ref: '#/components/schemas/{{self.__class__.__name__}}.put'
                       last_modified_time:
                         type: number
+                      old_version:
+                        type: integer
+                        nullable: true
+                        description: >-
+                          0-based version_number of the live row before this
+                          update. Unstable under retention pruning — see
+                          old_transaction_id for a stable identifier.
+                      new_version:
+                        type: integer
+                        nullable: true
+                        description: >-
+                          0-based version_number of the newly-live row after
+                          this update. Can equal old_version when no
+                          versioned column changed, or when retention
+                          pruning dropped an older closed row in the same
+                          commit.
+                      old_transaction_id:
+                        type: integer
+                        nullable: true
+                        description: Continuum transaction_id of the live
+                          row before this update. Stable across pruning.
+                      new_transaction_id:
+                        type: integer
+                        nullable: true
+                        description: Continuum transaction_id of the live
+                          row after this update. Differs from
+                          old_transaction_id when the update produced a new
+                          version row.
+                      old_version_uuid:
+                        type: string
+                        format: uuid
+                        nullable: true
+                        description: Deterministic version_uuid of the live
+                          row before this update. Null when version capture
+                          is disabled or the entity has no version rows yet.
+                      new_version_uuid:
+                        type: string
+                        format: uuid
+                        nullable: true
+                        description: Deterministic version_uuid of the live
+                          row after this update. Null when version capture
+                          is disabled.
             400:
               $ref: '#/components/responses/400'
             401:
@@ -805,17 +1144,32 @@ class DashboardRestApi(CustomTagsOptimizationMixin, BaseSupersetModelRestApi):
         # This validates custom Schema with custom validations
         except ValidationError as error:
             return self.response_400(message=error.messages)
+
+        # Live version identifiers before the update (empty + query-free when
+        # ``ENABLE_VERSIONING_CAPTURE`` is off).
+        old_info = current_entity_version_info(Dashboard, pk)
+
         try:
             changed_model = UpdateDashboardCommand(pk, item).run()
             last_modified_time = changed_model.changed_on.replace(
                 microsecond=0
             ).timestamp()
+            new_info = current_entity_version_info(
+                Dashboard, changed_model.id, changed_model.uuid
+            )
             response = self.response(
                 200,
                 id=changed_model.id,
                 result=item,
                 last_modified_time=last_modified_time,
+                old_version=old_info.version,
+                new_version=new_info.version,
+                old_transaction_id=old_info.transaction_id,
+                new_transaction_id=new_info.transaction_id,
+                old_version_uuid=old_info.version_uuid,
+                new_version_uuid=new_info.version_uuid,
             )
+            set_version_etag(response, new_info.version_uuid)
         except DashboardNotFoundError:
             response = self.response_404()
         except DashboardForbiddenError:
@@ -1089,9 +1443,17 @@ class DashboardRestApi(CustomTagsOptimizationMixin, BaseSupersetModelRestApi):
     )
     def delete(self, pk: int) -> Response:
         """Delete a dashboard.
+
+        When the ``SOFT_DELETE`` feature flag is enabled, marks the dashboard
+        as deleted (sets ``deleted_at``) and hides it from list/detail
+        endpoints; the row is preserved and recoverable via
+        ``POST /api/v1/dashboard/<uuid>/restore`` by an editor or admin.
+        With the flag disabled (the default), the dashboard is permanently
+        hard-deleted and is not recoverable.
         ---
         delete:
-          summary: Delete a dashboard
+          summary: Delete a dashboard (soft delete, recoverable via restore,
+            when the SOFT_DELETE feature flag is enabled; permanent otherwise)
           parameters:
           - in: path
             schema:
@@ -1145,9 +1507,17 @@ class DashboardRestApi(CustomTagsOptimizationMixin, BaseSupersetModelRestApi):
     )
     def bulk_delete(self, **kwargs: Any) -> Response:
         """Bulk delete dashboards.
+
+        When the ``SOFT_DELETE`` feature flag is enabled, marks each dashboard
+        as deleted (sets ``deleted_at``) and hides it from list/detail
+        endpoints; rows are preserved and recoverable via
+        ``POST /api/v1/dashboard/<uuid>/restore`` by an editor or admin.
+        With the flag disabled (the default), the dashboards are permanently
+        hard-deleted and are not recoverable.
         ---
         delete:
-          summary: Bulk delete dashboards
+          summary: Bulk delete dashboards (soft delete, recoverable via restore,
+            when the SOFT_DELETE feature flag is enabled; permanent otherwise)
           parameters:
           - in: query
             name: q
@@ -1194,6 +1564,93 @@ class DashboardRestApi(CustomTagsOptimizationMixin, BaseSupersetModelRestApi):
         except DashboardDeleteFailedError as ex:
             return self.response_422(message=str(ex))
 
+    @expose("/<uuid>/restore", methods=("POST",))
+    @protect()
+    @safe
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.restore",
+        log_to_statsd=False,
+    )
+    def restore(self, uuid: str) -> Response:
+        """Restore a soft-deleted dashboard.
+        ---
+        post:
+          summary: Restore a soft-deleted dashboard
+          parameters:
+          - in: path
+            schema:
+              type: string
+              format: uuid
+            name: uuid
+          responses:
+            200:
+              description: Dashboard restored
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      message:
+                        type: string
+            401:
+              $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
+            404:
+              $ref: '#/components/responses/404'
+            422:
+              $ref: '#/components/responses/422'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        return self._restore_soft_deleted(uuid)
+
+    @expose("/<uuid>/purge", methods=("POST",))
+    @protect()
+    @safe
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.purge",
+        log_to_statsd=False,
+    )
+    def purge(self, uuid: str) -> Response:
+        """Permanently delete a soft-deleted (archived) dashboard.
+        ---
+        post:
+          summary: Permanently delete a soft-deleted dashboard
+          description: >-
+            Irreversibly remove an archived dashboard and its dependents.
+            Limited to owners and admins (same audience as restore).
+          parameters:
+          - in: path
+            schema:
+              type: string
+              format: uuid
+            name: uuid
+          responses:
+            200:
+              description: Dashboard permanently deleted
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      message:
+                        type: string
+            401:
+              $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
+            404:
+              $ref: '#/components/responses/404'
+            422:
+              $ref: '#/components/responses/422'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        return self._purge_soft_deleted(uuid)
+
     @expose("/export/", methods=("GET",))
     @protect()
     @safe
@@ -1226,6 +1683,8 @@ class DashboardRestApi(CustomTagsOptimizationMixin, BaseSupersetModelRestApi):
               $ref: '#/components/responses/400'
             401:
               $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
             404:
               $ref: '#/components/responses/404'
             422:
@@ -1233,6 +1692,11 @@ class DashboardRestApi(CustomTagsOptimizationMixin, BaseSupersetModelRestApi):
             500:
               $ref: '#/components/responses/500'
         """
+        # A bundle carries dataset SQL and database metadata a viewer never
+        # sees; with ``can_export`` on Public, FAB would serve it unauthenticated.
+        if get_user_id() is None:
+            return self.response_403()
+
         requested_ids = kwargs["rison"]
 
         timestamp = datetime.now().strftime("%Y%m%dT%H%M%S")
@@ -1245,21 +1709,14 @@ class DashboardRestApi(CustomTagsOptimizationMixin, BaseSupersetModelRestApi):
                 for file_name, file_content in ExportDashboardsCommand(
                     requested_ids
                 ).run():
-                    with bundle.open(f"{root}/{file_name}", "w") as fp:
-                        fp.write(file_content().encode())
+                    write_zip_entry(
+                        bundle, f"{root}/{file_name}", file_content().encode()
+                    )
             except DashboardNotFoundError:
                 return self.response_404()
         buf.seek(0)
 
-        response = send_file(
-            buf,
-            mimetype="application/zip",
-            as_attachment=True,
-            download_name=filename,
-        )
-        if token := request.args.get("token"):
-            response.set_cookie(token, "done", max_age=600)
-        return response
+        return send_export_zip(buf, filename)
 
     @expose("/<pk>/export_as_example/", methods=("GET",))
     @protect()
@@ -1315,6 +1772,10 @@ class DashboardRestApi(CustomTagsOptimizationMixin, BaseSupersetModelRestApi):
             500:
               $ref: '#/components/responses/500'
         """
+        # Same permission and the same audience as the bundle export.
+        if get_user_id() is None:
+            return self.response_403()
+
         # Get optional query params
         export_data = request.args.get("export_data", "true").lower() == "true"
         sample_rows = request.args.get("sample_rows", type=int)
@@ -1342,15 +1803,333 @@ class DashboardRestApi(CustomTagsOptimizationMixin, BaseSupersetModelRestApi):
 
         filename = f"{safe_name}_example.zip"
 
-        response = send_file(
-            buf,
-            mimetype="application/zip",
-            as_attachment=True,
-            download_name=filename,
+        return send_export_zip(buf, filename)
+
+    @expose("/<pk>/export_xlsx/", methods=("POST",))
+    @protect()
+    @safe
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.export_xlsx",
+        log_to_statsd=False,
+    )
+    def export_xlsx(self, pk: int) -> WerkzeugResponse:
+        """Export all of a dashboard's chart data to an Excel workbook (async).
+        ---
+        post:
+          summary: Export dashboard chart data to Excel
+          description: >-
+            Enqueues an async task that writes each chart's data to its own
+            worksheet, uploads the .xlsx to the configured export storage,
+            and records a download link.
+            The requesting user is emailed the link when they have an address
+            on file; either way the returned job id can be polled at
+            export_xlsx/status/<job_id>/ for status and, once ready, the
+            download link.
+          parameters:
+          - in: path
+            schema:
+              type: integer
+            name: pk
+            description: The dashboard id
+          requestBody:
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/DashboardExportXlsxPostSchema'
+          responses:
+            202:
+              description: Export task accepted
+              content:
+                application/json:
+                  schema:
+                    $ref: '#/components/schemas/DashboardExportXlsxResponseSchema'
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
+            404:
+              $ref: '#/components/responses/404'
+            500:
+              $ref: '#/components/responses/500'
+            501:
+              description: Excel export is not configured on this server
+        """
+        storage_config = current_app.config["EXPORT_STORAGE"]
+        if not storage_config.get("bucket") or storage_config.get("backend") is None:
+            return self.response(
+                501, message="Excel export is not configured on this server."
+            )
+        try:
+            # Tolerate an empty/non-JSON body (e.g. a POST with no Content-Type);
+            # request.json would otherwise raise 415.
+            payload = DashboardExportXlsxPostSchema().load(
+                request.get_json(silent=True) or {}
+            )
+        except ValidationError as error:
+            return self.response_400(message=error.messages)
+
+        # Image export drives the headless webdriver, so it is only available
+        # when the same screenshot flags the UI checks are enabled. The decorator
+        # form (``@validate_feature_flags``) can't be used here because it would
+        # also block ``mode="data"``; mirror its 404 behavior inline instead.
+        if payload.get("mode") == "images" and not (
+            is_feature_enabled("ENABLE_DASHBOARD_SCREENSHOT_ENDPOINTS")
+            and is_feature_enabled("ENABLE_DASHBOARD_DOWNLOAD_WEBDRIVER_SCREENSHOT")
+        ):
+            return self.response_404()
+
+        # The webdriver cannot render without a real user identity (guest or
+        # anonymous); same predicate the UI hides the option on.
+        if payload.get("mode") == "images" and get_user_id() is None:
+            return self.response(403, message="Image export requires a signed-in user.")
+
+        dashboard = cast(Dashboard, self.datamodel.get(pk, self._base_filters))
+        if not dashboard:
+            return self.response_404()
+        try:
+            security_manager.raise_for_access(dashboard=dashboard)
+        except SupersetSecurityException:
+            return self.response_403()
+
+        # A requester with no email on file (e.g. an embedded/guest session)
+        # still gets a usable export: they poll export_xlsx_status/<job_id>/
+        # for the download link instead of relying on an email notification.
+        if not dashboard.slices:
+            return self.response_400(message="Dashboard has no charts to export.")
+
+        # Throttle: one concurrent export per user+dashboard. Acquire a shared,
+        # atomic distributed lock (Redis when configured, the metadata DB
+        # otherwise) so the guard works across the web server and workers and is
+        # not a no-op under the default cache. The task releases it when it
+        # settles; the TTL is the backstop if that release is ever lost.
+        # A guest/embedded requester has no DB-backed user id (GuestUser carries
+        # no ``id`` attribute at all), so all guests share lock slot 0 for the
+        # dashboard; the task reconstructs the guest (with the token's RLS rules
+        # and resource claims) from the token payload passed alongside.
+        user_id = get_user_id()
+        guest_token_payload = (
+            getattr(g.user, "guest_token", None) if user_id is None else None
         )
-        if token := request.args.get("token"):
-            response.set_cookie(token, "done", max_age=600)
-        return response
+        lock_params = export_lock_params(
+            user_id or guest_lock_slot(guest_token_payload), dashboard.id
+        )
+        acquire = AcquireDistributedLock(
+            EXPORT_LOCK_NAMESPACE,
+            lock_params,
+            ttl_seconds=EXPORT_LOCK_TTL_SECONDS,
+        )
+        try:
+            acquire.run()
+        except LockAlreadyHeldException:
+            return self.response(
+                202,
+                message="An Excel export for this dashboard is already in progress.",
+            )
+
+        job_id = str(uuid.uuid4())
+        try:
+            export_dashboard_excel.apply_async(
+                kwargs={
+                    "dashboard_id": dashboard.id,
+                    "user_id": user_id,
+                    "active_data_mask": payload.get("active_data_mask", {}),
+                    "job_id": job_id,
+                    "mode": payload.get("mode", "data"),
+                    "guest_token": guest_token_payload,
+                    "lock_token": acquire.token,
+                },
+                task_id=job_id,
+            )
+        except Exception:
+            # If enqueuing fails (e.g. broker down) the task will never run to
+            # release the lock, so free it now rather than block exports until
+            # the TTL expires.
+            ReleaseDistributedLock(
+                EXPORT_LOCK_NAMESPACE, lock_params, token=acquire.token
+            ).run()
+            raise
+        return self.response(202, job_id=job_id)
+
+    @expose("/export_xlsx/status/<uuid:job_id>/", methods=("GET",))
+    @protect()
+    @safe
+    @statsd_metrics
+    def export_xlsx_status(self, job_id: uuid.UUID) -> WerkzeugResponse:
+        """Poll the status of an in-flight or completed Excel export.
+        ---
+        get:
+          summary: Poll the status of a dashboard Excel export job
+          description: >-
+            For a session with no email address to be notified at (e.g. an
+            embedded/guest session), the frontend polls this endpoint with the
+            job_id from the export_xlsx response instead of waiting for an
+            email. Behind the same @protect() as the export request itself,
+            unlike the login-free download_xlsx stream (which also has to
+            work when clicked from a plain email link, possibly with no
+            active session at all).
+          parameters:
+          - in: path
+            schema:
+              type: string
+              format: uuid
+            name: job_id
+            description: The job_id from the export_xlsx response
+          responses:
+            200:
+              description: >-
+                Job status: {"status": "pending"} while queued,
+                {"status": "running"} once a worker has started executing,
+                {"status": "ready", "download_url": "..."} once the file is
+                available, or {"status": "error", "message": "..."} if the
+                export failed.
+            401:
+              $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
+        """
+        after_this_request(_never_cache)
+        payload = get_export_status(job_id)
+        if payload is None:
+            return self.response(200, status="pending")
+        if payload.get("status") == STATUS_READY:
+            # Never report ready for a link the download endpoint will refuse:
+            # an unset backend (config cleared since upload) 501s there, and a
+            # mismatched backend 410s. Both mean the file cannot be served.
+            storage_backend = current_app.config["EXPORT_STORAGE"].get("backend")
+            if storage_backend is None or not _link_backend_matches(
+                payload.get("backend")
+            ):
+                return self.response(
+                    200, status=STATUS_ERROR, message="This download has expired."
+                )
+            return self.response(
+                200, status=STATUS_READY, download_url=download_path(job_id)
+            )
+        if payload.get("status") == STATUS_ERROR:
+            return self.response(
+                200, status=STATUS_ERROR, message=payload.get("message")
+            )
+        if payload.get("status") == STATUS_RUNNING:
+            return self.response(200, status=STATUS_RUNNING)
+        return self.response(200, status="pending")
+
+    def get_method_permission(self, method_name: str) -> str:
+        # download_xlsx is intentionally login-free (no @protect): the
+        # unguessable job_id is the credential, and dashboard access was
+        # already checked when the export was requested. Map it to no
+        # permission so FAB neither requires auth nor advertises a security
+        # requirement for it in the OpenAPI spec.
+        if method_name == "download_xlsx":
+            return ""
+        return super().get_method_permission(method_name)
+
+    @expose("/export_xlsx/download/<uuid:job_id>/", methods=("GET",))
+    @safe
+    @statsd_metrics
+    def download_xlsx(self, job_id: uuid.UUID) -> WerkzeugResponse:
+        """Stream a completed Excel export from storage.
+        ---
+        get:
+          summary: Download a completed dashboard Excel export
+          security: []
+          description: >-
+            Intentionally requires no login: the unguessable job_id, emailed
+            only to the original requester (or handed to their own session
+            via export_xlsx_status), is the credential. The dashboard access
+            check already ran once, when the export was requested -- see
+            security_manager.raise_for_access in export_xlsx. The file
+            streams through Superset with the deployment's own storage
+            credentials instead of redirecting to a signed storage URL, so
+            it works for ambient identities that cannot sign (e.g. workload
+            identity federation) and never mints a bearer URL Superset
+            cannot observe or revoke.
+          parameters:
+          - in: path
+            schema:
+              type: string
+              format: uuid
+            name: job_id
+            description: The job_id from the export_xlsx response
+          responses:
+            200:
+              description: The .xlsx file as an attachment
+            410:
+              description: The link is unknown, expired, or the export failed
+            501:
+              description: Excel export is not configured on this server
+        """
+        after_this_request(_never_cache)
+        resolved = resolve_download_link(job_id)
+        if resolved is None:
+            return self.response(410, message="This download link has expired.")
+        bucket, key, uploaded_backend = resolved
+        storage_backend = current_app.config["EXPORT_STORAGE"].get("backend")
+        if storage_backend is None:
+            # A link can only exist if a backend was configured when the export
+            # ran, so reaching this means the config was cleared since then.
+            return self.response(
+                501, message="Excel export is not configured on this server."
+            )
+        if not _link_backend_matches(uploaded_backend):
+            # Don't read another backend's upload; expire the link instead.
+            return self.response(410, message="This download link has expired.")
+        try:
+            # Existence is checked eagerly, so a missing object is a clean 410.
+            size, chunks = storage_backend.download(bucket, key)
+        except FileNotFoundError:
+            return self.response(410, message="This download link has expired.")
+        return Response(
+            stream_with_context(chunks),
+            mimetype=(
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            ),
+            headers={
+                # With a declared length, a stream that dies midway is a
+                # failed download in the browser, not a corrupt file.
+                "Content-Length": str(size),
+                "Content-Disposition": f'attachment; filename="{job_id}.xlsx"',
+            },
+        )
+
+    def _validate_permalink_for_dashboard(
+        self, permalink_key: str, dashboard: Dashboard
+    ) -> WerkzeugResponse | None:
+        """
+        Resolve (and access-check, as the calling user) a caller-supplied
+        permalink key, and confirm it belongs to `dashboard`.
+
+        A permalink key is resolved as the calling user, before it's ever
+        handed to the (potentially more-privileged) screenshot executor --
+        otherwise a caller with access only to `dashboard` could pass the
+        permalink key of a dashboard they can't access and have it rendered
+        under the executor's identity.
+
+        :returns: An error response if the key doesn't resolve, isn't
+            accessible to the caller, or belongs to a different dashboard;
+            ``None`` if it's valid for `dashboard`.
+        """
+        try:
+            permalink_value = GetDashboardPermalinkCommand(permalink_key).run()
+        except DashboardPermalinkGetFailedError:
+            return self.response_404()
+        except DashboardAccessDeniedError:
+            return self.response_403()
+        if not permalink_value:
+            return self.response_404()
+        try:
+            permalink_dashboard = DashboardDAO.get_by_id_or_slug(
+                permalink_value["dashboardId"]
+            )
+        except DashboardAccessDeniedError:
+            return self.response_403()
+        except DashboardNotFoundError:
+            return self.response_404()
+        if permalink_dashboard.id != dashboard.id:
+            return self.response_403()
+        return None
 
     @expose("/<pk>/cache_dashboard_screenshot/", methods=("POST",))
     @validate_feature_flags(["THUMBNAILS", "ENABLE_DASHBOARD_SCREENSHOT_ENDPOINTS"])
@@ -1364,7 +2143,9 @@ class DashboardRestApi(CustomTagsOptimizationMixin, BaseSupersetModelRestApi):
         ),
         log_to_statsd=False,
     )
-    def cache_dashboard_screenshot(self, pk: int, **kwargs: Any) -> WerkzeugResponse:
+    def cache_dashboard_screenshot(  # noqa: C901
+        self, pk: int, **kwargs: Any
+    ) -> WerkzeugResponse:
         """Compute and cache a screenshot.
         ---
         post:
@@ -1380,6 +2161,12 @@ class DashboardRestApi(CustomTagsOptimizationMixin, BaseSupersetModelRestApi):
                   schema:
                     $ref: '#/components/schemas/DashboardScreenshotPostSchema'
           responses:
+            200:
+              description: Existing dashboard screenshot task status
+              content:
+                application/json:
+                  schema:
+                    $ref: "#/components/schemas/DashboardCacheScreenshotResponseSchema"
             202:
               description: Dashboard async result
               content:
@@ -1394,6 +2181,8 @@ class DashboardRestApi(CustomTagsOptimizationMixin, BaseSupersetModelRestApi):
               $ref: '#/components/responses/404'
             500:
               $ref: '#/components/responses/500'
+            503:
+              description: Screenshot cache unavailable
         """
         if is_feature_enabled(
             "GRANULAR_EXPORT_CONTROLS"
@@ -1422,53 +2211,306 @@ class DashboardRestApi(CustomTagsOptimizationMixin, BaseSupersetModelRestApi):
 
         # if the permalink key is provided, dashboard_state will be ignored
         # else, create a permalink key from the dashboard_state
-        permalink_key = (
-            payload.get("permalinkKey", None)
-            or CreateDashboardPermalinkCommand(
+        permalink_key = payload.get("permalinkKey", None)
+        if permalink_key:
+            if error_response := self._validate_permalink_for_dashboard(
+                permalink_key, dashboard
+            ):
+                return error_response
+        else:
+            permalink_key = CreateDashboardPermalinkCommand(
                 dashboard_id=str(dashboard.id),
                 state=dashboard_state,
             ).run()
-        )
 
         dashboard_url = get_url_path("Superset.dashboard_permalink", key=permalink_key)
         screenshot_obj = DashboardScreenshot(dashboard_url, dashboard.digest)
-        cache_key = screenshot_obj.get_cache_key(window_size, thumb_size, permalink_key)
-        image_url = get_url_path(
-            "DashboardRestApi.screenshot", pk=dashboard.id, digest=cache_key
-        )
-        cache_payload = (
-            screenshot_obj.get_from_cache_key(cache_key) or ScreenshotCachePayload()
+        cache_scope = f"dashboard:{dashboard.id}"
+        request_cache_key = screenshot_obj.get_api_request_cache_key(
+            window_size,
+            thumb_size,
+            permalink_key,
+            cache_scope,
         )
 
-        def build_response(status_code: int) -> WerkzeugResponse:
+        def build_response(
+            status_code: int,
+            cache_key: str,
+            cache_payload: ScreenshotCachePayload,
+        ) -> WerkzeugResponse:
             return self.response(
                 status_code,
                 cache_key=cache_key,
                 dashboard_url=dashboard_url,
-                image_url=image_url,
+                image_url=get_url_path(
+                    "DashboardRestApi.screenshot",
+                    pk=dashboard.id,
+                    digest=cache_key,
+                ),
+                task_timeout_seconds=(
+                    2 * current_app.config["THUMBNAIL_COMPUTING_CACHE_TTL"]
+                ),
                 task_updated_at=cache_payload.get_timestamp(),
                 task_status=cache_payload.get_status(),
             )
 
-        if cache_payload.should_trigger_task(force):
-            logger.info("Triggering screenshot ASYNC")
-            screenshot_obj.cache.set(cache_key, ScreenshotCachePayload().to_dict())
-            cache_dashboard_screenshot.delay(
-                username=get_current_user(),
-                guest_token=(
-                    g.user.guest_token
-                    if get_current_user() and isinstance(g.user, GuestUser)
+        def get_current_cache_key() -> str | None:
+            return screenshot_obj.get_current_api_generation_cache_key(
+                request_cache_key,
+                cache_scope,
+            )
+
+        def get_generation(
+            cache_key: str | None = None,
+        ) -> tuple[str | None, ScreenshotCachePayload | None]:
+            cache_key = cache_key or get_current_cache_key()
+            return (
+                cache_key,
+                (
+                    screenshot_obj.get_from_cache_key(
+                        cache_key,
+                        raise_on_error=True,
+                    )
+                    if cache_key
                     else None
                 ),
-                dashboard_id=dashboard.id,
-                dashboard_url=dashboard_url,
-                thumb_size=thumb_size,
-                window_size=window_size,
-                cache_key=cache_key,
-                force=force,
             )
-            return build_response(202)
-        return build_response(200)
+
+        def should_enqueue(cache_payload: ScreenshotCachePayload) -> bool:
+            return cache_payload.should_enqueue_task(
+                force,
+                expected_scope=cache_scope,
+                force_retry_after_seconds=SCREENSHOT_API_FORCE_RETRY_SECONDS,
+            )
+
+        try:
+            observed_cache_key, observed_payload = get_generation()
+        except ScreenshotCacheError:
+            logger.exception("Screenshot cache read failed: %s", request_cache_key)
+            return self.response(
+                503,
+                message=gettext("Screenshot cache is unavailable"),
+            )
+
+        if (
+            observed_cache_key
+            and observed_payload
+            and not should_enqueue(observed_payload)
+        ):
+            return build_response(200, observed_cache_key, observed_payload)
+
+        # Publish Pending before broker I/O so contenders can join it without
+        # waiting for the producer lock's full lease. Keep broker publication
+        # inside the lock to coalesce simultaneous forced requests, but never
+        # mutate the pointer after broker I/O because the lease may have expired.
+        lock_deadline = time.monotonic() + SCREENSHOT_API_LOCK_WAIT_SECONDS
+        while True:
+            lock_response: WerkzeugResponse | None = None
+            try:
+                with DistributedLock(
+                    namespace=SCREENSHOT_API_LOCK_NAMESPACE,
+                    request_cache_key=request_cache_key,
+                    ttl_seconds=SCREENSHOT_API_LOCK_TTL_SECONDS,
+                ):
+                    try:
+                        cache_key, cached_payload = get_generation()
+                    except ScreenshotCacheError:
+                        logger.exception(
+                            "Screenshot cache read failed: %s",
+                            request_cache_key,
+                        )
+                        lock_response = self.response(
+                            503,
+                            message=gettext("Screenshot cache is unavailable"),
+                        )
+                        return lock_response
+
+                    cache_payload = cached_payload or ScreenshotCachePayload(
+                        scope=cache_scope
+                    )
+                    if cached_payload is not None:
+                        if cache_key is None:
+                            logger.error(
+                                "Screenshot generation payload has no cache key: %s",
+                                request_cache_key,
+                            )
+                            lock_response = self.response(
+                                503,
+                                message=gettext("Screenshot cache is unavailable"),
+                            )
+                            return lock_response
+                        if cache_key != observed_cache_key or not should_enqueue(
+                            cache_payload
+                        ):
+                            lock_response = build_response(
+                                200, cache_key, cache_payload
+                            )
+                            return lock_response
+
+                    logger.info("Triggering screenshot ASYNC")
+                    next_cache_key = screenshot_obj.get_next_api_generation_cache_key(
+                        request_cache_key,
+                        cache_key,
+                    )
+                    cache_payload = ScreenshotCachePayload(scope=cache_scope)
+                    cache_payload.pending()
+                    try:
+                        screenshot_obj.store_cache_payload(
+                            next_cache_key,
+                            cache_payload,
+                        )
+                        # Make the reservation visible before broker I/O. A
+                        # failed publish is converted to terminal Error, and an
+                        # explicit force can replace an abandoned reservation
+                        # after the producer lease.
+                        published = screenshot_obj.set_current_api_generation_cache_key(
+                            request_cache_key,
+                            next_cache_key,
+                            cache_scope,
+                            cache_key,
+                        )
+                    except ScreenshotCacheError:
+                        logger.exception(
+                            "Screenshot task preparation failed: %s",
+                            next_cache_key,
+                        )
+                        lock_response = self.response(
+                            503,
+                            message=gettext("Screenshot cache is unavailable"),
+                        )
+                        return lock_response
+
+                    if not published:
+                        try:
+                            winner_cache_key, winner_payload = get_generation()
+                        except ScreenshotCacheError:
+                            logger.exception(
+                                "Screenshot generation winner read failed: %s",
+                                request_cache_key,
+                            )
+                            lock_response = self.response(
+                                503,
+                                message=gettext("Screenshot cache is unavailable"),
+                            )
+                            return lock_response
+                        if winner_cache_key is None or winner_payload is None:
+                            logger.error(
+                                "Screenshot generation publication lost without a "
+                                "readable winner: %s",
+                                request_cache_key,
+                            )
+                            lock_response = self.response(
+                                503,
+                                message=gettext("Screenshot cache is unavailable"),
+                            )
+                            return lock_response
+                        lock_response = build_response(
+                            200,
+                            winner_cache_key,
+                            winner_payload,
+                        )
+                        return lock_response
+
+                    try:
+                        cache_dashboard_screenshot.delay(
+                            username=get_current_user(),
+                            guest_token=(
+                                g.user.guest_token
+                                if get_current_user() and isinstance(g.user, GuestUser)
+                                else None
+                            ),
+                            dashboard_id=dashboard.id,
+                            dashboard_url=dashboard_url,
+                            thumb_size=thumb_size,
+                            window_size=window_size,
+                            cache_key=next_cache_key,
+                            # The API selected a unique generation. Duplicate
+                            # deliveries should never force a completed result
+                            # to recompute.
+                            force=False,
+                        )
+                    except Exception:  # pylint: disable=broad-except
+                        screenshot_obj.mark_cache_error_if_incomplete(
+                            next_cache_key,
+                            cache_scope,
+                        )
+                        raise
+                    lock_response = build_response(202, next_cache_key, cache_payload)
+                    return lock_response
+            except ReleaseDistributedLockFailedException:
+                if lock_response is not None:
+                    logger.warning(
+                        "Screenshot request completed but its producer lock could "
+                        "not be released: %s",
+                        request_cache_key,
+                        exc_info=True,
+                    )
+                    return lock_response
+                logger.exception(
+                    "Could not release screenshot producer lock: %s",
+                    request_cache_key,
+                )
+                return self.response(
+                    503,
+                    message=gettext("Screenshot request is temporarily unavailable"),
+                )
+            except LockAlreadyHeldException:
+                try:
+                    cache_key = get_current_cache_key()
+                except ScreenshotCacheError:
+                    logger.exception(
+                        "Screenshot request pointer read failed while awaiting "
+                        "producer: %s",
+                        request_cache_key,
+                    )
+                    return self.response(
+                        503,
+                        message=gettext("Screenshot cache is unavailable"),
+                    )
+
+                if cache_key and cache_key != observed_cache_key:
+                    try:
+                        _, current_payload = get_generation(cache_key)
+                    except ScreenshotCacheError:
+                        logger.exception(
+                            "Screenshot cache read failed while awaiting producer: %s",
+                            request_cache_key,
+                        )
+                        return self.response(
+                            503,
+                            message=gettext("Screenshot cache is unavailable"),
+                        )
+                    if current_payload is None:
+                        logger.error(
+                            "Published screenshot generation has no payload: %s",
+                            cache_key,
+                        )
+                        return self.response(
+                            503,
+                            message=gettext("Screenshot cache is unavailable"),
+                        )
+                    return build_response(200, cache_key, current_payload)
+                if time.monotonic() >= lock_deadline:
+                    logger.warning(
+                        "Timed out waiting for screenshot producer: %s",
+                        request_cache_key,
+                    )
+                    return self.response(
+                        503,
+                        message=gettext(
+                            "Screenshot request is temporarily unavailable"
+                        ),
+                    )
+                time.sleep(SCREENSHOT_API_LOCK_RETRY_SECONDS)
+            except AcquireDistributedLockFailedException:
+                logger.exception(
+                    "Could not coordinate screenshot request: %s",
+                    request_cache_key,
+                )
+                return self.response(
+                    503,
+                    message=gettext("Screenshot request is temporarily unavailable"),
+                )
 
     @expose("/<pk>/screenshot/<digest>/", methods=("GET",))
     @validate_feature_flags(["THUMBNAILS", "ENABLE_DASHBOARD_SCREENSHOT_ENDPOINTS"])
@@ -1530,10 +2572,20 @@ class DashboardRestApi(CustomTagsOptimizationMixin, BaseSupersetModelRestApi):
         # fetch the dashboard screenshot using the current user and cache if set
 
         if cache_payload := DashboardScreenshot.get_from_cache_key(digest):
+            # The digest is caller-supplied and cache entries are shared across
+            # every dashboard (and, via the same backend, charts) -- without
+            # this check any cache_key learned for one dashboard would serve
+            # its image under a different, merely-accessible `pk`.
+            if cache_payload.get_scope() != f"dashboard:{dashboard.id}":
+                return self.response_404()
             try:
                 image = cache_payload.get_image()
             except ScreenshotImageNotAvailableException:
-                return self.response_404()
+                return self.response(
+                    404,
+                    message=gettext("Not found"),
+                    extra={"task_status": cache_payload.get_status()},
+                )
 
             filename = get_filename(
                 dashboard.dashboard_title or "screenshot", dashboard.id, skip_id=True
@@ -1648,7 +2700,6 @@ class DashboardRestApi(CustomTagsOptimizationMixin, BaseSupersetModelRestApi):
                 "Triggering thumbnail compute (dashboard id: %s) ASYNC",
                 str(dashboard.id),
             )
-            screenshot_obj.cache.set(cache_key, ScreenshotCachePayload().to_dict())
             cache_dashboard_thumbnail.delay(
                 current_user=current_user,
                 dashboard_id=dashboard.id,
@@ -1851,6 +2902,15 @@ class DashboardRestApi(CustomTagsOptimizationMixin, BaseSupersetModelRestApi):
     @requires_form_data
     def import_(self) -> Response:
         """Import dashboard(s) with associated charts/datasets/databases.
+
+        When the ``SOFT_DELETE`` feature flag is enabled and an imported
+        dashboard's UUID matches an existing **soft-deleted** dashboard, the
+        import restores that dashboard and applies the upload's contents —
+        **even when ``overwrite`` is not set**. Active dashboards keep the
+        usual contract (never mutated without ``overwrite=true``); a
+        soft-deleted UUID match is treated as an explicit request to bring
+        the dashboard back. Requires ``can_write`` and editorship of the
+        deleted row (or admin). See UPDATING.md for details.
         ---
         post:
           summary: Import dashboard(s) with associated charts/datasets/databases
@@ -1875,6 +2935,10 @@ class DashboardRestApi(CustomTagsOptimizationMixin, BaseSupersetModelRestApi):
                       type: string
                     overwrite:
                       description: overwrite existing dashboards?
+                      type: boolean
+                    overwrite_all:
+                      description: >-
+                        overwrite all existing assets within the dashboard?
                       type: boolean
                     ssh_tunnel_passwords:
                       description: >-
@@ -1938,6 +3002,7 @@ class DashboardRestApi(CustomTagsOptimizationMixin, BaseSupersetModelRestApi):
             else None
         )
         overwrite = request.form.get("overwrite") == "true"
+        overwrite_all = parse_boolean_string(request.form.get("overwrite_all", "false"))
 
         ssh_tunnel_passwords = (
             json.loads(request.form["ssh_tunnel_passwords"])
@@ -1959,6 +3024,7 @@ class DashboardRestApi(CustomTagsOptimizationMixin, BaseSupersetModelRestApi):
             contents,
             passwords=passwords,
             overwrite=overwrite,
+            overwrite_all=overwrite_all,
             ssh_tunnel_passwords=ssh_tunnel_passwords,
             ssh_tunnel_private_keys=ssh_tunnel_private_keys,
             ssh_tunnel_priv_key_passwords=ssh_tunnel_priv_key_passwords,
@@ -2131,7 +3197,10 @@ class DashboardRestApi(CustomTagsOptimizationMixin, BaseSupersetModelRestApi):
             500:
               $ref: '#/components/responses/500'
         """
-        DeleteEmbeddedDashboardCommand(dashboard).run()
+        try:
+            DeleteEmbeddedDashboardCommand(dashboard).run()
+        except DashboardForbiddenError:
+            return self.response_403()
         return self.response(200, message="OK")
 
     @expose("/<id_or_slug>/copy/", methods=("POST",))
@@ -2204,4 +3273,257 @@ class DashboardRestApi(CustomTagsOptimizationMixin, BaseSupersetModelRestApi):
                     microsecond=0
                 ).timestamp(),
             },
+        )
+
+    @expose("/<uuid_str>/versions/", methods=("GET",))
+    @protect()
+    @safe
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.list_versions",
+        log_to_statsd=False,
+    )
+    def list_versions(self, uuid_str: str) -> Response:
+        """List version history for a dashboard.
+        ---
+        get:
+          summary: Return the version history for a dashboard
+          parameters:
+          - in: path
+            schema:
+              type: string
+              format: uuid
+            name: uuid_str
+            description: Dashboard UUID
+          responses:
+            200:
+              description: Version history ordered by oldest first
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      result:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/VersionListItemSchema'
+                      count:
+                        type: integer
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
+            404:
+              $ref: '#/components/responses/404'
+        """
+        return list_versions_endpoint(self, Dashboard, uuid_str)
+
+    @expose(
+        "/<uuid_str>/versions/<version_uuid_str>/",
+        methods=("GET",),
+    )
+    @protect()
+    @safe
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.get_version",  # noqa: E501
+        log_to_statsd=False,
+    )
+    def get_version(self, uuid_str: str, version_uuid_str: str) -> Response:
+        """Return the dashboard's state at a specific version.
+        ---
+        get:
+          summary: Read-only snapshot of the dashboard at a given version
+          parameters:
+          - in: path
+            schema:
+              type: string
+              format: uuid
+            name: uuid_str
+            description: Dashboard UUID
+          - in: path
+            schema:
+              type: string
+              format: uuid
+            name: version_uuid_str
+            description: Version UUID as returned by the list endpoint
+          responses:
+            200:
+              description: Snapshot of the dashboard at the target version
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      result:
+                        type: object
+                        description: >-
+                          The dashboard's scalar fields at the target version
+                          (entity-specific keys), plus a `_version` block
+                          with the version-level metadata.
+                        properties:
+                          _version:
+                            $ref: '#/components/schemas/VersionListItemSchema'
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
+            404:
+              $ref: '#/components/responses/404'
+        """
+        return get_version_endpoint(self, Dashboard, uuid_str, version_uuid_str)
+
+    @expose("/<uuid_str>/activity/", methods=("GET",))
+    @protect()
+    @safe
+    @permission_name("get")
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.activity",
+        log_to_statsd=False,
+    )
+    def activity(self, uuid_str: str) -> Response:
+        """Return the cross-entity activity stream for a dashboard.
+        ---
+        get:
+          summary: Activity stream — dashboard own edits + transitive
+            chart-on-dashboard and dataset-via-chart edits, time-bounded
+            by association windows
+          parameters:
+          - in: path
+            schema:
+              type: string
+              format: uuid
+            name: uuid_str
+            description: Dashboard UUID
+          - in: query
+            schema:
+              type: string
+              format: date-time
+            name: since
+            description: Lower bound on issued_at (ISO 8601, UTC)
+          - in: query
+            schema:
+              type: string
+              format: date-time
+            name: until
+            description: Upper bound on issued_at (ISO 8601, UTC)
+          - in: query
+            schema:
+              type: string
+              enum: [self, related, all]
+              default: all
+            name: include
+          - in: query
+            schema:
+              type: string
+            name: q
+            description: >-
+              Case-insensitive search over the full history (summary,
+              entity name, kind, path, values) — applied before
+              pagination, so `count` reflects the matches.
+          - in: query
+            schema:
+              type: integer
+              minimum: 0
+              default: 0
+            name: page
+          - in: query
+            schema:
+              type: integer
+              minimum: 1
+              maximum: 200
+              default: 25
+            name: page_size
+          responses:
+            200:
+              description: Activity stream ordered newest-first
+              content:
+                application/json:
+                  schema: ActivityResponseSchema
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
+            404:
+              $ref: '#/components/responses/404'
+        """
+        # pylint: disable=import-outside-toplevel
+        from superset.versioning.activity import activity_endpoint
+
+        return activity_endpoint(self, Dashboard, uuid_str, request.args)
+
+    @expose(
+        "/<uuid_str>/versions/<version_uuid_str>/restore",
+        methods=("POST",),
+    )
+    @protect()
+    @safe
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: (
+            f"{self.__class__.__name__}.restore_version"
+        ),
+        log_to_statsd=False,
+    )
+    def restore_version(self, uuid_str: str, version_uuid_str: str) -> Response:
+        """Restore a dashboard to a previous version.
+        ---
+        post:
+          summary: Revert a dashboard to an earlier version (non-destructive)
+          parameters:
+          - in: path
+            schema:
+              type: string
+              format: uuid
+            name: uuid_str
+            description: Dashboard UUID
+          - in: path
+            schema:
+              type: string
+              format: uuid
+            name: version_uuid_str
+            description: >-
+              Version UUID as returned by the list-versions endpoint.
+              Stable across retention pruning.
+          responses:
+            200:
+              description: Dashboard was restored
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      message:
+                        type: string
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
+            404:
+              $ref: '#/components/responses/404'
+            422:
+              $ref: '#/components/responses/422'
+        """
+        # pylint: disable=import-outside-toplevel
+        # Local import: the command module transitively imports the
+        # versioning bootstrap graph; see changes/listener.py.
+        from superset.commands.dashboard.restore_version import (
+            RestoreDashboardVersionCommand,
+        )
+
+        return restore_version_endpoint(
+            self,
+            Dashboard,
+            RestoreDashboardVersionCommand,
+            uuid_str,
+            version_uuid_str,
         )

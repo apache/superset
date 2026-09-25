@@ -19,7 +19,7 @@
 import { useState, useEffect } from 'react';
 import { t } from '@apache-superset/core/translation';
 import { styled } from '@apache-superset/core/theme';
-import { debounce } from 'lodash';
+import { debounce } from 'lodash-es';
 import {
   Badge,
   InfoTooltip,
@@ -30,10 +30,9 @@ import {
 import { EditorHost } from 'src/core/editors';
 import useQueryEditor from 'src/SqlLab/hooks/useQueryEditor';
 
-const StyledEditorHost = styled(EditorHost)`
-  &.ace_editor {
-    border: 1px solid ${({ theme }) => theme.colorBorder};
-  }
+const EditorOutline = styled.div`
+  border: 1px solid ${({ theme }) => theme.colorBorder};
+  border-radius: ${({ theme }) => theme.borderRadius}px;
 `;
 
 const StyledParagraph = styled.p`
@@ -87,14 +86,16 @@ const TemplateParamsEditor = ({
         </a>{' '}
         {t('syntax.')}
       </StyledParagraph>
-      <StyledEditorHost
-        id={`template-params-${queryEditorId}`}
-        height="800px"
-        onChange={debounce(onChange, Constants.FAST_DEBOUNCE)}
-        language={language === 'yaml' ? 'yaml' : 'json'}
-        width="100%"
-        value={code}
-      />
+      <EditorOutline>
+        <EditorHost
+          id={`template-params-${queryEditorId}`}
+          height="360px"
+          onChange={debounce(onChange, Constants.FAST_DEBOUNCE)}
+          language={language === 'yaml' ? 'yaml' : 'json'}
+          width="100%"
+          value={code}
+        />
+      </EditorOutline>
     </div>
   );
 
@@ -110,7 +111,9 @@ const TemplateParamsEditor = ({
           title={t('Edit template parameters')}
           trigger={['hover']}
         >
-          <div role="button" css={{ width: 'inherit' }}>
+          {/* ModalTrigger's own wrapper div already provides role="button"
+              and the click handler; this inner div is just layout. */}
+          <div css={{ width: 'inherit' }}>
             {t('Parameters ')}
             <Badge count={paramCount} />
             {!isValid && (

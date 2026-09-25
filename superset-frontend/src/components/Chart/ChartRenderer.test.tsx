@@ -22,6 +22,7 @@ import {
   getChartMetadataRegistry,
   VizType,
   JsonObject,
+  FeatureFlag,
   FeatureFlagMap,
 } from '@superset-ui/core';
 import ChartRenderer, {
@@ -46,6 +47,12 @@ jest.mock('@superset-ui/core', () => ({
     <div
       data-test="mock-super-chart"
       data-is-refreshing={isRefreshing ? 'true' : 'false'}
+      data-enable-no-results={props.enableNoResults ? 'true' : 'false'}
+      data-async-mode={String(
+        (props.hooks as { resolveAsyncMode?: () => boolean } | undefined)?.[
+          'resolveAsyncMode'
+        ]?.(),
+      )}
     >
       {JSON.stringify(postTransformProps(props).formData)}
     </div>
@@ -82,7 +89,7 @@ const mockActions: MockActions = {
   ) => Dispatch,
 };
 
-const requiredProps: Partial<ChartRendererProps> = {
+const requiredProps: ChartRendererProps = {
   chartId: 1,
   datasource: {} as ChartRendererProps['datasource'],
   formData: {
@@ -111,17 +118,14 @@ afterAll(() => {
 
 test('should render SuperChart', () => {
   const { getByTestId } = render(
-    <ChartRenderer
-      {...(requiredProps as ChartRendererProps)}
-      chartIsStale={false}
-    />,
+    <ChartRenderer {...requiredProps} chartIsStale={false} />,
   );
   expect(getByTestId('mock-super-chart')).toBeInTheDocument();
 });
 
 test('should use latestQueryFormData instead of formData when chartIsStale is true', () => {
   const { getByTestId } = render(
-    <ChartRenderer {...(requiredProps as ChartRendererProps)} chartIsStale />,
+    <ChartRenderer {...requiredProps} chartIsStale />,
   );
   expect(getByTestId('mock-super-chart')).toHaveTextContent(
     JSON.stringify({
@@ -131,9 +135,7 @@ test('should use latestQueryFormData instead of formData when chartIsStale is tr
 });
 
 test('should render chart context menu', () => {
-  const { getByTestId } = render(
-    <ChartRenderer {...(requiredProps as ChartRendererProps)} />,
-  );
+  const { getByTestId } = render(<ChartRenderer {...requiredProps} />);
   expect(getByTestId('mock-chart-context-menu')).toBeInTheDocument();
 });
 
@@ -143,21 +145,43 @@ test('should not render chart context menu if the context menu is suppressed for
     new ChartMetadata({
       name: 'chart with suppressed context menu',
       thumbnail: '.png',
-      useLegacyApi: false,
       suppressContextMenu: true,
     }),
   );
   const { queryByTestId } = render(
-    <ChartRenderer
-      {...(requiredProps as ChartRendererProps)}
-      vizType="chart_without_context_menu"
-    />,
+    <ChartRenderer {...requiredProps} vizType="chart_without_context_menu" />,
   );
   expect(queryByTestId('mock-chart-context-menu')).not.toBeInTheDocument();
 });
 
+test('enables the no-results state by default for a chart without enableNoResults metadata', () => {
+  const { getByTestId } = render(<ChartRenderer {...requiredProps} />);
+  expect(getByTestId('mock-super-chart')).toHaveAttribute(
+    'data-enable-no-results',
+    'true',
+  );
+});
+
+test('honors enableNoResults: false from the chart metadata (e.g. self-fetching charts like deck.gl Multiple Layers)', () => {
+  getChartMetadataRegistry().registerValue(
+    'chart_without_no_results',
+    new ChartMetadata({
+      name: 'chart that fetches its own data',
+      thumbnail: '.png',
+      enableNoResults: false,
+    }),
+  );
+  const { getByTestId } = render(
+    <ChartRenderer {...requiredProps} vizType="chart_without_no_results" />,
+  );
+  expect(getByTestId('mock-super-chart')).toHaveAttribute(
+    'data-enable-no-results',
+    'false',
+  );
+});
+
 test('should detect changes in matrixify properties', () => {
-  const initialProps: Partial<ChartRendererProps> = {
+  const initialProps: ChartRendererProps = {
     ...requiredProps,
     formData: {
       ...requiredProps.formData,
@@ -173,41 +197,34 @@ test('should detect changes in matrixify properties', () => {
     chartStatus: 'success',
   };
 
-  render(<ChartRenderer {...(initialProps as ChartRendererProps)} />);
+  const { getByTestId } = render(<ChartRenderer {...initialProps} />);
 
-  // Since we can't directly test shouldComponentUpdate, we verify the component
-  // correctly identifies matrixify-related properties by checking the implementation
-  expect((initialProps.formData as JsonObject).matrixify_mode_rows).toBe(
-    'metrics',
+  // Verify matrixify-related formData is forwarded through to the chart
+  expect(getByTestId('mock-super-chart')).toHaveTextContent(
+    JSON.stringify(initialProps.formData),
   );
-  expect((initialProps.formData as JsonObject).matrixify_dimension_x).toEqual({
-    dimension: 'country',
-    values: ['USA'],
-  });
 });
 
 test('should detect changes in postTransformProps', () => {
   const postTransformProps = jest.fn((x: JsonObject) => x);
-  const initialProps: Partial<ChartRendererProps> = {
+  const initialProps: ChartRendererProps = {
     ...requiredProps,
     queriesResponse: [{ data: 'initial' } as unknown as JsonObject],
     chartStatus: 'success',
   };
-  const { rerender } = render(
-    <ChartRenderer {...(initialProps as ChartRendererProps)} />,
-  );
-  const updatedProps: Partial<ChartRendererProps> = {
+  const { rerender } = render(<ChartRenderer {...initialProps} />);
+  const updatedProps: ChartRendererProps = {
     ...initialProps,
     postTransformProps,
   };
   expect(postTransformProps).toHaveBeenCalledTimes(0);
-  rerender(<ChartRenderer {...(updatedProps as ChartRendererProps)} />);
+  rerender(<ChartRenderer {...updatedProps} />);
   expect(postTransformProps).toHaveBeenCalledTimes(1);
 });
 
 test('should identify matrixify property changes correctly', () => {
   // Test that formData with different matrixify properties triggers updates
-  const initialProps: Partial<ChartRendererProps> = {
+  const initialProps: ChartRendererProps = {
     ...requiredProps,
     formData: {
       datasource: '',
@@ -221,16 +238,14 @@ test('should identify matrixify property changes correctly', () => {
     chartStatus: 'success',
   };
 
-  const { rerender, getByTestId } = render(
-    <ChartRenderer {...(initialProps as ChartRendererProps)} />,
-  );
+  const { rerender, getByTestId } = render(<ChartRenderer {...initialProps} />);
 
   expect(getByTestId('mock-super-chart')).toHaveTextContent(
     JSON.stringify(initialProps.formData),
   );
 
   // Update with changed matrixify_dimension_x values
-  const updatedProps: Partial<ChartRendererProps> = {
+  const updatedProps: ChartRendererProps = {
     ...initialProps,
     formData: {
       datasource: '',
@@ -245,7 +260,7 @@ test('should identify matrixify property changes correctly', () => {
     },
   };
 
-  rerender(<ChartRenderer {...(updatedProps as ChartRendererProps)} />);
+  rerender(<ChartRenderer {...updatedProps} />);
 
   // Verify the component re-rendered with new props
   expect(getByTestId('mock-super-chart')).toHaveTextContent(
@@ -254,7 +269,7 @@ test('should identify matrixify property changes correctly', () => {
 });
 
 test('should handle matrixify-related form data changes', () => {
-  const initialProps: Partial<ChartRendererProps> = {
+  const initialProps: ChartRendererProps = {
     ...requiredProps,
     formData: {
       datasource: '',
@@ -265,16 +280,14 @@ test('should handle matrixify-related form data changes', () => {
     chartStatus: 'success',
   };
 
-  const { rerender, getByTestId } = render(
-    <ChartRenderer {...(initialProps as ChartRendererProps)} />,
-  );
+  const { rerender, getByTestId } = render(<ChartRenderer {...initialProps} />);
 
   expect(getByTestId('mock-super-chart')).toHaveTextContent(
     JSON.stringify(initialProps.formData),
   );
 
   // Enable matrixify
-  const updatedProps: Partial<ChartRendererProps> = {
+  const updatedProps: ChartRendererProps = {
     ...initialProps,
     formData: {
       datasource: '',
@@ -285,7 +298,7 @@ test('should handle matrixify-related form data changes', () => {
     },
   };
 
-  rerender(<ChartRenderer {...(updatedProps as ChartRendererProps)} />);
+  rerender(<ChartRenderer {...updatedProps} />);
 
   // Verify the component re-rendered with matrixify enabled
   expect(getByTestId('mock-super-chart')).toHaveTextContent(
@@ -294,7 +307,7 @@ test('should handle matrixify-related form data changes', () => {
 });
 
 test('should detect matrixify property addition', () => {
-  const initialProps: Partial<ChartRendererProps> = {
+  const initialProps: ChartRendererProps = {
     ...requiredProps,
     formData: {
       datasource: '',
@@ -307,16 +320,14 @@ test('should detect matrixify property addition', () => {
     chartStatus: 'success',
   };
 
-  const { rerender, getByTestId } = render(
-    <ChartRenderer {...(initialProps as ChartRendererProps)} />,
-  );
+  const { rerender, getByTestId } = render(<ChartRenderer {...initialProps} />);
 
   expect(getByTestId('mock-super-chart')).toHaveTextContent(
     JSON.stringify(initialProps.formData),
   );
 
   // Add matrixify_dimension_x
-  const updatedProps: Partial<ChartRendererProps> = {
+  const updatedProps: ChartRendererProps = {
     ...initialProps,
     formData: {
       datasource: '',
@@ -327,7 +338,7 @@ test('should detect matrixify property addition', () => {
     },
   };
 
-  rerender(<ChartRenderer {...(updatedProps as ChartRendererProps)} />);
+  rerender(<ChartRenderer {...updatedProps} />);
 
   // Verify the component re-rendered with the new property
   expect(getByTestId('mock-super-chart')).toHaveTextContent(
@@ -336,7 +347,7 @@ test('should detect matrixify property addition', () => {
 });
 
 test('should detect nested matrixify property changes', () => {
-  const initialProps: Partial<ChartRendererProps> = {
+  const initialProps: ChartRendererProps = {
     ...requiredProps,
     formData: {
       datasource: '',
@@ -353,16 +364,14 @@ test('should detect nested matrixify property changes', () => {
     chartStatus: 'success',
   };
 
-  const { rerender, getByTestId } = render(
-    <ChartRenderer {...(initialProps as ChartRendererProps)} />,
-  );
+  const { rerender, getByTestId } = render(<ChartRenderer {...initialProps} />);
 
   expect(getByTestId('mock-super-chart')).toHaveTextContent(
     JSON.stringify(initialProps.formData),
   );
 
   // Change nested topN value
-  const updatedProps: Partial<ChartRendererProps> = {
+  const updatedProps: ChartRendererProps = {
     ...initialProps,
     formData: {
       datasource: '',
@@ -377,7 +386,7 @@ test('should detect nested matrixify property changes', () => {
     },
   };
 
-  rerender(<ChartRenderer {...(updatedProps as ChartRendererProps)} />);
+  rerender(<ChartRenderer {...updatedProps} />);
 
   // Verify the component re-rendered with the nested change
   expect(getByTestId('mock-super-chart')).toHaveTextContent(
@@ -432,6 +441,34 @@ test('does not mark chart as refreshing when spinner suppression is disabled', (
     'data-is-refreshing',
     'false',
   );
+});
+
+test('threads the per-dashboard async_mode override into resolveAsyncMode for self-contained charts', () => {
+  // Self-contained charts (e.g. StatefulChart / the Matrixify path) resolve
+  // async mode through the injected `resolveAsyncMode` hook; it must receive the
+  // dashboard override so `force_on`/`force_off` win over the deployment default,
+  // matching the Redux chart path. GAQ must be on for the override to matter.
+  const previousFlags = window.featureFlags;
+  window.featureFlags = {
+    ...previousFlags,
+    [FeatureFlag.GlobalAsyncQueries]: true,
+  } as FeatureFlagMap;
+  try {
+    const { getByTestId, rerender } = render(
+      <ChartRenderer {...requiredProps} asyncModeOverride="force_off" />,
+    );
+    expect(getByTestId('mock-super-chart')).toHaveAttribute(
+      'data-async-mode',
+      'false',
+    );
+    rerender(<ChartRenderer {...requiredProps} asyncModeOverride="force_on" />);
+    expect(getByTestId('mock-super-chart')).toHaveAttribute(
+      'data-async-mode',
+      'true',
+    );
+  } finally {
+    window.featureFlags = previousFlags;
+  }
 });
 
 test('does not render chart during loading when last data has errors', () => {

@@ -26,7 +26,7 @@ export const getTimeOffset = (
   timeCompare.find(
     timeOffset =>
       // offset is represented as <offset>, group by list
-      series.name.includes(`${timeOffset},`) ||
+      series.name.startsWith(`${timeOffset},`) ||
       // offset is represented as <metric>__<offset>
       series.name.includes(`__${timeOffset}`) ||
       // offset is represented as <metric>, <offset>
@@ -50,7 +50,9 @@ export const getOriginalSeries = (
     // offset in the middle: <metric>, <offset>, <dimension>
     result = result.replace(`, ${compare},`, ',');
     // offset at start: <offset>, <dimension>
-    result = result.replace(`${compare},`, '');
+    if (result.startsWith(`${compare},`)) {
+      result = result.slice(`${compare},`.length);
+    }
     // offset with double underscore: <metric>__<offset>
     result = result.replace(`__${compare}`, '');
     // offset at end: <metric>, <offset>

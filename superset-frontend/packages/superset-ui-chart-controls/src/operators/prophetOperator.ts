@@ -16,8 +16,20 @@
  * specific language governing permissions and limitationsxw
  * under the License.
  */
-import { PostProcessingProphet, getXAxisLabel } from '@superset-ui/core';
+import {
+  PostProcessingProphet,
+  TimeGranularity,
+  getXAxisColumn,
+  getXAxisLabel,
+  isAdhocColumn,
+} from '@superset-ui/core';
 import { PostProcessingFactory } from './types';
+
+// Fallback grain used only when no time grain can be resolved from the form
+// data, query object, or x-axis column. Matches the `time_grain_sqla` control
+// default in sharedControls so forecasting stays functional rather than failing
+// with an opaque backend error.
+const DEFAULT_TIME_GRAIN = TimeGranularity.DAY;
 
 /* eslint-disable @typescript-eslint/no-unused-vars */
 export const prophetOperator: PostProcessingFactory<PostProcessingProphet> = (
@@ -26,10 +38,25 @@ export const prophetOperator: PostProcessingFactory<PostProcessingProphet> = (
 ) => {
   const xAxisLabel = getXAxisLabel(formData);
   if (formData.forecastEnabled && xAxisLabel) {
+    // The effective time grain can live in several places depending on how the
+    // chart was configured. Prefer, in order:
+    //   1. the grain popover on an adhoc x-axis column (generic x-axis),
+    //   2. the grain resolved onto the query object's extras (picks up
+    //      dashboard-applied grains and the panel control),
+    //   3. the `time_grain_sqla` panel control on the form data directly.
+    // Fall back to a daily grain so a saved/dashboard chart with the grain
+    // cleared to "None" still forecasts instead of raising a backend error.
+    const xAxisColumn = getXAxisColumn(formData);
+    const timeGrain =
+      (isAdhocColumn(xAxisColumn) &&
+        (xAxisColumn.timeGrain as TimeGranularity)) ||
+      queryObject.extras?.time_grain_sqla ||
+      formData.time_grain_sqla ||
+      DEFAULT_TIME_GRAIN;
     return {
       operation: 'prophet',
       options: {
-        time_grain: formData.time_grain_sqla,
+        time_grain: timeGrain,
         periods: parseInt(formData.forecastPeriods, 10),
         confidence_interval: parseFloat(formData.forecastInterval),
         yearly_seasonality: formData.forecastSeasonalityYearly,

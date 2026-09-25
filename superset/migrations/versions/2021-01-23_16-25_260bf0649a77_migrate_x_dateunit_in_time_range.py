@@ -34,7 +34,7 @@ from sqlalchemy import Column, Integer, or_, Text  # noqa: E402
 from sqlalchemy.dialects.mysql.base import MySQLDialect  # noqa: E402
 from sqlalchemy.dialects.sqlite.base import SQLiteDialect  # noqa: E402
 from sqlalchemy.exc import OperationalError  # noqa: E402
-from sqlalchemy.ext.declarative import declarative_base  # noqa: E402
+from sqlalchemy.orm import declarative_base  # noqa: E402
 
 from superset import db  # noqa: E402
 from superset.utils import json  # noqa: E402

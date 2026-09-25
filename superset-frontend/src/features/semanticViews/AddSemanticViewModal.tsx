@@ -16,12 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { t } from '@apache-superset/core/translation';
+import { logging } from '@apache-superset/core/utils';
 import { styled } from '@apache-superset/core/theme';
 import { SupersetClient } from '@superset-ui/core';
-import { Spin } from 'antd';
 import { Select } from '@superset-ui/core/components';
+import { Spin } from '@superset-ui/core/components/Spin';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { JsonForms } from '@jsonforms/react';
 import type { JsonSchema, UISchemaElement } from '@jsonforms/core';
@@ -39,6 +40,7 @@ import {
   getDynamicDependencies,
   areDependenciesSatisfied,
   serializeDependencyValues,
+  stableSerialize,
   SCHEMA_REFRESH_DEBOUNCE_MS,
 } from 'src/features/semanticLayers/jsonFormsHelpers';
 
@@ -200,11 +202,35 @@ export default function AddSemanticViewModal({
     [addDangerToast],
   );
 
+  const lastSchemaJsonRef = useRef('');
+  const refreshErrorToastShownRef = useRef(false);
+  // Incremented per scheduled refresh so an out-of-order response from a
+  // superseded request cannot apply a stale schema, toast, or roll back the
+  // snapshot a newer request committed.
+  const schemaRefreshGenRef = useRef(0);
+  // Dependency state whose failed refresh has already been retried once, so
+  // a persistent outage cannot re-fire on every subsequent form edit.
+  const retriedDepSnapshotRef = useRef('');
   const applyRuntimeSchema = useCallback((rawSchema: JsonSchema) => {
-    const schema = sanitizeSchema(rawSchema);
-    setRuntimeSchema(schema);
-    setRuntimeUiSchema(buildUiSchema(schema));
     dynamicDepsRef.current = getDynamicDependencies(rawSchema);
+    const schema = sanitizeSchema(rawSchema);
+    const uiSchema = buildUiSchema(schema);
+    // Dedupe key = key-order-canonical schema + the derived ui schema.
+    // Canonicalizing alone would hide a refresh whose only change is
+    // property order, but ``buildUiSchema`` derives field display order from
+    // that order when ``x-propertyOrder`` is absent — including the ui schema
+    // keeps such reorderings visible while still ignoring incidental
+    // serialization differences elsewhere.
+    const schemaJson = `${stableSerialize(schema)}|${JSON.stringify(uiSchema)}`;
+    // A refresh response whose sanitized schema is unchanged keeps the
+    // existing object identities: JSON Forms then neither rebuilds its AJV
+    // validator (which caches one compiled copy per schema object — a per-
+    // selection memory leak at large enum sizes) nor remounts the renderer
+    // tree.
+    if (schemaJson === lastSchemaJsonRef.current) return;
+    lastSchemaJsonRef.current = schemaJson;
+    setRuntimeSchema(schema);
+    setRuntimeUiSchema(uiSchema);
   }, []);
 
   const scheduleFetchViews = useCallback(
@@ -238,6 +264,10 @@ export default function AddSemanticViewModal({
       errorsRef.current = [];
       dynamicDepsRef.current = {};
       lastDepSnapshotRef.current = '';
+      lastSchemaJsonRef.current = '';
+      refreshErrorToastShownRef.current = false;
+      retriedDepSnapshotRef.current = '';
+      schemaRefreshGenRef.current += 1;
       setAvailableViews([]);
       setSelectedViewNames([]);
       lastViewsKeyRef.current = '';
@@ -254,7 +284,10 @@ export default function AddSemanticViewModal({
           !schema?.properties ||
           Object.keys(schema.properties).length === 0
         ) {
-          // No runtime config needed — fetch views right away
+          // Preserve top-level runtime metadata (e.g. x-singleView) even when
+          // there are no form fields, then fetch views right away.  Skip the
+          // apply call entirely if the backend returned no schema at all.
+          if (schema) applyRuntimeSchema(schema);
           fetchViews(uuid, {}, gen);
         } else {
           applyRuntimeSchema(schema);
@@ -305,6 +338,8 @@ export default function AddSemanticViewModal({
             lastViewsKeyRef.current = '';
             if (schemaTimerRef.current) clearTimeout(schemaTimerRef.current);
             const uuid = selectedLayerUuid;
+            schemaRefreshGenRef.current += 1;
+            const refreshGen = schemaRefreshGenRef.current;
             schemaTimerRef.current = setTimeout(async () => {
               setRefreshingSchema(true);
               try {
@@ -312,12 +347,52 @@ export default function AddSemanticViewModal({
                   endpoint: `/api/v1/semantic_layer/${uuid}/schema/runtime`,
                   jsonPayload: { runtime_data: data },
                 });
-                if (gen !== fetchGenRef.current) return;
-                applyRuntimeSchema(json.result);
-              } catch {
-                // Silent fail on refresh — form still works
+                if (
+                  gen !== fetchGenRef.current ||
+                  refreshGen !== schemaRefreshGenRef.current
+                )
+                  return;
+                // Reset before applying: the request itself succeeded, so a
+                // throw inside applyRuntimeSchema must not be reported (or
+                // retried) as a transient network failure.
+                refreshErrorToastShownRef.current = false;
+                retriedDepSnapshotRef.current = '';
+                if (json.result) applyRuntimeSchema(json.result);
+              } catch (error) {
+                if (
+                  gen !== fetchGenRef.current ||
+                  refreshGen !== schemaRefreshGenRef.current
+                )
+                  return;
+                logging.error('Runtime schema refresh failed', error);
+                // Allow exactly one retry per dependency state: clearing the
+                // committed snapshot lets the next change event re-attempt
+                // the refresh, but only if this state hasn't been retried
+                // already, so a persistent outage doesn't re-fire on every
+                // edit. Only clear a snapshot this attempt still owns — a
+                // newer change may have committed its own since.
+                if (
+                  lastDepSnapshotRef.current === snapshot &&
+                  retriedDepSnapshotRef.current !== snapshot
+                ) {
+                  retriedDepSnapshotRef.current = snapshot;
+                  lastDepSnapshotRef.current = '';
+                }
+                // The form (and the user's selections) stay intact; only the
+                // dynamic narrowing is stale, so surface it without blocking
+                // — once per outage, not once per debounced attempt.
+                if (!refreshErrorToastShownRef.current) {
+                  refreshErrorToastShownRef.current = true;
+                  addDangerToast(
+                    t('An error occurred while refreshing the runtime schema'),
+                  );
+                }
               } finally {
-                if (gen === fetchGenRef.current) setRefreshingSchema(false);
+                if (
+                  gen === fetchGenRef.current &&
+                  refreshGen === schemaRefreshGenRef.current
+                )
+                  setRefreshingSchema(false);
               }
             }, SCHEMA_REFRESH_DEBOUNCE_MS);
             return;
@@ -330,7 +405,7 @@ export default function AddSemanticViewModal({
         scheduleFetchViews(selectedLayerUuid, data);
       }
     },
-    [selectedLayerUuid, applyRuntimeSchema, scheduleFetchViews],
+    [selectedLayerUuid, applyRuntimeSchema, scheduleFetchViews, addDangerToast],
   );
 
   // After a schema refresh settles, JSON Forms re-validates and fires
@@ -373,6 +448,10 @@ export default function AddSemanticViewModal({
       errorsRef.current = [];
       dynamicDepsRef.current = {};
       lastDepSnapshotRef.current = '';
+      lastSchemaJsonRef.current = '';
+      refreshErrorToastShownRef.current = false;
+      retriedDepSnapshotRef.current = '';
+      schemaRefreshGenRef.current += 1;
       setAvailableViews([]);
       setSelectedViewNames([]);
       setLoadingViews(false);
@@ -453,8 +532,54 @@ export default function AddSemanticViewModal({
     runtimeSchema?.properties &&
     Object.keys(runtimeSchema.properties).length > 0;
 
+  // Stable identity unless its inputs change: JSON Forms hands ``config`` to
+  // every control, so an inline literal would re-render all of them on each
+  // modal render.
+  const jsonFormsConfig = useMemo(
+    () => ({ refreshingSchema, formData: runtimeData }),
+    [refreshingSchema, runtimeData],
+  );
+
+  // Sorted copy — sorting in place would mutate React state during render.
+  const viewOptions = useMemo(
+    () =>
+      [...availableViews]
+        .sort((a, b) => a.name.localeCompare(b.name))
+        .map(v => ({
+          value: v.name,
+          label: v.already_added ? `${v.name} (${t('already added')})` : v.name,
+          disabled: v.already_added,
+        })),
+    [availableViews],
+  );
+
   const viewsDisabled =
     loadingViews || (!loadingViews && availableViews.length === 0);
+
+  // When ``x-singleView: true`` the runtime form fully describes a single
+  // semantic view (e.g. a MetricFlow cube).  Hide the picker and auto-select
+  // whatever ``get_semantic_views`` returned so the Add button can fire
+  // without an extra user click.
+  const singleViewMode =
+    (runtimeSchema as Record<string, unknown> | null)?.['x-singleView'] ===
+    true;
+
+  useEffect(() => {
+    if (!singleViewMode) return;
+    const namesToAdd = availableViews
+      .filter(v => !v.already_added)
+      .map(v => v.name)
+      .slice(0, 1);
+    setSelectedViewNames(prev => {
+      if (
+        prev.length === namesToAdd.length &&
+        prev.every((n, i) => n === namesToAdd[i])
+      ) {
+        return prev;
+      }
+      return namesToAdd;
+    });
+  }, [singleViewMode, availableViews]);
 
   return (
     <StandardModal
@@ -503,7 +628,7 @@ export default function AddSemanticViewModal({
                 data={runtimeData}
                 renderers={renderers}
                 cells={cellRegistryEntries}
-                config={{ refreshingSchema, formData: runtimeData }}
+                config={jsonFormsConfig}
                 validationMode="ValidateAndHide"
                 onChange={handleRuntimeFormChange}
               />
@@ -511,8 +636,12 @@ export default function AddSemanticViewModal({
           </>
         )}
 
-        {/* Semantic Views — always visible once a layer is selected */}
-        {selectedLayerUuid && !loadingRuntime && (
+        {/* Semantic Views — always visible once a layer is selected, unless
+            the runtime schema declares ``x-singleView: true``: extensions
+            (e.g. MetricFlow cubes) whose runtime form fully describes a
+            single view set that flag so the picker disappears and the
+            view is auto-selected when ``get_semantic_views`` returns it. */}
+        {selectedLayerUuid && !loadingRuntime && !singleViewMode && (
           <ModalFormField label={t('Semantic Views')}>
             <Select
               ariaLabel={t('Semantic views')}
@@ -522,15 +651,7 @@ export default function AddSemanticViewModal({
               disabled={viewsDisabled}
               value={selectedViewNames}
               onChange={values => setSelectedViewNames(values as string[])}
-              options={availableViews
-                .sort((a, b) => a.name.localeCompare(b.name))
-                .map(v => ({
-                  value: v.name,
-                  label: v.already_added
-                    ? `${v.name} (${t('already added')})`
-                    : v.name,
-                  disabled: v.already_added,
-                }))}
+              options={viewOptions}
               getPopupContainer={() => document.body}
             />
           </ModalFormField>

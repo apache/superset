@@ -57,7 +57,9 @@ class Db2EngineSpec(BaseEngineSpec):
                 "connection_string": "ibm_db_sa://{username}:{password}@{hostname}:{port}/{database}",
                 "is_recommended": False,
                 "notes": (
-                    "Use for older DB2 versions without LIMIT [n] syntax. "
+                    "Db2 11.1.0 or higher is required to support SQL compatibility "
+                    "enhancements. "
+                    "Use for older Db2 versions without LIMIT [n] syntax. "
                     "Recommended for SQL Lab."
                 ),
             },
@@ -95,21 +97,14 @@ class Db2EngineSpec(BaseEngineSpec):
 
     _time_grain_expressions = {
         None: "{col}",
-        TimeGrain.SECOND: "CAST({col} as TIMESTAMP) - MICROSECOND({col}) MICROSECONDS",
-        TimeGrain.MINUTE: "CAST({col} as TIMESTAMP)"
-        " - SECOND({col}) SECONDS"
-        " - MICROSECOND({col}) MICROSECONDS",
-        TimeGrain.HOUR: "CAST({col} as TIMESTAMP)"
-        " - MINUTE({col}) MINUTES"
-        " - SECOND({col}) SECONDS"
-        " - MICROSECOND({col}) MICROSECONDS ",
-        TimeGrain.DAY: "DATE({col})",
-        TimeGrain.WEEK: "{col} - (DAYOFWEEK({col})) DAYS",
-        TimeGrain.MONTH: "{col} - (DAY({col})-1) DAYS",
-        TimeGrain.QUARTER: "{col} - (DAY({col})-1) DAYS"
-        " - (MONTH({col})-1) MONTHS"
-        " + ((QUARTER({col})-1) * 3) MONTHS",
-        TimeGrain.YEAR: "{col} - (DAY({col})-1) DAYS - (MONTH({col})-1) MONTHS",
+        TimeGrain.SECOND: "DATE_TRUNC('SECOND', {col})",
+        TimeGrain.MINUTE: "DATE_TRUNC('MINUTE', {col})",
+        TimeGrain.HOUR: "DATE_TRUNC('HOUR', {col})",
+        TimeGrain.DAY: "DATE_TRUNC('DAY', {col})",
+        TimeGrain.WEEK: "DATE_TRUNC('WEEK', {col})",
+        TimeGrain.MONTH: "DATE_TRUNC('MONTH', {col})",
+        TimeGrain.QUARTER: "DATE_TRUNC('QUARTER', {col})",
+        TimeGrain.YEAR: "DATE_TRUNC('YEAR', {col})",
     }
 
     @classmethod
@@ -125,23 +120,17 @@ class Db2EngineSpec(BaseEngineSpec):
         """
         Get comment of table from a given schema
 
-        Ibm Db2 return comments as tuples, so we need to get the first element
-
         :param inspector: SqlAlchemy Inspector instance
         :param table: Table instance
         :return: comment of table
         """
-        comment = None
         try:
             table_comment = inspector.get_table_comment(table.table, table.schema)
-            comment = table_comment.get("text")
-            return comment[0]
-        except IndexError:
-            return comment
+            return table_comment.get("text")
         except Exception as ex:  # pylint: disable=broad-except
             logger.error("Unexpected error while fetching table comment", exc_info=True)
             logger.exception(ex)
-            return comment
+            return None
 
     @classmethod
     def get_prequeries(

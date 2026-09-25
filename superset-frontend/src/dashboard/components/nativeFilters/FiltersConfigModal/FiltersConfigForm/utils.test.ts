@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Column } from '@superset-ui/core';
+import { Column, DatasourceType } from '@superset-ui/core';
 import { GenericDataType } from '@apache-superset/core/common';
 import {
   ChartsState,
@@ -31,6 +31,8 @@ import {
   mostUsedDataset,
   doesColumnMatchFilterType,
   getTimeGrainOptions,
+  mapSemanticTypeToGenericDataType,
+  doesChartMatchFilterDatasource,
 } from './utils';
 
 // Test hasTemporalColumns - validates time range pre-filter visibility logic
@@ -302,4 +304,154 @@ test('getTimeGrainOptions falls back to value when tuple label is empty', () => 
     { value: 'P1D', label: 'P1D' },
     { value: 'P1W', label: 'Week' },
   ]);
+});
+
+test('mapSemanticTypeToGenericDataType maps numeric semantic types', () => {
+  expect(mapSemanticTypeToGenericDataType('int64')).toBe(
+    GenericDataType.Numeric,
+  );
+  expect(mapSemanticTypeToGenericDataType('decimal128(10,2)')).toBe(
+    GenericDataType.Numeric,
+  );
+});
+
+test('mapSemanticTypeToGenericDataType maps temporal semantic types', () => {
+  expect(mapSemanticTypeToGenericDataType('timestamp[ms]')).toBe(
+    GenericDataType.Temporal,
+  );
+  expect(mapSemanticTypeToGenericDataType('date32[day]')).toBe(
+    GenericDataType.Temporal,
+  );
+});
+
+test('mapSemanticTypeToGenericDataType maps string and boolean semantic types', () => {
+  expect(mapSemanticTypeToGenericDataType('string')).toBe(
+    GenericDataType.String,
+  );
+  expect(mapSemanticTypeToGenericDataType('bool')).toBe(
+    GenericDataType.Boolean,
+  );
+});
+
+test('mapSemanticTypeToGenericDataType returns undefined for unknown types', () => {
+  expect(mapSemanticTypeToGenericDataType('struct<a:int64>')).toBeUndefined();
+  expect(mapSemanticTypeToGenericDataType(undefined)).toBeUndefined();
+});
+
+test('doesChartMatchFilterDatasource requires matching datasource type for equal IDs', () => {
+  const loadedDatasets = {
+    '7__table': { id: 7, datasource_type: DatasourceType.Table },
+    '7__semantic_view': { id: 7, datasource_type: DatasourceType.SemanticView },
+  } as unknown as DatasourcesState;
+
+  expect(
+    doesChartMatchFilterDatasource(
+      '7__table',
+      loadedDatasets,
+      7,
+      DatasourceType.SemanticView,
+    ),
+  ).toBe(false);
+  expect(
+    doesChartMatchFilterDatasource(
+      '7__semantic_view',
+      loadedDatasets,
+      7,
+      DatasourceType.SemanticView,
+    ),
+  ).toBe(true);
+});
+
+test('doesChartMatchFilterDatasource falls back to datasource UID parsing', () => {
+  const loadedDatasets = {} as DatasourcesState;
+
+  expect(
+    doesChartMatchFilterDatasource('7__semantic_view', loadedDatasets, 7),
+  ).toBe(false);
+  expect(
+    doesChartMatchFilterDatasource(
+      '7__semantic_view',
+      loadedDatasets,
+      7,
+      DatasourceType.SemanticView,
+    ),
+  ).toBe(true);
+});
+
+test('fetchSemanticViewStructure returns name, dimensions, and metrics from the structure payload', async () => {
+  const fetchMock = require('fetch-mock').default;
+  const { fetchSemanticViewStructure: fetchStructure } = require('./utils');
+  fetchMock.get('glob:*/api/v1/semantic_view/9101/structure', {
+    result: {
+      name: 'orders',
+      dimensions: [{ name: 'Orders Status', type: 'VARCHAR' }],
+      metrics: [{ name: 'order_count', definition: 'COUNT(*)' }],
+    },
+  });
+
+  const structure = await fetchStructure(9101);
+
+  expect(structure.name).toBe('orders');
+  expect(structure.dimensions).toEqual([
+    { name: 'Orders Status', type: 'VARCHAR' },
+  ]);
+  expect(structure.metrics).toEqual([
+    { name: 'order_count', definition: 'COUNT(*)' },
+  ]);
+  fetchMock.removeRoutes();
+  fetchMock.clearHistory();
+});
+
+test('fetchSemanticViewStructure defaults missing arrays to empty', async () => {
+  const fetchMock = require('fetch-mock').default;
+  const { fetchSemanticViewStructure: fetchStructure } = require('./utils');
+  fetchMock.get('glob:*/api/v1/semantic_view/9102/structure', {
+    result: { name: 'sparse' },
+  });
+
+  const structure = await fetchStructure(9102);
+
+  expect(structure.dimensions).toEqual([]);
+  expect(structure.metrics).toEqual([]);
+  fetchMock.removeRoutes();
+  fetchMock.clearHistory();
+});
+
+test('semanticViewDimensionsToColumns maps dimension fields incl. temporal detection', () => {
+  const { semanticViewDimensionsToColumns: toColumns } = require('./utils');
+  // Wire-shaped types: /structure serialises pyarrow types
+  // (timestamp[us], string, double), not SQL type names.
+  const columns = toColumns([
+    { name: 'ordered_at', type: 'timestamp[us]' },
+    { name: 'status', type: 'string' },
+    { name: 'amount', type: 'double' },
+  ]);
+
+  // type_generic is asserted explicitly: downstream filter-type logic (e.g.
+  // the Numerical range column filter) selects on it, so a regression in
+  // mapSemanticTypeToGenericDataType must fail here, not pass silently.
+  expect(columns[0]).toMatchObject({
+    column_name: 'ordered_at',
+    type: 'timestamp[us]',
+    is_dttm: true,
+    filterable: true,
+    type_generic: GenericDataType.Temporal,
+  });
+  expect(columns[1]).toMatchObject({
+    column_name: 'status',
+    is_dttm: false,
+    filterable: true,
+    type_generic: GenericDataType.String,
+  });
+  expect(columns[2]).toMatchObject({
+    column_name: 'amount',
+    is_dttm: false,
+    filterable: true,
+    type_generic: GenericDataType.Numeric,
+  });
+});
+
+test('semanticViewDimensionsToColumns returns empty for empty dimensions', () => {
+  const { semanticViewDimensionsToColumns: toColumns } = require('./utils');
+  expect(toColumns([])).toEqual([]);
 });

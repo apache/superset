@@ -14,6 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from datetime import datetime, timezone
 from unittest.mock import Mock, patch
 
 from superset.common.query_context_factory import QueryContextFactory
@@ -256,6 +257,28 @@ class TestQueryContextFactory:
         mock_dao.get_datasource.assert_called_once()
         assert result is not None
 
+    @patch("superset.daos.datasource.DatasourceDAO.get_datasource")
+    def test_create_loads_datasource_once_for_multiple_queries(
+        self,
+        mock_get_datasource,
+    ):
+        """Test query objects reuse the datasource resolved by the context."""
+        datasource = Mock()
+        datasource.columns = []
+        mock_get_datasource.return_value = datasource
+
+        query_context = self.factory.create(
+            datasource={"type": "table", "id": 123},
+            queries=[{"columns": []}, {"columns": []}],
+        )
+
+        mock_get_datasource.assert_called_once()
+        assert query_context.datasource is datasource
+        assert all(
+            query_object.datasource is datasource
+            for query_object in query_context.queries
+        )
+
     @patch("superset.common.query_context_factory.ChartDAO")
     def test_get_slice_found(self, mock_dao):
         """Test _get_slice when slice is found"""
@@ -309,8 +332,12 @@ class TestQueryContextFactory:
 
         self.factory._apply_granularity(query_object, form_data, datasource)
 
+        # Only the underlying expression is swapped to the overridden Time
+        # Column; the column keeps its original label so the offset join, the
+        # post-processing pivot and the frontend continue to reference it by the
+        # label the saved chart advertises (see SC-111332).
         assert query_object.columns[0]["sqlExpression"] == "P1D"
-        assert query_object.columns[0]["label"] == "P1D"
+        assert query_object.columns[0]["label"] == "ds"
 
     def test_apply_granularity_with_pivot_post_processing(self):
         """Test _apply_granularity with pivot post_processing"""
@@ -372,6 +399,8 @@ class TestQueryContextFactory:
         """Test _apply_granularity when no granularity is set"""
         query_object = Mock(spec=QueryObject)
         query_object.granularity = None
+        query_object.from_dttm = None
+        query_object.to_dttm = None
         query_object.columns = ["ds", "other_col"]
         query_object.post_processing = []
         query_object.filter = []
@@ -383,6 +412,135 @@ class TestQueryContextFactory:
         self.factory._apply_granularity(query_object, form_data, datasource)
 
         assert query_object.columns == ["ds", "other_col"]
+
+    def test_apply_granularity_uses_main_datetime_for_bounded_expression_axis(
+        self,
+    ) -> None:
+        """A bounded expression-axis query retains its physical time subject."""
+        query_object = Mock(spec=QueryObject)
+        query_object.granularity = None
+        query_object.from_dttm = datetime(2024, 1, 1, tzinfo=timezone.utc)
+        query_object.to_dttm = datetime(2024, 1, 31, tzinfo=timezone.utc)
+        query_object.time_range = None
+        query_object.columns = [
+            {
+                "expressionType": "SQL",
+                "sqlExpression": "value / 10",
+                "label": "value_bucket",
+            }
+        ]
+        query_object.post_processing = []
+        query_object.filter = []
+
+        form_data = {"x_axis": query_object.columns[0]}
+        datasource = Mock()
+        datasource.main_dttm_col = "ds"
+        datasource.columns = [{"column_name": "ds", "is_dttm": True}]
+
+        self.factory._apply_granularity(query_object, form_data, datasource)
+
+        assert query_object.granularity == "ds"
+        assert query_object.columns[0]["sqlExpression"] == "value / 10"
+
+    def test_apply_granularity_preserves_physical_temporal_axis(self) -> None:
+        """A bounded physical temporal axis is not replaced by the main column."""
+        query_object = Mock(spec=QueryObject)
+        query_object.granularity = None
+        query_object.from_dttm = datetime(2024, 1, 1, tzinfo=timezone.utc)
+        query_object.to_dttm = datetime(2024, 1, 31, tzinfo=timezone.utc)
+        query_object.columns = ["event_end"]
+        query_object.post_processing = []
+        query_object.filter = []
+
+        datasource = Mock()
+        datasource.main_dttm_col = "ds"
+        datasource.columns = [
+            {"column_name": "ds", "is_dttm": True},
+            {"column_name": "event_end", "is_dttm": True},
+        ]
+
+        self.factory._apply_granularity(
+            query_object,
+            {"x_axis": "event_end"},
+            datasource,
+        )
+
+        assert query_object.granularity is None
+        assert query_object.columns == ["event_end"]
+
+    def test_inferred_granularity_preserves_independent_temporal_filter(self) -> None:
+        """Inferring the filter subject does not remove another temporal filter."""
+        expression = {
+            "expressionType": "SQL",
+            "sqlExpression": "value / 10",
+            "label": "value_bucket",
+        }
+        temporal_filter = {
+            "col": "event_end",
+            "op": "TEMPORAL_RANGE",
+            "val": "2024-01-10 : 2024-01-20",
+        }
+        query_object = Mock(spec=QueryObject)
+        query_object.granularity = None
+        query_object.from_dttm = datetime(2024, 1, 1, tzinfo=timezone.utc)
+        query_object.to_dttm = datetime(2024, 1, 31, tzinfo=timezone.utc)
+        query_object.time_range = "2024-01-01 : 2024-01-31"
+        query_object.columns = [expression]
+        query_object.post_processing = []
+        query_object.filter = [temporal_filter]
+
+        datasource = Mock()
+        datasource.main_dttm_col = "ds"
+        datasource.columns = [
+            {"column_name": "ds", "is_dttm": True},
+            {"column_name": "event_end", "is_dttm": True},
+        ]
+
+        self.factory._apply_granularity(
+            query_object,
+            {"x_axis": expression},
+            datasource,
+        )
+
+        assert query_object.granularity == "ds"
+        assert query_object.filter == [temporal_filter]
+
+    def test_granularity_not_inferred_from_another_temporal_filter(self) -> None:
+        """A lone temporal filter remains the only time-filter subject."""
+        expression = {
+            "expressionType": "SQL",
+            "sqlExpression": "value / 10",
+            "label": "value_bucket",
+        }
+        temporal_filter = {
+            "col": "event_end",
+            "op": "TEMPORAL_RANGE",
+            "val": "2024-01-10 : 2024-01-20",
+        }
+        query_object = Mock(spec=QueryObject)
+        query_object.granularity = None
+        query_object.from_dttm = datetime(2024, 1, 10, tzinfo=timezone.utc)
+        query_object.to_dttm = datetime(2024, 1, 20, tzinfo=timezone.utc)
+        query_object.time_range = None
+        query_object.columns = [expression]
+        query_object.post_processing = []
+        query_object.filter = [temporal_filter]
+
+        datasource = Mock()
+        datasource.main_dttm_col = "ds"
+        datasource.columns = [
+            {"column_name": "ds", "is_dttm": True},
+            {"column_name": "event_end", "is_dttm": True},
+        ]
+
+        self.factory._apply_granularity(
+            query_object,
+            {"x_axis": expression},
+            datasource,
+        )
+
+        assert query_object.granularity is None
+        assert query_object.filter == [temporal_filter]
 
     def test_apply_granularity_x_axis_not_temporal(self):
         """Test _apply_granularity when x_axis is not a temporal column"""
@@ -399,6 +557,42 @@ class TestQueryContextFactory:
         self.factory._apply_granularity(query_object, form_data, datasource)
 
         assert query_object.columns == ["ds", "other_col"]
+
+    def test_apply_granularity_no_filter_to_remove(self):
+        """No x-axis and no temporal filters leaves the filters untouched."""
+        query_object = Mock(spec=QueryObject)
+        query_object.granularity = "P1D"
+        query_object.columns = ["other_col"]
+        query_object.post_processing = []
+        query_object.filter = [{"col": "other_col", "op": "==", "val": "value"}]
+
+        datasource = Mock()
+        datasource.columns = [{"column_name": "ds", "is_dttm": True}]
+
+        self.factory._apply_granularity(query_object, {}, datasource)
+
+        assert query_object.filter == [{"col": "other_col", "op": "==", "val": "value"}]
+
+    def test_apply_granularity_with_adhoc_temporal_filter(self):
+        """An adhoc temporal filter is matched on its SQL expression."""
+        adhoc_column = {"label": "ds_expr", "sqlExpression": "DATE(ds)"}
+        query_object = Mock(spec=QueryObject)
+        query_object.granularity = "P1D"
+        query_object.columns = ["other_col"]
+        query_object.post_processing = []
+        query_object.filter = [
+            {"col": adhoc_column, "op": "TEMPORAL_RANGE", "val": "a : b"},
+            {"col": "DATE(ds)", "op": "TEMPORAL_RANGE", "val": "a : b"},
+        ]
+
+        datasource = Mock()
+        datasource.columns = [{"column_name": "ds", "is_dttm": True}]
+
+        self.factory._apply_granularity(query_object, {}, datasource)
+
+        assert query_object.filter == [
+            {"col": adhoc_column, "op": "TEMPORAL_RANGE", "val": "a : b"}
+        ]
 
     def test_apply_filters_with_time_range(self):
         """Test _apply_filters with time_range"""

@@ -49,11 +49,13 @@ export const validatedInputField = ({
   validationErrors,
   db,
   field,
+  isValidating,
 }: FieldPropTypes) => (
   <ValidatedInput
     id={field}
     name={field}
     required={required}
+    isValidating={isValidating}
     value={db?.parameters?.[field as keyof DatabaseParameters]}
     validationMethods={{ onBlur: getValidation }}
     errorMessage={validationErrors?.[field]}

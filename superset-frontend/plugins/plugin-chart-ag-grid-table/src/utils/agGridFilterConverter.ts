@@ -165,6 +165,26 @@ function escapeSQLString(value: string): string {
   return value.replace(/'/g, "''");
 }
 
+/**
+ * Coerce a range-filter bound to a finite number, or null if it is not a valid
+ * numeric value. Unlike a bare Number() call, empty and whitespace-only strings
+ * are rejected (Number('') === 0), so they never get interpolated into SQL.
+ * @param value - Raw bound value from the AG Grid filter model
+ * @returns The finite number, or null if the value is not numeric
+ */
+function toFiniteNumber(value: FilterValue | undefined): number | null {
+  // Number(null) and Number('') both coerce to 0 and pass Number.isFinite,
+  // so reject nullish and empty/whitespace-only strings before coercing.
+  if (value === null || value === undefined) {
+    return null;
+  }
+  if (typeof value === 'string' && value.trim() === '') {
+    return null;
+  }
+  const coerced = Number(value);
+  return Number.isFinite(coerced) ? coerced : null;
+}
+
 // Maximum column name length - conservative upper bound that exceeds all common
 // database identifier limits (MySQL: 64, PostgreSQL: 63, SQL Server: 128, Oracle: 128)
 const MAX_COLUMN_NAME_LENGTH = 255;
@@ -274,6 +294,11 @@ export function formatDateForSuperset(dateStr: string): string {
  */
 export function getStartOfDay(dateStr: string): string {
   const date = new Date(dateStr);
+  // An invalid date would throw on toISOString() and abort the whole query;
+  // return the input unchanged instead (mirrors formatDateForSuperset).
+  if (Number.isNaN(date.getTime())) {
+    return dateStr;
+  }
   date.setHours(0, 0, 0, 0);
   return formatDateForSuperset(date.toISOString());
 }
@@ -283,6 +308,11 @@ export function getStartOfDay(dateStr: string): string {
  */
 export function getEndOfDay(dateStr: string): string {
   const date = new Date(dateStr);
+  // An invalid date would throw on toISOString() and abort the whole query;
+  // return the input unchanged instead (mirrors formatDateForSuperset).
+  if (Number.isNaN(date.getTime())) {
+    return dateStr;
+  }
   date.setHours(23, 59, 59, 999);
   return formatDateForSuperset(date.toISOString());
 }
@@ -378,8 +408,17 @@ function simpleFilterToWhereClause(
     return '';
   }
 
-  if (type === FILTER_OPERATORS.IN_RANGE && filterTo !== undefined) {
-    return `${columnName} ${SQL_OPERATORS.BETWEEN} ${value} AND ${filterTo}`;
+  // Handle IN_RANGE unconditionally so a missing/cleared upper bound can never
+  // fall through to the generic clause below and emit an invalid single-operand
+  // BETWEEN. Range bounds are interpolated into the clause without quoting, so
+  // both ends must coerce to finite numbers; otherwise the clause is dropped.
+  if (type === FILTER_OPERATORS.IN_RANGE) {
+    const lowerBound = toFiniteNumber(value);
+    const upperBound = toFiniteNumber(filterTo);
+    if (lowerBound === null || upperBound === null) {
+      return '';
+    }
+    return `${columnName} ${SQL_OPERATORS.BETWEEN} ${lowerBound} AND ${upperBound}`;
   }
 
   const formattedValue = formatValueForOperator(type, value!);
@@ -573,6 +612,16 @@ function convertDateFilter(
   return result;
 }
 
+/**
+ * Structured `{ col, op, val }` filters are validated against the backend
+ * FilterOperator enum (superset/utils/core.py). Most SQL_OPERATORS tokens
+ * already match it; the one exception is equality, which is `=` in raw SQL but
+ * `==` in the enum. (Ranges have no enum member and are split by the caller.)
+ */
+function toFilterOperatorValue(sqlOperator: string): string {
+  return sqlOperator === SQL_OPERATORS.EQUALS ? '==' : sqlOperator;
+}
+
 // Converts AG Grid filters to SQLAlchemy format, separating dimension (WHERE) and metric (HAVING) filters
 export function convertAgGridFiltersToSQL(
   filterModel: AgGridFilterModel,
@@ -600,7 +649,13 @@ export function convertAgGridFiltersToSQL(
       return;
     }
 
-    const isMetric = metricColumnsSet.has(columnName);
+    // Also treat any `%`-prefixed colId as a metric: percent metrics are keyed
+    // `%<label>` and time-comparison columns `% <label>` (see transformProps),
+    // and neither resolves as a dimension. Routing them to the raw HAVING path
+    // keeps an unresolvable filter loud (a parse error) instead of the backend
+    // silently dropping it and returning unfiltered rows.
+    const isMetric =
+      metricColumnsSet.has(columnName) || columnName.startsWith('%');
 
     if (isSetFilter(filter)) {
       if (!Array.isArray(filter.values) || filter.values.length === 0) {
@@ -643,6 +698,27 @@ export function convertAgGridFiltersToSQL(
         simpleFilters.push(dateFilter);
         return;
       }
+      // "Not equal" on a date can't be a single structured filter (it needs an
+      // OR of two bounds), so fall back to the raw clause the live path builds.
+      // Otherwise the value falls through to the generic branch below, where a
+      // date filter has no `filter` value and is silently dropped from exports.
+      // Normalize the server-side variant to its standard type first.
+      const normalizedType =
+        simpleFilter.type === FILTER_OPERATORS.SERVER_NOT_EQUAL
+          ? FILTER_OPERATORS.NOT_EQUAL
+          : simpleFilter.type;
+      const dateClause = dateFilterToWhereClause(columnName, {
+        ...simpleFilter,
+        type: normalizedType,
+      });
+      if (dateClause) {
+        if (isMetric) {
+          complexHavingClauses.push(dateClause);
+        } else {
+          complexWhereClauses.push(dateClause);
+        }
+      }
+      return;
     }
 
     const { type, filter: value } = simpleFilter;
@@ -693,10 +769,32 @@ export function convertAgGridFiltersToSQL(
       if (sqlClause) {
         complexHavingClauses.push(sqlClause);
       }
+    } else if (
+      type === FILTER_OPERATORS.IN_RANGE ||
+      type === FILTER_OPERATORS.SERVER_IN_RANGE
+    ) {
+      // There is no BETWEEN FilterOperator, and a single structured filter
+      // can't carry both bounds, so emit two bounded filters. Both ends must be
+      // finite numbers; drop the filter otherwise (matching the raw path).
+      const lowerBound = toFiniteNumber(value);
+      const upperBound = toFiniteNumber(simpleFilter.filterTo);
+      if (lowerBound === null || upperBound === null) {
+        return;
+      }
+      simpleFilters.push({
+        col: columnName,
+        op: SQL_OPERATORS.GREATER_THAN_OR_EQUAL,
+        val: lowerBound,
+      });
+      simpleFilters.push({
+        col: columnName,
+        op: SQL_OPERATORS.LESS_THAN_OR_EQUAL,
+        val: upperBound,
+      });
     } else {
       simpleFilters.push({
         col: columnName,
-        op: operator,
+        op: toFilterOperatorValue(operator),
         val: formattedValue,
       });
     }

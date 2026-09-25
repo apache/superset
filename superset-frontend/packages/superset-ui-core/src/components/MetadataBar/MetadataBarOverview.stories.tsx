@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import Markdown from 'markdown-to-jsx';
+import MarkdownToJsx from 'markdown-to-jsx';
 
 export default {
   title: 'Design System/Components/MetadataBar/Overview',
@@ -25,7 +25,7 @@ export default {
 
 export const MetadataBarOverview = () => (
   <>
-    <Markdown>
+    <MarkdownToJsx>
       {`
 # Metadata bar
 
@@ -42,8 +42,8 @@ Some of the common applications in Superset are:
 
 ## [Basic example]((./?path=/docs/design-system-components-metadatabar-examples--basic)
 `}
-    </Markdown>
-    <Markdown>
+    </MarkdownToJsx>
+    <MarkdownToJsx>
       {`
 ## Variations
 
@@ -54,7 +54,7 @@ in the code and should be specific for each metadata object.
 Content types are predefined and consistent across the whole app. This means that
 they will be displayed and behave in a consistent manner, keeping the same ordering,
 information formatting, and interactions. For example, the Owner content type will always
-have the same icon and when hovered it will present who created the entity, its current owners, and when the entity was created.
+have the same icon and when hovered it will present who created the entity, its current editors, and when the entity was created.
 
 To extend the list of content types, a developer needs to request the inclusion of the new type in the design system.
 This process is important to make sure the new type is reviewed by the design team, improving Superset consistency.
@@ -62,9 +62,9 @@ This process is important to make sure the new type is reviewed by the design te
 To check each content type in detail and its interactions, check the [MetadataBar](/story/design-system-components-metadatabar-examples--basic) page.
 Below you can find the configurations for each content type:
     `}
-    </Markdown>
+    </MarkdownToJsx>
 
-    <Markdown>
+    <MarkdownToJsx>
       {`
 \`\`\`
 export enum MetadataType {
@@ -79,9 +79,9 @@ export enum MetadataType {
 };
 \`\`\`
       `}
-    </Markdown>
+    </MarkdownToJsx>
 
-    <Markdown>
+    <MarkdownToJsx>
       {`
 \`\`\`
 export type Dashboards = {
@@ -92,9 +92,9 @@ export type Dashboards = {
 };
 \`\`\`
       `}
-    </Markdown>
+    </MarkdownToJsx>
 
-    <Markdown>
+    <MarkdownToJsx>
       {`
 \`\`\`
 export type Description = {
@@ -104,9 +104,9 @@ export type Description = {
 };
 \`\`\`
       `}
-    </Markdown>
+    </MarkdownToJsx>
 
-    <Markdown>
+    <MarkdownToJsx>
       {`
 \`\`\`
 export type LastModified = {
@@ -117,23 +117,23 @@ export type LastModified = {
 };
 \`\`\`
       `}
-    </Markdown>
+    </MarkdownToJsx>
 
-    <Markdown>
+    <MarkdownToJsx>
       {`
 \`\`\`
 export type Owner = {
   type: MetadataType.Owner;
   createdBy: string;
-  owners: string[];
+  editors: string[];
   createdOn: Date;
   onClick?: (type: string) => void;
 };
 \`\`\`
       `}
-    </Markdown>
+    </MarkdownToJsx>
 
-    <Markdown>
+    <MarkdownToJsx>
       {`
 \`\`\`
 export type Rows = {
@@ -143,9 +143,9 @@ export type Rows = {
 };
 \`\`\`
       `}
-    </Markdown>
+    </MarkdownToJsx>
 
-    <Markdown>
+    <MarkdownToJsx>
       {`
 \`\`\`
 export type Sql = {
@@ -155,9 +155,9 @@ export type Sql = {
 };
 \`\`\`
       `}
-    </Markdown>
+    </MarkdownToJsx>
 
-    <Markdown>
+    <MarkdownToJsx>
       {`
 \`\`\`
 export type Table = {
@@ -167,9 +167,9 @@ export type Table = {
 };
 \`\`\`
       `}
-    </Markdown>
+    </MarkdownToJsx>
 
-    <Markdown>
+    <MarkdownToJsx>
       {`
 \`\`\`
 export type Tags = {
@@ -179,6 +179,6 @@ export type Tags = {
 };
 \`\`\`
       `}
-    </Markdown>
+    </MarkdownToJsx>
   </>
 );

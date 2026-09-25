@@ -27,12 +27,17 @@ import {
   useState,
   isValidElement,
 } from 'react';
-import { isEqual } from 'lodash';
+import { isEqual } from 'lodash-es';
 import { Map as MapLibreMap } from 'react-map-gl/maplibre';
 import { Map as MapboxMap } from 'react-map-gl/mapbox';
 import mapboxgl from 'mapbox-gl';
 import type { Layer } from '@deck.gl/core';
 import { JsonObject, JsonValue, usePrevious } from '@superset-ui/core';
+import {
+  resolveMapStyle,
+  type MapProvider,
+  type ResolvedMapStyle,
+} from '@superset-ui/core/utils/mapStyles';
 import { styled, useTheme } from '@apache-superset/core/theme';
 import { t } from '@apache-superset/core/translation';
 import DeckGLOverlayMapLibre from './components/DeckGLOverlayMapLibre';
@@ -50,7 +55,7 @@ export type DeckGLContainerProps = {
   viewport: Viewport;
   setControlValue?: (control: string, value: JsonValue) => void;
   mapStyle?: string;
-  mapProvider?: 'maplibre' | 'mapbox';
+  mapProvider?: MapProvider;
   mapboxApiKey?: string;
   children?: ReactNode;
   width: number;
@@ -123,7 +128,9 @@ export const DeckGLContainer = memo(
     const theme = useTheme();
     const { children = null, height, width } = props;
     const isMapbox = props.mapProvider === 'mapbox';
-    const mapStyle = props.mapStyle || DEFAULT_MAP_STYLE;
+    const mapStyle: ResolvedMapStyle = isMapbox
+      ? props.mapStyle || DEFAULT_MAP_STYLE
+      : resolveMapStyle(props.mapStyle, DEFAULT_MAP_STYLE);
 
     if (isMapbox && !props.mapboxApiKey) {
       return (

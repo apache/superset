@@ -24,6 +24,7 @@ import {
   EchartsRadarChartProps,
   EchartsRadarFormData,
 } from '../../src/Radar/types';
+import { LegendOrientation } from '../../src/types';
 
 interface RadarIndicator {
   name: string;
@@ -41,6 +42,13 @@ interface RadarChartConfig {
 interface RadarSeriesData {
   value: number[];
   name: string;
+  label?: {
+    formatter: (params: {
+      name: string;
+      value: number | null;
+      dimensionIndex: number;
+    }) => string;
+  };
 }
 
 const formData: Partial<EchartsRadarFormData> = {
@@ -200,5 +208,167 @@ describe('legend sorting', () => {
       'Mark sales',
       'Arnold sales',
     ]);
+  });
+});
+
+// Regression for #30270: "Wrong visualization of missing values in radar
+// charts". A null metric value must NOT be transformed into 0. In
+// `normalizeArray`, `null / max` coerces the null to 0, so a missing data
+// point ends up plotted at the center of the radar as if it were a real
+// zero, instead of being left out (a gap). This test feeds a datum with a
+// null metric and asserts the null is preserved in the normalized series
+// value rather than silently becoming 0.
+const missingValueData = [
+  {
+    data: [
+      {
+        name: 'Series A',
+        'SUM(jp_sales)': 10,
+        'SUM(other_sales)': null,
+        'SUM(eu_sales)': 30,
+      },
+    ],
+  },
+];
+
+const missingValueProps = new ChartProps({
+  formData: {
+    ...formData,
+    // No columnConfig custom bounds so every metric is normalized.
+    columnConfig: {},
+    groupby: ['name'],
+    metrics: ['SUM(jp_sales)', 'SUM(other_sales)', 'SUM(eu_sales)'],
+  },
+  width: 800,
+  height: 600,
+  queriesData: missingValueData,
+  theme: supersetTheme,
+});
+
+test('preserves a null metric instead of plotting it as 0', () => {
+  const result = transformProps(missingValueProps as EchartsRadarChartProps);
+  const series = result.echartOptions.series as RadarSeriesOption[];
+  const value = (series[0].data as RadarSeriesData[])[0].value as (
+    | number
+    | null
+  )[];
+
+  // Index 1 corresponds to 'SUM(other_sales)', which was null in the datum.
+  // The correct behavior is to keep the gap (null/undefined) so ECharts does
+  // not draw a point at the center. On master this is 0, so this fails.
+  expect(value[1]).not.toBe(0);
+  expect(value[1] == null).toBe(true);
+});
+
+test('keeps a lone zero metric as 0 instead of NaN when all others are null', () => {
+  // Edge case: when a series' only non-null metric is a real 0, the
+  // per-series max is 0 and `0 / 0` is NaN. The zero must survive
+  // normalization as a plottable 0 while the nulls stay gaps.
+  const props = new ChartProps({
+    formData: {
+      ...formData,
+      columnConfig: {},
+      groupby: ['name'],
+      metrics: ['SUM(jp_sales)', 'SUM(other_sales)', 'SUM(eu_sales)'],
+    },
+    width: 800,
+    height: 600,
+    queriesData: [
+      {
+        data: [
+          {
+            name: 'Series A',
+            'SUM(jp_sales)': null,
+            'SUM(other_sales)': 0,
+            'SUM(eu_sales)': null,
+          },
+        ],
+      },
+    ],
+    theme: supersetTheme,
+  });
+
+  const result = transformProps(props as EchartsRadarChartProps);
+  const series = result.echartOptions.series as RadarSeriesOption[];
+  const value = (series[0].data as RadarSeriesData[])[0].value as (
+    | number
+    | null
+  )[];
+
+  expect(value[0] == null).toBe(true);
+  expect(value[1]).toBe(0);
+  expect(value[2] == null).toBe(true);
+});
+
+test('label formatter renders a missing metric as blank instead of NaN', () => {
+  const result = transformProps(missingValueProps as EchartsRadarChartProps);
+  const series = result.echartOptions.series as RadarSeriesOption[];
+  const seriesData = (series[0].data as RadarSeriesData[])[0];
+  const { label } = seriesData;
+  if (!label) throw new Error('expected series data to have a label config');
+
+  // Index 1 corresponds to 'SUM(other_sales)', which is null. Denormalizing
+  // it must not fall through to `Number('null')` (NaN) in the label text.
+  const formatted = label.formatter({
+    name: 'Series A',
+    value: null,
+    dimensionIndex: 1,
+  });
+
+  expect(formatted).not.toContain('NaN');
+});
+
+describe('radar center positioning', () => {
+  const getCenter = (overrides: Partial<EchartsRadarFormData> = {}) => {
+    const props = new ChartProps({
+      formData: {
+        ...formData,
+        showLegend: true,
+        legendMargin: 100,
+        ...overrides,
+      },
+      width: 800,
+      height: 600,
+      queriesData,
+      theme: supersetTheme,
+    });
+    const result = transformProps(props as EchartsRadarChartProps);
+    const { center } = result.echartOptions.radar as {
+      center: [string, string];
+    };
+    return {
+      x: parseFloat(center[0]),
+      y: parseFloat(center[1]),
+    };
+  };
+
+  test('keeps the center when the legend is hidden', () => {
+    const { x, y } = getCenter({ showLegend: false });
+    expect(x).toBe(50);
+    expect(y).toBe(50);
+  });
+
+  test('shifts the center right (away from the legend) when legend is on the left', () => {
+    const { x, y } = getCenter({ legendOrientation: LegendOrientation.Left });
+    expect(x).toBeGreaterThan(50);
+    expect(y).toBe(50);
+  });
+
+  test('shifts the center left (away from the legend) when legend is on the right', () => {
+    const { x, y } = getCenter({ legendOrientation: LegendOrientation.Right });
+    expect(x).toBeLessThan(50);
+    expect(y).toBe(50);
+  });
+
+  test('shifts the center down (away from the legend) when legend is on the top', () => {
+    const { x, y } = getCenter({ legendOrientation: LegendOrientation.Top });
+    expect(x).toBe(50);
+    expect(y).toBeGreaterThan(50);
+  });
+
+  test('shifts the center up (away from the legend) when legend is on the bottom', () => {
+    const { x, y } = getCenter({ legendOrientation: LegendOrientation.Bottom });
+    expect(x).toBe(50);
+    expect(y).toBeLessThan(50);
   });
 });

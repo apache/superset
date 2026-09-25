@@ -39,13 +39,16 @@ def test_epoch_to_dttm() -> None:
 def test_get_table_comment(mocker: MockerFixture):
     """
     Test the `get_table_comment` method.
+
+    ibm_db_sa >= 0.4.1 returns the comment as a plain string (fixed in
+    https://github.com/ibmdb/python-ibmdbsa/pull/135), not a tuple as it
+    used to. Indexing into that string with `comment[0]` truncates every
+    DB2 table comment to its first character; this guards against that.
     """
     from superset.db_engine_specs.db2 import Db2EngineSpec
 
     mock_inspector = mocker.MagicMock()
-    mock_inspector.get_table_comment.return_value = {
-        "text": ("This is a table comment",)
-    }
+    mock_inspector.get_table_comment.return_value = {"text": "This is a table comment"}
 
     assert (
         Db2EngineSpec.get_table_comment(mock_inspector, Table("my_table", "my_schema"))
@@ -62,6 +65,22 @@ def test_get_table_comment_empty(mocker: MockerFixture):
 
     mock_inspector = mocker.MagicMock()
     mock_inspector.get_table_comment.return_value = {}
+
+    assert (
+        Db2EngineSpec.get_table_comment(mock_inspector, Table("my_table", "my_schema"))
+        is None
+    )
+
+
+def test_get_table_comment_unexpected_error(mocker: MockerFixture):
+    """
+    Test that `get_table_comment` returns `None` instead of raising
+    when the inspector call fails unexpectedly.
+    """
+    from superset.db_engine_specs.db2 import Db2EngineSpec
+
+    mock_inspector = mocker.MagicMock()
+    mock_inspector.get_table_comment.side_effect = Exception("boom")
 
     assert (
         Db2EngineSpec.get_table_comment(mock_inspector, Table("my_table", "my_schema"))
@@ -90,33 +109,14 @@ def test_get_prequeries(mocker: MockerFixture) -> None:
     ("grain", "expected_expression"),
     [
         (None, "my_col"),
-        (
-            TimeGrain.SECOND,
-            "CAST(my_col as TIMESTAMP) - MICROSECOND(my_col) MICROSECONDS",
-        ),
-        (
-            TimeGrain.MINUTE,
-            "CAST(my_col as TIMESTAMP)"
-            " - SECOND(my_col) SECONDS - MICROSECOND(my_col) MICROSECONDS",
-        ),
-        (
-            TimeGrain.HOUR,
-            "CAST(my_col as TIMESTAMP)"
-            " - MINUTE(my_col) MINUTES"
-            " - SECOND(my_col) SECONDS - MICROSECOND(my_col) MICROSECONDS ",
-        ),
-        (TimeGrain.DAY, "DATE(my_col)"),
-        (TimeGrain.WEEK, "my_col - (DAYOFWEEK(my_col)) DAYS"),
-        (TimeGrain.MONTH, "my_col - (DAY(my_col)-1) DAYS"),
-        (
-            TimeGrain.QUARTER,
-            "my_col - (DAY(my_col)-1) DAYS"
-            " - (MONTH(my_col)-1) MONTHS + ((QUARTER(my_col)-1) * 3) MONTHS",
-        ),
-        (
-            TimeGrain.YEAR,
-            "my_col - (DAY(my_col)-1) DAYS - (MONTH(my_col)-1) MONTHS",
-        ),
+        (TimeGrain.SECOND, "DATE_TRUNC('SECOND', my_col)"),
+        (TimeGrain.MINUTE, "DATE_TRUNC('MINUTE', my_col)"),
+        (TimeGrain.HOUR, "DATE_TRUNC('HOUR', my_col)"),
+        (TimeGrain.DAY, "DATE_TRUNC('DAY', my_col)"),
+        (TimeGrain.WEEK, "DATE_TRUNC('WEEK', my_col)"),
+        (TimeGrain.MONTH, "DATE_TRUNC('MONTH', my_col)"),
+        (TimeGrain.QUARTER, "DATE_TRUNC('QUARTER', my_col)"),
+        (TimeGrain.YEAR, "DATE_TRUNC('YEAR', my_col)"),
     ],
 )
 def test_time_grain_expressions(grain: TimeGrain, expected_expression: str) -> None:

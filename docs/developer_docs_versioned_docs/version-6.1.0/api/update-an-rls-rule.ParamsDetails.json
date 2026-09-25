@@ -1,0 +1,11 @@
+{
+  "parameters": [
+    {
+      "description": "The Rule pk",
+      "in": "path",
+      "name": "pk",
+      "required": true,
+      "schema": { "type": "integer" }
+    }
+  ]
+}

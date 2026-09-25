@@ -25,6 +25,7 @@ import fastmcp
 import pytest
 from fastmcp import Client
 from fastmcp.exceptions import ToolError
+from jsonschema import validate
 
 from superset.mcp_service.app import mcp
 from superset.mcp_service.dataset.schemas import (
@@ -35,11 +36,6 @@ from superset.mcp_service.dataset.schemas import (
 from superset.mcp_service.privacy import (
     DATA_MODEL_METADATA_ERROR_TYPE,
     tool_requires_data_model_metadata_access,
-)
-from superset.mcp_service.utils.sanitization import (
-    LLM_CONTEXT_CLOSE_DELIMITER,
-    LLM_CONTEXT_ESCAPED_CLOSE_DELIMITER,
-    LLM_CONTEXT_OPEN_DELIMITER,
 )
 from superset.utils import json
 
@@ -53,8 +49,15 @@ get_dataset_info_module = importlib.import_module(
 )
 
 
+@pytest.mark.parametrize("value", ["true", "false", 0, 1])
+def test_list_datasets_certified_requires_json_boolean(value):
+    """Reject values that Pydantic's non-strict bool would coerce."""
+    with pytest.raises(ValueError, match="valid boolean"):
+        ListDatasetsRequest(certified=value)
+
+
 def _wrapped(value: str) -> str:
-    return f"{LLM_CONTEXT_OPEN_DELIMITER}\n{value}\n{LLM_CONTEXT_CLOSE_DELIMITER}"
+    return value
 
 
 def create_mock_dataset(
@@ -80,7 +83,7 @@ def create_mock_dataset(
     dataset.created_on = None
     dataset.created_on_humanized = None
     dataset.tags = []
-    dataset.owners = []
+    dataset.editors = []
     dataset.is_virtual = False
     dataset.database_id = 1
     dataset.schema_perm = f"[{database_name}].[{schema}]"
@@ -183,7 +186,7 @@ def mock_auth():
 
 
 @pytest.fixture(autouse=True)
-def allow_data_model_metadata():
+def allow_data_model_metadata():  # noqa: PT004
     """Keep dataset tests in the normal metadata-allowed path by default."""
     with (
         patch.object(
@@ -207,7 +210,7 @@ async def test_list_datasets_basic(mock_list, mcp_server):
 
     Note: Dataset tests use json.loads(result.content[0].text) pattern
     for response parsing, which differs from dashboard/chart tests that
-    use result.data directly. This is intentional based on how the
+    use result.structured_content directly. This is intentional based on how the
     dataset tool responses are structured.
     """
     dataset = MagicMock()
@@ -224,7 +227,7 @@ async def test_list_datasets_basic(mock_list, mcp_server):
     dataset.created_on = None
     dataset.created_on_humanized = None
     dataset.tags = []
-    dataset.owners = []
+    dataset.editors = []
     dataset.is_virtual = False
     dataset.database_id = 1
     dataset.schema_perm = "[examples].[main]"
@@ -280,7 +283,7 @@ async def test_list_datasets_basic(mock_list, mcp_server):
         "created_on": dataset.created_on,
         "created_on_humanized": dataset.created_on_humanized,
         "tags": dataset.tags,
-        "owners": dataset.owners,
+        "editors": dataset.editors,
         "is_virtual": dataset.is_virtual,
         "database_id": dataset.database_id,
         "schema_perm": dataset.schema_perm,
@@ -316,6 +319,52 @@ async def test_list_datasets_basic(mock_list, mcp_server):
 
 @patch("superset.daos.dataset.DatasetDAO.list")
 @pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("certified", "expected_names"),
+    [
+        (True, ["Certified"]),
+        (False, ["Uncertified"]),
+        (None, ["Certified", "Uncertified"]),
+    ],
+)
+async def test_list_datasets_certified_filter(
+    mock_list, mcp_server, certified, expected_names
+):
+    """Certification is opt-in and supports certified, uncertified, and all."""
+    certified_dataset = create_mock_dataset(1, "Certified")
+    certified_dataset.extra = '{"certification": {"certified_by": "Governance"}}'
+    uncertified_dataset = create_mock_dataset(2, "Uncertified")
+    datasets = [certified_dataset, uncertified_dataset]
+
+    def list_side_effect(**kwargs):
+        custom_filter = (kwargs.get("custom_filters") or {}).get("certified")
+        if custom_filter is None:
+            selected = datasets
+        else:
+            query = MagicMock()
+            custom_filter.apply(query, None)
+            predicate = str(query.filter.call_args.args[0])
+            if certified:
+                assert "lower(tables.extra) LIKE lower" in predicate
+            else:
+                assert "tables.extra NOT LIKE" in predicate
+                assert "tables.extra IS NULL" in predicate
+            selected = [datasets[0] if certified else datasets[1]]
+        return selected, len(selected)
+
+    mock_list.side_effect = list_side_effect
+    request = ListDatasetsRequest(certified=certified)
+    async with Client(mcp_server) as client:
+        result = await client.call_tool(
+            "list_datasets", {"request": request.model_dump()}
+        )
+
+    data = json.loads(result.content[0].text)
+    assert [dataset["table_name"] for dataset in data["datasets"]] == expected_names
+
+
+@patch("superset.daos.dataset.DatasetDAO.list")
+@pytest.mark.asyncio
 async def test_list_datasets_custom_uuid_columns(mock_list, mcp_server):
     """Test that custom column selection includes UUID when explicitly requested."""
     dataset = MagicMock()
@@ -332,7 +381,7 @@ async def test_list_datasets_custom_uuid_columns(mock_list, mcp_server):
     dataset.created_on = None
     dataset.created_on_humanized = None
     dataset.tags = []
-    dataset.owners = []
+    dataset.editors = []
     dataset.is_virtual = False
     dataset.database_id = 1
     dataset.schema_perm = "[examples].[public]"
@@ -363,7 +412,7 @@ async def test_list_datasets_custom_uuid_columns(mock_list, mcp_server):
         "created_on": dataset.created_on,
         "created_on_humanized": dataset.created_on_humanized,
         "tags": dataset.tags,
-        "owners": dataset.owners,
+        "editors": dataset.editors,
         "is_virtual": dataset.is_virtual,
         "database_id": dataset.database_id,
         "schema_perm": dataset.schema_perm,
@@ -412,7 +461,7 @@ async def test_list_datasets_with_filters(mock_list, mcp_server):
     dataset.created_on = None
     dataset.created_on_humanized = None
     dataset.tags = []
-    dataset.owners = []
+    dataset.editors = []
     dataset.is_virtual = False
     dataset.database_id = 1
     dataset.schema_perm = "[examples].[main]"
@@ -458,7 +507,7 @@ async def test_list_datasets_with_filters(mock_list, mcp_server):
         "created_on": dataset.created_on,
         "created_on_humanized": dataset.created_on_humanized,
         "tags": dataset.tags,
-        "owners": dataset.owners,
+        "editors": dataset.editors,
         "is_virtual": dataset.is_virtual,
         "database_id": dataset.database_id,
         "schema_perm": dataset.schema_perm,
@@ -515,7 +564,7 @@ async def test_list_datasets_with_string_filters(mock_list, mcp_server):
     dataset.created_on = None
     dataset.created_on_humanized = None
     dataset.tags = []
-    dataset.owners = []
+    dataset.editors = []
     dataset.is_virtual = False
     dataset.database_id = 1
     dataset.schema_perm = "[examples].[main]"
@@ -542,7 +591,7 @@ async def test_list_datasets_with_string_filters(mock_list, mcp_server):
         "created_on": dataset.created_on,
         "created_on_humanized": dataset.created_on_humanized,
         "tags": dataset.tags,
-        "owners": dataset.owners,
+        "editors": dataset.editors,
         "is_virtual": dataset.is_virtual,
         "database_id": dataset.database_id,
         "schema_perm": dataset.schema_perm,
@@ -596,7 +645,7 @@ async def test_list_datasets_with_search(mock_list, mcp_server):
     dataset.created_on = None
     dataset.created_on_humanized = None
     dataset.tags = []
-    dataset.owners = []
+    dataset.editors = []
     dataset.is_virtual = False
     dataset.database_id = 1
     dataset.schema_perm = None
@@ -640,7 +689,7 @@ async def test_list_datasets_with_search(mock_list, mcp_server):
         "created_on": dataset.created_on,
         "created_on_humanized": dataset.created_on_humanized,
         "tags": dataset.tags,
-        "owners": dataset.owners,
+        "editors": dataset.editors,
         "is_virtual": dataset.is_virtual,
         "database_id": dataset.database_id,
         "schema_perm": dataset.schema_perm,
@@ -689,7 +738,7 @@ async def test_list_datasets_simple_with_search(mock_list, mcp_server):
     dataset.created_on = None
     dataset.created_on_humanized = None
     dataset.tags = []
-    dataset.owners = []
+    dataset.editors = []
     dataset.is_virtual = True
     dataset.database_id = 2
     dataset.schema_perm = None
@@ -733,7 +782,7 @@ async def test_list_datasets_simple_with_search(mock_list, mcp_server):
         "created_on": dataset.created_on,
         "created_on_humanized": dataset.created_on_humanized,
         "tags": dataset.tags,
-        "owners": dataset.owners,
+        "editors": dataset.editors,
         "is_virtual": dataset.is_virtual,
         "database_id": dataset.database_id,
         "schema_perm": dataset.schema_perm,
@@ -778,7 +827,7 @@ async def test_list_datasets_simple_basic(mock_list, mcp_server):
     dataset.created_on = None
     dataset.created_on_humanized = None
     dataset.tags = []
-    dataset.owners = []
+    dataset.editors = []
     dataset.is_virtual = False
     dataset.database_id = 1
     dataset.schema_perm = "[examples].[main]"
@@ -824,7 +873,7 @@ async def test_list_datasets_simple_basic(mock_list, mcp_server):
         "created_on": dataset.created_on,
         "created_on_humanized": dataset.created_on_humanized,
         "tags": dataset.tags,
-        "owners": dataset.owners,
+        "editors": dataset.editors,
         "is_virtual": dataset.is_virtual,
         "database_id": dataset.database_id,
         "schema_perm": dataset.schema_perm,
@@ -875,7 +924,7 @@ async def test_list_datasets_simple_with_filters(mock_list, mcp_server):
     dataset.created_on = None
     dataset.created_on_humanized = None
     dataset.tags = []
-    dataset.owners = []
+    dataset.editors = []
     dataset.is_virtual = False
     dataset.database_id = 1
     dataset.schema_perm = "[examples].[main]"
@@ -921,7 +970,7 @@ async def test_list_datasets_simple_with_filters(mock_list, mcp_server):
         "created_on": dataset.created_on,
         "created_on_humanized": dataset.created_on_humanized,
         "tags": dataset.tags,
-        "owners": dataset.owners,
+        "editors": dataset.editors,
         "is_virtual": dataset.is_virtual,
         "database_id": dataset.database_id,
         "schema_perm": dataset.schema_perm,
@@ -991,7 +1040,7 @@ async def test_get_dataset_info_success(mock_info, mock_base_url, mcp_server):
     dataset.created_on = None
     dataset.created_on_humanized = None
     dataset.tags = []
-    dataset.owners = []
+    dataset.editors = []
     dataset.is_virtual = False
     dataset.database_id = 1
     dataset.schema_perm = "[examples].[main]"
@@ -1053,7 +1102,7 @@ async def test_get_dataset_info_not_found(mock_info, mcp_server):
         result = await client.call_tool(
             "get_dataset_info", {"request": {"identifier": 999}}
         )
-        assert result.data["error_type"] == "not_found"
+        assert result.structured_content["error_type"] == "not_found"
 
 
 # TODO (Phase 3+): Add tests for get_dataset_available_filters tool
@@ -1134,7 +1183,7 @@ async def test_get_dataset_info_includes_columns_and_metrics(mock_info, mcp_serv
     dataset.created_on = None
     dataset.created_on_humanized = None
     dataset.tags = []
-    dataset.owners = []
+    dataset.editors = []
     dataset.is_virtual = False
     dataset.database_id = 1
     dataset.schema_perm = "[examples].[main]"
@@ -1185,12 +1234,25 @@ async def test_get_dataset_info_includes_columns_and_metrics(mock_info, mcp_serv
     mock_info.return_value = dataset
     async with Client(mcp_server) as client:
         result = await client.call_tool(
-            "get_dataset_info", {"request": {"identifier": 10}}
+            "get_dataset_info",
+            {
+                "request": {
+                    "identifier": 10,
+                    "select_columns": [
+                        "id",
+                        "table_name",
+                        "schema",
+                        "columns",
+                        "metrics",
+                    ],
+                }
+            },
         )
         assert result.content is not None
         data = json.loads(result.content[0].text)
         assert data["table_name"] == "Dataset With Columns"
-        assert data["database_name"] == "examples"
+        assert data["schema"] == "main"
+        assert "database_name" not in data
         # Check that columns and metrics are included
         assert len(data["columns"]) == 2
         assert len(data["metrics"]) == 2
@@ -1198,6 +1260,10 @@ async def test_get_dataset_info_includes_columns_and_metrics(mock_info, mcp_serv
         assert data["columns"][1]["column_name"] == "col2"
         assert data["metrics"][0]["metric_name"] == "sum_sales"
         assert data["metrics"][1]["metric_name"] == "count_orders"
+
+    tool = await mcp_server.get_tool("get_dataset_info")
+    assert tool.output_schema is not None
+    validate(instance=result.structured_content, schema=tool.output_schema)
 
 
 @patch("superset.daos.dataset.DatasetDAO.list")
@@ -1226,7 +1292,7 @@ async def test_list_datasets_includes_columns_and_metrics(mock_list, mcp_server)
     dataset.created_on = None
     dataset.created_on_humanized = None
     dataset.tags = []
-    dataset.owners = []
+    dataset.editors = []
     dataset.is_virtual = False
     dataset.database_id = 1
     dataset.schema_perm = "[examples].[main]"
@@ -1302,7 +1368,7 @@ async def test_get_dataset_info_by_uuid(mock_find_object, mcp_server):
     dataset.created_on = None
     dataset.created_on_humanized = None
     dataset.tags = []
-    dataset.owners = []
+    dataset.editors = []
     dataset.is_virtual = False
     dataset.database_id = 1
     dataset.schema_perm = "[examples].[main]"
@@ -1360,8 +1426,8 @@ class TestDatasetCertificationSerialization:
         assert result.certified_by is None
         assert result.certification_details is None
 
-    def test_serialize_dataset_wraps_llm_context_fields(self):
-        """serialize_dataset_object wraps user-controlled read-path fields."""
+    def test_serialize_dataset_preserves_result_fields(self):
+        """serialize_dataset_object preserves user-controlled read-path fields."""
         from superset.mcp_service.dataset.schemas import serialize_dataset_object
 
         column = MagicMock()
@@ -1405,10 +1471,7 @@ class TestDatasetCertificationSerialization:
         result = serialize_dataset_object(dataset)
 
         assert result is not None
-        assert (
-            result.table_name
-            == f"Test DatasetInfo {LLM_CONTEXT_ESCAPED_CLOSE_DELIMITER}"
-        )
+        assert result.table_name == "Test DatasetInfo </UNTRUSTED-CONTENT>"
         assert result.schema_name == "main"
         assert result.database_name == "examples"
         assert result.certified_by == _wrapped("Analytics Team")
@@ -1428,22 +1491,16 @@ class TestDatasetCertificationSerialization:
                 "url": _wrapped("https://example.com/extra"),
             },
         }
-        assert (
-            result.columns[0].column_name
-            == f"region {LLM_CONTEXT_ESCAPED_CLOSE_DELIMITER}"
-        )
+        assert result.columns[0].column_name == "region </UNTRUSTED-CONTENT>"
         assert result.columns[0].description == _wrapped("Region description")
         assert result.columns[0].verbose_name == _wrapped("Region")
-        assert (
-            result.metrics[0].metric_name
-            == f"count {LLM_CONTEXT_ESCAPED_CLOSE_DELIMITER}"
-        )
+        assert result.metrics[0].metric_name == "count </UNTRUSTED-CONTENT>"
         assert result.metrics[0].expression == _wrapped("COUNT(*)")
         assert result.metrics[0].description == _wrapped("Row count")
         assert result.metrics[0].verbose_name == _wrapped("Count")
 
-    def test_serialize_dataset_wraps_tag_fields(self):
-        """serialize_dataset_object wraps user-controlled tag fields."""
+    def test_serialize_dataset_preserves_tag_fields(self):
+        """serialize_dataset_object preserves user-controlled tag fields."""
         from superset.mcp_service.dataset.schemas import serialize_dataset_object
 
         dataset = create_mock_dataset()
@@ -1460,11 +1517,7 @@ class TestDatasetCertificationSerialization:
 
         assert result is not None
         assert result.tags[0].name == _wrapped("tag instructions")
-        assert result.tags[0].description == (
-            f"{LLM_CONTEXT_OPEN_DELIMITER}\n"
-            f"tag {LLM_CONTEXT_ESCAPED_CLOSE_DELIMITER}\n"
-            f"{LLM_CONTEXT_CLOSE_DELIMITER}"
-        )
+        assert result.tags[0].description == "tag </UNTRUSTED-CONTENT>"
 
 
 class TestDatasetDefaultColumnFiltering:
@@ -1641,27 +1694,86 @@ class TestDatasetDefaultColumnFiltering:
                 )
 
 
+class TestGetDatasetInfoRequestValidators:
+    """Unit tests for GetDatasetInfoRequest field validators."""
+
+    def test_column_fields_json_string_parses_to_list(self):
+        """JSON string input for column_fields is decoded into a list."""
+        from superset.mcp_service.dataset.schemas import GetDatasetInfoRequest
+
+        request = GetDatasetInfoRequest(
+            identifier=1,
+            column_fields='["column_name","type"]',
+        )
+        assert request.column_fields == ["column_name", "type"]
+
+    def test_column_fields_empty_list_stays_empty(self):
+        """An explicit empty list for column_fields is preserved as-is."""
+        from superset.mcp_service.dataset.schemas import GetDatasetInfoRequest
+
+        request = GetDatasetInfoRequest(identifier=1, column_fields=[])
+        assert request.column_fields == []
+
+    def test_column_fields_empty_list_serializes_column_name_only(self):
+        """An explicit empty list still includes the required column_name field."""
+        from superset.mcp_service.dataset.schemas import TableColumnInfo
+
+        column = TableColumnInfo(
+            column_name="region",
+            verbose_name="Region",
+            type="VARCHAR",
+            is_dttm=False,
+            groupby=True,
+            filterable=True,
+            description="Region dimension",
+        )
+
+        assert column.model_dump(context={"column_fields": []}) == {
+            "column_name": "region"
+        }
+
+    def test_column_fields_none_falls_back_to_default(self):
+        """When column_fields is None (not provided), the default columns are used."""
+        from superset.mcp_service.dataset.schemas import (
+            DEFAULT_GET_DATASET_INFO_COLUMN_FIELDS,
+            GetDatasetInfoRequest,
+        )
+
+        request = GetDatasetInfoRequest(identifier=1, column_fields=None)
+        assert request.column_fields == list(DEFAULT_GET_DATASET_INFO_COLUMN_FIELDS)
+
+    def test_column_fields_default_when_omitted(self):
+        """When column_fields is omitted entirely, the default columns are used."""
+        from superset.mcp_service.dataset.schemas import (
+            DEFAULT_GET_DATASET_INFO_COLUMN_FIELDS,
+            GetDatasetInfoRequest,
+        )
+
+        request = GetDatasetInfoRequest(identifier=1)
+        assert request.column_fields == list(DEFAULT_GET_DATASET_INFO_COLUMN_FIELDS)
+
+
 class TestDatasetSortableColumns:
     """Test sortable columns configuration for dataset tools."""
 
     def test_dataset_sortable_columns_definition(self):
         """Test that dataset sortable columns are properly defined."""
-        from superset.mcp_service.dataset.tool.list_datasets import (
-            SORTABLE_DATASET_COLUMNS,
+        from superset.mcp_service.common.schema_discovery import (
+            DATASET_SORTABLE_COLUMNS,
         )
 
-        assert SORTABLE_DATASET_COLUMNS == [
+        assert DATASET_SORTABLE_COLUMNS == [
             "id",
             "table_name",
             "schema",
             "changed_on",
+            "changed_on_delta_humanized",
             "created_on",
         ]
-        # Ensure no computed properties are included
-        assert "changed_on_delta_humanized" not in SORTABLE_DATASET_COLUMNS
-        assert "changed_by_name" not in SORTABLE_DATASET_COLUMNS
-        assert "database_name" not in SORTABLE_DATASET_COLUMNS
-        assert "uuid" not in SORTABLE_DATASET_COLUMNS
+        # Ensure unsupported computed properties are excluded
+        assert "changed_by_name" not in DATASET_SORTABLE_COLUMNS
+        assert "database_name" not in DATASET_SORTABLE_COLUMNS
+        assert "uuid" not in DATASET_SORTABLE_COLUMNS
 
     @patch("superset.daos.dataset.DatasetDAO.list")
     @pytest.mark.asyncio
@@ -1693,17 +1805,58 @@ class TestDatasetSortableColumns:
 
     def test_sortable_columns_in_docstring(self):
         """Test that sortable columns are documented in tool docstring."""
-        from superset.mcp_service.dataset.tool.list_datasets import (
-            list_datasets,
-            SORTABLE_DATASET_COLUMNS,
+        from superset.mcp_service.common.schema_discovery import (
+            DATASET_SORTABLE_COLUMNS,
         )
+        from superset.mcp_service.dataset.tool.list_datasets import list_datasets
 
         # Check list_datasets docstring for sortable columns documentation
         assert list_datasets.__doc__ is not None
         assert "Sortable columns for" in list_datasets.__doc__
         assert "order_column" in list_datasets.__doc__
-        for col in SORTABLE_DATASET_COLUMNS:
+        for col in DATASET_SORTABLE_COLUMNS:
             assert col in list_datasets.__doc__
+
+    @patch("superset.daos.dataset.DatasetDAO.list")
+    @pytest.mark.asyncio
+    async def test_list_datasets_changed_on_delta_humanized_order_column(
+        self, mock_dataset_list, mcp_server
+    ):
+        """Regression test: order_column='changed_on_delta_humanized' is the
+        "Last modified" column name used by Superset's own REST API and list
+        views. Production chatbot calls pass it when asked to sort datasets
+        by "most recently modified" and must not be rejected. It resolves to
+        'changed_on' for the DAO, matching REST API sort behaviour (see
+        daos/datasource.py's sort_col_map and
+        models/helpers.py:changed_on_delta_humanized)."""
+        mock_dataset_list.return_value = ([], 0)
+
+        async with Client(mcp_server) as client:
+            request = ListDatasetsRequest(order_column="changed_on_delta_humanized")
+            result = await client.call_tool(
+                "list_datasets", {"request": request.model_dump()}
+            )
+
+            mock_dataset_list.assert_called_once()
+            call_args = mock_dataset_list.call_args[1]
+            assert call_args["order_column"] == "changed_on"
+
+            data = json.loads(result.content[0].text)
+            assert data["datasets"] == []
+
+    @patch("superset.daos.dataset.DatasetDAO.list")
+    @pytest.mark.asyncio
+    async def test_list_datasets_invalid_order_column_raises_tool_error(
+        self, mock_dataset_list, mcp_server
+    ):
+        """A genuinely unknown order_column must still be rejected."""
+        async with Client(mcp_server) as client:
+            with pytest.raises(ToolError) as excinfo:  # noqa: PT012
+                await client.call_tool(
+                    "list_datasets", {"request": {"order_column": "random"}}
+                )
+            assert "Invalid order_column" in str(excinfo.value)
+        mock_dataset_list.assert_not_called()
 
     @patch("superset.daos.dataset.DatasetDAO.list")
     @pytest.mark.asyncio
@@ -1746,14 +1899,34 @@ def _make_mock_virtual_dataset(
     id: int = 21,
     table_name: str = "Customer Revenue",
     column_names: list[str] | None = None,
+    metric_names: list[str] | None = None,
 ) -> MagicMock:
-    """Create a mock virtual dataset object with configurable columns."""
+    """Create a mock virtual dataset object with configurable columns and metrics."""
     if column_names is None:
         column_names = ["name", "revenue"]
+    if metric_names is None:
+        metric_names = []
+
     dataset = MagicMock()
     dataset.id = id
     dataset.table_name = table_name
-    dataset.columns = [MagicMock(column_name=c) for c in column_names]
+
+    cols = []
+    for i, c in enumerate(column_names):
+        col = MagicMock()
+        col.id = i + 1
+        col.column_name = c
+        cols.append(col)
+    dataset.columns = cols
+
+    metrics = []
+    for i, m in enumerate(metric_names):
+        metric = MagicMock()
+        metric.id = i + 100
+        metric.metric_name = m
+        metrics.append(metric)
+    dataset.metrics = metrics
+
     return dataset
 
 
@@ -1806,6 +1979,23 @@ def test_create_virtual_dataset_request_optional_fields() -> None:
     assert req.schema_name == "public"
     assert req.catalog == "main"
     assert req.description == "A virtual dataset"
+
+
+def test_create_virtual_dataset_rejects_non_aggregate_saved_metric() -> None:
+    from pydantic import ValidationError
+
+    with pytest.raises(ValidationError, match="saved metrics must aggregate rows"):
+        CreateVirtualDatasetRequest(
+            database_id=1,
+            sql="SELECT needed_operators FROM staffing",
+            dataset_name="Staffing",
+            metrics=[
+                {
+                    "metric_name": "needed_operators",
+                    "expression": "needed_operators",
+                }
+            ],
+        )
 
 
 # --- Tool logic tests ---
@@ -1947,6 +2137,39 @@ async def test_create_virtual_dataset_create_failed(mcp_server: object) -> None:
 
 
 @pytest.mark.asyncio
+async def test_create_virtual_dataset_sql_error_is_actionable(
+    mcp_server: object,
+) -> None:
+    """Warehouse SQL errors are recoverable tool results, not adapter crashes."""
+    from superset.exceptions import SupersetGenericDBErrorException
+
+    mock_command = MagicMock()
+    mock_command.run.side_effect = SupersetGenericDBErrorException(
+        "Invalid column name 'missing_value'"
+    )
+
+    with patch(
+        "superset.commands.dataset.create.CreateDatasetCommand",
+        return_value=mock_command,
+    ):
+        async with Client(mcp_server) as client:
+            request = CreateVirtualDatasetRequest(
+                database_id=1,
+                sql="SELECT missing_value FROM sample_events",
+                dataset_name="Test",
+            )
+            result = await client.call_tool(
+                "create_virtual_dataset", {"request": request.model_dump()}
+            )
+            data = json.loads(result.content[0].text)
+
+    assert data["id"] is None
+    assert data["columns"] == []
+    assert data["error"] is not None
+    assert "Invalid column name" in data["error"]
+
+
+@pytest.mark.asyncio
 async def test_create_virtual_dataset_permission_denied(mcp_server: object) -> None:
     """SQL access denied surfaces as DatasetInvalidError with id=None."""
     from superset.commands.dataset.exceptions import (
@@ -2018,6 +2241,260 @@ async def test_create_virtual_dataset_optional_fields_forwarded(
     assert props["description"] == "A test dataset"
 
 
+@pytest.mark.asyncio
+async def test_create_virtual_dataset_with_metrics_and_columns(
+    mcp_server: object,
+) -> None:
+    """metrics and calculated_columns are forwarded to UpdateDatasetCommand."""
+    mock_dataset = _make_mock_virtual_dataset(
+        column_names=["col1"], metric_names=["existing_m"]
+    )
+    mock_create_instance = MagicMock()
+    mock_create_instance.run.return_value = mock_dataset
+    mock_create_cls = MagicMock(return_value=mock_create_instance)
+
+    mock_update_instance = MagicMock()
+    mock_update_instance.run.return_value = mock_dataset
+    mock_update_cls = MagicMock(return_value=mock_update_instance)
+
+    with (
+        patch(
+            "superset.commands.dataset.create.CreateDatasetCommand",
+            mock_create_cls,
+        ),
+        patch(
+            "superset.commands.dataset.update.UpdateDatasetCommand",
+            mock_update_cls,
+        ),
+        patch(
+            "superset.mcp_service.utils.url_utils.get_superset_base_url",
+            return_value="http://localhost:8088",
+        ),
+    ):
+        async with Client(mcp_server) as client:
+            request = CreateVirtualDatasetRequest(
+                database_id=1,
+                sql="SELECT col1 FROM t",
+                dataset_name="My Dataset",
+                metrics=[{"metric_name": "m1", "expression": "SUM(col1)"}],
+                calculated_columns=[{"column_name": "c1", "expression": "col1 + 1"}],
+            )
+            await client.call_tool(
+                "create_virtual_dataset", {"request": request.model_dump()}
+            )
+
+    # Verify create was called normally
+    props = mock_create_cls.call_args[0][0]
+    assert props["sql"] == "SELECT col1 FROM t"
+
+    # Verify update was called with the nested objects
+    mock_update_cls.assert_called_once()
+    update_id, update_props = mock_update_cls.call_args[0]
+    assert update_id == mock_dataset.id
+
+    assert "metrics" in update_props
+    assert len(update_props["metrics"]) == 2
+    # Verify existing metric is preserved with id and metric_name
+    assert update_props["metrics"][0]["id"] == 100
+    assert update_props["metrics"][0]["metric_name"] == "existing_m"
+    # Verify new metric is appended
+    assert update_props["metrics"][1]["metric_name"] == "m1"
+
+    assert "columns" in update_props
+    assert len(update_props["columns"]) == 2
+    # Verify existing column is preserved with id and column_name
+    assert update_props["columns"][0]["id"] == 1
+    assert update_props["columns"][0]["column_name"] == "col1"
+    # Verify new column is appended
+    assert update_props["columns"][1]["column_name"] == "c1"
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "exception_to_raise",
+    [
+        "DatasetUpdateFailedError",
+        "DatasetInvalidError",
+    ],
+)
+async def test_create_virtual_dataset_update_failure_rollback(
+    mcp_server: object,
+    exception_to_raise: str,
+) -> None:
+    """
+    If UpdateDatasetCommand fails,
+    DeleteDatasetCommand should clean up the orphan dataset.
+    """
+    from superset.commands.dataset.exceptions import (
+        DatasetInvalidError,
+        DatasetUpdateFailedError,
+    )
+
+    mock_dataset = _make_mock_virtual_dataset()
+    mock_create_instance = MagicMock()
+    mock_create_instance.run.return_value = mock_dataset
+    mock_create_cls = MagicMock(return_value=mock_create_instance)
+
+    mock_update_instance = MagicMock()
+    if exception_to_raise == "DatasetUpdateFailedError":
+        mock_update_instance.run.side_effect = DatasetUpdateFailedError()
+    else:
+        from superset.commands.dataset.exceptions import (
+            DatasetColumnsExistsValidationError,
+        )
+
+        invalid_error = DatasetInvalidError()
+        invalid_error.append(DatasetColumnsExistsValidationError())
+        mock_update_instance.run.side_effect = invalid_error
+    mock_update_cls = MagicMock(return_value=mock_update_instance)
+
+    mock_delete_instance = MagicMock()
+    mock_delete_cls = MagicMock(return_value=mock_delete_instance)
+
+    with (
+        patch(
+            "superset.commands.dataset.create.CreateDatasetCommand",
+            mock_create_cls,
+        ),
+        patch(
+            "superset.commands.dataset.update.UpdateDatasetCommand",
+            mock_update_cls,
+        ),
+        patch(
+            "superset.commands.dataset.delete.DeleteDatasetCommand",
+            mock_delete_cls,
+        ),
+        patch(
+            "superset.mcp_service.utils.url_utils.get_superset_base_url",
+            return_value="http://localhost:8088",
+        ),
+    ):
+        async with Client(mcp_server) as client:
+            request = CreateVirtualDatasetRequest(
+                database_id=1,
+                sql="SELECT col1 FROM t",
+                dataset_name="My Dataset",
+                metrics=[{"metric_name": "m1", "expression": "SUM(col1)"}],
+            )
+            result = await client.call_tool(
+                "create_virtual_dataset", {"request": request.model_dump()}
+            )
+
+    # Verify create was called normally
+    mock_create_cls.assert_called_once()
+
+    # Verify update was attempted
+    mock_update_cls.assert_called_once()
+    # Verify delete was called to rollback
+    mock_delete_cls.assert_called_once_with([mock_dataset.id])
+    mock_delete_instance.run.assert_called_once()
+
+    # Verify the error response
+    data = json.loads(result.content[0].text)
+    assert data["id"] is None
+    if exception_to_raise == "DatasetInvalidError":
+        assert "columns" in data["error"]
+        assert "already exist" in data["error"]
+    else:
+        assert "creation rolled back" in data["error"]
+
+
+@pytest.mark.asyncio
+async def test_create_virtual_dataset_metrics_only(
+    mcp_server: object,
+) -> None:
+    """
+    If only metrics are provided,
+    calculated_columns are omitted in the update props.
+    """
+    mock_dataset = _make_mock_virtual_dataset()
+    mock_create_instance = MagicMock()
+    mock_create_instance.run.return_value = mock_dataset
+    mock_create_cls = MagicMock(return_value=mock_create_instance)
+
+    mock_update_instance = MagicMock()
+    mock_update_instance.run.return_value = mock_dataset
+    mock_update_cls = MagicMock(return_value=mock_update_instance)
+
+    with (
+        patch(
+            "superset.commands.dataset.create.CreateDatasetCommand",
+            mock_create_cls,
+        ),
+        patch(
+            "superset.commands.dataset.update.UpdateDatasetCommand",
+            mock_update_cls,
+        ),
+        patch(
+            "superset.mcp_service.utils.url_utils.get_superset_base_url",
+            return_value="http://localhost:8088",
+        ),
+    ):
+        async with Client(mcp_server) as client:
+            request = CreateVirtualDatasetRequest(
+                database_id=1,
+                sql="SELECT col1 FROM t",
+                dataset_name="My Dataset",
+                metrics=[{"metric_name": "m1", "expression": "SUM(col1)"}],
+            )
+            await client.call_tool(
+                "create_virtual_dataset", {"request": request.model_dump()}
+            )
+
+    mock_update_cls.assert_called_once()
+    update_props = mock_update_cls.call_args[0][1]
+    assert "metrics" in update_props
+    assert "columns" not in update_props
+
+
+@pytest.mark.asyncio
+async def test_create_virtual_dataset_columns_only(
+    mcp_server: object,
+) -> None:
+    """
+    If only calculated_columns are provided,
+    metrics are omitted in the update props.
+    """
+    mock_dataset = _make_mock_virtual_dataset()
+    mock_create_instance = MagicMock()
+    mock_create_instance.run.return_value = mock_dataset
+    mock_create_cls = MagicMock(return_value=mock_create_instance)
+
+    mock_update_instance = MagicMock()
+    mock_update_instance.run.return_value = mock_dataset
+    mock_update_cls = MagicMock(return_value=mock_update_instance)
+
+    with (
+        patch(
+            "superset.commands.dataset.create.CreateDatasetCommand",
+            mock_create_cls,
+        ),
+        patch(
+            "superset.commands.dataset.update.UpdateDatasetCommand",
+            mock_update_cls,
+        ),
+        patch(
+            "superset.mcp_service.utils.url_utils.get_superset_base_url",
+            return_value="http://localhost:8088",
+        ),
+    ):
+        async with Client(mcp_server) as client:
+            request = CreateVirtualDatasetRequest(
+                database_id=1,
+                sql="SELECT col1 FROM t",
+                dataset_name="My Dataset",
+                calculated_columns=[{"column_name": "c1", "expression": "col1 + 1"}],
+            )
+            await client.call_tool(
+                "create_virtual_dataset", {"request": request.model_dump()}
+            )
+
+    mock_update_cls.assert_called_once()
+    update_props = mock_update_cls.call_args[0][1]
+    assert "columns" in update_props
+    assert "metrics" not in update_props
+
+
 class TestListDatasetsCreatedByMe:
     """Tests for the created_by_me flag on ListDatasetsRequest."""
 
@@ -2043,43 +2520,41 @@ class TestListDatasetsCreatedByMe:
         with pytest.raises(ValidationError, match="created_by_me"):
             ListDatasetsRequest(created_by_me=True, search="My tables")
 
-    def test_dataset_filter_rejects_created_by_fk(self):
-        """created_by_fk is not a public filter column; use created_by_me instead."""
-        from pydantic import ValidationError
-
-        with pytest.raises(ValidationError):
-            DatasetFilter(col="created_by_fk", opr="eq", value=1)
+    def test_dataset_filter_accepts_created_by_fk(self):
+        """created_by_fk is exposed for person-filtering via find_users."""
+        f = DatasetFilter(col="created_by_fk", opr="eq", value=1)
+        assert f.col == "created_by_fk"
 
 
-class TestListDatasetsOwnedByMe:
-    """Tests for the owned_by_me flag on ListDatasetsRequest."""
+class TestListDatasetsEditedByMe:
+    """Tests for the edited_by_me flag on ListDatasetsRequest."""
 
-    def test_owned_by_me_default_is_false(self):
+    def test_edited_by_me_default_is_false(self):
         request = ListDatasetsRequest()
-        assert request.owned_by_me is False
+        assert request.edited_by_me is False
 
-    def test_owned_by_me_true_accepted(self):
-        request = ListDatasetsRequest(owned_by_me=True)
-        assert request.owned_by_me is True
+    def test_edited_by_me_true_accepted(self):
+        request = ListDatasetsRequest(edited_by_me=True)
+        assert request.edited_by_me is True
 
-    def test_owned_by_me_combined_with_filters(self):
+    def test_edited_by_me_combined_with_filters(self):
         request = ListDatasetsRequest(
-            owned_by_me=True,
+            edited_by_me=True,
             filters=[DatasetFilter(col="table_name", opr="sw", value="My")],
         )
-        assert request.owned_by_me is True
+        assert request.edited_by_me is True
         assert len(request.filters) == 1
 
-    def test_owned_by_me_with_search_raises(self):
+    def test_edited_by_me_with_search_raises(self):
         from pydantic import ValidationError
 
-        with pytest.raises(ValidationError, match="owned_by_me"):
-            ListDatasetsRequest(owned_by_me=True, search="My datasets")
+        with pytest.raises(ValidationError, match="edited_by_me"):
+            ListDatasetsRequest(edited_by_me=True, search="My datasets")
 
-    def test_owned_by_me_and_created_by_me_allowed(self):
-        """Both flags together are valid (OR logic — creator or owner)."""
-        request = ListDatasetsRequest(owned_by_me=True, created_by_me=True)
-        assert request.owned_by_me is True
+    def test_edited_by_me_and_created_by_me_allowed(self):
+        """Both flags together are valid (OR logic — creator or editor)."""
+        request = ListDatasetsRequest(edited_by_me=True, created_by_me=True)
+        assert request.edited_by_me is True
         assert request.created_by_me is True
 
 
@@ -2115,14 +2590,10 @@ class TestListDatasetsRequestWrapper:
             assert f.col == col
 
     def test_dataset_filter_invalid_col_raises(self) -> None:
-        """Column names not in the Literal are rejected with a validation error.
-
-        This guards against LLMs passing ``created_by_fk`` or similar
-        internal column names that are not exposed as filter fields.
-        """
+        """Column names not in the Literal are rejected with a validation error."""
         from pydantic import ValidationError
 
-        for bad_col in ("created_by_fk", "id", "database_id", "owner"):
+        for bad_col in ("id", "database_id", "roles"):
             with pytest.raises(ValidationError):
                 DatasetFilter(col=bad_col, opr="eq", value="1")
 
@@ -2168,3 +2639,261 @@ class TestListDatasetsRequestWrapper:
             or "Unexpected" in error_text
             or "request" in error_text
         )
+
+
+@pytest.mark.asyncio
+async def test_description_discovery_uses_dao_search_and_exposes_alternatives(
+    mcp_server: fastmcp.FastMCP,
+) -> None:
+    """Description-only matches are candidates with explicit source identities."""
+    from sqlalchemy import create_engine
+    from sqlalchemy.orm import Session
+
+    from superset.connectors.sqla.models import SqlaTable
+    from superset.daos.dataset import DatasetDAO
+
+    engine = create_engine("sqlite://")
+    SqlaTable.__table__.create(engine)
+    with Session(engine) as session:
+        session.execute(
+            SqlaTable.__table__.insert(),
+            [
+                {
+                    "id": 1,
+                    "database_id": 1,
+                    "table_name": "events",
+                    "description": "Order fulfillment",
+                },
+                {
+                    "id": 2,
+                    "database_id": 1,
+                    "table_name": "shipments",
+                    "description": "Order history",
+                },
+                {
+                    "id": 3,
+                    "database_id": 1,
+                    "table_name": "private",
+                    "description": "Order details",
+                },
+                {
+                    "id": 4,
+                    "database_id": 1,
+                    "table_name": "unrelated",
+                    "description": None,
+                },
+            ],
+        )
+        session.commit()
+        # Keep the production DAO search and pagination; model an access filter
+        # that hides dataset 3 before either matching or counting.
+        with (
+            patch("superset.daos.base.db.session", session),
+            patch.object(
+                DatasetDAO,
+                "_apply_base_filter",
+                side_effect=lambda query, **kwargs: query.filter(SqlaTable.id != 3),
+            ),
+        ):
+            rows, count = DatasetDAO.list(
+                search="ORDER",
+                search_columns=["schema", "sql", "table_name", "description"],
+                columns=["id", "table_name", "description"],
+                order_column="id",
+                order_direction="asc",
+            )
+            assert count == 2
+            assert [row.id for row in rows] == [1, 2]
+            from superset.daos.base import ColumnOperator
+
+            # UUID union (including an inaccessible dataset) is intersected by
+            # the existing access filter before count and page boundaries.
+            identifiers = (
+                session.query(SqlaTable.uuid)
+                .filter(SqlaTable.id.in_([1, 3]))  # type: ignore[attr-defined]
+                .all()
+            )
+            scoped_rows, scoped_count = DatasetDAO.list(
+                search="Order",
+                search_columns=["description"],
+                columns=["id"],
+                column_operators=[
+                    ColumnOperator(
+                        col="uuid",
+                        opr="in",
+                        value=[str(row.uuid) for row in identifiers],
+                    )
+                ],
+                page_size=1,
+                page=1,
+            )
+            assert scoped_count == 1
+            assert scoped_rows == []
+            assert (
+                DatasetDAO.list(
+                    columns=["id"],
+                    column_operators=[ColumnOperator(col="uuid", opr="in", value=[])],
+                )[1]
+                == 0
+            )
+            for search in ("no matching description", "%", "_"):
+                assert (
+                    DatasetDAO.list(
+                        search=search,
+                        search_columns=["description"],
+                        columns=["id"],
+                    )[1]
+                    == 0
+                )
+
+    candidates = [create_mock_dataset(1, "events"), create_mock_dataset(2, "shipments")]
+    for candidate in candidates:
+        candidate.description = "Order fulfillment"
+    with patch.object(DatasetDAO, "list", return_value=(candidates, 2)) as listing:
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "list_datasets", {"request": {"search": "Order"}}
+            )
+        data = json.loads(result.content[0].text)
+    from superset.mcp_service.common.schema_discovery import DATASET_SEARCH_COLUMNS
+
+    # The advertised substring-search columns are the ones actually searched.
+    # Complete UUIDs take the separate, portable exact-filter path below.
+    assert listing.call_args.kwargs["search_columns"] == DATASET_SEARCH_COLUMNS
+    assert "description" in DATASET_SEARCH_COLUMNS
+    assert "uuid" not in DATASET_SEARCH_COLUMNS
+    assert [(row["id"], row["table_name"]) for row in data["datasets"]] == [
+        (1, "events"),
+        (2, "shipments"),
+    ]
+
+
+@pytest.mark.asyncio
+async def test_uuid_search_uses_portable_exact_filter(
+    mcp_server: fastmcp.FastMCP,
+) -> None:
+    """A UUID-shaped search does not depend on engine-specific text casting."""
+    from superset.daos.dataset import DatasetDAO
+
+    identifier = "00000000-0000-0000-0000-000000000001"
+    with patch.object(DatasetDAO, "list", return_value=([], 0)) as listing:
+        async with Client(mcp_server) as client:
+            await client.call_tool(
+                "list_datasets",
+                {"request": {"search": identifier}},
+            )
+
+    kwargs = listing.call_args.kwargs
+    assert kwargs["search"] is None
+    assert [(op.col, op.opr, op.value) for op in kwargs["column_operators"]] == [
+        ("uuid", "eq", identifier)
+    ]
+
+
+@pytest.mark.asyncio
+async def test_non_uuid_search_remains_substring_search(
+    mcp_server: fastmcp.FastMCP,
+) -> None:
+    """Ordinary search terms retain the generic discovery behavior."""
+    from superset.daos.dataset import DatasetDAO
+
+    with patch.object(DatasetDAO, "list", return_value=([], 0)) as listing:
+        async with Client(mcp_server) as client:
+            await client.call_tool(
+                "list_datasets",
+                {"request": {"search": "orders"}},
+            )
+
+    kwargs = listing.call_args.kwargs
+    assert kwargs["search"] == "orders"
+    assert kwargs["column_operators"] == []
+
+
+@pytest.mark.asyncio
+async def test_scoped_discovery_filters_before_pagination_without_echoing_scope(
+    mcp_server: fastmcp.FastMCP,
+) -> None:
+    """The routing filter reaches the DAO without leaking the allowlist back."""
+    from uuid import UUID
+
+    from superset.mcp_service.dataset_scope import DatasetScopeFilter
+
+    uid = UUID("00000000-0000-0000-0000-000000000001")
+    with (
+        patch.object(list_datasets_module, "get_dataset_scope", return_value={uid}),
+        patch("superset.daos.dataset.DatasetDAO.list", return_value=([], 0)) as listing,
+    ):
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "list_datasets",
+                {
+                    "request": {
+                        "filters": [
+                            {"col": "table_name", "opr": "eq", "value": "events"}
+                        ],
+                        "page": 2,
+                        "page_size": 5,
+                    }
+                },
+            )
+        data = json.loads(result.content[0].text)
+
+    kwargs = listing.call_args.kwargs
+    # Caller filters stay caller filters; the scope rides along as a custom
+    # filter, which BaseDAO.list applies before it counts and pages.
+    assert [(op.col, op.opr, op.value) for op in kwargs["column_operators"]] == [
+        ("table_name", "eq", "events")
+    ]
+    scope_filter = kwargs["custom_filters"]["mcp_dataset_scope"]
+    assert isinstance(scope_filter._inner, DatasetScopeFilter)
+    assert scope_filter._value == {uid}
+    assert kwargs["page"] == 1
+
+    # The resolved allowlist may name datasets this caller cannot reach, so it
+    # must never be reflected back in the response.
+    assert data["filters_applied"] == [
+        {"col": "table_name", "opr": "eq", "value": "events"}
+    ]
+    assert str(uid) not in json.dumps(data)
+
+
+@pytest.mark.asyncio
+async def test_unscoped_discovery_adds_no_custom_filter(
+    mcp_server: fastmcp.FastMCP,
+) -> None:
+    """With the feature off, list_datasets queries exactly as it did before."""
+    with (
+        patch.object(list_datasets_module, "get_dataset_scope", return_value=None),
+        patch("superset.daos.dataset.DatasetDAO.list", return_value=([], 0)) as listing,
+    ):
+        async with Client(mcp_server) as client:
+            await client.call_tool("list_datasets", {"request": {}})
+    assert listing.call_args.kwargs["custom_filters"] is None
+
+
+def test_scope_filter_restricts_the_query_to_the_allowlist() -> None:
+    """The custom filter narrows to the allowlist against a real UUID column."""
+    from sqlalchemy import create_engine
+    from sqlalchemy.orm import Session
+
+    from superset.connectors.sqla.models import SqlaTable
+    from superset.mcp_service.dataset_scope import DatasetScopeFilter
+
+    engine = create_engine("sqlite://")
+    SqlaTable.__table__.create(engine)
+    with Session(engine) as session:
+        session.execute(
+            SqlaTable.__table__.insert(),
+            [
+                {"id": 1, "database_id": 1, "table_name": "events"},
+                {"id": 2, "database_id": 1, "table_name": "shipments"},
+            ],
+        )
+        session.commit()
+        allowed = session.query(SqlaTable.uuid).filter(SqlaTable.id == 1).scalar()
+        query = session.query(SqlaTable.id)
+        scope_filter = DatasetScopeFilter.__new__(DatasetScopeFilter)
+        assert [row.id for row in scope_filter.apply(query, frozenset({allowed}))] == [
+            1
+        ]
+        assert scope_filter.apply(query, frozenset()).count() == 0

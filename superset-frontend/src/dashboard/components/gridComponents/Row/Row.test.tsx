@@ -18,6 +18,7 @@
  */
 import React from 'react';
 import {
+  act,
   fireEvent,
   render,
   RenderResult,
@@ -25,6 +26,10 @@ import {
 } from 'spec/helpers/testing-library';
 
 import { DASHBOARD_GRID_ID } from 'src/dashboard/util/constants';
+import {
+  FORCE_IN_VIEW_EVENT,
+  RESTORE_VIRTUALIZATION_EVENT,
+} from 'src/dashboard/constants';
 import { getMockStore } from 'spec/fixtures/mockStore';
 import { dashboardLayout as mockLayout } from 'spec/fixtures/mockDashboardLayout';
 import { initialState } from 'src/SqlLab/fixtures';
@@ -60,11 +65,20 @@ jest.mock('src/dashboard/components/dnd/DragDroppable', () => ({
   Droppable: ({
     children,
     depth,
+    style,
+    className,
   }: {
     children: (args: object) => React.ReactNode;
     depth: number;
+    style?: React.CSSProperties;
+    className?: string;
   }) => (
-    <div data-test="mock-droppable" data-depth={depth}>
+    <div
+      data-test="mock-droppable"
+      data-depth={depth}
+      className={className}
+      style={style}
+    >
       {children({})}
     </div>
   ),
@@ -240,6 +254,15 @@ test('should call deleteComponent when deleted', () => {
   expect(deleteComponent).toHaveBeenCalledTimes(1);
 });
 
+test('settings IconButton exposes an accessible name without visible label text', () => {
+  setup({ component: rowWithoutChildren, editMode: true });
+
+  expect(
+    screen.getByRole('button', { name: 'Row settings' }),
+  ).toBeInTheDocument();
+  expect(screen.queryByText('Row settings')).not.toBeInTheDocument();
+});
+
 test('should pass appropriate availableColumnCount to children', () => {
   const { getByTestId } = setup();
   expect(getByTestId('mock-dashboard-component')).toHaveTextContent(
@@ -253,6 +276,38 @@ test('should increment the depth of its children', () => {
     'data-depth',
     `${props.depth + 1}`,
   );
+});
+
+test('row droptargets size via CSS instead of a measured pixel height that can only grow (regression for #37644)', () => {
+  const { container } = setup({ editMode: true });
+  const getDroptargetHeights = () =>
+    Array.from(
+      container.querySelectorAll<HTMLElement>('.empty-droptarget--vertical'),
+    ).map(el => el.style.height);
+
+  // The leading droptarget (index 0) is absolutely positioned, so a
+  // percentage height resolves fine and stretches it to the row via CSS
+  // rather than a pixel value measured from the row's tallest chart -- it
+  // can never be left pinned to a chart's prior (larger) height after a
+  // resize. The droptarget after the chart is an in-flow flex item under
+  // GridRow's indefinite `height: fit-content`, where a percentage height
+  // resolves to `auto`/is ignored per the flexbox spec (defeating the
+  // `align-self: stretch` CSS already declares for it) -- it gets an
+  // explicit `auto` instead, letting that stretch actually apply.
+  expect(getDroptargetHeights()).toEqual(['100%', 'auto']);
+});
+
+test('trailing droptarget also gets a CSS-driven height when the row is full (regression for #37644)', () => {
+  const { container } = setup({ editMode: true, occupiedColumnCount: 12 });
+  const getDroptargetHeights = () =>
+    Array.from(
+      container.querySelectorAll<HTMLElement>('.empty-droptarget--vertical'),
+    ).map(el => el.style.height);
+
+  // With no remaining columns, the droptarget after the last chart is
+  // treated as a side target too (isTrailingSideTarget), so it takes the
+  // same '100%' CSS height as the leading one instead of 'auto'.
+  expect(getDroptargetHeights()).toEqual(['100%', '100%']);
 });
 
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
@@ -327,5 +382,59 @@ describe('visibility handling for intersection observers', () => {
     const nonIntersectingEntry = { isIntersecting: false };
     expect(() => callback([nonIntersectingEntry])).not.toThrow();
     expect(callback([nonIntersectingEntry])).toBe(false);
+  });
+
+  test('force-in-view event with no detail disconnects the observers for every row', () => {
+    setup({ isComponentVisible: true });
+
+    act(() => {
+      window.dispatchEvent(new Event(FORCE_IN_VIEW_EVENT));
+    });
+
+    expect(mockDisconnect).toHaveBeenCalled();
+  });
+
+  test('force-in-view event scoped to other rowIds does not disconnect this row', () => {
+    setup({ isComponentVisible: true });
+
+    act(() => {
+      window.dispatchEvent(
+        new CustomEvent(FORCE_IN_VIEW_EVENT, {
+          detail: { rowIds: ['SOME_OTHER_ROW_ID'] },
+        }),
+      );
+    });
+
+    expect(mockDisconnect).not.toHaveBeenCalled();
+  });
+
+  test('force-in-view event scoped to this rowId disconnects the observers', () => {
+    setup({ isComponentVisible: true });
+
+    act(() => {
+      window.dispatchEvent(
+        new CustomEvent(FORCE_IN_VIEW_EVENT, {
+          detail: { rowIds: [props.id] },
+        }),
+      );
+    });
+
+    expect(mockDisconnect).toHaveBeenCalled();
+  });
+
+  test('restore-virtualization event re-observes after a force-in-view', () => {
+    setup({ isComponentVisible: true });
+    expect(mockObserve).toHaveBeenCalledTimes(2);
+
+    act(() => {
+      window.dispatchEvent(new Event(FORCE_IN_VIEW_EVENT));
+    });
+    act(() => {
+      window.dispatchEvent(new Event(RESTORE_VIRTUALIZATION_EVENT));
+    });
+
+    // The initial mount observes twice (enabler + disabler); restoring
+    // after a force-in-view re-observes both again.
+    expect(mockObserve).toHaveBeenCalledTimes(4);
   });
 });

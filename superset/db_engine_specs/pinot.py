@@ -45,6 +45,10 @@ class PinotEngineSpec(BaseEngineSpec):
             DatabaseCategory.OPEN_SOURCE,
         ],
         "pypi_packages": ["pinotdb"],
+        "version_requirements": (
+            "The Pinot extra requires pinotdb[sqlalchemy]>=8.0.0,<10.0.0."
+            " Earlier releases declare SQLAlchemy below 2 in their SQLAlchemy extra."
+        ),
         "connection_string": (
             "pinot+http://{broker_host}:{broker_port}/query"
             "?controller=http://{controller_host}:{controller_port}/"
@@ -113,6 +117,9 @@ class PinotEngineSpec(BaseEngineSpec):
     ) -> str:
         # Pinot driver infers TIMESTAMP column as LONG, so make the quick fix.
         # When the Pinot driver fix this bug, current method could be removed.
+        #
+        # TODO: remove this override once startreedata/pinot-dbapi#224 is
+        # merged and released, and pinotdb is bumped past that version.
         if isinstance(sqla_column_type, types.TIMESTAMP):
             return sqla_column_type.compile().upper()
 

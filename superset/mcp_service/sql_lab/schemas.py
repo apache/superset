@@ -28,6 +28,12 @@ from pydantic import (
     model_serializer,
 )
 
+from superset.mcp_service.utils.serialization import (
+    JsonSafeRows,
+    OptionalRowCount,
+    RowCount,
+)
+
 
 class _SchemaFieldNormalizer(BaseModel):
     """Mixin that renames schema_name → schema in JSON output.
@@ -133,9 +139,7 @@ class ColumnInfo(BaseModel):
 class StatementData(BaseModel):
     """Row data and column metadata for a single SQL statement."""
 
-    rows: list[dict[str, Any]] = Field(
-        ..., description="Result rows as list of dictionaries"
-    )
+    rows: JsonSafeRows = Field(..., description="Result rows as list of dictionaries")
     columns: list[ColumnInfo] = Field(..., description="Column metadata information")
 
 
@@ -146,7 +150,7 @@ class StatementInfo(BaseModel):
     executed_sql: str = Field(
         ..., description="SQL after transformations (RLS, mutations, limits)"
     )
-    row_count: int = Field(..., description="Number of rows returned/affected")
+    row_count: RowCount = Field(..., description="Number of rows returned/affected")
     execution_time_ms: float | None = Field(
         None, description="Statement execution time in milliseconds"
     )
@@ -164,14 +168,14 @@ class ExecuteSqlResponse(BaseModel):
     """Response schema for SQL execution results."""
 
     success: bool = Field(..., description="Whether query executed successfully")
-    rows: list[dict[str, Any]] | None = Field(
+    rows: JsonSafeRows | None = Field(
         None, description="Query result rows as list of dictionaries"
     )
     columns: list[ColumnInfo] | None = Field(
         None, description="Column metadata information"
     )
-    row_count: int | None = Field(None, description="Number of rows returned")
-    affected_rows: int | None = Field(
+    row_count: OptionalRowCount = Field(None, description="Number of rows returned")
+    affected_rows: OptionalRowCount = Field(
         None, description="Number of rows affected (for DML queries)"
     )
     execution_time: float | None = Field(
@@ -285,7 +289,26 @@ class OpenSqlLabRequest(BaseModel):
         description="SQL to pre-populate in the editor",
         validation_alias=AliasChoices("sql", "query"),
     )
-    title: str | None = Field(None, description="Title for the SQL Lab tab/query")
+    title: str | None = Field(
+        None,
+        description=(
+            "Title for the SQL Lab tab. Generate a succinct, descriptive label "
+            "(roughly 3-6 words) from the conversation context or the query "
+            "intent — e.g. 'Top customers by revenue Q3' — instead of leaving "
+            "the tab untitled. Avoid generic names like 'Untitled Query'."
+        ),
+        max_length=256,
+    )
+
+    @field_validator("title")
+    @classmethod
+    def title_strip_or_none(cls, v: str | None) -> str | None:
+        # Whitespace-only would render as a blank tab label; fall back to
+        # SQL Lab's default "Untitled Query N" naming instead.
+        if v is None:
+            return None
+        stripped = v.strip()
+        return stripped or None
 
 
 class SqlLabResponse(_SchemaFieldNormalizer):

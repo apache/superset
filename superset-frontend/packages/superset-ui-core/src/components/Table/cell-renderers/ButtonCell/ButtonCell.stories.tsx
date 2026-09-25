@@ -16,8 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { StoryFn, Meta } from '@storybook/react';
-import { action } from '@storybook/addon-actions';
+import { StoryFn, Meta } from '@storybook/react-webpack5';
+import { action } from 'storybook/actions';
 import { ButtonCell } from './index';
 
 export default {

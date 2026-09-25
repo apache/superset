@@ -18,7 +18,17 @@
  */
 
 import React, { useState, useMemo } from 'react';
-import { Card, Row, Col, Statistic, Table, Tag, Input, Select, Tooltip } from 'antd';
+import {
+  Card,
+  Row,
+  Col,
+  Statistic,
+  Table,
+  Tag,
+  Input,
+  Select,
+  Tooltip,
+} from 'antd';
 import {
   DatabaseOutlined,
   CheckCircleOutlined,
@@ -37,7 +47,7 @@ interface DatabaseIndexProps {
 // Type for table entries (includes both regular DBs and compatible DBs)
 interface TableEntry {
   name: string;
-  categories: string[];  // Multiple categories supported
+  categories: string[]; // Multiple categories supported
   score: number;
   max_score: number;
   timeGrainCount: number;
@@ -66,20 +76,20 @@ interface TableEntry {
 
 // Map category constant names to display names
 const CATEGORY_DISPLAY_NAMES: Record<string, string> = {
-  'CLOUD_AWS': 'Cloud - AWS',
-  'CLOUD_GCP': 'Cloud - Google',
-  'CLOUD_AZURE': 'Cloud - Azure',
-  'CLOUD_DATA_WAREHOUSES': 'Cloud Data Warehouses',
-  'APACHE_PROJECTS': 'Apache Projects',
-  'TRADITIONAL_RDBMS': 'Traditional RDBMS',
-  'ANALYTICAL_DATABASES': 'Analytical Databases',
-  'SEARCH_NOSQL': 'Search & NoSQL',
-  'QUERY_ENGINES': 'Query Engines',
-  'TIME_SERIES': 'Time Series Databases',
-  'OTHER': 'Other Databases',
-  'OPEN_SOURCE': 'Open Source',
-  'HOSTED_OPEN_SOURCE': 'Hosted Open Source',
-  'PROPRIETARY': 'Proprietary',
+  CLOUD_AWS: 'Cloud - AWS',
+  CLOUD_GCP: 'Cloud - Google',
+  CLOUD_AZURE: 'Cloud - Azure',
+  CLOUD_DATA_WAREHOUSES: 'Cloud Data Warehouses',
+  APACHE_PROJECTS: 'Apache Projects',
+  TRADITIONAL_RDBMS: 'Traditional RDBMS',
+  ANALYTICAL_DATABASES: 'Analytical Databases',
+  SEARCH_NOSQL: 'Search & NoSQL',
+  QUERY_ENGINES: 'Query Engines',
+  TIME_SERIES: 'Time Series Databases',
+  OTHER: 'Other Databases',
+  OPEN_SOURCE: 'Open Source',
+  HOSTED_OPEN_SOURCE: 'Hosted Open Source',
+  PROPRIETARY: 'Proprietary',
 };
 
 // Category colors for visual distinction
@@ -98,7 +108,7 @@ const CATEGORY_COLORS: Record<string, string> = {
   // Licensing categories
   'Open Source': 'geekblue',
   'Hosted Open Source': 'cyan',
-  'Proprietary': 'default',
+  Proprietary: 'default',
 };
 
 // Convert category constant to display name
@@ -110,7 +120,7 @@ function getCategoryDisplayName(cat: string): string {
 // Falls back to name-based inference for compatible databases without categories
 function getCategories(
   name: string,
-  documentationCategories?: string[]
+  documentationCategories?: string[],
 ): string[] {
   // Prefer categories from documentation metadata (computed by Python)
   if (documentationCategories && documentationCategories.length > 0) {
@@ -221,10 +231,11 @@ const DatabaseIndex: React.FC<DatabaseIndexProps> = ({ data }) => {
         categories: getCategories(name, db.documentation?.categories),
         timeGrainCount: countTimeGrains(db),
         hasDrivers: (db.documentation?.drivers?.length ?? 0) > 0,
-        hasAuthMethods: (db.documentation?.authentication_methods?.length ?? 0) > 0,
+        hasAuthMethods:
+          (db.documentation?.authentication_methods?.length ?? 0) > 0,
         hasConnectionString: Boolean(
           db.documentation?.connection_string ||
-            (db.documentation?.drivers?.length ?? 0) > 0
+          (db.documentation?.drivers?.length ?? 0) > 0,
         ),
         hasCustomErrors: (db.documentation?.custom_errors?.length ?? 0) > 0,
         customErrorCount: db.documentation?.custom_errors?.length ?? 0,
@@ -233,10 +244,10 @@ const DatabaseIndex: React.FC<DatabaseIndexProps> = ({ data }) => {
 
       // Add compatible databases from this database's documentation
       const compatibleDbs = db.documentation?.compatible_databases ?? [];
-      compatibleDbs.forEach((compat) => {
+      compatibleDbs.forEach(compat => {
         // Check if this compatible DB already exists as a main entry
         const existsAsMain = Object.keys(databases).some(
-          (dbName) => dbName.toLowerCase() === compat.name.toLowerCase()
+          dbName => dbName.toLowerCase() === compat.name.toLowerCase(),
         );
 
         if (!existsAsMain) {
@@ -277,14 +288,15 @@ const DatabaseIndex: React.FC<DatabaseIndexProps> = ({ data }) => {
   // Filter and sort databases
   const filteredDatabases = useMemo(() => {
     return databaseList
-      .filter((db) => {
+      .filter(db => {
         const matchesSearch =
           !searchText ||
           db.name.toLowerCase().includes(searchText.toLowerCase()) ||
           db.documentation?.description
             ?.toLowerCase()
             .includes(searchText.toLowerCase());
-        const matchesCategory = !categoryFilter || db.categories.includes(categoryFilter);
+        const matchesCategory =
+          !categoryFilter || db.categories.includes(categoryFilter);
         return matchesSearch && matchesCategory;
       })
       .sort((a, b) => b.score - a.score);
@@ -293,9 +305,9 @@ const DatabaseIndex: React.FC<DatabaseIndexProps> = ({ data }) => {
   // Get unique categories and counts for filter
   const { categories, categoryCounts } = useMemo(() => {
     const counts: Record<string, number> = {};
-    databaseList.forEach((db) => {
+    databaseList.forEach(db => {
       // Count each category the database belongs to
-      db.categories.forEach((cat) => {
+      db.categories.forEach(cat => {
         counts[cat] = (counts[cat] || 0) + 1;
       });
     });
@@ -314,12 +326,17 @@ const DatabaseIndex: React.FC<DatabaseIndexProps> = ({ data }) => {
       sorter: (a: TableEntry, b: TableEntry) => a.name.localeCompare(b.name),
       render: (name: string, record: TableEntry) => {
         // Convert name to URL slug
-        const toSlug = (n: string) => n.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+        const toSlug = (n: string) =>
+          n
+            .toLowerCase()
+            .replace(/[^a-z0-9]+/g, '-')
+            .replace(/^-|-$/g, '');
 
         // Link to parent for compatible DBs, otherwise to own page
-        const linkTarget = record.isCompatible && record.compatibleWith
-          ? `/docs/databases/supported/${toSlug(record.compatibleWith)}`
-          : `/docs/databases/supported/${toSlug(name)}`;
+        const linkTarget =
+          record.isCompatible && record.compatibleWith
+            ? `/docs/databases/supported/${toSlug(record.compatibleWith)}`
+            : `/docs/databases/supported/${toSlug(name)}`;
 
         return (
           <div>
@@ -337,7 +354,9 @@ const DatabaseIndex: React.FC<DatabaseIndexProps> = ({ data }) => {
             )}
             <div style={{ fontSize: '12px', color: '#666' }}>
               {record.documentation?.description?.slice(0, 80)}
-              {(record.documentation?.description?.length ?? 0) > 80 ? '...' : ''}
+              {(record.documentation?.description?.length ?? 0) > 80
+                ? '...'
+                : ''}
             </div>
           </div>
         );
@@ -348,13 +367,15 @@ const DatabaseIndex: React.FC<DatabaseIndexProps> = ({ data }) => {
       dataIndex: 'categories',
       key: 'categories',
       width: 220,
-      filters: categories.map((cat) => ({ text: cat, value: cat })),
+      filters: categories.map(cat => ({ text: cat, value: cat })),
       onFilter: (value: React.Key | boolean, record: TableEntry) =>
         record.categories.includes(value as string),
       render: (cats: string[]) => (
         <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
-          {cats.map((cat) => (
-            <Tag key={cat} color={CATEGORY_COLORS[cat] || 'default'}>{cat}</Tag>
+          {cats.map(cat => (
+            <Tag key={cat} color={CATEGORY_COLORS[cat] || 'default'}>
+              {cat}
+            </Tag>
           ))}
         </div>
       ),
@@ -382,16 +403,26 @@ const DatabaseIndex: React.FC<DatabaseIndexProps> = ({ data }) => {
       dataIndex: 'timeGrainCount',
       key: 'timeGrainCount',
       width: 100,
-      sorter: (a: TableEntry, b: TableEntry) => a.timeGrainCount - b.timeGrainCount,
+      sorter: (a: TableEntry, b: TableEntry) =>
+        a.timeGrainCount - b.timeGrainCount,
       render: (count: number, record: TableEntry) => {
         if (count === 0) return <span>-</span>;
         const grains = getSupportedTimeGrains(record.time_grains);
         return (
           <Tooltip
             title={
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', maxWidth: 280 }}>
-                {grains.map((grain) => (
-                  <Tag key={grain} style={{ margin: 0 }}>{grain}</Tag>
+              <div
+                style={{
+                  display: 'flex',
+                  flexWrap: 'wrap',
+                  gap: '4px',
+                  maxWidth: 280,
+                }}
+              >
+                {grains.map(grain => (
+                  <Tag key={grain} style={{ margin: 0 }}>
+                    {grain}
+                  </Tag>
                 ))}
               </div>
             }
@@ -450,13 +481,17 @@ const DatabaseIndex: React.FC<DatabaseIndexProps> = ({ data }) => {
         <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
           {record.joins && <Tag color="green">JOINs</Tag>}
           {record.subqueries && <Tag color="green">Subqueries</Tag>}
-          {record.supports_dynamic_schema && <Tag color="blue">Dynamic Schema</Tag>}
+          {record.supports_dynamic_schema && (
+            <Tag color="blue">Dynamic Schema</Tag>
+          )}
           {record.supports_catalog && <Tag color="purple">Catalog</Tag>}
           {record.ssh_tunneling && <Tag color="cyan">SSH</Tag>}
           {record.supports_file_upload && <Tag color="orange">File Upload</Tag>}
           {record.query_cancelation && <Tag color="volcano">Query Cancel</Tag>}
           {record.query_cost_estimation && <Tag color="gold">Cost Est.</Tag>}
-          {record.user_impersonation && <Tag color="magenta">Impersonation</Tag>}
+          {record.user_impersonation && (
+            <Tag color="magenta">Impersonation</Tag>
+          )}
           {record.sql_validation && <Tag color="lime">SQL Validation</Tag>}
         </div>
       ),
@@ -545,7 +580,7 @@ const DatabaseIndex: React.FC<DatabaseIndexProps> = ({ data }) => {
             placeholder="Search databases..."
             prefix={<SearchOutlined />}
             value={searchText}
-            onChange={(e) => setSearchText(e.target.value)}
+            onChange={e => setSearchText(e.target.value)}
             allowClear
           />
         </Col>
@@ -556,7 +591,7 @@ const DatabaseIndex: React.FC<DatabaseIndexProps> = ({ data }) => {
             value={categoryFilter}
             onChange={setCategoryFilter}
             allowClear
-            options={categories.map((cat) => ({
+            options={categories.map(cat => ({
               label: (
                 <span>
                   <Tag
@@ -578,11 +613,15 @@ const DatabaseIndex: React.FC<DatabaseIndexProps> = ({ data }) => {
       <Table
         dataSource={filteredDatabases}
         columns={columns}
-        rowKey={(record) => record.isCompatible ? `${record.compatibleWith}-${record.name}` : record.name}
+        rowKey={record =>
+          record.isCompatible
+            ? `${record.compatibleWith}-${record.name}`
+            : record.name
+        }
         pagination={{
           defaultPageSize: 20,
           showSizeChanger: true,
-          showTotal: (total) => `${total} databases`,
+          showTotal: total => `${total} databases`,
         }}
         size="middle"
       />

@@ -63,7 +63,7 @@ class YDBEngineSpec(BaseEngineSpec):
             DatabaseCategory.TRADITIONAL_RDBMS,
             DatabaseCategory.OPEN_SOURCE,
         ],
-        "pypi_packages": ["ydb-sqlalchemy"],
+        "pypi_packages": ["ydb-sqlalchemy", "ydb-sqlglot-plugin"],
         "connection_string": "ydb://{host}:{port}/{database_name}",
         "default_port": 2135,
         "engine_parameters": [

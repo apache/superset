@@ -17,6 +17,7 @@
  * under the License.
  */
 import { useState } from 'react';
+import fetchMock from 'fetch-mock';
 import {
   cleanup,
   render,
@@ -34,6 +35,10 @@ import DrillDetailModal from '../DrillDetail/DrillDetailModal';
 import { useDrillDetailMenuItems, DrillDetailMenuItemsProps } from './index';
 
 /* eslint jest/expect-expect: ["warn", { "assertFunctionNames": ["expect*"] }] */
+
+// Opening the context menu logs an event, and an unmatched request makes
+// fetch-mock throw inside the component.
+fetchMock.post('glob:*/log/?*', {});
 
 jest.mock(
   '../DrillDetail/DrillDetailPane',
@@ -72,6 +77,13 @@ const filterB: BinaryQueryObjectFilterClause = {
   op: '==',
   val: 987654321,
   formattedVal: 'Two days ago',
+};
+
+const filterNull: BinaryQueryObjectFilterClause = {
+  col: 'sample_column_3',
+  op: '==',
+  val: null as unknown as string,
+  formattedVal: '<NULL>',
 };
 
 const MockRenderChart = ({
@@ -150,7 +162,7 @@ const expectDrillToDetailModal = async (
 ) => {
   if (buttonName) {
     const button = screen.getByRole('menuitem', { name: buttonName });
-    userEvent.click(button);
+    await userEvent.click(button);
   }
   const modal = await screen.findByRole('dialog', {
     name: `Drill to detail: ${chartName}`,
@@ -182,7 +194,7 @@ const expectMenuItemDisabled = async (
   expect(menuItem).toHaveAttribute('aria-disabled', 'true');
   const tooltipTrigger = within(menuItem).queryByTestId('tooltip-trigger');
   if (tooltipContent) {
-    userEvent.hover(tooltipTrigger as HTMLElement);
+    await userEvent.hover(tooltipTrigger as HTMLElement);
     const tooltip = await screen.findByRole('tooltip', {
       name: tooltipContent,
     });
@@ -237,7 +249,7 @@ const expectDrillToDetailByEnabled = async () => {
     .find(menuItem => within(menuItem).queryByText('Drill to detail by'));
   await expectMenuItemEnabled(drillToDetailBy!);
 
-  userEvent.hover(drillToDetailBy!);
+  await userEvent.hover(drillToDetailBy!);
 
   const submenu = await screen.findByRole('menu', {});
   expect(submenu).toBeInTheDocument();
@@ -264,7 +276,7 @@ const expectDrillToDetailByDimension = async (
     name: 'Drill to detail by',
   });
 
-  userEvent.hover(drillByMenuItem);
+  await userEvent.hover(drillByMenuItem);
 
   const submenuPopup = (await waitFor(() =>
     screen
@@ -303,7 +315,7 @@ const expectDrillToDetailByAll = async (
     name: 'Drill to detail by',
   });
 
-  userEvent.hover(drillByMenuItem);
+  await userEvent.hover(drillByMenuItem);
 
   await screen.findByRole('menu');
 
@@ -311,7 +323,7 @@ const expectDrillToDetailByAll = async (
 
   await expectMenuItemEnabled(drillToDetailBySubmenuItem);
 
-  userEvent.click(drillToDetailBySubmenuItem);
+  await userEvent.click(drillToDetailBySubmenuItem);
   await expectDrillToDetailModal(null, filters);
 };
 
@@ -425,4 +437,57 @@ test.skip('context menu for supported chart, dimensions, all filters', async () 
   const filters = [filterA, filterB];
   await setupMenu(filters);
   await expectDrillToDetailByAll(filters);
+});
+
+test('context menu renders <NULL> for null dimension values', async () => {
+  renderMenu({
+    formData: defaultFormData,
+    isContextMenu: true,
+    filters: [filterNull],
+  });
+
+  await expectDrillToDetailByEnabled();
+  await expectDrillToDetailByDimension(filterNull);
+});
+
+const buildStateWithUnsupportedDatasource = () => {
+  const baseState = getMockStoreWithNativeFilters().getState();
+  const datasourceKey = defaultFormData.datasource as string;
+  return {
+    ...baseState,
+    datasources: {
+      ...baseState.datasources,
+      [datasourceKey]: {
+        ...baseState.datasources[datasourceKey],
+        supports_drill_to_detail: false,
+      },
+    },
+  };
+};
+
+test('dropdown menu when datasource opts out via supports_drill_to_detail=false', async () => {
+  cleanup();
+  render(<MockRenderChart formData={defaultFormData} />, {
+    useRouter: true,
+    useRedux: true,
+    initialState: buildStateWithUnsupportedDatasource(),
+  });
+
+  await expectDrillToDetailDisabled(
+    'Drill to detail is not available for this datasource type.',
+  );
+  await expectNoDrillToDetailBy();
+});
+
+test('context menu when datasource opts out via supports_drill_to_detail=false', async () => {
+  cleanup();
+  render(<MockRenderChart formData={defaultFormData} isContextMenu />, {
+    useRouter: true,
+    useRedux: true,
+    initialState: buildStateWithUnsupportedDatasource(),
+  });
+
+  const message = 'Drill to detail is not available for this datasource type.';
+  await expectDrillToDetailDisabled(message);
+  await expectDrillToDetailByDisabled(message);
 });

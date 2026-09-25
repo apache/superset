@@ -45,6 +45,7 @@ src/
 ├── extensions/
 ├── menus/
 ├── sqlLab/
+├── storage/
 ├── theme/
 ├── translation/
 ├── utils/

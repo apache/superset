@@ -98,8 +98,6 @@ interface ShowDropIndicatorsResult {
 
 interface CloseIconWithDropIndicatorProps {
   showDropIndicators: ShowDropIndicatorsResult;
-  role?: string;
-  tabIndex?: number;
 }
 
 const CloseIconWithDropIndicator = (
@@ -155,7 +153,7 @@ const Tabs = (props: TabsProps): ReactElement => {
     };
   }, [activeTabs, props.component, directPathToChild]);
 
-  const [activeKey, setActiveKey] = useState<string>(initActiveKey);
+  const [activeKey, setActiveKey] = useState<string | undefined>(initActiveKey);
   const [selectedTabIndex, setSelectedTabIndex] =
     useState<number>(initTabIndex);
   const [dropPosition, setDropPosition] = useState<string | null>(null);
@@ -168,6 +166,26 @@ const Tabs = (props: TabsProps): ReactElement => {
   const prevTabIds = usePrevious(props.component.children);
 
   useEffect(() => {
+    // Resolve missing or deleted active keys when children become available
+    // so a tab added to an empty container is selected and registered.
+    const tabId = props.component.children[selectedTabIndex];
+    if (
+      tabId &&
+      (!activeKey || !props.component.children.includes(activeKey))
+    ) {
+      setActiveKey(tabId);
+    }
+  }, [activeKey, props.component.children, selectedTabIndex]);
+
+  useEffect(() => {
+    // A TABS component with no children resolves no tab id, so there is
+    // nothing to activate. Dispatching the unresolved id would register an
+    // `undefined` entry in dashboardState.activeTabs, which JSON.stringify
+    // coerces to `null` when the dashboard state is posted to the permalink
+    // endpoint.
+    if (!activeKey) {
+      return;
+    }
     if (prevActiveKey) {
       props.setActiveTab(activeKey, prevActiveKey);
     } else {
@@ -481,9 +499,9 @@ const Tabs = (props: TabsProps): ReactElement => {
           </>
         ),
         closeIcon: (
+          // rc-tabs already wraps closeIcon content in its own
+          // <button role="tab" aria-label="remove">.
           <CloseIconWithDropIndicator
-            role="button"
-            tabIndex={tabIndex}
             showDropIndicators={showDropIndicators(tabIndex)}
           />
         ),
@@ -582,7 +600,7 @@ const Tabs = (props: TabsProps): ReactElement => {
           show={!!tabToDelete}
           onHide={handleCancelTabDelete}
           onHandledPrimaryAction={handleConfirmTabDelete}
-          primaryButtonName={t('DELETE')}
+          primaryButtonName={t('Delete')}
           primaryButtonStyle="danger"
           title={t('Delete dashboard tab?')}
           centered

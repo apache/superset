@@ -106,6 +106,7 @@ export default function URLShortLinkButton({
           onClick={e => {
             e.stopPropagation();
           }}
+          onKeyDown={e => e.stopPropagation()}
         >
           <CopyToClipboard
             text={shortUrl}

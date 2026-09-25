@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { render, screen, fireEvent } from 'spec/helpers/testing-library';
+import { render, screen } from 'spec/helpers/testing-library';
 import { DndItemType } from 'src/explore/components/DndItemType';
 import OptionWrapper from 'src/explore/components/controls/DndColumnSelectControl/OptionWrapper';
 
@@ -29,35 +29,66 @@ test('renders with default props', async () => {
       onShiftOptions={jest.fn()}
       label="Option"
     />,
-    { useDnd: true },
+    { useDndKit: true },
   );
   expect(container).toBeInTheDocument();
   expect(await screen.findByRole('img', { name: 'close' })).toBeInTheDocument();
 });
 
-test('triggers onShiftOptions on drop', async () => {
-  const onShiftOptions = jest.fn();
+test('renders label correctly', async () => {
+  render(
+    <OptionWrapper
+      index={1}
+      clickClose={jest.fn()}
+      type={'Column' as DndItemType}
+      onShiftOptions={jest.fn()}
+      label="Test Label"
+    />,
+    { useDndKit: true },
+  );
+
+  expect(await screen.findByText('Test Label')).toBeInTheDocument();
+});
+
+test('renders multiple options', async () => {
   render(
     <>
+      <OptionWrapper
+        index={0}
+        clickClose={jest.fn()}
+        type={'Column' as DndItemType}
+        onShiftOptions={jest.fn()}
+        label="Option 1"
+      />
       <OptionWrapper
         index={1}
         clickClose={jest.fn()}
         type={'Column' as DndItemType}
-        onShiftOptions={onShiftOptions}
-        label="Option 1"
-      />
-      <OptionWrapper
-        index={2}
-        clickClose={jest.fn()}
-        type={'Column' as DndItemType}
-        onShiftOptions={onShiftOptions}
+        onShiftOptions={jest.fn()}
         label="Option 2"
       />
     </>,
-    { useDnd: true },
+    { useDndKit: true },
   );
 
-  fireEvent.dragStart(await screen.findByText('Option 1'));
-  fireEvent.drop(await screen.findByText('Option 2'));
-  expect(onShiftOptions).toHaveBeenCalled();
+  expect(await screen.findByText('Option 1')).toBeInTheDocument();
+  expect(await screen.findByText('Option 2')).toBeInTheDocument();
+});
+
+test('calls clickClose when close button is clicked', async () => {
+  const clickClose = jest.fn();
+  render(
+    <OptionWrapper
+      index={1}
+      clickClose={clickClose}
+      type={'Column' as DndItemType}
+      onShiftOptions={jest.fn()}
+      label="Option"
+    />,
+    { useDndKit: true },
+  );
+
+  const closeButton = await screen.findByRole('img', { name: 'close' });
+  closeButton.click();
+  expect(clickClose).toHaveBeenCalledWith(1);
 });

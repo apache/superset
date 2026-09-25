@@ -34,7 +34,6 @@ const metadata = new ChartMetadata({
   tags: [
     t('Multi-Variables'),
     t('Comparison'),
-    t('Legacy'),
     t('Percentages'),
     t('Tabular'),
     t('Text'),
@@ -42,7 +41,6 @@ const metadata = new ChartMetadata({
   ],
   thumbnail,
   thumbnailDark,
-  useLegacyApi: true,
 });
 
 export default class TimeTableChartPlugin extends ChartPlugin {
@@ -50,6 +48,7 @@ export default class TimeTableChartPlugin extends ChartPlugin {
     super({
       metadata,
       transformProps,
+      loadBuildQuery: () => import('./config/buildQuery'),
       loadChart: () => import('./TimeTable'),
       controlPanel,
     });

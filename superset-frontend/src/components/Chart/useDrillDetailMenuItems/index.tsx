@@ -24,7 +24,7 @@ import {
   useCallback,
   useMemo,
 } from 'react';
-import { isEmpty } from 'lodash';
+import { isEmpty } from 'lodash-es';
 import { t } from '@apache-superset/core/translation';
 import {
   Behavior,
@@ -38,6 +38,7 @@ import { css, styled } from '@apache-superset/core/theme';
 import { useSelector } from 'react-redux';
 import { type ItemType } from '@superset-ui/core/components/Menu';
 import { RootState } from 'src/dashboard/types';
+import { NULL_STRING } from 'src/utils/common';
 import { getSubmenuYOffset } from '../utils';
 import { MenuItemTooltip } from '../DisabledMenuItemTooltip';
 import { TruncatedMenuLabel } from '../MenuItemWithTruncation';
@@ -49,6 +50,7 @@ const DISABLED_REASONS = {
   DATABASE: t(
     'Drill to detail is disabled for this database. Change the database settings to enable it.',
   ),
+  DATASOURCE: t('Drill to detail is not available for this datasource type.'),
   NO_AGGREGATIONS: t(
     'Drill to detail is disabled because this chart does not group data by dimension value.',
   ),
@@ -115,6 +117,17 @@ export const useDrillDetailMenuItems = ({
       datasources[formData.datasource]?.database?.disable_drill_to_detail,
   );
 
+  // Capability flag on the datasource itself. Datasources that don't model
+  // raw rows (e.g. semantic views) opt out via ``supports_drill_to_detail``
+  // in the explore data payload.
+  const datasourceSupportsDrillToDetail = useSelector<
+    RootState,
+    boolean | undefined
+  >(
+    ({ datasources }) =>
+      datasources[formData.datasource]?.supports_drill_to_detail,
+  );
+
   const openModal = useCallback(
     (filters: BinaryQueryObjectFilterClause[], event: MouseEvent) => {
       onClick(event);
@@ -157,7 +170,10 @@ export const useDrillDetailMenuItems = ({
 
   let drillDisabled;
   let drillByDisabled;
-  if (drillToDetailDisabled) {
+  if (datasourceSupportsDrillToDetail === false) {
+    drillDisabled = DISABLED_REASONS.DATASOURCE;
+    drillByDisabled = DISABLED_REASONS.DATASOURCE;
+  } else if (drillToDetailDisabled) {
     drillDisabled = DISABLED_REASONS.DATABASE;
     drillByDisabled = DISABLED_REASONS.DATABASE;
   } else if (handlesDimensionContextMenu) {
@@ -219,33 +235,40 @@ export const useDrillDetailMenuItems = ({
           popupOffset: [0, submenuYOffset],
           popupClassName: 'chart-context-submenu',
           children: [
-            ...filters.map((filter, i) => ({
-              key: `drill-detail-filter-${i}`,
-              onClick: openModal.bind(null, [filter]),
-              label: (
-                <div
-                  css={css`
-                    max-width: 200px;
-                  `}
-                >
-                  <TruncatedMenuLabel
-                    tooltipText={`${DRILL_TO_DETAIL_BY} ${filter.formattedVal}`}
-                    aria-label={`${DRILL_TO_DETAIL_BY} ${filter.formattedVal}`}
+            ...filters.map((filter, i) => {
+              const isNullVal =
+                filter.val === null || filter.formattedVal === NULL_STRING;
+              const formattedVal = isNullVal
+                ? NULL_STRING
+                : filter.formattedVal;
+              return {
+                key: `drill-detail-filter-${i}`,
+                onClick: openModal.bind(null, [filter]),
+                label: (
+                  <div
+                    css={css`
+                      max-width: 200px;
+                    `}
                   >
-                    <span
-                      css={css`
-                        display: inline;
-                      `}
+                    <TruncatedMenuLabel
+                      tooltipText={`${DRILL_TO_DETAIL_BY} ${formattedVal}`}
+                      aria-label={`${DRILL_TO_DETAIL_BY} ${formattedVal}`}
                     >
-                      {DRILL_TO_DETAIL_BY}{' '}
-                      <StyledFilter stripHTML>
-                        {filter.formattedVal}
-                      </StyledFilter>
-                    </span>
-                  </TruncatedMenuLabel>
-                </div>
-              ),
-            })),
+                      <span
+                        css={css`
+                          display: inline;
+                        `}
+                      >
+                        {DRILL_TO_DETAIL_BY}{' '}
+                        <StyledFilter stripHTML={!isNullVal}>
+                          {formattedVal}
+                        </StyledFilter>
+                      </span>
+                    </TruncatedMenuLabel>
+                  </div>
+                ),
+              };
+            }),
             ...(filters.length > 1
               ? [
                   {

@@ -19,6 +19,7 @@
 import { act, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import rison from 'rison';
+import { FeatureFlag } from '@superset-ui/core';
 import fetchMock from 'fetch-mock';
 import {
   setupMocks,
@@ -200,8 +201,8 @@ test('renders Name search filter', async () => {
 test('renders Type filter (Virtual/Physical dropdown)', async () => {
   renderDatasetList(mockAdminUser);
 
-  // Filter dropdowns should be present
-  const filters = await screen.findAllByRole('combobox');
+  // Filter pills should be present (compact pill UI)
+  const filters = await screen.findAllByTestId('compact-filter-pill');
   expect(filters.length).toBeGreaterThan(0);
 });
 
@@ -215,7 +216,6 @@ test('handles datasets with missing fields and renders gracefully', async () => 
       id: '1',
       database_name: 'PostgreSQL',
     },
-    owners: [],
     changed_by_name: 'Unknown',
     changed_by: null,
     changed_on_delta_humanized: 'Unknown',
@@ -235,7 +235,7 @@ test('handles datasets with missing fields and renders gracefully', async () => 
     expect(screen.getByText('Incomplete Dataset')).toBeInTheDocument();
   });
 
-  // Verify empty owners renders without crashing (no FacePile)
+  // Verify empty editors renders without crashing
   const table = screen.getByRole('table');
   expect(table).toBeInTheDocument();
 
@@ -445,7 +445,8 @@ test('selecting Database filter triggers API call with database relation filter'
 
   await waitForDatasetsPageReady();
 
-  const filtersContainers = screen.getAllByRole('combobox');
+  // Filter pills should be present (compact pill UI replaces comboboxes)
+  const filtersContainers = screen.getAllByTestId('compact-filter-pill');
   expect(filtersContainers.length).toBeGreaterThan(0);
 });
 
@@ -505,23 +506,23 @@ test('displays datasets with warning_markdown', async () => {
   expect(datasetRow).toBeInTheDocument();
 });
 
-test('displays dataset with multiple owners', async () => {
-  const datasetWithOwners = mockDatasets[1]; // Has 2 owners: Jane Smith, Bob Jones
+test('displays dataset with multiple editors', async () => {
+  const datasetWithEditors = mockDatasets[1];
 
   mockDatasetListEndpoints({
-    result: [datasetWithOwners],
+    result: [datasetWithEditors],
     count: 1,
   });
 
   renderDatasetList(mockAdminUser);
 
   await waitFor(() => {
-    expect(screen.getByText(datasetWithOwners.table_name)).toBeInTheDocument();
+    expect(screen.getByText(datasetWithEditors.table_name)).toBeInTheDocument();
   });
 
   // Verify row exists with the dataset
   const datasetRow = screen
-    .getByText(datasetWithOwners.table_name)
+    .getByText(datasetWithEditors.table_name)
     .closest('tr');
   expect(datasetRow).toBeInTheDocument();
 });
@@ -564,3 +565,88 @@ test('dataset name links to Explore with correct explore_url', async () => {
   expect(exploreLink).toBeInTheDocument();
   expect(exploreLink).toHaveAttribute('href', dataset.explore_url);
 });
+
+test('shows RLS badge when dataset has rls_filters', async () => {
+  // mockDatasets[5] is 'Restricted Sales' with one rls_filter
+  const dataset = mockDatasets[5];
+
+  mockDatasetListEndpoints({ result: [dataset], count: 1 });
+  renderDatasetList(mockAdminUser);
+
+  await waitFor(() => {
+    expect(screen.getByText(dataset.table_name)).toBeInTheDocument();
+  });
+
+  // RlsBadge renders a lock icon with accessible name when filters are present
+  expect(
+    screen.getByRole('img', { name: /row-level security/i }),
+  ).toBeInTheDocument();
+});
+
+test('does not show RLS badge when dataset has no rls_filters', async () => {
+  // mockDatasets[0] has no rls_filters field
+  const dataset = mockDatasets[0];
+
+  mockDatasetListEndpoints({ result: [dataset], count: 1 });
+  renderDatasetList(mockAdminUser);
+
+  await waitFor(() => {
+    expect(screen.getByText(dataset.table_name)).toBeInTheDocument();
+  });
+
+  // No RLS badge when rls_filters is absent
+  expect(
+    screen.queryByRole('img', { name: /row-level security/i }),
+  ).not.toBeInTheDocument();
+});
+
+test.each([false, true])(
+  'renders dataset type badges with semantic layers enabled=%s',
+  async enabled => {
+    const previousFlags = window.featureFlags;
+    window.featureFlags = {
+      ...previousFlags,
+      [FeatureFlag.SemanticLayers]: enabled,
+    };
+    try {
+      const physical = { ...mockDatasets[0], kind: 'physical' };
+      const virtual = { ...mockDatasets[1], kind: 'virtual' };
+      const semantic = {
+        ...mockDatasets[0],
+        id: 900,
+        table_name: 'Semantic Orders',
+        kind: 'semantic_view',
+      };
+      const result = enabled
+        ? [physical, virtual, semantic]
+        : [physical, virtual];
+      mockDatasetListEndpoints({ result, count: result.length });
+      renderDatasetList(mockAdminUser);
+      const table = await screen.findByRole('table');
+      await waitFor(() =>
+        expect(within(table).getAllByTestId('dataset-type-label')).toHaveLength(
+          result.length,
+        ),
+      );
+      expect(within(table).getByText('Physical')).toBeInTheDocument();
+      expect(within(table).getByText('Virtual')).toBeInTheDocument();
+      if (enabled) {
+        const badge = within(table)
+          .getByText('Semantic View')
+          .closest('[data-test="dataset-type-label"]');
+        expect(badge).toBeInTheDocument();
+        expect(
+          within(badge as HTMLElement).getByRole('img', { name: 'apartment' }),
+        ).toBeInTheDocument();
+        expect(screen.getByText('Datasources')).toBeInTheDocument();
+      } else {
+        expect(
+          within(table).queryByText('Semantic View'),
+        ).not.toBeInTheDocument();
+        expect(screen.getByText('Datasets')).toBeInTheDocument();
+      }
+    } finally {
+      window.featureFlags = previousFlags;
+    }
+  },
+);

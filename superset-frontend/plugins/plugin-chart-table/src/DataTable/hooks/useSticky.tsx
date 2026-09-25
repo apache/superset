@@ -16,11 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
+/** @jsxImportSource @emotion/react */
 import {
   Children,
   cloneElement,
   useRef,
   useMemo,
+  useEffect,
   useLayoutEffect,
   useCallback,
   ReactNode,
@@ -31,7 +34,10 @@ import {
 } from 'react';
 import { TableInstance, Hooks } from 'react-table';
 import { useTheme, css } from '@apache-superset/core/theme';
-import getScrollBarSize from '../utils/getScrollBarSize';
+import {
+  CUSTOM_SCROLLBAR_SIZE,
+  getCustomScrollBarSize,
+} from '../utils/getScrollBarSize';
 import needScrollBar from '../utils/needScrollBar';
 import useMountedMemo from '../utils/useMountedMemo';
 
@@ -164,8 +170,9 @@ function StickyWrap({
   const scrollHeaderRef = useRef<HTMLDivElement>(null); // fixed header
   const scrollFooterRef = useRef<HTMLDivElement>(null); // fixed footer
   const scrollBodyRef = useRef<HTMLDivElement>(null); // main body
+  const wrapRef = useRef<HTMLDivElement>(null); // outer container, observed for resizes
 
-  const scrollBarSize = getScrollBarSize();
+  const scrollBarSize = getCustomScrollBarSize();
   const { bodyHeight, columnWidths, hasVerticalScroll } = sticky;
   const needSizer =
     !columnWidths ||
@@ -173,8 +180,7 @@ function StickyWrap({
     sticky.height !== maxHeight ||
     sticky.setStickyState !== setStickyState;
 
-  // update scrollable area and header column sizes when mounted
-  useLayoutEffect(() => {
+  const measure = useCallback(() => {
     if (!theadRef.current) {
       return;
     }
@@ -219,6 +225,30 @@ function StickyWrap({
     });
   }, [maxWidth, maxHeight, setStickyState, scrollBarSize]);
 
+  // update scrollable area and header column sizes when mounted
+  useLayoutEffect(() => {
+    measure();
+  }, [measure]);
+
+  // A `display: none` ancestor -- an inactive dashboard tab, for instance --
+  // gives the table no box, so the measurement above bails out and no sticky
+  // layout is computed, leaving the chart blank. None of that measurement's
+  // dependencies change when the table later gains a box, so watch for it
+  // directly and measure again. `measure` re-reads the DOM itself, so a
+  // still-boxless notification is a no-op, and the observer is only attached
+  // while there is no layout to show.
+  useEffect(() => {
+    const wrap = wrapRef.current;
+    if (columnWidths || !wrap || typeof ResizeObserver === 'undefined') {
+      return undefined;
+    }
+    const observer = new ResizeObserver(() => {
+      measure();
+    });
+    observer.observe(wrap);
+    return () => observer.disconnect();
+  }, [columnWidths, measure]);
+
   let sizerTable: ReactElement | undefined;
   let headerTable: ReactElement | undefined;
   let footerTable: ReactElement | undefined;
@@ -226,8 +256,8 @@ function StickyWrap({
 
   const scrollBarStyles = css`
     &::-webkit-scrollbar {
-      width: 8px;
-      height: 8px;
+      width: ${CUSTOM_SCROLLBAR_SIZE}px;
+      height: ${CUSTOM_SCROLLBAR_SIZE}px;
     }
     &::-webkit-scrollbar-track {
       background: ${theme.colorFillQuaternary};
@@ -283,9 +313,28 @@ function StickyWrap({
       </colgroup>
     );
 
-    const headerContainerWidth = hasVerticalScroll
-      ? maxWidth - scrollBarSize
-      : maxWidth;
+    // Below, `width: maxWidth` is applied unconditionally (never reduced by
+    // subtracting a separately-measured scrollbar width, unlike this file's
+    // previous `maxWidth - scrollBarSize`). That's the load-bearing part of
+    // this fix: the shared colgroup (computed from the sizer below, whose
+    // own clientWidth can only ever be <= maxWidth) can never need more
+    // width than that, so a header/footer wrapper that's never narrowed
+    // below maxWidth can never clip it, regardless of whether any
+    // JS-measured scrollbar size agrees with what the sizer/body actually
+    // reserve in a given browser.
+    //
+    // `scrollbarGutter`/`scrollBarStyles` below are a separate, secondary
+    // measure -- matching an actual clip boundary is not what they're for
+    // (an `overflow: hidden` box's clip boundary sits at its real
+    // border-box edge regardless of `scrollbar-gutter`, which only affects
+    // what `clientWidth` reports). They keep header/footer's reported
+    // `clientWidth` consistent with body's so that, when both a vertical
+    // and a horizontal scrollbar are present, the horizontal `scrollLeft`
+    // synced from body (see `onScroll` below) reveals the same slice of the
+    // row in header/footer as is actually visible in body.
+    const headerFooterGutter: CSSProperties = {
+      scrollbarGutter: hasVerticalScroll ? 'stable' : undefined,
+    };
 
     headerTable = (
       <div
@@ -293,9 +342,11 @@ function StickyWrap({
         ref={scrollHeaderRef}
         style={{
           overflow: 'hidden',
-          width: headerContainerWidth,
+          width: maxWidth,
           boxSizing: 'border-box',
+          ...headerFooterGutter,
         }}
+        css={scrollBarStyles}
         role="presentation"
       >
         {cloneElement(
@@ -314,9 +365,11 @@ function StickyWrap({
         ref={scrollFooterRef}
         style={{
           overflow: 'hidden',
-          width: headerContainerWidth,
+          width: maxWidth,
           boxSizing: 'border-box',
+          ...headerFooterGutter,
         }}
+        css={scrollBarStyles}
         role="presentation"
       >
         {cloneElement(
@@ -363,12 +416,17 @@ function StickyWrap({
   }
 
   return (
+    // Virtualized/sticky table built from divs so the header/body can be
+    // positioned independently; a real <table> would break that layout, so
+    // role="table" is the correct ARIA pattern here, not the suggested tag.
     <div
+      ref={wrapRef}
       style={{
         width: maxWidth,
         height: sticky.realHeight || maxHeight,
         overflow: 'hidden',
       }}
+      // eslint-disable-next-line jsx-a11y/prefer-tag-over-role
       role="table"
     >
       {headerTable}

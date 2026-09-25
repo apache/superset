@@ -1,0 +1,732 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+"""Read-side queries for the entity-versioning API.
+
+Pure-read helpers that translate Continuum shadow rows and
+``version_changes`` records into the shapes the API endpoints return.
+The corresponding write side lives in :mod:`superset.versioning.restore`;
+the ``VersionDAO`` façade in :mod:`superset.daos.version` re-exports the
+read helpers here.
+
+Also exposes the deterministic version-UUID derivation
+(:data:`VERSION_UUID_NAMESPACE` + :func:`derive_version_uuid`) used by
+both the read endpoints and the ETag emission path in
+:mod:`superset.versioning.etag`.
+"""
+
+from __future__ import annotations
+
+import logging
+import uuid
+from collections.abc import Iterator
+from contextlib import contextmanager
+from typing import Any
+from uuid import UUID
+
+import sqlalchemy as sa
+from flask_appbuilder import Model
+from sqlalchemy_continuum import version_class
+
+from superset.extensions import db
+from superset.versioning.baseline import (
+    CONTINUUM_BOOKKEEPING_COLUMNS,
+    OPERATION_DELETE,
+)
+from superset.versioning.db_errors import is_missing_table_error
+
+logger = logging.getLogger(__name__)
+
+# Fixed UUIDv5 namespace under which per-(entity, transaction) version UUIDs
+# are derived. Never change this constant — changing it invalidates every
+# version_uuid that clients may have cached, bookmarked, or stored.
+VERSION_UUID_NAMESPACE = UUID("7a6f5d9b-4c3b-5d8e-9a1c-0e2b4c6d8f10")
+
+# Continuum's integer ``operation_type`` mapped to the string the API
+# returns. Kept short and stable for downstream tooling consuming the
+# raw response. Continuum guarantees 0/1/2; anything else is a Continuum
+# version mismatch and surfaces as ``str(int)`` rather than crashing.
+_OP_TYPE_LABELS: dict[int, str] = {0: "baseline", 1: "update", 2: "delete"}
+
+
+def derive_version_uuid(entity_uuid: UUID, transaction_id: int) -> UUID:
+    """Derive a deterministic UUIDv5 identifying one version row.
+
+    The UUID is a function of the owning entity's UUID and the Continuum
+    ``transaction_id`` of the version row, so it is stable across retention
+    pruning (which never changes ``transaction_id``) and portable across
+    replicas. It is not randomly generated — two Supersets with identical
+    ``(entity.uuid, transaction_id)`` will compute the same version_uuid.
+    """
+    return uuid.uuid5(VERSION_UUID_NAMESPACE, f"{entity_uuid}:{transaction_id}")
+
+
+def _resolve_version_tables(
+    model_cls: type[Model],
+) -> tuple[sa.Table, sa.Table, sa.Table]:
+    """Return the (version, transaction, user) ``Table`` objects used by the
+    listing and snapshot queries.
+
+    All three lookups happen inside this module on every read; centralising
+    the trio (a) keeps the imports in one place and (b) makes the join helper
+    below take a uniform signature.
+    """
+    # pylint: disable=import-outside-toplevel
+    from sqlalchemy_continuum import versioning_manager
+
+    from superset import security_manager
+
+    ver_tbl = version_class(model_cls).__table__
+    tx_tbl = versioning_manager.transaction_cls.__table__
+    user_tbl = security_manager.user_model.__table__
+    return ver_tbl, tx_tbl, user_tbl
+
+
+def _version_with_tx_user_join(
+    ver_tbl: sa.Table, tx_tbl: sa.Table, user_tbl: sa.Table
+) -> Any:
+    """Build the version → transaction → user left-join used by both
+    :func:`list_versions` and :func:`get_version`. The user-side join is
+    a left-outer so saves with no Flask user context (CLI, Celery, import)
+    still surface in the result with ``changed_by = None``.
+    """
+    return ver_tbl.join(tx_tbl, ver_tbl.c.transaction_id == tx_tbl.c.id).outerjoin(
+        user_tbl, tx_tbl.c.user_id == user_tbl.c.id
+    )
+
+
+def _baseline_first_ordering(ver_tbl: sa.Table) -> tuple[Any, ...]:
+    """Order ``(operation_type != 0).asc(), transaction_id.asc()`` so any
+    op=0 row — Continuum's INSERT or our synthetic baseline — sorts to
+    position 0 regardless of its transaction_id. A single entity never has
+    more than one op=0 row (Continuum tracks one creation per live entity;
+    our baseline listener only fires when no prior version rows exist), so
+    this gives a stable chronological order with the "original" version
+    always first.
+    """
+    return (
+        (ver_tbl.c.operation_type != 0).asc(),
+        ver_tbl.c.transaction_id.asc(),
+    )
+
+
+def _user_select_cols(user_tbl: sa.Table) -> list[Any]:
+    """Columns to select from ``user_tbl`` to build a ``changed_by`` dict.
+    Labels ``user_tbl.c.id`` as ``"user_id"`` so callers can read the row
+    by a stable key regardless of whether they also select the version
+    table's ``id`` column.
+    """
+    return [
+        user_tbl.c.id.label("user_id"),
+        user_tbl.c.first_name,
+        user_tbl.c.last_name,
+    ]
+
+
+def _changed_by_from_row(row: Any) -> dict[str, Any] | None:
+    """Project the user columns from a query row onto the API's
+    ``changed_by`` shape, or ``None`` for saves with no Flask user context
+    (CLI / Celery / import / unauthenticated). Expects the user columns to
+    have been selected via :func:`_user_select_cols` so the row keys are
+    ``user_id`` / ``first_name`` / ``last_name``.
+    """
+    if row["user_id"] is None:
+        return None
+    # Deliberately no ``username``: it is a login identifier, not display
+    # data. The version and activity attribution shapes are kept identical
+    # so clients share one type — enforced by
+    # test_version_and_activity_attribution_schemas_match in
+    # tests/unit_tests/versioning/test_queries.py.
+    return {
+        "id": row["user_id"],
+        "first_name": row["first_name"],
+        "last_name": row["last_name"],
+    }
+
+
+def _entity_kind_for(model_cls: type[Model]) -> str | None:
+    """Return the ``version_changes.entity_kind`` value for *model_cls*, or
+    ``None`` when the class isn't in the change-records taxonomy."""
+    # pylint: disable=import-outside-toplevel
+    from superset.versioning.changes import ENTITY_KIND_BY_CLASS_NAME
+
+    return ENTITY_KIND_BY_CLASS_NAME.get(model_cls.__name__)
+
+
+def find_active_by_uuid(model_cls: type[Model], entity_uuid: UUID) -> Any | None:
+    """Return the live entity matching *entity_uuid*, or None if not found."""
+    return (
+        db.session.query(model_cls).filter(model_cls.uuid == entity_uuid).one_or_none()
+    )
+
+
+def identity_filter(columns: Any, entity_id: int, entity_uuid: UUID) -> Any:
+    """Build an ``(id, uuid)`` predicate for ORM or Core version columns."""
+    return sa.and_(columns.id == entity_id, columns.uuid == entity_uuid)
+
+
+def current_version_info(
+    model_cls: type[Model], entity_id: int, entity_uuid: UUID
+) -> tuple[int | None, int | None]:
+    """Return the version number and live transaction from one query."""
+    ver_cls = version_class(model_cls)
+    count, transaction_id = (
+        db.session.query(
+            sa.func.count(),
+            sa.func.max(
+                sa.case(
+                    (
+                        sa.and_(*_live_version_predicates(ver_cls)),
+                        ver_cls.transaction_id,
+                    )
+                )
+            ),
+        )
+        .filter(identity_filter(ver_cls, entity_id, entity_uuid))
+        .one()
+    )
+    version_number = count - 1 if count > 0 else None
+    return version_number, transaction_id
+
+
+def current_version_number(
+    model_cls: type[Model], entity_id: int, entity_uuid: UUID
+) -> int | None:
+    """Return the 0-based ``version_number`` of the live row for *entity_id*
+    — equivalent to the index of the most recent entry that
+    :func:`list_versions` would return, or ``None`` when the entity has no
+    version rows yet.
+
+    Note: this index is *unstable under retention pruning*. The scheduled
+    :func:`prune_old_versions` task drops shadow rows whose owning
+    ``version_transaction`` is older than
+    :envvar:`SUPERSET_VERSION_HISTORY_RETENTION_DAYS`, so the same integer
+    can refer to different rows before and after a prune cycle. Use
+    :func:`current_live_transaction_id` for a stable identifier.
+    """
+    version_number, _transaction_id = current_version_info(
+        model_cls, entity_id, entity_uuid
+    )
+    return version_number
+
+
+def _live_version_predicates(
+    ver_cls: type[Any],
+) -> tuple[sa.ColumnElement[bool], sa.ColumnElement[bool]]:
+    """Share live-row eligibility between display and locked validator reads."""
+    # Continuum generates model classes with additional version columns.
+    return (
+        ver_cls.end_transaction_id.is_(None),
+        ver_cls.operation_type != OPERATION_DELETE,
+    )
+
+
+def current_live_transaction_id_locked(
+    model_cls: type[Model], entity_id: int, entity_uuid: UUID
+) -> int | None:
+    """Return the live row's ``transaction_id`` via an exclusive locking read.
+
+    The conditional-write (``If-Match``) guard must compare the client's
+    token against *committed* state. A plain consistent read is served
+    from the transaction's REPEATABLE READ snapshot on MySQL/InnoDB
+    (pinned by the request's earlier auth queries), so a version row
+    committed by a concurrent writer between this request's first read
+    and its row lock stays invisible -- the stale token then matches and
+    the 412 the guard exists to raise is missed. A locking read is exempt
+    from the snapshot and returns current committed data.
+
+    The lock is exclusive (``with_for_update()``), not shared: this
+    transaction later closes the very row it reads here (Continuum's
+    validity strategy sets ``end_transaction_id`` at commit), and holding
+    a shared lock first invites InnoDB's shared-to-exclusive upgrade
+    deadlock whenever anything else queues for the row in between. Plain
+    MVCC readers are not blocked by either lock strength, and writers to
+    the same entity are already serialised by the entity row lock taken
+    first, so exclusivity here costs nothing.
+
+    Residual, documented rather than removed: on MySQL a locking read
+    over an empty range (an entity with no live version row yet) takes a
+    gap lock, and two concurrent conditional writers whose version rows
+    share a primary-key gap can deadlock. That deadlock has two surfacing
+    points with the same outcome. At THIS read (rare -- gap locks are
+    mutually compatible, so both readers usually succeed) the PUT path
+    maps it to a retryable 409. At Continuum's version-row INSERT inside
+    the update command the driver error is chained as the command
+    failure's ``__cause__``, which the PUT handler classifies to the
+    same retryable 409. Either way the loser's ``If-Match`` token is NOT
+    proven stale and the correct client action is to retry the same
+    request. The lock also briefly blocks retention pruning of this
+    entity's version rows for the duration of the request transaction.
+
+    Deliberately a plain row query, not the aggregate
+    :func:`current_version_info` -- locking clauses do not combine with
+    aggregates (Postgres rejects the combination outright), and the guard
+    only needs the live ``transaction_id``. Ordered-and-limited so a
+    defensively tolerated multi-open-row state (which the aggregate's
+    ``max`` absorbs) degrades the same way instead of raising
+    ``MultipleResultsFound``. Renders the dialect's locking clause
+    (``FOR UPDATE`` / none on SQLite, which serialises writers anyway).
+    """
+    ver_cls: type[Any] = version_class(model_cls)
+    return (
+        db.session.query(ver_cls.transaction_id)
+        .filter(identity_filter(ver_cls, entity_id, entity_uuid))
+        .filter(*_live_version_predicates(ver_cls))
+        .order_by(ver_cls.transaction_id.desc())
+        .limit(1)
+        .with_for_update()
+        .scalar()
+    )
+
+
+def current_live_transaction_id(
+    model_cls: type[Model], entity_id: int, entity_uuid: UUID
+) -> int | None:
+    """Return the Continuum ``transaction_id`` of the live row for
+    *entity_id* — stable across retention pruning, unlike the index
+    returned by :func:`current_version_number`.
+    """
+    _version_number, transaction_id = current_version_info(
+        model_cls, entity_id, entity_uuid
+    )
+    return transaction_id
+
+
+def current_live_version_uuid(
+    model_cls: type[Model], entity_id: int, entity_uuid: UUID
+) -> UUID | None:
+    """Return the deterministic ``version_uuid`` of the live row, or
+    ``None`` when the entity has no version rows yet."""
+    tx_id = current_live_transaction_id(model_cls, entity_id, entity_uuid)
+    if tx_id is None:
+        return None
+    return derive_version_uuid(entity_uuid, tx_id)
+
+
+def list_change_records_batch(
+    entity_kind: str,
+    entity_id: int,
+    transaction_ids: list[int],
+) -> dict[int, list[dict[str, Any]]]:
+    """Return ``version_changes`` rows keyed by ``transaction_id``.
+
+    Batches the lookup across multiple transactions with a single
+    ``WHERE transaction_id IN (...) AND entity_kind = ? AND entity_id = ?``
+    query so the list endpoint avoids N+1 round-trips. Rows are
+    distributed into per-tx lists sorted by ``sequence`` ascending
+    (matching the replay order the diff engine emits). Missing
+    transactions are represented by an empty list in the result so
+    callers can use ``result.get(tx_id, [])`` without guarding.
+
+    Any operational failure returns an empty dict rather than propagating
+    the error — consistent with this being a descriptive layer that
+    should not break the list endpoint. The missing-table case
+    (pre-migration or freshly downgraded) stays silent; every other
+    failure (deadlock, dropped connection) is logged, since it renders
+    the affected saves as empty change lists.
+    """
+    # pylint: disable=import-outside-toplevel
+    from superset.versioning.changes import version_changes_table
+
+    if not transaction_ids:
+        return {}
+
+    # SAVEPOINT so a missing-table failure can't poison the enclosing
+    # transaction: on PostgreSQL a failed statement aborts the tx, and
+    # every later query in the request would raise InFailedSqlTransaction
+    # even though the exception below was caught.
+    try:
+        with db.session.connection().begin_nested():
+            rows = (
+                db.session.connection()
+                .execute(
+                    sa.select(
+                        version_changes_table.c.transaction_id,
+                        version_changes_table.c.sequence,
+                        version_changes_table.c.kind,
+                        version_changes_table.c.operation,
+                        version_changes_table.c.path,
+                        version_changes_table.c.from_value,
+                        version_changes_table.c.to_value,
+                    )
+                    .where(
+                        version_changes_table.c.entity_kind == entity_kind,
+                        version_changes_table.c.entity_id == entity_id,
+                        version_changes_table.c.transaction_id.in_(transaction_ids),
+                    )
+                    .order_by(
+                        version_changes_table.c.transaction_id.asc(),
+                        version_changes_table.c.sequence.asc(),
+                    )
+                )
+                .mappings()
+                .all()
+            )
+    except (sa.exc.OperationalError, sa.exc.ProgrammingError) as ex:
+        if is_missing_table_error(ex):
+            # Missing version_changes table (migration not yet applied) —
+            # the one benign case; stay quiet.
+            return {}
+        # A transient failure (deadlock, dropped connection) renders
+        # every affected save as an empty change list — recoverable on
+        # refresh, but it must not masquerade as the migration race.
+        logger.exception(
+            "version_changes: change-record query failed for %s id=%s",
+            entity_kind,
+            entity_id,
+        )
+        return {}
+
+    grouped: dict[int, list[dict[str, Any]]] = {tx: [] for tx in transaction_ids}
+    for row in rows:
+        grouped[row["transaction_id"]].append(
+            {
+                "kind": row["kind"],
+                "operation": row["operation"],
+                "path": row["path"],
+                "from_value": row["from_value"],
+                "to_value": row["to_value"],
+            }
+        )
+    return grouped
+
+
+def list_versions(
+    model_cls: type[Model],
+    entity_uuid: UUID,
+    *,
+    entity: Any | None = None,
+) -> list[dict[str, Any]] | None:
+    """Return the version history for the entity identified by *entity_uuid*.
+
+    Returns ``None`` when no active entity matches the UUID — callers should
+    translate that into a 404. Returns an empty list when the entity exists
+    but has no version rows yet (pre-migration, or never edited).
+
+    The list is ordered by ``transaction_id`` ascending and each entry is
+    assigned a 0-based sequential ``version_number``. ``operation_type`` is
+    mapped from Continuum's integer constants to a string (``0`` → baseline,
+    ``1`` → update, ``2`` → delete). ``changed_by`` is the User row keyed
+    off ``version_transaction.user_id``, or ``None`` when the save had no
+    Flask user context (CLI, import, etc.).
+
+    Pass *entity* to skip the ``find_active_by_uuid`` lookup when the
+    caller has already resolved the entity (API handlers do this to enforce
+    ``raise_for_ownership`` before calling here). The skip saves one
+    ``WHERE uuid = ?`` query — that lookup isn't identity-map-cacheable
+    because ``uuid`` is a unique non-PK column.
+    """
+    if entity is None:
+        entity = find_active_by_uuid(model_cls, entity_uuid)
+        if entity is None:
+            return None
+
+    ver_tbl, tx_tbl, user_tbl = _resolve_version_tables(model_cls)
+    stmt = (
+        sa.select(
+            ver_tbl.c.transaction_id,
+            ver_tbl.c.operation_type,
+            tx_tbl.c.issued_at,
+            *_user_select_cols(user_tbl),
+        )
+        .select_from(_version_with_tx_user_join(ver_tbl, tx_tbl, user_tbl))
+        .where(identity_filter(ver_tbl.c, entity.id, entity_uuid))
+        .order_by(*_baseline_first_ordering(ver_tbl))
+    )
+    rows = db.session.execute(stmt).mappings().all()
+
+    # Batch-load change records for every listed transaction in one query.
+    # ``entity_kind`` is derived from the model class so the API
+    # filter ``WHERE entity_kind = 'chart' AND entity_id = ?`` can be
+    # precise when multiple versioned entities share a flush.
+    changes_by_tx: dict[int, list[dict[str, Any]]] = {}
+    if (entity_kind := _entity_kind_for(model_cls)) is not None:
+        tx_ids = [row["transaction_id"] for row in rows]
+        changes_by_tx = list_change_records_batch(entity_kind, entity.id, tx_ids)
+
+    return [
+        {
+            "version_uuid": derive_version_uuid(entity_uuid, row["transaction_id"]),
+            "version_number": version_number,
+            "transaction_id": row["transaction_id"],
+            "operation_type": _OP_TYPE_LABELS.get(
+                row["operation_type"], str(row["operation_type"])
+            ),
+            "issued_at": row["issued_at"],
+            "changed_by": _changed_by_from_row(row),
+            "changes": changes_by_tx.get(row["transaction_id"], []),
+        }
+        for version_number, row in enumerate(rows)
+    ]
+
+
+def resolve_version(
+    model_cls: type[Model],
+    entity_uuid: UUID,
+    version_uuid: UUID,
+    *,
+    entity: Any | None = None,
+) -> tuple[int, int] | None:
+    """Translate a ``version_uuid`` into ``(version_number, transaction_id)``,
+    or ``None`` when the UUID does not match any version row of the given
+    entity.
+
+    ``version_number`` is the 0-based display index matching
+    :func:`list_versions` (op=0 rows first, then by transaction_id).
+    ``transaction_id`` is the stable identifier — write paths must address
+    the target row by it, never by the positional index, because the index
+    shifts whenever retention pruning removes older rows (see the
+    ``current_version_number`` docstring).
+
+    Implementation note: the loop re-derives ``version_uuid`` per
+    transaction in Python because there's no portable SQL form for a
+    UUIDv5 derivation across PostgreSQL / MySQL / SQLite (Postgres has
+    ``uuid_generate_v5``; the other two do not). The iteration count is
+    roughly bounded by ``SUPERSET_VERSION_HISTORY_RETENTION_DAYS`` worth
+    of edits — the retention task ages older shadow rows out, though
+    transactions still anchoring a live row survive past the window
+    (their count is bounded by the entity's current size, not its edit
+    volume) — so the practical N is at most a few hundred. If retention
+    is ever disabled (``= 0``) on a heavily-edited entity, this loop is
+    the place to revisit.
+
+    Pass *entity* to skip the ``find_active_by_uuid`` lookup; see
+    :func:`list_versions` for the rationale.
+    """
+    if entity is None:
+        entity = find_active_by_uuid(model_cls, entity_uuid)
+        if entity is None:
+            return None
+
+    ver_cls = version_class(model_cls)
+    tx_ids = (
+        db.session.query(ver_cls.transaction_id)
+        .filter(identity_filter(ver_cls, entity.id, entity_uuid))
+        .order_by(
+            (ver_cls.operation_type != 0).asc(),
+            ver_cls.transaction_id.asc(),
+        )
+        .all()
+    )
+    for version_number, (tx_id,) in enumerate(tx_ids):
+        if derive_version_uuid(entity_uuid, tx_id) == version_uuid:
+            return version_number, tx_id
+    return None
+
+
+def resolve_version_uuid(
+    model_cls: type[Model],
+    entity_uuid: UUID,
+    version_uuid: UUID,
+    *,
+    entity: Any | None = None,
+) -> int | None:
+    """Translate a ``version_uuid`` into its 0-based ``version_number``.
+
+    Thin wrapper over :func:`resolve_version` for read-side callers that
+    only need the display index. No in-repo caller remains (the snapshot
+    fetch addresses rows by ``transaction_id``); retained as DAO façade
+    surface — anything that must survive a concurrent retention prune
+    should use :func:`resolve_version` and address by transaction id,
+    never by this prune-unstable index.
+    """
+    resolved = resolve_version(model_cls, entity_uuid, version_uuid, entity=entity)
+    return None if resolved is None else resolved[0]
+
+
+def get_version(
+    model_cls: type[Model],
+    entity_uuid: UUID,
+    version_uuid: UUID,
+    *,
+    entity: Any | None = None,
+) -> dict[str, Any] | None:
+    """Return the entity's state at the specified version as a dict.
+
+    Read-only — nothing in the live database is modified. The returned
+    shape is intended to mirror a regular single-entity GET response
+    (scalar columns plus restored ``columns`` / ``metrics`` lists for
+    ``SqlaTable``), with a ``_version`` key holding the version-level
+    metadata (uuid, transaction_id, operation_type, issued_at,
+    changed_by) so callers can tell which version they're looking at.
+
+    Returns ``None`` when either *entity_uuid* or *version_uuid* does not
+    match — callers should translate to 404.
+
+    Pass *entity* to skip the ``find_active_by_uuid`` lookup; see
+    :func:`list_versions` for the rationale. The same *entity* is threaded
+    into :func:`resolve_version` to eliminate a second redundant
+    lookup on the same request.
+    """
+    if entity is None:
+        entity = find_active_by_uuid(model_cls, entity_uuid)
+        if entity is None:
+            return None
+
+    resolved = resolve_version(model_cls, entity_uuid, version_uuid, entity=entity)
+    if resolved is None:
+        return None
+    version_num, transaction_id = resolved
+
+    ver_tbl, tx_tbl, user_tbl = _resolve_version_tables(model_cls)
+    stmt = (
+        sa.select(
+            ver_tbl,
+            tx_tbl.c.issued_at,
+            *_user_select_cols(user_tbl),
+        )
+        .select_from(_version_with_tx_user_join(ver_tbl, tx_tbl, user_tbl))
+        # Address the snapshot by the ``transaction_id`` that
+        # ``resolve_version`` already pinned — never by positional OFFSET:
+        # a retention prune committing between resolution and this fetch
+        # shifts the offset and silently surfaces a different version's
+        # snapshot under the requested version uuid. The identity filter
+        # stays so a transaction id recycled on another entity can never
+        # match. (The display ``version_number`` resolved above may still
+        # lag a concurrent prune; the snapshot itself cannot.)
+        .where(identity_filter(ver_tbl.c, entity.id, entity_uuid))
+        .where(ver_tbl.c.transaction_id == transaction_id)
+        .limit(1)
+    )
+    row: sa.engine.RowMapping | None
+    columns: list[dict[str, Any]]
+    metrics: list[dict[str, Any]]
+    row, columns, metrics = _fetch_version_row_and_children(model_cls, stmt, entity.id)
+    if row is None:
+        return None
+
+    # Project the entity's own scalar fields, skipping versioning
+    # metadata columns.
+    result: dict[str, Any] = {}
+    for col in ver_tbl.columns:
+        if col.name in CONTINUUM_BOOKKEEPING_COLUMNS:
+            continue
+        value = row[col.name]
+        # uuid columns come back as UUID instances; make them JSON-safe.
+        if isinstance(value, UUID):
+            value = str(value)
+        result[col.name] = value
+
+    changes: list[dict[str, Any]] = []
+    if (entity_kind := _entity_kind_for(model_cls)) is not None:
+        changes = list_change_records_batch(
+            entity_kind, entity.id, [row["transaction_id"]]
+        ).get(row["transaction_id"], [])
+
+    result["_version"] = {
+        "version_uuid": str(version_uuid),
+        "version_number": version_num,
+        "transaction_id": row["transaction_id"],
+        "operation_type": _OP_TYPE_LABELS.get(
+            row["operation_type"], str(row["operation_type"])
+        ),
+        "issued_at": row["issued_at"],
+        "changed_by": _changed_by_from_row(row),
+        "changes": changes,
+    }
+
+    # For datasets, attach the columns/metrics as they were at this
+    # transaction (fetched with the parent row in one snapshot above).
+    # Empty lists when the dataset had no children at this tx.
+    # pylint: disable=import-outside-toplevel
+    from superset.connectors.sqla.models import SqlaTable
+
+    if model_cls is SqlaTable:
+        result["columns"] = columns
+        result["metrics"] = metrics
+
+    return result
+
+
+#: Isolation level pinning a single snapshot across several reads on one
+#: transaction. SQLite is absent deliberately: a SQLite transaction is
+#: already serializable, and its dialect rejects "REPEATABLE READ".
+_SNAPSHOT_ISOLATION_BY_DIALECT: dict[str, str] = {
+    "mysql": "REPEATABLE READ",
+    "postgresql": "REPEATABLE READ",
+}
+
+
+def _fetch_version_row_and_children(
+    model_cls: type[Model], stmt: sa.sql.Select, entity_id: int
+) -> tuple[Any, list[dict[str, Any]], list[dict[str, Any]]]:
+    """Fetch the parent version row — for datasets, WITH its children in
+    ONE snapshot (sc-120012, race portion, closed).
+
+    A dedicated connection (not the request session) so the isolation
+    level can be pinned per-transaction: under READ COMMITTED each
+    statement reads its own snapshot, letting a concurrent retention
+    prune erase closed child shadow rows between the parent fetch and the
+    child fetches (sc-120012, race portion). REPEATABLE READ pins all
+    three reads to the first statement's snapshot; SQLite needs nothing
+    (single-transaction reads are serializable there).
+
+    The parent row can come back ``None`` when a prune commits between
+    the caller's version resolution (request session) and this snapshot —
+    the caller translates that to a 404, which is the honest answer for a
+    version that no longer exists.
+    """
+    # pylint: disable=import-outside-toplevel
+    from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
+    from superset.versioning.changes import shadow_rows_valid_at
+
+    if model_cls is not SqlaTable:
+        # No child shadows to pair the read with: the request session's
+        # ordinary read suffices.
+        return db.session.execute(stmt).mappings().first(), [], []
+
+    # The parent snapshot fetch and the child fetches share one
+    # transaction whose isolation pins a single snapshot, so a retention
+    # prune committing between the reads cannot age out closed child rows
+    # that were valid at target_tx mid-request. (The POLICY portion — a
+    # prune that already erased needed closed child history while the
+    # parent survives — is handled fail-closed on the restore write path
+    # and deferred for retention itself; see restore.py and sc-120012.)
+    with _snapshot_read_connection() as conn:
+        row: sa.engine.RowMapping | None = conn.execute(stmt).mappings().first()
+        if row is None:
+            return None, [], []
+        target_tx: int = row["transaction_id"]
+        columns: list[dict[str, Any]] = shadow_rows_valid_at(
+            conn, version_class(TableColumn).__table__, "table_id", entity_id, target_tx
+        )
+        metrics: list[dict[str, Any]] = shadow_rows_valid_at(
+            conn, version_class(SqlMetric).__table__, "table_id", entity_id, target_tx
+        )
+    return row, columns, metrics
+
+
+@contextmanager
+def _snapshot_read_connection() -> Iterator[sa.engine.Connection]:
+    """A dedicated connection whose reads share ONE stable snapshot.
+
+    REPEATABLE READ on MySQL/Postgres pins every read in the transaction
+    to the first statement's snapshot. On SQLite, pysqlite's legacy
+    transactional mode never emits BEGIN for SELECTs — ``conn.begin()``
+    alone starts NO read transaction and reads could still straddle a
+    concurrent commit — so the documented SQLAlchemy recipe applies: emit
+    BEGIN ourselves when the transaction starts (listener scoped to this
+    connection; it dies with it). The isolation setup runs inside the
+    connect() context so a failure there still releases the connection.
+    """
+    with db.engine.connect() as conn:
+        iso: str | None = _SNAPSHOT_ISOLATION_BY_DIALECT.get(db.engine.dialect.name)
+        if iso is not None:
+            conn = conn.execution_options(isolation_level=iso)
+        elif db.engine.dialect.name == "sqlite":
+            sa.event.listen(conn, "begin", lambda c: c.exec_driver_sql("BEGIN"))
+        with conn.begin():
+            yield conn

@@ -17,6 +17,8 @@
  * under the License.
  */
 import { useState, useEffect, useMemo, ChangeEvent } from 'react';
+import { useSelector } from 'react-redux';
+import { Query, QueryState } from '@superset-ui/core';
 import type { DatabaseObject } from 'src/features/databases/types';
 import { t } from '@apache-superset/core/translation';
 import { styled } from '@apache-superset/core/theme';
@@ -37,7 +39,7 @@ import {
 } from 'src/SqlLab/components/SaveDatasetModal';
 import { getDatasourceAsSaveableDataset } from 'src/utils/datasourceUtils';
 import useQueryEditor from 'src/SqlLab/hooks/useQueryEditor';
-import { QueryEditor } from 'src/SqlLab/types';
+import { QueryEditor, SqlLabRootState } from 'src/SqlLab/types';
 import useLogAction from 'src/logger/useLogAction';
 import {
   LOG_ACTIONS_SQLLAB_CREATE_CHART,
@@ -111,7 +113,19 @@ const SaveQuery = ({
   const [label, setLabel] = useState<string>(defaultLabel);
   const [showSave, setShowSave] = useState<boolean>(false);
   const [showSaveDatasetModal, setShowSaveDatasetModal] = useState(false);
+  // Saving a dataset runs the SQL to introspect columns, so it needs a
+  // successful run of the SQL being saved that produced at least one column
+  // -- editing after a run invalidates it, and running a selection only
+  // validates that selection.
+  const latestQuery = useSelector<SqlLabRootState, Query | undefined>(
+    ({ sqlLab }) => sqlLab.queries[queryEditor.latestQueryId || ''],
+  );
+  const canSaveDataset =
+    latestQuery?.state === QueryState.Success &&
+    latestQuery.sql === queryEditor.sql &&
+    columns.length > 0;
   const isSaved = !!query.remoteId;
+  const isLabelEmpty = label.trim().length === 0;
   const canExploreDatabase = !!database?.allows_virtual_table_explore;
   const shouldShowSaveButton =
     database?.allows_virtual_table_explore !== undefined;
@@ -161,16 +175,22 @@ const SaveQuery = ({
     <Form layout="vertical">
       <Row>
         <Col xs={24}>
-          <FormItem label={t('Name')}>
-            <Input type="text" value={label} onChange={onLabelChange} />
+          <FormItem label={t('Name')} htmlFor="save-query-name">
+            <Input
+              id="save-query-name"
+              type="text"
+              value={label}
+              onChange={onLabelChange}
+            />
           </FormItem>
         </Col>
       </Row>
       <br />
       <Row>
         <Col xs={24}>
-          <FormItem label={t('Description')}>
+          <FormItem label={t('Description')} htmlFor="save-query-description">
             <Input.TextArea
+              id="save-query-description"
               rows={4}
               value={description}
               onChange={onDescriptionChange}
@@ -200,6 +220,7 @@ const SaveQuery = ({
         <SaveDatasetActionButton
           setShowSave={setShowSave}
           onSaveAsExplore={canExploreDatabase ? onSaveAsExplore : undefined}
+          canSaveDataset={canSaveDataset}
         />
       )}
       <SaveDatasetModal
@@ -235,12 +256,18 @@ const SaveQuery = ({
             <Button
               buttonStyle={isSaved ? 'secondary' : 'primary'}
               onClick={onSaveWrapper}
+              disabled={isLabelEmpty}
               cta
             >
               {isSaved ? t('Save as new') : t('Save')}
             </Button>
             {isSaved && (
-              <Button buttonStyle="primary" onClick={onUpdateWrapper} cta>
+              <Button
+                buttonStyle="primary"
+                onClick={onUpdateWrapper}
+                disabled={isLabelEmpty}
+                cta
+              >
                 {t('Update')}
               </Button>
             )}

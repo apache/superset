@@ -14,8 +14,10 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import pytest
 from pandas import DataFrame
 
+from superset.exceptions import InvalidPostProcessingError
 from superset.utils.pandas_postprocessing import histogram
 
 data = DataFrame(
@@ -207,3 +209,26 @@ def test_histogram_with_no_groupby_and_all_null_values():
 
     result = histogram(data_with_no_groupby_and_all_nulls, "a", [], bins)
     assert result.empty
+
+
+def test_histogram_rejects_unbounded_bins():
+    """
+    ``bins`` comes from the unvalidated post-processing options dict; an
+    unbounded value would make numpy allocate a bin-edge array of that size
+    (bins=2e9 attempts ~16 GB). Non-integer values such as "auto" are also
+    rejected, since data-driven bin estimation is likewise unbounded.
+    """
+    for bad_bins in (0, -1, 2_000_000_000, "auto", None):
+        with pytest.raises(InvalidPostProcessingError):
+            histogram(data, "a", [], bad_bins)
+
+
+def test_histogram_rejects_bool_bins():
+    """
+    ``bool`` is a subclass of ``int`` in Python, so ``isinstance(bins, int)``
+    alone accepts ``True``/``False``. Both must still be rejected since
+    neither is a valid bin count.
+    """
+    for bad_bins in (True, False):
+        with pytest.raises(InvalidPostProcessingError):
+            histogram(data, "a", [], bad_bins)

@@ -28,6 +28,7 @@ import {
   FieldBinaryOutlined,
   FieldStringOutlined,
   NumberOutlined,
+  UnorderedListOutlined,
 } from '@ant-design/icons';
 import { Icons } from '@superset-ui/core/components';
 
@@ -72,6 +73,10 @@ export function ColumnTypeLabel({ type }: ColumnTypeLabelProps) {
     typeIcon = <FieldBinaryOutlined aria-label={t('boolean type icon')} />;
   } else if (type === GenericDataType.Temporal) {
     typeIcon = <ClockCircleOutlined aria-label={t('temporal type icon')} />;
+  } else if (type === GenericDataType.MultiValue) {
+    typeIcon = (
+      <UnorderedListOutlined aria-label={t('multi-value type icon')} />
+    );
   }
 
   return <TypeIconWrapper>{typeIcon}</TypeIconWrapper>;

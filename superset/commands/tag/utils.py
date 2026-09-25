@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 
-from typing import Optional, Union
+from typing import Any, Optional, Union
 
 from superset.daos.chart import ChartDAO
 from superset.daos.dashboard import DashboardDAO
@@ -36,12 +36,17 @@ def to_object_type(object_type: Union[ObjectType, int, str]) -> Optional[ObjectT
 
 
 def to_object_model(
-    object_type: ObjectType, object_id: int
-) -> Optional[Union[Dashboard, SavedQuery, Slice]]:
+    object_type: ObjectType, object_id: int, skip_base_filter: bool = False
+) -> Optional[Union[Dashboard, SavedQuery, Slice, Any]]:
     if ObjectType.dashboard == object_type:
-        return DashboardDAO.find_by_id(object_id)
+        return DashboardDAO.find_by_id(object_id, skip_base_filter=skip_base_filter)
     if ObjectType.query == object_type:
-        return SavedQueryDAO.find_by_id(object_id)
+        return SavedQueryDAO.find_by_id(object_id, skip_base_filter=skip_base_filter)
     if ObjectType.chart == object_type:
-        return ChartDAO.find_by_id(object_id)
+        return ChartDAO.find_by_id(object_id, skip_base_filter=skip_base_filter)
+    if ObjectType.dataset == object_type:
+        # Imported lazily to avoid a circular import via superset.views.base
+        from superset.daos.dataset import DatasetDAO
+
+        return DatasetDAO.find_by_id(object_id, skip_base_filter=skip_base_filter)
     return None

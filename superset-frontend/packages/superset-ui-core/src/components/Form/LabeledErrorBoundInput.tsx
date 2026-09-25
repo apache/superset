@@ -28,6 +28,10 @@ const StyledInput = styled(Input)`
   margin: ${({ theme }) => `${theme.sizeUnit}px 0 ${theme.sizeUnit * 2}px`};
 `;
 
+const StyledTextArea = styled(Input.TextArea)`
+  margin: ${({ theme }) => `${theme.sizeUnit}px 0 ${theme.sizeUnit * 2}px`};
+`;
+
 const StyledInputPassword = styled(Input.Password)`
   margin: ${({ theme }) => `${theme.sizeUnit}px 0 ${theme.sizeUnit * 2}px`};
 `;
@@ -62,6 +66,8 @@ export const LabeledErrorBoundInput = ({
   get_url,
   description,
   isValidating = false,
+  renderAsTextArea,
+  textAreaCss,
   ...props
 }: LabeledErrorBoundInputProps) => {
   const hasError = !!errorMessage;
@@ -79,7 +85,7 @@ export const LabeledErrorBoundInput = ({
           isValidating ? 'validating' : hasError ? 'error' : 'success'
         }
         help={errorMessage || helpText}
-        hasFeedback={!!hasError}
+        hasFeedback={isValidating || !!hasError}
       >
         {visibilityToggle || props.name === 'password' ? (
           <StyledInputPassword
@@ -96,8 +102,14 @@ export const LabeledErrorBoundInput = ({
                 </Tooltip>
               )
             }
+            // input[type=password] doesn't get an implicit "textbox" role
+            // (unlike other text inputs), so this explicit override is
+            // needed for it to be discoverable via role-based queries/AT.
+            // eslint-disable-next-line jsx-a11y/prefer-tag-over-role
             role="textbox"
           />
+        ) : renderAsTextArea ? (
+          <StyledTextArea css={textAreaCss} {...props} {...validationMethods} />
         ) : (
           <StyledInput {...props} {...validationMethods} />
         )}

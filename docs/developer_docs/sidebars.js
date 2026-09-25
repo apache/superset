@@ -47,6 +47,8 @@ module.exports = {
           collapsed: true,
           items: [
             'extensions/extension-points/sqllab',
+            'extensions/extension-points/editors',
+            'extensions/extension-points/chat',
           ],
         },
         'extensions/development',
@@ -61,9 +63,7 @@ module.exports = {
       type: 'category',
       label: 'Testing',
       collapsed: true,
-      items: [
-        'testing/overview',
-      ],
+      items: ['testing/overview'],
     },
     {
       type: 'category',

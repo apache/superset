@@ -21,7 +21,7 @@ from typing import Any, TYPE_CHECKING
 from unittest.mock import MagicMock, patch, PropertyMock
 
 import pytest
-from flask import current_app
+from flask import current_app, g
 from flask_appbuilder.security.sqla.models import User
 
 from superset.connectors.sqla.models import BaseDatasource, SqlaTable
@@ -492,6 +492,92 @@ def test_dashboard_digest_deterministic_datasource_order(
 
     assert digests[0] == digests[1] == digests[2]
     assert digests[0] is not None
+
+
+def test_dashboard_digest_uses_guest_token_rls(
+    app_context: None,
+) -> None:
+    """
+    Two guest tokens whose username collides with the same real DB username,
+    but which carry different per-token rls claims, must produce different
+    digests. If the DB-user lookup were preferred on a username collision,
+    both tokens would compute RLS under the unrelated DB user's identity and
+    collide on the same cache entry -- serving tenant B the screenshot
+    rendered under tenant A's RLS scope.
+    """
+    from superset import security_manager
+    from superset.models.dashboard import Dashboard
+    from superset.models.slice import Slice
+    from superset.thumbnails.digest import get_dashboard_digest
+
+    kwargs = {**_DEFAULT_DASHBOARD_KWARGS}
+    slices = [Slice(**slice_kwargs) for slice_kwargs in kwargs.pop("slices")]
+    dashboard = Dashboard(**kwargs, slices=slices)
+
+    # A real DB user whose username collides with the guest token's username.
+    colliding_db_user = User(id=99, username="guest_alice")
+
+    class FakeGuestUser:
+        """
+        Minimal guest-user stand-in. Two instances differ only by their
+        per-token `guest_rls` claim, mirroring how two guest tokens can share
+        a username while carrying different rls claims.
+        """
+
+        is_anonymous = False
+        id = None
+
+        def __init__(self, username: str, guest_rls: str) -> None:
+            self.username = username
+            self.guest_rls = guest_rls
+
+    def make_datasource() -> MagicMock:
+        ds = MagicMock(spec=BaseDatasource)
+        ds.id = 1
+        ds.is_rls_supported = True
+
+        # Simulate the real get_sqla_row_level_filters(): in production this
+        # resolves RLS (including get_guest_rls_filters()) against whichever
+        # identity override_user() installed as the ambient g.user.
+        def _filters() -> list[str]:
+            current = getattr(g, "user", None)
+            guest_rls = getattr(current, "guest_rls", None)
+            return [guest_rls] if guest_rls else []
+
+        ds.get_sqla_row_level_filters = MagicMock(side_effect=_filters)
+        return ds
+
+    digests = []
+    for guest_rls in ("tenant_a_filter", "tenant_b_filter"):
+        guest_user = FakeGuestUser("guest_alice", guest_rls)
+        with (
+            patch.dict(
+                current_app.config,
+                {
+                    "THUMBNAIL_EXECUTORS": [ExecutorType.CURRENT_USER],
+                    "THUMBNAIL_DASHBOARD_DIGEST_FUNC": None,
+                },
+            ),
+            patch.object(
+                type(dashboard),
+                "datasources",
+                new_callable=PropertyMock,
+                return_value=[make_datasource()],
+            ),
+            patch.object(security_manager, "find_user", return_value=colliding_db_user),
+            patch.object(
+                security_manager,
+                "get_current_guest_user_if_guest",
+                return_value=guest_user,
+            ),
+            patch.object(security_manager, "prefetch_rls_filters", return_value=None),
+            override_user(guest_user),
+        ):
+            digests.append(get_dashboard_digest(dashboard=dashboard))
+
+    assert digests[0] is not None
+    assert digests[1] is not None
+    assert digests[0] != digests[1]
 
 
 def test_dashboard_digest_prefetches_rls_filters(

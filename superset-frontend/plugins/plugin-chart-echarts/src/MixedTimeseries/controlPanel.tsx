@@ -18,7 +18,7 @@
  */
 import { t } from '@apache-superset/core/translation';
 import { ensureIsArray } from '@superset-ui/core';
-import { cloneDeep } from 'lodash';
+import { cloneDeep } from 'lodash-es';
 import {
   ControlPanelsContainerProps,
   ControlPanelConfig,
@@ -38,6 +38,8 @@ import { EchartsTimeseriesSeriesType } from '../Timeseries/types';
 import {
   legendSection,
   minorTicks,
+  axisTicks,
+  gridlines,
   richTooltipSection,
   truncateXAxis,
   xAxisBounds,
@@ -203,6 +205,31 @@ function createCustomizeSection(
     ],
     [
       {
+        name: `label_position${controlSuffix}`,
+        config: {
+          type: 'SelectControl',
+          freeForm: false,
+          label: t('Label Position'),
+          choices: [
+            ['auto', t('Auto')],
+            ['top', t('Top')],
+            ['inside', t('Inside')],
+            ['bottom', t('Bottom')],
+            ['left', t('Left')],
+            ['right', t('Right')],
+          ],
+          default: 'auto',
+          renderTrigger: true,
+          description: t(
+            'Position of the data label relative to the data point',
+          ),
+          visibility: ({ controls }: ControlPanelsContainerProps) =>
+            Boolean(controls?.[`show_value${controlSuffix}`]?.value),
+        },
+      },
+    ],
+    [
+      {
         name: `only_total${controlSuffix}`,
         config: {
           type: 'CheckboxControl',
@@ -318,14 +345,25 @@ function createAdvancedAnalyticsSection(
 ): ControlPanelSectionConfig {
   const aaWithSuffix = cloneDeep(sections.advancedAnalyticsControls);
   aaWithSuffix.label = label;
+  // `time_compare_full_range` is only wired into the regular timeseries query
+  // builder, not the mixed-timeseries one, so drop it here to avoid showing a
+  // control that has no effect.
+  aaWithSuffix.controlSetRows = aaWithSuffix.controlSetRows
+    .map(row =>
+      row.filter(
+        control =>
+          (control as CustomControlItem)?.name !== 'time_compare_full_range',
+      ),
+    )
+    .filter(row => row.length > 0);
   if (!controlSuffix) {
     return aaWithSuffix;
   }
   aaWithSuffix.controlSetRows.forEach(row =>
-    row.forEach((control: CustomControlItem) => {
-      if (control?.name) {
-        // eslint-disable-next-line no-param-reassign
-        control.name = `${control.name}${controlSuffix}`;
+    row.forEach(control => {
+      const item = control as CustomControlItem;
+      if (item?.name) {
+        item.name = `${item.name}${controlSuffix}`;
       }
     }),
   );
@@ -355,6 +393,8 @@ const config: ControlPanelConfig = {
         ...createCustomizeSection(t('Query B'), 'B'),
         ['zoomable'],
         [minorTicks],
+        [axisTicks],
+        [gridlines],
         ...legendSection,
         [<ControlSubSectionHeader>{t('X Axis')}</ControlSubSectionHeader>],
         ['x_axis_time_format'],

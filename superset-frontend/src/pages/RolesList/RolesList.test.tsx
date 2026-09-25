@@ -151,8 +151,11 @@ describe('RolesList', () => {
   test('renders filters options', async () => {
     await renderAndWait();
 
-    const typeFilter = screen.queryAllByTestId('filters-select');
-    expect(typeFilter).toHaveLength(4);
+    // Compact filter UI: one search input for "Name" and 3 select pills
+    // (Users, Permissions, Groups).
+    expect(screen.getByTestId('filters-search')).toBeInTheDocument();
+    const selectContainers = screen.getAllByTestId('select-filter-container');
+    expect(selectContainers).toHaveLength(3);
   });
 
   test('renders correct list columns', async () => {

@@ -16,17 +16,23 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { forwardRef } from 'react';
 import { Tooltip as AntdTooltip } from 'antd';
+import type { TooltipRef } from 'antd/es/tooltip';
 
 import type { TooltipProps, TooltipPlacement } from './types';
 
-export const Tooltip = ({ overlayStyle, ...props }: TooltipProps) => (
-  <AntdTooltip
-    styles={{
-      body: { overflow: 'hidden', textOverflow: 'ellipsis' },
-      root: overlayStyle ?? {},
-    }}
-    {...props}
-  />
+export const Tooltip = forwardRef<TooltipRef, TooltipProps>(
+  ({ overlayStyle, ...props }, ref) => (
+    <AntdTooltip
+      ref={ref}
+      styles={{
+        // antd v6 renamed the inner content slot `body` -> `container`
+        container: { overflow: 'hidden', textOverflow: 'ellipsis' },
+        root: overlayStyle ?? {},
+      }}
+      {...props}
+    />
+  ),
 );
 export type { TooltipProps, TooltipPlacement };

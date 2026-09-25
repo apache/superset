@@ -72,6 +72,7 @@ test('should generate a 2x2 grid for metrics mode', () => {
     createAdhocMetric('Revenue'),
     createSqlMetric('Q1', 'SUM(CASE WHEN quarter = 1 THEN value END)'),
   ]);
+  expect(firstCell!.formData.metric).toEqual(createAdhocMetric('Revenue'));
 });
 
 test('should generate grid for dimensions mode', () => {
@@ -112,6 +113,96 @@ test('should generate grid for dimensions mode', () => {
         comparator: 'Widget',
       }),
     ]),
+  );
+});
+
+test('should add dimension filters to every query-specific adhoc filter collection', () => {
+  // Multi-query charts (e.g. Mixed Chart) read each query's filters from a
+  // separate collection. The cell's dimension filter must reach all of them.
+  const formDataWithMultipleQueries: TestFormData = {
+    viz_type: 'mixed_timeseries',
+    datasource: '1__table',
+    matrixify_enable: true,
+    matrixify_mode_rows: 'dimensions',
+    matrixify_mode_columns: 'disabled',
+    matrixify_dimension_rows: {
+      dimension: 'country',
+      values: ['USA', 'Canada'],
+    },
+    adhoc_filters: [
+      {
+        expressionType: 'SIMPLE',
+        subject: 'year',
+        operator: 'TEMPORAL_RANGE',
+        comparator: '2024-01-01 : 2024-12-31',
+        clause: 'WHERE',
+      },
+    ],
+    adhoc_filters_b: [
+      {
+        expressionType: 'SIMPLE',
+        subject: 'region',
+        operator: '==',
+        comparator: 'North America',
+        clause: 'WHERE',
+      },
+    ],
+    adhoc_filters_c: [],
+    // A non-adhoc-filter field that must not be touched by the fan-out.
+    filters_b: [{ col: 'should_not_change', op: '==', val: 'unchanged' }],
+  };
+
+  const grid = generateMatrixifyGrid(formDataWithMultipleQueries);
+
+  expect(grid).not.toBeNull();
+  const usaCell = grid!.cells[0][0]!;
+  const canadaCell = grid!.cells[1][0]!;
+
+  // Each cell's dimension filter is added to the primary and every
+  // query-specific collection, including one that started empty
+  // (`adhoc_filters_c`) — and cells don't leak each other's filters, which
+  // would happen if the fan-out mutated a shared array reference instead of
+  // writing a fresh array per cell.
+  [
+    { cell: usaCell, country: 'USA', other: 'Canada' },
+    { cell: canadaCell, country: 'Canada', other: 'USA' },
+  ].forEach(({ cell, country, other }) => {
+    ['adhoc_filters', 'adhoc_filters_b', 'adhoc_filters_c'].forEach(key => {
+      expect(cell.formData[key]).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ subject: 'country', comparator: country }),
+        ]),
+      );
+      expect(cell.formData[key]).not.toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ subject: 'country', comparator: other }),
+        ]),
+      );
+    });
+  });
+
+  // Pre-existing filters on each collection are preserved.
+  expect(usaCell.formData.adhoc_filters).toEqual(
+    expect.arrayContaining([expect.objectContaining({ subject: 'year' })]),
+  );
+  expect(usaCell.formData.adhoc_filters_b).toEqual(
+    expect.arrayContaining([
+      expect.objectContaining({
+        subject: 'region',
+        comparator: 'North America',
+      }),
+    ]),
+  );
+
+  // The base formData's collections are untouched by either cell's fan-out.
+  expect(formDataWithMultipleQueries.adhoc_filters_b).toEqual([
+    expect.objectContaining({ subject: 'region', comparator: 'North America' }),
+  ]);
+  expect(formDataWithMultipleQueries.adhoc_filters_c).toEqual([]);
+
+  // Fields that merely look similar (`filters_b`) are left untouched.
+  expect(usaCell.formData.filters_b).toEqual(
+    formDataWithMultipleQueries.filters_b,
   );
 });
 
@@ -213,6 +304,9 @@ test('should skip missing column metrics when generating cell form data', () => 
   expect(grid!.cells[0][0]!.formData.metrics).toEqual([
     createAdhocMetric('Revenue'),
   ]);
+  expect(grid!.cells[0][0]!.formData.metric).toEqual(
+    createAdhocMetric('Revenue'),
+  );
 });
 
 test('should not escape HTML entities in cell titles', () => {
@@ -469,6 +563,51 @@ test('should handle metrics without labels', () => {
   // Metrics without labels show empty string
   expect(grid!.rowHeaders).toEqual(['']);
   expect(grid!.colHeaders).toEqual(['count']);
+});
+
+test('should set singular metric for singular-metric chart types like Pie', () => {
+  const rowMetricFormData: TestFormData = {
+    viz_type: 'pie',
+    datasource: '1__table',
+    matrixify_enable: true,
+    matrixify_mode_rows: 'metrics',
+    matrixify_rows: [createAdhocMetric('Revenue'), createAdhocMetric('Profit')],
+  };
+
+  const grid = generateMatrixifyGrid(rowMetricFormData);
+
+  expect(grid).not.toBeNull();
+  expect(grid!.cells[0][0]!.formData.metrics).toEqual([
+    createAdhocMetric('Revenue'),
+  ]);
+  expect(grid!.cells[0][0]!.formData.metric).toEqual(
+    createAdhocMetric('Revenue'),
+  );
+  expect(grid!.cells[1][0]!.formData.metrics).toEqual([
+    createAdhocMetric('Profit'),
+  ]);
+  expect(grid!.cells[1][0]!.formData.metric).toEqual(
+    createAdhocMetric('Profit'),
+  );
+});
+
+test('should not overwrite singular metric in dimension-only mode', () => {
+  const dimensionFormData: TestFormData = {
+    viz_type: 'pie',
+    datasource: '1__table',
+    matrixify_enable: true,
+    matrixify_mode_rows: 'dimensions',
+    matrixify_dimension_rows: {
+      dimension: 'country',
+      values: ['USA', 'Canada'],
+    },
+    metric: 'existing_metric',
+  };
+
+  const grid = generateMatrixifyGrid(dimensionFormData);
+
+  expect(grid).not.toBeNull();
+  expect(grid!.cells[0][0]!.formData.metric).toBe('existing_metric');
 });
 
 test('should preserve slice_id and dashboardId for embedded dashboard permissions', () => {

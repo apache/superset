@@ -137,6 +137,9 @@ const SelectAsyncControl = ({
       value={getValue()}
       header={<ControlHeader {...props} />}
       mode={multi ? 'multiple' : 'single'}
+      // Keep selected tags on a single line with a "+N" overflow instead of
+      // wrapping them outside the control's fixed-height box.
+      oneLine={multi}
       onChange={handleOnChange}
       options={options}
       placeholder={placeholder}

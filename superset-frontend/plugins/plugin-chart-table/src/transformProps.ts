@@ -30,12 +30,13 @@ import {
   getTimeFormatter,
   getTimeFormatterForGranularity,
   isAdhocColumn,
-  normalizeCurrency,
+  resolveDetectedCurrency,
   NumberFormats,
   QueryMode,
   SMART_DATE_ID,
   TimeFormats,
   TimeFormatter,
+  DateWithFormatter,
 } from '@superset-ui/core';
 import { GenericDataType } from '@apache-superset/core/common';
 import {
@@ -45,9 +46,8 @@ import {
   ColorSchemeEnum,
 } from '@superset-ui/chart-controls';
 
-import { isEmpty, merge } from 'lodash';
+import { isEmpty, merge } from 'lodash-es';
 import isEqualColumns from './utils/isEqualColumns';
-import DateWithFormatter from './utils/DateWithFormatter';
 import {
   BasicColorFormatterType,
   DataColumnMeta,
@@ -232,6 +232,9 @@ const processColumns = memoizeOne(function processColumns(
   const metricsSet = new Set(metrics);
   const percentMetricsSet = new Set(percentMetrics);
   const rawPercentMetricsSet = new Set(rawPercentMetrics);
+  const columnsByName = new Map(
+    (props.datasource.columns ?? []).map(col => [col.column_name, col]),
+  );
 
   const columns: DataColumnMeta[] = (colnames || [])
     .filter(
@@ -244,6 +247,7 @@ const processColumns = memoizeOne(function processColumns(
       const config = columnConfig[key] || {};
       // for the purpose of presentation, only numeric values are treated as metrics
       // because users can also add things like `MAX(str_col)` as a metric.
+      const isFilterable = columnsByName.get(key)?.filterable;
       const isMetric = metricsSet.has(key) && isNumeric(key, records);
       const isPercentMetric = percentMetricsSet.has(key);
       const label =
@@ -295,21 +299,12 @@ const processColumns = memoizeOne(function processColumns(
         // percent metrics have a default format
         formatter = getNumberFormatter(numberFormat || PERCENT_3_POINT);
       } else if (isMetric || (isNumber && (numberFormat || currency))) {
-        // Resolve AUTO currency when currency column isn't in query results
-        let resolvedCurrency = currency;
-        if (
-          currency?.symbol === 'AUTO' &&
-          detectedCurrency &&
-          (!currencyCodeColumn || !colnames?.includes(currencyCodeColumn))
-        ) {
-          const normalizedCurrency = normalizeCurrency(detectedCurrency);
-          if (normalizedCurrency) {
-            resolvedCurrency = {
-              ...currency,
-              symbol: normalizedCurrency,
-            };
-          }
-        }
+        const resolvedCurrency = resolveDetectedCurrency(
+          currency,
+          detectedCurrency,
+          currencyCodeColumn,
+          colnames,
+        );
         formatter = resolvedCurrency?.symbol
           ? new CurrencyFormatter({
               d3Format: numberFormat,
@@ -326,6 +321,7 @@ const processColumns = memoizeOne(function processColumns(
         isPercentMetric,
         formatter,
         config,
+        isFilterable,
         description,
         currencyCodeColumn,
       };
@@ -353,6 +349,7 @@ const getComparisonColFormatter = (
   columnConfig: Record<string, TableColumnConfig>,
   savedFormat: string | undefined,
   savedCurrency: Currency | undefined,
+  resolveCurrency: (currency: Currency | undefined) => Currency | undefined,
 ) => {
   const currentColConfig = getComparisonColConfig(
     label,
@@ -367,7 +364,9 @@ const getComparisonColFormatter = (
   if (label === '%') {
     formatter = getNumberFormatter(currentColNumberFormat || PERCENT_3_POINT);
   } else if (currentColNumberFormat || hasCurrency) {
-    const currency = currentColConfig.currencyFormat || savedCurrency;
+    const currency = resolveCurrency(
+      currentColConfig.currencyFormat || savedCurrency,
+    );
     const numberFormat = currentColNumberFormat || savedFormat;
     formatter = currency
       ? new CurrencyFormatter({
@@ -386,9 +385,19 @@ const processComparisonColumns = (
 ) =>
   columns.flatMap(col => {
     const {
-      datasource: { columnFormats, currencyFormats },
+      datasource: { columnFormats, currencyFormats, currencyCodeColumn },
       rawFormData: { column_config: columnConfig = {} },
+      queriesData,
     } = props;
+    const { detected_currency: detectedCurrency, colnames } =
+      queriesData[0] || {};
+    const resolveCurrency = (currency: Currency | undefined) =>
+      resolveDetectedCurrency(
+        currency,
+        detectedCurrency,
+        currencyCodeColumn,
+        colnames,
+      );
     const savedFormat = columnFormats?.[col.key];
     const savedCurrency = currencyFormats?.[col.key];
     const originalLabel = col.label;
@@ -410,6 +419,7 @@ const processComparisonColumns = (
             columnConfig,
             savedFormat,
             savedCurrency,
+            resolveCurrency,
           ),
         },
         {
@@ -424,6 +434,7 @@ const processComparisonColumns = (
             columnConfig,
             savedFormat,
             savedCurrency,
+            resolveCurrency,
           ),
         },
         {
@@ -438,6 +449,7 @@ const processComparisonColumns = (
             columnConfig,
             savedFormat,
             savedCurrency,
+            resolveCurrency,
           ),
         },
         {
@@ -452,6 +464,7 @@ const processComparisonColumns = (
             columnConfig,
             savedFormat,
             savedCurrency,
+            resolveCurrency,
           ),
         },
       ];
@@ -707,11 +720,26 @@ const transformProps = (
   let totalQuery;
   let rowCount;
   if (serverPagination) {
-    [baseQuery, countQuery, totalQuery] = queriesData;
+    [baseQuery, countQuery] = queriesData;
     rowCount = (countQuery?.data?.[0]?.rowcount as number) ?? 0;
   } else {
-    [baseQuery, totalQuery] = queriesData;
+    [baseQuery] = queriesData;
     rowCount = baseQuery?.rowcount ?? 0;
+  }
+  // `buildQuery` may prepend an extra query (used to compute percent metrics
+  // against the entire result set when `percent_metric_calculation` is set to
+  // `all_records`) before the totals query. Since the totals query, when
+  // present, is always the last entry in `queriesData`, look it up positionally
+  // from the end rather than assuming a fixed index. The minimum number of
+  // queries expected without a totals query is 1 (base query), or 2 when
+  // server pagination is enabled (base query + row count query).
+  const minQueriesWithoutTotals = serverPagination ? 2 : 1;
+  if (
+    showTotals &&
+    queryMode === QueryMode.Aggregate &&
+    queriesData.length > minQueriesWithoutTotals
+  ) {
+    totalQuery = queriesData[queriesData.length - 1];
   }
   const data = processDataRecords(baseQuery?.data, columns);
   const comparisonData = processComparisonDataRecords(
@@ -732,8 +760,17 @@ const transformProps = (
   const basicColorFormatters =
     comparisonColorEnabled && getBasicColorFormatter(baseQuery?.data, columns);
   const columnColorFormatters =
-    getColorFormatters(conditionalFormatting, passedData, theme) ??
-    defaultColorFormatters;
+    getColorFormatters(
+      (conditionalFormatting || []).filter(
+        (config: ConditionalFormattingConfig) =>
+          config.colorScheme !== ColorSchemeEnum.Green &&
+          config.colorScheme !== ColorSchemeEnum.Red,
+      ),
+      passedData,
+      theme,
+      undefined,
+      serverPagination,
+    ) ?? defaultColorFormatters;
 
   const basicColorColumnFormatters = getBasicColorFormatterForColumn(
     baseQuery?.data,

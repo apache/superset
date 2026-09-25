@@ -24,9 +24,11 @@ import {
   EmptyWrapperType,
 } from '@superset-ui/core/components/TableView';
 import { EmptyState } from '@superset-ui/core/components';
-import { FacePile, TagsList, type TagType } from 'src/components';
+import { TagsList, type TagType } from 'src/components';
+import { SubjectPile } from 'src/features/subjects/SubjectPile';
 import { TaggedObject, TaggedObjects } from 'src/types/TaggedObject';
 import { Typography } from '@superset-ui/core/components/Typography';
+import { ensureAppRoot } from 'src/utils/navigationUtils';
 
 const MAX_TAGS_TO_SHOW = 3;
 const PAGE_SIZE = 10;
@@ -59,7 +61,7 @@ interface AllEntitiesTableProps {
 }
 
 export default function AllEntitiesTable({
-  search = '',
+  search: _search = '',
   setShowTagModal,
   objects,
   canEditTag,
@@ -73,10 +75,12 @@ export default function AllEntitiesTable({
 
   const renderTable = (type: objectType) => {
     const data = objects[type].map((o: TaggedObject) => ({
-      [type]: <Typography.Link href={o.url}>{o.name}</Typography.Link>,
+      [type]: (
+        <Typography.Link href={ensureAppRoot(o.url)}>{o.name}</Typography.Link>
+      ),
       modified: o.changed_on ? extendedDayjs.utc(o.changed_on).fromNow() : '',
       tags: o.tags,
-      owners: o.owners,
+      editors: o.editors,
     }));
 
     return (
@@ -121,14 +125,14 @@ export default function AllEntitiesTable({
           {
             Cell: ({
               row: {
-                original: { owners = [] },
+                original: { editors = [] },
               },
-            }: any) => <FacePile users={owners} />,
-            Header: t('Owners'),
-            accessor: 'owners',
+            }: any) => <SubjectPile subjects={editors} />,
+            Header: t('Editors'),
+            accessor: 'editors',
             disableSortBy: true,
             size: 'xl',
-            id: 'owners',
+            id: 'editors',
           },
         ]}
       />

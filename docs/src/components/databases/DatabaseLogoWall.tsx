@@ -35,7 +35,10 @@ const databases = Object.entries(typedData.databases)
   .map(([name, db]) => ({
     name,
     logo: db.documentation.logo!,
-    docPath: `/user-docs/databases/supported/${name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')}`,
+    docPath: `/user-docs/databases/supported/${name
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-|-$/g, '')}`,
   }));
 
 export default function DatabaseLogoWall(): React.JSX.Element {

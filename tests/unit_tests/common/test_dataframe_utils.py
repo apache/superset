@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import datetime
+from unittest.mock import MagicMock
 
 import pandas as pd
 
@@ -48,3 +49,27 @@ def test_is_datetime_series():
             datetime.datetime(2018, 1, 1), datetime.datetime(2018, 2, 1)
         ).to_series()
     )
+
+
+def test_df_metrics_to_num_converts_string_numerics():
+    """Test that string-encoded numeric columns (e.g. from ClickHouse) are converted."""
+    query_object = MagicMock()
+    query_object.metric_names = ["sum_col", "mixed_col", "text_col"]
+    df = pd.DataFrame(
+        {
+            "sum_col": pd.Series(["100", "200", "300"], dtype=object),
+            "mixed_col": pd.Series(["1", "not_a_number", "3"], dtype=object),
+            "text_col": pd.Series(["foo", "bar", "baz"], dtype=object),
+            "dim_col": pd.Series(["a", "b", "c"], dtype=object),
+        }
+    )
+    dataframe_utils.df_metrics_to_num(df, query_object)
+    # sum_col: all numeric strings -> should be converted to numeric
+    assert pd.api.types.is_numeric_dtype(df["sum_col"]), "sum_col should be numeric"
+    assert df["sum_col"].tolist() == [100.0, 200.0, 300.0]
+    # mixed_col: has non-numeric value -> should NOT be converted
+    assert df["mixed_col"].dtype == object, "mixed_col should remain object"
+    # text_col: all non-numeric -> should NOT be converted
+    assert df["text_col"].dtype == object, "text_col should remain object"
+    # dim_col: not in metric_names -> should NOT be touched
+    assert df["dim_col"].dtype == object, "dim_col should not be touched"

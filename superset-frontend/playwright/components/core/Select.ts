@@ -26,7 +26,7 @@ import { TIMEOUT } from '../../utils/constants';
 const SELECT_SELECTORS = {
   DROPDOWN: '.ant-select-dropdown',
   OPTION: '.ant-select-item-option',
-  SEARCH_INPUT: '.ant-select-selection-search-input',
+  SEARCH_INPUT: '.ant-select-input',
   CLEAR: '.ant-select-clear',
 } as const;
 
@@ -142,6 +142,20 @@ export class Select {
    */
   async close(): Promise<void> {
     await this.page.keyboard.press('Escape');
+  }
+
+  /**
+   * Text content of every option visible in the open dropdown, trimmed.
+   * Assumes the dropdown is already open (via {@link open}).
+   */
+  async getVisibleOptionTexts(): Promise<string[]> {
+    const dropdown = this.page
+      .locator(`${SELECT_SELECTORS.DROPDOWN}:not(.ant-select-dropdown-hidden)`)
+      .last();
+    const options = dropdown.locator(SELECT_SELECTORS.OPTION);
+    await options.first().waitFor({ state: 'visible' });
+    const texts = await options.allTextContents();
+    return texts.map(t => t.trim());
   }
 
   /**

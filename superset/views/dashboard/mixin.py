@@ -31,15 +31,14 @@ class DashboardMixin:  # pylint: disable=too-few-public-methods
     edit_columns = [
         "dashboard_title",
         "slug",
-        "owners",
-        "roles",
+        "editors",
         "position_json",
         "css",
         "json_metadata",
         "published",
     ]
     show_columns = edit_columns + ["charts"]
-    search_columns = ("dashboard_title", "slug", "owners", "published")
+    search_columns = ("dashboard_title", "slug", "editors", "published")
     add_columns = edit_columns
     base_order = ("changed_on", "desc")
     description_columns = {
@@ -61,12 +60,7 @@ class DashboardMixin:  # pylint: disable=too-few-public-methods
             "is exposed here for reference and for power users who may "
             "want to alter specific parameters."
         ),
-        "owners": _("Owners is a list of users who can alter the dashboard."),
-        "roles": _(
-            "Roles is a list which defines access to the dashboard. "
-            "Granting a role access to a dashboard will bypass dataset level checks."
-            "If no roles are defined, regular access permissions apply."
-        ),
+        "editors": _("Editors is a list of subjects who can alter the dashboard."),
         "published": _(
             "Determines whether or not this dashboard is "
             "visible in the list of all dashboards"
@@ -78,8 +72,7 @@ class DashboardMixin:  # pylint: disable=too-few-public-methods
         "dashboard_title": _("Title"),
         "slug": _("Slug"),
         "charts": _("Charts"),
-        "owners": _("Owners"),
-        "roles": _("Roles"),
+        "editors": _("Editors"),
         "published": _("Published"),
         "creator": _("Creator"),
         "modified": _("Modified"),
@@ -89,4 +82,4 @@ class DashboardMixin:  # pylint: disable=too-few-public-methods
     }
 
     def pre_delete(self, item: "DashboardMixin") -> None:
-        security_manager.raise_for_ownership(item)
+        security_manager.raise_for_editorship(item)

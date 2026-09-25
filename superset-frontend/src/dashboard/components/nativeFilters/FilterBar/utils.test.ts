@@ -20,6 +20,7 @@
 import {
   DataMaskStateWithId,
   DataRecordValue,
+  DatasourceType,
   Filter,
   FilterState,
 } from '@superset-ui/core';
@@ -27,6 +28,7 @@ import {
   checkIsApplyDisabled,
   checkIsValidateError,
   checkIsMissingRequiredValue,
+  clearedCustomizationTarget,
   getOnlyExtraFormData,
   getFiltersToApply,
 } from './utils';
@@ -211,6 +213,16 @@ test('checkIsMissingRequiredValue returns false for non-required filter with und
   expect(checkIsMissingRequiredValue(filter, filterState)).toBe(false);
 });
 
+test('checkIsMissingRequiredValue returns false when only defaultToFirstItem is set', () => {
+  const filter = createFilter('test-filter', {
+    enableEmptyFilter: false,
+    controlValues: { defaultToFirstItem: true },
+  });
+
+  expect(checkIsMissingRequiredValue(filter, { value: null })).toBe(false);
+  expect(checkIsMissingRequiredValue(filter, { value: undefined })).toBe(false);
+});
+
 test('checkIsMissingRequiredValue returns falsy for filter without controlValues', () => {
   const filter = { id: 'test-filter' } as Filter;
   const filterState: FilterState = { value: undefined };
@@ -299,7 +311,52 @@ test('checkIsApplyDisabled returns true when required filter is missing value in
   );
 });
 
-test('checkIsApplyDisabled handles filter count mismatch', () => {
+test('checkIsApplyDisabled enables Apply after clearing a cascading defaultToFirstItem child', () => {
+  // Regression: a child filter that is dependent on a parent and configured with
+  // "Select first filter value by default" but NOT "Filter value is required"
+  // must stay clearable — clearing it may not disable Apply.
+  const parent = createFilter('parent', {
+    enableEmptyFilter: true,
+    controlValues: { defaultToFirstItem: true },
+  });
+  const child = createFilter('child', {
+    enableEmptyFilter: false,
+    controlValues: { defaultToFirstItem: true },
+  });
+  const dataMaskSelected: DataMaskStateWithId = {
+    parent: {
+      id: 'parent',
+      filterState: { value: ['USA'] },
+      extraFormData: createExtraFormDataWithFilter('country', ['USA']),
+    },
+    child: {
+      id: 'child',
+      filterState: { value: null },
+      extraFormData: {},
+    },
+  };
+  const dataMaskApplied: DataMaskStateWithId = {
+    parent: {
+      id: 'parent',
+      filterState: { value: ['USA'] },
+      extraFormData: createExtraFormDataWithFilter('country', ['USA']),
+    },
+    child: {
+      id: 'child',
+      filterState: { value: ['CA'] },
+      extraFormData: createExtraFormDataWithFilter('state', ['CA']),
+    },
+  };
+
+  expect(
+    checkIsApplyDisabled(dataMaskSelected, dataMaskApplied, [parent, child]),
+  ).toBe(false);
+});
+
+test('checkIsApplyDisabled enables Apply when Selected has a filter value not yet in Applied', () => {
+  // Regression: when a required filter's default isn't applied (Applied missing
+  // the entry) and the user types a value, Selected gains an entry Applied
+  // doesn't have. Apply must be enabled so the user can commit the value.
   const dataMaskSelected: DataMaskStateWithId = {
     'filter-1': {
       id: 'filter-1',
@@ -322,7 +379,7 @@ test('checkIsApplyDisabled handles filter count mismatch', () => {
   const filters = [createFilter('filter-1'), createFilter('filter-2')];
 
   expect(checkIsApplyDisabled(dataMaskSelected, dataMaskApplied, filters)).toBe(
-    true,
+    false,
   );
 });
 
@@ -784,4 +841,40 @@ test('getFiltersToApply handles null dataMask entries', () => {
 
   expect(result).not.toContain('filter-1');
   expect(result).toContain('filter-2');
+});
+
+test('clearedCustomizationTarget preserves the datasourceType of a semantic view through a clear', () => {
+  const cleared = clearedCustomizationTarget({
+    datasetId: 306,
+    datasourceType: DatasourceType.SemanticView,
+    column: { name: 'Orders Status' },
+  });
+
+  // The selected column is dropped, but the binding (id + type) survives —
+  // dropping datasourceType would rebind the view to the colliding regular
+  // dataset on the next resolution (sc-111089).
+  expect(cleared).toEqual({
+    datasetId: 306,
+    datasourceType: DatasourceType.SemanticView,
+  });
+});
+
+test('clearedCustomizationTarget omits datasourceType for a regular dataset target', () => {
+  const cleared = clearedCustomizationTarget({
+    datasetId: 306,
+    column: { name: 'city' },
+  });
+
+  // No type key is emitted (not `datasourceType: undefined`), matching a
+  // regular dataset and the legacy shape.
+  expect(cleared).toEqual({ datasetId: 306 });
+  expect('datasourceType' in cleared).toBe(false);
+});
+
+test('clearedCustomizationTarget tolerates an absent target', () => {
+  // toStrictEqual (not toEqual) so the `datasetId` key must actually be present,
+  // rather than the assertion passing against a bare {}.
+  expect(clearedCustomizationTarget(undefined)).toStrictEqual({
+    datasetId: undefined,
+  });
 });

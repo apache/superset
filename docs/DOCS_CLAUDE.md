@@ -52,23 +52,24 @@ yarn serve                # Serve built site locally
 # For maximum-detail databases.json, drop the `database-diagnostics`
 # artifact from Python-Integration CI at src/data/databases.json before
 # cutting. See README.md "Before You Cut".
-yarn version:add:docs <version>              # Add new docs version
+yarn version:add:user_docs <version>              # Add new docs version
 yarn version:add:admin_docs <version>        # Add admin docs version
 yarn version:add:developer_docs <version>    # Add developer docs version
 yarn version:add:components <version>        # Add components version
-yarn version:remove:docs <version>           # Remove docs version
+yarn version:remove:user_docs <version>           # Remove docs version
 yarn version:remove:admin_docs <version>     # Remove admin docs version
 yarn version:remove:developer_docs <version> # Remove developer docs version
 yarn version:remove:components <version>     # Remove components version
 
 # Quality Checks
-yarn typecheck            # TypeScript validation
-yarn eslint              # Lint TypeScript/JavaScript files
+yarn typecheck   # TypeScript validation
+yarn lint        # Lint TypeScript/JavaScript files
 ```
 
 ## 📁 Documentation Structure
 
 ### Main Documentation (`/docs`)
+
 The primary documentation lives in `/docs` with this structure:
 
 ```
@@ -104,54 +105,57 @@ docs/
 ```
 
 ### Admin Docs (`/admin_docs`)
+
 Admin-focused content: installation, configuration, security.
 
 ### Developer Docs (`/developer_docs`)
+
 Developer-focused content: API documentation, architecture guides, CLI tools, code examples.
 
 ### Component Playground (`/components`)
+
 Interactive component examples for UI development.
 
 ## 📝 Documentation Standards
 
 ### File Types
+
 - **`.md` files**: Basic Markdown documents
 - **`.mdx` files**: Markdown with JSX - can include React components
 - **`.tsx` files in `/src`**: Custom React components and pages
 
 ### Frontmatter Structure
+
 Every documentation page should have frontmatter:
 
 ```yaml
 ---
 title: Page Title
 description: Brief description for SEO
-sidebar_position: 1  # Optional: controls order in sidebar
+sidebar_position: 1 # Optional: controls order in sidebar
 ---
 ```
 
 ### MDX Component Usage
+
 MDX files can import and use React components:
 
-```mdx
+````mdx
 import Tabs from '@theme/Tabs';
 import TabItem from '@theme/TabItem';
 
 <Tabs>
   <TabItem value="npm" label="npm" default>
-    ```bash
-    npm install superset
-    ```
+    ```bash npm install superset ```
   </TabItem>
   <TabItem value="yarn" label="yarn">
-    ```bash
-    yarn add superset
-    ```
+    ```bash yarn add superset ```
   </TabItem>
 </Tabs>
-```
+````
 
 ### Code Blocks
+
 Use triple backticks with language identifiers:
 
 ````markdown
@@ -171,6 +175,7 @@ pip install apache-superset
 ````
 
 ### Admonitions
+
 Docusaurus supports various admonition types:
 
 ```markdown
@@ -198,20 +203,21 @@ This is an info box
 ## 🔄 Version Management
 
 ### Version Configuration
+
 Versions are managed through `versions-config.json`:
 
 ```json
 {
   "docs": {
     "disabled": false,
-    "lastVersion": "6.0.0",        // Default version shown
-    "includeCurrentVersion": true,  // Show "Next" version
+    "lastVersion": "6.0.0", // Default version shown
+    "includeCurrentVersion": true, // Show "Next" version
     "onlyIncludeVersions": ["current", "6.0.0"],
     "versions": {
       "current": {
         "label": "Next",
         "path": "",
-        "banner": "unreleased"     // Shows warning banner
+        "banner": "unreleased" // Shows warning banner
       },
       "6.0.0": {
         "label": "6.0.0",
@@ -224,25 +230,32 @@ Versions are managed through `versions-config.json`:
 ```
 
 ### Creating New Versions
+
 **IMPORTANT**: Always use the custom scripts, NOT native Docusaurus commands:
 
 ```bash
 # ✅ CORRECT - Updates both Docusaurus and versions-config.json
-yarn version:add:docs 6.1.0
+yarn version:add:user_docs 6.1.0
 
 # ❌ WRONG - Only updates Docusaurus, breaks version dropdown
 yarn docusaurus docs:version 6.1.0
 ```
 
 ### Version Files Created
-When versioning, these files are created:
-- `versioned_docs/version-X.X.X/` - Snapshot of current docs
-- `versioned_sidebars/version-X.X.X-sidebars.json` - Sidebar config
-- `versions.json` - List of all versions
+
+When versioning, these files are created (per section, with the
+section's plugin id as prefix):
+
+- `<section>_versioned_docs/version-X.X.X/` - Snapshot of current docs
+- `<section>_versioned_sidebars/version-X.X.X-sidebars.json` - Sidebar config
+- `<section>_versions.json` - List of all versions
+
+Section plugin ids: `user_docs`, `admin_docs`, `developer_docs`, `components`.
 
 ## 🎨 Styling and Theming
 
 ### Custom CSS
+
 Add custom styles in `/src/css/custom.css`:
 
 ```css
@@ -253,13 +266,14 @@ Add custom styles in `/src/css/custom.css`:
 ```
 
 ### Custom Components
+
 Create React components in `/src/components/`:
 
 ```tsx
 // src/components/FeatureCard.tsx
 import React from 'react';
 
-export default function FeatureCard({title, description}) {
+export default function FeatureCard({ title, description }) {
   return (
     <div className="card">
       <h3>{title}</h3>
@@ -274,10 +288,7 @@ Use in MDX:
 ```mdx
 import FeatureCard from '@site/src/components/FeatureCard';
 
-<FeatureCard
-  title="Fast"
-  description="Lightning fast queries"
-/>
+<FeatureCard title="Fast" description="Lightning fast queries" />
 ```
 
 ## 📦 Key Dependencies
@@ -292,14 +303,17 @@ import FeatureCard from '@site/src/components/FeatureCard';
 ## 🔗 Linking Strategies
 
 ### Internal Links
-Use relative paths for internal documentation:
+
+Use relative paths with explicit `.md` or `.mdx` extensions for internal
+documentation so Docusaurus can validate and resolve them:
 
 ```markdown
-[Installation Guide](./installation/docker-compose)
-[Configuration](../configuration/configuring-superset)
+[Installation Guide](./admin_docs/installation/docker-compose.mdx)
+[Configuration](./admin_docs/configuration/configuring-superset.mdx)
 ```
 
 ### External Links
+
 Always use full URLs:
 
 ```markdown
@@ -307,6 +321,7 @@ Always use full URLs:
 ```
 
 ### Linking to Code
+
 Reference code in the main repository:
 
 ```markdown
@@ -316,21 +331,24 @@ See the [main configuration file](https://github.com/apache/superset/blob/master
 ## 🛠️ Common Documentation Tasks
 
 ### Adding a New Guide
+
 1. Create the `.mdx` file in the appropriate directory
 2. Add frontmatter with title and description
 3. Update sidebar if needed (for manual sidebar configs)
 
 ### Adding API Documentation
+
 The API docs use Swagger UI embedded in `/docs/api.mdx`:
 
 ```mdx
-import SwaggerUI from "swagger-ui-react";
-import "swagger-ui-react/swagger-ui.css";
+import SwaggerUI from 'swagger-ui-react';
+import 'swagger-ui-react/swagger-ui.css';
 
 <SwaggerUI url="/api/v1/openapi.json" />
 ```
 
 ### Adding Interactive Examples
+
 Use MDX to create interactive documentation:
 
 ```mdx
@@ -357,6 +375,7 @@ When creating or updating documentation:
 ## 🔍 Searching and Navigation
 
 ### Sidebar Configuration
+
 Sidebars are configured in `/sidebars.js`:
 
 ```javascript
@@ -382,11 +401,12 @@ module.exports = {
 ```
 
 ### Search
+
 Docusaurus includes Algolia DocSearch integration configured in `docusaurus.config.ts`.
 
 ## 🚫 Common Pitfalls to Avoid
 
-1. **Never use `yarn docusaurus docs:version`** - Use `yarn version:add:docs` instead
+1. **Never use `yarn docusaurus docs:version`** - Use `yarn version:add:user_docs` instead
 2. **Don't edit versioned docs directly** - Edit current docs and create new version
 3. **Avoid absolute paths in links** - Use relative paths for maintainability
 4. **Don't forget frontmatter** - Every doc needs title and description
@@ -395,6 +415,7 @@ Docusaurus includes Algolia DocSearch integration configured in `docusaurus.conf
 ## 🔧 Troubleshooting
 
 ### Dev Server Issues
+
 ```bash
 yarn stop     # Kill any running servers
 yarn clear    # Clear cache
@@ -402,6 +423,7 @@ yarn start    # Restart
 ```
 
 ### Build Failures
+
 ```bash
 # Check for broken links
 yarn build
@@ -410,13 +432,15 @@ yarn build
 yarn typecheck
 
 # Linting issues
-yarn eslint
+yarn lint
 ```
 
 ### Version Issues
+
 If versions don't appear in dropdown:
+
 1. Check `versions-config.json` includes the version
-2. Verify version files exist in `versioned_docs/`
+2. Verify version files exist in `<section>_versioned_docs/`
 3. Restart dev server
 
 ## 📚 Resources
@@ -429,9 +453,10 @@ If versions don't appear in dropdown:
 ## 📖 Real Examples and Patterns
 
 ### Example: Configuration Documentation Pattern
+
 From `docs/configuration/configuring-superset.mdx`:
 
-```mdx
+````mdx
 ---
 title: Configuring Superset
 hide_title: true
@@ -449,7 +474,9 @@ Superset exposes hundreds of configurable parameters through its
 ```bash
 export SUPERSET_CONFIG_PATH=/app/superset_config.py
 ```
-```
+````
+
+````
 
 **Key patterns:**
 - Links to source code for reference
@@ -473,9 +500,10 @@ documentation at [docs.preset.io](https://docs.preset.io/).
 ### Connecting to a new database
 
 <img src={useBaseUrl("/img/tutorial/tutorial_01_add_database_connection.png")} width="600" />
-```
+````
 
 **Key patterns:**
+
 - Import Docusaurus hooks for dynamic URLs
 - Use of admonitions (:::tip) for helpful information
 - Screenshots with useBaseUrl for proper path resolution
@@ -483,11 +511,12 @@ documentation at [docs.preset.io](https://docs.preset.io/).
 - Step-by-step visual guides
 
 ### Example: API Documentation Pattern
+
 From `docs/api.mdx`:
 
 ```mdx
-import SwaggerUI from "swagger-ui-react";
-import "swagger-ui-react/swagger-ui.css";
+import SwaggerUI from 'swagger-ui-react';
+import 'swagger-ui-react/swagger-ui.css';
 
 ## API Documentation
 
@@ -495,6 +524,7 @@ import "swagger-ui-react/swagger-ui.css";
 ```
 
 **Key patterns:**
+
 - Embedding interactive Swagger UI
 - Importing necessary CSS
 - Direct API spec integration
@@ -505,49 +535,39 @@ import "swagger-ui-react/swagger-ui.css";
 // For images in static folder
 import useBaseUrl from "@docusaurus/useBaseUrl";
 
-<img src={useBaseUrl("/img/feature-screenshot.png")} width="600" />
+<img src={useBaseUrl('/img/feature-screenshot.png')} width="600" />
 
 // With caption
+
 <figure>
-  <img src={useBaseUrl("/img/dashboard.png")} alt="Dashboard view" />
+  <img src={useBaseUrl('/img/dashboard.png')} alt="Dashboard view" />
   <figcaption>Superset Dashboard Interface</figcaption>
 </figure>
 ```
 
 ### Multi-Tab Code Examples
 
-```mdx
+````mdx
 import Tabs from '@theme/Tabs';
 import TabItem from '@theme/TabItem';
 
 <Tabs
   defaultValue="docker"
   values={[
-    {label: 'Docker', value: 'docker'},
-    {label: 'Kubernetes', value: 'k8s'},
-    {label: 'PyPI', value: 'pypi'},
-  ]}>
-  <TabItem value="docker">
-    ```bash
-    docker-compose up
-    ```
-  </TabItem>
-  <TabItem value="k8s">
-    ```bash
-    kubectl apply -f superset.yaml
-    ```
-  </TabItem>
-  <TabItem value="pypi">
-    ```bash
-    pip install apache-superset
-    ```
-  </TabItem>
+    { label: 'Docker', value: 'docker' },
+    { label: 'Kubernetes', value: 'k8s' },
+    { label: 'PyPI', value: 'pypi' },
+  ]}
+>
+  <TabItem value="docker">```bash docker-compose up ```</TabItem>
+  <TabItem value="k8s">```bash kubectl apply -f superset.yaml ```</TabItem>
+  <TabItem value="pypi">```bash pip install apache-superset ```</TabItem>
 </Tabs>
-```
+````
 
 ### Configuration File Examples
 
-```mdx
+````mdx
 ```python title="superset_config.py"
 # Database connection example
 SQLALCHEMY_DATABASE_URI = 'postgresql://user:password@localhost/superset'
@@ -562,24 +582,30 @@ FEATURE_FLAGS = {
     'DASHBOARD_NATIVE_FILTERS': True,
 }
 ```
-```
+````
+
+````
 
 ### Cross-Referencing Pattern
 
+The following paths are relative to this guide (`docs/DOCS_CLAUDE.md`).
+Recalculate the prefix from the file being edited instead of copying it
+unchanged.
+
 ```mdx
 For detailed configuration options, see:
-- [Configuring Superset](./configuration/configuring-superset)
-- [Database Connections](./configuration/databases)
-- [Security Settings](./security/security)
+- [Configuring Superset](./admin_docs/configuration/configuring-superset.mdx)
+- [Database Connections](./docs/using-superset/creating-your-first-dashboard.mdx#connecting-to-a-new-database)
+- [Security Settings](./admin_docs/security/security.mdx)
 
 External resources:
 - [SQLAlchemy Documentation](https://docs.sqlalchemy.org/)
 - [Flask Configuration](https://flask.palletsprojects.com/config/)
-```
+````
 
 ### Writing Installation Guides
 
-```mdx
+````mdx
 ## Prerequisites
 
 :::warning
@@ -593,8 +619,10 @@ Ensure you have Python 3.9+ and Node.js 16+ installed before proceeding.
    git clone https://github.com/apache/superset.git
    cd superset
    ```
+````
 
 2. **Install Python dependencies**
+
    ```bash
    pip install -e .
    ```
@@ -608,7 +636,8 @@ Ensure you have Python 3.9+ and Node.js 16+ installed before proceeding.
 :::tip Success Check
 Navigate to http://localhost:8088 and login with admin/admin
 :::
-```
+
+````
 
 ### Documenting API Endpoints
 
@@ -627,9 +656,10 @@ Returns a list of charts.
 ```bash
 curl -X GET "http://localhost:8088/api/v1/chart/" \
   -H "Authorization: Bearer YOUR_ACCESS_TOKEN"
-```
+````
 
 **Example Response:**
+
 ```json
 {
   "count": 42,
@@ -642,8 +672,10 @@ curl -X GET "http://localhost:8088/api/v1/chart/" \
   ]
 }
 ```
+
 ```
 
 ---
 
 **Note**: This documentation site serves as the primary resource for Superset users, administrators, and contributors. Always prioritize clarity, accuracy, and completeness when creating or updating documentation.
+```

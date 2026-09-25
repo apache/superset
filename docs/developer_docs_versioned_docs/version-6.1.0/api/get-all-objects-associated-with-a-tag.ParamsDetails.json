@@ -1,0 +1,10 @@
+{
+  "parameters": [
+    {
+      "in": "path",
+      "name": "tag_id",
+      "required": true,
+      "schema": { "type": "integer" }
+    }
+  ]
+}

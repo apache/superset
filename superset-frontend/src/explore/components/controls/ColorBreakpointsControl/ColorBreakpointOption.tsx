@@ -31,6 +31,19 @@ const BreakpointColorPreview = styled.div`
   margin-right: ${({ theme }) => theme.sizeUnit}px;
 `;
 
+// Chart params are stored server-side as opaque JSON, so breakpoint color
+// channels can arrive as arbitrary strings despite the compile-time numeric
+// type. The formatted color is interpolated into a styled-component template
+// (a stylesheet, not a per-property style assignment), so each channel must
+// be coerced to a plain number to keep attacker-controlled strings from
+// injecting CSS rules.
+const toRgbChannel = (channel: unknown): number => {
+  const value = Number(channel);
+  return Number.isFinite(value)
+    ? Math.min(255, Math.max(0, Math.round(value)))
+    : 0;
+};
+
 const ColorBreakpointOption = ({
   breakpoint,
   colorBreakpoints,
@@ -41,7 +54,9 @@ const ColorBreakpointOption = ({
   const { color, minValue, maxValue } = breakpoint;
 
   const formattedColor = color
-    ? `rgba(${color.r}, ${color.g}, ${color.b}, 1)`
+    ? `rgba(${toRgbChannel(color.r)}, ${toRgbChannel(color.g)}, ${toRgbChannel(
+        color.b,
+      )}, 1)`
     : '';
 
   return (

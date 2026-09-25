@@ -87,8 +87,12 @@ function extractValue(
   fieldName: string,
   checkPoints = true,
 ): any {
+  // Tooltip fields can come from transformed feature props, extraProps, or
+  // metric maps depending on chart path, so check all canonical containers.
   let value =
     o.object?.[fieldName] ||
+    o.object?.extraProps?.[fieldName] ||
+    o.object?.metrics?.[fieldName] ||
     o.object?.properties?.[fieldName] ||
     o.object?.data?.[fieldName] ||
     '';
@@ -143,7 +147,9 @@ function buildFieldBasedTooltipItems(
     if (!label || !fieldName) return;
 
     let { value } = extractValue(o, fieldName);
-    if (!value && item.item_type === 'metric') {
+    // we use an empty string as sentinal for "missing value"
+    // but want to keep other falsy values like '0'
+    if (value === '' && item.item_type === 'metric') {
       value = o.object?.metric || '';
     }
 
@@ -169,6 +175,46 @@ function buildFieldBasedTooltipItems(
       );
     }
   });
+
+  // For example, in geojson polygon charts, users can only pick columns as tooltip_contents.
+  // We still include the configured metric, so hover also shows the aggregation value.
+  // formData.metric represents one configured metric; but depending on its type,
+  // it might be represented differently:
+  // 1. String metric (legacy/simple)
+  //    sum__value
+  // 2. Select option style object
+  //    { label: SUM(value), value: sum__value }
+  // 3. Adhoc metric style object
+  //    { label: ..., value: ... (optional), expressionType: ..., ... }
+  const metricAliasCandidates: string[] = [];
+  if (typeof formData.metric === 'string') {
+    metricAliasCandidates.push(formData.metric);
+  } else if (formData.metric) {
+    const metric = formData.metric as { label?: string; value?: string };
+    if (metric.label) metricAliasCandidates.push(metric.label);
+    if (metric.value) metricAliasCandidates.push(metric.value);
+  }
+  const foundMetricAlias = metricAliasCandidates[0] || '';
+
+  const hasSelectedMetricItem = formData.tooltip_contents.some(
+    (item: string | { item_type?: string }) =>
+      (item && typeof item === 'object' && item.item_type === 'metric') ||
+      (typeof item === 'string' && metricAliasCandidates.includes(item)),
+  );
+
+  if (!hasSelectedMetricItem && foundMetricAlias) {
+    const { value } = extractValue(o, foundMetricAlias, false);
+    const metricValue = value === '' ? (o.object?.metric ?? '') : value;
+    if (metricValue !== '') {
+      tooltipItems.push(
+        <TooltipRow
+          key="tooltip-configured-metric"
+          label={`${foundMetricAlias}: `}
+          value={formatValue(metricValue)}
+        />,
+      );
+    }
+  }
 
   return tooltipItems;
 }
@@ -215,7 +261,7 @@ function processTooltipContentItem(
   const extractResult = extractValue(o, fieldName);
   let { value } = extractResult;
 
-  if (item?.item_type === 'metric' && !value) {
+  if (item?.item_type === 'metric' && value === '') {
     value = o.object?.metric || '';
   }
 

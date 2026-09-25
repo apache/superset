@@ -18,7 +18,7 @@
  */
 
 /* eslint-disable no-param-reassign */
-import { throttle } from 'lodash';
+import { throttle } from 'lodash-es';
 import {
   memo,
   useEffect,
@@ -32,19 +32,25 @@ import {
 import { useSelector } from 'react-redux';
 import cx from 'classnames';
 import { t } from '@apache-superset/core/translation';
-import { styled, useTheme } from '@apache-superset/core/theme';
+import { css, styled, useTheme } from '@apache-superset/core/theme';
 import { RootState } from 'src/dashboard/types';
 import { DataMaskStateWithId } from '@superset-ui/core';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { EmptyState, Loading } from '@superset-ui/core/components';
 import { useChartLayoutItems } from 'src/dashboard/util/useChartLayoutItems';
 import { useChartIds } from 'src/dashboard/util/charts/useChartIds';
+import { isEmbedded } from 'src/dashboard/util/isEmbedded';
+import {
+  FILTER_BAR_BOUNDED_CLASS,
+  FILTER_BAR_SCROLL_CLASS,
+} from 'src/dashboard/util/embeddedLayout';
 import { getFilterBarTestId, useChartsVerboseMaps } from './utils';
 import { VerticalBarProps } from './types';
 import Header from './Header';
 import FilterControls from './FilterControls/FilterControls';
 import CrossFiltersVertical from './CrossFilters/Vertical';
 import crossFiltersSelector from './CrossFilters/selectors';
+import UrlFiltersVertical from './UrlFilters/Vertical';
 
 enum SectionType {
   Filters = 'filters',
@@ -59,12 +65,12 @@ const BarWrapper = styled.div<{ width: number }>`
     margin: 0;
   }
   &.open {
-    width: ${({ width }) => width}px; // arbitrary...
+    width: ${({ width }) => width}px; /* arbitrary... */
   }
 `;
 
-const Bar = styled.div<{ width: number }>`
-  ${({ theme, width }) => `
+const Bar = styled.div<{ width: number; maxHeight?: string }>`
+  ${({ theme, width, maxHeight }) => `
     & .ant-typography-edit-content {
       left: 0;
       margin-top: 0;
@@ -77,9 +83,23 @@ const Bar = styled.div<{ width: number }>`
     flex-grow: 1;
     width: ${width}px;
     background: ${theme.colorBgContainer};
+    /* The bar is as wide as the column, so it paints over the column's right
+       border. Keep its own so the separator is continuous whether or not the
+       bar reaches that far down. */
     border-right: 1px solid ${theme.colorSplit};
-    border-bottom: 1px solid ${theme.colorSplit};
-    min-height: 100%;
+    ${
+      maxHeight
+        ? /* As tall as its content but never taller than the frame, so a
+             content-fit host can size the iframe to the bar and a long filter
+             list scrolls inside it. getScrollSize() lifts the cap to measure. */
+          `max-height: ${maxHeight};
+           min-height: 0;
+           &.open > *:not(.${FILTER_BAR_SCROLL_CLASS}) {
+             flex: 0 0 auto;
+           }`
+        : `border-bottom: 1px solid ${theme.colorSplit};
+           min-height: 100%;`
+    }
     display: none;
     &.open {
       display: flex;
@@ -87,8 +107,12 @@ const Bar = styled.div<{ width: number }>`
   `}
 `;
 
-const CollapsedBar = styled.div<{ offset: number }>`
+const CollapsedBar = styled.button<{ offset: number }>`
   ${({ theme, offset }) => `
+    appearance: none;
+    border: none;
+    background: none;
+    font: inherit;
     position: absolute;
     top: ${offset}px;
     left: 0;
@@ -113,15 +137,21 @@ const FilterBarEmptyStateContainer = styled.div`
   margin-top: ${({ theme }) => theme.sizeUnit * 8}px;
 `;
 
-const FilterControlsWrapper = styled.div`
-  ${({ theme }) => `
+const FilterControlsWrapper = styled.div<{ bounded?: boolean }>`
+  ${({ theme, bounded }) => `
     display: flex;
     flex-direction: column;
     gap: ${theme.sizeUnit * 2}px;
     padding: ${theme.sizeUnit * 4}px;
     padding-top: 0; /* Works with other changes in PR https://github.com/apache/superset/pull/38646 to reduces space between filter header and 1st filter */
-    // 108px padding to make room for buttons with position: absolute
-    padding-bottom: ${theme.sizeUnit * 27}px;
+    ${
+      bounded
+        ? /* The buttons sit below the scroll area rather than over it, so
+             there is no room to reserve. */
+          `padding-bottom: ${theme.sizeUnit * 4}px;`
+        : /* Room for the sticky action buttons at the end of the list. */
+          `padding-bottom: ${theme.sizeUnit * 27}px;`
+    }
   `}
 `;
 
@@ -140,8 +170,7 @@ const VerticalFilterBar: FC<VerticalBarProps> = ({
   onPendingCustomizationDataMaskChange,
   toggleFiltersBar,
   width,
-  clearAllTriggers,
-  onClearAllComplete,
+  mobileMode,
 }) => {
   const theme = useTheme();
   const [isScrolling, setIsScrolling] = useState(false);
@@ -171,9 +200,20 @@ const VerticalFilterBar: FC<VerticalBarProps> = ({
     };
   }, [onScroll]);
 
+  // `100vh` inside an iframe is the iframe's own height, so sizing the panel
+  // from it feeds a content-fit host its own output back. Flex it instead.
+  const embedded = isEmbedded();
   const tabPaneStyle = useMemo(
-    () => ({ overflow: 'auto', height, overscrollBehavior: 'contain' }),
-    [height],
+    () =>
+      embedded
+        ? {
+            overflow: 'auto',
+            flex: '1 1 auto',
+            minHeight: 0,
+            overscrollBehavior: 'contain',
+          }
+        : { overflow: 'auto', height, overscrollBehavior: 'contain' },
+    [embedded, height],
   );
 
   const dataMask = useSelector<RootState, DataMaskStateWithId>(
@@ -219,7 +259,7 @@ const VerticalFilterBar: FC<VerticalBarProps> = ({
       filterValues.length > 0 || chartCustomizationValues.length > 0;
 
     return hasFiltersOrCustomizations ? (
-      <FilterControlsWrapper>
+      <FilterControlsWrapper bounded={embedded}>
         <FilterControls
           dataMaskSelected={dataMaskSelected}
           onFilterSelectionChange={onSelectionChange}
@@ -248,6 +288,7 @@ const VerticalFilterBar: FC<VerticalBarProps> = ({
   }, [
     canEdit,
     dataMaskSelected,
+    embedded,
     filterValues.length,
     onSelectionChange,
     onPendingCustomizationDataMaskChange,
@@ -261,36 +302,66 @@ const VerticalFilterBar: FC<VerticalBarProps> = ({
         {...getFilterBarTestId()}
         className={cx({ open: filtersOpen })}
         width={width}
+        css={
+          mobileMode &&
+          css`
+            width: 100%;
+            &.open {
+              width: 100%;
+            }
+          `
+        }
       >
-        <CollapsedBar
-          {...getFilterBarTestId('collapsable')}
-          className={cx({ open: !filtersOpen })}
-          onClick={openFiltersBar}
-          role="button"
-          offset={offset}
+        {!mobileMode && (
+          <CollapsedBar
+            type="button"
+            {...getFilterBarTestId('collapsable')}
+            className={cx({ open: !filtersOpen })}
+            onClick={openFiltersBar}
+            offset={offset}
+          >
+            <Icons.VerticalAlignTopOutlined
+              iconSize="l"
+              css={{
+                transform: 'rotate(90deg)',
+                marginBottom: `${theme.sizeUnit * 3}px`,
+              }}
+              className="collapse-icon"
+              iconColor={theme.colorPrimary}
+              {...getFilterBarTestId('expand-button')}
+            />
+            <Icons.FilterOutlined
+              {...getFilterBarTestId('filter-icon')}
+              iconColor={theme.colorTextTertiary}
+              iconSize="l"
+            />
+          </CollapsedBar>
+        )}
+        <Bar
+          className={cx(
+            { open: filtersOpen },
+            embedded && FILTER_BAR_BOUNDED_CLASS,
+          )}
+          width={width}
+          maxHeight={embedded ? '100vh' : undefined}
+          css={
+            mobileMode &&
+            css`
+              position: relative;
+              width: 100%;
+              border-right: none;
+              border-bottom: none;
+            `
+          }
         >
-          <Icons.VerticalAlignTopOutlined
-            iconSize="l"
-            css={{
-              transform: 'rotate(90deg)',
-              marginBottom: `${theme.sizeUnit * 3}px`,
-            }}
-            className="collapse-icon"
-            iconColor={theme.colorPrimary}
-            {...getFilterBarTestId('expand-button')}
-          />
-          <Icons.FilterOutlined
-            {...getFilterBarTestId('filter-icon')}
-            iconColor={theme.colorTextTertiary}
-            iconSize="l"
-          />
-        </CollapsedBar>
-        <Bar className={cx({ open: filtersOpen })} width={width}>
-          <Header toggleFiltersBar={toggleFiltersBar} />
+          {!mobileMode && <Header toggleFiltersBar={toggleFiltersBar} />}
           {!isInitialized ? (
             <div
               css={{
-                height,
+                // Viewport-derived in an embed, and the measurement cannot lift
+                // it, so the loading bar would report as frame-high.
+                height: embedded ? undefined : height,
+                padding: theme.sizeUnit * 4,
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -299,8 +370,13 @@ const VerticalFilterBar: FC<VerticalBarProps> = ({
               <Loading position="inline-centered" size="s" muted />
             </div>
           ) : (
-            <div css={tabPaneStyle} onScroll={onScroll}>
+            <div
+              className={FILTER_BAR_SCROLL_CLASS}
+              css={tabPaneStyle}
+              onScroll={onScroll}
+            >
               <>
+                <UrlFiltersVertical />
                 <CrossFiltersVertical hideHeader={hasOnlyOneSectionType} />
                 {filterControls}
               </>

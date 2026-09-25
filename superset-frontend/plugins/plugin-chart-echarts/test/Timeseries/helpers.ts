@@ -16,6 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import type {
+  ControlPanelConfig,
+  ControlPanelsContainerProps,
+} from '@superset-ui/chart-controls/types';
+import type { GenericDataType } from '@apache-superset/core/common';
 
 /**
  * Base timestamp used for test data generation.
@@ -119,4 +124,81 @@ export function createTestData(
   return rows.map((row, index) =>
     createTestDataRow(row, baseTimestamp + index * intervalMs),
   );
+}
+
+/**
+ * Narrow view of a named control entry covering the config fields control
+ * panel tests assert on, so lookups stay type-safe without resorting to
+ * `any`.
+ */
+export interface TestControl {
+  name: string;
+  config: {
+    default?: unknown;
+    options?: unknown;
+    validators?: unknown;
+    visibility: (props: ControlPanelsContainerProps) => boolean;
+  };
+}
+
+/**
+ * Finds a named control entry in a control panel config.
+ *
+ * @param config - Control panel config to search
+ * @param controlName - Name of the control to look up
+ * @returns The matching control entry, or null when absent
+ */
+export function getControl(
+  config: ControlPanelConfig,
+  controlName: string,
+): TestControl | null {
+  for (const section of config.controlPanelSections) {
+    if (section?.controlSetRows) {
+      for (const row of section.controlSetRows) {
+        for (const control of row) {
+          if (
+            typeof control === 'object' &&
+            control !== null &&
+            'name' in control &&
+            control.name === controlName
+          ) {
+            return control as unknown as TestControl;
+          }
+        }
+      }
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Builds a minimal ControlPanelsContainerProps mock with an x-axis column of
+ * the given generic type, for exercising control visibility functions.
+ *
+ * @param xAxisColumn - Name of the x-axis column, or null for none
+ * @param typeGeneric - Generic data type of the column, or null for none
+ * @returns Mocked control panel container props
+ */
+export function mockControls(
+  xAxisColumn: string | null,
+  typeGeneric: GenericDataType | null,
+): ControlPanelsContainerProps {
+  const columns =
+    xAxisColumn && typeGeneric !== null
+      ? [{ column_name: xAxisColumn, type_generic: typeGeneric }]
+      : [];
+
+  return {
+    controls: {
+      // @ts-expect-error
+      x_axis: {
+        value: xAxisColumn,
+      },
+      // @ts-expect-error
+      datasource: {
+        datasource: { columns },
+      },
+    },
+  };
 }

@@ -38,6 +38,11 @@ from superset.mcp_service.chart.chart_utils import (
     generate_chart_name,
     generate_explore_link,
     map_config_to_form_data,
+    merge_chart_form_data,
+    merge_interactive_pivot_ui_config,
+    merge_table_column_config,
+    resolve_treemap_update_config,
+    validate_gantt_form_data,
 )
 from superset.mcp_service.chart.compile import validate_and_compile
 from superset.mcp_service.chart.preview_utils import (
@@ -49,6 +54,10 @@ from superset.mcp_service.chart.schemas import (
     ChartError,
     PerformanceMetadata,
     UpdateChartPreviewRequest,
+    UpdateChartPreviewResponse,
+)
+from superset.mcp_service.chart.validation.dataset_validator import (
+    GanttSemanticNormalizationError,
 )
 from superset.mcp_service.utils.oauth2_utils import (
     build_oauth2_redirect_message,
@@ -64,6 +73,23 @@ INVALID_FORM_DATA_KEY_WARNING = (
     "configuration only; the previous form_data_key may be invalid or "
     "expired."
 )
+
+
+def _find_dataset(dataset_id: int | str) -> Any | None:
+    """Look up a dataset by numeric ID or UUID and check access."""
+    from superset.daos.dataset import DatasetDAO
+    from superset.mcp_service.auth import has_dataset_access
+
+    if isinstance(dataset_id, int) or (
+        isinstance(dataset_id, str) and dataset_id.isdigit()
+    ):
+        dataset = DatasetDAO.find_by_id(int(dataset_id))
+    else:
+        dataset = DatasetDAO.find_by_id(dataset_id, id_column="uuid")
+
+    if dataset and not has_dataset_access(dataset):
+        return None
+    return dataset
 
 
 def _get_previous_form_data(form_data_key: str) -> dict[str, Any] | None:
@@ -92,25 +118,30 @@ def _get_previous_form_data(form_data_key: str) -> dict[str, Any] | None:
     annotations=ToolAnnotations(
         title="Update chart preview",
         readOnlyHint=False,
-        destructiveHint=True,
+        destructiveHint=False,
+        idempotentHint=False,
+        openWorldHint=False,
     ),
 )
 def update_chart_preview(  # noqa: C901
     request: UpdateChartPreviewRequest, ctx: Context
-) -> Dict[str, Any]:
+) -> UpdateChartPreviewResponse:
     """Update cached chart preview without saving.
 
     IMPORTANT:
     - Modifies cached form_data from generate_chart (save_chart=False)
-    - Original form_data_key is invalidated, new one returned
+    - Original form_data_key (when provided) is invalidated, new one returned
     - LLM clients MUST display explore_url to users
 
     Use when:
+    - Creating a fresh preview from config + dataset_id (omit form_data_key)
     - Modifying preview before deciding to save
     - Iterating on chart design without creating permanent charts
     - Testing different configurations
 
-    Returns new form_data_key, preview images, and explore URL.
+    Returns new form_data_key, preview images, and explore URL. The explore_url
+    scheme matches the configured instance URL (HTTPS in production/staging,
+    HTTP in local development).
     """
     start_time = time.time()
 
@@ -118,13 +149,40 @@ def update_chart_preview(  # noqa: C901
         # config is already a typed ChartConfig (validated by Pydantic)
         config = request.config
 
+        # Validate dataset exists and user has access
+        with event_logger.log_context(action="mcp.update_chart_preview.dataset_lookup"):
+            dataset = _find_dataset(request.dataset_id)
+
+            if not dataset:
+                return {
+                    "chart": None,
+                    "error": {
+                        "error_type": "dataset_not_found",
+                        "message": (f"Dataset not found: {request.dataset_id}"),
+                        "details": (
+                            f"No dataset found with identifier "
+                            f"'{request.dataset_id}'. This could "
+                            f"be an invalid ID/UUID or a "
+                            f"permissions issue."
+                        ),
+                        "suggestions": [
+                            "Verify the dataset ID or UUID",
+                            "Check dataset access permissions",
+                            "Use list_datasets to find available datasets",
+                        ],
+                    },
+                    "success": False,
+                    "schema_version": "2.0",
+                    "api_version": "v1",
+                }
+
         with event_logger.log_context(action="mcp.update_chart_preview.form_data"):
-            # Map the new config to form_data format
-            # Pass dataset_id to enable column type checking
-            new_form_data = map_config_to_form_data(
-                config, dataset_id=request.dataset_id
+            from superset.mcp_service.chart.validation.dataset_validator import (
+                build_dataset_context_from_orm,
+                DatasetValidator,
+                NORMALIZATION_EXCEPTIONS,
             )
-            new_form_data.pop("_mcp_warnings", None)
+
             warnings: list[str] = []
             previous_form_data: dict[str, Any] | None = None
 
@@ -132,13 +190,74 @@ def update_chart_preview(  # noqa: C901
                 previous_form_data = _get_previous_form_data(request.form_data_key)
                 if previous_form_data is None:
                     warnings.append(INVALID_FORM_DATA_KEY_WARNING)
+            previous_datasource = str(
+                (previous_form_data or {}).get("datasource")
+                or (previous_form_data or {}).get("datasource_id")
+                or ""
+            ).split("__", 1)[0]
+            dataset_rebind = previous_datasource != str(dataset.id) and (
+                bool(previous_datasource) or config.chart_type == "treemap_v2"
+            )
+            try:
+                config = resolve_treemap_update_config(
+                    config,
+                    previous_form_data or {},
+                    dataset_rebind=dataset_rebind,
+                )
+            except ValueError as ex:
+                return {
+                    "chart": None,
+                    "error": {
+                        "error_type": "ValidationError",
+                        "message": "Invalid Treemap update configuration",
+                        "details": str(ex),
+                    },
+                    "success": False,
+                    "schema_version": "2.0",
+                    "api_version": "v1",
+                }
+            try:
+                config = DatasetValidator.normalize_column_names(
+                    config,
+                    request.dataset_id,
+                    dataset_context=build_dataset_context_from_orm(dataset),
+                )
+            except NORMALIZATION_EXCEPTIONS as ex:
+                logger.warning(
+                    "Column normalization failed for preview dataset %s: %s",
+                    request.dataset_id,
+                    ex,
+                )
+            # Map the new config to form_data format
+            # Pass dataset_id to enable column type checking
+            new_form_data = map_config_to_form_data(
+                config, dataset_id=request.dataset_id
+            )
+            new_form_data.pop("_mcp_warnings", None)
 
-            # Preserve adhoc filters from the previous cached form_data
-            # when the new config doesn't explicitly specify filters
-            if getattr(config, "filters", None) is None and previous_form_data:
-                old_adhoc_filters = previous_form_data.get("adhoc_filters")
-                if old_adhoc_filters:
-                    new_form_data["adhoc_filters"] = old_adhoc_filters
+            if previous_form_data:
+                merge_table_column_config(previous_form_data, new_form_data)
+                merge_interactive_pivot_ui_config(previous_form_data, new_form_data)
+                new_form_data = merge_chart_form_data(
+                    previous_form_data,
+                    new_form_data,
+                    config,
+                    dataset_rebind=dataset_rebind,
+                )
+
+            merged_gantt_config = validate_gantt_form_data(
+                new_form_data,
+                request.dataset_id,
+                dataset_context=(
+                    build_dataset_context_from_orm(dataset)
+                    if new_form_data.get("viz_type") == "gantt_chart"
+                    else None
+                ),
+            )
+            if merged_gantt_config is not None:
+                # Compile the final cached state rather than the pre-merge
+                # request, so preserved native fields cannot bypass semantics.
+                config = merged_gantt_config
 
             # Tier-1 schema validation against the dataset (no DB roundtrip).
             # Runs AFTER the filter merge so filter columns are also validated.
@@ -170,7 +289,10 @@ def update_chart_preview(  # noqa: C901
                 }
 
             compile_result = validate_and_compile(
-                config, new_form_data, dataset, run_compile_check=False
+                config,
+                new_form_data,
+                dataset,
+                run_compile_check=config.chart_type in ("gauge", "treemap_v2"),
             )
             if not compile_result.success:
                 logger.warning(
@@ -195,8 +317,11 @@ def update_chart_preview(  # noqa: C901
                     "api_version": "v1",
                 }
 
-            # Generate new explore link with updated form_data
-            explore_url = generate_explore_link(request.dataset_id, new_form_data)
+            # Generate new explore link with updated form_data. This preview flow
+            # extracts and re-caches the form_data_key, so force that URL shape.
+            explore_url = generate_explore_link(
+                request.dataset_id, new_form_data, prefer_permalink=False
+            )
 
         # Extract new form_data_key from the explore URL
         new_form_data_key = extract_form_data_key_from_url(explore_url)
@@ -269,7 +394,7 @@ def update_chart_preview(  # noqa: C901
                 logger.warning("Preview generation failed: %s", e)
 
         # Return enhanced data
-        result = {
+        result: UpdateChartPreviewResponse = {
             "chart": {
                 "id": None,
                 "slice_name": chart_name,
@@ -286,6 +411,7 @@ def update_chart_preview(  # noqa: C901
             "semantics": semantics.model_dump() if semantics else None,
             "explore_url": explore_url,
             "form_data_key": new_form_data_key,
+            "form_data": new_form_data,
             "previous_form_data_key": request.form_data_key,  # For reference
             "warnings": warnings,
             "api_endpoints": {},  # No API endpoints for unsaved charts
@@ -306,6 +432,8 @@ def update_chart_preview(  # noqa: C901
             "chart": None,
             "error": build_oauth2_redirect_message(ex),
             "success": False,
+            "schema_version": "2.0",
+            "api_version": "v1",
         }
     except OAuth2Error:
         logger.warning(
@@ -315,6 +443,32 @@ def update_chart_preview(  # noqa: C901
             "chart": None,
             "error": OAUTH2_CONFIG_ERROR_MESSAGE,
             "success": False,
+            "schema_version": "2.0",
+            "api_version": "v1",
+        }
+    except GanttSemanticNormalizationError as ex:
+        execution_time = int((time.time() - start_time) * 1000)
+        return {
+            "chart": None,
+            "error": {
+                "error_type": "gantt_semantic_validation_error",
+                "message": "Gantt chart column roles are invalid",
+                "details": str(ex),
+                "suggestions": [
+                    "Use different physical columns for start_time and end_time",
+                    "Use different physical columns for category and series",
+                    "Use exact dataset column casing when names differ only by case",
+                ],
+                "error_code": "GANTT_SEMANTIC_VALIDATION_ERROR",
+            },
+            "performance": {
+                "query_duration_ms": execution_time,
+                "cache_status": "error",
+                "optimization_suggestions": [],
+            },
+            "success": False,
+            "schema_version": "2.0",
+            "api_version": "v1",
         }
     except (
         SupersetException,

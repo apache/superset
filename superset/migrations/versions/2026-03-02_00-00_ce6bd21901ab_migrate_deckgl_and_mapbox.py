@@ -17,7 +17,7 @@
 """migrate mapbox and deckgl charts to point_cluster_map
 
 Revision ID: ce6bd21901ab
-Revises: 4b2a8c9d3e1f
+Revises: a1b2c3d4e5f6
 Create Date: 2026-03-02 00:00:00.000000
 
 
@@ -59,6 +59,31 @@ DECKGL_VIZ_TYPES = [
     "deck_scatter",
     "deck_screengrid",
 ]
+DECKGL_MIGRATION_ADDED_FIELDS = "__deckgl_maplibre_migration_added_fields"
+
+
+def _is_mapbox_style(style: Any) -> bool:
+    return isinstance(style, str) and style.startswith("mapbox://")
+
+
+def _copy_legacy_maplibre_style(
+    data: dict[str, Any], added_fields: list[str] | None = None
+) -> bool:
+    mapbox_style = data.get("mapbox_style")
+    if (
+        isinstance(mapbox_style, str)
+        and not _is_mapbox_style(mapbox_style)
+        and "maplibre_style" not in data
+    ):
+        data["maplibre_style"] = mapbox_style
+        if added_fields is not None:
+            added_fields.append("maplibre_style")
+        if "map_renderer" not in data:
+            data["map_renderer"] = "maplibre"
+            if added_fields is not None:
+                added_fields.append("map_renderer")
+        return True
+    return False
 
 
 class MigrateMapBox(MigrateViz):
@@ -78,8 +103,10 @@ class MigrateMapBox(MigrateViz):
         # Set map_renderer so the new chart continues to use the Mapbox renderer,
         # which will pick up MAPBOX_API_KEY from the server config.
         mapbox_style = self.data.get("mapbox_style", "")
-        if isinstance(mapbox_style, str) and mapbox_style.startswith("mapbox://"):
+        if _is_mapbox_style(mapbox_style):
             self.data["map_renderer"] = "mapbox"
+        else:
+            _copy_legacy_maplibre_style(self.data)
 
     @classmethod
     def upgrade_slice(cls, slc: Slice) -> None:
@@ -116,22 +143,33 @@ class MigrateMapBox(MigrateViz):
 
 
 def _migrate_deckgl_slice(slc: Slice) -> bool:
-    """Set map_renderer='mapbox' for all existing deck.gl slices.
+    """Preserve deck.gl renderer/style state after the MapLibre migration.
 
-    This ensures full backwards compatibility: existing charts keep using the
-    Mapbox renderer. Users can later switch to MapLibre in the chart controls.
-    Only new charts will default to MapLibre.
+    True Mapbox styles get map_renderer='mapbox'. Non-Mapbox legacy
+    mapbox_style values are copied to maplibre_style so the MapLibre path keeps
+    rendering the saved style value.
 
     Returns True if the slice was modified.
     """
     params = try_load_json(slc.params)
-    if not params:
+    if not isinstance(params, dict) or not params:
         return False
 
-    if "map_renderer" in params:
-        return False
+    modified = False
+    added_fields: list[str] = []
 
-    params["map_renderer"] = "mapbox"
+    mapbox_style = params.get("mapbox_style", "")
+    if _is_mapbox_style(mapbox_style):
+        if "map_renderer" not in params:
+            params["map_renderer"] = "mapbox"
+            added_fields.append("map_renderer")
+            modified = True
+    else:
+        modified = _copy_legacy_maplibre_style(params, added_fields)
+
+    if not modified:
+        return False
+    params[DECKGL_MIGRATION_ADDED_FIELDS] = added_fields
     slc.params = json.dumps(params)
     return True
 
@@ -139,10 +177,18 @@ def _migrate_deckgl_slice(slc: Slice) -> bool:
 def _downgrade_deckgl_slice(slc: Slice) -> bool:
     """Reverse _migrate_deckgl_slice. Returns True if the slice was modified."""
     params = try_load_json(slc.params)
-    if not params or "map_renderer" not in params:
+    if not isinstance(params, dict) or not params:
         return False
 
-    params.pop("map_renderer", None)
+    added_fields = params.get(DECKGL_MIGRATION_ADDED_FIELDS)
+    if not isinstance(added_fields, list):
+        return False
+
+    for field in added_fields:
+        if field in {"map_renderer", "maplibre_style"} and field in params:
+            params.pop(field, None)
+
+    params.pop(DECKGL_MIGRATION_ADDED_FIELDS, None)
     slc.params = json.dumps(params)
     return True
 

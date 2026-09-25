@@ -24,9 +24,11 @@ import { TimeoutErrorMessage } from './TimeoutErrorMessage';
 jest.mock(
   '@superset-ui/core/components/Icons/AsyncIcon',
   () =>
-    ({ fileName }: { fileName: string }) => (
-      <span role="img" aria-label={fileName.replace('_', '-')} />
-    ),
+    ({ fileName }: { fileName: string }) =>
+      (
+        // eslint-disable-next-line jsx-a11y/prefer-tag-over-role -- mirrors AsyncIcon's real span+role="img" shape
+        <span role="img" aria-label={fileName.replace('_', '-')} />
+      ),
 );
 
 const mockedProps = {
@@ -43,7 +45,7 @@ const mockedProps = {
           message: 'Issue code message B',
         },
       ],
-      owners: ['Owner A', 'Owner B'],
+      editors: ['Owner A', 'Owner B'],
       timeout: 30,
     },
     level: 'error' as ErrorLevel,
@@ -62,28 +64,28 @@ test('should render the default title', () => {
   expect(screen.getByText('Timeout error')).toBeInTheDocument();
 });
 
-test('should render the issue codes', () => {
+test('should render the issue codes', async () => {
   render(<TimeoutErrorMessage {...mockedProps} />, { useRedux: true });
   const button = screen.getByText('See more');
-  userEvent.click(button);
+  await userEvent.click(button);
   expect(screen.getByText(/This may be triggered by:/)).toBeInTheDocument();
   expect(screen.getByText(/Issue code message A/)).toBeInTheDocument();
   expect(screen.getByText(/Issue code message B/)).toBeInTheDocument();
 });
 
-test('should render the owners', () => {
+test('should render the editors', async () => {
   render(<TimeoutErrorMessage {...mockedProps} />, { useRedux: true });
   const button = screen.getByText('See more');
-  userEvent.click(button);
+  await userEvent.click(button);
   expect(
-    screen.getByText('Please reach out to the Chart Owners for assistance.'),
+    screen.getByText('Please reach out to the Chart Editors for assistance.'),
   ).toBeInTheDocument();
   expect(
-    screen.getByText('Chart Owners: Owner A, Owner B'),
+    screen.getByText('Chart Editors: Owner A, Owner B'),
   ).toBeInTheDocument();
 });
 
-test('should NOT render the owners', () => {
+test('should NOT render the editors', async () => {
   const noVisualizationProps = {
     ...mockedProps,
     source: 'sqllab' as ErrorSource,
@@ -92,16 +94,16 @@ test('should NOT render the owners', () => {
     useRedux: true,
   });
   const button = screen.getByText('See more');
-  userEvent.click(button);
+  await userEvent.click(button);
   expect(
-    screen.queryByText('Chart Owners: Owner A, Owner B'),
+    screen.queryByText('Chart Editors: Owner A, Owner B'),
   ).not.toBeInTheDocument();
 });
 
-test('should render the timeout message', () => {
+test('should render the timeout message', async () => {
   render(<TimeoutErrorMessage {...mockedProps} />, { useRedux: true });
   const button = screen.getByText('See more');
-  userEvent.click(button);
+  await userEvent.click(button);
   expect(
     screen.getByText(
       /We’re having trouble loading this visualization. Queries are set to timeout after 30 seconds./,

@@ -60,6 +60,11 @@ InteractiveDropdownButton.args = {
 };
 
 InteractiveDropdownButton.argTypes = {
+  styleConfig: {
+    description:
+      'Optional visual overrides (controlHeight, fontSize, fontWeight, boxShadow).',
+    control: { type: 'object' },
+  },
   placement: {
     defaultValue: 'top',
     control: { type: 'select' },

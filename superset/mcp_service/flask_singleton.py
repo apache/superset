@@ -51,6 +51,16 @@ try:
         logger.info("Reusing existing Flask app from app context for MCP service")
         # Use _get_current_object() to get the actual Flask app, not the LocalProxy
         app = current_app._get_current_object()
+
+        # Configure the chart plugin registry from the host app's config.
+        # This module is the registry's only configure site — core Superset
+        # startup must not import mcp_service (fastmcp is an optional extra).
+        from superset.mcp_service.chart import registry as _chart_registry
+
+        _chart_registry.configure(
+            disabled=app.config.get("MCP_DISABLED_CHART_PLUGINS"),
+            enabled_func=app.config.get("MCP_CHART_PLUGIN_ENABLED_FUNC"),
+        )
     elif appbuilder_initialized:
         # appbuilder is initialized but we have no app context. Calling
         # create_app() here would invoke appbuilder.init_app() a second
@@ -81,6 +91,18 @@ try:
         mcp_config = get_mcp_config(_mcp_app.config)
         _mcp_app.config.update(mcp_config)
 
+        # Configure the chart plugin registry with post-overlay values so
+        # MCP-specific overrides (e.g. MCP_DISABLED_CHART_PLUGINS set by the
+        # operator) take effect.  This module is the registry's only configure
+        # site — core Superset startup must not import mcp_service (fastmcp
+        # is an optional extra).
+        from superset.mcp_service.chart import registry as _chart_registry
+
+        _chart_registry.configure(
+            disabled=_mcp_app.config.get("MCP_DISABLED_CHART_PLUGINS"),
+            enabled_func=_mcp_app.config.get("MCP_CHART_PLUGIN_ENABLED_FUNC"),
+        )
+
         with _mcp_app.app_context():
             from superset.core.mcp.core_mcp_injection import (
                 initialize_core_mcp_dependencies,
@@ -90,6 +112,17 @@ try:
 
         app = _mcp_app
         logger.info("Flask app fully initialized for standalone MCP service")
+
+    # Fail at startup on a malformed dataset routing allowlist rather than
+    # refusing every tool call, which would leave the operator diagnosing a typo
+    # from per-request errors. Checked for both the standalone and the
+    # in-process app, since either can carry the setting from superset_config.
+    from superset.mcp_service.dataset_scope import (
+        CONFIG_KEY,
+        parse_dataset_role_allowlist,
+    )
+
+    parse_dataset_role_allowlist(app.config.get(CONFIG_KEY))
 
 except Exception as e:
     logger.error("Failed to create Flask app: %s", e)

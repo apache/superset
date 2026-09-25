@@ -32,6 +32,7 @@ import {
   NativeFilterDivider,
   ChartCustomizationsFormItem,
 } from '../types';
+import { buildNativeFilterTarget } from './buildTarget';
 
 type FilterFormInput =
   | NativeFiltersFormItem
@@ -66,7 +67,10 @@ function isDividerType(
 function isFormInput(
   formInputs: NativeFilterFormOrSaved,
 ): formInputs is NativeFiltersFormItem {
-  return 'dataset' in formInputs;
+  // A saved filter always carries a serialized `targets` array; a form item
+  // never does. Keying this off `dataset` misclassified filter types with no
+  // dataset control (e.g. `filter_time`) as already saved.
+  return !('targets' in formInputs);
 }
 
 function transformDivider(
@@ -88,20 +92,7 @@ function transformDivider(
 function buildFilterTarget(
   formInputs: NativeFiltersFormItem,
 ): Partial<NativeFilterTarget> {
-  const target: Partial<NativeFilterTarget> = {};
-
-  if (formInputs.dataset) {
-    target.datasetId =
-      typeof formInputs.dataset === 'object'
-        ? formInputs.dataset.value
-        : formInputs.dataset;
-  }
-
-  if (formInputs.dataset && formInputs.column) {
-    target.column = { name: formInputs.column };
-  }
-
-  return target;
+  return buildNativeFilterTarget(formInputs);
 }
 
 function transformFormInput(
@@ -127,7 +118,7 @@ function transformFormInput(
     adhoc_filters: formInputs.adhoc_filters,
     time_range: formInputs.time_range,
     granularity_sqla: formInputs.granularity_sqla,
-    sortMetric: formInputs.sortMetric ?? null,
+    sortMetric: formInputs.sortMetric,
     requiredFirst: formInputs.requiredFirst
       ? Object.values(formInputs.requiredFirst).find(rf => rf)
       : undefined,

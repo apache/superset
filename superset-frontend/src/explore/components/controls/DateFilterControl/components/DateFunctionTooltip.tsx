@@ -111,27 +111,25 @@ const StyledTooltip = (props: any) => {
       {({ css }) => (
         <Tooltip
           overlayClassName={css`
-            .ant-tooltip-content {
+            .ant-tooltip-container {
               min-width: ${theme.sizeUnit * 125}px;
+              max-width: ${theme.sizeUnit * 125}px;
               max-height: 410px;
               overflow-y: scroll;
 
-              .ant-tooltip-inner {
-                max-width: ${theme.sizeUnit * 125}px;
-                h3 {
-                  font-size: ${theme.fontSize}px;
-                  font-weight: ${theme.fontWeightStrong};
-                }
-                h4 {
-                  font-size: ${theme.fontSize}px;
-                  font-weight: ${theme.fontWeightStrong};
-                }
-                pre {
-                  border: none;
-                  text-align: left;
-                  word-break: break-word;
-                  font-size: ${theme.fontSizeSM}px;
-                }
+              h3 {
+                font-size: ${theme.fontSize}px;
+                font-weight: ${theme.fontWeightStrong};
+              }
+              h4 {
+                font-size: ${theme.fontSize}px;
+                font-weight: ${theme.fontWeightStrong};
+              }
+              pre {
+                border: none;
+                text-align: left;
+                word-break: break-word;
+                font-size: ${theme.fontSizeSM}px;
               }
             }
           `}

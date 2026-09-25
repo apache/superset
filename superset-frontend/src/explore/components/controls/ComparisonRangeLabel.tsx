@@ -19,7 +19,7 @@
 
 import { useEffect, useState } from 'react';
 import { useSelector } from 'react-redux';
-import { isEmpty, isEqual, noop } from 'lodash';
+import { isEmpty, isEqual, noop } from 'lodash-es';
 import { t } from '@apache-superset/core/translation';
 import {
   BinaryAdhocFilter,

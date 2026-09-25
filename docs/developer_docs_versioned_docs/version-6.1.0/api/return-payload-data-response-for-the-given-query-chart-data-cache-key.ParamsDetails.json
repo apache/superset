@@ -1,0 +1,10 @@
+{
+  "parameters": [
+    {
+      "in": "path",
+      "name": "cache_key",
+      "required": true,
+      "schema": { "type": "string" }
+    }
+  ]
+}

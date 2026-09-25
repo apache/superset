@@ -22,7 +22,22 @@ import pytest
 from superset.commands.chart.data.get_data_command import ChartDataCommand
 from superset.commands.chart.exceptions import ChartDataQueryFailedError
 from superset.common.chart_data import ChartDataResultType
+from superset.common.chart_data_timing import (
+    QueryContextExecutionResult,
+    QueryDataResult,
+    QueryTiming,
+)
 from superset.common.query_context import QueryContext
+
+
+def _query_timing() -> QueryTiming:
+    return QueryTiming(
+        query_planning_ns=1_000_000,
+        cache_resolution_ns=2_000_000,
+        data_acquisition_ns=3_000_000,
+        payload_assembly_ns=4_000_000,
+        total_ns=10_000_000,
+    )
 
 
 def test_query_result_type_allows_validation_error_payload() -> None:
@@ -148,6 +163,43 @@ def test_full_result_type_returns_successful_data() -> None:
     assert "error" not in result["queries"][0]
 
 
+def test_execute_returns_timing_sidecar_without_mutating_payload() -> None:
+    mock_query_context = Mock(spec=QueryContext)
+    mock_query_context.result_type = ChartDataResultType.FULL
+    query_payload = {"data": [{"col1": "value1"}], "colnames": ["col1"]}
+    mock_query_context.get_payload_result.return_value = QueryContextExecutionResult(
+        queries=(QueryDataResult(query_payload, _query_timing()),),
+        cache_key="cache-key",
+    )
+
+    command = ChartDataCommand(mock_query_context)
+
+    result = command.execute(cache=True)
+
+    assert result.queries[0].payload is query_payload
+    assert "timing" not in query_payload
+
+    materialized = result.materialize()
+    assert materialized["cache_key"] == "cache-key"
+    assert "timing" not in materialized["queries"][0]
+    assert "timing" not in query_payload
+
+
+def test_execute_raises_on_error_payload_for_data_results() -> None:
+    mock_query_context = Mock(spec=QueryContext)
+    mock_query_context.result_type = ChartDataResultType.FULL
+    mock_query_context.get_payload_result.return_value = QueryContextExecutionResult(
+        queries=(QueryDataResult({"error": "Invalid column name"}, _query_timing()),),
+    )
+
+    command = ChartDataCommand(mock_query_context)
+
+    with pytest.raises(ChartDataQueryFailedError) as exc_info:
+        command.execute()
+
+    assert "Invalid column name" in str(exc_info.value)
+
+
 def test_query_result_type_with_multiple_queries_and_mixed_results() -> None:
     """
     Test that result_type='query' handles multiple queries with mixed results.
@@ -239,7 +291,10 @@ def test_get_query_catches_parsing_error() -> None:
     with patch("superset.common.query_actions._get_datasource") as mock_get_ds:
         mock_datasource = Mock()
         mock_datasource.query_language = "sql"
-        mock_datasource.get_query_str.side_effect = parse_error
+        # SQL is compiled through get_query_str_extended so the datasource's
+        # applied/rejected filter columns survive into the payload; the parse
+        # error surfaces from there.
+        mock_datasource.get_query_str_extended.side_effect = parse_error
         mock_get_ds.return_value = mock_datasource
 
         # GREEN: Exception is caught, values returned (new behavior after fix)
@@ -278,7 +333,10 @@ def test_get_query_handles_parsing_error_with_missing_sql_key() -> None:
     with patch("superset.common.query_actions._get_datasource") as mock_get_ds:
         mock_datasource = Mock()
         mock_datasource.query_language = "sql"
-        mock_datasource.get_query_str.side_effect = parse_error
+        # SQL is compiled through get_query_str_extended so the datasource's
+        # applied/rejected filter columns survive into the payload; the parse
+        # error surfaces from there.
+        mock_datasource.get_query_str_extended.side_effect = parse_error
         mock_get_ds.return_value = mock_datasource
 
         result = _get_query(mock_query_context, mock_query_obj, False)
@@ -315,7 +373,10 @@ def test_get_query_handles_parsing_error_with_null_sql_value() -> None:
     with patch("superset.common.query_actions._get_datasource") as mock_get_ds:
         mock_datasource = Mock()
         mock_datasource.query_language = "sql"
-        mock_datasource.get_query_str.side_effect = parse_error
+        # SQL is compiled through get_query_str_extended so the datasource's
+        # applied/rejected filter columns survive into the payload; the parse
+        # error surfaces from there.
+        mock_datasource.get_query_str_extended.side_effect = parse_error
         mock_get_ds.return_value = mock_datasource
 
         result = _get_query(mock_query_context, mock_query_obj, False)

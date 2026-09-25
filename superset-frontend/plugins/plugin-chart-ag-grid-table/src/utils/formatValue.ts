@@ -19,10 +19,12 @@
 import {
   CurrencyFormatter,
   DataRecordValue,
-  getNumberFormatter,
+  getSmallNumberFormatter,
   isDefined,
+  isEmptyDateInput,
   isProbablyHTML,
   sanitizeHtml,
+  DateWithFormatter,
 } from '@superset-ui/core';
 import { GenericDataType } from '@apache-superset/core/common';
 import {
@@ -30,7 +32,6 @@ import {
   ValueGetterParams,
 } from '@superset-ui/core/components/ThemedAgGridReact';
 import { DataColumnMeta, InputColumn } from '../types';
-import DateWithFormatter from './DateWithFormatter';
 
 /**
  * Format text for cell value.
@@ -38,6 +39,8 @@ import DateWithFormatter from './DateWithFormatter';
 function formatValue(
   formatter: DataColumnMeta['formatter'],
   value: DataRecordValue,
+  rowData?: Record<string, DataRecordValue>,
+  currencyColumn?: string,
 ): [boolean, string] {
   // render undefined as empty string
   if (value === undefined) {
@@ -46,13 +49,17 @@ function formatValue(
   // render null as `N/A`
   if (
     value === null ||
-    // null values in temporal columns are wrapped in a Date object, so make sure we
-    // handle them here too
-    (value instanceof DateWithFormatter && value.input === null)
+    // null/empty values in temporal columns are wrapped in a Date object, so make
+    // sure we handle them here too
+    (value instanceof DateWithFormatter && isEmptyDateInput(value.input))
   ) {
     return [false, 'N/A'];
   }
   if (formatter) {
+    // If formatter is a CurrencyFormatter, pass row context for AUTO mode
+    if (formatter instanceof CurrencyFormatter) {
+      return [false, formatter(value as number, rowData, currencyColumn)];
+    }
     return [false, formatter(value as number)];
   }
   if (typeof value === 'string') {
@@ -64,23 +71,22 @@ function formatValue(
 export function formatColumnValue(
   column: DataColumnMeta,
   value: DataRecordValue,
+  rowData?: Record<string, DataRecordValue>,
 ) {
-  const { dataType, formatter, config = {} } = column;
+  const { dataType, formatter, config = {}, currencyCodeColumn } = column;
   const isNumber = dataType === GenericDataType.Numeric;
-  const smallNumberFormatter =
-    config.d3SmallNumberFormat === undefined
-      ? formatter
-      : config.currencyFormat
-        ? new CurrencyFormatter({
-            d3Format: config.d3SmallNumberFormat,
-            currency: config.currencyFormat,
-          })
-        : getNumberFormatter(config.d3SmallNumberFormat);
+  const smallNumberFormatter = getSmallNumberFormatter(
+    formatter,
+    config.d3SmallNumberFormat,
+    config.currencyFormat,
+  );
   return formatValue(
     isNumber && typeof value === 'number' && Math.abs(value) < 1
       ? smallNumberFormatter
       : formatter,
     value,
+    rowData,
+    currencyCodeColumn,
   );
 }
 
@@ -88,13 +94,24 @@ export const valueFormatter = (
   params: ValueFormatterParams,
   col: InputColumn,
 ): string => {
-  const { value, node } = params;
+  const { value, node, data } = params;
   if (
     isDefined(value) &&
     value !== '' &&
-    !(value instanceof DateWithFormatter && value.input === null)
+    !(value instanceof DateWithFormatter && isEmptyDateInput(value.input))
   ) {
-    return col.formatter?.(value) || value;
+    // Fall back to String(value) rather than the raw value: value can be a
+    // DateWithFormatter/Date (or other object) when col.formatter is unset or
+    // returns a falsy result, and returning that raw object here - though it
+    // satisfies this function's `: string` signature at compile time since
+    // `value`'s param type is loosely typed - crashes React with "Objects are
+    // not valid as a React child" once a cell renderer renders it directly.
+    if (col.formatter instanceof CurrencyFormatter) {
+      return (
+        col.formatter(value, data, col.currencyCodeColumn) || String(value)
+      );
+    }
+    return col.formatter?.(value) || String(value);
   }
   if (node?.level === -1) {
     return '';

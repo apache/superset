@@ -19,7 +19,7 @@
  * under the License.
  */
 
-import { useRef, useState, useEffect } from 'react';
+import { useRef, useState, useEffect, MouseEvent } from 'react';
 import { t } from '@apache-superset/core/translation';
 import { ArrowDownOutlined, ArrowUpOutlined } from '@ant-design/icons';
 import { Column } from '@superset-ui/core/components/ThemedAgGridReact';
@@ -186,7 +186,7 @@ const CustomHeader: React.FC<CustomHeaderParams> = ({
     return undefined;
   }, [lastFilteredColumn, colId, lastFilteredInputPosition]);
 
-  const handleMenuClick = (e: React.MouseEvent) => {
+  const handleMenuClick = (e: MouseEvent<HTMLButtonElement>) => {
     e.stopPropagation();
     setMenuVisible(!isMenuVisible);
   };
@@ -201,19 +201,27 @@ const CustomHeader: React.FC<CustomHeaderParams> = ({
   const menuContent = (
     <MenuContainer>
       {shouldShowAsc && (
-        <div onClick={() => applySort('asc')} className="menu-item">
+        <button
+          type="button"
+          onClick={() => applySort('asc')}
+          className="menu-item"
+        >
           <ArrowUpOutlined /> {t('Sort Ascending')}
-        </div>
+        </button>
       )}
       {shouldShowDesc && (
-        <div onClick={() => applySort('desc')} className="menu-item">
+        <button
+          type="button"
+          onClick={() => applySort('desc')}
+          className="menu-item"
+        >
           <ArrowDownOutlined /> {t('Sort Descending')}
-        </div>
+        </button>
       )}
       {currentSort && currentSort?.colId === colId && (
-        <div onClick={clearSort} className="menu-item">
+        <button type="button" onClick={clearSort} className="menu-item">
           <span style={{ fontSize: 16 }}>↻</span> {t('Clear Sort')}
-        </div>
+        </button>
       )}
     </MenuContainer>
   );
@@ -247,9 +255,13 @@ const CustomHeader: React.FC<CustomHeaderParams> = ({
           isOpen={isMenuVisible}
           onClose={() => setMenuVisible(false)}
         >
-          <div className="three-dots-menu" onClick={handleMenuClick}>
+          <button
+            type="button"
+            className="three-dots-menu"
+            onClick={handleMenuClick}
+          >
             <KebabMenu />
-          </div>
+          </button>
         </CustomPopover>
       )}
     </Container>

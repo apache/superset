@@ -39,7 +39,7 @@ export interface DetailsPanelProps {
   children: JSX.Element;
   popoverVisible: boolean;
   popoverContentRef: RefObject<HTMLDivElement>;
-  popoverTriggerRef: RefObject<HTMLDivElement>;
+  popoverTriggerRef: RefObject<HTMLButtonElement>;
   setPopoverVisible: (visible: boolean) => void;
 }
 

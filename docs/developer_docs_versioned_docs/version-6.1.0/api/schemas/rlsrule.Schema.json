@@ -1,0 +1,12 @@
+{
+  "schema": {
+    "properties": {
+      "clause": { "type": "string" },
+      "dataset": { "type": "integer" }
+    },
+    "required": ["clause"],
+    "type": "object",
+    "title": "RlsRule"
+  },
+  "schemaType": "response"
+}

@@ -21,7 +21,7 @@ under the License.
 
 [![PyPI version](https://badge.fury.io/py/apache-superset-extensions-cli.svg)](https://badge.fury.io/py/apache-superset-extensions-cli)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
-[![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
+[![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
 
 Official command-line interface for building, bundling, and managing Apache Superset extensions. This CLI tool provides developers with everything needed to create, develop, and package extensions for the Superset ecosystem.
 
@@ -61,6 +61,11 @@ superset-extensions bundle [--output/-o <path>]
 # Automatically rebuild extension as files change during development
 superset-extensions dev
 ```
+
+If a frontend build fails, `build` and `bundle` exit non-zero without writing
+a new manifest or bundle. An existing bundle is not removed; callers must check
+the exit status before using it. In `dev` mode, failed frontend rebuilds are
+reported and the watcher remains available for subsequent changes.
 
 ## 📋 Extension Structure
 

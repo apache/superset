@@ -28,8 +28,8 @@ interface ColumnsPreviewProps {
 }
 
 export const StyledDivContainer = styled.div`
-  //margin-top: 10px;
-  //margin-bottom: 10px;
+  /* margin-top: 10px; */
+  /* margin-bottom: 10px; */
 `;
 
 const ColumnsPreview: FC<ColumnsPreviewProps> = ({

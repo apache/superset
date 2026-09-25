@@ -16,14 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { withJsx } from '@mihkeleidast/storybook-addon-source';
 import { themeObject, css, exampleThemes } from '@apache-superset/core/theme';
 import { combineReducers, createStore, applyMiddleware, compose } from 'redux';
 import thunk from 'redux-thunk';
 import { Provider } from 'react-redux';
 import reducerIndex from 'spec/helpers/reducerIndex';
 import { Global } from '@emotion/react';
-import { App, Layout, Space, Content } from 'antd';
+import { App, Layout } from 'antd';
 
 import 'src/theme.ts';
 import './storybook.css';
@@ -114,9 +113,12 @@ const providerDecorator = Story => (
   </Provider>
 );
 
-export const decorators = [withJsx, themeDecorator, providerDecorator];
+export const decorators = [themeDecorator, providerDecorator];
 
 export const parameters = {
+  docs: {
+    codePanel: true,
+  },
   paddings: {
     values: [
       { name: 'None', value: '0px' },

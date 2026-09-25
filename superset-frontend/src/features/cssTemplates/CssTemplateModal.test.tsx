@@ -69,6 +69,15 @@ test('renders the CSS editor field in Add mode', async () => {
   });
 });
 
+test('associates the Name label with its input', async () => {
+  render(
+    <CssTemplateModal show onHide={() => {}} cssTemplate={mockTemplate} />,
+    { useRedux: true, useTheme: true },
+  );
+
+  expect(await screen.findByLabelText('Name*')).toBeInTheDocument();
+});
+
 test('renders the editor after closed (Add) -> open (Edit) transition', async () => {
   // Mirrors src/pages/CssTemplateList/index.tsx, where the modal is mounted
   // up-front with show=false and cssTemplate=null, then both flip together

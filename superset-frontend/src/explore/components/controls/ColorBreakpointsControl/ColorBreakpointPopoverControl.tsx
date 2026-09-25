@@ -194,6 +194,10 @@ const ColorBreakpointsPopoverControl = ({
   };
 
   return (
+    // Rendered as antd Popover content, whose visibility antd itself
+    // manages (mount/unmount); native <dialog> requires showModal()/the
+    // open attribute and would render hidden without it.
+    // eslint-disable-next-line jsx-a11y/prefer-tag-over-role
     <div role="dialog">
       <StyledRow>
         <Col flex="1">

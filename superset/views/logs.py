@@ -25,7 +25,7 @@ from .base import BaseSupersetView
 
 class ActionLogView(BaseSupersetView):
     route_base = "/"
-    class_permission_name = "security"
+    class_permission_name = "Security"
 
     @expose("/actionlog/list")
     @has_access

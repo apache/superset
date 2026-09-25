@@ -359,6 +359,51 @@ test('handles empty options array gracefully', () => {
   expect(container.querySelector('[role="tablist"]')).toBeInTheDocument();
 });
 
+test('currentValue is undefined when options are empty and no value is provided', () => {
+  expect(() => setup({ options: [] })).not.toThrow();
+  const { container } = setup({ options: [] });
+  expect(container.querySelectorAll('[id^="tab-"]').length).toBe(0);
+});
+
+test('preserves falsy numeric value 0 instead of falling back to first option', () => {
+  const { container } = setup({
+    options: [
+      [0, 'Zero'],
+      [1, 'One'],
+      [2, 'Two'],
+    ],
+    value: 0,
+  });
+
+  expect(container.querySelector('#tab-0')).toHaveAttribute(
+    'aria-selected',
+    'true',
+  );
+  expect(container.querySelector('#tab-1')).toHaveAttribute(
+    'aria-selected',
+    'false',
+  );
+});
+
+test('preserves falsy boolean value false instead of falling back to first option', () => {
+  const { container } = setup({
+    options: [
+      [true, 'True'],
+      [false, 'False'],
+    ],
+    value: false,
+  });
+
+  expect(container.querySelector('#tab-true')).toHaveAttribute(
+    'aria-selected',
+    'false',
+  );
+  expect(container.querySelector('#tab-false')).toHaveAttribute(
+    'aria-selected',
+    'true',
+  );
+});
+
 test('renders with hovered prop', () => {
   const { container } = setup({
     label: 'Test',
@@ -385,16 +430,16 @@ test('renders tooltips for options with tooltip property', async () => {
   expect(screen.getByText('Option 3')).toBeInTheDocument();
 
   const option1 = screen.getByText('Option 1');
-  userEvent.hover(option1);
+  await userEvent.hover(option1);
 
   await waitFor(() => {
     expect(screen.getByText('Tooltip for option 1')).toBeInTheDocument();
   });
 
-  userEvent.unhover(option1);
+  await userEvent.unhover(option1);
 
   const option3 = screen.getByText('Option 3');
-  userEvent.hover(option3);
+  await userEvent.hover(option3);
 
   await waitFor(() => {
     expect(screen.getByText('Tooltip for option 3')).toBeInTheDocument();
