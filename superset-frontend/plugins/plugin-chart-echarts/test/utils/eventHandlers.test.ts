@@ -279,3 +279,77 @@ test('context menu offers no cross-filter for an unresolvable name (#42340)', ()
   // contextMenuEventHandler already bails out before opening the menu
   expect(onContextMenu).not.toHaveBeenCalled();
 });
+
+test('context menu passes drillToDetail and drillBy filters for a resolved groupby value', () => {
+  const onContextMenu = jest.fn();
+  const props = buildProps({
+    groupby: ['topics'],
+    labelMap: { cancellations: ['cancellations'] },
+    selectedValues: {},
+    onContextMenu,
+  });
+
+  const handlers = allEventHandlers(props);
+  handlers.contextmenu({
+    name: 'cancellations',
+    event: {
+      stop: jest.fn(),
+      event: { clientX: 10, clientY: 20 } as unknown as PointerEvent,
+    },
+  });
+
+  expect(onContextMenu).toHaveBeenCalledWith(
+    10,
+    20,
+    expect.objectContaining({
+      drillToDetail: [
+        {
+          col: 'topics',
+          op: '==',
+          val: 'cancellations',
+          formattedVal: 'cancellations',
+        },
+      ],
+      drillBy: {
+        filters: [
+          {
+            col: 'topics',
+            op: '==',
+            val: 'cancellations',
+            formattedVal: 'cancellations',
+          },
+        ],
+        groupbyFieldName: 'groupby',
+      },
+    }),
+  );
+});
+
+test('context menu passes empty drill filters when the chart has no groupby', () => {
+  const onContextMenu = jest.fn();
+  const props = buildProps({
+    groupby: [],
+    labelMap: {},
+    selectedValues: {},
+    onContextMenu,
+  });
+
+  const handlers = allEventHandlers(props);
+  handlers.contextmenu({
+    name: 'total',
+    event: {
+      stop: jest.fn(),
+      event: { clientX: 3, clientY: 4 } as unknown as PointerEvent,
+    },
+  });
+
+  expect(onContextMenu).toHaveBeenCalledWith(
+    3,
+    4,
+    expect.objectContaining({
+      drillToDetail: [],
+      drillBy: { filters: [], groupbyFieldName: 'groupby' },
+      crossFilter: undefined,
+    }),
+  );
+});
