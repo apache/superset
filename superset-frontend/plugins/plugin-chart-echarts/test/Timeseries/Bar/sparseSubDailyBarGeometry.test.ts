@@ -129,34 +129,36 @@ test('a sparse hourly bucket (two sparse points) does not render several grain-w
 
 test('a single sparse hourly bucket (the ticket\'s literal "one hour out of a 24-hour window" case) does not render several grain-widths wider than its own bucket', () => {
   // getXAxisDomain (data-extent based) is undefined for exactly one point —
-  // domainMin === domainMax there, so it cannot supply a "visible span" to
-  // derive a correct pixel width from. The query response's own from_dttm/
-  // to_dttm (the actually requested time range, independent of how many
-  // rows came back) is the one source in the option-object's inputs that
-  // stays well-defined for a single returned row, so this test uses that as
-  // the domain instead. Nothing in transformProps.ts currently reads
-  // from_dttm/to_dttm (confirmed: no reference to either field in
-  // Timeseries/transformProps.ts, utils/series.ts, or utils/formatters.ts)
-  // — using it here documents the expectation the fix should meet, not
-  // behavior the current code already has.
+  // domainMin === domainMax there, so it can't supply a "visible span" to
+  // derive a correct pixel width from on its own. Rather than introducing a
+  // new mechanism for what the visible axis span should be (e.g. reading
+  // the query response's from_dttm/to_dttm, which transformProps.ts does
+  // not otherwise consult), this pins the correct width against ECharts'
+  // own actual, already-existing default for a degenerate single-point time
+  // axis: verified via a real ECharts SSR/SVG render (`echarts.init(null,
+  // null, { renderer: 'svg', ssr: true })`, then reading
+  // `chart.getModel().getComponent('xAxis').axis.scale.getExtent()`) that a
+  // lone point on a `type: 'time'` axis with no explicit min/max renders
+  // with a 48-hour (2 * ONE_DAY) extent centered on the point — reproduced
+  // for PT1H, PT15M, and P1D grains alike (i.e. the padding is fixed and
+  // grain-independent). This matches reading ECharts' own source directly:
+  // `calcNiceForTimeScale` in echarts/lib/scale/Time.js pads a degenerate
+  // extent (`extent[0] === extent[1]`) by exactly `ONE_DAY` on each side.
   const width = 800;
-  const fromDttm = Date.UTC(2024, 0, 1, 0, 0, 0);
-  const toDttm = Date.UTC(2024, 0, 2, 0, 0, 0); // 24h window
   const singleTimestamp = Date.UTC(2024, 0, 1, 13, 0, 0);
 
-  const { series } = buildOptions(
-    width,
-    [{ count: 1, __timestamp: singleTimestamp }],
-    { from_dttm: fromDttm, to_dttm: toDttm },
-  );
+  const { series } = buildOptions(width, [
+    { count: 1, __timestamp: singleTimestamp },
+  ]);
   const [barSeries] = series as BarSeriesOption[];
 
   const plotWidthPx = Math.max(
     width - 2 * TIMESERIES_CONSTANTS.gridOffsetLeft,
     0,
   );
+  const verifiedSinglePointDomainSpanMs = 2 * 24 * 60 * 60 * 1000; // 48h
   const correctGrainPxWidth =
-    (HOUR_GRAIN_MS / (toDttm - fromDttm)) * plotWidthPx;
+    (HOUR_GRAIN_MS / verifiedSinglePointDomainSpanMs) * plotWidthPx;
 
   expect(effectiveBarPxWidth(barSeries)).toBeLessThanOrEqual(
     correctGrainPxWidth * 2,
