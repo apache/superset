@@ -28,7 +28,17 @@ from flask_jwt_extended.exceptions import NoAuthorizationError
 from flask_wtf.csrf import CSRFProtect, generate_csrf
 from freezegun import freeze_time
 from sqlalchemy.exc import IntegrityError, OperationalError, ProgrammingError
-from werkzeug.exceptions import GatewayTimeout
+from werkzeug.exceptions import (
+    BadGateway,
+    BadRequest,
+    Forbidden,
+    GatewayTimeout,
+    HTTPException,
+    InternalServerError,
+    NotFound,
+    ServiceUnavailable,
+    Unauthorized,
+)
 
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import QueryObjectValidationError, SupersetException
@@ -291,6 +301,155 @@ class TestShowSupersetException:
         assert response.status_code == 500
         assert response.content_type.startswith("text/html")
         mock_send_file.assert_called_once()
+
+
+class TestShowHttpException:
+    """
+    Client-side HTTP errors are not server faults and must not log tracebacks.
+    """
+
+    def _build_app_with_handlers(self, error: HTTPException) -> Flask:
+        test_app = Flask(__name__)
+        test_app.config["DEBUG"] = False
+        Babel(test_app)
+        set_app_error_handlers(test_app)
+
+        @test_app.route("/http-error")
+        def http_error_view() -> FlaskResponse:
+            raise error
+
+        return test_app
+
+    @staticmethod
+    def _handler_records(
+        caplog: pytest.LogCaptureFixture,
+    ) -> list[logging.LogRecord]:
+        return [
+            record
+            for record in caplog.records
+            if record.name == "superset.views.error_handling"
+        ]
+
+    def test_routing_404_logs_no_warning_and_no_traceback(
+        self, caplog: pytest.LogCaptureFixture
+    ) -> None:
+        client = self._build_app_with_handlers(NotFound()).test_client()
+
+        with caplog.at_level(logging.DEBUG, logger="superset.views.error_handling"):
+            response = client.get("/no-matching-route")
+
+        assert response.status_code == 404
+        records = self._handler_records(caplog)
+        assert len(records) <= 1
+        assert all(record.levelno < logging.WARNING for record in records)
+        assert all(record.exc_info is None for record in records)
+        assert all("\n" not in record.getMessage() for record in records)
+
+    @pytest.mark.parametrize("error", [BadRequest(), Unauthorized(), Forbidden()])
+    def test_other_4xx_log_a_warning_without_traceback(
+        self, error: HTTPException, caplog: pytest.LogCaptureFixture
+    ) -> None:
+        client = self._build_app_with_handlers(error).test_client()
+
+        with caplog.at_level(logging.DEBUG, logger="superset.views.error_handling"):
+            response = client.get("/http-error")
+
+        assert response.status_code == error.code
+        records = self._handler_records(caplog)
+        assert len(records) == 1
+        assert records[0].levelno == logging.WARNING
+        assert records[0].exc_info is None
+        assert str(error.code) in records[0].getMessage()
+
+    @pytest.mark.parametrize(
+        "error", [BadGateway(), ServiceUnavailable(), GatewayTimeout()]
+    )
+    def test_5xx_still_logs_a_warning_with_traceback(
+        self, error: HTTPException, caplog: pytest.LogCaptureFixture
+    ) -> None:
+        client = self._build_app_with_handlers(error).test_client()
+
+        with caplog.at_level(logging.WARNING, logger="superset.views.error_handling"):
+            response = client.get("/http-error")
+
+        assert response.status_code == error.code
+        records = self._handler_records(caplog)
+        assert len(records) == 1
+        assert records[0].levelno >= logging.WARNING
+        assert records[0].exc_info is not None
+        assert records[0].exc_info[1] is error
+
+    def test_internal_server_error_still_logs_with_traceback(
+        self, caplog: pytest.LogCaptureFixture
+    ) -> None:
+        # InternalServerError is routed to the 500 handler, which must keep
+        # logging the traceback.
+        client = self._build_app_with_handlers(InternalServerError()).test_client()
+
+        with caplog.at_level(logging.WARNING, logger="superset.views.error_handling"):
+            response = client.get("/http-error")
+
+        assert response.status_code == 500
+        assert any(
+            record.levelno >= logging.WARNING and record.exc_info is not None
+            for record in self._handler_records(caplog)
+        )
+
+    def test_404_html_request_still_serves_the_branded_page(self) -> None:
+        client = self._build_app_with_handlers(NotFound()).test_client()
+
+        with patch(
+            "superset.views.error_handling.send_file",
+            return_value=Response("<html>404</html>", mimetype="text/html"),
+        ) as mock_send_file:
+            response = client.get("/no-matching-route", headers={"Accept": "text/html"})
+
+        assert response.status_code == 404
+        assert response.get_data(as_text=True) == "<html>404</html>"
+        mock_send_file.assert_called_once()
+        assert str(mock_send_file.call_args.args[0]).endswith("static/assets/404.html")
+
+    def test_404_html_request_falls_back_to_json_when_page_is_missing(
+        self,
+    ) -> None:
+        client = self._build_app_with_handlers(NotFound()).test_client()
+
+        with patch(
+            "superset.views.error_handling.send_file",
+            side_effect=FileNotFoundError,
+        ):
+            response = client.get("/no-matching-route", headers={"Accept": "text/html"})
+
+        assert response.status_code == 404
+        assert response.get_json()["errors"][0]["error_type"] == (
+            SupersetErrorType.GENERIC_BACKEND_ERROR.value
+        )
+
+    @pytest.mark.parametrize(
+        "error, path",
+        [
+            (NotFound(), "/no-matching-route"),
+            (Forbidden(), "/http-error"),
+            (GatewayTimeout(), "/http-error"),
+        ],
+    )
+    def test_json_response_body_is_unchanged(
+        self, error: HTTPException, path: str
+    ) -> None:
+        client = self._build_app_with_handlers(error).test_client()
+
+        with patch(
+            "superset.security.SupersetSecurityManager.is_guest_user",
+            return_value=False,
+        ):
+            response = client.get(path, headers={"Accept": "application/json"})
+
+        assert response.status_code == error.code
+        errors = response.get_json()["errors"]
+        assert len(errors) == 1
+        assert errors[0]["message"] == str(error)
+        assert errors[0]["error_type"] == SupersetErrorType.GENERIC_BACKEND_ERROR.value
+        assert errors[0]["level"] == ErrorLevel.ERROR.value
 
 
 class TestGuestErrorSanitization:
