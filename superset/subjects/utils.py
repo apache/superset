@@ -211,10 +211,15 @@ def get_user_subject_ids(user_id: int) -> list[int]:
     calls this once per object checked -- ``is_editor``/``is_viewer`` run it for
     every chart on a dashboard. The cache can miss a subject created earlier in
     the same request (the create paths in ``commands/utils.py`` read back through
-    here), but that never flips an access decision: a subject created mid-request
-    is not yet listed in any resource's editors or viewers, so an ``is_editor``/
-    ``is_viewer`` check against a cache that omits it still returns the same
-    answer. The staleness window is bounded by the request.
+    here), but that never grants access to anyone else, in either direction. A
+    cache that misses a just-created subject: the subject is not yet listed in
+    any resource's editors or viewers, so an ``is_editor``/``is_viewer`` check
+    still returns the same answer. A cache that retains a subject removed
+    earlier in the same request: the only path that reads it back is
+    ``ensure_no_lockout`` in ``commands/utils.py``, where a stale membership can
+    at most let the caller lock themselves out -- annoying, not a security
+    hole. Neither direction flips a decision for a third party, and the
+    staleness window is bounded by the request.
 
     The cache lives on ``flask.request``, not ``g``: ``g`` is bound to the app
     context, which a worker can hold open across many requests, so a ``g``-keyed
