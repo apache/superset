@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-23 12:43+0200\n"
+"POT-Creation-Date: 2026-09-25 13:49-0700\n"
 "PO-Revision-Date: 2019-02-02 22:28+0900\n"
 "Last-Translator: \n"
 "Language: ko\n"
@@ -1645,6 +1645,9 @@ msgstr "주석"
 msgid "About"
 msgstr "정보"
 
+msgid "Accept"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # fr, it, ja, lv, mi, nl, ru, sk, sl, tr, uk]
 #, fuzzy
@@ -2267,6 +2270,9 @@ msgstr "생성자"
 #, fuzzy
 msgid "Aggregation Method"
 msgstr "생성자"
+
+msgid "Aggregation function"
+msgstr ""
 
 msgid ""
 "Aggregation used for the summary row. By default each metric keeps its "
@@ -5219,6 +5225,13 @@ msgstr "차트를 삭제할 수 없습니다."
 #, fuzzy
 msgid "Chart width"
 msgstr "차트 유형"
+
+#, python-format
+msgid ""
+"Chart with ID %(chart_id)s (referenced by annotation layer "
+"'%(layer_name)s') was not found. Please verify that the chart exists and "
+"is accessible."
+msgstr ""
 
 msgid "Charts"
 msgstr "차트"
@@ -21015,12 +21028,11 @@ msgstr "저장된 Query"
 msgid "Show column headers"
 msgstr "컬럼 보기"
 
-#, fuzzy
-msgid "Show columns subtotal"
-msgstr "컬럼 보기"
+msgid "Show column summaries"
+msgstr ""
 
 #, fuzzy
-msgid "Show columns total"
+msgid "Show columns subtotal"
 msgstr "컬럼 보기"
 
 #, fuzzy
@@ -21136,16 +21148,12 @@ msgstr "저장된 Query"
 msgid "Show row labels"
 msgstr "테이블 보기"
 
+msgid "Show row summaries"
+msgstr ""
+
 #, fuzzy
 msgid "Show rows subtotal"
 msgstr "컬럼 보기"
-
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
-# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
-# uk, zh, zh_TW]
-#, fuzzy
-msgid "Show rows total"
-msgstr "행 합계 표시"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -23818,6 +23826,13 @@ msgstr "쿼리에 하나 이상의 잘못된 형식의 템플릿 매개변수가
 msgid "The query context datasource does not match the chart datasource"
 msgstr ""
 
+#, python-format
+msgid ""
+"The query context for chart ID %(chart_id)s (referenced by annotation "
+"layer '%(layer_name)s') was not found. Please ensure the chart is "
+"properly configured and has a valid query context."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, it, ja, lv, mi, nl, pl, pt, pt_BR, ro, ru, sk, sl, sr,
 # sr_Latn, tr, uk, zh, zh_TW]
@@ -24897,6 +24912,9 @@ msgstr ""
 msgid "This chart only"
 msgstr ""
 
+msgid "This chart was updated to use the restored aggregation"
+msgstr ""
+
 msgid "This chart will be restored to the following version:"
 msgstr ""
 
@@ -25329,6 +25347,13 @@ msgstr "이 페이지는 iframe에 임베드되도록 설계되었지만, 현재
 #, fuzzy
 msgid "This password is too common; please choose a less guessable one."
 msgstr "이 비밀번호는 너무 일반적입니다. 추측하기 어려운 비밀번호를 선택하세요."
+
+msgid ""
+"This pivot table used a legacy per-table aggregation setting that "
+"Superset previously ignored. It now computes correctly, so totals and "
+"subtotals may look different than before. Please validate them, then "
+"accept this notice or save the chart."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, ja, lv, mi, nl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr, uk]
@@ -26954,11 +26979,21 @@ msgstr "Query 실행"
 msgid "Use date formatting even when metric value is not a timestamp"
 msgstr "측정값이 타임스탬프가 아닌 경우에도 날짜 형식 사용"
 
+msgid ""
+"Use each metric’s own definition for cells and summaries (the default "
+"since SIP-216), or aggregate a second time over the metric’s own grouped "
+"results — e.g. the median of a set of per-store averages. Query limits "
+"apply before a result aggregation runs."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, ja, lv,
 # ro, ru, sr, sr_Latn, tr, uk]
 #, fuzzy
 msgid "Use gradient"
 msgstr "그라데이션 사용"
+
+msgid "Use metric definition"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -29213,7 +29248,18 @@ msgid ""
 "SUPERSET_DASHBOARD_POSITION_DATA_LIMIT config setting."
 msgstr ""
 
-msgid "Your export is being prepared. You'll receive an email when it's ready."
+msgid ""
+"Your export is being generated and will download automatically when "
+"ready. We'll also email you a download link."
+msgstr ""
+
+msgid "Your export is being generated. Please, do not leave the page."
+msgstr ""
+
+msgid "Your export is ready and downloading."
+msgstr ""
+
+msgid "Your export is taking longer than expected. Try again later."
 msgstr ""
 
 #, python-format

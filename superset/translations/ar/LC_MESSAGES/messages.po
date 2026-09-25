@@ -24,7 +24,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version:  \n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-23 12:43+0200\n"
+"POT-Creation-Date: 2026-09-25 13:49-0700\n"
 "PO-Revision-Date: 2024-07-14 15:10+0300\n"
 "Last-Translator: Abdalrahim G. Fakhouri <abdilra7eem@yahoo.com>\n"
 "Language: ar\n"
@@ -1403,6 +1403,9 @@ msgstr "يعمل"
 msgid "About"
 msgstr "عن"
 
+msgid "Accept"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # fr, it, ja, lv, mi, nl, ru, sk, sl, tr, uk]
 #, fuzzy
@@ -1876,6 +1879,9 @@ msgstr "تجميع"
 #, fuzzy
 msgid "Aggregation Method"
 msgstr "تجميع"
+
+msgid "Aggregation function"
+msgstr ""
 
 msgid ""
 "Aggregation used for the summary row. By default each metric keeps its "
@@ -3961,6 +3967,13 @@ msgstr "تعذر حذف المخططات."
 
 msgid "Chart width"
 msgstr "عرض المخطط"
+
+#, python-format
+msgid ""
+"Chart with ID %(chart_id)s (referenced by annotation layer "
+"'%(layer_name)s') was not found. Please verify that the chart exists and "
+"is accessible."
+msgstr ""
 
 msgid "Charts"
 msgstr "المخططات"
@@ -15129,11 +15142,11 @@ msgstr "عرض الطابع الزمني"
 msgid "Show column headers"
 msgstr "تسمية رأس العمود"
 
+msgid "Show column summaries"
+msgstr ""
+
 msgid "Show columns subtotal"
 msgstr "عرض المجموع الفرعي للأعمدة"
-
-msgid "Show columns total"
-msgstr "عرض إجمالي الأعمدة"
 
 msgid "Show empty columns"
 msgstr "عرض الأعمدة الفارغة"
@@ -15214,11 +15227,11 @@ msgstr "راجع تفاصيل الاستعلام"
 msgid "Show row labels"
 msgstr "عرض الملصقات"
 
+msgid "Show row summaries"
+msgstr ""
+
 msgid "Show rows subtotal"
 msgstr "عرض المجموع الفرعي للصفوف"
-
-msgid "Show rows total"
-msgstr "عرض إجمالي الصفوف"
 
 msgid "Show series values on the chart"
 msgstr "عرض قيم السلسلة على الرسم البياني"
@@ -17159,6 +17172,13 @@ msgstr "يحتوي الاستعلام على واحدة أو أكثر من مع�
 msgid "The query context datasource does not match the chart datasource"
 msgstr ""
 
+#, python-format
+msgid ""
+"The query context for chart ID %(chart_id)s (referenced by annotation "
+"layer '%(layer_name)s') was not found. Please ensure the chart is "
+"properly configured and has a valid query context."
+msgstr ""
+
 msgid "The query couldn't be loaded"
 msgstr "لا يمكن تحميل الاستعلام"
 
@@ -17977,6 +17997,9 @@ msgstr ""
 msgid "This chart only"
 msgstr ""
 
+msgid "This chart was updated to use the restored aggregation"
+msgstr ""
+
 msgid "This chart will be restored to the following version:"
 msgstr ""
 
@@ -18328,6 +18351,13 @@ msgstr "هذه الصفحة مخصصة للتضمين داخل إطار iframe،
 #, fuzzy
 msgid "This password is too common; please choose a less guessable one."
 msgstr "كلمة المرور هذه شائعة جداً؛ يرجى اختيار كلمة مرور يصعب تخمينها."
+
+msgid ""
+"This pivot table used a legacy per-table aggregation setting that "
+"Superset previously ignored. It now computes correctly, so totals and "
+"subtotals may look different than before. Please validate them, then "
+"accept this notice or save the chart."
+msgstr ""
 
 msgid ""
 "This section allows you to configure how to use the slice\n"
@@ -19503,9 +19533,19 @@ msgstr "تشغيل الاستعلام الحالي"
 msgid "Use date formatting even when metric value is not a timestamp"
 msgstr "استخدم تنسيق التاريخ حتى عندما لا تكون قيمة المقياس طابعًا زمنيًا"
 
+msgid ""
+"Use each metric’s own definition for cells and summaries (the default "
+"since SIP-216), or aggregate a second time over the metric’s own grouped "
+"results — e.g. the median of a set of per-store averages. Query limits "
+"apply before a result aggregation runs."
+msgstr ""
+
 #, fuzzy
 msgid "Use gradient"
 msgstr "تايم جرين"
+
+msgid "Use metric definition"
+msgstr ""
 
 msgid "Use metrics as a top level group for columns or for rows"
 msgstr "استخدم المقاييس كمجموعة ذات مستوى أعلى للأعمدة أو للصفوف"
@@ -21035,7 +21075,18 @@ msgid ""
 "SUPERSET_DASHBOARD_POSITION_DATA_LIMIT config setting."
 msgstr ""
 
-msgid "Your export is being prepared. You'll receive an email when it's ready."
+msgid ""
+"Your export is being generated and will download automatically when "
+"ready. We'll also email you a download link."
+msgstr ""
+
+msgid "Your export is being generated. Please, do not leave the page."
+msgstr ""
+
+msgid "Your export is ready and downloading."
+msgstr ""
+
+msgid "Your export is taking longer than expected. Try again later."
 msgstr ""
 
 #, python-format

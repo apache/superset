@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-23 12:43+0200\n"
+"POT-Creation-Date: 2026-09-25 13:49-0700\n"
 "PO-Revision-Date: 2018-02-11 22:26+0200\n"
 "Last-Translator: Raffaele Spangaro <raffa@raffaelespangaro.it>\n"
 "Language: it\n"
@@ -1518,6 +1518,9 @@ msgstr "Formato Datetime"
 msgid "About"
 msgstr "About"
 
+msgid "Accept"
+msgstr ""
+
 msgid "Access"
 msgstr "Accesso"
 
@@ -2025,6 +2028,9 @@ msgstr "Aggregazione"
 
 msgid "Aggregation Method"
 msgstr "Metodo di aggregazione"
+
+msgid "Aggregation function"
+msgstr ""
 
 msgid ""
 "Aggregation used for the summary row. By default each metric keeps its "
@@ -4448,6 +4454,13 @@ msgstr "Il grafico è stato salvato ma non può essere aggiunto al tab seleziona
 
 msgid "Chart width"
 msgstr "Larghezza grafico"
+
+#, python-format
+msgid ""
+"Chart with ID %(chart_id)s (referenced by annotation layer "
+"'%(layer_name)s') was not found. Please verify that the chart exists and "
+"is accessible."
+msgstr ""
 
 msgid "Charts"
 msgstr "Grafici"
@@ -17427,11 +17440,11 @@ msgstr "Query salvate"
 msgid "Show column headers"
 msgstr "Mostra intestazioni colonna"
 
+msgid "Show column summaries"
+msgstr ""
+
 msgid "Show columns subtotal"
 msgstr "Mostra subtotale colonne"
-
-msgid "Show columns total"
-msgstr "Mostra totale colonne"
 
 msgid "Show empty columns"
 msgstr "Mostra colonne vuote"
@@ -17528,14 +17541,11 @@ msgstr "Mostra identificatori query"
 msgid "Show row labels"
 msgstr "Mostra etichette riga"
 
+msgid "Show row summaries"
+msgstr ""
+
 msgid "Show rows subtotal"
 msgstr "Mostra subtotale righe"
-
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
-# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
-# uk, zh, zh_TW]
-msgid "Show rows total"
-msgstr "Mostra il totale delle righe"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -19827,6 +19837,13 @@ msgstr ""
 "L'origine dati del contesto della query non corrisponde all'origine dati "
 "del grafico"
 
+#, python-format
+msgid ""
+"The query context for chart ID %(chart_id)s (referenced by annotation "
+"layer '%(layer_name)s') was not found. Please ensure the chart is "
+"properly configured and has a valid query context."
+msgstr ""
+
 msgid "The query couldn't be loaded"
 msgstr "La query non può essere caricata"
 
@@ -20770,6 +20787,9 @@ msgstr ""
 msgid "This chart only"
 msgstr ""
 
+msgid "This chart was updated to use the restored aggregation"
+msgstr ""
+
 msgid "This chart will be restored to the following version:"
 msgstr ""
 
@@ -21197,6 +21217,13 @@ msgstr ""
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
 msgid "This password is too common; please choose a less guessable one."
 msgstr "Questa password è troppo comune; scegline una più difficile da indovinare."
+
+msgid ""
+"This pivot table used a legacy per-table aggregation setting that "
+"Superset previously ignored. It now computes correctly, so totals and "
+"subtotals may look different than before. Please validate them, then "
+"accept this notice or save the chart."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, ja, lv, mi, nl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr, uk]
@@ -22605,10 +22632,20 @@ msgstr ""
 "Utilizza la formattazione della data anche quando il valore della metrica"
 " non è un timestamp"
 
+msgid ""
+"Use each metric’s own definition for cells and summaries (the default "
+"since SIP-216), or aggregate a second time over the metric’s own grouped "
+"results — e.g. the median of a set of per-store averages. Query limits "
+"apply before a result aggregation runs."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, ja, lv,
 # ro, ru, sr, sr_Latn, tr, uk]
 msgid "Use gradient"
 msgstr "Usa gradiente"
+
+msgid "Use metric definition"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -24542,10 +24579,19 @@ msgstr ""
 "dashboard (ad esempio dividendola in più dashboard) o aumenta "
 "l'impostazione di configurazione SUPERSET_DASHBOARD_POSITION_DATA_LIMIT."
 
-msgid "Your export is being prepared. You'll receive an email when it's ready."
+msgid ""
+"Your export is being generated and will download automatically when "
+"ready. We'll also email you a download link."
 msgstr ""
-"La tua esportazione è in preparazione. Riceverai un'email quando sarà "
-"pronta."
+
+msgid "Your export is being generated. Please, do not leave the page."
+msgstr ""
+
+msgid "Your export is ready and downloading."
+msgstr ""
+
+msgid "Your export is taking longer than expected. Try again later."
+msgstr ""
 
 #, python-format
 msgid "Your export of \"%(title)s\" could not be completed."
