@@ -656,14 +656,14 @@ def test_apply_rls(mocker: MockerFixture) -> None:
                 database,
                 "examples",
                 exclude_dataset_id=None,
-                include_global_guest_rls=False,
+                include_global_guest_rls=True,
             ),
             mocker.call(
                 Table("t2", "public", "examples"),
                 database,
                 "examples",
                 exclude_dataset_id=None,
-                include_global_guest_rls=False,
+                include_global_guest_rls=True,
             ),
         ]
     )
@@ -705,7 +705,7 @@ def test_get_predicates_for_table(mocker: MockerFixture) -> None:
     table = Table("t1", "public", "examples")
     assert get_predicates_for_table(table, database, "examples") == ["c1 = 1"]
     dataset.get_sqla_row_level_filters.assert_called_once_with(
-        include_global_guest_rls=False
+        include_global_guest_rls=True
     )
 
 

@@ -511,15 +511,8 @@ def validate_adhoc_subquery(
                 )
             )
 
-        # Enforce RLS rules in any relevant tables. Global guest rules are included
-        # because the outer query's WHERE clause does not constrain a sub-query.
-        rls_applied = apply_rls(
-            database,
-            catalog,
-            default_schema,
-            parsed_statement,
-            include_global_guest_rls=True,
-        )
+        # enforce RLS rules in any relevant tables
+        rls_applied = apply_rls(database, catalog, default_schema, parsed_statement)
 
     # Only regenerate the SQL if RLS predicates were actually applied;
     # unnecessary round-tripping through sqlglot can alter dialect-specific
@@ -3778,6 +3771,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                         self.schema or default_schema or "",
                         statement,
                         exclude_dataset_id=self_id,
+                        include_global_guest_rls=False,
                     ):
                         rls_applied = True
 
@@ -3806,6 +3800,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                             self.database,
                             self.database.get_default_catalog(),
                             exclude_dataset_id=self_id,
+                            include_global_guest_rls=False,
                         )
                         for statement in parsed_script.statements
                         for table in statement.tables

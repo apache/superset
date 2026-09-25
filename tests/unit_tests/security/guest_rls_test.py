@@ -255,9 +255,9 @@ def test_global_guest_rule_excluded_through_get_predicates_for_table(
     mocker: MockerFixture,
 ) -> None:
     """
-    Global (unscoped) guest RLS rules are excluded when
-    get_predicates_for_table() calls get_sqla_row_level_filters()
-    with include_global_guest_rls=False.
+    Global (unscoped) guest RLS rules are excluded when a virtual dataset's
+    inner SQL calls get_predicates_for_table() with
+    include_global_guest_rls=False.
 
     This prevents double application: global guest rules match any dataset,
     so they would appear both in inner SQL (underlying table) and outer query
@@ -291,12 +291,58 @@ def test_global_guest_rule_excluded_through_get_predicates_for_table(
         ),
     ):
         table = Table("physical_table", "public", "examples")
-        predicates = get_predicates_for_table(table, database, "examples")
+        predicates = get_predicates_for_table(
+            table, database, "examples", include_global_guest_rls=False
+        )
 
         assert not any("org_id" in p for p in predicates), (
             f"Global guest rule 'org_id = 1' should be excluded from "
             f"get_predicates_for_table() to prevent double application "
             f"in virtual datasets. Got: {predicates}"
+        )
+
+
+def test_global_guest_rule_included_by_default_through_get_predicates_for_table(
+    app: Flask,
+    mocker: MockerFixture,
+) -> None:
+    """
+    Global (unscoped) guest RLS rules are included by default, so a statement
+    that no outer query constrains, such as a SQL Lab query, is still scoped
+    to the guest token.
+    """
+    from sqlalchemy.dialects import sqlite
+
+    global_rule = GuestTokenRlsRule(dataset=None, clause="org_id = 1")
+    guest_user = _make_guest_user(rules=[global_rule])
+
+    mock_pd = _make_datasource_with_real_rls(42)
+
+    database = mocker.MagicMock()
+    database.get_dialect.return_value = sqlite.dialect()
+    db = mocker.patch("superset.utils.rls.db")
+    db.session.query().filter().one_or_none.return_value = mock_pd
+
+    with (
+        patch(
+            "superset.connectors.sqla.models.security_manager.get_rls_filters",
+            return_value=[],
+        ),
+        patch(
+            "superset.connectors.sqla.models.security_manager.get_guest_rls_filters",
+            wraps=_guest_rls_filter(guest_user),
+        ),
+        patch(
+            "superset.connectors.sqla.models.is_feature_enabled",
+            return_value=True,
+        ),
+    ):
+        table = Table("physical_table", "public", "examples")
+        predicates = get_predicates_for_table(table, database, "examples")
+
+        assert any("org_id" in p for p in predicates), (
+            f"Global guest rule 'org_id = 1' should be included by default. "
+            f"Got: {predicates}"
         )
 
 
