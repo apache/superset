@@ -4335,8 +4335,12 @@ class ListChartsRequest(
                 "trashed charts, 'include' returns live and trashed charts "
                 "together. Omit for live charts only (default). Trashed rows "
                 "carry a non-null deleted_at and are limited to charts the "
-                "caller owns (admins see all); requires the SOFT_DELETE "
-                "feature flag to have produced trashed rows."
+                "caller can edit (the same audience that can restore them, "
+                "not merely the ones they own; admins see all). This omits "
+                "EXTRA_EDITORS_RESOLVER-granted and guest role-derived "
+                "editorship, so some restorable charts may be under-"
+                "enumerated. Requires the SOFT_DELETE feature flag to have "
+                "produced trashed rows."
             ),
         ),
     ]
