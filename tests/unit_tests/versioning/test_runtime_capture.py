@@ -311,3 +311,83 @@ def test_restore_capture_decision_covers_persisted_mutation(
         assert after["version_changes"] > before["version_changes"]
     else:
         assert after == before
+
+
+def test_read_helpers_consult_predicate_with_request_session(
+    capture_session: Session,
+    app: SupersetApp,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Version reads hand the shared gate the request session the save will use."""
+    from superset.versioning import api_helpers, utils
+
+    dashboard: Dashboard = Dashboard(dashboard_title="read")
+    capture_session.add(dashboard)
+    capture_session.commit()
+    seen: list[Session] = []
+
+    def predicate(active_session: Session) -> bool:
+        seen.append(active_session)
+        return True
+
+    monkeypatch.setitem(app.config, "VERSIONING_CAPTURE_PREDICATE", predicate)
+    capture_gate: MagicMock
+    with patch.object(
+        utils, "capture_enabled", wraps=utils.capture_enabled
+    ) as capture_gate:
+        info: api_helpers.EntityVersionInfo = api_helpers.current_entity_version_info(
+            Dashboard, dashboard.id
+        )
+        token: str | None = api_helpers.entity_concurrency_token(
+            Dashboard, dashboard.id, dashboard.uuid
+        )
+    assert info.version_uuid is not None
+    assert token == info.version_uuid
+    # Discriminating check: every read-side call passes the session explicitly,
+    # matching the restore command, rather than relying on the gate's fallback.
+    assert capture_gate.call_args_list
+    assert all(
+        gate_call.args == (capture_session,)
+        for gate_call in capture_gate.call_args_list
+    ), capture_gate.call_args_list
+    assert seen
+    assert all(active is capture_session for active in seen)
+
+
+def test_read_helpers_accept_a_plain_session_binding(
+    capture_session: Session,
+    app: SupersetApp,
+) -> None:
+    """A ``Session`` bound where the scoped proxy lives is passed through unchanged."""
+    from superset.versioning import api_helpers
+
+    capture_gate: MagicMock = MagicMock(return_value=True)
+    db_double: MagicMock
+    with (
+        patch("superset.versioning.api_helpers.db") as db_double,
+        patch("superset.versioning.utils.capture_enabled", capture_gate),
+    ):
+        db_double.session = capture_session
+        assert api_helpers._capture_enabled() is True
+    capture_gate.assert_called_once_with(capture_session)
+
+
+def test_none_predicate_result_denies_capture_and_is_memoized(
+    capture_session: Session,
+    app: SupersetApp,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A predicate returning ``None`` denies capture and is not re-asked."""
+    from sqlalchemy_continuum import versioning_manager
+
+    from superset.versioning.unit_of_work import CaptureUnitOfWork
+    from superset.versioning.utils import capture_enabled
+
+    predicate: MagicMock = MagicMock(return_value=None)
+    monkeypatch.setitem(app.config, "VERSIONING_CAPTURE_PREDICATE", predicate)
+    assert capture_enabled(capture_session) is False
+    unit: CaptureUnitOfWork = CaptureUnitOfWork(versioning_manager)
+    predicate.reset_mock()
+    assert unit._capture_enabled(capture_session) is False
+    assert unit._capture_enabled(capture_session) is False
+    predicate.assert_called_once_with(capture_session)

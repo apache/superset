@@ -148,20 +148,104 @@ def test_task_honors_explicit_canonical_config_with_legacy_key_present(
     prune.assert_called_once_with(canonical)
 
 
-@pytest.mark.parametrize("value", [-1.0, -1.5, True, False, None])
+@pytest.mark.parametrize("value", [-1.0, -1.5, True, False, None, "abc", "30d"])
 def test_task_does_not_coerce_invalid_input_to_immediate(
-    value: object, stats: MagicMock
+    value: object, stats: MagicMock, caplog: pytest.LogCaptureFixture
 ) -> None:
-    """A malformed runtime config cannot accidentally select immediate cleanup."""
+    """A malformed runtime config defers pruning with 0, never immediate cleanup."""
     app: Flask = Flask(__name__)
     app.config["VERSION_HISTORY_RETENTION_DAYS"] = value
     prune: MagicMock
     with (
         app.app_context(),
-        patch.object(version_history_retention, "_prune_old_versions_impl") as prune,
+        patch.object(
+            version_history_retention, "_prune_old_versions_impl", return_value={}
+        ) as prune,
     ):
-        assert version_history_retention.prune_old_versions.run() == {"error": 1}
-    prune.assert_not_called()
+        assert version_history_retention.prune_old_versions.run() == {}
+    prune.assert_called_once_with(0)
+    stats.incr.assert_not_called()
+    assert "Invalid VERSION_HISTORY_RETENTION_DAYS" in caplog.text
+
+
+def test_task_env_canonical_precedes_legacy_key(
+    stats: MagicMock, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """An explicit environment window is never widened by a legacy key."""
+    monkeypatch.setenv("VERSION_HISTORY_RETENTION_DAYS", "30")
+    app: Flask = Flask(__name__)
+    app.config.update(
+        VERSION_HISTORY_RETENTION_DAYS=30,
+        SUPERSET_VERSION_HISTORY_RETENTION_DAYS=365,
+    )
+    prune: MagicMock
+    with (
+        app.app_context(),
+        patch.object(
+            version_history_retention, "_prune_old_versions_impl", return_value={}
+        ) as prune,
+    ):
+        assert version_history_retention.prune_old_versions() == {}
+    prune.assert_called_once_with(30)
+
+
+def test_task_without_either_key_uses_environment_seed(stats: MagicMock) -> None:
+    """A config carrying neither key falls back to the parsed default window."""
+    app: Flask = Flask(__name__)
+    prune: MagicMock
+    with (
+        app.app_context(),
+        patch.object(
+            version_history_retention, "_prune_old_versions_impl", return_value={}
+        ) as prune,
+    ):
+        assert version_history_retention.prune_old_versions() == {}
+    prune.assert_called_once_with(
+        version_history_retention._version_history_retention_seed
+    )
+
+
+@pytest.mark.parametrize("legacy", ["abc", "30d", -1.5, True, None])
+def test_task_defers_invalid_legacy_retention_with_zero(
+    stats: MagicMock, legacy: object, caplog: pytest.LogCaptureFixture
+) -> None:
+    """An unparsable legacy value in the ambiguity branch skips, not fails."""
+    app: Flask = Flask(__name__)
+    app.config.update(
+        VERSION_HISTORY_RETENTION_DAYS=30,
+        SUPERSET_VERSION_HISTORY_RETENTION_DAYS=legacy,
+    )
+    prune: MagicMock
+    with (
+        app.app_context(),
+        patch.object(
+            version_history_retention, "_prune_old_versions_impl", return_value={}
+        ) as prune,
+    ):
+        assert version_history_retention.prune_old_versions() == {}
+    prune.assert_called_once_with(0)
+    stats.incr.assert_not_called()
+    assert "Invalid SUPERSET_VERSION_HISTORY_RETENTION_DAYS" in caplog.text
+
+
+@pytest.mark.parametrize("legacy", ["abc", None])
+def test_task_defers_invalid_legacy_only_retention_with_zero(
+    stats: MagicMock, legacy: object, caplog: pytest.LogCaptureFixture
+) -> None:
+    """A wholly custom config with only an unparsable legacy key skips."""
+    app: Flask = Flask(__name__)
+    app.config["SUPERSET_VERSION_HISTORY_RETENTION_DAYS"] = legacy
+    prune: MagicMock
+    with (
+        app.app_context(),
+        patch.object(
+            version_history_retention, "_prune_old_versions_impl", return_value={}
+        ) as prune,
+    ):
+        assert version_history_retention.prune_old_versions() == {}
+    prune.assert_called_once_with(0)
+    stats.incr.assert_not_called()
+    assert "Invalid SUPERSET_VERSION_HISTORY_RETENTION_DAYS" in caplog.text
 
 
 def test_task_normalizes_string_retention_config(stats: MagicMock) -> None:

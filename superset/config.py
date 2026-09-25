@@ -1806,6 +1806,8 @@ ENABLE_VERSIONING_CAPTURE: bool = utils.parse_boolean_string(
 # a tenant-local decision stable for the transaction, and handle expected service
 # unavailability without raising. None preserves OSS capture behavior. This does
 # not override the startup kill switch or authorize untracked version restores.
+# Version reads (ETag / version info on the chart, dashboard and dataset APIs)
+# consult it with the same request session as the save they accompany.
 VERSIONING_CAPTURE_PREDICATE: Callable[[Session], bool] | None = None
 
 # Retention window (days) for entity version history. Version rows
@@ -1879,6 +1881,49 @@ def _normalize_version_history_retention_days(value: object, *, legacy: bool) ->
 
 VERSION_HISTORY_RETENTION_DAYS: int = _parse_version_history_retention_days()
 _version_history_retention_seed: int = VERSION_HISTORY_RETENTION_DAYS
+
+# Sentinel for "key not configured at all", distinct from any configured value
+# (including ``None``), shared with the retention task's runtime lookup.
+_MISSING_RETENTION: object = object()
+
+
+def _resolve_version_history_retention_days(
+    canonical: object, legacy: object, *, seed: int
+) -> int:
+    """Combine the canonical and legacy retention settings into integer days.
+
+    *canonical* and *legacy* are the raw configured values of
+    ``VERSION_HISTORY_RETENTION_DAYS`` and the deprecated
+    ``SUPERSET_VERSION_HISTORY_RETENTION_DAYS``, or ``_MISSING_RETENTION``
+    when the key is absent. *seed* is the environment-parsed default the
+    canonical key started from, which is what makes a star-imported default
+    indistinguishable from an explicit same-value override. Invalid values
+    normalize to ``0`` (pruning deferred) rather than raising, so a bad value
+    can neither select immediate cleanup nor fail the caller. Precedence: a
+    ``VERSION_HISTORY_RETENTION_DAYS`` environment variable (read here) beats
+    the legacy key outright; otherwise a canonical value wins unless it equals
+    *seed* while the legacy key differs, and a lone legacy value applies.
+
+    This is the single policy for both config load (below) and the
+    ``version_history.prune_old_versions`` task, which re-reads the live
+    ``app.config`` because hosts may set either key after import.
+    """
+    canonical_days: int = (
+        seed
+        if canonical is _MISSING_RETENTION
+        else _normalize_version_history_retention_days(canonical, legacy=False)
+    )
+    if legacy is _MISSING_RETENTION or "VERSION_HISTORY_RETENTION_DAYS" in os.environ:
+        return canonical_days
+    legacy_days: int = _normalize_version_history_retention_days(legacy, legacy=True)
+    if canonical is _MISSING_RETENTION:
+        return legacy_days
+    if canonical_days != seed:
+        return canonical_days
+    # A star-imported default is indistinguishable from an explicit same-value
+    # override. Keep the non-destructive interpretation when the old key differs.
+    return 0 if 0 in (canonical_days, legacy_days) else max(canonical_days, legacy_days)
+
 
 # Adds a warning message on sqllab save query and schedule query modals.
 SQLLAB_SAVE_WARNING_MESSAGE = None
@@ -3639,27 +3684,19 @@ elif importlib.util.find_spec("superset_config"):
         logger.exception("Found but failed to import local superset_config")
         raise
 
-if _canonical_history_retention_override:
-    VERSION_HISTORY_RETENTION_DAYS = _normalize_version_history_retention_days(
-        _canonical_history_retention_value, legacy=False
-    )
-if (
-    _legacy_history_retention_override
-    and "VERSION_HISTORY_RETENTION_DAYS" not in os.environ
-):
-    _legacy_history_retention_days: int = _normalize_version_history_retention_days(
-        _legacy_history_retention_value, legacy=True
-    )
-    if not _canonical_history_retention_override:
-        VERSION_HISTORY_RETENTION_DAYS = _legacy_history_retention_days
-    elif VERSION_HISTORY_RETENTION_DAYS == _version_history_retention_seed:
-        # A star-imported default is indistinguishable from an explicit same-value
-        # override. Keep the non-destructive interpretation when the old key differs.
-        VERSION_HISTORY_RETENTION_DAYS = (
-            0
-            if 0 in (VERSION_HISTORY_RETENTION_DAYS, _legacy_history_retention_days)
-            else max(VERSION_HISTORY_RETENTION_DAYS, _legacy_history_retention_days)
-        )
+VERSION_HISTORY_RETENTION_DAYS = _resolve_version_history_retention_days(
+    (
+        _canonical_history_retention_value
+        if _canonical_history_retention_override
+        else _MISSING_RETENTION
+    ),
+    (
+        _legacy_history_retention_value
+        if _legacy_history_retention_override
+        else _MISSING_RETENTION
+    ),
+    seed=_version_history_retention_seed,
+)
 
 # Final environment variable processing - must be at the very end
 # to override any config file assignments

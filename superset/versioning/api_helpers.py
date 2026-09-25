@@ -43,6 +43,7 @@ from uuid import UUID
 import sqlalchemy as sa
 from flask import Response
 from flask_appbuilder import Model
+from sqlalchemy.orm import scoped_session, Session
 
 from superset.daos.version import VersionDAO
 from superset.extensions import db, security_manager
@@ -81,13 +82,32 @@ class EntityVersionInfo:
 
 
 def _capture_enabled() -> bool:
-    # Delegates to the shared gate so the read helpers and the restore
-    # command can't disagree about what "capture is on" means.
+    """Consult the shared capture gate with the request's session.
+
+    Delegates to the shared gate so the read helpers and the restore command
+    can't disagree about what "capture is on" means. The session is passed
+    explicitly, matching the restore command, so it is visible at the call
+    site that the host predicate sees the request session on reads (ETag and
+    version info) as well as at the save.
+    """
     from superset.versioning.utils import (  # pylint: disable=import-outside-toplevel
         capture_enabled,
     )
 
-    return capture_enabled()
+    return capture_enabled(_request_session())
+
+
+def _request_session() -> Session:
+    """The request's ``Session`` object, not the ``scoped_session`` proxy.
+
+    ``db.session`` is a ``scoped_session`` that resolves to one ``Session``
+    per app context; the ORM listeners and ``CaptureUnitOfWork`` receive that
+    ``Session``, so the predicate gets the same object. A plain ``Session``
+    bound in the proxy's place (unit-test doubles do this) is already that
+    object and is returned as-is.
+    """
+    session: scoped_session | Session = db.session
+    return session() if isinstance(session, scoped_session) else session
 
 
 def current_entity_version_info(

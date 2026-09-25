@@ -47,7 +47,9 @@ An absent environment value retains the 30-day default. Invalid or oversized
 supplied environment values defer scheduled cleanup with 0 for both settings.
 Host policy failures also defer. Malformed or oversized standalone soft-delete
 runtime config and stored CLI windows likewise defer purge with 0 instead of
-falling back to a shorter retention window. Only absent values use the fallback.
+falling back to a shorter retention window, and a malformed version-history
+value in the live `app.config` defers the scheduled prune with 0 and a warning
+rather than failing the run. Only absent values use the fallback.
 
 ### Version history API access follows `VERSION_HISTORY`
 
@@ -67,7 +69,9 @@ An optional `VERSIONING_CAPTURE_PREDICATE(session)` lets hosts restrict capture
 at save time without changing process-global listeners. `None` preserves existing
 behavior. A false result skips history capture but not the live ORM save, and
 refuses version restore with 404. Hosts must supply tenant context for request,
-import, and background writes and keep the decision stable within a transaction.
+import, and background writes and keep the decision stable within a transaction;
+version reads (ETag and version info on the chart, dashboard and dataset APIs)
+consult the predicate with the same request session as the save they accompany.
 Existing history and independent retention are unchanged; skipped edits are not
 reconstructed. The first enabled edit of an entity without history may create
 the existing baseline of its then-current state. Expected service failures must

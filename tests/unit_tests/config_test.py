@@ -233,6 +233,46 @@ def test_soft_delete_retention_environment_seed(
     assert type(loaded["SOFT_DELETE_RETENTION_DAYS"]) is int
 
 
+@pytest.mark.parametrize(
+    ("canonical", "legacy", "canonical_env", "expected"),
+    [
+        (None, None, False, 30),
+        (None, "180", False, 180),
+        (None, "bad", False, 0),
+        ("7", "365", False, 7),
+        ("30", "365", False, 365),
+        ("30", "0", False, 0),
+        ("30", "bad", False, 0),
+        ("bad", "365", False, 0),
+        ("30", "365", True, 30),
+        ("36501", None, False, 0),
+    ],
+)
+def test_resolve_version_history_retention_days_precedence(
+    monkeypatch: pytest.MonkeyPatch,
+    canonical: str | None,
+    legacy: str | None,
+    canonical_env: bool,
+    expected: int,
+) -> None:
+    """Env beats legacy; canonical beats legacy unless star-imported; None = absent."""
+    from superset import config
+
+    if canonical_env:
+        monkeypatch.setenv("VERSION_HISTORY_RETENTION_DAYS", "30")
+    else:
+        monkeypatch.delenv("VERSION_HISTORY_RETENTION_DAYS", raising=False)
+    missing: object = config._MISSING_RETENTION
+    assert (
+        config._resolve_version_history_retention_days(
+            missing if canonical is None else canonical,
+            missing if legacy is None else legacy,
+            seed=30,
+        )
+        == expected
+    )
+
+
 def test_oversized_version_history_retention_env_defers_cleanup(
     monkeypatch: pytest.MonkeyPatch,
     caplog: pytest.LogCaptureFixture,

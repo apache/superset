@@ -51,9 +51,14 @@ def capture_enabled(session: Session | None = None) -> bool:
     (or re-run ``init_versioning()``) after changing the flag.
 
     VERSIONING_CAPTURE_PREDICATE is a separate runtime decision, consulted by
-    the baseline/change listeners and CaptureUnitOfWork as well as restore.
-    The host owns tenant identity, bounded transaction memoization and expected
-    service-failure handling. Database/programming errors are not suppressed.
+    the baseline/change listeners and CaptureUnitOfWork as well as restore and
+    the entity API helpers (version info and concurrency tokens on the chart,
+    dashboard and dataset endpoints), each passing the session it works in.
+    The host owns tenant identity, bounded transaction memoization and
+    expected service-failure handling. Database/programming errors are not
+    suppressed. The predicate's contract is a ``bool``; its
+    result is coerced, so a ``None`` from a predicate breaking that contract
+    denies capture instead of leaving ``CaptureUnitOfWork`` undecided.
     """
     # Continuum observes unrelated SQLAlchemy sessions, including broker sessions.
     if not has_app_context():
@@ -70,7 +75,7 @@ def capture_enabled(session: Session | None = None) -> bool:
         from superset.extensions import db  # pylint: disable=import-outside-toplevel
 
         session = db.session()
-    return predicate(session)
+    return bool(predicate(session))
 
 
 @contextmanager

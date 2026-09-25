@@ -46,7 +46,6 @@ Idempotent: a second run prunes nothing.
 from __future__ import annotations
 
 import logging
-import os
 import time
 from collections.abc import Iterator
 from dataclasses import dataclass
@@ -58,14 +57,14 @@ from flask import current_app
 from sqlalchemy.exc import OperationalError
 
 from superset.config import (
-    _MAX_VERSION_HISTORY_RETENTION_DAYS,
+    _MISSING_RETENTION,
+    _resolve_version_history_retention_days,
     _version_history_retention_seed,
 )
 from superset.extensions import celery_app, db, stats_logger_manager
 from superset.utils.dates import naive_utcnow
 
 logger: logging.Logger = logging.getLogger(__name__)
-_MISSING_RETENTION: object = object()
 
 
 @dataclass(frozen=True)
@@ -541,42 +540,22 @@ def prune_old_versions() -> dict[str, Any]:
     config lookup + broad exception handling so a single failed run
     doesn't poison the schedule (the next firing retries from a clean
     slate).
+
+    The live ``app.config`` is re-read (hosts may set either retention key
+    after ``superset.config`` was imported) and resolved by the same policy
+    config load uses, so an invalid canonical or legacy value defers pruning
+    with ``0`` and a warning rather than failing the run.
     """
     try:
         configured: object = current_app.config.get(
             "VERSION_HISTORY_RETENTION_DAYS", _MISSING_RETENTION
         )
-        legacy: bool = configured is _MISSING_RETENTION
         legacy_configured: object = current_app.config.get(
             "SUPERSET_VERSION_HISTORY_RETENTION_DAYS", _MISSING_RETENTION
         )
-        if legacy:
-            configured = (
-                legacy_configured if legacy_configured is not _MISSING_RETENTION else 30
-            )
-        if isinstance(configured, bool) or not isinstance(configured, (str, int)):
-            raise ValueError("Retention must be integer days")
-        retention_days: int = int(configured)
-        if legacy and retention_days <= 0:
-            retention_days = 0
-        elif (
-            legacy_configured is not _MISSING_RETENTION
-            and "VERSION_HISTORY_RETENTION_DAYS" not in os.environ
-            and retention_days == _version_history_retention_seed
-        ):
-            if isinstance(legacy_configured, bool) or not isinstance(
-                legacy_configured, (str, int)
-            ):
-                raise ValueError("Legacy retention must be integer days")
-            legacy_days: int = int(legacy_configured)
-            retention_days = (
-                0
-                if retention_days <= 0 or legacy_days <= 0
-                else max(retention_days, legacy_days)
-            )
-        if retention_days > _MAX_VERSION_HISTORY_RETENTION_DAYS:
-            logger.warning("Oversized version history retention; skipping pruning")
-            retention_days = 0
+        retention_days: int = _resolve_version_history_retention_days(
+            configured, legacy_configured, seed=_version_history_retention_seed
+        )
         return _prune_old_versions_impl(retention_days)
     except Exception:  # pylint: disable=broad-except
         logger.exception("version_history.prune_old_versions: task failed")
