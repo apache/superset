@@ -183,6 +183,16 @@ const BreadcrumbWrap = styled.div`
   padding: 0;
 `;
 
+const SubMenuWrap = styled.div`
+  .nav-right {
+    gap: ${({ theme }) => theme.sizeUnit * 2}px;
+
+    .superset-button + .superset-button:not(.ant-btn-compact-item) {
+      margin-left: 0;
+    }
+  }
+`;
+
 const chartRegistry = getChartMetadataRegistry();
 
 const createFetchDatasets = async (
@@ -1715,7 +1725,11 @@ function AnalyticsList({
           }
         />
       )}
-      {!breadcrumbLoading && <SubMenu {...menuData} />}
+      {!breadcrumbLoading && (
+        <SubMenuWrap>
+          <SubMenu {...menuData} />
+        </SubMenuWrap>
+      )}
       {!breadcrumbLoading && (
         <ConfirmStatusChange
           title={t('Please confirm')}

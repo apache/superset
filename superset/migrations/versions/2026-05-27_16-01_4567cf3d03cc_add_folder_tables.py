@@ -80,8 +80,14 @@ def upgrade():
     create_index(FOLDERS_TABLE, "ix_folders_deleted_at", ["deleted_at"])
     op.execute(
         "CREATE UNIQUE INDEX ix_folders_active_parent_name_type "
-        f"ON {FOLDERS_TABLE} (parent_id, name, folder_type) "
-        "WHERE deleted_at IS NULL"
+        f"ON {FOLDERS_TABLE} (COALESCE(parent_id, 0), name, folder_type) "
+        "WHERE deleted_at IS NULL AND is_only_me = false"
+    )
+    # One Only Me folder per user — prevents concurrent creation dupes.
+    op.execute(
+        "CREATE UNIQUE INDEX ix_folders_one_only_me_per_user "
+        f"ON {FOLDERS_TABLE} (created_by_fk) "
+        "WHERE is_only_me = true AND deleted_at IS NULL"
     )
     create_fks_for_table(
         foreign_key_name="fk_folders_parent_id_folders",
@@ -338,6 +344,7 @@ def downgrade():
     )
     drop_table(FOLDER_OBJECTS_TABLE)
 
+    op.execute("DROP INDEX IF EXISTS ix_folders_one_only_me_per_user")
     op.execute("DROP INDEX IF EXISTS ix_folders_active_parent_name_type")
     drop_index(FOLDERS_TABLE, "ix_folders_deleted_at")
     drop_index(FOLDERS_TABLE, "idx_folders_uuid")
