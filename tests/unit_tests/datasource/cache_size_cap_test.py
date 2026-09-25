@@ -18,8 +18,8 @@
 
 The column-values endpoint (filter dropdown values) and the compatible
 metrics/dimensions endpoint write to the data cache directly. An oversized
-payload is left uncached and still returned to the caller; a normal payload is
-cached as usual.
+payload is left uncached (and any older value under its key removed) and still
+returned to the caller; a normal payload is cached as usual.
 """
 
 from typing import Any
@@ -100,6 +100,9 @@ def test_column_values_oversized_payload_is_not_cached(
     assert response.status_code == 200
     assert response.json["result"] == values
     data_cache.set.assert_not_called()
+    # An older value under the same key is removed so it is not served later.
+    data_cache.delete.assert_called_once()
+    assert data_cache.delete.call_args.args[0].startswith("col_values:")
     stats_logger.incr.assert_any_call("skip_cache_value_too_large")
     mock_logger.warning.assert_called_once()
 
@@ -118,6 +121,7 @@ def test_column_values_normal_payload_is_cached(
     assert response.status_code == 200
     data_cache.set.assert_called_once()
     assert data_cache.set.call_args.args[1] == ["a", "b"]
+    data_cache.delete.assert_not_called()
     assert call("skip_cache_value_too_large") not in stats_logger.incr.mock_calls
 
 
@@ -137,6 +141,8 @@ def test_compatible_oversized_result_is_not_cached(
     assert response.status_code == 200
     assert response.json["result"]["compatible_metrics"] == metrics
     data_cache.set.assert_not_called()
+    data_cache.delete.assert_called_once()
+    assert data_cache.delete.call_args.args[0].startswith("compatible:")
     stats_logger.incr.assert_any_call("skip_cache_value_too_large")
 
 
@@ -190,6 +196,7 @@ def test_column_values_null_cache_skips_serialization(
     assert response.json["result"] == ["a", "b"]
     mock_dumps.assert_not_called()
     null_data_cache.set.assert_not_called()
+    null_data_cache.delete.assert_not_called()
 
 
 def test_compatible_null_cache_skips_serialization(
@@ -210,3 +217,22 @@ def test_compatible_null_cache_skips_serialization(
     assert response.status_code == 200
     mock_dumps.assert_not_called()
     null_data_cache.set.assert_not_called()
+
+
+def test_column_values_oversized_delete_failure_still_returns_values(
+    client: Any,
+    full_api_access: None,
+    datasource: MagicMock,
+    data_cache: MagicMock,
+    stats_logger: MagicMock,
+) -> None:
+    """A failure deleting the older cached value does not break the request."""
+    values = [f"value-{i:05d}" for i in range(500)]
+    datasource.values_for_column.return_value = values
+    data_cache.delete.side_effect = RuntimeError("backend down")
+
+    response = _get_values(client)
+
+    assert response.status_code == 200
+    assert response.json["result"] == values
+    data_cache.set.assert_not_called()

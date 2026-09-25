@@ -595,3 +595,76 @@ def test_exceeds_max_cache_value_size_boundary(mocker: MockerFixture) -> None:
         exact_size,
         exact_size - 1,
     )
+
+
+def test_set_and_log_cache_oversized_deletes_existing_key(
+    mocker: MockerFixture,
+) -> None:
+    """Skipping an oversized value removes any older value under the same key, so
+    a later read recomputes instead of serving stale data. The skip is still
+    logged and counted."""
+    from superset.utils.cache import set_and_log_cache
+
+    config = _patch_config(mocker, DATA_CACHE_MAX_VALUE_SIZE=10)
+    cache_instance = _make_cache_instance(mocker)
+    mock_logger = mocker.patch("superset.utils.cache.logger")
+
+    assert set_and_log_cache(cache_instance, "my_key", {"df": "x" * 100}) is False
+
+    cache_instance.set.assert_not_called()
+    cache_instance.delete.assert_called_once_with("my_key")
+    config["STATS_LOGGER"].incr.assert_called_once_with("skip_cache_value_too_large")
+    mock_logger.warning.assert_called_once()
+
+
+def test_set_and_log_cache_oversized_delete_failure_is_logged(
+    mocker: MockerFixture,
+) -> None:
+    """A failure while deleting the older value is logged, not raised."""
+    from superset.utils.cache import set_and_log_cache
+
+    _patch_config(mocker, DATA_CACHE_MAX_VALUE_SIZE=10)
+    cache_instance = _make_cache_instance(mocker)
+    cache_instance.delete.side_effect = RuntimeError("backend down")
+    mock_logger = mocker.patch("superset.utils.cache.logger")
+
+    assert set_and_log_cache(cache_instance, "my_key", {"df": "x" * 100}) is False
+
+    cache_instance.delete.assert_called_once_with("my_key")
+    cache_instance.set.assert_not_called()
+    assert any(
+        "Could not delete" in str(c.args[0]) for c in mock_logger.warning.mock_calls
+    )
+    mock_logger.exception.assert_not_called()
+
+
+def test_set_and_log_cache_under_threshold_does_not_delete(
+    mocker: MockerFixture,
+) -> None:
+    """A value that fits is written normally; nothing is deleted."""
+    from superset.utils.cache import set_and_log_cache
+
+    _patch_config(mocker, DATA_CACHE_MAX_VALUE_SIZE=10 * 1024 * 1024)
+    cache_instance = _make_cache_instance(mocker)
+
+    set_and_log_cache(cache_instance, "my_key", {"df": "small"})
+
+    cache_instance.set.assert_called_once()
+    cache_instance.delete.assert_not_called()
+
+
+def test_skip_oversized_cache_value_null_cache_does_not_delete(
+    mocker: MockerFixture,
+) -> None:
+    """With a ``NullCache`` backend there is nothing to remove: the oversized value
+    is still reported as skipped, and ``delete`` is not called."""
+    from flask_caching.backends import NullCache
+
+    from superset.utils.cache import skip_oversized_cache_value
+
+    _patch_config(mocker, DATA_CACHE_MAX_VALUE_SIZE=10)
+    cache_instance = mocker.MagicMock()
+    cache_instance.cache = NullCache()
+
+    assert skip_oversized_cache_value(cache_instance, "my_key", "x" * 100) is True
+    cache_instance.delete.assert_not_called()
