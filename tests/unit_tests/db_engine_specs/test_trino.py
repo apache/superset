@@ -34,7 +34,15 @@ from sqlalchemy import column, sql, text, types
 from sqlalchemy.dialects import sqlite
 from sqlalchemy.engine.url import make_url
 from sqlalchemy.exc import NoSuchTableError
-from trino.exceptions import TrinoExternalError, TrinoInternalError, TrinoUserError
+from trino.exceptions import (
+    Http502Error,
+    IntegrityError,
+    TrinoAuthError,
+    TrinoConnectionError,
+    TrinoExternalError,
+    TrinoInternalError,
+    TrinoUserError,
+)
 from trino.sqlalchemy import datatype
 from trino.sqlalchemy.dialect import TrinoDialect
 
@@ -46,6 +54,7 @@ from superset.db_engine_specs.exceptions import (
     SupersetDBAPIOperationalError,
     SupersetDBAPIProgrammingError,
 )
+from superset.models.sql_types.presto_sql_types import Interval
 from superset.sql.parse import Table
 from superset.superset_typing import (
     OAuth2ClientConfig,
@@ -264,6 +273,13 @@ def test_auth_custom_auth_denied() -> None:
         ("REAL", types.FLOAT, None, GenericDataType.NUMERIC, False),
         ("DOUBLE", types.FLOAT, None, GenericDataType.NUMERIC, False),
         ("DECIMAL", types.DECIMAL, None, GenericDataType.NUMERIC, False),
+        (
+            "INTERVAL DAY TO SECOND",
+            Interval,
+            None,
+            GenericDataType.TEMPORAL,
+            True,
+        ),
         ("VARCHAR", types.String, None, GenericDataType.STRING, False),
         ("VARCHAR(20)", types.VARCHAR, {"length": 20}, GenericDataType.STRING, False),
         ("CHAR", types.String, None, GenericDataType.STRING, False),
@@ -315,6 +331,12 @@ def test_get_column_spec(
         ("TimeStamp With Time Zone", "TIMESTAMP '2019-01-02 03:04:05.678900'"),
         ("TimeStamp(3) With Time Zone", "TIMESTAMP '2019-01-02 03:04:05.678900'"),
         ("Date", "DATE '2019-01-02'"),
+        # TIME *is* matched by column_type_mappings (unlike "Other", which
+        # isn't recognized at all), but convert_dttm only special-cases
+        # Date/TIMESTAMP, so a recognized-but-unhandled type also falls
+        # through to None.
+        ("Time", None),
+        ("Interval Day To Second", None),
         ("Other", None),
     ],
 )
@@ -1951,3 +1973,569 @@ def test_impersonate_user_with_token_no_verify_configured() -> None:
     connect_args = new_kwargs["connect_args"]
     assert "verify" not in connect_args
     assert connect_args["http_session"].verify is True
+
+
+# ---------------------------------------------------------------------------
+# sc-105829: get_table_names / get_view_names / get_schema_names.
+#
+# TrinoEngineSpec(PrestoBaseEngineSpec) does not inherit PrestoEngineSpec, so
+# it resolves get_table_names/get_view_names to BaseEngineSpec's generic
+# inspector-based implementation (base.py), not Presto's information_schema
+# query (presto.py). These tests pin that Trino resolution; the schema-regex
+# edge case is already covered generically by
+# test_base.py::test_get_table_names_strips_schema_with_regex_metacharacters
+# and its view counterpart, so it isn't repeated here.
+# ---------------------------------------------------------------------------
+
+
+def test_get_table_names(mocker: MockerFixture) -> None:
+    from superset.db_engine_specs.trino import TrinoEngineSpec
+
+    inspector = mocker.MagicMock()
+    inspector.get_table_names.return_value = ["orders", "customers"]
+
+    result = TrinoEngineSpec.get_table_names(Mock(), inspector, "my_schema")
+
+    assert result == {"orders", "customers"}
+
+
+def test_get_table_names_empty_schema(mocker: MockerFixture) -> None:
+    from superset.db_engine_specs.trino import TrinoEngineSpec
+
+    inspector = mocker.MagicMock()
+    inspector.get_table_names.return_value = []
+
+    assert TrinoEngineSpec.get_table_names(Mock(), inspector, "empty_schema") == set()
+
+
+def test_get_table_names_strips_catalog_qualified_schema_prefix(
+    mocker: MockerFixture,
+) -> None:
+    """
+    When the inspector returns table names prefixed with a catalog-qualified
+    schema (e.g. "catalog.schema.table"), the base implementation strips the
+    exact schema prefix it was given, leaving unrelated names untouched.
+    """
+    from superset.db_engine_specs.trino import TrinoEngineSpec
+
+    schema = "my_catalog.my_schema"
+    inspector = mocker.MagicMock()
+    inspector.get_table_names.return_value = [f"{schema}.orders", "unrelated_table"]
+
+    result = TrinoEngineSpec.get_table_names(Mock(), inspector, schema)
+
+    assert result == {"orders", "unrelated_table"}
+
+
+def test_get_view_names(mocker: MockerFixture) -> None:
+    from superset.db_engine_specs.trino import TrinoEngineSpec
+
+    inspector = mocker.MagicMock()
+    inspector.get_view_names.return_value = ["v1", "v2"]
+
+    result = TrinoEngineSpec.get_view_names(Mock(), inspector, "my_schema")
+
+    assert result == {"v1", "v2"}
+
+
+def test_get_view_names_empty_schema(mocker: MockerFixture) -> None:
+    from superset.db_engine_specs.trino import TrinoEngineSpec
+
+    inspector = mocker.MagicMock()
+    inspector.get_view_names.return_value = []
+
+    assert TrinoEngineSpec.get_view_names(Mock(), inspector, "empty_schema") == set()
+
+
+def test_get_view_names_strips_catalog_qualified_schema_prefix(
+    mocker: MockerFixture,
+) -> None:
+    from superset.db_engine_specs.trino import TrinoEngineSpec
+
+    schema = "my_catalog.my_schema"
+    inspector = mocker.MagicMock()
+    inspector.get_view_names.return_value = [f"{schema}.report", "unrelated_view"]
+
+    result = TrinoEngineSpec.get_view_names(Mock(), inspector, schema)
+
+    assert result == {"report", "unrelated_view"}
+
+
+def test_get_schema_names(mocker: MockerFixture) -> None:
+    from superset.db_engine_specs.trino import TrinoEngineSpec
+
+    inspector = mocker.MagicMock()
+    inspector.get_schema_names.return_value = ["information_schema", "default"]
+
+    assert TrinoEngineSpec.get_schema_names(inspector) == {
+        "information_schema",
+        "default",
+    }
+
+
+def test_get_schema_names_empty(mocker: MockerFixture) -> None:
+    from superset.db_engine_specs.trino import TrinoEngineSpec
+
+    inspector = mocker.MagicMock()
+    inspector.get_schema_names.return_value = []
+
+    assert TrinoEngineSpec.get_schema_names(inspector) == set()
+
+
+# ---------------------------------------------------------------------------
+# sc-105831: get_catalog_names, and permission-denied propagation for
+# get_schema_names / get_catalog_names.
+# ---------------------------------------------------------------------------
+
+
+def test_get_catalog_names(mocker: MockerFixture) -> None:
+    """
+    Mirrors test_presto.py::test_get_catalog_names_lists_catalogs at the
+    Trino layer: get_catalog_names is defined on PrestoBaseEngineSpec and was
+    previously only exercised through PrestoEngineSpec.
+    """
+    from superset.db_engine_specs.trino import TrinoEngineSpec
+
+    inspector = mocker.MagicMock()
+    conn = inspector.engine.connect.return_value.__enter__.return_value
+    conn.execute.return_value = [("system",), ("tpch",), ("memory",)]
+
+    result = TrinoEngineSpec.get_catalog_names(Mock(), inspector)
+
+    assert result == {"system", "tpch", "memory"}
+    assert str(conn.execute.call_args[0][0]) == "SHOW CATALOGS"
+
+
+def test_get_catalog_names_empty(mocker: MockerFixture) -> None:
+    from superset.db_engine_specs.trino import TrinoEngineSpec
+
+    inspector = mocker.MagicMock()
+    conn = inspector.engine.connect.return_value.__enter__.return_value
+    conn.execute.return_value = []
+
+    assert TrinoEngineSpec.get_catalog_names(Mock(), inspector) == set()
+
+
+def test_get_schema_names_propagates_permission_denied(mocker: MockerFixture) -> None:
+    """
+    get_schema_names has no permission-denied handling: a driver-level access
+    error propagates unchanged and unmapped (unlike get_table_names/
+    get_view_names, which route failures through get_dbapi_mapped_exception).
+    """
+    from superset.db_engine_specs.trino import TrinoEngineSpec
+
+    inspector = mocker.MagicMock()
+    inspector.get_schema_names.side_effect = TrinoUserError(
+        {"message": "Access Denied: Cannot access catalog system"}
+    )
+
+    with pytest.raises(TrinoUserError):
+        TrinoEngineSpec.get_schema_names(inspector)
+
+
+def test_get_catalog_names_propagates_permission_denied(mocker: MockerFixture) -> None:
+    """
+    get_catalog_names (PrestoBaseEngineSpec) similarly has no permission-
+    denied handling: a failed `SHOW CATALOGS` propagates the raw driver
+    exception.
+    """
+    from superset.db_engine_specs.trino import TrinoEngineSpec
+
+    inspector = mocker.MagicMock()
+    conn = inspector.engine.connect.return_value.__enter__.return_value
+    conn.execute.side_effect = TrinoUserError(
+        {"message": "Access Denied: Cannot execute query"}
+    )
+
+    with pytest.raises(TrinoUserError):
+        TrinoEngineSpec.get_catalog_names(Mock(), inspector)
+
+
+# ---------------------------------------------------------------------------
+# sc-105832: get_column_spec / _expand_columns type-handling gaps.
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize("native_type", ["IPADDRESS", "UUID", "HyperLogLog"])
+def test_get_column_spec_unmapped_trino_types(native_type: str) -> None:
+    """
+    Trino-only opaque types with no SQLAlchemy equivalent in
+    column_type_mappings fall through to None rather than raising, same as
+    any other unrecognized native type.
+    """
+    from superset.db_engine_specs.trino import TrinoEngineSpec
+
+    assert TrinoEngineSpec.get_column_spec(native_type) is None
+
+
+def test_expand_columns_does_not_expand_row_nested_inside_map() -> None:
+    """
+    _expand_columns can only descend into ROW types directly; a ROW nested
+    inside a MAP's value type is left untouched, per the method's own
+    docstring ("we can't expand out MAP or ARRAY types ... We won't be able
+    to expand ROWs which are nested underneath any of those types, either").
+    """
+    from superset.db_engine_specs.trino import TrinoEngineSpec
+
+    col_type = datatype.parse_sqltype("map(varchar, row(a varchar, b date))")
+    col = ResultSetColumnType(
+        name="field1", column_name="field1", type=col_type, is_dttm=False
+    )
+
+    assert TrinoEngineSpec._expand_columns(col) == [col]
+
+
+def test_expand_columns_recursion_is_unbounded() -> None:
+    """
+    Characterizes current behavior; see Shortcut sc-105875. Invert when fixed.
+
+    _expand_columns has no depth guard: a deeply nested ROW expands
+    successfully, one output column per nesting level, all the way down.
+    Python's default recursion limit is ~1000, so this only becomes a
+    practical problem at depths far beyond any real schema; a much smaller
+    depth here is enough to pin the unbounded behavior without risking a
+    stack overflow in CI.
+    """
+    from superset.db_engine_specs.trino import TrinoEngineSpec
+
+    depth = 50
+    type_str = "varchar"
+    for _ in range(depth):
+        type_str = f"row(a {type_str})"
+    col_type = datatype.parse_sqltype(type_str)
+    col = ResultSetColumnType(
+        name="field", column_name="field", type=col_type, is_dttm=False
+    )
+
+    expanded = TrinoEngineSpec._expand_columns(col)
+
+    # One column for the outer field, plus one per nested level.
+    assert len(expanded) == depth + 1
+    assert expanded[-1]["name"] == "field" + ".a" * depth
+
+
+# ---------------------------------------------------------------------------
+# sc-105833: get_dbapi_exception_mapping gaps not covered by
+# test_get_dbapi_exception_mapping (subclasses without a bespoke Trino*
+# wrapper, and exceptions outside the 3 mapped categories).
+# ---------------------------------------------------------------------------
+
+
+def test_get_dbapi_exception_mapping_matches_subclasses() -> None:
+    """
+    The mapping matches via issubclass, not exact type: driver exceptions
+    that don't have a bespoke Trino* wrapper (e.g. connection/auth failures)
+    still map correctly because they subclass OperationalError.
+    """
+    from superset.db_engine_specs.trino import TrinoEngineSpec
+
+    mapping = TrinoEngineSpec.get_dbapi_exception_mapping()
+    assert mapping.get(TrinoConnectionError) == SupersetDBAPIOperationalError
+    assert mapping.get(TrinoAuthError) == SupersetDBAPIOperationalError
+
+
+def test_get_dbapi_exception_mapping_unmapped_exceptions_return_default() -> None:
+    """
+    Exceptions outside the 3 mapped DatabaseError categories (and not
+    requests.ConnectionError) fall through to the default: Trino's HTTP 5xx
+    errors subclass HttpError rather than any DatabaseError, and
+    IntegrityError/DataError/NotSupportedError subclass DatabaseError
+    directly rather than one of the 3 handled subclasses.
+    """
+    from superset.db_engine_specs.trino import TrinoEngineSpec
+
+    mapping = TrinoEngineSpec.get_dbapi_exception_mapping()
+    assert mapping.get(Http502Error) is None
+    assert mapping.get(IntegrityError) is None
+
+    fallback = SupersetDBAPIConnectionError
+    assert mapping.get(IntegrityError, fallback) is fallback
+
+
+# ---------------------------------------------------------------------------
+# sc-105834: get_function_names, and get_extra_table_metadata gaps not
+# covered by the existing partition/Iceberg tests.
+# ---------------------------------------------------------------------------
+
+
+def test_get_function_names(mocker: MockerFixture) -> None:
+    """
+    Mirrors test_presto.py::test_get_function_names_lists_presto_functions:
+    get_function_names is defined on PrestoBaseEngineSpec and was previously
+    only exercised through PrestoEngineSpec. The dataframe-shape edge cases
+    (missing "Function" column, propagated connection errors) are generic
+    pandas/error-propagation behavior already pinned there and aren't
+    Trino-specific, so they aren't repeated here.
+    """
+    from superset.db_engine_specs.trino import TrinoEngineSpec
+
+    database = mocker.MagicMock()
+    database.get_df.return_value = pd.DataFrame(
+        {"Function": ["abs", "array_agg", "json_extract"]}
+    )
+
+    assert TrinoEngineSpec.get_function_names(database) == [
+        "abs",
+        "array_agg",
+        "json_extract",
+    ]
+    database.get_df.assert_called_once_with("SHOW FUNCTIONS")
+
+
+def test_get_function_names_empty(mocker: MockerFixture) -> None:
+    from superset.db_engine_specs.trino import TrinoEngineSpec
+
+    database = mocker.MagicMock()
+    database.get_df.return_value = pd.DataFrame({"Function": []})
+
+    assert TrinoEngineSpec.get_function_names(database) == []
+
+
+def test_get_extra_table_metadata_no_partitions(mocker: MockerFixture) -> None:
+    """
+    A table with no indexes at all (not just Iceberg metadata filtered out)
+    yields no partition metadata and no latest-partition query, mirroring the
+    Iceberg-specific tests above for a plain non-partitioned table.
+    """
+    from superset.db_engine_specs.trino import TrinoEngineSpec
+
+    db_mock = mocker.MagicMock()
+    db_mock.get_indexes = Mock(return_value=[])
+    db_mock.get_extra = Mock(return_value={})
+    db_mock.has_view = Mock(return_value=None)
+    db_mock.get_df = Mock()
+
+    result = TrinoEngineSpec.get_extra_table_metadata(
+        db_mock, Table("test_table", "test_schema")
+    )
+
+    assert result == {}
+    db_mock.get_df.assert_not_called()
+
+
+def test_get_extra_table_metadata_missing_table_propagates(
+    mocker: MockerFixture,
+) -> None:
+    """
+    get_extra_table_metadata has no special handling for a table that no
+    longer exists by the time metadata is fetched: NoSuchTableError from the
+    underlying index lookup propagates unchanged.
+    """
+    from superset.db_engine_specs.trino import TrinoEngineSpec
+
+    db_mock = mocker.MagicMock()
+    db_mock.get_indexes = Mock(
+        side_effect=NoSuchTableError("The specified table does not exist.")
+    )
+
+    with pytest.raises(NoSuchTableError):
+        TrinoEngineSpec.get_extra_table_metadata(
+            db_mock, Table("dropped_table", "test_schema")
+        )
+
+
+# ---------------------------------------------------------------------------
+# sc-105872: cancel_query must reject a malformed/injection-style
+# cancel_query_id without ever reaching cursor.execute.
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    "malformed_id",
+    [
+        "123; DROP TABLE users",
+        "123' OR '1'='1",
+        "../../etc/passwd",
+        "123 UNION SELECT 1",
+        "",
+    ],
+)
+def test_cancel_query_malformed_id_rejected(malformed_id: str) -> None:
+    """
+    A malformed/injection-style cancel_query_id fails validate_cancel_query_id
+    and cancel_query returns False without ever calling cursor.execute, so the
+    id can't reach the f-string interpolation used to build the CALL
+    statement.
+    """
+    from superset.db_engine_specs.trino import TrinoEngineSpec
+    from superset.models.sql_lab import Query
+
+    cursor_mock = Mock()
+    query = Query()
+
+    assert TrinoEngineSpec.cancel_query(cursor_mock, query, malformed_id) is False
+    cursor_mock.execute.assert_not_called()
+
+
+# ---------------------------------------------------------------------------
+# sc-105873: execute_with_cursor's `g` copy is shallow, so mutable attributes
+# are shared (same object) between the request thread and the worker thread.
+# ---------------------------------------------------------------------------
+
+
+def test_execute_with_cursor_shares_mutable_g_state_across_threads(
+    app, mocker: MockerFixture
+) -> None:
+    """
+    Characterizes current behavior; see Shortcut sc-105873. Invert when fixed.
+
+    execute_with_cursor's worker thread copies `g` attribute-by-attribute
+    with `setattr(g, key, value)`: this is a shallow copy, so a mutable
+    attribute (e.g. a dict) is the *same object* in both the original
+    request's `g` and the worker thread's `g`. Mutating it from the worker
+    thread is therefore visible from the original context too, which is
+    surprising if callers assume the copy isolates per-thread state.
+    """
+    from superset.db_engine_specs.trino import TrinoEngineSpec
+
+    mock_cursor = mocker.MagicMock()
+    mock_cursor.query_id = "existing-query-id"
+    mock_query = mocker.MagicMock()
+
+    # handle_cursor's own progress-polling behavior is exercised elsewhere;
+    # mock it out here so this test isolates `_execute`'s `g` copying.
+    mocker.patch.object(TrinoEngineSpec, "handle_cursor")
+
+    with app.test_request_context("/some/place/"):
+        shared_state = {"count": 0}
+        g.shared_state = shared_state
+
+        def _mock_execute(*args, **kwargs):
+            # Runs inside the worker thread, under a copied app/g context.
+            g.shared_state["count"] += 1
+
+        with patch.object(TrinoEngineSpec, "execute", side_effect=_mock_execute):
+            with patch.dict("superset.config.DISALLOWED_SQL_FUNCTIONS", {}, clear=True):
+                TrinoEngineSpec.execute_with_cursor(
+                    cursor=mock_cursor, sql="SELECT 1 FROM foo", query=mock_query
+                )
+
+        # The mutation performed inside the worker thread is visible on the
+        # *original* request's `g`, because `g.shared_state` is the same
+        # dict object in both places (setattr copies the reference, not a
+        # deep copy of the value).
+        assert shared_state["count"] == 1
+        assert g.shared_state is shared_state
+
+
+# ---------------------------------------------------------------------------
+# sc-105874 / sc-105878: OAuth2 gaps.
+# ---------------------------------------------------------------------------
+
+
+def test_update_params_from_encrypted_extra_malformed_json_reraises() -> None:
+    """
+    A malformed `encrypted_extra` blob re-raises JSONDecodeError rather than
+    being swallowed: update_params_from_encrypted_extra logs the error and
+    re-raises it as-is.
+    """
+    from superset.db_engine_specs.trino import TrinoEngineSpec
+
+    database = Mock()
+    database.encrypted_extra = "{not valid json"
+
+    with pytest.raises(json.JSONDecodeError):
+        TrinoEngineSpec.update_params_from_encrypted_extra(database, {})
+
+
+def test_execute_starts_oauth2_dance_without_refresh_attempt(
+    app, mocker: MockerFixture
+) -> None:
+    """
+    Characterizes current behavior; see Shortcut sc-105874. Invert when fixed.
+
+    When TrinoEngineSpec.execute (inherited from BaseEngineSpec.execute) hits
+    a 401 outside of an active OAuth2 retry context, it goes straight to
+    start_oauth2_dance with no attempt to look up or refresh a stored token at
+    this layer. A token-refresh-and-retry mechanism does exist
+    (execute_with_oauth2_retry in superset/utils/oauth2.py, with its own
+    tests), but it only wraps execution while the query has made *no*
+    progress yet (`can_retry=lambda: not query.progress`); once a query is
+    genuinely mid-flight, this direct, no-refresh path is what actually runs.
+    """
+    from trino.exceptions import HttpError
+
+    from superset.db_engine_specs.trino import TrinoEngineSpec
+
+    mock_dance = mocker.patch.object(TrinoEngineSpec, "start_oauth2_dance")
+    cursor = Mock()
+    cursor.execute.side_effect = HttpError("error 401: Unauthorized")
+    database = Mock()
+    database.is_oauth2_enabled.return_value = True
+
+    with app.test_request_context("/"):
+        g.user = Mock()
+        with pytest.raises(HttpError):
+            TrinoEngineSpec.execute(cursor, "SELECT 1", database)
+
+    mock_dance.assert_called_once_with(database)
+    cursor.execute.assert_called_once()
+
+
+# ---------------------------------------------------------------------------
+# sc-105876: execute_with_cursor worker-exception paths.
+# ---------------------------------------------------------------------------
+
+
+def test_execute_with_cursor_worker_exception_before_query_id(
+    app, mocker: MockerFixture
+) -> None:
+    """
+    A non-DB exception raised by the worker thread before a query ID ever
+    appears on the cursor is re-raised, unchanged, in the calling thread. The
+    loop that waits for a query ID exits via the execute_event being set (not
+    via a query ID appearing) once the worker's `finally` block fires, so
+    this doesn't hang forever on a query that fails before Trino ever assigns
+    it an ID.
+    """
+    from superset.db_engine_specs.trino import TrinoEngineSpec
+
+    mock_cursor = mocker.MagicMock()
+    mock_cursor.query_id = None  # never becomes available
+    mock_query = mocker.MagicMock()
+
+    mock_handle_cursor = mocker.patch.object(TrinoEngineSpec, "handle_cursor")
+    mocker.patch("superset.db_engine_specs.trino.time.sleep")
+
+    with app.test_request_context("/some/place/"):
+        with patch.object(TrinoEngineSpec, "execute", side_effect=RuntimeError("boom")):
+            with pytest.raises(RuntimeError, match="boom"):
+                TrinoEngineSpec.execute_with_cursor(
+                    cursor=mock_cursor, sql="SELECT 1 FROM foo", query=mock_query
+                )
+
+    mock_handle_cursor.assert_called_once()
+    assert mock_cursor.query_id is None
+
+
+def test_execute_with_cursor_worker_exception_after_query_id_set(
+    app, mocker: MockerFixture
+) -> None:
+    """
+    When a query ID *did* become available before the worker thread's
+    exception, execute_with_cursor still stops cleanly: the same exception is
+    re-raised in the calling thread and handle_cursor sees the real query ID
+    rather than None.
+    """
+    from superset.db_engine_specs.trino import TrinoEngineSpec
+
+    mock_cursor = mocker.MagicMock()
+    mock_cursor.query_id = None
+    mock_query = mocker.MagicMock()
+
+    mock_handle_cursor = mocker.patch.object(TrinoEngineSpec, "handle_cursor")
+    mocker.patch("superset.db_engine_specs.trino.time.sleep")
+
+    def _mock_execute(*args, **kwargs):
+        mock_cursor.query_id = "myQueryId"
+        raise RuntimeError("boom")
+
+    with app.test_request_context("/some/place/"):
+        with patch.object(TrinoEngineSpec, "execute", side_effect=_mock_execute):
+            with pytest.raises(RuntimeError, match="boom"):
+                TrinoEngineSpec.execute_with_cursor(
+                    cursor=mock_cursor, sql="SELECT 1 FROM foo", query=mock_query
+                )
+
+    mock_handle_cursor.assert_called_once()
+    assert mock_cursor.query_id == "myQueryId"
