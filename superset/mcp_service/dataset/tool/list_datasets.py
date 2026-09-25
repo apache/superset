@@ -88,12 +88,10 @@ async def list_datasets(
         ListDatasetsRequest | None,
         Field(
             description=(
-                'Wrap as {"request": {"search": "x"}}. '
-                "Do NOT pass search/page/filters top-level. "
-                "Candidates, not a ranking: if several fit, explain alternatives, "
-                "clarify before querying. An empty result doesn't prove absence. "
-                "Never substitute out-of-scope datasets. "
-                "People: find_users IDs in filters, not search."
+                'Wrap {"request": {...}}; Do NOT pass search/filters top-level. '
+                "Candidates, not a ranking; if several fit, explain alternatives, "
+                "clarify before querying; empty result doesn't prove absence. "
+                "Never substitute datasets. People: find_users ID filter, not search."
             )
         ),
     ] = None,

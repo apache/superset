@@ -216,3 +216,22 @@ async def test_docstring_constraints_survive_default_discovery(
         assert sentence in docstring, (name, sentence)
         missing.extend((sentence, phrase) for phrase in phrases if phrase not in text)
     assert not missing, (name, missing, text)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("name", CONSTRAINTS)
+@pytest.mark.parametrize("include_schemas", [True, False])
+async def test_default_discovery_keeps_purpose_line(
+    name: str, include_schemas: bool
+) -> None:
+    """Request guidance must leave room for the docstring's first purpose sentence."""
+    from superset.mcp_service.mcp_config import MCP_TOOL_SEARCH_CONFIG
+
+    tool = await mcp.get_tool(name)
+    assert tool is not None
+    docstring = re.sub(r"\s+", " ", tool.description or "").strip()
+    purpose = re.match(r".+?[.!?](?=\s|$)", docstring)
+    assert purpose is not None, name
+    config = {**MCP_TOOL_SEARCH_CONFIG, "include_schemas": include_schemas}
+    entry = _create_search_result_serializer(config)([tool])[0]
+    assert entry["description"].startswith(purpose.group(0)), (name, entry)
