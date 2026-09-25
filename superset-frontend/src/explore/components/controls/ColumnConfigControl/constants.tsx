@@ -114,16 +114,22 @@ const horizontalAlign: ControlFormItemSpec<'RadioButtonControl'> & {
   ],
 };
 
-const showCellBars: ControlFormItemSpec<'Checkbox'> = {
+const showCellBars: ControlFormItemSpec<'Checkbox'> & {
+  resettable: true;
+} = {
   controlType: 'Checkbox',
+  resettable: true,
   label: t('Show cell bars'),
   description: t('Whether to display a bar chart background in table columns'),
   defaultValue: true,
   debounceDelay: 200,
 };
 
-const alignPositiveNegative: ControlFormItemSpec<'Checkbox'> = {
+const alignPositiveNegative: ControlFormItemSpec<'Checkbox'> & {
+  resettable: true;
+} = {
   controlType: 'Checkbox',
+  resettable: true,
   label: t('Align +/-'),
   description: t(
     'Whether to align positive and negative values in cell bar chart at 0',
@@ -132,8 +138,11 @@ const alignPositiveNegative: ControlFormItemSpec<'Checkbox'> = {
   debounceDelay: 200,
 };
 
-const colorPositiveNegative: ControlFormItemSpec<'Checkbox'> = {
+const colorPositiveNegative: ControlFormItemSpec<'Checkbox'> & {
+  resettable: true;
+} = {
   controlType: 'Checkbox',
+  resettable: true,
   label: t('Color +/-'),
   description: t(
     'Whether to colorize numeric values by if they are positive or negative',
