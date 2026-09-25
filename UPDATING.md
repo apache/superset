@@ -24,6 +24,18 @@ assists people when migrating to a new version.
 
 ## Next
 
+### Unused `INCLUDE_FIREFOX` build arg and dead config removed
+
+Screenshots use only Playwright with Chromium, so the `INCLUDE_FIREFOX` Docker build
+arg, which installed a Firefox browser that nothing used, has been removed from the
+`Dockerfile` and the `docker-compose` files. Builds that still pass `INCLUDE_FIREFOX`
+keep working, though Docker may warn that the build argument is unused. Use
+`INCLUDE_CHROMIUM=true` to add the browser that screenshots need.
+
+The `EMAIL_PAGE_RENDER_WAIT` and `SCREENSHOT_LOCATE_WAIT` config keys and the
+`ENABLE_PLAYWRIGHT` variable in `docker/.env` are also removed. Nothing in Superset read
+any of them, so setting them had no effect and they can be deleted from custom configs.
+
 ### MCP response size guard: byte limit instead of estimated token count
 
 The MCP response-size guard no longer estimates LLM token counts (it

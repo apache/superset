@@ -50,13 +50,11 @@ Screenshots will be taken but no messages actually sent as long as `ALERT_REPORT
 
 #### In your `Dockerfile`
 
-You'll need to extend the Superset image to include a headless browser. Your options include:
+As of 7.0.0, Superset takes screenshots only with [Playwright](https://playwright.dev/python/) driving a headless Chromium browser. Selenium, Firefox, geckodriver and the `WEBDRIVER_TYPE` setting are not supported, and no feature flag is needed to use Playwright. Prior to 7.0.0, users were responsible for installing their own headless browser, and could use Selenium if desired.
 
-- Use Playwright with Chromium: this is the recommended approach as of version 4.1.x or greater. Playwright always uses Chromium — the `WEBDRIVER_TYPE` config setting has no effect when Playwright is active. A working example of a Dockerfile that installs these tools is provided under "Building your own production Docker image" on the [Docker Builds](/admin-docs/installation/docker-builds#building-your-own-production-docker-image) page. Enable the `PLAYWRIGHT_REPORTS_AND_THUMBNAILS` feature flag in your config to activate it.
-- Use Firefox (Selenium): you'll need to install geckodriver and Firefox. Set `WEBDRIVER_TYPE` to `"firefox"` in your `superset_config.py`.
-- Use Chrome (Selenium): you'll need to install Chrome. Set `WEBDRIVER_TYPE` to `"chrome"` in your `superset_config.py`.
-
-In Superset versions &lt;=4.0x, users installed Firefox or Chrome and that was documented here.
+- The default Superset image (for example the `latest` and `<version>` tags) includes Playwright and Chromium.
+- The `-lean` and `-dev` images do not. To add them to an image based on `-lean`, see the example Dockerfile under "Building your own production Docker image" on the [Docker Builds](/admin-docs/installation/docker-builds#building-your-own-production-docker-image) page.
+- To build the `dev` target from source with Chromium, pass `--build-arg INCLUDE_CHROMIUM=true`. With Docker Compose, run `INCLUDE_CHROMIUM=true docker compose build`.
 
 Only the worker container needs the browser.
 
@@ -371,7 +369,6 @@ ALERT_REPORTS_EXECUTION_HARD_TIMEOUT_GRACE_SECONDS = 30
 # Screenshot-specific waits continue to apply to thumbnails and other
 # standalone screenshot calls. Scheduled reports derive their waits from the
 # shared execution deadline above.
-SCREENSHOT_LOCATE_WAIT = 100
 SCREENSHOT_LOAD_WAIT = 600
 
 # Slack configuration
@@ -388,20 +385,13 @@ SMTP_PASSWORD = "your_password" # use the empty string "" if using an unauthenti
 SMTP_MAIL_FROM = "noreply@youremail.com"
 EMAIL_REPORTS_SUBJECT_PREFIX = "[Superset] " # optional - overwrites default value in config.py of "[Report] "
 
-# WebDriver configuration
-# If you use Firefox or Playwright with Chrome, you can stick with default values
-# If you use Chrome and are *not* using Playwright, then add the following WEBDRIVER_TYPE and WEBDRIVER_OPTION_ARGS
-WEBDRIVER_TYPE = "chrome"
-WEBDRIVER_OPTION_ARGS = [
-    "--force-device-scale-factor=2.0",
-    "--high-dpi-support=2.0",
-    "--headless",
-    "--disable-gpu",
-    "--disable-dev-shm-usage",
-    "--no-sandbox",
-    "--disable-setuid-sandbox",
-    "--disable-extensions",
-]
+# Screenshot browser configuration
+# Playwright always launches Chromium, so there is no browser type to set, and the
+# defaults work for most deployments. The values below are the defaults. To render
+# sharper screenshots, raise pixel_density in WEBDRIVER_WINDOW. Extra Chromium
+# launch arguments can be passed with WEBDRIVER_OPTION_ARGS.
+# WEBDRIVER_WINDOW = {"dashboard": (1600, 2000), "slice": (3000, 1200), "pixel_density": 1}
+# WEBDRIVER_OPTION_ARGS = []
 
 # This is for internal use, you can keep http
 WEBDRIVER_BASEURL = "http://superset:8088" # This is also the default for Docker Compose, where the app service is named "superset"
@@ -429,10 +419,11 @@ Please refer to `ExecutorType` in the codebase for other executor types.
 
 **Important notes**
 
-- Be mindful of the concurrency setting for celery (using `-c 4`). Selenium/webdriver instances can
-  consume a lot of CPU / memory on your servers.
-- In some cases, if you notice a lot of leaked geckodriver processes, try running your celery
-  processes with `celery worker --pool=prefork --max-tasks-per-child=128 ...`
+- Be mindful of the concurrency setting for celery (using `-c 4`). Each worker process keeps its own
+  headless Chromium instance, and these can consume a lot of CPU / memory on your servers.
+- If worker memory grows over time, try running your celery processes with
+  `celery worker --pool=prefork --max-tasks-per-child=128 ...` so that worker processes, and the
+  Chromium instances they own, are recycled periodically.
 - It is recommended to run separate workers for the `sql_lab` and `email_reports` tasks. This can be
   done using the `queue` field in `task_annotations`.
 - Adjust `WEBDRIVER_BASEURL` in your configuration file if celery workers can’t access Superset via
@@ -610,11 +601,22 @@ omitted. Cookies, authentication headers, URLs, SQL, and query payloads are not
 included in these transport diagnostics. HTTP 400 therefore remains a failure to
 investigate, not a reason to repeat the same request.
 
-### Check web browser and webdriver installation
+### Check the Playwright and Chromium installation
 
-To take a screenshot, the worker visits the dashboard or chart using a headless browser, then takes a screenshot. If you are able to send a chart as CSV, XLSX, or text but can't send as PNG, your problem may lie with the browser.
+To take a screenshot, the worker visits the dashboard or chart using a headless Chromium browser controlled by Playwright, then takes a screenshot. If you are able to send a chart as CSV, XLSX, or text but can't send as PNG, your problem may lie with the browser. When Playwright or Chromium is missing or fails to launch, screenshot attempts fail with an error that includes `Playwright is required for screenshots`.
 
-If you are handling the installation of the headless browser on your own, do your own verification to ensure that the headless browser opens successfully in the worker environment.
+If you are handling the installation of the headless browser on your own, confirm that Chromium launches in the worker environment. Start Python in your worker environment and run:
+
+```python
+from playwright.sync_api import sync_playwright
+
+with sync_playwright() as p:
+    browser = p.chromium.launch()
+    print(browser.version)
+    browser.close()
+```
+
+This should print the Chromium version.
 
 ### Send a test email
 

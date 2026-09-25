@@ -1367,9 +1367,6 @@ SUPERSET_CACHE_WARMUP_USER: str | None = None
 # - Cascade/dependent filters and search-term variants are not warmed in this
 #   version; only base option queries are supported.
 
-# Time before selenium times out after trying to locate an element on the page and wait
-# for that element to load for a screenshot.
-SCREENSHOT_LOCATE_WAIT = int(timedelta(seconds=10).total_seconds())
 # Time before screenshot capture times out while waiting for chart readiness.
 SCREENSHOT_LOAD_WAIT = int(timedelta(minutes=1).total_seconds())
 # "SELENIUM" in the next two key names is historical; both apply to Playwright.
@@ -2721,8 +2718,6 @@ WEBDRIVER_OPTION_ARGS: list[str] = []
 WEBDRIVER_BASEURL = "http://0.0.0.0:8080/"
 # The base URL for the email report hyperlinks.
 WEBDRIVER_BASEURL_USER_FRIENDLY = WEBDRIVER_BASEURL
-# Time selenium will wait for the page to load and render for the email report.
-EMAIL_PAGE_RENDER_WAIT = int(timedelta(seconds=30).total_seconds())
 
 # Send user to a link where they can report bugs
 BUG_REPORT_URL = None
