@@ -40,6 +40,9 @@ def test_shared_connection_capture_decision_survives_helper_session() -> None:
     helper: MagicMock = MagicMock(spec=Session)
     unit: CaptureUnitOfWork = CaptureUnitOfWork(versioning_manager)
     unit.pending_statements.append(MagicMock())
+    gate: MagicMock
+    before: MagicMock
+    after: MagicMock
     with (
         patch(
             "superset.versioning.unit_of_work.capture_enabled", return_value=True
@@ -65,6 +68,9 @@ def test_shared_connection_denial_cannot_be_reenabled_by_helper_session() -> Non
     helper: MagicMock = MagicMock(spec=Session)
     unit: CaptureUnitOfWork = CaptureUnitOfWork(versioning_manager)
     unit.pending_statements.append(MagicMock())
+    gate: MagicMock
+    before: MagicMock
+    after: MagicMock
     with (
         patch(
             "superset.versioning.unit_of_work.capture_enabled", return_value=False

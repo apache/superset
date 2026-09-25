@@ -477,3 +477,127 @@ def test_commit_reconciles_native_detach_with_same_transaction_reattach(
         RestoreDashboardVersionCommand(dashboard.uuid, target).run()
     capture_session.expire(dashboard, ["slices"])
     assert dashboard.slices == [chart]
+
+
+@pytest.mark.parametrize("native_edit", [False, True])
+@pytest.mark.parametrize("first_captured", ["old_parent", "new_parent"])
+@pytest.mark.parametrize("child", ["column", "metric"])
+def test_recycled_child_id_reconciles_across_parents_in_any_order(
+    capture_session: Session,
+    app: SupersetApp,
+    monkeypatch: pytest.MonkeyPatch,
+    child: str,
+    first_captured: str,
+    native_edit: bool,
+) -> None:
+    """A child id reused under another parent during a gap yields one shadow row.
+
+    Old-parent absence and new-parent presence both hold at the resumed
+    transaction, whichever parent reconciliation processes first, and each
+    resulting parent snapshot restores. With ``native_edit`` the reborn child
+    is itself edited in the resuming save, so Continuum writes its row first
+    and reconciliation must still record it as the new parent's first
+    captured presence (INSERT), not an UPDATE of the old parent's chain.
+    """
+    policy: dict[str, bool] = {"enabled": True}
+    monkeypatch.setitem(
+        app.config, "VERSIONING_CAPTURE_PREDICATE", lambda s: policy["enabled"]
+    )
+    database: Database = Database(database_name="private", sqlalchemy_uri="sqlite://")
+    child_model: type[Model] = TableColumn if child == "column" else SqlMetric
+
+    def make_child(name: str, **extra: Any) -> Any:
+        if child == "column":
+            return TableColumn(column_name=name, type="STRING", **extra)
+        return SqlMetric(metric_name=name, expression="COUNT(*)", **extra)
+
+    def names(dataset: SqlaTable) -> list[str]:
+        if child == "column":
+            return sorted(c.column_name for c in dataset.columns)
+        return sorted(m.metric_name for m in dataset.metrics)
+
+    def attach(dataset: SqlaTable, item: Any) -> None:
+        (dataset.columns if child == "column" else dataset.metrics).append(item)
+
+    def detach_all(dataset: SqlaTable) -> None:
+        if child == "column":
+            dataset.columns = []
+        else:
+            dataset.metrics = []
+
+    # Creation order decides which parent's rows reconciliation meets first;
+    # the outcome must not depend on it.
+    old_parent: SqlaTable = SqlaTable(table_name="old parent", database=database)
+    new_parent: SqlaTable = SqlaTable(table_name="new parent", database=database)
+    ordered: list[SqlaTable] = (
+        [old_parent, new_parent]
+        if first_captured == "old_parent"
+        else [new_parent, old_parent]
+    )
+    attach(old_parent, make_child("captured under old parent"))
+    capture_session.add_all(ordered)
+    capture_session.commit()
+    recycled_id: int = (
+        old_parent.columns[0].id if child == "column" else old_parent.metrics[0].id
+    )
+    shadow: Any = version_class(child_model)
+    birth_tx: int = capture_session.scalar(
+        sa.select(shadow.transaction_id).where(shadow.id == recycled_id)
+    )
+    policy["enabled"] = False
+    detach_all(old_parent)
+    capture_session.commit()
+    attach(new_parent, make_child("reborn under new parent", id=recycled_id))
+    capture_session.commit()
+    policy["enabled"] = True
+    old_parent.table_name = "old parent resumed"
+    new_parent.table_name = "new parent resumed"
+    if native_edit:
+        reborn: Any = (new_parent.columns if child == "column" else new_parent.metrics)[
+            0
+        ]
+        if child == "column":
+            reborn.verbose_name = "edited in the resuming save"
+        else:
+            reborn.expression = "COUNT(1)"
+    capture_session.commit()  # must not raise on the recycled shadow key
+
+    parent_shadow: Any = version_class(SqlaTable)
+    resumed_tx: int = capture_session.scalar(
+        sa.select(sa.func.max(parent_shadow.transaction_id)).where(
+            parent_shadow.id == new_parent.id
+        )
+    )
+    rows: list[Any] = list(
+        capture_session.execute(
+            sa.select(
+                shadow.table_id,
+                shadow.transaction_id,
+                shadow.end_transaction_id,
+                shadow.operation_type,
+            )
+            .where(shadow.id == recycled_id)
+            .order_by(shadow.transaction_id)
+        )
+    )
+    assert [tuple(row) for row in rows] == [
+        (old_parent.id, birth_tx, resumed_tx, Operation.INSERT),
+        (new_parent.id, resumed_tx, None, Operation.INSERT),
+    ]
+
+    old_target: UUID = latest_version(capture_session, old_parent)
+    new_target: UUID = latest_version(capture_session, new_parent)
+    # Diverge both parents so each restore has something to undo.
+    attach(old_parent, make_child("later under old parent"))
+    detach_all(new_parent)
+    old_parent.table_name = "old parent later"
+    new_parent.table_name = "new parent later"
+    capture_session.commit()
+    with patch.object(security_manager, "raise_for_editorship"):
+        RestoreDatasetVersionCommand(old_parent.uuid, old_target).run()
+        RestoreDatasetVersionCommand(new_parent.uuid, new_target).run()
+    capture_session.expire_all()
+    assert old_parent.table_name == "old parent resumed"
+    assert names(old_parent) == []
+    assert new_parent.table_name == "new parent resumed"
+    assert names(new_parent) == ["reborn under new parent"]

@@ -65,31 +65,46 @@ def reconcile_parent_snapshots(session: Session, transaction_id: int) -> None:
                 )
             )
         )
+        if not parent_ids:
+            continue
+        if model is SqlaTable:
+            # One pass per child model over every captured parent: the child
+            # shadow key ``(id, transaction_id)`` is global, so a child id that
+            # moved between captured parents during the gap must be settled
+            # once, not once per parent.
+            child: type[Any]
+            for child in (TableColumn, SqlMetric):
+                _reconcile_children(connection, child, parent_ids, transaction_id)
+            continue
         parent_id: int
         for parent_id in parent_ids:
-            if model is SqlaTable:
-                child: type[Any]
-                for child in (TableColumn, SqlMetric):
-                    _reconcile_children(connection, child, parent_id, transaction_id)
-            else:
-                _reconcile_membership(
-                    connection, shadow.metadata, parent_id, transaction_id
-                )
+            _reconcile_membership(
+                connection, shadow.metadata, parent_id, transaction_id
+            )
 
 
 def _reconcile_children(
     connection: sa.engine.Connection,
     model: type[Any],
-    parent_id: int,
+    parent_ids: list[int],
     transaction_id: int,
 ) -> None:
-    """Record the complete final child state, closing its prior validity interval."""
+    """Record the complete final child state, closing its prior validity interval.
+
+    Child identity is the child's own ``id``; the shadow key is
+    ``(id, transaction_id)`` across every parent. A child id recycled under a
+    different captured parent during the gap therefore gets exactly one row
+    at this transaction: an INSERT under its new parent, which also closes the
+    old parent's open row. The old parent's absence is proved by that closure
+    (see ``restore._child_state_provable_at``); the new parent's presence by
+    the row itself, whichever parent reconciliation would have met first.
+    """
     live: sa.Table = model.__table__
     shadow: sa.Table = version_class(model).__table__
     current: dict[int, dict[str, Any]] = {
         row.id: dict(row._mapping)
         for row in connection.execute(
-            sa.select(live).where(live.c.table_id == parent_id)
+            sa.select(live).where(live.c.table_id.in_(parent_ids))
         )
     }
     latest: dict[int, dict[str, Any]] = {
@@ -97,7 +112,7 @@ def _reconcile_children(
         for row in connection.execute(
             sa.select(shadow)
             .where(
-                shadow.c.table_id == parent_id,
+                shadow.c.table_id.in_(parent_ids),
                 shadow.c.end_transaction_id.is_(None),
             )
             .order_by(shadow.c.transaction_id)
@@ -108,6 +123,13 @@ def _reconcile_children(
         row: dict[str, Any] | None = current.get(identifier)
         prior: dict[str, Any] | None = latest.get(identifier)
         active: bool = prior is not None and prior["operation_type"] != Operation.DELETE
+        # A prior row under another parent is that parent's history, not this
+        # child's presence under its current parent.
+        reassigned: bool = (
+            row is not None
+            and prior is not None
+            and prior["table_id"] != row["table_id"]
+        )
         if (
             prior is not None
             and prior["transaction_id"] == transaction_id
@@ -116,14 +138,16 @@ def _reconcile_children(
                 sa.select(
                     sa.exists().where(
                         shadow.c.id == identifier,
+                        shadow.c.table_id == prior["table_id"],
                         shadow.c.transaction_id < transaction_id,
                     )
                 )
             )
         ):
-            # A gap-born child first edited during this save has no predecessor.
-            # INSERT records its first captured presence, allowing older restores
-            # to recognize it as absent rather than as a pruned unknown chain.
+            # A gap-born child first edited during this save has no same-parent
+            # predecessor. INSERT records its first captured presence, allowing
+            # older restores to recognize it as absent rather than as a pruned
+            # unknown chain.
             connection.execute(
                 shadow.update()
                 .where(
@@ -144,6 +168,7 @@ def _reconcile_children(
             row is not None
             and prior is not None
             and active
+            and not reassigned
             and all(row[key] == prior[key] for key in columns)
         ):
             continue
@@ -153,7 +178,7 @@ def _reconcile_children(
             Operation.DELETE
             if row is None
             else Operation.UPDATE
-            if active
+            if active and not reassigned
             else Operation.INSERT
         )
         values: dict[sa.Column[Any], Any] = {

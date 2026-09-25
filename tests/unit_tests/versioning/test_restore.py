@@ -137,7 +137,8 @@ def test_single_flush_scope_skips_flush_on_exception() -> None:
 class _Row:
     """Minimal validity interval consumed by the restore proof."""
 
-    def __init__(self, tx: int, end: int | None, op: int) -> None:
+    def __init__(self, tx: int, end: int | None, op: int, child_id: int = 1) -> None:
+        self.id: int = child_id
         self.transaction_id: int = tx
         self.end_transaction_id: int | None = end
         self.operation_type: int = op
@@ -321,6 +322,41 @@ def test_child_state_provable_case_algebra(
     """sc-120012 fail-closed algebra: covered / provably-absent pass,
     every detectable pruning hole refuses."""
     assert _provable(rows, target_tx) is expected, case
+
+
+@pytest.mark.parametrize(
+    ("foreign_closers", "expected", "case"),
+    [
+        (
+            {(1, 10)},
+            True,
+            "surviving foreign row at the close transaction proves reassignment",
+        ),
+        (
+            {(1, 11)},
+            False,
+            "a foreign row at another transaction is not this row's closer",
+        ),
+        (
+            {(2, 10)},
+            False,
+            "another child's foreign row proves nothing for this id",
+        ),
+        (set(), False, "no foreign evidence keeps the expired interval refused"),
+    ],
+)
+def test_expired_interval_closed_by_foreign_reassignment_is_absence(
+    foreign_closers: set[tuple[int, int]], expected: bool, case: str
+) -> None:
+    """A child id recycled under another parent closes the old parent's open
+    row with its own INSERT at the same transaction (gap reconciliation). The
+    shadow key is unique per transaction, so that surviving foreign row rules
+    out a pruned same-parent successor: the old parent provably lacks the child
+    from that transaction on."""
+    rows: list[_Row] = [_Row(2, 10, _INSERT)]
+    assert (
+        _child_state_provable_at(rows, 12, foreign_closers=foreign_closers) is expected
+    ), case
 
 
 def test_documented_limitation_rebirth_looks_like_first_birth() -> None:
