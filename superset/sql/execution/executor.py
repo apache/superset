@@ -186,6 +186,60 @@ def build_statement_blocks(
     return parsed_script, blocks
 
 
+class _LimitedCursor:
+    """Bound cumulative cursor reads without bypassing engine fetch processing."""
+
+    def __init__(self, cursor: Any, limit: int) -> None:
+        """Wrap a cursor with a shared budget for all row-reading methods."""
+        self._cursor = cursor
+        self._remaining = limit
+
+    def __getattr__(self, name: str) -> Any:
+        """Delegate metadata and driver-specific methods to the real cursor."""
+        return getattr(self._cursor, name)
+
+    @property
+    def arraysize(self) -> int:
+        """Expose the driver's default fetch batch size."""
+        return self._cursor.arraysize
+
+    @arraysize.setter
+    def arraysize(self, value: int) -> None:
+        """Preserve engine-specific cursor batch-size configuration."""
+        self._cursor.arraysize = value
+
+    def fetchmany(self, size: int | None = None) -> list[Any]:
+        """Read no more than the remaining budget, including across batches."""
+        size = self.arraysize if size is None else size
+        size = max(0, min(size, self._remaining))
+        # Some drivers interpret zero as unbounded, so do not call them at all.
+        if not size:
+            return []
+        # Reserve before reading so an engine's error fallback cannot retry
+        # beyond the budget after a driver has partially consumed a batch.
+        self._remaining -= size
+        return self._cursor.fetchmany(size)
+
+    def fetchall(self) -> list[Any]:
+        """Translate an unbounded read into a bounded driver fetch."""
+        return self.fetchmany(self._remaining)
+
+    def fetchone(self) -> Any:
+        """Read one row only if budget remains."""
+        rows = self.fetchmany(1)
+        return rows[0] if rows else None
+
+    def __iter__(self) -> _LimitedCursor:
+        """Iterate through the same bounded read path."""
+        return self
+
+    def __next__(self) -> Any:
+        """Stop iteration when the result or row budget is exhausted."""
+        if (row := self.fetchone()) is None:
+            raise StopIteration
+        return row
+
+
 def execute_sql_with_cursor(
     database: Database,
     cursor: Any,
@@ -271,7 +325,7 @@ def execute_sql_with_cursor(
         # Fetch results from ALL statements
         description = cursor.description
         if description:
-            rows = database.db_engine_spec.fetch_data(cursor)
+            fetch_cursor = cursor
             # SQL restrictions cannot always be safely wrapped or replaced.
             # Match SQL limit application: cap only the last statement, and
             # only when the caller supplied a limit (also honoring SQL_MAX_ROW).
@@ -279,7 +333,10 @@ def execute_sql_with_cursor(
                 row_limit: int = query.limit
                 if sql_max_row := app.config.get("SQL_MAX_ROW"):
                     row_limit = min(row_limit, sql_max_row)
-                rows = rows[:row_limit]
+                fetch_cursor = _LimitedCursor(cursor, row_limit)
+            # Keep each spec's conversion/error handling. Even specs that ignore
+            # a fetch_data limit can only consume the bounded cursor's budget.
+            rows = database.db_engine_spec.fetch_data(fetch_cursor)
             result_set = SupersetResultSet(
                 rows,
                 description,

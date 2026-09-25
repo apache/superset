@@ -31,6 +31,7 @@ These tests cover the SQL execution API including:
 
 import sqlite3
 from contextlib import closing
+from itertools import islice
 from typing import Any
 from unittest.mock import MagicMock
 
@@ -46,7 +47,7 @@ from superset_core.queries.types import (
 )
 
 from superset.models.core import Database
-from superset.sql.parse import SQLScript
+from superset.sql.parse import LimitMethod, SQLScript
 
 # Note: database, database_with_dml, mock_db_session fixtures and
 # mock_query_execution helper are imported from conftest.py
@@ -1781,6 +1782,135 @@ def test_execute_caps_rows_without_sql_rewrite(
     assert result.statements[-1].row_count == expected_rows
     assert result.statements[-1].data is not None
     assert len(result.statements[-1].data) == expected_rows
+
+
+@pytest.mark.parametrize("limit_method", list(LimitMethod))
+@pytest.mark.parametrize("engine", ["base", "mssql", "bigquery"])
+@pytest.mark.parametrize(
+    "request_limit,server_limit,expected_limit",
+    [(10, None, 10), (10, 5, 5), (5, 10, 5), (0, 10, 0)],
+)
+def test_execute_bounds_cursor_fetches(
+    mocker: MockerFixture,
+    mock_database: MagicMock,
+    mock_query: MagicMock,
+    app_context: None,
+    engine: str,
+    limit_method: LimitMethod,
+    request_limit: int,
+    server_limit: int | None,
+    expected_limit: int,
+) -> None:
+    """Cap cursor reads, not just results, while retaining engine processing."""
+    from superset.db_engine_specs.base import BaseEngineSpec
+    from superset.db_engine_specs.bigquery import BigQueryEngineSpec
+    from superset.db_engine_specs.mssql import MssqlEngineSpec
+    from superset.sql.execution.executor import execute_sql_with_cursor
+
+    spec = {
+        "base": BaseEngineSpec,
+        "mssql": MssqlEngineSpec,
+        "bigquery": BigQueryEngineSpec,
+    }[engine]
+    mocker.patch.object(spec, "limit_method", limit_method)
+    mock_database.db_engine_spec = spec
+    mock_query.limit = request_limit
+    mocker.patch.dict(current_app.config, {"SQL_MAX_ROW": server_limit})
+    rows = [(n,) for n in range(100)]
+    cursor = create_mock_cursor(["n"], rows)
+    remaining = iter(rows)
+    cursor.fetchmany.side_effect = lambda size: list(islice(remaining, size))
+    mocker.patch("superset.db_engine_specs.bigquery._BQ_INITIAL_SAMPLE_ROWS", 2)
+    result_set = mocker.patch("superset.result_set.SupersetResultSet")
+    convert = mocker.spy(MssqlEngineSpec, "pyodbc_rows_to_tuples")
+
+    execute_sql_with_cursor(
+        database=mock_database,
+        cursor=cursor,
+        statements=["SELECT TOP 50 PERCENT n FROM t"],
+        query=mock_query,
+        execute_fn=MagicMock(),
+    )
+
+    cursor.fetchall.assert_not_called()
+    assert (
+        sum(call.args[0] for call in cursor.fetchmany.call_args_list) <= expected_limit
+    )
+    assert result_set.call_args.args[0] == rows[:expected_limit]
+    if engine == "mssql":
+        convert.assert_called_once_with(rows[:expected_limit])
+
+
+@pytest.mark.parametrize("first_read", ["fetchmany", "fetchone", "iterate"])
+def test_limited_cursor_shares_read_budget(first_read: str) -> None:
+    """All cursor read methods share a budget; metadata stays on the driver."""
+    from superset.sql.execution.executor import _LimitedCursor
+
+    cursor = create_mock_cursor(["n"], [(n,) for n in range(100)])
+    cursor.arraysize = 7
+    cursor.fetchmany.side_effect = [[(1,)], [(2,), (3,)]]
+    limited = _LimitedCursor(cursor, 3)
+    assert limited.description is cursor.description
+    limited.arraysize = 1
+    assert cursor.arraysize == limited.arraysize == 1
+
+    if first_read == "fetchmany":
+        assert limited.fetchmany() == [(1,)]
+    elif first_read == "fetchone":
+        assert limited.fetchone() == (1,)
+    else:
+        assert next(iter(limited)) == (1,)
+    assert limited.fetchall() == [(2,), (3,)]
+    assert limited.fetchmany(100) == []
+    assert limited.fetchall() == []
+    assert limited.fetchone() is None
+    assert list(limited) == []
+    assert [call.args[0] for call in cursor.fetchmany.call_args_list] == [1, 2]
+    cursor.fetchall.assert_not_called()
+
+
+def test_limited_cursor_error_fallback_stays_bounded() -> None:
+    """Reserve requested rows even when a driver raises partway through a read."""
+    from superset.sql.execution.executor import _LimitedCursor
+
+    cursor = create_mock_cursor(["n"])
+    cursor.fetchmany.side_effect = [RuntimeError("fetch failed"), [(1,), (2,)]]
+    limited = _LimitedCursor(cursor, 5)
+    with pytest.raises(RuntimeError, match="fetch failed"):
+        limited.fetchmany(3)
+    assert limited.fetchall() == [(1,), (2,)]
+    assert limited.fetchall() == []
+    assert [call.args[0] for call in cursor.fetchmany.call_args_list] == [3, 2]
+    cursor.fetchall.assert_not_called()
+
+
+def test_limited_cursor_preserves_engine_conversions(mocker: MockerFixture) -> None:
+    """Keep base column normalization and SQL Server's native row conversion."""
+    from typing import NamedTuple
+
+    from sqlalchemy.types import Integer
+
+    from superset.db_engine_specs.mssql import MssqlEngineSpec
+    from superset.sql.execution.executor import _LimitedCursor
+
+    class Row(NamedTuple):
+        """Stand in for a native pyodbc row."""
+
+        n: int
+
+    cursor = create_mock_cursor(["n"])
+    cursor.fetchmany.return_value = [Row(1), Row(2)]
+    rows = MssqlEngineSpec.fetch_data(_LimitedCursor(cursor, 2))
+    assert rows == [(1,), (2,)]
+    assert all(type(row) is tuple for row in rows)
+
+    mocker.patch.object(MssqlEngineSpec, "get_sqla_column_type", return_value=Integer())
+    mocker.patch.object(
+        MssqlEngineSpec, "column_type_mutators", {Integer: lambda value: value + 10}
+    )
+    rows = MssqlEngineSpec.fetch_data(_LimitedCursor(cursor, 2))
+    assert rows == [(11,), (12,)]
+    cursor.fetchall.assert_not_called()
 
 
 @pytest.mark.parametrize(
