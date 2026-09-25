@@ -204,14 +204,6 @@ export function applyMappingMove<T extends PartitionMappingColumn>(
 }
 
 /**
- * Columns updated for a newly designated partition column.
- *
- * The partition key is technical, so it defaults out of Explore's dimension and
- * filter pickers. Only the defaults are set -- an owner who wants the raw
- * column exposed can toggle it back, and clearing the partition column later
- * does not undo their choice.
- */
-/**
  * The mapped-column override that survives choosing a new partition column.
  *
  * The override only means anything relative to a partition column, so clearing
@@ -232,6 +224,14 @@ export function nextMappedColumnOverride(
   return previousOverride ?? null;
 }
 
+/**
+ * Columns updated for a newly designated partition column.
+ *
+ * The partition key is technical, so it defaults out of Explore's dimension and
+ * filter pickers. Only the defaults are set -- an owner who wants the raw
+ * column exposed can toggle it back, and clearing the partition column later
+ * does not undo their choice.
+ */
 export function applyPartitionColumnDefaults<T extends PartitionMappingColumn>(
   columns: T[],
   partitionColumnName: string,
