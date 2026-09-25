@@ -26,9 +26,14 @@ from marshmallow.validate import Length
 
 first_name_description = "The current user's first name"
 last_name_description = "The current user's last name"
-password_description = "The current user's password for authentication"  # noqa: S105
+# Administrators resetting another account's password use
+# ``PUT /api/v1/security/users/<id>`` (``can_put on User``) instead, which needs
+# no current password.
+password_description = "The current user's new password; requires current_password"  # noqa: S105, E501
 # Required, and verified against the account's existing password, whenever
-# ``password`` is included in the payload.
+# ``password`` is included in the payload. This is the self-service rule: the
+# caller is always the account owner here, so they have to prove knowledge of
+# the existing password.
 current_password_description = "The current user's existing password"  # noqa: S105
 
 

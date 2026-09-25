@@ -25,9 +25,12 @@ from unittest.mock import MagicMock
 
 import pytest
 from flask import current_app
+from flask_appbuilder.actions import ActionItem
 from flask_appbuilder.const import AUTH_DB, AUTH_REMOTE_USER
 from flask_appbuilder.security.sqla.models import Role, User
+from flask_appbuilder.security.views import ResetMyPasswordView, ResetPasswordView
 from pytest_mock import MockerFixture
+from werkzeug.exceptions import NotFound
 
 from superset.common.chart_data import ChartDataResultType
 from superset.common.query_object import QueryObject
@@ -5312,3 +5315,211 @@ def test_gamma_receives_no_semantic_write_pvm() -> None:
     assert not sm._is_gamma_pvm(_pvm("can_write", "SemanticView"))
     assert sm._is_gamma_pvm(_pvm("can_read", "SemanticLayer"))
     assert sm._is_gamma_pvm(_pvm("can_read", "SemanticView"))
+
+
+def test_skip_legacy_fab_password_view_registration_refuses_reset_views(
+    app_context: None,
+) -> None:
+    """The patched ``add_view_no_menu`` drops both legacy reset views, whether
+    FAB hands over an instance (as ``register_views`` does) or the class, and
+    passes everything else through to the original."""
+
+    class NonPasswordView:
+        pass
+
+    registered: list[Any] = []
+
+    def add_view_no_menu(baseview: Any, *args: Any, **kwargs: Any) -> Any:
+        registered.append(baseview)
+        return baseview
+
+    fake_appbuilder = SimpleNamespace(add_view_no_menu=add_view_no_menu)
+    sm = SupersetSecurityManager.__new__(SupersetSecurityManager)
+    sm.appbuilder = fake_appbuilder
+
+    original = sm._skip_legacy_fab_password_view_registration()
+    assert original is add_view_no_menu
+
+    fake_appbuilder.add_view_no_menu(ResetPasswordView())
+    fake_appbuilder.add_view_no_menu(ResetMyPasswordView())
+    fake_appbuilder.add_view_no_menu(ResetPasswordView)
+    fake_appbuilder.add_view_no_menu(ResetMyPasswordView)
+    fake_appbuilder.add_view_no_menu(NonPasswordView)
+
+    assert registered == [NonPasswordView]
+
+
+def test_register_views_never_registers_legacy_password_views(
+    app_context: None, mocker: MockerFixture
+) -> None:
+    """End to end through ``register_views``: the reset views FAB adds for
+    ``AUTH_DB`` never reach the appbuilder, other views do, and the appbuilder's
+    ``add_view_no_menu`` is restored once FAB's registration is done."""
+    mocker.patch.dict(
+        current_app.config,
+        {
+            "AUTH_TYPE": AUTH_DB,
+            "AUTH_USER_REGISTRATION": False,
+            "AUTH_RATE_LIMITED": False,
+        },
+    )
+    mock_appbuilder = mocker.MagicMock()
+    mock_appbuilder.baseviews = []
+    mock_appbuilder.menu.get_list.return_value = []
+    original_add_view_no_menu = mock_appbuilder.add_view_no_menu
+
+    sm = SupersetSecurityManager.__new__(SupersetSecurityManager)
+    sm.appbuilder = mock_appbuilder
+    sm.register_superset_auth_view = True
+    sm.register_superset_registeruser_view = False
+    sm.userstatschartview = None
+
+    class NonPasswordView:
+        pass
+
+    def fab_register_views(fab_sm: SupersetSecurityManager) -> None:
+        # What FAB's ``register_views`` does for AUTH_DB, reduced to the calls
+        # that matter here.
+        fab_sm.appbuilder.add_view_no_menu(ResetPasswordView())
+        fab_sm.appbuilder.add_view_no_menu(ResetMyPasswordView())
+        fab_sm.appbuilder.add_view_no_menu(NonPasswordView)
+
+    mocker.patch(
+        "flask_appbuilder.security.sqla.manager.SecurityManager.register_views",
+        autospec=True,
+        side_effect=fab_register_views,
+    )
+
+    sm.register_views()
+
+    registered = [call.args[0] for call in original_add_view_no_menu.call_args_list]
+    assert NonPasswordView in registered
+    assert not any(
+        isinstance(view, (ResetPasswordView, ResetMyPasswordView))
+        or view in (ResetPasswordView, ResetMyPasswordView)
+        for view in registered
+    )
+    assert mock_appbuilder.add_view_no_menu is original_add_view_no_menu
+
+
+def test_disable_legacy_password_reset_launchers(app_context: None) -> None:
+    """The user view's two reset buttons are hidden and answer 404, while
+    unrelated actions on the same view are left alone.
+
+    FAB's ``UserDBModelView`` actions redirect to the reset views via
+    ``url_for``, which would raise ``BuildError`` (a 500) since those views are
+    never registered.
+    """
+
+    def launcher(item: Any) -> str:
+        return "redirect"
+
+    actions = {
+        name: ActionItem(name, name, None, "fa-lock", False, True, launcher)
+        for name in ("resetpasswords", "resetmypassword", "userinfoedit")
+    }
+    sm = SupersetSecurityManager.__new__(SupersetSecurityManager)
+    sm.user_view = SimpleNamespace(actions=actions)
+
+    sm._disable_legacy_password_reset_launchers()
+
+    for name in ("resetpasswords", "resetmypassword"):
+        assert actions[name].single is False
+        assert actions[name].multiple is False
+        with pytest.raises(NotFound):
+            actions[name].func(None)
+    assert actions["userinfoedit"].single is True
+    assert actions["userinfoedit"].func(None) == "redirect"
+
+
+def test_disable_legacy_password_reset_launchers_without_user_view() -> None:
+    """Auth backends other than AUTH_DB have no reset launchers to hide."""
+    sm = SupersetSecurityManager.__new__(SupersetSecurityManager)
+    sm.user_view = None
+
+    sm._disable_legacy_password_reset_launchers()
+
+
+@pytest.mark.parametrize(
+    "permission,view_menu,expected",
+    [
+        ("can_this_form_get", "ResetPasswordView", True),
+        ("can_this_form_post", "ResetPasswordView", True),
+        ("can_this_form_get", "ResetMyPasswordView", True),
+        ("can_this_form_post", "ResetMyPasswordView", True),
+        ("resetpasswords", "UserDBModelView", True),
+        ("resetmypassword", "UserDBModelView", True),
+        ("userinfoedit", "UserDBModelView", False),
+        ("can_userinfo", "UserDBModelView", False),
+        ("resetmypassword", "SomeOtherView", False),
+        ("can_read", "Dashboard", False),
+    ],
+)
+def test_is_legacy_password_pvm(
+    permission: str, view_menu: str, expected: bool
+) -> None:
+    assert (
+        SupersetSecurityManager._is_legacy_password_pvm(_pvm(permission, view_menu))
+        is expected
+    )
+
+
+def test_sync_role_definitions_excludes_stale_legacy_password_pvms(
+    mocker: MockerFixture, app_context: None
+) -> None:
+    """Upgraded installs must not have any role retain the removed views.
+
+    The reset views' permission rows (and the user-view launcher actions that
+    redirected to them) persist in the metadata database of an installation
+    that ran them before, and ``_get_all_pvms`` still returns them;
+    ``sync_role_definitions`` has to leave them out of every role.
+    """
+    sm = SupersetSecurityManager(appbuilder)
+    stale_pvms = [
+        _pvm("can_this_form_get", "ResetPasswordView"),
+        _pvm("can_this_form_post", "ResetMyPasswordView"),
+        _pvm("resetpasswords", "UserDBModelView"),
+        _pvm("resetmypassword", "UserDBModelView"),
+    ]
+    other_pvm = _pvm("can_read", "Dashboard")
+
+    mocker.patch.object(sm, "create_custom_permissions")
+    mocker.patch.object(sm, "_get_all_pvms", return_value=[*stale_pvms, other_pvm])
+    mock_set_role = mocker.patch.object(sm, "set_role")
+    mocker.patch.object(sm, "create_missing_perms")
+    mocker.patch.object(sm, "clean_perms")
+    mocker.patch.dict(current_app.config, {"PUBLIC_ROLE_LIKE": None})
+
+    sm.sync_role_definitions()
+
+    assert mock_set_role.call_args_list
+    for call in mock_set_role.call_args_list:
+        role_name, _classifier_fn, synced_pvms = call.args
+        for stale_pvm in stale_pvms:
+            assert stale_pvm not in synced_pvms, role_name
+        assert other_pvm in synced_pvms, role_name
+
+
+def test_reset_password_self_service_commits_cleared_flag(
+    mocker: MockerFixture, app_context: None
+) -> None:
+    """``clear_password_must_change`` no longer commits on its own, so the
+    self-service branch of ``reset_password`` has to."""
+    sm = SupersetSecurityManager(appbuilder)
+    mocker.patch(
+        "superset.security.manager.g", new=SimpleNamespace(user=SimpleNamespace(id=5))
+    )
+    mocker.patch(
+        "flask_appbuilder.security.manager.BaseSecurityManager.reset_password",
+        return_value=None,
+    )
+    mock_clear = mocker.patch(
+        "superset.security.password_change.clear_password_must_change"
+    )
+    mock_commit = mocker.patch("superset.db.session.commit")
+
+    sm.reset_password(5, "new-password")
+
+    mock_clear.assert_called_once_with(5)
+    # One commit for the session-invalidation stamp, one for the cleared flag.
+    assert mock_commit.call_count == 2

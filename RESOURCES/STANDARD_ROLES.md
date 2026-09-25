@@ -40,10 +40,6 @@ under the License.
 | can read on Database                             |:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|:heavy_check_mark:|
 | can write on Database                            |:heavy_check_mark:|O|O|O|O|
 | can read on Query                                |:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|:heavy_check_mark:|
-| can this form get on ResetPasswordView           |:heavy_check_mark:|O|O|O|O|
-| can this form post on ResetPasswordView          |:heavy_check_mark:|O|O|O|O|
-| can this form get on ResetMyPasswordView         |:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|O|
-| can this form post on ResetMyPasswordView        |:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|O|
 | can this form get on UserInfoEditView            |:heavy_check_mark:|O|O|O|O|
 | can this form post on UserInfoEditView           |:heavy_check_mark:|O|O|O|O|
 | can show on UserDBModelView                      |:heavy_check_mark:|O|O|O|O|
@@ -52,8 +48,6 @@ under the License.
 | can add on UserDBModelView                       |:heavy_check_mark:|O|O|O|O|
 | can list on UserDBModelView                      |:heavy_check_mark:|O|O|O|O|
 | can userinfo on UserDBModelView                  |:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|O|
-| resetmypassword on UserDBModelView               |:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|O|
-| resetpasswords on UserDBModelView                |:heavy_check_mark:|O|O|O|O|
 | userinfoedit on UserDBModelView                  |:heavy_check_mark:|O|O|O|O|
 | can show on RoleModelView                        |:heavy_check_mark:|O|O|O|O|
 | can edit on RoleModelView                        |:heavy_check_mark:|O|O|O|O|

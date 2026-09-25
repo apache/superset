@@ -425,8 +425,9 @@ AUTH_RATE_LIMITED = True
 AUTH_RATE_LIMIT = "5 per second"
 
 # When enabled, users whose account is flagged with ``password_must_change``
-# (e.g. accounts provisioned by an administrator) are redirected to the
-# password-reset page until they set a new password. Off by default.
+# (e.g. accounts provisioned by an administrator) are redirected to their
+# profile page (/user_info/, "Reset my password") until they set a new
+# password. Off by default.
 ENABLE_FORCE_PASSWORD_CHANGE = False
 
 # Password complexity policy, enforced (via Flask-AppBuilder) across
