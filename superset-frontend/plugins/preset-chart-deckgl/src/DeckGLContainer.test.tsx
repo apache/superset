@@ -86,16 +86,24 @@ jest.mock('mapbox-gl', () => ({ accessToken: '' }));
 jest.mock(
   './components/DeckGLOverlayMapLibre',
   () =>
-    ({ layers }: { layers: unknown[] }) => (
-      <div data-test="maplibre-overlay" data-layers-count={layers.length} />
+    ({ layers, interleaved }: { layers: unknown[]; interleaved?: boolean }) => (
+      <div
+        data-test="maplibre-overlay"
+        data-layers-count={layers.length}
+        data-interleaved={String(interleaved ?? false)}
+      />
     ),
 );
 
 jest.mock(
   './components/DeckGLOverlayMapbox',
   () =>
-    ({ layers }: { layers: unknown[] }) => (
-      <div data-test="mapbox-overlay" data-layers-count={layers.length} />
+    ({ layers, interleaved }: { layers: unknown[]; interleaved?: boolean }) => (
+      <div
+        data-test="mapbox-overlay"
+        data-layers-count={layers.length}
+        data-interleaved={String(interleaved ?? false)}
+      />
     ),
 );
 
@@ -203,11 +211,41 @@ test('DeckGLContainer preserves map canvases on Safari', () => {
     'data-preserve-drawing-buffer',
     'true',
   );
+  expect(screen.getByTestId('maplibre-overlay')).toHaveAttribute(
+    'data-interleaved',
+    'true',
+  );
 
   renderContainer({ mapProvider: 'mapbox', mapboxApiKey: 'pk.test' });
   expect(screen.getByTestId('mapbox-map')).toHaveAttribute(
     'data-preserve-drawing-buffer',
     'true',
+  );
+  expect(screen.getByTestId('mapbox-overlay')).toHaveAttribute(
+    'data-interleaved',
+    'true',
+  );
+});
+
+test('DeckGLContainer does not preserve or interleave canvases outside Safari', () => {
+  renderContainer({ mapProvider: 'maplibre' });
+  expect(screen.getByTestId('maplibre-map')).toHaveAttribute(
+    'data-preserve-drawing-buffer',
+    'false',
+  );
+  expect(screen.getByTestId('maplibre-overlay')).toHaveAttribute(
+    'data-interleaved',
+    'false',
+  );
+
+  renderContainer({ mapProvider: 'mapbox', mapboxApiKey: 'pk.test' });
+  expect(screen.getByTestId('mapbox-map')).toHaveAttribute(
+    'data-preserve-drawing-buffer',
+    'false',
+  );
+  expect(screen.getByTestId('mapbox-overlay')).toHaveAttribute(
+    'data-interleaved',
+    'false',
   );
 });
 

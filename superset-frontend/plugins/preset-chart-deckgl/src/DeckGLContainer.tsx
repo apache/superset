@@ -177,7 +177,10 @@ export const DeckGLContainer = memo(
               preserveDrawingBuffer={isSafari()}
               style={{ width, height }}
             >
-              <DeckGLOverlayMapbox layers={layers()} />
+              <DeckGLOverlayMapbox
+                layers={layers()}
+                interleaved={isSafari() ? true : undefined}
+              />
             </MapboxMap>
           ) : (
             <MapLibreMap
@@ -189,7 +192,10 @@ export const DeckGLContainer = memo(
               }
               style={{ width, height }}
             >
-              <DeckGLOverlayMapLibre layers={layers()} />
+              <DeckGLOverlayMapLibre
+                layers={layers()}
+                interleaved={isSafari() ? true : undefined}
+              />
             </MapLibreMap>
           )}
           {children}
