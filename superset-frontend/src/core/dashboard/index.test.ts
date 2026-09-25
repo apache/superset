@@ -95,6 +95,7 @@ function activateDashboard(overrides: Record<string, unknown> = {}) {
   mockGetState.mockReturnValue({
     dashboardInfo: { id: 7, css: '' },
     dashboardLayout: { present: {} },
+    dashboardState: { activeTabs: [] },
     nativeFilters: { filters: {} },
     dataMask: {},
     charts: {},
@@ -108,6 +109,7 @@ beforeEach(() => {
   mockGetState.mockReturnValue({
     dashboardInfo: {},
     dashboardLayout: { present: {} },
+    dashboardState: { activeTabs: [] },
     nativeFilters: { filters: {} },
     dataMask: {},
     charts: {},
@@ -135,6 +137,18 @@ test('getLayout returns a copy of the current layout when active', () => {
   const layout = dashboard.getLayout();
   expect(layout).toEqual(present);
   expect(layout).not.toBe(present);
+});
+
+test('getActiveTabs returns [] when the dashboard is not active', () => {
+  expect(dashboard.getActiveTabs()).toEqual([]);
+});
+
+test('getActiveTabs returns a copy of the current active tab IDs when active', () => {
+  const activeTabs = ['TAB-1', 'TAB-1-1'];
+  activateDashboard({ dashboardState: { activeTabs } });
+  const result = dashboard.getActiveTabs();
+  expect(result).toEqual(activeTabs);
+  expect(result).not.toBe(activeTabs);
 });
 
 test('updateLayoutNode throws when the dashboard is not active', async () => {

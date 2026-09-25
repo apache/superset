@@ -82,6 +82,21 @@ export interface LayoutNode {
 export declare function getLayout(): Record<string, LayoutNode>;
 
 /**
+ * Gets the IDs of the current dashboard's currently-open `TAB` layout
+ * nodes — one per `TABS` container, since nested tab sets can each have
+ * their own open tab. Use {@link getLayout} to resolve an ID to its node
+ * (e.g. to read its `meta.text` label).
+ *
+ * @returns The active tab node IDs, e.g. `['TAB-abc123']`.
+ *
+ * @example
+ * ```typescript
+ * const activeTabs = dashboard.getActiveTabs();
+ * ```
+ */
+export declare function getActiveTabs(): string[];
+
+/**
  * Updates a single layout node's `meta` (e.g. grid `width`/`height`, or
  * other component-specific settings) on the current dashboard. Only the
  * keys passed in `meta` are changed — the node's other meta fields, and the
