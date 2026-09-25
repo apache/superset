@@ -29,6 +29,7 @@ _MAX_EXTRACTED_ERRORS = 128
 
 # Never render Pydantic's msg, ctx, input, or arbitrary error type: custom
 # validators can put secrets in any of them. These reasons are server-owned.
+# value_error is intentionally absent: custom validator messages may carry input.
 _REASONS = {
     "missing": "Field required",
     "missing_argument": "Field required",
