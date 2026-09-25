@@ -405,6 +405,17 @@ module = [
 ]
 warn_unused_ignores = false
 
+# The mirror case: superset-core declares SqlaTable's id/uuid/perm as plain
+# value types, so column expressions like SqlaTable.uuid.in_() only need a
+# type: ignore when superset-core's sources are part of the same mypy run
+# (full-repo lint) and not when only changed files are checked.
+[[tool.mypy.overrides]]
+module = [
+    "superset.mcp_service.dataset_scope",
+    "tests.unit_tests.mcp_service.dataset.tool.test_dataset_tools",
+]
+warn_unused_ignores = false
+
 [tool.ruff]
 # Exclude a variety of commonly ignored directories.
 exclude = [
