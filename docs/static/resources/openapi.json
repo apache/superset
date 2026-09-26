@@ -1563,6 +1563,12 @@
             "nullable": true,
             "type": "boolean"
           },
+          "client_id": {
+            "description": "Client-generated id identifying this chart query run. When the database supports query cancellation, it lets the client stop the running query via POST /api/v1/chart/data/stop. Scoped to the requesting user, so it can never address another user's query.",
+            "maxLength": 64,
+            "nullable": true,
+            "type": "string"
+          },
           "custom_cache_timeout": {
             "description": "Override the default cache timeout",
             "nullable": true,
@@ -2754,6 +2760,20 @@
             "type": "boolean"
           }
         },
+        "type": "object"
+      },
+      "ChartDataStopSchema": {
+        "properties": {
+          "client_id": {
+            "description": "The `client_id` sent with the chart-data request whose query should be cancelled. Resolved within the requesting user's own in-flight queries only.",
+            "maxLength": 64,
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "client_id"
+        ],
         "type": "object"
       },
       "ChartDataTiming": {
@@ -16068,6 +16088,65 @@
           }
         ],
         "summary": "Return payload data response for the given query",
+        "tags": [
+          "Charts"
+        ]
+      }
+    },
+    "/api/v1/chart/data/stop": {
+      "post": {
+        "description": "Cancels the warehouse query started by a chart-data request that carried the given `client_id`, for databases whose engine supports query cancellation. The `client_id` is resolved only within the requesting user's own in-flight queries, so it cannot be used to reach another user's query.",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChartDataStopSchema"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "result": {
+                      "properties": {
+                        "stopped": {
+                          "description": "Whether the engine reported the query cancelled. False when there was no such in-flight query for this user, or the engine could not cancel it.",
+                          "type": "boolean"
+                        }
+                      },
+                      "type": "object"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Cancellation outcome"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          },
+          {
+            "api_key": []
+          }
+        ],
+        "summary": "Cancel a running chart-data query",
         "tags": [
           "Charts"
         ]

@@ -1657,6 +1657,18 @@ class ChartDataQueryObjectSchema(Schema):
     )
 
 
+class ChartDataStopSchema(Schema):
+    client_id = fields.String(
+        required=True,
+        validate=Length(min=1, max=64),
+        metadata={
+            "description": "The `client_id` sent with the chart-data request whose "
+            "query should be cancelled. Resolved within the requesting user's own "
+            "in-flight queries only."
+        },
+    )
+
+
 class ChartDataQueryContextSchema(Schema):
     query_context_factory: QueryContextFactory | None = None
     datasource = fields.Nested(ChartDataDatasourceSchema)
@@ -1687,6 +1699,18 @@ class ChartDataQueryContextSchema(Schema):
         },
         required=False,
         allow_none=True,
+    )
+
+    client_id = fields.String(
+        metadata={
+            "description": "Client-generated id identifying this chart query run. "
+            "When the database supports query cancellation, it lets the client "
+            "stop the running query via POST /api/v1/chart/data/stop. Scoped to "
+            "the requesting user, so it can never address another user's query."
+        },
+        required=False,
+        allow_none=True,
+        validate=Length(max=64),
     )
 
     result_type = fields.Enum(ChartDataResultType, by_value=True)
