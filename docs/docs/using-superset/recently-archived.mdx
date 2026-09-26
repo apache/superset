@@ -5,11 +5,18 @@ sidebar_position: 7
 version: 1
 ---
 
+import useBaseUrl from '@docusaurus/useBaseUrl';
+
 # Recently Archived
 
 When soft-delete is enabled, deleting a chart, dashboard, or dataset archives it
 instead of removing it permanently. The **Recently Archived** view lets owners
 and admins find archived objects and restore them.
+
+<img
+  src={useBaseUrl('/img/version-history/recently-archived.jpg')}
+  alt="The Recently Archived view listing an archived dashboard with its type, archive time, and the user who archived it"
+/>
 
 A chart used by an alert or report cannot be archived while that dependency
 exists. In the chart list view, the archive confirmation lists the alerts and
@@ -97,5 +104,86 @@ checks again when you submit. If dependencies changed while the confirmation
 was open, the refreshed impact replaces the previous result and you must type
 DELETE again before proceeding.
 
-Objects are also deleted permanently on their own once they have been in the
-archive longer than the retention window, without anyone acting.
+Scheduled retention can also permanently delete archived objects after the
+retention window, subject to deletion rules and the operator configuration
+described below. A successful run is required; reaching the age threshold
+alone does not delete an object.
+
+## Configuring retention (operators)
+
+The `deletion_retention.purge_soft_deleted` background task purges eligible
+archived objects older than the retention window. The default Celery beat
+configuration schedules it daily at 00:00 in the configured Celery timezone.
+The task skips purging when `SOFT_DELETE` is off or the window is zero.
+The window resolves in this order:
+
+1. A per-deployment value set with the CLI, which takes precedence when
+   present:
+
+   ```bash
+   superset deletion-retention set-window --days 60
+   superset deletion-retention show-window   # print the effective window
+   ```
+
+2. Otherwise the `SOFT_DELETE_RETENTION_DAYS` configuration value, which
+   defaults to 30.
+
+A window of zero — from either source — disables scheduled purging, so
+archived objects are kept until someone deletes them permanently by hand.
+The CLI rejects negative windows; unlike version-history retention, negative
+values do not mean indefinite retention. An invalid stored value falls back
+to configuration, and an invalid or negative configuration value falls back
+to 30 days.
+
+`SOFT_DELETE_PURGE_DRY_RUN` defaults to `False`: scheduled purging is
+destructive when it runs. Set it to `True` in `superset_config.py` and restart
+the relevant processes to log what the task *would* purge without deleting
+anything. Validate the eligible backlog before enabling live purging or
+shortening a window; the first live run can process accumulated old archives.
+
+### Running retention tasks
+
+For automatic retention, operators need all of the following:
+
+- A running Celery beat scheduler and workers connected to the appropriate
+  broker and queues. See [Celery configuration](/admin-docs/configuration/async-queries-celery/).
+- Task registration on the workers. The default `CELERY_CONFIG.imports`
+  includes `superset.tasks.deletion_retention` and
+  `superset.tasks.version_history_retention`.
+- Entries in `CELERY_CONFIG.beat_schedule` for
+  `deletion_retention.purge_soft_deleted` and
+  `version_history.prune_old_versions`. When replacing `CELERY_CONFIG`,
+  preserve the default imports and schedules or supply equivalent entries;
+  task registration alone does not schedule execution.
+- Positive retention windows and, for deletion purging, `SOFT_DELETE` enabled
+  and `SOFT_DELETE_PURGE_DRY_RUN = False` when real deletion is intended.
+
+Check startup warnings for missing imports or schedules, and verify completed
+runs and their results in worker logs or monitoring. A configured schedule
+does not prove a task has run successfully. The two tasks have separate
+controls: the purge dry-run switch does not disable version-history pruning.
+
+### Immediate operator purge
+
+For compliance cases that cannot wait for the window, an operator can purge a
+single entity immediately and irreversibly by UUID:
+
+```bash
+superset deletion-retention force-purge --uuid <uuid> --type dashboard
+```
+
+This CLI requires operator shell access and asks for confirmation. It can
+target live as well as archived objects, bypasses the retention window, and
+is not protected by `SOFT_DELETE_PURGE_DRY_RUN`. Existing dependency blockers
+can still refuse deletion; check the command's reported result rather than
+assuming the requested purge occurred.
+
+Earlier implementations return exit status 0 even when a dependency blocks
+deletion or the target does not exist; implementations with the non-success
+exit-status fix return 1 in those cases. For deployments that may include the
+earlier behavior, automation must inspect the reported outcome, not treat
+exit status 0 alone as proof of erasure.
+
+The purge removes the entity together with its
+[version history](./version-history.mdx). The retention window for version history
+itself is configured separately and is described on that page.
