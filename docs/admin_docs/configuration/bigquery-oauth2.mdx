@@ -1,0 +1,86 @@
+---
+title: BigQuery user OAuth2
+sidebar_position: 20
+---
+
+{/*
+Licensed to the Apache Software Foundation (ASF) under one
+or more contributor license agreements. See the NOTICE file
+distributed with this work for additional information
+regarding copyright ownership. The ASF licenses this file
+to you under the Apache License, Version 2.0 (the
+"License"); you may not use this file except in compliance
+with the License. You may obtain a copy of the License at
+
+http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing,
+software distributed under the License is distributed on an
+"AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+KIND, either express or implied. See the License for the
+specific language governing permissions and limitations
+under the License.
+*/}
+
+# BigQuery user OAuth2
+
+BigQuery connections can run queries and uploads with each user's Google IAM
+permissions. Service-account and Application Default Credentials (ADC) connections
+remain available when user impersonation is disabled.
+
+## Configure the connection
+
+1. Create a Google OAuth 2.0 web application client. Register
+   `https://<superset-host>/api/v1/database/oauth2/` as an authorized redirect URI.
+2. Set the client in `superset_config.py`:
+
+   ```python
+   DATABASE_OAUTH2_CLIENTS = {
+       "Google BigQuery": {
+           "id": "<client-id>.apps.googleusercontent.com",
+           "secret": "<client-secret>",
+       },
+   }
+   ```
+
+   The `"Google BigQuery"` key must exactly match the database engine name.
+   Superset uses the engine name to find its OAuth2 client configuration.
+
+   Superset derives the redirect URI from its `/api/v1/database/oauth2/` endpoint.
+   Set `DATABASE_OAUTH2_REDIRECT_URI` only when a proxy or multi-instance setup
+   requires a fixed redirect endpoint:
+
+   ```python
+   DATABASE_OAUTH2_REDIRECT_URI = "https://<oauth-proxy>/api/v1/database/oauth2/"
+   ```
+
+   A database-specific `oauth2_client_info` object in **Secure Extra** can supply
+   the client configuration instead. Its `secret` is masked when read back.
+3. Create a BigQuery connection using `bigquery://<project-id>` (optionally with
+   a dataset and query parameters, such as `?location=EU`). The dynamic connection
+   form also accepts `project_id` without service-account credentials. Enable
+   **Impersonate logged in user** under **Advanced → Security**.
+4. Save the connection, then run a query in SQL Lab. Follow the Google consent
+   prompt to authorize your own account. Each user authorizes separately.
+
+The default scope is `https://www.googleapis.com/auth/bigquery`. Set `scope` in the
+client configuration to include additional scopes if required, such as Drive
+access for Google Sheets external tables. Google consent requests include offline
+access so Superset can store and refresh each user's tokens.
+
+## Execution behavior
+
+Queries, metadata requests, cost estimates and uploads use the authenticated user
+client. Retained service-account credentials do not override it. The connection's
+default dataset, query settings (including `maximum_bytes_billed`), location and
+`billing_project_id` engine parameter are preserved.
+
+An OAuth2 connection without a token requests authorization. During creation,
+Superset allows the connection to be saved before authorization is completed.
+A background task must carry an authenticated Superset user with a valid token;
+tasks without a user fail instead of falling back to service-account credentials
+or ADC. Existing shared-credential connections remain unchanged.
+
+Expired or revoked user credentials trigger the OAuth2 recovery flow. Google IAM
+permission denials remain ordinary permission errors. Authentication failures on
+shared-credential connections do not prompt users to authorize a personal account.
