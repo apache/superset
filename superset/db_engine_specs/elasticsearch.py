@@ -31,11 +31,33 @@ from superset.db_engine_specs.exceptions import (
     SupersetDBAPIOperationalError,
     SupersetDBAPIProgrammingError,
 )
+from superset.utils.core import GenericDataType
 
 if TYPE_CHECKING:
     from superset.models.core import Database
 
 logger = logging.getLogger()
+
+# Elasticsearch/OpenSearch field types that the default column type mappings
+# do not recognize. DOUBLE, FLOAT, INTEGER, LONG, BOOLEAN and DATETIME are
+# already covered by the defaults.
+FIELD_TYPE_MAPPINGS = (
+    (
+        re.compile(r"^(byte|short)$", re.IGNORECASE),
+        types.SmallInteger(),
+        GenericDataType.NUMERIC,
+    ),
+    (
+        re.compile(r"^(half_float|scaled_float)$", re.IGNORECASE),
+        types.Float(),
+        GenericDataType.NUMERIC,
+    ),
+    (
+        re.compile(r"^unsigned_long$", re.IGNORECASE),
+        types.BigInteger(),
+        GenericDataType.NUMERIC,
+    ),
+)
 
 
 def _fetch_page_via_cursor(
@@ -134,6 +156,7 @@ class ElasticSearchEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-metho
     allows_subqueries = True
     allows_sql_comments = False
     supports_offset = False
+    column_type_mappings = FIELD_TYPE_MAPPINGS
 
     metadata = {
         "description": (
@@ -310,6 +333,7 @@ class OpenDistroEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
     allows_subqueries = True
     allows_sql_comments = False
     supports_offset = False
+    column_type_mappings = FIELD_TYPE_MAPPINGS
 
     _time_grain_expressions = {
         None: "{col}",

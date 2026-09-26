@@ -468,3 +468,43 @@ def test_opendistro_fetch_data_with_cursor_uses_opendistro_endpoints() -> None:
     calls = database._transport.perform_request.call_args_list
     assert calls[0][0][1] == "/_opendistro/_sql"
     assert calls[1][0][1] == "/_opendistro/_sql/close"
+
+
+@pytest.mark.parametrize(
+    "native_type,sqla_type,generic_type",
+    [
+        ("BYTE", "SmallInteger", "NUMERIC"),
+        ("SHORT", "SmallInteger", "NUMERIC"),
+        ("HALF_FLOAT", "Float", "NUMERIC"),
+        ("SCALED_FLOAT", "Float", "NUMERIC"),
+        ("UNSIGNED_LONG", "BigInteger", "NUMERIC"),
+        ("DOUBLE", None, "NUMERIC"),
+        ("FLOAT", None, "NUMERIC"),
+        ("INTEGER", None, "NUMERIC"),
+        ("LONG", None, "NUMERIC"),
+        ("BOOLEAN", None, "BOOLEAN"),
+        ("DATETIME", None, "TEMPORAL"),
+        ("STRING", None, "STRING"),
+    ],
+)
+@pytest.mark.parametrize(
+    "spec_name", ["ElasticSearchEngineSpec", "OpenDistroEngineSpec"]
+)
+def test_field_types_are_classified(
+    spec_name: str, native_type: str, sqla_type: Optional[str], generic_type: str
+) -> None:
+    """
+    Every numeric field type a reflected Elasticsearch/OpenSearch column can
+    report gets a generic type, so it can be used as a numeric column.
+    """
+    from sqlalchemy import types
+
+    from superset.db_engine_specs import elasticsearch
+    from superset.utils.core import GenericDataType
+
+    spec = getattr(elasticsearch, spec_name)
+    column_spec = spec.get_column_spec(native_type)
+    assert column_spec is not None, native_type
+    assert column_spec.generic_type == GenericDataType[generic_type]
+    if sqla_type:  # None: already covered by the default mappings
+        assert isinstance(column_spec.sqla_type, getattr(types, sqla_type))
