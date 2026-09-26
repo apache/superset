@@ -1257,6 +1257,32 @@ def generate_bubble_vega_lite_preview(
     )
 
 
+def _resolve_y_metric_column(row: Dict[str, Any], metrics: List[Any]) -> Any:
+    """Pick the y-axis column for a Vega-Lite preview.
+
+    Prefers the first chart metric whose result label is present in the row.
+    Falls back to a name/value heuristic only when no metric label matches.
+    Booleans are never treated as numeric in the fallback.
+    """
+    for metric in metrics:
+        label = metric_result_label(metric)
+        if label is not None and label in row:
+            return label
+
+    for col in row.keys():
+        # Check if this is a metric column (usually has aggregation in name)
+        if any(
+            agg in str(col).upper()
+            for agg in ["SUM", "AVG", "COUNT", "MIN", "MAX", "TOTAL"]
+        ):
+            return col
+        # Or check if it's numeric (bool is a subclass of int, so exclude it)
+        value = row.get(col)
+        if isinstance(value, (int, float)) and not isinstance(value, bool):
+            return col
+    return None
+
+
 def _generate_vega_lite_preview_from_data(  # noqa: C901
     data: List[Dict[str, Any]], form_data: Dict[str, Any]
 ) -> VegaLitePreview | ChartError:
@@ -1325,20 +1351,7 @@ def _generate_vega_lite_preview_from_data(  # noqa: C901
 
     # Handle Y-axis (metrics)
     if metrics and data:
-        # Find the first metric column in the data
-        metric_col = None
-        for col in data[0].keys():
-            # Check if this is a metric column (usually has aggregation in name)
-            if any(
-                agg in str(col).upper()
-                for agg in ["SUM", "AVG", "COUNT", "MIN", "MAX", "TOTAL"]
-            ):
-                metric_col = col
-                break
-            # Or check if it's numeric
-            elif isinstance(data[0].get(col), (int, float)):
-                metric_col = col
-                break
+        metric_col = _resolve_y_metric_column(data[0], metrics)
 
         if metric_col:
             encoding["y"] = {
