@@ -26,6 +26,7 @@ from .get_dashboard_info import get_dashboard_info
 from .get_dashboard_layout import get_dashboard_layout
 from .list_dashboards import list_dashboards
 from .manage_dashboard_certification import manage_dashboard_certification
+from .manage_dashboard_markdown import manage_dashboard_markdown
 from .manage_dashboard_owners import manage_dashboard_owners
 from .manage_dashboard_roles import manage_dashboard_roles
 from .manage_native_filters import manage_native_filters
@@ -44,6 +45,7 @@ __all__ = [
     "add_chart_to_existing_dashboard",
     "apply_dashboard_filters",
     "manage_dashboard_certification",
+    "manage_dashboard_markdown",
     "manage_dashboard_owners",
     "manage_dashboard_roles",
     "manage_native_filters",
