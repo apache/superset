@@ -24,6 +24,21 @@ The following information about each flight is given:
 - Information about the origin and destination.
 - The distance between the origin and destination, in kilometers (km).
 
+### Semantic Table time grains
+
+For a Table chart backed by a semantic view, Time Grain applies when grouping by
+a temporal dimension. Removing the last temporal dimension leaves the saved
+choice intact, but the frontend omits a recognized dormant grain from aggregate
+requests whose selected columns are known to be non-temporal (including no
+grouping columns). Adding the temporal dimension again reuses the saved choice.
+Unknown columns or grain values are not silently normalized. Ordinary dataset
+charts and raw-record queries are unchanged.
+
+This applies to requests rebuilt by the updated frontend in Explore and
+dashboards; it does not rewrite saved charts. Direct API requests and saved
+chart-data GET paths that bypass rebuilding remain subject to strict validation,
+so old stored query contexts can still fail. Updated frontend assets are required.
+
 ### Enabling Data Upload Functionality
 
 You may need to enable the functionality to upload a CSV or Excel file to your database. The following section
