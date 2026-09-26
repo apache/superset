@@ -184,7 +184,7 @@ export interface TabsRendererProps {
   tabsDragSourceRef?: RefObject<HTMLDivElement>;
   handleDeleteComponent: () => void;
   tabsComponent: TabsComponent;
-  activeKey: string;
+  activeKey: string | undefined;
   tabIds: string[];
   handleClickTab: (index: number) => void;
   handleEdit: AntdTabsProps['onEdit'];

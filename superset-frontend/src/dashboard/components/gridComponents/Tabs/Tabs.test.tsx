@@ -265,6 +265,101 @@ test('Switching tabs', async () => {
   expect(props.onChangeTab).toHaveBeenCalled();
 });
 
+test.each([false, true])(
+  'A childless TABS component does not register an active tab (editMode=%s)',
+  editMode => {
+    // An unresolved id reaches activeTabs as `undefined`, which
+    // `JSON.stringify` coerces to `null` in the permalink request body.
+    const props = createProps();
+    props.editMode = editMode;
+    props.component.children = [];
+
+    render(<Tabs {...props} />, {
+      useRedux: true,
+      useDnd: true,
+    });
+
+    expect(props.setActiveTab).not.toHaveBeenCalled();
+  },
+);
+
+test.each([false, true])(
+  'The first child added to an empty TABS component is activated (editMode=%s)',
+  editMode => {
+    const props = createProps();
+    const [tabId] = props.component.children;
+    props.editMode = editMode;
+    props.component.children = [];
+    const { rerender } = render(<Tabs {...props} />, {
+      useRedux: true,
+      useDnd: true,
+    });
+
+    expect(props.setActiveTab).not.toHaveBeenCalled();
+    rerender(
+      <Tabs {...props} component={{ ...props.component, children: [tabId] }} />,
+    );
+
+    expect(props.setActiveTab.mock.calls).toEqual([[tabId]]);
+    expect(screen.getByRole('tab')).toHaveAttribute('aria-selected', 'true');
+  },
+);
+
+test('A tab added after deleting the last tab is selected and registered', async () => {
+  const props = createProps();
+  const [deletedTabId, newTabId] = props.component.children;
+  props.component.children = [deletedTabId];
+  const { rerender } = render(<Tabs {...props} />, {
+    useRedux: true,
+    useDnd: true,
+  });
+
+  expect(props.setActiveTab.mock.calls).toEqual([[deletedTabId]]);
+  expect(screen.getByRole('tab')).toHaveAttribute('aria-selected', 'true');
+
+  await userEvent.click(screen.getByRole('button', { name: 'remove' }));
+  await userEvent.click(screen.getByRole('button', { name: 'Delete' }));
+  expect(props.deleteComponent).toHaveBeenCalledWith(
+    deletedTabId,
+    props.component.id,
+  );
+
+  rerender(
+    <Tabs {...props} component={{ ...props.component, children: [] }} />,
+  );
+  expect(screen.queryByRole('tab')).not.toBeInTheDocument();
+  props.setActiveTab.mockClear();
+
+  await userEvent.click(screen.getByRole('button', { name: 'Add tab' }));
+  expect(props.createComponent).toHaveBeenCalled();
+  expect(props.setActiveTab).not.toHaveBeenCalled();
+
+  rerender(
+    <Tabs
+      {...props}
+      component={{ ...props.component, children: [newTabId] }}
+    />,
+  );
+
+  expect(props.setActiveTab.mock.calls).toEqual([[newTabId, deletedTabId]]);
+  expect(screen.getByRole('tab')).toHaveAttribute('aria-selected', 'true');
+});
+
+test.each([false, true])(
+  'A populated TABS component registers its active tab (editMode=%s)',
+  editMode => {
+    const props = createProps();
+    props.editMode = editMode;
+
+    render(<Tabs {...props} />, {
+      useRedux: true,
+      useDnd: true,
+    });
+
+    expect(props.setActiveTab.mock.calls).toEqual([['TAB-AsMaxdYL_t']]);
+  },
+);
+
 test('activeTabs hydrated from a permalink selects the matching tab content', () => {
   // Regression guard for #36132: when a dashboard is opened via a
   // permalink/anchor (including embedded dashboards), the permalink state is
