@@ -206,6 +206,45 @@ test('should add dimension filters to every query-specific adhoc filter collecti
   );
 });
 
+test('should apply a metrics-axis selection to every query-specific metrics collection', () => {
+  // Multi-query charts (e.g. Mixed Chart) read each query's metrics from a
+  // separate collection. When the matrix axis is in "metrics" mode, the
+  // metric chosen for a cell must reach all of them, not just the primary
+  // `metrics` field, or the secondary query renders identically in every
+  // cell of the grid.
+  const mixedChartFormData: TestFormData = {
+    viz_type: 'mixed_timeseries',
+    datasource: '1__table',
+    matrixify_enable: true,
+    matrixify_mode_rows: 'metrics',
+    matrixify_mode_columns: 'disabled',
+    matrixify_rows: [createAdhocMetric('Revenue'), createAdhocMetric('Profit')],
+    metrics: [createAdhocMetric('Original Primary')],
+    metrics_b: [createAdhocMetric('Original Secondary')],
+  };
+
+  const grid = generateMatrixifyGrid(mixedChartFormData);
+
+  expect(grid).not.toBeNull();
+  const revenueCell = grid!.cells[0][0]!;
+  const profitCell = grid!.cells[1][0]!;
+
+  expect(revenueCell.formData.metrics).toEqual([createAdhocMetric('Revenue')]);
+  expect(revenueCell.formData.metrics_b).toEqual([
+    createAdhocMetric('Revenue'),
+  ]);
+  expect(revenueCell.formData.metric).toEqual(createAdhocMetric('Revenue'));
+
+  expect(profitCell.formData.metrics).toEqual([createAdhocMetric('Profit')]);
+  expect(profitCell.formData.metrics_b).toEqual([createAdhocMetric('Profit')]);
+  expect(profitCell.formData.metric).toEqual(createAdhocMetric('Profit'));
+
+  // The base formData's collection is untouched by either cell's override.
+  expect(mixedChartFormData.metrics_b).toEqual([
+    createAdhocMetric('Original Secondary'),
+  ]);
+});
+
 test('should generate grid for mixed mode (metrics rows, dimensions columns)', () => {
   const mixedFormData: TestFormData = {
     viz_type: 'table',

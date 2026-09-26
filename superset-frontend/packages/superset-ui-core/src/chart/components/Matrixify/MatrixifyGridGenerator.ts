@@ -18,7 +18,7 @@
  */
 
 import Handlebars from 'handlebars';
-import type { QueryFormData } from '../../../query';
+import type { AdhocMetric, QueryFormData } from '../../../query';
 import type {
   AdhocFilter,
   BinaryAdhocFilter,
@@ -135,6 +135,30 @@ function appendMatrixifyFilters(
 }
 
 /**
+ * Apply the matrix's chosen metrics to the primary `metrics` collection as well
+ * as every query-specific `metrics_*` collection present on the formData (plus
+ * the singular `metric` field used by single-metric viz types). Charts with
+ * more than one query (e.g. Mixed Chart) read each query's metrics from a
+ * separate collection (`metrics_b`, `metrics_c`, ...), so a cell's chosen
+ * metrics must overwrite all of them, not just the primary query's.
+ */
+function overrideMatrixifyMetrics(
+  formData: QueryFormData & MatrixifyFormData,
+  metrics: AdhocMetric[],
+): void {
+  const metricsFields: Record<string, unknown> = formData;
+  const metricsKeys = [
+    'metrics',
+    ...Object.keys(metricsFields).filter(key => /^metrics_.+$/u.test(key)),
+  ];
+
+  metricsKeys.forEach(key => {
+    metricsFields[key] = metrics;
+  });
+  metricsFields.metric = metrics[0];
+}
+
+/**
  * Generate form data for a specific grid cell
  */
 function generateCellFormData(
@@ -205,7 +229,7 @@ function generateCellFormData(
   }
 
   // Set metrics based on row/column configuration
-  const metrics = [];
+  const metrics: AdhocMetric[] = [];
 
   if (rowConfig && rowIndex !== null && rowConfig.mode === 'metrics') {
     const metric = rowConfig.metrics?.[rowIndex];
@@ -221,10 +245,10 @@ function generateCellFormData(
     }
   }
 
-  // If we have metrics from the matrix, use them; otherwise keep original
+  // If we have metrics from the matrix, apply them to the primary and every
+  // query-specific metrics collection; otherwise keep each query's original.
   if (metrics.length > 0) {
-    cellFormData.metrics = metrics;
-    cellFormData.metric = metrics[0];
+    overrideMatrixifyMetrics(cellFormData, metrics);
   }
 
   return cellFormData;
