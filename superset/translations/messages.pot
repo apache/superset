@@ -15866,6 +15866,9 @@ msgstr ""
 msgid "Tukey"
 msgstr ""
 
+msgid "Turn off the logarithmic axis before stacking bars"
+msgstr ""
+
 msgid "Type"
 msgstr ""
 
