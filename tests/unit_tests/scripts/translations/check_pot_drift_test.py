@@ -22,6 +22,8 @@ its on-disk path, matching ``check_translation_regression_test.py``.
 """
 
 import importlib.util
+import io
+import subprocess
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
@@ -139,6 +141,86 @@ def test_main_exits_one_and_lists_drift_when_out_of_sync(
     assert "'Missing one'" in out
     assert "'Stale one'" in out
     assert "babel_update.sh" in out
+
+
+class _FakeArchiveProcess:
+    """Minimal stand-in for the ``git archive`` ``Popen`` object."""
+
+    def __init__(self, stdout: bytes, stderr: bytes, returncode: int) -> None:
+        self.stdout = io.BytesIO(stdout)
+        self.args = ["git", "archive", "HEAD"]
+        self.returncode = returncode
+        self._stderr = stderr
+
+    def communicate(self) -> tuple[bytes, bytes]:
+        return b"", self._stderr
+
+
+def test_archive_ref_raises_called_process_error_with_stderr_on_stash_failure() -> None:
+    fake_stderr = "fatal: not a git repository\n"
+    fake_process = MagicMock()
+    fake_process.communicate.return_value = ("", fake_stderr)
+    fake_process.returncode = 1
+    fake_process.args = ["git", "stash", "create"]
+
+    with patch.object(check_pot_drift.subprocess, "Popen", return_value=fake_process):
+        with pytest.raises(subprocess.CalledProcessError) as exc_info:
+            check_pot_drift._archive_ref()
+
+    assert exc_info.value.stderr == fake_stderr
+
+
+def test_extract_fresh_raises_called_process_error_with_stderr_on_archive_failure(
+    tmp_path: Path,
+) -> None:
+    # A truncated/empty tar stream makes `tarfile` raise its own `ReadError`
+    # before `extract_fresh` gets a chance to look at git's exit code; the
+    # fix must surface git's stderr via `CalledProcessError` instead.
+    fake_stderr = b"fatal: your current branch does not have any commits yet\n"
+    fake_process = _FakeArchiveProcess(stdout=b"", stderr=fake_stderr, returncode=128)
+
+    with (
+        patch.object(check_pot_drift, "_archive_ref", return_value="HEAD"),
+        patch.object(check_pot_drift.subprocess, "Popen", return_value=fake_process),
+    ):
+        with pytest.raises(subprocess.CalledProcessError) as exc_info:
+            check_pot_drift.extract_fresh(tmp_path / "fresh.pot")
+
+    assert exc_info.value.stderr == fake_stderr
+
+
+def test_extract_fresh_raises_runtime_error_when_archive_has_no_stdout_pipe(
+    tmp_path: Path,
+) -> None:
+    fake_process = MagicMock(stdout=None)
+
+    with (
+        patch.object(check_pot_drift, "_archive_ref", return_value="HEAD"),
+        patch.object(check_pot_drift.subprocess, "Popen", return_value=fake_process),
+    ):
+        with pytest.raises(RuntimeError, match="stdout"):
+            check_pot_drift.extract_fresh(tmp_path / "fresh.pot")
+
+
+def test_extract_fresh_passes_an_absolute_output_path_to_pybabel(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # `cwd` for the `pybabel extract` call is the temp snapshot directory, not
+    # the caller's cwd, so a relative `output_path` must be resolved before
+    # being passed on the command line.
+    monkeypatch.chdir(tmp_path)
+    captured_args: list[str] = []
+
+    def fake_run(args: list[str], **_kwargs: object) -> MagicMock:
+        captured_args.extend(args)
+        return MagicMock(returncode=0)
+
+    with patch.object(check_pot_drift.subprocess, "run", side_effect=fake_run):
+        check_pot_drift.extract_fresh(Path("fresh.pot"))
+
+    output_arg = captured_args[captured_args.index("-o") + 1]
+    assert Path(output_arg).is_absolute()
+    assert output_arg == str((tmp_path / "fresh.pot").resolve())
 
 
 def test_committed_template_matches_a_fresh_extraction() -> None:
