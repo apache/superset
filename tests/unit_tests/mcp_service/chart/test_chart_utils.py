@@ -2599,6 +2599,58 @@ class TestAddXYSortConfig:
         assert "x_axis_sort_series_type" not in form_data
         assert "x_axis_sort_series_ascending" not in form_data
 
+    def test_non_temporal_sort_by_x_axis_case_insensitive(self) -> None:
+        form_data: dict[str, Any] = {}
+        config = XYChartConfig(
+            chart_type="xy",
+            x=ColumnRef(name="Category", label="ProductCategory"),
+            y=[ColumnRef(name="sales", aggregate="SUM")],
+            kind="bar",
+            sort_by="category",
+        )
+        add_xy_sort_config(form_data, config, x_is_temporal=False)
+        assert form_data["x_axis_sort"] == "ProductCategory"
+
+        form_data2: dict[str, Any] = {}
+        config2 = XYChartConfig(
+            chart_type="xy",
+            x=ColumnRef(name="Category", label="ProductCategory"),
+            y=[ColumnRef(name="sales", aggregate="SUM")],
+            kind="bar",
+            sort_by="productcategory",
+        )
+        add_xy_sort_config(form_data2, config2, x_is_temporal=False)
+        assert form_data2["x_axis_sort"] == "ProductCategory"
+
+    def test_non_temporal_sort_by_sql_expression(self) -> None:
+        form_data: dict[str, Any] = {}
+        config = XYChartConfig(
+            chart_type="xy",
+            x=ColumnRef(name="category"),
+            y=[
+                ColumnRef(
+                    sql_expression="COUNT(DISTINCT user_id)", label="unique_users"
+                )
+            ],
+            kind="bar",
+            sort_by="count(distinct user_id)",
+        )
+        add_xy_sort_config(form_data, config, x_is_temporal=False)
+        assert form_data["x_axis_sort"] == "unique_users"
+
+    def test_non_temporal_sort_by_pair_format(self) -> None:
+        form_data: dict[str, Any] = {}
+        config = XYChartConfig(
+            chart_type="xy",
+            x=ColumnRef(name="category"),
+            y=[ColumnRef(name="sales", aggregate="SUM")],
+            kind="bar",
+            sort_by=["sales", True],
+        )
+        add_xy_sort_config(form_data, config, x_is_temporal=False)
+        assert form_data["x_axis_sort"] == "SUM(sales)"
+        assert form_data["x_axis_sort_asc"] is True
+
     def test_temporal_sort_by_ignored_with_warning(self) -> None:
         form_data: dict[str, Any] = {}
         config = XYChartConfig(
@@ -2827,3 +2879,40 @@ class TestXYChartPluginSortBy:
         normalized = plugin.normalize_column_refs(config, ctx)
 
         assert normalized.sort_by.column == "TotalRevenue"
+        assert normalized.sort_by.saved_metric is True
+
+    def test_extract_column_refs_excludes_sql_expression_metric(self) -> None:
+        from superset.mcp_service.chart.plugins.xy import XYChartPlugin
+
+        plugin = XYChartPlugin()
+        config = XYChartConfig(
+            chart_type="xy",
+            x=ColumnRef(name="category"),
+            y=[
+                ColumnRef(
+                    sql_expression="COUNT(DISTINCT user_id)", label="unique_users"
+                )
+            ],
+            sort_by="count(distinct user_id)",
+        )
+        refs = plugin.extract_column_refs(config)
+        assert len(refs) == 2
+        assert refs[0].name == "category"
+        assert refs[1].sql_expression == "COUNT(DISTINCT user_id)"
+
+    def test_extract_column_refs_preserves_saved_metric_flag(self) -> None:
+        from superset.mcp_service.chart.plugins.xy import XYChartPlugin
+
+        plugin = XYChartPlugin()
+        config = XYChartConfig(
+            chart_type="xy",
+            x=ColumnRef(name="category"),
+            y=[ColumnRef(name="sales", aggregate="SUM")],
+            sort_by=SortByConfig(
+                column="total_sales", ascending=True, saved_metric=True
+            ),
+        )
+        refs = plugin.extract_column_refs(config)
+        sort_refs = [r for r in refs if r.name == "total_sales"]
+        assert len(sort_refs) == 1
+        assert sort_refs[0].saved_metric is True
