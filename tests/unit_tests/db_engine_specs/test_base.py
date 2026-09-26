@@ -1910,3 +1910,62 @@ def test_base_spec_extended_aggregation_func_defaults_to_unsupported(
 def test_base_spec_extended_aggregation_func_unknown_name_is_unsupported() -> None:
     """An aggregate name outside the known extended set is also just None."""
     assert BaseEngineSpec.get_extended_aggregation_func("NOT_A_REAL_AGGREGATE") is None
+
+
+class _NoResultSetCursor:
+    """
+    A DB-API cursor after a statement that returns no rows (DDL/DML): the
+    description is empty and, like mysql-connector, ibm_db, pyexasol and
+    impyla, fetching raises instead of returning an empty list.
+    """
+
+    def __init__(self, description: list[Any] | None) -> None:
+        self.description = description
+        self.arraysize = 1
+
+    def fetchall(self) -> list[tuple[Any, ...]]:
+        raise RuntimeError("No result set to fetch from")
+
+    def fetchmany(self, size: int | None = None) -> list[tuple[Any, ...]]:
+        raise RuntimeError("No result set to fetch from")
+
+
+@pytest.mark.parametrize(
+    "spec_path",
+    [
+        "superset.db_engine_specs.base.BaseEngineSpec",
+        "superset.db_engine_specs.mysql.MySQLEngineSpec",
+        "superset.db_engine_specs.db2.Db2EngineSpec",
+        "superset.db_engine_specs.exasol.ExasolEngineSpec",
+        "superset.db_engine_specs.impala.ImpalaEngineSpec",
+        "superset.db_engine_specs.postgres.PostgresEngineSpec",
+        "superset.db_engine_specs.oracle.OracleEngineSpec",
+        "superset.db_engine_specs.mssql.MssqlEngineSpec",
+    ],
+)
+@pytest.mark.parametrize("description", [None, []])
+@pytest.mark.parametrize("limit", [None, 100])
+def test_fetch_data_no_result_set(
+    spec_path: str, description: list[Any] | None, limit: int | None
+) -> None:
+    """
+    Statements without a result set return no rows instead of failing after
+    they have already executed.
+    """
+    import importlib
+
+    module_name, class_name = spec_path.rsplit(".", 1)
+    spec = getattr(importlib.import_module(module_name), class_name)
+
+    assert spec.fetch_data(_NoResultSetCursor(description), limit) == []
+
+
+def test_fetch_data_with_result_set(mocker: MockerFixture) -> None:
+    """
+    Rows are still fetched when the cursor describes a result set.
+    """
+    cursor = mocker.MagicMock()
+    cursor.description = [("a", "INTEGER", None, None, None, None, True)]
+    cursor.fetchall.return_value = [(1,), (2,)]
+
+    assert BaseEngineSpec.fetch_data(cursor) == [(1,), (2,)]

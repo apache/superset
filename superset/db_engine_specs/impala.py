@@ -129,6 +129,25 @@ class ImpalaEngineSpec(BaseEngineSpec):
             raise cls.get_dbapi_mapped_exception(ex) from ex
 
     @classmethod
+    def fetch_data(cls, cursor: Any, limit: int | None = None) -> list[tuple[Any, ...]]:
+        """
+        Wait for the asynchronous operation before fetching.
+
+        ``execute`` submits the statement with ``execute_async`` and
+        ``handle_cursor`` stops polling once the operation leaves the
+        INITIALIZED/RUNNING states, so it can still be PENDING here. Waiting
+        lets DML finish and surfaces the operation's error before the base
+        class checks whether the statement produced a result set.
+        """
+        wait = getattr(cursor, "_wait_to_finish", None)
+        if callable(wait):
+            try:
+                wait()
+            except Exception as ex:
+                raise cls.get_dbapi_mapped_exception(ex) from ex
+        return super().fetch_data(cursor, limit)
+
+    @classmethod
     def handle_cursor(cls, cursor: Any, query: Query) -> None:
         """Stop query and updates progress information"""
 
