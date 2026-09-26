@@ -62,6 +62,7 @@ from superset.tasks.thumbnails import cache_dashboard_thumbnail
 from superset.tasks.utils import get_current_user
 from superset.thumbnails.digest import get_dashboard_digest
 from superset.utils import core as utils, json
+from superset.utils.i18n import translate
 
 if TYPE_CHECKING:
     from superset.explorables.base import Explorable
@@ -273,6 +274,21 @@ class Dashboard(CoreDashboard, SoftDeleteMixin, AuditMixinNullable, ImportExport
         return f"/dashboard/{slug or id_}/"
 
     @property
+    def localized_title(self) -> str | None:
+        """``dashboard_title`` resolved for the viewer's locale.
+
+        Returns the canonical ``dashboard_title`` unchanged unless
+        asset-metadata translation is enabled and a translation exists; see
+        ``superset.utils.i18n``. This is a read-only display value -- editing
+        flows continue to use ``dashboard_title``.
+        """
+        return translate(
+            self.dashboard_title,
+            model_name="Dashboard",
+            field_name="dashboard_title",
+        )
+
+    @property
     def datasources(self) -> set[BaseDatasource]:
         return {slc.datasource for slc in self.slices if slc.datasource}
 
@@ -364,6 +380,11 @@ class Dashboard(CoreDashboard, SoftDeleteMixin, AuditMixinNullable, ImportExport
             "certified_by": self.certified_by,
             "certification_details": self.certification_details,
             "css": self.css,
+            # Canonical only. Callers feed this dict back through the update
+            # path, which assigns every key onto the model, so a read-only
+            # derived value cannot live here. The REST response carries the
+            # localized title instead, dumped from the model by
+            # DashboardGetResponseSchema.
             "dashboard_title": self.dashboard_title,
             "published": self.published,
             "slug": self.slug,

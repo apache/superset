@@ -1208,3 +1208,46 @@ test('share URL should use browser-absolute pathname to preserve subdirectory pr
     expect(emailLink.getAttribute('href')).toMatch(/\/pcs\/dashboard/);
   }
 });
+
+test('shows the localized title while it still names the current title', () => {
+  setup({
+    dashboardState: {
+      ...initialState.dashboardState,
+      localizedTitle: 'Tableau de bord',
+      localizedTitleFor: 'Dashboard Title',
+    },
+  });
+
+  expect(screen.getByText('Tableau de bord')).toBeInTheDocument();
+  expect(screen.queryByText('Dashboard Title')).not.toBeInTheDocument();
+});
+
+test('falls back to the canonical title once a rename outdates the translation', () => {
+  // localizedTitleFor records the title the translation was resolved for, so a
+  // rename leaves it stale and the canonical title has to win until a reload
+  // supplies a fresh one.
+  setup({
+    dashboardState: {
+      ...initialState.dashboardState,
+      localizedTitle: 'Tableau de bord',
+      localizedTitleFor: 'A Previous Title',
+    },
+  });
+
+  expect(screen.getByText('Dashboard Title')).toBeInTheDocument();
+  expect(screen.queryByText('Tableau de bord')).not.toBeInTheDocument();
+});
+
+test('edits target the canonical title, not the localized one', () => {
+  setup({
+    ...editableState,
+    dashboardState: {
+      ...editableState.dashboardState,
+      localizedTitle: 'Tableau de bord',
+      localizedTitleFor: 'Dashboard Title',
+    },
+  });
+
+  expect(screen.getByDisplayValue('Dashboard Title')).toBeInTheDocument();
+  expect(screen.queryByDisplayValue('Tableau de bord')).not.toBeInTheDocument();
+});

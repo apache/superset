@@ -272,6 +272,8 @@ const Header = ({ onOpenMobileFilters }: HeaderComponentProps): JSX.Element => {
     maxUndoHistoryExceeded,
     editMode,
     lastModifiedTime,
+    localizedTitle,
+    localizedTitleFor,
   } = useSelector(
     (state: HeaderRootState) => ({
       expandedSlices: state.dashboardState.expandedSlices ?? {},
@@ -287,6 +289,8 @@ const Header = ({ onOpenMobileFilters }: HeaderComponentProps): JSX.Element => {
       maxUndoHistoryExceeded: !!state.dashboardState.maxUndoHistoryExceeded,
       editMode: !!state.dashboardState.editMode,
       lastModifiedTime: state.lastModifiedTime ?? 0,
+      localizedTitle: state.dashboardState.localizedTitle,
+      localizedTitleFor: state.dashboardState.localizedTitleFor,
     }),
     shallowEqual,
   );
@@ -619,14 +623,29 @@ const Header = ({ onOpenMobileFilters }: HeaderComponentProps): JSX.Element => {
 
   const editableTitleProps = useMemo(
     () => ({
-      title: dashboardTitle,
+      // Editing operates on the canonical title; display localizes.
+      // The translation belongs to the title it was resolved for. After a
+      // rename it is stale, so fall back to the canonical title until a reload
+      // supplies a fresh one -- and it becomes valid again if the rename is
+      // undone.
+      title:
+        editMode || localizedTitleFor !== dashboardTitle
+          ? dashboardTitle
+          : (localizedTitle ?? dashboardTitle),
       canEdit: userCanEdit && editMode,
       onSave: handleChangeText,
       placeholder: t('Add the name of the dashboard'),
       label: t('Dashboard title'),
       showTooltip: false,
     }),
-    [dashboardTitle, editMode, handleChangeText, userCanEdit],
+    [
+      dashboardTitle,
+      localizedTitle,
+      localizedTitleFor,
+      editMode,
+      handleChangeText,
+      userCanEdit,
+    ],
   );
 
   const certifiedBadgeProps = useMemo(

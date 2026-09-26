@@ -722,10 +722,19 @@ const Chart = (props: ChartProps) => {
     ) || [];
 
   // Build slice header shape matching SliceHeaderControlsProps
+  // A panel can override the chart's name for this dashboard, and the override
+  // has no translation of its own -- so the localized value only applies while
+  // the panel is showing the canonical name. Same rule as the header title.
+  const displayName =
+    props.sliceName === slice.slice_name
+      ? (slice.localized_name ?? slice.slice_name)
+      : props.sliceName;
+
   const sliceForHeader = {
     description: slice.description || '',
     viz_type: slice.viz_type,
     slice_name: slice.slice_name,
+    display_name: displayName,
     slice_id: slice.slice_id,
     slice_description: '',
     datasource: slice.form_data?.datasource || '',
@@ -762,6 +771,11 @@ const Chart = (props: ChartProps) => {
           props.updateSliceName(props.id, name)
         }
         sliceName={props.sliceName}
+        localizedName={
+          props.sliceName === slice.slice_name
+            ? slice.localized_name
+            : undefined
+        }
         supersetCanExplore={supersetCanExplore}
         supersetCanShare={supersetCanShare}
         supersetCanDownload={supersetCanDownload}

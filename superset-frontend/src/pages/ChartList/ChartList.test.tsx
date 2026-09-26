@@ -273,6 +273,38 @@ describe('ChartList', () => {
 
     expect(screen.queryByTestId('delete-modal-input')).not.toBeInTheDocument();
   });
+
+  test('renders the localized chart name, falling back to slice_name', async () => {
+    // Served from a response of its own rather than the shared mock, which
+    // other suites assert against by canonical name.
+    const [translated, untranslated] = mockCharts;
+    // Reset every route rather than replacing just the chart one: a
+    // re-registered route sits behind the helper's catch-all glob, which would
+    // answer the chart request instead. Same approach as the loading-state
+    // test above.
+    fetchMock.removeRoutes();
+    fetchMock.get(
+      API_ENDPOINTS.CHARTS,
+      {
+        result: [
+          { ...translated, localized_name: 'Graphique traduit' },
+          untranslated,
+        ],
+        chart_count: 2,
+      },
+      { name: API_ENDPOINTS.CHARTS },
+    );
+
+    renderChartList(mockUser);
+    await screen.findByTestId('chart-list-view');
+
+    // The chart with a translation shows it instead of the canonical name.
+    expect(await screen.findByText('Graphique traduit')).toBeInTheDocument();
+    expect(screen.queryByText(translated.slice_name)).not.toBeInTheDocument();
+
+    // Charts without one keep showing slice_name.
+    expect(screen.getByText(untranslated.slice_name)).toBeInTheDocument();
+  });
 });
 
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks

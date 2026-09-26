@@ -1172,3 +1172,88 @@ test('Should NOT show row count warning for table chart with server pagination w
 
   mockUseUiConfig.mockRestore();
 });
+
+const mockDefaultUiConfig = () => {
+  (useUiConfig as jest.Mock).mockReturnValue({
+    hideTitle: false,
+    hideTab: false,
+    hideNav: false,
+    hideChartControls: false,
+    emitDataMasks: false,
+    showRowLimitWarning: false,
+  });
+};
+
+test('Should display the localized name when not in edit mode', () => {
+  mockDefaultUiConfig();
+  const props = createProps({
+    editMode: false,
+    sliceName: 'Sales',
+    localizedName: 'Ventes',
+  });
+  render(<SliceHeader {...props} />, {
+    useRedux: true,
+    useRouter: true,
+    initialState,
+  });
+  expect(screen.getByText('Ventes')).toBeInTheDocument();
+  expect(screen.queryByText('Sales')).not.toBeInTheDocument();
+});
+
+test('Should display the canonical name in edit mode so edits target it', () => {
+  mockDefaultUiConfig();
+  const props = createProps({
+    editMode: true,
+    sliceName: 'Sales',
+    localizedName: 'Ventes',
+  });
+  render(<SliceHeader {...props} />, {
+    useRedux: true,
+    useRouter: true,
+    initialState,
+  });
+  // In edit mode the editable field must show the canonical name, otherwise a
+  // save would round-trip the translation into slice_name. Asserted on the
+  // field's value: EditableTitle renders an Input.TextArea when editing.
+  expect(screen.getByDisplayValue('Sales')).toBeInTheDocument();
+  expect(screen.queryByDisplayValue('Ventes')).not.toBeInTheDocument();
+  expect(screen.queryByText('Ventes')).not.toBeInTheDocument();
+});
+
+test('Should fall back to the canonical name when no localized name is set', () => {
+  mockDefaultUiConfig();
+  const props = createProps({
+    editMode: false,
+    sliceName: 'Sales',
+    localizedName: undefined,
+  });
+  render(<SliceHeader {...props} />, {
+    useRedux: true,
+    useRouter: true,
+    initialState,
+  });
+  expect(screen.getByText('Sales')).toBeInTheDocument();
+});
+
+test('Should use the localized name in the click-to-edit tooltip', async () => {
+  mockDefaultUiConfig();
+  const props = createProps({
+    editMode: false,
+    sliceName: 'Sales',
+    localizedName: 'Ventes',
+  });
+  const history = createMemoryHistory({
+    initialEntries: ['/superset/dashboard/1/'],
+  });
+  render(
+    <Router history={history}>
+      <SliceHeader {...props} />
+    </Router>,
+    { useRedux: true, initialState },
+  );
+
+  // The tooltip describes what is on screen, so it names the localized title
+  // rather than the canonical one behind it.
+  userEvent.hover(screen.getByText('Ventes'));
+  expect(await screen.findByText('Click to edit Ventes.')).toBeInTheDocument();
+});

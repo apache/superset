@@ -1074,3 +1074,21 @@ test('Should handle three or more queries with different cache states', async ()
   expect(await screen.findByText(/Query 2:/)).toBeInTheDocument();
   expect(await screen.findByText(/Query 3:/)).toBeInTheDocument();
 });
+
+test('menu strings the viewer reads use the displayed name', async () => {
+  // The header can show a translation or a panel title override while
+  // slice_name stays canonical for edits and download filenames, so these two
+  // strings have to follow what is on screen rather than the stored name.
+  const props = createProps();
+  renderWrapper({
+    ...props,
+    slice: { ...props.slice, display_name: 'Ventes' },
+  } as SliceHeaderControlsProps);
+  openMenu();
+
+  userEvent.hover(screen.getByText('Edit chart'));
+  expect(await screen.findByText(/Click to edit Ventes/)).toBeInTheDocument();
+
+  userEvent.click(screen.getByText('View as table'));
+  expect(await screen.findByText('Chart Data: Ventes')).toBeInTheDocument();
+});

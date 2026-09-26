@@ -109,6 +109,11 @@ export interface SliceHeaderControlsProps {
     description: string;
     viz_type: string;
     slice_name: string;
+    // The name as rendered in the header: the localized value, or the panel's
+    // own title override. Used for strings the viewer reads; slice_name stays
+    // the canonical value for edits, filenames and extension payloads.
+    // Kept in step with the copy of this interface in ./types.ts.
+    display_name?: string;
     slice_id: number;
     slice_description: string;
     datasource: string;
@@ -560,7 +565,11 @@ const SliceHeaderControls = (
     newMenuItems.push({
       key: MenuKeys.ExploreChart,
       label: (
-        <Tooltip title={getSliceHeaderTooltip(props.slice.slice_name)}>
+        <Tooltip
+          title={getSliceHeaderTooltip(
+            props.slice.display_name ?? props.slice.slice_name,
+          )}
+        >
           {t('Edit chart')}
         </Tooltip>
       ),
@@ -614,7 +623,10 @@ const SliceHeaderControls = (
             <div data-test="view-query-menu-item">{t('View as table')}</div>
           }
           modalRef={resultsMenuRef}
-          modalTitle={t('Chart Data: %s', slice.slice_name)}
+          modalTitle={t(
+            'Chart Data: %s',
+            slice.display_name ?? slice.slice_name,
+          )}
           modalBody={
             <ResultsPaneOnDashboard
               queryFormData={props.formData}
