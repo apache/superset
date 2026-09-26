@@ -21,11 +21,21 @@ import logging
 from datetime import datetime
 from typing import Any, TYPE_CHECKING
 
+from flask_babel import gettext as __
+from marshmallow import EXCLUDE, fields, Schema
+from marshmallow.validate import Range
 from sqlalchemy import types
+from sqlalchemy.engine.url import URL
 
 from superset import is_feature_enabled
 from superset.constants import TimeGrain
-from superset.db_engine_specs.base import BaseEngineSpec, DatabaseCategory
+from superset.databases.utils import make_url_safe
+from superset.db_engine_specs.base import (
+    BaseEngineSpec,
+    BasicParametersMixin,
+    BasicParametersType,
+    DatabaseCategory,
+)
 from superset.db_engine_specs.exceptions import SupersetDBAPIConnectionError
 from superset.exceptions import SupersetException
 from superset.utils import core as utils, json
@@ -40,13 +50,59 @@ logger = logging.getLogger()
 _DRUID_FLOAT_SPECIAL = frozenset({"NaN", "Infinity", "-Infinity"})
 
 
-class DruidEngineSpec(BaseEngineSpec):
+class DruidParametersSchema(Schema):
+    """
+    Parameters for the dynamic connection form.
+
+    Druid connects over a fixed SQL endpoint (`/druid/v2/sql/`), so the schema
+    intentionally omits the ``database`` field. The ``encryption`` toggle selects
+    the http vs. https pydruid dialect rather than adding a query parameter.
+    """
+
+    class Meta:  # pylint: disable=too-few-public-methods
+        # `get_parameters_from_uri` emits the fixed `database` path, which is not
+        # a form field; ignore it (and any other stray keys) on reload instead of
+        # raising an "Unknown field" error.
+        unknown = EXCLUDE
+
+    username = fields.String(allow_none=True, metadata={"description": __("Username")})
+    password = fields.String(allow_none=True, metadata={"description": __("Password")})
+    host = fields.String(
+        required=True, metadata={"description": __("Hostname or IP address")}
+    )
+    port = fields.Integer(
+        required=True,
+        metadata={"description": __("Database port")},
+        validate=Range(min=0, max=2**16, max_inclusive=False),
+    )
+    encryption = fields.Boolean(
+        required=False,
+        metadata={"description": __("Use an encrypted connection to the database")},
+    )
+    query = fields.Dict(
+        keys=fields.Str(),
+        values=fields.Raw(),
+        metadata={"description": __("Additional parameters")},
+    )
+
+
+class DruidEngineSpec(BasicParametersMixin, BaseEngineSpec):
     """Engine spec for Druid.io"""
 
     engine = "druid"
     engine_name = "Apache Druid"
     allows_joins = is_feature_enabled("DRUID_JOINS")
     allows_subqueries = True
+
+    # pydruid connects over HTTP (`druid+https` selects the TLS dialect); the SQL
+    # endpoint path is fixed and never entered by the user, so it is injected here
+    # instead of being exposed as a form field.
+    default_driver = ""
+    sqlalchemy_uri_placeholder = "druid://user:password@host:port/druid/v2/sql/"
+    sqlalchemy_uri_database = "druid/v2/sql/"
+    parameters_schema = DruidParametersSchema()
+    # username/password are optional for anonymous Druid clusters
+    required_parameters = {"host", "port"}
 
     # pydruid builds cursor.description from the first returned row, so a
     # WHERE FALSE query (zero rows) leaves description as None.
@@ -161,6 +217,44 @@ class DruidEngineSpec(BaseEngineSpec):
     def alter_new_orm_column(cls, orm_col: TableColumn) -> None:
         if orm_col.column_name == "__time":
             orm_col.is_dttm = True
+
+    @classmethod
+    def build_sqlalchemy_uri(
+        cls,
+        parameters: BasicParametersType,
+        encrypted_extra: dict[str, str] | None = None,
+    ) -> str:
+        query = parameters.get("query", {}).copy()
+        # `druid+https` selects pydruid's TLS dialect; the bare `druid` driver
+        # connects over plain HTTP.
+        driver = "https" if parameters.get("encryption") else cls.default_driver
+
+        # SQLAlchemy 2.0 hides the password from `URL.__str__()`, so render it
+        # explicitly since this URI is used to connect, not just displayed.
+        return URL.create(
+            f"{cls.engine}+{driver}".rstrip("+"),
+            username=parameters.get("username"),
+            password=parameters.get("password"),
+            host=parameters["host"],
+            port=parameters["port"],
+            database=cls.sqlalchemy_uri_database,
+            query=query,
+        ).render_as_string(hide_password=False)
+
+    @classmethod
+    def get_parameters_from_uri(
+        cls, uri: str, encrypted_extra: dict[str, Any] | None = None
+    ) -> BasicParametersType:
+        url = make_url_safe(uri)
+        return BasicParametersType(
+            username=url.username,
+            password=url.password,
+            host=url.host,
+            port=url.port,
+            database=url.database or cls.sqlalchemy_uri_database,
+            query=dict(url.query),
+            encryption=(url.drivername or "").endswith("https"),
+        )
 
     @staticmethod
     def get_extra_params(
