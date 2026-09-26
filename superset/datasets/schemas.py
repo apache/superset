@@ -31,9 +31,11 @@ from marshmallow import (
 from marshmallow.validate import Length, OneOf, Range
 
 from superset import security_manager
+from superset.connectors.sqla.partition_mapping import MIRRORABLE_OPERATORS
 from superset.exceptions import SupersetMarshmallowValidationError
 from superset.models.sql_types import parse_currency_string
 from superset.utils import json
+from superset.utils.core import FilterOperator
 from superset.utils.schema import DiscardIsManagedExternallyMixin
 
 get_delete_ids_schema = {
@@ -537,6 +539,19 @@ class PartitionMappingPreviewSchema(Schema):
         validate=Length(1, 250),
         metadata={"description": "Column whose filters would be mirrored"},
     )
+    partition_column = fields.String(
+        load_default=None,
+        allow_none=True,
+        # Matches the `String(250)` the mapping columns are stored in.
+        validate=Length(1, 250),
+        metadata={
+            "description": (
+                "Candidate partition column. The editor previews a mapping "
+                "before it is saved, so this overrides the stored value; "
+                "omitted, the stored one is used."
+            )
+        },
+    )
     value_transform = fields.String(
         required=True,
         allow_none=True,
@@ -546,10 +561,39 @@ class PartitionMappingPreviewSchema(Schema):
         validate=Length(1, 1024),
         metadata={"description": "SQL expression containing a :value placeholder"},
     )
-    sample_value = fields.String(
+    sample_values = fields.List(
+        # Bound the items as well as the list: fifty unbounded strings is the
+        # same unbounded payload with extra steps.
+        fields.String(validate=Length(1, 250)),
         required=True,
-        validate=Length(1, 250),
-        metadata={"description": "Value to evaluate the transform at"},
+        validate=Length(1, 50),
+        metadata={
+            "description": (
+                "Values to evaluate the transform at. A comparison operator "
+                "takes one; IN takes the whole list."
+            )
+        },
+    )
+    operator = fields.String(
+        # `=` mirrors under any transform, so the default is meaningful on its
+        # own. A range default would refuse unless `is_monotonic` came with it.
+        load_default=FilterOperator.EQUALS.value,
+        validate=OneOf([operator.value for operator in sorted(MIRRORABLE_OPERATORS)]),
+        metadata={
+            "description": (
+                "Filter operator being mirrored. Only operators that can be "
+                "mirrored at all are accepted."
+            )
+        },
+    )
+    is_monotonic = fields.Boolean(
+        load_default=False,
+        metadata={
+            "description": (
+                "Whether the owner has declared the transform order-preserving. "
+                "Range operators only mirror when they have."
+            )
+        },
     )
 
 

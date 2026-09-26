@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-24 01:14+0000\n"
+"POT-Creation-Date: 2026-09-24 02:04+0000\n"
 "PO-Revision-Date: 2026-07-17 09:44+0100\n"
 "Last-Translator: Daniel Checheta\n"
 "Language: ru\n"
@@ -293,6 +293,12 @@ msgstr[2] ""
 #, python-format
 msgid "%(object)s does not exist in this database."
 msgstr "%(object)s не существует в этой базе данных"
+
+#, python-format
+msgid ""
+"%(partition)s is hidden from Explore, but no filter is mirrored onto it —"
+" queries will scan every partition until a column is mapped."
+msgstr ""
 
 #, python-format
 msgid "%(prefix)s %(title)s"
@@ -1006,6 +1012,12 @@ msgid ""
 "CSS. Convert it to inline CSS to keep using it."
 msgstr ""
 
+#, python-format
+msgid ""
+"A %(operator)s filter is only mirrored when the transform preserves "
+"ordering, which this one is not declared to do."
+msgstr ""
+
 msgid "A Big Number"
 msgstr "Карточка"
 
@@ -1020,6 +1032,11 @@ msgstr ""
 "переопределяющий другие параметры управления с более высоким приоритетом."
 " (например, { title: { text: \"Моя диаграмма\" }, tooltip: { trigger: "
 "\"item\" } }). Подробности: https://echarts.apache.org/en/option.html. "
+
+msgid ""
+"A SQL expression evaluated against the engine, with :value standing for "
+"the filter bound being mirrored."
+msgstr ""
 
 msgid "A TTL is required for ephemeral state."
 msgstr ""
@@ -3166,6 +3183,9 @@ msgstr "Невозможно перенести вкладку верхнего 
 msgid "Can select multiple values"
 msgstr "Можно выбрать несколько значений"
 
+msgid "Can't parse transform"
+msgstr ""
+
 msgid "Cancel"
 msgstr "Отменить"
 
@@ -4122,6 +4142,11 @@ msgstr ""
 msgid "Column type"
 msgstr "Тип столбца"
 
+msgid ""
+"Column used for partition pruning on this table. Selecting one hides it "
+"from Explore's dimension and filter pickers by default."
+msgstr ""
+
 msgid "Columnar upload"
 msgstr "Загрузка колоночных данных"
 
@@ -4859,6 +4884,9 @@ msgid "Customize the label for the left series in tooltips and legend"
 msgstr ""
 
 msgid "Customize the label for the right series in tooltips and legend"
+msgstr ""
+
+msgid "Customize the value transform →"
 msgstr ""
 
 msgid "Customize tooltips template"
@@ -6545,6 +6573,9 @@ msgstr "Не удалось удалить встроенный дашборд."
 msgid "Embedding deactivated."
 msgstr "Встраивание отключено"
 
+msgid "Emitted predicate"
+msgstr ""
+
 msgid "Emphasis"
 msgstr "Акцент"
 
@@ -7531,8 +7562,28 @@ msgid "Filters for values less than or equal."
 msgstr "Фильтрует значения меньше или равные указанному."
 
 #, python-format
+msgid ""
+"Filters on %(mapped)s will automatically apply an equivalent filter to "
+"%(partition)s."
+msgstr ""
+
+msgid ""
+"Filters on the mapped column are mirrored onto this column so the engine "
+"can prune partitions."
+msgstr ""
+
+msgid "Filters on this column are mirrored onto the partition column."
+msgstr ""
+
+msgid "Filters on this column are mirrored onto the partition field."
+msgstr ""
+
+#, python-format
 msgid "Filters out of scope (%d)"
 msgstr "Фильтры вне рамок дашборда (%d)"
+
+msgid "Filters will not be mirrored"
+msgstr ""
 
 msgid ""
 "Filters with the same group key will be ORed together within the group, "
@@ -9299,6 +9350,12 @@ msgstr "Мгновенная отрисовка"
 msgid "Map Style"
 msgstr "Стиль карты"
 
+msgid "Map a column →"
+msgstr ""
+
+msgid "Map a different column instead →"
+msgstr ""
+
 msgid "MapLibre (open-source)"
 msgstr "MapLibre (open-source)"
 
@@ -9317,6 +9374,9 @@ msgstr "Для Mapbox необходимо настроить MAPBOX_API_KEY н�
 
 #, python-format
 msgid "Mapped column %(name)s is not a column on this dataset."
+msgstr ""
+
+msgid "Maps to partition"
 msgstr ""
 
 msgid "March"
@@ -9773,6 +9833,13 @@ msgstr "Изменено на основе шаблона \"%s\""
 msgid "Monday"
 msgstr "Понедельник"
 
+msgid ""
+"Monotonicity is a property of the transform, not of the column type: "
+"hour(:value) and dayofweek(:value) are reasonable transforms on a "
+"timestamp and neither preserves ordering, so Superset asks rather than "
+"guessing. Unchecked, = and IN still mirror."
+msgstr ""
+
 msgid "Month"
 msgstr "Месяц"
 
@@ -9797,6 +9864,9 @@ msgstr "MotherDuck токен"
 
 msgid "Move icon"
 msgstr "Переместить иконку"
+
+msgid "Move mapping to this column →"
+msgstr ""
 
 msgid "Move only"
 msgstr "Только перемещение"
@@ -10124,6 +10194,9 @@ msgstr ""
 msgid "No items"
 msgstr "Нет данных"
 
+msgid "No mapping"
+msgstr ""
+
 msgid "No matching records found"
 msgstr "Совпадений не найдено"
 
@@ -10220,6 +10293,12 @@ msgstr ""
 "Не найден валидатор с именем %(validator_name)s (сконфигурированный для "
 "драйвера %(engine_spec)s)"
 
+#, python-format
+msgid ""
+"No value transform is set on %(mapped)s, so nothing is mirrored yet and "
+"queries will scan every partition."
+msgstr ""
+
 msgid ""
 "No value transform is set, so no filter will be mirrored onto the "
 "partition column."
@@ -10258,6 +10337,9 @@ msgstr "Нормализовать названия столбцов"
 msgid "Normalized"
 msgstr "Нормализовать"
 
+msgid "Normally the default datetime column, but none is set on this dataset."
+msgstr ""
+
 msgid "Not Contains"
 msgstr "Не содержит"
 
@@ -10278,6 +10360,9 @@ msgstr "Заполнены не все обязательные поля:"
 
 msgid "Not available"
 msgstr "Не доступно"
+
+msgid "Not currently mapped to the partition column."
+msgstr ""
 
 msgid "Not defined"
 msgstr "Не определено"
@@ -10820,10 +10905,16 @@ msgstr ""
 msgid "Owners"
 msgstr ""
 
+msgid "PARTITION"
+msgstr ""
+
 msgid "PDF download failed, please refresh and try again."
 msgstr ""
 "Произошла ошибка скачивания PDF-файла. Обновите страницу и попробуйте "
 "заново."
+
+msgid "PREVIEW"
+msgstr ""
 
 msgid "Page"
 msgstr "Страница"
@@ -10880,8 +10971,17 @@ msgstr "Количество разбиений"
 msgid "Partition Threshold"
 msgstr "Порог раздела"
 
+msgid "Partition column"
+msgstr ""
+
 #, python-format
 msgid "Partition column %(name)s is not a column on this dataset."
+msgstr ""
+
+msgid "Partition field:"
+msgstr ""
+
+msgid "Partition filter mapping"
 msgstr ""
 
 msgid ""
@@ -11765,6 +11865,9 @@ msgstr ""
 msgid "Remove item"
 msgstr "Удалить элемент"
 
+msgid "Remove mapping"
+msgstr ""
+
 msgid "Remove notification method"
 msgstr ""
 
@@ -12000,6 +12103,12 @@ msgstr ""
 
 msgid "Required control values have been removed"
 msgstr "Обязательные значения были удалены"
+
+msgid "Required for non-temporal columns. Use :value for each value."
+msgstr ""
+
+msgid "Required to mirror range filters, including the time range."
+msgstr ""
 
 msgid "Resample"
 msgstr "Ресемплирование (изменение частоты данных)"
@@ -12451,6 +12560,9 @@ msgid "Sample Standard Deviation"
 msgstr ""
 
 msgid "Sample Variance"
+msgstr ""
+
+msgid "Sample input"
 msgstr ""
 
 msgid "Samples"
@@ -13376,6 +13488,11 @@ msgstr "Настроить автообновление"
 
 msgid "Set filter mapping"
 msgstr "Установить действие фильтра"
+
+msgid ""
+"Set from the default datetime column above, so re-pointing that column "
+"moves the mapping with it."
+msgstr ""
 
 msgid "Set local theme for testing"
 msgstr "Установить локальную тему для тестирования"
@@ -14919,6 +15036,11 @@ msgstr "Целевой столбец для ребра графа."
 msgid "The column was deleted or renamed in the database."
 msgstr "Столбец был удален или переименован в базе данных"
 
+msgid ""
+"The column whose filters are mirrored. It follows the default datetime "
+"column unless a different column holds the mapping."
+msgstr ""
+
 msgid "The configuration for the map layers"
 msgstr "Настройки слоев карты"
 
@@ -15421,6 +15543,11 @@ msgid ""
 "                expressions."
 msgstr ""
 
+msgid ""
+"The physical column the engine partitions on. Filters on the mapped "
+"column are mirrored onto it so the engine can prune partitions."
+msgstr ""
+
 msgid "The pixel radius"
 msgstr "Радиус ячейки (в пикселях)"
 
@@ -15438,6 +15565,9 @@ msgstr "Порт закрыт"
 
 msgid "The port number is invalid."
 msgstr "Неверный порт"
+
+msgid "The preview could not be loaded."
+msgstr ""
 
 msgid "The primary metric is used to define the arc segment sizes"
 msgstr "Основная мера используется для определения размера сегмента"
@@ -15730,6 +15860,10 @@ msgstr "Единица времени для группировки блоков
 msgid "The transform could not be evaluated against the database."
 msgstr ""
 
+#, python-format
+msgid "The transform could not be evaluated against the database: %(reason)s"
+msgstr ""
+
 msgid "The two passwords that you entered do not match!"
 msgstr "Введенные пароли не совпадают!"
 
@@ -15789,6 +15923,12 @@ msgstr ""
 msgid ""
 "The value transform could not be parsed. The mapping is saved but stays "
 "inactive until it does."
+msgstr ""
+
+#, python-format
+msgid ""
+"The value transform could not be parsed: %(detail)s The mapping is saved "
+"but stays inactive until it does."
 msgstr ""
 
 msgid ""
@@ -16246,6 +16386,9 @@ msgid "This chart only"
 msgstr ""
 
 msgid "This chart will be restored to the following version:"
+msgstr ""
+
+msgid "This column holds the mapping instead of the default datetime column."
 msgstr ""
 
 #, fuzzy, python-format
@@ -17007,6 +17150,9 @@ msgstr "Итого: %s"
 msgid "Track job"
 msgstr "Отслеживать работу"
 
+msgid "Transform preserves ordering"
+msgstr ""
+
 msgid "Transformable"
 msgstr "Трансформируемый"
 
@@ -17575,6 +17721,9 @@ msgstr "Использование"
 msgid "Use %s to open in a new tab."
 msgstr "Используйте %s для открытия в отдельной вкладке."
 
+msgid "Use :value for the filter bound."
+msgstr ""
+
 msgid "Use Area Proportions"
 msgstr "В пропорции площади"
 
@@ -17733,6 +17882,9 @@ msgstr ""
 msgid "Uses the first 25 values if the dimension has more."
 msgstr "Использует первые 25 значений, если измерение содержит больше."
 
+msgid "Valid"
+msgstr ""
+
 msgid "Valid SQL expression"
 msgstr "Корректное SQL-выражение"
 
@@ -17801,6 +17953,9 @@ msgstr "Значение должно быть не менее нуля"
 
 msgid "Value must be greater than 0"
 msgstr "Значение должно быть больше нуля"
+
+msgid "Value transform"
+msgstr ""
 
 #, python-format
 msgid ""
@@ -20023,6 +20178,10 @@ msgstr "сумма"
 msgid "superset.example.com"
 msgstr ""
 
+#, python-format
+msgid "syntax error at position %(position)d."
+msgstr ""
+
 msgid "syntax."
 msgstr "синтаксис."
 
@@ -20064,6 +20223,9 @@ msgstr "сверху"
 
 msgid "undo"
 msgstr "отмены"
+
+msgid "unix_timestamp(:value)"
+msgstr ""
 
 msgid "unknown type icon"
 msgstr "иконка для типа `unknown`"
@@ -20146,6 +20308,9 @@ msgstr "область масштабирования"
 
 msgid "© Layer attribution"
 msgstr "© Настройки слоя"
+
+msgid "— set in Default Column Settings · one per dataset"
+msgstr ""
 
 #, python-format
 msgid "…and %s more chart"

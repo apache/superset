@@ -274,3 +274,27 @@ def test_spark_identifier_quote_uses_backticks() -> None:
         "end": "`",
         "escape_by_doubling": True,
     }
+
+
+def test_the_partition_transform_default_is_hive_syntax() -> None:
+    """
+    `unix_timestamp(:value)` only belongs on engines where it parses. The
+    one-argument form takes the bound being mirrored; the zero-argument form
+    means "now" on Hive and is rejected at save time.
+    """
+    from superset.db_engine_specs.hive import HiveEngineSpec
+    from superset.db_engine_specs.spark import SparkEngineSpec
+
+    assert HiveEngineSpec.partition_value_transform_default == "unix_timestamp(:value)"
+    # Spark SQL inherits from Hive and shares the syntax.
+    assert SparkEngineSpec.partition_value_transform_default == "unix_timestamp(:value)"
+
+
+def test_the_partition_transform_default_is_not_inherited_by_presto() -> None:
+    """
+    HiveEngineSpec extends PrestoEngineSpec, so pin that the default did not
+    travel up: Presto has no `unix_timestamp`.
+    """
+    from superset.db_engine_specs.presto import PrestoEngineSpec
+
+    assert PrestoEngineSpec.partition_value_transform_default is None

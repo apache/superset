@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-24 01:14+0000\n"
+"POT-Creation-Date: 2026-09-24 02:04+0000\n"
 "PO-Revision-Date: 2025-06-27 12:56+0200\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: ca\n"
@@ -307,6 +307,12 @@ msgstr[1] ""
 #, python-format
 msgid "%(object)s does not exist in this database."
 msgstr "%(object)s no existeix en aquesta base de dades."
+
+#, python-format
+msgid ""
+"%(partition)s is hidden from Explore, but no filter is mirrored onto it —"
+" queries will scan every partition until a column is mapped."
+msgstr ""
 
 #, python-format
 msgid "%(prefix)s %(title)s"
@@ -1010,6 +1016,12 @@ msgid ""
 "CSS. Convert it to inline CSS to keep using it."
 msgstr ""
 
+#, python-format
+msgid ""
+"A %(operator)s filter is only mirrored when the transform preserves "
+"ordering, which this one is not declared to do."
+msgstr ""
+
 msgid "A Big Number"
 msgstr "Un Número Gran"
 
@@ -1026,6 +1038,11 @@ msgstr ""
 "d'ECharts, sobreescrivint altres opcions de control amb major prioritat. "
 "(p. ex., { title: { text: \"My Chart\" }, tooltip: { trigger: \"item\" } "
 "}). Detalls: https://echarts.apache.org/en/option.html. "
+
+msgid ""
+"A SQL expression evaluated against the engine, with :value standing for "
+"the filter bound being mirrored."
+msgstr ""
 
 msgid "A TTL is required for ephemeral state."
 msgstr ""
@@ -3345,6 +3362,9 @@ msgstr ""
 msgid "Can select multiple values"
 msgstr "Pot seleccionar múltiples valors"
 
+msgid "Can't parse transform"
+msgstr ""
+
 msgid "Cancel"
 msgstr "Cancel·lar"
 
@@ -4383,6 +4403,11 @@ msgstr ""
 msgid "Column type"
 msgstr "Tipus de columna"
 
+msgid ""
+"Column used for partition pruning on this table. Selecting one hides it "
+"from Explore's dimension and filter pickers by default."
+msgstr ""
+
 msgid "Columnar upload"
 msgstr "Pujada columnar"
 
@@ -5184,6 +5209,9 @@ msgid "Customize the label for the left series in tooltips and legend"
 msgstr ""
 
 msgid "Customize the label for the right series in tooltips and legend"
+msgstr ""
+
+msgid "Customize the value transform →"
 msgstr ""
 
 #, fuzzy
@@ -6997,6 +7025,9 @@ msgstr "El dashboard incrustat no s'ha pogut eliminar."
 msgid "Embedding deactivated."
 msgstr "Incrustació desactivada."
 
+msgid "Emitted predicate"
+msgstr ""
+
 msgid "Emphasis"
 msgstr "Èmfasi"
 
@@ -8087,8 +8118,28 @@ msgid "Filters for values less than or equal."
 msgstr "Filtres per valors més petits o iguals."
 
 #, python-format
+msgid ""
+"Filters on %(mapped)s will automatically apply an equivalent filter to "
+"%(partition)s."
+msgstr ""
+
+msgid ""
+"Filters on the mapped column are mirrored onto this column so the engine "
+"can prune partitions."
+msgstr ""
+
+msgid "Filters on this column are mirrored onto the partition column."
+msgstr ""
+
+msgid "Filters on this column are mirrored onto the partition field."
+msgstr ""
+
+#, python-format
 msgid "Filters out of scope (%d)"
 msgstr "Filtres fora d'àmbit (%d)"
+
+msgid "Filters will not be mirrored"
+msgstr ""
 
 msgid ""
 "Filters with the same group key will be ORed together within the group, "
@@ -9997,6 +10048,12 @@ msgstr "Renderització en viu"
 msgid "Map Style"
 msgstr "Estil de Mapa"
 
+msgid "Map a column →"
+msgstr ""
+
+msgid "Map a different column instead →"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
 #, fuzzy
@@ -10025,6 +10082,9 @@ msgstr "Mapbox requereix que es configuri MAPBOX_API_KEY al servidor."
 
 #, python-format
 msgid "Mapped column %(name)s is not a column on this dataset."
+msgstr ""
+
+msgid "Maps to partition"
 msgstr ""
 
 msgid "March"
@@ -10507,6 +10567,13 @@ msgstr "Carregar una plantilla CSS"
 msgid "Monday"
 msgstr "Dilluns"
 
+msgid ""
+"Monotonicity is a property of the transform, not of the column type: "
+"hour(:value) and dayofweek(:value) are reasonable transforms on a "
+"timestamp and neither preserves ordering, so Superset asks rather than "
+"guessing. Unchecked, = and IN still mirror."
+msgstr ""
+
 msgid "Month"
 msgstr "Mes"
 
@@ -10533,6 +10600,9 @@ msgstr "Token MotherDuck"
 #, fuzzy
 msgid "Move icon"
 msgstr "Només moure"
+
+msgid "Move mapping to this column →"
+msgstr ""
 
 msgid "Move only"
 msgstr "Només moure"
@@ -10881,6 +10951,9 @@ msgstr ""
 msgid "No items"
 msgstr "Cap filtre"
 
+msgid "No mapping"
+msgstr ""
+
 msgid "No matching records found"
 msgstr "Cap registre coincident trobat"
 
@@ -10983,6 +11056,12 @@ msgstr ""
 "Cap validador anomenat %(validator_name)s trobat (configurat per al motor"
 " %(engine_spec)s)"
 
+#, python-format
+msgid ""
+"No value transform is set on %(mapped)s, so nothing is mirrored yet and "
+"queries will scan every partition."
+msgstr ""
+
 msgid ""
 "No value transform is set, so no filter will be mirrored onto the "
 "partition column."
@@ -11021,6 +11100,9 @@ msgstr "Normalitzar noms de columna"
 msgid "Normalized"
 msgstr "Normalitzat"
 
+msgid "Normally the default datetime column, but none is set on this dataset."
+msgstr ""
+
 #, fuzzy
 msgid "Not Contains"
 msgstr "Continguts de l'informe"
@@ -11045,6 +11127,9 @@ msgstr ""
 
 msgid "Not available"
 msgstr "No disponible"
+
+msgid "Not currently mapped to the partition column."
+msgstr ""
 
 msgid "Not defined"
 msgstr "No definit"
@@ -11614,8 +11699,14 @@ msgstr ""
 msgid "Owners"
 msgstr ""
 
+msgid "PARTITION"
+msgstr ""
+
 msgid "PDF download failed, please refresh and try again."
 msgstr "La descàrrega PDF ha fallat, si us plau actualitza i torna-ho a provar."
+
+msgid "PREVIEW"
+msgstr ""
 
 #, fuzzy
 msgid "Page"
@@ -11675,8 +11766,17 @@ msgstr "Límit de Partició"
 msgid "Partition Threshold"
 msgstr "Llindar de Partició"
 
+msgid "Partition column"
+msgstr ""
+
 #, python-format
 msgid "Partition column %(name)s is not a column on this dataset."
+msgstr ""
+
+msgid "Partition field:"
+msgstr ""
+
+msgid "Partition filter mapping"
 msgstr ""
 
 msgid ""
@@ -12628,6 +12728,9 @@ msgstr ""
 msgid "Remove item"
 msgstr "Eliminar element"
 
+msgid "Remove mapping"
+msgstr ""
+
 msgid "Remove notification method"
 msgstr ""
 
@@ -12858,6 +12961,12 @@ msgstr ""
 
 msgid "Required control values have been removed"
 msgstr "Els valors de control obligatoris han estat eliminats"
+
+msgid "Required for non-temporal columns. Use :value for each value."
+msgstr ""
+
+msgid "Required to mirror range filters, including the time range."
+msgstr ""
 
 msgid "Resample"
 msgstr "Remostreig"
@@ -13341,6 +13450,9 @@ msgid "Sample Standard Deviation"
 msgstr ""
 
 msgid "Sample Variance"
+msgstr ""
+
+msgid "Sample input"
 msgstr ""
 
 msgid "Samples"
@@ -14408,6 +14520,11 @@ msgstr "Establir interval d'actualització automàtica"
 
 msgid "Set filter mapping"
 msgstr "Establir mapatge de filtres"
+
+msgid ""
+"Set from the default datetime column above, so re-pointing that column "
+"moves the mapping with it."
+msgstr ""
 
 #, fuzzy
 msgid "Set local theme for testing"
@@ -16087,6 +16204,11 @@ msgstr "La columna a usar com a objectiu de la vora."
 msgid "The column was deleted or renamed in the database."
 msgstr "La columna va ser eliminada o reanomenada a la base de dades."
 
+msgid ""
+"The column whose filters are mirrored. It follows the default datetime "
+"column unless a different column holds the mapping."
+msgstr ""
+
 msgid "The configuration for the map layers"
 msgstr "La configuració per les capes del mapa"
 
@@ -16621,6 +16743,11 @@ msgid ""
 "                expressions."
 msgstr ""
 
+msgid ""
+"The physical column the engine partitions on. Filters on the mapped "
+"column are mirrored onto it so the engine can prune partitions."
+msgstr ""
+
 msgid "The pixel radius"
 msgstr "El radi en píxels"
 
@@ -16638,6 +16765,9 @@ msgstr "El port està tancat."
 
 msgid "The port number is invalid."
 msgstr "El número de port és invàlid."
+
+msgid "The preview could not be loaded."
+msgstr ""
 
 msgid "The primary metric is used to define the arc segment sizes"
 msgstr "La mètrica primària s'usa per definir les mides dels segments d'arc"
@@ -16940,6 +17070,10 @@ msgstr "La unitat de temps usada per l'agrupament de blocs"
 msgid "The transform could not be evaluated against the database."
 msgstr ""
 
+#, python-format
+msgid "The transform could not be evaluated against the database: %(reason)s"
+msgstr ""
+
 #, fuzzy
 msgid "The two passwords that you entered do not match!"
 msgstr "Les contrasenyes no coincideixen!"
@@ -17010,6 +17144,12 @@ msgstr ""
 msgid ""
 "The value transform could not be parsed. The mapping is saved but stays "
 "inactive until it does."
+msgstr ""
+
+#, python-format
+msgid ""
+"The value transform could not be parsed: %(detail)s The mapping is saved "
+"but stays inactive until it does."
 msgstr ""
 
 msgid ""
@@ -17492,6 +17632,9 @@ msgid "This chart only"
 msgstr ""
 
 msgid "This chart will be restored to the following version:"
+msgstr ""
+
+msgid "This column holds the mapping instead of the default datetime column."
 msgstr ""
 
 #, fuzzy, python-format
@@ -18335,6 +18478,9 @@ msgstr "Total: %s"
 msgid "Track job"
 msgstr "Seguir feina"
 
+msgid "Transform preserves ordering"
+msgstr ""
+
 msgid "Transformable"
 msgstr "Transformable"
 
@@ -18951,6 +19097,9 @@ msgstr "Ús"
 msgid "Use %s to open in a new tab."
 msgstr "Usa %s per obrir en una pestanya nova."
 
+msgid "Use :value for the filter bound."
+msgstr ""
+
 msgid "Use Area Proportions"
 msgstr "Usar Proporcions d'Àrea"
 
@@ -19125,6 +19274,9 @@ msgstr ""
 msgid "Uses the first 25 values if the dimension has more."
 msgstr "Utilitza els primers 25 valors si la dimensió en té més."
 
+msgid "Valid"
+msgstr ""
+
 #, fuzzy
 msgid "Valid SQL expression"
 msgstr "Expressió SQL"
@@ -19199,6 +19351,9 @@ msgstr "El valor ha de ser 0 o més gran"
 
 msgid "Value must be greater than 0"
 msgstr "El valor ha de ser més gran que 0"
+
+msgid "Value transform"
+msgstr ""
 
 #, python-format
 msgid ""
@@ -21557,6 +21712,10 @@ msgstr "suma"
 msgid "superset.example.com"
 msgstr ""
 
+#, python-format
+msgid "syntax error at position %(position)d."
+msgstr ""
+
 msgid "syntax."
 msgstr "sintaxi."
 
@@ -21606,6 +21765,9 @@ msgstr "superior"
 
 msgid "undo"
 msgstr "desfer"
+
+msgid "unix_timestamp(:value)"
+msgstr ""
 
 msgid "unknown type icon"
 msgstr "icona de tipus desconegut"
@@ -21687,6 +21849,9 @@ msgstr "àrea de zoom"
 
 msgid "© Layer attribution"
 msgstr "© Atribució de capa"
+
+msgid "— set in Default Column Settings · one per dataset"
+msgstr ""
 
 #, python-format
 msgid "…and %s more chart"
