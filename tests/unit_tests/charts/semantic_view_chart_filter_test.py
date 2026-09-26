@@ -399,9 +399,12 @@ def test_hard_deleted_dataset_retains_only_schema_catalog_list_access(
     )
     session.add(chart)
     session.flush()
-    dataset_perm: str = table.perm
-    schema_perm: str = table.schema_perm
-    catalog_perm: str = table.catalog_perm
+    dataset_perm: str | None = table.perm
+    schema_perm: str | None = table.schema_perm
+    catalog_perm: str | None = table.catalog_perm
+    assert dataset_perm is not None
+    assert schema_perm is not None
+    assert catalog_perm is not None
     grant_perm: str = {
         "datasource_access": dataset_perm,
         "schema_access": schema_perm,
