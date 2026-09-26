@@ -892,3 +892,19 @@ test('Existing expand/collapse behavior continues to work', () => {
     restore();
   }
 });
+
+test('a hidden chart does not adopt a prop update, and adopts it once revealed', () => {
+  const { rerender } = setup({ isComponentVisible: false, isInView: false });
+  expect(capturedChartContainerProps.isInView).toBe(false);
+
+  // The parent passes an updated prop while the chart is still hidden: the
+  // memoized export bails out, so the prop update never reaches
+  // ChartContainer while the tab is hidden. Store-driven updates (such as a
+  // query trigger read via useSelector) are not gated by this memo.
+  rerender(<Chart {...props} isComponentVisible={false} isInView />);
+  expect(capturedChartContainerProps.isInView).toBe(false);
+
+  // Revealing the tab lets the chart re-render and adopt the pending update.
+  rerender(<Chart {...props} isComponentVisible isInView />);
+  expect(capturedChartContainerProps.isInView).toBe(true);
+});
