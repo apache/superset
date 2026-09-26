@@ -26,10 +26,11 @@ from typing import Any, ClassVar
 from superset.mcp_service.chart.chart_utils import (
     _xy_chart_context,
     _xy_chart_what,
+    create_metric_object,
     map_xy_config,
 )
 from superset.mcp_service.chart.plugin import BaseChartPlugin
-from superset.mcp_service.chart.schemas import ColumnRef, XYChartConfig
+from superset.mcp_service.chart.schemas import ColumnRef, SortByConfig, XYChartConfig
 from superset.mcp_service.chart.validation.dataset_validator import DatasetValidator
 from superset.mcp_service.chart.validation.runtime.cardinality_validator import (
     CardinalityValidator,
@@ -116,6 +117,54 @@ def _normalize_xy_sort_by(config_dict: dict[str, Any], dataset_context: Any) -> 
         )
 
 
+def _extract_sort_col_name(sort_entry: Any) -> str | None:
+    if isinstance(sort_entry, list) and sort_entry:
+        sort_entry = sort_entry[0]
+    if isinstance(sort_entry, SortByConfig):
+        return sort_entry.column
+    if isinstance(sort_entry, str):
+        return sort_entry
+    if isinstance(sort_entry, dict):
+        return sort_entry.get("column")
+    return None
+
+
+def _collect_y_metric_names(y_cols: list[ColumnRef]) -> set[str]:
+    names: set[str] = set()
+    for y_col in y_cols:
+        if y_col.name:
+            names.add(y_col.name.lower())
+        if y_col.label:
+            names.add(y_col.label.lower())
+        if y_col.aggregate and y_col.name:
+            names.add(f"{y_col.aggregate}({y_col.name})".lower())
+        metric_obj = create_metric_object(y_col)
+        label = (
+            metric_obj
+            if isinstance(metric_obj, str)
+            else metric_obj.get("label")
+        )
+        if label:
+            names.add(label.lower())
+    return names
+
+
+def _get_covered_xy_names(config: XYChartConfig) -> set[str]:
+    """Collect lowercase names and labels already covered in x, y, and group_by."""
+    covered = _collect_y_metric_names(config.y)
+    if config.x:
+        if config.x.name:
+            covered.add(config.x.name.lower())
+        if config.x.label:
+            covered.add(config.x.label.lower())
+    for gb in config.group_by or []:
+        if gb.name:
+            covered.add(gb.name.lower())
+        if gb.label:
+            covered.add(gb.label.lower())
+    return covered
+
+
 class XYChartPlugin(BaseChartPlugin):
     """Plugin for xy chart type (line, bar, area, scatter)."""
 
@@ -177,6 +226,14 @@ class XYChartPlugin(BaseChartPlugin):
         if config.filters:
             for f in config.filters:
                 refs.append(ColumnRef(name=f.column))
+        if config.sort_by:
+            sort_col = _extract_sort_col_name(config.sort_by)
+            # Do not emit a separate column ref if sort_col refers to a
+            # column or metric already represented in x, y, or group_by.
+            # In particular, metric labels (e.g. "SUM(sales)") or custom labels
+            # are not physical dataset columns and would fail validation.
+            if sort_col and sort_col.lower() not in _get_covered_xy_names(config):
+                refs.append(ColumnRef(name=sort_col))
         return refs
 
     def to_form_data(
