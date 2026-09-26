@@ -509,6 +509,48 @@ def test_needs_oauth2_matches_oauth2_redirect_error(
     assert spec.needs_oauth2(ex) is True
 
 
+class _ConnectorRequestError(Exception):
+    """Stand-in for ``databricks.sql.exc.RequestError`` (message + context)."""
+
+    def __init__(self, message: str, context: dict[str, Any]) -> None:
+        super().__init__(message)
+        self.context = context
+
+
+@pytest.mark.parametrize(
+    "spec",
+    [DatabricksNativeEngineSpec, DatabricksPythonConnectorEngineSpec],
+)
+@pytest.mark.parametrize(
+    "http_code, expected",
+    [(401, True), ("401", True), (403, False), (None, False)],
+)
+def test_needs_oauth2_detects_http_401_from_the_connector(
+    mocker: MockerFixture,
+    spec: Any,
+    http_code: Any,
+    expected: bool,
+) -> None:
+    """
+    A rejected bearer token fails with HTTP 401 and a message that matches no
+    signal ("Credential was not sent or was of an unsupported type for this
+    API"); the connector's structured ``http-code`` triggers the re-auth, also
+    when SQLAlchemy wraps the error. 403 (a missing permission) does not.
+    """
+    g = mocker.patch("superset.db_engine_specs.databricks.g")
+    g.user = mocker.MagicMock()
+    error = _ConnectorRequestError(
+        "Error during request to server: : Credential was not sent or was of an "
+        "unsupported type for this API.",
+        {"method": "OpenSession", "http-code": http_code},
+    )
+    wrapped = mocker.MagicMock(orig=error)
+    wrapped.__str__ = lambda self: str(error)
+
+    assert spec.needs_oauth2(error) is expected
+    assert spec.needs_oauth2(wrapped) is expected
+
+
 def test_impersonate_user_with_token(mocker: MockerFixture) -> None:
     """
     Test impersonate_user method with OAuth2 token for DatabricksNativeEngineSpec.
@@ -694,6 +736,63 @@ def test_update_params_merges_when_no_oauth2_client_info(
     assert params == {
         "http_headers": [["X-Custom", "value"]],
         "_tls_verify_hostname": True,
+    }
+
+
+def test_update_params_merges_connect_args(mocker: MockerFixture) -> None:
+    """
+    Secure ``connect_args`` (e.g. OAuth M2M credentials) are merged key by key
+    into the ``connect_args`` from ``extra`` instead of replacing them.
+    """
+    database = mocker.MagicMock()
+    database.impersonate_user = False
+    database.encrypted_extra = json.dumps(
+        {"connect_args": {"oauth_client_id": "sp", "oauth_client_secret": "secret"}}
+    )
+    params: dict[str, Any] = {
+        "connect_args": {
+            "_user_agent_entry": "Apache Superset",
+            "session_configuration": {"TIMEZONE": "Asia/Kolkata"},
+        }
+    }
+
+    DatabricksPythonConnectorEngineSpec.update_params_from_encrypted_extra(
+        database, params
+    )
+
+    assert params == {
+        "connect_args": {
+            "_user_agent_entry": "Apache Superset",
+            "session_configuration": {"TIMEZONE": "Asia/Kolkata"},
+            "oauth_client_id": "sp",
+            "oauth_client_secret": "secret",
+        }
+    }
+
+
+def test_update_params_impersonation_keeps_only_the_user_token(
+    mocker: MockerFixture,
+) -> None:
+    """
+    With impersonation, a shared credential in the secure extra (or in
+    ``extra``) must not replace the user's OAuth2 token set by
+    ``impersonate_user``.
+    """
+    database = mocker.MagicMock()
+    database.impersonate_user = True
+    database.encrypted_extra = json.dumps(
+        {"connect_args": {"access_token": "shared-pat", "http_path": "/sql/1"}}
+    )
+    params: dict[str, Any] = {
+        "connect_args": {"access_token": "user-token", "oauth_client_secret": "s"}
+    }
+
+    DatabricksPythonConnectorEngineSpec.update_params_from_encrypted_extra(
+        database, params
+    )
+
+    assert params == {
+        "connect_args": {"access_token": "user-token", "http_path": "/sql/1"}
     }
 
 
