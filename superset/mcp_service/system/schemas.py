@@ -31,6 +31,7 @@ from typing import Annotated, Any, List
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from superset.mcp_service.constants import DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE
+from superset.mcp_service.utils.permissions_utils import get_user_role_names
 from superset.subjects.types import SubjectType
 
 # Shape-only check, not RFC validation: just enough to catch "local@domain.tld"
@@ -151,8 +152,9 @@ class UserInfo(BaseModel):
     roles: list[str] = Field(
         default_factory=list,
         description=(
-            "Role names assigned to the user (e.g., Admin, Alpha, Gamma, Viewer). "
-            "Use this to determine what actions the user can perform."
+            "Role names the user holds, whether assigned directly or through a "
+            "group (e.g., Admin, Alpha, Gamma, Viewer). Use this to determine "
+            "what actions the user can perform."
         ),
     )
 
@@ -162,12 +164,7 @@ def serialize_user_object(user: Any) -> UserInfo | None:
     if not user:
         return None
 
-    user_roles: list[str] = []
-    if (raw_roles := getattr(user, "roles", None)) is not None:
-        try:
-            user_roles = [role.name for role in raw_roles if hasattr(role, "name")]
-        except TypeError:
-            user_roles = []
+    user_roles = get_user_role_names(user)
 
     return UserInfo(
         id=getattr(user, "id", None),
