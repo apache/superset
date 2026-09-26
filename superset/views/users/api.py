@@ -14,6 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import logging
 from datetime import datetime
 from typing import Any, Dict
 
@@ -21,6 +22,7 @@ from flask import current_app as app, g, redirect, request, Response
 from flask_appbuilder.api import expose, permission_name, safe
 from flask_appbuilder.security.decorators import protect
 from flask_appbuilder.security.sqla.models import User
+from flask_jwt_extended.exceptions import NoAuthorizationError, UserLookupError
 from marshmallow import ValidationError
 from sqlalchemy.orm.exc import NoResultFound
 from werkzeug.security import check_password_hash, generate_password_hash
@@ -33,6 +35,8 @@ from superset.utils.slack import get_user_avatar, SlackClientError
 from superset.views.base_api import BaseSupersetApi, requires_json, statsd_metrics
 from superset.views.users.schemas import CurrentUserPutSchema, UserResponseSchema
 from superset.views.utils import bootstrap_user_data
+
+logger = logging.getLogger(__name__)
 
 user_response_schema = UserResponseSchema()
 
@@ -115,7 +119,11 @@ class CurrentUserRestApi(BaseSupersetApi):
             401:
               $ref: '#/components/responses/401'
         """
-        return self.response(200, result=user_response_schema.dump(g.user))
+        try:
+            return self.response(200, result=user_response_schema.dump(g.user))
+        except (NoAuthorizationError, UserLookupError):
+            logger.warning("Api failed- no authorization", exc_info=True)
+            return self.response_401()
 
     @expose("/roles/", methods=("GET",))
     @protect()
@@ -142,8 +150,12 @@ class CurrentUserRestApi(BaseSupersetApi):
             401:
               $ref: '#/components/responses/401'
         """
-        user = bootstrap_user_data(g.user, include_perms=True)
-        return self.response(200, result=user)
+        try:
+            user = bootstrap_user_data(g.user, include_perms=True)
+            return self.response(200, result=user)
+        except (NoAuthorizationError, UserLookupError):
+            logger.warning("Api failed- no authorization", exc_info=True)
+            return self.response_401()
 
     @expose("/", methods=["PUT"])
     @protect()
@@ -194,6 +206,9 @@ class CurrentUserRestApi(BaseSupersetApi):
             return self.response(200, result=user_response_schema.dump(g.user))
         except ValidationError as error:
             return self.response_400(message=error.messages)
+        except (NoAuthorizationError, UserLookupError):
+            logger.warning("Api failed- no authorization", exc_info=True)
+            return self.response_401()
 
 
 class UserRestApi(BaseSupersetApi):
