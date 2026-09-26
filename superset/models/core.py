@@ -1091,10 +1091,10 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
     ) -> str:
         script = SQLScript(sql, self.db_engine_spec.engine)
         statement = script.statements[-1]
-        current_limit = statement.get_limit_value() or float("inf")
-
-        if limit < current_limit or force:
+        if force:
             statement.set_limit_value(limit, self.db_engine_spec.limit_method)
+        else:
+            statement.cap_limit_value(limit, self.db_engine_spec.limit_method)
 
         return script.format()
 

@@ -16,6 +16,7 @@
 # under the License.
 
 # pylint: disable=import-outside-toplevel
+import sqlite3
 from datetime import datetime
 from typing import Any, Callable
 
@@ -1904,6 +1905,41 @@ def test_apply_limit_to_sql(
 
     limited = db.apply_limit_to_sql(sql, limit, force)
     assert limited == expected
+
+
+@pytest.mark.parametrize("method", [LimitMethod.FORCE_LIMIT, LimitMethod.WRAP_SQL])
+@pytest.mark.parametrize("force", [False, True])
+@pytest.mark.parametrize("limit", [1, 3])
+@pytest.mark.parametrize("sql_limit", ["(1 + 1)", "0"])
+def test_apply_limit_to_sql_preserves_restrictions(
+    method: LimitMethod,
+    force: bool,
+    limit: int,
+    sql_limit: str,
+    mocker: MockerFixture,
+) -> None:
+    """Preserve smaller SQL limits unless explicitly forced to replace them."""
+    db = Database(database_name="test_database", sqlalchemy_uri="sqlite://")
+    mocker.patch.object(
+        db,
+        "get_db_engine_spec",
+        return_value=mocker.Mock(engine="sqlite", limit_method=method),
+    )
+    # The LIMIT expression comes only from the fixed test parameters above.
+    sql = (
+        "SELECT n FROM (SELECT 1 AS n UNION ALL SELECT 2 UNION ALL SELECT 3) "  # noqa: S608
+        f"ORDER BY n LIMIT {sql_limit}"
+    )
+    limited = db.apply_limit_to_sql(sql, limit, force)
+
+    with sqlite3.connect(":memory:") as connection:
+        original_rows = connection.execute(sql).fetchall()
+        expected = (
+            [(1,), (2,), (3,)][:limit]
+            if force and method == LimitMethod.FORCE_LIMIT
+            else original_rows[:limit]
+        )
+        assert connection.execute(limited).fetchall() == expected
 
 
 def test_database_execute_delegates_to_sql_executor(mocker: MockerFixture) -> None:
