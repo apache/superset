@@ -224,9 +224,31 @@ const groupedRowsWithColTotals = {
   queriesData: groupedRowsQueriesData,
 };
 
+/**
+ * Column dimensions only (no row dimensions): the thead has no row-header
+ * row, so the last header row is a column-attribute row whose leading
+ * cell is the column attribute name, not a corner cell.
+ */
+const columnsOnly = {
+  ...new ChartProps({
+    ...basicChartProps,
+    formData: {
+      ...basicFormData,
+      groupbyRows: [],
+      groupbyColumns: ['city'],
+      colTotals: false,
+      rowTotals: false,
+      rowSubTotals: false,
+      colSubTotals: false,
+    },
+  }),
+  queriesData: basicQueriesData,
+};
+
 export default {
   withColTotals,
   withoutColTotals,
   groupedRowsWithoutColTotals,
   groupedRowsWithColTotals,
+  columnsOnly,
 };
