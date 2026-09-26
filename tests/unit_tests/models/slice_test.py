@@ -362,3 +362,90 @@ def test_set_related_perm_known_type_denormalizes_perms_from_datasource() -> Non
     assert target.perm == "[db].[table](id:5)"
     assert target.catalog_perm == "[db].[catalog]"
     assert target.schema_perm == "[db].[schema]"
+
+
+def test_get_query_context_returns_none_without_stored_context() -> None:
+    """No query_context stored: return None without touching the factory."""
+    slc = Slice(slice_name="no context", query_context=None)
+    assert slc.get_query_context() is None
+
+
+def test_get_query_context_returns_none_on_malformed_json(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Malformed JSON is logged and returns None rather than raising."""
+    slc = Slice(slice_name="malformed", query_context="{not valid json")
+    with caplog.at_level(logging.ERROR, logger="superset.models.slice"):
+        assert slc.get_query_context() is None
+    assert "Malformed json" in caplog.text
+
+
+@pytest.mark.parametrize(
+    "query_context",
+    [
+        '{"queries": [{"metrics": ["count"]}]}',  # missing datasource
+        '{"datasource": {"id": 1, "type": "table"}}',  # missing queries
+    ],
+)
+def test_get_query_context_returns_none_when_metadata_incomplete(
+    query_context: str, caplog: pytest.LogCaptureFixture
+) -> None:
+    """apache/superset#35774: a stored query_context missing 'datasource' or
+    'queries' must not reach QueryContextFactory.create() -- it requires both
+    as keyword-only arguments and would raise a raw TypeError. The chart
+    should fail closed (None) with a clear log message instead, so a legacy
+    row saved before the ChartPostSchema/ChartPutSchema validation existed
+    degrades gracefully rather than crashing every read."""
+    slc = Slice(slice_name="incomplete", query_context=query_context)
+    slc.id = 7
+    slc.query_context_factory = MagicMock()
+
+    with caplog.at_level(logging.ERROR, logger="superset.models.slice"):
+        result = slc.get_query_context()
+
+    assert result is None
+    slc.query_context_factory.create.assert_not_called()
+    assert "missing required" in caplog.text
+
+
+def test_get_query_context_calls_factory_with_complete_metadata() -> None:
+    """A complete query_context is passed through to the factory, with
+    current_slice bound in."""
+    slc = Slice(
+        slice_name="complete",
+        query_context=(
+            '{"datasource": {"id": 1, "type": "table"}, '
+            '"queries": [{"metrics": ["count"]}]}'
+        ),
+    )
+    mock_factory = MagicMock()
+    slc.query_context_factory = mock_factory
+
+    result = slc.get_query_context()
+
+    assert result is mock_factory.create.return_value
+    mock_factory.create.assert_called_once_with(
+        datasource={"id": 1, "type": "table"},
+        queries=[{"metrics": ["count"]}],
+        current_slice=slc,
+    )
+
+
+def test_get_query_context_calls_factory_with_empty_queries() -> None:
+    """An empty 'queries' list is a complete, valid query_context -- it must
+    still reach the factory rather than being treated as missing."""
+    slc = Slice(
+        slice_name="empty-queries",
+        query_context='{"datasource": {"id": 1, "type": "table"}, "queries": []}',
+    )
+    mock_factory = MagicMock()
+    slc.query_context_factory = mock_factory
+
+    result = slc.get_query_context()
+
+    assert result is mock_factory.create.return_value
+    mock_factory.create.assert_called_once_with(
+        datasource={"id": 1, "type": "table"},
+        queries=[],
+        current_slice=slc,
+    )
