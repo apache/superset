@@ -167,6 +167,24 @@ This fixed embedding cap is independent of the operator's
 `MCP_RESPONSE_SIZE_CONFIG['max_bytes']` (50,000 by default); it does not guarantee
 that every payload fits a configured response limit.
 
+### Legacy FAB password reset pages are removed
+
+The Flask-AppBuilder server-rendered password reset pages at
+`/resetpassword/form` (admin reset of another account) and
+`/resetmypassword/form` (self-service reset) are no longer registered; both
+routes answer 404, and the "Reset Password" and "Reset my password" buttons on
+the legacy FAB user pages that led to them are gone. `superset init` no longer
+assigns their permissions (`can this form get/post on ResetPasswordView` and
+`ResetMyPasswordView`, plus the `resetpasswords` and `resetmypassword` actions on
+`UserDBModelView`) to any role. Every flow they served lives in the SPA:
+administrators reset a user's password from the "New password" fields in the
+Users list edit modal (`PUT /api/v1/security/users/<id>`), users change their
+own from the "Reset my password" modal on their profile page (`PUT
+/api/v1/me/`, which requires `current_password`), and a pending forced password
+change (`ENABLE_FORCE_PASSWORD_CHANGE`) now redirects to that profile page
+instead of the removed form. Deployments that link to either legacy route should
+point at `/user_info/` or the Users list instead.
+
 ### Default Docker image is now batteries-included; the minimal image moves to `-lean`
 
 The default `apache/superset` Docker image (the plain tags: `latest`, `master`,

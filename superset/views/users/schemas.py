@@ -14,22 +14,31 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from typing import Any
-
 from flask_appbuilder.security.sqla.apis.user.schema import User
 from flask_appbuilder.security.sqla.apis.user.validator import (
     PasswordComplexityValidator,
 )
-from marshmallow import fields, Schema, validates_schema, ValidationError
+from marshmallow import fields, Schema
 from marshmallow.fields import Boolean, Integer, String
 from marshmallow.validate import Length
 
 first_name_description = "The current user's first name"
 last_name_description = "The current user's last name"
-password_description = "The current user's password for authentication"  # noqa: S105
-# Required, and verified against the account's existing password, whenever
-# ``password`` is included in the payload.
-current_password_description = "The current user's existing password"  # noqa: S105
+# Administrators resetting another account's password use
+# ``PUT /api/v1/security/users/<id>`` (``can_put on User``) instead, which needs
+# no current password.
+password_description = "The current user's new password; requires current_password when the account already has one"  # noqa: S105, E501
+# Verified against the account's existing password whenever ``password`` is
+# included in the payload and the account has a stored password. This is the
+# self-service rule: the caller is always the account owner here, so they have
+# to prove knowledge of the existing password. An account with no stored
+# password yet (e.g. provisioned by an external auth backend) has nothing to
+# prove and may leave it out, so the field is optional at the schema level:
+# whether it is needed, and whether it matches, is decided against the user
+# record in ``CurrentUserRestApi.pre_update``, which this schema cannot see.
+current_password_description = (
+    "The current user's existing password; required when the account has one"  # noqa: S105, E501
+)
 
 
 class UserGroupSchema(Schema):
@@ -74,19 +83,3 @@ class CurrentUserPutSchema(Schema):
         load_only=True,
         metadata={"description": current_password_description},
     )
-
-    @validates_schema
-    def validate_current_password_required_with_password(
-        self, data: dict[str, Any], **kwargs: object
-    ) -> None:
-        """Require ``current_password`` whenever ``password`` is being set.
-
-        This only checks that the field was supplied -- whether it actually
-        matches the account's existing password is verified against the
-        database in ``CurrentUserRestApi.pre_update``, which has access to
-        the user record this schema doesn't.
-        """
-        if data.get("password") and not data.get("current_password"):
-            raise ValidationError(
-                {"current_password": ["This field is required to change the password."]}
-            )

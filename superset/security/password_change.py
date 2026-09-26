@@ -19,9 +19,11 @@
 A per-user ``password_must_change`` flag (on ``UserAttribute``) marks accounts —
 typically created by an administrator — that must set a new password before
 they can use the rest of the application. When ``ENABLE_FORCE_PASSWORD_CHANGE``
-is enabled, a ``before_request`` hook redirects such users to the password-reset
-page until they change it; the flag is cleared automatically on a successful
-*self-service* password reset (see ``SupersetSecurityManager.reset_password``).
+is enabled, a ``before_request`` hook redirects such users to the SPA profile
+page (``/user_info/``, whose "Reset my password" modal calls ``PUT
+/api/v1/me/``) until they change it; the flag is cleared automatically on a
+successful *self-service* password change (see
+``CurrentUserRestApi.pre_update`` and ``SupersetSecurityManager.reset_password``).
 An admin-initiated reset deliberately preserves the flag so the target user is
 still forced to change the temporary password at next login.
 """
@@ -42,12 +44,12 @@ logger = logging.getLogger(__name__)
 # Flask endpoints take the form ``<ViewClass>.<method>`` (or a bare name for
 # function views). The following must remain reachable while a password change
 # is pending, otherwise the redirect would loop: the auth views (login/logout
-# for every auth backend), the password-reset and user-info-edit views, static
-# assets, and the health blueprint. We match the *view-class* component (the part
-# before the dot) exactly against the allow-list below rather than doing a
-# substring search, so unrelated endpoints that merely share a substring (e.g.
-# an "Author"-named view, or any name containing "health"/"static") are not
-# accidentally exempted from enforcement.
+# for every auth backend), the SPA profile page, the legacy user-info-edit view,
+# static assets, and the health blueprint. We match the *view-class* component
+# (the part before the dot) exactly against the allow-list below rather than
+# doing a substring search, so unrelated endpoints that merely share a substring
+# (e.g. an "Author"-named view, or any name containing "health"/"static") are
+# not accidentally exempted from enforcement.
 _EXEMPT_VIEW_CLASSES = frozenset(
     {
         "AuthDBView",
@@ -55,14 +57,31 @@ _EXEMPT_VIEW_CLASSES = frozenset(
         "AuthOAuthView",
         "AuthOIDView",
         "AuthRemoteUserView",
-        "ResetMyPasswordView",
-        "ResetPasswordView",
         "UserInfoEditView",
+        "UserInfoView",
     }
 )
 
-# Exact endpoint names (function views / Flask built-ins) that are always exempt.
-_EXEMPT_ENDPOINTS = frozenset({"static", "appbuilder.static"})
+# The SPA profile page, where a user changes their own password.
+_PROFILE_PAGE_ENDPOINT = "UserInfoView.list"
+
+# Exact endpoint names that are always exempt: Flask's static routes, plus the
+# few API endpoints the profile page and its "Reset my password" modal call
+# (the current-user read the page renders from, the update the modal submits
+# to, and the CSRF token the client fetches before a mutating request). These
+# are listed individually rather than by view class on purpose: the same view
+# classes also serve ``guest_token``, the permissions search and the roles
+# listing, none of which a flagged user needs, and a flagged user's own
+# permissions must not unlock them before the password is changed.
+_EXEMPT_ENDPOINTS = frozenset(
+    {
+        "static",
+        "appbuilder.static",
+        "CurrentUserRestApi.get_me",
+        "CurrentUserRestApi.update_me",
+        "SecurityRestApi.csrf_token",
+    }
+)
 
 
 def _get_user_attribute(user_id: int) -> Optional[Any]:
@@ -122,9 +141,15 @@ def set_password_must_change(user_id: int, value: bool = True) -> None:
     attr.password_must_change = value
 
 
-@transaction()
 def clear_password_must_change(user_id: int) -> None:
-    """Clear the forced-password-change flag for a user, if set."""
+    """Clear the forced-password-change flag for a user, if set.
+
+    Writes through the current session without committing, so a caller that is
+    already inside its own unit of work (``CurrentUserRestApi.pre_update``, the
+    self-service ``PUT /api/v1/me/``) has the change ride its own commit, the
+    same way ``invalidate_sessions_for_user`` does. Callers outside one, such as
+    ``SupersetSecurityManager.reset_password``, commit afterwards themselves.
+    """
     attr = _get_user_attribute(user_id)
     if attr and attr.password_must_change:
         attr.password_must_change = False
@@ -156,7 +181,7 @@ def register_password_change_enforcement(app: Any) -> None:
 
     @app.before_request
     def _enforce_password_change() -> Any:  # pylint: disable=unused-variable
-        """Redirect flagged users to the password-reset page.
+        """Redirect flagged users to the profile page's password change.
 
         Returns ``None`` (request proceeds) for anonymous users, exempt
         endpoints, and users without a pending change; otherwise returns a
@@ -181,8 +206,8 @@ def register_password_change_enforcement(app: Any) -> None:
             return None
 
         flash(__("You must change your password before continuing."), "warning")
-        # Resolve the password-reset page. If that endpoint can't be resolved
-        # (e.g. a custom security manager without ``ResetMyPasswordView``), fall
+        # Resolve the SPA profile page. If that endpoint can't be resolved
+        # (e.g. a deployment that does not register ``UserInfoView``), fall
         # back to logout, which is always exempt from this enforcement. The
         # logout endpoint is derived from the *registered* auth view so the
         # fallback works for non-DB auth backends (LDAP, OAuth, remote-user)
@@ -191,7 +216,7 @@ def register_password_change_enforcement(app: Any) -> None:
         # same hook and would trap the user in an infinite 302 loop. If no
         # exempt target can be resolved at all, return an error response rather
         # than redirect, so a flagged user can never get stuck looping.
-        candidates = ["ResetMyPasswordView.this_form_get"]
+        candidates = [_PROFILE_PAGE_ENDPOINT]
         auth_view = getattr(
             getattr(getattr(current_app, "appbuilder", None), "sm", None),
             "auth_view",

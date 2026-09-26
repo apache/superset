@@ -352,7 +352,7 @@ Routes on the health blueprint, including `/health`, `/healthcheck`, `/ping`, an
 `/version`, are exempt from forced password changes. Even with
 `ENABLE_FORCE_PASSWORD_CHANGE = True`, a probe carrying a session cookie for a user
 with a pending password change receives the route's normal response rather than a
-redirect to the password-reset form. This exemption does not bypass other security
+redirect to the profile page's password change. This exemption does not bypass other security
 checks or change which version details the user may see.
 
 If the load balancer is inserting `X-Forwarded-For/X-Forwarded-Proto` headers, you should set

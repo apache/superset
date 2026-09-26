@@ -36,7 +36,7 @@ from typing import (
 )
 from urllib.parse import quote
 
-from flask import current_app, Flask, g, has_app_context, Request, Response
+from flask import abort, current_app, Flask, g, has_app_context, Request, Response
 from flask_appbuilder import Model
 from flask_appbuilder.api import expose, permission_name, protect, safe
 from flask_appbuilder.models.filters import BaseFilter
@@ -60,6 +60,8 @@ from flask_appbuilder.security.sqla.models import (
 from flask_appbuilder.security.views import (
     PermissionModelView,
     PermissionViewModelView,
+    ResetMyPasswordView,
+    ResetPasswordView,
     ViewMenuModelView,
 )
 from flask_babel import lazy_gettext as _
@@ -127,6 +129,33 @@ logger = logging.getLogger(__name__)
 
 def get_conf() -> Any:
     return current_app.config
+
+
+# The legacy Flask-AppBuilder server-rendered password reset views. Superset's
+# SPA covers every flow they served (administrators reset passwords from the
+# Users list edit modal, users change their own from the profile page, and a
+# forced password change lands on that profile page), so these are never
+# registered and their persisted permissions are never assigned to roles.
+LEGACY_PASSWORD_VIEWS: tuple[type[Any], ...] = (
+    ResetPasswordView,
+    ResetMyPasswordView,
+)
+
+# FAB ``UserDBModelView`` actions that redirect to the views above, keyed by
+# action name. They are hidden and answer 404, see
+# ``SupersetSecurityManager._disable_legacy_password_reset_launchers``.
+LEGACY_PASSWORD_LAUNCHERS: frozenset[str] = frozenset(
+    {"resetpasswords", "resetmypassword"}
+)
+
+
+def _legacy_password_reset_disabled(*_: Any) -> None:
+    """
+    Replacement handler for a FAB user-view password reset action whose target
+    view is not registered: answers 404 instead of letting FAB's ``url_for``
+    raise ``BuildError``.
+    """
+    abort(404)
 
 
 def _get_subject_id(subject: Any) -> int | None:
@@ -497,10 +526,12 @@ class SupersetUserApi(UserApi):
         UserDAO._sync_subject(item)
 
         if data.get("password"):
-            # An admin-initiated password change via this endpoint must
-            # invalidate the target account's other outstanding sessions,
-            # the same as the self-service ``/me/`` path and the two
-            # password-reset views.
+            # An admin-initiated password change via this endpoint (the
+            # Users list edit modal) must invalidate the target account's
+            # other outstanding sessions, the same as the self-service
+            # ``/me/`` path. The forced-change flag is deliberately left
+            # alone: a temporary password set by an admin still has to be
+            # replaced by the user at next login.
             from superset.security.session_invalidation import (
                 invalidate_sessions_for_user,
             )
@@ -2019,7 +2050,6 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         "UsersListView",
         "List Roles",
         "List Groups",
-        "ResetPasswordView",
         "RoleModelView",
         "UserGroupModelView",
         "Row Level Security",
@@ -2100,7 +2130,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         "datasource_access",
     }
 
-    ACCESSIBLE_PERMS = {"can_userinfo", "resetmypassword", "can_recent_activity"}
+    ACCESSIBLE_PERMS = {"can_userinfo", "can_recent_activity"}
 
     SQLLAB_ONLY_PERMISSIONS = {
         ("can_read", "SavedQuery"),
@@ -2218,13 +2248,14 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         """Reset a user's password, clearing the forced-change flag only on a
         self-service reset.
 
-        Both the self-service reset (``ResetMyPasswordView``) and the admin
-        "Reset Password" action (``ResetPasswordView``) route through this
-        method. The forced-password-change flag must only be cleared when the
-        user resets *their own* password — an admin-initiated reset sets a
-        temporary password and must preserve the "must change at next login"
-        requirement, otherwise the first-use lifecycle would be silently
-        bypassed. We distinguish the two by comparing the acting user
+        The SPA flows do not go through here (they hash the password in the
+        ``/api/v1/me/`` and ``/api/v1/security/users/`` APIs), but FAB's own
+        callers still do, e.g. the ``fab reset-password`` CLI command and
+        custom security managers. The forced-password-change flag must only be
+        cleared when the user resets *their own* password — an admin-initiated
+        reset sets a temporary password and must preserve the "must change at
+        next login" requirement, otherwise the first-use lifecycle would be
+        silently bypassed. We distinguish the two by comparing the acting user
         (``g.user``) against the target ``userid``: they match for a
         self-service reset and differ for an admin reset.
 
@@ -2257,6 +2288,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             )
 
             clear_password_must_change(int(userid))
+            db.session.commit()  # pylint: disable=consider-using-transaction
 
     @staticmethod
     def _same_user(left: Any, right: Any) -> bool:
@@ -3277,6 +3309,25 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         if deleted_count := pvms.delete():
             logger.info("Deleted %i faulty permissions", deleted_count)
 
+    @staticmethod
+    def _is_legacy_password_pvm(pvm: PermissionView) -> bool:
+        """
+        Return whether a permission belongs to a legacy FAB password reset view
+        or to one of the user-view launcher actions that redirected to it.
+
+        Those views are never registered (see ``LEGACY_PASSWORD_VIEWS``), but an
+        upgraded installation still carries their permission rows in the
+        metadata database, and ``_get_all_pvms`` returns them. Excluding them
+        here keeps ``sync_role_definitions`` from handing Admin (or any other
+        role) a permission on a route that no longer exists. The rows
+        themselves are left alone.
+        """
+        view_menu = pvm.view_menu.name
+        permission = pvm.permission.name
+        return view_menu in {view.__name__ for view in LEGACY_PASSWORD_VIEWS} or (
+            view_menu == "UserDBModelView" and permission in LEGACY_PASSWORD_LAUNCHERS
+        )
+
     def sync_role_definitions(self) -> None:
         """
         Initialize the Superset application with security roles and such.
@@ -3286,7 +3337,9 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
         self.create_custom_permissions()
 
-        pvms = self._get_all_pvms()
+        pvms = [
+            pvm for pvm in self._get_all_pvms() if not self._is_legacy_password_pvm(pvm)
+        ]
 
         # Creating default roles
         self.set_role("Admin", self._is_admin_pvm, pvms)
@@ -6328,6 +6381,61 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             role.name for role in self.get_user_roles()
         ]
 
+    def _skip_legacy_fab_password_view_registration(self) -> Callable[..., Any]:
+        """
+        Temporarily patch ``add_view_no_menu`` so the legacy FAB password reset
+        views (``LEGACY_PASSWORD_VIEWS``) are never registered during
+        ``register_views()``.
+
+        Flask-AppBuilder registers these views unconditionally for ``AUTH_DB``
+        and offers no per-view switch (``FAB_ADD_SECURITY_VIEWS = False`` drops
+        every security view, the login view included), and a blueprint cannot
+        be unregistered once it has been added to the app, so intercepting the
+        registration call is the only way to keep the routes out of the URL
+        map.
+
+        :returns: the original, unpatched ``add_view_no_menu`` bound method, so
+            the caller can restore it once ``register_views()`` completes.
+        """
+        original_add_view_no_menu: Callable[..., Any] = self.appbuilder.add_view_no_menu
+
+        def add_view_no_menu_without_legacy_password_views(
+            baseview: Any, *args: Any, **kwargs: Any
+        ) -> Any:
+            if isinstance(baseview, LEGACY_PASSWORD_VIEWS) or (
+                isinstance(baseview, type)
+                and issubclass(baseview, LEGACY_PASSWORD_VIEWS)
+            ):
+                return baseview
+            return original_add_view_no_menu(baseview, *args, **kwargs)
+
+        self.appbuilder.add_view_no_menu = (  # type: ignore[method-assign]
+            add_view_no_menu_without_legacy_password_views
+        )
+        return original_add_view_no_menu
+
+    def _disable_legacy_password_reset_launchers(self) -> None:
+        """
+        Hide the user view's password reset actions, whose target views are
+        never registered.
+
+        FAB's ``UserDBModelView`` renders a "Reset Password" button on the user
+        show page and a "Reset my password" button on the user info page, and
+        both handlers redirect via ``url_for`` to the reset views. Since those
+        views are not registered that ``url_for`` would raise ``BuildError`` (a
+        500), so this hides each action from the show and list widgets and
+        makes a direct request to it answer 404 instead. Unrelated actions are
+        left untouched.
+        """
+        actions = getattr(getattr(self, "user_view", None), "actions", None) or {}
+        for action_name in LEGACY_PASSWORD_LAUNCHERS:
+            action = actions.get(action_name)
+            if action is None:
+                continue
+            action.single = False
+            action.multiple = False
+            action.func = _legacy_password_reset_disabled
+
     # temporal change to remove the roles view from the security menu,
     # after migrating all views to frontend, we will set FAB_ADD_SECURITY_VIEWS = False
     def register_views(self) -> None:
@@ -6371,11 +6479,20 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         original_auth_rate_limited = current_app.config["AUTH_RATE_LIMITED"]
         current_app.config["AUTH_RATE_LIMITED"] = False
 
+        original_add_view_no_menu: Callable[..., Any] = (
+            self._skip_legacy_fab_password_view_registration()
+        )
+
         try:
             super().register_views()
         finally:
-            # Restore original value even if an exception occurs
+            # Restore original values even if an exception occurs
             current_app.config["AUTH_RATE_LIMITED"] = original_auth_rate_limited
+            self.appbuilder.add_view_no_menu = (  # type: ignore[method-assign]
+                original_add_view_no_menu
+            )
+
+        self._disable_legacy_password_reset_launchers()
 
         for view in list(self.appbuilder.baseviews):
             if isinstance(view, self.rolemodelview.__class__) and getattr(
