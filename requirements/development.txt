@@ -669,7 +669,7 @@ opensearch-py==2.8.0
     # via elasticsearch-dbapi
 opentelemetry-api==1.39.1
     # via fastmcp-slim
-oracledb==4.0.2
+oracledb==26.0.0
     # via
     #   apache-superset
     #   testcontainers
