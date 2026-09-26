@@ -31,7 +31,7 @@ from unittest.mock import Mock
 
 from sqlalchemy.engine.url import make_url  # noqa: F401
 from sqlalchemy.exc import DBAPIError
-from sqlalchemy.sql import func
+from sqlalchemy.sql import func, text
 
 from superset import db, security_manager
 from superset.commands.database.exceptions import MissingOAuth2TokenError
@@ -2347,6 +2347,59 @@ class TestDatabaseApi(SupersetTestCase):
             "Database not found.", exc_info=True
         )
 
+    def test_database_tables_unknown_schema(self):
+        """
+        Database API: Test database tables with a schema that does not exist
+        """
+        self.login(ADMIN_USERNAME)
+        example_db = get_example_database()
+        uri = f"api/v1/database/{example_db.id}/tables/?q={rison.dumps({'schema_name': 'non_existent'})}"  # noqa: E501
+        rv = self.client.get(uri)
+        assert rv.status_code == 404
+        response = json.loads(rv.data.decode("utf-8"))
+        assert response["error"] == "Schema not found."
+
+    def test_database_tables_dataset_access_only(self):
+        """
+        Database API: Test database tables for a user with dataset access only
+        """
+        example_db = get_example_database()
+        schema_name = example_db.get_default_schema(None)
+        table_name = f"tables_dataset_access_{shortid()}"
+        with example_db.get_sqla_engine() as engine:
+            with engine.begin() as conn:
+                conn.execute(text(f"CREATE TABLE {table_name} (id INTEGER)"))
+        table = SqlaTable(
+            table_name=table_name,
+            catalog=example_db.get_default_catalog(),
+            schema=schema_name,
+            database=example_db,
+        )
+        db.session.add(table)
+        db.session.commit()
+
+        try:
+            with self.temporary_user(
+                clone_user=security_manager.find_user(GAMMA_USERNAME),
+                extra_pvms=[("datasource_access", table.perm)],
+                login=True,
+            ):
+                arguments = {"schema_name": schema_name, "force": True}
+                rv = self.client.get(
+                    f"api/v1/database/{example_db.id}/tables/?q={rison.dumps(arguments)}"
+                )
+                assert rv.status_code == 200
+                response = json.loads(rv.data.decode("utf-8"))
+                assert [option["value"] for option in response["result"]] == [
+                    table_name
+                ]
+        finally:
+            db.session.delete(table)
+            db.session.commit()
+            with example_db.get_sqla_engine() as engine:
+                with engine.begin() as conn:
+                    conn.execute(text(f"DROP TABLE {table_name}"))
+
     def test_database_tables_invalid_query(self):
         """
         Database API: Test database tables with invalid query
@@ -2371,8 +2424,9 @@ class TestDatabaseApi(SupersetTestCase):
         database = db.session.query(Database).filter_by(database_name="examples").one()
         mock_can_access_database.side_effect = Exception("Test Error")
 
+        schema_name = self.default_schema_backend_map[database.backend]
         rv = self.client.get(
-            f"api/v1/database/{database.id}/tables/?q={rison.dumps({'schema_name': 'main'})}"  # noqa: E501
+            f"api/v1/database/{database.id}/tables/?q={rison.dumps({'schema_name': schema_name})}"  # noqa: E501
         )
         assert rv.status_code == 422
         logger_mock.warning.assert_called_once_with("Test Error", exc_info=True)
