@@ -46,7 +46,7 @@ from superset.commands.utils import (
     update_tags,
     validate_tags,
 )
-from superset.daos.dashboard import DashboardDAO
+from superset.daos.dashboard import DashboardDAO, reconcile_position_json
 from superset.daos.report import ReportScheduleDAO
 from superset.dashboards.layout import repair_position
 from superset.exceptions import SupersetSecurityException
@@ -98,14 +98,6 @@ class UpdateDashboardCommand(UpdateMixin, BaseCommand):
                     ObjectType.dashboard, self._model.id, self._model.tags, tags
                 )
 
-            # Re-serialize position_json to escape 4-byte Unicode characters,
-            # repairing a layout that carries detached components on the way
-            # through.
-            if position_json := self._properties.get("position_json"):
-                self._properties["position_json"] = json.dumps(
-                    repair_position(json.loads(position_json), self._model_id)
-                )
-
             # ``set_dash_metadata`` merges the incoming metadata against
             # ``dashboard.params_dict`` (the *stored* ``json_metadata``) to
             # preserve fields the caller omitted. Routing ``json_metadata``
@@ -115,6 +107,40 @@ class UpdateDashboardCommand(UpdateMixin, BaseCommand):
             # field to its default -- so it is excluded here and applied
             # exclusively via ``set_dash_metadata``.
             json_metadata = self._properties.get("json_metadata")
+            metadata: dict[str, Any] | None = (
+                json.loads(json_metadata) if json_metadata else None
+            )
+
+            # Re-serialize position_json to escape 4-byte Unicode characters,
+            # and reconcile it against membership: a layout node referencing a
+            # chart that no longer resolves to any Slice row (hard-deleted) is
+            # swapped for a placeholder so ``position_json`` cannot keep
+            # accumulating dangling chart references (sc-115325).
+            #
+            # Precedence: when ``json_metadata`` carries a non-null ``positions``
+            # (the frontend always sends them there), ``set_dash_metadata``
+            # reconciles those and overwrites ``position_json`` from them, so a
+            # raw ``position_json`` field sent alongside is superseded and
+            # reconciling it here would be dead work — including its membership
+            # query. The test mirrors ``set_dash_metadata``'s own
+            # (``data.get("positions") is not None``): a present-but-null
+            # ``positions`` makes it skip the layout entirely, so the raw field
+            # must still be reconciled here or a dangling layout would be
+            # written as-is.
+            metadata_carries_positions: bool = (
+                isinstance(metadata, dict) and metadata.get("positions") is not None
+            )
+            position_json: str | None
+            if position_json := self._properties.get("position_json"):
+                positions: object = json.loads(position_json)
+                if not metadata_carries_positions:
+                    reconcile_position_json(positions, self._model.id)
+                    if isinstance(positions, dict):
+                        positions = repair_position(positions, self._model_id)
+                # The raw field is flushed before metadata replaces it, so
+                # escape it even when its layout will be superseded.
+                self._properties["position_json"] = json.dumps(positions)
+
             dashboard = DashboardDAO.update(
                 self._model,
                 {k: v for k, v in self._properties.items() if k != "json_metadata"},
@@ -128,11 +154,8 @@ class UpdateDashboardCommand(UpdateMixin, BaseCommand):
                 db.session.rollback()  # pylint: disable=consider-using-transaction
                 raise_for_soft_deleted_slug_collision(self._properties.get("slug"), ex)
                 raise
-            if json_metadata:
-                DashboardDAO.set_dash_metadata(
-                    dashboard,
-                    data=json.loads(json_metadata),
-                )
+            if metadata is not None:
+                DashboardDAO.set_dash_metadata(dashboard, data=metadata)
         return dashboard
 
     def validate(self) -> None:
@@ -239,6 +262,11 @@ class UpdateDashboardCommand(UpdateMixin, BaseCommand):
             # own: nothing is diffed against the new layout.
             current_tabs = self._model.tabs  # type: ignore
             position = json.loads(position_json)
+            # ``position_json`` is validated as parseable JSON, not as an
+            # object; a non-dict layout (``"[]"``/``"null"``/scalar) has no
+            # tabs to diff and must not raise on ``tab not in position``.
+            if not isinstance(position, dict):
+                return []
             return [tab for tab in current_tabs["all_tabs"] if tab not in position]
 
         description = textwrap.dedent(

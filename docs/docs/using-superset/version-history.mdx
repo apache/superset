@@ -85,6 +85,8 @@ selections you had before you opened it.
 A dashboard preview reconstructs the layout as it was, including charts that
 have since been removed from the dashboard. A chart that has been deleted
 outright cannot be reconstructed; its slot shows a placeholder instead.
+Empty chart slots left by older dashboard copies are repaired on save,
+preserving their size and position.
 
 Preview is a close approximation of the version, not a pixel-faithful replay.
 The dashboard's own saved properties — title, CSS, metadata, description,
@@ -129,6 +131,19 @@ timeout. A new dashboard is a copy of the *live* dashboard with the version's
 title, CSS, metadata, and layout applied over it — the copy endpoint accepts
 only those fields, so properties such as description, slug, certification, and
 theme come from the dashboard as it stands today, not from the version.
+
+When copying a dashboard **and its charts**, archived chart slots in the copy
+become placeholders saying "This archived chart was not copied." Their layout
+positions and sizes are preserved, but they do not link to the archived original.
+Restoring that original chart later therefore does not attach it to the copy.
+Live charts are still cloned. The source dashboard is unchanged, and ordinary
+dashboard saves and chart restores keep their existing reattachment behavior.
+This rule does not change copying a dashboard without copying its charts.
+
+Copying with charts refuses a layout slot that still references a live chart
+removed from the dashboard's membership. The error identifies the slot and the
+membership mismatch; no partial copy is saved. Repair the source layout before
+retrying. Malformed chart references also return a validation error (HTTP 422).
 
 ## What gets recorded
 

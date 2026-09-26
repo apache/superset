@@ -17,11 +17,17 @@
 from datetime import datetime, timezone
 from typing import Any
 
+import pytest
 from sqlalchemy.orm.session import Session
 
 from superset import db
+from superset.commands.dashboard.exceptions import DashboardInvalidError
 from superset.connectors.sqla.models import Database, SqlaTable
-from superset.daos.dashboard import DashboardDAO
+from superset.daos.dashboard import (
+    _layout_chart_id,
+    DashboardDAO,
+    reconcile_position_json,
+)
 from superset.dashboards.filter_scope import derive_metadata_scopes
 from superset.models.dashboard import Dashboard
 from superset.models.helpers import skip_visibility_filter
@@ -172,6 +178,406 @@ def test_set_dash_metadata_updates_refresh_frequency_when_present(
     )
 
 
+def _chart_node(node_id: str, chart_id: Any, width: int, height: int) -> dict[str, Any]:
+    """Build a chart layout node with the supplied identity and dimensions."""
+    return {
+        "type": "CHART",
+        "id": node_id,
+        "children": [],
+        "meta": {"chartId": chart_id, "width": width, "height": height},
+    }
+
+
+@with_feature_flags(SOFT_DELETE=True)
+def test_set_dash_metadata_repairs_dangling_chart_tiles(session: Session) -> None:
+    """A layout node referencing a chart absent from every Slice row (hard-
+    deleted / never existed) is swapped for a markdown placeholder on save,
+    while live AND soft-deleted members keep their CHART node and uuid.
+
+    sc-115325. Keys the dangling check on ``chartId ∉ uuid_map`` (resolved with
+    the visibility filter bypassed), so a soft-deleted member is preserved and
+    only a genuinely-absent reference is repaired. Reverting the repair leaves
+    the dangling node a CHART with ``meta.uuid = None``, failing the MARKDOWN
+    assertion below.
+    """
+    Dashboard.metadata.create_all(session.get_bind())
+
+    dataset: SqlaTable = SqlaTable(
+        table_name="dangle_table",
+        database=Database(database_name="dangle_db", sqlalchemy_uri="sqlite://"),
+    )
+    db.session.add(dataset)
+    db.session.flush()
+
+    live_chart: Slice = Slice(
+        slice_name="dangle_live",
+        datasource_id=dataset.id,
+        datasource_type="table",
+    )
+    trashed_chart: Slice = Slice(
+        slice_name="dangle_trashed",
+        datasource_id=dataset.id,
+        datasource_type="table",
+        deleted_at=datetime(2026, 1, 1, tzinfo=timezone.utc),
+    )
+    dashboard: Dashboard = Dashboard(
+        dashboard_title="dangle_dash",
+        slices=[live_chart, trashed_chart],
+        published=True,
+    )
+    db.session.add_all([live_chart, trashed_chart, dashboard])
+    db.session.flush()
+    db.session.expire(dashboard, ["slices"])
+
+    absent_chart_id: int = 987_654_321
+    positions: dict[str, dict[str, Any]] = {
+        "CHART-live": _chart_node("CHART-live", live_chart.id, 4, 50),
+        "CHART-trashed": _chart_node("CHART-trashed", trashed_chart.id, 4, 50),
+        "CHART-gone": _chart_node("CHART-gone", absent_chart_id, 6, 30),
+    }
+
+    DashboardDAO.set_dash_metadata(dashboard, {"positions": positions})
+    db.session.flush()
+
+    # Live and soft-deleted members keep their CHART node + uuid.
+    assert positions["CHART-live"]["type"] == "CHART"
+    assert positions["CHART-live"]["meta"]["uuid"] == str(live_chart.uuid)
+    assert positions["CHART-trashed"]["type"] == "CHART"
+    assert positions["CHART-trashed"]["meta"]["uuid"] == str(trashed_chart.uuid)
+    member_ids: set[int] = {chart.id for chart in dashboard.slices}
+    assert live_chart.id in member_ids
+    assert trashed_chart.id in member_ids
+
+    # The genuinely-absent reference is repaired to a markdown placeholder,
+    # keeping the node id and geometry but dropping the chart reference.
+    gone: dict[str, Any] = positions["CHART-gone"]
+    assert gone["type"] == "MARKDOWN", gone
+    assert gone["meta"]["code"] == "This chart no longer exists."
+    assert gone["meta"]["width"] == 6
+    assert gone["meta"]["height"] == 30
+    assert "chartId" not in gone["meta"]
+    assert "uuid" not in gone["meta"]
+    assert absent_chart_id not in member_ids
+
+
+@with_feature_flags(SOFT_DELETE=True)
+def test_reconcile_position_json_repairs_only_absent_charts(session: Session) -> None:
+    """The raw ``position_json`` PUT path (``reconcile_position_json``) repairs
+    a node whose chart no longer exists, leaves live and soft-deleted charts'
+    CHART nodes untouched, and does not disturb non-chart layout nodes.
+
+    sc-115325 — the second write path, which has no ``uuid_map`` to reuse and
+    resolves membership itself with the soft-delete filter bypassed.
+    """
+    Dashboard.metadata.create_all(session.get_bind())
+
+    dataset: SqlaTable = SqlaTable(
+        table_name="reconcile_table",
+        database=Database(database_name="reconcile_db", sqlalchemy_uri="sqlite://"),
+    )
+    db.session.add(dataset)
+    db.session.flush()
+
+    live_chart: Slice = Slice(
+        slice_name="reconcile_live",
+        datasource_id=dataset.id,
+        datasource_type="table",
+    )
+    trashed_chart: Slice = Slice(
+        slice_name="reconcile_trashed",
+        datasource_id=dataset.id,
+        datasource_type="table",
+        deleted_at=datetime(2026, 1, 1, tzinfo=timezone.utc),
+    )
+    db.session.add_all([live_chart, trashed_chart])
+    db.session.flush()
+
+    absent_chart_id: int = 987_654_321
+    positions: dict[str, dict[str, Any]] = {
+        "CHART-live": _chart_node("CHART-live", live_chart.id, 4, 50),
+        "CHART-trashed": _chart_node("CHART-trashed", trashed_chart.id, 4, 50),
+        "CHART-gone": _chart_node("CHART-gone", absent_chart_id, 6, 30),
+        "ROW-1": {
+            "type": "ROW",
+            "id": "ROW-1",
+            "children": ["CHART-live", "CHART-trashed", "CHART-gone"],
+            "meta": {"background": "BACKGROUND_TRANSPARENT"},
+        },
+    }
+
+    repaired: int = reconcile_position_json(positions)
+
+    assert repaired == 1
+    assert positions["CHART-live"]["type"] == "CHART"
+    assert positions["CHART-trashed"]["type"] == "CHART"  # soft-deleted preserved
+    assert positions["CHART-gone"]["type"] == "MARKDOWN", positions["CHART-gone"]
+    assert positions["CHART-gone"]["meta"]["code"] == "This chart no longer exists."
+    # Non-chart nodes are left alone; the row still references the same slot id.
+    assert positions["ROW-1"]["type"] == "ROW"
+    assert "CHART-gone" in positions["ROW-1"]["children"]
+
+
+def test_reconcile_position_json_ignores_non_dict_layout() -> None:
+    """A ``position_json`` that is valid JSON but not an object (``"[]"``,
+    ``"null"``, a scalar) reaches ``reconcile_position_json`` as a non-dict —
+    the PUT schema only validates parseability. It must be left untouched and
+    return 0, not raise (sc-115325 python-review regression guard: the old
+    ``json.dumps(json.loads(...))`` round-trip accepted any JSON value)."""
+    non_dict_layouts: list[Any] = [[], None, 5, "just a string"]
+    for payload in non_dict_layouts:
+        assert reconcile_position_json(payload) == 0
+
+
+@with_feature_flags(SOFT_DELETE=True)
+def test_reconcile_position_json_handles_edge_and_malformed_nodes(
+    session: Session,
+) -> None:
+    """``chartId == 0`` is a real-but-absent reference (no Slice has id 0) and
+    is repaired to a placeholder; malformed nodes — a non-dict ``meta`` or a
+    non-int ``chartId`` — are ignored, not crashed (sc-115325 python-review:
+    ``position_json`` is only validated as parseable JSON)."""
+    Dashboard.metadata.create_all(session.get_bind())
+
+    dataset: SqlaTable = SqlaTable(
+        table_name="edge_table",
+        database=Database(database_name="edge_db", sqlalchemy_uri="sqlite://"),
+    )
+    db.session.add(dataset)
+    db.session.flush()
+    live_chart: Slice = Slice(
+        slice_name="edge_live",
+        datasource_id=dataset.id,
+        datasource_type="table",
+    )
+    db.session.add(live_chart)
+    db.session.flush()
+
+    positions: dict[str, Any] = {
+        "CHART-live": _chart_node("CHART-live", live_chart.id, 4, 50),
+        "CHART-zero": _chart_node("CHART-zero", 0, 4, 50),
+        "CHART-bad-meta": {
+            "type": "CHART",
+            "id": "CHART-bad-meta",
+            "children": [],
+            "meta": "not-a-dict",
+        },
+        "CHART-bad-id": {
+            "type": "CHART",
+            "id": "CHART-bad-id",
+            "children": [],
+            "meta": {"chartId": [1], "width": 4, "height": 50},
+        },
+    }
+
+    repaired: int = reconcile_position_json(positions)
+
+    # Only chartId=0 counts as a dangling reference to repair.
+    assert repaired == 1
+    assert positions["CHART-live"]["type"] == "CHART"
+    assert positions["CHART-zero"]["type"] == "MARKDOWN"
+    assert positions["CHART-zero"]["meta"]["code"] == "This chart no longer exists."
+    # Malformed nodes are left untouched (ignored, not repaired, not raised).
+    assert positions["CHART-bad-meta"]["type"] == "CHART"
+    assert positions["CHART-bad-id"]["type"] == "CHART"
+
+
+@pytest.mark.parametrize(
+    "chart_id, expected",
+    [
+        (7, 7),
+        (0, 0),  # real-but-absent reference, not "missing"
+        (7.0, 7),  # integral float (JSON round-trip / import)
+        ("7", 7),  # digit string (legacy data)
+        (" 7 ", 7),  # whitespace-padded digit string
+        ("²", None),  # a digit that int() cannot parse
+        ("٧", 7),  # decimal Unicode digits are valid integers
+        (7.5, None),  # fractional float is not an id
+        ("7a", None),  # non-digit string
+        ("-1", None),  # sign is not a digit; no Slice has a negative id
+        (True, None),  # bool is an int subclass but never a chart id
+        ([1], None),
+        (None, None),
+    ],
+)
+def test_layout_chart_id_coerces_numeric_forms_only(
+    chart_id: Any, expected: int | None
+) -> None:
+    """Numeric *forms* of a chartId (integral float, digit string) resolve to
+    the int — legacy/imported layouts carry them and the pre-reconcile code
+    accepted them — while fractional floats, non-digit strings, and bools stay
+    ``None`` (fitzee review on #44028: returning ``None`` for ``123.0`` or
+    ``"123"`` would silently unlink a live chart AND skip its repair)."""
+    node: dict[str, Any] = {
+        "type": "CHART",
+        "id": "CHART-x",
+        "meta": {"chartId": chart_id},
+    }
+    assert _layout_chart_id(node) == expected
+
+
+def test_reconcile_position_json_keeps_live_chart_referenced_in_numeric_form(
+    session: Session,
+) -> None:
+    """A live chart referenced as ``123.0`` or ``"123"`` is recognised as that
+    chart — left as a CHART tile, not repaired — while an ABSENT id in the same
+    forms is still repaired. This is the regression fitzee flagged: dropping
+    numeric forms would exclude a real chart from the membership rebuild (unlink
+    on save) and, with no id to resolve, never convert it to a placeholder — a
+    permanent orphan tile."""
+    Dashboard.metadata.create_all(session.get_bind())
+
+    dataset: SqlaTable = SqlaTable(
+        table_name="numeric_form_table",
+        database=Database(database_name="numeric_form_db", sqlalchemy_uri="sqlite://"),
+    )
+    db.session.add(dataset)
+    db.session.flush()
+    live_chart: Slice = Slice(
+        slice_name="numeric_form_live",
+        datasource_id=dataset.id,
+        datasource_type="table",
+    )
+    db.session.add(live_chart)
+    db.session.flush()
+
+    positions: dict[str, Any] = {
+        "CHART-float": _chart_node("CHART-float", float(live_chart.id), 4, 50),
+        "CHART-str": _chart_node("CHART-str", str(live_chart.id), 4, 50),
+        "CHART-absent-float": _chart_node("CHART-absent-float", 0.0, 4, 50),
+        "CHART-absent-str": _chart_node("CHART-absent-str", "0", 4, 50),
+    }
+
+    repaired: int = reconcile_position_json(positions)
+
+    assert repaired == 2
+    # Live chart in either numeric form: recognised, kept as a CHART tile.
+    assert positions["CHART-float"]["type"] == "CHART"
+    assert positions["CHART-str"]["type"] == "CHART"
+    # Absent id in either numeric form: still repaired.
+    assert positions["CHART-absent-float"]["type"] == "MARKDOWN"
+    assert positions["CHART-absent-str"]["type"] == "MARKDOWN"
+
+
+def test_set_dash_metadata_keeps_a_member_referenced_in_numeric_form(
+    session: Session,
+) -> None:
+    """A live member referenced as ``123.0`` or ``"123"`` survives the wholesale
+    ``dashboard.slices`` rebuild, keeps its CHART tile, and gets a real uuid.
+
+    This is the membership half of the fitzee regression on #44028: the repair
+    path is covered by
+    ``test_reconcile_position_json_keeps_live_chart_referenced_in_numeric_form``,
+    but the silent *unlink* happens here — a node dropped from ``slice_ids``
+    loses its ``dashboard_slices`` junction row on the next save, and with no
+    id to resolve it is never repaired either, leaving a permanent orphan tile.
+    Reverting the float/digit-string coercion in ``_layout_chart_id`` makes the
+    save raise instead (both nodes read as malformed), so this test bites.
+    """
+    Dashboard.metadata.create_all(session.get_bind())
+
+    dataset: SqlaTable = SqlaTable(
+        table_name="numeric_member_table",
+        database=Database(
+            database_name="numeric_member_db", sqlalchemy_uri="sqlite://"
+        ),
+    )
+    db.session.add(dataset)
+    db.session.flush()
+    as_float: Slice = Slice(
+        slice_name="numeric_member_float",
+        datasource_id=dataset.id,
+        datasource_type="table",
+    )
+    as_string: Slice = Slice(
+        slice_name="numeric_member_string",
+        datasource_id=dataset.id,
+        datasource_type="table",
+    )
+    dashboard: Dashboard = Dashboard(
+        dashboard_title="numeric member", slug="numeric-member"
+    )
+    dashboard.slices = [as_float, as_string]
+    db.session.add_all([as_float, as_string, dashboard])
+    db.session.flush()
+
+    positions: dict[str, Any] = {
+        "CHART-float": _chart_node("CHART-float", float(as_float.id), 4, 50),
+        "CHART-str": _chart_node("CHART-str", str(as_string.id), 4, 50),
+    }
+
+    DashboardDAO.set_dash_metadata(dashboard, {"positions": positions})
+    # Flush so the collection diff's SQL reaches ``dashboard_slices`` — the
+    # unlink is a junction-row DELETE, which an in-memory assertion alone
+    # would not witness.
+    db.session.flush()
+
+    # Neither member was unlinked by the wholesale rebuild.
+    assert {chart.id for chart in dashboard.slices} == {as_float.id, as_string.id}
+    # Neither tile was orphaned or turned into a placeholder.
+    assert positions["CHART-float"]["type"] == "CHART"
+    assert positions["CHART-str"]["type"] == "CHART"
+    # Both resolved to a real chart, so both carry a uuid rather than ``None``.
+    assert positions["CHART-float"]["meta"]["uuid"] == str(as_float.uuid)
+    assert positions["CHART-str"]["meta"]["uuid"] == str(as_string.uuid)
+
+
+@pytest.mark.parametrize(
+    "invalid_meta",
+    [
+        {"chartId": [1]},
+        {"chartId": True},
+        {"chartId": 1.25},
+        {"chartId": "unreadable"},
+        None,
+        [],
+        "invalid",
+    ],
+)
+def test_set_dash_metadata_rejects_a_malformed_chart_node_instead_of_detaching(
+    session: Session,
+    invalid_meta: object,
+) -> None:
+    """A CHART node whose chartId cannot be resolved fails the save with a
+    422-shaped error naming the slot — it is NOT skipped, because the
+    membership rebuild is wholesale and skipping it would silently detach the
+    chart it references. Existing memberships are untouched by the refusal.
+    (codeant on #44028; the pre-reconcile code failed this save with a 500.)"""
+    Dashboard.metadata.create_all(session.get_bind())
+
+    dataset: SqlaTable = SqlaTable(
+        table_name="malformed_table",
+        database=Database(database_name="malformed_db", sqlalchemy_uri="sqlite://"),
+    )
+    db.session.add(dataset)
+    db.session.flush()
+    member: Slice = Slice(
+        slice_name="malformed_member",
+        datasource_id=dataset.id,
+        datasource_type="table",
+    )
+    dashboard: Dashboard = Dashboard(dashboard_title="malformed", slug="malformed")
+    dashboard.slices = [member]
+    db.session.add_all([member, dashboard])
+    db.session.flush()
+
+    positions: dict[str, Any] = {
+        "CHART-ok": _chart_node("CHART-ok", member.id, 4, 50),
+        "CHART-bad": {
+            "type": "CHART",
+            "id": "CHART-bad",
+            "children": [],
+            "meta": invalid_meta,
+        },
+    }
+
+    with pytest.raises(DashboardInvalidError) as excinfo:
+        DashboardDAO.set_dash_metadata(dashboard, {"positions": positions})
+
+    assert "CHART-bad" in str(excinfo.value.normalized_messages())
+    # The refusal did not touch membership.
+    assert {chart.id for chart in dashboard.slices} == {member.id}
+
+
 def _position_with_trapped_chart(
     placed_chart_id: int, trapped_chart_id: int
 ) -> dict[str, Any]:
@@ -307,3 +713,26 @@ def test_set_dash_metadata_keeps_archived_trapped_chart_through_resave(
     with skip_visibility_filter(db.session, Slice):
         db.session.expire(dashboard, ["slices"])
         assert {chart.id for chart in dashboard.slices} == {placed.id, trapped.id}
+
+
+@pytest.mark.parametrize(
+    "meta", [{"chartId": None, "width": 4, "height": 50}, {"width": 4, "height": 50}]
+)
+def test_reconcile_empty_chart_slot_without_resolvable_ids(
+    meta: dict[str, object],
+) -> None:
+    """An all-empty layout needs no lookup and retains its slot geometry."""
+    node: dict[str, object] = {
+        "type": "CHART",
+        "id": "CHART-empty",
+        "children": [],
+        "parents": ["ROW-a"],
+        "meta": meta,
+    }
+    positions: dict[str, object] = {"CHART-empty": node}
+    assert reconcile_position_json(positions) == 1
+    assert positions["CHART-empty"] == {
+        **node,
+        "type": "MARKDOWN",
+        "meta": {"width": 4, "height": 50, "code": "This chart no longer exists."},
+    }
