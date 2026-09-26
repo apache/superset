@@ -377,6 +377,9 @@ class Dashboard(CoreDashboard, SoftDeleteMixin, AuditMixinNullable, ImportExport
         self,
     ) -> list[tuple[BaseDatasource | SemanticView, dict[str, Any]]]:
         """Return trimmed chart metadata, keeping datasource types distinct."""
+        # Key by (datasource_type, datasource_id): SqlaTable and SemanticView
+        # have independent auto-increment id spaces, so grouping by the bare
+        # datasource_id would merge unrelated datasources with colliding ids.
         slices_by_datasource: dict[tuple[str, int], set[Slice]] = defaultdict(set)
 
         for slc in self.slices:
