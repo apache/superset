@@ -1110,6 +1110,36 @@ def add_orientation_config(form_data: Dict[str, Any], config: XYChartConfig) -> 
         form_data["orientation"] = config.orientation
 
 
+def _match_y_metric_label(y_cols: list[ColumnRef], sort_lower: str) -> str | None:
+    """Find matching metric label for sort_by among Y-axis metrics."""
+    for y_col in y_cols:
+        metric_obj = create_metric_object(y_col)
+        metric_label = (
+            metric_obj
+            if isinstance(metric_obj, str)
+            else (metric_obj.get("label") or "")
+        )
+        agg_expr = (
+            f"{y_col.aggregate}({y_col.name})".lower()
+            if (y_col.aggregate and y_col.name)
+            else None
+        )
+        col_name = (y_col.name or "").lower()
+        col_label = (y_col.label or "").lower()
+        sql_expr = (y_col.sql_expression or "").lower()
+        metric_label_lower = metric_label.lower()
+
+        if (
+            sort_lower == col_name
+            or sort_lower == metric_label_lower
+            or (col_label and sort_lower == col_label)
+            or (agg_expr and sort_lower == agg_expr)
+            or (sql_expr and sort_lower == sql_expr)
+        ):
+            return metric_label
+    return None
+
+
 def add_xy_sort_config(
     form_data: Dict[str, Any], config: XYChartConfig, x_is_temporal: bool
 ) -> None:
@@ -1127,10 +1157,17 @@ def add_xy_sort_config(
         return
 
     sort_entry = config.sort_by
-    if isinstance(sort_entry, list):
+    if isinstance(sort_entry, (list, tuple)):
         if not sort_entry:
             return
-        sort_entry = sort_entry[0]
+        if (
+            len(sort_entry) == 2
+            and isinstance(sort_entry[0], str)
+            and isinstance(sort_entry[1], bool)
+        ):
+            sort_entry = SortByConfig(column=sort_entry[0], ascending=sort_entry[1])
+        else:
+            sort_entry = sort_entry[0]
     if isinstance(sort_entry, str):
         sort_entry = SortByConfig(column=sort_entry, ascending=False)
     elif isinstance(sort_entry, dict):
@@ -1145,40 +1182,20 @@ def add_xy_sort_config(
         )
         return
 
-    sort_target = sort_entry.column
-    # If sorting by the x-axis dimension itself
+    sort_lower = sort_entry.column.lower()
+    x_name = (config.x.name or "").lower() if config.x else None
+    x_label = (config.x.label or "").lower() if config.x else None
+
+    # If sorting by the x-axis dimension itself (case-insensitive check)
     if config.x and (
-        sort_entry.column == config.x.name
-        or (config.x.label and sort_entry.column == config.x.label)
+        (x_name and sort_lower == x_name)
+        or (x_label and sort_lower == x_label)
     ):
         sort_target = config.x.label or config.x.name
     else:
-        # Match against y metrics (by column name, metric label, or agg expression)
-        sort_lower = sort_entry.column.lower()
-        for y_col in config.y:
-            metric_obj = create_metric_object(y_col)
-            metric_label = (
-                metric_obj
-                if isinstance(metric_obj, str)
-                else (metric_obj.get("label") or "")
-            )
-            agg_expr = (
-                f"{y_col.aggregate}({y_col.name})".lower()
-                if (y_col.aggregate and y_col.name)
-                else None
-            )
-            col_name = (y_col.name or "").lower()
-            col_label = (y_col.label or "").lower()
-            metric_label_lower = metric_label.lower()
-
-            if (
-                sort_lower == col_name
-                or sort_lower == metric_label_lower
-                or (col_label and sort_lower == col_label)
-                or (agg_expr and sort_lower == agg_expr)
-            ):
-                sort_target = metric_label
-                break
+        # Match against y metrics (by column name, metric label, agg expr, or sql)
+        matched_label = _match_y_metric_label(config.y, sort_lower)
+        sort_target = matched_label or sort_entry.column
 
     form_data["x_axis_sort"] = sort_target
     form_data["x_axis_sort_asc"] = sort_entry.ascending
