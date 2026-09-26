@@ -158,7 +158,9 @@ describe('Heatmap transformProps', () => {
     const xAxisData = (result.echartOptions.xAxis as any).data;
     const yAxisData = (result.echartOptions.yAxis as any).data;
 
-    // Should maintain order of first appearance
+    // X-axis has no default sort applied; it maintains order of first
+    // appearance since it is often already ordered by the backend query
+    // (e.g. chronologically for a temporal axis).
     expect(xAxisData).toEqual([
       'Monday',
       'Wednesday',
@@ -166,7 +168,36 @@ describe('Heatmap transformProps', () => {
       'Tuesday',
       'Thursday',
     ]);
-    expect(yAxisData).toEqual([9, 14, 11, 16, 10, 15]);
+    // Y-axis has no natural backend ordering to fall back on, so it
+    // defaults to ascending sort when no explicit sort option is chosen.
+    expect(yAxisData).toEqual([9, 10, 11, 14, 15, 16]);
+  });
+
+  test('should default to sorting the Y axis alphabetically when it holds unsorted string values and no sort option is chosen', () => {
+    // Reproduces the reported bug: creating a heatmap with a string Y-axis
+    // (e.g. customer_name) and clicking "Update Chart" without touching the
+    // "Sort Y Axis" control left the axis in arbitrary query order.
+    const customerData = [
+      { quarter: 'Q1', customer_name: 'Zoe Diaz', count: 3 },
+      { quarter: 'Q1', customer_name: 'Amir Cole', count: 5 },
+      { quarter: 'Q2', customer_name: 'Mia Chen', count: 2 },
+      { quarter: 'Q3', customer_name: 'Amir Cole', count: 1 },
+    ];
+
+    const chartProps = createChartProps(
+      { xAxis: 'quarter', groupby: ['customer_name'] },
+      customerData,
+    );
+    (chartProps as any).queriesData[0].colnames = [
+      'quarter',
+      'customer_name',
+      'count',
+    ];
+
+    const result = transformProps(chartProps as HeatmapChartProps);
+    const yAxisData = (result.echartOptions.yAxis as any).data;
+
+    expect(yAxisData).toEqual(['Amir Cole', 'Mia Chen', 'Zoe Diaz']);
   });
 
   test('should aggregate metric values for value-based sorting', () => {
