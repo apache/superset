@@ -35,6 +35,7 @@ from superset.commands.chart.exceptions import (
     DatasourceTypeUpdateRequiredValidationError,
 )
 from superset.commands.chart.utils import (
+    touch_dashboards,
     validate_chart_datasource_type,
     validate_query_context_datasource,
 )
@@ -103,6 +104,18 @@ class UpdateChartCommand(UpdateMixin, BaseCommand):
                 self._model.params,
                 self._properties["params"],
             )
+
+        # Touch newly linked dashboards to bump changed_on/changed_by (resolves #44305).
+        # Ensures adding a chart to an existing dashboard updates the dashboard's
+        # last modified state.
+        if "dashboards" in self._properties:
+            existing_dashboard_ids = {d.id for d in self._model.dashboards}
+            newly_added_dashboards = [
+                d
+                for d in self._properties["dashboards"]
+                if d.id not in existing_dashboard_ids
+            ]
+            touch_dashboards(newly_added_dashboards)
 
         return ChartDAO.update(self._model, self._properties)
 

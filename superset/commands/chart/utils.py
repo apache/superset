@@ -14,8 +14,10 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from datetime import datetime
 from typing import Any
 
+from flask import g
 from marshmallow import ValidationError
 
 from superset.commands.chart.exceptions import (
@@ -81,3 +83,23 @@ def validate_query_context_datasource(
 
     if not ids_match or not types_match:
         exceptions.append(ChartQueryContextDatasourceMismatchValidationError())
+
+
+def touch_dashboards(dashboards: list[Any] | None) -> None:
+    """
+    Touch the audit metadata (changed_on and changed_by) for the given dashboards.
+
+    When charts are linked to dashboards during chart creation or update,
+    this ensures the dashboard's last modified timestamp reflects the change
+    (issue #44305).
+
+    :param dashboards: list of Dashboard models to touch.
+    """
+    if not dashboards:
+        return
+    now = datetime.now()
+    user = getattr(g, "user", None)
+    for dashboard in dashboards:
+        dashboard.changed_on = now
+        if user is not None:
+            dashboard.changed_by = user

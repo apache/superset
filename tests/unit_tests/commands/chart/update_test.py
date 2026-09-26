@@ -14,7 +14,8 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from unittest.mock import Mock
+from typing import Any
+from unittest.mock import MagicMock, Mock
 
 import pytest
 from flask import g
@@ -544,3 +545,192 @@ def test_update_chart_rejects_type_only_non_table_datasource(
         isinstance(ex, DatasourceTypeInvalidError) for ex in exc_info.value._exceptions
     )
     get_datasource_by_id.assert_not_called()
+
+
+def test_update_chart_touches_newly_linked_dashboards(
+    mocker: MockerFixture,
+) -> None:
+    """Issue #44305: Adding new dashboards to a chart touches audit metadata."""
+    existing_dashboard = MagicMock(id=1, changed_on=None, changed_by=None)
+    new_dashboard = MagicMock(
+        id=2, is_managed_externally=False, changed_on=None, changed_by=None
+    )
+
+    chart = MagicMock(
+        is_managed_externally=False,
+        id=10,
+        tags=[],
+        dashboards=[existing_dashboard],
+        datasource_id=42,
+        datasource_type="table",
+    )
+    mocker.patch(
+        "superset.commands.chart.update.ChartDAO.find_by_id",
+        return_value=chart,
+    )
+
+    def _find_dashboards_by_ids(ids: list[int], **kwargs: Any) -> list[Any]:
+        lookup = {1: existing_dashboard, 2: new_dashboard}
+        return [lookup[i] for i in ids if i in lookup]
+
+    mocker.patch(
+        "superset.commands.chart.update.DashboardDAO.find_by_ids",
+        side_effect=_find_dashboards_by_ids,
+    )
+    mocker.patch(
+        "superset.commands.chart.update.security_manager.raise_for_editorship",
+    )
+    mocker.patch(
+        "superset.commands.chart.update.security_manager.is_editor",
+        return_value=True,
+    )
+    mocker.patch(
+        "superset.commands.chart.update.compute_subjects",
+        side_effect=lambda model, properties, exceptions: None,
+    )
+    mocker.patch(
+        "superset.commands.chart.update.ChartDAO.update",
+        return_value=chart,
+    )
+
+    user = MagicMock()
+    g.user = user
+
+    cmd = UpdateChartCommand(10, {"dashboards": [1, 2]})
+    cmd.run()
+
+    # The existing dashboard should NOT be touched
+    assert existing_dashboard.changed_on is None
+    # The newly linked dashboard MUST be touched
+    assert new_dashboard.changed_on is not None
+    assert new_dashboard.changed_by == user
+
+
+def test_update_chart_does_not_touch_unchanged_dashboards(
+    mocker: MockerFixture,
+) -> None:
+    """Updating a chart without changing dashboard attachments does not touch them."""
+    existing_dashboard = MagicMock(id=1, changed_on=None, changed_by=None)
+
+    chart = MagicMock(
+        is_managed_externally=False,
+        id=10,
+        tags=[],
+        dashboards=[existing_dashboard],
+        datasource_id=42,
+        datasource_type="table",
+    )
+    mocker.patch(
+        "superset.commands.chart.update.ChartDAO.find_by_id",
+        return_value=chart,
+    )
+    mocker.patch(
+        "superset.commands.chart.update.DashboardDAO.find_by_ids",
+        return_value=[existing_dashboard],
+    )
+    mocker.patch(
+        "superset.commands.chart.update.security_manager.raise_for_editorship",
+    )
+    mocker.patch(
+        "superset.commands.chart.update.compute_subjects",
+        side_effect=lambda model, properties, exceptions: None,
+    )
+    mocker.patch(
+        "superset.commands.chart.update.ChartDAO.update",
+        return_value=chart,
+    )
+
+    user = MagicMock()
+    g.user = user
+
+    cmd = UpdateChartCommand(10, {"dashboards": [1]})
+    cmd.run()
+
+    # The unchanged dashboard should remain untouched
+    assert existing_dashboard.changed_on is None
+    assert existing_dashboard.changed_by is None
+
+
+def test_update_chart_removing_dashboards_does_not_touch_remaining(
+    mocker: MockerFixture,
+) -> None:
+    """Removing a dashboard from a chart leaves remaining dashboards untouched."""
+    d1 = MagicMock(id=1, changed_on=None, changed_by=None)
+    d2 = MagicMock(id=2, changed_on=None, changed_by=None)
+
+    chart = MagicMock(
+        is_managed_externally=False,
+        id=10,
+        tags=[],
+        dashboards=[d1, d2],
+        datasource_id=42,
+        datasource_type="table",
+    )
+    mocker.patch(
+        "superset.commands.chart.update.ChartDAO.find_by_id",
+        return_value=chart,
+    )
+    mocker.patch(
+        "superset.commands.chart.update.DashboardDAO.find_by_ids",
+        return_value=[d1],
+    )
+    mocker.patch(
+        "superset.commands.chart.update.security_manager.raise_for_editorship",
+    )
+    mocker.patch(
+        "superset.commands.chart.update.compute_subjects",
+        side_effect=lambda model, properties, exceptions: None,
+    )
+    mocker.patch(
+        "superset.commands.chart.update.ChartDAO.update",
+        return_value=chart,
+    )
+
+    user = MagicMock()
+    g.user = user
+
+    # Keep only d1, removing d2
+    cmd = UpdateChartCommand(10, {"dashboards": [1]})
+    cmd.run()
+
+    assert d1.changed_on is None
+    assert d1.changed_by is None
+    assert d2.changed_on is None
+    assert d2.changed_by is None
+
+
+def test_update_chart_without_dashboards_in_payload_leaves_dashboards_untouched(
+    mocker: MockerFixture,
+) -> None:
+    """Updates that do not alter dashboard links do not evaluate dashboard touches."""
+    dashboard = MagicMock(id=1, changed_on=None, changed_by=None)
+    chart = MagicMock(
+        is_managed_externally=False,
+        id=10,
+        tags=[],
+        dashboards=[dashboard],
+        datasource_id=42,
+        datasource_type="table",
+    )
+    mocker.patch(
+        "superset.commands.chart.update.ChartDAO.find_by_id",
+        return_value=chart,
+    )
+    mocker.patch(
+        "superset.commands.chart.update.security_manager.raise_for_editorship",
+    )
+    mocker.patch(
+        "superset.commands.chart.update.compute_subjects",
+        side_effect=lambda model, properties, exceptions: None,
+    )
+    mocker.patch(
+        "superset.commands.chart.update.ChartDAO.update",
+        return_value=chart,
+    )
+
+    g.user = MagicMock()
+    cmd = UpdateChartCommand(10, {"slice_name": "Renamed only"})
+    cmd.run()
+
+    assert dashboard.changed_on is None
+    assert dashboard.changed_by is None
