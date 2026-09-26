@@ -18,14 +18,17 @@
  */
 
 /*
-  This file can be overridden from outside by custom config, it will add/delete new components to existing config in
-  superset-frontend/src/visualizations/presets/dashboardComponents.ts file
+  Registers built-in dashboard components through the `dashboardComponents`
+  Extensions contribution point. This file can be overridden from outside by
+  custom config to add or remove components.
+
+  The legacy DashboardComponentsRegistry
+  (visualizations/presets/dashboardComponents) is deprecated in favor of this
+  path.
  */
 
-// import dashboardComponentsRegistry from '../visualizations/presets/dashboardComponents';
-// import example from '../visualizations/dashboardComponents/ExampleComponent';
+import registerIframeComponent from '../dashboard/extensions/iframe';
 
 export default function setupDashboardComponents() {
-  // Add custom dashboard components here. Example:
-  // dashboardComponentsRegistry.set('example', example);
+  registerIframeComponent();
 }

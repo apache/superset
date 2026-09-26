@@ -129,6 +129,27 @@ chat.registerChat(
 
 See [Chat](./extension-points/chat.md) for implementation details.
 
+### Dashboard Components
+
+Extensions can add first-class layout components to the dashboard builder — elements that live in the grid alongside charts, Markdown, and tabs. The host owns the drag/resize/delete chrome, so the extension only provides the component that renders the element's content. The built-in iframe component is implemented through this contribution point.
+
+```tsx
+import { dashboardComponents } from '@apache-superset/core';
+import WeatherWidget from './WeatherWidget';
+
+dashboardComponents.registerDashboardComponent(
+  {
+    id: 'my-org.weather',
+    name: 'Weather widget',
+    icon: 'CloudOutlined',
+    defaultMeta: { width: 4, height: 50 },
+  },
+  WeatherWidget,
+);
+```
+
+See [Dashboard Components](./extension-points/dashboard-components.md) for implementation details.
+
 ## Backend
 
 Backend contribution types allow extensions to extend Superset's server-side capabilities. Backend contributions are registered at startup via classes and functions imported from the auto-discovered `entrypoint.py` file.

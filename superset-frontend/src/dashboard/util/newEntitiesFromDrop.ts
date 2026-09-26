@@ -51,6 +51,7 @@ export default function newEntitiesFromDrop({
   const wrapChildInRow = shouldWrapChildInRow({
     parentType: dropType,
     childType: dragType,
+    childMeta: dragging.meta,
   });
 
   const newEntities: Record<string, DashboardComponent> = {
