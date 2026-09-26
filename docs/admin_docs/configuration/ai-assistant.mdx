@@ -247,6 +247,12 @@ Content that arrives from your warehouse or asset metadata — table comments,
 chart titles, column labels — is marked as untrusted in the prompt, because a
 value in a database is data and not an instruction.
 
+The same framing applies to the context sent by the browser: page titles,
+dashboard notes, filter values and editor SQL. Embedded framing delimiters are
+escaped, and context limits retain complete frames. Validated page types and
+object IDs remain usable as tool arguments. This framing guides the model; it
+does not replace the permission checks on tool execution.
+
 ### Cancellation
 
 Cancellation is cooperative: a run stops at its next step boundary. A run inside
