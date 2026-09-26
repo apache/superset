@@ -72,9 +72,12 @@ class ExecuteSqlRequest(BaseModel):
     limit: int | None = Field(
         default=None,
         description=(
-            "Maximum number of rows to return. "
-            "If not specified, respects the LIMIT in your SQL query. "
-            "If specified, overrides any SQL LIMIT clause."
+            "Maximum rows returned. "
+            "Omitted: respects SQL LIMIT. "
+            "If set, caps the last statement's outer LIMIT at min(SQL LIMIT, "
+            "this value), adding one if absent. "
+            "Never raises stricter SQL limits or changes inner limits. "
+            "Explicit limits also obey server SQL_MAX_ROW."
         ),
         ge=1,
         le=10000,

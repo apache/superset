@@ -1208,6 +1208,44 @@ sub-500 exception remains a warning even if it carries a connection error reason
 the generic engine reason can also describe a caller's malformed column, and a
 connection access denial is still a permission failure.
 
+## SQL execution row limits
+
+The `execute_sql` tool treats an explicit request `limit` as a safety cap on the
+last statement's outer SQL LIMIT. The smaller limit wins: SQL `LIMIT 5` with
+request `limit: 10` returns at most five rows, while SQL `LIMIT 10` with request
+`limit: 5` also returns at most five. Equal limits and SQL `LIMIT 0` are preserved.
+If SQL has no outer limit, the explicit request cap is applied. Inner query and
+CTE limits and SQL offsets are preserved. Literal `FETCH FIRST` counts and
+parenthesized literal limits follow the same rule. `PERCENT`, `WITH TIES`, and
+limit expressions that cannot be interpreted as a fixed row count are preserved
+inside a subquery with an outer row cap, rather than replaced. This conservative
+fallback cannot increase the original result's row count. For SQL Server, these
+restrictions are left unchanged instead: a derived table could reject duplicate
+or unnamed output columns. The executor caps the last statement's returned rows
+at the smaller of the explicit request limit and `SQL_MAX_ROW`, without changing
+percentage, tie, or expression semantics. Cursor reads are bounded by the same
+cap, including across multiple fetch batches, while preserving engine-specific
+result processing. Only successfully returned rows count against the cursor
+budget, so a failed fetch leaves that budget available for an engine fallback.
+This does not bound the work performed by the database.
+Because this cap applies to any row-returning last statement, a non-query
+statement such as `SHOW TABLES` is also truncated to the cap without a warning. In
+`dry_run`, the SQL Server restriction remains unchanged because no results are
+fetched.
+
+Omitting `limit` leaves the SQL limit unchanged. Explicit request caps remain
+subject to the server's `SQL_MAX_ROW` configuration. This behavior also applies
+to `dry_run`, which returns the transformed SQL without executing it.
+
+The SQL-only `Database.apply_limit_to_sql()` helper used by dataset column
+discovery and alerts does not use the executor's bounded cursor. It retains the
+legacy SQL Server behavior of replacing `PERCENT`, `WITH TIES`, and non-fixed
+limit expressions with a fixed `TOP` cap, without introducing derived tables
+that could reject unnamed or duplicate columns. Smaller fixed limits, including
+zero, are preserved unless the caller explicitly requests `force=True`. This
+legacy helper's replacement semantics are separate from MCP execution's
+preservation of complex SQL restrictions.
+
 ## Result serialization
 
 Data-bearing tool responses sanitize row values, column samples, and statistics

@@ -30,7 +30,7 @@ from unittest.mock import MagicMock, Mock, patch
 
 import pandas as pd
 import pytest
-from fastmcp import Client
+from fastmcp import Client, FastMCP
 from fastmcp.exceptions import ToolError
 from jinja2.exceptions import TemplateSyntaxError
 from superset_core.queries.types import QueryResult, QueryStatus, StatementResult
@@ -141,6 +141,25 @@ def _mock_database(
     database.database_name = database_name
     database.allow_dml = allow_dml
     return database
+
+
+@pytest.mark.asyncio
+async def test_execute_sql_limit_schema_is_a_safety_cap(mcp_server: FastMCP) -> None:
+    """The published MCP schema must describe a cap, not a SQL LIMIT override."""
+    async with Client(mcp_server) as client:
+        tools = await client.list_tools()
+    tool = next(tool for tool in tools if tool.name == "execute_sql")
+    request_schema = tool.inputSchema["properties"]["request"]
+    limit_schema = request_schema["properties"]["limit"]
+    assert limit_schema["default"] is None
+    description = limit_schema["description"]
+    assert (
+        "caps the last statement's outer LIMIT at min(SQL LIMIT, this value)"
+        in description
+    )
+    assert "Never raises stricter SQL limits" in description
+    assert "Omitted: respects SQL LIMIT" in description
+    assert "overrides any SQL LIMIT" not in description
 
 
 class TestExecuteSql:

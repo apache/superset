@@ -71,6 +71,8 @@ class QueryOptions:
     # Basic options
     catalog: str | None = None
     schema: str | None = None
+    # Cap the last statement's outer SQL limit without increasing a smaller one.
+    # None leaves SQL limits unchanged; explicit caps also respect SQL_MAX_ROW.
     limit: int | None = None
     timeout_seconds: int | None = None
 

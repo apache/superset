@@ -69,6 +69,7 @@ def mock_query() -> MagicMock:
     query.results_key = None
     query.select_as_cta = False
     query.rows = 0
+    query.limit = None
     query.to_dict = MagicMock(return_value={"id": 123})
     query.database = MagicMock()
     query.database.db_engine_spec.extract_errors.return_value = []

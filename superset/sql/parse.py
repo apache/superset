@@ -735,6 +735,16 @@ class BaseSQLStatement(Generic[InternalRepresentation]):
         """
         raise NotImplementedError()
 
+    def cap_limit_value(
+        self,
+        limit: int,
+        method: LimitMethod = LimitMethod.FORCE_LIMIT,
+    ) -> None:
+        """Apply a row cap without increasing an existing smaller limit."""
+        current_limit = self.get_limit_value()
+        if current_limit is None or limit < current_limit:
+            self.set_limit_value(limit, method)
+
     def set_limit_value(
         self,
         limit: int,
@@ -1770,7 +1780,7 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
 
     def get_limit_value(self) -> int | None:
         """
-        Parse a SQL query and return the `LIMIT` or `TOP` value, if present.
+        Return a fixed outer `LIMIT`, `TOP`, or `FETCH` row count, if known.
         """
         # `LIMIT 2 BY id` bounds each group, not the result set, so reporting 2
         # here would make `_set_query_limit()` clamp the whole query to 2 rows.
@@ -1778,13 +1788,56 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
             return None
 
         if limit_node := self._parsed.args.get("limit"):
-            literal = limit_node.args.get("expression") or getattr(
-                limit_node, "this", None
-            )
+            options = limit_node.args.get("limit_options")
+            if options and (
+                options.args.get("percent") or options.args.get("with_ties")
+            ):
+                return None
+            if isinstance(limit_node, exp.Fetch):
+                literal = limit_node.args.get("count")
+                # FETCH FIRST ROW ONLY has an implicit count of one.
+                if literal is None:
+                    return 1
+            else:
+                literal = limit_node.args.get("expression")
+            while isinstance(literal, exp.Paren):
+                literal = literal.this
             if isinstance(literal, exp.Literal) and literal.is_int:
                 return int(literal.name)
 
         return None
+
+    def cap_limit_value(
+        self,
+        limit: int,
+        method: LimitMethod = LimitMethod.FORCE_LIMIT,
+    ) -> None:
+        """Preserve complex limits, using a SQL cap only when safe to wrap."""
+        if (
+            self._parsed.args.get("limit") is not None
+            and self.get_limit_value() is None
+            and method in {LimitMethod.FORCE_LIMIT, LimitMethod.WRAP_SQL}
+            and isinstance(self._parsed, exp.Query)
+        ):
+            # SQL Server derived tables reject unnamed or duplicate output
+            # columns, including names hidden behind stars. Preserve the SQL
+            # restriction and let the executor cap returned rows instead.
+            if self._dialect == Dialects.TSQL:
+                return
+
+            # PERCENT, WITH TIES and expressions aren't fixed row counts. Keep
+            # them intact: replacing them could enlarge a smaller result set.
+            self.set_limit_value(limit, LimitMethod.WRAP_SQL)
+            subquery = self._parsed.args["from_"].this
+            subquery.set(
+                "alias",
+                exp.TableAlias(this=exp.to_identifier("__superset_limit")),
+            )
+            # Keep CTEs at statement level rather than inside the derived table.
+            if cte := subquery.this.args.pop("with_", None):
+                self._parsed.set("with_", cte)
+        else:
+            super().cap_limit_value(limit, method)
 
     def set_limit_value(
         self,
