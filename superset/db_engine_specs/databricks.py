@@ -239,12 +239,19 @@ time_grain_expressions: dict[str | None, str] = {
 
 
 class DatabricksBaseEngineSpec(BaseEngineSpec):
+    """Base engine specification for Databricks flavors and connection methods."""
+
     _time_grain_expressions = time_grain_expressions
 
     # Databricks SQL is Spark SQL under the hood: identifiers are quoted with
     # backticks, not the inherited ANSI double quotes.
     identifier_quote_start: str = "`"
     identifier_quote_end: str = "`"
+
+    # Databricks SQL rejects 'col IN (0)' or 'col IS true' in certain query contexts
+    # (DATATYPE_MISMATCH.DATA_DIFF_TYPES, see #36765). Enabling equality
+    # operators ensures boolean filters compile as 'col = true' / 'col = false'.
+    use_equality_for_boolean_filters: bool = True
 
     @classmethod
     def convert_dttm(
@@ -981,6 +988,9 @@ class DatabricksHiveEngineSpec(HiveEngineSpec):
     # Note: Primary metadata is in DatabricksPythonConnectorEngineSpec which
     # consolidates all Databricks connection methods. This spec exists for
     # backwards compatibility with Interactive Cluster connections.
+
+    # Databricks Interactive Clusters reject IS boolean syntax in certain query contexts
+    use_equality_for_boolean_filters: bool = True
 
     _show_functions_column = "function"
 
