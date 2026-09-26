@@ -33,6 +33,11 @@ logger = logging.getLogger(__name__)
 # entries through newly upgraded processes without trying to rewrite cached data.
 MCP_RESPONSE_CACHE_NAMESPACE = "response-contract-v2:"
 
+# Tools whose responses must never be served from the response cache,
+# regardless of MCP_CACHE_CONFIG["excluded_tools"]. The catalog is a live,
+# per-user projection: a cached page could outlive a revoked grant.
+ALWAYS_EXCLUDED_TOOLS: frozenset[str] = frozenset({"get_catalog"})
+
 
 def _version_cache_prefix(
     prefix: str | Callable[[], str],
@@ -90,10 +95,12 @@ def _build_caching_settings(cache_config: Dict[str, Any]) -> Dict[str, Any]:
     call_tool_settings: Dict[str, Any] = {}
     if "call_tool_ttl" in cache_config:
         call_tool_settings["ttl"] = cache_config["call_tool_ttl"]
-    if "excluded_tools" in cache_config:
-        call_tool_settings["excluded_tools"] = cache_config["excluded_tools"]
-    if call_tool_settings:
-        settings["call_tool_settings"] = call_tool_settings
+    excluded_tools = list(cache_config.get("excluded_tools") or [])
+    excluded_tools.extend(
+        name for name in sorted(ALWAYS_EXCLUDED_TOOLS) if name not in excluded_tools
+    )
+    call_tool_settings["excluded_tools"] = excluded_tools
+    settings["call_tool_settings"] = call_tool_settings
 
     return settings
 

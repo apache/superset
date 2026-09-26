@@ -42,9 +42,9 @@ def test_version_cache_prefix_preserves_callable_partitioning() -> None:
 
 
 def test_build_caching_settings_empty_config():
-    """Empty config returns empty settings."""
+    """Empty config only carries the always-excluded tools."""
     result = _build_caching_settings({})
-    assert result == {}
+    assert result == {"call_tool_settings": {"excluded_tools": ["get_catalog"]}}
 
 
 def test_build_caching_settings_list_ttls():
@@ -83,8 +83,16 @@ def test_build_caching_settings_call_tool_with_exclusions():
 
     assert result["call_tool_settings"] == {
         "ttl": 3600,
-        "excluded_tools": ["execute_sql", "generate_chart"],
+        "excluded_tools": ["execute_sql", "generate_chart", "get_catalog"],
     }
+
+
+def test_build_caching_settings_always_excludes_catalog():
+    """The per-user catalog is never cached, even if the operator's
+    excluded_tools list omits it or is empty."""
+    for config in ({}, {"call_tool_ttl": 60}, {"excluded_tools": []}):
+        result = _build_caching_settings(config)
+        assert "get_catalog" in result["call_tool_settings"]["excluded_tools"]
 
 
 def test_create_response_caching_middleware_returns_none_when_disabled():

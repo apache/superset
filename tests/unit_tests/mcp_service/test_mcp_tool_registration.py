@@ -50,6 +50,7 @@ EXPECTED_TOOL_OUTPUT_FIELDS = {
     "generate_dashboard": "dashboard",
     "generate_explore_link": "form_data_key",
     "get_annotation_layer_info": "descr",
+    "get_catalog": "next_cursor",
     "get_chart_data": "query_results",
     "get_chart_info": "slice_name",
     "get_chart_preview": "explore_url",
