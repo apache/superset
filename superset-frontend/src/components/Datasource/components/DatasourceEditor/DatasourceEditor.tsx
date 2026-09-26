@@ -1891,15 +1891,17 @@ function DatasourceEditor({
             control={<TextControl controlId="template_params" />}
           />
         )}
-        <Field
-          inline
-          fieldKey="normalize_columns"
-          label={t('Normalize column names')}
-          description={t(
-            'Allow column names to be changed to case insensitive format, if supported (e.g. Oracle, Snowflake).',
-          )}
-          control={<CheckboxControl />}
-        />
+        {datasourceType === DATASOURCE_TYPES.physical.key && (
+          <Field
+            inline
+            fieldKey="normalize_columns"
+            label={t('Normalize column names')}
+            description={t(
+              'Allow column names to be changed to case insensitive format, if supported (e.g. Oracle, Snowflake).',
+            )}
+            control={<CheckboxControl />}
+          />
+        )}
         <Field
           inline
           fieldKey="always_filter_main_dttm"
@@ -1911,7 +1913,7 @@ function DatasourceEditor({
         />
       </Fieldset>
     ),
-    [datasource, onDatasourcePropChange, isSqla],
+    [datasource, onDatasourcePropChange, isSqla, datasourceType],
   );
 
   const renderSourceFieldset = useCallback(
