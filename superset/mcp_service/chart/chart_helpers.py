@@ -676,6 +676,21 @@ def extract_x_axis_col(form_data: dict[str, Any]) -> str | None:
     return None
 
 
+def _resolve_x_axis_sort_target(sort_col: str, metrics: list[Any]) -> Any:
+    """Resolve x_axis_sort string against metrics to preserve metric dict/label."""
+    for m in metrics:
+        if isinstance(m, str) and m == sort_col:
+            return m
+        if isinstance(m, dict):
+            col_info = m.get("column")
+            col_name = (
+                col_info.get("column_name") if isinstance(col_info, dict) else None
+            )
+            if m.get("label") == sort_col or col_name == sort_col:
+                return m
+    return sort_col
+
+
 def _build_single_query_dict(
     form_data: dict[str, Any],
     columns: list[Any],
@@ -701,6 +716,11 @@ def _build_single_query_dict(
     # an unordered result (dropping the heaviest rows rather than the top-N).
     if form_data.get("sort_by_metric") and metrics and not qd.get("orderby"):
         qd["orderby"] = [(metrics[0], False)]
+    elif form_data.get("x_axis_sort") and not qd.get("orderby"):
+        sort_col = form_data["x_axis_sort"]
+        sort_asc = bool(form_data.get("x_axis_sort_asc", False))
+        sort_target = _resolve_x_axis_sort_target(sort_col, metrics)
+        qd["orderby"] = [(sort_target, sort_asc)]
     apply_form_data_filters_to_query(qd, form_data)
     return qd
 
