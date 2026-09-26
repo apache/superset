@@ -16,7 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useState, useEffect, useMemo, ReactElement, useCallback } from 'react';
+import {
+  useState,
+  useEffect,
+  useMemo,
+  useRef,
+  ReactElement,
+  useCallback,
+} from 'react';
 
 import { t } from '@apache-superset/core/translation';
 import {
@@ -24,6 +31,7 @@ import {
   ensureIsArray,
   getChartMetadataRegistry,
   getClientErrorObject,
+  QueryFormData,
   QueryData,
 } from '@superset-ui/core';
 import { styled } from '@apache-superset/core/theme';
@@ -31,6 +39,7 @@ import { Alert } from '@apache-superset/core/components';
 import { EmptyState, Loading } from '@superset-ui/core/components';
 import { getChartDataRequest } from 'src/components/Chart/chartAction';
 import { PreformattedErrorDescription } from 'src/components/ErrorMessage/PreformattedErrorDescription';
+import { buildV1ChartDataPayload } from 'src/explore/exploreUtils';
 import { ResultsPaneProps, QueryResultInterface } from '../types';
 import { SingleQueryResultPane } from './SingleQueryResultPane';
 import { TableControls, ROW_LIMIT_OPTIONS } from './DataTableControls';
@@ -74,11 +83,25 @@ export const useResultsPane = ({
 
   const chartRowLimit = Number(queryFormData?.row_limit) || 10000;
   const [rowLimit, setRowLimit] = useState(1000);
+  const [orderby, setOrderby] = useState<[string, boolean][]>([]);
+  // Server-side sort is only valid when the displayed columns map directly to
+  // the SQL result. When the query has post-processing (e.g. pivot/cum/rolling),
+  // `orderby` + `row_limit` are applied to the raw SQL *before* post-processing,
+  // which changes the rows that feed those operations and corrupts the result.
+  // In that case we fall back to client-side sorting of what the chart produced.
+  // Start disabled (true) rather than false: detection below runs
+  // asynchronously, and defaulting to "no post-processing" would let a sort
+  // click during that window send a server-side orderby for a post-processed
+  // query before we actually know it's safe to do so.
+  const [hasPostProcessing, setHasPostProcessing] = useState(true);
   const [resultResp, setResultResp] = useState<QueryResultInterface[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [responseError, setResponseError] = useState<string>('');
   const queryCount = metadata?.queryObjectCount ?? 1;
   const isQueryCountDynamic = metadata?.dynamicQueryObjectCount;
+  // Guards against an older, slower request resolving after a newer one
+  // (e.g. rapid header-click re-sorts) and clobbering the latest result.
+  const latestRequestId = useRef(0);
 
   const noOpInputChange = useCallback(() => {}, []);
 
@@ -97,8 +120,14 @@ export const useResultsPane = ({
       : undefined;
 
   const cappedFormData = useMemo(
-    () => ({ ...queryFormData, row_limit: effectiveRowLimit }),
-    [queryFormData, effectiveRowLimit],
+    () => ({
+      ...queryFormData,
+      row_limit: effectiveRowLimit,
+      // A new `orderby` produces a new object, missing the cache below and
+      // triggering a server-side re-query in the sorted order.
+      ...(orderby.length > 0 && { orderby }),
+    }),
+    [queryFormData, effectiveRowLimit, orderby],
   );
 
   const handleRowLimitChange = useCallback(
@@ -109,10 +138,19 @@ export const useResultsPane = ({
     [cappedFormData],
   );
 
+  const handleServerSort = useCallback((nextOrderby: [string, boolean][]) => {
+    setOrderby(nextOrderby);
+  }, []);
+
   useEffect(() => {
     // it's an invalid formData when gets a errorMessage
     if (errorMessage) return;
     if (!isRequest) return;
+
+    // Tag this run so a stale response (from a request superseded by a
+    // newer sort/row-limit change) can be ignored when it resolves.
+    latestRequestId.current += 1;
+    const requestId = latestRequestId.current;
 
     // The chart query and the results query produce identical SQL, so reuse the
     // chart's data instead of a second request. The chart always ran with a
@@ -165,19 +203,22 @@ export const useResultsPane = ({
       ownState,
     })
       .then(({ json }) => {
+        cache.set(cappedFormData, json.result);
+        if (requestId !== latestRequestId.current) return;
         setResultResp(ensureIsArray(json.result) as QueryResultInterface[]);
         setResponseError('');
-        cache.set(cappedFormData, json.result);
         if (queryForce) {
           setForceQuery?.(false);
         }
       })
       .catch(response => {
         getClientErrorObject(response).then(({ error, message }) => {
+          if (requestId !== latestRequestId.current) return;
           setResponseError(error || message || t('Sorry, an error occurred'));
         });
       })
       .finally(() => {
+        if (requestId !== latestRequestId.current) return;
         setIsLoading(false);
       });
   }, [cappedFormData, isRequest, queriesResponse, effectiveRowLimit]);
@@ -188,7 +229,44 @@ export const useResultsPane = ({
     }
   }, [errorMessage]);
 
-  if (isLoading) {
+  // Detect whether the chart's query uses post-processing so server-side sort
+  // can be disabled for it. Building the payload is query construction only
+  // (no network), and the result does not depend on `orderby`, so it is keyed
+  // on the base form data rather than `cappedFormData`.
+  useEffect(() => {
+    let cancelled = false;
+    buildV1ChartDataPayload({
+      formData: queryFormData as QueryFormData,
+      force: false,
+      resultFormat: 'json',
+      resultType: 'results',
+    })
+      .then(payload => {
+        if (!cancelled) {
+          setHasPostProcessing(
+            ensureIsArray(payload?.queries).some(
+              query => (query?.post_processing?.length ?? 0) > 0,
+            ),
+          );
+        }
+      })
+      .catch(() => {
+        // If the payload can't be built, fall back to disabling server sort to
+        // avoid producing incorrect results.
+        if (!cancelled) {
+          setHasPostProcessing(true);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [queryFormData]);
+
+  // Only replace the whole pane with a loader on the initial fetch. On a
+  // re-sort/refetch we keep the existing pane mounted (with stale rows) so the
+  // grid does not remount and lose its sort state; the loading state is surfaced
+  // in-place instead.
+  if (isLoading && resultResp.length === 0) {
     return Array(queryCount).fill(<Loading />);
   }
 
@@ -255,6 +333,16 @@ export const useResultsPane = ({
         effectiveRowLimit={effectiveRowLimit}
         limitReachedMessage={limitReachedMessage}
         onRowLimitChange={handleRowLimitChange}
+        isLoading={isLoading}
+        onServerSort={
+          // Client-side sort is exact when the full result fits within the row
+          // limit, so only re-query when the rows were truncated. Post-processed
+          // queries are always sorted client-side, since server-side `orderby`
+          // would change the rows feeding post-processing (see hasPostProcessing).
+          !hasPostProcessing && result.rowcount >= effectiveRowLimit
+            ? handleServerSort
+            : undefined
+        }
       />
     </StyledDiv>
   ));

@@ -320,7 +320,11 @@ def _prepare_drill_detail_query(
         else:
             qry_obj_cols.append(o.column_name)
     query_obj.columns = qry_obj_cols
-    query_obj.orderby = [(query_obj.columns[0], True)]
+    # Preserve a caller-supplied sort (e.g. clicking a column header in the
+    # drill-detail table). Only fall back to ordering by the first column when
+    # no orderby was provided.
+    if not query_obj.orderby:
+        query_obj.orderby = [(query_obj.columns[0], True)]
     return query_obj
 
 
