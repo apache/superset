@@ -65,7 +65,7 @@ class DatasourceDAO(BaseDAO[Datasource]):
 
         model = cls.sources[datasource_type]
 
-        if str(database_id_or_uuid).isdigit():
+        if str(database_id_or_uuid).isdecimal():
             filter = model.id == int(database_id_or_uuid)
         else:
             try:

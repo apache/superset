@@ -217,7 +217,7 @@ def generate_explore_link(
 
     try:
         if isinstance(dataset_id, int) or (
-            isinstance(dataset_id, str) and dataset_id.isdigit()
+            isinstance(dataset_id, str) and dataset_id.isdecimal()
         ):
             numeric_dataset_id = (
                 int(dataset_id) if isinstance(dataset_id, str) else dataset_id

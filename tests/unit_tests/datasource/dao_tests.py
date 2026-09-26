@@ -142,6 +142,22 @@ def test_not_found_datasource(session_with_data: Session) -> None:
         )
 
 
+def test_get_datasource_non_decimal_digit_raises_value_incorrect(
+    session_with_data: Session,
+) -> None:
+    """ "²" (superscript 2) is str.isdigit() but not str.isdecimal(), so
+    it must be routed to the uuid branch (and fail as an invalid uuid) rather
+    than crash on int(database_id_or_uuid)."""
+    from superset.daos.datasource import DatasourceDAO
+    from superset.daos.exceptions import DatasourceValueIsIncorrect
+
+    with pytest.raises(DatasourceValueIsIncorrect):
+        DatasourceDAO.get_datasource(
+            datasource_type="table",
+            database_id_or_uuid="²",
+        )
+
+
 def test_escape_ilike_fragment() -> None:
     from superset.daos.datasource import _escape_ilike_fragment
 
