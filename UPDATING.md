@@ -170,14 +170,17 @@ that every payload fits a configured response limit.
 ### Default Docker image is now batteries-included; the minimal image moves to `-lean`
 
 The default `apache/superset` Docker image (the plain tags: `latest`, `master`,
-`5.0.0`, per-SHA) is now a batteries-included, production-grade image. It bundles
+`7.0.0`, per-SHA) is now a batteries-included, production-grade image. It bundles
 the common metadata/analytics drivers (`psycopg2-binary` for PostgreSQL,
 `mysqlclient` for MySQL), the MCP server dependencies (`fastmcp`), and a headless
 Chromium (via Playwright) for Alerts & Reports and thumbnail generation. It still
 runs as the non-root `superset` user and is byte-compiled like before.
 
 The previous minimal image — with **no** database drivers — is still published,
-but under `-lean` tags: `latest-lean`, `master-lean`, `5.0.0-lean`, `<sha>-lean`.
+but under `-lean` tags: `latest-lean`, `master-lean`, `7.0.0-lean`, `<sha>-lean`.
+This naming starts with 7.0.0. For earlier releases (6.1.0 and before), the plain tag
+(e.g. `6.1.0`) is the minimal image; where a `-lean` tag exists for one of those
+releases, it is the same minimal image.
 
 **What operators should expect:**
 
