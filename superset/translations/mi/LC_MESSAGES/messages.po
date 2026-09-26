@@ -354,9 +354,9 @@ msgstr "%s%s"
 msgid "%s (copy from %s)"
 msgstr ""
 
-#, fuzzy, python-format
+#, python-format
 msgid "%s ENCRYPTED EXTRA"
-msgstr "Taapiri haumaru"
+msgstr ""
 
 #, python-format
 msgid "%s Error"
@@ -370,9 +370,9 @@ msgstr ""
 msgid "%s PASSWORD"
 msgstr "%s KUPUHIPA"
 
-#, fuzzy, python-format
+#, python-format
 msgid "%s Physical"
-msgstr "Tīpakohia tētahi ine mō te x, y me te rahi"
+msgstr ""
 
 #, python-format
 msgid "%s SSH TUNNEL PASSWORD"
@@ -390,9 +390,9 @@ msgstr "%s SSH TUNNEL KUPUHIPA KĪMATAWHĀ"
 msgid "%s Selected"
 msgstr "%s Kua Tīpakohia"
 
-#, fuzzy, python-format
+#, python-format
 msgid "%s Selected (%s)"
-msgstr "%s Kua Tīpakohia"
+msgstr ""
 
 #, python-format
 msgid "%s Selected (Physical)"
@@ -408,13 +408,13 @@ msgstr "%s Kua Tīpakohia (Mariko)"
 msgid "%s Semantic View"
 msgstr "%s Tirohanga Tikanga"
 
-#, fuzzy, python-format
+#, python-format
 msgid "%s URL"
-msgstr "URL"
+msgstr ""
 
-#, fuzzy, python-format
+#, python-format
 msgid "%s Virtual"
-msgstr "Mariko"
+msgstr ""
 
 #, python-format
 msgid "%s additional restricted chart"
@@ -484,9 +484,9 @@ msgid_plural "%s hr ago"
 msgstr[0] "%s rārangi"
 msgstr[1] "%s rārangi"
 
-#, fuzzy, python-format
+#, python-format
 msgid "%s imported"
-msgstr "Raraunga kua kawemai"
+msgstr ""
 
 #, fuzzy, python-format
 msgid "%s item"
@@ -542,21 +542,21 @@ msgstr[1] "%s kōwhiringa"
 msgid "%s option(s)"
 msgstr "%s kōwhiringa"
 
-#, fuzzy, python-format
+#, python-format
 msgid "%s out of %s column"
 msgid_plural "%s out of %s columns"
-msgstr[0] "Tauine Aunoa Tīwae"
+msgstr[0] ""
 msgstr[1] ""
 
-#, fuzzy, python-format
+#, python-format
 msgid "%s out of %s metric"
 msgid_plural "%s out of %s metrics"
-msgstr[0] "Kōmaka ine"
+msgstr[0] ""
 msgstr[1] ""
 
-#, fuzzy, python-format
+#, python-format
 msgid "%s out of %s selected"
-msgstr "%s Kua Tīpakohia"
+msgstr ""
 
 #, python-format
 msgid "%s recipients"
@@ -2032,21 +2032,21 @@ msgstr ""
 "I puta he hapa i te whakawhānuitanga o te hanga ripanga. Tēnā whakapā atu"
 " ki tō kaiwhakahaere."
 
-#, fuzzy, python-format
+#, python-format
 msgid "An error occurred while fetching %s"
-msgstr "I puta he hapa i te tikitanga o %ss: %s"
+msgstr ""
 
 #, python-format
 msgid "An error occurred while fetching %s info: %s"
 msgstr "I puta he hapa i te tikitanga o ngā mōhiohio %s: %s"
 
-#, fuzzy, python-format
+#, python-format
 msgid "An error occurred while fetching %s related data"
-msgstr "I puta he hapa i te tikitanga o ngā raraunga hāngai rārangi raraunga"
+msgstr ""
 
-#, fuzzy, python-format
+#, python-format
 msgid "An error occurred while fetching %s values: %s"
-msgstr "I puta he hapa i te tikitanga o ngā uara kaiwhakamahi: %s"
+msgstr ""
 
 #, fuzzy, python-format
 msgid "An error occurred while fetching %s: %s"
@@ -2139,16 +2139,15 @@ msgstr "I puta he hapa i te tikitanga o ngā uara hanga: %s"
 msgid "An error occurred while fetching semantic layer types"
 msgstr "I puta he hapa i te tikitanga o ngā tauira CSS wātea"
 
-#, fuzzy
 msgid "An error occurred while fetching semantic layers"
-msgstr "I puta he hapa i te tikitanga o ngā uara hanga: %s"
+msgstr ""
 
 msgid "An error occurred while fetching tab state"
 msgstr "I puta he hapa i te tikitanga o te tūnga ripa"
 
-#, fuzzy, python-format
+#, python-format
 msgid "An error occurred while fetching table metadata for %s"
-msgstr "I puta he hapa i te tikitanga o te metadata ripanga"
+msgstr ""
 
 #, python-format
 msgid "An error occurred while fetching task types: %s"
@@ -2225,9 +2224,8 @@ msgstr "I puta he hapa i te poroporo o te kī."
 msgid "An error occurred while pruning logs "
 msgstr "I puta he hapa i te puretanga o ngā rārangi "
 
-#, fuzzy
 msgid "An error occurred while refreshing the configuration schema"
-msgstr "I puta he hapa i te whakaatutanga o te whakakitenga: %s"
+msgstr ""
 
 msgid "An error occurred while refreshing the runtime schema"
 msgstr ""
@@ -2766,9 +2764,9 @@ msgstr ""
 "Kua tūāhika te whakahōu aunoa - ko te ripa kāore e mahi ana (kua tautuhi "
 "ki %s hēkona)"
 
-#, fuzzy, python-format
+#, python-format
 msgid "Auto refresh set to %s seconds"
-msgstr "Tautuhinga kōnae"
+msgstr ""
 
 #, fuzzy
 msgid "Auto-detect"
@@ -2898,9 +2896,8 @@ msgstr "Pūmahi pūtake"
 msgid "Base height"
 msgstr "Teitei pūtake"
 
-#, fuzzy
 msgid "Base layer map style. Accepts a MapLibre-compatible style URL."
-msgstr "Kāhua papa pūtake. Tirohia te tuhinga a Mapbox: %s"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
@@ -3809,9 +3806,9 @@ msgstr ""
 msgid "Child label position"
 msgstr "Tūnga tapanga tamaiti"
 
-#, fuzzy, python-format
+#, python-format
 msgid "Choose a %s"
-msgstr "Kōwhiria he puna"
+msgstr ""
 
 msgid "Choose a chart for displaying on the map"
 msgstr "Kōwhiria tētahi kauwhata hei whakaatu i runga i te mahere"
@@ -3962,9 +3959,9 @@ msgstr "Rerenga"
 msgid "Clear"
 msgstr "Whakakore"
 
-#, fuzzy, python-format
+#, python-format
 msgid "Clear %s filter"
-msgstr "whakakore i ngā tātari katoa"
+msgstr ""
 
 #, fuzzy
 msgid "Clear Sort"
@@ -4504,9 +4501,9 @@ msgstr "Me noho te wā pono i waenga i te 0 me te 1 (motuhake)"
 msgid "Configuration"
 msgstr "Whirihora"
 
-#, fuzzy, python-format
+#, python-format
 msgid "Configure %s"
-msgstr "Whakaū tiaki"
+msgstr ""
 
 msgid "Configure Advanced Time Range "
 msgstr "Whirihora Awhe Wā Aromatawai "
@@ -4790,9 +4787,9 @@ msgstr "Kāore i taea te uta i te SQL Lab"
 msgid "Could not load database driver"
 msgstr "Kāore i taea te uta i te taraiwa pātengi raraunga"
 
-#, fuzzy, python-format
+#, python-format
 msgid "Could not load database driver for: %(engine)s"
-msgstr "Kāore i taea te uta i te taraiwa pātengi raraunga: {}"
+msgstr ""
 
 msgid ""
 "Could not load metadata for this configuration; showing the default form."
@@ -4895,9 +4892,9 @@ msgstr "I hangaia e"
 msgid "Created by me"
 msgstr "I hangaia e au"
 
-#, fuzzy, python-format
+#, python-format
 msgid "Created by: %s"
-msgstr "I hangaia e"
+msgstr ""
 
 #, python-format
 msgid "Created from version: %s"
@@ -5190,9 +5187,9 @@ msgstr "Aratau pōuri"
 msgid "Dashboard"
 msgstr "Papatohu"
 
-#, fuzzy, python-format
+#, python-format
 msgid "Dashboard %(dashboard_id)s not found"
-msgstr "Kāore i kitea te kauwhata %(id)s"
+msgstr ""
 
 #, fuzzy
 msgid "Dashboard Filter"
@@ -5918,9 +5915,8 @@ msgstr "Mukua tēnei pouaka, ā, tiakihia kia kore ai tēnei karere."
 msgid "Delete user"
 msgstr "Muku kaiwhakamahi"
 
-#, fuzzy
 msgid "Delete user registration"
-msgstr "Kaiwhakamahi kua mukua: %s"
+msgstr ""
 
 #, fuzzy
 msgid "Delete user registration?"
@@ -5999,9 +5995,9 @@ msgstr[1] "Kua mukua %(num)d rārangi raraunga"
 msgid "Deleted %s"
 msgstr "Kua Mukua %s"
 
-#, fuzzy, python-format
+#, python-format
 msgid "Deleted %s item(s)"
-msgstr "Muku tauira"
+msgstr ""
 
 #, fuzzy, python-format
 msgid "Deleted group: %s"
@@ -6188,9 +6184,9 @@ msgstr "Āhuahanga"
 msgid "Dimensions"
 msgstr "Āhuahanga"
 
-#, fuzzy, python-format
+#, python-format
 msgid "Dimensions (%s)"
-msgstr "Āhuahanga"
+msgstr ""
 
 msgid "Dimensions and metrics"
 msgstr ""
@@ -6287,13 +6283,13 @@ msgstr "Whakaatu ingoa tīwae"
 msgid "Display controls"
 msgstr "Whirihora whakaatu"
 
-#, fuzzy, python-format
+#, python-format
 msgid "Display controls (%d)"
-msgstr "Whirihora whakaatu"
+msgstr ""
 
-#, fuzzy, python-format
+#, python-format
 msgid "Display controls (%s)"
-msgstr "Whirihora whakaatu"
+msgstr ""
 
 #, fuzzy
 msgid "Display cumulative total at end"
@@ -6568,9 +6564,9 @@ msgstr ""
 msgid "Duplicate dataset"
 msgstr "Tārua rārangi raraunga"
 
-#, fuzzy, python-format
+#, python-format
 msgid "Duplicate folder name: %s"
-msgstr "Tārua tūranga %(name)s"
+msgstr ""
 
 msgid "Duplicate role"
 msgstr "Tārua tūranga"
@@ -6707,13 +6703,13 @@ msgstr "Whānui tapa"
 msgid "Edit"
 msgstr "Whakatika"
 
-#, fuzzy, python-format
+#, python-format
 msgid "Edit %s"
-msgstr "Whakatika kaiwhakamahi"
+msgstr ""
 
-#, fuzzy, python-format
+#, python-format
 msgid "Edit %s in modal"
-msgstr "i te paerewa"
+msgstr ""
 
 msgid "Edit CSS template properties"
 msgstr "Whakatika āhuatanga tauira CSS"
@@ -7276,9 +7272,9 @@ msgstr "Hapa: %(error)s"
 msgid "Error: %(msg)s"
 msgstr "Hapa: %(msg)s"
 
-#, fuzzy, python-format
+#, python-format
 msgid "Error: %s"
-msgstr "Hapa: %(msg)s"
+msgstr ""
 
 msgid "Error: permalink state not found"
 msgstr "Hapa: kāore i kitea te tūnga hononga-ā-mau"
@@ -7450,9 +7446,9 @@ msgstr "I rahua te pūrongo"
 msgid "Export failed - please try again"
 msgstr "Tikanga tauira-anō Pandas"
 
-#, fuzzy, python-format
+#, python-format
 msgid "Export failed: %s"
-msgstr "I rahua te pūrongo"
+msgstr ""
 
 msgid "Export query"
 msgstr ""
@@ -7466,9 +7462,9 @@ msgstr "Kaweake pikitia mata (jpeg)"
 msgid "Export screenshot (png)"
 msgstr ""
 
-#, fuzzy, python-format
+#, python-format
 msgid "Export successful: %s"
-msgstr "Kaweatu ki .CSV katoa"
+msgstr ""
 
 msgid "Export to .CSV"
 msgstr "Kaweatu ki .CSV"
@@ -7660,9 +7656,9 @@ msgstr "I rahua te tohu i ngā mea"
 msgid "Failed to generate chart edit URL"
 msgstr "I rahua te hanga i te URL whakatika kauwhata"
 
-#, fuzzy, python-format
+#, python-format
 msgid "Failed to generate download: %s"
-msgstr "I rahua te hanga i te URL whakatika kauwhata"
+msgstr ""
 
 msgid "Failed to load chart data"
 msgstr "I rahua te uta i ngā raraunga kauwhata"
@@ -7670,9 +7666,9 @@ msgstr "I rahua te uta i ngā raraunga kauwhata"
 msgid "Failed to load chart data."
 msgstr "I rahua te uta i ngā raraunga kauwhata."
 
-#, fuzzy, python-format
+#, python-format
 msgid "Failed to load columns for %s %s"
-msgstr "I rahua te uta i ngā raraunga kauwhata"
+msgstr ""
 
 #, python-format
 msgid "Failed to load dimensions for semantic view %s"
@@ -8950,9 +8946,9 @@ msgstr "Whirihora lat/long muhu."
 msgid "Invalid JSON metadata"
 msgstr "Metadata json"
 
-#, fuzzy, python-format
+#, python-format
 msgid "Invalid SQL: %(error)s"
-msgstr "Taumahi numpy muhu: %(operator)s"
+msgstr ""
 
 #, python-format
 msgid "Invalid ad-hoc metric %(label)s: `expressionType` is missing"
@@ -9067,9 +9063,9 @@ msgstr "Rolling_type muhu: %(type)s"
 msgid "Invalid state."
 msgstr "Tūnga muhu."
 
-#, fuzzy, python-format
+#, python-format
 msgid "Invalid tab ids: %(tab_ids)s"
-msgstr "Id ripa muhu: %s(tab_ids)"
+msgstr ""
 
 #, python-format
 msgid "Invalid time range boundary for resample: %(value)s"
@@ -10217,9 +10213,9 @@ msgstr ""
 msgid "Metrics"
 msgstr "Ine"
 
-#, fuzzy, python-format
+#, python-format
 msgid "Metrics (%s)"
-msgstr "Ine"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
@@ -10349,9 +10345,9 @@ msgstr "Meneti"
 msgid "Minutes %s"
 msgstr "Meneti %s"
 
-#, fuzzy, python-format
+#, python-format
 msgid "Missing %s"
-msgstr "Rārangi raraunga ngaro"
+msgstr ""
 
 msgid "Missing OAuth2 token"
 msgstr "Kei te ngaro te tohu OAuth2"
@@ -10390,9 +10386,9 @@ msgstr "I whakarerekeahia e"
 msgid "Modified by: %s"
 msgstr "I whakarerekeahia e: %s"
 
-#, fuzzy, python-format
+#, python-format
 msgid "Modified from \"%s\" template"
-msgstr "Uta tētahi tauira CSS"
+msgstr ""
 
 msgid "Monday"
 msgstr "Mane"
@@ -10634,9 +10630,8 @@ msgstr "Kāore anō he %s"
 msgid "No Data"
 msgstr "Kāore He Raraunga"
 
-#, fuzzy
 msgid "No Logs yet"
-msgstr "Kāore anō he %s"
+msgstr ""
 
 msgid "No Results"
 msgstr "Kāore He Hua"
@@ -10686,9 +10681,9 @@ msgstr ""
 msgid "No columns found"
 msgstr "Kāore i kitea he tīwae"
 
-#, fuzzy, python-format
+#, python-format
 msgid "No compatible %s found"
-msgstr "Kāore i kitea he hanga hāngai"
+msgstr ""
 
 msgid "No compatible catalog found"
 msgstr "Kāore i kitea he kātaloka hāngai"
@@ -10811,13 +10806,13 @@ msgstr "Kāore anō he tūranga"
 msgid "No roles yet"
 msgstr "Kāore anō he tūranga"
 
-#, fuzzy, python-format
+#, python-format
 msgid "No rows were returned for this %s"
-msgstr "Kāore i whakahokia mai he rārangi mō tēnei rārangi raraunga"
+msgstr ""
 
-#, fuzzy, python-format
+#, python-format
 msgid "No samples were returned for this %s"
-msgstr "Kāore i whakahokia mai he tauira mō tēnei rārangi raraunga"
+msgstr ""
 
 msgid "No saved expressions found"
 msgstr "Kāore i kitea he kīanga kua tiakina"
@@ -10839,9 +10834,8 @@ msgstr ""
 msgid "No table columns"
 msgstr "Kāore he tīwae ripanga"
 
-#, fuzzy
 msgid "No tasks yet"
-msgstr "Kāore anō he %s"
+msgstr ""
 
 msgid "No temporal columns found"
 msgstr "Kāore i kitea he tīwae wā"
@@ -10939,9 +10933,8 @@ msgstr "Kāore i roto i"
 msgid "Not null"
 msgstr "Ehara i te kore"
 
-#, fuzzy
 msgid "Not set"
-msgstr "Kāore anō he %s"
+msgstr ""
 
 msgid "Not triggered"
 msgstr "Kāore i whakaohongia"
@@ -11869,9 +11862,8 @@ msgstr "Tēnā whakaūngia tō kupuhipa"
 msgid "Please enter your username"
 msgstr "Tāuru i te ingoa kaiwhakamahi o te kaiwhakamahi"
 
-#, fuzzy
 msgid "Please fix the following errors"
-msgstr "Kei a mātou ēnei kī: %s"
+msgstr ""
 
 #, fuzzy
 msgid "Please provide a valid min or max value"
@@ -11905,9 +11897,9 @@ msgstr ""
 msgid "Please select at least one role or group"
 msgstr "Tēnā kōwhiria kotahi rōpūmā nui rawa"
 
-#, fuzzy, python-format
+#, python-format
 msgid "Please select both a %s and a Chart type to proceed"
-msgstr "Tēnā tīpakohia he Rārangi Raraunga me tētahi momo Kauwhata hei haere tonu"
+msgstr ""
 
 #, python-format
 msgid ""
@@ -12767,13 +12759,11 @@ msgstr "Huria ngā kōpaki katoa ki te taunoa"
 msgid "Reset columns"
 msgstr "Tautuhi anō i ngā tīwae"
 
-#, fuzzy
 msgid "Reset my password"
-msgstr "%s KUPUHIPA"
+msgstr ""
 
-#, fuzzy
 msgid "Reset password"
-msgstr "%s KUPUHIPA"
+msgstr ""
 
 msgid "Reset state"
 msgstr "Tautuhi anō i te tūnga"
@@ -13258,9 +13248,9 @@ msgstr "Tiaki (Tuhirua)"
 msgid "Save as"
 msgstr "Tiaki hei"
 
-#, fuzzy, python-format
+#, python-format
 msgid "Save as %s"
-msgstr "Tiaki hei"
+msgstr ""
 
 msgid "Save as Dataset"
 msgstr "Tiaki hei Rārangi Raraunga"
@@ -13581,9 +13571,9 @@ msgstr "Tirohia ngā taipitopito pātai"
 msgid "Select"
 msgstr "Tīpako"
 
-#, fuzzy, python-format
+#, python-format
 msgid "Select %s or type to search %s"
-msgstr "Tīpakohia hanga, pato rānei hei rapu hanga"
+msgstr ""
 
 msgid "Select ..."
 msgstr "Tīpako ..."
@@ -13613,9 +13603,9 @@ msgstr "Tīpako Tohu"
 msgid "Select Value"
 msgstr "Uara mauī"
 
-#, fuzzy, python-format
+#, python-format
 msgid "Select a %s"
-msgstr "Tīpako Tohu"
+msgstr ""
 
 #, fuzzy
 msgid "Select a CSS template"
@@ -15306,9 +15296,9 @@ msgstr "Angitu"
 msgid "Success message"
 msgstr ""
 
-#, fuzzy, python-format
+#, python-format
 msgid "Successfully changed %s!"
-msgstr "I angitu te huri i te rārangi raraunga!"
+msgstr ""
 
 msgid "Suffix"
 msgstr "Kūmuri"
@@ -15362,9 +15352,9 @@ msgstr "I tūtaki a Superset i tētahi hapa ohorere."
 msgid "Supported databases"
 msgstr "Pātengi raraunga e tautokona ana"
 
-#, fuzzy, python-format
+#, python-format
 msgid "Swap %s"
-msgstr "Huri rārangi raraunga"
+msgstr ""
 
 msgid "Swap rows and columns"
 msgstr "Huri rārangi me ngā tīwae"
@@ -15596,9 +15586,9 @@ msgstr "Uara whāinga"
 msgid "Task"
 msgstr "tohu"
 
-#, fuzzy, python-format
+#, python-format
 msgid "Task cancelled: %s"
-msgstr "I rahua te pūrongo"
+msgstr ""
 
 #, fuzzy
 msgid "Task could not be aborted."
@@ -15660,9 +15650,9 @@ msgstr ""
 msgid "Template parameters"
 msgstr "Tawhā tauira"
 
-#, fuzzy, python-format
+#, python-format
 msgid "Template processing error: %(error)s"
-msgstr "Hoahoa Wāhanga"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
 # lv, ru, sk, sr, sr_Latn, tr, uk]
@@ -15727,9 +15717,9 @@ msgstr ""
 msgid "The %s"
 msgstr "Kua tikihia %s"
 
-#, fuzzy, python-format
+#, python-format
 msgid "The %s linked to this chart may have been deleted."
-msgstr "Kua mukua pea te rārangi raraunga e hono ana ki tēnei kauwhata."
+msgstr ""
 
 #, python-format
 msgid "The API response from %s does not match the IDatabaseTable interface."
@@ -16114,9 +16104,9 @@ msgstr "Ka wewetea te ahanoa engine_params ki te waea sqlalchemy.create_engine."
 msgid "The exponent to compute all sizes from. \"EXP\" only"
 msgstr "Te pūmahi hei tatau i ngā rahi katoa mai. \"EXP\" anake"
 
-#, fuzzy, python-format
+#, python-format
 msgid "The extension %(id)s could not be loaded."
-msgstr "Karekau e whakāetia te toronga kōnae."
+msgstr ""
 
 msgid ""
 "The extent of the map on application start. FIT DATA automatically sets "
@@ -17064,9 +17054,9 @@ msgstr ""
 msgid "There was an issue archiving: %s"
 msgstr ""
 
-#, fuzzy, python-format
+#, python-format
 msgid "There was an issue cancelling the task: %s"
-msgstr "I puta he take i te mukutanga o %s: %s"
+msgstr ""
 
 #, python-format
 msgid "There was an issue deleting %s"
@@ -17084,9 +17074,9 @@ msgstr "I puta he take i te mukutanga o ngā ture: %s"
 msgid "There was an issue deleting rules: %s"
 msgstr "I puta he take i te mukutanga o ngā ture: %s"
 
-#, fuzzy, python-format
+#, python-format
 msgid "There was an issue deleting the selected %s"
-msgstr "I puta he take i te mukutanga o %s kua tīpakohia: %s"
+msgstr ""
 
 #, python-format
 msgid "There was an issue deleting the selected %s: %s"
@@ -17124,25 +17114,24 @@ msgstr "I puta he take i te mukutanga o ngā tauira kua tīpakohia: %s"
 msgid "There was an issue deleting: %s"
 msgstr "I puta he take i te mukutanga: %s"
 
-#, fuzzy, python-format
+#, python-format
 msgid "There was an issue duplicating the %s."
-msgstr "I puta he take i te tāruatanga o te rārangi raraunga."
+msgstr ""
 
 #, fuzzy, python-format
 msgid "There was an issue duplicating the selected %s: %s"
 msgstr "I puta he take i te mukutanga o %s kua tīpakohia: %s"
 
-#, fuzzy, python-format
+#, python-format
 msgid "There was an issue exporting the %s"
-msgstr "I puta he take i te tāruatanga o te rārangi raraunga."
+msgstr ""
 
 #, fuzzy, python-format
 msgid "There was an issue exporting the selected %s"
 msgstr "I puta he take i te mukutanga o ngā tauira kua tīpakohia: %s"
 
-#, fuzzy
 msgid "There was an issue exporting the selected charts"
-msgstr "I puta he take i te mukutanga o ngā kauwhata kua tīpakohia: %s"
+msgstr ""
 
 #, fuzzy
 msgid "There was an issue exporting the selected dashboards"
@@ -17151,16 +17140,14 @@ msgstr "I puta he take i te mukutanga o ngā papatohu kua tīpakohia: "
 msgid "There was an issue exporting the selected queries"
 msgstr ""
 
-#, fuzzy
 msgid "There was an issue exporting the selected themes"
-msgstr "I puta he take i te mukutanga o ngā tauira kua tīpakohia: %s"
+msgstr ""
 
 msgid "There was an issue favoriting this dashboard."
 msgstr "I puta he take i te whakamakauhanga o tēnei papatohu."
 
-#, fuzzy
 msgid "There was an issue fetching reports."
-msgstr "I puta he take i te tikitanga o tō kauwhata: %s"
+msgstr ""
 
 msgid "There was an issue fetching the favorite status of this dashboard."
 msgstr "I puta he take i te tikitanga o te tūnga makau o tēnei papatohu."
@@ -17313,9 +17300,9 @@ msgstr ""
 msgid "This chart will be restored to the following version:"
 msgstr ""
 
-#, fuzzy, python-format
+#, python-format
 msgid "This column might be incompatible with current %s"
-msgstr "Kāhore pea e hāngai tēnei tīwae ki te rārangi raraunga o nāianei"
+msgstr ""
 
 msgid "This column might be incompatible with current dataset"
 msgstr "Kāhore pea e hāngai tēnei tīwae ki te rārangi raraunga o nāianei"
@@ -17497,9 +17484,9 @@ msgstr ""
 msgid "This filter already exist on the report"
 msgstr "Kāore e taea te noho kau te rārangi uara tātari"
 
-#, fuzzy, python-format
+#, python-format
 msgid "This filter might be incompatible with current %s"
-msgstr "Kāhore pea e hāngai tēnei tātari ki te rārangi raraunga o nāianei"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
 # lv, ru, sk, sr, sr_Latn, tr, uk]
@@ -17645,9 +17632,9 @@ msgid ""
 "compatible metric."
 msgstr ""
 
-#, fuzzy, python-format
+#, python-format
 msgid "This metric might be incompatible with current %s"
-msgstr "Kāhore pea e hāngai tēnei ine ki te rārangi raraunga o nāianei"
+msgstr ""
 
 #, fuzzy
 msgid "This name is already taken. Please choose another one."
@@ -19316,9 +19303,8 @@ msgstr "Kāore i taea te tirotiro i tō pātai"
 msgid "Waterfall Chart"
 msgstr "Kauwhata Rere Wai"
 
-#, fuzzy
 msgid "We are unable to connect to your database."
-msgstr "Kāore e taea te hono ki te pātengi raraunga \"%(database)s\"."
+msgstr ""
 
 #, fuzzy
 msgid "We are working on your query"
@@ -20152,9 +20138,9 @@ msgstr "Karekau ō mōtika ki te hanga kauwhata"
 msgid "You don't have the rights to create a dashboard"
 msgstr "Karekau ō mōtika ki te hanga papatohu"
 
-#, fuzzy, python-format
+#, python-format
 msgid "You have been removed from task: %s"
-msgstr "Kua tangohia e koe tēnei tātari."
+msgstr ""
 
 msgid "You have removed this filter."
 msgstr "Kua tangohia e koe tēnei tātari."

@@ -2633,9 +2633,8 @@ msgstr "Seçilen grafikleri silmek istediğinizden emin misiniz?"
 msgid "Are you sure you want to delete the selected dashboards?"
 msgstr "Seçilmiş panoları silmek istediğinizden emin misiniz?"
 
-#, fuzzy
 msgid "Are you sure you want to delete the selected groups?"
-msgstr "%s’i silmek istiyor musunuz?"
+msgstr ""
 
 msgid "Are you sure you want to delete the selected layers?"
 msgstr "Seçilen tabakaları silmek istediğinizden emin misiniz?"
@@ -2643,9 +2642,8 @@ msgstr "Seçilen tabakaları silmek istediğinizden emin misiniz?"
 msgid "Are you sure you want to delete the selected queries?"
 msgstr ""
 
-#, fuzzy
 msgid "Are you sure you want to delete the selected roles?"
-msgstr "%s’i silmek istiyor musunuz?"
+msgstr ""
 
 msgid "Are you sure you want to delete the selected rules?"
 msgstr "Seçilen kuralları silmek istediğinizden emin misiniz?"
@@ -2656,13 +2654,11 @@ msgstr "Seçilmiş etiketleri silmek istediğinizden emin misiniz?"
 msgid "Are you sure you want to delete the selected templates?"
 msgstr "Seçilen şablonları silmek istediğinizden emin misiniz?"
 
-#, fuzzy
 msgid "Are you sure you want to delete the selected themes?"
-msgstr "%s’i silmek istiyor musunuz?"
+msgstr ""
 
-#, fuzzy
 msgid "Are you sure you want to delete the selected users?"
-msgstr "%s’i silmek istiyor musunuz?"
+msgstr ""
 
 msgid "Are you sure you want to overwrite this dataset?"
 msgstr "Bu veri setini yazmak istediğinizden emin misiniz?"
@@ -3837,9 +3833,8 @@ msgstr "Kaynak seçin"
 msgid "Choose a target"
 msgstr "Hedef seçin"
 
-#, fuzzy
 msgid "Choose already exists"
-msgstr "Veriseti %(name)s zaten var"
+msgstr ""
 
 msgid "Choose chart type"
 msgstr "Grafik tipini seçin"
@@ -5943,9 +5938,8 @@ msgstr "Bu konteyneri temizleyin ve bu mesajı kaldırmak için tasarruf edin."
 msgid "Delete user"
 msgstr "Sorguyu sil"
 
-#, fuzzy
 msgid "Delete user registration"
-msgstr "Silindi: %s"
+msgstr ""
 
 #, fuzzy
 msgid "Delete user registration?"
@@ -8639,9 +8633,8 @@ msgstr ""
 "Boş kalırsa, kurtarılamaz ve listeden kaldırılacaktır. klasörleri "
 "kaldırmak için, metrikleri ve sütunları diğer klasörlere taşıyın."
 
-#, fuzzy
 msgid "If table already exists"
-msgstr "Veriseti %(name)s zaten var"
+msgstr ""
 
 msgid "If you delete this item, you won't be able to recover it."
 msgstr ""
@@ -12732,13 +12725,11 @@ msgstr "Tüm klasörleri varsayılan olarak resetleyin"
 msgid "Reset columns"
 msgstr "Kolon seç"
 
-#, fuzzy
 msgid "Reset my password"
-msgstr "%s ŞİFRE"
+msgstr ""
 
-#, fuzzy
 msgid "Reset password"
-msgstr "%s ŞİFRE"
+msgstr ""
 
 msgid "Reset state"
 msgstr "Sıfır devlet"

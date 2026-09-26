@@ -3651,9 +3651,8 @@ msgstr "图表名称"
 msgid "Chart name is required"
 msgstr "需要图表名称"
 
-#, fuzzy
 msgid "Chart not found"
-msgstr "图表 %(id)s 没有找到"
+msgstr ""
 
 msgid "Chart options"
 msgstr "图表选项"
@@ -6149,13 +6148,13 @@ msgstr "显示控件类型"
 msgid "Display controls"
 msgstr "显示配置"
 
-#, fuzzy, python-format
+#, python-format
 msgid "Display controls (%d)"
-msgstr "显示配置"
+msgstr ""
 
-#, fuzzy, python-format
+#, python-format
 msgid "Display controls (%s)"
-msgstr "显示配置"
+msgstr ""
 
 msgid "Display cumulative total at end"
 msgstr "在末尾显示累计总计"
@@ -7623,9 +7622,8 @@ msgstr "设置系统默认主题失败：%s"
 msgid "Failed to start remote query on a worker."
 msgstr "无法在 worker 上启动远程查询。"
 
-#, fuzzy
 msgid "Failed to stop query."
-msgstr "停止查询失败。 %s"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
 # lv, ro, ru, sk, sr, sr_Latn, tr, uk]
@@ -8861,9 +8859,9 @@ msgstr "错误的经纬度配置。"
 msgid "Invalid longitude/latitude"
 msgstr "无效的经度/纬度"
 
-#, fuzzy, python-format
+#, python-format
 msgid "Invalid metric object: %(metric)s"
-msgstr "无效的指标对象"
+msgstr ""
 
 #, python-format
 msgid "Invalid numpy function: %(operator)s"
@@ -10064,9 +10062,9 @@ msgstr "如果存在序列或行限制，则用于定义顶部序列的排序方
 msgid "Metrics"
 msgstr "指标"
 
-#, fuzzy, python-format
+#, python-format
 msgid "Metrics (%s)"
-msgstr "指标"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
@@ -10494,9 +10492,8 @@ msgstr "还没有 %s"
 msgid "No Data"
 msgstr "没有数据"
 
-#, fuzzy
 msgid "No Logs yet"
-msgstr "还没有 %s"
+msgstr ""
 
 msgid "No Results"
 msgstr "无结果"
@@ -10810,9 +10807,8 @@ msgstr "不在"
 msgid "Not null"
 msgstr "非空"
 
-#, fuzzy
 msgid "Not set"
-msgstr "还没有 %s"
+msgstr ""
 
 msgid "Not triggered"
 msgstr "没有触发"
@@ -16611,21 +16607,18 @@ msgstr "创建用户时出错，请重试。"
 msgid "There was an error duplicating the role. Please, try again."
 msgstr "复制角色时出现问题。请重试。"
 
-#, fuzzy
 msgid "There was an error fetching dataset"
-msgstr "抱歉，获取数据库信息时出错：%s"
+msgstr ""
 
-#, fuzzy
 msgid "There was an error fetching dataset's related objects"
-msgstr "抱歉，获取数据库信息时出错：%s"
+msgstr ""
 
 #, python-format
 msgid "There was an error fetching the favorite status: %s"
 msgstr "获取收藏状态时出错：%s"
 
-#, fuzzy
 msgid "There was an error fetching the filtered charts and dashboards:"
-msgstr "获取此看板的收藏夹状态时出现问题：%s。"
+msgstr ""
 
 msgid "There was an error generating the permalink."
 msgstr "生成永久链接时出错"
@@ -16673,9 +16666,8 @@ msgstr "获取群组时出错"
 msgid "There was an error while fetching permissions"
 msgstr "获取权限时出错"
 
-#, fuzzy
 msgid "There was an error while fetching users"
-msgstr "抱歉，获取数据库信息时出错：%s"
+msgstr ""
 
 msgid "There was an error with your request"
 msgstr "您的请求有错误"
@@ -16776,9 +16768,8 @@ msgstr "导出 %s 时出现问题"
 msgid "There was an issue exporting the selected %s"
 msgstr "导出所选 %s 时出现问题"
 
-#, fuzzy
 msgid "There was an issue exporting the selected charts"
-msgstr "删除所选图表时出现问题：%s"
+msgstr ""
 
 msgid "There was an issue exporting the selected dashboards"
 msgstr "导出所选看板时出现问题"
@@ -16792,9 +16783,8 @@ msgstr "导出所选主题时出现问题"
 msgid "There was an issue favoriting this dashboard."
 msgstr "收藏此看板时出现问题。"
 
-#, fuzzy
 msgid "There was an issue fetching reports."
-msgstr "获取您的图表时出现问题：%s"
+msgstr ""
 
 msgid "There was an issue fetching the favorite status of this dashboard."
 msgstr "获取此看板的收藏夹状态时出现问题。"
@@ -18852,9 +18842,8 @@ msgstr "无法检查你的查询语句"
 msgid "Waterfall Chart"
 msgstr "瀑布图"
 
-#, fuzzy
 msgid "We are unable to connect to your database."
-msgstr "不能连接到数据库\"%(database)s\""
+msgstr ""
 
 msgid "We are working on your query"
 msgstr "我们正在处理您的查询"
@@ -20960,9 +20949,8 @@ msgstr "未知类型图标"
 msgid "unset"
 msgstr "未设置"
 
-#, fuzzy
 msgid "updated"
-msgstr "上次更新 %s"
+msgstr ""
 
 msgid ""
 "upper percentile must be greater than 0 and less than 100. Must be higher"
