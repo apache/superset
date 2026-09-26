@@ -215,10 +215,9 @@ class _LimitedCursor:
         # Some drivers interpret zero as unbounded, so do not call them at all.
         if not size:
             return []
-        # Reserve before reading so an engine's error fallback cannot retry
-        # beyond the budget after a driver has partially consumed a batch.
-        self._remaining -= size
-        return self._cursor.fetchmany(size)
+        rows = self._cursor.fetchmany(size)
+        self._remaining -= len(rows)
+        return rows
 
     def fetchall(self) -> list[Any]:
         """Translate an unbounded read into a bounded driver fetch."""

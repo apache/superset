@@ -1869,18 +1869,51 @@ def test_limited_cursor_shares_read_budget(first_read: str) -> None:
     cursor.fetchall.assert_not_called()
 
 
-def test_limited_cursor_error_fallback_stays_bounded() -> None:
-    """Reserve requested rows even when a driver raises partway through a read."""
+@pytest.mark.parametrize("retry_method", ["fetchall", "fetchmany"])
+@pytest.mark.parametrize("failed_size", [3, 100])
+def test_limited_cursor_error_fallback_stays_bounded(
+    retry_method: str, failed_size: int
+) -> None:
+    """Failed reads preserve the budget for a bounded fallback or retry."""
     from superset.sql.execution.executor import _LimitedCursor
 
     cursor = create_mock_cursor(["n"])
-    cursor.fetchmany.side_effect = [RuntimeError("fetch failed"), [(1,), (2,)]]
+    cursor.fetchmany.side_effect = [
+        RuntimeError("fetch failed"),
+        [(1,), (2,)],
+        [(3,), (4,), (5,)],
+    ]
     limited = _LimitedCursor(cursor, 5)
     with pytest.raises(RuntimeError, match="fetch failed"):
-        limited.fetchmany(3)
-    assert limited.fetchall() == [(1,), (2,)]
+        limited.fetchmany(failed_size)
+    if retry_method == "fetchall":
+        assert limited.fetchall() == [(1,), (2,)]
+    else:
+        assert limited.fetchmany(100) == [(1,), (2,)]
+    assert limited.fetchall() == [(3,), (4,), (5,)]
     assert limited.fetchall() == []
-    assert [call.args[0] for call in cursor.fetchmany.call_args_list] == [3, 2]
+    assert limited.fetchmany(100) == []
+    assert [call.args[0] for call in cursor.fetchmany.call_args_list] == [
+        min(failed_size, 5),
+        5,
+        3,
+    ]
+    cursor.fetchall.assert_not_called()
+
+
+def test_limited_cursor_bigquery_error_fallback() -> None:
+    """BigQuery's parent fetch fallback retains the budget after a driver error."""
+    from superset.db_engine_specs.bigquery import BigQueryEngineSpec
+    from superset.sql.execution.executor import _LimitedCursor
+
+    cursor = create_mock_cursor(["n"])
+    rows = [(1,), (2,), (3,)]
+    cursor.fetchmany.side_effect = [RuntimeError("fetch failed"), rows]
+    limited = _LimitedCursor(cursor, 3)
+
+    assert BigQueryEngineSpec.fetch_data(limited) == rows
+    assert limited.fetchall() == []
+    assert [call.args[0] for call in cursor.fetchmany.call_args_list] == [3, 3]
     cursor.fetchall.assert_not_called()
 
 
