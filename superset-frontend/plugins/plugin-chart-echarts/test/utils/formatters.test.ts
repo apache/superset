@@ -349,3 +349,14 @@ test('getSmartDateFormatter SECOND grain distinguishes different seconds', () =>
   const date2 = new Date('2024-01-15T10:35:45Z');
   expect(formatter.format(date1)).not.toBe(formatter.format(date2));
 });
+
+test('smart date x-axis formatter ignores sub-second noise without a grain', () => {
+  const formatter = getXAxisFormatter(SMART_DATE_ID) as TimeFormatter;
+  // ECharts pads the axis extent beyond the data; the forced boundary label
+  // formats a value with sub-second noise. Without a grain to normalize to,
+  // the formatter must not fall into the millisecond tier and render '.943ms'.
+  const boundary = new Date('2009-01-01T00:00:00.943Z');
+  const clean = new Date('2009-01-01T00:00:00Z');
+  expect(formatter.format(boundary)).toBe(formatter.format(clean));
+  expect(formatter.format(boundary)).not.toContain('ms');
+});
