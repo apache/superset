@@ -39,7 +39,15 @@ import { SortSeriesType, LegendPaddingType } from '@superset-ui/chart-controls';
 import { format } from 'echarts/core';
 import type { LegendComponentOption } from 'echarts/components';
 import type { SeriesOption } from 'echarts';
-import { isEmpty, maxBy, meanBy, minBy, orderBy, sumBy } from 'lodash-es';
+import {
+  escape,
+  isEmpty,
+  maxBy,
+  meanBy,
+  minBy,
+  orderBy,
+  sumBy,
+} from 'lodash-es';
 import {
   NULL_STRING,
   StackControlsValue,
@@ -802,6 +810,15 @@ export function getLegendProps(
   zoomable = false,
   legendState?: LegendState,
   padding?: LegendPaddingType,
+  /**
+   * When provided, horizontal (Top/Bottom) legend items will be truncated at
+   * this pixel width and a smart tooltip will appear above truncated items.
+   * Callers that do not need per-item truncation (most charts) should omit
+   * this parameter so the legend remains unstyled, matching the original
+   * behavior.  Pie passes the chart width here because its category names can
+   * be arbitrarily long.
+   */
+  horizontalLegendWidth?: number,
 ): LegendComponentOption {
   const legend: LegendComponentOption = {
     orient: [LegendOrientation.Top, LegendOrientation.Bottom].includes(
@@ -825,6 +842,51 @@ export function getLegendProps(
   const getLegendWidth = (paddingWidth: number) =>
     Math.max(paddingWidth - MARGIN_GUTTER, MIN_LEGEND_WIDTH);
 
+  /**
+   * Returns a legend tooltip config that:
+   * 1. Only appears when the label is actually truncated (name wider than maxTextWidth)
+   * 2. Positions the tooltip ABOVE the legend item to avoid overlapping the chart
+   */
+  const makeLegendTooltip = (maxTextWidth: number): any => ({
+    show: true,
+    confine: false, // allow tooltip to render above the canvas boundary
+    position: (
+      _pos: [number, number],
+      _params: unknown,
+      _el: unknown,
+      elRect: { x: number; y: number; width: number; height: number },
+      size: { contentSize: [number, number]; viewSize: [number, number] },
+    ) => {
+      const tooltipWidth = size.contentSize[0];
+      const tooltipHeight = size.contentSize[1];
+      // Center horizontally over the hovered legend item
+      const x = Math.min(
+        Math.max(elRect.x + elRect.width / 2 - tooltipWidth / 2, 0),
+        size.viewSize[0] - tooltipWidth,
+      );
+      // Place above the legend item; negative y appears above canvas with confine:false
+      const y = elRect.y - tooltipHeight - 8;
+      return [x, y];
+    },
+    formatter: (params: { name: string }) => {
+      // Suppress tooltip when text fits — approx 7.5px per char at default font size
+      const approxMaxChars = Math.floor(maxTextWidth / 7.5);
+      return params.name.length > approxMaxChars ? escape(params.name) : '';
+    },
+  });
+
+  // Shared truncation style for horizontal (Top/Bottom) legends.
+  // Only applied when the caller explicitly provides a width; omitting it
+  // preserves the original unstyled behavior for charts that do not need
+  // per-item truncation.
+  const horizontalTruncationStyle =
+    horizontalLegendWidth != null && horizontalLegendWidth > 0
+      ? {
+          textStyle: { overflow: 'truncate', width: horizontalLegendWidth },
+          tooltip: makeLegendTooltip(horizontalLegendWidth),
+        }
+      : {};
+
   switch (orientation) {
     case LegendOrientation.Left:
       legend.left = 0;
@@ -833,6 +895,7 @@ export function getLegendProps(
           overflow: 'truncate',
           width: getLegendWidth(padding.left),
         };
+        legend.tooltip = makeLegendTooltip(getLegendWidth(padding.left));
       }
       break;
     case LegendOrientation.Right:
@@ -843,6 +906,7 @@ export function getLegendProps(
           overflow: 'truncate',
           width: getLegendWidth(padding.right),
         };
+        legend.tooltip = makeLegendTooltip(getLegendWidth(padding.right));
       }
       break;
     case LegendOrientation.Bottom:
@@ -853,6 +917,7 @@ export function getLegendProps(
       if (type === LegendType.Plain) {
         legend.right = 0;
       }
+      Object.assign(legend, horizontalTruncationStyle);
       break;
     case LegendOrientation.Top:
       legend.top = 0;
@@ -860,6 +925,7 @@ export function getLegendProps(
       if (type === LegendType.Plain && padding?.left) {
         legend.left = padding.left;
       }
+      Object.assign(legend, horizontalTruncationStyle);
       break;
     default:
       legend.top = 0;

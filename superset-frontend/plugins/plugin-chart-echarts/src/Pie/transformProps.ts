@@ -260,6 +260,8 @@ export default function transformProps(
     labelLine,
     labelType,
     labelTemplate,
+    labelMaxWidth,
+    labelOverflow,
     legendMargin,
     legendOrientation,
     legendType,
@@ -546,10 +548,18 @@ export default function transformProps(
             position: 'outer',
             alignTo: 'none',
             bleedMargin: 5,
+            ...(labelMaxWidth > 0 && {
+              width: labelMaxWidth,
+              ...(labelOverflow !== 'none' && { overflow: labelOverflow }),
+            }),
           }
         : {
             ...defaultLabel,
             position: 'inner',
+            ...(labelMaxWidth > 0 && {
+              width: labelMaxWidth,
+              ...(labelOverflow !== 'none' && { overflow: labelOverflow }),
+            }),
           },
       emphasis: {
         label: {
@@ -592,6 +602,10 @@ export default function transformProps(
         legendOrientation,
         showLegend,
         theme,
+        false, // zoomable — Pie charts do not use the zoom control
+        undefined, // legendState — not tracked per-item in Pie
+        undefined, // padding — Pie passes width instead
+        Math.min(width, 250), // horizontalLegendWidth: cap at 250px so long names don't consume the entire row
       ),
       data: legendData,
     },

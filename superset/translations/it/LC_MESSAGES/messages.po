@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-23 12:43+0200\n"
+"POT-Creation-Date: 2026-09-24 11:44+0530\n"
 "PO-Revision-Date: 2018-02-11 22:26+0200\n"
 "Last-Translator: Raffaele Spangaro <raffa@raffaelespangaro.it>\n"
 "Language: it\n"
@@ -26,7 +26,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Generated-By: Babel 2.17.0\n"
+"Generated-By: Babel 2.10.3\n"
 
 #, python-format
 msgid ""
@@ -3663,6 +3663,9 @@ msgstr ""
 msgid "Box Plot"
 msgstr "Box Plot"
 
+msgid "Break"
+msgstr ""
+
 msgid "Breakdowns"
 msgstr "Creato il"
 
@@ -4448,6 +4451,13 @@ msgstr "Il grafico è stato salvato ma non può essere aggiunto al tab seleziona
 
 msgid "Chart width"
 msgstr "Larghezza grafico"
+
+#, python-format
+msgid ""
+"Chart with ID %(chart_id)s (referenced by annotation layer "
+"'%(layer_name)s') was not found. Please verify that the chart exists and "
+"is accessible."
+msgstr ""
 
 msgid "Charts"
 msgstr "Grafici"
@@ -5595,6 +5605,11 @@ msgid "Control labeled "
 msgstr "Controllo con etichetta "
 
 msgid "Control whether this dashboard loads chart data asynchronously"
+msgstr ""
+
+msgid ""
+"Controls how labels overflow beyond the max width. \"Truncate\" adds an "
+"ellipsis. \"Break\" wraps to the next line."
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
@@ -11088,6 +11103,12 @@ msgstr "Contenuto dell'etichetta"
 msgid "Label Line"
 msgstr "Linea di etichette"
 
+msgid "Label Max Width"
+msgstr ""
+
+msgid "Label Overflow"
+msgstr ""
+
 msgid "Label Position"
 msgstr ""
 
@@ -12035,6 +12056,11 @@ msgstr "Valore massimo"
 
 msgid "Maximum value on the gauge axis"
 msgstr "Valore massimo asse di scartamento"
+
+msgid ""
+"Maximum width (in pixels) for pie chart labels. Set to 0 to disable "
+"truncation."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
@@ -19827,6 +19853,13 @@ msgstr ""
 "L'origine dati del contesto della query non corrisponde all'origine dati "
 "del grafico"
 
+#, python-format
+msgid ""
+"The query context for chart ID %(chart_id)s (referenced by annotation "
+"layer '%(layer_name)s') was not found. Please ensure the chart is "
+"properly configured and has a valid query context."
+msgstr ""
+
 msgid "The query couldn't be loaded"
 msgstr "La query non può essere caricata"
 
@@ -21852,6 +21885,9 @@ msgstr "Attiva ora"
 
 msgid "True"
 msgstr "Vero"
+
+msgid "Truncate"
+msgstr ""
 
 msgid "Truncate Axis"
 msgstr "Tronca asse"
@@ -24542,10 +24578,19 @@ msgstr ""
 "dashboard (ad esempio dividendola in più dashboard) o aumenta "
 "l'impostazione di configurazione SUPERSET_DASHBOARD_POSITION_DATA_LIMIT."
 
-msgid "Your export is being prepared. You'll receive an email when it's ready."
+msgid ""
+"Your export is being generated and will download automatically when "
+"ready. We'll also email you a download link."
 msgstr ""
-"La tua esportazione è in preparazione. Riceverai un'email quando sarà "
-"pronta."
+
+msgid "Your export is being generated. Please, do not leave the page."
+msgstr ""
+
+msgid "Your export is ready and downloading."
+msgstr ""
+
+msgid "Your export is taking longer than expected. Try again later."
+msgstr ""
 
 #, python-format
 msgid "Your export of \"%(title)s\" could not be completed."

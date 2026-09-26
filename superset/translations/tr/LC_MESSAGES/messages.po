@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: avsarcoteli@gmail.com\n"
-"POT-Creation-Date: 2026-09-23 12:43+0200\n"
+"POT-Creation-Date: 2026-09-24 11:44+0530\n"
 "PO-Revision-Date: 2024-02-25 14:00+0300\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: tr\n"
@@ -30,7 +30,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Generated-By: Babel 2.17.0\n"
+"Generated-By: Babel 2.10.3\n"
 
 #, python-format
 msgid ""
@@ -3091,6 +3091,9 @@ msgstr ""
 msgid "Box Plot"
 msgstr "Box Plot"
 
+msgid "Break"
+msgstr ""
+
 msgid "Breakdowns"
 msgstr "Breakdowns"
 
@@ -3757,6 +3760,13 @@ msgstr "Grafikler silinemedi."
 
 msgid "Chart width"
 msgstr "Grafik genişliği"
+
+#, python-format
+msgid ""
+"Chart with ID %(chart_id)s (referenced by annotation layer "
+"'%(layer_name)s') was not found. Please verify that the chart exists and "
+"is accessible."
+msgstr ""
 
 msgid "Charts"
 msgstr "Grafikler"
@@ -4653,6 +4663,11 @@ msgid "Control labeled "
 msgstr "Kontrol etiketli"
 
 msgid "Control whether this dashboard loads chart data asynchronously"
+msgstr ""
+
+msgid ""
+"Controls how labels overflow beyond the max width. \"Truncate\" adds an "
+"ellipsis. \"Break\" wraps to the next line."
 msgstr ""
 
 msgid "Controls labeled "
@@ -9214,6 +9229,12 @@ msgstr "Etiket İçerikleri"
 msgid "Label Line"
 msgstr "Label Line"
 
+msgid "Label Max Width"
+msgstr ""
+
+msgid "Label Overflow"
+msgstr ""
+
 msgid "Label Position"
 msgstr ""
 
@@ -10013,6 +10034,11 @@ msgstr "Maksimum değer"
 
 msgid "Maximum value on the gauge axis"
 msgstr "ölçüm ekseninde maksimum değer"
+
+msgid ""
+"Maximum width (in pixels) for pie chart labels. Set to 0 to disable "
+"truncation."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
@@ -16461,6 +16487,13 @@ msgstr "Soru bir veya daha kötü bilgilendirilmiş şablon parametreleri içeri
 msgid "The query context datasource does not match the chart datasource"
 msgstr ""
 
+#, python-format
+msgid ""
+"The query context for chart ID %(chart_id)s (referenced by annotation "
+"layer '%(layer_name)s') was not found. Please ensure the chart is "
+"properly configured and has a valid query context."
+msgstr ""
+
 msgid "The query couldn't be loaded"
 msgstr "Soru yüklenemez"
 
@@ -18095,6 +18128,9 @@ msgstr ""
 #, fuzzy
 msgid "True"
 msgstr "SAL"
+
+msgid "Truncate"
+msgstr ""
 
 msgid "Truncate Axis"
 msgstr ""
@@ -20162,7 +20198,18 @@ msgid ""
 "SUPERSET_DASHBOARD_POSITION_DATA_LIMIT config setting."
 msgstr ""
 
-msgid "Your export is being prepared. You'll receive an email when it's ready."
+msgid ""
+"Your export is being generated and will download automatically when "
+"ready. We'll also email you a download link."
+msgstr ""
+
+msgid "Your export is being generated. Please, do not leave the page."
+msgstr ""
+
+msgid "Your export is ready and downloading."
+msgstr ""
+
+msgid "Your export is taking longer than expected. Try again later."
 msgstr ""
 
 #, python-format

@@ -39,6 +39,8 @@ const {
   labelsOutside,
   labelType,
   labelLine,
+  labelMaxWidth,
+  labelOverflow,
   outerRadius,
   numberFormat,
   showLabels,
@@ -233,6 +235,48 @@ const config: ControlPanelConfig = {
               ),
               visibility: ({ controls }: ControlPanelsContainerProps) =>
                 Boolean(controls?.show_labels?.value),
+            },
+          },
+        ],
+        [
+          {
+            name: 'label_max_width',
+            config: {
+              type: 'NumberControl',
+              label: t('Label Max Width'),
+              renderTrigger: true,
+              min: 0,
+              step: 10,
+              default: labelMaxWidth,
+              description: t(
+                'Maximum width (in pixels) for pie chart labels. ' +
+                  'Set to 0 to disable truncation.',
+              ),
+              visibility: ({ controls }: ControlPanelsContainerProps) =>
+                Boolean(controls?.show_labels?.value),
+            },
+          },
+        ],
+        [
+          {
+            name: 'label_overflow',
+            config: {
+              type: 'SelectControl',
+              label: t('Label Overflow'),
+              renderTrigger: true,
+              default: labelOverflow,
+              choices: [
+                ['none', t('None')],
+                ['truncate', t('Truncate')],
+                ['break', t('Break')],
+              ],
+              description: t(
+                'Controls how labels overflow beyond the max width. ' +
+                  '"Truncate" adds an ellipsis. "Break" wraps to the next line.',
+              ),
+              visibility: ({ controls }: ControlPanelsContainerProps) =>
+                Boolean(controls?.show_labels?.value) &&
+                Number(controls?.label_max_width?.value) > 0,
             },
           },
         ],

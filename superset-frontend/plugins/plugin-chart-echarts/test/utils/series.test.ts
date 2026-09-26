@@ -1105,7 +1105,9 @@ describe('getLegendProps', () => {
     });
   });
 
-  test('should return the correct props for plain type with bottom orientation', () => {
+  test('should return the correct props for plain type with bottom orientation without horizontalLegendWidth', () => {
+    // Without horizontalLegendWidth, Top/Bottom do not apply truncation so that
+    // other chart types (Timeseries, Bar, etc.) are not affected.
     expect(
       getLegendProps(LegendType.Plain, LegendOrientation.Bottom, false, theme),
     ).toEqual({
@@ -1118,7 +1120,8 @@ describe('getLegendProps', () => {
     });
   });
 
-  test('should return the correct props for plain type with top orientation', () => {
+  test('should return the correct props for plain type with top orientation without horizontalLegendWidth', () => {
+    // Without horizontalLegendWidth, no truncation is applied.
     expect(
       getLegendProps(LegendType.Plain, LegendOrientation.Top, false, theme),
     ).toEqual({
@@ -1129,6 +1132,166 @@ describe('getLegendProps', () => {
       type: 'plain',
       ...expectedThemeProps,
     });
+  });
+
+  test('applies truncation and tooltip for bottom orientation when horizontalLegendWidth is provided', () => {
+    // Pie passes the chart width so long category names truncate cleanly.
+    const result = getLegendProps(
+      LegendType.Plain,
+      LegendOrientation.Bottom,
+      true,
+      theme,
+      false,
+      undefined,
+      undefined,
+      200,
+    );
+    expect(result).toEqual(
+      expect.objectContaining({
+        textStyle: { overflow: 'truncate', width: 200 },
+        tooltip: expect.any(Object),
+      }),
+    );
+  });
+
+  test('applies truncation and tooltip for top orientation when horizontalLegendWidth is provided', () => {
+    const result = getLegendProps(
+      LegendType.Scroll,
+      LegendOrientation.Top,
+      true,
+      theme,
+      false,
+      undefined,
+      undefined,
+      400,
+    );
+    expect(result).toEqual(
+      expect.objectContaining({
+        textStyle: { overflow: 'truncate', width: 400 },
+        tooltip: expect.any(Object),
+      }),
+    );
+  });
+
+  test('does not apply truncation when horizontalLegendWidth is 0', () => {
+    const result = getLegendProps(
+      LegendType.Plain,
+      LegendOrientation.Top,
+      true,
+      theme,
+      false,
+      undefined,
+      undefined,
+      0,
+    );
+    expect(result.textStyle).toBeUndefined();
+    expect(result.tooltip).toBeUndefined();
+  });
+
+  test('legend tooltip formatter shows name when text is longer than estimated max chars', () => {
+    const result = getLegendProps(
+      LegendType.Plain,
+      LegendOrientation.Bottom,
+      true,
+      theme,
+      false,
+      undefined,
+      undefined,
+      75, // 75px / 7.5px-per-char = 10 chars max
+    );
+    const formatter = (result.tooltip as any)?.formatter;
+    expect(formatter).toBeDefined();
+    // Name longer than ~10 chars → tooltip shows the escaped name
+    expect(formatter({ name: 'A very long category name' })).toBe(
+      'A very long category name',
+    );
+    // Name shorter or equal → tooltip returns empty string (suppressed)
+    expect(formatter({ name: 'Short' })).toBe('');
+  });
+
+  test('legend tooltip formatter HTML-escapes the name to prevent XSS', () => {
+    const result = getLegendProps(
+      LegendType.Plain,
+      LegendOrientation.Top,
+      true,
+      theme,
+      false,
+      undefined,
+      undefined,
+      75,
+    );
+    const formatter = (result.tooltip as any)?.formatter;
+    // Name with HTML must be escaped; escape('<b>') → '&lt;b&gt;'
+    expect(
+      formatter({ name: '<script>alert(1)</script> long name here' }),
+    ).toBe('&lt;script&gt;alert(1)&lt;/script&gt; long name here');
+  });
+
+  test('legend tooltip position callback centers tooltip above legend item', () => {
+    const result = getLegendProps(
+      LegendType.Plain,
+      LegendOrientation.Bottom,
+      true,
+      theme,
+      false,
+      undefined,
+      undefined,
+      200,
+    );
+    const position = (result.tooltip as any)?.position;
+    expect(position).toBeDefined();
+
+    const elRect = { x: 100, y: 50, width: 80, height: 20 };
+    const size = {
+      contentSize: [60, 24] as [number, number],
+      viewSize: [800, 600] as [number, number],
+    };
+    const [x, y] = position([0, 0], {}, {}, elRect, size);
+
+    // x should center the 60px tooltip over the 80px item starting at x=100
+    // center = 100 + 40 - 30 = 110, clamped to [0, 800-60=740]
+    expect(x).toBe(110);
+    // y should be above the item: 50 - 24 - 8 = 18
+    expect(y).toBe(18);
+  });
+
+  test('legend tooltip position clamps x to viewport bounds', () => {
+    const result = getLegendProps(
+      LegendType.Plain,
+      LegendOrientation.Bottom,
+      true,
+      theme,
+      false,
+      undefined,
+      undefined,
+      200,
+    );
+    const position = (result.tooltip as any)?.position;
+
+    // Item near the right edge — tooltip should be clamped so it doesn't overflow
+    const elRect = { x: 780, y: 50, width: 80, height: 20 };
+    const size = {
+      contentSize: [120, 24] as [number, number],
+      viewSize: [800, 600] as [number, number],
+    };
+    const [x] = position([0, 0], {}, {}, elRect, size);
+    // max x = 800 - 120 = 680
+    expect(x).toBe(680);
+  });
+
+  test('applies truncation to left orientation when padding is provided', () => {
+    const result = getLegendProps(
+      LegendType.Plain,
+      LegendOrientation.Left,
+      true,
+      theme,
+      false,
+      undefined,
+      { left: 150, right: 0, top: 0, bottom: 0 },
+    );
+    // getLegendWidth(150) = max(150 - 45, 0) = 105
+    expect(result.textStyle).toEqual({ overflow: 'truncate', width: 105 });
+    expect(result.tooltip).toBeDefined();
   });
 });
 

@@ -618,6 +618,63 @@ describe('legend sorting', () => {
   });
 });
 
+describe('Pie label max width and overflow', () => {
+  const makeChartProps = (
+    labelMaxWidth: number,
+    labelOverflow: string,
+    labelsOutside = true,
+  ) =>
+    new ChartProps({
+      formData: {
+        colorScheme: 'bnbColors',
+        datasource: '3__table',
+        granularity_sqla: 'ds',
+        metric: 'sum__num',
+        groupby: ['category'],
+        viz_type: 'pie',
+        label_max_width: labelMaxWidth,
+        label_overflow: labelOverflow,
+        labels_outside: labelsOutside,
+      } as SqlaFormData,
+      width: 800,
+      height: 600,
+      queriesData: [
+        {
+          data: [
+            { category: 'A very long category name indeed', sum__num: 10 },
+            { category: 'Another very long category name', sum__num: 20 },
+          ],
+        },
+      ],
+      theme: supersetTheme,
+    }) as EchartsPieChartProps;
+
+  const getLabel = (props: EchartsPieChartProps) =>
+    (transformProps(props).echartOptions.series as PieSeriesOption[])[0].label;
+
+  test('does not set width or overflow when labelMaxWidth is 0', () => {
+    const label = getLabel(makeChartProps(0, 'truncate'));
+    expect(label).not.toHaveProperty('width');
+    expect(label).not.toHaveProperty('overflow');
+  });
+
+  test('sets width and overflow=truncate when configured for outer labels', () => {
+    const label = getLabel(makeChartProps(120, 'truncate', true));
+    expect(label).toMatchObject({ width: 120, overflow: 'truncate' });
+  });
+
+  test('sets width and overflow=break when configured for inner labels', () => {
+    const label = getLabel(makeChartProps(80, 'break', false));
+    expect(label).toMatchObject({ width: 80, overflow: 'break' });
+  });
+
+  test('sets width but omits overflow field when labelOverflow is none', () => {
+    const label = getLabel(makeChartProps(100, 'none'));
+    expect(label).toMatchObject({ width: 100 });
+    expect(label).not.toHaveProperty('overflow');
+  });
+});
+
 const getAngleChartProps = (
   donut: boolean,
   sweptAngle: number,
