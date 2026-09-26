@@ -604,7 +604,11 @@ export function transformSeries(
     // @ts-ignore
     type: plotType,
     // Cap bar width so a single data point doesn't stretch across the
-    // entire chart area. Bars with many categories auto-size below this cap.
+    // entire chart area. Bars with many categories auto-size below this
+    // cap. For a sub-daily time grain, transformProps.ts overrides this
+    // with a grain-derived value once the chart's real grid padding is
+    // known (see getGrainBarMaxWidth in utils/series.ts) — 100 is the
+    // fallback for everything else (non-temporal axes, no resolved grain).
     ...(plotType === 'bar' ? { barMaxWidth: 100 } : {}),
     smooth: seriesType === 'smooth',
     triggerLineEvent: true,
