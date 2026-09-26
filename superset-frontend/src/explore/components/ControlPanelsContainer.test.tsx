@@ -31,7 +31,7 @@ import {
   FeatureFlag,
   NO_TIME_RANGE,
 } from '@superset-ui/core';
-import { sharedControls } from '@superset-ui/chart-controls';
+import { Dataset, sharedControls } from '@superset-ui/chart-controls';
 import { defaultControls, defaultState } from 'src/explore/store';
 import { ExplorePageState } from 'src/explore/types';
 import {
@@ -644,7 +644,13 @@ describe('ControlPanelsContainer', () => {
     mirrorable_operators: ['<', '<=', '==', '>', '>=', 'IN', 'TEMPORAL_RANGE'],
   };
 
-  const mirroredDatasource = {
+  const mirroredDatasource: Dataset = {
+    id: 1,
+    type: DatasourceType.Table,
+    datasource_name: 'mirrored',
+    description: null,
+    column_formats: {},
+    verbose_map: {},
     main_dttm_col: 'event_time',
     always_filter_main_dttm: false,
     columns: [{ column_name: 'event_time', is_dttm: true }],
@@ -666,6 +672,7 @@ describe('ControlPanelsContainer', () => {
     const controlPanelState = {
       controls: {},
       form_data: {
+        datasource: '1__table',
         viz_type: 'table',
         granularity_sqla: 'event_time',
         time_range: initialTimeRange,
@@ -682,6 +689,7 @@ describe('ControlPanelsContainer', () => {
       initialTimeRange,
     )!;
     const formData = {
+      datasource: '1__table',
       viz_type: 'table',
       granularity_sqla: 'event_time',
       time_range: timeRange,
