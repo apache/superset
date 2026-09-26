@@ -65,7 +65,11 @@ export { Badge, type BadgeProps } from './Badge';
 export { Button, type ButtonProps, type OnClickHandler } from './Button';
 export { ButtonGroup, type ButtonGroupProps } from './ButtonGroup';
 export { Breadcrumb, type BreadcrumbProps } from './Breadcrumb';
-export { CachedLabel, type CacheLabelProps } from './CachedLabel';
+export {
+  CachedLabel,
+  type CacheLabelProps,
+  type CacheSource,
+} from './CachedLabel';
 export { Card } from './Card';
 export {
   Checkbox,

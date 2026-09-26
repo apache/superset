@@ -20,6 +20,9 @@ outputs:
   superset-extensions-cli:
     description: Whether superset-extensions-cli package-related files were changed
     value: ${{ steps.change-detector.outputs.superset-extensions-cli }}
+  semantic-layers:
+    description: Whether semantic-layer files were changed
+    value: ${{ steps.change-detector.outputs.semantic-layers }}
 runs:
   using: composite
   steps:

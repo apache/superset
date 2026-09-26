@@ -42,6 +42,8 @@ from superset_core.semantic_layers.types import (
 )
 from superset_core.semantic_layers.view import SemanticView, SemanticViewFeature
 
+from superset.models.helpers import QueryResult
+from superset.semantic_layers.cache import SemanticCacheOutcome
 from superset.semantic_layers.mapper import (
     _coerce_scalar_filter_value,
     _convert_query_object_filter,
@@ -987,6 +989,20 @@ def test_map_query_object_basic(mock_datasource: MagicMock) -> None:
             group_limit=None,
         )
     ]
+
+
+def test_map_query_object_preserves_order_while_deduplicating_columns(
+    mock_datasource: MagicMock,
+) -> None:
+    query_object: ValidatedQueryObject = ValidatedQueryObject(
+        datasource=mock_datasource,
+        metrics=["total_sales"],
+        columns=["category", "category"],
+    )
+
+    result: list[SemanticQuery] = map_query_object(query_object)
+
+    assert [dimension.name for dimension in result[0].dimensions] == ["category"]
 
 
 def test_map_query_object_with_time_offsets(mock_datasource: MagicMock) -> None:
@@ -4117,6 +4133,78 @@ def test_mapper_accepts_grain_column_built_by_tabular_query(
         dim.name: dim for dim in mock_datasource.implementation.get_dimensions()
     }
     assert _normalize_column(base_axis, set(all_dimensions)) == "order_date"
+
+
+def _offset_query_object(mock_datasource: MagicMock) -> ValidatedQueryObject:
+    return ValidatedQueryObject(
+        datasource=mock_datasource,
+        from_dttm=datetime(2025, 10, 15),
+        to_dttm=datetime(2025, 10, 22),
+        metrics=["total_sales"],
+        columns=["category"],
+        granularity="order_date",
+        time_offsets=["1 week ago"],
+        cache_timeout=60,
+    )
+
+
+def _outcome(cache_hit: bool) -> SemanticCacheOutcome:
+    frame: pd.DataFrame = pd.DataFrame({"category": ["Books"], "total_sales": [1.0]})
+    return SemanticCacheOutcome(
+        SemanticResult(
+            requests=[SemanticRequest(type="SQL", definition="Q")],
+            results=pa.Table.from_pandas(frame),
+        ),
+        cache_hit=cache_hit,
+    )
+
+
+@pytest.mark.parametrize(
+    ("main_hit", "offset_hit", "expected_status"),
+    [
+        (True, True, "HIT"),
+        (False, False, "MISS"),
+        (True, False, "MIXED"),
+        (False, True, "MIXED"),
+    ],
+)
+def test_get_results_reports_provenance_across_offset_queries(
+    mock_datasource: MagicMock,
+    mocker: MockerFixture,
+    main_hit: bool,
+    offset_hit: bool,
+    expected_status: str,
+) -> None:
+    """A time-comparison chart dispatches one semantic query per offset; the
+    reported provenance must cover all of them, not only the main query."""
+    mock_datasource.implementation.get_table = mocker.Mock()
+    dispatch: MagicMock = mocker.patch(
+        "superset.semantic_layers.mapper._dispatch_semantic_query",
+        side_effect=[_outcome(main_hit), _outcome(offset_hit)],
+    )
+
+    result: QueryResult = get_results(_offset_query_object(mock_datasource))
+
+    assert result.semantic_cache_status == expected_status
+    assert dispatch.call_count == 2
+
+
+def test_get_results_passes_resolved_cache_timeout_to_every_dispatch(
+    mock_datasource: MagicMock,
+    mocker: MockerFixture,
+) -> None:
+    mock_datasource.implementation.get_table = mocker.Mock()
+    dispatch: MagicMock = mocker.patch(
+        "superset.semantic_layers.mapper._dispatch_semantic_query",
+        side_effect=[_outcome(False), _outcome(False)],
+    )
+
+    get_results(_offset_query_object(mock_datasource))
+
+    assert [call.kwargs["cache_timeout"] for call in dispatch.call_args_list] == [
+        60,
+        60,
+    ]
 
 
 def test_abc_only_provider_validates_and_maps(mocker: MockerFixture) -> None:

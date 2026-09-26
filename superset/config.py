@@ -723,6 +723,12 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # Enable semantic layers and show semantic views alongside datasets
     # @lifecycle: development
     "SEMANTIC_LAYERS": False,
+    # Enable Superset-owned containment caching for opted-in semantic providers.
+    # Requires shared DATA_CACHE_CONFIG and Redis-backed
+    # DISTRIBUTED_COORDINATION_CONFIG.
+    # @docs: https://superset.apache.org/admin-docs/configuration/cache/#semantic-containment-cache
+    # @lifecycle: development
+    "SEMANTIC_LAYER_CONTAINMENT_CACHE": False,
     # Enables advanced data type support
     # @lifecycle: development
     "ENABLE_ADVANCED_DATA_TYPES": False,
@@ -3461,6 +3467,12 @@ DISTRIBUTED_COORDINATION_CONFIG: CacheConfig | None = None
 # streams for tasks that never get awaited cannot accumulate in Redis/Valkey
 # indefinitely. Defaults to 24 hours.
 DISTRIBUTED_COORDINATION_SIGNAL_TTL = int(timedelta(hours=24).total_seconds())
+
+# Maximum time to wait for a semantic-cache descriptor lease.
+SEMANTIC_CACHE_COORDINATION_WAIT_SECONDS: float = 1.0
+
+# Expiry for owner-token semantic-cache descriptor leases.
+SEMANTIC_CACHE_COORDINATION_LEASE_SECONDS: int = 30
 
 # Default lock TTL (time-to-live) in seconds for distributed locks.
 # Can be overridden per-call via the `ttl_seconds` parameter.

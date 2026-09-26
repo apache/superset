@@ -260,6 +260,7 @@ def _materialize_full_payload(
             "rowcount": payload.get("rowcount"),
             "sql_rowcount": payload.get("sql_rowcount"),
             "detected_currency": payload.get("detected_currency"),
+            "semantic_cache_status": payload.get("semantic_cache_status"),
         }
     return payload
 

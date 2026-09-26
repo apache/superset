@@ -89,6 +89,7 @@ class QueryContextFactory:  # pylint: disable=too-few-public-methods
                     datasource_model_instance=cast(
                         "BaseDatasource", datasource_model_instance
                     ),
+                    force_query=force,
                     server_pagination=server_pagination,
                     preserve_null_row_limit=preserve_null_row_limit,
                     **query_obj,

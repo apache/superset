@@ -292,6 +292,146 @@ class MySemanticLayer(SemanticLayer[MyConfig, MySemanticView]):
 
 The decorator registers the class in the semantic layers registry, making it available in the UI for users to create connections. The `configuration_class` should be a Pydantic model that defines the fields needed to connect (credentials, project, database, etc.). Superset uses the model's JSON schema to render the configuration form dynamically.
 
+#### Semantic result containment caching
+
+Superset containment caching is experimental and off by default. A provider must
+explicitly opt in; the safe defaults leave caching with the provider and scope
+results to an execution context:
+
+```python
+from superset_core.semantic_layers.layer import (
+    SemanticCacheCapabilities,
+    SemanticCacheExecutionContext,
+    SemanticCacheIdentityMaterial,
+    SemanticCacheResponsibility,
+    SemanticCacheScope,
+)
+
+class MySemanticLayer(SemanticLayer[MyConfig, MySemanticView]):
+    semantic_cache_responsibility = SemanticCacheResponsibility.SUPERSET
+    semantic_cache_scope = SemanticCacheScope.EXECUTION_CONTEXT
+    semantic_cache_capabilities = SemanticCacheCapabilities(
+        comparisons=True,
+        membership=True,
+        nulls=True,
+        pattern_escape="\\",
+    )
+
+    def get_semantic_cache_provider_identity(self) -> SemanticCacheIdentityMaterial:
+        return SemanticCacheIdentityMaterial(
+            {"provider_version": "v1", "catalog": self.config.catalog}
+        )
+
+    def get_semantic_cache_context_identity(
+        self,
+        context: SemanticCacheExecutionContext,
+    ) -> SemanticCacheIdentityMaterial:
+        return SemanticCacheIdentityMaterial({"tenant": self.tenant_id(context)})
+```
+
+Identity material must be secret-free and include every provider setting that can
+change results. For execution-context scope, Superset also hashes the principal,
+roles, guest-token claims, and row-level-security cache key. Returning `None` from
+either identity method bypasses containment. Use `GLOBAL` only when results are
+provably identical across principals and tenants; containment is bypassed for a
+`GLOBAL` view whenever Superset row-level security applies to the request, since
+that variation is invisible to the provider. Declare only filter capabilities
+whose provider semantics exactly match Superset's post-processing semantics.
+
+`comparisons=True` assumes binary (codepoint) string ordering and equality;
+`pattern_escape` assumes case-sensitive SQL LIKE. Providers using case-insensitive
+collations must not opt into these capabilities. These declarations apply to
+every string dimension exposed by the provider, not just the queried example.
+
+Narrowing a time range on a grained axis always requires a provider round-trip:
+leftover WHERE filters cannot be applied to cached bucket starts, including when
+the filter names the raw column of that axis.
+
+Operators enable both `SEMANTIC_LAYERS` and the development feature flag
+`SEMANTIC_LAYER_CONTAINMENT_CACHE`, and configure two backends:
+
+- `DATA_CACHE_CONFIG` holds the cached results and their descriptors. It must be
+  a persistent cache shared by every web and worker process, such as `RedisCache`.
+  The default `NullCache` discards every value, so containment would only ever
+  miss; `RedisSentinelCache` reads from replicas that can lag the master. Both
+  disable containment at startup rather than run it ineffectively.
+- `DISTRIBUTED_COORDINATION_CONFIG` must select `RedisCache` or
+  `RedisSentinelCache`; containment requires its atomic owner-token lease
+  operations.
+
+```python
+DATA_CACHE_CONFIG = {
+    "CACHE_TYPE": "RedisCache",
+    "CACHE_DEFAULT_TIMEOUT": 86400,
+    "CACHE_KEY_PREFIX": "superset_results",
+    "CACHE_REDIS_URL": "redis://redis:6379/1",
+}
+DISTRIBUTED_COORDINATION_CONFIG = {
+    "CACHE_TYPE": "RedisCache",
+    "CACHE_REDIS_HOST": "redis",
+    "CACHE_REDIS_PORT": 6379,
+    "CACHE_REDIS_DB": 2,
+}
+```
+
+Containment follows the same cache timeout the ordinary result cache resolves for
+a request (custom, then chart, then dataset), so a chart-level timeout of `-1`
+bypasses containment entirely, and honors `DATA_CACHE_MAX_VALUE_SIZE`: a result
+larger than that many bytes is served but not stored. The bounded defaults are
+`SEMANTIC_CACHE_COORDINATION_WAIT_SECONDS = 1.0` and
+`SEMANTIC_CACHE_COORDINATION_LEASE_SECONDS = 30`. A missing or unsuitable backend
+and missing or invalid coordination each disable only containment, log a fixed
+warning without configuration or query content, and leave provider execution
+available.
+
+Roll out to a canary worker cohort after recording provider latency, error rate,
+and cache-backend health for a comparable baseline. Observe at least one normal
+traffic cycle. Alert ownership should sit with the semantic-platform operator.
+Track `semantic_cache.containment.enabled`, `semantic_cache.containment.hit`,
+`semantic_cache.containment.miss`, `semantic_cache.containment.bypass`,
+`semantic_cache.containment.store_skipped`, `semantic_cache.containment.store_failure`,
+`semantic_cache.containment.lookup_failure`, `semantic_cache.containment.transform_failure`,
+`semantic_cache.containment.prune_failure`, `semantic_cache.containment.fence_reject`,
+`semantic_cache.containment.coordination_failure`,
+`semantic_cache.containment.unsupported`, and `semantic_cache.containment.invalid_configuration`.
+Alert on the `semantic_cache.containment.store_failure`,
+`semantic_cache.containment.lookup_failure`, `semantic_cache.containment.transform_failure`,
+`semantic_cache.containment.prune_failure`, and `semantic_cache.containment.coordination_failure`
+counters, and unexpected `semantic_cache.containment.unsupported` or
+`semantic_cache.containment.invalid_configuration` at startup.
+Coordination socket/connect timeouts derive from `SEMANTIC_CACHE_COORDINATION_WAIT_SECONDS`
+(with a 1 ms minimum for zero wait); these bound individual I/O calls, not the whole request.
+Separate lease/value clients use a non-atomic immediate ownership recheck before writing.
+The atomic Lua fence is a same-client optimisation for explicitly injected clients.
+Default application initialization constructs a private coordination client, so
+ordinary deployments do not exercise that optimisation even when both caches
+point at the same Redis server. Reader-side fencing protects this split-store
+path: each store writes a fresh nonce into both the descriptor and a result
+envelope. Exact-key and containment lookups accept only matching nonempty nonces.
+A stale SET after lease takeover can overwrite a payload, but a mismatched pair
+is rejected rather than served. The lookup may use another valid candidate or
+execute the provider. `semantic_cache.containment.fence_reject` counts lookups
+that rejected at least one invalid publication (not ordinary expired values).
+
+Maintenance rechecks the current descriptor and payload under the mutation lease
+before pruning. A concurrently repaired matching pair is retained. Rejection
+pruning never deletes payloads, which expire according to their own TTL. This
+fence can trade cache hits for misses under a stalled writer; it is not a
+cross-store transaction or a promise of linearizable refreshes. Store deduplication
+also requires a matching pair, so an invalid payload cannot suppress its repair.
+The cache identity format is `v4`; pre-fence `v3` entries are not reused.
+Validate the split-store path under concurrent forced refreshes, whole-process
+pauses exceeding the lease, and narrowed time ranges.
+Define deployment-specific rollback thresholds before the
+canary; recommended triggers are any provider-result mismatch, sustained provider
+error regression, coordination failures above 1% of cache mutations, or lookup and
+store failures above 5% of semantic requests.
+
+Rollback by disabling `SEMANTIC_LAYER_CONTAINMENT_CACHE` and restarting every web
+and worker process. Confirm worker convergence with an `enabled` gauge of zero for
+each process and normal provider-query success. Cache data need not be deleted for
+rollback because disabled processes do not read or write it.
+
 #### Declaring semantic view features
 
 A `SemanticView` advertises what its backend supports through the `features`
