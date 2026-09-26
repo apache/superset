@@ -1383,3 +1383,128 @@ def test_create_query_context_from_form_converts_value_error_to_400() -> None:
             api._create_query_context_from_form({})
 
     assert message in str(excinfo.value)
+
+
+# ``security_manager`` is a proxy, so a plain ``patch`` turns ``can_access`` into
+# an async mock whose (truthy) coroutine would grant every permission; the tests
+# below patch it with ``new_callable=MagicMock`` so a denied permission is honored.
+def _csv_export_command(
+    result_format: ChartDataResultFormat = ChartDataResultFormat.CSV,
+    result_type: ChartDataResultType = ChartDataResultType.FULL,
+) -> MagicMock:
+    command = MagicMock()
+    command.query_context.result_format = result_format
+    command.query_context.result_type = result_type
+    command.query_context.slice_ = None
+    return command
+
+
+def test_get_data_response_streams_large_csv_without_executing(
+    app: SupersetApp,
+) -> None:
+    """
+    When the client has decided to stream a large CSV export, the query must not
+    be executed and materialized first: the streaming command runs it on its own.
+    """
+    command = _csv_export_command()
+    api = ChartDataRestApi()
+    streamed = MagicMock()
+
+    with (
+        app.test_request_context("/api/v1/chart/data"),
+        patch.dict(app.config, {"CSV_STREAMING_ROW_THRESHOLD": 100000}),
+        patch(
+            "superset.charts.data.api.security_manager", new_callable=MagicMock
+        ) as mock_security_manager,
+        patch("superset.charts.data.api.is_feature_enabled", return_value=False),
+        patch.object(
+            api, "_create_streaming_csv_response", return_value=streamed
+        ) as mock_stream,
+    ):
+        mock_security_manager.can_access.return_value = True
+        response = api._get_data_response(
+            command,
+            form_data={"viz_type": "table"},
+            filename="export.csv",
+            expected_rows=380273,
+        )
+
+    assert response is streamed
+    command.execute.assert_not_called()
+    mock_security_manager.can_access.assert_called_once_with("can_csv", "Superset")
+    mock_stream.assert_called_once_with(
+        {"query_context": command.query_context},
+        {"viz_type": "table"},
+        filename="export.csv",
+        expected_rows=380273,
+        slice_=None,
+    )
+
+
+@pytest.mark.parametrize(
+    "result_format,result_type,expected_rows",
+    [
+        # below the threshold: regular export
+        (ChartDataResultFormat.CSV, ChartDataResultType.FULL, 99999),
+        # the client did not ask for streaming
+        (ChartDataResultFormat.CSV, ChartDataResultType.FULL, None),
+        # post-processed results (e.g. pivot tables) need the regular path
+        (ChartDataResultFormat.CSV, ChartDataResultType.POST_PROCESSED, 380273),
+        # only CSV has a streaming path
+        (ChartDataResultFormat.XLSX, ChartDataResultType.FULL, 380273),
+    ],
+)
+def test_get_data_response_executes_when_not_streaming_up_front(
+    app: SupersetApp,
+    result_format: ChartDataResultFormat,
+    result_type: ChartDataResultType,
+    expected_rows: int | None,
+) -> None:
+    command = _csv_export_command(result_format, result_type)
+    api = ChartDataRestApi()
+    sent = MagicMock()
+
+    with (
+        app.test_request_context("/api/v1/chart/data"),
+        patch.dict(app.config, {"CSV_STREAMING_ROW_THRESHOLD": 100000}),
+        patch.object(api, "_create_streaming_csv_response") as mock_stream,
+        patch.object(api, "_send_chart_response", return_value=sent),
+    ):
+        response = api._get_data_response(command, expected_rows=expected_rows)
+
+    assert response is sent
+    command.execute.assert_called_once()
+    mock_stream.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    "granular_export_controls,permission",
+    [(False, "can_csv"), (True, "can_export_data")],
+)
+def test_get_data_response_streaming_up_front_requires_export_permission(
+    app: SupersetApp,
+    granular_export_controls: bool,
+    permission: str,
+) -> None:
+    command = _csv_export_command()
+    api = ChartDataRestApi()
+
+    with (
+        app.test_request_context("/api/v1/chart/data"),
+        patch.dict(app.config, {"CSV_STREAMING_ROW_THRESHOLD": 100000}),
+        patch(
+            "superset.charts.data.api.security_manager", new_callable=MagicMock
+        ) as mock_security_manager,
+        patch(
+            "superset.charts.data.api.is_feature_enabled",
+            return_value=granular_export_controls,
+        ),
+        patch.object(api, "_create_streaming_csv_response") as mock_stream,
+    ):
+        mock_security_manager.can_access.return_value = False
+        response = api._get_data_response(command, expected_rows=380273)
+
+    assert response.status_code == 403
+    mock_security_manager.can_access.assert_called_once_with(permission, "Superset")
+    command.execute.assert_not_called()
+    mock_stream.assert_not_called()
