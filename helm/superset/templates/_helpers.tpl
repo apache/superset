@@ -776,3 +776,44 @@ app.kubernetes.io/name: {{ include "superset.name" . }}
 app.kubernetes.io/instance: {{ .Release.Name }}
 app.kubernetes.io/component: mcp
 {{- end }}
+
+{{/*
+Render a list of init containers with the chart-wide environment sources merged
+in, so that init containers resolve credentials exactly like the main
+containers do.
+
+The chart's built-in init containers wait for the metadata database and Redis
+using DB_HOST/DB_PORT/REDIS_HOST/REDIS_PORT. Those variables are only
+guaranteed to be present in the chart-managed secret; when they are supplied
+from a pre-existing secret (`envFromSecrets`) or from individual `secretKeyRef`
+entries (`extraEnvRaw`), the init containers would otherwise keep using the
+chart defaults and never become ready.
+
+`extraEnv`, `extraEnvRaw` and `envFromSecrets` are appended, so a container's
+own `env`/`envFrom` entries are preserved.
+
+Usage:
+  {{- include "superset.initContainers" (dict "containers" .Values.x.initContainers "context" $) }}
+*/}}
+{{- define "superset.initContainers" -}}
+{{- $ctx := .context -}}
+{{- range .containers }}
+{{- $container := deepCopy . -}}
+{{- $extraEnv := list -}}
+{{- range $key, $value := $ctx.Values.extraEnv }}
+{{- $extraEnv = append $extraEnv (dict "name" $key "value" ($value | toString)) -}}
+{{- end }}
+{{- $extraEnv = concat $extraEnv (default (list) $ctx.Values.extraEnvRaw) -}}
+{{- if $extraEnv }}
+{{- $_ := set $container "env" (concat (default (list) $container.env) $extraEnv) -}}
+{{- end }}
+{{- $envFrom := default (list) $container.envFrom -}}
+{{- range $ctx.Values.envFromSecrets }}
+{{- $envFrom = append $envFrom (dict "secretRef" (dict "name" .)) -}}
+{{- end }}
+{{- if $envFrom }}
+{{- $_ := set $container "envFrom" $envFrom -}}
+{{- end }}
+{{ toYaml (list $container) }}
+{{- end }}
+{{- end -}}
