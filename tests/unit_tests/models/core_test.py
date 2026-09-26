@@ -1942,6 +1942,32 @@ def test_apply_limit_to_sql_preserves_restrictions(
         assert connection.execute(limited).fetchall() == expected
 
 
+@pytest.mark.parametrize("top", ["50 PERCENT", "5 WITH TIES", "(1 + 4)", "0", "1", "5"])
+@pytest.mark.parametrize(
+    "projection", ["COUNT(*)", "1, 2", "1 AS n, 2 AS n", "a.*, b.*"]
+)
+def test_apply_limit_to_sql_bounds_tsql_without_derived_tables(
+    top: str, projection: str, mocker: MockerFixture
+) -> None:
+    """Legacy SQL-only caps must work without relying on the executor cursor."""
+    from superset.db_engine_specs.mssql import MssqlEngineSpec
+    from superset.sql.parse import SQLScript
+
+    database = Database(database_name="test_database", sqlalchemy_uri="sqlite://")
+    mocker.patch.object(database, "get_db_engine_spec", return_value=MssqlEngineSpec)
+    sql = (
+        f"SELECT TOP {top} {projection} "  # noqa: S608
+        "FROM a JOIN b ON a.id = b.id ORDER BY 1"
+    )
+    expected_limit = min(int(top), 2) if top.isdigit() else 2
+    expected = (
+        f"SELECT TOP {expected_limit} {projection} "  # noqa: S608
+        "FROM a JOIN b ON a.id = b.id ORDER BY 1"
+    )
+
+    assert database.apply_limit_to_sql(sql, 2) == SQLScript(expected, "mssql").format()
+
+
 def test_database_execute_delegates_to_sql_executor(mocker: MockerFixture) -> None:
     """Test that Database.execute() delegates to SQLExecutor.execute()."""
     from unittest.mock import MagicMock

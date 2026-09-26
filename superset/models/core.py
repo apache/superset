@@ -1089,9 +1089,19 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
         limit: int = 1000,
         force: bool = False,
     ) -> str:
+        """Cap SQL for callers that do not enforce a separate cursor row budget.
+
+        Preserve smaller fixed limits unless forced. For SQL Server, retain the
+        legacy replacement of non-fixed limits: safely wrapping arbitrary output
+        columns is impossible, and these callers cannot rely on SQLExecutor's
+        bounded cursor to enforce the cap.
+        """
         script = SQLScript(sql, self.db_engine_spec.engine)
         statement = script.statements[-1]
-        if force:
+        if force or (
+            self.db_engine_spec.engine == "mssql"
+            and statement.get_limit_value() is None
+        ):
             statement.set_limit_value(limit, self.db_engine_spec.limit_method)
         else:
             statement.cap_limit_value(limit, self.db_engine_spec.limit_method)

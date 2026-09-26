@@ -1237,6 +1237,15 @@ Omitting `limit` leaves the SQL limit unchanged. Explicit request caps remain
 subject to the server's `SQL_MAX_ROW` configuration. This behavior also applies
 to `dry_run`, which returns the transformed SQL without executing it.
 
+The SQL-only `Database.apply_limit_to_sql()` helper used by dataset column
+discovery and alerts does not use the executor's bounded cursor. It retains the
+legacy SQL Server behavior of replacing `PERCENT`, `WITH TIES`, and non-fixed
+limit expressions with a fixed `TOP` cap, without introducing derived tables
+that could reject unnamed or duplicate columns. Smaller fixed limits, including
+zero, are preserved unless the caller explicitly requests `force=True`. This
+legacy helper's replacement semantics are separate from MCP execution's
+preservation of complex SQL restrictions.
+
 ## Result serialization
 
 Data-bearing tool responses sanitize row values, column samples, and statistics
