@@ -202,7 +202,7 @@ excel-export = ["boto3"]
 # superset.utils.gcs, so this extra is an alternative to excel-export, not an
 # addition to it -- pick whichever matches your bucket's provider.
 # >=1.37 for ``Blob.open``, which superset.utils.gcs streams downloads through.
-excel-export-gcs = ["google-cloud-storage>=1.37"]
+excel-export-gcs = ["google-cloud-storage>=3.14.1"]
 fastmcp = [
     "fastmcp>=3.4.7,<4.0",
     # fastmcp 3.x itself requires mcp<2.0; the upper bound here was looser
