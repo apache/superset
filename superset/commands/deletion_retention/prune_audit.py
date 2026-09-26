@@ -468,6 +468,31 @@ def _window_repeats_an_earlier_block(
     PostgreSQL round-1 plan materialized a groups CTE and joined on entity
     alone before filtering ranks, comparing 36 million row pairs.
 
+    All five ``LAG`` columns share one SQL-level named ``WINDOW w`` (a raw
+    text fragment: SQLAlchemy Core has no construct for a named ``WINDOW``
+    clause) instead of five separate ``LAG(...) OVER (...)`` expressions that
+    happen to repeat the same partition/order spec. PostgreSQL already
+    recognizes five identical inline window specs as one logical pass, but
+    MySQL 8 does not merge them — each materializes its own temporary table,
+    roughly five sequential passes over the batch's timestamp groups. A named
+    window is the SQL-level way to say "this is the same window" so MySQL
+    evaluates it once; PostgreSQL and SQLite (>= 3.25) accept the same syntax
+    unchanged. Only servers routed here run this clause: the MySQL<8,
+    MariaDB<10.2 and SQLite<3.25 fallback in
+    :func:`_legacy_repeats_an_earlier_block` never reaches it.
+
+    An equality join back to a *second* instance of the timestamp-groups
+    derived table (fetching P's aggregates via
+    ``(entity_type, entity_uuid, ts = prev_ts)`` instead of four more ``LAG``
+    columns) was measured and rejected here: PostgreSQL's planner
+    misestimates the derived table's row count for a single-entity batch scope
+    and chooses a Nested Loop over an unindexed ``Materialize`` of the second
+    instance — an O(batch × history) comparison, the same failure shape as
+    the sc-120493 round-1 CTE/entity-only-merge regression, just via a
+    different join path. The named-``WINDOW`` shape keeps the exact join
+    structure already measured safe on PostgreSQL (sc-120493): only the
+    ``LAG`` columns' SQL text changes.
+
     Keep the repeat-id query uncorrelated: the sc-120493 Variant 2
     measurements showed MySQL repeatedly executing
     per-row predecessor scalars. During re-check, scope blocked rows, timestamp
@@ -500,6 +525,7 @@ def _window_repeats_an_earlier_block(
         .correlate(None)
         .subquery("blocked_rows")
     )
+    groups_name: str = "blocked_timestamp_groups"
     groups: sa.Subquery = (
         sa.select(
             source.c.entity_type,
@@ -514,21 +540,39 @@ def _window_repeats_an_earlier_block(
         .where(*blocked_filters, *scope)
         .group_by(source.c.entity_type, source.c.entity_uuid, source.c.created_on)
         .correlate(None)
-        .subquery("blocked_timestamp_groups")
+        .subquery(groups_name)
+    )
+    # A raw-text named WINDOW clause: the one construct SQLAlchemy Core
+    # cannot emit. ``groups_name`` is the literal alias every LAG column
+    # below must qualify with, so the FROM clause and the WINDOW clause
+    # stay on the same alias; the column names, however, are hardcoded in
+    # both places and must be kept in step by hand.
+    window_body: str = (
+        f"{groups_name}.entity_type, {groups_name}.entity_uuid "
+        f"ORDER BY {groups_name}.ts"
     )
     grp: sa.Subquery = (
         sa.select(
             groups,
             *[
-                sa.func.lag(groups.c[name])
-                .over(
-                    partition_by=(groups.c.entity_type, groups.c.entity_uuid),
-                    order_by=groups.c.ts,
-                )
-                .label(f"prev_{name}")
+                # Raw text carries no type, so copy the grouped column's own
+                # type across. Without it every prev_* lands as NullType and a
+                # later comparison against a Python value would bind it with no
+                # type processor. Types never reach the emitted SQL, which stays
+                # byte-identical on PostgreSQL, MySQL and SQLite.
+                sa.literal_column(
+                    f"lag({groups_name}.{name}) OVER w", type_=groups.c[name].type
+                ).label(f"prev_{name}")
                 for name in ("ts", "n", "n_coded", "min_reason", "max_reason")
             ],
         )
+        .select_from(groups)
+        # Suffixes trail every other clause, so never add ORDER BY/LIMIT to
+        # this select: they would be emitted before WINDOW and fail to parse.
+        # Aliasing this select (``aliased()``/``.alias()``, or any ORM
+        # adaption over ``grp``) rewrites the FROM but not the raw column
+        # text or this suffix, so both would keep naming the old alias.
+        .suffix_with(f"WINDOW w AS (PARTITION BY {window_body})")
         .correlate(None)
         .subquery("preceding_groups")
     )

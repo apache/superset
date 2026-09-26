@@ -1111,6 +1111,11 @@ class TestRepeatPredicateEquivalence(SupersetTestCase):
                         now, scope, ids
                     )
 
+                # "evidence" is the control: it never reaches the patched
+                # predicate, so equality there asserts isolation from the
+                # rewrite rather than equivalence of it. A change that made it
+                # differ would mean the rewrite had leaked out of the two
+                # categories that call ``_repeats_an_earlier_block``.
                 for category in ("duplicate", "operational", "evidence"):
                     assert fallback[category] == legacy[category], (
                         f"seed={seed} category={category}: legacy fallback diverged"
