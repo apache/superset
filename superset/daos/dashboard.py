@@ -322,7 +322,7 @@ class DashboardDAO(BaseDAO[Dashboard]):
         return True
 
     @staticmethod
-    def set_dash_metadata(
+    def set_dash_metadata(  # noqa: C901
         dashboard: Dashboard,
         data: dict[Any, Any],
         old_to_new_slice_ids: dict[int, int] | None = None,
@@ -413,7 +413,10 @@ class DashboardDAO(BaseDAO[Dashboard]):
                     else data["filter_scopes"],
                 )
 
-            default_filters_data = json.loads(data.get("default_filters", "{}"))
+            try:
+                default_filters_data = json.loads(data.get("default_filters", "{}"))
+            except (json.JSONDecodeError, TypeError):
+                default_filters_data = {}
             applicable_filters = {
                 key: v
                 for key, v in default_filters_data.items()
