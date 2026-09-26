@@ -54,7 +54,15 @@ PATTERNS = {
         r"^.pylintrc",
     ],
     "frontend": [
-        r"^\.github/workflows/.*(bashlib|frontend|e2e)",
+        # `playwright` matches superset-playwright.yml, whose jobs (experimental,
+        # mobile, GAQ) gate on this group. Without it a PR touching only that
+        # workflow skips every job the workflow defines, so a broken edit merges
+        # without ever being exercised -- same failure mode as docker.yml below.
+        r"^\.github/workflows/.*(bashlib|frontend|e2e|playwright)",
+        # The composite actions every Playwright job calls (cached-dependencies,
+        # setup-backend, change-detector). A change to the setup they share can
+        # break those jobs, so it has to reach them.
+        r"^\.github/actions/",
         r"^superset-frontend/",
     ],
     "docker": [
