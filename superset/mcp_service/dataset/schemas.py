@@ -87,10 +87,9 @@ class DatasetFilter(ColumnOperator):
         "changed_by_fk",
     ] = Field(
         ...,
-        description="Column to filter on. Use get_schema(model_type='dataset') for "
-        "available filter columns. To filter by a person, first call find_users "
-        "to resolve a name to a user ID, then filter by created_by_fk or "
-        "changed_by_fk with that integer ID.",
+        description="Filter column; see get_schema(model_type='dataset'). "
+        "For people, resolve names to IDs with find_users; filter by "
+        "created_by_fk or changed_by_fk with that integer ID.",
     )
     opr: ColumnOperatorEnum = Field(
         ...,
@@ -276,15 +275,38 @@ class ListDatasetsRequest(
     test_list_datasets_with_string_filters.
     """
 
+    order_column: Annotated[
+        str | None,
+        Field(
+            default=None,
+            description=(
+                "Sortable columns: id, table_name, schema, changed_on, created_on; "
+                "changed_on_delta_humanized is an alias for changed_on."
+            ),
+        ),
+    ]
+
+    search: Annotated[
+        str | None,
+        Field(
+            default=None,
+            description=(
+                "Case-insensitive substring search of schema, SQL, table name, "
+                "and description. A complete UUID is an exact UUID lookup; "
+                "or use a uuid filter. Compare candidate descriptions "
+                "and metadata. Mutually exclusive with 'filters'."
+            ),
+        ),
+    ]
+
     certified: Annotated[
         StrictBool | None,
         Field(
             default=None,
             description=(
-                "Filter by governance certification status. Use true to return "
-                "only certified datasets (preferred when selecting governed "
-                "semantic-layer assets), false to return only uncertified "
-                "datasets, or omit to return both (default)."
+                "Use true to return only certified datasets (preferred for governed "
+                "semantic-layer assets), false to return only uncertified datasets; "
+                "omit to return both (default)."
             ),
         ),
     ]

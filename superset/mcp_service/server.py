@@ -24,6 +24,7 @@ For multi-pod deployments, configure MCP_EVENT_STORE_CONFIG with Redis URL.
 
 import logging
 import os
+import re
 from collections.abc import Sequence
 from typing import Annotated, Any, Callable
 
@@ -300,19 +301,20 @@ def _strip_titles(obj: Any, in_properties_map: bool = False) -> Any:
 
 
 def _truncate_description(text: str, max_length: int) -> str:
-    """Truncate a tool description for search results.
-
-    Cuts at the last sentence boundary before *max_length*, or at
-    *max_length* with an ellipsis if no sentence boundary is found.
-    """
+    """Keep only complete prose sentences within the remaining character budget."""
+    if max_length <= 0:
+        return ""
     if not text or len(text) <= max_length:
         return text
-    # Try to cut at the last sentence boundary
-    truncated = text[:max_length]
-    last_period = truncated.rfind(". ")
-    if last_period > max_length // 2:
-        return truncated[: last_period + 1]
-    return truncated.rstrip() + "..."
+    # Calling constraints belong in request schema metadata, not truncated prose.
+    boundaries = list(re.finditer(r"[.!?](?=\s|$)", text[: max_length + 1]))
+    ends = [match.end() for match in boundaries if match.end() <= max_length]
+    return text[: ends[-1]].strip() if ends else ""
+
+
+def _request_instructions(input_schema: dict[str, Any]) -> str:
+    """Read unabridged calling instructions from the request wrapper's schema."""
+    return input_schema.get("properties", {}).get("request", {}).get("description", "")
 
 
 def _extract_parameter_names(input_schema: dict[str, Any]) -> str:
@@ -355,7 +357,8 @@ def _build_summary_serializer(max_desc: int) -> Any:
 
     Returns a callable that serializes each tool to ``name``,
     ``description`` (optionally truncated), and a ``parameters_hint``
-    string listing top-level parameter names.  ``inputSchema`` and
+    string listing top-level parameter names and unabridged request instructions.
+    Instruction length is reserved from the prose budget. ``inputSchema`` and
     ``outputSchema`` are stripped entirely.
     """
 
@@ -366,12 +369,18 @@ def _build_summary_serializer(max_desc: int) -> Any:
                 mode="json", exclude_none=True, exclude={"outputSchema"}
             )
             data.pop("outputSchema", None)
+            instructions = ""
             if input_schema := data.pop("inputSchema", None):
+                instructions = _request_instructions(input_schema)
                 hint = _extract_parameter_names(input_schema)
                 if hint:
-                    data["parameters_hint"] = hint
+                    data["parameters_hint"] = (
+                        f"{hint}: {instructions}" if instructions else hint
+                    )
             if max_desc and (desc := data.get("description")):
-                data["description"] = _truncate_description(desc, max_desc)
+                data["description"] = _truncate_description(
+                    desc, max(0, max_desc - len(instructions))
+                )
             results.append(data)
         return results
 
@@ -436,7 +445,8 @@ def _create_search_result_serializer(
 
     Titles and output schemas are stripped by the base serializer. The legacy
     ``compact_schemas`` setting only selects the default description limit;
-    ``max_description_length`` explicitly controls description truncation.
+    ``max_description_length`` budgets prose plus request-wrapper instructions.
+    Instructions stay in the schema even when they exceed a small prose limit.
     """
     include_schemas = config.get("include_schemas", False)
 
@@ -456,7 +466,10 @@ def _create_search_result_serializer(
         results = _serialize_tools_without_output_schema(tools)
         for data in results:
             if desc := data.get("description"):
-                data["description"] = _truncate_description(desc, max_desc)
+                instructions = _request_instructions(data.get("inputSchema", {}))
+                data["description"] = _truncate_description(
+                    desc, max(0, max_desc - len(instructions))
+                )
         return results
 
     return _serializer

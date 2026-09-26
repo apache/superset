@@ -20,10 +20,11 @@ MCP tool: get_chart_info
 """
 
 import logging
-from typing import Any, cast
+from typing import Annotated, Any, cast
 
 from fastmcp import Context
 from marshmallow import ValidationError
+from pydantic import Field
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import subqueryload
 from superset_core.mcp.decorators import tool, ToolAnnotations
@@ -438,7 +439,18 @@ def _dump_chart_info(
     ),
 )
 async def get_chart_info(  # noqa: C901
-    request: GetChartInfoRequest, ctx: Context
+    request: Annotated[
+        GetChartInfoRequest,
+        Field(
+            description=(
+                'Wrap as {"request": {"identifier": 123}}. '
+                "Use ID/UUID, NOT chart name; discover IDs with list_charts. "
+                "form_data_key reads unsaved state; permalink_key reads shared "
+                "Explore state and makes identifier optional."
+            )
+        ),
+    ],
+    ctx: Context,
 ) -> ChartInfo | ChartError:
     """Get chart metadata by ID or UUID.
 

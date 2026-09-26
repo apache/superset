@@ -355,7 +355,7 @@ class GetChartInfoRequest(BaseModel):
     form_data_key: str | None = Field(
         default=None,
         description=(
-            "Cache key for retrieving unsaved chart state. When a user "
+            "Cache key from the Explore URL for unsaved chart state. When a user "
             "edits a chart in Explore but hasn't saved, the current state is stored "
             "with this key. If provided, the tool returns the current unsaved "
             "configuration instead of the saved version. "
@@ -376,8 +376,9 @@ class GetChartInfoRequest(BaseModel):
         default=None,
         description=(
             "When provided, resolves dashboard-level native filters that are in "
-            "scope for this chart on the given dashboard and returns them under "
-            "filters.dashboard_filters. Requires the chart to be on the dashboard "
+            "scope for this chart on the given dashboard and returns their column, "
+            "operator, and value under filters.dashboard_filters. Requires the chart "
+            "to be on the dashboard "
             "and the caller to have dashboard access."
         ),
     )
@@ -398,7 +399,8 @@ class GetChartInfoRequest(BaseModel):
             description=(
                 "Top-level fields to include in the response. Defaults to a lean "
                 "set that excludes 'form_data' (the full chart config, can be 50KB+). "
-                "Add 'form_data' explicitly when you need the raw chart configuration."
+                "Add 'form_data' explicitly when you need the raw chart configuration. "
+                "The url field links to the chart's Explore page in Superset."
             ),
             validation_alias=AliasChoices("select_columns", "columns"),
         ),
@@ -3783,6 +3785,18 @@ class ListChartsRequest(
     PaginatedListRequest[ChartFilter],
 ):
     """Request schema for list_charts with clear, unambiguous types."""
+
+    order_column: Annotated[
+        str | None,
+        Field(
+            default=None,
+            description=(
+                "Sortable columns: id, slice_name, viz_type, description, "
+                "changed_on, created_on; "
+                "changed_on_delta_humanized is an alias for changed_on."
+            ),
+        ),
+    ]
 
     certified: Annotated[
         StrictBool | None,

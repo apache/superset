@@ -198,6 +198,30 @@ class ListDashboardsRequest(
 ):
     """Request schema for list_dashboards with clear, unambiguous types."""
 
+    order_column: Annotated[
+        str | None,
+        Field(
+            default=None,
+            description=(
+                "Sortable columns: id, dashboard_title, slug, published, "
+                "changed_on, created_on; "
+                "changed_on_delta_humanized is an alias for changed_on."
+            ),
+        ),
+    ]
+
+    search: Annotated[
+        str | None,
+        Field(
+            default=None,
+            description=(
+                "Search matches titles and slugs only, not people. Resolve names "
+                "with find_users and filter by created_by_fk or changed_by_fk "
+                "using the user ID. Mutually exclusive with 'filters'."
+            ),
+        ),
+    ]
+
     deleted_state: Annotated[
         Literal["include", "only"] | None,
         Field(
@@ -254,10 +278,7 @@ DEFAULT_GET_DASHBOARD_INFO_COLUMNS: List[str] = [
 class GetDashboardInfoRequest(MetadataCacheControl):
     """Request schema for dashboard identifiers and shared permalink URLs.
 
-    When permalink_key is provided, the tool will retrieve the dashboard's filter
-    state from the permalink, allowing you to see what filters the user has applied
-    (not just the default filter state). This is useful when a user applies filters
-    in a dashboard but the URL contains a permalink_key.
+    permalink_key retrieves the user's applied filter state, not just defaults.
     """
 
     model_config = ConfigDict(populate_by_name=True)
@@ -285,14 +306,16 @@ class GetDashboardInfoRequest(MetadataCacheControl):
     filter_state: dict[str, Any] | None = Field(
         default=None,
         description=(
-            "Active filters supplied directly rather than via a permalink, so the "
-            "tool can describe the dashboard as the user currently views it, "
-            'filtered. Accepts dashboard dataMask state, e.g. {"dataMask": '
+            "Direct active filters describing the user's dashboard view. "
+            'Accepts dashboard dataMask state, e.g. {"dataMask": '
             '{"<configured filter ID>": {"filterState": {"value": ["EMEA"]}}}}, '
             'or {"applied_filters": [{"col": "region", "op": "IN", '
-            '"val": ["EMEA"]}]}. Native mask values '
-            "are projected without column metadata for restricted users. Ignored "
-            "when permalink_key is provided."
+            '"val": ["EMEA"]}]}. Ignored '
+            "when permalink_key is provided. Use returned filter_state as context. "
+            "Restricted users receive native_filter_values (names, types, values, "
+            "labels, exclusion flags), not raw dataMask/column targets. "
+            "native_filter_values_incomplete flags unsupported filters/chart state "
+            "that cannot be summarized safely."
         ),
     )
     select_columns: Annotated[
@@ -300,11 +323,14 @@ class GetDashboardInfoRequest(MetadataCacheControl):
         Field(
             default_factory=lambda: list(DEFAULT_GET_DASHBOARD_INFO_COLUMNS),
             description=(
-                "Top-level fields to include in the response. Defaults to a lean "
-                "set that excludes 'css' (raw CSS, can be many KB) and 'filter_state' "
-                "(only relevant when permalink_key is provided). Pass an explicit list "
-                "to override, e.g. ['id','dashboard_title','charts'] for minimal "
-                "output, or add 'css' to include raw dashboard CSS."
+                "Top-level response fields; defaults exclude 'css' (raw CSS, "
+                "potentially KBs) and 'filter_state' (shared/applied filter context). "
+                "Override with "
+                "e.g. ['id','dashboard_title','charts'], or add 'css' for raw CSS. "
+                "Charts/native_filters may be capped: check chart_count and "
+                "_truncation_notes. For all charts, call list_charts with "
+                'request={"filters": [{"col": "dashboards", "opr": "eq", '
+                '"value": <dashboard id>}]} and paginate with page/page_size.'
             ),
             validation_alias=AliasChoices("select_columns", "columns"),
         ),
@@ -671,8 +697,7 @@ class GenerateDashboardRequest(BaseModel):
     dashboard_title: str | None = Field(
         None,
         description=(
-            "Title for the new dashboard. When omitted a descriptive title "
-            "is generated from the included chart names."
+            "Dashboard title; if omitted, generated descriptively from chart names."
         ),
         validation_alias=AliasChoices("dashboard_title", "title", "name"),
     )
@@ -696,7 +721,9 @@ class GenerateDashboardRequest(BaseModel):
             "dict). When set, replaces the auto-generated layout entirely. "
             "Pass this when you need custom row composition, MARKDOWN "
             "blocks, HEADER components, or specific chart widths/heights. "
-            "Omit to let the tool auto-generate a packed grid from chart_ids."
+            "Omit for an auto-generated 2-column grid from chart_ids. "
+            "Each component's parents is recomputed from its children edges "
+            "before saving; omitted or incomplete parents arrays are fine."
         ),
     )
     json_metadata_overrides: Dict[str, Any] | None = Field(

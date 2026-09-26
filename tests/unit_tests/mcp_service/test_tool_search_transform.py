@@ -389,12 +389,11 @@ def test_truncate_description_cuts_at_sentence():
     assert result == "First sentence. Second sentence."
 
 
-def test_truncate_description_ellipsis_fallback():
-    """When no sentence boundary, truncates with ellipsis."""
+def test_truncate_description_without_sentence_boundary():
+    """Omit prose rather than advertising a partial instruction."""
     text = "A very long single sentence without periods that goes on and on"
     result = _truncate_description(text, 30)
-    assert result.endswith("...")
-    assert len(result) <= 33  # 30 + "..."
+    assert result == ""
 
 
 def test_truncate_description_empty():
@@ -403,13 +402,31 @@ def test_truncate_description_empty():
 
 
 def test_truncate_description_zero_max():
-    """Zero max_length produces ellipsis; the serializer skips calling this."""
+    """No prose remains when schema instructions consume the entire budget."""
     text = "Some text"
-    # _truncate_description(text, 0) truncates to 0 chars and appends "...".
-    # The caller (_create_search_result_serializer) skips calling it when
-    # max_desc=0 so this edge case only matters for direct callers.
     result = _truncate_description(text, 0)
-    assert result == "..."
+    assert result == ""
+
+
+@pytest.mark.parametrize("limit", [1, 2, 20, 300])
+def test_truncate_description_oversized(limit: int) -> None:
+    """Oversized prose never exceeds even a very small configured budget."""
+    assert _truncate_description("x" * 100_000, limit) == ""
+
+
+def test_truncate_description_multiline_sentence() -> None:
+    """A newline after punctuation is a sentence boundary too."""
+    assert _truncate_description(
+        "First sentence.\nA long instruction follows.", 20
+    ) == ("First sentence.")
+
+
+@pytest.mark.parametrize("marker", ["IMPORTANT:", "**IMPORTANT**:"])
+def test_truncate_description_important_block_sentence(marker: str) -> None:
+    """Do not advertise a half instruction when the cut falls in an IMPORTANT block."""
+    prefix = f"Summary.\n\n{marker} First rule."
+    text = prefix + "\n" + "An instruction too long for the remaining budget " * 100
+    assert _truncate_description(text, 100) == prefix
 
 
 # -- _create_search_result_serializer tests --
