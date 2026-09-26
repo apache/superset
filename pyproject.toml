@@ -330,7 +330,7 @@ development = [
     "pytest-cov",
     "pytest-mock",
     "pytest-xdist",
-    "python-ldap>=3.4.7",
+    "python-ldap>=3.4.8",
     "ruff",
     "sqloxide",
     "statsd",
