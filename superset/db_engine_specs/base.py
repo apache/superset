@@ -885,6 +885,21 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         raise OAuth2RedirectError(oauth_url, tab_id, default_redirect_uri)
 
     @classmethod
+    def resolve_oauth2_client_info(
+        cls,
+        database: Database,
+        client_info: dict[str, Any],
+    ) -> dict[str, Any]:
+        """
+        Complete a database's ``oauth2_client_info`` before it is validated.
+
+        Engine specs that can derive values (for example the OAuth2 endpoints
+        from the connection host) return a copy with the missing values filled
+        in; values set explicitly must be kept. The default returns it as is.
+        """
+        return client_info
+
+    @classmethod
     def get_oauth2_config(cls) -> OAuth2ClientConfig | None:
         """
         Build the DB engine spec level OAuth2 client config.

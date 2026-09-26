@@ -321,6 +321,37 @@ class DatabricksDynamicBaseEngineSpec(BasicParametersMixin, DatabricksBaseEngine
         return f"https://{host}/oidc/v1/{path}"
 
     @classmethod
+    def resolve_oauth2_client_info(
+        cls,
+        database: Database,
+        client_info: dict[str, Any],
+    ) -> dict[str, Any]:
+        """
+        Derive missing OAuth2 endpoints from the workspace host.
+
+        ``authorization_request_uri`` and ``token_request_uri`` are required by
+        ``OAuth2ClientConfigSchema``; without them the database's OAuth2 was
+        disabled (``is_oauth2_enabled`` returned False) and every connection
+        failed with a ValidationError. Each missing or empty endpoint becomes
+        ``https://<workspace-host>/oidc/v1/{authorize,token}``; explicit values
+        win. A connection without a host raises ``OAuth2Error``.
+        """
+        endpoints = {
+            "authorization_request_uri": "authorize",
+            "token_request_uri": "token",
+        }
+        missing = [key for key in endpoints if not client_info.get(key)]
+        if not missing:
+            return client_info
+        return {
+            **client_info,
+            **{
+                key: cls._workspace_oauth2_endpoint(database, endpoints[key])
+                for key in missing
+            },
+        }
+
+    @classmethod
     def needs_oauth2(cls, ex: Exception) -> bool:
         """
         Identify driver errors that should trigger the OAuth2 dance.
