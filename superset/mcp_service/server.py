@@ -681,6 +681,27 @@ def _create_search_transform(  # noqa: C901
             tools = await super()._get_visible_tools(ctx)
             return _filter_tools_by_current_user_permission(tools)
 
+        async def _search(self, tools: Sequence[Tool], query: str) -> Sequence[Tool]:
+            """Promote visible exact names before applying the final result limit."""
+            normalized_query = " ".join(query.casefold().replace("_", " ").split())
+            exact = [
+                tool
+                for tool in tools
+                if " ".join(tool.name.casefold().replace("_", " ").split())
+                == normalized_query
+            ]
+            ranked = await super()._search(tools, query)
+            if not exact:
+                return ranked
+            # Only inspect the caller-filtered candidates, never the full catalog.
+            # The upstream top-N contains enough non-exact results to fill the
+            # remaining slots, without changing BM25 scores or shared limits.
+            exact_names = {tool.name for tool in exact}
+            return [
+                *exact,
+                *(tool for tool in ranked if tool.name not in exact_names),
+            ][: self._max_results]
+
         def _make_call_tool(self) -> Any:
             """Build the normalized ``call_tool`` proxy for BM25 search."""
             return make_normalizing_call_tool(self)
