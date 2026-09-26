@@ -19,6 +19,7 @@
 import pandas as pd
 import pytest
 from freezegun import freeze_time
+from pytest_mock import MockerFixture
 
 from superset.reports.notifications.exceptions import (
     NotificationParamException,
@@ -121,11 +122,79 @@ def test_get_req_payload_basic(mock_header_data) -> None:
     assert payload["name"] == "Payload Name"
     assert payload["description"] == "Payload Description"
     assert payload["url"] == "http://example.com/report"
-    assert payload["text"] == "Report Text"
+    assert payload["text"] == "Contact the report owner for error details."
     assert isinstance(payload["header"], dict)
     # Optional fields from header_data
     assert payload["header"]["notification_format"] == "PNG"
     assert payload["header"]["notification_type"] == "Alert"
+
+
+@pytest.mark.parametrize("notification_type", ["Alert", "Report"])
+@pytest.mark.parametrize("notice", ["ordinary", "retry", "final"])
+@pytest.mark.parametrize("multipart", [False, True])
+def test_send_redacts_failure_diagnostics(
+    mocker: MockerFixture,
+    mock_header_data: HeaderDataType,
+    notification_type: str,
+    notice: str,
+    multipart: bool,
+) -> None:
+    """Both webhook encodings redact all failure notices for alerts and reports."""
+    from superset.reports.models import ReportRecipients, ReportRecipientType
+    from superset.reports.notifications.base import NotificationContent
+
+    header = mock_header_data.copy()
+    header["notification_type"] = notification_type
+    raw_error = "Database password=private-value; SMTP recipient=private@example.com"
+    content = NotificationContent(
+        name="test report",
+        header_data=header,
+        text=raw_error,
+        retry_attempt=1 if notice == "retry" else None,
+        retry_max_attempts=3 if notice != "ordinary" else None,
+        csv=b"value\n42" if multipart else None,
+    )
+    notification = WebhookNotification(
+        ReportRecipients(
+            type=ReportRecipientType.WEBHOOK,
+            recipient_config_json='{"target": "https://example.com/webhook"}',
+        ),
+        content,
+    )
+    mocker.patch.object(notification, "_validate_webhook_url")
+    mocker.patch(
+        "superset.reports.notifications.webhook.feature_flag_manager.is_feature_enabled",
+        return_value=True,
+    )
+    requester = mocker.patch(
+        "superset.reports.notifications.webhook._get_requester"
+    ).return_value
+    requester.post.return_value.status_code = 200
+
+    notification.send()
+
+    requester.post.assert_called_once()
+    kwargs = requester.post.call_args.kwargs
+    payload = kwargs["data" if multipart else "json"]
+    assert payload["text"] == "Contact the report owner for error details."
+    assert "private-value" not in str(kwargs)
+    assert "private@example.com" not in str(kwargs)
+    assert content.text == raw_error
+
+
+@pytest.mark.parametrize("text", [None, ""])
+def test_success_payload_does_not_gain_error_text(
+    mock_header_data: HeaderDataType, text: str | None
+) -> None:
+    """Successful content retains the existing empty-text payload contract."""
+    from superset.reports.models import ReportRecipients, ReportRecipientType
+    from superset.reports.notifications.base import NotificationContent
+
+    notification = WebhookNotification(
+        ReportRecipients(type=ReportRecipientType.WEBHOOK),
+        NotificationContent(name="report", header_data=mock_header_data, text=text),
+    )
+    assert notification._get_req_payload()["text"] == text
 
 
 def test_get_files_includes_all_content_types(mock_header_data) -> None:
