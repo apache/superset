@@ -1,0 +1,1151 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+
+"""
+Response size utilities for the MCP service.
+
+This module provides utilities to measure response size and generate smart
+suggestions when responses exceed configured limits. This prevents large
+responses from overwhelming LLM clients like Claude Desktop.
+
+Response size is measured as the exact serialized UTF-8 byte length, not an
+estimated LLM token count. An MCP server has no way to know which client
+(Claude, GPT, Gemini, a local model) or tokenizer is actually consuming a
+given response, so any token estimate would be a guess about a vocabulary
+that cannot be known. Byte length is deterministic and tokenizer-agnostic.
+"""
+
+from __future__ import annotations
+
+import logging
+import sys
+from typing import Any, Dict, List, NamedTuple, Union
+
+from pydantic import BaseModel
+from typing_extensions import TypeAlias
+
+from superset.mcp_service.constants import DEFAULT_MAX_LIST_ITEMS
+
+logger = logging.getLogger(__name__)
+
+# Type alias for MCP tool responses (Pydantic models, dicts, lists, strings, bytes)
+ToolResponse: TypeAlias = Union[BaseModel, Dict[str, Any], List[Any], str, bytes]
+
+# Reported by ``get_response_size_bytes`` when a response cannot be serialized
+# and so cannot be measured. It exceeds any configurable ``max_bytes``, so an
+# unmeasurable response is always treated as oversized rather than allowed
+# through on a guess that happens to sit under the operator's limit.
+UNMEASURABLE_RESPONSE_BYTES = sys.maxsize
+
+
+def get_response_size_bytes(response: ToolResponse) -> int:
+    """
+    Get the size of a response in bytes.
+
+    Never raises: a response that cannot be serialized measures as
+    ``UNMEASURABLE_RESPONSE_BYTES`` so that callers treat it as oversized.
+
+    Args:
+        response: The response object
+
+    Returns:
+        Size in bytes
+    """
+    try:
+        from superset.utils import json
+
+        if hasattr(response, "model_dump"):
+            response_str = json.dumps(response.model_dump())
+        elif isinstance(response, (dict, list)):
+            response_str = json.dumps(response)
+        elif isinstance(response, bytes):
+            return len(response)
+        elif isinstance(response, str):
+            return len(response.encode("utf-8"))
+        else:
+            response_str = str(response)
+
+        return len(response_str.encode("utf-8"))
+    except Exception as e:  # noqa: BLE001
+        logger.warning("Failed to get response size: %s", e)
+        # A fixed fallback would read as "fits" under any limit configured
+        # above it, so report the size as unknown-and-oversized instead.
+        return UNMEASURABLE_RESPONSE_BYTES
+
+
+def extract_query_params(params: Dict[str, Any] | None) -> Dict[str, Any]:
+    """
+    Extract relevant query parameters from tool params for suggestions.
+
+    Args:
+        params: The tool parameters dict
+
+    Returns:
+        Extracted parameters relevant for size reduction suggestions
+    """
+    if not params:
+        return {}
+
+    # Handle nested request object (common pattern in MCP tools)
+    if "request" in params and isinstance(params["request"], dict):
+        params = params["request"]
+
+    # Keys to extract from params
+    extract_keys = [
+        # Pagination
+        "page_size",
+        "limit",
+        # Column selection
+        "select_columns",
+        "columns",
+        # Filters
+        "filters",
+        # Search
+        "search",
+    ]
+    return {k: params[k] for k in extract_keys if k in params}
+
+
+def generate_size_reduction_suggestions(
+    tool_name: str,
+    params: Dict[str, Any] | None,
+    actual_bytes: int,
+    max_bytes: int,
+    response: ToolResponse | None = None,
+) -> List[str]:
+    """
+    Generate smart suggestions for reducing response size.
+
+    Analyzes the tool and parameters to provide actionable recommendations.
+
+    Args:
+        tool_name: Name of the MCP tool
+        params: The tool parameters
+        actual_bytes: Actual size of the response in bytes
+        max_bytes: Configured byte limit
+        response: Optional response object for additional analysis
+
+    Returns:
+        List of suggestion strings
+    """
+    suggestions = []
+    query_params = extract_query_params(params)
+    reduction_needed = actual_bytes - max_bytes
+    reduction_pct = int((reduction_needed / actual_bytes) * 100) if actual_bytes else 0
+
+    # Suggestion 1: Reduce page_size or limit
+    raw_page_size = query_params.get("page_size") or query_params.get("limit")
+    try:
+        current_page_size = int(raw_page_size) if raw_page_size is not None else None
+    except (TypeError, ValueError):
+        current_page_size = None
+    if current_page_size and current_page_size > 0:
+        # Calculate suggested new limit based on reduction needed
+        suggested_limit = max(
+            1,
+            int(current_page_size * (max_bytes / actual_bytes)) if actual_bytes else 1,
+        )
+        suggestions.append(
+            f"Reduce page_size/limit from {current_page_size} to {suggested_limit} "
+            f"(need ~{reduction_pct}% reduction)"
+        )
+    else:
+        # No limit specified - suggest adding one
+        if "list_" in tool_name or tool_name.startswith("get_chart_data"):
+            suggestions.append(
+                f"Add a 'limit' or 'page_size' parameter (suggested: 10-25 items) "
+                f"to reduce response size by ~{reduction_pct}%"
+            )
+        elif tool_name == "execute_sql":
+            suggestions.append(
+                f"Use the 'limit' parameter (e.g., limit=100) to cap the number "
+                f"of rows returned — need ~{reduction_pct}% reduction"
+            )
+
+    # Suggestion 2: Use select_columns to reduce fields
+    current_columns = query_params.get("select_columns") or query_params.get("columns")
+    if current_columns and len(current_columns) > 5:
+        preview = ", ".join(str(c) for c in current_columns[:3])
+        suffix = "..." if len(current_columns) > 3 else ""
+        suggestions.append(
+            f"Reduce select_columns from {len(current_columns)} columns to only "
+            f"essential fields (currently: {preview}{suffix})"
+        )
+    elif not current_columns and "list_" in tool_name:
+        # Analyze response to suggest specific columns to exclude
+        large_fields = _identify_large_fields(response)
+        if large_fields:
+            fields_preview = ", ".join(large_fields[:3])
+            suffix = "..." if len(large_fields) > 3 else ""
+            suggestions.append(
+                f"Use 'select_columns' to exclude large fields: "
+                f"{fields_preview}{suffix}. Only request the columns you need."
+            )
+        else:
+            suggestions.append(
+                "Use 'select_columns' to request only the specific columns you need "
+                "instead of fetching all fields"
+            )
+
+    # Suggestion 3: Add filters to reduce result set
+    current_filters = query_params.get("filters")
+    if not current_filters and "list_" in tool_name:
+        suggestions.append(
+            "Add filters to narrow down results (e.g., date range, search term, "
+            "or specific non-user attributes)"
+        )
+
+    # Suggestion 4: Tool-specific suggestions
+    tool_suggestions = _get_tool_specific_suggestions(tool_name, query_params, response)
+    suggestions.extend(tool_suggestions)
+
+    # Suggestion 5: Use search instead of listing all
+    if "list_" in tool_name and not query_params.get("search"):
+        suggestions.append(
+            "Use the 'search' parameter to find specific items instead of "
+            "listing all and filtering client-side"
+        )
+
+    return suggestions
+
+
+def _identify_large_fields(response: ToolResponse) -> List[str]:
+    """
+    Identify fields that contribute most to response size.
+
+    Args:
+        response: The response object to analyze
+
+    Returns:
+        List of field names that are particularly large
+    """
+    large_fields: List[str] = []
+
+    try:
+        from superset.utils import json
+
+        if hasattr(response, "model_dump"):
+            data = response.model_dump()
+        elif isinstance(response, dict):
+            data = response
+        else:
+            return large_fields
+
+        # Check for list responses (e.g., charts, dashboards)
+        items_key = None
+        for key in ["charts", "dashboards", "datasets", "data", "items", "results"]:
+            if key in data and isinstance(data[key], list) and data[key]:
+                items_key = key
+                break
+
+        if items_key and data[items_key]:
+            first_item = data[items_key][0]
+            if isinstance(first_item, dict):
+                # Analyze field sizes in first item
+                field_sizes = {}
+                for field, value in first_item.items():
+                    if value is not None:
+                        field_sizes[field] = len(json.dumps(value))
+
+                # Sort by size and identify large fields (>500 chars)
+                sorted_fields = sorted(
+                    field_sizes.items(), key=lambda x: x[1], reverse=True
+                )
+                large_fields = [
+                    f
+                    for f, size in sorted_fields
+                    if size > 500 and f not in ("id", "uuid", "name", "slice_name")
+                ]
+
+    except Exception as e:  # noqa: BLE001
+        logger.debug("Failed to identify large fields: %s", e)
+
+    return large_fields
+
+
+def _get_tool_specific_suggestions(
+    tool_name: str,
+    query_params: Dict[str, Any],
+    response: ToolResponse,
+) -> List[str]:
+    """
+    Generate tool-specific suggestions based on the tool being called.
+
+    Args:
+        tool_name: Name of the MCP tool
+        query_params: Extracted query parameters
+        response: The response object
+
+    Returns:
+        List of tool-specific suggestions
+    """
+    suggestions = []
+
+    if tool_name == "get_chart_data":
+        suggestions.append(
+            "For get_chart_data, use 'limit' parameter to restrict rows returned, "
+            "or use 'format=csv' for more compact output"
+        )
+
+    elif tool_name == "execute_sql":
+        suggestions.append(
+            "Add a LIMIT clause to your SQL query (e.g., SELECT * FROM table LIMIT 100)"
+        )
+        if not query_params.get("limit"):
+            suggestions.append(
+                "Use the execute_sql 'limit' parameter to cap rows returned "
+                "(e.g., limit=100) — this overrides any SQL LIMIT clause"
+            )
+
+    elif tool_name == "get_chart_sql":
+        suggestions.append(
+            "get_chart_sql has no size-reduction parameter — the rendered SQL "
+            "itself is too large to return even after truncation. Simplify "
+            "the chart's configuration (fewer columns, metrics, or filters) "
+            "to shorten the generated query."
+        )
+
+    elif tool_name in ("get_chart_info", "get_dashboard_info", "get_dataset_info"):
+        suggestions.append(
+            f"For {tool_name}, use 'select_columns' to fetch only specific metadata "
+            "fields instead of the full object"
+        )
+
+    elif tool_name == "list_charts":
+        suggestions.append(
+            "For list_charts, exclude 'params' and 'query_context' columns which "
+            "contain large JSON blobs - use select_columns to pick specific fields"
+        )
+
+    elif tool_name == "list_datasets":
+        suggestions.append(
+            "For list_datasets, exclude 'columns' and 'metrics' from select_columns "
+            "if you only need basic dataset info"
+        )
+
+    return suggestions
+
+
+# Tools eligible for dynamic response truncation instead of hard blocking.
+# These tools return single objects (not paginated lists) where truncation
+# is preferable to returning an error.
+INFO_TOOLS = frozenset(
+    {
+        "get_chart_info",
+        "get_dataset_info",
+        "get_dashboard_info",
+        "get_instance_info",
+    }
+)
+
+# Data-query tools that return tabular results.  When the response exceeds the
+# byte limit, these tools are truncated by dropping tail rows rather than
+# raising a hard ToolError.  A truncation note is appended so the caller
+# knows the result is partial and how to narrow the query.
+DATA_QUERY_TOOLS = frozenset(
+    {
+        "execute_sql",
+        "query_dataset",
+        "get_chart_data",
+    }
+)
+
+
+class CommittedWriteSpec(NamedTuple):
+    """Per-tool facts the size guard needs to confirm a committed write.
+
+    ``resource`` is the noun used in the truncation note that tells the
+    caller what to re-read.
+
+    ``identifying_fields`` are the top-level keys that carry the write
+    confirmation *as a list or dict*, and so have to be protected from the
+    destructive truncation phases. Only containers need naming here: phases 4
+    and 5 summarize dicts and empty collections, and nothing in
+    ``truncate_oversized_response`` ever drops a top-level scalar (phase 1
+    only clips long strings). A response whose identity is scalars -- e.g.
+    ``delete_chart``'s ``deleted_id``, ``create_dataset``'s ``id`` and
+    ``table_name`` -- therefore needs no protection and correctly maps to an
+    empty set.
+
+    ``reports_success`` records whether the tool's response model actually
+    has a ``success`` field. It is consulted only when the payload could not
+    be parsed at all, to decide whether synthesizing ``success: True`` would
+    confirm the write or invent a field the schema does not have.
+
+    ``TestCommittedWriteSpecsMatchToolSchemas`` checks every entry against the
+    registered output schemas, so this table cannot drift from the models.
+    """
+
+    resource: str
+    identifying_fields: frozenset[str]
+    reports_success: bool
+
+
+def _spec(
+    resource: str,
+    *identifying_fields: str,
+    reports_success: bool = False,
+) -> CommittedWriteSpec:
+    """Build a ``CommittedWriteSpec`` with the field set spelled inline."""
+    return CommittedWriteSpec(
+        resource=resource,
+        identifying_fields=frozenset(identifying_fields),
+        reports_success=reports_success,
+    )
+
+
+# Mutating tools whose transaction commits (via @transaction, or an explicit
+# ``db.session.commit()``) before this middleware ever inspects the response --
+# by the time an oversized response is detected, the write already happened.
+# Raising ToolError here would report a completed write as a failure, and a
+# retrying MCP client would replay the mutation. These are truncated with the
+# same field-level phases as INFO_TOOLS (see ``_handle_oversized_response``),
+# with the tool's identifying fields protected from the final "clear
+# everything" phase so the caller can always confirm what was written.
+#
+# This is every mutating MCP tool except three, each excluded for a reason
+# that is about the invariant above rather than about response size:
+#   - ``execute_sql`` commits against the *analytics* database, not Superset
+#     metadata, and already degrades gracefully via DATA_QUERY_TOOLS row
+#     truncation rather than reaching the hard-error path;
+#   - ``generate_explore_link`` and ``update_chart_preview`` persist nothing
+#     to the metadata database -- they only cache a form_data key -- so a
+#     retry re-caches rather than replaying a mutation.
+#
+# ``apply_dashboard_filters`` leaves the dashboard itself untouched, but the
+# permalink it commits is the whole result of the call: hard-erroring would
+# strand that row and lose the key the caller needs, and a retry would commit
+# a second one.
+COMMITTED_WRITE_SPECS: Dict[str, CommittedWriteSpec] = {
+    "add_chart_to_existing_dashboard": _spec("dashboard", "dashboard"),
+    "apply_dashboard_filters": _spec("dashboard"),
+    "create_dataset": _spec("dataset"),
+    "create_theme": _spec("theme", reports_success=True),
+    "create_virtual_dataset": _spec("dataset"),
+    "delete_chart": _spec("chart", reports_success=True),
+    "delete_dashboard": _spec("dashboard", reports_success=True),
+    "duplicate_dashboard": _spec("dashboard", "dashboard"),
+    "generate_chart": _spec("chart", "chart", reports_success=True),
+    "generate_dashboard": _spec("dashboard", "dashboard"),
+    "manage_dashboard_certification": _spec("dashboard"),
+    "manage_dashboard_owners": _spec("dashboard"),
+    "manage_dashboard_roles": _spec("dashboard"),
+    "manage_native_filters": _spec("dashboard"),
+    "remove_chart_from_dashboard": _spec("dashboard", "dashboard"),
+    "restore_chart": _spec("chart", reports_success=True),
+    "restore_dashboard": _spec("dashboard", reports_success=True),
+    "save_sql_query": _spec("saved query"),
+    "update_chart": _spec("chart", "chart", reports_success=True),
+    "update_dashboard": _spec("dashboard", "dashboard"),
+    "update_dataset_metric": _spec("dataset", "metric"),
+}
+
+COMMITTED_WRITE_TOOLS = frozenset(COMMITTED_WRITE_SPECS)
+
+# Tools whose oversized response is dominated by a single large string field
+# with no row/page/limit parameter the caller could add to shrink it (e.g.
+# get_chart_sql's rendered SQL). Maps tool name to the field to bisect; see
+# ``truncate_string_field_response``.
+STRING_FIELD_TRUNCATION_TOOLS: Dict[str, str] = {
+    "get_chart_sql": "sql",
+}
+
+# In-band markers appended to a bisected string field, keyed by field name.
+# Only needed where a truncated prefix stays valid input for some other tool:
+# a SQL statement cut before its WHERE/LIMIT clause still executes, and would
+# scan far more data than the original.
+#
+# The SQL marker has to survive whatever lexical state the cut landed in,
+# since the bisect point is arbitrary. Every part of it is load-bearing for
+# a different state, so do not trim it:
+#   - the leading newline ends an open line comment;
+#   - ``*/`` closes an open block comment (and is itself a syntax error when
+#     there is none to close);
+#   - ``'`` opens an unterminated string literal;
+#   - the trailing ``SQL TRUNCATED ...`` words are what make the *mid-string*
+#     case fail. There the quote closes the in-progress literal instead of
+#     opening one, so rejection rests entirely on those leftover bare
+#     identifiers being invalid after an expression.
+#
+# Simpler markers were tried and rejected: a ``--`` comment leaves the prefix
+# perfectly runnable; a bare unterminated ``/*`` is not fatal in SQLite, which
+# closes block comments at end of input; and a bare unterminated quote is
+# swallowed whole when the cut lands inside a block comment. Verified against
+# sqlite3 and against sqlglot for cuts landing in normal, line-comment,
+# block-comment and string-literal state (see the unit test for the dialects
+# actually guarded).
+#
+# This is defense in depth. ``_response_truncated`` / ``_truncation_notes``
+# remain the authoritative signal that the SQL is partial.
+_STRING_FIELD_TRUNCATION_MARKERS: Dict[str, str] = {
+    "sql": "\n*/\n'SQL TRUNCATED -- INCOMPLETE STATEMENT, DO NOT EXECUTE",
+}
+
+# Data field names used by the three query tools (in priority order).
+# ``rows`` is used by execute_sql; ``data`` by query_dataset and get_chart_data.
+_DATA_ROW_FIELDS = ("rows", "data")
+
+# Maximum character length for string fields before truncation
+_MAX_STRING_CHARS = 500
+# Floor for the budget-derived clip length (see ``string_clip_chars``), so a
+# clipped string stays recognizable even under a very small byte budget.
+_MIN_STRING_CHARS = 32
+# Above `_CLIP_BUDGET_DIVISOR * ceiling` bytes, string_clip_chars leaves the
+# ceiling unchanged; smaller budgets shrink the clip length proportionally.
+_CLIP_BUDGET_DIVISOR = 4
+# Maximum keys to keep when summarizing large dict fields
+_MAX_DICT_KEYS = 20
+
+
+def string_clip_chars(max_bytes: int, ceiling: int = _MAX_STRING_CHARS) -> int:
+    """Derive the per-string clip length from the response byte budget.
+
+    A fixed clip length only works while the budget dwarfs it: a single
+    clipped field plus its truncation marker must not exhaust the whole
+    budget by itself, or string truncation can never bring a response under
+    the limit. Above ``_CLIP_BUDGET_DIVISOR * ceiling`` bytes the ceiling
+    applies unchanged (the default 50 KB budget keeps the full
+    ``_MAX_STRING_CHARS``); smaller budgets shrink the clip length
+    proportionally, down to ``_MIN_STRING_CHARS``.
+    """
+    return min(ceiling, max(_MIN_STRING_CHARS, max_bytes // _CLIP_BUDGET_DIVISOR))
+
+
+def _truncate_strings(
+    data: Dict[str, Any], notes: List[str], max_chars: int = _MAX_STRING_CHARS
+) -> bool:
+    """Truncate string fields exceeding max_chars at the top level only."""
+    changed = False
+    for key, value in data.items():
+        if isinstance(value, str) and len(value) > max_chars:
+            original_len = len(value)
+            data[key] = value[:max_chars] + f"... [truncated from {original_len} chars]"
+            notes.append(f"Field '{key}' truncated from {original_len} chars")
+            changed = True
+    return changed
+
+
+def _truncate_strings_recursive(
+    data: Any,
+    notes: List[str],
+    max_chars: int = _MAX_STRING_CHARS,
+    path: str = "",
+    _depth: int = 0,
+) -> bool:
+    """Recursively truncate strings throughout the entire data tree.
+
+    Walks nested dicts and list items to catch strings like
+    ``charts[0].description`` that top-level truncation misses.
+    Depth is capped at 10 to avoid runaway recursion.
+    """
+    if _depth > 10:
+        return False
+    changed = False
+    if isinstance(data, dict):
+        for key, value in data.items():
+            field_path = f"{path}.{key}" if path else key
+            if isinstance(value, str) and len(value) > max_chars:
+                original_len = len(value)
+                data[key] = (
+                    value[:max_chars] + f"... [truncated from {original_len} chars]"
+                )
+                notes.append(
+                    f"Field '{field_path}' truncated from {original_len} chars"
+                )
+                changed = True
+            elif isinstance(value, (dict, list)):
+                changed |= _truncate_strings_recursive(
+                    value, notes, max_chars, field_path, _depth + 1
+                )
+    elif isinstance(data, list):
+        for i, item in enumerate(data):
+            if isinstance(item, (dict, list)):
+                changed |= _truncate_strings_recursive(
+                    item, notes, max_chars, f"{path}[{i}]", _depth + 1
+                )
+    return changed
+
+
+def _truncate_lists(data: Dict[str, Any], notes: List[str], max_items: int) -> bool:
+    """Truncate list fields exceeding max_items. Returns True if any truncated.
+
+    Does NOT append marker objects into the list to preserve the element type
+    contract (e.g. ``List[TableColumnInfo]`` stays homogeneous).  Truncation
+    metadata is communicated through the *notes* list and top-level response
+    fields ``_response_truncated`` / ``_truncation_notes``.
+    """
+    max_items = max(1, max_items)
+    changed = False
+    for key, value in data.items():
+        if isinstance(value, list) and len(value) > max_items:
+            original_len = len(value)
+            data[key] = value[:max_items]
+            notes.append(
+                f"Field '{key}' truncated from {original_len} to {max_items} items"
+            )
+            changed = True
+    return changed
+
+
+def _summarize_large_dicts(
+    data: Dict[str, Any],
+    notes: List[str],
+    max_keys: int = _MAX_DICT_KEYS,
+    protected_keys: frozenset[str] = frozenset(),
+) -> bool:
+    """Replace large dict fields with key summaries. Returns True if any changed.
+
+    ``protected_keys`` are left untouched. A committed-write tool's
+    identifying field (e.g. ``chart``) is a dict that can easily exceed
+    ``max_keys``, and replacing it with a ``_truncated`` marker would
+    destroy the write confirmation this phase runs *before* Phase 5 gets a
+    chance to protect it.
+    """
+    changed = False
+    for key, value in data.items():
+        if key in protected_keys:
+            continue
+        if isinstance(value, dict) and len(value) > max_keys:
+            keys_list = list(value.keys())[:max_keys]
+            data[key] = {
+                "_truncated": True,
+                "_message": (
+                    f"Dict with {len(value)} keys truncated. "
+                    f"Keys: {', '.join(str(k) for k in keys_list)}..."
+                ),
+            }
+            notes.append(f"Field '{key}' dict summarized ({len(value)} keys)")
+            changed = True
+    return changed
+
+
+def _replace_collections_with_summaries(
+    data: Dict[str, Any],
+    notes: List[str],
+    protected_keys: frozenset[str] = frozenset(),
+) -> bool:
+    """Replace all non-empty list/dict fields with empty/minimal values.
+
+    Lists are emptied (preserving the list type) rather than replaced with
+    marker objects to avoid breaking typed list contracts. ``protected_keys``
+    are left untouched -- used to keep a write tool's identifying field
+    (e.g. ``chart``) intact even under this last-resort phase.
+    """
+    changed = False
+    for key, value in list(data.items()):
+        if key in protected_keys:
+            continue
+        if not isinstance(value, (list, dict)) or not value:
+            continue
+        count = len(value)
+        if isinstance(value, list):
+            data[key] = []
+            notes.append(f"Field '{key}' list ({count} items) cleared to fit limit")
+        else:
+            data[key] = {}
+            notes.append(f"Field '{key}' dict ({count} keys) cleared to fit limit")
+        changed = True
+    return changed
+
+
+def _is_under_limit(data: Dict[str, Any], max_bytes: int) -> bool:
+    """Check if the serialized data fits within the byte limit."""
+    return get_response_size_bytes(data) <= max_bytes
+
+
+def truncate_oversized_response(
+    response: ToolResponse,
+    max_bytes: int,
+    # Configurable via MCP_RESPONSE_SIZE_CONFIG["max_list_items"]
+    max_list_items: int = DEFAULT_MAX_LIST_ITEMS,
+    protected_keys: frozenset[str] = frozenset(),
+) -> tuple[ToolResponse, bool, list[str]]:
+    """
+    Dynamically truncate large fields in a response to fit within the byte limit.
+
+    Applies five progressive phases of truncation:
+    1. Truncate long top-level string fields
+    2. Truncate large list fields to max_list_items (configurable)
+    3. Recursively truncate strings in nested structures (list items, nested dicts)
+    4. Aggressively reduce lists to 10 items and summarize large dicts
+    5. Replace all collections with empty values
+
+    Args:
+        response: The tool response (Pydantic model, dict, or other).
+        max_bytes: Maximum serialized response size in bytes.
+        max_list_items: Maximum items to keep in list fields during Phase 2.
+        protected_keys: Top-level keys the destructive phases (4 and 5) must
+            never summarize or clear, even if the response is still over
+            budget afterward. Used for committed-write tools so their
+            identifying field (e.g. ``chart``) always survives. Callers that
+            pass this must be prepared for the returned response to still
+            exceed ``max_bytes``.
+
+    Returns:
+        A tuple of (possibly-truncated response, was_truncated, list of notes).
+    """
+    notes: list[str] = []
+
+    # Convert to a mutable dict for manipulation
+    if hasattr(response, "model_dump"):
+        data = response.model_dump()
+    elif isinstance(response, dict):
+        data = dict(response)
+    else:
+        return response, False, notes
+
+    was_truncated = False
+    # Clip length scales down with small budgets so the string phases can
+    # actually converge instead of leaving one clipped field over the limit.
+    max_chars = string_clip_chars(max_bytes)
+
+    # Phase 1: Truncate long string fields
+    was_truncated |= _truncate_strings(data, notes, max_chars)
+    if _is_under_limit(data, max_bytes):
+        return data, was_truncated, notes
+
+    # Phase 2: Truncate large list fields
+    was_truncated |= _truncate_lists(data, notes, max_list_items)
+    if _is_under_limit(data, max_bytes):
+        return data, was_truncated, notes
+
+    # Phase 3: Recursively truncate strings inside nested structures
+    # (e.g. charts[i].description, native_filters[i].config, etc.)
+    was_truncated |= _truncate_strings_recursive(data, notes, max_chars)
+    if _is_under_limit(data, max_bytes):
+        return data, was_truncated, notes
+
+    # Phase 4: Aggressively reduce lists and summarize large dicts
+    was_truncated |= _truncate_lists(data, notes, max_items=10)
+    was_truncated |= _summarize_large_dicts(data, notes, protected_keys=protected_keys)
+    if _is_under_limit(data, max_bytes):
+        return data, was_truncated, notes
+
+    # Phase 5: Nuclear — replace all collections with empty values
+    was_truncated |= _replace_collections_with_summaries(
+        data, notes, protected_keys=protected_keys
+    )
+
+    return data, was_truncated, notes
+
+
+def _bisect_row_limit(
+    data: Dict[str, Any],
+    row_field: str,
+    original_rows: List[Any],
+    max_bytes: int,
+) -> int:
+    """Binary-search for the largest row prefix that keeps data under limit.
+
+    Mutates ``data[row_field]`` during the search and leaves it at the final
+    kept count on return.  Returns the number of rows kept (>= 1 if the
+    original list was non-empty).
+    """
+    lo, hi = 0, len(original_rows)
+    while lo < hi:
+        mid = (lo + hi + 1) // 2
+        data[row_field] = original_rows[:mid]
+        if get_response_size_bytes(data) <= max_bytes:
+            lo = mid
+        else:
+            hi = mid - 1
+
+    kept = lo
+    if kept == 0 and original_rows:
+        # Even a single row is too large — keep it anyway so the caller gets
+        # at least some data rather than an empty list.
+        kept = 1
+
+    data[row_field] = original_rows[:kept]
+    return kept
+
+
+def _bisect_string_length(
+    data: Dict[str, Any],
+    field: str,
+    original_value: str,
+    max_bytes: int,
+    suffix: str = "",
+) -> int:
+    """Binary-search for the largest string prefix that keeps data under limit.
+
+    Mutates ``data[field]`` during the search and leaves it at the final
+    kept length on return. ``suffix`` is an in-band marker appended to every
+    candidate prefix, so it is accounted for by the search rather than
+    pushing the payload back over the limit afterward. It is only appended
+    when the value is actually shortened.
+    """
+    lo, hi = 0, len(original_value)
+    while lo < hi:
+        mid = (lo + hi + 1) // 2
+        data[field] = original_value[:mid] + suffix
+        if get_response_size_bytes(data) <= max_bytes:
+            lo = mid
+        else:
+            hi = mid - 1
+
+    kept = lo
+    if kept == 0 and original_value:
+        kept = 1
+
+    data[field] = (
+        original_value[:kept] + suffix if kept < len(original_value) else original_value
+    )
+    return kept
+
+
+# Row-truncation advice, keyed by tool name. ``get_chart_data`` and
+# ``query_dataset`` cap output via a row/page-size parameter, not a SQL
+# clause, so the generic "Add a LIMIT clause" wording is wrong for them.
+_ROW_LIMIT_ADVICE = {
+    "get_chart_data": "Use the 'limit' parameter to restrict rows returned.",
+    "query_dataset": "Use the 'row_limit' parameter to restrict rows returned.",
+}
+_DEFAULT_ROW_LIMIT_ADVICE = (
+    "Add a LIMIT clause or reduce selected columns to get all rows."
+)
+
+
+def _truncate_rows_field(
+    data: Dict[str, Any],
+    row_field: str,
+    max_bytes: int,
+    advice: str,
+) -> list[str] | None:
+    """Try to bisect ``data[row_field]`` down to fit the limit.
+
+    Returns the truncation notes on success, or ``None`` if no rows were
+    (or could be) dropped, in which case ``data`` is left unmodified.
+    """
+    original_rows: list[Any] = data[row_field]
+    original_count = len(original_rows)
+    if not original_rows:
+        return None
+
+    # Reserve space for the truncation-note metadata *before* bisecting so
+    # the search already accounts for it, rather than measuring fit on bare
+    # row data and finding out only afterward that appending the note
+    # pushed the payload back over the limit. The placeholder uses
+    # original_count for both halves of "X of Y rows", which is the
+    # longest the real note can ever be (kept <= original_count).
+    placeholder_note = (
+        f"Result truncated: {original_count} of {original_count} rows returned "
+        f"(limit ~{max_bytes:,} bytes). {advice}"
+    )
+    data["_response_truncated"] = True
+    data["_truncation_notes"] = [placeholder_note]
+
+    kept = _bisect_row_limit(data, row_field, original_rows, max_bytes)
+
+    if kept < original_count:
+        notes = [
+            f"Result truncated: {kept} of {original_count} rows returned "
+            f"(limit ~{max_bytes:,} bytes). {advice}"
+        ]
+        data["_truncation_notes"] = notes
+        if "row_count" in data:
+            data["row_count"] = kept
+        return notes
+
+    # Reserving headroom turned out not to be needed after all — no rows
+    # were actually dropped, so undo the placeholder metadata.
+    del data["_response_truncated"]
+    del data["_truncation_notes"]
+    return None
+
+
+def _truncate_chart_query_results(
+    data: Dict[str, Any], max_bytes: int, advice: str
+) -> list[str] | None:
+    """Apply one response-wide row cap to every result of a multi-query chart."""
+    query_results = data.get("query_results")
+    if not isinstance(query_results, list) or not query_results:
+        return None
+
+    row_lists = [data.get("data", [])]
+    row_lists.extend(
+        result.get("data", [])
+        for result in query_results
+        if isinstance(result, dict) and isinstance(result.get("data"), list)
+    )
+    originals = [list(rows) for rows in row_lists]
+    if not any(originals):
+        return None
+
+    original_count = sum(len(rows) for rows in originals[1:])
+    data["_response_truncated"] = True
+    data["_truncation_notes"] = [
+        f"Result truncated: {original_count} of {original_count} rows returned "
+        f"across multiple queries "
+        f"(limit ~{max_bytes:,} bytes). {advice}"
+    ]
+
+    lo, hi = 0, max(len(rows) for rows in originals)
+    while lo < hi:
+        cap = (lo + hi + 1) // 2
+        for rows, original in zip(row_lists, originals, strict=False):
+            rows[:] = original[:cap]
+        if get_response_size_bytes(data) <= max_bytes:
+            lo = cap
+        else:
+            hi = cap - 1
+
+    cap = max(lo, 1)
+    for rows, original in zip(row_lists, originals, strict=False):
+        rows[:] = original[:cap]
+    kept_count = sum(len(rows) for rows in row_lists[1:])
+    if kept_count >= original_count:
+        del data["_response_truncated"]
+        del data["_truncation_notes"]
+        return None
+
+    data["row_count"] = len(row_lists[0])
+    for result in query_results:
+        if isinstance(result, dict) and isinstance(result.get("data"), list):
+            result["row_count"] = len(result["data"])
+    data["_truncation_notes"] = [
+        f"Result truncated: {kept_count} of {original_count} rows returned "
+        f"across multiple queries (limit ~{max_bytes:,} bytes). {advice}"
+    ]
+    return data["_truncation_notes"]
+
+
+def _truncate_named_string_field(
+    data: Dict[str, Any],
+    field: str,
+    max_bytes: int,
+    advice: str,
+    label: str | None = None,
+    suffix_marker: str = "",
+) -> list[str] | None:
+    """Try to bisect a scalar string field down to fit the limit.
+
+    Used when there are no rows to trim and the payload lives in one named
+    string field instead — a CSV export's ``csv_data``, or a rendered-SQL
+    tool's ``sql`` field. Preserves as much of the field as fits rather than
+    cutting it to a fixed length, so a response that is only marginally over
+    budget keeps nearly all of its content.
+
+    Args:
+        label: Human-readable name for the field used in the note text
+            (defaults to ``field`` itself, e.g. ``"CSV content"`` reads
+            better than ``"Field 'csv_data'"``).
+        suffix_marker: In-band marker appended to the kept prefix. Needed
+            for fields whose truncated form is still *syntactically valid*
+            and so could be acted on unnoticed -- a SQL statement cut before
+            its WHERE/LIMIT clause still runs, just unfiltered and unbounded.
+
+    Returns the truncation notes on success, or ``None`` if nothing could
+    be trimmed, in which case ``data`` is left unmodified.
+    """
+    value = data.get(field)
+    if not isinstance(value, str) or not value:
+        return None
+
+    label = label or f"Field '{field}'"
+    original_len = len(value)
+    # Same reservation trick as ``_truncate_rows_field``, keyed on the
+    # character count rather than a row count.
+    placeholder_note = (
+        f"{label} truncated: kept {original_len:,} of {original_len:,} "
+        f"characters (limit ~{max_bytes:,} bytes). {advice}"
+    )
+
+    data["_response_truncated"] = True
+    data["_truncation_notes"] = [placeholder_note]
+
+    kept_len = _bisect_string_length(
+        data, field, value, max_bytes, suffix=suffix_marker
+    )
+    if kept_len < original_len:
+        notes = [
+            f"{label} truncated: kept {kept_len:,} of {original_len:,} "
+            f"characters (limit ~{max_bytes:,} bytes). {advice}"
+        ]
+        data["_truncation_notes"] = notes
+        return notes
+
+    del data["_response_truncated"]
+    del data["_truncation_notes"]
+    return None
+
+
+def truncate_query_result(
+    response: ToolResponse,
+    max_bytes: int,
+    tool_name: str | None = None,
+) -> tuple[ToolResponse, bool, list[str]]:
+    """Truncate a data-query tool response to fit within the byte limit.
+
+    Unlike ``truncate_oversized_response`` (which targets info-tool dict
+    fields), this function targets the rows/data list directly: it performs
+    a binary search to find the largest prefix of rows that keeps the
+    serialised payload under the limit, then records a truncation note so
+    the caller knows the result is partial.
+
+    Handles both dict responses and Pydantic models (e.g. ExecuteSqlResponse,
+    QueryDatasetResponse, GetChartDataResponse) that contain a ``rows`` or
+    ``data`` field. Note that summary/column-level statistics (e.g.
+    ``summary``, per-column ``null_count``/``unique_count``, ``insights``)
+    describe the pre-truncation dataset and are not recomputed here; callers
+    rely on ``_truncation_notes`` and the true ``total_rows`` to catch this.
+
+    Args:
+        response: The tool response containing tabular row data.
+        max_bytes: Maximum serialized response size in bytes.
+        tool_name: Name of the calling tool, used to tailor the truncation
+            advice (e.g. ``limit`` vs. ``row_limit`` vs. SQL ``LIMIT``).
+
+    Returns:
+        A tuple of (possibly-truncated response, was_truncated, list of notes).
+    """
+    advice = _ROW_LIMIT_ADVICE.get(tool_name or "", _DEFAULT_ROW_LIMIT_ADVICE)
+
+    if hasattr(response, "model_dump"):
+        data = response.model_dump()
+    elif isinstance(response, dict):
+        data = dict(response)
+    else:
+        return response, False, []
+
+    # Find which field holds the row list.
+    row_field: str | None = None
+    for field in _DATA_ROW_FIELDS:
+        if field in data and isinstance(data[field], list):
+            row_field = field
+            break
+
+    if row_field is None:
+        # No recognised row field — fall back to generic field truncation.
+        return truncate_oversized_response(response, max_bytes)
+
+    if get_response_size_bytes(data) <= max_bytes:
+        return data, False, []
+
+    notes = _truncate_chart_query_results(data, max_bytes, advice)
+    if notes is None:
+        notes = _truncate_rows_field(data, row_field, max_bytes, advice)
+    if notes is None:
+        notes = _truncate_named_string_field(
+            data,
+            "csv_data",
+            max_bytes,
+            advice,
+            label="CSV content",
+            suffix_marker=_STRING_FIELD_TRUNCATION_MARKERS.get("csv_data", ""),
+        )
+
+    return data, notes is not None, notes or []
+
+
+def truncate_string_field_response(
+    response: ToolResponse,
+    max_bytes: int,
+    field: str,
+) -> tuple[ToolResponse, bool, list[str]]:
+    """Truncate a response whose bulk is one string field with no size lever.
+
+    Used for tools like ``get_chart_sql`` where the oversized payload is
+    dominated by a single string (the rendered SQL) and there is no
+    ``limit``/``row_limit``/``page_size`` parameter the caller could add to
+    shrink it. Bisects that field to the largest prefix that keeps the
+    response under budget, preserving as much content as possible.
+
+    Args:
+        response: The tool response containing the oversized string field.
+        max_bytes: Maximum serialized response size in bytes.
+        field: Name of the string field to truncate.
+
+    Returns:
+        A tuple of (possibly-truncated response, was_truncated, list of notes).
+    """
+    if hasattr(response, "model_dump"):
+        data = response.model_dump()
+    elif isinstance(response, dict):
+        data = dict(response)
+    else:
+        return response, False, []
+
+    if get_response_size_bytes(data) <= max_bytes:
+        return data, False, []
+
+    advice = (
+        f"The '{field}' field has no size-reduction parameter to adjust; "
+        "it was truncated to fit the response size limit."
+    )
+    notes = _truncate_named_string_field(
+        data,
+        field,
+        max_bytes,
+        advice,
+        suffix_marker=_STRING_FIELD_TRUNCATION_MARKERS.get(field, ""),
+    )
+    return data, notes is not None, notes or []
+
+
+def format_size_limit_error(
+    tool_name: str,
+    params: Dict[str, Any] | None,
+    actual_bytes: int,
+    max_bytes: int,
+    response: ToolResponse | None = None,
+) -> str:
+    """
+    Format a user-friendly error message when response exceeds the byte limit.
+
+    Args:
+        tool_name: Name of the MCP tool
+        params: The tool parameters
+        actual_bytes: Actual size of the response in bytes
+        max_bytes: Configured byte limit
+        response: Optional response for analysis
+
+    Returns:
+        Formatted error message with suggestions
+    """
+    suggestions = generate_size_reduction_suggestions(
+        tool_name, params, actual_bytes, max_bytes, response
+    )
+
+    size_text = (
+        "size could not be measured"
+        if actual_bytes == UNMEASURABLE_RESPONSE_BYTES
+        else f"{actual_bytes:,} bytes"
+    )
+    error_lines = [
+        f"Response too large: {size_text} (limit: {max_bytes:,})",
+        "",
+        "This response would overwhelm the LLM context window.",
+        "Please modify your query to reduce the response size:",
+        "",
+    ]
+
+    for i, suggestion in enumerate(suggestions[:5], 1):  # Limit to top 5 suggestions
+        error_lines.append(f"{i}. {suggestion}")
+
+    reduction_pct = (
+        (actual_bytes - max_bytes) / actual_bytes * 100 if actual_bytes else 0
+    )
+    error_lines.extend(
+        [
+            "",
+            f"Tool: {tool_name}",
+            f"Reduction needed: ~{reduction_pct:.0f}%",
+        ]
+    )
+
+    return "\n".join(error_lines)

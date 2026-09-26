@@ -41,6 +41,12 @@ off are not reconstructed.
 
 ## Viewing history
 
+An unstamped starting version is labelled **Starting version**: older history
+cannot reliably distinguish an original creation from a retroactive baseline.
+Explicitly recorded baselines and imports retain their **Original version**
+and **Imported** labels. New tracked creations and clones are labelled
+**Created**; older unstamped history is not relabelled retroactively.
+
 On a chart, open **… (actions) → View version history** in Explore. A dashboard
 uses the same entry in its own **… (actions)** menu.
 
@@ -58,6 +64,9 @@ reached from a dashboard, a shared link, or a URL that picks the chart
 type, a first save can carry more of these automatic rewrites. It
 happens at most once per chart per upgrade, and later saves record only
 what the user changed.
+
+The open history panel refreshes after a successful save; you do not need to
+close and reopen it to see the new version.
 
 ## Previewing a version
 
@@ -104,6 +113,10 @@ from externally managed entities, whose source of truth lives outside Superset
 and would overwrite the restore on the next sync.
 
 ## Opening a version as something new
+
+Use the **… (actions)** menu on a save-group header to open that version as
+a new chart or dashboard. Individual field-change rows preview the version;
+they do not have separate action menus.
 
 **Open as new** creates a brand-new chart or dashboard from the selected
 version and leaves the original untouched. This is the safer option when you

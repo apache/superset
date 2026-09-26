@@ -219,12 +219,6 @@ async def test_authorized_caller_is_not_blocked_by_rbac_gate(
     Client wiring, etc.), this test would fail the same way instead of
     succeeding.
     """
-    import importlib
-
-    create_theme_module = importlib.import_module(
-        "superset.mcp_service.theme.tool.create_theme"
-    )
-
     mock_theme = MagicMock()
     mock_theme.id = 1
     mock_theme.uuid = "11111111-1111-1111-1111-111111111111"
@@ -236,7 +230,7 @@ async def test_authorized_caller_is_not_blocked_by_rbac_gate(
         mock_sm.can_access = MagicMock(return_value=True)
         with (
             patch("superset.mcp_service.auth.security_manager", mock_sm),
-            patch.object(create_theme_module.db.session, "commit"),
+            patch("superset.db.session.commit"),
             patch("superset.daos.theme.ThemeDAO.create", return_value=mock_theme),
         ):
             async with Client(mcp_server) as client:

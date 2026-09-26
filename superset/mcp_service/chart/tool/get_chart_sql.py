@@ -53,6 +53,11 @@ from superset.mcp_service.chart.schemas import (
 
 logger = logging.getLogger(__name__)
 
+_SEMANTIC_VIEW_SQL_UNSUPPORTED: str = (
+    "SQL is not available for semantic-layer charts; the query is "
+    "compiled by the semantic layer."
+)
+
 
 def _get_cached_form_data(form_data_key: str) -> str | None:
     """Retrieve form_data from cache using form_data_key.
@@ -498,6 +503,12 @@ async def _handle_chart_sql_request(
             error_type="NotFound",
         )
 
+    if chart.datasource_type == "semantic_view":
+        return ChartError(
+            error=_SEMANTIC_VIEW_SQL_UNSUPPORTED,
+            error_type="Unsupported",
+        )
+
     await ctx.info(
         "Chart found: chart_id=%s, chart_name=%s, viz_type=%s"
         % (chart.id, chart.slice_name, chart.viz_type)
@@ -533,16 +544,33 @@ async def _handle_chart_sql_request(
             )
 
         # Fallback: build query context from form_data
-        try:
-            return _sql_from_form_data(
-                effective_form_data, chart, request.extra_form_data
-            )
-        except (SupersetException, CommandException, ValueError) as e:
-            await ctx.warning("Failed to build SQL from form_data: %s" % str(e))
+        return await _sql_from_chart_form_data(
+            effective_form_data, chart, request.extra_form_data, ctx
+        )
+
+
+async def _sql_from_chart_form_data(
+    form_data: dict[str, Any],
+    chart: "Slice",
+    extra_form_data: dict[str, Any] | None,
+    ctx: Context,
+) -> ChartSql | ChartError:
+    """Build saved-chart fallback SQL with its existing error response mapping."""
+    try:
+        datasource_type: str
+        _, datasource_type = resolve_form_data_datasource(form_data, chart)
+        if datasource_type == "semantic_view":
             return ChartError(
-                error="Failed to generate SQL for chart %s: %s" % (chart.id, e),
-                error_type="QueryGenerationFailed",
+                error=_SEMANTIC_VIEW_SQL_UNSUPPORTED,
+                error_type="Unsupported",
             )
+        return _sql_from_form_data(form_data, chart, extra_form_data)
+    except (SupersetException, CommandException, ValueError) as e:
+        await ctx.warning("Failed to build SQL from form_data: %s" % str(e))
+        return ChartError(
+            error="Failed to generate SQL for chart %s: %s" % (chart.id, e),
+            error_type="QueryGenerationFailed",
+        )
 
 
 async def _handle_unsaved_chart_sql(
@@ -579,6 +607,13 @@ async def _handle_unsaved_chart_sql(
             )
 
         try:
+            datasource_type: str
+            _, datasource_type = resolve_form_data_datasource(form_data, chart=None)
+            if datasource_type == "semantic_view":
+                return ChartError(
+                    error=_SEMANTIC_VIEW_SQL_UNSUPPORTED,
+                    error_type="Unsupported",
+                )
             return _sql_from_form_data(
                 form_data, chart=None, extra_form_data=extra_form_data
             )

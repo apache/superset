@@ -41,10 +41,11 @@ from superset.commands.dataset.exceptions import (
     DatasetMetricsExistsValidationError,
     DatasetMetricsNotFoundValidationError,
     DatasetNotFoundError,
+    DatasetSoftDeletedTwinExistsError,
     DatasetUpdateFailedError,
     MultiCatalogDisabledValidationError,
 )
-from superset.commands.utils import compute_subjects
+from superset.commands.utils import compute_subjects, raise_if_managed_externally
 from superset.connectors.sqla.models import SqlaTable, validate_stored_expression
 from superset.daos.dataset import DatasetDAO
 from superset.datasets.schemas import FolderSchema
@@ -110,6 +111,8 @@ class UpdateDatasetCommand(UpdateMixin, BaseCommand):
         except SupersetSecurityException as ex:
             raise DatasetForbiddenError() from ex
 
+        raise_if_managed_externally(self._model, DatasetForbiddenError)
+
         # Validate/Populate editors
         compute_subjects(self._model, self._properties, exceptions)
 
@@ -149,6 +152,13 @@ class UpdateDatasetCommand(UpdateMixin, BaseCommand):
             table,
             self._model_id,
         ):
+            # Same hidden-twin guidance as the create path: when the blocking
+            # row is a SOFT-DELETED dataset, raise the targeted 422 naming
+            # the twin's uuid and the restore pointer instead of the opaque
+            # "already exists" (the twin is invisible in the caller's list).
+            soft_twin: SqlaTable | None
+            if soft_twin := DatasetDAO.find_soft_deleted_logical_duplicate(db, table):
+                raise DatasetSoftDeletedTwinExistsError(str(soft_twin.uuid))
             exceptions.append(DatasetExistsValidationError(table))
 
         # Repointing a physical dataset (or converting a virtual dataset to a

@@ -43,7 +43,6 @@ PATTERNS = {
     "python": [
         r"^\.github/workflows/.*python",
         r"^\.github/workflows/frontend-bundle-size-nightly\.yml$",
-        r"^\.github/workflows/scheduled-docker-image-refresh\.yml$",
         r"^docker-compose-image-tag\.yml$",
         r"^tests/",
         r"^superset/",

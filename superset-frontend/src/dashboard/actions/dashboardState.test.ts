@@ -465,13 +465,9 @@ describe('dashboardState actions', () => {
       );
     });
 
-    // The save-error toast mapping lives inline in `onError`, not behind
-    // `getErrorText`, so these exercise the thunk itself. A 403 whose body is
-    // the API's `{"message": "Forbidden"}` shape must surface the
-    // permission-denied copy, while a 403 from outside Superset (reverse proxy,
-    // WAF, SSO gateway) carries a non-JSON body and must fall back to the
-    // generic status-derived toast. See #42239.
-    test('maps a non-JSON 403 save failure to the generic error toast', async () => {
+    // Exercise the shared mapping through the thunk. Both Superset JSON errors
+    // and non-JSON proxy/WAF responses preserve the authoritative HTTP status.
+    test('maps a non-JSON 403 save failure to the permission toast', async () => {
       const { getState, dispatch } = setup();
       putStub.mockRestore();
       putStub = jest.spyOn(SupersetClient, 'put').mockRejectedValue(
@@ -494,7 +490,7 @@ describe('dashboardState actions', () => {
 
       await waitFor(() =>
         expect(findDangerToast(dispatch)?.payload.text).toBe(
-          'Sorry, there was an error saving this dashboard: Forbidden',
+          'You do not have permission to edit this dashboard',
         ),
       );
     });
@@ -1089,4 +1085,63 @@ describe('dashboardState actions', () => {
       expect(dispatch).not.toHaveBeenCalled();
     });
   });
+
+  test('savePublished shows the permission toast for a non-JSON 403', async () => {
+    const id = 123;
+    const { getState, dispatch } = setup({
+      dashboardInfo: { id, metadata: { color_scheme: 'supersetColors' } },
+    });
+    putStub.mockRejectedValue(
+      new Response('<html><body>Forbidden</body></html>', {
+        status: 403,
+        headers: { 'Content-Type': 'text/html' },
+      }),
+    );
+
+    await savePublished(id, true)(dispatch, getState);
+
+    expect(dispatch).toHaveBeenCalledTimes(1);
+    expect(dispatch.mock.calls[0][0]).toEqual(
+      expect.objectContaining({
+        type: ADD_TOAST,
+        payload: expect.objectContaining({
+          toastType: ToastType.Danger,
+          text: 'You do not have permissions to edit this dashboard.',
+        }),
+      }),
+    );
+  });
+
+  const permissionToast = 'You do not have permissions to edit this dashboard.';
+  test.each([
+    [
+      422,
+      { message: 'Dashboard could not be updated.' },
+      'Dashboard could not be updated.',
+    ],
+    [403, { message: 'Forbidden' }, permissionToast],
+    [500, {}, permissionToast],
+  ])(
+    'savePublished failing with %i %j shows "%s"',
+    async (status, body, text) => {
+      const id = 123;
+      const { getState, dispatch } = setup({
+        dashboardInfo: { id, metadata: { color_scheme: 'supersetColors' } },
+      });
+      putStub.mockRejectedValue(new Response(JSON.stringify(body), { status }));
+
+      await savePublished(id, true)(dispatch, getState);
+
+      expect(dispatch).toHaveBeenCalledTimes(1);
+      expect(dispatch.mock.calls[0][0]).toEqual(
+        expect.objectContaining({
+          type: ADD_TOAST,
+          payload: expect.objectContaining({
+            toastType: ToastType.Danger,
+            text,
+          }),
+        }),
+      );
+    },
+  );
 });

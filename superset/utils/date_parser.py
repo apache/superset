@@ -458,6 +458,38 @@ def handle_scope_and_unit(scope: str, delta: str, unit: str, relative_base: str)
         raise ValueError(f"Invalid scope: {scope}")
 
 
+# Shared by _shorthand_unit_pattern below and the "this|last|next|prior <unit>"
+# regex in get_since_until()'s time_range_lookup -- kept as one constant so the
+# two can't drift out of sync the way this alternation once did (it was missing
+# "hour" in one of the two, which is what caused this file's sub-day bug).
+_RELATIVE_UNIT_PATTERN = r"(second|minute|hour|day|week|month|quarter|year)"
+
+_shorthand_unit_pattern = re.compile(
+    r"^(?:Last|Next)\s{1,5}(?:[0-9]+\s{0,5})?" + _RELATIVE_UNIT_PATTERN + r"s?$",
+    re.IGNORECASE,
+)
+
+
+def get_default_bound_for_shorthand(time_range: str) -> str:
+    """
+    Determines the default anchor (`now` or `today`) for the bound not covered by
+    a separator-less "Last <unit>" / "Next <unit>" `time_range` shorthand, matching
+    the anchor `get_relative_base` picks for the unit that *is* covered.
+
+    Without this, a sub-day unit (second/minute/hour) paired an unconditional
+    "today" (midnight) against a "now"-anchored other bound, so "Last hour" and
+    similar resolved to since > until whenever evaluated after local midnight.
+
+    Args:
+        time_range (str): The separator-less shorthand, e.g. "Last hour".
+
+    Returns:
+        str: `now` for a granular unit (second/minute/hour), `today` otherwise.
+    """
+    match = _shorthand_unit_pattern.match(time_range)
+    return get_relative_base(match.group(1)) if match else "today"
+
+
 def get_since_until(  # pylint: disable=too-many-arguments,too-many-locals,too-many-branches,too-many-statements  # noqa: C901
     time_range: str | None = None,
     since: str | None = None,
@@ -492,17 +524,18 @@ def get_since_until(  # pylint: disable=too-many-arguments,too-many-locals,too-m
 
     """
     separator = " : "
-    _relative_start = relative_start if relative_start else "today"
     _relative_end = relative_end if relative_end else "today"
 
     if time_range == NO_TIME_RANGE or time_range == _(NO_TIME_RANGE):
         return None, None
 
     if time_range and time_range.startswith("Last") and separator not in time_range:
-        time_range = time_range + separator + _relative_end
+        _end = relative_end or get_default_bound_for_shorthand(time_range)
+        time_range = time_range + separator + _end
 
     if time_range and time_range.startswith("Next") and separator not in time_range:
-        time_range = _relative_start + separator + time_range
+        _start = relative_start or get_default_bound_for_shorthand(time_range)
+        time_range = _start + separator + time_range
 
     if (
         time_range
@@ -620,7 +653,8 @@ def get_since_until(  # pylint: disable=too-many-arguments,too-many-locals,too-m
             (
                 r"^(this|last|next|prior)\s{1,5}"
                 r"([0-9]+)?\s{0,5}"
-                r"(second|minute|day|week|month|quarter|year)s?$",  # Matches "next 5 days" or "last 2 weeks" # noqa: E501
+                + _RELATIVE_UNIT_PATTERN
+                + r"s?$",  # Matches "next 5 days" or "last 2 weeks" # noqa: E501
                 lambda scope, delta, unit: handle_scope_and_unit(
                     scope, delta, unit, get_relative_base(unit, relative_start)
                 ),

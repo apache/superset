@@ -28,6 +28,7 @@ from superset.commands.dataset.exceptions import (
     DatasetNotFoundError,
     DatasetRefreshFailedError,
 )
+from superset.commands.utils import raise_if_managed_externally
 from superset.connectors.sqla.models import SqlaTable
 from superset.daos.dataset import DatasetDAO
 from superset.datasets.datetime_format_detector import DatetimeFormatDetector
@@ -93,3 +94,8 @@ class RefreshDatasetCommand(BaseCommand):
             security_manager.raise_for_editorship(self._model)
         except SupersetSecurityException as ex:
             raise DatasetForbiddenError() from ex
+
+        # Refresh persists fetched column metadata onto the dataset; an
+        # externally managed dataset's columns are owned by the external
+        # sync, which would overwrite (or fight) the refresh.
+        raise_if_managed_externally(self._model, DatasetForbiddenError)

@@ -17,7 +17,7 @@
 from typing import Any, Optional, Union
 from urllib.parse import urlparse
 
-from marshmallow import validate, ValidationError
+from marshmallow import fields, pre_load, Schema, validate, ValidationError
 
 from superset.utils import json
 
@@ -83,3 +83,27 @@ def validate_external_url(value: Optional[str]) -> None:
         )
     if not parsed.netloc:
         raise ValidationError("URL must be absolute and include a host.")
+
+
+class DiscardIsManagedExternallyMixin(Schema):
+    """Accept and discard ``is_managed_externally`` for wire compatibility.
+
+    The flag is not client-writable: the managed-externally update gate
+    refuses edits of flagged entities, so a client-set ``True`` would be
+    irreversible via the API. Older clients echo GET payloads back on
+    PUT, and the PUT schemas raise on unknown fields, so the key is
+    dropped here rather than removed from the accepted payload. Shared by
+    the chart, dashboard, and dataset PUT schemas so the discard
+    semantics cannot drift between entities.
+    """
+
+    # pylint: disable=unused-argument
+    @pre_load
+    def _discard_is_managed_externally(
+        self, data: dict[str, Any], **kwargs: Any
+    ) -> dict[str, Any]:
+        if isinstance(data, dict):
+            data.pop("is_managed_externally", None)
+        return data
+
+    is_managed_externally = fields.Boolean(allow_none=True, dump_default=False)

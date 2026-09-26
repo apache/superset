@@ -69,7 +69,7 @@ def test_refresh_swallows_virtual_table_parse_exception(
     SQL that cannot be validated at save time. See #38012.
     """
     mock_dataset_dao = mocker.patch("superset.commands.dataset.refresh.DatasetDAO")
-    mock_model = mocker.MagicMock()
+    mock_model = mocker.MagicMock(is_managed_externally=False)
     mock_model.table_name = "jinja_dataset"
     mock_model.fetch_metadata.side_effect = SupersetVirtualTableParseException(
         message="Invalid SQL: unexpected token"
@@ -101,7 +101,7 @@ def test_refresh_still_raises_generic_db_error(mocker: MockerFixture) -> None:
     the refresh command must NOT silence these — even when the same
     dataset also contains Jinja markers. See #38012."""
     mock_dataset_dao = mocker.patch("superset.commands.dataset.refresh.DatasetDAO")
-    mock_model = mocker.MagicMock()
+    mock_model = mocker.MagicMock(is_managed_externally=False)
     mock_model.table_name = "jinja_dataset_with_bad_connection"
     mock_model.sql = (
         "SELECT * FROM foo {% if from_dttm %}WHERE ds > '{{ from_dttm }}'{% endif %}"
@@ -129,7 +129,7 @@ def test_refresh_still_raises_on_security_exception(
     refresh path must not become a bypass for security checks. See #38012.
     """
     mock_dataset_dao = mocker.patch("superset.commands.dataset.refresh.DatasetDAO")
-    mock_model = mocker.MagicMock()
+    mock_model = mocker.MagicMock(is_managed_externally=False)
     mock_model.table_name = "restricted_dataset"
     mock_model.fetch_metadata.side_effect = SupersetSecurityException(
         SupersetError(
@@ -170,7 +170,9 @@ def test_refresh_dataset_not_found(mocker: MockerFixture) -> None:
 def test_refresh_forbidden(mocker: MockerFixture) -> None:
     """Sanity check that the pre-existing forbidden path still works."""
     mock_dataset_dao = mocker.patch("superset.commands.dataset.refresh.DatasetDAO")
-    mock_dataset_dao.find_by_id.return_value = mocker.MagicMock()
+    mock_dataset_dao.find_by_id.return_value = mocker.MagicMock(
+        is_managed_externally=False
+    )
     mocker.patch(
         "superset.commands.dataset.refresh.security_manager.raise_for_editorship",
         side_effect=SupersetSecurityException(

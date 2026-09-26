@@ -161,6 +161,29 @@ export async function apiGetDashboard(
 }
 
 /**
+ * GET request to resolve a native-filter `filter_state` key for a dashboard.
+ * The key is the `native_filters_key` URL param the filter bar publishes; a
+ * 200 response carries `{ value: string }`, the serialized data mask.
+ * @param page - Playwright page instance (provides authentication context)
+ * @param dashboardId - ID of the dashboard the key belongs to
+ * @param key - filter_state key to resolve
+ * @param options - Optional request options
+ * @returns API response with the stored filter state
+ */
+export async function apiGetDashboardFilterState(
+  page: Page,
+  dashboardId: number,
+  key: string,
+  options?: ApiRequestOptions,
+): Promise<APIResponse> {
+  return apiGet(
+    page,
+    `${ENDPOINTS.DASHBOARD}${dashboardId}/filter_state/${key}`,
+    options,
+  );
+}
+
+/**
  * DELETE request to remove a dashboard
  * @param page - Playwright page instance (provides authentication context)
  * @param dashboardId - ID of the dashboard to delete
