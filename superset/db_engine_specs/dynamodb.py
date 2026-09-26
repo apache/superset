@@ -14,6 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import re
 from datetime import datetime
 from typing import Any, Optional
 
@@ -21,6 +22,7 @@ from sqlalchemy import types
 
 from superset.constants import TimeGrain
 from superset.db_engine_specs.base import BaseEngineSpec, DatabaseCategory
+from superset.utils.core import GenericDataType
 
 
 class DynamoDBEngineSpec(BaseEngineSpec):
@@ -51,6 +53,20 @@ class DynamoDBEngineSpec(BaseEngineSpec):
         "notes": "Uses PartiQL for SQL queries. Requires connector=superset parameter.",
         "docs_url": "https://github.com/passren/PyDynamoDB",
     }
+
+    # The PyDynamoDB dialect omits top-level column aliases (PartiQL has none),
+    # so an ORDER BY on a SELECT alias (e.g. a metric label) names a column that
+    # does not exist. Order by the expression instead.
+    allows_alias_in_orderby = False
+
+    # PyDynamoDB describes DynamoDB numbers as NUMBER.
+    column_type_mappings = (
+        (
+            re.compile(r"^NUMBER$", re.IGNORECASE),
+            types.Numeric(),
+            GenericDataType.NUMERIC,
+        ),
+    )
 
     _time_grain_expressions = {
         None: "{col}",
