@@ -137,6 +137,7 @@ export interface TestControl {
     default?: unknown;
     options?: unknown;
     validators?: unknown;
+    renderTrigger?: boolean;
     visibility: (props: ControlPanelsContainerProps) => boolean;
   };
 }
