@@ -1,5 +1,5 @@
 {
-  "name": "docs-v-2",
+  "name": "docs",
   "version": "0.0.0",
   "private": true,
   "license": "Apache-2.0",
@@ -56,14 +56,10 @@
     "@fontsource/fira-code": "^5.3.0",
     "@fontsource/ibm-plex-mono": "^5.3.0",
     "@fontsource/inter": "^5.3.0",
-    "@mdx-js/react": "^3.1.1",
-    "@saucelabs/theme-github-codeblock": "^0.3.0",
     "@storybook/addon-docs": "^10.6.0",
     "@superset-ui/core": "^0.20.4",
     "@swc/core": "^1.16.2",
     "antd": "^6.6.4",
-    "baseline-browser-mapping": "^2.11.25",
-    "caniuse-lite": "^1.0.30001810",
     "docusaurus-plugin-openapi-docs": "^5.2.0",
     "docusaurus-theme-openapi-docs": "^5.2.0",
     "js-yaml": "^5.4.2",
@@ -76,11 +72,9 @@
     "react-svg-pan-zoom": "^3.13.1",
     "react-table": "^7.8.0",
     "remark-import-partial": "^0.0.2",
-    "reselect": "^5.3.0",
     "storybook": "^10.6.0",
     "swagger-ui-react": "^5.33.0",
     "swc-loader": "^0.2.7",
-    "tinycolor2": "^1.4.2",
     "unist-util-visit": "^5.1.0"
   },
   "devDependencies": {
@@ -108,7 +102,6 @@
   "resolutions": {
     "react-redux": "^9.2.0",
     "@reduxjs/toolkit": "^2.5.0",
-    "baseline-browser-mapping": "^2.9.19",
     "lodash": "4.18.1",
     "lodash-es": "4.18.1",
     "yaml": "1.10.3",

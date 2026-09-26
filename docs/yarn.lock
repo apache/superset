@@ -2764,7 +2764,7 @@
     unist-util-visit "^5.0.0"
     vfile "^6.0.0"
 
-"@mdx-js/react@^3.0.0", "@mdx-js/react@^3.1.1":
+"@mdx-js/react@^3.0.0":
   version "3.1.1"
   resolved "https://registry.yarnpkg.com/@mdx-js/react/-/react-3.1.1.tgz#24bda7fffceb2fe256f954482123cda1be5f5fef"
   integrity sha512-f++rKLQgUVYDAtECQ6fn/is15GkEH9+nZPM3MS0RcxVqoTfawHvDlSCH7JbMhAM6uJ32v3eXLvLmLvjGu7PTQw==
@@ -4088,11 +4088,6 @@
   version "1.1.0"
   resolved "https://registry.yarnpkg.com/@rspack/lite-tapable/-/lite-tapable-1.1.0.tgz#3cfdafeed01078e116bd4f191b684c8b484de425"
   integrity sha512-E2B0JhYFmVAwdDiG14+DW0Di4Ze4Jg10Pc4/lILUrd5DRCaklduz2OvJ5HYQ6G+hd+WTzqQb3QnDNfK4yvAFYw==
-
-"@saucelabs/theme-github-codeblock@^0.3.0":
-  version "0.3.0"
-  resolved "https://registry.yarnpkg.com/@saucelabs/theme-github-codeblock/-/theme-github-codeblock-0.3.0.tgz#7936bc6aa97a15f2483ac143df4918c8d2baf5f0"
-  integrity sha512-+8xWxBfN+I8StJ0QXERMbGf+BHwRXHWV3mFl9uDayXERiZ/rR93d0nAS3s9s/rKjqh/YSm/4dThEkBNBLnGs4Q==
 
 "@scarf/scarf@=1.4.0":
   version "1.4.0"
@@ -6435,7 +6430,7 @@ base64-js@^1.3.1, base64-js@^1.5.1:
   resolved "https://registry.yarnpkg.com/base64-js/-/base64-js-1.5.1.tgz#1b1b440160a5bf7ad40b650f095963481903930a"
   integrity sha512-AKpaYlHn8t4SVbOHCy+b5+KKgvR4vrsD8vbvrbiQJps7fKDTkjkDry6ji0rUJjC0kzbNePLwzxq8iypo41qeWA==
 
-baseline-browser-mapping@^2.11.12, baseline-browser-mapping@^2.11.25, baseline-browser-mapping@^2.9.19:
+baseline-browser-mapping@^2.11.12:
   version "2.11.25"
   resolved "https://registry.yarnpkg.com/baseline-browser-mapping/-/baseline-browser-mapping-2.11.25.tgz#88b942ce372bdf2d6a2652136bbf7826c65c77be"
   integrity sha512-gMmEShwwq7FJqMwvfRwvCl00v4kN+KOfJqXn+f4nrufak5gNHJOksd/60Dvjuz7sI8Y5WiSFBa8FEYr+zoyqCw==
@@ -6669,7 +6664,7 @@ caniuse-api@^3.0.0:
     lodash.memoize "^4.1.2"
     lodash.uniq "^4.5.0"
 
-caniuse-lite@^1.0.0, caniuse-lite@^1.0.30001799, caniuse-lite@^1.0.30001809, caniuse-lite@^1.0.30001810:
+caniuse-lite@^1.0.0, caniuse-lite@^1.0.30001799, caniuse-lite@^1.0.30001809:
   version "1.0.30001810"
   resolved "https://registry.yarnpkg.com/caniuse-lite/-/caniuse-lite-1.0.30001810.tgz#4970b477dea3278374de9bc43aa8f5d39fc3cda2"
   integrity sha512-TITQPUkaz+aVk5GL6NhOdwk1aEaNTSDPsGFWrTuhKGtjTF70jL/Oht2W4c6rXUe5fu7Ie19VIahAXHIIiWWNeg==
@@ -13314,7 +13309,7 @@ reselect@^4.0.0:
   resolved "https://registry.yarnpkg.com/reselect/-/reselect-4.1.8.tgz#3f5dc671ea168dccdeb3e141236f69f02eaec524"
   integrity sha512-ab9EmR80F/zQTMNeneUr4cv+jSwPJgIlvEmVwLerwrWVbpLlBuls9XHzIeTFy4cegU2NHBp3va0LKOzU5qFEYQ==
 
-reselect@^5.1.0, reselect@^5.1.1, reselect@^5.3.0:
+reselect@^5.1.0, reselect@^5.1.1:
   version "5.3.0"
   resolved "https://registry.yarnpkg.com/reselect/-/reselect-5.3.0.tgz#0a3e3ed4436bdf2ab7c5e0f392dab2c062595d61"
   integrity sha512-XGoLeRAVzUTcJ1qkxPQhDJyIZ5d6zzZD9nT7AEZOaaU9UbWclhycElmhO+VD5bFeLuzhPBaOV2oXC8uG35ZSpg==
@@ -14328,11 +14323,6 @@ tiny-warning@^1.0.0:
   version "1.0.3"
   resolved "https://registry.yarnpkg.com/tiny-warning/-/tiny-warning-1.0.3.tgz#94a30db453df4c643d0fd566060d60a875d84754"
   integrity sha512-lBN9zLN/oAf68o3zNXYrdCt1kP8WsiGW8Oo2ka41b2IM5JL/S1CTyX1rW0mb/zSuJun0ZUrDxx4sqvYS2FWzPA==
-
-tinycolor2@^1.4.2:
-  version "1.6.0"
-  resolved "https://registry.yarnpkg.com/tinycolor2/-/tinycolor2-1.6.0.tgz#f98007460169b0263b97072c5ae92484ce02d09e"
-  integrity sha512-XPaBkWQJdsf3pLKJV9p4qN/S+fm2Oj8AIPo1BTUhg5oxkvm9+SVEGFdhyOz7tTdUTfvxMiAs4sp6/eZO2Ew+pw==
 
 tinyexec@^1.0.1:
   version "1.2.4"
