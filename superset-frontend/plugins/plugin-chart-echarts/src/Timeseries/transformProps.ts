@@ -311,6 +311,44 @@ function getMaxStackedValueByStack(
   return max;
 }
 
+// A plain integer (optionally signed) is only exactly representable as a JS
+// number up to Number.MAX_SAFE_INTEGER (2^53 - 1); beyond that, Number()
+// can silently collapse distinct values to the same float, e.g.
+// "9007199254740993" and "9007199254740992" - so naturalCompare below
+// switches such pairs to BigInt comparison instead.
+const INTEGER_LIKE = /^-?\d+$/;
+
+// ----- natural sort helper -----
+// Try numeric comparison first for numeric-like strings, fallback to localeCompare.
+function naturalCompare(a: any, b: any): number {
+  const sa = a === undefined || a === null ? '' : String(a);
+  const sb = b === undefined || b === null ? '' : String(b);
+
+  // Handle empty strings explicitly so they are not treated as 0
+  if (sa === '' && sb === '') return 0;
+  if (sa === '') return -1;
+  if (sb === '') return 1;
+
+  if (INTEGER_LIKE.test(sa) && INTEGER_LIKE.test(sb)) {
+    const ba = BigInt(sa);
+    const bb = BigInt(sb);
+    if (ba < bb) return -1;
+    if (ba > bb) return 1;
+    return 0;
+  }
+
+  const na = Number(sa);
+  const nb = Number(sb);
+
+  // If both parse as finite numbers, do numeric sort
+  if (isFinite(na) && isFinite(nb)) {
+    return na - nb;
+  }
+
+  // Otherwise fallback to lexicographic
+  return sa.localeCompare(sb);
+}
+
 export default function transformProps(
   chartProps: EchartsTimeseriesChartProps,
 ): TimeseriesChartTransformedProps {
@@ -454,12 +492,43 @@ export default function transformProps(
   const rebasePercentChange = Boolean(
     (formData as { rebasePercentChange?: boolean }).rebasePercentChange,
   );
-  const rebasedData = rebasePercentChange
+  const unsortedRebasedData = rebasePercentChange
     ? // the same temporal-alias fallback extractSeries applies, so a chart
       // with no explicit x-axis cannot have its x column rebased as data
       rebaseToPercentChange(forecastRebasedData, xAxisLabel || DTTM_ALIAS)
     : forecastRebasedData;
   const isHorizontal = orientation === OrientationType.Horizontal;
+  const xAxisDataType = dataTypes?.[xAxisLabel] ?? dataTypes?.[xAxisOrig];
+  const xAxisType = getAxisType(
+    stack,
+    xAxisForceCategorical,
+    xAxisDataType,
+    seriesType,
+  );
+  // A category axis renders points in data-array order, not by sorted
+  // x-value: the backend can return string (and numeric-like-string, e.g.
+  // "202401") dimensions in an arbitrary order, which drew line segments
+  // that jumped between non-adjacent categories (#35853). Natural-sorting
+  // here, before extractSeries builds any per-series data, is the single
+  // point of truth for every consumer downstream (series data in every
+  // shape extractSeries/transformSeries can produce, stacked totals, the
+  // legend) rather than re-sorting each series' already-shaped data
+  // separately later. Time axes are unaffected: they already carry a
+  // meaningful numeric order and getAxisType never returns Category for
+  // them.
+  // Bar is excluded: discrete bars have no line-connection artifact to fix,
+  // and Bar's category order is already a deliberate, source-preserving
+  // contract independent of legend display sorting (see "should preserve
+  // source order for color-by-primary-axis legends when label sorting is
+  // enabled" in Bar/transformProps.test.ts) - forcing a natural sort here
+  // would silently override that.
+  const rebasedData =
+    xAxisType === AxisType.Category &&
+    seriesType !== EchartsTimeseriesSeriesType.Bar
+      ? [...unsortedRebasedData].sort((row1, row2) =>
+          naturalCompare(row1[xAxisLabel], row2[xAxisLabel]),
+        )
+      : unsortedRebasedData;
   // rebasedData's keys have already been through rebaseForecastDatum, which
   // renames a key to its verboseMap entry when one is configured for that
   // metric. extraMetricLabels must be mapped the same way, or a sort-only
@@ -480,13 +549,6 @@ export default function transformProps(
   );
 
   const isMultiSeries = groupBy.length || metrics?.length > 1;
-  const xAxisDataType = dataTypes?.[xAxisLabel] ?? dataTypes?.[xAxisOrig];
-  const xAxisType = getAxisType(
-    stack,
-    xAxisForceCategorical,
-    xAxisDataType,
-    seriesType,
-  );
 
   const [allRawSeries, sortedTotalValues, minPositiveValue] = extractSeries(
     rebasedData,
@@ -860,7 +922,7 @@ export default function transformProps(
       colorScaleKey,
       {
         area,
-        connectNulls: derivedSeries || timeCompareFullRange,
+        connectNulls: Boolean(derivedSeries || timeCompareFullRange),
         filterState,
         seriesContexts,
         markerEnabled,
@@ -877,7 +939,7 @@ export default function transformProps(
               metrics,
               labelMap?.[seriesName]?.[0],
             ) ?? defaultFormatter),
-        showValue,
+        showValue: Boolean(showValue),
         valueLabelPosition: resolvedValueLabelPosition,
         onlyTotal,
         totalStackedValues: sortedTotalValues,
@@ -1203,12 +1265,29 @@ export default function transformProps(
     xAxisDataType === GenericDataType.Temporal
       ? getTooltipTimeFormatter(tooltipTimeFormat, resolvedTimeGrain)
       : String;
-  const xAxisFormatter =
-    xAxisDataType === GenericDataType.Temporal
-      ? getXAxisFormatter(xAxisTimeFormat, resolvedTimeGrain)
-      : xAxisDataType === GenericDataType.Numeric
-        ? getNumberFormatter(xAxisNumberFormat)
-        : String;
+  // For temporal x-axis, keep the existing time formatter behavior.
+  // For numeric x-axis use a number formatter. Default to SMART_NUMBER if none set.
+  let xAxisFormatter:
+    | ((...args: any[]) => string)
+    | StringConstructor
+    | undefined;
+
+  if (xAxisDataType === GenericDataType.Temporal) {
+    xAxisFormatter = getXAxisFormatter(xAxisTimeFormat, resolvedTimeGrain);
+  } else if (xAxisDataType === GenericDataType.Numeric) {
+    // use provided xAxisNumberFormat, fall back to SMART_NUMBER. Every
+    // NumberFormatter (registered or freshly created by getNumberFormatter)
+    // already carries a non-empty .id from its own constructor - it's a
+    // required config field there - so there's nothing to backfill, and
+    // this must never assign onto it: registered formats like SMART_NUMBER
+    // are shared singletons cached in the registry, reused by every other
+    // chart requesting that same format.
+    xAxisFormatter = getNumberFormatter(
+      xAxisNumberFormat ?? NumberFormats.SMART_NUMBER,
+    );
+  } else {
+    xAxisFormatter = String;
+  }
 
   const {
     setDataMask = () => {},
