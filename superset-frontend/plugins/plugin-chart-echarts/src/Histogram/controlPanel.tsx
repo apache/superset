@@ -165,6 +165,20 @@ const config: ControlPanelConfig = {
             },
           },
         ],
+        [
+          {
+            name: 'y_axis_log_scale',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Y Axis Log Scale'),
+              renderTrigger: true,
+              default: false,
+              description: t(
+                'Use a logarithmic scale for the Y axis (frequency/count values).',
+              ),
+            },
+          },
+        ],
       ],
     },
   ],
