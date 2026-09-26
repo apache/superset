@@ -24,7 +24,7 @@ from typing import Any, Dict, List
 from flask import g
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from sqlalchemy import or_, select
-from sqlalchemy.orm import Query
+from sqlalchemy.orm import lazyload, Query, selectinload
 
 from superset import security_manager
 from superset.commands.dashboard.exceptions import (
@@ -40,7 +40,12 @@ from superset.dashboards.layout import repair_position
 from superset.exceptions import SupersetSecurityException
 from superset.extensions import db
 from superset.models.core import FavStar, FavStarClassName
-from superset.models.dashboard import Dashboard, id_or_slug_filter, is_uuid
+from superset.models.dashboard import (
+    Dashboard,
+    dashboard_slices,
+    id_or_slug_filter,
+    is_uuid,
+)
 from superset.models.embedded_dashboard import EmbeddedDashboard
 from superset.models.helpers import skip_visibility_filter
 from superset.models.slice import Slice
@@ -205,6 +210,37 @@ class DashboardDAO(BaseDAO[Dashboard]):
         return dashboard
 
     @staticmethod
+    def prefetch_chart_access(dashboard: Dashboard) -> None:
+        """
+        Load the editors and viewers of a dashboard's charts up front.
+
+        The per-chart access check reads both on every slice, so without this
+        they are two lazy loads per chart rather than two queries in total.
+        """
+        if security_manager.is_admin():
+            # is_editor and is_viewer both answer True for an admin before they
+            # read either relationship, so there is nothing to prefetch and the
+            # access check stays at zero queries.
+            return
+
+        db.session.query(Slice).options(
+            # The rows are already in the session, we only want the two
+            # relationships, so don't re-fire the model's own eager loads.
+            lazyload("*"),
+            selectinload(Slice.editors),
+            selectinload(Slice.viewers),
+        ).filter(
+            # Select the ids through the association table instead of binding
+            # one parameter per chart -- a dashboard with enough charts would
+            # otherwise run past SQLite's 999-variable floor.
+            Slice.id.in_(
+                select(dashboard_slices.c.slice_id).where(
+                    dashboard_slices.c.dashboard_id == dashboard.id
+                )
+            )
+        ).all()
+
+    @staticmethod
     def get_datasets_for_dashboard(id_or_slug: str) -> list[tuple[Any, dict[str, Any]]]:
         dashboard = DashboardDAO.get_by_id_or_slug(id_or_slug)
         return dashboard.datasets_trimmed_for_slices()
@@ -216,7 +252,16 @@ class DashboardDAO(BaseDAO[Dashboard]):
 
     @staticmethod
     def get_charts_for_dashboard(id_or_slug: str) -> list[Slice]:
-        return DashboardDAO.get_by_id_or_slug(id_or_slug).slices
+        dashboard = DashboardDAO.get_by_id_or_slug(id_or_slug)
+        # Materialise the chart collection before prefetching, and return this
+        # same list. The prefetch loads editors/viewers onto these instances;
+        # without a strong reference the weak identity map can discard them, so
+        # a later read of dashboard.slices would reload the charts with those
+        # relationships unloaded again and pay the per-chart queries we avoid.
+        charts = dashboard.slices
+        # The caller narrows each chart by access, which reads these.
+        DashboardDAO.prefetch_chart_access(dashboard)
+        return charts
 
     @staticmethod
     def get_dashboard_changed_on(id_or_slug_or_dashboard: str | Dashboard) -> datetime:
