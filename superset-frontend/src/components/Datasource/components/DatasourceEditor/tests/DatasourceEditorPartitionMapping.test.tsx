@@ -96,6 +96,9 @@ test('removing the mapping does not leave the default datetime column mirroring'
   const props = createProps();
   props.datasource.main_dttm_col = 'ds';
   props.datasource.partition_column = 'num';
+  // The editor offers partition mapping only on an engine that advertises it,
+  // so the fixture has to say the engine does.
+  props.datasource.supports_partition_filter_mapping = true;
   props.datasource.partition_mapped_column = 'state';
   const seeded = props.datasource.columns as EditorColumn[];
   columnNamed(seeded, 'ds')!.partition_value_transform =
@@ -117,7 +120,10 @@ test('removing the mapping does not leave the default datetime column mirroring'
     'state',
   );
   await userEvent.click((await screen.findAllByLabelText(/expand row/i))[0]);
-  await userEvent.click(await screen.findByText('Remove mapping'));
+  // By its test id, not its label: the mapping here is an explicit override on
+  // a dataset that has a default datetime column, so the action reads "Reset to
+  // default datetime column". Same handler either way.
+  await userEvent.click(await screen.findByTestId('remove-partition-mapping'));
 
   // Nothing mirrors any more, and the panel says so rather than quietly
   // re-pointing at `ds`.
@@ -139,15 +145,14 @@ test('removing the mapping does not leave the default datetime column mirroring'
   });
 });
 
-test('re-pointing the default datetime column leaves the value transform behind', async () => {
+test('re-pointing the default datetime column takes the mapping with it', async () => {
   // With no override the mapped column *is* `main_dttm_col`, so the mapping
-  // moves either way. The transform does not travel with it: it was written
-  // about the old column, and asserting it on a new one mirrors an expression
-  // nobody checked there. It must not stay behind on the old column either --
-  // invisible but saved, and ready to go live again.
+  // moves either way. What must not happen is the transform staying behind on
+  // the old column, invisible but saved and ready to go live again.
   const props = createProps();
   props.datasource.main_dttm_col = 'ds';
   props.datasource.partition_column = 'num';
+  props.datasource.supports_partition_filter_mapping = true;
   props.datasource.partition_mapped_column = null;
   const seeded = props.datasource.columns as EditorColumn[];
   columnNamed(seeded, 'ds')!.partition_value_transform =
@@ -173,21 +178,20 @@ test('re-pointing the default datetime column leaves the value transform behind'
 
   await waitFor(() => {
     const columns = lastSavedColumns(props);
-    // The new default never held a mapping, so it is handed back untouched --
-    // which is the same thing as holding no transform.
-    const arrived = columnNamed(columns, 'ingest_time');
-    expect(arrived?.partition_value_transform ?? null).toBeNull();
-    expect(arrived?.partition_transform_is_monotonic ?? false).toBe(false);
+    expect(columnNamed(columns, 'ingest_time')).toMatchObject({
+      partition_value_transform: 'unix_timestamp(:value)',
+      partition_transform_is_monotonic: true,
+    });
     expect(columnNamed(columns, 'ds')).toMatchObject({
       partition_value_transform: null,
       partition_transform_is_monotonic: false,
     });
   });
 
-  // The mapping is designated but inert, and the editor says so rather than
-  // promising a mirror it is not performing.
   expect(
-    await screen.findByText(/No value transform is set on ingest_time/),
+    await screen.findByText(
+      /Filters on ingest_time will automatically apply an equivalent filter to num/,
+    ),
   ).toBeInTheDocument();
 });
 
@@ -199,6 +203,7 @@ test('the mapping will not follow the default datetime column onto a calculated 
   const props = createProps();
   props.datasource.main_dttm_col = 'ds';
   props.datasource.partition_column = 'num';
+  props.datasource.supports_partition_filter_mapping = true;
   props.datasource.partition_mapped_column = null;
   const seeded = props.datasource.columns as EditorColumn[];
   columnNamed(seeded, 'ds')!.partition_value_transform =
