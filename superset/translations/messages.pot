@@ -7960,9 +7960,6 @@ msgstr ""
 msgid "Invalid time range boundary for resample: %(value)s"
 msgstr ""
 
-msgid "Invalid username or password"
-msgstr ""
-
 msgid "Inverse"
 msgstr ""
 
