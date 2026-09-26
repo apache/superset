@@ -16,7 +16,7 @@
 # under the License.
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import Any, TYPE_CHECKING
 
 if TYPE_CHECKING:
     from flask_appbuilder.security.sqla.models import Group, Role, User
@@ -26,7 +26,13 @@ from flask import has_app_context
 from sqlalchemy import select, union_all
 
 from superset import db
-from superset.subjects.models import Subject
+from superset.models.dashboard import Dashboard, dashboard_slices
+from superset.models.slice import Slice
+from superset.subjects.models import (
+    dashboard_editors,
+    dashboard_viewers,
+    Subject,
+)
 from superset.subjects.types import SubjectType
 
 
@@ -78,6 +84,55 @@ def get_user_subject_ids_subquery(user_id: int) -> CompoundSelect:
     )
 
     return union_all(user_subj, role_subj, group_subj, group_role_subj)
+
+
+def get_inherited_slice_ids_subquery(user_id: int) -> CompoundSelect:
+    """Return a Select of Slice IDs a user inherits access to via a dashboard.
+
+    An editor or viewer of a dashboard inherits access to every chart on it.
+    This expresses the promiscuous ``ENABLE_VIEWERS`` inheritance as SQL so it
+    can back both per-object access checks and (composed opt-in) list filters.
+    The feature-flag gate is the caller's responsibility — this builder is pure
+    and never executed here.
+
+    The ``published`` gate applies to the viewers leg only, tracking the
+    dashboard read gate in ``raise_for_access``: editors are admitted
+    regardless of publication state, viewers only for a published dashboard.
+    Gating editors too would strip ``form_data`` from every chart of an
+    unpublished dashboard its own editor can legitimately open.
+    """
+    subject_subquery = get_user_subject_ids_subquery(user_id)
+
+    def via(assoc: Any, *, require_published: bool) -> Select:
+        stmt = (
+            select(dashboard_slices.c.slice_id)
+            .select_from(dashboard_slices)
+            .join(Dashboard, Dashboard.id == dashboard_slices.c.dashboard_id)
+            .join(assoc, assoc.c.dashboard_id == Dashboard.id)
+            .where(assoc.c.subject_id.in_(subject_subquery))
+        )
+        if require_published:
+            stmt = stmt.where(Dashboard.published.is_(True))
+        return stmt
+
+    return union_all(
+        via(dashboard_editors, require_published=False),
+        via(dashboard_viewers, require_published=True),
+    )
+
+
+def get_inherited_datasource_ids_subquery(user_id: int, datasource_type: str) -> Select:
+    """Return a Select of datasource IDs a user inherits access to via a dashboard.
+
+    A dataset is inherited when it backs a chart the user inherits (see
+    :func:`get_inherited_slice_ids_subquery`). ``datasource_type`` is matched
+    explicitly because chart datasource IDs are only unique within a type.
+    """
+    return select(Slice.datasource_id).where(
+        Slice.id.in_(get_inherited_slice_ids_subquery(user_id)),
+        Slice.datasource_type == datasource_type,
+        Slice.datasource_id.isnot(None),
+    )
 
 
 def get_user_group_subject_ids_subquery(user_id: int) -> Select:

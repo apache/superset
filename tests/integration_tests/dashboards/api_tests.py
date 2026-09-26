@@ -387,6 +387,62 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
             # The identifying fields the dashboard needs to render are kept.
             assert {"id", "uid", "table_name", "type"} <= set(dataset)
 
+    @pytest.mark.usefixtures("create_dashboards")
+    @with_feature_flags(ENABLE_VIEWERS=True)
+    @with_config({"VIEWER_PROMISCUOUS_MODE": True})
+    def test_get_dashboard_datasets_inherited_by_promiscuous_viewer(self):
+        """A viewer of a published dashboard inherits full dataset metadata under
+        VIEWER_PROMISCUOUS_MODE, without an explicit datasource grant."""
+        from superset.subjects.utils import get_or_create_role_subject
+
+        dashboard = self.dashboards[0]
+        dashboard.published = True
+        gamma_subject = get_or_create_role_subject(
+            security_manager.find_role("Gamma").id
+        )
+        dashboard.viewers.append(gamma_subject)
+        db.session.commit()
+        try:
+            self.login(GAMMA_USERNAME)
+            uri = f"api/v1/dashboard/{dashboard.id}/datasets"
+            response = self.get_assert_metric(uri, "get_datasets")
+            assert response.status_code == 200
+            data = json.loads(response.data.decode("utf-8"))
+            assert data["result"]
+            for dataset in data["result"]:
+                assert {"sql", "columns", "database"} <= set(dataset)
+        finally:
+            dashboard.viewers.remove(gamma_subject)
+            db.session.commit()
+
+    @pytest.mark.usefixtures("create_dashboards")
+    @with_feature_flags(ENABLE_VIEWERS=True)
+    @with_config({"VIEWER_PROMISCUOUS_MODE": False})
+    def test_get_dashboard_datasets_not_inherited_without_promiscuous_mode(self):
+        """A dashboard viewer without promiscuous mode still gets the dataset
+        definition narrowed, matching the no-inheritance behaviour."""
+        from superset.subjects.utils import get_or_create_role_subject
+
+        dashboard = self.dashboards[0]
+        dashboard.published = True
+        gamma_subject = get_or_create_role_subject(
+            security_manager.find_role("Gamma").id
+        )
+        dashboard.viewers.append(gamma_subject)
+        db.session.commit()
+        try:
+            self.login(GAMMA_USERNAME)
+            uri = f"api/v1/dashboard/{dashboard.id}/datasets"
+            response = self.get_assert_metric(uri, "get_datasets")
+            assert response.status_code == 200
+            data = json.loads(response.data.decode("utf-8"))
+            assert data["result"]
+            for dataset in data["result"]:
+                assert "sql" not in dataset
+        finally:
+            dashboard.viewers.remove(gamma_subject)
+            db.session.commit()
+
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
     @patch("superset.utils.log.logger")
     def test_get_dashboard_datasets_not_found(self, logger_mock):
@@ -520,6 +576,87 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
             assert "form_data" not in chart
             assert "id" in chart
             assert "slice_name" in chart
+
+    @pytest.mark.usefixtures("create_dashboards")
+    @with_feature_flags(ENABLE_VIEWERS=True)
+    @with_config({"VIEWER_PROMISCUOUS_MODE": True})
+    def test_get_dashboard_charts_inherited_by_promiscuous_viewer(self):
+        """A viewer of a published dashboard inherits access to its charts'
+        form_data under VIEWER_PROMISCUOUS_MODE, without explicit chart grants,
+        so the dashboard can render."""
+        from superset.subjects.utils import get_or_create_role_subject
+
+        dashboard = self.dashboards[0]
+        dashboard.published = True
+        gamma_subject = get_or_create_role_subject(
+            security_manager.find_role("Gamma").id
+        )
+        dashboard.viewers.append(gamma_subject)
+        db.session.commit()
+        try:
+            self.login(GAMMA_USERNAME)
+            uri = f"api/v1/dashboard/{dashboard.id}/charts"
+            response = self.get_assert_metric(uri, "get_charts")
+            assert response.status_code == 200
+            data = json.loads(response.data.decode("utf-8"))
+            assert data["result"]
+            for chart in data["result"]:
+                assert "form_data" in chart
+        finally:
+            dashboard.viewers.remove(gamma_subject)
+            db.session.commit()
+
+    @pytest.mark.usefixtures("create_dashboards")
+    @with_feature_flags(ENABLE_VIEWERS=True)
+    @with_config({"VIEWER_PROMISCUOUS_MODE": False})
+    def test_get_dashboard_charts_not_inherited_without_promiscuous_mode(self):
+        """A dashboard viewer without promiscuous mode can still open the
+        dashboard, but its inaccessible charts keep form_data stripped."""
+        from superset.subjects.utils import get_or_create_role_subject
+
+        dashboard = self.dashboards[0]
+        dashboard.published = True
+        gamma_subject = get_or_create_role_subject(
+            security_manager.find_role("Gamma").id
+        )
+        dashboard.viewers.append(gamma_subject)
+        db.session.commit()
+        try:
+            self.login(GAMMA_USERNAME)
+            uri = f"api/v1/dashboard/{dashboard.id}/charts"
+            response = self.get_assert_metric(uri, "get_charts")
+            assert response.status_code == 200
+            data = json.loads(response.data.decode("utf-8"))
+            assert data["result"]
+            for chart in data["result"]:
+                assert "form_data" not in chart
+        finally:
+            dashboard.viewers.remove(gamma_subject)
+            db.session.commit()
+
+    @pytest.mark.usefixtures("create_dashboards")
+    @with_feature_flags(ENABLE_VIEWERS=True)
+    @with_config({"VIEWER_PROMISCUOUS_MODE": True})
+    def test_get_dashboard_charts_unpublished_denies_viewer(self):
+        """A viewer of an *unpublished* dashboard is denied outright — promiscuous
+        inheritance never applies, so no chart form_data leaks."""
+        from superset.subjects.utils import get_or_create_role_subject
+
+        dashboard = self.dashboards[0]
+        dashboard.published = False
+        gamma_subject = get_or_create_role_subject(
+            security_manager.find_role("Gamma").id
+        )
+        dashboard.viewers.append(gamma_subject)
+        db.session.commit()
+        try:
+            self.login(GAMMA_USERNAME)
+            uri = f"api/v1/dashboard/{dashboard.id}/charts"
+            response = self.get_assert_metric(uri, "get_charts")
+            assert response.status_code in (403, 404)
+        finally:
+            dashboard.viewers.remove(gamma_subject)
+            db.session.commit()
 
     @pytest.mark.usefixtures("create_dashboards")
     def test_get_dashboard_charts_by_slug(self):
