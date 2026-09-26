@@ -156,9 +156,9 @@ def _extract_sort_col_info(sort_entry: Any) -> tuple[str | None, bool]:
     return None, False
 
 
-def _collect_y_metric_names(y_cols: list[ColumnRef]) -> set[str]:
+def _collect_y_metric_names(y_cols: list[ColumnRef] | None) -> set[str]:
     names: set[str] = set()
-    for y_col in y_cols:
+    for y_col in y_cols or []:
         if y_col.name:
             names.add(y_col.name.lower())
         if y_col.label:
@@ -186,11 +186,15 @@ def _get_covered_xy_names(config: XYChartConfig) -> set[str]:
             covered.add(config.x.name.lower())
         if config.x.label:
             covered.add(config.x.label.lower())
+        if config.x.sql_expression:
+            covered.add(config.x.sql_expression.lower())
     for gb in config.group_by or []:
         if gb.name:
             covered.add(gb.name.lower())
         if gb.label:
             covered.add(gb.label.lower())
+        if gb.sql_expression:
+            covered.add(gb.sql_expression.lower())
     return covered
 
 

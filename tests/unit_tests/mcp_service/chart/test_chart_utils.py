@@ -2916,3 +2916,212 @@ class TestXYChartPluginSortBy:
         sort_refs = [r for r in refs if r.name == "total_sales"]
         assert len(sort_refs) == 1
         assert sort_refs[0].saved_metric is True
+
+
+class TestValidationPipelineWithXYChartSortBy:
+    """Test full ValidationPipeline flow with XY chart sort_by configurations."""
+
+    @pytest.fixture
+    def dataset_context(self) -> Any:
+        from superset.mcp_service.chart.validation.dataset_validator import (
+            DatasetContext,
+        )
+
+        return DatasetContext(
+            id=1,
+            table_name="sales_data",
+            schema=None,
+            database_name="examples",
+            available_columns=[
+                {"name": "department", "type": "VARCHAR"},
+                {"name": "sales", "type": "BIGINT"},
+            ],
+            available_metrics=[
+                {"name": "TotalRevenue", "expression": "SUM(rev)"},
+            ],
+        )
+
+    def test_pipeline_sort_by_metric_name_resolves_to_metric_label(
+        self, dataset_context: Any
+    ) -> None:
+        from superset.mcp_service.chart.validation.pipeline import ValidationPipeline
+
+        request_data = {
+            "dataset_id": 1,
+            "config": {
+                "chart_type": "xy",
+                "x": {"name": "department"},
+                "y": [{"name": "sales", "aggregate": "SUM"}],
+                "sort_by": "sales",
+            },
+        }
+        with patch.object(
+            ValidationPipeline, "_get_dataset_context", return_value=dataset_context
+        ), patch(
+            "superset.mcp_service.chart.chart_utils.is_column_truly_temporal",
+            return_value=False,
+        ):
+            result = ValidationPipeline.validate_request_with_warnings(request_data)
+            assert result.is_valid is True
+            assert result.error is None
+            assert result.request is not None
+
+            form_data = map_xy_config(result.request.config, dataset_id=1)
+            assert form_data["x_axis_sort"] == "SUM(sales)"
+            assert form_data["x_axis_sort_asc"] is False
+
+    def test_pipeline_sort_by_metric_label_resolves_correctly(
+        self, dataset_context: Any
+    ) -> None:
+        from superset.mcp_service.chart.validation.pipeline import ValidationPipeline
+
+        request_data = {
+            "dataset_id": 1,
+            "config": {
+                "chart_type": "xy",
+                "x": {"name": "department"},
+                "y": [{"name": "sales", "aggregate": "SUM"}],
+                "sort_by": "SUM(sales)",
+            },
+        }
+        with patch.object(
+            ValidationPipeline, "_get_dataset_context", return_value=dataset_context
+        ), patch(
+            "superset.mcp_service.chart.chart_utils.is_column_truly_temporal",
+            return_value=False,
+        ):
+            result = ValidationPipeline.validate_request_with_warnings(request_data)
+            assert result.is_valid is True
+            assert result.error is None
+            assert result.request is not None
+
+            form_data = map_xy_config(result.request.config, dataset_id=1)
+            assert form_data["x_axis_sort"] == "SUM(sales)"
+
+    def test_pipeline_sort_by_custom_metric_label_resolves_correctly(
+        self, dataset_context: Any
+    ) -> None:
+        from superset.mcp_service.chart.validation.pipeline import ValidationPipeline
+
+        request_data = {
+            "dataset_id": 1,
+            "config": {
+                "chart_type": "xy",
+                "x": {"name": "department"},
+                "y": [{"name": "sales", "aggregate": "SUM", "label": "Total Sales"}],
+                "sort_by": "Total Sales",
+            },
+        }
+        with patch.object(
+            ValidationPipeline, "_get_dataset_context", return_value=dataset_context
+        ), patch(
+            "superset.mcp_service.chart.chart_utils.is_column_truly_temporal",
+            return_value=False,
+        ):
+            result = ValidationPipeline.validate_request_with_warnings(request_data)
+            assert result.is_valid is True
+            assert result.error is None
+            assert result.request is not None
+
+            form_data = map_xy_config(result.request.config, dataset_id=1)
+            assert form_data["x_axis_sort"] == "Total Sales"
+
+    def test_pipeline_sort_by_saved_metric_in_y_resolves_correctly(
+        self, dataset_context: Any
+    ) -> None:
+        from superset.mcp_service.chart.validation.pipeline import ValidationPipeline
+
+        request_data = {
+            "dataset_id": 1,
+            "config": {
+                "chart_type": "xy",
+                "x": {"name": "department"},
+                "y": [{"name": "totalrevenue", "saved_metric": True}],
+                "sort_by": "totalrevenue",
+            },
+        }
+        with patch.object(
+            ValidationPipeline, "_get_dataset_context", return_value=dataset_context
+        ), patch(
+            "superset.mcp_service.chart.chart_utils.is_column_truly_temporal",
+            return_value=False,
+        ):
+            result = ValidationPipeline.validate_request_with_warnings(request_data)
+            assert result.is_valid is True
+            assert result.error is None
+            assert result.request is not None
+
+            form_data = map_xy_config(result.request.config, dataset_id=1)
+            assert form_data["x_axis_sort"] == "TotalRevenue"
+
+    def test_pipeline_sort_by_x_axis_dimension_resolves_correctly(
+        self, dataset_context: Any
+    ) -> None:
+        from superset.mcp_service.chart.validation.pipeline import ValidationPipeline
+
+        request_data = {
+            "dataset_id": 1,
+            "config": {
+                "chart_type": "xy",
+                "x": {"name": "department"},
+                "y": [{"name": "sales", "aggregate": "SUM"}],
+                "sort_by": "department",
+            },
+        }
+        with patch.object(
+            ValidationPipeline, "_get_dataset_context", return_value=dataset_context
+        ), patch(
+            "superset.mcp_service.chart.chart_utils.is_column_truly_temporal",
+            return_value=False,
+        ):
+            result = ValidationPipeline.validate_request_with_warnings(request_data)
+            assert result.is_valid is True
+            assert result.error is None
+            assert result.request is not None
+
+            form_data = map_xy_config(result.request.config, dataset_id=1)
+            assert form_data["x_axis_sort"] == "department"
+
+    def test_pipeline_sort_by_non_existent_column_fails_validation(
+        self, dataset_context: Any
+    ) -> None:
+        from superset.mcp_service.chart.validation.pipeline import ValidationPipeline
+
+        request_data = {
+            "dataset_id": 1,
+            "config": {
+                "chart_type": "xy",
+                "x": {"name": "department"},
+                "y": [{"name": "sales", "aggregate": "SUM"}],
+                "sort_by": "non_existent_column",
+            },
+        }
+        with patch.object(
+            ValidationPipeline, "_get_dataset_context", return_value=dataset_context
+        ):
+            result = ValidationPipeline.validate_request_with_warnings(request_data)
+            assert result.is_valid is False
+            assert result.error is not None
+            assert result.error.error_type == "column_not_found"
+
+    def test_pipeline_multi_item_sort_by_fails_schema_validation(
+        self, dataset_context: Any
+    ) -> None:
+        from superset.mcp_service.chart.validation.pipeline import ValidationPipeline
+
+        request_data = {
+            "dataset_id": 1,
+            "config": {
+                "chart_type": "xy",
+                "x": {"name": "department"},
+                "y": [{"name": "sales", "aggregate": "SUM"}],
+                "sort_by": ["sales", "department"],
+            },
+        }
+        with patch.object(
+            ValidationPipeline, "_get_dataset_context", return_value=dataset_context
+        ):
+            result = ValidationPipeline.validate_request_with_warnings(request_data)
+            assert result.is_valid is False
+            assert result.error is not None
+            assert result.error.error_type == "validation_error"

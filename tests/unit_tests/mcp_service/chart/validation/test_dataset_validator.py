@@ -160,8 +160,6 @@ def test_xy_chart_sort_by_independent_column_validation() -> None:
 
 
 def test_xy_chart_sort_by_saved_metric_not_in_y_validates_successfully() -> None:
-    from superset.mcp_service.chart.plugins.xy import XYChartPlugin
-
     context = DatasetContext(
         id=1,
         table_name="sales_data",
@@ -173,19 +171,43 @@ def test_xy_chart_sort_by_saved_metric_not_in_y_validates_successfully() -> None
         ],
         available_metrics=[{"name": "TotalRevenue", "expression": "SUM(rev)"}],
     )
-    plugin = XYChartPlugin()
+    config = XYChartConfig(
+        chart_type="xy",
+        x=ColumnRef(name="category"),
+        y=[ColumnRef(name="sales", aggregate="SUM")],
+        sort_by=SortByConfig(column="totalrevenue", saved_metric=True),
+    )
+    is_valid, error = DatasetValidator.validate_against_dataset(
+        config, 1, context
+    )
+    assert is_valid is True
+    assert error is None
+
+
+def test_xy_chart_sort_by_saved_metric_unmarked_fails_validation() -> None:
+    context = DatasetContext(
+        id=1,
+        table_name="sales_data",
+        schema=None,
+        database_name="database",
+        available_columns=[
+            {"name": "category", "type": "VARCHAR"},
+            {"name": "sales", "type": "BIGINT"},
+        ],
+        available_metrics=[{"name": "TotalRevenue", "expression": "SUM(rev)"}],
+    )
     config = XYChartConfig(
         chart_type="xy",
         x=ColumnRef(name="category"),
         y=[ColumnRef(name="sales", aggregate="SUM")],
         sort_by="totalrevenue",
     )
-    normalized = plugin.normalize_column_refs(config, context)
     is_valid, error = DatasetValidator.validate_against_dataset(
-        normalized, 1, context
+        config, 1, context
     )
-    assert is_valid is True
-    assert error is None
+    assert is_valid is False
+    assert error is not None
+    assert error.error_type == "saved_metric_not_marked"
 
 
 def test_xy_chart_sort_by_invalid_saved_metric_rejected() -> None:
