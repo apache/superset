@@ -365,8 +365,7 @@ class ChartErrorBuilder:
         suggestion_text = (
             f"Did you mean: {', '.join(suggestions[:3])}?"
             if suggestions
-            else "No matching columns found. "
-            "Use get_dataset_info to see available columns."
+            else "No matching columns found."
         )
         return cls.build_error(
             error_type="column_not_found",

@@ -687,6 +687,7 @@ class DatasetValidator:
     ) -> ChartGenerationError:
         """Build error for invalid columns."""
         from superset.mcp_service.utils.error_builder import (
+            _sanitize_user_input,
             ChartErrorBuilder,
         )
 
@@ -708,11 +709,14 @@ class DatasetValidator:
             )
             error.error_type = "multiple_invalid_columns"
             error.error_code = "MULTIPLE_INVALID_COLUMNS"
+            error.message = "Multiple columns not found in dataset"
+            invalid_names = _sanitize_user_input(
+                ", ".join(col.name or "<unknown column>" for col in invalid_columns)
+            )
+            error.details = f"Invalid columns: {invalid_names}"
 
         # Return names only, not SQL expressions or unbounded dataset metadata.
         # Reuse the error builder's escaping and per-value length limit.
-        from superset.mcp_service.utils.error_builder import _sanitize_user_input
-
         error.dataset_context = DatasetContext(
             id=dataset_context.id,
             table_name=_sanitize_user_input(dataset_context.table_name),

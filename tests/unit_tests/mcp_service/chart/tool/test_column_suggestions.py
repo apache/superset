@@ -142,6 +142,7 @@ async def test_generate_chart_column_guidance(
     assert "Check available columns?" not in suggestions
     assert "gross_margin" not in suggestions
     if guidance:
+        assert suggestions.count("Use get_dataset_info to see available columns") == 1
         assert guidance in suggestions
         assert error.dataset_context is not None
         assert error.dataset_context.available_columns == [
@@ -221,9 +222,29 @@ def test_multiple_column_guidance_uses_real_candidates(names: list[str]) -> None
     assert error is not None
     assert error.error_type == "multiple_invalid_columns"
     assert error.error_code == "MULTIPLE_INVALID_COLUMNS"
+    assert error.message == "Multiple columns not found in dataset"
+    assert error.details == "Invalid columns: revnue, categry"
     if names:
         assert error.suggestions[-1] == "Did you mean: revenue, category?"
     else:
         assert error.suggestions[-1].startswith("No matching columns found.")
     assert "revnue" not in " ".join(error.suggestions)
     assert "categry" not in " ".join(error.suggestions)
+
+
+def test_multiple_column_details_preserve_bounded_escaped_names() -> None:
+    """Invalid names belong in bounded details, not candidate guidance."""
+    from superset.mcp_service.chart.schemas import ColumnRef
+    from superset.mcp_service.chart.validation.dataset_validator import DatasetValidator
+    from superset.mcp_service.common.error_schemas import DatasetContext
+
+    context = DatasetContext(id=268, table_name="fixture", database_name="fixture")
+    error = DatasetValidator._build_column_error(
+        [ColumnRef.model_construct(name="<missing>"), ColumnRef(name="x" * 250)],
+        {},
+        context,
+    )
+
+    assert error.details == "Invalid columns: &lt;missing&gt;, " + "x" * 189 + (
+        "...[truncated]"
+    )

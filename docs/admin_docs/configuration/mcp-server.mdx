@@ -1369,4 +1369,7 @@ When a chart references a missing column, `generate_chart` returns a structured
 similar columns exist, it returns explicit no-match guidance instead. Column
 errors include a bounded `dataset_context` with up to ten available column names
 from the authorized dataset; names are escaped and length-limited. Saved-metric
-expressions are not included. Use `get_dataset_info` for the complete schema.
+expressions are not included. When multiple columns are missing, the error type is
+`multiple_invalid_columns`, with the invalid names in escaped, length-limited
+details and deduplicated suggestion candidates. Use `get_dataset_info` for the
+complete schema.
