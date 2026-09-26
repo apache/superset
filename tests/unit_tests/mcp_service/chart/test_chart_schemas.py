@@ -1347,12 +1347,17 @@ class TestXYChartConfigSortBy:
             sort_by="sales",
         )
         dumped = config.model_dump()
-        assert dumped["sort_by"] == {"column": "sales", "ascending": False}
+        assert dumped["sort_by"] == {
+            "column": "sales",
+            "ascending": False,
+            "saved_metric": None,
+        }
 
         restored = XYChartConfig.model_validate(dumped)
         assert isinstance(restored.sort_by, SortByConfig)
         assert restored.sort_by.column == "sales"
         assert restored.sort_by.ascending is False
+        assert restored.sort_by.saved_metric is None
 
     def test_sort_by_single_item_list(self) -> None:
         config = XYChartConfig(
@@ -1364,6 +1369,53 @@ class TestXYChartConfigSortBy:
         assert isinstance(config.sort_by, SortByConfig)
         assert config.sort_by.column == "sales"
         assert config.sort_by.ascending is False
+
+    def test_sort_by_pair_format(self) -> None:
+        config = XYChartConfig(
+            chart_type="xy",
+            x=ColumnRef(name="category"),
+            y=[ColumnRef(name="sales", aggregate="SUM")],
+            sort_by=["sales", True],
+        )
+        assert isinstance(config.sort_by, SortByConfig)
+        assert config.sort_by.column == "sales"
+        assert config.sort_by.ascending is True
+
+        # Nested in a single-element list
+        config_nested = XYChartConfig(
+            chart_type="xy",
+            x=ColumnRef(name="category"),
+            y=[ColumnRef(name="sales", aggregate="SUM")],
+            sort_by=[["sales", True]],
+        )
+        assert isinstance(config_nested.sort_by, SortByConfig)
+        assert config_nested.sort_by.column == "sales"
+        assert config_nested.sort_by.ascending is True
+
+    def test_sort_by_alias_order_by_cols(self) -> None:
+        config = XYChartConfig(
+            chart_type="xy",
+            x=ColumnRef(name="category"),
+            y=[ColumnRef(name="sales", aggregate="SUM")],
+            order_by_cols=["sales", False],
+        )
+        assert isinstance(config.sort_by, SortByConfig)
+        assert config.sort_by.column == "sales"
+        assert config.sort_by.ascending is False
+
+    def test_sort_by_saved_metric_field(self) -> None:
+        config = XYChartConfig(
+            chart_type="xy",
+            x=ColumnRef(name="category"),
+            y=[ColumnRef(name="sales", aggregate="SUM")],
+            sort_by=SortByConfig(
+                column="total_sales", ascending=True, saved_metric=True
+            ),
+        )
+        assert isinstance(config.sort_by, SortByConfig)
+        assert config.sort_by.column == "total_sales"
+        assert config.sort_by.ascending is True
+        assert config.sort_by.saved_metric is True
 
     def test_sort_by_multiple_columns_fails_validation(self) -> None:
         with pytest.raises(
