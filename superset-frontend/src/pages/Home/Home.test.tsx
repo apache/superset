@@ -30,6 +30,8 @@ import {
 import { isFeatureEnabled, getExtensionsRegistry } from '@superset-ui/core';
 import Welcome from 'src/pages/Home';
 import setupCodeOverrides from 'src/setup/setupCodeOverrides';
+import { redirect } from 'src/utils/navigationUtils';
+import { RoutePaths } from 'src/views/routePaths';
 
 const chartsEndpoint = 'glob:*/api/v1/chart/?*';
 const chartInfoEndpoint = 'glob:*/api/v1/chart/_info?*';
@@ -150,6 +152,11 @@ jest.mock('@superset-ui/core', () => ({
   isFeatureEnabled: jest.fn(),
 }));
 
+jest.mock('src/utils/navigationUtils', () => ({
+  ...jest.requireActual('src/utils/navigationUtils'),
+  redirect: jest.fn(),
+}));
+
 // Mock useBreakpoint to return desktop breakpoints (prevents mobile rendering)
 jest.mock('antd', () => mockAntdWithDesktopBreakpoint());
 
@@ -165,12 +172,42 @@ const renderWelcome = (props = mockedProps) =>
 
 afterEach(() => {
   fetchMock.clearHistory();
+  jest.mocked(redirect).mockClear();
 });
 
-test('With sql role - renders', async () => {
-  await renderWelcome();
-  expect(await screen.findByText('Dashboards')).toBeInTheDocument();
-});
+test.each([
+  ['anonymous', { roles: { Public: [] }, permissions: {}, groups: [] }],
+  ['guest', { ...mockedProps.user, userId: undefined }],
+  ['missing', undefined],
+])(
+  'Redirects the %s user through the server without fetching Home data',
+  async (_, user) => {
+    render(<Welcome user={user} />, { useRedux: true, useRouter: true });
+
+    await waitFor(() => expect(redirect).toHaveBeenCalledWith(RoutePaths.HOME));
+    [
+      chartsEndpoint,
+      dashboardsEndpoint,
+      recentActivityEndpoint,
+      savedQueryEndpoint,
+    ].forEach(endpoint => {
+      expect(fetchMock.callHistory.calls(endpoint)).toHaveLength(0);
+    });
+    expect(screen.queryByText('Dashboards')).not.toBeInTheDocument();
+  },
+);
+
+test.each([0, mockedProps.user.userId])(
+  'With sql role and user ID %s - renders',
+  async userId => {
+    await renderWelcome({
+      ...mockedProps,
+      user: { ...mockedProps.user, userId },
+    });
+    expect(await screen.findByText('Dashboards')).toBeInTheDocument();
+    expect(redirect).not.toHaveBeenCalled();
+  },
+);
 
 test('With sql role - renders all panels on the page on page load', async () => {
   await renderWelcome();
