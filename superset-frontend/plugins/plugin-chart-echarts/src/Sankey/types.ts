@@ -23,11 +23,19 @@ import {
 } from '@superset-ui/core';
 import { BaseChartProps, BaseTransformedProps } from '../types';
 
+export type SankeyNodeAlignment = 'justify' | 'left' | 'right';
+
 export type SankeyFormData = QueryFormData & {
   colorScheme: string;
   metric: QueryFormMetric;
   source: QueryFormColumn;
   target: QueryFormColumn;
+  // populated as intermediate_levels in raw form data (buildQuery) and as
+  // intermediateLevels after ChartProps camelCase conversion (transformProps)
+  intermediate_levels?: QueryFormColumn[];
+  intermediateLevels?: QueryFormColumn[];
+  nodeAlignment?: SankeyNodeAlignment;
+  roam?: boolean | 'scale' | 'move';
 };
 
 export interface SankeyChartProps extends BaseChartProps<SankeyFormData> {
