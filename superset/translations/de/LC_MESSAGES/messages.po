@@ -4203,6 +4203,11 @@ msgstr "Zu lesende Spalten"
 msgid "Columns to show in the tooltip."
 msgstr "Spalten, die im Tooltip angezeigt werden sollen."
 
+msgid ""
+"Columns viewers are allowed to group by. Leave empty to allow all "
+"groupable columns."
+msgstr ""
+
 msgid "Combine metrics"
 msgstr "Metriken kombinieren"
 
@@ -8032,6 +8037,9 @@ msgstr "Gruppieren nach"
 
 msgid "Group remaining as \"Others\""
 msgstr "Gruppe, die als \"Sonstige\" verbleibt"
+
+msgid "Groupable columns"
+msgstr ""
 
 msgid "Grouping"
 msgstr "Gruppierung"

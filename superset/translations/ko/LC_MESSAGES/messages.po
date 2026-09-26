@@ -6151,6 +6151,11 @@ msgstr "컬럼 보기"
 msgid "Columns to show in the tooltip."
 msgstr "툴팁에 표시할 열."
 
+msgid ""
+"Columns viewers are allowed to group by. Leave empty to allow all "
+"groupable columns."
+msgstr ""
+
 #, fuzzy
 msgid "Combine metrics"
 msgstr "메트릭"
@@ -11974,6 +11979,9 @@ msgstr "그룹화 기준"
 #, fuzzy
 msgid "Group remaining as \"Others\""
 msgstr "나머지를 \"기타\"로 그룹화"
+
+msgid "Groupable columns"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, fr, ja,
 # lv, ru, sr, sr_Latn, uk]

@@ -4547,6 +4547,11 @@ msgstr "要讀取的列"
 msgid "Columns to show in the tooltip."
 msgstr "列標題提示"
 
+msgid ""
+"Columns viewers are allowed to group by. Leave empty to allow all "
+"groupable columns."
+msgstr ""
+
 msgid "Combine metrics"
 msgstr "整合指標"
 
@@ -8843,6 +8848,9 @@ msgstr "分組"
 #, fuzzy
 msgid "Group remaining as \"Others\""
 msgstr "將剩餘項目分組為「其他」"
+
+msgid "Groupable columns"
+msgstr ""
 
 #, fuzzy
 msgid "Grouping"

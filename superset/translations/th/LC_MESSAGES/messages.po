@@ -6798,6 +6798,11 @@ msgstr "คอลัมน์ที่จะอ่าน"
 msgid "Columns to show in the tooltip."
 msgstr "คอลัมน์ที่จะแสดงในคำอธิบาย"
 
+msgid ""
+"Columns viewers are allowed to group by. Leave empty to allow all "
+"groupable columns."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, fuzzy
@@ -13322,6 +13327,9 @@ msgstr "จัดกลุ่มตาม"
 #, fuzzy
 msgid "Group remaining as \"Others\""
 msgstr "จัดกลุ่มที่เหลือเป็น \"อื่นๆ\""
+
+msgid "Groupable columns"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: fr, ja, lv,
 # ru, uk]

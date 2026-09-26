@@ -4381,6 +4381,11 @@ msgstr "Columnas a leer"
 msgid "Columns to show in the tooltip."
 msgstr "Información sobre herramientas del encabezado de columna"
 
+msgid ""
+"Columns viewers are allowed to group by. Leave empty to allow all "
+"groupable columns."
+msgstr ""
+
 msgid "Combine metrics"
 msgstr "Combinar métricas"
 
@@ -8425,6 +8430,9 @@ msgstr "Agrupar por"
 #, fuzzy
 msgid "Group remaining as \"Others\""
 msgstr "Agrupar restantes como \"Otros\""
+
+msgid "Groupable columns"
+msgstr ""
 
 #, fuzzy
 msgid "Grouping"

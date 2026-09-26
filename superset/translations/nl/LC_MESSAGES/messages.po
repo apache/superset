@@ -4539,6 +4539,11 @@ msgstr "Kolommen om te Lezen"
 msgid "Columns to show in the tooltip."
 msgstr "Kolomkop tooltip"
 
+msgid ""
+"Columns viewers are allowed to group by. Leave empty to allow all "
+"groupable columns."
+msgstr ""
+
 msgid "Combine metrics"
 msgstr "Combineer metrieken"
 
@@ -8772,6 +8777,9 @@ msgstr "Groep per"
 #, fuzzy
 msgid "Group remaining as \"Others\""
 msgstr "Resterende groeperen als \"Overige\""
+
+msgid "Groupable columns"
+msgstr ""
 
 #, fuzzy
 msgid "Grouping"

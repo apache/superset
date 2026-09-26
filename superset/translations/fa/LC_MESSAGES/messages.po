@@ -4427,6 +4427,11 @@ msgstr "ستون‌ها را برای خواندن انتخاب کنید"
 msgid "Columns to show in the tooltip."
 msgstr "راهنمای تیتر ستون"
 
+msgid ""
+"Columns viewers are allowed to group by. Leave empty to allow all "
+"groupable columns."
+msgstr ""
+
 msgid "Combine metrics"
 msgstr "ترکیب معیارها"
 
@@ -8560,6 +8565,9 @@ msgstr "گروه‌بندی بر اساس"
 #, fuzzy
 msgid "Group remaining as \"Others\""
 msgstr "گروه‌بندی باقی‌مانده به عنوان \"سایرین\""
+
+msgid "Groupable columns"
+msgstr ""
 
 #, fuzzy
 msgid "Grouping"

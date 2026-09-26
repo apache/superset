@@ -4387,6 +4387,11 @@ msgstr "Kolonlar bulunamadı"
 msgid "Columns to show in the tooltip."
 msgstr "Takımda göstermek için sütunlar."
 
+msgid ""
+"Columns viewers are allowed to group by. Leave empty to allow all "
+"groupable columns."
+msgstr ""
+
 msgid "Combine metrics"
 msgstr "Ekle metrics"
 
@@ -8440,6 +8445,9 @@ msgstr "Grup Tarafından Grup"
 
 msgid "Group remaining as \"Others\""
 msgstr "Grup \"Diğerleri\" olarak kaldı"
+
+msgid "Groupable columns"
+msgstr ""
 
 #, fuzzy
 msgid "Grouping"
