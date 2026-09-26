@@ -20,7 +20,7 @@ from __future__ import annotations
 import logging
 from typing import Any
 
-from marshmallow import Schema
+from marshmallow import Schema, ValidationError
 from sqlalchemy.orm import Session  # noqa: F401
 from sqlalchemy.sql import select
 
@@ -74,6 +74,48 @@ class ImportDashboardsCommand(ImportModelsCommand):
     def __init__(self, contents: dict[str, str], *args: Any, **kwargs: Any) -> None:
         self.overwrite_all = kwargs.pop("overwrite_all", False)
         super().__init__(contents, *args, **kwargs)
+
+    def _prevent_overwrite_existing_model(  # pylint: disable=invalid-name
+        self, exceptions: list[ValidationError]
+    ) -> None:
+        """Dashboards are also identified by ``slug`` on import.
+
+        ``import_dashboard()`` resolves a config carrying a fresh UUID but a
+        slug owned by an existing *active* dashboard onto that row, so the
+        overwrite gate must treat that collision like a UUID match: without
+        ``overwrite`` the import would silently merge the bundle's charts
+        into the slug-owning dashboard, and with ``overwrite`` it would
+        replace a dashboard the user never saw in the confirmation prompt
+        (which lists files, not UUIDs). The message matches the UUID branch
+        verbatim so the ImportModal's ``already exists`` detection keeps
+        working; soft-deleted owners are left to the restore path.
+        """
+        super()._prevent_overwrite_existing_model(exceptions)
+        if self.overwrite:
+            return
+        for file_name, config in self._configs.items():
+            slug = config.get("slug")
+            if not slug or not file_name.startswith(self.prefix):
+                continue
+            owner = (
+                db.session.query(Dashboard)
+                .filter(
+                    Dashboard.slug == slug,
+                    Dashboard.deleted_at.is_(None),
+                )
+                .one_or_none()
+            )
+            if owner is not None and str(owner.uuid) != config["uuid"]:
+                exceptions.append(
+                    ValidationError(
+                        {
+                            file_name: (
+                                f"{self.model_name.title()} already exists "
+                                "and `overwrite=true` was not passed"
+                            ),
+                        }
+                    )
+                )
 
     # not sure if overriding run is the best approach here
     # it works fine and is better than a global variable imo
