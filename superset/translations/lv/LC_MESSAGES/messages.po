@@ -363,7 +363,7 @@ msgstr ""
 
 #, fuzzy, python-format
 msgid "%s ENCRYPTED EXTRA"
-msgstr "Drošības papildus iestatījumi"
+msgstr ""
 
 #, python-format
 msgid "%s Error"
@@ -379,7 +379,7 @@ msgstr "%s PAROLE"
 
 #, fuzzy, python-format
 msgid "%s Physical"
-msgstr "Fizisks"
+msgstr ""
 
 #, python-format
 msgid "%s SSH TUNNEL PASSWORD"
@@ -399,7 +399,7 @@ msgstr "%s atlasīts"
 
 #, fuzzy, python-format
 msgid "%s Selected (%s)"
-msgstr "%s atlasīts"
+msgstr ""
 
 #, python-format
 msgid "%s Selected (Physical)"
@@ -421,7 +421,7 @@ msgstr "%s URL"
 
 #, fuzzy, python-format
 msgid "%s Virtual"
-msgstr "Virtuāls"
+msgstr ""
 
 #, python-format
 msgid "%s additional restricted chart"
@@ -503,7 +503,7 @@ msgstr[2] "%s rindu"
 
 #, fuzzy, python-format
 msgid "%s imported"
-msgstr "Dati importēti"
+msgstr ""
 
 #, fuzzy, python-format
 msgid "%s item"
@@ -527,7 +527,7 @@ msgstr ""
 #, fuzzy, python-format
 msgid "%s metric"
 msgid_plural "%s metrics"
-msgstr[0] "Kārtošanas metrika"
+msgstr[0] ""
 msgstr[1] ""
 msgstr[2] ""
 
@@ -567,20 +567,20 @@ msgstr "%s opcija(-as)"
 #, fuzzy, python-format
 msgid "%s out of %s column"
 msgid_plural "%s out of %s columns"
-msgstr[0] "Automātiskais kolonnas izmērs"
+msgstr[0] ""
 msgstr[1] ""
 msgstr[2] ""
 
 #, fuzzy, python-format
 msgid "%s out of %s metric"
 msgid_plural "%s out of %s metrics"
-msgstr[0] "Kārtošanas metrika"
+msgstr[0] ""
 msgstr[1] ""
 msgstr[2] ""
 
 #, fuzzy, python-format
 msgid "%s out of %s selected"
-msgstr "Izvēlēta cilne %s"
+msgstr ""
 
 #, python-format
 msgid "%s recipients"
@@ -2016,7 +2016,7 @@ msgstr "Radās kļūda, izvēršot tabulas shēmu. Lūdzu, sazinieties ar admini
 
 #, fuzzy, python-format
 msgid "An error occurred while fetching %s"
-msgstr "Radās kļūda, iegūstot %ss: %s"
+msgstr ""
 
 #, python-format
 msgid "An error occurred while fetching %s info: %s"
@@ -2024,11 +2024,11 @@ msgstr "Radās kļūda, iegūstot %s informāciju: %s"
 
 #, fuzzy, python-format
 msgid "An error occurred while fetching %s related data"
-msgstr "Radās kļūda, ielādējot datu kopas saistītos datus"
+msgstr ""
 
 #, fuzzy, python-format
 msgid "An error occurred while fetching %s values: %s"
-msgstr "Radās kļūda, iegūstot lietotāju vērtības: %s"
+msgstr ""
 
 #, fuzzy, python-format
 msgid "An error occurred while fetching %s: %s"
@@ -2127,7 +2127,7 @@ msgstr "Radās kļūda, ielādējot cilnes stāvokli"
 
 #, fuzzy, python-format
 msgid "An error occurred while fetching table metadata for %s"
-msgstr "Radās kļūda, ielādējot tabulas metadatus"
+msgstr ""
 
 #, python-format
 msgid "An error occurred while fetching task types: %s"
@@ -3698,7 +3698,7 @@ msgstr "Bērna apzīmējuma novietojums"
 
 #, fuzzy, python-format
 msgid "Choose a %s"
-msgstr "Izvēlēties avotu"
+msgstr ""
 
 msgid "Choose a chart for displaying on the map"
 msgstr "Izvēlieties diagrammu attēlošanai kartē"
@@ -3841,7 +3841,7 @@ msgstr "Notīrīt"
 
 #, fuzzy, python-format
 msgid "Clear %s filter"
-msgstr "Notīrīt visus filtrus"
+msgstr ""
 
 msgid "Clear Sort"
 msgstr "Nodzēst kārtošanu"
@@ -4353,7 +4353,7 @@ msgstr "Konfigurācija"
 
 #, fuzzy, python-format
 msgid "Configure %s"
-msgstr "Apstiprināt saglabāšanu"
+msgstr ""
 
 msgid "Configure Advanced Time Range "
 msgstr "Konfigurēt papildu laika diapazonu "
@@ -4727,7 +4727,7 @@ msgstr "Mani izveidotie"
 
 #, fuzzy, python-format
 msgid "Created by: %s"
-msgstr "Izveidoja"
+msgstr ""
 
 #, python-format
 msgid "Created from version: %s"
@@ -5002,7 +5002,7 @@ msgstr "Infopanelis"
 
 #, fuzzy, python-format
 msgid "Dashboard %(dashboard_id)s not found"
-msgstr "Diagramma %(id)s nav atrasta"
+msgstr ""
 
 msgid "Dashboard Filter"
 msgstr "Infopaneļa filtrs"
@@ -5793,7 +5793,7 @@ msgstr "Dzēsts %s"
 
 #, fuzzy, python-format
 msgid "Deleted %s item(s)"
-msgstr "Dzēst objektu"
+msgstr ""
 
 #, python-format
 msgid "Deleted group: %s"
@@ -5975,7 +5975,7 @@ msgstr "Dimensijas"
 
 #, fuzzy, python-format
 msgid "Dimensions (%s)"
-msgstr "Dimensijas"
+msgstr ""
 
 msgid "Dimensions and metrics"
 msgstr ""
@@ -6458,7 +6458,7 @@ msgstr "Rediģēt"
 
 #, fuzzy, python-format
 msgid "Edit %s"
-msgstr "Rediģēt lietotāju"
+msgstr ""
 
 #, python-format
 msgid "Edit %s in modal"
@@ -7353,7 +7353,7 @@ msgstr "Neizdevās ģenerēt diagrammas rediģēšanas URL"
 
 #, fuzzy, python-format
 msgid "Failed to generate download: %s"
-msgstr "Neizdevās ģenerēt diagrammas rediģēšanas URL"
+msgstr ""
 
 msgid "Failed to load chart data"
 msgstr "Neizdevās ielādēt diagrammas datus"
@@ -7363,7 +7363,7 @@ msgstr "Neizdevās ielādēt diagrammas datus."
 
 #, fuzzy, python-format
 msgid "Failed to load columns for %s %s"
-msgstr "Neizdevās ielādēt datu kopas %s kolonnas"
+msgstr ""
 
 #, python-format
 msgid "Failed to load dimensions for semantic view %s"
@@ -8638,7 +8638,7 @@ msgstr "Nederīgs stāvoklis."
 
 #, fuzzy, python-format
 msgid "Invalid tab ids: %(tab_ids)s"
-msgstr "Nederīgi cilņu ID: %s(tab_ids)"
+msgstr ""
 
 #, python-format
 msgid "Invalid time range boundary for resample: %(value)s"
@@ -9739,7 +9739,7 @@ msgstr "Metrikas"
 
 #, fuzzy, python-format
 msgid "Metrics (%s)"
-msgstr "Metrikas"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
@@ -9864,7 +9864,7 @@ msgstr "Minūtes %s"
 
 #, fuzzy, python-format
 msgid "Missing %s"
-msgstr "Trūkst datu kopas"
+msgstr ""
 
 msgid "Missing OAuth2 token"
 msgstr "Trūkst OAuth2 žetona"
@@ -10195,7 +10195,7 @@ msgstr "Kolonnas nav atrastas"
 
 #, fuzzy, python-format
 msgid "No compatible %s found"
-msgstr "Nav atrasta saderīga shēma"
+msgstr ""
 
 msgid "No compatible catalog found"
 msgstr "Nav atrasts saderīgs katalogs"
@@ -10312,11 +10312,11 @@ msgstr "Pagaidām nav lomu"
 
 #, fuzzy, python-format
 msgid "No rows were returned for this %s"
-msgstr "Šai datu kopai netika atgrieztas rindas"
+msgstr ""
 
 #, fuzzy, python-format
 msgid "No samples were returned for this %s"
-msgstr "Šai datu kopai netika atgriezti paraugi"
+msgstr ""
 
 msgid "No saved expressions found"
 msgstr "Nav atrastas saglabātas izteiksmes"
@@ -11365,7 +11365,7 @@ msgstr "Lūdzu, izvēlieties vismaz vienu lomu vai grupu"
 
 #, fuzzy, python-format
 msgid "Please select both a %s and a Chart type to proceed"
-msgstr "Lūdzu, atlasiet gan datu kopu, gan diagrammas veidu, lai turpinātu"
+msgstr ""
 
 #, python-format
 msgid ""
@@ -12662,7 +12662,7 @@ msgstr "Saglabāt kā"
 
 #, fuzzy, python-format
 msgid "Save as %s"
-msgstr "Saglabāt kā"
+msgstr ""
 
 msgid "Save as Dataset"
 msgstr "Saglabāt kā datu kopu"
@@ -12971,7 +12971,7 @@ msgstr "Izvēlēties"
 
 #, fuzzy, python-format
 msgid "Select %s or type to search %s"
-msgstr "Atlasīt shēmu vai ierakstiet, lai meklētu shēmās"
+msgstr ""
 
 msgid "Select ..."
 msgstr "Atlasīt ..."
@@ -12999,7 +12999,7 @@ msgstr "Izvēlieties vērtību"
 
 #, fuzzy, python-format
 msgid "Select a %s"
-msgstr "Atlasīt birkas"
+msgstr ""
 
 msgid "Select a CSS template"
 msgstr "Izvēlieties CSS veidni"
@@ -14580,7 +14580,7 @@ msgstr ""
 
 #, fuzzy, python-format
 msgid "Successfully changed %s!"
-msgstr "Datu kopa veiksmīgi mainīta!"
+msgstr ""
 
 msgid "Suffix"
 msgstr "Piedēklis"
@@ -14635,7 +14635,7 @@ msgstr "Atbalstītās datubāzes"
 
 #, fuzzy, python-format
 msgid "Swap %s"
-msgstr "Nomainīt datu kopu"
+msgstr ""
 
 msgid "Swap rows and columns"
 msgstr "Apmainīt rindas un kolonnas"
@@ -14856,7 +14856,7 @@ msgstr "birkas"
 
 #, fuzzy, python-format
 msgid "Task cancelled: %s"
-msgstr "Eksports atcelts"
+msgstr ""
 
 #, fuzzy
 msgid "Task could not be aborted."
@@ -14979,7 +14979,7 @@ msgstr "Iegūts %s"
 
 #, fuzzy, python-format
 msgid "The %s linked to this chart may have been deleted."
-msgstr "Ar šo diagrammu saistītā datu kopa, iespējams, ir dzēsta."
+msgstr ""
 
 #, python-format
 msgid "The API response from %s does not match the IDatabaseTable interface."
@@ -16250,7 +16250,7 @@ msgstr ""
 
 #, fuzzy, python-format
 msgid "There was an issue cancelling the task: %s"
-msgstr "Dzēšot %s, radās problēma: %s"
+msgstr ""
 
 #, python-format
 msgid "There was an issue deleting %s"
@@ -16270,7 +16270,7 @@ msgstr "Dzēšot noteikumus, radās problēma: %s"
 
 #, fuzzy, python-format
 msgid "There was an issue deleting the selected %s"
-msgstr "Dzēšot atlasītos %s, radās problēma: %s"
+msgstr ""
 
 #, python-format
 msgid "There was an issue deleting the selected %s: %s"
@@ -16310,7 +16310,7 @@ msgstr "Dzēšot radās problēma: %s"
 
 #, fuzzy, python-format
 msgid "There was an issue duplicating the %s."
-msgstr "Dublējot datu kopu, radās problēma."
+msgstr ""
 
 #, fuzzy, python-format
 msgid "There was an issue duplicating the selected %s: %s"
@@ -16318,11 +16318,11 @@ msgstr "Dzēšot atlasītos %s, radās problēma: %s"
 
 #, fuzzy, python-format
 msgid "There was an issue exporting the %s"
-msgstr "Radās problēma, eksportējot datu bāzi"
+msgstr ""
 
 #, fuzzy, python-format
 msgid "There was an issue exporting the selected %s"
-msgstr "Radās problēma ar izvēlēto motīvu eksportēšanu"
+msgstr ""
 
 msgid "There was an issue exporting the selected charts"
 msgstr "Radās problēma, eksportējot atlasītās diagrammas"
@@ -16489,7 +16489,7 @@ msgstr ""
 
 #, fuzzy, python-format
 msgid "This column might be incompatible with current %s"
-msgstr "Šī kolonna var būt nesaderīga ar pašreizējo datu kopu"
+msgstr ""
 
 msgid "This column might be incompatible with current dataset"
 msgstr "Šī kolonna var būt nesaderīga ar pašreizējo datu kopu"
@@ -16660,7 +16660,7 @@ msgstr "Šis filtrs jau ir iekļauts pārskatā"
 
 #, fuzzy, python-format
 msgid "This filter might be incompatible with current %s"
-msgstr "Šis filtrs var būt nesaderīgs ar pašreizējo datu kopu"
+msgstr ""
 
 msgid "This folder is currently empty"
 msgstr "Šī mape pašlaik ir tukša"
@@ -16778,7 +16778,7 @@ msgstr ""
 
 #, fuzzy, python-format
 msgid "This metric might be incompatible with current %s"
-msgstr "Šī metrika var būt nesaderīga ar pašreizējo datu kopu"
+msgstr ""
 
 msgid "This name is already taken. Please choose another one."
 msgstr "Šis nosaukums jau ir aizņemts. Lūdzu, izvēlieties citu."
@@ -19177,7 +19177,7 @@ msgstr "Jums nav tiesību izveidot paneli"
 
 #, fuzzy, python-format
 msgid "You have been removed from task: %s"
-msgstr "Jūs esat noņēmuši šo filtru."
+msgstr ""
 
 msgid "You have removed this filter."
 msgstr "Jūs esat noņēmuši šo filtru."

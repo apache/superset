@@ -1573,8 +1573,8 @@ msgstr ""
 #, fuzzy, python-format
 msgid "Added to 1 dashboard"
 msgid_plural "Added to %s dashboards"
-msgstr[0] "Añadido a 1 panel de control"
-msgstr[1] "Añadido a %s paneles de control"
+msgstr[0] ""
+msgstr[1] ""
 
 msgid "Additional Parameters"
 msgstr "Otros parámetros"

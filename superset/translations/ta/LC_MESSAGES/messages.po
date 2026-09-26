@@ -346,7 +346,7 @@ msgstr ""
 
 #, fuzzy, python-format
 msgid "%s %s"
-msgstr "%s நாட்கள்"
+msgstr ""
 
 #, python-format
 msgid "%s (copy from %s)"
@@ -370,7 +370,7 @@ msgstr "%s கடவுச்சொல்"
 
 #, fuzzy, python-format
 msgid "%s Physical"
-msgstr "இயற்பியல் (Physical)"
+msgstr ""
 
 #, python-format
 msgid "%s SSH TUNNEL PASSWORD"
@@ -390,7 +390,7 @@ msgstr "%s தேர்ந்தெடுக்கப்பட்டது"
 
 #, fuzzy, python-format
 msgid "%s Selected (%s)"
-msgstr "%s தேர்ந்தெடுக்கப்பட்டது"
+msgstr ""
 
 #, python-format
 msgid "%s Selected (Physical)"
@@ -410,7 +410,7 @@ msgstr "%s URL"
 
 #, fuzzy, python-format
 msgid "%s Virtual"
-msgstr "மெய்நிகர் (Virtual)"
+msgstr ""
 
 #, python-format
 msgid "%s additional restricted chart"
@@ -482,7 +482,7 @@ msgstr[1] "1 வருடத்திற்கு முன்"
 
 #, fuzzy, python-format
 msgid "%s imported"
-msgstr "தரவு இறக்குமதி செய்யப்பட்டது"
+msgstr ""
 
 #, fuzzy, python-format
 msgid "%s item"
@@ -505,8 +505,8 @@ msgstr ""
 #, fuzzy, python-format
 msgid "%s metric"
 msgid_plural "%s metrics"
-msgstr[0] "மெட்ரிக்"
-msgstr[1] "மெட்ரிக்"
+msgstr[0] ""
+msgstr[1] ""
 
 #, fuzzy, python-format
 msgid "%s min ago"
@@ -547,12 +547,12 @@ msgstr[1] ""
 #, fuzzy, python-format
 msgid "%s out of %s metric"
 msgid_plural "%s out of %s metrics"
-msgstr[0] " அளவீடுகளைச் (metrics) சேர்க்க"
-msgstr[1] " அளவீடுகளைச் (metrics) சேர்க்க"
+msgstr[0] ""
+msgstr[1] ""
 
 #, fuzzy, python-format
 msgid "%s out of %s selected"
-msgstr "%s தாவல் (tab) தேர்ந்தெடுக்கப்பட்டது"
+msgstr ""
 
 #, python-format
 msgid "%s recipients"
@@ -1533,8 +1533,8 @@ msgstr ""
 #, fuzzy, python-format
 msgid "Added to 1 dashboard"
 msgid_plural "Added to %s dashboards"
-msgstr[0] "1 டேஷ்போர்டில் சேர்க்கப்பட்டது"
-msgstr[1] "%s டேஷ்போர்டுகளில் சேர்க்கப்பட்டது"
+msgstr[0] ""
+msgstr[1] ""
 
 msgid "Additional Parameters"
 msgstr "கூடுதல் அளவுருக்கள் (Parameters)"
@@ -1979,7 +1979,7 @@ msgstr ""
 
 #, fuzzy, python-format
 msgid "An error occurred while fetching %s"
-msgstr "%ss-ஐப் பெறும்போது ஒரு பிழை ஏற்பட்டது: %s"
+msgstr ""
 
 #, python-format
 msgid "An error occurred while fetching %s info: %s"
@@ -1987,11 +1987,11 @@ msgstr "%s தகவலைப் பெறும்போது ஒரு பி
 
 #, fuzzy, python-format
 msgid "An error occurred while fetching %s related data"
-msgstr "தரவுத்தொகுப்பு தொடர்பான தரவுகளைப் பெறும்போது ஒரு பிழை ஏற்பட்டது"
+msgstr ""
 
 #, fuzzy, python-format
 msgid "An error occurred while fetching %s values: %s"
-msgstr "பயனர் மதிப்புகளைப் பெறும்போது ஒரு பிழை ஏற்பட்டது: %s"
+msgstr ""
 
 #, fuzzy, python-format
 msgid "An error occurred while fetching %s: %s"
@@ -2096,7 +2096,7 @@ msgstr "தாவல் நிலையைப் (tab state) பெறும்�
 
 #, fuzzy, python-format
 msgid "An error occurred while fetching table metadata for %s"
-msgstr "அட்டவணை மெட்டாடேட்டாவைப் பெறும்போது ஒரு பிழை ஏற்பட்டது"
+msgstr ""
 
 #, python-format
 msgid "An error occurred while fetching task types: %s"
@@ -3657,7 +3657,7 @@ msgstr "துணைக் குறிச்சொல் (Child label) நி�
 
 #, fuzzy, python-format
 msgid "Choose a %s"
-msgstr "மூலத்தைத் (source) தேர்ந்தெடுக்கவும்"
+msgstr ""
 
 msgid "Choose a chart for displaying on the map"
 msgstr "வரைபடத்தில் காட்ட ஒரு சார்ட்டைத் தேர்ந்தெடுக்கவும்"
@@ -3808,7 +3808,7 @@ msgstr "அழி"
 
 #, fuzzy, python-format
 msgid "Clear %s filter"
-msgstr "அனைத்து வடிகட்டிகளையும் நீக்கு"
+msgstr ""
 
 msgid "Clear Sort"
 msgstr "வரிசைப்படுத்தலை நீக்கு"
@@ -4311,7 +4311,7 @@ msgstr "உள்ளமைவு (Configuration)"
 
 #, fuzzy, python-format
 msgid "Configure %s"
-msgstr "சேமிப்பதை உறுதிப்படுத்து"
+msgstr ""
 
 msgid "Configure Advanced Time Range "
 msgstr "மேம்பட்ட நேர வரம்பை உள்ளமைக்கவும் "
@@ -4693,7 +4693,7 @@ msgstr "என்னால் உருவாக்கப்பட்டது"
 
 #, fuzzy, python-format
 msgid "Created by: %s"
-msgstr "உருவாக்கியவர்"
+msgstr ""
 
 #, python-format
 msgid "Created from version: %s"
@@ -4968,7 +4968,7 @@ msgstr "டேஷ்போர்டு"
 
 #, fuzzy, python-format
 msgid "Dashboard %(dashboard_id)s not found"
-msgstr "சார்ட் %(id)s கண்டறியப்படவில்லை"
+msgstr ""
 
 msgid "Dashboard Filter"
 msgstr "டேஷ்போர்டு வடிகட்டி"
@@ -5064,7 +5064,7 @@ msgstr "டேஷ்போர்டு தலைப்பு"
 
 #, fuzzy, python-format
 msgid "Dashboard updated %s"
-msgstr "டேஷ்போர்டு பயன்பாடு"
+msgstr ""
 
 msgid "Dashboard usage"
 msgstr "டேஷ்போர்டு பயன்பாடு"
@@ -5733,7 +5733,7 @@ msgstr "%s நீக்கப்பட்டது"
 
 #, fuzzy, python-format
 msgid "Deleted %s item(s)"
-msgstr "உருப்படியை நீக்கு"
+msgstr ""
 
 #, python-format
 msgid "Deleted group: %s"
@@ -5906,7 +5906,7 @@ msgstr "பரிமாணங்கள்"
 
 #, fuzzy, python-format
 msgid "Dimensions (%s)"
-msgstr "பரிமாணங்கள்"
+msgstr ""
 
 msgid "Dimensions and metrics"
 msgstr ""
@@ -6364,7 +6364,7 @@ msgstr "பிழை"
 
 #, fuzzy, python-format
 msgid "ERROR: %s"
-msgstr "பிழை"
+msgstr ""
 
 msgid "Each metric's own"
 msgstr ""
@@ -6386,7 +6386,7 @@ msgstr "திருத்து"
 
 #, fuzzy, python-format
 msgid "Edit %s"
-msgstr "பயனரைத் திருத்து"
+msgstr ""
 
 #, python-format
 msgid "Edit %s in modal"
@@ -6530,7 +6530,7 @@ msgstr "பயனர் பெயர் \"%(username)s\" அல்லது க�
 msgid ""
 "Either the username \"%(username)s\", password, or database name "
 "\"%(database)s\" is incorrect."
-msgstr "பயனர் பெயர், கடவுச்சொல் அல்லது தரவுத்தளப் பெயர் \"%(database)s\" தவறானது."
+msgstr ""
 
 msgid "Either the username or the password is wrong."
 msgstr "பயனர் பெயர் அல்லது கடவுச்சொல் தவறானது."
@@ -7288,7 +7288,7 @@ msgstr "சார்ட் திருத்த URL ஐ உருவாக்�
 
 #, fuzzy, python-format
 msgid "Failed to generate download: %s"
-msgstr "சார்ட் திருத்த URL ஐ உருவாக்குவதில் தோல்வி"
+msgstr ""
 
 msgid "Failed to load chart data"
 msgstr "சார்ட் தரவை ஏற்றுவதில் தோல்வி"
@@ -7298,7 +7298,7 @@ msgstr "சார்ட் தரவை ஏற்றுவதில் தோல
 
 #, fuzzy, python-format
 msgid "Failed to load columns for %s %s"
-msgstr "%s தரவுத்தொகுப்பிற்கான நெடுவரிசைகளை ஏற்றுவதில் தோல்வி"
+msgstr ""
 
 #, python-format
 msgid "Failed to load dimensions for semantic view %s"
@@ -8558,7 +8558,7 @@ msgstr "தவறான நிலை."
 
 #, fuzzy, python-format
 msgid "Invalid tab ids: %(tab_ids)s"
-msgstr "தவறான தாவல் (tab) ஐடிகள்: %s(tab_ids)"
+msgstr ""
 
 #, python-format
 msgid "Invalid time range boundary for resample: %(value)s"
@@ -9611,7 +9611,7 @@ msgstr "அளவீடுகள் (Metrics)"
 
 #, fuzzy, python-format
 msgid "Metrics (%s)"
-msgstr "அளவீடுகள் (Metrics)"
+msgstr ""
 
 msgid "Metrics can't be used for both rows and columns at the same time"
 msgstr ""
@@ -9729,7 +9729,7 @@ msgstr "நிமிடங்கள் %s"
 
 #, fuzzy, python-format
 msgid "Missing %s"
-msgstr "தரவுத்தொகுப்பு இல்லை"
+msgstr ""
 
 msgid "Missing OAuth2 token"
 msgstr "OAuth2 டோக்கன் இல்லை"
@@ -10051,7 +10051,7 @@ msgstr "நெடுவரிசைகள் எதுவும் காணப�
 
 #, fuzzy, python-format
 msgid "No compatible %s found"
-msgstr "பொருத்தமான ஸ்கீமா (schema) காணப்படவில்லை"
+msgstr ""
 
 msgid "No compatible catalog found"
 msgstr "பொருத்தமான பட்டியல் (catalog) காணப்படவில்லை"
@@ -10163,11 +10163,11 @@ msgstr "இன்னும் பொறுப்புகள் இல்லை"
 
 #, fuzzy, python-format
 msgid "No rows were returned for this %s"
-msgstr "இந்த தரவுத்தொகுப்பிற்கு வரிசைகள் எதுவும் கிடைக்கவில்லை"
+msgstr ""
 
 #, fuzzy, python-format
 msgid "No samples were returned for this %s"
-msgstr "இந்த தரவுத்தொகுப்பிற்கு மாதிரிகள் (samples) எதுவும் கிடைக்கவில்லை"
+msgstr ""
 
 msgid "No saved expressions found"
 msgstr "சேமிக்கப்பட்ட கோவைகள் (expressions) எதுவும் காணப்படவில்லை"
@@ -10210,7 +10210,7 @@ msgstr "சரிபார்ப்பான் (validator) எதுவும�
 msgid ""
 "No validator named %(validator_name)s found (configured for the "
 "%(engine_spec)s engine)"
-msgstr "%(validator_name)s என்ற பெயரில் சரிபார்ப்பான் இல்லை."
+msgstr ""
 
 msgid "Node label position"
 msgstr "நோட் லேபிள் நிலை"
@@ -10484,7 +10484,7 @@ msgstr "ஒன்று அல்லது அதற்கு மேற்பட
 
 #, fuzzy, python-format
 msgid "One or more parameters are missing: %(missing)s"
-msgstr "வினவலில் உள்ள சில அளவுருக்கள் இல்லை."
+msgstr ""
 
 msgid "One or more parameters needed to configure a database are missing."
 msgstr "தரவுத்தளத்தை உள்ளமைக்கத் தேவையான அளவுருக்கள் இல்லை."
@@ -11162,13 +11162,13 @@ msgstr "குறைந்தது ஒரு பொறுப்பு அல்
 
 #, fuzzy, python-format
 msgid "Please select both a %s and a Chart type to proceed"
-msgstr "தொடர, தரவுத்தொகுப்பு மற்றும் சார்ட் வகை இரண்டையும் தேர்ந்தெடுக்கவும்"
+msgstr ""
 
 #, fuzzy, python-format
 msgid ""
 "Please specify the Dataset ID for the ``%(name)s`` metric in the Jinja "
 "macro."
-msgstr "Jinja மேக்ரோவில் தரவுத்தொகுப்பு ஐடியைக் குறிப்பிடவும்."
+msgstr ""
 
 msgid ""
 "Plot each time-shifted series across its full time range instead of "
@@ -11841,7 +11841,7 @@ msgstr ""
 
 #, fuzzy, python-format
 msgid "Report Schedule executor user %(username)s was not found."
-msgstr "அறிக்கை அட்டவணை நிலை காணப்படவில்லை"
+msgstr ""
 
 msgid "Report Schedule is still working, refusing to re-compute."
 msgstr "அறிக்கை அட்டவணை இன்னும் செயல்பாட்டில் உள்ளது."
@@ -12315,8 +12315,6 @@ msgid ""
 "delete the tab.\n"
 "Note that you will need to close other SQL Lab windows before you do this."
 msgstr ""
-"SQL லேப் உங்கள் உலாவியின் உள்ளூர் சேமிப்பகத்தைப் பயன்படுத்துகிறது. "
-"இடவசதிக்காக சில வினவல் தாவல்களை நீக்கவும்."
 
 msgid "SQL Query"
 msgstr "SQL வினவல்"
@@ -12426,7 +12424,7 @@ msgstr "எனச் சேமி"
 
 #, fuzzy, python-format
 msgid "Save as %s"
-msgstr "எனச் சேமி"
+msgstr ""
 
 msgid "Save as Dataset"
 msgstr "தரவுத்தொகுப்பாகச் சேமி"
@@ -12732,7 +12730,7 @@ msgstr "தேர்ந்தெடு"
 
 #, fuzzy, python-format
 msgid "Select %s or type to search %s"
-msgstr "ஸ்கீமாவைத் தேர்ந்தெடு அல்லது தேட தட்டச்சு செய்க"
+msgstr ""
 
 msgid "Select ..."
 msgstr "தேர்ந்தெடு ..."
@@ -12760,7 +12758,7 @@ msgstr "மதிப்பைத் தேர்ந்தெடு"
 
 #, fuzzy, python-format
 msgid "Select a %s"
-msgstr "குறிச்சொற்களைத் தேர்ந்தெடு"
+msgstr ""
 
 #, fuzzy
 msgid "Select a CSS template"
@@ -14270,7 +14268,7 @@ msgstr "வெற்றி"
 
 #, fuzzy, python-format
 msgid "Successfully changed %s!"
-msgstr "தரவுத்தொகுப்பு வெற்றிகரமாக மாற்றப்பட்டது!"
+msgstr ""
 
 msgid "Suffix"
 msgstr "பின்னொட்டு"
@@ -14325,7 +14323,7 @@ msgstr "ஆதரிக்கப்படும் தரவுத்தளங�
 
 #, fuzzy, python-format
 msgid "Swap %s"
-msgstr "தரவுத்தொகுப்பை மாற்றவும்"
+msgstr ""
 
 msgid "Swap rows and columns"
 msgstr "வரிசைகள் மற்றும் நெடுவரிசைகளை மாற்றவும்"
@@ -14650,7 +14648,7 @@ msgstr ""
 
 #, fuzzy, python-format
 msgid "The %s linked to this chart may have been deleted."
-msgstr "இந்த சார்ட்டுடன் இணைக்கப்பட்ட தரவுத்தொகுப்பு நீக்கப்பட்டிருக்கலாம்."
+msgstr ""
 
 #, python-format
 msgid "The API response from %s does not match the IDatabaseTable interface."
@@ -15795,7 +15793,7 @@ msgstr ""
 
 #, fuzzy, python-format
 msgid "There was an issue cancelling the task: %s"
-msgstr "%s: %s ஐ நீக்குவதில் சிக்கல் ஏற்பட்டது"
+msgstr ""
 
 #, python-format
 msgid "There was an issue deleting %s"
@@ -15815,7 +15813,7 @@ msgstr "விதிகளை நீக்குவதில் சிக்க�
 
 #, fuzzy, python-format
 msgid "There was an issue deleting the selected %s"
-msgstr "தேர்ந்தெடுக்கப்பட்ட %s: %s ஐ நீக்குவதில் சிக்கல் ஏற்பட்டது"
+msgstr ""
 
 #, python-format
 msgid "There was an issue deleting the selected %s: %s"
@@ -15855,7 +15853,7 @@ msgstr "நீக்குவதில் சிக்கல் ஏற்பட�
 
 #, fuzzy, python-format
 msgid "There was an issue duplicating the %s."
-msgstr "தரவுத்தொகுப்பை நகலெடுப்பதில் சிக்கல் ஏற்பட்டது."
+msgstr ""
 
 #, fuzzy, python-format
 msgid "There was an issue duplicating the selected %s: %s"
@@ -15863,11 +15861,11 @@ msgstr "தேர்ந்தெடுக்கப்பட்ட %s: %s ஐ ந
 
 #, fuzzy, python-format
 msgid "There was an issue exporting the %s"
-msgstr "தரவுத்தளத்தை ஏற்றுமதி செய்வதில் சிக்கல் ஏற்பட்டது"
+msgstr ""
 
 #, fuzzy, python-format
 msgid "There was an issue exporting the selected %s"
-msgstr "தேர்ந்தெடுக்கப்பட்ட சார்ட்டுகளை ஏற்றுமதி செய்வதில் சிக்கல் ஏற்பட்டது"
+msgstr ""
 
 msgid "There was an issue exporting the selected charts"
 msgstr "தேர்ந்தெடுக்கப்பட்ட சார்ட்டுகளை ஏற்றுமதி செய்வதில் சிக்கல் ஏற்பட்டது"
@@ -16033,7 +16031,7 @@ msgstr ""
 
 #, fuzzy, python-format
 msgid "This column might be incompatible with current %s"
-msgstr "இந்த நெடுவரிசை தற்போதைய தரவுத்தொகுப்பிற்குப் பொருந்தாமல் இருக்கலாம்"
+msgstr ""
 
 msgid "This column might be incompatible with current dataset"
 msgstr "இந்த நெடுவரிசை தற்போதைய தரவுத்தொகுப்பிற்குப் பொருந்தாமல் இருக்கலாம்"
@@ -16200,7 +16198,7 @@ msgstr "இந்த வடிகட்டி அறிக்கையில் 
 
 #, fuzzy, python-format
 msgid "This filter might be incompatible with current %s"
-msgstr "இந்த வடிகட்டி தற்போதைய தரவுத்தொகுப்பிற்குப் பொருந்தாமல் இருக்கலாம்"
+msgstr ""
 
 msgid "This folder is currently empty"
 msgstr "இந்த கோப்புறை தற்போது காலியாக உள்ளது"
@@ -16298,7 +16296,7 @@ msgstr ""
 
 #, fuzzy, python-format
 msgid "This metric might be incompatible with current %s"
-msgstr "இந்த மெட்ரிக் தற்போதைய தரவுத்தொகுப்பிற்குப் பொருந்தாமல் இருக்கலாம்"
+msgstr ""
 
 msgid "This name is already taken. Please choose another one."
 msgstr ""
@@ -17324,7 +17322,7 @@ msgstr "தரவுத்தளத்திற்கு SSH டன்னல் 
 msgid ""
 "Use another existing chart as a source for annotations and overlays.\n"
 "          Your chart must be one of these visualization types: [%s]"
-msgstr "குறிப்புகளுக்கு மற்றொரு சார்ட்டை மூலமாகப் பயன்படுத்தவும்."
+msgstr ""
 
 msgid "Use automatic color"
 msgstr "தானியங்கி நிறத்தைப் பயன்படுத்தவும்"
@@ -18615,7 +18613,7 @@ msgstr "டாஷ்போர்டை உருவாக்க உங்கள�
 
 #, fuzzy, python-format
 msgid "You have been removed from task: %s"
-msgstr "நீங்கள் இந்த வடிகட்டியை அகற்றிவிட்டீர்கள்."
+msgstr ""
 
 msgid "You have removed this filter."
 msgstr "நீங்கள் இந்த வடிகட்டியை அகற்றிவிட்டீர்கள்."
@@ -18631,13 +18629,13 @@ msgid ""
 "You have used all %(historyLength)s undo slots and will not be able to "
 "fully undo subsequent actions. You may save your current state to reset "
 "the history."
-msgstr "நீங்கள் அனைத்து அன்-டூ (Undo) இடங்களையும் பயன்படுத்திவிட்டீர்கள்."
+msgstr ""
 
 #, fuzzy, python-format
 msgid ""
 "You must be a %s editor in order to edit. Please reach out to a %s editor"
 " to request modifications or edit access."
-msgstr "எடிட் செய்ய நீங்கள் தரவுத்தொகுப்பின் உரிமையாளராக இருக்க வேண்டும்."
+msgstr ""
 
 #, fuzzy
 msgid ""
@@ -18872,7 +18870,7 @@ msgstr "பின்-செயலாக்கப் பொருளின் `op
 
 #, fuzzy, python-format
 msgid "`periods` must be between 1 and %(max)s"
-msgstr "திரைக்காட்சி அகலம் %(min)spx முதல் %(max)spx வரை இருக்க வேண்டும்"
+msgstr ""
 
 msgid "`prophet` package not installed"
 msgstr "`prophet` தொகுப்பு நிறுவப்படவில்லை"
@@ -19363,16 +19361,12 @@ msgid ""
 " Lab tabs using this database open. Are you sure you want to continue? "
 "Deleting the database will break those objects."
 msgstr ""
-"இந்தத் தரவுத்தளம் %s சார்ட்டுகளுடன் இணைக்கப்பட்டுள்ளது. இதை நீக்கினால் "
-"அந்தப் பொருட்கள் பாதிக்கப்படும். தொடர வேண்டுமா?"
 
 #, fuzzy, python-format
 msgid ""
 "is linked to %s charts that appear on %s dashboards. Are you sure you "
 "want to continue? Deleting the dataset will break those objects."
 msgstr ""
-"இந்தத் தரவுத்தொகுப்பு %s சார்ட்டுகளுடன் இணைக்கப்பட்டுள்ளது. இதை "
-"நீக்கினால் அந்தப் பொருட்கள் பாதிக்கப்படும். தொடர வேண்டுமா?"
 
 msgid "is not"
 msgstr "இல்லை"

@@ -356,7 +356,7 @@ msgstr ""
 
 #, fuzzy, python-format
 msgid "%s ENCRYPTED EXTRA"
-msgstr "Zabezpečené extra"
+msgstr ""
 
 #, python-format
 msgid "%s Error"
@@ -372,7 +372,7 @@ msgstr "HESLO %s"
 
 #, fuzzy, python-format
 msgid "%s Physical"
-msgstr "Fyzický"
+msgstr ""
 
 #, python-format
 msgid "%s SSH TUNNEL PASSWORD"
@@ -392,7 +392,7 @@ msgstr "Vybraté %s"
 
 #, fuzzy, python-format
 msgid "%s Selected (%s)"
-msgstr "Vybraté %s"
+msgstr ""
 
 #, python-format
 msgid "%s Selected (Physical)"
@@ -414,7 +414,7 @@ msgstr "%s URL"
 
 #, fuzzy, python-format
 msgid "%s Virtual"
-msgstr "Virtuální"
+msgstr ""
 
 #, python-format
 msgid "%s additional restricted chart"
@@ -496,7 +496,7 @@ msgstr[2] "%s riadkov"
 
 #, fuzzy, python-format
 msgid "%s imported"
-msgstr "Data importována"
+msgstr ""
 
 #, fuzzy, python-format
 msgid "%s item"
@@ -520,7 +520,7 @@ msgstr ""
 #, fuzzy, python-format
 msgid "%s metric"
 msgid_plural "%s metrics"
-msgstr[0] "Řadit metriku"
+msgstr[0] ""
 msgstr[1] ""
 msgstr[2] ""
 
@@ -560,20 +560,20 @@ msgstr "%s možnosť(i)"
 #, fuzzy, python-format
 msgid "%s out of %s column"
 msgid_plural "%s out of %s columns"
-msgstr[0] "Automatická veľkosť stĺpce"
+msgstr[0] ""
 msgstr[1] ""
 msgstr[2] ""
 
 #, fuzzy, python-format
 msgid "%s out of %s metric"
 msgid_plural "%s out of %s metrics"
-msgstr[0] "Řadit metriku"
+msgstr[0] ""
 msgstr[1] ""
 msgstr[2] ""
 
 #, fuzzy, python-format
 msgid "%s out of %s selected"
-msgstr "%s záložka vybrána"
+msgstr ""
 
 #, python-format
 msgid "%s recipients"
@@ -1580,9 +1580,9 @@ msgstr ""
 #, fuzzy, python-format
 msgid "Added to 1 dashboard"
 msgid_plural "Added to %s dashboards"
-msgstr[0] "Pridané na 1 nástenku"
-msgstr[1] "Pridané na %s nástenky"
-msgstr[2] "Pridané na %s násteniek"
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
 
 msgid "Additional Parameters"
 msgstr "Ďalší parametre"
@@ -2029,7 +2029,7 @@ msgstr ""
 
 #, fuzzy, python-format
 msgid "An error occurred while fetching %s"
-msgstr "Pri načítavanie %s došlo k chybe: %s"
+msgstr ""
 
 #, python-format
 msgid "An error occurred while fetching %s info: %s"
@@ -2037,11 +2037,11 @@ msgstr "Pri načítavanie informací o %s došlo k chybe: %s"
 
 #, fuzzy, python-format
 msgid "An error occurred while fetching %s related data"
-msgstr "Pri načítavanie dat súvisejúcich sa sadou dat došlo k chybe"
+msgstr ""
 
 #, fuzzy, python-format
 msgid "An error occurred while fetching %s values: %s"
-msgstr "Pri načítavanie uživatelských hodnôt došlo k chybe: %s"
+msgstr ""
 
 #, fuzzy, python-format
 msgid "An error occurred while fetching %s: %s"
@@ -2141,7 +2141,7 @@ msgstr "Pri načítavanie stavu karty došlo k chybe"
 
 #, fuzzy, python-format
 msgid "An error occurred while fetching table metadata for %s"
-msgstr "Pri načítavanie metadat tabuľky došlo k chybe"
+msgstr ""
 
 #, python-format
 msgid "An error occurred while fetching task types: %s"
@@ -3736,7 +3736,7 @@ msgstr "Pozícia popisku podriadenej položky"
 
 #, fuzzy, python-format
 msgid "Choose a %s"
-msgstr "Vyberte zdroj"
+msgstr ""
 
 msgid "Choose a chart for displaying on the map"
 msgstr "Vyberte graf pre zobrazenie na mape"
@@ -3879,7 +3879,7 @@ msgstr "Vymazat"
 
 #, fuzzy, python-format
 msgid "Clear %s filter"
-msgstr "Vymazat všetky filtre"
+msgstr ""
 
 #, fuzzy
 msgid "Clear Sort"
@@ -4405,7 +4405,7 @@ msgstr "Konfigurácia"
 
 #, fuzzy, python-format
 msgid "Configure %s"
-msgstr "Potvrdiť uloženie"
+msgstr ""
 
 msgid "Configure Advanced Time Range "
 msgstr "Konfigurovať pokročilý časový rozsah "
@@ -4681,7 +4681,7 @@ msgstr "Nepodarilo sa načítať ovladač databáza"
 
 #, fuzzy, python-format
 msgid "Could not load database driver for: %(engine)s"
-msgstr "Nepodarilo sa načítať ovladač databáza: %(engine)"
+msgstr ""
 
 msgid ""
 "Could not load metadata for this configuration; showing the default form."
@@ -4788,7 +4788,7 @@ msgstr "Vytvorené mnou"
 
 #, fuzzy, python-format
 msgid "Created by: %s"
-msgstr "Vytvoril(a)"
+msgstr ""
 
 #, python-format
 msgid "Created from version: %s"
@@ -5063,7 +5063,7 @@ msgstr "Nástenka"
 
 #, fuzzy, python-format
 msgid "Dashboard %(dashboard_id)s not found"
-msgstr "Graf %(id)s nenalezen"
+msgstr ""
 
 #, fuzzy
 msgid "Dashboard Filter"
@@ -5882,7 +5882,7 @@ msgstr "Zmazané %s"
 
 #, fuzzy, python-format
 msgid "Deleted %s item(s)"
-msgstr "Zmazať položku"
+msgstr ""
 
 #, fuzzy, python-format
 msgid "Deleted group: %s"
@@ -6069,7 +6069,7 @@ msgstr "Dimenze"
 
 #, fuzzy, python-format
 msgid "Dimensions (%s)"
-msgstr "Dimenze"
+msgstr ""
 
 msgid "Dimensions and metrics"
 msgstr ""
@@ -6566,7 +6566,7 @@ msgstr "Upraviť"
 
 #, fuzzy, python-format
 msgid "Edit %s"
-msgstr "Upraviť používateľa"
+msgstr ""
 
 #, fuzzy, python-format
 msgid "Edit %s in modal"
@@ -7498,7 +7498,7 @@ msgstr "Nepodarilo sa vygenerovať URL pre úpravu grafu"
 
 #, fuzzy, python-format
 msgid "Failed to generate download: %s"
-msgstr "Nepodarilo sa vygenerovať URL pre úpravu grafu"
+msgstr ""
 
 msgid "Failed to load chart data"
 msgstr "Nepodarilo sa načítať data grafu"
@@ -7508,7 +7508,7 @@ msgstr "Nepodarilo sa načítať data grafu."
 
 #, fuzzy, python-format
 msgid "Failed to load columns for %s %s"
-msgstr "Nepodarilo sa načítať stĺpce pre datovou sadu %s"
+msgstr ""
 
 #, python-format
 msgid "Failed to load dimensions for semantic view %s"
@@ -9940,7 +9940,7 @@ msgstr "Metriky"
 
 #, fuzzy, python-format
 msgid "Metrics (%s)"
-msgstr "Metriky"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
@@ -10069,7 +10069,7 @@ msgstr "Minúty %s"
 
 #, fuzzy, python-format
 msgid "Missing %s"
-msgstr "Chybí sada dat"
+msgstr ""
 
 msgid "Missing OAuth2 token"
 msgstr "Chybí token OAuth2"
@@ -10406,7 +10406,7 @@ msgstr "Nebyly nalezeny žiadne stĺpce"
 
 #, fuzzy, python-format
 msgid "No compatible %s found"
-msgstr "Nebolo nájdené žiadne kompatibilný schéma"
+msgstr ""
 
 msgid "No compatible catalog found"
 msgstr "Nebyl nalezen žiadny kompatibilný katalog"
@@ -10530,11 +10530,11 @@ msgstr "Zatiaľ žiadne role"
 
 #, fuzzy, python-format
 msgid "No rows were returned for this %s"
-msgstr "Pre tuto sadu dat nebyly vráceny žiadne riadky"
+msgstr ""
 
 #, fuzzy, python-format
 msgid "No samples were returned for this %s"
-msgstr "Pre tuto sadu dat nebyly vráceny žiadne vzorky"
+msgstr ""
 
 msgid "No saved expressions found"
 msgstr "Nebyly nalezeny žiadne uložené výrazy"
@@ -11605,7 +11605,7 @@ msgstr "Vyberte prosím alespoň jednu roli alebo skupinu"
 
 #, fuzzy, python-format
 msgid "Please select both a %s and a Chart type to proceed"
-msgstr "Pre pokračovanie vyberte prosím sadu dat i typ grafu"
+msgstr ""
 
 #, python-format
 msgid ""
@@ -12762,7 +12762,7 @@ msgstr "Beží"
 
 #, fuzzy, python-format
 msgid "Running block %(block_num)s out of %(block_count)s"
-msgstr "Spouští sa príkaz %(statement_num)s z %(statement_count)s"
+msgstr ""
 
 msgid "SAT"
 msgstr "SO"
@@ -12926,7 +12926,7 @@ msgstr "Uložiť ako"
 
 #, fuzzy, python-format
 msgid "Save as %s"
-msgstr "Uložiť ako"
+msgstr ""
 
 msgid "Save as Dataset"
 msgstr "Uložiť ako sadu dat"
@@ -13238,7 +13238,7 @@ msgstr "Vybrať"
 
 #, fuzzy, python-format
 msgid "Select %s or type to search %s"
-msgstr "Vyberte schéma alebo zadejte text pre vyhľadávanie schémat"
+msgstr ""
 
 msgid "Select ..."
 msgstr "Vybrať..."
@@ -13269,7 +13269,7 @@ msgstr "Vybrať hodnotu"
 
 #, fuzzy, python-format
 msgid "Select a %s"
-msgstr "Vybrať značky"
+msgstr ""
 
 #, fuzzy
 msgid "Select a CSS template"
@@ -14885,7 +14885,7 @@ msgstr ""
 
 #, fuzzy, python-format
 msgid "Successfully changed %s!"
-msgstr "Sada dat úspešne zmenenýa!"
+msgstr ""
 
 msgid "Suffix"
 msgstr "Prípona"
@@ -14940,7 +14940,7 @@ msgstr "Podporované databáza"
 
 #, fuzzy, python-format
 msgid "Swap %s"
-msgstr "Vymenit sadu dat"
+msgstr ""
 
 msgid "Swap rows and columns"
 msgstr "Prohodit riadky a stĺpce"
@@ -15165,7 +15165,7 @@ msgstr "značky"
 
 #, fuzzy, python-format
 msgid "Task cancelled: %s"
-msgstr "Export zrušen"
+msgstr ""
 
 #, fuzzy
 msgid "Task could not be aborted."
@@ -15288,7 +15288,7 @@ msgstr "Načteno %s"
 
 #, fuzzy, python-format
 msgid "The %s linked to this chart may have been deleted."
-msgstr "Sada dat propojená s týmto grafem mohla být zmazaná."
+msgstr ""
 
 #, python-format
 msgid "The API response from %s does not match the IDatabaseTable interface."
@@ -16578,7 +16578,7 @@ msgstr ""
 
 #, fuzzy, python-format
 msgid "There was an issue cancelling the task: %s"
-msgstr "Pri mazanie %s došlo k problému: %s"
+msgstr ""
 
 #, python-format
 msgid "There was an issue deleting %s"
@@ -16598,7 +16598,7 @@ msgstr "Pri mazanie pravidel došlo k problému: %s"
 
 #, fuzzy, python-format
 msgid "There was an issue deleting the selected %s"
-msgstr "Pri mazanie vybraných %s došlo k problému: %s"
+msgstr ""
 
 #, python-format
 msgid "There was an issue deleting the selected %s: %s"
@@ -16638,7 +16638,7 @@ msgstr "Pri mazanie došlo k problému: %s"
 
 #, fuzzy, python-format
 msgid "There was an issue duplicating the %s."
-msgstr "Pri duplikovanie sady dat došlo k problému."
+msgstr ""
 
 #, fuzzy, python-format
 msgid "There was an issue duplicating the selected %s: %s"
@@ -16646,7 +16646,7 @@ msgstr "Pri mazanie vybraných %s došlo k problému: %s"
 
 #, fuzzy, python-format
 msgid "There was an issue exporting the %s"
-msgstr "Pri exportu databáza došlo k problému."
+msgstr ""
 
 #, fuzzy, python-format
 msgid "There was an issue exporting the selected %s"
@@ -16823,7 +16823,7 @@ msgstr ""
 
 #, fuzzy, python-format
 msgid "This column might be incompatible with current %s"
-msgstr "Tento stĺpec môže být nekompatibilný s aktuálny sadou dat"
+msgstr ""
 
 msgid "This column might be incompatible with current dataset"
 msgstr "Tento stĺpec môže být nekompatibilný s aktuálny sadou dat"
@@ -16999,7 +16999,7 @@ msgstr "Tento filter již existuje na reportu."
 
 #, fuzzy, python-format
 msgid "This filter might be incompatible with current %s"
-msgstr "Tento filter môže být nekompatibilný s aktuálny sadou dat"
+msgstr ""
 
 msgid "This folder is currently empty"
 msgstr "Tento priečinok je aktuálne prázdna."
@@ -17122,7 +17122,7 @@ msgstr ""
 
 #, fuzzy, python-format
 msgid "This metric might be incompatible with current %s"
-msgstr "Táto metrika môže být nekompatibilný s aktuálny sadou dat"
+msgstr ""
 
 #, fuzzy
 msgid "This name is already taken. Please choose another one."
@@ -19558,7 +19558,7 @@ msgstr "Nemáte práva k vytvorenie nástenky"
 
 #, fuzzy, python-format
 msgid "You have been removed from task: %s"
-msgstr "Tento filter jste odstranili."
+msgstr ""
 
 msgid "You have removed this filter."
 msgstr "Tento filter jste odstranili."

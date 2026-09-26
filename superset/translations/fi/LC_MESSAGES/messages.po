@@ -440,7 +440,7 @@ msgstr ""
 # zh_TW]
 #, fuzzy, python-format
 msgid "%s ENCRYPTED EXTRA"
-msgstr "Lisäsuojaus"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, it, ja, ko, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, uk, zh,
@@ -463,7 +463,7 @@ msgstr "%s SALASANA"
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, fuzzy, python-format
 msgid "%s Physical"
-msgstr "Fyysinen"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -495,7 +495,7 @@ msgstr "%s Valittu"
 # zh_TW]
 #, fuzzy, python-format
 msgid "%s Selected (%s)"
-msgstr "%s Valittu"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -525,7 +525,7 @@ msgstr "%s URL"
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, tr, uk]
 #, fuzzy, python-format
 msgid "%s Virtual"
-msgstr "Virtuaalinen"
+msgstr ""
 
 #, python-format
 msgid "%s additional restricted chart"
@@ -611,7 +611,7 @@ msgstr[1] "%s riviä"
 # fr, ja, lv, mi, ru, sk, uk]
 #, fuzzy, python-format
 msgid "%s imported"
-msgstr "Tiedot tuotu"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: fr, ja, lv,
 # ru, uk]
@@ -643,7 +643,7 @@ msgstr ""
 #, fuzzy, python-format
 msgid "%s metric"
 msgid_plural "%s metrics"
-msgstr[0] "Lajittelumittari"
+msgstr[0] ""
 msgstr[1] ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
@@ -690,7 +690,7 @@ msgstr "%s vaihtoehto(a)"
 #, fuzzy, python-format
 msgid "%s out of %s column"
 msgid_plural "%s out of %s columns"
-msgstr[0] "Sarakkeen automaattinen koko"
+msgstr[0] ""
 msgstr[1] ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
@@ -699,14 +699,14 @@ msgstr[1] ""
 #, fuzzy, python-format
 msgid "%s out of %s metric"
 msgid_plural "%s out of %s metrics"
-msgstr[0] "Lajittelumittari"
+msgstr[0] ""
 msgstr[1] ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: fr, ja, lv,
 # ru, uk]
 #, fuzzy, python-format
 msgid "%s out of %s selected"
-msgstr "%s välilehti valittu"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, es,
 # fa, fr, ja, lv, mi, ru, sk, sl, uk]
@@ -2345,8 +2345,8 @@ msgstr ""
 #, fuzzy, python-format
 msgid "Added 1 new column to the virtual dataset"
 msgid_plural "Added %s new columns to the virtual dataset"
-msgstr[0] "Virtuaaliseen tietoaineistoon lisättiin 1 uusi sarake"
-msgstr[1] "Virtuaaliseen tietoaineistoon lisättiin %s uutta saraketta"
+msgstr[0] ""
+msgstr[1] ""
 
 #, python-format
 msgid "Added a %s"
@@ -2367,8 +2367,8 @@ msgstr ""
 #, fuzzy, python-format
 msgid "Added to 1 dashboard"
 msgid_plural "Added to %s dashboards"
-msgstr[0] "Lisätty 1 kojelautaan"
-msgstr[1] "Lisätty %s kojelautoihin"
+msgstr[0] ""
+msgstr[1] ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, tr, uk, zh, zh_TW]
@@ -3143,7 +3143,7 @@ msgstr ""
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, fuzzy, python-format
 msgid "An error occurred while fetching %s"
-msgstr "%ss:n hakemisessa tapahtui virhe: %s"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -3156,13 +3156,13 @@ msgstr "%s-tietojen hakemisessa tapahtui virhe: %s"
 # zh_TW]
 #, fuzzy, python-format
 msgid "An error occurred while fetching %s related data"
-msgstr "Tietojoukkoon liittyvien tietojen hakemisessa tapahtui virhe"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, fuzzy, python-format
 msgid "An error occurred while fetching %s values: %s"
-msgstr "Käyttäjäarvojen hakemisessa tapahtui virhe: %s"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -3327,7 +3327,7 @@ msgstr "Välilehden tilan hakemisessa tapahtui virhe"
 # zh_TW]
 #, fuzzy, python-format
 msgid "An error occurred while fetching table metadata for %s"
-msgstr "Taulukon metatietojen hakemisessa tapahtui virhe"
+msgstr ""
 
 #, python-format
 msgid "An error occurred while fetching task types: %s"
@@ -5997,7 +5997,7 @@ msgstr "Lapsi-tunnisteen sijainti"
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, tr, uk, zh, zh_TW]
 #, fuzzy, python-format
 msgid "Choose a %s"
-msgstr "Valitse lähde"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, es,
 # fr, ja, lv, mi, ru, sk, uk]
@@ -6259,7 +6259,7 @@ msgstr "Tyhjennä"
 # ru, uk]
 #, fuzzy, python-format
 msgid "Clear %s filter"
-msgstr "Tyhjennä kaikki suodattimet"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: fr, ja, lv,
 # ru, uk]
@@ -7120,7 +7120,7 @@ msgstr "Konfiguraatio"
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, fuzzy, python-format
 msgid "Configure %s"
-msgstr "Vahvista tallennus"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, ru, sk, sl, uk, zh, zh_TW]
@@ -7779,7 +7779,7 @@ msgstr "Minun luomani"
 # zh_TW]
 #, fuzzy, python-format
 msgid "Created by: %s"
-msgstr "Luonut"
+msgstr ""
 
 #, python-format
 msgid "Created from version: %s"
@@ -8263,7 +8263,7 @@ msgstr "Kojelauta"
 # zh_TW]
 #, fuzzy, python-format
 msgid "Dashboard %(dashboard_id)s not found"
-msgstr "Kaaviota %(id)s ei löydy"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: fr, ja, lv,
 # ru, uk]
@@ -9616,7 +9616,7 @@ msgstr "Poistettu %s"
 # ru, uk]
 #, fuzzy, python-format
 msgid "Deleted %s item(s)"
-msgstr "Poista kohde"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: fr, ja, lv,
 # ru, uk]
@@ -9905,7 +9905,7 @@ msgstr "Dimensiot"
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
 #, fuzzy, python-format
 msgid "Dimensions (%s)"
-msgstr "Dimensiot"
+msgstr ""
 
 msgid "Dimensions and metrics"
 msgstr ""
@@ -10703,7 +10703,7 @@ msgstr "Muokkaa"
 # ja, lv, mi, ru, sk, uk]
 #, fuzzy, python-format
 msgid "Edit %s"
-msgstr "Muokkaa käyttäjää"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja, lv, ru,
 # uk]
@@ -12298,7 +12298,7 @@ msgstr "Kaavion muokkaus-URL:n luominen epäonnistui"
 # de, es, fa, fr, ja, lv, mi, nl, pl, ru, sk, sl, uk]
 #, fuzzy, python-format
 msgid "Failed to generate download: %s"
-msgstr "Kaavion muokkaus-URL:n luominen epäonnistui"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
@@ -12316,7 +12316,7 @@ msgstr "Kaavion tietojen lataaminen epäonnistui."
 # uk]
 #, fuzzy, python-format
 msgid "Failed to load columns for %s %s"
-msgstr "Tietojoukon %s sarakkeiden lataaminen epäonnistui"
+msgstr ""
 
 #, python-format
 msgid "Failed to load dimensions for semantic view %s"
@@ -14535,7 +14535,7 @@ msgstr "Virheellinen tila."
 # es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sl, uk]
 #, fuzzy, python-format
 msgid "Invalid tab ids: %(tab_ids)s"
-msgstr "Virheelliset välilehti-ID:t: %s(tab_ids)"
+msgstr ""
 
 #, python-format
 msgid "Invalid time range boundary for resample: %(value)s"
@@ -16451,7 +16451,7 @@ msgstr "Mittarit"
 # zh_TW]
 #, fuzzy, python-format
 msgid "Metrics (%s)"
-msgstr "Mittarit"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
@@ -16664,7 +16664,7 @@ msgstr "Minuutit %s"
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, fuzzy, python-format
 msgid "Missing %s"
-msgstr "Tietojoukko puuttuu"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, es,
 # fr, ja, lv, mi, ru, sk, uk]
@@ -16712,8 +16712,8 @@ msgstr "Muokattu %s"
 #, fuzzy, python-format
 msgid "Modified 1 column in the virtual dataset"
 msgid_plural "Modified %s columns in the virtual dataset"
-msgstr[0] "Muokattu 1 sarake virtuaalisessa tietojoukossa"
-msgstr[1] "Muokattu %s saraketta virtuaalisessa tietojoukossa"
+msgstr[0] ""
+msgstr[1] ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, it, ja, ko, lv, mi, nl, pl, pt_BR, ru, sk, sl, tr, uk, zh,
@@ -17245,7 +17245,7 @@ msgstr "Sarakkeita ei löydy"
 # de, es, fa, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
 #, fuzzy, python-format
 msgid "No compatible %s found"
-msgstr "Yhteensopivaa skeemaa ei löydy"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fa, ja, lv, mi, ru, sk, sl, uk]
@@ -17461,13 +17461,13 @@ msgstr "Ei vielä rooleja"
 # de, es, fa, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, fuzzy, python-format
 msgid "No rows were returned for this %s"
-msgstr "Tälle tietojoukolle ei palautettu rivejä"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
 #, fuzzy, python-format
 msgid "No samples were returned for this %s"
-msgstr "Tälle tietojoukolle ei palautettu näytteitä"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
@@ -19275,7 +19275,7 @@ msgstr "Valitse vähintään yksi rooli tai ryhmä"
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, fuzzy, python-format
 msgid "Please select both a %s and a Chart type to proceed"
-msgstr "Valitse sekä tietojoukko että kaaviotyyppi jatkaaksesi"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fa, fr, ja, lv, mi, pl, ru, sk, sl, uk]
@@ -20302,8 +20302,8 @@ msgstr ""
 #, fuzzy, python-format
 msgid "Removed 1 column from the virtual dataset"
 msgid_plural "Removed %s columns from the virtual dataset"
-msgstr[0] "Poistettiin 1 sarake virtuaalisesta tietojoukosta"
-msgstr[1] "Poistettiin %s saraketta virtuaalisesta tietojoukosta"
+msgstr[0] ""
+msgstr[1] ""
 
 #, python-format
 msgid "Removed a %s"
@@ -21498,7 +21498,7 @@ msgstr "Tallenna nimellä"
 # zh_TW]
 #, fuzzy, python-format
 msgid "Save as %s"
-msgstr "Tallenna nimellä"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, tr, uk]
@@ -22059,7 +22059,7 @@ msgstr "Valitse"
 # de, es, fa, ja, lv, mi, nl, pt_BR, ru, sk, sl, tr, uk]
 #, fuzzy, python-format
 msgid "Select %s or type to search %s"
-msgstr "Valitse skeema tai kirjoita hakusana skeemojen hakuun"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, tr, uk, zh,
@@ -22111,7 +22111,7 @@ msgstr "Valitse arvo"
 # de, es, fa, ja, lv, mi, nl, ru, sk, sl, uk]
 #, fuzzy, python-format
 msgid "Select a %s"
-msgstr "Valitse tagit"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja, lv, ru,
 # uk]
@@ -24779,7 +24779,7 @@ msgstr ""
 # de, es, fa, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
 #, fuzzy, python-format
 msgid "Successfully changed %s!"
-msgstr "Tietojoukon vaihto onnistui!"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -24882,7 +24882,7 @@ msgstr "Tuetut tietokannat"
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
 #, fuzzy, python-format
 msgid "Swap %s"
-msgstr "Vaihda tietojoukko"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -25270,7 +25270,7 @@ msgstr "tunnisteet"
 # uk]
 #, fuzzy, python-format
 msgid "Task cancelled: %s"
-msgstr "Vienti peruttu"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, ja, lv, mi, nl, ru, sk, sl, uk]
@@ -25445,7 +25445,7 @@ msgstr "Haettu %s"
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, fuzzy, python-format
 msgid "The %s linked to this chart may have been deleted."
-msgstr "Tähän kaavioon linkitetty tietojoukko on saattanut tulla poistetuksi."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
@@ -27355,7 +27355,7 @@ msgstr ""
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, fuzzy, python-format
 msgid "There was an issue cancelling the task: %s"
-msgstr "Kohteen %s poistamisessa ilmeni ongelma: %s"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, es,
 # ja, lv, mi, ru, sk, uk]
@@ -27385,7 +27385,7 @@ msgstr "Sääntöjen poistamisessa ilmeni ongelma: %s"
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, fuzzy, python-format
 msgid "There was an issue deleting the selected %s"
-msgstr "Valittujen %s poistamisessa ilmeni ongelma: %s"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -27441,7 +27441,7 @@ msgstr "Poistamisessa ilmeni ongelma: %s"
 # de, es, fa, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
 #, fuzzy, python-format
 msgid "There was an issue duplicating the %s."
-msgstr "Tietojoukon kopioinnissa ilmeni ongelma."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -27453,13 +27453,13 @@ msgstr "Valittujen %s poistamisessa ilmeni ongelma: %s"
 # uk]
 #, fuzzy, python-format
 msgid "There was an issue exporting the %s"
-msgstr "Tietokannan viennissä ilmeni ongelma"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja, lv, ru,
 # uk]
 #, fuzzy, python-format
 msgid "There was an issue exporting the selected %s"
-msgstr "Valittujen teemojen viennissä ilmeni ongelma"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja, lv, ru,
 # uk]
@@ -27707,7 +27707,7 @@ msgstr ""
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
 #, fuzzy, python-format
 msgid "This column might be incompatible with current %s"
-msgstr "Tämä sarake saattaa olla yhteensopimaton nykyisen tietojoukon kanssa"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
@@ -27955,7 +27955,7 @@ msgstr "Tämä suodatin on jo raportissa"
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
 #, fuzzy, python-format
 msgid "This filter might be incompatible with current %s"
-msgstr "Tämä suodatin saattaa olla yhteensopimaton nykyisen tietojoukon kanssa"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, ja, lv,
 # ru, sk, uk]
@@ -28122,7 +28122,7 @@ msgstr ""
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
 #, fuzzy, python-format
 msgid "This metric might be incompatible with current %s"
-msgstr "Tämä mittari saattaa olla yhteensopimaton nykyisen tietojoukon kanssa"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: fr, ja, lv,
 # ru, uk]
@@ -32033,7 +32033,7 @@ msgstr "Sinulla ei ole oikeuksia luoda kojelautaa"
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, tr, uk, zh, zh_TW]
 #, fuzzy, python-format
 msgid "You have been removed from task: %s"
-msgstr "Olet poistanut tämän suodattimen."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, tr, uk, zh, zh_TW]

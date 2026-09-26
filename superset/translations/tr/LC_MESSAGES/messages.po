@@ -3839,7 +3839,7 @@ msgstr "Hedef seçin"
 
 #, fuzzy
 msgid "Choose already exists"
-msgstr "Veriseti %(name)s zaten var"
+msgstr ""
 
 msgid "Choose chart type"
 msgstr "Grafik tipini seçin"
@@ -8641,7 +8641,7 @@ msgstr ""
 
 #, fuzzy
 msgid "If table already exists"
-msgstr "Veriseti %(name)s zaten var"
+msgstr ""
 
 msgid "If you delete this item, you won't be able to recover it."
 msgstr ""

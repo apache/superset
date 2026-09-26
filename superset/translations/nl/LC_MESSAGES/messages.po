@@ -278,7 +278,7 @@ msgstr ""
 
 #, fuzzy, python-format
 msgid "%(label)s file"
-msgstr "%(prefix)s %(title)s"
+msgstr ""
 
 #, python-format
 msgid "%(name)s deleted successfully"
@@ -376,7 +376,7 @@ msgstr ""
 
 #, fuzzy, python-format
 msgid "%s ENCRYPTED EXTRA"
-msgstr "Beveilig extra"
+msgstr ""
 
 #, python-format
 msgid "%s Error"
@@ -392,7 +392,7 @@ msgstr "%s WACHTWOORD"
 
 #, fuzzy, python-format
 msgid "%s Physical"
-msgstr "Fysiek"
+msgstr ""
 
 #, python-format
 msgid "%s SSH TUNNEL PASSWORD"
@@ -412,7 +412,7 @@ msgstr "%s Geselecteerd"
 
 #, fuzzy, python-format
 msgid "%s Selected (%s)"
-msgstr "%s Geselecteerd"
+msgstr ""
 
 #, python-format
 msgid "%s Selected (Physical)"
@@ -430,11 +430,11 @@ msgstr "%s Semantische weergave"
 
 #, fuzzy, python-format
 msgid "%s URL"
-msgstr "URL"
+msgstr ""
 
 #, fuzzy, python-format
 msgid "%s Virtual"
-msgstr "Virtueel"
+msgstr ""
 
 #, python-format
 msgid "%s additional restricted chart"
@@ -506,7 +506,7 @@ msgstr[1] ""
 
 #, fuzzy, python-format
 msgid "%s imported"
-msgstr "Dataset geïmporteerd"
+msgstr ""
 
 #, fuzzy, python-format
 msgid "%s item"
@@ -529,13 +529,13 @@ msgstr ""
 #, fuzzy, python-format
 msgid "%s metric"
 msgid_plural "%s metrics"
-msgstr[0] "Sorteer metriek"
+msgstr[0] ""
 msgstr[1] ""
 
 #, fuzzy, python-format
 msgid "%s min ago"
 msgid_plural "%s min ago"
-msgstr[0] "maand"
+msgstr[0] ""
 msgstr[1] ""
 
 #, python-format
@@ -565,22 +565,22 @@ msgstr "%s optie(s)"
 #, fuzzy, python-format
 msgid "%s out of %s column"
 msgid_plural "%s out of %s columns"
-msgstr[0] "Kolommen aanpassen"
+msgstr[0] ""
 msgstr[1] ""
 
 #, fuzzy, python-format
 msgid "%s out of %s metric"
 msgid_plural "%s out of %s metrics"
-msgstr[0] "Sorteer metriek"
+msgstr[0] ""
 msgstr[1] ""
 
 #, fuzzy, python-format
 msgid "%s out of %s selected"
-msgstr "%s Geselecteerd"
+msgstr ""
 
 #, fuzzy, python-format
 msgid "%s recipients"
-msgstr "recente"
+msgstr ""
 
 #, fuzzy, python-format
 msgid "%s record..."
@@ -757,7 +757,7 @@ msgstr[1] ""
 
 #, fuzzy, python-format
 msgid "... and %s more records"
-msgstr "Ruwe records"
+msgstr ""
 
 #, python-format
 msgid "... and %s other"
@@ -1598,8 +1598,8 @@ msgstr ""
 #, fuzzy, python-format
 msgid "Added 1 new column to the virtual dataset"
 msgid_plural "Added %s new columns to the virtual dataset"
-msgstr[0] "1 nieuwe kolom toegevoegd aan de virtuele dataset"
-msgstr[1] "%s nieuwe kolommen toegevoegd aan de virtuele dataset"
+msgstr[0] ""
+msgstr[1] ""
 
 #, python-format
 msgid "Added a %s"
@@ -1618,7 +1618,7 @@ msgstr ""
 #, fuzzy, python-format
 msgid "Added to 1 dashboard"
 msgid_plural "Added to %s dashboards"
-msgstr[0] "Toegevoegd aan het dashboard"
+msgstr[0] ""
 msgstr[1] ""
 
 msgid "Additional Parameters"
@@ -1857,7 +1857,7 @@ msgstr "Alle"
 
 #, fuzzy, python-format
 msgid "All %s hidden columns"
-msgstr "Tabel kolommen"
+msgstr ""
 
 msgid "All Text"
 msgstr "Alle tekst"
@@ -2091,7 +2091,7 @@ msgstr ""
 
 #, fuzzy, python-format
 msgid "An error occurred while fetching %s"
-msgstr "Er is een fout opgetreden bij het ophalen van %s: %s"
+msgstr ""
 
 #, python-format
 msgid "An error occurred while fetching %s info: %s"
@@ -2100,12 +2100,10 @@ msgstr "Er is een fout opgetreden bij het ophalen van %s info: %s"
 #, fuzzy, python-format
 msgid "An error occurred while fetching %s related data"
 msgstr ""
-"Er is een fout opgetreden tijdens het ophalen van dataset gerelateerde "
-"gegevens"
 
 #, fuzzy, python-format
 msgid "An error occurred while fetching %s values: %s"
-msgstr "Er is een fout opgetreden bij het ophalen van gebruikers waarden: %s"
+msgstr ""
 
 #, fuzzy, python-format
 msgid "An error occurred while fetching %s: %s"
@@ -2230,8 +2228,6 @@ msgstr "Er is een fout opgetreden tijdens het ophalen van de tabbladstatus"
 #, fuzzy, python-format
 msgid "An error occurred while fetching table metadata for %s"
 msgstr ""
-"Er is een fout opgetreden tijdens het ophalen van de metagegevens van de "
-"tabel"
 
 #, python-format
 msgid "An error occurred while fetching task types: %s"
@@ -2864,7 +2860,7 @@ msgstr ""
 
 #, fuzzy, python-format
 msgid "Auto refresh set to %s seconds"
-msgstr "Filter Instellingen"
+msgstr ""
 
 #, fuzzy
 msgid "Auto-detect"
@@ -3939,7 +3935,7 @@ msgstr "Onderliggend label positie"
 
 #, fuzzy, python-format
 msgid "Choose a %s"
-msgstr "Kies een bron"
+msgstr ""
 
 #, fuzzy
 msgid "Choose a chart for displaying on the map"
@@ -4103,7 +4099,7 @@ msgstr "Verwijder"
 
 #, fuzzy, python-format
 msgid "Clear %s filter"
-msgstr "wis alle filters"
+msgstr ""
 
 #, fuzzy
 msgid "Clear Sort"
@@ -4657,7 +4653,7 @@ msgstr "Configuratie"
 
 #, fuzzy, python-format
 msgid "Configure %s"
-msgstr "Opslaan bevestigen"
+msgstr ""
 
 msgid "Configure Advanced Time Range "
 msgstr "Configureer geavanceerd tijdbereik "
@@ -4967,7 +4963,7 @@ msgstr "Kon het database driver niet laden"
 
 #, fuzzy, python-format
 msgid "Could not load database driver for: %(engine)s"
-msgstr "Kon het database driver niet laden: {}"
+msgstr ""
 
 msgid ""
 "Could not load metadata for this configuration; showing the default form."
@@ -5077,7 +5073,7 @@ msgstr "Gemaakt door mij"
 
 #, fuzzy, python-format
 msgid "Created by: %s"
-msgstr "Gecreëerd door"
+msgstr ""
 
 #, python-format
 msgid "Created from version: %s"
@@ -5386,7 +5382,7 @@ msgstr "Dashboard"
 
 #, fuzzy, python-format
 msgid "Dashboard %(dashboard_id)s not found"
-msgstr "Grafiek %(id)s niet gevonden"
+msgstr ""
 
 #, fuzzy
 msgid "Dashboard Filter"
@@ -5570,7 +5566,7 @@ msgstr "Database fout"
 
 #, fuzzy, python-format
 msgid "Data for %s"
-msgstr "Extra data voor JS"
+msgstr ""
 
 #, fuzzy
 msgid "Data imported"
@@ -5694,7 +5690,7 @@ msgstr "Dataset"
 
 #, fuzzy, python-format
 msgid "Dataset %(table)s already exists"
-msgstr "Dataset %(name)s bestaat al"
+msgstr ""
 
 msgid "Dataset Name"
 msgstr "Dataset naam"
@@ -6235,7 +6231,7 @@ msgstr "Verwijderd %s"
 
 #, fuzzy, python-format
 msgid "Deleted %s item(s)"
-msgstr "Verwijder template"
+msgstr ""
 
 #, fuzzy, python-format
 msgid "Deleted group: %s"
@@ -6426,7 +6422,7 @@ msgstr "Dimensies"
 
 #, fuzzy, python-format
 msgid "Dimensions (%s)"
-msgstr "Dimensies"
+msgstr ""
 
 msgid "Dimensions and metrics"
 msgstr ""
@@ -6528,11 +6524,11 @@ msgstr "Weergave configuratie"
 
 #, fuzzy, python-format
 msgid "Display controls (%d)"
-msgstr "Weergave configuratie"
+msgstr ""
 
 #, fuzzy, python-format
 msgid "Display controls (%s)"
-msgstr "Weergave configuratie"
+msgstr ""
 
 #, fuzzy
 msgid "Display cumulative total at end"
@@ -6820,7 +6816,7 @@ msgstr "Dupliceer dataset"
 
 #, fuzzy, python-format
 msgid "Duplicate folder name: %s"
-msgstr "Dubbele kolomnaam (of -namen): %(columns)s"
+msgstr ""
 
 #, fuzzy
 msgid "Duplicate role"
@@ -6828,7 +6824,7 @@ msgstr "Dupliceer"
 
 #, fuzzy, python-format
 msgid "Duplicate role %(name)s"
-msgstr "Dubbele kolomnaam (of -namen): %(columns)s"
+msgstr ""
 
 msgid "Duplicate tab"
 msgstr "Tabblad Dupliceren"
@@ -6961,11 +6957,11 @@ msgstr "Bewerk"
 
 #, fuzzy, python-format
 msgid "Edit %s"
-msgstr "Bewerk query"
+msgstr ""
 
 #, fuzzy, python-format
 msgid "Edit %s in modal"
-msgstr "in modal"
+msgstr ""
 
 msgid "Edit CSS template properties"
 msgstr "Bewerk CSS template eigenschappen"
@@ -7562,7 +7558,7 @@ msgstr "Fout: %(msg)s"
 
 #, fuzzy, python-format
 msgid "Error: %s"
-msgstr "Fout: %(msg)s"
+msgstr ""
 
 msgid "Error: permalink state not found"
 msgstr "Fout: permalink status niet gevonden"
@@ -7746,7 +7742,7 @@ msgstr ""
 
 #, fuzzy, python-format
 msgid "Export failed: %s"
-msgstr "Rapport mislukt"
+msgstr ""
 
 msgid "Export query"
 msgstr ""
@@ -7762,7 +7758,7 @@ msgstr ""
 
 #, fuzzy, python-format
 msgid "Export successful: %s"
-msgstr "Exporteer naar volledige .CSV"
+msgstr ""
 
 msgid "Export to .CSV"
 msgstr "Exporteer naar .CSV"
@@ -7961,7 +7957,7 @@ msgstr "Kan geen URL voor het bewerken van grafieken genereren"
 
 #, fuzzy, python-format
 msgid "Failed to generate download: %s"
-msgstr "Kan geen URL voor het bewerken van grafieken genereren"
+msgstr ""
 
 msgid "Failed to load chart data"
 msgstr "Laden van grafiekgegevens mislukt"
@@ -7971,7 +7967,7 @@ msgstr "Laden van grafiekgegevens mislukt."
 
 #, fuzzy, python-format
 msgid "Failed to load columns for %s %s"
-msgstr "Laden van grafiekgegevens mislukt"
+msgstr ""
 
 #, python-format
 msgid "Failed to load dimensions for semantic view %s"
@@ -9121,7 +9117,7 @@ msgstr ""
 
 #, fuzzy, python-format
 msgid "Include description to be sent with %s"
-msgstr "Voeg een beschrijving toe die zal worden verzonden met uw rapport"
+msgstr ""
 
 msgid "Include series name as an axis"
 msgstr "Voeg naam van de series toe aan een as"
@@ -9294,7 +9290,7 @@ msgstr "JSON metadata"
 
 #, fuzzy, python-format
 msgid "Invalid SQL: %(error)s"
-msgstr "Ongeldige numpy functie: %(operator)s"
+msgstr ""
 
 #, python-format
 msgid "Invalid ad-hoc metric %(label)s: `expressionType` is missing"
@@ -9414,7 +9410,7 @@ msgstr "Ongeldige status."
 
 #, fuzzy, python-format
 msgid "Invalid tab ids: %(tab_ids)s"
-msgstr "Ongeldige tab id's: %s(tab_ids)"
+msgstr ""
 
 #, python-format
 msgid "Invalid time range boundary for resample: %(value)s"
@@ -10619,7 +10615,7 @@ msgstr "Metrieken"
 
 #, fuzzy, python-format
 msgid "Metrics (%s)"
-msgstr "Metrieken"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
@@ -10756,7 +10752,7 @@ msgstr "Minuten %s"
 
 #, fuzzy, python-format
 msgid "Missing %s"
-msgstr "Ontbrekende dataset"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fr, ja, lv, mi, ro, ru, sk, sr, sr_Latn, tr, uk]
@@ -10790,8 +10786,8 @@ msgstr "Gewijzigd %s"
 #, fuzzy, python-format
 msgid "Modified 1 column in the virtual dataset"
 msgid_plural "Modified %s columns in the virtual dataset"
-msgstr[0] "1 kolom gewijzigd in de virtuele dataset"
-msgstr[1] "%s kolommen gewijzigd in de virtuele dataset"
+msgstr[0] ""
+msgstr[1] ""
 
 msgid "Modified by"
 msgstr "Gewijzigd door"
@@ -10802,7 +10798,7 @@ msgstr "Gewijzigd door: %s"
 
 #, fuzzy, python-format
 msgid "Modified from \"%s\" template"
-msgstr "Laad een CSS sjabloon"
+msgstr ""
 
 msgid "Monday"
 msgstr "Maandag"
@@ -11106,7 +11102,7 @@ msgstr "Geen kolommen gevonden"
 
 #, fuzzy, python-format
 msgid "No compatible %s found"
-msgstr "Geen compatibel schema gevonden"
+msgstr ""
 
 #, fuzzy
 msgid "No compatible catalog found"
@@ -11231,11 +11227,11 @@ msgstr "Nog geen regels"
 
 #, fuzzy, python-format
 msgid "No rows were returned for this %s"
-msgstr "Er zijn geen rijen teruggegeven voor deze dataset"
+msgstr ""
 
 #, fuzzy, python-format
 msgid "No samples were returned for this %s"
-msgstr "Er zijn geen voorbeelden gevonden voor deze dataset"
+msgstr ""
 
 msgid "No saved expressions found"
 msgstr "Geen opgeslagen expressies gevonden"
@@ -12372,7 +12368,7 @@ msgstr "Kies ten minste één \"groep bij\""
 
 #, fuzzy, python-format
 msgid "Please select both a %s and a Chart type to proceed"
-msgstr "Selecteer een Dataset en een grafiek type om verder te gaan"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fa, fr, ja, lv, mi, pl, ro, ru, sk, sl, sr, sr_Latn, tr, uk]
@@ -12994,8 +12990,8 @@ msgstr ""
 #, fuzzy, python-format
 msgid "Removed 1 column from the virtual dataset"
 msgid_plural "Removed %s columns from the virtual dataset"
-msgstr[0] "1 kolom verwijderd uit de virtuele dataset"
-msgstr[1] "%s kolommen verwijderd uit de virtuele dataset"
+msgstr[0] ""
+msgstr[1] ""
 
 #, python-format
 msgid "Removed a %s"
@@ -13751,7 +13747,7 @@ msgstr "Opslaan als"
 
 #, fuzzy, python-format
 msgid "Save as %s"
-msgstr "Opslaan als"
+msgstr ""
 
 msgid "Save as Dataset"
 msgstr "Opslaan als Dataset"
@@ -14070,7 +14066,7 @@ msgstr "Selecteer"
 
 #, fuzzy, python-format
 msgid "Select %s or type to search %s"
-msgstr "Selecteer schema of type om schema's te zoeken"
+msgstr ""
 
 msgid "Select ..."
 msgstr "Selecteer …"
@@ -14102,7 +14098,7 @@ msgstr "Linker waarde"
 
 #, fuzzy, python-format
 msgid "Select a %s"
-msgstr "Selecteer Tags"
+msgstr ""
 
 #, fuzzy
 msgid "Select a CSS template"
@@ -14930,7 +14926,7 @@ msgstr "Weergeven"
 
 #, fuzzy, python-format
 msgid "Show %s entries"
-msgstr "Toon metriek"
+msgstr ""
 
 #, python-format
 msgid "Show %s more change"
@@ -15838,7 +15834,7 @@ msgstr ""
 
 #, fuzzy, python-format
 msgid "Successfully changed %s!"
-msgstr "Gegevens succesvol gewijzigd!"
+msgstr ""
 
 msgid "Suffix"
 msgstr "Achtervoegsel"
@@ -15895,7 +15891,7 @@ msgstr "Ondersteunde databases"
 
 #, fuzzy, python-format
 msgid "Swap %s"
-msgstr "Wissel dataset"
+msgstr ""
 
 msgid "Swap rows and columns"
 msgstr "Wissel rijen en kolommen"
@@ -16032,8 +16028,6 @@ msgid ""
 "Table [%(table)s] could not be found, please double check your database "
 "connection, schema, and table name"
 msgstr ""
-"Tabel [%(table_name)s] kon niet worden gevonden. Controleer de database-"
-"verbinding, schema en tabelnaam"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fa, fr, ja, lv, mi, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr, uk]
@@ -16144,7 +16138,7 @@ msgstr "tags"
 
 #, fuzzy, python-format
 msgid "Task cancelled: %s"
-msgstr "Rapport mislukt"
+msgstr ""
 
 #, fuzzy
 msgid "Task could not be aborted."
@@ -16277,7 +16271,7 @@ msgstr "Opgehaald %s"
 
 #, fuzzy, python-format
 msgid "The %s linked to this chart may have been deleted."
-msgstr "De aan deze grafiek gekoppelde dataset is mogelijk verwijderd."
+msgstr ""
 
 #, python-format
 msgid "The API response from %s does not match the IDatabaseTable interface."
@@ -16708,7 +16702,7 @@ msgstr "De exponent waarmee alle groottes worden berekend. Alleen \"EXP\""
 
 #, fuzzy, python-format
 msgid "The extension %(id)s could not be loaded."
-msgstr "Data-URI is niet toegestaan."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fr, ja, lv, mi, ro, ru, sk, sr, sr_Latn, tr, uk]
@@ -17717,7 +17711,7 @@ msgstr ""
 
 #, fuzzy, python-format
 msgid "There was an issue cancelling the task: %s"
-msgstr "Er was een probleem met het verwijderen van %s: %s"
+msgstr ""
 
 #, fuzzy, python-format
 msgid "There was an issue deleting %s"
@@ -17737,7 +17731,7 @@ msgstr "Er was een probleem met het verwijderen van regels: %s"
 
 #, fuzzy, python-format
 msgid "There was an issue deleting the selected %s"
-msgstr "Er was een probleem met het verwijderen van de geselecteerde %s: %s"
+msgstr ""
 
 #, python-format
 msgid "There was an issue deleting the selected %s: %s"
@@ -17779,7 +17773,7 @@ msgstr "Er was een probleem bij het verwijderen van: %s"
 
 #, fuzzy, python-format
 msgid "There was an issue duplicating the %s."
-msgstr "Er was een probleem bij het dupliceren van de dataset."
+msgstr ""
 
 #, fuzzy, python-format
 msgid "There was an issue duplicating the selected %s: %s"
@@ -17787,7 +17781,7 @@ msgstr "Er was een probleem met het verwijderen van de geselecteerde %s: %s"
 
 #, fuzzy, python-format
 msgid "There was an issue exporting the %s"
-msgstr "Er was een probleem bij het dupliceren van de dataset."
+msgstr ""
 
 #, fuzzy, python-format
 msgid "There was an issue exporting the selected %s"
@@ -17969,7 +17963,7 @@ msgstr ""
 
 #, fuzzy, python-format
 msgid "This column might be incompatible with current %s"
-msgstr "Deze kolom is mogelijk niet compatibel met het huidige dataset"
+msgstr ""
 
 msgid "This column might be incompatible with current dataset"
 msgstr "Deze kolom is mogelijk niet compatibel met het huidige dataset"
@@ -18153,7 +18147,7 @@ msgstr "Filterwaardenlijst kan niet leeg zijn"
 
 #, fuzzy, python-format
 msgid "This filter might be incompatible with current %s"
-msgstr "Dit filter is mogelijk niet compatibel met het huidige dataset"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
 # lv, ru, sk, sr, sr_Latn, tr, uk]
@@ -18304,7 +18298,7 @@ msgstr ""
 
 #, fuzzy, python-format
 msgid "This metric might be incompatible with current %s"
-msgstr "Deze metriek is mogelijk niet compatibel met huidig dataset"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, fr, ja,
 # lv, ro, ru, sr, sr_Latn, tr, uk]
@@ -19979,7 +19973,7 @@ msgstr "Wachten op eerste verversing"
 
 #, fuzzy, python-format
 msgid "Waiting on %s"
-msgstr "Weergave %s van %s"
+msgstr ""
 
 #, python-format
 msgid "Waiting on %s prerequisite task(s) to finish"
@@ -20029,7 +20023,7 @@ msgstr "Waterval Diagram"
 
 #, fuzzy
 msgid "We are unable to connect to your database."
-msgstr "Kan geen verbinding maken met database “%(database)s”."
+msgstr ""
 
 #, fuzzy
 msgid "We are working on your query"
@@ -20895,7 +20889,7 @@ msgstr "Je hebt geen rechten om een dashboard aan te maken"
 
 #, fuzzy, python-format
 msgid "You have been removed from task: %s"
-msgstr "Je hebt deze filter verwijderd."
+msgstr ""
 
 msgid "You have removed this filter."
 msgstr "Je hebt deze filter verwijderd."
@@ -21729,19 +21723,12 @@ msgid ""
 " Lab tabs using this database open. Are you sure you want to continue? "
 "Deleting the database will break those objects."
 msgstr ""
-"De database %s is gekoppeld aan %s grafieken die verschijnen op %s "
-"dashboards en gebruikers hebben %s SQL Lab tabbladen met behulp van deze "
-"database. Weet u zeker dat u wilt doorgaan? Verwijderen van de database "
-"zal deze objecten breken."
 
 #, fuzzy, python-format
 msgid ""
 "is linked to %s charts that appear on %s dashboards. Are you sure you "
 "want to continue? Deleting the dataset will break those objects."
 msgstr ""
-"De dataset %s is gekoppeld aan %s grafieken die verschijnen op %s "
-"dashboards. Weet u zeker dat u wilt doorgaan? Het verwijderen van de "
-"dataset zal deze objecten verbreken."
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fr, ja, lv, mi, ro, ru, sk, sr, sr_Latn, tr, uk]

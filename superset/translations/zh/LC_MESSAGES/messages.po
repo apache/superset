@@ -3653,7 +3653,7 @@ msgstr "需要图表名称"
 
 #, fuzzy
 msgid "Chart not found"
-msgstr "图表 %(id)s 没有找到"
+msgstr ""
 
 msgid "Chart options"
 msgstr "图表选项"
@@ -6151,11 +6151,11 @@ msgstr "显示配置"
 
 #, fuzzy, python-format
 msgid "Display controls (%d)"
-msgstr "显示配置"
+msgstr ""
 
 #, fuzzy, python-format
 msgid "Display controls (%s)"
-msgstr "显示配置"
+msgstr ""
 
 msgid "Display cumulative total at end"
 msgstr "在末尾显示累计总计"
@@ -8863,7 +8863,7 @@ msgstr "无效的经度/纬度"
 
 #, fuzzy, python-format
 msgid "Invalid metric object: %(metric)s"
-msgstr "无效的指标对象"
+msgstr ""
 
 #, python-format
 msgid "Invalid numpy function: %(operator)s"
@@ -10066,7 +10066,7 @@ msgstr "指标"
 
 #, fuzzy, python-format
 msgid "Metrics (%s)"
-msgstr "指标"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
@@ -18854,7 +18854,7 @@ msgstr "瀑布图"
 
 #, fuzzy
 msgid "We are unable to connect to your database."
-msgstr "不能连接到数据库\"%(database)s\""
+msgstr ""
 
 msgid "We are working on your query"
 msgstr "我们正在处理您的查询"

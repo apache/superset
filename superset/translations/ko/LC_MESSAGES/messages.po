@@ -391,7 +391,7 @@ msgstr ""
 
 #, fuzzy, python-format
 msgid "%s %s"
-msgstr "일"
+msgstr ""
 
 #, python-format
 msgid "%s (copy from %s)"
@@ -399,7 +399,7 @@ msgstr ""
 
 #, fuzzy, python-format
 msgid "%s ENCRYPTED EXTRA"
-msgstr "보안"
+msgstr ""
 
 #, python-format
 msgid "%s Error"
@@ -411,7 +411,7 @@ msgstr ""
 
 #, fuzzy, python-format
 msgid "%s PASSWORD"
-msgstr "비밀번호"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
@@ -449,7 +449,7 @@ msgstr "%s개 선택됨"
 
 #, fuzzy, python-format
 msgid "%s Selected (%s)"
-msgstr "테이블 선택"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -547,7 +547,7 @@ msgstr[0] "%s 에러"
 
 #, fuzzy, python-format
 msgid "%s imported"
-msgstr "데이터베이스"
+msgstr ""
 
 #, fuzzy, python-format
 msgid "%s item"
@@ -556,7 +556,7 @@ msgstr[0] "%s 항목"
 
 #, fuzzy, python-format
 msgid "%s item(s)"
-msgstr "5분"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, cs, de,
 # es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, sr, sr_Latn, tr, uk]
@@ -618,7 +618,7 @@ msgstr[0] "%s개 중 %s개 지표"
 
 #, fuzzy, python-format
 msgid "%s out of %s selected"
-msgstr "테이블 선택"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fa, fr, ja, lv, mi, ro, ru, sk, sl, sr, sr_Latn, uk]
@@ -675,7 +675,7 @@ msgstr "%s 시맨틱 뷰 추가에 실패했습니다: %s"
 
 #, fuzzy, python-format
 msgid "%s tab selected"
-msgstr "테이블 선택"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr, uk]
@@ -1721,7 +1721,7 @@ msgstr "추가"
 
 #, fuzzy, python-format
 msgid "Add %s view(s)"
-msgstr "5분"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fr, ja, lv, mi, ro, ru, sk, sl, sr, sr_Latn, uk]
@@ -2435,7 +2435,7 @@ msgstr "전체"
 
 #, fuzzy, python-format
 msgid "All %s hidden columns"
-msgstr "컬럼 수정"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -2729,7 +2729,7 @@ msgstr "테이블 스키마를 축소하는 중 오류가 발생했습니다. �
 
 #, fuzzy, python-format
 msgid "An error occurred while creating %ss: %s"
-msgstr "데이터 베이스 목록을 가져오는 도중 에러가 발생하였습니다."
+msgstr ""
 
 #, fuzzy
 msgid "An error occurred while creating the copy link."
@@ -2773,27 +2773,27 @@ msgstr "테이블 스키마를 확장하는 중 오류가 발생했습니다. �
 
 #, fuzzy, python-format
 msgid "An error occurred while fetching %s"
-msgstr "데이터 베이스 목록을 가져오는 도중 에러가 발생하였습니다."
+msgstr ""
 
 #, fuzzy, python-format
 msgid "An error occurred while fetching %s info: %s"
-msgstr "데이터 베이스 목록을 가져오는 도중 에러가 발생하였습니다."
+msgstr ""
 
 #, fuzzy, python-format
 msgid "An error occurred while fetching %s related data"
-msgstr "데이터 베이스 목록을 가져오는 도중 에러가 발생하였습니다."
+msgstr ""
 
 #, fuzzy, python-format
 msgid "An error occurred while fetching %s values: %s"
-msgstr "데이터 베이스 목록을 가져오는 도중 에러가 발생하였습니다."
+msgstr ""
 
 #, fuzzy, python-format
 msgid "An error occurred while fetching %s: %s"
-msgstr "데이터 베이스 목록을 가져오는 도중 에러가 발생하였습니다."
+msgstr ""
 
 #, fuzzy, python-format
 msgid "An error occurred while fetching %ss: %s"
-msgstr "데이터 베이스 목록을 가져오는 도중 에러가 발생하였습니다."
+msgstr ""
 
 msgid "An error occurred while fetching available CSS templates"
 msgstr "데이터 베이스 목록을 가져오는 도중 에러가 발생하였습니다."
@@ -2826,7 +2826,7 @@ msgstr "데이터 베이스 목록을 가져오는 도중 에러가 발생하였
 
 #, fuzzy, python-format
 msgid "An error occurred while fetching created by values: %s"
-msgstr "데이터 베이스 목록을 가져오는 도중 에러가 발생하였습니다."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fa, fi, fr, it, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn,
@@ -2921,7 +2921,7 @@ msgstr "데이터 베이스 목록을 가져오는 도중 에러가 발생하였
 
 #, fuzzy, python-format
 msgid "An error occurred while fetching table metadata for %s"
-msgstr "데이터 베이스 목록을 가져오는 도중 에러가 발생하였습니다."
+msgstr ""
 
 #, python-format
 msgid "An error occurred while fetching task types: %s"
@@ -2948,7 +2948,7 @@ msgstr "데이터 베이스 목록을 가져오는 도중 에러가 발생하였
 
 #, fuzzy, python-format
 msgid "An error occurred while fetching theme datasource values: %s"
-msgstr "데이터 베이스 목록을 가져오는 도중 에러가 발생하였습니다."
+msgstr ""
 
 #, fuzzy
 msgid "An error occurred while fetching usage data"
@@ -2956,7 +2956,7 @@ msgstr "데이터 베이스 목록을 가져오는 도중 에러가 발생하였
 
 #, fuzzy, python-format
 msgid "An error occurred while fetching user values: %s"
-msgstr "데이터 베이스 목록을 가져오는 도중 에러가 발생하였습니다."
+msgstr ""
 
 #, fuzzy
 msgid "An error occurred while formatting SQL"
@@ -2969,7 +2969,7 @@ msgstr ""
 
 #, fuzzy, python-format
 msgid "An error occurred while importing %s: %s"
-msgstr "데이터 베이스 목록을 가져오는 도중 에러가 발생하였습니다."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
 #, fuzzy
@@ -3029,7 +3029,7 @@ msgstr "테이블 스키마를 제거하는 중 오류가 발생했습니다. �
 
 #, fuzzy, python-format
 msgid "An error occurred while rendering the visualization: %s"
-msgstr "데이터 베이스 목록을 가져오는 도중 에러가 발생하였습니다."
+msgstr ""
 
 #, fuzzy
 msgid "An error occurred while saving the semantic view"
@@ -3051,7 +3051,7 @@ msgstr "백엔드에 쿼리를 저장하는 중 오류가 발생했습니다. �
 
 #, fuzzy, python-format
 msgid "An error occurred while syncing permissions for %s: %s"
-msgstr "데이터 베이스 목록을 가져오는 도중 에러가 발생하였습니다."
+msgstr ""
 
 msgid "An error occurred while triggering the report"
 msgstr ""
@@ -3121,7 +3121,7 @@ msgstr "주석"
 
 #, fuzzy, python-format
 msgid "Annotation Layer %s"
-msgstr "주석 레이어"
+msgstr ""
 
 msgid "Annotation Layers"
 msgstr "주석 레이어"
@@ -3360,11 +3360,11 @@ msgstr "적용된 필터 (%d)"
 
 #, fuzzy, python-format
 msgid "Applied filters (%s)"
-msgstr "테이블 추가"
+msgstr ""
 
 #, fuzzy, python-format
 msgid "Applied filters: %s"
-msgstr "테이블 추가"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
@@ -3749,7 +3749,7 @@ msgstr "자동 새로고침 일시 정지 - 탭 비활성화(%s초로 설정됨)
 
 #, fuzzy, python-format
 msgid "Auto refresh set to %s seconds"
-msgstr "Query 공유"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, fr,
 # ja, lv, ru, sk, sr, sr_Latn, uk]
@@ -5050,7 +5050,7 @@ msgstr "차트 %(id)s를 찾을 수 없습니다"
 
 #, fuzzy, python-format
 msgid "Chart Data: %s"
-msgstr "차트"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fa, fi, fr, it, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn,
@@ -5096,7 +5096,7 @@ msgstr "차트 [%s]가 덮어쓰여졌습니다"
 
 #, fuzzy, python-format
 msgid "Chart [%s] has been saved"
-msgstr "주석 레이어"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -5298,7 +5298,7 @@ msgstr "하위 레이블 위치"
 
 #, fuzzy, python-format
 msgid "Choose a %s"
-msgstr "데이터소스 선택"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fr, ja, lv, mi, ro, ru, sk, sr, sr_Latn, tr, uk]
@@ -5345,7 +5345,7 @@ msgstr "데이터소스 선택"
 
 #, fuzzy
 msgid "Choose already exists"
-msgstr "데이터셋 %(name)s 은 이미 존재합니다"
+msgstr ""
 
 #, fuzzy
 msgid "Choose chart type"
@@ -5533,7 +5533,7 @@ msgstr "지우기"
 
 #, fuzzy, python-format
 msgid "Clear %s filter"
-msgstr "필터"
+msgstr ""
 
 #, fuzzy
 msgid "Clear Sort"
@@ -5663,7 +5663,7 @@ msgstr "클릭하여 제목 수정하기"
 
 #, fuzzy, python-format
 msgid "Click to edit %s."
-msgstr "클릭하여 제목 수정하기"
+msgstr ""
 
 #, fuzzy
 msgid "Click to edit chart."
@@ -6063,7 +6063,7 @@ msgstr "칼럼"
 
 #, fuzzy, python-format
 msgid "Columns (%s)"
-msgstr "컬럼 추가"
+msgstr ""
 
 #, fuzzy
 msgid "Columns (horizontal layout)"
@@ -6315,7 +6315,7 @@ msgstr "구성"
 
 #, fuzzy, python-format
 msgid "Configure %s"
-msgstr "대시보드 보기"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, ro, ru, sk, sl, sr, sr_Latn, tr, uk, zh,
@@ -6761,7 +6761,7 @@ msgstr "데이터베이스 드라이버를 로드할 수 없습니다"
 
 #, fuzzy, python-format
 msgid "Could not load database driver for: %(engine)s"
-msgstr "데이터베이스 드라이버를 로드할 수 없습니다"
+msgstr ""
 
 msgid ""
 "Could not load metadata for this configuration; showing the default form."
@@ -6904,7 +6904,7 @@ msgstr "생성자"
 
 #, fuzzy, python-format
 msgid "Created by: %s"
-msgstr "생성자"
+msgstr ""
 
 #, python-format
 msgid "Created from version: %s"
@@ -7334,7 +7334,7 @@ msgstr "대시보드"
 
 #, fuzzy, python-format
 msgid "Dashboard %(dashboard_id)s not found"
-msgstr "대시보드가 존재하지 않습니다"
+msgstr ""
 
 #, fuzzy
 msgid "Dashboard Filter"
@@ -7460,7 +7460,7 @@ msgstr "대시보드"
 
 #, fuzzy, python-format
 msgid "Dashboard updated %s"
-msgstr "대시보드"
+msgstr ""
 
 #, fuzzy
 msgid "Dashboard usage"
@@ -7710,7 +7710,7 @@ msgstr "데이터베이스"
 
 #, fuzzy, python-format
 msgid "Dataset %(table)s already exists"
-msgstr "데이터셋 %(name)s 은 이미 존재합니다"
+msgstr ""
 
 #, fuzzy
 msgid "Dataset Name"
@@ -7922,7 +7922,7 @@ msgstr "일 (freq=D)"
 
 #, fuzzy, python-format
 msgid "Days %s"
-msgstr "일"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -8188,7 +8188,7 @@ msgstr "삭제"
 
 #, fuzzy, python-format
 msgid "Delete %s"
-msgstr "삭제"
+msgstr ""
 
 # Machine-corrected via repair_i18n.py (claude-sonnet-4-6) [restored
 # placeholder]
@@ -8393,39 +8393,39 @@ msgstr[0] "%(num)d개의 테마가 삭제되었습니다"
 
 #, fuzzy, python-format
 msgid "Deleted %s"
-msgstr "삭제"
+msgstr ""
 
 #, fuzzy, python-format
 msgid "Deleted %s item(s)"
-msgstr "템플릿 불러오기"
+msgstr ""
 
 #, fuzzy, python-format
 msgid "Deleted group: %s"
-msgstr "삭제"
+msgstr ""
 
 #, fuzzy, python-format
 msgid "Deleted groups: %s"
-msgstr "삭제"
+msgstr ""
 
 #, fuzzy, python-format
 msgid "Deleted role: %s"
-msgstr "삭제"
+msgstr ""
 
 #, fuzzy, python-format
 msgid "Deleted roles: %s"
-msgstr "삭제"
+msgstr ""
 
 #, fuzzy, python-format
 msgid "Deleted user registration for user: %s"
-msgstr "삭제"
+msgstr ""
 
 #, fuzzy, python-format
 msgid "Deleted user: %s"
-msgstr "삭제"
+msgstr ""
 
 #, fuzzy, python-format
 msgid "Deleted users: %s"
-msgstr "삭제"
+msgstr ""
 
 # Machine-corrected via repair_i18n.py (claude-sonnet-4-6) [restored
 # placeholder]
@@ -8652,7 +8652,7 @@ msgstr "차원"
 
 #, fuzzy, python-format
 msgid "Dimensions (%s)"
-msgstr "원본 값"
+msgstr ""
 
 msgid "Dimensions and metrics"
 msgstr ""
@@ -8795,11 +8795,11 @@ msgstr "Query 공유"
 
 #, fuzzy, python-format
 msgid "Display controls (%d)"
-msgstr "컬럼 추가"
+msgstr ""
 
 #, fuzzy, python-format
 msgid "Display controls (%s)"
-msgstr "컬럼 추가"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, fr, ja,
 # lv, ro, ru, sr, sr_Latn, tr, uk]
@@ -9091,7 +9091,7 @@ msgstr "이 차트 유형은 아직 드릴 기능을 지원하지 않습니다"
 
 #, fuzzy, python-format
 msgid "Drill by: %s"
-msgstr "대시보드 가져오기"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -9200,7 +9200,7 @@ msgstr "차트 수정"
 
 #, fuzzy, python-format
 msgid "Duplicate folder name: %s"
-msgstr "차트 수정"
+msgstr ""
 
 #, fuzzy
 msgid "Duplicate role"
@@ -9402,11 +9402,11 @@ msgstr "편집"
 
 #, fuzzy, python-format
 msgid "Edit %s"
-msgstr "저장된 Query 수정"
+msgstr ""
 
 #, fuzzy, python-format
 msgid "Edit %s in modal"
-msgstr "Query 검색"
+msgstr ""
 
 msgid "Edit CSS template properties"
 msgstr "CSS 템플릿"
@@ -10087,7 +10087,7 @@ msgstr ""
 
 #, fuzzy, python-format
 msgid "Error deleting %s"
-msgstr "데이터 베이스 목록을 가져오는 도중 에러가 발생하였습니다."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, es, sr,
 # sr_Latn]
@@ -10097,7 +10097,7 @@ msgstr "전체 화면 비활성화 오류: %s"
 
 #, fuzzy, python-format
 msgid "Error enabling fullscreen: %s"
-msgstr "데이터 베이스 목록을 가져오는 도중 에러가 발생하였습니다."
+msgstr ""
 
 #, fuzzy
 msgid "Error executing query. "
@@ -10211,7 +10211,7 @@ msgstr "데이터 베이스 목록을 가져오는 도중 에러가 발생하였
 
 #, fuzzy, python-format
 msgid "Error while fetching data: %s"
-msgstr "데이터 베이스 목록을 가져오는 도중 에러가 발생하였습니다."
+msgstr ""
 
 #, fuzzy
 msgid "Error while fetching groups"
@@ -10532,7 +10532,7 @@ msgstr "내보내기 실패 - 다시 시도해 주세요"
 
 #, fuzzy, python-format
 msgid "Export failed: %s"
-msgstr "테이블 명"
+msgstr ""
 
 msgid "Export query"
 msgstr ""
@@ -10859,7 +10859,7 @@ msgstr "차트 데이터를 로드하지 못했습니다."
 
 #, fuzzy, python-format
 msgid "Failed to load columns for %s %s"
-msgstr "차트 수정"
+msgstr ""
 
 #, python-format
 msgid "Failed to load dimensions for semantic view %s"
@@ -12170,7 +12170,7 @@ msgstr "시"
 
 #, fuzzy, python-format
 msgid "Hours %s"
-msgstr "시간"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -12304,7 +12304,7 @@ msgstr "비어 있으면 저장되지 않고 목록에서 제거됩니다. 폴�
 
 #, fuzzy
 msgid "If table already exists"
-msgstr "데이터셋 %(name)s 은 이미 존재합니다"
+msgstr ""
 
 msgid "If you delete this item, you won't be able to recover it."
 msgstr ""
@@ -12518,7 +12518,7 @@ msgstr "레이블"
 
 #, fuzzy, python-format
 msgid "Indexes (%s)"
-msgstr "분"
+msgstr ""
 
 msgid "Info"
 msgstr "정보"
@@ -12902,7 +12902,7 @@ msgstr "잘못된 상태입니다."
 
 #, fuzzy, python-format
 msgid "Invalid tab ids: %(tab_ids)s"
-msgstr "부적절한 요청입니다 : %(error)s"
+msgstr ""
 
 #, python-format
 msgid "Invalid time range boundary for resample: %(value)s"
@@ -13218,7 +13218,7 @@ msgstr "차트 유형"
 
 #, fuzzy
 msgid "Label already exists"
-msgstr "데이터셋 %(name)s 은 이미 존재합니다"
+msgstr ""
 
 #, fuzzy
 msgid "Label ascending"
@@ -13324,7 +13324,7 @@ msgstr "마지막 업데이트 %s"
 
 #, fuzzy, python-format
 msgid "Last Updated %s by %s"
-msgstr "마지막 수정"
+msgstr ""
 
 #, fuzzy
 msgid "Last Used"
@@ -13377,7 +13377,7 @@ msgstr "마지막 실행"
 
 #, fuzzy, python-format
 msgid "Last updated %s ago"
-msgstr "마지막 수정"
+msgstr ""
 
 #, fuzzy
 msgid "Last week"
@@ -14700,7 +14700,7 @@ msgstr "메트릭"
 
 #, fuzzy, python-format
 msgid "Metrics (%s)"
-msgstr "메트릭"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
@@ -14893,11 +14893,11 @@ msgstr "분"
 
 #, fuzzy, python-format
 msgid "Minutes %s"
-msgstr "분"
+msgstr ""
 
 #, fuzzy, python-format
 msgid "Missing %s"
-msgstr "표현식"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fr, ja, lv, mi, ro, ru, sk, sr, sr_Latn, tr, uk]
@@ -14926,7 +14926,7 @@ msgstr ""
 
 #, fuzzy, python-format
 msgid "Modified %s"
-msgstr "마지막 수정"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fr, ja, lv, mi, ro, ru, sk, sr, sr_Latn, tr, uk]
@@ -14940,11 +14940,11 @@ msgstr "수정됨"
 
 #, fuzzy, python-format
 msgid "Modified by: %s"
-msgstr "마지막 수정"
+msgstr ""
 
 #, fuzzy, python-format
 msgid "Modified from \"%s\" template"
-msgstr "CSS 템플릿 불러오기"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -14958,7 +14958,7 @@ msgstr "달"
 
 #, fuzzy, python-format
 msgid "Months %s"
-msgstr "월"
+msgstr ""
 
 #, fuzzy
 msgid "More"
@@ -15391,7 +15391,7 @@ msgstr "컬럼 추가"
 
 #, fuzzy, python-format
 msgid "No compatible %s found"
-msgstr "컬럼 추가"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fa, ja, lv, mi, ro, ru, sk, sl, sr, sr_Latn, tr, uk]
@@ -17744,7 +17744,7 @@ msgstr "분기"
 
 #, fuzzy, python-format
 msgid "Quarters %s"
-msgstr "분기"
+msgstr ""
 
 #, fuzzy
 msgid "Queries"
@@ -18695,7 +18695,7 @@ msgstr "결과"
 
 #, fuzzy, python-format
 msgid "Results %s"
-msgstr "결과"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -19353,7 +19353,7 @@ msgstr "다른 이름으로 저장"
 
 #, fuzzy, python-format
 msgid "Save as %s"
-msgstr "다른이름으로 저장"
+msgstr ""
 
 #, fuzzy
 msgid "Save as Dataset"
@@ -19765,7 +19765,7 @@ msgstr "보조 Y축 제목"
 
 #, fuzzy, python-format
 msgid "Seconds %s"
-msgstr "30초"
+msgstr ""
 
 msgid "Secure extra"
 msgstr "보안"
@@ -19814,7 +19814,7 @@ msgstr "삭제"
 
 #, fuzzy, python-format
 msgid "Select %s or type to search %s"
-msgstr "차트 추가"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt, pt_BR, ro, ru, sk, sl, sr, sr_Latn,
@@ -19855,7 +19855,7 @@ msgstr "테이블 명"
 
 #, fuzzy, python-format
 msgid "Select a %s"
-msgstr "테이블 선택"
+msgstr ""
 
 #, fuzzy
 msgid "Select a CSS template"
@@ -20863,7 +20863,7 @@ msgstr "표시"
 
 #, fuzzy, python-format
 msgid "Show %s entries"
-msgstr "메트릭 보기"
+msgstr ""
 
 #, python-format
 msgid "Show %s more change"
@@ -21651,7 +21651,7 @@ msgstr "정렬 기준"
 
 #, fuzzy, python-format
 msgid "Sort by %s"
-msgstr "대시보드 가져오기"
+msgstr ""
 
 #, fuzzy
 msgid "Sort by data"
@@ -22192,7 +22192,7 @@ msgstr ""
 
 #, fuzzy, python-format
 msgid "Successfully changed %s!"
-msgstr "데이터소스 선택"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -22285,7 +22285,7 @@ msgstr "데이터베이스 선택"
 
 #, fuzzy, python-format
 msgid "Swap %s"
-msgstr "데이터소스 선택"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -22508,7 +22508,7 @@ msgstr "테이블 명이 정해지지 않았습니다"
 
 #, fuzzy, python-format
 msgid "Table or View \"%(table)s\" does not exist."
-msgstr "메트릭 '%(metric)s' 이 존재하지 않습니다."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -22622,7 +22622,7 @@ msgstr "상태"
 
 #, fuzzy, python-format
 msgid "Task cancelled: %s"
-msgstr "차트 유형"
+msgstr ""
 
 #, fuzzy
 msgid "Task could not be aborted."
@@ -22775,7 +22775,7 @@ msgstr ""
 
 #, fuzzy, python-format
 msgid "The %s"
-msgstr "Query 공유"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
@@ -23307,7 +23307,7 @@ msgstr "모든 크기를 계산하는 데 사용할 지수입니다. \"EXP\"에�
 
 #, fuzzy, python-format
 msgid "The extension %(id)s could not be loaded."
-msgstr "데이터베이스를 찾을 수 없습니다."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fr, ja, lv, mi, ro, ru, sk, sr, sr_Latn, tr, uk]
@@ -24261,7 +24261,7 @@ msgstr "사용자/비밀번호 조합이 유효하지 않습니다(사용자의 
 
 #, fuzzy, python-format
 msgid "The username \"%(username)s\" does not exist."
-msgstr "메트릭 '%(metric)s' 이 존재하지 않습니다."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -24364,7 +24364,7 @@ msgstr "관련된 알람이나 리포트가 있습니다"
 
 #, fuzzy, python-format
 msgid "There are associated alerts or reports: %(report_names)s"
-msgstr "관련된 알람이나 리포트가 있습니다"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -24568,11 +24568,11 @@ msgstr ""
 
 #, fuzzy, python-format
 msgid "There was an issue cancelling the task: %s"
-msgstr "데이터 베이스 목록을 가져오는 도중 에러가 발생하였습니다."
+msgstr ""
 
 #, fuzzy, python-format
 msgid "There was an issue deleting %s"
-msgstr "데이터 베이스 목록을 가져오는 도중 에러가 발생하였습니다."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -24583,15 +24583,15 @@ msgstr "%s 삭제 중에 문제가 발생했습니다: %s"
 
 #, fuzzy, python-format
 msgid "There was an issue deleting registration for user: %s"
-msgstr "데이터 베이스 목록을 가져오는 도중 에러가 발생하였습니다."
+msgstr ""
 
 #, fuzzy, python-format
 msgid "There was an issue deleting rules: %s"
-msgstr "데이터 베이스 목록을 가져오는 도중 에러가 발생하였습니다."
+msgstr ""
 
 #, fuzzy, python-format
 msgid "There was an issue deleting the selected %s"
-msgstr "데이터 베이스 목록을 가져오는 도중 에러가 발생하였습니다."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -24638,7 +24638,7 @@ msgstr "선택한 템플릿 삭제 중에 문제가 발생했습니다: %s"
 
 #, fuzzy, python-format
 msgid "There was an issue deleting the selected themes: %s"
-msgstr "데이터 베이스 목록을 가져오는 도중 에러가 발생하였습니다."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -24649,19 +24649,19 @@ msgstr "삭제 중에 문제가 발생했습니다: %s"
 
 #, fuzzy, python-format
 msgid "There was an issue duplicating the %s."
-msgstr "데이터 베이스 목록을 가져오는 도중 에러가 발생하였습니다."
+msgstr ""
 
 #, fuzzy, python-format
 msgid "There was an issue duplicating the selected %s: %s"
-msgstr "데이터 베이스 목록을 가져오는 도중 에러가 발생하였습니다."
+msgstr ""
 
 #, fuzzy, python-format
 msgid "There was an issue exporting the %s"
-msgstr "데이터 베이스 목록을 가져오는 도중 에러가 발생하였습니다."
+msgstr ""
 
 #, fuzzy, python-format
 msgid "There was an issue exporting the selected %s"
-msgstr "데이터 베이스 목록을 가져오는 도중 에러가 발생하였습니다."
+msgstr ""
 
 #, fuzzy
 msgid "There was an issue exporting the selected charts"
@@ -24698,7 +24698,7 @@ msgstr "이 대시보드의 즐겨찾기 상태를 가져오는 중에 문제가
 
 #, fuzzy, python-format
 msgid "There was an issue fetching your chart: %s"
-msgstr "데이터 베이스 목록을 가져오는 도중 에러가 발생하였습니다."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, ja, lv, mi, nl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr, uk]
@@ -26637,7 +26637,7 @@ msgstr "알 수 없는 상태"
 
 #, fuzzy, python-format
 msgid "Unknown column used in orderby: %(col)s"
-msgstr "알 수 없는 칼럼이 orderby에 사용되었습니다: %(col)"
+msgstr ""
 
 msgid "Unknown error"
 msgstr "알 수 없는 에러"
@@ -26885,7 +26885,7 @@ msgstr "관리"
 
 #, fuzzy, python-format
 msgid "Use %s to open in a new tab."
-msgstr "새로운 탭에서 Query실행"
+msgstr ""
 
 #, fuzzy
 msgid "Use Area Proportions"
@@ -27377,7 +27377,7 @@ msgstr "조회됨"
 
 #, fuzzy, python-format
 msgid "Viewed %s"
-msgstr "삭제"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fa, fi, fr, it, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn,
@@ -27799,7 +27799,7 @@ msgstr "주간 계절성"
 
 #, fuzzy, python-format
 msgid "Weeks %s"
-msgstr "주"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr, uk]
@@ -28641,7 +28641,7 @@ msgstr "연간 계절성"
 
 #, fuzzy, python-format
 msgid "Years %s"
-msgstr "년"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
