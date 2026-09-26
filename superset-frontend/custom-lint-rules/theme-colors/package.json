@@ -1,14 +1,20 @@
 {
-  "name": "@superset-ui/eslint-plugin-theme-colors",
+  "name": "@superset-ui/lint-plugin-theme-colors",
   "version": "1.0.0",
   "description": "Warns about rgb(a)/hex/literal colors",
   "keywords": [],
   "license": "Apache-2.0",
   "author": "Apache",
   "type": "module",
-  "main": "index.ts",
+  "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "dependencies": {}
+  "dependencies": {},
+  "peerDependencies": {
+    "@oxlint/plugins": "*",
+    "@types/estree": "*",
+    "jest": "*",
+    "oxlint": "*"
+  }
 }

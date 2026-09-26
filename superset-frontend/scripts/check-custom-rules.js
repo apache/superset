@@ -243,15 +243,13 @@ function checkEagerTranslationsInConfig(ast, filepath) {
       if (hasEslintDisable(path, 'i18n-strings/no-eager-t-in-config')) return;
 
       // Warn (not error) because there are many pre-existing violations.
-      // The ESLint plugin provides an autofix so authors can sweep files
-      // as they touch them. Promote to error once the codebase is clean.
+      // Promote to error once the codebase is clean.
       // eslint-disable-next-line no-console
       console.warn(
         `${YELLOW}⚠${RESET} ${filepath}:${node.loc?.start.line ?? '?'}: ` +
           `Eager \`${keyName}: ${value.callee.name}(...)\` is evaluated at ` +
           `module load, before i18n is initialized. Wrap in an arrow ` +
-          `function: \`${keyName}: () => ${value.callee.name}(...)\`. ` +
-          `Run \`eslint --fix\` to autofix.`,
+          `function: \`${keyName}: () => ${value.callee.name}(...)\`. `,
       );
       warningCount += 1;
     },

@@ -16,13 +16,16 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { type Rule, RuleTester } from 'eslint';
+
+import { RuleTester } from 'oxlint/plugins-dev';
+import { describe, it } from 'node:test';
 import plugin from '.';
 
-const ruleTester = new RuleTester({
-  parserOptions: { ecmaVersion: 2020, sourceType: 'module' },
-} as any);
-const rule: Rule.RuleModule = plugin.rules['no-eager-t-in-config'];
+RuleTester.describe = describe;
+RuleTester.it = it;
+
+const ruleTester = new RuleTester();
+const rule = plugin.rules['no-eager-t-in-config'];
 
 ruleTester.run('no-eager-t-in-config', rule, {
   valid: [
