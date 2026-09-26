@@ -14,13 +14,21 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from __future__ import annotations
+
+import logging
 from datetime import datetime
-from typing import Any, Optional
+from typing import Any, Optional, TYPE_CHECKING
 
 from sqlalchemy import types
 
 from superset.constants import TimeGrain
 from superset.db_engine_specs.base import BaseEngineSpec, DatabaseCategory
+
+if TYPE_CHECKING:
+    from superset.models.sql_lab import Query
+
+logger = logging.getLogger(__name__)
 
 
 class OracleEngineSpec(BaseEngineSpec):
@@ -94,3 +102,54 @@ class OracleEngineSpec(BaseEngineSpec):
         if not cursor.description:
             return []
         return super().fetch_data(cursor, limit)
+
+    @classmethod
+    def get_cancel_query_id(cls, cursor: Any, query: Query) -> Optional[str]:
+        """
+        Identify the session that will run the query, so it can be cancelled.
+
+        ``DBMS_DEBUG_JDWP.CURRENT_SESSION_SERIAL`` is executable by PUBLIC, so no
+        grant on ``V$SESSION`` is needed. The instance number lets the cancel reach
+        the right instance on RAC.
+
+        :param cursor: Cursor instance in which the query will be executed
+        :param query: Query instance
+        :return: ``"<sid>,<serial#>,<instance>"``, or None if it cannot be read
+        """
+        try:
+            cursor.execute(
+                "SELECT SYS_CONTEXT('USERENV', 'SID'), "
+                "DBMS_DEBUG_JDWP.CURRENT_SESSION_SERIAL, "
+                "SYS_CONTEXT('USERENV', 'INSTANCE') FROM dual"
+            )
+            sid, serial, instance = cursor.fetchone()
+        except Exception:  # pylint: disable=broad-except
+            logger.warning("Could not identify the Oracle session", exc_info=True)
+            return None
+        return f"{sid},{serial},{instance}"
+
+    @classmethod
+    def cancel_query(cls, cursor: Any, query: Query, cancel_query_id: str) -> bool:
+        """
+        Cancel the running statement of a session with ``ALTER SYSTEM CANCEL SQL``.
+
+        The session stays open and the statement fails with ORA-01013. Oracle
+        requires the ALTER SYSTEM privilege for this, even for the user's own
+        sessions; without it the cancel fails and False is returned.
+
+        :param cursor: New cursor instance to the db of the query
+        :param query: Query instance
+        :param cancel_query_id: Value returned by ``get_cancel_query_id``
+        :return: True if query cancelled successfully, False otherwise
+        """
+        if not cls.validate_cancel_query_id(cancel_query_id, r"^\d+,\d+,\d+$"):
+            return False
+        sid, serial, instance = cancel_query_id.split(",")
+        try:
+            cursor.execute(f"ALTER SYSTEM CANCEL SQL '{sid}, {serial}, @{instance}'")
+        except Exception:  # pylint: disable=broad-except
+            logger.warning(
+                "Could not cancel Oracle session %s", cancel_query_id, exc_info=True
+            )
+            return False
+        return True
