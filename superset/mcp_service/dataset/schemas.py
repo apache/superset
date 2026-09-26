@@ -276,6 +276,30 @@ class ListDatasetsRequest(
     test_list_datasets_with_string_filters.
     """
 
+    order_column: Annotated[
+        str | None,
+        Field(
+            default=None,
+            description=(
+                "Sortable columns: id, table_name, schema, changed_on, created_on; "
+                "changed_on_delta_humanized is an alias for changed_on."
+            ),
+        ),
+    ]
+
+    search: Annotated[
+        str | None,
+        Field(
+            default=None,
+            description=(
+                "Case-insensitive substring search of schema, SQL, table name, "
+                "and description. A complete UUID is an exact UUID lookup; "
+                "alternatively use a uuid filter. Compare candidate descriptions "
+                "and metadata. Cannot be used together with 'filters'."
+            ),
+        ),
+    ]
+
     certified: Annotated[
         StrictBool | None,
         Field(

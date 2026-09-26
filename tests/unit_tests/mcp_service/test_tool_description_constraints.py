@@ -65,8 +65,11 @@ async def test_registered_tool_calling_constraints(
     )([tool])[0]
     if include_schemas:
         guidance = entry["inputSchema"]["properties"]["request"].get("description", "")
+        schema_text = _schema_text(entry["inputSchema"])
+        for _, phrases in SCHEMA_DOCSTRING_CONSTRAINTS[name]:
+            assert all(phrase in schema_text for phrase in phrases), (name, phrases)
     else:
-        guidance = entry.get("parameters_hint", "")
+        guidance = str(entry.get("parameters_hint", ""))
     for constraint in CONSTRAINTS[name]:
         assert constraint in guidance, (name, constraint, entry["description"])
     if max_desc:
@@ -105,6 +108,9 @@ async def test_oversized_registered_description_keeps_calling_constraints(
         assert entry["inputSchema"]["properties"]["request"]["description"] == (
             instructions
         )
+        schema_text = _schema_text(entry["inputSchema"])
+        for _, phrases in SCHEMA_DOCSTRING_CONSTRAINTS[name]:
+            assert all(phrase in schema_text for phrase in phrases), (name, phrases)
     else:
         assert instructions in entry["parameters_hint"]
     assert len(entry["description"]) + len(instructions) <= 300
@@ -125,7 +131,7 @@ async def test_direct_inventory_keeps_bounded_calling_metadata() -> None:
 
 # Each docstring constraint sentence, paired with the phrases that must carry it
 # through default discovery. Wrapper boilerplate alone does not satisfy the audit.
-DOCSTRING_CONSTRAINTS: dict[str, list[tuple[str, tuple[str, ...]]]] = {
+SUMMARY_DOCSTRING_CONSTRAINTS: dict[str, list[tuple[str, tuple[str, ...]]]] = {
     "list_datasets": [
         ("must be wrapped in a ``request`` object", ('{"request": {',)),
         ("Do NOT pass ``search``, ``page``", ("Do NOT pass", "page", "top-level")),
@@ -192,14 +198,231 @@ DOCSTRING_CONSTRAINTS: dict[str, list[tuple[str, tuple[str, ...]]]] = {
 }
 
 
+# Field-level details are available in compact discovery's full inputSchema,
+# not in schema-free summary mode. Audit both without expanding the prose budget.
+SCHEMA_DOCSTRING_CONSTRAINTS: dict[str, list[tuple[str, tuple[str, ...]]]] = {
+    "list_datasets": [
+        (
+            "Search matches schema, SQL, table name, and description as "
+            "case-insensitive substrings",
+            ("Case-insensitive substring search of schema, SQL, table name",),
+        ),
+        (
+            "A complete UUID passed as ``search`` is treated as an exact UUID",
+            ("A complete UUID is an exact UUID lookup", "uuid filter"),
+        ),
+        (
+            "Compare descriptions and metadata",
+            ("Compare candidate descriptions and metadata",),
+        ),
+        (
+            "Sortable columns for ``order_column``",
+            ("Sortable columns: id, table_name, schema, changed_on, created_on",),
+        ),
+        (
+            "``changed_on_delta_humanized`` (alias for ``changed_on``)",
+            ("changed_on_delta_humanized is an alias for changed_on",),
+        ),
+        (
+            "Set ``request.certified`` to true",
+            (
+                "true to return only certified datasets",
+                "false to return only uncertified",
+                "omit to return both",
+            ),
+        ),
+        (
+            "Valid filter columns for ``filters[].col``",
+            (
+                "uuid",
+                "table_name",
+                "schema",
+                "database_name",
+                "created_by_fk",
+                "changed_by_fk",
+            ),
+        ),
+        (
+            'filters=[{"col": "created_by_fk", "opr": "eq", "value": <id>}]',
+            ("created_by_fk or changed_by_fk with that integer ID",),
+        ),
+    ],
+    "list_dashboards": [
+        (
+            "Sortable columns for ``order_column``",
+            (
+                "Sortable columns: id, dashboard_title, slug, published, "
+                "changed_on, created_on",
+            ),
+        ),
+        (
+            "``changed_on_delta_humanized`` (alias for ``changed_on``)",
+            ("changed_on_delta_humanized is an alias for changed_on",),
+        ),
+        (
+            "search matches titles and slugs only",
+            ("Search matches titles and slugs only",),
+        ),
+        (
+            "Use select_columns to request additional fields",
+            (
+                "select_columns",
+                "List of columns to select",
+            ),
+        ),
+        (
+            "Valid filter columns for ``filters[].col``",
+            (
+                "dashboard_title",
+                "published",
+                "editor",
+                "favorite",
+                "created_by_fk",
+                "changed_by_fk",
+            ),
+        ),
+        (
+            'filters=[{"col": "created_by_fk", "opr": "eq", "value": <id>}]',
+            ("created_by_fk or changed_by_fk with that integer ID",),
+        ),
+    ],
+    "list_charts": [
+        (
+            "Sortable columns for ``order_column``",
+            (
+                "Sortable columns: id, slice_name, viz_type, description, "
+                "changed_on, created_on",
+            ),
+        ),
+        (
+            "``changed_on_delta_humanized`` (alias for ``changed_on``)",
+            ("changed_on_delta_humanized is an alias for changed_on",),
+        ),
+        (
+            "Set ``request.certified`` to true",
+            (
+                "true to return only certified charts",
+                "false to return only uncertified",
+                "omit to return both",
+            ),
+        ),
+        (
+            "Valid filter columns for ``filters[].col``",
+            (
+                "slice_name",
+                "viz_type",
+                "datasource_name",
+                "editor",
+                "created_by_fk",
+                "changed_by_fk",
+                "dashboards",
+            ),
+        ),
+        (
+            'filters=[{"col": "created_by_fk", "opr": "eq", "value": <id>}]',
+            ("created_by_fk or changed_by_fk with that integer ID",),
+        ),
+    ],
+    "get_dashboard_info": [
+        (
+            "use the returned filter_state as context",
+            ("Use returned filter_state as context",),
+        ),
+        (
+            "Restricted users receive native_filter_values",
+            (
+                "native_filter_values (names, types, values, labels, exclusion flags)",
+                "not raw dataMask/column targets",
+            ),
+        ),
+        (
+            "unsupported filters and chart state cannot be summarized safely",
+            (
+                "native_filter_values_incomplete flags unsupported filters/chart state",
+                "cannot be summarized safely",
+            ),
+        ),
+        (
+            "lists may be capped below their true size",
+            ("Charts/native_filters may be capped", "chart_count", "_truncation_notes"),
+        ),
+        (
+            "To retrieve the complete list of charts",
+            (
+                'list_charts with request={"filters": [{"col": "dashboards", '
+                '"opr": "eq", "value": <dashboard id>}]}',
+                "paginate with page/page_size",
+            ),
+        ),
+        (
+            "pass the URL or bare key as ``identifier``",
+            (
+                "bare permalink key",
+                "shared URL",
+                "/superset/dashboard/p/<key>/",
+                "identifier",
+            ),
+        ),
+        (
+            "or use ``permalink_key`` alone",
+            ("no identifier is required",),
+        ),
+    ],
+    "get_chart_info": [
+        (
+            "URL field links to the chart's explore page",
+            ("url field links to the chart's Explore page",),
+        ),
+        ("form_data_key from Explore URL", ("Cache key from the Explore URL",)),
+        (
+            "With an Explore permalink (key or full URL)",
+            ("full permalink URL", "/explore/p/<key>/"),
+        ),
+        (
+            "When dashboard_id is provided",
+            (
+                "dashboard_id",
+                "column, operator, and value under filters.dashboard_filters",
+                "scope for this chart",
+            ),
+        ),
+    ],
+    "generate_dashboard": [
+        ("auto-generated 2-column grid", ("auto-generated 2-column grid",)),
+        ("MARKDOWN/HEADER components", ("MARKDOWN", "HEADER components")),
+        (
+            "``parents`` is recomputed from its ``children`` edges",
+            (
+                "parents is recomputed from its children edges",
+                "omitted or incomplete parents arrays are fine",
+            ),
+        ),
+    ],
+}
+
+DOCSTRING_CONSTRAINTS = {
+    name: constraints + SCHEMA_DOCSTRING_CONSTRAINTS[name]
+    for name, constraints in SUMMARY_DOCSTRING_CONSTRAINTS.items()
+}
+
+
+def _schema_text(value: object) -> str:
+    """Collect schema text, including referenced definitions, without JSON escaping."""
+    if isinstance(value, dict):
+        return " ".join(f"{key} {_schema_text(item)}" for key, item in value.items())
+    if isinstance(value, list):
+        return " ".join(_schema_text(item) for item in value)
+    return str(value)
+
+
 def _discovery_text(entry: dict[str, object], include_schemas: bool) -> str:
     """Everything a client sees for one tool in a search result."""
     if include_schemas:
         schema = entry["inputSchema"]
         assert isinstance(schema, dict)
-        guidance = schema["properties"]["request"].get("description", "")
+        guidance = _schema_text(schema)
     else:
-        guidance = entry.get("parameters_hint", "")
+        guidance = str(entry.get("parameters_hint", ""))
     return f"{entry.get('description', '')} {guidance}"
 
 
@@ -224,7 +447,12 @@ async def test_docstring_constraints_survive_default_discovery(
     entry = _create_search_result_serializer(config)([tool])[0]
     text = _discovery_text(entry, include_schemas)
     missing: list[tuple[str, str]] = []
-    for sentence, phrases in DOCSTRING_CONSTRAINTS[name]:
+    constraints = (
+        DOCSTRING_CONSTRAINTS[name]
+        if include_schemas
+        else SUMMARY_DOCSTRING_CONSTRAINTS[name]
+    )
+    for sentence, phrases in constraints:
         assert sentence in docstring, (name, sentence)
         missing.extend((sentence, phrase) for phrase in phrases if phrase not in text)
     assert not missing, (name, missing, text)

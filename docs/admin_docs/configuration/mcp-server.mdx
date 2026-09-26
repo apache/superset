@@ -785,7 +785,10 @@ never truncated: their length is deducted from the prose budget first. If a
 configured limit is smaller than the instructions, prose is omitted rather than
 cutting the instructions. Built-in calling instructions are capped at 300
 characters by regression tests, and the complete tool entries retain per-tool
-size budgets. This setting does not change result-size limits or schema validation.
+size budgets. Field-level descriptions in the default full input schema also
+preserve tool-specific search semantics, sortable columns, chart pagination, and
+layout guidance. These details are not included in schema-free summary mode.
+This setting does not change result-size limits or schema validation.
 
 :::tip
 Set `enabled: False` to revert to the traditional "show all tools at once" behavior, which some clients or workflows may prefer.

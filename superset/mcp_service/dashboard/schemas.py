@@ -198,6 +198,30 @@ class ListDashboardsRequest(
 ):
     """Request schema for list_dashboards with clear, unambiguous types."""
 
+    order_column: Annotated[
+        str | None,
+        Field(
+            default=None,
+            description=(
+                "Sortable columns: id, dashboard_title, slug, published, "
+                "changed_on, created_on; "
+                "changed_on_delta_humanized is an alias for changed_on."
+            ),
+        ),
+    ]
+
+    search: Annotated[
+        str | None,
+        Field(
+            default=None,
+            description=(
+                "Search matches titles and slugs only, not people. Resolve names "
+                "with find_users and filter by created_by_fk or changed_by_fk "
+                "using the user ID. Cannot be used together with 'filters'."
+            ),
+        ),
+    ]
+
     deleted_state: Annotated[
         Literal["include", "only"] | None,
         Field(
@@ -292,7 +316,11 @@ class GetDashboardInfoRequest(MetadataCacheControl):
             'or {"applied_filters": [{"col": "region", "op": "IN", '
             '"val": ["EMEA"]}]}. Native mask values '
             "are projected without column metadata for restricted users. Ignored "
-            "when permalink_key is provided."
+            "when permalink_key is provided. Use returned filter_state as context. "
+            "Restricted users receive native_filter_values (names, types, values, "
+            "labels, exclusion flags), not raw dataMask/column targets. "
+            "native_filter_values_incomplete flags unsupported filters/chart state "
+            "that cannot be summarized safely."
         ),
     )
     select_columns: Annotated[
@@ -304,7 +332,11 @@ class GetDashboardInfoRequest(MetadataCacheControl):
                 "set that excludes 'css' (raw CSS, can be many KB) and 'filter_state' "
                 "(only relevant when permalink_key is provided). Pass an explicit list "
                 "to override, e.g. ['id','dashboard_title','charts'] for minimal "
-                "output, or add 'css' to include raw dashboard CSS."
+                "output, or add 'css' to include raw dashboard CSS. "
+                "Charts/native_filters may be capped: check chart_count and "
+                "_truncation_notes. For all charts, call list_charts with "
+                'request={"filters": [{"col": "dashboards", "opr": "eq", '
+                '"value": <dashboard id>}]} and paginate with page/page_size.'
             ),
             validation_alias=AliasChoices("select_columns", "columns"),
         ),
@@ -696,7 +728,9 @@ class GenerateDashboardRequest(BaseModel):
             "dict). When set, replaces the auto-generated layout entirely. "
             "Pass this when you need custom row composition, MARKDOWN "
             "blocks, HEADER components, or specific chart widths/heights. "
-            "Omit to let the tool auto-generate a packed grid from chart_ids."
+            "Omit for an auto-generated 2-column grid from chart_ids. "
+            "Each component's parents is recomputed from its children edges "
+            "before saving; omitted or incomplete parents arrays are fine."
         ),
     )
     json_metadata_overrides: Dict[str, Any] | None = Field(
