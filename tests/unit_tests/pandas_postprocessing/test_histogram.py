@@ -103,24 +103,20 @@ def test_histogram_with_groupby_and_cumulative_and_normalize():
         "6.4 - 8.2",
         "8.2 - 10.0",
     ]
-    assert result.values.tolist() == [
-        [
-            "A",
-            0.06666666666666667,
-            0.06666666666666667,
-            0.13333333333333333,
-            0.13333333333333333,
-            0.2,
-        ],
-        [
-            "B",
-            0.0,
-            0.06666666666666667,
-            0.06666666666666667,
-            0.13333333333333333,
-            0.13333333333333333,
-        ],
-    ]
+    # each bin holds the share of all data points that are in the group and up to
+    # that bin
+    assert result["group"].tolist() == ["A", "B"]
+    assert result.iloc[0, 1:].tolist() == pytest.approx([0.2, 0.2, 0.4, 0.4, 0.6])
+    assert result.iloc[1, 1:].tolist() == pytest.approx([0.0, 0.2, 0.2, 0.4, 0.4])
+
+
+def test_histogram_cumulative_and_normalize_ends_at_one():
+    data_with_no_groupings = DataFrame({"a": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]})
+    result = histogram(
+        data_with_no_groupings, "a", [], bins, cumulative=True, normalize=True
+    )
+    assert result.shape == (1, bins)
+    assert result.values.tolist()[0] == pytest.approx([0.2, 0.4, 0.6, 0.8, 1.0])
 
 
 def test_histogram_with_non_numeric_column():
