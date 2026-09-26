@@ -22,6 +22,7 @@ import type {
   CustomFormatter,
   DataColumnMeta,
   TableColumnConfig,
+  TotalsAggregate,
 } from '@superset-ui/chart-controls';
 import {
   NumberFormatter,
@@ -127,6 +128,7 @@ export interface AgGridTableChartTransformedProps<
   isUsingTimeComparison: boolean;
   colorPositiveNegative: boolean;
   totals: DataRecord | undefined;
+  totalsAggregate: TotalsAggregate;
   showTotals: boolean;
   columnColorFormatters: ColorFormatters;
   basicColorFormatters?: { [Key: string]: BasicColorFormatterType }[];

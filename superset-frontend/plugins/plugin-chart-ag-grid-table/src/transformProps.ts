@@ -45,6 +45,7 @@ import {
   ConditionalFormattingConfig,
   getColorFormatters,
   ColorSchemeEnum,
+  toTotalsAggregate,
 } from '@superset-ui/chart-controls';
 import isEqualColumns from './utils/isEqualColumns';
 import { BASIC_COLOR_FORMATTERS_ROW_KEY } from './consts';
@@ -949,6 +950,7 @@ const transformProps = (
     isUsingTimeComparison,
     colorPositiveNegative,
     totals,
+    totalsAggregate: toTotalsAggregate(formData.totals_aggregate),
     showTotals,
     columnColorFormatters,
     basicColorColumnFormatters,
