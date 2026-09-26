@@ -265,21 +265,22 @@ tags are included in asset export and import.
 
 **What operators should expect:**
 
-- **Implicit tags accrue.** Saving a chart, dashboard, dataset or saved query,
-  and favoriting an asset, write rows to `tag` and `tagged_object` (`type:chart`,
-  `editor:<user id>`, `favorited_by:<user id>`). These have always been created
-  when the flag was on; they are simply no longer opt-in.
+- **Implicit tags no longer accrue.** Saving a chart, dashboard, dataset or
+  saved query, and favoriting an asset, used to write rows to `tag` and
+  `tagged_object` (`type:chart`, `editor:<user id>`, `favorited_by:<user id>`).
+  That generation has since been removed; see "Superset no longer
+  auto-generates `type:`/`editor:`/`favorited_by:` tags" below for what
+  happens to rows created before upgrading.
 - **Exports gain a `tags` key and a `tags.yaml` file.** Chart and dashboard
   export bundles carry custom tags. Importers on 6.0 and later understand both;
   older importers skip the unrecognized `tags.yaml` file but reject chart and
   dashboard YAML that contains a `tags` key, so strip that key before importing
   a bundle into Superset 5.x or earlier.
-- **The flag is honored at write time.** The tagging SQLA event listeners are
-  always attached at startup; the ones that create tags check `TAGGING_SYSTEM`
-  when they fire, so the flag, including a runtime override through
-  `GET_FEATURE_FLAGS_FUNC` or `IS_FEATURE_ENABLED_FUNC`, takes effect without a
-  restart. The cleanup listeners run regardless of the flag, so deleting an
-  asset never leaves orphaned `tagged_object` rows behind.
+- **Only the cleanup listeners remain, and they run unconditionally.** The
+  creation listeners from the bullet above are gone entirely; the tagging
+  SQLA event listeners still attached at startup are deletion-only, and they
+  run regardless of `TAGGING_SYSTEM`, so deleting an asset never leaves
+  orphaned `tagged_object` rows behind.
 
 Set `FEATURE_FLAGS = {"TAGGING_SYSTEM": False}` to restore the previous
 behavior. Existing tag rows are left untouched.
@@ -624,6 +625,32 @@ placeholder back verbatim in the rendered URL and a warning in the logs; the
 substitution is deliberately not blanked so the broken link is visible rather than
 silently truncated. Use `{datasource_id}` (still supported) to identify the dataset
 to your access-request system, and resolve the name there.
+
+### Superset no longer auto-generates `type:`/`editor:`/`favorited_by:` tags
+
+With `TAGGING_SYSTEM` enabled, Superset used to auto-tag every chart,
+dashboard, saved query, and dataset with implicit tags derived from
+metadata (object type, editors, and who favorited it), and generate a
+`favorited_by:<user id>` tag on every favorite/unfavorite. Nothing in the
+UI ever surfaced these tags to users — every tags list and filter in the
+frontend explicitly excluded them — so the generation added continuous
+write overhead (13 SQLAlchemy event listeners across 5 models) with no
+user-visible benefit. That generation is removed.
+
+Manually-created (custom) tags are unaffected: creating, editing,
+listing, and filtering tags still works exactly as before, including the
+`custom_tag` API filter used to distinguish custom from implicit tags.
+
+Deployments already running with `TAGGING_SYSTEM` enabled keep any
+`type:`/`editor:`/`favorited_by:` tag rows created before upgrading — they
+remain queryable via the API and MCP's `list_tags`/`get_tag_info` tools,
+and are still exempt from bulk tag deletion — but no new ones are created,
+and the `superset sync_tags` CLI command that backfilled them has been
+removed. The `DASHBOARD_LIST_CUSTOM_TAGS_ONLY` config flag and the
+dashboard-list filtering it enables are kept, defaulting to `False`, so
+deployments that already set it to `True` to hide legacy implicit tags from
+dashboard-list responses keep that filtering; new deployments with no
+implicit tags left over have no reason to turn it on.
 
 ### MCP tool results preserve stored string values
 
