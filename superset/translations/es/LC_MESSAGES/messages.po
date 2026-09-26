@@ -269,6 +269,10 @@ msgid "%(name)s deleted successfully"
 msgstr ""
 
 #, python-format
+msgid "%(name)s is not a column on this dataset."
+msgstr ""
+
+#, python-format
 msgid "%(name)s restored successfully"
 msgstr ""
 
@@ -10770,6 +10774,9 @@ msgstr "No se han encontrado registros coincidentes"
 msgid "No multilayer deck.gl charts are currently added to this dashboard."
 msgstr "Actualmente no se han añadido filtros a este panel de control."
 
+msgid "No partition column is set."
+msgstr ""
+
 msgid "No records found"
 msgstr "No se han encontrado registros"
 
@@ -16384,6 +16391,9 @@ msgid ""
 "partition column and the mapped column."
 msgstr ""
 
+msgid "The partition filter mapping was cleared: its column is gone"
+msgstr ""
+
 #, python-format
 msgid "The password provided for username \"%(username)s\" is incorrect."
 msgstr ""
@@ -16802,6 +16812,9 @@ msgstr ""
 
 msgid "The time unit used for the grouping of blocks"
 msgstr "La unidad de tiempo utilizada para la agrupación de bloques"
+
+msgid "The transform could not be evaluated against the database."
+msgstr ""
 
 #, fuzzy
 msgid "The two passwords that you entered do not match!"
@@ -18107,6 +18120,9 @@ msgstr[1] ""
 #, fuzzy
 msgid "Token Request URI"
 msgstr "URI de solicitud de token"
+
+msgid "Too many preview requests for this dataset. Wait a moment and try again."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
 #, fuzzy, python-format

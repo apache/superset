@@ -237,6 +237,10 @@ msgid "%(name)s deleted successfully"
 msgstr ""
 
 #, python-format
+msgid "%(name)s is not a column on this dataset."
+msgstr ""
+
+#, python-format
 msgid "%(name)s restored successfully"
 msgstr ""
 
@@ -9544,6 +9548,9 @@ msgstr "一致する結果が見つかりません"
 msgid "No multilayer deck.gl charts are currently added to this dashboard."
 msgstr "このダッシュボードにはマルチレイヤーdeck.glチャートはまだ追加されていません。"
 
+msgid "No partition column is set."
+msgstr ""
+
 msgid "No records found"
 msgstr "レコードが見つかりません"
 
@@ -14443,6 +14450,9 @@ msgid ""
 "partition column and the mapped column."
 msgstr ""
 
+msgid "The partition filter mapping was cleared: its column is gone"
+msgstr ""
+
 #, python-format
 msgid "The password provided for username \"%(username)s\" is incorrect."
 msgstr "ユーザー「%(username)s」のパスワードが正しくありません。"
@@ -14758,6 +14768,9 @@ msgstr "各ブロックの時間単位。domain_granularity より小さく、�
 
 msgid "The time unit used for the grouping of blocks"
 msgstr "ブロックのグループ化に使用される時間単位"
+
+msgid "The transform could not be evaluated against the database."
+msgstr ""
 
 msgid "The two passwords that you entered do not match!"
 msgstr "入力された2つのパスワードが一致しません！"
@@ -15843,6 +15856,9 @@ msgstr[0] ""
 
 msgid "Token Request URI"
 msgstr "トークンリクエスト URI"
+
+msgid "Too many preview requests for this dataset. Wait a moment and try again."
+msgstr ""
 
 #, python-format
 msgid ""

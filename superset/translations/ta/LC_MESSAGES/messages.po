@@ -267,6 +267,10 @@ msgid "%(name)s deleted successfully"
 msgstr ""
 
 #, python-format
+msgid "%(name)s is not a column on this dataset."
+msgstr ""
+
+#, python-format
 msgid "%(name)s restored successfully"
 msgstr ""
 
@@ -10151,6 +10155,9 @@ msgstr "பொருத்தமான முடிவுகள் எதுவ�
 msgid "No multilayer deck.gl charts are currently added to this dashboard."
 msgstr "இந்த டேஷ்போர்டில் தற்போது வடிகட்டிகள் எதுவும் சேர்க்கப்படவில்லை."
 
+msgid "No partition column is set."
+msgstr ""
+
 msgid "No records found"
 msgstr "பதிவுகள் எதுவும் காணப்படவில்லை"
 
@@ -15243,6 +15250,9 @@ msgid ""
 "partition column and the mapped column."
 msgstr ""
 
+msgid "The partition filter mapping was cleared: its column is gone"
+msgstr ""
+
 #, python-format
 msgid "The password provided for username \"%(username)s\" is incorrect."
 msgstr "பயனர் பெயர் \"%(username)s\" க்காக வழங்கப்பட்ட கடவுச்சொல் தவறானது."
@@ -15578,6 +15588,9 @@ msgstr "ஒவ்வொரு பிளாக்கிற்குமான (Blo
 
 msgid "The time unit used for the grouping of blocks"
 msgstr "பிளாக்குகளைக் குழுவாக்கப் பயன்படுத்தப்படும் நேர அலகு"
+
+msgid "The transform could not be evaluated against the database."
+msgstr ""
 
 msgid "The two passwords that you entered do not match!"
 msgstr "நீங்கள் உள்ளிட்ட இரண்டு கடவுச்சொற்களும் பொருந்தவில்லை!"
@@ -16738,6 +16751,9 @@ msgstr[1] ""
 
 msgid "Token Request URI"
 msgstr "டோக்கன் கோரிக்கை URI"
+
+msgid "Too many preview requests for this dataset. Wait a moment and try again."
+msgstr ""
 
 #, python-format
 msgid ""

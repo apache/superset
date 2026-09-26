@@ -521,6 +521,38 @@ class GetOrCreateDatasetSchema(Schema):
     always_filter_main_dttm = fields.Boolean(load_default=False)
 
 
+class PartitionMappingPreviewSchema(Schema):
+    """
+    Payload for the dataset editor's partition mapping preview panel.
+
+    Every field is bounded. The endpoint parses `value_transform` with sqlglot
+    and then evaluates it against the warehouse, so an unbounded string is
+    parser time and warehouse time an owner can spend at will; the bounds keep
+    a malformed or oversized payload a 400 rather than work.
+    """
+
+    mapped_column = fields.String(
+        required=True,
+        # Matches the `String(250)` the mapping columns are stored in.
+        validate=Length(1, 250),
+        metadata={"description": "Column whose filters would be mirrored"},
+    )
+    value_transform = fields.String(
+        required=True,
+        allow_none=True,
+        # The stored column is `Text`, so this bounds the *request*, not the
+        # feature: a transform is one expression around `:value`, and 1024
+        # characters is far past anything that reads as one.
+        validate=Length(1, 1024),
+        metadata={"description": "SQL expression containing a :value placeholder"},
+    )
+    sample_value = fields.String(
+        required=True,
+        validate=Length(1, 250),
+        metadata={"description": "Value to evaluate the transform at"},
+    )
+
+
 class DatasetCacheWarmUpRequestSchema(Schema):
     db_name = fields.String(
         required=True,

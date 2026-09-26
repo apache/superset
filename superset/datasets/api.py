@@ -23,7 +23,7 @@ from io import BytesIO
 from typing import Any, Callable, ClassVar
 from zipfile import is_zipfile, ZipFile
 
-from flask import request, Response
+from flask import current_app as app, request, Response
 from flask_appbuilder import permission_name
 from flask_appbuilder.api import expose, protect, rison as parse_rison, safe
 from flask_appbuilder.api.schemas import get_item_schema
@@ -71,6 +71,7 @@ from superset.commands.purge import (
     SoftDeleteBinding,
 )
 from superset.connectors.sqla.models import SqlaTable
+from superset.connectors.sqla.partition_mapping import preview_partition_mapping
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.daos.dashboard import DashboardDAO
 from superset.daos.dataset import DatasetDAO
@@ -98,17 +99,21 @@ from superset.datasets.schemas import (
     get_related_objects_ids_schema,
     GetOrCreateDatasetSchema,
     openapi_spec_methods_override,
+    PartitionMappingPreviewSchema,
 )
 from superset.exceptions import (
     OAuth2RedirectError,
+    SupersetSecurityException,
     SupersetSyntaxErrorException,
     SupersetTemplateException,
     SupersetTimeoutException,
 )
+from superset.extensions import cache_manager
 from superset.jinja_context import BaseTemplateProcessor, get_template_processor
 from superset.subjects.filters import FilterRelatedSubjects, subject_type_filter
 from superset.utils import json
 from superset.utils.core import (
+    get_user_id,
     parse_boolean_string,
     send_export_zip,
     write_zip_entry,
@@ -155,6 +160,51 @@ _DATASET_PURGE_BINDING = SoftDeleteBinding(
     delete_failed=DatasetDeleteFailedError,
     impact_collector=collect_dataset_impact,
 )
+
+
+#: How long one preview budget lasts, in seconds.
+PREVIEW_RATE_LIMIT_WINDOW = 60
+
+
+def _consume_preview_rate_limit(dataset_id: int) -> bool:
+    """
+    Fixed-window per-user, per-dataset throttle on the preview endpoint.
+
+    Debouncing on the client is a courtesy, not a guard: a held keydown, or a
+    handful of owners with the editor open, becomes sustained load on a
+    production cluster. Returns False once the window's budget is spent.
+
+    Counting is `add` then `inc` rather than read-then-write, which buys two
+    things a `get`/`set` pair cannot. It is atomic where it matters -- on Redis
+    those are `SETNX` and `INCR`, so concurrent previews cannot each read the
+    same sub-limit value and all be let through. And the window is genuinely
+    fixed: only `add` sets a lifetime, so the budget expires a minute after the
+    *first* request rather than a minute after the most recent one, which is
+    what the name promises. (`INCR` leaves the TTL alone; a backend whose `inc`
+    is a read-modify-write may restore its own default lifetime instead, which
+    throttles for longer rather than shorter.)
+
+    Both calls go to the cachelib backend rather than the Flask-Caching wrapper
+    around it, which proxies `add` but not `inc`.
+    """
+    limit = app.config.get("PARTITION_TRANSFORM_PREVIEW_RATE_LIMIT", 30)
+    if not limit:
+        return True
+
+    user_id = get_user_id() or 0
+    key = f"partition_mapping_preview:{user_id}:{dataset_id}"
+    backend = cache_manager.cache.cache
+    try:
+        if backend.add(key, 1, timeout=PREVIEW_RATE_LIMIT_WINDOW):
+            # First request of a fresh window, and the only one that dates it.
+            return True
+        used = backend.inc(key)
+    except Exception:  # pylint: disable=broad-except  # noqa: BLE001
+        # A cache outage must not take the editor down with it.
+        return True
+    # `inc` reports None when the backend could not count -- a null cache, or a
+    # write that failed. Unenforceable is not the same as spent.
+    return used is None or used <= limit
 
 
 class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
@@ -209,6 +259,7 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
         "get_or_create_dataset",
         "warm_up_cache",
         "get_drill_info",
+        "partition_mapping_preview",
         "list_versions",
         "get_version",
         "activity",
@@ -449,6 +500,7 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
         DatasetPurgeRequestSchema,
         DatasetDuplicateSchema,
         GetOrCreateDatasetSchema,
+        PartitionMappingPreviewSchema,
         VersionListItemSchema,
     )
 
@@ -2076,6 +2128,101 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
         return set_version_etag(
             self.response(200, **response),
             entity_concurrency_token(SqlaTable, table.id, table.uuid),
+        )
+
+    @expose("/<int:pk>/partition_mapping/preview/", methods=("POST",))
+    @protect()
+    @safe
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: (
+            f"{self.__class__.__name__}.partition_mapping_preview"
+        ),
+        log_to_statsd=False,
+    )
+    def partition_mapping_preview(self, pk: int) -> Response:
+        """Preview the predicate a partition value transform would emit.
+        ---
+        post:
+          summary: Preview a partition filter mapping
+          description: >-
+            Evaluate a partition value transform at a sample value and return
+            the predicate that would be appended to queries. Parse and
+            denylist checks run before anything reaches the engine, so an
+            unparseable transform costs no query.
+          parameters:
+          - in: path
+            schema:
+              type: integer
+            name: pk
+            description: The dataset ID
+          requestBody:
+            required: true
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/PartitionMappingPreviewSchema'
+          responses:
+            200:
+              description: Preview result
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      result:
+                        type: object
+                        properties:
+                          valid:
+                            type: boolean
+                          emitted_predicate:
+                            type: string
+                          error:
+                            type: string
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            404:
+              $ref: '#/components/responses/404'
+            429:
+              $ref: '#/components/responses/400'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        if not is_feature_enabled("PARTITION_FILTER_MAPPING"):
+            return self.response_404()
+
+        dataset = DatasetDAO.find_by_id(pk)
+        if not dataset:
+            return self.response_404()
+        try:
+            security_manager.raise_for_editorship(dataset)
+        except SupersetSecurityException:
+            return self.response_403()
+
+        try:
+            payload = PartitionMappingPreviewSchema().load(request.json)
+        except ValidationError as error:
+            return self.response_400(message=error.messages)
+
+        if not _consume_preview_rate_limit(pk):
+            return self.response(
+                429,
+                message=_(
+                    "Too many preview requests for this dataset. "
+                    "Wait a moment and try again."
+                ),
+            )
+
+        return self.response(
+            200,
+            result=preview_partition_mapping(
+                dataset,
+                mapped_column=payload["mapped_column"],
+                value_transform=payload["value_transform"],
+                sample_value=payload["sample_value"],
+            ),
         )
 
     @expose("/<int:pk>/drill_info/", methods=("GET",))
