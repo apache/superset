@@ -21,12 +21,13 @@ from unittest.mock import MagicMock
 from markupsafe import Markup
 from sqlalchemy.orm import Session
 
-from superset.tags.models import get_tag, Tag, TaggedObject, TagType
+from superset.tags.models import get_or_create_tag, Tag, TaggedObject, TagType
 
 
 def test_get_tag_returns_plain_string_not_markup() -> None:
     """
-    Test that get_tag() returns a Tag with a plain string name, not a Markup object.
+    Test that get_or_create_tag() returns a Tag with a plain string name,
+    not a Markup object.
 
     This verifies the fix for issue #32484 where escape() was wrapping tag names
     in Markup objects, causing MySQL driver errors.
@@ -41,7 +42,7 @@ def test_get_tag_returns_plain_string_not_markup() -> None:
     tag_type = TagType.custom
 
     # Execute
-    result = get_tag(tag_name, mock_session, tag_type)
+    result = get_or_create_tag(tag_name, mock_session, tag_type)
 
     # Verify
     assert isinstance(result.name, str), "Tag name should be a plain string"
@@ -52,7 +53,7 @@ def test_get_tag_returns_plain_string_not_markup() -> None:
 
 def test_get_tag_with_special_characters() -> None:
     """
-    Test that get_tag() correctly handles tag names with special characters
+    Test that get_or_create_tag() correctly handles tag names with special characters
     without converting them to Markup objects.
     """
     mock_session = MagicMock(spec=Session)
@@ -72,7 +73,7 @@ def test_get_tag_with_special_characters() -> None:
     ]
 
     for tag_name in tag_names:
-        result = get_tag(tag_name, mock_session, TagType.custom)
+        result = get_or_create_tag(tag_name, mock_session, TagType.custom)
 
         assert isinstance(result.name, str), (
             f"Tag name '{tag_name}' should be a plain string"
@@ -85,7 +86,7 @@ def test_get_tag_with_special_characters() -> None:
 
 def test_get_tag_with_html_characters() -> None:
     """
-    Test that get_tag() handles HTML special characters correctly.
+    Test that get_or_create_tag() handles HTML special characters correctly.
 
     Even though these characters might have been escaped before, they should
     now be stored as plain strings to avoid MySQL driver issues.
@@ -104,7 +105,7 @@ def test_get_tag_with_html_characters() -> None:
     ]
 
     for tag_name in tag_names:
-        result = get_tag(tag_name, mock_session, TagType.custom)
+        result = get_or_create_tag(tag_name, mock_session, TagType.custom)
 
         assert isinstance(result.name, str), (
             f"Tag name '{tag_name}' should be a plain string"
@@ -117,7 +118,7 @@ def test_get_tag_with_html_characters() -> None:
 
 
 def test_get_tag_strips_whitespace() -> None:
-    """Test that get_tag() strips leading and trailing whitespace from tag names."""
+    """Test that get_or_create_tag() strips leading/trailing whitespace from a name."""
     mock_session = MagicMock(spec=Session)
     mock_query = MagicMock()
     mock_session.query.return_value = mock_query
@@ -132,7 +133,7 @@ def test_get_tag_strips_whitespace() -> None:
     ]
 
     for input_name, expected_name in tag_names_with_whitespace:
-        result = get_tag(input_name, mock_session, TagType.custom)
+        result = get_or_create_tag(input_name, mock_session, TagType.custom)
 
         assert isinstance(result.name, str), "Tag name should be a plain string"
         assert not isinstance(result.name, Markup), (
@@ -145,7 +146,7 @@ def test_get_tag_strips_whitespace() -> None:
 
 def test_get_tag_returns_existing_tag() -> None:
     """
-    Test that get_tag() returns existing tag from database.
+    Test that get_or_create_tag() returns existing tag from database.
 
     Verifies it doesn't create a new one.
     """
@@ -160,7 +161,7 @@ def test_get_tag_returns_existing_tag() -> None:
     mock_query.filter_by.return_value.one_or_none.return_value = existing_tag
 
     # Execute
-    result = get_tag("existing-tag", mock_session, TagType.custom)
+    result = get_or_create_tag("existing-tag", mock_session, TagType.custom)
 
     # Verify
     assert result is existing_tag, "Should return the existing tag"
@@ -170,7 +171,7 @@ def test_get_tag_returns_existing_tag() -> None:
 
 
 def test_get_tag_creates_new_tag() -> None:
-    """Test that get_tag() creates and commits a new tag when it doesn't exist."""
+    """Test that get_or_create_tag() creates/commits a new tag when it doesn't exist."""
     mock_session = MagicMock(spec=Session)
     mock_query = MagicMock()
     mock_session.query.return_value = mock_query
@@ -180,7 +181,7 @@ def test_get_tag_creates_new_tag() -> None:
     tag_type = TagType.custom
 
     # Execute
-    get_tag(tag_name, mock_session, tag_type)
+    get_or_create_tag(tag_name, mock_session, tag_type)
 
     # Verify
     mock_session.add.assert_called_once()
@@ -198,7 +199,7 @@ def test_get_tag_creates_new_tag() -> None:
 
 
 def test_get_tag_with_different_tag_types() -> None:
-    """Test that get_tag() works correctly with all TagType values."""
+    """Test that get_or_create_tag() works correctly with all TagType values."""
     mock_session = MagicMock(spec=Session)
     mock_query = MagicMock()
     mock_session.query.return_value = mock_query
@@ -213,7 +214,7 @@ def test_get_tag_with_different_tag_types() -> None:
 
     for tag_type in tag_types:
         tag_name = f"tag-{tag_type.name}"
-        result = get_tag(tag_name, mock_session, tag_type)
+        result = get_or_create_tag(tag_name, mock_session, tag_type)
 
         assert isinstance(result.name, str), (
             f"Tag name for {tag_type} should be a plain string"
@@ -237,7 +238,7 @@ def test_tag_name_type_after_database_operation() -> None:
     tag_name = "mysql-compatibility-test"
 
     # Execute
-    result = get_tag(tag_name, mock_session, TagType.custom)
+    result = get_or_create_tag(tag_name, mock_session, TagType.custom)
 
     # Verify the tag object before database operations
     assert isinstance(result.name, str), (

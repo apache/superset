@@ -21,7 +21,7 @@ from markupsafe import Markup
 from sqlalchemy.exc import ProgrammingError
 
 from superset import db
-from superset.tags.models import get_tag, Tag, TagType
+from superset.tags.models import get_or_create_tag, Tag, TagType
 from tests.integration_tests.base_tests import SupersetTestCase
 
 
@@ -61,8 +61,8 @@ class TestTagCreationMySQLCompatibility(SupersetTestCase):
         """
         tag_name = "mysql-fix-verification-20251111"
 
-        # Create tag using get_tag function
-        tag = get_tag(tag_name, db.session, TagType.custom)
+        # Create tag using get_or_create_tag function
+        tag = get_or_create_tag(tag_name, db.session, TagType.custom)
 
         # Verify the tag was created
         assert tag is not None, "Tag should be created"
@@ -107,7 +107,7 @@ class TestTagCreationMySQLCompatibility(SupersetTestCase):
         created_tags = []
         try:
             for tag_name in tag_names:
-                tag = get_tag(tag_name, db.session, TagType.custom)
+                tag = get_or_create_tag(tag_name, db.session, TagType.custom)
                 created_tags.append(tag)
 
                 assert isinstance(tag.name, str), (
@@ -149,7 +149,7 @@ class TestTagCreationMySQLCompatibility(SupersetTestCase):
 
         for tag_name in tag_names:
             try:
-                tag = get_tag(tag_name, db.session, TagType.custom)
+                tag = get_or_create_tag(tag_name, db.session, TagType.custom)
 
                 assert isinstance(tag.name, str), f"Tag '{tag_name}' should be a string"
                 assert not isinstance(tag.name, Markup), (
@@ -180,11 +180,11 @@ class TestTagCreationMySQLCompatibility(SupersetTestCase):
         tag_name = "test-tag-for-retrieval"
 
         # Create tag first
-        original_tag = get_tag(tag_name, db.session, TagType.custom)
+        original_tag = get_or_create_tag(tag_name, db.session, TagType.custom)
         db.session.commit()
 
         # Retrieve the same tag
-        retrieved_tag = get_tag(tag_name, db.session, TagType.custom)
+        retrieved_tag = get_or_create_tag(tag_name, db.session, TagType.custom)
 
         assert retrieved_tag.id == original_tag.id, "Should retrieve the same tag"
         assert isinstance(retrieved_tag.name, str), (
@@ -199,7 +199,7 @@ class TestTagCreationMySQLCompatibility(SupersetTestCase):
         input_name = "  test-tag-with-whitespace  "
         expected_name = "test-tag-with-whitespace"
 
-        tag = get_tag(input_name, db.session, TagType.custom)
+        tag = get_or_create_tag(input_name, db.session, TagType.custom)
 
         assert isinstance(tag.name, str), "Tag name should be a string"
         assert not isinstance(tag.name, Markup), "Tag name should NOT be Markup"
@@ -222,7 +222,7 @@ class TestTagCreationMySQLCompatibility(SupersetTestCase):
 
         for tag_type, tag_name in tag_types:
             try:
-                tag = get_tag(tag_name, db.session, tag_type)
+                tag = get_or_create_tag(tag_name, db.session, tag_type)
 
                 assert isinstance(tag.name, str), (
                     f"Tag name for {tag_type} should be a string"
@@ -246,7 +246,7 @@ class TestTagCreationMySQLCompatibility(SupersetTestCase):
         tag_name = "mysql-compatibility-test"
 
         try:
-            get_tag(tag_name, db.session, TagType.custom)
+            get_or_create_tag(tag_name, db.session, TagType.custom)
 
             # This commit should not raise a ProgrammingError
             db.session.commit()
@@ -271,7 +271,7 @@ class TestTagCreationMySQLCompatibility(SupersetTestCase):
         Markup objects in SQL queries.
         """
         tag_name = "test-tag-type-check"
-        tag = get_tag(tag_name, db.session, TagType.custom)
+        tag = get_or_create_tag(tag_name, db.session, TagType.custom)
 
         # Check that it's exactly a str, not a subclass
         assert tag.name.__class__ is str, (
