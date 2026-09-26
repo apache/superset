@@ -1134,3 +1134,50 @@ def test_identifier_quote_uses_backticks() -> None:
         "end": "`",
         "escape_by_doubling": False,
     }
+
+
+def test_where_latest_partition_filters_null_partitions(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test that get_max_partition_id excludes __NULL__ and __UNPARTITIONED__.
+
+    When a table has NULL values in the partitioning column, BigQuery creates a
+    partition named __NULL__. If no explicit WHERE filter is applied during
+    the initial scan, BigQuery may also report an __UNPARTITIONED__ partition.
+    Both of these special IDs sort lexicographically higher than numeric
+    YYYYMMDD strings and would otherwise become max(partition_id), causing
+    PARSE_DATE('%Y%m%d', '__NULL__') to fail.
+    """
+    from superset.db_engine_specs.bigquery import BigQueryEngineSpec
+
+    database = mock.MagicMock()
+    engine = mock.MagicMock()
+    engine_ctx = mock.MagicMock()
+    engine_ctx.__enter__.return_value = engine
+    mocker.patch.object(BigQueryEngineSpec, "get_engine", return_value=engine_ctx)
+
+    # Mock the partition metadata query: __NULL__ partitions are filtered out
+    cursor_mock = mock.MagicMock()
+    cursor_mock.fetchone.return_value = ("20251231",)
+    raw_conn_mock = mock.MagicMock()
+    raw_conn_mock.cursor.return_value = cursor_mock
+    database.get_raw_connection.return_value.__enter__.return_value = raw_conn_mock
+    database.get_dialect.return_value = BigQueryDialect()
+
+    # Mock time_partitioning to identify the partition column
+    client = mocker.patch.object(BigQueryEngineSpec, "_get_client").return_value
+    bq_table_mock = mock.MagicMock()
+    bq_table_mock.time_partitioning.field = "partition_date"
+    client.get_table.return_value = bq_table_mock
+
+    table = Table("test_table", "test_dataset", "test_project")
+
+    # Ensure the generated SQL filters out __NULL__ and __UNPARTITIONED__
+    max_partition = BigQueryEngineSpec.get_max_partition_id(database, table)
+    assert max_partition == "20251231"
+
+    # The returned SQL should be the result of filtering, not one of the special IDs
+    executed_sql = cursor_mock.execute.call_args[0][0]
+    assert "__NULL__" in executed_sql or "NOT IN" in executed_sql
+    assert "__UNPARTITIONED__" in executed_sql or "NOT IN" in executed_sql
