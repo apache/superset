@@ -244,3 +244,22 @@ def test_column_plus_literal_duration() -> None:
 
     # Should parse as (col + 1 DAYS), not (col + 1) AS DAYS
     assert regenerated == "SELECT col + 1 DAYS FROM t"
+
+
+@pytest.mark.parametrize(
+    ("sql", "expected"),
+    [
+        ("SELECT * FROM t LIMIT 10 OFFSET 2", "SELECT * FROM t LIMIT 10 OFFSET 2"),
+        (
+            "SELECT * FROM (SELECT 1 AS a FROM t) AS x LIMIT 5",
+            "SELECT * FROM (SELECT 1 AS a FROM t) AS x LIMIT 5",
+        ),
+        ("SELECT a % 3 FROM t LIMIT 4", "SELECT a % 3 FROM t LIMIT 4"),
+        ("SELECT a COLLATE x FROM t", "SELECT a COLLATE x FROM t"),
+    ],
+)
+def test_limit_offset_and_other_term_operators(sql: str, expected: str) -> None:
+    """
+    sqlglot passes ``parse_mod`` to ``_parse_term`` while parsing LIMIT/OFFSET.
+    """
+    assert parse_one(sql, dialect=DB2).sql(dialect=DB2) == expected
