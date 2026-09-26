@@ -510,3 +510,250 @@ def test_extended_aggregation_func_median_unsupported() -> None:
     from superset.db_engine_specs.mysql import MySQLEngineSpec as spec  # noqa: N813
 
     assert spec.get_extended_aggregation_func("MEDIAN") is None
+
+
+def test_df_to_sql_adds_primary_key_when_mysql_requires_one() -> None:
+    """
+    apache/superset#37399: uploading a CSV/Excel/columnar file creates the
+    table via ``pandas.DataFrame.to_sql``, which never declares a primary
+    key. A MySQL server configured with ``sql_require_primary_key = ON``
+    rejects such a ``CREATE TABLE`` with error 3750.
+
+    No live MySQL server is available in this environment, so an in-memory
+    SQLite engine stands in for the target database, with a SQLAlchemy event
+    listener reproducing MySQL's documented enforcement: any executed
+    ``CREATE TABLE`` lacking a primary key raises the same error 3750 seen
+    in the issue.
+    """
+    import pandas as pd
+    import sqlalchemy as sa
+    from sqlalchemy import create_engine, event
+    from sqlalchemy.exc import OperationalError
+
+    from superset.db_engine_specs.mysql import MySQLEngineSpec
+    from superset.sql.parse import Table
+
+    engine = create_engine("sqlite://")
+
+    @event.listens_for(engine, "before_cursor_execute")
+    def _enforce_sql_require_primary_key(  # pylint: disable=unused-argument
+        conn: Any,
+        cursor: Any,
+        statement: str,
+        parameters: Any,
+        context: Any,
+        executemany: bool,
+    ) -> None:
+        if (
+            statement.strip().upper().startswith("CREATE TABLE")
+            and "PRIMARY KEY" not in statement.upper()
+        ):
+            raise OperationalError(
+                statement,
+                parameters,
+                Exception(
+                    '(3750, "Unable to create or change a table without a '
+                    "primary key, when the system variable "
+                    "'sql_require_primary_key' is set.\")"
+                ),
+            )
+
+    df = pd.DataFrame({"a": [1, 2, 3], "b": ["x", "y", "z"]})
+
+    with (
+        patch.object(MySQLEngineSpec, "get_engine") as mock_get_engine,
+        patch.object(MySQLEngineSpec, "_requires_primary_key", return_value=True),
+    ):
+        mock_get_engine.return_value.__enter__.return_value = engine
+        mock_get_engine.return_value.__exit__.return_value = False
+
+        MySQLEngineSpec.df_to_sql(
+            database=Mock(),
+            table=Table(table="my_table"),
+            df=df,
+            to_sql_kwargs={"if_exists": "fail", "index": False},
+        )
+
+    with engine.connect() as conn:
+        rows = conn.execute(sa.text("SELECT a, b FROM my_table ORDER BY a")).fetchall()
+    assert [tuple(row) for row in rows] == [(1, "x"), (2, "y"), (3, "z")]
+
+    pk = sa.inspect(engine).get_pk_constraint("my_table")
+    assert pk["constrained_columns"], (
+        "expected the created table to have a primary key so MySQL's "
+        "sql_require_primary_key would accept the CREATE TABLE"
+    )
+
+
+def test_df_to_sql_promotes_pandas_index_to_primary_key() -> None:
+    """
+    The literal scenario reported in apache/superset#37399: the "Dataframe
+    index" upload option is enabled, so pandas writes an extra ``index``
+    column -- the reporter's CREATE TABLE showed this column present but
+    never marked PRIMARY KEY. When MySQL requires one, that pandas index
+    column should be promoted to the primary key instead of adding a
+    redundant second column.
+    """
+    import pandas as pd
+    import sqlalchemy as sa
+    from sqlalchemy import create_engine
+
+    from superset.db_engine_specs.mysql import MySQLEngineSpec
+    from superset.sql.parse import Table
+
+    engine = create_engine("sqlite://")
+    df = pd.DataFrame({"a": [1, 2, 3], "b": ["x", "y", "z"]})
+
+    with (
+        patch.object(MySQLEngineSpec, "get_engine") as mock_get_engine,
+        patch.object(MySQLEngineSpec, "_requires_primary_key", return_value=True),
+    ):
+        mock_get_engine.return_value.__enter__.return_value = engine
+        mock_get_engine.return_value.__exit__.return_value = False
+
+        MySQLEngineSpec.df_to_sql(
+            database=Mock(),
+            table=Table(table="my_table"),
+            df=df,
+            to_sql_kwargs={"if_exists": "fail", "index": True},
+        )
+
+    with engine.connect() as conn:
+        rows = conn.execute(
+            sa.text('SELECT "index", a, b FROM my_table ORDER BY "index"')
+        ).fetchall()
+    assert [tuple(row) for row in rows] == [(0, 1, "x"), (1, 2, "y"), (2, 3, "z")]
+
+    pk = sa.inspect(engine).get_pk_constraint("my_table")
+    assert pk["constrained_columns"] == ["index"], (
+        "expected the pandas index column to become the primary key, not "
+        "an extra synthesized column"
+    )
+
+
+def test_df_to_sql_disables_autoincrement_on_synthesized_primary_key() -> None:
+    """
+    pandas declares the primary key via a table-level PrimaryKeyConstraint
+    (never Column(primary_key=True)), but SQLAlchemy's MySQL DDL compiler
+    still infers AUTO_INCREMENT for a lone integer primary-key column by
+    default. The synthesized key values here are explicit (the promoted
+    index, or the 1..n range for the synthesized "id" column), not
+    DB-generated -- and pandas' default RangeIndex starts at 0, so inserting
+    0 into an AUTO_INCREMENT column asks MySQL to generate a value instead
+    of storing 0 literally, colliding with the row whose key is 1.
+
+    No live MySQL server is available in this environment; compile the
+    exact table ``SQLTable.create()`` would hand to MySQL against
+    SQLAlchemy's MySQL dialect directly and assert AUTO_INCREMENT never
+    appears.
+    """
+    import pandas as pd
+    from sqlalchemy import create_engine
+    from sqlalchemy.dialects import mysql
+    from sqlalchemy.schema import CreateTable
+
+    from superset.db_engine_specs.mysql import MySQLEngineSpec
+    from superset.sql.parse import Table
+
+    engine = create_engine("sqlite://")
+    df = pd.DataFrame({"a": [1, 2, 3], "b": ["x", "y", "z"]})
+    captured_tables: list[Any] = []
+
+    def _capture_instead_of_create(self: Any) -> None:
+        captured_tables.append(self.table)
+
+    with (
+        patch.object(MySQLEngineSpec, "get_engine") as mock_get_engine,
+        patch.object(MySQLEngineSpec, "_requires_primary_key", return_value=True),
+        patch.object(pd.io.sql.SQLTable, "create", _capture_instead_of_create),
+        patch.object(pd.io.sql.SQLTable, "insert"),
+    ):
+        mock_get_engine.return_value.__enter__.return_value = engine
+        mock_get_engine.return_value.__exit__.return_value = False
+
+        MySQLEngineSpec.df_to_sql(
+            database=Mock(),
+            table=Table(table="my_table"),
+            df=df,
+            to_sql_kwargs={"if_exists": "fail", "index": False},
+        )
+
+    assert len(captured_tables) == 1
+    ddl = str(CreateTable(captured_tables[0]).compile(dialect=mysql.dialect()))
+    assert "AUTO_INCREMENT" not in ddl.upper()
+
+
+def test_df_to_sql_constraint_name_within_mysql_identifier_limit() -> None:
+    """
+    MySQL caps identifiers at 64 characters; pandas names the primary key
+    constraint ``f"{table_name}_pk"``, which overflows for a long (but
+    otherwise valid) MySQL table name and would make the CREATE TABLE fail.
+    MySQL renames PRIMARY KEY constraints to "PRIMARY" internally regardless
+    of the name given in DDL, so a short fixed name is safe to force.
+    """
+    import pandas as pd
+    from sqlalchemy import create_engine
+
+    from superset.db_engine_specs.mysql import MySQLEngineSpec
+    from superset.sql.parse import Table
+
+    engine = create_engine("sqlite://")
+    df = pd.DataFrame({"a": [1, 2, 3], "b": ["x", "y", "z"]})
+    long_table_name = "t" * 64  # valid MySQL length; +"_pk" would overflow
+    captured_tables: list[Any] = []
+
+    def _capture_instead_of_create(self: Any) -> None:
+        captured_tables.append(self.table)
+
+    with (
+        patch.object(MySQLEngineSpec, "get_engine") as mock_get_engine,
+        patch.object(MySQLEngineSpec, "_requires_primary_key", return_value=True),
+        patch.object(pd.io.sql.SQLTable, "create", _capture_instead_of_create),
+        patch.object(pd.io.sql.SQLTable, "insert"),
+    ):
+        mock_get_engine.return_value.__enter__.return_value = engine
+        mock_get_engine.return_value.__exit__.return_value = False
+
+        MySQLEngineSpec.df_to_sql(
+            database=Mock(),
+            table=Table(table=long_table_name),
+            df=df,
+            to_sql_kwargs={"if_exists": "fail", "index": False},
+        )
+
+    assert len(captured_tables) == 1
+    assert len(captured_tables[0].primary_key.name) <= 64
+
+
+def test_df_to_sql_when_server_does_not_expose_sql_require_primary_key() -> None:
+    """
+    ``sql_require_primary_key`` only exists in MySQL 8.0.13+. Older servers and
+    the MySQL-compatible engines that subclass this spec (MariaDB, Doris,
+    StarRocks, OceanBase) error out on the probe query, and they do not enforce
+    the requirement -- the upload must still go through the plain
+    ``pandas.DataFrame.to_sql`` path rather than propagating that error.
+    """
+    import pandas as pd
+    import sqlalchemy as sa
+    from sqlalchemy import create_engine
+
+    from superset.db_engine_specs.mariadb import MariaDBEngineSpec
+    from superset.sql.parse import Table
+
+    engine = create_engine("sqlite://")
+    df = pd.DataFrame({"a": [1, 2, 3]})
+
+    with patch.object(MariaDBEngineSpec, "get_engine") as mock_get_engine:
+        mock_get_engine.return_value.__enter__.return_value = engine
+        mock_get_engine.return_value.__exit__.return_value = False
+
+        MariaDBEngineSpec.df_to_sql(
+            database=Mock(),
+            table=Table(table="my_table"),
+            df=df,
+            to_sql_kwargs={"if_exists": "fail", "index": False},
+        )
+
+    with engine.connect() as conn:
+        rows = conn.execute(sa.text("SELECT a FROM my_table ORDER BY a")).fetchall()
+    assert [row[0] for row in rows] == [1, 2, 3]
