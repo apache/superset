@@ -16,11 +16,42 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { FeatureFlag, isFeatureEnabled } from '@superset-ui/core';
 import type {
   PartitionMappingColumn,
   PartitionMappingDatasource,
   PartitionRowState,
 } from './types';
+
+/**
+ * Whether the dataset editor should offer partition filter mapping at all.
+ *
+ * The single source of truth for the gate, so every place that shows partition
+ * mapping UI stays in lockstep: it needs the feature flag on, a datasource to
+ * read, and an engine that advertises support (`supports_partition_filter_mapping`,
+ * true only for partition-directory engines like Hive/Impala/Spark). This lived
+ * inline at one call site and was missed at another, which showed the section on
+ * engines that do not support it -- hence one predicate both sites share.
+ */
+export function partitionFilterMappingEnabled(
+  datasource: PartitionMappingDatasource | undefined,
+): boolean {
+  return (
+    isFeatureEnabled(FeatureFlag.PartitionFilterMapping) &&
+    Boolean(datasource) &&
+    Boolean(datasource?.supports_partition_filter_mapping)
+  );
+}
+
+/**
+ * The bare `:value` placeholder, i.e. the identity transform.
+ *
+ * It mirrors the filter bound unchanged, so it parses on every engine and is
+ * provably order-preserving -- editing nothing cannot make it non-monotonic.
+ * That is what lets it be both the universal pre-fill and the one transform the
+ * UI may auto-declare monotonic without asking.
+ */
+export const IDENTITY_TRANSFORM = ':value';
 
 /**
  * The column whose filters are mirrored.
@@ -124,18 +155,24 @@ export function partitionRowState(
 /**
  * The transform to pre-fill when a column becomes the mapped one.
  *
- * Only temporal columns get one, and only when the engine supplies it:
- * `unix_timestamp(:value)` is Hive-family syntax and would not parse on
- * Postgres or BigQuery, so a wrong default is worse than none.
+ * A temporal column on an engine that advertises its own syntax gets that:
+ * `unix_timestamp(:value)` is Hive-family and would not parse on Postgres or
+ * BigQuery, so the engine default only applies where the engine supplies it.
+ * Every other case -- a non-temporal column, or a temporal one on an engine
+ * with no default -- falls back to the bare `:value` identity transform rather
+ * than an empty field. `:value` is a valid, working starting point (the mapped
+ * and partition columns often share a shape, so mirroring the bound unchanged
+ * is exactly right) and it is far easier for the owner to edit than to write
+ * from nothing.
  */
 export function defaultTransformFor(
   datasource: PartitionMappingDatasource,
   column: PartitionMappingColumn | undefined,
 ): string {
-  if (!column?.is_dttm) {
-    return '';
+  if (column?.is_dttm && datasource.partition_value_transform_default) {
+    return datasource.partition_value_transform_default;
   }
-  return datasource.partition_value_transform_default || '';
+  return IDENTITY_TRANSFORM;
 }
 
 /**
@@ -251,11 +288,18 @@ export function applyMappingMove<T extends PartitionMappingColumn>(
   nextTransform: string,
 ): T[] {
   const next = columns.find(column => column.column_name === nextColumnName);
+  const nextValue = next?.partition_value_transform || nextTransform || null;
   return withMappingOn(
     columns,
     nextColumnName,
-    next?.partition_value_transform || nextTransform || null,
-    Boolean(next?.partition_transform_is_monotonic),
+    nextValue,
+    // A fresh pre-fill of the identity `:value` may declare monotonicity for
+    // the owner, because that placeholder provably preserves ordering. Any
+    // other pre-fill (an engine default) is the owner's to declare, so leave
+    // whatever the column already carried.
+    nextValue === IDENTITY_TRANSFORM
+      ? true
+      : Boolean(next?.partition_transform_is_monotonic),
   );
 }
 
@@ -306,25 +350,6 @@ export function nextMappedColumnOverride(
     return null;
   }
   return previousOverride ?? null;
-}
-
-/**
- * Columns updated for a newly designated partition column.
- *
- * The partition key is technical, so it defaults out of Explore's dimension and
- * filter pickers. Only the defaults are set -- an owner who wants the raw
- * column exposed can toggle it back, and clearing the partition column later
- * does not undo their choice.
- */
-export function applyPartitionColumnDefaults<T extends PartitionMappingColumn>(
-  columns: T[],
-  partitionColumnName: string,
-): T[] {
-  return columns.map(column =>
-    column.column_name === partitionColumnName
-      ? { ...column, filterable: false, groupby: false }
-      : column,
-  );
 }
 
 /**

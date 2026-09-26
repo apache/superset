@@ -31,6 +31,7 @@ import {
 } from '@superset-ui/core/components';
 import { usePartitionMappingPreview } from './usePartitionMappingPreview';
 import {
+  IDENTITY_TRANSFORM,
   partitionRowState,
   previewOperatorFor,
   sampleValuesFor,
@@ -77,6 +78,13 @@ export default function PartitionMappingSection({
   const isMonotonic = Boolean(item?.partition_transform_is_monotonic);
   const transform = value ?? '';
   const isTemporal = Boolean(item?.is_dttm);
+  // Clearing the override does not switch mapping off when a default datetime
+  // column exists: `resolveMappedColumn` falls back to `main_dttm_col`, so the
+  // mapping moves there. Say so, rather than calling it "Remove mapping". On the
+  // default column's own row there is nothing to move back to.
+  const returnsToDefault = Boolean(
+    datasource.main_dttm_col && datasource.main_dttm_col !== columnName,
+  );
 
   const { preview, loading } = usePartitionMappingPreview({
     datasetId: datasource.id,
@@ -183,7 +191,16 @@ export default function PartitionMappingSection({
         </Flex>
         <Input
           value={transform}
-          onChange={event => onChange?.(event.target.value || null)}
+          onChange={event => {
+            const next = event.target.value || null;
+            onChange?.(next);
+            // Monotonicity is a property of the expression, so editing the
+            // transform re-opens the question. The identity `:value` provably
+            // preserves ordering and stays auto-declared; anything else is the
+            // owner's to declare, and editing away from `:value` must not leave
+            // a stale auto-check behind.
+            onMonotonicChange(columnName, next === IDENTITY_TRANSFORM);
+          }}
           placeholder={t('unix_timestamp(:value)')}
           aria-label={t('Value transform')}
           data-test="partition-value-transform"
@@ -277,15 +294,30 @@ export default function PartitionMappingSection({
         />
       )}
 
-      <Flex justify="flex-end">
+      <Flex vertical align="flex-end" gap={theme.sizeUnit}>
         <Button
           buttonStyle="link"
           onClick={onRemoveMapping}
           icon={<Icons.DeleteOutlined iconColor={theme.colorError} />}
           data-test="remove-partition-mapping"
         >
-          <Typography.Text type="danger">{t('Remove mapping')}</Typography.Text>
+          <Typography.Text type="danger">
+            {returnsToDefault
+              ? t('Reset to default datetime column')
+              : t('Remove mapping')}
+          </Typography.Text>
         </Button>
+        {returnsToDefault && (
+          <Typography.Text
+            type="secondary"
+            data-test="remove-partition-mapping-helper"
+          >
+            {t(
+              'The mapping returns to the default datetime column (%(column)s).',
+              { column: datasource.main_dttm_col },
+            )}
+          </Typography.Text>
+        )}
       </Flex>
     </Flex>
   );

@@ -18,7 +18,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Apache Superset 0.22.1\n"
 "Report-Msgid-Bugs-To: zhouyao94@qq.com\n"
-"POT-Creation-Date: 2026-09-24 02:07+0000\n"
+"POT-Creation-Date: 2026-09-25 17:45+0000\n"
 "PO-Revision-Date: 2019-01-04 22:19+0800\n"
 "Last-Translator: cdmikechen\n"
 "Language: zh\n"
@@ -4262,9 +4262,7 @@ msgstr "用作数据框索引的列。如果未指定，则使用索引标签。
 msgid "Column type"
 msgstr "列数据类型"
 
-msgid ""
-"Column used for partition pruning on this table. Selecting one hides it "
-"from Explore's dimension and filter pickers by default."
+msgid "Column used for partition pruning on this table."
 msgstr ""
 
 msgid "Columnar upload"
@@ -12804,6 +12802,9 @@ msgstr "重置密码"
 msgid "Reset state"
 msgstr "状态重置"
 
+msgid "Reset to default datetime column"
+msgstr ""
+
 msgid "Reset to default folders?"
 msgstr "重置为默认文件夹？"
 
@@ -16155,6 +16156,10 @@ msgstr ""
 # uk]
 msgid "The lower limit of the threshold range of the Isoband"
 msgstr "Isoband 阈值范围的下限"
+
+#, python-format
+msgid "The mapping returns to the default datetime column (%(column)s)."
+msgstr ""
 
 msgid ""
 "The maximum number of subdivisions of each group; lower values are pruned"

@@ -737,6 +737,17 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     # editor offers no pre-fill and the owner writes the transform themselves.
     partition_value_transform_default: str | None = None
 
+    # Whether the dataset editor should offer partition filter mapping at all.
+    # This is a structural property of the engine, not a pre-fill: mapping a
+    # filter onto a physical partition column only prunes work on engines whose
+    # tables are laid out as partition directories (Hive-family). Elsewhere the
+    # concept either does not exist (Postgres) or is handled invisibly by the
+    # engine (Snowflake micro-partitions, BigQuery/Redshift internals), so the
+    # dropdown would be clutter that maps to nothing. Default `False` so an
+    # engine only advertises the feature by opting in, rather than inheriting it
+    # and having to remember to opt out.
+    supports_partition_filter_mapping: bool = False
+
     # Does the query id related to the connection?
     # The default value is True, which means that the query id is determined when
     # the connection is created.

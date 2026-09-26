@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-24 02:07+0000\n"
+"POT-Creation-Date: 2026-09-25 17:45+0000\n"
 "PO-Revision-Date: 2016-05-02 08:49-0700\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: en\n"
@@ -3823,9 +3823,7 @@ msgstr ""
 msgid "Column type"
 msgstr ""
 
-msgid ""
-"Column used for partition pruning on this table. Selecting one hides it "
-"from Explore's dimension and filter pickers by default."
+msgid "Column used for partition pruning on this table."
 msgstr ""
 
 msgid "Columnar upload"
@@ -11439,6 +11437,9 @@ msgstr ""
 msgid "Reset state"
 msgstr ""
 
+msgid "Reset to default datetime column"
+msgstr ""
+
 msgid "Reset to default folders?"
 msgstr ""
 
@@ -14401,6 +14402,10 @@ msgid "The link was generated but could not be copied: %s"
 msgstr ""
 
 msgid "The lower limit of the threshold range of the Isoband"
+msgstr ""
+
+#, python-format
+msgid "The mapping returns to the default datetime column (%(column)s)."
 msgstr ""
 
 msgid ""

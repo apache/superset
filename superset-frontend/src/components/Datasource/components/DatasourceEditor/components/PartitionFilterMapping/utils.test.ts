@@ -19,7 +19,6 @@
 import {
   applyImplicitMappingMove,
   applyMappingMove,
-  applyPartitionColumnDefaults,
   clearMappingTransforms,
   defaultTransformFor,
   mappedColumnIsImplicit,
@@ -375,21 +374,36 @@ test('clearing the default datetime column clears the mapping transform with it'
   });
 });
 
-test('designating a partition column takes it out of the Explore pickers', () => {
-  const updated = applyPartitionColumnDefaults(COLUMNS, 'dt_epoch');
+test('pre-filling the identity :value auto-declares the transform monotonic', () => {
+  // `:value` provably preserves ordering, so a fresh pre-fill of it may check
+  // the box for the owner rather than making them assert what cannot be false.
+  const columns: PartitionMappingColumn[] = [{ column_name: 'country' }];
 
-  expect(updated.find(c => c.column_name === 'dt_epoch')).toMatchObject({
-    filterable: false,
-    groupby: false,
-  });
-  // Everything else is left alone.
-  expect(updated.find(c => c.column_name === 'country')).toMatchObject({
-    filterable: true,
-    groupby: true,
+  const moved = applyMappingMove(columns, 'country', ':value');
+
+  expect(moved[0]).toMatchObject({
+    partition_value_transform: ':value',
+    partition_transform_is_monotonic: true,
   });
 });
 
-test('only temporal columns get a pre-filled transform', () => {
+test('pre-filling an engine default leaves monotonicity for the owner', () => {
+  // `unix_timestamp(:value)` is not provably order-preserving, so it is not
+  // auto-declared the way the bare identity is.
+  const columns: PartitionMappingColumn[] = [
+    { column_name: 'event_time', is_dttm: true },
+  ];
+
+  const moved = applyMappingMove(
+    columns,
+    'event_time',
+    'unix_timestamp(:value)',
+  );
+
+  expect(moved[0].partition_transform_is_monotonic).toBeFalsy();
+});
+
+test('a temporal column on an engine with a default gets the engine syntax', () => {
   const datasource = {
     partition_value_transform_default: 'unix_timestamp(:value)',
   };
@@ -397,13 +411,19 @@ test('only temporal columns get a pre-filled transform', () => {
   expect(defaultTransformFor(datasource, COLUMNS[0])).toBe(
     'unix_timestamp(:value)',
   );
-  expect(defaultTransformFor(datasource, COLUMNS[2])).toBe('');
 });
 
-test('an engine with no default offers no pre-fill', () => {
-  // `unix_timestamp(:value)` would not parse on Postgres, and a wrong default
-  // is worse than none.
-  expect(defaultTransformFor({}, COLUMNS[0])).toBe('');
+test('everything else falls back to the bare :value identity transform', () => {
+  const datasource = {
+    partition_value_transform_default: 'unix_timestamp(:value)',
+  };
+
+  // A non-temporal column: the engine's temporal default does not apply, but
+  // the field still gets a working starting point instead of being left blank.
+  expect(defaultTransformFor(datasource, COLUMNS[2])).toBe(':value');
+  // A temporal column on an engine with no default (e.g. Postgres/Presto),
+  // where `unix_timestamp(:value)` would not parse.
+  expect(defaultTransformFor({}, COLUMNS[0])).toBe(':value');
 });
 
 test('a range is only previewed when the transform preserves ordering', () => {

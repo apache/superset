@@ -107,10 +107,10 @@ import {
 import {
   applyImplicitMappingMove,
   applyMappingMove,
-  applyPartitionColumnDefaults,
   clearMappingTransforms,
   defaultTransformFor,
   nextMappedColumnOverride,
+  partitionFilterMappingEnabled,
 } from './components/PartitionFilterMapping/utils';
 import {
   DEFAULT_COLUMNS_FOLDER_UUID,
@@ -220,6 +220,9 @@ interface DatasourceObject {
   partition_mapped_column?: string | null;
   // Engine-supplied pre-fill for a temporal column's value transform. Read-only.
   partition_value_transform_default?: string | null;
+  // Whether the engine's tables are partition-directory laid out. Gates whether
+  // the partition filter mapping UI is offered at all. Engine-supplied, read-only.
+  supports_partition_filter_mapping?: boolean;
   template_params?: string;
   spatials?: SpatialConfig[];
   all_cols?: string[];
@@ -470,9 +473,11 @@ const ColumnButtonWrapper = styled.div`
 const StyledLabelWrapper = styled.div`
   display: flex;
   align-items: center;
-  span {
-    margin-right: ${({ theme }) => theme.sizeUnit}px;
-  }
+  /* Space the row's items (certified badge, column-name control, PARTITION tag)
+     with a flex gap rather than a span margin: the name is rendered via
+     EditableTitle/TextControl, not a plain span, so the old span-only rule left
+     the tag touching the name. */
+  gap: ${({ theme }) => theme.sizeUnit * 2}px;
 `;
 
 // The partition column is a technical key rather than something an analyst
@@ -617,8 +622,7 @@ function ColumnCollectionTable({
   onMonotonicChange,
   expandedColumnName,
 }: ColumnCollectionTableProps): JSX.Element {
-  const partitionMappingEnabled =
-    isFeatureEnabled(FeatureFlag.PartitionFilterMapping) && Boolean(datasource);
+  const partitionMappingEnabled = partitionFilterMappingEnabled(datasource);
   const partitionColumn = partitionMappingEnabled
     ? datasource?.partition_column
     : null;
@@ -1315,11 +1319,11 @@ function DatasourceEditor({
           columnName,
         ),
       }));
-      if (columnName) {
-        setDatabaseColumns(prev =>
-          applyPartitionColumnDefaults(prev, columnName),
-        );
-      }
+      // Designating a partition column must not touch the column's own
+      // `filterable`/`groupby` flags: hiding it from Explore is a per-column
+      // decision the owner makes, not a side effect of the mapping, and
+      // toggling it here would silently change behavior for datasets that
+      // already expose their partition column.
     },
     [],
   );
@@ -1360,9 +1364,11 @@ function DatasourceEditor({
     // calculated column, so both lists are cleared.
     setDatabaseColumns(prev => clearMappingTransforms(prev));
     setCalculatedColumns(prev => clearMappingTransforms(prev));
-    // The partition column stays designated; only the mapping goes away, which
-    // is the 1g state -- hidden from Explore, nothing mirrored onto it, and the
-    // panel's warning saying so.
+    // The partition column stays designated and the override is cleared. A null
+    // `partition_mapped_column` means "follow `main_dttm_col`", so when the
+    // dataset has a default datetime column the mapping returns to it rather
+    // than going away. Only without one does this reach the 1g state -- no
+    // mapped column, nothing mirrored onto the partition column.
     setDatasource(prev => ({ ...prev, partition_mapped_column: null }));
   }, []);
 
@@ -1924,7 +1930,7 @@ function DatasourceEditor({
               data-test="currency-code-column-select"
             />
           </Flex>
-          {isFeatureEnabled(FeatureFlag.PartitionFilterMapping) && (
+          {partitionFilterMappingEnabled(datasource) && (
             <PartitionColumnFields
               datasource={datasource}
               columns={databaseColumns}

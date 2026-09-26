@@ -85,6 +85,9 @@ test('removing the mapping does not leave the default datetime column mirroring'
   const props = createProps();
   props.datasource.main_dttm_col = 'ds';
   props.datasource.partition_column = 'num';
+  // The editor offers partition mapping only on an engine that advertises it,
+  // so the fixture has to say the engine does.
+  props.datasource.supports_partition_filter_mapping = true;
   props.datasource.partition_mapped_column = 'state';
   const seeded = props.datasource.columns as EditorColumn[];
   columnNamed(seeded, 'ds')!.partition_value_transform =
@@ -106,7 +109,10 @@ test('removing the mapping does not leave the default datetime column mirroring'
     'state',
   );
   await userEvent.click((await screen.findAllByLabelText(/expand row/i))[0]);
-  await userEvent.click(await screen.findByText('Remove mapping'));
+  // By its test id, not its label: the mapping here is an explicit override on
+  // a dataset that has a default datetime column, so the action reads "Reset to
+  // default datetime column". Same handler either way.
+  await userEvent.click(await screen.findByTestId('remove-partition-mapping'));
 
   // Nothing mirrors any more, and the panel says so rather than quietly
   // re-pointing at `ds`.
@@ -137,6 +143,7 @@ test('re-pointing the default datetime column leaves the value transform behind'
   const props = createProps();
   props.datasource.main_dttm_col = 'ds';
   props.datasource.partition_column = 'num';
+  props.datasource.supports_partition_filter_mapping = true;
   props.datasource.partition_mapped_column = null;
   const seeded = props.datasource.columns as EditorColumn[];
   columnNamed(seeded, 'ds')!.partition_value_transform =
@@ -188,6 +195,7 @@ test('the mapping will not follow the default datetime column onto a calculated 
   const props = createProps();
   props.datasource.main_dttm_col = 'ds';
   props.datasource.partition_column = 'num';
+  props.datasource.supports_partition_filter_mapping = true;
   props.datasource.partition_mapped_column = null;
   const seeded = props.datasource.columns as EditorColumn[];
   columnNamed(seeded, 'ds')!.partition_value_transform =

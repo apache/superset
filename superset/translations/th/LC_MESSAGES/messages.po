@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-24 02:07+0000\n"
+"POT-Creation-Date: 2026-09-25 17:45+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: th\n"
@@ -6720,9 +6720,7 @@ msgstr "คอลัมน์ที่ใช้เป็นดัชนีขอ
 msgid "Column type"
 msgstr "ประเภทคอลัมน์"
 
-msgid ""
-"Column used for partition pruning on this table. Selecting one hides it "
-"from Explore's dimension and filter pickers by default."
+msgid "Column used for partition pruning on this table."
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, es,
@@ -20601,6 +20599,9 @@ msgstr "รีเซ็ตรหัสผ่าน"
 msgid "Reset state"
 msgstr "รีเซ็ตสถานะ"
 
+msgid "Reset to default datetime column"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: lv, ru, uk]
 #, fuzzy
 msgid "Reset to default folders?"
@@ -26050,6 +26051,10 @@ msgstr ""
 #, fuzzy
 msgid "The lower limit of the threshold range of the Isoband"
 msgstr "ขีดจำกัดล่างของช่วงเกณฑ์ของ Isoband"
+
+#, python-format
+msgid "The mapping returns to the default datetime column (%(column)s)."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]

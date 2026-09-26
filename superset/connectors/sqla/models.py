@@ -1970,6 +1970,19 @@ class SqlaTable(
         return self.db_engine_spec.partition_value_transform_default
 
     @property
+    def supports_partition_filter_mapping(self) -> bool:
+        """
+        Whether the editor should offer partition filter mapping for this dataset.
+
+        A structural property of the engine, not of the dataset: mirroring a
+        filter onto a partition column only prunes work on engines whose tables
+        are laid out as partition directories (Hive-family). The editor reads it
+        off the dataset payload so the dropdown never appears on an engine where
+        the concept does not exist.
+        """
+        return self.db_engine_spec.supports_partition_filter_mapping
+
+    @property
     def partition_filter_mapping_summary(self) -> dict[str, Any] | None:
         """
         Self-contained summary of the mapping for the Explore indicator.
