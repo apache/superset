@@ -127,7 +127,6 @@ from superset.utils.screenshots import (
     ChartScreenshot,
     DEFAULT_CHART_WINDOW_SIZE,
     ScreenshotCachePayload,
-    StatusValues,
 )
 from superset.utils.urls import get_url_path
 from superset.versioning.api_helpers import (
@@ -1205,9 +1204,24 @@ class ChartRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
                 task_status=cache_payload.get_status(),
             )
 
-        if cache_payload.should_trigger_task(force, expected_scope=f"chart:{chart.id}"):
+        if cache_payload.should_trigger_task(
+            force,
+            expected_scope=f"chart:{chart.id}",
+            check_updated_staleness=screenshot_obj.supports_updated_staleness,
+        ):
             logger.info("Triggering screenshot ASYNC")
-            screenshot_obj.cache.set(cache_key, ScreenshotCachePayload().to_dict())
+            # Do not pre-write the cache entry here (mirroring the dashboard
+            # on-demand endpoint). The worker's compute_and_cache re-reads this
+            # same cache key and re-runs should_trigger_task(force=..., ...); a
+            # force-less request (`force` is None when omitted) that pre-wrote a
+            # fresh COMPUTING entry would make that re-check see a non-stale
+            # COMPUTING entry, skip the render, and the screenshot would never be
+            # computed -- churning COMPUTING every THUMBNAIL_COMPUTING_CACHE_TTL
+            # forever. Leaving the entry untouched also preserves any retained
+            # last-good image: the read path keeps serving it while the refresh
+            # runs, and the worker flips the entry to COMPUTING without
+            # discarding the image (and back to ERROR, still retaining it, if the
+            # render fails again).
             cache_chart_thumbnail.delay(
                 current_user=get_current_user(),
                 chart_id=chart.id,
@@ -1273,16 +1287,23 @@ class ChartRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
             # serve its image under a different, merely-accessible `pk`.
             if cache_payload.get_scope() != f"chart:{chart.id}":
                 return self.response_404()
-            if cache_payload.status == StatusValues.UPDATED:
-                try:
-                    image = cache_payload.get_image()
-                except ScreenshotImageNotAvailableException:
-                    return self.response_404()
-                return Response(
-                    FileWrapper(image),
-                    mimetype="image/png",
-                    direct_passthrough=True,
-                )
+            # Serve whenever a valid image is present instead of gating on
+            # status == UPDATED. A failed forced refresh leaves the entry in an
+            # ERROR/COMPUTING backoff while still carrying the retained last-good
+            # image; requiring UPDATED here would 404 that image for up to a day.
+            # get_from_cache_key validates whatever image is present regardless of
+            # status (see ScreenshotCachePayload.get_invalid_image_reason), so a
+            # corrupt/blank retained image is rejected as a cache miss and only
+            # genuinely valid bytes reach this point.
+            try:
+                image = cache_payload.get_image()
+            except ScreenshotImageNotAvailableException:
+                return self.response_404()
+            return Response(
+                FileWrapper(image),
+                mimetype="image/png",
+                direct_passthrough=True,
+            )
         return self.response_404()
 
     @expose("/<pk>/thumbnail/<digest>/", methods=("GET",))
@@ -1352,6 +1373,8 @@ class ChartRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
             screenshot_obj.get_from_cache_key(cache_key) or ScreenshotCachePayload()
         )
 
+        # No check_updated_staleness here on purpose: this high-traffic card-list
+        # thumbnail path must never opt into updated-staleness recompute.
         if cache_payload.should_trigger_task():
             self.incr_stats("async", self.thumbnail.__name__)
             logger.info(

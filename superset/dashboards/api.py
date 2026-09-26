@@ -2281,6 +2281,10 @@ class DashboardRestApi(
                 force,
                 expected_scope=cache_scope,
                 force_retry_after_seconds=SCREENSHOT_API_FORCE_RETRY_SECONDS,
+                # Only DashboardScreenshot opts in: a stale-but-valid UPDATED
+                # generation older than THUMBNAIL_UPDATED_CACHE_TTL enqueues a
+                # refresh while the old generation stays servable.
+                check_updated_staleness=screenshot_obj.supports_updated_staleness,
             )
 
         try:
@@ -2694,6 +2698,8 @@ class DashboardRestApi(
             "DashboardRestApi.thumbnail", pk=dashboard.id, digest=cache_key
         )
 
+        # No check_updated_staleness here on purpose: this high-traffic card-list
+        # thumbnail path must never opt into updated-staleness recompute.
         if cache_payload.should_trigger_task():
             self.incr_stats("async", self.thumbnail.__name__)
             logger.info(
