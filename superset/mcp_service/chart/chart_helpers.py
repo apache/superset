@@ -678,15 +678,22 @@ def extract_x_axis_col(form_data: dict[str, Any]) -> str | None:
 
 def _resolve_x_axis_sort_target(sort_col: str, metrics: list[Any]) -> Any:
     """Resolve x_axis_sort string against metrics to preserve metric dict/label."""
+    sort_lower = sort_col.lower()
     for m in metrics:
-        if isinstance(m, str) and m == sort_col:
+        if isinstance(m, str) and m.lower() == sort_lower:
             return m
         if isinstance(m, dict):
             col_info = m.get("column")
             col_name = (
                 col_info.get("column_name") if isinstance(col_info, dict) else None
             )
-            if m.get("label") == sort_col or col_name == sort_col:
+            label = m.get("label")
+            sql_expr = m.get("sqlExpression")
+            if (
+                (label and label.lower() == sort_lower)
+                or (col_name and col_name.lower() == sort_lower)
+                or (sql_expr and sql_expr.lower() == sort_lower)
+            ):
                 return m
     return sort_col
 
