@@ -255,7 +255,15 @@ class GSheetsEngineSpec(ShillelaghEngineSpec):
                 url = url.update_query_dict({"subject": user.email})
 
         if user_token:
-            url = url.update_query_dict({"access_token": user_token})
+            # Pass the token through ``connect_args`` rather than the URL.
+            # ``update_params_from_encrypted_extra`` stores the catalog (and any
+            # service account) in ``connect_args["adapter_kwargs"]``, and SQLAlchemy
+            # merges ``connect_args`` over the dialect's own arguments shallowly,
+            # so a token in the URL would be dropped and the query would run
+            # without credentials.
+            connect_args = engine_kwargs.setdefault("connect_args", {})
+            adapter_kwargs = connect_args.setdefault("adapter_kwargs", {})
+            adapter_kwargs.setdefault("gsheetsapi", {})["access_token"] = user_token
 
         return url, engine_kwargs
 
