@@ -87,6 +87,31 @@ def _load_dataset_for_samples(
     return dataset, None
 
 
+def _repoints_table(
+    datasource: DatasourceModel,
+    requested_sql: str | None,
+    requested_table: Table,
+) -> bool:
+    """
+    Would the request point ``datasource`` at a different physical table?
+
+    A virtual dataset's ``table_name`` is a label rather than a pointer, as in
+    ``UpdateDatasetCommand._validate_dataset_source``, so dropping the SQL binds
+    that label to a real table: a repoint even when the label is unchanged.
+    """
+    if not isinstance(datasource, SqlaTable) or requested_sql:
+        return False
+    if datasource.is_virtual:
+        return True
+    # Compared field by field because ``Table.__eq__`` compares the ``str``
+    # rendering, which drops empty parts and so conflates distinct targets.
+    return (requested_table.table, requested_table.schema, requested_table.catalog) != (
+        datasource.table_name,
+        datasource.schema or None,
+        datasource.catalog or None,
+    )
+
+
 class Datasource(BaseSupersetView):
     """Datasource-related views"""
 
@@ -121,26 +146,36 @@ class Datasource(BaseSupersetView):
         except SupersetSecurityException as ex:
             raise DatasetForbiddenError() from ex
 
-        if database_id != orm_datasource.database_id:
-            new_database = DatasetDAO.get_database_by_id(database_id)
-            if new_database is None:
+        database_changed = database_id != orm_datasource.database_id
+        # The table this request lands on: an omitted key clears the field.
+        requested_table = Table(
+            datasource_dict.get("table_name"),
+            datasource_dict.get("schema") or None,
+            datasource_dict.get("catalog") or None,
+        )
+
+        # Editorship of the dataset alone is not sufficient to repoint it. This
+        # ports ``UpdateDatasetCommand``'s table check only, not the other
+        # source validation the command also runs.
+        if database_changed or _repoints_table(
+            orm_datasource, datasource_dict.get("sql"), requested_table
+        ):
+            target_database = (
+                DatasetDAO.get_database_by_id(database_id)
+                if database_changed
+                else orm_datasource.database
+            )
+            if target_database is None:
                 return json_error_response(_("Database not found."), status=422)
             try:
                 security_manager.raise_for_access(
-                    database=new_database,
-                    # Check access against the table/schema/catalog the
-                    # request is repointing to, not the dataset's current
-                    # values -- update_from_object (below) applies whatever
-                    # table_name/schema/catalog the request supplies.
-                    table=Table(
-                        datasource_dict.get("table_name", orm_datasource.table_name),
-                        datasource_dict.get("schema", orm_datasource.schema),
-                        datasource_dict.get("catalog", orm_datasource.catalog),
-                    ),
+                    database=target_database,
+                    table=requested_table,
                 )
             except SupersetSecurityException as ex:
                 raise DatasetForbiddenError() from ex
-            orm_datasource.database_id = database_id
+
+        orm_datasource.database_id = database_id
 
         duplicates = [
             name

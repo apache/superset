@@ -806,7 +806,9 @@ class BaseDatasource(
         match it. Since the fields are different for the different
         connectors, the implementation uses ``update_from_object_fields``
         which can be defined for each connector and
-        defines which fields should be synced"""
+        defines which fields should be synced. Note that this replaces rather
+        than merges: a key omitted from ``obj`` clears the field rather than
+        leaving it untouched."""
         for attr in self.update_from_object_fields:
             setattr(self, attr, obj.get(attr))
 
