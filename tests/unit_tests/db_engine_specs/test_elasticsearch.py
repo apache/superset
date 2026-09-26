@@ -450,7 +450,7 @@ def test_opendistro_fetch_data_with_cursor_uses_opendistro_endpoints() -> None:
 
     database = _build_fake_database(
         [
-            {"columns": [{"name": "a"}], "rows": [[42]], "cursor": "OD-1"},
+            {"schema": [{"name": "a"}], "datarows": [[42]], "cursor": "OD-1"},
             {},  # close
         ]
     )
@@ -468,3 +468,62 @@ def test_opendistro_fetch_data_with_cursor_uses_opendistro_endpoints() -> None:
     calls = database._transport.perform_request.call_args_list
     assert calls[0][0][1] == "/_opendistro/_sql"
     assert calls[1][0][1] == "/_opendistro/_sql/close"
+
+
+def test_opendistro_fetch_data_with_cursor_reads_jdbc_format_pages() -> None:
+    """
+    The OpenSearch SQL plugin answers in its JDBC format: ``schema`` and
+    ``datarows`` on the first page, ``datarows`` on follow-up pages. Reading
+    Elasticsearch's ``columns``/``rows`` keys returned an empty page.
+    """
+    from superset.db_engine_specs.elasticsearch import OpenDistroEngineSpec
+
+    database = _build_fake_database(
+        [
+            {
+                "schema": [{"name": "a"}, {"name": "COUNT(*)", "alias": "c"}],
+                "datarows": [[0, 1]],
+                "cursor": "OD-1",
+            },
+            {"datarows": [[1, 2]], "cursor": "OD-2"},
+            {},  # close
+        ]
+    )
+
+    rows, cols = OpenDistroEngineSpec.fetch_data_with_cursor(
+        database=database,
+        sql="SELECT a, COUNT(*) AS c FROM idx GROUP BY a",
+        page_index=1,
+        page_size=1,
+    )
+
+    assert cols == ["a", "c"]
+    assert rows == [[1, 2]]
+
+
+def test_opendistro_fetch_data_with_cursor_sends_no_extra_content_type() -> None:
+    """
+    opensearch-py sets Content-Type itself; a second one makes OpenSearch
+    reject the request with "only one Content-Type header should be provided".
+    """
+    from superset.db_engine_specs.elasticsearch import OpenDistroEngineSpec
+
+    database = _build_fake_database(
+        [
+            {"schema": [{"name": "a"}], "datarows": [[0]], "cursor": "OD-1"},
+            {"datarows": [[1]], "cursor": "OD-2"},
+            {},  # close
+        ]
+    )
+
+    OpenDistroEngineSpec.fetch_data_with_cursor(
+        database=database,
+        sql="SELECT a FROM idx",
+        page_index=1,
+        page_size=1,
+    )
+
+    calls = database._transport.perform_request.call_args_list
+    assert len(calls) == 3
+    for call in calls:
+        assert "headers" not in call.kwargs
