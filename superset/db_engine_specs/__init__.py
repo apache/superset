@@ -169,10 +169,16 @@ def get_available_engine_specs() -> dict[type[BaseEngineSpec], set[str]]:  # noq
     # process-global `compiler.OPERATORS` mapping in place on import instead
     # of subclassing it, which would otherwise silently change SQL rendering
     # (e.g. `!=` -> `<>`) for every dialect for the rest of the process, not
-    # just the misbehaving one. Snapshot/restore around each load so a
-    # buggy connector can't leak global compiler state into unrelated
-    # dialects just because it was enumerated here.
+    # just the misbehaving one. Others (e.g. kylinpy) rebind or extend the
+    # shared `IdentifierPreparer.reserved_words` set, which changes identifier
+    # quoting (e.g. `name` -> `"name"`) for every dialect that doesn't define
+    # its own reserved words. Snapshot/restore around each load so a buggy
+    # connector can't leak global compiler state into unrelated dialects just
+    # because it was enumerated here.
     operators_snapshot = dict(sqla_compiler.OPERATORS)
+    preparer_cls = sqla_compiler.IdentifierPreparer
+    reserved_words = preparer_cls.reserved_words
+    reserved_words_snapshot = set(reserved_words)
     for ep in entry_points(group="sqlalchemy.dialects"):
         try:
             dialect = ep.load()
@@ -211,6 +217,11 @@ def get_available_engine_specs() -> dict[type[BaseEngineSpec], set[str]]:  # noq
             if sqla_compiler.OPERATORS != operators_snapshot:
                 sqla_compiler.OPERATORS.clear()
                 sqla_compiler.OPERATORS.update(operators_snapshot)
+            if preparer_cls.reserved_words is not reserved_words:
+                preparer_cls.reserved_words = reserved_words
+            if reserved_words != reserved_words_snapshot:
+                reserved_words.clear()
+                reserved_words.update(reserved_words_snapshot)
 
     dbs_denylist = app.config["DBS_AVAILABLE_DENYLIST"]
     if not feature_flag_manager.is_feature_enabled("ENABLE_SUPERSET_META_DB"):
