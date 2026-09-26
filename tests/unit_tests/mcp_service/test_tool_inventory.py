@@ -48,6 +48,7 @@ TOOL_BUDGETS = {
     "generate_dashboard": 3_400,
     "generate_explore_link": 50_000,
     "get_annotation_layer_info": 1_000,
+    "get_catalog": 1_600,
     "get_chart_data": 2_900,
     "get_chart_info": 3_600,
     "get_chart_preview": 3_400,

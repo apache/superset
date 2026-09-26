@@ -820,6 +820,7 @@ Each tool declares one or more required FAB permissions. The table below maps to
 | `get_dashboard_data`                                                                                     | `can_read` on `Dashboard` **and** `can_read` on `Chart` (it reads chart data across the dashboard) |
 | `list_datasets`, `get_dataset_info`, `create_virtual_dataset`                                            | `can_read` on `Dataset` (read), `can_write` on `Dataset` (mutate)     |
 | `list_databases`, `get_database_info`                                                                    | `can_read` on `Database`                                              |
+| `get_catalog`                                                                                            | `can_read` on the requested asset class (`Database`, `Dataset`, `Chart`, or `Dashboard`); databases and datasets also require data-model metadata access, otherwise the page is marked `restricted` |
 | `execute_sql`                                                                                            | `can_execute_sql_query` on `SQLLab`                                   |
 | `open_sql_lab_with_context`                                                                              | `can_read` on `SQLLab`                                                |
 | `save_sql_query`                                                                                         | `can_write` on `SavedQuery`                                           |
@@ -1018,6 +1019,23 @@ while True:
     if not result.get("has_next"):
         break
     page += 1
+```
+
+### Asset Catalog
+
+`get_catalog` returns a compact catalog page for one asset type (`databases`, `datasets`, `charts`, or `dashboards`). It is designed for assistants that need an inventory of what a user can see without calling the full list tools repeatedly:
+
+- **Per-user and live**: every call reads through the same DAO visibility filters as the matching list tool, as the calling user. Nothing is cached or stored, and the tool is always excluded from MCP response caching, so a revoked grant is reflected on the next call.
+- **Field allowlist**: each item has only `id`, `uuid`, `name`, `description`, `changed_on`, and `url`. SQL, `extra`, template parameters, metric expressions, and connection details are never read or returned.
+- **Restricted marker**: users without data-model metadata access receive `restricted: true` with no items for `databases` and `datasets`.
+- **Bounded**: `page_size` is at most 100, and each response stays under 32 KiB. Pages use an opaque keyset `next_cursor`, bound to the asset type and search term, that stays stable when assets are added or removed between pages. `truncated: true` means the page ended early to fit the size bound, or a long name or description was shortened.
+
+```python
+page = mcp.get_catalog(request={"asset_type": "dashboards", "page_size": 50})
+while page["next_cursor"]:
+    page = mcp.get_catalog(
+        request={"asset_type": "dashboards", "cursor": page["next_cursor"]}
+    )
 ```
 
 ## Trash Listing (Soft-Deleted Objects)

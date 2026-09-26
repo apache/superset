@@ -157,6 +157,9 @@ Theme Management:
 - get_theme_info: Get a theme's tokens (json_data) by ID or UUID
 - create_theme: Create a reusable theme from antd design tokens (requires write access)
 
+Asset Catalog:
+- get_catalog: Compact, permission-filtered page of databases, datasets, charts or dashboards (id, uuid, name, description, changed_on, url; cursor pagination, max 100 items / 32 KiB)
+
 Database Connections:
 - list_databases: List database connections with advanced filters (1-based pagination)
 - get_database_info: Get detailed database connection info by ID (backend, capabilities)
@@ -795,6 +798,9 @@ from superset.mcp_service.annotation_layer.tool import (  # noqa: F401, E402
     get_layer_annotation_info,
     list_annotation_layers,
     list_layer_annotations,
+)
+from superset.mcp_service.catalog.tool import (  # noqa: F401, E402
+    get_catalog,
 )
 from superset.mcp_service.chart import (  # noqa: F401, E402
     prompts as chart_prompts,
