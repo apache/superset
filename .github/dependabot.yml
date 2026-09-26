@@ -9,6 +9,9 @@ updates:
       security:
         applies-to: "security-updates"
         patterns: ["*"]
+      codeql:
+        patterns:
+          - github/codeql-action/*
     cooldown:
       default-days: 7
 
@@ -152,10 +155,17 @@ updates:
         patterns:
           - "docusaurus-plugin-openapi-docs"
           - "docusaurus-theme-openapi-docs"
-      typescript-eslint:
+      fontsource:
         patterns:
-          - "@typescript-eslint/*"
-          - "typescript-eslint"
+          - "@fontsource/*"
+      emotion:
+        patterns:
+          - "@emotion/*"
+      oxc:
+        patterns:
+          - "oxfmt"
+          - "oxlint"
+          - "oxlint-tsgolint"
     open-pull-requests-limit: 10
     versioning-strategy: increase
     cooldown:
@@ -172,6 +182,11 @@ updates:
       security:
         applies-to: "security-updates"
         patterns: ["*"]
+      oxc:
+        patterns:
+          - "oxfmt"
+          - "oxlint"
+          - "oxlint-tsgolint"
     versioning-strategy: increase
     cooldown:
       default-days: 7
