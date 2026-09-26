@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import io
+import os
 from unittest import mock
 from urllib.error import HTTPError, URLError
 
@@ -176,3 +177,74 @@ def test_docker_workflow_changes_trigger_docker_build() -> None:
         [".github/workflows/docker.yml"],
         change_detector.PATTERNS["docker"],
     )
+
+
+def test_fetch_changed_files_compare_returns_filenames() -> None:
+    with mock.patch.object(
+        change_detector,
+        "fetch_files_github_api",
+        return_value={"files": [{"filename": "superset/foo.py"}]},
+    ) as api_mock:
+        result = change_detector.fetch_changed_files_compare(
+            "apache/superset", "base-sha", "head-sha"
+        )
+
+    assert result == ["superset/foo.py"]
+    api_mock.assert_called_once_with(
+        "https://api.github.com/repos/apache/superset/compare/base-sha...head-sha"
+    )
+
+
+def test_fetch_changed_files_push_delegates_to_compare() -> None:
+    """`push` still resolves its own base (the parent commit) before comparing,
+    but the actual diff call is the same shared compare helper `merge_group`
+    uses."""
+    with (
+        mock.patch.object(
+            change_detector,
+            "fetch_files_github_api",
+            return_value={"parents": [{"sha": "parent-sha"}]},
+        ) as commit_mock,
+        mock.patch.object(
+            change_detector, "fetch_changed_files_compare", return_value=["a.py"]
+        ) as compare_mock,
+    ):
+        result = change_detector.fetch_changed_files_push("apache/superset", "head-sha")
+
+    assert result == ["a.py"]
+    commit_mock.assert_called_once_with(
+        "https://api.github.com/repos/apache/superset/commits/head-sha"
+    )
+    compare_mock.assert_called_once_with("apache/superset", "parent-sha", "head-sha")
+
+
+def test_main_merge_group_diffs_against_base_sha(tmp_path) -> None:
+    """A queue entry has no PR number to read; it must diff against the
+    event's own `merge_group.base_sha` instead."""
+    output_file = tmp_path / "github_output"
+    with (
+        mock.patch.dict(
+            os.environ,
+            {
+                "MERGE_GROUP_BASE_SHA": "base-sha",
+                "GITHUB_OUTPUT": str(output_file),
+            },
+        ),
+        mock.patch.object(
+            change_detector,
+            "fetch_changed_files_compare",
+            return_value=["superset/foo.py"],
+        ) as compare_mock,
+    ):
+        change_detector.main("merge_group", "head-sha", "apache/superset")
+
+    compare_mock.assert_called_once_with("apache/superset", "base-sha", "head-sha")
+    assert "python=true" in output_file.read_text()
+
+
+def test_main_merge_group_without_base_sha_fails_closed() -> None:
+    """A missing MERGE_GROUP_BASE_SHA means the workflow wiring is broken --
+    fail loudly rather than silently skip the diff."""
+    with mock.patch.dict(os.environ, {"MERGE_GROUP_BASE_SHA": ""}):
+        with pytest.raises(RuntimeError, match="MERGE_GROUP_BASE_SHA"):
+            change_detector.main("merge_group", "head-sha", "apache/superset")

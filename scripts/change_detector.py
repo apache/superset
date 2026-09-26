@@ -151,6 +151,13 @@ def fetch_changed_files_pr(repo: str, pr_number: str) -> List[str]:
     return [file_info["filename"] for file_info in files]
 
 
+def fetch_changed_files_compare(repo: str, base_sha: str, head_sha: str) -> List[str]:
+    """Fetches files changed between two commits using the GitHub compare API."""
+    compare_url = f"https://api.github.com/repos/{repo}/compare/{base_sha}...{head_sha}"
+    comparison_data = fetch_files_github_api(compare_url)
+    return [file["filename"] for file in comparison_data["files"]]
+
+
 def fetch_changed_files_push(repo: str, sha: str) -> List[str]:
     """Fetches files changed in the last commit for push events using GitHub API."""
     # Fetch commit details to get the parent SHA
@@ -160,9 +167,7 @@ def fetch_changed_files_push(repo: str, sha: str) -> List[str]:
         raise RuntimeError("No parent commit found for comparison.")
     parent_sha = commit_data["parents"][0]["sha"]
     # Compare the current commit against its parent
-    compare_url = f"https://api.github.com/repos/{repo}/compare/{parent_sha}...{sha}"
-    comparison_data = fetch_files_github_api(compare_url)
-    return [file["filename"] for file in comparison_data["files"]]
+    return fetch_changed_files_compare(repo, parent_sha, sha)
 
 
 def detect_changes(files: List[str], check_patterns: List) -> bool:  # type: ignore
@@ -197,6 +202,25 @@ def main(event_type: str, sha: str, repo: str) -> None:
     elif event_type == "push":
         files = fetch_changed_files_push(repo, sha)
         print("Files touched since previous commit:")
+        print_files(files)
+
+    elif event_type == "merge_group":
+        # The merge queue's synthetic commit has no `pull_request` context to
+        # read a PR number from, and its parent-commit shape isn't guaranteed
+        # to match `push`'s. `merge_group.base_sha` is the event's own
+        # explicit, documented base pointer -- the workflow wires it through
+        # as MERGE_GROUP_BASE_SHA. `sha` here is already GITHUB_SHA, which for
+        # a merge_group event is documented as "SHA of the merge group" (the
+        # head we want).
+        base_sha = os.environ.get("MERGE_GROUP_BASE_SHA", "")
+        if not base_sha:
+            raise RuntimeError(
+                "merge_group event missing MERGE_GROUP_BASE_SHA; the workflow "
+                "must pass github.event.merge_group.base_sha through as that "
+                "env var."
+            )
+        files = fetch_changed_files_compare(repo, base_sha, sha)
+        print("Files touched in this merge group:")
         print_files(files)
 
     elif event_type in ("workflow_dispatch", "schedule"):

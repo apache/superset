@@ -22,6 +22,8 @@ on:
       - "[0-9].[0-9]*"
   pull_request:
     types: [synchronize, opened, reopened, ready_for_review]
+  merge_group:
+    types: [checks_requested]
 
 # No `paths:` filter on purpose: this job is a required status check, and a
 # required check that never runs for a given PR blocks that PR from merging
@@ -53,7 +55,13 @@ jobs:
         with:
           github-token: ${{ github.token }}
           script: |
-            if (context.eventName === 'push') {
+            // A merge-group ref has no pull_request context to list files
+            // from (context.issue.number is undefined there), and this check
+            // exists specifically to catch two migration heads that each
+            // looked fine alone but collide once combined by the queue -- so
+            // always run the real check rather than skipping via the
+            // file-list optimization below.
+            if (context.eventName === 'push' || context.eventName === 'merge_group') {
               core.setOutput('changed', 'true');
               return;
             }
