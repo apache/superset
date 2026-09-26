@@ -172,6 +172,29 @@ def test_set_dash_metadata_updates_refresh_frequency_when_present(
     )
 
 
+def test_set_dash_metadata_malformed_default_filters(session: Session) -> None:
+    """set_dash_metadata must not raise on a ``default_filters`` value that is
+    not valid JSON.
+
+    ``DashboardJSONMetadataSchema.default_filters`` only checks that the value
+    is a string, so malformed JSON reaches ``set_dash_metadata`` via the
+    dashboard create/update API and previously escaped as a raw
+    ``JSONDecodeError``.
+    """
+    Dashboard.metadata.create_all(session.get_bind())
+
+    dashboard = Dashboard(dashboard_title="malformed_default_filters_dash")
+    db.session.add(dashboard)
+    db.session.flush()
+
+    DashboardDAO.set_dash_metadata(
+        dashboard, {"positions": {}, "default_filters": "not-json"}
+    )
+
+    md = json.loads(dashboard.json_metadata)
+    assert md["default_filters"] == "{}"
+
+
 def _position_with_trapped_chart(
     placed_chart_id: int, trapped_chart_id: int
 ) -> dict[str, Any]:
