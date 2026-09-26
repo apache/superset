@@ -602,7 +602,45 @@ def test_impersonate_user_access_token(mocker: MockerFixture) -> None:
         user_token="access-token",  # noqa: S106
         url=make_url("gsheets://"),
         engine_kwargs={},
-    ) == (make_url("gsheets://?access_token=access-token"), {})
+    ) == (
+        make_url("gsheets://"),
+        {
+            "connect_args": {
+                "adapter_kwargs": {"gsheetsapi": {"access_token": "access-token"}}
+            }
+        },
+    )
+
+
+def test_impersonate_user_access_token_with_catalog(mocker: MockerFixture) -> None:
+    """
+    Test that the access token reaches the adapter when a catalog is configured.
+
+    The catalog is stored in ``connect_args``, which SQLAlchemy merges shallowly
+    over the dialect arguments built from the URL.
+    """
+    from sqlalchemy import create_engine
+
+    from superset.db_engine_specs.gsheets import GSheetsEngineSpec
+
+    database = mocker.MagicMock(encrypted_extra=None)
+    catalog = {"sheet": "https://docs.google.com/spreadsheets/d/1/edit#gid=0"}
+    url, engine_kwargs = GSheetsEngineSpec.impersonate_user(
+        database,
+        username=None,
+        user_token="access-token",  # noqa: S106
+        url=make_url("gsheets://"),
+        engine_kwargs={"catalog": catalog},
+    )
+    GSheetsEngineSpec.update_params_from_encrypted_extra(database, engine_kwargs)
+
+    engine = create_engine(url, **engine_kwargs)
+    connect = mocker.patch.object(engine.dialect, "connect")
+    engine.pool._creator()
+
+    adapter_kwargs = connect.call_args.kwargs["adapter_kwargs"]["gsheetsapi"]
+    assert adapter_kwargs["access_token"] == "access-token"  # noqa: S105
+    assert adapter_kwargs["catalog"] == catalog
 
 
 def test_is_oauth2_enabled_no_config(mocker: MockerFixture) -> None:
