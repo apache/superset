@@ -18,7 +18,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-24 02:04+0000\n"
+"POT-Creation-Date: 2026-09-24 02:07+0000\n"
 "PO-Revision-Date: 2023-04-07 19:45+0200\n"
 "Last-Translator: Holger Bruch <holger.bruch@wattbewerb.de>\n"
 "Language: de\n"
@@ -16837,6 +16837,11 @@ msgstr ""
 
 msgid "This filter already exist on the report"
 msgstr "Dieser Filter ist im Bericht bereits vorhanden"
+
+msgid ""
+"This filter is also applied to a partition column for faster queries. See"
+" \"View query\" for the generated SQL."
+msgstr ""
 
 #, python-format
 msgid "This filter might be incompatible with current %s"

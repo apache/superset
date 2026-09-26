@@ -72,7 +72,10 @@ from superset_core.common.models import Dataset as CoreDataset
 from superset import db, is_feature_enabled, security_manager
 from superset.common.db_query_status import QueryStatus
 from superset.connectors.sqla.partition_mapping import (
+    FEATURE_FLAG as PARTITION_FILTER_MAPPING_FLAG,
+    has_active_advanced_data_type,
     is_transform_active,
+    mirrorable_operators,
     resolve_partition_mapping,
 )
 from superset.connectors.sqla.utils import (
@@ -1976,31 +1979,55 @@ class SqlaTable(
         referenced by none of them, so anything reading it out of
         `datasource.columns` would work in Explore and break on dashboards.
 
+        The indicator has to answer "would *this* filter be mirrored", which the
+        mapped column alone cannot decide -- the query path also gates on the
+        filter's operator, and range operators only mirror under a monotonic
+        transform. So the summary carries the applicability contract rather than
+        just the column names, and `mirrorable_operators` comes from the same
+        helper `PartitionMapping.mirrors` uses; the operator matrix is not
+        restated on the client.
+
         `active` is the save path's own verdict rather than an approximation of
         it. A transform that fails validation -- one missing `:value`, one that
         does not parse -- is saved inactive on purpose, so a cheaper signal here
         would advertise a mapping that never mirrors a filter. The parse this
         costs is memoized on `(transform, engine)` in `is_transform_active`, and
-        datasets without a partition column never reach it.
+        datasets without a partition column never reach it. The advanced data
+        type bail-out is not part of that verdict, so it is checked here as
+        `resolve_partition_mapping` checks it.
+
+        Gated on the feature flag for the same reason `resolve_partition_mapping`
+        is: with the flag off nothing is mirrored, so reporting an active mapping
+        would have the Explore indicator promise a predicate the query never
+        carries.
         """
-        if not self.partition_column:
+        if not self.partition_column or not is_feature_enabled(
+            PARTITION_FILTER_MAPPING_FLAG
+        ):
             return None
 
         columns_by_name = {column.column_name: column for column in self.columns}
         mapped_column_name = self.partition_mapped_column or self.main_dttm_col
         mapped_column = columns_by_name.get(mapped_column_name or "")
+        transform = mapped_column.partition_value_transform if mapped_column else None
         active = bool(
             self.partition_column in columns_by_name
             and mapped_column is not None
             and mapped_column_name != self.partition_column
-            and is_transform_active(
-                mapped_column.partition_value_transform, self.database.backend
-            )
+            and is_transform_active(transform, self.database.backend)
+            and not has_active_advanced_data_type(mapped_column)
+        )
+        is_monotonic = bool(
+            mapped_column is not None and mapped_column.partition_transform_is_monotonic
         )
         return {
             "partition_column": self.partition_column,
             "mapped_column": mapped_column_name,
             "active": active,
+            "is_monotonic": is_monotonic,
+            "mirrorable_operators": sorted(
+                operator.value for operator in mirrorable_operators(is_monotonic)
+            ),
         }
 
     @property

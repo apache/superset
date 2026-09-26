@@ -115,6 +115,14 @@ export interface PartitionFilterMapping {
   partition_column: string;
   mapped_column: string | null;
   active: boolean;
+  /** Whether the owner declared the value transform order-preserving. */
+  is_monotonic: boolean;
+  /**
+   * Backend `FilterOperator` values (`==`, `IN`, `TEMPORAL_RANGE`, ...) whose
+   * predicates this mapping mirrors. Computed server-side from
+   * `is_monotonic` so the operator matrix lives in one place.
+   */
+  mirrorable_operators: string[];
 }
 
 export interface ControlPanelState {
@@ -281,6 +289,16 @@ export interface BaseControlConfig<
   validators?: ControlValueValidator<T, O, V>[];
   warning?: ReactNode;
   error?: ReactNode;
+  /**
+   * Names of *other* controls whose value this control's validation or
+   * `mapStateToProps` depends on. When one of them changes, the explore reducer
+   * rebuilds this control against the new form data.
+   *
+   * A control must not name itself: the rebuild reuses the value held before
+   * the action, so a self-naming control overwrites the value that action just
+   * set. Use `shouldMapStateToProps` to recompute a control's own props.
+   */
+  validationDependencies?: string[];
   /**
    * Add additional props to chart control.
    */

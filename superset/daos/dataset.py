@@ -32,8 +32,11 @@ from superset.connectors.sqla.models import (
     SqlMetric,
     TableColumn,
 )
+from superset.connectors.sqla.partition_mapping import (
+    FEATURE_FLAG as PARTITION_FILTER_MAPPING_FLAG,
+)
 from superset.daos.base import BaseDAO, ColumnOperator, ColumnOperatorEnum
-from superset.extensions import db
+from superset.extensions import db, feature_flag_manager
 from superset.models.core import Database
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
@@ -445,7 +448,12 @@ class DatasetDAO(BaseDAO[SqlaTable]):
             if force_update:
                 attributes["changed_on"] = datetime.now()
 
-        return super().update(item, attributes)
+        updated = super().update(item, attributes)
+        # After the dataset-level attributes land, not before: the mapped column
+        # is `partition_mapped_column or main_dttm_col`, and either can be part
+        # of this very request.
+        cls.clear_unmapped_partition_transforms(updated)
+        return updated
 
     @classmethod
     def _validate_column_date_formats(
@@ -458,6 +466,48 @@ class DatasetDAO(BaseDAO[SqlaTable]):
                 raise ValueError(
                     "python_date_format is an invalid date/timestamp format."
                 )
+
+    @staticmethod
+    def clear_unmapped_partition_transforms(model: SqlaTable) -> None:
+        """
+        Drop the value transform from every column the mapping does not mirror.
+
+        A mapping has exactly one mirrored column, so at most one column may
+        carry a transform. A transform parked on any other column is invisible
+        -- no row but the mapped one renders one -- yet it is still stored, and
+        it goes live the moment the mapped column resolves back to it. Clearing
+        an override is enough to do that: a null `partition_mapped_column` means
+        "follow `main_dttm_col`", so dropping a mapping would otherwise activate
+        whatever the default datetime column happened to be holding, turning a
+        request to remove a mapping into a request to add a different one.
+
+        Enforced here rather than in the editor alone because the editor is only
+        one writer: a PUT, an `override_columns=true` metadata sync and an
+        import all reach the columns directly. The same argument
+        `clear_dangling_partition_mapping` makes about dangling columns.
+
+        Gated on the feature flag, unlike its sibling, because this discards
+        stored configuration rather than repairing a broken reference. With the
+        flag off nothing mirrors, so there is no armed mapping to disarm and
+        clearing would be pure loss.
+        """
+        if not feature_flag_manager.is_feature_enabled(PARTITION_FILTER_MAPPING_FLAG):
+            return
+
+        mapped_column = (
+            (model.partition_mapped_column or model.main_dttm_col)
+            if model.partition_column
+            else None
+        )
+        for column in model.columns:
+            if column.column_name == mapped_column:
+                continue
+            if (
+                column.partition_value_transform
+                or column.partition_transform_is_monotonic
+            ):
+                column.partition_value_transform = None
+                column.partition_transform_is_monotonic = False
 
     @staticmethod
     def clear_dangling_partition_mapping(
