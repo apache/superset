@@ -113,7 +113,7 @@ from superset.dashboards.excel_export.download_link import (
     STATUS_READY,
     STATUS_RUNNING,
 )
-from superset.dashboards.excel_export.storage import is_export_storage_configured
+from superset.dashboards.excel_export.storage import is_background_export_available
 from superset.dashboards.excel_export.sync_budget import (
     InlineExportPlan,
     plan_inline_export,
@@ -1877,7 +1877,7 @@ class DashboardRestApi(
         """
         # Keep the request guards and two delivery paths together.
         # Resolve the path once so its checks and delivery cannot diverge.
-        queued = is_export_storage_configured()
+        queued = is_background_export_available()
         try:
             # Tolerate an empty/non-JSON body (e.g. a POST with no Content-Type);
             # request.json would otherwise raise 415.

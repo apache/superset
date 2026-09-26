@@ -1586,9 +1586,10 @@ EXCEL_EXPORT: dict[str, Any] = {}
 # ---------------------------------------------------
 # Dashboard "Export Data to Excel"
 # ---------------------------------------------------
-# When EXPORT_STORAGE has both a bucket and a backend, dashboard .xlsx exports
-# run in the background and are delivered by a download link. Otherwise,
-# eligible data exports are returned directly to the browser.
+# When EXPORT_STORAGE has both a bucket and a backend and CELERY_CONFIG is set,
+# dashboard .xlsx exports run in the background and are delivered by a
+# download link. Otherwise, eligible data exports are returned directly to the
+# browser.
 class ExportStorageConfig(TypedDict, total=False):
     """Where generated export artifacts (dashboard Excel exports, and
     potentially other export file types) are uploaded, and how the download

@@ -363,13 +363,20 @@ export const useDownloadMenuItems = (
       // The client error union does not expose response fields uniformly.
       const { status, message } = (await getClientErrorObject(error)) as {
         status?: number;
-        message?: string;
+        message?: unknown;
       };
       if (unmountedRef.current) {
         return;
       }
-      // Show actionable client errors; keep server errors generic.
-      if (message && status && status >= 400 && status < 500) {
+      // Show actionable client errors; keep server errors generic. A schema
+      // ValidationError carries a dict of field errors, not a toastable string.
+      if (
+        typeof message === 'string' &&
+        message &&
+        status &&
+        status >= 400 &&
+        status < 500
+      ) {
         addDangerToast(message);
       } else {
         addDangerToast(t('Sorry, something went wrong. Try again later.'));

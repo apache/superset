@@ -3768,6 +3768,30 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
         mock_build.assert_called_once()
         mock_task.apply_async.assert_not_called()
 
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
+    @with_config(
+        {
+            "EXPORT_STORAGE": {"bucket": "exports", "backend": MagicMock()},
+            "CELERY_CONFIG": None,
+        }
+    )
+    @patch("superset.dashboards.api.export_dashboard_excel")
+    @patch("superset.dashboards.api.build_workbook")
+    def test_export_xlsx_without_celery_downloads_directly(self, mock_build, mock_task):
+        """Dashboard API: with Celery disabled there is no broker to queue on,
+        so a configured storage still falls back to a direct download."""
+        mock_build.side_effect = self._write_stub_workbook
+        self.login(ADMIN_USERNAME)
+        dashboard = db.session.query(Dashboard).filter_by(slug="world_health").first()
+        rv = self.client.post(
+            f"api/v1/dashboard/{dashboard.id}/export_xlsx/",
+            json={"active_data_mask": {}},
+            buffered=True,
+        )
+        assert rv.status_code == 200
+        mock_build.assert_called_once()
+        mock_task.apply_async.assert_not_called()
+
     @with_config({"EXPORT_STORAGE": {"bucket": "exports", "backend": MagicMock()}})
     @patch("superset.dashboards.api.export_dashboard_excel")
     def test_export_xlsx_404_for_missing_dashboard(self, mock_task):

@@ -625,6 +625,25 @@ test('Export Data to Excel surfaces the reason an export was refused', async () 
   });
 });
 
+test('Export Data to Excel keeps a field-error 400 generic', async () => {
+  // A schema ValidationError returns a dict of field errors, not a string.
+  mockSupersetClient.post.mockRejectedValue(new Error('invalid'));
+  mockGetClientErrorObject.mockResolvedValue({
+    status: 400,
+    message: { mode: ['Must be one of: data, images.'] },
+  });
+
+  render(<MenuWrapper />, { useRedux: true, initialState: loggedInState });
+
+  await clickMenuItem('Export Data to Excel');
+
+  await waitFor(() => {
+    expect(mockAddDangerToast).toHaveBeenCalledWith(
+      'Sorry, something went wrong. Try again later.',
+    );
+  });
+});
+
 test('Export Data to Excel shows a generic error toast on other failures', async () => {
   mockSupersetClient.post.mockRejectedValue(new Error('boom'));
   mockGetClientErrorObject.mockResolvedValue({ status: 500 });

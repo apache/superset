@@ -977,8 +977,10 @@ reverse) logs a warning naming the missing key. `EXCEL_EXPORT_LINK_TTL_SECONDS` 
 unchanged in name, but it now bounds a Superset-issued link rather than a
 pre-signed S3 URL, so the AWS seven day ceiling no longer applies.
 
-The background path also requires a running Celery worker. SMTP is optional and
-only used to additionally email logged-in users a download link; every session
+The background path also requires a running Celery worker. With
+`CELERY_CONFIG = None`, exports download directly even when `EXPORT_STORAGE` is
+complete, and a warning says so. SMTP is optional and only used to
+additionally email logged-in users a download link; every session
 (including guest/Public ones, which have no email) gets the export through
 status polling and automatic download. Config keys: `EXPORT_STORAGE`,
 `EXCEL_EXPORT_LINK_TTL_SECONDS`, `EXCEL_EXPORT_SYNC_MAX_ROWS`,

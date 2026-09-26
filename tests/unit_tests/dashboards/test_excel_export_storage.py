@@ -25,7 +25,9 @@ import pytest
 
 from superset.app import SupersetApp
 from superset.dashboards.excel_export.storage import (
+    _warn_celery_disabled,
     _warn_partial_storage,
+    is_background_export_available,
     is_export_storage_configured,
 )
 
@@ -36,8 +38,10 @@ LOGGER = "superset.dashboards.excel_export.storage"
 def _reset_partial_storage_warning() -> Iterator[None]:
     """Each test starts as a fresh process that has not warned yet."""
     _warn_partial_storage.cache_clear()
+    _warn_celery_disabled.cache_clear()
     yield
     _warn_partial_storage.cache_clear()
+    _warn_celery_disabled.cache_clear()
 
 
 @pytest.mark.parametrize(
@@ -112,3 +116,63 @@ def test_complete_or_absent_storage_logs_nothing(
         is_export_storage_configured()
 
     assert [record for record in caplog.records if record.name == LOGGER] == []
+
+
+@pytest.mark.parametrize(
+    ("storage", "celery_config", "available"),
+    [
+        pytest.param(
+            {"bucket": "exports-bucket", "backend": MagicMock()},
+            MagicMock(),
+            True,
+            id="storage and celery",
+        ),
+        pytest.param(
+            {"bucket": "exports-bucket", "backend": MagicMock()},
+            None,
+            False,
+            id="celery disabled",
+        ),
+        pytest.param(
+            {"key_prefix": "dashboard-exports/"},
+            MagicMock(),
+            False,
+            id="no storage",
+        ),
+    ],
+)
+def test_background_export_needs_storage_and_celery(
+    app: SupersetApp,
+    monkeypatch: pytest.MonkeyPatch,
+    storage: dict[str, Any],
+    celery_config: Any,
+    available: bool,
+) -> None:
+    """Exports are queued only when there is both somewhere to upload them and
+    a Celery broker to queue them on."""
+    monkeypatch.setitem(app.config, "EXPORT_STORAGE", storage)
+    monkeypatch.setitem(app.config, "CELERY_CONFIG", celery_config)
+    assert is_background_export_available() is available
+
+
+def test_disabled_celery_is_logged_once(
+    app: SupersetApp,
+    monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Storage set with ``CELERY_CONFIG = None`` falls back to direct downloads,
+    so the operator gets one warning explaining why nothing is queued."""
+    monkeypatch.setitem(
+        app.config,
+        "EXPORT_STORAGE",
+        {"bucket": "exports-bucket", "backend": MagicMock()},
+    )
+    monkeypatch.setitem(app.config, "CELERY_CONFIG", None)
+
+    with caplog.at_level(logging.WARNING, logger=LOGGER):
+        is_background_export_available()
+        is_background_export_available()
+
+    warnings = [record for record in caplog.records if record.name == LOGGER]
+    assert len(warnings) == 1
+    assert "CELERY_CONFIG is None" in warnings[0].getMessage()

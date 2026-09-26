@@ -109,8 +109,12 @@ For larger data exports and all image exports, configure the background path:
    `pip install apache-superset[excel-export]` (boto3) for `S3ExportStorage`,
    or `pip install apache-superset[excel-export-gcs]` (google-cloud-storage)
    for `GCSExportStorage`. Without it, exports fail.
-3. **A running Celery worker.** The background export runs as a Celery task. If no worker
-   is running, the request is accepted but nothing is produced.
+3. **A running Celery worker.** The background export runs as a Celery task.
+   With `CELERY_CONFIG = None`, exports download directly as if no storage
+   were configured, and a warning is logged. Superset does not check that a
+   worker is alive: if none is running, the request is accepted, nothing is
+   produced, and the browser reports that the export is taking longer than
+   expected.
 4. **A configured SMTP transport, for email delivery only.** When set (same
    settings as alerts & reports: `SMTP_*`, `EMAIL_REPORTS_SUBJECT_PREFIX`),
    logged-in users with an email address also receive the download link by

@@ -14,7 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-"""Check whether dashboard Excel export storage is configured."""
+"""Check whether dashboard Excel exports can run in the background."""
 
 from __future__ import annotations
 
@@ -41,6 +41,16 @@ def _warn_partial_storage(missing_key: str) -> None:
     )
 
 
+@cache
+def _warn_celery_disabled() -> None:
+    """Log once per process that storage is set but Celery is disabled."""
+    logger.warning(
+        "EXPORT_STORAGE is configured but CELERY_CONFIG is None, so dashboard "
+        "Excel exports are downloaded directly and image exports are "
+        "unavailable. Configure Celery to run them in the background."
+    )
+
+
 def is_export_storage_configured() -> bool:
     """Return whether exports can be uploaded and shared by link.
 
@@ -53,3 +63,19 @@ def is_export_storage_configured() -> bool:
     if has_bucket != has_backend:
         _warn_partial_storage("backend" if has_bucket else "bucket")
     return has_bucket and has_backend
+
+
+def is_background_export_available() -> bool:
+    """Return whether exports should be queued for a Celery worker.
+
+    Storage alone is not enough: with ``CELERY_CONFIG = None`` there is no
+    broker to queue on, so the export falls back to a direct download. Worker
+    liveness is not probed; a job that is never picked up surfaces through the
+    status polling timeout.
+    """
+    if not is_export_storage_configured():
+        return False
+    if current_app.config.get("CELERY_CONFIG") is None:
+        _warn_celery_disabled()
+        return False
+    return True

@@ -45,17 +45,18 @@ def test_bootstrap_exposes_excel_export_storage_capability(
     app_context: None,
     configured: bool,
 ) -> None:
-    """The dashboard menu can hide image export when storage is unavailable."""
+    """The dashboard menu can hide image export when background exports are
+    unavailable."""
     with (
         patch("superset.views.base.menu_data", return_value={}),
         patch(
-            "superset.views.base.is_export_storage_configured",
+            "superset.views.base.is_background_export_available",
             return_value=configured,
-        ) as storage_configured,
+        ) as background_available,
     ):
         payload = cached_common_bootstrap_data.uncached(user_id=1, locale=None)
 
-    storage_configured.assert_called_once_with()
+    background_available.assert_called_once_with()
     assert payload["conf"]["EXCEL_EXPORT_STORAGE_CONFIGURED"] is configured
 
 
