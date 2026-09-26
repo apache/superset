@@ -245,6 +245,57 @@ def test_execute_delete_without_permission(
 
 
 # =============================================================================
+# Client-side file-transfer statement tests
+# =============================================================================
+
+
+@pytest.mark.parametrize("allow_dml", [False, True])
+@pytest.mark.parametrize(
+    "sql, expected_heads",
+    [
+        # Per-statement parsing of every form is covered in parse_tests; here
+        # one Command fallback, one structured node, one multi-statement.
+        ("PUT file:///tmp/data.csv @my_stage", "PUT"),
+        ("GET @my_stage 'file:///tmp/'", "GET"),
+        ("SELECT 1; PUT file:///tmp/data.csv @my_stage", "PUT"),
+        # Several heads render sorted and comma-separated, not as a raw set.
+        ("REMOVE @my_stage/b; PUT file:///tmp/a @my_stage", "PUT, REMOVE"),
+    ],
+)
+def test_check_security_rejects_client_file_transfer(
+    mocker: MockerFixture,
+    app_context: None,
+    sql: str,
+    expected_heads: str,
+    allow_dml: bool,
+) -> None:
+    """
+    Client-side file-transfer statements are rejected regardless of
+    `allow_dml`: they perform host file I/O, not DML.
+    """
+    from superset.exceptions import SupersetSecurityException
+    from superset.sql.execution.executor import SQLExecutor
+
+    mocker.patch.dict(
+        current_app.config,
+        {"DISALLOWED_SQL_FUNCTIONS": {}, "DISALLOWED_SQL_TABLES": {}},
+    )
+    database = Database(
+        id=3,
+        database_name="test_snowflake",
+        sqlalchemy_uri="snowflake://user:pw@account/db/schema",
+        allow_dml=allow_dml,
+    )
+
+    with pytest.raises(SupersetSecurityException) as excinfo:
+        SQLExecutor(database)._check_security(SQLScript(sql, "snowflake"))
+
+    assert excinfo.value.error.message == (
+        f"Disallowed client-side file-transfer command(s): {expected_heads}"
+    )
+
+
+# =============================================================================
 # Jinja2 Template Rendering Tests
 # =============================================================================
 

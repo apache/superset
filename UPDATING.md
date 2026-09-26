@@ -109,6 +109,15 @@ error notice. This does not authorize replay of data-bearing notifications.
   scripted compliance erasure cannot mistake a refusal for a completed purge.
   Only a completed purge exits 0; a usage error still exits 2.
 
+- Snowflake stage file-management statements (`PUT`, `GET`, `REMOVE` and its
+  `RM` alias) are rejected in user-submitted SQL (SQL Lab, the cost-estimate
+  path and alert queries), regardless of the database's `allow_dml` setting.
+  `PUT`/`GET` perform file I/O on the host running the
+  query, and `REMOVE`/`RM` delete files within a stage; none of them read or
+  write table data, so `allow_dml` does not govern them. Deployments that ran
+  these through SQL Lab should manage stage files with Snowflake's own clients
+  instead. `LIST`/`LS`, which only enumerate staged files, are unaffected.
+
 ### Deprecated permission cleanup may change custom role grants
 
 Two migrations now clean up permissions deprecated in past releases that

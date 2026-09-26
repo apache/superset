@@ -186,12 +186,22 @@ class AlertCommand(BaseCommand):
     def _validate_rendered_sql(self, rendered_sql: str) -> None:
         """
         Enforce SQL-level constraints on the rendered alert query: a single
-        statement, and no mutations unless the database allows DML.
+        statement, no client-side file transfer, and no mutations unless the
+        database allows DML.
         """
         database = self._report_schedule.database
         script = SQLScript(rendered_sql, engine=database.backend)
         if len(script.statements) != 1:
             raise AlertQueryError(message=_("Alert query must be a single statement"))
+        # Rejected regardless of `allow_dml`: these do host file I/O, not DML.
+        if commands := script.get_client_file_transfer_commands():
+            raise AlertQueryError(
+                message=_(
+                    "Alert query must not contain the file-transfer "
+                    "command(s): %(commands)s",
+                    commands=", ".join(commands),
+                )
+            )
         if script.has_mutation() and not database.allow_dml:
             raise AlertQueryError(message=_("Alert query must be read-only"))
 

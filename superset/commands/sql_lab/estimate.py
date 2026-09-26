@@ -29,6 +29,7 @@ from superset.daos.database import DatabaseDAO
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
     OAuth2RedirectError,
+    SupersetDisallowedClientFileTransferException,
     SupersetDisallowedSQLFunctionException,
     SupersetDisallowedSQLTableException,
     SupersetDMLNotAllowedException,
@@ -94,8 +95,9 @@ class QueryEstimationCommand(BaseCommand):
         )
 
     def _apply_sql_security(self, sql: str) -> str:
-        """Run the disallowed-function/table, DML and RLS controls against the
-        SQL to be estimated, mirroring ``sql_lab.execute_sql_statements``.
+        """Run the disallowed-function/table, file-transfer, DML and RLS controls
+        against the SQL to be estimated, mirroring
+        ``sql_lab.execute_sql_statements``.
 
         Returns the SQL with RLS predicates injected (when ``RLS_IN_SQLLAB`` is
         enabled), so the cost estimate reflects the same constrained query the
@@ -147,6 +149,10 @@ class QueryEstimationCommand(BaseCommand):
             )
             if found_tables:
                 raise SupersetDisallowedSQLTableException(found_tables)
+
+        # Rejected regardless of `allow_dml`: these do host file I/O, not DML.
+        if file_transfer_commands := parsed_script.get_client_file_transfer_commands():
+            raise SupersetDisallowedClientFileTransferException(file_transfer_commands)
 
         if parsed_script.has_mutation() and not self._database.allow_dml:
             raise SupersetDMLNotAllowedException()

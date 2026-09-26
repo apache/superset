@@ -252,6 +252,45 @@ def test_execute_sql_statement_within_payload_limit(mocker: MockerFixture, app) 
         )
 
 
+@pytest.mark.parametrize("allow_dml", [False, True])
+def test_execute_sql_statements_rejects_client_file_transfer(
+    mocker: MockerFixture, app: SupersetApp, allow_dml: bool
+) -> None:
+    """
+    `execute_sql_statements` rejects client-side file-transfer statements
+    regardless of `allow_dml`: they perform host file I/O, not DML.
+    """
+    from superset.exceptions import SupersetDisallowedClientFileTransferException
+
+    query = mocker.MagicMock()
+    query.limit = 1
+    query.status = "RUNNING"
+    query.select_as_cta = False
+    query.database.allow_dml = allow_dml
+    query.database.allow_run_async = False
+    query.database.db_engine_spec.engine = "snowflake"
+
+    mocker.patch("superset.sql_lab.get_query", return_value=query)
+    mocker.patch("superset.sql_lab.db.session.refresh", return_value=None)
+
+    with pytest.raises(SupersetDisallowedClientFileTransferException) as excinfo:
+        execute_sql_statements(
+            query_id=1,
+            rendered_query="REMOVE @my_stage/b; PUT file:///tmp/data.csv @my_stage",
+            return_results=True,
+            store_results=False,
+            start_time=None,
+            expand_data=False,
+            log_params={},
+        )
+
+    # Sorted and comma-separated, not raw set interpolation.
+    assert excinfo.value.error.message == (
+        "SQL statement contains disallowed client-side "
+        "file-transfer command(s): PUT, REMOVE"
+    )
+
+
 def test_execute_sql_statements_mutates_before_split_by_default(
     mocker: MockerFixture, app: SupersetApp
 ) -> None:

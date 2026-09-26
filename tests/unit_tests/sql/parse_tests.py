@@ -2062,6 +2062,137 @@ def test_is_mutating_replace_function_is_read(engine: str) -> None:
 @pytest.mark.parametrize(
     "sql, expected",
     [
+        ("PUT file:///tmp/data.csv @my_stage", "PUT"),
+        ("GET @my_stage file:///tmp/", "GET"),
+        # A quoted local path parses to ``exp.Put``/``exp.Get`` rather than
+        # the opaque Command fallback, but is the same documented syntax.
+        ("PUT 'file:///tmp/data.csv' @my_stage", "PUT"),
+        ("GET @my_stage 'file:///tmp/'", "GET"),
+        ("REMOVE @my_stage/path", "REMOVE"),
+        # ``RM`` is a documented alias of ``REMOVE``.
+        ("RM @my_stage/path", "RM"),
+        # The head keyword is matched case-insensitively.
+        ("put file:///tmp/data.csv @my_stage", "PUT"),
+        # Ordinary analytics statements are not file-transfer commands.
+        ("SELECT 1", None),
+        ("INSERT INTO t VALUES (1)", None),
+        # ``LIST``/``LS`` only enumerate staged files (a read), so they are
+        # intentionally not treated as file-transfer commands here.
+        ("LIST @my_stage", None),
+        # A nested body runs for real but is kept as unparsed text, so the
+        # head match cannot see it and the raw body is scanned instead.
+        ("EXECUTE IMMEDIATE $$ REMOVE @my_stage/path $$", "REMOVE"),
+        ("EXECUTE IMMEDIATE 'RM @my_stage/path'", "RM"),
+        ("EXECUTE IMMEDIATE $$ PUT file:///tmp/data.csv @my_stage $$", "PUT"),
+        ("EXECUTE IMMEDIATE $$ GET @my_stage file:///tmp/ $$", "GET"),
+        # The body scan requires a stage/``file://`` reference after the head,
+        # so a body that merely names a column after one is not flagged.
+        ("EXECUTE IMMEDIATE $$ SELECT remove FROM t $$", None),
+        ("EXECUTE IMMEDIATE $$ SELECT put, rm FROM t $$", None),
+        # Commented-out code in a body never runs, so it is not a command.
+        ("EXECUTE IMMEDIATE $$ -- GET @my_stage file:///tmp/\nSELECT 1 $$", None),
+        ("EXECUTE IMMEDIATE $$ /* PUT file:///tmp/a @s */ SELECT 1 $$", None),
+        # A `--` inside a literal opens no comment, so the text after it is
+        # still scanned.
+        ("EXECUTE IMMEDIATE $$ CALL p('a--b'); RM @my_stage/c $$", "RM"),
+        # A body runs dynamic SQL out of a literal, so a head inside one is
+        # matched: the literal is the statement the server executes.
+        ("CALL run('PUT file:///tmp/data.csv @my_stage')", "PUT"),
+        # A nested literal carries its own quotes doubled, so the scan has to
+        # look past a run of them rather than a single one.
+        ("EXECUTE IMMEDIATE 'PUT ''file:///tmp/data.csv'' @my_stage'", "PUT"),
+        ("CALL run('PUT ''file:///tmp/data.csv'' @my_stage')", "PUT"),
+        ("EXECUTE IMMEDIATE 'GET @my_stage ''file:///tmp/'''", "GET"),
+        # A `--` inside a dollar-quoted literal is data, not a comment, so the
+        # command after it is still scanned.
+        ("EXECUTE IMMEDIATE $$ SELECT $q$--$q$; RM @my_stage/c $$", "RM"),
+        # An unterminated block comment runs to the end of the body, so what
+        # follows it never executes.
+        ("EXECUTE IMMEDIATE $$ /* PUT file:///tmp/a @my_stage $$", None),
+        # A dollar-quoted argument that stops short of the end of the body is
+        # an ordinary literal, not the code wrapper, so it stays quoted: the
+        # `--` inside it opens no comment and the argument after it is scanned.
+        ("CALL p($$--$$, 'PUT file:///tmp/a @my_stage')", "PUT"),
+        ("CALL p($q$--$q$, 'GET @my_stage file:///tmp/a')", "GET"),
+        # An opener with no matching closer delimits nothing, so there is no
+        # wrapper to peel: the body is scanned as written and the command
+        # after the stray opener is still caught.
+        ("EXECUTE IMMEDIATE 'SELECT $q$ ; RM @my_stage/c'", "RM"),
+        # The body a literal carries is what the server runs, so a comment
+        # wedged inside it is stripped like any other: it cannot be used to
+        # split a head from its argument and slip the command past the scan.
+        ("EXECUTE IMMEDIATE 'PUT/*x*/file:///tmp/a @my_stage'", "PUT"),
+        ("EXECUTE IMMEDIATE 'PUT -- x\nfile:///tmp/a @my_stage'", "PUT"),
+        ("CALL p('REMOVE/*x*/@my_stage/b')", "REMOVE"),
+        # Stripping inside a literal stops at its closing delimiter, so a `--`
+        # in one still cannot comment out the statements that follow it.
+        ("EXECUTE IMMEDIATE $$ CALL p('--'); RM @my_stage/c $$", "RM"),
+        # A head that really is commented out inside the body still does not
+        # run, so it is still not reported.
+        ("EXECUTE IMMEDIATE 'SELECT 1 -- PUT file:///tmp/a @my_stage'", None),
+        ("CALL some_procedure()", None),
+    ],
+)
+def test_get_client_file_transfer_command(sql: str, expected: str | None) -> None:
+    """
+    `get_client_file_transfer_command` returns the command head for Snowflake
+    client-side file-transfer statements and ``None`` for anything else.
+    """
+    assert SQLStatement(sql, "snowflake").get_client_file_transfer_command() == expected
+
+
+@pytest.mark.parametrize(
+    "sql, expected",
+    [
+        ("PUT file:///tmp/data.csv @my_stage", ["PUT"]),
+        ("SELECT 1; GET @my_stage file:///tmp/", ["GET"]),
+        ("SELECT 1; PUT 'file:///tmp/data.csv' @my_stage", ["PUT"]),
+        # Heads are deduplicated and returned in sorted order, so the error
+        # messages built from them read the same on every run. Written here in
+        # the reverse of the order the statements appear in.
+        ("REMOVE @s/b; PUT file:///a @s", ["PUT", "REMOVE"]),
+        ("PUT file:///a @s; PUT file:///b @s", ["PUT"]),
+        ("SELECT 1; EXECUTE IMMEDIATE $$ REMOVE @s/b $$", ["REMOVE"]),
+        ("SELECT 1", []),
+    ],
+)
+def test_get_client_file_transfer_commands_script(
+    sql: str, expected: list[str]
+) -> None:
+    """
+    `SQLScript.get_client_file_transfer_commands` collects every file-transfer
+    command head across the statements in a multi-statement script, sorted and
+    deduplicated.
+    """
+    assert SQLScript(sql, "snowflake").get_client_file_transfer_commands() == expected
+
+
+def test_strip_comments_bounds_literal_nesting() -> None:
+    """
+    `_strip_comments` stops descending into nested literals past a fixed depth,
+    so a body whose nesting a user controls cannot exhaust the stack. Past the
+    bound the text is left as found rather than dropped, so it stays visible to
+    the gates that scan it.
+    """
+    statement = SQLStatement("SELECT 1", "postgresql")
+    depth = SQLStatement._MAX_LITERAL_NESTING + 1
+    # Each `$t<n>$ ... $t<n>$` region is one level of literal nesting.
+    nested = "/* c */"
+    for level in range(depth):
+        nested = f"$t{level}${nested}$t{level}$"
+
+    stripped = statement._strip_comments(nested)
+
+    # The whole structure survives, and the comment below the bound does not.
+    assert stripped.startswith(f"$t{depth - 1}$")
+    assert "/* c */" in stripped
+    # The same comment one level above the bound is stripped.
+    assert "/* c */" not in statement._strip_comments("$t0$/* c */$t0$")
+
+
+@pytest.mark.parametrize(
+    "sql, expected",
+    [
         (
             """
 DO $$
@@ -5799,6 +5930,18 @@ def test_get_disallowed_tables_search_path_change(
         ("SELECT set_config('statement_timeout', '0', true)", False),
         # An unrelated (non-`set_config`) function call is not a change either.
         ("SELECT my_custom_func(1)", False),
+        # The nested-body text is scanned with comments removed, so a rebind
+        # that is only commented out is not a change, while one carried in a
+        # string literal (the body's dynamic SQL) still is.
+        ("DO $$ BEGIN -- SET search_path TO evil\nPERFORM 1; END $$", False),
+        ("DO $$ BEGIN /* SET search_path TO evil */ PERFORM 1; END $$", False),
+        ("EXECUTE IMMEDIATE 'SET search_path TO evil'", True),
+        # A `--` inside a dollar-quoted literal is data, not a comment, so
+        # removing comments must not swallow the rebind that follows it.
+        (
+            "DO $$ BEGIN PERFORM $q$--$q$; EXECUTE 'SET search_path TO evil'; END $$",
+            True,
+        ),
         ("SELECT 1", False),
     ],
 )
@@ -5875,6 +6018,25 @@ def test_changes_search_path(sql: str, expected: bool) -> None:
         ("EXPLAIN SET SCHEMA 'tenant_b'", "postgresql", False),
         ("EXPLAIN VERBOSE SELECT * FROM orders", "postgresql", False),
         ("EXPLAIN (COSTS) SELECT * FROM orders", "postgresql", False),
+        # The nested-body text is scanned with comments removed, so a rebind
+        # that is only commented out is not a change, while one carried in a
+        # string literal (the body's dynamic SQL) still is.
+        ("DO $$ BEGIN -- SET SCHEMA 'evil'\nPERFORM 1; END $$", "postgresql", False),
+        ("EXECUTE IMMEDIATE 'SET SCHEMA ''evil'''", "postgresql", True),
+        # MySQL-family engines only open a comment on `--` when whitespace
+        # follows, so `1--2` is arithmetic there and the rest of the body still
+        # executes; a spaced `-- ` is a comment on every dialect.
+        ("CALL p(1--2, 'SET SCHEMA evil')", "mysql", True),
+        ("CALL p(1, 'x') -- SET SCHEMA evil", "mysql", False),
+        ("CALL p(1--2, 'SET SCHEMA evil')", "postgresql", False),
+        # SingleStore speaks the MySQL wire protocol and takes the same rule,
+        # so it must not lose the rest of the body to an unspaced `--`.
+        ("CALL p(1--2, 'SET SCHEMA evil')", "singlestoredb", True),
+        ("CALL p(1, 'x') -- SET SCHEMA evil", "singlestoredb", False),
+        # The family is identified by subclassing `MySQL`, so an engine that
+        # joins it without being named anywhere here takes the rule too.
+        ("CALL p(1--2, 'SET SCHEMA evil')", "pinot", True),
+        ("CALL p(1, 'x') -- SET SCHEMA evil", "pinot", False),
         # Engines without a sqlglot AST (e.g. Kusto KQL) do not rebind schema
         # resolution through these forms.
         ("print x = 1", "kustokql", False),
@@ -6434,6 +6596,25 @@ def test_backtick_invalid_sql_still_fails() -> None:
     sql = "SELECT * FROM `table` WHERE"
     with pytest.raises(SupersetParseError):
         SQLScript(sql, "base")
+
+
+def test_base_sql_statement_get_client_file_transfer_command_defaults_to_none() -> None:
+    """
+    BaseSQLStatement.get_client_file_transfer_command defaults to None, so a
+    dialect without such commands inherits the safe answer rather than having
+    to override it.
+    """
+    assert BaseSQLStatement.get_client_file_transfer_command(object()) is None  # type: ignore[arg-type]  # noqa: E501
+
+
+def test_kusto_kql_has_no_client_file_transfer_command() -> None:
+    """
+    Kusto KQL has no client-side file-transfer commands.
+    """
+    assert (
+        KustoKQLStatement(".show tables", "kustokql").get_client_file_transfer_command()
+        is None
+    )
 
 
 def test_base_sql_statement_is_destructive_raises_not_implemented() -> None:
