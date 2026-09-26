@@ -981,6 +981,10 @@ class SortByConfig(UnknownFieldCheckMixin):
         description="Sort ascending. Defaults to False (descending) to match "
         "the typical sort-by-metric top-N use case.",
     )
+    saved_metric: bool | None = Field(
+        None,
+        description="Whether this sort target is a saved dataset metric",
+    )
 
 
 class GanttSortByConfig(UnknownFieldCheckMixin):
@@ -2262,6 +2266,21 @@ def _metric_display_label(col: ColumnRef) -> str:
     return col.label or col.name or ""
 
 
+def _coerce_sort_item(item: Any) -> Any:
+    if isinstance(item, str):
+        return SortByConfig(column=item, ascending=False)
+    if (
+        isinstance(item, (list, tuple))
+        and len(item) == 2
+        and isinstance(item[0], str)
+        and isinstance(item[1], bool)
+    ):
+        return SortByConfig(column=item[0], ascending=item[1])
+    if isinstance(item, dict):
+        return SortByConfig(**item)
+    return item
+
+
 class XYChartConfig(BaseChartConfig):
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
@@ -2358,33 +2377,26 @@ class XYChartConfig(BaseChartConfig):
             "single-item list containing either. Multi-column sorting is not "
             "supported for XY charts."
         ),
-        validation_alias=AliasChoices("sort_by", "x_axis_sort", "order_by"),
+        validation_alias=AliasChoices(
+            "sort_by", "x_axis_sort", "order_by", "order_by_cols"
+        ),
     )
 
     @field_validator("sort_by", mode="before")
     @classmethod
     def coerce_sort_by(cls, v: Any) -> Any:
-        """Coerce bare string, dict, or single-item list into SortByConfig."""
+        """Coerce bare string, dict, pair, or single-item list into SortByConfig."""
         if v is None:
             return None
-        if isinstance(v, str):
-            return SortByConfig(column=v, ascending=False)
-        if isinstance(v, list):
+        if isinstance(v, (list, tuple)):
             if not v:
                 return None
+            if len(v) == 2 and isinstance(v[0], str) and isinstance(v[1], bool):
+                return SortByConfig(column=v[0], ascending=v[1])
             if len(v) > 1:
                 raise ValueError("XY charts support only a single sort column")
-            first = v[0]
-            if isinstance(first, str):
-                return SortByConfig(column=first, ascending=False)
-            if isinstance(first, dict):
-                return SortByConfig(**first)
-            if isinstance(first, SortByConfig):
-                return first
-            return first
-        if isinstance(v, dict):
-            return SortByConfig(**v)
-        return v
+            return _coerce_sort_item(v[0])
+        return _coerce_sort_item(v)
 
     @field_validator("group_by", mode="before")
     @classmethod

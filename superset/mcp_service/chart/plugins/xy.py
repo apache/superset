@@ -50,7 +50,9 @@ def _match_y_metric_name(
         if y_col.get("label") and y_col["label"].lower() == raw_lower:
             return y_col["label"]
         if y_col.get("name") and y_col["name"].lower() == raw_lower:
-            return y_col["name"]
+            return y_col.get("label") or y_col["name"]
+        if y_col.get("sql_expression") and y_col["sql_expression"].lower() == raw_lower:
+            return y_col.get("label") or y_col["sql_expression"]
         agg = y_col.get("aggregate")
         name = y_col.get("name")
         if agg and name and f"{agg}({name})".lower() == raw_lower:
@@ -58,31 +60,37 @@ def _match_y_metric_name(
     return None
 
 
-def _resolve_xy_sort_name(
+def _resolve_xy_sort_name_and_metric_status(
     raw_name: str, config_dict: dict[str, Any], dataset_context: Any
-) -> str:
+) -> tuple[str, bool]:
     raw_lower = raw_name.lower()
     matched_y = _match_y_metric_name(raw_lower, config_dict.get("y") or [])
     if matched_y:
-        return matched_y
+        return matched_y, False
 
     x_col = config_dict.get("x")
     if isinstance(x_col, dict):
         if x_col.get("label") and x_col["label"].lower() == raw_lower:
-            return x_col["label"]
+            return x_col["label"], False
         if x_col.get("name") and x_col["name"].lower() == raw_lower:
-            return DatasetValidator.get_canonical_column_name(
-                x_col["name"], dataset_context
+            return (
+                DatasetValidator.get_canonical_column_name(
+                    x_col["name"], dataset_context
+                ),
+                False,
             )
 
     if dataset_context and getattr(dataset_context, "available_metrics", None):
         for m in dataset_context.available_metrics:
             if m.get("name") and m["name"].lower() == raw_lower:
-                return DatasetValidator.get_canonical_metric_name(
-                    raw_name, dataset_context
+                return (
+                    DatasetValidator.get_canonical_metric_name(
+                        raw_name, dataset_context
+                    ),
+                    True,
                 )
 
-    return DatasetValidator.get_canonical_column_name(raw_name, dataset_context)
+    return DatasetValidator.get_canonical_column_name(raw_name, dataset_context), False
 
 
 def _update_sort_by_column(
@@ -91,12 +99,31 @@ def _update_sort_by_column(
     dataset_context: Any,
 ) -> Any:
     if isinstance(sort_item, dict) and "column" in sort_item:
-        sort_item["column"] = _resolve_xy_sort_name(
+        canonical_name, is_saved = _resolve_xy_sort_name_and_metric_status(
             sort_item["column"], config_dict, dataset_context
         )
+        sort_item["column"] = canonical_name
+        if is_saved:
+            sort_item["saved_metric"] = True
         return sort_item
     if isinstance(sort_item, str):
-        return _resolve_xy_sort_name(sort_item, config_dict, dataset_context)
+        canonical_name, is_saved = _resolve_xy_sort_name_and_metric_status(
+            sort_item, config_dict, dataset_context
+        )
+        return {
+            "column": canonical_name,
+            "ascending": False,
+            "saved_metric": is_saved or None,
+        }
+    if isinstance(sort_item, SortByConfig):
+        canonical_name, is_saved = _resolve_xy_sort_name_and_metric_status(
+            sort_item.column, config_dict, dataset_context
+        )
+        return SortByConfig(
+            column=canonical_name,
+            ascending=sort_item.ascending,
+            saved_metric=sort_item.saved_metric or (True if is_saved else None),
+        )
     return sort_item
 
 
@@ -117,16 +144,16 @@ def _normalize_xy_sort_by(config_dict: dict[str, Any], dataset_context: Any) -> 
         )
 
 
-def _extract_sort_col_name(sort_entry: Any) -> str | None:
-    if isinstance(sort_entry, list) and sort_entry:
+def _extract_sort_col_info(sort_entry: Any) -> tuple[str | None, bool]:
+    if isinstance(sort_entry, (list, tuple)) and sort_entry:
         sort_entry = sort_entry[0]
     if isinstance(sort_entry, SortByConfig):
-        return sort_entry.column
+        return sort_entry.column, bool(sort_entry.saved_metric)
     if isinstance(sort_entry, str):
-        return sort_entry
+        return sort_entry, False
     if isinstance(sort_entry, dict):
-        return sort_entry.get("column")
-    return None
+        return sort_entry.get("column"), bool(sort_entry.get("saved_metric"))
+    return None, False
 
 
 def _collect_y_metric_names(y_cols: list[ColumnRef]) -> set[str]:
@@ -136,6 +163,8 @@ def _collect_y_metric_names(y_cols: list[ColumnRef]) -> set[str]:
             names.add(y_col.name.lower())
         if y_col.label:
             names.add(y_col.label.lower())
+        if y_col.sql_expression:
+            names.add(y_col.sql_expression.lower())
         if y_col.aggregate and y_col.name:
             names.add(f"{y_col.aggregate}({y_col.name})".lower())
         metric_obj = create_metric_object(y_col)
@@ -227,13 +256,13 @@ class XYChartPlugin(BaseChartPlugin):
             for f in config.filters:
                 refs.append(ColumnRef(name=f.column))
         if config.sort_by:
-            sort_col = _extract_sort_col_name(config.sort_by)
+            sort_col, is_saved = _extract_sort_col_info(config.sort_by)
             # Do not emit a separate column ref if sort_col refers to a
             # column or metric already represented in x, y, or group_by.
             # In particular, metric labels (e.g. "SUM(sales)") or custom labels
             # are not physical dataset columns and would fail validation.
             if sort_col and sort_col.lower() not in _get_covered_xy_names(config):
-                refs.append(ColumnRef(name=sort_col))
+                refs.append(ColumnRef(name=sort_col, saved_metric=is_saved))
         return refs
 
     def to_form_data(
