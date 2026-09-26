@@ -55,6 +55,10 @@ class ClickHouseBaseEngineSpec(BaseEngineSpec):
     """Shared engine spec for ClickHouse."""
 
     time_groupby_inline = True
+    # ClickHouse resolves an identifier to a SELECT alias first, in every clause:
+    # with `toStartOfDay(toDateTime(ts)) AS ts`, `GROUP BY toStartOfDay(...(ts))`
+    # re-truncates the alias and `WHERE ts >= ...` filters on the bucket.
+    select_alias_shadows_source_column = True
     supports_multivalues_insert = True
     supports_multivalue_columns = True
 
