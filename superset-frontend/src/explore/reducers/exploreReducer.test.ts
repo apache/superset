@@ -17,24 +17,32 @@
  * under the License.
  */
 
-import { QueryFormData, getChartControlPanelRegistry } from '@superset-ui/core';
+import {
+  QueryFormData,
+  VizType,
+  getChartControlPanelRegistry,
+} from '@superset-ui/core';
 import {
   sections,
   sharedControls,
   ControlPanelConfig,
   CustomControlItem,
 } from '@superset-ui/chart-controls';
-import calendarControlPanel from '@superset-ui/plugin-chart-calendar/controlPanel';
-import horizonControlPanel from '@superset-ui/plugin-chart-horizon/controlPanel';
-import roseControlPanel from '@superset-ui/plugin-chart-echarts/Rose/controlPanel';
-import timePivotControlPanel from '@superset-ui/plugin-chart-echarts/TimePivot/controlPanel';
-import pairedTTestControlPanel from '@superset-ui/plugin-chart-paired-t-test/controlPanel';
-import partitionControlPanel from '@superset-ui/plugin-chart-partition/controlPanel';
 import { controlPanel as timeTableControlPanel } from 'src/visualizations/TimeTable/config/controlPanel/controlPanel';
 import {
   getControlConfig,
   getControlStateFromControlConfig,
 } from 'src/explore/controlUtils';
+// Reached through the plugins' source rather than as `@superset-ui/plugin-chart-*`
+// subpaths: `tsc` maps those package names as a whole and cannot resolve a
+// subpath within one, so it rejects the import that jest and webpack accept.
+// `VizTypeControl.test.tsx` reaches the plugins themselves the same way.
+import calendarControlPanel from '../../../plugins/plugin-chart-calendar/src/controlPanel';
+import horizonControlPanel from '../../../plugins/plugin-chart-horizon/src/controlPanel';
+import roseControlPanel from '../../../plugins/plugin-chart-echarts/src/Rose/controlPanel';
+import timePivotControlPanel from '../../../plugins/plugin-chart-echarts/src/TimePivot/controlPanel';
+import pairedTTestControlPanel from '../../../plugins/plugin-chart-paired-t-test/src/controlPanel';
+import partitionControlPanel from '../../../plugins/plugin-chart-partition/src/controlPanel';
 import exploreReducer, { ExploreState } from './exploreReducer';
 import {
   setCompatibility,
@@ -294,14 +302,14 @@ test('SET_FIELD_VALUE ignores a control that names itself as a dependency', () =
 // self-referencing dependency broke, so this is the list that has to stay
 // fixed -- modern charts express the range as a TEMPORAL_RANGE clause in
 // `adhoc_filters` and never dispatch SET_FIELD_VALUE for `time_range`.
-const CHARTS_WITH_A_TIME_RANGE_CONTROL: [string, ControlPanelConfig][] = [
-  ['calendar_heatmap', calendarControlPanel],
-  ['horizon', horizonControlPanel],
-  ['rose', roseControlPanel],
-  ['time_pivot', timePivotControlPanel],
-  ['paired_ttest', pairedTTestControlPanel],
-  ['partition', partitionControlPanel],
-  ['time_table', timeTableControlPanel],
+const CHARTS_WITH_A_TIME_RANGE_CONTROL: [VizType, ControlPanelConfig][] = [
+  [VizType.Calendar, calendarControlPanel],
+  [VizType.Horizon, horizonControlPanel],
+  [VizType.Rose, roseControlPanel],
+  [VizType.TimePivot, timePivotControlPanel],
+  [VizType.PairedTTest, pairedTTestControlPanel],
+  [VizType.Partition, partitionControlPanel],
+  [VizType.TimeTable, timeTableControlPanel],
 ];
 
 test.each(CHARTS_WITH_A_TIME_RANGE_CONTROL)(
