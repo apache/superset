@@ -172,3 +172,39 @@ def test_cancel_query_allows_internal_host_with_opt_out(
         allow_redirects=False,
     )
     assert result is True
+
+
+class _AsyncCursor:
+    """impyla cursor right after ``execute_async`` of a statement without rows."""
+
+    description = None
+
+    def __init__(self, error: Exception | None = None) -> None:
+        self.error = error
+        self.waited = False
+
+    def _wait_to_finish(self) -> None:
+        self.waited = True
+        if self.error:
+            raise self.error
+
+    def fetchall(self) -> list[tuple[int]]:
+        raise RuntimeError("Trying to fetch results on an operation with no results")
+
+
+def test_fetch_data_waits_for_operation() -> None:
+    """
+    DML still pending after ``execute_async`` completes before fetch_data returns.
+    """
+    cursor = _AsyncCursor()
+    assert spec.fetch_data(cursor) == []
+    assert cursor.waited
+
+
+def test_fetch_data_raises_operation_error() -> None:
+    """
+    An operation that failed asynchronously is not reported as an empty result.
+    """
+    cursor = _AsyncCursor(RuntimeError("AnalysisException: boom"))
+    with pytest.raises(RuntimeError, match="AnalysisException: boom"):
+        spec.fetch_data(cursor)
