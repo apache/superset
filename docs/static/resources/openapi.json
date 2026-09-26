@@ -2959,6 +2959,131 @@
         },
         "type": "object"
       },
+      "ChartLineageChart": {
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "slice_name": {
+            "type": "string"
+          },
+          "viz_type": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "ChartLineageDashboard": {
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "slug": {
+            "nullable": true,
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "ChartLineageDatabase": {
+        "properties": {
+          "backend": {
+            "type": "string"
+          },
+          "database_name": {
+            "type": "string"
+          },
+          "id": {
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "ChartLineageDataset": {
+        "properties": {
+          "database_id": {
+            "type": "integer"
+          },
+          "database_name": {
+            "nullable": true,
+            "type": "string"
+          },
+          "id": {
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          },
+          "schema": {
+            "nullable": true,
+            "type": "string"
+          },
+          "table_name": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "ChartLineageDownstream": {
+        "properties": {
+          "dashboards": {
+            "$ref": "#/components/schemas/ChartLineageDownstreamDashboards"
+          }
+        },
+        "type": "object"
+      },
+      "ChartLineageDownstreamDashboards": {
+        "properties": {
+          "count": {
+            "type": "integer"
+          },
+          "result": {
+            "items": {
+              "$ref": "#/components/schemas/ChartLineageDashboard"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "ChartLineageResponseSchema": {
+        "properties": {
+          "chart": {
+            "$ref": "#/components/schemas/ChartLineageChart"
+          },
+          "downstream": {
+            "$ref": "#/components/schemas/ChartLineageDownstream"
+          },
+          "upstream": {
+            "$ref": "#/components/schemas/ChartLineageUpstream"
+          }
+        },
+        "type": "object"
+      },
+      "ChartLineageUpstream": {
+        "properties": {
+          "database": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ChartLineageDatabase"
+              }
+            ],
+            "nullable": true
+          },
+          "dataset": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ChartLineageDataset"
+              }
+            ],
+            "nullable": true
+          }
+        },
+        "type": "object"
+      },
       "ChartRestApi.get": {
         "properties": {
           "id": {
@@ -4174,6 +4299,158 @@
           "viewers": {
             "items": {
               "$ref": "#/components/schemas/SubjectResponse"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "DashboardLineageChart": {
+        "properties": {
+          "dataset_id": {
+            "type": "integer"
+          },
+          "id": {
+            "type": "integer"
+          },
+          "slice_name": {
+            "type": "string"
+          },
+          "viz_type": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "DashboardLineageDashboard": {
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "published": {
+            "type": "boolean"
+          },
+          "slug": {
+            "nullable": true,
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "DashboardLineageDatabase": {
+        "properties": {
+          "backend": {
+            "type": "string"
+          },
+          "database_name": {
+            "type": "string"
+          },
+          "id": {
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "DashboardLineageDataset": {
+        "properties": {
+          "chart_ids": {
+            "items": {
+              "type": "integer"
+            },
+            "type": "array"
+          },
+          "database_id": {
+            "nullable": true,
+            "type": "integer"
+          },
+          "database_name": {
+            "nullable": true,
+            "type": "string"
+          },
+          "id": {
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          },
+          "schema": {
+            "nullable": true,
+            "type": "string"
+          },
+          "table_name": {
+            "nullable": true,
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "DashboardLineageResponseSchema": {
+        "properties": {
+          "dashboard": {
+            "$ref": "#/components/schemas/DashboardLineageDashboard"
+          },
+          "downstream": {
+            "nullable": true
+          },
+          "upstream": {
+            "$ref": "#/components/schemas/DashboardLineageUpstream"
+          }
+        },
+        "type": "object"
+      },
+      "DashboardLineageUpstream": {
+        "properties": {
+          "charts": {
+            "$ref": "#/components/schemas/DashboardLineageUpstreamCharts"
+          },
+          "databases": {
+            "$ref": "#/components/schemas/DashboardLineageUpstreamDatabases"
+          },
+          "datasets": {
+            "$ref": "#/components/schemas/DashboardLineageUpstreamDatasets"
+          }
+        },
+        "type": "object"
+      },
+      "DashboardLineageUpstreamCharts": {
+        "properties": {
+          "count": {
+            "type": "integer"
+          },
+          "result": {
+            "items": {
+              "$ref": "#/components/schemas/DashboardLineageChart"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "DashboardLineageUpstreamDatabases": {
+        "properties": {
+          "count": {
+            "type": "integer"
+          },
+          "result": {
+            "items": {
+              "$ref": "#/components/schemas/DashboardLineageDatabase"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "DashboardLineageUpstreamDatasets": {
+        "properties": {
+          "count": {
+            "type": "integer"
+          },
+          "result": {
+            "items": {
+              "$ref": "#/components/schemas/DashboardLineageDataset"
             },
             "type": "array"
           }
@@ -5916,6 +6193,152 @@
           "base_model_id",
           "table_name"
         ],
+        "type": "object"
+      },
+      "DatasetLineageChart": {
+        "properties": {
+          "dashboard_ids": {
+            "items": {
+              "type": "integer"
+            },
+            "type": "array"
+          },
+          "id": {
+            "type": "integer"
+          },
+          "slice_name": {
+            "type": "string"
+          },
+          "viz_type": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "DatasetLineageDashboard": {
+        "properties": {
+          "chart_ids": {
+            "items": {
+              "type": "integer"
+            },
+            "type": "array"
+          },
+          "id": {
+            "type": "integer"
+          },
+          "slug": {
+            "nullable": true,
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "DatasetLineageDatabase": {
+        "properties": {
+          "backend": {
+            "type": "string"
+          },
+          "database_name": {
+            "type": "string"
+          },
+          "id": {
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "DatasetLineageDataset": {
+        "properties": {
+          "database_id": {
+            "type": "integer"
+          },
+          "database_name": {
+            "nullable": true,
+            "type": "string"
+          },
+          "id": {
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          },
+          "schema": {
+            "nullable": true,
+            "type": "string"
+          },
+          "table_name": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "DatasetLineageDownstream": {
+        "properties": {
+          "charts": {
+            "$ref": "#/components/schemas/DatasetLineageDownstreamCharts"
+          },
+          "dashboards": {
+            "$ref": "#/components/schemas/DatasetLineageDownstreamDashboards"
+          }
+        },
+        "type": "object"
+      },
+      "DatasetLineageDownstreamCharts": {
+        "properties": {
+          "count": {
+            "type": "integer"
+          },
+          "result": {
+            "items": {
+              "$ref": "#/components/schemas/DatasetLineageChart"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "DatasetLineageDownstreamDashboards": {
+        "properties": {
+          "count": {
+            "type": "integer"
+          },
+          "result": {
+            "items": {
+              "$ref": "#/components/schemas/DatasetLineageDashboard"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "DatasetLineageResponseSchema": {
+        "properties": {
+          "dataset": {
+            "$ref": "#/components/schemas/DatasetLineageDataset"
+          },
+          "downstream": {
+            "$ref": "#/components/schemas/DatasetLineageDownstream"
+          },
+          "upstream": {
+            "$ref": "#/components/schemas/DatasetLineageUpstream"
+          }
+        },
+        "type": "object"
+      },
+      "DatasetLineageUpstream": {
+        "properties": {
+          "database": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/DatasetLineageDatabase"
+              }
+            ],
+            "nullable": true
+          }
+        },
         "type": "object"
       },
       "DatasetMetricCurrencyPut": {
@@ -16433,6 +16856,55 @@
         ]
       }
     },
+    "/api/v1/chart/{id_or_uuid}/lineage": {
+      "get": {
+        "description": "Returns upstream (dataset, database) and downstream (dashboards) lineage information for a chart",
+        "parameters": [
+          {
+            "description": "Either the id of the chart, or its uuid",
+            "in": "path",
+            "name": "id_or_uuid",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChartLineageResponseSchema"
+                }
+              }
+            },
+            "description": "Lineage information"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          },
+          {
+            "api_key": []
+          }
+        ],
+        "summary": "Get lineage information for a chart",
+        "tags": [
+          "Charts"
+        ]
+      }
+    },
     "/api/v1/chart/{pk}": {
       "delete": {
         "parameters": [
@@ -19242,6 +19714,55 @@
             "api_key": []
           }
         ],
+        "tags": [
+          "Dashboards"
+        ]
+      }
+    },
+    "/api/v1/dashboard/{id_or_slug}/lineage": {
+      "get": {
+        "description": "Returns upstream (charts, datasets, databases) lineage information for a dashboard",
+        "parameters": [
+          {
+            "description": "Either the id of the dashboard, or its slug",
+            "in": "path",
+            "name": "id_or_slug",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DashboardLineageResponseSchema"
+                }
+              }
+            },
+            "description": "Lineage information"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          },
+          {
+            "api_key": []
+          }
+        ],
+        "summary": "Get lineage information for a dashboard",
         "tags": [
           "Dashboards"
         ]
@@ -24070,6 +24591,55 @@
           }
         ],
         "summary": "Get a dataset",
+        "tags": [
+          "Datasets"
+        ]
+      }
+    },
+    "/api/v1/dataset/{id_or_uuid}/lineage": {
+      "get": {
+        "description": "Returns upstream (database) and downstream (charts, dashboards) lineage information for a dataset",
+        "parameters": [
+          {
+            "description": "Either the id of the dataset, or its uuid",
+            "in": "path",
+            "name": "id_or_uuid",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DatasetLineageResponseSchema"
+                }
+              }
+            },
+            "description": "Lineage information"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          },
+          {
+            "api_key": []
+          }
+        ],
+        "summary": "Get lineage information for a dataset",
         "tags": [
           "Datasets"
         ]
