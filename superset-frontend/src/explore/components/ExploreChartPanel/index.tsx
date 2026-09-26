@@ -29,8 +29,10 @@ import {
   JsonObject,
   getExtensionsRegistry,
 } from '@superset-ui/core';
+import { logging } from '@apache-superset/core/utils';
 import { URL_PARAMS } from 'src/constants';
 import { getUrlParam } from 'src/utils/urlUtils';
+import { ExploreStandaloneMode } from 'src/explore/constants';
 import { css, styled, useTheme } from '@apache-superset/core/theme';
 import ChartContainer from 'src/components/Chart/ChartContainer';
 import { updateExploreChartState } from 'src/explore/actions/exploreActions';
@@ -88,7 +90,7 @@ export interface ExploreChartPanelProps {
   vizType: string;
   form_data: QueryFormData;
   ownState?: JsonObject;
-  standalone?: boolean;
+  standalone?: number;
   force?: boolean;
   timeout?: number;
   chartIsStale?: boolean;
@@ -255,7 +257,16 @@ const ExploreChartPanel = ({
   );
 
   useEffect(() => {
-    updateQueryContext();
+    updateQueryContext().catch(error => {
+      // Best-effort backfill; the chart renders either way. A 403 is expected
+      // (no write access, or a managed chart), so it stays at debug.
+      const message = 'Skipped background query context backfill';
+      if (error?.status === 403) {
+        logging.debug(message, error);
+      } else {
+        logging.warn(message, error);
+      }
+    });
   }, [updateQueryContext]);
 
   useEffect(() => {
@@ -503,7 +514,7 @@ const ExploreChartPanel = ({
     [gutterMargin],
   );
 
-  if (standalone) {
+  if (standalone === ExploreStandaloneMode.HideNav) {
     // dom manipulation hack to get rid of the bootstrap theme's body background
     const standaloneClass = 'background-transparent';
     const bodyClasses = document.body.className.split(' ');

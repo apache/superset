@@ -15,7 +15,12 @@
 # specific language governing permissions and limitations
 # under the License.
 
+from typing import Any
+
+from pytest_mock import MockerFixture
+
 from superset.commands.chart.importers.v1.utils import migrate_chart
+from superset.extensions import feature_flag_manager
 from superset.utils import json
 
 
@@ -212,3 +217,67 @@ def test_migrate_chart_query_context_form_data_is_dict() -> None:
 
     assert query_context["form_data"]["viz_type"] == "pivot_table_v2"
     assert isinstance(query_context["form_data"], dict)
+
+
+def _table_chart_config() -> dict[str, Any]:
+    return {
+        "slice_name": "Games",
+        "description": None,
+        "certified_by": None,
+        "certification_details": None,
+        "viz_type": "table",
+        "query_context": None,
+        "params": json.dumps(
+            {
+                "datasource": "1__table",
+                "viz_type": "table",
+                "query_mode": "aggregate",
+                "groupby": ["name"],
+                "metrics": ["count"],
+                "row_limit": 1000,
+            }
+        ),
+        "cache_timeout": None,
+        "uuid": "2a5e562b-ab37-1b9b-1de3-1be4335c8e83",
+        "version": "1.0.0",
+        "dataset_uuid": "a18b9cb0-b8d3-42ed-bd33-0f0fadbf0f6d",
+    }
+
+
+def test_migrate_chart_table_leaves_viz_type_unchanged_by_default(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Table V2 (``ag-grid-table``) is gated behind ``AG_GRID_TABLE_ENABLED``,
+    off by default. Importing a ``table`` chart -- e.g. ``load_examples`` on
+    a fresh install -- must not silently hand back an ag-grid-table chart
+    the frontend hasn't registered the plugin for.
+    """
+    mocker.patch.object(
+        feature_flag_manager,
+        "is_feature_enabled",
+        side_effect=lambda flag: False,
+    )
+    chart_config = _table_chart_config()
+
+    new_config = migrate_chart(chart_config)
+
+    assert new_config == chart_config
+
+
+def test_migrate_chart_table_migrates_when_flag_enabled(
+    mocker: MockerFixture,
+) -> None:
+    """With the flag on, importing a `table` chart migrates it to v2, same
+    as any other viz migration."""
+    mocker.patch.object(
+        feature_flag_manager,
+        "is_feature_enabled",
+        side_effect=lambda flag: flag == "AG_GRID_TABLE_ENABLED",
+    )
+    chart_config = _table_chart_config()
+
+    new_config = migrate_chart(chart_config)
+
+    assert new_config["viz_type"] == "ag-grid-table"
+    assert json.loads(new_config["params"])["viz_type"] == "ag-grid-table"

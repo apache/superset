@@ -22,16 +22,13 @@ MCP tool: get_chart_data
 import logging
 import math
 import time
-from typing import Any, Dict, List, TYPE_CHECKING
+from typing import Any, Dict, List, NamedTuple
 
 from fastmcp import Context
 from flask import current_app
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import subqueryload
 from superset_core.mcp.decorators import tool, ToolAnnotations
-
-if TYPE_CHECKING:
-    from superset.models.slice import Slice
 
 from superset.charts.data.form_data import set_query_context_form_data
 from superset.commands.exceptions import CommandException
@@ -48,6 +45,7 @@ from superset.mcp_service.chart.chart_helpers import (
 )
 from superset.mcp_service.chart.chart_utils import validate_chart_dataset
 from superset.mcp_service.chart.query_result import (
+    normalize_chart_query_result,
     query_result_failure,
 )
 from superset.mcp_service.chart.schemas import (
@@ -63,9 +61,28 @@ from superset.mcp_service.utils.oauth2_utils import (
     build_oauth2_redirect_message,
     OAUTH2_CONFIG_ERROR_MESSAGE,
 )
+from superset.mcp_service.utils.serialization import is_missing_value
 from superset.utils.core import GenericDataType
 
 logger = logging.getLogger(__name__)
+
+
+class _ChartFacts(NamedTuple):
+    """Chart values copied off the Slice while it is still session-attached.
+
+    Downstream helpers run after several commits and await points, so they are
+    handed these plain values rather than the ORM instance, whose attributes
+    may be expired or detached by then. Field names match the Slice columns
+    they come from, so helpers reading ``chart.viz_type`` or
+    ``getattr(chart, "datasource_id", None)`` behave identically.
+    """
+
+    id: int
+    slice_name: str | None
+    viz_type: str | None
+    # Unset for an unsaved chart, which carries only export metadata.
+    datasource_id: Any = None
+    datasource_type: str | None = None
 
 
 _GENERIC_TYPE_MAP: dict[int, str] = {
@@ -96,6 +113,7 @@ _VIZ_CATEGORY: dict[str, str] = {
     "area": "area",
     "scatter": "scatter",
     "bubble": "bubble",
+    "bubble_v2": "bubble",
     "treemap_v2": "treemap",
     "sunburst_v2": "treemap",
     "heatmap_v2": "heatmap",
@@ -110,6 +128,7 @@ _VIZ_CATEGORY: dict[str, str] = {
     # Own category: cumulative-flow semantics differ from a plain bar, like
     # funnel/gauge carry distinct categories.
     "waterfall": "waterfall",
+    "gantt_chart": "gantt",
 }
 
 _MAX_RECOMMENDATIONS = 4
@@ -290,7 +309,7 @@ def _build_query_results(
         openWorldHint=False,
     ),
 )
-async def get_chart_data(  # noqa: C901
+async def get_chart_data(
     request: GetChartDataRequest, ctx: Context
 ) -> ChartData | ChartError:
     """Get chart data by ID or UUID.
@@ -309,6 +328,18 @@ async def get_chart_data(  # noqa: C901
     actually sees in the Explore view (not the saved version).
 
     Returns underlying data in requested format with cache status.
+    """
+    return await execute_chart_data(request, ctx)
+
+
+async def execute_chart_data(  # noqa: C901
+    request: GetChartDataRequest, ctx: Context
+) -> ChartData | ChartError:
+    """Shared core behind get_chart_data.
+
+    Undecorated entry point so other tools (e.g. get_dashboard_data) reuse the
+    same query and guest-authorization path without re-entering the auth-wrapped
+    tool.
     """
     await ctx.info(
         "Starting chart data retrieval: identifier=%s, format=%s, limit=%s, "
@@ -416,38 +447,66 @@ async def get_chart_data(  # noqa: C901
             chart = find_chart_by_identifier(
                 request.identifier, query_options=chart_query_options
             )
-            if chart is not None:
-                guest_dashboard_id = guest_scope.guest_dashboard_id(chart)
+            if not chart:
+                await ctx.warning(
+                    "Chart not found: identifier=%s" % (request.identifier,)
+                )
+                logger.warning(
+                    "get_chart_data: chart not found: identifier=%s", request.identifier
+                )
+                display_id = str(request.identifier)[:200]
+                return ChartError(
+                    error=(
+                        f"No chart found with identifier: {display_id}."
+                        " Use list_charts to get valid chart IDs."
+                    ),
+                    error_type="NotFound",
+                )
 
-        if not chart:
-            await ctx.warning("Chart not found: identifier=%s" % (request.identifier,))
-            logger.warning(
-                "get_chart_data: chart not found: identifier=%s", request.identifier
+            # Copy the values this function needs into plain locals while the
+            # instance is freshly loaded and still attached.
+            #
+            # Reading them off the ORM object later is not safe: exiting an
+            # event_logger.log_context() commits the session
+            # (DBEventLogger.log -> db.session.commit), and a commit expires
+            # every loaded attribute. If the instance is also detached before
+            # the next read -- this tool is async and crosses many await
+            # points -- that read raises DetachedInstanceError, which the
+            # broad SQLAlchemyError handler below turns into a confusing
+            # internal-session error instead of chart data. Plain locals are
+            # immune to both expiry and detachment.
+            chart_id = chart.id
+            chart_name = chart.slice_name
+            chart_viz_type = chart.viz_type
+            chart_datasource_id = chart.datasource_id
+            chart_datasource_type = chart.datasource_type
+            chart_params = chart.params
+            chart_query_context = chart.query_context
+            chart_facts = _ChartFacts(
+                chart_id,
+                chart_name,
+                chart_viz_type,
+                chart_datasource_id,
+                chart_datasource_type,
             )
-            display_id = str(request.identifier)[:200]
-            return ChartError(
-                error=(
-                    f"No chart found with identifier: {display_id}."
-                    " Use list_charts to get valid chart IDs."
-                ),
-                error_type="NotFound",
-            )
+
+            guest_dashboard_id = guest_scope.guest_dashboard_id(chart)
 
         await ctx.info(
             "Chart found successfully: chart_id=%s, chart_name=%s, viz_type=%s"
             % (
-                chart.id,
-                chart.slice_name,
-                chart.viz_type,
+                chart_id,
+                chart_name,
+                chart_viz_type,
             )
         )
-        logger.info("Getting data for chart %s: %s", chart.id, chart.slice_name)
+        logger.info("Getting data for chart %s: %s", chart_id, chart_name)
 
         # Guests skip the RBAC check (authorize_query covers it) but keep the
         # existence check, so a deleted dataset still returns
         # DatasetNotAccessible.
         validation_result = validate_chart_dataset(
-            chart.datasource_id, check_access=not guest_scope.is_guest_read()
+            chart_datasource_id, check_access=not guest_scope.is_guest_read()
         )
         if not validation_result.is_valid:
             await ctx.warning(
@@ -456,7 +515,7 @@ async def get_chart_data(  # noqa: C901
             )
             logger.warning(
                 "get_chart_data: dataset not accessible for chart_id=%s: %s",
-                chart.id,
+                chart_id,
                 validation_result.error,
             )
             return ChartError(
@@ -527,7 +586,7 @@ async def get_chart_data(  # noqa: C901
             else:
                 try:
                     parsed_saved_form_data = (
-                        utils_json.loads(chart.params) if chart.params else {}
+                        utils_json.loads(chart_params) if chart_params else {}
                     )
                     form_data = (
                         parsed_saved_form_data
@@ -538,7 +597,7 @@ async def get_chart_data(  # noqa: C901
                     form_data = {}
 
             if not using_unsaved_state:
-                form_data["viz_type"] = chart.viz_type or form_data.get("viz_type")
+                form_data["viz_type"] = chart_viz_type or form_data.get("viz_type")
 
             # If using cached form_data, we need to build query_context from it
             if using_unsaved_state and cached_form_data_dict is not None:
@@ -553,7 +612,7 @@ async def get_chart_data(  # noqa: C901
 
                 query_context = build_query_context_from_form_data(
                     cached_form_data_dict,
-                    chart=chart,
+                    chart=chart_facts,
                     extra_form_data=request.extra_form_data,
                     row_limit=row_limit,
                     order_desc=cached_form_data_dict.get("order_desc", True),
@@ -563,9 +622,9 @@ async def get_chart_data(  # noqa: C901
                 await ctx.debug(
                     "Built query_context from cached form_data (unsaved state)"
                 )
-            elif chart.query_context:
+            elif chart_query_context:
                 try:
-                    query_context_json = utils_json.loads(chart.query_context)
+                    query_context_json = utils_json.loads(chart_query_context)
                     await ctx.debug(
                         "Using chart's saved query_context for data retrieval"
                     )
@@ -586,7 +645,7 @@ async def get_chart_data(  # noqa: C901
                 from superset.common.query_context_factory import QueryContextFactory
 
                 factory = QueryContextFactory()
-                # row_limit from chart.params may be a str; coerce for
+                # row_limit from chart_params may be a str; coerce for
                 # apply_max_row_limit's int comparison.
                 row_limit = _coerce_row_limit(
                     request.limit or form_data.get("row_limit"),
@@ -603,16 +662,16 @@ async def get_chart_data(  # noqa: C901
                 # Bubble charts use x/y/size as separate metric fields.
                 # Deck.gl charts (deck_arc, deck_scatter, etc.) use spatial
                 # column configs (lat/lon, geohash, etc.) instead.
-                viz_type = chart.viz_type or ""
+                viz_type = chart_viz_type or ""
 
                 fallback_queries = build_query_dicts_from_form_data(
                     form_data,
-                    chart.datasource_id,
-                    chart.datasource_type,
-                    chart=chart,
+                    chart_datasource_id,
+                    chart_datasource_type,
+                    chart=chart_facts,
                     extra_form_data=request.extra_form_data,
                     row_limit=row_limit,
-                    order_desc=True,
+                    order_desc=form_data.get("order_desc", True),
                 )
 
                 # Safety net: if we could not extract any metrics or
@@ -627,17 +686,17 @@ async def get_chart_data(  # noqa: C901
                         "(viz_type=%s): no metrics, columns, or groupby "
                         "could be extracted from form_data. "
                         "Re-save the chart to populate query_context."
-                        % (chart.id, viz_type)
+                        % (chart_id, viz_type)
                     )
                     logger.warning(
                         "get_chart_data: cannot construct fallback query for "
                         "chart_id=%s (viz_type=%s): no metrics/columns found",
-                        chart.id,
+                        chart_id,
                         viz_type,
                     )
                     return ChartError(
                         error=(
-                            f"Chart {chart.id} (type: {viz_type}) has no "
+                            f"Chart {chart_id} (type: {viz_type}) has no "
                             f"saved query_context and its form_data does "
                             f"not contain recognizable metrics or columns. "
                             f"Please open this chart in Superset and "
@@ -648,8 +707,8 @@ async def get_chart_data(  # noqa: C901
 
                 query_context = factory.create(
                     datasource={
-                        "id": chart.datasource_id,
-                        "type": chart.datasource_type,
+                        "id": chart_datasource_id,
+                        "type": chart_datasource_type,
                     },
                     queries=fallback_queries,
                     form_data=form_data,
@@ -685,8 +744,8 @@ async def get_chart_data(  # noqa: C901
                 "Query execution parameters: datasource_id=%s, datasource_type=%s, "
                 "row_limit=%s, force_refresh=%s"
                 % (
-                    chart.datasource_id,
-                    chart.datasource_type,
+                    chart_datasource_id,
+                    chart_datasource_type,
                     request.limit or 100,
                     request.force_refresh,
                 )
@@ -695,12 +754,36 @@ async def get_chart_data(  # noqa: C901
             # For an embedded guest, attach the dashboard context so
             # raise_for_access authorizes the data query.
             if guest_dashboard_id is not None:
-                guest_scope.authorize_query(query_context, guest_dashboard_id, chart)
+                # Re-fetch rather than reusing the instance from the lookup:
+                # the guest tamper guard (security_manager.query_context_modified)
+                # follows query_context.slice_ into id, query_context and
+                # params_dict, and the lookup's log context has since committed,
+                # so that instance may be expired or detached. Snapshotted values
+                # cannot stand in here -- the guard must read the stored chart
+                # itself for the comparison to mean anything. Goes back through
+                # the DAO so the guest's ChartFilter still applies.
+                guest_chart = find_chart_by_identifier(chart_id)
+                if guest_chart is None:
+                    await ctx.warning(
+                        "Chart no longer accessible: chart_id=%s" % (chart_id,)
+                    )
+                    logger.warning(
+                        "get_chart_data: chart not accessible on re-fetch for "
+                        "guest authorization: chart_id=%s",
+                        chart_id,
+                    )
+                    return ChartError(
+                        error="Chart is not accessible.",
+                        error_type="NotFound",
+                    )
+                guest_scope.authorize_query(
+                    query_context, guest_dashboard_id, guest_chart
+                )
 
             set_query_context_form_data(
                 query_context,
-                chart.datasource_id,
-                chart.datasource_type,
+                chart_datasource_id,
+                chart_datasource_type,
             )
 
             # Execute the query
@@ -709,6 +792,10 @@ async def get_chart_data(  # noqa: C901
                 command.validate()
                 result = command.run()
 
+            if form_data.get("viz_type") == "treemap_v2":
+                result = normalize_chart_query_result(result, form_data)
+                if isinstance(result, ChartError):
+                    return result
             if query_failure := query_result_failure(result):
                 return query_failure
 
@@ -729,16 +816,16 @@ async def get_chart_data(  # noqa: C901
             if not result or ("queries" not in result) or len(result["queries"]) == 0:
                 await ctx.warning(
                     "Empty query results: chart_id=%s, chart_type=%s"
-                    % (chart.id, chart.viz_type)
+                    % (chart_id, chart_viz_type)
                 )
                 logger.warning(
                     "get_chart_data: empty query results for chart_id=%s, "
                     "chart_type=%s",
-                    chart.id,
-                    chart.viz_type,
+                    chart_id,
+                    chart_viz_type,
                 )
                 return ChartError(
-                    error=f"No query results returned for chart {chart.id}. "
+                    error=f"No query results returned for chart {chart_id}. "
                     f"This may occur with chart types like big_number.",
                     error_type="EmptyQuery",
                 )
@@ -760,13 +847,13 @@ async def get_chart_data(  # noqa: C901
 
             # Check if we have data to work with
             if not any(query.get("data") for query in result["queries"]):
-                await ctx.warning("No data in query results: chart_id=%s" % (chart.id,))
+                await ctx.warning("No data in query results: chart_id=%s" % (chart_id,))
                 logger.warning(
                     "get_chart_data: no data in query results for chart_id=%s",
-                    chart.id,
+                    chart_id,
                 )
                 return ChartError(
-                    error=f"No data available for chart {chart.id}", error_type="NoData"
+                    error=f"No data available for chart {chart_id}", error_type="NoData"
                 )
 
             # Create rich column metadata
@@ -777,7 +864,7 @@ async def get_chart_data(  # noqa: C901
                 sample_values = [
                     row.get(col_name)
                     for row in data[:3]
-                    if row.get(col_name) is not None
+                    if not is_missing_value(row.get(col_name))
                 ]
 
                 # Use SQL-derived GenericDataType when available,
@@ -797,8 +884,16 @@ async def get_chart_data(  # noqa: C901
                         display_name=col_name.replace("_", " ").title(),
                         data_type=data_type,
                         sample_values=sample_values[:3],
-                        null_count=sum(1 for row in data if row.get(col_name) is None),
-                        unique_count=len({str(row.get(col_name)) for row in data}),
+                        null_count=sum(
+                            1 for row in data if is_missing_value(row.get(col_name))
+                        ),
+                        unique_count=len(
+                            {
+                                str(row.get(col_name))
+                                for row in data
+                                if not is_missing_value(row.get(col_name))
+                            }
+                        ),
                     )
                 )
 
@@ -833,7 +928,7 @@ async def get_chart_data(  # noqa: C901
                 insights.append("Fresh data retrieved from database")
 
             recommended_visualizations = _recommend_visualizations(
-                viz_type=chart.viz_type or "unknown",
+                viz_type=chart_viz_type or "unknown",
                 columns=columns,
                 row_count=len(data),
             )
@@ -873,7 +968,7 @@ async def get_chart_data(  # noqa: C901
                 cache_info = age_info
 
             summary_parts = [
-                f"Chart '{chart.slice_name}' ({chart.viz_type})",
+                f"Chart '{chart_name}' ({chart_viz_type})",
                 f"Contains {len(data)} rows across {len(raw_columns)} columns"
                 f"{cache_info}",
             ]
@@ -891,7 +986,7 @@ async def get_chart_data(  # noqa: C901
                     action="mcp.get_chart_data.format_conversion"
                 ):
                     return _export_data_as_csv(
-                        chart,
+                        chart_facts,
                         data[: request.limit] if request.limit else data,
                         raw_columns,
                         cache_status,
@@ -902,7 +997,7 @@ async def get_chart_data(  # noqa: C901
                     action="mcp.get_chart_data.format_conversion"
                 ):
                     return _export_data_as_excel(
-                        chart,
+                        chart_facts,
                         data[: request.limit] if request.limit else data,
                         raw_columns,
                         cache_status,
@@ -922,7 +1017,7 @@ async def get_chart_data(  # noqa: C901
                 "rows_returned=%s, columns_returned=%s, execution_time_ms=%s, "
                 "cache_hit=%s, data_completeness=%s"
                 % (
-                    chart.id,
+                    chart_id,
                     len(data),
                     len(raw_columns),
                     execution_time,
@@ -933,9 +1028,9 @@ async def get_chart_data(  # noqa: C901
 
             # Default JSON format
             return ChartData(
-                chart_id=chart.id,
-                chart_name=chart.slice_name or f"Chart {chart.id}",
-                chart_type=chart.viz_type or "unknown",
+                chart_id=chart_id,
+                chart_name=chart_name or f"Chart {chart_id}",
+                chart_type=chart_viz_type or "unknown",
                 columns=columns,
                 data=data[: request.limit] if request.limit else data,
                 query_results=_build_query_results(result["queries"], request.limit),
@@ -960,12 +1055,12 @@ async def get_chart_data(  # noqa: C901
             await ctx.error(
                 "Data retrieval failed: chart_id=%s, error=%s, error_type=%s"
                 % (
-                    chart.id,
+                    chart_id,
                     str(data_error),
                     type(data_error).__name__,
                 )
             )
-            logger.error("Data retrieval error for chart %s: %s", chart.id, data_error)
+            logger.error("Data retrieval error for chart %s: %s", chart_id, data_error)
             return ChartError(
                 error=f"Error retrieving chart data: {str(data_error)}",
                 error_type="DataError",
@@ -1074,6 +1169,10 @@ async def _query_from_form_data(  # noqa: C901
             command.validate()
             result = command.run()
 
+        if form_data.get("viz_type") == "treemap_v2":
+            result = normalize_chart_query_result(result, form_data)
+            if isinstance(result, ChartError):
+                return result
         if query_failure := query_result_failure(result):
             return query_failure
 
@@ -1118,7 +1217,9 @@ async def _query_from_form_data(  # noqa: C901
         columns = []
         for col_name in raw_columns:
             sample_values = [
-                row.get(col_name) for row in data[:3] if row.get(col_name) is not None
+                row.get(col_name)
+                for row in data[:3]
+                if not is_missing_value(row.get(col_name))
             ]
             data_type = "string"
             if sample_values and all(
@@ -1131,8 +1232,16 @@ async def _query_from_form_data(  # noqa: C901
                     display_name=col_name.replace("_", " ").title(),
                     data_type=data_type,
                     sample_values=sample_values[:3],
-                    null_count=sum(1 for row in data if row.get(col_name) is None),
-                    unique_count=len({str(row.get(col_name)) for row in data}),
+                    null_count=sum(
+                        1 for row in data if is_missing_value(row.get(col_name))
+                    ),
+                    unique_count=len(
+                        {
+                            str(row.get(col_name))
+                            for row in data
+                            if not is_missing_value(row.get(col_name))
+                        }
+                    ),
                 )
             )
 
@@ -1142,10 +1251,10 @@ async def _query_from_form_data(  # noqa: C901
 
         chart_name = form_data.get("slice_name", "Unsaved chart")
         if request.format in {"csv", "excel"}:
-            from superset.models.slice import Slice
-
-            # A transient chart supplies export metadata without saving anything.
-            chart = Slice(id=0, slice_name=chart_name, viz_type=viz_type)
+            # Export metadata for an unsaved chart. A plain record rather than
+            # a transient Slice: nothing here is persisted, and an unattached
+            # mapped instance risks being picked up by a later autoflush.
+            chart = _ChartFacts(0, chart_name, viz_type)
             export = (
                 _export_data_as_csv
                 if request.format == "csv"
@@ -1205,7 +1314,7 @@ async def _query_from_form_data(  # noqa: C901
 
 
 def _export_data_as_csv(
-    chart: "Slice",
+    chart: "_ChartFacts",
     data: List[Dict[str, Any]],
     columns: List[str],
     cache_status: Any,
@@ -1264,7 +1373,7 @@ def _export_data_as_csv(
 
 
 def _export_data_as_excel(
-    chart: "Slice",
+    chart: "_ChartFacts",
     data: List[Dict[str, Any]],
     columns: List[str],
     cache_status: Any,
@@ -1281,7 +1390,7 @@ def _export_data_as_excel(
 
 
 def _create_excel_with_openpyxl(
-    chart: "Slice", data: List[Dict[str, Any]], columns: List[str]
+    chart: "_ChartFacts", data: List[Dict[str, Any]], columns: List[str]
 ) -> str:
     """Create Excel file using openpyxl."""
     import base64
@@ -1325,7 +1434,7 @@ def _write_excel_data(ws: Any, data: List[Dict[str, Any]], columns: List[str]) -
 
 
 def _try_xlsxwriter_fallback(
-    chart: "Slice",
+    chart: "_ChartFacts",
     data: List[Dict[str, Any]],
     columns: List[str],
     cache_status: Any,
@@ -1352,7 +1461,7 @@ def _try_xlsxwriter_fallback(
 
 
 def _create_excel_with_xlsxwriter(
-    chart: "Slice", data: List[Dict[str, Any]], columns: List[str]
+    chart: "_ChartFacts", data: List[Dict[str, Any]], columns: List[str]
 ) -> str:
     """Create Excel file using xlsxwriter."""
     import base64
@@ -1395,7 +1504,7 @@ def _write_xlsxwriter_data(
 
 
 def _create_excel_chart_data(
-    chart: "Slice",
+    chart: "_ChartFacts",
     data: List[Dict[str, Any]],
     excel_b64: str,
     performance: Any,
@@ -1428,7 +1537,7 @@ def _create_excel_chart_data(
 
 
 def _create_excel_chart_data_xlsxwriter(
-    chart: "Slice",
+    chart: "_ChartFacts",
     data: List[Dict[str, Any]],
     excel_b64: str,
     performance: Any,

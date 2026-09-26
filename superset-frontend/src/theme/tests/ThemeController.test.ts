@@ -1105,6 +1105,68 @@ test('setThemeConfig flags an active theme config override', () => {
   expect(controller.hasThemeConfigOverride()).toBe(true);
 });
 
+test('setThemeConfig does not flag an override when the config matches the workspace default', () => {
+  // Regression: an auto-forwarded workspace default (e.g. the Embedded SDK
+  // echoing the workspace theme) must not flip the precedence flag, or an
+  // embedded dashboard's own assigned theme is suppressed.
+  const controller = createController();
+
+  // createController bootstraps DEFAULT_THEME/DARK_THEME as the workspace default.
+  controller.setThemeConfig({
+    theme_default: DEFAULT_THEME,
+    theme_dark: DARK_THEME,
+  });
+
+  expect(controller.hasThemeConfigOverride()).toBe(false);
+});
+
+test('setThemeConfig keeps the override on a repeated identical brand forward', () => {
+  // Regression: the second identical forward must not clear the override by
+  // comparing the brand theme against the slot the first call already mutated.
+  const controller = createController();
+  const brand: SupersetThemeConfig = {
+    theme_default: { token: { colorPrimary: '#sdk-brand' } },
+    theme_dark: DARK_THEME,
+  };
+
+  controller.setThemeConfig(brand);
+  expect(controller.hasThemeConfigOverride()).toBe(true);
+
+  controller.setThemeConfig(brand);
+  expect(controller.hasThemeConfigOverride()).toBe(true);
+});
+
+test('setThemeConfig flags an override when only theme_dark differs from the workspace default', () => {
+  // Exercises the theme_dark clause in isolation: theme_default matches the
+  // workspace default, so only the dark comparison can make it an override.
+  const controller = createController();
+
+  controller.setThemeConfig({
+    theme_default: DEFAULT_THEME,
+    theme_dark: { token: { colorPrimary: '#sdk-dark' } },
+  });
+
+  expect(controller.hasThemeConfigOverride()).toBe(true);
+});
+
+test('setThemeConfig clears the override when a brand forward reverts to the workspace default', () => {
+  // Guards the clear-on-revert direction: once the host forwards the workspace
+  // default again, the dashboard's own theme must be allowed to apply.
+  const controller = createController();
+
+  controller.setThemeConfig({
+    theme_default: { token: { colorPrimary: '#sdk-brand' } },
+    theme_dark: DARK_THEME,
+  });
+  expect(controller.hasThemeConfigOverride()).toBe(true);
+
+  controller.setThemeConfig({
+    theme_default: DEFAULT_THEME,
+    theme_dark: DARK_THEME,
+  });
+  expect(controller.hasThemeConfigOverride()).toBe(false);
+});
+
 test('setThemeConfig handles theme_default only', () => {
   mockGetBootstrapData.mockReturnValue(
     createMockBootstrapData({
@@ -2246,6 +2308,40 @@ test('refreshSystemThemes applies a new system default live and notifies subscri
   getSpy.mockRestore();
 });
 
+test('refreshSystemThemes moves the workspace baseline used by the override check', async () => {
+  // After a live refresh, forwarding the refreshed default is not an override,
+  // while forwarding the previous default now is.
+  const controller = createController();
+  const NEW_DEFAULT: AnyThemeConfig = {
+    token: { colorBgBase: '#abcdef', colorPrimary: '#123456' },
+  };
+  const getSpy = jest.spyOn(SupersetClient, 'get').mockResolvedValue({
+    json: {
+      result: {
+        default: NEW_DEFAULT,
+        dark: DARK_THEME,
+        defaultMode: 'default',
+      },
+    },
+  } as any);
+
+  await controller.refreshSystemThemes();
+
+  controller.setThemeConfig({
+    theme_default: NEW_DEFAULT,
+    theme_dark: DARK_THEME,
+  });
+  expect(controller.hasThemeConfigOverride()).toBe(false);
+
+  controller.setThemeConfig({
+    theme_default: DEFAULT_THEME,
+    theme_dark: DARK_THEME,
+  });
+  expect(controller.hasThemeConfigOverride()).toBe(true);
+
+  getSpy.mockRestore();
+});
+
 test('refreshSystemThemes preserves an active dev theme override', async () => {
   const controller = createController();
   controller.setTemporaryTheme({ token: { colorPrimary: '#dev' } }, 42);
@@ -2388,8 +2484,10 @@ test('refreshSystemThemes is a no-op when the server returns no result', async (
 
 test('refreshSystemThemes is skipped when an embedded theme-config override is active', async () => {
   const controller = createController();
+  // A genuine SDK/host theme that differs from the workspace default is what
+  // flags an override; forwarding the workspace default alone does not.
   controller.setThemeConfig({
-    theme_default: DEFAULT_THEME,
+    theme_default: { token: { colorPrimary: '#sdk-brand' } },
     theme_dark: DARK_THEME,
   });
   expect(controller.hasThemeConfigOverride()).toBe(true);
@@ -2520,9 +2618,10 @@ test('refreshSystemThemes does not clobber an override applied while its fetch w
   // Override is inactive at entry, so the refresh proceeds and awaits the GET.
   const refresh = controller.refreshSystemThemes();
 
-  // An embedded theme-config override is applied while the request is in flight.
+  // An embedded theme-config override (a real SDK/host theme, distinct from the
+  // workspace default) is applied while the request is in flight.
   controller.setThemeConfig({
-    theme_default: DEFAULT_THEME,
+    theme_default: { token: { colorPrimary: '#sdk-brand' } },
     theme_dark: DARK_THEME,
   });
   expect(controller.hasThemeConfigOverride()).toBe(true);
