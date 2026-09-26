@@ -722,6 +722,10 @@ export default function transformProps(
     xAxisType === AxisType.Time &&
     xAxisLabelRotation === 0 &&
     !!resolvedTimeGrain;
+  // "All" (interval === '0') means every label is meant to show, so the
+  // spacing check below (which blanks labels that would otherwise visually
+  // collide) has to be bypassed too, not just ECharts' own hideOverlap.
+  const showAllLabels = xAxisLabelInterval === '0';
   const deduplicatedFormatter = showMaxLabel
     ? createSpacedXAxisFormatter(
         xAxisFormatter,
@@ -733,6 +737,7 @@ export default function transformProps(
           xAxisLabel,
         ),
         Math.max(width - 2 * TIMESERIES_CONSTANTS.gridOffsetLeft, 0),
+        showAllLabels,
       )
     : xAxisFormatter;
 
@@ -815,7 +820,7 @@ export default function transformProps(
     showMaxLabel,
     xAxisType,
     xAxisLabelRotation,
-    xAxisLabelInterval,
+    showAllLabels ? 0 : xAxisLabelInterval,
     deduplicatedFormatter,
     false,
     zoomable,

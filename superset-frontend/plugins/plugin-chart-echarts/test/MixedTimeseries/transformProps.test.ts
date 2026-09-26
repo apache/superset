@@ -1713,6 +1713,25 @@ describe('weekly x-axis tick alignment', () => {
     expect(xAxis.axisLabel.customValues).toBeUndefined();
     expect(xAxis.axisTick?.customValues).toBeUndefined();
   });
+
+  test('uncaps axisTick to match axisLabel when interval is "0", past the normal 60-mark cap', () => {
+    // axisTick normally stays capped (at most 60 marks) even when axisLabel
+    // goes uncapped, so a label surviving thinning still lands on a real
+    // tick. "All" wants every label to show, so a capped tick set would
+    // leave labels beyond the cap without a matching gridline.
+    const manyMondays = Array.from(
+      { length: 261 },
+      (_, i) => Date.UTC(2021, 0, 4) + i * WEEK_MS,
+    );
+    const { xAxis } = transformProps(
+      weeklyChartProps(manyMondays, manyMondays, {
+        xAxisLabelInterval: '0',
+      }),
+    ).echartOptions as any;
+
+    expect(xAxis.axisLabel.customValues).toEqual(manyMondays);
+    expect(xAxis.axisTick.customValues).toEqual(manyMondays);
+  });
 });
 
 function transformWithChrome(
@@ -1766,6 +1785,13 @@ test('hides the ticks on the x axis and both y axes', () => {
   expect(xAxis.axisTick.show).toBe(false);
   expect(yAxis[0].axisTick.show).toBe(false);
   expect(yAxis[1].axisTick.show).toBe(false);
+});
+
+test('converts xAxisLabelInterval string "0" to number 0', () => {
+  const { xAxis } = transformWithChrome({ xAxisLabelInterval: '0' });
+  expect(xAxis.axisLabel.interval).toBe(0);
+  // "All" must also disable hideOverlap so ECharts never drops a label.
+  expect(xAxis.axisLabel.hideOverlap).toBe(false);
 });
 
 test('should apply a dashed lineStyle to derived (time comparison) series only', () => {
