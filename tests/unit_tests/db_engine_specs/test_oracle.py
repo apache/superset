@@ -167,8 +167,11 @@ def test_get_column_spec(
     )
 
 
-@pytest.mark.parametrize("native_type", ["BLOB", "RAW(16)"])
-def test_get_column_spec_binary_types_are_unmapped(native_type: str) -> None:
+@pytest.mark.parametrize(
+    "native_type",
+    ["BLOB", "RAW(16)", "NUMBERING", "BINARY_FLOATING", "CLOBBER", "NCLOBS"],
+)
+def test_get_column_spec_unmapped_types(native_type: str) -> None:
     from superset.db_engine_specs.oracle import OracleEngineSpec
 
     assert OracleEngineSpec.get_column_spec(native_type) is None

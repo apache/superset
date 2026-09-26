@@ -52,19 +52,21 @@ class OracleEngineSpec(BaseEngineSpec):
     # without these mappings such columns get no generic type, so they are not
     # treated as numeric (no default SUM aggregate, excluded from numeric
     # column lists). BLOB and RAW are binary and are intentionally left unmapped.
+    # The patterns are anchored on a word boundary so unrelated type names that
+    # merely share a prefix (e.g. a user-defined "NUMBERING" type) stay unmapped.
     column_type_mappings = (
         (
-            re.compile(r"^number", re.IGNORECASE),
+            re.compile(r"^number\b", re.IGNORECASE),
             types.Numeric(),
             GenericDataType.NUMERIC,
         ),
         (
-            re.compile(r"^binary_(float|double)", re.IGNORECASE),
+            re.compile(r"^binary_(float|double)\b", re.IGNORECASE),
             types.Float(),
             GenericDataType.NUMERIC,
         ),
         (
-            re.compile(r"^n?clob", re.IGNORECASE),
+            re.compile(r"^n?clob\b", re.IGNORECASE),
             types.Text(),
             GenericDataType.STRING,
         ),
