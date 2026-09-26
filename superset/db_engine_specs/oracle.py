@@ -14,6 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import re
 from datetime import datetime
 from typing import Any, Optional
 
@@ -21,6 +22,7 @@ from sqlalchemy import types
 
 from superset.constants import TimeGrain
 from superset.db_engine_specs.base import BaseEngineSpec, DatabaseCategory
+from superset.utils.core import GenericDataType
 
 
 class OracleEngineSpec(BaseEngineSpec):
@@ -44,6 +46,29 @@ class OracleEngineSpec(BaseEngineSpec):
     force_column_alias_quotes = True
     max_column_name_length = 128
     supports_multivalues_insert = True
+
+    # Oracle-native type names the base mappings don't cover. NUMBER is Oracle's
+    # primary numeric type (reflected as e.g. "NUMBER" or "NUMBER(10, 2)"), and
+    # without these mappings such columns get no generic type, so they are not
+    # treated as numeric (no default SUM aggregate, excluded from numeric
+    # column lists). BLOB and RAW are binary and are intentionally left unmapped.
+    column_type_mappings = (
+        (
+            re.compile(r"^number", re.IGNORECASE),
+            types.Numeric(),
+            GenericDataType.NUMERIC,
+        ),
+        (
+            re.compile(r"^binary_(float|double)", re.IGNORECASE),
+            types.Float(),
+            GenericDataType.NUMERIC,
+        ),
+        (
+            re.compile(r"^n?clob", re.IGNORECASE),
+            types.Text(),
+            GenericDataType.STRING,
+        ),
+    )
 
     _time_grain_expressions = {
         None: "{col}",

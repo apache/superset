@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 from datetime import datetime
-from typing import Optional, Union
+from typing import Any, Optional, Union
 from unittest import mock
 
 import pytest
@@ -24,7 +24,11 @@ from sqlalchemy.dialects import oracle
 from sqlalchemy.dialects.oracle import DATE, NVARCHAR, VARCHAR
 from sqlalchemy.sql import quoted_name
 
-from tests.unit_tests.db_engine_specs.utils import assert_convert_dttm
+from superset.utils.core import GenericDataType
+from tests.unit_tests.db_engine_specs.utils import (
+    assert_column_spec,
+    assert_convert_dttm,
+)
 from tests.unit_tests.fixtures.common import dttm  # noqa: F401
 
 
@@ -128,3 +132,43 @@ def test_denormalize_name(name: str, expected_result: str):
     from superset.db_engine_specs.oracle import OracleEngineSpec as spec  # noqa: N813
 
     assert spec.denormalize_name(oracle.dialect(), name) == expected_result
+
+
+@pytest.mark.parametrize(
+    "native_type,sqla_type,attrs,generic_type,is_dttm",
+    [
+        # Oracle-native types, as reflected by SQLAlchemy's Oracle dialect
+        ("NUMBER", types.Numeric, None, GenericDataType.NUMERIC, False),
+        ("NUMBER(10, 2)", types.Numeric, None, GenericDataType.NUMERIC, False),
+        ("NUMBER(19, 0)", types.Numeric, None, GenericDataType.NUMERIC, False),
+        ("BINARY_DOUBLE", types.Float, None, GenericDataType.NUMERIC, False),
+        ("BINARY_FLOAT", types.Float, None, GenericDataType.NUMERIC, False),
+        ("CLOB", types.Text, None, GenericDataType.STRING, False),
+        ("NCLOB", types.Text, None, GenericDataType.STRING, False),
+        # types already covered by the base mappings keep their behavior
+        ("INTEGER", types.Integer, None, GenericDataType.NUMERIC, False),
+        ("DOUBLE PRECISION", types.Float, None, GenericDataType.NUMERIC, False),
+        ("VARCHAR(40 CHAR)", types.String, None, GenericDataType.STRING, False),
+        ("DATE", types.Date, None, GenericDataType.TEMPORAL, True),
+        ("TIMESTAMP", types.TIMESTAMP, None, GenericDataType.TEMPORAL, True),
+    ],
+)
+def test_get_column_spec(
+    native_type: str,
+    sqla_type: type[types.TypeEngine],
+    attrs: Optional[dict[str, Any]],
+    generic_type: GenericDataType,
+    is_dttm: bool,
+) -> None:
+    from superset.db_engine_specs.oracle import OracleEngineSpec
+
+    assert_column_spec(
+        OracleEngineSpec, native_type, sqla_type, attrs, generic_type, is_dttm
+    )
+
+
+@pytest.mark.parametrize("native_type", ["BLOB", "RAW(16)"])
+def test_get_column_spec_binary_types_are_unmapped(native_type: str) -> None:
+    from superset.db_engine_specs.oracle import OracleEngineSpec
+
+    assert OracleEngineSpec.get_column_spec(native_type) is None
