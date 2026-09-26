@@ -102,7 +102,10 @@ import { StatusMessage } from 'src/filters/components/common';
 import { useSelector } from 'react-redux';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import getBootstrapData from 'src/utils/getBootstrapData';
-import { getChartDataRequest } from 'src/components/Chart/chartAction';
+import {
+  getChartDataRequest,
+  handleChartDataResponse,
+} from 'src/components/Chart/chartAction';
 import DateFilterControl from 'src/explore/components/controls/DateFilterControl';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { StandardModal, ModalFormField } from 'src/components/Modal';
@@ -759,35 +762,35 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
       ownState: {},
     };
 
-    const data = await getChartDataRequest(filterValues).then(response => {
-      const rawData = response.json.result[0].data;
-      let filteredData = rawData;
+    const { response, json } = await getChartDataRequest(filterValues);
+    const queriesResponse = await handleChartDataResponse(response, json);
+    const rawData = queriesResponse[0].data;
+    let filteredData = rawData;
 
-      if (vizType === 'filter_timecolumn') {
-        // filter for time columns types
-        filteredData = rawData.filter((item: any) => item.dtype === 2);
+    if (vizType === 'filter_timecolumn') {
+      // filter for time columns types
+      filteredData = rawData.filter((item: any) => item.dtype === 2);
+    }
+
+    const data = filteredData.map((item: any) => {
+      if (vizType === 'filter_timegrain') {
+        return {
+          value: item.duration,
+          label: item.name,
+        };
       }
 
-      return filteredData.map((item: any) => {
-        if (vizType === 'filter_timegrain') {
-          return {
-            value: item.duration,
-            label: item.name,
-          };
-        }
-
-        if (vizType === 'filter_timecolumn') {
-          return {
-            value: item.column_name,
-            label: item.verbose_name || item.column_name,
-          };
-        }
-
+      if (vizType === 'filter_timecolumn') {
         return {
-          value: item[columnName],
-          label: item[columnName],
+          value: item.column_name,
+          label: item.verbose_name || item.column_name,
         };
-      });
+      }
+
+      return {
+        value: item[columnName],
+        label: item[columnName],
+      };
     });
 
     // eslint-disable-next-line consistent-return
@@ -1584,29 +1587,34 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
       return;
     }
 
-    getChartDataRequest(filterValues).then(response => {
-      const newFilterValues = response.json.result[0].data.map((item: any) => ({
-        value: item[columnName],
-        label: item[columnName],
-      }));
+    getChartDataRequest(filterValues)
+      .then(({ response, json }) => handleChartDataResponse(response, json))
+      .then(queriesResponse => {
+        const newFilterValues = queriesResponse[0].data.map((item: any) => ({
+          value: item[columnName],
+          label: item[columnName],
+        }));
 
-      setNativeFilterData(
-        nativeFilterData.map((filter, index) =>
-          index === idx
-            ? {
-                ...filter,
-                filterName,
-                filterType,
-                nativeFilterId,
-                columnLabel,
-                columnName,
-                optionFilterValues: newFilterValues,
-                filterValues: [], // reset filter values on filter change
-              }
-            : filter,
-        ),
-      );
-    });
+        setNativeFilterData(
+          nativeFilterData.map((filter, index) =>
+            index === idx
+              ? {
+                  ...filter,
+                  filterName,
+                  filterType,
+                  nativeFilterId,
+                  columnLabel,
+                  columnName,
+                  optionFilterValues: newFilterValues,
+                  filterValues: [], // reset filter values on filter change
+                }
+              : filter,
+          ),
+        );
+      })
+      .catch(() => {
+        addDangerToast(t('Failed to load dashboard filter values.'));
+      });
   };
 
   const onChangeDashboardFilterValue = (
