@@ -43,6 +43,7 @@ from superset.semantic_layers.models import (
     SemanticLayer,
     SemanticView,
 )
+from superset.superset_typing import ExplorableData
 from superset.utils.core import GenericDataType
 
 # =============================================================================
@@ -2402,3 +2403,19 @@ def test_values_for_column_search_rejection_falls_back_unfiltered(
     assert mock_implementation.get_values.call_args.args[1] is None
     assert "rejected the value-search filter" in caplog.text
     assert "category" in caplog.text
+
+
+def test_semantic_view_data_row_offset_capability(
+    mock_implementation: MagicMock,
+    semantic_view: SemanticView,
+) -> None:
+    """Expose the optional bounded-offset contract through existing metadata."""
+    declared: frozenset[SemanticViewFeature] = frozenset(
+        {SemanticViewFeature.ROW_OFFSET, SemanticViewFeature.GROUP_LIMIT}
+    )
+    mock_implementation.features = declared
+
+    data: ExplorableData = semantic_view.data
+
+    assert data["semantic_view_features"] == ["GROUP_LIMIT", "ROW_OFFSET"]
+    assert SemanticViewFeature.ROW_OFFSET.value == "ROW_OFFSET"

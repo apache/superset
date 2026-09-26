@@ -24,6 +24,16 @@ assists people when migrating to a new version.
 
 ## Next
 
+### Table server pagination for semantic views
+
+Table charts backed by semantic views require the optional `ROW_OFFSET`
+capability to enable Server pagination. Missing capability metadata disables
+the control with an explanation; SQL datasets are unchanged. Saved pagination
+settings are not rewritten. Users can explicitly turn off an unsupported
+saved setting; provider errors remain authoritative until that edit.
+Extension providers must use a compatible core version before declaring the
+new capability.
+
 ### Guest token RLS rules without a dataset apply inside sub-queries
 
 A guest token RLS rule with no `dataset` key applies to every dataset. Such

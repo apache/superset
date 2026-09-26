@@ -49,4 +49,18 @@ describe('CheckboxControl', () => {
     await userEvent.click(label);
     expect(defaultProps.onChange).toHaveBeenCalled();
   });
+
+  test('explains a disabled checkbox without a label', () => {
+    render(
+      setup({
+        label: undefined,
+        disabled: true,
+        disabledReason: 'Unavailable',
+      }),
+    );
+
+    const checkbox = screen.getByRole('checkbox');
+    expect(checkbox).toHaveAccessibleDescription('Unavailable');
+    expect(screen.getByText('Unavailable')).toBeInTheDocument();
+  });
 });

@@ -60,6 +60,20 @@ import { GenericDataType } from '@apache-superset/core/common';
 import { isEmpty, last } from 'lodash-es';
 import { PAGE_SIZE_OPTIONS, SERVER_PAGE_SIZE_OPTIONS } from './consts';
 
+function isServerPaginationUnsupported({
+  datasource,
+  form_data,
+}: ControlPanelState): boolean {
+  const isSemanticView =
+    datasource?.type === 'semantic_view' ||
+    (!datasource && form_data.datasource?.endsWith('__semantic_view'));
+  const features =
+    datasource && 'semantic_view_features' in datasource
+      ? datasource.semantic_view_features
+      : undefined;
+  return Boolean(isSemanticView && !features?.includes('ROW_OFFSET'));
+}
+
 function getQueryMode(controls: ControlStateMapping): QueryMode {
   const mode = controls?.query_mode?.value;
   if (mode === QueryMode.Aggregate || mode === QueryMode.Raw) {
@@ -394,6 +408,14 @@ const config: ControlPanelConfig = {
                 'Enable server side pagination of results (experimental feature)',
               ),
               default: false,
+              shouldMapStateToProps: () => true,
+              mapStateToProps: state => ({
+                disabled: isServerPaginationUnsupported(state),
+                disabledReason: t(
+                  'This semantic view does not support server pagination.',
+                ),
+                resetLabel: t('Turn off server pagination'),
+              }),
             },
           },
         ],
@@ -406,6 +428,10 @@ const config: ControlPanelConfig = {
               label: t('Server Page Length'),
               default: 10,
               choices: SERVER_PAGE_SIZE_OPTIONS,
+              shouldMapStateToProps: () => true,
+              mapStateToProps: state => ({
+                disabled: isServerPaginationUnsupported(state),
+              }),
               description: t('Rows per page, 0 means no pagination'),
               visibility: ({ controls }: ControlPanelsContainerProps) =>
                 Boolean(controls?.server_pagination?.value),
