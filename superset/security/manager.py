@@ -162,9 +162,21 @@ def get_extra_editor_subject_ids(resource: Model) -> list[int]:
     if not resolver:
         return []
 
+    try:
+        resolved_subjects = resolver(resource) or []
+    except Exception:  # pylint: disable=broad-except
+        # A misbehaving EXTRA_EDITORS_RESOLVER must not turn every read of
+        # this resource into a 500; fail closed on the extra-editors list
+        # instead of failing the whole request.
+        logger.exception(
+            "EXTRA_EDITORS_RESOLVER raised while resolving extra editors for %s",
+            resource,
+        )
+        return []
+
     subject_ids: list[int] = []
     seen: set[int] = set()
-    for subject in resolver(resource) or []:
+    for subject in resolved_subjects:
         subject_id = _get_subject_id(subject)
         if subject_id is not None and subject_id not in seen:
             subject_ids.append(subject_id)
@@ -200,6 +212,26 @@ def get_extra_editors_by_pk(
         getattr(resource, pk_col.name): get_extra_editor_subject_ids(resource)
         for resource in resources
     }
+
+
+def attach_extra_editors(result: dict[str, Any], resource: Model) -> None:
+    """
+    Attach ``extra_editors`` to a single-object API response, if configured.
+    """
+    if has_app_context() and current_app.config.get("EXTRA_EDITORS_RESOLVER"):
+        result["extra_editors"] = get_extra_editor_subject_ids(resource)
+
+
+def attach_extra_editors_to_rows(data: dict[str, Any], model_cls: type[Model]) -> None:
+    """
+    Attach ``extra_editors`` to each row of a list API response, matching
+    ``attach_extra_editors``'s single-object behavior.
+    """
+    ids = data.get("ids", [])
+    extra_editors_by_id = get_extra_editors_by_pk(model_cls, ids)
+    for row, row_id in zip(data.get("result", []), ids, strict=False):
+        if row_id in extra_editors_by_id:
+            row["extra_editors"] = extra_editors_by_id[row_id]
 
 
 # Retired from ``PERMISSION_INSTRUCTIONS_LINK``: see
