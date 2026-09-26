@@ -126,6 +126,7 @@ import {
   FILTER_SUPPORTED_TYPES,
   INPUT_WIDTH,
 } from './constants';
+import { FilterPlugins } from 'src/constants';
 import DependencyList from './DependencyList';
 import { datasetLabel } from 'src/features/semanticLayers/label';
 
@@ -144,6 +145,15 @@ const StyledContainer = styled.div`
     flex-direction: row-reverse;
     justify-content: space-between;
     padding: 0px ${theme.sizeUnit * 4}px;
+  `}
+`;
+
+const StyledParameterRow = styled.div`
+  ${({ theme }) => `
+    display: flex;
+    justify-content: space-between;
+    padding: 0px ${theme.sizeUnit * 4}px;
+    margin-bottom: ${theme.sizeUnit * 2}px;
   `}
 `;
 
@@ -334,6 +344,11 @@ const FiltersConfigForm = (
   const filters = form.getFieldValue('filters');
   const formValues = filters?.[filterId];
   const formFilter = formValues || undoFormValues || defaultFormFilter;
+  const isParameter =
+    formFilter?.filterType === FilterPlugins.Parameter ||
+    filterToEdit?.filterType === FilterPlugins.Parameter ||
+    form.getFieldValue(['filters', filterId, 'filterType']) ===
+      FilterPlugins.Parameter;
   const formFilterWithTimeGrains = formFilter as typeof formFilter & {
     time_grains?: string[];
   };
@@ -353,6 +368,7 @@ const FiltersConfigForm = (
   const nativeFilterVizTypes = Object.entries(nativeFilterAndCustomizationItems)
     // @ts-expect-error
     .filter(([, { value }]) => value.behaviors?.includes(Behavior.NativeFilter))
+    .filter(([key]) => key !== FilterPlugins.Parameter)
     .map(([key]) => key as keyof typeof FILTER_SUPPORTED_TYPES);
 
   const chartCustomizationVizTypes = Object.entries(
@@ -568,7 +584,19 @@ const FiltersConfigForm = (
     datasetId,
     datasourceType,
     groupby: hasColumn ? formFilter?.column : undefined,
+    ...filterToEdit,
     ...formFilter,
+    controlValues: {
+      ...filterToEdit?.controlValues,
+      ...formFilter?.controlValues,
+    },
+    ...(isParameter
+      ? {
+          defaultValue:
+            formFilter?.defaultDataMask?.filterState?.value ??
+            filterToEdit?.defaultDataMask?.filterState?.value,
+        }
+      : {}),
   });
 
   newFormData.extra_form_data = dependenciesDefaultValues;
@@ -962,32 +990,26 @@ const FiltersConfigForm = (
           children: (
             <>
               <StyledSettings>
-                <StyledContainer>
-                  <StyledFormItem
-                    expanded={expanded}
-                    name={['filters', filterId, 'name']}
-                    label={
-                      <StyledLabel>
-                        {isChartCustomization
-                          ? t('Display control name')
-                          : t('Filter name')}
-                      </StyledLabel>
-                    }
-                    initialValue={
-                      isChartCustomization
-                        ? customizationToEdit?.name
-                        : filterToEdit?.name
-                    }
-                    rules={[
-                      { required: !isRemoved, message: t('Name is required') },
-                    ]}
-                  >
-                    <Input
-                      {...getFiltersConfigModalTestId('name-input')}
-                      onChange={debouncedFormChanged}
-                    />
-                  </StyledFormItem>
-                  {isChartCustomization ? (
+                {isChartCustomization ? (
+                  <StyledContainer>
+                    <StyledFormItem
+                      expanded={expanded}
+                      name={['filters', filterId, 'name']}
+                      label={
+                        <StyledLabel>
+                          {t('Display control name')}
+                        </StyledLabel>
+                      }
+                      initialValue={customizationToEdit?.name}
+                      rules={[
+                        { required: !isRemoved, message: t('Name is required') },
+                      ]}
+                    >
+                      <Input
+                        {...getFiltersConfigModalTestId('name-input')}
+                        onChange={debouncedFormChanged}
+                      />
+                    </StyledFormItem>
                     <StyledFormItem
                       expanded={expanded}
                       name={['filters', filterId, 'filterType']}
@@ -1036,7 +1058,179 @@ const FiltersConfigForm = (
                         }}
                       />
                     </StyledFormItem>
-                  ) : (
+                  </StyledContainer>
+                ) : isParameter ? (
+                  <>
+                    <FormItem
+                      name={['filters', filterId, 'filterType']}
+                      hidden
+                      initialValue={FilterPlugins.Parameter}
+                    />
+                    <StyledParameterRow>
+                      <StyledFormItem
+                        expanded={expanded}
+                        name={['filters', filterId, 'name']}
+                        label={<StyledLabel>{t('Parameter name')}</StyledLabel>}
+                        initialValue={
+                          filterToEdit?.name || formFilter?.name
+                        }
+                        rules={[
+                          { required: !isRemoved, message: t('Name is required') },
+                        ]}
+                      >
+                        <Input
+                          {...getFiltersConfigModalTestId('name-input')}
+                          onChange={e => {
+                            const val = e.target.value;
+                            const currentDefaultDataMask = form.getFieldValue([
+                              'filters',
+                              filterId,
+                              'defaultDataMask',
+                            ]);
+                            if (
+                              currentDefaultDataMask &&
+                              typeof currentDefaultDataMask === 'object' &&
+                              currentDefaultDataMask.filterState
+                            ) {
+                              const updatedMask = {
+                                ...currentDefaultDataMask,
+                                extraFormData: {
+                                  ...currentDefaultDataMask.extraFormData,
+                                  parameters: {
+                                    ...(val
+                                      ? {
+                                          [val]:
+                                            currentDefaultDataMask.filterState
+                                              .value,
+                                        }
+                                      : {}),
+                                  },
+                                },
+                              };
+                              setNativeFilterFieldValues(form, filterId, {
+                                name: val,
+                                defaultDataMask: updatedMask,
+                              });
+                              form.setFields([
+                                {
+                                  name: [
+                                    'filters',
+                                    filterId,
+                                    'defaultDataMask',
+                                  ],
+                                  value: updatedMask,
+                                },
+                              ]);
+                            } else {
+                              setNativeFilterFieldValues(form, filterId, {
+                                name: val,
+                              });
+                            }
+                            forceUpdate();
+                            debouncedFormChanged();
+                          }}
+                        />
+                      </StyledFormItem>
+                      <StyledFormItem
+                        expanded={expanded}
+                        name={[
+                          'filters',
+                          filterId,
+                          'controlValues',
+                          'parameter_type',
+                        ]}
+                        label={<StyledLabel>{t('Data type')}</StyledLabel>}
+                        initialValue={
+                          filterToEdit?.controlValues?.parameter_type === 'decimal'
+                            ? 'float'
+                            : filterToEdit?.controlValues?.parameter_type === 'number'
+                            ? 'integer'
+                            : filterToEdit?.controlValues?.parameter_type ||
+                              formFilter?.controlValues?.parameter_type ||
+                              'string'
+                        }
+                        rules={[
+                          {
+                            required: !isRemoved,
+                            message: t('Data type is required'),
+                          },
+                        ]}
+                      >
+                        <Select
+                          ariaLabel={t('Data type')}
+                          options={[
+                            { value: 'string', label: t('Text / String') },
+                            { value: 'integer', label: t('Integer') },
+                            { value: 'float', label: t('Float') },
+                            { value: 'boolean', label: t('Boolean') },
+                          ]}
+                          onChange={value => {
+                            const previous =
+                              form.getFieldValue('filters')?.[filterId]
+                                ?.controlValues || {};
+                            setNativeFilterFieldValues(form, filterId, {
+                              controlValues: {
+                                ...previous,
+                                parameter_type: value,
+                              },
+                              ...(hasDefaultValue
+                                ? {
+                                    defaultDataMask: {
+                                      filterState: {
+                                        value: null,
+                                      },
+                                    },
+                                  }
+                                : {}),
+                            });
+                            if (hasDefaultValue) {
+                              form.setFields([
+                                {
+                                  name: [
+                                    'filters',
+                                    filterId,
+                                    'defaultDataMask',
+                                  ],
+                                  value: {
+                                    filterState: {
+                                      value: null,
+                                    },
+                                  },
+                                },
+                              ]);
+                              setErroredFilters(prevErroredFilters =>
+                                prevErroredFilters.filter(
+                                  id => id !== filterId,
+                                ),
+                              );
+                            }
+                            forceUpdate();
+                            formChanged();
+                          }}
+                        />
+                      </StyledFormItem>
+                    </StyledParameterRow>
+                  </>
+                ) : (
+                  <StyledContainer>
+                    <StyledFormItem
+                      expanded={expanded}
+                      name={['filters', filterId, 'name']}
+                      label={
+                        <StyledLabel>
+                          {t('Filter name')}
+                        </StyledLabel>
+                      }
+                      initialValue={filterToEdit?.name}
+                      rules={[
+                        { required: !isRemoved, message: t('Name is required') },
+                      ]}
+                    >
+                      <Input
+                        {...getFiltersConfigModalTestId('name-input')}
+                        onChange={debouncedFormChanged}
+                      />
+                    </StyledFormItem>
                     <StyledFormItem
                       expanded={expanded}
                       name={['filters', filterId, 'filterType']}
@@ -1103,8 +1297,8 @@ const FiltersConfigForm = (
                         }}
                       />
                     </StyledFormItem>
-                  )}
-                </StyledContainer>
+                  </StyledContainer>
+                )}
                 {formFilter?.filterType === 'filter_time' && (
                   <FilterTypeInfo expanded={expanded}>
                     {t(`Dashboard time range filters apply to temporal columns defined in
@@ -1204,7 +1398,7 @@ const FiltersConfigForm = (
                   expandIconPosition="end"
                   key={`native-filter-config-${filterId}`}
                   items={[
-                    ...(itemTypeField !== 'filter_time'
+                    ...(itemTypeField !== 'filter_time' && !isParameter
                       ? [
                           {
                             key: `${filterId}-${FilterPanels.configuration.key}`,
@@ -1849,6 +2043,8 @@ const FiltersConfigForm = (
                               title={
                                 isChartCustomization
                                   ? t('Display control has default value')
+                                  : isParameter
+                                  ? t('Parameter has default value')
                                   : t('Filter has default value')
                               }
                               tooltip={defaultValueTooltip}
@@ -1858,6 +2054,21 @@ const FiltersConfigForm = (
                                   setNativeFilterFieldValues(form, filterId, {
                                     defaultDataMask: null,
                                   });
+                                  form.setFields([
+                                    {
+                                      name: [
+                                        'filters',
+                                        filterId,
+                                        'defaultDataMask',
+                                      ],
+                                      value: null,
+                                    },
+                                  ]);
+                                  setErroredFilters(prevErroredFilters =>
+                                    prevErroredFilters.filter(
+                                      id => id !== filterId,
+                                    ),
+                                  );
                                 } else {
                                   // When the checkbox is checked, explicitly set an empty default data mask
                                   // for range filters to trigger validation
@@ -1872,11 +2083,22 @@ const FiltersConfigForm = (
                                         },
                                       },
                                     });
+                                    form.validateFields([
+                                      ['filters', filterId, 'defaultDataMask'],
+                                    ]);
+                                  } else if (!isParameter) {
+                                    // Validate immediately when the checkbox is checked for standard filters
+                                    form.validateFields([
+                                      ['filters', filterId, 'defaultDataMask'],
+                                    ]);
+                                  } else {
+                                    // For parameter filters, clear error so user can input value without premature error
+                                    setErroredFilters(prevErroredFilters =>
+                                      prevErroredFilters.filter(
+                                        id => id !== filterId,
+                                      ),
+                                    );
                                   }
-                                  // Validate immediately when the checkbox is checked
-                                  form.validateFields([
-                                    ['filters', filterId, 'defaultDataMask'],
-                                  ]);
                                 }
                                 formChanged();
                               }}
@@ -1897,39 +2119,139 @@ const FiltersConfigForm = (
                                     </StyledLabel>
                                   }
                                   required={hasDefaultValue}
+                                  validateTrigger={isParameter ? [] : undefined}
+                                  getValueFromEvent={value =>
+                                    value &&
+                                    typeof value === 'object' &&
+                                    ('filterState' in value ||
+                                      'extraFormData' in value)
+                                      ? value
+                                      : form.getFieldValue([
+                                          'filters',
+                                          filterId,
+                                          'defaultDataMask',
+                                        ])
+                                  }
                                   rules={[
                                     {
-                                      validator: () => {
-                                        // For range filters, check if at least one of the values in the array is non-null
-                                        const value =
-                                          formFilter?.defaultDataMask
-                                            ?.filterState?.value;
-                                        const isRangeFilter =
-                                          formFilter?.filterType ===
-                                          'filter_range';
-
-                                        // Check if value exists and is valid
-                                        const hasValidValue =
-                                          isValidFilterValue(
-                                            value,
-                                            isRangeFilter,
+                                      validator: (_, dataMaskFromRule) => {
+                                        const isDefaultValueChecked =
+                                          hasDefaultValue ||
+                                          Boolean(
+                                            form.getFieldValue([
+                                              'filters',
+                                              filterId,
+                                              'defaultValue',
+                                            ]),
+                                          ) ||
+                                          Boolean(
+                                            form.getFieldValue('filters')?.[
+                                              filterId
+                                            ]?.defaultValue,
                                           );
 
-                                        if (hasValidValue) {
-                                          const formValidationFields =
-                                            form.getFieldsError();
+                                        if (!isDefaultValueChecked) {
                                           setErroredFilters(
-                                            prevErroredFilters => {
-                                              if (
-                                                prevErroredFilters.length &&
-                                                !formValidationFields.some(
-                                                  f => f.errors.length > 0,
-                                                )
-                                              ) {
-                                                return [];
-                                              }
-                                              return prevErroredFilters;
-                                            },
+                                            prevErroredFilters =>
+                                              prevErroredFilters.filter(
+                                                id => id !== filterId,
+                                              ),
+                                          );
+                                          return Promise.resolve();
+                                        }
+
+                                        const isParam =
+                                          isParameter ||
+                                          formFilter?.filterType ===
+                                            FilterPlugins.Parameter ||
+                                          filterToEdit?.filterType ===
+                                            FilterPlugins.Parameter ||
+                                          form.getFieldValue([
+                                            'filters',
+                                            filterId,
+                                            'filterType',
+                                          ]) === FilterPlugins.Parameter;
+
+                                        const isRangeFilter =
+                                          (formFilter?.filterType ||
+                                            form.getFieldValue([
+                                              'filters',
+                                              filterId,
+                                              'filterType',
+                                            ])) === 'filter_range';
+
+                                        const candidates = [
+                                          dataMaskFromRule,
+                                          form.getFieldValue([
+                                            'filters',
+                                            filterId,
+                                            'defaultDataMask',
+                                          ]),
+                                          form.getFieldValue('filters')?.[
+                                            filterId
+                                          ]?.defaultDataMask,
+                                          formFilter?.defaultDataMask,
+                                          filterToEdit?.defaultDataMask,
+                                        ];
+
+                                        const extractCandidateValue = (
+                                          mask: any,
+                                        ) => {
+                                          if (
+                                            mask === null ||
+                                            mask === undefined
+                                          ) {
+                                            return undefined;
+                                          }
+                                          if (
+                                            mask.filterState &&
+                                            mask.filterState.value !== undefined
+                                          ) {
+                                            return mask.filterState.value;
+                                          }
+                                          if (mask.value !== undefined) {
+                                            return mask.value;
+                                          }
+                                          if (
+                                            typeof mask === 'string' ||
+                                            typeof mask === 'number' ||
+                                            typeof mask === 'boolean'
+                                          ) {
+                                            return mask;
+                                          }
+                                          return undefined;
+                                        };
+
+                                        let value: any = undefined;
+                                        for (const candidate of candidates) {
+                                          const candidateVal =
+                                            extractCandidateValue(candidate);
+                                          if (
+                                            candidateVal !== undefined &&
+                                            candidateVal !== null &&
+                                            candidateVal !== ''
+                                          ) {
+                                            value = candidateVal;
+                                            break;
+                                          }
+                                        }
+
+                                        // Check if value exists and is valid
+                                        const hasValidValue = isParam
+                                          ? value !== null &&
+                                            value !== undefined &&
+                                            value !== ''
+                                          : isValidFilterValue(
+                                              value,
+                                              isRangeFilter,
+                                            );
+
+                                        if (hasValidValue) {
+                                          setErroredFilters(
+                                            prevErroredFilters =>
+                                              prevErroredFilters.filter(
+                                                id => id !== filterId,
+                                              ),
                                           );
                                           return Promise.resolve();
                                         }
@@ -1951,7 +2273,9 @@ const FiltersConfigForm = (
                                         );
                                         return Promise.reject(
                                           new Error(
-                                            t('Please choose a valid value'),
+                                            isParam
+                                              ? t('Please enter a valid value')
+                                              : t('Please choose a valid value'),
                                           ),
                                         );
                                       },
@@ -1990,6 +2314,16 @@ const FiltersConfigForm = (
                                                 defaultDataMask: dataMask,
                                               },
                                             );
+                                            form.setFields([
+                                              {
+                                                name: [
+                                                  'filters',
+                                                  filterId,
+                                                  'defaultDataMask',
+                                                ],
+                                                value: dataMask,
+                                              },
+                                            ]);
                                             form.validateFields([
                                               [
                                                 'filters',
@@ -2038,13 +2372,14 @@ const FiltersConfigForm = (
                               )}
                             </CollapsibleControl>
                           </FormItem>
-                          {Object.keys(controlItems)
-                            .sort(
-                              (a, b) =>
-                                controlsOrder.indexOf(a as ControlKey) -
-                                controlsOrder.indexOf(b as ControlKey),
-                            )
-                            .map(key => controlItems[key].element)}
+                          {!isParameter &&
+                            Object.keys(controlItems)
+                              .sort(
+                                (a, b) =>
+                                  controlsOrder.indexOf(a as ControlKey) -
+                                  controlsOrder.indexOf(b as ControlKey),
+                              )
+                              .map(key => controlItems[key].element)}
                         </>
                       ),
                     },

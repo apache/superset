@@ -3577,3 +3577,126 @@ def test_get_rendered_sql_filter_values_index_error_on_empty_list() -> None:
         match=r"Virtual dataset template error: list object has no element 0",
     ):
         table.get_rendered_sql(processor)
+
+
+def test_parameter_macro_from_extra_form_data() -> None:
+    """
+    Test the ``parameter`` macro reading from extra_form_data.parameters.
+    """
+    with current_app.test_request_context(
+        data={
+            "form_data": json.dumps(
+                {
+                    "extra_form_data": {
+                        "parameters": {
+                            "threshold": 100,
+                            "status": "active",
+                        }
+                    }
+                }
+            )
+        }
+    ):
+        extra_cache_keys: list[Any] = []
+        cache = ExtraCache(extra_cache_keys=extra_cache_keys)
+        assert cache.parameter("threshold") == 100
+        assert cache.parameter("status") == "active"
+        assert "parameter:threshold:100" in extra_cache_keys
+        assert 'parameter:status:"active"' in extra_cache_keys
+
+
+def test_parameter_macro_default_fallback() -> None:
+    """
+    Test the ``parameter`` macro falling back to default value.
+    """
+    with current_app.test_request_context(data={"form_data": json.dumps({})}):
+        extra_cache_keys: list[Any] = []
+        cache = ExtraCache(extra_cache_keys=extra_cache_keys)
+        assert cache.parameter("missing_param", default=42) == 42
+        assert "parameter:missing_param:42" in extra_cache_keys
+
+
+def test_parameter_macro_from_context_parameters() -> None:
+    """
+    Test the ``parameter`` macro reading directly from query context parameters.
+    """
+    extra_cache_keys: list[Any] = []
+    cache = ExtraCache(
+        extra_cache_keys=extra_cache_keys,
+        parameters={"limit_val": 50},
+    )
+    assert cache.parameter("limit_val") == 50
+    assert "parameter:limit_val:50" in extra_cache_keys
+
+
+def test_parameter_regex_detection() -> None:
+    """
+    Test that ExtraCache.regex detects the parameter() macro in SQL statements.
+    """
+    statement = "SELECT * FROM sales WHERE amount > {{ parameter('threshold', 0) }}"
+    assert ExtraCache.regex.search(statement) is not None
+
+
+@with_feature_flags(ENABLE_TEMPLATE_PROCESSING=True)
+def test_parameter_template_processor_render() -> None:
+    """
+    Test rendering template with parameter macro via get_template_processor.
+    """
+    database = Database(id=1, database_name="my_database", sqlalchemy_uri="sqlite://")
+    processor = get_template_processor(
+        database=database,
+        parameters={"threshold": 250, "country": "O'Reilly"},
+    )
+    template = (
+        "SELECT * FROM sales WHERE amount > {{ parameter('threshold', 0) }} "
+        "AND country = '{{ parameter('country', 'US') }}'"
+    )
+    rendered = processor.process_template(template)
+    assert "amount > 250" in rendered
+    assert "country = 'O''Reilly'" in rendered
+
+
+def test_parameter_macro_target_types() -> None:
+    """
+    Test parameter macro target_type casting for int, float, bool, identifier, str.
+    """
+    cache = ExtraCache(
+        parameters={
+            "int_val": "100",
+            "float_val": "3.14",
+            "bool_val": "true",
+            "col_name": "sales_amount",
+            "text_val": "hello",
+        }
+    )
+    assert cache.parameter("int_val", target_type="int") == 100
+    assert cache.parameter("float_val", target_type="float") == 3.14
+    assert cache.parameter("bool_val", target_type="bool") is True
+    assert cache.parameter("col_name", target_type="identifier") == "sales_amount"
+    assert cache.parameter("text_val", target_type="str") == "hello"
+
+
+def test_parameter_macro_type_fallback_and_validation() -> None:
+    """
+    Test parameter macro fallback on invalid type values and exception raising.
+    """
+    cache = ExtraCache(
+        parameters={
+            "invalid_int": "not_a_number",
+            "invalid_col": "col; DROP TABLE users",
+        }
+    )
+    # Falls back to default when cast fails and default is provided
+    assert cache.parameter("invalid_int", default=10, target_type="int") == 10
+
+    # Raises SupersetTemplateException when cast fails and no default is provided
+    with pytest.raises(SupersetTemplateException):
+        cache.parameter("invalid_int", target_type="int")
+
+    # Raises SupersetTemplateException when identifier contains malicious characters
+    with pytest.raises(SupersetTemplateException):
+        cache.parameter("invalid_col", target_type="identifier")
+
+    # Raises SupersetTemplateException on unsupported target_type
+    with pytest.raises(SupersetTemplateException):
+        cache.parameter("int_val", target_type="unknown_type")

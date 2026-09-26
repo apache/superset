@@ -61,6 +61,7 @@ import {
 } from './utils';
 import { ConfigModalContent } from './ConfigModalContent';
 import ConfigModalSidebar from './ConfigModalSidebar';
+import { FilterPlugins } from 'src/constants';
 
 export { filterSupportsDependencies };
 
@@ -130,6 +131,7 @@ function FiltersConfigModal({
   const [expanded, setExpanded] = useState(false);
   const [activeCollapseKeys, setActiveCollapseKeys] = useState<string[]>([
     'filters',
+    'parameters',
     'chartCustomizations',
   ]);
 
@@ -247,6 +249,17 @@ function FiltersConfigModal({
       filterState,
       customizationState,
     ],
+  );
+
+  const isParameter = useCallback(
+    (id: string) => {
+      const formFilter = form.getFieldValue(['filters', id]);
+      if (formFilter?.filterType === FilterPlugins.Parameter) {
+        return true;
+      }
+      return filterConfigMap[id]?.filterType === FilterPlugins.Parameter;
+    },
+    [filterConfigMap, form],
   );
 
   const filterOperations = useFilterOperations({
@@ -596,6 +609,7 @@ function FiltersConfigModal({
                 restoreItem={restoreItem}
                 onCollapseChange={setActiveCollapseKeys}
                 onCrossListDrop={handleCrossListMove}
+                isParameter={isParameter}
               />
 
               <ConfigModalContent

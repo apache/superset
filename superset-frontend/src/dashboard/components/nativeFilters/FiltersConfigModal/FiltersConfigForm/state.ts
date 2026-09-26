@@ -68,19 +68,21 @@ export const useDefaultValue = (
   };
 
   useEffect(() => {
-    setHasDefaultValue(
-      defaultToFirstItem
-        ? false
-        : !!formFilter?.defaultDataMask?.filterState?.value,
-    );
+    const val = formFilter?.defaultDataMask?.filterState?.value;
+    const hasVal = val !== undefined && val !== null && val !== '';
+    setHasDefaultValue(defaultToFirstItem ? false : hasVal);
   }, [defaultToFirstItem, enableEmptyFilter]);
 
   useEffect(() => {
     const defaultValue =
-      filterToEdit?.defaultDataMask?.filterState?.value ||
+      filterToEdit?.defaultDataMask?.filterState?.value ??
       customizationToEdit?.defaultDataMask?.filterState?.value;
+    const hasVal =
+      defaultValue !== undefined &&
+      defaultValue !== null &&
+      defaultValue !== '';
 
-    setHasDefaultValue(defaultToFirstItem ? false : !!defaultValue);
+    setHasDefaultValue(defaultToFirstItem ? false : hasVal);
   }, [filterToEdit, customizationToEdit, defaultToFirstItem]);
 
   useEffect(() => {

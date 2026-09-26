@@ -200,6 +200,7 @@ export enum FilterPlugins {
   Time = 'filter_time',
   TimeColumn = 'filter_timecolumn',
   TimeGrain = 'filter_timegrain',
+  Parameter = 'filter_parameter',
 }
 
 export enum ChartCustomizationPlugins {

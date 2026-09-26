@@ -16,9 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-export { default as SelectFilterPlugin } from './Select';
-export { default as RangeFilterPlugin } from './Range';
-export { default as TimeFilterPlugin } from './Time';
-export { default as TimeColumnFilterPlugin } from './TimeColumn';
-export { default as TimeGrainFilterPlugin } from './TimeGrain';
-export { default as ParameterFilterPlugin } from './Parameter';
+import { ControlPanelConfig } from '@superset-ui/chart-controls';
+
+// Parameter controls (Data type, Allowable values, Choices) are rendered
+// natively in the primary Configuration card of FiltersConfigForm.
+const config: ControlPanelConfig = {
+  controlPanelSections: [],
+};
+
+export default config;

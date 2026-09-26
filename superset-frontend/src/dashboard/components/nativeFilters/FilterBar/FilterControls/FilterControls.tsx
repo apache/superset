@@ -56,6 +56,7 @@ import {
   useSelectCustomizationsInScope,
 } from 'src/dashboard/components/nativeFilters/state';
 import { FilterBarOrientation, RootState } from 'src/dashboard/types';
+import { FilterPlugins } from 'src/constants';
 import {
   DropdownContainer,
   type DropdownItem,
@@ -207,6 +208,22 @@ const FilterControls: FC<FilterControlsProps> = ({
   const [filtersInScope, filtersOutOfScope] =
     useSelectFiltersInScope(filtersWithValues);
 
+  const standardFiltersInScope = useMemo(
+    () =>
+      filtersInScope.filter(
+        item => item.filterType !== FilterPlugins.Parameter,
+      ),
+    [filtersInScope],
+  );
+
+  const parameterFiltersInScope = useMemo(
+    () =>
+      filtersInScope.filter(
+        item => item.filterType === FilterPlugins.Parameter,
+      ),
+    [filtersInScope],
+  );
+
   const filteredChartCustomizationValues = useMemo(
     () => chartCustomizationValues.filter(item => !item.removed),
     [chartCustomizationValues],
@@ -227,6 +244,7 @@ const FilterControls: FC<FilterControlsProps> = ({
 
   const [sectionsOpen, setSectionsOpen] = useState({
     filters: true,
+    parameters: true,
     chartCustomization: true,
   });
 
@@ -320,7 +338,7 @@ const FilterControls: FC<FilterControlsProps> = ({
   const renderVerticalContent = useCallback(
     () => (
       <>
-        {filtersInScope.length > 0 && (
+        {standardFiltersInScope.length > 0 && (
           <SectionContainer>
             {!hideHeader && (
               <SectionHeader
@@ -344,9 +362,43 @@ const FilterControls: FC<FilterControlsProps> = ({
               </SectionHeader>
             )}
             {(hideHeader || sectionsOpen.filters) && (
-              <SectionContent>{filtersInScope.map(renderer)}</SectionContent>
+              <SectionContent>
+                {standardFiltersInScope.map(renderer)}
+              </SectionContent>
             )}
             {(hideHeader || sectionsOpen.filters) && <StyledDivider />}
+          </SectionContainer>
+        )}
+
+        {parameterFiltersInScope.length > 0 && (
+          <SectionContainer>
+            {!hideHeader && (
+              <SectionHeader
+                type="button"
+                aria-expanded={sectionsOpen.parameters}
+                onClick={() => toggleSection('parameters')}
+              >
+                <Title
+                  level={5}
+                  style={{
+                    margin: 0,
+                    fontSize: theme.fontSize,
+                    fontWeight: theme.fontWeightNormal,
+                    color: theme.colorText,
+                    lineHeight: 1.3,
+                  }}
+                >
+                  {t('Parameters')}
+                </Title>
+                <StyledIcon iconSize="m" isOpen={sectionsOpen.parameters} />
+              </SectionHeader>
+            )}
+            {(hideHeader || sectionsOpen.parameters) && (
+              <SectionContent>
+                {parameterFiltersInScope.map(renderer)}
+              </SectionContent>
+            )}
+            {(hideHeader || sectionsOpen.parameters) && <StyledDivider />}
           </SectionContainer>
         )}
 

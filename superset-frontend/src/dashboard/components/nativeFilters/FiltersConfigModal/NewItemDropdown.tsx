@@ -18,14 +18,20 @@
  */
 import { FC } from 'react';
 import { t } from '@apache-superset/core/translation';
-import { NativeFilterType, ChartCustomizationType } from '@superset-ui/core';
+import {
+  NativeFilterType,
+  ChartCustomizationType,
+  isFeatureEnabled,
+  FeatureFlag,
+} from '@superset-ui/core';
 import { useTheme } from '@apache-superset/core/theme';
 import { Button, Dropdown } from '@superset-ui/core/components';
 import type { MenuProps } from '@superset-ui/core/components/Menu';
 import { Icons } from '@superset-ui/core/components/Icons';
+import { FilterPlugins } from 'src/constants';
 
 interface Props {
-  onAddFilter: (type: NativeFilterType) => void;
+  onAddFilter: (type: NativeFilterType, defaultFilterType?: string) => void;
   onAddCustomization: (type: ChartCustomizationType) => void;
 }
 
@@ -36,6 +42,8 @@ const NewItemDropdown: FC<Props> = ({ onAddFilter, onAddCustomization }) => {
     onClick: ({ key }) => {
       if (key === 'filter') {
         onAddFilter(NativeFilterType.NativeFilter);
+      } else if (key === 'parameter') {
+        onAddFilter(NativeFilterType.NativeFilter, FilterPlugins.Parameter);
       } else if (key === 'customization') {
         onAddCustomization(ChartCustomizationType.ChartCustomization);
       } else if (key === 'divider') {
@@ -50,6 +58,20 @@ const NewItemDropdown: FC<Props> = ({ onAddFilter, onAddCustomization }) => {
           <Icons.FilterOutlined iconColor={theme.colorPrimary} iconSize="m" />
         ),
       },
+      ...(isFeatureEnabled(FeatureFlag.DashboardParameters)
+        ? [
+            {
+              key: 'parameter',
+              label: t('Add parameter'),
+              icon: (
+                <Icons.FieldNumberOutlined
+                  iconColor={theme.colorPrimary}
+                  iconSize="m"
+                />
+              ),
+            },
+          ]
+        : []),
       {
         key: 'customization',
         label: t('Add display control'),

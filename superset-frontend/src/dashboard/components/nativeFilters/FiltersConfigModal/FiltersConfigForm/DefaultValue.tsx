@@ -60,8 +60,9 @@ const DefaultValue: FC<DefaultValueProps> = ({
   const emptyQueriesData = useMemo(() => [{ data: [{}] }], []);
   const loading = hasDataset && queriesData === null;
   const value = formFilter?.defaultDataMask?.filterState?.value;
+  const isParameter = chartType === 'filter_parameter';
   const isMissingRequiredValue =
-    hasDefaultValue && (value === null || value === undefined);
+    !isParameter && hasDefaultValue && (value === null || value === undefined);
   const baseFilterState = formFilter?.defaultDataMask?.filterState;
 
   // Every DefaultValue render used to spread `baseFilterState` into a brand
@@ -86,6 +87,7 @@ const DefaultValue: FC<DefaultValueProps> = ({
     <Loading position="inline-centered" />
   ) : (
     <SuperChart
+      key={`${filterId}_${chartType}_${formData?.parameter_type || (formData as any)?.parameterType || ''}`}
       height={INPUT_HEIGHT}
       width={isTimeFilter ? TIME_FILTER_INPUT_WIDTH : INPUT_WIDTH}
       appSection={AppSection.FilterConfigModal}

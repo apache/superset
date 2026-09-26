@@ -118,6 +118,40 @@ def _find_chart_layout_item(
     return None
 
 
+def _merge_custom_form_data(
+    base: dict[str, Any],
+    new: dict[str, Any],
+) -> dict[str, Any]:
+    base_custom = base.get("custom_form_data") or {}
+    new_custom = new.get("custom_form_data") or {}
+    if not isinstance(base_custom, dict) or not isinstance(new_custom, dict):
+        return {}
+    merged_custom = dict(base_custom)
+    for key, value in new_custom.items():
+        if (
+            key in merged_custom
+            and isinstance(merged_custom[key], list)
+            and isinstance(value, list)
+        ):
+            merged_custom[key] = merged_custom[key] + value
+        else:
+            merged_custom[key] = value
+    return merged_custom
+
+
+def _merge_parameters_data(
+    base: dict[str, Any],
+    new: dict[str, Any],
+) -> dict[str, Any]:
+    base_params = base.get("parameters") or {}
+    new_params = new.get("parameters") or {}
+    if isinstance(base_params, dict) and isinstance(new_params, dict):
+        merged = dict(base_params)
+        merged.update(new_params)
+        return merged
+    return {}
+
+
 def _merge_extra_form_data(
     base: dict[str, Any],
     new: dict[str, Any],
@@ -131,7 +165,7 @@ def _merge_extra_form_data(
     override_keys = (
         set(EXTRA_FORM_DATA_OVERRIDE_REGULAR_MAPPINGS.keys())
         | EXTRA_FORM_DATA_OVERRIDE_EXTRA_KEYS
-    )
+    ) - {"parameters"}
 
     merged: dict[str, Any] = {}
 
@@ -142,22 +176,11 @@ def _merge_extra_form_data(
         if combined:
             merged[key] = combined
 
-    # Merge custom_form_data as dicts so multiple filters' contributions combine
-    base_custom = base.get("custom_form_data") or {}
-    new_custom = new.get("custom_form_data") or {}
-    if isinstance(base_custom, dict) and isinstance(new_custom, dict):
-        merged_custom = dict(base_custom)
-        for key, value in new_custom.items():
-            if (
-                key in merged_custom
-                and isinstance(merged_custom[key], list)
-                and isinstance(value, list)
-            ):
-                merged_custom[key] = merged_custom[key] + value
-            else:
-                merged_custom[key] = value
-        if merged_custom:
-            merged["custom_form_data"] = merged_custom
+    if merged_custom := _merge_custom_form_data(base, new):
+        merged["custom_form_data"] = merged_custom
+
+    if merged_params := _merge_parameters_data(base, new):
+        merged["parameters"] = merged_params
 
     for key in override_keys:
         if key in new:
@@ -181,7 +204,9 @@ def _extract_filter_extra_form_data(
 
     Returns (extra_form_data, status).
     """
-    default_data_mask = filter_config.get("defaultDataMask", {})
+    default_data_mask = filter_config.get("defaultDataMask") or {}
+    if not isinstance(default_data_mask, dict):
+        default_data_mask = {}
     control_values = filter_config.get("controlValues", {})
 
     extra_form_data = default_data_mask.get("extraFormData")

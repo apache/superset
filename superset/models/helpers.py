@@ -479,6 +479,7 @@ SQLA_QUERY_KEYS = {
     "timeseries_limit",
     "timeseries_limit_metric",
     "time_shift",
+    "parameters",
 }
 
 
@@ -4647,6 +4648,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         timeseries_limit: Optional[int] = None,
         timeseries_limit_metric: Optional[Metric] = None,
         time_shift: Optional[str] = None,
+        parameters: Optional[dict[str, Any]] = None,
     ) -> SqlaQuery:
         """Querying any sqla table from this common interface"""
         if granularity not in self.dttm_cols and granularity is not None:
@@ -4669,6 +4671,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             "time_grain": time_grain,
             "table_columns": [col.column_name for col in self.columns],
             "filter": filter,
+            "parameters": parameters or extras.get("parameters") or {},
         }
         columns = columns or []
         groupby = groupby or []
