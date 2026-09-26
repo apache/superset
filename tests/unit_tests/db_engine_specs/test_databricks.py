@@ -1198,3 +1198,150 @@ def test_get_engine_spec_unrecognized_driver_prefers_python_connector() -> None:
         get_engine_spec("databricks", "databricks-sql-python")
         is DatabricksPythonConnectorEngineSpec
     )
+
+
+def test_has_query_id_before_execute_is_false() -> None:
+    """
+    The cancel id can only be read off the cursor after a statement has been
+    executed (``cursor.active_command_id`` is unset before that), so the id
+    must be captured post-execute rather than up front.
+    """
+    assert DatabricksPythonConnectorEngineSpec.has_query_id_before_execute is False
+
+
+def test_get_cancel_query_id_sea(mocker: MockerFixture) -> None:
+    """
+    On a SEA (Statement Execution API) connection, the cancel id is the
+    statement id exposed by the driver's ``CommandId``.
+    """
+    from superset.models.sql_lab import Query
+
+    cursor = mocker.MagicMock()
+    cursor.active_command_id.to_sea_statement_id.return_value = "01ecc35f-abcd"
+    cursor.connection.session.use_sea = True
+
+    query = Query()
+    assert (
+        DatabricksPythonConnectorEngineSpec.get_cancel_query_id(cursor, query)
+        == "01ecc35f-abcd"
+    )
+
+
+def test_get_cancel_query_id_no_active_command(mocker: MockerFixture) -> None:
+    """
+    Before a statement has been executed on the cursor, there's nothing to
+    build a cancel id from.
+    """
+    from superset.models.sql_lab import Query
+
+    cursor = mocker.MagicMock()
+    cursor.active_command_id = None
+    cursor.connection.session.use_sea = True
+
+    query = Query()
+    assert (
+        DatabricksPythonConnectorEngineSpec.get_cancel_query_id(cursor, query) is None
+    )
+
+
+def test_get_cancel_query_id_thrift_backend_returns_none(
+    mocker: MockerFixture,
+) -> None:
+    """
+    When the connection was not established with ``use_sea=True`` (i.e. it's
+    using the default Thrift backend), no cancel id is captured -- cancelling
+    a Thrift command requires a secret that's never exposed through any
+    public driver API, so we deliberately don't attempt it.
+    """
+    from superset.models.sql_lab import Query
+
+    cursor = mocker.MagicMock()
+    cursor.active_command_id.to_sea_statement_id.return_value = "01ecc35f-abcd"
+    cursor.connection.session.use_sea = False
+
+    query = Query()
+    assert (
+        DatabricksPythonConnectorEngineSpec.get_cancel_query_id(cursor, query) is None
+    )
+
+
+@pytest.fixture
+def databricks_command_id(mocker: MockerFixture) -> Any:
+    """
+    Stand-in for ``databricks.sql.backend.types.CommandId``.
+
+    The optional ``databricks-sql-connector`` driver isn't installed in the
+    unit-test environment, so the module chain is injected into ``sys.modules``
+    to let ``cancel_query``'s inline import resolve. Yields the ``CommandId``
+    mock so tests can assert on ``from_sea_statement_id``.
+    """
+    command_id_cls = mocker.MagicMock()
+    mocker.patch.dict(
+        "sys.modules",
+        {
+            "databricks": mocker.MagicMock(),
+            "databricks.sql": mocker.MagicMock(),
+            "databricks.sql.backend": mocker.MagicMock(),
+            "databricks.sql.backend.types": mocker.MagicMock(CommandId=command_id_cls),
+        },
+    )
+    return command_id_cls
+
+
+def test_cancel_query_sea_success(
+    mocker: MockerFixture, databricks_command_id: Any
+) -> None:
+    """
+    ``cancel_query`` sets the reconstructed SEA ``CommandId`` on the fresh
+    cursor and delegates to the driver's own ``cursor.cancel()``.
+    """
+    from superset.models.sql_lab import Query
+
+    cursor = mocker.MagicMock()
+
+    query = Query()
+    assert (
+        DatabricksPythonConnectorEngineSpec.cancel_query(cursor, query, "01ecc35f-abcd")
+        is True
+    )
+    databricks_command_id.from_sea_statement_id.assert_called_once_with("01ecc35f-abcd")
+    assert (
+        cursor.active_command_id
+        == databricks_command_id.from_sea_statement_id.return_value
+    )
+    cursor.cancel.assert_called_once_with()
+
+
+def test_cancel_query_invalid_id_returns_false(mocker: MockerFixture) -> None:
+    """
+    A malformed cancel id is rejected before touching the cursor at all.
+    """
+    from superset.models.sql_lab import Query
+
+    cursor = mocker.MagicMock()
+    query = Query()
+    assert (
+        DatabricksPythonConnectorEngineSpec.cancel_query(
+            cursor, query, "'; DROP TABLE foo; --"
+        )
+        is False
+    )
+    cursor.cancel.assert_not_called()
+
+
+def test_cancel_query_propagates_errors(
+    mocker: MockerFixture, databricks_command_id: Any
+) -> None:
+    """
+    If the cancel attempt itself fails (e.g. the fresh cursor/connection
+    errors), the error must surface rather than being reported as a failed-
+    but-handled cancel.
+    """
+    from superset.models.sql_lab import Query
+
+    cursor = mocker.MagicMock()
+    cursor.cancel.side_effect = RuntimeError("connection reset")
+
+    query = Query()
+    with pytest.raises(RuntimeError):
+        DatabricksPythonConnectorEngineSpec.cancel_query(cursor, query, "01ecc35f-abcd")
