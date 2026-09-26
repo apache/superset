@@ -1268,6 +1268,29 @@ post_processors = {
 }
 
 
+def _apply_excel_explore_formats(
+    workbook_bytes: bytes,
+    df: pd.DataFrame,
+    form_data: dict[str, Any],
+    viz_type: Optional[str],
+    include_index: bool,
+    verbose_map: Optional[dict[str, Any]] = None,
+) -> bytes:
+    """Apply Explore number/date/alignment formats to an already-written xlsx."""
+    from superset.utils.excel_conditional import polish_explore_xlsx
+
+    merged = dict(form_data)
+    if viz_type:
+        merged["viz_type"] = viz_type
+    return polish_explore_xlsx(
+        workbook_bytes,
+        df,
+        merged,
+        include_index=include_index,
+        verbose_map=verbose_map,
+    )
+
+
 def _is_default_index_column(series: pd.Series) -> bool:
     return series.tolist() == list(range(len(series)))
 
@@ -1441,6 +1464,7 @@ def apply_client_processing(  # noqa: C901
             )
         elif query["result_format"] == ChartDataResultFormat.XLSX:
             excel.apply_column_types(processed_df, query["coltypes"])
+            include_index = show_default_index
             query["data"] = excel.df_to_excel(
                 processed_df,
                 # A percent mode leaves every cell a fraction. Excel can render
@@ -1454,8 +1478,20 @@ def apply_client_processing(  # noqa: C901
                 ),
                 **{
                     **current_app.config["EXCEL_EXPORT"],
-                    "index": show_default_index,
+                    "index": include_index,
                 },
+            )
+            query["data"] = _apply_excel_explore_formats(
+                query["data"],
+                processed_df,
+                form_data,
+                viz_type,
+                include_index,
+                verbose_map=(
+                    datasource.data.get("verbose_map")
+                    if datasource and getattr(datasource, "data", None)
+                    else None
+                ),
             )
 
     return result
