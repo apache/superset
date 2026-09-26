@@ -190,3 +190,156 @@ def test_get_schema_from_engine_params() -> None:
         )
         is None
     )
+
+
+def test_build_sqlalchemy_uri_full() -> None:
+    """
+    Test ``build_sqlalchemy_uri`` with every parameter supplied.
+    """
+    from superset.db_engine_specs.athena import AthenaEngineSpec
+
+    uri = AthenaEngineSpec.build_sqlalchemy_uri(
+        {
+            "aws_access_key_id": "AKIAIOSFODNN7EXAMPLE",
+            "aws_secret_access_key": "secret/with+special=chars",
+            "region_name": "us-east-1",
+            "s3_staging_dir": "s3://my-bucket/staging/",
+            "schema_name": "default",
+            "work_group": "primary",
+        }
+    )
+    assert uri == (
+        "awsathena+rest://AKIAIOSFODNN7EXAMPLE:secret%2Fwith+special%3Dchars@"
+        "athena.us-east-1.amazonaws.com/default"
+        "?s3_staging_dir=s3%3A%2F%2Fmy-bucket%2Fstaging%2F&work_group=primary"
+    )
+
+
+def test_build_sqlalchemy_uri_minimal() -> None:
+    """
+    Test ``build_sqlalchemy_uri`` with only the required parameters.
+
+    Without explicit credentials (e.g. IAM role based auth) the URI has no
+    user/password, no schema, and no work group.
+    """
+    from superset.db_engine_specs.athena import AthenaEngineSpec
+
+    uri = AthenaEngineSpec.build_sqlalchemy_uri(
+        {
+            "region_name": "eu-west-1",
+            "s3_staging_dir": "s3://another-bucket/",
+        }
+    )
+    assert uri == (
+        "awsathena+rest://athena.eu-west-1.amazonaws.com"
+        "?s3_staging_dir=s3%3A%2F%2Fanother-bucket%2F"
+    )
+
+
+def test_get_parameters_from_uri() -> None:
+    """
+    Test ``get_parameters_from_uri`` extracts each parameter back out.
+    """
+    from superset.db_engine_specs.athena import AthenaEngineSpec
+
+    parameters = AthenaEngineSpec.get_parameters_from_uri(
+        "awsathena+rest://AKIAIOSFODNN7EXAMPLE:secret%2Fkey@"
+        "athena.us-east-1.amazonaws.com/default"
+        "?s3_staging_dir=s3%3A%2F%2Fmy-bucket%2Fstaging%2F&work_group=primary"
+    )
+    assert parameters == {
+        "aws_access_key_id": "AKIAIOSFODNN7EXAMPLE",
+        "aws_secret_access_key": "secret/key",
+        "region_name": "us-east-1",
+        "s3_staging_dir": "s3://my-bucket/staging/",
+        "schema_name": "default",
+        "work_group": "primary",
+    }
+
+
+def test_parameters_round_trip() -> None:
+    """
+    Building a URI and parsing it back should yield the original parameters.
+    """
+    from superset.db_engine_specs.athena import (
+        AthenaEngineSpec,
+        AthenaParametersType,
+    )
+
+    parameters: AthenaParametersType = {
+        "aws_access_key_id": "AKIAIOSFODNN7EXAMPLE",
+        "aws_secret_access_key": "secret/with+special=chars",
+        "region_name": "us-east-1",
+        "s3_staging_dir": "s3://my-bucket/staging/",
+        "schema_name": "default",
+        "work_group": "primary",
+    }
+    uri = AthenaEngineSpec.build_sqlalchemy_uri(parameters)
+    assert AthenaEngineSpec.get_parameters_from_uri(uri) == parameters
+
+
+def test_get_parameters_from_uri_non_standard_host() -> None:
+    """
+    A host that doesn't match the ``athena.<region>.amazonaws.com`` shape is
+    returned verbatim as ``region_name``.
+    """
+    from superset.db_engine_specs.athena import AthenaEngineSpec
+
+    parameters = AthenaEngineSpec.get_parameters_from_uri(
+        "awsathena+rest://vpce-1234.athena.us-east-1.vpce.amazonaws.com/default"
+        "?s3_staging_dir=s3%3A%2F%2Fbucket%2F"
+    )
+    assert parameters["region_name"] == "vpce-1234.athena.us-east-1.vpce.amazonaws.com"
+    assert parameters["s3_staging_dir"] == "s3://bucket/"
+
+
+def test_parameters_json_schema() -> None:
+    """
+    Test that the OpenAPI schema exposes the expected fields.
+    """
+    from superset.db_engine_specs.athena import AthenaEngineSpec
+
+    schema = AthenaEngineSpec.parameters_json_schema()
+    assert set(schema["properties"]) == {
+        "aws_access_key_id",
+        "aws_secret_access_key",
+        "region_name",
+        "s3_staging_dir",
+        "schema_name",
+        "work_group",
+    }
+    assert sorted(schema["required"]) == ["region_name", "s3_staging_dir"]
+
+
+def test_validate_parameters_missing_required() -> None:
+    """
+    Test that ``validate_parameters`` flags missing required parameters.
+    """
+    from superset.db_engine_specs.athena import AthenaEngineSpec
+
+    errors = AthenaEngineSpec.validate_parameters(
+        {"parameters": {"region_name": "us-east-1"}}  # type: ignore
+    )
+    assert len(errors) == 1
+    assert errors[0].error_type == (
+        SupersetErrorType.CONNECTION_MISSING_PARAMETERS_ERROR
+    )
+    assert errors[0].extra is not None
+    assert errors[0].extra["missing"] == ["s3_staging_dir"]
+
+
+def test_validate_parameters_valid() -> None:
+    """
+    Test that ``validate_parameters`` passes when required parameters exist.
+    """
+    from superset.db_engine_specs.athena import AthenaEngineSpec
+
+    errors = AthenaEngineSpec.validate_parameters(
+        {
+            "parameters": {  # type: ignore
+                "region_name": "us-east-1",
+                "s3_staging_dir": "s3://my-bucket/staging/",
+            }
+        }
+    )
+    assert errors == []

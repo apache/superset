@@ -60,6 +60,12 @@ export type DatabaseParameters = {
   warehouse?: string;
   role?: string;
   account?: string;
+  aws_access_key_id?: string;
+  aws_secret_access_key?: string;
+  region_name?: string;
+  s3_staging_dir?: string;
+  schema_name?: string;
+  work_group?: string;
   ssh?: boolean;
   project_id?: string;
 };
