@@ -29,7 +29,7 @@ the download matches the Table chart's default gradient.
 from __future__ import annotations
 
 import io
-from typing import Any, Optional
+from typing import Any, Mapping, Optional
 
 import pandas as pd
 from openpyxl import load_workbook
@@ -92,10 +92,15 @@ _RANGE_OPERATORS = {
     "≤ x ≤": (">=", "<="),
 }
 
+_DEFAULT_RULE_COLOR = _NAMED_COLORS["success"]
 _DATA_BAR_POSITIVE = "63BE7B"
 _SCALE_LOW = "FFFFFF"
 _OBJECT_CELL_BAR = "CELL_BAR"
 _OBJECT_TEXT = "TEXT_COLOR"
+# First non-blank cells used to decide whether a column is numeric for
+# default ``show_cell_bars``. Scanning the whole sheet is unnecessary for
+# typical Table downloads; blank leading rows still skip until a value.
+_NUMERIC_SAMPLE_ROWS = 20
 
 
 def _hex_rgb(color: Any) -> Optional[str]:
@@ -122,7 +127,58 @@ def _hex_rgb(color: Any) -> Optional[str]:
 
 
 def _rule_color(rule: dict[str, Any]) -> str:
-    return _hex_rgb(rule.get("colorScheme")) or "52C41A"
+    return _hex_rgb(rule.get("colorScheme")) or _DEFAULT_RULE_COLOR
+
+
+def _as_number(value: Any) -> Optional[float]:
+    if isinstance(value, bool) or value in (None, ""):
+        return None
+    if isinstance(value, (int, float)):
+        return float(value)
+    if isinstance(value, str):
+        try:
+            return float(value.replace(",", ""))
+        except ValueError:
+            return None
+    return None
+
+
+def _value_matches_rule(value: Any, rule: dict[str, Any]) -> bool:
+    """Whether a cell should receive a CELL_BAR rule (Explore comparator)."""
+    if value in (None, ""):
+        return False
+    operator = rule.get("operator")
+    if operator in (None, "None", ""):
+        return True
+    number = _as_number(value)
+    if operator in _CELL_IS_OPERATORS:
+        target = rule.get("targetValue")
+        target_number = _as_number(target)
+        if number is not None and target_number is not None:
+            compare = _CELL_IS_OPERATORS[operator]
+            if compare == "greaterThan":
+                return number > target_number
+            if compare == "lessThan":
+                return number < target_number
+            if compare == "greaterThanOrEqual":
+                return number >= target_number
+            if compare == "lessThanOrEqual":
+                return number <= target_number
+            if compare == "equal":
+                return number == target_number
+            if compare == "notEqual":
+                return number != target_number
+        return str(value) == str(target)
+    if operator in _RANGE_OPERATORS:
+        left_op, right_op = _RANGE_OPERATORS[operator]
+        left = _as_number(rule.get("targetValueLeft"))
+        right = _as_number(rule.get("targetValueRight"))
+        if number is None or left is None or right is None:
+            return False
+        left_ok = number >= left if left_op == ">=" else number > left
+        right_ok = number <= right if right_op == "<=" else number < right
+        return left_ok and right_ok
+    return False
 
 
 def _excel_literal(value: Any) -> str:
@@ -144,7 +200,29 @@ def _header_matches(sheet_header: str, column: str) -> bool:
     return left.endswith(f"({right})") or left.endswith(f"({right.lower()})")
 
 
-def _column_index(sheet: Worksheet, header_row: int, column: str) -> Optional[int]:
+def _rule_column_aliases(
+    column: str, verbose_map: Optional[Mapping[str, Any]]
+) -> list[str]:
+    """Raw and verbose names so rules still match after datasource rename."""
+    aliases = [column]
+    if not verbose_map:
+        return aliases
+    verbose = verbose_map.get(column)
+    if verbose is not None and str(verbose) not in aliases:
+        aliases.append(str(verbose))
+    for raw, label in verbose_map.items():
+        if str(label) == column and str(raw) not in aliases:
+            aliases.append(str(raw))
+    return aliases
+
+
+def _column_index(
+    sheet: Worksheet,
+    header_row: int,
+    column: str,
+    verbose_map: Optional[Mapping[str, Any]] = None,
+) -> Optional[int]:
+    aliases = _rule_column_aliases(column, verbose_map)
     for col_idx in range(1, sheet.max_column + 1):
         header_label = ""
         for row in range(header_row, 0, -1):
@@ -152,7 +230,7 @@ def _column_index(sheet: Worksheet, header_row: int, column: str) -> Optional[in
             if value not in (None, ""):
                 header_label = str(value)
                 break
-        if header_label and _header_matches(header_label, column):
+        if header_label and any(_header_matches(header_label, name) for name in aliases):
             return col_idx
     return None
 
@@ -217,11 +295,51 @@ def _add_data_bar(sheet: Worksheet, cell_range: str, rgb: str) -> None:
     )
 
 
-def _apply_rule(sheet: Worksheet, header_row: int, rule: dict[str, Any]) -> None:
+def _matching_cell_range(
+    sheet: Worksheet,
+    col_idx: int,
+    header_row: int,
+    rule: dict[str, Any],
+) -> Optional[str]:
+    """Union of cells that match a CELL_BAR comparator, or the full column."""
+    operator = rule.get("operator")
+    if operator in (None, "None", ""):
+        return _data_range(sheet, col_idx, header_row)
+    letter = get_column_letter(col_idx)
+    first_row = header_row + 1
+    last_row = sheet.max_row
+    if last_row < first_row:
+        return None
+    runs: list[tuple[int, int]] = []
+    run_start: Optional[int] = None
+    for row in range(first_row, last_row + 1):
+        matched = _value_matches_rule(sheet.cell(row=row, column=col_idx).value, rule)
+        if matched and run_start is None:
+            run_start = row
+        elif not matched and run_start is not None:
+            runs.append((run_start, row - 1))
+            run_start = None
+    if run_start is not None:
+        runs.append((run_start, last_row))
+    if not runs:
+        return None
+    parts = [
+        f"{letter}{start}" if start == end else f"{letter}{start}:{letter}{end}"
+        for start, end in runs
+    ]
+    return " ".join(parts)
+
+
+def _apply_rule(
+    sheet: Worksheet,
+    header_row: int,
+    rule: dict[str, Any],
+    verbose_map: Optional[Mapping[str, Any]] = None,
+) -> None:
     column = rule.get("column")
     if not isinstance(column, str) or not column:
         return
-    col_idx = _column_index(sheet, header_row, column)
+    col_idx = _column_index(sheet, header_row, column, verbose_map)
     if col_idx is None:
         return
     cell_range = _data_range(sheet, col_idx, header_row)
@@ -235,7 +353,9 @@ def _apply_rule(sheet: Worksheet, header_row: int, rule: dict[str, Any]) -> None
     top_left = cell_range.split(":", 1)[0]
 
     if object_fmt == _OBJECT_CELL_BAR:
-        _add_data_bar(sheet, cell_range, rgb)
+        bar_range = _matching_cell_range(sheet, col_idx, header_row, rule)
+        if bar_range:
+            _add_data_bar(sheet, bar_range, rgb)
         return
 
     if operator in _CELL_IS_OPERATORS:
@@ -276,19 +396,26 @@ def _apply_rule(sheet: Worksheet, header_row: int, rule: dict[str, Any]) -> None
                 text_color=True,
             )
             return
+        min_bound = _as_number(rule.get("minBound"))
+        max_bound = _as_number(rule.get("maxBound"))
+        start_type = "num" if min_bound is not None else "min"
+        end_type = "num" if max_bound is not None else "max"
         sheet.conditional_formatting.add(
             cell_range,
             ColorScaleRule(
-                start_type="min",
+                start_type=start_type,
+                start_value=min_bound,
                 start_color=_SCALE_LOW,
-                end_type="max",
+                end_type=end_type,
+                end_value=max_bound,
                 end_color=rgb,
             ),
         )
 
 
 def _is_numeric_header(sheet: Worksheet, col_idx: int, header_row: int) -> bool:
-    for row in range(header_row + 1, min(sheet.max_row, header_row + 20) + 1):
+    sample_last = min(sheet.max_row, header_row + _NUMERIC_SAMPLE_ROWS)
+    for row in range(header_row + 1, sample_last + 1):
         cell = sheet.cell(row=row, column=col_idx)
         if cell.value in (None, ""):
             continue
@@ -315,6 +442,7 @@ def apply_conditional_formatting(
     header_rows: int = 1,
     *,
     show_cell_bars: bool = False,
+    verbose_map: Optional[Mapping[str, Any]] = None,
 ) -> bytes:
     """Attach native Excel CF for Explore rules and optional Table cell bars."""
     if not rules and not show_cell_bars:
@@ -328,7 +456,7 @@ def apply_conditional_formatting(
     header_row = max(header_rows, 1)
     for rule in rules:
         if isinstance(rule, dict):
-            _apply_rule(sheet, header_row, rule)
+            _apply_rule(sheet, header_row, rule, verbose_map)
     if show_cell_bars and not rules:
         _apply_cell_bars(sheet, header_row)
 
@@ -342,13 +470,14 @@ def polish_explore_xlsx(
     df: pd.DataFrame,
     form_data: dict[str, Any],
     include_index: bool = False,
+    verbose_map: Optional[Mapping[str, Any]] = None,
 ) -> bytes:
     """Apply Explore number formats and conditional formatting to an XLSX."""
     viz_type = form_data.get("viz_type")
     if viz_type not in ("table", "pivot_table_v2"):
         return workbook_bytes
 
-    header_rows = df.columns.nlevels if isinstance(df.columns, pd.MultiIndex) else 1
+    header_rows = getattr(df.columns, "nlevels", 1)
     if include_index:
         header_rows = max(header_rows, getattr(df.index, "nlevels", 1))
 
@@ -375,4 +504,5 @@ def polish_explore_xlsx(
         rules,
         header_rows=header_rows,
         show_cell_bars=bool(form_data.get("show_cell_bars")),
+        verbose_map=verbose_map,
     )

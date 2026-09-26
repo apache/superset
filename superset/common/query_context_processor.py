@@ -38,7 +38,11 @@ from superset.common.grouping_sets import grouping_marker_label
 from superset.common.query_actions import get_query_results_with_timing
 from superset.common.utils.query_cache_manager import QueryCacheManager
 from superset.common.utils.time_range_utils import get_since_until_from_time_range
-from superset.constants import CACHE_DISABLED_TIMEOUT, CacheRegion
+from superset.constants import (
+    CACHE_DISABLED_TIMEOUT,
+    CacheRegion,
+    SHOW_VALUES_AS_PERCENT_MODES,
+)
 from superset.daos.annotation_layer import AnnotationLayerDAO
 from superset.daos.chart import ChartDAO
 from superset.exceptions import (
@@ -563,17 +567,32 @@ class QueryContextProcessor:
                 )
             elif self._query_context.result_format == ChartDataResultFormat.XLSX:
                 excel.apply_column_types(df, coltypes)
+                form_data = self._query_context.form_data
+                number_format = None
+                if (
+                    isinstance(form_data, dict)
+                    and form_data.get("viz_type") == "pivot_table_v2"
+                    and form_data.get("showValuesAs") in SHOW_VALUES_AS_PERCENT_MODES
+                ):
+                    # Keep fractions numeric; Excel percent format matches Explore.
+                    number_format = "0.0%"
                 result = excel.df_to_excel(
-                    df, index=include_index, **current_app.config["EXCEL_EXPORT"]
+                    df,
+                    index=include_index,
+                    number_format=number_format,
+                    **current_app.config["EXCEL_EXPORT"],
                 )
                 # Explore Table / Pivot download uses this path (RESULTS + XLSX),
                 # not apply_client_processing. Stamp formats and CF here.
-                form_data = self._query_context.form_data
                 if isinstance(form_data, dict) and isinstance(result, bytes):
                     from superset.utils.excel_conditional import polish_explore_xlsx
 
                     result = polish_explore_xlsx(
-                        result, df, form_data, include_index=include_index
+                        result,
+                        df,
+                        form_data,
+                        include_index=include_index,
+                        verbose_map=verbose_map if isinstance(verbose_map, dict) else None,
                     )
             return result or ""
 

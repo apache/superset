@@ -1274,6 +1274,7 @@ def _apply_excel_explore_formats(
     form_data: dict[str, Any],
     viz_type: Optional[str],
     include_index: bool,
+    verbose_map: Optional[dict[str, Any]] = None,
 ) -> bytes:
     """Apply Explore number/date/alignment formats to an already-written xlsx."""
     from superset.utils.excel_conditional import polish_explore_xlsx
@@ -1282,7 +1283,11 @@ def _apply_excel_explore_formats(
     if viz_type:
         merged["viz_type"] = viz_type
     return polish_explore_xlsx(
-        workbook_bytes, df, merged, include_index=include_index
+        workbook_bytes,
+        df,
+        merged,
+        include_index=include_index,
+        verbose_map=verbose_map,
     )
 
 
@@ -1482,6 +1487,11 @@ def apply_client_processing(  # noqa: C901
                 form_data,
                 viz_type,
                 include_index,
+                verbose_map=(
+                    datasource.data.get("verbose_map")
+                    if datasource and getattr(datasource, "data", None)
+                    else None
+                ),
             )
 
     return result
