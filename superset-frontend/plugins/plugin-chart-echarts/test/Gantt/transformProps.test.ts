@@ -259,6 +259,8 @@ describe('Gantt transformProps', () => {
           position: 'start',
           formatter: '{b}',
           color: 'rgba(0,0,0,0.88)',
+          fontSize: supersetTheme.fontSizeSM,
+          fontFamily: supersetTheme.fontFamily,
         },
         lineStyle: expect.objectContaining({
           color: '#00000000',
@@ -268,6 +270,108 @@ describe('Gantt transformProps', () => {
         symbol: ['none', 'none'],
       },
     });
+  });
+});
+
+describe('category label width reservation', () => {
+  test('reserves the ink extent of the widest label, not just its narrower advance width', () => {
+    // Simulates a glyph whose visible ink extends past the metrics.width
+    // advance value returned by measureText (e.g. italics or descenders).
+    // The grid must grow to fit the ink extent, or the previous
+    // "prevent cut off" fix (#39137) regresses back to clipped labels.
+    const getContext = jest.spyOn(HTMLCanvasElement.prototype, 'getContext');
+    try {
+      // "first" always measures narrower than "second" so "second" alone
+      // drives maxCategoryLabelWidth in both runs below.
+      getContext.mockReturnValue({
+        measureText: (text: string) =>
+          text === 'second'
+            ? {
+                width: 10,
+                actualBoundingBoxLeft: 0,
+                actualBoundingBoxRight: 10,
+              }
+            : { width: 5, actualBoundingBoxLeft: 0, actualBoundingBoxRight: 5 },
+      } as never);
+      const withoutOverhang = transformProps(
+        new ChartProps(chartPropsConfig) as EchartsGanttChartProps,
+      );
+
+      getContext.mockReturnValue({
+        measureText: (text: string) =>
+          text === 'second'
+            ? {
+                width: 10,
+                actualBoundingBoxLeft: 5,
+                actualBoundingBoxRight: 45,
+              }
+            : { width: 5, actualBoundingBoxLeft: 0, actualBoundingBoxRight: 5 },
+      } as never);
+      const withOverhang = transformProps(
+        new ChartProps(chartPropsConfig) as EchartsGanttChartProps,
+      );
+
+      const noOverhangLeft = (
+        withoutOverhang.echartOptions.grid as { left: number }
+      ).left;
+      const overhangLeft = (withOverhang.echartOptions.grid as { left: number })
+        .left;
+
+      // Ink extent for "second" is 5 + 45 = 50 vs. its 10px advance width;
+      // the reserved space must grow by the full 40px difference.
+      expect(overhangLeft - noOverhangLeft).toBe(40);
+    } finally {
+      getContext.mockRestore();
+    }
+  });
+
+  test('measures label width using the exact font the label is rendered in', () => {
+    let capturedFont = '';
+    const getContext = jest.spyOn(HTMLCanvasElement.prototype, 'getContext');
+    try {
+      getContext.mockReturnValue({
+        set font(value: string) {
+          capturedFont = value;
+        },
+        get font() {
+          return capturedFont;
+        },
+        measureText: (text: string) => ({
+          width: text.length * 7,
+          actualBoundingBoxLeft: 0,
+          actualBoundingBoxRight: text.length * 7,
+        }),
+      } as never);
+
+      const transformed = transformProps(
+        new ChartProps(chartPropsConfig) as EchartsGanttChartProps,
+      );
+
+      expect(capturedFont).toBe(
+        `${supersetTheme.fontSizeSM}px ${supersetTheme.fontFamily}`,
+      );
+
+      const categoryLabelSeries = (
+        transformed.echartOptions.series as Array<{
+          markLine?: {
+            label?: {
+              show?: boolean;
+              fontSize?: number;
+              fontFamily?: string;
+            };
+          };
+        }>
+      ).find(series => series.markLine?.label?.show);
+
+      // The rendered label must use the same font as the measurement, or the
+      // reserved grid space can fall out of sync with the painted text again.
+      expect(categoryLabelSeries?.markLine?.label).toMatchObject({
+        fontSize: supersetTheme.fontSizeSM,
+        fontFamily: supersetTheme.fontFamily,
+      });
+    } finally {
+      getContext.mockRestore();
+    }
   });
 });
 

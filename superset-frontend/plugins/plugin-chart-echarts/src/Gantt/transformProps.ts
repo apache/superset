@@ -211,12 +211,18 @@ export default function transformProps(chartProps: EchartsGanttChartProps) {
   let prevSum = 0;
   let maxCategoryLabelWidth = 0;
 
+  // The category labels are drawn via the markLine `label` below, so its font
+  // must match the one used here to measure available space, or the reserved
+  // grid area can end up narrower than the rendered text.
+  const categoryLabelFontSize = theme.fontSizeSM;
+  const categoryLabelFontFamily = theme.fontFamily;
+
   let measureContext: CanvasRenderingContext2D | null = null;
   if (typeof document !== 'undefined') {
     const canvas = document.createElement('canvas');
     measureContext = canvas.getContext('2d');
     if (measureContext) {
-      measureContext.font = `${theme.fontSizeSM}px ${theme.fontFamily}`;
+      measureContext.font = `${categoryLabelFontSize}px ${categoryLabelFontFamily}`;
     }
   }
 
@@ -231,11 +237,21 @@ export default function transformProps(chartProps: EchartsGanttChartProps) {
     });
 
     if (name) {
-      // Prefer exact canvas measurement; fall back to an approximate width
-      // (~0.62 of the font size per character) when canvas is unavailable (e.g. SSR).
-      const labelWidth = measureContext
-        ? measureContext.measureText(name).width
-        : name.length * theme.fontSizeSM * 0.62;
+      // Prefer the rendered glyphs' actual ink extent over the advance
+      // width: some glyphs (e.g. italics, descenders) paint past the
+      // advance width, which previously left labels clipped by a few
+      // pixels. Fall back to an approximate width (~0.62 of the font size
+      // per character) when canvas is unavailable (e.g. SSR).
+      let labelWidth: number;
+      if (measureContext) {
+        const metrics = measureContext.measureText(name);
+        const inkWidth =
+          (metrics.actualBoundingBoxLeft ?? 0) +
+          (metrics.actualBoundingBoxRight ?? 0);
+        labelWidth = Math.max(metrics.width, inkWidth);
+      } else {
+        labelWidth = name.length * categoryLabelFontSize * 0.62;
+      }
 
       maxCategoryLabelWidth = Math.max(maxCategoryLabelWidth, labelWidth);
     }
@@ -362,6 +378,8 @@ export default function transformProps(chartProps: EchartsGanttChartProps) {
           position: 'start',
           formatter: '{b}',
           color: theme.colorText,
+          fontSize: categoryLabelFontSize,
+          fontFamily: categoryLabelFontFamily,
         },
         data: categoryLines,
       },
@@ -456,7 +474,7 @@ export default function transformProps(chartProps: EchartsGanttChartProps) {
     grid: {
       ...defaultGrid,
       ...padding,
-      left: (padding.left || 0) + maxCategoryLabelWidth + 10,
+      left: (padding.left || 0) + Math.ceil(maxCategoryLabelWidth) + 10,
     },
     dataZoom: zoomable && [
       {
