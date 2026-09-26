@@ -22,6 +22,7 @@ from datetime import datetime
 from re import Pattern
 from typing import Any, Callable, cast, TYPE_CHECKING, TypedDict, Union
 
+import sqlalchemy as sa
 from apispec import APISpec
 from apispec.ext.marshmallow import MarshmallowPlugin
 from flask import g
@@ -32,6 +33,7 @@ from sqlalchemy import text, types
 from sqlalchemy.engine.default import DefaultDialect
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.url import URL
+from sqlalchemy.sql.elements import ColumnElement
 
 from superset.constants import TimeGrain
 from superset.databases.utils import make_url_safe
@@ -245,6 +247,17 @@ class DatabricksBaseEngineSpec(BaseEngineSpec):
     # backticks, not the inherited ANSI double quotes.
     identifier_quote_start: str = "`"
     identifier_quote_end: str = "`"
+
+    # Databricks SQL documents native MEDIAN/STDDEV_SAMP/VAR_SAMP aggregate
+    # functions (docs.databricks.com/aws/en/sql/language-manual/functions/
+    # {median,stddev_samp,var_samp}), confirmed against that reference, not a
+    # live Databricks instance. All three are plain function calls, same
+    # spelling as Postgres/DuckDB, so no dialect-specific rewriting is needed.
+    _extended_aggregations: dict[str, Callable[[ColumnElement], ColumnElement]] = {
+        "MEDIAN": sa.func.median,
+        "STDDEV_SAMP": sa.func.stddev_samp,
+        "VAR_SAMP": sa.func.var_samp,
+    }
 
     @classmethod
     def convert_dttm(
@@ -985,6 +998,16 @@ class DatabricksHiveEngineSpec(HiveEngineSpec):
     _show_functions_column = "function"
 
     _time_grain_expressions = time_grain_expressions
+
+    # Interactive Clusters run Spark SQL, same as the primary Databricks
+    # connector above; same native MEDIAN/STDDEV_SAMP/VAR_SAMP functions
+    # apply here rather than the inherited (unimplemented) HiveEngineSpec/
+    # PrestoEngineSpec default.
+    _extended_aggregations: dict[str, Callable[[ColumnElement], ColumnElement]] = {
+        "MEDIAN": sa.func.median,
+        "STDDEV_SAMP": sa.func.stddev_samp,
+        "VAR_SAMP": sa.func.var_samp,
+    }
 
 
 # TODO: remove once we've upgraded to SQLAlchemy>=2.0 and databricks-sql-python>=3.x

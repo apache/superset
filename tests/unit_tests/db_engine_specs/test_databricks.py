@@ -30,6 +30,7 @@ from sqlalchemy.engine.url import make_url
 
 from superset.db_engine_specs.base import OAuth2State
 from superset.db_engine_specs.databricks import (
+    DatabricksBaseEngineSpec,
     DatabricksNativeEngineSpec,
     DatabricksPythonConnectorEngineSpec,
 )
@@ -1198,3 +1199,50 @@ def test_get_engine_spec_unrecognized_driver_prefers_python_connector() -> None:
         get_engine_spec("databricks", "databricks-sql-python")
         is DatabricksPythonConnectorEngineSpec
     )
+
+
+@pytest.mark.parametrize(
+    "spec_cls",
+    [DatabricksNativeEngineSpec, DatabricksPythonConnectorEngineSpec],
+)
+@pytest.mark.parametrize(
+    ("aggregate", "expected_sql"),
+    [
+        ("MEDIAN", "median(sales)"),
+        ("STDDEV_SAMP", "stddev_samp(sales)"),
+        ("VAR_SAMP", "var_samp(sales)"),
+    ],
+)
+def test_extended_aggregation_func_compiles_expected_sql(
+    spec_cls: type[DatabricksBaseEngineSpec], aggregate: str, expected_sql: str
+) -> None:
+    """
+    Verified against the Databricks SQL function reference
+    (docs.databricks.com/aws/en/sql/language-manual/functions/{median,
+    stddev_samp,var_samp}), not a live instance: all three are plain,
+    dialect-agnostic function calls (unlike Postgres's MEDIAN, which needs
+    percentile_cont/WITHIN GROUP), so there is no dialect-specific SQL
+    construct to compile here.
+    """
+    from sqlalchemy.sql import column
+
+    func = spec_cls.get_extended_aggregation_func(aggregate)
+    assert func is not None
+
+    compiled = str(
+        func(column("sales")).compile(compile_kwargs={"literal_binds": True})
+    )
+    assert compiled == expected_sql
+
+
+def test_databricks_hive_spec_shares_extended_aggregations() -> None:
+    """
+    Interactive Clusters (``DatabricksHiveEngineSpec``) run Spark SQL too, so
+    the same native aggregates apply -- confirming this spec does NOT fall
+    back to the inherited, unimplemented ``HiveEngineSpec``/``PrestoEngineSpec``
+    default (an empty dict, i.e. "not supported on this database").
+    """
+    from superset.db_engine_specs.databricks import DatabricksHiveEngineSpec
+
+    for aggregate in ("MEDIAN", "STDDEV_SAMP", "VAR_SAMP"):
+        assert DatabricksHiveEngineSpec.get_extended_aggregation_func(aggregate)
