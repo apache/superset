@@ -273,3 +273,70 @@ def test_unsaved_gauge_preview_surfaces_query_error(
     )
     assert result.error_type == "QueryError"
     assert "bad metric" in result.error
+
+
+def _vega_encoding(rows, form_data):
+    result = preview_utils._generate_vega_lite_preview_from_data(rows, form_data)
+    return result.specification.get("encoding", {})
+
+
+def test_vega_preview_y_axis_uses_metric_not_boolean_x():
+    rows = [
+        {"is_active": True, "revenue": 10.5},
+        {"is_active": False, "revenue": 3.0},
+    ]
+    encoding = _vega_encoding(
+        rows,
+        {
+            "viz_type": "echarts_timeseries_bar",
+            "x_axis": "is_active",
+            "metrics": [{"label": "revenue", "expressionType": "SQL"}],
+        },
+    )
+
+    assert encoding["x"]["field"] == "is_active"
+    assert encoding["y"]["field"] == "revenue"
+
+
+def test_vega_preview_y_axis_uses_first_matching_metric_of_many():
+    rows = [{"flag": True, "count": 4, "SUM(amount)": 7.0, "AVG(price)": 2.5}]
+    encoding = _vega_encoding(
+        rows,
+        {
+            "viz_type": "echarts_timeseries_line",
+            "x_axis": "flag",
+            "metrics": [
+                {
+                    "expressionType": "SIMPLE",
+                    "aggregate": "AVG",
+                    "column": {"column_name": "price"},
+                },
+                {
+                    "expressionType": "SIMPLE",
+                    "aggregate": "SUM",
+                    "column": {"column_name": "amount"},
+                },
+            ],
+        },
+    )
+
+    assert encoding["y"]["field"] == "AVG(price)"
+
+
+def test_vega_preview_y_axis_falls_back_when_no_metric_label_matches():
+    rows = [{"flag": True, "name": "a", "value": 3}]
+    encoding = _vega_encoding(
+        rows,
+        {"viz_type": "bar", "x_axis": "name", "metrics": ["missing_metric"]},
+    )
+
+    # Boolean columns are skipped; the first numeric column is used.
+    assert encoding["y"]["field"] == "value"
+
+
+def test_vega_preview_without_metrics_has_no_y_axis():
+    rows = [{"flag": True, "name": "a", "value": 3}]
+    encoding = _vega_encoding(rows, {"viz_type": "bar", "x_axis": "name"})
+
+    assert encoding["x"]["field"] == "name"
+    assert "y" not in encoding
