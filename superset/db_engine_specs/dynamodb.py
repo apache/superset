@@ -87,6 +87,11 @@ class DynamoDBEngineSpec(BaseEngineSpec):
         sqla_type = cls.get_sqla_column_type(target_type)
 
         if isinstance(sqla_type, (types.String, types.DateTime)):
-            return f"""'{dttm.isoformat(sep=" ", timespec="seconds")}'"""
+            # DynamoDB has no datetime type: timestamps are strings compared as
+            # text, conventionally ISO 8601 ("2019-01-02T03:04:05", which is also
+            # what boto3/PyDynamoDB write for datetime values). A space separator
+            # sorts before "T", so a bound like "2019-01-02 04:00:00" excluded
+            # "2019-01-02T04:15:00" from a sub-day range.
+            return f"""'{dttm.isoformat(timespec="seconds")}'"""
 
         return None

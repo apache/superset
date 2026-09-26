@@ -27,8 +27,8 @@ from tests.unit_tests.fixtures.common import dttm  # noqa: F401
 @pytest.mark.parametrize(
     "target_type,expected_result",
     [
-        ("text", "'2019-01-02 03:04:05'"),
-        ("dateTime", "'2019-01-02 03:04:05'"),
+        ("text", "'2019-01-02T03:04:05'"),
+        ("dateTime", "'2019-01-02T03:04:05'"),
         ("unknowntype", None),
     ],
 )
@@ -42,3 +42,16 @@ def test_convert_dttm(
     )
 
     assert_convert_dttm(spec, target_type, expected_result, dttm)
+
+
+def test_convert_dttm_bounds_compare_with_iso_8601_strings() -> None:
+    from superset.db_engine_specs.dynamodb import (
+        DynamoDBEngineSpec as spec,  # noqa: N813
+    )
+
+    low = spec.convert_dttm("text", datetime(2019, 1, 2, 4, 0, 0)).strip("'")
+    high = spec.convert_dttm("text", datetime(2019, 1, 2, 6, 0, 0)).strip("'")
+    stored = ["2019-01-02T03:30:00", "2019-01-02T04:15:00", "2019-01-02T06:00:00"]
+    assert [value for value in stored if low <= value < high] == [
+        "2019-01-02T04:15:00"
+    ]
