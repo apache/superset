@@ -16,10 +16,14 @@
 # under the License.
 # pylint: disable=import-outside-toplevel, unused-argument, redefined-outer-name, invalid-name
 
+import runpy
+import sys
 from functools import partial
+from pathlib import Path
 from typing import Any, TYPE_CHECKING
 
 import pytest
+from flask import Flask
 from pytest_mock import MockerFixture
 from sqlalchemy.orm.session import Session
 
@@ -47,29 +51,238 @@ FULL_DTTM_DEFAULTS_EXAMPLE = {
 }
 
 
-def test_invalid_version_history_retention_env_uses_default(
+@pytest.mark.parametrize(
+    ("value", "expected"),
+    [
+        (None, 180),
+        ("360", 360),
+        ("0", 0),
+        ("-1", -1),
+        ("-2", 0),
+        ("36500", 36500),
+        ("36501", 0),
+        ("1000000000", 0),
+        ("30d", 0),
+        ("", 0),
+    ],
+)
+def test_version_history_retention_env_loads_application_config(
+    monkeypatch: pytest.MonkeyPatch, value: str | None, expected: int
+) -> None:
+    """The canonical environment key wins; a legacy-only setting is retained."""
+    from superset import config
+
+    monkeypatch.delenv("SUPERSET_CONFIG_PATH", raising=False)
+    monkeypatch.delenv("SUPERSET_CONFIG", raising=False)
+    monkeypatch.setitem(sys.modules, "superset_config", None)
+
+    monkeypatch.delenv("VERSION_HISTORY_RETENTION_DAYS", raising=False)
+    if value is not None:
+        monkeypatch.setenv("VERSION_HISTORY_RETENTION_DAYS", value)
+    monkeypatch.setenv("SUPERSET_VERSION_HISTORY_RETENTION_DAYS", "180")
+    loaded: dict[str, Any] = runpy.run_path(config.__file__)
+    app: Flask = Flask(__name__)
+    app.config.from_mapping(loaded)
+    assert app.config["VERSION_HISTORY_RETENTION_DAYS"] == expected
+    assert type(app.config["VERSION_HISTORY_RETENTION_DAYS"]) is int
+    assert "SUPERSET_VERSION_HISTORY_RETENTION_DAYS" not in app.config
+
+
+def test_invalid_version_history_retention_env_defers_cleanup(
     monkeypatch: pytest.MonkeyPatch,
     caplog: pytest.LogCaptureFixture,
 ) -> None:
     """Invalid retention input does not prevent configuration from loading."""
     from superset import config
 
-    monkeypatch.setenv("SUPERSET_VERSION_HISTORY_RETENTION_DAYS", "30d")
+    monkeypatch.setenv("VERSION_HISTORY_RETENTION_DAYS", "30d")
 
-    assert config._parse_version_history_retention_days() == 30
-    assert "Invalid SUPERSET_VERSION_HISTORY_RETENTION_DAYS='30d'" in caplog.text
+    assert config._parse_version_history_retention_days() == 0
+    assert "Invalid VERSION_HISTORY_RETENTION_DAYS='30d'" in caplog.text
 
 
-def test_oversized_version_history_retention_env_uses_default(
+@pytest.mark.parametrize(
+    ("legacy", "expected"),
+    [("0", 0), ("-1", 0), ("-7", 0), ("180", 180), ("bad", 0), ("1000000000", 0)],
+)
+def test_released_legacy_history_retention_env_is_preserved(
+    monkeypatch: pytest.MonkeyPatch, legacy: str, expected: int
+) -> None:
+    """Released 7.0 retention values cannot silently revert to 30 days."""
+    from superset import config
+
+    monkeypatch.delenv("VERSION_HISTORY_RETENTION_DAYS", raising=False)
+    monkeypatch.setenv("SUPERSET_VERSION_HISTORY_RETENTION_DAYS", legacy)
+    assert config._parse_version_history_retention_days() == expected
+
+
+def test_explicit_new_history_retention_env_precedes_legacy(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Only the canonical key can explicitly request immediate eligibility."""
+    from superset import config
+
+    monkeypatch.setenv("SUPERSET_VERSION_HISTORY_RETENTION_DAYS", "-1")
+    monkeypatch.setenv("VERSION_HISTORY_RETENTION_DAYS", "-1")
+    assert config._parse_version_history_retention_days() == -1
+
+
+@pytest.mark.parametrize(
+    ("legacy", "canonical", "expected"),
+    [
+        (-1, None, 0),
+        (0, None, 0),
+        (180, None, 180),
+        (180, 365, 365),
+        (-1, -1, -1),
+        (180, 1000000000, 0),
+    ],
+)
+def test_released_legacy_history_retention_config_is_preserved(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    legacy: int,
+    canonical: int | None,
+    expected: int,
+) -> None:
+    """A custom superset_config.py retains 7.0 semantics unless replaced."""
+    from superset import config
+
+    config_file: Path = tmp_path / "superset_config.py"
+    lines: list[str] = [f"SUPERSET_VERSION_HISTORY_RETENTION_DAYS = {legacy}"]
+    if canonical is not None:
+        lines.append(f"VERSION_HISTORY_RETENTION_DAYS = {canonical}")
+    config_file.write_text("\n".join(lines))
+    monkeypatch.setenv("SUPERSET_CONFIG_PATH", str(config_file))
+    monkeypatch.delenv("VERSION_HISTORY_RETENTION_DAYS", raising=False)
+    monkeypatch.delenv("SUPERSET_VERSION_HISTORY_RETENTION_DAYS", raising=False)
+    loaded: dict[str, Any] = runpy.run_path(config.__file__)
+    assert loaded["VERSION_HISTORY_RETENTION_DAYS"] == expected
+
+
+def test_explicit_immediate_history_retention_warns(
+    monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
+    """An intentional immediate setting is visible during startup."""
+    from superset import config
+
+    monkeypatch.setenv("VERSION_HISTORY_RETENTION_DAYS", "-1")
+    assert config._parse_version_history_retention_days() == -1
+    assert "immediate pruning" in caplog.text
+
+
+@pytest.mark.parametrize(
+    ("legacy", "expected", "restricted_export"),
+    [(0, 0, False), (365, 365, False), (0, 0, True)],
+)
+def test_star_imported_default_does_not_hide_legacy_retention(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    legacy: int,
+    expected: int,
+    restricted_export: bool,
+) -> None:
+    """An imported new default is not an explicit migration decision."""
+    from superset import config
+
+    config_file: Path = tmp_path / "superset_config.py"
+    lines: list[str] = [
+        "from superset.config import *",
+        f"SUPERSET_VERSION_HISTORY_RETENTION_DAYS = {legacy}",
+    ]
+    if restricted_export:
+        lines.append('__all__ = ["VERSION_HISTORY_RETENTION_DAYS"]')
+    config_file.write_text("\n".join(lines))
+    monkeypatch.setenv("SUPERSET_CONFIG_PATH", str(config_file))
+    monkeypatch.delenv("VERSION_HISTORY_RETENTION_DAYS", raising=False)
+    monkeypatch.delenv("SUPERSET_VERSION_HISTORY_RETENTION_DAYS", raising=False)
+    loaded: dict[str, Any] = runpy.run_path(config.__file__)
+    assert loaded["VERSION_HISTORY_RETENTION_DAYS"] == expected
+
+
+@pytest.mark.parametrize(
+    ("value", "expected"),
+    [
+        (None, 30),
+        ("360", 360),
+        ("0", 0),
+        ("-1", -1),
+        ("-2", 0),
+        ("36500", 36500),
+        ("36501", 0),
+        ("1000000000", 0),
+        ("bad", 0),
+        ("", 0),
+    ],
+)
+def test_soft_delete_retention_environment_seed(
+    monkeypatch: pytest.MonkeyPatch, value: str | None, expected: int
+) -> None:
+    """Bootstrap exports canonical integer days without an environment alias."""
+    from superset import config
+
+    monkeypatch.delenv("SUPERSET_CONFIG_PATH", raising=False)
+    monkeypatch.delenv("SUPERSET_CONFIG", raising=False)
+    monkeypatch.setitem(sys.modules, "superset_config", None)
+
+    monkeypatch.delenv("SOFT_DELETE_RETENTION_DAYS", raising=False)
+    if value is not None:
+        monkeypatch.setenv("SOFT_DELETE_RETENTION_DAYS", value)
+    loaded: dict[str, Any] = runpy.run_path(config.__file__)
+    assert loaded["SOFT_DELETE_RETENTION_DAYS"] == expected
+    assert type(loaded["SOFT_DELETE_RETENTION_DAYS"]) is int
+
+
+@pytest.mark.parametrize(
+    ("canonical", "legacy", "canonical_env", "expected"),
+    [
+        (None, None, False, 30),
+        (None, "180", False, 180),
+        (None, "bad", False, 0),
+        ("7", "365", False, 7),
+        ("30", "365", False, 365),
+        ("30", "0", False, 0),
+        ("30", "bad", False, 0),
+        ("bad", "365", False, 0),
+        ("30", "365", True, 30),
+        ("36501", None, False, 0),
+    ],
+)
+def test_resolve_version_history_retention_days_precedence(
+    monkeypatch: pytest.MonkeyPatch,
+    canonical: str | None,
+    legacy: str | None,
+    canonical_env: bool,
+    expected: int,
+) -> None:
+    """Env beats legacy; canonical beats legacy unless star-imported; None = absent."""
+    from superset import config
+
+    if canonical_env:
+        monkeypatch.setenv("VERSION_HISTORY_RETENTION_DAYS", "30")
+    else:
+        monkeypatch.delenv("VERSION_HISTORY_RETENTION_DAYS", raising=False)
+    missing: object = config._MISSING_RETENTION
+    assert (
+        config._resolve_version_history_retention_days(
+            missing if canonical is None else canonical,
+            missing if legacy is None else legacy,
+            seed=30,
+        )
+        == expected
+    )
+
+
+def test_oversized_version_history_retention_env_defers_cleanup(
     monkeypatch: pytest.MonkeyPatch,
     caplog: pytest.LogCaptureFixture,
 ) -> None:
     """An oversized retention window cannot overflow cutoff arithmetic."""
     from superset import config
 
-    monkeypatch.setenv("SUPERSET_VERSION_HISTORY_RETENTION_DAYS", "1000000000")
+    monkeypatch.setenv("VERSION_HISTORY_RETENTION_DAYS", "1000000000")
 
-    assert config._parse_version_history_retention_days() == 30
+    assert config._parse_version_history_retention_days() == 0
     assert "exceeds the maximum" in caplog.text
 
 

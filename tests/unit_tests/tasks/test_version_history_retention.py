@@ -17,7 +17,7 @@
 """Unit tests for the operational instrumentation in
 ``superset.tasks.version_history_retention``.
 
-Covers the branches that emit statsd counters: the ``retention_days <= 0``
+Covers the branches that emit statsd counters: the disabled-retention
 short-circuit, incomplete shadow-table resolution, the ``OperationalError``
 retry path, and the terminal failure counter. The
 "happy path" / SERIALIZABLE retry behaviour against a real database is
@@ -29,9 +29,12 @@ operator alerting.
 from __future__ import annotations
 
 from collections.abc import Iterator
+from datetime import datetime
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 import pytest
+from flask import Flask
 from sqlalchemy.exc import OperationalError
 from sqlalchemy_continuum.exc import ClassNotVersioned
 
@@ -50,7 +53,7 @@ def _stats_fixture() -> Iterator[MagicMock]:
 
 
 def test_retention_disabled_emits_skipped_metric(stats: MagicMock) -> None:
-    """``retention_days <= 0`` is the documented "disable retention"
+    """``retention_days == 0`` is the documented "disable retention"
     config. The early-return must emit ``superset.versioning.retention.skipped``
     so a dashboard can tell "operator disabled it" apart from "scheduler
     isn't running"."""
@@ -60,10 +63,195 @@ def test_retention_disabled_emits_skipped_metric(stats: MagicMock) -> None:
     stats.gauge.assert_not_called()
 
 
+@pytest.mark.parametrize("value", [0, -1, 360, "360", "-1"])
+def test_task_reads_canonical_application_retention(
+    stats: MagicMock, value: int | str
+) -> None:
+    """Runtime overrides use the canonical key, without a legacy fallback."""
+    app: Flask = Flask(__name__)
+    app.config.update(
+        VERSION_HISTORY_RETENTION_DAYS=value,
+        SUPERSET_VERSION_HISTORY_RETENTION_DAYS=180,
+    )
+    prune: MagicMock
+    with (
+        app.app_context(),
+        patch.object(
+            version_history_retention, "_prune_old_versions_impl", return_value={}
+        ) as prune,
+    ):
+        assert version_history_retention.prune_old_versions() == {}
+    prune.assert_called_once_with(int(value))
+    stats.incr.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    ("legacy", "expected"),
+    [(180, 180), (0, 0), (-1, 0), (-7, 0), (1000000000, 0)],
+)
+def test_task_preserves_legacy_only_custom_application_config(
+    stats: MagicMock, legacy: int, expected: int
+) -> None:
+    """A wholly custom app config without the new key keeps 7.0 retention."""
+    app: Flask = Flask(__name__)
+    app.config["SUPERSET_VERSION_HISTORY_RETENTION_DAYS"] = legacy
+    prune: MagicMock
+    with (
+        app.app_context(),
+        patch.object(
+            version_history_retention, "_prune_old_versions_impl", return_value={}
+        ) as prune,
+    ):
+        assert version_history_retention.prune_old_versions() == {}
+    prune.assert_called_once_with(expected)
+
+
+@pytest.mark.parametrize(("legacy", "expected"), [(0, 0), (365, 365)])
+def test_task_keeps_legacy_when_custom_module_imports_new_default(
+    stats: MagicMock, legacy: int, expected: int
+) -> None:
+    """A star-imported 30-day default must not shorten a released window."""
+    app: Flask = Flask(__name__)
+    app.config.update(
+        VERSION_HISTORY_RETENTION_DAYS=30,
+        SUPERSET_VERSION_HISTORY_RETENTION_DAYS=legacy,
+    )
+    prune: MagicMock
+    with (
+        app.app_context(),
+        patch.object(
+            version_history_retention, "_prune_old_versions_impl", return_value={}
+        ) as prune,
+    ):
+        assert version_history_retention.prune_old_versions() == {}
+    prune.assert_called_once_with(expected)
+
+
+@pytest.mark.parametrize(("canonical", "legacy"), [(7, 365), (365, 0), (-1, -1)])
+def test_task_honors_explicit_canonical_config_with_legacy_key_present(
+    stats: MagicMock, canonical: int, legacy: int
+) -> None:
+    """A distinct canonical value wins even while an old key remains."""
+    app: Flask = Flask(__name__)
+    app.config.update(
+        VERSION_HISTORY_RETENTION_DAYS=canonical,
+        SUPERSET_VERSION_HISTORY_RETENTION_DAYS=legacy,
+    )
+    prune: MagicMock
+    with (
+        app.app_context(),
+        patch.object(
+            version_history_retention, "_prune_old_versions_impl", return_value={}
+        ) as prune,
+    ):
+        assert version_history_retention.prune_old_versions() == {}
+    prune.assert_called_once_with(canonical)
+
+
+@pytest.mark.parametrize("value", [-1.0, -1.5, True, False, None, "abc", "30d"])
+def test_task_does_not_coerce_invalid_input_to_immediate(
+    value: object, stats: MagicMock, caplog: pytest.LogCaptureFixture
+) -> None:
+    """A malformed runtime config defers pruning with 0, never immediate cleanup."""
+    app: Flask = Flask(__name__)
+    app.config["VERSION_HISTORY_RETENTION_DAYS"] = value
+    prune: MagicMock
+    with (
+        app.app_context(),
+        patch.object(
+            version_history_retention, "_prune_old_versions_impl", return_value={}
+        ) as prune,
+    ):
+        assert version_history_retention.prune_old_versions.run() == {}
+    prune.assert_called_once_with(0)
+    stats.incr.assert_not_called()
+    assert "Invalid VERSION_HISTORY_RETENTION_DAYS" in caplog.text
+
+
+def test_task_env_canonical_precedes_legacy_key(
+    stats: MagicMock, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """An explicit environment window is never widened by a legacy key."""
+    monkeypatch.setenv("VERSION_HISTORY_RETENTION_DAYS", "30")
+    app: Flask = Flask(__name__)
+    app.config.update(
+        VERSION_HISTORY_RETENTION_DAYS=30,
+        SUPERSET_VERSION_HISTORY_RETENTION_DAYS=365,
+    )
+    prune: MagicMock
+    with (
+        app.app_context(),
+        patch.object(
+            version_history_retention, "_prune_old_versions_impl", return_value={}
+        ) as prune,
+    ):
+        assert version_history_retention.prune_old_versions() == {}
+    prune.assert_called_once_with(30)
+
+
+def test_task_without_either_key_uses_environment_seed(stats: MagicMock) -> None:
+    """A config carrying neither key falls back to the parsed default window."""
+    app: Flask = Flask(__name__)
+    prune: MagicMock
+    with (
+        app.app_context(),
+        patch.object(
+            version_history_retention, "_prune_old_versions_impl", return_value={}
+        ) as prune,
+    ):
+        assert version_history_retention.prune_old_versions() == {}
+    prune.assert_called_once_with(
+        version_history_retention._version_history_retention_seed
+    )
+
+
+@pytest.mark.parametrize("legacy", ["abc", "30d", -1.5, True, None])
+def test_task_defers_invalid_legacy_retention_with_zero(
+    stats: MagicMock, legacy: object, caplog: pytest.LogCaptureFixture
+) -> None:
+    """An unparsable legacy value in the ambiguity branch skips, not fails."""
+    app: Flask = Flask(__name__)
+    app.config.update(
+        VERSION_HISTORY_RETENTION_DAYS=30,
+        SUPERSET_VERSION_HISTORY_RETENTION_DAYS=legacy,
+    )
+    prune: MagicMock
+    with (
+        app.app_context(),
+        patch.object(
+            version_history_retention, "_prune_old_versions_impl", return_value={}
+        ) as prune,
+    ):
+        assert version_history_retention.prune_old_versions() == {}
+    prune.assert_called_once_with(0)
+    stats.incr.assert_not_called()
+    assert "Invalid SUPERSET_VERSION_HISTORY_RETENTION_DAYS" in caplog.text
+
+
+@pytest.mark.parametrize("legacy", ["abc", None])
+def test_task_defers_invalid_legacy_only_retention_with_zero(
+    stats: MagicMock, legacy: object, caplog: pytest.LogCaptureFixture
+) -> None:
+    """A wholly custom config with only an unparsable legacy key skips."""
+    app: Flask = Flask(__name__)
+    app.config["SUPERSET_VERSION_HISTORY_RETENTION_DAYS"] = legacy
+    prune: MagicMock
+    with (
+        app.app_context(),
+        patch.object(
+            version_history_retention, "_prune_old_versions_impl", return_value={}
+        ) as prune,
+    ):
+        assert version_history_retention.prune_old_versions() == {}
+    prune.assert_called_once_with(0)
+    stats.incr.assert_not_called()
+    assert "Invalid SUPERSET_VERSION_HISTORY_RETENTION_DAYS" in caplog.text
+
+
 def test_task_normalizes_string_retention_config(stats: MagicMock) -> None:
     """String values from custom config modules are normalized to integers."""
     mock_app: MagicMock = MagicMock()
-    mock_app.config = {"SUPERSET_VERSION_HISTORY_RETENTION_DAYS": "30"}
+    mock_app.config = {"VERSION_HISTORY_RETENTION_DAYS": "30"}
     with (
         patch.object(version_history_retention, "current_app", mock_app),
         patch.object(
@@ -185,7 +373,7 @@ def test_terminal_failure_emits_failed_metric_and_swallows(stats: MagicMock) -> 
     (so the schedule isn't poisoned), AND emits a ``.failed`` counter so the
     destructive job's primary failure mode is alertable, not just logged."""
     mock_app: MagicMock = MagicMock()
-    mock_app.config = {"SUPERSET_VERSION_HISTORY_RETENTION_DAYS": 30}
+    mock_app.config = {"VERSION_HISTORY_RETENTION_DAYS": 30}
     with (
         patch.object(version_history_retention, "current_app", mock_app),
         patch.object(
@@ -198,3 +386,30 @@ def test_terminal_failure_emits_failed_metric_and_swallows(stats: MagicMock) -> 
 
     assert result == {"error": 1}
     stats.incr.assert_called_once_with("superset.versioning.retention.failed")
+
+
+@pytest.mark.parametrize("days", [-1, -2])
+def test_immediate_cutoff_and_invalid_skip(stats: MagicMock, days: int) -> None:
+    """Immediate pruning uses the UTC run clock; invalid negatives skip all work."""
+    now: datetime = datetime(2026, 9, 23, 12, 0)
+    tables: MagicMock
+    run_pass: MagicMock
+    with (
+        patch.object(version_history_retention, "naive_utcnow", return_value=now),
+        patch.object(
+            version_history_retention, "_resolve_shadow_tables", return_value=[]
+        ) as tables,
+        patch.object(
+            version_history_retention, "_run_pass_with_retry", return_value=({}, 0)
+        ) as run_pass,
+    ):
+        result: dict[str, Any] = version_history_retention._prune_old_versions_impl(
+            days
+        )
+    if days == -1:
+        run_pass.assert_called_once_with(now, [], 0)
+        assert result["cutoff"] == now.isoformat()
+    else:
+        assert result == {"skipped": 1}
+        tables.assert_not_called()
+        run_pass.assert_not_called()

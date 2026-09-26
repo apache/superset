@@ -20,15 +20,20 @@ from __future__ import annotations
 
 from collections.abc import Iterator
 from contextlib import contextmanager
-from typing import Any
+from typing import Any, Callable
 
 import sqlalchemy as sa
-from flask import current_app
+from flask import current_app, has_app_context
 from sqlalchemy.orm import Session
 
+# Host contract: version API feature gates, transaction-scoped capture/restore,
+# canonical retention configuration and authoritative soft-delete host policy.
+# Downstream startup may require this version before installing policy callbacks.
+HOST_POLICY_API_VERSION: int = 1
 
-def capture_enabled() -> bool:
-    """Whether ``ENABLE_VERSIONING_CAPTURE`` is on for the current app.
+
+def capture_enabled(session: Session | None = None) -> bool:
+    """Whether startup capture and the host's session predicate both allow it.
 
     The single gate shared by the read helpers (which degrade to inert
     responses when off) and the write side (which must refuse: with
@@ -44,8 +49,33 @@ def capture_enabled() -> bool:
     would let this gate pass while listeners stay detached, producing
     exactly the untracked write it exists to prevent. Restart the process
     (or re-run ``init_versioning()``) after changing the flag.
+
+    VERSIONING_CAPTURE_PREDICATE is a separate runtime decision, consulted by
+    the baseline/change listeners and CaptureUnitOfWork as well as restore and
+    the entity API helpers (version info and concurrency tokens on the chart,
+    dashboard and dataset endpoints), each passing the session it works in.
+    The host owns tenant identity, bounded transaction memoization and
+    expected service-failure handling. Database/programming errors are not
+    suppressed. The predicate's contract is a ``bool``; its
+    result is coerced, so a ``None`` from a predicate breaking that contract
+    denies capture instead of leaving ``CaptureUnitOfWork`` undecided.
     """
-    return bool(current_app.config.get("ENABLE_VERSIONING_CAPTURE", False))
+    # Continuum observes unrelated SQLAlchemy sessions, including broker sessions.
+    if not has_app_context():
+        return False
+    if not current_app.config.get("ENABLE_VERSIONING_CAPTURE", False):
+        return False
+    predicate: Callable[[Session], bool] | None = current_app.config.get(
+        "VERSIONING_CAPTURE_PREDICATE"
+    )
+    if predicate is None:
+        return True
+    if session is None:
+        # Deferred because extensions configures the UnitOfWork at import time.
+        from superset.extensions import db  # pylint: disable=import-outside-toplevel
+
+        session = db.session()
+    return bool(predicate(session))
 
 
 @contextmanager

@@ -24,6 +24,62 @@ assists people when migrating to a new version.
 
 ## Next
 
+### Version history retention setting
+
+Use `VERSION_HISTORY_RETENTION_DAYS` for both the application setting and
+environment variable. `SUPERSET_VERSION_HISTORY_RETENTION_DAYS` shipped in 7.0
+and remains a deprecated compatibility alias when the new setting is absent.
+Existing positive windows are preserved; existing zero or negative values still
+disable pruning. Migrate those deployments to `VERSION_HISTORY_RETENTION_DAYS=0`.
+Set the new environment variable to take precedence over a legacy value. In a
+custom config that star-imports defaults, an inherited new 30-day value cannot
+be distinguished from an explicit 30-day override; when the old key is also
+present, the safer disable or longer window is retained. Remove the old key
+when setting the new value in such a config. **Do not copy
+an old `-1` value to the new key:** the new `-1` makes history immediately
+eligible on the next scheduled run instead of disabling pruning. Startup logs
+a warning when the new `-1` is active. The default remains 30 days when neither
+key is set; zero disables pruning.
+For both this setting and `SOFT_DELETE_RETENTION_DAYS`, `-1` means immediate
+eligibility on the next scheduled cleanup run, with its clock as cutoff (not a
+future cutoff). Live/current data and normal purge guards remain protected.
+An absent environment value retains the 30-day default. Invalid or oversized
+supplied environment values defer scheduled cleanup with 0 for both settings.
+Host policy failures also defer. Malformed or oversized standalone soft-delete
+runtime config and stored CLI windows likewise defer purge with 0 instead of
+falling back to a shorter retention window, and a malformed version-history
+value in the live `app.config` defers the scheduled prune with 0 and a warning
+rather than failing the run. Only absent values use the fallback.
+
+### Version history API access follows `VERSION_HISTORY`
+
+`VERSION_HISTORY` controls the UI and all chart, dashboard, and dataset
+version-list, version-snapshot, activity, and version-restore endpoints.
+With the flag disabled, callers who pass the existing route permissions receive
+404 instead of being able to use those APIs directly. When enabled, existing
+route permissions and object-level editorship checks still apply.
+
+The default remains enabled. API consumers that disabled the flag to hide only
+the panel must enable it to retain history API access. Capture and retention
+remain independently configured; ordinary entity CRUD and soft-delete recovery
+are unaffected. With only `ENABLE_VERSIONING_CAPTURE` disabled, existing history
+is readable if `VERSION_HISTORY` is enabled, but version restore returns 404.
+
+An optional `VERSIONING_CAPTURE_PREDICATE(session)` lets hosts restrict capture
+at save time without changing process-global listeners. `None` preserves existing
+behavior. A false result skips history capture but not the live ORM save, and
+refuses version restore with 404. Hosts must supply tenant context for request,
+import, and background writes and keep the decision stable within a transaction;
+version reads (ETag and version info on the chart, dashboard and dataset APIs)
+consult the predicate with the same request session as the save they accompany.
+Existing history and independent retention are unchanged; skipped edits are not
+reconstructed. The first enabled edit of an entity without history may create
+the existing baseline of its then-current state. Expected service failures must
+be handled by the host predicate; programming/database errors are not suppressed.
+Parent and child snapshots are rebuilt in the save transaction after a captured
+edit. If that rebuild fails, the save fails and must be rolled back, so an
+incomplete snapshot is not exposed as restorable history.
+
 ### Guest token RLS rules without a dataset apply inside sub-queries
 
 A guest token RLS rule with no `dataset` key applies to every dataset. Such
@@ -785,7 +841,7 @@ misrepresents the entity as unchanged.
 - **Storage growth.** Capture writes shadow rows per save, so the metadata
   database grows with edit volume. The `version_history.prune_old_versions`
   beat task removes rows whose transaction is older than
-  `SUPERSET_VERSION_HISTORY_RETENTION_DAYS` (default 30).
+  `VERSION_HISTORY_RETENTION_DAYS` (default 30).
 - **Check a replaced `CELERY_CONFIG`.** Carry both the
   `superset.tasks.version_history_retention` import and the
   `version_history.prune_old_versions` beat entry; see
@@ -799,10 +855,10 @@ misrepresents the entity as unchanged.
 kill-switch — not removed with the rollout toggles. Setting it to a falsy value
 stops capture within a restart, without a revert-and-redeploy. Unlike the
 soft-delete toggle, turning it off is a clean stop: existing version rows remain
-readable and no entity state is altered. Restore is unavailable (404) while
-capture is off. A full rollback also sets
-`FEATURE_FLAGS = {"VERSION_HISTORY": False}` to hide the panel — capture off
-with the panel left on shows an empty or stale history.
+readable if `VERSION_HISTORY` is enabled and no entity state is altered. Restore
+is unavailable (404) while capture is off. A full rollback also sets
+`FEATURE_FLAGS = {"VERSION_HISTORY": False}` to disable the panel and history
+APIs — capture off with the panel left on shows an empty or stale history.
 
 ### Scheduled report execution now enforces one application deadline
 
@@ -1300,7 +1356,7 @@ ALTER TABLE tagged_object DROP FOREIGN KEY <constraint_name>;
 
 ### Entity version-history infrastructure
 
-Introduces the schema and SQLAlchemy-Continuum wiring that captures version history for charts, dashboards, and datasets, plus read-only `GET /api/v1/{chart,dashboard,dataset}/<uuid>/versions/` endpoints. Capture is governed by the `ENABLE_VERSIONING_CAPTURE` config value — an operational kill-switch (a release toggle that became a permanent ops switch), not a feature flag; see "Version history is on by default" above for the shipped default. With capture off, no save writes version rows; the endpoints continue to serve already-captured rows read-only. The migration is additive; existing entity `PUT` responses gain `old_version_uuid` / `new_version_uuid` body fields and an `ETag` header (both null/absent when capture is off).
+Introduces the schema and SQLAlchemy-Continuum wiring that captures version history for charts, dashboards, and datasets, plus read-only `GET /api/v1/{chart,dashboard,dataset}/<uuid>/versions/` endpoints. Capture is governed by the `ENABLE_VERSIONING_CAPTURE` config value — an operational kill-switch (a release toggle that became a permanent ops switch), not a feature flag; see "Version history is on by default" above for the shipped default. With capture off, no save writes version rows; the endpoints continue to serve already-captured rows read-only if `VERSION_HISTORY` is enabled. The migration is additive; existing entity `PUT` responses gain `old_version_uuid` / `new_version_uuid` body fields and an `ETag` header (both null/absent when capture is off).
 
 A few save- and import-path internals change **unconditionally** (independent of the flag), because the versioned mappers must behave correctly whether or not capture is enabled:
 
@@ -1329,13 +1385,24 @@ Entity version history (the `version_transaction` / `*_version` shadow tables th
 
 | Key | Default | Purpose |
 |---|---|---|
-| `SUPERSET_VERSION_HISTORY_RETENTION_DAYS` | `30` | Version rows whose owning `version_transaction.issued_at` is older than this many days are pruned. Each entity's live row (`end_transaction_id IS NULL`) is always preserved, as are the live rows of its children and associations; closed historical rows (including the baseline) age out. Set to `0` or a negative value to disable pruning. |
+| `VERSION_HISTORY_RETENTION_DAYS` | `30` | Version rows whose owning `version_transaction.issued_at` is older than this many days are pruned. Each entity's live row (`end_transaction_id IS NULL`) is always preserved, as are the live rows of its children and associations; closed historical rows (including the baseline) age out. `0` disables pruning; `-1` makes historical rows eligible on the next scheduled run. Other negative values are invalid and skip pruning. |
 
 The task ships in the default `CeleryConfig` (both the `superset.tasks.version_history_retention` import and the beat entry). A deployment that overrides `CELERY_CONFIG` without the beat entry logs a startup warning. When the override explicitly defines `imports`, a missing retention module is also reported; an absent `imports` setting is not diagnosed because Celery may register tasks through `include`, autodiscovery, or worker startup imports. Retention only prunes whatever history exists — capture itself is gated separately by `ENABLE_VERSIONING_CAPTURE`, which now ships on.
 
 ### Deletion retention (soft-deleted entities are eventually purged)
 
-Soft-deleted dashboards, charts, and datasets are now permanently removed after a retention window (default 30 days; `SOFT_DELETE_RETENTION_DAYS`, `0` disables; settable per workspace at runtime via the `deletion-retention set-window` CLI, which takes precedence). The `deletion_retention.purge_soft_deleted` Celery beat task runs daily and removes each aged-out entity together with its M:N join rows, owned children, datasource permission, and version-history shadow rows. After purge an entity is **unrecoverable** — its detail and `/restore` endpoints return 404 and its version history is gone.
+`SOFT_DELETE_RETENTION_DAYS` also accepts an environment seed: an integer from
+-1 through 36500, defaulting to 30 when absent. Invalid or oversized supplied
+values defer scheduled purge with 0. An optional
+`SOFT_DELETE_RETENTION_DAYS_FUNC` host callback takes precedence over both the
+stored CLI value and config seed. It must return a nonboolean integer in that
+range; invalid results or callback failure defer scheduled purge with 0, without
+falling back to stored values. The client recovery-window display and CLI
+`show-window` use this same policy. Without a callback, stored CLI values retain
+their precedence over the config seed. This callback does not gate explicit
+force-purge or provide downgrade grace protection.
+
+Soft-deleted dashboards, charts, and datasets are now permanently removed after a retention window (default 30 days; `SOFT_DELETE_RETENTION_DAYS`, `0` disables; settable per workspace at runtime via the `deletion-retention set-window` CLI, which takes precedence when no host retention callback is installed). The `deletion_retention.purge_soft_deleted` Celery beat task runs daily and removes each aged-out entity together with its M:N join rows, owned children, datasource permission, and version-history shadow rows. After purge an entity is **unrecoverable** — its detail and `/restore` endpoints return 404 and its version history is gone.
 
 Purging is **live by default** (`SOFT_DELETE_PURGE_DRY_RUN=False`), so the retention promise above is real on a stock deployment. Set it to `True` to have the task log `would_purge` counts and delete nothing — the lever is retained, so an operator can return to dry-run at any time. Note `would_purge` is an **upper bound** — it counts every entity past the retention window without evaluating deletion blockers, so a real run may purge fewer (entities referenced by report schedules or set as a user's welcome dashboard are blocked and reported separately). The task only acts while the `SOFT_DELETE` rollout flag is on; it now ships on by default.
 

@@ -517,7 +517,8 @@ def _soft_delete_conf() -> dict[str, Any]:
 
     Resolved rather than read from config: an operator can change the window at
     runtime with ``superset deletion-retention set_window``, which persists to
-    a shared key taking precedence over the config seed. Passing the config
+    a shared key taking precedence over the config seed unless an authoritative
+    host policy is installed. Passing the config
     value through would tell users they have longer to recover an object than
     the purge task will actually allow.
 

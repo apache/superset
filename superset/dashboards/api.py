@@ -3278,6 +3278,7 @@ class DashboardRestApi(
     @expose("/<uuid_str>/versions/", methods=("GET",))
     @protect()
     @safe
+    @validate_feature_flags(["VERSION_HISTORY"])
     @statsd_metrics
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.list_versions",
@@ -3326,6 +3327,7 @@ class DashboardRestApi(
     )
     @protect()
     @safe
+    @validate_feature_flags(["VERSION_HISTORY"])
     @statsd_metrics
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.get_version",  # noqa: E501
@@ -3380,6 +3382,7 @@ class DashboardRestApi(
     @expose("/<uuid_str>/activity/", methods=("GET",))
     @protect()
     @safe
+    @validate_feature_flags(["VERSION_HISTORY"])
     @permission_name("get")
     @statsd_metrics
     @event_logger.log_this_with_context(
@@ -3465,6 +3468,7 @@ class DashboardRestApi(
     )
     @protect()
     @safe
+    @validate_feature_flags(["VERSION_HISTORY"])
     @statsd_metrics
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: (

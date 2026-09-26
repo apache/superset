@@ -124,7 +124,12 @@ def _verify_child_history_complete(entity: Any, target_tx: int) -> None:
     * an erased same-parent re-birth window leaves an earlier terminal
       DELETE, indistinguishable from a purged foreign incarnation;
     * erased birth and covering rows leave only a later re-insertion
-      INSERT, indistinguishable from a child first born after the target.
+      INSERT, indistinguishable from a child first born after the target;
+    * a child id reassigned to another parent at ``E`` (the surviving
+      foreign closer proves absence from ``E``) and later re-born under
+      this parent in a window whose create-tx was pruned while ``E``'s
+      rows survived: the re-birth is silently omitted, the same shape as
+      the erased same-parent re-birth above.
 
     No read-side check can recover that erased evidence. The pruner
     deletes shadow rows by create-tx OR close-tx
@@ -191,9 +196,29 @@ def _verify_child_history_complete(entity: Any, target_tx: int) -> None:
         by_child: dict[int, list[Any]] = {}
         for row in rows:
             by_child.setdefault(row.id, []).append(row)
+        # A child id recycled under ANOTHER parent closes this parent's open
+        # row with its own INSERT at the same transaction (see
+        # ``snapshot._reconcile_children``). Those foreign rows are the
+        # surviving closers that prove this parent's absence, so they are
+        # read under the same lock as the same-parent rows.
+        foreign_closers: set[tuple[int, int]] = set()
+        if by_child:
+            foreign_closers = {
+                (row.id, row.transaction_id)
+                for row in db.session.execute(
+                    sa.select(shadow.c.id, shadow.c.transaction_id)
+                    .where(
+                        shadow.c.id.in_(list(by_child)),
+                        shadow.c.table_id != entity.id,
+                    )
+                    .with_for_update()
+                ).all()
+            }
 
         for child_id, child_rows in by_child.items():
-            if not _child_state_provable_at(child_rows, target_tx):
+            if not _child_state_provable_at(
+                child_rows, target_tx, foreign_closers=foreign_closers
+            ):
                 missing.append(f"{label} id={child_id}")
                 # The refusal is fail-closed by design; the chain dump is
                 # what lets an operator (or CI) see WHY this child's state
@@ -223,9 +248,23 @@ def _verify_child_history_complete(entity: Any, target_tx: int) -> None:
         )
 
 
-def _child_state_provable_at(rows: list[Any], target_tx: int) -> bool:
+def _child_state_provable_at(
+    rows: list[Any],
+    target_tx: int,
+    *,
+    foreign_closers: frozenset[tuple[int, int]] | set[tuple[int, int]] = frozenset(),
+) -> bool:
     """Whether *rows* (one child's surviving SAME-PARENT shadow rows,
     in any order) prove the child's state at *target_tx*.
+
+    *foreign_closers* holds ``(id, transaction_id)`` of surviving rows of the
+    same child ids under OTHER parents. A same-parent non-DELETE row whose
+    interval expired at such a row's transaction was closed by the child's
+    reassignment, not by a pruned same-parent successor: the shadow key is
+    unique per transaction, so no same-parent row at that transaction can
+    have existed. That is accepted as absence with exactly the strength of
+    the terminal-DELETE branch: a later same-parent re-birth whose window
+    was pruned is not excluded (see the known limitations above).
 
     Interval semantics: a row is valid over ``[transaction_id,
     end_transaction_id)`` (open end = unbounded). A covering interval
@@ -248,7 +287,9 @@ def _child_state_provable_at(rows: list[Any], target_tx: int) -> bool:
       same-parent successor is missing (that row's close-tx was pruned
       while its own create-tx survived): the child may have existed at
       the target — fail closed. This is the classic pruned-history
-      shape the guard exists for.
+      shape the guard exists for. The one exception is a closer that
+      survives under ANOTHER parent (``foreign_closers``): the id was
+      reassigned at that transaction, so absence is proved.
 
     Known limitation (ratified): a same-parent re-birth whose window
     ``[X, e)`` was retention-pruned via ``e`` while ``X`` survived is
@@ -270,7 +311,11 @@ def _child_state_provable_at(rows: list[Any], target_tx: int) -> bool:
         earliest: Any = min(rows, key=lambda row: row.transaction_id)
         return earliest.operation_type == OPERATION_INSERT
     last: Any = max(at_or_before, key=lambda row: row.transaction_id)
-    return last.operation_type == OPERATION_DELETE
+    if last.operation_type == OPERATION_DELETE:
+        return True
+    return (
+        bool(foreign_closers) and (last.id, last.end_transaction_id) in foreign_closers
+    )
 
 
 @dataclass

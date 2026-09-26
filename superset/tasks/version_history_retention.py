@@ -18,8 +18,8 @@
 
 Retention is time-based. The task deletes parent + child shadow rows
 owned by ``version_transaction`` rows whose ``issued_at`` is older
-than ``SUPERSET_VERSION_HISTORY_RETENTION_DAYS`` (default 30, env
-overridable, non-positive to disable).
+than ``VERSION_HISTORY_RETENTION_DAYS`` (default 30, env
+overridable, zero to disable, -1 for immediate eligibility on the next run).
 
 One preservation rule, applied across every shadow table (parent,
 child, and the M2M association):
@@ -56,6 +56,11 @@ import sqlalchemy as sa
 from flask import current_app
 from sqlalchemy.exc import OperationalError
 
+from superset.config import (
+    _MISSING_RETENTION,
+    _resolve_version_history_retention_days,
+    _version_history_retention_seed,
+)
 from superset.extensions import celery_app, db, stats_logger_manager
 from superset.utils.dates import naive_utcnow
 
@@ -476,10 +481,9 @@ def _prune_old_versions_impl(retention_days: int) -> dict[str, Any]:
     24 hours out (daily Celery beat), and under sustained write
     pressure the prune can silently fail for many days in a row.
     """
-    if retention_days <= 0:
+    if retention_days == 0 or retention_days < -1:
         logger.info(
-            "version_history_retention: SUPERSET_VERSION_HISTORY_RETENTION_DAYS "
-            "<= 0; skipping",
+            "version_history_retention: retention disabled or invalid; skipping",
         )
         stats_logger_manager.instance.incr(f"{_METRIC_PREFIX}.skipped")
         return {"skipped": 1}
@@ -494,7 +498,9 @@ def _prune_old_versions_impl(retention_days: int) -> dict[str, Any]:
     # UTC reference and derivation. (They still read their own process's
     # wall clock — web/worker vs Celery beat — so NTP-scale skew between
     # hosts remains possible; immaterial against a windows-of-days cutoff.)
-    cutoff = naive_utcnow() - timedelta(days=retention_days)
+    cutoff: datetime = naive_utcnow()
+    if retention_days != -1:
+        cutoff -= timedelta(days=retention_days)
 
     # Drain the backlog one bounded, id-ordered window at a time. Each
     # window is its own retried SERIALIZABLE pass, so memory and
@@ -534,10 +540,21 @@ def prune_old_versions() -> dict[str, Any]:
     config lookup + broad exception handling so a single failed run
     doesn't poison the schedule (the next firing retries from a clean
     slate).
+
+    The live ``app.config`` is re-read (hosts may set either retention key
+    after ``superset.config`` was imported) and resolved by the same policy
+    config load uses, so an invalid canonical or legacy value defers pruning
+    with ``0`` and a warning rather than failing the run.
     """
     try:
-        retention_days = int(
-            current_app.config.get("SUPERSET_VERSION_HISTORY_RETENTION_DAYS", 30)
+        configured: object = current_app.config.get(
+            "VERSION_HISTORY_RETENTION_DAYS", _MISSING_RETENTION
+        )
+        legacy_configured: object = current_app.config.get(
+            "SUPERSET_VERSION_HISTORY_RETENTION_DAYS", _MISSING_RETENTION
+        )
+        retention_days: int = _resolve_version_history_retention_days(
+            configured, legacy_configured, seed=_version_history_retention_seed
         )
         return _prune_old_versions_impl(retention_days)
     except Exception:  # pylint: disable=broad-except

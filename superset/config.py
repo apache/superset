@@ -47,6 +47,7 @@ from flask_caching.backends.base import BaseCache
 from pandas import Series
 from pandas._libs.parsers import STR_NA_VALUES
 from sqlalchemy.engine.url import URL
+from sqlalchemy.orm import Session
 from sqlalchemy.orm.query import Query
 
 from superset.advanced_data_type.plugins.internet_address import internet_address
@@ -747,7 +748,8 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # Enable Table V2 time comparison feature
     # @lifecycle: development
     "TABLE_V2_TIME_COMPARISON_ENABLED": False,
-    # Enables the version history panel on Explore and Dashboard pages.
+    # Enables chart and dashboard version history panels and their supporting
+    # API endpoints.
     # History only accrues while ``ENABLE_VERSIONING_CAPTURE`` is also on;
     # with capture off the panel renders empty or stale history, so the two
     # ship with matching defaults and should be changed together.
@@ -1031,11 +1033,33 @@ USER_AGENT_FUNC: Callable[[Database, utils.QuerySource | None], str] | None = No
 # This is merely a default.
 FEATURE_FLAGS: dict[str, bool] = {}
 
+
 # Retention policy for soft-deleted dashboards, charts, and datasets. A value of
-# zero disables scheduled purging. Purging is live by default, so the retention
+# zero disables scheduled purging; -1 makes deleted rows eligible on the next
+# scheduled run. Purging is live by default, so the retention
 # promise above is real on a stock deployment; set SOFT_DELETE_PURGE_DRY_RUN back
 # to True to have the task log ``would_purge`` counts without deleting anything.
-SOFT_DELETE_RETENTION_DAYS: int = 30
+def _parse_soft_delete_retention_days() -> int:
+    """Read the environment seed, deferring purge for invalid supplied values."""
+    value: str | None = os.environ.get("SOFT_DELETE_RETENTION_DAYS")
+    if value is None:
+        return 30
+    try:
+        days: int = int(value)
+        if -1 <= days <= 36500:
+            return days
+    except ValueError:
+        pass
+    logger.warning(
+        "Invalid SOFT_DELETE_RETENTION_DAYS=%r; skipping scheduled purge", value
+    )
+    return 0
+
+
+SOFT_DELETE_RETENTION_DAYS: int = _parse_soft_delete_retention_days()
+# Optional authoritative host policy, consulted before the shared CLI override.
+# Invalid/unavailable results skip purge rather than fall back to a stored value.
+SOFT_DELETE_RETENTION_DAYS_FUNC: Callable[[], int] | None = None
 SOFT_DELETE_PURGE_DRY_RUN: bool = False
 
 # Retention policy for the purge audit log itself (the durable evidence the
@@ -1772,10 +1796,19 @@ SUPERSET_META_DB_LIMIT: int | None = 1000
 
 # Master switch for entity-version-history capture. A falsy value disables
 # version writes while keeping existing history available read-only through the
-# ``/versions/`` endpoints; Restore is unavailable while capture is disabled.
+# ``/versions/`` endpoints when VERSION_HISTORY is enabled; Restore is
+# unavailable while capture is disabled.
 ENABLE_VERSIONING_CAPTURE: bool = utils.parse_boolean_string(
     os.environ.get("ENABLE_VERSIONING_CAPTURE", "true")
 )
+
+# Optional runtime predicate receiving the SQLAlchemy Session. Hosts must return
+# a tenant-local decision stable for the transaction, and handle expected service
+# unavailability without raising. None preserves OSS capture behavior. This does
+# not override the startup kill switch or authorize untracked version restores.
+# Version reads (ETag / version info on the chart, dashboard and dataset APIs)
+# consult it with the same request session as the save they accompany.
+VERSIONING_CAPTURE_PREDICATE: Callable[[Session], bool] | None = None
 
 # Retention window (days) for entity version history. Version rows
 # whose owning ``version_transaction.issued_at`` is older than this
@@ -1784,7 +1817,8 @@ ENABLE_VERSIONING_CAPTURE: bool = utils.parse_boolean_string(
 # If any row anchored at a transaction is live
 # (``end_transaction_id IS NULL``), that entire transaction is preserved.
 # Baseline rows (``operation_type=0``) and closed historical rows otherwise
-# age out alongside the rest. Any non-positive value disables pruning.
+# age out alongside the rest. Zero disables pruning; -1 makes historical rows
+# eligible on the next scheduled run, using the run's clock as the cutoff.
 # Read from environment variable of the same name.
 _DEFAULT_VERSION_HISTORY_RETENTION_DAYS: int = 30
 # Keep cutoff arithmetic comfortably inside ``datetime``'s supported range
@@ -1794,31 +1828,102 @@ _MAX_VERSION_HISTORY_RETENTION_DAYS: int = 36_500
 
 def _parse_version_history_retention_days() -> int:
     """Parse the retention window without making invalid input fatal."""
-    value: str | None = os.environ.get("SUPERSET_VERSION_HISTORY_RETENTION_DAYS")
+    value: str | None = os.environ.get("VERSION_HISTORY_RETENTION_DAYS")
+    legacy: bool = False
+    if value is None:
+        value = os.environ.get("SUPERSET_VERSION_HISTORY_RETENTION_DAYS")
+        legacy = value is not None
     if value is None:
         return _DEFAULT_VERSION_HISTORY_RETENTION_DAYS
+    return _normalize_version_history_retention_days(value, legacy=legacy)
+
+
+def _normalize_version_history_retention_days(value: object, *, legacy: bool) -> int:
+    """Normalize released legacy values without shortening retention on upgrade."""
+    name: str = (
+        "SUPERSET_VERSION_HISTORY_RETENTION_DAYS"
+        if legacy
+        else "VERSION_HISTORY_RETENTION_DAYS"
+    )
     try:
-        retention_days = int(value)
+        if isinstance(value, bool) or not isinstance(value, (str, int)):
+            raise ValueError("Retention must be integer days")
+        retention_days: int = int(value)
     except ValueError:
+        logger.warning("Invalid %s=%r; skipping pruning", name, value)
+        return 0
+    if legacy:
         logger.warning(
-            "Invalid SUPERSET_VERSION_HISTORY_RETENTION_DAYS=%r; using %d",
-            value,
-            _DEFAULT_VERSION_HISTORY_RETENTION_DAYS,
+            "%s is deprecated; use VERSION_HISTORY_RETENTION_DAYS. "
+            "Legacy nonpositive values disable pruning.",
+            name,
         )
-        return _DEFAULT_VERSION_HISTORY_RETENTION_DAYS
+        if retention_days <= 0:
+            return 0
+    if retention_days < -1:
+        logger.warning("Invalid negative %s; skipping pruning", name)
+        return 0
     if retention_days > _MAX_VERSION_HISTORY_RETENTION_DAYS:
         logger.warning(
-            "SUPERSET_VERSION_HISTORY_RETENTION_DAYS=%r exceeds the maximum "
-            "of %d; using %d",
+            "%s=%r exceeds the maximum of %d; skipping pruning",
+            name,
             value,
             _MAX_VERSION_HISTORY_RETENTION_DAYS,
-            _DEFAULT_VERSION_HISTORY_RETENTION_DAYS,
         )
-        return _DEFAULT_VERSION_HISTORY_RETENTION_DAYS
+        return 0
+    if retention_days == -1:
+        logger.warning(
+            "VERSION_HISTORY_RETENTION_DAYS=-1 makes history eligible for "
+            "immediate pruning on the next scheduled run; use 0 to disable"
+        )
     return retention_days
 
 
-SUPERSET_VERSION_HISTORY_RETENTION_DAYS: int = _parse_version_history_retention_days()
+VERSION_HISTORY_RETENTION_DAYS: int = _parse_version_history_retention_days()
+_version_history_retention_seed: int = VERSION_HISTORY_RETENTION_DAYS
+
+# Sentinel for "key not configured at all", distinct from any configured value
+# (including ``None``), shared with the retention task's runtime lookup.
+_MISSING_RETENTION: object = object()
+
+
+def _resolve_version_history_retention_days(
+    canonical: object, legacy: object, *, seed: int
+) -> int:
+    """Combine the canonical and legacy retention settings into integer days.
+
+    *canonical* and *legacy* are the raw configured values of
+    ``VERSION_HISTORY_RETENTION_DAYS`` and the deprecated
+    ``SUPERSET_VERSION_HISTORY_RETENTION_DAYS``, or ``_MISSING_RETENTION``
+    when the key is absent. *seed* is the environment-parsed default the
+    canonical key started from, which is what makes a star-imported default
+    indistinguishable from an explicit same-value override. Invalid values
+    normalize to ``0`` (pruning deferred) rather than raising, so a bad value
+    can neither select immediate cleanup nor fail the caller. Precedence: a
+    ``VERSION_HISTORY_RETENTION_DAYS`` environment variable (read here) beats
+    the legacy key outright; otherwise a canonical value wins unless it equals
+    *seed* while the legacy key differs, and a lone legacy value applies.
+
+    This is the single policy for both config load (below) and the
+    ``version_history.prune_old_versions`` task, which re-reads the live
+    ``app.config`` because hosts may set either key after import.
+    """
+    canonical_days: int = (
+        seed
+        if canonical is _MISSING_RETENTION
+        else _normalize_version_history_retention_days(canonical, legacy=False)
+    )
+    if legacy is _MISSING_RETENTION or "VERSION_HISTORY_RETENTION_DAYS" in os.environ:
+        return canonical_days
+    legacy_days: int = _normalize_version_history_retention_days(legacy, legacy=True)
+    if canonical is _MISSING_RETENTION:
+        return legacy_days
+    if canonical_days != seed:
+        return canonical_days
+    # A star-imported default is indistinguishable from an explicit same-value
+    # override. Keep the non-destructive interpretation when the old key differs.
+    return 0 if 0 in (canonical_days, legacy_days) else max(canonical_days, legacy_days)
+
 
 # Adds a warning message on sqllab save query and schedule query modals.
 SQLLAB_SAVE_WARNING_MESSAGE = None
@@ -1895,8 +2000,8 @@ class CeleryConfig:  # pylint: disable=too-few-public-methods
             "schedule": crontab(minute=0, hour=0),
         },
         # Entity version-history retention. Daily at 03:00; the task
-        # itself short-circuits when SUPERSET_VERSION_HISTORY_RETENTION_DAYS
-        # is non-positive (disabled).
+        # itself short-circuits when VERSION_HISTORY_RETENTION_DAYS
+        # is zero (disabled) or below -1 (invalid).
         "version_history.prune_old_versions": {
             "task": "version_history.prune_old_versions",
             "schedule": crontab(minute=0, hour=3),
@@ -3494,6 +3599,11 @@ def _config_fingerprint(source: bytes | None) -> str:
     return hashlib.md5(source).hexdigest()[:12]  # noqa: S324
 
 
+_legacy_history_retention_override: bool = False
+_canonical_history_retention_override: bool = False
+_legacy_history_retention_value: object = None
+_canonical_history_retention_value: object = None
+
 if CONFIG_PATH_ENV_VAR in os.environ:
     # Explicitly import config module that is not necessarily in pythonpath; useful
     # for case where app is being executed via pex.
@@ -3510,6 +3620,20 @@ if CONFIG_PATH_ENV_VAR in os.environ:
         exec(  # noqa: S102
             compile(config_source, cfg_path, "exec"), override_conf.__dict__
         )
+        _legacy_history_retention_override = (
+            "SUPERSET_VERSION_HISTORY_RETENTION_DAYS" in override_conf.__dict__
+        )
+        _canonical_history_retention_override = (
+            "VERSION_HISTORY_RETENTION_DAYS" in override_conf.__dict__
+        )
+        if _legacy_history_retention_override:
+            _legacy_history_retention_value = vars(override_conf)[
+                "SUPERSET_VERSION_HISTORY_RETENTION_DAYS"
+            ]
+        if _canonical_history_retention_override:
+            _canonical_history_retention_value = vars(override_conf)[
+                "VERSION_HISTORY_RETENTION_DAYS"
+            ]
         for key in dir(override_conf):
             if key.isupper():
                 setattr(module, key, getattr(override_conf, key))
@@ -3530,6 +3654,21 @@ elif importlib.util.find_spec("superset_config"):
         import superset_config
         from superset_config import *  # noqa: F403, F401
 
+        _legacy_history_retention_override = (
+            "SUPERSET_VERSION_HISTORY_RETENTION_DAYS" in vars(superset_config)
+        )
+        _canonical_history_retention_override = (
+            "VERSION_HISTORY_RETENTION_DAYS" in vars(superset_config)
+        )
+        if _legacy_history_retention_override:
+            _legacy_history_retention_value = vars(superset_config)[
+                "SUPERSET_VERSION_HISTORY_RETENTION_DAYS"
+            ]
+        if _canonical_history_retention_override:
+            _canonical_history_retention_value = vars(superset_config)[
+                "VERSION_HISTORY_RETENTION_DAYS"
+            ]
+
         try:
             with open(superset_config.__file__, "rb") as fh:
                 config_source = fh.read()
@@ -3544,6 +3683,20 @@ elif importlib.util.find_spec("superset_config"):
     except Exception:
         logger.exception("Found but failed to import local superset_config")
         raise
+
+VERSION_HISTORY_RETENTION_DAYS = _resolve_version_history_retention_days(
+    (
+        _canonical_history_retention_value
+        if _canonical_history_retention_override
+        else _MISSING_RETENTION
+    ),
+    (
+        _legacy_history_retention_value
+        if _legacy_history_retention_override
+        else _MISSING_RETENTION
+    ),
+    seed=_version_history_retention_seed,
+)
 
 # Final environment variable processing - must be at the very end
 # to override any config file assignments

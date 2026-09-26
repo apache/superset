@@ -14998,6 +14998,10 @@ msgid "There was an issue previewing the selected query. %s"
 msgstr ""
 
 #, python-format
+msgid "These %(type)s will be moved to Recently Archived and may be permanently deleted on the next cleanup run."
+msgstr ""
+
+#, python-format
 msgid ""
 "These %(type)s will be moved to Recently Archived in the Settings menu. "
 "You can recover them there within %(days)s day."
@@ -15014,6 +15018,10 @@ msgid ""
 msgstr ""
 
 msgid "These are the datasets this filter will be applied to."
+msgstr ""
+
+#, python-format
+msgid "This %(type)s will be moved to Recently Archived and may be permanently deleted on the next cleanup run."
 msgstr ""
 
 #, python-format

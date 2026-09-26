@@ -19,7 +19,7 @@ down to changes on the entity itself or on the things it depends on.
 
 | Setting | Type | Effect |
 | --- | --- | --- |
-| `VERSION_HISTORY` | Feature flag | Shows the version history UI |
+| `VERSION_HISTORY` | Feature flag | Enables chart and dashboard version history UI and its supporting APIs |
 | `ENABLE_VERSIONING_CAPTURE` | Config value | Records versions as entities are saved |
 
 Both default to on. To turn the feature off:
@@ -30,14 +30,96 @@ FEATURE_FLAGS = {"VERSION_HISTORY": False}
 ENABLE_VERSIONING_CAPTURE = False
 ```
 
-Restart Superset and its workers for the capture change to take effect. Existing
-history remains readable while capture is off, but **Restore** is unavailable
-(404).
+Restart Superset and its workers for the capture change to take effect.
+With `VERSION_HISTORY` off, the version-list, version-snapshot, activity, and
+version-restore endpoints return 404 for callers who pass the existing route
+permissions. The flag does not grant access: when enabled, route permissions
+and object-level editorship are still required.
+
+Disabling only capture leaves existing history readable when `VERSION_HISTORY`
+is enabled, but **Restore** is unavailable (404). Disabling only
+`VERSION_HISTORY` does not stop capture or retention, and does not change
+ordinary chart, dashboard, or dataset CRUD or soft-delete recovery.
+
+Hosts can separately configure `VERSIONING_CAPTURE_PREDICATE`, a callable
+receiving the SQLAlchemy session. Its default, `None`, preserves capture behavior.
+A false decision skips baseline, shadow, association-history, and change-record
+writes while ordinary ORM saves still persist. Version restore returns 404 when
+capture is denied. The startup `ENABLE_VERSIONING_CAPTURE` kill switch still wins.
+The host must keep decisions tenant-local and stable for a transaction, handle
+expected service outages, and bound any cache to the transaction/request. This
+hook does not govern retention or delete existing history.
+
+Host integrations can require `superset.versioning.utils.HOST_POLICY_API_VERSION`
+equal to `1` before installing policies. This contract includes the version API
+feature gates, transaction-scoped capture and restore, canonical retention key,
+and authoritative soft-delete retention callback. A downstream host must adopt a
+core revision providing the entire contract, not only configure a UI flag.
+
+Imports and background ORM writes use the same predicate; hosts must supply their
+tenant context there too. Bulk SQL retains its existing capture limitations.
+After re-enabling, skipped edits are not reconstructed. If an entity has no
+history, its first enabled edit records the existing pre-edit baseline of its
+then-current state; an entity with history resumes with its next captured change.
 
 Disable them together: capture off with the UI left on gives a panel that
 stops filling — an empty or stale history misrepresents the entity as
 unchanged. History only accrues while capture is on; edits made while it was
 off are not reconstructed.
+
+## Retention
+
+History retention is configured independently with `VERSION_HISTORY_RETENTION_DAYS`
+in `superset_config.py` or the environment variable of the same name. Its default
+is 30 days; set it to `0` to disable pruning. The scheduled retention task preserves
+live versions and prunes eligible closed history older than the configured window.
+The released `SUPERSET_VERSION_HISTORY_RETENTION_DAYS` key remains a deprecated
+fallback: its positive window is preserved and any nonpositive value still
+disables pruning. Migrate a legacy `-1` or other negative disable to the new
+key with value `0`. An explicit new `-1` instead makes closed history eligible
+on the next scheduled run, and logs a startup warning.
+If a custom config star-imports Superset defaults and keeps both keys, an
+inherited new 30-day value is ambiguous; the safer disabled or longer legacy
+window wins. Remove the old key when explicitly migrating in that config.
+The environment seed accepts -1 through 36500. An absent value defaults to 30
+days; invalid supplied values, including non-integers and values outside that
+range, defer pruning with 0. Changing retention does not enable history access
+or capture.
+
+Both retention settings accept `-1` for immediate eligibility on the next normal
+cleanup run, not immediate execution. The cutoff is the run's clock: future-dated
+rows remain ineligible. Current versions and live entities remain protected;
+soft-delete purge still requires a deleted entity and passes the normal cascade,
+dependency, feature-gate and dry-run checks. Other negative values are invalid.
+
+Archived entity cleanup is separate: `SOFT_DELETE_RETENTION_DAYS` defaults to
+30 days when absent and accepts the same-name environment seed (-1 through 36500;
+0 disables scheduled purge). Invalid or oversized supplied values defer scheduled
+purge with 0. A host can install `SOFT_DELETE_RETENTION_DAYS_FUNC` to supply
+an authoritative integer window before the stored CLI override. Invalid or
+unavailable callback results defer purge with 0; they do not use stored values.
+Without that callback, the stored CLI window still takes precedence over config.
+The CLI rejects windows outside -1 through 36500. Malformed or oversized stored
+windows and runtime config values defer scheduled purge with 0, preserving data
+until the operator corrects the window. Only an absent stored window falls back
+to config; only an absent config setting uses the 30-day default.
+Runtime invalid-window resolutions and host-policy failures emit the
+`deletion_retention.invalid_window` counter and a warning; intentional `0` does
+not emit this counter. It counts resolutions, including CLI and client-config
+reads, rather than cleanup runs. Invalid environment seeds are converted to `0`
+at startup and reported by a startup warning instead.
+This does not change explicit force-purge or supply downgrade grace protection.
+
+Permanent purge also removes the purged object's related version-history records,
+regardless of `VERSION_HISTORY_RETENTION_DAYS` or the separate history-pruning
+schedule. Setting history retention to `0` disables scheduled history pruning,
+not this purge cascade. For example, with soft-delete retention of 30 days and
+history retention of 180 days, permanently purging an object after its soft-delete
+window also removes its associated versions, even those younger than 180 days.
+A longer history window does not extend deleted-object recovery: application
+restore is unavailable after permanent purge. This cleanup is scoped to the
+purged object and its owned/association history, not unrelated entities' history;
+shared version transactions are removed only when no surviving history uses them.
 
 ## Viewing history
 
@@ -142,3 +224,20 @@ you are looking at.
 
 Changes made outside a save, such as ownership or permission edits, are not part
 of version history.
+
+### Resuming capture after a disabled interval
+
+When a dataset or dashboard snapshot is saved with capture enabled, its child
+state is reconciled at commit: dataset columns and metrics, and dashboard chart
+membership. This lets a snapshot taken after an uncaptured interval restore the
+state present when that snapshot was saved. It does not recreate the missing
+edit events or create change records for children the resuming save does not
+itself modify. When that save does modify a child, its recorded diff can include
+changes from the disabled interval. Dashboard membership reconciliation never
+overwrites shared chart content.
+
+Reconciliation is part of the same transaction. If it fails, the save fails and
+must be rolled back; an incomplete snapshot must not be presented as restorable.
+Earlier snapshots are not repaired retrospectively. If capture was disabled
+before this behavior was deployed, older snapshots spanning that interval may
+lack child or membership history and should not be used for restore.
