@@ -31,7 +31,11 @@ import {
 import { EchartsBubbleChartProps, EchartsBubbleFormData } from './types';
 import { DEFAULT_FORM_DATA, MINIMUM_BUBBLE_SIZE } from './constants';
 import { defaultGrid } from '../defaults';
-import { getLegendProps, getMinAndMaxFromBounds } from '../utils/series';
+import {
+  getLegendProps,
+  getLegendScrollDataIndex,
+  getMinAndMaxFromBounds,
+} from '../utils/series';
 import { resolveLegendLayout } from '../utils/legendLayout';
 import { Refs } from '../types';
 import { parseAxisBound } from '../utils/controls';
@@ -97,8 +101,17 @@ export function formatTooltip(
 }
 
 export default function transformProps(chartProps: EchartsBubbleChartProps) {
-  const { height, width, hooks, queriesData, formData, inContextMenu, theme } =
-    chartProps;
+  const {
+    height,
+    width,
+    hooks,
+    queriesData,
+    formData,
+    inContextMenu,
+    theme,
+    legendState,
+    legendIndex,
+  } = chartProps;
 
   const { data = [] } = queriesData[0];
   const {
@@ -256,6 +269,12 @@ export default function transformProps(chartProps: EchartsBubbleChartProps) {
         legendOrientation,
         showLegend,
         theme,
+        false,
+        legendState,
+      ),
+      scrollDataIndex: getLegendScrollDataIndex(
+        legendIndex,
+        legendData.length,
       ),
       data: legendData,
     },
@@ -276,7 +295,12 @@ export default function transformProps(chartProps: EchartsBubbleChartProps) {
     grid: { ...defaultGrid, ...padding },
   };
 
-  const { onContextMenu, setDataMask = () => {} } = hooks;
+  const {
+    onContextMenu,
+    setDataMask = () => {},
+    onLegendStateChanged,
+    onLegendScroll,
+  } = hooks;
 
   return {
     refs,
@@ -285,6 +309,8 @@ export default function transformProps(chartProps: EchartsBubbleChartProps) {
     echartOptions,
     onContextMenu,
     setDataMask,
+    onLegendStateChanged,
+    onLegendScroll,
     formData,
   };
 }

@@ -46,6 +46,7 @@ import {
   getChartPadding,
   getColtypesMapping,
   getLegendProps,
+  getLegendScrollDataIndex,
   sanitizeHtml,
 } from '../utils/series';
 import { resolveLegendLayout } from '../utils/legendLayout';
@@ -241,6 +242,8 @@ export default function transformProps(
     inContextMenu,
     emitCrossFilters,
     datasource,
+    legendState,
+    legendIndex,
   } = chartProps;
   const {
     columnFormats = {},
@@ -367,7 +370,12 @@ export default function transformProps(
     };
   }, {});
 
-  const { setDataMask = () => {}, onContextMenu } = hooks;
+  const {
+    setDataMask = () => {},
+    onContextMenu,
+    onLegendStateChanged,
+    onLegendScroll,
+  } = hooks;
   const colorFn = CategoricalColorNamespace.getScale(colorScheme as string);
 
   let totalValue = 0;
@@ -592,6 +600,12 @@ export default function transformProps(
         legendOrientation,
         showLegend,
         theme,
+        false,
+        legendState,
+      ),
+      scrollDataIndex: getLegendScrollDataIndex(
+        legendIndex,
+        legendData.length,
       ),
       data: legendData,
     },
@@ -630,6 +644,8 @@ export default function transformProps(
     groupby,
     selectedValues,
     onContextMenu,
+    onLegendStateChanged,
+    onLegendScroll,
     refs,
     emitCrossFilters,
     coltypeMapping,

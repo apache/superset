@@ -39,6 +39,7 @@ import {
   getAxisType,
   getChartPadding,
   getLegendProps,
+  getLegendScrollDataIndex,
   getOverMaxHiddenFormatter,
   getMinAndMaxFromBounds,
   capTickMarks,
@@ -130,6 +131,11 @@ const expectedThemeProps = {
     color: theme.colorText,
     borderColor: theme.colorBorder,
   },
+};
+
+const expectedScrollThemeProps = {
+  ...expectedThemeProps,
+  animation: false,
 };
 
 const sortData: DataRecord[] = [
@@ -1016,6 +1022,12 @@ describe('formatSeriesName', () => {
   });
 });
 
+test('getLegendScrollDataIndex clamps saved scroll position to legend length', () => {
+  expect(getLegendScrollDataIndex(12, 5)).toBe(4);
+  expect(getLegendScrollDataIndex(undefined, 3)).toBe(0);
+  expect(getLegendScrollDataIndex(2, 0)).toBe(0);
+});
+
 describe('getLegendProps', () => {
   test('should return the correct props for scroll type with top orientation without zoom', () => {
     expect(
@@ -1032,7 +1044,7 @@ describe('getLegendProps', () => {
       right: 0,
       orient: 'horizontal',
       type: 'scroll',
-      ...expectedThemeProps,
+      ...expectedScrollThemeProps,
     });
   });
 
@@ -1051,7 +1063,7 @@ describe('getLegendProps', () => {
       right: 55,
       orient: 'horizontal',
       type: 'scroll',
-      ...expectedThemeProps,
+      ...expectedScrollThemeProps,
     });
   });
 

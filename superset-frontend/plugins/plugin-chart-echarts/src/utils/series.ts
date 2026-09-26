@@ -794,6 +794,21 @@ export function extractGroupbyLabel({
     .join(', ');
 }
 
+/**
+ * ECharts `scrollDataIndex` is the legend entry index of the first visible
+ * item. Dashboard state keeps the last scroll position across re-renders, so
+ * clamp it when the legend has fewer entries after a data refresh.
+ */
+export function getLegendScrollDataIndex(
+  legendIndex: number | undefined,
+  legendItemCount: number,
+): number {
+  if (legendItemCount <= 0) {
+    return 0;
+  }
+  return Math.min(Math.max(legendIndex ?? 0, 0), legendItemCount - 1);
+}
+
 export function getLegendProps(
   type: LegendType,
   orientation: LegendOrientation,
@@ -803,7 +818,8 @@ export function getLegendProps(
   legendState?: LegendState,
   padding?: LegendPaddingType,
 ): LegendComponentOption {
-  const legend: LegendComponentOption = {
+  // `animation` is read by ECharts but missing from its legend option type
+  const legend: LegendComponentOption & { animation?: boolean } = {
     orient: [LegendOrientation.Top, LegendOrientation.Bottom].includes(
       orientation,
     )
@@ -811,6 +827,15 @@ export function getLegendProps(
       : 'vertical',
     show,
     type,
+    ...(type === LegendType.Scroll
+      ? {
+          // A scrolling legend is rebuilt from its first page on every re-render
+          // and then animated back to `scrollDataIndex`, which reads as the legend
+          // sliding away and returning. Turning the animation off makes it render
+          // on the right page to begin with.
+          animation: false,
+        }
+      : {}),
     selected: legendState ?? {},
     selector: ['all', 'inverse'],
     selectorLabel: {
