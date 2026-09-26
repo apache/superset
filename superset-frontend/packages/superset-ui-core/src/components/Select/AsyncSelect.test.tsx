@@ -1721,6 +1721,14 @@ test('cancels pending debounce on unmount', async () => {
   expect(mockOnSearch).not.toHaveBeenCalled();
 });
 
+test('renders the option label directly in the option content without a Space wrapper', async () => {
+  render(<AsyncSelect {...defaultProps} />);
+  await open();
+  const content = getElementByClassName('.ant-select-item-option-content');
+  expect(content.querySelector('.ant-space')).toBeNull();
+  expect(content.firstChild?.nodeType).toBe(Node.TEXT_NODE);
+});
+
 /*
  TODO: Add tests that require scroll interaction. Needs further investigation.
  - Fetches more data when scrolling and more data is available
