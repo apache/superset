@@ -40,3 +40,53 @@ def test_convert_dttm(
     from superset.db_engine_specs.kylin import KylinEngineSpec as spec  # noqa: N813
 
     assert_convert_dttm(spec, target_type, expected_result, dttm)
+
+
+@pytest.mark.parametrize(
+    "grain,expected",
+    [
+        (
+            "PT1S",
+            "TIMESTAMPADD(SECOND, HOUR(ts) * 3600 + MINUTE(ts) * 60 + SECOND(ts), "
+            "CAST(CAST(ts AS DATE) AS TIMESTAMP))",
+        ),
+        (
+            "PT1M",
+            "TIMESTAMPADD(MINUTE, HOUR(ts) * 60 + MINUTE(ts), "
+            "CAST(CAST(ts AS DATE) AS TIMESTAMP))",
+        ),
+        (
+            "PT1H",
+            "TIMESTAMPADD(HOUR, HOUR(ts), CAST(CAST(ts AS DATE) AS TIMESTAMP))",
+        ),
+        ("P1D", "CAST(ts AS DATE)"),
+        ("P1W", "TIMESTAMPADD(DAY, 1 - DAYOFWEEK(ts), CAST(ts AS DATE))"),
+        ("P1M", "TIMESTAMPADD(DAY, 1 - DAYOFMONTH(ts), CAST(ts AS DATE))"),
+        (
+            "P3M",
+            "TIMESTAMPADD(MONTH, 3 * QUARTER(ts) - 3, "
+            "TIMESTAMPADD(DAY, 1 - DAYOFYEAR(ts), CAST(ts AS DATE)))",
+        ),
+        ("P1Y", "TIMESTAMPADD(DAY, 1 - DAYOFYEAR(ts), CAST(ts AS DATE))"),
+    ],
+)
+def test_time_grain_expressions(grain: str, expected: str) -> None:
+    """
+    Grains avoid FLOOR(... TO ...), which Kylin's Spark SQL pushdown cannot parse.
+    """
+    from superset.db_engine_specs.kylin import KylinEngineSpec
+
+    expression = KylinEngineSpec._time_grain_expressions[grain].format(col="ts")
+    assert expression == expected
+    assert "FLOOR" not in expression
+
+
+def test_labels_do_not_shadow_source_columns() -> None:
+    """
+    Kylin's Calcite resolves GROUP BY identifiers to SELECT aliases first, so a
+    label must not equal the column it is derived from.
+    """
+    from superset.db_engine_specs.kylin import KylinEngineSpec
+
+    assert KylinEngineSpec.make_label_compatible("ts") == "ts__"
+    assert KylinEngineSpec.make_label_compatible("COUNT(*)") == "COUNT(*)__"
