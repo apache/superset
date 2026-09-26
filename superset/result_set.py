@@ -48,10 +48,17 @@ def dedup(l: list[str], suffix: str = "__", case_sensitive: bool = True) -> list
     """
     new_l: list[str] = []
     seen: dict[str, int] = {}
+    reserved = {item if case_sensitive else item.lower() for item in l}
+    fixed_case_suffix = suffix if case_sensitive else suffix.lower()
     for item in l:
         s_fixed_case = item if case_sensitive else item.lower()
         if s_fixed_case in seen:
             seen[s_fixed_case] += 1
+            while (
+                s_fixed_case + fixed_case_suffix + str(seen[s_fixed_case]) in reserved
+            ):
+                seen[s_fixed_case] += 1
+            reserved.add(s_fixed_case + fixed_case_suffix + str(seen[s_fixed_case]))
             item += suffix + str(seen[s_fixed_case])
         else:
             seen[s_fixed_case] = 0
