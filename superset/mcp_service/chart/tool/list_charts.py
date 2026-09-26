@@ -20,7 +20,7 @@ MCP tool: list_charts (advanced filtering with metadata cache control)
 """
 
 import logging
-from typing import cast, TYPE_CHECKING
+from typing import Any, cast, TYPE_CHECKING
 
 from fastmcp import Context
 from superset_core.mcp.decorators import tool, ToolAnnotations
@@ -62,6 +62,52 @@ DEFAULT_CHART_COLUMNS = [
 ]
 
 _DEFAULT_LIST_CHARTS_REQUEST = ListChartsRequest()
+
+# Relationships that resolve a chart's live datasource. ``datasource_name`` is
+# read through them rather than from the stored ``Slice.datasource_name``
+# column, which can be stale after a dataset rename or a chart re-point.
+_LIVE_DATASOURCE_RELATIONSHIPS = ("table", "semantic_view")
+
+
+class _ChartListCore(ModelListCore[ChartList]):
+    """List core that loads the live datasource whenever its name is requested.
+
+    Requesting only plain columns makes the DAO return row tuples, which cannot
+    reach the ``table`` / ``semantic_view`` relationships. Adding them to the
+    DAO load list switches it to full model instances with the relationships
+    eager-loaded, so the live name costs no per-chart query.
+    """
+
+    def _call_dao_list(
+        self,
+        filters: Any,
+        order_column: str,
+        order_direction: str,
+        page: int,
+        page_size: int,
+        search: str | None,
+        columns_to_load: list[str],
+        custom_filters: dict[str, Any] | None = None,
+    ) -> tuple[list[Any], int]:
+        if "datasource_name" in columns_to_load:
+            columns_to_load = [
+                *columns_to_load,
+                *(
+                    rel
+                    for rel in _LIVE_DATASOURCE_RELATIONSHIPS
+                    if rel not in columns_to_load
+                ),
+            ]
+        return super()._call_dao_list(
+            filters=filters,
+            order_column=order_column,
+            order_direction=order_direction,
+            page=page,
+            page_size=page_size,
+            search=search,
+            columns_to_load=columns_to_load,
+            custom_filters=custom_filters,
+        )
 
 
 @tool(
@@ -161,9 +207,9 @@ async def list_charts(
         obj: "Slice | None", cols: list[str] | None
     ) -> ChartInfo | None:
         """Serialize chart object (field filtering handled by model_serializer)."""
-        return serialize_chart_object(cast(ChartLike | None, obj))
+        return serialize_chart_object(cast(ChartLike | None, obj), select_columns=cols)
 
-    tool = ModelListCore(
+    tool = _ChartListCore(
         dao_class=ChartDAO,
         output_schema=ChartInfo,
         item_serializer=_serialize_chart,
@@ -214,6 +260,14 @@ async def list_charts(
         # Always use columns_requested (either explicit select_columns or defaults)
         # This triggers ChartInfo._filter_fields_by_context for each chart
         columns_to_filter = result.columns_requested
+        # Report only fields that the serialized charts actually carry: drop
+        # model columns ChartInfo does not expose (e.g. params, perm) and
+        # dependencies loaded solely to compute another field.
+        result.columns_loaded = [
+            column
+            for column in result.columns_loaded
+            if column in columns_to_filter and column in ChartInfo.model_fields
+        ]
         await ctx.debug(
             "Applying field filtering via serialization context: columns=%s"
             % (columns_to_filter,)

@@ -264,7 +264,7 @@ CHART_SEARCH_COLUMNS = ["slice_name", "description"]
 CHART_EXTRA_COLUMNS: dict[str, ColumnMetadata] = {
     "datasource_name": ColumnMetadata(
         name="datasource_name",
-        description="Data source name",
+        description="Current name of the chart's dataset or semantic view",
         type="str",
         is_default=False,
     ),
