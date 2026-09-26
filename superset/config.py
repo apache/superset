@@ -391,6 +391,11 @@ WTF_CSRF_EXEMPT_LIST = [
     "superset.dashboards.api.export_xlsx",
     "superset.views.core.log",
     "superset.views.datasource.views.samples",
+    # Minting a one-time login token is a server-to-server call from a trusted
+    # parent application's backend, authenticated by
+    # LOGIN_TOKEN_IDENTITY_RESOLVER rather than by a session cookie. There is no
+    # session to forge against, and such a caller has no CSRF token to present.
+    "superset.security.api.login_token",
     "flask_appbuilder.security.views.acs",
 ]
 
@@ -732,6 +737,11 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # Enable Matrixify feature for matrix-style chart layouts
     # @lifecycle: development
     "MATRIXIFY": False,
+    # Allow a trusted parent application to exchange a proof of a user's identity
+    # for a real Superset session inside an iframe, via one-time login tokens.
+    # Does nothing unless LOGIN_TOKEN_IDENTITY_RESOLVER is also configured.
+    # @lifecycle: development
+    "LOGIN_TOKEN": False,
     # Serve a consumption-only mobile experience (dashboards, dashboard list,
     # and home page) on small screens; other views show a "not supported on
     # mobile" screen. Authoring features are hidden on mobile when enabled.
@@ -3137,6 +3147,43 @@ GUEST_TOKEN_JWT_AUDIENCE: Callable[[], str] | str | None = None
 # Return False from the callable to return a HTTP 400 to the user.
 
 GUEST_TOKEN_VALIDATOR_HOOK = None
+
+# ---------------------------------------------------
+# One-time login tokens (iframe embedding as the real user)
+# ---------------------------------------------------
+# Resolves the identity of a caller minting a one-time login token. This callable
+# is the entire authentication boundary for POST /api/v1/security/login-token:
+# whatever it accepts as proof of identity is what Superset will issue a session
+# for, so it must fully validate the credential it is given (issuer, audience,
+# signature and expiry for an id token; equivalent rigour for anything else).
+#
+# It receives the inbound Flask request and returns a LoginTokenUserInfo dict, or
+# None to reject. Raising also rejects. The returned `role_keys` are resolved
+# through AUTH_ROLES_MAPPING, so a caller can only request roles the operator has
+# already mapped -- it cannot invent or escalate roles.
+#
+#   from flask import Request
+#   from superset.security.login_token import LoginTokenUserInfo
+#
+#   def resolve_identity(request: Request, **kwargs) -> LoginTokenUserInfo | None:
+#       claims = my_idp.verify_id_token(request.headers.get("Authorization"))
+#       if claims is None:
+#           return None
+#       return {
+#           "username": claims["preferred_username"],
+#           "email": claims["email"],
+#           "first_name": claims.get("given_name", ""),
+#           "last_name": claims.get("family_name", ""),
+#           "role_keys": claims.get("groups", []),
+#       }
+#
+#   LOGIN_TOKEN_IDENTITY_RESOLVER = resolve_identity
+LOGIN_TOKEN_IDENTITY_RESOLVER: Callable[..., Any] | None = None
+
+# Server-side lifetime of a one-time login token. Kept short because the token is
+# handed to a browser as an iframe URL and therefore appears in access logs; the
+# TTL bounds the window in which an observer could replay it before it is spent.
+LOGIN_TOKEN_TTL_SECONDS = 60
 
 # Enables coarse-grained, runtime revocation of outstanding guest tokens.
 #

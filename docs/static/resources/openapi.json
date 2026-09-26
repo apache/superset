@@ -7831,6 +7831,19 @@
         },
         "type": "object"
       },
+      "LoginTokenResponseSchema": {
+        "properties": {
+          "access_token": {
+            "description": "Opaque single-use token. Carries no identity data; it is only a handle to a short-lived server-side record.",
+            "type": "string"
+          },
+          "expires_at": {
+            "description": "Unix timestamp after which the token is rejected.",
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
       "PermissionApi.get": {
         "properties": {
           "id": {
@@ -30154,6 +30167,77 @@
             "$ref": "#/components/responses/500"
           }
         },
+        "tags": [
+          "Security"
+        ]
+      }
+    },
+    "/api/v1/security/login-token/": {
+      "get": {
+        "description": "Reached by navigating an iframe to this URL. Exchanges the token for a standard session cookie and redirects to `next`, so the frame holds an ordinary Superset session with the user's own roles and row-level security. The token is deleted on use.",
+        "parameters": [
+          {
+            "description": "The opaque token returned by POST on this path",
+            "in": "query",
+            "name": "token",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Internal URL to redirect to; rejected if not internal",
+            "in": "query",
+            "name": "next",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "302": {
+            "description": "Session established; redirect to `next`"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "summary": "Consume a one-time login token",
+        "tags": [
+          "Security"
+        ]
+      },
+      "post": {
+        "description": "Exchanges a caller-supplied proof of identity for an opaque, single-use token that GET on this same path trades for a session cookie. Intended to be called server-to-server by a trusted parent application so the underlying credential never reaches the browser. The LOGIN_TOKEN_IDENTITY_RESOLVER hook decides what counts as proof.",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoginTokenResponseSchema"
+                }
+              }
+            },
+            "description": "The minted token and its expiry"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "summary": "Mint a one-time login token",
         "tags": [
           "Security"
         ]
