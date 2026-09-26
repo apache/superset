@@ -22,7 +22,7 @@ from unittest.mock import patch
 
 import pytest
 import sshtunnel
-from flask import Flask, Response, session
+from flask import abort, Flask, Response, session
 from flask_babel import Babel
 from flask_jwt_extended.exceptions import NoAuthorizationError
 from flask_wtf.csrf import CSRFProtect, generate_csrf
@@ -340,10 +340,34 @@ class TestShowHttpException:
 
         assert response.status_code == 404
         records = self._handler_records(caplog)
-        assert len(records) <= 1
-        assert all(record.levelno < logging.WARNING for record in records)
-        assert all(record.exc_info is None for record in records)
-        assert all("\n" not in record.getMessage() for record in records)
+        assert len(records) == 1
+        assert records[0].levelno == logging.DEBUG
+        assert records[0].exc_info is None
+        assert "/no-matching-route" in records[0].getMessage()
+        assert "\n" not in records[0].getMessage()
+
+    def test_view_404_logs_one_debug_line_with_path_and_no_traceback(
+        self, caplog: pytest.LogCaptureFixture
+    ) -> None:
+        """A view's explicit 404 logs the same detail as a routing 404."""
+        test_app = self._build_app_with_handlers(NotFound())
+
+        @test_app.route("/view-not-found")
+        def not_found_view() -> FlaskResponse:
+            """Abort with a 404 from inside a matched route."""
+            return abort(404)
+
+        client = test_app.test_client()
+        with caplog.at_level(logging.DEBUG, logger="superset.views.error_handling"):
+            response = client.get("/view-not-found")
+
+        assert response.status_code == 404
+        records = self._handler_records(caplog)
+        assert len(records) == 1
+        assert records[0].levelno == logging.DEBUG
+        assert records[0].exc_info is None
+        assert "/view-not-found" in records[0].getMessage()
+        assert "\n" not in records[0].getMessage()
 
     @pytest.mark.parametrize("error", [BadRequest(), Unauthorized(), Forbidden()])
     def test_other_4xx_log_a_warning_without_traceback(
