@@ -190,6 +190,44 @@ def _restore_dropped_metric_columns(
     return df
 
 
+def _fill_dimension_column(df: DataFrame, col: str, fill_value: str) -> None:
+    """Fill missing values in a groupby dimension column before pivoting.
+
+    Handles categorical dtypes (adding fill_value to categories), datetime
+    dtypes (converting to string representation with fill_value for NaT), and
+    nullable extension dtypes (casting to object so a string fill value is
+    valid) to prevent dtype errors and preserve NULL/NaN/NaT keys through
+    pivot_table().
+    """
+    s = df[col]
+    if isinstance(s.dtype, pd.CategoricalDtype):
+        if s.isna().any():
+            # Only add the category when there is a NULL to fill: adding it
+            # unconditionally leaves pivot_table()'s default observed=False
+            # to materialize an unobserved "<NULL>" group/column even for
+            # dimensions that never had a missing value.
+            if fill_value not in s.cat.categories:
+                s = s.cat.add_categories([fill_value])
+            df[col] = s.fillna(value=fill_value)
+    elif pd.api.types.is_datetime64_any_dtype(s.dtype) or (
+        getattr(s.dtype, "kind", None) == "M"
+    ):
+        if s.isna().any():
+            df[col] = s.astype(str).where(~s.isna(), other=fill_value)
+    else:
+        if s.isna().any():
+            # Nullable extension dtypes (Int64, Float64, boolean, ...) back
+            # onto a masked array that can only hold values of their own
+            # type, so filling with a string sentinel raises TypeError.
+            # Casting to object first (already the case for plain numpy
+            # dtypes) makes the column able to hold the string fill value.
+            if pd.api.types.is_extension_array_dtype(s.dtype) and not isinstance(
+                s.dtype, pd.StringDtype
+            ):
+                s = s.astype(object)
+            df[col] = s.fillna(value=fill_value)
+
+
 @validate_column_args("index", "columns")
 def pivot(  # pylint: disable=too-many-arguments  # noqa: C901
     df: DataFrame,
@@ -302,7 +340,15 @@ def pivot(  # pylint: disable=too-many-arguments  # noqa: C901
         percent_mode = show_values_as
 
     if columns and column_fill_value:
-        df[columns] = df[columns].fillna(value=column_fill_value)
+        for col in columns:
+            _fill_dimension_column(df, col, column_fill_value)
+
+    # Fill NULL/NaN/NaT values in the index columns with NULL_STRING so that
+    # NULL grouping keys survive as a real "<NULL>" row in the pivot output.
+    # Mirrors the column fill above; pivot_table() drops NaN index rows
+    # regardless of the dropna= setting (dropna only governs the column axis).
+    for col in index:
+        _fill_dimension_column(df, col, NULL_STRING)
 
     aggregate_funcs = _get_aggregate_funcs(df, aggregates)
 
