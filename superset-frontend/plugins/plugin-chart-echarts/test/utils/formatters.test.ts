@@ -386,3 +386,14 @@ test('createSpacedXAxisFormatter still dedupes identical consecutive labels when
 
   expect(labels).toEqual(['Jan', '', '']);
 });
+
+test('smart date x-axis formatter ignores sub-second noise without a grain', () => {
+  const formatter = getXAxisFormatter(SMART_DATE_ID) as TimeFormatter;
+  // ECharts pads the axis extent beyond the data; the forced boundary label
+  // formats a value with sub-second noise. Without a grain to normalize to,
+  // the formatter must not fall into the millisecond tier and render '.943ms'.
+  const boundary = new Date('2009-01-01T00:00:00.943Z');
+  const clean = new Date('2009-01-01T00:00:00Z');
+  expect(formatter.format(boundary)).toBe(formatter.format(clean));
+  expect(formatter.format(boundary)).not.toContain('ms');
+});
