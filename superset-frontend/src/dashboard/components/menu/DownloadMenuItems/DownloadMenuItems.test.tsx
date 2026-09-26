@@ -36,7 +36,9 @@ import { useDownloadMenuItems } from '.';
 
 const mockAddSuccessToast = jest.fn();
 const mockAddDangerToast = jest.fn();
-const mockAddInfoToast = jest.fn();
+const mockAddInfoToast = jest.fn(() => ({
+  payload: { id: 'excel-export-progress' },
+}));
 
 jest.mock('src/components/MessageToasts/withToasts', () => ({
   __esModule: true,
@@ -76,6 +78,12 @@ const createProps = () => ({
 // session with an email on file.
 const loggedInState = { user: { userId: 1, email: 'admin@example.com' } };
 const guestState = { user: {} };
+
+/** Info toasts other than the request progress toast. */
+const pendingToastCalls = () =>
+  mockAddInfoToast.mock.calls.filter(
+    ([message]: unknown[]) => message !== 'Preparing dashboard Excel export…',
+  );
 
 const MenuWrapper = () => {
   const downloadMenuItem = useDownloadMenuItems(createProps());
@@ -179,6 +187,22 @@ test('Export Images to Excel is hidden when the webdriver is not enabled', () =>
   expect(screen.queryByText('Export Images to Excel')).not.toBeInTheDocument();
 });
 
+test('Export Images to Excel is hidden when export storage is not configured', () => {
+  enableWebDriverScreenshot();
+  render(<MenuWrapper />, {
+    useRedux: true,
+    initialState: {
+      ...loggedInState,
+      dashboardInfo: {
+        common: { conf: { EXCEL_EXPORT_STORAGE_CONFIGURED: false } },
+      },
+    },
+  });
+
+  expect(screen.getByText('Export Data to Excel')).toBeInTheDocument();
+  expect(screen.queryByText('Export Images to Excel')).not.toBeInTheDocument();
+});
+
 test('Excel export items are hidden when userCanExport is false', () => {
   render(<MenuWrapperWithProps userCanExport={false} />, {
     useRedux: true,
@@ -200,10 +224,40 @@ test('sessions without a user id get the data export but no bundle exports', () 
   expect(screen.queryByText('Export as Example')).not.toBeInTheDocument();
 });
 
-test('Export Data to Excel posts mode "data" and shows a pending toast', async () => {
+/** A queued export: 202 with a job id, delivered later by polling or email. */
+const mockQueuedResponse = (
+  body: Record<string, unknown> = { job_id: 'abc' },
+) =>
   mockSupersetClient.post.mockResolvedValue({
-    json: { job_id: 'abc' },
+    status: 202,
+    json: jest.fn().mockResolvedValue(body),
   } as never);
+
+/** An inline export: the workbook itself, as the response to the request. */
+const mockWorkbookResponse = (
+  filename = 'World_Health_1.xlsx',
+): { blob: jest.Mock } => {
+  const blob = jest.fn().mockResolvedValue(new Blob(['xlsx'])) as jest.Mock;
+  mockSupersetClient.post.mockResolvedValue({
+    status: 200,
+    blob,
+    headers: new Headers({
+      'Content-Disposition': `attachment; filename=${filename}`,
+    }),
+  } as never);
+  return { blob };
+};
+
+/** jsdom implements neither, and the download path needs both. */
+const stubObjectUrls = (): { createObjectURL: jest.Mock } => {
+  const createObjectURL = jest.fn(() => 'blob:http://localhost/fake');
+  window.URL.createObjectURL = createObjectURL;
+  window.URL.revokeObjectURL = jest.fn();
+  return { createObjectURL };
+};
+
+test('Export Data to Excel posts mode "data" and shows a pending toast', async () => {
+  mockQueuedResponse();
 
   render(<MenuWrapper />, { useRedux: true, initialState: loggedInState });
 
@@ -212,7 +266,9 @@ test('Export Data to Excel posts mode "data" and shows a pending toast', async (
   await waitFor(() => {
     expect(mockSupersetClient.post).toHaveBeenCalledWith({
       endpoint: '/api/v1/dashboard/123/export_xlsx/',
+      fetchRetryOptions: { retries: 0 },
       jsonPayload: { active_data_mask: {}, mode: 'data' },
+      parseMethod: 'raw',
     });
     expect(mockAddInfoToast).toHaveBeenCalledWith(
       "Your export is being generated and will download automatically when ready. We'll also email you a download link.",
@@ -223,9 +279,7 @@ test('Export Data to Excel posts mode "data" and shows a pending toast', async (
 
 test('Export Images to Excel posts mode "images" and shows a pending toast', async () => {
   enableWebDriverScreenshot();
-  mockSupersetClient.post.mockResolvedValue({
-    json: { job_id: 'abc' },
-  } as never);
+  mockQueuedResponse();
 
   render(<MenuWrapper />, { useRedux: true, initialState: loggedInState });
 
@@ -234,7 +288,9 @@ test('Export Images to Excel posts mode "images" and shows a pending toast', asy
   await waitFor(() => {
     expect(mockSupersetClient.post).toHaveBeenCalledWith({
       endpoint: '/api/v1/dashboard/123/export_xlsx/',
+      fetchRetryOptions: { retries: 0 },
       jsonPayload: { active_data_mask: {}, mode: 'images' },
+      parseMethod: 'raw',
     });
     expect(mockAddInfoToast).toHaveBeenCalledWith(
       "Your export is being generated and will download automatically when ready. We'll also email you a download link.",
@@ -243,15 +299,162 @@ test('Export Images to Excel posts mode "images" and shows a pending toast', asy
   });
 });
 
+test('Export Data to Excel downloads the workbook when it arrives inline', async () => {
+  // Without storage, the response contains the workbook.
+  const { blob } = mockWorkbookResponse();
+  const { createObjectURL } = stubObjectUrls();
+
+  render(<MenuWrapper />, { useRedux: true, initialState: loggedInState });
+
+  await clickMenuItem('Export Data to Excel');
+
+  await waitFor(() => {
+    expect(blob).toHaveBeenCalled();
+    expect(createObjectURL).toHaveBeenCalled();
+    expect(mockAddSuccessToast).toHaveBeenCalledWith(
+      'Dashboard data exported to Excel',
+    );
+  });
+  // Direct downloads do not show the queued-export message.
+  expect(mockAddInfoToast).not.toHaveBeenCalledWith(
+    "Your export is being generated and will download automatically when ready. We'll also email you a download link.",
+    { noDuplicate: true },
+  );
+});
+
+test('Export Data to Excel names the downloaded file from the response', async () => {
+  mockWorkbookResponse('Sales_Overview_7.xlsx');
+  stubObjectUrls();
+
+  render(<MenuWrapper />, { useRedux: true, initialState: loggedInState });
+
+  await clickMenuItem('Export Data to Excel');
+
+  await waitFor(() =>
+    expect(clickedDownloads.map(({ download }) => download)).toEqual([
+      'Sales_Overview_7.xlsx',
+    ]),
+  );
+});
+
+/** Mock a request that the test can settle later. */
+const mockPendingResponse = (): { settle: (response: unknown) => void } => {
+  let settle: (response: unknown) => void = () => {};
+  mockSupersetClient.post.mockReturnValue(
+    new Promise(resolve => {
+      settle = resolve;
+    }) as never,
+  );
+  return { settle: response => settle(response) };
+};
+
+const menuItemFor = (label: string) =>
+  screen.getByText(label).closest('[role="menuitem"]');
+
+test('Export Data to Excel reports progress while the export is running', async () => {
+  // Keep the menu responsive while the request runs.
+  const { settle } = mockPendingResponse();
+
+  render(<MenuWrapper />, { useRedux: true, initialState: loggedInState });
+  await clickMenuItem('Export Data to Excel');
+
+  await waitFor(() => {
+    expect(screen.getByText('Preparing export…')).toBeInTheDocument();
+    expect(mockAddInfoToast).toHaveBeenCalledWith(
+      'Preparing dashboard Excel export…',
+      { duration: -1 },
+    );
+  });
+  expect(screen.queryByText('Export Data to Excel')).not.toBeInTheDocument();
+  expect(menuItemFor('Preparing export…')).toHaveAttribute(
+    'aria-disabled',
+    'true',
+  );
+
+  settle({ status: 202, json: jest.fn().mockResolvedValue({ job_id: 'abc' }) });
+
+  // Re-enable the action when the request finishes.
+  await waitFor(() => {
+    expect(screen.getByText('Export Data to Excel')).toBeInTheDocument();
+  });
+  expect(mockAddInfoToast).toHaveBeenCalledWith(
+    "Your export is being generated and will download automatically when ready. We'll also email you a download link.",
+    { noDuplicate: true },
+  );
+});
+
+test('Export Data to Excel is offered again once the download starts', async () => {
+  const { settle } = mockPendingResponse();
+  stubObjectUrls();
+
+  render(<MenuWrapper />, { useRedux: true, initialState: loggedInState });
+  await clickMenuItem('Export Data to Excel');
+  await waitFor(() => {
+    expect(screen.getByText('Preparing export…')).toBeInTheDocument();
+  });
+
+  settle({
+    status: 200,
+    blob: jest.fn().mockResolvedValue(new Blob(['xlsx'])),
+    headers: new Headers({
+      'Content-Disposition': 'attachment; filename=dash.xlsx',
+    }),
+  });
+
+  await waitFor(() => {
+    expect(screen.getByText('Export Data to Excel')).toBeInTheDocument();
+  });
+  expect(mockAddSuccessToast).toHaveBeenCalledWith(
+    'Dashboard data exported to Excel',
+  );
+});
+
+test('Export Data to Excel is offered again after a failure', async () => {
+  const { settle } = mockPendingResponse();
+  mockGetClientErrorObject.mockResolvedValue({ status: 500 });
+
+  render(<MenuWrapper />, { useRedux: true, initialState: loggedInState });
+  await clickMenuItem('Export Data to Excel');
+  await waitFor(() => {
+    expect(screen.getByText('Preparing export…')).toBeInTheDocument();
+  });
+
+  // Re-enable the action after an error.
+  settle(Promise.reject(new Error('boom')));
+
+  await waitFor(() => {
+    expect(screen.getByText('Export Data to Excel')).toBeInTheDocument();
+  });
+  expect(mockAddDangerToast).toHaveBeenCalledWith(
+    'Sorry, something went wrong. Try again later.',
+  );
+});
+
+test('Export Images to Excel is blocked while a data export is running', async () => {
+  // The server allows one export per dashboard and user.
+  enableWebDriverScreenshot();
+  mockPendingResponse();
+
+  render(<MenuWrapper />, { useRedux: true, initialState: loggedInState });
+  await clickMenuItem('Export Data to Excel');
+
+  await waitFor(() => {
+    expect(menuItemFor('Export Images to Excel')).toHaveAttribute(
+      'aria-disabled',
+      'true',
+    );
+  });
+  await clickMenuItem('Export Images to Excel');
+  expect(mockSupersetClient.post).toHaveBeenCalledTimes(1);
+});
+
 test('Export Data to Excel polls status and auto-downloads once ready', async () => {
   // A guest/embedded session has no email to be notified at, so completion is
   // discovered by polling export_xlsx/status/<job_id>/ instead -- exercised
   // here regardless of session type, since the same polling drives the
   // auto-download for a regular session too.
   jest.useFakeTimers();
-  mockSupersetClient.post.mockResolvedValue({
-    json: { job_id: 'abc' },
-  } as never);
+  mockQueuedResponse();
   mockSupersetClient.get.mockResolvedValueOnce({
     json: {
       status: 'ready',
@@ -290,9 +493,7 @@ test('Export Data to Excel polls status and auto-downloads once ready', async ()
 
 test('the ready download goes through an anchor and never navigates the page', async () => {
   jest.useFakeTimers();
-  mockSupersetClient.post.mockResolvedValue({
-    json: { job_id: 'abc' },
-  } as never);
+  mockQueuedResponse();
   mockSupersetClient.get.mockResolvedValueOnce({
     json: {
       status: 'ready',
@@ -328,9 +529,7 @@ test('the ready download goes through an anchor and never navigates the page', a
 
 test('Export Data to Excel keeps polling while status is pending', async () => {
   jest.useFakeTimers();
-  mockSupersetClient.post.mockResolvedValue({
-    json: { job_id: 'abc' },
-  } as never);
+  mockQueuedResponse();
   mockSupersetClient.get.mockResolvedValue({
     json: { status: 'pending' },
   } as never);
@@ -364,9 +563,7 @@ test('Export Data to Excel keeps polling while status is pending', async () => {
 
 test('Export Data to Excel shows an error toast when the export job fails', async () => {
   jest.useFakeTimers();
-  mockSupersetClient.post.mockResolvedValue({
-    json: { job_id: 'abc' },
-  } as never);
+  mockQueuedResponse();
   mockSupersetClient.get.mockResolvedValue({
     json: { status: 'error', message: 'The export could not be built.' },
   } as never);
@@ -397,11 +594,9 @@ test('Export Data to Excel shows an error toast when the export job fails', asyn
 
 test('Export Data to Excel shows an "already in progress" toast when throttled', async () => {
   // The throttle response is 202 with a message but no job_id.
-  mockSupersetClient.post.mockResolvedValue({
-    json: {
-      message: 'An Excel export for this dashboard is already in progress.',
-    },
-  } as never);
+  mockQueuedResponse({
+    message: 'An Excel export for this dashboard is already in progress.',
+  });
 
   render(<MenuWrapper />, { useRedux: true, initialState: loggedInState });
 
@@ -414,9 +609,29 @@ test('Export Data to Excel shows an "already in progress" toast when throttled',
   });
 });
 
-test('Export Data to Excel shows a config error toast on 501', async () => {
-  mockSupersetClient.post.mockRejectedValue(new Error('not configured'));
-  mockGetClientErrorObject.mockResolvedValue({ status: 501 });
+test('Export Data to Excel surfaces the reason an export was refused', async () => {
+  // Show the server's actionable refusal.
+  const message =
+    'This dashboard has too much data to download directly. Ask an administrator to enable background exports, or lower the row limits of its charts.';
+  mockSupersetClient.post.mockRejectedValue(new Error('too big'));
+  mockGetClientErrorObject.mockResolvedValue({ status: 400, message });
+
+  render(<MenuWrapper />, { useRedux: true, initialState: loggedInState });
+
+  await clickMenuItem('Export Data to Excel');
+
+  await waitFor(() => {
+    expect(mockAddDangerToast).toHaveBeenCalledWith(message);
+  });
+});
+
+test('Export Data to Excel keeps a field-error 400 generic', async () => {
+  // A schema ValidationError returns a dict of field errors, not a string.
+  mockSupersetClient.post.mockRejectedValue(new Error('invalid'));
+  mockGetClientErrorObject.mockResolvedValue({
+    status: 400,
+    message: { mode: ['Must be one of: data, images.'] },
+  });
 
   render(<MenuWrapper />, { useRedux: true, initialState: loggedInState });
 
@@ -424,7 +639,7 @@ test('Export Data to Excel shows a config error toast on 501', async () => {
 
   await waitFor(() => {
     expect(mockAddDangerToast).toHaveBeenCalledWith(
-      'Excel export is not configured on this server.',
+      'Sorry, something went wrong. Try again later.',
     );
   });
 });
@@ -590,9 +805,7 @@ test('Enabled screenshot items should not show tooltip icon', () => {
 // ---------------------------------------------------------------------------
 
 test('guest session: export toast promises auto-download, not an email', async () => {
-  mockSupersetClient.post.mockResolvedValue({
-    json: { job_id: 'abc' },
-  } as never);
+  mockQueuedResponse();
 
   render(<MenuWrapper />, { useRedux: true, initialState: guestState });
 
@@ -616,9 +829,7 @@ test('guest session: Export Images to Excel is hidden even with the webdriver en
 });
 
 test('logged-in user without an email gets the delivery-neutral toast', async () => {
-  mockSupersetClient.post.mockResolvedValue({
-    json: { job_id: 'abc' },
-  } as never);
+  mockQueuedResponse();
 
   render(<MenuWrapper />, {
     useRedux: true,
@@ -637,9 +848,7 @@ test('logged-in user without an email gets the delivery-neutral toast', async ()
 
 test('a "running" status restarts the wait window, so queue delay is not counted', async () => {
   jest.useFakeTimers();
-  mockSupersetClient.post.mockResolvedValue({
-    json: { job_id: 'abc' },
-  } as never);
+  mockQueuedResponse();
   // Worker picks the job up on the first poll; still running just past the
   // original 12 minute deadline; done on the poll after that.
   mockSupersetClient.get
@@ -686,9 +895,7 @@ test('a "running" status restarts the wait window, so queue delay is not counted
 
 test('a transient poll failure keeps polling and still downloads', async () => {
   jest.useFakeTimers();
-  mockSupersetClient.post.mockResolvedValue({
-    json: { job_id: 'abc' },
-  } as never);
+  mockQueuedResponse();
   mockSupersetClient.get
     .mockRejectedValueOnce(new Error('network blip'))
     .mockResolvedValueOnce({
@@ -724,9 +931,7 @@ test('a transient poll failure keeps polling and still downloads', async () => {
 
 test('poll failures past the deadline give up with an error toast', async () => {
   jest.useFakeTimers();
-  mockSupersetClient.post.mockResolvedValue({
-    json: { job_id: 'abc' },
-  } as never);
+  mockQueuedResponse();
   mockSupersetClient.get.mockRejectedValue(new Error('server down'));
 
   render(<MenuWrapper />, { useRedux: true, initialState: loggedInState });
@@ -755,9 +960,7 @@ test('poll failures past the deadline give up with an error toast', async () => 
 
 test('a "ready" status with no download_url is an error, not a fake success', async () => {
   jest.useFakeTimers();
-  mockSupersetClient.post.mockResolvedValue({
-    json: { job_id: 'abc' },
-  } as never);
+  mockQueuedResponse();
   mockSupersetClient.get.mockResolvedValue({
     json: { status: 'ready' },
   } as never);
@@ -784,9 +987,7 @@ test('a "ready" status with no download_url is an error, not a fake success', as
 
 test('unmounting stops the polling loop', async () => {
   jest.useFakeTimers();
-  mockSupersetClient.post.mockResolvedValue({
-    json: { job_id: 'abc' },
-  } as never);
+  mockQueuedResponse();
   mockSupersetClient.get.mockResolvedValue({
     json: { status: 'pending' },
   } as never);
@@ -814,9 +1015,7 @@ test('unmounting stops the polling loop', async () => {
 
 test('the pending toast is announced once, not re-emitted on every poll', async () => {
   jest.useFakeTimers();
-  mockSupersetClient.post.mockResolvedValue({
-    json: { job_id: 'abc' },
-  } as never);
+  mockQueuedResponse();
   mockSupersetClient.get.mockResolvedValue({
     json: { status: 'pending' },
   } as never);
@@ -824,7 +1023,7 @@ test('the pending toast is announced once, not re-emitted on every poll', async 
   render(<MenuWrapper />, { useRedux: true, initialState: loggedInState });
 
   await clickMenuItem('Export Data to Excel');
-  await waitFor(() => expect(mockAddInfoToast).toHaveBeenCalledTimes(1));
+  await waitFor(() => expect(pendingToastCalls()).toHaveLength(1));
 
   // Several poll cycles later, no additional pending toast has been emitted:
   // re-emitting would spawn a fresh role="alert" every poll for a slow export.
@@ -836,7 +1035,7 @@ test('the pending toast is announced once, not re-emitted on every poll', async 
   await waitFor(() =>
     expect(mockSupersetClient.get.mock.calls.length).toBeGreaterThan(3),
   );
-  expect(mockAddInfoToast).toHaveBeenCalledTimes(1);
+  expect(pendingToastCalls()).toHaveLength(1);
 });
 
 const READY_URL = '/api/v1/dashboard/export_xlsx/download/abc/';
@@ -847,9 +1046,7 @@ test('a link that fails at download time is reported, not navigated to', async (
   jest.useFakeTimers();
   fetchMock.removeRoutes();
   fetchMock.head('glob:*/api/v1/dashboard/export_xlsx/download/*', 410);
-  mockSupersetClient.post.mockResolvedValue({
-    json: { job_id: 'abc' },
-  } as never);
+  mockQueuedResponse();
   mockSupersetClient.get.mockResolvedValueOnce({
     json: { status: 'ready', download_url: READY_URL },
   } as never);
@@ -872,9 +1069,7 @@ test('a link that fails at download time is reported, not navigated to', async (
 test('the download anchor is detached again once clicked', async () => {
   // Nothing is left in document.body to accumulate across repeated exports.
   jest.useFakeTimers();
-  mockSupersetClient.post.mockResolvedValue({
-    json: { job_id: 'abc' },
-  } as never);
+  mockQueuedResponse();
   mockSupersetClient.get.mockResolvedValueOnce({
     json: { status: 'ready', download_url: READY_URL },
   } as never);
@@ -909,10 +1104,13 @@ test('unmounting while the export POST is in flight suppresses its follow-up', a
 
   unmount();
   await act(async () => {
-    settlePost({ json: { job_id: 'abc' } });
+    settlePost({
+      status: 202,
+      json: jest.fn().mockResolvedValue({ job_id: 'abc' }),
+    });
   });
 
-  expect(mockAddInfoToast).not.toHaveBeenCalled();
+  expect(pendingToastCalls()).toHaveLength(0);
 
   await act(async () => {
     jest.advanceTimersByTime(30000);

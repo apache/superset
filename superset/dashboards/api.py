@@ -17,6 +17,8 @@
 # pylint: disable=too-many-lines
 import functools
 import logging
+import os
+import tempfile
 import time
 import uuid
 from datetime import datetime
@@ -32,6 +34,7 @@ from flask import (
     redirect,
     request,
     Response,
+    send_file,
     stream_with_context,
     url_for,
 )
@@ -54,7 +57,7 @@ from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_babel import gettext, ngettext
 from marshmallow import ValidationError
 from werkzeug.wrappers import Response as WerkzeugResponse
-from werkzeug.wsgi import FileWrapper
+from werkzeug.wsgi import ClosingIterator, FileWrapper
 
 from superset import db, is_feature_enabled
 from superset.charts.schemas import ChartEntityResponseSchema
@@ -110,6 +113,16 @@ from superset.dashboards.excel_export.download_link import (
     STATUS_READY,
     STATUS_RUNNING,
 )
+from superset.dashboards.excel_export.storage import is_background_export_available
+from superset.dashboards.excel_export.sync_budget import (
+    InlineExportPlan,
+    plan_inline_export,
+)
+from superset.dashboards.excel_export.workbook import (
+    build_workbook,
+    EXPORT_MODE_DATA,
+    EXPORT_MODE_IMAGES,
+)
 from superset.dashboards.filter_scope import derive_json_metadata
 from superset.dashboards.filters import (
     DashboardAccessFilter,
@@ -162,7 +175,7 @@ from superset.exceptions import (
 from superset.extensions import event_logger, security_manager
 from superset.models.dashboard import Dashboard
 from superset.models.embedded_dashboard import EmbeddedDashboard
-from superset.security.guest_token import GuestUser
+from superset.security.guest_token import GuestToken, GuestUser
 from superset.security.manager import (
     get_extra_editor_subject_ids,
     get_extra_editors_by_pk,
@@ -229,8 +242,9 @@ logger = logging.getLogger(__name__)
 
 
 def _never_cache(response: WerkzeugResponse) -> WerkzeugResponse:
-    """The download URL is a bearer credential with a TTL of its own, and a
-    cached status would strand a poller; keep both out of every cache."""
+    """The download URL is a bearer credential with a TTL of its own, a cached
+    status would strand a poller, and a workbook carries dashboard data; keep
+    all of them out of every cache."""
     response.cache_control.no_store = True
     response.cache_control.no_cache = True
     response.cache_control.private = True
@@ -1813,19 +1827,18 @@ class DashboardRestApi(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.export_xlsx",
         log_to_statsd=False,
     )
-    def export_xlsx(self, pk: int) -> WerkzeugResponse:
-        """Export all of a dashboard's chart data to an Excel workbook (async).
+    def export_xlsx(self, pk: int) -> WerkzeugResponse:  # noqa: C901
+        """Export all of a dashboard's chart data to an Excel workbook.
         ---
         post:
           summary: Export dashboard chart data to Excel
           description: >-
-            Enqueues an async task that writes each chart's data to its own
-            worksheet, uploads the .xlsx to the configured export storage,
-            and records a download link.
-            The requesting user is emailed the link when they have an address
-            on file; either way the returned job id can be polled at
-            export_xlsx/status/<job_id>/ for status and, once ready, the
-            download link.
+            Writes each chart to a worksheet. With export storage configured,
+            the work is queued: the requesting user is emailed a download link
+            when they have an address on file, and either way the returned job
+            id can be polled at export_xlsx/status/<job_id>/ for status and,
+            once ready, the download link. Without export storage, eligible
+            data workbooks are returned in the response.
           parameters:
           - in: path
             schema:
@@ -1838,6 +1851,13 @@ class DashboardRestApi(
                 schema:
                   $ref: '#/components/schemas/DashboardExportXlsxPostSchema'
           responses:
+            200:
+              description: The exported workbook, built during this request
+              content:
+                application/vnd.openxmlformats-officedocument.spreadsheetml.sheet:
+                  schema:
+                    type: string
+                    format: binary
             202:
               description: Export task accepted
               content:
@@ -1854,14 +1874,10 @@ class DashboardRestApi(
               $ref: '#/components/responses/404'
             500:
               $ref: '#/components/responses/500'
-            501:
-              description: Excel export is not configured on this server
         """
-        storage_config = current_app.config["EXPORT_STORAGE"]
-        if not storage_config.get("bucket") or storage_config.get("backend") is None:
-            return self.response(
-                501, message="Excel export is not configured on this server."
-            )
+        # Keep the request guards and two delivery paths together.
+        # Resolve the path once so its checks and delivery cannot diverge.
+        queued = is_background_export_available()
         try:
             # Tolerate an empty/non-JSON body (e.g. a POST with no Content-Type);
             # request.json would otherwise raise 415.
@@ -1871,10 +1887,7 @@ class DashboardRestApi(
         except ValidationError as error:
             return self.response_400(message=error.messages)
 
-        # Image export drives the headless webdriver, so it is only available
-        # when the same screenshot flags the UI checks are enabled. The decorator
-        # form (``@validate_feature_flags``) can't be used here because it would
-        # also block ``mode="data"``; mirror its 404 behavior inline instead.
+        # Image exports require the screenshot feature flags; data exports do not.
         if payload.get("mode") == "images" and not (
             is_feature_enabled("ENABLE_DASHBOARD_SCREENSHOT_ENDPOINTS")
             and is_feature_enabled("ENABLE_DASHBOARD_DOWNLOAD_WEBDRIVER_SCREENSHOT")
@@ -1895,20 +1908,32 @@ class DashboardRestApi(
             return self.response_403()
 
         # A requester with no email on file (e.g. an embedded/guest session)
-        # still gets a usable export: they poll export_xlsx_status/<job_id>/
-        # for the download link instead of relying on an email notification.
+        # still gets a usable export: a queued export is polled at
+        # export_xlsx_status/<job_id>/, and a direct download needs no email.
         if not dashboard.slices:
-            return self.response_400(message="Dashboard has no charts to export.")
+            return self.response_400(
+                message=gettext("Dashboard has no charts to export.")
+            )
 
-        # Throttle: one concurrent export per user+dashboard. Acquire a shared,
-        # atomic distributed lock (Redis when configured, the metadata DB
-        # otherwise) so the guard works across the web server and workers and is
-        # not a no-op under the default cache. The task releases it when it
-        # settles; the TTL is the backstop if that release is ever lost.
+        active_data_mask = payload.get("active_data_mask", {})
+        mode = payload.get("mode", "data")
+
+        if not queued and mode == EXPORT_MODE_IMAGES:
+            # Webdriver rendering is too slow and unbounded for a web request.
+            return self.response_400(
+                message=gettext(
+                    "Exporting images to Excel requires background exports. "
+                    "Ask an administrator to enable them, or export the "
+                    "dashboard's data instead."
+                )
+            )
+
+        # Allow one export per user and dashboard across web and worker processes.
+        # The TTL releases the lock if normal cleanup fails.
         # A guest/embedded requester has no DB-backed user id (GuestUser carries
-        # no ``id`` attribute at all), so all guests share lock slot 0 for the
-        # dashboard; the task reconstructs the guest (with the token's RLS rules
-        # and resource claims) from the token payload passed alongside.
+        # no ``id`` attribute at all), so guests get a stable slot derived from
+        # their token; the task reconstructs the guest (with the token's RLS
+        # rules and resource claims) from the token payload passed alongside.
         user_id = get_user_id()
         guest_token_payload = (
             getattr(g.user, "guest_token", None) if user_id is None else None
@@ -1916,42 +1941,180 @@ class DashboardRestApi(
         lock_params = export_lock_params(
             user_id or guest_lock_slot(guest_token_payload), dashboard.id
         )
-        acquire = AcquireDistributedLock(
+        acquire_lock = AcquireDistributedLock(
             EXPORT_LOCK_NAMESPACE,
             lock_params,
             ttl_seconds=EXPORT_LOCK_TTL_SECONDS,
         )
         try:
-            acquire.run()
+            acquire_lock.run()
         except LockAlreadyHeldException:
             return self.response(
                 202,
                 message="An Excel export for this dashboard is already in progress.",
             )
+        # Every release is checked against this acquisition's token, so an export
+        # that outlives the TTL cannot delete the lock of whoever acquired next.
+        lock_token = acquire_lock.token
 
         job_id = str(uuid.uuid4())
+        if queued:
+            return self._export_xlsx_queued(
+                dashboard,
+                user_id,
+                guest_token_payload,
+                active_data_mask,
+                mode,
+                job_id,
+                lock_params,
+                lock_token,
+            )
+
+        # Plan after locking because query-context resolution can be expensive.
+        # Release here unless the inline exporter takes over cleanup.
+        lock_delegated = False
+        try:
+            plan: InlineExportPlan = plan_inline_export(dashboard)
+            if not plan.fits_row_budget:
+                return self.response_400(
+                    message=gettext(
+                        "This dashboard has too much data to download directly. "
+                        "Ask an administrator to enable background exports, or "
+                        "lower the row limits of its charts."
+                    )
+                )
+            if plan.needs_background_export:
+                return self.response_400(
+                    message=gettext(
+                        "None of this dashboard's charts can be downloaded "
+                        "directly. Ask an administrator to enable background "
+                        "exports."
+                    )
+                )
+            lock_delegated = True
+            return self._export_xlsx_inline(
+                dashboard,
+                active_data_mask,
+                job_id,
+                lock_params,
+                lock_token,
+                plan,
+            )
+        finally:
+            if not lock_delegated:
+                try:
+                    ReleaseDistributedLock(
+                        EXPORT_LOCK_NAMESPACE, lock_params, token=lock_token
+                    ).run()
+                except Exception:  # pylint: disable=broad-except
+                    # The TTL is the fallback if release fails.
+                    logger.exception(
+                        "Failed to release in-flight export lock for dashboard %s",
+                        dashboard.id,
+                    )
+
+    def _export_xlsx_queued(  # pylint: disable=too-many-arguments
+        self,
+        dashboard: Dashboard,
+        user_id: int | None,
+        guest_token: GuestToken | None,
+        active_data_mask: dict[str, Any],
+        mode: str,
+        job_id: str,
+        lock_params: dict[str, int],
+        lock_token: str,
+    ) -> WerkzeugResponse:
+        """Queue an export for upload and delivery by email or status polling."""
         try:
             export_dashboard_excel.apply_async(
                 kwargs={
                     "dashboard_id": dashboard.id,
                     "user_id": user_id,
-                    "active_data_mask": payload.get("active_data_mask", {}),
+                    "active_data_mask": active_data_mask,
                     "job_id": job_id,
-                    "mode": payload.get("mode", "data"),
-                    "guest_token": guest_token_payload,
-                    "lock_token": acquire.token,
+                    "mode": mode,
+                    "guest_token": guest_token,
+                    "lock_token": lock_token,
                 },
                 task_id=job_id,
             )
         except Exception:
-            # If enqueuing fails (e.g. broker down) the task will never run to
-            # release the lock, so free it now rather than block exports until
-            # the TTL expires.
+            # No task will release the lock if enqueueing fails.
             ReleaseDistributedLock(
-                EXPORT_LOCK_NAMESPACE, lock_params, token=acquire.token
+                EXPORT_LOCK_NAMESPACE, lock_params, token=lock_token
             ).run()
             raise
         return self.response(202, job_id=job_id)
+
+    @staticmethod
+    def _export_xlsx_inline(  # pylint: disable=too-many-arguments
+        dashboard: Dashboard,
+        active_data_mask: dict[str, Any],
+        job_id: str,
+        lock_params: dict[str, int],
+        lock_token: str,
+        plan: InlineExportPlan,
+    ) -> WerkzeugResponse:
+        """Build a planned data export and return it in the response."""
+        tmp_path: str | None = None
+        try:
+            file_descriptor, tmp_path = tempfile.mkstemp(
+                suffix=".xlsx", prefix=f"dash-export-{job_id}-"
+            )
+            os.close(file_descriptor)
+
+            build_workbook(
+                tmp_path,
+                dashboard,
+                active_data_mask,
+                job_id,
+                EXPORT_MODE_DATA,
+                g.user,
+                query_contexts=plan.query_contexts,
+                skipped_charts=plan.skipped,
+            )
+            # A dashboard may be untitled; fall back the same way the task does.
+            filename = get_filename(
+                dashboard.dashboard_title or f"Dashboard {dashboard.id}",
+                dashboard.id,
+                skip_id=False,
+            )
+            response = send_file(
+                tmp_path,
+                mimetype=(
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                ),
+                as_attachment=True,
+                download_name=f"{filename}.xlsx",
+                conditional=False,
+                max_age=0,
+            )
+        except Exception:
+            if tmp_path and os.path.exists(tmp_path):
+                os.remove(tmp_path)
+            raise
+        finally:
+            try:
+                ReleaseDistributedLock(
+                    EXPORT_LOCK_NAMESPACE, lock_params, token=lock_token
+                ).run()
+            except Exception:  # pylint: disable=broad-except
+                # The TTL is the fallback if release fails.
+                logger.exception(
+                    "Failed to release in-flight export lock for dashboard %s",
+                    dashboard.id,
+                )
+
+        assert tmp_path is not None
+
+        def cleanup() -> None:
+            if os.path.exists(tmp_path):
+                os.remove(tmp_path)
+
+        response.response = ClosingIterator(response.response, [cleanup])
+        # Same cache policy as a download from export storage.
+        after_this_request(_never_cache)
+        return response
 
     @expose("/export_xlsx/status/<uuid:job_id>/", methods=("GET",))
     @protect()

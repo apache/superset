@@ -36,6 +36,9 @@ from superset.security.guest_token import GuestToken, GuestTokenResourceType
 from superset.utils import json
 
 MODULE = "superset.tasks.export_dashboard_excel"
+# Workbook building is shared by queued and direct exports.
+WORKBOOK_MODULE = "superset.dashboards.excel_export.workbook"
+STORAGE_MODULE = "superset.dashboards.excel_export.storage"
 
 # export_dashboard_excel always receives a real uuid4 job_id in production (the
 # API generates it); use valid UUIDs here too since the task parses job_id via
@@ -81,8 +84,8 @@ def mocks() -> Iterator[dict[str, Any]]:
     """Patch every external dependency of the task; keep the real xlsx writer."""
     with ExitStack() as stack:
         # A bucket and storage backend must be configured for the task to reach
-        # the upload at all; production only ever calls the task once the API's
-        # own "is this configured" 501 check has passed, so this simulates
+        # the upload at all; production only ever queues the task once the API's
+        # own is_export_storage_configured() check has passed, so this simulates
         # that already-passed state rather than values tests care about.
         storage_backend = mock.MagicMock()
         stack.enter_context(
@@ -101,24 +104,28 @@ def mocks() -> Iterator[dict[str, Any]]:
         # would make calls like security_manager.get_user_by_id() return coroutines.
         patched = {
             name: stack.enter_context(
-                mock.patch(f"{MODULE}.{name}", new=mock.MagicMock())
+                mock.patch(f"{module}.{name}", new=mock.MagicMock())
             )
-            for name in (
-                "security_manager",
-                "db",
-                "get_charts_in_layout_order",
-                "get_dashboard_filter_context",
-                "ChartDataQueryContextSchema",
-                "ChartDataCommand",
-                "render_chart_image",
-                "email",
-                "ReleaseDistributedLock",
-                "create_download_link",
-                "get_export_status",
-                "mark_export_failed",
-                "mark_export_running",
+            for module, name in (
+                (MODULE, "security_manager"),
+                (MODULE, "db"),
+                (MODULE, "ReleaseDistributedLock"),
+                (MODULE, "create_download_link"),
+                (MODULE, "get_export_status"),
+                (MODULE, "mark_export_failed"),
+                (MODULE, "mark_export_running"),
+                (WORKBOOK_MODULE, "get_charts_in_layout_order"),
+                (WORKBOOK_MODULE, "get_dashboard_filter_context"),
+                (WORKBOOK_MODULE, "ChartDataQueryContextSchema"),
+                (WORKBOOK_MODULE, "ChartDataCommand"),
+                (WORKBOOK_MODULE, "render_chart_image"),
             )
         }
+        # Both modules must use the same mocked error keys.
+        shared_email = mock.MagicMock()
+        for module in (MODULE, WORKBOOK_MODULE):
+            stack.enter_context(mock.patch(f"{module}.email", new=shared_email))
+        patched["email"] = shared_email
         patched["get_export_status"].return_value = None
         # The sheet groups skipped charts with the real reason keys and notes.
         patched["email"].ERROR_NO_QUERY_CONTEXT = real_email.ERROR_NO_QUERY_CONTEXT
@@ -388,8 +395,6 @@ def _rebuildable_chart(
 @contextmanager
 def _builder_hook(builder: Any) -> Iterator[None]:
     """Patch current_app so EXCEL_EXPORT_QUERY_CONTEXT_BUILDER resolves to builder."""
-    from superset.tasks import export_dashboard_excel as module
-
     fake_app = mock.MagicMock()
     fake_app.config.get.side_effect = lambda key, default=None: (
         builder if key == "EXCEL_EXPORT_QUERY_CONTEXT_BUILDER" else default
@@ -404,14 +409,17 @@ def _builder_hook(builder: Any) -> Iterator[None]:
         },
         "EXCEL_EXPORT_LINK_TTL_SECONDS": 3600,
     }.__getitem__
-    with mock.patch.object(module, "current_app", fake_app):
+    # The task, workbook, and storage check all read configuration.
+    with ExitStack() as stack:
+        for module in (MODULE, WORKBOOK_MODULE, STORAGE_MODULE):
+            stack.enter_context(mock.patch(f"{module}.current_app", fake_app))
         yield
 
 
 def test_builder_hook_context_is_used_for_any_viz_type() -> None:
     # A configured builder can supply a context for a viz type outside the
     # built-in allowlist (pivot_table_v2), and is called with the chart's form data.
-    from superset.tasks import export_dashboard_excel as module
+    from superset.dashboards.excel_export import workbook as module
 
     ctx = {
         "datasource": {"id": 5, "type": "table"},
@@ -421,7 +429,7 @@ def test_builder_hook_context_is_used_for_any_viz_type() -> None:
     chart = _rebuildable_chart(viz_type="pivot_table_v2")
 
     with _builder_hook(builder):
-        result = module._resolve_query_context(chart)
+        result = module.resolve_query_context(chart)
 
     assert result == ctx
     builder.assert_called_once_with(chart.form_data)
@@ -430,13 +438,13 @@ def test_builder_hook_context_is_used_for_any_viz_type() -> None:
 def test_builder_hook_none_falls_through_to_builtin_rebuild() -> None:
     # When the builder returns None (can't build faithfully) the export falls
     # through to the built-in rebuild, so an allowlisted table is unaffected.
-    from superset.tasks import export_dashboard_excel as module
+    from superset.dashboards.excel_export import workbook as module
 
     builder = mock.MagicMock(return_value=None)
     chart = _rebuildable_chart(viz_type="table")
 
     with _builder_hook(builder):
-        result = module._resolve_query_context(chart)
+        result = module.resolve_query_context(chart)
 
     builder.assert_called_once_with(chart.form_data)
     assert result is not None
@@ -458,13 +466,13 @@ def test_builder_hook_none_falls_through_to_builtin_rebuild() -> None:
 def test_builder_hook_malformed_result_falls_through(built: Any) -> None:
     # A stub / empty / malformed builder result is treated as "not built" and
     # falls through to the built-in rebuild rather than shipping an empty context.
-    from superset.tasks import export_dashboard_excel as module
+    from superset.dashboards.excel_export import workbook as module
 
     builder = mock.MagicMock(return_value=built)
     chart = _rebuildable_chart(viz_type="table")
 
     with _builder_hook(builder):
-        result = module._resolve_query_context(chart)
+        result = module.resolve_query_context(chart)
 
     builder.assert_called_once_with(chart.form_data)
     assert result is not None
@@ -474,13 +482,13 @@ def test_builder_hook_malformed_result_falls_through(built: Any) -> None:
 def test_builder_hook_exception_falls_through() -> None:
     # A raising builder (e.g. sidecar down) must not fail the chart; the export
     # falls through to the built-in rebuild and no exception escapes.
-    from superset.tasks import export_dashboard_excel as module
+    from superset.dashboards.excel_export import workbook as module
 
     builder = mock.MagicMock(side_effect=RuntimeError("sidecar down"))
     chart = _rebuildable_chart(viz_type="table")
 
     with _builder_hook(builder):
-        result = module._resolve_query_context(chart)
+        result = module.resolve_query_context(chart)
 
     builder.assert_called_once_with(chart.form_data)
     assert result is not None
@@ -489,15 +497,15 @@ def test_builder_hook_exception_falls_through() -> None:
 
 def test_builder_hook_soft_time_limit_propagates() -> None:
     # A soft timeout raised while the builder is in flight is a task-level signal,
-    # not a builder failure: it must escape _resolve_query_context so the export
+    # not a builder failure: it must escape resolve_query_context so the export
     # aborts cleanly, rather than being swallowed by the broad fall-through guard.
-    from superset.tasks import export_dashboard_excel as module
+    from superset.dashboards.excel_export import workbook as module
 
     builder = mock.MagicMock(side_effect=SoftTimeLimitExceeded())
     chart = _rebuildable_chart(viz_type="table")
 
     with _builder_hook(builder), pytest.raises(SoftTimeLimitExceeded):
-        module._resolve_query_context(chart)
+        module.resolve_query_context(chart)
 
     builder.assert_called_once_with(chart.form_data)
 
@@ -505,11 +513,11 @@ def test_builder_hook_soft_time_limit_propagates() -> None:
 def test_no_builder_hook_leaves_builtin_behavior_unchanged() -> None:
     # With no builder configured, an allowlisted chart is rebuilt and an
     # ineligible one is skipped — identical to the pre-hook behavior.
-    from superset.tasks import export_dashboard_excel as module
+    from superset.dashboards.excel_export import workbook as module
 
     with _builder_hook(None):
-        table = module._resolve_query_context(_rebuildable_chart(viz_type="table"))
-        ineligible = module._resolve_query_context(
+        table = module.resolve_query_context(_rebuildable_chart(viz_type="table"))
+        ineligible = module.resolve_query_context(
             _rebuildable_chart(viz_type="mixed_timeseries")
         )
 
@@ -520,14 +528,14 @@ def test_no_builder_hook_leaves_builtin_behavior_unchanged() -> None:
 
 def test_saved_context_short_circuits_builder_hook() -> None:
     # A saved query context wins over the builder hook, which is never called.
-    from superset.tasks import export_dashboard_excel as module
+    from superset.dashboards.excel_export import workbook as module
 
     builder = mock.MagicMock(return_value={"queries": [{"from": "hook"}]})
     chart = _rebuildable_chart(viz_type="table")
     chart.query_context = json.dumps({"queries": [{"from": "saved"}]})
 
     with _builder_hook(builder):
-        result = module._resolve_query_context(chart)
+        result = module.resolve_query_context(chart)
 
     assert result == {"queries": [{"from": "saved"}]}
     builder.assert_not_called()
@@ -699,7 +707,7 @@ def test_raw_mode_table_ignores_stale_show_totals() -> None:
     # gates the totals query on queryMode === Aggregate), and the control isn't
     # reset when hidden. A raw-mode table carrying a stale value must still
     # rebuild rather than be needlessly skipped.
-    from superset.tasks import export_dashboard_excel as module
+    from superset.dashboards.excel_export import workbook as module
 
     chart = _rebuildable_chart(
         viz_type="table",
@@ -707,7 +715,7 @@ def test_raw_mode_table_ignores_stale_show_totals() -> None:
     )
 
     with _builder_hook(None):
-        result = module._resolve_query_context(chart)
+        result = module.resolve_query_context(chart)
 
     assert result is not None
     assert result["queries"][0]["columns"] == ["a"]
@@ -716,7 +724,7 @@ def test_raw_mode_table_ignores_stale_show_totals() -> None:
 def test_rebuild_viz_types_is_the_conservative_default() -> None:
     # The rebuild allow-list is a fixed fallback (no config override): only viz
     # types whose data maps faithfully to a single plain query.
-    from superset.tasks import export_dashboard_excel as module
+    from superset.dashboards.excel_export import workbook as module
 
     assert module.REBUILD_VIZ_TYPES == {
         "table",
