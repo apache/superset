@@ -240,7 +240,7 @@ mongodb = ["pymongosql>=0.7.4, <1"]
 mssql = ["pymssql>=2.4.0, <3"]
 # motherduck is an alias for duckdb - MotherDuck works via the duckdb driver
 motherduck = ["apache-superset[duckdb]"]
-mysql = ["mysqlclient>=2.2.8, <3"]
+mysql = ["mysqlclient>=2.3.0, <3"]
 ocient = [
     # Closed-source vendor package with no public changelog; permissive
     # unpinned sqlalchemy>=1.4 declared. Verified compatible with SQLAlchemy

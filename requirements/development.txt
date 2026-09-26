@@ -627,7 +627,7 @@ multidict==6.7.1
     # via
     #   aiohttp
     #   yarl
-mysqlclient==2.2.8
+mysqlclient==2.3.0
     # via apache-superset
 nh3==0.3.7
     # via
