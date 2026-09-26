@@ -1951,3 +1951,161 @@ def test_impersonate_user_with_token_no_verify_configured() -> None:
     connect_args = new_kwargs["connect_args"]
     assert "verify" not in connect_args
     assert connect_args["http_session"].verify is True
+
+
+def test_default_driver_and_parameters_schema() -> None:
+    """
+    Trino exposes the dynamic connection form via ``BasicParametersMixin``.
+
+    ``default_driver`` must match the driver reported by the Trino SQLAlchemy
+    dialect (``rest``) so ``/api/v1/database/available/`` advertises the form.
+    """
+    from superset.db_engine_specs.base import BasicParametersMixin
+    from superset.db_engine_specs.trino import TrinoEngineSpec, TrinoParametersSchema
+
+    assert issubclass(TrinoEngineSpec, BasicParametersMixin)
+    assert TrinoEngineSpec.default_driver == "rest"
+    assert isinstance(TrinoEngineSpec.parameters_schema, TrinoParametersSchema)
+
+
+def test_build_sqlalchemy_uri_basic() -> None:
+    """
+    ``build_sqlalchemy_uri`` builds a driverless ``trino://`` URI where the
+    ``database`` field is the catalog. ``trino+rest://`` is not a loadable
+    SQLAlchemy dialect, so the driver must not leak into the URI.
+    """
+    from superset.db_engine_specs.trino import TrinoEngineSpec
+
+    uri = TrinoEngineSpec.build_sqlalchemy_uri(
+        {
+            "username": "user",
+            "password": "pass",  # noqa: S106
+            "host": "localhost",
+            "port": 8080,
+            "database": "hive",
+        }
+    )
+    assert uri == "trino://user:pass@localhost:8080/hive"
+
+    # The built URI must resolve to a real, loadable dialect.
+    assert make_url(uri).get_dialect() is TrinoDialect
+
+
+def test_build_sqlalchemy_uri_no_password() -> None:
+    """Password is optional for Trino connections."""
+    from superset.db_engine_specs.trino import TrinoEngineSpec
+
+    uri = TrinoEngineSpec.build_sqlalchemy_uri(
+        {
+            "username": "user",
+            "host": "localhost",
+            "port": 8080,
+            "database": "hive",
+        }
+    )
+    assert uri == "trino://user@localhost:8080/hive"
+
+
+def test_build_sqlalchemy_uri_with_encryption() -> None:
+    """The encryption toggle is encoded as a ``protocol=https`` query param."""
+    from superset.db_engine_specs.trino import TrinoEngineSpec
+
+    uri = TrinoEngineSpec.build_sqlalchemy_uri(
+        {
+            "username": "user",
+            "host": "localhost",
+            "port": 443,
+            "database": "hive",
+            "encryption": True,
+        }
+    )
+    assert uri == "trino://user@localhost:443/hive?protocol=https"
+
+
+def test_parameters_uri_round_trip() -> None:
+    """
+    ``get_parameters_from_uri`` and ``build_sqlalchemy_uri`` round-trip,
+    including the encryption toggle.
+    """
+    from superset.db_engine_specs.base import BasicParametersType
+    from superset.db_engine_specs.trino import TrinoEngineSpec
+
+    parameters: BasicParametersType = {
+        "username": "user",
+        "password": "pass",  # noqa: S106
+        "host": "localhost",
+        "port": 443,
+        "database": "hive",
+        "encryption": True,
+    }
+    uri = TrinoEngineSpec.build_sqlalchemy_uri(parameters)
+    recovered = TrinoEngineSpec.get_parameters_from_uri(uri)
+
+    assert recovered["username"] == "user"
+    assert recovered["password"] == "pass"  # noqa: S105
+    assert recovered["host"] == "localhost"
+    assert recovered["port"] == 443
+    assert recovered["database"] == "hive"
+    assert recovered["encryption"] is True
+    # The encryption marker is not surfaced as an "additional parameter".
+    assert recovered["query"] == {}
+
+
+def test_get_parameters_from_uri_without_encryption() -> None:
+    """A plain ``trino://`` URI reports encryption disabled."""
+    from superset.db_engine_specs.trino import TrinoEngineSpec
+
+    recovered = TrinoEngineSpec.get_parameters_from_uri(
+        "trino://user@localhost:8080/hive"
+    )
+    assert recovered["encryption"] is False
+
+
+def test_adjust_engine_params_encryption_sets_http_scheme() -> None:
+    """
+    The ``protocol`` query param (from the encryption toggle) is translated
+    into the ``http_scheme`` connect arg the Trino dialect reads, and stripped
+    from the URI.
+    """
+    from superset.db_engine_specs.trino import TrinoEngineSpec
+
+    url = make_url("trino://user@localhost:443/hive?protocol=https")
+    connect_args: dict[str, Any] = {}
+
+    uri, connect_args = TrinoEngineSpec.adjust_engine_params(url, connect_args)
+
+    assert connect_args["http_scheme"] == "https"
+    assert "protocol" not in uri.query
+    assert (
+        uri.render_as_string(hide_password=False) == "trino://user@localhost:443/hive"
+    )
+
+
+def test_adjust_engine_params_preserves_existing_http_scheme() -> None:
+    """A pre-existing ``http_scheme`` (e.g. from a server cert) wins."""
+    from superset.db_engine_specs.trino import TrinoEngineSpec
+
+    # Use differing values on the two sides so the test actually guards the
+    # ``setdefault`` precedence: the pre-existing ``http`` must survive and the
+    # URI's ``protocol=https`` must not overwrite it.
+    url = make_url("trino://user@localhost:8080/hive?protocol=https")
+    connect_args: dict[str, Any] = {"http_scheme": "http"}
+
+    uri, connect_args = TrinoEngineSpec.adjust_engine_params(url, connect_args)
+
+    assert connect_args["http_scheme"] == "http"
+    # ``protocol`` is consumed into ``http_scheme``, not left behind on the URI.
+    assert "protocol" not in uri.query
+
+
+def test_adjust_engine_params_without_protocol_preserves_other_query() -> None:
+    """Non-encryption query params are left untouched when no protocol is set."""
+    from superset.db_engine_specs.trino import TrinoEngineSpec
+
+    url = make_url("trino://user@localhost:8080/hive?source=custom")
+    connect_args: dict[str, Any] = {}
+
+    uri, connect_args = TrinoEngineSpec.adjust_engine_params(url, connect_args)
+
+    assert "http_scheme" not in connect_args
+    assert uri.query.get("source") == "custom"
