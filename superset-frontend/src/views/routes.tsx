@@ -138,6 +138,11 @@ const Extensions = lazy(
   () => import(/* webpackChunkName: "Tags" */ 'src/extensions/ExtensionsList'),
 );
 
+const ExtensionView = lazy(
+  () =>
+    import(/* webpackChunkName: "ExtensionView" */ 'src/pages/ExtensionView'),
+);
+
 const RowLevelSecurityList = lazy(
   () =>
     import(
@@ -289,6 +294,15 @@ if (isAdmin) {
   if (isFeatureEnabled(FeatureFlag.EnableExtensions)) {
     routes.push({ path: RoutePaths.EXTENSIONS, Component: Extensions });
   }
+}
+
+// Generic host for a single extension-registered global view. Available to
+// any authenticated user when extensions are enabled -- not admin-gated
+// like the extension management list above, since a global view isn't
+// necessarily an admin-only surface; the view's own backend calls enforce
+// whatever permissions it actually needs.
+if (isFeatureEnabled(FeatureFlag.EnableExtensions)) {
+  routes.push({ path: RoutePaths.EXTENSION_VIEW, Component: ExtensionView });
 }
 
 if (authRegistrationEnabled) {
