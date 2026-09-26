@@ -9,6 +9,9 @@ updates:
       security:
         applies-to: "security-updates"
         patterns: ["*"]
+      codeql:
+        patterns:
+          - github/codeql-action/*
     cooldown:
       default-days: 7
 
