@@ -24,7 +24,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version:  \n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-23 12:43+0200\n"
+"POT-Creation-Date: 2026-09-24 09:49+0300\n"
 "PO-Revision-Date: 2024-07-14 15:10+0300\n"
 "Last-Translator: Abdalrahim G. Fakhouri <abdilra7eem@yahoo.com>\n"
 "Language: ar\n"
@@ -1632,6 +1632,9 @@ msgstr ""
 msgid "Add folder"
 msgstr "إضافة فلتر"
 
+msgid "Add group"
+msgstr "إضافة مجموعة"
+
 msgid "Add item"
 msgstr "إضافة عنصر"
 
@@ -1674,6 +1677,9 @@ msgstr ""
 
 msgid "Add sheet"
 msgstr "إضافة ورقة"
+
+msgid "Add subgroup"
+msgstr "إضافة مجموعة فرعية"
 
 msgid "Add tag to entities"
 msgstr "إضافة علامة إلى الكيانات"
@@ -3641,6 +3647,9 @@ msgstr "حد الخلية"
 msgid "Cell title template"
 msgstr "حذف القالب"
 
+msgid "Center"
+msgstr "توسيط"
+
 msgid "Center value"
 msgstr ""
 
@@ -3961,6 +3970,13 @@ msgstr "تعذر حذف المخططات."
 
 msgid "Chart width"
 msgstr "عرض المخطط"
+
+#, python-format
+msgid ""
+"Chart with ID %(chart_id)s (referenced by annotation layer "
+"'%(layer_name)s') was not found. Please verify that the chart exists and "
+"is accessible."
+msgstr ""
 
 msgid "Charts"
 msgstr "المخططات"
@@ -4365,6 +4381,9 @@ msgstr "طي لوحة البيانات"
 msgid "Collapse row"
 msgstr "طي الصف"
 
+msgid "Collapse settings"
+msgstr "طي الإعدادات"
+
 msgid "Collapse tab content"
 msgstr "طي محتوى علامة التبويب"
 
@@ -4495,6 +4514,9 @@ msgstr "عمود يحتوي على بيانات خط الطول"
 #, fuzzy
 msgid "Column data types"
 msgstr "نوع بيانات العمود"
+
+msgid "Column groups"
+msgstr "مجموعات الأعمدة"
 
 msgid "Column header tooltip"
 msgstr "تلميح أداة رأس العمود"
@@ -7462,6 +7484,9 @@ msgstr "أدخل المدة بالثواني"
 msgid "Enter fullscreen"
 msgstr "أدخل ملء الشاشة"
 
+msgid "Enter group name"
+msgstr "أدخل اسم المجموعة"
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
 # lv, pt_BR, ro, ru, sk, sr, sr_Latn, tr, uk]
 #, fuzzy
@@ -7789,6 +7814,9 @@ msgstr "قم بتوسيع الصف"
 #, fuzzy
 msgid "Expand row to edit"
 msgstr "قم بتوسيع الصف"
+
+msgid "Expand settings"
+msgstr "توسيع الإعدادات"
 
 msgid ""
 "Expects a formula with depending time parameter 'x'\n"
@@ -8863,6 +8891,10 @@ msgstr ""
 msgid "Group"
 msgstr "مجموعة حسب"
 
+#, python-format
+msgid "Group %s"
+msgstr "المجموعة %s"
+
 msgid "Group By"
 msgstr "مجموعة حسب"
 
@@ -8874,6 +8906,12 @@ msgstr "مفتاح المجموعة"
 
 msgid "Group by"
 msgstr "مجموعة حسب"
+
+msgid "Group columns"
+msgstr "تجميع الأعمدة"
+
+msgid "Group name"
+msgstr "اسم المجموعة"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, fr,
 # ja, lv, ro, ru, sk, sr, sr_Latn, tr, uk]
@@ -10926,6 +10964,12 @@ msgstr "المزيد من الفلاتر"
 msgid "MotherDuck token"
 msgstr "رمز MotherDuck"
 
+msgid "Move group left"
+msgstr "نقل المجموعة إلى اليسار"
+
+msgid "Move group right"
+msgstr "نقل المجموعة إلى اليمين"
+
 #, fuzzy
 msgid "Move icon"
 msgstr "تحرك فقط"
@@ -10955,6 +10999,9 @@ msgstr "مستويات متعددة"
 
 msgid "Multi-Variables"
 msgstr "متغيرات متعددة"
+
+msgid "Multi-level header"
+msgstr "رأس متعدد المستويات"
 
 msgid "Multiple"
 msgstr "متعدد"
@@ -12555,6 +12602,9 @@ msgstr "رفض المنفذ الموجود %(port)s على اسم المضيف %
 msgid "Port out of range 0-65535"
 msgstr "منفذ خارج النطاق 0-65535"
 
+msgid "Position"
+msgstr "الموضع"
+
 msgid "Position JSON"
 msgstr "الموضع: جسون"
 
@@ -13056,6 +13106,9 @@ msgstr "إزالة العنصر"
 
 msgid "Remove from favorites"
 msgstr ""
+
+msgid "Remove group"
+msgstr "إزالة المجموعة"
 
 msgid "Remove item"
 msgstr "إزالة العنصر"
@@ -14346,6 +14399,9 @@ msgstr "حدد العمود"
 #, fuzzy
 msgid "Select column name"
 msgstr "حدد العمود"
+
+msgid "Select columns"
+msgstr "تحديد الأعمدة"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fa, fr, ja, lv, mi, pl, ro, ru, sk, sl, sr, sr_Latn, tr, uk]
@@ -15869,6 +15925,10 @@ msgstr "باب"
 msgid "Subdomain"
 msgstr "نطاق فرعي"
 
+#, python-format
+msgid "Subgroup %s"
+msgstr "المجموعة الفرعية %s"
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # fr, it, ja, lv, mi, nl, ru, sk, sl, tr, uk]
 #, fuzzy
@@ -16147,6 +16207,9 @@ msgstr "اسم الجدول غير محدد"
 #, python-format
 msgid "Table or View \"%(table)s\" does not exist."
 msgstr "لا يوجد جدول أو طريقة عرض %(table)s \"»."
+
+msgid "Table side"
+msgstr "جانب الجدول"
 
 msgid ""
 "Table that visualizes paired t-tests, which are used to understand "
@@ -17157,6 +17220,13 @@ msgid "The query contains one or more malformed template parameters."
 msgstr "يحتوي الاستعلام على واحدة أو أكثر من معاملات القالب غير الصحيحة."
 
 msgid "The query context datasource does not match the chart datasource"
+msgstr ""
+
+#, python-format
+msgid ""
+"The query context for chart ID %(chart_id)s (referenced by annotation "
+"layer '%(layer_name)s') was not found. Please ensure the chart is "
+"properly configured and has a valid query context."
 msgstr ""
 
 msgid "The query couldn't be loaded"
@@ -21035,7 +21105,18 @@ msgid ""
 "SUPERSET_DASHBOARD_POSITION_DATA_LIMIT config setting."
 msgstr ""
 
-msgid "Your export is being prepared. You'll receive an email when it's ready."
+msgid ""
+"Your export is being generated and will download automatically when "
+"ready. We'll also email you a download link."
+msgstr ""
+
+msgid "Your export is being generated. Please, do not leave the page."
+msgstr ""
+
+msgid "Your export is ready and downloading."
+msgstr ""
+
+msgid "Your export is taking longer than expected. Try again later."
 msgstr ""
 
 #, python-format

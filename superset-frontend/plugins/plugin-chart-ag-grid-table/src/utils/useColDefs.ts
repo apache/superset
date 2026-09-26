@@ -35,9 +35,16 @@ import { GenericDataType } from '@apache-superset/core/common';
 import { useTheme } from '@apache-superset/core/theme';
 import {
   ColorFormatters,
+  hasRenderableHeaderGroups,
+  nestColDefsInHeaderGroups,
+  type HeaderGroupConfig,
   ConditionalFormattingConfig,
 } from '@superset-ui/chart-controls';
 import { extent as d3Extent, max as d3Max } from 'd3-array';
+import {
+  isMainComparisonKey,
+  stripMainComparisonPrefix,
+} from './mainComparison';
 import {
   BasicColorFormatterType,
   CellRendererProps,
@@ -81,6 +88,7 @@ type UseColDefsProps = {
   emitCrossFilters?: boolean;
   alignPositiveNegative: boolean;
   slice_id: number;
+  headerGroups?: HeaderGroupConfig[];
   conditionalFormatting?: ConditionalFormattingConfig[];
   comparisonColorEnabled?: boolean;
   comparisonColorScheme?: string;
@@ -209,7 +217,7 @@ function getHeaderLabel(col: InputColumn) {
   let headerLabel: string | undefined;
 
   const hasOriginalLabel = !!col?.originalLabel;
-  const isMain = col?.key?.includes('Main');
+  const isMain = isMainComparisonKey(col?.key);
   const hasDisplayTypeIcon = col?.config?.displayTypeIcon !== false;
   const hasCustomColumnName = !!col?.config?.customColumnName;
 
@@ -251,6 +259,7 @@ export const useColDefs = ({
   emitCrossFilters,
   alignPositiveNegative,
   slice_id,
+  headerGroups = [],
   conditionalFormatting,
   comparisonColorEnabled,
   comparisonColorScheme,
@@ -308,9 +317,9 @@ export const useColDefs = ({
         Array.isArray(basicColorFormatters) &&
         basicColorFormatters.length > 0;
 
-      const isMain = originalKey?.includes('Main');
+      const isMain = isMainComparisonKey(originalKey);
       const colId = isMain
-        ? originalKey.replace('Main', '').trim()
+        ? stripMainComparisonPrefix(originalKey)
         : originalKey;
       const isTextColumn =
         dataType === GenericDataType.String ||
@@ -492,6 +501,12 @@ export const useColDefs = ({
   const stringifiedCols = JSON.stringify(columns);
 
   const colDefs = useMemo(() => {
+    if (hasRenderableHeaderGroups(headerGroups, columns)) {
+      return nestColDefsInHeaderGroups(columns, headerGroups, col =>
+        getCommonColProps(col),
+      ) as ColDef[];
+    }
+
     const groupIndexMap = new Map<string, number>();
 
     return columns.reduce<ColDef[]>((acc, col) => {
@@ -517,7 +532,7 @@ export const useColDefs = ({
 
       return acc;
     }, []);
-  }, [stringifiedCols, getCommonColProps]);
+  }, [stringifiedCols, getCommonColProps, headerGroups]);
 
   const rawPageSize = serverPaginationData?.pageSize ?? serverPageLength;
   const pageSize = rawPageSize && rawPageSize > 0 ? rawPageSize : data.length;

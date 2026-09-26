@@ -81,7 +81,7 @@ export interface DataTableProps<D extends object> extends TableOptions<D> {
   rowCount: number;
   wrapperRef?: MutableRefObject<HTMLDivElement>;
   onColumnOrderChange?: () => void;
-  renderGroupingHeaders?: () => JSX.Element;
+  renderGroupingHeaders?: () => ReactNode;
   renderTimeComparisonDropdown?: () => JSX.Element;
   handleSortByChange: (sortBy: SortByItem[]) => void;
   sortByFromParent: SortByItem[];

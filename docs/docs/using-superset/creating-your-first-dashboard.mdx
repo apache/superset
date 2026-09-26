@@ -350,6 +350,24 @@ Only enable HTML rendering for columns sourced from data you control. Rendering 
 
 Column headers display a tooltip with the column's **Description** from the dataset editor when the user hovers over them. Keep dataset column descriptions up to date to improve chart discoverability.
 
+#### Multi-level Header
+
+The **Table** and **AG Grid Interactive Table** chart types can group column headers under shared parent labels. Open the **Customize** tab and find the **Multi-level header** section. Use **Column groups** to nest related columns — for example, several sales metrics under a **Sales** header.
+
+To create a group:
+
+1. Click **Add group**.
+2. Enter a **Name**. A group cannot be saved without one.
+3. Select one or more **Columns**. A column can belong to only one group. Percent metrics (`%metric`) stay independently groupable and are not reserved by the matching base metric.
+4. Optionally set **Label position** (left, center, or right) and **Table side** (left or right) to control where the group header sits.
+5. Click **Apply**.
+
+After a group is saved, click its numbered label (**Group 1**, **Group 2**, …) to edit it. Drag the handle on a group to reorder groups. While editing, **Add subgroup** nests another header under the current group (up to three levels). Subgroups have the same name and column requirements as top-level groups.
+
+When **Advanced Analytics** → **Time Comparison** is enabled on an **Aggregate** query with **Calculation type** set to **Values**, Superset automatically creates one group per metric (`Main`, `#`, `△`, `%`). Those groups use the metric's dataset label, lock their name and columns, and disappear when time comparison is turned off. You can still add separate manual groups for other columns, including percent metrics.
+
+On the standard Table chart, **Allow columns to be rearranged** is hidden while header groups or time comparison are active, so body column order stays aligned with the grouped header.
+
 #### Display Controls
 
 In dashboard view mode (without entering Edit mode), charts with configurable display options expose a **Display Controls** panel accessible from the chart's context menu. This surfaces controls such as Time Grain, Time Column, and layer visibility for applicable chart types — making it easy to adjust a chart's view without going to Explore.
@@ -378,6 +396,8 @@ AG Grid supports server-side column filters that query the full dataset — not 
 #### Time Shift (Time Comparison)
 
 AG Grid Interactive Table supports **Time Shift** (time comparison), matching the behavior of the standard Table chart. In the **Advanced Analytics** → **Time Comparison** section of the chart configuration, enter a shift expression (e.g., `1 year ago`, `minus 7 days`) to add comparison columns showing values from the offset period. Dashboard-level time range overrides apply to both the base and comparison periods.
+
+When time comparison is active in **Aggregate** / **Values** mode, the **Customize** → **Multi-level header** section automatically groups each metric's comparison columns. See [Multi-level Header](#multi-level-header) for creating additional groups by hand.
 
 #### Show Summary
 

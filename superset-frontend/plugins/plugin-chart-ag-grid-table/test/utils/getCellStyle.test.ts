@@ -49,6 +49,21 @@ function buildParams(overrides: Record<string, unknown> = {}) {
   } as unknown as Parameters<typeof getCellStyle>[0];
 }
 
+test('matches a Main comparison formatter column to the metric field', () => {
+  const style = getCellStyle(
+    buildParams({
+      hasColumnColorFormatters: true,
+      columnColorFormatters: [
+        {
+          ...standardCfFormatter,
+          column: 'Main metric_a',
+        },
+      ],
+    }),
+  );
+  expect(style.backgroundColor).toBe('#ff0000');
+});
+
 test('applies a standard conditional-format background', () => {
   const style = getCellStyle(
     buildParams({

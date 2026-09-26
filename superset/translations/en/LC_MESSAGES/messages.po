@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-23 12:43+0200\n"
+"POT-Creation-Date: 2026-09-24 09:49+0300\n"
 "PO-Revision-Date: 2016-05-02 08:49-0700\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: en\n"
@@ -1299,6 +1299,9 @@ msgstr ""
 msgid "Add folder"
 msgstr ""
 
+msgid "Add group"
+msgstr ""
+
 msgid "Add item"
 msgstr ""
 
@@ -1336,6 +1339,9 @@ msgid "Add service credentials"
 msgstr ""
 
 msgid "Add sheet"
+msgstr ""
+
+msgid "Add subgroup"
 msgstr ""
 
 msgid "Add tag to entities"
@@ -3014,6 +3020,9 @@ msgstr ""
 msgid "Cell title template"
 msgstr ""
 
+msgid "Center"
+msgstr ""
+
 msgid "Center value"
 msgstr ""
 
@@ -3297,6 +3306,13 @@ msgid "Chart was saved but could not be added to the selected tab."
 msgstr ""
 
 msgid "Chart width"
+msgstr ""
+
+#, python-format
+msgid ""
+"Chart with ID %(chart_id)s (referenced by annotation layer "
+"'%(layer_name)s') was not found. Please verify that the chart exists and "
+"is accessible."
 msgstr ""
 
 msgid "Charts"
@@ -3640,6 +3656,9 @@ msgstr ""
 msgid "Collapse row"
 msgstr ""
 
+msgid "Collapse settings"
+msgstr ""
+
 msgid "Collapse tab content"
 msgstr ""
 
@@ -3750,6 +3769,9 @@ msgid "Column containing longitude data"
 msgstr ""
 
 msgid "Column data types"
+msgstr ""
+
+msgid "Column groups"
 msgstr ""
 
 msgid "Column header tooltip"
@@ -6219,6 +6241,9 @@ msgstr ""
 msgid "Enter fullscreen"
 msgstr ""
 
+msgid "Enter group name"
+msgstr ""
+
 msgid "Enter minimum and maximum values for the range filter"
 msgstr ""
 
@@ -6492,6 +6517,9 @@ msgid "Expand row"
 msgstr ""
 
 msgid "Expand row to edit"
+msgstr ""
+
+msgid "Expand settings"
 msgstr ""
 
 msgid ""
@@ -7397,6 +7425,10 @@ msgstr ""
 msgid "Group"
 msgstr ""
 
+#, python-format
+msgid "Group %s"
+msgstr ""
+
 msgid "Group By"
 msgstr ""
 
@@ -7407,6 +7439,12 @@ msgid "Group Key"
 msgstr ""
 
 msgid "Group by"
+msgstr ""
+
+msgid "Group columns"
+msgstr ""
+
+msgid "Group name"
 msgstr ""
 
 msgid "Group remaining as \"Others\""
@@ -9166,6 +9204,12 @@ msgstr ""
 msgid "MotherDuck token"
 msgstr ""
 
+msgid "Move group left"
+msgstr ""
+
+msgid "Move group right"
+msgstr ""
+
 msgid "Move icon"
 msgstr ""
 
@@ -9193,6 +9237,9 @@ msgid "Multi-Levels"
 msgstr ""
 
 msgid "Multi-Variables"
+msgstr ""
+
+msgid "Multi-level header"
 msgstr ""
 
 msgid "Multiple"
@@ -10577,6 +10624,9 @@ msgstr ""
 msgid "Port out of range 0-65535"
 msgstr ""
 
+msgid "Position"
+msgstr ""
+
 msgid "Position JSON"
 msgstr ""
 
@@ -11031,6 +11081,9 @@ msgid "Remove filter"
 msgstr ""
 
 msgid "Remove from favorites"
+msgstr ""
+
+msgid "Remove group"
 msgstr ""
 
 msgid "Remove item"
@@ -12177,6 +12230,9 @@ msgid "Select column"
 msgstr ""
 
 msgid "Select column name"
+msgstr ""
+
+msgid "Select columns"
 msgstr ""
 
 msgid ""
@@ -13429,6 +13485,10 @@ msgstr ""
 msgid "Subdomain"
 msgstr ""
 
+#, python-format
+msgid "Subgroup %s"
+msgstr ""
+
 msgid "Subject"
 msgstr ""
 
@@ -13652,6 +13712,9 @@ msgstr ""
 
 #, python-format
 msgid "Table or View \"%(table)s\" does not exist."
+msgstr ""
+
+msgid "Table side"
 msgstr ""
 
 msgid ""
@@ -14434,6 +14497,13 @@ msgid "The query contains one or more malformed template parameters."
 msgstr ""
 
 msgid "The query context datasource does not match the chart datasource"
+msgstr ""
+
+#, python-format
+msgid ""
+"The query context for chart ID %(chart_id)s (referenced by annotation "
+"layer '%(layer_name)s') was not found. Please ensure the chart is "
+"properly configured and has a valid query context."
 msgstr ""
 
 msgid "The query couldn't be loaded"
@@ -17598,7 +17668,18 @@ msgid ""
 "SUPERSET_DASHBOARD_POSITION_DATA_LIMIT config setting."
 msgstr ""
 
-msgid "Your export is being prepared. You'll receive an email when it's ready."
+msgid ""
+"Your export is being generated and will download automatically when "
+"ready. We'll also email you a download link."
+msgstr ""
+
+msgid "Your export is being generated. Please, do not leave the page."
+msgstr ""
+
+msgid "Your export is ready and downloading."
+msgstr ""
+
+msgid "Your export is taking longer than expected. Try again later."
 msgstr ""
 
 #, python-format

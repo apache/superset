@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-23 12:43+0200\n"
+"POT-Creation-Date: 2026-09-24 09:49+0300\n"
 "PO-Revision-Date: 2026-07-17 09:44+0100\n"
 "Last-Translator: Daniel Checheta\n"
 "Language: ru\n"
@@ -1438,6 +1438,9 @@ msgstr ""
 msgid "Add folder"
 msgstr "Добавить папку"
 
+msgid "Add group"
+msgstr "Добавить группу"
+
 msgid "Add item"
 msgstr "Добавить запись"
 
@@ -1477,6 +1480,9 @@ msgstr ""
 
 msgid "Add sheet"
 msgstr "Добавить лист"
+
+msgid "Add subgroup"
+msgstr "Добавить подгруппу"
 
 msgid "Add tag to entities"
 msgstr "Добавить тег к объектам"
@@ -3290,6 +3296,9 @@ msgstr "Лимит ячеек"
 msgid "Cell title template"
 msgstr "Шаблон заголовка ячейки"
 
+msgid "Center"
+msgstr "По центру"
+
 msgid "Center value"
 msgstr ""
 
@@ -3580,6 +3589,13 @@ msgstr "Диаграмма сохранена, но не может быть д�
 
 msgid "Chart width"
 msgstr "Ширина диаграммы"
+
+#, python-format
+msgid ""
+"Chart with ID %(chart_id)s (referenced by annotation layer "
+"'%(layer_name)s') was not found. Please verify that the chart exists and "
+"is accessible."
+msgstr ""
 
 msgid "Charts"
 msgstr "Диаграммы"
@@ -3943,6 +3959,9 @@ msgstr "Свернуть панель данных"
 msgid "Collapse row"
 msgstr "Свернуть строку"
 
+msgid "Collapse settings"
+msgstr "Свернуть настройки"
+
 msgid "Collapse tab content"
 msgstr "Свернуть содержимое вкладки"
 
@@ -4068,6 +4087,9 @@ msgstr "Столбец, содержащий данные о долготе"
 
 msgid "Column data types"
 msgstr "Типы данных столбцов"
+
+msgid "Column groups"
+msgstr "Группы столбцов"
 
 msgid "Column header tooltip"
 msgstr "Всплывающая подсказка заголовка столбца"
@@ -6691,6 +6713,9 @@ msgstr "Введите время в секундах"
 msgid "Enter fullscreen"
 msgstr "Полноэкранный режим"
 
+msgid "Enter group name"
+msgstr "Введите имя группы"
+
 msgid "Enter minimum and maximum values for the range filter"
 msgstr "Введите минимальное и максимальное значения для диапазона"
 
@@ -6968,6 +6993,9 @@ msgstr "Развернуть строку"
 #, fuzzy
 msgid "Expand row to edit"
 msgstr "Развернуть строку"
+
+msgid "Expand settings"
+msgstr "Развернуть настройки"
 
 msgid ""
 "Expects a formula with depending time parameter 'x'\n"
@@ -7924,6 +7952,10 @@ msgstr ""
 msgid "Group"
 msgstr "Группа"
 
+#, python-format
+msgid "Group %s"
+msgstr "Группа %s"
+
 msgid "Group By"
 msgstr "Группировать по"
 
@@ -7935,6 +7967,12 @@ msgstr "Группа"
 
 msgid "Group by"
 msgstr "Группировать по"
+
+msgid "Group columns"
+msgstr "Группировать столбцы"
+
+msgid "Group name"
+msgstr "Имя группы"
 
 msgid "Group remaining as \"Others\""
 msgstr "Группировать остальное в \"Другое\""
@@ -9774,6 +9812,12 @@ msgstr "Еще фильтры"
 msgid "MotherDuck token"
 msgstr "MotherDuck токен"
 
+msgid "Move group left"
+msgstr "Переместить группу влево"
+
+msgid "Move group right"
+msgstr "Переместить группу вправо"
+
 msgid "Move icon"
 msgstr "Переместить иконку"
 
@@ -9802,6 +9846,9 @@ msgstr "Многоуровневый"
 
 msgid "Multi-Variables"
 msgstr "Несколько переменных"
+
+msgid "Multi-level header"
+msgstr "Многоуровневый заголовок"
 
 msgid "Multiple"
 msgstr "Несколько"
@@ -11272,6 +11319,9 @@ msgstr "Порт %(port)s хоста \"%(hostname)s\" отказал в подк
 msgid "Port out of range 0-65535"
 msgstr "Порт должен быть в диапазоне 0-65535"
 
+msgid "Position"
+msgstr "Положение"
+
 msgid "Position JSON"
 msgstr "Позиция (JSON)"
 
@@ -11728,6 +11778,9 @@ msgstr "Удалить фильтр"
 
 msgid "Remove from favorites"
 msgstr ""
+
+msgid "Remove group"
+msgstr "Удалить группу"
 
 msgid "Remove item"
 msgstr "Удалить элемент"
@@ -12907,6 +12960,9 @@ msgstr "Выберите столбец"
 
 msgid "Select column name"
 msgstr "Выберите имя столбца"
+
+msgid "Select columns"
+msgstr "Выберите столбцы"
 
 msgid ""
 "Select columns that will be displayed in the table. You can multiselect "
@@ -14256,6 +14312,10 @@ msgstr "Подкатегории"
 msgid "Subdomain"
 msgstr "Подблок"
 
+#, python-format
+msgid "Subgroup %s"
+msgstr "Подгруппа %s"
+
 msgid "Subject"
 msgstr "Субъект"
 
@@ -14491,6 +14551,9 @@ msgstr "Имя таблицы не определено"
 #, python-format
 msgid "Table or View \"%(table)s\" does not exist."
 msgstr "Таблица или представление \"%(table)s\" не существует"
+
+msgid "Table side"
+msgstr "Сторона таблицы"
 
 msgid ""
 "Table that visualizes paired t-tests, which are used to understand "
@@ -15419,6 +15482,13 @@ msgstr ""
 "параметров шаблона"
 
 msgid "The query context datasource does not match the chart datasource"
+msgstr ""
+
+#, python-format
+msgid ""
+"The query context for chart ID %(chart_id)s (referenced by annotation "
+"layer '%(layer_name)s') was not found. Please ensure the chart is "
+"properly configured and has a valid query context."
 msgstr ""
 
 msgid "The query couldn't be loaded"
@@ -18970,7 +19040,18 @@ msgid ""
 "SUPERSET_DASHBOARD_POSITION_DATA_LIMIT config setting."
 msgstr ""
 
-msgid "Your export is being prepared. You'll receive an email when it's ready."
+msgid ""
+"Your export is being generated and will download automatically when "
+"ready. We'll also email you a download link."
+msgstr ""
+
+msgid "Your export is being generated. Please, do not leave the page."
+msgstr ""
+
+msgid "Your export is ready and downloading."
+msgstr ""
+
+msgid "Your export is taking longer than expected. Try again later."
 msgstr ""
 
 #, python-format

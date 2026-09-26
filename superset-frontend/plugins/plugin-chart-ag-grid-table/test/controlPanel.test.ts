@@ -13,12 +13,13 @@
 
 import {
   ControlPanelConfig,
+  ControlPanelState,
   ControlPanelsContainerProps,
   ControlState,
   CustomControlItem,
   isCustomControlItem,
 } from '@superset-ui/chart-controls';
-import { QueryMode } from '@superset-ui/core';
+import { ComparisonType, QueryMode } from '@superset-ui/core';
 import config from '../src/controlPanel';
 
 type VisibilityFn = (
@@ -78,6 +79,110 @@ function withControls(
     controls: { ...props.controls, ...controls },
   } as unknown as ControlPanelsContainerProps;
 }
+
+test('header_groups is always present without a visibility gate', () => {
+  const item = (config.controlPanelSections || [])
+    .flatMap(section => section?.controlSetRows || [])
+    .flat()
+    .find(
+      control =>
+        typeof control === 'object' &&
+        control !== null &&
+        'name' in control &&
+        control.name === 'header_groups',
+    ) as CustomControlItem | undefined;
+
+  expect(item).toBeDefined();
+  expect(item?.config.visibility).toBeUndefined();
+  expect(item?.config.type).toBe('HeaderGroupsControl');
+});
+
+test('header_groups mapStateToProps builds time comparison groups', () => {
+  const item = (config.controlPanelSections || [])
+    .flatMap(section => section?.controlSetRows || [])
+    .flat()
+    .find(
+      control =>
+        typeof control === 'object' &&
+        control !== null &&
+        'name' in control &&
+        control.name === 'header_groups',
+    ) as CustomControlItem | undefined;
+
+  const exploreState = {
+    form_data: {
+      metrics: ['revenue'],
+      query_mode: QueryMode.Aggregate,
+      comparison_type: ComparisonType.Values,
+    },
+    controls: { time_compare: { value: '1 year ago' } },
+  } as unknown as ControlPanelState;
+
+  expect(
+    item?.config.shouldMapStateToProps?.(
+      exploreState,
+      exploreState,
+      {} as ControlState,
+    ),
+  ).toBe(true);
+  expect(
+    item?.config.mapStateToProps?.(exploreState, {} as ControlState, {
+      queriesResponse: null,
+    }),
+  ).toEqual(
+    expect.objectContaining({
+      timeComparisonGroups: [
+        expect.objectContaining({
+          id: 'time-compare-revenue',
+          source: 'time_compare',
+        }),
+      ],
+    }),
+  );
+});
+
+test('header_groups mapStateToProps skips auto groups outside aggregate values comparison', () => {
+  const item = (config.controlPanelSections || [])
+    .flatMap(section => section?.controlSetRows || [])
+    .flat()
+    .find(
+      control =>
+        typeof control === 'object' &&
+        control !== null &&
+        'name' in control &&
+        control.name === 'header_groups',
+    ) as CustomControlItem | undefined;
+  const timeCompare = { time_compare: { value: '1 year ago' } };
+
+  expect(
+    item?.config.mapStateToProps?.(
+      {
+        form_data: {
+          metrics: ['revenue'],
+          query_mode: QueryMode.Raw,
+          comparison_type: ComparisonType.Values,
+        },
+        controls: timeCompare,
+      } as unknown as ControlPanelState,
+      {} as ControlState,
+      { queriesResponse: null },
+    )?.timeComparisonGroups,
+  ).toEqual([]);
+  expect(
+    item?.config.mapStateToProps?.(
+      {
+        form_data: {
+          metrics: ['revenue'],
+          query_mode: QueryMode.Aggregate,
+          comparison_type: ComparisonType.Difference,
+        },
+        controls: timeCompare,
+      } as unknown as ControlPanelState,
+      {} as ControlState,
+      { queriesResponse: null },
+    )?.timeComparisonGroups,
+  ).toEqual([]);
+});
 
 test('time_grain_sqla visibility should be case-insensitive', () => {
   const vis = getVisibility(config, 'time_grain_sqla');

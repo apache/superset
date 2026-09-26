@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-23 12:43+0200\n"
+"POT-Creation-Date: 2026-09-24 09:49+0300\n"
 "PO-Revision-Date: 2026-07-17 14:21+0000\n"
 "Last-Translator: José Teixeira <jose.teixeira@douroeci.com>\n"
 "Language: pt\n"
@@ -1842,6 +1842,9 @@ msgstr ""
 msgid "Add folder"
 msgstr "Adicionar pasta"
 
+msgid "Add group"
+msgstr "Adicionar grupo"
+
 msgid "Add item"
 msgstr "Adicionar item"
 
@@ -1894,6 +1897,9 @@ msgstr "Adicionar credenciais de serviço"
 
 msgid "Add sheet"
 msgstr "Adicionar folha"
+
+msgid "Add subgroup"
+msgstr "Adicionar subgrupo"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -4316,6 +4322,9 @@ msgstr "Limite de células"
 msgid "Cell title template"
 msgstr "Modelo do título da célula"
 
+msgid "Center"
+msgstr "Centro"
+
 msgid "Center value"
 msgstr ""
 
@@ -4686,6 +4695,13 @@ msgstr ""
 
 msgid "Chart width"
 msgstr "Largura do gráfico"
+
+#, python-format
+msgid ""
+"Chart with ID %(chart_id)s (referenced by annotation layer "
+"'%(layer_name)s') was not found. Please verify that the chart exists and "
+"is accessible."
+msgstr ""
 
 msgid "Charts"
 msgstr "Gráficos"
@@ -5169,6 +5185,9 @@ msgstr "Recolher painel de dados"
 msgid "Collapse row"
 msgstr "Recolher linha"
 
+msgid "Collapse settings"
+msgstr "Recolher definições"
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr, uk]
 msgid "Collapse tab content"
@@ -5321,6 +5340,9 @@ msgstr "Coluna que contém dados de longitude"
 
 msgid "Column data types"
 msgstr "Tipos de dados da coluna"
+
+msgid "Column groups"
+msgstr "Grupos de colunas"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -8757,6 +8779,9 @@ msgstr "Introduza a duração em segundos"
 msgid "Enter fullscreen"
 msgstr "Entrar em ecrã completo"
 
+msgid "Enter group name"
+msgstr "Introduza o nome do grupo"
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
 # lv, pt_BR, ro, ru, sk, sr, sr_Latn, tr, uk]
 msgid "Enter minimum and maximum values for the range filter"
@@ -9137,6 +9162,9 @@ msgstr "Expandir linha"
 
 msgid "Expand row to edit"
 msgstr "Expandir linha para editar"
+
+msgid "Expand settings"
+msgstr "Expandir definições"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -10404,6 +10432,10 @@ msgstr ""
 msgid "Group"
 msgstr "Grupo"
 
+#, python-format
+msgid "Group %s"
+msgstr "Grupo %s"
+
 msgid "Group By"
 msgstr "Agrupar por"
 
@@ -10418,6 +10450,12 @@ msgstr "Chave de Grupo"
 
 msgid "Group by"
 msgstr "Agrupar por"
+
+msgid "Group columns"
+msgstr "Agrupar colunas"
+
+msgid "Group name"
+msgstr "Nome do grupo"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, fr,
 # ja, lv, ro, ru, sk, sr, sr_Latn, tr, uk]
@@ -12954,6 +12992,12 @@ msgstr "Mais filtros"
 msgid "MotherDuck token"
 msgstr "Token MotherDuck"
 
+msgid "Move group left"
+msgstr "Mover grupo para a esquerda"
+
+msgid "Move group right"
+msgstr "Mover grupo para a direita"
+
 msgid "Move icon"
 msgstr "Mover ícone"
 
@@ -13000,6 +13044,9 @@ msgstr "Multiníveis"
 # uk, zh, zh_TW]
 msgid "Multi-Variables"
 msgstr "Multi-Variáveis"
+
+msgid "Multi-level header"
+msgstr "Cabeçalho de vários níveis"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -15072,6 +15119,9 @@ msgstr "A porta %(port)s no nome do servidor \"%(hostname)s\" recusou a ligaçã
 msgid "Port out of range 0-65535"
 msgstr "Porta fora do intervalo 0-65535"
 
+msgid "Position"
+msgstr "Posição"
+
 msgid "Position JSON"
 msgstr "Posição JSON"
 
@@ -15693,6 +15743,9 @@ msgstr "Remover filtro"
 
 msgid "Remove from favorites"
 msgstr ""
+
+msgid "Remove group"
+msgstr "Remover grupo"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -17222,6 +17275,9 @@ msgstr "Selecionar coluna"
 
 msgid "Select column name"
 msgstr "Selecionar nome da coluna"
+
+msgid "Select columns"
+msgstr "Selecionar colunas"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fa, fr, ja, lv, mi, pl, ro, ru, sk, sl, sr, sr_Latn, tr, uk]
@@ -19031,6 +19087,10 @@ msgstr "Subcategorias"
 msgid "Subdomain"
 msgstr "Subdomínio"
 
+#, python-format
+msgid "Subgroup %s"
+msgstr "Subgrupo %s"
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # fr, it, ja, lv, mi, nl, ru, sk, sl, tr, uk]
 msgid "Subject"
@@ -19359,6 +19419,9 @@ msgstr "Nome da tabela indefinido"
 #, python-format
 msgid "Table or View \"%(table)s\" does not exist."
 msgstr "A tabela ou vista \"%(table)s\" não existe."
+
+msgid "Table side"
+msgstr "Lado da tabela"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -20593,6 +20656,13 @@ msgid "The query context datasource does not match the chart datasource"
 msgstr ""
 "A origem de dados do contexto da consulta não corresponde à origem de "
 "dados do gráfico"
+
+#, python-format
+msgid ""
+"The query context for chart ID %(chart_id)s (referenced by annotation "
+"layer '%(layer_name)s') was not found. Please ensure the chart is "
+"properly configured and has a valid query context."
+msgstr ""
 
 msgid "The query couldn't be loaded"
 msgstr "Não foi possível carregar a query"
@@ -25402,7 +25472,18 @@ msgstr ""
 "exemplo, divida-o em vários dashboards) ou aumente a definição de "
 "configuração SUPERSET_DASHBOARD_POSITION_DATA_LIMIT."
 
-msgid "Your export is being prepared. You'll receive an email when it's ready."
+msgid ""
+"Your export is being generated and will download automatically when "
+"ready. We'll also email you a download link."
+msgstr ""
+
+msgid "Your export is being generated. Please, do not leave the page."
+msgstr ""
+
+msgid "Your export is ready and downloading."
+msgstr ""
+
+msgid "Your export is taking longer than expected. Try again later."
 msgstr ""
 
 #, python-format

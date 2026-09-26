@@ -22,7 +22,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-23 12:43+0200\n"
+"POT-Creation-Date: 2026-09-24 09:49+0300\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: ro\n"
@@ -1575,6 +1575,9 @@ msgstr ""
 msgid "Add folder"
 msgstr "Adaugă folder"
 
+msgid "Add group"
+msgstr "Adaugă grup"
+
 msgid "Add item"
 msgstr "Adaugă element"
 
@@ -1622,6 +1625,9 @@ msgstr ""
 
 msgid "Add sheet"
 msgstr "Adaugă foaie"
+
+msgid "Add subgroup"
+msgstr "Adaugă subgrup"
 
 msgid "Add tag to entities"
 msgstr "Adaugă etichetă la entități"
@@ -3546,6 +3552,9 @@ msgstr "Limită celulă"
 msgid "Cell title template"
 msgstr "Șablon titlu celulă"
 
+msgid "Center"
+msgstr "Centru"
+
 msgid "Center value"
 msgstr ""
 
@@ -3860,6 +3869,13 @@ msgstr "Graficul a fost salvat, dar nu a putut fi adăugat la fila selectată."
 
 msgid "Chart width"
 msgstr "Lățime grafic"
+
+#, python-format
+msgid ""
+"Chart with ID %(chart_id)s (referenced by annotation layer "
+"'%(layer_name)s') was not found. Please verify that the chart exists and "
+"is accessible."
+msgstr ""
 
 msgid "Charts"
 msgstr "Grafice"
@@ -4250,6 +4266,9 @@ msgstr "Restrânge panoul de date"
 msgid "Collapse row"
 msgstr "Restrânge rând"
 
+msgid "Collapse settings"
+msgstr "Restrânge setările"
+
 msgid "Collapse tab content"
 msgstr "Restrânge conținutul filei"
 
@@ -4388,6 +4407,9 @@ msgstr "Coloană care conține date de longitudine"
 
 msgid "Column data types"
 msgstr "Tipuri de date coloană"
+
+msgid "Column groups"
+msgstr "Grupuri de coloane"
 
 msgid "Column header tooltip"
 msgstr "Tooltip antet coloană"
@@ -7271,6 +7293,9 @@ msgstr "Introduceți durata în secunde"
 msgid "Enter fullscreen"
 msgstr "Intră în ecran complet"
 
+msgid "Enter group name"
+msgstr "Introduceți numele grupului"
+
 msgid "Enter minimum and maximum values for the range filter"
 msgstr "Introduceți valorile minime și maxime pentru filtrul de interval"
 
@@ -7565,6 +7590,9 @@ msgstr "Extinde rând"
 #, fuzzy
 msgid "Expand row to edit"
 msgstr "Extindeți rândul pentru editare"
+
+msgid "Expand settings"
+msgstr "Extinde setările"
 
 msgid ""
 "Expects a formula with depending time parameter 'x'\n"
@@ -8612,6 +8640,10 @@ msgstr ""
 msgid "Group"
 msgstr "Grup"
 
+#, python-format
+msgid "Group %s"
+msgstr "Grup %s"
+
 msgid "Group By"
 msgstr "Grupare După"
 
@@ -8625,6 +8657,12 @@ msgstr "Cheie Grup"
 
 msgid "Group by"
 msgstr "Grupare după"
+
+msgid "Group columns"
+msgstr "Grupează coloane"
+
+msgid "Group name"
+msgstr "Numele grupului"
 
 msgid "Group remaining as \"Others\""
 msgstr "Grupează restul ca \"Altele\""
@@ -10636,6 +10674,12 @@ msgstr "Mai multe filtre"
 msgid "MotherDuck token"
 msgstr "Token MotherDuck"
 
+msgid "Move group left"
+msgstr "Mută grupul la stânga"
+
+msgid "Move group right"
+msgstr "Mută grupul la dreapta"
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, fr, it,
 # ja, sr, sr_Latn]
 #, fuzzy
@@ -10667,6 +10711,9 @@ msgstr "Multi-Nivele"
 
 msgid "Multi-Variables"
 msgstr "Multi-Variabile"
+
+msgid "Multi-level header"
+msgstr "Antet pe mai multe niveluri"
 
 msgid "Multiple"
 msgstr "Multiplu"
@@ -12235,6 +12282,9 @@ msgstr "Portul %(port)s de pe hostname \"%(hostname)s\" a refuzat conexiunea."
 msgid "Port out of range 0-65535"
 msgstr "Port în afara intervalului 0-65535"
 
+msgid "Position"
+msgstr "Poziție"
+
 msgid "Position JSON"
 msgstr "Poziție JSON"
 
@@ -12721,6 +12771,9 @@ msgstr "Eliminați filtrul"
 
 msgid "Remove from favorites"
 msgstr ""
+
+msgid "Remove group"
+msgstr "Elimină grupul"
 
 msgid "Remove item"
 msgstr "Elimină element"
@@ -13997,6 +14050,9 @@ msgstr "Selectează coloană"
 #, fuzzy
 msgid "Select column name"
 msgstr "Selectați numele coloanei"
+
+msgid "Select columns"
+msgstr "Selectează coloane"
 
 msgid ""
 "Select columns that will be displayed in the table. You can multiselect "
@@ -15520,6 +15576,10 @@ msgstr "Subcategorii"
 msgid "Subdomain"
 msgstr "Subdomeniu"
 
+#, python-format
+msgid "Subgroup %s"
+msgstr "Subgrup %s"
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # fr, it, ja, lv, mi, nl, ru, sk, sl, tr, uk]
 #, fuzzy
@@ -15779,6 +15839,9 @@ msgstr "Numele tabelului este nedefinit"
 #, python-format
 msgid "Table or View \"%(table)s\" does not exist."
 msgstr "Tabelul sau Vizualizarea \"%(table)s\" nu există."
+
+msgid "Table side"
+msgstr "Partea tabelului"
 
 msgid ""
 "Table that visualizes paired t-tests, which are used to understand "
@@ -16794,6 +16857,13 @@ msgid "The query contains one or more malformed template parameters."
 msgstr "Interogarea conține unul sau mai mulți parametri de șablon malformați."
 
 msgid "The query context datasource does not match the chart datasource"
+msgstr ""
+
+#, python-format
+msgid ""
+"The query context for chart ID %(chart_id)s (referenced by annotation "
+"layer '%(layer_name)s') was not found. Please ensure the chart is "
+"properly configured and has a valid query context."
 msgstr ""
 
 msgid "The query couldn't be loaded"
@@ -20627,7 +20697,18 @@ msgid ""
 "SUPERSET_DASHBOARD_POSITION_DATA_LIMIT config setting."
 msgstr ""
 
-msgid "Your export is being prepared. You'll receive an email when it's ready."
+msgid ""
+"Your export is being generated and will download automatically when "
+"ready. We'll also email you a download link."
+msgstr ""
+
+msgid "Your export is being generated. Please, do not leave the page."
+msgstr ""
+
+msgid "Your export is ready and downloading."
+msgstr ""
+
+msgid "Your export is taking longer than expected. Try again later."
 msgstr ""
 
 #, python-format

@@ -16,20 +16,17 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
-export * from './checkColumnType';
-export * from './selectOptions';
-export * from './D3Formatting';
-export * from './expandControlConfig';
-export * from './getColorFormatters';
-export * from './getTotalsMetrics';
-export { default as mainMetric } from './mainMetric';
-export { default as columnChoices, columnsByType } from './columnChoices';
-export * from './defineSavedMetrics';
-export * from './getStandardizedControls';
-export * from './getTemporalColumns';
-export * from './displayTimeRelatedControls';
-export * from './colorControls';
-export * from './metricColumnFilter';
-export * from './buildSortMetricOrderby';
-export * from './headerGroups';
+export {
+  buildHeaderGroupRows,
+  collectHeaderGroupLeaves,
+  getHeaderGroupDepth,
+  getHeaderGroupsMaxDepth,
+  hasRenderableHeaderGroups,
+  orderColumnsByHeaderGroups,
+} from '@superset-ui/chart-controls';
+export type {
+  HeaderGroupCell,
+  HeaderGroupConfig,
+  HeaderGroupLabelAlign,
+  HeaderGroupPlacement,
+} from '@superset-ui/chart-controls';

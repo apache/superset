@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-23 12:43+0200\n"
+"POT-Creation-Date: 2026-09-24 09:49+0300\n"
 "PO-Revision-Date: 2026-05-18 15:42+0200\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: sk\n"
@@ -1481,6 +1481,9 @@ msgstr ""
 msgid "Add folder"
 msgstr "Pridať priečinok"
 
+msgid "Add group"
+msgstr "Pridať skupinu"
+
 msgid "Add item"
 msgstr "Pridať položku"
 
@@ -1521,6 +1524,9 @@ msgstr ""
 
 msgid "Add sheet"
 msgstr "Pridať list"
+
+msgid "Add subgroup"
+msgstr "Pridať podskupinu"
 
 msgid "Add tag to entities"
 msgstr "Pridať značku k entitám"
@@ -3380,6 +3386,9 @@ msgstr "Limit bunek"
 msgid "Cell title template"
 msgstr "Šablona názvu bunky"
 
+msgid "Center"
+msgstr "Na stred"
+
 msgid "Center value"
 msgstr ""
 
@@ -3682,6 +3691,13 @@ msgstr "Graf bol uložený, ale sa nepodarilo pridať do vybraného panela."
 
 msgid "Chart width"
 msgstr "Šírka grafu"
+
+#, python-format
+msgid ""
+"Chart with ID %(chart_id)s (referenced by annotation layer "
+"'%(layer_name)s') was not found. Please verify that the chart exists and "
+"is accessible."
+msgstr ""
 
 msgid "Charts"
 msgstr "Grafy"
@@ -4055,6 +4071,9 @@ msgstr "Sbalit dátový panel"
 msgid "Collapse row"
 msgstr "Sbalit riadok"
 
+msgid "Collapse settings"
+msgstr "Zbaliť nastavenie"
+
 msgid "Collapse tab content"
 msgstr "Sbalit obsah karty"
 
@@ -4185,6 +4204,9 @@ msgstr "Stĺpec obsahujúci data o zemepisné dĺžke"
 
 msgid "Column data types"
 msgstr "Datové typy stĺpcov"
+
+msgid "Column groups"
+msgstr "Skupiny stĺpcov"
 
 msgid "Column header tooltip"
 msgstr "Pomoc záhlavie stĺpce"
@@ -6929,6 +6951,9 @@ msgstr "Zadejte dobu trvanie v sekundách"
 msgid "Enter fullscreen"
 msgstr "Prejsť do režimu celej obrazovky"
 
+msgid "Enter group name"
+msgstr "Zadajte názov skupiny"
+
 msgid "Enter minimum and maximum values for the range filter"
 msgstr "Zadejte minimální a maximální hodnoty pre filter rozsahu"
 
@@ -7220,6 +7245,9 @@ msgstr "Rozbalit riadok"
 #, fuzzy
 msgid "Expand row to edit"
 msgstr "Rozbalit riadok"
+
+msgid "Expand settings"
+msgstr "Rozbaliť nastavenie"
 
 msgid ""
 "Expects a formula with depending time parameter 'x'\n"
@@ -8215,6 +8243,10 @@ msgstr ""
 msgid "Group"
 msgstr "Skupina"
 
+#, python-format
+msgid "Group %s"
+msgstr "Skupina %s"
+
 msgid "Group By"
 msgstr "Zoskupiť podle"
 
@@ -8226,6 +8258,12 @@ msgstr "Kľúč skupiny"
 
 msgid "Group by"
 msgstr "Zoskupiť podle"
+
+msgid "Group columns"
+msgstr "Zoskupiť stĺpce"
+
+msgid "Group name"
+msgstr "Názov skupiny"
 
 msgid "Group remaining as \"Others\""
 msgstr "Zostávajúce riadky zoskupiť do skupiny \"Ostatné\""
@@ -10139,6 +10177,12 @@ msgstr "Viac filtrov"
 msgid "MotherDuck token"
 msgstr "Token MotherDuck"
 
+msgid "Move group left"
+msgstr "Presunúť skupinu doľava"
+
+msgid "Move group right"
+msgstr "Presunúť skupinu doprava"
+
 #, fuzzy
 msgid "Move icon"
 msgstr "Iba presunúť"
@@ -10168,6 +10212,9 @@ msgstr "Viac úrovní"
 
 msgid "Multi-Variables"
 msgstr "Viac promenných"
+
+msgid "Multi-level header"
+msgstr "Viacúrovňové záhlavie"
 
 msgid "Multiple"
 msgstr "Vícenásobný"
@@ -11696,6 +11743,9 @@ msgstr "Port %(port)s na hostiteli „%(hostname)s“ odmítl pripojenie."
 msgid "Port out of range 0-65535"
 msgstr "Port mimo rozsah 0-65535"
 
+msgid "Position"
+msgstr "Pozícia"
+
 msgid "Position JSON"
 msgstr "JSON pozice"
 
@@ -12172,6 +12222,9 @@ msgstr "Odstrániť položku"
 
 msgid "Remove from favorites"
 msgstr ""
+
+msgid "Remove group"
+msgstr "Odstrániť skupinu"
 
 msgid "Remove item"
 msgstr "Odstrániť položku"
@@ -13399,6 +13452,9 @@ msgstr "Vybrať stĺpec"
 #, fuzzy
 msgid "Select column name"
 msgstr "Vybrať stĺpec"
+
+msgid "Select columns"
+msgstr "Vybrať stĺpce"
 
 msgid ""
 "Select columns that will be displayed in the table. You can multiselect "
@@ -14849,6 +14905,10 @@ msgstr "Podkategorie"
 msgid "Subdomain"
 msgstr "Subdoména"
 
+#, python-format
+msgid "Subgroup %s"
+msgstr "Podskupina %s"
+
 msgid "Subject"
 msgstr "Subjekt"
 
@@ -15087,6 +15147,9 @@ msgstr "Názov tabuľky nie je definován"
 #, python-format
 msgid "Table or View \"%(table)s\" does not exist."
 msgstr "Tabuľka alebo pohled „%(table)s“ neexistuje."
+
+msgid "Table side"
+msgstr "Strana tabuľky"
 
 msgid ""
 "Table that visualizes paired t-tests, which are used to understand "
@@ -16039,6 +16102,13 @@ msgid "The query contains one or more malformed template parameters."
 msgstr "Dotaz obsahuje jeden alebo viac nesprávne formátovaných parametrů šablony."
 
 msgid "The query context datasource does not match the chart datasource"
+msgstr ""
+
+#, python-format
+msgid ""
+"The query context for chart ID %(chart_id)s (referenced by annotation "
+"layer '%(layer_name)s') was not found. Please ensure the chart is "
+"properly configured and has a valid query context."
 msgstr ""
 
 msgid "The query couldn't be loaded"
@@ -19704,7 +19774,18 @@ msgid ""
 "SUPERSET_DASHBOARD_POSITION_DATA_LIMIT config setting."
 msgstr ""
 
-msgid "Your export is being prepared. You'll receive an email when it's ready."
+msgid ""
+"Your export is being generated and will download automatically when "
+"ready. We'll also email you a download link."
+msgstr ""
+
+msgid "Your export is being generated. Please, do not leave the page."
+msgstr ""
+
+msgid "Your export is ready and downloading."
+msgstr ""
+
+msgid "Your export is taking longer than expected. Try again later."
 msgstr ""
 
 #, python-format

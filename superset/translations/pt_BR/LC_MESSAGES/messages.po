@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-23 12:43+0200\n"
+"POT-Creation-Date: 2026-09-24 09:49+0300\n"
 "PO-Revision-Date: 2023-05-22 08:04-0400\n"
 "Last-Translator: \n"
 "Language: pt_BR\n"
@@ -1503,6 +1503,9 @@ msgstr ""
 msgid "Add folder"
 msgstr "Adicionar filtro"
 
+msgid "Add group"
+msgstr "Adicionar grupo"
+
 msgid "Add item"
 msgstr "Adicionar item"
 
@@ -1546,6 +1549,9 @@ msgstr ""
 
 msgid "Add sheet"
 msgstr "Adicionar planilha"
+
+msgid "Add subgroup"
+msgstr "Adicionar subgrupo"
 
 msgid "Add tag to entities"
 msgstr "Adicionar tag às entidades"
@@ -3534,6 +3540,9 @@ msgstr "Limite de célula"
 msgid "Cell title template"
 msgstr "Excluir modelo"
 
+msgid "Center"
+msgstr "Centro"
+
 msgid "Center value"
 msgstr ""
 
@@ -3851,6 +3860,13 @@ msgstr "Não foi possível remover o gráfico."
 
 msgid "Chart width"
 msgstr "Largura do gráfico"
+
+#, python-format
+msgid ""
+"Chart with ID %(chart_id)s (referenced by annotation layer "
+"'%(layer_name)s') was not found. Please verify that the chart exists and "
+"is accessible."
+msgstr ""
 
 msgid "Charts"
 msgstr "Gráficos"
@@ -4261,6 +4277,9 @@ msgstr "Recolher painel de dados"
 msgid "Collapse row"
 msgstr "Recolher linha"
 
+msgid "Collapse settings"
+msgstr "Recolher configurações"
+
 msgid "Collapse tab content"
 msgstr "Recolher o conteúdo da aba"
 
@@ -4398,6 +4417,9 @@ msgstr "Coluna contendo dados de longitude"
 #, fuzzy
 msgid "Column data types"
 msgstr "Tipo de dados avançado"
+
+msgid "Column groups"
+msgstr "Grupos de colunas"
 
 msgid "Column header tooltip"
 msgstr "Dica de ferramenta para o cabeçalho da coluna"
@@ -7327,6 +7349,9 @@ msgstr "Insira a duração em segundos"
 msgid "Enter fullscreen"
 msgstr "Entrar em tela cheia"
 
+msgid "Enter group name"
+msgstr "Insira o nome do grupo"
+
 msgid "Enter minimum and maximum values for the range filter"
 msgstr "Digite os valores mínimo e máximo para o filtro de intervalo"
 
@@ -7642,6 +7667,9 @@ msgstr "Expandir linha"
 #, fuzzy
 msgid "Expand row to edit"
 msgstr "Expandir linha"
+
+msgid "Expand settings"
+msgstr "Expandir configurações"
 
 msgid ""
 "Expects a formula with depending time parameter 'x'\n"
@@ -8747,6 +8775,10 @@ msgstr ""
 msgid "Group"
 msgstr "Agrupar por"
 
+#, python-format
+msgid "Group %s"
+msgstr "Grupo %s"
+
 msgid "Group By"
 msgstr "Agrupar por"
 
@@ -8759,6 +8791,12 @@ msgstr "Agrupar por"
 
 msgid "Group by"
 msgstr "Agrupar por"
+
+msgid "Group columns"
+msgstr "Agrupar colunas"
+
+msgid "Group name"
+msgstr "Nome do grupo"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, fr,
 # ja, lv, ro, ru, sk, sr, sr_Latn, tr, uk]
@@ -10844,6 +10882,12 @@ msgstr "Mais filtros"
 msgid "MotherDuck token"
 msgstr "Token do MotherDuck"
 
+msgid "Move group left"
+msgstr "Mover grupo para a esquerda"
+
+msgid "Move group right"
+msgstr "Mover grupo para a direita"
+
 #, fuzzy
 msgid "Move icon"
 msgstr "Mover apenas"
@@ -10873,6 +10917,9 @@ msgstr "Multiníveis"
 
 msgid "Multi-Variables"
 msgstr "Multi-Variáveis"
+
+msgid "Multi-level header"
+msgstr "Cabeçalho de vários níveis"
 
 msgid "Multiple"
 msgstr "Múltiplos"
@@ -12517,6 +12564,9 @@ msgstr "A porta %(port)s no nome do host \"%(hostname)s\" recusou a conexão."
 msgid "Port out of range 0-65535"
 msgstr "Porta fora do intervalo 0-65535"
 
+msgid "Position"
+msgstr "Posição"
+
 msgid "Position JSON"
 msgstr "Posição JSON"
 
@@ -13031,6 +13081,9 @@ msgstr "Remover item"
 
 msgid "Remove from favorites"
 msgstr ""
+
+msgid "Remove group"
+msgstr "Remover grupo"
 
 msgid "Remove item"
 msgstr "Remover item"
@@ -14341,6 +14394,9 @@ msgstr "Selecionar coluna"
 #, fuzzy
 msgid "Select column name"
 msgstr "Selecionar coluna"
+
+msgid "Select columns"
+msgstr "Selecionar colunas"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fa, fr, ja, lv, mi, pl, ro, ru, sk, sl, sr, sr_Latn, tr, uk]
@@ -15893,6 +15949,10 @@ msgstr "Categoria"
 msgid "Subdomain"
 msgstr "Subdomínio"
 
+#, python-format
+msgid "Subgroup %s"
+msgstr "Subgrupo %s"
+
 #, fuzzy
 msgid "Subject"
 msgstr "assunto do email"
@@ -16152,6 +16212,9 @@ msgstr "Não da tabela indefinido"
 #, fuzzy, python-format
 msgid "Table or View \"%(table)s\" does not exist."
 msgstr "Tabela ou View \"%(table)s\" não existe."
+
+msgid "Table side"
+msgstr "Lado da tabela"
 
 msgid ""
 "Table that visualizes paired t-tests, which are used to understand "
@@ -17194,6 +17257,13 @@ msgid "The query contains one or more malformed template parameters."
 msgstr "A consulta contém um ou mais parâmetros de modelo malformados."
 
 msgid "The query context datasource does not match the chart datasource"
+msgstr ""
+
+#, python-format
+msgid ""
+"The query context for chart ID %(chart_id)s (referenced by annotation "
+"layer '%(layer_name)s') was not found. Please ensure the chart is "
+"properly configured and has a valid query context."
 msgstr ""
 
 msgid "The query couldn't be loaded"
@@ -21111,7 +21181,18 @@ msgid ""
 "SUPERSET_DASHBOARD_POSITION_DATA_LIMIT config setting."
 msgstr ""
 
-msgid "Your export is being prepared. You'll receive an email when it's ready."
+msgid ""
+"Your export is being generated and will download automatically when "
+"ready. We'll also email you a download link."
+msgstr ""
+
+msgid "Your export is being generated. Please, do not leave the page."
+msgstr ""
+
+msgid "Your export is ready and downloading."
+msgstr ""
+
+msgid "Your export is taking longer than expected. Try again later."
 msgstr ""
 
 #, python-format

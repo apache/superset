@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-23 12:43+0200\n"
+"POT-Creation-Date: 2026-09-24 09:49+0300\n"
 "PO-Revision-Date: 2026-03-31 02:00-0700\n"
 "Last-Translator: Maazin Ahamed\n"
 "Language: ta\n"
@@ -1435,6 +1435,9 @@ msgstr ""
 msgid "Add folder"
 msgstr "கோப்புறையைச் (folder) சேர்"
 
+msgid "Add group"
+msgstr "குழுவைச் சேர்"
+
 msgid "Add item"
 msgstr "உருப்படியைச் சேர்"
 
@@ -1477,6 +1480,9 @@ msgstr "அங்கீகாரத் தகவலைப் பதிவேற�
 
 msgid "Add sheet"
 msgstr "ஷீட்டைச் (sheet) சேர்"
+
+msgid "Add subgroup"
+msgstr "துணைக்குழுவைச் சேர்"
 
 msgid "Add tag to entities"
 msgstr "உருப்படிகளுக்கு டேக் (tag) சேர்க்கவும்"
@@ -3297,6 +3303,9 @@ msgstr "செல் வரம்பு"
 msgid "Cell title template"
 msgstr "செல் தலைப்பு டெம்ப்ளேட்"
 
+msgid "Center"
+msgstr "மையம்"
+
 msgid "Center value"
 msgstr ""
 
@@ -3601,6 +3610,13 @@ msgstr ""
 
 msgid "Chart width"
 msgstr "சார்ட் அகலம்"
+
+#, python-format
+msgid ""
+"Chart with ID %(chart_id)s (referenced by annotation layer "
+"'%(layer_name)s') was not found. Please verify that the chart exists and "
+"is accessible."
+msgstr ""
 
 msgid "Charts"
 msgstr "சார்ட்டுகள்"
@@ -3977,6 +3993,9 @@ msgstr "தரவுப் பலகத்தைச் சுருக்கு"
 msgid "Collapse row"
 msgstr "வரிசையைச் சுருக்கு"
 
+msgid "Collapse settings"
+msgstr "அமைப்புகளைச் சுருக்கு"
+
 msgid "Collapse tab content"
 msgstr "தாவல் உள்ளடக்கத்தைச் சுருக்கு"
 
@@ -4097,6 +4116,9 @@ msgstr "தீர்க்கரேகை (longitude) தரவுகளைக�
 
 msgid "Column data types"
 msgstr "நெடுவரிசைத் தரவு வகைகள்"
+
+msgid "Column groups"
+msgstr "நெடுவரிசைக் குழுக்கள்"
 
 msgid "Column header tooltip"
 msgstr "நெடுவரிசைத் தலைப்பு உதவிக்குறிப்பு (tooltip)"
@@ -6739,6 +6761,9 @@ msgstr "கால அளவை விநாடிகளில் உள்ளி
 msgid "Enter fullscreen"
 msgstr "முழுத் திரைக்குச் செல்"
 
+msgid "Enter group name"
+msgstr "குழுவின் பெயரை உள்ளிடவும்"
+
 msgid "Enter minimum and maximum values for the range filter"
 msgstr ""
 "வரம்பு வடிகட்டிக்கான (range filter) குறைந்தபட்ச மற்றும் அதிகபட்ச "
@@ -7020,6 +7045,9 @@ msgstr "வரிசையை விரிவாக்கு"
 #, fuzzy
 msgid "Expand row to edit"
 msgstr "வரிசையை விரிவாக்கு"
+
+msgid "Expand settings"
+msgstr "அமைப்புகளை விரிவாக்கு"
 
 msgid ""
 "Expects a formula with depending time parameter 'x'\n"
@@ -7982,6 +8010,10 @@ msgstr ""
 msgid "Group"
 msgstr "குழு"
 
+#, python-format
+msgid "Group %s"
+msgstr "குழு %s"
+
 msgid "Group By"
 msgstr "இதன் படி குழுவாக்கு"
 
@@ -7995,6 +8027,12 @@ msgstr "குழுச் சாவி (Group Key)"
 
 msgid "Group by"
 msgstr "இதன் படி குழுவாக்கு"
+
+msgid "Group columns"
+msgstr "நெடுவரிசைகளைக் குழுவாக்கு"
+
+msgid "Group name"
+msgstr "குழுவின் பெயர்"
 
 msgid "Group remaining as \"Others\""
 msgstr "மீதமுள்ளவற்றை \"ஏனையவை\" என குழுவாக்கு"
@@ -9798,6 +9836,12 @@ msgstr "கூடுதல் வடிகட்டிகள்"
 msgid "MotherDuck token"
 msgstr "MotherDuck டோக்கன்"
 
+msgid "Move group left"
+msgstr "குழுவை இடதுபுறம் நகர்த்து"
+
+msgid "Move group right"
+msgstr "குழுவை வலதுபுறம் நகர்த்து"
+
 #, fuzzy
 msgid "Move icon"
 msgstr "நகர்த்த மட்டும்"
@@ -9827,6 +9871,9 @@ msgstr "பல நிலைகள்"
 
 msgid "Multi-Variables"
 msgstr "பல மாறிகள்"
+
+msgid "Multi-level header"
+msgstr "பல நிலை தலைப்பு"
 
 msgid "Multiple"
 msgstr "பல"
@@ -11253,6 +11300,9 @@ msgstr "ஹோஸ்ட் பெயர் \"%(hostname)s\" இல் உள்�
 msgid "Port out of range 0-65535"
 msgstr "போர்ட் 0-65535 வரம்பிற்கு வெளியே உள்ளது"
 
+msgid "Position"
+msgstr "நிலை"
+
 msgid "Position JSON"
 msgstr "நிலை JSON"
 
@@ -11714,6 +11764,9 @@ msgstr "உருப்படியை நீக்கு"
 
 msgid "Remove from favorites"
 msgstr ""
+
+msgid "Remove group"
+msgstr "குழுவை நீக்கு"
 
 msgid "Remove item"
 msgstr "உருப்படியை நீக்கு"
@@ -12887,6 +12940,9 @@ msgstr "நெடுவரிசையைத் தேர்ந்தெடு"
 #, fuzzy
 msgid "Select column name"
 msgstr "நெடுவரிசையைத் தேர்ந்தெடு"
+
+msgid "Select columns"
+msgstr "நெடுவரிசைகளைத் தேர்ந்தெடு"
 
 msgid ""
 "Select columns that will be displayed in the table. You can multiselect "
@@ -14230,6 +14286,10 @@ msgstr "துணைப்பிரிவுகள்"
 msgid "Subdomain"
 msgstr "துணைக்களம் (Subdomain)"
 
+#, python-format
+msgid "Subgroup %s"
+msgstr "துணைக்குழு %s"
+
 #, fuzzy
 msgid "Subject"
 msgstr "பொருளைத் (subject) தேர்ந்தெடு"
@@ -14466,6 +14526,9 @@ msgstr "அட்டவணை பெயர் வரையறுக்கப்�
 #, python-format
 msgid "Table or View \"%(table)s\" does not exist."
 msgstr "அட்டவணை அல்லது பார்வை \"%(table)s\" இல்லை."
+
+msgid "Table side"
+msgstr "அட்டவணையின் பக்கம்"
 
 msgid ""
 "Table that visualizes paired t-tests, which are used to understand "
@@ -15311,6 +15374,13 @@ msgid "The query contains one or more malformed template parameters."
 msgstr "வினவலில் ஒன்று அல்லது அதற்கு மேற்பட்ட தவறான டெம்ப்ளேட் அளவுருக்கள் உள்ளன."
 
 msgid "The query context datasource does not match the chart datasource"
+msgstr ""
+
+#, python-format
+msgid ""
+"The query context for chart ID %(chart_id)s (referenced by annotation "
+"layer '%(layer_name)s') was not found. Please ensure the chart is "
+"properly configured and has a valid query context."
 msgstr ""
 
 msgid "The query couldn't be loaded"
@@ -18749,7 +18819,18 @@ msgid ""
 "SUPERSET_DASHBOARD_POSITION_DATA_LIMIT config setting."
 msgstr ""
 
-msgid "Your export is being prepared. You'll receive an email when it's ready."
+msgid ""
+"Your export is being generated and will download automatically when "
+"ready. We'll also email you a download link."
+msgstr ""
+
+msgid "Your export is being generated. Please, do not leave the page."
+msgstr ""
+
+msgid "Your export is ready and downloading."
+msgstr ""
+
+msgid "Your export is taking longer than expected. Try again later."
 msgstr ""
 
 #, python-format

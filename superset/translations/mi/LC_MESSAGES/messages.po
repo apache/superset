@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-23 12:43+0200\n"
+"POT-Creation-Date: 2026-09-24 09:49+0300\n"
 "PO-Revision-Date: 2026-01-25 16:09+1300\n"
 "Last-Translator: karo.co.nz\n"
 "Language: mi\n"
@@ -1478,6 +1478,9 @@ msgstr ""
 msgid "Add folder"
 msgstr "Tāpiri tātari"
 
+msgid "Add group"
+msgstr "Tāpiri rōpū"
+
 msgid "Add item"
 msgstr "Tāpiri mea"
 
@@ -1522,6 +1525,9 @@ msgstr ""
 
 msgid "Add sheet"
 msgstr "Tāpiri hīti"
+
+msgid "Add subgroup"
+msgstr "Tāpiri rōpū-iti"
 
 msgid "Add tag to entities"
 msgstr "Tāpiri tohu ki ngā pūtahi"
@@ -3446,6 +3452,9 @@ msgstr "Tepe pūtau"
 msgid "Cell title template"
 msgstr "Muku tauira"
 
+msgid "Center"
+msgstr "Waenga"
+
 msgid "Center value"
 msgstr ""
 
@@ -3757,6 +3766,13 @@ msgstr "Kāore i taea te muku i ngā kauwhata."
 
 msgid "Chart width"
 msgstr "Whānui kauwhata"
+
+#, python-format
+msgid ""
+"Chart with ID %(chart_id)s (referenced by annotation layer "
+"'%(layer_name)s') was not found. Please verify that the chart exists and "
+"is accessible."
+msgstr ""
 
 msgid "Charts"
 msgstr "Kauwhata"
@@ -4151,6 +4167,9 @@ msgstr "Hīngonga papa raraunga"
 msgid "Collapse row"
 msgstr "Hīngonga rārangi"
 
+msgid "Collapse settings"
+msgstr "Whakaiti tautuhinga"
+
 msgid "Collapse tab content"
 msgstr "Hīngonga ihirangi ripa"
 
@@ -4283,6 +4302,9 @@ msgstr "Tīwae kei roto ngā raraunga longitude"
 
 msgid "Column data types"
 msgstr "Momo raraunga tīwae"
+
+msgid "Column groups"
+msgstr "Ngā rōpū tīwae"
 
 msgid "Column header tooltip"
 msgstr "Kītukutuku pane tīwae"
@@ -7081,6 +7103,9 @@ msgstr "Tāuru roa i ngā hēkona"
 msgid "Enter fullscreen"
 msgstr "Uru mata katoa"
 
+msgid "Enter group name"
+msgstr "Tāuru i te ingoa rōpū"
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
 # lv, pt_BR, ro, ru, sk, sr, sr_Latn, tr, uk]
 #, fuzzy
@@ -7382,6 +7407,9 @@ msgstr "Whakawhānui rārangi"
 #, fuzzy
 msgid "Expand row to edit"
 msgstr "Whakawhānui rārangi"
+
+msgid "Expand settings"
+msgstr "Whakawhānui tautuhinga"
 
 msgid ""
 "Expects a formula with depending time parameter 'x'\n"
@@ -8435,6 +8463,10 @@ msgstr ""
 msgid "Group"
 msgstr "Rōpū mā"
 
+#, python-format
+msgid "Group %s"
+msgstr "Rōpū %s"
+
 msgid "Group By"
 msgstr "Rōpū Mā"
 
@@ -8446,6 +8478,12 @@ msgstr "Kī Rōpū"
 
 msgid "Group by"
 msgstr "Rōpū mā"
+
+msgid "Group columns"
+msgstr "Whakarōpū tīwae"
+
+msgid "Group name"
+msgstr "Ingoa rōpū"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, fr,
 # ja, lv, ro, ru, sk, sr, sr_Latn, tr, uk]
@@ -10420,6 +10458,12 @@ msgstr "Tātari atu"
 msgid "MotherDuck token"
 msgstr "Tohu MotherDuck"
 
+msgid "Move group left"
+msgstr "Nuku rōpū ki maui"
+
+msgid "Move group right"
+msgstr "Nuku rōpū ki matau"
+
 #, fuzzy
 msgid "Move icon"
 msgstr "Neke anake"
@@ -10449,6 +10493,9 @@ msgstr "Taumata-Maha"
 
 msgid "Multi-Variables"
 msgstr "Taurangi-Maha"
+
+msgid "Multi-level header"
+msgstr "Pane taumata-maha"
 
 msgid "Multiple"
 msgstr "Maha"
@@ -12003,6 +12050,9 @@ msgstr ""
 msgid "Port out of range 0-65535"
 msgstr "Tauranga i waho o te korahi 0-65535"
 
+msgid "Position"
+msgstr "Tūnga"
+
 msgid "Position JSON"
 msgstr "Tūnga JSON"
 
@@ -12495,6 +12545,9 @@ msgstr "Tango mea"
 
 msgid "Remove from favorites"
 msgstr ""
+
+msgid "Remove group"
+msgstr "Tango rōpū"
 
 msgid "Remove item"
 msgstr "Tango mea"
@@ -13746,6 +13799,9 @@ msgstr "Tīpakohia tīwae"
 #, fuzzy
 msgid "Select column name"
 msgstr "Tīpakohia tīwae"
+
+msgid "Select columns"
+msgstr "Tīpakohia ngā tīwae"
 
 msgid ""
 "Select columns that will be displayed in the table. You can multiselect "
@@ -15272,6 +15328,10 @@ msgstr "Kāwai"
 msgid "Subdomain"
 msgstr "Rohe-iti"
 
+#, python-format
+msgid "Subgroup %s"
+msgstr "Rōpū-iti %s"
+
 msgid "Subject"
 msgstr "Kaupapa"
 
@@ -15520,6 +15580,9 @@ msgstr "Kāore i tautuhia te ingoa ripanga"
 #, python-format
 msgid "Table or View \"%(table)s\" does not exist."
 msgstr "Karekau te Ripanga, te Tirohanga \"%(table)s\" rānei."
+
+msgid "Table side"
+msgstr "Taha ripanga"
 
 msgid ""
 "Table that visualizes paired t-tests, which are used to understand "
@@ -16507,6 +16570,13 @@ msgid "The query contains one or more malformed template parameters."
 msgstr "Kei roto i te pātai tētahi, nui ake rānei tawhā tauira kua hē."
 
 msgid "The query context datasource does not match the chart datasource"
+msgstr ""
+
+#, python-format
+msgid ""
+"The query context for chart ID %(chart_id)s (referenced by annotation "
+"layer '%(layer_name)s') was not found. Please ensure the chart is "
+"properly configured and has a valid query context."
 msgstr ""
 
 msgid "The query couldn't be loaded"
@@ -20311,7 +20381,18 @@ msgid ""
 "SUPERSET_DASHBOARD_POSITION_DATA_LIMIT config setting."
 msgstr ""
 
-msgid "Your export is being prepared. You'll receive an email when it's ready."
+msgid ""
+"Your export is being generated and will download automatically when "
+"ready. We'll also email you a download link."
+msgstr ""
+
+msgid "Your export is being generated. Please, do not leave the page."
+msgstr ""
+
+msgid "Your export is ready and downloading."
+msgstr ""
+
+msgid "Your export is taking longer than expected. Try again later."
 msgstr ""
 
 #, python-format

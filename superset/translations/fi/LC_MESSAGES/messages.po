@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-23 12:43+0200\n"
+"POT-Creation-Date: 2026-09-24 09:49+0300\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: fi\n"
@@ -2209,6 +2209,9 @@ msgstr ""
 msgid "Add folder"
 msgstr "Lisää kansio"
 
+msgid "Add group"
+msgstr "Lisää ryhmä"
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, it, ja, ko, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh,
 # zh_TW]
@@ -2285,6 +2288,9 @@ msgstr ""
 #, fuzzy
 msgid "Add sheet"
 msgstr "Lisää taulukko"
+
+msgid "Add subgroup"
+msgstr "Lisää aliryhmä"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -5424,6 +5430,9 @@ msgstr "Soluraja"
 msgid "Cell title template"
 msgstr "Solun otsikkomalli"
 
+msgid "Center"
+msgstr "Keskitä"
+
 msgid "Center value"
 msgstr ""
 
@@ -5909,6 +5918,13 @@ msgstr "Kaavio tallennettiin, mutta sitä ei voitu lisätä valittuun välilehte
 #, fuzzy
 msgid "Chart width"
 msgstr "Kaavion leveys"
+
+#, python-format
+msgid ""
+"Chart with ID %(chart_id)s (referenced by annotation layer "
+"'%(layer_name)s') was not found. Please verify that the chart exists and "
+"is accessible."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, it, ja, ko, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, tr, uk,
@@ -6560,6 +6576,9 @@ msgstr "Supista datapaneeli"
 msgid "Collapse row"
 msgstr "Supista rivi"
 
+msgid "Collapse settings"
+msgstr "Supista asetukset"
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
 #, fuzzy
@@ -6768,6 +6787,9 @@ msgstr "Pituusastetiedot sisältävä sarake"
 #, fuzzy
 msgid "Column data types"
 msgstr "Sarakkeiden tietotyypit"
+
+msgid "Column groups"
+msgstr "Sarakeryhmät"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
@@ -11360,6 +11382,9 @@ msgstr "Syötä kesto sekunneissa"
 msgid "Enter fullscreen"
 msgstr "Siirry koko näyttö -tilaan"
 
+msgid "Enter group name"
+msgstr "Syötä ryhmän nimi"
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, ja, lv,
 # pt_BR, ru, sk, uk]
 #, fuzzy
@@ -11861,6 +11886,9 @@ msgstr "Laajenna rivi"
 #, fuzzy
 msgid "Expand row to edit"
 msgstr "Laajenna rivi"
+
+msgid "Expand settings"
+msgstr "Laajenna asetukset"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
@@ -13497,6 +13525,10 @@ msgstr ""
 msgid "Group"
 msgstr "Ryhmä"
 
+#, python-format
+msgid "Group %s"
+msgstr "Ryhmä %s"
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, fuzzy
@@ -13521,6 +13553,12 @@ msgstr "Ryhmäavain"
 #, fuzzy
 msgid "Group by"
 msgstr "Ryhmittele"
+
+msgid "Group columns"
+msgstr "Ryhmittele sarakkeet"
+
+msgid "Group name"
+msgstr "Ryhmän nimi"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, fr, ja,
 # lv, ru, sk, uk]
@@ -16780,6 +16818,12 @@ msgstr "Lisää suodattimia"
 msgid "MotherDuck token"
 msgstr "MotherDuck-tunnus"
 
+msgid "Move group left"
+msgstr "Siirrä ryhmä vasemmalle"
+
+msgid "Move group right"
+msgstr "Siirrä ryhmä oikealle"
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, fuzzy
@@ -16829,6 +16873,9 @@ msgstr "Monitasoinen"
 #, fuzzy
 msgid "Multi-Variables"
 msgstr "Monimuuttujinen"
+
+msgid "Multi-level header"
+msgstr "Monitasoinen otsikko"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -19429,6 +19476,9 @@ msgstr "Portti %(port)s isäntäkoneella \"%(hostname)s\" kieltäytyi yhteydest�
 msgid "Port out of range 0-65535"
 msgstr "Portti alueen 0-65535 ulkopuolella"
 
+msgid "Position"
+msgstr "Sijainti"
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, it, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, uk, zh,
 # zh_TW]
@@ -20265,6 +20315,9 @@ msgstr "Poista kohde"
 
 msgid "Remove from favorites"
 msgstr ""
+
+msgid "Remove group"
+msgstr "Poista ryhmä"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -22342,6 +22395,9 @@ msgstr "Valitse sarake"
 #, fuzzy
 msgid "Select column name"
 msgstr "Valitse sarake"
+
+msgid "Select columns"
+msgstr "Valitse sarakkeet"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fa, fr, ja, lv, mi, pl, ru, sk, sl, uk]
@@ -24715,6 +24771,10 @@ msgstr "Alakategoriat"
 msgid "Subdomain"
 msgstr "Aliverkkotunnus"
 
+#, python-format
+msgid "Subgroup %s"
+msgstr "Aliryhmä %s"
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fa, fr, ja, lv, mi, ru, sk, sl, uk]
 #, fuzzy
@@ -25125,6 +25185,9 @@ msgstr "Taulukon nimi määrittelemätön"
 #, fuzzy, python-format
 msgid "Table or View \"%(table)s\" does not exist."
 msgstr "Taulukkoa tai näkymää \"%(table)s\" ei ole olemassa."
+
+msgid "Table side"
+msgstr "Taulukon puoli"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -26529,6 +26592,13 @@ msgid "The query contains one or more malformed template parameters."
 msgstr "Kysely sisältää yhden tai useamman virheellisen malliparametrin."
 
 msgid "The query context datasource does not match the chart datasource"
+msgstr ""
+
+#, python-format
+msgid ""
+"The query context for chart ID %(chart_id)s (referenced by annotation "
+"layer '%(layer_name)s') was not found. Please ensure the chart is "
+"properly configured and has a valid query context."
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
@@ -32218,7 +32288,18 @@ msgid ""
 "SUPERSET_DASHBOARD_POSITION_DATA_LIMIT config setting."
 msgstr ""
 
-msgid "Your export is being prepared. You'll receive an email when it's ready."
+msgid ""
+"Your export is being generated and will download automatically when "
+"ready. We'll also email you a download link."
+msgstr ""
+
+msgid "Your export is being generated. Please, do not leave the page."
+msgstr ""
+
+msgid "Your export is ready and downloading."
+msgstr ""
+
+msgid "Your export is taking longer than expected. Try again later."
 msgstr ""
 
 #, python-format

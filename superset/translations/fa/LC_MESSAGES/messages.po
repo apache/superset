@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-23 12:43+0200\n"
+"POT-Creation-Date: 2026-09-24 09:49+0300\n"
 "PO-Revision-Date: 2024-10-20 00:07+0330\n"
 "Last-Translator: Emad Rad <codewithemad@gmail.com>\n"
 "Language: fa\n"
@@ -1500,6 +1500,9 @@ msgstr ""
 msgid "Add folder"
 msgstr "فیلتر اضافه کنید"
 
+msgid "Add group"
+msgstr "افزودن گروه"
+
 msgid "Add item"
 msgstr "آیتم اضافه کنید"
 
@@ -1542,6 +1545,9 @@ msgstr ""
 
 msgid "Add sheet"
 msgstr "برگه اضافه کن"
+
+msgid "Add subgroup"
+msgstr "افزودن زیرگروه"
 
 msgid "Add tag to entities"
 msgstr "برچسب به موجودیت‌ها اضافه کنید"
@@ -3477,6 +3483,9 @@ msgstr "محدودیت سلول"
 msgid "Cell title template"
 msgstr "قالب را حذف کنید"
 
+msgid "Center"
+msgstr "مرکز"
+
 msgid "Center value"
 msgstr ""
 
@@ -3788,6 +3797,13 @@ msgstr "نمودارها نمی‌توانند حذف شوند."
 
 msgid "Chart width"
 msgstr "عرض نمودار"
+
+#, python-format
+msgid ""
+"Chart with ID %(chart_id)s (referenced by annotation layer "
+"'%(layer_name)s') was not found. Please verify that the chart exists and "
+"is accessible."
+msgstr ""
 
 msgid "Charts"
 msgstr "نمودارها"
@@ -4184,6 +4200,9 @@ msgstr "جمع کردن پنل داده"
 msgid "Collapse row"
 msgstr "جمع کردن ردیف"
 
+msgid "Collapse settings"
+msgstr "جمع کردن تنظیمات"
+
 msgid "Collapse tab content"
 msgstr "محتوای زبانه را جمع کنید"
 
@@ -4313,6 +4332,9 @@ msgstr "ستون حاوی داده‌های طول جغرافیایی"
 
 msgid "Column data types"
 msgstr "نوع داده‌های ستون"
+
+msgid "Column groups"
+msgstr "گروه‌های ستون"
 
 msgid "Column header tooltip"
 msgstr "راهنمای تیتر ستون"
@@ -7168,6 +7190,9 @@ msgstr "مدت را به ثانیه وارد کنید"
 msgid "Enter fullscreen"
 msgstr "ورود به حالت تمام صفحه"
 
+msgid "Enter group name"
+msgstr "نام گروه را وارد کنید"
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
 # lv, pt_BR, ro, ru, sk, sr, sr_Latn, tr, uk]
 #, fuzzy
@@ -7484,6 +7509,9 @@ msgstr "گسترش ردیف"
 #, fuzzy
 msgid "Expand row to edit"
 msgstr "گسترش ردیف"
+
+msgid "Expand settings"
+msgstr "گسترش تنظیمات"
 
 msgid ""
 "Expects a formula with depending time parameter 'x'\n"
@@ -8543,6 +8571,10 @@ msgstr ""
 msgid "Group"
 msgstr "گروه‌بندی بر اساس"
 
+#, python-format
+msgid "Group %s"
+msgstr "گروه %s"
+
 msgid "Group By"
 msgstr "گروه بندی"
 
@@ -8554,6 +8586,12 @@ msgstr "کلید گروه"
 
 msgid "Group by"
 msgstr "گروه‌بندی بر اساس"
+
+msgid "Group columns"
+msgstr "گروه‌بندی ستون‌ها"
+
+msgid "Group name"
+msgstr "نام گروه"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, fr,
 # ja, lv, ro, ru, sk, sr, sr_Latn, tr, uk]
@@ -10582,6 +10620,12 @@ msgstr "فیلترهای بیشتر"
 msgid "MotherDuck token"
 msgstr "توکن مادر غاز"
 
+msgid "Move group left"
+msgstr "انتقال گروه به چپ"
+
+msgid "Move group right"
+msgstr "انتقال گروه به راست"
+
 #, fuzzy
 msgid "Move icon"
 msgstr "تنها جابجا کنید"
@@ -10611,6 +10655,9 @@ msgstr "چند سطحی"
 
 msgid "Multi-Variables"
 msgstr "متغیرهای چندگانه"
+
+msgid "Multi-level header"
+msgstr "سربرگ چندسطحی"
 
 msgid "Multiple"
 msgstr "چندگانه"
@@ -12183,6 +12230,9 @@ msgstr "پورت %(port)s بر روی نام میزبان \"%(hostname)s\" ات�
 msgid "Port out of range 0-65535"
 msgstr "پورت خارج از محدوده ۰-۶۵۵۳۵"
 
+msgid "Position"
+msgstr "موقعیت"
+
 msgid "Position JSON"
 msgstr "موقعیت JSON"
 
@@ -12677,6 +12727,9 @@ msgstr "حذف آیتم"
 
 msgid "Remove from favorites"
 msgstr ""
+
+msgid "Remove group"
+msgstr "حذف گروه"
 
 msgid "Remove item"
 msgstr "حذف آیتم"
@@ -13927,6 +13980,9 @@ msgstr "ستون را انتخاب کنید"
 #, fuzzy
 msgid "Select column name"
 msgstr "ستون را انتخاب کنید"
+
+msgid "Select columns"
+msgstr "ستون‌ها را انتخاب کنید"
 
 msgid ""
 "Select columns that will be displayed in the table. You can multiselect "
@@ -15458,6 +15514,10 @@ msgstr "دسته‌بندی"
 msgid "Subdomain"
 msgstr "زیر دامنه"
 
+#, python-format
+msgid "Subgroup %s"
+msgstr "زیرگروه %s"
+
 #, fuzzy
 msgid "Subject"
 msgstr "موضوع ایمیل"
@@ -15725,6 +15785,9 @@ msgstr "نام جدول تعریف نشده است"
 #, python-format
 msgid "Table or View \"%(table)s\" does not exist."
 msgstr "جدول یا نما \"%(table)s\" وجود ندارد."
+
+msgid "Table side"
+msgstr "سمت جدول"
 
 msgid ""
 "Table that visualizes paired t-tests, which are used to understand "
@@ -16711,6 +16774,13 @@ msgid "The query contains one or more malformed template parameters."
 msgstr "کوئری شامل یک یا چند پارامتر الگوی نادرست است."
 
 msgid "The query context datasource does not match the chart datasource"
+msgstr ""
+
+#, python-format
+msgid ""
+"The query context for chart ID %(chart_id)s (referenced by annotation "
+"layer '%(layer_name)s') was not found. Please ensure the chart is "
+"properly configured and has a valid query context."
 msgstr ""
 
 msgid "The query couldn't be loaded"
@@ -20535,7 +20605,18 @@ msgid ""
 "SUPERSET_DASHBOARD_POSITION_DATA_LIMIT config setting."
 msgstr ""
 
-msgid "Your export is being prepared. You'll receive an email when it's ready."
+msgid ""
+"Your export is being generated and will download automatically when "
+"ready. We'll also email you a download link."
+msgstr ""
+
+msgid "Your export is being generated. Please, do not leave the page."
+msgstr ""
+
+msgid "Your export is ready and downloading."
+msgstr ""
+
+msgid "Your export is taking longer than expected. Try again later."
 msgstr ""
 
 #, python-format

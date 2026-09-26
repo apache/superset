@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-23 12:43+0200\n"
+"POT-Creation-Date: 2026-09-24 09:49+0300\n"
 "PO-Revision-Date: 2026-06-14 13:20+0200\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: sr\n"
@@ -1716,6 +1716,9 @@ msgstr ""
 msgid "Add folder"
 msgstr "Додај фасциклу"
 
+msgid "Add group"
+msgstr "Додај групу"
+
 # de, es, fa, fr, it, ja, ko, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh,
 # zh_TW]
 msgid "Add item"
@@ -1767,6 +1770,9 @@ msgstr ""
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, tr, uk, zh, zh_TW]
 msgid "Add sheet"
 msgstr "Додај лист"
+
+msgid "Add subgroup"
+msgstr "Додај подгрупу"
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Add tag to entities"
@@ -4026,6 +4032,9 @@ msgstr "Ограничење ћелија"
 msgid "Cell title template"
 msgstr "Шаблон наслова ћелије"
 
+msgid "Center"
+msgstr "Центар"
+
 msgid "Center value"
 msgstr ""
 
@@ -4386,6 +4395,13 @@ msgstr "Графикон је сачуван, али није могао бит�
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, tr, uk]
 msgid "Chart width"
 msgstr "Ширина графикона"
+
+#, python-format
+msgid ""
+"Chart with ID %(chart_id)s (referenced by annotation layer "
+"'%(layer_name)s') was not found. Please verify that the chart exists and "
+"is accessible."
+msgstr ""
 
 # de, es, fa, fr, it, ja, ko, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, tr, uk,
 # zh, zh_TW]
@@ -4851,6 +4867,9 @@ msgstr "Скупи панел са подацима"
 msgid "Collapse row"
 msgstr "Скупи ред"
 
+msgid "Collapse settings"
+msgstr "Скупи подешавања"
+
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
 msgid "Collapse tab content"
 msgstr "Скупи садржај картице"
@@ -4993,6 +5012,9 @@ msgstr "Колона која садржи податке о географск�
 # es, fa, fr, ja, lv, mi, ru, sk, sl, uk]
 msgid "Column data types"
 msgstr "Типови података колоне"
+
+msgid "Column groups"
+msgstr "Групе колона"
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
 msgid "Column header tooltip"
@@ -8303,6 +8325,9 @@ msgstr "Унесите трајање у секундама"
 msgid "Enter fullscreen"
 msgstr "Уђи у режим целог екрана"
 
+msgid "Enter group name"
+msgstr "Унесите назив групе"
+
 # pt_BR, ru, sk, uk]
 msgid "Enter minimum and maximum values for the range filter"
 msgstr "Унесите минималну и максималну вредност за филтер опсега"
@@ -8657,6 +8682,9 @@ msgstr "Прошири ред"
 
 msgid "Expand row to edit"
 msgstr "Прошири ред за измену"
+
+msgid "Expand settings"
+msgstr "Прошири подешавања"
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
 msgid ""
@@ -9825,6 +9853,10 @@ msgstr ""
 msgid "Group"
 msgstr "Група"
 
+#, python-format
+msgid "Group %s"
+msgstr "Група %s"
+
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Group By"
 msgstr "Групиши по"
@@ -9841,6 +9873,12 @@ msgstr "Кључ групе"
 # zh_TW]
 msgid "Group by"
 msgstr "Групиши по"
+
+msgid "Group columns"
+msgstr "Групиши колоне"
+
+msgid "Group name"
+msgstr "Назив групе"
 
 # lv, ru, sk, uk]
 msgid "Group remaining as \"Others\""
@@ -12123,6 +12161,12 @@ msgstr "Више филтера"
 msgid "MotherDuck token"
 msgstr "MotherDuck токен"
 
+msgid "Move group left"
+msgstr "Помери групу улево"
+
+msgid "Move group right"
+msgstr "Помери групу удесно"
+
 msgid "Move icon"
 msgstr "Икона за померање"
 
@@ -12157,6 +12201,9 @@ msgstr "Више нивоа"
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Multi-Variables"
 msgstr "Више променљивих"
+
+msgid "Multi-level header"
+msgstr "Вишениво заглавље"
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Multiple"
@@ -13999,6 +14046,9 @@ msgstr "Port %(port)s на хосту „%(hostname)s“ је одбио вез�
 msgid "Port out of range 0-65535"
 msgstr "Port изван опсега 0-65535"
 
+msgid "Position"
+msgstr "Позиција"
+
 # de, es, fa, fr, it, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, uk, zh,
 # zh_TW]
 msgid "Position JSON"
@@ -14583,6 +14633,9 @@ msgstr "Уклони филтер"
 
 msgid "Remove from favorites"
 msgstr ""
+
+msgid "Remove group"
+msgstr "Уклони групу"
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Remove item"
@@ -16071,6 +16124,9 @@ msgstr "Изаберите колону"
 
 msgid "Select column name"
 msgstr "Изаберите назив колоне"
+
+msgid "Select columns"
+msgstr "Изаберите колоне"
 
 # es, fa, fr, ja, lv, mi, pl, ru, sk, sl, uk]
 msgid ""
@@ -17736,6 +17792,10 @@ msgstr "Подкатегорије"
 msgid "Subdomain"
 msgstr "Поддомен"
 
+#, python-format
+msgid "Subgroup %s"
+msgstr "Подгрупа %s"
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # fr, it, ja, lv, mi, nl, ru, sk, sl, tr, uk]
 #, fuzzy
@@ -18039,6 +18099,9 @@ msgstr "Назив табеле није дефинисан"
 #, python-format
 msgid "Table or View \"%(table)s\" does not exist."
 msgstr "Табела или преглед \"%(table)s\" не постоји."
+
+msgid "Table side"
+msgstr "Страна табеле"
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid ""
@@ -19108,6 +19171,13 @@ msgid "The query contains one or more malformed template parameters."
 msgstr "Упит садржи један или више неправилно форматираних параметара шаблона."
 
 msgid "The query context datasource does not match the chart datasource"
+msgstr ""
+
+#, python-format
+msgid ""
+"The query context for chart ID %(chart_id)s (referenced by annotation "
+"layer '%(layer_name)s') was not found. Please ensure the chart is "
+"properly configured and has a valid query context."
 msgstr ""
 
 # de, es, fa, fr, it, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, uk, zh,
@@ -23366,7 +23436,18 @@ msgid ""
 "SUPERSET_DASHBOARD_POSITION_DATA_LIMIT config setting."
 msgstr ""
 
-msgid "Your export is being prepared. You'll receive an email when it's ready."
+msgid ""
+"Your export is being generated and will download automatically when "
+"ready. We'll also email you a download link."
+msgstr ""
+
+msgid "Your export is being generated. Please, do not leave the page."
+msgstr ""
+
+msgid "Your export is ready and downloading."
+msgstr ""
+
+msgid "Your export is taking longer than expected. Try again later."
 msgstr ""
 
 #, python-format
