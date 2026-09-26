@@ -280,3 +280,119 @@ def test_get_catalog_names(
 
     # Verify the returned catalog names
     assert catalogs == expected_result
+
+
+@pytest.mark.parametrize(
+    "native_type,generic_type",
+    [
+        ("variant", GenericDataType.STRING),
+        ("ipv4", GenericDataType.STRING),
+        ("ipv6", GenericDataType.STRING),
+        # MySQL protocol type names reported for SQL Lab result columns
+        ("NEWDECIMAL", GenericDataType.NUMERIC),
+        ("TINY", GenericDataType.NUMERIC),
+        ("SHORT", GenericDataType.NUMERIC),
+        ("BLOB", GenericDataType.STRING),
+    ],
+)
+def test_get_column_spec_extra_types(
+    native_type: str, generic_type: GenericDataType
+) -> None:
+    from superset.db_engine_specs.doris import DorisEngineSpec
+
+    spec = DorisEngineSpec.get_column_spec(native_type)
+    assert spec is not None
+    assert spec.generic_type == generic_type
+
+
+def test_quarter_time_grain_avoids_interval_quarter() -> None:
+    from superset.db_engine_specs.doris import DorisEngineSpec
+
+    expression = DorisEngineSpec.get_time_grain_expressions()["P3M"]
+    assert expression == (
+        "MAKEDATE(YEAR({col}), 1) + INTERVAL (QUARTER({col}) - 1) * 3 MONTH"
+    )
+    assert "INTERVAL 1 QUARTER" not in expression
+
+
+@pytest.mark.parametrize(
+    "message,error_type",
+    [
+        (
+            "(2002, \"Can't connect to server on '127.0.0.1' (115)\")",
+            "CONNECTION_HOST_DOWN_ERROR",
+        ),
+        (
+            "(2003, \"Can't connect to MySQL server on 'db' (111)\")",
+            "CONNECTION_HOST_DOWN_ERROR",
+        ),
+        (
+            "(2005, \"Unknown server host 'no-such-host.invalid' (-2)\")",
+            "CONNECTION_INVALID_HOSTNAME_ERROR",
+        ),
+        (
+            "(1105, \"errCode = 2, detailMessage = \\nmismatched input 'SELEC' "
+            "expecting {<EOF>, ';'}\")",
+            "SYNTAX_ERROR",
+        ),
+        (
+            "(1105, 'errCode = 2, detailMessage = Table [missing] does not exist "
+            "in database [db].(line 1, pos 14)')",
+            "TABLE_DOES_NOT_EXIST_ERROR",
+        ),
+        (
+            "(1105, 'errCode = 2, detailMessage = Database [nodb] does not exist."
+            "(line 1, pos 14)')",
+            "SCHEMA_DOES_NOT_EXIST_ERROR",
+        ),
+        (
+            "(1105, \"errCode = 2, detailMessage = Unknown column 'nope' in "
+            "'table list' in PROJECT clause(line 1, pos 7)\")",
+            "COLUMN_DOES_NOT_EXIST_ERROR",
+        ),
+        (
+            "(1045, \"Access denied for user 'root@10.0.0.1' (using password: YES)\")",
+            "CONNECTION_ACCESS_DENIED_ERROR",
+        ),
+        (
+            "(1049, \"errCode = 2, detailMessage = Unknown database 'nodb'\")",
+            "CONNECTION_UNKNOWN_DATABASE_ERROR",
+        ),
+    ],
+)
+def test_extract_errors(message: str, error_type: str) -> None:
+    from superset.db_engine_specs.doris import DorisEngineSpec
+
+    errors = DorisEngineSpec.extract_errors(Exception(message))
+    assert errors[0].error_type.name == error_type
+
+
+def test_build_sqlalchemy_uri() -> None:
+    from superset.db_engine_specs.doris import DorisEngineSpec
+
+    parameters: dict[str, Any] = {
+        "username": "user",
+        "password": "p@ss",
+        "host": "doris.example.com",
+        "port": 9030,
+        "database": "internal.db",
+        "query": {},
+    }
+    encrypted = make_url(
+        DorisEngineSpec.build_sqlalchemy_uri({**parameters, "encryption": True})
+    )
+    assert encrypted.drivername == "doris"
+    assert dict(encrypted.query) == {"ssl_mode": "REQUIRED"}
+    assert encrypted.password == "p@ss"  # noqa: S105
+
+    plain = make_url(
+        DorisEngineSpec.build_sqlalchemy_uri({**parameters, "encryption": False})
+    )
+    assert plain.drivername == "doris"
+    assert dict(plain.query) == {}
+
+    round_trip = DorisEngineSpec.get_parameters_from_uri(
+        encrypted.render_as_string(hide_password=False)
+    )
+    assert round_trip["encryption"] is True
+    assert round_trip["query"] == {}
