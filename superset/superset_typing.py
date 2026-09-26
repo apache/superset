@@ -70,6 +70,22 @@ class DatasetMetricData(TypedDict, total=False):
     verbose_name: str | None
 
 
+class DatasetFilterData(TypedDict, total=False):
+    """Type for filter metadata in ExplorableData datasets."""
+
+    certification_details: str | None
+    certified_by: str | None
+    description: str | None
+    expression: str | None
+    id: int | None
+    uuid: str | None
+    is_certified: bool
+    filter_name: str
+    warning_markdown: str | None
+    warning_text: str | None
+    verbose_name: str | None
+
+
 class LegacyMetric(TypedDict):
     label: str | None
 
@@ -325,6 +341,7 @@ class ExplorableData(TypedDict, total=False):
     sql: str | None
     columns: list["DatasetColumnData"]
     metrics: list["DatasetMetricData"]
+    filters: list["DatasetFilterData"]
     folders: Any  # JSON field, can be list or dict
     order_by_choices: list[tuple[str, str]]
     editors: list[int] | list[dict[str, Any]]  # Can be either format
