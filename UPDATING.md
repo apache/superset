@@ -199,12 +199,34 @@ and can be launched with `/app/docker/entrypoints/run-websocket.sh`. Helm init
 containers use the main Superset image for dependency checks.
 
 After this policy is cherry-picked into each active release branch, its pushes
-will validate the Docker build locally instead of publishing Docker Hub images
-or cache layers. Until then, those branches retain their previous publishing
-behavior. Official release tags (`X.Y.Z`, `latest`, and
-their preset variants) are published only by the release workflow after release
-manager sign-off. The scheduled release-image refresh workflow was removed, so
-official release tag digests are not overwritten outside release publishing.
+will no longer publish mutable Docker Hub tags or write registry cache layers.
+Until then, those branches retain their previous publishing behavior. Official
+release tags (`X.Y.Z`, `latest`, and their preset variants) are published only
+by the release workflow after release manager sign-off. The scheduled
+release-image refresh workflow was removed, so official release tag digests are
+not overwritten outside release publishing.
+
+### Release branches publish per-commit Docker images
+
+Pushes to a release branch named `N.N` (for example `6.1`, `7.0`) publish
+commit-addressable images to Docker Hub, tagged `<branch>-<short-sha>`, for the
+`superset`, `lean` and `dev` presets:
+
+```bash
+docker pull apache/superset:7.0-a1b2c3d        # batteries-included
+docker pull apache/superset:7.0-a1b2c3d-lean   # minimal
+```
+
+These are pre-release builds, intended for testing the state of a release branch
+before a release candidate is cut. They are not official releases and are not
+covered by a release vote. No mutable tag is moved, so a cherry-pick that lands
+late can never overwrite a newer image, and the shared registry cache stays
+owned by `master`. Official release tags (`X.Y.Z`, `latest`, and their preset
+variants) are still published only by the release workflow after release manager
+sign-off.
+
+Because GitHub runs a push workflow from the pushed branch, this takes effect on
+a given release branch only once the change is cherry-picked into it.
 
 ### Report capture readiness is rechecked immediately before screenshots
 

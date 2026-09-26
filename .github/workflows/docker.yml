@@ -70,6 +70,10 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
+          # Fixed SHA for the release-branch fixtures, so the expected
+          # <branch>-<sha7> tag is deterministic and cannot be confused with
+          # the SHA tags Supersetbot derives from the real checkout.
+          RELEASE_BRANCH_SHA=0123456789abcdef0123456789abcdef01234567
           # Asserts against the actual buildx command line `supersetbot docker
           # --dry-run` would run, not just this repo's own extra-flags helper,
           # so a regression in supersetbot itself (dropping the py311/py312
@@ -101,18 +105,20 @@ jobs:
               --dry-run
           }
           load_build_plan() {
-            local event_name="$1" ref="$2" ref_name="$3"
-            eval "$(bash scripts/docker-build-plan.sh "$event_name" "$ref" "$ref_name")"
+            local event_name="$1" ref="$2" ref_name="$3" preset="${4:-superset}" sha="${5:-}" repository="${6:-apache/superset}"
+            eval "$(bash scripts/docker-build-plan.sh "$event_name" "$ref" "$ref_name" "$preset" "$sha" "$repository")"
           }
           assert_build_plan() {
-            local event_name="$1" ref="$2" ref_name="$3" expected_context="$4" expected_context_ref="$5" expected_push_or_load="$6" expected_platform="$7" expected_cache_publish="$8"
-            load_build_plan "$event_name" "$ref" "$ref_name"
+            local event_name="$1" ref="$2" ref_name="$3" expected_context="$4" expected_context_ref="$5" expected_push_or_load="$6" expected_platform="$7" expected_cache_publish="$8" expected_branch_tag="$9"
+            shift 9
+            load_build_plan "$event_name" "$ref" "$ref_name" "$@"
             if [ "$BUILD_CONTEXT" != "$expected_context" ] ||
               [ "$BUILD_CONTEXT_REF" != "$expected_context_ref" ] ||
               [ "$PUSH_OR_LOAD" != "$expected_push_or_load" ] ||
               [ "$PLATFORM_ARG" != "$expected_platform" ] ||
-              [ "$PUBLISH_DOCKER_CACHE" != "$expected_cache_publish" ]; then
-              echo "::error::unexpected docker build plan for event=$event_name ref=$ref ref_name=$ref_name: context=$BUILD_CONTEXT context_ref=$BUILD_CONTEXT_REF push_or_load=$PUSH_OR_LOAD platform=$PLATFORM_ARG publish_cache=$PUBLISH_DOCKER_CACHE"
+              [ "$PUBLISH_DOCKER_CACHE" != "$expected_cache_publish" ] ||
+              [ "$RELEASE_BRANCH_TAG" != "$expected_branch_tag" ]; then
+              echo "::error::unexpected docker build plan for event=$event_name ref=$ref ref_name=$ref_name: context=$BUILD_CONTEXT context_ref=$BUILD_CONTEXT_REF push_or_load=$PUSH_OR_LOAD platform=$PLATFORM_ARG publish_cache=$PUBLISH_DOCKER_CACHE branch_tag=$RELEASE_BRANCH_TAG"
               exit 1
             fi
           }
@@ -146,13 +152,55 @@ jobs:
               exit 1
             fi
           }
-          assert_no_cache_push_for_validation() {
-            local preset="$1" extra_flags command
-            load_build_plan push refs/heads/7.0 7.0
-            extra_flags="$(PUBLISH_DOCKER_CACHE="" DOCKERHUB_TOKEN=dummy scripts/docker-build-extra-flags.sh "$preset" dummy-tag)"
-            command="$(GITHUB_REF=refs/heads/7.0 docker_command "$preset" "$extra_flags" --context "$BUILD_CONTEXT" --context-ref "$BUILD_CONTEXT_REF")"
+          # Master is the only branch that may write the shared registry cache.
+          # Uses the cache flag the plan script actually emitted rather than
+          # forcing one, so this pins the real end-to-end policy -- including
+          # for release branches, which now build with --push yet must still
+          # leave those layers alone.
+          assert_no_registry_cache_export() {
+            local preset="$1" label="$2"
+            shift 2
+            local extra_flags command
+            load_build_plan "$@"
+            extra_flags="$(PUBLISH_DOCKER_CACHE="$PUBLISH_DOCKER_CACHE" RELEASE_BRANCH_TAG="$RELEASE_BRANCH_TAG" DOCKERHUB_TOKEN=dummy scripts/docker-build-extra-flags.sh "$preset" dummy-tag)"
+            command="$(docker_command "$preset" "$extra_flags" --context "$BUILD_CONTEXT" --context-ref "$BUILD_CONTEXT_REF")"
             if grep -Fq -- "--cache-to=type=registry" <<<"$command"; then
-              echo "::error::preset '$preset' unexpectedly exports registry cache during validation (full command: $command)"
+              echo "::error::preset '$preset' unexpectedly exports registry cache for $label (full command: $command)"
+              exit 1
+            fi
+          }
+          # The commit-addressable tag a release-branch push publishes. The
+          # per-preset suffix is what stops the matrix legs racing on one tag,
+          # so each preset is checked separately.
+          assert_release_branch_tag() {
+            local preset="$1" expected="$2" extra_flags command
+            load_build_plan push refs/heads/7.0 7.0 "$preset" "$RELEASE_BRANCH_SHA" apache/superset
+            extra_flags="$(RELEASE_BRANCH_TAG="$RELEASE_BRANCH_TAG" scripts/docker-build-extra-flags.sh "$preset" dummy-tag)"
+            command="$(docker_command "$preset" "$extra_flags" --context "$BUILD_CONTEXT" --context-ref "$BUILD_CONTEXT_REF")"
+            # Supersetbot spells its own tags `-t`, while tags injected through
+            # --extra-flags arrive as `--tag`; accept either so the assertion
+            # does not depend on which side produced the tag.
+            if ! grep -Eq -- "[[:space:]](-t|--tag) apache/superset:${expected}([[:space:]]|$)" <<<"$command"; then
+              echo "::error::preset '$preset' expected release-branch tag apache/superset:$expected (full command: $command)"
+              exit 1
+            fi
+          }
+          # Anything that is not a release branch in this repository must stay
+          # a local validation build. Checks the assembled command line too, so
+          # a stray tag cannot slip in past the plan script.
+          assert_no_release_branch_tag() {
+            local label="$1" preset="$2"
+            shift 2
+            local extra_flags command
+            load_build_plan "$@"
+            if [ "$PUSH_OR_LOAD" != "--load" ] || [ -n "$RELEASE_BRANCH_TAG" ]; then
+              echo "::error::$label must not publish (push_or_load=$PUSH_OR_LOAD tag=${RELEASE_BRANCH_TAG:-<none>})"
+              exit 1
+            fi
+            extra_flags="$(RELEASE_BRANCH_TAG="$RELEASE_BRANCH_TAG" scripts/docker-build-extra-flags.sh "$preset" dummy-tag)"
+            command="$(docker_command "$preset" "$extra_flags" --context "$BUILD_CONTEXT" --context-ref "$BUILD_CONTEXT_REF")"
+            if grep -Eq -- "[[:space:]](-t|--tag) apache/superset:[0-9]+\.[0-9]+-" <<<"$command"; then
+              echo "::error::$label produced a release-branch style tag (full command: $command)"
               exit 1
             fi
           }
@@ -164,7 +212,7 @@ jobs:
           # layers to the shared registry cache.
           assert_supersetbot_exports_cache_with_token() {
             local preset="$1" extra_flags command
-            load_build_plan push refs/heads/7.0 7.0
+            load_build_plan push refs/heads/7.0 7.0 "$preset" "$RELEASE_BRANCH_SHA" apache/superset
             extra_flags="$(PUBLISH_DOCKER_CACHE="" DOCKERHUB_TOKEN=dummy scripts/docker-build-extra-flags.sh "$preset" dummy-tag)"
             command="$(GITHUB_REF=refs/heads/7.0 docker_command_with_token "$preset" "$extra_flags" --context "$BUILD_CONTEXT" --context-ref "$BUILD_CONTEXT_REF")"
             if ! grep -Fq -- "--cache-to=type=registry" <<<"$command"; then
@@ -232,13 +280,29 @@ jobs:
               exit 1
             fi
           }
-          assert_build_plan push refs/heads/master master push master --push "--platform linux/arm64 --platform linux/amd64" true
-          assert_build_plan push refs/heads/7.0 7.0 push "" --load "--platform linux/amd64" ""
-          assert_build_plan pull_request refs/pull/44250/merge "" pull_request "" --load "--platform linux/amd64" ""
+          assert_build_plan push refs/heads/master master push master --push "--platform linux/arm64 --platform linux/amd64" true ""
+          # A release-branch push publishes an immutable, commit-addressable
+          # tag for the presets people deploy or debug with; every other preset
+          # on that branch stays a local validation build.
+          assert_build_plan push refs/heads/7.0 7.0 push "" --push "--platform linux/arm64 --platform linux/amd64" "" "7.0-0123456" superset "$RELEASE_BRANCH_SHA" apache/superset
+          assert_build_plan push refs/heads/7.0 7.0 push "" --load "--platform linux/amd64" "" "" py311 "$RELEASE_BRANCH_SHA" apache/superset
+          assert_build_plan pull_request refs/pull/44250/merge "" pull_request "" --load "--platform linux/amd64" "" ""
+          # The workflow's push filter is looser than `N.N`, and only this
+          # repository can authenticate to the apache/* namespace.
+          assert_no_release_branch_tag "non-N.N branch matching the push filter" superset \
+            push refs/heads/0.36.0-lyft1 0.36.0-lyft1 superset "$RELEASE_BRANCH_SHA" apache/superset
+          assert_no_release_branch_tag "release-looking tag name" superset \
+            push refs/heads/7.0.0 7.0.0 superset "$RELEASE_BRANCH_SHA" apache/superset
+          assert_no_release_branch_tag "fork release branch" superset \
+            push refs/heads/7.0 7.0 superset "$RELEASE_BRANCH_SHA" someone/superset
+          assert_no_release_branch_tag "validation-only preset on a release branch" py311 \
+            push refs/heads/7.0 7.0 py311 "$RELEASE_BRANCH_SHA" apache/superset
           # A master push publishes only while its commit is still the branch
           # tip. The second case is the delayed-A/fast-B inversion: A's change
           # detection lagged, B published first, and A must not roll the
-          # mutable master* tags back to the older digest.
+          # mutable master* tags back to the older digest. Release branches are
+          # exempt because their tags are immutable and commit-addressable, so
+          # a superseded run cannot roll anything back.
           assert_publish_guard push refs/heads/master aaaa111 aaaa111 true
           assert_publish_guard push refs/heads/master aaaa111 bbbb222 false
           assert_publish_guard push refs/heads/7.0 aaaa111 bbbb222 true
@@ -251,19 +315,27 @@ jobs:
               expected_cache="${expected_cache}-${preset}"
             fi
             assert_cache_ref "$preset" "$expected_cache"
-            assert_no_cache_push_for_validation "$preset"
+            assert_no_registry_cache_export "$preset" "a release-branch push" \
+              push refs/heads/7.0 7.0 "$preset" "$RELEASE_BRANCH_SHA" apache/superset
+            assert_no_registry_cache_export "$preset" "a pull request" \
+              pull_request refs/pull/44250/merge "" "$preset"
           done
           assert_effective_py_ver py311 "3.11-slim-bookworm"
           assert_cache_ref py311 "3.11-slim-bookworm"
-          assert_no_cache_push_for_validation py311
+          assert_no_registry_cache_export py311 "a release-branch push" \
+            push refs/heads/7.0 7.0 py311 "$RELEASE_BRANCH_SHA" apache/superset
           assert_effective_py_ver py312 "3.12-slim-bookworm"
           assert_cache_ref py312 "3.12-slim-bookworm"
-          assert_no_cache_push_for_validation py312
+          assert_no_registry_cache_export py312 "a release-branch push" \
+            push refs/heads/7.0 7.0 py312 "$RELEASE_BRANCH_SHA" apache/superset
           assert_master_tag superset master
           assert_master_tag dev master-dev
           assert_master_tag lean master-lean
           assert_master_tag py311 master-py311
           assert_master_tag py312 master-py312
+          assert_release_branch_tag superset "7.0-0123456"
+          assert_release_branch_tag dev "7.0-0123456-dev"
+          assert_release_branch_tag lean "7.0-0123456-lean"
           assert_cache_push_for_master superset "3.11-slim-trixie"
           assert_cache_push_for_master dev "3.11-slim-trixie-dev"
           assert_cache_push_for_master lean "3.11-slim-trixie-lean"
@@ -275,7 +347,7 @@ jobs:
           assert_release_tag py311 "6.1.0-py311"
           assert_release_tag py312 "6.1.0-py312"
           assert_release_ref_swap
-          echo "Docker build command verified for Python versions, cache refs, cache export, publish guard, master tags, release tags, and the release ref swap"
+          echo "Docker build command verified for Python versions, cache refs, cache export, publish guard, master tags, release-branch tags, release tags, and the release ref swap"
 
   docker-build:
     name: docker-build
@@ -381,6 +453,7 @@ jobs:
           echo "publish=$PUBLISH" >> "$GITHUB_OUTPUT"
 
       - name: Build Docker Image
+        id: build
         if: steps.publish_guard.outputs.publish == 'true'
         shell: bash
         env:
@@ -388,11 +461,26 @@ jobs:
           BUILD_PRESET: ${{ matrix.build_preset }}
         run: |
           set -euo pipefail
-          # Release branch pushes and pull requests validate the build
-          # locally. Official release images are published only by the
-          # release workflow after the vote completes.
-          eval "$(bash scripts/docker-build-plan.sh "$GITHUB_EVENT_NAME" "$GITHUB_REF" "${GITHUB_REF_NAME:-}")"
-          export PUBLISH_DOCKER_CACHE
+          # Pull requests, forks, and branches that match this workflow's push
+          # filter without being named exactly `N.N` validate the build locally.
+          # Pushes to master and to a release branch publish; a release branch
+          # publishes only immutable <branch>-<sha7> tags, and only for the
+          # presets people deploy or debug with. Official release images are
+          # still published solely by the release workflow after the vote.
+          eval "$(bash scripts/docker-build-plan.sh "$GITHUB_EVENT_NAME" "$GITHUB_REF" \
+            "${GITHUB_REF_NAME:-}" "$BUILD_PRESET" "$GITHUB_SHA" "$GITHUB_REPOSITORY")"
+          export PUBLISH_DOCKER_CACHE RELEASE_BRANCH_TAG
+
+          # Later steps need to know whether the image landed in the registry
+          # (--push) or in the local daemon (--load). Deriving it from the plan
+          # keeps ref matching out of YAML `if:` expressions, which have no
+          # regex and would otherwise have to re-implement the rules above.
+          if [ "$PUSH_OR_LOAD" = "--push" ]; then
+            echo "pushed=true" >> "$GITHUB_OUTPUT"
+          fi
+          if [ -n "$RELEASE_BRANCH_TAG" ]; then
+            echo "::notice::Publishing apache/superset:${RELEASE_BRANCH_TAG} (preset ${BUILD_PRESET})"
+          fi
 
           # Retry to absorb transient Docker Hub registry errors (base-image
           # pull timeouts, 504/401 on push, ECONNRESET) that otherwise fail
@@ -411,7 +499,8 @@ jobs:
             # Supersetbot adds --cache-to whenever DOCKERHUB_TOKEN is present.
             # Docker auth was already configured above; hide the token from
             # Supersetbot so release branches and PRs cannot write registry
-            # cache while using --load validation builds.
+            # cache. Release branches do push images, but read the shared
+            # cache without overwriting it -- master owns those layers.
             if DOCKERHUB_TOKEN= supersetbot docker \
               $PUSH_OR_LOAD \
               --preset "$BUILD_PRESET" \
@@ -429,11 +518,10 @@ jobs:
             sleep 30
           done
 
-      # in the context of push (using multi-platform build), we need to pull the image locally
+      # A --push build leaves nothing in the local daemon, so every later step
+      # that runs or inspects the image has to pull it back first.
       - name: Docker pull
-        if: >-
-          steps.publish_guard.outputs.publish == 'true' &&
-          github.event_name == 'push' && github.ref == 'refs/heads/master'
+        if: steps.build.outputs.pushed == 'true'
         run: |
           for i in 1 2 3; do
             docker pull $IMAGE_TAG && break
@@ -449,15 +537,16 @@ jobs:
           docker history $IMAGE_TAG
 
       # Scan the built image for known vulnerabilities and publish results
-      # to the Security tab. Trivy did this until #38780 removed it: both
-      # aquasecurity/trivy-action and the trivy binary itself were
-      # compromised (twice) to steal GitHub Secrets from CI runs. Grype is a
-      # different tool from a different maintainer with no shared supply
-      # chain, and is already on the ASF Infra GitHub Actions allowlist.
+      # to the Security tab. Scoped to what we actually publish, so release
+      # branches are covered too: "high severity, fix available" findings are
+      # most actionable in the days before an RC is cut. Trivy did this until
+      # #38780 removed it: both aquasecurity/trivy-action and the trivy binary
+      # itself were compromised (twice) to steal GitHub Secrets from CI runs.
+      # Grype is a different tool from a different maintainer with no shared
+      # supply chain, and is already on the ASF Infra GitHub Actions allowlist.
       - name: Scan built image for vulnerabilities
         if: >-
-          steps.publish_guard.outputs.publish == 'true' &&
-          github.event_name == 'push' && github.ref == 'refs/heads/master' &&
+          steps.build.outputs.pushed == 'true' &&
           contains(fromJson('["superset", "lean"]'), matrix.build_preset)
         id: grype-scan
         # This step's own failure (e.g. a transient issue pulling the Grype
@@ -477,8 +566,7 @@ jobs:
 
       - name: Upload vulnerability scan results to GitHub Security tab
         if: >-
-          steps.publish_guard.outputs.publish == 'true' &&
-          github.event_name == 'push' && github.ref == 'refs/heads/master' &&
+          steps.build.outputs.pushed == 'true' &&
           contains(fromJson('["superset", "lean"]'), matrix.build_preset) &&
           steps.grype-scan.outputs.sarif != ''
         continue-on-error: true
@@ -489,7 +577,8 @@ jobs:
           # category per preset they would land under the same code-scanning
           # entry and one build_preset's findings would overwrite the
           # other's, mirroring the per-language category in
-          # codeql-analysis.yml.
+          # codeql-analysis.yml. Code scanning scopes analyses per ref, so
+          # release-branch findings do not overwrite master's.
           category: "docker-${{ matrix.build_preset }}"
 
       - name: WebSocket server smoke test
