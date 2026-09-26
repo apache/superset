@@ -402,3 +402,103 @@ async def test_list_charts_columns_loaded_excludes_computation_dependencies(
     assert "changed_on" in calls[0]
     assert data["columns_loaded"] == ["id", "changed_on_humanized"]
     assert "table" not in calls[0]
+
+
+@pytest.mark.asyncio
+async def test_list_charts_live_datasource_query_count_is_bounded(
+    session: Session, charts: PersistedCharts
+) -> None:
+    """Real DAO queries must not lazy-load relationships for each chart."""
+    from sqlalchemy import event
+
+    from superset.daos.chart import ChartDAO
+
+    statements: list[str] = []
+
+    def record_statement(
+        conn: Any,
+        cursor: Any,
+        statement: str,
+        parameters: Any,
+        context: Any,
+        executemany: bool,
+    ) -> None:
+        """Count SELECTs during the tool call, excluding fixture setup."""
+        if statement.lstrip().upper().startswith("SELECT"):
+            statements.append(statement)
+
+    counts: list[int] = []
+    with (
+        patch.object(
+            list_charts_module,
+            "user_can_view_data_model_metadata",
+            return_value=True,
+        ),
+        # Isolate authorization; keep the DAO's query construction and execution.
+        patch.object(
+            ChartDAO, "_apply_base_filter", side_effect=lambda query, **_: query
+        ),
+    ):
+        async with Client(mcp) as client:
+            for page_size in (1, 3):
+                session.expunge_all()
+                statements.clear()
+                engine = session.get_bind()
+                event.listen(engine, "before_cursor_execute", record_statement)
+                try:
+                    response = await client.call_tool(
+                        "list_charts",
+                        {
+                            "request": {
+                                "select_columns": [
+                                    "id",
+                                    "datasource_id",
+                                    "datasource_name",
+                                    "params",
+                                ],
+                                "order_column": "id",
+                                "order_direction": "asc",
+                                "page_size": page_size,
+                            }
+                        },
+                    )
+                finally:
+                    event.remove(engine, "before_cursor_execute", record_statement)
+                data = json.loads(response.content[0].text)
+                assert len(data["charts"]) == page_size
+                assert data["charts"][0]["datasource_id"] == charts.table_id
+                assert data["charts"][0]["datasource_name"] == (
+                    "hubspot_customers.hs_flat_customer_events"
+                )
+                counts.append(len(statements))
+
+    assert counts == [2, 2], f"SELECT counts for 1 and 3 charts: {counts}"
+
+
+@pytest.mark.parametrize(
+    "select_columns", [None, ["tags"], ["editors"], ["tags", "editors"]]
+)
+def test_serialize_chart_preserves_requested_collections(
+    select_columns: list[str] | None,
+) -> None:
+    """Full-object and explicit collection reads retain their existing shape."""
+    from superset.subjects.models import Subject
+    from superset.tags.models import Tag
+
+    chart = Slice(
+        tags=[Tag(id=7, name="sales")],
+        editors=[Subject(id=9, label="Chart editor", active=True)],
+    )
+    info = serialize_chart_object(chart, select_columns=select_columns)
+
+    assert info is not None
+    assert [tag.model_dump() for tag in info.tags] == (
+        [{"id": 7, "name": "sales", "type": None, "description": None}]
+        if select_columns is None or "tags" in select_columns
+        else []
+    )
+    assert [editor.model_dump() for editor in info.editors] == (
+        [{"id": 9, "label": "Chart editor", "type": None, "active": True}]
+        if select_columns is None or "editors" in select_columns
+        else []
+    )

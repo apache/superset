@@ -587,7 +587,13 @@ def resolve_chart_datasource_name(chart: Any) -> str | None:
     return stored_name if isinstance(stored_name, str) else None
 
 
-def serialize_chart_object(chart: ChartLike | None) -> ChartInfo | None:
+def serialize_chart_object(
+    chart: ChartLike | None, *, select_columns: list[str] | None = None
+) -> ChartInfo | None:
+    """Serialize a chart, loading collection relationships only when requested.
+
+    Omitting ``select_columns`` preserves full-object serialization.
+    """
     if not chart:
         return None
 
@@ -653,14 +659,16 @@ def serialize_chart_object(chart: ChartLike | None) -> ChartInfo | None:
             TagInfo.model_validate(tag, from_attributes=True)
             for tag in getattr(chart, "tags", [])
         ]
-        if getattr(chart, "tags", None)
+        if (select_columns is None or "tags" in select_columns)
+        and getattr(chart, "tags", None)
         else [],
         editors=[
             info
             for editor in getattr(chart, "editors", [])
             if (info := serialize_subject_object(editor)) is not None
         ]
-        if getattr(chart, "editors", None)
+        if (select_columns is None or "editors" in select_columns)
+        and getattr(chart, "editors", None)
         else [],
     )
 

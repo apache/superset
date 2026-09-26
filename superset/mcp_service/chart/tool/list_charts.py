@@ -207,7 +207,7 @@ async def list_charts(
         obj: "Slice | None", cols: list[str] | None
     ) -> ChartInfo | None:
         """Serialize chart object (field filtering handled by model_serializer)."""
-        return serialize_chart_object(cast(ChartLike | None, obj))
+        return serialize_chart_object(cast(ChartLike | None, obj), select_columns=cols)
 
     tool = _ChartListCore(
         dao_class=ChartDAO,
