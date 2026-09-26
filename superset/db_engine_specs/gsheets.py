@@ -260,10 +260,14 @@ class GSheetsEngineSpec(ShillelaghEngineSpec):
             # service account) in ``connect_args["adapter_kwargs"]``, and SQLAlchemy
             # merges ``connect_args`` over the dialect's own arguments shallowly,
             # so a token in the URL would be dropped and the query would run
-            # without credentials.
+            # without credentials. For the same reason a ``subject`` set on the URL
+            # above is carried over, so it isn't dropped either.
             connect_args = engine_kwargs.setdefault("connect_args", {})
             adapter_kwargs = connect_args.setdefault("adapter_kwargs", {})
-            adapter_kwargs.setdefault("gsheetsapi", {})["access_token"] = user_token
+            gsheetsapi_kwargs = adapter_kwargs.setdefault("gsheetsapi", {})
+            gsheetsapi_kwargs["access_token"] = user_token
+            if subject := url.query.get("subject"):
+                gsheetsapi_kwargs.setdefault("subject", subject)
 
         return url, engine_kwargs
 
