@@ -176,3 +176,14 @@ def test_docker_workflow_changes_trigger_docker_build() -> None:
         [".github/workflows/docker.yml"],
         change_detector.PATTERNS["docker"],
     )
+
+
+def test_compile_po_change_triggers_frontend_translation_build() -> None:
+    """A change limited to ``compile_po.py`` must still be classified as
+    "frontend", or the Translations workflow's `npm run build-translation`
+    step -- which is the only thing that actually exercises this script
+    against real po2json/oxfmt -- gets skipped entirely."""
+    assert change_detector.detect_changes(
+        ["scripts/translations/compile_po.py"],
+        change_detector.PATTERNS["frontend"],
+    )
