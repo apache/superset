@@ -95,10 +95,18 @@ def test_get_prequeries(mocker: MockerFixture) -> None:
     from superset.db_engine_specs.db2 import Db2EngineSpec
 
     database = mocker.MagicMock()
+    # Stand-in for the DB2 dialect: unquoted names are stored upper case and
+    # reflected lower case; other names are stored as reflected.
+    database.get_dialect.return_value.denormalize_name.side_effect = lambda name: (
+        name.upper() if name.islower() and name.isidentifier() else name
+    )
 
     assert Db2EngineSpec.get_prequeries(database) == []
     assert Db2EngineSpec.get_prequeries(database, schema="my_schema") == [
-        'set current_schema "my_schema"'
+        'set current_schema "MY_SCHEMA"'
+    ]
+    assert Db2EngineSpec.get_prequeries(database, schema="MixedCase") == [
+        'set current_schema "MixedCase"'
     ]
     assert Db2EngineSpec.get_prequeries(database, schema='evil"; SELECT 1--') == [
         'set current_schema "evil""; SELECT 1--"'
