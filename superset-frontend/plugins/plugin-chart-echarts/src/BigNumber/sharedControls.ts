@@ -113,3 +113,22 @@ export const metricNameFontSizeWithVisibility: CustomControlItem = {
     resetOnHide: false,
   },
 };
+
+export const headerAlignmentControl: CustomControlItem = {
+  name: 'header_alignment',
+  config: {
+    type: 'SelectControl',
+    label: t('Alignment'),
+    renderTrigger: true,
+    clearable: false,
+    default: 'left',
+    options: [
+      { label: t('Left'), value: 'left' },
+      { label: t('Center'), value: 'center' },
+      { label: t('Right'), value: 'right' },
+    ],
+    description: t(
+      'Horizontal alignment of the metric value and supporting text',
+    ),
+  },
+};

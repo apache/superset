@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-23 12:43+0200\n"
+"POT-Creation-Date: 2026-09-24 09:23-0700\n"
 "PO-Revision-Date: 2026-07-17 14:21+0000\n"
 "Last-Translator: José Teixeira <jose.teixeira@douroeci.com>\n"
 "Language: pt\n"
@@ -2254,6 +2254,9 @@ msgstr "Alinhar +/-"
 msgid "Align +/- for all columns"
 msgstr "Alinhar +/- para todas as colunas"
 
+msgid "Alignment"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk, zh, zh_TW]
@@ -4316,6 +4319,9 @@ msgstr "Limite de células"
 msgid "Cell title template"
 msgstr "Modelo do título da célula"
 
+msgid "Center"
+msgstr ""
+
 msgid "Center value"
 msgstr ""
 
@@ -4686,6 +4692,13 @@ msgstr ""
 
 msgid "Chart width"
 msgstr "Largura do gráfico"
+
+#, python-format
+msgid ""
+"Chart with ID %(chart_id)s (referenced by annotation layer "
+"'%(layer_name)s') was not found. Please verify that the chart exists and "
+"is accessible."
+msgstr ""
 
 msgid "Charts"
 msgstr "Gráficos"
@@ -10553,6 +10566,9 @@ msgstr "Horizontal (topo)"
 # uk, zh, zh_TW]
 msgid "Horizontal alignment"
 msgstr "Alinhamento horizontal"
+
+msgid "Horizontal alignment of the metric value and supporting text"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -20594,6 +20610,13 @@ msgstr ""
 "A origem de dados do contexto da consulta não corresponde à origem de "
 "dados do gráfico"
 
+#, python-format
+msgid ""
+"The query context for chart ID %(chart_id)s (referenced by annotation "
+"layer '%(layer_name)s') was not found. Please ensure the chart is "
+"properly configured and has a valid query context."
+msgstr ""
+
 msgid "The query couldn't be loaded"
 msgstr "Não foi possível carregar a query"
 
@@ -25402,7 +25425,18 @@ msgstr ""
 "exemplo, divida-o em vários dashboards) ou aumente a definição de "
 "configuração SUPERSET_DASHBOARD_POSITION_DATA_LIMIT."
 
-msgid "Your export is being prepared. You'll receive an email when it's ready."
+msgid ""
+"Your export is being generated and will download automatically when "
+"ready. We'll also email you a download link."
+msgstr ""
+
+msgid "Your export is being generated. Please, do not leave the page."
+msgstr ""
+
+msgid "Your export is ready and downloading."
+msgstr ""
+
+msgid "Your export is taking longer than expected. Try again later."
 msgstr ""
 
 #, python-format

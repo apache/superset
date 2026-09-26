@@ -72,6 +72,16 @@ describe('BigNumber Total Control Panel Config', () => {
       row.some((control: any) => control.name === 'conditional_formatting'),
     );
     expect(conditionalFormattingRow).toBeTruthy();
+
+    // Check header_alignment control exists in one of the rows
+    const headerAlignmentRow = thirdSection.find(row =>
+      row.some((control: any) => control.name === 'header_alignment'),
+    );
+    expect(headerAlignmentRow).toBeTruthy();
+    expect(headerAlignmentRow![0]).toMatchObject({
+      name: 'header_alignment',
+      config: expect.objectContaining({ default: 'left' }),
+    });
   });
 
   test('should have y_axis_format override with correct label', () => {

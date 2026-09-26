@@ -35,6 +35,7 @@ import {
   subtitleControl,
   showMetricNameControl,
   metricNameFontSizeWithVisibility,
+  headerAlignmentControl,
 } from '../sharedControls';
 
 const config: ControlPanelConfig = {
@@ -235,6 +236,7 @@ const config: ControlPanelConfig = {
             },
           },
         ],
+        [headerAlignmentControl],
       ],
     },
     {

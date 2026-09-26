@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Apache Superset 0.22.1\n"
 "Report-Msgid-Bugs-To: bestlong168@gmail.com\n"
-"POT-Creation-Date: 2026-09-23 12:43+0200\n"
+"POT-Creation-Date: 2026-09-24 09:23-0700\n"
 "PO-Revision-Date: 2019-01-04 22:19+0800\n"
 "Last-Translator: Shao Yu-Lung <bestlong168@gmail.com>\n"
 "Language: zh_TW\n"
@@ -1876,6 +1876,9 @@ msgstr "對齊 +/-"
 msgid "Align +/- for all columns"
 msgstr "顯示所有列"
 
+msgid "Alignment"
+msgstr ""
+
 msgid "All"
 msgstr "所有"
 
@@ -3572,6 +3575,9 @@ msgstr "單元格限制"
 msgid "Cell title template"
 msgstr "删除模板"
 
+msgid "Center"
+msgstr ""
+
 msgid "Center value"
 msgstr ""
 
@@ -3896,6 +3902,13 @@ msgstr "圖表無法删除。"
 #, fuzzy
 msgid "Chart width"
 msgstr "圖表寬度"
+
+#, python-format
+msgid ""
+"Chart with ID %(chart_id)s (referenced by annotation layer "
+"'%(layer_name)s') was not found. Please verify that the chart exists and "
+"is accessible."
+msgstr ""
 
 msgid "Charts"
 msgstr "圖表"
@@ -8969,6 +8982,9 @@ msgstr "横向（頂部對齊）"
 
 msgid "Horizontal alignment"
 msgstr "水平對齊"
+
+msgid "Horizontal alignment of the metric value and supporting text"
+msgstr ""
 
 msgid "Host"
 msgstr "主機"
@@ -17318,6 +17334,13 @@ msgstr "該查詢包含一個或多個格式不正確的模板参數。"
 msgid "The query context datasource does not match the chart datasource"
 msgstr ""
 
+#, python-format
+msgid ""
+"The query context for chart ID %(chart_id)s (referenced by annotation "
+"layer '%(layer_name)s') was not found. Please ensure the chart is "
+"properly configured and has a valid query context."
+msgstr ""
+
 msgid "The query couldn't be loaded"
 msgstr "這個查詢無法被加载"
 
@@ -21158,7 +21181,18 @@ msgid ""
 "SUPERSET_DASHBOARD_POSITION_DATA_LIMIT config setting."
 msgstr ""
 
-msgid "Your export is being prepared. You'll receive an email when it's ready."
+msgid ""
+"Your export is being generated and will download automatically when "
+"ready. We'll also email you a download link."
+msgstr ""
+
+msgid "Your export is being generated. Please, do not leave the page."
+msgstr ""
+
+msgid "Your export is ready and downloading."
+msgstr ""
+
+msgid "Your export is taking longer than expected. Try again later."
 msgstr ""
 
 #, python-format
