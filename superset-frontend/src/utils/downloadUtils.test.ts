@@ -18,10 +18,6 @@
  */
 import { isFeatureEnabled } from '@superset-ui/core';
 import {
-  addInfoToast,
-  addWarningToast,
-} from 'src/components/MessageToasts/actions';
-import {
   FORCE_IN_VIEW_EVENT,
   RESTORE_VIRTUALIZATION_EVENT,
 } from 'src/dashboard/constants';
@@ -46,11 +42,6 @@ jest.mock('@apache-superset/core/translation', () => ({
 
 jest.mock('@apache-superset/core/utils', () => ({
   logging: { warn: jest.fn() },
-}));
-
-jest.mock('src/components/MessageToasts/actions', () => ({
-  addInfoToast: jest.fn(),
-  addWarningToast: jest.fn(),
 }));
 
 const mockIsFeatureEnabled = isFeatureEnabled as jest.Mock;
@@ -91,8 +82,9 @@ test('forceLoadAllCharts dispatches the force-in-view event and resolves true on
   const dispatchSpy = jest.spyOn(window, 'dispatchEvent');
   // No `.loading` elements => charts are considered loaded.
   const container = document.createElement('div');
+  const mockAddWarningToast = jest.fn();
 
-  const promise = forceLoadAllCharts(container);
+  const promise = forceLoadAllCharts(container, undefined, mockAddWarningToast);
 
   expect(dispatchSpy).toHaveBeenCalledWith(
     expect.objectContaining({ type: FORCE_IN_VIEW_EVENT }),
@@ -102,10 +94,32 @@ test('forceLoadAllCharts dispatches the force-in-view event and resolves true on
   const result = await promise;
 
   expect(result).toBe(true);
-  expect(addWarningToast).not.toHaveBeenCalled();
+  expect(mockAddWarningToast).not.toHaveBeenCalled();
 });
 
-test('forceLoadAllCharts warns when charts never finish loading before the timeout', async () => {
+test('forceLoadAllCharts warns via the bound callback when charts never finish loading before the timeout', async () => {
+  jest.useFakeTimers();
+  mockIsFeatureEnabled.mockReturnValue(true);
+  const container = document.createElement('div');
+  const loadingChart = document.createElement('div');
+  loadingChart.className = 'loading';
+  container.appendChild(loadingChart);
+  const mockAddWarningToast = jest.fn();
+
+  const promise = forceLoadAllCharts(container, undefined, mockAddWarningToast);
+
+  // Advance past the 60s timeout while a `.loading` element is still present.
+  await jest.advanceTimersByTimeAsync(61_000);
+  const result = await promise;
+
+  // Virtualization was active, so the caller must still restore it.
+  expect(result).toBe(true);
+  expect(mockAddWarningToast).toHaveBeenCalledWith(
+    'Some charts did not finish loading. The export may be incomplete.',
+  );
+});
+
+test('forceLoadAllCharts does not throw when charts time out and no toast callback is provided', async () => {
   jest.useFakeTimers();
   mockIsFeatureEnabled.mockReturnValue(true);
   const container = document.createElement('div');
@@ -115,13 +129,8 @@ test('forceLoadAllCharts warns when charts never finish loading before the timeo
 
   const promise = forceLoadAllCharts(container);
 
-  // Advance past the 60s timeout while a `.loading` element is still present.
   await jest.advanceTimersByTimeAsync(61_000);
-  const result = await promise;
-
-  // Virtualization was active, so the caller must still restore it.
-  expect(result).toBe(true);
-  expect(addWarningToast).toHaveBeenCalledTimes(1);
+  await expect(promise).resolves.toBe(true);
 });
 
 test('forceLoadAllCharts dispatches a single force-in-view event when rows fit in one batch', async () => {
@@ -131,12 +140,18 @@ test('forceLoadAllCharts dispatches a single force-in-view event when rows fit i
   const container = document.createElement('div');
   container.append(makeRow('a'), makeRow('b'), makeRow('c'));
 
-  const promise = forceLoadAllCharts(container);
+  const mockAddInfoToast = jest.fn();
+  const promise = forceLoadAllCharts(
+    container,
+    undefined,
+    undefined,
+    mockAddInfoToast,
+  );
   await jest.advanceTimersByTimeAsync(2000);
   const result = await promise;
 
   expect(result).toBe(true);
-  expect(addInfoToast).not.toHaveBeenCalled();
+  expect(mockAddInfoToast).not.toHaveBeenCalled();
   const forceEvents = dispatchSpy.mock.calls
     .map(([event]) => event as Event)
     .filter(event => event.type === FORCE_IN_VIEW_EVENT);
@@ -153,7 +168,13 @@ test('forceLoadAllCharts batches rows in groups rather than forcing everything a
   rowIds.forEach(id => container.appendChild(makeRow(id)));
 
   const onProgress = jest.fn();
-  const promise = forceLoadAllCharts(container, onProgress);
+  const mockAddInfoToast = jest.fn();
+  const promise = forceLoadAllCharts(
+    container,
+    onProgress,
+    undefined,
+    mockAddInfoToast,
+  );
 
   // 3 sequential batch waits + the final whole-container check, ~1s each
   // since nothing is ever `.loading`.
@@ -161,7 +182,12 @@ test('forceLoadAllCharts batches rows in groups rather than forcing everything a
   const result = await promise;
 
   expect(result).toBe(true);
-  expect(addInfoToast).toHaveBeenCalledTimes(1);
+  // Goes through the bound callback, never the raw action creator (which
+  // would only build an action object this module has no way to dispatch).
+  expect(mockAddInfoToast).toHaveBeenCalledTimes(1);
+  expect(mockAddInfoToast).toHaveBeenCalledWith(
+    expect.stringContaining('Preparing %(count)s charts for export'),
+  );
 
   const forceEvents = dispatchSpy.mock.calls
     .map(([event]) => event as CustomEvent<{ rowIds: string[] }>)
@@ -200,7 +226,12 @@ test('forceLoadAllCharts moves on to the next batch even if the current one time
   container.appendChild(makeRow('row-5'));
 
   const onProgress = jest.fn();
-  const promise = forceLoadAllCharts(container, onProgress);
+  const mockAddWarningToast = jest.fn();
+  const promise = forceLoadAllCharts(
+    container,
+    onProgress,
+    mockAddWarningToast,
+  );
 
   // Batch 1 gives up waiting at the 10s per-batch cap since `stuck` hasn't
   // cleared yet, but moves on to batch 2 (which has nothing loading and
@@ -217,7 +248,7 @@ test('forceLoadAllCharts moves on to the next batch even if the current one time
   const result = await promise;
 
   expect(result).toBe(true);
-  expect(addWarningToast).not.toHaveBeenCalled();
+  expect(mockAddWarningToast).not.toHaveBeenCalled();
 });
 
 test('forceLoadAllCharts caps the total wait across batches to the overall deadline', async () => {
@@ -229,8 +260,9 @@ test('forceLoadAllCharts caps the total wait across batches to the overall deadl
   // the final whole-container check (140s total) before giving up.
   const rowIds = Array.from({ length: 40 }, (_, i) => `row-${i}`);
   rowIds.forEach(id => container.appendChild(makeRow(id, true)));
+  const mockAddWarningToast = jest.fn();
 
-  const promise = forceLoadAllCharts(container);
+  const promise = forceLoadAllCharts(container, undefined, mockAddWarningToast);
 
   // Comfortably past the 60s overall budget, but far short of the 140s the
   // unbounded, per-timeout-summed behavior would have required.
@@ -238,7 +270,7 @@ test('forceLoadAllCharts caps the total wait across batches to the overall deadl
   const result = await promise;
 
   expect(result).toBe(true);
-  expect(addWarningToast).toHaveBeenCalledTimes(1);
+  expect(mockAddWarningToast).toHaveBeenCalledTimes(1);
 });
 
 test('restoreVirtualization dispatches the restore event', () => {

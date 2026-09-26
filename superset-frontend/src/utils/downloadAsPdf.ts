@@ -22,11 +22,7 @@ import { kebabCase } from 'lodash-es';
 import { t } from '@apache-superset/core/translation';
 import { logging } from '@apache-superset/core/utils';
 import getBootstrapData from 'src/utils/getBootstrapData';
-import {
-  dispatchWarningToast,
-  forceLoadAllCharts,
-  restoreVirtualization,
-} from './downloadUtils';
+import { forceLoadAllCharts, restoreVirtualization } from './downloadUtils';
 
 const pdfCompressionLevel = getBootstrapData().common.pdf_compression_level;
 
@@ -46,12 +42,19 @@ const generateFileStem = (description: string, date = new Date()) =>
  * @param description name or a short description of what is being printed.
  *   Value will be normalized, and a date as well as a file extension will be added.
  * @param isExactSelector if false, searches for the closest ancestor that matches selector.
+ * @param addWarningToast bound via `useToasts()`/`bindActionCreators`, not the raw
+ *   action creator from `actions.ts`: this module has no dispatch of its own, so an
+ *   unbound creator would only build a Redux action object and never render a toast.
+ * @param addInfoToast same contract as `addWarningToast`; announces a multi-batch
+ *   export while charts are being forced into view.
  * @returns event handler
  */
 export default function downloadAsPdf(
   selector: string,
   description: string,
   isExactSelector = false,
+  addWarningToast?: (message: string) => void,
+  addInfoToast?: (message: string) => void,
 ) {
   return async (event: SyntheticEvent) => {
     const elementToPrint = isExactSelector
@@ -59,14 +62,20 @@ export default function downloadAsPdf(
       : event.currentTarget.closest(selector);
 
     if (!elementToPrint) {
-      return dispatchWarningToast(
+      addWarningToast?.(
         t('PDF download failed, please refresh and try again.'),
       );
+      return;
     }
 
     // Force any virtualized (unmounted) charts to render before capturing, so
     // off-screen rows are not exported as loading spinners.
-    const didForceLoad = await forceLoadAllCharts(elementToPrint);
+    const didForceLoad = await forceLoadAllCharts(
+      elementToPrint,
+      undefined,
+      addWarningToast,
+      addInfoToast,
+    );
 
     const options = {
       margin: 10,
@@ -82,6 +91,9 @@ export default function downloadAsPdf(
       })
       .catch((e: Error) => {
         logging.error('PDF generation failed', e);
+        addWarningToast?.(
+          t('PDF download failed, please refresh and try again.'),
+        );
       })
       .finally(() => {
         if (didForceLoad) {
