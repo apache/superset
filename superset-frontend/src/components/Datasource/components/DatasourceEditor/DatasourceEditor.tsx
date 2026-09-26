@@ -449,6 +449,27 @@ const StyledTableTabWrapper = styled.div`
     vertical-align: middle;
   }
 
+  &.wide-sql-layout {
+    .datasource-key-cell {
+      width: 30%;
+    }
+
+    .datasource-label-cell {
+      width: 20%;
+    }
+
+    .datasource-sql-cell {
+      width: 50%;
+      min-width: 480px;
+    }
+
+    .datasource-sql-expression {
+      width: 100%;
+      min-width: 460px;
+      max-width: none;
+    }
+  }
+
   .ant-tag {
     margin-top: ${({ theme }) => theme.sizeUnit}px;
   }
@@ -490,9 +511,16 @@ const StyledButtonWrapper = styled.span`
 `;
 
 const checkboxGenerator = (
-  d: boolean,
-  onChange: (value: boolean) => void,
-): ReactNode => <CheckboxControl value={d} onChange={onChange} />;
+  d: unknown,
+  onChange: (value: unknown) => void,
+): ReactNode => (
+  <CheckboxControl
+    value={Boolean(d)}
+    onChange={value => {
+      onChange(value);
+    }}
+  />
+);
 const DATA_TYPES = [
   { value: 'STRING', label: t('STRING') },
   { value: 'NUMERIC', label: t('NUMERIC') },
@@ -561,32 +589,29 @@ function ColumnCollectionTable({
   filterTerm,
   filterFields,
 }: ColumnCollectionTableProps): JSX.Element {
+  const tableColumns = isFeatureEnabled(FeatureFlag.EnableAdvancedDataTypes)
+    ? [
+        'column_name',
+        ...(showExpression ? ['expression'] : []),
+        'advanced_data_type',
+        'type',
+        'is_dttm',
+        'filterable',
+        'groupby',
+      ]
+    : [
+        'column_name',
+        ...(showExpression ? ['expression'] : []),
+        'type',
+        'is_dttm',
+        'filterable',
+        'groupby',
+      ];
+
   return (
     <CollectionTable
-      tableColumns={
-        isFeatureEnabled(FeatureFlag.EnableAdvancedDataTypes)
-          ? [
-              'column_name',
-              'advanced_data_type',
-              'type',
-              'is_dttm',
-              'filterable',
-              'groupby',
-            ]
-          : ['column_name', 'type', 'is_dttm', 'filterable', 'groupby']
-      }
-      sortColumns={
-        isFeatureEnabled(FeatureFlag.EnableAdvancedDataTypes)
-          ? [
-              'column_name',
-              'advanced_data_type',
-              'type',
-              'is_dttm',
-              'filterable',
-              'groupby',
-            ]
-          : ['column_name', 'type', 'is_dttm', 'filterable', 'groupby']
-      }
+      tableColumns={tableColumns}
+      sortColumns={tableColumns}
       allowDeletes
       allowAddItem={allowAddItem}
       itemGenerator={itemGenerator}
@@ -723,6 +748,7 @@ function ColumnCollectionTable({
         isFeatureEnabled(FeatureFlag.EnableAdvancedDataTypes)
           ? {
               column_name: t('Column'),
+              expression: t('SQL expression'),
               advanced_data_type: t('Advanced data type'),
               type: t('Data type'),
               groupby: t('Is dimension'),
@@ -731,6 +757,7 @@ function ColumnCollectionTable({
             }
           : {
               column_name: t('Column'),
+              expression: t('SQL expression'),
               type: t('Data type'),
               groupby: t('Is dimension'),
               is_dttm: t('Is temporal'),
@@ -738,6 +765,10 @@ function ColumnCollectionTable({
             }
       }
       onChange={onColumnsChange}
+      itemCellProps={{
+        column_name: () => ({ className: 'datasource-key-cell' }),
+        expression: () => ({ className: 'datasource-sql-cell' }),
+      }}
       itemRenderers={
         isFeatureEnabled(FeatureFlag.EnableAdvancedDataTypes)
           ? {
@@ -769,6 +800,18 @@ function ColumnCollectionTable({
                 ),
               type: d => (d ? <Label>{String(d)}</Label> : null),
               advanced_data_type: d => <Label>{d as string}</Label>,
+              expression: (v, onChange) => (
+                <TextAreaControl
+                  initialValue={v as string}
+                  onChange={onChange}
+                  className="datasource-sql-expression"
+                  language="sql"
+                  offerEditInModal={false}
+                  minLines={5}
+                  textAreaStyles={{ minWidth: '100%', maxWidth: 'none' }}
+                  resize="both"
+                />
+              ),
               is_dttm: checkboxGenerator,
               filterable: checkboxGenerator,
               groupby: checkboxGenerator,
@@ -797,6 +840,18 @@ function ColumnCollectionTable({
                   </StyledLabelWrapper>
                 ),
               type: d => (d ? <Label>{String(d)}</Label> : null),
+              expression: (v, onChange) => (
+                <TextAreaControl
+                  initialValue={v as string}
+                  onChange={onChange}
+                  className="datasource-sql-expression"
+                  language="sql"
+                  offerEditInModal={false}
+                  minLines={5}
+                  textAreaStyles={{ minWidth: '100%', maxWidth: 'none' }}
+                  resize="both"
+                />
+              ),
               is_dttm: checkboxGenerator,
               filterable: checkboxGenerator,
               groupby: checkboxGenerator,
@@ -2404,6 +2459,8 @@ function DatasourceEditor({
             expression: '',
           })}
           itemCellProps={{
+            metric_name: () => ({ className: 'datasource-key-cell' }),
+            verbose_name: () => ({ className: 'datasource-label-cell' }),
             expression: () => ({
               style: {
                 maxWidth: '240px',
@@ -2538,7 +2595,11 @@ function DatasourceEditor({
         label: (
           <CollectionTabTitle collection={sortedMetrics} title={t('Metrics')} />
         ),
-        children: renderMetricCollection(),
+        children: (
+          <StyledTableTabWrapper className="wide-sql-layout">
+            {renderMetricCollection()}
+          </StyledTableTabWrapper>
+        ),
       },
       {
         key: TABS_KEYS.COLUMNS,
@@ -2549,7 +2610,7 @@ function DatasourceEditor({
           />
         ),
         children: (
-          <StyledTableTabWrapper>
+          <StyledTableTabWrapper className="wide-sql-layout">
             {renderDefaultColumnSettings()}
             <DefaultColumnSettingsTitle>
               {t('Column Settings')}
@@ -2595,7 +2656,7 @@ function DatasourceEditor({
           />
         ),
         children: (
-          <StyledTableTabWrapper>
+          <StyledTableTabWrapper className="wide-sql-layout">
             {renderDefaultColumnSettings()}
             <DefaultColumnSettingsTitle>
               {t('Column Settings')}
