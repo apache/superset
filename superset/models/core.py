@@ -1515,6 +1515,11 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
             logger.error(ex, exc_info=True)
             raise SupersetGenericDBErrorException(message=str(ex)) from ex
         if oauth2_client_info := encrypted_extra.get("oauth2_client_info"):
+            # Let the engine spec fill values it can derive (e.g. endpoints from
+            # the connection host) before the schema requires them.
+            oauth2_client_info = self.db_engine_spec.resolve_oauth2_client_info(
+                self, oauth2_client_info
+            )
             schema = OAuth2ClientConfigSchema()
             client_config = schema.load(oauth2_client_info)
             if "request_content_type" not in oauth2_client_info:
