@@ -51,12 +51,25 @@ function formatValue(
     return [false, 'N/A'];
   }
   if (formatter) {
+    // Query results with integers beyond Number.MAX_SAFE_INTEGER are now
+    // parsed as decimal strings by parseResponse.ts (e.g. "12345678901234567890").
+    // Accept both native bigint (legacy / direct callers) and decimal-integer
+    // strings. The /^-?\d+$/ guard is intentionally strict: floats, NaN,
+    // Infinity, scientific-notation strings, and pre-formatted values must
+    // NOT be coerced here — they flow through as-is so NumberFormatter can
+    // handle them with its own null/NaN/Infinity guards.
+    const numericValue: number =
+      typeof value === 'bigint'
+        ? Number(value)
+        : typeof value === 'string' && /^-?\d+$/.test(value)
+          ? Number(value)
+          : (value as number);
     try {
       // If formatter is a CurrencyFormatter, pass row context for AUTO mode
       if (formatter instanceof CurrencyFormatter) {
-        return [false, formatter(value as number, rowData, currencyColumn)];
+        return [false, formatter(numericValue, rowData, currencyColumn)];
       }
-      return [false, formatter(value as number)];
+      return [false, formatter(numericValue)];
     } catch (e) {
       logging.warn('Formatter failed, falling back to raw value', e);
       return [false, String(value)];
