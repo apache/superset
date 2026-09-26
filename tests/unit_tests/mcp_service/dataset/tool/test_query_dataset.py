@@ -20,6 +20,8 @@
 from __future__ import annotations
 
 import importlib
+import os
+import time
 from collections.abc import Generator
 from types import SimpleNamespace
 from typing import Any
@@ -63,6 +65,24 @@ def mock_auth() -> Generator[MagicMock, None, None]:
         mock_user.username = "admin"
         mock_get_user.return_value = mock_user
         yield mock_get_user
+
+
+@pytest.fixture
+def utc_timezone() -> Generator[None, None, None]:
+    """Pin TZ=UTC so relative ranges that straddle midnight are machine-independent."""
+    previous = os.environ.get("TZ")
+    os.environ["TZ"] = "UTC"
+    if hasattr(time, "tzset"):
+        time.tzset()
+    try:
+        yield
+    finally:
+        if previous is None:
+            os.environ.pop("TZ", None)
+        else:
+            os.environ["TZ"] = previous
+        if hasattr(time, "tzset"):
+            time.tzset()
 
 
 def _make_column(name: str, is_dttm: bool = False) -> MagicMock:
@@ -162,7 +182,7 @@ async def test_query_dataset_success(mcp_server: FastMCP) -> None:
         ),
         patch(
             "superset.common.query_context_factory.QueryContextFactory.create",
-            return_value=MagicMock(),
+            return_value=SimpleNamespace(queries=[], form_data={}),
         ),
     ):
         async with Client(mcp_server) as client:
@@ -191,33 +211,36 @@ async def test_query_dataset_success(mcp_server: FastMCP) -> None:
 async def test_query_dataset_exposes_filters_to_jinja_macros(
     mcp_server: FastMCP,
 ) -> None:
-    """The MCP query path populates the form data read by dataset Jinja macros."""
-    from superset.common.query_object import QueryObject
+    """The MCP query path populates the form data read by dataset Jinja macros.
 
-    dataset = _make_dataset()
-    query = QueryObject(
-        filters=[{"col": "category", "op": "IN", "val": ["Electronics"]}],
-        columns=["category"],
-        metrics=["count"],
+    Uses the real QueryContextFactory so ``_apply_granularity`` strips the
+    TEMPORAL_RANGE filter; execute_tabular_query overlays the original range.
+    """
+    from flask import g
+
+    from tests.unit_tests.charts.data.form_data_test import (
+        assert_request_dependent_jinja_macros,
     )
-    query_context = SimpleNamespace(queries=[query], form_data={})
-    observed: dict[str, Any] = {}
 
-    def run_query() -> dict[str, Any]:
-        from superset.jinja_context import ExtraCache, get_dataset_id_from_context
+    dataset = _make_dataset(7, main_dttm_col="order_date")
+    observed: dict[str, bool] = {}
 
-        extra_cache = ExtraCache()
-        observed["filter_values"] = extra_cache.filter_values("category")
-        observed["get_filters"] = extra_cache.get_filters("category")
-        # metric() without an explicit dataset ID uses this same context lookup.
-        observed["metric_dataset_id"] = get_dataset_id_from_context("count")
+    def run_query(*_args: Any, **_kwargs: Any) -> dict[str, Any]:
+        processed_filters = g.form_data["queries"][0]["filters"] or []
+        assert all(
+            (flt.get("op") if isinstance(flt, dict) else None) != "TEMPORAL_RANGE"
+            for flt in processed_filters
+        )
+        # query_dataset has no url_params; skip that chart-only assertion.
+        assert_request_dependent_jinja_macros(expected_url_param=None)
+        observed["ran"] = True
         return _mock_command_result()
 
     with (
         patch.object(query_dataset_module, "resolve_dataset", return_value=dataset),
         patch(
-            "superset.common.query_context_factory.QueryContextFactory.create",
-            return_value=query_context,
+            "superset.common.query_context_factory.QueryContextFactory._convert_to_model",
+            return_value=dataset,
         ),
         patch(
             "superset.commands.chart.data.get_data_command.ChartDataCommand.validate",
@@ -232,26 +255,23 @@ async def test_query_dataset_exposes_filters_to_jinja_macros(
                 "query_dataset",
                 {
                     "request": {
-                        "dataset_id": 1,
+                        "dataset_id": 7,
                         "metrics": ["count"],
-                        "columns": ["category"],
+                        "columns": ["region"],
                         "filters": [
                             {
-                                "col": "category",
+                                "col": "region",
                                 "op": "IN",
-                                "val": ["Electronics"],
+                                "val": ["North"],
                             }
                         ],
+                        "time_range": "Last week",
                     }
                 },
             )
 
     assert not result.is_error
-    assert observed["filter_values"] == ["Electronics"]
-    assert observed["get_filters"] == [
-        {"col": "category", "op": "IN", "val": ["Electronics"]}
-    ]
-    assert observed["metric_dataset_id"] == 1
+    assert observed["ran"] is True
 
 
 @pytest.mark.asyncio
@@ -361,7 +381,7 @@ async def test_query_dataset_with_time_range(mcp_server: FastMCP) -> None:
 
     def capture_create(**kwargs):
         captured_queries.extend(kwargs.get("queries", []))
-        return MagicMock()
+        return SimpleNamespace(queries=[], form_data={})
 
     with (
         patch.object(
@@ -499,7 +519,7 @@ async def test_query_dataset_with_filters(mcp_server: FastMCP) -> None:
 
     def capture_create(**kwargs):
         captured_queries.extend(kwargs.get("queries", []))
-        return MagicMock()
+        return SimpleNamespace(queries=[], form_data={})
 
     with (
         patch.object(
@@ -573,7 +593,7 @@ async def test_query_dataset_empty_results(mcp_server: FastMCP) -> None:
         ),
         patch(
             "superset.common.query_context_factory.QueryContextFactory.create",
-            return_value=MagicMock(),
+            return_value=SimpleNamespace(queries=[], form_data={}),
         ),
     ):
         async with Client(mcp_server) as client:
@@ -614,7 +634,7 @@ async def test_query_dataset_by_uuid(mcp_server: FastMCP) -> None:
         ),
         patch(
             "superset.common.query_context_factory.QueryContextFactory.create",
-            return_value=MagicMock(),
+            return_value=SimpleNamespace(queries=[], form_data={}),
         ),
     ):
         async with Client(mcp_server) as client:
@@ -653,7 +673,7 @@ async def test_query_dataset_permission_denied(mcp_server: FastMCP) -> None:
         ),
         patch(
             "superset.common.query_context_factory.QueryContextFactory.create",
-            return_value=MagicMock(),
+            return_value=SimpleNamespace(queries=[], form_data={}),
         ),
         patch(
             "superset.commands.chart.data.get_data_command.ChartDataCommand.validate",
@@ -690,7 +710,7 @@ async def test_query_dataset_order_by_valid(mcp_server: FastMCP) -> None:
 
     def capture_create(**kwargs):
         captured_queries.extend(kwargs.get("queries", []))
-        return MagicMock()
+        return SimpleNamespace(queries=[], form_data={})
 
     with (
         patch.object(
@@ -768,7 +788,7 @@ async def test_query_dataset_time_column_override(mcp_server: FastMCP) -> None:
 
     def capture_create(**kwargs):
         captured_queries.extend(kwargs.get("queries", []))
-        return MagicMock()
+        return SimpleNamespace(queries=[], form_data={})
 
     with (
         patch.object(
@@ -829,7 +849,7 @@ async def test_query_dataset_non_dttm_time_column_warns(mcp_server: FastMCP) -> 
         ),
         patch(
             "superset.common.query_context_factory.QueryContextFactory.create",
-            return_value=MagicMock(),
+            return_value=SimpleNamespace(queries=[], form_data={}),
         ),
     ):
         async with Client(mcp_server) as client:
@@ -1343,7 +1363,7 @@ async def test_query_dataset_bracket_year_resolves_without_parse_error(
 
     def capture_create(**kwargs):
         captured_queries.extend(kwargs.get("queries", []))
-        return MagicMock()
+        return SimpleNamespace(queries=[], form_data={})
 
     with (
         patch.object(
@@ -1414,7 +1434,7 @@ async def test_query_dataset_bracket_hour_resolves_without_parse_error(
 
     def capture_create(**kwargs):
         captured_queries.extend(kwargs.get("queries", []))
-        return MagicMock()
+        return SimpleNamespace(queries=[], form_data={})
 
     with (
         patch.object(
@@ -1537,6 +1557,7 @@ async def test_query_dataset_returns_engine_time_bounds(
     assert data["applied_filters"][0]["val"] == expression.strip()
 
 
+@pytest.mark.usefixtures("utc_timezone")
 @pytest.mark.parametrize("empty", [False, True])
 @pytest.mark.asyncio
 async def test_query_dataset_reexecutes_across_rollover(

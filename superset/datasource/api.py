@@ -780,6 +780,7 @@ class DatasourceRestApi(BaseSupersetApi):
                 use_cache=payload["use_cache"],
                 force=payload["force"],
                 cache_timeout=payload["cache_timeout"],
+                time_range=payload.get("time_range"),
             )
         except SupersetSecurityException as ex:
             return self.response(403, message=ex.message)

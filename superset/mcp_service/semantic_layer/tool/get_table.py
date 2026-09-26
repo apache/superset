@@ -483,6 +483,7 @@ async def _run_get_table_query(
             query_dict,
             use_cache=request.use_cache,
             force=request.force_refresh,
+            time_range=request.time_range,
         )
 
     query_duration_ms = int((time.time() - start_time) * 1000)

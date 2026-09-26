@@ -21,7 +21,7 @@ from __future__ import annotations
 
 import importlib
 from collections.abc import Generator
-from types import ModuleType
+from types import ModuleType, SimpleNamespace
 from typing import Any
 from unittest.mock import MagicMock, Mock, patch
 
@@ -631,7 +631,9 @@ async def test_get_table_builtin_happy_path(mcp_server: FastMCP) -> None:
         ) as mock_factory_cls,
     ):
         mock_command_cls.return_value.run.return_value = query_result
-        mock_factory_cls.return_value.create.return_value = MagicMock()
+        mock_factory_cls.return_value.create.return_value = SimpleNamespace(
+            queries=[], form_data={}
+        )
 
         async with Client(mcp_server) as client:
             result = await client.call_tool(
@@ -911,7 +913,9 @@ async def test_get_table_unknown_filter_operator_passes_through(
         ) as mock_factory_cls,
     ):
         mock_command_cls.return_value.run.return_value = query_result
-        mock_factory_cls.return_value.create.return_value = MagicMock()
+        mock_factory_cls.return_value.create.return_value = SimpleNamespace(
+            queries=[], form_data={}
+        )
 
         async with Client(mcp_server) as client:
             result = await client.call_tool(
@@ -964,7 +968,9 @@ async def test_get_table_unicode_filter_value_passes_through(
         ) as mock_factory_cls,
     ):
         mock_command_cls.return_value.run.return_value = query_result
-        mock_factory_cls.return_value.create.return_value = MagicMock()
+        mock_factory_cls.return_value.create.return_value = SimpleNamespace(
+            queries=[], form_data={}
+        )
 
         async with Client(mcp_server) as client:
             result = await client.call_tool(
@@ -1503,3 +1509,131 @@ def test_time_range_uses_the_selected_grain_axis(temporal_view: MagicMock) -> No
     assert query["filters"] == [
         {"col": "signup_date", "op": "TEMPORAL_RANGE", "val": request.time_range}
     ]
+
+
+@pytest.mark.asyncio
+async def test_get_table_exposes_filters_to_jinja_macros(
+    mcp_server: FastMCP,
+) -> None:
+    """get_table publishes the same Jinja inputs as other ChartDataCommand paths.
+
+    Uses the real QueryContextFactory so ``_apply_granularity`` strips the
+    TEMPORAL_RANGE filter; execute_tabular_query overlays the original range.
+    """
+    from flask import g
+
+    from tests.unit_tests.charts.data.form_data_test import (
+        assert_request_dependent_jinja_macros,
+    )
+
+    mock_ds = _make_dataset(7)
+    observed: dict[str, bool] = {}
+
+    def run_query(*_args: Any, **_kwargs: Any) -> dict[str, Any]:
+        processed_filters = g.form_data["queries"][0]["filters"] or []
+        assert all(
+            (flt.get("op") if isinstance(flt, dict) else None) != "TEMPORAL_RANGE"
+            for flt in processed_filters
+        )
+        # get_table has no url_params; skip that chart-only assertion.
+        assert_request_dependent_jinja_macros(expected_url_param=None)
+        observed["ran"] = True
+        return {
+            "queries": [
+                {
+                    "data": [{"region": "North"}],
+                    "colnames": ["region"],
+                    "rowcount": 1,
+                }
+            ]
+        }
+
+    with (
+        patch("superset.daos.dataset.DatasetDAO.find_by_id", return_value=mock_ds),
+        patch(
+            "superset.commands.chart.data.get_data_command.ChartDataCommand.validate",
+        ),
+        patch(
+            "superset.commands.chart.data.get_data_command.ChartDataCommand.run",
+            side_effect=run_query,
+        ),
+        patch(
+            "superset.common.query_context_factory.QueryContextFactory._convert_to_model",
+            return_value=mock_ds,
+        ),
+    ):
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "get_table",
+                {
+                    "request": {
+                        "dataset_id": 7,
+                        "metrics": ["revenue"],
+                        "dimensions": ["region"],
+                        "filters": [
+                            {"col": "region", "op": "IN", "val": ["North"]},
+                        ],
+                        "time_range": "Last week",
+                    }
+                },
+            )
+
+    assert not result.is_error
+    assert observed["ran"] is True
+
+
+@pytest.mark.asyncio
+async def test_get_table_time_column_without_time_range_is_not_a_jinja_range(
+    mcp_server: FastMCP,
+) -> None:
+    """time_column plus a comparison filter is not get_time_filter()'s range."""
+    from superset.constants import NO_TIME_RANGE
+    from superset.jinja_context import ExtraCache
+
+    mock_ds = _make_dataset(7)
+    observed: dict[str, bool] = {}
+
+    def run_query(*_args: Any, **_kwargs: Any) -> dict[str, Any]:
+        assert ExtraCache().get_time_filter().time_range == NO_TIME_RANGE
+        observed["ran"] = True
+        return {
+            "queries": [
+                {
+                    "data": [{"region": "North"}],
+                    "colnames": ["region"],
+                    "rowcount": 1,
+                }
+            ]
+        }
+
+    with (
+        patch("superset.daos.dataset.DatasetDAO.find_by_id", return_value=mock_ds),
+        patch(
+            "superset.commands.chart.data.get_data_command.ChartDataCommand.validate",
+        ),
+        patch(
+            "superset.commands.chart.data.get_data_command.ChartDataCommand.run",
+            side_effect=run_query,
+        ),
+        patch(
+            "superset.common.query_context_factory.QueryContextFactory._convert_to_model",
+            return_value=mock_ds,
+        ),
+    ):
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "get_table",
+                {
+                    "request": {
+                        "dataset_id": 7,
+                        "metrics": ["revenue"],
+                        "time_column": "created_at",
+                        "filters": [
+                            {"col": "created_at", "op": ">=", "val": "Q1"},
+                        ],
+                    }
+                },
+            )
+
+    assert not result.is_error
+    assert observed["ran"] is True
