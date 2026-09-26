@@ -2350,6 +2350,38 @@ class XYChartConfig(BaseChartConfig):
         ge=1,
         le=10000,
     )
+    sort_by: SortByConfig | str | List[SortByConfig | str] | None = Field(
+        None,
+        description=(
+            "Sort specification for the chart. Accepts a SortByConfig object, "
+            "a bare column/metric name string (defaults to descending), or a "
+            "list containing either."
+        ),
+        validation_alias=AliasChoices("sort_by", "x_axis_sort", "order_by"),
+    )
+
+    @field_validator("sort_by", mode="before")
+    @classmethod
+    def coerce_sort_by(cls, v: Any) -> Any:
+        """Coerce bare string, dict, or list into SortByConfig."""
+        if v is None:
+            return None
+        if isinstance(v, str):
+            return SortByConfig(column=v, ascending=False)
+        if isinstance(v, list):
+            if not v:
+                return None
+            first = v[0]
+            if isinstance(first, str):
+                return SortByConfig(column=first, ascending=False)
+            if isinstance(first, dict):
+                return SortByConfig(**first)
+            if isinstance(first, SortByConfig):
+                return first
+            return first
+        if isinstance(v, dict):
+            return SortByConfig(**v)
+        return v
 
     @field_validator("group_by", mode="before")
     @classmethod
