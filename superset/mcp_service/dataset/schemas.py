@@ -87,10 +87,9 @@ class DatasetFilter(ColumnOperator):
         "changed_by_fk",
     ] = Field(
         ...,
-        description="Column to filter on. Use get_schema(model_type='dataset') for "
-        "available filter columns. To filter by a person, first call find_users "
-        "to resolve a name to a user ID, then filter by created_by_fk or "
-        "changed_by_fk with that integer ID.",
+        description="Filter column; see get_schema(model_type='dataset'). "
+        "For people, resolve names to IDs with find_users; filter by "
+        "created_by_fk or changed_by_fk with that integer ID.",
     )
     opr: ColumnOperatorEnum = Field(
         ...,
@@ -294,8 +293,8 @@ class ListDatasetsRequest(
             description=(
                 "Case-insensitive substring search of schema, SQL, table name, "
                 "and description. A complete UUID is an exact UUID lookup; "
-                "alternatively use a uuid filter. Compare candidate descriptions "
-                "and metadata. Cannot be used together with 'filters'."
+                "or use a uuid filter. Compare candidate descriptions "
+                "and metadata. Mutually exclusive with 'filters'."
             ),
         ),
     ]
@@ -305,10 +304,9 @@ class ListDatasetsRequest(
         Field(
             default=None,
             description=(
-                "Filter by governance certification status. Use true to return "
-                "only certified datasets (preferred when selecting governed "
-                "semantic-layer assets), false to return only uncertified "
-                "datasets, or omit to return both (default)."
+                "Use true to return only certified datasets (preferred for governed "
+                "semantic-layer assets), false to return only uncertified datasets; "
+                "omit to return both (default)."
             ),
         ),
     ]
