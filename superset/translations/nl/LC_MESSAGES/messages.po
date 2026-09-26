@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version:  superset-ds\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-23 12:43+0200\n"
+"POT-Creation-Date: 2026-09-24 11:54+0000\n"
 "PO-Revision-Date: 2024-05-08 14:41+0000\n"
 "Last-Translator: \n"
 "Language: nl\n"
@@ -30,7 +30,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Generated-By: Babel 2.17.0\n"
+"Generated-By: Babel 2.10.3\n"
 
 #, python-format
 msgid ""
@@ -1524,6 +1524,9 @@ msgstr "Metriek toevoegen"
 
 msgid "Add metrics to dataset in \"Edit datasource\" modal"
 msgstr "Metrieken toevoegen aan dataset in \"Bewerk gegevensbron\" modal"
+
+msgid "Add more"
+msgstr ""
 
 msgid "Add new color formatter"
 msgstr "Voeg nieuwe kleur formatter toe"
@@ -3886,6 +3889,13 @@ msgstr "Grafieken konden niet worden verwijderd."
 msgid "Chart width"
 msgstr "Grafiek breedte"
 
+#, python-format
+msgid ""
+"Chart with ID %(chart_id)s (referenced by annotation layer "
+"'%(layer_name)s') was not found. Please verify that the chart exists and "
+"is accessible."
+msgstr ""
+
 msgid "Charts"
 msgstr "Grafieken"
 
@@ -4354,6 +4364,10 @@ msgstr "Kleur op"
 #, fuzzy
 msgid "Color field must be a hex color (#rrggbb) or 'rgb(r, g, b)'"
 msgstr "Het kleurveld moet een hexadecimale kleur (#rrggbb) of 'rgb(r, g, b)' zijn"
+
+#, python-format
+msgid "Color for %s"
+msgstr ""
 
 msgid "Color for bars on the left side of the chart"
 msgstr ""
@@ -9292,6 +9306,11 @@ msgstr "Ongeldige breedtegraad/lengtegraad configuratie."
 msgid "Invalid JSON metadata"
 msgstr "JSON metadata"
 
+msgid ""
+"Invalid JSON metadata. Please resolve syntax errors in Advanced settings "
+"to use the GUI."
+msgstr ""
+
 #, fuzzy, python-format
 msgid "Invalid SQL: %(error)s"
 msgstr "Ongeldige numpy functie: %(operator)s"
@@ -9596,6 +9615,9 @@ msgstr "Kilometers"
 
 msgid "Label"
 msgstr "Label"
+
+msgid "Label Colors"
+msgstr ""
 
 msgid "Label Contents"
 msgstr "Label Inhoud"
@@ -10268,6 +10290,9 @@ msgstr "Live render"
 
 msgid "Map Style"
 msgstr "Kaart Stijl"
+
+msgid "Map specific labels to colors. This automatically updates the JSON below."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
@@ -11099,6 +11124,9 @@ msgstr "Geen beschikbare filters."
 
 #, python-format
 msgid "No charts or dashboards depend on the selected %s."
+msgstr ""
+
+msgid "No color mappings defined. Click \"+ Add more\" to get started."
 msgstr ""
 
 msgid "No columns found"
@@ -12948,6 +12976,9 @@ msgstr "Systeem donker thema verwijderen"
 msgid "Remove System Default Theme"
 msgstr "Ververs de standaard waarden"
 
+msgid "Remove color mapping"
+msgstr ""
+
 msgid "Remove cross-filter"
 msgstr "Verwijder cross-filter"
 
@@ -14392,6 +14423,9 @@ msgstr ""
 #, fuzzy
 msgid "Select or type a custom value..."
 msgstr "Selecteer of typ een waarde"
+
+msgid "Select or type a label"
+msgstr ""
 
 msgid "Select or type currency symbol"
 msgstr "Selecteer of typ valuta symbool"
@@ -17121,6 +17155,13 @@ msgid "The query contains one or more malformed template parameters."
 msgstr "De query bevat een of meer ongeldige sjabloonparameters."
 
 msgid "The query context datasource does not match the chart datasource"
+msgstr ""
+
+#, python-format
+msgid ""
+"The query context for chart ID %(chart_id)s (referenced by annotation "
+"layer '%(layer_name)s') was not found. Please ensure the chart is "
+"properly configured and has a valid query context."
 msgstr ""
 
 msgid "The query couldn't be loaded"
@@ -21056,7 +21097,18 @@ msgid ""
 "SUPERSET_DASHBOARD_POSITION_DATA_LIMIT config setting."
 msgstr ""
 
-msgid "Your export is being prepared. You'll receive an email when it's ready."
+msgid ""
+"Your export is being generated and will download automatically when "
+"ready. We'll also email you a download link."
+msgstr ""
+
+msgid "Your export is being generated. Please, do not leave the page."
+msgstr ""
+
+msgid "Your export is ready and downloading."
+msgstr ""
+
+msgid "Your export is taking longer than expected. Try again later."
 msgstr ""
 
 #, python-format

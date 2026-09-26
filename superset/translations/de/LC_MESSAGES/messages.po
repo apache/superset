@@ -18,7 +18,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-23 12:43+0200\n"
+"POT-Creation-Date: 2026-09-24 11:54+0000\n"
 "PO-Revision-Date: 2023-04-07 19:45+0200\n"
 "Last-Translator: Holger Bruch <holger.bruch@wattbewerb.de>\n"
 "Language: de\n"
@@ -27,7 +27,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Generated-By: Babel 2.17.0\n"
+"Generated-By: Babel 2.10.3\n"
 
 #, python-format
 msgid ""
@@ -1440,6 +1440,9 @@ msgid "Add metrics to dataset in \"Edit datasource\" modal"
 msgstr ""
 "Fügen Sie Metriken im Dialog \"Datenquelle bearbeiten\" zum Datensatz "
 "hinzu"
+
+msgid "Add more"
+msgstr ""
 
 msgid "Add new color formatter"
 msgstr "Neuen Farbformatierer hinzufügen"
@@ -3614,6 +3617,13 @@ msgstr ""
 msgid "Chart width"
 msgstr "Diagrammbreite"
 
+#, python-format
+msgid ""
+"Chart with ID %(chart_id)s (referenced by annotation layer "
+"'%(layer_name)s') was not found. Please verify that the chart exists and "
+"is accessible."
+msgstr ""
+
 msgid "Charts"
 msgstr "Diagramme"
 
@@ -4036,6 +4046,10 @@ msgid "Color field must be a hex color (#rrggbb) or 'rgb(r, g, b)'"
 msgstr ""
 "Das Farbfeld muss eine Hexadezimalfarbe (#rrggbb) oder 'rgb(r, g, b)' "
 "sein."
+
+#, python-format
+msgid "Color for %s"
+msgstr ""
 
 msgid "Color for bars on the left side of the chart"
 msgstr ""
@@ -8485,6 +8499,11 @@ msgstr "Ungültige JSON-Konfiguration."
 msgid "Invalid JSON metadata"
 msgstr "Ungültige JSON-Metadaten"
 
+msgid ""
+"Invalid JSON metadata. Please resolve syntax errors in Advanced settings "
+"to use the GUI."
+msgstr ""
+
 #, python-format
 msgid "Invalid SQL: %(error)s"
 msgstr "Ungültiges SQL: %(error)s"
@@ -8769,6 +8788,9 @@ msgstr "Kilometer"
 
 msgid "Label"
 msgstr "Beschriftung"
+
+msgid "Label Colors"
+msgstr ""
 
 msgid "Label Contents"
 msgstr "Beschriftungsinhalt"
@@ -9379,6 +9401,9 @@ msgstr "Kartenrenderer"
 
 msgid "Map Style"
 msgstr "Karten Stil"
+
+msgid "Map specific labels to colors. This automatically updates the JSON below."
+msgstr ""
 
 msgid "MapLibre (open-source)"
 msgstr "MapLibre (Open Source)"
@@ -10114,6 +10139,9 @@ msgstr "Keine Filter verfügbar."
 
 #, python-format
 msgid "No charts or dashboards depend on the selected %s."
+msgstr ""
+
+msgid "No color mappings defined. Click \"+ Add more\" to get started."
 msgstr ""
 
 msgid "No columns found"
@@ -11844,6 +11872,9 @@ msgstr "Dunkles Systemdesign entfernen"
 msgid "Remove System Default Theme"
 msgstr "Standard Systemdesign entfernen"
 
+msgid "Remove color mapping"
+msgstr ""
+
 msgid "Remove cross-filter"
 msgstr "Kreuzfilter entfernen"
 
@@ -13185,6 +13216,9 @@ msgstr ""
 
 msgid "Select or type a custom value..."
 msgstr "Wert eingeben oder auswählen..."
+
+msgid "Select or type a label"
+msgstr ""
 
 msgid "Select or type currency symbol"
 msgstr "Währungssymbol auswählen oder eingeben"
@@ -15640,6 +15674,13 @@ msgid "The query contains one or more malformed template parameters."
 msgstr "Die Abfrage enthält einen oder mehrere fehlerhafte Vorlagenparameter."
 
 msgid "The query context datasource does not match the chart datasource"
+msgstr ""
+
+#, python-format
+msgid ""
+"The query context for chart ID %(chart_id)s (referenced by annotation "
+"layer '%(layer_name)s') was not found. Please ensure the chart is "
+"properly configured and has a valid query context."
 msgstr ""
 
 msgid "The query couldn't be loaded"
@@ -19310,7 +19351,18 @@ msgid ""
 "SUPERSET_DASHBOARD_POSITION_DATA_LIMIT config setting."
 msgstr ""
 
-msgid "Your export is being prepared. You'll receive an email when it's ready."
+msgid ""
+"Your export is being generated and will download automatically when "
+"ready. We'll also email you a download link."
+msgstr ""
+
+msgid "Your export is being generated. Please, do not leave the page."
+msgstr ""
+
+msgid "Your export is ready and downloading."
+msgstr ""
+
+msgid "Your export is taking longer than expected. Try again later."
 msgstr ""
 
 #, python-format
