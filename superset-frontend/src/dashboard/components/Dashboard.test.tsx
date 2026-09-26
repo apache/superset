@@ -36,6 +36,7 @@ import dashboardState from 'spec/fixtures/mockDashboardState';
 import { sliceEntitiesForChart as sliceEntities } from 'spec/fixtures/mockSliceEntities';
 import { getAllActiveFilters } from 'src/dashboard/util/activeAllDashboardFilters';
 import { getRelatedCharts } from 'src/dashboard/util/getRelatedCharts';
+import { LOG_ACTIONS_MOUNT_DASHBOARD } from 'src/logger/LogUtils';
 
 // Test mock data doesn't perfectly match strict component prop types,
 // so we use a loosely-typed wrapper for test rendering
@@ -116,6 +117,18 @@ describe('Dashboard', () => {
   test('should render the children component', () => {
     renderDashboard();
     expect(screen.getByText('Test')).toBeInTheDocument();
+  });
+
+  test('should log a mount event on mount with the edit/publish state', () => {
+    renderDashboard({ editMode: true, isPublished: false });
+
+    expect(mockLogEvent).toHaveBeenCalledWith(
+      LOG_ACTIONS_MOUNT_DASHBOARD,
+      expect.objectContaining({
+        is_edit_mode: true,
+        is_published: false,
+      }),
+    );
   });
 
   // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
