@@ -103,6 +103,12 @@ def monkeypatch_dialect() -> None:
     Since the DatabricksDialect.colspecs points to the base class (HiveDialect.colspecs)
     we can't patch it without affecting other Hive-based dialects. The solution is to
     introduce a dialect-aware string type so that the change applies only to Databricks.
+
+    PyHive's HiveDialect does not define ``colspecs``, so ``HiveDialect.colspecs`` is
+    SQLAlchemy's ``DefaultDialect.colspecs`` dict, shared by every dialect that does
+    not define its own. The patch therefore gives HiveDialect its own copy instead of
+    writing to the shared dict, which would change the string types of unrelated
+    dialects (and make ``sa.Enum`` fail to adapt on them).
     """
     try:
         from pyhive.sqlalchemy_hive import HiveDialect
@@ -118,7 +124,14 @@ def monkeypatch_dialect() -> None:
                     return DatabricksStringType().literal_processor(dialect)
                 return super().literal_processor(dialect)
 
-        HiveDialect.colspecs[types.String] = ContextAwareStringType
+        # Copy, never write to the shared parent dict. Enum is a String subclass;
+        # map it to itself so it is not adapted to the decorator, which cannot
+        # take Enum's arguments.
+        HiveDialect.colspecs = {
+            **HiveDialect.colspecs,
+            types.String: ContextAwareStringType,
+            types.Enum: types.Enum,
+        }
 
     except ImportError:
         pass

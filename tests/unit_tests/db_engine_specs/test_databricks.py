@@ -1198,3 +1198,41 @@ def test_get_engine_spec_unrecognized_driver_prefers_python_connector() -> None:
         get_engine_spec("databricks", "databricks-sql-python")
         is DatabricksPythonConnectorEngineSpec
     )
+
+
+def test_monkeypatch_dialect_leaves_shared_colspecs_alone() -> None:
+    """
+    The Databricks string patch must not reach dialects outside the Hive family.
+
+    PyHive's HiveDialect inherits SQLAlchemy's shared ``DefaultDialect.colspecs``;
+    writing to it changed String/Unicode/Text/Enum handling for every dialect that
+    does not define its own ``colspecs``.
+    """
+    import enum
+
+    import sqlalchemy as sa
+    from sqlalchemy.engine.default import DefaultDialect
+
+    pyhive = pytest.importorskip("pyhive.sqlalchemy_hive")
+
+    from superset.db_engine_specs.databricks import monkeypatch_dialect
+
+    class Color(enum.Enum):
+        red = "red"
+
+    class OtherDialect(DefaultDialect):
+        """A dialect that relies on the shared colspecs."""
+
+    monkeypatch_dialect()  # also ran when the module was imported
+
+    assert sa.String not in DefaultDialect.colspecs
+    other = OtherDialect()
+    assert type(sa.Unicode(5).dialect_impl(other)) is sa.Unicode
+    assert type(sa.Text().dialect_impl(other)) is sa.Text
+
+    hive = pyhive.HiveDialect
+    assert hive.colspecs is not DefaultDialect.colspecs
+    assert hive.colspecs[sa.String].__name__ == "ContextAwareStringType"
+    for dialect in (other, hive()):
+        impl = sa.Enum(Color).dialect_impl(dialect)
+        assert impl.result_processor(dialect, None)("red") is Color.red
