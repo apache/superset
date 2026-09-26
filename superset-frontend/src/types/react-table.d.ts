@@ -27,6 +27,8 @@
 // types don't know about. This covers the plugin combination used by
 // ListView (useFilters, useSortBy, usePagination, useRowState, useRowSelect).
 import type {
+  UseFiltersColumnOptions,
+  UseFiltersColumnProps,
   UseFiltersInstanceProps,
   UseFiltersOptions,
   UseFiltersState,
@@ -35,10 +37,13 @@ import type {
   UsePaginationState,
   UseRowSelectInstanceProps,
   UseRowSelectOptions,
+  UseRowSelectRowProps,
   UseRowSelectState,
   UseRowStateInstanceProps,
   UseRowStateOptions,
   UseRowStateState,
+  UseSortByColumnOptions,
+  UseSortByColumnProps,
   UseSortByInstanceProps,
   UseSortByOptions,
   UseSortByState,
@@ -68,4 +73,15 @@ declare module 'react-table' {
       UsePaginationState<D>,
       UseRowStateState<D>,
       UseRowSelectState<D> {}
+
+  // Row-level and column-level props/options only exist for plugins
+  // ListView actually reads/passes; add more here only as new
+  // row/column-level accessors are needed.
+  export interface Row<D extends object> extends UseRowSelectRowProps<D> {}
+
+  export interface ColumnInterface<D extends object>
+    extends UseFiltersColumnOptions<D>, UseSortByColumnOptions<D> {}
+
+  export interface ColumnInstance<D extends object>
+    extends UseFiltersColumnProps<D>, UseSortByColumnProps<D> {}
 }

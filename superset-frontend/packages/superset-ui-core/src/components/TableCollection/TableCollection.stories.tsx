@@ -25,20 +25,20 @@ import {
   Row,
   SortingRule,
   HeaderGroup,
-  ColumnInstance,
   TablePropGetter,
   TableBodyPropGetter,
 } from 'react-table';
 import TableCollection from '.';
 import { TableSize } from '../Table';
 
-// Type aliases for casting to the component's expected object-based types
-// Required because memo() loses the generic type parameter
+// Type aliases for casting to the component's expected object-based types,
+// since these stories' own useTable() calls are generic over plain `object`
+// rather than a concrete row type. `columns` needs no cast: the
+// `ColumnInstance` shape `useTable()` returns satisfies `ListViewColumn`.
 type AnyProps = TablePropGetter<object>;
 type AnyBodyProps = TableBodyPropGetter<object>;
 type AnyHeaders = HeaderGroup<object>[];
 type AnyRows = Row<object>[];
-type AnyColumns = ColumnInstance<object>[];
 type AnyPrepareRow = (row: Row<object>) => void;
 
 export default {
@@ -100,7 +100,7 @@ export const Basic: StoryFn = () => {
       getTableBodyProps={getTableBodyProps as AnyBodyProps}
       headerGroups={headerGroups as AnyHeaders}
       rows={rows as AnyRows}
-      columns={tableColumns as AnyColumns}
+      columns={tableColumns}
       prepareRow={prepareRow as AnyPrepareRow}
       loading={false}
       totalCount={rows.length}
@@ -159,7 +159,7 @@ export const WithPagination: StoryFn = () => {
       getTableBodyProps={getTableBodyProps as AnyBodyProps}
       headerGroups={headerGroups as AnyHeaders}
       rows={rows as AnyRows}
-      columns={tableColumns as AnyColumns}
+      columns={tableColumns}
       prepareRow={prepareRow as AnyPrepareRow}
       loading={false}
       pageIndex={pageIndex}
@@ -244,7 +244,7 @@ export const WithRowSelection: StoryFn = () => {
         getTableBodyProps={getTableBodyProps as AnyBodyProps}
         headerGroups={headerGroups as AnyHeaders}
         rows={rows as AnyRows}
-        columns={tableColumns as AnyColumns}
+        columns={tableColumns}
         prepareRow={prepareRow as AnyPrepareRow}
         loading={false}
         bulkSelectEnabled
@@ -297,7 +297,7 @@ export const LoadingState: StoryFn = () => {
       getTableBodyProps={getTableBodyProps as AnyBodyProps}
       headerGroups={headerGroups as AnyHeaders}
       rows={rows as AnyRows}
-      columns={tableColumns as AnyColumns}
+      columns={tableColumns}
       prepareRow={prepareRow as AnyPrepareRow}
       loading
       totalCount={0}
@@ -354,7 +354,7 @@ export const TableSizes: StoryFn = () => {
               getTableBodyProps={getTableBodyProps as AnyBodyProps}
               headerGroups={headerGroups as AnyHeaders}
               rows={rows as AnyRows}
-              columns={tableColumns as AnyColumns}
+              columns={tableColumns}
               prepareRow={prepareRow as AnyPrepareRow}
               loading={false}
               size={size}
@@ -438,7 +438,7 @@ export const WithControlledSorting: StoryFn = () => {
         getTableBodyProps={getTableBodyProps as AnyBodyProps}
         headerGroups={headerGroups as AnyHeaders}
         rows={rows as AnyRows}
-        columns={tableColumns as AnyColumns}
+        columns={tableColumns}
         prepareRow={prepareRow as AnyPrepareRow}
         loading={false}
         setSortBy={setSortBy}
@@ -509,7 +509,7 @@ export const WithRowHighlighting: StoryFn = () => {
         getTableBodyProps={getTableBodyProps as AnyBodyProps}
         headerGroups={headerGroups as AnyHeaders}
         rows={rows as AnyRows}
-        columns={tableColumns as AnyColumns}
+        columns={tableColumns}
         prepareRow={prepareRow as AnyPrepareRow}
         loading={false}
         highlightRowId={highlightRowId}

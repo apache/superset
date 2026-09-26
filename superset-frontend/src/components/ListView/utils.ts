@@ -26,6 +26,7 @@ import {
   useSortBy,
   useTable,
 } from 'react-table';
+import type { ListViewColumn } from '@superset-ui/core/components/TableCollection';
 
 import {
   NumberParam,
@@ -175,7 +176,7 @@ export function convertFiltersRison(
 
 interface UseListViewConfig<D extends object = any> {
   fetchData: (conf: FetchDataConfig) => void;
-  columns: Column<D>[];
+  columns: ListViewColumn<D>[];
   data: D[];
   count: number;
   initialPageSize: number;
@@ -272,7 +273,10 @@ export function useListViewState<D extends object = any>({
     state: { pageIndex, pageSize, sortBy, filters },
   } = useTable<D>(
     {
-      columns: columnsWithFilter,
+      // ListViewColumn is intentionally looser than react-table's own
+      // Column<D> (see its definition for why); react-table only reads
+      // these fields at runtime and doesn't care about the stricter typing.
+      columns: columnsWithFilter as unknown as Column<D>[],
       data,
       disableFilters: true,
       disableSortRemove: true,
