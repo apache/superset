@@ -173,7 +173,10 @@ const FILTER_SETTINGS_REGEX = /^filter settings$/i;
 const DEFAULT_VALUE_REGEX = /^filter has default value$/i;
 const MULTIPLE_REGEX = /^can select multiple values$/i;
 const FILTER_REQUIRED_REGEX = /^filter value is required/i;
-const DEPENDENCIES_REGEX = /^values are dependent on other filters$/i;
+// No trailing `$`: like the other tooltip-bearing checkboxes below, the
+// accessible name includes the trailing info icon (e.g. "... other filters
+// info-circle"), so an exact-end anchor would never match.
+const DEPENDENCIES_REGEX = /^values are dependent on other filters/i;
 const FIRST_VALUE_REGEX = /^select first filter value by default/i;
 const INVERSE_SELECTION_REGEX = /^inverse selection/i;
 const SEARCH_ALL_REGEX = /^dynamically search all filter values/i;
@@ -531,6 +534,28 @@ test('deletes a filter including dependencies', async () => {
     ),
   );
 }, 30000);
+
+test('shows the dependency control on first render for a saved cascade filter', () => {
+  const nativeFilterConfig = [
+    buildNativeFilter('NATIVE_FILTER-1', 'state', ['NATIVE_FILTER-2']),
+    buildNativeFilter('NATIVE_FILTER-2', 'country', []),
+  ];
+  const state = {
+    ...defaultState(),
+    dashboardInfo: {
+      metadata: {
+        native_filter_configuration: nativeFilterConfig,
+      },
+    },
+    dashboardLayout,
+  };
+  defaultRender(state, { ...props, createNewOnOpen: false });
+
+  // No interaction: the dependency control and its saved parent must be
+  // visible as soon as the modal opens on a filter that already has a
+  // cascade parent, without waiting for a rerender.
+  expect(getCheckbox(DEPENDENCIES_REGEX)).toBeChecked();
+});
 
 const SORTABLE_ITEM_HEIGHT = 40;
 const SORTABLE_ITEM_WIDTH = 200;

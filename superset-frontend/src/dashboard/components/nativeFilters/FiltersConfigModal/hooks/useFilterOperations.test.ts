@@ -16,8 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { renderHook } from '@testing-library/react';
 import { Behavior } from '@superset-ui/core';
-import { filterSupportsDependencies } from './useFilterOperations';
+import {
+  filterSupportsDependencies,
+  useFilterOperations,
+  FilterOperationsParams,
+} from './useFilterOperations';
 
 const mockItems: Record<string, { value: Record<string, unknown> }> = {
   filter_select: {
@@ -88,4 +93,48 @@ test('filterSupportsDependencies falls back to NativeFilter behavior when unset'
 test('filterSupportsDependencies returns false for an unknown or missing filterType', () => {
   expect(filterSupportsDependencies('unknown_type')).toBe(false);
   expect(filterSupportsDependencies(undefined)).toBe(false);
+});
+
+function renderFilterOperations(
+  filters: Record<string, { filterType: string; dependencies?: string[] }>,
+) {
+  const params: FilterOperationsParams = {
+    form: {
+      getFieldValue: () => filters,
+    } as unknown as FilterOperationsParams['form'],
+    filterState: {
+      removedItems: {},
+    } as unknown as FilterOperationsParams['filterState'],
+    filterIds: Object.keys(filters),
+    filterConfigMap: {},
+    handleModifyItem: jest.fn(),
+    setActiveItem: jest.fn(),
+    setSaveAlertVisible: jest.fn(),
+  };
+  return renderHook(() => useFilterOperations(params)).result;
+}
+
+test('buildDependencyMap drops a parent id whose filter type no longer supports dependencies', () => {
+  // "parent" was a Select filter when "child" was configured to depend on
+  // it, then the user changed "parent" to Time grain within the same
+  // editing session (before saving) - the stale edge should not linger.
+  const result = renderFilterOperations({
+    parent: { filterType: 'filter_timegrain' },
+    child: { filterType: 'filter_select', dependencies: ['parent'] },
+  });
+
+  const dependencyMap = result.current.buildDependencyMap();
+
+  expect(dependencyMap.get('child')).toEqual([]);
+});
+
+test('buildDependencyMap keeps a parent id whose filter type still supports dependencies', () => {
+  const result = renderFilterOperations({
+    parent: { filterType: 'filter_select' },
+    child: { filterType: 'filter_select', dependencies: ['parent'] },
+  });
+
+  const dependencyMap = result.current.buildDependencyMap();
+
+  expect(dependencyMap.get('child')).toEqual(['parent']);
 });

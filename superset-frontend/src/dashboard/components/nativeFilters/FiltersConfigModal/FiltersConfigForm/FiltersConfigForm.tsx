@@ -477,9 +477,11 @@ const FiltersConfigForm = (
     formFilter?.filterType,
   );
 
-  const canDependOnOtherFilters = filterSupportsDependencies(
-    formFilter?.filterType,
-  );
+  // Use itemTypeField, not formFilter?.filterType directly: the latter can
+  // be undefined on the first render before the antd Form hydrates (see
+  // itemTypeField's own fallback chain above), which would otherwise hide
+  // this section for a filter type that does support cascade dependencies.
+  const canDependOnOtherFilters = filterSupportsDependencies(itemTypeField);
 
   const isDataDirty = formFilter?.isDataDirty ?? true;
 
