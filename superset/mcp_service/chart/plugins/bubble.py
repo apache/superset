@@ -103,7 +103,7 @@ class BubbleChartPlugin(BaseChartPlugin):
         return "bubble_v2"
 
     def normalize_column_refs(self, config: Any, dataset_context: Any) -> Any:
-        config_dict = config.model_dump()
+        config_dict = config.model_dump(exclude_unset=True)
 
         for key in ("entity", "series"):
             col = config_dict.get(key)
@@ -126,7 +126,9 @@ class BubbleChartPlugin(BaseChartPlugin):
                     metric["name"], dataset_context
                 )
         DatasetValidator.normalize_filters(config_dict, dataset_context)
-        return BubbleChartConfig.model_validate(config_dict)
+        normalized = BubbleChartConfig.model_validate(config_dict)
+        normalized.__pydantic_fields_set__ = set(config.model_fields_set)
+        return normalized
 
     def schema_error_hint(self) -> ChartGenerationError | None:
         return ChartGenerationError(

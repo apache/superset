@@ -566,13 +566,31 @@ def test_resolve_deck_gl_columns_ignores_tooltip_contents():
     assert "category" not in cols
 
 
-def test_resolve_deck_gl_columns_ignores_cross_filter_column():
+def test_resolve_deck_gl_columns_includes_geojson_cross_filter_column():
     form_data = {
+        "viz_type": "deck_geojson",
+        "geojson": "geometry",
+        "cross_filter_column": "region",
+    }
+    assert resolve_deck_gl_columns(form_data) == ["geometry", "region"]
+
+
+def test_resolve_deck_gl_columns_includes_polygon_cross_filter_once():
+    form_data = {
+        "viz_type": "deck_polygon",
+        "line_column": "geometry",
+        "cross_filter_column": "geometry",
+    }
+    assert resolve_deck_gl_columns(form_data) == ["geometry"]
+
+
+def test_resolve_deck_gl_columns_ignores_other_layers_cross_filter_column():
+    form_data = {
+        "viz_type": "deck_scatter",
         "spatial": {"type": "latlong", "lonCol": "lon", "latCol": "lat"},
         "cross_filter_column": "region",
     }
-    cols = resolve_deck_gl_columns(form_data)
-    assert "region" not in cols
+    assert resolve_deck_gl_columns(form_data) == ["lon", "lat"]
 
 
 # ---------------------------------------------------------------------------
@@ -767,11 +785,11 @@ def test_build_query_dicts_deck_scatter_adds_null_filters_by_default(monkeypatch
 
     queries = build_query_dicts_from_form_data(form_data, 1, "table")
 
-    assert {"col": "lon", "op": "IS NOT NULL", "val": ""} in queries[0]["filters"]
-    assert {"col": "lat", "op": "IS NOT NULL", "val": ""} in queries[0]["filters"]
+    assert {"col": "lon", "op": "IS NOT NULL", "val": None} in queries[0]["filters"]
+    assert {"col": "lat", "op": "IS NOT NULL", "val": None} in queries[0]["filters"]
 
 
-def test_build_query_dicts_deck_scatter_filter_nulls_false(monkeypatch):
+def test_build_query_dicts_deck_scatter_ignores_legacy_filter_nulls(monkeypatch):
     monkeypatch.setattr(
         "superset.mcp_service.chart.chart_helpers.resolve_datasource_engine",
         lambda datasource_id, datasource_type: "base",
@@ -785,10 +803,10 @@ def test_build_query_dicts_deck_scatter_filter_nulls_false(monkeypatch):
 
     queries = build_query_dicts_from_form_data(form_data, 1, "table")
 
-    null_filters = [
-        f for f in queries[0].get("filters", []) if f.get("op") == "IS NOT NULL"
+    assert queries[0]["filters"] == [
+        {"col": "lon", "op": "IS NOT NULL", "val": None},
+        {"col": "lat", "op": "IS NOT NULL", "val": None},
     ]
-    assert null_filters == []
 
 
 def test_build_query_dicts_deck_scatter_point_radius_fixed_metric(monkeypatch):
@@ -832,8 +850,9 @@ def test_build_query_dicts_deck_geojson_scalar_size_produces_no_metrics(monkeypa
     assert queries[0]["metrics"] == []
 
 
-def test_build_query_dicts_deck_path_scalar_size_produces_no_metrics(monkeypatch):
-    # deck_path fixture also has size='100' — scalar must not become a metric.
+def test_build_query_dicts_deck_path_ignores_fixed_size(monkeypatch):
+    # The shared extractor treats every string size value as a metric before
+    # Path's native adapter runs, including stale values from another layer.
     monkeypatch.setattr(
         "superset.mcp_service.chart.chart_helpers.resolve_datasource_engine",
         lambda datasource_id, datasource_type: "base",
@@ -848,6 +867,7 @@ def test_build_query_dicts_deck_path_scalar_size_produces_no_metrics(monkeypatch
     queries = build_query_dicts_from_form_data(form_data, 1, "table")
 
     assert queries[0]["metrics"] == []
+    assert queries[0]["columns"] == ["path_col"]
 
 
 def test_build_query_dicts_deck_geojson_adds_geojson_null_filter(monkeypatch):
@@ -864,9 +884,7 @@ def test_build_query_dicts_deck_geojson_adds_geojson_null_filter(monkeypatch):
 
     queries = build_query_dicts_from_form_data(form_data, 1, "table")
 
-    assert {"col": "geometry_col", "op": "IS NOT NULL", "val": ""} in queries[0][
-        "filters"
-    ]
+    assert {"col": "geometry_col", "op": "IS NOT NULL"} in queries[0]["filters"]
 
 
 def test_build_query_dicts_deck_hex_string_metric(monkeypatch):
@@ -905,6 +923,24 @@ def test_build_query_dicts_deck_scatter_string_point_radius_fixed(monkeypatch):
     assert queries[0]["metrics"] == ["count"]
 
 
+def test_build_query_dicts_deck_scatter_numeric_radius_is_not_metric(monkeypatch):
+    monkeypatch.setattr(
+        "superset.mcp_service.chart.chart_helpers.resolve_datasource_engine",
+        lambda datasource_id, datasource_type: "base",
+    )
+    form_data = {
+        "viz_type": "deck_scatter",
+        "spatial": {"type": "latlong", "lonCol": "lon", "latCol": "lat"},
+        "point_radius_fixed": "100",
+        "adhoc_filters": [],
+    }
+
+    queries = build_query_dicts_from_form_data(form_data, 1, "table")
+
+    assert queries[0]["metrics"] == []
+    assert queries[0]["orderby"] == []
+
+
 def test_build_query_dicts_deck_hex_orderby_when_metrics_present(monkeypatch):
     # Mirrors BaseDeckGLViz.query_obj(): orderby set from first metric (desc by default)
     monkeypatch.setattr(
@@ -921,7 +957,7 @@ def test_build_query_dicts_deck_hex_orderby_when_metrics_present(monkeypatch):
 
     queries = build_query_dicts_from_form_data(form_data, 1, "table")
 
-    assert queries[0]["orderby"] == [(metric, False)]
+    assert queries[0]["orderby"] == [[metric, False]]
 
 
 def test_build_query_dicts_deck_scatter_no_orderby_without_metrics(monkeypatch):
@@ -938,7 +974,7 @@ def test_build_query_dicts_deck_scatter_no_orderby_without_metrics(monkeypatch):
 
     queries = build_query_dicts_from_form_data(form_data, 1, "table")
 
-    assert "orderby" not in queries[0]
+    assert queries[0]["orderby"] == []
 
 
 def test_build_query_dicts_deck_arc_time_grain(monkeypatch):
@@ -949,7 +985,11 @@ def test_build_query_dicts_deck_arc_time_grain(monkeypatch):
     )
     form_data = {
         "viz_type": "deck_arc",
-        "spatial": {"type": "latlong", "lonCol": "start_lon", "latCol": "start_lat"},
+        "start_spatial": {
+            "type": "latlong",
+            "lonCol": "start_lon",
+            "latCol": "start_lat",
+        },
         "end_spatial": {
             "type": "latlong",
             "lonCol": "end_lon",
@@ -967,8 +1007,8 @@ def test_build_query_dicts_deck_arc_time_grain(monkeypatch):
     assert queries[0].get("extras", {}).get("time_grain_sqla") == "P1D"
 
 
-def test_build_query_dicts_deck_geojson_ignores_time_grain(monkeypatch):
-    # deck_geojson is not in _DECK_TIMESERIES_VIZ_TYPES; time grain fields not added
+def test_build_query_dicts_deck_geojson_retains_shared_time_grain(monkeypatch):
+    # GeoJSON forces non-timeseries execution but retains shared query extras.
     monkeypatch.setattr(
         "superset.mcp_service.chart.chart_helpers.resolve_datasource_engine",
         lambda datasource_id, datasource_type: "base",
@@ -983,8 +1023,8 @@ def test_build_query_dicts_deck_geojson_ignores_time_grain(monkeypatch):
 
     queries = build_query_dicts_from_form_data(form_data, 1, "table")
 
-    assert "is_timeseries" not in queries[0]
-    assert queries[0].get("extras", {}).get("time_grain_sqla") is None
+    assert queries[0]["is_timeseries"] is False
+    assert queries[0]["extras"]["time_grain_sqla"] == "P1D"
 
 
 def test_resolve_metrics_plural():
@@ -1148,12 +1188,13 @@ def test_big_number_trendline_query_preserves_time_filter_and_aggregation(
         "table",
     )[0]
 
-    assert query == {
-        "columns": ["event_time"],
-        "metrics": ["count"],
-        "filters": [{"col": "region", "op": "==", "val": "EMEA"}],
-        "time_range": "Last week",
-    }
+    assert query["metrics"] == ["count"]
+    assert query["filters"] == [{"col": "region", "op": "==", "val": "EMEA"}]
+    assert query["time_range"] == "Last week"
+    # The trendline keeps its temporal dimension through the legacy granularity
+    # binding rather than a groupby column, matching buildQuery.
+    assert query["granularity"] == "event_time"
+    assert query["is_timeseries"] is True
 
 
 @pytest.mark.parametrize(
@@ -1168,9 +1209,34 @@ def test_big_number_trendline_query_preserves_time_filter_and_aggregation(
             },
             [
                 {
-                    "columns": ["event_time", "region"],
+                    "columns": [
+                        {
+                            "columnType": "BASE_AXIS",
+                            "sqlExpression": "event_time",
+                            "label": "event_time",
+                            "expressionType": "SQL",
+                            "isColumnReference": True,
+                        },
+                        "region",
+                    ],
                     "metrics": ["count"],
                     "filters": [],
+                    "series_columns": ["region"],
+                    "orderby": [["count", False]],
+                    "post_processing": [
+                        {
+                            "operation": "pivot",
+                            "options": {
+                                "index": ["event_time"],
+                                "columns": ["region"],
+                                "aggregates": {"count": {"operator": "mean"}},
+                                "drop_missing_columns": True,
+                            },
+                        },
+                        {"operation": "flatten"},
+                    ],
+                    "time_offsets": [],
+                    "time_compare_full_range": False,
                 }
             ],
         ),
@@ -1182,11 +1248,34 @@ def test_big_number_trendline_query_preserves_time_filter_and_aggregation(
                 "columns": ["stale_raw_column"],
                 "metrics": ["count"],
             },
-            [{"columns": ["region"], "metrics": ["count"], "filters": []}],
+            [
+                {
+                    "columns": ["region"],
+                    "metrics": ["count"],
+                    "filters": [],
+                    "orderby": [["count", False]],
+                    "time_offsets": [],
+                }
+            ],
         ),
         (
             {"viz_type": "pie", "groupby": ["region"], "metric": "count"},
-            [{"columns": ["region"], "metrics": ["count"], "filters": []}],
+            [
+                {
+                    "columns": ["region"],
+                    "metrics": ["count"],
+                    "filters": [],
+                    "post_processing": [
+                        {
+                            "operation": "contribution",
+                            "options": {
+                                "columns": ["count"],
+                                "rename_columns": ["count__contribution"],
+                            },
+                        }
+                    ],
+                }
+            ],
         ),
         (
             {
@@ -1196,9 +1285,11 @@ def test_big_number_trendline_query_preserves_time_filter_and_aggregation(
             },
             [
                 {
-                    "columns": ["region", "product"],
+                    "columns": [],
                     "metrics": ["count"],
                     "filters": [],
+                    "orderby": [["count", False]],
+                    "grouping_sets": [[]],
                 }
             ],
         ),
@@ -1213,14 +1304,62 @@ def test_big_number_trendline_query_preserves_time_filter_and_aggregation(
             },
             [
                 {
-                    "columns": ["event_time", "region"],
+                    "columns": [
+                        {
+                            "columnType": "BASE_AXIS",
+                            "sqlExpression": "event_time",
+                            "label": "event_time",
+                            "expressionType": "SQL",
+                            "isColumnReference": True,
+                        },
+                        "region",
+                    ],
                     "metrics": ["count"],
                     "filters": [],
+                    "series_columns": ["region"],
+                    "orderby": [["count", False]],
+                    "post_processing": [
+                        {
+                            "operation": "pivot",
+                            "options": {
+                                "index": ["event_time"],
+                                "columns": ["region"],
+                                "aggregates": {"count": {"operator": "mean"}},
+                                "drop_missing_columns": True,
+                            },
+                        },
+                        {"operation": "flatten"},
+                    ],
+                    "time_offsets": [],
                 },
                 {
-                    "columns": ["event_time", "product"],
+                    "columns": [
+                        {
+                            "columnType": "BASE_AXIS",
+                            "sqlExpression": "event_time",
+                            "label": "event_time",
+                            "expressionType": "SQL",
+                            "isColumnReference": True,
+                        },
+                        "product",
+                    ],
                     "metrics": ["sum_sales"],
                     "filters": [],
+                    "series_columns": ["product"],
+                    "orderby": [["sum_sales", False]],
+                    "post_processing": [
+                        {
+                            "operation": "pivot",
+                            "options": {
+                                "index": ["event_time"],
+                                "columns": ["product"],
+                                "aggregates": {"sum_sales": {"operator": "mean"}},
+                                "drop_missing_columns": True,
+                            },
+                        },
+                        {"operation": "flatten"},
+                    ],
+                    "time_offsets": [],
                 },
             ],
         ),
@@ -1310,18 +1449,10 @@ def test_shared_query_builder_keeps_mixed_timeseries_ordering_per_query(
     ):
         primary, secondary = build_query_dicts_from_form_data(form_data, 1, "table")
 
-    assert primary == {
-        "columns": ["event_time", "region"],
-        "metrics": ["count"],
-        "orderby": [["count", True]],
-        "filters": [],
-    }
-    expected_secondary: dict[str, object] = {
-        "columns": ["event_time", "product"],
-        "metrics": ["sum_sales"],
-        "filters": [],
-    }
-    if secondary_orderby is not None:
-        expected_secondary["orderby"] = secondary_orderby
-    assert secondary == expected_secondary
+    assert primary["metrics"] == ["count"]
+    assert primary["orderby"] == [["count", True]]
+    assert secondary["metrics"] == ["sum_sales"]
+    # Query B never inherits query A's ordering: it uses orderby_b when given,
+    # and otherwise falls back to its own metric.
+    assert secondary["orderby"] == (secondary_orderby or [["sum_sales", False]])
     assert form_data["orderby"] == [["count", True]]

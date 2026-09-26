@@ -41,6 +41,7 @@ class MixedTimeseriesChartPlugin(BaseChartPlugin):
     native_viz_types: ClassVar[Mapping[str, str]] = {
         "mixed_timeseries": "Mixed Timeseries Chart",
     }
+    query_role_keys = BaseChartPlugin.query_role_keys
 
     def pre_validate(
         self,

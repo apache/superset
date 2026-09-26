@@ -47,7 +47,7 @@ def _serialize_query(
 
 def set_query_context_form_data(
     query_context: QueryContext,
-    datasource_id: int,
+    datasource_id: int | str,
     datasource_type: str,
 ) -> None:
     """Expose a programmatically-created query like a chart data API request."""

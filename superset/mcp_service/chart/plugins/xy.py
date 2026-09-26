@@ -53,6 +53,7 @@ class XYChartPlugin(BaseChartPlugin):
         "echarts_area": "Area Chart",
         "echarts_timeseries_scatter": "Scatter Plot",
     }
+    query_role_keys = BaseChartPlugin.query_role_keys | {"x_axis"}
 
     def pre_validate(
         self,

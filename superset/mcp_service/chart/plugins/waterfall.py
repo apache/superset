@@ -41,6 +41,7 @@ class WaterfallChartPlugin(BaseChartPlugin):
     native_viz_types: ClassVar[Mapping[str, str]] = {
         "waterfall": "Waterfall Chart",
     }
+    query_role_keys = BaseChartPlugin.query_role_keys | {"x_axis"}
 
     def pre_validate(
         self,

@@ -42,6 +42,7 @@ class TableChartPlugin(BaseChartPlugin):
         "table": "Table",
         "ag-grid-table": "Interactive Table",
     }
+    query_role_keys = BaseChartPlugin.query_role_keys | {"percent_metrics"}
 
     def pre_validate(
         self,
@@ -128,6 +129,7 @@ class TableChartPlugin(BaseChartPlugin):
                 raw_column_names.get(label, label): column_config
                 for label, column_config in config.column_config.items()
             }
+            normalized.__pydantic_fields_set__.add("column_config")
         return normalized
 
     def schema_error_hint(self) -> ChartGenerationError | None:

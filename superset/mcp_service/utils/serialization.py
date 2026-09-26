@@ -51,6 +51,8 @@ import base64
 import math
 from collections.abc import Mapping
 from datetime import date, datetime, time, timedelta
+from decimal import Decimal
+from functools import partial
 from typing import Annotated, Any
 from uuid import UUID
 
@@ -140,24 +142,31 @@ def _sanitize_scalar(value: Any) -> Any:
     return _UNHANDLED
 
 
-def _sanitize_other(value: Any, depth: int) -> Any:
+def _sanitize_other(value: Any, depth: int, preserve_decimals: bool) -> Any:
     """Sanitize containers and the long tail of warehouse value types."""
     if isinstance(value, Mapping):
         return {
             _sanitize_str(key if isinstance(key, str) else str(key)): (
-                sanitize_json_value(item, depth + 1)
+                sanitize_json_value(
+                    item, depth + 1, preserve_decimals=preserve_decimals
+                )
             )
             for key, item in value.items()
         }
     if isinstance(value, (list, tuple, set, frozenset)):
-        return [sanitize_json_value(item, depth + 1) for item in value]
+        return [
+            sanitize_json_value(item, depth + 1, preserve_decimals=preserve_decimals)
+            for item in value
+        ]
     # ``pandas.NaT`` is a ``datetime`` subclass, so the missing-value check has
     # to run before the passthrough types.
     if is_missing_value(value):
         return None
     if isinstance(value, np.generic):
         # Every numpy scalar width, not just the few base_json_conv knows.
-        return sanitize_json_value(value.item(), depth + 1)
+        return sanitize_json_value(
+            value.item(), depth + 1, preserve_decimals=preserve_decimals
+        )
     if isinstance(value, _PASSTHROUGH_TYPES):
         return value
     try:
@@ -170,24 +179,30 @@ def _sanitize_other(value: Any, depth: int) -> Any:
         # FastMCP's ``fallback=str``, which the structured-content path
         # (``to_jsonable_python``) does not apply.
         return _sanitize_str(str(value))
-    return sanitize_json_value(converted, depth + 1)
+    return sanitize_json_value(
+        converted, depth + 1, preserve_decimals=preserve_decimals
+    )
 
 
-def sanitize_json_value(value: Any, depth: int = 0) -> Any:
+def sanitize_json_value(
+    value: Any, depth: int = 0, *, preserve_decimals: bool = False
+) -> Any:
     """Return ``value`` with anything ``pydantic_core.to_json`` cannot encode
     replaced by a JSON-safe equivalent."""
+    if preserve_decimals and type(value) is Decimal:
+        return value if Decimal.is_finite(value) else None
     if (sanitized := _sanitize_scalar(value)) is not _UNHANDLED:
         return sanitized
     if depth >= MAX_DEPTH:
         return _sanitize_str(str(value))
-    return _sanitize_other(value, depth)
+    return _sanitize_other(value, depth, preserve_decimals)
 
 
-def sanitize_mapping(value: Any) -> Any:
+def sanitize_mapping(value: Any, *, preserve_decimals: bool = False) -> Any:
     """Sanitize a mapping, leaving non-mapping input to pydantic."""
     if not isinstance(value, Mapping):
         return value
-    return sanitize_json_value(value)
+    return sanitize_json_value(value, preserve_decimals=preserve_decimals)
 
 
 def coerce_optional_int(value: Any) -> Any:
@@ -223,3 +238,15 @@ JsonSafeValues = list[Annotated[Any, BeforeValidator(sanitize_json_value)]]
 RowCount = Annotated[int, BeforeValidator(coerce_int)]
 #: A nullable row count reported by the query engine.
 OptionalRowCount = Annotated[int | None, BeforeValidator(coerce_optional_int)]
+
+# Chart query validation retains exact finite Decimals. Keep that precision
+# through schema construction; Pydantic renders them as lossless JSON strings.
+ExactJsonSafeMapping = Annotated[
+    dict[str, Any], BeforeValidator(partial(sanitize_mapping, preserve_decimals=True))
+]
+ExactJsonSafeRows = list[ExactJsonSafeMapping]
+ExactJsonSafeValues = list[
+    Annotated[
+        Any, BeforeValidator(partial(sanitize_json_value, preserve_decimals=True))
+    ]
+]

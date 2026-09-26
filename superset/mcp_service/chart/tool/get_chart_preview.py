@@ -36,20 +36,24 @@ from superset.mcp_service.chart.ascii_charts import (
 )
 from superset.mcp_service.chart.chart_helpers import (
     build_query_context_from_form_data,
+    canonicalize_operation_form_data,
     find_chart_by_identifier,
 )
 from superset.mcp_service.chart.chart_utils import validate_chart_dataset
 from superset.mcp_service.chart.preview_utils import (
+    _generate_ascii_preview_from_data,
     _generate_gantt_vega_lite_preview,
+    _generate_table_preview_from_data,
     BUBBLE_VIZ_TYPES,
     generate_bubble_vega_lite_preview,
     generate_gauge_ascii_preview,
     generate_gauge_vega_lite_preview,
 )
 from superset.mcp_service.chart.query_result import (
+    first_query_data,
     normalize_chart_query_result,
-    query_result_failure,
 )
+from superset.mcp_service.chart.response_preflight import finalize_chart_response
 from superset.mcp_service.chart.schemas import (
     AccessibilityMetadata,
     ASCIIPreview,
@@ -62,6 +66,7 @@ from superset.mcp_service.chart.schemas import (
     URLPreview,
     VegaLitePreview,
 )
+from superset.mcp_service.chart.sunburst import unsupported_sunburst_preview
 from superset.mcp_service.chart.treemap_preview import treemap_ascii, treemap_vega_lite
 from superset.mcp_service.utils.oauth2_utils import (
     build_oauth2_redirect_message,
@@ -71,6 +76,13 @@ from superset.mcp_service.utils.url_utils import get_superset_base_url
 from superset.superset_typing import Column, Metric
 
 logger = logging.getLogger(__name__)
+
+
+def _finalize_response(
+    response: ChartPreview | ChartError,
+) -> ChartPreview | ChartError:
+    """Preflight every public preview response without changing its schema."""
+    return finalize_chart_response(response)
 
 
 class ChartLike(Protocol):
@@ -231,6 +243,32 @@ class PreviewFormatStrategy:
         if (dashboard_id := guest_scope.guest_dashboard_id(self.chart)) is not None:
             guest_scope.authorize_query(query_context, dashboard_id, self.chart)
 
+    def _canonical_form_data(self, form_data: dict[str, Any]) -> dict[str, Any]:
+        """Bind saved-preview identity to the resolved chart and datasource."""
+        canonical = canonicalize_operation_form_data(
+            form_data,
+            datasource_id=self.chart.datasource_id,
+            datasource_type=self.chart.datasource_type,
+            chart_id=self.chart.id,
+        )
+        if self.chart.viz_type:
+            canonical["viz_type"] = self.chart.viz_type
+        return canonical
+
+    def _seed_query_context_form_data(self, query_context: Any) -> None:
+        """Seed Flask form data before saved-preview query execution."""
+        if not hasattr(query_context, "form_data") or not isinstance(
+            getattr(query_context, "queries", None), (list, tuple)
+        ):
+            return
+        from superset.charts.data.form_data import set_query_context_form_data
+
+        set_query_context_form_data(
+            query_context,
+            self.chart.datasource_id,
+            self.chart.datasource_type,
+        )
+
 
 class URLPreviewStrategy(PreviewFormatStrategy):
     """Generate URL-based preview with explore link."""
@@ -258,7 +296,9 @@ class ASCIIPreviewStrategy(PreviewFormatStrategy):
             from superset.commands.chart.data.get_data_command import ChartDataCommand
             from superset.utils import json as utils_json
 
-            form_data = utils_json.loads(self.chart.params) if self.chart.params else {}
+            form_data = self._canonical_form_data(
+                utils_json.loads(self.chart.params) if self.chart.params else {}
+            )
 
             logger.info("Chart form_data keys: %s", list(form_data.keys()))
             logger.info("Chart viz_type: %s", self.chart.viz_type)
@@ -272,7 +312,6 @@ class ASCIIPreviewStrategy(PreviewFormatStrategy):
                     error_type="InvalidChart",
                 )
 
-            form_data["viz_type"] = self.chart.viz_type or form_data.get("viz_type")
             query_context = build_query_context_from_form_data(
                 form_data,
                 chart=self.chart,
@@ -286,19 +325,20 @@ class ASCIIPreviewStrategy(PreviewFormatStrategy):
                 return _no_query_fields_error(self.chart)
 
             self._authorize_guest_query(query_context)
+            self._seed_query_context_form_data(query_context)
             command = ChartDataCommand(query_context)
             command.validate()
             result = command.run()
 
-            if query_failure := query_result_failure(result):
-                return query_failure
             result = normalize_chart_query_result(result, form_data)
             if isinstance(result, ChartError):
                 return result
-
-            data: list[Any] = []
-            if result and "queries" in result and len(result["queries"]) > 0:
-                data = result["queries"][0].get("data") or []
+            data, result_error = first_query_data(
+                result, none_as_empty=self.chart.viz_type != "sunburst_v2"
+            )
+            if result_error is not None:
+                return result_error
+            assert data is not None
 
             if form_data.get("viz_type") == "treemap_v2":
                 ascii_chart = treemap_ascii(
@@ -308,6 +348,14 @@ class ASCIIPreviewStrategy(PreviewFormatStrategy):
                 ascii_chart = generate_gauge_ascii_preview(
                     data, form_data, self.request.ascii_width or 80
                 )
+            elif self.chart.viz_type == "sunburst_v2":
+                return _generate_ascii_preview_from_data(
+                    data,
+                    form_data,
+                    width=self.request.ascii_width or 80,
+                    height=self.request.ascii_height or 20,
+                )
+
             else:
                 ascii_chart = generate_ascii_chart(
                     data,
@@ -347,7 +395,9 @@ class TablePreviewStrategy(PreviewFormatStrategy):
             from superset.commands.chart.data.get_data_command import ChartDataCommand
             from superset.utils import json as utils_json
 
-            form_data = utils_json.loads(self.chart.params) if self.chart.params else {}
+            form_data = self._canonical_form_data(
+                utils_json.loads(self.chart.params) if self.chart.params else {}
+            )
 
             # Check if datasource_id is None
             if self.chart.datasource_id is None:
@@ -356,7 +406,6 @@ class TablePreviewStrategy(PreviewFormatStrategy):
                     error_type="InvalidChart",
                 )
 
-            form_data["viz_type"] = self.chart.viz_type or form_data.get("viz_type")
             query_context = build_query_context_from_form_data(
                 form_data,
                 chart=self.chart,
@@ -370,19 +419,23 @@ class TablePreviewStrategy(PreviewFormatStrategy):
                 return _no_query_fields_error(self.chart)
 
             self._authorize_guest_query(query_context)
+            self._seed_query_context_form_data(query_context)
             command = ChartDataCommand(query_context)
             command.validate()
             result = command.run()
 
-            if query_failure := query_result_failure(result):
-                return query_failure
             result = normalize_chart_query_result(result, form_data)
             if isinstance(result, ChartError):
                 return result
+            data, result_error = first_query_data(
+                result, none_as_empty=self.chart.viz_type != "sunburst_v2"
+            )
+            if result_error is not None:
+                return result_error
+            assert data is not None
 
-            data: list[Any] = []
-            if result and "queries" in result and len(result["queries"]) > 0:
-                data = result["queries"][0].get("data") or []
+            if self.chart.viz_type == "sunburst_v2":
+                return _generate_table_preview_from_data(data, form_data)
 
             table_data = generate_ascii_table(data, 120)
 
@@ -441,6 +494,8 @@ class VegaLitePreviewStrategy(PreviewFormatStrategy):
 
     def generate(self) -> VegaLitePreview | ChartError:  # noqa: C901
         """Generate Vega-Lite JSON specification from chart data."""
+        if self.chart.viz_type == "sunburst_v2":
+            return unsupported_sunburst_preview("Vega-Lite")
         try:
             # Get chart data directly using the same logic as get_chart_data tool
             # but without calling the MCP tool wrapper
@@ -469,15 +524,14 @@ class VegaLitePreviewStrategy(PreviewFormatStrategy):
                         error_type="ChartNotFound",
                     )
 
-                form_data = (
+                form_data = self._canonical_form_data(
                     utils_json.loads(chart_obj.params) if chart_obj.params else {}
                 )
             else:
-                form_data = (
+                form_data = self._canonical_form_data(
                     utils_json.loads(self.chart.params) if self.chart.params else {}
                 )
 
-            form_data["viz_type"] = self.chart.viz_type or form_data.get("viz_type")
             query_context = build_query_context_from_form_data(
                 form_data,
                 chart=self.chart,
@@ -489,25 +543,29 @@ class VegaLitePreviewStrategy(PreviewFormatStrategy):
 
             # Execute the query
             self._authorize_guest_query(query_context)
+            self._seed_query_context_form_data(query_context)
             command = ChartDataCommand(query_context)
             command.validate()
             result = command.run()
 
-            if query_failure := query_result_failure(result):
-                return query_failure
             result = normalize_chart_query_result(result, form_data)
             if isinstance(result, ChartError):
                 return result
+            data, result_error = first_query_data(
+                result, none_as_empty=self.chart.viz_type != "sunburst_v2"
+            )
+            if result_error is not None:
+                return result_error
+            assert data is not None
 
             # Extract data from result
-            chart_data = []
-            if result and "queries" in result and len(result["queries"]) > 0:
-                chart_data = result["queries"][0].get("data", [])
+            chart_data = data
 
             if form_data.get("viz_type") == "treemap_v2":
                 return treemap_vega_lite(chart_data, form_data)
             if form_data.get("viz_type") == "gauge_chart":
                 return generate_gauge_vega_lite_preview(chart_data, form_data)
+
             viz_type = getattr(self.chart, "viz_type", None) or form_data.get(
                 "viz_type"
             )
@@ -624,6 +682,7 @@ class VegaLitePreviewStrategy(PreviewFormatStrategy):
             "box_plot": ["box_plot"],
             "heatmap": ["heatmap", "heatmap_v2", "cal_heatmap"],
             "funnel": ["funnel"],
+            "gauge": ["gauge_chart"],
             "mixed": ["mixed_timeseries"],
             "table": ["table"],
         }
@@ -1027,6 +1086,34 @@ class VegaLitePreviewStrategy(PreviewFormatStrategy):
                     "scale": {"scheme": "viridis"},
                 },
                 "tooltip": [{"field": f, "type": "nominal"} for f in fields[:5]],
+            },
+        }
+
+    def _gauge_chart_spec(
+        self, fields: List[str], field_types: Dict[str, str] | None = None
+    ) -> Dict[str, Any]:
+        """Create gauge chart using arc marks."""
+        value_field = fields[0] if fields else "value"
+
+        return {
+            "mark": {
+                "type": "arc",
+                "innerRadius": 50,
+                "outerRadius": 80,
+                "tooltip": True,
+            },
+            "encoding": {
+                "theta": {
+                    "field": value_field,
+                    "type": "quantitative",
+                    "scale": {"range": [0, 6.28]},
+                },
+                "color": {
+                    "field": value_field,
+                    "type": "quantitative",
+                    "scale": {"scheme": "redyellowgreen"},
+                },
+                "tooltip": [{"field": f, "type": "nominal"} for f in fields[:3]],
             },
         }
 
@@ -1535,23 +1622,27 @@ async def get_chart_preview(
                 % (result.error_type, result.error)
             )
 
-        return result
+        return _finalize_response(result)
     except OAuth2RedirectError as ex:
         await ctx.warning(
             "Chart preview requires OAuth authentication: identifier=%s"
             % request.identifier
         )
-        return ChartError(
-            error=build_oauth2_redirect_message(ex),
-            error_type="OAUTH2_REDIRECT",
+        return _finalize_response(
+            ChartError(
+                error=build_oauth2_redirect_message(ex),
+                error_type="OAUTH2_REDIRECT",
+            )
         )
     except OAuth2Error:
         await ctx.error(
             "OAuth2 configuration error: identifier=%s" % request.identifier
         )
-        return ChartError(
-            error=OAUTH2_CONFIG_ERROR_MESSAGE,
-            error_type="OAUTH2_REDIRECT_ERROR",
+        return _finalize_response(
+            ChartError(
+                error=OAUTH2_CONFIG_ERROR_MESSAGE,
+                error_type="OAUTH2_REDIRECT_ERROR",
+            )
         )
     except (
         SupersetException,
@@ -1570,7 +1661,9 @@ async def get_chart_preview(
                 type(e).__name__,
             )
         )
-        return ChartError(
-            error=f"Failed to generate chart preview: {str(e)}",
-            error_type="InternalError",
+        return _finalize_response(
+            ChartError(
+                error=f"Failed to generate chart preview: {str(e)}",
+                error_type="InternalError",
+            )
         )
