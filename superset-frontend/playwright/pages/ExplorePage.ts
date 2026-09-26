@@ -20,6 +20,8 @@
 import { Page, Locator } from '@playwright/test';
 import { TIMEOUT } from '../utils/constants';
 import { AgGrid } from '../components/core/AgGrid';
+import { Button, Menu } from '../components/core';
+import { SaveChartModal } from '../components/modals';
 
 /**
  * Explore Page object
@@ -36,6 +38,12 @@ export class ExplorePage {
     EXPAND_DATA_PANEL: '[aria-label="Expand data panel"]',
     RESULTS_TAB: '[data-node-key="results"]',
     ACTIVE_TABPANE: '.ant-tabs-content-active',
+    SAVE_BUTTON: '[data-test="query-save-button"]',
+    METADATA_BAR: '[data-test="metadata-bar"]',
+    // Ant Design's Dropdown popupRender wraps its content in an OverrideProvider
+    // that renames the Menu's CSS prefix to "ant-dropdown-menu", so the chart
+    // actions menu (which carries no data-test of its own) is reliably found here.
+    ACTIONS_MENU_ROOT: '.ant-dropdown-menu-root',
   } as const;
 
   constructor(page: Page) {
@@ -151,5 +159,92 @@ export class ExplorePage {
       .locator('[role="grid"]')
       .first();
     return new AgGrid(this.page, grid);
+  }
+
+  /**
+   * The chart header's Save button.
+   */
+  get saveButton(): Button {
+    return new Button(
+      this.page,
+      this.page.locator(ExplorePage.SELECTORS.SAVE_BUTTON),
+    );
+  }
+
+  /**
+   * Clicks the Save button and returns a ready-to-use SaveChartModal.
+   */
+  async openSaveModal(): Promise<SaveChartModal> {
+    await this.saveButton.click();
+    const modal = new SaveChartModal(this.page);
+    await modal.waitForReady();
+    return modal;
+  }
+
+  /**
+   * Gets the chart metadata bar locator (dashboard membership, last modified, etc.).
+   */
+  getMetadataBar(): Locator {
+    return this.page.locator(ExplorePage.SELECTORS.METADATA_BAR);
+  }
+
+  /**
+   * Locator for the metadata bar's dashboard-membership title text, e.g.
+   * "Not added to any dashboard" or "Added to 3 dashboards". Assert with
+   * `toHaveText` so the check retries until the post-save refresh lands.
+   */
+  getDashboardsMetadataText(): Locator {
+    return this.getMetadataBar()
+      .locator('.metadata-text')
+      .filter({ hasText: /dashboard/i })
+      .first();
+  }
+
+  /**
+   * The chart header's "..." button that opens the actions menu.
+   */
+  get actionsMenuTrigger(): Button {
+    return new Button(
+      this.page,
+      this.page.getByRole('button', { name: 'Menu actions trigger' }),
+    );
+  }
+
+  /**
+   * The chart actions dropdown menu. Call after {@link openActionsMenu},
+   * which is what makes the menu visible.
+   */
+  private actionsMenu(): Menu {
+    return new Menu(
+      this.page,
+      this.page.locator(ExplorePage.SELECTORS.ACTIONS_MENU_ROOT).first(),
+    );
+  }
+
+  /**
+   * Opens the chart's actions menu and waits for its popup to render.
+   */
+  async openActionsMenu(): Promise<void> {
+    await this.actionsMenuTrigger.click();
+    await this.actionsMenu().element.waitFor({
+      state: 'visible',
+      timeout: TIMEOUT.FORM_LOAD,
+    });
+  }
+
+  /**
+   * Closes the chart's actions menu (and any open submenu) via Escape.
+   */
+  async closeActionsMenu(): Promise<void> {
+    await this.page.keyboard.press('Escape');
+  }
+
+  /**
+   * Opens the chart actions menu and its "On dashboards" submenu, returning
+   * the submenu's popup locator so callers can inspect the listed dashboards.
+   */
+  async openDashboardsSubmenu(): Promise<Locator> {
+    await this.openActionsMenu();
+    return this.actionsMenu().openSubmenu('On dashboards');
   }
 }
