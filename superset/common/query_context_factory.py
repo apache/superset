@@ -275,6 +275,33 @@ class QueryContextFactory:  # pylint: disable=too-few-public-methods
             query_object.granularity = main_dttm_col
             return
 
+        # A ``query_context`` saved by an older version carries no
+        # ``granularity`` of its own and no x-axis at all: its temporal column
+        # survives only in ``form_data`` as ``granularity_sqla``. Explore
+        # rebuilds the query from ``form_data`` on every render and never
+        # notices, but every other consumer replays the stored query verbatim
+        # and fails the ``not granularity and is_timeseries`` check in
+        # ``models.helpers``. The absent x-axis is what distinguishes this shape
+        # from a modern chart, so it is tested first. Recover the column the way
+        # Explore effectively does, preferring what the chart saved over the
+        # dataset default.
+        if (
+            not x_axis
+            and query_object.granularity is None
+            and query_object.is_timeseries
+        ):
+            legacy_granularity = (form_data or {}).get("granularity_sqla") or getattr(
+                datasource, "main_dttm_col", None
+            )
+            # ``granularity_sqla`` is only schema-checked as a string on the
+            # chart API; a saved ``form_data`` can still carry an adhoc column
+            # here, and ``temporal_columns`` is a set, so testing membership
+            # with the raw value would raise "unhashable type: 'dict'".
+            if isinstance(legacy_granularity, dict):
+                legacy_granularity = legacy_granularity.get("sqlExpression")
+            if legacy_granularity in temporal_columns:
+                query_object.granularity = legacy_granularity
+
         if granularity := query_object.granularity:
             filter_to_remove = None
             if is_adhoc_column(x_axis):  # type: ignore
