@@ -20,15 +20,18 @@ from __future__ import annotations
 
 import logging
 import re
+from collections.abc import Collection
 from dataclasses import dataclass
 from datetime import datetime
 from functools import lru_cache, partial
 from typing import Any, Callable, cast, TYPE_CHECKING, TypedDict, Union
 
 from flask import current_app, g, has_request_context, request
-from flask_babel import gettext as _
+from flask_babel import gettext as _, lazy_gettext as __, ngettext
+from flask_babel.speaklater import LazyString
 from jinja2 import DebugUndefined, Environment, TemplateSyntaxError, UndefinedError
 from jinja2.exceptions import SecurityError
+from jinja2.meta import find_undeclared_variables
 from jinja2.sandbox import SandboxedEnvironment
 from sqlalchemy.engine.interfaces import Dialect
 from sqlalchemy.sql.expression import bindparam
@@ -44,13 +47,14 @@ from superset.exceptions import (
     SupersetTemplateException,
 )
 from superset.extensions import feature_flag_manager
-from superset.sql.parse import Table
+from superset.sql.parse import SQLScript, Table
 from superset.superset_typing import Column, QueryObjectDict
 from superset.utils import json
 from superset.utils.core import (
     AdhocFilterClause,
     convert_legacy_filters_into_adhoc,
     FilterOperator,
+    format_list,
     get_user_email,
     get_user_id,
     get_username,
@@ -943,6 +947,31 @@ class SupersetSandboxedEnvironment(SandboxedEnvironment):
         return super().is_safe_attribute(obj, attr, value)
 
 
+# Lazy on purpose: evaluated at import time, an eager constant would be
+# frozen in the default locale (see the same convention in views/core.py).
+# Callers ``str()`` it inside the request that reports it. Aliased to ``__``
+# rather than called bare because ``pybabel extract`` only recognises
+# ``-k _ -k __ -k t -k tn -k tct``, and ``_`` is the eager alias here.
+PARAMETER_MISSING_ERR: LazyString = __(
+    "Please check your template parameters for syntax errors and make sure "
+    "they match across your SQL query and Set Parameters. Then, try running "
+    "your query again."
+)
+
+
+def undefined_parameters_message(undefined_parameters: Collection[str]) -> str:
+    """The reason both SQL Lab paths give for parameters left unresolved
+
+    Shared so the two reports, and their translations, cannot drift apart.
+    """
+    return ngettext(
+        "The parameter %(parameters)s in your query is undefined.",
+        "The following parameters in your query are undefined: %(parameters)s.",
+        len(undefined_parameters),
+        parameters=format_list(sorted(undefined_parameters)),
+    )
+
+
 class BaseTemplateProcessor:
     """
     Base class for database-specific jinja context
@@ -964,10 +993,18 @@ class BaseTemplateProcessor:
         self._database = database
         self._query = query
         self._schema = None
+        self._catalog = None
         if query and query.schema:
             self._schema = query.schema
         elif table:
             self._schema = table.schema
+        # Same source as the schema: a macro resolving an unqualified table
+        # has to look in the catalog the query runs in, not the connection's
+        # default, on an engine where those differ.
+        if query and query.catalog:
+            self._catalog = query.catalog
+        elif table:
+            self._catalog = table.catalog
         self._table = table
         self._extra_cache_keys = extra_cache_keys
         self._applied_filters = applied_filters
@@ -1001,6 +1038,23 @@ class BaseTemplateProcessor:
         """
         kwargs.update(self._context)
         return validate_template_context(self.engine, kwargs)
+
+    def get_undefined_parameters(self, sql: str) -> set[str]:
+        """The template references ``process_template`` was unable to resolve
+
+        An unprovided parameter is left in place by ``DebugUndefined`` rather
+        than raising, so rendered SQL can still carry ``{{ name }}``. Parsing
+        the rendered SQL names what was left behind.
+
+        SQL comments are stripped first, so a parameter the author commented
+        out is not reported as missing. Stripping them parses the SQL, so SQL
+        that does not parse raises ``SupersetParseError`` from here rather than
+        being reported as having no undefined parameter.
+        """
+        stripped = SQLScript(sql, self._database.db_engine_spec.engine).format(
+            comments=False
+        )
+        return find_undeclared_variables(self.env.parse(stripped))
 
     def process_template(self, sql: str, **kwargs: Any) -> str:
         """Processes a sql template
@@ -1138,6 +1192,12 @@ class JinjaTemplateProcessor(BaseTemplateProcessor):
 
 
 class NoOpTemplateProcessor(BaseTemplateProcessor):
+    def get_undefined_parameters(self, sql: str) -> set[str]:
+        """
+        Nothing is ever expanded, so nothing can be left undefined
+        """
+        return set()
+
     def process_template(self, sql: str, **kwargs: Any) -> str:
         """
         Makes processing a template a noop
@@ -1194,7 +1254,7 @@ class PrestoTemplateProcessor(JinjaTemplateProcessor):
 
         table_name, schema = self._schema_table(table_name, self._schema)
         return cast(PrestoEngineSpec, self._database.db_engine_spec).latest_partition(
-            database=self._database, table=Table(table_name, schema)
+            database=self._database, table=Table(table_name, schema, self._catalog)
         )[1]
 
     def latest_sub_partition(self, table_name: str, **kwargs: Any) -> Any:
@@ -1206,7 +1266,9 @@ class PrestoTemplateProcessor(JinjaTemplateProcessor):
         return cast(
             PrestoEngineSpec, self._database.db_engine_spec
         ).latest_sub_partition(
-            database=self._database, table=Table(table_name, schema), **kwargs
+            database=self._database,
+            table=Table(table_name, schema, self._catalog),
+            **kwargs,
         )
 
     latest_partition = first_latest_partition

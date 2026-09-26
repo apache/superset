@@ -19,6 +19,7 @@ from __future__ import annotations
 
 from datetime import datetime
 from typing import Any
+from unittest.mock import MagicMock
 
 import pytest
 from flask import current_app
@@ -38,13 +39,18 @@ from superset.connectors.sqla.models import (
     SqlMetric,
     TableColumn,
 )
-from superset.exceptions import QueryObjectValidationError, SupersetTemplateException
+from superset.exceptions import (
+    QueryObjectValidationError,
+    SupersetParseError,
+    SupersetTemplateException,
+)
 from superset.jinja_context import (
     dataset_macro,
     ExtraCache,
     get_template_processor,
     JsonValue,
     metric_macro,
+    PrestoTemplateProcessor,
     safe_proxy,
     TimeFilter,
     to_datetime,
@@ -52,6 +58,7 @@ from superset.jinja_context import (
 )
 from superset.models.core import Database
 from superset.models.slice import Slice
+from superset.models.sql_lab import Query
 from superset.utils import json
 from tests.unit_tests.conftest import with_feature_flags
 
@@ -3577,3 +3584,115 @@ def test_get_rendered_sql_filter_values_index_error_on_empty_list() -> None:
         match=r"Virtual dataset template error: list object has no element 0",
     ):
         table.get_rendered_sql(processor)
+
+
+@pytest.mark.parametrize(
+    "sql,expected",
+    [
+        pytest.param("SELECT 1", set(), id="plain"),
+        pytest.param("SELECT '{{ ds }}' AS d", {"ds"}, id="one_parameter"),
+        pytest.param(
+            "SELECT '{{ ds }}', '{{ tbl }}'", {"ds", "tbl"}, id="two_parameters"
+        ),
+        pytest.param("SELECT 'someone'", set(), id="already_rendered"),
+        pytest.param("SELECT 1 -- {{ ds }}", set(), id="commented_out"),
+    ],
+)
+@with_feature_flags(ENABLE_TEMPLATE_PROCESSING=True)
+def test_get_undefined_parameters(sql: str, expected: set[str]) -> None:
+    """
+    Test that rendered SQL is searched for parameters left unresolved.
+
+    ``process_template`` leaves an unprovided parameter in place rather than
+    raising, so the rendered SQL is parsed to name what is still there:
+    ``{{ ds }}`` with no value given is reported, a macro that already resolved
+    is not, and a parameter the author commented out is not missing at all --
+    they took it out of the query.
+    """
+    database = Database(id=1, database_name="my_database", sqlalchemy_uri="sqlite://")
+    processor = get_template_processor(database=database)
+
+    assert processor.get_undefined_parameters(sql) == expected
+
+
+@with_feature_flags(ENABLE_TEMPLATE_PROCESSING=True)
+def test_get_undefined_parameters_for_unparseable_sql() -> None:
+    """
+    Test that SQL which does not parse raises rather than reporting no parameters.
+
+    Comments are stripped by parsing, so SQL that cannot be parsed has no
+    answer to give here. Callers depend on the raise: on the execution path it
+    is what stops a malformed query before it runs, whether or not a parameter
+    was left in it.
+    """
+    database = Database(id=1, database_name="my_database", sqlalchemy_uri="sqlite://")
+    processor = get_template_processor(database=database)
+
+    with pytest.raises(SupersetParseError):
+        processor.get_undefined_parameters("SELECT FROM FROM")
+    # Including when a parameter left in place is why it does not parse.
+    with pytest.raises(SupersetParseError):
+        processor.get_undefined_parameters("SELECT * FROM {{ tbl }}")
+
+
+@with_feature_flags(ENABLE_TEMPLATE_PROCESSING=False)
+def test_get_undefined_parameters_when_processing_is_disabled() -> None:
+    """
+    Test that nothing is undefined when nothing is expanded.
+
+    With ``ENABLE_TEMPLATE_PROCESSING`` off, ``get_template_processor`` returns
+    a ``NoOpTemplateProcessor``: the braces are never expanded, so they are not
+    a parameter, they are just part of the SQL.
+    """
+    database = Database(id=1, database_name="my_database", sqlalchemy_uri="sqlite://")
+    processor = get_template_processor(database=database)
+
+    assert processor.get_undefined_parameters("SELECT '{{ ds }}' AS d") == set()
+
+
+@with_feature_flags(ENABLE_TEMPLATE_PROCESSING=True)
+def test_template_processor_resolves_a_table_against_the_query_location() -> None:
+    """
+    Test that a macro resolving an unqualified table looks where the query runs.
+
+    ``presto.latest_partition("events")`` has to read partition metadata from
+    the schema and catalog the query was written against; falling back to the
+    connection's defaults reads a different table on an engine where those
+    differ. Both come from the ``Query``, which every caller that has a
+    location to declare already builds.
+    """
+    database = MagicMock()
+    database.db_engine_spec.latest_partition.return_value = (None, ["2026-01-01"])
+
+    def resolved(**kwargs: Any) -> tuple[str | None, str | None]:
+        """The schema and catalog ``latest_partition`` looked the table up in."""
+        processor = PrestoTemplateProcessor(database=database, **kwargs)
+        processor.latest_partition("events")
+        table = database.db_engine_spec.latest_partition.call_args.kwargs["table"]
+        return table.schema, table.catalog
+
+    assert resolved() == (None, None)
+    assert resolved(query=Query(schema="sales", catalog="warehouse")) == (
+        "sales",
+        "warehouse",
+    )
+
+
+@with_feature_flags(ENABLE_TEMPLATE_PROCESSING=True)
+def test_template_processor_does_not_shadow_a_user_parameter() -> None:
+    """
+    Test that a dataset's own template parameters still reach the template.
+
+    ``template_params`` from a dataset are passed as keyword arguments
+    (``models.helpers``: ``template_kwargs.update(self.template_params_dict)``),
+    so every name this constructor claims for itself is a name a user can no
+    longer use. ``schema`` and ``catalog`` are the two most likely to collide.
+    """
+    database = Database(id=1, database_name="my_database", sqlalchemy_uri="sqlite://")
+    user_template_params: dict[str, Any] = {"schema": "sales", "catalog": "warehouse"}
+    processor = get_template_processor(database=database, **user_template_params)
+
+    assert (
+        processor.process_template("SELECT * FROM {{ catalog }}.{{ schema }}.orders")
+        == "SELECT * FROM warehouse.sales.orders"
+    )
