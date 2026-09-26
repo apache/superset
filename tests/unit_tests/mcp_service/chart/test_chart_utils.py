@@ -2686,3 +2686,144 @@ class TestMapXYConfigWithSortBy:
         form_data = map_xy_config(config, dataset_id=1)
 
         assert form_data["x_axis_sort_series_ascending"] is True
+
+
+class TestXYChartPluginSortBy:
+    """Test XYChartPlugin extract_column_refs and normalize_column_refs with sort_by."""
+
+    def test_extract_column_refs_excludes_matching_y_metric(self) -> None:
+        from superset.mcp_service.chart.plugins.xy import XYChartPlugin
+
+        plugin = XYChartPlugin()
+        config = XYChartConfig(
+            chart_type="xy",
+            x=ColumnRef(name="category"),
+            y=[ColumnRef(name="sales", aggregate="SUM")],
+            sort_by=SortByConfig(column="sales", ascending=False),
+        )
+        refs = plugin.extract_column_refs(config)
+        ref_names = [r.name for r in refs]
+
+        assert ref_names == ["category", "sales"]
+
+    def test_extract_column_refs_excludes_metric_label(self) -> None:
+        from superset.mcp_service.chart.plugins.xy import XYChartPlugin
+
+        plugin = XYChartPlugin()
+        config = XYChartConfig(
+            chart_type="xy",
+            x=ColumnRef(name="category"),
+            y=[ColumnRef(name="sales", aggregate="SUM")],
+            sort_by="SUM(sales)",
+        )
+        refs = plugin.extract_column_refs(config)
+        ref_names = [r.name for r in refs]
+
+        assert ref_names == ["category", "sales"]
+
+    def test_extract_column_refs_includes_independent_sort_column(self) -> None:
+        from superset.mcp_service.chart.plugins.xy import XYChartPlugin
+
+        plugin = XYChartPlugin()
+        config = XYChartConfig(
+            chart_type="xy",
+            x=ColumnRef(name="category"),
+            y=[ColumnRef(name="sales", aggregate="SUM")],
+            sort_by=SortByConfig(column="profit", ascending=False),
+        )
+        refs = plugin.extract_column_refs(config)
+        ref_names = [r.name for r in refs]
+
+        assert ref_names == ["category", "sales", "profit"]
+
+    def test_extract_column_refs_without_sort_by(self) -> None:
+        from superset.mcp_service.chart.plugins.xy import XYChartPlugin
+
+        plugin = XYChartPlugin()
+        config = XYChartConfig(
+            chart_type="xy",
+            x=ColumnRef(name="category"),
+            y=[ColumnRef(name="sales", aggregate="SUM")],
+        )
+        refs = plugin.extract_column_refs(config)
+        ref_names = [r.name for r in refs]
+
+        assert ref_names == ["category", "sales"]
+
+    def test_normalize_column_refs_canonicalizes_sort_by_column(self) -> None:
+        from superset.mcp_service.chart.plugins.xy import XYChartPlugin
+        from superset.mcp_service.chart.validation.dataset_validator import (
+            DatasetContext,
+        )
+
+        ctx = DatasetContext(
+            id=1,
+            table_name="sales_data",
+            database_name="examples",
+            available_columns=[
+                {"name": "Category", "type": "VARCHAR"},
+                {"name": "TotalRevenue", "type": "BIGINT"},
+            ],
+            available_metrics=[{"name": "TotalSales", "expression": "SUM(sales)"}],
+        )
+
+        plugin = XYChartPlugin()
+        config = XYChartConfig(
+            chart_type="xy",
+            x=ColumnRef(name="category"),
+            y=[ColumnRef(name="TotalSales", saved_metric=True)],
+            sort_by="totalrevenue",
+        )
+        normalized = plugin.normalize_column_refs(config, ctx)
+
+        assert normalized.sort_by.column == "TotalRevenue"
+
+    def test_normalize_column_refs_matches_y_metric_label(self) -> None:
+        from superset.mcp_service.chart.plugins.xy import XYChartPlugin
+        from superset.mcp_service.chart.validation.dataset_validator import (
+            DatasetContext,
+        )
+
+        ctx = DatasetContext(
+            id=1,
+            table_name="sales_data",
+            database_name="examples",
+            available_columns=[{"name": "department", "type": "VARCHAR"}],
+            available_metrics=[],
+        )
+
+        plugin = XYChartPlugin()
+        config = XYChartConfig(
+            chart_type="xy",
+            x=ColumnRef(name="department"),
+            y=[ColumnRef(name="sales", aggregate="SUM", label="Total Sales")],
+            sort_by="total sales",
+        )
+        normalized = plugin.normalize_column_refs(config, ctx)
+
+        assert normalized.sort_by.column == "Total Sales"
+
+    def test_normalize_column_refs_matches_saved_metric(self) -> None:
+        from superset.mcp_service.chart.plugins.xy import XYChartPlugin
+        from superset.mcp_service.chart.validation.dataset_validator import (
+            DatasetContext,
+        )
+
+        ctx = DatasetContext(
+            id=1,
+            table_name="sales_data",
+            database_name="examples",
+            available_columns=[{"name": "department", "type": "VARCHAR"}],
+            available_metrics=[{"name": "TotalRevenue", "expression": "SUM(rev)"}],
+        )
+
+        plugin = XYChartPlugin()
+        config = XYChartConfig(
+            chart_type="xy",
+            x=ColumnRef(name="department"),
+            y=[ColumnRef(name="sales", aggregate="SUM")],
+            sort_by="totalrevenue",
+        )
+        normalized = plugin.normalize_column_refs(config, ctx)
+
+        assert normalized.sort_by.column == "TotalRevenue"
