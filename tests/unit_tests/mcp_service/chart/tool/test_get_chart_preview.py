@@ -26,6 +26,8 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
+from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
+from superset.exceptions import SupersetSecurityException
 from superset.mcp_service.chart.schemas import (
     AccessibilityMetadata,
     ASCIIPreview,
@@ -1839,3 +1841,337 @@ def test_saved_gauge_preview_skips_empty_aggregate_groups(
     else:
         assert "Blue" in result.ascii_content
         assert "Empty" not in result.ascii_content
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("user_id", [11, 29])
+async def test_png_preview_renders_as_caller_in_isolated_context(app_context, user_id):
+    import base64
+    import threading
+    from io import BytesIO
+
+    from flask import g
+    from PIL import Image
+
+    module = importlib.import_module(
+        "superset.mcp_service.chart.tool.get_chart_preview"
+    )
+    caller_thread = threading.get_ident()
+    g.user = SimpleNamespace(id=user_id)
+    g.request_marker = "request-only"
+    user = SimpleNamespace(id=user_id, is_active=True)
+    chart = SimpleNamespace(id=104)
+    png = BytesIO()
+    Image.new("RGB", (80, 60), "white").save(png, format="PNG")
+
+    def screenshot(url, element, *, user):
+        assert threading.get_ident() != caller_thread
+        assert g.user.id == user_id
+        assert not hasattr(g, "request_marker")
+        assert user.id == user_id
+        assert url == "http://localhost/superset/slice/104/?standalone=true"
+        assert element == "chart-container"
+        return png.getvalue()
+
+    with (
+        patch.object(module, "security_manager", new=MagicMock()) as manager,
+        patch.object(module, "find_chart_by_identifier", return_value=chart),
+        patch.object(module.guest_scope, "is_guest_read", return_value=False),
+        patch("superset.is_feature_enabled", return_value=False),
+        patch(
+            "superset.utils.urls.get_url_path",
+            return_value="http://localhost/superset/slice/104/?standalone=true",
+        ),
+        patch("superset.utils.webdriver._PlaywrightBrowserManager") as browser_manager,
+        patch("superset.utils.webdriver.WebDriverPlaywright") as driver,
+    ):
+        manager.find_user.return_value = user
+        driver.return_value.get_screenshot.side_effect = screenshot
+        result = await module._generate_png_preview(
+            104, GetChartPreviewRequest(identifier=104, format="png")
+        )
+        assert base64.b64decode(result.data) == png.getvalue()
+        assert (result.width, result.height) == (80, 60)
+        manager.raise_for_access.assert_called_once_with(chart=chart)
+        browser_manager.return_value._cleanup.assert_called_once()
+        assert (
+            driver.call_args.kwargs["browser_manager"] is browser_manager.return_value
+        )
+        assert g.request_marker == "request-only"
+        assert g.user.id == user_id
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "guest,kwargs",
+    [
+        (True, {}),
+        (False, {"form_data_key": "unsaved"}),
+        (False, {"extra_form_data": {"filters": []}}),
+    ],
+)
+async def test_png_preview_rejects_unpropagated_context(app_context, guest, kwargs):
+    module = importlib.import_module(
+        "superset.mcp_service.chart.tool.get_chart_preview"
+    )
+    with (
+        patch.object(module.guest_scope, "is_guest_read", return_value=guest),
+        patch("superset.utils.webdriver._PlaywrightBrowserManager") as manager,
+    ):
+        result = await module._generate_png_preview(
+            104, GetChartPreviewRequest(identifier=104, format="png", **kwargs)
+        )
+        assert result.error_type == "UnsupportedFormat"
+        manager.assert_not_called()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("failure", ["denied", "missing", "inactive", "export"])
+async def test_png_preview_authorizes_before_browser(app_context, failure):
+    from flask import g
+
+    module = importlib.import_module(
+        "superset.mcp_service.chart.tool.get_chart_preview"
+    )
+    g.user = SimpleNamespace(id=11)
+    with (
+        patch.object(module, "security_manager", new=MagicMock()) as manager,
+        patch.object(
+            module,
+            "find_chart_by_identifier",
+            return_value=None if failure == "missing" else SimpleNamespace(id=104),
+        ),
+        patch.object(module.guest_scope, "is_guest_read", return_value=False),
+        patch("superset.is_feature_enabled", return_value=failure == "export"),
+        patch("superset.utils.webdriver._PlaywrightBrowserManager") as browser,
+    ):
+        manager.find_user.return_value = SimpleNamespace(
+            id=11, is_active=failure != "inactive"
+        )
+        manager.can_access.return_value = False
+        if failure == "denied":
+            # raise_for_access raises SupersetSecurityException on denial; the
+            # message must not leak into the client-facing error.
+            manager.raise_for_access.side_effect = SupersetSecurityException(
+                SupersetError(
+                    message="secret denied URL",
+                    error_type=SupersetErrorType.GENERIC_BACKEND_ERROR,
+                    level=ErrorLevel.ERROR,
+                )
+            )
+        result = await module._generate_png_preview(
+            104, GetChartPreviewRequest(identifier=104, format="png")
+        )
+        assert isinstance(result, ChartError)
+        assert "secret" not in result.error
+        if failure == "denied":
+            # Authorization denials must surface as Forbidden, not RenderError.
+            assert result.error_type == "Forbidden"
+        browser.assert_not_called()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("image", [None, b"not an image", b"\xff\xd8\xffjpeg"])
+async def test_png_preview_cleans_up_failed_capture(app_context, image):
+    from flask import g
+
+    module = importlib.import_module(
+        "superset.mcp_service.chart.tool.get_chart_preview"
+    )
+    g.user = SimpleNamespace(id=11)
+    with (
+        patch.object(module, "security_manager", new=MagicMock()) as manager,
+        patch.object(
+            module, "find_chart_by_identifier", return_value=SimpleNamespace(id=104)
+        ),
+        patch.object(module.guest_scope, "is_guest_read", return_value=False),
+        patch("superset.is_feature_enabled", return_value=False),
+        patch(
+            "superset.utils.urls.get_url_path",
+            return_value="http://localhost/chart/104",
+        ),
+        patch("superset.utils.webdriver._PlaywrightBrowserManager") as browser,
+        patch("superset.utils.webdriver.WebDriverPlaywright") as driver,
+    ):
+        manager.find_user.return_value = SimpleNamespace(id=11, is_active=True)
+        driver.return_value.get_screenshot.return_value = image
+        result = await module._generate_png_preview(
+            104, GetChartPreviewRequest(identifier=104, format="png")
+        )
+        assert result.error_type == "RenderError"
+        browser.return_value._cleanup.assert_called_once()
+
+
+@pytest.mark.asyncio
+async def test_png_preview_cleans_up_browser_exception(app_context):
+    from flask import g
+
+    module = importlib.import_module(
+        "superset.mcp_service.chart.tool.get_chart_preview"
+    )
+    g.user = SimpleNamespace(id=11)
+    with (
+        patch.object(module, "security_manager", new=MagicMock()) as manager,
+        patch.object(
+            module, "find_chart_by_identifier", return_value=SimpleNamespace(id=104)
+        ),
+        patch.object(module.guest_scope, "is_guest_read", return_value=False),
+        patch("superset.is_feature_enabled", return_value=False),
+        patch(
+            "superset.utils.urls.get_url_path",
+            return_value="http://localhost/chart/104",
+        ),
+        patch("superset.utils.webdriver._PlaywrightBrowserManager") as browser,
+        patch("superset.utils.webdriver.WebDriverPlaywright") as driver,
+    ):
+        manager.find_user.return_value = SimpleNamespace(id=11, is_active=True)
+        driver.return_value.get_screenshot.side_effect = RuntimeError(
+            "sensitive page data"
+        )
+        result = await module._generate_png_preview(
+            104, GetChartPreviewRequest(identifier=104, format="png")
+        )
+        assert result.error_type == "RenderError"
+        assert "sensitive" not in result.error
+        browser.return_value._cleanup.assert_called_once()
+
+
+@pytest.mark.asyncio
+async def test_png_worker_preserves_parent_mcp_orm_session(app_context):
+    from flask import g
+    from flask_appbuilder.security.sqla.models import User
+    from sqlalchemy import inspect
+
+    from superset.extensions import db
+    from superset.mcp_service.auth import _mcp_tool_call_context
+    from superset.mcp_service.session_scope import mcp_session_scopefunc
+
+    module = importlib.import_module(
+        "superset.mcp_service.chart.tool.get_chart_preview"
+    )
+    with patch.object(db.session.registry, "scopefunc", mcp_session_scopefunc):
+        with _mcp_tool_call_context():
+            g.user = SimpleNamespace(id=11)
+            parent_session = db.session()
+            parent_key = mcp_session_scopefunc()
+            parent_entity = User(username="parent-only")
+            parent_session.add(parent_entity)
+            worker_keys = []
+
+            def lookup(*, id):
+                worker_keys.append(mcp_session_scopefunc())
+                assert db.session() is not parent_session
+                return SimpleNamespace(id=id, is_active=False)
+
+            with (
+                patch.object(module, "security_manager", new=MagicMock()) as manager,
+                patch.object(module.guest_scope, "is_guest_read", return_value=False),
+            ):
+                manager.find_user.side_effect = lookup
+                result = await module._generate_png_preview(
+                    104, GetChartPreviewRequest(identifier=104, format="png")
+                )
+                assert worker_keys
+                assert worker_keys[0] != parent_key
+                assert result.error_type == "Forbidden"
+                assert db.session() is parent_session
+                assert inspect(parent_entity).session is parent_session
+                parent_session.expunge(parent_entity)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("dimension", [0, 63, 4097])
+@pytest.mark.parametrize("field", ["width", "height"])
+async def test_png_preview_rejects_invalid_viewport(app_context, dimension, field):
+    from flask import g
+
+    module = importlib.import_module(
+        "superset.mcp_service.chart.tool.get_chart_preview"
+    )
+    g.user = SimpleNamespace(id=11)
+    with (
+        patch.object(module.guest_scope, "is_guest_read", return_value=False),
+        patch("superset.utils.webdriver._PlaywrightBrowserManager") as browser,
+    ):
+        result = await module._generate_png_preview(
+            104,
+            GetChartPreviewRequest(identifier=104, format="png", **{field: dimension}),
+        )
+        assert result.error_type == "ValidationError"
+        browser.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_png_preview_passes_default_response_size_guard():
+    import base64
+    import os
+    from io import BytesIO
+    from unittest.mock import AsyncMock
+
+    from PIL import Image
+
+    from superset.mcp_service.chart.schemas import PNGPreview
+    from superset.mcp_service.mcp_config import MCP_RESPONSE_SIZE_CONFIG
+    from superset.mcp_service.middleware import ResponseSizeGuardMiddleware
+    from superset.mcp_service.utils.response_size_utils import get_response_size_bytes
+
+    # Actual PNG bytes with enough detail to exceed the default text budget.
+    png = BytesIO()
+    Image.frombytes("RGB", (800, 600), os.urandom(800 * 600 * 3)).save(
+        png, format="PNG"
+    )
+    preview = PNGPreview(
+        data=base64.b64encode(png.getvalue()).decode("ascii"), width=800, height=600
+    )
+    response = {"content": preview.model_dump()}
+    assert get_response_size_bytes(response) > MCP_RESPONSE_SIZE_CONFIG["max_bytes"]
+    context = MagicMock()
+    context.message.name = "get_chart_preview"
+    context.message.arguments = {"identifier": 104, "format": "png"}
+    call_next = AsyncMock(return_value=response)
+    middleware = ResponseSizeGuardMiddleware(
+        max_bytes=MCP_RESPONSE_SIZE_CONFIG["max_bytes"],
+        excluded_tools=MCP_RESPONSE_SIZE_CONFIG["excluded_tools"],
+    )
+    result = await middleware.on_call_tool(context, call_next)
+    assert PNGPreview.model_validate(result["content"]) == preview
+    call_next.assert_awaited_once_with(context)
+
+
+@pytest.mark.asyncio
+async def test_png_workers_do_not_starve_auth_or_release_on_cancellation():
+    import asyncio
+    import threading
+    from contextvars import ContextVar
+
+    module = importlib.import_module(
+        "superset.mcp_service.chart.tool.get_chart_preview"
+    )
+    started = [threading.Event(), threading.Event(), threading.Event()]
+    release = threading.Event()
+    marker = ContextVar("png_test_marker", default=None)
+    marker.set("caller")
+
+    def render(index):
+        assert marker.get() == "caller"
+        started[index].set()
+        assert release.wait(timeout=10)
+        return None
+
+    tasks = [
+        asyncio.create_task(module._run_png_render(lambda i=i: render(i)))
+        for i in range(3)
+    ]
+    try:
+        for event in started[:2]:
+            assert await asyncio.to_thread(event.wait, 5)
+        assert not started[2].is_set()
+        tasks[0].cancel()
+        with pytest.raises(asyncio.CancelledError):
+            await tasks[0]
+        assert not started[2].is_set()
+        assert await asyncio.wait_for(asyncio.to_thread(lambda: "auth"), 1) == "auth"
+    finally:
+        release.set()
+        await asyncio.gather(*tasks, return_exceptions=True)
+    assert started[2].is_set()

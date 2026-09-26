@@ -443,6 +443,7 @@ MCP_RESPONSE_SIZE_CONFIG: dict[str, Any] = {
         "generate_explore_link",  # Returns URLs
         "open_sql_lab_with_context",  # Returns URLs
         "search_tools",  # Returns tool schemas for discovery (intentionally large)
+        "get_chart_preview",  # Rendered PNG previews exceed the text budget
     ],
 }
 

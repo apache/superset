@@ -19,15 +19,29 @@
 MCP tool: get_chart_preview
 """
 
+import asyncio
+import base64
 import logging
+from collections.abc import Callable
+from concurrent.futures import ThreadPoolExecutor
+from contextvars import copy_context
+from io import BytesIO
 from typing import Any, Dict, List, Protocol
 
 from fastmcp import Context
+from flask import g
+from PIL import Image
 from sqlalchemy.exc import SQLAlchemyError
 from superset_core.mcp.decorators import tool, ToolAnnotations
 
+from superset import security_manager
 from superset.commands.exceptions import CommandException
-from superset.exceptions import OAuth2Error, OAuth2RedirectError, SupersetException
+from superset.exceptions import (
+    OAuth2Error,
+    OAuth2RedirectError,
+    SupersetException,
+    SupersetSecurityException,
+)
 from superset.extensions import db, event_logger
 from superset.mcp_service import guest_scope
 from superset.mcp_service.chart.ascii_charts import (
@@ -58,6 +72,7 @@ from superset.mcp_service.chart.schemas import (
     GetChartPreviewRequest,
     InteractivePreview,
     PerformanceMetadata,
+    PNGPreview,
     TablePreview,
     URLPreview,
     VegaLitePreview,
@@ -71,6 +86,9 @@ from superset.mcp_service.utils.url_utils import get_superset_base_url
 from superset.superset_typing import Column, Metric
 
 logger = logging.getLogger(__name__)
+
+# Keep browser captures separate from the default pool used for transport auth.
+_PNG_EXECUTOR = ThreadPoolExecutor(max_workers=2, thread_name_prefix="mcp-png")
 
 
 class ChartLike(Protocol):
@@ -1101,6 +1119,116 @@ class PreviewFormatGenerator:
         return strategy.generate()
 
 
+async def _run_png_render(
+    render: Callable[[], PNGPreview | ChartError],
+) -> PNGPreview | ChartError:
+    """Run the blocking PNG render in a worker thread with error mapping.
+
+    Chart-level access denials raised inside render() surface as Forbidden,
+    not as a rendering failure. Browser errors may contain URLs or page data,
+    so those stay server-side.
+    """
+    try:
+        context = copy_context()
+        return await asyncio.get_running_loop().run_in_executor(
+            _PNG_EXECUTOR, context.run, render
+        )
+    except SupersetSecurityException:
+        return ChartError(error="Chart access denied", error_type="Forbidden")
+    except Exception:
+        logger.exception("PNG chart rendering failed")
+        return ChartError(error="Chart rendering failed", error_type="RenderError")
+
+
+async def _generate_png_preview(
+    chart_id: int, request: GetChartPreviewRequest
+) -> PNGPreview | ChartError:
+    """Render saved charts as the caller in an isolated browser and app context."""
+    if (
+        not chart_id
+        or request.form_data_key
+        or request.extra_form_data
+        or guest_scope.is_guest_read()
+    ):
+        return ChartError(
+            error="PNG previews require a saved chart and a non-guest user, "
+            "without unsaved state or extra filters.",
+            error_type="UnsupportedFormat",
+        )
+    user_id = getattr(getattr(g, "user", None), "id", None)
+    if not isinstance(user_id, int):
+        return ChartError(error="Authentication required", error_type="Forbidden")
+    width = 800 if request.width is None else request.width
+    height = 600 if request.height is None else request.height
+    if not (64 <= width <= 4096 and 64 <= height <= 4096):
+        return ChartError(
+            error="PNG dimensions must be between 64 and 4096 pixels.",
+            error_type="ValidationError",
+        )
+
+    def render() -> PNGPreview | ChartError:
+        from superset import is_feature_enabled
+        from superset.mcp_service.auth import _mcp_tool_call_context
+        from superset.utils.core import override_user
+        from superset.utils.screenshots import validate_screenshot_image
+        from superset.utils.urls import get_url_path
+        from superset.utils.webdriver import (
+            _PlaywrightBrowserManager,
+            WebDriverPlaywright,
+        )
+
+        # Resolve ORM objects in a fresh context; neither the request session nor
+        # Flask's mutable g is shared with the rendering worker.
+        with _mcp_tool_call_context():
+            user = security_manager.find_user(id=user_id)
+            if user is None or not user.is_active:
+                return ChartError(
+                    error="Authentication required", error_type="Forbidden"
+                )
+            with override_user(user):
+                chart = find_chart_by_identifier(chart_id)
+                if chart is None:
+                    return ChartError(error="Chart not found", error_type="NotFound")
+                security_manager.raise_for_access(chart=chart)
+                if is_feature_enabled(
+                    "GRANULAR_EXPORT_CONTROLS"
+                ) and not security_manager.can_access("can_export_image", "Superset"):
+                    return ChartError(
+                        error="Image export is not permitted", error_type="Forbidden"
+                    )
+                url = get_url_path(
+                    "Superset.slice", slice_id=chart_id, standalone="true"
+                )
+                manager = _PlaywrightBrowserManager()
+                try:
+                    driver = WebDriverPlaywright(
+                        "",
+                        (width, height),
+                        require_complete_capture=True,
+                        browser_manager=manager,
+                    )
+                    image = driver.get_screenshot(url, "chart-container", user=user)
+                    if (
+                        image is None
+                        or not image.startswith(b"\x89PNG\r\n\x1a\n")
+                        or validate_screenshot_image(image)
+                    ):
+                        return ChartError(
+                            error="Chart rendering failed", error_type="RenderError"
+                        )
+                    with Image.open(BytesIO(image)) as rendered:
+                        image_width, image_height = rendered.size
+                    return PNGPreview(
+                        data=base64.b64encode(image).decode("ascii"),
+                        width=image_width,
+                        height=image_height,
+                    )
+                finally:
+                    manager._cleanup()
+
+    return await _run_png_render(render)
+
+
 async def _get_chart_preview_internal(  # noqa: C901
     request: GetChartPreviewRequest,
     ctx: Context,
@@ -1381,7 +1509,11 @@ async def _get_chart_preview_internal(  # noqa: C901
             action="mcp.get_chart_preview.preview_generation"
         ):
             preview_generator = PreviewFormatGenerator(chart, request)
-            content = preview_generator.generate()
+            content = (
+                await _generate_png_preview(chart.id, request)
+                if request.format == "png"
+                else preview_generator.generate()
+            )
 
         if isinstance(content, ChartError):
             await ctx.error(
@@ -1488,7 +1620,10 @@ async def get_chart_preview(
 ) -> ChartPreview | ChartError:
     """Get chart preview by ID or UUID.
 
-    Returns preview URL or formatted content (ascii, table, vega_lite).
+    Returns preview URL or formatted content (ascii, table, vega_lite, png).
+
+    PNG renders saved charts as the calling non-guest user; unsaved state and
+    extra filters are unsupported.
 
     Pass extra_form_data (e.g. a dashboard's active native filters) to render
     the preview over the filtered data rather than the full dataset.

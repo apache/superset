@@ -206,8 +206,10 @@ class WebDriverPlaywright(WebDriverProxy):
         window: WindowSize | None = None,
         *,
         require_complete_capture: bool = False,
+        browser_manager: _PlaywrightBrowserManager | None = None,
     ) -> None:
         super().__init__(driver_type, window)
+        self._browser_manager = browser_manager or _browser_manager
         self._require_complete_capture = require_complete_capture
 
     @staticmethod
@@ -950,7 +952,7 @@ class WebDriverPlaywright(WebDriverProxy):
 
         browser_args = app.config["WEBDRIVER_OPTION_ARGS"]
         try:
-            browser = _browser_manager.get_browser(browser_args)
+            browser = self._browser_manager.get_browser(browser_args)
         except Exception as ex:
             logger.exception(
                 "Failed to launch the headless browser with args %s%s",
