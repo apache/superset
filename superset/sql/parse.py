@@ -47,6 +47,7 @@ from sqlglot.optimizer.scope import (
     Scope,
     ScopeType,
     traverse_scope,
+    walk_in_scope,
 )
 
 from superset.exceptions import QueryClauseValidationException, SupersetParseError
@@ -799,13 +800,18 @@ class BaseSQLStatement(Generic[InternalRepresentation]):
         schema: str | None,
         predicates: dict[Table, list[InternalRepresentation]],
         method: RLSMethod,
-    ) -> None:
+        subquery_predicates: dict[Table, list[InternalRepresentation]] | None = None,
+    ) -> bool:
         """
         Apply relevant RLS rules to the statement inplace.
 
         :param catalog: The default catalog for non-qualified table names
         :param schema: The default schema for non-qualified table names
         :param method: The method to use for applying the rules.
+        :param subquery_predicates: The rules for tables read inside a sub-query
+            (scalar, ``IN`` or ``EXISTS``), whose rows don't reach the statement's
+            output. Defaults to ``predicates``.
+        :returns: True if any rule was applied, False otherwise.
         """
         raise NotImplementedError()
 
@@ -1974,16 +1980,21 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
         schema: str | None,
         predicates: dict[Table, list[exp.Expression]],
         method: RLSMethod,
-    ) -> None:
+        subquery_predicates: dict[Table, list[exp.Expression]] | None = None,
+    ) -> bool:
         """
         Apply relevant RLS rules to the statement inplace.
 
         :param catalog: The default catalog for non-qualified table names
         :param schema: The default schema for non-qualified table names
         :param method: The method to use for applying the rules.
+        :param subquery_predicates: The rules for tables read inside a sub-query
+            (scalar, ``IN`` or ``EXISTS``), whose rows don't reach the statement's
+            output. Defaults to ``predicates``.
+        :returns: True if any rule was applied, False otherwise.
         """
-        if not predicates:
-            return
+        if not predicates and not subquery_predicates:
+            return False
 
         transformers = {
             RLSMethod.AS_PREDICATE: RLSAsPredicateTransformer,
@@ -1993,13 +2004,24 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
             raise ValueError(f"Invalid RLS method: {method}")
 
         transformer = transformers[method](catalog, schema, predicates)
+        subquery_transformer = transformer
+        scopes = traverse_scope(self._parsed)
+        subquery_scopes: set[int] = set()
+        if subquery_predicates is not None:
+            subquery_transformer = transformers[method](
+                catalog, schema, subquery_predicates
+            )
+            subquery_scopes = _find_subquery_scopes(scopes)
 
         # Rewrite the real table reads -- the same set ``extract_tables_from_statement``
         # authorizes -- so the filtered set equals the authorized set. (A CTE reference
         # sharing a rule's table name is not a read here.)
         seen: set[int] = set()
-        reads: list[exp.Table] = []
-        for scope in traverse_scope(self._parsed):
+        reads: list[tuple[exp.Table, RLSTransformer]] = []
+        for scope in scopes:
+            scope_transformer = (
+                subquery_transformer if id(scope) in subquery_scopes else transformer
+            )
             for source in scope.sources.values():
                 # dedupe by identity: a correlated LATERAL reaches one node twice
                 if (
@@ -2008,15 +2030,21 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
                     and id(source) not in seen
                 ):
                     seen.add(id(source))
-                    reads.append(source)
+                    reads.append((source, scope_transformer))
 
         # Wrap the deepest reads first: a parenthesised-join head carries its join in
         # its args, so wrapping an ancestor before its descendant would strand the
         # descendant read's replacement off the live tree.
-        for node in sorted(reads, key=lambda read: read.depth, reverse=True):
-            replacement = transformer(node)
+        applied = False
+        for node, node_transformer in sorted(
+            reads, key=lambda read: read[0].depth, reverse=True
+        ):
+            applied = applied or node_transformer.get_predicate(node) is not None
+            replacement = node_transformer(node)
             if replacement is not node:
                 node.replace(replacement)
+
+        return applied
 
 
 class KQLSplitState(enum.Enum):
@@ -2791,6 +2819,87 @@ def _count_weighted_table_references(statement: exp.Expression) -> int:
         len(resolve(scope, frozenset()))
         for scope in traverse_scope(statement)
         if scope.scope_type != ScopeType.CTE
+    )
+
+
+def _find_subquery_scopes(scopes: list[Scope]) -> set[int]:
+    """
+    Find the scopes whose rows only reach a statement through a sub-query.
+
+    That is every uncorrelated ``SUBQUERY`` scope (a scalar, ``IN`` or ``EXISTS``
+    sub-query), every scope nested inside one, and every CTE one of them reads from,
+    including the scopes nested inside that CTE. Only a CTE named in the sub-query's
+    own ``FROM`` or joins counts, not every CTE in lexical scope (which
+    ``Scope.sources`` holds), so a CTE only joined in the main ``FROM`` keeps the
+    outer query's rules. A CTE read both from a sub-query and
+    from the statement's ``FROM`` counts as a sub-query, so its reads get the stricter
+    rules. The body of a ``LATERAL`` or ``CROSS APPLY`` feeds the output like a join,
+    so it is left out. A correlated sub-query is left out too: it is typically a
+    lookup keyed to the enclosing rows, often over a table without the rule's
+    columns, which the rules would break the same way they would break a join. The
+    outer query doesn't scope such a sub-query's tables either (UPDATING.md).
+
+    :param scopes: The scopes of the statement, as returned by ``traverse_scope``
+    :returns: The ``id`` of each scope found
+    """
+    found: set[int] = set()
+    pending = [
+        scope
+        for scope in scopes
+        if scope.scope_type == ScopeType.SUBQUERY
+        and not (scope.parent and scope.parent.scope_type == ScopeType.UDTF)
+        and not _is_correlated(scope)
+    ]
+    while pending:
+        scope = pending.pop()
+        if id(scope) in found:
+            continue
+        found.add(id(scope))
+        pending.extend(child for child in scopes if child.parent is scope)
+        pending.extend(
+            source
+            for _, source in scope.selected_sources.values()
+            if isinstance(source, Scope) and source.scope_type == ScopeType.CTE
+        )
+    return found
+
+
+def _is_correlated(scope: Scope) -> bool:
+    """
+    Does a sub-query reference a table of an enclosing query?
+
+    Only a column qualified with an enclosing table's name or alias counts, when the
+    sub-query has no table of its own under that name. An unqualified column can't
+    be told apart from one of the sub-query's own, so it is treated as local, which
+    errs toward the sub-query getting the stricter rules. (``Scope``'s own
+    ``is_correlated_subquery`` treats every unqualified column as external.)
+
+    Only the sub-query's own columns count, not those of a sub-query nested in it
+    (which ``Scope.columns`` includes): a nested correlated sub-query doesn't key the
+    wrapping sub-query's tables to the enclosing rows.
+
+    Names are the ones each query reads in its ``FROM`` and joins
+    (``Scope.selected_sources``), not every CTE in lexical scope, so a reference to
+    a CTE the enclosing query reads counts as external. They are compared ignoring
+    letter-case, since most engines fold unquoted names. On one that doesn't, a
+    qualifier matching only when case is ignored either names one of the
+    sub-query's own tables, which errs toward the stricter rules, or names no table
+    at all and the engine rejects the query.
+
+    :param scope: A ``SUBQUERY`` scope
+    :returns: True if the sub-query is correlated
+    """
+    enclosing: set[str] = set()
+    parent = scope.parent
+    while parent:
+        enclosing.update(name.lower() for name in parent.selected_sources)
+        parent = parent.parent
+    local = {name.lower() for name in scope.selected_sources}
+    return any(
+        isinstance(node, exp.Column)
+        and node.table.lower() in enclosing
+        and node.table.lower() not in local
+        for node in walk_in_scope(scope.expression)
     )
 
 

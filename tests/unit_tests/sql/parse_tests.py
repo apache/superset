@@ -18,6 +18,7 @@
 
 
 import logging
+import re
 
 import pytest
 import sqlglot
@@ -6680,3 +6681,257 @@ def test_folds_unquoted_object_names_uninstalled_plugin_dialect(
         assert folds_unquoted_object_names("uninstalled_plugin") is False
     finally:
         folds_unquoted_object_names.cache_clear()
+
+
+def _compact_sql(statement: SQLStatement) -> str:
+    """
+    Format a statement on one line, without the padding inside parentheses.
+    """
+    sql = " ".join(statement.format(comments=False).split())
+    return re.sub(r"\(\s+", "(", re.sub(r"\s+\)", ")", sql))
+
+
+@pytest.mark.parametrize(
+    "sql, expected",
+    [
+        pytest.param(
+            "SELECT * FROM a",
+            "SELECT * FROM a WHERE a.r = 1",
+            id="plain-read",
+        ),
+        pytest.param(
+            "SELECT * FROM a JOIN b ON a.k = b.k",
+            "SELECT * FROM a JOIN b ON b.r = 1 AND (a.k = b.k) WHERE a.r = 1",
+            id="join",
+        ),
+        pytest.param(
+            "SELECT * FROM (SELECT * FROM b) AS d",
+            "SELECT * FROM (SELECT * FROM b WHERE b.r = 1) AS d",
+            id="derived-table",
+        ),
+        pytest.param(
+            "WITH c AS (SELECT * FROM b) SELECT * FROM c",
+            "WITH c AS (SELECT * FROM b WHERE b.r = 1) SELECT * FROM c",
+            id="cte-in-from",
+        ),
+        pytest.param(
+            "SELECT a.x, (SELECT COUNT(*) FROM b) AS n FROM a",
+            "SELECT a.x, (SELECT COUNT(*) FROM b WHERE b.r = 1 AND b.g = 1) AS n "
+            "FROM a WHERE a.r = 1",
+            id="scalar-subquery",
+        ),
+        pytest.param(
+            "SELECT a.x, (SELECT COUNT(*) FROM a) AS n FROM a",
+            "SELECT a.x, (SELECT COUNT(*) FROM a WHERE a.r = 1 AND a.g = 1) AS n "
+            "FROM a WHERE a.r = 1",
+            id="same-table-in-subquery",
+        ),
+        pytest.param(
+            "SELECT * FROM a WHERE a.k IN (SELECT k FROM b)",
+            "SELECT * FROM a WHERE a.r = 1 AND (a.k IN (SELECT k FROM b "
+            "WHERE b.r = 1 AND b.g = 1))",
+            id="in-subquery",
+        ),
+        pytest.param(
+            "SELECT * FROM a WHERE EXISTS (SELECT 1 FROM b WHERE b.x = 1)",
+            "SELECT * FROM a WHERE a.r = 1 AND (EXISTS(SELECT 1 FROM b "
+            "WHERE b.r = 1 AND b.g = 1 AND (b.x = 1)))",
+            id="exists-subquery",
+        ),
+        pytest.param(
+            "SELECT a.x, (SELECT name FROM b WHERE b.id = a.bid) AS n FROM a",
+            "SELECT a.x, (SELECT name FROM b WHERE b.r = 1 AND (b.id = a.bid)) AS n "
+            "FROM a WHERE a.r = 1",
+            id="correlated-subquery",
+        ),
+        pytest.param(
+            "SELECT * FROM a WHERE EXISTS (SELECT 1 FROM b WHERE b.k = a.k)",
+            "SELECT * FROM a WHERE a.r = 1 AND (EXISTS(SELECT 1 FROM b "
+            "WHERE b.r = 1 AND (b.k = a.k)))",
+            id="correlated-exists",
+        ),
+        pytest.param(
+            "SELECT a.x, (SELECT name FROM b AS a WHERE a.id = 1) AS n FROM a",
+            "SELECT a.x, (SELECT name FROM b AS a WHERE a.r = 1 AND a.g = 1 AND "
+            "(a.id = 1)) AS n FROM a WHERE a.r = 1",
+            id="alias-shadowing-outer-table",
+        ),
+        pytest.param(
+            "SELECT a.x, (SELECT name FROM b WHERE id = bid) AS n FROM a",
+            "SELECT a.x, (SELECT name FROM b WHERE b.r = 1 AND b.g = 1 AND "
+            "(id = bid)) AS n FROM a WHERE a.r = 1",
+            id="unqualified-reference",
+        ),
+        pytest.param(
+            "SELECT a.x, (SELECT name FROM b WHERE b.id = a.bid "
+            "AND b.k IN (SELECT k FROM a)) AS n FROM a",
+            "SELECT a.x, (SELECT name FROM b WHERE b.r = 1 AND (b.id = a.bid "
+            "AND b.k IN (SELECT k FROM a WHERE a.r = 1 AND a.g = 1))) AS n "
+            "FROM a WHERE a.r = 1",
+            id="uncorrelated-inside-correlated",
+        ),
+        pytest.param(
+            "SELECT a.x, (SELECT COUNT(*) FROM (SELECT * FROM b) AS d) AS n FROM a",
+            "SELECT a.x, (SELECT COUNT(*) FROM (SELECT * FROM b "
+            "WHERE b.r = 1 AND b.g = 1) AS d) AS n FROM a WHERE a.r = 1",
+            id="derived-table-in-subquery",
+        ),
+        pytest.param(
+            "WITH c AS (SELECT * FROM b) "
+            "SELECT a.x, (SELECT COUNT(*) FROM c) AS n FROM a",
+            "WITH c AS (SELECT * FROM b WHERE b.r = 1 AND b.g = 1) "
+            "SELECT a.x, (SELECT COUNT(*) FROM c) AS n FROM a WHERE a.r = 1",
+            id="cte-read-from-subquery",
+        ),
+        pytest.param(
+            "SELECT * FROM a UNION ALL SELECT * FROM b",
+            "SELECT * FROM a WHERE a.r = 1 UNION ALL SELECT * FROM b WHERE b.r = 1",
+            id="union",
+        ),
+        pytest.param(
+            "SELECT a.x, (SELECT COUNT(*) FROM b WHERE b.k IN (SELECT k FROM a)) "
+            "AS n FROM a",
+            "SELECT a.x, (SELECT COUNT(*) FROM b WHERE b.r = 1 AND b.g = 1 AND "
+            "(b.k IN (SELECT k FROM a WHERE a.r = 1 AND a.g = 1))) AS n "
+            "FROM a WHERE a.r = 1",
+            id="nested-subquery",
+        ),
+        pytest.param(
+            "SELECT a.x, (SELECT COUNT(*) FROM b WHERE EXISTS "
+            "(SELECT 1 FROM a AS o WHERE o.k = a.k)) AS n FROM a",
+            "SELECT a.x, (SELECT COUNT(*) FROM b WHERE b.r = 1 AND b.g = 1 AND "
+            "(EXISTS(SELECT 1 FROM a AS o WHERE o.r = 1 AND o.g = 1 AND "
+            "(o.k = a.k)))) AS n FROM a WHERE a.r = 1",
+            id="uncorrelated-wrapping-correlated",
+        ),
+        pytest.param(
+            "WITH c AS (SELECT * FROM a) "
+            "SELECT c.x, (SELECT name FROM b WHERE b.id = c.bid) AS n FROM c",
+            "WITH c AS (SELECT * FROM a WHERE a.r = 1) "
+            "SELECT c.x, (SELECT name FROM b WHERE b.r = 1 AND (b.id = c.bid)) AS n "
+            "FROM c",
+            id="correlated-to-outer-cte",
+        ),
+        pytest.param(
+            "WITH c AS (SELECT * FROM b) "
+            "SELECT a.x, (SELECT COUNT(*) FROM b) AS n FROM a JOIN c ON c.k = a.k",
+            "WITH c AS (SELECT * FROM b WHERE b.r = 1) "
+            "SELECT a.x, (SELECT COUNT(*) FROM b WHERE b.r = 1 AND b.g = 1) AS n "
+            "FROM a JOIN c ON c.k = a.k WHERE a.r = 1",
+            id="cte-joined-beside-unrelated-subquery",
+        ),
+        pytest.param(
+            "SELECT a.x, (SELECT COUNT(*) FROM b AS A WHERE a.v > 0) AS n FROM a",
+            "SELECT a.x, (SELECT COUNT(*) FROM b AS A WHERE A.r = 1 AND A.g = 1 AND "
+            "(a.v > 0)) AS n FROM a WHERE a.r = 1",
+            id="alias-shadowing-outer-table-case-insensitive",
+        ),
+    ],
+)
+def test_rls_subquery_predicates(sql: str, expected: str) -> None:
+    """
+    Reads inside a sub-query get ``subquery_predicates``; reads whose rows reach
+    the statement's output (``FROM``, joins, derived tables, CTEs) get
+    ``predicates``.
+    """
+    statement = SQLStatement(sql)
+    statement.apply_rls(
+        None,
+        None,
+        {Table("a"): [parse_one("r = 1")], Table("b"): [parse_one("r = 1")]},
+        RLSMethod.AS_PREDICATE,
+        subquery_predicates={
+            Table("a"): [parse_one("r = 1"), parse_one("g = 1")],
+            Table("b"): [parse_one("r = 1"), parse_one("g = 1")],
+        },
+    )
+    assert _compact_sql(statement) == expected
+
+
+def test_rls_subquery_predicates_as_subquery() -> None:
+    """
+    ``subquery_predicates`` also drive the ``AS_SUBQUERY`` method, per read.
+    """
+    statement = SQLStatement("SELECT a.x, (SELECT COUNT(*) FROM a) AS n FROM a")
+    statement.apply_rls(
+        None,
+        None,
+        {Table("a"): [parse_one("r = 1")]},
+        RLSMethod.AS_SUBQUERY,
+        subquery_predicates={Table("a"): [parse_one("r = 1"), parse_one("g = 1")]},
+    )
+    assert _compact_sql(statement) == (
+        "SELECT a.x, (SELECT COUNT(*) FROM (SELECT * FROM a WHERE r = 1 AND g = 1) "
+        'AS "a") AS n FROM (SELECT * FROM a WHERE r = 1) AS "a"'
+    )
+
+
+@pytest.mark.parametrize(
+    "sql, engine",
+    [
+        pytest.param(
+            "SELECT * FROM a, LATERAL (SELECT x FROM b WHERE b.k = a.k) AS l",
+            "postgresql",
+            id="lateral",
+        ),
+        pytest.param(
+            "SELECT * FROM a CROSS APPLY (SELECT x FROM b WHERE b.k = a.k) AS l",
+            "mssql",
+            id="cross-apply",
+        ),
+    ],
+)
+def test_rls_subquery_predicates_skip_lateral(sql: str, engine: str) -> None:
+    """
+    The body of a ``LATERAL`` or ``CROSS APPLY`` feeds the statement's output like
+    a join, so its reads get ``predicates``, not ``subquery_predicates``.
+    """
+    statement = SQLStatement(sql, engine)
+    statement.apply_rls(
+        None,
+        None,
+        {Table("a"): [parse_one("r = 1")], Table("b"): [parse_one("r = 1")]},
+        RLSMethod.AS_PREDICATE,
+        subquery_predicates={
+            Table("a"): [parse_one("r = 1"), parse_one("g = 1")],
+            Table("b"): [parse_one("r = 1"), parse_one("g = 1")],
+        },
+    )
+    sql = _compact_sql(statement)
+    assert "b.r = 1" in sql
+    assert "g = 1" not in sql
+
+
+@pytest.mark.parametrize(
+    "predicates, subquery_predicates, expected",
+    [
+        pytest.param({Table("a"): []}, None, False, id="no-rules"),
+        pytest.param({Table("a"): [parse_one("r = 1")]}, None, True, id="rule"),
+        pytest.param(
+            {Table("a"): []},
+            {Table("a"): [parse_one("g = 1")]},
+            False,
+            id="subquery-rule-without-subquery",
+        ),
+    ],
+)
+def test_rls_returns_whether_applied(
+    predicates: dict[Table, list[sqlglot.exp.Expression]],
+    subquery_predicates: dict[Table, list[sqlglot.exp.Expression]] | None,
+    expected: bool,
+) -> None:
+    """
+    ``apply_rls`` reports whether it injected a rule, so callers can skip
+    re-rendering an untouched statement.
+    """
+    statement = SQLStatement("SELECT * FROM (SELECT * FROM a) AS d")
+    assert (
+        statement.apply_rls(
+            None,
+            None,
+            predicates,
+            RLSMethod.AS_PREDICATE,
+            subquery_predicates=subquery_predicates,
+        )
+        is expected
+    )
