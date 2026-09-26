@@ -1,0 +1,54 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+cache_timeout: null
+certification_details: null
+certified_by: null
+dataset_uuid: 9a679ff3-021d-4c10-ad7d-2e0fba37768e
+description: Sales orders broken down by Territory, then Country, then City, laid
+  out left-to-right instead of radially.
+params:
+  adhoc_filters: []
+  annotation_layers: []
+  child_label_position: right
+  dashboards: []
+  emphasis: descendant
+  extra_form_data: {}
+  id: id
+  initialTreeDepth: -1
+  layout: orthogonal
+  metric:
+    aggregate: SUM
+    column:
+      column_name: count
+    expressionType: SIMPLE
+    label: SUM(count)
+    optionName: metric_sales_territory_tree_horizontal
+  name: name
+  node_label_position: left
+  orient: LR
+  parent: parent
+  roam: false
+  root_node_id: '1'
+  row_limit: 1000
+  symbol: circle
+  symbolSize: 9
+  viz_type: tree_chart
+query_context: null
+slice_name: Sales Territory Tree Horizontal
+uuid: 229e5c4d-af67-4a90-9ec4-73db2a809ce6
+version: 1.0.0
+viz_type: tree_chart

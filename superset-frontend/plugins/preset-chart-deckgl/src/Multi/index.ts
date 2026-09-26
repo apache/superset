@@ -18,10 +18,10 @@
  */
 import { t } from '@apache-superset/core/translation';
 import { ChartMetadata, ChartPlugin } from '@superset-ui/core';
-import thumbnail from './images/thumbnail.png';
-import thumbnailDark from './images/thumbnail-dark.png';
-import example from './images/example.png';
-import exampleDark from './images/example-dark.png';
+import thumbnail from './images/custom_thumb_thumbnail.png';
+import thumbnailDark from './images/custom_thumb_thumbnail-dark.png';
+import example from './images/custom_thumb_example.png';
+import exampleDark from './images/custom_thumb_example-dark.png';
 import transformProps from '../transformProps';
 import controlPanel from './controlPanel';
 
