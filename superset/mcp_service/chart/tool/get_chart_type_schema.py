@@ -35,6 +35,7 @@ from superset.mcp_service.chart.schemas import (
     BigNumberChartConfig,
     BoxPlotChartConfig,
     BubbleChartConfig,
+    FunnelChartConfig,
     GanttChartConfig,
     GaugeChartConfig,
     HandlebarsChartConfig,
@@ -69,6 +70,7 @@ _CHART_TYPE_ADAPTERS: Dict[str, TypeAdapter[Any]] = {
     "pie": TypeAdapter(PieChartConfig),
     "gauge": TypeAdapter(GaugeChartConfig),
     "treemap_v2": TypeAdapter(TreemapChartConfig),
+    "funnel": TypeAdapter(FunnelChartConfig),
     "pivot_table": TypeAdapter(PivotTableChartConfig),
     "interactive_pivot": TypeAdapter(InteractivePivotChartConfig),
     "mixed_timeseries": TypeAdapter(MixedTimeseriesChartConfig),
@@ -270,6 +272,13 @@ _CHART_EXAMPLES: Dict[str, list[Dict[str, Any]]] = {
             "row_limit": 100,
         },
     ],
+    "funnel": [
+        {
+            "chart_type": "funnel",
+            "dimension": {"name": "stage"},
+            "metric": {"name": "users", "aggregate": "SUM"},
+        },
+    ],
 }
 
 
@@ -365,8 +374,9 @@ def get_chart_type_schema(
     for a chart configuration before calling generate_chart or update_chart.
 
     Valid chart_type values depend on the host deployment. Core types are xy,
-    table, pie, gauge, treemap_v2, bubble_v2, pivot_table, mixed_timeseries,
-    handlebars, big_number, histogram, box_plot, waterfall, and gantt.
+    table, pie, gauge, treemap_v2, bubble_v2, funnel, pivot_table,
+    mixed_timeseries, handlebars, big_number, histogram, box_plot,
+    waterfall, and gantt.
     Deployments that enable an AG Grid pivot extension also expose
     interactive_pivot.
 
