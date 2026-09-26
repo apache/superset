@@ -725,3 +725,44 @@ describe('getIntervalBoundsAndColors', () => {
     ]);
   });
 });
+
+test('transformProps passes onDrillDown hook through', () => {
+  const onDrillDown = jest.fn();
+  const chartProps = new ChartProps({
+    formData: {
+      datasource: '26__table',
+      viz_type: VizType.Gauge,
+      metric: 'count',
+      adhocFilters: [],
+      groupby: ['country'],
+      rowLimit: 10,
+      minVal: 0,
+      maxVal: 100,
+      startAngle: 225,
+      endAngle: -45,
+      colorScheme: 'SUPERSET_DEFAULT',
+      fontSize: 14,
+      numberFormat: 'SMART_NUMBER',
+      valueFormatter: '{value}',
+      showPointer: true,
+      animation: true,
+      showAxisTick: false,
+      showSplitLine: false,
+      splitNumber: 10,
+      showProgress: true,
+      overlap: true,
+      roundCap: false,
+    },
+    width: 800,
+    height: 600,
+    queriesData: [
+      { colnames: ['country', 'count'], data: [{ country: 'USA', count: 10 }] },
+    ],
+    theme: supersetTheme,
+    hooks: { onDrillDown },
+  });
+  const result = transformProps(
+    chartProps as unknown as EchartsGaugeChartProps,
+  );
+  expect(result.onDrillDown).toBe(onDrillDown);
+});
