@@ -54,6 +54,7 @@ from superset.mcp_service.chart.schemas import (
     GanttChartConfig,
     GaugeChartConfig,
     GenerateChartResponse,
+    GeographicChartConfig,
     PerformanceMetadata,
     TableChartConfig,
     TreemapChartConfig,
@@ -377,11 +378,18 @@ def _build_replacement_form_data(
     new_form_data.pop("_mcp_warnings", None)
     dataset_rebind = replacement_dataset_id is not None
     if replacement_dataset_id is not None and not isinstance(
-        parsed_config, (GanttChartConfig, GaugeChartConfig, TreemapChartConfig)
+        parsed_config,
+        (
+            GanttChartConfig,
+            GaugeChartConfig,
+            GeographicChartConfig,
+            TreemapChartConfig,
+        ),
     ):
         # Drop only the inherited state the replacement dataset cannot
-        # resolve, then merge as a same-dataset update. Gantt and Gauge keep the
-        # stricter rebind contracts handled downstream.
+        # resolve, then merge as a same-dataset update. Gantt, Gauge,
+        # Treemap, and geographic configs keep the stricter rebind contracts
+        # handled downstream.
         invalid_keys = _inherited_state_invalid_keys(
             existing_form_data,
             new_form_data,
@@ -819,17 +827,43 @@ async def update_chart(  # noqa: C901
             request.dataset_id is not None
             and request.dataset_id != getattr(chart, "datasource_id", None)
             and request.config is None
-            and getattr(chart, "viz_type", None) in ("gauge_chart", "treemap_v2")
+            and getattr(chart, "viz_type", None)
+            in {
+                "gauge_chart",
+                "treemap_v2",
+                "country_map",
+                "world_map",
+                "deck_scatter",
+            }
         ):
-            return _validation_error_response(
-                message=(
+            rebind_viz_type = getattr(chart, "viz_type", None)
+            if rebind_viz_type == "gauge_chart":
+                rebind_message = (
                     "Gauge dataset rebind requires a complete Gauge config."
-                    if chart.viz_type == "gauge_chart"
-                    else "Treemap dataset rebind requires a complete Treemap config."
-                ),
-                details=(
+                )
+                rebind_lead = (
+                    "Provide chart_type='gauge' and a metric valid on the target "
+                )
+            elif rebind_viz_type == "treemap_v2":
+                rebind_message = (
+                    "Treemap dataset rebind requires a complete Treemap config."
+                )
+                rebind_lead = (
                     "Provide the chart type and complete roles valid on the target "
-                    "dataset. This prevents stale metric, groupby, and filter roles "
+                )
+            else:
+                rebind_message = (
+                    "Dataset rebind requires a complete typed geographic config."
+                )
+                rebind_lead = (
+                    "Provide chart_type and complete geographic/metric roles "
+                    "valid on the target "
+                )
+            return _validation_error_response(
+                message=rebind_message,
+                details=(
+                    rebind_lead
+                    + "dataset. This prevents stale metric, groupby, and filter roles "
                     "from the previous dataset from being retained."
                 ),
             )

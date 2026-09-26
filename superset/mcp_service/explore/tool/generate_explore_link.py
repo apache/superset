@@ -281,7 +281,7 @@ async def generate_explore_link(
                 form_data,
                 dataset,
                 run_compile_check=normalized_config.chart_type
-                in ("gauge", "treemap_v2"),
+                in {"gauge", "treemap_v2", "country_map", "world_map", "deck_scatter"},
             )
         if not compile_result.success:
             await ctx.warning(

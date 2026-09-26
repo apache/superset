@@ -47,6 +47,7 @@ from superset.mcp_service.chart.preview_utils import (
     generate_gauge_vega_lite_preview,
 )
 from superset.mcp_service.chart.query_result import (
+    GEOGRAPHIC_VIZ_TYPES,
     normalize_chart_query_result,
     query_result_failure,
 )
@@ -186,7 +187,9 @@ def _no_query_fields_error(chart: ChartLike) -> ChartError:
 
 
 def _preview_row_limit(form_data: dict[str, Any], fallback: int) -> int:
-    """Keep single-metric previews aligned with their frontend row limits."""
+    """Keep chart previews aligned with their frontend row limits."""
+    if form_data.get("mcp_geographic"):
+        return min(10000, max(1, int(form_data.get("row_limit") or 10000)))
     if form_data.get("viz_type") == "treemap_v2":
         value = form_data.get("row_limit", 100)
         try:
@@ -504,6 +507,15 @@ class VegaLitePreviewStrategy(PreviewFormatStrategy):
             if result and "queries" in result and len(result["queries"]) > 0:
                 chart_data = result["queries"][0].get("data", [])
 
+            if form_data.get("viz_type") in GEOGRAPHIC_VIZ_TYPES:
+                return ChartError(
+                    error=(
+                        "Geographic Vega previews are not supported. "
+                        "Use table/ascii for "
+                        "data or Explore for native geography."
+                    ),
+                    error_type="UnsupportedGeographicPreview",
+                )
             if form_data.get("viz_type") == "treemap_v2":
                 return treemap_vega_lite(chart_data, form_data)
             if form_data.get("viz_type") == "gauge_chart":

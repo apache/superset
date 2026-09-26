@@ -114,6 +114,33 @@ export default function transformProps(chartProps: ChartProps) {
   const radiusMetricLabel = getMetricLabelFromFormData(point_radius_fixed);
   const records = getRecordsFromQuery(chartProps.queriesData);
 
+  if (formData.mcp_geographic) {
+    for (const record of records) {
+      for (const [column, bound] of [
+        [spatial?.latCol, 90],
+        [spatial?.lonCol, 180],
+      ] as const) {
+        const value = column ? record[column] : undefined;
+        if (
+          typeof value !== 'number' ||
+          !Number.isFinite(value) ||
+          Math.abs(value) > bound
+        ) {
+          throw new Error(
+            `Geographic coordinate ${column} must be a finite number between ${-bound} and ${bound}`,
+          );
+        }
+      }
+      if (radiusMetricLabel) {
+        const value = record[radiusMetricLabel];
+        if (typeof value !== 'number' || !Number.isFinite(value) || value < 0) {
+          throw new Error(
+            'Point radius metric must be a finite nonnegative number',
+          );
+        }
+      }
+    }
+  }
   const features = processScatterData(
     records,
     spatial,

@@ -18,7 +18,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version:  \n"
 "Report-Msgid-Bugs-To: ted.korostiled@gmail.com\n"
-"POT-Creation-Date: 2026-09-23 12:43+0200\n"
+"POT-Creation-Date: 2026-09-23 23:41+0000\n"
 "PO-Revision-Date: 2026-04-30 22:04+0300\n"
 "Last-Translator: Danylo Korostil\n"
 "Language: uk\n"
@@ -3037,6 +3037,9 @@ msgstr "Розмір бульбашок"
 msgid "Bubble size number format"
 msgstr "Числовий формат розміру бульбашки"
 
+msgid "Bubble-size metric must be nonnegative"
+msgstr ""
+
 msgid "Bucket break points"
 msgstr "Точки розбиття на сегменти"
 
@@ -3650,6 +3653,13 @@ msgstr "Діаграму збережено, але не вдалося дода
 
 msgid "Chart width"
 msgstr "Ширина діаграми"
+
+#, python-format
+msgid ""
+"Chart with ID %(chart_id)s (referenced by annotation layer "
+"'%(layer_name)s') was not found. Please verify that the chart exists and "
+"is accessible."
+msgstr ""
 
 msgid "Charts"
 msgstr "Діаграми"
@@ -7097,6 +7107,9 @@ msgstr "Розгорнути рядок"
 msgid "Expand row to edit"
 msgstr "Розгорнути рядок"
 
+msgid "Expected geographic query data to be a list of records"
+msgstr ""
+
 msgid ""
 "Expects a formula with depending time parameter 'x'\n"
 "        in milliseconds since epoch. mathjs is used to evaluate the "
@@ -7114,6 +7127,12 @@ msgstr "Експериментальне"
 #, fuzzy
 msgid "Expired"
 msgstr "Дослідити"
+
+msgid ""
+"Explicit formats validate all values against bundled boundaries. "
+"Supported countries: USA, Canada, Australia, Japan, UK. Unrecognized or "
+"ambiguous values fail rather than displaying blank regions."
+msgstr ""
 
 msgid "Explore"
 msgstr "Дослідити"
@@ -7997,6 +8016,10 @@ msgstr "Стовпець GeoJSON"
 msgid "GeoJson Settings"
 msgstr "Параметри GeoJSON"
 
+#, python-format
+msgid "Geographic metric %s must be a finite number"
+msgstr ""
+
 msgid "Geohash"
 msgstr "Геокод"
 
@@ -8222,11 +8245,17 @@ msgstr ""
 msgid "Huge"
 msgstr "Величезний"
 
+msgid "ISO 3166-2"
+msgstr ""
+
 msgid "ISO 3166-2 Codes"
 msgstr "Коди ISO 3166-2"
 
 msgid "ISO 8601"
 msgstr "ISO 8601"
+
+msgid "ISO suffix / abbreviation"
+msgstr ""
 
 msgid "Icon URL"
 msgstr "Посилання на піктограму"
@@ -9025,6 +9054,9 @@ msgstr "Ліве значення"
 
 msgid "Legacy"
 msgstr "Застаріле"
+
+msgid "Legacy ISO values"
+msgstr ""
 
 msgid "Legend"
 msgstr "Легенда"
@@ -11848,6 +11880,12 @@ msgstr "Оновити діаграми"
 
 msgid "Refreshing columns"
 msgstr "Оновлення стовпців"
+
+msgid "Region name"
+msgstr ""
+
+msgid "Region value format"
+msgstr ""
 
 msgid "Register"
 msgstr "Реєстрація"
@@ -15729,6 +15767,13 @@ msgstr "Запит містить один або кілька неправил�
 msgid "The query context datasource does not match the chart datasource"
 msgstr ""
 
+#, python-format
+msgid ""
+"The query context for chart ID %(chart_id)s (referenced by annotation "
+"layer '%(layer_name)s') was not found. Please ensure the chart is "
+"properly configured and has a valid query context."
+msgstr ""
+
 msgid "The query couldn't be loaded"
 msgstr "Запит не вдалося завантажити"
 
@@ -17694,6 +17739,11 @@ msgstr "Прикріпити до панелі результатів"
 msgid "Unpin from top"
 msgstr "Відкріпити зверху"
 
+msgid ""
+"Unrecognized or duplicate country value; choose the matching country "
+"format or normalize source values before aggregation."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
 #, fuzzy
 msgid "Unsafe link blocked"
@@ -19326,7 +19376,18 @@ msgid ""
 "SUPERSET_DASHBOARD_POSITION_DATA_LIMIT config setting."
 msgstr ""
 
-msgid "Your export is being prepared. You'll receive an email when it's ready."
+msgid ""
+"Your export is being generated and will download automatically when "
+"ready. We'll also email you a download link."
+msgstr ""
+
+msgid "Your export is being generated. Please, do not leave the page."
+msgstr ""
+
+msgid "Your export is ready and downloading."
+msgstr ""
+
+msgid "Your export is taking longer than expected. Try again later."
 msgstr ""
 
 #, python-format

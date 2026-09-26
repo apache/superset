@@ -20,8 +20,9 @@
 import math
 from collections.abc import Mapping
 from decimal import Decimal
+from functools import lru_cache
 from numbers import Real
-from typing import Any, cast
+from typing import Any, cast, TypeGuard
 
 from superset.mcp_service.chart.schemas import ChartError
 
@@ -233,6 +234,162 @@ def validate_gauge_query_result(
     return normalized if isinstance(normalized, ChartError) else None
 
 
+GEOGRAPHIC_VIZ_TYPES = frozenset({"country_map", "world_map", "deck_scatter"})
+
+
+def _geographic_metric_labels(form_data: Mapping[str, Any]) -> list[str]:
+    """Resolve metrics once, including fixed versus metric point sizing."""
+    if form_data.get("viz_type") == "deck_scatter":
+        radius = form_data.get("point_radius_fixed")
+        if not isinstance(radius, Mapping) or radius.get("type") not in {
+            "fix",
+            "metric",
+        }:
+            raise ValueError("Invalid geographic point radius configuration")
+        metrics = [radius.get("value")] if radius["type"] == "metric" else []
+    else:
+        metrics = [form_data.get("metric")]
+        secondary = form_data.get("secondary_metric")
+        if form_data.get("show_bubbles") and secondary is None:
+            raise ValueError("show_bubbles requires secondary_metric")
+        if secondary is not None:
+            metrics.append(secondary)
+    labels = [metric_result_label(metric) for metric in metrics]
+    if any(label is None for label in labels):
+        raise ValueError("Geographic metric has no resolvable result label")
+    return [label for label in labels if label is not None]
+
+
+def _is_finite_geographic_number(value: object) -> TypeGuard[Real | Decimal]:
+    """Accept database NUMERIC/real scalars that remain finite in JSON.
+
+    Validation precedes JSON conversion; retain the original Decimal values for
+    data/export while rejecting booleans, complex numbers, and numeric strings.
+    """
+    if isinstance(value, bool) or not isinstance(value, (Real, Decimal)):
+        return False
+    if isinstance(value, Decimal) and not value.is_finite():
+        return False
+    try:
+        return math.isfinite(value)
+    except (OverflowError, ValueError):
+        return False
+
+
+def _validate_geographic_metrics(
+    row: Mapping[str, Any], labels: list[str], form_data: Mapping[str, Any]
+) -> None:
+    """Validate every selected metric without dropping invalid rows."""
+    secondary = metric_result_label(form_data.get("secondary_metric"))
+    for label in labels:
+        value = row.get(label)
+        if not _is_finite_geographic_number(value):
+            raise ValueError(f"Geographic metric {label!r} must be a finite number")
+        if value < 0 and (
+            form_data.get("viz_type") == "deck_scatter" or label == secondary
+        ):
+            raise ValueError("Geographic size metrics must be nonnegative")
+
+
+@lru_cache(maxsize=4)
+def _world_country_entries(field: str) -> tuple[tuple[str, str], ...]:
+    """Reuse immutable country aliases for the four supported world formats."""
+    from superset.examples.countries import countries
+
+    return tuple(
+        (country[field], country["cca3"]) for country in countries if country[field]
+    )
+
+
+def _geographic_row_identifier(
+    row: Mapping[str, Any], form_data: Mapping[str, Any]
+) -> str | None:
+    """Resolve a polygon identifier or validate numeric point coordinates."""
+    from superset.utils.geographic import resolve_geographic_value, resolve_region
+
+    viz = form_data["viz_type"]
+    entity = form_data.get("entity")
+    if viz != "deck_scatter" and not isinstance(entity, str):
+        raise ValueError("Geographic maps require an entity column")
+    if viz == "country_map":
+        return resolve_region(
+            row.get(entity or ""),
+            form_data.get("select_country", ""),
+            form_data.get("region_format", ""),
+        )
+    if viz == "world_map":
+        field = form_data.get("country_fieldtype")
+        if field not in {"name", "cca2", "cca3", "cioc"}:
+            raise ValueError("Choose country_format name, cca2, cca3, or cioc")
+        # Fold diacritics for country names only, so localized spellings such
+        # as "Curaçao" reach their country. The ISO code fields are too short
+        # to fold safely: an accented label like "Áo" would fold onto an
+        # unrelated country's code and resolve silently to the wrong country.
+        return resolve_geographic_value(
+            row.get(entity or ""),
+            _world_country_entries(field),
+            fold_diacritics=field == "name",
+        )
+    spatial = form_data.get("spatial")
+    if not isinstance(spatial, Mapping) or spatial.get("type") != "latlong":
+        raise ValueError("Geographic points require latlong spatial columns")
+    for role, bound in (("latCol", 90), ("lonCol", 180)):
+        column = spatial.get(role)
+        if not isinstance(column, str):
+            raise ValueError(f"{role} requires a named coordinate column")
+        value = row.get(column)
+        if (
+            not _is_finite_geographic_number(value)
+            or value < -bound
+            or not value <= bound
+        ):
+            raise ValueError(
+                f"{role} must be a finite number between {-bound} and {bound}"
+            )
+    return None
+
+
+def validate_geographic_query_result(
+    result: Any, form_data: Mapping[str, Any]
+) -> ChartError | None:
+    """Reject unresolved regions and malformed or nonfinite geographic results.
+
+    Preserve source values for exports and filtering. The native transform owns
+    display-only ISO mapping using the same bundled boundary identifiers.
+    Legacy charts without the typed MCP contract retain their native behavior.
+    """
+    if form_data.get("viz_type") not in GEOGRAPHIC_VIZ_TYPES or not form_data.get(
+        "mcp_geographic"
+    ):
+        return None
+    try:
+        if (
+            not isinstance(result, Mapping)
+            or not isinstance(result.get("queries"), list)
+            or len(result["queries"]) != 1
+        ):
+            raise ValueError("Expected exactly one geographic query result")
+        query = result["queries"][0]
+        if not isinstance(query, Mapping) or not isinstance(query.get("data"), list):
+            raise ValueError("Expected geographic query data to be a list of records")
+        labels = _geographic_metric_labels(form_data)
+        seen: set[str] = set()
+        for row in query["data"]:
+            if not isinstance(row, Mapping):
+                raise ValueError("Expected geographic rows to be records")
+            _validate_geographic_metrics(row, labels, form_data)
+            if identifier := _geographic_row_identifier(row, form_data):
+                if identifier in seen:
+                    raise ValueError(
+                        f"Multiple result rows resolve to {identifier}; "
+                        "normalize source values before aggregation"
+                    )
+                seen.add(identifier)
+    except (ValueError, TypeError, KeyError) as exc:
+        return ChartError(error=str(exc), error_type="InvalidGeographicResult")
+    return None
+
+
 def column_result_label(column: Any) -> str | None:
     """Resolve the query-result key using frontend ``getColumnLabel`` rules.
 
@@ -267,39 +424,6 @@ def treemap_hierarchy_labels(form_data: Mapping[str, Any]) -> list[str] | None:
     if len(set(resolved)) != len(resolved):
         return None
     return resolved
-
-
-def normalize_chart_query_result(result: Any, form_data: Mapping[str, Any]) -> Any:
-    """Validate chart-specific result contracts before consumers use rows."""
-    if form_data.get("viz_type") != "treemap_v2":
-        return normalize_gauge_query_result(result, form_data)
-    if failure := query_result_failure(result):
-        return failure
-    label = metric_result_label(form_data.get("metric"))
-    hierarchy = treemap_hierarchy_labels(form_data)
-    if not label or hierarchy is None or label in hierarchy:
-        return ChartError(
-            error=(
-                "Treemap requires unique hierarchy columns and a distinct metric label."
-            ),
-            error_type="InvalidTreemapFormData",
-        )
-    queries = result.get("queries") if isinstance(result, Mapping) else None
-    if not isinstance(queries, list) or len(queries) != 1:
-        return ChartError(
-            error="Treemap requires exactly one query result.",
-            error_type="InvalidTreemapResult",
-        )
-    query = queries[0]
-    rows = query.get("data") if isinstance(query, Mapping) else None
-    if not isinstance(rows, list):
-        return ChartError(
-            error="Treemap query data must be an array of rows.",
-            error_type="InvalidTreemapResult",
-        )
-    if failure := _validate_treemap_rows(rows, hierarchy, label):
-        return failure
-    return result
 
 
 def _validate_treemap_rows(
@@ -340,3 +464,43 @@ def _validate_treemap_rows(
                 error_type="InvalidTreemapResult",
             )
     return None
+
+
+def _normalize_treemap_query_result(result: Any, form_data: Mapping[str, Any]) -> Any:
+    """Validate the Treemap hierarchy/metric contract before consumers use rows."""
+    label = metric_result_label(form_data.get("metric"))
+    hierarchy = treemap_hierarchy_labels(form_data)
+    if not label or hierarchy is None or label in hierarchy:
+        return ChartError(
+            error=(
+                "Treemap requires unique hierarchy columns and a distinct metric label."
+            ),
+            error_type="InvalidTreemapFormData",
+        )
+    queries = result.get("queries") if isinstance(result, Mapping) else None
+    if not isinstance(queries, list) or len(queries) != 1:
+        return ChartError(
+            error="Treemap requires exactly one query result.",
+            error_type="InvalidTreemapResult",
+        )
+    query = queries[0]
+    rows = query.get("data") if isinstance(query, Mapping) else None
+    if not isinstance(rows, list):
+        return ChartError(
+            error="Treemap query data must be an array of rows.",
+            error_type="InvalidTreemapResult",
+        )
+    if failure := _validate_treemap_rows(rows, hierarchy, label):
+        return failure
+    return result
+
+
+def normalize_chart_query_result(result: Any, form_data: Mapping[str, Any]) -> Any:
+    """Apply typed result contracts without modifying unrelated chart results."""
+    if failure := query_result_failure(result):
+        return failure
+    if failure := validate_geographic_query_result(result, form_data):
+        return failure
+    if form_data.get("viz_type") == "treemap_v2":
+        return _normalize_treemap_query_result(result, form_data)
+    return normalize_gauge_query_result(result, form_data)

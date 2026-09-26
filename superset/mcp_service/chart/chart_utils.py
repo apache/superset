@@ -24,7 +24,7 @@ generation that can be used by both generate_chart and generate_explore_link too
 
 import hashlib
 import logging
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from typing import Any, Dict, TYPE_CHECKING
 
@@ -35,6 +35,7 @@ if TYPE_CHECKING:
     from superset.connectors.sqla.models import SqlaTable
 
 from superset.constants import NO_TIME_RANGE
+from superset.mcp_service.chart.query_result import GEOGRAPHIC_VIZ_TYPES
 from superset.mcp_service.chart.schemas import (
     BigNumberChartConfig,
     BoxPlotChartConfig,
@@ -400,7 +401,7 @@ def map_config_to_form_data(
 
 
 def _add_adhoc_filters(
-    form_data: Dict[str, Any], filters: list[FilterConfig] | None
+    form_data: Dict[str, Any], filters: Sequence[FilterConfig] | None
 ) -> None:
     """Add adhoc filters to form_data if any are specified."""
     if filters:
@@ -838,7 +839,7 @@ def merge_gantt_ui_config(
     return validate_gantt_form_data(new_form_data)
 
 
-def _without_generated_gauge_time_filter(
+def _without_generated_dashboard_time_filter(
     form_data: dict[str, Any],
 ) -> list[Any]:
     """Return cached filters without the mapper-owned temporal binding."""
@@ -902,13 +903,13 @@ def _merge_treemap_filters(
     """Separate explicit filter/temporal changes from mapper-generated defaults."""
     fields = config.model_fields_set
     if "temporal_column" in fields and config.temporal_column is None:
-        patch["adhoc_filters"] = _without_generated_gauge_time_filter(patch)
+        patch["adhoc_filters"] = _without_generated_dashboard_time_filter(patch)
         patch.pop(MCP_DASHBOARD_TIME_FILTER_SUBJECT, None)
     if dataset_rebind:
         return
     if "temporal_column" not in fields:
         # Discard the mapper's default binding before removing its provenance.
-        patch["adhoc_filters"] = _without_generated_gauge_time_filter(patch)
+        patch["adhoc_filters"] = _without_generated_dashboard_time_filter(patch)
         patch.pop(MCP_DASHBOARD_TIME_FILTER_SUBJECT, None)
         if "filters" in fields and config.filters:
             if subject := existing.get(MCP_DASHBOARD_TIME_FILTER_SUBJECT):
@@ -917,7 +918,9 @@ def _merge_treemap_filters(
     if "filters" not in fields:
         if "temporal_column" in fields:
             inherited = (
-                [] if dataset_rebind else _without_generated_gauge_time_filter(existing)
+                []
+                if dataset_rebind
+                else _without_generated_dashboard_time_filter(existing)
             )
             patch["adhoc_filters"] = [*inherited, *patch.get("adhoc_filters", [])]
         else:
@@ -982,6 +985,10 @@ def merge_chart_form_data(  # noqa: C901
     """
     if existing_form_data.get("viz_type") != new_form_data.get("viz_type"):
         return dict(new_form_data)
+    if config.chart_type in {"country_map", "world_map", "deck_scatter"}:
+        return _merge_geographic_form_data(
+            existing_form_data, new_form_data, config, dataset_rebind=dataset_rebind
+        )
     if isinstance(config, TreemapChartConfig):
         return _merge_treemap_form_data(
             existing_form_data, new_form_data, config, dataset_rebind
@@ -1050,7 +1057,7 @@ def merge_chart_form_data(  # noqa: C901
             preserved_filters = (
                 []
                 if dataset_rebind
-                else _without_generated_gauge_time_filter(existing_form_data)
+                else _without_generated_dashboard_time_filter(existing_form_data)
             )
             generated_filters = patch.get("adhoc_filters", [])
             patch["adhoc_filters"] = [*preserved_filters, *generated_filters]
@@ -2428,7 +2435,13 @@ def analyze_chart_capabilities(viz_type: str | None, config: Any) -> ChartCapabi
     # Determine optimal formats
     optimal_formats = ["url"]  # Always include static image
     if supports_interaction:
-        optimal_formats.extend(["interactive", "vega_lite"])
+        optimal_formats.append("interactive")
+    # Only advertise Vega-Lite where a spec can actually be produced. Geographic
+    # viz types are rejected by the Vega-Lite preview generator because their
+    # geometry cannot be expressed in a Vega-Lite spec, so advertising the
+    # format for them would guarantee a failed preview request.
+    if supports_interaction and viz_type not in GEOGRAPHIC_VIZ_TYPES:
+        optimal_formats.append("vega_lite")
     optimal_formats.extend(["ascii", "table"])
 
     # Classify data types
@@ -2463,6 +2476,11 @@ def analyze_chart_semantics(viz_type: str | None, config: Any) -> ChartSemantics
         "ag-grid-table": (
             "Interactive table with advanced features like column resizing, "
             "sorting, filtering, and server-side pagination"
+        ),
+        "country_map": "Colors regional boundaries by an aggregated metric",
+        "world_map": "Colors countries by a metric with optional metric-sized bubbles",
+        "deck_scatter": (
+            "Plots numeric latitude/longitude locations with optional sized points"
         ),
         "pie": "Shows proportional relationships within a dataset",
         "echarts_area": "Emphasizes cumulative totals and part-to-whole relationships",
@@ -2592,3 +2610,97 @@ def preserve_previous_adhoc_filters(
             merged_filters.append(generated_filter)
 
     new_form_data["adhoc_filters"] = merged_filters
+
+
+def _merge_geographic_form_data(  # noqa: C901
+    existing: dict[str, Any],
+    mapped: dict[str, Any],
+    config: ChartConfig,
+    *,
+    dataset_rebind: bool,
+) -> dict[str, Any]:
+    """Preserve omitted native controls; clear explicit nullable roles and filters.
+
+    Rebinding drops old dataset references and Jinja/query state. All optional
+    roles are remapped from the complete target-dataset config.
+    """
+    if dataset_rebind:
+        existing = {
+            key: value
+            for key, value in existing.items()
+            if key
+            in {
+                "linear_color_scheme",
+                "number_format",
+                "max_bubble_size",
+                "point_unit",
+                "color_by",
+                "color_picker",
+                "color_scheme",
+                "y_axis_format",
+                "map_renderer",
+                "maplibre_style",
+                "mapbox_style",
+                "min_radius",
+                "max_radius",
+                "multiplier",
+            }
+        }
+    field_map = {
+        "country": "select_country",
+        "region_format": "region_format",
+        "country_format": "country_fieldtype",
+        "entity": "entity",
+        "metric": "metric",
+        "secondary_metric": "secondary_metric",
+        "dimension": "dimension",
+        "show_bubbles": "show_bubbles",
+        "max_bubble_size": "max_bubble_size",
+        "sort_by_metric": "sort_by_metric",
+        "linear_color_scheme": "linear_color_scheme",
+        "number_format": "number_format",
+        "row_limit": "row_limit",
+        "time_range": "time_range",
+        "point_unit": "point_unit",
+    }
+    fields = config.model_fields_set
+    patch = dict(mapped)
+    # Native UI-only presentation controls are not part of this public config.
+    for key in (
+        "color_by",
+        "color_picker",
+        "color_scheme",
+        "y_axis_format",
+        "map_renderer",
+        "maplibre_style",
+        "mapbox_style",
+        "viewport",
+        "autozoom",
+        "min_radius",
+        "max_radius",
+        "multiplier",
+    ):
+        if key in existing:
+            patch.pop(key, None)
+    for source, target in field_map.items():
+        if source not in fields and target in existing:
+            patch.pop(target, None)
+    if not {"radius", "radius_metric"} & fields and "point_radius_fixed" in existing:
+        patch.pop("point_radius_fixed", None)
+    if "filters" not in fields:
+        source_form = dict(existing)
+        if "temporal_column" in fields:
+            source_form["adhoc_filters"] = _without_generated_dashboard_time_filter(
+                existing
+            )
+        preserve_previous_adhoc_filters(patch, source_form)
+    merged = {**existing, **patch}
+    if "temporal_column" in fields and config.temporal_column is None:
+        merged.pop(MCP_DASHBOARD_TIME_FILTER_SUBJECT, None)
+    if "time_range" in fields and getattr(config, "time_range", None) is None:
+        merged.pop("time_range", None)
+    if "filters" in fields and not getattr(config, "filters", None):
+        merged["adhoc_filters"] = patch.get("adhoc_filters", [])
+        for key in ("filters", "where", "having"):
+            merged.pop(key, None)
+    return merged

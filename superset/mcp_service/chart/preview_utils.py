@@ -29,9 +29,9 @@ from datetime import date, datetime, time, timezone
 from typing import Any, Dict, List
 
 from superset.mcp_service.chart.query_result import (
+    GEOGRAPHIC_VIZ_TYPES,
     metric_result_label,
     normalize_chart_query_result,
-    normalize_gauge_query_result,
     query_result_failure,
 )
 from superset.mcp_service.chart.schemas import (
@@ -164,6 +164,8 @@ def _generate_ascii_preview_from_data(
     else:
         content = _generate_safe_ascii_table(data)
 
+    if viz_type in GEOGRAPHIC_VIZ_TYPES:
+        content = "Geographic source data (geometry not reproduced)\n" + content
     return ASCIIPreview(
         ascii_content=content, width=80, height=20, supports_color=False
     )
@@ -777,7 +779,7 @@ def _prepare_gauge_preview(  # noqa: C901
     data: Any, form_data: Dict[str, Any]
 ) -> tuple[list[dict[str, Any]], dict[str, Any]] | ChartError:
     """Validate Gauge rows and derive display values used by both previews."""
-    normalized = normalize_gauge_query_result(
+    normalized = normalize_chart_query_result(
         {"queries": [{"data": data}]}, {**form_data, "viz_type": "gauge_chart"}
     )
     if isinstance(normalized, ChartError):
@@ -1270,6 +1272,15 @@ def _generate_vega_lite_preview_from_data(  # noqa: C901
         return generate_gauge_vega_lite_preview(data, form_data)
     if viz_type in BUBBLE_VIZ_TYPES:
         return generate_bubble_vega_lite_preview(data, form_data)
+
+    if viz_type in GEOGRAPHIC_VIZ_TYPES:
+        return ChartError(
+            error=(
+                "Geographic Vega previews are not supported. Use table/ascii for "
+                "source data, or open Explore for native geography."
+            ),
+            error_type="UnsupportedGeographicPreview",
+        )
 
     # Map Superset viz types to Vega-Lite marks
     viz_to_mark = {

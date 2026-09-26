@@ -110,7 +110,9 @@ def _compile_chart(
         query_form_data["datasource_type"] = "table"
         query_context = build_query_context_from_form_data(
             query_form_data,
-            row_limit=min(10, int(form_data.get("row_limit") or 10))
+            row_limit=min(10000, max(1, int(form_data.get("row_limit") or 10000)))
+            if form_data.get("mcp_geographic")
+            else min(10, int(form_data.get("row_limit") or 10))
             if form_data.get("viz_type") in ("gauge_chart", "treemap_v2")
             else 2,
             force=False,
@@ -133,15 +135,29 @@ def _compile_chart(
             )
         result = normalize_chart_query_result(result, form_data)
         if isinstance(result, ChartError):
+            is_geographic = bool(form_data.get("mcp_geographic"))
             is_treemap = form_data.get("viz_type") == "treemap_v2"
-            error_code = (
-                "INVALID_TREEMAP_RESULT" if is_treemap else "INVALID_GAUGE_RESULT"
-            )
-            message = (
-                "Treemap metric query returned invalid values"
-                if is_treemap
-                else "Gauge metric query returned invalid values"
-            )
+            if is_geographic:
+                error_code = "INVALID_GEOGRAPHIC_RESULT"
+                message = "Geographic query returned invalid values"
+                suggestions = [
+                    "Match country and value format to the source identifiers",
+                    "Correct source values or filter other geographies",
+                    "Use finite numeric metrics and valid latitude/longitude",
+                ]
+            else:
+                error_code = (
+                    "INVALID_TREEMAP_RESULT" if is_treemap else "INVALID_GAUGE_RESULT"
+                )
+                message = (
+                    "Treemap metric query returned invalid values"
+                    if is_treemap
+                    else "Gauge metric query returned invalid values"
+                )
+                suggestions = [
+                    "Use a numeric-producing metric",
+                    "Check the metric alias and SQL expression",
+                ]
             return CompileResult(
                 success=False,
                 error=result.error,
@@ -151,10 +167,7 @@ def _compile_chart(
                     error_type=result.error_type,
                     message=message,
                     details=result.error,
-                    suggestions=[
-                        "Use a numeric-producing metric",
-                        "Check the metric alias and SQL expression",
-                    ],
+                    suggestions=suggestions,
                     error_code=error_code,
                 ),
             )

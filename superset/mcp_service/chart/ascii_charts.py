@@ -43,6 +43,12 @@ def generate_ascii_chart(
         width = max(width, 21)
         height = max(height, 9)
 
+        if chart_type in {"country_map", "world_map", "deck_scatter"}:
+            return (
+                "Geographic source data (geometry not reproduced)\n"
+                + generate_ascii_table(data, width)
+            )
+
         logger.debug(
             "generate_ascii_chart: chart_type=%s, data_rows=%s", chart_type, len(data)
         )

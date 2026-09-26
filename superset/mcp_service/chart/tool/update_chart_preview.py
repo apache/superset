@@ -292,7 +292,8 @@ def update_chart_preview(  # noqa: C901
                 config,
                 new_form_data,
                 dataset,
-                run_compile_check=config.chart_type in ("gauge", "treemap_v2"),
+                run_compile_check=config.chart_type
+                in {"gauge", "treemap_v2", "country_map", "world_map", "deck_scatter"},
             )
             if not compile_result.success:
                 logger.warning(

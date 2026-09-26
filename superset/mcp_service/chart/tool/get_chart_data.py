@@ -47,6 +47,7 @@ from superset.mcp_service.chart.chart_utils import validate_chart_dataset
 from superset.mcp_service.chart.query_result import (
     normalize_chart_query_result,
     query_result_failure,
+    validate_geographic_query_result,
 )
 from superset.mcp_service.chart.schemas import (
     ChartData,
@@ -122,7 +123,9 @@ _VIZ_CATEGORY: dict[str, str] = {
     "histogram": "histogram",
     "histogram_v2": "histogram",
     "box_plot": "box_plot",
-    "world_map": "map",
+    "world_map": "world_map",
+    "country_map": "country_map",
+    "deck_scatter": "deck_scatter",
     "pivot_table_v2": "table",
     "ag-grid-pivot-table": "table",
     # Own category: cumulative-flow semantics differ from a plain bar, like
@@ -180,8 +183,30 @@ def _build_candidates(
     numeric = [c for c in columns if c.data_type == "numeric"]
     categorical = [c for c in columns if c.data_type in ("string", "boolean")]
 
+    numeric_names = {c.name.lower() for c in numeric}
+    categorical_names = {
+        c.name.lower()
+        for c in categorical
+        if c.data_type == "string" and 1 < c.unique_count <= 250
+    }
+    has_coordinates = {"latitude", "longitude"} <= numeric_names
     if temporal and numeric:
-        return _candidates_temporal_numeric(numeric, row_count)
+        candidates = _candidates_temporal_numeric(numeric, row_count)
+        # Time-spatial data plots on a map as readily as on a time series,
+        # so the coordinates stay on offer instead of being shadowed. When the
+        # row count is high enough to offer lines and the chart is not already
+        # a line chart, the recommendation cap pays for the map by dropping the
+        # trailing "multi-line chart", the closest variant of the "line chart"
+        # that survives, so the suggestions still span every distinct shape the
+        # dataset supports. Below that row threshold, and on a chart whose line
+        # category is already filtered out, nothing is displaced.
+        return ["geographic points", *candidates] if has_coordinates else candidates
+    if has_coordinates:
+        return ["geographic points", "table"]
+    if numeric and categorical_names & {"country", "country_code"}:
+        return ["world map", "bar chart", "table"]
+    if numeric and categorical_names & {"state", "province"}:
+        return ["country map", "bar chart", "table"]
     if categorical and numeric:
         return _candidates_categorical_numeric(numeric, categorical)
     if len(numeric) >= 2:
@@ -254,6 +279,9 @@ _CANDIDATE_CATEGORY: dict[str, str] = {
     "gauge chart": "gauge",
     "histogram": "histogram",
     "table": "table",
+    "geographic points": "deck_scatter",
+    "country map": "country_map",
+    "world map": "world_map",
 }
 
 
@@ -798,6 +826,10 @@ async def execute_chart_data(  # noqa: C901
                     return result
             if query_failure := query_result_failure(result):
                 return query_failure
+            if geographic_failure := validate_geographic_query_result(
+                result, form_data
+            ):
+                return geographic_failure
 
             if rejected := rejected_requested_filter_columns(
                 result, request.extra_form_data
@@ -1175,6 +1207,8 @@ async def _query_from_form_data(  # noqa: C901
                 return result
         if query_failure := query_result_failure(result):
             return query_failure
+        if geographic_failure := validate_geographic_query_result(result, form_data):
+            return geographic_failure
 
         if rejected := rejected_requested_filter_columns(
             result, request.extra_form_data
