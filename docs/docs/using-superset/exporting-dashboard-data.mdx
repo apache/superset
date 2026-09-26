@@ -42,6 +42,8 @@ Notes on the generated workbook:
   worksheet added to the workbook (and in the email, when one is sent); open
   the chart in Explore and re-save it to include it next time, or configure
   `EXCEL_EXPORT_QUERY_CONTEXT_BUILDER`.
+- Rebuilt server-paginated tables use the configured full row limit rather than
+  the interactive page size, and do not add a row-count worksheet.
 - Row counts per sheet are capped the same way as the chart-level CSV/Excel
   export (`ROW_LIMIT`, bounded by `SQL_MAX_ROW`), and never exceed Excel's
   per-sheet maximum.
