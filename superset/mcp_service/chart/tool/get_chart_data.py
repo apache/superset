@@ -23,6 +23,7 @@ import logging
 import math
 import time
 from typing import Any, Dict, List, NamedTuple
+from uuid import UUID
 
 from fastmcp import Context
 from flask import current_app
@@ -46,7 +47,9 @@ from superset.mcp_service.chart.chart_helpers import (
 from superset.mcp_service.chart.chart_utils import validate_chart_dataset
 from superset.mcp_service.chart.query_result import (
     normalize_chart_query_result,
-    query_result_failure,
+    query_result_data,
+    response_json_failure,
+    safe_exception_message,
 )
 from superset.mcp_service.chart.schemas import (
     ChartData,
@@ -61,8 +64,12 @@ from superset.mcp_service.utils.oauth2_utils import (
     build_oauth2_redirect_message,
     OAUTH2_CONFIG_ERROR_MESSAGE,
 )
-from superset.mcp_service.utils.serialization import is_missing_value
-from superset.utils.core import GenericDataType
+from superset.mcp_service.utils.response_utils import (
+    _safe_value_identity as safe_value_identity,
+    format_data_columns,
+    format_data_quality,
+    GENERIC_DATA_TYPE_NAMES,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -85,12 +92,8 @@ class _ChartFacts(NamedTuple):
     datasource_type: str | None = None
 
 
-_GENERIC_TYPE_MAP: dict[int, str] = {
-    GenericDataType.NUMERIC: "numeric",
-    GenericDataType.STRING: "string",
-    GenericDataType.TEMPORAL: "temporal",
-    GenericDataType.BOOLEAN: "boolean",
-}
+_GENERIC_TYPE_MAP = GENERIC_DATA_TYPE_NAMES
+_safe_value_identity = safe_value_identity
 
 # Maps Superset viz_type strings to canonical categories so we can
 # avoid recommending a chart type the user already has.
@@ -114,6 +117,7 @@ _VIZ_CATEGORY: dict[str, str] = {
     "scatter": "scatter",
     "bubble": "bubble",
     "bubble_v2": "bubble",
+    "bullet": "bullet",
     "treemap_v2": "treemap",
     "sunburst_v2": "treemap",
     "heatmap_v2": "heatmap",
@@ -220,7 +224,7 @@ def _candidates_categorical_numeric(
 
 
 def _candidates_single_numeric(col: DataColumn, row_count: int) -> list[str]:
-    candidates = ["big number / KPI", "gauge chart"]
+    candidates = ["big number / KPI", "bullet chart", "gauge chart"]
     if row_count > 20 and col.unique_count > 10:
         candidates.insert(0, "histogram")
     return candidates
@@ -247,6 +251,7 @@ _CANDIDATE_CATEGORY: dict[str, str] = {
     "bar chart": "bar",
     "scatter plot": "scatter",
     "bubble chart": "bubble",
+    "bullet chart": "bullet",
     "pie chart": "pie",
     "treemap": "treemap",
     "heatmap": "heatmap",
@@ -297,6 +302,33 @@ def _build_query_results(
             )
         )
     return results
+
+
+# Compatibility aliases keep the established private helper imports stable while all
+# result consumers use the single shared profiling contract.
+_build_data_columns = format_data_columns
+
+
+def _strict_bullet_result_data(
+    data: list[dict[str, Any]], form_data: dict[str, Any]
+) -> tuple[list[dict[str, Any]] | None, ChartError | None]:
+    """Validate and sanitize Bullet data with the shared render contract."""
+    from superset.mcp_service.chart.preview_utils import (
+        BulletOutputError,
+        resolve_bullet_render_model,
+    )
+
+    try:
+        model = resolve_bullet_render_model(data, form_data)
+    except BulletOutputError as ex:
+        return None, ChartError(
+            error=safe_exception_message(ex), error_type=ex.error_type
+        )
+    # The strict model retains exact result keys while replacing unselected
+    # values with None and normalizing the selected roles. Its zero-valued
+    # ungrouped row is a render-only frontend fallback, not source query data.
+    # Return no rows for an empty query so get-data and exports stay truthful.
+    return model.rows if data else [], None
 
 
 @tool(
@@ -396,15 +428,16 @@ async def execute_chart_data(  # noqa: C901
                     )
                 try:
                     cached_form_data_dict = utils_json.loads(cached_form_data)
-                except (TypeError, ValueError) as e:
+                except (TypeError, ValueError, AssertionError) as e:
+                    error_text = safe_exception_message(e)
                     logger.warning(
                         "get_chart_data: failed to parse cached form_data "
                         "for form_data_key=%s: %s",
                         request.form_data_key,
-                        e,
+                        error_text,
                     )
                     return ChartError(
-                        error=f"Failed to parse cached form_data: {e}",
+                        error=f"Failed to parse cached form_data: {error_text}",
                         error_type="ParseError",
                     )
                 if not isinstance(cached_form_data_dict, dict):
@@ -565,10 +598,12 @@ async def execute_chart_data(  # noqa: C901
                                     "Cached form_data is not a JSON object. "
                                     "Falling back to saved chart configuration."
                                 )
-                        except (TypeError, ValueError) as e:
+                        except (TypeError, ValueError, AssertionError) as e:
+                            error_text = safe_exception_message(e)
                             await ctx.warning(
                                 "Failed to parse cached form_data: %s. "
-                                "Falling back to saved chart configuration." % str(e)
+                                "Falling back to saved chart configuration."
+                                % error_text
                             )
                     else:
                         await ctx.warning(
@@ -581,6 +616,12 @@ async def execute_chart_data(  # noqa: C901
             # The query_context contains all the information needed to reproduce
             # the chart's data exactly as shown in the visualization
             query_context_json = None
+            form_data: dict[str, Any] = {}
+            if chart_params:
+                parsed_form_data = utils_json.loads(chart_params)
+                if type(parsed_form_data) is dict:
+                    form_data = parsed_form_data
+            effective_form_data = form_data
             if using_unsaved_state and cached_form_data_dict is not None:
                 form_data = cached_form_data_dict
             else:
@@ -601,6 +642,7 @@ async def execute_chart_data(  # noqa: C901
 
             # If using cached form_data, we need to build query_context from it
             if using_unsaved_state and cached_form_data_dict is not None:
+                effective_form_data = cached_form_data_dict
                 # row_limit may arrive as a str. The trailing fallback keeps a
                 # falsy 0 resolving to ROW_LIMIT.
                 row_limit = _coerce_row_limit(
@@ -628,9 +670,10 @@ async def execute_chart_data(  # noqa: C901
                     await ctx.debug(
                         "Using chart's saved query_context for data retrieval"
                     )
-                except (TypeError, ValueError) as e:
+                except (TypeError, ValueError, AssertionError) as e:
+                    error_text = safe_exception_message(e)
                     await ctx.warning(
-                        "Failed to parse chart query_context: %s" % str(e)
+                        "Failed to parse chart query_context: %s" % error_text
                     )
 
             if query_context_json is None and not using_unsaved_state:
@@ -796,7 +839,12 @@ async def execute_chart_data(  # noqa: C901
                 result = normalize_chart_query_result(result, form_data)
                 if isinstance(result, ChartError):
                     return result
-            if query_failure := query_result_failure(result):
+            queries_data, query_failure = query_result_data(
+                result,
+                temporal_json_numbers=chart_viz_type == "bullet",
+                preserve_nonfinite_floats=chart_viz_type == "gauge_chart",
+            )
+            if query_failure is not None:
                 return query_failure
 
             if rejected := rejected_requested_filter_columns(
@@ -812,28 +860,20 @@ async def execute_chart_data(  # noqa: C901
                     error_type="ValidationError",
                 )
 
-            # Handle empty query results for certain chart types
-            if not result or ("queries" not in result) or len(result["queries"]) == 0:
-                await ctx.warning(
-                    "Empty query results: chart_id=%s, chart_type=%s"
-                    % (chart_id, chart_viz_type)
-                )
-                logger.warning(
-                    "get_chart_data: empty query results for chart_id=%s, "
-                    "chart_type=%s",
-                    chart_id,
-                    chart_viz_type,
-                )
-                return ChartError(
-                    error=f"No query results returned for chart {chart_id}. "
-                    f"This may occur with chart types like big_number.",
-                    error_type="EmptyQuery",
-                )
-
-            # Extract data from result (we've already validated it exists above)
-            query_result = result["queries"][0]
-            data = query_result.get("data", [])
+            # The shared validator guarantees a nonempty query list and a data
+            # array on every query before any consumer reads query metadata.
+            query_results = result["queries"]
+            query_result = query_results[0]
+            data = queries_data[0] if queries_data is not None else []
             raw_columns = query_result.get("colnames", [])
+
+            if chart_viz_type == "bullet":
+                strict_data, bullet_error = _strict_bullet_result_data(
+                    data, effective_form_data
+                )
+                if bullet_error is not None:
+                    return bullet_error
+                data = strict_data or []
 
             await ctx.debug(
                 "Query results received: row_count=%s, column_count=%s, "
@@ -846,7 +886,7 @@ async def execute_chart_data(  # noqa: C901
             )
 
             # Check if we have data to work with
-            if not any(query.get("data") for query in result["queries"]):
+            if chart_viz_type != "bullet" and not any(queries_data or []):
                 await ctx.warning("No data in query results: chart_id=%s" % (chart_id,))
                 logger.warning(
                     "get_chart_data: no data in query results for chart_id=%s",
@@ -858,44 +898,7 @@ async def execute_chart_data(  # noqa: C901
 
             # Create rich column metadata
             coltypes = query_result.get("coltypes", [])
-            columns = []
-            for idx, col_name in enumerate(raw_columns):
-                # Sample some values for metadata
-                sample_values = [
-                    row.get(col_name)
-                    for row in data[:3]
-                    if not is_missing_value(row.get(col_name))
-                ]
-
-                # Use SQL-derived GenericDataType when available,
-                # fall back to Python isinstance heuristic
-                data_type = "string"
-                if coltypes:
-                    data_type = _GENERIC_TYPE_MAP.get(coltypes[idx], "string")
-                elif sample_values:
-                    if all(isinstance(v, bool) for v in sample_values):
-                        data_type = "boolean"
-                    elif all(isinstance(v, (int, float)) for v in sample_values):
-                        data_type = "numeric"
-
-                columns.append(
-                    DataColumn(
-                        name=col_name,
-                        display_name=col_name.replace("_", " ").title(),
-                        data_type=data_type,
-                        sample_values=sample_values[:3],
-                        null_count=sum(
-                            1 for row in data if is_missing_value(row.get(col_name))
-                        ),
-                        unique_count=len(
-                            {
-                                str(row.get(col_name))
-                                for row in data
-                                if not is_missing_value(row.get(col_name))
-                            }
-                        ),
-                    )
-                )
+            columns = _build_data_columns(data, raw_columns, coltypes)
 
             # Cache status information using utility function
             cache_status = get_cache_status_from_result(
@@ -1007,10 +1010,8 @@ async def execute_chart_data(  # noqa: C901
             await ctx.report_progress(4, 4, "Building response")
 
             # Calculate data quality metrics
-            data_completeness = 1.0 - (
-                sum(col.null_count for col in columns)
-                / max(len(data) * len(columns), 1)
-            )
+            data_quality = format_data_quality(columns, len(data))
+            data_completeness = data_quality["completeness"]
 
             await ctx.info(
                 "Chart data retrieval completed successfully: chart_id=%s, "
@@ -1027,23 +1028,24 @@ async def execute_chart_data(  # noqa: C901
             )
 
             # Default JSON format
-            return ChartData(
+            response = ChartData(
                 chart_id=chart_id,
                 chart_name=chart_name or f"Chart {chart_id}",
                 chart_type=chart_viz_type or "unknown",
                 columns=columns,
                 data=data[: request.limit] if request.limit else data,
-                query_results=_build_query_results(result["queries"], request.limit),
+                query_results=_build_query_results(query_results, request.limit),
                 row_count=len(data),
                 total_rows=query_result.get("rowcount"),
                 summary=summary,
                 insights=insights,
-                data_quality={"completeness": data_completeness},
+                data_quality=data_quality,
                 recommended_visualizations=recommended_visualizations,
                 data_freshness=None,  # Add missing field
                 performance=performance,
                 cache_status=cache_status,
             )
+            return response_json_failure(response) or response
 
         except (OAuth2RedirectError, OAuth2Error):
             # OAuth errors subclass SupersetException and would otherwise be
@@ -1051,18 +1053,20 @@ async def execute_chart_data(  # noqa: C901
             # dedicated outer handlers return the OAuth redirect message
             # instead of a generic DataError.
             raise
-        except (CommandException, SupersetException, ValueError) as data_error:
+        except (
+            CommandException,
+            SupersetException,
+            ValueError,
+            AssertionError,
+        ) as data_error:
+            error_text = safe_exception_message(data_error)
             await ctx.error(
                 "Data retrieval failed: chart_id=%s, error=%s, error_type=%s"
-                % (
-                    chart_id,
-                    str(data_error),
-                    type(data_error).__name__,
-                )
+                % (chart_id, error_text, type(data_error).__name__)
             )
-            logger.error("Data retrieval error for chart %s: %s", chart_id, data_error)
+            logger.error("Data retrieval error for chart %s: %s", chart_id, error_text)
             return ChartError(
-                error=f"Error retrieving chart data: {str(data_error)}",
+                error=f"Error retrieving chart data: {error_text}",
                 error_type="DataError",
             )
 
@@ -1099,18 +1103,17 @@ async def execute_chart_data(  # noqa: C901
         ValueError,
         TypeError,
         AttributeError,
+        AssertionError,
     ) as e:
+        error_text = safe_exception_message(e)
         await ctx.error(
-            "Chart data retrieval failed: identifier=%s, error=%s, error_type=%s"
-            % (
-                request.identifier,
-                str(e),
-                type(e).__name__,
-            )
+            "Chart data retrieval failed: identifier=%s, error=%s"
+            % (request.identifier, error_text)
         )
-        logger.error("Error in get_chart_data: %s", e)
+        logger.error("Error in get_chart_data: %s", error_text)
         return ChartError(
-            error=f"Failed to get chart data: {str(e)}", error_type="InternalError"
+            error=f"Failed to get chart data: {error_text}",
+            error_type="InternalError",
         )
 
 
@@ -1126,12 +1129,14 @@ async def _query_from_form_data(  # noqa: C901
     from superset.commands.chart.data.get_data_command import ChartDataCommand
 
     datasource_id = form_data.get("datasource_id")
+    datasource_type = form_data.get("datasource_type") or "table"
 
     # Handle combined datasource field (e.g., "1__table")
     if not datasource_id and form_data.get("datasource"):
         parts = str(form_data["datasource"]).split("__")
         if len(parts) == 2:
             datasource_id = parts[0]
+            datasource_type = parts[1]
 
     if not datasource_id:
         logger.warning(
@@ -1164,6 +1169,7 @@ async def _query_from_form_data(  # noqa: C901
         )
 
         await ctx.report_progress(3, 4, "Executing data query")
+        set_query_context_form_data(query_context, datasource_id, datasource_type)
         with event_logger.log_context(action="mcp.get_chart_data.query_execution"):
             command = ChartDataCommand(query_context)
             command.validate()
@@ -1173,7 +1179,12 @@ async def _query_from_form_data(  # noqa: C901
             result = normalize_chart_query_result(result, form_data)
             if isinstance(result, ChartError):
                 return result
-        if query_failure := query_result_failure(result):
+        queries_data, query_failure = query_result_data(
+            result,
+            temporal_json_numbers=viz_type == "bullet",
+            preserve_nonfinite_floats=viz_type == "gauge_chart",
+        )
+        if query_failure is not None:
             return query_failure
 
         if rejected := rejected_requested_filter_columns(
@@ -1189,22 +1200,19 @@ async def _query_from_form_data(  # noqa: C901
                 error_type="ValidationError",
             )
 
-        if not result or "queries" not in result or len(result["queries"]) == 0:
-            logger.warning(
-                "get_chart_data: empty query results for unsaved chart "
-                "(form_data_key=%s)",
-                request.form_data_key,
-            )
-            return ChartError(
-                error="No query results returned for unsaved chart.",
-                error_type="EmptyQuery",
-            )
-
-        query_result = result["queries"][0]
-        data = query_result.get("data", [])
+        query_results = result["queries"]
+        query_result = query_results[0]
+        data = queries_data[0] if queries_data is not None else []
         raw_columns = query_result.get("colnames", [])
+        coltypes = query_result.get("coltypes", [])
 
-        if not any(query.get("data") for query in result["queries"]):
+        if viz_type == "bullet":
+            strict_data, bullet_error = _strict_bullet_result_data(data, form_data)
+            if bullet_error is not None:
+                return bullet_error
+            data = strict_data or []
+
+        if viz_type != "bullet" and not any(queries_data or []):
             logger.warning(
                 "get_chart_data: no data for unsaved chart (form_data_key=%s)",
                 request.form_data_key,
@@ -1214,36 +1222,7 @@ async def _query_from_form_data(  # noqa: C901
                 error_type="NoData",
             )
 
-        columns = []
-        for col_name in raw_columns:
-            sample_values = [
-                row.get(col_name)
-                for row in data[:3]
-                if not is_missing_value(row.get(col_name))
-            ]
-            data_type = "string"
-            if sample_values and all(
-                isinstance(v, (int, float)) for v in sample_values
-            ):
-                data_type = "numeric"
-            columns.append(
-                DataColumn(
-                    name=col_name,
-                    display_name=col_name.replace("_", " ").title(),
-                    data_type=data_type,
-                    sample_values=sample_values[:3],
-                    null_count=sum(
-                        1 for row in data if is_missing_value(row.get(col_name))
-                    ),
-                    unique_count=len(
-                        {
-                            str(row.get(col_name))
-                            for row in data
-                            if not is_missing_value(row.get(col_name))
-                        }
-                    ),
-                )
-            )
+        columns = _build_data_columns(data, raw_columns, coltypes)
 
         cache_status = get_cache_status_from_result(
             query_result, force_refresh=request.force_refresh
@@ -1273,24 +1252,18 @@ async def _query_from_form_data(  # noqa: C901
         )
 
         await ctx.report_progress(4, 4, "Building response")
-        return ChartData(
+        response = ChartData(
             chart_id=0,
             chart_name=chart_name,
             chart_type=viz_type,
             columns=columns,
             data=data[: request.limit] if request.limit else data,
-            query_results=_build_query_results(result["queries"], request.limit),
+            query_results=_build_query_results(query_results, request.limit),
             row_count=len(data),
             total_rows=query_result.get("rowcount"),
             summary=summary,
             insights=["This is an unsaved chart queried from cached form_data."],
-            data_quality={
-                "completeness": 1.0
-                - (
-                    sum(col.null_count for col in columns)
-                    / max(len(data) * len(columns), 1)
-                )
-            },
+            data_quality=format_data_quality(columns, len(data)),
             recommended_visualizations=[],
             data_freshness=None,
             performance=PerformanceMetadata(
@@ -1299,16 +1272,23 @@ async def _query_from_form_data(  # noqa: C901
             ),
             cache_status=cache_status,
         )
+        return response_json_failure(response) or response
 
     except (OAuth2RedirectError, OAuth2Error):
         # OAuth errors subclass SupersetException; re-raise so the caller's
         # outer OAuth handlers return the redirect instead of a generic
         # DataError.
         raise
-    except (CommandException, SupersetException, ValueError) as e:
-        logger.error("Error querying unsaved chart data: %s", e)
+    except (
+        CommandException,
+        SupersetException,
+        ValueError,
+        AssertionError,
+    ) as e:
+        error_text = safe_exception_message(e)
+        logger.error("Error querying unsaved chart data: %s", error_text)
         return ChartError(
-            error=f"Error querying unsaved chart data: {e}",
+            error=f"Error querying unsaved chart data: {error_text}",
             error_type="DataError",
         )
 
@@ -1319,7 +1299,7 @@ def _export_data_as_csv(
     columns: List[str],
     cache_status: Any,
     performance: Any,
-) -> "ChartData":
+) -> "ChartData | ChartError":
     """Export chart data as CSV format."""
     import csv
     import io
@@ -1327,7 +1307,7 @@ def _export_data_as_csv(
     # Create CSV content
     output = io.StringIO()
 
-    if data and columns:
+    if columns:
         writer = csv.DictWriter(output, fieldnames=columns)
         writer.writeheader()
 
@@ -1351,7 +1331,7 @@ def _export_data_as_csv(
     # Return as ChartData with CSV content in a special field
     from superset.mcp_service.chart.schemas import ChartData
 
-    return ChartData(
+    response = ChartData(
         chart_id=chart.id,
         chart_name=chart.slice_name or f"Chart {chart.id}",
         chart_type=chart.viz_type or "unknown",
@@ -1370,6 +1350,7 @@ def _export_data_as_csv(
         csv_data=csv_content,
         format="csv",
     )
+    return response_json_failure(response) or response
 
 
 def _export_data_as_excel(
@@ -1402,7 +1383,7 @@ def _create_excel_with_openpyxl(
     ws = wb.active
     ws.title = chart.slice_name[:31] if chart.slice_name else "Chart Data"
 
-    if data and columns:
+    if columns:
         _write_excel_headers(ws, columns)
         _write_excel_data(ws, data, columns)
 
@@ -1418,10 +1399,26 @@ def _write_excel_headers(ws: Any, columns: List[str]) -> None:
         ws.cell(row=1, column=idx, value=col)
 
 
+def _excel_scalar(value: Any) -> Any:
+    """Project a validated result scalar to values supported by Excel writers."""
+    if value is None:
+        return ""
+    if type(value) is UUID:
+        return UUID.__str__(value)
+    if type(value) is list or type(value) is dict:
+        return str(value)
+    return value
+
+
 def _write_excel_data(ws: Any, data: List[Dict[str, Any]], columns: List[str]) -> None:
     """Write data to Excel worksheet."""
     for row_idx, row in enumerate(data, 2):
         for col_idx, col in enumerate(columns, 1):
+            ws.cell(
+                row=row_idx,
+                column=col_idx,
+                value=_excel_scalar(row.get(col, "")),
+            )
             value = row.get(col, "")
             if value is None:
                 value = ""
@@ -1476,7 +1473,7 @@ def _create_excel_with_xlsxwriter(
     sheet_name = chart.slice_name[:31] if chart.slice_name else "Chart Data"
     worksheet = workbook.add_worksheet(sheet_name)
 
-    if data and columns:
+    if columns:
         _write_xlsxwriter_data(worksheet, data, columns)
 
     workbook.close()
@@ -1495,12 +1492,7 @@ def _write_xlsxwriter_data(
     # Write data
     for row_idx, row in enumerate(data):
         for col_idx, col in enumerate(columns):
-            value = row.get(col, "")
-            if value is None:
-                value = ""
-            elif isinstance(value, (list, dict)):
-                value = str(value)
-            worksheet.write(row_idx + 1, col_idx, value)
+            worksheet.write(row_idx + 1, col_idx, _excel_scalar(row.get(col, "")))
 
 
 def _create_excel_chart_data(
@@ -1509,14 +1501,14 @@ def _create_excel_chart_data(
     excel_b64: str,
     performance: Any,
     cache_status: Any,
-) -> "ChartData":
+) -> "ChartData | ChartError":
     """Create ChartData response for Excel export (openpyxl)."""
     from superset.mcp_service.chart.schemas import ChartData
 
     chart_name = chart.slice_name or f"Chart {chart.id}"
     summary = f"Excel export of chart '{chart.slice_name}' with {len(data)} rows"
 
-    return ChartData(
+    response = ChartData(
         chart_id=chart.id,
         chart_name=chart_name,
         chart_type=chart.viz_type or "unknown",
@@ -1534,6 +1526,7 @@ def _create_excel_chart_data(
         excel_data=excel_b64,
         format="excel",
     )
+    return response_json_failure(response) or response
 
 
 def _create_excel_chart_data_xlsxwriter(
@@ -1542,14 +1535,14 @@ def _create_excel_chart_data_xlsxwriter(
     excel_b64: str,
     performance: Any,
     cache_status: Any,
-) -> "ChartData":
+) -> "ChartData | ChartError":
     """Create ChartData response for Excel export (xlsxwriter)."""
     from superset.mcp_service.chart.schemas import ChartData
 
     chart_name = chart.slice_name or f"Chart {chart.id}"
     summary = f"Excel export of chart '{chart.slice_name}' with {len(data)} rows"
 
-    return ChartData(
+    response = ChartData(
         chart_id=chart.id,
         chart_name=chart_name,
         chart_type=chart.viz_type or "unknown",
@@ -1567,3 +1560,4 @@ def _create_excel_chart_data_xlsxwriter(
         excel_data=excel_b64,
         format="excel",
     )
+    return response_json_failure(response) or response

@@ -21,7 +21,9 @@ MCP tool: update_chart_preview
 
 import logging
 import time
-from typing import Any, Dict
+from collections.abc import Callable
+from functools import wraps
+from typing import Any, cast, Dict
 
 from fastmcp import Context
 from sqlalchemy.exc import SQLAlchemyError
@@ -40,19 +42,28 @@ from superset.mcp_service.chart.chart_utils import (
     map_config_to_form_data,
     merge_chart_form_data,
     merge_interactive_pivot_ui_config,
+    merge_same_viz_form_data,
     merge_table_column_config,
+    merge_update_form_data,
     resolve_treemap_update_config,
     validate_gantt_form_data,
+    validate_merged_bullet_form_data,
 )
 from superset.mcp_service.chart.compile import validate_and_compile
 from superset.mcp_service.chart.preview_utils import (
     generate_preview_from_form_data,
     SUPPORTED_FORM_DATA_PREVIEW_FORMATS,
 )
+from superset.mcp_service.chart.response_preflight import (
+    preflight_update_preview_response,
+)
 from superset.mcp_service.chart.schemas import (
     AccessibilityMetadata,
+    BulletChartConfig,
     ChartError,
+    GanttChartConfig,
     PerformanceMetadata,
+    TreemapChartConfig,
     UpdateChartPreviewRequest,
     UpdateChartPreviewResponse,
 )
@@ -78,7 +89,6 @@ INVALID_FORM_DATA_KEY_WARNING = (
 def _find_dataset(dataset_id: int | str) -> Any | None:
     """Look up a dataset by numeric ID or UUID and check access."""
     from superset.daos.dataset import DatasetDAO
-    from superset.mcp_service.auth import has_dataset_access
 
     if isinstance(dataset_id, int) or (
         isinstance(dataset_id, str) and dataset_id.isdigit()
@@ -111,6 +121,25 @@ def _get_previous_form_data(form_data_key: str) -> dict[str, Any] | None:
     return None
 
 
+def _preflight_update_preview_result(
+    function: Callable[
+        [UpdateChartPreviewRequest, Context], UpdateChartPreviewResponse
+    ],
+) -> Callable[[UpdateChartPreviewRequest, Context], UpdateChartPreviewResponse]:
+    """Apply the final wire-size gate to every success and error return."""
+
+    @wraps(function)
+    def wrapped(
+        request: UpdateChartPreviewRequest, ctx: Context
+    ) -> UpdateChartPreviewResponse:
+        return cast(
+            UpdateChartPreviewResponse,
+            preflight_update_preview_response(dict(function(request, ctx))),
+        )
+
+    return wrapped
+
+
 @tool(
     tags=["mutate"],
     class_permission_name="Chart",
@@ -123,6 +152,7 @@ def _get_previous_form_data(form_data_key: str) -> dict[str, Any] | None:
         openWorldHint=False,
     ),
 )
+@_preflight_update_preview_result
 def update_chart_preview(  # noqa: C901
     request: UpdateChartPreviewRequest, ctx: Context
 ) -> UpdateChartPreviewResponse:
@@ -160,7 +190,7 @@ def update_chart_preview(  # noqa: C901
                         "error_type": "dataset_not_found",
                         "message": (f"Dataset not found: {request.dataset_id}"),
                         "details": (
-                            f"No dataset found with identifier "
+                            f"No accessible dataset found with identifier "
                             f"'{request.dataset_id}'. This could "
                             f"be an invalid ID/UUID or a "
                             f"permissions issue."
@@ -180,8 +210,9 @@ def update_chart_preview(  # noqa: C901
             from superset.mcp_service.chart.validation.dataset_validator import (
                 build_dataset_context_from_orm,
                 DatasetValidator,
-                NORMALIZATION_EXCEPTIONS,
             )
+
+            dataset_context = build_dataset_context_from_orm(dataset)
 
             warnings: list[str] = []
             previous_form_data: dict[str, Any] | None = None
@@ -220,14 +251,27 @@ def update_chart_preview(  # noqa: C901
                 config = DatasetValidator.normalize_column_names(
                     config,
                     request.dataset_id,
-                    dataset_context=build_dataset_context_from_orm(dataset),
+                    dataset_context=dataset_context,
                 )
-            except NORMALIZATION_EXCEPTIONS as ex:
-                logger.warning(
-                    "Column normalization failed for preview dataset %s: %s",
-                    request.dataset_id,
-                    ex,
-                )
+            except GanttSemanticNormalizationError:
+                # Gantt reports its own role conflict; the generic
+                # canonicalization message would lose that diagnosis.
+                raise
+            except (AttributeError, KeyError, TypeError, ValueError) as ex:
+                return {
+                    "chart": None,
+                    "error": {
+                        "error_type": "ambiguous_column_reference",
+                        "message": "Chart references could not be canonicalized",
+                        "details": str(ex),
+                        "suggestions": [
+                            "Use get_dataset_info and copy exact-case field names"
+                        ],
+                    },
+                    "success": False,
+                    "schema_version": "2.0",
+                    "api_version": "v1",
+                }
             # Map the new config to form_data format
             # Pass dataset_id to enable column type checking
             new_form_data = map_config_to_form_data(
@@ -238,18 +282,42 @@ def update_chart_preview(  # noqa: C901
             if previous_form_data:
                 merge_table_column_config(previous_form_data, new_form_data)
                 merge_interactive_pivot_ui_config(previous_form_data, new_form_data)
-                new_form_data = merge_chart_form_data(
-                    previous_form_data,
-                    new_form_data,
-                    config,
-                    dataset_rebind=dataset_rebind,
-                )
+                if isinstance(config, BulletChartConfig):
+                    merge_update_form_data(previous_form_data, new_form_data, config)
+                elif isinstance(config, (GanttChartConfig, TreemapChartConfig)):
+                    # Gantt and Treemap own their temporal/rebind merge contracts.
+                    # Generic merges would restore deliberately removed state.
+                    new_form_data = merge_chart_form_data(
+                        previous_form_data,
+                        new_form_data,
+                        config,
+                        dataset_rebind=dataset_rebind,
+                    )
+                else:
+                    new_form_data = merge_chart_form_data(
+                        previous_form_data,
+                        new_form_data,
+                        config,
+                        dataset_rebind=dataset_rebind,
+                    )
+                    merge_update_form_data(previous_form_data, new_form_data, config)
+                    merge_same_viz_form_data(previous_form_data, new_form_data, config)
+                    for config_field, form_data_field in (
+                        ("group_by", "groupby"),
+                        ("group_by_secondary", "groupby_b"),
+                        ("sort_by", "order_by_cols"),
+                    ):
+                        if (
+                            config_field in config.model_fields_set
+                            and getattr(config, config_field, None) == []
+                        ):
+                            new_form_data.pop(form_data_field, None)
 
             merged_gantt_config = validate_gantt_form_data(
                 new_form_data,
                 request.dataset_id,
                 dataset_context=(
-                    build_dataset_context_from_orm(dataset)
+                    dataset_context
                     if new_form_data.get("viz_type") == "gantt_chart"
                     else None
                 ),
@@ -259,29 +327,23 @@ def update_chart_preview(  # noqa: C901
                 # request, so preserved native fields cannot bypass semantics.
                 config = merged_gantt_config
 
-            # Tier-1 schema validation against the dataset (no DB roundtrip).
-            # Runs AFTER the filter merge so filter columns are also validated.
-            from superset.daos.dataset import DatasetDAO
-
-            if isinstance(request.dataset_id, int) or (
-                isinstance(request.dataset_id, str) and request.dataset_id.isdigit()
-            ):
-                dataset = DatasetDAO.find_by_id(int(request.dataset_id))
-            else:
-                dataset = DatasetDAO.find_by_id(request.dataset_id, id_column="uuid")
-
-            if dataset is None or not has_dataset_access(dataset):
+            validation_config = config
+            try:
+                if merged_config := validate_merged_bullet_form_data(
+                    new_form_data, config
+                ):
+                    validation_config = DatasetValidator.normalize_column_names(
+                        merged_config,
+                        request.dataset_id,
+                        dataset_context=dataset_context,
+                    )
+            except (AttributeError, KeyError, TypeError, ValueError) as ex:
                 return {
                     "chart": None,
                     "error": {
-                        "error_type": "DatasetNotAccessible",
-                        "message": (
-                            f"Dataset not found: {request.dataset_id}. "
-                            "Use list_datasets to find valid dataset IDs."
-                        ),
-                        "details": (
-                            f"Dataset {request.dataset_id} is missing or inaccessible."
-                        ),
+                        "error_type": "invalid_merged_bullet_state",
+                        "message": "Merged Bullet chart state is invalid",
+                        "details": str(ex),
                     },
                     "success": False,
                     "schema_version": "2.0",
@@ -289,10 +351,10 @@ def update_chart_preview(  # noqa: C901
                 }
 
             compile_result = validate_and_compile(
-                config,
+                validation_config,
                 new_form_data,
                 dataset,
-                run_compile_check=config.chart_type in ("gauge", "treemap_v2"),
+                run_compile_check=True,
             )
             if not compile_result.success:
                 logger.warning(

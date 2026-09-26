@@ -80,6 +80,17 @@ ROWS = [
 ]
 
 
+def _query_context_stub(form_data: dict[str, Any]) -> SimpleNamespace:
+    """Include the query fields consumed by the shared Jinja form-data binding."""
+    query = {"metrics": ["revenue"], "columns": form_data["groupby"]}
+    return SimpleNamespace(
+        form_data=form_data,
+        queries=[
+            SimpleNamespace(**query, filter=[], time_range=None, to_dict=lambda: query)
+        ],
+    )
+
+
 @pytest.mark.parametrize("sort", [False, True])
 @pytest.mark.parametrize("limit", [None, 0, 1, 7])
 def test_hierarchy_query_order_matches_frontend(sort: bool, limit: int | None) -> None:
@@ -317,9 +328,7 @@ def test_saved_and_unsaved_preview_dispatch_match(format_name: str) -> None:
         datasource_type="table",
         params=json.dumps(form),
     )
-    context = SimpleNamespace(
-        queries=[SimpleNamespace(metrics=["revenue"], columns=form["groupby"])]
-    )
+    context = _query_context_stub(form)
     with (
         patch(
             "superset.commands.chart.data.get_data_command.ChartDataCommand"
@@ -469,7 +478,7 @@ async def test_registered_generate_chart_native_roundtrip(
         ),
         patch(
             "superset.mcp_service.chart.chart_helpers.build_query_context_from_form_data",
-            return_value=Mock(),
+            return_value=_query_context_stub(FORM_DATA),
         ),
         patch(
             "superset.commands.chart.data.get_data_command.ChartDataCommand"
@@ -612,9 +621,7 @@ async def test_registered_cached_preview_is_treemap(
     ]
     if row_limit == 7:
         rows[0]["region"], rows[1]["region"] = 1, "1"
-    context = SimpleNamespace(
-        queries=[SimpleNamespace(metrics=["revenue"], columns=form["groupby"])]
-    )
+    context = _query_context_stub(form)
     with (
         patch(
             "superset.mcp_service.auth.get_user_from_request",
@@ -695,7 +702,9 @@ async def test_registered_update_preview_preserves_cached_controls(
     module = importlib.import_module(
         "superset.mcp_service.chart.tool.update_chart_preview"
     )
-    dataset = Mock(id=7, table_name="sales", schema=None, columns=[], metrics=[])
+    dataset = Mock(
+        id=7, table_name="sales", schema=None, columns=[], metrics=[], database=None
+    )
     with (
         patch(
             "superset.mcp_service.auth.get_user_from_request",
@@ -922,7 +931,7 @@ def test_compile_respects_treemap_row_limit() -> None:
     with (
         patch(
             "superset.mcp_service.chart.chart_helpers.build_query_context_from_form_data",
-            return_value=Mock(),
+            return_value=_query_context_stub(FORM_DATA),
         ) as build,
         patch(
             "superset.commands.chart.data.get_data_command.ChartDataCommand"
@@ -1044,6 +1053,7 @@ async def test_registered_filter_update_keeps_saved_temporal_binding(
         columns=[],
         metrics=[],
         main_dttm_col="default_time",
+        database=None,
     )
     existing = {
         **FORM_DATA,

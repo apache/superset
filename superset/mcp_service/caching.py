@@ -31,7 +31,7 @@ logger = logging.getLogger(__name__)
 # namespace whenever a cached response from an older release is not valid under
 # the active contract. This keeps rolling upgrades from serving incompatible
 # entries through newly upgraded processes without trying to rewrite cached data.
-MCP_RESPONSE_CACHE_NAMESPACE = "response-contract-v2:"
+MCP_RESPONSE_CACHE_NAMESPACE = "response-contract-v3:"
 
 
 def _version_cache_prefix(

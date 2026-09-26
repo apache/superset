@@ -1168,7 +1168,7 @@ class TestExecuteSql:
     async def test_execute_sql_decimal_in_dataframe(
         self, mock_db, mock_security_manager, mcp_server
     ):
-        """Test that Decimal values in DataFrame are converted to float for JSON.
+        """Test that DataFrame Decimals retain exact string forms on the wire.
 
         Regression test: execute_sql fails with 'encoding without a string
         argument' when queries return Decimal types (common with SUM/AVG).
@@ -1180,6 +1180,7 @@ class TestExecuteSql:
                     "id": 1,
                     "price": Decimal("19.99"),
                     "total": Decimal("1234567.89"),
+                    "precise": Decimal("0.10000000000000000001"),
                 },
             ]
         )
@@ -1215,9 +1216,10 @@ class TestExecuteSql:
             assert data["success"] is True
             assert data["row_count"] == 1
             row = data["rows"][0]
-            assert row["price"] == 19.99
-            assert row["total"] == 1234567.89
-            assert isinstance(row["price"], float)
+            assert row["price"] == "19.99"
+            assert row["total"] == "1234567.89"
+            assert row["precise"] == "0.10000000000000000001"
+            assert data["statements"][0]["data"]["rows"] == data["rows"]
 
 
 class TestStatementRowSanitization:
@@ -1242,11 +1244,13 @@ class TestStatementRowSanitization:
     def test_memoryview_is_handled(self):
         assert self._rows([{"data": memoryview(b"test")}])[0]["data"] == "test"
 
-    def test_decimal_becomes_float(self):
-        row = self._rows([{"price": Decimal("19.99"), "count": Decimal("42")}])[0]
-        assert row["price"] == 19.99
-        assert isinstance(row["price"], float)
-        assert row["count"] == 42.0
+    def test_decimal_is_preserved_exactly(self) -> None:
+        """Statement rows retain Decimal objects until JSON serialization."""
+        price = Decimal("19.99")
+        count = Decimal("42")
+        row = self._rows([{"price": price, "count": count}])[0]
+        assert row["price"] is price
+        assert row["count"] is count
 
     def test_missing_values_become_none(self):
         """The old tool-level helper stringified NaT to "NaT"."""

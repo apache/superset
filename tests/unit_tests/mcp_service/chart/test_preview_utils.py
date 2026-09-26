@@ -22,6 +22,7 @@ Tests for preview_utils query context column building.
 import ast
 import inspect
 from pathlib import Path
+from types import SimpleNamespace
 from unittest.mock import MagicMock, Mock, patch
 
 import pytest
@@ -153,11 +154,41 @@ def test_build_query_columns_empty_columns_key_keeps_groupby():
     ) == ["country"]
 
 
+def test_generate_preview_seeds_form_data_before_query():
+    call_order: list[str] = []
+    with (
+        patch(
+            "superset.charts.data.form_data.set_query_context_form_data"
+        ) as mock_set_form_data,
+        patch(
+            "superset.commands.chart.data.get_data_command.ChartDataCommand"
+        ) as mock_cmd_cls,
+        patch(
+            "superset.common.query_context_factory.QueryContextFactory"
+        ) as mock_factory,
+        patch("superset.extensions.db") as mock_db,
+    ):
+        mock_db.session.get.return_value = MagicMock(id=12)
+        query_context = MagicMock()
+        mock_factory.return_value.create.return_value = query_context
+        mock_set_form_data.side_effect = lambda *_args: call_order.append("seed")
+        mock_cmd_cls.return_value.run.side_effect = lambda: (
+            call_order.append("run") or {"queries": [{"data": []}]}
+        )
+
+        preview_utils.generate_preview_from_form_data(
+            {"metrics": [{"label": "count"}]}, 12, "table"
+        )
+
+    mock_set_form_data.assert_called_once_with(query_context, 12, "table")
+    assert call_order == ["seed", "run"]
+
+
 @pytest.mark.parametrize("time_grain", [None, "P1D", "P1M"])
 def test_unsaved_big_number_preview_uses_temporal_query_contract(
     time_grain: str | None,
 ) -> None:
-    """The shared preview keeps raw temporal grouping, not grain bucketing."""
+    """The shared preview mirrors the frontend's normalizeTimeColumn contract."""
     form_data = {
         "viz_type": "big_number",
         "x_axis": {"column_name": "recorded_at"},
@@ -196,9 +227,22 @@ def test_unsaved_big_number_preview_uses_temporal_query_contract(
 
     assert isinstance(result, TablePreview)
     query = factory.return_value.create.call_args.kwargs["queries"][0]
-    assert query["columns"] == ["recorded_at"]
-    assert "granularity" not in query
-    assert "time_grain_sqla" not in query.get("extras", {})
+    # normalizeTimeColumn rewrites a set x-axis into a BASE_AXIS adhoc column
+    # carrying the grain, drops is_timeseries, and leaves the common temporal
+    # controls (granularity, extras.time_grain_sqla) in place.
+    assert query["columns"] == [
+        {
+            "columnType": "BASE_AXIS",
+            "sqlExpression": "recorded_at",
+            "label": "recorded_at",
+            "expressionType": "SQL",
+            "isColumnReference": True,
+            **({"timeGrain": time_grain} if time_grain is not None else {}),
+        }
+    ]
+    assert query["granularity"] == "event_time"
+    assert query.get("extras", {}).get("time_grain_sqla") == time_grain
+    assert "is_timeseries" not in query
     assert query["metrics"] == ["count"]
     assert query["time_range"] == "Last week"
     assert query["filters"] == [{"col": "region", "op": "==", "val": "EMEA"}]
@@ -213,7 +257,8 @@ def test_unsaved_gauge_preview_uses_shared_builder_and_preserves_ordering(
 ):
     """Unsaved previews execute the same Gauge QueryObject path as Explore."""
     mock_find_dataset.return_value = Mock(id=7)
-    mock_build_query_context.return_value = Mock()
+    # Shaped for the shared chart-data form-data seeding step.
+    mock_build_query_context.return_value = SimpleNamespace(form_data={}, queries=[])
     mock_command.return_value.validate.return_value = None
     mock_command.return_value.run.return_value = {
         "queries": [{"data": [{"AVG(score)": 75}]}]
@@ -261,7 +306,8 @@ def test_unsaved_gauge_preview_surfaces_query_error(
     mock_find_dataset, mock_build_query_context, mock_command
 ):
     mock_find_dataset.return_value = Mock(id=7)
-    mock_build_query_context.return_value = Mock()
+    # Shaped for the shared chart-data form-data seeding step.
+    mock_build_query_context.return_value = SimpleNamespace(form_data={}, queries=[])
     mock_command.return_value.validate.return_value = None
     mock_command.return_value.run.return_value = {
         "queries": [{"status": "failed", "error": "bad metric", "data": []}]

@@ -121,6 +121,11 @@ def _dataset_context() -> DatasetContext:
     )
 
 
+def _query_context_stub() -> SimpleNamespace:
+    """A query context shaped for the shared chart-data form-data seeding step."""
+    return SimpleNamespace(form_data={}, queries=[])
+
+
 def _ambiguous_dataset_context() -> DatasetContext:
     return DatasetContext(
         id=1,
@@ -1749,6 +1754,8 @@ def test_saved_and_unsaved_gantt_preview_return_the_same_structured_error() -> N
         id=1,
         slice_name="Schedule",
         viz_type="gantt_chart",
+        datasource_id=1,
+        datasource_type="table",
         params=__import__("json").dumps(form_data),
     )
     strategy = VegaLitePreviewStrategy(
@@ -1759,7 +1766,7 @@ def test_saved_and_unsaved_gantt_preview_return_the_same_structured_error() -> N
         patch(
             "superset.mcp_service.chart.tool.get_chart_preview."
             "build_query_context_from_form_data",
-            return_value=object(),
+            return_value=_query_context_stub(),
         ),
         patch(
             "superset.commands.chart.data.get_data_command.ChartDataCommand"
@@ -1827,7 +1834,7 @@ def test_saved_and_unsaved_gantt_previews_fail_on_embedded_query_errors(
         patch(
             "superset.mcp_service.chart.tool.get_chart_preview."
             "build_query_context_from_form_data",
-            return_value=object(),
+            return_value=_query_context_stub(),
         ),
         patch(
             "superset.commands.chart.data.get_data_command.ChartDataCommand"
@@ -1842,7 +1849,7 @@ def test_saved_and_unsaved_gantt_previews_fail_on_embedded_query_errors(
         patch(
             "superset.mcp_service.chart.chart_helpers."
             "build_query_context_from_form_data",
-            return_value=object(),
+            return_value=_query_context_stub(),
         ),
         patch(
             "superset.commands.chart.data.get_data_command.ChartDataCommand"
@@ -1871,7 +1878,7 @@ def test_valid_empty_query_result_stays_a_successful_empty_gantt_preview() -> No
         patch(
             "superset.mcp_service.chart.chart_helpers."
             "build_query_context_from_form_data",
-            return_value=object(),
+            return_value=_query_context_stub(),
         ),
         patch(
             "superset.commands.chart.data.get_data_command.ChartDataCommand"
@@ -1898,7 +1905,7 @@ def test_valid_empty_query_result_stays_a_successful_empty_gantt_preview() -> No
         patch(
             "superset.mcp_service.chart.tool.get_chart_preview."
             "build_query_context_from_form_data",
-            return_value=object(),
+            return_value=_query_context_stub(),
         ),
         patch(
             "superset.commands.chart.data.get_data_command.ChartDataCommand"
@@ -1924,7 +1931,7 @@ def test_query_failure_detection_applies_without_changing_valid_table_preview() 
         patch(
             "superset.mcp_service.chart.chart_helpers."
             "build_query_context_from_form_data",
-            return_value=object(),
+            return_value=_query_context_stub(),
         ),
         patch(
             "superset.commands.chart.data.get_data_command.ChartDataCommand"

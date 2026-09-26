@@ -199,7 +199,9 @@ def test_get_data_invalid_dataframe(processor, mock_query_context):
     coltypes = [GenericDataType.NUMERIC, GenericDataType.STRING]
     mock_query_context.result_format = ChartDataResultFormat.JSON
 
-    with patch.object(df, "to_dict", side_effect=ValueError("Invalid DataFrame")):
+    with patch.object(
+        pd.DataFrame, "to_dict", side_effect=ValueError("Invalid DataFrame")
+    ):
         with pytest.raises(ValueError, match="Invalid DataFrame"):
             processor.get_data(df, coltypes)
 

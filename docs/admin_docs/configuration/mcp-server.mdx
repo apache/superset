@@ -1065,7 +1065,7 @@ Specifying a tool name that does not exist logs a warning at startup and is othe
 
 ## Disabling chart type plugins
 
-The `generate_chart` tool dispatches per chart type (`xy`, `table`, `pie`, `gauge`, `treemap_v2`, `pivot_table`, `interactive_pivot`, `mixed_timeseries`, `handlebars`, `big_number`, `histogram`, `box_plot`, `waterfall`) to a registered chart type plugin. Gauge requests use the public MCP discriminator `chart_type: "gauge"`; Superset stores the corresponding native Explore visualization as `viz_type: "gauge_chart"`. Two settings let operators enable or disable individual chart type plugins at runtime, without a code deploy.
+The `generate_chart` tool dispatches per chart type (`xy`, `table`, `pie`, `gauge`, `treemap_v2`, `pivot_table`, `interactive_pivot`, `mixed_timeseries`, `handlebars`, `big_number`, `histogram`, `box_plot`, `waterfall`, `bullet`) to a registered chart type plugin. Gauge requests use the public MCP discriminator `chart_type: "gauge"`; Superset stores the corresponding native Explore visualization as `viz_type: "gauge_chart"`. Two settings let operators enable or disable individual chart type plugins at runtime, without a code deploy.
 
 Gauge data inspection and JSON/CSV/XLSX exports preserve source groups, including NULL and non-finite metric values, using the same row-count and completeness semantics as other chart types. The default XLSX exporter writes non-finite floats as `nan`, `inf`, or `-inf` text, matching CSV and distinguishing them from blank NULL cells. Only previews and compile checks skip NULL, NaN, non-finite, and other nonnumeric dial values while preserving finite groups. In preview/compile paths, a nonempty result containing no finite dial returns an error; genuinely empty results retain the no-data behavior. Compile checks inspect the configured dial limit (at most 10), rather than only two groups. Grouped Vega previews center each needle within its own facet and extend it to the midpoint of the dial band. Automatic all-zero ranges span 0–1. Empty or whitespace-only temporal ranges, like `No filter`, are neutral sentinels; missing or non-string native temporal comparators are invalid.
 
@@ -1118,6 +1118,25 @@ The callable must be cheap and in-process (consult already-loaded feature flags 
 - **[MCP Integration](/developer-docs/extensions/mcp)** -- Build custom MCP tools and prompts via Superset extensions
 - **[Security](/developer-docs/extensions/security)** -- Security best practices for extensions
 - **[Deployment](/developer-docs/extensions/deployment)** -- Package and deploy Superset extensions
+
+## Bullet chart compatibility
+
+The MCP Bullet plugin uses `chart_type: "bullet"` and the native ECharts
+`viz_type: "bullet"`. Its optional `dimensions` hierarchy maps to `groupby`.
+Omit `dimensions` (or use `null`) to create a single-metric Bullet without a
+breakdown. On updates, omission or `null` preserves the saved hierarchy; use
+`dimensions: []` to clear it explicitly.
+
+Dimension and metric output names are case-sensitive: quoted physical columns
+such as `Region` and `region` remain distinct. Reference lookup prefers exact
+names and uses case-insensitive matching only when there is a single candidate;
+ambiguous references require the exact spelling.
+
+Range, marker, and marker-line label lists may be shorter than their value lists.
+As in Explore, missing or empty range labels are not displayed, and missing or
+empty marker labels use the formatted numeric value. Extra labels have no value
+to annotate and are ignored. These rules also apply to saved-chart previews and
+updates; omitted label controls preserve the saved state.
 
 ### Reporting query dates
 
@@ -1216,6 +1235,12 @@ Missing and non-finite values become JSON `null`; non-UTF-8 binary values become
 base64 strings prefixed with `base64:`. Boolean row counts are treated as
 unavailable, producing `null` for nullable counts and `0` for non-nullable counts,
 rather than being interpreted as one or zero rows.
+
+Finite SQL Decimal values are preserved exactly and returned as JSON strings,
+including values such as `0.5` that can be represented as floats. This uniform
+contract avoids silently rounding `0.10000000000000000001` to `0.1`. Clients
+should parse these strings with a decimal-aware numeric type when needed.
+Decimal NaN, signaling NaN, and infinities remain JSON `null`.
 
 ## Chart data column counts
 
