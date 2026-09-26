@@ -56,6 +56,70 @@ def _quote_formula(value: Any) -> Any:
     )
 
 
+def _drop_timezone(value: Any) -> Any:
+    """
+    Convert one tz-aware timestamp to a naive wall-clock value.
+
+    Excel cannot store timezone offsets. ``tz_localize(None)`` keeps the
+    calendar date and time shown in Explore; ``tz_convert(None)`` would shift
+    the instant to UTC and can move the date by a day.
+    """
+    if isinstance(value, pd.Timestamp):
+        return value.tz_localize(None) if value.tz is not None else value
+    if isinstance(value, datetime) and value.tzinfo is not None:
+        return value.replace(tzinfo=None)
+    if isinstance(value, tuple):
+        return tuple(_drop_timezone(item) for item in value)
+    return value
+
+
+def _naive_index(index: pd.Index) -> pd.Index:
+    """Return ``index`` with timezone-aware timestamps made naive."""
+    if isinstance(index, pd.RangeIndex):
+        return index
+    if isinstance(index, pd.DatetimeIndex) and index.tz is not None:
+        return index.tz_localize(None)
+    if isinstance(index, pd.MultiIndex):
+        levels = [
+            level.tz_localize(None)
+            if isinstance(level, pd.DatetimeIndex) and level.tz is not None
+            else level
+            for level in index.levels
+        ]
+        index = index.set_levels(levels)
+        return index.map(_drop_timezone)
+    if not any(
+        isinstance(label, (datetime, pd.Timestamp))
+        and getattr(label, "tzinfo", None) is not None
+        for label in index
+    ):
+        return index
+    return index.map(_drop_timezone)
+
+
+def strip_timezones_for_excel(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Make timestamps timezone-naive so ``DataFrame.to_excel`` can write them.
+
+    Applied to values, column labels, and the row index (pivot exports place
+    temporal group-bys on the index). The frame is copied so callers can reuse
+    the original.
+    """
+    df = df.copy()
+    df.index = _naive_index(df.index)
+    if isinstance(df.columns, pd.MultiIndex) or any(
+        isinstance(label, (datetime, pd.Timestamp)) for label in df.columns
+    ):
+        df.columns = _naive_index(df.columns)
+    for position in range(len(df.columns)):
+        series = df.iloc[:, position]
+        if isinstance(series.dtype, pd.DatetimeTZDtype):
+            df.isetitem(position, series.dt.tz_localize(None))
+        elif pd.api.types.is_object_dtype(series.dtype):
+            df.isetitem(position, series.map(_drop_timezone))
+    return df
+
+
 def quote_formulas(df: pd.DataFrame) -> pd.DataFrame:
     """
     Make sure to quote any formulas for security reasons.
@@ -105,7 +169,7 @@ def df_to_excel(
     output = io.BytesIO()
 
     # make sure formulas are quoted, to prevent malicious injections
-    df = quote_formulas(df)
+    df = quote_formulas(strip_timezones_for_excel(df))
 
     # pylint: disable=abstract-class-instantiated
     with pd.ExcelWriter(output, engine="xlsxwriter") as writer:
@@ -136,7 +200,12 @@ def apply_column_types(
     df: pd.DataFrame, column_types: list[GenericDataType]
 ) -> pd.DataFrame:
     """
-    Applies the column types to the dataframe to prepare for an excel export
+    Applies the column types to the dataframe to prepare for an excel export.
+
+    Timezone-aware ``datetime64`` columns are made naive here so Excel stores
+    them as dates rather than strings. Object-dtype timestamps, indexes, and
+    headers are stripped later by ``strip_timezones_for_excel`` inside
+    ``df_to_excel``.
 
     :param df: The dataframe to apply the column types to
     :param column_types: The types of the columns
@@ -161,9 +230,15 @@ def apply_column_types(
             except ValueError:
                 series = series.astype(str)
         elif isinstance(series.dtype, pd.DatetimeTZDtype):
-            # timezones are not supported
-            series = series.astype(str)
+            # Excel has no timezone type. Keep the wall-clock components so
+            # the cell stays a date/time instead of a formatted string.
+            series = series.dt.tz_localize(None)
         else:
+            # Object-dtype tz-aware values (e.g. mixed columns holding
+            # individual Timestamp/datetime objects) are handled by
+            # ``strip_timezones_for_excel``, which every ``df_to_excel`` call
+            # already runs -- doing the same ``_drop_timezone`` scan here
+            # would just walk every object column twice.
             continue
         # ``isetitem`` replaces the column at that position, which is both
         # unambiguous under duplicate labels and free of the in-place dtype
