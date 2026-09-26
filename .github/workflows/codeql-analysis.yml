@@ -6,8 +6,6 @@ on:
   pull_request:
     # The branches below must be a subset of the branches above
     branches: ["master"]
-  schedule:
-    - cron: "0 4 * * *"
 
 # cancel previous workflow jobs for PRs
 concurrency:
@@ -19,7 +17,7 @@ permissions:
 
 jobs:
   changes:
-    runs-on: ubuntu-26.04
+    runs-on: ubuntu-slim
     timeout-minutes: 10
     permissions:
       contents: read
@@ -37,6 +35,18 @@ jobs:
         uses: $/.github/actions/change-detector/
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Dynamically setup matrix of changed languages
+        id: set-lang-matrix
+        shell: bash
+        run: |
+          lang_matrix_string=''
+          if [[ "${{ steps.check.outputs.python }} == "true" ]]; then
+            lang_matrix_string=${lang_matrix_string}'"python"'
+          fi
+          if [[ ${{ steps.check.outputs.frontend }} == "true" ]]; then
+            lang_matrix_string=${lang_matrix_string}'"javascript"'
+          fi
+          echo "lang_matrix=$(jq --compact-output --null-input '[inputs] | tostring' <<< $lang_matrix_string)"
 
   analyze:
     name: Analyze
@@ -46,7 +56,7 @@ jobs:
     # the change-detector returns "all changed" for non-PR events.
     if: needs.changes.outputs.python == 'true' || needs.changes.outputs.frontend == 'true'
     runs-on: ubuntu-26.04
-    timeout-minutes: 30
+    timeout-minutes: 15
     permissions:
       actions: read
       contents: read
@@ -56,7 +66,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        language: ["python", "javascript"]
+        language: ${{ fromJson(needs.changes.outputs.lang_matrix) }}
         # Learn more about CodeQL language support at https://aka.ms/codeql-docs/language-support
 
     steps:
