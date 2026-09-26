@@ -256,6 +256,10 @@ msgid "%(name)s deleted successfully"
 msgstr ""
 
 #, python-format
+msgid "%(name)s is not a column on this dataset."
+msgstr ""
+
+#, python-format
 msgid "%(name)s restored successfully"
 msgstr ""
 
@@ -11564,6 +11568,9 @@ msgstr ""
 msgid "No provider query is available for this run."
 msgstr ""
 
+msgid "No partition column is set."
+msgstr ""
+
 msgid "No records found"
 msgstr "Não foram encontrados registos"
 
@@ -17657,6 +17664,9 @@ msgid ""
 "partition column and the mapped column."
 msgstr ""
 
+msgid "The partition filter mapping was cleared: its column is gone"
+msgstr ""
+
 #, python-format
 msgid "The password provided for username \"%(username)s\" is incorrect."
 msgstr "A senha fornecida para o nome de usuário \"%(username)s\" está incorreta."
@@ -18082,6 +18092,9 @@ msgstr ""
 
 msgid "The time unit used for the grouping of blocks"
 msgstr "A unidade de tempo usada para o agrupamento de blocos"
+
+msgid "The transform could not be evaluated against the database."
+msgstr ""
 
 #, fuzzy
 msgid "The two passwords that you entered do not match!"
@@ -19458,6 +19471,9 @@ msgstr[1] ""
 #, fuzzy
 msgid "Token Request URI"
 msgstr "URI de solicitação de token"
+
+msgid "Too many preview requests for this dataset. Wait a moment and try again."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
 #, fuzzy, python-format
