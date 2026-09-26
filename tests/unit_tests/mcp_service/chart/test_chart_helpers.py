@@ -24,6 +24,7 @@ from superset.mcp_service.chart.chart_helpers import (
     _deck_gl_null_filters,
     _is_metric_ref,
     _resolve_deck_gl_metrics,
+    _resolve_x_axis_sort_target,
     apply_form_data_filters_to_query,
     build_query_dicts_from_form_data,
     extract_form_data_key_from_url,
@@ -1407,3 +1408,38 @@ def test_build_query_dicts_from_form_data_xy_bar_with_x_axis_sort() -> None:
     assert queries[0]["columns"] == ["category"]
     assert queries[0]["metrics"] == [metric]
     assert queries[0]["orderby"] == [(metric, False)]
+
+
+def test_resolve_x_axis_sort_target_case_insensitive_label() -> None:
+    metric = {
+        "label": "Total Sales",
+        "aggregate": "SUM",
+        "column": {"column_name": "sales"},
+    }
+    resolved = _resolve_x_axis_sort_target("total sales", [metric])
+    assert resolved == metric
+
+
+def test_resolve_x_axis_sort_target_case_insensitive_column() -> None:
+    metric = {
+        "label": "SUM(sales)",
+        "aggregate": "SUM",
+        "column": {"column_name": "Sales"},
+    }
+    resolved = _resolve_x_axis_sort_target("sales", [metric])
+    assert resolved == metric
+
+
+def test_resolve_x_axis_sort_target_sql_expression() -> None:
+    metric = {
+        "expressionType": "SQL",
+        "sqlExpression": "COUNT(DISTINCT user_id)",
+        "label": "unique_users",
+    }
+    resolved = _resolve_x_axis_sort_target("count(distinct user_id)", [metric])
+    assert resolved == metric
+
+
+def test_resolve_x_axis_sort_target_string_metric_case_insensitive() -> None:
+    resolved = _resolve_x_axis_sort_target("totalsales", ["TotalSales"])
+    assert resolved == "TotalSales"
