@@ -329,6 +329,9 @@ def test_dashboard_table_serialization_includes_capabilities_and_parent() -> Non
         "health_check_message",
         "always_filter_main_dttm",
         "normalize_columns",
+        "partition_column",
+        "partition_mapped_column",
+        "partition_filter_mapping",
         "column_types",
         "column_names",
     }

@@ -459,10 +459,43 @@ class DatasetDAO(BaseDAO[SqlaTable]):
                     "python_date_format is an invalid date/timestamp format."
                 )
 
+    @staticmethod
+    def clear_dangling_partition_mapping(
+        model: SqlaTable, surviving_column_names: set[str]
+    ) -> None:
+        """
+        Drop parts of the partition filter mapping whose columns no longer exist.
+
+        A metadata sync can remove the partition column at the source, which
+        would otherwise leave the dataset pointing at a column that isn't there.
+        The query layer bails out defensively on a dangling mapping, so this is
+        about the dataset's stored state being honest rather than about
+        correctness of the SQL.
+
+        Called from `update_columns` for both write paths: the editor clears the
+        mapping client-side too, but `override_columns=true` (an API-driven
+        metadata sync) bypasses the editor entirely, and the upsert path drops
+        every column the payload omits, so either one can take the mapped
+        column out from under the mapping.
+        """
+        if (
+            model.partition_column
+            and model.partition_column not in surviving_column_names
+        ):
+            model.partition_column = None
+            model.partition_mapped_column = None
+            return
+
+        if (
+            model.partition_mapped_column
+            and model.partition_mapped_column not in surviving_column_names
+        ):
+            model.partition_mapped_column = None
+
     @classmethod
     def _override_columns(
         cls, model: SqlaTable, property_columns: list[dict[str, Any]]
-    ) -> None:
+    ) -> set[str]:
         """Replace columns by natural key (``column_name``) — update in place
         rather than delete-and-reinsert.
 
@@ -484,6 +517,8 @@ class DatasetDAO(BaseDAO[SqlaTable]):
         columns are preserved. Charts that reference columns by their
         ``id`` continue to work across a metadata refresh — previously
         such references would be invalidated.
+
+        Returns the names of the columns that survive the write.
         """
         existing_by_name = {c.column_name: c for c in model.columns}
         incoming_by_name = {p["column_name"]: p for p in property_columns}
@@ -529,10 +564,17 @@ class DatasetDAO(BaseDAO[SqlaTable]):
                 }
                 db.session.add(TableColumn(**{**cleaned, "table_id": model.id}))
 
+        return set(incoming_by_name)
+
     @classmethod
     def _upsert_columns(
         cls, model: SqlaTable, property_columns: list[dict[str, Any]]
-    ) -> None:
+    ) -> set[str]:
+        """
+        Create/update the columns in the payload and delete the rest.
+
+        Returns the names of the columns that survive the write.
+        """
         columns_by_id = {column.id: column for column in model.columns}
         property_columns_by_id = {
             properties["id"]: properties
@@ -540,19 +582,27 @@ class DatasetDAO(BaseDAO[SqlaTable]):
             if "id" in properties
         }
 
+        surviving_column_names: set[str] = set()
+
         for properties in property_columns:
             if "id" not in properties:
                 db.session.add(TableColumn(**{**properties, "table_id": model.id}))
+                surviving_column_names.add(properties["column_name"])
 
         for properties in property_columns_by_id.values():
             col = columns_by_id[properties["id"]]
             for key, value in properties.items():
                 setattr(col, key, value)
+            # A partial update may omit ``column_name``, in which case the
+            # column keeps the name it already had.
+            surviving_column_names.add(col.column_name)
 
         ids_to_keep = property_columns_by_id.keys()
         for col in model.columns:
             if col.id not in ids_to_keep:
                 db.session.delete(col)
+
+        return surviving_column_names
 
     @classmethod
     def update_columns(
@@ -575,9 +625,11 @@ class DatasetDAO(BaseDAO[SqlaTable]):
         """
         cls._validate_column_date_formats(property_columns)
         if override_columns:
-            cls._override_columns(model, property_columns)
+            surviving_column_names = cls._override_columns(model, property_columns)
         else:
-            cls._upsert_columns(model, property_columns)
+            surviving_column_names = cls._upsert_columns(model, property_columns)
+
+        cls.clear_dangling_partition_mapping(model, surviving_column_names)
 
     @classmethod
     def update_metrics(

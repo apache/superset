@@ -740,6 +740,12 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # Try to optimize SQL queries — for now only predicate pushdown is supported
     # @lifecycle: development
     "OPTIMIZE_SQL": False,
+    # Configure and validate a mapping from a dataset's business column onto its
+    # physical partition column, so engines that require an explicit partition
+    # predicate can prune. For now this only stores and validates the mapping;
+    # no query consumer emits the mirrored predicate yet.
+    # @lifecycle: development
+    "PARTITION_FILTER_MAPPING": False,
     # Expand nested types in Presto into extra columns/arrays. Experimental,
     # doesn't work with all nested types.
     # @lifecycle: development
