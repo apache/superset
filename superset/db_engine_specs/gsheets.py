@@ -19,10 +19,12 @@ from __future__ import annotations
 
 import logging
 import re
-from datetime import datetime
+from datetime import date, datetime, time
+from decimal import Decimal
 from re import Pattern
 from typing import Any, TYPE_CHECKING, TypedDict
 
+import numpy as np
 import pandas as pd
 from apispec import APISpec
 from apispec.ext.marshmallow import MarshmallowPlugin
@@ -64,6 +66,28 @@ SYNTAX_ERROR_REGEX = re.compile('SQLError: near "(?P<server_error>.*?)": syntax 
 ma_plugin = MarshmallowPlugin()
 
 
+def to_json_value(value: Any) -> Any:
+    """
+    Convert a dataframe cell into a JSON value the Sheets API parses back.
+
+    Dates and timestamps become ISO strings (``USER_ENTERED`` input parses them
+    as dates), and numpy scalars become Python scalars.
+    """
+    if value is None:
+        return None
+    if isinstance(value, pd.Timestamp):
+        value = value.to_pydatetime()
+    if isinstance(value, datetime):
+        return value.isoformat(sep=" ")
+    if isinstance(value, (date, time)):
+        return value.isoformat()
+    if isinstance(value, Decimal):
+        return str(value)
+    if isinstance(value, np.generic):
+        return value.item()
+    return value
+
+
 class GSheetsParametersSchema(Schema):
     catalog = fields.Dict()
     service_account_info = EncryptedString(
@@ -97,6 +121,7 @@ class GSheetsPropertiesType(TypedDict, total=False):
     parameters: GSheetsParametersType
     catalog: dict[str, str]
     masked_encrypted_extra: str
+    impersonate_user: bool
 
 
 class GSheetsEngineSpec(ShillelaghEngineSpec):
@@ -411,11 +436,13 @@ class GSheetsEngineSpec(ShillelaghEngineSpec):
                 )
                 return errors
 
-        # We need a subject in case domain wide delegation is set, otherwise the
-        # check will fail. This means that the admin will be able to add sheets
-        # that only they have access, even if later users are not able to access
-        # them.
-        subject = g.user.email if g.user else None
+        # Impersonate the admin only when the database impersonates users, as
+        # queries do (see ``impersonate_user``). With domain wide delegation this
+        # means that the admin will be able to add sheets that only they have
+        # access to; without delegation a subject makes every check fail.
+        subject = (
+            g.user.email if g.user and properties.get("impersonate_user") else None
+        )
 
         engine = create_engine(
             "gsheets://",
@@ -591,7 +618,8 @@ class GSheetsEngineSpec(ShillelaghEngineSpec):
             spreadsheet_url = payload["spreadsheetUrl"]
 
         # insert data
-        data = df.fillna("").values.tolist()
+        data = df.astype(object).where(df.notna(), None).map(to_json_value)
+        data = data.fillna("").values.tolist()
         data.insert(0, df.columns.values.tolist())
         body = {
             "range": range_,

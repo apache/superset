@@ -192,6 +192,7 @@ def test_validate_parameters_catalog(
     ]
 
     properties: GSheetsPropertiesType = {
+        "impersonate_user": True,
         "parameters": {"service_account_info": "", "catalog": None},
         "catalog": {
             "private_sheet": "https://docs.google.com/spreadsheets/d/1/edit",
@@ -334,7 +335,7 @@ def test_validate_parameters_catalog_and_credentials(
             "adapter_kwargs": {
                 "gsheetsapi": {
                     "service_account_info": {},
-                    "subject": "admin@example.com",
+                    "subject": None,
                 }
             }
         },
@@ -1155,3 +1156,72 @@ def test_convert_dttm(
     from superset.db_engine_specs.gsheets import GSheetsEngineSpec
 
     assert_convert_dttm(GSheetsEngineSpec, target_type, expected_result, dttm)
+
+
+def test_upload_dates(mocker: MockerFixture) -> None:
+    """
+    Test that date and numpy values are uploaded as JSON values.
+    """
+    from datetime import date
+    from decimal import Decimal
+
+    import numpy as np
+
+    from superset.db_engine_specs.gsheets import GSheetsEngineSpec
+
+    mocker.patch("superset.db_engine_specs.gsheets.db")
+    get_adapter_for_table_name = mocker.patch(
+        "shillelagh.backends.apsw.dialects.base.get_adapter_for_table_name"
+    )
+    session = get_adapter_for_table_name()._get_session()
+    session.post().json.return_value = {
+        "spreadsheetId": 1,
+        "spreadsheetUrl": "https://docs.example.org",
+        "sheets": [{"properties": {"title": "sample_data"}}],
+    }
+
+    database = mocker.MagicMock()
+    database.get_extra.return_value = {}
+
+    df = pd.DataFrame(
+        {
+            "i": np.array([1, 2], dtype="int64"),
+            "f": [1.5, np.nan],
+            "d": [date(2024, 2, 29), None],
+            "ts": pd.to_datetime(["2024-02-29 23:59:58", None]),
+            "dec": [Decimal("1.10"), None],
+        }
+    )
+    GSheetsEngineSpec.df_to_sql(database, Table("sample_data"), df, {})
+
+    body = session.post.call_args_list[-1].kwargs["json"]
+    assert json.loads(json.dumps(body["values"])) == [
+        ["i", "f", "d", "ts", "dec"],
+        [1, 1.5, "2024-02-29", "2024-02-29 23:59:58", "1.10"],
+        [2, "", "", "", ""],
+    ]
+
+
+def test_validate_parameters_impersonates_only_when_enabled(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test that the logged-in user is used as subject only with impersonation.
+    """
+    from superset.db_engine_specs.gsheets import GSheetsEngineSpec
+
+    g = mocker.patch("superset.db_engine_specs.gsheets.g")
+    g.user.email = "admin@example.com"
+    create_engine = mocker.patch("superset.db_engine_specs.gsheets.create_engine")
+    mocker.patch.object(GSheetsEngineSpec, "register_engine_events")
+
+    def subject(**properties: Any) -> str | None:
+        GSheetsEngineSpec.validate_parameters(
+            {"parameters": {"service_account_info": "{}"}, "catalog": {}, **properties}
+        )
+        adapter_kwargs = create_engine.call_args.kwargs["connect_args"]
+        return adapter_kwargs["adapter_kwargs"]["gsheetsapi"]["subject"]
+
+    assert subject() is None
+    assert subject(impersonate_user=False) is None
+    assert subject(impersonate_user=True) == "admin@example.com"
