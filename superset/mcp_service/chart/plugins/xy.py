@@ -42,6 +42,80 @@ from superset.mcp_service.common.error_schemas import ChartGenerationError
 logger = logging.getLogger(__name__)
 
 
+def _match_y_metric_name(
+    raw_lower: str, y_configs: list[dict[str, Any]]
+) -> str | None:
+    for y_col in y_configs:
+        if y_col.get("label") and y_col["label"].lower() == raw_lower:
+            return y_col["label"]
+        if y_col.get("name") and y_col["name"].lower() == raw_lower:
+            return y_col["name"]
+        agg = y_col.get("aggregate")
+        name = y_col.get("name")
+        if agg and name and f"{agg}({name})".lower() == raw_lower:
+            return y_col.get("label") or f"{agg.upper()}({name})"
+    return None
+
+
+def _resolve_xy_sort_name(
+    raw_name: str, config_dict: dict[str, Any], dataset_context: Any
+) -> str:
+    raw_lower = raw_name.lower()
+    matched_y = _match_y_metric_name(raw_lower, config_dict.get("y") or [])
+    if matched_y:
+        return matched_y
+
+    x_col = config_dict.get("x")
+    if isinstance(x_col, dict):
+        if x_col.get("label") and x_col["label"].lower() == raw_lower:
+            return x_col["label"]
+        if x_col.get("name") and x_col["name"].lower() == raw_lower:
+            return DatasetValidator.get_canonical_column_name(
+                x_col["name"], dataset_context
+            )
+
+    if dataset_context and getattr(dataset_context, "available_metrics", None):
+        for m in dataset_context.available_metrics:
+            if m.get("name") and m["name"].lower() == raw_lower:
+                return DatasetValidator.get_canonical_metric_name(
+                    raw_name, dataset_context
+                )
+
+    return DatasetValidator.get_canonical_column_name(raw_name, dataset_context)
+
+
+def _update_sort_by_column(
+    sort_item: Any,
+    config_dict: dict[str, Any],
+    dataset_context: Any,
+) -> Any:
+    if isinstance(sort_item, dict) and "column" in sort_item:
+        sort_item["column"] = _resolve_xy_sort_name(
+            sort_item["column"], config_dict, dataset_context
+        )
+        return sort_item
+    if isinstance(sort_item, str):
+        return _resolve_xy_sort_name(sort_item, config_dict, dataset_context)
+    return sort_item
+
+
+def _normalize_xy_sort_by(config_dict: dict[str, Any], dataset_context: Any) -> None:
+    """Resolve canonical column or metric name for sort_by in XY charts."""
+    sort_by = config_dict.get("sort_by")
+    if not sort_by:
+        return
+
+    if isinstance(sort_by, list):
+        if sort_by:
+            sort_by[0] = _update_sort_by_column(
+                sort_by[0], config_dict, dataset_context
+            )
+    else:
+        config_dict["sort_by"] = _update_sort_by_column(
+            sort_by, config_dict, dataset_context
+        )
+
+
 class XYChartPlugin(BaseChartPlugin):
     """Plugin for xy chart type (line, bar, area, scatter)."""
 
@@ -128,6 +202,8 @@ class XYChartPlugin(BaseChartPlugin):
                 y_col["name"] = get_canonical(y_col["name"], dataset_context)
         for gb_col in config_dict.get("group_by") or []:
             gb_col["name"] = get_canonical(gb_col["name"], dataset_context)
+
+        _normalize_xy_sort_by(config_dict, dataset_context)
 
         DatasetValidator.normalize_filters(config_dict, dataset_context)
         return XYChartConfig.model_validate(config_dict)
