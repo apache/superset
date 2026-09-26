@@ -609,6 +609,14 @@ theme editor picker.
 - The chart list applies the same type-aware datasource visibility as the dashboard list: charts on semantic views (and other non-table datasource types carrying a permission) are now listed for users holding `datasource_access` on the datasource or on its parent semantic layer — previously such charts never appeared in the chart list — and a chart on a non-table datasource is no longer listed to users whose only entitlement is a database/schema/catalog grant matching an unrelated table that shares its numeric id. Table-backed chart visibility, explicit viewer/editor grants, and embedded-guest scoping are unchanged.
 - `SAMPLES_ROW_LIMIT` is now the default for `/datasource/samples` requests without a valid explicit `per_page`, rather than a hard per-request ceiling; explicit limits are honored up to the existing global row-limit ceiling, matching `/chart/data` SAMPLES requests.
 - The `cockroachdb` extra (`pip install apache-superset[cockroachdb]`) now installs `sqlalchemy-cockroachdb` instead of the abandoned `cockroachdb` package, whose SQLAlchemy dialect could not be imported under SQLAlchemy 2.0. Existing environments with the old package installed must `pip uninstall cockroachdb` before reinstalling the extra -- both packages register the same `cockroachdb` SQLAlchemy dialect entry point, so leaving the old one in place can still load the abandoned implementation.
+- The `d1` extra (`pip install apache-superset[d1]`) installs only
+  `sqlalchemy-d1`, 0.2.0 or later. That release supports SQLAlchemy 2 and is
+  built on `sqlalchemy-cloudflare-d1`. The `superset-engine-d1` and `dbapi-d1`
+  packages are retired: the engine spec ships with Superset, and their only
+  releases do not install on Python 3.12 or later. Existing environments
+  should `pip uninstall superset-engine-d1 dbapi-d1` and reinstall the extra.
+  `d1://` connection strings are unchanged. File upload is now off for D1:
+  D1 has no transactions, so a failed upload could leave a half-written table.
 
 ### Native Value filter "Select all" always targets the whole column
 
@@ -719,8 +727,8 @@ string-keyed `Row` access, and `MetaData(bind=)` are removed outright.
 SQLAlchemy-2.0-only releases**, either because that bump is a separate
 follow-up ([#42891](https://github.com/apache/superset/pull/42891): dremio,
 exasol, firebird, redshift, risingwave) or because the upstream dialect
-package has no SQLAlchemy 2.0 support yet at all (aurora-data-api, d1,
-kusto, solr; ocient's 2.0 compatibility is unverified). Installing one of
+package has no SQLAlchemy 2.0 support yet at all (aurora-data-api, kusto,
+solr; ocient's 2.0 compatibility is unverified). Installing one of
 these extras continues to pull a SQLAlchemy-1.4-line version of that
 dialect; each package's constraint in `pyproject.toml` documents why.
 

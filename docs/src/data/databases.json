@@ -3108,7 +3108,7 @@
       "column_type_mapping": false,
       "function_names": true,
       "user_impersonation": false,
-      "file_upload": true,
+      "file_upload": false,
       "get_extra_table_metadata": false,
       "dbapi_exception_mapping": false,
       "custom_errors": false,
@@ -3122,7 +3122,7 @@
       "expand_data": false,
       "query_cost_estimation": false,
       "sql_validation": false,
-      "score": 41,
+      "score": 31,
       "max_score": 201,
       "documentation": {
         "description": "Cloudflare D1 is a serverless SQLite database.",
@@ -3133,21 +3133,22 @@
           "Traditional RDBMS",
           "Hosted Open Source"
         ],
-        "pypi_packages": ["superset-engine-d1"],
+        "pypi_packages": ["sqlalchemy-d1"],
         "connection_string": "d1://{cloudflare_account_id}:{cloudflare_api_token}@{cloudflare_d1_database_id}",
         "parameters": {
           "cloudflare_account_id": "Cloudflare account ID",
           "cloudflare_api_token": "Cloudflare API token",
           "cloudflare_d1_database_id": "D1 database ID"
         },
-        "install_instructions": "pip install superset-engine-d1",
+        "install_instructions": "pip install \"apache-superset[d1]\"",
+        "version_requirements": "sqlalchemy-d1 0.2.0 or later is required for SQLAlchemy 2. sqlalchemy-d1 0.1.0 pins SQLAlchemy below 2.0 and depends on the retired dbapi-d1 package.",
         "category": "Other Databases"
       },
       "engine": "d1",
       "engine_name": "Cloudflare D1",
       "engine_aliases": [],
-      "default_driver": "d1",
-      "supports_file_upload": true,
+      "default_driver": "httpx",
+      "supports_file_upload": false,
       "supports_dynamic_schema": false,
       "supports_catalog": false,
       "supports_dynamic_catalog": false

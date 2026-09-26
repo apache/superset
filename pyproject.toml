@@ -155,14 +155,11 @@ clickhouse = ["clickhouse-connect>=1.8.0, <2.0"]
 # `postgres` extra -- CockroachDB speaks the Postgres wire protocol.
 cockroachdb = ["sqlalchemy-cockroachdb>=2.0.0, <3", "psycopg2-binary==2.9.13"]
 crate = ["sqlalchemy-cratedb>=0.43.1, <1"]
-# sqlalchemy-d1's only release (0.1.0, Nov 2025) pins sqlalchemy<2,>=1.4,
-# explicitly excluding SQLAlchemy 2.0. See superset/db_engine_specs/d1.py's
-# known_incompatibilities metadata.
-d1 = [
-    "superset-engine-d1>=0.1.0",
-    "sqlalchemy-d1>=0.1.0",
-    "dbapi-d1>=0.1.0",
-]
+# sqlalchemy-d1 0.2.0 is its first SQLAlchemy 2.0 release (2.0-only, no
+# dual-compat release). superset-engine-d1 and dbapi-d1 are retired: the
+# engine spec lives in superset/db_engine_specs/d1.py, and sqlalchemy-d1
+# gets its DBAPI from sqlalchemy-cloudflare-d1.
+d1 = ["sqlalchemy-d1>=0.2.0, <1"]
 databend = ["databend-sqlalchemy>=0.5.5, <1.0"]
 databricks = [
     "databricks-sql-connector>=4.5.0, <4.6.0",

@@ -119,6 +119,7 @@ SQLGLOT_DIALECTS = {
     "cockroachdb": Dialects.POSTGRES,
     "couchbase": Dialects.MYSQL,
     # "crate": ???
+    "d1": Dialects.SQLITE,
     "databend": Databend,
     "databricks": Dialects.DATABRICKS,
     "db2": DB2,
