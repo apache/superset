@@ -65,7 +65,7 @@ class ExtensionsLoader {
 
   private extensionIndex: Map<string, LoadedExtension> = new Map();
 
-  private initializationPromise: Promise<void> | null = null;
+  private initializationPromise: Promise<string[]> | null = null;
 
   // eslint-disable-next-line no-useless-constructor
   private constructor() {
@@ -85,9 +85,11 @@ class ExtensionsLoader {
 
   /**
    * Initializes extensions by fetching the list from the API and loading each one.
-   * @throws Error if initialization fails.
+   * Resolves to the names of any extensions that failed to initialize (empty
+   * when every extension loaded), so callers can surface partial failures.
+   * @throws Error if the extension list itself cannot be fetched.
    */
-  public initializeExtensions(): Promise<void> {
+  public initializeExtensions(): Promise<string[]> {
     if (this.initializationPromise) {
       return this.initializationPromise;
     }
@@ -100,17 +102,25 @@ class ExtensionsLoader {
         const results = await Promise.all(
           extensions.map(ext => this.initializeExtension(ext)),
         );
-        if (results.every(Boolean)) {
+        const failed = extensions
+          .filter((_, index) => !results[index])
+          .map(ext => ext.name);
+        if (failed.length === 0) {
           logging.info('Extensions initialized successfully.');
         } else {
-          const failedCount = results.filter(succeeded => !succeeded).length;
           logging.info(
-            `Extensions initialized with ${failedCount} of ` +
+            `Extensions initialized with ${failed.length} of ` +
               `${extensions.length} extension(s) failing. See errors above.`,
           );
         }
+        return failed;
       } catch (error) {
+        // Reset so a later call can retry, and rethrow so callers (e.g.
+        // ExtensionsStartup) can surface the failure instead of it being
+        // swallowed here and the success path running regardless.
+        this.initializationPromise = null;
         logging.error('Error setting up extensions:', error);
+        throw error;
       }
     })();
     return this.initializationPromise;
