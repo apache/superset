@@ -22,6 +22,7 @@ import {
   ensureIsArray,
   getNumberFormatter,
   getTimeFormatter,
+  getTimeFormatterForGranularity,
   isSavedMetric,
   NumberFormats,
   NumberFormatter,
@@ -46,6 +47,13 @@ export const getSmartDateFormatter = (timeGrain?: string) => {
     return baseFormatter;
   }
 
+  // SMART_DATE has no quarter concept, so reuse the core grain formatter
+  // (`TimeFormatsForGranularity[QUARTER]` = `%Y Q%q`) instead of collapsing
+  // to a month or year.
+  if (timeGrain === TimeGranularity.QUARTER) {
+    return getTimeFormatterForGranularity(TimeGranularity.QUARTER);
+  }
+
   // Create a wrapper that normalizes dates based on time grain
   return new TimeFormatter({
     id: SMART_DATE_ID,
@@ -62,15 +70,6 @@ export const getSmartDateFormatter = (timeGrain?: string) => {
         // Set to January 1st at midnight UTC - smart formatter will show year
         const year = normalizedDate.getUTCFullYear();
         const cleanDate = new Date(Date.UTC(year, 0, 1, 0, 0, 0, 0));
-        return baseFormatter(cleanDate);
-      } else if (timeGrain === TimeGranularity.QUARTER) {
-        // Set to first month of quarter, first day, midnight UTC
-        const year = normalizedDate.getUTCFullYear();
-        const month = normalizedDate.getUTCMonth();
-        const quarterStartMonth = Math.floor(month / 3) * 3;
-        const cleanDate = new Date(
-          Date.UTC(year, quarterStartMonth, 1, 0, 0, 0, 0),
-        );
         return baseFormatter(cleanDate);
       } else if (timeGrain === TimeGranularity.MONTH) {
         // Set to first of month at midnight UTC - smart formatter will show month name or year
