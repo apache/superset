@@ -18,7 +18,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version:  \n"
 "Report-Msgid-Bugs-To: ted.korostiled@gmail.com\n"
-"POT-Creation-Date: 2026-09-23 12:43+0200\n"
+"POT-Creation-Date: 2026-09-24 10:35+0300\n"
 "PO-Revision-Date: 2026-04-30 22:04+0300\n"
 "Last-Translator: Danylo Korostil\n"
 "Language: uk\n"
@@ -1066,6 +1066,15 @@ msgid ""
 "A butterfly chart compares two metrics across categories using horizontal"
 " bars that extend left and right from a central axis."
 msgstr ""
+
+msgid ""
+"A candlestick chart shows opening, closing, high, and low values for each"
+" period. It is commonly used for financial and other time-series range "
+"analysis."
+msgstr ""
+"Свічковий графік показує ціни відкриття, закриття, максимум і мінімум за "
+"кожен період. Зазвичай використовується для фінансового та іншого аналізу "
+"діапазонів часових рядів."
 
 msgid "A comma separated list of columns that should be parsed as dates"
 msgstr "Перелік стовпців, розділених комами, які слід розпізнавати як дати"
@@ -3239,6 +3248,19 @@ msgstr "Скасувати запит після закриття вкладки
 msgid "Cancellation not available due to missing abort handler"
 msgstr "Скасування недоступне через відсутність обробника переривання"
 
+msgid "Candlestick"
+msgstr "Свічки"
+
+msgid "Candlestick Chart"
+msgstr "Свічковий графік"
+
+msgid ""
+"Candlestick draws a filled body between open and close. OHLC draws ticks "
+"for open and close on a high-low stem."
+msgstr ""
+"Свічки малюють зафарбоване тіло між відкриттям і закриттям. OHLC малює "
+"позначки відкриття та закриття на стеблі максимум–мінімум."
+
 msgid "Cannot access the query"
 msgstr "Неможливо доступитися до запиту"
 
@@ -3651,6 +3673,13 @@ msgstr "Діаграму збережено, але не вдалося дода
 msgid "Chart width"
 msgstr "Ширина діаграми"
 
+#, python-format
+msgid ""
+"Chart with ID %(chart_id)s (referenced by annotation layer "
+"'%(layer_name)s') was not found. Please verify that the chart exists and "
+"is accessible."
+msgstr ""
+
 msgid "Charts"
 msgstr "Діаграми"
 
@@ -3982,6 +4011,9 @@ msgstr "Закрити вкладку"
 msgid "Close version history"
 msgstr ""
 
+msgid "Closing value for each period."
+msgstr "Значення закриття за кожен період."
+
 msgid "Cluster label aggregator"
 msgstr "Агрегатор міток кластера"
 
@@ -4069,6 +4101,9 @@ msgstr "Кольорові пороги"
 msgid "Color by"
 msgstr "Колір за"
 
+msgid "Color by direction"
+msgstr "Колір за напрямком"
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
 #, fuzzy
@@ -4097,6 +4132,14 @@ msgstr "Колір цілі"
 
 msgid "Color scheme"
 msgstr "Кольорова схема"
+
+msgid ""
+"Color used when the close value is greater than or equal to the open "
+"value."
+msgstr "Колір, який використовується, коли значення закриття більше або дорівнює значенню відкриття."
+
+msgid "Color used when the close value is less than the open value."
+msgstr "Колір, який використовується, коли значення закриття менше за значення відкриття."
 
 msgid ""
 "Color will be shaded based the normalized (0% to 100%) value of a given "
@@ -7684,6 +7727,9 @@ msgstr ""
 "(груповий ключ = 'region'), умова фільтра буде (department = 'Finance' OR"
 " department = 'Marketing') AND (region = 'Europe')."
 
+msgid "Financial"
+msgstr ""
+
 msgid "Find"
 msgstr "Знайти"
 
@@ -8162,8 +8208,14 @@ msgstr "Приховує лінію для часових рядів"
 msgid "Hierarchy"
 msgstr "Ієрархія"
 
+msgid "High"
+msgstr ""
+
 msgid "High color"
 msgstr ""
+
+msgid "Highest value for each period."
+msgstr "Максимальне значення за кожен період."
 
 msgid "Histogram"
 msgstr "Гістограма"
@@ -8866,6 +8918,12 @@ msgstr "Одиниця розміру мітки"
 msgid "Label threshold"
 msgstr "Поріг мітки"
 
+msgid "Label used for decreasing candles in the tooltip."
+msgstr "Підпис спадних свічок у підказці."
+
+msgid "Label used for increasing candles in the tooltip."
+msgstr "Підпис зростаючих свічок у підказці."
+
 msgid "Labelling"
 msgstr "Маркування"
 
@@ -9342,6 +9400,9 @@ msgstr "Довгота і широта"
 msgid "Longitude of default viewport"
 msgstr "Довгота типового вікна перегляду"
 
+msgid "Low"
+msgstr ""
+
 msgid "Low color"
 msgstr ""
 
@@ -9355,6 +9416,9 @@ msgstr ""
 
 msgid "Lower threshold must be lower than upper threshold"
 msgstr "Нижній поріг не може бути більший за верхній"
+
+msgid "Lowest value for each period."
+msgstr "Мінімальне значення за кожен період."
 
 msgid "MAR"
 msgstr "бер"
@@ -9954,6 +10018,9 @@ msgstr ""
 msgid "Moves the given set of dates by a specified interval."
 msgstr "Переміщує заданий набір дат на вказаний період."
 
+msgid "Moving averages"
+msgstr "Ковзні середні"
+
 msgid "Multi-Dimensions"
 msgstr "Багатовимірний"
 
@@ -10060,6 +10127,12 @@ msgstr "Назва кінцевих вузлів"
 
 msgid "Name of your tag"
 msgstr "Назва вашої мітки"
+
+msgid ""
+"Name used for the candlestick series in the legend and tooltip when no "
+"series dimension is set."
+msgstr ""
+"Назва свічкового ряду в легенді та підказці, якщо вимір ряду не задано."
 
 msgid "Name your database"
 msgstr "Назвіть вашу базу даних"
@@ -10574,6 +10647,9 @@ msgstr "Відомості про клієнт OAuth2"
 msgid "OCT"
 msgstr "жовт"
 
+msgid "OHLC"
+msgstr "OHLC"
+
 msgid "OK"
 msgstr "Гаразд"
 
@@ -10728,6 +10804,9 @@ msgstr "Прозорість бульбашок: 0 — повністю проз
 msgid "Opacity, expects values between 0 and 100"
 msgstr "Прозорість, очікує значення від 0 до 100"
 
+msgid "Open"
+msgstr ""
+
 msgid "Open Datasource tab"
 msgstr "Відкрити вкладку джерел даних"
 
@@ -10762,6 +10841,9 @@ msgstr "Відкрити в майстерні запитів"
 msgid "Open query in SQL Lab"
 msgstr "Відкрити запит у майстерні"
 
+msgid "Opening value for each period."
+msgstr "Значення відкриття за кожен період."
+
 msgid ""
 "Operate the database in asynchronous mode, meaning that the queries are "
 "executed on remote workers as opposed to on the web server itself. This "
@@ -10792,6 +10874,11 @@ msgstr "Рядок формату дати (d3)"
 
 msgid "Optional d3 number format string"
 msgstr "Рядок формату числа (d3)"
+
+msgid ""
+"Optional dimension used to split the chart into multiple candlestick "
+"series."
+msgstr "Необов’язковий вимір, який розбиває графік на кілька свічкових рядів."
 
 msgid ""
 "Optional metric used to scale the size of each dot. Dot areas are scaled "
@@ -10917,6 +11004,13 @@ msgstr ""
 "«Успадкувати діапазон із часових фільтрів», щоб зсунути період порівняння"
 " на такий самий інтервал, як у поточному діапазоні. Або використовуйте "
 "нетиповий, щоб задати власний діапазон порівняння."
+
+msgid ""
+"Overlay simple moving averages of the close price (MA5, MA10, MA15, ...)."
+" Type a custom period to add it."
+msgstr ""
+"Накладати прості ковзні середні ціни закриття (MA5, MA10, MA15, ...). "
+"Введіть власний період, щоб додати його."
 
 msgid ""
 "Overlays a hexagonal grid on a map, and aggregates data within the "
@@ -13558,6 +13652,9 @@ msgstr "Стиль рядів"
 msgid "Series chart type (line, bar etc)"
 msgstr "Тип діаграми рядів (лінія, стовпчик тощо)"
 
+msgid "Series colors"
+msgstr "Кольори рядів"
+
 msgid "Series decrease setting"
 msgstr "Налаштування спаду рядів"
 
@@ -13567,8 +13664,14 @@ msgstr "Налаштування росту рядів"
 msgid "Series limit"
 msgstr "Обмеження рядів"
 
+msgid "Series name"
+msgstr "Назва ряду"
+
 msgid "Series settings"
 msgstr "Налаштування рядів"
+
+msgid "Series style"
+msgstr "Стиль ряду"
 
 msgid "Series total setting"
 msgstr "Налаштування підсумків рядів"
@@ -13895,6 +13998,9 @@ msgid ""
 msgstr ""
 
 msgid "Show or hide the X axis line, ticks, and labels"
+msgstr ""
+
+msgid "Show or hide the Y axis line and labels"
 msgstr ""
 
 msgid "Show or hide the Y axis line, ticks, gridlines, and labels"
@@ -15727,6 +15833,13 @@ msgid "The query contains one or more malformed template parameters."
 msgstr "Запит містить один або кілька неправильно сформованих параметрів шаблону."
 
 msgid "The query context datasource does not match the chart datasource"
+msgstr ""
+
+#, python-format
+msgid ""
+"The query context for chart ID %(chart_id)s (referenced by annotation "
+"layer '%(layer_name)s') was not found. Please ensure the chart is "
+"properly configured and has a valid query context."
 msgstr ""
 
 msgid "The query couldn't be loaded"
@@ -18500,6 +18613,15 @@ msgstr ""
 "кожного запиту"
 
 msgid ""
+"When enabled, increasing candles use the increase color and decreasing "
+"candles use the decrease color. Turn off to use one series color, with a "
+"filled body for increases and a hollow body for decreases."
+msgstr ""
+"Якщо ввімкнено, зростаючі свічки використовують колір зростання, а спадні "
+"— колір падіння. Вимкніть, щоб використати один колір ряду: зафарбоване "
+"тіло при зростанні та порожнє при падінні."
+
+msgid ""
 "When enabled, the axis will display labels for the minimum and maximum "
 "values of your data"
 msgstr ""
@@ -19326,7 +19448,18 @@ msgid ""
 "SUPERSET_DASHBOARD_POSITION_DATA_LIMIT config setting."
 msgstr ""
 
-msgid "Your export is being prepared. You'll receive an email when it's ready."
+msgid ""
+"Your export is being generated and will download automatically when "
+"ready. We'll also email you a download link."
+msgstr ""
+
+msgid "Your export is being generated. Please, do not leave the page."
+msgstr ""
+
+msgid "Your export is ready and downloading."
+msgstr ""
+
+msgid "Your export is taking longer than expected. Try again later."
 msgstr ""
 
 #, python-format

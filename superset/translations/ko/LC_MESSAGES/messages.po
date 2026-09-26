@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-23 12:43+0200\n"
+"POT-Creation-Date: 2026-09-24 10:35+0300\n"
 "PO-Revision-Date: 2019-02-02 22:28+0900\n"
 "Last-Translator: \n"
 "Language: ko\n"
@@ -1318,6 +1318,12 @@ msgid ""
 "A butterfly chart compares two metrics across categories using horizontal"
 " bars that extend left and right from a central axis."
 msgstr ""
+
+msgid ""
+"A candlestick chart shows opening, closing, high, and low values for each"
+" period. It is commonly used for financial and other time-series range "
+"analysis."
+msgstr "캔들스틱 차트는 각 기간의 시가, 종가, 고가, 저가를 보여 줍니다. 금융 및 기타 시계열 범위 분석에 자주 사용됩니다."
 
 #, fuzzy
 msgid "A comma separated list of columns that should be parsed as dates"
@@ -4608,6 +4614,17 @@ msgstr "창 닫기 이벤트 시 쿼리 취소"
 msgid "Cancellation not available due to missing abort handler"
 msgstr "중단 핸들러가 없어 취소를 사용할 수 없습니다"
 
+msgid "Candlestick"
+msgstr "캔들스틱"
+
+msgid "Candlestick Chart"
+msgstr "캔들스틱 차트"
+
+msgid ""
+"Candlestick draws a filled body between open and close. OHLC draws ticks "
+"for open and close on a high-low stem."
+msgstr "캔들스틱은 시가와 종가 사이에 채워진 몸통을 그립니다. OHLC는 고가-저가 줄기에 시가와 종가 눈금을 그립니다."
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk, zh, zh_TW]
@@ -5220,6 +5237,13 @@ msgstr "차트를 삭제할 수 없습니다."
 msgid "Chart width"
 msgstr "차트 유형"
 
+#, python-format
+msgid ""
+"Chart with ID %(chart_id)s (referenced by annotation layer "
+"'%(layer_name)s') was not found. Please verify that the chart exists and "
+"is accessible."
+msgstr ""
+
 msgid "Charts"
 msgstr "차트"
 
@@ -5744,6 +5768,9 @@ msgstr "탭 닫기"
 msgid "Close version history"
 msgstr ""
 
+msgid "Closing value for each period."
+msgstr "각 기간의 종가."
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk, zh, zh_TW]
@@ -5886,6 +5913,9 @@ msgstr "색상 중단점"
 msgid "Color by"
 msgstr "색상 기준"
 
+msgid "Color by direction"
+msgstr "방향별 색상"
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
 #, fuzzy
@@ -5929,6 +5959,14 @@ msgstr "대상 위치의 색상"
 #, fuzzy
 msgid "Color scheme"
 msgstr "색상 구성표"
+
+msgid ""
+"Color used when the close value is greater than or equal to the open "
+"value."
+msgstr "종가가 시가보다 크거나 같을 때 사용하는 색입니다."
+
+msgid "Color used when the close value is less than the open value."
+msgstr "종가가 시가보다 작을 때 사용하는 색입니다."
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, ro, ru, sk, sl, sr, sr_Latn, tr, uk]
@@ -11309,6 +11347,9 @@ msgstr ""
 "(department = 'Finance' OR department = 'Marketing') AND (region = "
 "'Europe') 필터를 적용합니다."
 
+msgid "Financial"
+msgstr ""
+
 #, fuzzy
 msgid "Find"
 msgstr "실패"
@@ -12112,8 +12153,14 @@ msgstr "시계열의 선을 숨깁니다"
 msgid "Hierarchy"
 msgstr "검색"
 
+msgid "High"
+msgstr ""
+
 msgid "High color"
 msgstr ""
+
+msgid "Highest value for each period."
+msgstr "각 기간의 고가."
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, it, ja, lv, mi, nl, pl, pt, pt_BR, ro, ru, sk, sl, sr,
@@ -13276,6 +13323,12 @@ msgstr "레이블 크기 단위"
 msgid "Label threshold"
 msgstr "레이블 임계값"
 
+msgid "Label used for decreasing candles in the tooltip."
+msgstr "툴팁에서 하락 캔들에 쓰는 레이블입니다."
+
+msgid "Label used for increasing candles in the tooltip."
+msgstr "툴팁에서 상승 캔들에 쓰는 레이블입니다."
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk, zh, zh_TW]
@@ -14043,6 +14096,9 @@ msgstr "경도 및 위도"
 msgid "Longitude of default viewport"
 msgstr "기본 뷰포트의 경도"
 
+msgid "Low"
+msgstr ""
+
 msgid "Low color"
 msgstr ""
 
@@ -14063,6 +14119,9 @@ msgstr ""
 #, fuzzy
 msgid "Lower threshold must be lower than upper threshold"
 msgstr "하한 임계값은 상한 임계값보다 낮아야 합니다"
+
+msgid "Lowest value for each period."
+msgstr "각 기간의 저가."
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -15007,6 +15066,9 @@ msgstr ""
 msgid "Moves the given set of dates by a specified interval."
 msgstr "주어진 날짜 집합을 지정된 간격만큼 이동합니다."
 
+msgid "Moving averages"
+msgstr "이동평균"
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr, uk,
 # zh, zh_TW]
@@ -15188,6 +15250,11 @@ msgstr "대상 노드의 이름"
 #, fuzzy
 msgid "Name of your tag"
 msgstr "데이터베이스 선택"
+
+msgid ""
+"Name used for the candlestick series in the legend and tooltip when no "
+"series dimension is set."
+msgstr "시리즈 차원이 설정되지 않았을 때 범례와 툴팁에 사용할 캔들스틱 시리즈 이름입니다."
 
 #, fuzzy
 msgid "Name your database"
@@ -16042,6 +16109,9 @@ msgstr "주석"
 msgid "OCT"
 msgstr "10월"
 
+msgid "OHLC"
+msgstr "OHLC"
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk, zh, zh_TW]
@@ -16277,6 +16347,9 @@ msgstr "버블의 불투명도, 0은 완전 투명, 1은 불투명을 의미합�
 msgid "Opacity, expects values between 0 and 100"
 msgstr "불투명도, 0에서 100 사이의 값을 입력하세요"
 
+msgid "Open"
+msgstr ""
+
 msgid "Open Datasource tab"
 msgstr "데이터소스 명"
 
@@ -16312,6 +16385,9 @@ msgstr "SQL Lab"
 
 msgid "Open query in SQL Lab"
 msgstr "새로운 탭에서 Query실행"
+
+msgid "Opening value for each period."
+msgstr "각 기간의 시가."
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -16353,6 +16429,11 @@ msgstr "주석"
 #, fuzzy
 msgid "Optional d3 number format string"
 msgstr "주석"
+
+msgid ""
+"Optional dimension used to split the chart into multiple candlestick "
+"series."
+msgstr "차트를 여러 캔들스틱 시리즈로 나누는 선택 차원입니다."
 
 msgid ""
 "Optional metric used to scale the size of each dot. Dot areas are scaled "
@@ -16543,6 +16624,11 @@ msgstr ""
 "상대적인 기간의 결과를 오버레이합니다. 자연어로 상대적인 시간 차이를 입력하세요(예:  24 hours, 7 days, 52 "
 "weeks, 365 days). 자유 텍스트를 지원합니다. \"시간 필터에서 범위 상속\"을 사용하면 현재 시간 범위와 동일한 "
 "길이만큼 비교 기간을 이동할 수 있으며, \"사용자 정의\"를 사용하면 사용자 정의 비교 범위를 설정할 수 있습니다."
+
+msgid ""
+"Overlay simple moving averages of the close price (MA5, MA10, MA15, ...)."
+" Type a custom period to add it."
+msgstr "종가의 단순 이동평균(MA5, MA10, MA15, ...)을 겹칩니다. 사용자 지정 기간을 입력하면 추가됩니다."
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -20591,6 +20677,9 @@ msgstr "시계열 테이블"
 msgid "Series chart type (line, bar etc)"
 msgstr "시리즈 차트 유형 (선형, 막대 등)"
 
+msgid "Series colors"
+msgstr "시리즈 색상"
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
 # lv, ro, ru, sk, sr, sr_Latn, tr, uk]
 #, fuzzy
@@ -20610,9 +20699,15 @@ msgstr "시리즈 증가 설정"
 msgid "Series limit"
 msgstr "시리즈 제한"
 
+msgid "Series name"
+msgstr "시리즈 이름"
+
 #, fuzzy
 msgid "Series settings"
 msgstr "Query 공유"
+
+msgid "Series style"
+msgstr "시리즈 스타일"
 
 #, fuzzy
 msgid "Series total setting"
@@ -21101,6 +21196,9 @@ msgid ""
 msgstr ""
 
 msgid "Show or hide the X axis line, ticks, and labels"
+msgstr ""
+
+msgid "Show or hide the Y axis line and labels"
 msgstr ""
 
 msgid "Show or hide the Y axis line, ticks, gridlines, and labels"
@@ -23816,6 +23914,13 @@ msgid "The query contains one or more malformed template parameters."
 msgstr "쿼리에 하나 이상의 잘못된 형식의 템플릿 매개변수가 있습니다."
 
 msgid "The query context datasource does not match the chart datasource"
+msgstr ""
+
+#, python-format
+msgid ""
+"The query context for chart ID %(chart_id)s (referenced by annotation "
+"layer '%(layer_name)s') was not found. Please ensure the chart is "
+"properly configured and has a valid query context."
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
@@ -27875,6 +27980,13 @@ msgstr "보조 지표가 제공되면 선형 색상 스케일이 사용됩니다
 msgid "When checked, the map will zoom to your data after each query"
 msgstr "선택하면 각 쿼리 후 지도가 데이터로 확대됩니다"
 
+msgid ""
+"When enabled, increasing candles use the increase color and decreasing "
+"candles use the decrease color. Turn off to use one series color, with a "
+"filled body for increases and a hollow body for decreases."
+msgstr ""
+"켜면 상승 캔들은 상승 색, 하락 캔들은 하락 색을 씁니다. 끄면 시리즈 색 하나를 쓰며 상승은 채운 몸통, 하락은 빈 몸통입니다."
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
 # lv, ro, ru, sk, sr, sr_Latn, tr, uk]
 #, fuzzy
@@ -29213,7 +29325,18 @@ msgid ""
 "SUPERSET_DASHBOARD_POSITION_DATA_LIMIT config setting."
 msgstr ""
 
-msgid "Your export is being prepared. You'll receive an email when it's ready."
+msgid ""
+"Your export is being generated and will download automatically when "
+"ready. We'll also email you a download link."
+msgstr ""
+
+msgid "Your export is being generated. Please, do not leave the page."
+msgstr ""
+
+msgid "Your export is ready and downloading."
+msgstr ""
+
+msgid "Your export is taking longer than expected. Try again later."
 msgstr ""
 
 #, python-format

@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-23 12:43+0200\n"
+"POT-Creation-Date: 2026-09-24 10:35+0300\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: th\n"
@@ -1416,6 +1416,14 @@ msgid ""
 "A butterfly chart compares two metrics across categories using horizontal"
 " bars that extend left and right from a central axis."
 msgstr ""
+
+msgid ""
+"A candlestick chart shows opening, closing, high, and low values for each"
+" period. It is commonly used for financial and other time-series range "
+"analysis."
+msgstr ""
+"แผนภูมิแท่งเทียนแสดงค่าเปิด ปิด สูงสุด และต่ำสุดของแต่ละช่วงเวลา "
+"มักใช้วิเคราะห์ทางการเงินและช่วงของอนุกรมเวลา"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: fr, ja, lv,
 # ru, sk, uk]
@@ -5096,6 +5104,18 @@ msgstr "ยกเลิกคำค้นหาเมื่อเกิดเห
 msgid "Cancellation not available due to missing abort handler"
 msgstr "ไม่สามารถยกเลิกได้เนื่องจากไม่มี abort handler"
 
+msgid "Candlestick"
+msgstr "แท่งเทียน"
+
+msgid "Candlestick Chart"
+msgstr "แผนภูมิแท่งเทียน"
+
+msgid ""
+"Candlestick draws a filled body between open and close. OHLC draws ticks "
+"for open and close on a high-low stem."
+msgstr ""
+"แท่งเทียนวาดลำตัวทึบระหว่างราคาเปิดและปิด OHLC วาดขีดเปิดและปิดบนแกนสูง-ต่ำ"
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, fuzzy
@@ -5784,6 +5804,13 @@ msgstr "บันทึกแผนภูมิแล้ว แต่ไม่�
 msgid "Chart width"
 msgstr "ความกว้างของแผนภูมิ"
 
+#, python-format
+msgid ""
+"Chart with ID %(chart_id)s (referenced by annotation layer "
+"'%(layer_name)s') was not found. Please verify that the chart exists and "
+"is accessible."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, it, ja, ko, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, tr, uk,
 # zh, zh_TW]
@@ -6362,6 +6389,9 @@ msgstr "ปิดแท็บ"
 msgid "Close version history"
 msgstr ""
 
+msgid "Closing value for each period."
+msgstr "ค่าปิดของแต่ละช่วงเวลา"
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, fuzzy
@@ -6509,6 +6539,9 @@ msgstr "จุดแบ่งสี"
 msgid "Color by"
 msgstr "สีตาม"
 
+msgid "Color by direction"
+msgstr "สีตามทิศทาง"
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
 #, fuzzy
@@ -6551,6 +6584,14 @@ msgstr "สีของตำแหน่งปลายทาง"
 #, fuzzy
 msgid "Color scheme"
 msgstr "ชุดสี"
+
+msgid ""
+"Color used when the close value is greater than or equal to the open "
+"value."
+msgstr "สีที่ใช้เมื่อค่าปิดมากกว่าหรือเท่ากับค่าเปิด"
+
+msgid "Color used when the close value is less than the open value."
+msgstr "สีที่ใช้เมื่อค่าปิดน้อยกว่าค่าเปิด"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, ru, sk, sl, uk]
@@ -12622,6 +12663,9 @@ msgstr ""
 "(คีย์กลุ่ม = 'region') ประโยคตัวกรองจะใช้ตัวกรอง (department = 'Finance' "
 "OR department = 'Marketing') AND (region = 'Europe')"
 
+msgid "Financial"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, ja, lv, mi, nl, ru, sk, sl, tr, uk]
 #, fuzzy
@@ -13477,8 +13521,14 @@ msgstr "ซ่อนเส้นสำหรับอนุกรมเวลา
 msgid "Hierarchy"
 msgstr "ลำดับชั้น"
 
+msgid "High"
+msgstr ""
+
 msgid "High color"
 msgstr ""
+
+msgid "Highest value for each period."
+msgstr "ค่าสูงสุดของแต่ละช่วงเวลา"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, it, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, uk, zh,
@@ -14729,6 +14779,12 @@ msgstr "หน่วยขนาดป้ายกำกับ"
 msgid "Label threshold"
 msgstr "ค่าขีดเริ่มป้ายกำกับ"
 
+msgid "Label used for decreasing candles in the tooltip."
+msgstr "ป้ายของแท่งลงในทูลทิป"
+
+msgid "Label used for increasing candles in the tooltip."
+msgstr "ป้ายของแท่งขึ้นในทูลทิป"
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, fuzzy
@@ -15552,6 +15608,9 @@ msgstr "ลองจิจูดและละติจูด"
 msgid "Longitude of default viewport"
 msgstr "ลองจิจูดของวิวพอร์ตเริ่มต้น"
 
+msgid "Low"
+msgstr ""
+
 msgid "Low color"
 msgstr ""
 
@@ -15571,6 +15630,9 @@ msgstr ""
 #, fuzzy
 msgid "Lower threshold must be lower than upper threshold"
 msgstr "ค่าเกณฑ์ต่ำต้องน้อยกว่าค่าเกณฑ์สูง"
+
+msgid "Lowest value for each period."
+msgstr "ค่าต่ำสุดของแต่ละช่วงเวลา"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, tr, uk, zh, zh_TW]
@@ -16585,6 +16647,9 @@ msgstr ""
 msgid "Moves the given set of dates by a specified interval."
 msgstr "เลื่อนชุดวันที่ที่กำหนดตามช่วงเวลาที่ระบุ"
 
+msgid "Moving averages"
+msgstr "ค่าเฉลี่ยเคลื่อนที่"
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, fuzzy
@@ -16771,6 +16836,11 @@ msgstr "ชื่อโหนดปลายทาง"
 #, fuzzy
 msgid "Name of your tag"
 msgstr "ชื่อแท็กของคุณ"
+
+msgid ""
+"Name used for the candlestick series in the legend and tooltip when no "
+"series dimension is set."
+msgstr "ชื่อซีรีส์แท่งเทียนในคำอธิบายและทูลทิปเมื่อไม่ได้กำหนดมิติซีรีส์"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -17703,6 +17773,9 @@ msgstr "ข้อมูลไคลเอนต์ OAuth2"
 msgid "OCT"
 msgstr "ต.ค."
 
+msgid "OHLC"
+msgstr "OHLC"
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, fuzzy
@@ -17959,6 +18032,9 @@ msgstr "ความทึบแสงของฟองข้อมูล 0 ห
 msgid "Opacity, expects values between 0 and 100"
 msgstr "ความทึบแสง ต้องการค่าระหว่าง 0 ถึง 100"
 
+msgid "Open"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, it, ja, ko, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh,
 # zh_TW]
@@ -18011,6 +18087,9 @@ msgstr "เปิดใน SQL Lab"
 msgid "Open query in SQL Lab"
 msgstr "เปิดคิวรีใน SQL Lab"
 
+msgid "Opening value for each period."
+msgstr "ค่าเปิดของแต่ละช่วงเวลา"
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, fuzzy
@@ -18058,6 +18137,11 @@ msgstr "สตริงรูปแบบวันที่ d3 (ไม่บั�
 #, fuzzy
 msgid "Optional d3 number format string"
 msgstr "สตริงรูปแบบตัวเลข d3 (ไม่บังคับ)"
+
+msgid ""
+"Optional dimension used to split the chart into multiple candlestick "
+"series."
+msgstr "มิติทางเลือกสำหรับแยกแผนภูมิเป็นหลายซีรีส์แท่งเทียน"
 
 msgid ""
 "Optional metric used to scale the size of each dot. Dot areas are scaled "
@@ -18251,6 +18335,13 @@ msgstr ""
 "\"สืบทอดช่วงจากตัวกรองเวลา\" "
 "เพื่อเลื่อนช่วงเวลาเปรียบเทียบตามความยาวเดียวกับช่วงเวลาของคุณ และใช้ "
 "\"กำหนดเอง\" เพื่อกำหนดช่วงเปรียบเทียบแบบกำหนดเอง"
+
+msgid ""
+"Overlay simple moving averages of the close price (MA5, MA10, MA15, ...)."
+" Type a custom period to add it."
+msgstr ""
+"วางค่าเฉลี่ยเคลื่อนที่อย่างง่ายของราคาปิด (MA5, MA10, MA15, ...) "
+"พิมพ์ช่วงเวลาที่กำหนดเองเพื่อเพิ่ม"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
@@ -22758,6 +22849,9 @@ msgstr "รูปแบบซีรีส์"
 msgid "Series chart type (line, bar etc)"
 msgstr "ประเภทแผนภูมิซีรีส์ (เส้น, แท่ง เป็นต้น)"
 
+msgid "Series colors"
+msgstr "สีซีรีส์"
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, ja, lv,
 # ru, sk, uk]
 #, fuzzy
@@ -22776,11 +22870,17 @@ msgstr "การตั้งค่าการเพิ่มขึ้นขอ
 msgid "Series limit"
 msgstr "ขีดจำกัดซีรีส์"
 
+msgid "Series name"
+msgstr "ชื่อซีรีส์"
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja, lv, ru,
 # uk]
 #, fuzzy
 msgid "Series settings"
 msgstr "การตั้งค่าซีรีส์"
+
+msgid "Series style"
+msgstr "สไตล์ซีรีส์"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja, lv, ru,
 # uk]
@@ -23337,6 +23437,9 @@ msgid ""
 msgstr ""
 
 msgid "Show or hide the X axis line, ticks, and labels"
+msgstr ""
+
+msgid "Show or hide the Y axis line and labels"
 msgstr ""
 
 msgid "Show or hide the Y axis line, ticks, gridlines, and labels"
@@ -26224,6 +26327,13 @@ msgid "The query contains one or more malformed template parameters."
 msgstr "คิวรีมีพารามิเตอร์เทมเพลตที่มีรูปแบบไม่ถูกต้องอย่างน้อยหนึ่งรายการ"
 
 msgid "The query context datasource does not match the chart datasource"
+msgstr ""
+
+#, python-format
+msgid ""
+"The query context for chart ID %(chart_id)s (referenced by annotation "
+"layer '%(layer_name)s') was not found. Please ensure the chart is "
+"properly configured and has a valid query context."
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
@@ -30511,6 +30621,14 @@ msgstr "เมื่อมีการระบุเมตริกรอง �
 msgid "When checked, the map will zoom to your data after each query"
 msgstr "เมื่อเลือกแล้ว แผนที่จะซูมเข้าหาข้อมูลของคุณหลังจากแต่ละคำค้นหา"
 
+msgid ""
+"When enabled, increasing candles use the increase color and decreasing "
+"candles use the decrease color. Turn off to use one series color, with a "
+"filled body for increases and a hollow body for decreases."
+msgstr ""
+"เมื่อเปิด แท่งขึ้นใช้สีขาขึ้นและแท่งลงใช้สีขาลง ปิดเพื่อใช้สีซีรีส์เดียว "
+"โดยลำตัวทึบเมื่อขึ้นและกลวงเมื่อลง"
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, ja, lv,
 # ru, sk, uk]
 #, fuzzy
@@ -31817,7 +31935,18 @@ msgid ""
 "SUPERSET_DASHBOARD_POSITION_DATA_LIMIT config setting."
 msgstr ""
 
-msgid "Your export is being prepared. You'll receive an email when it's ready."
+msgid ""
+"Your export is being generated and will download automatically when "
+"ready. We'll also email you a download link."
+msgstr ""
+
+msgid "Your export is being generated. Please, do not leave the page."
+msgstr ""
+
+msgid "Your export is ready and downloading."
+msgstr ""
+
+msgid "Your export is taking longer than expected. Try again later."
 msgstr ""
 
 #, python-format

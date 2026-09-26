@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-23 12:43+0200\n"
+"POT-Creation-Date: 2026-09-24 10:35+0300\n"
 "PO-Revision-Date: 2016-05-02 08:49-0700\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: en\n"
@@ -921,6 +921,12 @@ msgstr ""
 msgid ""
 "A butterfly chart compares two metrics across categories using horizontal"
 " bars that extend left and right from a central axis."
+msgstr ""
+
+msgid ""
+"A candlestick chart shows opening, closing, high, and low values for each"
+" period. It is commonly used for financial and other time-series range "
+"analysis."
 msgstr ""
 
 msgid "A comma separated list of columns that should be parsed as dates"
@@ -2903,6 +2909,17 @@ msgstr ""
 msgid "Cancellation not available due to missing abort handler"
 msgstr ""
 
+msgid "Candlestick"
+msgstr ""
+
+msgid "Candlestick Chart"
+msgstr ""
+
+msgid ""
+"Candlestick draws a filled body between open and close. OHLC draws ticks "
+"for open and close on a high-low stem."
+msgstr ""
+
 msgid "Cannot access the query"
 msgstr ""
 
@@ -3299,6 +3316,13 @@ msgstr ""
 msgid "Chart width"
 msgstr ""
 
+#, python-format
+msgid ""
+"Chart with ID %(chart_id)s (referenced by annotation layer "
+"'%(layer_name)s') was not found. Please verify that the chart exists and "
+"is accessible."
+msgstr ""
+
 msgid "Charts"
 msgstr ""
 
@@ -3610,6 +3634,9 @@ msgstr ""
 msgid "Close version history"
 msgstr ""
 
+msgid "Closing value for each period."
+msgstr ""
+
 msgid "Cluster label aggregator"
 msgstr ""
 
@@ -3688,6 +3715,9 @@ msgstr ""
 msgid "Color by"
 msgstr ""
 
+msgid "Color by direction"
+msgstr ""
+
 msgid "Color field must be a hex color (#rrggbb) or 'rgb(r, g, b)'"
 msgstr ""
 
@@ -3710,6 +3740,14 @@ msgid "Color of the target location"
 msgstr ""
 
 msgid "Color scheme"
+msgstr ""
+
+msgid ""
+"Color used when the close value is greater than or equal to the open "
+"value."
+msgstr ""
+
+msgid "Color used when the close value is less than the open value."
 msgstr ""
 
 msgid ""
@@ -7048,6 +7086,9 @@ msgid ""
 " 'Europe')."
 msgstr ""
 
+msgid "Financial"
+msgstr ""
+
 msgid "Find"
 msgstr ""
 
@@ -7489,7 +7530,13 @@ msgstr ""
 msgid "Hierarchy"
 msgstr ""
 
+msgid "High"
+msgstr ""
+
 msgid "High color"
+msgstr ""
+
+msgid "Highest value for each period."
 msgstr ""
 
 msgid "Histogram"
@@ -8164,6 +8211,12 @@ msgstr ""
 msgid "Label threshold"
 msgstr ""
 
+msgid "Label used for decreasing candles in the tooltip."
+msgstr ""
+
+msgid "Label used for increasing candles in the tooltip."
+msgstr ""
+
 msgid "Labelling"
 msgstr ""
 
@@ -8621,6 +8674,9 @@ msgstr ""
 msgid "Longitude of default viewport"
 msgstr ""
 
+msgid "Low"
+msgstr ""
+
 msgid "Low color"
 msgstr ""
 
@@ -8633,6 +8689,9 @@ msgid ""
 msgstr ""
 
 msgid "Lower threshold must be lower than upper threshold"
+msgstr ""
+
+msgid "Lowest value for each period."
 msgstr ""
 
 msgid "MAR"
@@ -9183,6 +9242,9 @@ msgstr ""
 msgid "Moves the given set of dates by a specified interval."
 msgstr ""
 
+msgid "Moving averages"
+msgstr ""
+
 msgid "Multi-Dimensions"
 msgstr ""
 
@@ -9280,6 +9342,11 @@ msgid "Name of the target nodes"
 msgstr ""
 
 msgid "Name of your tag"
+msgstr ""
+
+msgid ""
+"Name used for the candlestick series in the legend and tooltip when no "
+"series dimension is set."
 msgstr ""
 
 msgid "Name your database"
@@ -9772,6 +9839,9 @@ msgstr ""
 msgid "OCT"
 msgstr ""
 
+msgid "OHLC"
+msgstr ""
+
 msgid "OK"
 msgstr ""
 
@@ -9912,6 +9982,9 @@ msgstr ""
 msgid "Opacity, expects values between 0 and 100"
 msgstr ""
 
+msgid "Open"
+msgstr ""
+
 msgid "Open Datasource tab"
 msgstr ""
 
@@ -9942,6 +10015,9 @@ msgstr ""
 msgid "Open query in SQL Lab"
 msgstr ""
 
+msgid "Opening value for each period."
+msgstr ""
+
 msgid ""
 "Operate the database in asynchronous mode, meaning that the queries are "
 "executed on remote workers as opposed to on the web server itself. This "
@@ -9965,6 +10041,11 @@ msgid "Optional d3 date format string"
 msgstr ""
 
 msgid "Optional d3 number format string"
+msgstr ""
+
+msgid ""
+"Optional dimension used to split the chart into multiple candlestick "
+"series."
 msgstr ""
 
 msgid ""
@@ -10074,6 +10155,11 @@ msgid ""
 "Free text is supported. Use \"Inherit range from time filters\" to shift "
 "the comparison time range by the same length as your time range and use "
 "\"Custom\" to set a custom comparison range."
+msgstr ""
+
+msgid ""
+"Overlay simple moving averages of the close price (MA5, MA10, MA15, ...)."
+" Type a custom period to add it."
 msgstr ""
 
 msgid ""
@@ -12521,6 +12607,9 @@ msgstr ""
 msgid "Series chart type (line, bar etc)"
 msgstr ""
 
+msgid "Series colors"
+msgstr ""
+
 msgid "Series decrease setting"
 msgstr ""
 
@@ -12530,7 +12619,13 @@ msgstr ""
 msgid "Series limit"
 msgstr ""
 
+msgid "Series name"
+msgstr ""
+
 msgid "Series settings"
+msgstr ""
+
+msgid "Series style"
 msgstr ""
 
 msgid "Series total setting"
@@ -12833,6 +12928,9 @@ msgid ""
 msgstr ""
 
 msgid "Show or hide the X axis line, ticks, and labels"
+msgstr ""
+
+msgid "Show or hide the Y axis line and labels"
 msgstr ""
 
 msgid "Show or hide the Y axis line, ticks, gridlines, and labels"
@@ -14434,6 +14532,13 @@ msgid "The query contains one or more malformed template parameters."
 msgstr ""
 
 msgid "The query context datasource does not match the chart datasource"
+msgstr ""
+
+#, python-format
+msgid ""
+"The query context for chart ID %(chart_id)s (referenced by annotation "
+"layer '%(layer_name)s') was not found. Please ensure the chart is "
+"properly configured and has a valid query context."
 msgstr ""
 
 msgid "The query couldn't be loaded"
@@ -16864,6 +16969,12 @@ msgid "When checked, the map will zoom to your data after each query"
 msgstr ""
 
 msgid ""
+"When enabled, increasing candles use the increase color and decreasing "
+"candles use the decrease color. Turn off to use one series color, with a "
+"filled body for increases and a hollow body for decreases."
+msgstr ""
+
+msgid ""
 "When enabled, the axis will display labels for the minimum and maximum "
 "values of your data"
 msgstr ""
@@ -17598,7 +17709,18 @@ msgid ""
 "SUPERSET_DASHBOARD_POSITION_DATA_LIMIT config setting."
 msgstr ""
 
-msgid "Your export is being prepared. You'll receive an email when it's ready."
+msgid ""
+"Your export is being generated and will download automatically when "
+"ready. We'll also email you a download link."
+msgstr ""
+
+msgid "Your export is being generated. Please, do not leave the page."
+msgstr ""
+
+msgid "Your export is ready and downloading."
+msgstr ""
+
+msgid "Your export is taking longer than expected. Try again later."
 msgstr ""
 
 #, python-format

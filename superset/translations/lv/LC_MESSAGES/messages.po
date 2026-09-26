@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-23 12:43+0200\n"
+"POT-Creation-Date: 2026-09-24 10:35+0300\n"
 "PO-Revision-Date: 2026-03-27 14:01+0200\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: lv\n"
@@ -1045,6 +1045,15 @@ msgid ""
 "A butterfly chart compares two metrics across categories using horizontal"
 " bars that extend left and right from a central axis."
 msgstr ""
+
+msgid ""
+"A candlestick chart shows opening, closing, high, and low values for each"
+" period. It is commonly used for financial and other time-series range "
+"analysis."
+msgstr ""
+"Sveču diagramma rāda katra perioda atvēršanas, slēgšanas, augstāko un "
+"zemāko vērtību. To parasti izmanto finanšu un citai laika rindu diapazona "
+"analīzei."
 
 msgid "A comma separated list of columns that should be parsed as dates"
 msgstr "Ar komatu atdalīts kolonnu saraksts, kas jāanalizē kā datumi"
@@ -3232,6 +3241,19 @@ msgstr "Atcelt vaicājumu, aizverot logu"
 msgid "Cancellation not available due to missing abort handler"
 msgstr "Atcelšana nav pieejama, jo trūkst pārtraukšanas apstrādātāja"
 
+msgid "Candlestick"
+msgstr "Sveču diagramma"
+
+msgid "Candlestick Chart"
+msgstr "Sveču diagramma"
+
+msgid ""
+"Candlestick draws a filled body between open and close. OHLC draws ticks "
+"for open and close on a high-low stem."
+msgstr ""
+"Sveces zīmē aizpildītu ķermeni starp atvēršanu un slēgšanu. OHLC zīmē "
+"atvēršanas un slēgšanas atzīmes uz augstākā–zemākā kāta."
+
 msgid "Cannot access the query"
 msgstr "Nevar piekļūt vaicājumam"
 
@@ -3645,6 +3667,13 @@ msgstr "Diagramma tika saglabāta, bet to nevarēja pievienot izvēlētajai ciln
 msgid "Chart width"
 msgstr "Diagrammas platums"
 
+#, python-format
+msgid ""
+"Chart with ID %(chart_id)s (referenced by annotation layer "
+"'%(layer_name)s') was not found. Please verify that the chart exists and "
+"is accessible."
+msgstr ""
+
 msgid "Charts"
 msgstr "Diagrammas"
 
@@ -3978,6 +4007,9 @@ msgstr "Aizvērt cilni"
 msgid "Close version history"
 msgstr ""
 
+msgid "Closing value for each period."
+msgstr "Katras perioda slēgšanas vērtība."
+
 msgid "Cluster label aggregator"
 msgstr "Klasteru apzīmējumu agregators"
 
@@ -4065,6 +4097,9 @@ msgstr "Krāsu pārtraukuma punkti"
 msgid "Color by"
 msgstr "Krāsot pēc"
 
+msgid "Color by direction"
+msgstr "Krāsa pēc virziena"
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
 #, fuzzy
@@ -4091,6 +4126,16 @@ msgstr "Mērķa atrašanās vietas krāsa"
 
 msgid "Color scheme"
 msgstr "Krāsu shēma"
+
+msgid ""
+"Color used when the close value is greater than or equal to the open "
+"value."
+msgstr ""
+"Krāsa, ja slēgšanas vērtība ir lielāka par atvēršanas vērtību vai tai "
+"vienāda."
+
+msgid "Color used when the close value is less than the open value."
+msgstr "Krāsa, ja slēgšanas vērtība ir mazāka par atvēršanas vērtību."
 
 msgid ""
 "Color will be shaded based the normalized (0% to 100%) value of a given "
@@ -7670,6 +7715,9 @@ msgstr ""
 "piemērotu filtru (department = 'Finance' OR department = 'Marketing') AND"
 " (region = 'Europe')."
 
+msgid "Financial"
+msgstr ""
+
 msgid "Find"
 msgstr "Atrast"
 
@@ -8154,8 +8202,14 @@ msgstr "Paslēpj līniju laika sērijai"
 msgid "Hierarchy"
 msgstr "Hierarhija"
 
+msgid "High"
+msgstr ""
+
 msgid "High color"
 msgstr ""
+
+msgid "Highest value for each period."
+msgstr "Katras perioda augstākā vērtība."
 
 msgid "Histogram"
 msgstr "Histogramma"
@@ -8861,6 +8915,12 @@ msgstr "Apzīmējuma izmēra vienība"
 msgid "Label threshold"
 msgstr "Apzīmējuma slieksnis"
 
+msgid "Label used for decreasing candles in the tooltip."
+msgstr "Krītošo sveču etiķete rīka padomā."
+
+msgid "Label used for increasing candles in the tooltip."
+msgstr "Augošo sveču etiķete rīka padomā."
+
 msgid "Labelling"
 msgstr "Apzīmēšana"
 
@@ -9337,6 +9397,9 @@ msgstr "Garums un platums"
 msgid "Longitude of default viewport"
 msgstr "Noklusējuma skata garums"
 
+msgid "Low"
+msgstr ""
+
 msgid "Low color"
 msgstr ""
 
@@ -9350,6 +9413,9 @@ msgstr ""
 
 msgid "Lower threshold must be lower than upper threshold"
 msgstr "Apakšējam slieksnim jābūt zemākam par augšējo slieksni"
+
+msgid "Lowest value for each period."
+msgstr "Katras perioda zemākā vērtība."
 
 msgid "MAR"
 msgstr "MAR"
@@ -9951,6 +10017,9 @@ msgstr ""
 msgid "Moves the given set of dates by a specified interval."
 msgstr "Pārvieto norādīto datumu kopu par noteiktu intervālu."
 
+msgid "Moving averages"
+msgstr "Slīdošie vidējie"
+
 msgid "Multi-Dimensions"
 msgstr "Daudzdimensiju"
 
@@ -10057,6 +10126,13 @@ msgstr "Mērķa mezglu nosaukums"
 
 msgid "Name of your tag"
 msgstr "Jūsu birkas nosaukums"
+
+msgid ""
+"Name used for the candlestick series in the legend and tooltip when no "
+"series dimension is set."
+msgstr ""
+"Sveču rindas nosaukums leģendā un rīka padomā, ja nav iestatīta rindas "
+"dimensija."
 
 msgid "Name your database"
 msgstr "Nosauciet savu datubāzi"
@@ -10572,6 +10648,9 @@ msgstr "OAuth2 klienta informācija"
 msgid "OCT"
 msgstr "OKT"
 
+msgid "OHLC"
+msgstr "OHLC"
+
 msgid "OK"
 msgstr "Labi"
 
@@ -10730,6 +10809,9 @@ msgstr ""
 msgid "Opacity, expects values between 0 and 100"
 msgstr "Caurspīdīgums, paredzētas vērtības no 0 līdz 100"
 
+msgid "Open"
+msgstr ""
+
 msgid "Open Datasource tab"
 msgstr "Atvērt datu avota cilni"
 
@@ -10764,6 +10846,9 @@ msgstr "Atvērt SQL laboratorijā"
 msgid "Open query in SQL Lab"
 msgstr "Atvērt vaicājumu SQL laboratorijā"
 
+msgid "Opening value for each period."
+msgstr "Katras perioda atvēršanas vērtība."
+
 msgid ""
 "Operate the database in asynchronous mode, meaning that the queries are "
 "executed on remote workers as opposed to on the web server itself. This "
@@ -10794,6 +10879,11 @@ msgstr "Neobligāta d3 datuma formāta virkne"
 
 msgid "Optional d3 number format string"
 msgstr "Neobligāta d3 skaitļu formāta virkne"
+
+msgid ""
+"Optional dimension used to split the chart into multiple candlestick "
+"series."
+msgstr "Neobligāta dimensija, kas sadala diagrammu vairākās sveču rindās."
 
 msgid ""
 "Optional metric used to scale the size of each dot. Dot areas are scaled "
@@ -10919,6 +11009,13 @@ msgstr ""
 "filtriem\", lai nobīdītu salīdzināšanas laika diapazonu par tādu pašu "
 "garumu kā jūsu laika diapazons, un izmantojiet \"Pielāgots\", lai "
 "iestatītu pielāgotu salīdzināšanas diapazonu."
+
+msgid ""
+"Overlay simple moving averages of the close price (MA5, MA10, MA15, ...)."
+" Type a custom period to add it."
+msgstr ""
+"Pārklājajiet slēgšanas cenas vienkāršos slīdošos vidējos (MA5, MA10, MA15, "
+"...). Ierakstiet pielāgotu periodu, lai to pievienotu."
 
 msgid ""
 "Overlays a hexagonal grid on a map, and aggregates data within the "
@@ -13557,6 +13654,9 @@ msgstr "Sērijas stils"
 msgid "Series chart type (line, bar etc)"
 msgstr "Sērijas diagrammas veids (līnija, josla utt.)"
 
+msgid "Series colors"
+msgstr "Rindas krāsas"
+
 msgid "Series decrease setting"
 msgstr "Sērijas samazināšanas iestatījums"
 
@@ -13566,8 +13666,14 @@ msgstr "Sērijas palielinājuma iestatījums"
 msgid "Series limit"
 msgstr "Sēriju ierobežojums"
 
+msgid "Series name"
+msgstr "Rindas nosaukums"
+
 msgid "Series settings"
 msgstr "Sērijas iestatījumi"
+
+msgid "Series style"
+msgstr "Rindas stils"
 
 msgid "Series total setting"
 msgstr "Sērijas kopējie iestatījumi"
@@ -13891,6 +13997,9 @@ msgid ""
 msgstr ""
 
 msgid "Show or hide the X axis line, ticks, and labels"
+msgstr ""
+
+msgid "Show or hide the Y axis line and labels"
 msgstr ""
 
 msgid "Show or hide the Y axis line, ticks, gridlines, and labels"
@@ -15725,6 +15834,13 @@ msgstr ""
 "parametrus."
 
 msgid "The query context datasource does not match the chart datasource"
+msgstr ""
+
+#, python-format
+msgid ""
+"The query context for chart ID %(chart_id)s (referenced by annotation "
+"layer '%(layer_name)s') was not found. Please ensure the chart is "
+"properly configured and has a valid query context."
 msgstr ""
 
 msgid "The query couldn't be loaded"
@@ -18494,6 +18610,15 @@ msgid "When checked, the map will zoom to your data after each query"
 msgstr "Atzīmējot, karte pēc katra vaicājuma tuvināsies jūsu datiem"
 
 msgid ""
+"When enabled, increasing candles use the increase color and decreasing "
+"candles use the decrease color. Turn off to use one series color, with a "
+"filled body for increases and a hollow body for decreases."
+msgstr ""
+"Ja ieslēgts, augošās sveces izmanto pieauguma krāsu, bet krītošās — "
+"krituma krāsu. Izslēdziet, lai izmantotu vienu rindas krāsu: aizpildīts "
+"ķermenis pieaugumam un tukšs kritumam."
+
+msgid ""
 "When enabled, the axis will display labels for the minimum and maximum "
 "values of your data"
 msgstr ""
@@ -19322,7 +19447,18 @@ msgid ""
 "SUPERSET_DASHBOARD_POSITION_DATA_LIMIT config setting."
 msgstr ""
 
-msgid "Your export is being prepared. You'll receive an email when it's ready."
+msgid ""
+"Your export is being generated and will download automatically when "
+"ready. We'll also email you a download link."
+msgstr ""
+
+msgid "Your export is being generated. Please, do not leave the page."
+msgstr ""
+
+msgid "Your export is ready and downloading."
+msgstr ""
+
+msgid "Your export is taking longer than expected. Try again later."
 msgstr ""
 
 #, python-format

@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version:  superset-ds\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-23 12:43+0200\n"
+"POT-Creation-Date: 2026-09-24 10:35+0300\n"
 "PO-Revision-Date: 2024-05-08 14:41+0000\n"
 "Last-Translator: \n"
 "Language: nl\n"
@@ -1048,6 +1048,15 @@ msgid ""
 "A butterfly chart compares two metrics across categories using horizontal"
 " bars that extend left and right from a central axis."
 msgstr ""
+
+msgid ""
+"A candlestick chart shows opening, closing, high, and low values for each"
+" period. It is commonly used for financial and other time-series range "
+"analysis."
+msgstr ""
+"Een candlestick-grafiek toont openings-, slot-, hoogste en laagste waarden "
+"per periode. Wordt vaak gebruikt voor financiële en andere "
+"tijdreeks-bereikanalyses."
 
 #, fuzzy
 msgid "A comma separated list of columns that should be parsed as dates"
@@ -3437,6 +3446,19 @@ msgstr "Query annuleren bij window unload gebeurtenis"
 msgid "Cancellation not available due to missing abort handler"
 msgstr "Annulering niet beschikbaar vanwege een ontbrekende afbreekhandler"
 
+msgid "Candlestick"
+msgstr "Candlestick"
+
+msgid "Candlestick Chart"
+msgstr "Candlestick-grafiek"
+
+msgid ""
+"Candlestick draws a filled body between open and close. OHLC draws ticks "
+"for open and close on a high-low stem."
+msgstr ""
+"Candlesticks tekenen een gevuld lichaam tussen open en slot. OHLC tekent "
+"ticks voor open en slot op een hoog-laag-steel."
+
 msgid "Cannot access the query"
 msgstr "Kan geen toegang krijgen tot de query"
 
@@ -3886,6 +3908,13 @@ msgstr "Grafieken konden niet worden verwijderd."
 msgid "Chart width"
 msgstr "Grafiek breedte"
 
+#, python-format
+msgid ""
+"Chart with ID %(chart_id)s (referenced by annotation layer "
+"'%(layer_name)s') was not found. Please verify that the chart exists and "
+"is accessible."
+msgstr ""
+
 msgid "Charts"
 msgstr "Grafieken"
 
@@ -4258,6 +4287,9 @@ msgstr "Tabblad sluiten"
 msgid "Close version history"
 msgstr ""
 
+msgid "Closing value for each period."
+msgstr "Slotwaarde voor elke periode."
+
 msgid "Cluster label aggregator"
 msgstr "Cluster label aggregator"
 
@@ -4349,6 +4381,9 @@ msgstr "Bucket breakpoints"
 msgid "Color by"
 msgstr "Kleur op"
 
+msgid "Color by direction"
+msgstr "Kleur op richting"
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
 #, fuzzy
@@ -4377,6 +4412,15 @@ msgstr "Kleur van de doellocatie"
 
 msgid "Color scheme"
 msgstr "Kleurenschema"
+
+msgid ""
+"Color used when the close value is greater than or equal to the open "
+"value."
+msgstr ""
+"Kleur wanneer de slotwaarde groter dan of gelijk aan de openingswaarde is."
+
+msgid "Color used when the close value is less than the open value."
+msgstr "Kleur wanneer de slotwaarde kleiner is dan de openingswaarde."
 
 msgid ""
 "Color will be shaded based the normalized (0% to 100%) value of a given "
@@ -8326,6 +8370,9 @@ msgstr ""
 "toepassen (afdeling = 'Financiën' OR afdeling = 'Marketing') AND (regio ="
 " 'Europa')."
 
+msgid "Financial"
+msgstr ""
+
 msgid "Find"
 msgstr "Zoeken"
 
@@ -8869,8 +8916,14 @@ msgstr "Verbergt de lijn voor de tijdreeks"
 msgid "Hierarchy"
 msgstr "Hierarchy"
 
+msgid "High"
+msgstr ""
+
 msgid "High color"
 msgstr ""
+
+msgid "Highest value for each period."
+msgstr "Hoogste waarde voor elke periode."
 
 msgid "Histogram"
 msgstr "Histogram"
@@ -9658,6 +9711,12 @@ msgstr "Label Regel"
 msgid "Label threshold"
 msgstr "Label drempelwaarde"
 
+msgid "Label used for decreasing candles in the tooltip."
+msgstr "Label voor dalende candles in de tooltip."
+
+msgid "Label used for increasing candles in the tooltip."
+msgstr "Label voor stijgende candles in de tooltip."
+
 msgid "Labelling"
 msgstr "Labelen"
 
@@ -10176,6 +10235,9 @@ msgstr "Lengtegraad en breedtegraad"
 msgid "Longitude of default viewport"
 msgstr "Lengtegraad van standaard viewport"
 
+msgid "Low"
+msgstr ""
+
 msgid "Low color"
 msgstr ""
 
@@ -10189,6 +10251,9 @@ msgstr ""
 
 msgid "Lower threshold must be lower than upper threshold"
 msgstr "Ondergrens moet lager zijn dan bovengrens"
+
+msgid "Lowest value for each period."
+msgstr "Laagste waarde voor elke periode."
 
 msgid "MAR"
 msgstr "MAA"
@@ -10851,6 +10916,9 @@ msgstr ""
 msgid "Moves the given set of dates by a specified interval."
 msgstr "Verplaatst de gegeven reeks datums met een opgegeven interval."
 
+msgid "Moving averages"
+msgstr "Voortschrijdende gemiddelden"
+
 msgid "Multi-Dimensions"
 msgstr "Multi-Dimensies"
 
@@ -10958,6 +11026,13 @@ msgstr "Naam van het doel knooppunten"
 
 msgid "Name of your tag"
 msgstr "Naam van je tag"
+
+msgid ""
+"Name used for the candlestick series in the legend and tooltip when no "
+"series dimension is set."
+msgstr ""
+"Naam van de candlestick-serie in de legenda en tooltip als er geen "
+"seriedimensie is ingesteld."
 
 msgid "Name your database"
 msgstr "Geef uw database een naam"
@@ -11511,6 +11586,9 @@ msgstr "Basis informatie"
 msgid "OCT"
 msgstr "OKT"
 
+msgid "OHLC"
+msgstr "OHLC"
+
 msgid "OK"
 msgstr "OK"
 
@@ -11675,6 +11753,9 @@ msgstr ""
 msgid "Opacity, expects values between 0 and 100"
 msgstr "Ondoorzichtigheid, verwacht waarden tussen 0 en 100"
 
+msgid "Open"
+msgstr ""
+
 msgid "Open Datasource tab"
 msgstr "Open Gegevensbron Tabblad"
 
@@ -11711,6 +11792,9 @@ msgstr "Openen in SQL Lab"
 msgid "Open query in SQL Lab"
 msgstr "Open query in SQL Lab"
 
+msgid "Opening value for each period."
+msgstr "Openingswaarde voor elke periode."
+
 msgid ""
 "Operate the database in asynchronous mode, meaning that the queries are "
 "executed on remote workers as opposed to on the web server itself. This "
@@ -11741,6 +11825,13 @@ msgstr "Optionele d3 datum opmaak string"
 
 msgid "Optional d3 number format string"
 msgstr "Optionele d3 nummer opmaak string"
+
+msgid ""
+"Optional dimension used to split the chart into multiple candlestick "
+"series."
+msgstr ""
+"Optionele dimensie om de grafiek in meerdere candlestick-series te "
+"splitsen."
 
 msgid ""
 "Optional metric used to scale the size of each dot. Dot areas are scaled "
@@ -11868,6 +11959,13 @@ msgstr ""
 "Een of meer timeseries van een relatieve tijdsperiode overlappen. "
 "Verwacht de relatieve tijddeltas in de natuurlijke taal (bijvoorbeeld: 24"
 " uur, 7 dagen, 52 weken, 365 dagen). Vrije tekst wordt ondersteund."
+
+msgid ""
+"Overlay simple moving averages of the close price (MA5, MA10, MA15, ...)."
+" Type a custom period to add it."
+msgstr ""
+"Eenvoudige voortschrijdende gemiddelden van de slotkoers overlappen (MA5, "
+"MA10, MA15, ...). Typ een eigen periode om die toe te voegen."
 
 msgid ""
 "Overlays a hexagonal grid on a map, and aggregates data within the "
@@ -14724,6 +14822,9 @@ msgstr "Series Stijl"
 msgid "Series chart type (line, bar etc)"
 msgstr "Series grafiek type (lijn, staaf etc)"
 
+msgid "Series colors"
+msgstr "Seriekleuren"
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
 # lv, ro, ru, sk, sr, sr_Latn, tr, uk]
 #, fuzzy
@@ -14739,9 +14840,15 @@ msgstr "Instelling voor reekstoename"
 msgid "Series limit"
 msgstr "Serie limiet"
 
+msgid "Series name"
+msgstr "Serienaam"
+
 #, fuzzy
 msgid "Series settings"
 msgstr "Filter Instellingen"
+
+msgid "Series style"
+msgstr "Seriestijl"
 
 #, fuzzy
 msgid "Series total setting"
@@ -15105,6 +15212,9 @@ msgid ""
 msgstr ""
 
 msgid "Show or hide the X axis line, ticks, and labels"
+msgstr ""
+
+msgid "Show or hide the Y axis line and labels"
 msgstr ""
 
 msgid "Show or hide the Y axis line, ticks, gridlines, and labels"
@@ -17121,6 +17231,13 @@ msgid "The query contains one or more malformed template parameters."
 msgstr "De query bevat een of meer ongeldige sjabloonparameters."
 
 msgid "The query context datasource does not match the chart datasource"
+msgstr ""
+
+#, python-format
+msgid ""
+"The query context for chart ID %(chart_id)s (referenced by annotation "
+"layer '%(layer_name)s') was not found. Please ensure the chart is "
+"properly configured and has a valid query context."
 msgstr ""
 
 msgid "The query couldn't be loaded"
@@ -20165,6 +20282,15 @@ msgstr ""
 msgid "When checked, the map will zoom to your data after each query"
 msgstr "Wanneer aangevinkt, zal de kaart uw gegevens zoomen na elke zoekopdracht"
 
+msgid ""
+"When enabled, increasing candles use the increase color and decreasing "
+"candles use the decrease color. Turn off to use one series color, with a "
+"filled body for increases and a hollow body for decreases."
+msgstr ""
+"Indien ingeschakeld gebruiken stijgende candles de stijgingskleur en "
+"dalende de dalingskleur. Schakel uit voor één seriekleur: gevuld lichaam "
+"bij stijging en hol bij daling."
+
 #, fuzzy
 msgid ""
 "When enabled, the axis will display labels for the minimum and maximum "
@@ -21056,7 +21182,18 @@ msgid ""
 "SUPERSET_DASHBOARD_POSITION_DATA_LIMIT config setting."
 msgstr ""
 
-msgid "Your export is being prepared. You'll receive an email when it's ready."
+msgid ""
+"Your export is being generated and will download automatically when "
+"ready. We'll also email you a download link."
+msgstr ""
+
+msgid "Your export is being generated. Please, do not leave the page."
+msgstr ""
+
+msgid "Your export is ready and downloading."
+msgstr ""
+
+msgid "Your export is taking longer than expected. Try again later."
 msgstr ""
 
 #, python-format

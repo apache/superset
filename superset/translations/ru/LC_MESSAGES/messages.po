@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-23 12:43+0200\n"
+"POT-Creation-Date: 2026-09-24 10:35+0300\n"
 "PO-Revision-Date: 2026-07-17 09:44+0100\n"
 "Last-Translator: Daniel Checheta\n"
 "Language: ru\n"
@@ -1024,6 +1024,15 @@ msgid ""
 "A butterfly chart compares two metrics across categories using horizontal"
 " bars that extend left and right from a central axis."
 msgstr ""
+
+msgid ""
+"A candlestick chart shows opening, closing, high, and low values for each"
+" period. It is commonly used for financial and other time-series range "
+"analysis."
+msgstr ""
+"Свечной график показывает цены открытия, закрытия, максимум и минимум за "
+"каждый период. Обычно используется для финансового и другого анализа "
+"диапазонов временных рядов."
 
 msgid "A comma separated list of columns that should be parsed as dates"
 msgstr ""
@@ -3175,6 +3184,19 @@ msgstr "Отменять запрос при закрытии вкладки"
 msgid "Cancellation not available due to missing abort handler"
 msgstr "Отмена недоступна из-за отсутствия обработчика прерывания"
 
+msgid "Candlestick"
+msgstr "Японские свечи"
+
+msgid "Candlestick Chart"
+msgstr "Свечной график"
+
+msgid ""
+"Candlestick draws a filled body between open and close. OHLC draws ticks "
+"for open and close on a high-low stem."
+msgstr ""
+"Свечи рисуют закрашенное тело между открытием и закрытием. OHLC рисует "
+"засечки открытия и закрытия на стержне максимум–минимум."
+
 msgid "Cannot access the query"
 msgstr "Нет доступа к запросу"
 
@@ -3581,6 +3603,13 @@ msgstr "Диаграмма сохранена, но не может быть д�
 msgid "Chart width"
 msgstr "Ширина диаграммы"
 
+#, python-format
+msgid ""
+"Chart with ID %(chart_id)s (referenced by annotation layer "
+"'%(layer_name)s') was not found. Please verify that the chart exists and "
+"is accessible."
+msgstr ""
+
 msgid "Charts"
 msgstr "Диаграммы"
 
@@ -3913,6 +3942,9 @@ msgstr "Закрыть вкладку"
 msgid "Close version history"
 msgstr ""
 
+msgid "Closing value for each period."
+msgstr "Значение закрытия за каждый период."
+
 msgid "Cluster label aggregator"
 msgstr "Агрегатор меток кластера"
 
@@ -3999,6 +4031,9 @@ msgstr "Цветовые пороги"
 msgid "Color by"
 msgstr "Выбор цвета по"
 
+msgid "Color by direction"
+msgstr "Цвет по направлению"
+
 msgid "Color field must be a hex color (#rrggbb) or 'rgb(r, g, b)'"
 msgstr "Цвет должен быть в формате hex (#rrggbb) или 'rgb(r, g, b)'"
 
@@ -4022,6 +4057,14 @@ msgstr "Цвет целевого местоположения"
 
 msgid "Color scheme"
 msgstr "Цветовая схема"
+
+msgid ""
+"Color used when the close value is greater than or equal to the open "
+"value."
+msgstr "Цвет, если цена закрытия больше или равна цене открытия."
+
+msgid "Color used when the close value is less than the open value."
+msgstr "Цвет, если цена закрытия меньше цены открытия."
 
 msgid ""
 "Color will be shaded based the normalized (0% to 100%) value of a given "
@@ -7538,6 +7581,9 @@ msgstr ""
 " условие будет добавлено через AND. Например, если для таблицы настроено "
 "три фильтра, два из которых "
 
+msgid "Financial"
+msgstr ""
+
 msgid "Find"
 msgstr "Найти"
 
@@ -8018,8 +8064,14 @@ msgstr "Скрывает линию для временного ряда"
 msgid "Hierarchy"
 msgstr "Иерархия"
 
+msgid "High"
+msgstr ""
+
 msgid "High color"
 msgstr ""
+
+msgid "Highest value for each period."
+msgstr "Максимальное значение за каждый период."
 
 msgid "Histogram"
 msgstr "Гистограмма"
@@ -8721,6 +8773,12 @@ msgstr "Единица размера подписи"
 msgid "Label threshold"
 msgstr "Порог метки"
 
+msgid "Label used for decreasing candles in the tooltip."
+msgstr "Подпись падающих свечей в подсказке."
+
+msgid "Label used for increasing candles in the tooltip."
+msgstr "Подпись растущих свечей в подсказке."
+
 msgid "Labelling"
 msgstr "Маркировка"
 
@@ -9189,6 +9247,9 @@ msgstr "Долгота и широта"
 msgid "Longitude of default viewport"
 msgstr "Долгота для области просмотра"
 
+msgid "Low"
+msgstr ""
+
 msgid "Low color"
 msgstr ""
 
@@ -9202,6 +9263,9 @@ msgstr ""
 
 msgid "Lower threshold must be lower than upper threshold"
 msgstr "Нижний порог должен быть меньше верхнего"
+
+msgid "Lowest value for each period."
+msgstr "Минимальное значение за каждый период."
 
 msgid "MAR"
 msgstr "МАР"
@@ -9791,6 +9855,9 @@ msgstr ""
 msgid "Moves the given set of dates by a specified interval."
 msgstr "Сдвигает указанные даты на заданный временной интервал."
 
+msgid "Moving averages"
+msgstr "Скользящие средние"
+
 msgid "Multi-Dimensions"
 msgstr "Многомерный"
 
@@ -9894,6 +9961,13 @@ msgstr "Имя конечных вершин"
 
 msgid "Name of your tag"
 msgstr "Назовите тег"
+
+msgid ""
+"Name used for the candlestick series in the legend and tooltip when no "
+"series dimension is set."
+msgstr ""
+"Название свечного ряда в легенде и подсказке, если измерение ряда не "
+"задано."
 
 msgid "Name your database"
 msgstr "Назовите базу данных"
@@ -10402,6 +10476,9 @@ msgstr "Сведения о клиенте OAuth2"
 msgid "OCT"
 msgstr "ОКТ"
 
+msgid "OHLC"
+msgstr "OHLC"
+
 msgid "OK"
 msgstr "ОК"
 
@@ -10555,6 +10632,9 @@ msgstr "Непрозрачность пузырьков, где 0 - прозра
 msgid "Opacity, expects values between 0 and 100"
 msgstr "Непрозрачность, принимаются значения от 0 до 100"
 
+msgid "Open"
+msgstr ""
+
 msgid "Open Datasource tab"
 msgstr "Открыть вкладку источника данных"
 
@@ -10584,6 +10664,9 @@ msgstr "Открыть в SQL Lab"
 
 msgid "Open query in SQL Lab"
 msgstr "Открыть в SQL Lab"
+
+msgid "Opening value for each period."
+msgstr "Значение открытия за каждый период."
 
 msgid ""
 "Operate the database in asynchronous mode, meaning that the queries are "
@@ -10615,6 +10698,13 @@ msgstr "Формат временной строки"
 
 msgid "Optional d3 number format string"
 msgstr "Формат числовой строки"
+
+msgid ""
+"Optional dimension used to split the chart into multiple candlestick "
+"series."
+msgstr ""
+"Необязательное измерение, которое разбивает график на несколько свечных "
+"рядов."
 
 msgid ""
 "Optional metric used to scale the size of each dot. Dot areas are scaled "
@@ -10741,6 +10831,13 @@ msgstr ""
 "фильтра\", чтобы сдвинуть временной диапазон сравнения на ту же длину, "
 "что и ваш временной диапазон. Или используйте \"Пользовательскую дату\", "
 "чтобы задать свой диапазон сравнения."
+
+msgid ""
+"Overlay simple moving averages of the close price (MA5, MA10, MA15, ...)."
+" Type a custom period to add it."
+msgstr ""
+"Наложить простые скользящие средние цены закрытия (MA5, MA10, MA15, ...). "
+"Введите свой период, чтобы добавить его."
 
 msgid ""
 "Overlays a hexagonal grid on a map, and aggregates data within the "
@@ -13288,6 +13385,9 @@ msgstr "Стиль рядов"
 msgid "Series chart type (line, bar etc)"
 msgstr "Тип ряда (линия, столбец и т.п.)"
 
+msgid "Series colors"
+msgstr "Цвета рядов"
+
 msgid "Series decrease setting"
 msgstr "Настройка снижения рядов"
 
@@ -13297,8 +13397,14 @@ msgstr "Настройка роста рядов"
 msgid "Series limit"
 msgstr "Лимит кол-ва рядов"
 
+msgid "Series name"
+msgstr "Название ряда"
+
 msgid "Series settings"
 msgstr "Настройки рядов"
+
+msgid "Series style"
+msgstr "Стиль ряда"
 
 msgid "Series total setting"
 msgstr "Настройка итогов рядов"
@@ -13617,6 +13723,9 @@ msgid ""
 msgstr ""
 
 msgid "Show or hide the X axis line, ticks, and labels"
+msgstr ""
+
+msgid "Show or hide the Y axis line and labels"
 msgstr ""
 
 msgid "Show or hide the Y axis line, ticks, gridlines, and labels"
@@ -15419,6 +15528,13 @@ msgstr ""
 "параметров шаблона"
 
 msgid "The query context datasource does not match the chart datasource"
+msgstr ""
+
+#, python-format
+msgid ""
+"The query context for chart ID %(chart_id)s (referenced by annotation "
+"layer '%(layer_name)s') was not found. Please ensure the chart is "
+"properly configured and has a valid query context."
 msgstr ""
 
 msgid "The query couldn't be loaded"
@@ -18155,6 +18271,15 @@ msgstr ""
 "запроса"
 
 msgid ""
+"When enabled, increasing candles use the increase color and decreasing "
+"candles use the decrease color. Turn off to use one series color, with a "
+"filled body for increases and a hollow body for decreases."
+msgstr ""
+"Если включено, растущие свечи используют цвет роста, а падающие — цвет "
+"падения. Выключите, чтобы использовать один цвет ряда: закрашенное тело "
+"при росте и пустое при падении."
+
+msgid ""
 "When enabled, the axis will display labels for the minimum and maximum "
 "values of your data"
 msgstr ""
@@ -18970,7 +19095,18 @@ msgid ""
 "SUPERSET_DASHBOARD_POSITION_DATA_LIMIT config setting."
 msgstr ""
 
-msgid "Your export is being prepared. You'll receive an email when it's ready."
+msgid ""
+"Your export is being generated and will download automatically when "
+"ready. We'll also email you a download link."
+msgstr ""
+
+msgid "Your export is being generated. Please, do not leave the page."
+msgstr ""
+
+msgid "Your export is ready and downloading."
+msgstr ""
+
+msgid "Your export is taking longer than expected. Try again later."
 msgstr ""
 
 #, python-format
