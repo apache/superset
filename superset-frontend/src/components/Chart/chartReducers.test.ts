@@ -107,4 +107,31 @@ describe('chart reducers', () => {
     expect(newState[newChartKey].id).toEqual(newChartKey);
     expect(newState[chartKey]).toEqual(testChart);
   });
+
+  test('CHART_UPDATE_SUCCEEDED syncs form_data to the form data that was queried', () => {
+    const chartsWithFormData = {
+      [chartKey]: {
+        ...testChart,
+        latestQueryFormData: { slice_id: chartKey, metric: 'count' },
+      },
+    };
+    const newState = chartReducer(
+      chartsWithFormData,
+      actions.chartUpdateSucceeded([], chartKey),
+    );
+    expect(newState[chartKey].form_data).toEqual({
+      slice_id: chartKey,
+      metric: 'count',
+    });
+  });
+
+  test('UPDATE_CHART_FORM_DATA syncs both form_data and latestQueryFormData', () => {
+    const freshFormData = { slice_id: chartKey, metric: 'sum' };
+    const newState = chartReducer(
+      charts,
+      actions.updateChartFormData(freshFormData, chartKey),
+    );
+    expect(newState[chartKey].form_data).toEqual(freshFormData);
+    expect(newState[chartKey].latestQueryFormData).toEqual(freshFormData);
+  });
 });

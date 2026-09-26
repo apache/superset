@@ -121,6 +121,7 @@ export const RENDER_TRIGGERED = 'RENDER_TRIGGERED' as const;
 export const UPDATE_QUERY_FORM_DATA = 'UPDATE_QUERY_FORM_DATA' as const;
 export const UPDATE_CHART_ID = 'UPDATE_CHART_ID' as const;
 export const ADD_CHART = 'ADD_CHART' as const;
+export const UPDATE_CHART_FORM_DATA = 'UPDATE_CHART_FORM_DATA' as const;
 
 // Action interfaces
 export interface ChartUpdateStartedAction {
@@ -222,6 +223,12 @@ export interface AddChartAction {
   key: string | number;
 }
 
+export interface UpdateChartFormDataAction {
+  type: typeof UPDATE_CHART_FORM_DATA;
+  formData: QueryFormData | LatestQueryFormData;
+  key: string | number;
+}
+
 export type ChartAction =
   | ChartUpdateStartedAction
   | ChartUpdateSucceededAction
@@ -238,7 +245,8 @@ export type ChartAction =
   | RenderTriggeredAction
   | UpdateQueryFormDataAction
   | UpdateChartIdAction
-  | AddChartAction;
+  | AddChartAction
+  | UpdateChartFormDataAction;
 
 // Type for thunk actions
 export type ChartThunkDispatch = ThunkDispatch<RootState, undefined, AnyAction>;
@@ -688,6 +696,13 @@ export function addChart(
   return { type: ADD_CHART, chart, key };
 }
 
+export function updateChartFormData(
+  formData: QueryFormData | LatestQueryFormData,
+  key: string | number,
+): UpdateChartFormDataAction {
+  return { type: UPDATE_CHART_FORM_DATA, formData, key };
+}
+
 // An async-flow chart-data body is `{result: [...]}`, or the results themselves
 // when a caller (e.g. a chart component in superset-ui-core) has already
 // unwrapped them.
@@ -1031,38 +1046,71 @@ export function redirectSQLLab(
   };
 }
 
+// Re-fetches a chart's stored `params` from the server and returns it parsed
+// as form data, falling back to `fallback` on any network/parsing failure so a
+// refresh never hard-fails just because the freshness check did.
+async function fetchLatestChartFormData(
+  chartId: string | number,
+  fallback: QueryFormData | LatestQueryFormData,
+): Promise<QueryFormData | LatestQueryFormData> {
+  try {
+    const { json } = await SupersetClient.get({
+      endpoint: `/api/v1/chart/${chartId}`,
+    });
+    const { params } = json?.result ?? {};
+    if (typeof params !== 'string') {
+      return fallback;
+    }
+    return { ...fallback, ...JSON.parse(params) };
+  } catch {
+    return fallback;
+  }
+}
+
 export function refreshChart(
   chartKey: string | number,
   force: boolean,
   dashboardId?: number,
+  // Re-fetches the chart's own definition before running the query, so a
+  // save made from Explore in another tab is reflected here instead of the
+  // stale `latestQueryFormData` this dashboard was hydrated with. Only the
+  // single-chart "Force Refresh" action opts into this: `force` alone is
+  // also used for whole-dashboard and periodic refreshes, where re-fetching
+  // every chart's definition on every tick would be wasteful.
+  refreshFormData = false,
 ): ChartThunkAction<Promise<void>> {
-  return (
+  return async (
     dispatch: ChartThunkDispatch,
     getState: () => RootState,
   ): Promise<void> => {
     const chart = (getState().charts || {})[chartKey];
     if (!chart) {
-      return Promise.resolve();
+      return;
     }
     const timeout =
       getState().dashboardInfo.common.conf.SUPERSET_WEBSERVER_TIMEOUT;
 
-    if (
-      !chart.latestQueryFormData ||
-      Object.keys(chart.latestQueryFormData).length === 0
-    ) {
-      return Promise.resolve();
+    let formData = chart.latestQueryFormData;
+    if (refreshFormData && chart.id) {
+      formData = await fetchLatestChartFormData(chart.id, formData);
+      if (formData !== chart.latestQueryFormData) {
+        dispatch(updateChartFormData(formData, chartKey));
+      }
     }
-    return dispatch(
+
+    if (!formData || Object.keys(formData).length === 0) {
+      return;
+    }
+    await dispatch(
       postChartFormData(
-        chart.latestQueryFormData,
+        formData,
         force,
         timeout,
         chart.id,
         dashboardId,
         getState().dataMask[chart.id]?.ownState,
       ),
-    ) as unknown as Promise<void>;
+    );
   };
 }
 
