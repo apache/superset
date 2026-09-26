@@ -46,6 +46,7 @@ import {
   minorTicks,
   axisTicks,
   gridlines,
+  valueAxisLabels,
   forceMaxInterval,
 } from '../../controls';
 import { AreaChartStackControlOptions } from '../../constants';
@@ -178,6 +179,7 @@ const config: ControlPanelConfig = {
         [minorTicks],
         [axisTicks],
         [gridlines],
+        [valueAxisLabels],
         ['zoomable'],
         ...legendSection,
         [<ControlSubSectionHeader>{t('X Axis')}</ControlSubSectionHeader>],
