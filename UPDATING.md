@@ -1653,6 +1653,9 @@ Custom time ranges that use the "Now" or "Today" anchor (for the Start, End, or 
 
 Charts and dashboards using these anchors will compute a different (correct) timestamp after upgrading; if a chart's filters or drill-downs were tuned to compensate for the old offset, review them after upgrading.
 
+- [43712](https://github.com/apache/superset/pull/43712): As the `ascend.io` platform shut down, its DB integration has been removed. Any existing users
+using `ascend://` DB protocol should switch to compatible `impala://` or preferentially remove the connection.
+
 - [43916](https://github.com/apache/superset/pull/43916): The `docker-compose` dev loop now skips re-running `superset load_examples` on every `docker compose up` once the example data and dashboards are present in the databases (set `SUPERSET_FORCE_LOAD_EXAMPLES=yes` to reload them anyway), and the `superset-node` service now defaults `DISABLE_TS_CHECKER=true` like `docker-compose-light.yml` already did, skipping webpack's TypeScript type-checking pass in dev by default.
 
 ## 6.1.0

@@ -575,12 +575,6 @@ images:
     selector: null
   - type: database-logo
     page_url: "https://superset.apache.org/user-docs"
-    image_url: docs/static/img/databases/ascend.webp
-    alt: Ascend
-    source_file: docs/intro.md
-    selector: null
-  - type: database-logo
-    page_url: "https://superset.apache.org/user-docs"
     image_url: docs/static/img/databases/aws.png
     alt: Amazon DynamoDB
     source_file: docs/intro.md
@@ -945,13 +939,6 @@ images:
     image_url: "https://superset.apache.org/img/databases/apache-spark.png"
     output_path: docs/static/img/databases/apache-spark.png
     alt: Apache Spark SQL
-    source_file: docs/index.mdx
-    selector: null
-  - type: database-logo
-    page_url: "https://superset.apache.org/user-docs"
-    image_url: "https://superset.apache.org/img/databases/ascend.webp"
-    output_path: docs/static/img/databases/ascend.webp
-    alt: Ascend
     source_file: docs/index.mdx
     selector: null
   - type: database-logo
