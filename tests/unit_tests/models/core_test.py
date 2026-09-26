@@ -1211,9 +1211,8 @@ def test_get_oauth2_config_databricks_derives_missing_endpoints(
         explicit.get("authorization_request_uri")
         or "https://dbc-1234.cloud.databricks.com/oidc/v1/authorize"
     )
-    assert config["token_request_uri"] == (
-        "https://dbc-1234.cloud.databricks.com/oidc/v1/token"
-    )
+    token_endpoint = "https://dbc-1234.cloud.databricks.com/oidc/v1/token"
+    assert config["token_request_uri"] == token_endpoint
 
 
 def test_get_oauth2_config_databricks_without_host_raises(app_context: None) -> None:
