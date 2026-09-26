@@ -1136,11 +1136,11 @@ def _get_app_context_manager() -> AbstractContextManager[None]:
     """
     from contextlib import nullcontext
 
-    from superset.mcp_service.worker import _active_call
+    from superset.mcp_service.worker import _active_call, _metadata_context_owned
 
-    if _active_call.get() is not None:
-        # The worker owns a fresh context/session for its entire lifetime,
-        # including any nested tool calls and post-timeout cleanup.
+    if _active_call.get() is not None or _metadata_context_owned.get():
+        # The tool or metadata worker owns a fresh context/session, including
+        # nested helpers and cleanup after its caller stops waiting.
         return nullcontext()
     if has_request_context():
         return _request_tool_call_context()

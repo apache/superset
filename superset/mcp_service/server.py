@@ -22,7 +22,6 @@ Supports both single-pod (in-memory) and multi-pod (Redis) deployments.
 For multi-pod deployments, configure MCP_EVENT_STORE_CONFIG with Redis URL.
 """
 
-import asyncio
 import logging
 import os
 from collections.abc import Sequence
@@ -50,6 +49,7 @@ from superset.mcp_service.middleware import (
     ToolResultCompatibilityMiddleware,
 )
 from superset.mcp_service.storage import _create_redis_store
+from superset.mcp_service.worker import run_in_metadata_thread
 from superset.utils import json
 
 logger = logging.getLogger(__name__)
@@ -771,7 +771,7 @@ def _create_search_transform(  # noqa: C901
             async def _get_visible_tools(self, ctx: Context) -> Sequence[Any]:
                 """Return only tools visible to the current authenticated user."""
                 tools = await super()._get_visible_tools(ctx)
-                return await asyncio.to_thread(
+                return await run_in_metadata_thread(
                     _filter_tools_by_current_user_permission, tools
                 )
 
@@ -795,7 +795,7 @@ def _create_search_transform(  # noqa: C901
             tools = await super()._get_visible_tools(ctx)
             # Permission lookups need a metadata connection; see
             # RBACToolVisibilityMiddleware.on_list_tools.
-            return await asyncio.to_thread(
+            return await run_in_metadata_thread(
                 _filter_tools_by_current_user_permission, tools
             )
 

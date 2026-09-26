@@ -15,7 +15,6 @@
 # specific language governing permissions and limitations
 # under the License.
 
-import asyncio
 import logging
 import re
 import secrets
@@ -77,7 +76,10 @@ from superset.mcp_service.utils.response_size_utils import (
     truncate_query_result,
     truncate_string_field_response,
 )
-from superset.utils.core import get_user_id
+from superset.mcp_service.worker import (
+    get_context_user_id as get_user_id,
+    run_in_metadata_thread,
+)
 
 logger = logging.getLogger(__name__)
 _mcp_call_id_var: ContextVar[str | None] = ContextVar("mcp_call_id", default=None)
@@ -217,6 +219,16 @@ def _invoke_error_hook(error: Exception, hook_context: dict[str, Any]) -> None:
         hook(error, hook_context)
     except Exception as hook_error:  # noqa: BLE001
         logger.warning("MCP_ERROR_HOOK raised an exception: %s", hook_error)
+
+
+async def _invoke_error_hook_off_loop(
+    error: Exception, hook_context: dict[str, Any]
+) -> None:
+    """Keep hook I/O and context-setup failures outside the error boundary."""
+    try:
+        await run_in_metadata_thread(_invoke_error_hook, error, hook_context)
+    except Exception as hook_error:  # noqa: BLE001
+        logger.warning("Could not run MCP_ERROR_HOOK: %s", hook_error)
 
 
 # The prefix FastMCP puts on every ToolError it wraps a tool exception in.
@@ -909,23 +921,26 @@ class LoggingMiddleware(Middleware):
             # The audit write needs a metadata connection. Tool workers can hold
             # every pooled connection while they wait on this loop, so the loop
             # must never wait for one itself.
-            await asyncio.to_thread(
-                self._log_call_tool_result,
-                context=context,
-                tool_name=tool_name,
-                mcp_tool=mcp_tool,
-                mcp_call_id=mcp_call_id,
-                agent_id=agent_id,
-                user_id=user_id,
-                dashboard_id=dashboard_id,
-                slice_id=slice_id,
-                dataset_id=dataset_id,
-                params=params,
-                success=success,
-                error_type=error_type,
-                result=result,
-                start_time=start_time,
-            )
+            try:
+                await run_in_metadata_thread(
+                    self._log_call_tool_result,
+                    context=context,
+                    tool_name=tool_name,
+                    mcp_tool=mcp_tool,
+                    mcp_call_id=mcp_call_id,
+                    agent_id=agent_id,
+                    user_id=user_id,
+                    dashboard_id=dashboard_id,
+                    slice_id=slice_id,
+                    dataset_id=dataset_id,
+                    params=params,
+                    success=success,
+                    error_type=error_type,
+                    result=result,
+                    start_time=start_time,
+                )
+            except Exception as log_error:  # noqa: BLE001
+                logger.warning("Failed to log mcp_tool_call event: %s", log_error)
             try:
                 await self._emit_call_metrics(
                     context,
@@ -961,16 +976,19 @@ class LoggingMiddleware(Middleware):
             # See the matching reset in on_call_tool.
             _mcp_user_id_var.set(None)
             # See the matching audit write in on_call_tool.
-            await asyncio.to_thread(
-                self._log_message,
-                context=context,
-                agent_id=agent_id,
-                user_id=user_id,
-                dashboard_id=dashboard_id,
-                slice_id=slice_id,
-                dataset_id=dataset_id,
-                params=params,
-            )
+            try:
+                await run_in_metadata_thread(
+                    self._log_message,
+                    context=context,
+                    agent_id=agent_id,
+                    user_id=user_id,
+                    dashboard_id=dashboard_id,
+                    slice_id=slice_id,
+                    dataset_id=dataset_id,
+                    params=params,
+                )
+            except Exception as log_error:  # noqa: BLE001
+                logger.warning("Failed to log mcp_message event: %s", log_error)
 
     @staticmethod
     def _log_message(
@@ -1095,7 +1113,7 @@ class ToolResultCompatibilityMiddleware(Middleware):
                 # capture point. All contract keys are populated so hooks
                 # can index them unconditionally; user_id and duration_ms
                 # are unknown at this layer and passed as None.
-                _invoke_error_hook(
+                await _invoke_error_hook_off_loop(
                     e,
                     {
                         "tool_name": getattr(context.message, "name", "unknown"),
@@ -1171,7 +1189,7 @@ class RBACToolVisibilityMiddleware(Middleware):
         # User and permission lookups need a metadata connection. Tool workers
         # can hold every pooled connection while they wait on this loop, so the
         # loop must never wait for one itself.
-        return await asyncio.to_thread(self._visible_tools, tools)
+        return await run_in_metadata_thread(self._visible_tools, tools)
 
     @staticmethod
     def _visible_tools(tools: list[Tool]) -> list[Tool]:
@@ -1286,7 +1304,8 @@ class GlobalErrorHandlerMiddleware(Middleware):
 
         # Log to Superset's event system
         try:
-            event_logger.log(
+            await run_in_metadata_thread(
+                event_logger.log,
                 user_id=user_id,
                 action="mcp_tool_error",
                 dashboard_id=None,
@@ -1314,7 +1333,7 @@ class GlobalErrorHandlerMiddleware(Middleware):
             # System-class errors only — user errors (bad params, permission
             # denials) are expected MCP traffic and would otherwise flood an
             # error tracker.
-            _invoke_error_hook(
+            await _invoke_error_hook_off_loop(
                 error,
                 {
                     "tool_name": tool_name,
@@ -2131,8 +2150,12 @@ class ResponseSizeGuardMiddleware(Middleware):
 
         if actual_bytes > self.max_bytes:
             params = getattr(context.message, "arguments", {}) or {}
-            return self._handle_oversized_response(
-                tool_name, response, actual_bytes, params
+            return await run_in_metadata_thread(
+                self._handle_oversized_response,
+                tool_name,
+                response,
+                actual_bytes,
+                params,
             )
 
         return response

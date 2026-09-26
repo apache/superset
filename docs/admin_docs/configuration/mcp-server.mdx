@@ -66,6 +66,12 @@ explicit `MCP_TOOL_WORKERS` is reduced to the cap with a startup warning, and
 a pool with fewer than 3 connections is rejected at startup. The server never
 waits for a metadata connection on its event loop.
 
+Tool-list and search permission checks, success/error audit writes, response-size
+audits, and error hooks run in metadata threads with independent Flask contexts
+and scoped sessions. These sessions are cleaned up when the operation finishes,
+including after failure or client disconnection; inherited request contexts do
+not share their ORM user/session with the thread.
+
 `execute_sql` uses its request's `timeout` (default: 30 seconds). Tools without
 a timeout parameter use `SQLLAB_TIMEOUT`. The deadline covers the complete tool
 call, including composed queries, and returns a clear timeout error with a call

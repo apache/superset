@@ -33,7 +33,7 @@ import uuid
 from concurrent.futures import Future, ThreadPoolExecutor
 from contextlib import contextmanager
 from contextvars import ContextVar, copy_context
-from typing import Any, Callable, Coroutine, Iterator, TYPE_CHECKING
+from typing import Any, Callable, Coroutine, Iterator, ParamSpec, TYPE_CHECKING, TypeVar
 from weakref import WeakKeyDictionary
 
 from fastmcp.exceptions import ToolError
@@ -53,6 +53,11 @@ logger = logging.getLogger(__name__)
 _active_call: ContextVar[WorkerCall | None] = ContextVar(
     "mcp_worker_call", default=None
 )
+_metadata_context_owned: ContextVar[bool] = ContextVar(
+    "mcp_metadata_context_owned", default=False
+)
+_P = ParamSpec("_P")
+_T = TypeVar("_T")
 _pools_lock = threading.Lock()
 _pools: WeakKeyDictionary[Flask, WorkerPool] = WeakKeyDictionary()
 
@@ -280,6 +285,74 @@ def _worker_context(app: Flask) -> Iterator[None]:
                 _remove_session_safe()
     finally:
         _mcp_session_token.reset(token)
+
+
+def get_context_user_id() -> int | None:
+    """Read the caller's identity without refreshing an expired ORM instance."""
+    if not has_app_context():
+        return None
+    user = getattr(g, "user", None)
+    state = sa_inspect(user, raiseerr=False)
+    if isinstance(state, InstanceState):
+        return state.identity[0] if state.identity else None
+    return getattr(user, "id", None)
+
+
+async def run_in_metadata_thread(
+    fn: Callable[_P, _T], *args: _P.args, **kwargs: _P.kwargs
+) -> _T:
+    """Run transport metadata I/O with thread-owned Flask and session lifetimes.
+
+    ``to_thread`` copies contextvars, including Flask contexts and MCP session
+    tokens. Replace those owners, reload ORM users, and retain only request and
+    routing data. Cleanup belongs to the thread even if its awaiter disconnects.
+    This uses the metadata executor rather than admitted tool workers, which
+    may themselves be waiting for transport notifications.
+    """
+    from contextlib import nullcontext
+
+    from flask.globals import _cv_request
+
+    if has_app_context():
+        app = current_app._get_current_object()
+        snapshot = dict(vars(g._get_current_object()))
+    else:
+        from superset.mcp_service.flask_singleton import get_flask_app
+
+        app = get_flask_app()
+        snapshot = {}
+    user = snapshot.pop("user", None)
+    state = sa_inspect(user, raiseerr=False)
+    is_orm_user = isinstance(state, InstanceState)
+    user_id = get_context_user_id() if is_orm_user else None
+    request_context = _cv_request.get(None)
+    request_copy = request_context.copy() if request_context is not None else None
+
+    def execute() -> _T:
+        """Own teardown rather than handing a live session back to asyncio."""
+        from superset import db, security_manager
+        from superset.sql.execution.cancellation import without_execution_hooks
+
+        active_token = _active_call.set(None)
+        owner_token = _metadata_context_owned.set(True)
+        try:
+            with without_execution_hooks(), _worker_context(app):
+                vars(g._get_current_object()).update(snapshot)
+                with request_copy if request_copy is not None else nullcontext():
+                    if is_orm_user:
+                        g.user = (
+                            db.session.get(security_manager.user_model, user_id)
+                            if user_id is not None
+                            else None
+                        )
+                    elif user is not None:
+                        g.user = user
+                    return fn(*args, **kwargs)
+        finally:
+            _metadata_context_owned.reset(owner_token)
+            _active_call.reset(active_token)
+
+    return await asyncio.to_thread(execute)
 
 
 async def run_in_worker(
