@@ -387,6 +387,11 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         allows_hidden_orderby_agg:     Whether the engine allows ORDER BY to
                                        directly use aggregation clauses, without
                                        having to add the same aggregation in SELECT.
+        select_alias_shadows_source_column: Whether the engine resolves an
+                                       identifier to a SELECT alias before a
+                                       source column of the same name in every
+                                       clause (WHERE, GROUP BY, HAVING, ORDER
+                                       BY), so such aliases must be renamed.
     """
 
     engine_name: str | None = None  # for user messages, overridden in child classes
@@ -575,6 +580,12 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     # Whether ORDER BY clause can use aliases created in SELECT
     # that are the same as a source column
     allows_alias_to_source_column = True
+
+    # Whether the engine resolves an identifier to a SELECT alias before a source
+    # column of the same name, in WHERE, GROUP BY, HAVING and ORDER BY alike
+    # (ClickHouse). An alias such as `DATE_TRUNC(ts) AS ts` then changes what the
+    # query's other clauses read, so chart queries rename it.
+    select_alias_shadows_source_column = False
 
     # Whether ORDER BY clause must appear in SELECT
     # if True, then it doesn't have to.
