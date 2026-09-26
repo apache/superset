@@ -18,10 +18,14 @@
  */
 import '@testing-library/jest-dom';
 import { Component, type ReactNode } from 'react';
-import { render, screen } from '@superset-ui/core/spec';
+import { act, render, screen } from '@superset-ui/core/spec';
 import { CellProps, Column, HeaderProps } from 'react-table';
 import DataTable from '../../src/DataTable/DataTable';
 import { ProviderWrapper } from '../testHelpers';
+
+// Lets the RAF-debounced emit effect in DataTable settle before asserting.
+const flushRaf = () =>
+  act(() => new Promise<void>(resolve => setTimeout(resolve, 50)));
 
 type DataRow = {
   city: string;
@@ -85,7 +89,10 @@ class RenderErrorBoundary extends Component<
   }
 }
 
-const renderDataTable = (tableColumns: Column<DataRow>[]) => (
+const renderDataTable = (
+  tableColumns: Column<DataRow>[],
+  onFilteredRowsChange: (rows: DataRow[]) => void = jest.fn(),
+) => (
   <ProviderWrapper>
     <RenderErrorBoundary>
       <DataTable<DataRow>
@@ -99,7 +106,7 @@ const renderDataTable = (tableColumns: Column<DataRow>[]) => (
         sortByFromParent={[]}
         onSearchColChange={jest.fn()}
         searchOptions={[]}
-        onFilteredRowsChange={jest.fn()}
+        onFilteredRowsChange={onFilteredRowsChange}
         sticky={false}
       />
     </RenderErrorBoundary>
@@ -126,4 +133,17 @@ test('keeps the hook order stable when the columns appear', () => {
 
   expect(screen.queryByTestId('render-error')).not.toBeInTheDocument();
   expect(screen.getByText('Michael')).toBeInTheDocument();
+});
+
+// The client-side emit effect used to run its signature check unconditionally,
+// so a zero-column render still queued an onFilteredRowsChange call once rows
+// changed. Columns being hidden doesn't change the underlying data, so nothing
+// should be emitted for it.
+test('does not emit filtered rows while the column count is zero', async () => {
+  const onFilteredRowsChange = jest.fn();
+  render(renderDataTable([], onFilteredRowsChange));
+
+  await flushRaf();
+
+  expect(onFilteredRowsChange).not.toHaveBeenCalled();
 });
