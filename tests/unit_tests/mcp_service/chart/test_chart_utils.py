@@ -27,6 +27,7 @@ from superset.mcp_service.chart.chart_utils import (
     _add_adhoc_filters,
     _ensure_temporal_adhoc_filter,
     _humanize_column,
+    add_xy_sort_config,
     adhoc_filters_to_query_filters,
     configure_temporal_handling,
     create_metric_object,
@@ -2570,3 +2571,250 @@ class TestDatasetValidatorSkipsSqlMetrics:
         )
         assert normalized.y[0].sql_expression == _SQL_EXPR
         assert normalized.y[0].name is None
+
+
+class TestAddXYSortConfig:
+    """Test add_xy_sort_config helper function."""
+
+    def test_no_sort_by_does_nothing(self) -> None:
+        form_data: dict[str, Any] = {
+            "x_axis_sort_series_type": "name",
+            "x_axis_sort_series_ascending": True,
+        }
+        config = XYChartConfig(
+            chart_type="xy",
+            x=ColumnRef(name="category"),
+            y=[ColumnRef(name="sales", aggregate="SUM")],
+            kind="bar",
+        )
+        add_xy_sort_config(form_data, config, x_is_temporal=False)
+
+        assert "x_axis_sort" not in form_data
+        assert "x_axis_sort_asc" not in form_data
+        assert form_data["x_axis_sort_series_type"] == "name"
+        assert form_data["x_axis_sort_series_ascending"] is True
+
+    def test_non_temporal_sort_by_metric_descending(self) -> None:
+        form_data: dict[str, Any] = {}
+        config = XYChartConfig(
+            chart_type="xy",
+            x=ColumnRef(name="category"),
+            y=[ColumnRef(name="sales", aggregate="SUM")],
+            kind="bar",
+            sort_by="sales",
+        )
+        add_xy_sort_config(form_data, config, x_is_temporal=False)
+
+        assert form_data["x_axis_sort"] == "sales"
+        assert form_data["x_axis_sort_asc"] is False
+        assert form_data["x_axis_sort_series_type"] == "value"
+        assert form_data["x_axis_sort_series_ascending"] is False
+
+    def test_non_temporal_sort_by_metric_ascending(self) -> None:
+        form_data: dict[str, Any] = {}
+        config = XYChartConfig(
+            chart_type="xy",
+            x=ColumnRef(name="category"),
+            y=[ColumnRef(name="sales", aggregate="SUM")],
+            kind="bar",
+            sort_by=SortByConfig(column="sales", ascending=True),
+        )
+        add_xy_sort_config(form_data, config, x_is_temporal=False)
+
+        assert form_data["x_axis_sort"] == "sales"
+        assert form_data["x_axis_sort_asc"] is True
+        assert form_data["x_axis_sort_series_type"] == "value"
+        assert form_data["x_axis_sort_series_ascending"] is True
+
+    def test_non_temporal_sort_by_x_axis_column(self) -> None:
+        form_data: dict[str, Any] = {}
+        config = XYChartConfig(
+            chart_type="xy",
+            x=ColumnRef(name="category"),
+            y=[ColumnRef(name="sales", aggregate="SUM")],
+            kind="bar",
+            sort_by=SortByConfig(column="category", ascending=True),
+        )
+        add_xy_sort_config(form_data, config, x_is_temporal=False)
+
+        assert form_data["x_axis_sort"] == "category"
+        assert form_data["x_axis_sort_asc"] is True
+        assert form_data["x_axis_sort_series_type"] == "name"
+        assert form_data["x_axis_sort_series_ascending"] is True
+
+    def test_temporal_sort_by_ignored_with_warning(self) -> None:
+        form_data: dict[str, Any] = {}
+        config = XYChartConfig(
+            chart_type="xy",
+            x=ColumnRef(name="order_date"),
+            y=[ColumnRef(name="sales", aggregate="SUM")],
+            kind="line",
+            sort_by="sales",
+        )
+        add_xy_sort_config(form_data, config, x_is_temporal=True)
+
+        assert "x_axis_sort" not in form_data
+        assert "x_axis_sort_asc" not in form_data
+        assert "x_axis_sort_series_type" not in form_data
+        assert len(form_data.get("_mcp_warnings", [])) == 1
+        expected_msg = "was ignored because the x-axis column 'order_date' is temporal"
+        assert expected_msg in form_data["_mcp_warnings"][0]
+
+
+class TestMapXYConfigWithSortBy:
+    """Test map_xy_config integration with sort_by."""
+
+    @patch("superset.mcp_service.chart.chart_utils.is_column_truly_temporal")
+    def test_map_xy_config_non_temporal_sort_by_metric(self, mock_is_temporal) -> None:
+        mock_is_temporal.return_value = False
+        config = XYChartConfig(
+            chart_type="xy",
+            x=ColumnRef(name="department"),
+            y=[ColumnRef(name="revenue", aggregate="SUM")],
+            kind="bar",
+            sort_by="revenue",
+        )
+        form_data = map_xy_config(config, dataset_id=1)
+
+        assert form_data["x_axis_sort"] == "revenue"
+        assert form_data["x_axis_sort_asc"] is False
+        assert form_data["x_axis_sort_series_type"] == "value"
+        assert form_data["x_axis_sort_series_ascending"] is False
+
+    @patch("superset.mcp_service.chart.chart_utils.is_column_truly_temporal")
+    def test_map_xy_config_non_temporal_sort_by_x_axis(self, mock_is_temporal) -> None:
+        mock_is_temporal.return_value = False
+        config = XYChartConfig(
+            chart_type="xy",
+            x=ColumnRef(name="department"),
+            y=[ColumnRef(name="revenue", aggregate="SUM")],
+            kind="bar",
+            sort_by=SortByConfig(column="department", ascending=True),
+        )
+        form_data = map_xy_config(config, dataset_id=1)
+
+        assert form_data["x_axis_sort"] == "department"
+        assert form_data["x_axis_sort_asc"] is True
+        assert form_data["x_axis_sort_series_type"] == "name"
+        assert form_data["x_axis_sort_series_ascending"] is True
+
+    @patch("superset.mcp_service.chart.chart_utils.is_column_truly_temporal")
+    def test_map_xy_config_temporal_ignores_sort_by(self, mock_is_temporal) -> None:
+        mock_is_temporal.return_value = True
+        config = XYChartConfig(
+            chart_type="xy",
+            x=ColumnRef(name="order_date"),
+            y=[ColumnRef(name="revenue", aggregate="SUM")],
+            kind="line",
+            sort_by="revenue",
+        )
+        form_data = map_xy_config(config, dataset_id=1)
+
+        assert "x_axis_sort" not in form_data
+        assert len(form_data.get("_mcp_warnings", [])) == 1
+        expected_msg = "was ignored because the x-axis column 'order_date' is temporal"
+        assert expected_msg in form_data["_mcp_warnings"][0]
+
+    @patch("superset.mcp_service.chart.chart_utils.is_column_truly_temporal")
+    def test_map_xy_config_without_sort_by_keeps_defaults(
+        self, mock_is_temporal
+    ) -> None:
+        mock_is_temporal.return_value = False
+        config = XYChartConfig(
+            chart_type="xy",
+            x=ColumnRef(name="department"),
+            y=[ColumnRef(name="revenue", aggregate="SUM")],
+            kind="bar",
+        )
+        form_data = map_xy_config(config, dataset_id=1)
+
+        assert "x_axis_sort" not in form_data
+        assert form_data["x_axis_sort_series_type"] == "name"
+        assert form_data["x_axis_sort_series_ascending"] is True
+
+
+class TestXYChartPluginSortBy:
+    """Test XYChartPlugin extract_column_refs and normalize_column_refs with sort_by."""
+
+    def test_extract_column_refs_includes_sort_by(self) -> None:
+        from superset.mcp_service.chart.plugins.xy import XYChartPlugin
+
+        plugin = XYChartPlugin()
+        config = XYChartConfig(
+            chart_type="xy",
+            x=ColumnRef(name="category"),
+            y=[ColumnRef(name="sales", aggregate="SUM")],
+            sort_by=SortByConfig(column="sales", ascending=False),
+        )
+        refs = plugin.extract_column_refs(config)
+        ref_names = [r.name for r in refs]
+
+        assert "category" in ref_names
+        assert "sales" in ref_names
+
+    def test_extract_column_refs_without_sort_by(self) -> None:
+        from superset.mcp_service.chart.plugins.xy import XYChartPlugin
+
+        plugin = XYChartPlugin()
+        config = XYChartConfig(
+            chart_type="xy",
+            x=ColumnRef(name="category"),
+            y=[ColumnRef(name="sales", aggregate="SUM")],
+        )
+        refs = plugin.extract_column_refs(config)
+        ref_names = [r.name for r in refs]
+
+        assert ref_names == ["category", "sales"]
+
+    def test_normalize_column_refs_canonicalizes_sort_by_column(self) -> None:
+        from superset.mcp_service.chart.plugins.xy import XYChartPlugin
+        from superset.mcp_service.chart.validation.dataset_validator import (
+            DatasetContext,
+        )
+
+        ctx = DatasetContext(
+            id=1,
+            table_name="sales_data",
+            database_name="examples",
+            available_columns=[
+                {"name": "Category", "type": "VARCHAR"},
+                {"name": "TotalRevenue", "type": "BIGINT"},
+            ],
+            available_metrics=[{"name": "TotalSales", "expression": "SUM(sales)"}],
+        )
+
+        plugin = XYChartPlugin()
+        config = XYChartConfig(
+            chart_type="xy",
+            x=ColumnRef(name="category"),
+            y=[ColumnRef(name="TotalSales", saved_metric=True)],
+            sort_by="totalrevenue",
+        )
+        normalized = plugin.normalize_column_refs(config, ctx)
+
+        assert normalized.sort_by.column == "TotalRevenue"
+
+    def test_normalize_column_refs_matches_y_metric_label(self) -> None:
+        from superset.mcp_service.chart.plugins.xy import XYChartPlugin
+        from superset.mcp_service.chart.validation.dataset_validator import (
+            DatasetContext,
+        )
+
+        ctx = DatasetContext(
+            id=1,
+            table_name="sales_data",
+            database_name="examples",
+            available_columns=[{"name": "department", "type": "VARCHAR"}],
+            available_metrics=[],
+        )
+
+        plugin = XYChartPlugin()
+        config = XYChartConfig(
+            chart_type="xy",
+            x=ColumnRef(name="department"),
+            y=[ColumnRef(name="sales", aggregate="SUM", label="Total Sales")],
+            sort_by="total sales",
+        )
+        normalized = plugin.normalize_column_refs(config, ctx)
+
+        assert normalized.sort_by.column == "Total Sales"

@@ -29,7 +29,7 @@ from superset.mcp_service.chart.chart_utils import (
     map_xy_config,
 )
 from superset.mcp_service.chart.plugin import BaseChartPlugin
-from superset.mcp_service.chart.schemas import ColumnRef, XYChartConfig
+from superset.mcp_service.chart.schemas import ColumnRef, SortByConfig, XYChartConfig
 from superset.mcp_service.chart.validation.dataset_validator import DatasetValidator
 from superset.mcp_service.chart.validation.runtime.cardinality_validator import (
     CardinalityValidator,
@@ -40,6 +40,29 @@ from superset.mcp_service.chart.validation.runtime.format_validator import (
 from superset.mcp_service.common.error_schemas import ChartGenerationError
 
 logger = logging.getLogger(__name__)
+
+
+def _normalize_xy_sort_by(config_dict: dict[str, Any], dataset_context: Any) -> None:
+    """Resolve canonical column or metric name for sort_by in XY charts."""
+    sort_by = config_dict.get("sort_by")
+    if not sort_by:
+        return
+
+    get_canonical = DatasetValidator.get_canonical_column_name
+
+    def _resolve_name(raw_name: str) -> str:
+        raw_lower = raw_name.lower()
+        for y_col in config_dict.get("y") or []:
+            if y_col.get("label") and y_col["label"].lower() == raw_lower:
+                return y_col["label"]
+            if y_col.get("name") and y_col["name"].lower() == raw_lower:
+                return y_col["name"]
+        return get_canonical(raw_name, dataset_context)
+
+    if isinstance(sort_by, dict) and "column" in sort_by:
+        sort_by["column"] = _resolve_name(sort_by["column"])
+    elif isinstance(sort_by, str):
+        config_dict["sort_by"] = _resolve_name(sort_by)
 
 
 class XYChartPlugin(BaseChartPlugin):
@@ -103,6 +126,21 @@ class XYChartPlugin(BaseChartPlugin):
         if config.filters:
             for f in config.filters:
                 refs.append(ColumnRef(name=f.column))
+        if config.sort_by:
+            sort_entry = config.sort_by
+            if isinstance(sort_entry, list) and sort_entry:
+                sort_entry = sort_entry[0]
+            sort_col = (
+                sort_entry.column
+                if isinstance(sort_entry, SortByConfig)
+                else sort_entry
+                if isinstance(sort_entry, str)
+                else sort_entry.get("column")
+                if isinstance(sort_entry, dict)
+                else None
+            )
+            if sort_col:
+                refs.append(ColumnRef(name=sort_col))
         return refs
 
     def to_form_data(
@@ -128,6 +166,8 @@ class XYChartPlugin(BaseChartPlugin):
                 y_col["name"] = get_canonical(y_col["name"], dataset_context)
         for gb_col in config_dict.get("group_by") or []:
             gb_col["name"] = get_canonical(gb_col["name"], dataset_context)
+
+        _normalize_xy_sort_by(config_dict, dataset_context)
 
         DatasetValidator.normalize_filters(config_dict, dataset_context)
         return XYChartConfig.model_validate(config_dict)
