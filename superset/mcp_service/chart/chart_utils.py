@@ -1110,6 +1110,82 @@ def add_orientation_config(form_data: Dict[str, Any], config: XYChartConfig) -> 
         form_data["orientation"] = config.orientation
 
 
+def add_xy_sort_config(
+    form_data: Dict[str, Any], config: XYChartConfig, x_is_temporal: bool
+) -> None:
+    """Apply sort configuration to form_data for XY charts.
+
+    When ``config.sort_by`` is present:
+    - If ``x_is_temporal``: records a warning in ``form_data["_mcp_warnings"]``
+      and does not override temporal sorting.
+    - If non-temporal: resolves the sort target to the corresponding metric label
+      (or dimension column name) and sets ``form_data["x_axis_sort"]`` and
+      ``form_data["x_axis_sort_asc"]``.
+    When ``config.sort_by`` is not specified, maintains existing default behavior.
+    """
+    if not config.sort_by:
+        return
+
+    sort_entry = config.sort_by
+    if isinstance(sort_entry, list):
+        if not sort_entry:
+            return
+        sort_entry = sort_entry[0]
+    if isinstance(sort_entry, str):
+        sort_entry = SortByConfig(column=sort_entry, ascending=False)
+    elif isinstance(sort_entry, dict):
+        sort_entry = SortByConfig(**sort_entry)
+
+    if x_is_temporal:
+        x_name = config.x.name if config.x else "x"
+        form_data.setdefault("_mcp_warnings", []).append(
+            f"sort_by='{sort_entry.column}' was ignored because the x-axis "
+            f"column '{x_name}' is temporal. Temporal charts sort "
+            f"chronologically by the time axis."
+        )
+        return
+
+    sort_target = sort_entry.column
+    # If sorting by the x-axis dimension itself
+    if config.x and (
+        sort_entry.column == config.x.name
+        or (config.x.label and sort_entry.column == config.x.label)
+    ):
+        sort_target = config.x.label or config.x.name
+    else:
+        # Match against y metrics (by column name, metric label, or agg expression)
+        sort_lower = sort_entry.column.lower()
+        for y_col in config.y:
+            metric_obj = create_metric_object(y_col)
+            metric_label = (
+                metric_obj
+                if isinstance(metric_obj, str)
+                else (metric_obj.get("label") or "")
+            )
+            agg_expr = (
+                f"{y_col.aggregate}({y_col.name})".lower()
+                if (y_col.aggregate and y_col.name)
+                else None
+            )
+            col_name = (y_col.name or "").lower()
+            col_label = (y_col.label or "").lower()
+            metric_label_lower = metric_label.lower()
+
+            if (
+                sort_lower == col_name
+                or sort_lower == metric_label_lower
+                or (col_label and sort_lower == col_label)
+                or (agg_expr and sort_lower == agg_expr)
+            ):
+                sort_target = metric_label
+                break
+
+    form_data["x_axis_sort"] = sort_target
+    form_data["x_axis_sort_asc"] = sort_entry.ascending
+    form_data.pop("x_axis_sort_series_type", None)
+    form_data.pop("x_axis_sort_series_ascending", None)
+
+
 def configure_temporal_handling(
     form_data: Dict[str, Any],
     x_is_temporal: bool,
@@ -1408,6 +1484,7 @@ def map_xy_config(  # noqa: C901
     add_color_scheme(form_data, config.color_scheme)
     add_currency_format(form_data, config.currency_format)
     add_xy_data_label_options(form_data, config, x_is_temporal)
+    add_xy_sort_config(form_data, config, x_is_temporal)
 
     return form_data
 
