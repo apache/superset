@@ -128,3 +128,50 @@ def test_denormalize_name(name: str, expected_result: str):
     from superset.db_engine_specs.oracle import OracleEngineSpec as spec  # noqa: N813
 
     assert spec.denormalize_name(oracle.dialect(), name) == expected_result
+
+
+def test_get_cancel_query_id() -> None:
+    from superset.db_engine_specs.oracle import OracleEngineSpec
+    from superset.models.sql_lab import Query
+
+    cursor = mock.Mock()
+    cursor.fetchone.return_value = (162, 53643, 1)
+    assert OracleEngineSpec.get_cancel_query_id(cursor, Query()) == "162,53643,1"
+    assert "CURRENT_SESSION_SERIAL" in cursor.execute.call_args[0][0]
+
+
+def test_get_cancel_query_id_failed() -> None:
+    from superset.db_engine_specs.oracle import OracleEngineSpec
+    from superset.models.sql_lab import Query
+
+    cursor = mock.Mock()
+    cursor.execute.side_effect = Exception("ORA-00904")
+    assert OracleEngineSpec.get_cancel_query_id(cursor, Query()) is None
+
+
+def test_cancel_query() -> None:
+    from superset.db_engine_specs.oracle import OracleEngineSpec
+    from superset.models.sql_lab import Query
+
+    cursor = mock.Mock()
+    assert OracleEngineSpec.cancel_query(cursor, Query(), "162,53643,1") is True
+    cursor.execute.assert_called_once_with("ALTER SYSTEM CANCEL SQL '162, 53643, @1'")
+
+
+def test_cancel_query_failed() -> None:
+    from superset.db_engine_specs.oracle import OracleEngineSpec
+    from superset.models.sql_lab import Query
+
+    cursor = mock.Mock()
+    cursor.execute.side_effect = Exception("ORA-01031: insufficient privileges")
+    assert OracleEngineSpec.cancel_query(cursor, Query(), "162,53643,1") is False
+
+
+@pytest.mark.parametrize("cancel_query_id", ["1,2", "1,2,1'; --", "a,b,c", ""])
+def test_cancel_query_invalid_id(cancel_query_id: str) -> None:
+    from superset.db_engine_specs.oracle import OracleEngineSpec
+    from superset.models.sql_lab import Query
+
+    cursor = mock.Mock()
+    assert OracleEngineSpec.cancel_query(cursor, Query(), cancel_query_id) is False
+    cursor.execute.assert_not_called()
