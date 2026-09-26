@@ -37,6 +37,7 @@ from superset.mcp_service.chart.schemas import (
     MixedTimeseriesChartConfig,
     PieChartConfig,
     PivotTableChartConfig,
+    SortByConfig,
     TableChartConfig,
     UpdateChartRequest,
     XYChartConfig,
@@ -1219,3 +1220,171 @@ class TestRequestSchemaAliasChoices:
     def test_list_charts_select_columns_columns_alias(self) -> None:
         req = ListChartsRequest.model_validate({"columns": ["id", "slice_name"]})
         assert req.select_columns == ["id", "slice_name"]
+
+
+class TestXYChartConfigSortBy:
+    """Test sort_by options, coercions, and aliases in XYChartConfig."""
+
+    def test_sort_by_default_none(self) -> None:
+        config = XYChartConfig(
+            chart_type="xy",
+            x=ColumnRef(name="category"),
+            y=[ColumnRef(name="sales", aggregate="SUM")],
+        )
+        assert config.sort_by is None
+
+    def test_sort_by_bare_string_coerced(self) -> None:
+        config = XYChartConfig(
+            chart_type="xy",
+            x=ColumnRef(name="category"),
+            y=[ColumnRef(name="sales", aggregate="SUM")],
+            sort_by="sales",
+        )
+        assert isinstance(config.sort_by, SortByConfig)
+        assert config.sort_by.column == "sales"
+        assert config.sort_by.ascending is False
+
+    def test_sort_by_single_item_string_list_coerced(self) -> None:
+        config = XYChartConfig(
+            chart_type="xy",
+            x=ColumnRef(name="category"),
+            y=[ColumnRef(name="sales", aggregate="SUM")],
+            sort_by=["sales"],
+        )
+        assert isinstance(config.sort_by, SortByConfig)
+        assert config.sort_by.column == "sales"
+        assert config.sort_by.ascending is False
+
+    def test_sort_by_single_item_config_list(self) -> None:
+        config = XYChartConfig(
+            chart_type="xy",
+            x=ColumnRef(name="category"),
+            y=[ColumnRef(name="sales", aggregate="SUM")],
+            sort_by=[SortByConfig(column="sales", ascending=True)],
+        )
+        assert isinstance(config.sort_by, SortByConfig)
+        assert config.sort_by.column == "sales"
+        assert config.sort_by.ascending is True
+
+    def test_sort_by_single_item_dict_list(self) -> None:
+        config = XYChartConfig(
+            chart_type="xy",
+            x=ColumnRef(name="category"),
+            y=[ColumnRef(name="sales", aggregate="SUM")],
+            sort_by=[{"column": "sales", "ascending": True}],
+        )
+        assert isinstance(config.sort_by, SortByConfig)
+        assert config.sort_by.column == "sales"
+        assert config.sort_by.ascending is True
+
+    def test_sort_by_config_object(self) -> None:
+        config = XYChartConfig(
+            chart_type="xy",
+            x=ColumnRef(name="category"),
+            y=[ColumnRef(name="sales", aggregate="SUM")],
+            sort_by=SortByConfig(column="sales", ascending=True),
+        )
+        assert isinstance(config.sort_by, SortByConfig)
+        assert config.sort_by.column == "sales"
+        assert config.sort_by.ascending is True
+
+    def test_sort_by_dict(self) -> None:
+        config = XYChartConfig(
+            chart_type="xy",
+            x=ColumnRef(name="category"),
+            y=[ColumnRef(name="sales", aggregate="SUM")],
+            sort_by={"column": "sales", "ascending": True},
+        )
+        assert isinstance(config.sort_by, SortByConfig)
+        assert config.sort_by.column == "sales"
+        assert config.sort_by.ascending is True
+
+    def test_sort_by_alias_x_axis_sort(self) -> None:
+        config = XYChartConfig(
+            chart_type="xy",
+            x=ColumnRef(name="category"),
+            y=[ColumnRef(name="sales", aggregate="SUM")],
+            x_axis_sort="sales",
+        )
+        assert isinstance(config.sort_by, SortByConfig)
+        assert config.sort_by.column == "sales"
+        assert config.sort_by.ascending is False
+
+    def test_sort_by_alias_order_by(self) -> None:
+        config = XYChartConfig(
+            chart_type="xy",
+            x=ColumnRef(name="category"),
+            y=[ColumnRef(name="sales", aggregate="SUM")],
+            order_by="sales",
+        )
+        assert isinstance(config.sort_by, SortByConfig)
+        assert config.sort_by.column == "sales"
+        assert config.sort_by.ascending is False
+
+    def test_sort_by_empty_list_results_in_none(self) -> None:
+        config = XYChartConfig(
+            chart_type="xy",
+            x=ColumnRef(name="category"),
+            y=[ColumnRef(name="sales", aggregate="SUM")],
+            sort_by=[],
+        )
+        assert config.sort_by is None
+
+    def test_sort_by_empty_string_fails_validation(self) -> None:
+        with pytest.raises(ValidationError):
+            XYChartConfig(
+                chart_type="xy",
+                x=ColumnRef(name="category"),
+                y=[ColumnRef(name="sales", aggregate="SUM")],
+                sort_by="",
+            )
+
+    def test_sort_by_model_dump_and_validate_roundtrip(self) -> None:
+        config = XYChartConfig(
+            chart_type="xy",
+            x=ColumnRef(name="category"),
+            y=[ColumnRef(name="sales", aggregate="SUM")],
+            sort_by="sales",
+        )
+        dumped = config.model_dump()
+        assert dumped["sort_by"] == {"column": "sales", "ascending": False}
+
+        restored = XYChartConfig.model_validate(dumped)
+        assert isinstance(restored.sort_by, SortByConfig)
+        assert restored.sort_by.column == "sales"
+        assert restored.sort_by.ascending is False
+
+    def test_sort_by_single_item_list(self) -> None:
+        config = XYChartConfig(
+            chart_type="xy",
+            x=ColumnRef(name="category"),
+            y=[ColumnRef(name="sales", aggregate="SUM")],
+            sort_by=["sales"],
+        )
+        assert isinstance(config.sort_by, SortByConfig)
+        assert config.sort_by.column == "sales"
+        assert config.sort_by.ascending is False
+
+    def test_sort_by_multiple_columns_fails_validation(self) -> None:
+        with pytest.raises(
+            ValidationError, match="XY charts support only a single sort column"
+        ):
+            XYChartConfig(
+                chart_type="xy",
+                x=ColumnRef(name="category"),
+                y=[ColumnRef(name="sales", aggregate="SUM")],
+                sort_by=["sales", "revenue"],
+            )
+
+        with pytest.raises(
+            ValidationError, match="XY charts support only a single sort column"
+        ):
+            XYChartConfig(
+                chart_type="xy",
+                x=ColumnRef(name="category"),
+                y=[ColumnRef(name="sales", aggregate="SUM")],
+                sort_by=[
+                    SortByConfig(column="sales", ascending=True),
+                    SortByConfig(column="revenue", ascending=False),
+                ],
+            )
