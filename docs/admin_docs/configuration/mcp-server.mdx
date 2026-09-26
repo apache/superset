@@ -1378,3 +1378,15 @@ predicate, whose behavior varied by database. It is not an indexed
 full-text search: large catalogs and long descriptions can increase scan time.
 Benchmark with your metadata database and catalog size when tuning discovery
 latency.
+
+### Missing chart columns
+
+When a chart references a missing column, `generate_chart` returns a structured
+`column_not_found` error with up to three similar physical column names. If no
+similar columns exist, it returns explicit no-match guidance instead. Column
+errors include a bounded `dataset_context` with up to ten available column names
+from the authorized dataset; names are escaped and length-limited. Saved-metric
+expressions are not included. When multiple columns are missing, the error type is
+`multiple_invalid_columns`, with the invalid names in escaped, length-limited
+details and deduplicated suggestion candidates. Use `get_dataset_info` for the
+complete schema.

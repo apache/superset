@@ -134,7 +134,7 @@ class ChartErrorBuilder:
             "suggestions": [
                 "Check column name spelling and case sensitivity",
                 "Use get_dataset_info to see available columns",
-                "Did you mean: {suggestions}?",
+                "{suggestions}",
             ],
         },
         # Runtime errors
@@ -363,7 +363,9 @@ class ChartErrorBuilder:
     ) -> ChartGenerationError:
         """Build a column not found error."""
         suggestion_text = (
-            ", ".join(suggestions[:3]) if suggestions else "Check available columns"
+            f"Did you mean: {', '.join(suggestions[:3])}?"
+            if suggestions
+            else "No matching columns found."
         )
         return cls.build_error(
             error_type="column_not_found",
