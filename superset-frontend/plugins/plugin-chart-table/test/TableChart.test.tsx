@@ -1031,6 +1031,97 @@ describe('plugin-chart-table', () => {
         cells = document.querySelectorAll('td');
       });
 
+      test('renders a bar for a cell-bar conditional formatting rule regardless of the global toggle', () => {
+        const baseProps = (showCellBars: boolean) =>
+          transformProps({
+            ...testData.raw,
+            queriesData: [
+              {
+                ...testData.raw.queriesData[0],
+                colnames: ['num'],
+                coltypes: [GenericDataType.Numeric],
+                data: [{ num: 1234 }, { num: 10000 }, { num: 0 }],
+              },
+            ],
+            rawFormData: {
+              ...testData.raw.rawFormData,
+              show_cell_bars: showCellBars,
+              conditional_formatting: [
+                {
+                  colorScheme: '#ACE1C4',
+                  column: 'num',
+                  operator: Comparator.Equal,
+                  targetValue: 1234,
+                  objectFormatting: ObjectFormattingEnum.CELL_BAR,
+                },
+              ],
+            },
+          });
+
+        const getBars = (props: ReturnType<typeof baseProps>) => {
+          const { container } = render(
+            ProviderWrapper({
+              children: <TableChart {...props} sticky={false} />,
+            }),
+          );
+          const rows = container.querySelectorAll('tbody tr');
+          const bars: (Element | null)[] = [];
+          rows.forEach(row => {
+            bars.push(row.querySelector('td div.cell-bar'));
+          });
+          return bars;
+        };
+
+        // Toggle ON: bars render everywhere, including the matched cell.
+        const barsOn = getBars(baseProps(true));
+        expect(barsOn[0]).toBeTruthy();
+        expect(barsOn[1]).toBeTruthy();
+
+        // Toggle OFF: only the cell matching the rule draws a bar;
+        // non-matching cells stay bare.
+        const barsOff = getBars(baseProps(false));
+        expect(barsOff[0]).toBeTruthy();
+        expect(barsOff[1]).toBeNull();
+        expect(barsOff[2]).toBeNull();
+      });
+
+      test('cell-bar rule on string numeric cells matches the comparator numerically', () => {
+        const props = transformProps({
+          ...testData.raw,
+          queriesData: [
+            {
+              ...testData.raw.queriesData[0],
+              colnames: ['num'],
+              coltypes: [GenericDataType.Numeric],
+              data: [{ num: '1234.00' }, { num: '10000.00' }, { num: '0.00' }],
+            },
+          ],
+          rawFormData: {
+            ...testData.raw.rawFormData,
+            show_cell_bars: false,
+            conditional_formatting: [
+              {
+                colorScheme: '#ACE1C4',
+                column: 'num',
+                operator: Comparator.Equal,
+                targetValue: 1234,
+                objectFormatting: ObjectFormattingEnum.CELL_BAR,
+              },
+            ],
+          },
+        });
+        const { container } = render(
+          ProviderWrapper({
+            children: <TableChart {...props} sticky={false} />,
+          }),
+        );
+        const rows = container.querySelectorAll('tbody tr');
+        const bar0 = rows[0].querySelector('td div.cell-bar');
+        const bar1 = rows[1].querySelector('td div.cell-bar');
+        expect(bar0).toBeTruthy();
+        expect(bar1).toBeNull();
+      });
+
       test('render cell bars even when column contains NULL values', () => {
         const props = transformProps({
           ...testData.raw,
