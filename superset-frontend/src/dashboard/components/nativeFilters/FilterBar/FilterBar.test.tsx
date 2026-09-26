@@ -19,11 +19,13 @@
 
 import {
   act,
+  createStore,
   fireEvent,
   render,
   screen,
   userEvent,
   waitFor,
+  within,
 } from 'spec/helpers/testing-library';
 import { stateWithoutNativeFilters } from 'spec/fixtures/mockStore';
 import { testWithId } from 'src/utils/testUtils';
@@ -35,6 +37,9 @@ import {
 } from 'src/filters/components';
 import fetchMock from 'fetch-mock';
 import { FilterBarOrientation } from 'src/dashboard/types';
+import { setActiveTabs } from 'src/dashboard/actions/dashboardState';
+import reducerIndex from 'spec/helpers/reducerIndex';
+import type { Store } from '@reduxjs/toolkit';
 import { FILTER_BAR_TEST_ID } from './utils';
 import FilterBar from '.';
 import { FILTERS_CONFIG_MODAL_TEST_ID } from '../FiltersConfigModal/FiltersConfigModal';
@@ -233,6 +238,7 @@ function setupTimeRangeMocks() {
 function renderFilterBar(
   props: { filtersOpen: boolean; toggleFiltersBar: jest.Mock },
   state?: object,
+  store?: Store,
 ) {
   return render(
     <FilterBar
@@ -246,6 +252,7 @@ function renderFilterBar(
     />,
     {
       initialState: state,
+      store,
       useDnd: true,
       useRedux: true,
       useRouter: true,
@@ -1241,4 +1248,934 @@ test('FilterBar with orientation=Vertical renders Vertical layout (sanity counte
   expect(
     screen.queryByRole('img', { name: 'setting' }),
   ).not.toBeInTheDocument();
+});
+
+describe('cascading native filter clear', () => {
+  const parentId = 'NATIVE_FILTER-cascade-country';
+  const childId = 'NATIVE_FILTER-cascade-city';
+
+  function createCascadeState() {
+    const parentFilter = createFilter({
+      id: parentId,
+      name: 'Country',
+      filterType: 'filter_select',
+      targets: [{ datasetId: 7, column: { name: 'country' } }],
+      chartsInScope: [18],
+    });
+    const childFilter = createFilter({
+      id: childId,
+      name: 'City',
+      filterType: 'filter_select',
+      targets: [{ datasetId: 7, column: { name: 'city' } }],
+      cascadeParentIds: [parentId],
+      chartsInScope: [18],
+    });
+    return {
+      ...stateWithoutNativeFilters,
+      dashboardInfo: {
+        id: 1,
+        dash_edit_perm: true,
+        filterBarOrientation: FilterBarOrientation.Vertical,
+        metadata: {
+          native_filter_configuration: [parentFilter, childFilter],
+          chart_configuration: {},
+        },
+      },
+      dashboardState: {
+        ...stateWithoutNativeFilters.dashboardState,
+        activeTabs: ['ROOT_ID'],
+      },
+      dataMask: {
+        [parentId]: createDataMask(parentId, ['USA'], {
+          filters: [{ col: 'country', op: 'IN', val: ['USA'] }],
+        }),
+        [childId]: createDataMask(childId, ['New York'], {
+          filters: [{ col: 'city', op: 'IN', val: ['New York'] }],
+        }),
+      },
+      nativeFilters: {
+        filters: {
+          [parentId]: parentFilter,
+          [childId]: childFilter,
+        },
+        filtersState: {},
+      },
+    };
+  }
+
+  beforeEach(() => {
+    // Drop any chart/data routes registered by earlier tests in this file so
+    // this suite's static response always wins for the filter queries.
+    fetchMock.removeRoutes();
+    fetchMock.post(
+      'glob:*/api/v1/chart/data',
+      {
+        result: [
+          {
+            data: [{ country: 'USA' }, { country: 'UK' }],
+            colnames: ['country'],
+            coltypes: [1],
+            applied_filters: [],
+          },
+        ],
+      },
+      { name: 'cascade-chart-data' },
+    );
+  });
+
+  test('changing a parent filter value clears the child selection', async () => {
+    // Spy must be created inside the test: earlier tests in this file restore
+    // a shared spy on the same action, which would silently detach this one.
+    const updateDataMaskSpy = jest.spyOn(dataMaskActions, 'updateDataMask');
+
+    const state = createCascadeState();
+    const props = createOpenedBarProps();
+    renderFilterBar(props, state);
+
+    await act(async () => {
+      jest.advanceTimersByTime(1000);
+    });
+
+    // Locate the parent (Country) select control via its labeled form item,
+    // then change its value from USA to UK.
+    const parentLabel = await screen.findByText('Country');
+    const parentFormItem = parentLabel.closest('.ant-form-item') as HTMLElement;
+    const parentSelect = within(parentFormItem).getByRole('combobox');
+    await act(async () => {
+      await userEvent.click(parentSelect);
+    });
+    const ukOption = await screen.findByText('UK');
+    await act(async () => {
+      await userEvent.click(ukOption);
+    });
+
+    // Let the parent change propagate through the filter tree.
+    await act(async () => {
+      jest.advanceTimersByTime(1000);
+    });
+
+    // Apply the staged changes. The child (City) must be dispatched with a
+    // cleared value — New York is not a valid city under UK.
+    const applyBtn = screen.getByTestId(getTestId('apply-button'));
+    await act(async () => {
+      await userEvent.click(applyBtn);
+    });
+
+    const childCall = updateDataMaskSpy.mock.calls.find(
+      call => call[0] === childId,
+    );
+    expect(childCall).toBeDefined();
+    expect(childCall![1]?.filterState?.value).toEqual(null);
+    expect(childCall![1]?.extraFormData).toEqual({});
+  });
+
+  test('changing a parent filter value re-seeds a defaultToFirstItem child', async () => {
+    const defaultFirstChildId = 'NATIVE_FILTER-cascade-default-first';
+    const defaultFirstChild = createFilter({
+      id: defaultFirstChildId,
+      name: 'Default City',
+      filterType: 'filter_select',
+      targets: [{ datasetId: 7, column: { name: 'city' } }],
+      cascadeParentIds: [parentId],
+      controlValues: { defaultToFirstItem: true },
+      chartsInScope: [18],
+    });
+    const updateDataMaskSpy = jest.spyOn(dataMaskActions, 'updateDataMask');
+
+    const state = {
+      ...createCascadeState(),
+      nativeFilters: {
+        filters: {
+          [parentId]: createCascadeState().nativeFilters.filters[parentId],
+          [defaultFirstChildId]: defaultFirstChild,
+        },
+        filtersState: {},
+      },
+      dashboardInfo: {
+        ...createCascadeState().dashboardInfo,
+        metadata: {
+          native_filter_configuration: [
+            createCascadeState().dashboardInfo.metadata
+              .native_filter_configuration[0],
+            defaultFirstChild,
+          ],
+          chart_configuration: {},
+        },
+      },
+      dataMask: {
+        [parentId]: createDataMask(parentId, ['USA'], {
+          filters: [{ col: 'country', op: 'IN', val: ['USA'] }],
+        }),
+        [defaultFirstChildId]: createDataMask(
+          defaultFirstChildId,
+          ['Champaign'],
+          { filters: [{ col: 'city', op: 'IN', val: ['Champaign'] }] },
+        ),
+      },
+    };
+    const props = createOpenedBarProps();
+    renderFilterBar(props, state);
+
+    await act(async () => {
+      jest.advanceTimersByTime(1000);
+    });
+
+    const parentLabel = await screen.findByText('Country');
+    const parentFormItem = parentLabel.closest('.ant-form-item') as HTMLElement;
+    const parentSelect = within(parentFormItem).getByRole('combobox');
+    await act(async () => {
+      await userEvent.click(parentSelect);
+    });
+    const ukOption = await screen.findByText('UK');
+    await act(async () => {
+      await userEvent.click(ukOption);
+    });
+
+    await act(async () => {
+      jest.advanceTimersByTime(1000);
+    });
+
+    const applyBtn = screen.getByTestId(getTestId('apply-button'));
+    await act(async () => {
+      await userEvent.click(applyBtn);
+    });
+
+    // The defaultToFirstItem child is cascade-staged with undefined (not null)
+    // so the Select plugin re-seeds the first option of the new scoped set.
+    const childCall = updateDataMaskSpy.mock.calls.find(
+      call => call[0] === defaultFirstChildId,
+    );
+    expect(childCall).toBeDefined();
+    expect(childCall![1]?.filterState?.value).toBeUndefined();
+    expect(childCall![1]?.extraFormData).toEqual({});
+  });
+
+  test('changing a parent filter value clears a dependent Range child with [null, null]', async () => {
+    const rangeChildId = 'NATIVE_FILTER-cascade-age';
+    const rangeChildFilter = createFilter({
+      id: rangeChildId,
+      name: 'Age',
+      filterType: 'filter_range',
+      targets: [{ datasetId: 7, column: { name: 'age' } }],
+      cascadeParentIds: [parentId],
+      chartsInScope: [18],
+    });
+    const state = {
+      ...stateWithoutNativeFilters,
+      dashboardInfo: {
+        id: 1,
+        dash_edit_perm: true,
+        filterBarOrientation: FilterBarOrientation.Vertical,
+        metadata: {
+          native_filter_configuration: [
+            createFilter({
+              id: parentId,
+              name: 'Country',
+              filterType: 'filter_select',
+              targets: [{ datasetId: 7, column: { name: 'country' } }],
+              chartsInScope: [18],
+            }),
+            rangeChildFilter,
+          ],
+          chart_configuration: {},
+        },
+      },
+      dashboardState: {
+        ...stateWithoutNativeFilters.dashboardState,
+        activeTabs: ['ROOT_ID'],
+      },
+      dataMask: {
+        [parentId]: createDataMask(parentId, ['USA'], {
+          filters: [{ col: 'country', op: 'IN', val: ['USA'] }],
+        }),
+        [rangeChildId]: createDataMask(rangeChildId, [10, 70], {
+          filters: [
+            { col: 'age', op: '>=', val: 10 },
+            { col: 'age', op: '<=', val: 70 },
+          ],
+        }),
+      },
+      nativeFilters: {
+        filters: {
+          [parentId]: createFilter({
+            id: parentId,
+            name: 'Country',
+            filterType: 'filter_select',
+            targets: [{ datasetId: 7, column: { name: 'country' } }],
+            chartsInScope: [18],
+          }),
+          [rangeChildId]: rangeChildFilter,
+        },
+        filtersState: {},
+      },
+    };
+
+    // First call returns parent options; second call returns range data
+    // for the child (loaded after the parent dependency resolves).
+    fetchMock.removeRoutes();
+    fetchMock.post(
+      'glob:*/api/v1/chart/data',
+      {
+        result: [
+          {
+            data: [{ country: 'USA' }, { country: 'UK' }],
+            colnames: ['country'],
+            coltypes: [1],
+            applied_filters: [],
+          },
+          {
+            data: [{ min: 0, max: 100 }],
+            colnames: ['min', 'max'],
+            coltypes: [0, 0],
+            applied_filters: [],
+          },
+        ],
+      },
+      { name: 'cascade-range-chart-data' },
+    );
+
+    const updateDataMaskSpy = jest.spyOn(dataMaskActions, 'updateDataMask');
+    const props = createOpenedBarProps();
+    renderFilterBar(props, state);
+
+    await act(async () => {
+      jest.advanceTimersByTime(1000);
+    });
+
+    const parentLabel = await screen.findByText('Country');
+    const parentFormItem = parentLabel.closest('.ant-form-item') as HTMLElement;
+    const parentSelect = within(parentFormItem).getByRole('combobox');
+    await act(async () => {
+      await userEvent.click(parentSelect);
+    });
+    const ukOption = await screen.findByText('UK');
+    await act(async () => {
+      await userEvent.click(ukOption);
+    });
+
+    await act(async () => {
+      jest.advanceTimersByTime(1000);
+    });
+
+    const applyBtn = screen.getByTestId(getTestId('apply-button'));
+    await act(async () => {
+      await userEvent.click(applyBtn);
+    });
+
+    // The Range child must be cleared with [null, null], not bare null.
+    // Bare null is ignored by RangeFilterPlugin's sync effect and would
+    // leave stale UI (the original reviewer concern).
+    const rangeChildCall = updateDataMaskSpy.mock.calls.find(
+      call => call[0] === rangeChildId,
+    );
+    expect(rangeChildCall).toBeDefined();
+    expect(rangeChildCall![1]?.filterState?.value).toEqual([null, null]);
+    expect(rangeChildCall![1]?.extraFormData).toEqual({});
+  });
+
+  test('an optional parent first real selection clears the child', async () => {
+    const updateDataMaskSpy = jest.spyOn(dataMaskActions, 'updateDataMask');
+
+    const state = createCascadeState();
+    // The parent starts with no value (no default, nothing persisted) while
+    // the child still holds a persisted value from a prior combination.
+    state.dataMask[parentId] = createDataMask(parentId, undefined, {});
+    const props = createOpenedBarProps();
+    renderFilterBar(props, state);
+
+    await act(async () => {
+      jest.advanceTimersByTime(1000);
+    });
+
+    // Locate the parent (Country) select control via its labeled form item,
+    // then pick the parent's first value.
+    const parentLabel = await screen.findByText('Country');
+    const parentFormItem = parentLabel.closest('.ant-form-item') as HTMLElement;
+    const parentSelect = within(parentFormItem).getByRole('combobox');
+    await act(async () => {
+      await userEvent.click(parentSelect);
+    });
+    const ukOption = await screen.findByText('UK');
+    await act(async () => {
+      await userEvent.click(ukOption);
+    });
+
+    await act(async () => {
+      jest.advanceTimersByTime(1000);
+    });
+
+    // The first user-selected parent value is a dependency change, so the
+    // child's stale persisted selection must be cleared.
+    const applyBtn = screen.getByTestId(getTestId('apply-button'));
+    await act(async () => {
+      await userEvent.click(applyBtn);
+    });
+
+    const childCall = updateDataMaskSpy.mock.calls.find(
+      call => call[0] === childId,
+    );
+    expect(childCall).toBeDefined();
+    expect(childCall![1]?.filterState?.value).toEqual(null);
+    expect(childCall![1]?.extraFormData).toEqual({});
+
+    updateDataMaskSpy.mockRestore();
+  });
+
+  test('defaultToFirstItem auto-seed does not clear the child', async () => {
+    const updateDataMaskSpy = jest.spyOn(dataMaskActions, 'updateDataMask');
+
+    const state = createCascadeState();
+    // The parent auto-selects its first option on load; that initialization
+    // must not be treated as a dependency change.
+    state.dataMask[parentId] = createDataMask(parentId, undefined, {});
+    state.nativeFilters.filters[parentId] = createFilter({
+      id: parentId,
+      name: 'Country',
+      filterType: 'filter_select',
+      targets: [{ datasetId: 7, column: { name: 'country' } }],
+      controlValues: { defaultToFirstItem: true },
+      chartsInScope: [18],
+    });
+    state.dashboardInfo.metadata.native_filter_configuration = [
+      state.nativeFilters.filters[parentId],
+      state.nativeFilters.filters[childId],
+    ];
+    const props = createOpenedBarProps();
+    renderFilterBar(props, state);
+
+    await act(async () => {
+      jest.advanceTimersByTime(1000);
+    });
+
+    // The child keeps its persisted value once the parent auto-seeds.
+    const applyBtn = screen.getByTestId(getTestId('apply-button'));
+    await act(async () => {
+      await userEvent.click(applyBtn);
+    });
+
+    const childCall = updateDataMaskSpy.mock.calls.find(
+      call => call[0] === childId,
+    );
+    expect(childCall).toBeDefined();
+    expect(childCall![1]?.filterState?.value).toEqual(['New York']);
+
+    updateDataMaskSpy.mockRestore();
+  });
+
+  test('inverse-selection toggle clears the child even though the selected value is unchanged', async () => {
+    const updateDataMaskSpy = jest.spyOn(dataMaskActions, 'updateDataMask');
+
+    const state = createCascadeState();
+    // Configure the parent as an inverse-selection filter so the IN / NOT IN
+    // (exclude) control is available.
+    const inverseParentFilter = createFilter({
+      id: parentId,
+      name: 'Country',
+      filterType: 'filter_select',
+      targets: [{ datasetId: 7, column: { name: 'country' } }],
+      controlValues: { inverseSelection: true },
+      chartsInScope: [18],
+    });
+    state.nativeFilters.filters[parentId] = inverseParentFilter;
+    state.dashboardInfo.metadata.native_filter_configuration = [
+      inverseParentFilter,
+      state.nativeFilters.filters[childId],
+    ];
+    const props = createOpenedBarProps();
+    renderFilterBar(props, state);
+
+    await act(async () => {
+      jest.advanceTimersByTime(1000);
+    });
+
+    const parentLabel = await screen.findByText('Country');
+    const parentFormItem = parentLabel.closest('.ant-form-item') as HTMLElement;
+
+    // Flip the clause from the persisted IN ('is') to NOT IN ('is not') while
+    // the selected value stays ['USA']. The plugin defaults an inverse-selection
+    // filter to 'is not' on mount, so the *other* option is the real change.
+    const excludeSelect = parentFormItem.querySelector(
+      '.exclude-select',
+    ) as HTMLElement;
+    fireEvent.mouseDown(
+      excludeSelect.querySelector('.ant-select-content') as HTMLElement,
+    );
+    const isOption = await screen.findByRole('option', { name: 'is' });
+    await act(async () => {
+      await userEvent.click(isOption);
+    });
+
+    await act(async () => {
+      jest.advanceTimersByTime(1000);
+    });
+
+    // NOT IN -> IN changes the dependency clause, so the child must clear.
+    const applyBtn = screen.getByTestId(getTestId('apply-button'));
+    await act(async () => {
+      await userEvent.click(applyBtn);
+    });
+
+    const childCall = updateDataMaskSpy.mock.calls.find(
+      call => call[0] === childId,
+    );
+    expect(childCall).toBeDefined();
+    expect(childCall![1]?.filterState?.value).toEqual(null);
+    expect(childCall![1]?.extraFormData).toEqual({});
+
+    updateDataMaskSpy.mockRestore();
+  });
+
+  test('cascading clear of a required Range child keeps Apply disabled', async () => {
+    const requiredRangeChildId = 'NATIVE_FILTER-cascade-required-age';
+    const requiredRangeChildFilter = createFilter({
+      id: requiredRangeChildId,
+      name: 'Age',
+      filterType: 'filter_range',
+      targets: [{ datasetId: 7, column: { name: 'age' } }],
+      controlValues: { enableEmptyFilter: true },
+      cascadeParentIds: [parentId],
+      chartsInScope: [18],
+    });
+    const countryFilter = createFilter({
+      id: parentId,
+      name: 'Country',
+      filterType: 'filter_select',
+      targets: [{ datasetId: 7, column: { name: 'country' } }],
+      chartsInScope: [18],
+    });
+    const state = {
+      ...stateWithoutNativeFilters,
+      dashboardInfo: {
+        id: 1,
+        dash_edit_perm: true,
+        filterBarOrientation: FilterBarOrientation.Vertical,
+        metadata: {
+          native_filter_configuration: [
+            countryFilter,
+            requiredRangeChildFilter,
+          ],
+          chart_configuration: {},
+        },
+      },
+      dashboardState: {
+        ...stateWithoutNativeFilters.dashboardState,
+        activeTabs: ['ROOT_ID'],
+      },
+      dataMask: {
+        [parentId]: createDataMask(parentId, ['USA'], {
+          filters: [{ col: 'country', op: 'IN', val: ['USA'] }],
+        }),
+        [requiredRangeChildId]: createDataMask(requiredRangeChildId, [10, 70], {
+          filters: [
+            { col: 'age', op: '>=', val: 10 },
+            { col: 'age', op: '<=', val: 70 },
+          ],
+        }),
+      },
+      nativeFilters: {
+        filters: {
+          [parentId]: countryFilter,
+          [requiredRangeChildId]: requiredRangeChildFilter,
+        },
+        filtersState: {},
+      },
+    };
+
+    fetchMock.removeRoutes();
+    // The Range child requests MIN/MAX aggregates, which lets us tell its
+    // query apart from the parent select's options query and give it numeric data.
+    fetchMock.post(
+      request => {
+        const [url, opts] = (
+          request as unknown as { args: [string, { body?: string }] }
+        ).args;
+        return (
+          url.includes('/api/v1/chart/data') &&
+          typeof opts.body === 'string' &&
+          opts.body.includes('"aggregate":"MIN"')
+        );
+      },
+      {
+        result: [
+          {
+            data: [{ min: 0, max: 100 }],
+            colnames: ['min', 'max'],
+            coltypes: [0, 0],
+            applied_filters: [],
+          },
+        ],
+      },
+      { name: 'cascade-required-range-minmax' },
+    );
+    fetchMock.post(
+      // Fallback: serve the parent select's country options
+      'glob:*/api/v1/chart/data',
+      {
+        result: [
+          {
+            data: [{ country: 'USA' }, { country: 'UK' }],
+            colnames: ['country'],
+            coltypes: [1],
+            applied_filters: [],
+          },
+        ],
+      },
+      { name: 'cascade-required-range-values' },
+    );
+
+    const updateDataMaskSpy = jest.spyOn(dataMaskActions, 'updateDataMask');
+    const props = createOpenedBarProps();
+    renderFilterBar(props, state);
+
+    await act(async () => {
+      jest.advanceTimersByTime(1000);
+    });
+
+    const parentLabel = await screen.findByText('Country');
+    const parentFormItem = parentLabel.closest('.ant-form-item') as HTMLElement;
+    const parentSelect = within(parentFormItem).getByRole('combobox');
+    await act(async () => {
+      await userEvent.click(parentSelect);
+    });
+    const ukOption = await screen.findByText('UK');
+    await act(async () => {
+      await userEvent.click(ukOption);
+    });
+
+    await act(async () => {
+      jest.advanceTimersByTime(1000);
+    });
+
+    // The required Range child must not be applied empty: Apply stays
+    // disabled and the stale [10, 70] value is never re-dispatched.
+    expect(screen.getByTestId(getTestId('apply-button'))).toBeDisabled();
+    expect(
+      updateDataMaskSpy.mock.calls.find(
+        call => call[0] === requiredRangeChildId,
+      ),
+    ).toBeUndefined();
+
+    const inputs = screen.getAllByRole('spinbutton');
+    expect(inputs[0]).toHaveValue('');
+    expect(inputs[1]).toHaveValue('');
+
+    updateDataMaskSpy.mockRestore();
+  });
+
+  test('cascading clear only affects in-scope descendants on tabbed dashboards', async () => {
+    const outOfScopeChildId = 'NATIVE_FILTER-cascade-neighborhood';
+    const updateDataMaskSpy = jest.spyOn(dataMaskActions, 'updateDataMask');
+
+    const dashboardLayoutWithTabs = {
+      ROOT_ID: { id: 'ROOT_ID', type: 'ROOT', children: ['TABS-1'] },
+      'TABS-1': {
+        id: 'TABS-1',
+        type: 'TABS',
+        children: ['TAB-active', 'TAB-inactive'],
+      },
+      'TAB-active': {
+        id: 'TAB-active',
+        type: 'TAB',
+        children: ['CHART_ROW-1'],
+        meta: { text: 'Active Tab' },
+        parents: ['ROOT_ID', 'TABS-1'],
+      },
+      'TAB-inactive': {
+        id: 'TAB-inactive',
+        type: 'TAB',
+        children: ['CHART_ROW-2'],
+        meta: { text: 'Inactive Tab' },
+        parents: ['ROOT_ID', 'TABS-1'],
+      },
+      'CHART_ROW-1': {
+        id: 'CHART_ROW-1',
+        type: 'CHART',
+        meta: { chartId: 18 },
+        parents: ['ROOT_ID', 'TABS-1', 'TAB-active'],
+      },
+      'CHART_ROW-2': {
+        id: 'CHART_ROW-2',
+        type: 'CHART',
+        meta: { chartId: 19 },
+        parents: ['ROOT_ID', 'TABS-1', 'TAB-inactive'],
+      },
+    };
+
+    // Transitive descendant of the parent, scoped to the *inactive* tab, so it
+    // is out of scope while TAB-active is active. Required so the pre-fix
+    // behavior (staged validateStatus 'error') also disabled Apply.
+    const outOfScopeChildFilter = createFilter({
+      id: outOfScopeChildId,
+      name: 'Neighborhood',
+      filterType: 'filter_select',
+      targets: [{ datasetId: 7, column: { name: 'neighborhood' } }],
+      cascadeParentIds: [parentId],
+      controlValues: { enableEmptyFilter: true },
+      chartsInScope: [19],
+    });
+
+    const state = createCascadeState();
+    state.dashboardLayout = {
+      present: dashboardLayoutWithTabs,
+      past: [],
+      future: [],
+    } as unknown as typeof state.dashboardLayout;
+    state.dashboardState = {
+      ...state.dashboardState,
+      activeTabs: ['TAB-active'],
+    };
+    state.nativeFilters = {
+      ...state.nativeFilters,
+      filters: {
+        ...state.nativeFilters.filters,
+        [outOfScopeChildId]: outOfScopeChildFilter,
+      } as typeof state.nativeFilters.filters,
+    };
+    state.dashboardInfo = {
+      ...state.dashboardInfo,
+      metadata: {
+        ...state.dashboardInfo.metadata,
+        native_filter_configuration: [
+          ...state.dashboardInfo.metadata.native_filter_configuration,
+          outOfScopeChildFilter,
+        ],
+      },
+    };
+    state.dataMask = {
+      ...state.dataMask,
+      [outOfScopeChildId]: createDataMask(outOfScopeChildId, ['Texas'], {
+        filters: [{ col: 'neighborhood', op: 'IN', val: ['Texas'] }],
+      }),
+    } as typeof state.dataMask;
+
+    const props = createOpenedBarProps();
+    renderFilterBar(props, state);
+
+    await act(async () => {
+      jest.advanceTimersByTime(1000);
+    });
+
+    // Change the in-scope parent from USA to UK.
+    const parentLabel = await screen.findByText('Country');
+    const parentFormItem = parentLabel.closest('.ant-form-item') as HTMLElement;
+    const parentSelect = within(parentFormItem).getByRole('combobox');
+    await act(async () => {
+      await userEvent.click(parentSelect);
+    });
+    const ukOption = await screen.findByText('UK');
+    await act(async () => {
+      await userEvent.click(ukOption);
+    });
+
+    await act(async () => {
+      jest.advanceTimersByTime(1000);
+    });
+
+    // Apply must stay enabled: the out-of-scope required descendant was NOT
+    // cleared, so it stages no validateStatus 'error'. Pre-fix, the staged
+    // error on the out-of-scope required child disabled Apply globally.
+    const applyBtn = screen.getByTestId(getTestId('apply-button'));
+    expect(applyBtn).not.toBeDisabled();
+
+    await act(async () => {
+      await userEvent.click(applyBtn);
+    });
+
+    // The in-scope child is cascade-cleared.
+    const childCall = updateDataMaskSpy.mock.calls.find(
+      call => call[0] === childId,
+    );
+    expect(childCall).toBeDefined();
+    expect(childCall![1]?.filterState?.value).toEqual(null);
+    expect(childCall![1]?.extraFormData).toEqual({});
+
+    // The out-of-scope descendant is cascade-staged but not applied while its
+    // tab is inactive: getFiltersToApply skips out-of-scope filters without a
+    // value, so its stale applied Texas value is left in place for the other
+    // tab. The staged null (no validateStatus 'error' either) is what lets the
+    // descendant show as cleared the moment that tab becomes active.
+    const outOfScopeCall = updateDataMaskSpy.mock.calls.find(
+      call => call[0] === outOfScopeChildId,
+    );
+    expect(outOfScopeCall).toBeUndefined();
+
+    updateDataMaskSpy.mockRestore();
+  });
+
+  test('a persisted parent value does not cascade-clear a persisted child on load', async () => {
+    const updateDataMaskSpy = jest.spyOn(dataMaskActions, 'updateDataMask');
+
+    const state = createCascadeState();
+    // Parent and child both hold persisted values. On mount the parent re-emits
+    // its saved mask (empty extraFormData first, then its clauses); those
+    // synchronization emissions are not user changes and must not cascade-clear
+    // the child with no user action.
+    const props = createOpenedBarProps();
+    renderFilterBar(props, state);
+
+    await act(async () => {
+      jest.advanceTimersByTime(1000);
+    });
+
+    const applyBtn = screen.getByTestId(getTestId('apply-button'));
+    await act(async () => {
+      await userEvent.click(applyBtn);
+    });
+
+    // No dependency changed, so nothing is re-applied: the child keeps its
+    // persisted New York value and is not dispatched.
+    const childCall = updateDataMaskSpy.mock.calls.find(
+      call => call[0] === childId,
+    );
+    expect(childCall).toBeUndefined();
+
+    updateDataMaskSpy.mockRestore();
+  });
+
+  test('cascade clear stages an invalidation that applies when an out-of-scope descendant tab returns', async () => {
+    const updateDataMaskSpy = jest.spyOn(dataMaskActions, 'updateDataMask');
+    const outOfScopeChildId = 'NATIVE_FILTER-cascade-neighborhood';
+    const dashboardLayoutWithTabs = {
+      ROOT_ID: { id: 'ROOT_ID', type: 'ROOT', children: ['TABS-1'] },
+      'TABS-1': {
+        id: 'TABS-1',
+        type: 'TABS',
+        children: ['TAB-active', 'TAB-inactive'],
+      },
+      'TAB-active': {
+        id: 'TAB-active',
+        type: 'TAB',
+        children: ['CHART_ROW-1'],
+        meta: { text: 'Active Tab' },
+        parents: ['ROOT_ID', 'TABS-1'],
+      },
+      'TAB-inactive': {
+        id: 'TAB-inactive',
+        type: 'TAB',
+        children: ['CHART_ROW-2'],
+        meta: { text: 'Inactive Tab' },
+        parents: ['ROOT_ID', 'TABS-1'],
+      },
+      'CHART_ROW-1': {
+        id: 'CHART_ROW-1',
+        type: 'CHART',
+        meta: { chartId: 18 },
+        parents: ['ROOT_ID', 'TABS-1', 'TAB-active'],
+      },
+      'CHART_ROW-2': {
+        id: 'CHART_ROW-2',
+        type: 'CHART',
+        meta: { chartId: 19 },
+        parents: ['ROOT_ID', 'TABS-1', 'TAB-inactive'],
+      },
+    };
+
+    const outOfScopeChildFilter = createFilter({
+      id: outOfScopeChildId,
+      name: 'Neighborhood',
+      filterType: 'filter_select',
+      targets: [{ datasetId: 7, column: { name: 'neighborhood' } }],
+      cascadeParentIds: [parentId],
+      controlValues: { enableEmptyFilter: false },
+      chartsInScope: [19],
+    });
+
+    const state = createCascadeState();
+    state.dashboardLayout = {
+      present: dashboardLayoutWithTabs,
+      past: [],
+      future: [],
+    } as unknown as typeof state.dashboardLayout;
+    state.dashboardState = {
+      ...state.dashboardState,
+      activeTabs: ['TAB-active'],
+    };
+    state.nativeFilters = {
+      ...state.nativeFilters,
+      filters: {
+        ...state.nativeFilters.filters,
+        [outOfScopeChildId]: outOfScopeChildFilter,
+      } as typeof state.nativeFilters.filters,
+    };
+    state.dashboardInfo = {
+      ...state.dashboardInfo,
+      metadata: {
+        ...state.dashboardInfo.metadata,
+        native_filter_configuration: [
+          ...state.dashboardInfo.metadata.native_filter_configuration,
+          outOfScopeChildFilter,
+        ],
+      },
+    };
+    state.dataMask = {
+      ...state.dataMask,
+      [outOfScopeChildId]: createDataMask(outOfScopeChildId, ['Texas'], {
+        filters: [{ col: 'neighborhood', op: 'IN', val: ['Texas'] }],
+      }),
+    } as typeof state.dataMask;
+
+    const store = createStore(state, reducerIndex);
+    const props = createOpenedBarProps();
+    renderFilterBar(props, undefined, store);
+
+    await act(async () => {
+      jest.advanceTimersByTime(1000);
+    });
+
+    // Change the in-scope parent from USA to UK.
+    const parentLabel = await screen.findByText('Country');
+    const parentFormItem = parentLabel.closest('.ant-form-item') as HTMLElement;
+    const parentSelect = within(parentFormItem).getByRole('combobox');
+    await act(async () => {
+      await userEvent.click(parentSelect);
+    });
+    const ukOption = await screen.findByText('UK');
+    await act(async () => {
+      await userEvent.click(ukOption);
+    });
+
+    await act(async () => {
+      jest.advanceTimersByTime(1000);
+    });
+
+    // Apply on the active tab: the out-of-scope descendant is staged, not
+    // applied (same behavior pinned by the previous test).
+    const applyBtn = screen.getByTestId(getTestId('apply-button'));
+    expect(applyBtn).not.toBeDisabled();
+    await act(async () => {
+      await userEvent.click(applyBtn);
+    });
+    let outOfScopeCall = updateDataMaskSpy.mock.calls.find(
+      call => call[0] === outOfScopeChildId,
+    );
+    expect(outOfScopeCall).toBeUndefined();
+
+    // Switch to the tab the descendant belongs to. Its staged clear is now
+    // applied: the stale Texas selection is gone from the UI.
+    updateDataMaskSpy.mockClear();
+    await act(async () => {
+      store.dispatch(setActiveTabs(['TAB-inactive']));
+      jest.advanceTimersByTime(1000);
+    });
+
+    const neighborhoodLabel = await screen.findByText('Neighborhood');
+    const neighborhoodFormItem = neighborhoodLabel.closest(
+      '.ant-form-item',
+    ) as HTMLElement;
+    expect(within(neighborhoodFormItem).queryByText('Texas')).toBeNull();
+
+    // And applying from the returned tab dispatches the staged clear.
+    const returnedTabApply = screen.getByTestId(getTestId('apply-button'));
+    await act(async () => {
+      await userEvent.click(returnedTabApply);
+    });
+    outOfScopeCall = updateDataMaskSpy.mock.calls.find(
+      call => call[0] === outOfScopeChildId,
+    );
+    expect(outOfScopeCall).toBeDefined();
+    expect(outOfScopeCall![1]?.filterState?.value).toEqual(null);
+    expect(outOfScopeCall![1]?.extraFormData).toEqual({});
+
+    updateDataMaskSpy.mockRestore();
+  });
 });

@@ -1953,6 +1953,210 @@ test('clear-all resets LIKE input value and calls setDataMask with empty state',
   expect(setDataMaskMock).toHaveBeenCalledTimes(callsBeforeDebounceFlush);
 });
 
+test('cascade clear cancels a pending LIKE debounce so stale text is not re-applied', async () => {
+  jest.useFakeTimers({ advanceTimers: true });
+  const setDataMaskMock = jest.fn();
+  const likeProps = buildSelectFilterProps({
+    formData: { operatorType: SelectFilterOperatorType.Contains },
+    filterState: { value: ['Jen'] },
+    setDataMask: setDataMaskMock,
+  });
+
+  const reduxState = {
+    useRedux: true,
+    initialState: {
+      nativeFilters: {
+        filters: { 'test-filter': { name: 'Test Filter' } },
+      },
+      dataMask: {
+        'test-filter': {
+          extraFormData: {
+            filters: [{ col: 'gender', op: 'ILIKE', val: '%Jen%' }],
+          },
+          filterState: { value: ['Jen'] },
+        },
+      },
+    },
+  };
+
+  const { rerender } = render(
+    <SelectFilterPlugin {...likeProps} />,
+    reduxState,
+  );
+
+  const input = screen.getByPlaceholderText('Type to search (contains)...');
+
+  // Type new text; the LIKE debounce is scheduled but not flushed yet.
+  fireEvent.change(input, {
+    target: { value: 'Mar' },
+  });
+  expect(input).toHaveValue('Mar');
+
+  setDataMaskMock.mockClear();
+
+  // A parent filter change cascades a clear into this dependent filter while
+  // the LIKE debounce is still pending.
+  rerender(
+    <SelectFilterPlugin
+      {...likeProps}
+      cascadeClearTrigger={{ 'test-filter': true }}
+    />,
+  );
+
+  await waitFor(() => {
+    expect(input).toHaveValue('');
+  });
+
+  await waitFor(() => {
+    expect(setDataMaskMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        filterState: expect.objectContaining({
+          value: null,
+        }),
+      }),
+    );
+  });
+
+  const callsBeforeDebounceFlush = setDataMaskMock.mock.calls.length;
+
+  // Without the cancellation fix the pending 'Mar' debounce fires now and
+  // re-applies the stale ILIKE %Mar% clause.
+  act(() => {
+    jest.advanceTimersByTime(500);
+  });
+
+  expect(setDataMaskMock).toHaveBeenCalledTimes(callsBeforeDebounceFlush);
+});
+
+test('cascade clear resets a search-all ownState term and cancels a pending onSearch debounce', async () => {
+  jest.useFakeTimers({ advanceTimers: true });
+  const setDataMaskMock = jest.fn();
+  const props = buildSelectFilterProps({
+    formData: { searchAllOptions: true },
+    filterState: { value: ['Jen'] },
+    setDataMask: setDataMaskMock,
+  });
+
+  const reduxState = {
+    useRedux: true,
+    initialState: {
+      nativeFilters: {
+        filters: { 'test-filter': { name: 'Test Filter' } },
+      },
+      dataMask: {
+        'test-filter': {
+          extraFormData: {
+            filters: [{ col: 'gender', op: 'IN', val: ['Jen'] }],
+          },
+          filterState: { value: ['Jen'] },
+        },
+      },
+    },
+  };
+
+  const { rerender } = render(<SelectFilterPlugin {...props} />, reduxState);
+
+  // Type in the select's search box; the debounced onSearch emission is
+  // pending and has not fired yet.
+  fireEvent.change(screen.getByRole('combobox'), {
+    target: { value: 'Mar' },
+  });
+
+  setDataMaskMock.mockClear();
+
+  // A parent filter change cascades a clear into this dependent filter while
+  // the search-all debounce is still pending.
+  rerender(
+    <SelectFilterPlugin
+      {...props}
+      cascadeClearTrigger={{ 'test-filter': true }}
+    />,
+  );
+
+  await waitFor(() => {
+    expect(setDataMaskMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        filterState: expect.objectContaining({
+          value: null,
+        }),
+      }),
+    );
+  });
+
+  // The stale server-side search term is wiped from ownState so the refetched
+  // option list is not scoped to 'Mar' while the input is empty.
+  expect(setDataMaskMock).toHaveBeenCalledWith(
+    expect.objectContaining({
+      ownState: expect.objectContaining({ search: '' }),
+    }),
+  );
+
+  const callsBeforeDebounceFlush = setDataMaskMock.mock.calls.length;
+
+  // Without the cancellation the pending 'Mar' onSearch debounce fires now and
+  // re-scopes the option list to a search term the cleared input no longer
+  // shows.
+  act(() => {
+    jest.advanceTimersByTime(1000);
+  });
+
+  expect(setDataMaskMock).toHaveBeenCalledTimes(callsBeforeDebounceFlush);
+});
+
+test('clear all on a plain filter only clears the value without re-emitting ownState', async () => {
+  const setDataMaskMock = jest.fn();
+  const props = buildSelectFilterProps({
+    formData: { searchAllOptions: false },
+    filterState: { value: ['Jen'] },
+    setDataMask: setDataMaskMock,
+  });
+
+  const reduxState = {
+    useRedux: true,
+    initialState: {
+      nativeFilters: {
+        filters: { 'test-filter': { name: 'Test Filter' } },
+      },
+      dataMask: {
+        'test-filter': {
+          extraFormData: {
+            filters: [{ col: 'gender', op: 'IN', val: ['Jen'] }],
+          },
+          filterState: { value: ['Jen'] },
+        },
+      },
+    },
+  };
+
+  const { rerender } = render(<SelectFilterPlugin {...props} />, reduxState);
+
+  setDataMaskMock.mockClear();
+
+  // A global clear-all signals this filter to reset its selection. Because the
+  // filter is not a search-all, it has no server-side search term to wipe.
+  // Re-emitting ownState here would drift FilterValue's formData and reload the
+  // option list at staging time (before Apply is clicked).
+  rerender(
+    <SelectFilterPlugin {...props} clearAllTrigger={{ 'test-filter': true }} />,
+  );
+
+  await waitFor(() => {
+    expect(setDataMaskMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        filterState: expect.objectContaining({
+          value: null,
+        }),
+      }),
+    );
+  });
+
+  expect(setDataMaskMock).not.toHaveBeenCalledWith(
+    expect.objectContaining({
+      ownState: expect.anything(),
+    }),
+  );
+});
+
 test('pending LIKE debounce still applies after rerender recreates updateDataMask', async () => {
   jest.useFakeTimers({ advanceTimers: true });
   const setDataMaskMock = jest.fn();

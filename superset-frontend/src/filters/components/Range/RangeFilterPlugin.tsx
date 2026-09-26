@@ -339,6 +339,34 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
       return;
     }
 
+    // Clear sentinel takes priority over the error revalidation below. The
+    // filter bar stages [null, null] (plus a validateStatus of 'error' for
+    // required filters) when a parent filter changes or Clear All is
+    // triggered. Re-validating the stale local inputValue in that case would
+    // re-emit the previously selected range, defeating the clear.
+    if (
+      filterState.value === undefined ||
+      isEqualArray(filterState.value, [null, null])
+    ) {
+      setInputValue([null, null]);
+      if (enableEmptyFilter) {
+        // A required range must not be applied empty: keep the validation
+        // error active and emit no clauses instead of the stale value.
+        const { errorMessage } = validateRange(
+          [null, null],
+          min,
+          max,
+          enableEmptyFilter,
+          enableSingleValue,
+        );
+        setError(errorMessage);
+        updateDataMaskError(errorMessage);
+      } else {
+        updateDataMaskValue([null, null]);
+      }
+      return;
+    }
+
     if (filterState.validateStatus === 'error') {
       setError(filterState.validateMessage);
 
@@ -360,19 +388,6 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
           updateDataMaskValue(inputValue);
         }
       }
-      return;
-    }
-
-    // Clear all case. The filter bar stages [null, null] for range filters, so
-    // matching only undefined let a filter still sitting at its default fall
-    // through to the default-restoring branch below.
-    if (
-      (filterState.value === undefined ||
-        isEqualArray(filterState.value, [null, null])) &&
-      !filterState.validateStatus
-    ) {
-      setInputValue([null, null]);
-      updateDataMaskValue([null, null]);
       return;
     }
 
