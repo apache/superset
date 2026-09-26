@@ -1423,13 +1423,22 @@ CACHE_CONFIG: CacheConfig = {"CACHE_TYPE": "NullCache"}
 DATA_CACHE_CONFIG: CacheConfig = {"CACHE_TYPE": "NullCache"}
 
 # Upper bound, in bytes, on the serialized size of a single value written to the
-# data cache (chart and SQL query results). When a result's pickled size exceeds
-# this threshold the value is NOT written to the cache: the chart still renders,
-# but the next load re-queries the datasource instead of getting a cache hit. This
-# protects the cache backend (e.g. Redis/Memcached) from being flooded by very
-# large result sets. Set to ``None`` to disable the check (the default). Example:
-# 10 * 1024 * 1024 for a 10 MB limit.
-DATA_CACHE_MAX_VALUE_SIZE: int | None = None
+# data cache (chart and SQL query results, filter dropdown values, and compatible
+# metrics/dimensions). A value whose pickled size exceeds this threshold is NOT
+# written to the cache, and any older value under the same key is removed so it is
+# not served: the request still succeeds, and the value is recomputed the next
+# time it is requested, including the follow-up request a chart sends after a
+# background (async) query. This protects the cache backend (e.g.
+# Redis/Memcached) from being flooded by a heavy tail of very large result sets,
+# which can drive the backend toward its memory limit and evict many smaller,
+# useful entries. Each skip emits a WARNING log naming the key and byte size and
+# increments the ``skip_cache_value_too_large`` statsd counter. The default of
+# 10 MB comfortably exceeds typical chart/query payloads while excluding the
+# multi-tens-of-MB outliers responsible for cache pressure; raise it if legitimate
+# results are being skipped, or set it to ``None`` to disable the check entirely
+# (no serialization overhead is then incurred). Example: 20 * 1024 * 1024 for
+# 20 MB.
+DATA_CACHE_MAX_VALUE_SIZE: int | None = 10 * 1024 * 1024
 
 # Include per-query lifecycle timing in /api/v1/chart/data JSON responses.
 # The default keeps the public response contract unchanged.
