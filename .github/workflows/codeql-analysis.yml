@@ -40,13 +40,16 @@ jobs:
         shell: bash
         run: |
           lang_matrix_string=''
-          if [[ "${{ steps.check.outputs.python }} == "true" ]]; then
+          if [[ "${STEPS_CHECK_OUTPUTS_PYTHON} == "true" ]]; then
             lang_matrix_string=${lang_matrix_string}'"python"'
           fi
-          if [[ ${{ steps.check.outputs.frontend }} == "true" ]]; then
+          if [[ "${STEPS_CHECK_OUTPUTS_FRONTEND}" == "true" ]]; then
             lang_matrix_string=${lang_matrix_string}'"javascript"'
           fi
           echo "lang_matrix=$(jq --compact-output --null-input '[inputs] | tostring' <<< $lang_matrix_string)"
+        env:
+          STEPS_CHECK_OUTPUTS_PYTHON: ${{ steps.check.outputs.python }}
+          STEPS_CHECK_OUTPUTS_FRONTEND: ${{ steps.check.outputs.frontend }}
 
   analyze:
     name: Analyze
