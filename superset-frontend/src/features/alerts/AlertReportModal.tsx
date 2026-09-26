@@ -723,11 +723,13 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     force_screenshot: false,
     include_cta: true,
     grace_period: undefined,
-    retry_on_failure: false,
-    retry_max_attempts: 3,
-    send_failed_reports: false,
-    retry_notify_owners: true,
-    retry_notify_recipients: false,
+    ...(isFeatureEnabled(FeatureFlag.AlertReportsRetry) && {
+      retry_on_failure: false,
+      retry_max_attempts: 3,
+      send_failed_reports: false,
+      retry_notify_owners: true,
+      retry_notify_recipients: false,
+    }),
   };
 
   const fetchDashboardFilterValues = async (
@@ -2762,7 +2764,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                 </>
               ),
             },
-            ...(isReport
+            ...(isFeatureEnabled(FeatureFlag.AlertReportsRetry)
               ? [
                   {
                     key: 'error-handling',
@@ -2770,7 +2772,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                       <CollapseLabelInModal
                         title={t('Error handling')}
                         subtitle={t(
-                          'Configure retry behavior on delivery failure.',
+                          'Configure retries when alert or report generation fails before delivery.',
                         )}
                         testId="error-handling-panel"
                       />
@@ -2802,7 +2804,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                           </div>
                           <InfoTooltip
                             tooltip={t(
-                              'Automatically retry sending the report when delivery fails.',
+                              'Retry generation failures before delivery starts. Alerts re-check their condition on each attempt. Delivery failures are not replayed.',
                             )}
                           />
                         </StyledSwitchContainer>

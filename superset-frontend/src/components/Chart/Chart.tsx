@@ -40,6 +40,7 @@ import { Logger, LOG_ACTIONS_RENDER_CHART } from 'src/logger/LogUtils';
 import { URL_PARAMS } from 'src/constants';
 import { getUrlParam } from 'src/utils/urlUtils';
 import { isCurrentUserBot } from 'src/utils/isBot';
+import type { AsyncModeOverride } from 'src/utils/asyncMode';
 import { ChartSource } from 'src/types/ChartSource';
 import { ResourceStatus } from 'src/hooks/apiResources/apiResources';
 import { Dispatch } from 'redux';
@@ -92,6 +93,8 @@ export interface ChartProps {
   /** Whether to suppress the loading spinner (during auto-refresh) */
   suppressLoadingSpinner?: boolean;
   filterState?: FilterState;
+  /** Per-dashboard `async_mode` override, threaded to self-contained charts. */
+  asyncModeOverride?: AsyncModeOverride;
 }
 
 export type Actions = {
@@ -211,6 +214,7 @@ function Chart({
     onChartStateChange,
     suppressLoadingSpinner,
     filterState,
+    asyncModeOverride,
   } = restProps;
 
   const renderStartTimeRef = useRef<number>(Logger.getTimestamp());
@@ -283,13 +287,14 @@ function Chart({
   const renderErrorMessage = useCallback(
     (queryResponse: ChartErrorType) => {
       const error = queryResponse?.errors?.[0];
-      const message = chartAlert || queryResponse?.message;
+      const message = queryResponse?.message || chartAlert;
 
       // if datasource is still loading, don't render JS errors
-      // but always show backend API errors (which have an errors array)
+      // but always show backend API errors (structured or message-only)
       // so users can see real issues like auth failures
       if (
         !error &&
+        !queryResponse?.message &&
         chartAlert !== undefined &&
         chartAlert !== NONEXISTENT_DATASET &&
         datasource === PLACEHOLDER_DATASOURCE &&
@@ -383,6 +388,7 @@ function Chart({
             filterState={filterState}
             suppressLoadingSpinner={suppressLoadingSpinner}
             source={dashboardId ? ChartSource.Dashboard : ChartSource.Explore}
+            asyncModeOverride={asyncModeOverride}
           />
         ) : (
           <Loading size={dashboardId ? 's' : 'm'} muted={!!dashboardId} />
@@ -393,6 +399,7 @@ function Chart({
       actions,
       addFilter,
       annotationData,
+      asyncModeOverride,
       chartAlert,
       chartId,
       chartIsStale,

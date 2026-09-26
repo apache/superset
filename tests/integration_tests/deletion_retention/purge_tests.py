@@ -24,6 +24,7 @@ guarantee under FK enforcement OFF, and the version-tables-absent no-op.
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import replace
 from datetime import datetime, timedelta
 from typing import Any
@@ -45,6 +46,9 @@ from superset.commands.deletion_retention.purge_cascade import (
 from superset.commands.deletion_retention.purge_policy import (
     get_purge_policy,
     PurgeEntityPolicy,
+    REASON_CASCADE_INTEGRITY_FAILURE,
+    REASON_REPORT_SCHEDULE,
+    REASON_USER_ATTRIBUTE,
 )
 from superset.connectors.sqla.models import (
     RLSFilterTables,
@@ -286,6 +290,7 @@ class TestSoftDeletePurge(DeletionRetentionTestBase):
             .one()
         )
         assert row.status == audit.STATUS_BLOCKED
+        assert row.reason == REASON_REPORT_SCHEDULE
 
     def test_repeated_report_blocker_preserves_counts_and_suppresses_noise(
         self,
@@ -768,6 +773,7 @@ class TestExplicitBlockerGuards(DeletionRetentionTestBase):
             assert result.purged is False
             assert result.blocked_reason is not None
             assert "welcome page" in result.blocked_reason
+            assert result.blocked_reason_code == REASON_USER_ATTRIBUTE
             assert self.exists(Dashboard, dashboard_id)
         finally:
             self._restore_welcome(attribute, created, previous)
@@ -812,9 +818,119 @@ class TestExplicitBlockerGuards(DeletionRetentionTestBase):
             db.session.commit()
 
         assert result.purged is False
-        assert result.blocked_reason == "blocked by database references"
+        assert (
+            result.blocked_reason
+            == "cascade blocked by a database integrity constraint"
+        )
         assert "SQL:" not in result.blocked_reason
+        assert result.blocked_reason_code == REASON_CASCADE_INTEGRITY_FAILURE
         assert self.exists(Slice, chart_id)
+
+    def test_three_way_distinction_is_readable_from_the_audit_alone(self) -> None:
+        """Report, welcome, and database-integrity blocks write distinct codes.
+
+        The audit table is the durable record: each of the three
+        non-completing outcomes must be identifiable from its row alone,
+        with no SQL fragments and the integrity case keeping blocked status.
+        """
+        chart: Slice = self.make_chart("threeway_report")
+        report: ReportSchedule = ReportSchedule(
+            type="Report",
+            name="retention_it_threeway",
+            crontab="0 0 * * *",
+            chart=chart,
+        )
+        db.session.add(report)
+        db.session.commit()
+        chart_uuid: str = str(chart.uuid)
+        self.soft_delete(chart, days_ago=90)
+
+        dashboard: Dashboard = self.make_dashboard("threeway_welcome")
+        dashboard_uuid: str = str(dashboard.uuid)
+        self.soft_delete(dashboard, days_ago=90)
+        attribute: UserAttribute
+        created: bool
+        previous: int | None
+        attribute, created, previous = self._set_welcome(dashboard.id)
+
+        fk_chart: Slice = self.make_chart("threeway_fk")
+        fk_uuid: str = str(fk_chart.uuid)
+        self.soft_delete(fk_chart, days_ago=90)
+
+        real_get_policy: Callable[[type[Any]], PurgeEntityPolicy] = get_purge_policy
+
+        def fail_fk_chart_cleanup(
+            session: Session, policy: PurgeEntityPolicy, entity_id: int
+        ) -> None:
+            if entity_id == fk_chart.id:
+                raise IntegrityError("FOREIGN KEY constraint failed", None, Exception())
+            real_get_policy(Slice).delete_associations(session, policy, entity_id)
+
+        def patched_policy(model: type[Any]) -> PurgeEntityPolicy:
+            policy: PurgeEntityPolicy = real_get_policy(model)
+            if model is Slice:
+                return replace(policy, delete_associations=fail_fk_chart_cleanup)
+            return policy
+
+        try:
+            with patch(
+                "superset.commands.deletion_retention.purge_cascade.get_purge_policy",
+                side_effect=patched_policy,
+            ):
+                _purge(window=30)
+
+            rows: dict[str, audit.PurgeAuditLog] = {
+                uuid: db.session.query(audit.PurgeAuditLog)
+                .filter_by(entity_uuid=uuid)
+                .one()
+                for uuid in (chart_uuid, dashboard_uuid, fk_uuid)
+            }
+            assert rows[chart_uuid].reason == REASON_REPORT_SCHEDULE
+            assert rows[dashboard_uuid].reason == REASON_USER_ATTRIBUTE
+            assert rows[fk_uuid].reason == REASON_CASCADE_INTEGRITY_FAILURE
+            assert len({row.reason for row in rows.values()}) == 3
+            for row in rows.values():
+                assert row.status == audit.STATUS_BLOCKED
+                assert "SQL" not in row.reason
+                assert "?" not in row.reason
+        finally:
+            self._restore_welcome(attribute, created, previous)
+
+    def test_first_declared_blocker_wins_in_the_audit_record(self) -> None:
+        """A dashboard blocked by both rules records the first-declared code.
+
+        Declaration order is part of the audit contract: report_schedule is
+        declared before user_attribute, so a dashboard that is both
+        report-referenced and someone's welcome page records
+        REASON_REPORT_SCHEDULE.
+        """
+        dashboard: Dashboard = self.make_dashboard("firstmatch")
+        report: ReportSchedule = ReportSchedule(
+            type="Report",
+            name="retention_it_firstmatch",
+            crontab="0 0 * * *",
+            dashboard=dashboard,
+        )
+        db.session.add(report)
+        db.session.commit()
+        dashboard_uuid: str = str(dashboard.uuid)
+        self.soft_delete(dashboard, days_ago=90)
+        attribute: UserAttribute
+        created: bool
+        previous: int | None
+        attribute, created, previous = self._set_welcome(dashboard.id)
+        try:
+            _purge(window=30)
+
+            row: audit.PurgeAuditLog = (
+                db.session.query(audit.PurgeAuditLog)
+                .filter_by(entity_uuid=dashboard_uuid)
+                .one()
+            )
+            assert row.status == audit.STATUS_BLOCKED
+            assert row.reason == REASON_REPORT_SCHEDULE
+        finally:
+            self._restore_welcome(attribute, created, previous)
 
     def test_policy_action_failure_rolls_back_prior_phases(self) -> None:
         """A later policy-action failure restores earlier association cleanup."""

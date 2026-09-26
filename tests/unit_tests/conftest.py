@@ -43,10 +43,10 @@ def get_session(mocker: MockerFixture) -> Callable[[], Session]:
     """
     Create an in-memory SQLite db.session.to test models.
     """
-    engine = create_engine("sqlite://", future=True)
+    engine = create_engine("sqlite://")
 
     def get_session():
-        Session_ = sessionmaker(bind=engine, future=True)  # pylint: disable=invalid-name  # noqa: N806
+        Session_ = sessionmaker(bind=engine)  # pylint: disable=invalid-name  # noqa: N806
         in_memory_session = Session_()
 
         # flask calls db.session.remove()
@@ -71,6 +71,38 @@ def get_session(mocker: MockerFixture) -> Callable[[], Session]:
 @pytest.fixture
 def session(get_session) -> Iterator[Session]:
     return get_session()
+
+
+@pytest.fixture(scope="session", autouse=True)
+def _preload_clock_reading_drivers() -> None:
+    """Import third-party drivers that read the clock at import, before any test.
+
+    ``clickhouse_connect`` normalises the local timezone through ``dateutil``
+    at module import time, which raises ``AttributeError`` under a frozen
+    ``freeze_time`` clock. Superset's ClickHouse engine spec imports it
+    lazily, on the first ``load_engine_specs()`` call, so whichever test
+    first resolves an engine spec pays that import -- and if that test runs
+    under ``freeze_time`` (seven unit-test files combine ``freeze_time`` with
+    engine-spec resolution) the import fails. Serially some earlier test
+    always paid it outside a frozen clock; under pytest-xdist each worker
+    starts cold, so the failure moves with worker assignment.
+
+    Only the third-party module is imported here, deliberately: importing
+    Superset's own engine-spec modules this early would also cache
+    app-context-dependent values (the ClickHouse spec resolves its
+    ``product_name`` from ``current_app`` on import), and running full
+    ``load_engine_specs()`` discovery would execute every registered
+    third-party entry point in every worker. Engine-spec discovery itself
+    stays lazy, so tests that exercise it still observe a cold state.
+    """
+    # Even a guarded module-top import would tie the driver to collection on
+    # every invocation, including --collect-only and partial runs. Session setup
+    # imports it once per worker, after conftest/plugin loading and before any
+    # test can enter freeze_time. Guard ImportError because the driver is optional.
+    try:
+        import clickhouse_connect  # noqa: F401
+    except ImportError:
+        pass
 
 
 @pytest.fixture(scope="module")

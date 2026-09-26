@@ -117,7 +117,7 @@ const StyledDiv = styled.div`
     ${
       isMobileConsumptionEnabled()
         ? `@media (max-width: ${theme.screenSMMax}px) {
-      [data-test='slice-header'] .header-title {
+      .slice-header .header-title {
         -webkit-line-clamp: unset;
         display: block;
         white-space: normal;

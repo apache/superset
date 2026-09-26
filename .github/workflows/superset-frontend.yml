@@ -41,7 +41,7 @@ jobs:
 
       - name: Check for File Changes
         id: check
-        uses: ./.github/actions/change-detector/
+        uses: $/.github/actions/change-detector/
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
 
@@ -97,6 +97,7 @@ jobs:
           mkdir -p ${{ github.workspace }}/superset-frontend/coverage
           docker run \
           -v ${{ github.workspace }}/superset-frontend/coverage:/app/superset-frontend/coverage \
+          -e CI=true \
           --rm $TAG \
           bash -c \
           "npm run test -- --coverage --shard=${{ matrix.shard }}/8 --coverageReporters=json"
@@ -110,7 +111,7 @@ jobs:
   report-coverage:
     needs: [sharded-jest-tests]
     if: needs.frontend-build.outputs.should-run == 'true'
-    runs-on: ubuntu-26.04
+    runs-on: ubuntu-slim
     timeout-minutes: 15
     permissions:
       id-token: write
@@ -129,7 +130,7 @@ jobs:
           path: coverage/
 
       - name: Upload Code Coverage
-        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
+        uses: codecov/codecov-action@0b35c9ecc4f0529d0eb674914510c22f85b196b4 # v7.1.0
         with:
           flags: javascript
           use_oidc: true
@@ -205,7 +206,7 @@ jobs:
   actions-timeline:
     needs: [report-coverage, lint-frontend, validate-frontend, test-storybook]
     if: always()
-    runs-on: ubuntu-26.04
+    runs-on: ubuntu-slim
     permissions:
       actions: read
     steps:
@@ -299,7 +300,7 @@ jobs:
       # failure) -- it propagates and fails the job outright. Fork PRs
       # still get the comparison via the job summary (summary-always).
       - name: Compare bundle size against nightly baseline
-        uses: benchmark-action/github-action-benchmark@52576c92bccf6ac60c8223ec7eb2565637cae9ba # v1.22.1
+        uses: benchmark-action/github-action-benchmark@4322e5726e6334590d251fc4f92bec0efafc45dc # v1.22.2
         with:
           tool: customSmallerIsBetter
           output-file-path: bundle-size-summary.json

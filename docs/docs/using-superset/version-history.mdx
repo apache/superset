@@ -15,31 +15,37 @@ description of what changed — "Chart renamed to Q3 Revenue", "Added filter on
 'Region'" — rather than a raw diff. You can search the history and filter it
 down to changes on the entity itself or on the things it depends on.
 
-## Enabling it
-
-Two switches are involved, and both matter.
+## Enabling and disabling it
 
 | Setting | Type | Effect |
 | --- | --- | --- |
 | `VERSION_HISTORY` | Feature flag | Shows the version history UI |
 | `ENABLE_VERSIONING_CAPTURE` | Config value | Records versions as entities are saved |
 
+Both default to on. To turn the feature off:
+
 ```python
 # superset_config.py
-FEATURE_FLAGS = {"VERSION_HISTORY": True}
-ENABLE_VERSIONING_CAPTURE = True
+FEATURE_FLAGS = {"VERSION_HISTORY": False}
+ENABLE_VERSIONING_CAPTURE = False
 ```
 
-Both default to off. They are separate because capture is the expensive half:
-an operator may want to start recording history before exposing the UI, so that
-there is something to show when they do.
+Restart Superset and its workers for the capture change to take effect. Existing
+history remains readable while capture is off, but **Restore** is unavailable
+(404).
 
-Turning the UI on without capture gives a panel that reports "No history yet"
-and never fills, so enable capture first — or at the same time. History only
-accrues from the moment capture is switched on; earlier edits are not
-reconstructed.
+Disable them together: capture off with the UI left on gives a panel that
+stops filling — an empty or stale history misrepresents the entity as
+unchanged. History only accrues while capture is on; edits made while it was
+off are not reconstructed.
 
 ## Viewing history
+
+An unstamped starting version is labelled **Starting version**: older history
+cannot reliably distinguish an original creation from a retroactive baseline.
+Explicitly recorded baselines and imports retain their **Original version**
+and **Imported** labels. New tracked creations and clones are labelled
+**Created**; older unstamped history is not relabelled retroactively.
 
 On a chart, open **… (actions) → View version history** in Explore. A dashboard
 uses the same entry in its own **… (actions)** menu.
@@ -47,6 +53,20 @@ uses the same entry in its own **… (actions)** menu.
 The entry appears for users who may edit the entity — the same rule the server
 applies to overwriting it: administrators, plus anyone whose subjects are among
 the entity's editors. Users who cannot edit do not see the panel.
+
+One entry can appear that nobody typed: the first save through the chart
+editor of a chart created by an older Superset version, an import, or the
+API may record a one-time settings-migration entry alongside the user's
+change, as legacy settings are rewritten to their modern form. On a chart
+opened normally in Explore almost none of that rewrite is recorded — at
+most, a removed legacy setting may appear as cleared; when Explore is
+reached from a dashboard, a shared link, or a URL that picks the chart
+type, a first save can carry more of these automatic rewrites. It
+happens at most once per chart per upgrade, and later saves record only
+what the user changed.
+
+The open history panel refreshes after a successful save; you do not need to
+close and reopen it to see the new version.
 
 ## Previewing a version
 
@@ -93,6 +113,10 @@ from externally managed entities, whose source of truth lives outside Superset
 and would overwrite the restore on the next sync.
 
 ## Opening a version as something new
+
+Use the **… (actions)** menu on a save-group header to open that version as
+a new chart or dashboard. Individual field-change rows preview the version;
+they do not have separate action menus.
 
 **Open as new** creates a brand-new chart or dashboard from the selected
 version and leaves the original untouched. This is the safer option when you

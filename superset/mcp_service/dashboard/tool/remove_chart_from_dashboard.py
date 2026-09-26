@@ -35,6 +35,10 @@ from superset_core.mcp.decorators import tool, ToolAnnotations
 
 from superset.commands.exceptions import CommandException, ForbiddenError
 from superset.extensions import event_logger
+from superset.mcp_service.dashboard.layout_validation import (
+    normalize_chart_id,
+    rebuild_parent_chains,
+)
 from superset.mcp_service.dashboard.schemas import (
     DashboardInfo,
     RemoveChartFromDashboardRequest,
@@ -59,14 +63,12 @@ def _find_chart_keys(layout: Dict[str, Any], chart_id: int) -> list[str]:
     A chart can legitimately appear more than once in a layout (e.g. under
     multiple tabs), so all occurrences are returned.
     """
-    # Accept both int and string chartId — position_json is user/frontend-authored
-    # and imported or hand-edited layouts may store chartId as a string.
     return [
         key
         for key, node in layout.items()
         if isinstance(node, dict)
         and node.get("type") == "CHART"
-        and (node.get("meta") or {}).get("chartId") in (chart_id, str(chart_id))
+        and normalize_chart_id((node.get("meta") or {}).get("chartId")) == chart_id
     ]
 
 
@@ -279,6 +281,8 @@ def _find_and_authorize_dashboard(
         title="Remove chart from dashboard",
         readOnlyHint=False,
         destructiveHint=True,
+        idempotentHint=False,
+        openWorldHint=False,
     ),
 )
 def remove_chart_from_dashboard(  # noqa: C901 — complexity is structural (layout traversal + multi-step authorization), not accidental
@@ -340,6 +344,14 @@ def remove_chart_from_dashboard(  # noqa: C901 — complexity is structural (lay
                         "see which charts the dashboard contains."
                     ),
                 )
+
+            # Rebuild every remaining component's parents from the actual
+            # children edges. This is a no-op when the stored layout was
+            # already correct, and self-heals any pre-existing truncation
+            # (e.g. from a layout written before this repair existed) so
+            # filter-scope derivation sees a correct tree. See
+            # superset.dashboards.filter_scope.get_chart_ids_in_scope.
+            current_layout = rebuild_parent_chains(current_layout)
 
         # Update the dashboard
         with event_logger.log_context(

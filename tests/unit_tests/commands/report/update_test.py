@@ -513,22 +513,25 @@ def test_alert_with_nonexistent_database_rejected(mocker: MockerFixture) -> None
 # --- Retry config validation on update ---
 
 
-def test_update_rejects_retry_on_alert(mocker: MockerFixture) -> None:
-    """Enabling retries on an alert schedule is rejected."""
+_PATCH_RETRY_FLAG = "superset.commands.report.update.is_feature_enabled"
+
+
+def test_update_accepts_retry_on_alert(mocker: MockerFixture) -> None:
+    """Alerts opt into the same bounded retry configuration as reports."""
     model = _make_model(mocker, model_type=ReportScheduleType.ALERT, database_id=5)
     _setup_mocks(mocker, model)
+    mocker.patch(_PATCH_RETRY_FLAG, return_value=True)
 
     cmd = UpdateReportScheduleCommand(model_id=1, data={"retry_on_failure": True})
-    with pytest.raises(ReportScheduleInvalidError) as exc_info:
-        cmd.validate()
-    messages = _get_validation_messages(exc_info)
-    assert "retry_on_failure" in messages
+    cmd.validate()
+    assert cmd._properties["retry_on_failure"] is True
 
 
 def test_update_rejects_send_failed_without_retry(mocker: MockerFixture) -> None:
     """send_failed_reports=True requires retry_on_failure=True."""
     model = _make_model(mocker, model_type=ReportScheduleType.REPORT, database_id=None)
     _setup_mocks(mocker, model)
+    mocker.patch(_PATCH_RETRY_FLAG, return_value=True)
 
     cmd = UpdateReportScheduleCommand(model_id=1, data={"send_failed_reports": True})
     with pytest.raises(ReportScheduleInvalidError) as exc_info:
@@ -541,6 +544,7 @@ def test_update_accepts_retry_on_report(mocker: MockerFixture) -> None:
     """Enabling retries on a report schedule is accepted."""
     model = _make_model(mocker, model_type=ReportScheduleType.REPORT, database_id=None)
     _setup_mocks(mocker, model)
+    mocker.patch(_PATCH_RETRY_FLAG, return_value=True)
 
     cmd = UpdateReportScheduleCommand(
         model_id=1, data={"retry_on_failure": True, "retry_max_attempts": 5}

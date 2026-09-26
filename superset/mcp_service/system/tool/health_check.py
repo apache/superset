@@ -40,6 +40,7 @@ _start_time = time.monotonic()
         title="Health check",
         readOnlyHint=True,
         destructiveHint=False,
+        openWorldHint=False,
     ),
 )
 async def health_check() -> HealthCheckResponse:

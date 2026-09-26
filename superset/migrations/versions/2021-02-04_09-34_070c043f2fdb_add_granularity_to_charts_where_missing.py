@@ -74,7 +74,7 @@ def upgrade():
     - If no dttm columns exist in the dataset, don't change the chart.
     """
     bind = op.get_bind()
-    session = db.Session(bind=bind, future=True)
+    session = db.Session(bind=bind)
 
     slices_changed = 0
 

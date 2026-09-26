@@ -74,3 +74,17 @@ test('passes button type to underlying Dropdown.Button', () => {
   );
   expect(container.querySelector('.ant-btn-primary')).toBeInTheDocument();
 });
+
+test('opens the popupRender content without crashing on click trigger', async () => {
+  const { getAllByRole, findByText } = render(
+    <DropdownButton
+      popupRender={() => <div>Custom Menu</div>}
+      trigger={['click']}
+    >
+      Click
+    </DropdownButton>,
+  );
+  const buttons = getAllByRole('button');
+  fireEvent.click(buttons[buttons.length - 1]);
+  expect(await findByText('Custom Menu')).toBeInTheDocument();
+});

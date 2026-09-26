@@ -17,7 +17,7 @@
  * under the License.
  */
 import { escape } from 'lodash-es';
-import { t } from '@apache-superset/core/translation';
+import { t, tn } from '@apache-superset/core/translation';
 import { isFeatureEnabled, FeatureFlag } from '@superset-ui/core';
 import getBootstrapData from 'src/utils/getBootstrapData';
 
@@ -62,25 +62,32 @@ export function archiveConfirmDescription(
   // Each case is a single, complete translation unit (rather than two joined
   // fragments) so translators control the whole sentence; only the noun and the
   // day count are interpolated, matching Superset's existing `%(...)s` usage.
+  // The timed variants pluralize on the day count (`tn`) because the retention
+  // window accepts 1: "within 1 days" is exactly the copy defect this module
+  // exists to prevent.
   const days = getSoftDeleteRetentionDays();
   if (days) {
     return plural
-      ? t(
-          'These %(type)s will be moved to Recently Archived. You can recover them there within %(days)s days.',
+      ? tn(
+          'These %(type)s will be moved to Recently Archived in the Settings menu. You can recover them there within %(days)s day.',
+          'These %(type)s will be moved to Recently Archived in the Settings menu. You can recover them there within %(days)s days.',
+          days,
           { type: typeLabel, days },
         )
-      : t(
-          'This %(type)s will be moved to Recently Archived. You can recover it there within %(days)s days.',
+      : tn(
+          'This %(type)s will be moved to Recently Archived in the Settings menu. You can recover it there within %(days)s day.',
+          'This %(type)s will be moved to Recently Archived in the Settings menu. You can recover it there within %(days)s days.',
+          days,
           { type: typeLabel, days },
         );
   }
   return plural
     ? t(
-        'These %(type)s will be moved to Recently Archived. You can recover them there.',
+        'These %(type)s will be moved to Recently Archived in the Settings menu. You can recover them there.',
         { type: typeLabel },
       )
     : t(
-        'This %(type)s will be moved to Recently Archived. You can recover it there.',
+        'This %(type)s will be moved to Recently Archived in the Settings menu. You can recover it there.',
         { type: typeLabel },
       );
 }

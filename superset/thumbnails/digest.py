@@ -62,9 +62,18 @@ def _adjust_string_with_rls(
     Add the RLS filters to the unique string based on current executor.
     """
 
+    # Prefer the ambient guest user (the actual requesting principal) over a
+    # DB-user lookup by username: for guest requests `executor` is the
+    # token-supplied username, which can collide with a real DB username. If
+    # find_user() were tried first, a collision would compute RLS under the
+    # unrelated DB user's identity, and the token's own per-token rls claims
+    # (surfaced via get_guest_rls_filters(), which reads the ambient guest
+    # user installed by override_user() below) would never enter the digest --
+    # letting two guest tokens with the same username but different rls
+    # collide on one cache entry.
     user = (
-        security_manager.find_user(executor)
-        or security_manager.get_current_guest_user_if_guest()
+        security_manager.get_current_guest_user_if_guest()
+        or security_manager.find_user(executor)
     )
 
     if user:

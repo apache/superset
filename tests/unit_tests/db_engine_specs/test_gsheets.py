@@ -17,6 +17,9 @@
 
 # pylint: disable=import-outside-toplevel, invalid-name, line-too-long
 
+from __future__ import annotations
+
+from datetime import datetime
 from typing import Any, TYPE_CHECKING
 from urllib.parse import parse_qs, urlparse
 
@@ -33,6 +36,8 @@ from superset.sql.parse import Table
 from superset.superset_typing import OAuth2ClientConfig
 from superset.utils import json
 from superset.utils.oauth2 import decode_oauth2_state
+from tests.unit_tests.db_engine_specs.utils import assert_convert_dttm
+from tests.unit_tests.fixtures.common import dttm  # noqa: F401
 
 if TYPE_CHECKING:
     from superset.db_engine_specs.base import OAuth2State
@@ -105,6 +110,37 @@ def test_validate_parameters_no_catalog(mocker: MockerFixture) -> None:
     ]
 
 
+def test_validate_parameters_malformed_credentials(mocker: MockerFixture) -> None:
+    from superset.db_engine_specs.gsheets import (
+        GSheetsEngineSpec,
+        GSheetsPropertiesType,
+    )
+
+    g = mocker.patch("superset.db_engine_specs.gsheets.g")
+    g.user.email = "admin@example.org"
+
+    properties: GSheetsPropertiesType = {
+        "parameters": {
+            "service_account_info": "{not valid json",
+            "catalog": {},
+        },
+        "catalog": {},
+    }
+    errors = GSheetsEngineSpec.validate_parameters(properties)
+    assert errors == [
+        SupersetError(
+            message=(
+                "The service account credentials are not valid JSON. "
+                "Please check that the field contains a valid service "
+                "account key."
+            ),
+            error_type=SupersetErrorType.INVALID_PAYLOAD_FORMAT_ERROR,
+            level=ErrorLevel.ERROR,
+            extra={"invalid": ["service_account_info"]},
+        ),
+    ]
+
+
 def test_validate_parameters_simple_with_in_root_catalog(mocker: MockerFixture) -> None:
     from superset.db_engine_specs.gsheets import (
         GSheetsEngineSpec,
@@ -144,6 +180,9 @@ def test_validate_parameters_catalog(
     g.user.email = "admin@example.com"
 
     create_engine = mocker.patch("superset.db_engine_specs.gsheets.create_engine")
+    register_engine_events = mocker.patch.object(
+        GSheetsEngineSpec, "register_engine_events"
+    )
     conn = create_engine.return_value.connect.return_value
     results = conn.execute.return_value
     results.fetchall.side_effect = [
@@ -225,8 +264,8 @@ def test_validate_parameters_catalog(
                 }
             }
         },
-        future=True,
     )
+    register_engine_events.assert_called_once_with(create_engine.return_value)
 
 
 def test_validate_parameters_catalog_and_credentials(
@@ -299,7 +338,6 @@ def test_validate_parameters_catalog_and_credentials(
                 }
             }
         },
-        future=True,
     )
 
 
@@ -669,7 +707,10 @@ def test_get_oauth2_token(
     """
     from superset.db_engine_specs.gsheets import GSheetsEngineSpec
 
-    requests = mocker.patch("superset.db_engine_specs.base.requests")
+    mock_get_requester = mocker.patch(
+        "superset.db_engine_specs.base.get_ssrf_safe_requester"
+    )
+    requests = mock_get_requester.return_value
     requests.post().json.return_value = {
         "access_token": "access-token",
         "expires_in": 3600,
@@ -695,6 +736,7 @@ def test_get_oauth2_token(
             "grant_type": "authorization_code",
         },
         timeout=30.0,
+        allow_redirects=False,
     )
 
 
@@ -707,7 +749,10 @@ def test_get_oauth2_fresh_token(
     """
     from superset.db_engine_specs.gsheets import GSheetsEngineSpec
 
-    requests = mocker.patch("superset.db_engine_specs.base.requests")
+    mock_get_requester = mocker.patch(
+        "superset.db_engine_specs.base.get_ssrf_safe_requester"
+    )
+    requests = mock_get_requester.return_value
     requests.post().json.return_value = {
         "access_token": "access-token",
         "expires_in": 3600,
@@ -732,6 +777,7 @@ def test_get_oauth2_fresh_token(
             "grant_type": "refresh_token",
         },
         timeout=30.0,
+        allow_redirects=False,
     )
 
 
@@ -866,7 +912,10 @@ def test_get_oauth2_fresh_token_success(
     """
     from superset.db_engine_specs.gsheets import GSheetsEngineSpec
 
-    requests = mocker.patch("superset.db_engine_specs.base.requests")
+    mock_get_requester = mocker.patch(
+        "superset.db_engine_specs.base.get_ssrf_safe_requester"
+    )
+    requests = mock_get_requester.return_value
     requests.post().json.return_value = {
         "access_token": "new-access-token",
         "expires_in": 3600,
@@ -890,7 +939,10 @@ def test_get_oauth2_fresh_token_invalid_grant(
     """
     from superset.db_engine_specs.gsheets import GSheetsEngineSpec
 
-    requests = mocker.patch("superset.db_engine_specs.base.requests")
+    mock_get_requester = mocker.patch(
+        "superset.db_engine_specs.base.get_ssrf_safe_requester"
+    )
+    requests = mock_get_requester.return_value
     requests.post().status_code = 400
     requests.post().text = (
         '{"error": "invalid_grant",'
@@ -917,7 +969,10 @@ def test_get_oauth2_fresh_token_other_http_error(
     http_error = HTTPError()
     http_error.response = mock_response
 
-    requests = mocker.patch("superset.db_engine_specs.base.requests")
+    mock_get_requester = mocker.patch(
+        "superset.db_engine_specs.base.get_ssrf_safe_requester"
+    )
+    requests = mock_get_requester.return_value
     requests.post().raise_for_status.side_effect = http_error
 
     with pytest.raises(HTTPError):
@@ -1070,3 +1125,33 @@ def test_validate_parameters_skips_oauth2_connections_with_masked_encrypted_extr
 
     assert errors == []
     conn.execute.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    "target_type,expected_result",
+    [
+        ("Date", "'2019-01-02'"),
+        ("DateTime", "'2019-01-02 03:04:05'"),
+        ("UnknownType", None),
+    ],
+)
+def test_convert_dttm(
+    target_type: str,
+    expected_result: str | None,
+    dttm: datetime,  # noqa: F811
+) -> None:
+    """
+    A Date-typed column must produce a plain ISO date literal ('YYYY-MM-DD').
+
+    Without this, ``SqliteEngineSpec.convert_dttm`` (inherited via
+    ``ShillelaghEngineSpec``) returns ``None`` for ``types.Date``, and Superset falls
+    back to a full ``'YYYY-MM-DD HH:MM:SS.ffffff'`` literal. shillelagh's virtual
+    table layer parses that bound value with ``datetime.date.fromisoformat``, which
+    rejects the trailing time-of-day and silently coerces the constraint to ``None``,
+    which the GSheets adapter renders as the SQL literal ``null`` -- an unquoted
+    bareword that Google's Chart API parses as a missing column reference, raising
+    "Invalid query: NO_COLUMN: null".
+    """
+    from superset.db_engine_specs.gsheets import GSheetsEngineSpec
+
+    assert_convert_dttm(GSheetsEngineSpec, target_type, expected_result, dttm)

@@ -218,6 +218,31 @@ def test_orderby_uses_timeseries_limit_metric_and_order_desc() -> None:
     assert query["orderby"] == [["revenue", True]]
 
 
+def test_orderby_uses_series_limit_metric_and_order_desc() -> None:
+    # series_limit_metric is the current field name; timeseries_limit_metric is
+    # the deprecated alias kept above for back-compat with old saved charts.
+    form_data = {
+        "metrics": ["count"],
+        "groupby": ["c"],
+        "series_limit_metric": "revenue",
+        "order_desc": False,
+    }
+    query = build_query_context_from_form_data(form_data, DATASOURCE)["queries"][0]
+    assert query["orderby"] == [["revenue", True]]
+
+
+def test_orderby_prefers_series_limit_metric_over_deprecated_alias() -> None:
+    form_data = {
+        "metrics": ["count"],
+        "groupby": ["c"],
+        "series_limit_metric": "revenue",
+        "timeseries_limit_metric": "profit",
+        "order_desc": False,
+    }
+    query = build_query_context_from_form_data(form_data, DATASOURCE)["queries"][0]
+    assert query["orderby"] == [["revenue", True]]
+
+
 def test_orderby_pie_sort_by_metric() -> None:
     form_data = {"metric": "count", "groupby": ["c"], "sort_by_metric": True}
     query = build_query_context_from_form_data(form_data, DATASOURCE, viz_type="pie")[

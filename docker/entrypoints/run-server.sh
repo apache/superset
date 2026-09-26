@@ -19,6 +19,14 @@
 #
 HYPHEN_SYMBOL='-'
 
+STATSD_ARGS=()
+STATSD_HOST="${SERVER_STATSD_HOST//[[:space:]]/}"
+if [ -n "${STATSD_HOST}" ]; then
+    STATSD_PORT="${SERVER_STATSD_PORT//[[:space:]]/}"
+    STATSD_PORT="${STATSD_PORT:-8125}"
+    STATSD_ARGS=(--statsd-host "${STATSD_HOST}:${STATSD_PORT}" --statsd-prefix "${SERVER_STATSD_PREFIX:-superset}")
+fi
+
 exec gunicorn \
     --bind "${SUPERSET_BIND_ADDRESS:-0.0.0.0}:${SUPERSET_PORT:-8088}" \
     --access-logfile "${ACCESS_LOG_FILE:-$HYPHEN_SYMBOL}" \
@@ -33,4 +41,5 @@ exec gunicorn \
     --max-requests-jitter ${WORKER_MAX_REQUESTS_JITTER:-0} \
     --limit-request-line ${SERVER_LIMIT_REQUEST_LINE:-0} \
     --limit-request-field_size ${SERVER_LIMIT_REQUEST_FIELD_SIZE:-0} \
+    "${STATSD_ARGS[@]}" \
     "${FLASK_APP}"

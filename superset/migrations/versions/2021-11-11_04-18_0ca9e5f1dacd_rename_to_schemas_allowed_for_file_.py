@@ -48,7 +48,7 @@ class Database(Base):
 
 def upgrade():
     bind = op.get_bind()
-    session = db.Session(bind=bind, future=True)
+    session = db.Session(bind=bind)
 
     for database in session.query(Database).all():
         try:
@@ -70,7 +70,7 @@ def upgrade():
 
 def downgrade():
     bind = op.get_bind()
-    session = db.Session(bind=bind, future=True)
+    session = db.Session(bind=bind)
 
     for database in session.query(Database).all():
         try:

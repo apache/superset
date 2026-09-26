@@ -38,7 +38,7 @@ export default function transformProps(chartProps: ChartProps) {
     includeSeries,
     isDarkMode: isThemeDark(theme),
     linearColorScheme,
-    metrics: metrics.map((m: { label?: string } | string) =>
+    metrics: (metrics ?? []).map((m: { label?: string } | string) =>
       typeof m === 'string' ? m : m.label || m,
     ),
     colorMetric: secondaryMetric?.label || secondaryMetric,

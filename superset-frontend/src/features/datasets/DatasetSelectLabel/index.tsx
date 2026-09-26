@@ -25,13 +25,18 @@ type Database = {
   database_name: string;
 };
 
+/**
+ * One row of a dataset or combined datasource listing. Semantic views report
+ * ``kind: 'semantic_view'`` and carry no schema; their ``database`` names the
+ * owning semantic layer.
+ */
 export type Dataset = {
   id: number;
   table_name: string;
   datasource_type?: string;
   kind?: string;
-  schema: string;
-  database?: Database;
+  schema?: string | null;
+  database?: Database | null;
 };
 
 const TooltipContent = styled.div`

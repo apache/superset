@@ -291,6 +291,69 @@ def test_create_auth_provider_propagates_auth_config_error() -> None:
             _create_auth_provider(flask_app)
 
 
+def test_create_auth_provider_fails_closed_when_custom_factory_raises() -> None:
+    """A failing MCP_AUTH_FACTORY must abort startup, not fall through to no auth.
+
+    A custom factory is operator configuration evaluated at startup, so it can
+    fail for mundane reasons (a missing environment variable, a dependency
+    moving a symbol, a verifier's signature changing). Swallowing that leaves
+    auth_provider as None and the service comes up unauthenticated. The
+    original exception must not appear in the raised message — it may contain
+    secrets — but its type name should, to point at the failure.
+    """
+    from superset.mcp_service.mcp_config import MCPAuthConfigError
+    from superset.mcp_service.server import _create_auth_provider
+
+    flask_app = MagicMock()
+    flask_app.config.get.side_effect = lambda key, default=None: {
+        "MCP_AUTH_FACTORY": MagicMock(
+            side_effect=KeyError("secret-bearing-env-var-value")
+        ),
+    }.get(key, default)
+
+    with pytest.raises(MCPAuthConfigError) as excinfo:
+        _create_auth_provider(flask_app)
+
+    assert "KeyError" in str(excinfo.value)
+    assert "secret-bearing-env-var-value" not in str(excinfo.value)
+    assert excinfo.value.__cause__ is None
+    assert excinfo.value.__suppress_context__
+
+
+def test_create_auth_provider_passes_through_custom_factory_config_error() -> None:
+    """A custom factory raising MCPAuthConfigError keeps its own message.
+
+    That message is operator-facing config guidance and carries no secret
+    material by contract, so it must propagate unwrapped rather than being
+    replaced by the generic type-name-only message.
+    """
+    from superset.mcp_service.mcp_config import MCPAuthConfigError
+    from superset.mcp_service.server import _create_auth_provider
+
+    flask_app = MagicMock()
+    flask_app.config.get.side_effect = lambda key, default=None: {
+        "MCP_AUTH_FACTORY": MagicMock(
+            side_effect=MCPAuthConfigError("MY_AUDIENCE_SETTING must be set")
+        ),
+    }.get(key, default)
+
+    with pytest.raises(MCPAuthConfigError, match="MY_AUDIENCE_SETTING must be set"):
+        _create_auth_provider(flask_app)
+
+
+def test_create_auth_provider_uses_custom_factory_result() -> None:
+    """The happy path is unchanged: the factory's provider is returned."""
+    from superset.mcp_service.server import _create_auth_provider
+
+    auth_provider = MagicMock()
+    flask_app = MagicMock()
+    flask_app.config.get.side_effect = lambda key, default=None: {
+        "MCP_AUTH_FACTORY": MagicMock(return_value=auth_provider),
+    }.get(key, default)
+
+    assert _create_auth_provider(flask_app) is auth_provider
+
+
 def test_create_auth_provider_fails_closed_on_insecure_guest_secret() -> None:
     """Guest-only deployment with an insecure GUEST_TOKEN_JWT_SECRET must abort.
 
@@ -320,17 +383,65 @@ def test_create_auth_provider_fails_closed_on_insecure_guest_secret() -> None:
             _create_auth_provider(flask_app)
 
 
+def test_create_auth_provider_fails_closed_on_default_factory_error() -> None:
+    """A generic error while building the enabled auth provider must abort.
+
+    Verifier-construction failures (bad key material, config typos) used to be
+    swallowed, silently starting an unauthenticated server.
+    """
+    from superset.mcp_service.mcp_config import MCPAuthConfigError
+    from superset.mcp_service.server import _create_auth_provider
+
+    flask_app = MagicMock()
+    flask_app.config.get.side_effect = lambda key, default=None: {
+        "MCP_AUTH_FACTORY": None,
+        "MCP_AUTH_ENABLED": True,
+        "MCP_API_KEY_ENABLED": False,
+        "FAB_API_KEY_ENABLED": False,
+    }.get(key, default)
+
+    with patch(
+        "superset.mcp_service.mcp_config.create_default_mcp_auth_factory",
+        side_effect=ValueError("bad PEM"),
+    ):
+        with pytest.raises(MCPAuthConfigError):
+            _create_auth_provider(flask_app)
+
+
+def test_create_auth_provider_fails_closed_on_custom_factory_error() -> None:
+    """MCP_AUTH_FACTORY raising (or yielding None) must abort startup."""
+    from superset.mcp_service.mcp_config import MCPAuthConfigError
+    from superset.mcp_service.server import _create_auth_provider
+
+    def broken_factory(app: Any) -> Any:
+        raise ValueError("bad key material")
+
+    flask_app = MagicMock()
+    flask_app.config.get.side_effect = lambda key, default=None: {
+        "MCP_AUTH_FACTORY": broken_factory,
+    }.get(key, default)
+
+    with pytest.raises(MCPAuthConfigError):
+        _create_auth_provider(flask_app)
+
+    flask_app.config.get.side_effect = lambda key, default=None: {
+        "MCP_AUTH_FACTORY": lambda app: None,
+    }.get(key, default)
+
+    with pytest.raises(MCPAuthConfigError):
+        _create_auth_provider(flask_app)
+
+
 @contextlib.contextmanager
 def _run_server_dependencies(
     flask_config: dict[str, Any],
-) -> Iterator[MagicMock]:
-    """Patch every ``run_server()`` collaborator except stateless_http resolution.
+) -> Iterator[tuple[MagicMock, MagicMock]]:
+    """Patch ``run_server()`` collaborators while retaining config resolution.
 
-    Returns the ``mcp_instance`` mock so callers can assert on the kwargs its
-    ``run()`` was called with -- everything else (auth, middleware, event
-    store, health endpoint) is stubbed out since this is only exercising the
-    ``flask_app.config.get("MCP_STATELESS_HTTP", ...)`` wiring, not those
-    other startup steps.
+    Returns the MCP instance and middleware-builder mocks so callers can assert
+    that resolved Flask settings reach their runtime consumers. Auth, event
+    storage, and health collaborators are stubbed because these tests exercise
+    startup configuration wiring only.
     """
     from superset.mcp_service import server
 
@@ -346,7 +457,9 @@ def _run_server_dependencies(
             return_value=flask_app,
         ),
         patch.object(server, "_create_auth_provider", return_value=None),
-        patch.object(server, "build_middleware_list", return_value=[]),
+        patch.object(
+            server, "build_middleware_list", return_value=[]
+        ) as mock_build_middleware_list,
         patch.object(
             server, "create_response_size_guard_middleware", return_value=None
         ),
@@ -359,7 +472,7 @@ def _run_server_dependencies(
         patch.object(server, "create_event_store", return_value=None),
         patch.object(server, "_build_starlette_middleware", return_value=[]),
     ):
-        yield mcp_instance
+        yield mcp_instance, mock_build_middleware_list
 
 
 def test_run_server_defaults_stateless_http_to_true_when_unset() -> None:
@@ -378,7 +491,10 @@ def test_run_server_defaults_stateless_http_to_true_when_unset() -> None:
     port = 59901
     os.environ.pop(f"FASTMCP_RUNNING_{port}", None)
     try:
-        with _run_server_dependencies(flask_config={}) as mcp_instance:
+        with _run_server_dependencies(flask_config={}) as (
+            mcp_instance,
+            _mock_build_middleware_list,
+        ):
             run_server(host="127.0.0.1", port=port)
 
         mcp_instance.run.assert_called_once()
@@ -396,12 +512,86 @@ def test_run_server_respects_mcp_stateless_http_false_override() -> None:
     port = 59902
     os.environ.pop(f"FASTMCP_RUNNING_{port}", None)
     try:
-        with _run_server_dependencies(
-            flask_config={"MCP_STATELESS_HTTP": False}
-        ) as mcp_instance:
+        with _run_server_dependencies(flask_config={"MCP_STATELESS_HTTP": False}) as (
+            mcp_instance,
+            _mock_build_middleware_list,
+        ):
             run_server(host="127.0.0.1", port=port)
 
         mcp_instance.run.assert_called_once()
         assert mcp_instance.run.call_args.kwargs["stateless_http"] is False
+    finally:
+        os.environ.pop(f"FASTMCP_RUNNING_{port}", None)
+
+
+def test_run_server_respects_structured_output_override() -> None:
+    """The Flask setting reaches the outer compatibility middleware."""
+    from superset.mcp_service.server import run_server
+
+    port = 59903
+    os.environ.pop(f"FASTMCP_RUNNING_{port}", None)
+    try:
+        with _run_server_dependencies(
+            flask_config={"MCP_STRUCTURED_OUTPUT_ENABLED": True}
+        ) as (_mcp_instance, mock_build_middleware_list):
+            run_server(host="127.0.0.1", port=port)
+
+        mock_build_middleware_list.assert_called_once_with(
+            structured_output_enabled=True
+        )
+    finally:
+        os.environ.pop(f"FASTMCP_RUNNING_{port}", None)
+
+
+@pytest.mark.parametrize("enabled", [False, True])
+def test_factory_server_respects_structured_output_setting(enabled: bool) -> None:
+    """Factory servers prepend the configured core stack to custom middleware."""
+    from superset.mcp_service.server import run_server
+
+    port = 59904
+    os.environ.pop(f"FASTMCP_RUNNING_{port}", None)
+    flask_app = MagicMock()
+    flask_app.config = {"MCP_STRUCTURED_OUTPUT_ENABLED": enabled}
+    mcp_instance = MagicMock()
+    core_middleware = [MagicMock(), MagicMock()]
+    custom_middleware = MagicMock()
+    factory_config = {"auth": None, "middleware": [custom_middleware]}
+
+    try:
+        with (
+            patch("superset.mcp_service.server.configure_logging"),
+            patch("superset.mcp_service.server._suppress_third_party_warnings"),
+            patch(
+                "superset.mcp_service.server.get_mcp_factory_config",
+                return_value=factory_config,
+            ),
+            patch(
+                "superset.mcp_service.flask_singleton.get_flask_app",
+                return_value=flask_app,
+            ),
+            patch(
+                "superset.mcp_service.server.create_mcp_app",
+                return_value=mcp_instance,
+            ) as mock_create_mcp_app,
+            patch(
+                "superset.mcp_service.server.build_middleware_list",
+                return_value=core_middleware,
+            ) as mock_build_middleware_list,
+            patch("superset.mcp_service.session_scope.install_mcp_session_scoping"),
+            patch("superset.mcp_service.server._apply_tool_search_transform"),
+            patch("superset.mcp_service.server._register_health_endpoint"),
+            patch("superset.mcp_service.server.create_event_store", return_value=None),
+            patch(
+                "superset.mcp_service.server._build_starlette_middleware",
+                return_value=[],
+            ),
+        ):
+            run_server(host="127.0.0.1", port=port, use_factory_config=True)
+
+        mock_build_middleware_list.assert_called_once_with(
+            structured_output_enabled=enabled
+        )
+        middleware = mock_create_mcp_app.call_args.kwargs["middleware"]
+        assert middleware == [*core_middleware, custom_middleware]
     finally:
         os.environ.pop(f"FASTMCP_RUNNING_{port}", None)

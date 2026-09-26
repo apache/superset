@@ -41,6 +41,79 @@ flowchart LR
     C --> D[("Database<br/>(Postgres)")]
 ```
 
+## Dashboard filter notifications
+
+`apply_dashboard_filters` supports exact-match select filters without inverse
+selection, and time filters. Inverse-selection configurations are rejected.
+Select filters configured for contains, starts-with, or ends-with matching are
+rejected rather than silently applying exact matching. A single-select filter
+accepts at most one value; a longer list is rejected rather than stored as a
+selection the control cannot render. Clearing a required select
+filter with `values: []` matches no rows, including when opening the returned
+permalink; an explicit clear does not restore its saved default.
+
+Returned dashboard permalink URLs use `WEBDRIVER_BASEURL_USER_FRIENDLY` as
+the public origin and respect `APPLICATION_ROOT` (or the request's WSGI
+`SCRIPT_NAME` when mounted behind a proxy). Set the public URL to the
+browser-accessible Superset host; the MCP service's own host may be different.
+
+To stack filters across chat turns, pass the previous
+`apply_dashboard_filters` response's `permalink_key` as `base_permalink_key`
+in the next request for the same dashboard. For example, apply Region = EMEA,
+then pass that key with a Time Range = `2024-01-01 : 2025-01-01` request to
+keep EMEA and add the year constraint. Each new value replaces that filter's
+entire prior entry; unmentioned filters persist. Omit the base key to start
+from dashboard defaults. `applied_filters` summarizes only the new request,
+not the inherited selections. Inherited entries for filters the dashboard no
+longer defines are dropped, so a filter deleted or recreated between turns
+does not carry a stale predicate forward.
+
+Base state is resolved server-side under the calling user's dashboard access
+and merged without display redaction; the raw base mask is not returned.
+Missing or expired keys, resolution failures, access denial, and dashboard
+mismatches fail explicitly without creating a replacement link. Missing and
+expired keys share an error because the permalink store does not distinguish
+them.
+
+After creating a dashboard permalink, `apply_dashboard_filters` attempts a
+best-effort `dashboard.filters_applied` realtime notification scoped to the
+calling principal. Its payload contains only `dashboard_id` and `permalink_key`;
+filter values and resolved state are not included. Consumers must resolve the
+key through the dashboard's authorized permalink load path.
+
+Live browser updates require `WEBSOCKET_ENABLE = True`, a configured
+`DISTRIBUTED_COORDINATION_CONFIG` backend, a running `superset-websocket`
+server, and a strong, non-default `WEBSOCKET_JWT_SECRET` of at least 32 bytes.
+`WEBSOCKET_URL` must also point at a `ws://`/`wss://` endpoint the browser can
+reach. Its default, `ws://127.0.0.1:8080/`, resolves to the browser's own
+loopback, so a remote deployment that leaves it unchanged has every
+server-side piece configured correctly while live updates never connect.
+The browser user also needs
+`can_read` on `Realtime`. With the default configuration the realtime half
+is inert, but the tool still creates and returns a permalink URL.
+The MCP process and websocket transport must use the same
+`REALTIME_CHANNEL_PREFIX`. This publisher does not require the Global Task
+Framework feature flag.
+
+The response's `live_update_pushed` field reports publication success, not
+browser receipt or application. Without a backend, an identifiable principal,
+or a successful publish, it is `false`; the created `dashboard_url` remains
+the fallback. An open dashboard resolves matching notifications through the
+existing dashboard permalink API and applies the returned filters without a
+reload. A “Filters applied from chat” toast offers **Undo**, restoring the
+affected filters' previous selections. The toast carries an action, so it has
+no auto-dismiss timer and stays up until Undo or its close button is used,
+which keeps the action reachable for keyboard and assistive-technology users.
+Undo restores only the filters whose current state still matches what the
+notification applied, so a selection edited in the meantime is kept. Filters
+not present in the notification's permalink keep their existing selections in
+the open dashboard.
+
+Reconnect deliberately does not fetch or replay filter state: there is no
+latest-per-user permalink lookup, and replaying a previously received permalink
+could overwrite manual changes or undo. If a notification is missed or its
+permalink cannot be resolved, open `dashboard_url` from chat.
+
 ---
 
 ## Quick Start
@@ -252,6 +325,59 @@ def my_custom_auth_factory(app):
 
 MCP_AUTH_FACTORY = my_custom_auth_factory
 ```
+
+### Embedded Guest Authentication
+
+Superset's [embedded dashboards](/user-docs/using-superset/embedding) feature mints short-lived **guest tokens** for anonymous/embedded viewers. The MCP server can accept these same guest tokens, so an embedded guest (e.g. an in-app chatbot next to an embedded dashboard) can call MCP tools scoped to the dashboards/resources named in its token.
+
+This is opt-in and reuses the existing core guest-token configuration -- there is no MCP-specific guest secret or audience.
+
+```python
+# superset_config.py
+FEATURE_FLAGS = {"EMBEDDED_SUPERSET": True}   # required -- guest tokens only exist when this is on
+MCP_EMBEDDED_GUEST_AUTH_ENABLED = True        # opt-in for the MCP transport (default False)
+```
+
+Present the guest token the same way as any other bearer token:
+
+```bash
+curl -X POST http://localhost:5008/mcp \
+  -H 'Content-Type: application/json' \
+  -H 'Authorization: Bearer YOUR_GUEST_TOKEN' \
+  -d '{"jsonrpc": "2.0", "method": "tools/list", "id": 1}'
+```
+
+**How it works**
+
+- A dedicated guest-token verifier validates the token against the same `GUEST_TOKEN_JWT_SECRET` / `GUEST_TOKEN_JWT_ALGO` / `GUEST_TOKEN_JWT_AUDIENCE` config used by embedded dashboards, replays the embedded structural checks, and enforces revocation (global version bumps and per-dashboard `guest_token_revoked_before` cutoffs). It runs *before* the JWT verifier described above, since guest tokens are signed with a different key/algorithm and would otherwise be rejected at the transport.
+- A verified guest resolves to a Superset guest user as the highest-priority identity, so it's never downgraded to API-key / `MCP_DEV_USERNAME` / dev-mode resolution. Data access is scoped by the same checks (dataset allowlist, dashboard access, row-level security) that apply to embedded dashboard views.
+- Guests are restricted to a default-deny allow-list, `MCP_GUEST_ALLOWED_TOOLS`, regardless of `MCP_RBAC_ENABLED`. Sensitive enumeration tools like `find_users` and `get_instance_info` are denied simply by being absent from the default list.
+- Setting `MCP_AUTH_FACTORY` bypasses this whole path: a configured factory is tried first, and the default factory that wires up the guest-token verifier is never reached. If you rely on a custom auth factory (e.g. your own OIDC provider) alongside guest auth, that factory must verify guest tokens itself -- otherwise they're rejected regardless of `MCP_EMBEDDED_GUEST_AUTH_ENABLED`.
+
+```python
+# superset_config.py
+MCP_GUEST_ALLOWED_TOOLS = {
+    "get_dashboard_info",
+    "get_dashboard_layout",
+    "get_dashboard_data",
+    "list_dashboards",
+    "list_charts",
+    "get_chart_info",
+    "get_chart_data",
+    "get_chart_preview",
+}  # default
+```
+
+**Deployment requirements**
+
+- The MCP server and the service that mints guest tokens (the Superset web app) must share `GUEST_TOKEN_JWT_SECRET` and `GUEST_TOKEN_JWT_AUDIENCE`. Set `GUEST_TOKEN_JWT_AUDIENCE` explicitly -- if it's unset, audience validation falls back to the URL host, which can differ between the two services and cause every guest token to fail validation.
+- The `GUEST_ROLE_NAME` role (default `Public`) must exist -- a guest token is rejected if it does not.
+- Don't set `MCP_DEV_USERNAME` on a deployment that also serves embedded guests.
+- Restart the MCP process after toggling `EMBEDDED_SUPERSET` or `MCP_EMBEDDED_GUEST_AUTH_ENABLED` -- guest auth is wired up once at startup.
+
+:::warning
+`GUEST_TOKEN_JWT_SECRET` guards both the web embedding and MCP guest-auth surfaces. With `MCP_EMBEDDED_GUEST_AUTH_ENABLED` on, leaving it at its insecure default isn't just a forgery risk -- the MCP server refuses to start (`MCPAuthConfigError`) until you set a real secret shared with the guest-token minting service.
+:::
 
 ---
 
@@ -488,6 +614,8 @@ MCP_STORE_CONFIG = {
 
 When `CACHE_REDIS_URL` is set, the MCP server uses a Redis-backed EventStore for session management, allowing replicas to share state. Without Redis, each pod manages its own in-memory sessions and stateful MCP interactions may fail when requests hit different replicas.
 
+`MCP_STATELESS_HTTP` (default `True`) controls whether requests get a fresh, ephemeral transport per HTTP round trip or a transport that stays alive for the session's lifetime. The default suits multi-pod deployments because it doesn't require session affinity -- any pod can handle any request. Its tradeoff: a client disconnecting mid-tool-call can crash not just its own session but other concurrent sessions on the same worker. Setting it to `False` avoids that, but it requires session-affinity (sticky session) routing on `Mcp-Session-Id` at the mesh/ingress layer, since a session's follow-up requests must land on the same pod that created it. See [`MCP_STATELESS_HTTP`](#core) below.
+
 ---
 
 ## Configuration Reference
@@ -503,8 +631,12 @@ All MCP settings go in `superset_config.py`. Defaults are defined in `superset/m
 | `MCP_SERVICE_URL`    | `None`        | Public base URL for MCP-generated links (set this when behind a reverse proxy)                                                                                                                                                                                               |
 | `MCP_DEBUG`          | `False`       | Enable debug logging                                                                                                                                                                                                                                                         |
 | `MCP_DEV_USERNAME`   | --            | Superset username for development mode (no auth)                                                                                                                                                                                                                             |
+| `MCP_STATELESS_HTTP` | `True`        | Streamable-HTTP session mode. `True` gives each request a fresh, ephemeral transport, torn down as soon as that request completes; a client disconnecting mid-tool-call can crash not just its own session but other concurrent sessions on the same worker. `False` keeps the transport alive for the session's lifetime, avoiding that crash, but requires session-affinity routing on `Mcp-Session-Id` for multi-pod deployments (see [Multi-Pod (Kubernetes)](#multi-pod-kubernetes)). |
 | `MCP_RBAC_ENABLED`   | `True`        | Enforce Superset's role-based access control on MCP tool calls. When `True`, each tool checks that the authenticated user has the required FAB permission before executing. Disable only for testing or trusted-network deployments.                                         |
 | `MCP_DISABLED_TOOLS` | `set()`       | Set of tool names to remove from the MCP server at startup. Disabled tools are never advertised to AI clients during tool discovery. Useful when a custom extension tool should replace a built-in Superset tool. See [Disabling built-in tools](#disabling-built-in-tools). |
+| `MCP_STRUCTURED_OUTPUT_ENABLED` | `False` | Advertise native tool `outputSchema` metadata and return matching `structuredContent`. The text-only default supports clients and transport bridges that cannot encode structured results. Enable only after validating every MCP client and bridge used by the deployment. |
+| `MCP_DISABLED_CHART_PLUGINS` | `frozenset()` | Set of chart type plugin names (e.g. `"handlebars"`) to hide from `generate_chart`. Does not affect `get_chart_type_schema`. See [Disabling chart type plugins](#disabling-chart-type-plugins). |
+| `MCP_CHART_PLUGIN_ENABLED_FUNC` | `None`        | Callable `(chart_type: str) -> bool` evaluated per registry lookup for dynamic enable/disable decisions. Takes precedence over `MCP_DISABLED_CHART_PLUGINS` when set. See [Disabling chart type plugins](#disabling-chart-type-plugins). |
 
 ### Authentication
 
@@ -521,6 +653,8 @@ All MCP settings go in `superset_config.py`. Defaults are defined in `superset/m
 | `MCP_JWT_DEBUG_ERRORS` | `False`   | Log detailed JWT errors server-side (never exposed in HTTP responses per RFC 6750)                                                                                                                                               |
 | `MCP_AUTH_FACTORY`     | `None`    | Custom auth provider factory `(flask_app) -> auth_provider`. Takes precedence over built-in JWT                                                                                                                                  |
 | `MCP_USER_RESOLVER`    | `None`    | Custom function `(app, access_token) -> username` to extract a Superset username from a validated JWT token. When `None`, the default resolver checks `preferred_username`, `username`, `email`, and `sub` claims in that order. |
+| `MCP_EMBEDDED_GUEST_AUTH_ENABLED` | `False` | Accept embedded [guest tokens](#embedded-guest-authentication) as Bearer auth. Also requires the `EMBEDDED_SUPERSET` feature flag. |
+| `MCP_GUEST_ALLOWED_TOOLS` | see [default list](#embedded-guest-authentication) | The only tool names callable by embedded guests (default-deny), regardless of `MCP_RBAC_ENABLED`. |
 
 ### Response Size Guard
 
@@ -529,14 +663,14 @@ Limits response sizes to prevent exceeding LLM context windows:
 ```python
 MCP_RESPONSE_SIZE_CONFIG = {
     "enabled": True,
-    "token_limit": 25000,
+    "max_bytes": 50000,
     "warn_threshold_pct": 80,
     "max_list_items": 100,
     "excluded_tools": [
         "health_check",
-        "get_chart_preview",
         "generate_explore_link",
         "open_sql_lab_with_context",
+        "search_tools",
     ],
 }
 ```
@@ -544,10 +678,17 @@ MCP_RESPONSE_SIZE_CONFIG = {
 | Key                  | Default   | Description                                                                                                                                                                                                                                                                                                                                                                                                            |
 | -------------------- | --------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `enabled`            | `True`    | Enable response size checking                                                                                                                                                                                                                                                                                                                                                                                          |
-| `token_limit`        | `25000`   | Maximum estimated token count per response                                                                                                                                                                                                                                                                                                                                                                             |
+| `max_bytes`          | `50000`   | Maximum serialized response size, in bytes                                                                                                                                                                                                                                                                                                                                                                             |
 | `warn_threshold_pct` | `80`      | Warn when response exceeds this percentage of the limit                                                                                                                                                                                                                                                                                                                                                                |
-| `max_list_items`     | `100`     | Cap on list-field length (e.g. `charts`, `native_filters`) applied to the `get_*_info` tools before falling back to more aggressive truncation. Raised from a hardcoded 30 in earlier versions; the higher default only keeps more data before the same token-budget fallback kicks in, so it's not a breaking change, but tenants that tuned workflows around the old 30-item cap should lower this value explicitly. |
+| `max_list_items`     | `100`     | Cap on list-field length (e.g. `charts`, `native_filters`) applied to the `get_*_info` tools before falling back to more aggressive truncation. Raised from a hardcoded 30 in earlier versions; the higher default only keeps more data before the same size-budget fallback kicks in, so it's not a breaking change, but tenants that tuned workflows around the old 30-item cap should lower this value explicitly. |
 | `excluded_tools`     | See above | Tools exempt from size checking (e.g., tools that return URLs, not data)                                                                                                                                                                                                                                                                                                                                               |
+
+Write tools that cannot fit after truncation return a minimal confirmation rather
+than a size-limit error. This confirmation retains identifying fields, error
+details, and short string lists such as `changed_fields` (at most 20 items and
+200 total characters). Larger lists are omitted; use `_response_truncated` and
+`_truncation_notes` to detect a partial response and re-read the object if needed.
+This fallback does not slim `update_chart`'s default payload.
 
 ### Caching
 
@@ -576,7 +717,7 @@ MCP_CACHE_CONFIG = {
 | Key                  | Default   | Description                                                 |
 | -------------------- | --------- | ----------------------------------------------------------- |
 | `enabled`            | `False`   | Enable response caching                                     |
-| `CACHE_KEY_PREFIX`   | `None`    | Optional prefix for cache keys (useful for shared Redis)    |
+| `CACHE_KEY_PREFIX`   | `None`    | Base prefix for shared Redis; Superset appends an internal response-contract namespace |
 | `list_tools_ttl`     | `300`     | Cache TTL in seconds for `tools/list`                       |
 | `list_resources_ttl` | `300`     | Cache TTL for `resources/list`                              |
 | `list_prompts_ttl`   | `300`     | Cache TTL for `prompts/list`                                |
@@ -621,8 +762,8 @@ MCP_TOOL_SEARCH_CONFIG = {
     ],
     "search_tool_name": "search_tools",
     "call_tool_name": "call_tool",
-    "include_schemas": False,  # False=summary mode (name + parameters_hint)
-    "compact_schemas": True,   # Strip $defs (only applies when include_schemas=True)
+    "include_schemas": True,  # False=summary mode (name + parameters_hint)
+    "compact_schemas": True,   # Default description limit when include_schemas=True
     "max_description_length": 300,
 }
 ```
@@ -633,8 +774,8 @@ MCP_TOOL_SEARCH_CONFIG = {
 | `strategy`               | `"bm25"`  | Search ranking algorithm. `"bm25"` supports natural language; `"regex"` supports pattern matching                                                                                                                                                                                                                  |
 | `max_results`            | `5`       | Maximum tools returned per search query                                                                                                                                                                                                                                                                            |
 | `always_visible`         | See above | Tools that always appear in `list_tools`, regardless of search                                                                                                                                                                                                                                                     |
-| `include_schemas`        | `False`   | When `False` (default, "summary mode"), search results omit `inputSchema` entirely and include a lightweight `parameters_hint` listing top-level parameter names. Set to `True` to include the full `inputSchema` in search results. Full schemas are always used when a tool is actually invoked via `call_tool`. |
-| `compact_schemas`        | `True`    | Strip `$defs` / `$ref` and replace with `{"type": "object"}` in search results to reduce token cost. Only takes effect when `include_schemas=True` — ignored in summary mode.                                                                                                                                      |
+| `include_schemas`        | `True`    | Include the full `inputSchema` in search results by default. When `False` ("summary mode"), search results omit `inputSchema` entirely and include a lightweight `parameters_hint` listing top-level parameter names. Full schemas are always used when a tool is actually invoked via `call_tool`. |
+| `compact_schemas`        | `True`    | Legacy setting selecting the default description limit (300 when `True`, 0 when `False`) if `max_description_length` is omitted. Input schemas preserve `$defs`, `$ref`, nullable unions, and constraints in either mode; titles are omitted. Clients should resolve references within each tool's `inputSchema`.                                                                                                                                      |
 | `max_description_length` | `300`     | Truncate tool descriptions in search results (0 = no truncation). Applies in both summary and full-schema modes.                                                                                                                                                                                                   |
 
 :::tip
@@ -676,6 +817,7 @@ Each tool declares one or more required FAB permissions. The table below maps to
 | -------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------- |
 | `list_charts`, `get_chart_info`, `get_chart_data`, `get_chart_preview`, `generate_chart`, `update_chart` | `can_read` on `Chart` (read), `can_write` on `Chart` (mutate)         |
 | `list_dashboards`, `get_dashboard_info`, `generate_dashboard`, `add_chart_to_existing_dashboard`         | `can_read` on `Dashboard` (read), `can_write` on `Dashboard` (mutate) |
+| `get_dashboard_data`                                                                                     | `can_read` on `Dashboard` **and** `can_read` on `Chart` (it reads chart data across the dashboard) |
 | `list_datasets`, `get_dataset_info`, `create_virtual_dataset`                                            | `can_read` on `Dataset` (read), `can_write` on `Dataset` (mutate)     |
 | `list_databases`, `get_database_info`                                                                    | `can_read` on `Database`                                              |
 | `execute_sql`                                                                                            | `can_execute_sql_query` on `SQLLab`                                   |
@@ -708,15 +850,54 @@ This makes MCP activity fully auditable alongside regular Superset activity. The
 
 Every MCP request passes through a middleware stack before reaching the tool function. The default stack (assembled in `build_middleware_list()` in `server.py`) is:
 
-| Middleware                            | Purpose                                                                                | Default                                               |
-| ------------------------------------- | -------------------------------------------------------------------------------------- | ----------------------------------------------------- |
-| `StructuredContentStripperMiddleware` | Strips `structuredContent` from responses for Claude.ai bridge compatibility           | Enabled                                               |
-| `LoggingMiddleware`                   | Logs each tool call with user, parameters, and duration                                | Enabled                                               |
-| `GlobalErrorHandlerMiddleware`        | Catches unhandled exceptions and sanitizes sensitive data before it reaches the client | Enabled                                               |
-| `ResponseSizeGuardMiddleware`         | Estimates token count, warns at 80% of limit, blocks at limit                          | Enabled (configurable via `MCP_RESPONSE_SIZE_CONFIG`) |
-| `ResponseCachingMiddleware`           | Caches read-heavy tool responses (in-memory or Redis)                                  | Disabled (enable via `MCP_CACHE_CONFIG`)              |
+| Middleware                          | Purpose                                                                                | Default                                               |
+| ----------------------------------- | -------------------------------------------------------------------------------------- | ----------------------------------------------------- |
+| `ToolResultCompatibilityMiddleware` | Gates structured results and sanitizes errors that escape the inner error handler      | Enabled                                               |
+| `LoggingMiddleware`                 | Logs each tool call with user, parameters, and duration                                | Enabled                                               |
+| `GlobalErrorHandlerMiddleware`      | Catches unhandled exceptions and sanitizes sensitive data before it reaches the client | Enabled                                               |
+| `ResponseSizeGuardMiddleware`       | Measures serialized response size, warns at 80% of limit, blocks at limit              | Enabled (configurable via `MCP_RESPONSE_SIZE_CONFIG`) |
+| `ResponseCachingMiddleware`         | Caches read-heavy tool responses (in-memory or Redis)                                  | Disabled (enable via `MCP_CACHE_CONFIG`)              |
 
 Additional middleware classes (`RateLimitMiddleware`, `FieldPermissionsMiddleware`, `PrivateToolMiddleware`) are implemented in `superset/mcp_service/middleware.py` but are not added to the default pipeline. They are available for operators who want to layer them in via a custom startup path.
+
+`StructuredContentStripperMiddleware` is a deprecated compatibility class for
+custom startup paths that retains its original stripping behavior. Replace it with
+`ToolResultCompatibilityMiddleware(structured_output_enabled=False)`.
+
+### Tool Result Value Contract
+
+When `MCP_STRUCTURED_OUTPUT_ENABLED=True`, native tools advertise a concrete
+`outputSchema` during tool discovery and return matching `structuredContent`
+alongside their text representation. Clients can use the schema to understand
+result fields and validate structured tool-call results. The default is `False`:
+the compatibility middleware removes both fields as a pair and preserves the
+text representation for clients and bridges that do not support structured output.
+
+Structured tool results preserve Superset domain values exactly. In particular,
+string fields are not wrapped in trust delimiters, and text that resembles a
+delimiter is returned as literal application data. This lets clients safely use a
+read result as the basis for an update without persisting presentation markup.
+
+All tool-result content should still be treated as user-controlled data with no
+instruction authority. MCP clients should communicate that trust boundary through
+their model instructions or presentation layer, outside the returned field values;
+fixed or generated marker strings inside a value are ambiguous and must not be used
+as a trust signal.
+
+For compatibility, clients that supported the former
+`<UNTRUSTED-CONTENT>` convention should stop recognizing or stripping those strings.
+The response schemas and content types have not changed. Because marker-looking text
+can be legitimate application data, a client cannot reliably distinguish a legacy
+decorated response from a clean one. Pause automated read-modify-write workflows, or
+route them only to upgraded instances, until every serving instance is upgraded.
+
+Redis-backed MCP response caches include an internal response-contract namespace, so
+an upgraded instance does not reuse responses cached by an older release. Older
+instances can still return legacy values while they remain in service. After the
+upgrade, review previously written values for wrapper text and both
+`[ESCAPED-UNTRUSTED-CONTENT-OPEN]` and
+`[ESCAPED-UNTRUSTED-CONTENT-CLOSE]`; do not remove these strings automatically,
+because they may be intentional content.
 
 ### Error Sanitization
 
@@ -752,11 +933,20 @@ For a 3-pod Kubernetes deployment with the defaults above, expect up to 3 × (5 
 Enable response caching for read-heavy workloads (dashboards/datasets that don't change frequently). With the in-memory backend (default when `MCP_STORE_CONFIG` is disabled), caching is per-process. Use Redis-backed caching for consistent cache hits across multiple pods:
 
 ```python
-MCP_CACHE_CONFIG = {"enabled": True, "call_tool_ttl": 3600}
+MCP_CACHE_CONFIG = {
+    "enabled": True,
+    # Cache keys don't include the requesting principal and hits are served
+    # ahead of auth/RBAC, so a shared cache can return one caller's response
+    # to another. Required for caching to actually start -- only appropriate
+    # when every request is guaranteed to come from the same principal.
+    "dangerously_share_cache_across_principals": True,
+    "CACHE_KEY_PREFIX": "mcp_cache_",
+    "call_tool_ttl": 3600,
+}
 MCP_STORE_CONFIG = {"enabled": True, "CACHE_REDIS_URL": "redis://redis:6379/0"}
 ```
 
-Mutating tools (`generate_chart`, `update_chart`, `execute_sql`, `generate_dashboard`) are always excluded from caching regardless of this setting.
+Every tool with a side effect (create/update/delete/execute) is always excluded from caching regardless of this setting -- see the `excluded_tools` default in `superset/mcp_service/mcp_config.py` for the current list.
 
 ---
 
@@ -797,9 +987,9 @@ Mutating tools (`generate_chart`, `update_chart`, `execute_sql`, `generate_dashb
 
 ### Response too large
 
-- If a tool call returns an error about exceeding token limits, the response size guard is blocking an oversized result
+- If a tool call returns an error about exceeding size limits, the response size guard is blocking an oversized result
 - Reduce `page_size` or `limit` parameters, use `select_columns` to exclude large fields, or add filters to narrow results
-- To adjust the threshold, change `token_limit` in `MCP_RESPONSE_SIZE_CONFIG`
+- To adjust the threshold, change `max_bytes` in `MCP_RESPONSE_SIZE_CONFIG`
 - To disable the guard entirely, set `MCP_RESPONSE_SIZE_CONFIG = {"enabled": False}`
 
 ---
@@ -830,6 +1020,23 @@ while True:
     page += 1
 ```
 
+## Trash Listing (Soft-Deleted Objects)
+
+When the `SOFT_DELETE` feature flag is enabled, deleting a chart or dashboard moves it to trash rather than removing it outright. The `list_charts` and `list_dashboards` tools accept a `deleted_state` parameter to surface those trashed objects:
+
+- `deleted_state="only"` — return only trashed objects
+- `deleted_state="include"` — return live and trashed objects together
+- Omitted (default) — live objects only; trashed objects are excluded
+
+```python
+# List only trashed charts
+result = mcp.list_charts(request={"deleted_state": "only"})
+```
+
+Trashed rows carry a non-null `deleted_at` timestamp in the response (populated only when `deleted_state` is used). Visibility follows the same restore-audience scoping as the equivalent REST API filters (`chart_deleted_state` / `dashboard_deleted_state`): a non-admin caller sees only the trashed objects they can edit (the same audience that can restore them), not merely the ones they own; admins see all trashed objects. That scoping is narrower than the true restore audience in two cases it can't express in SQL: editorship granted via `EXTRA_EDITORS_RESOLVER` and guest users whose editorship derives from roles. Callers in either case may be able to restore a trashed object via `POST /restore` yet not see it listed here.
+
+`deleted_state` is only defined on `list_charts` and `list_dashboards`. Other list tools don't declare the field at all, so passing it is silently ignored rather than rejected — it never returns trashed objects.
+
 ## Disabling built-in tools
 
 If you have deployed a custom tool via a Superset extension that supersedes one of the built-in Superset tools, you can suppress the built-in version so AI clients only discover your replacement. Disabled tools are removed from the server at startup and are never advertised during tool discovery.
@@ -856,6 +1063,43 @@ MCP_DISABLED_TOOLS = {"extensions.myorg.myextension.some_tool"}
 Specifying a tool name that does not exist logs a warning at startup and is otherwise ignored — it will not prevent the server from starting.
 :::
 
+## Disabling chart type plugins
+
+The `generate_chart` tool dispatches per chart type (`xy`, `table`, `pie`, `gauge`, `treemap_v2`, `pivot_table`, `interactive_pivot`, `mixed_timeseries`, `handlebars`, `big_number`, `histogram`, `box_plot`, `waterfall`) to a registered chart type plugin. Gauge requests use the public MCP discriminator `chart_type: "gauge"`; Superset stores the corresponding native Explore visualization as `viz_type: "gauge_chart"`. Two settings let operators enable or disable individual chart type plugins at runtime, without a code deploy.
+
+Gauge data inspection and JSON/CSV/XLSX exports preserve source groups, including NULL and non-finite metric values, using the same row-count and completeness semantics as other chart types. The default XLSX exporter writes non-finite floats as `nan`, `inf`, or `-inf` text, matching CSV and distinguishing them from blank NULL cells. Only previews and compile checks skip NULL, NaN, non-finite, and other nonnumeric dial values while preserving finite groups. In preview/compile paths, a nonempty result containing no finite dial returns an error; genuinely empty results retain the no-data behavior. Compile checks inspect the configured dial limit (at most 10), rather than only two groups. Grouped Vega previews center each needle within its own facet and extend it to the midpoint of the dial band. Automatic all-zero ranges span 0–1. Empty or whitespace-only temporal ranges, like `No filter`, are neutral sentinels; missing or non-string native temporal comparators are invalid.
+
+Gauge previews retain data-derived automatic bounds even when configured interval thresholds extend beyond the visible range; Vega previews clip those thresholds into adjacent, non-overlapping bands. Explicit min/max bounds still constrain intervals. All-zero data with both bounds omitted uses a nondegenerate preview range of 0–1. On same-dataset Gauge updates, clearing or changing the dashboard temporal binding preserves user-authored temporal ranges; dataset rebinds discard old query roles and filters. The native `"No filter"` sentinel is a neutral dashboard temporal binding, not a conflicting restriction. Duplicate generated neutral bindings self-heal on updates without removing user-authored ranges. Restating the existing dataset ID without a config is allowed; changing the Gauge dataset still requires a complete config. Native restrictive temporal filters that conflict with the top-level range or another restrictive temporal filter are rejected rather than silently dropped. Unsupported native filter operators are rejected with an indexed error. Native `TEMPORAL_RANGE` adhoc filters require an explicit string comparator; `"No filter"`, empty strings, and whitespace represent an unrestricted range.
+
+### Static deny-list
+
+Set `MCP_DISABLED_CHART_PLUGINS` in your `superset_config.py` to a set of chart type names:
+
+```python
+# superset_config.py
+
+# Emergency kill switch: hide "handlebars" from all callers
+MCP_DISABLED_CHART_PLUGINS = {"handlebars"}
+```
+
+Disabled chart types stay registered but are filtered out at lookup time: they're never listed in `generate_chart`'s supported chart types, and `generate_chart` calls for them are rejected. `get_chart_type_schema` consults its own static schema/example map rather than the registry filter, so a disabled chart type's schema remains queryable through that tool even though `generate_chart` will reject it.
+
+### Dynamic predicate
+
+For per-request control (A/B tests, gradual rollout, entitlement checks), set `MCP_CHART_PLUGIN_ENABLED_FUNC` to a callable. It's evaluated as `enabled_func(chart_type: str) -> bool` on every registry lookup, and it takes precedence over `MCP_DISABLED_CHART_PLUGINS` when set:
+
+```python
+# superset_config.py
+from flask import g
+
+
+def MCP_CHART_PLUGIN_ENABLED_FUNC(chart_type: str) -> bool:
+    flags = getattr(g, "feature_flags", {})
+    return flags.get(f"mcp_chart_{chart_type}", True)
+```
+
+The callable must be cheap and in-process (consult already-loaded feature flags or request-local context) -- do not perform network I/O per call. If it raises, the registry fails closed (the plugin is hidden) and logs a warning.
+
 ## Security Best Practices
 
 - **Use TLS** for all production MCP endpoints -- place the server behind a reverse proxy with HTTPS
@@ -874,3 +1118,263 @@ Specifying a tool name that does not exist logs a warning at startup and is othe
 - **[MCP Integration](/developer-docs/extensions/mcp)** -- Build custom MCP tools and prompts via Superset extensions
 - **[Security](/developer-docs/extensions/security)** -- Security best practices for extensions
 - **[Deployment](/developer-docs/extensions/deployment)** -- Package and deploy Superset extensions
+
+### Reporting query dates
+
+`query_dataset` and `get_table` return `from_dttm` (inclusive) and `to_dttm`
+(exclusive): the primary time boundaries from the query engine's result payload,
+including cached and empty results. Callers should quote these ISO 8601 values
+when explaining the numbers, rather than calculate dates from the request again.
+For example, `previous calendar month` evaluated on July 17, 2026 resolves to
+`2026-06-01T00:00:00` through, but not including, `2026-07-01T00:00:00`.
+`Last month` is a rolling month, not the previous calendar month.
+
+On a cache hit, these bounds reflect the current request, not necessarily the
+original cached execution. A cached result can outlive a relative-range rollover;
+check `cache_status.cache_hit` before describing the bounds as execution dates.
+
+Relative expressions use Superset's server clock and configured
+`DEFAULT_RELATIVE_START_TIME` / `DEFAULT_RELATIVE_END_TIME` (both default to
+`today`, meaning midnight). Valid explicit dates are used as supplied; the server
+cannot determine whether a model intended a different year.
+
+These fields describe the engine's **primary logical range**, not the observed
+minimum/maximum dates in the rows or every SQL predicate. A null boundary means
+no primary bound is available; it does not prove the absence of other filters.
+Additional column filters and virtual dataset SQL can further constrain the
+data. MCP validation rejects open-ended `time_range` strings such as
+`"2025-01-01 : "` or `" : 2025-02-01"` before execution; use explicit comparison
+filters for one-sided constraints. Those comparisons are not primary bounds. Naive
+boundaries are not labeled UTC: dataset timezone or legacy hour-offset settings
+can adjust the SQL comparisons. Use the applied filters and datasource settings
+as well when explaining such queries. `query_dataset.applied_filters` retains the
+original expressions so callers can compare the requested and resolved ranges.
+
+### Overriding a saved chart's time grain
+
+Pass `extra_form_data={"time_grain_sqla": "P1M"}` to `get_chart_data` or
+`get_chart_sql` to aggregate a saved chart by month instead of its saved grain.
+For Generic Chart Axes charts, both MCP overrides and dashboard time-grain
+filters update the `BASE_AXIS` column's `timeGrain`, regardless of its position
+in the query's `columns` list. Other columns are left untouched. Queries without
+a `BASE_AXIS` column continue to use `extras.time_grain_sqla`.
+
+### Reading applied dashboard filters
+
+When answering about a filtered dashboard, call `get_dashboard_info` with the
+dashboard's `permalink_key` (a saved snapshot) or caller-supplied `filter_state`.
+This value projection is provided by `get_dashboard_info`;
+`get_dashboard_layout` retains its existing metadata-redacted layout state and
+does not return native filter values.
+The tool cannot observe browser state without one of these inputs. Its response
+includes `filter_state` by default; an explicit `select_columns` must include it.
+
+For users without Dataset drill/write metadata permissions, including embedded
+guests, raw `dataMask` and `chartStates` remain hidden. Instead,
+`filter_state.native_filter_values` contains configured native filter IDs, display
+names, types, and scalar or flat-list selections for select, numeric range, time
+range, and time-grain filters, plus display labels and exclusion flags when present.
+It does not expose filter targets, dataset IDs, columns from query metadata, or
+arbitrary nested filter state. Time-column filters, custom filters, unknown IDs,
+and chart cross-filter state are not projected. Historical masks containing
+time-column metadata are also omitted, even if the configured filter type has
+changed; malformed type-specific value shapes are omitted rather than interpreted.
+`native_filter_values_incomplete` flags omitted or malformed context, including SQL or wildcard predicates that
+cannot be represented by selected values alone. It also flags retained selections
+without query predicates (for example, a cleared or not-yet-applied mask). These
+display values are not proof that a predicate is active.
+
+These values describe a snapshot, not automatically enforced query predicates or
+a complete account of filter scope. An empty or missing summary must not be
+treated as permission to query unfiltered or workspace-wide data. Respect chart
+scope and ask for clarification when the context cannot safely constrain an
+answer. Dashboard access checks and row-level security remain independent of this
+display-context projection. Integrations must ensure the lookup actually happens
+and the assistant uses the result; tool guidance alone cannot guarantee this.
+
+## Tool-call errors
+
+For exceptions raised by tools, the shared error handler distinguishes permission
+denials, invalid arguments, datasource failures, invalid SQL, and internal errors.
+Datasource responses include an enumerated reason rather than raw driver output;
+internal errors return an error ID rather than implementation details. Tools such
+as `get_chart_data` that return structured error envelopes instead of raising do
+not pass through this handler.
+
+Missing tables, columns, and schemas log at `WARNING` without invoking
+`MCP_ERROR_HOOK`, even when the exception inherits status 500. Connection failures
+with status 500 or higher remain `ERROR` and invoke the hook. An explicitly
+sub-500 exception remains a warning even if it carries a connection error reason:
+the generic engine reason can also describe a caller's malformed column, and a
+connection access denial is still a permission failure.
+
+## Result serialization
+
+Data-bearing tool responses sanitize row values, column samples, and statistics
+even when Python producers supply tuples, sets, generators, or read-only mappings.
+Missing and non-finite values become JSON `null`; non-UTF-8 binary values become
+base64 strings prefixed with `base64:`. Boolean row counts are treated as
+unavailable, producing `null` for nullable counts and `0` for non-nullable counts,
+rather than being interpreted as one or zero rows.
+
+## Chart data column counts
+
+For saved and unsaved charts, `get_chart_data` column metadata excludes missing
+values from `unique_count`. Values serialized as JSON `null`, including NaN,
+NaT, and non-finite numbers, contribute to `null_count` instead.
+
+## Dataset query dimensions and nested fields
+
+The `query_dataset` tool accepts exact column names registered on the selected
+Superset dataset. Use `get_dataset_info` with the same `dataset_id` to discover
+those names; a column available on one dataset may not exist on another.
+
+A dotted name such as `address.city.name` can be used as a GROUP BY
+column when that exact name is registered. Registering only the parent
+`address` column does not register its nested fields. If a field is missing,
+refresh the dataset columns when the database exposes nested-field metadata,
+or add a calculated column with the warehouse-appropriate field-access
+expression and query its registered name. For ad-hoc expressions, use
+`execute_sql` instead.
+
+Unknown dimensions return the selected dataset's name and ID, up to ten
+available column names, and a pointer to `get_dataset_info` for the full list.
+Unregistered dotted dimensions also include shared nested-field setup guidance
+once, even when multiple dimensions are missing.
+The tool does not rewrite dots into SQL path separators: quoting and nested-field
+support depend on the dataset's database dialect, and dots can also be literal
+characters in column names.
+
+
+### Treemap charts
+
+Saved and cached previews honor the configured Treemap row limit across ASCII,
+table, and Vega representations. SQL Decimal metrics are accepted when finite;
+booleans and nonfinite values are rejected. Categories with identical display
+names but distinct raw types retain separate geometry groups. Currency settings
+use the native `symbolPosition` property. Adding filters while omitting the
+temporal column preserves saved predicates and the existing neutral time binding;
+explicit empty filters or a cleared temporal column remove those controls.
+
+
+Use `chart_type: "treemap_v2"` with an ordered `groupby` hierarchy and one
+`metric`. Hierarchy columns accept typed references (`{"name": "region"}`)
+or native strings. Metrics accept typed column references with an aggregate,
+saved metric names, or native SIMPLE/SQL metric objects. SQL metrics still
+require a label and pass the shared SQL-expression validation. Unknown controls
+and executable JavaScript hooks are not accepted.
+
+```json
+{
+  "dataset_id": 7,
+  "config": {
+    "chart_type": "treemap_v2",
+    "groupby": ["region", "product"],
+    "metric": {"name": "revenue", "aggregate": "SUM"},
+    "row_limit": 100,
+    "sort_by_metric": true,
+    "show_labels": true,
+    "show_upper_labels": true,
+    "label_type": "key_value",
+    "number_format": ",.2f"
+  }
+}
+```
+
+Bounded queries sort by the metric descending when requested, then by hierarchy
+columns ascending to break ties, matching the frontend query contract.
+`update_chart` and `update_chart_preview` preserve omitted same-dataset Treemap
+controls, including hierarchy, metrics, formatting, filters, temporal state and
+`template_params`. Partial configurations are accepted only for updates; a new
+chart still requires hierarchy and metric roles. Explicit empty filters clear
+filters, and explicit null clears nullable controls. Rebinding to another dataset
+requires complete roles and inherits only supported presentation controls.
+
+ASCII and table previews show hierarchy and values. Vega-Lite previews use
+bounded slice-and-dice rectangles with metric-proportional areas, hierarchy
+paths, categorical colors, labels and tooltips. This is not the native ECharts
+layout: use the Explore URL for native formatting and interactions. The preview
+supports up to 1,000 nonnegative rows, 20 hierarchy levels, and the built-in
+`supersetColors` and `lyftColors` schemes. Unsupported color/currency formats,
+negative values, zero totals and over-limit geometry return
+`UnsupportedTreemapPreview` rather than a substitute scatter or bar chart.
+`SMART_NUMBER` is approximated with SI formatting in this preview.
+
+Queries must return every hierarchy output and the metric's exact output label.
+Malformed/error envelopes and nonnumeric or nonfinite metric outputs return
+structured errors instead of apparently successful previews, charts or exports.
+
+## Dataset discovery and routing
+
+`list_datasets` searches table name, **description**, schema, and SQL using
+escaped, case-insensitive substring matching. Write descriptions with business
+terminology to make differently named datasets discoverable. A complete UUID
+passed as `search` is treated as an exact UUID filter; an explicit `uuid` filter
+can also look up one or more datasets by UUID. Matching
+datasets are candidates, ordered by the requested sort (last modified by default), not
+ranked recommendations. Compare descriptions and metrics, present alternatives
+when ambiguous, and clarify before querying. No matches does not prove that data
+does not exist; search only covers accessible datasets and the configured scope.
+
+`query_dataset` returns `dataset_id` and `dataset_name`; `get_table` additionally
+returns `source` and the corresponding dataset or external-view identity. Cite
+these fields in answers rather than guessing the source from the query text.
+Neither tool selects an alternative dataset automatically.
+
+### Optional per-role dataset scope
+
+Set `MCP_DATASET_ROLE_ALLOWLIST` in `superset_config.py` to constrain MCP to a
+curated set of registered datasets:
+
+```python
+MCP_DATASET_ROLE_ALLOWLIST = {
+    "Finance Readers": ["00000000-0000-0000-0000-000000000001"],
+    "Operations Readers": ["00000000-0000-0000-0000-000000000002"],
+}
+```
+
+Obtain dataset UUIDs from `get_dataset_info` (or request `uuid` in
+`list_datasets.select_columns`). Use UUIDs, not names or numeric IDs, in config.
+Effective roles, including group roles, contribute the **union** of their lists.
+That union is **intersected with existing dataset access**. Unconfigured roles
+contribute nothing; Admin has no routing exemption. `None` (the default) disables
+this feature; `{}` allows no datasets. Invalid entries cause a configuration
+error at startup rather than silently disabling the restriction.
+
+Scoped mode supports the dataset tools that name a registered dataset —
+`list_datasets`, `get_dataset_info`, `query_dataset`, and, with a built-in
+dataset, `get_table`, `list_metrics`, `get_compatible_dimensions` and
+`get_compatible_metrics` — plus `health_check` and `get_schema`.
+Discovery filters before counting and pagination. Every other **authenticated**
+tool refuses in this mode, including SQL Lab, chart/dashboard previews and data,
+cached query results, external semantic sources, mutations, and extension tools.
+The one exception is `generate_bug_report`, which is deliberately public
+(`protect=False`, listed in `ALLOWED_UNPROTECTED`) so diagnostics stay available
+even when authentication is broken. Scoped mode is enforced in the
+authentication wrapper, so that tool keeps working; it reports environment and
+user-supplied diagnostics and reads no dataset rows. These paths cannot
+all be attributed reliably to registered dataset UUIDs; scoped mode deliberately
+refuses them instead of attempting SQL lineage inference. Unsupported tools stay
+listed and refuse when called, so the assistant reads an explanation it can pass
+on rather than finding the tool missing. Prompts and resources are unaffected:
+they expose schema and instance metadata, not dataset rows. This restriction
+applies to every caller of the MCP tools, not just a particular chat client.
+
+The default `MCP_GUEST_ALLOWED_TOOLS` contains only chart/dashboard tools,
+none of which supports dataset-scoped mode. Enabling this allowlist therefore
+also makes all of those embedded-guest tool calls refuse.
+
+An out-of-scope request returns an explicit refusal. The assistant must explain
+that limitation, never silently substitute an allowed but different dataset.
+This feature controls routing and usability, **not authorization or SQL table
+access**. Existing dataset permissions, query validation, and row-level security
+remain mandatory and unchanged. A registered virtual dataset may itself query
+multiple physical tables; this configuration selects registered dataset objects,
+not their underlying SQL dependencies. It does not restrict the Superset UI/API.
+
+Description search adds one text predicate to an existing catalog substring
+scan, without joins or additional queries, and replaces the `uuid` substring
+predicate, whose behavior varied by database. It is not an indexed
+full-text search: large catalogs and long descriptions can increase scan time.
+Benchmark with your metadata database and catalog size when tuning discovery
+latency.

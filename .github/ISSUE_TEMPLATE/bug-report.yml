@@ -1,6 +1,6 @@
 name: Bug report
 description: Report a bug to improve Superset's stability
-labels: ["bug"]
+labels: ["#bug"]
 body:
   - type: markdown
     attributes:

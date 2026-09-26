@@ -78,6 +78,23 @@ import {
 import { Space } from '../Space';
 import { Button } from '../Button';
 
+// An option is eligible for a bulk "Select all" when it carries a truthy value
+// and is neither disabled nor the transient "create new option" entry. Shared
+// by the count, the visibility gate, and the click handler so they cannot drift.
+const isBulkSelectable = (option: SelectOptionsType[number]): boolean =>
+  Boolean(option.value) && !option.disabled && !option.isNewOption;
+
+// Grouped option lists nest their selectable entries under `.options`; the group
+// headers themselves carry no `value`. Flatten one level so the bulk "Select
+// all" machinery targets the actual leaf options rather than the headers. A flat
+// list passes through unchanged.
+const flattenGroupedOptions = (options: SelectOptionsType): SelectOptionsType =>
+  options.flatMap(option =>
+    'options' in option && Array.isArray(option.options)
+      ? (option.options as SelectOptionsType)
+      : option,
+  );
+
 /**
  * This component is a customized version of the Antdesign 4.X Select component
  * https://ant.design/components/select/.
@@ -98,6 +115,7 @@ const Select = forwardRef(
       allowNewOptions = false,
       allowNewOptionsOnPaste = false,
       allowSelectAll = true,
+      stableSelectAll = false,
       ariaLabel,
       autoClearSearchValue = true,
       filterOption = true,
@@ -293,6 +311,27 @@ const Select = forwardRef(
       [visibleOptions],
     );
 
+    // The full (search-independent) option set flattened to its leaf options, so
+    // the stableSelectAll bulk machinery treats grouped columns the same as flat
+    // ones. Gated on stableSelectAll so consumers that don't use the feature skip
+    // the work; a flat list is returned unchanged either way.
+    const flatFullSelectOptions = useMemo(
+      () =>
+        stableSelectAll
+          ? flattenGroupedOptions(fullSelectOptions)
+          : EMPTY_OPTIONS,
+      [fullSelectOptions, stableSelectAll],
+    );
+
+    // The stable, full-set counterpart of enabledOptions: every bulk-selectable
+    // option across the entire (search-independent) option set. Used when
+    // stableSelectAll is on so the "Select all" action and visibility stay
+    // pinned to the full column while a search narrows visibleOptions.
+    const fullSelectAllOptions = useMemo(
+      () => flatFullSelectOptions.filter(isBulkSelectable),
+      [flatFullSelectOptions],
+    );
+
     const selectAllEligible = useMemo(
       () =>
         visibleOptions.filter(
@@ -308,49 +347,62 @@ const Select = forwardRef(
         !isSingleMode &&
         allowSelectAll &&
         selectOptions.length > 0 &&
-        enabledOptions.length > 1,
+        // When stableSelectAll is on, gate visibility on the full eligible set
+        // so the bulk control does not hide/flicker while a search narrows
+        // visibleOptions.
+        (stableSelectAll
+          ? fullSelectAllOptions.length
+          : enabledOptions.length) > 1,
       [
         isSingleMode,
         allowSelectAll,
         selectOptions.length,
         enabledOptions.length,
+        stableSelectAll,
+        fullSelectAllOptions.length,
       ],
     );
 
     const selectAllMode = useMemo(
-      () => ensureIsArray(selectValue).length === selectAllEligible.length + 1,
-      [selectValue, selectAllEligible],
+      () =>
+        // stableSelectAll adds real values across the full column with no legacy
+        // "Select all" sentinel occupying a slot in selectValue, so the
+        // eligible+1 phantom detection does not apply. Force it off so a search
+        // that narrows selectAllEligible cannot make a normal selection read as
+        // the sentinel (which drives the collapsed-tag off-by-one).
+        !stableSelectAll &&
+        ensureIsArray(selectValue).length === selectAllEligible.length + 1,
+      [selectValue, selectAllEligible, stableSelectAll],
     );
 
     const bulkSelectCounts = useMemo(() => {
       const selectedValuesSet = new Set(
         ensureIsArray(selectValue).map(getValue),
       );
-      return visibleOptions.reduce(
-        (acc, option) => {
-          const isSelected = selectedValuesSet.has(option.value);
-          const isDisabled = option.disabled;
-          const isNew = option.isNewOption;
-
-          // Mirror handleSelectAll, which skips falsy-valued options (e.g. the
-          // <NULL> option whose value is null): they are not bulk-selectable,
-          // so counting them here makes the "Select all" badge overstate what
-          // gets selected.
-          if (
-            option.value &&
-            (!isDisabled || isSelected) &&
-            ((isNew && isSelected) || !isNew)
-          ) {
-            acc.selectable += 1;
-          }
-          if (isSelected && !isDisabled) {
-            acc.deselectable += 1;
-          }
-          return acc;
-        },
-        { selectable: 0, deselectable: 0 },
-      );
-    }, [visibleOptions, selectValue]);
+      // When stableSelectAll is on, both counts reduce over the full
+      // (search-independent) loaded option set — flattened so grouped columns
+      // count their leaf options — so they stay stable and consistent with each
+      // other while searching. When it is off, countSource === visibleOptions,
+      // so the counts are unchanged for generic consumers.
+      const countSource = stableSelectAll
+        ? flatFullSelectOptions
+        : visibleOptions;
+      const selectable = countSource.reduce((acc, option) => {
+        // "Select all" only adds, so the post-click count is every eligible
+        // option plus any already-selected option that will remain selected
+        // (a selected disabled/new option is not toggled off). Falsy-valued
+        // options (e.g. the <NULL> option) are never bulk-selectable.
+        const willBeSelected =
+          isBulkSelectable(option) ||
+          (Boolean(option.value) && selectedValuesSet.has(option.value));
+        return willBeSelected ? acc + 1 : acc;
+      }, 0);
+      const deselectable = countSource.reduce((acc, option) => {
+        const isSelected = selectedValuesSet.has(option.value);
+        return isSelected && !option.disabled ? acc + 1 : acc;
+      }, 0);
+      return { selectable, deselectable };
+    }, [visibleOptions, selectValue, flatFullSelectOptions, stableSelectAll]);
 
     const handleOnSelect: SelectProps['onSelect'] = (selectedItem, option) => {
       if (isSingleMode) {
@@ -594,9 +646,15 @@ const Select = forwardRef(
     const handleSelectAll = useCallback(() => {
       if (isSingleMode) return;
 
-      const optionsToSelect = isSearching
+      const searchScopedOptions = isSearching
         ? visibleOptions.filter(option => !option.isNewOption)
         : enabledOptions;
+      // When stableSelectAll is on, always select the full eligible set
+      // regardless of any active search, so "Select all" targets the whole
+      // column rather than the search-filtered subset.
+      const optionsToSelect = stableSelectAll
+        ? fullSelectAllOptions
+        : searchScopedOptions;
 
       const currentValues = ensureIsArray(selectValue);
       const currentValuesSet = new Set(currentValues.map(getValue));
@@ -619,6 +677,8 @@ const Select = forwardRef(
       isSearching,
       visibleOptions,
       enabledOptions,
+      stableSelectAll,
+      fullSelectAllOptions,
       selectValue,
       fireOnChange,
     ]);
@@ -626,7 +686,18 @@ const Select = forwardRef(
     const handleDeselectAll = useCallback(() => {
       if (isSingleMode) return;
 
-      const deselectionValues = new Set(enabledOptions.map(opt => opt.value));
+      // In stableSelectAll mode "Clear" removes the whole non-disabled
+      // selection across the full loaded set — flattened so grouped columns
+      // clear their leaf options, the full-set parallel of enabledOptions — so
+      // it matches the `deselectable` count (which counts every selected
+      // non-disabled option). Otherwise it clears only the search-scoped visible
+      // options.
+      const deselectionSource = stableSelectAll
+        ? flatFullSelectOptions.filter(option => !option.disabled)
+        : enabledOptions;
+      const deselectionValues = new Set(
+        deselectionSource.map(opt => opt.value),
+      );
 
       const newValues = ensureIsArray(selectValue).filter(item => {
         const itemValue = getValue(item);
@@ -635,7 +706,14 @@ const Select = forwardRef(
 
       setSelectValue(newValues);
       fireOnChange();
-    }, [isSingleMode, enabledOptions, selectValue, fireOnChange]);
+    }, [
+      isSingleMode,
+      enabledOptions,
+      stableSelectAll,
+      flatFullSelectOptions,
+      selectValue,
+      fireOnChange,
+    ]);
 
     const bulkSelectComponent = useMemo(
       () => (
@@ -754,8 +832,16 @@ const Select = forwardRef(
       if (onChangeCount !== previousChangeCount) {
         const array = ensureIsArray(selectValue);
         const set = new Set(array.map(getValue));
+        // Flatten grouped columns so the option metadata resolves to the leaf
+        // options rather than the value-less group headers (which would leave
+        // this array empty). A flat list is returned unchanged.
+        // Flatten grouped columns so the option metadata resolves to the leaf
+        // options rather than the value-less group headers (which would leave
+        // this array empty). A flat list is returned unchanged.
         const options = mapOptions(
-          fullSelectOptions.filter(opt => set.has(opt.value)),
+          flattenGroupedOptions(fullSelectOptions).filter(opt =>
+            set.has(opt.value),
+          ),
         );
         if (isSingleMode) {
           handleOnChange(selectValue, selectValue ? options[0] : undefined);

@@ -575,7 +575,8 @@ def _resolve_user_from_jwt_context(app: Any) -> MCPUser | None:  # noqa: C901
         the corresponding ``GuestUser`` built from the token's resources/RLS.
 
     Raises:
-        ValueError: If JWT resolves a username that doesn't exist in the DB
+        ValueError: If JWT resolves a username that doesn't exist in the DB,
+            or a guest-marked token is presented while guest auth is disabled
             (fail closed — do NOT fall through to weaker auth sources).
         MCPAuthConfigError: If more than one JWT issuer is trusted
             (``MCP_JWT_ISSUER`` is a list/tuple/set) and no issuer-aware
@@ -618,7 +619,14 @@ def _resolve_user_from_jwt_context(app: Any) -> MCPUser | None:  # noqa: C901
                 "Guest-marked token presented but embedded guest auth is not "
                 "enabled; rejecting"
             )
-            return None
+            # Fail closed, matching the sibling failure branches below: a
+            # guest-marked token is an explicit (rejected) authentication
+            # attempt, not an absent one. Returning None here would let the
+            # request degrade to weaker auth sources (API key,
+            # MCP_DEV_USERNAME, or a middleware-set g.user).
+            raise ValueError(
+                "Guest-marked token presented but embedded guest auth is not enabled"
+            )
         logger.debug("Resolving MCP request as embedded guest user")
         # Drop the internal marker so it does not leak into GuestUser.guest_token.
         guest_claims: dict[str, Any] = {
@@ -1163,7 +1171,7 @@ def _mcp_tool_call_context() -> Generator[None, None, None]:
         _mcp_session_token.reset(token)
 
 
-def mcp_auth_hook(tool_func: F) -> F:  # noqa: C901
+def mcp_auth_hook(tool_func: F, *, tool_name: str | None = None) -> F:  # noqa: C901
     """
     Authentication and authorization decorator for MCP tools.
 
@@ -1175,11 +1183,20 @@ def mcp_auth_hook(tool_func: F) -> F:  # noqa: C901
     If present, check_tool_permission() verifies the user has the required
     FAB permission before the tool function runs.
 
+    tool_name is the registered tool identity, including any extension prefix.
+    When supplied, dataset routing scope is checked before execution. None
+    skips only that routing check for resources and prompts, not authentication
+    or RBAC. Tools must register through @tool, which supplies this identity.
+
     Supports both sync and async tool functions.
     """
     import functools
     import inspect
     import types
+
+    # Defer the scope module's FastMCP dependency until a handler is wrapped,
+    # alongside the Context import below.
+    from superset.mcp_service.dataset_scope import enforce_call_dataset_scope
 
     is_async = inspect.iscoroutinefunction(tool_func)
 
@@ -1229,6 +1246,8 @@ def mcp_auth_hook(tool_func: F) -> F:  # noqa: C901
                     )
 
                 try:
+                    if tool_name is not None:
+                        enforce_call_dataset_scope(tool_name, _tool_sig, args, kwargs)
                     logger.debug(
                         "MCP tool call: user=%s, tool=%s",
                         user.username,
@@ -1276,6 +1295,8 @@ def mcp_auth_hook(tool_func: F) -> F:  # noqa: C901
                     )
 
                 try:
+                    if tool_name is not None:
+                        enforce_call_dataset_scope(tool_name, _tool_sig, args, kwargs)
                     logger.debug(
                         "MCP tool call: user=%s, tool=%s",
                         user.username,

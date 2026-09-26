@@ -16,8 +16,12 @@
 # under the License.
 """Task API schemas"""
 
+from datetime import datetime
+from typing import cast
+
 from marshmallow import fields, Schema
 from marshmallow.fields import Method
+from superset_core.tasks.types import TaskProperties
 
 # RISON/JSON schemas for query parameters
 get_delete_ids_schema = {
@@ -45,9 +49,11 @@ created_by_description = "User who created the task"
 user_id_description = "ID of the user context for task execution"
 payload_description = "Task-specific data in JSON format"
 properties_description = (
-    "Runtime state and execution config. Contains: is_abortable, progress_percent, "
-    "progress_current, progress_total, error_message, timeout. Also includes "
-    "exception_type and stack_trace, but only when SHOW_STACKTRACE is enabled"
+    "Runtime state and execution config. Public keys: is_abortable, "
+    "progress_percent, progress_current, progress_total, dedupe_count, "
+    "execution_mode, timeout, error_message. Internal state (a `private` bucket "
+    "with `framework` orchestration/debug handles and `task`-specific handles) is "
+    "included only in debug mode."
 )
 duration_seconds_description = (
     "Duration in seconds - for finished tasks: execution time, "
@@ -61,6 +67,13 @@ subscriber_count_description = (
     "Number of users subscribed to this task (for shared tasks)"
 )
 subscribers_description = "List of users subscribed to this task (for shared tasks)"
+depends_on_description = (
+    "Prerequisite tasks this task depends on. The task only runs once all of "
+    "them reach a terminal SUCCESS (all_success semantics)."
+)
+required_by_description = (
+    "Downstream tasks that depend on this task (the reverse of depends_on)."
+)
 
 
 class UserSchema(Schema):
@@ -117,26 +130,29 @@ class TaskResponseSchema(Schema):
     subscribers = Method(
         "get_subscribers", metadata={"description": subscribers_description}
     )
+    depends_on = Method(
+        "get_depends_on", metadata={"description": depends_on_description}
+    )
+    required_by = Method(
+        "get_required_by", metadata={"description": required_by_description}
+    )
 
     def get_payload_dict(self, obj: object) -> dict[str, object] | None:
         """Get payload as dictionary"""
         return obj.payload_dict  # type: ignore[attr-defined]
 
-    def get_properties(self, obj: object) -> dict[str, object]:
-        """Get properties dict, filtering debug fields unless SHOW_STACKTRACE."""
-        from flask import current_app
+    def get_properties(self, obj: object) -> TaskProperties:
+        """Get properties dict, stripping internal state outside debug mode."""
+        from superset.tasks.utils import task_internals_visible
 
-        properties = dict(obj.properties_dict)  # type: ignore[attr-defined]
+        properties = cast(TaskProperties, dict(obj.properties_dict))  # type: ignore[attr-defined]
 
-        # Remove internal debugging details unless SHOW_STACKTRACE is enabled.
-        # The full traceback and the raw exception class name disclose internal
-        # file paths, library versions, and architecture details (CWE-209), so
-        # they are gated behind the same flag that controls stack traces
-        # elsewhere in Superset. ``error_message`` is left in place as the
+        # The internal ``private`` bucket (framework orchestration + error debug +
+        # task-execution handles) is surfaced only in debug mode; otherwise it is
+        # stripped wholesale. ``error_message`` stays top-level (public) as the
         # consumer-facing failure reason.
-        if not current_app.config["SHOW_STACKTRACE"]:
-            properties.pop("stack_trace", None)
-            properties.pop("exception_type", None)
+        if not task_internals_visible():
+            properties.pop("private", None)
 
         return properties
 
@@ -153,26 +169,100 @@ class TaskResponseSchema(Schema):
         return obj.subscriber_count  # type: ignore[attr-defined]
 
     def get_subscribers(self, obj: object) -> list[dict[str, object]]:
-        """Get list of subscribers with user info"""
+        """Get list of subscribers with user info.
+
+        Authenticated subscribers are returned with their user profile. Embedded
+        guests have no ``ab_user`` profile, so they are returned as anonymized
+        entries (``is_guest`` with a stable per-task ``label`` ``G1``/``G2``/…,
+        ordered by subscription time) — the Task List renders them as ``G1``/``G2``
+        avatars rather than nameless blanks.
+        """
+        all_subs = list(obj.subscribers)  # type: ignore[attr-defined]
+        # Assign stable G-ordinals to guest subscribers, ordered by subscription
+        # time (then id) so the labels don't shuffle between requests.
+        guest_subs = sorted(
+            (s for s in all_subs if s.user_id is None),
+            key=lambda s: (s.subscribed_at or datetime.min, s.id),
+        )
+        guest_ordinal = {s.id: i + 1 for i, s in enumerate(guest_subs)}
+
         subscribers = []
-        for sub in obj.subscribers:  # type: ignore[attr-defined]
-            subscribers.append(
-                {
-                    "user_id": sub.user_id,
-                    "first_name": sub.user.first_name if sub.user else None,
-                    "last_name": sub.user.last_name if sub.user else None,
-                    "subscribed_at": sub.subscribed_at.isoformat()
-                    if sub.subscribed_at
-                    else None,
-                }
-            )
+        for sub in all_subs:
+            subscribed_at = sub.subscribed_at.isoformat() if sub.subscribed_at else None
+            if sub.user_id is not None:
+                subscribers.append(
+                    {
+                        "user_id": sub.user_id,
+                        "is_guest": False,
+                        "first_name": sub.user.first_name if sub.user else None,
+                        "last_name": sub.user.last_name if sub.user else None,
+                        "subscribed_at": subscribed_at,
+                    }
+                )
+            else:
+                subscribers.append(
+                    {
+                        "user_id": None,
+                        "is_guest": True,
+                        "label": f"G{guest_ordinal[sub.id]}",
+                        "subscribed_at": subscribed_at,
+                    }
+                )
         return subscribers
+
+    def get_depends_on(self, obj: object) -> list[dict[str, object]]:
+        """Get prerequisite tasks (uuid, name, status) for DAG display."""
+        return [
+            {
+                "uuid": str(prerequisite.uuid),
+                "task_name": prerequisite.task_name,
+                "status": prerequisite.status,
+            }
+            for prerequisite in obj.depends_on  # type: ignore[attr-defined]
+        ]
+
+    def get_required_by(self, obj: object) -> list[dict[str, object]]:
+        """Get downstream tasks (uuid, name, status) for DAG display."""
+        return [
+            {
+                "uuid": str(dependent.uuid),
+                "task_name": dependent.task_name,
+                "status": dependent.status,
+            }
+            for dependent in obj.required_by  # type: ignore[attr-defined]
+        ]
 
 
 class TaskStatusResponseSchema(Schema):
     """Schema for task status response (lightweight for polling)"""
 
     status = fields.String(metadata={"description": status_description})
+
+
+class TaskStatusChangeSchema(Schema):
+    """Schema for a single task's entry in a status-changes poll."""
+
+    status = fields.String(metadata={"description": status_description})
+    progress = fields.Float(
+        allow_none=True,
+        metadata={
+            "description": "Progress as a 0.0-1.0 fraction, or null when unknown"
+        },
+    )
+
+
+class TaskStatusChangesResponseSchema(Schema):
+    """Schema for the ``/status_changes`` polling response."""
+
+    statuses = fields.Dict(
+        keys=fields.String(),
+        values=fields.Nested(TaskStatusChangeSchema),
+        metadata={"description": "Map of task UUID to its status and progress"},
+    )
+    cursor = fields.String(
+        allow_none=True,
+        metadata={"description": "Watermark to pass as ``cursor`` on the next poll"},
+    )
 
 
 class TaskCancelRequestSchema(Schema):
@@ -185,6 +275,18 @@ class TaskCancelRequestSchema(Schema):
             "Only applicable for shared tasks with multiple subscribers."
         },
     )
+    tab_id = fields.String(
+        required=False,
+        allow_none=True,
+        load_default=None,
+        metadata={
+            "description": "Opaque per-client (browser tab) id. For task types with "
+            "a per-client subscription policy (e.g. chart-data), a cancel from one "
+            "tab detaches only that tab; the task keeps running while the "
+            "principal has other tabs watching it. Ignored otherwise. Must match "
+            "^[A-Za-z0-9_-]{1,64}$; a value failing that is dropped at ingress."
+        },
+    )
 
 
 class TaskCancelResponseSchema(Schema):
@@ -193,8 +295,9 @@ class TaskCancelResponseSchema(Schema):
     message = fields.String(metadata={"description": "Success or status message"})
     action = fields.String(
         metadata={
-            "description": "The action taken: 'aborted' (task terminated) or "
-            "'unsubscribed' (user removed from shared task)"
+            "description": "The action taken: 'aborted' (task terminated), "
+            "'unsubscribed' (principal removed from a shared task), or 'detached' "
+            "(one client/tab of the principal stopped watching; the task continues)"
         }
     )
     task = fields.Nested(TaskResponseSchema, allow_none=True)

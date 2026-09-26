@@ -32,12 +32,13 @@ import logging
 from collections.abc import Iterator
 from datetime import datetime, timedelta
 from typing import Any, cast
+from uuid import UUID
 
 import sqlalchemy as sa
 from flask import current_app
 
 from superset import db
-from superset.commands.deletion_retention import audit
+from superset.commands.deletion_retention import audit, prune_audit
 from superset.commands.deletion_retention.purge_cascade import (
     cascade_hard_delete,
     CascadeResult,
@@ -45,6 +46,7 @@ from superset.commands.deletion_retention.purge_cascade import (
     entity_uuid,
     suppress_purge_association_versions,
 )
+from superset.commands.deletion_retention.purge_policy import BlockerReason
 from superset.commands.deletion_retention.window import resolve_retention_window
 from superset.extensions import celery_app, feature_flag_manager, stats_logger_manager
 from superset.models.helpers import (
@@ -205,6 +207,19 @@ def _purge_model(
     return purged, would, failures, blocked
 
 
+def _finalize_blocked(record_id: UUID | None, blocker: BlockerReason) -> None:
+    """Finalize a blocked retention outcome and count suppression metrics."""
+    disposition: audit.RetentionBlockedDisposition = audit.finalize_retention_blocked(
+        record_id, blocker.code
+    )
+    if disposition == "suppressed":
+        stats_logger_manager.instance.incr(f"{_METRIC_PREFIX}.blocked_audit_suppressed")
+    elif disposition == "fallback":
+        stats_logger_manager.instance.incr(
+            f"{_METRIC_PREFIX}.blocked_audit_dedupe_fallback"
+        )
+
+
 def _purge_one(
     model: type[SoftDeleteMixin], entity_id: int, cutoff: datetime
 ) -> CascadeResult | None:
@@ -279,21 +294,82 @@ def _purge_one(
             affected_referrers=result.dangling_chart_uuids,
             removed_dashboard_slices=result.removed_dashboard_slices,
         )
-    elif result.blocked_reason is not None:
-        disposition: audit.RetentionBlockedDisposition = (
-            audit.finalize_retention_blocked(record_id)
-        )
-        if disposition == "suppressed":
-            stats_logger_manager.instance.incr(
-                f"{_METRIC_PREFIX}.blocked_audit_suppressed"
-            )
-        elif disposition == "fallback":
-            stats_logger_manager.instance.incr(
-                f"{_METRIC_PREFIX}.blocked_audit_dedupe_fallback"
-            )
+    elif result.blocker is not None:
+        _finalize_blocked(record_id, result.blocker)
     else:
         audit.fail(record_id)
     return result
+
+
+#: Metric family for the prune task. The leaf matches the task name so an
+#: operator grepping dashboards for ``prune_purge_audit`` finds its metrics.
+_PRUNE_METRIC_PREFIX: str = "deletion_retention.prune_purge_audit"
+
+
+@celery_app.task(name="deletion_retention.prune_purge_audit")
+def prune_purge_audit() -> dict[str, Any]:
+    """Beat entry point: apply the purge-audit retention policy once.
+
+    Honors the master switch (a disabled run reports itself rather than
+    silently doing nothing), isolates failures so one bad run does not
+    poison the schedule, and mirrors the per-category removal counts into
+    metrics plus one structured completion log line. Deliberately not gated
+    on the SOFT_DELETE flag: audit rows persist even after the flag is
+    turned off, and pruning an empty table is a no-op.
+    """
+    enabled: Any = current_app.config.get("PURGE_AUDIT_PRUNING_ENABLED", False)
+    if enabled is not True:
+        if enabled is not False:
+            logger.warning(
+                "prune_audit: invalid PURGE_AUDIT_PRUNING_ENABLED=%r; removing nothing",
+                enabled,
+            )
+            stats_logger_manager.instance.incr(
+                f"{_PRUNE_METRIC_PREFIX}.skipped_invalid_config"
+            )
+            return {"skipped_invalid_config": 1}
+        logger.info(
+            "prune_audit: disabled by PURGE_AUDIT_PRUNING_ENABLED; removing nothing"
+        )
+        stats_logger_manager.instance.incr(f"{_PRUNE_METRIC_PREFIX}.skipped_disabled")
+        return {"skipped_disabled": 1}
+    try:
+        result: prune_audit.PruneRunResult = prune_audit.run_prune()
+    except Exception:  # pylint: disable=broad-except
+        # The session may be mid-transaction after a failed DELETE; leaving it
+        # dirty would fail the next statement on a reused session rather than
+        # here, where the traceback is.
+        db.session.rollback()  # pylint: disable=consider-using-transaction
+        logger.exception("deletion_retention.prune_purge_audit: task failed")
+        stats_logger_manager.instance.incr(f"{_PRUNE_METRIC_PREFIX}.failed")
+        return {"error": 1}
+    if result.invalid_config_keys:
+        stats_logger_manager.instance.incr(f"{_PRUNE_METRIC_PREFIX}.invalid_config")
+    else:
+        stats_logger_manager.instance.incr(f"{_PRUNE_METRIC_PREFIX}.success")
+    result_dict: dict[str, Any] = result.as_dict()
+    removed_counts: dict[str, int] = result_dict["removed"]
+    for category, count in removed_counts.items():
+        stats_logger_manager.instance.gauge(
+            f"{_PRUNE_METRIC_PREFIX}.removed.{category}", count
+        )
+    # Backlog convergence (SC-004) is only observable if "the budget ran out
+    # and rows remain" is a metric — a deployment producing prunable rows
+    # faster than one run removes them otherwise shows healthy success
+    # counters forever.
+    stats_logger_manager.instance.gauge(
+        f"{_PRUNE_METRIC_PREFIX}.carried_over", int(result.carried_over)
+    )
+    logger.info(
+        "prune_audit: removed blocked_duplicates=%d operational_expired=%d "
+        "evidence_expired=%d carried_over=%s invalid_config_keys=%s",
+        result.blocked_duplicates,
+        result.operational_expired,
+        result.evidence_expired,
+        result.carried_over,
+        result.invalid_config_keys,
+    )
+    return result_dict
 
 
 @celery_app.task(name="deletion_retention.purge_soft_deleted")

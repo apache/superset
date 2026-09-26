@@ -1138,6 +1138,10 @@ def test_validate_partial(is_port_open, is_hostname_valid, app_context):
 def test_validate_partial_invalid_hostname(is_hostname_valid, app_context):
     """
     Test parameter validation when only some parameters are present.
+
+    ``port`` is explicitly ``None`` in the payload -- not required for
+    Postgres, since a blank/null port falls back to the default 5432 -- and
+    is correctly absent from the expected "missing" list below.
     """
     is_hostname_valid.return_value = False
 
@@ -1157,11 +1161,11 @@ def test_validate_partial_invalid_hostname(is_hostname_valid, app_context):
         command.run()
     assert excinfo.value.errors == [
         SupersetError(
-            message="One or more parameters are missing: database, port, username",
+            message="One or more parameters are missing: database, username",
             error_type=SupersetErrorType.CONNECTION_MISSING_PARAMETERS_ERROR,
             level=ErrorLevel.WARNING,
             extra={
-                "missing": ["database", "port", "username"],
+                "missing": ["database", "username"],
                 "issue_codes": [
                     {
                         "code": 1018,

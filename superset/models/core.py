@@ -69,6 +69,7 @@ from superset.constants import LRU_CACHE_MAX_SIZE, PASSWORD_MASK
 from superset.databases.error_provenance import mark_database_engine_error
 from superset.databases.utils import make_url_safe
 from superset.db_engine_specs.base import MetricType, TimeGrain
+from superset.exceptions import SupersetGenericDBErrorException
 from superset.extensions import (
     cache_manager,
     encrypted_field_factory,
@@ -143,6 +144,12 @@ class Theme(AuditMixinNullable, ImportExportMixin, Model):
     is_system = Column(Boolean, default=False, nullable=False)
     is_system_default = Column(Boolean, default=False, nullable=False)
     is_system_dark = Column(Boolean, default=False, nullable=False)
+
+    editors = relationship(
+        "Subject",
+        secondary="theme_editors",
+        passive_deletes=True,
+    )
 
     export_fields = ["theme_name", "json_data"]
 
@@ -653,6 +660,7 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
             catalog=catalog,
             schema=schema,
         )
+        engine_kwargs["connect_args"] = connect_args
 
         effective_username = self.get_effective_user(sqlalchemy_url)
         if effective_username and is_feature_enabled("IMPERSONATE_WITH_EMAIL_PREFIX"):
@@ -729,12 +737,11 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
                 if cached := _ENGINE_CACHE.get(cache_key):
                     return cached
         try:
-            if "future" not in engine_kwargs:
-                engine_kwargs["future"] = True
             engine = create_engine(sqlalchemy_url, **engine_kwargs)
         except Exception as ex:
             raise self.db_engine_spec.get_dbapi_mapped_exception(ex) from ex
         sqla.event.listen(engine, "handle_error", mark_database_engine_error)
+        self.db_engine_spec.register_engine_events(engine)
         if cache_key is not None:
             with _ENGINE_CACHE_LOCK:
                 _ENGINE_CACHE[cache_key] = engine
@@ -929,6 +936,13 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
             rows = None
             description = None
 
+            # Give an active GTF chart-data task a chance to capture an engine
+            # cancel id off the live cursor before the (blocking) execute below,
+            # so a concurrent abort/timeout can kill the query. No-op otherwise.
+            from superset.tasks.query_cancel import notify_cursor
+
+            notify_cursor(cursor)
+
             for i, statement in enumerate(script.statements):
                 # For a single statement, execute the original SQL as-is. Re-rendering
                 # via statement.format() would round-trip through sqlglot
@@ -1040,7 +1054,7 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
             if engine.dialect.identifier_preparer._double_percents:  # noqa
                 sql = sql.replace("%%", "%")
 
-        # for nwo we only optimize queries on virtual datasources, since the only
+        # for now we only optimize queries on virtual datasources, since the only
         # optimization available is predicate pushdown
         if is_feature_enabled("OPTIMIZE_SQL") and is_virtual:
             script = SQLScript(sql, self.db_engine_spec.engine).optimize()
@@ -1495,7 +1509,11 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
         admins to create custom OAuth2 clients from the Superset UI, and assign them to
         specific databases.
         """
-        encrypted_extra = json.loads(self.encrypted_extra or "{}")
+        try:
+            encrypted_extra = json.loads(self.encrypted_extra or "{}")
+        except json.JSONDecodeError as ex:
+            logger.error(ex, exc_info=True)
+            raise SupersetGenericDBErrorException(message=str(ex)) from ex
         if oauth2_client_info := encrypted_extra.get("oauth2_client_info"):
             schema = OAuth2ClientConfigSchema()
             client_config = schema.load(oauth2_client_info)

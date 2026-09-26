@@ -95,9 +95,9 @@ test('coerces Adhoc Metrics from form data into instances of the AdhocMetric cla
 test('handles creating a new metric', async () => {
   const { onChange } = setup();
 
-  userEvent.click(screen.getByText(/add metric/i));
+  await userEvent.click(screen.getByText(/add metric/i));
   await selectOption('sum__value', 'Select saved metrics');
-  userEvent.click(screen.getByRole('button', { name: /save/i }));
+  await userEvent.click(screen.getByRole('button', { name: /save/i }));
   expect(onChange).toHaveBeenCalledWith(['sum__value']);
 });
 
@@ -107,14 +107,14 @@ test('accepts an edited metric from an AdhocMetricEditPopover', async () => {
   });
 
   const metricLabel = screen.getByText('SUM(value)');
-  userEvent.click(metricLabel);
+  await userEvent.click(metricLabel);
 
   await screen.findByText('aggregate');
   await selectOption('AVG', 'Select aggregate options');
 
   await screen.findByText('AVG(value)');
 
-  userEvent.click(screen.getByRole('button', { name: /save/i }));
+  await userEvent.click(screen.getByRole('button', { name: /save/i }));
 
   expect(onChange).toHaveBeenCalledWith([
     expect.objectContaining({
@@ -149,11 +149,11 @@ test('only edits the targeted metric when two metrics share an optionName', asyn
     ],
   });
 
-  userEvent.click(screen.getByText('SUM(value)'));
+  await userEvent.click(screen.getByText('SUM(value)'));
   await screen.findByText('aggregate');
   await selectOption('MAX', 'Select aggregate options');
   await screen.findByText('MAX(value)');
-  userEvent.click(screen.getByRole('button', { name: /save/i }));
+  await userEvent.click(screen.getByRole('button', { name: /save/i }));
 
   // The edit must propagate to the targeted metric (SUM → MAX) while the
   // untouched AVG(value) metric stays present and unchanged.
@@ -177,14 +177,14 @@ test('removes metrics if savedMetrics changes', async () => {
   });
 
   expect(screen.getByText('SUM(value)')).toBeInTheDocument();
-  userEvent.click(screen.getByText('SUM(value)'));
+  await userEvent.click(screen.getByText('SUM(value)'));
 
   const savedTab = screen.getByRole('tab', { name: /saved/i });
-  userEvent.click(savedTab);
+  await userEvent.click(savedTab);
   await selectOption('avg__value', 'Select saved metrics');
 
   const simpleTab = screen.getByRole('tab', { name: /simple/i });
-  userEvent.click(simpleTab);
+  await userEvent.click(simpleTab);
   await screen.findByText('aggregate');
 
   expect(screen.queryByText('SUM')).not.toBeInTheDocument();

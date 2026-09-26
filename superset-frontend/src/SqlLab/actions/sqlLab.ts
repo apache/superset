@@ -685,50 +685,78 @@ function migrateQuery(
 export function syncQueryEditor(
   queryEditor: QueryEditor,
 ): SqlLabThunkAction<Promise<unknown>> {
-  return function (dispatch: AppDispatch, getState: GetState) {
-    const { tables, queries } = getState().sqlLab;
-    const localStorageTables = tables.filter(
-      (table: Table) =>
-        table.inLocalStorage && table.queryEditorId === queryEditor.id,
-    );
-    const queriesToMigrate = Object.values(queries).filter(
-      query => query.sqlEditorId === queryEditor.id && !query.isDataPreview,
-    );
-    return SupersetClient.post({
-      endpoint: '/tabstateview/',
-      postPayload: { queryEditor },
-    })
-      .then(({ json }) => {
-        const newQueryEditor = {
-          ...queryEditor,
-          inLocalStorage: false,
-          loaded: true,
-          tabViewId: json.id.toString(),
-        };
-        dispatch({
-          type: MIGRATE_QUERY_EDITOR,
-          oldQueryEditor: queryEditor,
-          newQueryEditor,
+  return async function (dispatch: AppDispatch, getState: GetState) {
+    try {
+      const { tables, queries } = getState().sqlLab;
+      let databaseWasRemoved = false;
+      if (queryEditor.dbId != null) {
+        await SupersetClient.get({
+          endpoint: `/api/v1/database/${queryEditor.dbId}`,
+        }).catch(error => {
+          if (error.status !== 404) {
+            throw error;
+          }
+          databaseWasRemoved = true;
         });
-        return Promise.all([
-          ...localStorageTables.map((table: Table) =>
-            migrateTable(table, newQueryEditor.tabViewId!, dispatch),
-          ),
-          ...queriesToMigrate.map((query: Query) =>
-            migrateQuery(query.id, newQueryEditor.tabViewId!, dispatch),
-          ),
-        ]);
-      })
-      .catch(() =>
-        dispatch(
-          addWarningToast(
-            t(
-              'Unable to migrate query editor state to backend. Superset will retry ' +
-                'later. Please contact your administrator if this problem persists.',
-            ),
+      }
+      const queryEditorToMigrate = databaseWasRemoved
+        ? {
+            ...queryEditor,
+            dbId: undefined,
+            catalog: undefined,
+            schema: undefined,
+          }
+        : queryEditor;
+      const localStorageTables = tables.filter(
+        (table: Table) =>
+          table.inLocalStorage && table.queryEditorId === queryEditor.id,
+      );
+      const queriesToMigrate = Object.values(queries).filter(
+        query => query.sqlEditorId === queryEditor.id && !query.isDataPreview,
+      );
+      const { json } = await SupersetClient.post({
+        endpoint: '/tabstateview/',
+        postPayload: {
+          queryEditor: {
+            ...queryEditorToMigrate,
+            dbId: queryEditorToMigrate.dbId ?? null,
+          },
+        },
+      });
+      const newQueryEditor = {
+        ...queryEditorToMigrate,
+        inLocalStorage: false,
+        loaded: true,
+        tabViewId: json.id.toString(),
+      };
+      dispatch({
+        type: MIGRATE_QUERY_EDITOR,
+        oldQueryEditor: queryEditor,
+        newQueryEditor,
+      });
+      if (databaseWasRemoved && localStorageTables.length > 0) {
+        dispatch({ type: REMOVE_TABLES, tables: localStorageTables });
+      }
+      return Promise.all([
+        ...(databaseWasRemoved
+          ? []
+          : localStorageTables.map((table: Table) =>
+              migrateTable(table, newQueryEditor.tabViewId!, dispatch),
+            )),
+        ...queriesToMigrate.map((query: Query) =>
+          migrateQuery(query.id, newQueryEditor.tabViewId!, dispatch),
+        ),
+      ]);
+    } catch {
+      return dispatch(
+        addWarningToast(
+          t(
+            'Unable to migrate query editor state to backend. Superset will retry ' +
+              'later. Please contact your administrator if this problem persists.',
           ),
         ),
       );
+    }
   };
 }
 
@@ -1524,7 +1552,9 @@ export function popPermalink(key: string): SqlLabThunkAction<Promise<unknown>> {
             dbId: json.dbId ? parseInt(json.dbId, 10) : undefined,
             catalog: json.catalog ?? null,
             schema: json.schema ?? undefined,
-            autorun: json.autorun ? json.autorun : false,
+            // The recipient must review the prefilled query and press
+            // Run; a permalink payload never auto-runs.
+            autorun: false,
             sql: json.sql ? json.sql : 'SELECT ...',
             templateParams: json.templateParams,
           }),
@@ -1548,7 +1578,9 @@ export function popStoredQuery(
             dbId: json.dbId ? parseInt(json.dbId, 10) : undefined,
             catalog: json.catalog ?? null,
             schema: json.schema ?? undefined,
-            autorun: json.autorun ? json.autorun : false,
+            // Same rule as popPermalink above — stored payloads never
+            // auto-run.
+            autorun: false,
             sql: json.sql ? json.sql : 'SELECT ...',
             templateParams: json.templateParams,
           }),
@@ -1627,7 +1659,9 @@ export function popDatasourceQuery(
             name: `${QUERY_TEXT} ${json.result.name}`,
             dbId: json.result.database.id,
             schema: json.result.schema,
-            autorun: sql !== undefined,
+            // `sql` here can come straight from the URL, so its mere
+            // presence must never imply auto-execution.
+            autorun: false,
             sql: sql || json.result.select_star,
           }),
         ),

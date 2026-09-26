@@ -1,7 +1,7 @@
 ---
 name: Cosmetic Issue
 about: Describe a cosmetic issue with CSS, positioning, layout, labeling, or similar
-labels: "cosmetic-issue"
+labels: "#bug:cosmetic"
 ---
 
 ## Screenshot

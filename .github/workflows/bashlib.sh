@@ -79,8 +79,6 @@ build-instrumented-assets() {
 }
 
 setup-postgres() {
-  say "::group::Install dependency for unit tests"
-  sudo apt-get update && sudo apt-get install --yes libecpg-dev
   say "::group::Initialize database"
   psql "postgresql://superset:superset@127.0.0.1:15432/superset" <<-EOF
     DROP SCHEMA IF EXISTS sqllab_test_db CASCADE;
@@ -354,14 +352,10 @@ playwright-run() {
       return 0
     fi
     echo "Running tests: ${TEST_PATH}"
-    # Set INCLUDE_EXPERIMENTAL=true to allow experimental tests to run
-    export INCLUDE_EXPERIMENTAL=true
     npx playwright test "${TEST_PATH}" --output=playwright-results
     local status=$?
-    # Unset to prevent leaking into subsequent commands
-    unset INCLUDE_EXPERIMENTAL
   else
-    echo "Running all required tests (experimental/ excluded via playwright.config.ts)"
+    echo "Running all default-project tests"
     npx playwright test --output=playwright-results
     local status=$?
   fi

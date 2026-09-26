@@ -39,7 +39,7 @@ import zlib
 from collections.abc import Collection, Iterable, Iterator, Sequence
 from contextlib import closing, contextmanager
 from dataclasses import dataclass
-from datetime import timedelta
+from datetime import datetime, timedelta
 from email.mime.application import MIMEApplication
 from email.mime.image import MIMEImage
 from email.mime.multipart import MIMEMultipart
@@ -60,7 +60,7 @@ from typing import (
     TypeVar,
 )
 from urllib.parse import unquote_plus, urlparse
-from zipfile import ZipFile
+from zipfile import ZipFile, ZipInfo
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 import markdown as md
@@ -69,7 +69,7 @@ import pandas as pd
 import sqlalchemy as sa
 from cryptography.hazmat.backends import default_backend
 from cryptography.x509 import Certificate, load_pem_x509_certificate
-from flask import current_app as app, g, request
+from flask import current_app as app, g, request, Response, send_file
 from flask_appbuilder.security.sqla.models import User
 from flask_babel import gettext as __
 from flask_sqlalchemy import SQLAlchemy
@@ -176,12 +176,23 @@ METRIC_MAP_TYPE = {
     "PERCENTILE": "floating",
     "VARIANCE": "floating",
     "STDDEV": "floating",
+    "STDDEV_SAMP": "floating",
+    "VAR_SAMP": "floating",
 }
 
 
 class AdhocMetricExpressionType(StrEnum):
     SIMPLE = "SIMPLE"
     SQL = "SQL"
+
+
+# Aggregates with no safe, universal cross-dialect spelling -- unlike
+# SUM/COUNT/AVG/MIN/MAX/COUNT_DISTINCT, whose SQL is generated the same way on
+# every engine. Support for these is opt-in per `BaseEngineSpec` (see
+# `get_extended_aggregation_func`); used to distinguish a genuinely invalid
+# aggregate name from one that is valid but unsupported on the current database,
+# for a clearer user-facing error.
+EXTENDED_METRIC_AGGREGATES = frozenset({"MEDIAN", "STDDEV_SAMP", "VAR_SAMP"})
 
 
 class SqlExpressionType(StrEnum):
@@ -209,7 +220,7 @@ class GenericDataType(IntEnum):
     STRING = 1
     TEMPORAL = 2
     BOOLEAN = 3
-    # ARRAY = 4     # Mapping all the complex data types to STRING for now
+    MULTI_VALUE = 4  # array-typed columns (e.g. ClickHouse Array, Postgres ARRAY)
     # JSON = 5      # and leaving these as a reminder.
     # MAP = 6
     # ROW = 7
@@ -299,6 +310,17 @@ class FilterOperator(StrEnum):
     IS_TRUE = "IS TRUE"
     IS_FALSE = "IS FALSE"
     TEMPORAL_RANGE = "TEMPORAL_RANGE"
+    # Element-level operators for MULTI_VALUE (array) columns
+    CONTAINS_ANY = "CONTAINS_ANY"
+    CONTAINS_ALL = "CONTAINS_ALL"
+    IS_EMPTY = "IS_EMPTY"
+    IS_NOT_EMPTY = "IS_NOT_EMPTY"
+    # Length (element-count) comparison operators for array columns
+    LENGTH_EQUALS = "LENGTH_EQUALS"
+    LENGTH_GREATER_THAN = "LENGTH_GREATER_THAN"
+    LENGTH_LESS_THAN = "LENGTH_LESS_THAN"
+    LENGTH_GREATER_THAN_OR_EQUALS = "LENGTH_GREATER_THAN_OR_EQUALS"
+    LENGTH_LESS_THAN_OR_EQUALS = "LENGTH_LESS_THAN_OR_EQUALS"
 
 
 class FilterStringOperators(StrEnum):
@@ -317,6 +339,15 @@ class FilterStringOperators(StrEnum):
     LATEST_PARTITION = ("LATEST_PARTITION",)
     IS_TRUE = ("IS_TRUE",)
     IS_FALSE = ("IS_FALSE",)
+    CONTAINS_ANY = ("CONTAINS_ANY",)
+    CONTAINS_ALL = ("CONTAINS_ALL",)
+    IS_EMPTY = ("IS_EMPTY",)
+    IS_NOT_EMPTY = ("IS_NOT_EMPTY",)
+    LENGTH_EQUALS = ("LENGTH_EQUALS",)
+    LENGTH_GREATER_THAN = ("LENGTH_GREATER_THAN",)
+    LENGTH_LESS_THAN = ("LENGTH_LESS_THAN",)
+    LENGTH_GREATER_THAN_OR_EQUALS = ("LENGTH_GREATER_THAN_OR_EQUALS",)
+    LENGTH_LESS_THAN_OR_EQUALS = ("LENGTH_LESS_THAN_OR_EQUALS",)
 
 
 class PostProcessingBoxplotWhiskerType(StrEnum):
@@ -467,7 +498,7 @@ def cast_to_num(value: float | int | str | None) -> float | int | None:
         return None
     if isinstance(value, (int, float)):
         return value
-    if value.isdigit():
+    if value.isdecimal():
         return int(value)
     try:
         return float(value)
@@ -595,9 +626,21 @@ def sanitize_svg_content(svg_content: str) -> str:
         return ""
 
     # Minimal protection: remove obvious malicious content, preserve all SVG features
+    # The closing tag pattern tolerates attributes/whitespace after "script"
+    # (e.g. "</script foo>"), which browsers still parse as a valid closer.
     content = re.sub(
-        r"<script[^>]*>.*?</script>", "", svg_content, flags=re.IGNORECASE | re.DOTALL
+        r"<script\b[^>]*>.*?</script\b[^>]*>",
+        "",
+        svg_content,
+        flags=re.IGNORECASE | re.DOTALL,
     )
+    # Second pass: an unterminated <script ...> opener has no matching
+    # closer, so browsers treat everything after it as script content
+    # through end-of-file. Drop the opener and the remainder of the
+    # content with it, rather than leaving the payload text behind.
+    content = re.sub(r"<script\b[^>]*>.*", "", content, flags=re.IGNORECASE | re.DOTALL)
+    # Drop any orphaned closing </script ...> fragment too.
+    content = re.sub(r"</script\b[^>]*>?", "", content, flags=re.IGNORECASE)
     content = re.sub(r"javascript:", "", content, flags=re.IGNORECASE)
     content = re.sub(r"data:[^;]*;[^,]*,.*javascript", "", content, flags=re.IGNORECASE)
 
@@ -1576,7 +1619,9 @@ def parse_ssl_cert(certificate: str) -> Certificate:
     try:
         return load_pem_x509_certificate(certificate.encode("utf-8"), default_backend())
     except ValueError as ex:
-        raise CertificateException("Invalid certificate") from ex
+        # No explicit message: the exception's own default is translated at
+        # construction, whereas a literal here would bypass translation.
+        raise CertificateException() from ex
 
 
 def create_ssl_cert_file(certificate: str) -> str:
@@ -1800,11 +1845,14 @@ def get_metric_type_from_column(column: Any, datasource: Explorable) -> str:
     expression: str = metric.expression
 
     match = re.match(
-        r"(SUM|AVG|COUNT|COUNT_DISTINCT|MIN|MAX|FIRST|LAST)\((.*)\)", expression
+        r"(SUM|AVG|COUNT|COUNT_DISTINCT|MIN|MAX|FIRST|LAST"
+        r"|MEDIAN|STDDEV_SAMP|VAR_SAMP)\s*\((.*)\)",
+        expression,
+        re.IGNORECASE,
     )
 
     if match:
-        operation = match.group(1)
+        operation = match.group(1).upper()
         return METRIC_MAP_TYPE.get(operation, "")
 
     logger.debug("Unexpected metric expression type: %s", expression)
@@ -2174,14 +2222,66 @@ def apply_max_row_limit(
     return max_limit
 
 
+def write_zip_entry(bundle: ZipFile, filename: str, contents: bytes) -> None:
+    """Add a file to an open ZIP bundle, stamped with the current local time.
+
+    ``ZipFile.open(name, "w")`` falls back to the 1980-01-01 DOS epoch, which
+    extractors surface as a bogus (Windows Explorer) or empty (7-Zip)
+    modification date on every extracted file. Passing an explicit ``ZipInfo``
+    gives the entry the time the export was generated instead.
+    """
+    info = ZipInfo(filename=filename, date_time=datetime.now().timetuple()[:6])
+    # A pre-built ZipInfo bypasses the bundle's own compression settings, which
+    # zipfile only copies onto entries it creates from a plain filename, so pass
+    # both through explicitly.
+    bundle.writestr(
+        info,
+        contents,
+        compress_type=bundle.compression,
+        compresslevel=bundle.compresslevel,
+    )
+
+
 def create_zip(files: dict[str, Any]) -> BytesIO:
     buf = BytesIO()
     with ZipFile(buf, "w") as bundle:
         for filename, contents in files.items():
-            with bundle.open(filename, "w") as fp:
-                fp.write(contents)
+            write_zip_entry(bundle, filename, contents)
     buf.seek(0)
     return buf
+
+
+def send_export_zip(buf: BytesIO, filename: str) -> Response:
+    """Build a non-cacheable ZIP attachment response for the export endpoints.
+
+    Export bundles are generated per request from live metadata, so they must never
+    be cached. Flask applies ``SEND_FILE_MAX_AGE_DEFAULT`` (one year in Superset's
+    config) to every ``send_file`` response that does not opt out, which made
+    browsers and intermediate proxies serve stale export archives. Passing
+    ``max_age=0`` and marking the response ``no-store``/``no-cache`` keeps the
+    behavior of genuine static assets untouched while forcing exports to be fetched
+    fresh every time.
+
+    The optional client-provided ``token`` query parameter is echoed back as a
+    cookie so the UI can detect that the download finished.
+
+    :param buf: an in-memory ZIP archive, positioned at the start
+    :param filename: the download file name advertised to the client
+    :return: the response to return from the export endpoint
+    """
+    response = send_file(
+        buf,
+        mimetype="application/zip",
+        as_attachment=True,
+        download_name=filename,
+        max_age=0,
+    )
+    response.cache_control.no_store = True
+    response.cache_control.no_cache = True
+    response.cache_control.must_revalidate = True
+    if token := sanitize_cookie_token(request.args.get("token")):
+        response.set_cookie(token, "done", max_age=600)
+    return response
 
 
 def check_is_safe_zip(zip_file: ZipFile) -> None:

@@ -29,6 +29,7 @@ import {
   VizType,
 } from '@superset-ui/core';
 import ChartContainerComponent from 'src/explore/components/ExploreChartPanel';
+import { ExploreStandaloneMode } from 'src/explore/constants';
 import { setItem, LocalStorageKeys } from 'src/utils/localStorageHelpers';
 
 jest.mock('./StandaloneDownloadControl', () => ({
@@ -162,7 +163,7 @@ describe('ChartContainer', () => {
     const cached = await screen.findByText('Cached');
     expect(cached).toBeInTheDocument();
 
-    userEvent.click(cached);
+    await userEvent.click(cached);
     expect(setForceQuery).toHaveBeenCalledTimes(1);
     expect(postChartFormData).toHaveBeenCalledTimes(1);
     expect(updateQueryFormData).toHaveBeenCalledTimes(1);
@@ -196,14 +197,14 @@ describe('ChartContainer', () => {
     const gutter = container.querySelector('.gutter');
     expect(gutter).toBeVisible();
 
-    userEvent.click(screen.getByLabelText('Collapse data panel'));
+    await userEvent.click(screen.getByLabelText('Collapse data panel'));
     expect(await screen.findByRole('timer')).toBeInTheDocument();
     expect(gutter).not.toBeVisible();
   });
 
   test('does not render standalone download control when show_download is absent', () => {
     const props = createProps({
-      standalone: true,
+      standalone: ExploreStandaloneMode.HideNav,
       can_download: true,
     });
 
@@ -218,7 +219,7 @@ describe('ChartContainer', () => {
     window.history.replaceState({}, '', '?show_download=0');
 
     const props = createProps({
-      standalone: true,
+      standalone: ExploreStandaloneMode.HideNav,
       can_download: true,
     });
 
@@ -233,7 +234,7 @@ describe('ChartContainer', () => {
     window.history.replaceState({}, '', '?show_download=1');
 
     const props = createProps({
-      standalone: true,
+      standalone: ExploreStandaloneMode.HideNav,
       can_download: true,
     });
 
@@ -248,7 +249,7 @@ describe('ChartContainer', () => {
     window.history.replaceState({}, '', '?show_download=1');
 
     const props = createProps({
-      standalone: true,
+      standalone: ExploreStandaloneMode.HideNav,
       can_download: false,
     });
 
@@ -263,7 +264,7 @@ describe('ChartContainer', () => {
     window.history.replaceState({}, '', '?show_download=1');
 
     const props = createProps({
-      standalone: false,
+      standalone: ExploreStandaloneMode.None,
       can_download: true,
     });
 

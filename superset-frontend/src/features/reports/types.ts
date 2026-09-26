@@ -42,6 +42,8 @@ export interface ReportObject {
   crontab: string;
   dashboard?: number;
   chart?: number;
+  dashboard_id?: number | null;
+  chart_id?: number | null;
   description?: string;
   log_retention: number;
   name: string;

@@ -42,19 +42,16 @@ type ConfigType = {
     globalTags: Array<string>;
   };
   redis: RedisConfig;
-  redisStreamPrefix: string;
-  redisStreamReadCount: number;
-  redisStreamReadBlockMs: number;
   jwtAlgorithms: string[];
   jwtSecret: string;
+  previousJwtSecret: string;
   jwtCookieName: string;
-  jwtChannelIdKey: string;
+  realtimeChannelPrefix: string;
   allowedOrigins: string[];
   socketResponseTimeoutMs: number;
   pingSocketsIntervalMs: number;
   gcChannelsIntervalMs: number;
   maxSocketBufferBytes: number;
-  eventYieldBatchSize: number;
   maxConnectionsPerChannel: number;
   maxTotalConnections: number;
 };
@@ -65,13 +62,11 @@ function defaultConfig(): ConfigType {
     logLevel: 'info',
     logToFile: false,
     logFilename: 'app.log',
-    redisStreamPrefix: 'async-events-',
-    redisStreamReadCount: 100,
-    redisStreamReadBlockMs: 5000,
     jwtAlgorithms: ['HS256'],
     jwtSecret: '',
-    jwtCookieName: 'async-token',
-    jwtChannelIdKey: 'channel',
+    previousJwtSecret: '',
+    jwtCookieName: 'superset-ws-token',
+    realtimeChannelPrefix: '',
     allowedOrigins: [],
     socketResponseTimeoutMs: 60 * 1000,
     pingSocketsIntervalMs: 20 * 1000,
@@ -79,9 +74,6 @@ function defaultConfig(): ConfigType {
     // 0 disables the per-socket send-buffer cap; set a positive byte value to
     // opt in to terminating clients whose outbound buffer grows beyond it.
     maxSocketBufferBytes: 0,
-    // Number of stream events to process before yielding to the event loop.
-    // 0 disables yielding (process the whole batch synchronously).
-    eventYieldBatchSize: 100,
     // 0 disables the limit (unlimited); set a positive value to opt in.
     maxConnectionsPerChannel: 0,
     maxTotalConnections: 0,
@@ -109,13 +101,17 @@ function configFromFile(): Partial<ConfigType> {
   try {
     return JSON.parse(readFileSync(configFilePath, 'utf8')) as ConfigType;
   } catch {
-    console.warn('config.json file not found');
+    // A config file is optional: the container images configure the server
+    // entirely through environment variables.
+    console.warn(
+      `No config file at ${configFilePath}; using defaults plus any ` +
+        'environment variable overrides',
+    );
     return {};
   }
 }
 
 const isPresent = (s: string) => /\S+/.test(s);
-const toNumber = Number;
 
 // Parse a non-negative numeric env override, ignoring malformed input.
 // Returns the fallback (and logs a warning) when the value is not a finite
@@ -139,46 +135,60 @@ const toStringArray = (s: string) =>
     .filter(entry => entry.length > 0);
 
 function applyEnvOverrides(config: ConfigType): ConfigType {
+  // Every numeric override goes through `toNonNegativeNumber` so a typo'd value
+  // falls back to the default with a warning rather than silently becoming NaN
+  // (which would compare falsy against every threshold and disable the limit).
   const envVarConfigSetter: { [envVar: string]: (val: string) => void } = {
-    PORT: val => (config.port = toNumber(val)),
+    PORT: val => (config.port = toNonNegativeNumber(val, config.port)),
     LOG_LEVEL: val => (config.logLevel = val),
     LOG_TO_FILE: val => (config.logToFile = toBoolean(val)),
     LOG_FILENAME: val => (config.logFilename = val),
-    REDIS_STREAM_PREFIX: val => (config.redisStreamPrefix = val),
-    REDIS_STREAM_READ_COUNT: val =>
-      (config.redisStreamReadCount = toNumber(val)),
-    REDIS_STREAM_READ_BLOCK_MS: val =>
-      (config.redisStreamReadBlockMs = toNumber(val)),
     JWT_SECRET: val => (config.jwtSecret = val),
+    PREVIOUS_JWT_SECRET: val => (config.previousJwtSecret = val),
     JWT_COOKIE_NAME: val => (config.jwtCookieName = val),
+    REALTIME_CHANNEL_PREFIX: val => (config.realtimeChannelPrefix = val),
     ALLOWED_ORIGINS: val => (config.allowedOrigins = toStringArray(val)),
     SOCKET_RESPONSE_TIMEOUT_MS: val =>
-      (config.socketResponseTimeoutMs = toNumber(val)),
+      (config.socketResponseTimeoutMs = toNonNegativeNumber(
+        val,
+        config.socketResponseTimeoutMs,
+      )),
     PING_SOCKETS_INTERVAL_MS: val =>
-      (config.pingSocketsIntervalMs = toNumber(val)),
+      (config.pingSocketsIntervalMs = toNonNegativeNumber(
+        val,
+        config.pingSocketsIntervalMs,
+      )),
     GC_CHANNELS_INTERVAL_MS: val =>
-      (config.gcChannelsIntervalMs = toNumber(val)),
+      (config.gcChannelsIntervalMs = toNonNegativeNumber(
+        val,
+        config.gcChannelsIntervalMs,
+      )),
     MAX_SOCKET_BUFFER_BYTES: val =>
       (config.maxSocketBufferBytes = toNonNegativeNumber(
         val,
         config.maxSocketBufferBytes,
       )),
-    EVENT_YIELD_BATCH_SIZE: val =>
-      (config.eventYieldBatchSize = toNonNegativeNumber(
-        val,
-        config.eventYieldBatchSize,
-      )),
     MAX_CONNECTIONS_PER_CHANNEL: val =>
-      (config.maxConnectionsPerChannel = toNumber(val)),
-    MAX_TOTAL_CONNECTIONS: val => (config.maxTotalConnections = toNumber(val)),
+      (config.maxConnectionsPerChannel = toNonNegativeNumber(
+        val,
+        config.maxConnectionsPerChannel,
+      )),
+    MAX_TOTAL_CONNECTIONS: val =>
+      (config.maxTotalConnections = toNonNegativeNumber(
+        val,
+        config.maxTotalConnections,
+      )),
     REDIS_HOST: val => (config.redis.host = val),
-    REDIS_PORT: val => (config.redis.port = toNumber(val)),
+    REDIS_PORT: val =>
+      (config.redis.port = toNonNegativeNumber(val, config.redis.port)),
     REDIS_PASSWORD: val => (config.redis.password = val),
     REDIS_USERNAME: val => (config.redis.username = val),
-    REDIS_DB: val => (config.redis.db = toNumber(val)),
+    REDIS_DB: val =>
+      (config.redis.db = toNonNegativeNumber(val, config.redis.db)),
     REDIS_SSL: val => (config.redis.ssl = toBoolean(val)),
     STATSD_HOST: val => (config.statsd.host = val),
-    STATSD_PORT: val => (config.statsd.port = toNumber(val)),
+    STATSD_PORT: val =>
+      (config.statsd.port = toNonNegativeNumber(val, config.statsd.port)),
     STATSD_GLOBAL_TAGS: val => (config.statsd.globalTags = toStringArray(val)),
   };
 

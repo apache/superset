@@ -16,7 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ChangeEvent, useMemo, useState, useCallback, useEffect } from 'react';
+import {
+  type ReactNode,
+  ChangeEvent,
+  useMemo,
+  useState,
+  useCallback,
+  useEffect,
+} from 'react';
 
 import {
   Input,
@@ -34,6 +41,8 @@ import {
   ensureIsArray,
 } from '@superset-ui/core';
 import Chart, { Slice } from 'src/types/Chart';
+import { useAppDispatch } from 'src/views/store';
+import { saveSliceSuccess } from 'src/explore/actions/saveModalActions';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import { type TagType } from 'src/components';
 import { TagTypeEnum } from 'src/components/Tag/TagType';
@@ -56,6 +65,12 @@ export type PropertiesModalProps = {
   permissionsError?: string;
   addSuccessToast: (msg: string) => void;
   addDangerToast: (msg: string) => void;
+  /** Optional render prop for injecting extra fields (e.g. folder selector). */
+  renderExtraFields?: (context: {
+    assetId: number;
+    assetType: 'chart';
+    accessorCount: number;
+  }) => { content: ReactNode; saveDisabled?: boolean; saveTooltip?: string };
 };
 
 function PropertiesModal({
@@ -65,7 +80,9 @@ function PropertiesModal({
   show,
   addSuccessToast,
   addDangerToast,
+  renderExtraFields,
 }: PropertiesModalProps) {
+  const dispatch = useAppDispatch();
   const [submitting, setSubmitting] = useState(false);
   // values of form inputs
   const [name, setName] = useState(slice.slice_name || '');
@@ -86,6 +103,25 @@ function PropertiesModal({
     SubjectPickerValue[] | null
   >(null);
   const [tags, setTags] = useState<TagType[]>([]);
+
+  const chartId = slice.slice_id;
+  const extraFields = useMemo(
+    () =>
+      chartId
+        ? renderExtraFields?.({
+            assetId: chartId,
+            assetType: 'chart',
+            accessorCount:
+              (selectedEditors?.length ?? 0) + (selectedViewers?.length ?? 0),
+          })
+        : undefined,
+    [
+      chartId,
+      renderExtraFields,
+      selectedEditors?.length,
+      selectedViewers?.length,
+    ],
+  );
 
   // Validation setup
   const modalSections = useMemo(
@@ -228,6 +264,7 @@ function PropertiesModal({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
+      dispatch(saveSliceSuccess({ id: slice.slice_id }));
       res = await SupersetClient.get({
         endpoint: chartEndpoint,
       });
@@ -281,14 +318,20 @@ function PropertiesModal({
       title={t('Chart properties')}
       isEditMode
       saveDisabled={
-        submitting || !name || slice.is_managed_externally || hasErrors
+        submitting ||
+        !name ||
+        slice.is_managed_externally ||
+        hasErrors ||
+        extraFields?.saveDisabled
       }
       errorTooltip={
-        slice.is_managed_externally
-          ? t(
-              "This chart is managed externally, and can't be edited in Superset",
-            )
-          : errorTooltip
+        extraFields?.saveDisabled && extraFields?.saveTooltip
+          ? extraFields.saveTooltip
+          : slice.is_managed_externally
+            ? t(
+                "This chart is managed externally, and can't be edited in Superset",
+              )
+            : errorTooltip
       }
       wrapProps={{ 'data-test': 'properties-edit-modal' }}
     >
@@ -395,6 +438,7 @@ function PropertiesModal({
                     />
                   </ModalFormField>
                 )}
+                {extraFields?.content}
               </>
             ),
           },

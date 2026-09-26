@@ -16,6 +16,7 @@
 # under the License.
 
 from typing import Any, cast
+from unittest.mock import MagicMock
 
 import pytest
 from marshmallow import ValidationError
@@ -59,7 +60,9 @@ def test_update_dataset_forbidden(mocker: MockerFixture) -> None:
     Test try updating a dataset without permission raises a `DatasetForbiddenError`.
     """
     mock_dataset_dao = mocker.patch("superset.commands.dataset.update.DatasetDAO")
-    mock_dataset_dao.find_by_id.return_value = mocker.MagicMock()
+    mock_dataset_dao.find_by_id.return_value = mocker.MagicMock(
+        is_managed_externally=False
+    )
 
     mocker.patch(
         "superset.commands.dataset.update.security_manager.raise_for_editorship",
@@ -86,7 +89,7 @@ def test_update_dataset_sql_authorized_schema(mocker: MockerFixture) -> None:
     mock_database.get_default_catalog.return_value = "catalog"
     mock_database.allow_multi_catalog = False
 
-    mock_dataset = mocker.MagicMock()
+    mock_dataset = mocker.MagicMock(is_managed_externally=False)
     mock_dataset.database = mock_database
     mock_dataset.catalog = "catalog"
     mock_dataset.schema = "public"
@@ -131,7 +134,7 @@ def test_update_dataset_sql_unauthorized_schema(mocker: MockerFixture) -> None:
     mock_database.get_default_catalog.return_value = "catalog"
     mock_database.allow_multi_catalog = False
 
-    mock_dataset = mocker.MagicMock()
+    mock_dataset = mocker.MagicMock(is_managed_externally=False)
     mock_dataset.database = mock_database
     mock_dataset.catalog = "catalog"
     mock_dataset.schema = "public"
@@ -194,7 +197,7 @@ def test_update_dataset_database_id_change_checks_new_database_access(
     mock_new_database.get_default_catalog.return_value = "catalog"
     mock_new_database.allow_multi_catalog = False
 
-    mock_dataset = mocker.MagicMock()
+    mock_dataset = mocker.MagicMock(is_managed_externally=False)
     mock_dataset.database = mock_current_database
     mock_dataset.catalog = "catalog"
     mock_dataset.schema = "public"
@@ -250,7 +253,7 @@ def test_update_dataset_database_id_change_allowed_with_access(
     mock_new_database.get_default_catalog.return_value = "catalog"
     mock_new_database.allow_multi_catalog = False
 
-    mock_dataset = mocker.MagicMock()
+    mock_dataset = mocker.MagicMock(is_managed_externally=False)
     mock_dataset.database = mock_current_database
     mock_dataset.catalog = "catalog"
     mock_dataset.schema = "public"
@@ -298,7 +301,7 @@ def test_update_dataset_physical_repoint_requires_table_access(
     mock_database.get_default_catalog.return_value = "catalog"
     mock_database.allow_multi_catalog = False
 
-    mock_dataset = mocker.MagicMock()
+    mock_dataset = mocker.MagicMock(is_managed_externally=False)
     mock_dataset.database = mock_database
     mock_dataset.catalog = "catalog"
     mock_dataset.schema = "public"
@@ -380,7 +383,7 @@ def test_update_dataset_validation_errors(
     mock_database.id = 1
     mock_database.get_default_catalog.return_value = "catalog"
     mock_database.allow_multi_catalog = False
-    mock_dataset = mocker.MagicMock()
+    mock_dataset = mocker.MagicMock(is_managed_externally=False)
     mock_dataset.database = mock_database
     mock_dataset.catalog = "catalog"
     mock_dataset_dao.find_by_id.return_value = mock_dataset
@@ -392,12 +395,56 @@ def test_update_dataset_validation_errors(
 
     if exception == DatasetExistsValidationError:
         mock_dataset_dao.validate_update_uniqueness.return_value = False
+        # No hidden twin: a bare MagicMock attribute is truthy and would
+        # divert into the soft-deleted-twin guidance branch.
+        mock_dataset_dao.find_soft_deleted_logical_duplicate.return_value = None
     else:
         mock_dataset_dao.validate_update_uniqueness.return_value = True
 
     with pytest.raises(DatasetInvalidError) as excinfo:
         UpdateDatasetCommand(1, payload).run()
     assert any(error_msg in str(exc) for exc in excinfo.value._exceptions)
+
+
+def test_update_dataset_soft_deleted_twin_gets_guidance(
+    mocker: MockerFixture,
+) -> None:
+    """sc-107581: the update path mirrors create's hidden-twin 422.
+
+    When the uniqueness blocker is a SOFT-DELETED dataset (invisible in the
+    caller's list), the targeted error names the twin's uuid and the restore
+    endpoint instead of the opaque "already exists".
+    """
+    from superset.commands.dataset.exceptions import (
+        DatasetSoftDeletedTwinExistsError,
+    )
+
+    mock_dataset_dao: MagicMock = mocker.patch(
+        "superset.commands.dataset.update.DatasetDAO"
+    )
+    mocker.patch(
+        "superset.commands.dataset.update.security_manager.raise_for_editorship",
+    )
+    mocker.patch("superset.commands.utils.security_manager.is_admin", return_value=True)
+    mock_database: MagicMock = mocker.MagicMock()
+    mock_database.id = 1
+    mock_database.get_default_catalog.return_value = "catalog"
+    mock_database.allow_multi_catalog = False
+    mock_dataset: MagicMock = mocker.MagicMock(is_managed_externally=False)
+    mock_dataset.database = mock_database
+    mock_dataset.catalog = "catalog"
+    mock_dataset_dao.find_by_id.return_value = mock_dataset
+    mock_dataset_dao.get_database_by_id.return_value = mock_database
+    mock_dataset_dao.validate_update_uniqueness.return_value = False
+    twin: MagicMock = mocker.MagicMock()
+    twin.uuid = "twin-uuid-123"
+    mock_dataset_dao.find_soft_deleted_logical_duplicate.return_value = twin
+
+    with pytest.raises(DatasetSoftDeletedTwinExistsError) as excinfo:
+        UpdateDatasetCommand(1, {"table_name": "table", "schema": "schema"}).run()
+
+    assert "twin-uuid-123" in str(excinfo.value)
+    assert "/restore" in str(excinfo.value)
 
 
 @pytest.mark.parametrize(
@@ -450,7 +497,7 @@ def test_update_dataset_rejects_malicious_expression(
     mock_database.backend = "sqlite"
     mock_database.allow_multi_catalog = False
     mock_database.get_default_catalog.return_value = "catalog"
-    mock_dataset = mocker.MagicMock()
+    mock_dataset = mocker.MagicMock(is_managed_externally=False)
     mock_dataset.database = mock_database
     mock_dataset.catalog = "catalog"
     mock_dataset.schema = None
@@ -473,6 +520,10 @@ def test_update_dataset_rejects_malicious_expression(
         f"Expected a field-level ValidationError on '{field}'. Got: "
         f"{[(type(e).__name__, getattr(e, 'field_name', None), str(e)) for e in excinfo.value._exceptions]}"  # noqa: E501
     )
+    # `messages` must stay a list even though the underlying message is a
+    # `LazyString`, which marshmallow does not treat as `str`/`bytes` and so
+    # would otherwise store bare instead of wrapping it.
+    assert isinstance(expression_errors[0].messages, list)
 
 
 def test_update_dataset_accepts_benign_expression(mocker: MockerFixture) -> None:
@@ -495,7 +546,7 @@ def test_update_dataset_accepts_benign_expression(mocker: MockerFixture) -> None
     mock_database.backend = "sqlite"
     mock_database.allow_multi_catalog = False
     mock_database.get_default_catalog.return_value = "catalog"
-    mock_dataset = mocker.MagicMock()
+    mock_dataset = mocker.MagicMock(is_managed_externally=False)
     mock_dataset.database = mock_database
     mock_dataset.catalog = "catalog"
     mock_dataset.schema = None
@@ -536,7 +587,7 @@ def test_update_dataset_accepts_jinja_expression(mocker: MockerFixture) -> None:
     mock_database.backend = "sqlite"
     mock_database.allow_multi_catalog = False
     mock_database.get_default_catalog.return_value = "catalog"
-    mock_dataset = mocker.MagicMock()
+    mock_dataset = mocker.MagicMock(is_managed_externally=False)
     mock_dataset.database = mock_database
     mock_dataset.catalog = "catalog"
     mock_dataset.schema = None
@@ -1297,7 +1348,7 @@ def test_update_dataset_rejects_malicious_fetch_values_predicate(
     mock_database.backend = "sqlite"
     mock_database.allow_multi_catalog = False
     mock_database.get_default_catalog.return_value = "catalog"
-    mock_dataset = mocker.MagicMock()
+    mock_dataset = mocker.MagicMock(is_managed_externally=False)
     mock_dataset.database = mock_database
     mock_dataset.catalog = "catalog"
     mock_dataset.schema = None

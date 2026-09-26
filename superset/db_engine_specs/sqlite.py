@@ -25,9 +25,14 @@ from typing import Any, TYPE_CHECKING
 from flask_babel import gettext as __
 from sqlalchemy import types
 from sqlalchemy.engine.reflection import Inspector
+from sqlalchemy.sql.elements import ColumnClause
 
 from superset.constants import TimeGrain
-from superset.db_engine_specs.base import BaseEngineSpec, DatabaseCategory
+from superset.db_engine_specs.base import (
+    BaseEngineSpec,
+    DatabaseCategory,
+    TimestampExpression,
+)
 from superset.errors import SupersetErrorType
 
 if TYPE_CHECKING:
@@ -43,6 +48,7 @@ class SqliteEngineSpec(BaseEngineSpec):
 
     disable_ssh_tunneling = True
     supports_multivalues_insert = True
+    supports_temporal_column_shift = True
 
     metadata = {
         "description": "SQLite is a self-contained, serverless SQL database engine.",
@@ -138,6 +144,20 @@ class SqliteEngineSpec(BaseEngineSpec):
         return (
             "datetime(CASE WHEN {col} IS NULL THEN NULL "
             "ELSE printf('%04d-01-01', CAST({col} AS INTEGER)) END)"
+        )
+
+    @classmethod
+    def get_temporal_column_shift_expr(
+        cls,
+        col: ColumnClause,
+        offset_hours: int,
+    ) -> TimestampExpression:
+        """Shift a temporal expression with SQLite's datetime modifier syntax."""
+        modifier = f"{offset_hours:+d} hours"
+        return TimestampExpression(
+            f"DATETIME({{col}}, '{modifier}')",
+            col,
+            type_=col.type,
         )
 
     @classmethod

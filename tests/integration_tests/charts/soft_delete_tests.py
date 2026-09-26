@@ -317,10 +317,7 @@ class TestChartSoftDelete(InsertChartMixin, SupersetTestCase):
         rv = self.client.delete(f"/api/v1/chart/{chart_id}")
         assert rv.status_code == 422
         body = json.loads(rv.data)
-        assert "associated alerts or reports" in body.get("message", "").lower() or (
-            "associated" in body.get("message", "").lower()
-            and "report" in body.get("message", "").lower()
-        )
+        assert "is used by alerts or reports" in body.get("message", "")
         assert "blocking_report_for_chart_delete" in body.get("message", "")
 
         # Confirm the chart was NOT soft-deleted (deleted_at remains NULL).

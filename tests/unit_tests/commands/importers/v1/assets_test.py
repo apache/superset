@@ -285,6 +285,9 @@ def test_import_threads_overwrite_flag(mocker: MockerFixture, session: Session) 
     mocker.patch.object(assets_module, "find_chart_uuids", return_value=[])
     mocker.patch.object(assets_module, "update_id_refs", side_effect=lambda c, *_: c)
     mocker.patch.object(assets_module, "migrate_dashboard")
+    # tag import isn't under test here; mock it out so this test doesn't
+    # depend on the TAGGING_SYSTEM feature flag default or a real tag table
+    mocker.patch.object(assets_module, "import_tag")
     mocker.patch("superset.db.session.execute")
 
     configs = {

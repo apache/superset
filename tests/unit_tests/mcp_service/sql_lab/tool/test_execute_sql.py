@@ -22,6 +22,7 @@ These tests mock Database.execute() to test the MCP tool's parameter mapping
 and response conversion logic.
 """
 
+import base64
 import logging
 from decimal import Decimal
 from typing import Any
@@ -31,10 +32,18 @@ import pandas as pd
 import pytest
 from fastmcp import Client
 from fastmcp.exceptions import ToolError
+from jinja2.exceptions import TemplateSyntaxError
 from superset_core.queries.types import QueryResult, QueryStatus, StatementResult
 
+from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
+from superset.exceptions import (
+    SupersetParseError,
+    SupersetSecurityException,
+    SupersetTemplateException,
+)
 from superset.mcp_service.app import mcp
 from superset.mcp_service.sql_lab.schemas import ColumnInfo
+from superset.mcp_service.utils.serialization import BINARY_PREFIX
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
@@ -152,7 +161,6 @@ class TestExecuteSql:
         mock_db.session.query.return_value.filter_by.return_value.first.return_value = (
             mock_database
         )
-        mock_security_manager.can_access_database.return_value = True
 
         request = {
             "database_id": 1,
@@ -201,7 +209,6 @@ class TestExecuteSql:
         mock_db.session.query.return_value.filter_by.return_value.first.return_value = (
             mock_database
         )
-        mock_security_manager.can_access_database.return_value = True
 
         request = {
             "database_id": 1,
@@ -247,7 +254,6 @@ class TestExecuteSql:
         mock_db.session.query.return_value.filter_by.return_value.first.return_value = (
             mock_database
         )
-        mock_security_manager.can_access_database.return_value = True
         mock_is_feature_enabled.return_value = False
 
         request = {
@@ -283,7 +289,6 @@ class TestExecuteSql:
         mock_db.session.query.return_value.filter_by.return_value.first.return_value = (
             mock_database
         )
-        mock_security_manager.can_access_database.return_value = True
         mock_is_feature_enabled.return_value = True
 
         request = {
@@ -315,7 +320,6 @@ class TestExecuteSql:
         mock_db.session.query.return_value.filter_by.return_value.first.return_value = (
             mock_database
         )
-        mock_security_manager.can_access_database.return_value = True
         mock_is_feature_enabled.return_value = False
 
         request = {"database_id": 1, "sql": "SELECT id FROM users"}
@@ -356,30 +360,148 @@ class TestExecuteSql:
             assert data["success"] is False
             assert "Database with ID 999 not found" in data["error"]
 
+    # ``new_callable=MagicMock`` is required here: ``security_manager`` is a
+    # LocalProxy, which a bare ``patch`` replaces with an AsyncMock whose
+    # ``side_effect`` fires only when awaited. ``raise_for_access`` is called
+    # synchronously, so the deny path would never be exercised.
     @patch("superset.security_manager", new_callable=MagicMock)
     @patch("superset.db")
     @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        "error_type, message",
+        [
+            (
+                SupersetErrorType.DATABASE_SECURITY_ACCESS_ERROR,
+                "You need access to the following database: examples",
+            ),
+            (
+                SupersetErrorType.TABLE_SECURITY_ACCESS_ERROR,
+                "You need access to the following tables: secret_table",
+            ),
+        ],
+    )
     async def test_execute_sql_access_denied(
-        self, mock_db, mock_security_manager, mcp_server
+        self, mock_db, mock_security_manager, mcp_server, error_type, message
     ):
-        """Test error when user lacks database access."""
+        """A query the user is not authorized to run, at either the database or
+        the table level, is rejected and never executed."""
         mock_database = _mock_database()
         mock_db.session.query.return_value.filter_by.return_value.first.return_value = (
             mock_database
         )
-        mock_security_manager.can_access_database.return_value = False
+        mock_security_manager.raise_for_access.side_effect = SupersetSecurityException(
+            SupersetError(
+                message=message,
+                error_type=error_type,
+                level=ErrorLevel.ERROR,
+            )
+        )
 
         request = {
             "database_id": 1,
-            "sql": "SELECT 1",
-            "limit": 1,
+            "sql": "SELECT * FROM secret_table",
+            "limit": 10,
         }
 
         async with Client(mcp_server) as client:
             result = await client.call_tool("execute_sql", {"request": request})
             data = result.structured_content
             assert data["success"] is False
-            assert "Access denied to database" in data["error"]
+            assert data["error"] == message
+            assert data["error_type"] == error_type.value
+
+        mock_security_manager.raise_for_access.assert_called_once_with(
+            database=mock_database,
+            sql="SELECT * FROM secret_table",
+            catalog=None,
+            schema=None,
+            template_params={},
+            force_dataset_match=True,
+        )
+        mock_database.execute.assert_not_called()
+
+    @patch("superset.security_manager", new_callable=MagicMock)
+    @patch("superset.db")
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("template_params", [None, {}, {"a": 1}])
+    async def test_execute_sql_authorizes_the_sql_that_executes(
+        self, mock_db, mock_security_manager, mcp_server, template_params
+    ):
+        """The access check and the executor must be handed the same
+        template_params, otherwise the authorized SQL is not the SQL that runs
+        and Jinja expanding on only one side escapes the table-access check.
+
+        ``None`` is normalized to ``{}`` rather than passed through: the check
+        renders unconditionally, so leaving the executor unrendered would let a
+        template that hides a table from the renderer be authorized in its
+        rendered form and executed in its raw form.
+        """
+        mock_database = _mock_database()
+        mock_database.execute.return_value = _create_select_result(
+            rows=[{"id": 1}],
+            columns=["id"],
+        )
+        mock_db.session.query.return_value.filter_by.return_value.first.return_value = (
+            mock_database
+        )
+
+        request: dict[str, Any] = {
+            "database_id": 1,
+            "sql": "SELECT id FROM users",
+            "limit": 10,
+        }
+        if template_params is not None:
+            request["template_params"] = template_params
+
+        async with Client(mcp_server) as client:
+            result = await client.call_tool("execute_sql", {"request": request})
+            assert result.structured_content["success"] is True
+
+        authorized = mock_security_manager.raise_for_access.call_args.kwargs[
+            "template_params"
+        ]
+        executed = mock_database.execute.call_args[0][1].template_params
+        assert authorized == executed
+        assert executed == (template_params or {})
+
+    @patch("superset.security_manager", new_callable=MagicMock)
+    @patch("superset.db")
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        "side_effect",
+        [
+            TemplateSyntaxError("unexpected end of template", 1),
+            # raised by macros such as ``metric()`` while rendering; a
+            # SupersetException rather than a jinja2 one, so it needs
+            # catching separately to avoid surfacing as a crash
+            SupersetTemplateException("Please specify the Dataset ID"),
+            SupersetParseError("SELECT", "postgresql", message="cannot parse"),
+        ],
+    )
+    async def test_execute_sql_malformed_template(
+        self, mock_db, mock_security_manager, mcp_server, side_effect
+    ):
+        """Malformed Jinja is reported as invalid SQL, not as a crash: the
+        access check renders the template, so it fails there first."""
+        mock_database = _mock_database()
+        mock_db.session.query.return_value.filter_by.return_value.first.return_value = (
+            mock_database
+        )
+        mock_security_manager.raise_for_access.side_effect = side_effect
+
+        request = {
+            "database_id": 1,
+            "sql": "SELECT * FROM {{ table",
+            "limit": 10,
+        }
+
+        async with Client(mcp_server) as client:
+            result = await client.call_tool("execute_sql", {"request": request})
+            data = result.structured_content
+            assert data["success"] is False
+            assert data["error_type"] == SupersetErrorType.INVALID_SQL_ERROR.value
+
+        mock_database.execute.assert_not_called()
 
     @patch("superset.security_manager")
     @patch("superset.db")
@@ -397,7 +519,6 @@ class TestExecuteSql:
         mock_db.session.query.return_value.filter_by.return_value.first.return_value = (
             mock_database
         )
-        mock_security_manager.can_access_database.return_value = True
 
         request = {
             "database_id": 1,
@@ -431,7 +552,6 @@ class TestExecuteSql:
         mock_db.session.query.return_value.filter_by.return_value.first.return_value = (
             mock_database
         )
-        mock_security_manager.can_access_database.return_value = True
 
         request = {
             "database_id": 1,
@@ -465,7 +585,6 @@ class TestExecuteSql:
         mock_db.session.query.return_value.filter_by.return_value.first.return_value = (
             mock_database
         )
-        mock_security_manager.can_access_database.return_value = True
 
         request = {
             "database_id": 1,
@@ -515,7 +634,6 @@ class TestExecuteSql:
         mock_db.session.query.return_value.filter_by.return_value.first.return_value = (
             mock_database
         )
-        mock_security_manager.can_access_database.return_value = True
 
         request = {
             "database_id": 1,
@@ -560,7 +678,6 @@ class TestExecuteSql:
         mock_db.session.query.return_value.filter_by.return_value.first.return_value = (
             mock_database
         )
-        mock_security_manager.can_access_database.return_value = True
 
         request = {
             "database_id": 1,
@@ -611,7 +728,6 @@ class TestExecuteSql:
         mock_db.session.query.return_value.filter_by.return_value.first.return_value = (
             mock_database
         )
-        mock_security_manager.can_access_database.return_value = True
 
         request = {
             "database_id": 1,
@@ -694,7 +810,6 @@ class TestExecuteSql:
         mock_db.session.query.return_value.filter_by.return_value.first.return_value = (
             mock_database
         )
-        mock_security_manager.can_access_database.return_value = True
 
         request = {
             "database_id": 1,
@@ -774,7 +889,6 @@ class TestExecuteSql:
         mock_db.session.query.return_value.filter_by.return_value.first.return_value = (
             mock_database
         )
-        mock_security_manager.can_access_database.return_value = True
 
         request = {
             "database_id": 1,
@@ -837,7 +951,6 @@ class TestExecuteSql:
         mock_db.session.query.return_value.filter_by.return_value.first.return_value = (
             mock_database
         )
-        mock_security_manager.can_access_database.return_value = True
 
         request = {
             "database_id": 1,
@@ -934,7 +1047,6 @@ class TestExecuteSql:
         mock_db.session.query.return_value.filter_by.return_value.first.return_value = (
             mock_database
         )
-        mock_security_manager.can_access_database.return_value = True
 
         # No 'limit' key — should default to None (no override)
         request = {
@@ -968,7 +1080,6 @@ class TestExecuteSql:
         mock_db.session.query.return_value.filter_by.return_value.first.return_value = (
             mock_database
         )
-        mock_security_manager.can_access_database.return_value = True
 
         request = {
             "database_id": 1,
@@ -1029,7 +1140,6 @@ class TestExecuteSql:
         mock_db.session.query.return_value.filter_by.return_value.first.return_value = (
             mock_database
         )
-        mock_security_manager.can_access_database.return_value = True
 
         request = {
             "database_id": 1,
@@ -1046,8 +1156,11 @@ class TestExecuteSql:
             row = data["rows"][0]
             # UTF-8 decodable bytes should become string
             assert row["utf8_data"] == "hello world"
-            # Non-UTF-8 bytes should become hex
-            assert row["binary_data"] == "000102ff"
+            # Non-UTF-8 bytes are base64-encoded rather than failing the call
+            assert (
+                row["binary_data"]
+                == BINARY_PREFIX + base64.b64encode(b"\x00\x01\x02\xff").decode()
+            )
 
     @patch("superset.security_manager")
     @patch("superset.db")
@@ -1088,7 +1201,6 @@ class TestExecuteSql:
         mock_db.session.query.return_value.filter_by.return_value.first.return_value = (
             mock_database
         )
-        mock_security_manager.can_access_database.return_value = True
 
         request = {
             "database_id": 1,
@@ -1108,53 +1220,55 @@ class TestExecuteSql:
             assert isinstance(row["price"], float)
 
 
-class TestSanitizeRowValues:
-    """Unit tests for _sanitize_row_values helper function."""
+class TestStatementRowSanitization:
+    """Row values are made JSON-safe by the response schema itself, so every
+    tool that returns rows gets the same treatment."""
 
-    def test_sanitize_utf8_bytes(self):
-        from superset.mcp_service.sql_lab.tool.execute_sql import _sanitize_row_values
+    @staticmethod
+    def _rows(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+        from superset.mcp_service.sql_lab.tool.execute_sql import (
+            _data_to_statement_data,
+        )
 
-        rows = [{"data": b"hello"}]
-        _sanitize_row_values(rows)
-        assert rows[0]["data"] == "hello"
+        return _data_to_statement_data(rows).rows
 
-    def test_sanitize_non_utf8_bytes(self):
-        from superset.mcp_service.sql_lab.tool.execute_sql import _sanitize_row_values
+    def test_utf8_bytes_decode_to_text(self):
+        assert self._rows([{"data": b"hello"}])[0]["data"] == "hello"
 
-        rows = [{"data": b"\x00\xff"}]
-        _sanitize_row_values(rows)
-        assert rows[0]["data"] == "00ff"
+    def test_non_utf8_bytes_are_base64_encoded(self):
+        value = self._rows([{"data": b"\x00\xff"}])[0]["data"]
+        assert value == BINARY_PREFIX + base64.b64encode(b"\x00\xff").decode()
 
-    def test_sanitize_memoryview(self):
-        from superset.mcp_service.sql_lab.tool.execute_sql import _sanitize_row_values
+    def test_memoryview_is_handled(self):
+        assert self._rows([{"data": memoryview(b"test")}])[0]["data"] == "test"
 
-        rows = [{"data": memoryview(b"test")}]
-        _sanitize_row_values(rows)
-        assert rows[0]["data"] == "test"
+    def test_decimal_becomes_float(self):
+        row = self._rows([{"price": Decimal("19.99"), "count": Decimal("42")}])[0]
+        assert row["price"] == 19.99
+        assert isinstance(row["price"], float)
+        assert row["count"] == 42.0
 
-    def test_sanitize_decimal(self):
-        from superset.mcp_service.sql_lab.tool.execute_sql import _sanitize_row_values
+    def test_missing_values_become_none(self):
+        """The old tool-level helper stringified NaT to "NaT"."""
+        row = self._rows([{"ts": pd.NaT, "ratio": float("nan")}])[0]
+        assert row["ts"] is None
+        assert row["ratio"] is None
 
-        rows = [{"price": Decimal("19.99"), "count": Decimal("42")}]
-        _sanitize_row_values(rows)
-        assert rows[0]["price"] == 19.99
-        assert isinstance(rows[0]["price"], float)
-        assert rows[0]["count"] == 42.0
+    def test_nested_containers_are_sanitized(self):
+        """The old tool-level helper skipped list and dict values, which is how
+        binary data still reached the serializer."""
+        row = self._rows([{"payload": {"blob": b"\xff"}, "items": [b"\xff"]}])[0]
+        assert row["payload"]["blob"].startswith(BINARY_PREFIX)
+        assert row["items"][0].startswith(BINARY_PREFIX)
 
-    def test_sanitize_custom_type_uses_str(self):
-        from superset.mcp_service.sql_lab.tool.execute_sql import _sanitize_row_values
-
+    def test_custom_type_uses_str(self):
         class CustomType:
             def __str__(self):
                 return "custom_value"
 
-        rows = [{"data": CustomType()}]
-        _sanitize_row_values(rows)
-        assert rows[0]["data"] == "custom_value"
+        assert self._rows([{"data": CustomType()}])[0]["data"] == "custom_value"
 
     def test_preserves_json_serializable_types(self):
-        from superset.mcp_service.sql_lab.tool.execute_sql import _sanitize_row_values
-
         rows = [
             {
                 "str_val": "hello",
@@ -1166,33 +1280,10 @@ class TestSanitizeRowValues:
                 "dict_val": {"a": 1},
             }
         ]
-        original = [dict(row) for row in rows]
-        _sanitize_row_values(rows)
-        assert rows == original
+        assert self._rows(rows) == rows
 
-    def test_sanitize_empty_rows(self):
-        from superset.mcp_service.sql_lab.tool.execute_sql import _sanitize_row_values
-
-        rows: list[dict[str, Any]] = []
-        _sanitize_row_values(rows)
-        assert rows == []
-
-    def test_sanitize_mixed_types_in_single_row(self):
-        from superset.mcp_service.sql_lab.tool.execute_sql import _sanitize_row_values
-
-        rows = [
-            {
-                "id": 1,
-                "name": "test",
-                "price": Decimal("9.99"),
-                "blob": b"\x00\x01\x02\xff",
-            }
-        ]
-        _sanitize_row_values(rows)
-        assert rows[0]["id"] == 1
-        assert rows[0]["name"] == "test"
-        assert rows[0]["price"] == 9.99
-        assert rows[0]["blob"] == "000102ff"
+    def test_empty_rows(self):
+        assert self._rows([]) == []
 
 
 class TestExecuteSqlOAuth2:
@@ -1216,7 +1307,6 @@ class TestExecuteSqlOAuth2:
         mock_db.session.query.return_value.filter_by.return_value.first.return_value = (
             mock_database
         )
-        mock_security_manager.can_access_database.return_value = True
 
         request = {
             "database_id": 1,
@@ -1249,7 +1339,6 @@ class TestExecuteSqlOAuth2:
         mock_db.session.query.return_value.filter_by.return_value.first.return_value = (
             mock_database
         )
-        mock_security_manager.can_access_database.return_value = True
 
         request = {
             "database_id": 1,
@@ -1327,13 +1416,12 @@ class TestDestructiveDDLBlocking:
         """Common mock wiring for DDL blocking tests."""
         with (
             patch("superset.db") as mock_db,
-            patch("superset.security_manager") as mock_sm,
+            patch("superset.security_manager"),
         ):
             mock_database = _mock_database()
             mock_database.db_engine_spec.engine = "postgresql"
             query_chain = mock_db.session.query.return_value
             query_chain.filter_by.return_value.first.return_value = mock_database
-            mock_sm.can_access_database.return_value = True
             yield mock_database
 
     @pytest.mark.asyncio
@@ -1398,6 +1486,78 @@ class TestDestructiveDDLBlocking:
             assert data["success"] is False
             assert "Destructive DDL" in data["error"]
             ddl_mocks.execute.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_empty_template_params_rendered_before_ddl_check(
+        self, ddl_mocks, mcp_server
+    ):
+        """template_params={} must not skip Jinja rendering in the DDL guard.
+
+        The executor renders templates whenever template_params is not None
+        (including {}), so the guard must parse the same rendered SQL. With a
+        truthiness check, SQL whose destructive statement is hidden inside a
+        Jinja expression in a comment passes the guard unrendered and then
+        renders and executes.
+        """
+        ddl_mocks.execute.return_value = _create_select_result(
+            rows=[{"x": 1}], columns=["x"], original_sql="SELECT 1"
+        )
+        mock_tp = MagicMock()
+        # The raw (unrendered) SQL below parses as a single, non-destructive
+        # SELECT -- the Jinja expression sits inside a `--` comment. Only
+        # after rendering does it become a second, destructive statement.
+        mock_tp.process_template.return_value = (
+            "SELECT 1;\n-- \nDROP TABLE important_table;"
+        )
+
+        with patch(
+            "superset.jinja_context.get_template_processor",
+            return_value=mock_tp,
+        ):
+            async with Client(mcp_server) as client:
+                result = await client.call_tool(
+                    "execute_sql",
+                    {
+                        "request": {
+                            "database_id": 1,
+                            "sql": (
+                                'SELECT 1 -- {{ "\\nDROP TABLE important_table; --" }}'
+                            ),
+                            "template_params": {},
+                        }
+                    },
+                )
+                data = result.structured_content
+                assert data["success"] is False
+                assert "Destructive DDL" in data["error"]
+                mock_tp.process_template.assert_called_once()
+                ddl_mocks.execute.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_no_template_params_still_renders(self, ddl_mocks, mcp_server):
+        """Omitting template_params must not skip rendering. The access check
+        renders unconditionally, so the guard and the executor have to render
+        as well, otherwise they inspect and run a different string than the one
+        that was authorized.
+        """
+        sql = "SELECT * FROM logs WHERE msg = 'x'"
+        ddl_mocks.execute.return_value = _create_select_result(
+            rows=[{"msg": "x"}], columns=["msg"], original_sql=sql
+        )
+
+        with patch("superset.jinja_context.get_template_processor") as mock_get_tp:
+            mock_get_tp.return_value.process_template.return_value = sql
+            async with Client(mcp_server) as client:
+                result = await client.call_tool(
+                    "execute_sql",
+                    {"request": {"database_id": 1, "sql": sql}},
+                )
+
+        data = result.structured_content
+        assert data["success"] is True
+        mock_get_tp.return_value.process_template.assert_called_once_with(sql)
+        # the executor renders the same way, so it is handed {} rather than None
+        assert ddl_mocks.execute.call_args[0][1].template_params == {}
 
     @pytest.mark.asyncio
     async def test_select_allowed(self, ddl_mocks, mcp_server):
