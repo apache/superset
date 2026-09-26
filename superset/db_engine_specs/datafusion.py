@@ -25,6 +25,12 @@ from superset.db_engine_specs import BaseEngineSpec
 from superset.db_engine_specs.base import DatabaseCategory
 
 
+def _date_bin(interval: str) -> str:
+    # DataFusion rejects multiplying an interval by a Float64 (FLOOR(...)), so
+    # sub-hour buckets use its native DATE_BIN with the Unix epoch as origin.
+    return f"DATE_BIN(INTERVAL '{interval}', {{col}}, TIMESTAMP '1970-01-01 00:00:00')"
+
+
 class DataFusionEngineSpec(BaseEngineSpec):
     engine_name = "Apache DataFusion"
     engine = "datafusion"
@@ -59,13 +65,13 @@ class DataFusionEngineSpec(BaseEngineSpec):
     _time_grain_expressions = {
         None: "{col}",
         TimeGrain.SECOND: "DATE_TRUNC('second', {col})",
-        TimeGrain.FIVE_SECONDS: "DATE_TRUNC('minute', {col}) + INTERVAL '5 seconds' * FLOOR(EXTRACT(SECOND FROM {col}) / 5)",  # noqa: E501
-        TimeGrain.THIRTY_SECONDS: "DATE_TRUNC('minute', {col}) + INTERVAL '30 seconds' * FLOOR(EXTRACT(SECOND FROM {col}) / 30)",  # noqa: E501
+        TimeGrain.FIVE_SECONDS: _date_bin("5 seconds"),
+        TimeGrain.THIRTY_SECONDS: _date_bin("30 seconds"),
         TimeGrain.MINUTE: "DATE_TRUNC('minute', {col})",
-        TimeGrain.FIVE_MINUTES: "DATE_TRUNC('hour', {col}) + INTERVAL '5 minutes' * FLOOR(EXTRACT(MINUTE FROM {col}) / 5)",  # noqa: E501
-        TimeGrain.TEN_MINUTES: "DATE_TRUNC('hour', {col}) + INTERVAL '10 minutes' * FLOOR(EXTRACT(MINUTE FROM {col}) / 10)",  # noqa: E501
-        TimeGrain.FIFTEEN_MINUTES: "DATE_TRUNC('hour', {col}) + INTERVAL '15 minutes' * FLOOR(EXTRACT(MINUTE FROM {col}) / 15)",  # noqa: E501
-        TimeGrain.THIRTY_MINUTES: "DATE_TRUNC('hour', {col}) + INTERVAL '30 minutes' * FLOOR(EXTRACT(MINUTE FROM {col}) / 30)",  # noqa: E501
+        TimeGrain.FIVE_MINUTES: _date_bin("5 minutes"),
+        TimeGrain.TEN_MINUTES: _date_bin("10 minutes"),
+        TimeGrain.FIFTEEN_MINUTES: _date_bin("15 minutes"),
+        TimeGrain.THIRTY_MINUTES: _date_bin("30 minutes"),
         TimeGrain.HOUR: "DATE_TRUNC('hour', {col})",
         TimeGrain.DAY: "DATE_TRUNC('day', {col})",
         TimeGrain.WEEK: "DATE_TRUNC('week', {col})",
@@ -84,9 +90,13 @@ class DataFusionEngineSpec(BaseEngineSpec):
     ) -> str | None:
         sqla_type = cls.get_sqla_column_type(target_type)
 
-        if isinstance(sqla_type, types.Date):
-            return f"TO_DATE('{dttm.date().isoformat()}', 'YYYY-MM-DD')"
+        # DataFusion's to_timestamp()/to_date() take chrono format strings, not
+        # Oracle/PostgreSQL ones, so render ANSI typed literals instead.
+        if isinstance(sqla_type, types.Date) and not isinstance(
+            sqla_type, types.DateTime
+        ):
+            return f"DATE '{dttm.date().isoformat()}'"
         if isinstance(sqla_type, types.DateTime):
-            dttm_formatted = dttm.isoformat(sep=" ", timespec="milliseconds")
-            return f"""TO_TIMESTAMP('{dttm_formatted}', 'YYYY-MM-DD HH24:MI:SS.FFF')"""
+            dttm_formatted = dttm.isoformat(sep=" ", timespec="microseconds")
+            return f"TIMESTAMP '{dttm_formatted}'"
         return None

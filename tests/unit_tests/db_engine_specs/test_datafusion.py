@@ -26,15 +26,9 @@ from tests.unit_tests.fixtures.common import dttm  # noqa: F401
 @pytest.mark.parametrize(
     "target_type,expected_result",
     [
-        ("Date", "TO_DATE('2019-01-02', 'YYYY-MM-DD')"),
-        (
-            "DateTime",
-            "TO_TIMESTAMP('2019-01-02 03:04:05.678', 'YYYY-MM-DD HH24:MI:SS.FFF')",
-        ),
-        (
-            "TimeStamp",
-            "TO_TIMESTAMP('2019-01-02 03:04:05.678', 'YYYY-MM-DD HH24:MI:SS.FFF')",
-        ),
+        ("Date", "DATE '2019-01-02'"),
+        ("DateTime", "TIMESTAMP '2019-01-02 03:04:05.678900'"),
+        ("TimeStamp", "TIMESTAMP '2019-01-02 03:04:05.678900'"),
         ("UnknownType", None),
     ],
 )
@@ -57,34 +51,28 @@ def test_epoch_to_dttm() -> None:
         ("PT1S", "DATE_TRUNC('second', ts)"),
         (
             "PT5S",
-            "DATE_TRUNC('minute', ts) + INTERVAL '5 seconds' * "
-            "FLOOR(EXTRACT(SECOND FROM ts) / 5)",
+            "DATE_BIN(INTERVAL '5 seconds', ts, TIMESTAMP '1970-01-01 00:00:00')",
         ),
         (
             "PT30S",
-            "DATE_TRUNC('minute', ts) + INTERVAL '30 seconds' * "
-            "FLOOR(EXTRACT(SECOND FROM ts) / 30)",
+            "DATE_BIN(INTERVAL '30 seconds', ts, TIMESTAMP '1970-01-01 00:00:00')",
         ),
         ("PT1M", "DATE_TRUNC('minute', ts)"),
         (
             "PT5M",
-            "DATE_TRUNC('hour', ts) + INTERVAL '5 minutes' * "
-            "FLOOR(EXTRACT(MINUTE FROM ts) / 5)",
+            "DATE_BIN(INTERVAL '5 minutes', ts, TIMESTAMP '1970-01-01 00:00:00')",
         ),
         (
             "PT10M",
-            "DATE_TRUNC('hour', ts) + INTERVAL '10 minutes' * "
-            "FLOOR(EXTRACT(MINUTE FROM ts) / 10)",
+            "DATE_BIN(INTERVAL '10 minutes', ts, TIMESTAMP '1970-01-01 00:00:00')",
         ),
         (
             "PT15M",
-            "DATE_TRUNC('hour', ts) + INTERVAL '15 minutes' * "
-            "FLOOR(EXTRACT(MINUTE FROM ts) / 15)",
+            "DATE_BIN(INTERVAL '15 minutes', ts, TIMESTAMP '1970-01-01 00:00:00')",
         ),
         (
             "PT30M",
-            "DATE_TRUNC('hour', ts) + INTERVAL '30 minutes' * "
-            "FLOOR(EXTRACT(MINUTE FROM ts) / 30)",
+            "DATE_BIN(INTERVAL '30 minutes', ts, TIMESTAMP '1970-01-01 00:00:00')",
         ),
         ("PT1H", "DATE_TRUNC('hour', ts)"),
         ("P1D", "DATE_TRUNC('day', ts)"),
