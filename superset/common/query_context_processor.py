@@ -29,6 +29,7 @@ from flask_babel import gettext as _
 from jinja2.exceptions import TemplateError
 from pandas.api.types import infer_dtype
 
+from superset import db
 from superset.common.chart_data import ChartDataResultFormat
 from superset.common.chart_data_timing import (
     QueryAcquisitionResult,
@@ -206,6 +207,11 @@ class QueryContextProcessor:
                 self._force_marker_key(nonce, cache_key)
             )
         except Exception:  # noqa: BLE001  pylint: disable=broad-except
+            # Under `SupersetMetastoreCache` this read is a metadata-DB SELECT,
+            # so roll back before degrading to "absent": this runs before any
+            # engine is built, and leaving db.session in "pending rollback"
+            # state would fail the recompute we are about to force.
+            db.session.rollback()  # pylint: disable=consider-using-transaction
             logger.warning("Force-nonce marker read failed; forcing recompute")
             return True
         return marker is None
@@ -243,6 +249,10 @@ class QueryContextProcessor:
                     "Force-nonce marker write reported failure; may recompute once more"
                 )
         except Exception:  # noqa: BLE001  pylint: disable=broad-except
+            # Same reasoning as the marker read: a swallowed metadata-DB write
+            # failure must not leave db.session poisoned for the rest of this
+            # request.
+            db.session.rollback()  # pylint: disable=consider-using-transaction
             logger.warning("Force-nonce marker write failed; may recompute once more")
 
     def get_df_payload_result(

@@ -34,7 +34,7 @@ from sqlalchemy.engine.interfaces import Dialect
 from sqlalchemy.sql.expression import bindparam
 from sqlalchemy.types import String
 
-from superset import security_manager
+from superset import db, security_manager
 from superset.commands.dataset.exceptions import DatasetNotFoundError
 from superset.common.utils.time_range_utils import get_since_until_from_time_range
 from superset.constants import LRU_CACHE_MAX_SIZE, NO_TIME_RANGE
@@ -295,6 +295,11 @@ class ExtraCache:
                 self.cache_key_wrapper(json.dumps(user_roles))
             return user_roles
         except Exception:  # pylint: disable=broad-except
+            # `get_user_roles()` lazy-loads roles from db.session, so a caught
+            # DB error can leave it in "pending rollback" state. This runs
+            # during SQL templating, upstream of the engine build that would
+            # otherwise inherit the failed transaction.
+            db.session.rollback()  # pylint: disable=consider-using-transaction
             return None
 
     def current_user_rls_rules(self) -> list[str] | None:

@@ -37,7 +37,7 @@ from sqlalchemy.exc import DatabaseError as SqlalchemyDatabaseError
 from sqlalchemy.sql import quoted_name
 from sqlalchemy.sql.elements import ColumnElement
 
-from superset import is_feature_enabled, security_manager
+from superset import is_feature_enabled
 from superset.constants import TimeGrain
 from superset.databases.utils import make_url_safe
 from superset.db_engine_specs.base import (
@@ -353,10 +353,8 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
                         # leaving the default/service-account username paired
                         # with this user's OAuth token. Use it as given.
                         url = url.set(username=username)
-                    else:
-                        user = security_manager.find_user(username=username)
-                        if user and user.email:
-                            url = url.set(username=user.email)
+                    elif email := database.get_impersonation_email():
+                        url = url.set(username=email)
 
                 url = url.update_query_dict({"token": user_token})
 

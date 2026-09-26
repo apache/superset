@@ -3806,6 +3806,13 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                         for table in statement.tables
                     )
                 except Exception:  # pylint: disable=broad-except
+                    # This retry queries db.session again and rebuilds an
+                    # engine, so it can re-poison the session the outer handler
+                    # just rolled back. Roll back again: failing closed below
+                    # raises QueryObjectValidationError, which callers catch
+                    # and carry on from, and the continue-path keeps running
+                    # this query outright.
+                    db.session.rollback()  # pylint: disable=consider-using-transaction
                     rls_required = True
                 if rls_required:
                     raise QueryObjectValidationError(

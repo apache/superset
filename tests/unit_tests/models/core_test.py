@@ -848,6 +848,78 @@ def test_get_sqla_engine_user_impersonation_email(mocker: MockerFixture) -> None
     )
 
 
+@with_feature_flags(IMPERSONATE_WITH_EMAIL_PREFIX=True)
+def test_get_impersonation_username_uses_email_prefix(mocker: MockerFixture) -> None:
+    """
+    Test that the impersonated username is the local part of the user's email.
+
+    The login and the email prefix commonly differ, so the lookup result is
+    used rather than the login it was resolved from.
+    """
+    user = mocker.MagicMock()
+    user.email = "alice.doe@example.org"
+    mocker.patch(
+        "superset.models.core.find_user_for_impersonation",
+        return_value=user,
+    )
+    mocker.patch("superset.models.core.get_username", return_value="alice")
+
+    database = Database(
+        database_name="my_db",
+        sqlalchemy_uri="trino://",
+        impersonate_user=True,
+    )
+
+    assert database.get_impersonation_username() == "alice.doe"
+    assert database.get_impersonation_email() == "alice.doe@example.org"
+
+
+@with_feature_flags(IMPERSONATE_WITH_EMAIL_PREFIX=True)
+def test_get_impersonation_username_without_email(mocker: MockerFixture) -> None:
+    """
+    Test that a user with no email on record falls back to the login.
+
+    This matches how the connection would be made with the flag off, rather
+    than impersonating nobody.
+    """
+    user = mocker.MagicMock()
+    user.email = None
+    mocker.patch(
+        "superset.models.core.find_user_for_impersonation",
+        return_value=user,
+    )
+    mocker.patch("superset.models.core.get_username", return_value="alice")
+
+    database = Database(
+        database_name="my_db",
+        sqlalchemy_uri="trino://",
+        impersonate_user=True,
+    )
+
+    assert database.get_impersonation_username() == "alice"
+    assert database.get_impersonation_email() is None
+
+
+def test_get_impersonation_username_without_flag(mocker: MockerFixture) -> None:
+    """
+    Test that the login is used verbatim when the flag is off.
+
+    No lookup should happen at all: it would be a metadata-DB read on the query
+    path whose result is then discarded.
+    """
+    find_user = mocker.patch("superset.models.core.find_user_for_impersonation")
+    mocker.patch("superset.models.core.get_username", return_value="alice")
+
+    database = Database(
+        database_name="my_db",
+        sqlalchemy_uri="trino://",
+        impersonate_user=True,
+    )
+
+    assert database.get_impersonation_username() == "alice"
+    find_user.assert_not_called()
+
+
 def test_get_sqla_engine_registers_prequery_event_listener(
     app_context: None,
     mocker: MockerFixture,

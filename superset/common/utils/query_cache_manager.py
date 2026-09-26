@@ -24,6 +24,7 @@ from flask import current_app, g, has_request_context
 from flask_caching import Cache
 from pandas import DataFrame
 
+from superset import db
 from superset.common.db_query_status import QueryStatus
 from superset.constants import CacheRegion
 from superset.exceptions import CacheLoadError
@@ -161,6 +162,12 @@ class QueryCacheManager:
                     region=region,
                 )
         except Exception as ex:  # pylint: disable=broad-except
+            # `self.set` writes through the cache backend, which is a
+            # metadata-DB write under `SupersetMetastoreCache`. Roll back so a
+            # failed write doesn't poison the rest of this request — the caller
+            # carries on after this (e.g. event logging, or a second query
+            # object in the same `queries` loop).
+            db.session.rollback()  # pylint: disable=consider-using-transaction
             logger.exception(ex)
             if not self.error_message:
                 self.error_message = str(ex)
@@ -188,6 +195,13 @@ class QueryCacheManager:
             # A cache backend outage (e.g. Redis connection/timeout errors)
             # should not surface as an error to the caller: treat it the
             # same as a cache miss and fall through to querying live data.
+            #
+            # With `SupersetMetastoreCache` this read is a metadata-DB SELECT,
+            # so a caught DB error can leave db.session in "pending rollback"
+            # state. Falling through to querying live data is exactly the path
+            # that would then fail on an unrelated query, attributing the fault
+            # to whatever ran after rather than to this lookup.
+            db.session.rollback()  # pylint: disable=consider-using-transaction
             logger.warning("Error reading cache: %s", error_msg_from_exception(ex))
             cache_value = None
 
