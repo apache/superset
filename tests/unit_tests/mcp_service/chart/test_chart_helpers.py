@@ -20,6 +20,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from superset.mcp_service.chart.chart_helpers import (
+    _build_single_query_dict,
     _deck_gl_null_filters,
     _is_metric_ref,
     _resolve_deck_gl_metrics,
@@ -1325,3 +1326,84 @@ def test_shared_query_builder_keeps_mixed_timeseries_ordering_per_query(
         expected_secondary["orderby"] = secondary_orderby
     assert secondary == expected_secondary
     assert form_data["orderby"] == [["count", True]]
+
+
+def test_build_single_query_dict_x_axis_sort_with_metric_label() -> None:
+    metric = {
+        "label": "SUM(sales)",
+        "aggregate": "SUM",
+        "column": {"column_name": "sales"},
+    }
+    form_data = {
+        "x_axis_sort": "SUM(sales)",
+        "x_axis_sort_asc": False,
+    }
+    qd = _build_single_query_dict(form_data, ["category"], [metric])
+    assert qd["orderby"] == [(metric, False)]
+
+
+def test_build_single_query_dict_x_axis_sort_with_metric_column_name() -> None:
+    metric = {
+        "label": "SUM(sales)",
+        "aggregate": "SUM",
+        "column": {"column_name": "sales"},
+    }
+    form_data = {
+        "x_axis_sort": "sales",
+        "x_axis_sort_asc": True,
+    }
+    qd = _build_single_query_dict(form_data, ["category"], [metric])
+    assert qd["orderby"] == [(metric, True)]
+
+
+def test_build_single_query_dict_x_axis_sort_with_saved_metric() -> None:
+    form_data = {
+        "x_axis_sort": "revenue",
+        "x_axis_sort_asc": False,
+    }
+    qd = _build_single_query_dict(form_data, ["category"], ["revenue"])
+    assert qd["orderby"] == [("revenue", False)]
+
+
+def test_build_single_query_dict_x_axis_sort_with_dimension_column() -> None:
+    form_data = {
+        "x_axis_sort": "category",
+        "x_axis_sort_asc": True,
+    }
+    qd = _build_single_query_dict(form_data, ["category"], ["revenue"])
+    assert qd["orderby"] == [("category", True)]
+
+
+def test_build_single_query_dict_prefers_existing_orderby() -> None:
+    form_data = {
+        "orderby": [["count", True]],
+        "x_axis_sort": "sales",
+        "x_axis_sort_asc": False,
+    }
+    qd = _build_single_query_dict(form_data, ["category"], ["sales"])
+    assert qd["orderby"] == [["count", True]]
+
+
+def test_build_query_dicts_from_form_data_xy_bar_with_x_axis_sort() -> None:
+    metric = {
+        "label": "SUM(sales)",
+        "aggregate": "SUM",
+        "column": {"column_name": "sales"},
+    }
+    form_data = {
+        "viz_type": "echarts_timeseries_bar",
+        "x_axis": "category",
+        "metrics": [metric],
+        "x_axis_sort": "SUM(sales)",
+        "x_axis_sort_asc": False,
+    }
+    with patch(
+        "superset.mcp_service.chart.chart_helpers.resolve_datasource_engine",
+        return_value="base",
+    ):
+        queries = build_query_dicts_from_form_data(form_data, 1, "table")
+
+    assert len(queries) == 1
+    assert queries[0]["columns"] == ["category"]
+    assert queries[0]["metrics"] == [metric]
+    assert queries[0]["orderby"] == [(metric, False)]
