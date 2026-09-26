@@ -89,6 +89,10 @@ if TYPE_CHECKING:
 
 from superset.daos.base import ColumnOperator, ColumnOperatorEnum
 from superset.exceptions import SupersetSecurityException
+from superset.mcp_service.chart.schemas import (
+    resolve_chart_datasource_id,
+    resolve_chart_datasource_name,
+)
 from superset.mcp_service.common.cache_schemas import (
     CreatedByMeMixin,
     EditedByMeMixin,
@@ -416,7 +420,16 @@ class DashboardChartSummary(BaseModel):
     id: int | None = Field(None, description="Chart ID")
     slice_name: str | None = Field(None, description="Chart name")
     viz_type: str | None = Field(None, description="Visualization type")
-    datasource_name: str | None = Field(None, description="Datasource name")
+    datasource_id: int | None = Field(
+        None, description="ID of the dataset (or semantic view) the chart queries"
+    )
+    datasource_name: str | None = Field(
+        None,
+        description=(
+            "Current name of the dataset (or semantic view) the chart queries, "
+            "resolved from the live datasource"
+        ),
+    )
     url: str | None = Field(None, description="Chart explore page URL")
     description: str | None = Field(None, description="Chart description")
 
@@ -1795,7 +1808,10 @@ def serialize_chart_summary(
         id=chart_id,
         slice_name=getattr(chart, "slice_name", None),
         viz_type=getattr(chart, "viz_type", None),
-        datasource_name=getattr(chart, "datasource_name", None)
+        datasource_id=resolve_chart_datasource_id(chart)
+        if include_data_model_metadata
+        else None,
+        datasource_name=resolve_chart_datasource_name(chart)
         if include_data_model_metadata
         else None,
         url=chart_url,

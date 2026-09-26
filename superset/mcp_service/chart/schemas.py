@@ -92,6 +92,7 @@ class ChartLike(Protocol):
     id: int
     slice_name: str | None
     viz_type: str | None
+    datasource_id: int | None
     datasource_name: str | None
     datasource_type: str | None
     url: str | None
@@ -128,7 +129,16 @@ class ChartInfo(BaseModel):
             "fall back to viz_type when this field is null."
         ),
     )
-    datasource_name: str | None = Field(None, description="Datasource name")
+    datasource_id: int | None = Field(
+        None, description="ID of the dataset (or semantic view) the chart queries"
+    )
+    datasource_name: str | None = Field(
+        None,
+        description=(
+            "Current name of the dataset (or semantic view) the chart queries, "
+            "resolved from the live datasource"
+        ),
+    )
     datasource_type: str | None = Field(None, description="Datasource type")
     url: str | None = Field(None, description="Chart explore page URL")
     description: str | None = Field(None, description="Chart description")
@@ -549,6 +559,34 @@ CHART_FORM_DATA_EXCLUDED_FIELD_NAMES = frozenset(
 )
 
 
+def resolve_chart_datasource_id(chart: Any) -> int | None:
+    """Return the ID of the datasource a chart is joined to."""
+    datasource_id = getattr(chart, "datasource_id", None)
+    if isinstance(datasource_id, int) and not isinstance(datasource_id, bool):
+        return datasource_id
+    return None
+
+
+def resolve_chart_datasource_name(chart: Any) -> str | None:
+    """Return the chart's datasource name, read from the live datasource.
+
+    ``Slice.datasource_name`` is a stored, denormalized column that is not
+    refreshed when a dataset is renamed or a chart is re-pointed, so it can
+    name a table the chart no longer queries. ``Slice.datasource_name_text``
+    resolves the name through the type-guarded ``table`` / ``semantic_view``
+    relationships instead, and yields ``None`` when the datasource no longer
+    exists. Objects without that resolver (row tuples, lightweight stand-ins)
+    fall back to the stored value.
+    """
+    resolver = getattr(chart, "datasource_name_text", None)
+    if callable(resolver):
+        live_name = resolver()
+        if live_name is None or isinstance(live_name, str):
+            return live_name
+    stored_name = getattr(chart, "datasource_name", None)
+    return stored_name if isinstance(stored_name, str) else None
+
+
 def serialize_chart_object(chart: ChartLike | None) -> ChartInfo | None:
     if not chart:
         return None
@@ -595,7 +633,8 @@ def serialize_chart_object(chart: ChartLike | None) -> ChartInfo | None:
         slice_name=getattr(chart, "slice_name", None),
         viz_type=_viz_type,
         chart_type_display_name=_display_name,
-        datasource_name=getattr(chart, "datasource_name", None),
+        datasource_id=resolve_chart_datasource_id(chart),
+        datasource_name=resolve_chart_datasource_name(chart),
         datasource_type=getattr(chart, "datasource_type", None),
         url=chart_url,
         description=getattr(chart, "description", None),
