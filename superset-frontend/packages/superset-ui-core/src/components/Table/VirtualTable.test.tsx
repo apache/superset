@@ -17,8 +17,12 @@
  * under the License.
  */
 import { render, screen, waitFor } from '@superset-ui/core/spec';
+import * as resizeDetector from 'react-resize-detector';
 import type { ColumnsType } from 'antd/es/table';
 import { Table } from './index';
+import getScrollBarSize from './utils/getScrollBarSize';
+
+jest.mock('./utils/getScrollBarSize');
 
 // These tests exercise VirtualTable's react-window v2 `Grid` wiring
 // (`cellComponent`/`cellProps`/`gridRef`), which previously had no direct
@@ -119,4 +123,51 @@ test('cell render functions receive their row data via cellProps rather than a s
   await waitFor(() => {
     expect(screen.getByText('rendered:Number')).toBeInTheDocument();
   });
+});
+
+test('reserves space for the body Grid vertical scrollbar when sizing header columns', async () => {
+  const resizeSpy = jest.spyOn(resizeDetector, 'useResizeDetector');
+  let resized = false;
+  resizeSpy.mockImplementation(props => {
+    if (props?.onResize && !resized) {
+      resized = true;
+      props.onResize(400);
+    }
+    return { ref: { current: undefined } };
+  });
+  jest.mocked(getScrollBarSize).mockReturnValue(20);
+
+  const manyRows: BasicData[] = Array.from({ length: 50 }, (_, i) => ({
+    columnName: `Row ${i}`,
+    columnType: 'Numerical',
+  }));
+  const columnsNoWidth: ColumnsType<BasicData> = [
+    { title: 'Column Name', dataIndex: 'columnName', key: 'columnName' },
+    { title: 'Column Type', dataIndex: 'columnType', key: 'columnType' },
+  ];
+
+  const { container } = render(
+    <Table
+      columns={columnsNoWidth}
+      data={manyRows}
+      virtualize
+      height={100}
+      usePagination={false}
+    />,
+  );
+
+  await waitFor(() => {
+    expect(container.querySelectorAll('col').length).toBe(2);
+  });
+
+  // Enough rows at the default row height to overflow a 100px-tall Grid,
+  // so the 20px scrollbar reservation should come out of the 400px
+  // container width rather than being added on top of it.
+  const totalColWidth = Array.from(container.querySelectorAll('col')).reduce(
+    (sum, col) => sum + parseFloat(col.style.width || '0'),
+    0,
+  );
+  expect(totalColWidth).toBe(380);
+
+  resizeSpy.mockRestore();
 });
