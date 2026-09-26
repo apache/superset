@@ -486,6 +486,10 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
         return "DATEADD(MS, {col}, '1970-01-01')"
 
     @classmethod
+    def epoch_us_to_dttm(cls) -> str:
+        return "DATEADD(US, {col}, '1970-01-01')"
+
+    @classmethod
     def convert_dttm(
         cls, target_type: str, dttm: datetime, db_extra: Optional[dict[str, Any]] = None
     ) -> Optional[str]:

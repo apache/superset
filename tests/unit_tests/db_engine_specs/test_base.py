@@ -28,16 +28,24 @@ from urllib.parse import parse_qs, urlparse
 
 import pytest
 from pytest_mock import MockerFixture
-from sqlalchemy import Boolean, Column, Integer, types
+from sqlalchemy import Boolean, Column, column, Integer, types
 from sqlalchemy.dialects import sqlite
 from sqlalchemy.engine.url import make_url, URL
 from sqlalchemy.sql import sqltypes
 
+from superset.db_engine_specs.athena import AthenaEngineSpec
 from superset.db_engine_specs.base import (
     BaseEngineSpec,
     BasicParametersType,
     convert_inspector_columns,
 )
+from superset.db_engine_specs.bigquery import BigQueryEngineSpec
+from superset.db_engine_specs.couchbase import CouchbaseEngineSpec
+from superset.db_engine_specs.crate import CrateEngineSpec
+from superset.db_engine_specs.druid import DruidEngineSpec
+from superset.db_engine_specs.kusto import KustoKqlEngineSpec
+from superset.db_engine_specs.pinot import PinotEngineSpec
+from superset.db_engine_specs.snowflake import SnowflakeEngineSpec
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
     OAuth2Error,
@@ -1910,3 +1918,72 @@ def test_base_spec_extended_aggregation_func_defaults_to_unsupported(
 def test_base_spec_extended_aggregation_func_unknown_name_is_unsupported() -> None:
     """An aggregate name outside the known extended set is also just None."""
     assert BaseEngineSpec.get_extended_aggregation_func("NOT_A_REAL_AGGREGATE") is None
+
+
+class _EpochSpec(BaseEngineSpec):
+    """Minimal spec implementing only ``epoch_to_dttm``, like most engines."""
+
+    engine = "epoch"
+    engine_name = "epoch"
+    _time_grain_expressions = {
+        None: "{col}",
+        "P1D": "DATE_TRUNC('day', {col})",
+    }
+
+    @classmethod
+    def epoch_to_dttm(cls) -> str:
+        return "from_unixtime({col})"
+
+
+@pytest.mark.parametrize(
+    "pdf,time_grain,expected",
+    [
+        ("epoch_s", None, "from_unixtime(ts)"),
+        ("epoch_ms", None, "from_unixtime((ts/1000))"),
+        ("epoch_us", None, "from_unixtime(((ts/1000)/1000))"),
+        (
+            "epoch_us",
+            "P1D",
+            "DATE_TRUNC('day', from_unixtime(((ts/1000)/1000)))",
+        ),
+        (None, None, "ts"),
+    ],
+)
+def test_get_timestamp_expr_epoch_formats(
+    pdf: str | None, time_grain: str | None, expected: str
+) -> None:
+    """
+    Every ``epoch_*`` python_date_format routes the raw column through the
+    matching ``epoch*_to_dttm`` template before the time grain is applied; the
+    default ``epoch_us_to_dttm`` reuses the millisecond template.
+    """
+    expr = _EpochSpec.get_timestamp_expr(column("ts"), pdf, time_grain)
+    assert str(expr.compile(compile_kwargs={"literal_binds": True})) == expected
+
+
+@pytest.mark.parametrize(
+    "spec,expected",
+    [
+        # engines relying on the default: their millisecond template is reused
+        (AthenaEngineSpec, "from_unixtime((({col}/1000)/1000))"),
+        (CrateEngineSpec, "({col}/1000)"),
+        (DruidEngineSpec, "MILLIS_TO_TIMESTAMP(({col}/1000))"),
+        (CouchbaseEngineSpec, "MILLIS_TO_STR(({col}/1000))"),
+        # engines with a native microsecond conversion
+        (BigQueryEngineSpec, "TIMESTAMP_MICROS({col})"),
+        (SnowflakeEngineSpec, "DATEADD(US, {col}, '1970-01-01')"),
+        (KustoKqlEngineSpec, "unixtime_microseconds_todatetime({col})"),
+        (
+            PinotEngineSpec,
+            "DATETIMECONVERT({col}, '1:MICROSECONDS:EPOCH', "
+            "'1:MICROSECONDS:EPOCH', '1:MICROSECONDS')",
+        ),
+    ],
+)
+def test_epoch_us_to_dttm(spec: type[BaseEngineSpec], expected: str) -> None:
+    """
+    ``epoch_us_to_dttm`` yields valid SQL for engines that override
+    ``epoch_ms_to_dttm`` (via the default) and for engines with a native
+    microsecond function (via their own override).
+    """
+    assert spec.epoch_us_to_dttm() == expected

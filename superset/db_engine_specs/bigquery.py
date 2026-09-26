@@ -668,6 +668,10 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
         return "TIMESTAMP_MILLIS({col})"
 
     @classmethod
+    def epoch_us_to_dttm(cls) -> str:
+        return "TIMESTAMP_MICROS({col})"
+
+    @classmethod
     def df_to_sql(
         cls,
         database: Database,

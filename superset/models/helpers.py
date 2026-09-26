@@ -91,6 +91,7 @@ from superset.common.utils.time_range_utils import (
 from superset.constants import (
     CacheRegion,
     EMPTY_STRING,
+    EPOCH_FORMATS,
     NULL_STRING,
     SKIP_VISIBILITY_FILTER_CLASSES,
     TimeGrain,
@@ -353,9 +354,13 @@ def _retry_temporal_join_values_at_wider_resolution(
     datetime_format: str | None,
 ) -> pd.Series:
     """Retry valid values outside pandas' nanosecond datetime range."""
-    resolution = "ms" if datetime_format == "epoch_ms" else "s"
+    resolution = (
+        datetime_format.removeprefix("epoch_")
+        if datetime_format in EPOCH_FORMATS
+        else "s"
+    )
     try:
-        if datetime_format and datetime_format not in {"epoch_s", "epoch_ms"}:
+        if datetime_format and datetime_format not in EPOCH_FORMATS:
             parsed_values = [
                 datetime.strptime(str(value), datetime_format)
                 if pd.notna(value)
@@ -4199,7 +4204,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             )
 
         if tf:
-            if tf in {"epoch_ms", "epoch_s"}:
+            if tf in EPOCH_FORMATS:
                 # In general, Superset works with timezone-naive datetime objects
                 # internally. However, timestamp() applies local timezone to
                 # timezone-naive datetime objects. Therefore, we have to be explicit
@@ -4209,9 +4214,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     dttm_tz_aware = dttm_tz_aware.replace(tzinfo=timezone.utc)
 
                 seconds_since_epoch = int(dttm_tz_aware.timestamp())
-                if tf == "epoch_s":
-                    return str(seconds_since_epoch)
-                return str(seconds_since_epoch * 1000)
+                return str(seconds_since_epoch * EPOCH_FORMATS[tf])
             return f"'{dttm.strftime(tf)}'"
 
         return f"""'{dttm.strftime("%Y-%m-%d %H:%M:%S.%f")}'"""

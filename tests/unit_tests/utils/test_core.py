@@ -351,6 +351,27 @@ def test_normalize_dttm_col_epoch_milliseconds() -> None:
     assert df["epoch_ms_col"][2].strftime("%Y-%m-%d") == "2022-01-01"
 
 
+def test_normalize_dttm_col_epoch_microseconds() -> None:
+    """Test conversion of epoch microseconds."""
+    df = pd.DataFrame(
+        {
+            "epoch_us_col": [
+                1577836800000000,
+                1609459200000000,
+                1640995200000000,
+            ]  # 2020-01-01, 2021-01-01, 2022-01-01
+        }
+    )
+    dttm_cols = (DateColumn(col_label="epoch_us_col", timestamp_format="epoch_us"),)
+
+    normalize_dttm_col(df, dttm_cols)
+
+    assert is_datetime64_dtype(df["epoch_us_col"])
+    assert df["epoch_us_col"][0].strftime("%Y-%m-%d") == "2020-01-01"
+    assert df["epoch_us_col"][1].strftime("%Y-%m-%d") == "2021-01-01"
+    assert df["epoch_us_col"][2].strftime("%Y-%m-%d") == "2022-01-01"
+
+
 def test_normalize_dttm_col_formatted_date() -> None:
     """Test conversion of formatted date strings."""
     df = pd.DataFrame({"date_col": ["2020-01-01", "2021-01-01", "2022-01-01"]})

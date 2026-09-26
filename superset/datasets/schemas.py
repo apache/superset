@@ -31,6 +31,7 @@ from marshmallow import (
 from marshmallow.validate import Length, OneOf, Range
 
 from superset import security_manager
+from superset.constants import EPOCH_FORMATS
 from superset.exceptions import SupersetMarshmallowValidationError
 from superset.models.sql_types import parse_currency_string
 from superset.utils import json
@@ -68,7 +69,7 @@ openapi_spec_methods_override = {
 
 
 def validate_python_date_format(dt_format: str) -> bool:
-    if dt_format in ("epoch_s", "epoch_ms"):
+    if dt_format in EPOCH_FORMATS:
         return True
     try:
         dt_str = datetime.now().strftime(dt_format)
