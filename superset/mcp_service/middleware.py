@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 
+import asyncio
 import logging
 import re
 import secrets
@@ -906,7 +907,11 @@ class LoggingMiddleware(Middleware):
             # resolved user id.
             _mcp_user_id_var.set(None)
             duration_ms = int((time.time() - start_time) * 1000)
-            self._log_call_tool_result(
+            # The audit write needs a metadata connection. Tool workers can hold
+            # every pooled connection while they wait on this loop, so the loop
+            # must never wait for one itself.
+            await asyncio.to_thread(
+                self._log_call_tool_result,
                 context=context,
                 tool_name=tool_name,
                 mcp_tool=mcp_tool,
@@ -956,34 +961,58 @@ class LoggingMiddleware(Middleware):
                 user_id = resolved_user_id
             # See the matching reset in on_call_tool.
             _mcp_user_id_var.set(None)
-            try:
-                with _get_app_context_manager():
-                    event_logger.log(
-                        user_id=user_id,
-                        action="mcp_message",
-                        dashboard_id=dashboard_id,
-                        duration_ms=None,
-                        slice_id=slice_id,
-                        referrer=None,
-                        curated_payload={
-                            "tool": getattr(context.message, "name", None),
-                            "agent_id": agent_id,
-                            "params": _sanitize_params(params),
-                            "method": context.method,
-                            "dashboard_id": dashboard_id,
-                            "slice_id": slice_id,
-                            "dataset_id": dataset_id,
-                        },
-                    )
-            except Exception as log_error:  # noqa: BLE001
-                logger.warning("Failed to log mcp_message event: %s", log_error)
-            logger.info(
-                "MCP message: tool=%s, agent_id=%s, user_id=%s, method=%s",
-                getattr(context.message, "name", None),
-                agent_id,
-                user_id,
-                context.method,
+            # See the matching audit write in on_call_tool.
+            await asyncio.to_thread(
+                self._log_message,
+                context=context,
+                agent_id=agent_id,
+                user_id=user_id,
+                dashboard_id=dashboard_id,
+                slice_id=slice_id,
+                dataset_id=dataset_id,
+                params=params,
             )
+
+    @staticmethod
+    def _log_message(
+        *,
+        context: MiddlewareContext,
+        agent_id: str | None,
+        user_id: int | None,
+        dashboard_id: int | None,
+        slice_id: int | None,
+        dataset_id: int | None,
+        params: Any,
+    ) -> None:
+        """Record a non-tool message in the audit log."""
+        try:
+            with _get_app_context_manager():
+                event_logger.log(
+                    user_id=user_id,
+                    action="mcp_message",
+                    dashboard_id=dashboard_id,
+                    duration_ms=None,
+                    slice_id=slice_id,
+                    referrer=None,
+                    curated_payload={
+                        "tool": getattr(context.message, "name", None),
+                        "agent_id": agent_id,
+                        "params": _sanitize_params(params),
+                        "method": context.method,
+                        "dashboard_id": dashboard_id,
+                        "slice_id": slice_id,
+                        "dataset_id": dataset_id,
+                    },
+                )
+        except Exception as log_error:  # noqa: BLE001
+            logger.warning("Failed to log mcp_message event: %s", log_error)
+        logger.info(
+            "MCP message: tool=%s, agent_id=%s, user_id=%s, method=%s",
+            getattr(context.message, "name", None),
+            agent_id,
+            user_id,
+            context.method,
+        )
 
 
 class ToolResultCompatibilityMiddleware(Middleware):
@@ -1144,7 +1173,14 @@ class RBACToolVisibilityMiddleware(Middleware):
         call_next: CallNext[mt.ListToolsRequest, list[Tool]],
     ) -> list[Tool]:
         tools = await call_next(context)
+        # User and permission lookups need a metadata connection. Tool workers
+        # can hold every pooled connection while they wait on this loop, so the
+        # loop must never wait for one itself.
+        return await asyncio.to_thread(self._visible_tools, tools)
 
+    @staticmethod
+    def _visible_tools(tools: list[Tool]) -> list[Tool]:
+        """Return the tools the calling user may execute."""
         try:
             with _get_app_context_manager():
                 # Use get_user_from_request directly rather than

@@ -603,35 +603,49 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
                         sqlalchemy_uri=sqlalchemy_uri,
                         cacheable=not prequeries,
                     )
-                    if prequeries:
-                        # SQLAlchemy connect event: runs prequeries on every new
-                        # DBAPI connection (e.g. SET search_path for PostgreSQL).
-                        def run_prequeries(
-                            dbapi_connection: Any,
-                            connection_record: Any,  # pylint: disable=unused-argument
-                        ) -> None:
-                            cursor = dbapi_connection.cursor()
-                            try:
-                                for prequery in prequeries:
-                                    cursor.execute(prequery)
-                            finally:
-                                cursor.close()
+                    from superset.sql.execution.cancellation import cancellable_engine
 
-                        sqla.event.listen(engine, "connect", run_prequeries)
-                        try:
+                    with cancellable_engine(self, engine, catalog, schema):
+                        if prequeries:
+                            # SQLAlchemy connect event: runs prequeries on every new
+                            # DBAPI connection (e.g. SET search_path for PostgreSQL).
+                            def run_prequeries(
+                                dbapi_connection: Any,
+                                connection_record: Any,  # pylint: disable=unused-argument
+                            ) -> None:
+                                cursor = dbapi_connection.cursor()
+                                try:
+                                    from superset.sql.execution.cancellation import (
+                                        cancellable_cursor,
+                                        check_query_deadline,
+                                        query_executed,
+                                    )
+
+                                    with cancellable_cursor(
+                                        self, cursor, catalog, schema
+                                    ):
+                                        for prequery in prequeries:
+                                            check_query_deadline()
+                                            cursor.execute(prequery)
+                                            query_executed()
+                                finally:
+                                    cursor.close()
+
+                            sqla.event.listen(engine, "connect", run_prequeries)
+                            try:
+                                yield engine
+                            finally:
+                                sqla.event.remove(engine, "connect", run_prequeries)
+                                # The engine is private (cacheable=False above), so
+                                # nothing else can hold a reference: dispose it to
+                                # release its pool immediately. With the default
+                                # nullpool=True this is a no-op safety net; it
+                                # matters if a caller ever passes nullpool=False,
+                                # where each private engine would otherwise keep a
+                                # short-lived QueuePool alive until GC.
+                                engine.dispose()
+                        else:
                             yield engine
-                        finally:
-                            sqla.event.remove(engine, "connect", run_prequeries)
-                            # The engine is private (cacheable=False above), so
-                            # nothing else can hold a reference: dispose it to
-                            # release its pool immediately. With the default
-                            # nullpool=True this is a no-op safety net; it
-                            # matters if a caller ever passes nullpool=False,
-                            # where each private engine would otherwise keep a
-                            # short-lived QueuePool alive until GC.
-                            engine.dispose()
-                    else:
-                        yield engine
 
     def _get_sqla_engine(  # pylint: disable=too-many-locals  # noqa: C901
         self,
@@ -943,33 +957,43 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
 
             notify_cursor(cursor)
 
-            for i, statement in enumerate(script.statements):
-                # For a single statement, execute the original SQL as-is. Re-rendering
-                # via statement.format() would round-trip through sqlglot
-                rendered = sql if len(script.statements) == 1 else statement.format()
-                sql_ = self.mutate_sql_based_on_config(
-                    rendered,
-                    is_split=True,
-                )
-                _log_query(sql_)
+            from superset.sql.execution.cancellation import (
+                cancellable_cursor,
+                check_query_deadline,
+                query_executed,
+            )
 
-                with event_logger.log_context(
-                    action="execute_sql",
-                    database=self,
-                    object_ref=__name__,
-                ):
-                    self.db_engine_spec.execute(cursor, sql_, self)
+            with cancellable_cursor(self, cursor, catalog, schema):
+                for i, statement in enumerate(script.statements):
+                    check_query_deadline()
+                    # Execute a single statement as-is; statement.format()
+                    # would round-trip through sqlglot.
+                    rendered = (
+                        sql if len(script.statements) == 1 else statement.format()
+                    )
+                    sql_ = self.mutate_sql_based_on_config(
+                        rendered,
+                        is_split=True,
+                    )
+                    _log_query(sql_)
 
-                # Fetch results from last statement if requested
-                if fetch_last_result and i == len(script.statements) - 1:
-                    rows = self.db_engine_spec.fetch_data(cursor)
-                    # Some asynchronous DB-API drivers expose placeholder metadata
-                    # until fetching waits for the operation to finish.
-                    description = cursor.description
-                else:
-                    # Consume results without storing
-                    cursor.fetchall()
+                    with event_logger.log_context(
+                        action="execute_sql",
+                        database=self,
+                        object_ref=__name__,
+                    ):
+                        self.db_engine_spec.execute(cursor, sql_, self)
+                        query_executed()
 
+                    # Fetch results from last statement if requested
+                    if fetch_last_result and i == len(script.statements) - 1:
+                        rows = self.db_engine_spec.fetch_data(cursor)
+                        # Some asynchronous DB-API drivers expose placeholder metadata
+                        # until fetching waits for the operation to finish.
+                        description = cursor.description
+                    else:
+                        # Consume results without storing
+                        cursor.fetchall()
             return cursor, rows, description
 
     def execute_sql_statements(

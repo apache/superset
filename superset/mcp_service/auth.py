@@ -47,7 +47,16 @@ Configuration:
 import logging
 from contextlib import AbstractContextManager, contextmanager
 from contextvars import ContextVar
-from typing import Any, Callable, cast, Generator, TYPE_CHECKING, TypeAlias, TypeVar
+from typing import (
+    Any,
+    Callable,
+    cast,
+    Coroutine,
+    Generator,
+    TYPE_CHECKING,
+    TypeAlias,
+    TypeVar,
+)
 
 from flask import current_app, g, has_app_context, has_request_context
 from flask_appbuilder.security.sqla.models import User
@@ -1040,6 +1049,10 @@ def _setup_user_context() -> MCPUser | None:
     # cleared (already reset above) rather than raise.
     if (user_id := getattr(user, "id", None)) is not None:
         _mcp_user_id_var.set(user_id)
+    from superset.mcp_service.worker import _active_call
+
+    if call := _active_call.get():
+        call.user_id = _mcp_user_id_var.get()
     return user
 
 
@@ -1087,7 +1100,7 @@ def _remove_session_safe() -> None:
             exc,
         )
         try:
-            db.session.invalidate()
+            db.session().invalidate()
         except Exception as invalidate_exc:
             logger.debug(
                 "Could not invalidate session after connection error: %s",
@@ -1121,6 +1134,14 @@ def _get_app_context_manager() -> AbstractContextManager[None]:
     from both ``mcp_auth_hook`` (tool execution) and
     ``RBACToolVisibilityMiddleware`` (tools/list filtering).
     """
+    from contextlib import nullcontext
+
+    from superset.mcp_service.worker import _active_call
+
+    if _active_call.get() is not None:
+        # The worker owns a fresh context/session for its entire lifetime,
+        # including any nested tool calls and post-timeout cleanup.
+        return nullcontext()
     if has_request_context():
         return _request_tool_call_context()
     return _mcp_tool_call_context()
@@ -1156,7 +1177,10 @@ def _mcp_tool_call_context() -> Generator[None, None, None]:
             # Push a new context for the CURRENT app (not get_flask_app()
             # which may return a different instance in test environments).
             with current_app._get_current_object().app_context():
-                yield
+                try:
+                    yield
+                finally:
+                    _remove_session_safe()
         else:
             # Deferred: importing at module level would trigger create_app()
             # before Superset is fully initialised (e.g. during unit-test
@@ -1164,14 +1188,19 @@ def _mcp_tool_call_context() -> Generator[None, None, None]:
             from superset.mcp_service.flask_singleton import get_flask_app
 
             with get_flask_app().app_context():
-                yield
+                try:
+                    yield
+                finally:
+                    _remove_session_safe()
     finally:
         # Reset only after the app context popped, so teardown's
         # db.session.remove() still resolves to this call's session.
         _mcp_session_token.reset(token)
 
 
-def mcp_auth_hook(tool_func: F, *, tool_name: str | None = None) -> F:  # noqa: C901
+def mcp_auth_hook(  # noqa: C901
+    tool_func: F, *, tool_name: str | None = None
+) -> Callable[..., Coroutine[Any, Any, Any]]:
     """
     Authentication and authorization decorator for MCP tools.
 
@@ -1259,20 +1288,13 @@ def mcp_auth_hook(tool_func: F, *, tool_name: str | None = None) -> F:  # noqa: 
                     _cleanup_session_on_error()
                     raise
 
-        wrapper = async_wrapper
+        inner_wrapper = async_wrapper
 
     else:
 
         @functools.wraps(tool_func)
         def sync_wrapper(*args: Any, **kwargs: Any) -> Any:
             with _get_app_context_manager():
-                # Clear any stale thread-local SQLAlchemy session before user lookup.
-                # Thread pool workers reuse threads across requests; db.session is
-                # scoped by thread (not ContextVar), so a prior request's session may
-                # still be bound to a different tenant's DB engine. Removing it here
-                # ensures the next DB access creates a fresh session bound to the
-                # correct engine for the current request.
-                _remove_session_safe()
                 user = _setup_user_context()
 
                 # No Flask context - this is a FastMCP internal operation
@@ -1308,7 +1330,32 @@ def mcp_auth_hook(tool_func: F, *, tool_name: str | None = None) -> F:  # noqa: 
                     _cleanup_session_on_error()
                     raise
 
-        wrapper = sync_wrapper
+        inner_wrapper = sync_wrapper
+
+    async def invoke(*args: Any, **kwargs: Any) -> Any:
+        """Invoke either tool kind inside the worker-owned lifecycle."""
+        result = inner_wrapper(*args, **kwargs)
+        return await result if is_async else result
+
+    @functools.wraps(tool_func)
+    async def worker_wrapper(*args: Any, **kwargs: Any) -> Any:
+        from superset.mcp_service.worker import run_in_worker
+
+        bound = _tool_sig.bind_partial(*args, **kwargs)
+        request = bound.arguments.get("request")
+        seconds = getattr(request, "timeout", None)
+        if seconds is None:
+            if has_app_context():
+                seconds = current_app.config.get("SQLLAB_TIMEOUT", 30)
+            else:
+                from superset.mcp_service.flask_singleton import get_flask_app
+
+                seconds = get_flask_app().config.get("SQLLAB_TIMEOUT", 30)
+        # Bind ctx once on the transport loop, including positional callers.
+        bound.arguments.update(_inject_ctx(dict(bound.arguments)))
+        return await run_in_worker(invoke, (), dict(bound.arguments), seconds)
+
+    wrapper = worker_wrapper
 
     # Merge original function's __globals__ into wrapper's __globals__
     # This allows get_type_hints() to resolve type annotations from the
@@ -1361,4 +1408,4 @@ def mcp_auth_hook(tool_func: F, *, tool_name: str | None = None) -> F:  # noqa: 
     # registered tool went through mcp_auth_hook (see issue #39395).
     new_wrapper._mcp_auth_protected = True  # type: ignore[attr-defined]
 
-    return new_wrapper  # type: ignore[return-value]
+    return new_wrapper

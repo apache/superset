@@ -29,6 +29,7 @@ from pytest_mock import MockerFixture
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.orm.session import Session
+from sqlalchemy.pool import StaticPool
 
 from superset import security_manager
 from superset.app import SupersetApp
@@ -43,7 +44,11 @@ def get_session(mocker: MockerFixture) -> Callable[[], Session]:
     """
     Create an in-memory SQLite db.session.to test models.
     """
-    engine = create_engine("sqlite://")
+    # MCP unit tests hand this injected Session from setup to a tool worker
+    # sequentially. Concurrency/session ownership is tested with scoped sessions.
+    engine = create_engine(
+        "sqlite://", connect_args={"check_same_thread": False}, poolclass=StaticPool
+    )
 
     def get_session():
         Session_ = sessionmaker(bind=engine)  # pylint: disable=invalid-name  # noqa: N806
