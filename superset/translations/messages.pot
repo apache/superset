@@ -1478,6 +1478,9 @@ msgstr ""
 msgid "Affected Dashboards"
 msgstr ""
 
+msgid "Affected Datasets"
+msgstr ""
+
 msgid "Affected semantic views"
 msgstr ""
 
@@ -5180,6 +5183,11 @@ msgid "Delete group"
 msgstr ""
 
 msgid "Delete item"
+msgstr ""
+
+msgid ""
+"Delete or move active datasets. To remove archived datasets, open "
+"Recently archived and select Delete permanently."
 msgstr ""
 
 msgid "Delete permanently"
@@ -17823,6 +17831,12 @@ msgstr ""
 
 msgid "by using"
 msgstr ""
+
+#, python-format
+msgid "cannot be deleted because %s dataset is still attached to it."
+msgid_plural "cannot be deleted because %s datasets are still attached to it."
+msgstr[0] ""
+msgstr[1] ""
 
 msgid "cannot be empty"
 msgstr ""

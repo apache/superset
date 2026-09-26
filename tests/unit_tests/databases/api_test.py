@@ -2747,3 +2747,120 @@ def test_import_includes_configuration_method(
         f"'configuration_method' not found in database list response: {db_obj_api}"
     )
     assert db_obj_api["configuration_method"] == "dynamic_form"
+
+
+def test_related_objects_includes_datasets(
+    session: Session,
+    client: Any,
+    full_api_access: None,
+) -> None:
+    """The delete confirmation reads its dependents from this endpoint.
+
+    ``DeleteDatabaseCommand`` refuses to delete a database while any dataset
+    references it, so a response without a datasets block leaves the modal
+    reporting no dependents for a database that cannot be deleted.
+    """
+    from superset.connectors.sqla.models import SqlaTable
+    from superset.databases.api import DatabaseRestApi
+    from superset.models.core import Database
+
+    DatabaseRestApi.datamodel._session = session
+
+    SqlaTable.metadata.create_all(session.get_bind())  # pylint: disable=no-member
+
+    database = Database(database_name="related_db", sqlalchemy_uri="sqlite://")
+    db.session.add(database)
+    db.session.add(SqlaTable(table_name="qa_orders", database=database))
+    db.session.commit()
+
+    response = client.get(f"/api/v1/database/{database.id}/related_objects/")
+    assert response.status_code == 200
+
+    payload = response.json
+    assert payload["datasets"]["count"] == 1
+    assert payload["datasets"]["result"][0]["table_name"] == "qa_orders"
+
+
+def test_related_objects_datasets_filtered_by_access(
+    mocker: MockerFixture,
+    session: Session,
+    client: Any,
+    full_api_access: None,
+) -> None:
+    """Dataset names are access-filtered; the blocking count is not.
+
+    This route only requires ``can_read`` on Database, and ``DatabaseFilter``
+    admits a caller holding ``datasource_access`` on a single dataset in the
+    database. Returning every dataset name would let such a caller enumerate
+    datasets they hold no permission on. The count stays unfiltered because it
+    is what explains the delete being blocked, and a bare number discloses far
+    less than a name and schema.
+    """
+    from superset.connectors.sqla.models import SqlaTable
+    from superset.databases.api import DatabaseRestApi
+    from superset.extensions import security_manager
+    from superset.models.core import Database
+
+    DatabaseRestApi.datamodel._session = session
+
+    SqlaTable.metadata.create_all(session.get_bind())  # pylint: disable=no-member
+
+    database = Database(database_name="mixed_access_db", sqlalchemy_uri="sqlite://")
+    db.session.add(database)
+    db.session.add(SqlaTable(table_name="visible", database=database))
+    db.session.add(SqlaTable(table_name="secret", database=database))
+    db.session.commit()
+
+    mocker.patch.object(
+        security_manager,
+        "can_access_datasource",
+        side_effect=lambda datasource: datasource.table_name == "visible",
+    )
+
+    response = client.get(f"/api/v1/database/{database.id}/related_objects/")
+    assert response.status_code == 200
+
+    payload = response.json
+    # Both datasets block the delete, so both are counted...
+    assert payload["datasets"]["count"] == 2
+    # ...but only the accessible one is named.
+    assert [d["table_name"] for d in payload["datasets"]["result"]] == ["visible"]
+
+
+def test_related_objects_limits_dataset_details(
+    mocker: MockerFixture,
+    session: Session,
+    client: Any,
+    full_api_access: None,
+) -> None:
+    """The response returns only the dataset details the modal can display."""
+    from superset.connectors.sqla.models import SqlaTable
+    from superset.databases.api import DatabaseRestApi, MAX_RELATED_DATASETS
+    from superset.extensions import security_manager
+    from superset.models.core import Database
+
+    DatabaseRestApi.datamodel._session = session
+
+    SqlaTable.metadata.create_all(session.get_bind())  # pylint: disable=no-member
+
+    database = Database(database_name="large_related_db", sqlalchemy_uri="sqlite://")
+    db.session.add(database)
+    db.session.add_all(
+        SqlaTable(table_name=f"table_{index:02}", database=database)
+        for index in range(MAX_RELATED_DATASETS + 2)
+    )
+    db.session.commit()
+
+    can_access = mocker.patch.object(
+        security_manager,
+        "can_access_datasource",
+        return_value=True,
+    )
+
+    response = client.get(f"/api/v1/database/{database.id}/related_objects/")
+    assert response.status_code == 200
+
+    payload = response.json["datasets"]
+    assert payload["count"] == MAX_RELATED_DATASETS + 2
+    assert len(payload["result"]) == MAX_RELATED_DATASETS
+    assert can_access.call_count == MAX_RELATED_DATASETS

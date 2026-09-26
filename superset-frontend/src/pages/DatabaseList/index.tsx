@@ -101,10 +101,17 @@ interface DatabaseDeleteObject extends DatabaseObject {
   charts: any;
   dashboards: any;
   sqllab_tab_count: number;
+  datasets: {
+    count: number;
+    result: { id: number; table_name: string }[];
+  };
 }
 
 /** How many dependent semantic views the delete confirmation lists by name. */
 const MAX_DEPENDENT_VIEWS_LISTED = 10;
+
+/** How many dependent datasets the delete confirmation lists by name. */
+const MAX_DEPENDENT_DATASETS_LISTED = 10;
 
 type SemanticLayerDeletePreview =
   | { status: 'loading'; item: ConnectionItem }
@@ -187,6 +194,56 @@ function SemanticLayerCascadeWarning({
     </>
   );
 }
+/**
+ * Names the datasets blocking a connection delete.
+ *
+ * ``count`` is every dataset that blocks the delete; ``result`` is only the
+ * subset the caller may see, because the related_objects endpoint
+ * access-filters the names. The two therefore diverge, and the overflow footer
+ * counts from what is actually listed rather than assuming a full page.
+ */
+function DatabaseDatasetDependents({
+  datasets,
+}: {
+  datasets: DatabaseDeleteObject['datasets'];
+}) {
+  const listed = datasets.result.slice(0, MAX_DEPENDENT_DATASETS_LISTED);
+  if (listed.length === 0) {
+    // The count still explains the block in the message above; an empty list
+    // under a heading would only imply the dependents had vanished.
+    return null;
+  }
+  const unlistedCount = datasets.count - listed.length;
+
+  return (
+    <>
+      <h4>{t('Affected Datasets')}</h4>
+      <List
+        split={false}
+        size="small"
+        dataSource={listed}
+        renderItem={(result: { id: number; table_name: string }) => (
+          <List.Item key={result.id} compact>
+            <List.Item.Meta avatar={<span>•</span>} title={result.table_name} />
+          </List.Item>
+        )}
+        footer={
+          unlistedCount > 0 && (
+            <div>
+              {tn(
+                '... and %s other',
+                '... and %s others',
+                unlistedCount,
+                unlistedCount,
+              )}
+            </div>
+          )
+        }
+      />
+    </>
+  );
+}
+
 interface DatabaseListProps {
   addDangerToast: (msg: string) => void;
   addSuccessToast: (msg: string) => void;
@@ -393,6 +450,9 @@ function DatabaseList({
             charts: json.charts,
             dashboards: json.dashboards,
             sqllab_tab_count: json.sqllab_tab_states.count,
+            // Tolerate a backend that predates the datasets block rather than
+            // letting the confirmation crash on it.
+            datasets: json.datasets ?? { count: 0, result: [] },
           });
         })
         .catch(
@@ -1138,16 +1198,40 @@ function DatabaseList({
         <DeleteModal
           description={
             <>
-              <p>
-                {t('The %s', databaseLabelLower())}{' '}
-                <b>{databaseCurrentlyDeleting.database_name}</b>{' '}
-                {t(
-                  'is linked to %s charts that appear on %s dashboards and users have %s SQL Lab tabs using this database open. Are you sure you want to continue? Deleting the database will break those objects.',
-                  databaseCurrentlyDeleting.charts.count,
-                  databaseCurrentlyDeleting.dashboards.count,
-                  databaseCurrentlyDeleting.sqllab_tab_count,
-                )}
-              </p>
+              {/* Datasets block the delete outright (the backend refuses while
+                  any dataset still references the database), so the dataset
+                  case must not promise a destructive outcome that cannot
+                  happen -- it has to say the delete is blocked and name what
+                  is blocking it. */}
+              {databaseCurrentlyDeleting.datasets.count >= 1 ? (
+                <p>
+                  {t('The %s', databaseLabelLower())}{' '}
+                  <b>{databaseCurrentlyDeleting.database_name}</b>{' '}
+                  {tn(
+                    'cannot be deleted because %s dataset is still attached to it.',
+                    'cannot be deleted because %s datasets are still attached to it.',
+                    databaseCurrentlyDeleting.datasets.count,
+                    databaseCurrentlyDeleting.datasets.count,
+                  )}{' '}
+                  {t(
+                    'Delete or move active datasets. To remove archived datasets, open Recently archived and select Delete permanently.',
+                  )}
+                </p>
+              ) : (
+                <p>
+                  {t('The %s', databaseLabelLower())}{' '}
+                  <b>{databaseCurrentlyDeleting.database_name}</b>{' '}
+                  {t(
+                    'is linked to %s charts that appear on %s dashboards and users have %s SQL Lab tabs using this database open. Are you sure you want to continue? Deleting the database will break those objects.',
+                    databaseCurrentlyDeleting.charts.count,
+                    databaseCurrentlyDeleting.dashboards.count,
+                    databaseCurrentlyDeleting.sqllab_tab_count,
+                  )}
+                </p>
+              )}
+              <DatabaseDatasetDependents
+                datasets={databaseCurrentlyDeleting.datasets}
+              />
               {databaseCurrentlyDeleting.dashboards.count >= 1 && (
                 <>
                   <h4>{t('Affected Dashboards')}</h4>
@@ -1246,6 +1330,10 @@ function DatabaseList({
           }}
           onHide={() => setDatabaseCurrentlyDeleting(null)}
           open
+          disablePrimaryButton={databaseCurrentlyDeleting.datasets.count >= 1}
+          disableConfirmationInput={
+            databaseCurrentlyDeleting.datasets.count >= 1
+          }
           title={
             <ModalTitleWithIcon
               icon={<Icons.DeleteOutlined />}
