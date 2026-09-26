@@ -18,8 +18,10 @@
 import io
 from datetime import datetime
 
+import pandas as pd
 from openpyxl import Workbook, load_workbook
 
+from superset.utils.excel import df_to_excel
 from superset.utils.excel_display import (
     ExcelColumnDisplay,
     apply_column_display,
@@ -72,7 +74,23 @@ def test_styles_from_table_form_data_generated_config() -> None:
     assert styles["revenue"].number_format == '"$"#,##0.00'
     assert styles["revenue"].alignment == "right"
     assert styles["when"].number_format == "yyyy-mm-dd"
+    assert styles["when"].alignment == "center"
     assert "ignored" not in styles
+
+
+def test_styles_from_table_form_data_resolves_verbose_headers() -> None:
+    styles = styles_from_table_form_data(
+        ["Quantity", "Sales Person"],
+        {
+            "column_config": {
+                "qty": {"horizontalAlign": "center"},
+                "salesperson": {"horizontalAlign": "center"},
+            }
+        },
+        verbose_map={"qty": "Quantity", "salesperson": "Sales Person"},
+    )
+    assert styles["Quantity"].alignment == "center"
+    assert styles["Sales Person"].alignment == "center"
 
 
 def test_styles_from_pivot_form_data_matches_flattened_metric() -> None:
@@ -121,3 +139,20 @@ def test_apply_column_display_formats_datetimes() -> None:
     cell = load_workbook(io.BytesIO(styled)).active["A2"]
     assert cell.number_format == "yyyy-mm-dd hh:mm:ss"
     assert cell.value == datetime(2024, 1, 15, 8, 30)
+
+
+def test_apply_column_display_xlsxwriter_roundtrip_alignment() -> None:
+    frame = pd.DataFrame({"qty": [11, 21], "salesperson": ["Anna", "Ben"]})
+    raw = df_to_excel(frame, index=False)
+    styled = apply_column_display(
+        raw,
+        {
+            "qty": ExcelColumnDisplay(alignment="center"),
+            "salesperson": ExcelColumnDisplay(alignment="center"),
+        },
+        ordered_headers=["qty", "salesperson"],
+    )
+    sheet = load_workbook(io.BytesIO(styled)).active
+    assert sheet["A2"].alignment.horizontal == "center"
+    assert sheet["B2"].alignment.horizontal == "center"
+    assert sheet["A3"].alignment.horizontal == "center"

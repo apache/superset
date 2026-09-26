@@ -487,12 +487,21 @@ def polish_explore_xlsx(
     if not skip_display:
         headers = [str(column) for column in df.columns]
         if viz_type == "table":
-            styles = styles_from_table_form_data(headers, form_data)
+            styles = styles_from_table_form_data(headers, form_data, verbose_map)
+            workbook_bytes = apply_column_display(
+                workbook_bytes,
+                styles,
+                header_rows=header_rows,
+                ordered_headers=headers,
+                index_columns=(
+                    int(getattr(df.index, "nlevels", 1)) if include_index else 0
+                ),
+            )
         else:
             styles = styles_from_pivot_form_data(headers, form_data)
-        workbook_bytes = apply_column_display(
-            workbook_bytes, styles, header_rows=header_rows
-        )
+            workbook_bytes = apply_column_display(
+                workbook_bytes, styles, header_rows=header_rows
+            )
 
     rules = form_data.get("conditionalFormatting") or form_data.get(
         "conditional_formatting"

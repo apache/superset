@@ -26,6 +26,7 @@ from __future__ import annotations
 
 import io
 import re
+from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import date, datetime
 from typing import Any, Mapping
@@ -145,9 +146,43 @@ def _currency_excel_format(
     return f"{quoted}{number_body}"
 
 
+def _table_header_aliases(
+    column: str, verbose_map: Mapping[str, Any] | None
+) -> list[str]:
+    """Raw and verbose names so ``column_config`` keys match exported headers."""
+    aliases = [column]
+    if not verbose_map:
+        return aliases
+    verbose = verbose_map.get(column)
+    if verbose is not None and str(verbose) not in aliases:
+        aliases.append(str(verbose))
+    for raw, label in verbose_map.items():
+        if str(label) == column and str(raw) not in aliases:
+            aliases.append(str(raw))
+    return aliases
+
+
+def _header_for_column_config(
+    config_key: str,
+    header_set: set[str],
+    verbose_map: Mapping[str, Any] | None,
+) -> str | None:
+    for alias in _table_header_aliases(config_key, verbose_map):
+        if alias in header_set:
+            return alias
+    return None
+
+
+def _parse_horizontal_align(value: Any) -> str | None:
+    if isinstance(value, str) and value.lower() in ALLOWED_ALIGNMENTS:
+        return value.lower()
+    return None
+
+
 def styles_from_table_form_data(
     column_headers: list[Any],
     form_data: Mapping[str, Any],
+    verbose_map: Mapping[str, Any] | None = None,
 ) -> dict[str, ExcelColumnDisplay]:
     """Build header → display map from Table ``column_config``."""
     column_config = form_data.get("column_config") or {}
@@ -159,15 +194,10 @@ def styles_from_table_form_data(
     for name, config in column_config.items():
         if not isinstance(config, dict):
             continue
-        header = str(name)
-        if header not in header_set:
+        header = _header_for_column_config(str(name), header_set, verbose_map)
+        if header is None:
             continue
-        alignment = config.get("horizontalAlign")
-        alignment = (
-            alignment.lower()
-            if isinstance(alignment, str) and alignment.lower() in ALLOWED_ALIGNMENTS
-            else None
-        )
+        alignment = _parse_horizontal_align(config.get("horizontalAlign"))
         currency = config.get("currencyFormat")
         currency = currency if isinstance(currency, dict) else None
         number_format = d3_number_to_excel(
@@ -224,10 +254,30 @@ def refresh_sheet_bounds(sheet: Any) -> None:
     sheet._max_column = None  # noqa: SLF001
 
 
+def _stamp_column_style(
+    sheet: Any,
+    col_idx: int,
+    header_row: int,
+    style: ExcelColumnDisplay,
+) -> None:
+    alignment = Alignment(horizontal=style.alignment) if style.alignment else None
+    for row in range(header_row + 1, sheet.max_row + 1):
+        cell = sheet.cell(row=row, column=col_idx)
+        if style.number_format and (
+            cell.data_type in _NUMERIC_CELL_TYPES
+            or isinstance(cell.value, (int, float, datetime, date))
+        ):
+            cell.number_format = style.number_format
+        if alignment is not None:
+            cell.alignment = alignment
+
+
 def apply_column_display(
     workbook_bytes: bytes,
     styles_by_header: Mapping[str, ExcelColumnDisplay],
     header_rows: int = 1,
+    ordered_headers: Sequence[Any] | None = None,
+    index_columns: int = 0,
 ) -> bytes:
     """Stamp number formats and alignment onto data cells of the first sheet."""
     if not styles_by_header:
@@ -239,28 +289,26 @@ def apply_column_display(
     # header row is visible to openpyxl and data cells stay unstyled.
     refresh_sheet_bounds(sheet)
     header_row = max(header_rows, 1)
-    for col_idx in range(1, sheet.max_column + 1):
-        header_label = ""
-        for row in range(header_row, 0, -1):
-            value = sheet.cell(row=row, column=col_idx).value
-            if value not in (None, ""):
-                header_label = str(value)
-                break
-        style = styles_by_header.get(header_label)
-        if style is None:
-            continue
-        alignment = (
-            Alignment(horizontal=style.alignment) if style.alignment else None
-        )
-        for row in range(header_row + 1, sheet.max_row + 1):
-            cell = sheet.cell(row=row, column=col_idx)
-            if style.number_format and (
-                cell.data_type in _NUMERIC_CELL_TYPES
-                or isinstance(cell.value, (int, float, datetime, date))
-            ):
-                cell.number_format = style.number_format
-            if alignment is not None:
-                cell.alignment = alignment
+    if ordered_headers is not None:
+        for offset, header in enumerate(ordered_headers):
+            style = styles_by_header.get(str(header))
+            if style is None:
+                continue
+            _stamp_column_style(
+                sheet, index_columns + offset + 1, header_row, style
+            )
+    else:
+        for col_idx in range(1, sheet.max_column + 1):
+            header_label = ""
+            for row in range(header_row, 0, -1):
+                value = sheet.cell(row=row, column=col_idx).value
+                if value not in (None, ""):
+                    header_label = str(value)
+                    break
+            style = styles_by_header.get(header_label)
+            if style is None:
+                continue
+            _stamp_column_style(sheet, col_idx, header_row, style)
 
     output = io.BytesIO()
     workbook.save(output)

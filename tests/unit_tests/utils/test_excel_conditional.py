@@ -18,10 +18,15 @@
 import io
 from typing import Any
 
+import pandas as pd
 from openpyxl import load_workbook, Workbook
 from openpyxl.worksheet.worksheet import Worksheet
 
-from superset.utils.excel_conditional import apply_conditional_formatting
+from superset.utils.excel import df_to_excel
+from superset.utils.excel_conditional import (
+    apply_conditional_formatting,
+    polish_explore_xlsx,
+)
 
 
 def _cf_rules(sheet: Worksheet) -> list[tuple[str, Any]]:
@@ -151,3 +156,24 @@ def test_rule_matches_verbose_column_header() -> None:
     rules = _cf_rules(load_workbook(io.BytesIO(styled)).active)
     assert len(rules) == 1
     assert "A2" in rules[0][0]
+
+
+def test_polish_explore_xlsx_applies_center_align_via_verbose_map() -> None:
+    """Table column_config keys match verbose Excel headers and stamp alignment."""
+    frame = pd.DataFrame({"Quantity": [11, 21], "Sales Person": ["Anna", "Ben"]})
+    raw = df_to_excel(frame, index=False)
+    styled = polish_explore_xlsx(
+        raw,
+        frame,
+        {
+            "viz_type": "table",
+            "column_config": {
+                "qty": {"horizontalAlign": "center"},
+                "salesperson": {"horizontalAlign": "center"},
+            },
+        },
+        verbose_map={"qty": "Quantity", "salesperson": "Sales Person"},
+    )
+    sheet = load_workbook(io.BytesIO(styled)).active
+    assert sheet["A2"].alignment.horizontal == "center"
+    assert sheet["B2"].alignment.horizontal == "center"
