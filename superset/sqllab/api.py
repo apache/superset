@@ -70,6 +70,7 @@ from superset.sqllab.utils import bootstrap_sqllab_data
 from superset.sqllab.validators import CanAccessQueryValidatorImpl
 from superset.superset_typing import FlaskResponse
 from superset.utils import core as utils, json
+from superset.utils.download_reason import check_download_reason
 from superset.views.base import CsvResponse, generate_download_headers, json_success
 from superset.views.base_api import BaseSupersetApi, requires_json, statsd_metrics
 
@@ -310,6 +311,14 @@ class SqlLabRestApi(BaseSupersetApi):
               type: integer
             name: client_id
             description: The SQL query result identifier
+          - in: query
+            name: download_reason
+            description: >-
+              Why the data is being downloaded. Required when the
+              REQUIRE_DOWNLOAD_REASON feature flag is enabled; recorded in the
+              event log.
+            schema:
+              type: string
           responses:
             200:
               description: SQL query results
@@ -332,6 +341,7 @@ class SqlLabRestApi(BaseSupersetApi):
             "GRANULAR_EXPORT_CONTROLS"
         ) and not security_manager.can_access("can_export_data", "Superset"):
             return self.response_403()
+        check_download_reason()  # 400 via the SupersetErrorException handler
         result = SqlResultExportCommand(client_id=client_id).run()
 
         query, data, row_count = result["query"], result["data"], result["count"]
@@ -371,6 +381,15 @@ class SqlLabRestApi(BaseSupersetApi):
         ---
         post:
           summary: Export SQL query results to CSV with streaming
+          parameters:
+          - in: query
+            name: download_reason
+            description: >-
+              Why the data is being downloaded. Required when the
+              REQUIRE_DOWNLOAD_REASON feature flag is enabled; recorded in the
+              event log.
+            schema:
+              type: string
           requestBody:
             description: Export parameters
             required: true
@@ -410,6 +429,7 @@ class SqlLabRestApi(BaseSupersetApi):
             "GRANULAR_EXPORT_CONTROLS"
         ) and not security_manager.can_access("can_export_data", "Superset"):
             return self.response_403()
+        check_download_reason()  # 400 via the SupersetErrorException handler
         # Extract parameters from form data
         client_id = request.form.get("client_id")
         filename = request.form.get("filename")

@@ -2162,6 +2162,35 @@ def test_get_url_for_xlsx_report(mocker: MockerFixture) -> None:
     )
 
 
+@with_feature_flags(REQUIRE_DOWNLOAD_REASON=True)
+def test_get_url_for_xlsx_report_sends_download_reason(
+    mocker: MockerFixture,
+) -> None:
+    """With REQUIRE_DOWNLOAD_REASON on, scheduled exports carry a reason."""
+    report_schedule = create_report_schedule(mocker)
+    report_schedule.chart_id = 1
+    report_schedule.id = 7
+    report_schedule.force_screenshot = False
+    report_state = BaseReportState(
+        report_schedule, "January 1, 2021", "execution_id_example"
+    )
+    get_url_path = mocker.patch(
+        "superset.commands.report.execute.get_url_path",
+        return_value="/api/v1/chart/1/data/xlsx",
+    )
+
+    report_state._get_url(result_format=ChartDataResultFormat.XLSX)
+
+    get_url_path.assert_called_once_with(
+        "ChartDataRestApi.get_data",
+        pk=1,
+        format=ChartDataResultFormat.XLSX.value,
+        type=ChartDataResultType.POST_PROCESSED.value,
+        force="false",
+        download_reason="Scheduled report: Test Report (id=7)",
+    )
+
+
 def test_get_chart_data_rejects_non_table_format(mocker: MockerFixture) -> None:
     """Chart data retrieval should reject formats it cannot download."""
     report_state = BaseReportState(

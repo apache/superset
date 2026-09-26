@@ -35,6 +35,11 @@ import downloadAsPdf from 'src/utils/downloadAsPdf';
 import downloadAsImage from 'src/utils/downloadAsImage';
 import handleResourceExport from 'src/utils/export';
 import {
+  isDownloadReasonRequired,
+  requestDownloadReason,
+  withDownloadReason,
+} from 'src/utils/downloadReason';
+import {
   LOG_ACTIONS_DASHBOARD_DOWNLOAD_AS_PDF,
   LOG_ACTIONS_DASHBOARD_DOWNLOAD_AS_IMAGE,
 } from 'src/logger/LogUtils';
@@ -320,9 +325,20 @@ export const useDownloadMenuItems = (
   };
 
   const onExportXlsx = async (mode: 'data' | 'images') => {
+    let downloadReason = '';
+    if (isDownloadReasonRequired()) {
+      const reason = await requestDownloadReason();
+      if (reason === null) {
+        return; // the user cancelled the download reason dialog
+      }
+      downloadReason = reason;
+    }
     try {
       const { json } = await SupersetClient.post({
-        endpoint: `/api/v1/dashboard/${dashboardId}/export_xlsx/`,
+        endpoint: withDownloadReason(
+          `/api/v1/dashboard/${dashboardId}/export_xlsx/`,
+          downloadReason,
+        ),
         jsonPayload: { active_data_mask: buildActiveDataMask(), mode },
       });
       // Settled after unmount: the timer would be untracked, the toast stray.

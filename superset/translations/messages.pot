@@ -954,6 +954,9 @@ msgid ""
 "library for supported data types."
 msgstr ""
 
+msgid "A download reason is required"
+msgstr ""
+
 msgid ""
 "A full URL pointing to the location of the built plugin (could be hosted "
 "on a CDN for example)"
@@ -1015,6 +1018,9 @@ msgid ""
 msgstr ""
 
 msgid "A readable URL for your dashboard"
+msgstr ""
+
+msgid "A reason is required to download data."
 msgstr ""
 
 msgid "A reference to the [Time] configuration, taking granularity into account"
@@ -5640,6 +5646,9 @@ msgid "Download as Image"
 msgstr ""
 
 msgid "Download is on the way"
+msgstr ""
+
+msgid "Download reason"
 msgstr ""
 
 msgid "Download to CSV"
@@ -17085,6 +17094,9 @@ msgid "Which relatives to highlight on hover"
 msgstr ""
 
 msgid "Whisker/outlier options"
+msgstr ""
+
+msgid "Why are you downloading this data?"
 msgstr ""
 
 msgid "Why do I need to create a database?"

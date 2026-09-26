@@ -35,6 +35,12 @@ import { safeStringify } from 'src/utils/safeStringify';
 import { optionLabel } from 'src/utils/common';
 import { ensureAppRoot } from 'src/utils/navigationUtils';
 import { downloadBlob, getFilenameFromResponse } from 'src/utils/export';
+import {
+  DOWNLOAD_REASON_FORMATS,
+  isDownloadReasonRequired,
+  requestDownloadReason,
+  withDownloadReason,
+} from 'src/utils/downloadReason';
 import { URL_PARAMS } from 'src/constants';
 import {
   DISABLE_INPUT_OPERATORS,
@@ -346,7 +352,20 @@ export const exportChart = async ({
   ownState = {},
   onStartStreamingExport = null,
 }: ExportChartParams): Promise<void> => {
-  const url = '/api/v1/chart/data';
+  // Only tabular downloads (csv/xlsx) are gated server-side; never prompt
+  // for JSON exports.
+  let downloadReason = '';
+  if (
+    isDownloadReasonRequired() &&
+    DOWNLOAD_REASON_FORMATS.includes(resultFormat)
+  ) {
+    const reason = await requestDownloadReason();
+    if (reason === null) {
+      return; // the user cancelled the download reason dialog
+    }
+    downloadReason = reason;
+  }
+  const url = withDownloadReason('/api/v1/chart/data', downloadReason);
   const payload = await buildV1ChartDataPayload({
     formData,
     force,

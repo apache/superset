@@ -25,6 +25,7 @@ from pytest_mock import MockerFixture
 
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetSecurityException
+from tests.unit_tests.conftest import with_feature_flags
 
 
 def _disposition_filename(form_filename: str | None) -> str:
@@ -108,3 +109,71 @@ def test_format_sql_checks_access_before_rendering(
     assert response.status_code == 403
     raise_for_access.assert_called_once()
     get_template_processor.assert_not_called()
+
+
+REASON_REQUIRED = "A reason is required to download data."
+
+
+def _export_result() -> dict[str, Any]:
+    query = MagicMock()
+    query.name = "my query"
+    return {"query": query, "data": "a,b\n1,2\n", "count": 1}
+
+
+@with_feature_flags(REQUIRE_DOWNLOAD_REASON=True)
+def test_export_csv_requires_download_reason(
+    mocker: MockerFixture,
+    client: Any,
+    full_api_access: None,
+) -> None:
+    """With the flag on the GET export is refused (400) until a reason is sent."""
+    command_cls = mocker.patch("superset.sqllab.api.SqlResultExportCommand")
+    command_cls.return_value.run.return_value = _export_result()
+
+    response = client.get("/api/v1/sqllab/export/abc/")
+    assert response.status_code == 400
+    assert response.json["errors"][0]["message"] == REASON_REQUIRED
+    command_cls.assert_not_called()
+
+    response = client.get("/api/v1/sqllab/export/abc/?download_reason=WP-1")
+    assert response.status_code == 200
+    command_cls.assert_called_once_with(client_id="abc")
+
+
+@with_feature_flags(REQUIRE_DOWNLOAD_REASON=False)
+def test_export_csv_without_reason_when_flag_off(
+    mocker: MockerFixture,
+    client: Any,
+    full_api_access: None,
+) -> None:
+    command_cls = mocker.patch("superset.sqllab.api.SqlResultExportCommand")
+    command_cls.return_value.run.return_value = _export_result()
+
+    response = client.get("/api/v1/sqllab/export/abc/")
+    assert response.status_code == 200
+    command_cls.assert_called_once_with(client_id="abc")
+
+
+@with_feature_flags(REQUIRE_DOWNLOAD_REASON=True)
+def test_export_streaming_requires_download_reason(
+    mocker: MockerFixture,
+    client: Any,
+    full_api_access: None,
+) -> None:
+    """The POST streaming export accepts the reason as a form field."""
+    command_cls = mocker.patch("superset.sqllab.api.StreamingSqlResultExportCommand")
+    command_cls.return_value.run.return_value = lambda: iter([b"a,b\n"])
+
+    response = client.post(
+        "/api/v1/sqllab/export_streaming/", data={"client_id": "abc"}
+    )
+    assert response.status_code == 400
+    assert response.json["errors"][0]["message"] == REASON_REQUIRED
+    command_cls.assert_not_called()
+
+    response = client.post(
+        "/api/v1/sqllab/export_streaming/",
+        data={"client_id": "abc", "download_reason": "WP-1"},
+    )
+    assert response.status_code == 200
+    command_cls.assert_called_once()

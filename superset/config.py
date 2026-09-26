@@ -744,6 +744,14 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # doesn't work with all nested types.
     # @lifecycle: development
     "PRESTO_EXPAND_DATA": False,
+    # Ask users for a reason before downloading data: chart CSV/XLSX exports
+    # (Explore, dashboards, drill-by), SQL Lab CSV exports and the dashboard-wide
+    # Excel export. Those endpoints reject requests without a ``download_reason``;
+    # the event logger records it in ``logs.json`` (Security → Action Log).
+    # Client-side exports of already-loaded data (Explore "current view") ask
+    # for the reason too and record it through the frontend event log.
+    # @lifecycle: development
+    "REQUIRE_DOWNLOAD_REASON": False,
     # Enable Table V2 time comparison feature
     # @lifecycle: development
     "TABLE_V2_TIME_COMPARISON_ENABLED": False,

@@ -54,6 +54,10 @@ import copyTextToClipboard from 'src/utils/copy';
 import { useHeaderReportMenuItems } from 'src/features/reports/ReportModal/HeaderReportDropdown';
 import { MenuItemTooltip } from 'src/components/Chart/DisabledMenuItemTooltip';
 import { logEvent } from 'src/logger/actions';
+import {
+  isDownloadReasonRequired,
+  requestDownloadReason,
+} from 'src/utils/downloadReason';
 import { openVersionHistoryPanel } from 'src/features/versionHistory/reducer';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import { canOverwriteSlice } from 'src/explore/exploreUtils/canOverwriteSlice';
@@ -660,6 +664,16 @@ export const useExploreAdditionalActionsMenu = (
     }
   };
 
+  /**
+   * Reason for client-side exports: '' when the flag is off, undefined when
+   * the user cancels (the caller aborts), otherwise the reason to log.
+   */
+  const requestClientDownloadReason = async (): Promise<string | undefined> => {
+    if (!isDownloadReasonRequired()) return '';
+    const reason = await requestDownloadReason();
+    return reason === null ? undefined : reason;
+  };
+
   const menu = useMemo(() => {
     const menuItems = [];
 
@@ -877,11 +891,16 @@ export const useExploreAdditionalActionsMenu = (
         onClick: async () => {
           // Use 'results' to export the *current view* (as opposed to 'full').
           // Pass ownState so client/UI state (e.g., filters) can be respected when supported.
+          let downloadReason: string | undefined;
           if (
             !latestQueryFormData?.server_pagination &&
             ownState?.clientView &&
             ownState.clientView.columns?.length
           ) {
+            // Client-side export never reaches the backend, so collect the
+            // reason here and record it through the frontend event log.
+            downloadReason = await requestClientDownloadReason();
+            if (downloadReason === undefined) return;
             const { rows = [], columns = [] } = ownState.clientView;
             downloadClientCSV(
               rows,
@@ -905,6 +924,7 @@ export const useExploreAdditionalActionsMenu = (
             logEvent(LOG_ACTIONS_CHART_DOWNLOAD_AS_CSV, {
               chartId: slice?.slice_id,
               chartName: slice?.slice_name,
+              ...(downloadReason && { download_reason: downloadReason }),
             }),
           );
         },
@@ -977,12 +997,16 @@ export const useExploreAdditionalActionsMenu = (
         icon: <Icons.FileOutlined />,
         disabled: !canDownloadCSV,
         onClick: async () => {
+          let downloadReason: string | undefined;
           if (
             !latestQueryFormData?.server_pagination &&
             ownState?.clientView &&
             ownState.clientView.columns?.length
           ) {
-            // Client-side filtered view → XLSX
+            // Client-side filtered view → XLSX. It never reaches the backend,
+            // so collect the reason here and record it via the frontend event log.
+            downloadReason = await requestClientDownloadReason();
+            if (downloadReason === undefined) return;
             const { rows = [], columns = [] } = ownState.clientView;
             await downloadClientXLSX(
               rows,
@@ -998,6 +1022,7 @@ export const useExploreAdditionalActionsMenu = (
             logEvent(LOG_ACTIONS_CHART_DOWNLOAD_AS_XLS, {
               chartId: slice?.slice_id,
               chartName: slice?.slice_name,
+              ...(downloadReason && { download_reason: downloadReason }),
             }),
           );
         },
