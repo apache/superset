@@ -330,21 +330,24 @@ class TestShowHttpException:
             if record.name == "superset.views.error_handling"
         ]
 
+    @pytest.mark.parametrize("path", ["/no-matching-route", "/missing%0D%0Aforged"])
     def test_routing_404_logs_no_warning_and_no_traceback(
-        self, caplog: pytest.LogCaptureFixture
+        self, path: str, caplog: pytest.LogCaptureFixture
     ) -> None:
+        """Routing 404 logs one DEBUG line without a traceback."""
         client = self._build_app_with_handlers(NotFound()).test_client()
 
         with caplog.at_level(logging.DEBUG, logger="superset.views.error_handling"):
-            response = client.get("/no-matching-route")
+            response = client.get(path)
 
         assert response.status_code == 404
         records = self._handler_records(caplog)
         assert len(records) == 1
         assert records[0].levelno == logging.DEBUG
         assert records[0].exc_info is None
-        assert "/no-matching-route" in records[0].getMessage()
+        assert repr(response.request.path) in records[0].getMessage()
         assert "\n" not in records[0].getMessage()
+        assert "\r" not in records[0].getMessage()
 
     def test_view_404_logs_one_debug_line_with_path_and_no_traceback(
         self, caplog: pytest.LogCaptureFixture
@@ -369,10 +372,14 @@ class TestShowHttpException:
         assert "/view-not-found" in records[0].getMessage()
         assert "\n" not in records[0].getMessage()
 
-    @pytest.mark.parametrize("error", [BadRequest(), Unauthorized(), Forbidden()])
+    @pytest.mark.parametrize(
+        "error",
+        [BadRequest(), Unauthorized(), Forbidden(), BadRequest("invalid\r\nforged")],
+    )
     def test_other_4xx_log_a_warning_without_traceback(
         self, error: HTTPException, caplog: pytest.LogCaptureFixture
     ) -> None:
+        """Other client errors log one escaped WARNING line without a traceback."""
         client = self._build_app_with_handlers(error).test_client()
 
         with caplog.at_level(logging.DEBUG, logger="superset.views.error_handling"):
@@ -383,7 +390,9 @@ class TestShowHttpException:
         assert len(records) == 1
         assert records[0].levelno == logging.WARNING
         assert records[0].exc_info is None
-        assert str(error.code) in records[0].getMessage()
+        assert repr(str(error)) in records[0].getMessage()
+        assert "\n" not in records[0].getMessage()
+        assert "\r" not in records[0].getMessage()
 
     @pytest.mark.parametrize(
         "error", [BadGateway(), ServiceUnavailable(), GatewayTimeout()]
@@ -391,6 +400,7 @@ class TestShowHttpException:
     def test_5xx_still_logs_a_warning_with_traceback(
         self, error: HTTPException, caplog: pytest.LogCaptureFixture
     ) -> None:
+        """Server HTTP errors retain WARNING logging with a traceback."""
         client = self._build_app_with_handlers(error).test_client()
 
         with caplog.at_level(logging.WARNING, logger="superset.views.error_handling"):
@@ -406,6 +416,7 @@ class TestShowHttpException:
     def test_internal_server_error_still_logs_with_traceback(
         self, caplog: pytest.LogCaptureFixture
     ) -> None:
+        """The dedicated 500 handler retains traceback logging."""
         # InternalServerError is routed to the 500 handler, which must keep
         # logging the traceback.
         client = self._build_app_with_handlers(InternalServerError()).test_client()
@@ -420,6 +431,7 @@ class TestShowHttpException:
         )
 
     def test_404_html_request_still_serves_the_branded_page(self) -> None:
+        """HTML requests for missing routes receive the branded 404 page."""
         client = self._build_app_with_handlers(NotFound()).test_client()
 
         with patch(
@@ -436,6 +448,7 @@ class TestShowHttpException:
     def test_404_html_request_falls_back_to_json_when_page_is_missing(
         self,
     ) -> None:
+        """Missing branded pages fall back to a JSON 404 response."""
         client = self._build_app_with_handlers(NotFound()).test_client()
 
         with patch(
@@ -460,6 +473,7 @@ class TestShowHttpException:
     def test_json_response_body_is_unchanged(
         self, error: HTTPException, path: str
     ) -> None:
+        """HTTP errors preserve their JSON response body and status."""
         client = self._build_app_with_handlers(error).test_client()
 
         with patch(

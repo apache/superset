@@ -252,9 +252,9 @@ def set_app_error_handlers(app: Flask) -> None:  # noqa: C901
         if status == 404:
             # Unmatched URLs are a client condition, and scanner traffic makes
             # them frequent; a traceback here only adds noise.
-            logger.debug("HTTPException: 404 %s", request.path)
+            logger.debug("HTTPException: 404 %r", request.path)
         elif status < 500:
-            logger.warning("HTTPException: %s", ex)
+            logger.warning("HTTPException: %r", str(ex))
         else:
             logger.warning("HTTPException", exc_info=True)
 
