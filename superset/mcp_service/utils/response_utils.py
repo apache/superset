@@ -64,6 +64,8 @@ if TYPE_CHECKING:
 
 import humanize
 
+from superset.mcp_service.utils.serialization import is_missing_value
+
 
 def humanize_timestamp(dt: datetime | None) -> str | None:
     """Convert a datetime to a humanized string like '2 hours ago'."""
@@ -192,7 +194,9 @@ def format_data_columns(
     columns_meta: list[DataColumn] = []
     for col_name in raw_columns:
         sample_values = [
-            row.get(col_name) for row in data[:3] if row.get(col_name) is not None
+            row.get(col_name)
+            for row in data[:3]
+            if not is_missing_value(row.get(col_name))
         ]
         data_type: str = "string"
         if sample_values:
@@ -207,7 +211,7 @@ def format_data_columns(
         unique_vals: set[str] = set()
         for row in stats_rows:
             val = row.get(col_name)
-            if val is None:
+            if is_missing_value(val):
                 null_count += 1
             else:
                 unique_vals.add(str(val))

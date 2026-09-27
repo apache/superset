@@ -175,6 +175,13 @@ Alerts & Reports:
 - list_reports: List alerts and reports with filtering and search (1-based pagination)
 - get_report_info: Get detailed alert/report schedule info by ID
 
+Dataset discovery and attribution:
+- Search covers dataset table names, descriptions, schemas and SQL; returned matches are candidates, not ranked recommendations. Look datasets up by UUID with a uuid filter, not with search.
+- Compare candidate descriptions and metrics. If the choice is ambiguous, show the candidate dataset IDs/names and clarify before querying.
+- Cite the dataset_id/dataset_name or source identity returned by query_dataset/get_table in answers.
+- No matches does not mean the data does not exist. State the search/scope limitation.
+- If a dataset or operation is outside the configured MCP dataset scope, refuse plainly. Never silently substitute an allowed-but-different dataset.
+
 Dataset Management:
 - list_datasets: List datasets with advanced filters (1-based pagination)
 - get_dataset_info: Get detailed dataset information by ID (includes columns/metrics)
@@ -191,7 +198,7 @@ Semantic Layer:
 
 Chart Management:
 - list_charts: List charts with advanced filters (1-based pagination; deleted_state='only'/'include' surfaces trashed charts the caller may restore)
-- get_chart_info: Get detailed chart information by ID
+- get_chart_info: Get detailed chart information by ID, or the chart state behind an Explore permalink (permalink_key)
 - get_chart_preview: Get a visual preview of a chart as formatted content or URL
 - get_chart_data: Get underlying chart data in text-friendly format
 - get_chart_sql: Get the rendered SQL query for a chart (without executing it)
@@ -421,6 +428,9 @@ Chart Types You Can CREATE with generate_chart/generate_explore_link:
 - chart_type="gantt": Gantt task intervals over time
   (temporal start_time + end_time and category required; optional series,
    tooltip columns/metrics, ordering, time range, and subcategories)
+- chart_type="bubble_v2": Bubble scatter plotting three metrics at once
+  (entity dimension + x, y and size metrics required; optional series
+   dimension colors the bubbles by group)
 
 Time grain for temporal x-axis (time_grain parameter):
 - PT1H (hourly), P1D (daily), P1W (weekly), P1M (monthly), P1Y (yearly)
@@ -430,8 +440,9 @@ Each chart returned by list_charts / get_chart_info includes a
 chart_type_display_name field with a human-readable name when available.
 This field is populated for chart types known to the MCP registry
 (xy, pie, table, pivot_table, big_number, mixed_timeseries, handlebars,
-histogram, box_plot, waterfall, gantt, and interactive_pivot). Availability gates
-creation and schema discovery, not display names for existing charts.
+histogram, box_plot, waterfall, gantt, bubble_v2, and interactive_pivot).
+Availability gates creation and schema discovery, not display names for
+existing charts.
 For all other viz_types (Funnel, Gauge, Heatmap, etc.) it will be null —
 use the raw viz_type field instead when referring to those chart types.
 

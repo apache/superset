@@ -156,15 +156,22 @@ def _extract_sort_col_info(sort_entry: Any) -> tuple[str | None, bool]:
     return None, False
 
 
+def _add_column_ref_names(ref: ColumnRef | None, names: set[str]) -> None:
+    """Add lowercase name, label, and sql_expression of a column ref to names."""
+    if not ref:
+        return
+    if ref.name:
+        names.add(ref.name.lower())
+    if ref.label:
+        names.add(ref.label.lower())
+    if ref.sql_expression:
+        names.add(ref.sql_expression.lower())
+
+
 def _collect_y_metric_names(y_cols: list[ColumnRef] | None) -> set[str]:
     names: set[str] = set()
     for y_col in y_cols or []:
-        if y_col.name:
-            names.add(y_col.name.lower())
-        if y_col.label:
-            names.add(y_col.label.lower())
-        if y_col.sql_expression:
-            names.add(y_col.sql_expression.lower())
+        _add_column_ref_names(y_col, names)
         if y_col.aggregate and y_col.name:
             names.add(f"{y_col.aggregate}({y_col.name})".lower())
         metric_obj = create_metric_object(y_col)
@@ -181,20 +188,9 @@ def _collect_y_metric_names(y_cols: list[ColumnRef] | None) -> set[str]:
 def _get_covered_xy_names(config: XYChartConfig) -> set[str]:
     """Collect lowercase names and labels already covered in x, y, and group_by."""
     covered = _collect_y_metric_names(config.y)
-    if config.x:
-        if config.x.name:
-            covered.add(config.x.name.lower())
-        if config.x.label:
-            covered.add(config.x.label.lower())
-        if config.x.sql_expression:
-            covered.add(config.x.sql_expression.lower())
+    _add_column_ref_names(config.x, covered)
     for gb in config.group_by or []:
-        if gb.name:
-            covered.add(gb.name.lower())
-        if gb.label:
-            covered.add(gb.label.lower())
-        if gb.sql_expression:
-            covered.add(gb.sql_expression.lower())
+        _add_column_ref_names(gb, covered)
     return covered
 
 
@@ -275,7 +271,7 @@ class XYChartPlugin(BaseChartPlugin):
         return map_xy_config(config, dataset_id=dataset_id)
 
     def normalize_column_refs(self, config: Any, dataset_context: Any) -> Any:
-        config_dict = config.model_dump()
+        config_dict = config.model_dump(exclude_unset=True)
         get_canonical = DatasetValidator.get_canonical_column_name
         get_canonical_metric = DatasetValidator.get_canonical_metric_name
 

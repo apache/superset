@@ -172,9 +172,9 @@ def test_xy_chart_sort_by_independent_column_validation() -> None:
     assert invalid_error.error_type == "column_not_found"
 
 
-def test_xy_chart_sort_by_saved_metric_not_in_y_validates_successfully() -> None:
-    """Ensure marked saved_metric not in y validates against dataset metrics."""
-    context: DatasetContext = DatasetContext(
+def _make_sales_dataset_context() -> DatasetContext:
+    """Create a standard sales dataset context for testing."""
+    return DatasetContext(
         id=1,
         table_name="sales_data",
         schema=None,
@@ -185,6 +185,11 @@ def test_xy_chart_sort_by_saved_metric_not_in_y_validates_successfully() -> None
         ],
         available_metrics=[{"name": "TotalRevenue", "expression": "SUM(rev)"}],
     )
+
+
+def test_xy_chart_sort_by_saved_metric_not_in_y_validates_successfully() -> None:
+    """Ensure marked saved_metric not in y validates against dataset metrics."""
+    context: DatasetContext = _make_sales_dataset_context()
     config: XYChartConfig = XYChartConfig(
         chart_type="xy",
         x=ColumnRef(name="category"),
@@ -200,17 +205,7 @@ def test_xy_chart_sort_by_saved_metric_not_in_y_validates_successfully() -> None
 
 def test_xy_chart_sort_by_saved_metric_unmarked_fails_validation() -> None:
     """Ensure unmarked saved metric in sort_by produces saved_metric_not_marked."""
-    context: DatasetContext = DatasetContext(
-        id=1,
-        table_name="sales_data",
-        schema=None,
-        database_name="database",
-        available_columns=[
-            {"name": "category", "type": "VARCHAR"},
-            {"name": "sales", "type": "BIGINT"},
-        ],
-        available_metrics=[{"name": "TotalRevenue", "expression": "SUM(rev)"}],
-    )
+    context: DatasetContext = _make_sales_dataset_context()
     config: XYChartConfig = XYChartConfig(
         chart_type="xy",
         x=ColumnRef(name="category"),
@@ -227,17 +222,7 @@ def test_xy_chart_sort_by_saved_metric_unmarked_fails_validation() -> None:
 
 def test_xy_chart_sort_by_invalid_saved_metric_rejected() -> None:
     """Ensure that an invalid saved metric name in sort_by is rejected."""
-    context: DatasetContext = DatasetContext(
-        id=1,
-        table_name="sales_data",
-        schema=None,
-        database_name="database",
-        available_columns=[
-            {"name": "category", "type": "VARCHAR"},
-            {"name": "sales", "type": "BIGINT"},
-        ],
-        available_metrics=[{"name": "TotalRevenue", "expression": "SUM(rev)"}],
-    )
+    context: DatasetContext = _make_sales_dataset_context()
     config: XYChartConfig = XYChartConfig(
         chart_type="xy",
         x=ColumnRef(name="category"),

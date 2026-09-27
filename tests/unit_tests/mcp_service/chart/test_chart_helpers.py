@@ -1569,3 +1569,27 @@ def test_build_query_dicts_from_form_data_xy_bar_explore_default_grain() -> None
     assert queries[0]["metrics"] == [metric]
     assert queries[0]["orderby"] == [(metric, False)]
 
+
+def test_build_single_query_dict_x_axis_sort_ignored_when_groupby_set() -> None:
+    """
+    Verify _build_single_query_dict does not set orderby from x_axis_sort
+    when form_data has groupby set (multi-series chart).
+    """
+    metric = {
+        "label": "SUM(sales)",
+        "aggregate": "SUM",
+        "column": {"column_name": "sales"},
+    }
+    form_data = {
+        "viz_type": "echarts_timeseries_bar",
+        "x_axis_sort": "SUM(sales)",
+        "x_axis_sort_asc": False,
+        "groupby": ["region"],
+    }
+    qd = _build_single_query_dict(
+        form_data,
+        columns=["category", "region"],
+        metrics=[metric],
+    )
+    assert "orderby" not in qd
+

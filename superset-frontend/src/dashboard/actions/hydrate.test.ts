@@ -18,11 +18,15 @@
  */
 import { HYDRATE_DASHBOARD, hydrateDashboard } from './hydrate';
 import {
+  CHART_TYPE,
+  COLUMN_TYPE,
+  DASHBOARD_GRID_TYPE,
   DASHBOARD_ROOT_TYPE,
+  ROW_TYPE,
   TABS_TYPE,
   TAB_TYPE,
 } from '../util/componentTypes';
-import { DASHBOARD_ROOT_ID } from '../util/constants';
+import { DASHBOARD_GRID_ID, DASHBOARD_ROOT_ID } from '../util/constants';
 
 /**
  * Regression guard for the follow-up to PR #39417 / PR #41832: the default
@@ -273,4 +277,83 @@ test('a permalink activeTabs: [] (empty but present) wins and seeds []', () => {
   const action = hydrate(flatTabsPositionData, { activeTabs: [] });
 
   expect(action.data.dashboardState.activeTabs).toEqual([]);
+});
+
+test('keeps a trapped chart missing from the charts payload in the layout', () => {
+  // e.g. an archived chart with SOFT_DELETE: the charts endpoint omits it, so
+  // hydration cannot re-add it and only its layout entry keeps its membership
+  const positionData = {
+    [DASHBOARD_ROOT_ID]: layoutItem(
+      DASHBOARD_ROOT_ID,
+      DASHBOARD_ROOT_TYPE,
+      [DASHBOARD_GRID_ID],
+      [],
+    ),
+    [DASHBOARD_GRID_ID]: layoutItem(
+      DASHBOARD_GRID_ID,
+      DASHBOARD_GRID_TYPE,
+      [],
+      [DASHBOARD_ROOT_ID],
+    ),
+    'COLUMN-orphan': layoutItem(
+      'COLUMN-orphan',
+      COLUMN_TYPE,
+      ['CHART-archived', 'ROW-orphan'],
+      [DASHBOARD_ROOT_ID, DASHBOARD_GRID_ID],
+    ),
+    'ROW-orphan': layoutItem(
+      'ROW-orphan',
+      ROW_TYPE,
+      ['COLUMN-orphan'],
+      [DASHBOARD_ROOT_ID, DASHBOARD_GRID_ID, 'COLUMN-orphan'],
+    ),
+    'CHART-archived': {
+      ...layoutItem('CHART-archived', CHART_TYPE, [], []),
+      meta: { chartId: 42, width: 4, height: 50 },
+    },
+  };
+
+  const layout = hydrate(positionData).data.dashboardLayout.present;
+
+  expect(layout['COLUMN-orphan']).toBeUndefined();
+  expect(layout['ROW-orphan']).toBeUndefined();
+  const [rowId] = layout[DASHBOARD_GRID_ID].children;
+  expect(layout[rowId].children).toEqual(['CHART-archived']);
+  expect(layout['CHART-archived'].meta.chartId).toBe(42);
+});
+
+test('rebuilds stale parents from the layout children', () => {
+  const positionData = {
+    [DASHBOARD_ROOT_ID]: layoutItem(
+      DASHBOARD_ROOT_ID,
+      DASHBOARD_ROOT_TYPE,
+      [DASHBOARD_GRID_ID],
+      [],
+    ),
+    [DASHBOARD_GRID_ID]: layoutItem(
+      DASHBOARD_GRID_ID,
+      DASHBOARD_GRID_TYPE,
+      ['ROW-a'],
+      [DASHBOARD_ROOT_ID],
+    ),
+    'ROW-a': layoutItem('ROW-a', ROW_TYPE, ['COLUMN-a'], [DASHBOARD_ROOT_ID]),
+    'COLUMN-a': layoutItem(
+      'COLUMN-a',
+      COLUMN_TYPE,
+      [],
+      [DASHBOARD_ROOT_ID, DASHBOARD_GRID_ID, 'ROW-stale'],
+    ),
+  };
+
+  const layout = hydrate(positionData).data.dashboardLayout.present;
+
+  expect(layout['ROW-a'].parents).toEqual([
+    DASHBOARD_ROOT_ID,
+    DASHBOARD_GRID_ID,
+  ]);
+  expect(layout['COLUMN-a'].parents).toEqual([
+    DASHBOARD_ROOT_ID,
+    DASHBOARD_GRID_ID,
+    'ROW-a',
+  ]);
 });
