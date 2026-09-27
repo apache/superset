@@ -441,11 +441,11 @@ class DatasetDAO(BaseDAO[SqlaTable]):
                 force_update = True
 
             if "metrics" in attributes:
-                cls.update_metrics(
-                    item,
-                    attributes.pop("metrics"),
-                    preserve_existing=preserve_existing_metrics,
-                )
+                metrics = attributes.pop("metrics")
+                if preserve_existing_metrics:
+                    cls.update_metrics(item, metrics, preserve_existing=True)
+                else:
+                    cls.update_metrics(item, metrics)
                 force_update = True
 
             if force_update:
