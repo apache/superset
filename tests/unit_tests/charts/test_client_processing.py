@@ -1906,9 +1906,32 @@ def test_pivot_df_show_values_as_keeps_metrics_separate():
     assert pivoted.loc[("US",), ("SUM(num)", "boy")] == 0.25
     assert pivoted.loc[("UK",), ("MAX(num)", "boy")] == 0.375
     assert pivoted.loc[("UK",), ("MAX(num)", "girl")] == 0.625
-    # a total collapsing the metric axis resolves to one metric, as the
-    # renderer does, so it still divides by itself
-    assert pivoted.loc[("US",), (total_label(), "")] == 1
+    # a total collapsing the metric axis mixes SUM(num) and MAX(num), which
+    # share no unit, so the renderer blanks it (#44657) instead of picking one
+    # arbitrarily (#44725) -- exported values must agree with what it shows
+    assert pd.isna(pivoted.loc[("US",), (total_label(), "")])
+
+
+def test_pivot_df_show_values_as_blanks_mixed_metric_grand_total():
+    """https://github.com/apache/superset/issues/44725
+
+    A pivot with 2+ metrics on columns and row/column totals enabled has no
+    single meaningful value for the cell where both the row and column totals
+    meet (it would mix every configured metric). Before #44657 the renderer
+    picked one metric there; the export/report path must match its current,
+    blanked behavior rather than showing a specific, plausible-looking number.
+    """
+    df = show_values_as_df()
+    df["MAX(num)"] = [1, 3, 6, 10]
+    pivoted = pivot_df(
+        df,
+        **{**SHOW_VALUES_AS_OPTIONS, "metrics": ["SUM(num)", "MAX(num)"]},
+        show_values_as="percent_total",
+    )
+
+    assert pd.isna(pivoted.loc[("UK",), (total_label(), "")])
+    assert pd.isna(pivoted.loc[("US",), (total_label(), "")])
+    assert pd.isna(pivoted.loc[(total_label(),), (total_label(), "")])
 
 
 def test_pivot_df_show_values_as_with_combined_metrics():
