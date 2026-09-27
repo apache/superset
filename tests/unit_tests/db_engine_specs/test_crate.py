@@ -17,6 +17,7 @@
 from datetime import datetime
 from typing import Optional
 
+import pandas as pd
 import pytest
 
 from tests.unit_tests.db_engine_specs.utils import assert_convert_dttm
@@ -41,19 +42,35 @@ def test_epoch_ms_to_dttm() -> None:
     assert CrateEngineSpec.epoch_ms_to_dttm() == "{col}"
 
 
-def test_alter_new_orm_column() -> None:
+@pytest.mark.parametrize(
+    "column_type",
+    [
+        "TIMESTAMP",
+        "TIMESTAMP WITHOUT TIME ZONE",
+        "TIMESTAMP WITH TIME ZONE",
+    ],
+)
+def test_alter_new_orm_column(column_type: str) -> None:
     """
     DB Eng Specs (crate): Test alter orm column
     """
     from superset.connectors.sqla.models import SqlaTable, TableColumn
     from superset.db_engine_specs.crate import CrateEngineSpec
     from superset.models.core import Database
+    from superset.utils.core import DateColumn, normalize_dttm_col
 
     database = Database(database_name="crate", sqlalchemy_uri="crate://db")
     tbl = SqlaTable(table_name="tbl", database=database)
-    col = TableColumn(column_name="ts", type="TIMESTAMP", table=tbl)
+    col = TableColumn(column_name="ts", type=column_type, table=tbl)
     CrateEngineSpec.alter_new_orm_column(col)
     assert col.python_date_format == "epoch_ms"
+    df = pd.DataFrame({"ts": [1704067200000, 1704153600000, None]})
+    normalize_dttm_col(df, (DateColumn("ts", col.python_date_format),))
+    assert df["ts"].iloc[:2].tolist() == [
+        pd.Timestamp("2024-01-01"),
+        pd.Timestamp("2024-01-02"),
+    ]
+    assert pd.isna(df["ts"].iloc[2])
 
 
 @pytest.mark.parametrize(
@@ -71,3 +88,14 @@ def test_convert_dttm(
     from superset.db_engine_specs.crate import CrateEngineSpec as spec  # noqa: N813
 
     assert_convert_dttm(spec, target_type, expected_result, dttm)
+
+
+@pytest.mark.parametrize("column_type", ["DATE", "TIME", "BIGINT", "VARCHAR", None])
+def test_alter_new_orm_column_preserves_other_types(column_type: str | None) -> None:
+    """Non-timestamp columns must retain their configured date format."""
+    from superset.connectors.sqla.models import TableColumn
+    from superset.db_engine_specs.crate import CrateEngineSpec
+
+    col = TableColumn(column_name="value", type=column_type, python_date_format="%Y")
+    CrateEngineSpec.alter_new_orm_column(col)
+    assert col.python_date_format == "%Y"
