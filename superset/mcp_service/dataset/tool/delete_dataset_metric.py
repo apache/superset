@@ -96,7 +96,11 @@ def _find_affected_charts(
             continue
         configs = [chart.form_data]
         if chart.query_context:
-            configs.append(json.loads(chart.query_context))
+            try:
+                configs.append(json.loads(chart.query_context))
+            except json.JSONDecodeError:
+                # Chart impact is advisory; still inspect valid form data.
+                pass
         if _references_metric(configs, metric_name):
             references.append(
                 MetricChartReference(

@@ -134,7 +134,7 @@ def test_create_rejects_invalid_extra() -> None:
 @pytest.mark.asyncio
 @pytest.mark.parametrize("identifier", [1, "1", UUID])
 async def test_create_success(dataset: MagicMock, identifier: int | str) -> None:
-    """All optional properties pass through; other metrics remain as stubs."""
+    """All optional properties pass through without replaying existing metrics."""
     request = {
         **request_for(TOOLS[0]),
         "dataset_id": identifier,
@@ -161,14 +161,7 @@ async def test_create_success(dataset: MagicMock, identifier: int | str) -> None
     if identifier == UUID:
         assert find.call_args.kwargs["id_column"] == "uuid"
     command.assert_called_once_with(
-        1,
-        {
-            "metrics": [
-                {"id": 10, "metric_name": "revenue"},
-                {"id": 11, "metric_name": "count"},
-                properties,
-            ]
-        },
+        1, {"metrics": [properties]}, preserve_existing_metrics=True
     )
     assert result["error"] is None
     assert result["metric"] == {"id": 12, "uuid": UUID, **properties}
@@ -328,7 +321,7 @@ def test_reference_lookup_is_dataset_scoped_and_access_checked(
 ) -> None:
     """Do not expose inaccessible or unrelated charts in the impact report."""
     Database.metadata.create_all(session.bind)
-    charts = [
+    charts: list[Slice] = [
         Slice(
             slice_name="Match",
             datasource_id=1,
@@ -381,7 +374,11 @@ def test_reference_lookup_is_dataset_scoped_and_access_checked(
     ) as check:
         result = _find_affected_charts(1, "revenue")
     assert [chart.slice_name for chart in result] == ["Match", "Query context"]
-    assert check.call_count == 4
+    expected_access_checks: int = sum(
+        chart.datasource_id == 1 and chart.datasource_type == "table"
+        for chart in charts
+    )
+    assert check.call_count == expected_access_checks
 
 
 @pytest.mark.asyncio
@@ -419,3 +416,78 @@ async def test_real_command_create_and_delete(session: Session) -> None:
             session.expire_all()
             assert session.get(SqlMetric, metric_id) is None
         assert session.get(SqlaTable, dataset_id).metrics == []
+
+
+@pytest.mark.asyncio
+async def test_create_preserves_metric_changes_after_lookup(session: Session) -> None:
+    """A concurrent addition and rename must survive the create command."""
+    from superset.daos.dataset import DatasetDAO
+
+    Database.metadata.create_all(session.bind)
+    database = Database(database_name="concurrent_metrics", sqlalchemy_uri="sqlite://")
+    original = SqlMetric(metric_name="count", expression="COUNT(*)")
+    dataset = SqlaTable(
+        database=database, table_name="concurrent_metrics", metrics=[original]
+    )
+    session.add(dataset)
+    session.commit()
+    dataset_id: int = dataset.id
+    original_id: int = original.id
+    find_by_id = DatasetDAO.find_by_id
+    lookup_count: int = 0
+    added = SqlMetric(metric_name="concurrent", expression="SUM(amount)")
+
+    def find_with_concurrent_change(*args: Any, **kwargs: Any) -> SqlaTable | None:
+        """Commit another writer's changes between tool lookup and validation."""
+        nonlocal lookup_count
+        lookup_count += 1
+        if lookup_count == 2:
+            original.metric_name = "renamed"
+            dataset.metrics.append(added)
+            session.commit()
+        return find_by_id(*args, **kwargs)
+
+    with (
+        patch.object(DatasetDAO, "base_filter", None),
+        patch.object(DatasetDAO, "find_by_id", side_effect=find_with_concurrent_change),
+        patch("superset.security.SupersetSecurityManager.is_admin", return_value=True),
+    ):
+        result = await call(
+            TOOLS[0], {**request_for(TOOLS[0]), "dataset_id": dataset_id}
+        )
+    assert result["error"] is None
+    session.expire_all()
+    assert session.get(SqlMetric, original_id).metric_name == "renamed"
+    assert {
+        metric.metric_name for metric in session.get(SqlaTable, dataset_id).metrics
+    } == {"renamed", "concurrent", "profit"}
+
+
+@pytest.mark.parametrize("params", ['{"metric":"revenue"}', "{}"])
+def test_reference_lookup_tolerates_malformed_query_context(
+    session: Session, params: str
+) -> None:
+    """Malformed advisory JSON must not hide form-data or later chart matches."""
+    Database.metadata.create_all(session.bind)
+    charts: list[Slice] = [
+        Slice(
+            slice_name="Malformed",
+            datasource_id=1,
+            datasource_type="table",
+            params=params,
+            query_context="{invalid",
+        ),
+        Slice(
+            slice_name="Valid",
+            datasource_id=1,
+            datasource_type="table",
+            params="{}",
+            query_context='{"queries":[{"metrics":["revenue"]}]}',
+        ),
+    ]
+    session.add_all(charts)
+    session.commit()
+    with patch("superset.security.SupersetSecurityManager.raise_for_access"):
+        result = _find_affected_charts(1, "revenue")
+    expected: list[str] = ["Malformed", "Valid"] if "revenue" in params else ["Valid"]
+    assert [chart.slice_name for chart in result] == expected

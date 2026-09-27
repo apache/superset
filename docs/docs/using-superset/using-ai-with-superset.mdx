@@ -275,14 +275,16 @@ call `create_dataset_metric` with
 `{"dataset_id": 123, "metric_name": "sum_revenue", "expression": "SUM(revenue)"}`.
 Optional properties include `verbose_name`, `description`, `d3format`, `currency`,
 `warning_text`, `metric_type`, and `extra`, just as for `update_dataset_metric`.
-Duplicate names are rejected; existing metrics are preserved.
+Duplicate names are rejected; creation adds only the requested metric without
+replacing or rewriting existing metrics.
 
 Call `delete_dataset_metric` with
 `{"dataset_id": 123, "metric": "sum_revenue"}` to remove that metric. The response
 includes the deleted metric and `affected_charts`: accessible charts referencing
 its name in saved metric controls, HAVING filters, or query contexts. Warn users
 that those charts may need repair; deletion does not rewrite charts. References
-embedded in SQL expressions are not inferred.
+embedded in SQL expressions are not inferred. If a chart has malformed query-context
+JSON, impact reporting still checks its saved form data and other accessible charts.
 
 ### Charts
 

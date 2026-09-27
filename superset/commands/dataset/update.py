@@ -75,11 +75,14 @@ class UpdateDatasetCommand(UpdateMixin, BaseCommand):
         model_id: int,
         data: dict[str, Any],
         override_columns: Optional[bool] = False,
+        *,
+        preserve_existing_metrics: bool = False,
     ):
         self._model_id = model_id
         self._properties = data.copy()
         self._model: Optional[SqlaTable] = None
         self.override_columns = override_columns
+        self._preserve_existing_metrics = preserve_existing_metrics
         self._properties["override_columns"] = override_columns
 
     @transaction(
@@ -95,7 +98,11 @@ class UpdateDatasetCommand(UpdateMixin, BaseCommand):
     def run(self) -> Model:
         self.validate()
         assert self._model
-        return DatasetDAO.update(self._model, attributes=self._properties)
+        return DatasetDAO.update(
+            self._model,
+            attributes=self._properties,
+            preserve_existing_metrics=self._preserve_existing_metrics,
+        )
 
     def validate(self) -> None:
         exceptions: list[ValidationError] = []

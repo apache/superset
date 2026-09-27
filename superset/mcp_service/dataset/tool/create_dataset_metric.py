@@ -112,14 +112,13 @@ async def create_dataset_metric(
                 "Choose a unique metric_name or use update_dataset_metric.",
             )
 
-        # The DAO deletes omitted metrics, so preserve every existing row.
-        metrics_payload = [
-            {"id": metric.id, "metric_name": metric.metric_name} for metric in metrics
-        ]
-        metrics_payload.append(updates)
+        # Use an additive write: replaying lookup-time stubs can overwrite a
+        # concurrent rename or delete a metric added by another writer.
         with event_logger.log_context(action="mcp.create_dataset_metric.create"):
             updated_dataset = UpdateDatasetCommand(
-                dataset.id, {"metrics": metrics_payload}
+                dataset.id,
+                {"metrics": [updates]},
+                preserve_existing_metrics=True,
             ).run()
 
         created_metric = next(
