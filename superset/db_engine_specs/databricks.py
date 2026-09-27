@@ -340,6 +340,9 @@ class DatabricksDynamicBaseEngineSpec(BasicParametersMixin, DatabricksBaseEngine
             "authorization_request_uri": "authorize",
             "token_request_uri": "token",
         }
+        if not isinstance(client_info, dict):
+            # Leave malformed values to ``OAuth2ClientConfigSchema`` to reject.
+            return client_info
         missing = [key for key in endpoints if not client_info.get(key)]
         if not missing:
             return client_info

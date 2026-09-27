@@ -1171,3 +1171,46 @@ def test_update_unrelated_fields_still_work(mocker: MockerFixture) -> None:
     UpdateDatabaseCommand(1, {"expose_in_sqllab": False}).run()
 
     database_dao.update.assert_called_once()
+
+
+@pytest.mark.parametrize(
+    "new_host, purged",
+    [
+        (None, False),
+        ("dbc-1234.cloud.databricks.com", False),
+        ("dbc-5678.cloud.databricks.com", True),
+    ],
+)
+def test_update_oauth2_derived_endpoints(
+    mocker: MockerFixture,
+    app_context: None,
+    new_host: str | None,
+    purged: bool,
+) -> None:
+    """
+    Endpoints derived from the host are compared with the new host's endpoints:
+    saving the same config keeps the tokens, and a new workspace host purges them.
+    """
+    client_info = {
+        "id": "my_client_id",
+        "secret": "my_client_secret",
+        "scope": "sql offline_access",
+    }
+    uri = "databricks://token:@{host}:443?http_path=/sql/1.0/warehouses/abc"
+    database = Database(
+        database_name="db",
+        sqlalchemy_uri=uri.format(host="dbc-1234.cloud.databricks.com"),
+        encrypted_extra=json.dumps({"oauth2_client_info": client_info}),
+    )
+    purge_oauth2_tokens = mocker.patch.object(database, "purge_oauth2_tokens")
+    properties: dict[str, Any] = {
+        "encrypted_extra": json.dumps({"oauth2_client_info": client_info}),
+    }
+    if new_host:
+        properties["sqlalchemy_uri"] = uri.format(host=new_host)
+
+    command = UpdateDatabaseCommand(1, properties)
+    command._model = database
+    command._handle_oauth2()
+
+    assert purge_oauth2_tokens.called is purged
