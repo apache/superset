@@ -14529,6 +14529,10 @@ msgid ""
 msgstr ""
 
 #, python-format
+msgid "The schema \"%(schema_name)s\" does not exist."
+msgstr ""
+
+#, python-format
 msgid ""
 "The schema \"%(schema_name)s\" does not exist. A valid schema must be "
 "used to run this query."
@@ -14583,6 +14587,10 @@ msgstr ""
 msgid ""
 "The table \"%(table)s\" does not exist. A valid table must be used to run"
 " this query."
+msgstr ""
+
+#, python-format
+msgid "The table \"%(table_name)s\" does not exist."
 msgstr ""
 
 #, python-format
@@ -16755,6 +16763,10 @@ msgstr ""
 msgid ""
 "We can't seem to resolve the column \"%(column_name)s\" at line "
 "%(location)s."
+msgstr ""
+
+#, python-format
+msgid "We can't seem to resolve the column \"%(column_name)s\"."
 msgstr ""
 
 #, python-format

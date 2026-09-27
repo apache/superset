@@ -368,9 +368,10 @@ def test_extract_errors(message: str, error_type: str) -> None:
 
 
 def test_build_sqlalchemy_uri() -> None:
+    from superset.db_engine_specs.base import BasicParametersType
     from superset.db_engine_specs.doris import DorisEngineSpec
 
-    parameters: dict[str, Any] = {
+    parameters: BasicParametersType = {
         "username": "user",
         "password": "p@ss",
         "host": "doris.example.com",

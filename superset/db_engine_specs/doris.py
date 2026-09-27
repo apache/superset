@@ -20,14 +20,15 @@ from re import Pattern
 from typing import Any, Callable, Optional
 from urllib import parse
 
-from flask_babel import gettext as __
+from flask_babel import gettext as __, lazy_gettext as _
 from sqlalchemy import Float, Integer, Numeric, String, TEXT, text, types
 from sqlalchemy.engine.reflection import Inspector
-from sqlalchemy.engine.url import make_url, URL
+from sqlalchemy.engine.url import URL
 from sqlalchemy.sql.elements import ColumnElement
 from sqlalchemy.sql.type_api import TypeEngine
 
 from superset.constants import TimeGrain
+from superset.databases.utils import make_url_safe
 from superset.db_engine_specs.base import BasicParametersType, DatabaseCategory
 from superset.db_engine_specs.mysql import MySQLEngineSpec
 from superset.errors import SupersetErrorType
@@ -312,7 +313,7 @@ class DorisEngineSpec(MySQLEngineSpec):
             {},
         ),
         DORIS_SYNTAX_ERROR_REGEX: (
-            __(
+            _(
                 'Please check your query for syntax errors near "%(server_error)s". '
                 "Then, try running your query again."
             ),
@@ -320,17 +321,17 @@ class DorisEngineSpec(MySQLEngineSpec):
             {},
         ),
         TABLE_DOES_NOT_EXIST_REGEX: (
-            __('The table "%(table_name)s" does not exist.'),
+            _('The table "%(table_name)s" does not exist.'),
             SupersetErrorType.TABLE_DOES_NOT_EXIST_ERROR,
             {},
         ),
         SCHEMA_DOES_NOT_EXIST_REGEX: (
-            __('The schema "%(schema_name)s" does not exist.'),
+            _('The schema "%(schema_name)s" does not exist.'),
             SupersetErrorType.SCHEMA_DOES_NOT_EXIST_ERROR,
             {},
         ),
         COLUMN_DOES_NOT_EXIST_REGEX: (
-            __('We can\'t seem to resolve the column "%(column_name)s".'),
+            _('We can\'t seem to resolve the column "%(column_name)s".'),
             SupersetErrorType.COLUMN_DOES_NOT_EXIST_ERROR,
             {},
         ),
@@ -346,7 +347,9 @@ class DorisEngineSpec(MySQLEngineSpec):
         # ``engine+default_driver`` would be ``pydoris+pydoris``, which no
         # SQLAlchemy entry point provides; ``doris`` is the dialect's scheme.
         return (
-            make_url(uri).set(drivername="doris").render_as_string(hide_password=False)
+            make_url_safe(uri)
+            .set(drivername="doris")
+            .render_as_string(hide_password=False)
         )
 
     @classmethod
