@@ -66,12 +66,21 @@ def test_get_column_spec(
     "sql,expected",
     [
         ("SELECT * FROM orders", "SELECT * FROM orders"),
-        ("-- top customers\nSELECT * FROM orders", "SELECT * FROM orders"),
-        ("/* top customers */ SELECT * FROM orders", "SELECT * FROM orders"),
+        (
+            "-- top customers\nSELECT * FROM orders",
+            "SELECT * FROM orders\n-- top customers",
+        ),
+        (
+            "/* top customers */ SELECT * FROM orders",
+            "SELECT * FROM orders\n/* top customers */",
+        ),
         (
             "  -- one\n/* two\n   lines */\n-- three\nWITH t AS (SELECT 1) SELECT 2",
-            "WITH t AS (SELECT 1) SELECT 2",
+            "WITH t AS (SELECT 1) SELECT 2\n-- one\n/* two\n   lines */\n-- three",
         ),
+        ("-- tag\nSELECT 1 ;\n", "SELECT 1\n-- tag"),
+        ("SELECT 1;", "SELECT 1;"),
+        ("  SELECT 1", "  SELECT 1"),
         ("SELECT 1 -- trailing", "SELECT 1 -- trailing"),
         (
             "SELECT '-- not a comment' /* kept */",
@@ -80,17 +89,19 @@ def test_get_column_spec(
         ("-- only a comment", "-- only a comment"),
     ],
 )
-def test_execute_drops_leading_comments(
+def test_execute_moves_leading_comments(
     mocker: MockerFixture,
     sql: str,
     expected: str,
 ) -> None:
     """
-    Test that comments ahead of a statement never reach the driver.
+    Test that comments ahead of a statement are moved to its end.
 
     The DBAPI only reports column names when the statement text starts with
     ``SELECT``, ``PRAGMA`` or ``WITH``, so a leading comment would return rows
-    without a cursor description. Comments elsewhere are left alone.
+    without a cursor description. D1 refuses a comment after the last semicolon,
+    so a trailing semicolon is dropped when comments are moved. Comments elsewhere
+    are left alone.
     """
     from superset.db_engine_specs.d1 import CloudflareD1EngineSpec as spec  # noqa: N813
 
@@ -106,12 +117,17 @@ def test_execute_drops_leading_comments(
     [
         ("d1+httpx://account:token@database", False),
         ("d1+httpx://account:token@database?base_url=https://elsewhere.example", True),
+        ("d1://account:token@database?base_url=https://elsewhere.example", True),
+        ("d1+other://account:token@database?base_url=https://elsewhere.example", True),
     ],
 )
 def test_validate_database_uri(sqlalchemy_uri: str, error: bool) -> None:
     """
     Test that ``base_url`` is refused in the URI, because the driver sends the
     API token to the host it names.
+
+    The bare ``d1://`` form is refused without loading the dialect to look up its
+    driver name, and so is a driver name other than ``httpx``.
     """
     from superset.db_engine_specs.d1 import CloudflareD1EngineSpec as spec  # noqa: N813
 
@@ -171,9 +187,35 @@ def test_driver_and_file_upload() -> None:
             "no such table: nope: SQLITE_ERROR",
         ),
         (
+            "Execute failed: D1 API error: no such column: nope at offset 7: "
+            "SQLITE_ERROR\nsecond line",
+            SupersetErrorType.COLUMN_DOES_NOT_EXIST_ERROR,
+            'We can\'t seem to resolve the column "nope"',
+        ),
+        (
             "Execute failed: HTTP error 502: <html>Bad gateway</html>",
             SupersetErrorType.GENERIC_DB_ENGINE_ERROR,
             "Execute failed: HTTP error 502: <html>Bad gateway</html>",
+        ),
+        (
+            'Execute failed: HTTP error 400: {"errors":{"message":"no such table"}}',
+            SupersetErrorType.GENERIC_DB_ENGINE_ERROR,
+            'Execute failed: HTTP error 400: {"errors":{"message":"no such table"}}',
+        ),
+        (
+            'Execute failed: HTTP error 400: {"errors":[]}',
+            SupersetErrorType.GENERIC_DB_ENGINE_ERROR,
+            'Execute failed: HTTP error 400: {"errors":[]}',
+        ),
+        (
+            'Execute failed: HTTP error 400: {"errors":["no such table: nope"]}',
+            SupersetErrorType.GENERIC_DB_ENGINE_ERROR,
+            'Execute failed: HTTP error 400: {"errors":["no such table: nope"]}',
+        ),
+        (
+            'Execute failed: HTTP error 400: {"errors":[{"code":7500}]}',
+            SupersetErrorType.GENERIC_DB_ENGINE_ERROR,
+            'Execute failed: HTTP error 400: {"errors":[{"code":7500}]}',
         ),
         (
             'Execute failed: D1 API error: near "{": syntax error',
@@ -189,7 +231,8 @@ def test_extract_errors(
 ) -> None:
     """
     Test that errors show D1's own message rather than the whole JSON reply the
-    DBAPI puts in the exception.
+    DBAPI puts in the exception, and the whole message when the reply has an
+    unexpected shape.
     """
     from superset.db_engine_specs.d1 import CloudflareD1EngineSpec as spec  # noqa: N813
 

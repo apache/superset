@@ -24,6 +24,7 @@ from typing import Any, TYPE_CHECKING
 
 from flask_babel import lazy_gettext as _
 from sqlalchemy import types
+from sqlalchemy.engine.url import URL
 
 from superset.db_engine_specs.base import DatabaseCategory
 from superset.db_engine_specs.sqlite import SqliteEngineSpec
@@ -41,7 +42,8 @@ LEADING_COMMENTS_REGEX = re.compile(
 
 # D1 adds the offset and the SQLite result code after the column name
 COLUMN_DOES_NOT_EXIST_REGEX = re.compile(
-    r"no such column: (?P<column_name>.+?)(?: at offset \d+)?(?:: SQLITE_\w+)?$"
+    r"no such column: (?P<column_name>.+?)(?: at offset \d+)?(?:: SQLITE_\w+)?$",
+    re.MULTILINE,
 )
 
 
@@ -51,9 +53,6 @@ class CloudflareD1EngineSpec(SqliteEngineSpec):
     engine = "d1"
     engine_name = "Cloudflare D1"
     default_driver = "httpx"
-
-    # The driver sends the API token to the host named by ``base_url``
-    disallow_uri_query_params = {"httpx": {"base_url"}}
 
     # D1 has no transactions, so a failed upload would leave a half-written table
     supports_file_upload = False
@@ -102,16 +101,35 @@ class CloudflareD1EngineSpec(SqliteEngineSpec):
         **kwargs: Any,
     ) -> None:
         """
-        Drop comments ahead of the statement before it reaches the driver.
+        Move comments ahead of the statement to its end.
 
         The DBAPI in sqlalchemy-cloudflare-d1 only reports column names when the
         statement text starts with SELECT, PRAGMA or WITH. A query with a leading
         comment, typed by a user or added by ``SQL_QUERY_MUTATOR``, comes back as
-        rows without a cursor description. Every query path goes through here:
-        SQL Lab, datasets made from SQL, charts and alerts.
+        rows without a cursor description. Moving the comments keeps them in the
+        SQL that reaches D1. D1 refuses a comment after the last semicolon, so a
+        trailing semicolon is dropped. Every query path goes through here: SQL
+        Lab, datasets made from SQL, charts and alerts.
         """
-        stripped = LEADING_COMMENTS_REGEX.sub("", query, count=1)
-        super().execute(cursor, stripped or query, database, **kwargs)
+        if match := LEADING_COMMENTS_REGEX.match(query):
+            comments = match.group().strip()
+            statement = query[match.end() :].rstrip().removesuffix(";").rstrip()
+            if comments and statement:
+                query = f"{statement}\n{comments}"
+        super().execute(cursor, query, database, **kwargs)
+
+    @classmethod
+    def validate_database_uri(cls, sqlalchemy_uri: URL) -> None:
+        """
+        Refuse ``base_url`` in the URI, whatever the driver name.
+
+        The driver sends the API token to the host named by ``base_url``. A bare
+        ``d1://`` URI only gets its driver name by loading the dialect, so this
+        check does not depend on it.
+        """
+        if "base_url" in sqlalchemy_uri.query:
+            raise ValueError("Forbidden query parameter(s): {'base_url'}")
+        super().validate_database_uri(sqlalchemy_uri)
 
     @classmethod
     def convert_dttm(
@@ -150,7 +168,7 @@ class CloudflareD1EngineSpec(SqliteEngineSpec):
         except json.JSONDecodeError:
             return message
 
-        errors = reply.get("errors") if isinstance(reply, dict) else None
+        errors = reply.get("errors")
         if isinstance(errors, list) and errors and isinstance(errors[0], dict):
             return str(errors[0].get("message") or message)
 
