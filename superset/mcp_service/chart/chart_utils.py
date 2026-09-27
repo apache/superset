@@ -1112,6 +1112,7 @@ def add_orientation_config(form_data: Dict[str, Any], config: XYChartConfig) -> 
 
 def _match_y_metric_label(y_cols: list[ColumnRef], sort_lower: str) -> str | None:
     """Find matching metric label for sort_by among Y-axis metrics."""
+    aggregate_aliases = {"STDDEV": "STDDEV_SAMP", "VAR": "VAR_SAMP"}
     for y_col in y_cols:
         metric_obj = create_metric_object(y_col)
         metric_label = (
@@ -1119,21 +1120,24 @@ def _match_y_metric_label(y_cols: list[ColumnRef], sort_lower: str) -> str | Non
             if isinstance(metric_obj, str)
             else (metric_obj.get("label") or "")
         )
-        agg_expr = (
-            f"{y_col.aggregate}({y_col.name})".lower()
-            if (y_col.aggregate and y_col.name)
-            else None
-        )
+        agg = y_col.aggregate or ""
+        norm_agg = aggregate_aliases.get(agg.upper(), agg.upper())
         col_name = (y_col.name or "").lower()
         col_label = (y_col.label or "").lower()
         sql_expr = (y_col.sql_expression or "").lower()
         metric_label_lower = metric_label.lower()
 
+        agg_matches: set[str] = set()
+        if agg and y_col.name:
+            agg_matches.add(f"{agg}({y_col.name})".lower())
+        if norm_agg and y_col.name:
+            agg_matches.add(f"{norm_agg}({y_col.name})".lower())
+
         if (
             sort_lower == col_name
             or sort_lower == metric_label_lower
             or (col_label and sort_lower == col_label)
-            or (agg_expr and sort_lower == agg_expr)
+            or (sort_lower in agg_matches)
             or (sql_expr and sort_lower == sql_expr)
         ):
             return metric_label
@@ -1157,21 +1161,13 @@ def add_xy_sort_config(
         return
 
     sort_entry = config.sort_by
-    if isinstance(sort_entry, (list, tuple)):
-        if not sort_entry:
+    if not isinstance(sort_entry, SortByConfig):
+        from superset.mcp_service.chart.schemas import _coerce_sort_item
+
+        coerced = _coerce_sort_item(sort_entry)
+        if not isinstance(coerced, SortByConfig):
             return
-        if (
-            len(sort_entry) == 2
-            and isinstance(sort_entry[0], str)
-            and isinstance(sort_entry[1], bool)
-        ):
-            sort_entry = SortByConfig(column=sort_entry[0], ascending=sort_entry[1])
-        else:
-            sort_entry = sort_entry[0]
-    if isinstance(sort_entry, str):
-        sort_entry = SortByConfig(column=sort_entry, ascending=False)
-    elif isinstance(sort_entry, dict):
-        sort_entry = SortByConfig(**sort_entry)
+        sort_entry = coerced
 
     if x_is_temporal:
         x_name = config.x.name if config.x else "x"
@@ -1188,10 +1184,9 @@ def add_xy_sort_config(
 
     # If sorting by the x-axis dimension itself (case-insensitive check)
     if config.x and (
-        (x_name and sort_lower == x_name)
-        or (x_label and sort_lower == x_label)
+        (x_name and sort_lower == x_name) or (x_label and sort_lower == x_label)
     ):
-        sort_target = config.x.label or config.x.name
+        sort_target = config.x.name or config.x.label
     else:
         # Match against y metrics (by column name, metric label, agg expr, or sql)
         matched_label = _match_y_metric_label(config.y, sort_lower)

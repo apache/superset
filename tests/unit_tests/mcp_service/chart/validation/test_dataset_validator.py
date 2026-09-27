@@ -75,7 +75,8 @@ def test_non_numeric_type_is_rejected_for_numeric_aggregation(
 
 
 def test_xy_chart_sort_by_metric_label_does_not_fail_column_validation() -> None:
-    context = DatasetContext(
+    """Ensure sorting by a metric label does not fail column validation."""
+    context: DatasetContext = DatasetContext(
         id=1,
         table_name="sales_data",
         schema=None,
@@ -86,20 +87,23 @@ def test_xy_chart_sort_by_metric_label_does_not_fail_column_validation() -> None
         ],
         available_metrics=[],
     )
-    config = XYChartConfig(
+    config: XYChartConfig = XYChartConfig(
         chart_type="xy",
         x=ColumnRef(name="category"),
         y=[ColumnRef(name="sales", aggregate="SUM")],
         sort_by="SUM(sales)",
     )
-    refs = DatasetValidator._extract_column_references(config)
+    refs: list[ColumnRef] = DatasetValidator._extract_column_references(config)
     assert "SUM(sales)" not in [r.name for r in refs]
-    error = DatasetValidator._validate_columns_exist(refs, context)
+    error: ChartGenerationError | None = DatasetValidator._validate_columns_exist(
+        refs, context
+    )
     assert error is None
 
 
 def test_xy_chart_sort_by_saved_metric_does_not_fail_column_validation() -> None:
-    context = DatasetContext(
+    """Ensure sorting by a saved metric in y does not fail column validation."""
+    context: DatasetContext = DatasetContext(
         id=1,
         table_name="sales_data",
         schema=None,
@@ -109,19 +113,22 @@ def test_xy_chart_sort_by_saved_metric_does_not_fail_column_validation() -> None
         ],
         available_metrics=[{"name": "total_sales", "expression": "SUM(sales)"}],
     )
-    config = XYChartConfig(
+    config: XYChartConfig = XYChartConfig(
         chart_type="xy",
         x=ColumnRef(name="category"),
         y=[ColumnRef(name="total_sales", saved_metric=True)],
         sort_by="total_sales",
     )
-    refs = DatasetValidator._extract_column_references(config)
-    error = DatasetValidator._validate_columns_exist(refs, context)
+    refs: list[ColumnRef] = DatasetValidator._extract_column_references(config)
+    error: ChartGenerationError | None = DatasetValidator._validate_columns_exist(
+        refs, context
+    )
     assert error is None
 
 
 def test_xy_chart_sort_by_independent_column_validation() -> None:
-    context = DatasetContext(
+    """Ensure independent sort_by columns are validated against dataset columns."""
+    context: DatasetContext = DatasetContext(
         id=1,
         table_name="sales_data",
         schema=None,
@@ -134,33 +141,40 @@ def test_xy_chart_sort_by_independent_column_validation() -> None:
         available_metrics=[],
     )
     # Valid independent column
-    valid_config = XYChartConfig(
+    valid_config: XYChartConfig = XYChartConfig(
         chart_type="xy",
         x=ColumnRef(name="category"),
         y=[ColumnRef(name="sales", aggregate="SUM")],
         sort_by=SortByConfig(column="profit", ascending=False),
     )
-    refs = DatasetValidator._extract_column_references(valid_config)
+    refs: list[ColumnRef] = DatasetValidator._extract_column_references(valid_config)
     assert "profit" in [r.name for r in refs]
-    error = DatasetValidator._validate_columns_exist(refs, context)
+    error: ChartGenerationError | None = DatasetValidator._validate_columns_exist(
+        refs, context
+    )
     assert error is None
 
     # Invalid independent column
-    invalid_config = XYChartConfig(
+    invalid_config: XYChartConfig = XYChartConfig(
         chart_type="xy",
         x=ColumnRef(name="category"),
         y=[ColumnRef(name="sales", aggregate="SUM")],
         sort_by=SortByConfig(column="non_existent", ascending=False),
     )
-    invalid_refs = DatasetValidator._extract_column_references(invalid_config)
+    invalid_refs: list[ColumnRef] = DatasetValidator._extract_column_references(
+        invalid_config
+    )
     assert "non_existent" in [r.name for r in invalid_refs]
-    invalid_error = DatasetValidator._validate_columns_exist(invalid_refs, context)
+    invalid_error: ChartGenerationError | None = (
+        DatasetValidator._validate_columns_exist(invalid_refs, context)
+    )
     assert invalid_error is not None
     assert invalid_error.error_type == "column_not_found"
 
 
 def test_xy_chart_sort_by_saved_metric_not_in_y_validates_successfully() -> None:
-    context = DatasetContext(
+    """Ensure marked saved_metric not in y validates against dataset metrics."""
+    context: DatasetContext = DatasetContext(
         id=1,
         table_name="sales_data",
         schema=None,
@@ -171,21 +185,22 @@ def test_xy_chart_sort_by_saved_metric_not_in_y_validates_successfully() -> None
         ],
         available_metrics=[{"name": "TotalRevenue", "expression": "SUM(rev)"}],
     )
-    config = XYChartConfig(
+    config: XYChartConfig = XYChartConfig(
         chart_type="xy",
         x=ColumnRef(name="category"),
         y=[ColumnRef(name="sales", aggregate="SUM")],
         sort_by=SortByConfig(column="totalrevenue", saved_metric=True),
     )
-    is_valid, error = DatasetValidator.validate_against_dataset(
-        config, 1, context
-    )
+    is_valid: bool
+    error: ChartGenerationError | None
+    is_valid, error = DatasetValidator.validate_against_dataset(config, 1, context)
     assert is_valid is True
     assert error is None
 
 
 def test_xy_chart_sort_by_saved_metric_unmarked_fails_validation() -> None:
-    context = DatasetContext(
+    """Ensure unmarked saved metric in sort_by produces saved_metric_not_marked."""
+    context: DatasetContext = DatasetContext(
         id=1,
         table_name="sales_data",
         schema=None,
@@ -196,22 +211,23 @@ def test_xy_chart_sort_by_saved_metric_unmarked_fails_validation() -> None:
         ],
         available_metrics=[{"name": "TotalRevenue", "expression": "SUM(rev)"}],
     )
-    config = XYChartConfig(
+    config: XYChartConfig = XYChartConfig(
         chart_type="xy",
         x=ColumnRef(name="category"),
         y=[ColumnRef(name="sales", aggregate="SUM")],
         sort_by="totalrevenue",
     )
-    is_valid, error = DatasetValidator.validate_against_dataset(
-        config, 1, context
-    )
+    is_valid: bool
+    error: ChartGenerationError | None
+    is_valid, error = DatasetValidator.validate_against_dataset(config, 1, context)
     assert is_valid is False
     assert error is not None
     assert error.error_type == "saved_metric_not_marked"
 
 
 def test_xy_chart_sort_by_invalid_saved_metric_rejected() -> None:
-    context = DatasetContext(
+    """Ensure that an invalid saved metric name in sort_by is rejected."""
+    context: DatasetContext = DatasetContext(
         id=1,
         table_name="sales_data",
         schema=None,
@@ -222,22 +238,23 @@ def test_xy_chart_sort_by_invalid_saved_metric_rejected() -> None:
         ],
         available_metrics=[{"name": "TotalRevenue", "expression": "SUM(rev)"}],
     )
-    config = XYChartConfig(
+    config: XYChartConfig = XYChartConfig(
         chart_type="xy",
         x=ColumnRef(name="category"),
         y=[ColumnRef(name="sales", aggregate="SUM")],
         sort_by=SortByConfig(column="NonExistentMetric", saved_metric=True),
     )
-    is_valid, error = DatasetValidator.validate_against_dataset(
-        config, 1, context
-    )
+    is_valid: bool
+    error: ChartGenerationError | None
+    is_valid, error = DatasetValidator.validate_against_dataset(config, 1, context)
     assert is_valid is False
     assert error is not None
     assert error.error_type == "invalid_saved_metric"
 
 
 def test_xy_chart_sort_by_sql_expression_metric_does_not_fail() -> None:
-    context = DatasetContext(
+    """Ensure sorting by a custom SQL expression in y does not fail validation."""
+    context: DatasetContext = DatasetContext(
         id=1,
         table_name="sales_data",
         schema=None,
@@ -247,12 +264,14 @@ def test_xy_chart_sort_by_sql_expression_metric_does_not_fail() -> None:
         ],
         available_metrics=[],
     )
-    config = XYChartConfig(
+    config: XYChartConfig = XYChartConfig(
         chart_type="xy",
         x=ColumnRef(name="category"),
         y=[ColumnRef(sql_expression="COUNT(DISTINCT user_id)", label="unique_users")],
         sort_by="count(distinct user_id)",
     )
-    refs = DatasetValidator._extract_column_references(config)
-    error = DatasetValidator._validate_columns_exist(refs, context)
+    refs: list[ColumnRef] = DatasetValidator._extract_column_references(config)
+    error: ChartGenerationError | None = DatasetValidator._validate_columns_exist(
+        refs, context
+    )
     assert error is None

@@ -1330,6 +1330,10 @@ def test_shared_query_builder_keeps_mixed_timeseries_ordering_per_query(
 
 
 def test_build_single_query_dict_x_axis_sort_with_metric_label() -> None:
+    """
+    Verify _build_single_query_dict maps x_axis_sort metric label to
+    query orderby.
+    """
     metric = {
         "label": "SUM(sales)",
         "aggregate": "SUM",
@@ -1344,6 +1348,10 @@ def test_build_single_query_dict_x_axis_sort_with_metric_label() -> None:
 
 
 def test_build_single_query_dict_x_axis_sort_with_metric_column_name() -> None:
+    """
+    Verify _build_single_query_dict matches x_axis_sort column name to
+    metric dict.
+    """
     metric = {
         "label": "SUM(sales)",
         "aggregate": "SUM",
@@ -1358,6 +1366,7 @@ def test_build_single_query_dict_x_axis_sort_with_metric_column_name() -> None:
 
 
 def test_build_single_query_dict_x_axis_sort_with_saved_metric() -> None:
+    """Verify _build_single_query_dict handles saved string metric in x_axis_sort."""
     form_data = {
         "x_axis_sort": "revenue",
         "x_axis_sort_asc": False,
@@ -1367,6 +1376,7 @@ def test_build_single_query_dict_x_axis_sort_with_saved_metric() -> None:
 
 
 def test_build_single_query_dict_x_axis_sort_with_dimension_column() -> None:
+    """Verify _build_single_query_dict preserves dimension column sort."""
     form_data = {
         "x_axis_sort": "category",
         "x_axis_sort_asc": True,
@@ -1376,6 +1386,7 @@ def test_build_single_query_dict_x_axis_sort_with_dimension_column() -> None:
 
 
 def test_build_single_query_dict_prefers_existing_orderby() -> None:
+    """Verify explicit orderby in form_data takes precedence over x_axis_sort."""
     form_data = {
         "orderby": [["count", True]],
         "x_axis_sort": "sales",
@@ -1385,7 +1396,54 @@ def test_build_single_query_dict_prefers_existing_orderby() -> None:
     assert qd["orderby"] == [["count", True]]
 
 
+def test_build_single_query_dict_temporal_chart_guards_against_x_axis_sort() -> None:
+    """
+    Verify temporal charts do not override chronological order with
+    x_axis_sort.
+    """
+    metric = {
+        "label": "SUM(sales)",
+        "aggregate": "SUM",
+        "column": {"column_name": "sales"},
+    }
+    # Case 1: is_timeseries flag passed
+    form_data = {
+        "x_axis": "order_date",
+        "x_axis_sort": "SUM(sales)",
+        "x_axis_sort_asc": False,
+    }
+    qd = _build_single_query_dict(
+        form_data, ["order_date"], [metric], is_timeseries=True
+    )
+    assert "orderby" not in qd
+
+    # Case 2: granularity_sqla present indicates temporal chart
+    form_data_temporal = {
+        "viz_type": "echarts_timeseries_line",
+        "x_axis": "order_date",
+        "granularity_sqla": "order_date",
+        "x_axis_sort": "SUM(sales)",
+        "x_axis_sort_asc": False,
+    }
+    qd_temporal = _build_single_query_dict(form_data_temporal, ["order_date"], [metric])
+    assert "orderby" not in qd_temporal
+
+    # Case 3: mixed_timeseries chart type
+    form_data_mixed = {
+        "viz_type": "mixed_timeseries",
+        "x_axis": "order_date",
+        "x_axis_sort": "sales",
+        "x_axis_sort_asc": True,
+    }
+    qd_mixed = _build_single_query_dict(form_data_mixed, ["order_date"], [metric])
+    assert "orderby" not in qd_mixed
+
+
 def test_build_query_dicts_from_form_data_xy_bar_with_x_axis_sort() -> None:
+    """
+    Verify build_query_dicts_from_form_data sets orderby for categorical
+    xy bar chart.
+    """
     metric = {
         "label": "SUM(sales)",
         "aggregate": "SUM",
@@ -1411,6 +1469,7 @@ def test_build_query_dicts_from_form_data_xy_bar_with_x_axis_sort() -> None:
 
 
 def test_resolve_x_axis_sort_target_case_insensitive_label() -> None:
+    """Verify _resolve_x_axis_sort_target matches metric label case-insensitively."""
     metric = {
         "label": "Total Sales",
         "aggregate": "SUM",
@@ -1421,6 +1480,10 @@ def test_resolve_x_axis_sort_target_case_insensitive_label() -> None:
 
 
 def test_resolve_x_axis_sort_target_case_insensitive_column() -> None:
+    """
+    Verify _resolve_x_axis_sort_target matches metric column name
+    case-insensitively.
+    """
     metric = {
         "label": "SUM(sales)",
         "aggregate": "SUM",
@@ -1431,6 +1494,7 @@ def test_resolve_x_axis_sort_target_case_insensitive_column() -> None:
 
 
 def test_resolve_x_axis_sort_target_sql_expression() -> None:
+    """Verify _resolve_x_axis_sort_target matches adhoc SQL expression metric."""
     metric = {
         "expressionType": "SQL",
         "sqlExpression": "COUNT(DISTINCT user_id)",
@@ -1441,5 +1505,9 @@ def test_resolve_x_axis_sort_target_sql_expression() -> None:
 
 
 def test_resolve_x_axis_sort_target_string_metric_case_insensitive() -> None:
+    """
+    Verify _resolve_x_axis_sort_target matches bare string metric
+    case-insensitively.
+    """
     resolved = _resolve_x_axis_sort_target("totalsales", ["TotalSales"])
     assert resolved == "TotalSales"

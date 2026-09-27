@@ -704,6 +704,7 @@ def _build_single_query_dict(
     metrics: list[Any],
     row_limit: int | None = None,
     order_desc: bool | None = None,
+    is_timeseries: bool = False,
 ) -> dict[str, Any]:
     """Build one query entry for QueryContextFactory from form_data fields."""
     qd: dict[str, Any] = {"columns": columns, "metrics": metrics}
@@ -721,9 +722,15 @@ def _build_single_query_dict(
     # metric descending. buildQuery derives this on the frontend; translate
     # the flag here when there is no explicit ordering or a row_limit truncates
     # an unordered result (dropping the heaviest rows rather than the top-N).
+    viz_type = form_data.get("viz_type") or ""
+    is_temporal = (
+        is_timeseries
+        or viz_type == "mixed_timeseries"
+        or bool(form_data.get("granularity_sqla"))
+    )
     if form_data.get("sort_by_metric") and metrics and not qd.get("orderby"):
         qd["orderby"] = [(metrics[0], False)]
-    elif form_data.get("x_axis_sort") and not qd.get("orderby"):
+    elif not is_temporal and form_data.get("x_axis_sort") and not qd.get("orderby"):
         sort_col = form_data["x_axis_sort"]
         sort_asc = bool(form_data.get("x_axis_sort_asc", False))
         sort_target = _resolve_x_axis_sort_target(sort_col, metrics)
@@ -791,6 +798,7 @@ def _build_mixed_timeseries_secondary(
         metrics_b,
         row_limit=row_limit,
         order_desc=order_desc,
+        is_timeseries=True,
     )
     if time_range_b := form_data.get("time_range_b"):
         qd["time_range"] = time_range_b
@@ -890,6 +898,11 @@ def build_query_dicts_from_form_data(
         if x_axis_col and x_axis_col not in groupby:
             groupby = [x_axis_col] + groupby
 
+    is_temporal = bool(
+        form_data.get("granularity_sqla")
+        or form_data.get("time_grain_sqla")
+        or viz_type == "mixed_timeseries"
+    )
     queries = [
         _build_single_query_dict(
             form_data,
@@ -897,6 +910,7 @@ def build_query_dicts_from_form_data(
             metrics,
             row_limit=row_limit,
             order_desc=order_desc,
+            is_timeseries=is_temporal,
         )
     ]
     if viz_type == "mixed_timeseries":

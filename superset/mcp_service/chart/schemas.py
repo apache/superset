@@ -2373,9 +2373,9 @@ class XYChartConfig(BaseChartConfig):
         None,
         description=(
             "Sort specification for the chart. Accepts a SortByConfig object, "
-            "a bare column/metric name string (defaults to descending), or a "
-            "single-item list containing either. Multi-column sorting is not "
-            "supported for XY charts."
+            "a bare column/metric name string (defaults to descending), a "
+            "[column, ascending] pair, or a single-item list containing either. "
+            "Multi-column sorting is not supported for XY charts."
         ),
         validation_alias=AliasChoices(
             "sort_by", "x_axis_sort", "order_by", "order_by_cols"
@@ -2392,7 +2392,7 @@ class XYChartConfig(BaseChartConfig):
             if not v:
                 return None
             if len(v) == 2 and isinstance(v[0], str) and isinstance(v[1], bool):
-                return SortByConfig(column=v[0], ascending=v[1])
+                return _coerce_sort_item(v)
             if len(v) > 1:
                 raise ValueError("XY charts support only a single sort column")
             return _coerce_sort_item(v[0])
