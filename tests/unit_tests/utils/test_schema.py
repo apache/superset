@@ -125,5 +125,7 @@ def test_is_query_context_metadata_complete_accepts_empty_queries_list() -> None
         },  # datasource 'type' not a DatasourceType member
     ],
 )
-def test_is_query_context_metadata_complete_rejects_incomplete_values(value):
+def test_is_query_context_metadata_complete_rejects_incomplete_values(
+    value: object,
+) -> None:
     assert not is_query_context_metadata_complete(value)
