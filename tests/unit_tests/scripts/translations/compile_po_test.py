@@ -131,11 +131,11 @@ def test_convert_po_to_json_success(tmp_path: Path) -> None:
     po_file.write_text('msgid ""\nmsgstr ""\n')
 
     with patch.object(compile_po, "run", return_value=0) as mock_run:
-        ok = compile_po.convert_po_to_json(
+        json_dest = compile_po.convert_po_to_json(
             "/usr/bin/node", "/pkg/bin/po2json", str(po_file)
         )
 
-    assert ok is True
+    assert json_dest == str(po_file.with_suffix(".json"))
     mock_run.assert_called_once_with(
         [
             "/usr/bin/node",
@@ -154,8 +154,10 @@ def test_convert_po_to_json_success(tmp_path: Path) -> None:
 def test_convert_po_to_json_failure() -> None:
     """Reports failure when po2json returns non-zero."""
     with patch.object(compile_po, "run", return_value=1):
-        ok = compile_po.convert_po_to_json("/usr/bin/node", "/pkg/bin/po2json", "x.po")
-    assert ok is False
+        json_dest = compile_po.convert_po_to_json(
+            "/usr/bin/node", "/pkg/bin/po2json", "x.po"
+        )
+    assert json_dest is None
 
 
 def test_convert_po_to_json_preserves_locale_in_path(tmp_path: Path) -> None:
@@ -222,7 +224,7 @@ def test_main_reports_conversion_failures(tmp_path: Path) -> None:
         patch.object(compile_po.shutil, "which", return_value="/usr/bin/node"),
         patch.object(compile_po, "resolve_node_entry", return_value="/pkg/bin/x"),
         patch.object(compile_po, "TRANSLATIONS_DIR", str(tmp_path)),
-        patch.object(compile_po, "convert_po_to_json", return_value=False),
+        patch.object(compile_po, "convert_po_to_json", return_value=None),
         patch.object(compile_po, "run") as mock_run,
     ):
         assert compile_po.main() == 1
@@ -242,7 +244,7 @@ def test_main_runs_oxfmt_on_generated_json(tmp_path: Path) -> None:
         patch.object(compile_po.shutil, "which", return_value="/usr/bin/node"),
         patch.object(compile_po, "resolve_node_entry", return_value="/pkg/bin/x"),
         patch.object(compile_po, "TRANSLATIONS_DIR", str(tmp_path)),
-        patch.object(compile_po, "convert_po_to_json", return_value=True),
+        patch.object(compile_po, "convert_po_to_json", return_value=str(json_file)),
         patch.object(compile_po, "run", return_value=0) as mock_run,
     ):
         rc = compile_po.main()
@@ -255,18 +257,46 @@ def test_main_runs_oxfmt_on_generated_json(tmp_path: Path) -> None:
     assert str(json_file) in oxfmt_args
 
 
-def test_main_reports_oxfmt_failure(tmp_path: Path) -> None:
-    """Returns 1 when the oxfmt formatting step fails."""
+def test_main_does_not_format_unrelated_tracked_json(tmp_path: Path) -> None:
+    """Regression: oxfmt only runs on the .json this pass generated, not
+    every tracked .json under TRANSLATIONS_DIR -- a blanket glob would also
+    catch the checked-in empty_language_pack.json, which po2json.sh never
+    touched, and reformat it as a side effect."""
     po_file = tmp_path / "fr" / "LC_MESSAGES" / "messages.po"
     po_file.parent.mkdir(parents=True)
     po_file.touch()
-    po_file.with_suffix(".json").touch()
+    json_file = po_file.with_suffix(".json")
+    json_file.touch()
+    unrelated_json = tmp_path / "empty_language_pack.json"
+    unrelated_json.touch()
 
     with (
         patch.object(compile_po.shutil, "which", return_value="/usr/bin/node"),
         patch.object(compile_po, "resolve_node_entry", return_value="/pkg/bin/x"),
         patch.object(compile_po, "TRANSLATIONS_DIR", str(tmp_path)),
-        patch.object(compile_po, "convert_po_to_json", return_value=True),
+        patch.object(compile_po, "convert_po_to_json", return_value=str(json_file)),
+        patch.object(compile_po, "run", return_value=0) as mock_run,
+    ):
+        rc = compile_po.main()
+
+    assert rc == 0
+    oxfmt_args = mock_run.call_args.args[0]
+    assert str(unrelated_json) not in oxfmt_args
+
+
+def test_main_reports_oxfmt_failure(tmp_path: Path) -> None:
+    """Returns 1 when the oxfmt formatting step fails."""
+    po_file = tmp_path / "fr" / "LC_MESSAGES" / "messages.po"
+    po_file.parent.mkdir(parents=True)
+    po_file.touch()
+    json_file = po_file.with_suffix(".json")
+    json_file.touch()
+
+    with (
+        patch.object(compile_po.shutil, "which", return_value="/usr/bin/node"),
+        patch.object(compile_po, "resolve_node_entry", return_value="/pkg/bin/x"),
+        patch.object(compile_po, "TRANSLATIONS_DIR", str(tmp_path)),
+        patch.object(compile_po, "convert_po_to_json", return_value=str(json_file)),
         patch.object(compile_po, "run", return_value=1),
     ):
         assert compile_po.main() == 1

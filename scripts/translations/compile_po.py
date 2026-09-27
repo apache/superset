@@ -77,8 +77,11 @@ def run(command: list[str]) -> int:
     return subprocess.run(command, check=False).returncode  # noqa: S603
 
 
-def convert_po_to_json(node_bin: str, po2json_entry: str, po_file: str) -> bool:
-    """Convert one ``.po`` file to its sibling ``.json`` via ``po2json``."""
+def convert_po_to_json(node_bin: str, po2json_entry: str, po_file: str) -> str | None:
+    """Convert one ``.po`` file to its sibling ``.json`` via ``po2json``.
+
+    Returns the generated ``.json`` path on success, ``None`` on failure.
+    """
     json_dest = f"{os.path.splitext(po_file)[0]}.json"
     rc = run(
         [
@@ -93,7 +96,7 @@ def convert_po_to_json(node_bin: str, po2json_entry: str, po_file: str) -> bool:
             json_dest,
         ]
     )
-    return rc == 0
+    return json_dest if rc == 0 else None
 
 
 def main() -> int:
@@ -126,26 +129,31 @@ def main() -> int:
         glob.glob(os.path.join(TRANSLATIONS_DIR, "**", "*.po"), recursive=True)
     )
     print(f"Converting {len(po_files)} .po file(s) to .json...")
-    failed = [
-        po_file
-        for po_file in po_files
-        if not convert_po_to_json(node_bin, po2json_entry, po_file)
-    ]
+    json_files: list[str] = []
+    failed: list[str] = []
+    for po_file in po_files:
+        json_dest = convert_po_to_json(node_bin, po2json_entry, po_file)
+        if json_dest:
+            json_files.append(json_dest)
+        else:
+            failed.append(po_file)
     if failed:
         print(f"ERROR: {len(failed)} file(s) failed conversion:", file=sys.stderr)
         for po_file in failed:
             print(f"  - {po_file}", file=sys.stderr)
         return 1
 
-    json_files = glob.glob(
-        os.path.join(TRANSLATIONS_DIR, "**", "*.json"), recursive=True
-    )
     if json_files:
-        # messages.json is gitignored (generated output); oxfmt >=0.62 respects
-        # .gitignore even for explicitly-passed paths, so it would otherwise
-        # exit non-zero with "All matched files may have been excluded by
-        # ignore rules." Skip the format step for this file instead of
-        # failing (carried over from po2json.sh's identical workaround).
+        # Format only the files po2json just generated -- not every tracked
+        # ``.json`` under TRANSLATIONS_DIR (e.g. the committed
+        # empty_language_pack.json, which po2json.sh never touched either).
+        # Every generated file here is named messages.json, which
+        # "superset/translations/**/messages.json" gitignores; oxfmt >=0.62
+        # respects .gitignore even for explicitly-passed paths, so passing
+        # only these would otherwise exit non-zero with "All matched files
+        # may have been excluded by ignore rules." --no-error-on-unmatched-
+        # pattern tolerates that instead of failing (carried over from
+        # po2json.sh's identical per-file workaround).
         rc = run(
             [
                 node_bin,
