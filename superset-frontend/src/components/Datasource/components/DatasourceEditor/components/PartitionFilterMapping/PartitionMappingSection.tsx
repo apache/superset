@@ -29,6 +29,7 @@ import {
   Loading,
   Typography,
 } from '@superset-ui/core/components';
+import { useDebouncedCommit } from './useDebouncedCommit';
 import { usePartitionMappingPreview } from './usePartitionMappingPreview';
 import {
   partitionRowState,
@@ -75,13 +76,24 @@ export default function PartitionMappingSection({
   const columnName = item?.column_name ?? '';
   const state = partitionRowState(datasource, columnName);
   const isMonotonic = Boolean(item?.partition_transform_is_monotonic);
-  const transform = value ?? '';
   const isTemporal = Boolean(item?.is_dttm);
+
+  // The editor's commit path echoes the value back several renders later, so an
+  // input driven straight off `value` loses whatever is typed in the meantime.
+  const {
+    value: transform,
+    onChange: onTransformChange,
+    flush: flushTransform,
+  } = useDebouncedCommit(value, (next: string) => onChange?.(next || null));
 
   const { preview, loading } = usePartitionMappingPreview({
     datasetId: datasource.id,
     mappedColumn: columnName,
     partitionColumn: datasource.partition_column ?? '',
+    // The local value, not the committed one: a preview is a statement about
+    // the expression in the box. Keying it off the commit would stack the
+    // commit debounce, the round trip and the preview's own debounce, and show
+    // a predicate for text that is no longer on screen.
     valueTransform: transform,
     sampleValues: sampleValuesFor(item),
     operator: previewOperatorFor(item),
@@ -183,7 +195,12 @@ export default function PartitionMappingSection({
         </Flex>
         <Input
           value={transform}
-          onChange={event => onChange?.(event.target.value || null)}
+          onChange={event => onTransformChange(event.target.value)}
+          // The commit is debounced and DatasourceModal's `buildPayload` reads
+          // committed state only, so a finished edit has to be pushed out from
+          // here: clicking Save blurs this input before the click lands.
+          onBlur={flushTransform}
+          onPressEnter={flushTransform}
           placeholder={t('unix_timestamp(:value)')}
           aria-label={t('Value transform')}
           data-test="partition-value-transform"
