@@ -793,3 +793,104 @@ async def test_get_catalog_over_mcp_rejects_oversized_page(mcp_user: None) -> No
             await client.call_tool(
                 "get_catalog", {"request": {"asset_type": "charts", "page_size": 500}}
             )
+
+
+def test_catalog_documented_fields_match_schema() -> None:
+    """The discovery reference names actual catalog item fields."""
+    from pathlib import Path
+
+    doc = Path("docs/docs/using-superset/using-ai-with-superset.mdx").read_text()
+    row = next(line for line in doc.splitlines() if line.startswith("| `get_catalog`"))
+    fields = row.split("(")[1].split(")")[0].split(", ")
+    assert set(fields) <= set(CatalogItem.model_fields)
+
+
+def test_catalog_insert_between_count_and_page(
+    catalog_fixtures: SimpleNamespace, act_as: Any
+) -> None:
+    """An insertion after the count must not suppress the continuation cursor."""
+    from sqlalchemy.orm import Query
+
+    act_as(admin_role())
+    original_count = Query.count
+
+    def count_then_insert(query: Query) -> int:
+        """Insert a visible row after the DAO has counted the existing rows."""
+        count = original_count(query)
+        _add_datasets(catalog_fixtures.session, 1, start_id=3)
+        return count
+
+    with patch.object(Query, "count", count_then_insert):
+        first = _page("datasets", page_size=2)
+    assert [item.id for item in first.items] == [1, 2]
+    assert first.next_cursor is not None
+    last = _page("datasets", page_size=2, cursor=first.next_cursor)
+    assert [item.id for item in last.items] == [3]
+    assert last.next_cursor is None
+
+
+@pytest.mark.parametrize("character", ["x", "界"])
+def test_catalog_oversized_url_is_omitted(
+    catalog_fixtures: SimpleNamespace, act_as: Any, character: str
+) -> None:
+    """An oversized URL cannot break the byte bound or prevent page progress."""
+    act_as(admin_role())
+    with patch(
+        "superset.mcp_service.catalog.tool.get_catalog.get_superset_base_url",
+        return_value="https://example.org/" + character * CATALOG_MAX_RESPONSE_BYTES,
+    ):
+        first = _page("datasets", page_size=1)
+        assert first.items[0].url is None
+        assert first.truncated
+        assert (
+            len(first.model_dump_json().encode("utf-8")) <= CATALOG_MAX_RESPONSE_BYTES
+        )
+        assert first.next_cursor
+        last = _page("datasets", page_size=1, cursor=first.next_cursor)
+        assert [item.id for item in last.items] == [2]
+        assert last.next_cursor is None
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("rbac_enabled", [True, False])
+@pytest.mark.parametrize(
+    ("asset_type", "scope"),
+    [
+        ("datasets", "dataset"),
+        ("databases", "database"),
+        ("charts", "chart"),
+        ("dashboards", "dashboard"),
+    ],
+)
+async def test_catalog_resource_scope_over_mcp(
+    catalog_fixtures: SimpleNamespace,
+    act_as: Any,
+    mcp_user: None,
+    app: Any,
+    rbac_enabled: bool,
+    asset_type: str,
+    scope: str,
+) -> None:
+    """Resource-only tokens reach the manual check, which still gates each call."""
+    app.config["MCP_RBAC_ENABLED"] = rbac_enabled
+    role = act_as(gamma_with_table_a_grant())
+    with patch(
+        "superset.mcp_service.auth._get_token_scopes",
+        return_value={f"superset:{scope}:read"},
+    ):
+        async with Client(mcp) as client:
+            result = await client.call_tool(
+                "get_catalog", {"request": {"asset_type": asset_type}}
+            )
+            assert json.loads(result.content[0].text)["items"]
+            other_type = "charts" if asset_type != "charts" else "datasets"
+            with pytest.raises(ToolError):
+                await client.call_tool(
+                    "get_catalog", {"request": {"asset_type": other_type}}
+                )
+            if rbac_enabled:
+                role.permissions.clear()
+                with pytest.raises(ToolError):
+                    await client.call_tool(
+                        "get_catalog", {"request": {"asset_type": asset_type}}
+                    )

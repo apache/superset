@@ -50,11 +50,16 @@ from fastmcp import Context
 from superset_core.mcp.decorators import tool, ToolAnnotations
 
 from superset.extensions import event_logger
-from superset.mcp_service.auth import _token_scope_allows, MCPPermissionDeniedError
+from superset.mcp_service.auth import (
+    _token_scope_allows,
+    manual_class_permissions,
+    MCPPermissionDeniedError,
+)
 from superset.mcp_service.catalog.schemas import (
     CATALOG_MAX_DESCRIPTION_LENGTH,
     CATALOG_MAX_NAME_LENGTH,
     CATALOG_MAX_RESPONSE_BYTES,
+    CATALOG_MAX_URL_LENGTH,
     CatalogAssetType,
     CatalogItem,
     CatalogResponse,
@@ -269,6 +274,11 @@ def _to_item(spec: _AssetSpec, row: Any) -> tuple[CatalogItem, bool]:
         if spec.description_column
         else (None, False)
     )
+    url = spec.url(row)
+    url_cut = url is not None and len(url) > CATALOG_MAX_URL_LENGTH
+    # Omit oversized links instead of returning a shortened, unusable URL.
+    if url_cut:
+        url = None
     changed_on = row.changed_on
     uuid = row.uuid
     item = CatalogItem(
@@ -277,9 +287,9 @@ def _to_item(spec: _AssetSpec, row: Any) -> tuple[CatalogItem, bool]:
         name=name or "",
         description=description or None,
         changed_on=changed_on.isoformat() if isinstance(changed_on, datetime) else None,
-        url=spec.url(row),
+        url=url,
     )
-    return item, name_cut or description_cut
+    return item, name_cut or description_cut or url_cut
 
 
 def _response_size(response: CatalogResponse) -> int:
@@ -305,17 +315,19 @@ def _fetch_rows(
     column_operators = (
         [ColumnOperator(col="id", opr="gt", value=after_id)] if after_id else None
     )
-    rows, total_count = dao.list(
+    rows, _ = dao.list(
         column_operators=column_operators,
         order_column="id",
         order_direction="asc",
         page=0,
-        page_size=limit,
+        page_size=limit + 1,
         search=search,
         search_columns=[spec.name_column],
         columns=spec.columns,
     )
-    return list(rows), total_count > len(rows)
+    # The count and page are separate queries; only the page's lookahead row
+    # can determine whether to return a cursor when concurrent inserts occur.
+    return list(rows[:limit]), len(rows) > limit
 
 
 def build_catalog_page(request: GetCatalogRequest) -> CatalogResponse:
@@ -376,6 +388,7 @@ def build_catalog_page(request: GetCatalogRequest) -> CatalogResponse:
         openWorldHint=False,
     ),
 )
+@manual_class_permissions(*[spec.class_permission for spec in _ASSET_SPECS.values()])
 async def get_catalog(request: GetCatalogRequest, ctx: Context) -> CatalogResponse:
     """Compact, paged catalog of databases, datasets, charts or dashboards.
 

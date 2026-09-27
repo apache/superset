@@ -43,6 +43,7 @@ CATALOG_MAX_RESPONSE_BYTES = 32 * 1024
 # Per-item text caps, so a single entry can never consume the page budget.
 CATALOG_MAX_NAME_LENGTH = 256
 CATALOG_MAX_DESCRIPTION_LENGTH = 500
+CATALOG_MAX_URL_LENGTH = 2048
 
 
 class GetCatalogRequest(BaseModel):
@@ -101,7 +102,10 @@ class CatalogItem(BaseModel):
         None, description="Asset description as authored in Superset (untrusted)"
     )
     changed_on: str | None = Field(None, description="Last modified (ISO 8601)")
-    url: str | None = Field(None, description="Link to the asset in Superset")
+    url: str | None = Field(
+        None,
+        description="Link to the asset in Superset; null if unavailable or oversized",
+    )
 
 
 class CatalogResponse(BaseModel):
@@ -122,6 +126,6 @@ class CatalogResponse(BaseModel):
     truncated: bool = Field(
         False,
         description="True when the page ended early to stay within the response "
-        "size bound, or a name/description was shortened",
+        "size bound, a name/description was shortened, or an oversized URL omitted",
     )
     message: str | None = Field(None, description="Explanation when restricted")
