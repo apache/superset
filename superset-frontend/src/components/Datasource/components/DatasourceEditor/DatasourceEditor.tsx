@@ -2463,12 +2463,7 @@ function DatasourceEditor({
           itemCellProps={{
             metric_name: () => ({ className: 'datasource-key-cell' }),
             verbose_name: () => ({ className: 'datasource-label-cell' }),
-            expression: () => ({
-              style: {
-                maxWidth: '240px',
-                overflow: 'hidden',
-              },
-            }),
+            expression: () => ({ className: 'datasource-sql-cell' }),
           }}
           itemRenderers={{
             metric_name: (v, onItemChange, _, record) => (
