@@ -32,6 +32,8 @@ from superset.utils import json
 # leaving 100-199 bytes for incidental description edits. Do not recompute limits
 # at test time: they must catch schema growth. Large chart tools retain their
 # explicit delivery budgets, well below the sizes produced by reference inlining.
+# Bullet chart adds ~1.3 kB of irreducible schema (1,148 B floor with no descriptions);
+# budgets still catch reference inlining (~97 kB).
 TOOL_BUDGETS = {
     "add_chart_to_existing_dashboard": 1_500,
     "apply_dashboard_filters": 2_900,
@@ -44,9 +46,9 @@ TOOL_BUDGETS = {
     "execute_sql": 2_100,
     "find_users": 1_500,
     "generate_bug_report": 2_600,
-    "generate_chart": 50_000,
+    "generate_chart": 52_000,
     "generate_dashboard": 3_400,
-    "generate_explore_link": 50_000,
+    "generate_explore_link": 52_000,
     "get_annotation_layer_info": 1_000,
     "get_chart_data": 2_900,
     "get_chart_info": 3_600,
@@ -104,7 +106,7 @@ TOOL_BUDGETS = {
     "restore_chart": 1_100,
     "restore_dashboard": 1_000,
     "save_sql_query": 1_600,
-    "update_chart": 55_000,
+    "update_chart": 56_000,
     "update_chart_preview": 55_000,
     "update_dashboard": 4_100,
     "update_dataset_metric": 3_100,
