@@ -204,9 +204,8 @@ jobs:
     needs: changes
     if: needs.changes.outputs.python == 'true' || needs.changes.outputs.frontend == 'true'
     runs-on: ubuntu-26.04
-    # Embedded Tests below adds its own gunicorn boot + spec run on top of
-    # Required and Soft-delete; 30m was tight even for the two-step shadow
-    # job this replaced.
+    # Soft-delete, Embedded and Mobile each add their own gunicorn boot +
+    # spec run on top of the Required step.
     timeout-minutes: 40
     permissions:
       contents: read
@@ -381,6 +380,23 @@ jobs:
           INCLUDE_EMBEDDED: "true"
         with:
           run: playwright-run "${{ matrix.app_root }}" embedded
+      - name: Run Playwright (Mobile Tests)
+        # cached-dependencies is a submodule (not a plain directory), and
+        # the $/ self-repository syntax resolves action files directly from
+        # the repository without performing a real (submodule-aware)
+        # checkout, so it can't see into a submodule's link. Keep this one
+        # on the workspace-relative ./ form, consistent with every other
+        # workflow in the repo that references this action.
+        uses: ./.github/actions/cached-dependencies # zizmor: ignore[self-repository] - $/ cannot resolve an action that lives in a submodule; ./ is required here
+        env:
+          NODE_OPTIONS: "--max-old-space-size=4096"
+          # Scoped to this step for the same reason as Soft-delete and
+          # Embedded above: the mobile consumption mode flag must not alter
+          # Flask's configuration for the other steps' servers.
+          SUPERSET_FEATURE_MOBILE_CONSUMPTION_MODE: "true"
+          INCLUDE_MOBILE: "true"
+        with:
+          run: playwright-run "${{ matrix.app_root }}" mobile/
       - name: Set safe app root
         if: failure()
         id: set-safe-app-root
