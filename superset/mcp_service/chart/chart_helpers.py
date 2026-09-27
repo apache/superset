@@ -734,7 +734,13 @@ def _build_single_query_dict(
         sort_col = form_data["x_axis_sort"]
         sort_asc = bool(form_data.get("x_axis_sort_asc", False))
         sort_target = _resolve_x_axis_sort_target(sort_col, metrics)
-        qd["orderby"] = [(sort_target, sort_asc)]
+        col_labels = [
+            c if isinstance(c, str) else (c.get("label") or c.get("column_name"))
+            for c in columns
+            if isinstance(c, (str, dict))
+        ]
+        if sort_target in metrics or sort_target in col_labels:
+            qd["orderby"] = [(sort_target, sort_asc)]
     apply_form_data_filters_to_query(qd, form_data)
     return qd
 
@@ -899,9 +905,7 @@ def build_query_dicts_from_form_data(
             groupby = [x_axis_col] + groupby
 
     is_temporal = bool(
-        form_data.get("granularity_sqla")
-        or form_data.get("time_grain_sqla")
-        or viz_type == "mixed_timeseries"
+        form_data.get("granularity_sqla") or viz_type == "mixed_timeseries"
     )
     queries = [
         _build_single_query_dict(

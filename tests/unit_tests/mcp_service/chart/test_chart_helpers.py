@@ -1511,3 +1511,61 @@ def test_resolve_x_axis_sort_target_string_metric_case_insensitive() -> None:
     """
     resolved = _resolve_x_axis_sort_target("totalsales", ["TotalSales"])
     assert resolved == "TotalSales"
+
+
+def test_build_single_query_dict_x_axis_sort_ignores_unmatched_series_sort() -> None:
+    """
+    Verify _build_single_query_dict does not set orderby when x_axis_sort
+    contains a series-sort value (like 'sum' or 'max') that is neither
+    a metric nor a column, preventing 'Unknown column used in orderby: sum'.
+    """
+    metric = {
+        "label": "SUM(sales)",
+        "aggregate": "SUM",
+        "column": {"column_name": "sales"},
+    }
+    form_data = {
+        "x_axis_sort": "sum",
+        "x_axis_sort_asc": False,
+    }
+    qd = _build_single_query_dict(form_data, ["category"], [metric])
+    assert "orderby" not in qd
+
+    # Also test with 'max'
+    form_data_max = {
+        "x_axis_sort": "max",
+        "x_axis_sort_asc": True,
+    }
+    qd_max = _build_single_query_dict(form_data_max, ["category"], [metric])
+    assert "orderby" not in qd_max
+
+
+def test_build_query_dicts_from_form_data_xy_bar_explore_default_grain() -> None:
+    """
+    Verify explore default time_grain_sqla ('P1D') on categorical bar chart
+    (without granularity_sqla) does not cause x_axis_sort to be dropped.
+    """
+    metric = {
+        "label": "SUM(sales)",
+        "aggregate": "SUM",
+        "column": {"column_name": "sales"},
+    }
+    form_data = {
+        "viz_type": "echarts_timeseries_bar",
+        "x_axis": "category",
+        "time_grain_sqla": "P1D",
+        "metrics": [metric],
+        "x_axis_sort": "SUM(sales)",
+        "x_axis_sort_asc": False,
+    }
+    with patch(
+        "superset.mcp_service.chart.chart_helpers.resolve_datasource_engine",
+        return_value="base",
+    ):
+        queries = build_query_dicts_from_form_data(form_data, 1, "table")
+
+    assert len(queries) == 1
+    assert queries[0]["columns"] == ["category"]
+    assert queries[0]["metrics"] == [metric]
+    assert queries[0]["orderby"] == [(metric, False)]
+
