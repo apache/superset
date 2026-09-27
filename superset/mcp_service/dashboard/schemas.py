@@ -2452,11 +2452,11 @@ NewDashboardComponentSpec = Annotated[
 class DashboardComponentUpdateSpec(BaseModel):
     """Partial update for an existing markdown/header/divider component.
 
-    Only ``id`` is required; any other provided field is merged into the
-    existing component. Fields that only apply to one component type (e.g.
-    ``code`` for markdown, ``text``/``header_size`` for header) are rejected
-    when used against the wrong component type. A component's type cannot
-    be changed; remove and re-add instead.
+    ``id`` and at least one non-null update field are required. Provided
+    fields are merged into the existing component. Fields that only apply to
+    one component type (e.g. ``code`` for markdown, ``text``/``header_size``
+    for header) are rejected when used against the wrong component type.
+    A component's type cannot be changed; remove and re-add instead.
     """
 
     model_config = ConfigDict(extra="forbid")
@@ -2494,6 +2494,25 @@ class DashboardComponentUpdateSpec(BaseModel):
         if not sanitized:
             raise ValueError("text has no content left after sanitization.")
         return sanitized
+
+    @model_validator(mode="after")
+    def _require_update_field(self) -> "DashboardComponentUpdateSpec":
+        """Reject updates that cannot change any component metadata."""
+        if not any(
+            getattr(self, field) is not None
+            for field in (
+                "code",
+                "width",
+                "height",
+                "text",
+                "header_size",
+                "background",
+            )
+        ):
+            raise ValueError(
+                "At least one non-null update field besides id is required"
+            )
+        return self
 
 
 class DashboardComponentSummary(BaseModel):

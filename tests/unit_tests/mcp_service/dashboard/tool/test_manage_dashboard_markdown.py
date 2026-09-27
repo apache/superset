@@ -1059,3 +1059,41 @@ async def test_add_to_nested_tab(mcp_server: FastMCP, target_tab: str | None) ->
         target_id = "TAB-a" if target_tab is None else "TAB-nested"
         row_id = saved[component_id]["parents"][-1]
         assert row_id in saved[target_id]["children"]
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "fields",
+    [
+        {},
+        {"code": None},
+        {
+            "code": None,
+            "width": None,
+            "height": None,
+            "text": None,
+            "header_size": None,
+            "background": None,
+        },
+    ],
+)
+async def test_update_requires_non_null_field(
+    mcp_server: FastMCP, fields: dict[str, Any]
+) -> None:
+    """Empty updates fail validation before lookup or persistence."""
+    with (
+        patch(DAO_GET) as lookup,
+        patch("superset.extensions.db.session") as session,
+    ):
+        with pytest.raises(
+            ToolError, match="At least one non-null update field besides id is required"
+        ):
+            await _call(
+                mcp_server,
+                {
+                    "dashboard_id": 1,
+                    "update": [{"id": "MARKDOWN-existing1", **fields}],
+                },
+            )
+    lookup.assert_not_called()
+    session.commit.assert_not_called()

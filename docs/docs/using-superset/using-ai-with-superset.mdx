@@ -329,7 +329,8 @@ The response includes generated `added_component_ids` and a `components` summary
 Reuse those IDs in `update`, for example
 `{"id": "MARKDOWN-…", "code": "Revised notes"}`, or in `remove`, for example
 `["MARKDOWN-…"]`. Updates merge only supplied non-null fields and cannot change a
-component's type or placement. The reserved dashboard-title `HEADER_ID` is not a
+component's type or placement. Each update requires at least one non-null field
+besides `id`; ID-only or all-null updates are rejected. The reserved dashboard-title `HEADER_ID` is not a
 section header and cannot be changed through this tool.
 
 Operations in one request are validated before saving. Existing charts, native
