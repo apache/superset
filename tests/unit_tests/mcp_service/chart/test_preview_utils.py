@@ -340,3 +340,50 @@ def test_vega_preview_without_metrics_has_no_y_axis():
 
     assert encoding["x"]["field"] == "name"
     assert "y" not in encoding
+
+
+@pytest.mark.parametrize("value", ["ready", True, False])
+def test_vega_preview_y_axis_skips_nonnumeric_metrics(value: str | bool) -> None:
+    """Quantitative y encodings must not use string or boolean metrics."""
+    encoding = _vega_encoding(
+        [{"invalid": value, "revenue": 7}],
+        {"viz_type": "bar", "metrics": ["invalid", "revenue"]},
+    )
+
+    assert encoding["y"]["field"] == "revenue"
+
+
+@pytest.mark.parametrize("value", ["ready", True])
+def test_vega_preview_y_axis_omits_invalid_only_metric(value: str | bool) -> None:
+    """A matched invalid metric must not fall back to a numeric dimension."""
+    encoding = _vega_encoding(
+        [{"year": 2026, "total_status": value}],
+        {"viz_type": "bar", "x_axis": "year", "metrics": ["total_status"]},
+    )
+
+    assert "y" not in encoding
+
+
+@pytest.mark.parametrize(
+    "column,value", [("summary", "ready"), ("maximum_status", True)]
+)
+def test_vega_preview_y_axis_fallback_requires_numeric_value(
+    column: str, value: str | bool
+) -> None:
+    """Aggregation substrings do not make dimension values quantitative."""
+    encoding = _vega_encoding(
+        [{column: value, "revenue": 7}],
+        {"viz_type": "bar", "x_axis": column, "metrics": ["missing"]},
+    )
+
+    assert encoding["y"]["field"] == "revenue"
+
+
+def test_vega_preview_y_axis_preserves_null_metric() -> None:
+    """A null first metric value does not change the configured y field."""
+    encoding = _vega_encoding(
+        [{"year": 2026, "revenue": None}, {"year": 2027, "revenue": 7}],
+        {"viz_type": "bar", "x_axis": "year", "metrics": ["revenue"]},
+    )
+
+    assert encoding["y"]["field"] == "revenue"

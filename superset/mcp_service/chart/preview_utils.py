@@ -1260,24 +1260,25 @@ def generate_bubble_vega_lite_preview(
 def _resolve_y_metric_column(row: Dict[str, Any], metrics: List[Any]) -> Any:
     """Pick the y-axis column for a Vega-Lite preview.
 
-    Prefers the first chart metric whose result label is present in the row.
-    Falls back to a name/value heuristic only when no metric label matches.
-    Booleans are never treated as numeric in the fallback.
+    Prefers the first chart metric with a numeric or null result value.
+    Falls back to a numeric column only when no metric label matches.
+    Booleans are never treated as numeric.
     """
+    matched_metric = False
     for metric in metrics:
         label = metric_result_label(metric)
         if label is not None and label in row:
-            return label
+            matched_metric = True
+            value = row[label]
+            if value is None or (
+                isinstance(value, (int, float)) and not isinstance(value, bool)
+            ):
+                return label
 
-    for col in row.keys():
-        # Check if this is a metric column (usually has aggregation in name)
-        if any(
-            agg in str(col).upper()
-            for agg in ["SUM", "AVG", "COUNT", "MIN", "MAX", "TOTAL"]
-        ):
-            return col
-        # Or check if it's numeric (bool is a subclass of int, so exclude it)
-        value = row.get(col)
+    if matched_metric:
+        return None
+
+    for col, value in row.items():
         if isinstance(value, (int, float)) and not isinstance(value, bool):
             return col
     return None
