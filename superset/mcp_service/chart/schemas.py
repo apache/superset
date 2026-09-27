@@ -2591,10 +2591,8 @@ class XYChartConfig(BaseChartConfig):
     sort_by: SortByConfig | str | List[SortByConfig | str] | None = Field(
         None,
         description=(
-            "Sort specification for the chart. Accepts a SortByConfig object, "
-            "a bare column/metric name string (defaults to descending), a "
-            "[column, ascending] pair, or a single-item list containing either. "
-            "Multi-column sorting is not supported for XY charts."
+            "Sort by the x column or one y metric; a bare name sorts "
+            "descending, or pass [column, ascending]."
         ),
         validation_alias=AliasChoices(
             "sort_by", "x_axis_sort", "order_by", "order_by_cols"
