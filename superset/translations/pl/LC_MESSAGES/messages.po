@@ -1074,6 +1074,15 @@ msgid ""
 " bars that extend left and right from a central axis."
 msgstr ""
 
+msgid ""
+"A candlestick chart shows opening, closing, high, and low values for each"
+" period. It is commonly used for financial and other time-series range "
+"analysis."
+msgstr ""
+"Wykres świecowy pokazuje wartości otwarcia, zamknięcia, maksimum i minimum "
+"dla każdego okresu. Jest powszechnie używany do analiz finansowych i "
+"zakresów szeregów czasowych."
+
 #, fuzzy
 msgid "A comma separated list of columns that should be parsed as dates"
 msgstr "Kolumny do przetworzenia jako daty"
@@ -3450,6 +3459,19 @@ msgstr "Anuluj zapytanie podczas zdarzenia zamykania okna"
 msgid "Cancellation not available due to missing abort handler"
 msgstr "Anulowanie niedostępne z powodu braku procedury obsługi przerwania"
 
+msgid "Candlestick"
+msgstr "Świece"
+
+msgid "Candlestick Chart"
+msgstr "Wykres świecowy"
+
+msgid ""
+"Candlestick draws a filled body between open and close. OHLC draws ticks "
+"for open and close on a high-low stem."
+msgstr ""
+"Świece rysują wypełnione ciało między otwarciem a zamknięciem. OHLC rysuje "
+"znaczniki otwarcia i zamknięcia na trzonie maksimum–minimum."
+
 msgid "Cannot access the query"
 msgstr "Nie można uzyskać dostępu do zapytania"
 
@@ -3911,6 +3933,13 @@ msgid ""
 "is accessible."
 msgstr ""
 
+#, python-format
+msgid ""
+"Chart with ID %(chart_id)s (referenced by annotation layer "
+"'%(layer_name)s') was not found. Please verify that the chart exists and "
+"is accessible."
+msgstr ""
+
 msgid "Charts"
 msgstr "Wykresy"
 
@@ -4292,6 +4321,9 @@ msgstr "Zamknij zakładkę"
 msgid "Close version history"
 msgstr ""
 
+msgid "Closing value for each period."
+msgstr "Wartość zamknięcia dla każdego okresu."
+
 msgid "Cluster label aggregator"
 msgstr "Agregator etykiet klastrów"
 
@@ -4393,6 +4425,9 @@ msgstr "Punkty przerwania segmentów"
 msgid "Color by"
 msgstr "Koloruj po"
 
+msgid "Color by direction"
+msgstr "Kolor według kierunku"
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
 #, fuzzy
@@ -4422,6 +4457,15 @@ msgstr "Kolor lokalizacji celu"
 
 msgid "Color scheme"
 msgstr "Schemat kolorów"
+
+msgid ""
+"Color used when the close value is greater than or equal to the open "
+"value."
+msgstr ""
+"Kolor, gdy wartość zamknięcia jest większa lub równa wartości otwarcia."
+
+msgid "Color used when the close value is less than the open value."
+msgstr "Kolor, gdy wartość zamknięcia jest mniejsza niż wartość otwarcia."
 
 msgid ""
 "Color will be shaded based the normalized (0% to 100%) value of a given "
@@ -8487,6 +8531,9 @@ msgstr ""
 "filtr (department = 'Finance' OR department = 'Marketing') AND (region = "
 "'Europe')."
 
+msgid "Financial"
+msgstr ""
+
 #, fuzzy
 msgid "Find"
 msgstr "Znajdź"
@@ -9066,8 +9113,14 @@ msgstr "Ukrywa linię dla serii czasowej"
 msgid "Hierarchy"
 msgstr "Hierarchia"
 
+msgid "High"
+msgstr ""
+
 msgid "High color"
 msgstr ""
+
+msgid "Highest value for each period."
+msgstr "Najwyższa wartość dla każdego okresu."
 
 msgid "Histogram"
 msgstr "Histogram"
@@ -9850,6 +9903,12 @@ msgstr "Linia etykiety"
 msgid "Label threshold"
 msgstr "Próg etykiety"
 
+msgid "Label used for decreasing candles in the tooltip."
+msgstr "Etykieta spadających świec w podpowiedzi."
+
+msgid "Label used for increasing candles in the tooltip."
+msgstr "Etykieta rosnących świec w podpowiedzi."
+
 msgid "Labelling"
 msgstr "Etykietowanie"
 
@@ -10365,6 +10424,9 @@ msgstr "Długość i szerokość geograficzna"
 msgid "Longitude of default viewport"
 msgstr "Długość geograficzna domyślnego widoku"
 
+msgid "Low"
+msgstr ""
+
 msgid "Low color"
 msgstr ""
 
@@ -10378,6 +10440,9 @@ msgstr ""
 
 msgid "Lower threshold must be lower than upper threshold"
 msgstr "Niższy próg musi być niższy niż wyższy próg"
+
+msgid "Lowest value for each period."
+msgstr "Najniższa wartość dla każdego okresu."
 
 msgid "MAR"
 msgstr "MAR"
@@ -11041,6 +11106,9 @@ msgstr ""
 msgid "Moves the given set of dates by a specified interval."
 msgstr "Przesuwa podany zestaw dat o określony przedział."
 
+msgid "Moving averages"
+msgstr "Średnie kroczące"
+
 #, fuzzy
 msgid "Multi-Dimensions"
 msgstr "Wielowymiarowy"
@@ -11158,6 +11226,13 @@ msgstr "Nazwa węzłów docelowych"
 #, fuzzy
 msgid "Name of your tag"
 msgstr "Nazwij swoją bazę danych"
+
+msgid ""
+"Name used for the candlestick series in the legend and tooltip when no "
+"series dimension is set."
+msgstr ""
+"Nazwa serii świecowej w legendzie i podpowiedzi, gdy nie ustawiono wymiaru "
+"serii."
 
 msgid "Name your database"
 msgstr "Nazwij swoją bazę danych"
@@ -11722,6 +11797,9 @@ msgstr "Podstawowe informacje"
 msgid "OCT"
 msgstr "PAŹ"
 
+msgid "OHLC"
+msgstr "OHLC"
+
 msgid "OK"
 msgstr "OK"
 
@@ -11883,6 +11961,9 @@ msgstr ""
 msgid "Opacity, expects values between 0 and 100"
 msgstr "Przezroczystość, oczekiwane wartości od 0 do 100"
 
+msgid "Open"
+msgstr ""
+
 msgid "Open Datasource tab"
 msgstr "Otwórz kartę Źródło danych"
 
@@ -11919,6 +12000,9 @@ msgstr "Otwórz w SQL Lab"
 msgid "Open query in SQL Lab"
 msgstr "Otwórz zapytanie w SQL Lab"
 
+msgid "Opening value for each period."
+msgstr "Wartość otwarcia dla każdego okresu."
+
 msgid ""
 "Operate the database in asynchronous mode, meaning that the queries are "
 "executed on remote workers as opposed to on the web server itself. This "
@@ -11949,6 +12033,11 @@ msgstr "Opcjonalny format daty d3"
 
 msgid "Optional d3 number format string"
 msgstr "Opcjonalny format liczby d3"
+
+msgid ""
+"Optional dimension used to split the chart into multiple candlestick "
+"series."
+msgstr "Opcjonalny wymiar dzielący wykres na wiele serii świecowych."
 
 msgid ""
 "Optional metric used to scale the size of each dot. Dot areas are scaled "
@@ -12080,6 +12169,13 @@ msgstr ""
 "czasu”, aby przesunąć zakres porównania o tę samą długość, co zakres "
 "czasu, lub użyj „Niestandardowy”, aby ustawić niestandardowy zakres "
 "porównania."
+
+msgid ""
+"Overlay simple moving averages of the close price (MA5, MA10, MA15, ...)."
+" Type a custom period to add it."
+msgstr ""
+"Nałóż proste średnie kroczące ceny zamknięcia (MA5, MA10, MA15, ...). "
+"Wpisz własny okres, aby go dodać."
 
 msgid ""
 "Overlays a hexagonal grid on a map, and aggregates data within the "
@@ -15048,6 +15144,9 @@ msgstr "Styl serii"
 msgid "Series chart type (line, bar etc)"
 msgstr "Typ wykresu serii (linia, słupki itp.)"
 
+msgid "Series colors"
+msgstr "Kolory serii"
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
 # lv, ro, ru, sk, sr, sr_Latn, tr, uk]
 #, fuzzy
@@ -15063,9 +15162,15 @@ msgstr "Ustawienie wzrostu serii"
 msgid "Series limit"
 msgstr "Ograniczenie serii"
 
+msgid "Series name"
+msgstr "Nazwa serii"
+
 #, fuzzy
 msgid "Series settings"
 msgstr "Ustawienia filtru"
+
+msgid "Series style"
+msgstr "Styl serii"
 
 #, fuzzy
 msgid "Series total setting"
@@ -15446,6 +15551,9 @@ msgid ""
 msgstr ""
 
 msgid "Show or hide the X axis line, ticks, and labels"
+msgstr ""
+
+msgid "Show or hide the Y axis line and labels"
 msgstr ""
 
 msgid "Show or hide the Y axis line, ticks, gridlines, and labels"
@@ -17502,6 +17610,13 @@ msgid "The query contains one or more malformed template parameters."
 msgstr "Zapytanie zawiera jeden lub więcej źle sformułowanych parametrów szablonu."
 
 msgid "The query context datasource does not match the chart datasource"
+msgstr ""
+
+#, python-format
+msgid ""
+"The query context for chart ID %(chart_id)s (referenced by annotation "
+"layer '%(layer_name)s') was not found. Please ensure the chart is "
+"properly configured and has a valid query context."
 msgstr ""
 
 #, python-format
@@ -20588,6 +20703,15 @@ msgstr ""
 msgid "When checked, the map will zoom to your data after each query"
 msgstr "Po zaznaczeniu mapa będzie przybliżać do danych po każdym zapytaniu."
 
+msgid ""
+"When enabled, increasing candles use the increase color and decreasing "
+"candles use the decrease color. Turn off to use one series color, with a "
+"filled body for increases and a hollow body for decreases."
+msgstr ""
+"Po włączeniu rosnące świece używają koloru wzrostu, a spadające koloru "
+"spadku. Wyłącz, aby użyć jednego koloru serii: wypełnione ciało przy "
+"wzroście i puste przy spadku."
+
 #, fuzzy
 msgid ""
 "When enabled, the axis will display labels for the minimum and maximum "
@@ -21480,6 +21604,18 @@ msgid ""
 "SUPERSET_DASHBOARD_POSITION_DATA_LIMIT config setting."
 msgstr ""
 
+msgid ""
+"Your export is being generated and will download automatically when "
+"ready. We'll also email you a download link."
+msgstr ""
+
+msgid "Your export is being generated. Please, do not leave the page."
+msgstr ""
+
+msgid "Your export is ready and downloading."
+msgstr ""
+
+msgid "Your export is taking longer than expected. Try again later."
 msgid ""
 "Your export is being generated and will download automatically when "
 "ready. We'll also email you a download link."

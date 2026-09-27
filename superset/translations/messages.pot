@@ -2731,6 +2731,17 @@ msgstr ""
 msgid "Cancellation not available due to missing abort handler"
 msgstr ""
 
+msgid "Candlestick"
+msgstr ""
+
+msgid "Candlestick Chart"
+msgstr ""
+
+msgid ""
+"Candlestick draws a filled body between open and close. OHLC draws ticks "
+"for open and close on a high-low stem."
+msgstr ""
+
 msgid "Cannot access the query"
 msgstr ""
 
@@ -3410,6 +3421,9 @@ msgstr ""
 msgid "Close version history"
 msgstr ""
 
+msgid "Closing value for each period."
+msgstr ""
+
 msgid "Cluster label aggregator"
 msgstr ""
 
@@ -3489,6 +3503,9 @@ msgid "Color breakpoints"
 msgstr ""
 
 msgid "Color by"
+msgstr ""
+
+msgid "Color by direction"
 msgstr ""
 
 msgid "Color field must be a hex color (#rrggbb) or 'rgb(r, g, b)'"
@@ -7098,7 +7115,13 @@ msgstr ""
 msgid "Hierarchy"
 msgstr ""
 
+msgid "High"
+msgstr ""
+
 msgid "High color"
+msgstr ""
+
+msgid "Highest value for each period."
 msgstr ""
 
 msgid "Histogram"
@@ -7739,6 +7762,12 @@ msgstr ""
 msgid "Label threshold"
 msgstr ""
 
+msgid "Label used for decreasing candles in the tooltip."
+msgstr ""
+
+msgid "Label used for increasing candles in the tooltip."
+msgstr ""
+
 msgid "Labelling"
 msgstr ""
 
@@ -8174,6 +8203,9 @@ msgstr ""
 msgid "Longitude of default viewport"
 msgstr ""
 
+msgid "Low"
+msgstr ""
+
 msgid "Low color"
 msgstr ""
 
@@ -8184,6 +8216,9 @@ msgid "Lower bound of the color scale. When both start and end are set, the lege
 msgstr ""
 
 msgid "Lower threshold must be lower than upper threshold"
+msgstr ""
+
+msgid "Lowest value for each period."
 msgstr ""
 
 msgid "MAR"
@@ -8712,6 +8747,9 @@ msgstr ""
 msgid "Moves the given set of dates by a specified interval."
 msgstr ""
 
+msgid "Moving averages"
+msgstr ""
+
 msgid "Multi-Dimensions"
 msgstr ""
 
@@ -8808,6 +8846,11 @@ msgid "Name of the target nodes"
 msgstr ""
 
 msgid "Name of your tag"
+msgstr ""
+
+msgid ""
+"Name used for the candlestick series in the legend and tooltip when no "
+"series dimension is set."
 msgstr ""
 
 msgid "Name your database"
@@ -9289,6 +9332,9 @@ msgstr ""
 msgid "OCT"
 msgstr ""
 
+msgid "OHLC"
+msgstr ""
+
 msgid "OK"
 msgstr ""
 
@@ -9417,6 +9463,9 @@ msgid "Opacity of bubbles, 0 means completely transparent, 1 means opaque"
 msgstr ""
 
 msgid "Opacity, expects values between 0 and 100"
+msgstr ""
+
+msgid "Open"
 msgstr ""
 
 msgid "Open Datasource tab"
@@ -11883,6 +11932,9 @@ msgstr ""
 msgid "Series chart type (line, bar etc)"
 msgstr ""
 
+msgid "Series colors"
+msgstr ""
+
 msgid "Series decrease setting"
 msgstr ""
 
@@ -11892,7 +11944,13 @@ msgstr ""
 msgid "Series limit"
 msgstr ""
 
+msgid "Series name"
+msgstr ""
+
 msgid "Series settings"
+msgstr ""
+
+msgid "Series style"
 msgstr ""
 
 msgid "Series total setting"
@@ -12174,6 +12232,9 @@ msgid "Show only the N most recent periods, from 1 up to the number of periods i
 msgstr ""
 
 msgid "Show or hide the X axis line, ticks, and labels"
+msgstr ""
+
+msgid "Show or hide the Y axis line and labels"
 msgstr ""
 
 msgid "Show or hide the Y axis line, ticks, gridlines, and labels"

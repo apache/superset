@@ -1045,6 +1045,15 @@ msgid ""
 " bars that extend left and right from a central axis."
 msgstr ""
 
+msgid ""
+"A candlestick chart shows opening, closing, high, and low values for each"
+" period. It is commonly used for financial and other time-series range "
+"analysis."
+msgstr ""
+"Svíčkový graf zobrazuje otevírací, uzavírací, nejvyšší a nejnižší hodnoty "
+"za každé období. Běžně se používá pro finanční a jinou analýzu rozpětí "
+"časových řad."
+
 #, fuzzy
 msgid "A comma separated list of columns that should be parsed as dates"
 msgstr "Čárkami oddělený seznam sloupců, které se mají zpracovat jako data"
@@ -3272,6 +3281,19 @@ msgstr "Zrušit dotaz při události uvolnění okna"
 msgid "Cancellation not available due to missing abort handler"
 msgstr "Zrušení není dostupné z důvodu chybějícího obslužného programu přerušení"
 
+msgid "Candlestick"
+msgstr "Svíčkový graf"
+
+msgid "Candlestick Chart"
+msgstr "Svíčkový graf"
+
+msgid ""
+"Candlestick draws a filled body between open and close. OHLC draws ticks "
+"for open and close on a high-low stem."
+msgstr ""
+"Svíčky kreslí vyplněné tělo mezi otevřením a uzavřením. OHLC kreslí značky "
+"otevření a uzavření na stonku maximum–minimum."
+
 msgid "Cannot access the query"
 msgstr "Nelze přistoupit k dotazu"
 
@@ -3698,6 +3720,13 @@ msgid ""
 "is accessible."
 msgstr ""
 
+#, python-format
+msgid ""
+"Chart with ID %(chart_id)s (referenced by annotation layer "
+"'%(layer_name)s') was not found. Please verify that the chart exists and "
+"is accessible."
+msgstr ""
+
 msgid "Charts"
 msgstr "Grafy"
 
@@ -4035,6 +4064,9 @@ msgstr "Zavřít kartu"
 msgid "Close version history"
 msgstr ""
 
+msgid "Closing value for each period."
+msgstr "Uzavírací hodnota za každé období."
+
 msgid "Cluster label aggregator"
 msgstr "Agregátor popisků shluků"
 
@@ -4129,6 +4161,9 @@ msgstr "Hranice barev"
 msgid "Color by"
 msgstr "Barva podle"
 
+msgid "Color by direction"
+msgstr "Barva podle směru"
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
 #, fuzzy
@@ -4157,6 +4192,14 @@ msgstr "Barva cílového umístění"
 
 msgid "Color scheme"
 msgstr "Barevné schéma"
+
+msgid ""
+"Color used when the close value is greater than or equal to the open "
+"value."
+msgstr "Barva, pokud je uzavírací hodnota větší nebo rovna otevírací."
+
+msgid "Color used when the close value is less than the open value."
+msgstr "Barva, pokud je uzavírací hodnota menší než otevírací."
 
 msgid ""
 "Color will be shaded based the normalized (0% to 100%) value of a given "
@@ -7848,6 +7891,9 @@ msgstr ""
 "filtru by použila filtr (department = 'Finance' OR department = "
 "'Marketing') AND (region = 'Europe')."
 
+msgid "Financial"
+msgstr ""
+
 msgid "Find"
 msgstr "Najít"
 
@@ -8348,8 +8394,14 @@ msgstr "Skryje čáru pro časovou řadu"
 msgid "Hierarchy"
 msgstr "Hierarchie"
 
+msgid "High"
+msgstr ""
+
 msgid "High color"
 msgstr ""
+
+msgid "Highest value for each period."
+msgstr "Nejvyšší hodnota za každé období."
 
 msgid "Histogram"
 msgstr "Histogram"
@@ -9081,6 +9133,12 @@ msgstr "Jednotka velikosti popisku"
 msgid "Label threshold"
 msgstr "Prahová hodnota popisku"
 
+msgid "Label used for decreasing candles in the tooltip."
+msgstr "Popisek klesajících svíček v tooltipu."
+
+msgid "Label used for increasing candles in the tooltip."
+msgstr "Popisek rostoucích svíček v tooltipu."
+
 msgid "Labelling"
 msgstr "Označování"
 
@@ -9567,6 +9625,9 @@ msgstr "Zeměpisná délka a šířka"
 msgid "Longitude of default viewport"
 msgstr "Zeměpisná délka výchozího zobrazení"
 
+msgid "Low"
+msgstr ""
+
 msgid "Low color"
 msgstr ""
 
@@ -9580,6 +9641,9 @@ msgstr ""
 
 msgid "Lower threshold must be lower than upper threshold"
 msgstr "Dolní práh musí být nižší než horní práh"
+
+msgid "Lowest value for each period."
+msgstr "Nejnižší hodnota za každé období."
 
 msgid "MAR"
 msgstr "BŘE"
@@ -10194,6 +10258,9 @@ msgstr ""
 msgid "Moves the given set of dates by a specified interval."
 msgstr "Posune danou sadu dat o zadaný interval."
 
+msgid "Moving averages"
+msgstr "Klouzavé průměry"
+
 msgid "Multi-Dimensions"
 msgstr "Více dimenzí"
 
@@ -10303,6 +10370,12 @@ msgstr "Název cílových uzlů"
 
 msgid "Name of your tag"
 msgstr "Název vaší značky"
+
+msgid ""
+"Name used for the candlestick series in the legend and tooltip when no "
+"series dimension is set."
+msgstr ""
+"Název svíčkové řady v legendě a popisku, pokud není nastavena dimenze řady."
 
 msgid "Name your database"
 msgstr "Pojmenujte svou databázi"
@@ -10833,6 +10906,9 @@ msgstr "Informace o OAuth2 klientovi"
 msgid "OCT"
 msgstr "ŘÍJ"
 
+msgid "OHLC"
+msgstr "OHLC"
+
 msgid "OK"
 msgstr "OK"
 
@@ -10988,6 +11064,9 @@ msgstr "Neprůhlednost bublin, 0 znamená zcela průhledné, 1 znamená neprůhl
 msgid "Opacity, expects values between 0 and 100"
 msgstr "Neprůhlednost, očekává hodnoty mezi 0 a 100"
 
+msgid "Open"
+msgstr ""
+
 msgid "Open Datasource tab"
 msgstr "Otevřít kartu Zdroje dat"
 
@@ -11024,6 +11103,9 @@ msgstr "Otevřít v SQL Labu"
 msgid "Open query in SQL Lab"
 msgstr "Otevřít dotaz v SQL Labu"
 
+msgid "Opening value for each period."
+msgstr "Otevírací hodnota za každé období."
+
 msgid ""
 "Operate the database in asynchronous mode, meaning that the queries are "
 "executed on remote workers as opposed to on the web server itself. This "
@@ -11054,6 +11136,11 @@ msgstr "Volitelný řetězec formátu data d3"
 
 msgid "Optional d3 number format string"
 msgstr "Volitelný řetězec formátu čísla d3"
+
+msgid ""
+"Optional dimension used to split the chart into multiple candlestick "
+"series."
+msgstr "Volitelná dimenze, která rozdělí graf na více svíčkových řad."
 
 msgid ""
 "Optional metric used to scale the size of each dot. Dot areas are scaled "
@@ -11179,6 +11266,13 @@ msgstr ""
 "posunutí porovnávacího časového rozsahu o stejnou délku jako váš časový "
 "rozsah a použijte „Vlastní“ pro nastavení vlastního porovnávacího "
 "rozsahu."
+
+msgid ""
+"Overlay simple moving averages of the close price (MA5, MA10, MA15, ...)."
+" Type a custom period to add it."
+msgstr ""
+"Překryjte jednoduché klouzavé průměry uzavírací ceny (MA5, MA10, MA15, "
+"...). Vlastní období zadejte pro jeho přidání."
 
 msgid ""
 "Overlays a hexagonal grid on a map, and aggregates data within the "
@@ -13895,6 +13989,9 @@ msgstr "Styl série"
 msgid "Series chart type (line, bar etc)"
 msgstr "Typ grafu série (spojnicový, sloupcový atd.)"
 
+msgid "Series colors"
+msgstr "Barvy série"
+
 msgid "Series decrease setting"
 msgstr "Nastavení snížení série"
 
@@ -13904,9 +14001,15 @@ msgstr "Nastavení zvýšení série"
 msgid "Series limit"
 msgstr "Limit sérií"
 
+msgid "Series name"
+msgstr "Název série"
+
 #, fuzzy
 msgid "Series settings"
 msgstr "Nastavení sérií"
+
+msgid "Series style"
+msgstr "Styl série"
 
 #, fuzzy
 msgid "Series total setting"
@@ -14238,6 +14341,9 @@ msgid ""
 msgstr ""
 
 msgid "Show or hide the X axis line, ticks, and labels"
+msgstr ""
+
+msgid "Show or hide the Y axis line and labels"
 msgstr ""
 
 msgid "Show or hide the Y axis line, ticks, gridlines, and labels"
@@ -16098,6 +16204,13 @@ msgid "The query contains one or more malformed template parameters."
 msgstr "Dotaz obsahuje jeden nebo více chybně formátovaných parametrů šablony."
 
 msgid "The query context datasource does not match the chart datasource"
+msgstr ""
+
+#, python-format
+msgid ""
+"The query context for chart ID %(chart_id)s (referenced by annotation "
+"layer '%(layer_name)s') was not found. Please ensure the chart is "
+"properly configured and has a valid query context."
 msgstr ""
 
 #, python-format
@@ -18935,6 +19048,15 @@ msgid "When checked, the map will zoom to your data after each query"
 msgstr "Když je zaškrtnuto, mapa se po každém dotazu přiblíží k vašim datům"
 
 msgid ""
+"When enabled, increasing candles use the increase color and decreasing "
+"candles use the decrease color. Turn off to use one series color, with a "
+"filled body for increases and a hollow body for decreases."
+msgstr ""
+"Je-li zapnuto, rostoucí svíčky používají barvu růstu a klesající barvu "
+"poklesu. Vypněte pro jednu barvu řady: vyplněné tělo při růstu a prázdné "
+"při poklesu."
+
+msgid ""
 "When enabled, the axis will display labels for the minimum and maximum "
 "values of your data"
 msgstr ""
@@ -19764,6 +19886,18 @@ msgid ""
 "SUPERSET_DASHBOARD_POSITION_DATA_LIMIT config setting."
 msgstr ""
 
+msgid ""
+"Your export is being generated and will download automatically when "
+"ready. We'll also email you a download link."
+msgstr ""
+
+msgid "Your export is being generated. Please, do not leave the page."
+msgstr ""
+
+msgid "Your export is ready and downloading."
+msgstr ""
+
+msgid "Your export is taking longer than expected. Try again later."
 msgid ""
 "Your export is being generated and will download automatically when "
 "ready. We'll also email you a download link."

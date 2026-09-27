@@ -29,7 +29,7 @@ import {
   getNumberFormatter,
   getTimeFormatter,
   getTimeFormatterForGranularity,
-  normalizeCurrency,
+  resolveDetectedCurrency,
   NumberFormats,
   QueryMode,
   SMART_DATE_ID,
@@ -155,6 +155,7 @@ const getComparisonColFormatter = (
   columnConfig: Record<string, TableColumnConfig>,
   savedFormat: string | undefined,
   savedCurrency: Currency | undefined,
+  resolveCurrency: (currency: Currency | undefined) => Currency | undefined,
 ) => {
   const currentColConfig = getComparisonColConfig(
     label,
@@ -169,7 +170,9 @@ const getComparisonColFormatter = (
   if (label === '%') {
     formatter = getNumberFormatter(currentColNumberFormat || PERCENT_3_POINT);
   } else if (currentColNumberFormat || hasCurrency) {
-    const currency = currentColConfig.currencyFormat || savedCurrency;
+    const currency = resolveCurrency(
+      currentColConfig.currencyFormat || savedCurrency,
+    );
     const numberFormat = currentColNumberFormat || savedFormat;
     formatter = currency
       ? new CurrencyFormatter({
@@ -262,9 +265,19 @@ const processComparisonColumns = (
 ) =>
   columns.flatMap(col => {
     const {
-      datasource: { columnFormats, currencyFormats },
+      datasource: { columnFormats, currencyFormats, currencyCodeColumn },
       rawFormData: { column_config: columnConfig = {} },
+      queriesData,
     } = props;
+    const { detected_currency: detectedCurrency, colnames } =
+      queriesData[0] || {};
+    const resolveCurrency = (currency: Currency | undefined) =>
+      resolveDetectedCurrency(
+        currency,
+        detectedCurrency,
+        currencyCodeColumn,
+        colnames,
+      );
     const savedFormat = columnFormats?.[col.key];
     const savedCurrency = currencyFormats?.[col.key];
     const originalLabel = col.label;
@@ -287,6 +300,7 @@ const processComparisonColumns = (
             columnConfig,
             savedFormat,
             savedCurrency,
+            resolveCurrency,
           ),
         },
         {
@@ -302,6 +316,7 @@ const processComparisonColumns = (
             columnConfig,
             savedFormat,
             savedCurrency,
+            resolveCurrency,
           ),
         },
         {
@@ -317,6 +332,7 @@ const processComparisonColumns = (
             columnConfig,
             savedFormat,
             savedCurrency,
+            resolveCurrency,
           ),
         },
         {
@@ -332,6 +348,7 @@ const processComparisonColumns = (
             columnConfig,
             savedFormat,
             savedCurrency,
+            resolveCurrency,
           ),
         },
       ];
@@ -485,21 +502,12 @@ const processColumns = memoizePerChart(function processColumns(
         // percent metrics have a default format
         formatter = getNumberFormatter(numberFormat || PERCENT_3_POINT);
       } else if (isMetric || (isNumber && (numberFormat || currency))) {
-        // Resolve AUTO currency when currency column isn't in query results
-        let resolvedCurrency = currency;
-        if (
-          currency?.symbol === 'AUTO' &&
-          detectedCurrency &&
-          (!currencyCodeColumn || !colnames?.includes(currencyCodeColumn))
-        ) {
-          const normalizedCurrency = normalizeCurrency(detectedCurrency);
-          if (normalizedCurrency) {
-            resolvedCurrency = {
-              ...currency,
-              symbol: normalizedCurrency,
-            };
-          }
-        }
+        const resolvedCurrency = resolveDetectedCurrency(
+          currency,
+          detectedCurrency,
+          currencyCodeColumn,
+          colnames,
+        );
         formatter = resolvedCurrency?.symbol
           ? new CurrencyFormatter({
               d3Format: numberFormat,
