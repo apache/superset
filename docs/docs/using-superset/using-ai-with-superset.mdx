@@ -316,9 +316,12 @@ The caller needs Dashboard write permission and editorship of the dashboard.
 
 Markdown tiles are appended in their own rows; headers and dividers are appended
 directly to the grid or tab. Each addition can specify `target_tab` by name or
-component ID (available from `get_dashboard_layout`). Without it, additions use
-the first tab, or the grid on dashboards without tabs. Markdown width is 1–12
-columns (default 4); height is in 8-pixel grid units (default 50).
+component ID (available from `get_dashboard_layout`), including nested tabs.
+Without it, additions use the first top-level tab, or the grid on dashboards
+without top-level tabs. Markdown width is 1–12 columns (default 4); height is in
+8-pixel grid units (default 50). Width updates
+must fit the space remaining beside other components in the same 12-column row;
+otherwise, the error reports the available width.
 
 The response includes generated `added_component_ids` and a `components` summary.
 Reuse those IDs in `update`, for example

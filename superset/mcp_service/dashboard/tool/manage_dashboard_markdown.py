@@ -34,11 +34,12 @@ from sqlalchemy.exc import SQLAlchemyError
 from superset_core.mcp.decorators import tool, ToolAnnotations
 
 from superset.extensions import db, event_logger
-from superset.mcp_service.dashboard.constants import generate_id
+from superset.mcp_service.dashboard.constants import generate_id, GRID_COLUMN_COUNT
 from superset.mcp_service.dashboard.layout_placement import (
     _collect_available_tab_names,
     _ensure_layout_structure,
     _find_next_row_position,
+    _find_parent_key,
     _find_tab_insert_target,
     _remove_component_and_prune,
 )
@@ -201,6 +202,26 @@ def _apply_component_update(  # noqa: C901
     node["meta"] = meta
 
 
+def _validate_markdown_width(
+    layout: Dict[str, Any], component_id: str, width: int
+) -> None:
+    """Reject a resize that exceeds the space left by the row's siblings."""
+    parent_id = _find_parent_key(layout, component_id)
+    parent = layout.get(parent_id) if parent_id is not None else None
+    if not parent or parent.get("type") != "ROW":
+        return
+    sibling_width = sum(
+        (layout[child_id].get("meta") or {}).get("width", 0)
+        for child_id in parent.get("children", [])
+        if child_id != component_id
+    )
+    if width > (available_width := max(0, GRID_COLUMN_COUNT - sibling_width)):
+        raise _ComponentOperationError(
+            f"Cannot resize component '{component_id}' to width {width}: "
+            f"available width in row '{parent_id}' is {available_width} columns."
+        )
+
+
 def _apply_updates(
     layout: Dict[str, Any],
     updates: list[DashboardComponentUpdateSpec],
@@ -221,6 +242,8 @@ def _apply_updates(
                 "divider component on this dashboard."
             )
         component_type = _COMPONENT_TYPE_BY_LAYOUT_TYPE[node["type"]]
+        if component_type == "markdown" and spec.width is not None:
+            _validate_markdown_width(layout, spec.id, spec.width)
         _apply_component_update(spec, layout[spec.id], component_type)
 
     return update_ids

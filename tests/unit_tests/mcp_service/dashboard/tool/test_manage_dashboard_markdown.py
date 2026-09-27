@@ -906,3 +906,97 @@ async def test_database_failure_reports_commit_outcome(
         assert data["error"] is None
         assert len(data["added_component_ids"]) == 1
         session.rollback.assert_not_called()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("width", [3, 4, 5, 12])
+async def test_markdown_resize_respects_row_capacity(
+    mcp_server: FastMCP, width: int
+) -> None:
+    """Count chart siblings and reject overflow without persisting any edits."""
+    layout = _grid_layout_with_existing_components()
+    layout["ROW-existing1"]["children"].append("CHART-1")
+    layout["CHART-1"] = {
+        "id": "CHART-1",
+        "type": "CHART",
+        "children": [],
+        "meta": {"chartId": 1, "width": 8, "height": 50},
+    }
+    # Placement must be read from children, not stale parent metadata.
+    layout["MARKDOWN-existing1"]["parents"] = []
+    dashboard = _mock_dashboard(layout=layout, chart_ids=[1])
+    original = dashboard.position_json
+    with (
+        patch(DAO_GET, return_value=dashboard),
+        patch("superset.extensions.db.session") as session,
+    ):
+        data = await _call(
+            mcp_server,
+            {
+                "dashboard_id": 1,
+                "update": [
+                    {"id": "HEADER-existing1", "text": "Changed"},
+                    {"id": "MARKDOWN-existing1", "width": width},
+                ],
+            },
+        )
+    if width > 4:
+        assert "available width" in data["error"]
+        assert "4 columns" in data["error"]
+        assert dashboard.position_json == original
+        session.commit.assert_not_called()
+    else:
+        assert data["error"] is None
+        saved = json.loads(dashboard.position_json)
+        assert saved["MARKDOWN-existing1"]["meta"]["width"] == width
+        session.commit.assert_called_once()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("target_tab", ["Nested", "TAB-nested", "missing", None])
+async def test_add_to_nested_tab(mcp_server: FastMCP, target_tab: str | None) -> None:
+    """Resolve nested targets, list them on errors, and retain the default tab."""
+    layout = _tabbed_layout()
+    layout["TAB-a"]["children"] = ["TABS-nested"]
+    layout["TABS-nested"] = {
+        "id": "TABS-nested",
+        "type": "TABS",
+        "children": ["TAB-nested"],
+        "meta": {},
+    }
+    layout["TAB-nested"] = {
+        "id": "TAB-nested",
+        "type": "TAB",
+        "children": [],
+        "meta": {"text": "Nested"},
+    }
+    dashboard = _mock_dashboard(layout=layout)
+    original = dashboard.position_json
+    with (
+        patch(DAO_GET, return_value=dashboard),
+        patch("superset.extensions.db.session") as session,
+    ):
+        data = await _call(
+            mcp_server,
+            {
+                "dashboard_id": 1,
+                "add": [
+                    {
+                        "component_type": "markdown",
+                        "code": "Nested notes",
+                        "target_tab": target_tab,
+                    }
+                ],
+            },
+        )
+    if target_tab == "missing":
+        assert "Nested (TAB-nested)" in data["error"]
+        assert dashboard.position_json == original
+        session.commit.assert_not_called()
+    else:
+        assert data["error"] is None
+        saved = json.loads(dashboard.position_json)
+        component_id = data["added_component_ids"][0]
+        target_id = "TAB-a" if target_tab is None else "TAB-nested"
+        row_id = saved[component_id]["parents"][-1]
+        assert row_id in saved[target_id]["children"]

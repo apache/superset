@@ -18,11 +18,14 @@
 """Regression tests for emoji-insensitive dashboard tab matching."""
 
 import sys
+from typing import Any
 
 import pytest
 
 from superset.mcp_service.dashboard.layout_placement import (
+    _collect_available_tab_names,
     _EMOJI_RE,
+    _find_tab_insert_target,
     _normalize_tab_text,
 )
 
@@ -69,3 +72,30 @@ def test_emoji_ranges_match_only_documented_code_points() -> None:
 def test_normalize_tab_text(text: str | None, expected: str) -> None:
     """Strip intended emoji while preserving ordinary labels and punctuation."""
     assert _normalize_tab_text(text) == expected
+
+
+@pytest.mark.parametrize("parent_type", ["TAB", "COLUMN"])
+def test_nested_tab_matching_at_any_depth(parent_type: str) -> None:
+    """Find nested tabs without changing default or top-level match priority."""
+    layout: dict[str, Any] = {
+        "ROOT_ID": {"children": ["GRID_ID"]},
+        "GRID_ID": {"children": ["container", "TABS-top"]},
+        "container": {"type": parent_type, "children": ["TABS-nested"]},
+        "TABS-top": {"type": "TABS", "children": ["TAB-top"]},
+        "TAB-top": {"type": "TAB", "meta": {"text": "Shared"}},
+        "TABS-nested": {"type": "TABS", "children": ["TAB-nested", "TAB-shared"]},
+        "TAB-nested": {"type": "TAB", "meta": {"text": "📊 Nested"}},
+        "TAB-shared": {"type": "TAB", "meta": {"text": "Shared"}},
+    }
+    assert _find_tab_insert_target(layout) == "TAB-top"
+    assert _find_tab_insert_target(layout, "Shared") == "TAB-top"
+    assert _find_tab_insert_target(layout, "nested") == "TAB-nested"
+    assert _find_tab_insert_target(layout, "TAB-nested") == "TAB-nested"
+    assert _collect_available_tab_names(layout) == [
+        "Shared (TAB-top)",
+        "📊 Nested (TAB-nested)",
+        "Shared (TAB-shared)",
+    ]
+    layout["GRID_ID"]["children"].remove("TABS-top")
+    assert _find_tab_insert_target(layout) is None
+    assert _find_tab_insert_target(layout, "nested") == "TAB-nested"

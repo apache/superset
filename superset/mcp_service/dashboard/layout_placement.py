@@ -26,6 +26,7 @@ without duplicating the tab-matching logic.
 """
 
 import re
+from collections import deque
 from typing import Any, Dict
 
 from superset.mcp_service.dashboard.constants import generate_id
@@ -155,24 +156,37 @@ def _match_tab_in_children(
     return None
 
 
-def _collect_tabs_groups(layout: Dict[str, Any]) -> list[list[str]]:
-    """Collect all TABS groups from ROOT_ID and GRID_ID children.
+def _collect_tabs_groups(
+    layout: Dict[str, Any], *, include_nested: bool = True
+) -> list[list[str]]:
+    """Collect reachable TABS groups, with ROOT/GRID groups taking precedence.
 
-    Superset dashboards can place TABS under either ROOT_ID or GRID_ID
-    depending on how the layout was constructed.
+    Traverse children rather than trusting parent metadata. The non-recursive
+    mode preserves the default insertion target for callers without target_tab.
     """
     groups: list[list[str]] = []
-    for parent_key in ("ROOT_ID", "GRID_ID"):
+    pending = deque(["ROOT_ID", "GRID_ID"])
+    visited: set[str] = set()
+    collected: set[str] = set()
+    while pending:
+        parent_key = pending.popleft()
+        if parent_key in visited:
+            continue
+        visited.add(parent_key)
         parent = layout.get(parent_key)
-        if not parent:
+        if not isinstance(parent, dict):
             continue
         for child_id in parent.get("children", []):
             child = layout.get(child_id)
-            if not child or child.get("type") != "TABS":
+            if not isinstance(child, dict):
                 continue
-            tabs_children = child.get("children", [])
-            if tabs_children:
-                groups.append(tabs_children)
+            if include_nested:
+                pending.append(child_id)
+            if child.get("type") == "TABS" and child_id not in collected:
+                collected.add(child_id)
+                tabs_children = child.get("children", [])
+                if tabs_children:
+                    groups.append(tabs_children)
     return groups
 
 
@@ -223,7 +237,7 @@ def _find_tab_insert_target(
     Returns:
         The ID of the matched (or first) TAB component, or ``None``.
     """
-    groups = _collect_tabs_groups(layout)
+    groups = _collect_tabs_groups(layout, include_nested=target_tab is not None)
 
     if target_tab is not None:
         for tabs_children in groups:
