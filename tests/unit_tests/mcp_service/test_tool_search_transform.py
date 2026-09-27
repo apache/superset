@@ -389,7 +389,7 @@ def test_truncate_description_cuts_at_sentence():
     assert result == "First sentence. Second sentence."
 
 
-def test_truncate_description_without_sentence_boundary():
+def test_truncate_description_without_sentence_boundary() -> None:
     """Omit prose rather than advertising a partial instruction."""
     text = "A very long single sentence without periods that goes on and on"
     result = _truncate_description(text, 30)
@@ -401,7 +401,7 @@ def test_truncate_description_empty():
     assert _truncate_description("", 300) == ""
 
 
-def test_truncate_description_zero_max():
+def test_truncate_description_zero_max() -> None:
     """No prose remains when schema instructions consume the entire budget."""
     text = "Some text"
     result = _truncate_description(text, 0)
