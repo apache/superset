@@ -499,6 +499,29 @@ def test_rounding_matches_d3_binary_half_up(
 @pytest.mark.parametrize(
     "d3_format,value,expected",
     [
+        # d3 hides the sign when a negative value rounds to zero, unless "+"
+        (",.2f", -0.001, "0.00"),
+        ("(,.2f", -0.001, "0.00"),
+        ("$,.2f", -0.004, "$0.00"),
+        (".1%", -0.0001, "0.0%"),
+        (",d", -0.4, "0"),
+        (" ,.2f", -0.001, " 0.00"),
+        ("+,.2f", -0.001, "-0.00"),
+        # values that do not round to zero keep their sign
+        (",.2f", -1.234, "-1.23"),
+        ("(,.2f", -1.234, "(1.23)"),
+        ("+,.2f", 1.234, "+1.23"),
+    ],
+)
+def test_negative_value_that_rounds_to_zero_matches_d3(
+    d3_format: str, value: float, expected: str
+) -> None:
+    assert format_number_with_config(d3_format, None, value) == expected
+
+
+@pytest.mark.parametrize(
+    "d3_format,value,expected",
+    [
         ("~g", 0.00005, "0.00005"),
         ("~g", 0.000005, "0.000005"),
         (".0s", 4725, "5k"),

@@ -327,18 +327,39 @@ def apply_sign(formatted: str, value: float, sign_mode: str) -> str:
 
     Negative values get a leading ``-`` (or wrapping parentheses for the ``(``
     accounting mode); positive values get a ``+`` or a leading space only for the
-    ``+`` and space modes respectively. Mirrors the sign decoration in
+    ``+`` and space modes respectively. A negative value whose formatted
+    magnitude is zero drops that sign unless the specifier requests an explicit
+    positive sign (``+``), matching the zero-rounding rule in
     ``d3-format/src/locale.js``.
 
     :return: the signed or accounting-decorated string
     """
-    if value < 0:
+    negative = value < 0
+    if negative and sign_mode != "+" and _formatted_magnitude_is_zero(formatted):
+        negative = False
+    if negative:
         return f"({formatted})" if sign_mode == "(" else f"-{formatted}"
     if sign_mode == "+":
         return f"+{formatted}"
     if sign_mode == " ":
         return f" {formatted}"
     return formatted
+
+
+def _formatted_magnitude_is_zero(formatted: str) -> bool:
+    """
+    Return whether an unsigned formatted magnitude is numerically zero.
+
+    Mirrors d3-format's ``+value === 0`` check, which runs on the formatted
+    digits before the sign is applied. A leading currency marker, grouping
+    commas, and a trailing percent sign are ignored so ``$0.00`` and ``0.0%``
+    count as zero.
+    """
+    numeric = formatted.replace(",", "").removeprefix("$").removesuffix("%")
+    try:
+        return float(numeric) == 0.0
+    except ValueError:
+        return False
 
 
 def format_default(value: float, comma: str) -> str:
