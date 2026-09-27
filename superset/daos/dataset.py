@@ -423,10 +423,22 @@ class DatasetDAO(BaseDAO[SqlaTable]):
         cls,
         item: SqlaTable | None = None,
         attributes: dict[str, Any] | None = None,
+        *,
+        preserve_existing_metrics: bool = False,
+        delete_metric_ids: set[int] | None = None,
     ) -> SqlaTable:
         """
-        Updates a Dataset model on the metadata DB
+        Updates a Dataset model on the metadata DB.
+
+        delete_metric_ids removes only explicitly selected metrics, without
+        replacing or replaying the remaining metrics.
         """
+
+        if item and delete_metric_ids:
+            for metric in item.metrics:
+                if metric.id in delete_metric_ids:
+                    db.session.delete(metric)
+            attributes = {**(attributes or {}), "changed_on": datetime.now()}
 
         if item and attributes:
             force_update: bool = False
@@ -439,7 +451,11 @@ class DatasetDAO(BaseDAO[SqlaTable]):
                 force_update = True
 
             if "metrics" in attributes:
-                cls.update_metrics(item, attributes.pop("metrics"))
+                metrics = attributes.pop("metrics")
+                if preserve_existing_metrics:
+                    cls.update_metrics(item, metrics, preserve_existing=True)
+                else:
+                    cls.update_metrics(item, metrics)
                 force_update = True
 
             if force_update:
@@ -584,6 +600,8 @@ class DatasetDAO(BaseDAO[SqlaTable]):
         cls,
         model: SqlaTable,
         property_metrics: list[dict[str, Any]],
+        *,
+        preserve_existing: bool = False,
     ) -> None:
         """
         Creates/updates and/or deletes a list of metrics, based on a
@@ -592,7 +610,7 @@ class DatasetDAO(BaseDAO[SqlaTable]):
         - If a metric Dict has an `id` property then we update.
         - If a metric Dict does not have an `id` then we create a new metric.
         - If there are extra metrics on the metadata db that are not defined on the List
-        then we delete.
+        then we delete, unless preserve_existing is set.
 
         Uses individual ORM operations (not bulk) so that SQLAlchemy-Continuum
         can capture each row change in the version history.
@@ -616,6 +634,10 @@ class DatasetDAO(BaseDAO[SqlaTable]):
             metric = metrics_by_id[properties["id"]]
             for key, value in properties.items():
                 setattr(metric, key, value)
+
+        # Additive mutations must not delete metrics absent from their payload.
+        if preserve_existing:
+            return
 
         # Delete removed metrics
         ids_to_keep = property_metrics_by_id.keys()
