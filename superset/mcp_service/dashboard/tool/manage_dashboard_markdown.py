@@ -36,12 +36,12 @@ from superset_core.mcp.decorators import tool, ToolAnnotations
 from superset.extensions import db, event_logger
 from superset.mcp_service.dashboard.constants import generate_id, GRID_COLUMN_COUNT
 from superset.mcp_service.dashboard.layout_placement import (
-    _collect_available_tab_names,
-    _ensure_layout_structure,
-    _find_next_row_position,
-    _find_parent_key,
-    _find_tab_insert_target,
-    _remove_component_and_prune,
+    collect_available_tab_names,
+    ensure_layout_structure,
+    find_next_row_position,
+    find_parent_key,
+    find_tab_insert_target,
+    remove_component_and_prune,
 )
 from superset.mcp_service.dashboard.layout_validation import (
     rebuild_parent_chains,
@@ -105,10 +105,10 @@ def _resolve_target_container(layout: Dict[str, Any], target_tab: str | None) ->
     does not match any tab, listing the available tabs (or noting there are
     none) so the caller can retry unambiguously.
     """
-    tab_target = _find_tab_insert_target(layout, target_tab=target_tab)
+    tab_target = find_tab_insert_target(layout, target_tab=target_tab)
 
     if target_tab is not None and tab_target is None:
-        available = _collect_available_tab_names(layout)
+        available = collect_available_tab_names(layout)
         if available:
             raise _ComponentOperationError(
                 f"Tab '{target_tab}' not found. Available tabs: {', '.join(available)}."
@@ -145,7 +145,7 @@ def _add_component_to_layout(
     }
 
     if layout_type in _ROW_WRAPPED_LAYOUT_TYPES:
-        row_key = _find_next_row_position(layout)
+        row_key = find_next_row_position(layout)
         layout[row_key] = {
             "id": row_key,
             "type": "ROW",
@@ -153,9 +153,9 @@ def _add_component_to_layout(
             "meta": {"background": "BACKGROUND_TRANSPARENT"},
             "parents": [],
         }
-        _ensure_layout_structure(layout, row_key, parent_id)
+        ensure_layout_structure(layout, row_key, parent_id)
     else:
-        _ensure_layout_structure(layout, component_id, parent_id)
+        ensure_layout_structure(layout, component_id, parent_id)
 
     return component_id
 
@@ -206,7 +206,7 @@ def _validate_markdown_width(
     layout: Dict[str, Any], component_id: str, width: int
 ) -> None:
     """Reject a resize that exceeds the space left by the row's siblings."""
-    parent_id = _find_parent_key(layout, component_id)
+    parent_id = find_parent_key(layout, component_id)
     parent = layout.get(parent_id) if parent_id is not None else None
     if not parent or parent.get("type") != "ROW":
         return
@@ -378,7 +378,7 @@ def manage_dashboard_markdown(  # noqa: C901
             try:
                 # Validate resizes against siblings retained by this request.
                 for component_id in request.remove:
-                    _remove_component_and_prune(current_layout, component_id)
+                    remove_component_and_prune(current_layout, component_id)
 
                 updated_ids = _apply_updates(
                     current_layout, request.update, existing_components

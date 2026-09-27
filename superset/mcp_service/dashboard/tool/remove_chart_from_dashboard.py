@@ -36,7 +36,7 @@ from superset_core.mcp.decorators import tool, ToolAnnotations
 from superset.commands.exceptions import CommandException, ForbiddenError
 from superset.extensions import event_logger
 from superset.mcp_service.dashboard.layout_placement import (
-    _remove_component_and_prune,
+    remove_component_and_prune,
 )
 from superset.mcp_service.dashboard.layout_validation import (
     normalize_chart_id,
@@ -79,7 +79,7 @@ def _remove_chart_from_layout(layout: Dict[str, Any], chart_id: int) -> list[str
     for chart_key in _find_chart_keys(layout, chart_id):
         # The chart key may already be gone if it shared a pruned container.
         if chart_key in layout:
-            removed.extend(_remove_component_and_prune(layout, chart_key))
+            removed.extend(remove_component_and_prune(layout, chart_key))
     return removed
 
 

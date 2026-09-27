@@ -278,13 +278,14 @@ async def test_add_divider_placed_directly_under_grid(mcp_server: FastMCP) -> No
 
 @pytest.mark.asyncio
 async def test_add_multiple_components_in_request_order(mcp_server: FastMCP) -> None:
-    dashboard = _mock_dashboard()
+    """Add each requested component type in a single batch."""
+    dashboard: Mock = _mock_dashboard()
 
     with (
         patch(DAO_GET, return_value=dashboard),
         patch("superset.extensions.db.session"),
     ):
-        data = await _call(
+        data: dict[str, Any] = await _call(
             mcp_server,
             {
                 "dashboard_id": 1,
@@ -298,19 +299,20 @@ async def test_add_multiple_components_in_request_order(mcp_server: FastMCP) -> 
 
     assert data["error"] is None
     assert len(data["added_component_ids"]) == 3
-    types = [c["component_type"] for c in data["components"]]
+    types: list[str] = [c["component_type"] for c in data["components"]]
     assert set(types) == {"header", "markdown", "divider"}
 
 
 @pytest.mark.asyncio
 async def test_add_to_target_tab_by_name(mcp_server: FastMCP) -> None:
-    dashboard = _mock_dashboard(layout=_tabbed_layout())
+    """Place a header only in the tab matching the requested name."""
+    dashboard: Mock = _mock_dashboard(layout=_tabbed_layout())
 
     with (
         patch(DAO_GET, return_value=dashboard),
         patch("superset.extensions.db.session"),
     ):
-        data = await _call(
+        data: dict[str, Any] = await _call(
             mcp_server,
             {
                 "dashboard_id": 1,
@@ -325,8 +327,8 @@ async def test_add_to_target_tab_by_name(mcp_server: FastMCP) -> None:
         )
 
     assert data["error"] is None
-    header_id = data["added_component_ids"][0]
-    saved_layout = json.loads(dashboard.position_json)
+    header_id: str = data["added_component_ids"][0]
+    saved_layout: dict[str, Any] = json.loads(dashboard.position_json)
     assert header_id in saved_layout["TAB-b"]["children"]
     assert header_id not in saved_layout["TAB-a"]["children"]
 
@@ -335,13 +337,14 @@ async def test_add_to_target_tab_by_name(mcp_server: FastMCP) -> None:
 async def test_add_target_tab_not_found_lists_available_tabs(
     mcp_server: FastMCP,
 ) -> None:
-    dashboard = _mock_dashboard(layout=_tabbed_layout())
+    """Report available tabs when the requested tab does not exist."""
+    dashboard: Mock = _mock_dashboard(layout=_tabbed_layout())
 
     with (
         patch(DAO_GET, return_value=dashboard),
         patch("superset.extensions.db.session"),
     ):
-        data = await _call(
+        data: dict[str, Any] = await _call(
             mcp_server,
             {
                 "dashboard_id": 1,
@@ -361,13 +364,14 @@ async def test_add_target_tab_not_found_lists_available_tabs(
 
 @pytest.mark.asyncio
 async def test_add_target_tab_on_dashboard_without_tabs(mcp_server: FastMCP) -> None:
-    dashboard = _mock_dashboard()
+    """Reject a named tab target when the dashboard has no tabs."""
+    dashboard: Mock = _mock_dashboard()
 
     with (
         patch(DAO_GET, return_value=dashboard),
         patch("superset.extensions.db.session"),
     ):
-        data = await _call(
+        data: dict[str, Any] = await _call(
             mcp_server,
             {
                 "dashboard_id": 1,

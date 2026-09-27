@@ -23,10 +23,10 @@ from typing import Any
 import pytest
 
 from superset.mcp_service.dashboard.layout_placement import (
-    _collect_available_tab_names,
     _EMOJI_RE,
-    _find_tab_insert_target,
     _normalize_tab_text,
+    collect_available_tab_names,
+    find_tab_insert_target,
 )
 
 
@@ -87,15 +87,15 @@ def test_nested_tab_matching_at_any_depth(parent_type: str) -> None:
         "TAB-nested": {"type": "TAB", "meta": {"text": "📊 Nested"}},
         "TAB-shared": {"type": "TAB", "meta": {"text": "Shared"}},
     }
-    assert _find_tab_insert_target(layout) == "TAB-top"
-    assert _find_tab_insert_target(layout, "Shared") == "TAB-top"
-    assert _find_tab_insert_target(layout, "nested") == "TAB-nested"
-    assert _find_tab_insert_target(layout, "TAB-nested") == "TAB-nested"
-    assert _collect_available_tab_names(layout) == [
+    assert find_tab_insert_target(layout) == "TAB-top"
+    assert find_tab_insert_target(layout, "Shared") == "TAB-top"
+    assert find_tab_insert_target(layout, "nested") == "TAB-nested"
+    assert find_tab_insert_target(layout, "TAB-nested") == "TAB-nested"
+    assert collect_available_tab_names(layout) == [
         "Shared (TAB-top)",
         "📊 Nested (TAB-nested)",
         "Shared (TAB-shared)",
     ]
     layout["GRID_ID"]["children"].remove("TABS-top")
-    assert _find_tab_insert_target(layout) is None
-    assert _find_tab_insert_target(layout, "nested") == "TAB-nested"
+    assert find_tab_insert_target(layout) is None
+    assert find_tab_insert_target(layout, "nested") == "TAB-nested"

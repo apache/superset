@@ -36,10 +36,10 @@ from superset.mcp_service.dashboard.constants import (
     GRID_DEFAULT_CHART_WIDTH,
 )
 from superset.mcp_service.dashboard.layout_placement import (
-    _collect_available_tab_names,
-    _ensure_layout_structure,
-    _find_next_row_position,
-    _find_tab_insert_target,
+    collect_available_tab_names,
+    ensure_layout_structure,
+    find_next_row_position,
+    find_tab_insert_target,
 )
 from superset.mcp_service.dashboard.layout_validation import rebuild_parent_chains
 from superset.mcp_service.dashboard.schemas import (
@@ -135,10 +135,10 @@ def _resolve_parent_container(
     When *target_tab* is specified and not found the caller receives a
     descriptive error listing available tabs rather than a silent fallback.
     """
-    tab_target = _find_tab_insert_target(layout, target_tab=target_tab)
+    tab_target = find_tab_insert_target(layout, target_tab=target_tab)
 
     if target_tab is not None and tab_target is None:
-        available = _collect_available_tab_names(layout)
+        available = collect_available_tab_names(layout)
         if available:
             tab_list = ", ".join(available)
             return None, AddChartToDashboardResponse(
@@ -291,7 +291,7 @@ def add_chart_to_existing_dashboard(  # noqa: C901 — complexity is structural 
                 current_layout = {}
 
             # Generate a unique ROW ID for the new row
-            row_key = _find_next_row_position(current_layout)
+            row_key = find_next_row_position(current_layout)
 
             # Detect tabbed dashboards and resolve target_tab by name or ID.
             parent_id, tab_error = _resolve_parent_container(
@@ -310,7 +310,7 @@ def add_chart_to_existing_dashboard(  # noqa: C901 — complexity is structural 
             )
 
             # Ensure proper layout structure
-            _ensure_layout_structure(current_layout, row_key, parent_id)
+            ensure_layout_structure(current_layout, row_key, parent_id)
 
             # The new row/column/chart nodes were added with empty
             # ``parents`` (see ``_add_chart_to_layout``); rebuild every

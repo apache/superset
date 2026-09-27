@@ -54,7 +54,7 @@ _EMOJI_RE = re.compile(
 _PRUNABLE_TYPES = ("ROW", "COLUMN")
 
 
-def _find_parent_key(layout: Dict[str, Any], component_key: str) -> str | None:
+def find_parent_key(layout: Dict[str, Any], component_key: str) -> str | None:
     """Find the component whose children list contains *component_key*.
 
     The reverse lookup scans children lists instead of trusting the
@@ -70,9 +70,7 @@ def _find_parent_key(layout: Dict[str, Any], component_key: str) -> str | None:
     return None
 
 
-def _remove_component_and_prune(
-    layout: Dict[str, Any], component_key: str
-) -> list[str]:
+def remove_component_and_prune(layout: Dict[str, Any], component_key: str) -> list[str]:
     """Remove *component_key* from the layout and prune empty containers.
 
     Walks up the parent chain deleting ROW/COLUMN containers that become
@@ -80,7 +78,7 @@ def _remove_component_and_prune(
     behind. Returns the list of removed layout keys.
     """
     removed: list[str] = []
-    parent_key = _find_parent_key(layout, component_key)
+    parent_key = find_parent_key(layout, component_key)
 
     layout.pop(component_key, None)
     removed.append(component_key)
@@ -94,7 +92,7 @@ def _remove_component_and_prune(
         if isinstance(children, list):
             parent["children"] = [c for c in children if c != child_key]
         if parent.get("type") in _PRUNABLE_TYPES and not parent.get("children"):
-            grandparent_key = _find_parent_key(layout, parent_key)
+            grandparent_key = find_parent_key(layout, parent_key)
             layout.pop(parent_key, None)
             removed.append(parent_key)
             child_key = parent_key
@@ -105,7 +103,7 @@ def _remove_component_and_prune(
     return removed
 
 
-def _find_next_row_position(layout: Dict[str, Any]) -> str:
+def find_next_row_position(layout: Dict[str, Any]) -> str:
     """
     Generate a unique ROW ID for a new row in the dashboard layout.
 
@@ -202,7 +200,7 @@ def _first_tab_from_groups(
     return None
 
 
-def _collect_available_tab_names(layout: Dict[str, Any]) -> list[str]:
+def collect_available_tab_names(layout: Dict[str, Any]) -> list[str]:
     """Collect display entries (label + component ID) for all TAB components.
 
     Always includes the component ID so callers can retry unambiguously even
@@ -219,7 +217,7 @@ def _collect_available_tab_names(layout: Dict[str, Any]) -> list[str]:
     return entries
 
 
-def _find_tab_insert_target(
+def find_tab_insert_target(
     layout: Dict[str, Any], target_tab: str | None = None
 ) -> str | None:
     """
@@ -250,7 +248,7 @@ def _find_tab_insert_target(
     return _first_tab_from_groups(layout, groups)
 
 
-def _ensure_layout_structure(
+def ensure_layout_structure(
     layout: Dict[str, Any], component_key: str, parent_id: str
 ) -> None:
     """
