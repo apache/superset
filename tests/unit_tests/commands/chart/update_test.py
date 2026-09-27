@@ -34,6 +34,7 @@ from superset.commands.exceptions import (
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetSecurityException
 from superset.models.slice import Slice
+from superset.semantic_layers.models import SemanticView
 from superset.utils import json
 
 
@@ -255,6 +256,31 @@ def test_update_chart_query_context_non_editor_with_access_allowed(
     raise_for_access.assert_called_once_with(chart=find_by_id.return_value)
 
 
+def test_update_chart_query_context_denied_for_guest_user(
+    mocker: MockerFixture,
+) -> None:
+    """An embedded guest token holds no write capability on any resource, so a
+    query-context-only update is refused before the access check even though
+    ``raise_for_access`` admits a guest for the charts its dashboard embeds."""
+    # The guest deny raises before any chart attribute is read, so the default
+    # MagicMock the patch installs is enough of a model here.
+    mocker.patch("superset.commands.chart.update.ChartDAO.find_by_id")
+    mocker.patch(
+        "superset.commands.chart.update.security_manager.is_guest_user",
+        return_value=True,
+    )
+    raise_for_access = mocker.patch(
+        "superset.commands.chart.update.security_manager.raise_for_access",
+    )
+
+    with pytest.raises(ChartForbiddenError):
+        UpdateChartCommand(
+            1, {"query_context": "{}", "query_context_generation": True}
+        ).validate()
+
+    raise_for_access.assert_not_called()
+
+
 def test_update_chart_editor_can_perform_regular_update(
     mocker: MockerFixture,
 ) -> None:
@@ -381,7 +407,7 @@ def test_update_chart_query_context_without_datasource_is_allowed(
     ).validate()
 
 
-@pytest.mark.parametrize("datasource_type", ["saved_query", "query"])
+@pytest.mark.parametrize("datasource_type", ["saved_query", "query", "bogus"])
 def test_update_chart_rejects_repointing_to_non_table_datasource(
     mocker: MockerFixture, datasource_type: str
 ) -> None:
@@ -416,6 +442,42 @@ def test_update_chart_rejects_repointing_to_non_table_datasource(
         isinstance(ex, DatasourceTypeInvalidError) for ex in exc_info.value._exceptions
     )
     get_datasource_by_id.assert_not_called()
+
+
+def test_update_chart_accepts_semantic_view_datasource(
+    mocker: MockerFixture,
+) -> None:
+    """Repointing a chart at a SIP-182 semantic view must be accepted: the
+    view is a first-class resolvable datasource (Slice resolves it through
+    the type-guarded ``semantic_view`` relationship), so the non-table guard
+    must explicitly allow it (apache/superset#44167)."""
+    find_by_id = mocker.patch("superset.commands.chart.update.ChartDAO.find_by_id")
+    find_by_id.return_value = mocker.MagicMock(
+        is_managed_externally=False, id=1, tags=[], dashboards=[]
+    )
+    mocker.patch("superset.commands.chart.update.security_manager.raise_for_editorship")
+    mocker.patch(
+        "superset.commands.chart.update.compute_subjects",
+        side_effect=lambda model, properties, exceptions: None,
+    )
+    datasource = mocker.MagicMock(spec=SemanticView)
+    datasource.name = "my_semantic_view"
+    get_datasource_by_id = mocker.patch(
+        "superset.commands.chart.update.get_datasource_by_id",
+        return_value=datasource,
+    )
+    raise_for_access = mocker.patch(
+        "superset.commands.chart.update.security_manager.raise_for_access"
+    )
+
+    cmd = UpdateChartCommand(
+        1, {"datasource_id": 11, "datasource_type": "semantic_view"}
+    )
+    cmd.validate()
+
+    get_datasource_by_id.assert_called_once_with(11, "semantic_view")
+    raise_for_access.assert_called_once_with(datasource=datasource)
+    assert cmd._properties["datasource_name"] == "my_semantic_view"
 
 
 def test_update_chart_missing_datasource_type_keeps_required_error(
@@ -453,7 +515,7 @@ def test_update_chart_missing_datasource_type_keeps_required_error(
     get_datasource_by_id.assert_not_called()
 
 
-@pytest.mark.parametrize("datasource_type", ["saved_query", "query"])
+@pytest.mark.parametrize("datasource_type", ["saved_query", "query", "bogus"])
 def test_update_chart_rejects_type_only_non_table_datasource(
     mocker: MockerFixture, datasource_type: str
 ) -> None:
