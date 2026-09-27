@@ -177,6 +177,19 @@ def create_response_caching_middleware() -> Any | None:
         # Build per-operation settings from config
         settings = _build_caching_settings(cache_config)
 
+        from superset.mcp_service.mcp_config import MCP_TOOL_SEARCH_CONFIG
+
+        search_config = flask_app.config.get(
+            "MCP_TOOL_SEARCH_CONFIG", MCP_TOOL_SEARCH_CONFIG
+        )
+        proxy_name = search_config.get("call_tool_name", "call_tool")
+        # The proxy forwards to FastMCP's tool execution, where the target's
+        # cache policy applies. Caching the outer proxy response would bypass
+        # that policy and could replay an always-excluded catalog response.
+        excluded_tools = settings["call_tool_settings"]["excluded_tools"]
+        if proxy_name not in excluded_tools:
+            excluded_tools.append(proxy_name)
+
         # Create middleware (store=None uses FastMCP's default in-memory store)
         middleware = ResponseCachingMiddleware(
             cache_storage=store,

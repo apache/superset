@@ -289,3 +289,56 @@ async def test_excluded_tools_covers_every_mutating_tool():
         f"These mutating tools are cacheable because they're missing from "
         f"MCP_CACHE_CONFIG['excluded_tools']: {sorted(missing)}"
     )
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("proxy_name", [None, "call_tool", "invoke_tool"])
+async def test_catalog_cache_exclusion_survives_revocation(
+    proxy_name: str | None,
+) -> None:
+    """Neither direct calls nor the search proxy may replay a catalog page."""
+    from fastmcp import Client, FastMCP
+
+    from superset.mcp_service.caching import create_response_caching_middleware
+    from superset.mcp_service.server import _apply_tool_search_transform
+
+    search_config = {"enabled": True, "call_tool_name": proxy_name or "call_tool"}
+    flask_app = MagicMock()
+    configs = {
+        "MCP_CACHE_CONFIG": {
+            "enabled": True,
+            "dangerously_share_cache_across_principals": True,
+            "excluded_tools": [],
+        },
+        "MCP_STORE_CONFIG": {"enabled": False},
+        "MCP_TOOL_SEARCH_CONFIG": search_config,
+    }
+    flask_app.config.get.side_effect = lambda key, default=None: configs.get(
+        key, default
+    )
+    with patch(
+        "superset.mcp_service.flask_singleton.get_flask_app", return_value=flask_app
+    ):
+        middleware = create_response_caching_middleware()
+    assert middleware is not None
+    server = FastMCP("catalog-cache-test", middleware=[middleware])
+    visible_names = ["Sales"]
+    calls = 0
+
+    @server.tool
+    def get_catalog() -> list[str]:
+        """Simulate a live catalog projection after a grant lookup."""
+        nonlocal calls
+        calls += 1
+        return list(visible_names)
+
+    if proxy_name:
+        _apply_tool_search_transform(server, search_config)
+    arguments = {"name": "get_catalog", "arguments": {}} if proxy_name else {}
+    async with Client(server) as client:
+        first = await client.call_tool(proxy_name or "get_catalog", arguments)
+        assert first.data == ["Sales"]
+        visible_names.clear()
+        second = await client.call_tool(proxy_name or "get_catalog", arguments)
+        assert second.data == []
+    assert calls == 2

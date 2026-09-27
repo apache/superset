@@ -210,10 +210,10 @@ def act_as() -> Iterator[Any]:
         )
     )
 
-    def _act_as(role: Role) -> Role:
+    def _act_as(role: Role, user_id: int | None = None) -> Role:
         current["role"] = role
         g.user = SimpleNamespace(
-            id=None, username=role.name, is_authenticated=True, roles=[]
+            id=user_id, username=role.name, is_authenticated=True, roles=[]
         )
         return role
 
@@ -386,6 +386,73 @@ def test_datasource_grant_limits_visibility(
     """A Gamma-like user with a grant on table_a sees only table_a assets."""
     act_as(gamma_with_table_a_grant())
     assert _names(asset_type) == expected
+
+
+@pytest.mark.parametrize(
+    ("asset_type", "published"),
+    [("dashboards", False), ("dashboards", True), ("charts", True)],
+)
+def test_non_admin_cannot_see_another_users_private_content(
+    catalog_fixtures: SimpleNamespace,
+    act_as: Any,
+    asset_type: str,
+    published: bool,
+) -> None:
+    """Real editor/viewer filters isolate users with identical datasource grants.
+
+    Dashboards can be unpublished or shared only with their owner; charts use
+    editor/viewer sharing. Live datasets and databases are grant-filtered, not
+    owner-private assets.
+    """
+    from flask_appbuilder.security.sqla.models import User
+
+    from superset.subjects.models import Subject
+    from superset.subjects.types import SubjectType
+
+    session = catalog_fixtures.session
+    users = [
+        User(username="user_a", first_name="A", last_name="User", email="a@test.org"),
+        User(username="user_b", first_name="B", last_name="User", email="b@test.org"),
+    ]
+    session.add_all(users)
+    session.flush()
+    subjects = [
+        Subject(type=SubjectType.USER, user_id=user.id, label=user.username)
+        for user in users
+    ]
+    session.add_all(subjects)
+
+    # Both users can read the underlying dataset: only editor/viewer membership
+    # (or publication state) can keep the other user's content out.
+    chart_b = catalog_fixtures.chart_b
+    chart_b.datasource_id = catalog_fixtures.table_a.id
+    chart_b.datasource_name = "table_a"
+    session.flush()
+    chart_b.perm = TABLE_A_PERM
+    if asset_type == "dashboards":
+        assets = [catalog_fixtures.dashboard_a, catalog_fixtures.dashboard_b]
+        for asset in assets:
+            asset.published = published
+    else:
+        assets = [catalog_fixtures.chart_a, catalog_fixtures.chart_b]
+    for asset, subject in zip(assets, subjects, strict=True):
+        asset.editors = [subject]
+        asset.viewers = [subject] if published else []
+    session.flush()
+
+    expected_names = (
+        ["Sales", "HR"]
+        if asset_type == "dashboards"
+        else ["Revenue by month", "Salaries"]
+    )
+    for index in (1, 0, 1):
+        role = gamma_with_table_a_grant()
+        role.name = users[index].username
+        act_as(role, user_id=users[index].id)
+        page = _page(asset_type, page_size=1)
+        assert [item.name for item in page.items] == [expected_names[index]]
+        assert page.next_cursor is None
+        assert _names(asset_type, search=expected_names[1 - index]) == []
 
 
 @pytest.mark.parametrize("asset_type", ["databases", "datasets"])
