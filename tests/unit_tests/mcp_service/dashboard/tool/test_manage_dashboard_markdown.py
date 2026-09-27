@@ -953,6 +953,65 @@ async def test_markdown_resize_respects_row_capacity(
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize("remaining_width", [0, 2])
+async def test_markdown_resize_accounts_for_removals(
+    mcp_server: FastMCP, remaining_width: int
+) -> None:
+    """Remove siblings before resizing, but reject remaining overflow atomically."""
+    layout = _grid_layout_with_existing_components()
+    layout["MARKDOWN-existing1"]["meta"]["width"] = 6
+    layout["ROW-existing1"]["children"].append("MARKDOWN-sibling")
+    layout["MARKDOWN-sibling"] = {
+        "id": "MARKDOWN-sibling",
+        "type": "MARKDOWN",
+        "children": [],
+        "meta": {"code": "Sibling", "width": 6 - remaining_width, "height": 50},
+    }
+    if remaining_width:
+        layout["ROW-existing1"]["children"].append("CHART-1")
+        layout["CHART-1"] = {
+            "id": "CHART-1",
+            "type": "CHART",
+            "children": [],
+            "meta": {"chartId": 1, "width": remaining_width, "height": 50},
+        }
+    dashboard = _mock_dashboard(layout=layout, chart_ids=[1] if remaining_width else [])
+    original = dashboard.position_json
+    with (
+        patch(DAO_GET, return_value=dashboard),
+        patch("superset.extensions.db.session") as session,
+    ):
+        data = await _call(
+            mcp_server,
+            {
+                "dashboard_id": 1,
+                "update": [
+                    {"id": "HEADER-existing1", "text": "Changed"},
+                    {"id": "MARKDOWN-existing1", "width": 12},
+                ],
+                "remove": ["MARKDOWN-sibling"],
+            },
+        )
+    if remaining_width:
+        assert "available width" in data["error"]
+        assert "10 columns" in data["error"]
+        assert dashboard.position_json == original
+        session.commit.assert_not_called()
+    else:
+        assert data["error"] is None
+        assert data["removed_component_ids"] == ["MARKDOWN-sibling"]
+        assert data["updated_component_ids"] == [
+            "HEADER-existing1",
+            "MARKDOWN-existing1",
+        ]
+        saved = json.loads(dashboard.position_json)
+        assert saved["MARKDOWN-existing1"]["meta"]["width"] == 12
+        assert saved["ROW-existing1"]["children"] == ["MARKDOWN-existing1"]
+        assert "MARKDOWN-sibling" not in saved
+        session.commit.assert_called_once()
+
+
+@pytest.mark.asyncio
 @pytest.mark.parametrize("target_tab", ["Nested", "TAB-nested", "missing", None])
 async def test_add_to_nested_tab(mcp_server: FastMCP, target_tab: str | None) -> None:
     """Resolve nested targets, list them on errors, and retain the default tab."""

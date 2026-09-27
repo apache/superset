@@ -376,12 +376,13 @@ def manage_dashboard_markdown(  # noqa: C901
                 )
 
             try:
+                # Validate resizes against siblings retained by this request.
+                for component_id in request.remove:
+                    _remove_component_and_prune(current_layout, component_id)
+
                 updated_ids = _apply_updates(
                     current_layout, request.update, existing_components
                 )
-
-                for component_id in request.remove:
-                    _remove_component_and_prune(current_layout, component_id)
 
                 added_ids = [
                     _add_component_to_layout(current_layout, spec)

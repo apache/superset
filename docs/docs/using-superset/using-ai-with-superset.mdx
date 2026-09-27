@@ -321,7 +321,9 @@ Without it, additions use the first top-level tab, or the grid on dashboards
 without top-level tabs. Markdown width is 1–12 columns (default 4); height is in
 8-pixel grid units (default 50). Width updates
 must fit the space remaining beside other components in the same 12-column row;
-otherwise, the error reports the available width.
+otherwise, the error reports the available width. Components removed in the same
+request do not count toward that row width. If any operation is rejected, the
+layout remains unchanged.
 
 The response includes generated `added_component_ids` and a `components` summary.
 Reuse those IDs in `update`, for example
