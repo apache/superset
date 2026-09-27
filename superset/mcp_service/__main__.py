@@ -87,8 +87,8 @@ def _add_default_middlewares(
     # Response size guard is innermost (added last), then response caching.
     if size_guard := create_response_size_guard_middleware():
         mcp.add_middleware(size_guard)
-        limit = size_guard.token_limit
-        sys.stderr.write(f"[MCP] Response size guard enabled (token_limit={limit})\n")
+        limit = size_guard.max_bytes
+        sys.stderr.write(f"[MCP] Response size guard enabled (max_bytes={limit})\n")
 
     if caching_middleware := create_response_caching_middleware():
         mcp.add_middleware(caching_middleware)

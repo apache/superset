@@ -407,7 +407,7 @@ google-auth-oauthlib==1.2.1
     # via
     #   pandas-gbq
     #   pydata-google-auth
-google-cloud-bigquery==3.45.0
+google-cloud-bigquery==3.45.2
     # via
     #   apache-superset
     #   pandas-gbq
@@ -422,7 +422,7 @@ googleapis-common-protos==1.66.0
     # via
     #   google-api-core
     #   grpcio-status
-greenlet==3.5.5
+greenlet==3.5.6
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
@@ -627,7 +627,7 @@ multidict==6.7.1
     # via
     #   aiohttp
     #   yarl
-mysqlclient==2.2.8
+mysqlclient==2.3.0
     # via apache-superset
 nh3==0.3.7
     # via
@@ -930,7 +930,7 @@ python-dotenv==1.2.2
     #   fastmcp-slim
     #   pydantic-settings
     #   testcontainers
-python-ldap==3.4.7
+python-ldap==3.4.8
     # via apache-superset
 python-multipart==0.0.29
     # via
@@ -964,8 +964,6 @@ referencing==0.36.2
     #   jsonschema
     #   jsonschema-path
     #   jsonschema-specifications
-regex==2026.4.4
-    # via tiktoken
 requests==2.33.0
     # via
     #   -c requirements/base-constraint.txt
@@ -979,7 +977,6 @@ requests==2.33.0
     #   requests-cache
     #   requests-oauthlib
     #   shillelagh
-    #   tiktoken
     #   trino
 requests-cache==1.2.1
     # via
@@ -1124,8 +1121,6 @@ tabulate==0.10.0
     #   apache-superset
 testcontainers==4.15.0
     # via -r requirements/development.in
-tiktoken==0.14.0
-    # via apache-superset
 tomli-w==1.2.0
     # via apache-superset-extensions-cli
 tomlkit==0.13.3

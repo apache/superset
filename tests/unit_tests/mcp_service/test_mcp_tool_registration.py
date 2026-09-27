@@ -25,7 +25,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from superset.mcp_service.app import get_default_instructions, init_fastmcp_server, mcp
-from superset.mcp_service.utils.token_utils import COMMITTED_WRITE_SPECS
+from superset.mcp_service.utils.response_size_utils import COMMITTED_WRITE_SPECS
 
 # Patch target for the feature_flag_manager imported inside _apply_config_guards
 _FFM_PATH = "superset.extensions.feature_flag_manager"

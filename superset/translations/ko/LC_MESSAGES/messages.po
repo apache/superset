@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-21 02:18+0000\n"
+"POT-Creation-Date: 2026-09-23 12:43+0200\n"
 "PO-Revision-Date: 2019-02-02 22:28+0900\n"
 "Last-Translator: \n"
 "Language: ko\n"
@@ -3790,9 +3790,6 @@ msgstr "사용 가능한 공간을 기반으로 열 너비 자동 조정"
 msgid "Automatically adjust column width based on content"
 msgstr "콘텐츠를 기반으로 열 너비 자동 조정"
 
-msgid "Automatically retry sending the report when delivery fails."
-msgstr ""
-
 #, fuzzy
 msgid "Automatically sync columns"
 msgstr "컬럼 목록"
@@ -6379,7 +6376,7 @@ msgstr "대시보드 외관, 색상 및 사용자 정의 CSS 구성"
 msgid "Configure filter scopes"
 msgstr "필터 범위 구성"
 
-msgid "Configure retry behavior on delivery failure."
+msgid "Configure retries when alert or report generation fails before delivery."
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
@@ -6502,6 +6499,9 @@ msgid "Connection failed, please check your connection settings."
 msgstr "연결하는데 실패했습니다. 커넥션 "
 
 msgid "Connection looks good!"
+msgstr ""
+
+msgid "Contact the report owner for error details."
 msgstr ""
 
 #, fuzzy
@@ -8811,6 +8811,9 @@ msgid ""
 "Display each cell as a percentage of its row, column, or grand total, "
 "instead of its actual value. Totals and subtotals are still computed "
 "correctly first; this only changes how they are displayed."
+msgstr ""
+
+msgid "Display format"
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, fr,
@@ -18169,6 +18172,9 @@ msgstr "생성자"
 msgid "Reload SQL Lab"
 msgstr "SQL Lab 다시 로드"
 
+msgid "Reload the page and try again to continue."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk, zh, zh_TW]
@@ -18709,9 +18715,6 @@ msgstr "비동기 쿼리에 필요한 결과 백엔드가 구성되지 않았습
 msgid "Resume auto-refresh"
 msgstr "새로고침 간격"
 
-msgid "Retries are not supported for alerts"
-msgstr ""
-
 #, fuzzy
 msgid "Retry"
 msgstr "생성자"
@@ -18719,6 +18722,11 @@ msgstr "생성자"
 #, fuzzy
 msgid "Retry fetching results"
 msgstr "검색 결과"
+
+msgid ""
+"Retry generation failures before delivery starts. Alerts re-check their "
+"condition on each attempt. Delivery failures are not replayed."
+msgstr ""
 
 msgid "Retrying"
 msgstr ""
@@ -19578,6 +19586,12 @@ msgstr "범위"
 msgid "Scoping"
 msgstr "범위 지정"
 
+msgid "Screenshot cache is unavailable"
+msgstr ""
+
+msgid "Screenshot request is temporarily unavailable"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk, zh, zh_TW]
@@ -19758,6 +19772,9 @@ msgstr "보안"
 
 msgid "Security"
 msgstr "보안"
+
+msgid "Security token error"
+msgstr ""
 
 #, fuzzy
 msgid "See "
@@ -21525,12 +21542,6 @@ msgstr "죄송합니다, 오류가 발생했습니다"
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr, uk]
 #, fuzzy
-msgid "Sorry, an unknown error occurred"
-msgstr "죄송합니다, 알 수 없는 오류가 발생했습니다"
-
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
-# de, es, fa, fr, ja, lv, mi, nl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr, uk]
-#, fuzzy
 msgid "Sorry, an unknown error occurred."
 msgstr "죄송합니다, 알 수 없는 오류가 발생했습니다."
 
@@ -22778,6 +22789,9 @@ msgstr "이 차트에 연결된 %s이(가) 삭제되었을 수 있습니다."
 #, fuzzy, python-format
 msgid "The API response from %s does not match the IDatabaseTable interface."
 msgstr "%s의 API 응답이 IDatabaseTable 인터페이스와 일치하지 않습니다."
+
+msgid "The CSRF token could not be validated."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, it, ja, lv, mi, nl, pl, pt, pt_BR, ro, ru, sk, sl, sr,
@@ -25402,9 +25416,10 @@ msgstr ""
 
 msgid ""
 "This update would change the connection's effective destination "
-"(host/port, engine parameters, or SSH tunnel endpoint) while reusing the "
-"stored credential. Provide the real password (or SSH tunnel credential) "
-"to confirm a connection move."
+"(host/port, engine parameters, SSH tunnel endpoint, or OAuth2 endpoint "
+"URIs) while reusing the stored credential. Provide the real password (or "
+"SSH tunnel credential / OAuth2 client secret) to confirm a connection "
+"move."
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,

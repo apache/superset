@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-21 02:18+0000\n"
+"POT-Creation-Date: 2026-09-23 12:43+0200\n"
 "PO-Revision-Date: 2024-05-14 13:30+0900\n"
 "Last-Translator: Yuri Umezaki <bungoume@gmail.com>\n"
 "Language: ja\n"
@@ -2487,9 +2487,6 @@ msgstr "利用可能なスペースに基づいて列幅を自動調整"
 msgid "Automatically adjust column width based on content"
 msgstr "コンテンツに基づいて列幅を自動調整"
 
-msgid "Automatically retry sending the report when delivery fails."
-msgstr ""
-
 msgid "Automatically sync columns"
 msgstr "列を自動同期"
 
@@ -4016,7 +4013,7 @@ msgstr "ダッシュボードの外観、配色、およびカスタムCSS設定
 msgid "Configure filter scopes"
 msgstr "フィルターの適用範囲を設定"
 
-msgid "Configure retry behavior on delivery failure."
+msgid "Configure retries when alert or report generation fails before delivery."
 msgstr ""
 
 msgid "Configure the basics of your Annotation Layer."
@@ -4084,6 +4081,9 @@ msgstr "接続に失敗しました。接続設定を確認してください。
 
 msgid "Connection looks good!"
 msgstr "正常に接続できました！"
+
+msgid "Contact the report owner for error details."
+msgstr ""
 
 msgid "Contains"
 msgstr "含む"
@@ -5570,6 +5570,9 @@ msgid ""
 "Display each cell as a percentage of its row, column, or grand total, "
 "instead of its actual value. Totals and subtotals are still computed "
 "correctly first; this only changes how they are displayed."
+msgstr ""
+
+msgid "Display format"
 msgstr ""
 
 msgid "Display headers for each column at the top of the matrix"
@@ -11035,6 +11038,9 @@ msgstr "再読み込み"
 msgid "Reload SQL Lab"
 msgstr "SQL Labを再読み込み"
 
+msgid "Reload the page and try again to continue."
+msgstr ""
+
 msgid "Remove"
 msgstr "削除"
 
@@ -11382,14 +11388,16 @@ msgstr "非同期クエリに必要な結果バックエンドが設定されて
 msgid "Resume auto-refresh"
 msgstr "自動更新を再開"
 
-msgid "Retries are not supported for alerts"
-msgstr ""
-
 msgid "Retry"
 msgstr "再試行"
 
 msgid "Retry fetching results"
 msgstr "結果の取得を再試行"
+
+msgid ""
+"Retry generation failures before delivery starts. Alerts re-check their "
+"condition on each attempt. Delivery failures are not replayed."
+msgstr ""
 
 msgid "Retrying"
 msgstr ""
@@ -11913,6 +11921,12 @@ msgstr "スコープ"
 msgid "Scoping"
 msgstr "スコーピング"
 
+msgid "Screenshot cache is unavailable"
+msgstr ""
+
+msgid "Screenshot request is temporarily unavailable"
+msgstr ""
+
 msgid "Screenshot width"
 msgstr "スクリーンショットの幅"
 
@@ -12028,6 +12042,9 @@ msgstr "セキュア設定"
 
 msgid "Security"
 msgstr "セキュリティ"
+
+msgid "Security token error"
+msgstr ""
 
 msgid "See "
 msgstr "参照 "
@@ -13119,9 +13136,6 @@ msgstr "申し訳ありません、エラーが発生しました"
 msgid "Sorry, an error occurred"
 msgstr "申し訳ありません、エラーが発生しました"
 
-msgid "Sorry, an unknown error occurred"
-msgstr "申し訳ありません、不明なエラーが発生しました"
-
 msgid "Sorry, an unknown error occurred."
 msgstr "申し訳ありません、不明なエラーが発生しました。"
 
@@ -13866,6 +13880,9 @@ msgstr "このチャートにリンクされている %s は削除された可�
 #, python-format
 msgid "The API response from %s does not match the IDatabaseTable interface."
 msgstr "%s からの API レスポンスが IDatabaseTable インターフェースと一致しません。"
+
+msgid "The CSRF token could not be validated."
+msgstr ""
 
 msgid ""
 "The CSS for individual dashboards can be altered here, or in the "
@@ -15485,9 +15502,10 @@ msgstr ""
 
 msgid ""
 "This update would change the connection's effective destination "
-"(host/port, engine parameters, or SSH tunnel endpoint) while reusing the "
-"stored credential. Provide the real password (or SSH tunnel credential) "
-"to confirm a connection move."
+"(host/port, engine parameters, SSH tunnel endpoint, or OAuth2 endpoint "
+"URIs) while reusing the stored credential. Provide the real password (or "
+"SSH tunnel credential / OAuth2 client secret) to confirm a connection "
+"move."
 msgstr ""
 
 msgid "This username is already taken. Please choose another one."

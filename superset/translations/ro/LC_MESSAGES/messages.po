@@ -22,7 +22,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-21 02:18+0000\n"
+"POT-Creation-Date: 2026-09-23 12:43+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: ro\n"
@@ -2902,9 +2902,6 @@ msgstr "Ajustează automat lățimea coloanei pe baza spațiului disponibil"
 msgid "Automatically adjust column width based on content"
 msgstr "Ajustează automat lățimea coloanei pe baza conținutului"
 
-msgid "Automatically retry sending the report when delivery fails."
-msgstr ""
-
 msgid "Automatically sync columns"
 msgstr "Sincronizează automat coloanele"
 
@@ -4651,7 +4648,7 @@ msgstr "Configurează aspectul panoului de control, culorile și CSS-ul personal
 msgid "Configure filter scopes"
 msgstr "Configurează domeniile de aplicare ale filtrelor"
 
-msgid "Configure retry behavior on delivery failure."
+msgid "Configure retries when alert or report generation fails before delivery."
 msgstr ""
 
 msgid "Configure the basics of your Annotation Layer."
@@ -4723,6 +4720,9 @@ msgid "Connection failed, please check your connection settings."
 msgstr "Conexiunea a eșuat, vă rugăm să verificați setările de conexiune."
 
 msgid "Connection looks good!"
+msgstr ""
+
+msgid "Contact the report owner for error details."
 msgstr ""
 
 msgid "Contains"
@@ -6480,6 +6480,9 @@ msgid ""
 "Display each cell as a percentage of its row, column, or grand total, "
 "instead of its actual value. Totals and subtotals are still computed "
 "correctly first; this only changes how they are displayed."
+msgstr ""
+
+msgid "Display format"
 msgstr ""
 
 msgid "Display headers for each column at the top of the matrix"
@@ -12686,6 +12689,9 @@ msgstr "Reîncarcă"
 msgid "Reload SQL Lab"
 msgstr "Reîncărcați SQL Lab"
 
+msgid "Reload the page and try again to continue."
+msgstr ""
+
 msgid "Remove"
 msgstr "Elimină"
 
@@ -13066,14 +13072,16 @@ msgstr ""
 msgid "Resume auto-refresh"
 msgstr "Reluați reîmprospătarea automată"
 
-msgid "Retries are not supported for alerts"
-msgstr ""
-
 msgid "Retry"
 msgstr "Reîncearcă"
 
 msgid "Retry fetching results"
 msgstr "Reîncearcă preluarea rezultatelor"
+
+msgid ""
+"Retry generation failures before delivery starts. Alerts re-check their "
+"condition on each attempt. Delivery failures are not replayed."
+msgstr ""
 
 msgid "Retrying"
 msgstr ""
@@ -13652,6 +13660,12 @@ msgstr "Domeniu"
 msgid "Scoping"
 msgstr "Domeniu de aplicare"
 
+msgid "Screenshot cache is unavailable"
+msgstr ""
+
+msgid "Screenshot request is temporarily unavailable"
+msgstr ""
+
 msgid "Screenshot width"
 msgstr "Lățime captură ecran"
 
@@ -13784,6 +13798,9 @@ msgstr "Extra securizat"
 
 msgid "Security"
 msgstr "Securitate"
+
+msgid "Security token error"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, it, ja,
 # sr, sr_Latn]
@@ -15130,9 +15147,6 @@ msgstr "Ne pare rău, a apărut o eroare"
 msgid "Sorry, an error occurred"
 msgstr "Ne pare rău, a apărut o eroare"
 
-msgid "Sorry, an unknown error occurred"
-msgstr "Ne pare rău, a apărut o eroare necunoscută"
-
 msgid "Sorry, an unknown error occurred."
 msgstr "Ne pare rău, a apărut o eroare necunoscută."
 
@@ -15994,6 +16008,9 @@ msgstr "%s legat de acest grafic poate fi șters."
 #, python-format
 msgid "The API response from %s does not match the IDatabaseTable interface."
 msgstr "Răspunsul API de la %s nu se potrivește cu interfața IDatabaseTable."
+
+msgid "The CSRF token could not be validated."
+msgstr ""
 
 msgid ""
 "The CSS for individual dashboards can be altered here, or in the "
@@ -18012,9 +18029,10 @@ msgstr ""
 
 msgid ""
 "This update would change the connection's effective destination "
-"(host/port, engine parameters, or SSH tunnel endpoint) while reusing the "
-"stored credential. Provide the real password (or SSH tunnel credential) "
-"to confirm a connection move."
+"(host/port, engine parameters, SSH tunnel endpoint, or OAuth2 endpoint "
+"URIs) while reusing the stored credential. Provide the real password (or "
+"SSH tunnel credential / OAuth2 client secret) to confirm a connection "
+"move."
 msgstr ""
 
 msgid "This username is already taken. Please choose another one."

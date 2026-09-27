@@ -241,7 +241,8 @@ test('replaces stale query event handlers without clearing regular event handler
 });
 
 test.each([
-  // Report/thumbnail screenshots render in standalone "true" (charts) or 3 (reports)
+  // Report/thumbnail captures use standalone=3; "true" is the legacy capture
+  // value and stays supported for links created before numeric modes existed
   ['true', true],
   ['3', true],
   // Live embeds use 1/2 and must keep animation

@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-21 02:18+0000\n"
+"POT-Creation-Date: 2026-09-23 12:43+0200\n"
 "PO-Revision-Date: 2026-07-17 09:44+0100\n"
 "Last-Translator: Daniel Checheta\n"
 "Language: ru\n"
@@ -2675,9 +2675,6 @@ msgstr "Автоматически изменять ширину столбцо�
 msgid "Automatically adjust column width based on content"
 msgstr "Автоматически изменять ширину столбцов в зависимости от содержания"
 
-msgid "Automatically retry sending the report when delivery fails."
-msgstr ""
-
 msgid "Automatically sync columns"
 msgstr "Автоматически синхронизировать столбцы"
 
@@ -4315,7 +4312,7 @@ msgstr "Настройка внешнего вида, цветов и польз
 msgid "Configure filter scopes"
 msgstr "Настроить область действия фильтра"
 
-msgid "Configure retry behavior on delivery failure."
+msgid "Configure retries when alert or report generation fails before delivery."
 msgstr ""
 
 msgid "Configure the basics of your Annotation Layer."
@@ -4382,6 +4379,9 @@ msgid "Connection failed, please check your connection settings."
 msgstr "Сбой подключения. Проверьте настройки соединения."
 
 msgid "Connection looks good!"
+msgstr ""
+
+msgid "Contact the report owner for error details."
 msgstr ""
 
 msgid "Contains"
@@ -5971,6 +5971,9 @@ msgid ""
 "Display each cell as a percentage of its row, column, or grand total, "
 "instead of its actual value. Totals and subtotals are still computed "
 "correctly first; this only changes how they are displayed."
+msgstr ""
+
+msgid "Display format"
 msgstr ""
 
 msgid "Display headers for each column at the top of the matrix"
@@ -11699,6 +11702,9 @@ msgstr "Обновить"
 msgid "Reload SQL Lab"
 msgstr "Перезагрузить SQL Lab"
 
+msgid "Reload the page and try again to continue."
+msgstr ""
+
 msgid "Remove"
 msgstr "Удалить"
 
@@ -12058,14 +12064,16 @@ msgstr "Сервер, необходимый для асинхронных за�
 msgid "Resume auto-refresh"
 msgstr "Продолжить автообновление"
 
-msgid "Retries are not supported for alerts"
-msgstr ""
-
 msgid "Retry"
 msgstr "Повторить"
 
 msgid "Retry fetching results"
 msgstr "Повторить запрос"
+
+msgid ""
+"Retry generation failures before delivery starts. Alerts re-check their "
+"condition on each attempt. Delivery failures are not replayed."
+msgstr ""
 
 msgid "Retrying"
 msgstr ""
@@ -12603,6 +12611,12 @@ msgstr "Область"
 msgid "Scoping"
 msgstr "Область применения"
 
+msgid "Screenshot cache is unavailable"
+msgstr ""
+
+msgid "Screenshot request is temporarily unavailable"
+msgstr ""
+
 msgid "Screenshot width"
 msgstr "Ширина скриншота"
 
@@ -12718,6 +12732,9 @@ msgstr "Безопасность"
 
 msgid "Security"
 msgstr "Безопасность"
+
+msgid "Security token error"
+msgstr ""
 
 #, fuzzy
 msgid "See "
@@ -13888,9 +13905,6 @@ msgstr "Извините, произошла ошибка"
 msgid "Sorry, an error occurred"
 msgstr "Извините, произошла ошибка"
 
-msgid "Sorry, an unknown error occurred"
-msgstr "Извините, произошла неизвестная ошибка"
-
 msgid "Sorry, an unknown error occurred."
 msgstr "Произошла неизвестная ошибка"
 
@@ -14676,6 +14690,9 @@ msgstr "Похоже, %s, связанный с этой диаграммой, �
 #, python-format
 msgid "The API response from %s does not match the IDatabaseTable interface."
 msgstr "Ответ API от %s не соответствует интерфейсу IDatabaseTable."
+
+msgid "The CSRF token could not be validated."
+msgstr ""
 
 msgid ""
 "The CSS for individual dashboards can be altered here, or in the "
@@ -16528,9 +16545,10 @@ msgstr ""
 
 msgid ""
 "This update would change the connection's effective destination "
-"(host/port, engine parameters, or SSH tunnel endpoint) while reusing the "
-"stored credential. Provide the real password (or SSH tunnel credential) "
-"to confirm a connection move."
+"(host/port, engine parameters, SSH tunnel endpoint, or OAuth2 endpoint "
+"URIs) while reusing the stored credential. Provide the real password (or "
+"SSH tunnel credential / OAuth2 client secret) to confirm a connection "
+"move."
 msgstr ""
 
 msgid "This username is already taken. Please choose another one."

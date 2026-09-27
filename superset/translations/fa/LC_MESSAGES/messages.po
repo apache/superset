@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-21 02:18+0000\n"
+"POT-Creation-Date: 2026-09-23 12:43+0200\n"
 "PO-Revision-Date: 2024-10-20 00:07+0330\n"
 "Last-Translator: Emad Rad <codewithemad@gmail.com>\n"
 "Language: fa\n"
@@ -2806,9 +2806,6 @@ msgstr "تنظیم خودکار عرض ستون بر اساس فضای موجو�
 msgid "Automatically adjust column width based on content"
 msgstr "تنظیم خودکار عرض ستون بر اساس محتوا"
 
-msgid "Automatically retry sending the report when delivery fails."
-msgstr ""
-
 #, fuzzy
 msgid "Automatically sync columns"
 msgstr "ستون‌ها را سفارشی‌سازی کنید"
@@ -4581,7 +4578,7 @@ msgstr "پیکربندی ظاهر داشبورد، رنگ‌ها و CSS سفار
 msgid "Configure filter scopes"
 msgstr "تنظیم دامنه‌های فیلتر"
 
-msgid "Configure retry behavior on delivery failure."
+msgid "Configure retries when alert or report generation fails before delivery."
 msgstr ""
 
 msgid "Configure the basics of your Annotation Layer."
@@ -4658,6 +4655,9 @@ msgid "Connection failed, please check your connection settings."
 msgstr "اتصال ناموفق بود، لطفاً تنظیمات اتصال خود را بررسی کنید."
 
 msgid "Connection looks good!"
+msgstr ""
+
+msgid "Contact the report owner for error details."
 msgstr ""
 
 #, fuzzy
@@ -6372,6 +6372,9 @@ msgid ""
 "Display each cell as a percentage of its row, column, or grand total, "
 "instead of its actual value. Totals and subtotals are still computed "
 "correctly first; this only changes how they are displayed."
+msgstr ""
+
+msgid "Display format"
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, fr,
@@ -12642,6 +12645,9 @@ msgstr "بارگذاری مجدد"
 msgid "Reload SQL Lab"
 msgstr "بارگذاری مجدد SQL Lab"
 
+msgid "Reload the page and try again to continue."
+msgstr ""
+
 msgid "Remove"
 msgstr "حذف"
 
@@ -13021,9 +13027,6 @@ msgstr "پشتوانه نتایج برای کوئریهای غیرهمزمان �
 msgid "Resume auto-refresh"
 msgstr "فواصل تازه‌سازی خودکار را تنظیم کنید"
 
-msgid "Retries are not supported for alerts"
-msgstr ""
-
 #, fuzzy
 msgid "Retry"
 msgstr "سازنده"
@@ -13031,6 +13034,11 @@ msgstr "سازنده"
 #, fuzzy
 msgid "Retry fetching results"
 msgstr "دوباره دریافت نتایج"
+
+msgid ""
+"Retry generation failures before delivery starts. Alerts re-check their "
+"condition on each attempt. Delivery failures are not replayed."
+msgstr ""
 
 msgid "Retrying"
 msgstr ""
@@ -13598,6 +13606,12 @@ msgstr "دامنه"
 msgid "Scoping"
 msgstr "دامنه‌گذاری"
 
+msgid "Screenshot cache is unavailable"
+msgstr ""
+
+msgid "Screenshot request is temporarily unavailable"
+msgstr ""
+
 msgid "Screenshot width"
 msgstr "عرض عکس‌برداری"
 
@@ -13720,6 +13734,9 @@ msgstr "ایمن اضافه"
 
 msgid "Security"
 msgstr "امنیت"
+
+msgid "Security token error"
+msgstr ""
 
 #, fuzzy
 msgid "See "
@@ -15065,9 +15082,6 @@ msgstr "متاسفم، یک خطا رخ داده است"
 msgid "Sorry, an error occurred"
 msgstr "متأسفم، یک خطا رخ داد"
 
-msgid "Sorry, an unknown error occurred"
-msgstr "متاسفیم، یک خطای ناشناخته رخ داده است."
-
 msgid "Sorry, an unknown error occurred."
 msgstr "متأسفم، یک خطای ناشناس رخ داد."
 
@@ -15923,6 +15937,9 @@ msgstr "ممکن است مجموعه داده مرتبط با این نمودا�
 #, python-format
 msgid "The API response from %s does not match the IDatabaseTable interface."
 msgstr "پاسخ API از %s با رابط IDatabaseTable همخوانی ندارد."
+
+msgid "The CSRF token could not be validated."
+msgstr ""
 
 msgid ""
 "The CSS for individual dashboards can be altered here, or in the "
@@ -17933,9 +17950,10 @@ msgstr ""
 
 msgid ""
 "This update would change the connection's effective destination "
-"(host/port, engine parameters, or SSH tunnel endpoint) while reusing the "
-"stored credential. Provide the real password (or SSH tunnel credential) "
-"to confirm a connection move."
+"(host/port, engine parameters, SSH tunnel endpoint, or OAuth2 endpoint "
+"URIs) while reusing the stored credential. Provide the real password (or "
+"SSH tunnel credential / OAuth2 client secret) to confirm a connection "
+"move."
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,

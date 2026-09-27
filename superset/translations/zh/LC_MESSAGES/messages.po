@@ -18,7 +18,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Apache Superset 0.22.1\n"
 "Report-Msgid-Bugs-To: zhouyao94@qq.com\n"
-"POT-Creation-Date: 2026-09-21 02:18+0000\n"
+"POT-Creation-Date: 2026-09-23 12:43+0200\n"
 "PO-Revision-Date: 2019-01-04 22:19+0800\n"
 "Last-Translator: cdmikechen\n"
 "Language: zh\n"
@@ -2733,9 +2733,6 @@ msgstr "根据可用空间自动调整列宽"
 msgid "Automatically adjust column width based on content"
 msgstr "根据内容自动调整列宽"
 
-msgid "Automatically retry sending the report when delivery fails."
-msgstr ""
-
 msgid "Automatically sync columns"
 msgstr "自动同步列"
 
@@ -4441,7 +4438,7 @@ msgstr "配置看板外观、颜色和自定义CSS"
 msgid "Configure filter scopes"
 msgstr "配置过滤范围"
 
-msgid "Configure retry behavior on delivery failure."
+msgid "Configure retries when alert or report generation fails before delivery."
 msgstr ""
 
 msgid "Configure the basics of your Annotation Layer."
@@ -4520,6 +4517,9 @@ msgstr "连接失败，请检查您的连接配置"
 
 msgid "Connection looks good!"
 msgstr "连接成功!"
+
+msgid "Contact the report owner for error details."
+msgstr ""
 
 msgid "Contains"
 msgstr "包含"
@@ -6164,6 +6164,9 @@ msgid ""
 "Display each cell as a percentage of its row, column, or grand total, "
 "instead of its actual value. Totals and subtotals are still computed "
 "correctly first; this only changes how they are displayed."
+msgstr ""
+
+msgid "Display format"
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, fr,
@@ -12341,6 +12344,9 @@ msgstr "重新加载"
 msgid "Reload SQL Lab"
 msgstr "重新加载 SQL 工具箱"
 
+msgid "Reload the page and try again to continue."
+msgstr ""
+
 msgid "Remove"
 msgstr "删除"
 
@@ -12721,15 +12727,17 @@ msgstr "未配置异步查询所需的结果后端。"
 msgid "Resume auto-refresh"
 msgstr "恢复自动刷新"
 
-msgid "Retries are not supported for alerts"
-msgstr ""
-
 msgid "Retry"
 msgstr "重试"
 
 #, fuzzy
 msgid "Retry fetching results"
 msgstr "重新获取结果"
+
+msgid ""
+"Retry generation failures before delivery starts. Alerts re-check their "
+"condition on each attempt. Delivery failures are not replayed."
+msgstr ""
 
 msgid "Retrying"
 msgstr ""
@@ -13286,6 +13294,12 @@ msgstr "范围"
 msgid "Scoping"
 msgstr "范围"
 
+msgid "Screenshot cache is unavailable"
+msgstr ""
+
+msgid "Screenshot request is temporarily unavailable"
+msgstr ""
+
 msgid "Screenshot width"
 msgstr "截图宽度"
 
@@ -13417,6 +13431,9 @@ msgstr "安全附加"
 
 msgid "Security"
 msgstr "安全"
+
+msgid "Security token error"
+msgstr ""
 
 msgid "See "
 msgstr "查看 "
@@ -14636,9 +14653,6 @@ msgstr "抱歉，发生错误"
 msgid "Sorry, an error occurred"
 msgstr "抱歉，发生错误"
 
-msgid "Sorry, an unknown error occurred"
-msgstr "抱歉，发生未知错误"
-
 msgid "Sorry, an unknown error occurred."
 msgstr "抱歉，发生未知错误。"
 
@@ -15482,6 +15496,9 @@ msgstr "与此图表关联的 %s 可能已被删除。"
 #, fuzzy, python-format
 msgid "The API response from %s does not match the IDatabaseTable interface."
 msgstr "来自 %s 的 API 响应与 IDatabaseTable 接口不匹配。"
+
+msgid "The CSRF token could not be validated."
+msgstr ""
 
 msgid ""
 "The CSS for individual dashboards can be altered here, or in the "
@@ -17305,9 +17322,10 @@ msgstr ""
 
 msgid ""
 "This update would change the connection's effective destination "
-"(host/port, engine parameters, or SSH tunnel endpoint) while reusing the "
-"stored credential. Provide the real password (or SSH tunnel credential) "
-"to confirm a connection move."
+"(host/port, engine parameters, SSH tunnel endpoint, or OAuth2 endpoint "
+"URIs) while reusing the stored credential. Provide the real password (or "
+"SSH tunnel credential / OAuth2 client secret) to confirm a connection "
+"move."
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
