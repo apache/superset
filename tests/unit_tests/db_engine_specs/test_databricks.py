@@ -796,6 +796,38 @@ def test_update_params_impersonation_keeps_only_the_user_token(
     }
 
 
+def test_impersonation_with_shared_token_only_in_secure_extra(
+    mocker: MockerFixture,
+) -> None:
+    """
+    With the shared token only in the secure extra, the Python connector still
+    authenticates as the user: ``impersonate_user`` puts the user's token in the
+    URL password, which the dialect uses as ``access_token``, and the shared
+    token is dropped rather than overriding it.
+    """
+    database = mocker.MagicMock()
+    database.impersonate_user = True
+    database.encrypted_extra = json.dumps(
+        {"connect_args": {"access_token": "shared-pat"}}
+    )
+    engine_kwargs: dict[str, Any] = {"connect_args": {"http_path": "/sql/1"}}
+
+    # Same order as ``Database._get_sqla_engine``.
+    url, engine_kwargs = DatabricksPythonConnectorEngineSpec.impersonate_user(
+        database=database,
+        username="user1",
+        user_token="user-oauth-token",  # noqa: S106
+        url=make_url("databricks://token:@host:443?http_path=/sql/1"),
+        engine_kwargs=engine_kwargs,
+    )
+    DatabricksPythonConnectorEngineSpec.update_params_from_encrypted_extra(
+        database, engine_kwargs
+    )
+
+    assert url.password == "user-oauth-token"  # noqa: S105
+    assert engine_kwargs["connect_args"] == {"http_path": "/sql/1"}
+
+
 def test_update_params_invalid_encrypted_extra_raises(mocker: MockerFixture) -> None:
     """
     Malformed ``encrypted_extra`` JSON raises rather than silently connecting.
