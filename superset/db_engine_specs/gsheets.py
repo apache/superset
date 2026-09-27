@@ -19,7 +19,7 @@ from __future__ import annotations
 
 import logging
 import re
-from datetime import date, datetime, time
+from datetime import date, datetime, time, timedelta
 from decimal import Decimal
 from re import Pattern
 from typing import Any, TYPE_CHECKING, TypedDict
@@ -66,25 +66,40 @@ SYNTAX_ERROR_REGEX = re.compile('SQLError: near "(?P<server_error>.*?)": syntax 
 ma_plugin = MarshmallowPlugin()
 
 
+def _to_python_value(value: Any) -> Any:
+    """
+    Convert numpy and pandas scalars into their Python equivalents.
+    """
+    if isinstance(value, np.datetime64):
+        # ``.item()`` returns an int for nanosecond precision; go through pandas.
+        value = pd.Timestamp(value)
+    elif isinstance(value, np.generic):
+        # e.g. ``np.timedelta64.item()`` returns a ``timedelta``.
+        value = value.item()
+    if value is pd.NaT:
+        return None
+    if isinstance(value, pd.Timestamp):
+        return value.to_pydatetime()
+    if isinstance(value, pd.Timedelta):
+        return value.to_pytimedelta()
+    return value
+
+
 def to_json_value(value: Any) -> Any:
     """
     Convert a dataframe cell into a JSON value the Sheets API parses back.
 
     Dates and timestamps become ISO strings (``USER_ENTERED`` input parses them
-    as dates), and numpy scalars become Python scalars.
+    as dates), durations become ``H:MM:SS`` strings, and numpy scalars become
+    Python scalars.
     """
-    if value is None:
-        return None
-    if isinstance(value, pd.Timestamp):
-        value = value.to_pydatetime()
+    value = _to_python_value(value)
     if isinstance(value, datetime):
         return value.isoformat(sep=" ")
     if isinstance(value, (date, time)):
         return value.isoformat()
-    if isinstance(value, Decimal):
+    if isinstance(value, (timedelta, Decimal)):
         return str(value)
-    if isinstance(value, np.generic):
-        return value.item()
     return value
 
 

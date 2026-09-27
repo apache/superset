@@ -19,10 +19,11 @@
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Any, TYPE_CHECKING
 from urllib.parse import parse_qs, urlparse
 
+import numpy as np
 import pandas as pd
 import pytest
 from pytest_mock import MockerFixture
@@ -1202,23 +1203,54 @@ def test_upload_dates(mocker: MockerFixture) -> None:
     ]
 
 
+@pytest.mark.parametrize(
+    "value, expected",
+    [
+        (np.datetime64("2024-02-29T23:59:58", "us"), "2024-02-29 23:59:58"),
+        (np.datetime64("2024-02-29T23:59:58", "ns"), "2024-02-29 23:59:58"),
+        (np.datetime64("2024-02-29", "D"), "2024-02-29 00:00:00"),
+        (np.datetime64("NaT"), None),
+        (np.timedelta64(90, "s"), "0:01:30"),
+        (pd.Timedelta(seconds=90), "0:01:30"),
+        (timedelta(hours=1), "1:00:00"),
+        (np.int64(3), 3),
+    ],
+)
+def test_to_json_value_numpy_dates_and_durations(value: Any, expected: Any) -> None:
+    """
+    Test that numpy dates and durations become JSON-serializable values.
+    """
+    from superset.db_engine_specs.gsheets import to_json_value
+
+    result = to_json_value(value)
+    assert result == expected
+    json.dumps(result)
+
+
 def test_validate_parameters_impersonates_only_when_enabled(
     mocker: MockerFixture,
 ) -> None:
     """
     Test that the logged-in user is used as subject only with impersonation.
     """
-    from superset.db_engine_specs.gsheets import GSheetsEngineSpec
+    from superset.db_engine_specs.gsheets import (
+        GSheetsEngineSpec,
+        GSheetsPropertiesType,
+    )
 
     g = mocker.patch("superset.db_engine_specs.gsheets.g")
     g.user.email = "admin@example.com"
     create_engine = mocker.patch("superset.db_engine_specs.gsheets.create_engine")
     mocker.patch.object(GSheetsEngineSpec, "register_engine_events")
 
-    def subject(**properties: Any) -> str | None:
-        GSheetsEngineSpec.validate_parameters(
-            {"parameters": {"service_account_info": "{}"}, "catalog": {}, **properties}
-        )
+    def subject(impersonate_user: bool | None = None) -> str | None:
+        properties: GSheetsPropertiesType = {
+            "parameters": {"service_account_info": "{}"},
+            "catalog": {},
+        }
+        if impersonate_user is not None:
+            properties["impersonate_user"] = impersonate_user
+        GSheetsEngineSpec.validate_parameters(properties)
         adapter_kwargs = create_engine.call_args.kwargs["connect_args"]
         return adapter_kwargs["adapter_kwargs"]["gsheetsapi"]["subject"]
 
