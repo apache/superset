@@ -26,7 +26,7 @@ import { render, fireEvent } from '../../../../spec/helpers/testing-library';
 import BigNumberVis from './BigNumberViz';
 import Echart from '../components/Echart';
 import { EventHandlers } from '../types';
-import { BigNumberWithTrendlineFormData } from './types';
+import { BigNumberWithTrendlineFormData, HeaderAlignment } from './types';
 
 jest.mock('../components/Echart', () => ({
   __esModule: true,
@@ -248,8 +248,8 @@ describe('BigNumberViz trendline context menu', () => {
 });
 
 describe('BigNumberViz alignment', () => {
-  test('defaults to left alignment', () => {
-    const { container } = render(
+  const renderViz = (headerAlignment?: HeaderAlignment) =>
+    render(
       <BigNumberVis
         width={200}
         height={100}
@@ -260,8 +260,12 @@ describe('BigNumberViz alignment', () => {
         subtitleFontSize={0.125}
         subtitle=""
         refs={{}}
+        headerAlignment={headerAlignment}
       />,
-    );
+    ).container;
+
+  test('defaults to left alignment', () => {
+    const container = renderViz();
 
     const textContainer = container.querySelector('.text-container');
     expect(textContainer).toHaveStyle({ alignItems: 'flex-start' });
@@ -270,20 +274,7 @@ describe('BigNumberViz alignment', () => {
   });
 
   test('centers content when headerAlignment is "center"', () => {
-    const { container } = render(
-      <BigNumberVis
-        width={200}
-        height={100}
-        bigNumber={42}
-        headerFormatter={getNumberFormatter()}
-        headerFontSize={0.3}
-        subheaderFontSize={0.125}
-        subtitleFontSize={0.125}
-        subtitle=""
-        refs={{}}
-        headerAlignment="center"
-      />,
-    );
+    const container = renderViz('center');
 
     const textContainer = container.querySelector('.text-container');
     expect(textContainer).toHaveStyle({ alignItems: 'center' });
@@ -292,20 +283,7 @@ describe('BigNumberViz alignment', () => {
   });
 
   test('right-aligns content when headerAlignment is "right"', () => {
-    const { container } = render(
-      <BigNumberVis
-        width={200}
-        height={100}
-        bigNumber={42}
-        headerFormatter={getNumberFormatter()}
-        headerFontSize={0.3}
-        subheaderFontSize={0.125}
-        subtitleFontSize={0.125}
-        subtitle=""
-        refs={{}}
-        headerAlignment="right"
-      />,
-    );
+    const container = renderViz('right');
 
     const textContainer = container.querySelector('.text-container');
     expect(textContainer).toHaveStyle({ alignItems: 'flex-end' });
