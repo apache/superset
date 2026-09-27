@@ -17,8 +17,6 @@
 import re
 from typing import Any, Optional
 
-from flask_babel import lazy_gettext as _
-
 from superset.constants import TimeGrain
 from superset.db_engine_specs.base import BaseEngineSpec, DatabaseCategory
 from superset.errors import SupersetErrorType
@@ -32,24 +30,25 @@ class ExasolEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
     max_column_name_length = 128
 
     # Keep the server's complete message, including its position/identifier.
+    # The passthrough placeholder contains no translatable text.
     custom_errors = {
         re.compile(r"(?P<message>syntax error[^\n]*)", re.IGNORECASE): (
-            _("%(message)s"),
+            "%(message)s",
             SupersetErrorType.SYNTAX_ERROR,
             {},
         ),
         re.compile(r"(?P<message>table [^\n]* does not exist[^\n]*)", re.IGNORECASE): (
-            _("%(message)s"),
+            "%(message)s",
             SupersetErrorType.TABLE_DOES_NOT_EXIST_ERROR,
             {},
         ),
         re.compile(r"(?P<message>column(?: [^\n]*)? not found[^\n]*)", re.IGNORECASE): (
-            _("%(message)s"),
+            "%(message)s",
             SupersetErrorType.COLUMN_DOES_NOT_EXIST_ERROR,
             {},
         ),
         re.compile(r"(?P<message>insufficient privileges[^\n]*)", re.IGNORECASE): (
-            _("%(message)s"),
+            "%(message)s",
             SupersetErrorType.CONNECTION_DATABASE_PERMISSIONS_ERROR,
             {},
         ),

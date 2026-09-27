@@ -54,3 +54,10 @@ def test_extract_errors(message: str, expected: SupersetErrorType) -> None:
     assert len(errors) == 1
     assert errors[0].error_type == expected
     assert errors[0].message == message
+
+
+def test_server_message_templates_are_not_translatable() -> None:
+    """A passthrough placeholder contains no text for translators."""
+    for template, _, _ in ExasolEngineSpec.custom_errors.values():
+        assert type(template) is str
+        assert template == "%(message)s"
