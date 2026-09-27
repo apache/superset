@@ -14,10 +14,14 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import re
 from typing import Any, Optional
+
+from flask_babel import lazy_gettext as _
 
 from superset.constants import TimeGrain
 from superset.db_engine_specs.base import BaseEngineSpec, DatabaseCategory
+from superset.errors import SupersetErrorType
 
 
 class ExasolEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
@@ -26,6 +30,30 @@ class ExasolEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
     engine = "exa"
     engine_name = "Exasol"
     max_column_name_length = 128
+
+    # Keep the server's complete message, including its position/identifier.
+    custom_errors = {
+        re.compile(r"(?P<message>syntax error[^\n]*)", re.IGNORECASE): (
+            _("%(message)s"),
+            SupersetErrorType.SYNTAX_ERROR,
+            {},
+        ),
+        re.compile(r"(?P<message>table [^\n]* does not exist[^\n]*)", re.IGNORECASE): (
+            _("%(message)s"),
+            SupersetErrorType.TABLE_DOES_NOT_EXIST_ERROR,
+            {},
+        ),
+        re.compile(r"(?P<message>column(?: [^\n]*)? not found[^\n]*)", re.IGNORECASE): (
+            _("%(message)s"),
+            SupersetErrorType.COLUMN_DOES_NOT_EXIST_ERROR,
+            {},
+        ),
+        re.compile(r"(?P<message>insufficient privileges[^\n]*)", re.IGNORECASE): (
+            _("%(message)s"),
+            SupersetErrorType.CONNECTION_DATABASE_PERMISSIONS_ERROR,
+            {},
+        ),
+    }
 
     metadata = {
         "description": (
