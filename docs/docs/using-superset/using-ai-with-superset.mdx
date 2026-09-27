@@ -266,7 +266,7 @@ Ask your admin for the MCP server URL and any authentication tokens you need.
 | `get_dataset_info`       | Get dataset metadata (columns, metrics, schema details)                                                                      |
 | `create_virtual_dataset` | Create a virtual dataset from a SQL query                                                                                    |
 | `create_dataset_metric` | Add a saved metric with a unique name and SQL expression; accepts the same optional properties as `update_dataset_metric` (requires dataset editorship) |
-| `delete_dataset_metric` | Delete a saved metric by ID, UUID, or name and report accessible charts referencing it; chart definitions are not modified (requires dataset editorship) |
+| `delete_dataset_metric` | Delete only the selected saved metric by ID, UUID, or name, preserving concurrently added metrics, and report accessible charts referencing it; chart definitions are not modified (requires dataset editorship) |
 | `update_dataset_metric`  | Update a saved metric's expression, name, verbose_name, or format (affects every chart using it; requires dataset ownership) |
 
 Saved-metric creation and deletion accept a dataset ID or UUID and require the

@@ -425,10 +425,20 @@ class DatasetDAO(BaseDAO[SqlaTable]):
         attributes: dict[str, Any] | None = None,
         *,
         preserve_existing_metrics: bool = False,
+        delete_metric_ids: set[int] | None = None,
     ) -> SqlaTable:
         """
-        Updates a Dataset model on the metadata DB
+        Updates a Dataset model on the metadata DB.
+
+        delete_metric_ids removes only explicitly selected metrics, without
+        replacing or replaying the remaining metrics.
         """
+
+        if item and delete_metric_ids:
+            for metric in item.metrics:
+                if metric.id in delete_metric_ids:
+                    db.session.delete(metric)
+            attributes = {**(attributes or {}), "changed_on": datetime.now()}
 
         if item and attributes:
             force_update: bool = False

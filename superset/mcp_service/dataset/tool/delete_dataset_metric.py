@@ -192,18 +192,13 @@ async def delete_dataset_metric(
                 error=message,
             )
 
+        target_id = target.id
         deleted_metric = _serialize_metric(target)
         with event_logger.log_context(action="mcp.delete_dataset_metric.references"):
             affected_charts = _find_affected_charts(dataset.id, target.metric_name)
-        # Omit only the target; the command/DAO deletes omitted metrics.
-        metrics_payload = [
-            {"id": metric.id, "metric_name": metric.metric_name}
-            for metric in metrics
-            if metric.id != target.id
-        ]
         with event_logger.log_context(action="mcp.delete_dataset_metric.delete"):
             updated_dataset = UpdateDatasetCommand(
-                dataset.id, {"metrics": metrics_payload}
+                dataset.id, {}, delete_metric_ids={target_id}
             ).run()
 
         await ctx.info(

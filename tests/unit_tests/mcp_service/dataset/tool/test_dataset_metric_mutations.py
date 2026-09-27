@@ -197,9 +197,7 @@ async def test_delete_success(
     ):
         command.return_value.run.return_value = dataset
         result = await call(TOOLS[1], {"dataset_id": UUID, "metric": identifier})
-    command.assert_called_once_with(
-        1, {"metrics": [{"id": 11, "metric_name": "count"}]}
-    )
+    command.assert_called_once_with(1, {}, delete_metric_ids={10})
     references.assert_called_once_with(1, "revenue")
     assert result["error"] is None
     assert result["metric"]["id"] == 10
@@ -491,3 +489,41 @@ def test_reference_lookup_tolerates_malformed_query_context(
         result = _find_affected_charts(1, "revenue")
     expected: list[str] = ["Malformed", "Valid"] if "revenue" in params else ["Valid"]
     assert [chart.slice_name for chart in result] == expected
+
+
+@pytest.mark.asyncio
+async def test_delete_preserves_metric_added_after_lookup(
+    session: Session, references: MagicMock
+) -> None:
+    """A metric committed during chart lookup must survive targeted deletion."""
+    from superset.daos.dataset import DatasetDAO
+
+    Database.metadata.create_all(session.bind)
+    database = Database(database_name="concurrent_delete", sqlalchemy_uri="sqlite://")
+    target = SqlMetric(metric_name="revenue", expression="SUM(amount)")
+    dataset = SqlaTable(
+        database=database, table_name="concurrent_delete", metrics=[target]
+    )
+    session.add(dataset)
+    session.commit()
+    dataset_id, target_id = dataset.id, target.id
+    added = SqlMetric(metric_name="concurrent", expression="COUNT(*)")
+
+    def add_metric(*args: Any) -> list[Any]:
+        """Commit a competing write after the tool has captured its metric list."""
+        dataset.metrics.append(added)
+        session.commit()
+        return []
+
+    references.side_effect = add_metric
+    with (
+        patch.object(DatasetDAO, "base_filter", None),
+        patch("superset.security.SupersetSecurityManager.is_admin", return_value=True),
+    ):
+        result = await call(TOOLS[1], {"dataset_id": dataset_id, "metric": target_id})
+    assert result["error"] is None
+    session.expire_all()
+    assert session.get(SqlMetric, target_id) is None
+    assert {
+        metric.metric_name for metric in session.get(SqlaTable, dataset_id).metrics
+    } == {"concurrent"}
