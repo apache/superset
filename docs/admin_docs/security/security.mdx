@@ -141,7 +141,7 @@ dataset owners to contact. You can also point users at your own access-request p
 
 ```python
 PERMISSION_INSTRUCTIONS_LINK = (
-    "https://access.example.com/request?dataset={datasource_name}&table={table_names}&user={username}"
+    "https://access.example.com/request?dataset={datasource_id}&table={table_names}&user={username}"
 )
 ```
 
@@ -150,9 +150,11 @@ values so the link can deep-link into an internal ticketing or access-request to
 denied resource pre-filled:
 
 - `{datasource_id}` — id of the denied dataset (chart/dashboard errors only)
-- `{datasource_name}` — name of the denied dataset (chart/dashboard errors only)
 - `{table_names}` — comma-separated denied table names (SQL Lab/table errors only)
 - `{username}` — the requesting user's username
+
+There's deliberately no `{datasource_name}` placeholder: the link is handed to a user who was just
+denied that dataset, so templating its name would disclose a resource they aren't entitled to see.
 
 Only the placeholders that apply to the triggering error type are filled in; the rest are replaced
 with an empty string, so a single URL template can cover both chart/dashboard and SQL Lab denials.
