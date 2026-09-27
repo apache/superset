@@ -338,6 +338,7 @@ def _names(asset_type: str, **kwargs: Any) -> list[str]:
 
 
 def _assert_allowlisted(payload: dict[str, Any]) -> None:
+    """Require allowlisted item keys and exclude sensitive keys and markers."""
     text = json.dumps(payload)
     for marker in FORBIDDEN_MARKERS:
         assert marker not in text, marker
@@ -364,6 +365,7 @@ def _assert_allowlisted(payload: dict[str, Any]) -> None:
 def test_admin_sees_every_asset(
     catalog_fixtures: SimpleNamespace, act_as: Any, asset_type: str, expected: list[str]
 ) -> None:
+    """An admin sees every asset of each type in one unrestricted page."""
     act_as(admin_role())
     page = _page(asset_type)
     assert [item.name for item in page.items] == expected
