@@ -28,7 +28,7 @@ from __future__ import annotations
 
 import re
 from datetime import datetime
-from typing import Any, TYPE_CHECKING
+from typing import Any, cast, TYPE_CHECKING
 
 import pandas as pd
 import pytest
@@ -38,6 +38,7 @@ from sqlalchemy.orm.session import Session
 if TYPE_CHECKING:
     from superset.connectors.sqla.models import SqlaTable
     from superset.models.core import Database
+    from superset.superset_typing import QueryObjectDict
 
 ALIAS_TS = re.compile(r"\bAS\s+\"?ts\"?(?!\w)")
 
@@ -179,5 +180,5 @@ def test_results_carry_the_expected_labels(
         return mutator(df) if mutator else df
 
     mocker.patch.object(Database, "get_df", side_effect=get_df)
-    result = table.query(_query_obj())
+    result = table.query(cast("QueryObjectDict", _query_obj()))
     assert list(result.df.columns) == ["ts", "n"]
