@@ -460,9 +460,9 @@ def test_compile_timegrain_expression_preserves_date_truncation() -> None:
     assert compiled == expected, f"DATE_FORMAT truncation was dropped. Got: {compiled}"
 
     proxied = str(select(select(expr.label("bucket")).subquery().c.bucket))
-    assert expected in proxied, (
-        f"DATE_FORMAT truncation was dropped in proxied expression. Got: {proxied}"
-    )
+    assert (
+        expected in proxied
+    ), f"DATE_FORMAT truncation was dropped in proxied expression. Got: {proxied}"
 
 
 def test_identifier_quote_uses_backticks() -> None:
@@ -510,3 +510,124 @@ def test_extended_aggregation_func_median_unsupported() -> None:
     from superset.db_engine_specs.mysql import MySQLEngineSpec as spec  # noqa: N813
 
     assert spec.get_extended_aggregation_func("MEDIAN") is None
+
+
+@pytest.mark.parametrize("driver", ["mysql", "mysql+mysqldb"])
+@pytest.mark.parametrize("source", ["uri", "toggle", "connect_args"])
+def test_ssl_request_requires_tls(driver: str, source: str) -> None:
+    """The SSL toggle and legacy URI flag must require, not prefer, TLS."""
+    from superset.db_engine_specs.mysql import MySQLEngineSpec
+
+    uri = make_url(f"{driver}://user:pass@localhost/db")
+    args: dict[str, Any] = {}
+    if source == "toggle":
+        uri = make_url(
+            MySQLEngineSpec.build_sqlalchemy_uri(
+                {
+                    "username": "user",
+                    "password": "pass",
+                    "host": "localhost",
+                    "port": 3306,
+                    "database": "db",
+                    "encryption": True,
+                },
+                {},
+            )
+        ).set(drivername=driver)
+    elif source == "uri":
+        uri = uri.update_query_dict({"ssl": "1"})
+    else:
+        args = {"ssl": True}
+    url, result = MySQLEngineSpec.adjust_engine_params(uri, args)
+    options = dict(url.query, **result)
+    assert options["ssl_mode"] == "VERIFY_CA"
+    assert "ssl" not in options
+
+
+@pytest.mark.parametrize("driver", ["mysql+mysqlconnector", "mysql+pymysql"])
+def test_ssl_request_requires_verification(driver: str) -> None:
+    """The alternate drivers must not use opportunistic TLS."""
+    from superset.db_engine_specs.mysql import MySQLEngineSpec
+
+    uri = make_url(f"{driver}://localhost/db?ssl=1&ssl_ca=/ca.pem")
+    url, args = MySQLEngineSpec.adjust_engine_params(uri, {})
+    assert args["ssl_verify_cert"] is True
+    assert "ssl" not in url.query
+    _, options = url.get_dialect()().create_connect_args(url)
+    options.update(args)
+    assert options["ssl_ca"] == "/ca.pem"
+
+
+@pytest.mark.parametrize("mode", ["VERIFY_CA", "VERIFY_IDENTITY"])
+def test_ssl_request_preserves_stronger_mode(mode: str) -> None:
+    """Do not weaken an explicit verification mode or lose the selected schema."""
+    from superset.db_engine_specs.mysql import MySQLEngineSpec
+
+    uri = make_url(f"mysql://localhost/db?ssl=1&ssl_mode={mode}")
+    url, args = MySQLEngineSpec.adjust_engine_params(uri, {}, schema="other")
+    assert args["ssl_mode"] == mode
+    assert url.database == "other"
+
+
+@pytest.mark.parametrize(
+    "driver, options",
+    [
+        ("mysql", {"ssl_mode": "DISABLED"}),
+        ("mysql+mysqldb", {"ssl_mode": "PREFERRED"}),
+        ("mysql+mysqlconnector", {"ssl_disabled": True}),
+        ("mysql+pymysql", {"ssl_verify_cert": False}),
+    ],
+)
+def test_ssl_request_rejects_conflicting_options(
+    driver: str, options: dict[str, Any]
+) -> None:
+    """Advanced options must not silently cancel the SSL request."""
+    from superset.db_engine_specs.mysql import MySQLEngineSpec
+
+    with pytest.raises(ValueError, match="MySQL SSL request"):
+        MySQLEngineSpec.adjust_engine_params(
+            make_url(f"{driver}://localhost/db?ssl=1"), options
+        )
+
+
+def test_ssl_request_does_not_change_other_engines() -> None:
+    """MySQL-compatible engines keep their own transport handling."""
+    from superset.db_engine_specs.mysql import MySQLEngineSpec
+
+    class OtherEngineSpec(MySQLEngineSpec):
+        engine = "other"
+
+    uri = make_url("mysql://localhost/db?ssl=1")
+    url, args = OtherEngineSpec.adjust_engine_params(uri, {})
+    assert url == uri
+    assert "ssl_mode" not in args
+
+
+def test_ssl_request_upgrades_required_mode() -> None:
+    """MariaDB Connector/C maps mysqlclient REQUIRED to opportunistic TLS."""
+    from superset.db_engine_specs.mysql import MySQLEngineSpec
+
+    _, args = MySQLEngineSpec.adjust_engine_params(
+        make_url("mysql://localhost/db?ssl=1&ssl_mode=REQUIRED"), {}
+    )
+    assert args["ssl_mode"] == "VERIFY_CA"
+
+
+def test_pymysql_hostname_verification_survives() -> None:
+    from superset.db_engine_specs.mysql import MySQLEngineSpec
+
+    url, args = MySQLEngineSpec.adjust_engine_params(
+        make_url("mysql+pymysql://localhost/db?ssl=1&ssl_check_hostname=true"), {}
+    )
+    assert args["ssl_verify_identity"] is True
+    assert "ssl_check_hostname" not in url.query
+
+
+@pytest.mark.parametrize("option", ["ssl_capath", "ssl_cipher"])
+def test_pymysql_unsupported_ssl_options_fail_closed(option: str) -> None:
+    from superset.db_engine_specs.mysql import MySQLEngineSpec
+
+    with pytest.raises(ValueError, match="Unsupported PyMySQL SSL option"):
+        MySQLEngineSpec.adjust_engine_params(
+            make_url(f"mysql+pymysql://localhost/db?ssl=1&{option}=test"), {}
+        )
