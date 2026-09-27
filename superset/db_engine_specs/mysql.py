@@ -103,6 +103,12 @@ def _require_mysql_verified_tls(
         for key in ("ssl_ca", "ssl_cert", "ssl_key"):
             if key in query:
                 args.setdefault(key, query.pop(key))
+        if "ssl_check_hostname" in query:
+            args.setdefault(
+                "ssl_verify_identity", asbool(query.pop("ssl_check_hostname"))
+            )
+        if {"ssl_capath", "ssl_cipher"} & query.keys():
+            raise ValueError("Unsupported PyMySQL SSL option with the SSL toggle")
         if "ssl" in args:
             raise ValueError(
                 "Use individual ssl_ca/ssl_cert/ssl_key options with the SSL toggle"

@@ -611,3 +611,23 @@ def test_ssl_request_upgrades_required_mode() -> None:
         make_url("mysql://localhost/db?ssl=1&ssl_mode=REQUIRED"), {}
     )
     assert args["ssl_mode"] == "VERIFY_CA"
+
+
+def test_pymysql_hostname_verification_survives() -> None:
+    from superset.db_engine_specs.mysql import MySQLEngineSpec
+
+    url, args = MySQLEngineSpec.adjust_engine_params(
+        make_url("mysql+pymysql://localhost/db?ssl=1&ssl_check_hostname=true"), {}
+    )
+    assert args["ssl_verify_identity"] is True
+    assert "ssl_check_hostname" not in url.query
+
+
+@pytest.mark.parametrize("option", ["ssl_capath", "ssl_cipher"])
+def test_pymysql_unsupported_ssl_options_fail_closed(option: str) -> None:
+    from superset.db_engine_specs.mysql import MySQLEngineSpec
+
+    with pytest.raises(ValueError, match="Unsupported PyMySQL SSL option"):
+        MySQLEngineSpec.adjust_engine_params(
+            make_url(f"mysql+pymysql://localhost/db?ssl=1&{option}=test"), {}
+        )
