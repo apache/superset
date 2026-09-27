@@ -56,6 +56,9 @@ PATTERNS = {
     "frontend": [
         r"^\.github/workflows/.*(bashlib|frontend|e2e)",
         r"^superset-frontend/",
+        # `npm run build-translation` shells out to this script; a change
+        # limited to it should still exercise that frontend build step.
+        r"^scripts/translations/compile_po\.py$",
     ],
     "docker": [
         r"^Dockerfile$",
