@@ -91,7 +91,8 @@ class DynamoDBEngineSpec(BaseEngineSpec):
             # text, conventionally ISO 8601 ("2019-01-02T03:04:05", which is also
             # what boto3/PyDynamoDB write for datetime values). A space separator
             # sorts before "T", so a bound like "2019-01-02 04:00:00" excluded
-            # "2019-01-02T04:15:00" from a sub-day range.
-            return f"""'{dttm.isoformat(timespec="seconds")}'"""
+            # "2019-01-02T04:15:00" from a sub-day range. Fractional seconds are
+            # kept when set, so sub-second bounds are not truncated.
+            return f"'{dttm.isoformat()}'"
 
         return None
