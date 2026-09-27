@@ -35,6 +35,7 @@ from superset.mcp_service.chart.schemas import (
     FilterConfig,
     GenerateChartRequest,
     PivotTableChartConfig,
+    SortByConfig,
     TableChartConfig,
     TableColumnConfig,
     XYChartConfig,
@@ -246,7 +247,7 @@ class TestNormalizeColumnNames:
 
         normalized = DatasetValidator.normalize_column_names(config, dataset_id=18)
 
-        assert normalized.sort_by is not None
+        assert isinstance(normalized.sort_by, SortByConfig)
         assert normalized.sort_by.column == "ProductLine"
 
     @patch.object(DatasetValidator, "_get_dataset_context")

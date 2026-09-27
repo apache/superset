@@ -43,9 +43,7 @@ from superset.mcp_service.common.error_schemas import ChartGenerationError
 logger = logging.getLogger(__name__)
 
 
-def _match_y_metric_name(
-    raw_lower: str, y_configs: list[dict[str, Any]]
-) -> str | None:
+def _match_y_metric_name(raw_lower: str, y_configs: list[dict[str, Any]]) -> str | None:
     for y_col in y_configs:
         if y_col.get("label") and y_col["label"].lower() == raw_lower:
             return y_col["label"]
@@ -129,8 +127,7 @@ def _update_sort_by_column(
 
 def _normalize_xy_sort_by(config_dict: dict[str, Any], dataset_context: Any) -> None:
     """Resolve canonical column or metric name for sort_by in XY charts."""
-    sort_by = config_dict.get("sort_by")
-    if not sort_by:
+    if not (sort_by := config_dict.get("sort_by")):
         return
 
     if isinstance(sort_by, list):
@@ -175,11 +172,7 @@ def _collect_y_metric_names(y_cols: list[ColumnRef] | None) -> set[str]:
         if y_col.aggregate and y_col.name:
             names.add(f"{y_col.aggregate}({y_col.name})".lower())
         metric_obj = create_metric_object(y_col)
-        label = (
-            metric_obj
-            if isinstance(metric_obj, str)
-            else metric_obj.get("label")
-        )
+        label = metric_obj if isinstance(metric_obj, str) else metric_obj.get("label")
         if label:
             names.add(label.lower())
     return names

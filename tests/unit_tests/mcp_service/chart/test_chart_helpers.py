@@ -1592,4 +1592,3 @@ def test_build_single_query_dict_x_axis_sort_ignored_when_groupby_set() -> None:
         metrics=[metric],
     )
     assert "orderby" not in qd
-
