@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 
+import asyncio
 import logging
 import re
 import secrets
@@ -78,6 +79,7 @@ from superset.mcp_service.utils.response_size_utils import (
 )
 from superset.mcp_service.utils.validation import validation_message
 from superset.mcp_service.worker import (
+    _worker_context,
     get_context_user_id as get_user_id,
     run_in_metadata_thread,
 )
@@ -211,13 +213,17 @@ def _invoke_error_hook(error: Exception, hook_context: dict[str, Any]) -> None:
     try:
         from superset.mcp_service.flask_singleton import get_flask_app
 
-        hook = get_flask_app().config.get("MCP_ERROR_HOOK")
+        app = get_flask_app()
+        hook = app.config.get("MCP_ERROR_HOOK")
     except Exception:  # noqa: BLE001
         return
     if hook is None:
         return
     try:
-        hook(error, hook_context)
+        # Hooks own their session if they use metadata, but do not require a
+        # user reload (or a working metadata database) merely to report errors.
+        with _worker_context(app):
+            hook(error, hook_context)
     except Exception as hook_error:  # noqa: BLE001
         logger.warning("MCP_ERROR_HOOK raised an exception: %s", hook_error)
 
@@ -227,7 +233,7 @@ async def _invoke_error_hook_off_loop(
 ) -> None:
     """Keep hook I/O and context-setup failures outside the error boundary."""
     try:
-        await run_in_metadata_thread(_invoke_error_hook, error, hook_context)
+        await asyncio.to_thread(_invoke_error_hook, error, hook_context)
     except Exception as hook_error:  # noqa: BLE001
         logger.warning("Could not run MCP_ERROR_HOOK: %s", hook_error)
 

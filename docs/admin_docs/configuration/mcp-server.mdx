@@ -1253,6 +1253,11 @@ sub-500 exception remains a warning even if it carries a connection error reason
 the generic engine reason can also describe a caller's malformed column, and a
 connection access denial is still a permission failure.
 
+The error hook runs off the transport loop in its own application and metadata
+session scope, without reloading the request user. Reporting an error therefore
+does not require metadata database access unless the hook itself uses it. Use the
+provided hook context for caller identity rather than `g.user`.
+
 ## Result serialization
 
 Data-bearing tool responses sanitize row values, column samples, and statistics

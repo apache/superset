@@ -471,3 +471,60 @@ async def test_cancelled_metadata_awaiter_leaves_cleanup_to_thread(
         assert await asyncio.to_thread(returned.wait, 2)
         event.remove(metadata_engine, "checkin", checkin)
     assert metadata_engine.pool.checkedout() == 0
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("configured", [False, True])
+async def test_error_hook_does_not_require_metadata_user_reload(
+    app: Any, metadata_engine: Engine, configured: bool
+) -> None:
+    """Error reporting survives metadata outages without sharing caller state."""
+    from unittest.mock import Mock
+
+    from flask import g
+    from flask_appbuilder.security.sqla.models import User
+    from sqlalchemy.orm import make_transient_to_detached
+
+    from superset.mcp_service.middleware import _invoke_error_hook_off_loop
+
+    main_thread = threading.get_ident()
+    error = RuntimeError("tool failed")
+    info = {"tool_name": "execute_sql", "user_id": 42}
+    sessions: list[Session] = []
+
+    with app.test_request_context("/mcp/"):
+        user = User(id=42)
+        make_transient_to_detached(user)
+        g.user = user
+        parent_session = db.session()
+
+        def capture(exc: Exception, context: dict[str, Any]) -> None:
+            """Capture errors without loading a user from the unavailable DB."""
+            assert threading.get_ident() != main_thread
+            assert exc is error
+            assert context == info
+            assert getattr(g, "user", None) is None
+            assert db.session() is not parent_session
+            sessions.append(db.session())
+
+        hook = Mock(side_effect=capture)
+        with (
+            patch(
+                "superset.mcp_service.flask_singleton.get_flask_app", return_value=app
+            ),
+            patch.dict(app.config, {"MCP_ERROR_HOOK": hook if configured else None}),
+            patch.object(
+                db.session, "get", side_effect=RuntimeError("metadata unavailable")
+            ) as get_user,
+        ):
+            await _invoke_error_hook_off_loop(error, info)
+            get_user.assert_not_called()
+        if configured:
+            hook.assert_called_once_with(error, info)
+        else:
+            hook.assert_not_called()
+        assert g.user is user
+        assert db.session() is parent_session
+        assert all(
+            session not in db.session.registry.registry.values() for session in sessions
+        )
