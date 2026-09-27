@@ -158,6 +158,22 @@ def require_mysql_tls(
     return uri.set(query=query), args
 
 
+def require_mysqlclient_tls(
+    uri: URL, connect_args: dict[str, Any]
+) -> tuple[URL, dict[str, Any]]:
+    """Reuse MySQL TLS normalization for an explicitly opted-in compatible engine."""
+    # Only adapt the driver name for option selection; preserve the endpoint,
+    # credentials, catalog/schema and the original dialect on the returned URL.
+    mysql_uri = uri.set(drivername="mysql+mysqldb")
+    if any(
+        mode in ("REQUIRED", "VERIFY_CA", "VERIFY_IDENTITY")
+        for mode in (uri.query.get("ssl_mode"), connect_args.get("ssl_mode"))
+    ):
+        mysql_uri = mysql_uri.update_query_dict({"ssl": "1"})
+    mysql_uri, args = require_mysql_tls(mysql_uri, connect_args)
+    return mysql_uri.set(drivername=uri.drivername), args
+
+
 class MySQLEngineSpec(BasicParametersMixin, BaseEngineSpec):
     engine = "mysql"
     engine_name = "MySQL"

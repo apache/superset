@@ -30,7 +30,7 @@ from sqlalchemy.sql.type_api import TypeEngine
 from superset.constants import TimeGrain
 from superset.databases.utils import make_url_safe
 from superset.db_engine_specs.base import BasicParametersType, DatabaseCategory
-from superset.db_engine_specs.mysql import MySQLEngineSpec
+from superset.db_engine_specs.mysql import MySQLEngineSpec, require_mysqlclient_tls
 from superset.errors import SupersetErrorType
 from superset.models.core import Database
 from superset.utils.core import GenericDataType
@@ -130,9 +130,8 @@ class DorisEngineSpec(MySQLEngineSpec):
     sqlalchemy_uri_placeholder = (
         "doris://user:password@host:port/catalog.db[?key=value&key=value...]"
     )
-    # mysqlclient ignores ``ssl=0``/``ssl=1`` strings in the URI query and
-    # connects in cleartext; ``ssl_mode=REQUIRED`` makes it negotiate TLS.
-    encryption_parameters = {"ssl_mode": "REQUIRED"}
+    # REQUIRED can fall back with MariaDB Connector/C; verification fails closed.
+    encryption_parameters = {"ssl_mode": "VERIFY_CA"}
     supports_dynamic_schema = True
     supports_catalog = supports_dynamic_catalog = True
     # while technically supported by Doris, this generates invalid table identifiers
@@ -374,7 +373,7 @@ class DorisEngineSpec(MySQLEngineSpec):
         database = ".".join(part for part in (catalog, schema) if part)
         uri = uri.set(database=database)
 
-        return uri, connect_args
+        return require_mysqlclient_tls(uri, connect_args)
 
     @classmethod
     def get_default_catalog(cls, database: Database) -> str:

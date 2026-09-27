@@ -24,6 +24,15 @@ assists people when migrating to a new version.
 
 ## Next
 
+### Doris SSL requests require certificate verification
+
+The Doris SSL toggle uses `ssl_mode=VERIFY_CA`. Saved `ssl_mode=REQUIRED` and
+`ssl=1` URLs are also normalized to verified TLS: mysqlclient linked with MariaDB
+Connector/C can fall back to cleartext in REQUIRED mode. Supply the trusted
+`ssl_ca` (or `connect_args.ssl.ca`) and a certificate valid for the connection
+hostname. Conflicting advanced settings fail closed. This shares MySQL's TLS
+normalization without changing Doris catalog/schema handling.
+
 ### MySQL SSL requests require TLS
 
 The MySQL SSL toggle and legacy `ssl=1` URLs require an encrypted connection.

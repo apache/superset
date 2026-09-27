@@ -383,7 +383,7 @@ def test_build_sqlalchemy_uri() -> None:
         DorisEngineSpec.build_sqlalchemy_uri({**parameters, "encryption": True})
     )
     assert encrypted.drivername == "doris"
-    assert dict(encrypted.query) == {"ssl_mode": "REQUIRED"}
+    assert dict(encrypted.query) == {"ssl_mode": "VERIFY_CA"}
     assert encrypted.password == "p@ss"  # noqa: S105
 
     plain = make_url(
@@ -397,3 +397,56 @@ def test_build_sqlalchemy_uri() -> None:
     )
     assert round_trip["encryption"] is True
     assert round_trip["query"] == {}
+
+
+@pytest.mark.parametrize("source", ["toggle", "ssl=1", "ssl_mode=REQUIRED"])
+def test_doris_tls_request_uses_verification(source: str) -> None:
+    from superset.db_engine_specs.doris import DorisEngineSpec
+
+    if source == "toggle":
+        uri = make_url(
+            DorisEngineSpec.build_sqlalchemy_uri(
+                {
+                    "username": "root",
+                    "host": "localhost",
+                    "port": 9030,
+                    "database": "internal.db",
+                    "encryption": True,
+                }
+            )
+        )
+    else:
+        uri = make_url(f"doris://root@localhost/internal.db?{source}")
+    url, args = DorisEngineSpec.adjust_engine_params(
+        uri, {}, catalog="external", schema="other"
+    )
+    assert args.get("ssl_mode", url.query.get("ssl_mode")) == "VERIFY_CA"
+    assert url.drivername == "doris"
+    assert url.database == "external.other"
+
+
+@pytest.mark.parametrize("mode", ["DISABLED", "PREFERRED", None])
+def test_doris_toggle_cannot_be_cancelled(mode: Optional[str]) -> None:
+    from superset.db_engine_specs.doris import DorisEngineSpec
+
+    with pytest.raises(ValueError, match="conflicts"):
+        DorisEngineSpec.adjust_engine_params(
+            make_url("doris://root@localhost/internal.db?ssl_mode=REQUIRED"),
+            {"ssl_mode": mode},
+        )
+
+
+def test_doris_tls_preserves_verified_mode_and_ca() -> None:
+    from superset.db_engine_specs.doris import DorisEngineSpec
+
+    uri = make_url("doris://root@localhost/internal.db?ssl_mode=VERIFY_IDENTITY")
+    _, args = DorisEngineSpec.adjust_engine_params(uri, {"ssl": {"ca": "/ca.pem"}})
+    assert args["ssl_mode"] == "VERIFY_IDENTITY"
+    assert args["ssl"] == {"ca": "/ca.pem"}
+
+
+def test_unrequested_doris_connection_unchanged() -> None:
+    from superset.db_engine_specs.doris import DorisEngineSpec
+
+    uri = make_url("doris://root@localhost/internal.db")
+    assert DorisEngineSpec.adjust_engine_params(uri, {}) == (uri, {})
