@@ -62,8 +62,7 @@ def _resolve_xy_sort_name_and_metric_status(
     raw_name: str, config_dict: dict[str, Any], dataset_context: Any
 ) -> tuple[str, bool]:
     raw_lower = raw_name.lower()
-    matched_y = _match_y_metric_name(raw_lower, config_dict.get("y") or [])
-    if matched_y:
+    if matched_y := _match_y_metric_name(raw_lower, config_dict.get("y") or []):
         return matched_y, False
 
     x_col = config_dict.get("x")
