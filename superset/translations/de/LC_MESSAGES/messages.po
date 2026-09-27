@@ -18,7 +18,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-24 09:49+0300\n"
+"POT-Creation-Date: 2026-09-28 01:14+0300\n"
 "PO-Revision-Date: 2023-04-07 19:45+0200\n"
 "Last-Translator: Holger Bruch <holger.bruch@wattbewerb.de>\n"
 "Language: de\n"
@@ -131,6 +131,9 @@ msgstr " finden Sie weitere Informationen."
 #, python-format
 msgid " near '%(highlight)s'"
 msgstr " in der Nähe von '%(highlight)s'"
+
+msgid " source code of Superset's sandboxed parser"
+msgstr ""
 
 msgid ""
 " standard to ensure that the lexicographical ordering\n"
@@ -543,6 +546,12 @@ msgstr "%s von %s ausgewählt"
 #, python-format
 msgid "%s recipients"
 msgstr "%s Empfänger"
+
+#, python-format
+msgid "%s record"
+msgid_plural "%s records..."
+msgstr[0] ""
+msgstr[1] ""
 
 #, python-format
 msgid "%s record..."
@@ -996,8 +1005,8 @@ msgid ""
 "analysis."
 msgstr ""
 "Ein Kerzenchart zeigt Eröffnungs-, Schluss-, Höchst- und Tiefstwerte für "
-"jeden Zeitraum. Er wird häufig für Finanz- und andere "
-"Zeitreihen-Spannweitenanalysen verwendet."
+"jeden Zeitraum. Er wird häufig für Finanz- und andere Zeitreihen-"
+"Spannweitenanalysen verwendet."
 
 msgid "A comma separated list of columns that should be parsed as dates"
 msgstr ""
@@ -1226,6 +1235,12 @@ msgstr "AQE"
 msgid "AUG"
 msgstr "AUG"
 
+msgid "AXIS TITLE MARGIN"
+msgstr ""
+
+msgid "AXIS TITLE POSITION"
+msgstr ""
+
 msgid "Aborted"
 msgstr "Abgebrochen"
 
@@ -1375,6 +1390,9 @@ msgstr "Zertifizierungsdetails für dieses Dashboard hinzufügen"
 
 msgid "Add color for positive/negative change"
 msgstr "Farbe für positive/negative Veränderung hinzufügen"
+
+msgid "Add colors to cell bars for +/-"
+msgstr ""
 
 msgid "Add colors to cell bars for +/- for all columns"
 msgstr "Farben zu den Zellenbalken für +/- für alle Spalten hinzufügen"
@@ -1657,6 +1675,11 @@ msgstr ""
 "angewendet wird, um die Clusterbeschriftung zu erstellen."
 
 msgid ""
+"Aggregate function to apply when pivoting and computing the total rows "
+"and columns"
+msgstr ""
+
+msgid ""
 "Aggregates data within the boundary of grid cells and maps the aggregated"
 " values to a dynamic color scale"
 msgstr ""
@@ -1668,6 +1691,9 @@ msgstr "Aggregation"
 
 msgid "Aggregation Method"
 msgstr "Aggregationsmethode"
+
+msgid "Aggregation function"
+msgstr ""
 
 msgid ""
 "Aggregation used for the summary row. By default each metric keeps its "
@@ -2646,6 +2672,9 @@ msgstr ""
 msgid "Arrow"
 msgstr "Pfeil"
 
+msgid "Ascending"
+msgstr ""
+
 msgid "Assign a set of parameters as"
 msgstr "Eines Satz von Parametern zuweisen"
 
@@ -2723,6 +2752,9 @@ msgstr "Breite dieser Spalte automatisch anpassen"
 msgid "Autosize all columns"
 msgstr "Alle Spaltenbreiten automatisch anpassen"
 
+msgid "Available Handlebars Helpers in Superset:"
+msgstr ""
+
 msgid "Available sorting modes:"
 msgstr "Verfügbare Sortiermodi:"
 
@@ -2797,6 +2829,9 @@ msgstr ""
 "Balkendiagramme werden verwendet, um Metriken als eine Reihe von Balken "
 "anzuzeigen."
 
+msgid "Bar Values"
+msgstr ""
+
 msgid "Bar orientation"
 msgstr "Balken-Ausrichtung"
 
@@ -2820,6 +2855,10 @@ msgstr ""
 #, python-format
 msgid "Base layer map style. See MapLibre documentation: %s"
 msgstr "Kartenstil der Basisebene. Siehe MapLibre-Dokumentation: %s"
+
+#, python-format
+msgid "Base layer map style. See Mapbox documentation: %s"
+msgstr ""
 
 msgid "Base slope"
 msgstr "Steigung"
@@ -3002,6 +3041,9 @@ msgstr ""
 
 msgid "Bubble Chart"
 msgstr "Blasen-Diagramm"
+
+msgid "Bubble Chart (legacy)"
+msgstr ""
 
 msgid "Bubble Color"
 msgstr "Blasenfarbe"
@@ -3228,8 +3270,8 @@ msgid ""
 "for open and close on a high-low stem."
 msgstr ""
 "Kerzen zeichnen einen gefüllten Körper zwischen Eröffnung und Schluss. "
-"OHLC zeichnet Markierungen für Eröffnung und Schluss an einem "
-"Hoch-Tief-Stiel."
+"OHLC zeichnet Markierungen für Eröffnung und Schluss an einem Hoch-Tief-"
+"Stiel."
 
 msgid "Cannot access the query"
 msgstr "Zugriff auf die Abfrage nicht möglich"
@@ -3645,13 +3687,6 @@ msgstr ""
 
 msgid "Chart width"
 msgstr "Diagrammbreite"
-
-#, python-format
-msgid ""
-"Chart with ID %(chart_id)s (referenced by annotation layer "
-"'%(layer_name)s') was not found. Please verify that the chart exists and "
-"is accessible."
-msgstr ""
 
 #, python-format
 msgid ""
@@ -4116,8 +4151,7 @@ msgstr "Farbschema"
 msgid ""
 "Color used when the close value is greater than or equal to the open "
 "value."
-msgstr ""
-"Farbe, wenn der Schlusswert größer oder gleich dem Eröffnungswert ist."
+msgstr "Farbe, wenn der Schlusswert größer oder gleich dem Eröffnungswert ist."
 
 msgid "Color used when the close value is less than the open value."
 msgstr "Farbe, wenn der Schlusswert kleiner als der Eröffnungswert ist."
@@ -4341,6 +4375,12 @@ msgstr ""
 "Vergleicht, wie sich eine Metrik im Laufe der Zeit zwischen verschiedenen"
 " Gruppen ändert. Jede Gruppe wird einer Zeile zugeordnet und die Änderung"
 " im Laufe der Zeit werden als Balkenlängen und -farben visualisiert."
+
+msgid ""
+"Compares metrics between different time periods. Displays time series "
+"data across multiple periods (like weeks or months) to show period-over-"
+"period trends and patterns."
+msgstr ""
 
 msgid ""
 "Compares the current time period against equivalent past periods by "
@@ -4702,6 +4742,18 @@ msgstr ""
 msgid "Count"
 msgstr "Anzahl"
 
+msgid "Count Unique Values"
+msgstr ""
+
+msgid "Count as Fraction of Columns"
+msgstr ""
+
+msgid "Count as Fraction of Rows"
+msgstr ""
+
+msgid "Count as Fraction of Total"
+msgstr ""
+
 msgid "Country"
 msgstr "Land"
 
@@ -4759,6 +4811,12 @@ msgstr "DataFrame-Index erstellen"
 
 msgid "Create dataset"
 msgstr "Datensatz erstellen"
+
+msgid "Create matrix columns by placing charts side-by-side"
+msgstr ""
+
+msgid "Create matrix rows by stacking charts vertically"
+msgstr ""
 
 msgid "Create new chart"
 msgstr "Neues Diagramm erstellen"
@@ -5094,6 +5152,9 @@ msgstr "Dashboard konnte nicht wiederhergestellt werden."
 msgid "Dashboard could not be updated."
 msgstr "Das Dashboard konnte nicht aktualisiert werden."
 
+msgid "Dashboard data exported to Excel"
+msgstr ""
+
 msgid "Dashboard does not exist"
 msgstr "Dashboard existiert nicht"
 
@@ -5102,6 +5163,9 @@ msgstr "Das Dashboard wurde erfolgreich als Beispiel exportiert"
 
 msgid "Dashboard exported successfully"
 msgstr "Das Dashboard wurde erfolgreich exportiert"
+
+msgid "Dashboard has no charts to export."
+msgstr ""
 
 msgid "Dashboard imported"
 msgstr "Dashboard importiert"
@@ -5572,6 +5636,21 @@ msgstr ""
 "Standardwert wird automatisch festgelegt, wenn „Erstes Element als "
 "Standard“ aktiviert ist"
 
+msgid ""
+"Define a function that receives the input and outputs the content for a "
+"tooltip"
+msgstr ""
+
+msgid "Define a function that returns a URL to navigate to when user clicks"
+msgstr ""
+
+msgid ""
+"Define a javascript function that receives the data array used in the "
+"visualization and is expected to return a modified version of that array."
+" This can be used to alter properties of the data, filter, or enrich the "
+"array."
+msgstr ""
+
 msgid "Define color breakpoints for the data"
 msgstr "Definieren Sie Farb-Trennpunkte für die Daten"
 
@@ -5903,6 +5982,9 @@ msgid "Depends on"
 msgstr ""
 
 msgid "Deployment default"
+msgstr ""
+
+msgid "Descending"
 msgstr ""
 
 msgid "Description"
@@ -6427,6 +6509,9 @@ msgstr "Dauer in ms (100,40008 => 100ms 400μs 80ns)"
 msgid "Duration in ms (10500 => 0:00:10.5)"
 msgstr "Dauer in ms (10500 => 0:00:10.5)"
 
+msgid "Duration in ms (10500 => 0:10.5)"
+msgstr ""
+
 msgid "Duration in ms (66000 => 1m 6s)"
 msgstr "Dauer in ms (66000 => 1m 6s)"
 
@@ -6737,6 +6822,9 @@ msgstr "Aktivieren von Prognosen"
 msgid "Enable graph roaming"
 msgstr "Graph-Roaming aktivieren"
 
+msgid "Enable horizontal layout (columns)"
+msgstr ""
+
 msgid "Enable icons"
 msgstr "Symbole aktivieren"
 
@@ -6759,6 +6847,9 @@ msgid "Enable server side pagination of results (experimental feature)"
 msgstr ""
 "Aktivieren der serverseitigen Paginierung der Ergebnisse (experimentelle "
 "Funktion)"
+
+msgid "Enable vertical layout (rows)"
+msgstr ""
 
 msgid "Enables rendering of icons for GeoJSON points"
 msgstr "Ermöglicht die Darstellung von Symbolen für GeoJSON-Punkte"
@@ -7069,9 +7160,6 @@ msgstr "Excel Export"
 msgid "Excel XML Export"
 msgstr "Excel XML-Export"
 
-msgid "Excel export is not configured on this server."
-msgstr ""
-
 msgid "Excel file format cannot be determined"
 msgstr "Excel-Dateiformat kann nicht bestimmt werden"
 
@@ -7239,6 +7327,11 @@ msgstr "Export in das ursprüngliche .CSV"
 msgid "Export to pivoted .CSV"
 msgstr "Export in das pivotierte .CSV"
 
+msgid ""
+"Exporting images to Excel requires background exports. Ask an "
+"administrator to enable them, or export the dashboard's data instead."
+msgstr ""
+
 #, python-format
 msgid ""
 "Exporting semantic views is not supported yet — %s semantic-view row(s) "
@@ -7285,6 +7378,9 @@ msgstr "Zusätzliche Bedienelemente"
 
 msgid "Extra Parameters"
 msgstr "Zusätzliche Parameter"
+
+msgid "Extra data for JS"
+msgstr ""
 
 #, python-brace-format
 msgid ""
@@ -7800,6 +7896,11 @@ msgid "For further instructions, consult the"
 msgstr "Weitere Anweisungen finden Sie in der"
 
 msgid ""
+"For more information about objects are in context in the scope of this "
+"function, refer to the"
+msgstr ""
+
+msgid ""
 "For regular filters, these are the subjects (users, roles, groups) this "
 "filter will be applied to. For base filters, these are the subjects that "
 "the filter DOES NOT apply to, e.g. Admin if admin should see all data."
@@ -8077,6 +8178,9 @@ msgstr "Größer oder gleich (>=)"
 msgid "Greater than (>)"
 msgstr "Größer als (>)"
 
+msgid "Green for increase, red for decrease"
+msgstr ""
+
 msgid "Grid"
 msgstr "Raster"
 
@@ -8225,6 +8329,9 @@ msgstr "Horizontal (oben)"
 
 msgid "Horizontal alignment"
 msgstr "Horizontale Ausrichtung"
+
+msgid "Horizontal layout (columns)"
+msgstr ""
 
 msgid "Host"
 msgstr "Host"
@@ -8783,6 +8890,9 @@ msgstr ""
 msgid "It’s not recommended to truncate Y axis in Bar chart."
 msgstr "Es wird nicht empfohlen, die y-Achse im Balkendiagramm abzuschneiden."
 
+msgid "It’s not recommended to truncate axis in Bar chart."
+msgstr ""
+
 msgid "JAN"
 msgstr "JAN"
 
@@ -8823,6 +8933,15 @@ msgstr "JUN"
 
 msgid "January"
 msgstr "Januar"
+
+msgid "JavaScript data interceptor"
+msgstr ""
+
+msgid "JavaScript onClick href"
+msgstr ""
+
+msgid "JavaScript tooltip generator"
+msgstr ""
 
 msgid "Jinja templating"
 msgstr "Jinja Vorlagen"
@@ -8926,6 +9045,15 @@ msgstr "Beschriftung"
 
 msgid "Labels"
 msgstr "Beschriftungen"
+
+msgid "Labels for the marker lines"
+msgstr ""
+
+msgid "Labels for the markers"
+msgstr ""
+
+msgid "Labels for the ranges"
+msgstr ""
 
 msgid "Languages"
 msgstr "Sprachen"
@@ -9167,6 +9295,9 @@ msgid ""
 "does not already have. Leave empty for legacy RBAC-only behavior."
 msgstr ""
 
+msgid "Limits the number of cells that get retrieved."
+msgstr ""
+
 msgid ""
 "Limits the number of cells that get retrieved. Not applied when non-"
 "additive metrics (e.g. ratios, COUNT_DISTINCT, AVG, percentiles) are "
@@ -9264,6 +9395,9 @@ msgstr "Gruppen auflisten"
 msgid "List Roles"
 msgstr "Rollen auflisten"
 
+msgid "List Unique Values"
+msgstr ""
+
 msgid "List Users"
 msgstr "Benutzer*innen auflisten"
 
@@ -9272,11 +9406,20 @@ msgid ""
 "toggles it on the chart"
 msgstr ""
 
+msgid "List of extra columns made available in JavaScript functions"
+msgstr ""
+
 msgid "List of n+1 values for bucketing metric into n buckets."
 msgstr "Liste der n+1-Werte für das Bucketing der Metrik in n Buckets."
 
 msgid "List of the column names that should be read"
 msgstr "Liste der Spaltennamen, die gelesen werden sollen"
+
+msgid "List of values to mark with lines"
+msgstr ""
+
+msgid "List of values to mark with triangles"
+msgstr ""
 
 msgid "List updated"
 msgstr "Liste aktualisiert"
@@ -9619,6 +9762,9 @@ msgstr "Mittelwert der Werte über einen bestimmten Zeitraum"
 msgid "Mean values"
 msgstr "Mittelwerte"
 
+msgid "Median"
+msgstr ""
+
 msgid ""
 "Median edge width, the thickest edge will be 4 times thicker than the "
 "thinnest."
@@ -9784,6 +9930,9 @@ msgstr "Metriken"
 #, python-format
 msgid "Metrics (%s)"
 msgstr "Metriken (%s)"
+
+msgid "Metrics / Dimensions"
+msgstr ""
 
 msgid "Metrics can't be used for both rows and columns at the same time"
 msgstr "Metriken können nicht gleichzeitig für Zeilen und Spalten verwendet werden"
@@ -10433,6 +10582,11 @@ msgstr "Keine -> Pfeil"
 msgid "None -> None"
 msgstr "Keine -> Keine"
 
+msgid ""
+"None of this dashboard's charts can be downloaded directly. Ask an "
+"administrator to enable background exports."
+msgstr ""
+
 msgid "Normal"
 msgstr "Normal"
 
@@ -10861,8 +11015,7 @@ msgstr "Optionale d3-Zahlenformat-Zeichenfolge"
 msgid ""
 "Optional dimension used to split the chart into multiple candlestick "
 "series."
-msgstr ""
-"Optionale Dimension, die das Diagramm in mehrere Kerzenreihen aufteilt."
+msgstr "Optionale Dimension, die das Diagramm in mehrere Kerzenreihen aufteilt."
 
 msgid ""
 "Optional metric used to scale the size of each dot. Dot areas are scaled "
@@ -10995,8 +11148,8 @@ msgid ""
 "Overlay simple moving averages of the close price (MA5, MA10, MA15, ...)."
 " Type a custom period to add it."
 msgstr ""
-"Einfache gleitende Durchschnitte des Schlusskurses überlagern (MA5, MA10, "
-"MA15, …). Geben Sie einen eigenen Zeitraum ein, um ihn hinzuzufügen."
+"Einfache gleitende Durchschnitte des Schlusskurses überlagern (MA5, MA10,"
+" MA15, …). Geben Sie einen eigenen Zeitraum ein, um ihn hinzuzufügen."
 
 msgid ""
 "Overlays a hexagonal grid on a map, and aggregates data within the "
@@ -11261,6 +11414,9 @@ msgid "Pick a nickname for how the database will display in Superset."
 msgstr ""
 "Wählen Sie einen Kurznamen mit dem die Datenbank in Superset angezeigt "
 "werden soll."
+
+msgid "Pick a set of deck.gl charts to layer on top of one another"
+msgstr ""
 
 msgid "Pick a title for you annotation."
 msgstr "Wählen Sie einen Titel für Ihre Anmerkung aus."
@@ -11596,6 +11752,12 @@ msgstr "Präfix oder Suffix"
 msgid "Preparing %(count)s charts for export. This may take a moment."
 msgstr ""
 
+msgid "Preparing dashboard Excel export…"
+msgstr ""
+
+msgid "Preparing export…"
+msgstr ""
+
 msgid "Preview"
 msgstr "Vorschau"
 
@@ -11828,6 +11990,9 @@ msgstr "Bereichstyp"
 msgid "Ranges"
 msgstr "Bereiche"
 
+msgid "Ranges to highlight with shading"
+msgstr ""
+
 msgid "Ranking"
 msgstr "Rangliste"
 
@@ -11879,8 +12044,21 @@ msgstr "Rechteck"
 msgid "Recurring (every)"
 msgstr "Wiederkehrend (alle)"
 
+msgid "Red for increase, green for decrease"
+msgstr ""
+
 msgid "Redo the action"
 msgstr "Aktion wiederholen"
+
+msgid "Reduce X ticks"
+msgstr ""
+
+msgid ""
+"Reduces the number of X-axis ticks to be rendered. If true, the x-axis "
+"will not overflow and labels may be missing. If false, a minimum width "
+"will be applied to columns and the width may overflow into an horizontal "
+"scroll."
+msgstr ""
 
 msgid "Refer to the"
 msgstr "Weitere Informationen finden Sie im"
@@ -12400,6 +12578,9 @@ msgstr "Umfangreicher Tooltip"
 
 msgid "Right"
 msgstr "Rechts"
+
+msgid "Right Axis Format"
+msgstr ""
 
 msgid "Right Axis Metric"
 msgstr "Metrik der rechten Achse"
@@ -12922,6 +13103,10 @@ msgstr ""
 
 msgid "Search"
 msgstr "Suche"
+
+#, python-format
+msgid "Search %s records"
+msgstr ""
 
 msgid "Search / Filter"
 msgstr "Suchen / Filtern"
@@ -13818,6 +14003,9 @@ msgstr "Metriknamen anzeigen"
 msgid "Show Null Values"
 msgstr ""
 
+msgid "Show Range Filter"
+msgstr ""
+
 msgid "Show SQL"
 msgstr "SQL anzeigen"
 
@@ -13896,6 +14084,9 @@ msgstr "Spalten Zwischensumme anzeigen"
 
 msgid "Show columns total"
 msgstr "Spaltensumme anzeigen"
+
+msgid "Show data points as circle markers on the lines"
+msgstr ""
 
 msgid "Show empty columns"
 msgstr "Leere Spalten anzeigen"
@@ -13991,6 +14182,9 @@ msgid "Show summary"
 msgstr "Zusammenfassung anzeigen"
 
 msgid "Show the main ticks on axes."
+msgstr ""
+
+msgid "Show the value on top of the bar"
 msgstr ""
 
 msgid "Show total"
@@ -14345,6 +14539,9 @@ msgstr "Legende sortieren"
 msgid "Sort metric"
 msgstr "Metrik sortieren"
 
+msgid "Sort order"
+msgstr ""
+
 msgid "Sort query by"
 msgstr "Abfrage sortieren nach"
 
@@ -14434,6 +14631,9 @@ msgstr "Reihen übereinander stapeln"
 
 msgid "Stacked"
 msgstr "Gestapelt"
+
+msgid "Stacked Bars"
+msgstr ""
 
 msgid "Stacked Style"
 msgstr "Gestapelter Stil"
@@ -14654,6 +14854,15 @@ msgstr ""
 
 msgid "Sum"
 msgstr "Summe"
+
+msgid "Sum as Fraction of Columns"
+msgstr ""
+
+msgid "Sum as Fraction of Rows"
+msgstr ""
+
+msgid "Sum as Fraction of Total"
+msgstr ""
 
 msgid "Sum of values over specified period"
 msgstr "Summe der Werte über einen bestimmten Zeitraum"
@@ -15456,6 +15665,12 @@ msgid ""
 msgstr ""
 
 msgid ""
+"The following charts were omitted because their size cannot be determined"
+" before they run. Ask an administrator to enable background exports to "
+"include them."
+msgstr ""
+
+msgid ""
 "The following charts were omitted because they have no saved query "
 "context. To include them, open each chart in Explore and re-save."
 msgstr ""
@@ -15775,6 +15990,13 @@ msgid ""
 "                expressions."
 msgstr ""
 
+msgid ""
+"The periodicity over which to pivot time. Users can provide\n"
+"            \"Pandas\" offset alias.\n"
+"            Click on the info bubble for more details on accepted "
+"\"freq\" expressions."
+msgstr ""
+
 msgid "The pixel radius"
 msgstr "Der Pixelradius"
 
@@ -15813,13 +16035,6 @@ msgid "The query contains one or more malformed template parameters."
 msgstr "Die Abfrage enthält einen oder mehrere fehlerhafte Vorlagenparameter."
 
 msgid "The query context datasource does not match the chart datasource"
-msgstr ""
-
-#, python-format
-msgid ""
-"The query context for chart ID %(chart_id)s (referenced by annotation "
-"layer '%(layer_name)s') was not found. Please ensure the chart is "
-"properly configured and has a valid query context."
 msgstr ""
 
 #, python-format
@@ -16673,6 +16888,12 @@ msgstr ""
 msgid "This dashboard does not exist"
 msgstr ""
 
+msgid ""
+"This dashboard has too much data to download directly. Ask an "
+"administrator to enable background exports, or lower the row limits of "
+"its charts."
+msgstr ""
+
 msgid "This dashboard is managed externally, and can't be edited in Superset"
 msgstr ""
 "Dieses Dashboard wird extern verwaltet und kann nicht in Superset "
@@ -16824,6 +17045,9 @@ msgstr "Dieser Ordner unterstützt ausschließlich Spalten"
 
 msgid "This folder only supports metrics"
 msgstr "Dieser Ordner unterstützt ausschließlich Metriken"
+
+msgid "This functionality is disabled in your environment for security reasons."
+msgstr ""
 
 msgid ""
 "This is a default columns folder. Its name cannot be changed or removed. "
@@ -17240,6 +17464,9 @@ msgstr ""
 "Die Zeitzeichenfolge ist mehrdeutig. Bitte geben Sie [%(human_readable)s "
 "ago] oder [%(human_readable)s later] an."
 
+msgid "Time-series Percent Change"
+msgstr ""
+
 msgid "Time-series Period Pivot"
 msgstr "Zeitreihen - Perioden-Pivot"
 
@@ -17380,6 +17607,10 @@ msgstr "Total"
 #, python-format
 msgid "Total (%(aggfunc)s)"
 msgstr "Insgesamt (%(aggfunc)s)"
+
+#, python-format
+msgid "Total (%(aggregatorName)s)"
+msgstr ""
 
 msgid ""
 "Total angle covered by the chart, in degrees. 360° draws a full circle "
@@ -17989,6 +18220,9 @@ msgstr ""
 msgid "Use a log scale"
 msgstr "Verwendung einer logarithmischen Skala"
 
+msgid "Use a log scale for the X-axis"
+msgstr ""
+
 msgid "Use a log scale for the Y-axis"
 msgstr "Logarithmische Skala für die y-Achse verwenden"
 
@@ -18268,6 +18502,9 @@ msgstr "Vertikal"
 msgid "Vertical (Left)"
 msgstr "Vertikal (links)"
 
+msgid "Vertical layout (rows)"
+msgstr ""
+
 msgid "View"
 msgstr "Ansicht"
 
@@ -18441,6 +18678,12 @@ msgstr ""
 "Landes (Bundesstaaten, Provinzen usw.) auf einer Choroplethenkarte "
 "variiert. Der Wert jeder Unterteilung wird erhöht, wenn Sie den "
 "Mauszeiger über die entsprechende geografische Grenze bewegen."
+
+msgid ""
+"Visualizes many different time-series objects in a single chart. This "
+"chart is being deprecated and we recommend using the Time-series Chart "
+"instead."
+msgstr ""
 
 msgid ""
 "Visualizes the words in a column that appear the most often. Bigger font "
@@ -18654,8 +18897,8 @@ msgid ""
 "candles use the decrease color. Turn off to use one series color, with a "
 "filled body for increases and a hollow body for decreases."
 msgstr ""
-"Wenn aktiviert, nutzen steigende Kerzen die Anstiegsfarbe und fallende die "
-"Rückgangsfarbe. Deaktivieren Sie die Option für eine Reihenfarbe: "
+"Wenn aktiviert, nutzen steigende Kerzen die Anstiegsfarbe und fallende "
+"die Rückgangsfarbe. Deaktivieren Sie die Option für eine Reihenfarbe: "
 "gefüllter Körper bei Anstieg, hohler Körper bei Rückgang."
 
 msgid ""
@@ -18830,6 +19073,12 @@ msgstr "Ob der Metrikname angezeigt werden soll"
 msgid "Whether to display the metric name as a title"
 msgstr "Ob der Metrikname als Titel angezeigt werden soll"
 
+msgid "Whether to display the min and max values of the X-axis"
+msgstr ""
+
+msgid "Whether to display the min and max values of the Y-axis"
+msgstr ""
+
 msgid "Whether to display the numbered column"
 msgstr "Ob die nummerierte Spalte angezeigt werden soll"
 
@@ -18841,6 +19090,9 @@ msgstr "Ob der Prozentsatz im Tooltip angezeigt werden soll"
 
 msgid "Whether to display the stroke"
 msgstr "Ob der Strich dargestellt werden soll"
+
+msgid "Whether to display the time range interactive selector"
+msgstr ""
 
 msgid "Whether to display the timestamp"
 msgstr "Ob der Zeitstempel angezeigt werden soll"
@@ -18921,6 +19173,9 @@ msgstr ""
 "Ob die Ergebnisse nach der ausgewählten Metrik in absteigender "
 "Reihenfolge sortiert werden sollen."
 
+msgid "Whether to sort tooltip by the selected metric in descending order."
+msgstr ""
+
 msgid ""
 "Whether to sort tooltip by the selected metric in descending order. On "
 "stacked charts, values are shown in ascending order."
@@ -18984,6 +19239,9 @@ msgstr "Beschreibung Ihrer Anfrage"
 msgid "Write a handlebars template to render the data"
 msgstr "Handlebars-Template zur Darstellung der Daten verfassen"
 
+msgid "X AXIS TITLE MARGIN"
+msgstr ""
+
 msgid "X Axis"
 msgstr "x-Achse"
 
@@ -19011,11 +19269,17 @@ msgstr "x-Achse Titelrand"
 msgid "X Axis title margin"
 msgstr ""
 
+msgid "X Log Scale"
+msgstr ""
+
 msgid "X Tick Layout"
 msgstr "X Tick Layout"
 
 msgid "X axis title margin"
 msgstr "x-Achse Titelrand"
+
+msgid "X bounds"
+msgstr ""
 
 msgid "X-Axis Sort Ascending"
 msgstr "x-Achse aufsteigend sortieren"
@@ -19033,8 +19297,17 @@ msgstr "X-Skalen-Intervall"
 msgid "XYZ"
 msgstr "XYZ"
 
+msgid "Y 2 bounds"
+msgstr ""
+
+msgid "Y AXIS TITLE MARGIN"
+msgstr ""
+
 msgid "Y Axis"
 msgstr "y-Achse"
+
+msgid "Y Axis 2 Bounds"
+msgstr ""
 
 msgid "Y Axis Bounds"
 msgstr "Grenzen der y-Achse"
@@ -19062,6 +19335,9 @@ msgstr "Y-Log-Skala"
 
 msgid "Y axis title margin"
 msgstr "y-Achse Titel Rand"
+
+msgid "Y bounds"
+msgstr ""
 
 msgid "Y-Axis"
 msgstr "y-Achse"
@@ -19242,6 +19518,9 @@ msgid ""
 msgstr ""
 "Sie können den letzten Zeitfilter nicht löschen, da er für "
 "Zeitbereichsfilter in Dashboards verwendet wird."
+
+msgid "You cannot use 45° tick layout along with the time range filter"
+msgstr ""
 
 #, python-format
 msgid "You do not have access to the data behind this chart (tables: %s)."
@@ -19448,6 +19727,9 @@ msgstr ""
 msgid "You need to"
 msgstr "Sie müssen"
 
+msgid "You need to configure HTML sanitization to use CSS"
+msgstr ""
+
 msgid ""
 "You updated the values in the control panel, but the chart was not "
 "updated automatically. Run the query by clicking on the \"Update chart\" "
@@ -19506,18 +19788,6 @@ msgid ""
 "SUPERSET_DASHBOARD_POSITION_DATA_LIMIT config setting."
 msgstr ""
 
-msgid ""
-"Your export is being generated and will download automatically when "
-"ready. We'll also email you a download link."
-msgstr ""
-
-msgid "Your export is being generated. Please, do not leave the page."
-msgstr ""
-
-msgid "Your export is ready and downloading."
-msgstr ""
-
-msgid "Your export is taking longer than expected. Try again later."
 msgid ""
 "Your export is being generated and will download automatically when "
 "ready. We'll also email you a download link."
@@ -19739,6 +20009,9 @@ msgstr "Hintergrundfarbe"
 msgid "banana"
 msgstr "Banane"
 
+msgid "basis"
+msgstr ""
+
 msgid "begins with"
 msgstr "Beginnt mit"
 
@@ -19776,6 +20049,9 @@ msgstr "durch die Verwendung von"
 
 msgid "cannot be empty"
 msgstr "darf nicht leer sein"
+
+msgid "cardinal"
+msgstr ""
 
 msgid "cell bar"
 msgstr "Zellenbalken"
@@ -19930,6 +20206,9 @@ msgstr "deck.gl Streudiagramm"
 msgid "deck.gl Screen Grid"
 msgstr "Deck.gl - Bildschirmraster"
 
+msgid "deck.gl charts"
+msgstr ""
+
 msgid "deck.gl layers (charts)"
 msgstr "Deck.gl - Ebenen (Diagramme)"
 
@@ -20017,6 +20296,9 @@ msgstr "gesamte Zeile"
 
 msgid "entries"
 msgstr "Einträge"
+
+msgid "entries per page"
+msgstr ""
 
 #. do-not-translate
 msgid "error_message"
@@ -20187,6 +20469,9 @@ msgstr "Links"
 msgid "less than {min} {name}"
 msgstr "weniger als {min} {name}"
 
+msgid "linear"
+msgstr ""
+
 msgid "locale_key"
 msgstr "locale_key"
 
@@ -20229,6 +20514,9 @@ msgstr "Minute"
 
 msgid "minute(s)"
 msgstr "Minute(n)"
+
+msgid "monotone"
+msgstr ""
 
 msgid "month"
 msgstr "Monat"
@@ -20290,6 +20578,9 @@ msgstr "numerisch"
 
 msgid "numeric type icon"
 msgstr "Symbol für numerischen Typ"
+
+msgid "nvd3"
+msgstr ""
 
 msgid "of"
 msgstr "von"
@@ -20471,6 +20762,14 @@ msgstr "gestaffelt"
 
 msgid "std"
 msgstr "Std"
+
+#. do-not-translate
+msgid "step-after"
+msgstr ""
+
+#. do-not-translate
+msgid "step-before"
+msgstr ""
 
 msgid "stopped"
 msgstr "gestoppt"

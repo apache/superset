@@ -25,7 +25,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-24 09:49+0300\n"
+"POT-Creation-Date: 2026-09-28 01:14+0300\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -100,6 +100,9 @@ msgstr ""
 
 #, python-format
 msgid " near '%(highlight)s'"
+msgstr ""
+
+msgid " source code of Superset's sandboxed parser"
 msgstr ""
 
 msgid ""
@@ -470,6 +473,12 @@ msgstr ""
 #, python-format
 msgid "%s recipients"
 msgstr ""
+
+#, python-format
+msgid "%s record"
+msgid_plural "%s records..."
+msgstr[0] ""
+msgstr[1] ""
 
 #, python-format
 msgid "%s record..."
@@ -887,6 +896,9 @@ msgstr ""
 msgid "A butterfly chart compares two metrics across categories using horizontal bars that extend left and right from a central axis."
 msgstr ""
 
+msgid "A candlestick chart shows opening, closing, high, and low values for each period. It is commonly used for financial and other time-series range analysis."
+msgstr ""
+
 msgid "A comma separated list of columns that should be parsed as dates"
 msgstr ""
 
@@ -1041,6 +1053,12 @@ msgstr ""
 msgid "AUG"
 msgstr ""
 
+msgid "AXIS TITLE MARGIN"
+msgstr ""
+
+msgid "AXIS TITLE POSITION"
+msgstr ""
+
 msgid "Aborted"
 msgstr ""
 
@@ -1181,6 +1199,9 @@ msgid "Add certification details for this dashboard"
 msgstr ""
 
 msgid "Add color for positive/negative change"
+msgstr ""
+
+msgid "Add colors to cell bars for +/-"
 msgstr ""
 
 msgid "Add colors to cell bars for +/- for all columns"
@@ -1426,6 +1447,9 @@ msgstr ""
 msgid "Aggregate function applied to the list of points in each cluster to produce the cluster label."
 msgstr ""
 
+msgid "Aggregate function to apply when pivoting and computing the total rows and columns"
+msgstr ""
+
 msgid "Aggregates data within the boundary of grid cells and maps the aggregated values to a dynamic color scale"
 msgstr ""
 
@@ -1433,6 +1457,9 @@ msgid "Aggregation"
 msgstr ""
 
 msgid "Aggregation Method"
+msgstr ""
+
+msgid "Aggregation function"
 msgstr ""
 
 msgid "Aggregation used for the summary row. By default each metric keeps its own aggregation; Sum and Average override it for the summary row only. The override applies to simple metrics (a metric built from custom SQL always keeps its own aggregation). Overriding a count or a distinct count sums the counted column instead, which fails outright on a non-numeric column."
@@ -2260,6 +2287,9 @@ msgstr ""
 msgid "Arrow"
 msgstr ""
 
+msgid "Ascending"
+msgstr ""
+
 msgid "Assign a set of parameters as"
 msgstr ""
 
@@ -2335,6 +2365,9 @@ msgstr ""
 msgid "Autosize all columns"
 msgstr ""
 
+msgid "Available Handlebars Helpers in Superset:"
+msgstr ""
+
 msgid "Available sorting modes:"
 msgstr ""
 
@@ -2407,6 +2440,9 @@ msgstr ""
 msgid "Bar Charts are used to show metrics as a series of bars."
 msgstr ""
 
+msgid "Bar Values"
+msgstr ""
+
 msgid "Bar orientation"
 msgstr ""
 
@@ -2427,6 +2463,10 @@ msgstr ""
 
 #, python-format
 msgid "Base layer map style. See MapLibre documentation: %s"
+msgstr ""
+
+#, python-format
+msgid "Base layer map style. See Mapbox documentation: %s"
 msgstr ""
 
 msgid "Base slope"
@@ -2552,6 +2592,9 @@ msgid ""
 msgstr ""
 
 msgid "Bubble Chart"
+msgstr ""
+
+msgid "Bubble Chart (legacy)"
 msgstr ""
 
 msgid "Bubble Color"
@@ -2737,9 +2780,7 @@ msgstr ""
 msgid "Candlestick Chart"
 msgstr ""
 
-msgid ""
-"Candlestick draws a filled body between open and close. OHLC draws ticks "
-"for open and close on a high-low stem."
+msgid "Candlestick draws a filled body between open and close. OHLC draws ticks for open and close on a high-low stem."
 msgstr ""
 
 msgid "Cannot access the query"
@@ -3532,6 +3573,12 @@ msgstr ""
 msgid "Color scheme"
 msgstr ""
 
+msgid "Color used when the close value is greater than or equal to the open value."
+msgstr ""
+
+msgid "Color used when the close value is less than the open value."
+msgstr ""
+
 msgid "Color will be shaded based the normalized (0% to 100%) value of a given cell against the other cells in the selected range: "
 msgstr ""
 
@@ -3706,6 +3753,9 @@ msgid "Compare the same summarized metric across multiple groups."
 msgstr ""
 
 msgid "Compares how a metric changes over time between different groups. Each group is mapped to a row and change over time is visualized bar lengths and color."
+msgstr ""
+
+msgid "Compares metrics between different time periods. Displays time series data across multiple periods (like weeks or months) to show period-over-period trends and patterns."
 msgstr ""
 
 msgid "Compares the current time period against equivalent past periods by overlaying them on a shared time axis. The current period is drawn boldly while prior periods fade with age."
@@ -4027,6 +4077,18 @@ msgstr ""
 msgid "Count"
 msgstr ""
 
+msgid "Count Unique Values"
+msgstr ""
+
+msgid "Count as Fraction of Columns"
+msgstr ""
+
+msgid "Count as Fraction of Rows"
+msgstr ""
+
+msgid "Count as Fraction of Total"
+msgstr ""
+
 msgid "Country"
 msgstr ""
 
@@ -4078,6 +4140,12 @@ msgid "Create dataframe index"
 msgstr ""
 
 msgid "Create dataset"
+msgstr ""
+
+msgid "Create matrix columns by placing charts side-by-side"
+msgstr ""
+
+msgid "Create matrix rows by stacking charts vertically"
 msgstr ""
 
 msgid "Create new chart"
@@ -4803,6 +4871,15 @@ msgstr ""
 msgid "Default value set automatically when \"Select first filter value by default\" is checked"
 msgstr ""
 
+msgid "Define a function that receives the input and outputs the content for a tooltip"
+msgstr ""
+
+msgid "Define a function that returns a URL to navigate to when user clicks"
+msgstr ""
+
+msgid "Define a javascript function that receives the data array used in the visualization and is expected to return a modified version of that array. This can be used to alter properties of the data, filter, or enrich the array."
+msgstr ""
+
 msgid "Define color breakpoints for the data"
 msgstr ""
 
@@ -5084,6 +5161,9 @@ msgid "Depends on"
 msgstr ""
 
 msgid "Deployment default"
+msgstr ""
+
+msgid "Descending"
 msgstr ""
 
 msgid "Description"
@@ -5491,6 +5571,9 @@ msgstr ""
 msgid "Duration in ms (10500 => 0:00:10.5)"
 msgstr ""
 
+msgid "Duration in ms (10500 => 0:10.5)"
+msgstr ""
+
 msgid "Duration in ms (66000 => 1m 6s)"
 msgstr ""
 
@@ -5786,6 +5869,9 @@ msgstr ""
 msgid "Enable graph roaming"
 msgstr ""
 
+msgid "Enable horizontal layout (columns)"
+msgstr ""
+
 msgid "Enable icons"
 msgstr ""
 
@@ -5805,6 +5891,9 @@ msgid "Enable row expansion in schemas"
 msgstr ""
 
 msgid "Enable server side pagination of results (experimental feature)"
+msgstr ""
+
+msgid "Enable vertical layout (rows)"
 msgstr ""
 
 msgid "Enables rendering of icons for GeoJSON points"
@@ -6270,9 +6359,7 @@ msgstr ""
 msgid "Export to pivoted .CSV"
 msgstr ""
 
-msgid ""
-"Exporting images to Excel requires background exports. Ask an "
-"administrator to enable them, or export the dashboard's data instead."
+msgid "Exporting images to Excel requires background exports. Ask an administrator to enable them, or export the dashboard's data instead."
 msgstr ""
 
 #, python-format
@@ -6314,6 +6401,9 @@ msgid "Extra Controls"
 msgstr ""
 
 msgid "Extra Parameters"
+msgstr ""
+
+msgid "Extra data for JS"
 msgstr ""
 
 #, python-brace-format
@@ -6692,6 +6782,9 @@ msgstr ""
 msgid "Filters with the same group key will be ORed together within the group, while different filter groups will be ANDed together. Undefined group keys are treated as unique groups, i.e. are not grouped together. For example, if a table has three filters, of which two are for departments Finance and Marketing (group key = 'department'), and one refers to the region Europe (group key = 'region'), the filter clause would apply the filter (department = 'Finance' OR department = 'Marketing') AND (region = 'Europe')."
 msgstr ""
 
+msgid "Financial"
+msgstr ""
+
 msgid "Find"
 msgstr ""
 
@@ -6768,6 +6861,9 @@ msgid "For Trino, describe full schemas of nested ROW types, expanding them with
 msgstr ""
 
 msgid "For further instructions, consult the"
+msgstr ""
+
+msgid "For more information about objects are in context in the scope of this function, refer to the"
 msgstr ""
 
 msgid "For regular filters, these are the subjects (users, roles, groups) this filter will be applied to. For base filters, these are the subjects that the filter DOES NOT apply to, e.g. Admin if admin should see all data."
@@ -7008,6 +7104,9 @@ msgstr ""
 msgid "Greater than (>)"
 msgstr ""
 
+msgid "Green for increase, red for decrease"
+msgstr ""
+
 msgid "Grid"
 msgstr ""
 
@@ -7148,6 +7247,9 @@ msgid "Horizontal (Top)"
 msgstr ""
 
 msgid "Horizontal alignment"
+msgstr ""
+
+msgid "Horizontal layout (columns)"
 msgstr ""
 
 msgid "Host"
@@ -7650,6 +7752,9 @@ msgstr ""
 msgid "It’s not recommended to truncate Y axis in Bar chart."
 msgstr ""
 
+msgid "It’s not recommended to truncate axis in Bar chart."
+msgstr ""
+
 msgid "JAN"
 msgstr ""
 
@@ -7681,6 +7786,15 @@ msgid "JUN"
 msgstr ""
 
 msgid "January"
+msgstr ""
+
+msgid "JavaScript data interceptor"
+msgstr ""
+
+msgid "JavaScript onClick href"
+msgstr ""
+
+msgid "JavaScript tooltip generator"
 msgstr ""
 
 msgid "Jinja templating"
@@ -7780,6 +7894,15 @@ msgid "Labelling"
 msgstr ""
 
 msgid "Labels"
+msgstr ""
+
+msgid "Labels for the marker lines"
+msgstr ""
+
+msgid "Labels for the markers"
+msgstr ""
+
+msgid "Labels for the ranges"
 msgstr ""
 
 msgid "Languages"
@@ -8017,6 +8140,9 @@ msgstr ""
 msgid "Limit which MCP resources and actions this key can access. These scopes do not restrict REST API requests and never grant permissions the user does not already have. Leave empty for legacy RBAC-only behavior."
 msgstr ""
 
+msgid "Limits the number of cells that get retrieved."
+msgstr ""
+
 msgid "Limits the number of cells that get retrieved. Not applied when non-additive metrics (e.g. ratios, COUNT_DISTINCT, AVG, percentiles) are present, since totals and subtotals are then computed via a database rollup query that must see every row to stay correct."
 msgstr ""
 
@@ -8086,16 +8212,28 @@ msgstr ""
 msgid "List Roles"
 msgstr ""
 
+msgid "List Unique Values"
+msgstr ""
+
 msgid "List Users"
 msgstr ""
 
 msgid "List every range, marker and marker line in a legend; clicking an entry toggles it on the chart"
 msgstr ""
 
+msgid "List of extra columns made available in JavaScript functions"
+msgstr ""
+
 msgid "List of n+1 values for bucketing metric into n buckets."
 msgstr ""
 
 msgid "List of the column names that should be read"
+msgstr ""
+
+msgid "List of values to mark with lines"
+msgstr ""
+
+msgid "List of values to mark with triangles"
 msgstr ""
 
 msgid "List updated"
@@ -8415,6 +8553,9 @@ msgstr ""
 msgid "Mean values"
 msgstr ""
 
+msgid "Median"
+msgstr ""
+
 msgid "Median edge width, the thickest edge will be 4 times thicker than the thinnest."
 msgstr ""
 
@@ -8552,6 +8693,9 @@ msgstr ""
 
 #, python-format
 msgid "Metrics (%s)"
+msgstr ""
+
+msgid "Metrics / Dimensions"
 msgstr ""
 
 msgid "Metrics can't be used for both rows and columns at the same time"
@@ -8856,9 +9000,7 @@ msgstr ""
 msgid "Name of your tag"
 msgstr ""
 
-msgid ""
-"Name used for the candlestick series in the legend and tooltip when no "
-"series dimension is set."
+msgid "Name used for the candlestick series in the legend and tooltip when no series dimension is set."
 msgstr ""
 
 msgid "Name your database"
@@ -9165,9 +9307,7 @@ msgstr ""
 msgid "None -> None"
 msgstr ""
 
-msgid ""
-"None of this dashboard's charts can be downloaded directly. Ask an "
-"administrator to enable background exports."
+msgid "None of this dashboard's charts can be downloaded directly. Ask an administrator to enable background exports."
 msgstr ""
 
 msgid "Normal"
@@ -9511,6 +9651,9 @@ msgstr ""
 msgid "Open query in SQL Lab"
 msgstr ""
 
+msgid "Opening value for each period."
+msgstr ""
+
 msgid "Operate the database in asynchronous mode, meaning that the queries are executed on remote workers as opposed to on the web server itself. This assumes that you have a Celery worker setup as well as a results backend. Refer to the installation docs for more information."
 msgstr ""
 
@@ -9528,6 +9671,9 @@ msgid "Optional d3 date format string"
 msgstr ""
 
 msgid "Optional d3 number format string"
+msgstr ""
+
+msgid "Optional dimension used to split the chart into multiple candlestick series."
 msgstr ""
 
 msgid "Optional metric used to scale the size of each dot. Dot areas are scaled linearly between the minimum and maximum dot size."
@@ -9613,6 +9759,9 @@ msgid "Overlay one or more timeseries from a relative time period. Expects relat
 msgstr ""
 
 msgid "Overlay results from a relative time period. Expects relative time deltas in natural language (example:  24 hours, 7 days, 52 weeks, 365 days). Free text is supported. Use \"Inherit range from time filters\" to shift the comparison time range by the same length as your time range and use \"Custom\" to set a custom comparison range."
+msgstr ""
+
+msgid "Overlay simple moving averages of the close price (MA5, MA10, MA15, ...). Type a custom period to add it."
 msgstr ""
 
 msgid "Overlays a hexagonal grid on a map, and aggregates data within the boundary of each cell."
@@ -9856,6 +10005,9 @@ msgid "Pick a name to help you identify this database."
 msgstr ""
 
 msgid "Pick a nickname for how the database will display in Superset."
+msgstr ""
+
+msgid "Pick a set of deck.gl charts to layer on top of one another"
 msgstr ""
 
 msgid "Pick a title for you annotation."
@@ -10372,6 +10524,9 @@ msgstr ""
 msgid "Ranges"
 msgstr ""
 
+msgid "Ranges to highlight with shading"
+msgstr ""
+
 msgid "Ranking"
 msgstr ""
 
@@ -10420,7 +10575,16 @@ msgstr ""
 msgid "Recurring (every)"
 msgstr ""
 
+msgid "Red for increase, green for decrease"
+msgstr ""
+
 msgid "Redo the action"
+msgstr ""
+
+msgid "Reduce X ticks"
+msgstr ""
+
+msgid "Reduces the number of X-axis ticks to be rendered. If true, the x-axis will not overflow and labels may be missing. If false, a minimum width will be applied to columns and the width may overflow into an horizontal scroll."
 msgstr ""
 
 msgid "Refer to the"
@@ -10908,6 +11072,9 @@ msgstr ""
 msgid "Right"
 msgstr ""
 
+msgid "Right Axis Format"
+msgstr ""
+
 msgid "Right Axis Metric"
 msgstr ""
 
@@ -11380,6 +11547,10 @@ msgid "Scroll down to the bottom to enable overwriting changes. "
 msgstr ""
 
 msgid "Search"
+msgstr ""
+
+#, python-format
+msgid "Search %s records"
 msgstr ""
 
 msgid "Search / Filter"
@@ -12133,6 +12304,9 @@ msgstr ""
 msgid "Show Null Values"
 msgstr ""
 
+msgid "Show Range Filter"
+msgstr ""
+
 msgid "Show SQL"
 msgstr ""
 
@@ -12203,6 +12377,9 @@ msgid "Show columns subtotal"
 msgstr ""
 
 msgid "Show columns total"
+msgstr ""
+
+msgid "Show data points as circle markers on the lines"
 msgstr ""
 
 msgid "Show empty columns"
@@ -12293,6 +12470,9 @@ msgid "Show summary"
 msgstr ""
 
 msgid "Show the main ticks on axes."
+msgstr ""
+
+msgid "Show the value on top of the bar"
 msgstr ""
 
 msgid "Show total"
@@ -12578,6 +12758,9 @@ msgstr ""
 msgid "Sort metric"
 msgstr ""
 
+msgid "Sort order"
+msgstr ""
+
 msgid "Sort query by"
 msgstr ""
 
@@ -12654,6 +12837,9 @@ msgid "Stack series on top of each other"
 msgstr ""
 
 msgid "Stacked"
+msgstr ""
+
+msgid "Stacked Bars"
 msgstr ""
 
 msgid "Stacked Style"
@@ -12855,6 +13041,15 @@ msgid "Suggestions could not be loaded. You can still type a value."
 msgstr ""
 
 msgid "Sum"
+msgstr ""
+
+msgid "Sum as Fraction of Columns"
+msgstr ""
+
+msgid "Sum as Fraction of Rows"
+msgstr ""
+
+msgid "Sum as Fraction of Total"
 msgstr ""
 
 msgid "Sum of values over specified period"
@@ -13453,6 +13648,9 @@ msgstr ""
 msgid "The following charts were omitted because an error occurred while exporting them:"
 msgstr ""
 
+msgid "The following charts were omitted because their size cannot be determined before they run. Ask an administrator to enable background exports to include them."
+msgstr ""
+
 msgid "The following charts were omitted because they have no saved query context. To include them, open each chart in Explore and re-save."
 msgstr ""
 
@@ -13637,6 +13835,12 @@ msgid ""
 "                as a single dot. Users can provide \"Pandas\" offset aliases.\n"
 "                Click on the info bubble for more details on accepted \"freq\"\n"
 "                expressions."
+msgstr ""
+
+msgid ""
+"The periodicity over which to pivot time. Users can provide\n"
+"            \"Pandas\" offset alias.\n"
+"            Click on the info bubble for more details on accepted \"freq\" expressions."
 msgstr ""
 
 msgid "The pixel radius"
@@ -14290,10 +14494,7 @@ msgstr ""
 msgid "This dashboard does not exist"
 msgstr ""
 
-msgid ""
-"This dashboard has too much data to download directly. Ask an "
-"administrator to enable background exports, or lower the row limits of "
-"its charts."
+msgid "This dashboard has too much data to download directly. Ask an administrator to enable background exports, or lower the row limits of its charts."
 msgstr ""
 
 msgid "This dashboard is managed externally, and can't be edited in Superset"
@@ -14383,6 +14584,9 @@ msgid "This folder only supports columns"
 msgstr ""
 
 msgid "This folder only supports metrics"
+msgstr ""
+
+msgid "This functionality is disabled in your environment for security reasons."
 msgstr ""
 
 msgid "This is a default columns folder. Its name cannot be changed or removed. It can stay empty but will only accept column items."
@@ -14688,6 +14892,9 @@ msgstr ""
 msgid "Time string is ambiguous. Please specify [%(human_readable)s ago] or [%(human_readable)s later]."
 msgstr ""
 
+msgid "Time-series Percent Change"
+msgstr ""
+
 msgid "Time-series Period Pivot"
 msgstr ""
 
@@ -14803,6 +15010,10 @@ msgstr ""
 
 #, python-format
 msgid "Total (%(aggfunc)s)"
+msgstr ""
+
+#, python-format
+msgid "Total (%(aggregatorName)s)"
 msgstr ""
 
 msgid "Total angle covered by the chart, in degrees. 360° draws a full circle and 180° draws a half donut. Partial arcs are automatically re-centered and scaled to make use of the available space."
@@ -15320,6 +15531,9 @@ msgstr ""
 msgid "Use a log scale"
 msgstr ""
 
+msgid "Use a log scale for the X-axis"
+msgstr ""
+
 msgid "Use a log scale for the Y-axis"
 msgstr ""
 
@@ -15535,6 +15749,9 @@ msgstr ""
 msgid "Vertical (Left)"
 msgstr ""
 
+msgid "Vertical layout (rows)"
+msgstr ""
+
 msgid "View"
 msgstr ""
 
@@ -15644,6 +15861,9 @@ msgid "Visualizes how a metric has changed over a time using a color scale and a
 msgstr ""
 
 msgid "Visualizes how a single metric varies across a country's principal subdivisions (states, provinces, etc) on a choropleth map. Each subdivision's value is elevated when you hover over the corresponding geographic boundary."
+msgstr ""
+
+msgid "Visualizes many different time-series objects in a single chart. This chart is being deprecated and we recommend using the Time-series Chart instead."
 msgstr ""
 
 msgid "Visualizes the words in a column that appear the most often. Bigger font corresponds to higher frequency."
@@ -15804,6 +16024,9 @@ msgstr ""
 msgid "When checked, the map will zoom to your data after each query"
 msgstr ""
 
+msgid "When enabled, increasing candles use the increase color and decreasing candles use the decrease color. Turn off to use one series color, with a filled body for increases and a hollow body for decreases."
+msgstr ""
+
 msgid "When enabled, the axis will display labels for the minimum and maximum values of your data"
 msgstr ""
 
@@ -15906,6 +16129,12 @@ msgstr ""
 msgid "Whether to display the metric name as a title"
 msgstr ""
 
+msgid "Whether to display the min and max values of the X-axis"
+msgstr ""
+
+msgid "Whether to display the min and max values of the Y-axis"
+msgstr ""
+
 msgid "Whether to display the numbered column"
 msgstr ""
 
@@ -15916,6 +16145,9 @@ msgid "Whether to display the percentage value in the tooltip"
 msgstr ""
 
 msgid "Whether to display the stroke"
+msgstr ""
+
+msgid "Whether to display the time range interactive selector"
 msgstr ""
 
 msgid "Whether to display the timestamp"
@@ -15987,6 +16219,9 @@ msgstr ""
 msgid "Whether to sort results by the selected metric in descending order."
 msgstr ""
 
+msgid "Whether to sort tooltip by the selected metric in descending order."
+msgstr ""
+
 msgid "Whether to sort tooltip by the selected metric in descending order. On stacked charts, values are shown in ascending order."
 msgstr ""
 
@@ -16048,6 +16283,9 @@ msgstr ""
 msgid "Write a handlebars template to render the data"
 msgstr ""
 
+msgid "X AXIS TITLE MARGIN"
+msgstr ""
+
 msgid "X Axis"
 msgstr ""
 
@@ -16075,10 +16313,16 @@ msgstr ""
 msgid "X Axis title margin"
 msgstr ""
 
+msgid "X Log Scale"
+msgstr ""
+
 msgid "X Tick Layout"
 msgstr ""
 
 msgid "X axis title margin"
+msgstr ""
+
+msgid "X bounds"
 msgstr ""
 
 msgid "X-Axis Sort Ascending"
@@ -16097,7 +16341,16 @@ msgstr ""
 msgid "XYZ"
 msgstr ""
 
+msgid "Y 2 bounds"
+msgstr ""
+
+msgid "Y AXIS TITLE MARGIN"
+msgstr ""
+
 msgid "Y Axis"
+msgstr ""
+
+msgid "Y Axis 2 Bounds"
 msgstr ""
 
 msgid "Y Axis Bounds"
@@ -16125,6 +16378,9 @@ msgid "Y Log Scale"
 msgstr ""
 
 msgid "Y axis title margin"
+msgstr ""
+
+msgid "Y bounds"
 msgstr ""
 
 msgid "Y-Axis"
@@ -16241,6 +16497,9 @@ msgid "You can't apply cross-filter on this data point."
 msgstr ""
 
 msgid "You cannot delete the last temporal filter as it's used for time range filters in dashboards."
+msgstr ""
+
+msgid "You cannot use 45° tick layout along with the time range filter"
 msgstr ""
 
 #, python-format
@@ -16409,6 +16668,9 @@ msgid "You need access to the following tables: %(tables)s, 'all_database_access
 msgstr ""
 
 msgid "You need to"
+msgstr ""
+
+msgid "You need to configure HTML sanitization to use CSS"
 msgstr ""
 
 msgid "You updated the values in the control panel, but the chart was not updated automatically. Run the query by clicking on the \"Update chart\" button or"
@@ -16635,6 +16897,9 @@ msgstr ""
 msgid "banana"
 msgstr ""
 
+msgid "basis"
+msgstr ""
+
 msgid "begins with"
 msgstr ""
 
@@ -16671,6 +16936,9 @@ msgid "by using"
 msgstr ""
 
 msgid "cannot be empty"
+msgstr ""
+
+msgid "cardinal"
 msgstr ""
 
 msgid "cell bar"
@@ -16826,6 +17094,9 @@ msgstr ""
 msgid "deck.gl Screen Grid"
 msgstr ""
 
+msgid "deck.gl charts"
+msgstr ""
+
 msgid "deck.gl layers (charts)"
 msgstr ""
 
@@ -16912,6 +17183,9 @@ msgid "entire row"
 msgstr ""
 
 msgid "entries"
+msgstr ""
+
+msgid "entries per page"
 msgstr ""
 
 #. do-not-translate
@@ -17065,6 +17339,9 @@ msgstr ""
 msgid "less than {min} {name}"
 msgstr ""
 
+msgid "linear"
+msgstr ""
+
 msgid "locale_key"
 msgstr ""
 
@@ -17102,6 +17379,9 @@ msgid "minute"
 msgstr ""
 
 msgid "minute(s)"
+msgstr ""
+
+msgid "monotone"
 msgstr ""
 
 msgid "month"
@@ -17157,6 +17437,9 @@ msgid "numeric"
 msgstr ""
 
 msgid "numeric type icon"
+msgstr ""
+
+msgid "nvd3"
 msgstr ""
 
 msgid "of"
@@ -17324,6 +17607,14 @@ msgid "staggered"
 msgstr ""
 
 msgid "std"
+msgstr ""
+
+#. do-not-translate
+msgid "step-after"
+msgstr ""
+
+#. do-not-translate
+msgid "step-before"
 msgstr ""
 
 msgid "stopped"
