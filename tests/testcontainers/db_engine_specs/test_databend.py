@@ -88,6 +88,12 @@ def engine() -> Iterator[Engine]:
             container.stop()
             if attempt == START_ATTEMPTS:
                 raise
+        except Exception:
+            # Anything other than the metasrv race (a docker daemon error,
+            # an image pull failure) isn't going to be fixed by retrying;
+            # stop the container so it doesn't leak, then propagate.
+            container.stop()
+            raise
 
     try:
         host = container.get_container_host_ip()
