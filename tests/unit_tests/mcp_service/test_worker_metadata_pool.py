@@ -490,7 +490,7 @@ async def test_error_hook_does_not_require_metadata_user_reload(
     main_thread = threading.get_ident()
     error = RuntimeError("tool failed")
     info = {"tool_name": "execute_sql", "user_id": 42}
-    sessions: list[Session] = []
+    observations: list[tuple[int, Exception, dict[str, Any], User | None, Session]] = []
 
     with app.test_request_context("/mcp/"):
         user = User(id=42)
@@ -500,12 +500,15 @@ async def test_error_hook_does_not_require_metadata_user_reload(
 
         def capture(exc: Exception, context: dict[str, Any]) -> None:
             """Capture errors without loading a user from the unavailable DB."""
-            assert threading.get_ident() != main_thread
-            assert exc is error
-            assert context == info
-            assert getattr(g, "user", None) is None
-            assert db.session() is not parent_session
-            sessions.append(db.session())
+            observations.append(
+                (
+                    threading.get_ident(),
+                    exc,
+                    context,
+                    getattr(g, "user", None),
+                    db.session(),
+                )
+            )
 
         hook = Mock(side_effect=capture)
         with (
@@ -521,10 +524,16 @@ async def test_error_hook_does_not_require_metadata_user_reload(
             get_user.assert_not_called()
         if configured:
             hook.assert_called_once_with(error, info)
+            assert len(observations) == 1
+            thread_id, captured_error, context, hook_user, session = observations[0]
+            assert thread_id != main_thread
+            assert captured_error is error
+            assert context == info
+            assert hook_user is None
+            assert session is not parent_session
+            assert session not in db.session.registry.registry.values()
         else:
             hook.assert_not_called()
+            assert not observations
         assert g.user is user
         assert db.session() is parent_session
-        assert all(
-            session not in db.session.registry.registry.values() for session in sessions
-        )
