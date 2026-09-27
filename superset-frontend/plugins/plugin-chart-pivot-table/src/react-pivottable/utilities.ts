@@ -614,6 +614,22 @@ const baseAggregatorTemplates = {
           currencySet: new Set<string>(),
           push(record: PivotRecord) {
             const val = record[attr];
+            // A metric's own value can be a real SQL NULL (e.g. AVG over an
+            // empty group). JS coerces `Number(null)` to 0, which would
+            // silently count a missing group as a real zero instead of
+            // excluding it from the median -- skip it entirely, the same way
+            // a group with no matching leaf record at all is excluded.
+            if (val === null || val === undefined) {
+              if (
+                record.__currencyColumn &&
+                record[record.__currencyColumn as string]
+              ) {
+                this.currencySet.add(
+                  String(record[record.__currencyColumn as string]),
+                );
+              }
+              return;
+            }
             const x = Number(val);
 
             if (Number.isNaN(x)) {
@@ -674,6 +690,24 @@ const baseAggregatorTemplates = {
           strValue: null as string | null,
           currencySet: new Set<string>(),
           push(record: PivotRecord) {
+            // A metric's own value can be a real SQL NULL (e.g. AVG over an
+            // empty group). JS coerces `Number(null)` to 0, which would
+            // silently count a missing group as a real zero in the mean/
+            // variance/stdev instead of excluding it -- skip it entirely, the
+            // same way a group with no matching leaf record at all is
+            // excluded, rather than routing it through the NaN/string branch
+            // below (a real SQL NULL is not a string value to display either).
+            if (record[attr] === null || record[attr] === undefined) {
+              if (
+                record.__currencyColumn &&
+                record[record.__currencyColumn as string]
+              ) {
+                this.currencySet.add(
+                  String(record[record.__currencyColumn as string]),
+                );
+              }
+              return;
+            }
             const x = Number(record[attr]);
             if (Number.isNaN(x)) {
               this.strValue =
@@ -836,17 +870,29 @@ const baseAggregatorTemplates = {
               string[],
               string[],
             ];
+            // Result aggregation (see `rowMetricTotals`/`colMetricTotals` on
+            // PivotData) tracks a per-metric total independently of visible
+            // subtotals and of where Metric sits in `rows`/`cols`; prefer it
+            // over the depth-gated tree, which may never have created this
+            // exact scope (e.g. column subtotals off). Metric-definition mode
+            // (`showValuesAs`) never populates these, so it always falls
+            // through to the original `getAggregator` lookup below, unchanged.
+            let denominatorAggregator: any;
             if (this.metricAxis) {
               if (this.metricAxis.axis === 'col' && selCol.length === 0) {
+                denominatorAggregator =
+                  data.colMetricTotals[this.metricAxis.value];
                 selCol = [this.metricAxis.value];
               } else if (
                 this.metricAxis.axis === 'row' &&
                 selRow.length === 0
               ) {
+                denominatorAggregator =
+                  data.rowMetricTotals[this.metricAxis.value];
                 selRow = [this.metricAxis.value];
               }
             }
-            const denominatorAggregator = data.getAggregator(selRow, selCol);
+            denominatorAggregator ??= data.getAggregator(selRow, selCol);
             if (!denominatorAggregator.inner) {
               return null;
             }
@@ -1074,6 +1120,14 @@ class PivotData {
   colKeys: string[][];
   rowTotals: Record<string, Aggregator>;
   colTotals: Record<string, Aggregator>;
+  // Result aggregation only (see `processResultRecord`): a per-metric total
+  // for the Metric pseudo-dimension, collapsing every other dimension on its
+  // axis, kept independently of `subtotals.rowEnabled`/`colEnabled` and of
+  // where Metric happens to sit in `rows`/`cols`. `fractionOf`'s "... as
+  // Fraction of ..." denominators need this scope whenever a chart has 2+
+  // metrics, whether or not the corresponding subtotal is actually rendered.
+  rowMetricTotals: Record<string, Aggregator>;
+  colMetricTotals: Record<string, Aggregator>;
   allTotal: Aggregator;
   subtotals: SubtotalOptions;
   sorted: boolean;
@@ -1190,6 +1244,8 @@ class PivotData {
     this.colKeys = [];
     this.rowTotals = {};
     this.colTotals = {};
+    this.rowMetricTotals = {};
+    this.colMetricTotals = {};
     this.allTotal = this.aggregator(this, [], []);
     this.subtotals = subtotals;
     this.sorted = false;
@@ -1327,6 +1383,31 @@ class PivotData {
     const colKey = cols.map(key =>
       String(key in record ? record[key] : 'null'),
     );
+    // A per-metric total (see `rowMetricTotals`/`colMetricTotals`), needed by
+    // "... as Fraction of ..." result aggregations independently of whether
+    // the corresponding subtotal is enabled, and of where the Metric
+    // pseudo-dimension sits in `rows`/`cols` (`combineMetric` can place it
+    // first or last): keyed purely by the metric's own value, not by depth,
+    // so it doesn't matter which position it collapses from.
+    const metricDim = record.__metricKey as unknown as string | undefined;
+    if (metricDim) {
+      const colMetricIndex = cols.indexOf(metricDim);
+      if (colMetricIndex !== -1) {
+        const metricValue = colKey[colMetricIndex];
+        this.colMetricTotals[metricValue] ??= this.getFormattedAggregator(
+          record,
+        )(this, [], [metricValue]);
+        this.colMetricTotals[metricValue].push(record);
+      }
+      const rowMetricIndex = rows.indexOf(metricDim);
+      if (rowMetricIndex !== -1) {
+        const metricValue = rowKey[rowMetricIndex];
+        this.rowMetricTotals[metricValue] ??= this.getFormattedAggregator(
+          record,
+        )(this, [metricValue], []);
+        this.rowMetricTotals[metricValue].push(record);
+      }
+    }
     // Depth 0 is the fully collapsed (grand total/opposite-axis) scope;
     // depth === length is the leaf; anything between is a subtotal, included
     // only when that axis's subtotals are enabled.

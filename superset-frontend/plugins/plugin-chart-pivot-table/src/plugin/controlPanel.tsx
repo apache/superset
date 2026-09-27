@@ -297,6 +297,13 @@ const config: ControlPanelConfig = {
                   'subtotals are still computed correctly first; this only ' +
                   'changes how they are displayed.',
               ),
+              // A result aggregation (anything but "Use metric definition")
+              // has its own "... as Fraction of ..." choices built in, and
+              // takes over the cell/summary computation entirely -- this
+              // control's percent transform would otherwise be silently
+              // ignored rather than applied on top of it.
+              visibility: ({ controls }) =>
+                (controls?.aggregateFunction?.value ?? 'Metric') === 'Metric',
             },
           },
         ],

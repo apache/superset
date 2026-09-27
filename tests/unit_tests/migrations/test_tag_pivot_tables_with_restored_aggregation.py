@@ -78,6 +78,19 @@ def test_has_legacy_aggregate_function_false_when_field_absent():
     assert not _has_legacy_aggregate_function(Slice(params=params))
 
 
+@pytest.mark.parametrize("malformed_value", [[], {}, 1, None])
+def test_has_legacy_aggregate_function_false_when_field_not_a_string(
+    malformed_value,
+):
+    """A malformed non-string aggregateFunction value (e.g. `[]`/`{}` from an
+    unrelated historical bug) must be skipped, not raise -- `in` on a
+    frozenset requires a hashable left operand, so an unguarded membership
+    check would TypeError on a list/dict and abort `superset db upgrade`
+    partway through paginated_update's batches."""
+    params = json.dumps({"viz_type": _VIZ_TYPE, _FIELD: malformed_value})
+    assert not _has_legacy_aggregate_function(Slice(params=params))
+
+
 def test_has_legacy_aggregate_function_false_when_params_empty():
     assert not _has_legacy_aggregate_function(Slice(params=None))
 

@@ -60,6 +60,24 @@ test('Minimum and Maximum still compute extremes regardless of order', () => {
   expect(aggregate('Maximum', records)).toBe(5);
 });
 
+test('Average excludes a real SQL NULL group instead of counting it as zero', () => {
+  const aggregator = aggregators.Average(['x'])();
+  [{ x: 10 }, { x: null }, { x: 20 }].forEach(record =>
+    aggregator.push(record as unknown as PivotRecord),
+  );
+  // (10 + 20) / 2 = 15, not (10 + 0 + 20) / 3 = 10.
+  expect(aggregator.value()).toBe(15);
+});
+
+test('Median excludes a real SQL NULL group instead of counting it as zero', () => {
+  const aggregator = aggregators.Median(['x'])();
+  [{ x: 10 }, { x: null }, { x: 20 }, { x: 30 }].forEach(record =>
+    aggregator.push(record as unknown as PivotRecord),
+  );
+  // median of [10, 20, 30] = 20, not median of [0, 10, 20, 30] = 15.
+  expect(aggregator.value()).toBe(20);
+});
+
 // Records shaped like PivotTableChart.tsx's real output: the "Metric" pseudo
 // -dimension is the sole column, so each record's own rollup level has no
 // "real" columns -- which is exactly the condition that also mirrors its
@@ -182,4 +200,41 @@ test('result aggregation blanks a shared total slot that would mix two different
   // Not the average of a MAX(sales) value and a MEDIAN(msrp) value blended
   // together -- there's no single number that means anything for that.
   expect(pivotData.getAggregator([], []).value()).toBeNull();
+});
+
+test('"... as Fraction of ..." divides by the metric\'s own total even when column subtotals are off', () => {
+  // cols: [Metric, category], column subtotals off (the default here) --
+  // the per-metric denominator ("Metric" alone, collapsing "category") is
+  // not among the visible depths in that case, so it must come from a
+  // scope tracked independently of subtotal visibility, not the depth-gated
+  // tree (which would leave this blank).
+  const leaves: PivotRecord[] = [
+    { Metric: 'MAX(sales)', category: 'A', value: 10, __metricKey: 'Metric' },
+    { Metric: 'MAX(sales)', category: 'B', value: 20, __metricKey: 'Metric' },
+    { Metric: 'SUM(cost)', category: 'A', value: 5, __metricKey: 'Metric' },
+    { Metric: 'SUM(cost)', category: 'B', value: 15, __metricKey: 'Metric' },
+  ] as unknown as PivotRecord[];
+  const pivotData = new PivotData({
+    data: leaves,
+    rows: [],
+    cols: ['Metric', 'category'],
+    vals: ['value'],
+    aggregateFunction: 'Sum as Fraction of Total',
+  });
+
+  // MAX(sales) total across its own categories is 10 + 20 = 30.
+  expect(pivotData.getAggregator([], ['MAX(sales)', 'A']).value()).toBeCloseTo(
+    10 / 30,
+    5,
+  );
+  expect(pivotData.getAggregator([], ['MAX(sales)', 'B']).value()).toBeCloseTo(
+    20 / 30,
+    5,
+  );
+  // SUM(cost) total across its own categories is 5 + 15 = 20, not blended
+  // with MAX(sales)'s total.
+  expect(pivotData.getAggregator([], ['SUM(cost)', 'A']).value()).toBeCloseTo(
+    5 / 20,
+    5,
+  );
 });

@@ -154,7 +154,8 @@ def _has_legacy_aggregate_function(slc: Slice) -> bool:
         return False
     if not isinstance(params, dict):
         return False
-    return params.get(_FIELD) in _LEGACY_AGGREGATE_FUNCTIONS
+    value = params.get(_FIELD)
+    return isinstance(value, str) and value in _LEGACY_AGGREGATE_FUNCTIONS
 
 
 def upgrade() -> None:
