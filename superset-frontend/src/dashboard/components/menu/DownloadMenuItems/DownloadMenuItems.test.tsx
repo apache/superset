@@ -135,7 +135,7 @@ beforeEach(() => {
   (isFeatureEnabled as jest.Mock).mockReturnValue(false);
   // @ts-ignore
   delete window.location;
-  window.location = { href: '' } as Location;
+  window.location = { href: '' } as string & Location;
 });
 
 // "Export Images to Excel" is gated on the webdriver screenshot feature flags.
@@ -148,7 +148,7 @@ afterEach(() => {
   anchorClickSpy.mockRestore();
   window.URL.createObjectURL = originalCreateObjectURL;
   window.URL.revokeObjectURL = originalRevokeObjectURL;
-  window.location = originalLocation;
+  window.location = originalLocation as string & Location;
   jest.useRealTimers();
 });
 

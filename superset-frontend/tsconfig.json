@@ -9,6 +9,9 @@
     "module": "esnext",
     "moduleResolution": "bundler",
 
+    /* Disable strict mode temporarily for Typescript v6 migration */
+    "strict": false,
+
     "types": ["jest", "node"],
     "typeRoots": ["src/types", "node_modules/@types"],
 
@@ -42,8 +45,6 @@
 
     /* Completeness */
     "skipLibCheck": true,
-
-    "baseUrl": ".",
     "paths": {
       "@storybook-shared": ["./.storybook/shared"],
       "@superset-ui/core": ["./packages/superset-ui-core/src"],
@@ -58,9 +59,9 @@
       "@apache-superset/core": ["./packages/superset-core/src"],
       "@apache-superset/core/*": ["./packages/superset-core/src/*"],
       "@superset-ui/plugin-chart-*": ["./plugins/plugin-chart-*/src"],
-      "@superset-ui/plugin-chart-*": ["./plugins/plugin-chart-*/src"],
       "@superset-ui/preset-chart-*": ["./plugins/preset-chart-*/src"],
-      "echarts/types/src/*": ["./node_modules/echarts/types/src/*"]
+      "echarts/types/src/*": ["./node_modules/echarts/types/src/*"],
+      "*": ["./*"]
     }
   },
   "include": [

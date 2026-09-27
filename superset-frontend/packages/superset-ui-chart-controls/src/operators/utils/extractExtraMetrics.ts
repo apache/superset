@@ -33,7 +33,9 @@ export function extractExtraMetrics(
     !(groupby || []).length &&
     limitMetric &&
     getMetricLabel(limitMetric) === x_axis_sort &&
-    !metrics?.some(metric => getMetricLabel(metric) === x_axis_sort)
+    !metrics?.some(
+      (metric: QueryFormMetric) => getMetricLabel(metric) === x_axis_sort,
+    )
   ) {
     extra_metrics.push(limitMetric);
   }
