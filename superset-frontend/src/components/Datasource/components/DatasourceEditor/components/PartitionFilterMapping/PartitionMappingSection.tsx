@@ -79,13 +79,29 @@ export default function PartitionMappingSection({
   const state = partitionRowState(datasource, columnName);
   const isMonotonic = Boolean(item?.partition_transform_is_monotonic);
   const isTemporal = Boolean(item?.is_dttm);
-  // Clearing the override does not switch mapping off when a default datetime
-  // column exists: `resolveMappedColumn` falls back to `main_dttm_col`, so the
-  // mapping moves there. Say so, rather than calling it "Remove mapping". On the
-  // default column's own row there is nothing to move back to.
-  const returnsToDefault = Boolean(
-    datasource.main_dttm_col && datasource.main_dttm_col !== columnName,
-  );
+
+  // One commit per edit, in this order. `onChange` first: CollectionTable
+  // rebuilds the column record from a snapshot taken at its own last render, so
+  // the functional `setDatabaseColumns` behind `onMonotonicChange` has to land
+  // on top of it. Reversed, that snapshot wipes the flag straight back out.
+  const commitTransform = (next: string) => {
+    const nextTransform = next || null;
+    if (nextTransform !== (value ?? null)) {
+      onChange?.(nextTransform);
+    }
+    // Monotonicity is a property of the expression, so the identity `:value` --
+    // which provably preserves ordering -- is auto-declared, and moving off it
+    // clears that auto-declaration again. A flag the owner ticked by hand on a
+    // transform of their own is left alone: they asserted it, and fixing a typo
+    // in `unix_timestamp(:value)` is not a retraction.
+    const isIdentity = nextTransform === IDENTITY_TRANSFORM;
+    const wasIdentity = (value ?? '') === IDENTITY_TRANSFORM;
+    if (isIdentity && !isMonotonic) {
+      onMonotonicChange(columnName, true);
+    } else if (!isIdentity && wasIdentity && isMonotonic) {
+      onMonotonicChange(columnName, false);
+    }
+  };
 
   // The editor's commit path echoes the value back several renders later, so an
   // input driven straight off `value` loses whatever is typed in the meantime.
@@ -93,7 +109,14 @@ export default function PartitionMappingSection({
     value: transform,
     onChange: onTransformChange,
     flush: flushTransform,
-  } = useDebouncedCommit(value, (next: string) => onChange?.(next || null));
+  } = useDebouncedCommit(value, commitTransform);
+  // Clearing the override does not switch mapping off when a default datetime
+  // column exists: `resolveMappedColumn` falls back to `main_dttm_col`, so the
+  // mapping moves there. Say so, rather than calling it "Remove mapping". On the
+  // default column's own row there is nothing to move back to.
+  const returnsToDefault = Boolean(
+    datasource.main_dttm_col && datasource.main_dttm_col !== columnName,
+  );
 
   const { preview, loading } = usePartitionMappingPreview({
     datasetId: datasource.id,
@@ -209,16 +232,7 @@ export default function PartitionMappingSection({
         </Flex>
         <Input
           value={transform}
-          onChange={event => {
-            const next = event.target.value;
-            onTransformChange(next);
-            // Monotonicity is a property of the expression, so editing the
-            // transform re-opens the question. The identity `:value` provably
-            // preserves ordering and stays auto-declared; anything else is the
-            // owner's to declare, and editing away from `:value` must not leave
-            // a stale auto-check behind.
-            onMonotonicChange(columnName, next === IDENTITY_TRANSFORM);
-          }}
+          onChange={event => onTransformChange(event.target.value)}
           // The commit is debounced and DatasourceModal's `buildPayload` reads
           // committed state only, so a finished edit has to be pushed out from
           // here: clicking Save blurs this input before the click lands.

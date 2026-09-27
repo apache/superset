@@ -1429,13 +1429,23 @@ function DatasourceEditor({
 
   const handleMonotonicChange = useCallback(
     (columnName: string, isMonotonic: boolean) => {
-      setDatabaseColumns(prev =>
-        prev.map(column =>
+      setDatabaseColumns(prev => {
+        const target = prev.find(column => column.column_name === columnName);
+        // A no-op write still mints a new array, and a new array restarts the
+        // whole commit round trip -- which is the thing that resets a
+        // controlled input mid-keystroke. Returning `prev` lets React bail out.
+        if (
+          !target ||
+          Boolean(target.partition_transform_is_monotonic) === isMonotonic
+        ) {
+          return prev;
+        }
+        return prev.map(column =>
           column.column_name === columnName
             ? { ...column, partition_transform_is_monotonic: isMonotonic }
             : column,
-        ),
-      );
+        );
+      });
     },
     [],
   );

@@ -366,6 +366,78 @@ test('editing the transform away from :value clears the monotonic auto-check', (
   expect(onMonotonicChange).toHaveBeenCalledWith('event_time', false);
 });
 
+test('a hand-declared transform keeps its ordering flag through an edit', async () => {
+  // The auto-declaration belongs to `:value` alone. A flag the owner ticked
+  // themselves on their own expression is an assertion about that expression,
+  // and fixing a typo in it is not a retraction.
+  fetchMock.post(PREVIEW_URL, { result: { valid: true } });
+  const onChange = jest.fn();
+  const onMonotonicChange = jest.fn();
+
+  render(
+    <PartitionMappingSection
+      item={{
+        column_name: 'event_time',
+        is_dttm: true,
+        partition_value_transform: 'unix_timestamp(:value)',
+        partition_transform_is_monotonic: true,
+      }}
+      value="unix_timestamp(:value)"
+      onChange={onChange}
+      datasource={{
+        id: 1,
+        main_dttm_col: 'event_time',
+        partition_column: 'dt_epoch',
+      }}
+      onMoveMappingHere={jest.fn()}
+      onRemoveMapping={jest.fn()}
+      onMonotonicChange={onMonotonicChange}
+    />,
+  );
+
+  fireEvent.change(screen.getByLabelText('Value transform'), {
+    target: { value: 'unix_timestamp(:value) ' },
+  });
+
+  await waitFor(() => {
+    expect(onChange).toHaveBeenCalledWith('unix_timestamp(:value) ');
+  });
+  expect(onMonotonicChange).not.toHaveBeenCalled();
+});
+
+test('the transform commits before the ordering flag', async () => {
+  // Load-bearing order: CollectionTable rebuilds the column record from a
+  // snapshot of its own last render, so the functional setDatabaseColumns
+  // behind onMonotonicChange has to land on top of that snapshot. Reversed,
+  // the snapshot wipes the flag back out and the auto-declaration is lost.
+  fetchMock.post(PREVIEW_URL, { result: { valid: true } });
+  const order: string[] = [];
+  const onChange = jest.fn(() => order.push('transform'));
+  const onMonotonicChange = jest.fn(() => order.push('monotonic'));
+
+  render(
+    <PartitionMappingSection
+      item={{ column_name: 'event_time', is_dttm: true }}
+      value="unix_timestamp(:value)"
+      onChange={onChange}
+      datasource={{
+        id: 1,
+        main_dttm_col: 'event_time',
+        partition_column: 'dt_epoch',
+      }}
+      onMoveMappingHere={jest.fn()}
+      onRemoveMapping={jest.fn()}
+      onMonotonicChange={onMonotonicChange}
+    />,
+  );
+
+  fireEvent.change(screen.getByLabelText('Value transform'), {
+    target: { value: ':value' },
+  });
+
+  await waitFor(() => expect(order).toEqual(['transform', 'monotonic']));
+});
+
 test('a non-temporal mapped column marks the transform required', () => {
   render(
     <PartitionMappingSection
