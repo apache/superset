@@ -76,6 +76,7 @@ from superset.mcp_service.utils.response_size_utils import (
     truncate_query_result,
     truncate_string_field_response,
 )
+from superset.mcp_service.utils.validation import validation_message
 from superset.utils.core import get_user_id
 
 logger = logging.getLogger(__name__)
@@ -1053,7 +1054,11 @@ class ToolResultCompatibilityMiddleware(Middleware):
             # __str__, so guard it and fall back to the exception class
             # name, which never propagates.
             try:
-                sanitized_message = _sanitize_error_for_logging(e)
+                sanitized_message = (
+                    await validation_message(e, context)
+                    if isinstance(e, (ValidationError, FastMCPValidationError))
+                    else _sanitize_error_for_logging(e)
+                )
             except Exception:  # noqa: BLE001
                 sanitized_message = type(e).__name__
             error_text = f"Error: {sanitized_message}"
@@ -1296,21 +1301,8 @@ class GlobalErrorHandlerMiddleware(Middleware):
             # raised deliberately by tool code (it carries no cause, or no
             # FastMCP wrapper prefix) and is already formatted for MCP.
             raise error
-        elif isinstance(error, ValidationError):
-            # Pydantic validation errors
-            validation_details = []
-            for err in error.errors():
-                field = " -> ".join(str(loc) for loc in err["loc"])
-                validation_details.append(f"{field}: {err['msg']}")
-
-            raise ToolError(
-                f"Validation error in {tool_name}: {'; '.join(validation_details)}"
-            ) from error
-        elif isinstance(error, FastMCPValidationError):
-            # FastMCP's own ValidationError (e.g. malformed/missing tool
-            # arguments) is not a pydantic ValidationError and has no
-            # .errors() API -- its message is already a plain description.
-            raise ToolError(f"Validation error in {tool_name}: {error}") from error
+        elif isinstance(error, (ValidationError, FastMCPValidationError)):
+            raise ToolError(await validation_message(error, context)) from error
         elif isinstance(error, (OperationalError, TimeoutError)):
             # Database errors
             raise ToolError(
