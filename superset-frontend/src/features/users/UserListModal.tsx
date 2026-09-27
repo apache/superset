@@ -227,6 +227,7 @@ function UserListModal({
                 isEditMode ? t('Confirm new password') : t('Confirm Password')
               }
               dependencies={['password']}
+              required={!isEditMode}
               rules={[
                 ({ getFieldValue }) => ({
                   validator(_, value) {

@@ -133,9 +133,9 @@ class TestCore(SupersetTestCase):
         assert_admin_view_menus_in("Gamma", self.assertNotIn)
 
     def test_legacy_fab_password_views_are_gone(self):
-        """The legacy FAB reset routes are not registered, no role holds their
-        permissions, and the user-view buttons that led to them are dead ends
-        rather than 500s."""
+        """The legacy FAB reset routes are not registered and no role holds
+        their permissions. ``test_disable_legacy_password_reset_launchers``
+        covers the user-view buttons being dead ends rather than 500s."""
         rules = {rule.rule for rule in current_app.url_map.iter_rules()}
         endpoints = {rule.endpoint for rule in current_app.url_map.iter_rules()}
         assert "/resetpassword/form" not in rules
@@ -160,10 +160,6 @@ class TestCore(SupersetTestCase):
         self.login(ADMIN_USERNAME)
         assert self.client.get("/resetpassword/form?pk=1").status_code == 404
         assert self.client.get("/resetmypassword/form").status_code == 404
-        for action in ("resetpasswords", "resetmypassword"):
-            resp = self.client.get(f"/users/action/{action}/1")
-            assert resp.status_code in (302, 404), action
-            assert "resetpassword" not in resp.headers.get("Location", ""), action
 
     @pytest.mark.usefixtures("load_energy_table_with_slice")
     def test_save_slice(self):
