@@ -311,6 +311,7 @@ class VersionedResponse(BaseModel):
 
 DEFAULT_GET_CHART_INFO_COLUMNS: List[str] = [
     "id",
+    "datasource_id",
     "slice_name",
     "viz_type",
     "datasource_name",
@@ -575,11 +576,14 @@ def resolve_chart_datasource_name(chart: Any) -> str | None:
     name a table the chart no longer queries. ``Slice.datasource_name_text``
     resolves the name through the type-guarded ``table`` / ``semantic_view``
     relationships instead, and yields ``None`` when the datasource no longer
-    exists. Objects without that resolver (row tuples, lightweight stand-ins)
-    fall back to the stored value.
+    exists. Query and saved-query charts, and objects without that resolver
+    (row tuples, lightweight stand-ins), fall back to the stored value.
     """
     resolver = getattr(chart, "datasource_name_text", None)
-    if callable(resolver):
+    if callable(resolver) and getattr(chart, "datasource_type", None) not in {
+        "query",
+        "saved_query",
+    }:
         live_name = resolver()
         if live_name is None or isinstance(live_name, str):
             return live_name

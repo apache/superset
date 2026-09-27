@@ -23,6 +23,7 @@ import logging
 from typing import Any, cast, TYPE_CHECKING
 
 from fastmcp import Context
+from sqlalchemy import case, select
 from superset_core.mcp.decorators import tool, ToolAnnotations
 
 if TYPE_CHECKING:
@@ -69,6 +70,52 @@ _DEFAULT_LIST_CHARTS_REQUEST = ListChartsRequest()
 _LIVE_DATASOURCE_RELATIONSHIPS = ("table", "semantic_view")
 
 
+class _LiveDatasourceNameFilter:
+    """Apply name operators to the same type-guarded datasource as serialization."""
+
+    def __init__(self, filters: list[ChartFilter]) -> None:
+        """Bind the validated name filters for the DAO invocation."""
+        self.filters = filters
+
+    def apply(self, query: Any, value: Any) -> Any:
+        """Filter in SQL so counts and pagination reflect the live names."""
+        from superset.connectors.sqla.models import SqlaTable
+        from superset.models.slice import Slice
+        from superset.semantic_layers.models import SemanticView
+
+        table_name = case(
+            (
+                (SqlaTable.schema.isnot(None)) & (SqlaTable.schema != ""),
+                SqlaTable.schema + "." + SqlaTable.table_name,
+            ),
+            else_=SqlaTable.table_name,
+        )
+        live_name = case(
+            (
+                Slice.datasource_type == "table",
+                select(table_name)
+                .where(SqlaTable.id == Slice.datasource_id)
+                .correlate(Slice)
+                .scalar_subquery(),
+            ),
+            (
+                Slice.datasource_type == "semantic_view",
+                select(SemanticView.name)
+                .where(SemanticView.id == Slice.datasource_id)
+                .correlate(Slice)
+                .scalar_subquery(),
+            ),
+            (
+                Slice.datasource_type.in_(["query", "saved_query"]),
+                Slice.datasource_name,
+            ),
+            else_=None,
+        )
+        for name_filter in self.filters:
+            query = query.filter(name_filter.opr.apply(live_name, name_filter.value))
+        return query
+
+
 class _ChartListCore(ModelListCore[ChartList]):
     """List core that loads the live datasource whenever its name is requested.
 
@@ -89,6 +136,15 @@ class _ChartListCore(ModelListCore[ChartList]):
         columns_to_load: list[str],
         custom_filters: dict[str, Any] | None = None,
     ) -> tuple[list[Any], int]:
+        name_filters = [
+            item for item in (filters or []) if item.col == "datasource_name"
+        ]
+        if name_filters:
+            filters = [item for item in filters if item.col != "datasource_name"]
+            custom_filters = {
+                **(custom_filters or {}),
+                "live_datasource_name": _LiveDatasourceNameFilter(name_filters),
+            }
         if "datasource_name" in columns_to_load:
             columns_to_load = [
                 *columns_to_load,

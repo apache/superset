@@ -243,7 +243,11 @@ def _find_by_id(session: Session) -> Any:
 
 
 async def _call_get_chart_info(
-    session: Session, chart_id: int, *, can_view_data_model: bool
+    session: Session,
+    chart_id: int,
+    *,
+    can_view_data_model: bool,
+    use_defaults: bool = False,
 ) -> dict[str, Any]:
     with (
         patch.object(
@@ -273,12 +277,18 @@ async def _call_get_chart_info(
                 {
                     "request": {
                         "identifier": chart_id,
-                        "select_columns": [
-                            "id",
-                            "slice_name",
-                            "datasource_id",
-                            "datasource_name",
-                        ],
+                        **(
+                            {}
+                            if use_defaults
+                            else {
+                                "select_columns": [
+                                    "id",
+                                    "slice_name",
+                                    "datasource_id",
+                                    "datasource_name",
+                                ]
+                            }
+                        ),
                     }
                 },
             )
@@ -502,3 +512,141 @@ def test_serialize_chart_preserves_requested_collections(
         if select_columns is None or "editors" in select_columns
         else []
     )
+
+
+@pytest.mark.parametrize("datasource_type", ["query", "saved_query"])
+@pytest.mark.parametrize("surface", ["chart", "dashboard"])
+def test_non_dataset_chart_keeps_stored_name(
+    datasource_type: str, surface: str
+) -> None:
+    """Query-backed charts retain their names on both metadata surfaces."""
+    chart = Slice(
+        id=123,
+        datasource_type=datasource_type,
+        datasource_id=7,
+        datasource_name="Saved analysis",
+    )
+    if surface == "chart":
+        result = serialize_chart_object(chart)
+    else:
+        result = serialize_chart_summary(chart, include_data_model_metadata=True)
+    assert result is not None
+    assert result.datasource_name == "Saved analysis"
+    assert result.datasource_id == 7
+
+
+def test_default_chart_info_includes_datasource_id() -> None:
+    """Default column selection includes the dataset identifier."""
+    from superset.mcp_service.chart.schemas import GetChartInfoRequest
+
+    assert "datasource_id" in GetChartInfoRequest(identifier=1).select_columns
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("operator", "value", "expected"),
+    [
+        ("eq", "hubspot_customers.hs_flat_customer_events", "table"),
+        ("eq", STALE_TABLE_NAME, "none"),
+        ("eq", "Orders", "view"),
+        ("eq", STALE_VIEW_NAME, "none"),
+        ("ct", "flat_customer", "table"),
+        ("sw", "hubspot_customers.", "table"),
+        ("in", ["Orders", "hubspot_customers.hs_flat_customer_events"], "both"),
+        ("is_null", "", "orphan"),
+        ("ne", "Orders", "table"),
+    ],
+)
+async def test_list_filters_live_datasource_names(
+    session: Session,
+    charts: PersistedCharts,
+    operator: str,
+    value: str | list[str],
+    expected: str,
+) -> None:
+    """The real DAO filters live names before counting and pagination."""
+    from superset.daos.chart import ChartDAO
+
+    expected_ids = {
+        "table": [charts.table_chart_id],
+        "view": [charts.view_chart_id],
+        "both": [charts.table_chart_id, charts.view_chart_id],
+        "orphan": [charts.orphan_chart_id],
+        "none": [],
+    }[expected]
+    with (
+        patch.object(
+            list_charts_module, "user_can_view_data_model_metadata", return_value=True
+        ),
+        patch.object(
+            ChartDAO, "_apply_base_filter", side_effect=lambda query, **_: query
+        ),
+        patch.object(
+            list_charts_module.event_logger, "log_context", return_value=nullcontext()
+        ),
+    ):
+        async with Client(mcp) as client:
+            response = await client.call_tool(
+                "list_charts",
+                {
+                    "request": {
+                        "select_columns": ["id"],
+                        "filters": [
+                            {"col": "datasource_name", "opr": operator, "value": value}
+                        ],
+                        "order_column": "id",
+                        "page_size": 1,
+                    }
+                },
+            )
+    result = json.loads(response.content[0].text)
+    assert result["total_count"] == len(expected_ids)
+    assert [chart["id"] for chart in result["charts"]] == expected_ids[:1]
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("can_view_data_model", [True, False])
+async def test_default_chart_info_dataset_identifier_visibility(
+    session: Session, charts: PersistedCharts, can_view_data_model: bool
+) -> None:
+    """Default responses include the live identifier only for authorized roles."""
+    result = await _call_get_chart_info(
+        session,
+        charts.table_chart_id,
+        can_view_data_model=can_view_data_model,
+        use_defaults=True,
+    )
+    assert result["datasource_id"] == (charts.table_id if can_view_data_model else None)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("tool_name", ["get_chart_info", "get_chart_sql"])
+async def test_deleted_dataset_keeps_access_error(
+    session: Session, charts: PersistedCharts, tool_name: str
+) -> None:
+    """Missing datasets keep the pre-existing tool validation error."""
+    from superset.daos.dataset import DatasetDAO
+
+    module = import_module(f"superset.mcp_service.chart.tool.{tool_name}")
+    with (
+        patch.object(module.event_logger, "log_context", return_value=nullcontext()),
+        patch.object(
+            get_chart_info_module,
+            "user_can_view_data_model_metadata",
+            return_value=True,
+        ),
+        patch(
+            "superset.daos.chart.ChartDAO.find_by_id",
+            side_effect=_find_by_id(session),
+        ),
+        patch.object(
+            DatasetDAO, "_apply_base_filter", side_effect=lambda query, *_, **__: query
+        ),
+    ):
+        async with Client(mcp) as client:
+            response = await client.call_tool(
+                tool_name, {"request": {"identifier": charts.orphan_chart_id}}
+            )
+    result = json.loads(response.content[0].text)
+    assert result["error_type"] == "DatasetNotAccessible"
+    assert "has been deleted or does not exist" in result["error"]
