@@ -329,7 +329,8 @@ def test_tables_unknown_schema(
 
     database_without_catalog.get_all_table_names_in_schema.assert_not_called()
     database_without_catalog.get_all_view_names_in_schema.assert_not_called()
-    database_without_catalog.get_all_materialized_view_names_in_schema.assert_not_called()
+    db_mock = database_without_catalog
+    db_mock.get_all_materialized_view_names_in_schema.assert_not_called()
     get_datasources_accessible_by_user.assert_not_called()
 
 
