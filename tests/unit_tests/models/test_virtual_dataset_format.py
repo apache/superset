@@ -497,3 +497,31 @@ class TestVirtualDatasetRLSFailClosed:
             virtual_datasource.get_from_clause(template_processor=None)
 
         mock_db.session.rollback.assert_called_once()
+
+
+@patch(
+    "superset.models.helpers.get_predicates_for_table",
+    return_value=["user_id = 42"],
+)
+@patch(
+    "superset.models.helpers.apply_rls",
+    side_effect=NotImplementedError("engine cannot apply RLS"),
+)
+def test_get_from_clause_excludes_global_guest_rls(
+    mock_apply_rls: MagicMock,
+    mock_get_predicates: MagicMock,
+    virtual_datasource: MagicMock,
+    app: Flask,
+) -> None:
+    """
+    The virtual dataset's outer query already applies global guest RLS rules,
+    so the inner SQL must opt out of them to avoid applying them twice, both
+    when injecting RLS and when checking whether a failed injection matters.
+    """
+    _set_virtual_sql(virtual_datasource, "SELECT pen_id FROM public.pens")
+
+    with pytest.raises(QueryObjectValidationError):
+        virtual_datasource.get_from_clause(template_processor=None)
+
+    assert mock_apply_rls.call_args.kwargs["include_global_guest_rls"] is False
+    assert mock_get_predicates.call_args.kwargs["include_global_guest_rls"] is False

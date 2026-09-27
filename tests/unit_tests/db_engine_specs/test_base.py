@@ -39,7 +39,11 @@ from superset.db_engine_specs.base import (
     convert_inspector_columns,
 )
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
-from superset.exceptions import OAuth2Error, OAuth2RedirectError
+from superset.exceptions import (
+    OAuth2Error,
+    OAuth2RedirectError,
+    SupersetGenericDBErrorException,
+)
 from superset.sql.parse import Table
 from superset.superset_typing import (
     OAuth2ClientConfig,
@@ -343,6 +347,33 @@ def test_quote_table() -> None:
         BaseEngineSpec.quote_table(Table("ta ble", "sche.ma", 'cata"log'), dialect)
         == '"cata""log"."sche.ma"."ta ble"'
     )
+
+
+def test_get_extra_params_malformed_json(mocker: MockerFixture) -> None:
+    """
+    Test that malformed JSON in `extra` raises a Superset exception instead of
+    leaking the raw `JSONDecodeError`.
+    """
+    database = mocker.MagicMock(extra="{not valid json")
+
+    with pytest.raises(SupersetGenericDBErrorException):
+        BaseEngineSpec.get_extra_params(database)
+
+
+def test_update_params_from_encrypted_extra_malformed_json(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test that malformed JSON in `encrypted_extra` raises a Superset exception
+    instead of leaking the raw `JSONDecodeError`.
+    """
+    database = mocker.MagicMock(encrypted_extra="{not valid json")
+    params: dict[str, Any] = {}
+
+    with pytest.raises(SupersetGenericDBErrorException):
+        BaseEngineSpec.update_params_from_encrypted_extra(database, params)
+
+    assert params == {}
 
 
 def test_mask_encrypted_extra() -> None:
