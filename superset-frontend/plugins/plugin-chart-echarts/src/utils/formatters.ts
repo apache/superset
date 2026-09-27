@@ -41,23 +41,11 @@ export const getSmartDateDetailedFormatter = () =>
 export const getSmartDateFormatter = (timeGrain?: string) => {
   const baseFormatter = getTimeFormatter(SMART_DATE_ID);
 
-  // Without a time grain there is no bucket to normalize to, but the raw
-  // smart formatter's finest tier is '.%Lms' — any tick carrying sub-second
-  // noise (e.g. the axis-extent boundary label ECharts pads beyond the data)
-  // would render as '.943ms'. Floor to the second so the adaptive tiers pick
-  // a real unit instead (#44698).
-  if (!timeGrain) {
-    return new TimeFormatter({
-      id: SMART_DATE_ID,
-      label: baseFormatter.label,
-      formatFunc: (date: Date) => {
-        const floored = new Date(date);
-        floored.setMilliseconds(0);
-        return baseFormatter(floored);
-      },
-    });
-  }
-
+  // The wrapper below normalizes the date based on time grain; without a
+  // grain no branch matches, so it falls through after zeroing milliseconds
+  // (the raw formatter's finest tier is '.%Lms' — a tick carrying sub-second
+  // noise, e.g. the padded axis-extent boundary label, would render as
+  // '.943ms'; #44698). Both paths therefore share this wrapper.
   // Create a wrapper that normalizes dates based on time grain
   return new TimeFormatter({
     id: SMART_DATE_ID,
