@@ -24,6 +24,25 @@ assists people when migrating to a new version.
 
 ## Next
 
+### MySQL SSL requests require TLS
+
+The MySQL SSL toggle and legacy `ssl=1` URLs require an encrypted connection.
+For mysqlclient (`mysql://` and `mysql+mysqldb://`), Superset translates this
+request to `ssl_mode=VERIFY_CA`, retaining explicit `VERIFY_CA` or
+`VERIFY_IDENTITY` modes. Contradictory options such as `ssl_mode=DISABLED`
+or `ssl_disabled=True` fail rather than cancelling the SSL request.
+
+Certificate verification is needed because mysqlclient built with MariaDB
+Connector/C can fall back to cleartext even with `ssl_mode=REQUIRED`; the toggle
+upgrades that mode to `VERIFY_CA`. Configure a trusted CA and a server certificate
+valid for the connection hostname (MariaDB Connector/C also checks identity).
+
+For Connector/Python and PyMySQL, the toggle enables `ssl_verify_cert=True`.
+Configure `ssl_ca` for a private certificate authority. PyMySQL must be version
+1.2 or newer because older versions can fall back to an unencrypted connection.
+Use individual `ssl_ca`, `ssl_cert`, and `ssl_key` connection arguments instead
+of a nested `ssl` dictionary when using the toggle with PyMySQL.
+
 ### Guest token RLS rules without a dataset apply inside sub-queries
 
 A guest token RLS rule with no `dataset` key applies to every dataset. Such

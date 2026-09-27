@@ -21,6 +21,7 @@ import logging
 import re
 from datetime import datetime
 from decimal import Decimal
+from importlib import import_module
 from re import Pattern
 from typing import Any, Callable, Optional, TYPE_CHECKING
 from urllib import parse
@@ -42,6 +43,7 @@ from sqlalchemy.dialects.mysql import (
 )
 from sqlalchemy.engine.url import URL
 from sqlalchemy.sql.elements import ColumnElement
+from sqlalchemy.util import asbool
 
 from superset.constants import TimeGrain
 from superset.db_engine_specs.base import (
@@ -76,6 +78,78 @@ SYNTAX_ERROR_REGEX = re.compile(
     "check the manual that corresponds to your MySQL server "
     "version for the right syntax to use near '(?P<server_error>.*)"
 )
+
+
+def _require_mysql_verified_tls(
+    driver: str, query: dict[str, Any], args: dict[str, Any]
+) -> None:
+    """Use required verification on drivers without an encryption-only mode."""
+    options = {**query, **args}
+    # Connector/Python has no REQUIRED mode: certificate verification is
+    # necessary to prevent its opportunistic fallback to cleartext.
+    if options.get("ssl_disabled"):
+        raise ValueError("MySQL SSL request conflicts with ssl_disabled")
+    if "ssl_verify_cert" in options and not asbool(options["ssl_verify_cert"]):
+        raise ValueError("MySQL SSL request requires ssl_verify_cert")
+    if driver == "pymysql":
+        pymysql = import_module("pymysql")
+
+        # Older releases silently fall back even with explicit SSL options.
+        if pymysql.VERSION[:2] < (1, 2):
+            raise ValueError("The MySQL SSL toggle requires PyMySQL >= 1.2")
+        # SQLAlchemy folds URL ssl_ca/cert/key into an ssl dictionary,
+        # but PyMySQL ignores that dictionary when ssl_verify_cert is set.
+        # Keep these as native connect_args so the CA is not discarded.
+        for key in ("ssl_ca", "ssl_cert", "ssl_key"):
+            if key in query:
+                args.setdefault(key, query.pop(key))
+        if "ssl" in args:
+            raise ValueError(
+                "Use individual ssl_ca/ssl_cert/ssl_key options with the SSL toggle"
+            )
+    args["ssl_verify_cert"] = True
+
+
+def _mysql_ssl_requested(value: Any) -> bool:
+    """Parse scalar requests; leave native SSL dictionaries to the driver."""
+    if isinstance(value, (str, bool, int)):
+        return asbool(value)
+    if value is not None and not isinstance(value, dict):
+        raise ValueError("Invalid MySQL ssl option")
+    return False
+
+
+def require_mysql_tls(
+    uri: URL, connect_args: dict[str, Any]
+) -> tuple[URL, dict[str, Any]]:
+    """Consume scalar ``ssl`` requests without weakening native TLS settings."""
+    if uri.get_backend_name() != "mysql":
+        return uri, connect_args
+    query = dict(uri.query)
+    args = dict(connect_args)
+    # A true URL request cannot be cancelled by an advanced connect argument.
+    requested = _mysql_ssl_requested(query.get("ssl"))
+    requested = _mysql_ssl_requested(args.get("ssl")) or requested
+    if not requested:
+        return uri, connect_args
+
+    for options in (query, args):
+        if isinstance(options.get("ssl"), (str, bool, int)):
+            options.pop("ssl")
+    driver = uri.get_driver_name()
+    options = {**query, **args}
+    if driver == "mysqldb":
+        # mysqlclient maps REQUIRED to opportunistic TLS with MariaDB
+        # Connector/C. Verification modes fail closed on both client libraries.
+        mode = options.get("ssl_mode", "VERIFY_CA")
+        if mode not in ("REQUIRED", "VERIFY_CA", "VERIFY_IDENTITY"):
+            raise ValueError("MySQL SSL request conflicts with ssl_mode")
+        args["ssl_mode"] = "VERIFY_CA" if mode == "REQUIRED" else mode
+    elif driver in ("mysqlconnector", "pymysql"):
+        _require_mysql_verified_tls(driver, query, args)
+    else:
+        raise ValueError("Unsupported driver for the MySQL SSL toggle")
+    return uri.set(query=query), args
 
 
 class MySQLEngineSpec(BasicParametersMixin, BaseEngineSpec):
@@ -445,6 +519,8 @@ class MySQLEngineSpec(BasicParametersMixin, BaseEngineSpec):
         if schema:
             uri = uri.set(database=parse.quote(schema, safe=""))
 
+        if cls.engine == "mysql":
+            return require_mysql_tls(uri, new_connect_args)
         return uri, new_connect_args
 
     @classmethod
