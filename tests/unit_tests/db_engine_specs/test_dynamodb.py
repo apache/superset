@@ -49,9 +49,10 @@ def test_convert_dttm_bounds_compare_with_iso_8601_strings() -> None:
         DynamoDBEngineSpec as spec,  # noqa: N813
     )
 
-    low = spec.convert_dttm("text", datetime(2019, 1, 2, 4, 0, 0)).strip("'")
-    high = spec.convert_dttm("text", datetime(2019, 1, 2, 6, 0, 0)).strip("'")
+    low_literal = spec.convert_dttm("text", datetime(2019, 1, 2, 4, 0, 0))
+    high_literal = spec.convert_dttm("text", datetime(2019, 1, 2, 6, 0, 0))
+    assert low_literal is not None
+    assert high_literal is not None
+    low, high = low_literal.strip("'"), high_literal.strip("'")
     stored = ["2019-01-02T03:30:00", "2019-01-02T04:15:00", "2019-01-02T06:00:00"]
-    assert [value for value in stored if low <= value < high] == [
-        "2019-01-02T04:15:00"
-    ]
+    assert [value for value in stored if low <= value < high] == ["2019-01-02T04:15:00"]
