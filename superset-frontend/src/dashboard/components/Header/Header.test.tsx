@@ -25,7 +25,11 @@ import { useUnsavedChangesPrompt } from 'src/hooks/useUnsavedChangesPrompt';
 import { screen, userEvent, within, waitFor } from '@superset-ui/core/spec';
 import { ActionCreators as UndoActionCreators } from 'redux-undo';
 import fetchMock from 'fetch-mock';
-import { getExtensionsRegistry, JsonObject } from '@superset-ui/core';
+import {
+  getExtensionsRegistry,
+  JsonObject,
+  SupersetClient,
+} from '@superset-ui/core';
 import setupCodeOverrides from 'src/setup/setupCodeOverrides';
 import getUserName from 'src/utils/getUserName';
 import { render, createStore } from 'spec/helpers/testing-library';
@@ -36,6 +40,11 @@ import { UPDATE_COMPONENTS } from '../../actions/dashboardLayout';
 import { AutoRefreshStatus } from '../../types/autoRefresh';
 
 const mockHistoryReplace = jest.fn();
+// Dashboards render top-level (not iframed) unless a test says otherwise.
+const mockIsInIframe = jest.fn(() => false);
+jest.mock('src/dashboard/util/isEmbedded', () => ({
+  isEmbedded: () => mockIsInIframe(),
+}));
 jest.mock('react-router-dom', () => ({
   ...jest.requireActual('react-router-dom'),
   useHistory: () => ({
@@ -160,6 +169,9 @@ async function openActionsDropdown() {
 
 const addSuccessToast = jest.fn();
 const addDangerToast = jest.fn();
+const addInfoToast = jest.fn(() => ({
+  payload: { id: 'excel-export-progress' },
+}));
 const addWarningToast = jest.fn();
 const onUndo = jest.fn();
 const onRedo = jest.fn();
@@ -219,6 +231,7 @@ beforeAll(() => {
   jest.spyOn(redux, 'bindActionCreators').mockImplementation(() => ({
     addSuccessToast,
     addDangerToast,
+    addInfoToast,
     addWarningToast,
     onUndo,
     onRedo,
@@ -244,6 +257,7 @@ beforeAll(() => {
 
 beforeEach(() => {
   jest.clearAllMocks();
+  mockIsInIframe.mockReturnValue(false);
   const { useLocation } = jest.requireMock('react-router-dom');
   useLocation.mockReturnValue({
     pathname: '/dashboard',
@@ -735,6 +749,31 @@ test('should refresh the charts', async () => {
   expect(onRefresh).toHaveBeenCalledTimes(1);
 });
 
+test('shows Excel export progress after the header menu closes', async () => {
+  const post = jest
+    .spyOn(SupersetClient, 'post')
+    .mockReturnValue(new Promise(() => {}) as never);
+  setup({
+    dashboardInfo: {
+      ...initialState.dashboardInfo,
+      dash_export_perm: true,
+    },
+  });
+
+  await openActionsDropdown();
+  userEvent.hover(screen.getByText('Download'));
+  userEvent.click(await screen.findByText('Export Data to Excel'));
+
+  await waitFor(() => {
+    expect(addInfoToast).toHaveBeenCalledWith(
+      'Preparing dashboard Excel export…',
+      { duration: -1 },
+    );
+  });
+  expect(screen.getByTestId('header-actions-menu')).not.toBeVisible();
+  post.mockRestore();
+});
+
 test('auto-refresh uses onRefresh with skipped filters and toggles refresh state', async () => {
   jest.useFakeTimers({ advanceTimers: true });
   onRefresh.mockResolvedValue(undefined);
@@ -863,18 +902,41 @@ test('should hide edit button and navbar, and show Exit fullscreen when in fulls
   expect(screen.queryByTestId('main-navigation')).not.toBeInTheDocument();
 });
 
-test('should show Exit fullscreen when in fullscreen mode', async () => {
-  setup();
-
-  await userEvent.click(screen.getByTestId('actions-trigger'));
-
-  expect(await screen.findByText('Exit fullscreen')).toBeInTheDocument();
-});
-
-test('should have fullscreen option in dropdown', async () => {
+test('should show Exit fullscreen when in standalone mode at top level', async () => {
+  // Default setup URL carries standalone=1. A user who clicked "Enter fullscreen"
+  // must be able to get back out, so this must not be hidden outside an iframe.
   setup();
   await openActionsDropdown();
   expect(screen.getByText('Exit fullscreen')).toBeInTheDocument();
+  expect(screen.queryByText('Enter fullscreen')).not.toBeInTheDocument();
+});
+
+test('should show Enter fullscreen when not in standalone mode', async () => {
+  // Keep the router location and window.location in agreement. The shared mock
+  // reports `?standalone=1`; leaving it would let this test pass on a stale
+  // premise if the component ever read `location.search` instead of
+  // `window.location.search`.
+  const { useLocation } = jest.requireMock('react-router-dom');
+  useLocation.mockReturnValue({
+    pathname: '/dashboard',
+    search: '',
+    hash: '',
+    state: undefined,
+  });
+  window.history.pushState({}, 'Test page', '/dashboard');
+  setup();
+  await openActionsDropdown();
+  expect(screen.getByText('Enter fullscreen')).toBeInTheDocument();
+  expect(screen.queryByText('Exit fullscreen')).not.toBeInTheDocument();
+});
+
+test('should hide the fullscreen toggle entirely inside an iframe', async () => {
+  // Exiting inside an iframe reloads without the standalone param and restores the
+  // full Superset nav, breaking the embed — so neither direction is offered.
+  mockIsInIframe.mockReturnValue(true);
+  setup();
+  await openActionsDropdown();
+  expect(screen.queryByText('Exit fullscreen')).not.toBeInTheDocument();
   expect(screen.queryByText('Enter fullscreen')).not.toBeInTheDocument();
 });
 
