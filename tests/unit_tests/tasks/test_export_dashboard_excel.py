@@ -27,6 +27,7 @@ from unittest import mock
 import pytest
 from celery.exceptions import SoftTimeLimitExceeded
 
+from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
 from superset.utils import json
 
 MODULE = "superset.tasks.export_dashboard_excel"
@@ -839,3 +840,44 @@ def test_inflight_lock_released_on_failure(mocks: dict[str, Any]) -> None:
         "excel_export", {"user_id": 2, "dashboard_id": 1}
     )
     mocks["ReleaseDistributedLock"].return_value.run.assert_called_once_with()
+
+
+@pytest.mark.parametrize("query_mode", ["aggregate", "raw"])
+def test_rebuilt_paginated_table_executes_full_limit(
+    mocks: dict[str, Any], query_mode: str
+) -> None:
+    """The real export path sends one full-limit query to ChartDataCommand."""
+    form_data = {
+        "groupby": ["country"],
+        "all_columns": ["country"],
+        "metrics": ["count"],
+        "query_mode": query_mode,
+        "server_pagination": True,
+        "server_page_length": 10,
+        "row_limit": 1000,
+        "row_offset": 20,
+        "result_format": "json",
+        "result_type": "full",
+    }
+    chart = _rebuildable_chart(form_data=form_data)
+    mocks["get_charts_in_layout_order"].return_value = [chart]
+    mocks["ChartDataCommand"].return_value.run.return_value = {
+        "queries": [{"colnames": ["country"], "data": [{"country": "US"}]}]
+    }
+
+    with _builder_hook(None):
+        _run()
+
+    payload = mocks["ChartDataQueryContextSchema"].return_value.load.call_args.args[0]
+    assert payload["result_format"] == ChartDataResultFormat.JSON
+    assert payload["result_type"] == ChartDataResultType.FULL
+    assert len(payload["queries"]) == 1
+    query = payload["queries"][0]
+    assert query["row_limit"] == 1000
+    assert query.get("row_offset", 0) == 0
+    assert not query.get("is_rowcount")
+    mocks["ChartDataCommand"].assert_called_once_with(
+        mocks["ChartDataQueryContextSchema"].return_value.load.return_value
+    )
+    mocks["ChartDataCommand"].return_value.run.assert_called_once_with()
+    assert json.loads(chart.params) == form_data
