@@ -22,9 +22,11 @@ export function tokenizeToNumericArray(value?: string): number[] | null {
   if (!value?.trim()) return null;
   // Lenient by design: this runs on every keystroke, so partial input like
   // "50," must not throw. Empty, non-numeric, and non-finite tokens (e.g.
-  // "Infinity", or a value large enough to overflow to it) are dropped --
-  // matching BulletRangeColorsControl's own `parseRanges`, whose per-range
-  // colors are matched positionally against this same tokenized list.
+  // "Infinity", or a value large enough to overflow to it) are dropped.
+  // `BulletRangeColorsControl` shares this exact function (not a
+  // reimplementation) since its per-range colors are matched positionally
+  // against this same tokenized list -- a divergent tokenizer would
+  // silently misalign colors to the wrong bands.
   const numbers = value
     .split(',')
     .map(token => token.trim())
