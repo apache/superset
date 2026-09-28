@@ -314,7 +314,7 @@ assigns their permissions (`can this form get/post on ResetPasswordView` and
 administrators reset a user's password from the "New password" fields in the
 Users list edit modal (`PUT /api/v1/security/users/<id>`), users change their
 own from the "Reset my password" modal on their profile page (`PUT
-/api/v1/me/`, which requires `current_password`), and a pending forced password
+/api/v1/me/`, which requires `current_password` when the account already has one), and a pending forced password
 change (`ENABLE_FORCE_PASSWORD_CHANGE`) now redirects to that profile page
 instead of the removed form. Deployments that link to either legacy route should
 point at `/user_info/` or the Users list instead.
