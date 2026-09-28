@@ -1306,7 +1306,13 @@ def generate_funnel_vega_lite_preview(
         return ChartError(
             error="Funnel requires a stage and metric", error_type="InvalidFormData"
         )
-    stage = get_column_name(groupby[0])
+    try:
+        stage = get_column_name(groupby[0])
+    except ValueError:
+        return ChartError(
+            error="Funnel stage must have a resolvable result label",
+            error_type="InvalidFormData",
+        )
     return VegaLitePreview(
         type="vega_lite",
         specification={

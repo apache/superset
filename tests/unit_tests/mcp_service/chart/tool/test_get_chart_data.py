@@ -3498,6 +3498,7 @@ class TestSavedDataFallbackSortDirection:
         ({"end_time": None}, "end_time"),
         ({"y_axis": None}, "y_axis"),
         ({"tooltip_columns": ["task"] * 51}, "tooltip_columns"),
+        ({"tooltip_metrics": ["count"] * 51}, "tooltip_metrics"),
         ({"order_by_cols": [["start", "yes"]]}, "ascending_boolean"),
     ],
 )
