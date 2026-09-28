@@ -131,7 +131,7 @@ Build ad-hoc SQL datasets that can be used as the basis for charts:
 Discover and query metrics across both built-in datasets and external semantic
 views (when your deployment has semantic views registered), without writing SQL:
 
-- **Discover metrics** -- search metrics by name or description across every dataset and semantic view you can access, with each metric's compatible dimensions included
+- **Discover metrics** -- search metrics by name or description across every dataset and semantic view you can access, optionally including each metric's compatible dimensions
 - **Query by metric and dimension** -- get tabular results by naming metrics and dimensions instead of writing SQL, with optional filters and time ranges
 - **Progressively refine a query** -- given metrics and/or dimensions already picked, see which dimensions and metrics are compatible with that selection
 
@@ -316,7 +316,7 @@ JSON, impact reporting still checks its saved form data and other accessible cha
 
 | Tool                         | Description                                                                                                                       |
 | ---------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
-| `list_metrics`                | Discover metrics by name/description across built-in datasets and external semantic views, with compatible dimensions included    |
+| `list_metrics`                | Discover metrics by name/description across built-in datasets and external semantic views; pass `include_compatible_dimensions` to embed each metric's compatible dimensions (off by default)    |
 | `get_table`                   | Query a dataset or semantic view by metric and dimension names, with optional filters, time range, and sorting                    |
 | `get_compatible_dimensions`   | Given metrics/dimensions already selected, return the full set of dimensions compatible with that selection (may include ones already selected) |
 | `get_compatible_metrics`      | Given metrics/dimensions already selected, return the compatible metrics; already-selected metrics are excluded for built-in datasets, while external semantic views return whatever their connector reports and may include ones already selected |
