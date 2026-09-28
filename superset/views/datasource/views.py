@@ -89,16 +89,22 @@ def _load_dataset_for_samples(
 
 def _repoints_table(
     datasource: DatasourceModel,
+    database_changed: bool,
     requested_sql: str | None,
     requested_table: Table,
 ) -> bool:
     """
     Would the request point ``datasource`` at a different physical table?
 
-    A virtual dataset's ``table_name`` is a label rather than a pointer, as in
-    ``UpdateDatasetCommand._validate_dataset_source``, so dropping the SQL binds
-    that label to a real table: a repoint even when the label is unchanged.
+    Moving to another database connection always does, whatever the target
+    looks like. Within one connection, a virtual dataset's ``table_name`` is a
+    label rather than a pointer, as in
+    ``UpdateDatasetCommand._validate_dataset_source``, so dropping the SQL
+    binds that label to a real table: a repoint even when the label is
+    unchanged.
     """
+    if database_changed:
+        return True
     if not isinstance(datasource, SqlaTable) or requested_sql:
         return False
     if datasource.is_virtual:
@@ -109,6 +115,30 @@ def _repoints_table(
         datasource.table_name,
         datasource.schema or None,
         datasource.catalog or None,
+    )
+
+
+def _repoints_sql(
+    datasource: DatasourceModel,
+    database_changed: bool,
+    requested_sql: str | None,
+    requested_table: Table,
+) -> bool:
+    """
+    Would the request change what the SQL on ``datasource`` reads?
+
+    ``is_virtual`` derives from whether ``sql`` is set, so new SQL aims the
+    dataset at whatever that SQL reads, converting a physical dataset on the
+    way. Unchanged SQL still lands somewhere new when the connection, catalog
+    or schema it resolves unqualified names against moves.
+    """
+    if not isinstance(datasource, SqlaTable) or not requested_sql:
+        return False
+    return (
+        database_changed
+        or requested_sql != datasource.sql
+        or (requested_table.schema, requested_table.catalog)
+        != (datasource.schema or None, datasource.catalog or None)
     )
 
 
@@ -147,6 +177,7 @@ class Datasource(BaseSupersetView):
             raise DatasetForbiddenError() from ex
 
         database_changed = database_id != orm_datasource.database_id
+        requested_sql = datasource_dict.get("sql")
         # The table this request lands on: an omitted key clears the field.
         requested_table = Table(
             datasource_dict.get("table_name"),
@@ -154,12 +185,19 @@ class Datasource(BaseSupersetView):
             datasource_dict.get("catalog") or None,
         )
 
-        # Editorship of the dataset alone is not sufficient to repoint it. This
-        # ports ``UpdateDatasetCommand``'s table check only, not the other
-        # source validation the command also runs.
-        if database_changed or _repoints_table(
-            orm_datasource, datasource_dict.get("sql"), requested_table
-        ):
+        # Editorship of the dataset alone is not sufficient to repoint it.
+        # Ports ``UpdateDatasetCommand``'s table and SQL checks, not the other
+        # source validation the command also runs. As there, the two are
+        # independent: one save can do both. They need separate
+        # ``raise_for_access`` calls because passing ``sql`` builds an
+        # ephemeral query that supersedes ``table``.
+        repoints_table = _repoints_table(
+            orm_datasource, database_changed, requested_sql, requested_table
+        )
+        repoints_sql = _repoints_sql(
+            orm_datasource, database_changed, requested_sql, requested_table
+        )
+        if repoints_table or repoints_sql:
             target_database = (
                 DatasetDAO.get_database_by_id(database_id)
                 if database_changed
@@ -168,14 +206,23 @@ class Datasource(BaseSupersetView):
             if target_database is None:
                 return json_error_response(_("Database not found."), status=422)
             try:
-                security_manager.raise_for_access(
-                    database=target_database,
-                    table=requested_table,
-                )
+                if repoints_table:
+                    security_manager.raise_for_access(
+                        database=target_database,
+                        table=requested_table,
+                    )
+                if repoints_sql:
+                    security_manager.raise_for_access(
+                        database=target_database,
+                        sql=requested_sql,
+                        catalog=requested_table.catalog,
+                        schema=requested_table.schema,
+                    )
             except SupersetSecurityException as ex:
                 raise DatasetForbiddenError() from ex
 
-        orm_datasource.database_id = database_id
+        if database_changed:
+            orm_datasource.database_id = database_id
 
         duplicates = [
             name
