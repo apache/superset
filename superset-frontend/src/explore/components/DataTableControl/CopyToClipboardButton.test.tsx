@@ -44,7 +44,7 @@ test('Should copy to clipboard', async () => {
   });
 
   expect(callback).toHaveBeenCalledTimes(0);
-  userEvent.click(screen.getByRole('button'));
+  await userEvent.click(screen.getByRole('button'));
 
   await waitFor(() => {
     expect(callback).toHaveBeenCalled();
@@ -72,7 +72,7 @@ test('Should not copy to clipboard when disabled', async () => {
 
   const copyButton = screen.getByRole('button');
   expect(copyButton).toHaveAttribute('aria-disabled', 'true');
-  userEvent.click(copyButton);
+  await userEvent.click(copyButton);
 
   await waitFor(() => {
     expect(callback).not.toHaveBeenCalled();

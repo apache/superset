@@ -20,6 +20,7 @@ from contextlib import closing
 from pathlib import Path
 
 import pytest
+from jinja2 import UndefinedError
 from pytest_mock import MockerFixture
 
 from superset.connectors.sqla.utils import (
@@ -27,7 +28,11 @@ from superset.connectors.sqla.utils import (
     get_virtual_table_metadata,
 )
 from superset.db_engine_specs.exceptions import SupersetDBAPIConnectionError
-from superset.exceptions import OAuth2RedirectError, SupersetSecurityException
+from superset.exceptions import (
+    OAuth2RedirectError,
+    SupersetSecurityException,
+    SupersetVirtualTableParseException,
+)
 from superset.models.core import Database
 
 
@@ -261,14 +266,11 @@ def test_get_columns_description_retries_with_comment_safe_sql_when_empty(
     db_engine_spec.get_column_description_retry_sql.assert_called_once_with(
         "-- comment\nSELECT 1 WHERE false"
     )
-    # The original mutated (comment-prefixed) query is executed directly
-    # once, and then -- because the first metadata result came back empty --
-    # db_engine_spec.execute() is invoked a second time with the
-    # comment-safe retry query.
-    assert cursor.execute.call_count == 1
-    assert cursor.execute.call_args_list[0].args[0] == (
-        "-- comment\nSELECT 1 WHERE false"
-    )
+    # The original mutated (comment-prefixed) query is executed once via
+    # db_engine_spec.execute() -- the only statement dispatch -- and then,
+    # because the first metadata result came back empty, a second time with
+    # the comment-safe retry query.
+    assert cursor.execute.call_count == 0
     assert db_engine_spec.execute.call_count == 2
     assert db_engine_spec.execute.call_args_list[0].args[:2] == (
         cursor,
@@ -308,9 +310,50 @@ def test_get_columns_description_no_retry_when_engine_has_no_hook(
     )
 
     assert columns == []
-    assert cursor.execute.call_count == 1, (
+    assert db_engine_spec.execute.call_count == 1, (
         "no retry should be attempted when the engine spec has no comment-safe "
         "retry query to offer"
+    )
+
+
+def test_get_columns_description_executes_probe_statement_once(
+    tmp_path: Path,
+    mocker: MockerFixture,
+) -> None:
+    """
+    The column probe must send the statement to the database exactly once.
+    ``db_engine_spec.execute`` is the single statement-dispatch point (it
+    calls ``cursor.execute`` itself, with per-engine overrides for Impala's
+    async API and Kusto's ARRAY() unwrapping), so an extra direct
+    ``cursor.execute`` before it runs the same statement twice against the
+    target database -- doubling probe cost and doubling whatever per-statement
+    timeout the administrator configured. Asserted at the driver level, with
+    a real SQLite connection counting every statement it executes.
+    """
+    db_path = tmp_path / "probe_once.db"
+    with closing(sqlite3.connect(db_path)) as conn:
+        conn.execute("CREATE TABLE events (id INTEGER, name TEXT)")
+        conn.commit()
+
+    statements: list[str] = []
+    raw_conn = sqlite3.connect(db_path)
+    raw_conn.set_trace_callback(statements.append)
+
+    database = Database(
+        id=1,
+        database_name="probe_once_db",
+        sqlalchemy_uri=f"sqlite:///{db_path}",
+    )
+    mocker.patch.object(database, "get_raw_connection", return_value=closing(raw_conn))
+
+    columns = get_columns_description(
+        database, None, None, "SELECT id, name FROM events"
+    )
+
+    assert [column["name"] for column in columns] == ["id", "name"]
+    assert len(statements) == 1, (
+        f"the probe statement must be sent to the database exactly once, "
+        f"got {len(statements)} executions: {statements}"
     )
 
 
@@ -355,6 +398,26 @@ def test_get_virtual_table_metadata_multiple(mocker: MockerFixture) -> None:
     with pytest.raises(SupersetSecurityException) as excinfo:
         get_virtual_table_metadata(dataset)
     assert str(excinfo.value) == "Only single queries supported"
+
+
+def test_get_virtual_table_metadata_render_undefined_error(
+    mocker: MockerFixture,
+) -> None:
+    """Regression: a virtual dataset SQL template like
+    ``SELECT {{ nonexistent_var + 1 }}`` raises a raw ``jinja2.UndefinedError``
+    from the Jinja *render* step (not the parse step), which the
+    ``except SupersetSyntaxErrorException`` branch alone doesn't catch. Must
+    be softened to ``SupersetVirtualTableParseException`` like the sibling
+    parse-time UndefinedError case.
+    """
+    dataset = mocker.MagicMock(template_params_dict={})
+    dataset.database.db_engine_spec.engine = "postgresql"
+    dataset.get_template_processor().process_template.side_effect = UndefinedError(
+        "'nonexistent_var' is undefined"
+    )
+
+    with pytest.raises(SupersetVirtualTableParseException):
+        get_virtual_table_metadata(dataset)
 
 
 def test_get_virtual_table_metadata_renders_jinja(mocker: MockerFixture) -> None:

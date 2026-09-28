@@ -18,10 +18,14 @@
 from __future__ import annotations
 
 import json
+import zipfile
+from collections.abc import Callable
+from pathlib import Path
 from unittest.mock import Mock, patch
 
 import click
 import pytest
+from click.testing import CliRunner, Result
 from superset_extensions_cli.cli import (
     app,
     build_manifest,
@@ -146,20 +150,22 @@ def test_build_command_success_flow(
 
 
 @pytest.mark.cli
+@pytest.mark.parametrize("command", ["build", "bundle"])
 @patch("superset_extensions_cli.cli.validate_npm")
 @patch("superset_extensions_cli.cli.init_frontend_deps")
 @patch("superset_extensions_cli.cli.rebuild_frontend")
 @patch("superset_extensions_cli.cli.read_toml")
 def test_build_command_handles_frontend_build_failure(
-    mock_read_toml,
-    mock_rebuild_frontend,
-    mock_init_frontend_deps,
-    mock_validate_npm,
-    cli_runner,
-    isolated_filesystem,
-    extension_with_build_structure,
-):
-    """Test build command handles frontend build failure."""
+    mock_read_toml: Mock,
+    mock_rebuild_frontend: Mock,
+    mock_init_frontend_deps: Mock,
+    mock_validate_npm: Mock,
+    cli_runner: CliRunner,
+    isolated_filesystem: Path,
+    extension_with_build_structure: Callable[..., dict[str, Path | None]],
+    command: str,
+) -> None:
+    """A failed frontend prevents manifest publication and archive creation."""
     # Setup mocks
     mock_rebuild_frontend.return_value = None  # Indicates failure
     mock_read_toml.return_value = {
@@ -174,11 +180,97 @@ def test_build_command_handles_frontend_build_failure(
     # Create extension structure
     extension_with_build_structure(isolated_filesystem)
 
-    result = cli_runner.invoke(app, ["build"])
+    result: Result = cli_runner.invoke(app, [command])
 
-    # Command should complete and create manifest even with frontend failure
+    assert result.exit_code == 1
+    assert "✅ Full build completed in dist/" not in result.output
+    assert "✅ Bundle created" not in result.output
+    assert not (isolated_filesystem / "dist" / "manifest.json").exists()
+    assert not list(isolated_filesystem.glob("*.supx"))
+
+
+@pytest.mark.cli
+@pytest.mark.parametrize("command", ["build", "bundle"])
+@pytest.mark.parametrize("return_code", [0, 1])
+def test_commands_propagate_frontend_result(
+    cli_runner: CliRunner,
+    isolated_filesystem: Path,
+    extension_with_build_structure: Callable[..., dict[str, Path | None]],
+    command: str,
+    return_code: int,
+) -> None:
+    """Exercise the real rebuild, manifest and bundle paths around the compiler."""
+    extension_with_build_structure(isolated_filesystem, include_backend=False)
+    frontend_dist: Path = isolated_filesystem / "frontend" / "dist"
+    frontend_dist.mkdir()
+    (frontend_dist / "remoteEntry.abc123.js").write_text("// compiled entry")
+    archive: Path = isolated_filesystem / "test-extension-1.0.0.supx"
+    with (
+        patch("superset_extensions_cli.cli.validate_npm"),
+        patch("superset_extensions_cli.cli.init_frontend_deps"),
+        patch(
+            "superset_extensions_cli.cli.run_frontend_build",
+            return_value=Mock(returncode=return_code),
+        ),
+    ):
+        result: Result = cli_runner.invoke(app, [command])
+    assert result.exit_code == return_code
+    if return_code:
+        assert "❌ Frontend build failed" in result.output
+        assert "✅ Full build completed" not in result.output
+        assert "✅ Bundle created" not in result.output
+        assert not (isolated_filesystem / "dist" / "manifest.json").exists()
+        assert not archive.exists()
+    else:
+        assert "✅ Full build completed" in result.output
+        assert (isolated_filesystem / "dist" / "manifest.json").exists()
+        if command == "bundle":
+            with zipfile.ZipFile(archive) as bundle_file:
+                assert "frontend/dist/remoteEntry.abc123.js" in bundle_file.namelist()
+
+
+@pytest.mark.cli
+def test_dev_watcher_recovers_after_frontend_failure(
+    cli_runner: CliRunner,
+    isolated_filesystem: Path,
+    extension_with_build_structure: Callable[..., dict[str, Path | None]],
+) -> None:
+    """A failed watcher rebuild returns normally and a later success publishes."""
+    extension_with_build_structure(isolated_filesystem, include_backend=False)
+    frontend_dist: Path = isolated_filesystem / "frontend" / "dist"
+    frontend_dist.mkdir()
+    (frontend_dist / "remoteEntry.abc123.js").write_text("// compiled entry")
+    observer: Mock = Mock()
+    with (
+        patch("superset_extensions_cli.cli.Observer", return_value=observer),
+        patch("superset_extensions_cli.cli.init_frontend_deps"),
+        patch(
+            "superset_extensions_cli.cli.run_frontend_build",
+            side_effect=[Mock(returncode=0), Mock(returncode=1), Mock(returncode=0)],
+        ) as compiler,
+        patch("superset_extensions_cli.cli.write_manifest") as write_manifest,
+    ):
+
+        def rebuild_then_stop(_: float) -> None:
+            """Drive the registered watcher synchronously without a live thread."""
+            trigger: Callable[[], None] = observer.schedule.call_args.args[
+                0
+            ].trigger_build
+            trigger()
+            assert write_manifest.call_count == 1
+            trigger()
+            assert write_manifest.call_count == 2
+            raise KeyboardInterrupt
+
+        with patch(
+            "superset_extensions_cli.cli.time.sleep", side_effect=rebuild_then_stop
+        ):
+            result: Result = cli_runner.invoke(app, ["dev"])
     assert result.exit_code == 0
-    assert "✅ Full build completed in dist/" in result.output
+    assert "❌ Frontend build failed" in result.output
+    assert compiler.call_count == 3
+    observer.stop.assert_called_once()
+    observer.join.assert_called_once()
 
 
 # Clean Dist Tests
@@ -401,32 +493,33 @@ def test_run_frontend_build_with_output_messages(isolated_filesystem):
     [
         (0, "remoteEntry.abc123.js"),
         (1, None),
+        (2, None),
     ],
 )
 def test_rebuild_frontend_handles_build_results(
-    isolated_filesystem, return_code, expected_result
-):
-    """Test rebuild_frontend handles different build results."""
+    isolated_filesystem: Path, return_code: int, expected_result: str | None
+) -> None:
+    """Failed rebuilds return None rather than raising into the watcher."""
     from superset_extensions_cli.cli import rebuild_frontend
 
     # Create frontend structure
-    frontend_dir = isolated_filesystem / "frontend"
+    frontend_dir: Path = isolated_filesystem / "frontend"
     frontend_dir.mkdir()
 
     if return_code == 0:
         # Create frontend/dist with remoteEntry for success case
-        frontend_dist = frontend_dir / "dist"
+        frontend_dist: Path = frontend_dir / "dist"
         frontend_dist.mkdir()
         (frontend_dist / "remoteEntry.abc123.js").write_text("content")
 
         # Create dist directory
-        dist_dir = isolated_filesystem / "dist"
+        dist_dir: Path = isolated_filesystem / "dist"
         dist_dir.mkdir()
 
     with patch("superset_extensions_cli.cli.run_frontend_build") as mock_build:
         mock_build.return_value = Mock(returncode=return_code)
 
-        result = rebuild_frontend(isolated_filesystem, frontend_dir)
+        result: str | None = rebuild_frontend(isolated_filesystem, frontend_dir)
 
         assert result == expected_result
 

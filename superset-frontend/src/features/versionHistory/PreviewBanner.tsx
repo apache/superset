@@ -17,7 +17,8 @@
  * under the License.
  */
 import { useCallback } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
+import { useSelector } from 'react-redux';
+import { useAppDispatch } from 'src/views/store';
 import { t } from '@apache-superset/core/translation';
 import { styled } from '@apache-superset/core/theme';
 import { Alert } from '@apache-superset/core/components';
@@ -31,9 +32,34 @@ const Actions = styled.div`
   ${({ theme }) => `
     display: flex;
     align-items: center;
+    flex-wrap: wrap;
     gap: ${theme.sizeUnit * 2}px;
   `}
 `;
+
+// The action buttons do not shrink, so in a narrow host (Explore's chart
+// column can be under 500px) they would otherwise crush the message into
+// per-word wrapping. Letting the action slot wrap under the message keeps
+// the text readable, and is a no-op wherever a single row fits — the
+// wide dashboard banner renders unchanged. The message container's sizing
+// rides the Alert's semantic `styles.section` API (see BANNER_ALERT_STYLES)
+// rather than a private class selector.
+const BannerAlert = styled(Alert)`
+  ${({ theme }) => `
+    && {
+      flex-wrap: wrap;
+      row-gap: ${theme.sizeUnit * 2}px;
+    }
+  `}
+`;
+
+// `flex-basis: max-content` makes the message claim its full one-line width
+// first, pushing the actions onto their own line when both cannot fit;
+// `min-width: 0` still lets the message itself wrap at word boundaries when
+// alone on a line narrower than its text.
+export const BANNER_ALERT_STYLES = {
+  section: { flex: '1 1 max-content', minWidth: 0 },
+} as const;
 
 export interface PreviewBannerProps {
   entityType: VersionedEntityType;
@@ -49,7 +75,7 @@ export default function PreviewBanner({
   entityType,
   canRestore = false,
 }: PreviewBannerProps) {
-  const dispatch = useDispatch();
+  const dispatch = useAppDispatch();
   const {
     entityType: activeEntityType,
     preview,
@@ -91,10 +117,11 @@ export default function PreviewBanner({
 
   return (
     <>
-      <Alert
+      <BannerAlert
         type="info"
         closable={false}
         data-test="version-preview-banner"
+        styles={BANNER_ALERT_STYLES}
         message={message}
         action={
           <Actions>

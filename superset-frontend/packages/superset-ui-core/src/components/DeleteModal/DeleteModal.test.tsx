@@ -19,6 +19,71 @@
 import { render, screen, userEvent, waitFor } from '@superset-ui/core/spec';
 import { DeleteModal } from '.';
 
+test.each([
+  [false, 'Delete'],
+  [true, 'Archive'],
+])(
+  'preserves the default label when recoverable is %s',
+  (recoverable, label) => {
+    render(
+      <DeleteModal
+        title="Confirm action"
+        description="Confirm this change."
+        onConfirm={jest.fn()}
+        onHide={jest.fn()}
+        open
+        recoverable={recoverable}
+      />,
+    );
+
+    expect(screen.getByRole('button', { name: label })).toBeInTheDocument();
+  },
+);
+
+test('a custom label preserves the typed-confirmation gate', async () => {
+  const onConfirm = jest.fn();
+  render(
+    <DeleteModal
+      title="Confirm action"
+      description="Confirm this change."
+      onConfirm={onConfirm}
+      onHide={jest.fn()}
+      open
+      primaryButtonName="Remove"
+    />,
+  );
+
+  const button = screen.getByRole('button', { name: 'Remove' });
+  expect(button).toBeDisabled();
+  await userEvent.type(
+    screen.getByLabelText('Type "DELETE" to confirm'),
+    'DELETE',
+  );
+  expect(button).toBeEnabled();
+  await userEvent.click(button);
+  expect(onConfirm).toHaveBeenCalledTimes(1);
+});
+
+test('explicit label and style override recoverable defaults without adding the gate', () => {
+  render(
+    <DeleteModal
+      title="Confirm action"
+      description="Confirm this change."
+      onConfirm={jest.fn()}
+      onHide={jest.fn()}
+      open
+      recoverable
+      primaryButtonName="Retire"
+      primaryButtonStyle="danger"
+    />,
+  );
+
+  const button = screen.getByRole('button', { name: 'Retire' });
+  expect(button).toHaveClass('ant-btn-dangerous');
+  expect(button).toBeEnabled();
+  expect(screen.queryByTestId('delete-modal-input')).not.toBeInTheDocument();
+});
+
 test('Must display title and content', () => {
   const props = {
     title: <div data-test="test-title">Title</div>,

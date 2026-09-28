@@ -377,3 +377,81 @@ test('doesChartMatchFilterDatasource falls back to datasource UID parsing', () =
     ),
   ).toBe(true);
 });
+
+test('fetchSemanticViewStructure returns name, dimensions, and metrics from the structure payload', async () => {
+  const fetchMock = require('fetch-mock').default;
+  const { fetchSemanticViewStructure: fetchStructure } = require('./utils');
+  fetchMock.get('glob:*/api/v1/semantic_view/9101/structure', {
+    result: {
+      name: 'orders',
+      dimensions: [{ name: 'Orders Status', type: 'VARCHAR' }],
+      metrics: [{ name: 'order_count', definition: 'COUNT(*)' }],
+    },
+  });
+
+  const structure = await fetchStructure(9101);
+
+  expect(structure.name).toBe('orders');
+  expect(structure.dimensions).toEqual([
+    { name: 'Orders Status', type: 'VARCHAR' },
+  ]);
+  expect(structure.metrics).toEqual([
+    { name: 'order_count', definition: 'COUNT(*)' },
+  ]);
+  fetchMock.removeRoutes();
+  fetchMock.clearHistory();
+});
+
+test('fetchSemanticViewStructure defaults missing arrays to empty', async () => {
+  const fetchMock = require('fetch-mock').default;
+  const { fetchSemanticViewStructure: fetchStructure } = require('./utils');
+  fetchMock.get('glob:*/api/v1/semantic_view/9102/structure', {
+    result: { name: 'sparse' },
+  });
+
+  const structure = await fetchStructure(9102);
+
+  expect(structure.dimensions).toEqual([]);
+  expect(structure.metrics).toEqual([]);
+  fetchMock.removeRoutes();
+  fetchMock.clearHistory();
+});
+
+test('semanticViewDimensionsToColumns maps dimension fields incl. temporal detection', () => {
+  const { semanticViewDimensionsToColumns: toColumns } = require('./utils');
+  // Wire-shaped types: /structure serialises pyarrow types
+  // (timestamp[us], string, double), not SQL type names.
+  const columns = toColumns([
+    { name: 'ordered_at', type: 'timestamp[us]' },
+    { name: 'status', type: 'string' },
+    { name: 'amount', type: 'double' },
+  ]);
+
+  // type_generic is asserted explicitly: downstream filter-type logic (e.g.
+  // the Numerical range column filter) selects on it, so a regression in
+  // mapSemanticTypeToGenericDataType must fail here, not pass silently.
+  expect(columns[0]).toMatchObject({
+    column_name: 'ordered_at',
+    type: 'timestamp[us]',
+    is_dttm: true,
+    filterable: true,
+    type_generic: GenericDataType.Temporal,
+  });
+  expect(columns[1]).toMatchObject({
+    column_name: 'status',
+    is_dttm: false,
+    filterable: true,
+    type_generic: GenericDataType.String,
+  });
+  expect(columns[2]).toMatchObject({
+    column_name: 'amount',
+    is_dttm: false,
+    filterable: true,
+    type_generic: GenericDataType.Numeric,
+  });
+});
+
+test('semanticViewDimensionsToColumns returns empty for empty dimensions', () => {
+  const { semanticViewDimensionsToColumns: toColumns } = require('./utils');
+  expect(toColumns([])).toEqual([]);
+});

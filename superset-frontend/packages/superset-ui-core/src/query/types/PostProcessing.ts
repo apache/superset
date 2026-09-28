@@ -138,7 +138,7 @@ export type PostProcessingProphet =
 interface _PostProcessingDiff {
   operation: 'diff';
   options: {
-    columns: string[];
+    columns: Record<string, string>;
     periods: number;
     axis: PandasAxis;
   };
@@ -151,7 +151,7 @@ interface _PostProcessingRolling {
     rolling_type: RollingType;
     window: number;
     min_periods: number;
-    columns: string[];
+    columns: Record<string, string>;
   };
 }
 export type PostProcessingRolling =
@@ -161,7 +161,7 @@ export type PostProcessingRolling =
 interface _PostProcessingCum {
   operation: 'cum';
   options: {
-    columns: string[];
+    columns: Record<string, string>;
     operator: NumpyFunction;
   };
 }

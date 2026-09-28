@@ -40,6 +40,10 @@ PASSWORD_MASK = "X" * 10
 
 NO_TIME_RANGE = "No filter"
 
+# Keep in sync with superset-frontend/src/utils/common.ts; select-filter masks
+# and dataMask hydration use this exact predicate to recognize an explicit clear.
+EMPTY_FILTER_SQL_EXPRESSION = "1 = 0"
+
 QUERY_CANCEL_KEY = "cancel_query"
 QUERY_EARLY_CANCEL_KEY = "early_cancel_query"
 # Set once execute_sql_statements() has opened a DB connection and asked the

@@ -22,9 +22,12 @@ Tests for preview_utils query context column building.
 import ast
 import inspect
 from pathlib import Path
-from unittest.mock import Mock, patch
+from unittest.mock import MagicMock, Mock, patch
+
+import pytest
 
 from superset.mcp_service.chart import preview_utils
+from superset.mcp_service.chart.schemas import TablePreview
 
 
 def _imports_chart_data_command(node: ast.Import | ast.ImportFrom) -> bool:
@@ -69,7 +72,7 @@ class TestPreviewUtilsColumnBuilding:
     XY charts, and fall back to form_data["columns"] for table charts.
     """
 
-    def test_xy_chart_uses_x_axis_and_groupby(self):
+    def test_xy_chart_uses_x_axis_and_groupby(self) -> None:
         """Test XY chart form_data builds columns from x_axis + groupby."""
         form_data = {
             "x_axis": "territory",
@@ -77,44 +80,22 @@ class TestPreviewUtilsColumnBuilding:
             "metrics": [{"label": "SUM(sales)"}],
         }
 
-        x_axis_config = form_data.get("x_axis")
-        groupby_columns = form_data.get("groupby", [])
-        raw_columns = form_data.get("columns", [])
-
-        columns = (
-            raw_columns.copy() if "columns" in form_data else groupby_columns.copy()
-        )
-        if x_axis_config and isinstance(x_axis_config, str):
-            if x_axis_config not in columns:
-                columns.insert(0, x_axis_config)
-        elif x_axis_config and isinstance(x_axis_config, dict):
-            col_name = x_axis_config.get("column_name")
-            if col_name and col_name not in columns:
-                columns.insert(0, col_name)
+        columns = preview_utils._build_query_columns(form_data)
 
         assert columns == ["territory", "year"]
 
-    def test_table_chart_uses_columns_field(self):
+    def test_table_chart_uses_columns_field(self) -> None:
         """Test table chart form_data uses 'columns' field directly."""
         form_data = {
             "columns": ["name", "region", "sales"],
             "metrics": [],
         }
 
-        x_axis_config = form_data.get("x_axis")
-        groupby_columns = form_data.get("groupby", [])
-        raw_columns = form_data.get("columns", [])
-
-        columns = (
-            raw_columns.copy() if "columns" in form_data else groupby_columns.copy()
-        )
-        if x_axis_config and isinstance(x_axis_config, str):
-            if x_axis_config not in columns:
-                columns.insert(0, x_axis_config)
+        columns = preview_utils._build_query_columns(form_data)
 
         assert columns == ["name", "region", "sales"]
 
-    def test_xy_chart_x_axis_dict_format(self):
+    def test_xy_chart_x_axis_dict_format(self) -> None:
         """Test XY chart with x_axis as dict (column_name key)."""
         form_data = {
             "x_axis": {"column_name": "order_date"},
@@ -122,63 +103,32 @@ class TestPreviewUtilsColumnBuilding:
             "metrics": [{"label": "SUM(revenue)"}],
         }
 
-        x_axis_config = form_data.get("x_axis")
-        groupby_columns = form_data.get("groupby", [])
-        raw_columns = form_data.get("columns", [])
-
-        columns = (
-            raw_columns.copy() if "columns" in form_data else groupby_columns.copy()
-        )
-        if x_axis_config and isinstance(x_axis_config, str):
-            if x_axis_config not in columns:
-                columns.insert(0, x_axis_config)
-        elif x_axis_config and isinstance(x_axis_config, dict):
-            col_name = x_axis_config.get("column_name")
-            if col_name and col_name not in columns:
-                columns.insert(0, col_name)
+        columns = preview_utils._build_query_columns(form_data)
 
         assert columns == ["order_date", "product_type"]
 
-    def test_no_x_axis_no_columns_uses_groupby(self):
+    def test_no_x_axis_no_columns_uses_groupby(self) -> None:
         """Test fallback to groupby when no x_axis and no columns."""
         form_data = {
             "groupby": ["category"],
             "metrics": [{"label": "COUNT(*)"}],
         }
 
-        x_axis_config = form_data.get("x_axis")
-        groupby_columns = form_data.get("groupby", [])
-        raw_columns = form_data.get("columns", [])
-
-        columns = (
-            raw_columns.copy() if "columns" in form_data else groupby_columns.copy()
-        )
-        if x_axis_config and isinstance(x_axis_config, str):
-            if x_axis_config not in columns:
-                columns.insert(0, x_axis_config)
+        columns = preview_utils._build_query_columns(form_data)
 
         assert columns == ["category"]
 
-    def test_empty_form_data_returns_empty_columns(self):
+    def test_empty_form_data_returns_empty_columns(self) -> None:
         """Test empty form_data returns empty columns list."""
-        form_data: dict = {
+        form_data = {
             "metrics": [{"label": "COUNT(*)"}],
         }
 
-        x_axis_config = form_data.get("x_axis")
-        groupby_columns = form_data.get("groupby", [])
-        raw_columns = form_data.get("columns", [])
-
-        columns = (
-            raw_columns.copy() if "columns" in form_data else groupby_columns.copy()
-        )
-        if x_axis_config and isinstance(x_axis_config, str):
-            if x_axis_config not in columns:
-                columns.insert(0, x_axis_config)
+        columns = preview_utils._build_query_columns(form_data)
 
         assert columns == []
 
-    def test_x_axis_not_duplicated_when_in_groupby(self):
+    def test_x_axis_not_duplicated_when_in_groupby(self) -> None:
         """Test x_axis is not added if already present in groupby."""
         form_data = {
             "x_axis": "territory",
@@ -186,16 +136,7 @@ class TestPreviewUtilsColumnBuilding:
             "metrics": [{"label": "SUM(sales)"}],
         }
 
-        x_axis_config = form_data.get("x_axis")
-        groupby_columns = form_data.get("groupby", [])
-        raw_columns = form_data.get("columns", [])
-
-        columns = (
-            raw_columns.copy() if "columns" in form_data else groupby_columns.copy()
-        )
-        if x_axis_config and isinstance(x_axis_config, str):
-            if x_axis_config not in columns:
-                columns.insert(0, x_axis_config)
+        columns = preview_utils._build_query_columns(form_data)
 
         assert columns == ["territory", "year"]
 
@@ -210,6 +151,58 @@ def test_build_query_columns_empty_columns_key_keeps_groupby():
     assert preview_utils._build_query_columns(
         {"groupby": ["country"], "columns": []}
     ) == ["country"]
+
+
+@pytest.mark.parametrize("time_grain", [None, "P1D", "P1M"])
+def test_unsaved_big_number_preview_uses_temporal_query_contract(
+    time_grain: str | None,
+) -> None:
+    """The shared preview keeps raw temporal grouping, not grain bucketing."""
+    form_data = {
+        "viz_type": "big_number",
+        "x_axis": {"column_name": "recorded_at"},
+        "granularity_sqla": "event_time",
+        "time_grain_sqla": time_grain,
+        "metric": "count",
+        "show_trend_line": True,
+        "time_range": "Last week",
+        "adhoc_filters": [
+            {
+                "clause": "WHERE",
+                "expressionType": "SIMPLE",
+                "subject": "region",
+                "operator": "==",
+                "comparator": "EMEA",
+            }
+        ],
+    }
+    with (
+        patch(
+            "superset.mcp_service.chart.chart_helpers.resolve_datasource_engine",
+            return_value="base",
+        ),
+        patch("superset.extensions.db.session.get", return_value=object()),
+        patch(
+            "superset.commands.chart.data.get_data_command.ChartDataCommand"
+        ) as command,
+        patch("superset.common.query_context_factory.QueryContextFactory") as factory,
+    ):
+        factory.return_value.create.return_value = MagicMock()
+        command.return_value.run.return_value = {
+            "queries": [{"status": "success", "data": []}]
+        }
+
+        result = preview_utils.generate_preview_from_form_data(form_data, 1, "table")
+
+    assert isinstance(result, TablePreview)
+    query = factory.return_value.create.call_args.kwargs["queries"][0]
+    assert query["columns"] == ["recorded_at"]
+    assert "granularity" not in query
+    assert "time_grain_sqla" not in query.get("extras", {})
+    assert query["metrics"] == ["count"]
+    assert query["time_range"] == "Last week"
+    assert query["filters"] == [{"col": "region", "op": "==", "val": "EMEA"}]
+    assert query["row_limit"] == 100
 
 
 @patch("superset.commands.chart.data.get_data_command.ChartDataCommand")

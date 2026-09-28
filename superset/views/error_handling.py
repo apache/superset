@@ -31,6 +31,8 @@ from flask import (
     send_file,
 )
 from flask_babel import gettext as _
+from flask_babel.speaklater import LazyString
+from flask_jwt_extended.exceptions import NoAuthorizationError
 from flask_wtf.csrf import CSRFError
 from sqlalchemy import exc
 from werkzeug.exceptions import HTTPException
@@ -72,7 +74,7 @@ def get_error_level_from_status(
 
 
 def json_error_response(
-    error_details: str | SupersetError | list[SupersetError] | None = None,
+    error_details: str | LazyString | SupersetError | list[SupersetError] | None = None,
     status: int = 500,
     payload: dict[str, Any] | None = None,
 ) -> FlaskResponse:
@@ -88,6 +90,15 @@ def json_error_response(
         ]
     elif isinstance(error_details, str):
         payload["error"] = sanitize_error_message(error_details, status)
+    elif isinstance(error_details, LazyString):
+        # A flask-babel LazyString fails the isinstance(str) check above,
+        # and the body used to silently degrade to ``{}`` — an error
+        # response whose status said "denied" but whose payload said
+        # nothing. Coerce so the message survives; call sites should still
+        # prefer the eager gettext alias for error bodies. Deliberately
+        # narrow: any OTHER out-of-contract object keeps degrading to an
+        # empty body rather than leaking ``str(obj)`` to the client.
+        payload["error"] = sanitize_error_message(str(error_details), status)
 
     return Response(
         json.dumps(payload, default=json.json_iso_dttm_ser, ignore_nan=True),
@@ -128,7 +139,7 @@ def handle_api_exception(  # noqa: C901
     exceptions.
     """
 
-    def wraps(self: BaseSupersetView, *args: Any, **kwargs: Any) -> FlaskResponse:
+    def wraps(self: BaseSupersetView, *args: Any, **kwargs: Any) -> FlaskResponse:  # noqa: C901
         try:
             return f(self, *args, **kwargs)
         except SupersetSecurityException as ex:
@@ -165,6 +176,9 @@ def handle_api_exception(  # noqa: C901
             return json_error_response(utils.error_msg_from_exception(ex), status=422)
         except sshtunnel.BaseSSHTunnelForwarderError as ex:
             return handle_ssh_tunnel_error(ex)
+        except NoAuthorizationError as ex:
+            logger.warning("Api failed- no authorization", exc_info=True)
+            return json_error_response(str(ex), status=401)
         except Exception as ex:  # pylint: disable=broad-except
             logger.exception(ex)
             return json_error_response(utils.error_msg_from_exception(ex))
@@ -218,7 +232,17 @@ def set_app_error_handlers(app: Flask) -> None:  # noqa: C901
         logger.warning("Refresh CSRF token error", exc_info=True)
 
         if request.is_json:
-            return show_http_exception(ex)
+            return json_error_response(
+                [
+                    SupersetError(
+                        message=ex.description
+                        or _("The CSRF token could not be validated."),
+                        error_type=SupersetErrorType.CSRF_ERROR,
+                        level=ErrorLevel.WARNING,
+                    ),
+                ],
+                status=ex.code or 400,
+            )
 
         return redirect_to_login()
 

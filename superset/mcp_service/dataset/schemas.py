@@ -23,6 +23,7 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 from typing import Annotated, Any, Dict, List, Literal
+from uuid import UUID
 
 from pydantic import (
     AliasChoices,
@@ -59,6 +60,11 @@ from superset.mcp_service.system.schemas import (
     TagInfo,
 )
 from superset.mcp_service.utils.response_utils import humanize_timestamp
+from superset.mcp_service.utils.serialization import (
+    JsonSafeRows,
+    OptionalRowCount,
+    RowCount,
+)
 from superset.sql.parse import has_aggregate
 from superset.utils import json
 
@@ -72,6 +78,7 @@ class DatasetFilter(ColumnOperator):
     """
 
     col: Literal[  # pyright: ignore[reportIncompatibleVariableOverride]
+        "uuid",
         "table_name",
         "schema",
         "database_name",
@@ -93,6 +100,31 @@ class DatasetFilter(ColumnOperator):
     value: str | int | float | bool | List[str | int | float | bool] = Field(
         ..., description="Value to filter by (type depends on col and opr)"
     )
+
+    @model_validator(mode="after")
+    def uuid_values_must_be_uuids(self) -> "DatasetFilter":
+        """Reject malformed UUIDs before they reach the database.
+
+        ``uuid`` is a binary column, so an unparseable value fails deep in the
+        driver as a system-class error — paging operators over what is really a
+        caller mistake, such as a truncated UUID.
+        """
+        if self.col != "uuid" or self.opr in {
+            ColumnOperatorEnum.is_null,
+            ColumnOperatorEnum.is_not_null,
+        }:
+            # Null checks ignore the value, which get_schema advertises for uuid
+            # and callers must still supply because the field is required.
+            return self
+        values = self.value if isinstance(self.value, list) else [self.value]
+        for value in values:
+            try:
+                UUID(str(value))
+            except (ValueError, AttributeError, TypeError) as ex:
+                raise ValueError(
+                    f"Filter value for 'uuid' must be a UUID, got {value!r}."
+                ) from ex
+        return self
 
 
 class TableColumnInfo(BaseModel):
@@ -595,8 +627,8 @@ class MetricCurrency(BaseModel):
     )
 
 
-class UpdateDatasetMetricRequest(BaseModel):
-    """Request schema for update_dataset_metric."""
+class DatasetMetricProperties(BaseModel):
+    """Dataset identifier and writable saved-metric properties."""
 
     model_config = ConfigDict(populate_by_name=True)
 
@@ -604,12 +636,6 @@ class UpdateDatasetMetricRequest(BaseModel):
         ...,
         description="Dataset identifier — numeric ID or UUID string. "
         "Use list_datasets to find valid IDs.",
-    )
-    metric: int | str = Field(
-        ...,
-        description="Metric to update — numeric metric ID, metric UUID, or "
-        "metric_name (e.g. 'sum_revenue'). Numeric strings are treated as IDs. "
-        "Use get_dataset_info to discover a dataset's saved metrics.",
     )
     metric_name: str | None = Field(
         None,
@@ -659,7 +685,7 @@ class UpdateDatasetMetricRequest(BaseModel):
         )
 
     @model_validator(mode="after")
-    def validate_updates(self) -> "UpdateDatasetMetricRequest":
+    def validate_updates(self) -> "DatasetMetricProperties":
         """Require at least one updatable property and reject empty/invalid values.
 
         Guards against no-op requests, empty ``metric_name``/``expression``, and
@@ -681,6 +707,39 @@ class UpdateDatasetMetricRequest(BaseModel):
             except (ValueError, TypeError) as ex:
                 raise ValueError("extra must be a valid JSON-encoded string") from ex
         return self
+
+
+class UpdateDatasetMetricRequest(DatasetMetricProperties):
+    """Request schema for update_dataset_metric."""
+
+    metric: int | str = Field(
+        ...,
+        description="Metric to update — numeric metric ID, metric UUID, or "
+        "metric_name (e.g. 'sum_revenue'). Numeric strings are treated as IDs. "
+        "Use get_dataset_info to discover a dataset's saved metrics.",
+    )
+
+
+class CreateDatasetMetricRequest(DatasetMetricProperties):
+    """Request schema for create_dataset_metric."""
+
+    metric_name: str = Field(
+        ..., max_length=255, description="Metric name, unique within the dataset."
+    )
+    expression: str = Field(
+        ..., description="SQL aggregation expression (e.g. 'SUM(revenue)')."
+    )
+
+
+class DeleteDatasetMetricRequest(BaseModel):
+    """Request schema for delete_dataset_metric."""
+
+    dataset_id: int | str = Field(
+        ..., description="Dataset identifier — numeric ID or UUID string."
+    )
+    metric: int | str = Field(
+        ..., description="Metric ID, UUID, or metric_name. Numeric strings are IDs."
+    )
 
 
 class DatasetMetricDetail(SqlMetricInfo):
@@ -716,6 +775,42 @@ class UpdateDatasetMetricResponse(BaseModel):
     error: str | None = Field(
         None, description="Error message if the update failed, otherwise null."
     )
+
+
+class CreateDatasetMetricResponse(BaseModel):
+    """Response schema for create_dataset_metric."""
+
+    dataset_id: int | None = Field(None, description="Dataset ID")
+    dataset_name: str | None = Field(None, description="Dataset name")
+    metric: DatasetMetricDetail | None = Field(
+        None, description="Created metric, or null if creation failed."
+    )
+    url: str | None = Field(None, description="Explore URL for the dataset")
+    error: str | None = Field(None, description="Error message, or null on success")
+
+
+class MetricChartReference(BaseModel):
+    """An accessible chart referencing a saved metric by name."""
+
+    id: int = Field(..., description="Chart ID")
+    uuid: str | None = Field(None, description="Chart UUID")
+    slice_name: str = Field(..., description="Chart name")
+
+
+class DeleteDatasetMetricResponse(BaseModel):
+    """Response schema for delete_dataset_metric."""
+
+    dataset_id: int | None = Field(None, description="Dataset ID")
+    dataset_name: str | None = Field(None, description="Dataset name")
+    metric: DatasetMetricDetail | None = Field(
+        None, description="Deleted metric, or null if deletion failed."
+    )
+    affected_charts: list[MetricChartReference] = Field(
+        default_factory=list,
+        description="Accessible charts referencing the deleted metric by name. "
+        "Their definitions are not modified and may need repair.",
+    )
+    error: str | None = Field(None, description="Error message, or null on success")
 
 
 VALID_FILTER_OPS = Literal[
@@ -859,11 +954,9 @@ class QueryDatasetResponse(BaseModel):
     columns: List[DataColumn] = Field(
         default_factory=list, description="Column metadata for returned data"
     )
-    data: List[Dict[str, Any]] = Field(
-        default_factory=list, description="Query result rows"
-    )
-    row_count: int = Field(0, description="Number of rows returned")
-    total_rows: int | None = Field(
+    data: JsonSafeRows = Field(default_factory=list, description="Query result rows")
+    row_count: RowCount = Field(0, description="Number of rows returned")
+    total_rows: OptionalRowCount = Field(
         None, description="Total row count from the query engine"
     )
     from_dttm: datetime | None = Field(

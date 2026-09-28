@@ -26,7 +26,7 @@ import pytest
 import pytz
 from pyhive.sqlalchemy_presto import PrestoDialect
 from pytest_mock import MockerFixture
-from sqlalchemy import column, sql, text, types
+from sqlalchemy import column, create_engine, sql, text, types
 from sqlalchemy.engine.interfaces import Dialect
 from sqlalchemy.engine.url import make_url
 
@@ -44,6 +44,18 @@ from tests.unit_tests.db_engine_specs.utils import (
     assert_column_spec,
     assert_convert_dttm,
 )
+
+
+def test_dialect_loads_under_installed_sqlalchemy(mocker: MockerFixture) -> None:
+    """Pin presto:// entry point resolution and the pyformat paramstyle, without I/O."""
+    socket = mocker.patch("socket.socket", side_effect=AssertionError("Network I/O"))
+    engine = create_engine("presto://user@localhost:8080/hive/default")
+    try:
+        assert isinstance(engine.dialect, PrestoDialect)
+        assert str(text("SELECT :value").compile(engine)) == "SELECT %(value)s"
+    finally:
+        engine.dispose()
+    socket.assert_not_called()
 
 
 @pytest.mark.parametrize(
