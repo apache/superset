@@ -47,9 +47,6 @@ from superset.mcp_service.chart.query_result import (
     query_result_failure,
 )
 from superset.mcp_service.chart.schemas import ChartError
-from superset.mcp_service.chart.sunburst import (
-    normalize_and_validate_sunburst_result_data,
-)
 from superset.mcp_service.chart.validation.dataset_validator import (
     build_dataset_context_from_orm,
     DatasetValidator,
@@ -172,10 +169,11 @@ def _compile_chart(  # noqa: C901
                     error_type=result.error_type,
                     message=message,
                     details=result.error,
-                    suggestions=[
-                        "Use a numeric-producing metric",
-                        "Check the metric alias and SQL expression",
-                    ],
+                    suggestions=list(
+                        plugin.invalid_result_suggestions
+                        if plugin
+                        else BaseChartPlugin.invalid_result_suggestions
+                    ),
                     error_code=error_code,
                 ),
             )
@@ -190,19 +188,6 @@ def _compile_chart(  # noqa: C901
                 error_obj=_build_compile_error(result_error.error),
             )
         assert data is not None
-
-        if form_data.get("viz_type") == "sunburst_v2":
-            _, sunburst_error = normalize_and_validate_sunburst_result_data(
-                data, form_data
-            )
-            if sunburst_error is not None:
-                return CompileResult(
-                    success=False,
-                    error=sunburst_error.error,
-                    error_code="INVALID_SUNBURST_RESULT",
-                    tier="compile",
-                    error_obj=_build_sunburst_result_error(sunburst_error),
-                )
 
         warnings: List[str] = []
         row_count = 0
@@ -524,20 +509,6 @@ def _build_compile_error(message: str) -> ChartGenerationError:
         error_code="CHART_COMPILE_FAILED",
     )
 
-
-def _build_sunburst_result_error(error: ChartError) -> ChartGenerationError:
-    """Promote Sunburst result validation failures into compile errors."""
-    return ChartGenerationError(
-        error_type=error.error_type,
-        message="Sunburst query returned data that cannot render as a Sunburst.",
-        details=error.error,
-        suggestions=[
-            "Use a metric that returns finite numeric values",
-            "Verify saved and SQL metric result aliases",
-            "Ensure every hierarchy column is present in the query result",
-        ],
-        error_code="INVALID_SUNBURST_RESULT",
-    )
 
 
 def validate_and_compile(

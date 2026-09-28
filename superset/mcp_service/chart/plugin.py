@@ -274,10 +274,16 @@ class ChartTypePlugin(Protocol):
     #: Caveat appended to saved-chart preview descriptions, if any.
     preview_note: ClassVar[str | None]
 
-    #: Error code and message reported when compile-time result
+    #: Whether a query whose ``data`` is null reads as an empty result (True)
+    #: or is rejected as a malformed result (False) by chart-data and saved
+    #: preview consumers.
+    null_data_is_empty: ClassVar[bool]
+
+    #: Error code, message and suggestions reported when compile-time result
     #: normalization rejects the query output.
     invalid_result_error_code: ClassVar[str]
     invalid_result_message: ClassVar[str]
+    invalid_result_suggestions: ClassVar[tuple[str, ...]]
 
     def resolve_query_fields(
         self, form_data: Mapping[str, Any], viz_type: str
@@ -394,8 +400,13 @@ class BaseChartPlugin:
     resizes_saved_preview: ClassVar[bool] = False
     supports_column_append: ClassVar[bool] = False
     preview_note: ClassVar[str | None] = None
+    null_data_is_empty: ClassVar[bool] = True
     invalid_result_error_code: ClassVar[str] = "INVALID_CHART_RESULT"
     invalid_result_message: ClassVar[str] = "Chart query returned invalid values"
+    invalid_result_suggestions: ClassVar[tuple[str, ...]] = (
+        "Use a numeric-producing metric",
+        "Check the metric alias and SQL expression",
+    )
 
     def is_available(self) -> bool:
         """Return whether the host deployment provides this visualization."""

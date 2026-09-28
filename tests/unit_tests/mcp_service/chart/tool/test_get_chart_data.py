@@ -716,8 +716,10 @@ async def test_decimal_sunburst_get_data_is_numeric_and_json_safe(  # noqa: C901
     monkeypatch.setattr(module, "set_query_context_form_data", lambda *_args: None)
     monkeypatch.setattr(module.guest_scope, "is_guest_read", lambda: False)
 
+    from superset.mcp_service.chart import sunburst as sunburst_module
+
     validated_values: list[tuple[Decimal | None, Decimal | None]] = []
-    original_validator = module.normalize_and_validate_sunburst_result_data
+    original_validator = sunburst_module.normalize_and_validate_sunburst_result_data
 
     def validate_result(
         data: list[dict[str, Any]], effective_form_data: dict[str, Any]
@@ -726,7 +728,9 @@ async def test_decimal_sunburst_get_data_is_numeric_and_json_safe(  # noqa: C901
         return original_validator(data, effective_form_data)
 
     monkeypatch.setattr(
-        module, "normalize_and_validate_sunburst_result_data", validate_result
+        sunburst_module,
+        "normalize_and_validate_sunburst_result_data",
+        validate_result,
     )
 
     if path != "unsaved":

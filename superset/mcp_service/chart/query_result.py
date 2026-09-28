@@ -1736,6 +1736,14 @@ def normalize_chart_query_result(result: Any, form_data: Mapping[str, Any]) -> A
     return plugin.normalize_query_result(result, form_data)
 
 
+def null_data_is_empty(viz_type: str | None) -> bool:
+    """Return whether the owning plugin reads a null ``data`` array as empty."""
+    from superset.mcp_service.chart.registry import plugin_for_viz_type
+
+    plugin = plugin_for_viz_type(viz_type)
+    return plugin.null_data_is_empty if plugin is not None else True
+
+
 def normalize_treemap_query_result(result: Any, form_data: Mapping[str, Any]) -> Any:
     """Require unique hierarchy outputs and finite numeric Treemap metrics."""
     if failure := query_result_failure(result):

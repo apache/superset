@@ -94,6 +94,7 @@ FLAGS = (
     "allows_empty_result",
     "resizes_saved_preview",
     "supports_column_append",
+    "null_data_is_empty",
 )
 
 MALFORMED_RESULTS: list[Any] = [
@@ -143,6 +144,11 @@ def test_plugin_implements_lifecycle_contract(plugin: ChartTypePlugin) -> None:
     assert plugin.preview_note is None or isinstance(plugin.preview_note, str)
     assert plugin.invalid_result_error_code
     assert plugin.invalid_result_message
+    assert plugin.invalid_result_suggestions
+    assert all(
+        isinstance(suggestion, str) and suggestion
+        for suggestion in plugin.invalid_result_suggestions
+    )
     if plugin.normalize_data_results:
         # Exposing rows through get_chart_data under a contract requires one.
         assert (

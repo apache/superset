@@ -49,6 +49,7 @@ from superset.mcp_service.chart.preview_utils import (
 from superset.mcp_service.chart.query_result import (
     first_query_data,
     normalize_chart_query_result,
+    null_data_is_empty,
 )
 from superset.mcp_service.chart.registry import plugin_for_viz_type
 from superset.mcp_service.chart.response_preflight import finalize_chart_response
@@ -322,7 +323,7 @@ class ASCIIPreviewStrategy(PreviewFormatStrategy):
             if isinstance(result, ChartError):
                 return result
             data, result_error = first_query_data(
-                result, none_as_empty=self.chart.viz_type != "sunburst_v2"
+                result, none_as_empty=null_data_is_empty(self.chart.viz_type)
             )
             if result_error is not None:
                 return result_error
@@ -411,7 +412,7 @@ class TablePreviewStrategy(PreviewFormatStrategy):
             if isinstance(result, ChartError):
                 return result
             data, result_error = first_query_data(
-                result, none_as_empty=self.chart.viz_type != "sunburst_v2"
+                result, none_as_empty=null_data_is_empty(self.chart.viz_type)
             )
             if result_error is not None:
                 return result_error
@@ -537,7 +538,7 @@ class VegaLitePreviewStrategy(PreviewFormatStrategy):
             if isinstance(result, ChartError):
                 return result
             data, result_error = first_query_data(
-                result, none_as_empty=self.chart.viz_type != "sunburst_v2"
+                result, none_as_empty=null_data_is_empty(self.chart.viz_type)
             )
             if result_error is not None:
                 return result_error

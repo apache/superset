@@ -48,6 +48,7 @@ from superset.mcp_service.chart.chart_helpers import (
 from superset.mcp_service.chart.chart_utils import validate_chart_dataset
 from superset.mcp_service.chart.query_result import (
     normalize_chart_query_result,
+    null_data_is_empty,
     query_result_failure,
     validate_query_result_envelope,
 )
@@ -62,9 +63,6 @@ from superset.mcp_service.chart.schemas import (
     DataColumn,
     GetChartDataRequest,
     PerformanceMetadata,
-)
-from superset.mcp_service.chart.sunburst import (
-    normalize_and_validate_sunburst_result_data,
 )
 from superset.mcp_service.utils.cache_utils import get_cache_status_from_result
 from superset.mcp_service.utils.oauth2_utils import (
@@ -221,20 +219,6 @@ _VIZ_CATEGORY: dict[str, str] = {
 
 _MAX_RECOMMENDATIONS = 4
 
-
-def _sunburst_result_failure(
-    result: dict[str, Any], form_data: dict[str, Any]
-) -> ChartError | None:
-    """Validate the first Sunburst query after generic envelope validation."""
-    if form_data.get("viz_type") != "sunburst_v2":
-        return None
-    queries = result["queries"]
-    if not queries:
-        return None
-    _, error = normalize_and_validate_sunburst_result_data(
-        queries[0]["data"], form_data
-    )
-    return error
 
 
 def _build_data_columns(
@@ -928,7 +912,7 @@ async def _get_chart_data(  # noqa: C901
 
             if result_error := validate_query_result_envelope(
                 result,
-                none_as_empty=effective_form_data.get("viz_type") != "sunburst_v2",
+                none_as_empty=null_data_is_empty(effective_form_data.get("viz_type")),
             ):
                 return result_error
             if _normalizes_data_results(effective_form_data):
@@ -937,8 +921,6 @@ async def _get_chart_data(  # noqa: C901
                     return result
             if query_failure := query_result_failure(result):
                 return query_failure
-            if sunburst_error := _sunburst_result_failure(result, effective_form_data):
-                return sunburst_error
 
             if rejected := _rejected_requested_filter_columns(
                 result, request.extra_form_data
@@ -1273,7 +1255,7 @@ async def _query_from_form_data(  # noqa: C901
             result = command.run()
 
         if result_error := validate_query_result_envelope(
-            result, none_as_empty=viz_type != "sunburst_v2"
+            result, none_as_empty=null_data_is_empty(viz_type)
         ):
             return result_error
         if _normalizes_data_results(form_data):
@@ -1282,8 +1264,6 @@ async def _query_from_form_data(  # noqa: C901
                 return result
         if query_failure := query_result_failure(result):
             return query_failure
-        if sunburst_error := _sunburst_result_failure(result, form_data):
-            return sunburst_error
 
         if rejected := _rejected_requested_filter_columns(
             result, request.extra_form_data

@@ -40,6 +40,19 @@ class SunburstChartPlugin(BaseChartPlugin):
     native_viz_types: ClassVar[Mapping[str, str]] = {
         "sunburst_v2": "Sunburst Chart",
     }
+    # get_chart_data and its exports validate hierarchy rows and metrics.
+    normalize_data_results = True
+    # Hierarchy input must never silently become an empty visualization.
+    null_data_is_empty = False
+    invalid_result_error_code = "INVALID_SUNBURST_RESULT"
+    invalid_result_message = (
+        "Sunburst query returned data that cannot render as a Sunburst."
+    )
+    invalid_result_suggestions = (
+        "Use a metric that returns finite numeric values",
+        "Verify saved and SQL metric result aliases",
+        "Ensure every hierarchy column is present in the query result",
+    )
 
     def pre_validate(
         self,
@@ -117,6 +130,13 @@ class SunburstChartPlugin(BaseChartPlugin):
         ):
             metrics.append(secondary_metric)
         return metrics, resolve_groupby(dict(form_data))
+
+    def normalize_query_result(self, result: Any, form_data: Mapping[str, Any]) -> Any:
+        from superset.mcp_service.chart.sunburst import (
+            normalize_sunburst_query_result,
+        )
+
+        return normalize_sunburst_query_result(result, form_data)
 
     def build_query_dicts(
         self,

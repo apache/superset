@@ -262,6 +262,31 @@ def normalize_and_validate_sunburst_result_data(  # noqa: C901
     return roles, None
 
 
+def normalize_sunburst_query_result(result: Any, form_data: Mapping[str, Any]) -> Any:
+    """Validate the first Sunburst query and return a normalized result copy.
+
+    The input envelope is never mutated: rows are copied before SQL NULL
+    metrics are replaced with zero, matching the frontend treeBuilder.
+    """
+    from superset.mcp_service.chart.query_result import (
+        first_query_data,
+        query_result_failure,
+    )
+
+    if failure := query_result_failure(result):
+        return failure
+    data, error = first_query_data(result)
+    if error is not None:
+        return error
+    assert data is not None
+    rows = [dict(row) if type(row) is dict else row for row in data]
+    _, error = normalize_and_validate_sunburst_result_data(rows, form_data)
+    if error is not None:
+        return error
+    queries = result["queries"]
+    return {**result, "queries": [{**queries[0], "data": rows}, *queries[1:]]}
+
+
 def unsupported_sunburst_preview(preview_format: str) -> ChartError:
     """Return an explicit error instead of a misleading fallback chart."""
     return ChartError(
