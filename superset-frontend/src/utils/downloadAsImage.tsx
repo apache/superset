@@ -40,6 +40,9 @@ const EXPORT_CANVAS_PIXEL_RATIO = PNG_SCALE;
 // plugins/plugin-chart-echarts/src/components/Echart.tsx `ECHARTS_HOST_CLASS`). It lets the
 // exporter recover the live ECharts instance for a canvas via `getInstanceByDom`.
 const ECHARTS_HOST_CLASS = 'echarts-host';
+const IMAGE_DOWNLOAD_FAILED_MESSAGE = t(
+  'Image download failed, please refresh and try again.',
+);
 export type BackgroundType = 'transparent' | 'solid';
 const TRANSPARENT_RGBA = 'transparent';
 const POLL_INTERVAL_MS = 100;
@@ -441,9 +444,7 @@ export default function downloadAsImageOptimized(
       : event.currentTarget.closest(selector);
 
     if (!elementToPrint) {
-      addWarningToast?.(
-        t('Image download failed, please refresh and try again.'),
-      );
+      addWarningToast?.(IMAGE_DOWNLOAD_FAILED_MESSAGE);
       return;
     }
 
@@ -613,9 +614,7 @@ export default function downloadAsImageOptimized(
         triggerDownload(dataUrl, description, isPng);
       } catch (error) {
         console.error('Creating image failed', error);
-        addWarningToast?.(
-          t('Image download failed, please refresh and try again.'),
-        );
+        addWarningToast?.(IMAGE_DOWNLOAD_FAILED_MESSAGE);
       } finally {
         cellFixups.forEach(({ el, minHeight, overflow }) => {
           el.style.minHeight = minHeight;
@@ -745,9 +744,7 @@ export default function downloadAsImageOptimized(
       triggerDownload(dataUrl, description, isPng);
     } catch (error) {
       console.error('Creating image failed', error);
-      addWarningToast?.(
-        t('Image download failed, please refresh and try again.'),
-      );
+      addWarningToast?.(IMAGE_DOWNLOAD_FAILED_MESSAGE);
     } finally {
       if (cleanup) cleanup();
       if (didForceLoad) {
