@@ -346,7 +346,7 @@
     "stylelint": "^17.15.0",
     "swc-loader": "^0.2.7",
     "tscw-config": "^1.1.2",
-    "tsx": "^4.23.13",
+    "tsx": "^4.23.15",
     "typescript": "5.4.5",
     "unzipper": "^0.12.5",
     "wait-on": "^9.1.0",
