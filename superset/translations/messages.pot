@@ -25,7 +25,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-24 10:35+0300\n"
+"POT-Creation-Date: 2026-09-28 19:35+0600\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -7682,6 +7682,9 @@ msgid "Import %s"
 msgstr ""
 
 msgid "Import Error"
+msgstr ""
+
+msgid "Import annotation layer failed for an unknown reason"
 msgstr ""
 
 msgid "Import chart failed for an unknown reason"

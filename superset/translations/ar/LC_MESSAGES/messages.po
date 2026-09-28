@@ -24,7 +24,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version:  \n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-24 10:35+0300\n"
+"POT-Creation-Date: 2026-09-28 19:35+0600\n"
 "PO-Revision-Date: 2024-07-14 15:10+0300\n"
 "Last-Translator: Abdalrahim G. Fakhouri <abdilra7eem@yahoo.com>\n"
 "Language: ar\n"
@@ -5542,6 +5542,9 @@ msgstr "تعذّر استعادة لوحة التحكم."
 msgid "Dashboard could not be updated."
 msgstr "تعذر تحديث لوحة المعلومات."
 
+msgid "Dashboard data exported to Excel"
+msgstr ""
+
 msgid "Dashboard does not exist"
 msgstr "لوحة القيادة غير موجودة"
 
@@ -5552,6 +5555,9 @@ msgstr "تم حفظ لوحة المعلومات هذه بنجاح."
 #, fuzzy
 msgid "Dashboard exported successfully"
 msgstr "تم حفظ لوحة المعلومات هذه بنجاح."
+
+msgid "Dashboard has no charts to export."
+msgstr ""
 
 msgid "Dashboard imported"
 msgstr "لوحة المعلومات المستوردة"
@@ -7769,9 +7775,6 @@ msgstr "تقرير أسبوعي"
 msgid "Excel XML Export"
 msgstr "تقرير أسبوعي"
 
-msgid "Excel export is not configured on this server."
-msgstr ""
-
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fa, fr, ja, lv, mi, pl, ro, ru, sk, sl, sr, sr_Latn, tr, uk]
 #, fuzzy
@@ -7957,6 +7960,11 @@ msgstr "تصدير إلى ملف CSV الأصلي"
 
 msgid "Export to pivoted .CSV"
 msgstr "التصدير إلى ملف CSV المحوري"
+
+msgid ""
+"Exporting images to Excel requires background exports. Ask an "
+"administrator to enable them, or export the dashboard's data instead."
+msgstr ""
 
 #, python-format
 msgid ""
@@ -9193,6 +9201,9 @@ msgstr "الاستيراد %s"
 #, fuzzy
 msgid "Import Error"
 msgstr "خطأ المهلة"
+
+msgid "Import annotation layer failed for an unknown reason"
+msgstr ""
 
 msgid "Import chart failed for an unknown reason"
 msgstr "فشل مخطط الاستيراد لسبب غير معروف"
@@ -11470,6 +11481,11 @@ msgstr "لا شيء -> سهم"
 msgid "None -> None"
 msgstr "لا شيء -> لا شيء"
 
+msgid ""
+"None of this dashboard's charts can be downloaded directly. Ask an "
+"administrator to enable background exports."
+msgstr ""
+
 msgid "Normal"
 msgstr "عادي"
 
@@ -12693,6 +12709,12 @@ msgstr "بادئة أو لاحقة"
 
 #, python-format
 msgid "Preparing %(count)s charts for export. This may take a moment."
+msgstr ""
+
+msgid "Preparing dashboard Excel export…"
+msgstr ""
+
+msgid "Preparing export…"
 msgstr ""
 
 msgid "Preview"
@@ -16904,6 +16926,12 @@ msgid ""
 msgstr ""
 
 msgid ""
+"The following charts were omitted because their size cannot be determined"
+" before they run. Ask an administrator to enable background exports to "
+"include them."
+msgstr ""
+
+msgid ""
 "The following charts were omitted because they have no saved query "
 "context. To include them, open each chart in Explore and re-save."
 msgstr ""
@@ -18138,6 +18166,12 @@ msgstr ""
 " يجب تمرير العرض إلى المخطط الذي يحتوي على بيانات التعليقات التوضيحية."
 
 msgid "This dashboard does not exist"
+msgstr ""
+
+msgid ""
+"This dashboard has too much data to download directly. Ask an "
+"administrator to enable background exports, or lower the row limits of "
+"its charts."
 msgstr ""
 
 msgid "This dashboard is managed externally, and can't be edited in Superset"

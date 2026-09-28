@@ -22,7 +22,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-24 10:35+0300\n"
+"POT-Creation-Date: 2026-09-28 19:35+0600\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: ro\n"
@@ -5404,6 +5404,9 @@ msgstr "Tabloul de bord nu a putut fi restaurat."
 msgid "Dashboard could not be updated."
 msgstr "Panoul de control nu a putut fi actualizat."
 
+msgid "Dashboard data exported to Excel"
+msgstr ""
+
 msgid "Dashboard does not exist"
 msgstr "Panoul de control nu există"
 
@@ -5418,6 +5421,9 @@ msgstr "Tabloul de bord a fost exportat cu succes ca exemplu"
 #, fuzzy
 msgid "Dashboard exported successfully"
 msgstr "Tabloul de bord a fost exportat cu succes"
+
+msgid "Dashboard has no charts to export."
+msgstr ""
 
 msgid "Dashboard imported"
 msgstr "Panoul de control a fost importat"
@@ -7553,9 +7559,6 @@ msgstr "Export Excel"
 msgid "Excel XML Export"
 msgstr "Export Excel XML"
 
-msgid "Excel export is not configured on this server."
-msgstr ""
-
 msgid "Excel file format cannot be determined"
 msgstr "Formatul fișierului Excel nu poate fi determinat"
 
@@ -7737,6 +7740,11 @@ msgstr "Exportă în .CSV original"
 
 msgid "Export to pivoted .CSV"
 msgstr "Exportă în .CSV pivotat"
+
+msgid ""
+"Exporting images to Excel requires background exports. Ask an "
+"administrator to enable them, or export the dashboard's data instead."
+msgstr ""
 
 #, python-format
 msgid ""
@@ -8946,6 +8954,9 @@ msgstr "Importă %s"
 
 msgid "Import Error"
 msgstr "Eroare Import"
+
+msgid "Import annotation layer failed for an unknown reason"
+msgstr ""
 
 msgid "Import chart failed for an unknown reason"
 msgstr "Importul graficului a eșuat din cauza necunoscută"
@@ -11196,6 +11207,11 @@ msgstr "Niciunul -> Săgeată"
 msgid "None -> None"
 msgstr "Niciunul -> Niciunul"
 
+msgid ""
+"None of this dashboard's charts can be downloaded directly. Ask an "
+"administrator to enable background exports."
+msgstr ""
+
 msgid "Normal"
 msgstr "Normal"
 
@@ -11625,8 +11641,7 @@ msgstr "Șir format număr d3 opțional"
 msgid ""
 "Optional dimension used to split the chart into multiple candlestick "
 "series."
-msgstr ""
-"Dimensiune opțională care împarte graficul în mai multe serii de lumânări."
+msgstr "Dimensiune opțională care împarte graficul în mai multe serii de lumânări."
 
 msgid ""
 "Optional metric used to scale the size of each dot. Dot areas are scaled "
@@ -11760,8 +11775,8 @@ msgid ""
 "Overlay simple moving averages of the close price (MA5, MA10, MA15, ...)."
 " Type a custom period to add it."
 msgstr ""
-"Suprapune medii mobile simple ale prețului de închidere (MA5, MA10, MA15, "
-"...). Tastați o perioadă personalizată pentru a o adăuga."
+"Suprapune medii mobile simple ale prețului de închidere (MA5, MA10, MA15,"
+" ...). Tastați o perioadă personalizată pentru a o adăuga."
 
 msgid ""
 "Overlays a hexagonal grid on a map, and aggregates data within the "
@@ -12379,6 +12394,12 @@ msgstr "Prefix sau sufix"
 
 #, python-format
 msgid "Preparing %(count)s charts for export. This may take a moment."
+msgstr ""
+
+msgid "Preparing dashboard Excel export…"
+msgstr ""
+
+msgid "Preparing export…"
 msgstr ""
 
 msgid "Preview"
@@ -16542,6 +16563,12 @@ msgid ""
 msgstr ""
 
 msgid ""
+"The following charts were omitted because their size cannot be determined"
+" before they run. Ask an administrator to enable background exports to "
+"include them."
+msgstr ""
+
+msgid ""
 "The following charts were omitted because they have no saved query "
 "context. To include them, open each chart in Explore and re-save."
 msgstr ""
@@ -17776,6 +17803,12 @@ msgstr ""
 "adnotare."
 
 msgid "This dashboard does not exist"
+msgstr ""
+
+msgid ""
+"This dashboard has too much data to download directly. Ask an "
+"administrator to enable background exports, or lower the row limits of "
+"its charts."
 msgstr ""
 
 msgid "This dashboard is managed externally, and can't be edited in Superset"

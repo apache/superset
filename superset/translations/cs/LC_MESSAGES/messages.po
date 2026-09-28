@@ -18,7 +18,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-24 10:35+0300\n"
+"POT-Creation-Date: 2026-09-28 19:35+0600\n"
 "PO-Revision-Date: 2016-05-02 08:49-0700\n"
 "Last-Translator: Jan Šmejkal <jan.smejkal@orgis.cz>\n"
 "Language: cs\n"
@@ -1050,8 +1050,8 @@ msgid ""
 " period. It is commonly used for financial and other time-series range "
 "analysis."
 msgstr ""
-"Svíčkový graf zobrazuje otevírací, uzavírací, nejvyšší a nejnižší hodnoty "
-"za každé období. Běžně se používá pro finanční a jinou analýzu rozpětí "
+"Svíčkový graf zobrazuje otevírací, uzavírací, nejvyšší a nejnižší hodnoty"
+" za každé období. Běžně se používá pro finanční a jinou analýzu rozpětí "
 "časových řad."
 
 #, fuzzy
@@ -3285,8 +3285,8 @@ msgid ""
 "Candlestick draws a filled body between open and close. OHLC draws ticks "
 "for open and close on a high-low stem."
 msgstr ""
-"Svíčky kreslí vyplněné tělo mezi otevřením a uzavřením. OHLC kreslí značky "
-"otevření a uzavření na stonku maximum–minimum."
+"Svíčky kreslí vyplněné tělo mezi otevřením a uzavřením. OHLC kreslí "
+"značky otevření a uzavření na stonku maximum–minimum."
 
 msgid "Cannot access the query"
 msgstr "Nelze přistoupit k dotazu"
@@ -5149,6 +5149,9 @@ msgstr "Nepodařilo se obnovit řídicí panel."
 msgid "Dashboard could not be updated."
 msgstr "Nástěnku se nepodařilo aktualizovat."
 
+msgid "Dashboard data exported to Excel"
+msgstr ""
+
 msgid "Dashboard does not exist"
 msgstr "Nástěnka neexistuje"
 
@@ -5159,6 +5162,9 @@ msgstr "Tato nástěnka byla úspěšně uložena jako příklad."
 #, fuzzy
 msgid "Dashboard exported successfully"
 msgstr "Tato nástěnka byla úspěšně uložena."
+
+msgid "Dashboard has no charts to export."
+msgstr ""
 
 msgid "Dashboard imported"
 msgstr "Nástěnka importována"
@@ -7206,9 +7212,6 @@ msgstr "Export do Excelu"
 msgid "Excel XML Export"
 msgstr "XML Export do Excelu"
 
-msgid "Excel export is not configured on this server."
-msgstr ""
-
 msgid "Excel file format cannot be determined"
 msgstr "Formát souboru Excel nelze určit"
 
@@ -7384,6 +7387,11 @@ msgstr "Exportovat do původního .CSV"
 
 msgid "Export to pivoted .CSV"
 msgstr "Exportovat do kontingenčního .CSV"
+
+msgid ""
+"Exporting images to Excel requires background exports. Ask an "
+"administrator to enable them, or export the dashboard's data instead."
+msgstr ""
 
 #, python-format
 msgid ""
@@ -8517,6 +8525,9 @@ msgstr "Importovat %s"
 #, fuzzy
 msgid "Import Error"
 msgstr "Chyba importu"
+
+msgid "Import annotation layer failed for an unknown reason"
+msgstr ""
 
 msgid "Import chart failed for an unknown reason"
 msgstr "Import grafu selhal z neznámého důvodu"
@@ -10328,7 +10339,8 @@ msgid ""
 "Name used for the candlestick series in the legend and tooltip when no "
 "series dimension is set."
 msgstr ""
-"Název svíčkové řady v legendě a popisku, pokud není nastavena dimenze řady."
+"Název svíčkové řady v legendě a popisku, pokud není nastavena dimenze "
+"řady."
 
 msgid "Name your database"
 msgstr "Pojmenujte svou databázi"
@@ -10664,6 +10676,11 @@ msgstr "Žádný -> Šipka"
 
 msgid "None -> None"
 msgstr "Žádný -> Žádný"
+
+msgid ""
+"None of this dashboard's charts can be downloaded directly. Ask an "
+"administrator to enable background exports."
+msgstr ""
 
 msgid "Normal"
 msgstr "Normální"
@@ -11825,6 +11842,12 @@ msgstr "Předpona nebo přípona"
 
 #, python-format
 msgid "Preparing %(count)s charts for export. This may take a moment."
+msgstr ""
+
+msgid "Preparing dashboard Excel export…"
+msgstr ""
+
+msgid "Preparing export…"
 msgstr ""
 
 msgid "Preview"
@@ -15798,6 +15821,12 @@ msgid ""
 msgstr ""
 
 msgid ""
+"The following charts were omitted because their size cannot be determined"
+" before they run. Ask an administrator to enable background exports to "
+"include them."
+msgstr ""
+
+msgid ""
 "The following charts were omitted because they have no saved query "
 "context. To include them, open each chart in Explore and re-save."
 msgstr ""
@@ -16973,6 +17002,12 @@ msgstr ""
 "                  pohledu předáno grafu obsahujícímu data anotací."
 
 msgid "This dashboard does not exist"
+msgstr ""
+
+msgid ""
+"This dashboard has too much data to download directly. Ask an "
+"administrator to enable background exports, or lower the row limits of "
+"its charts."
 msgstr ""
 
 msgid "This dashboard is managed externally, and can't be edited in Superset"

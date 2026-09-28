@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-24 10:35+0300\n"
+"POT-Creation-Date: 2026-09-28 19:35+0600\n"
 "PO-Revision-Date: 2024-10-20 00:07+0330\n"
 "Last-Translator: Emad Rad <codewithemad@gmail.com>\n"
 "Language: fa\n"
@@ -5346,6 +5346,9 @@ msgstr "داشبورد قابل بازیابی نبود."
 msgid "Dashboard could not be updated."
 msgstr "داشبورد قابل به‌روزرسانی نیست."
 
+msgid "Dashboard data exported to Excel"
+msgstr ""
+
 msgid "Dashboard does not exist"
 msgstr "داشبورد وجود ندارد"
 
@@ -5356,6 +5359,9 @@ msgstr "این داشبورد با موفقیت ذخیره شد."
 #, fuzzy
 msgid "Dashboard exported successfully"
 msgstr "این داشبورد با موفقیت ذخیره شد."
+
+msgid "Dashboard has no charts to export."
+msgstr ""
 
 msgid "Dashboard imported"
 msgstr "داشبورد وارد شد"
@@ -7472,9 +7478,6 @@ msgstr "گزارش هفتگی"
 msgid "Excel XML Export"
 msgstr "گزارش هفتگی"
 
-msgid "Excel export is not configured on this server."
-msgstr ""
-
 msgid "Excel file format cannot be determined"
 msgstr "فرمت فایل اکسل قابل شناسایی نیست"
 
@@ -7655,6 +7658,11 @@ msgstr "صادر کردن به .CSV اصلی"
 
 msgid "Export to pivoted .CSV"
 msgstr "صادرات به فایل .CSV محور شده"
+
+msgid ""
+"Exporting images to Excel requires background exports. Ask an "
+"administrator to enable them, or export the dashboard's data instead."
+msgstr ""
 
 #, python-format
 msgid ""
@@ -8873,6 +8881,9 @@ msgstr "وارد کردن %s"
 #, fuzzy
 msgid "Import Error"
 msgstr "خطای تایم‌اوت"
+
+msgid "Import annotation layer failed for an unknown reason"
+msgstr ""
 
 msgid "Import chart failed for an unknown reason"
 msgstr "وارد کردن نمودار به دلایل نامعلوم شکست خورد"
@@ -11126,6 +11137,11 @@ msgstr "هیچ -> پیکان"
 msgid "None -> None"
 msgstr "هیچ -> هیچ"
 
+msgid ""
+"None of this dashboard's charts can be downloaded directly. Ask an "
+"administrator to enable background exports."
+msgstr ""
+
 msgid "Normal"
 msgstr "عادی"
 
@@ -12322,6 +12338,12 @@ msgstr "پیشوند یا پسوند"
 
 #, python-format
 msgid "Preparing %(count)s charts for export. This may take a moment."
+msgstr ""
+
+msgid "Preparing dashboard Excel export…"
+msgstr ""
+
+msgid "Preparing export…"
 msgstr ""
 
 msgid "Preview"
@@ -16466,6 +16488,12 @@ msgid ""
 msgstr ""
 
 msgid ""
+"The following charts were omitted because their size cannot be determined"
+" before they run. Ask an administrator to enable background exports to "
+"include them."
+msgstr ""
+
+msgid ""
 "The following charts were omitted because they have no saved query "
 "context. To include them, open each chart in Explore and re-save."
 msgstr ""
@@ -17684,6 +17712,12 @@ msgstr ""
 "داده‌های توضیحات منتقل شود یا خیر."
 
 msgid "This dashboard does not exist"
+msgstr ""
+
+msgid ""
+"This dashboard has too much data to download directly. Ask an "
+"administrator to enable background exports, or lower the row limits of "
+"its charts."
 msgstr ""
 
 msgid "This dashboard is managed externally, and can't be edited in Superset"
@@ -19789,8 +19823,8 @@ msgid ""
 "filled body for increases and a hollow body for decreases."
 msgstr ""
 "در صورت فعال بودن، شمع‌های صعودی رنگ افزایش و شمع‌های نزولی رنگ کاهش را "
-"دارند. خاموش کنید تا یک رنگ سری استفاده شود: بدنه پر برای افزایش و توخالی "
-"برای کاهش."
+"دارند. خاموش کنید تا یک رنگ سری استفاده شود: بدنه پر برای افزایش و توخالی"
+" برای کاهش."
 
 #, fuzzy
 msgid ""

@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-24 10:35+0300\n"
+"POT-Creation-Date: 2026-09-28 19:35+0600\n"
 "PO-Revision-Date: 2026-01-25 16:09+1300\n"
 "Last-Translator: karo.co.nz\n"
 "Language: mi\n"
@@ -3329,9 +3329,9 @@ msgid ""
 "Candlestick draws a filled body between open and close. OHLC draws ticks "
 "for open and close on a high-low stem."
 msgstr ""
-"Ka tā te kānara i tētahi tinana kī i waenga i te whakatuwhera me te kati. "
-"Ka tā te OHLC i ngā tohu whakatuwhera me te kati ki tētahi kakau "
-"teitei-iti."
+"Ka tā te kānara i tētahi tinana kī i waenga i te whakatuwhera me te kati."
+" Ka tā te OHLC i ngā tohu whakatuwhera me te kati ki tētahi kakau teitei-"
+"iti."
 
 msgid "Cannot access the query"
 msgstr "Kāore e taea te uru ki te pātai"
@@ -5282,6 +5282,9 @@ msgstr "Kāore i taea te whakahoki i te papatohu."
 msgid "Dashboard could not be updated."
 msgstr "Kāore i taea te whakahou i te papatohu."
 
+msgid "Dashboard data exported to Excel"
+msgstr ""
+
 msgid "Dashboard does not exist"
 msgstr "Karekau te papatohu"
 
@@ -5292,6 +5295,9 @@ msgstr "I tiakina pai tēnei papatohu."
 #, fuzzy
 msgid "Dashboard exported successfully"
 msgstr "I tiakina pai tēnei papatohu."
+
+msgid "Dashboard has no charts to export."
+msgstr ""
 
 msgid "Dashboard imported"
 msgstr "Papatohu kua kawemaihia"
@@ -7371,9 +7377,6 @@ msgstr "Pūrongo Ia Wiki"
 msgid "Excel XML Export"
 msgstr "Pūrongo Ia Wiki"
 
-msgid "Excel export is not configured on this server."
-msgstr ""
-
 msgid "Excel file format cannot be determined"
 msgstr "Kāore e taea te whakatau i te hōputu kōnae Excel"
 
@@ -7548,6 +7551,11 @@ msgstr "Kaweatu ki .CSV taketake"
 
 msgid "Export to pivoted .CSV"
 msgstr "Kaweatu ki .CSV hurihuri"
+
+msgid ""
+"Exporting images to Excel requires background exports. Ask an "
+"administrator to enable them, or export the dashboard's data instead."
+msgstr ""
 
 #, python-format
 msgid ""
@@ -8763,6 +8771,9 @@ msgstr "Kawemai %s"
 #, fuzzy
 msgid "Import Error"
 msgstr "Hapa wā-pau"
+
+msgid "Import annotation layer failed for an unknown reason"
+msgstr ""
 
 msgid "Import chart failed for an unknown reason"
 msgstr "I rahua te kawemai kauwhata mō tētahi take kāore e mōhiotia ana"
@@ -10617,8 +10628,8 @@ msgid ""
 "Name used for the candlestick series in the legend and tooltip when no "
 "series dimension is set."
 msgstr ""
-"Te ingoa mō te raupapa kānara i te pakiwaituhi me te tohu āwhina inā kāore "
-"he matotoru raupapa."
+"Te ingoa mō te raupapa kānara i te pakiwaituhi me te tohu āwhina inā "
+"kāore he matotoru raupapa."
 
 msgid "Name your database"
 msgstr "Tohua he ingoa mō tō pātengi raraunga"
@@ -10959,6 +10970,11 @@ msgstr "Kāore -> Pere"
 
 msgid "None -> None"
 msgstr "Kāore -> Kāore"
+
+msgid ""
+"None of this dashboard's charts can be downloaded directly. Ask an "
+"administrator to enable background exports."
+msgstr ""
 
 msgid "Normal"
 msgstr "Noa"
@@ -11522,8 +11538,8 @@ msgid ""
 "Overlay simple moving averages of the close price (MA5, MA10, MA15, ...)."
 " Type a custom period to add it."
 msgstr ""
-"Whakapirihia ngā toharite neke māmā o te utu kati (MA5, MA10, MA15, ...). "
-"Patohia tētahi wā ritenga hei tāpiri."
+"Whakapirihia ngā toharite neke māmā o te utu kati (MA5, MA10, MA15, ...)."
+" Patohia tētahi wā ritenga hei tāpiri."
 
 msgid ""
 "Overlays a hexagonal grid on a map, and aggregates data within the "
@@ -12143,6 +12159,12 @@ msgstr "Kūmua, kūmuri rānei"
 
 #, python-format
 msgid "Preparing %(count)s charts for export. This may take a moment."
+msgstr ""
+
+msgid "Preparing dashboard Excel export…"
+msgstr ""
+
+msgid "Preparing export…"
 msgstr ""
 
 msgid "Preview"
@@ -16251,6 +16273,12 @@ msgid ""
 msgstr ""
 
 msgid ""
+"The following charts were omitted because their size cannot be determined"
+" before they run. Ask an administrator to enable background exports to "
+"include them."
+msgstr ""
+
+msgid ""
 "The following charts were omitted because they have no saved query "
 "context. To include them, open each chart in Explore and re-save."
 msgstr ""
@@ -17472,6 +17500,12 @@ msgid ""
 msgstr "Ka whakahaere tēnei mēnā me tuku iho rānei te āpure māeneene wā mai i te"
 
 msgid "This dashboard does not exist"
+msgstr ""
+
+msgid ""
+"This dashboard has too much data to download directly. Ask an "
+"administrator to enable background exports, or lower the row limits of "
+"its charts."
 msgstr ""
 
 msgid "This dashboard is managed externally, and can't be edited in Superset"
@@ -19578,8 +19612,8 @@ msgid ""
 "filled body for increases and a hollow body for decreases."
 msgstr ""
 "Inā kā, ka whakamahi ngā kānara piki i te tae piki, ngā kānara heke i te "
-"tae heke. Wetekina kia kotahi te tae raupapa, tinana kī mō te piki, tinana "
-"kau mō te heke."
+"tae heke. Wetekina kia kotahi te tae raupapa, tinana kī mō te piki, "
+"tinana kau mō te heke."
 
 #, fuzzy
 msgid ""

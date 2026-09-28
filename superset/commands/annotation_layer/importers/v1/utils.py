@@ -19,7 +19,8 @@ from typing import Any
 
 from marshmallow import fields
 
-from superset import db
+from superset import db, security_manager
+from superset.commands.exceptions import ImportFailedError
 from superset.models.annotations import AnnotationLayer
 from superset.utils import json
 
@@ -27,12 +28,22 @@ DATETIME_FIELD = fields.DateTime(allow_none=True)
 
 
 def import_annotation_layer(
-    config: dict[str, Any], overwrite: bool = False
+    config: dict[str, Any],
+    overwrite: bool = False,
+    ignore_permissions: bool = False,
 ) -> AnnotationLayer:
     """Upsert annotation layer config and return persisted layer.
 
     If an existing layer is found and overwrite is False, return it unchanged.
     """
+    can_write = ignore_permissions or security_manager.can_access(
+        "can_write", "Annotation"
+    )
+    if not can_write:
+        raise ImportFailedError(
+            "Annotation layer import requires can_write permission on Annotation"
+        )
+
     existing = db.session.query(AnnotationLayer).filter_by(uuid=config["uuid"]).first()
     if existing:
         if not overwrite:

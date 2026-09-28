@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-24 10:35+0300\n"
+"POT-Creation-Date: 2026-09-28 19:35+0600\n"
 "PO-Revision-Date: 2026-07-17 09:44+0100\n"
 "Last-Translator: Daniel Checheta\n"
 "Language: ru\n"
@@ -5003,6 +5003,9 @@ msgstr "Не удалось восстановить дашборд"
 msgid "Dashboard could not be updated."
 msgstr "Не удалось обновить дашборд"
 
+msgid "Dashboard data exported to Excel"
+msgstr ""
+
 msgid "Dashboard does not exist"
 msgstr "Дашборд не существует"
 
@@ -5011,6 +5014,9 @@ msgstr "Дашборд успешно экспортирован как прим
 
 msgid "Dashboard exported successfully"
 msgstr "Дашборд успешно экспортирован"
+
+msgid "Dashboard has no charts to export."
+msgstr ""
 
 msgid "Dashboard imported"
 msgstr "Дашборд импортирован"
@@ -6957,9 +6963,6 @@ msgstr "Экспорт в Excel (.xlsx)"
 msgid "Excel XML Export"
 msgstr "Экспорт в XML (.xml)"
 
-msgid "Excel export is not configured on this server."
-msgstr ""
-
 msgid "Excel file format cannot be determined"
 msgstr "Не удалось определить формат Excel-файла"
 
@@ -7123,6 +7126,11 @@ msgstr "Экспорт исходных данных в CSV"
 
 msgid "Export to pivoted .CSV"
 msgstr "Экспорт сводной таблицы в CSV"
+
+msgid ""
+"Exporting images to Excel requires background exports. Ask an "
+"administrator to enable them, or export the dashboard's data instead."
+msgstr ""
 
 #, python-format
 msgid ""
@@ -8222,6 +8230,9 @@ msgstr "Импортировать %s"
 
 msgid "Import Error"
 msgstr "Ошибка импорта"
+
+msgid "Import annotation layer failed for an unknown reason"
+msgstr ""
 
 msgid "Import chart failed for an unknown reason"
 msgstr "Не удалось импортировать диаграмму по неизвестной причине"
@@ -10288,6 +10299,11 @@ msgstr "Ничего -> Стрелка"
 msgid "None -> None"
 msgstr "Ничего -> Ничего"
 
+msgid ""
+"None of this dashboard's charts can be downloaded directly. Ask an "
+"administrator to enable background exports."
+msgstr ""
+
 msgid "Normal"
 msgstr "Обычный"
 
@@ -10836,8 +10852,8 @@ msgid ""
 "Overlay simple moving averages of the close price (MA5, MA10, MA15, ...)."
 " Type a custom period to add it."
 msgstr ""
-"Наложить простые скользящие средние цены закрытия (MA5, MA10, MA15, ...). "
-"Введите свой период, чтобы добавить его."
+"Наложить простые скользящие средние цены закрытия (MA5, MA10, MA15, ...)."
+" Введите свой период, чтобы добавить его."
 
 msgid ""
 "Overlays a hexagonal grid on a map, and aggregates data within the "
@@ -11413,6 +11429,12 @@ msgstr "Префикс или суффикс"
 
 #, python-format
 msgid "Preparing %(count)s charts for export. This may take a moment."
+msgstr ""
+
+msgid "Preparing dashboard Excel export…"
+msgstr ""
+
+msgid "Preparing export…"
 msgstr ""
 
 msgid "Preview"
@@ -15182,6 +15204,12 @@ msgid ""
 msgstr ""
 
 msgid ""
+"The following charts were omitted because their size cannot be determined"
+" before they run. Ask an administrator to enable background exports to "
+"include them."
+msgstr ""
+
+msgid ""
 "The following charts were omitted because they have no saved query "
 "context. To include them, open each chart in Explore and re-save."
 msgstr ""
@@ -16338,6 +16366,12 @@ msgstr ""
 "содержащую аннотации"
 
 msgid "This dashboard does not exist"
+msgstr ""
+
+msgid ""
+"This dashboard has too much data to download directly. Ask an "
+"administrator to enable background exports, or lower the row limits of "
+"its charts."
 msgstr ""
 
 msgid "This dashboard is managed externally, and can't be edited in Superset"

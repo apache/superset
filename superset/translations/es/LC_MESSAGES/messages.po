@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-24 10:35+0300\n"
+"POT-Creation-Date: 2026-09-28 19:35+0600\n"
 "PO-Revision-Date: 2016-05-02 08:49-0700\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: es\n"
@@ -1022,8 +1022,8 @@ msgid ""
 "analysis."
 msgstr ""
 "Un gráfico de velas muestra los valores de apertura, cierre, máximo y "
-"mínimo de cada período. Se usa habitualmente para análisis financiero y de "
-"rangos en series temporales."
+"mínimo de cada período. Se usa habitualmente para análisis financiero y "
+"de rangos en series temporales."
 
 #, fuzzy
 msgid "A comma separated list of columns that should be parsed as dates"
@@ -5274,6 +5274,9 @@ msgstr "No se pudo restaurar el panel."
 msgid "Dashboard could not be updated."
 msgstr "No se ha podido actualizar el panel de control."
 
+msgid "Dashboard data exported to Excel"
+msgstr ""
+
 msgid "Dashboard does not exist"
 msgstr "El panel de control no existe"
 
@@ -5284,6 +5287,9 @@ msgstr "Este panel de control se ha guardado correctamente."
 #, fuzzy
 msgid "Dashboard exported successfully"
 msgstr "Este panel de control se ha guardado correctamente."
+
+msgid "Dashboard has no charts to export."
+msgstr ""
 
 msgid "Dashboard imported"
 msgstr "Panel de control importado"
@@ -7362,9 +7368,6 @@ msgstr "Informe semanal"
 msgid "Excel XML Export"
 msgstr "Informe semanal"
 
-msgid "Excel export is not configured on this server."
-msgstr ""
-
 msgid "Excel file format cannot be determined"
 msgstr "No se puede determinar el formato de archivo de Excel"
 
@@ -7539,6 +7542,11 @@ msgstr "Exportar a .CSV original"
 
 msgid "Export to pivoted .CSV"
 msgstr "Exportar a .CSV dinámico"
+
+msgid ""
+"Exporting images to Excel requires background exports. Ask an "
+"administrator to enable them, or export the dashboard's data instead."
+msgstr ""
 
 #, python-format
 msgid ""
@@ -8732,6 +8740,9 @@ msgstr "Importar %s"
 #, fuzzy
 msgid "Import Error"
 msgstr "Error de tiempo de espera"
+
+msgid "Import annotation layer failed for an unknown reason"
+msgstr ""
 
 msgid "Import chart failed for an unknown reason"
 msgstr "La importación del gráfico ha fallado por una razón desconocida"
@@ -10934,6 +10945,11 @@ msgstr "Ninguno -> Flecha"
 msgid "None -> None"
 msgstr "Ninguno -> Ninguno"
 
+msgid ""
+"None of this dashboard's charts can be downloaded directly. Ask an "
+"administrator to enable background exports."
+msgstr ""
+
 msgid "Normal"
 msgstr "Normal"
 
@@ -12123,6 +12139,12 @@ msgstr "Prefijo o sufijo"
 
 #, python-format
 msgid "Preparing %(count)s charts for export. This may take a moment."
+msgstr ""
+
+msgid "Preparing dashboard Excel export…"
+msgstr ""
+
+msgid "Preparing export…"
 msgstr ""
 
 msgid "Preview"
@@ -16214,6 +16236,12 @@ msgid ""
 msgstr ""
 
 msgid ""
+"The following charts were omitted because their size cannot be determined"
+" before they run. Ask an administrator to enable background exports to "
+"include them."
+msgstr ""
+
+msgid ""
 "The following charts were omitted because they have no saved query "
 "context. To include them, open each chart in Explore and re-save."
 msgstr ""
@@ -17469,6 +17497,12 @@ msgstr ""
 "anotación."
 
 msgid "This dashboard does not exist"
+msgstr ""
+
+msgid ""
+"This dashboard has too much data to download directly. Ask an "
+"administrator to enable background exports, or lower the row limits of "
+"its charts."
 msgstr ""
 
 msgid "This dashboard is managed externally, and can't be edited in Superset"

@@ -17,7 +17,7 @@
 """add_uuid_to_annotation_layer_and_annotation
 
 Revision ID: 884a2115ebd3
-Revises: 93d1b4a76c02
+Revises: 95d8a99c822e
 Create Date: 2026-08-11 18:38:15.412396
 
 """
@@ -34,7 +34,7 @@ from superset import db
 
 # revision identifiers, used by Alembic.
 revision = "884a2115ebd3"
-down_revision = "93d1b4a76c02"
+down_revision = "95d8a99c822e"
 
 Base = declarative_base()
 

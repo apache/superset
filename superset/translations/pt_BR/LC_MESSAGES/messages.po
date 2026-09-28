@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-24 10:35+0300\n"
+"POT-Creation-Date: 2026-09-28 19:35+0600\n"
 "PO-Revision-Date: 2023-05-22 08:04-0400\n"
 "Last-Translator: \n"
 "Language: pt_BR\n"
@@ -3413,9 +3413,9 @@ msgid ""
 "Candlestick draws a filled body between open and close. OHLC draws ticks "
 "for open and close on a high-low stem."
 msgstr ""
-"O candlestick desenha um corpo preenchido entre a abertura e o fechamento. "
-"O OHLC desenha marcas de abertura e fechamento em uma haste de "
-"máxima-mínima."
+"O candlestick desenha um corpo preenchido entre a abertura e o "
+"fechamento. O OHLC desenha marcas de abertura e fechamento em uma haste "
+"de máxima-mínima."
 
 msgid "Cannot access the query"
 msgstr "Não foi possível acessar a consulta"
@@ -4387,8 +4387,7 @@ msgstr "Esquema de cores"
 msgid ""
 "Color used when the close value is greater than or equal to the open "
 "value."
-msgstr ""
-"Cor usada quando o valor de fechamento é maior ou igual ao de abertura."
+msgstr "Cor usada quando o valor de fechamento é maior ou igual ao de abertura."
 
 msgid "Color used when the close value is less than the open value."
 msgstr "Cor usada quando o valor de fechamento é menor que o de abertura."
@@ -5474,6 +5473,9 @@ msgstr "O painel não pôde ser restaurado."
 msgid "Dashboard could not be updated."
 msgstr "Não foi possível atualizar o painel."
 
+msgid "Dashboard data exported to Excel"
+msgstr ""
+
 msgid "Dashboard does not exist"
 msgstr "Painel não existe"
 
@@ -5484,6 +5486,9 @@ msgstr "Este painel foi salvo com sucesso."
 #, fuzzy
 msgid "Dashboard exported successfully"
 msgstr "Este painel foi salvo com sucesso."
+
+msgid "Dashboard has no charts to export."
+msgstr ""
 
 msgid "Dashboard imported"
 msgstr "Painel importado"
@@ -7627,9 +7632,6 @@ msgstr "Relatório semanal"
 msgid "Excel XML Export"
 msgstr "Relatório semanal"
 
-msgid "Excel export is not configured on this server."
-msgstr ""
-
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fa, fr, ja, lv, mi, pl, ro, ru, sk, sl, sr, sr_Latn, tr, uk]
 #, fuzzy
@@ -7819,6 +7821,11 @@ msgstr "Exportar para .CSV original"
 #, fuzzy
 msgid "Export to pivoted .CSV"
 msgstr "Exportar para .CSV articulado"
+
+msgid ""
+"Exporting images to Excel requires background exports. Ask an "
+"administrator to enable them, or export the dashboard's data instead."
+msgstr ""
 
 #, python-format
 msgid ""
@@ -9096,6 +9103,9 @@ msgstr "Importar %s"
 #, fuzzy
 msgid "Import Error"
 msgstr "Erro de tempo limite"
+
+msgid "Import annotation layer failed for an unknown reason"
+msgstr ""
 
 msgid "Import chart failed for an unknown reason"
 msgstr "A importação do gráfico falhou por um motivo desconhecido"
@@ -11402,6 +11412,11 @@ msgstr "Nenhum -> Seta"
 msgid "None -> None"
 msgstr "Nenhum -> Nenhum"
 
+msgid ""
+"None of this dashboard's charts can be downloaded directly. Ask an "
+"administrator to enable background exports."
+msgstr ""
+
 msgid "Normal"
 msgstr "Normal"
 
@@ -11870,8 +11885,7 @@ msgstr "String opcional de formato de número d3"
 msgid ""
 "Optional dimension used to split the chart into multiple candlestick "
 "series."
-msgstr ""
-"Dimensão opcional para dividir o gráfico em várias séries de candlestick."
+msgstr "Dimensão opcional para dividir o gráfico em várias séries de candlestick."
 
 msgid ""
 "Optional metric used to scale the size of each dot. Dot areas are scaled "
@@ -12004,8 +12018,8 @@ msgid ""
 "Overlay simple moving averages of the close price (MA5, MA10, MA15, ...)."
 " Type a custom period to add it."
 msgstr ""
-"Sobreponha médias móveis simples do preço de fechamento (MA5, MA10, MA15, "
-"...). Digite um período personalizado para adicioná-lo."
+"Sobreponha médias móveis simples do preço de fechamento (MA5, MA10, MA15,"
+" ...). Digite um período personalizado para adicioná-lo."
 
 msgid ""
 "Overlays a hexagonal grid on a map, and aggregates data within the "
@@ -12668,6 +12682,12 @@ msgstr "Prefixo ou sufixo"
 
 #, python-format
 msgid "Preparing %(count)s charts for export. This may take a moment."
+msgstr ""
+
+msgid "Preparing dashboard Excel export…"
+msgstr ""
+
+msgid "Preparing export…"
 msgstr ""
 
 msgid "Preview"
@@ -16930,6 +16950,12 @@ msgid ""
 msgstr ""
 
 msgid ""
+"The following charts were omitted because their size cannot be determined"
+" before they run. Ask an administrator to enable background exports to "
+"include them."
+msgstr ""
+
+msgid ""
 "The following charts were omitted because they have no saved query "
 "context. To include them, open each chart in Explore and re-save."
 msgstr ""
@@ -18193,6 +18219,12 @@ msgstr ""
 " deve ser passado para o gráfico que contém os dados de anotação."
 
 msgid "This dashboard does not exist"
+msgstr ""
+
+msgid ""
+"This dashboard has too much data to download directly. Ask an "
+"administrator to enable background exports, or lower the row limits of "
+"its charts."
 msgstr ""
 
 msgid "This dashboard is managed externally, and can't be edited in Superset"
@@ -20346,8 +20378,8 @@ msgid ""
 "filled body for increases and a hollow body for decreases."
 msgstr ""
 "Se ativado, os candles de alta usam a cor de alta e os de baixa a de "
-"baixa. Desative para usar uma única cor de série, com corpo preenchido nas "
-"altas e oco nas baixas."
+"baixa. Desative para usar uma única cor de série, com corpo preenchido "
+"nas altas e oco nas baixas."
 
 #, fuzzy
 msgid ""

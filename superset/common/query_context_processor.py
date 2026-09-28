@@ -460,7 +460,10 @@ class QueryContextProcessor:
         """
         source_rls: dict[str, list[str] | None] = {}
         for layer in query_obj.annotation_layers:
-            if layer.get("sourceType") not in ("line", "table"):
+            if (
+                layer.get("sourceType")
+                not in ANNOTATION_SOURCE_TYPES_WITH_CHART_REFERENCE
+            ):
                 continue
             layer_value = layer.get("value")
             chart = (

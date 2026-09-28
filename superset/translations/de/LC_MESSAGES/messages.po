@@ -18,7 +18,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-24 10:35+0300\n"
+"POT-Creation-Date: 2026-09-28 19:35+0600\n"
 "PO-Revision-Date: 2023-04-07 19:45+0200\n"
 "Last-Translator: Holger Bruch <holger.bruch@wattbewerb.de>\n"
 "Language: de\n"
@@ -996,8 +996,8 @@ msgid ""
 "analysis."
 msgstr ""
 "Ein Kerzenchart zeigt Eröffnungs-, Schluss-, Höchst- und Tiefstwerte für "
-"jeden Zeitraum. Er wird häufig für Finanz- und andere "
-"Zeitreihen-Spannweitenanalysen verwendet."
+"jeden Zeitraum. Er wird häufig für Finanz- und andere Zeitreihen-"
+"Spannweitenanalysen verwendet."
 
 msgid "A comma separated list of columns that should be parsed as dates"
 msgstr ""
@@ -3222,8 +3222,8 @@ msgid ""
 "for open and close on a high-low stem."
 msgstr ""
 "Kerzen zeichnen einen gefüllten Körper zwischen Eröffnung und Schluss. "
-"OHLC zeichnet Markierungen für Eröffnung und Schluss an einem "
-"Hoch-Tief-Stiel."
+"OHLC zeichnet Markierungen für Eröffnung und Schluss an einem Hoch-Tief-"
+"Stiel."
 
 msgid "Cannot access the query"
 msgstr "Zugriff auf die Abfrage nicht möglich"
@@ -4097,8 +4097,7 @@ msgstr "Farbschema"
 msgid ""
 "Color used when the close value is greater than or equal to the open "
 "value."
-msgstr ""
-"Farbe, wenn der Schlusswert größer oder gleich dem Eröffnungswert ist."
+msgstr "Farbe, wenn der Schlusswert größer oder gleich dem Eröffnungswert ist."
 
 msgid "Color used when the close value is less than the open value."
 msgstr "Farbe, wenn der Schlusswert kleiner als der Eröffnungswert ist."
@@ -5072,6 +5071,9 @@ msgstr "Dashboard konnte nicht wiederhergestellt werden."
 msgid "Dashboard could not be updated."
 msgstr "Das Dashboard konnte nicht aktualisiert werden."
 
+msgid "Dashboard data exported to Excel"
+msgstr ""
+
 msgid "Dashboard does not exist"
 msgstr "Dashboard existiert nicht"
 
@@ -5080,6 +5082,9 @@ msgstr "Das Dashboard wurde erfolgreich als Beispiel exportiert"
 
 msgid "Dashboard exported successfully"
 msgstr "Das Dashboard wurde erfolgreich exportiert"
+
+msgid "Dashboard has no charts to export."
+msgstr ""
 
 msgid "Dashboard imported"
 msgstr "Dashboard importiert"
@@ -7044,9 +7049,6 @@ msgstr "Excel Export"
 msgid "Excel XML Export"
 msgstr "Excel XML-Export"
 
-msgid "Excel export is not configured on this server."
-msgstr ""
-
 msgid "Excel file format cannot be determined"
 msgstr "Excel-Dateiformat kann nicht bestimmt werden"
 
@@ -7210,6 +7212,11 @@ msgstr "Export in das ursprüngliche .CSV"
 
 msgid "Export to pivoted .CSV"
 msgstr "Export in das pivotierte .CSV"
+
+msgid ""
+"Exporting images to Excel requires background exports. Ask an "
+"administrator to enable them, or export the dashboard's data instead."
+msgstr ""
 
 #, python-format
 msgid ""
@@ -8323,6 +8330,9 @@ msgstr "Importiere %s"
 
 msgid "Import Error"
 msgstr "Import-Fehler"
+
+msgid "Import annotation layer failed for an unknown reason"
+msgstr ""
 
 msgid "Import chart failed for an unknown reason"
 msgstr "Fehler beim Importieren des Diagramms aus unbekanntem Grund"
@@ -10386,6 +10396,11 @@ msgstr "Keine -> Pfeil"
 msgid "None -> None"
 msgstr "Keine -> Keine"
 
+msgid ""
+"None of this dashboard's charts can be downloaded directly. Ask an "
+"administrator to enable background exports."
+msgstr ""
+
 msgid "Normal"
 msgstr "Normal"
 
@@ -10814,8 +10829,7 @@ msgstr "Optionale d3-Zahlenformat-Zeichenfolge"
 msgid ""
 "Optional dimension used to split the chart into multiple candlestick "
 "series."
-msgstr ""
-"Optionale Dimension, die das Diagramm in mehrere Kerzenreihen aufteilt."
+msgstr "Optionale Dimension, die das Diagramm in mehrere Kerzenreihen aufteilt."
 
 msgid ""
 "Optional metric used to scale the size of each dot. Dot areas are scaled "
@@ -10948,8 +10962,8 @@ msgid ""
 "Overlay simple moving averages of the close price (MA5, MA10, MA15, ...)."
 " Type a custom period to add it."
 msgstr ""
-"Einfache gleitende Durchschnitte des Schlusskurses überlagern (MA5, MA10, "
-"MA15, …). Geben Sie einen eigenen Zeitraum ein, um ihn hinzuzufügen."
+"Einfache gleitende Durchschnitte des Schlusskurses überlagern (MA5, MA10,"
+" MA15, …). Geben Sie einen eigenen Zeitraum ein, um ihn hinzuzufügen."
 
 msgid ""
 "Overlays a hexagonal grid on a map, and aggregates data within the "
@@ -11544,6 +11558,12 @@ msgstr "Präfix oder Suffix"
 
 #, python-format
 msgid "Preparing %(count)s charts for export. This may take a moment."
+msgstr ""
+
+msgid "Preparing dashboard Excel export…"
+msgstr ""
+
+msgid "Preparing export…"
 msgstr ""
 
 msgid "Preview"
@@ -15393,6 +15413,12 @@ msgid ""
 msgstr ""
 
 msgid ""
+"The following charts were omitted because their size cannot be determined"
+" before they run. Ask an administrator to enable background exports to "
+"include them."
+msgstr ""
+
+msgid ""
 "The following charts were omitted because they have no saved query "
 "context. To include them, open each chart in Explore and re-save."
 msgstr ""
@@ -16601,6 +16627,12 @@ msgstr ""
 "übergeben werden soll."
 
 msgid "This dashboard does not exist"
+msgstr ""
+
+msgid ""
+"This dashboard has too much data to download directly. Ask an "
+"administrator to enable background exports, or lower the row limits of "
+"its charts."
 msgstr ""
 
 msgid "This dashboard is managed externally, and can't be edited in Superset"
@@ -18584,8 +18616,8 @@ msgid ""
 "candles use the decrease color. Turn off to use one series color, with a "
 "filled body for increases and a hollow body for decreases."
 msgstr ""
-"Wenn aktiviert, nutzen steigende Kerzen die Anstiegsfarbe und fallende die "
-"Rückgangsfarbe. Deaktivieren Sie die Option für eine Reihenfarbe: "
+"Wenn aktiviert, nutzen steigende Kerzen die Anstiegsfarbe und fallende "
+"die Rückgangsfarbe. Deaktivieren Sie die Option für eine Reihenfarbe: "
 "gefüllter Körper bei Anstieg, hohler Körper bei Rückgang."
 
 msgid ""

@@ -17,7 +17,6 @@
 from typing import Any, Optional
 
 from marshmallow import Schema
-from sqlalchemy.orm import Session  # noqa: F401
 
 from superset.annotation_layers.schemas import ImportV1AnnotationLayerSchema
 from superset.commands.annotation_layer.exceptions import AnnotationLayerImportError

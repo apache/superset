@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-24 10:35+0300\n"
+"POT-Creation-Date: 2026-09-28 19:35+0600\n"
 "PO-Revision-Date: 2016-05-02 08:49-0700\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: en\n"
@@ -4646,6 +4646,9 @@ msgstr ""
 msgid "Dashboard could not be updated."
 msgstr ""
 
+msgid "Dashboard data exported to Excel"
+msgstr ""
+
 msgid "Dashboard does not exist"
 msgstr ""
 
@@ -4653,6 +4656,9 @@ msgid "Dashboard exported as example successfully"
 msgstr ""
 
 msgid "Dashboard exported successfully"
+msgstr ""
+
+msgid "Dashboard has no charts to export."
 msgstr ""
 
 msgid "Dashboard imported"
@@ -6478,9 +6484,6 @@ msgstr ""
 msgid "Excel XML Export"
 msgstr ""
 
-msgid "Excel export is not configured on this server."
-msgstr ""
-
 msgid "Excel file format cannot be determined"
 msgstr ""
 
@@ -6639,6 +6642,11 @@ msgid "Export to original .CSV"
 msgstr ""
 
 msgid "Export to pivoted .CSV"
+msgstr ""
+
+msgid ""
+"Exporting images to Excel requires background exports. Ask an "
+"administrator to enable them, or export the dashboard's data instead."
 msgstr ""
 
 #, python-format
@@ -7680,6 +7688,9 @@ msgid "Import %s"
 msgstr ""
 
 msgid "Import Error"
+msgstr ""
+
+msgid "Import annotation layer failed for an unknown reason"
 msgstr ""
 
 msgid "Import chart failed for an unknown reason"
@@ -9659,6 +9670,11 @@ msgstr ""
 msgid "None -> None"
 msgstr ""
 
+msgid ""
+"None of this dashboard's charts can be downloaded directly. Ask an "
+"administrator to enable background exports."
+msgstr ""
+
 msgid "Normal"
 msgstr ""
 
@@ -10707,6 +10723,12 @@ msgstr ""
 
 #, python-format
 msgid "Preparing %(count)s charts for export. This may take a moment."
+msgstr ""
+
+msgid "Preparing dashboard Excel export…"
+msgstr ""
+
+msgid "Preparing export…"
 msgstr ""
 
 msgid "Preview"
@@ -14255,6 +14277,12 @@ msgid ""
 msgstr ""
 
 msgid ""
+"The following charts were omitted because their size cannot be determined"
+" before they run. Ask an administrator to enable background exports to "
+"include them."
+msgstr ""
+
+msgid ""
 "The following charts were omitted because they have no saved query "
 "context. To include them, open each chart in Explore and re-save."
 msgstr ""
@@ -15247,6 +15275,12 @@ msgid ""
 msgstr ""
 
 msgid "This dashboard does not exist"
+msgstr ""
+
+msgid ""
+"This dashboard has too much data to download directly. Ask an "
+"administrator to enable background exports, or lower the row limits of "
+"its charts."
 msgstr ""
 
 msgid "This dashboard is managed externally, and can't be edited in Superset"

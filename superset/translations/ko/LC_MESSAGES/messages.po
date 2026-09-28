@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-24 10:35+0300\n"
+"POT-Creation-Date: 2026-09-28 19:35+0600\n"
 "PO-Revision-Date: 2019-02-02 22:28+0900\n"
 "Last-Translator: \n"
 "Language: ko\n"
@@ -7426,6 +7426,9 @@ msgstr "대시보드를 복원할 수 없습니다."
 msgid "Dashboard could not be updated."
 msgstr "대시보드를 업데이트할 수 없습니다."
 
+msgid "Dashboard data exported to Excel"
+msgstr ""
+
 msgid "Dashboard does not exist"
 msgstr "대시보드가 존재하지 않습니다"
 
@@ -7438,6 +7441,9 @@ msgstr "대시보드가 예시로 성공적으로 내보내기되었습니다"
 #, fuzzy
 msgid "Dashboard exported successfully"
 msgstr "대시보드"
+
+msgid "Dashboard has no charts to export."
+msgstr ""
 
 #, fuzzy
 msgid "Dashboard imported"
@@ -10374,9 +10380,6 @@ msgstr "CSV 업로드"
 msgid "Excel XML Export"
 msgstr "Excel XML 내보내기"
 
-msgid "Excel export is not configured on this server."
-msgstr ""
-
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fa, fr, ja, lv, mi, pl, ro, ru, sk, sl, sr, sr_Latn, tr, uk]
 #, fuzzy
@@ -10649,6 +10652,11 @@ msgstr "원본 .CSV로 내보내기"
 #, fuzzy
 msgid "Export to pivoted .CSV"
 msgstr "피벗된 .CSV로 내보내기"
+
+msgid ""
+"Exporting images to Excel requires background exports. Ask an "
+"administrator to enable them, or export the dashboard's data instead."
+msgstr ""
 
 #, python-format
 msgid ""
@@ -12420,6 +12428,9 @@ msgstr "가져오기 %s"
 #, fuzzy
 msgid "Import Error"
 msgstr "대시보드 가져오기"
+
+msgid "Import annotation layer failed for an unknown reason"
+msgstr ""
 
 msgid "Import chart failed for an unknown reason"
 msgstr "차트 불러오기는 알 수 없는 이유로 실패했습니다"
@@ -15777,6 +15788,11 @@ msgstr "없음 -> 화살표"
 msgid "None -> None"
 msgstr "없음 -> 없음"
 
+msgid ""
+"None of this dashboard's charts can be downloaded directly. Ask an "
+"administrator to enable background exports."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk, zh, zh_TW]
@@ -17633,6 +17649,12 @@ msgstr "접두사 또는 접미사"
 
 #, python-format
 msgid "Preparing %(count)s charts for export. This may take a moment."
+msgstr ""
+
+msgid "Preparing dashboard Excel export…"
+msgstr ""
+
+msgid "Preparing export…"
 msgstr ""
 
 msgid "Preview"
@@ -23433,6 +23455,12 @@ msgid ""
 msgstr ""
 
 msgid ""
+"The following charts were omitted because their size cannot be determined"
+" before they run. Ask an administrator to enable background exports to "
+"include them."
+msgstr ""
+
+msgid ""
 "The following charts were omitted because they have no saved query "
 "context. To include them, open each chart in Explore and re-save."
 msgstr ""
@@ -25067,6 +25095,12 @@ msgstr ""
 "                  주석 데이터가 포함된 차트에 전달할지 여부를 제어합니다."
 
 msgid "This dashboard does not exist"
+msgstr ""
+
+msgid ""
+"This dashboard has too much data to download directly. Ask an "
+"administrator to enable background exports, or lower the row limits of "
+"its charts."
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
@@ -27984,8 +28018,7 @@ msgid ""
 "When enabled, increasing candles use the increase color and decreasing "
 "candles use the decrease color. Turn off to use one series color, with a "
 "filled body for increases and a hollow body for decreases."
-msgstr ""
-"켜면 상승 캔들은 상승 색, 하락 캔들은 하락 색을 씁니다. 끄면 시리즈 색 하나를 쓰며 상승은 채운 몸통, 하락은 빈 몸통입니다."
+msgstr "켜면 상승 캔들은 상승 색, 하락 캔들은 하락 색을 씁니다. 끄면 시리즈 색 하나를 쓰며 상승은 채운 몸통, 하락은 빈 몸통입니다."
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
 # lv, ro, ru, sk, sr, sr_Latn, tr, uk]

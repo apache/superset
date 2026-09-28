@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-24 10:35+0300\n"
+"POT-Creation-Date: 2026-09-28 19:35+0600\n"
 "PO-Revision-Date: 2025-06-26 15:34+0200\n"
 "Last-Translator: \n"
 "Language: fr\n"
@@ -3275,8 +3275,9 @@ msgid ""
 "Candlestick draws a filled body between open and close. OHLC draws ticks "
 "for open and close on a high-low stem."
 msgstr ""
-"Les chandeliers dessinent un corps plein entre l'ouverture et la clôture. "
-"OHLC dessine des marques d'ouverture et de clôture sur une tige haut-bas."
+"Les chandeliers dessinent un corps plein entre l'ouverture et la clôture."
+" OHLC dessine des marques d'ouverture et de clôture sur une tige haut-"
+"bas."
 
 msgid "Cannot access the query"
 msgstr "Impossible d'accéder à la requête"
@@ -4171,8 +4172,8 @@ msgid ""
 "Color used when the close value is greater than or equal to the open "
 "value."
 msgstr ""
-"Couleur utilisée lorsque la valeur de clôture est supérieure ou égale à la "
-"valeur d'ouverture."
+"Couleur utilisée lorsque la valeur de clôture est supérieure ou égale à "
+"la valeur d'ouverture."
 
 msgid "Color used when the close value is less than the open value."
 msgstr ""
@@ -5153,6 +5154,9 @@ msgstr "Le tableau de bord n'a pas pu être restauré."
 msgid "Dashboard could not be updated."
 msgstr "Le tableau de bord n'a pas pu être mis à jour."
 
+msgid "Dashboard data exported to Excel"
+msgstr ""
+
 msgid "Dashboard does not exist"
 msgstr "Le tableau de bord n'existe pas"
 
@@ -5161,6 +5165,9 @@ msgstr "Le tableau de bord a été exporté comme exemple avec succès."
 
 msgid "Dashboard exported successfully"
 msgstr "Le tableau de bord a été exporté avec succès."
+
+msgid "Dashboard has no charts to export."
+msgstr ""
 
 msgid "Dashboard imported"
 msgstr "Tableau de bord importé"
@@ -7151,9 +7158,6 @@ msgstr "Export Excel"
 msgid "Excel XML Export"
 msgstr "Export Excel XML"
 
-msgid "Excel export is not configured on this server."
-msgstr ""
-
 msgid "Excel file format cannot be determined"
 msgstr "Le format du fichier Excel ne peut pas être déterminé"
 
@@ -7318,6 +7322,11 @@ msgstr "Exporter vers .CSV original"
 
 msgid "Export to pivoted .CSV"
 msgstr "Exporter vers .CSV pivoté"
+
+msgid ""
+"Exporting images to Excel requires background exports. Ask an "
+"administrator to enable them, or export the dashboard's data instead."
+msgstr ""
 
 #, python-format
 msgid ""
@@ -8458,6 +8467,9 @@ msgstr "Importer %s"
 
 msgid "Import Error"
 msgstr "Erreur lors de l'importation"
+
+msgid "Import annotation layer failed for an unknown reason"
+msgstr ""
 
 msgid "Import chart failed for an unknown reason"
 msgstr "L'import du graphique a échoué pour une raison inconnue"
@@ -10562,6 +10574,11 @@ msgstr "Aucun -> Flèche"
 msgid "None -> None"
 msgstr "Aucun -> Aucun"
 
+msgid ""
+"None of this dashboard's charts can be downloaded directly. Ask an "
+"administrator to enable background exports."
+msgstr ""
+
 msgid "Normal"
 msgstr "Normal"
 
@@ -11724,6 +11741,12 @@ msgstr "Préfixe ou suffixe"
 
 #, python-format
 msgid "Preparing %(count)s charts for export. This may take a moment."
+msgstr ""
+
+msgid "Preparing dashboard Excel export…"
+msgstr ""
+
+msgid "Preparing export…"
 msgstr ""
 
 msgid "Preview"
@@ -15674,6 +15697,12 @@ msgid ""
 msgstr ""
 
 msgid ""
+"The following charts were omitted because their size cannot be determined"
+" before they run. Ask an administrator to enable background exports to "
+"include them."
+msgstr ""
+
+msgid ""
 "The following charts were omitted because they have no saved query "
 "context. To include them, open each chart in Explore and re-save."
 msgstr ""
@@ -16916,6 +16945,12 @@ msgstr ""
 
 msgid "This dashboard does not exist"
 msgstr "Ce tableau de bord n'existe pas"
+
+msgid ""
+"This dashboard has too much data to download directly. Ask an "
+"administrator to enable background exports, or lower the row limits of "
+"its charts."
+msgstr ""
 
 msgid "This dashboard is managed externally, and can't be edited in Superset"
 msgstr ""
@@ -18936,9 +18971,9 @@ msgid ""
 "candles use the decrease color. Turn off to use one series color, with a "
 "filled body for increases and a hollow body for decreases."
 msgstr ""
-"Si activé, les chandeliers haussiers utilisent la couleur de hausse et les "
-"baissiers celle de baisse. Désactivez pour une seule couleur de série, "
-"avec un corps plein à la hausse et creux à la baisse."
+"Si activé, les chandeliers haussiers utilisent la couleur de hausse et "
+"les baissiers celle de baisse. Désactivez pour une seule couleur de "
+"série, avec un corps plein à la hausse et creux à la baisse."
 
 msgid ""
 "When enabled, the axis will display labels for the minimum and maximum "
