@@ -43,6 +43,7 @@ class TableChartPlugin(BaseChartPlugin):
         "ag-grid-table": "Interactive Table",
     }
     query_role_keys = BaseChartPlugin.query_role_keys | {"percent_metrics"}
+    supports_column_append = True
 
     def pre_validate(
         self,

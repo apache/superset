@@ -209,6 +209,26 @@ def query_role_keys_for_viz_type(viz_type: str) -> frozenset[str]:
     return frozenset()
 
 
+def plugin_for_viz_type(viz_type: str | None) -> "ChartTypePlugin | None":
+    """Return the registered plugin that owns a Superset-internal viz_type.
+
+    Ownership covers ``native_viz_types`` and ``additional_viz_types``. The
+    lookup ignores runtime enablement: a saved chart must be queried,
+    previewed and updated with its plugin's contract even when creating new
+    charts of that type is disabled.
+    """
+    if not viz_type:
+        return None
+    _ensure_plugins_loaded()
+    for plugin in list(_REGISTRY.values()):
+        if viz_type in plugin.native_viz_types:
+            return plugin
+    for plugin in list(_REGISTRY.values()):
+        if viz_type in getattr(plugin, "additional_viz_types", ()):
+            return plugin
+    return None
+
+
 def get(chart_type: str) -> "ChartTypePlugin | None":
     """Return the plugin for chart_type, or None if unknown or disabled."""
     _ensure_plugins_loaded()
@@ -302,6 +322,14 @@ class _RegistryProxy:
 
     def query_role_keys_for_viz_type(self, viz_type: str) -> frozenset[str]:
         return query_role_keys_for_viz_type(viz_type)
+
+    def plugin_for_viz_type(self, viz_type: str | None) -> "ChartTypePlugin | None":
+        return plugin_for_viz_type(viz_type)
+
+    def all_plugins(self) -> list["ChartTypePlugin"]:
+        """Return every registered plugin, enabled or not, in insertion order."""
+        _ensure_plugins_loaded()
+        return list(_REGISTRY.values())
 
 
 _PROXY = _RegistryProxy()

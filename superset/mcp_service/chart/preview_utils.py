@@ -50,7 +50,6 @@ from superset.mcp_service.chart.sunburst import (
     resolve_sunburst_result_roles,
     unsupported_sunburst_preview,
 )
-from superset.mcp_service.chart.treemap_preview import treemap_ascii, treemap_vega_lite
 
 logger = logging.getLogger(__name__)
 
@@ -198,6 +197,30 @@ def generate_preview_from_form_data(
         )
 
 
+def plugin_ascii_preview(
+    data: List[Any], form_data: Dict[str, Any], width: int
+) -> str | ChartError | None:
+    """Return the owning plugin's ASCII preview, or None for the generic one."""
+    from superset.mcp_service.chart.registry import plugin_for_viz_type
+
+    plugin = plugin_for_viz_type(form_data.get("viz_type"))
+    if plugin is None:
+        return None
+    return plugin.ascii_preview(data, form_data, width)
+
+
+def plugin_vega_lite_preview(
+    data: List[Any], form_data: Dict[str, Any]
+) -> VegaLitePreview | ChartError | None:
+    """Return the owning plugin's Vega-Lite preview, or None for the generic one."""
+    from superset.mcp_service.chart.registry import plugin_for_viz_type
+
+    plugin = plugin_for_viz_type(form_data.get("viz_type"))
+    if plugin is None:
+        return None
+    return plugin.vega_lite_preview(data, form_data)
+
+
 def _generate_ascii_preview_from_data(
     data: List[Dict[str, Any]],
     form_data: Dict[str, Any],
@@ -208,30 +231,19 @@ def _generate_ascii_preview_from_data(
     """Generate ASCII preview from raw data."""
     viz_type = form_data.get("viz_type", "table")
 
-    # Handle different chart types
-    if viz_type == "treemap_v2":
-        content_or_error = treemap_ascii(data, form_data)
-        if isinstance(content_or_error, ChartError):
-            return content_or_error
+    content_or_error = plugin_ascii_preview(data, form_data, width)
+    if isinstance(content_or_error, ChartError):
+        return content_or_error
+    if content_or_error is not None:
         content = content_or_error
-    elif viz_type == "gauge_chart":
-        content_or_error = generate_gauge_ascii_preview(data, form_data, width=width)
-        if isinstance(content_or_error, ChartError):
-            return content_or_error
-        content = content_or_error
-    elif viz_type in ["bar", "dist_bar", "column"]:
-        content = _generate_safe_ascii_bar_chart(data)
-    elif viz_type in ["line", "area"]:
-        content = _generate_safe_ascii_line_chart(data)
-    elif viz_type == "pie":
-        content = _generate_safe_ascii_pie_chart(data)
     elif viz_type == "sunburst_v2":
         _, error = normalize_and_validate_sunburst_result_data(data, form_data)
         if error is not None:
             return error
         content = _generate_safe_ascii_sunburst(data, form_data, height=height)
     else:
-        content = _generate_safe_ascii_table(data)
+        renderer = _GENERIC_ASCII_RENDERERS.get(viz_type, _generate_safe_ascii_table)
+        content = renderer(data)
 
     content = "\n".join(
         _truncate_display_line(line, width) for line in content.splitlines()[:height]
@@ -627,6 +639,17 @@ def _generate_safe_ascii_table(data: List[Dict[str, Any]]) -> str:
         lines.append(f"... {len(data) - 10} more rows")
 
     return "\n".join(lines)
+
+
+# Generic ASCII renderers for viz types without a plugin-owned preview.
+_GENERIC_ASCII_RENDERERS = {
+    "bar": _generate_safe_ascii_bar_chart,
+    "dist_bar": _generate_safe_ascii_bar_chart,
+    "column": _generate_safe_ascii_bar_chart,
+    "line": _generate_safe_ascii_line_chart,
+    "area": _generate_safe_ascii_line_chart,
+    "pie": _generate_safe_ascii_pie_chart,
+}
 
 
 def _is_nan(value: Any) -> bool:
@@ -1366,11 +1389,6 @@ def _is_finite_number(value: Any) -> bool:
     return type(value) is int or (type(value) is float and math.isfinite(value))
 
 
-# Bubble stores its metrics under x/y/size and its dimensions under
-# entity/series, so the generic spec builder below finds neither.
-BUBBLE_VIZ_TYPES: frozenset[str] = frozenset({"bubble", "bubble_v2"})
-
-
 def generate_bubble_vega_lite_preview(
     data: List[Dict[str, Any]], form_data: Dict[str, Any]
 ) -> VegaLitePreview:
@@ -1433,14 +1451,8 @@ def _generate_vega_lite_preview_from_data(  # noqa: C901
     viz_type = form_data.get("viz_type", "table")
     if viz_type == "sunburst_v2":
         return unsupported_sunburst_preview("Vega-Lite")
-    if viz_type == "treemap_v2":
-        return treemap_vega_lite(data, form_data)
-    if viz_type == "gantt_chart":
-        return _generate_gantt_vega_lite_preview(data, form_data)
-    if viz_type == "gauge_chart":
-        return generate_gauge_vega_lite_preview(data, form_data)
-    if viz_type in BUBBLE_VIZ_TYPES:
-        return generate_bubble_vega_lite_preview(data, form_data)
+    if (plugin_preview := plugin_vega_lite_preview(data, form_data)) is not None:
+        return plugin_preview
 
     # Map Superset viz types to Vega-Lite marks
     viz_to_mark = {

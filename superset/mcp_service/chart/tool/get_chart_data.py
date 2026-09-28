@@ -170,8 +170,18 @@ _GENERIC_TYPE_MAP: dict[int, str] = {
     GenericDataType.BOOLEAN: "boolean",
 }
 
+
+def _normalizes_data_results(form_data: dict[str, Any]) -> bool:
+    """Return whether the owning plugin validates get_chart_data rows/exports."""
+    from superset.mcp_service.chart.registry import plugin_for_viz_type
+
+    plugin = plugin_for_viz_type(form_data.get("viz_type"))
+    return plugin is not None and plugin.normalize_data_results
+
+
 # Maps Superset viz_type strings to canonical categories so we can
 # avoid recommending a chart type the user already has.
+
 _VIZ_CATEGORY: dict[str, str] = {
     "echarts_timeseries_line": "line",
     "echarts_timeseries_smooth": "line",
@@ -921,7 +931,7 @@ async def _get_chart_data(  # noqa: C901
                 none_as_empty=effective_form_data.get("viz_type") != "sunburst_v2",
             ):
                 return result_error
-            if effective_form_data.get("viz_type") == "treemap_v2":
+            if _normalizes_data_results(effective_form_data):
                 result = normalize_chart_query_result(result, effective_form_data)
                 if isinstance(result, ChartError):
                     return result
@@ -1266,7 +1276,7 @@ async def _query_from_form_data(  # noqa: C901
             result, none_as_empty=viz_type != "sunburst_v2"
         ):
             return result_error
-        if form_data.get("viz_type") == "treemap_v2":
+        if _normalizes_data_results(form_data):
             result = normalize_chart_query_result(result, form_data)
             if isinstance(result, ChartError):
                 return result

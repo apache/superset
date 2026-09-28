@@ -179,3 +179,28 @@ class HistogramChartPlugin(BaseChartPlugin):
             ],
             error_code="HISTOGRAM_VALIDATION_ERROR",
         )
+
+    def resolve_query_fields(
+        self, form_data: Mapping[str, Any], viz_type: str
+    ) -> tuple[list[Any], list[Any]] | None:
+        raw_groupby = form_data.get("groupby") or []
+        groupby = [raw_groupby] if isinstance(raw_groupby, str) else list(raw_groupby)
+        column = form_data.get("column")
+        columns = [*groupby, column] if column else groupby
+        # Matches Histogram buildQuery: a HAVING filter needs an aggregate.
+        has_having = any(
+            isinstance(filter_, Mapping) and filter_.get("clause") == "HAVING"
+            for filter_ in form_data.get("adhoc_filters") or []
+        )
+        metrics: list[Any] = (
+            [
+                {
+                    "expressionType": "SQL",
+                    "sqlExpression": "COUNT(*)",
+                    "label": "COUNT(*)",
+                }
+            ]
+            if has_having
+            else []
+        )
+        return metrics, columns

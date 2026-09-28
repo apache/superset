@@ -43,6 +43,9 @@ class BigNumberChartPlugin(BaseChartPlugin):
         "big_number": "Big Number with Trendline",
         "big_number_total": "Big Number",
     }
+    TRENDLINE_VIZ_TYPE = "big_number"
+    # Period-over-period KPIs share the singular-metric query contract.
+    additional_viz_types = frozenset({"pop_kpi"})
 
     def pre_validate(
         self,
@@ -246,3 +249,14 @@ class BigNumberChartPlugin(BaseChartPlugin):
             ],
             error_code="BIG_NUMBER_VALIDATION_ERROR",
         )
+
+    def resolve_query_fields(
+        self, form_data: Mapping[str, Any], viz_type: str
+    ) -> tuple[list[Any], list[Any]] | None:
+        metric = form_data.get("metric")
+        if not metric:
+            # Some saved/migrated form_data stores the metric under the
+            # plural "metrics" key even for single-metric chart types.
+            plural_metrics = form_data.get("metrics") or []
+            metric = plural_metrics[0] if plural_metrics else None
+        return ([metric] if metric else []), []

@@ -26,6 +26,7 @@ URL parameter extraction. Config mapping logic lives in chart_utils.py.
 from __future__ import annotations
 
 import logging
+from collections.abc import Mapping
 from typing import Any, TYPE_CHECKING
 from urllib.parse import parse_qs, urlparse
 
@@ -795,20 +796,30 @@ def resolve_deck_gl_columns(form_data: dict[str, Any]) -> list[str]:
     return columns
 
 
+def _plugin_query_fields(
+    form_data: dict[str, Any], viz_type: str
+) -> tuple[list[Any], list[Any]] | None:
+    """Return the owning plugin's (metrics, columns) roles, if it defines them."""
+    from superset.mcp_service.chart.registry import plugin_for_viz_type
+
+    plugin = plugin_for_viz_type(viz_type)
+    if plugin is None:
+        return None
+    return plugin.resolve_query_fields(form_data, viz_type)
+
+
 def resolve_metrics(form_data: dict[str, Any], viz_type: str) -> list[Any]:
     """Extract metrics from form_data, handling chart-type-specific fields."""
-    if viz_type in ("bubble", "bubble_v2"):
-        return [m for field in ("x", "y", "size") if (m := form_data.get(field))]
+    if (fields := _plugin_query_fields(form_data, viz_type)) is not None:
+        return fields[0]
+    return resolve_shared_metrics(form_data)
 
+
+def resolve_shared_metrics(form_data: Mapping[str, Any]) -> list[Any]:
+    """Extract metrics from the shared ``metrics``/``metric`` roles."""
     metrics = form_data.get("metrics") or []
     if not metrics and (metric := form_data.get("metric")):
         metrics = [metric]
-    if viz_type == "sunburst_v2" and (
-        secondary_metric := form_data.get("secondary_metric")
-    ):
-        metrics = list(metrics)
-        if secondary_metric not in metrics:
-            metrics.append(secondary_metric)
     return metrics
 
 
@@ -852,29 +863,9 @@ def resolve_metrics_and_groupby(
     viz_type = (
         form_data.get("viz_type", getattr(chart, "viz_type", "") if chart else "") or ""
     )
-    if viz_type == "treemap_v2":
-        # Treemap has exactly these roles; stale controls from another plugin
-        # must not override its singular metric or ordered hierarchy.
-        metric = form_data.get("metric")
-        hierarchy = form_data.get("groupby") or []
-        return ([metric] if metric else []), (
-            [hierarchy] if isinstance(hierarchy, str) else list(hierarchy)
-        )
-    singular_metric_no_groupby = (
-        "big_number",
-        "big_number_total",
-        "pop_kpi",
-    )
-    if viz_type in singular_metric_no_groupby:
-        metric = form_data.get("metric")
-        if not metric:
-            # Some saved/migrated form_data stores the metric under the
-            # plural "metrics" key even for single-metric chart types.
-            plural_metrics = form_data.get("metrics") or []
-            metric = plural_metrics[0] if plural_metrics else None
-        return ([metric] if metric else []), []
-
-    return resolve_metrics(form_data, viz_type), resolve_groupby(form_data)
+    if (fields := _plugin_query_fields(form_data, viz_type)) is not None:
+        return fields
+    return resolve_shared_metrics(form_data), resolve_groupby(form_data)
 
 
 def resolve_big_number_columns(form_data: dict[str, Any]) -> list[Any]:
@@ -1068,6 +1059,19 @@ def build_query_dicts_from_form_data(
             extra_form_data,
             datasource_engine=engine,
         )
+
+    from superset.mcp_service.chart.registry import plugin_for_viz_type
+
+    if (plugin := plugin_for_viz_type(viz_type)) is not None:
+        plugin_queries = plugin.build_query_dicts(
+            form_data,
+            viz_type=viz_type,
+            engine=engine,
+            row_limit=row_limit,
+            order_desc=order_desc,
+        )
+        if plugin_queries is not None:
+            return plugin_queries
 
     # Deck.gl charts use spatial column configs rather than the standard
     # metrics / groupby fields. Extract columns from the spatial controls.
