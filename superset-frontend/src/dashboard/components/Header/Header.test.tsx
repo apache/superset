@@ -25,7 +25,11 @@ import { useUnsavedChangesPrompt } from 'src/hooks/useUnsavedChangesPrompt';
 import { screen, userEvent, within, waitFor } from '@superset-ui/core/spec';
 import { ActionCreators as UndoActionCreators } from 'redux-undo';
 import fetchMock from 'fetch-mock';
-import { getExtensionsRegistry, JsonObject } from '@superset-ui/core';
+import {
+  getExtensionsRegistry,
+  JsonObject,
+  SupersetClient,
+} from '@superset-ui/core';
 import setupCodeOverrides from 'src/setup/setupCodeOverrides';
 import getUserName from 'src/utils/getUserName';
 import { render, createStore } from 'spec/helpers/testing-library';
@@ -166,6 +170,9 @@ async function openActionsDropdown() {
 
 const addSuccessToast = jest.fn();
 const addDangerToast = jest.fn();
+const addInfoToast = jest.fn(() => ({
+  payload: { id: 'excel-export-progress' },
+}));
 const addWarningToast = jest.fn();
 const onUndo = jest.fn();
 const onRedo = jest.fn();
@@ -225,6 +232,7 @@ beforeAll(() => {
   jest.spyOn(redux, 'bindActionCreators').mockImplementation(() => ({
     addSuccessToast,
     addDangerToast,
+    addInfoToast,
     addWarningToast,
     onUndo,
     onRedo,
@@ -810,6 +818,31 @@ test('"Refresh dashboard" and "Set auto-refresh" become enabled once a loading c
   expect(
     screen.getByText('Set auto-refresh').closest('[role="menuitem"]'),
   ).not.toHaveAttribute('aria-disabled', 'true');
+});
+
+test('shows Excel export progress after the header menu closes', async () => {
+  const post = jest
+    .spyOn(SupersetClient, 'post')
+    .mockReturnValue(new Promise(() => {}) as never);
+  setup({
+    dashboardInfo: {
+      ...initialState.dashboardInfo,
+      dash_export_perm: true,
+    },
+  });
+
+  await openActionsDropdown();
+  userEvent.hover(screen.getByText('Download'));
+  userEvent.click(await screen.findByText('Export Data to Excel'));
+
+  await waitFor(() => {
+    expect(addInfoToast).toHaveBeenCalledWith(
+      'Preparing dashboard Excel export…',
+      { duration: -1 },
+    );
+  });
+  expect(screen.getByTestId('header-actions-menu')).not.toBeVisible();
+  post.mockRestore();
 });
 
 test('auto-refresh uses onRefresh with skipped filters and toggles refresh state', async () => {

@@ -307,7 +307,7 @@ test('sortRows by max ascending', () => {
       sortData,
       totalStackedValues,
       'my_x_axis',
-      SortSeriesType.Min,
+      SortSeriesType.Max,
       true,
     ),
   ).toEqual([
@@ -323,7 +323,7 @@ test('sortRows by max descending', () => {
       sortData,
       totalStackedValues,
       'my_x_axis',
-      SortSeriesType.Min,
+      SortSeriesType.Max,
       false,
     ),
   ).toEqual([
@@ -907,7 +907,9 @@ describe('extractShowValueIndexes', () => {
         ],
         { stack: true, onlyTotal: false, isHorizontal: false },
       ),
-    ).toEqual([undefined, 1, 0, 1, undefined, 2, 1, 1, undefined, 1]);
+    ).toEqual({
+      __default__: [undefined, 1, 0, 1, undefined, 2, 1, 1, undefined, 1],
+    });
   });
 
   test('should handle the negative numbers for total only', () => {
@@ -965,7 +967,93 @@ describe('extractShowValueIndexes', () => {
         ],
         { stack: true, onlyTotal: true, isHorizontal: false },
       ),
-    ).toEqual([undefined, 1, 0, 2, undefined, 1, 1, 2, undefined, 1]);
+    ).toEqual({
+      __default__: [undefined, 1, 0, 2, undefined, 1, 1, 2, undefined, 1],
+    });
+  });
+
+  test('should track topmost series independently per stack group (stackDimension)', () => {
+    // Simulates 2 stack groups: 'groupA' (series indices 0, 1) and 'groupB' (series index 2).
+    // With onlyTotal, each group's topmost positive series should be flagged independently.
+    expect(
+      extractShowValueIndexes(
+        [
+          {
+            id: 'A-cat1',
+            name: 'A-cat1',
+            data: [
+              ['Jan', 10],
+              ['Feb', 5],
+            ],
+          },
+          {
+            id: 'A-cat2',
+            name: 'A-cat2',
+            data: [
+              ['Jan', 20],
+              ['Feb', 15],
+            ],
+          },
+          {
+            id: 'B-cat1',
+            name: 'B-cat1',
+            data: [
+              ['Jan', 30],
+              ['Feb', 25],
+            ],
+          },
+        ],
+        {
+          stack: true,
+          onlyTotal: true,
+          isHorizontal: false,
+          seriesStackIds: ['groupA', 'groupA', 'groupB'],
+        },
+      ),
+    ).toEqual({
+      groupA: [1, 1], // series index 1 is top of groupA for both data points
+      groupB: [2, 2], // series index 2 is top of groupB for both data points
+    });
+  });
+
+  test('should safely handle stack groups with prototype property names like __proto__ or constructor', () => {
+    const result = extractShowValueIndexes(
+      [
+        {
+          id: 'proto-series',
+          name: 'proto-series',
+          data: [
+            ['Jan', 10],
+            ['Feb', 20],
+          ],
+        },
+        {
+          id: 'ctor-series',
+          name: 'ctor-series',
+          data: [
+            ['Jan', 30],
+            ['Feb', 40],
+          ],
+        },
+      ],
+      {
+        stack: true,
+        onlyTotal: true,
+        isHorizontal: false,
+        seriesStackIds: ['__proto__', 'constructor'],
+      },
+    );
+
+    expect(Object.prototype.hasOwnProperty.call(result, '__proto__')).toBe(
+      true,
+    );
+    expect(Object.prototype.hasOwnProperty.call(result, 'constructor')).toBe(
+      true,
+    );
+    expect(Object.getOwnPropertyDescriptor(result, '__proto__')?.value).toEqual(
+      [0, 0],
+    );
+    expect(result['constructor']).toEqual([1, 1]);
   });
 });
 
