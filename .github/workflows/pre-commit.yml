@@ -130,20 +130,17 @@ jobs:
               echo "${files}"
               echo "__CHANGED_FILES_EOF__"
             } >> "$GITHUB_OUTPUT"
-            if printf '%s\n' "${files}" | grep -q '^superset-frontend/'; then
-              echo "needs_frontend=true" >> "$GITHUB_OUTPUT"
-            else
-              echo "needs_frontend=false" >> "$GITHUB_OUTPUT"
-            fi
-            # Matches oxlint-docs's own files: pattern in .pre-commit-config.yaml
-            # (^docs/.*\.(js|jsx|ts|tsx)$) -- the only hook that needs this
-            # install. Most docs contributions are prose (.md/.mdx), which
-            # this correctly treats as not needing it.
-            if printf '%s\n' "${files}" | grep -qE '^docs/.*\.(js|jsx|ts|tsx)$'; then
-              echo "needs_docs=true" >> "$GITHUB_OUTPUT"
-            else
-              echo "needs_docs=false" >> "$GITHUB_OUTPUT"
-            fi
+            # scripts/pre_commit_dependency_needs.py (tests:
+            # tests/unit_tests/scripts/pre_commit_dependency_needs_test.py)
+            # writes needs_frontend/needs_docs straight to $GITHUB_OUTPUT. A
+            # prior inline `printf | grep -q` version risked a false "not
+            # needed" result: under `pipefail`, grep -q's early exit on a
+            # match can SIGPIPE a producer still mid-write for a large
+            # enough list (our own 100000-byte cap above is bigger than a
+            # typical 64KB pipe buffer), silently skipping a needed install
+            # instead of running it. Plain Python reading stdin to EOF has
+            # no equivalent early-exit-close behavior.
+            printf '%s\n' "${files}" | python3 scripts/pre_commit_dependency_needs.py
           fi
 
       - name: Setup Python
