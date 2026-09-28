@@ -21,6 +21,7 @@ import logging
 from types import SimpleNamespace
 from unittest.mock import MagicMock, Mock, patch
 
+import pytest
 from fastmcp.server.transforms.search import BM25SearchTransform, RegexSearchTransform
 from flask import Flask, g
 
@@ -29,7 +30,6 @@ from superset.mcp_service.mcp_config import MCP_TOOL_SEARCH_CONFIG
 from superset.mcp_service.privacy import requires_data_model_metadata_access
 from superset.mcp_service.server import (
     _apply_tool_search_transform,
-    _compact_schema,
     _create_search_result_serializer,
     _extract_parameter_names,
     _filter_tools_by_current_user_permission,
@@ -312,317 +312,66 @@ def test_normalize_ignores_keys_not_in_schema():
     assert isinstance(result["unknown_key"], dict)
 
 
-# -- _compact_schema tests --
+# -- search schema fidelity tests --
 
 
-def test_compact_schema_removes_defs():
-    """$defs section is stripped and refs are inlined from definitions."""
+def test_search_schema_preserves_references_and_constraints() -> None:
+    """Shared and recursive definitions remain resolvable without losing constraints."""
     schema = {
         "type": "object",
         "properties": {
-            "filters": {"items": {"$ref": "#/$defs/MyFilter"}, "type": "array"},
+            "first": {"$ref": "#/$defs/Node", "description": "First", "maxItems": 2},
+            "second": {"$ref": "#/$defs/Node"},
         },
+        "required": ["first"],
+        "additionalProperties": False,
         "$defs": {
-            "MyFilter": {
-                "type": "object",
-                "properties": {"col": {"type": "string"}},
-            }
-        },
-    }
-
-    result = _compact_schema(schema)
-
-    assert "$defs" not in result
-    # $ref is resolved by inlining the definition from $defs
-    assert result["properties"]["filters"]["items"] == {
-        "type": "object",
-        "properties": {"col": {"type": "string"}},
-    }
-
-
-def test_compact_schema_replaces_ref_with_object():
-    """Direct $ref is replaced with {"type": "object"}."""
-    schema = {"$ref": "#/$defs/SomeModel"}
-
-    result = _compact_schema(schema)
-
-    assert result == {"type": "object"}
-
-
-def test_compact_schema_preserves_ref_description():
-    """$ref replacement preserves sibling description if present."""
-    schema = {"$ref": "#/$defs/SomeModel", "description": "A model"}
-
-    result = _compact_schema(schema)
-
-    assert result == {"type": "object", "description": "A model"}
-
-
-def test_compact_schema_simplifies_optional_ref():
-    """anyOf with $ref and null is collapsed to the non-null variant."""
-    schema = {
-        "anyOf": [
-            {"$ref": "#/$defs/SomeModel"},
-            {"type": "null"},
-        ],
-        "description": "Optional model",
-    }
-
-    result = _compact_schema(schema)
-
-    assert "anyOf" not in result
-    assert result["type"] == "object"
-    assert result["description"] == "Optional model"
-
-
-def test_compact_schema_simplifies_optional_primitive():
-    """anyOf with primitive type and null is collapsed."""
-    schema = {
-        "anyOf": [
-            {"type": "integer"},
-            {"type": "null"},
-        ],
-        "default": None,
-    }
-
-    result = _compact_schema(schema)
-
-    assert "anyOf" not in result
-    assert result["type"] == "integer"
-    assert result["default"] is None
-
-
-def test_compact_schema_preserves_multi_variant_anyof():
-    """anyOf with >2 variants or no null is left unchanged."""
-    schema = {
-        "anyOf": [
-            {"type": "integer"},
-            {"type": "string"},
-        ]
-    }
-
-    result = _compact_schema(schema)
-
-    assert "anyOf" in result
-    assert len(result["anyOf"]) == 2
-
-
-def test_compact_schema_nested_in_items():
-    """$ref nested inside items/properties falls back to object when no $defs."""
-    schema = {
-        "type": "object",
-        "properties": {
-            "filters": {
+            "Node": {
                 "type": "array",
-                "items": {"$ref": "#/$defs/Filter"},
-            },
-            "name": {"type": "string"},
-        },
-    }
-
-    result = _compact_schema(schema)
-
-    # No $defs in schema → falls back to {"type": "object"}
-    assert result["properties"]["filters"]["items"] == {"type": "object"}
-    assert result["properties"]["name"] == {"type": "string"}
-
-
-def test_compact_schema_passthrough_simple():
-    """Simple schema without $defs/$ref passes through unchanged."""
-    schema = {
-        "type": "object",
-        "properties": {
-            "page": {"type": "integer", "default": 1},
-            "search": {"type": "string"},
-        },
-    }
-
-    result = _compact_schema(schema)
-
-    assert result == schema
-
-
-def test_compact_schema_handles_non_dict():
-    """Non-dict inputs pass through unchanged."""
-    assert _compact_schema("hello") == "hello"
-    assert _compact_schema(42) == 42
-    assert _compact_schema(None) is None
-    assert _compact_schema([1, 2]) == [1, 2]
-
-
-def test_compact_schema_inlines_columnref_like_model() -> None:
-    """$ref to a model with fields is inlined, preserving field structure."""
-    schema = {
-        "type": "object",
-        "properties": {
-            "metrics": {
-                "type": "array",
-                "items": {"$ref": "#/$defs/ColumnRef"},
-            },
-        },
-        "$defs": {
-            "ColumnRef": {
-                "type": "object",
-                "properties": {
-                    "name": {"type": "string", "description": "Column name"},
-                    "aggregate": {"type": "string", "description": "SQL aggregate"},
-                    "saved_metric": {"type": "boolean", "default": False},
-                },
-                "required": ["name"],
-            }
-        },
-    }
-
-    result = _compact_schema(schema)
-
-    assert "$defs" not in result
-    inlined = result["properties"]["metrics"]["items"]
-    assert inlined["type"] == "object"
-    assert "name" in inlined["properties"]
-    assert "aggregate" in inlined["properties"]
-    assert "saved_metric" in inlined["properties"]
-    assert inlined["required"] == ["name"]
-
-
-def test_compact_schema_inlines_nested_refs() -> None:
-    """Nested $ref chains are resolved transitively."""
-    schema = {
-        "type": "object",
-        "properties": {
-            "config": {"$ref": "#/$defs/ChartConfig"},
-        },
-        "$defs": {
-            "ChartConfig": {
-                "type": "object",
-                "properties": {
-                    "metrics": {
-                        "type": "array",
-                        "items": {"$ref": "#/$defs/ColumnRef"},
-                    },
+                "minItems": 1,
+                "items": {
+                    "anyOf": [{"$ref": "#/$defs/Node"}, {"type": "integer"}],
                 },
             },
-            "ColumnRef": {
-                "type": "object",
-                "properties": {
-                    "name": {"type": "string"},
+        },
+    }
+    serializer = _create_search_result_serializer({"include_schemas": True})
+    result = serializer([_make_mock_tool("tree", "A tree.", schema)])
+
+    assert result[0]["inputSchema"] == schema
+
+
+def test_search_schema_preserves_nullable_unions() -> None:
+    """Nullable unions, siblings, defaults, and discriminator mappings are guidance."""
+    schema = {
+        "type": "object",
+        "properties": {
+            "config": {
+                "oneOf": [{"$ref": "#/$defs/Config"}, {"type": "null"}],
+                "description": "Optional config",
+                "default": None,
+                "discriminator": {
+                    "propertyName": "kind",
+                    "mapping": {"table": "#/$defs/Config"},
                 },
-                "required": ["name"],
             },
-        },
-    }
-
-    result = _compact_schema(schema)
-
-    assert "$defs" not in result
-    config = result["properties"]["config"]
-    assert config["type"] == "object"
-    col_ref = config["properties"]["metrics"]["items"]
-    assert col_ref["type"] == "object"
-    assert "name" in col_ref["properties"]
-
-
-def test_compact_schema_circular_ref_fallback() -> None:
-    """Circular $ref falls back to {"type": "object"} to avoid infinite recursion."""
-    schema = {
-        "type": "object",
-        "properties": {
-            "node": {"$ref": "#/$defs/TreeNode"},
-        },
-        "$defs": {
-            "TreeNode": {
-                "type": "object",
-                "properties": {
-                    "children": {
-                        "type": "array",
-                        "items": {"$ref": "#/$defs/TreeNode"},
-                    },
-                },
-            }
-        },
-    }
-
-    result = _compact_schema(schema)
-
-    assert "$defs" not in result
-    node = result["properties"]["node"]
-    assert node["type"] == "object"
-    # The self-reference falls back to {"type": "object"}
-    assert node["properties"]["children"]["items"] == {"type": "object"}
-
-
-def test_compact_schema_inline_with_sibling_description() -> None:
-    """Inlined $ref preserves sibling description via setdefault."""
-    schema = {
-        "type": "object",
-        "properties": {
-            "col": {
-                "$ref": "#/$defs/ColumnRef",
-                "description": "The column to use",
+            "count": {
+                "anyOf": [{"type": "integer", "minimum": 1}, {"type": "null"}],
+                "default": None,
             },
         },
         "$defs": {
-            "ColumnRef": {
+            "Config": {
                 "type": "object",
-                "properties": {"name": {"type": "string"}},
-            }
-        },
-    }
-
-    result = _compact_schema(schema)
-
-    col = result["properties"]["col"]
-    assert col["type"] == "object"
-    assert "name" in col["properties"]
-    assert col["description"] == "The column to use"
-
-
-def test_compact_schema_inline_optional_ref() -> None:
-    """anyOf with $ref and null inlines the definition, not just {"type": "object"}."""
-    schema = {
-        "type": "object",
-        "properties": {
-            "col": {
-                "anyOf": [
-                    {"$ref": "#/$defs/ColumnRef"},
-                    {"type": "null"},
-                ],
-                "description": "Optional column",
+                "properties": {"kind": {"const": "table"}},
+                "required": ["kind"],
             },
         },
-        "$defs": {
-            "ColumnRef": {
-                "type": "object",
-                "properties": {"name": {"type": "string"}},
-            }
-        },
     }
+    serializer = _create_search_result_serializer({"include_schemas": True})
+    result = serializer([_make_mock_tool("nullable", "Nullable.", schema)])
 
-    result = _compact_schema(schema)
-
-    col = result["properties"]["col"]
-    assert "anyOf" not in col
-    assert col["type"] == "object"
-    assert "name" in col["properties"]
-    assert col["description"] == "Optional column"
-
-
-def test_compact_schema_inlines_empty_def() -> None:
-    """Empty $defs entry ({}) is inlined as-is, not downgraded to {"type": "object"}."""
-    schema = {
-        "type": "object",
-        "properties": {
-            "anything": {"$ref": "#/$defs/Anything"},
-        },
-        "$defs": {
-            "Anything": {},
-        },
-    }
-
-    result = _compact_schema(schema)
-
-    assert "$defs" not in result
-    # Empty dict is a valid schema — should be inlined as {}, not {"type": "object"}
-    assert result["properties"]["anything"] == {}
+    assert result[0]["inputSchema"] == schema
 
 
 # -- _truncate_description tests --
@@ -680,7 +429,7 @@ def _make_mock_tool(name, description, input_schema):
 
 
 def test_create_serializer_compacts_schemas():
-    """Compact serializer strips $defs and replaces $ref."""
+    """Search serialization keeps shared definitions and their references."""
     tool = _make_mock_tool(
         "list_charts",
         "List charts with filtering.",
@@ -708,12 +457,8 @@ def test_create_serializer_compacts_schemas():
 
     assert len(result) == 1
     schema = result[0]["inputSchema"]
-    assert "$defs" not in schema
-    # $ref is inlined from $defs, preserving field structure
-    assert schema["properties"]["filters"]["items"] == {
-        "type": "object",
-        "properties": {"col": {"type": "string"}},
-    }
+    assert schema["$defs"]["ChartFilter"]["properties"] == {"col": {"type": "string"}}
+    assert schema["properties"]["filters"]["items"] == {"$ref": "#/$defs/ChartFilter"}
 
 
 def test_create_serializer_truncates_descriptions():
@@ -731,8 +476,9 @@ def test_create_serializer_truncates_descriptions():
     assert len(result[0]["description"]) <= 53  # 50 + potential "..."
 
 
-def test_create_serializer_disabled():
-    """When compact_schemas=False and max_description_length=0, no compaction."""
+@pytest.mark.parametrize("compact", [False, True])
+def test_create_serializer_disabled(compact: bool) -> None:
+    """An explicit zero description limit disables truncation in either mode."""
     tool = _make_mock_tool(
         "test_tool",
         "A long description " * 20,
@@ -743,7 +489,11 @@ def test_create_serializer_disabled():
     )
 
     serializer = _create_search_result_serializer(
-        {"include_schemas": True, "compact_schemas": False, "max_description_length": 0}
+        {
+            "include_schemas": True,
+            "compact_schemas": compact,
+            "max_description_length": 0,
+        }
     )
     result = serializer([tool])
 
@@ -1207,7 +957,7 @@ def test_create_serializer_include_schemas_true_restores_full_schema():
 
 
 def test_create_serializer_include_schemas_true_with_compact():
-    """include_schemas=True + compact_schemas=True still compacts the schema."""
+    """The legacy compact setting must not expand or weaken input schemas."""
     schema = {
         "type": "object",
         "properties": {
@@ -1223,10 +973,7 @@ def test_create_serializer_include_schemas_true_with_compact():
     result = serializer([tool])
 
     assert "inputSchema" in result[0]
-    assert "$defs" not in result[0]["inputSchema"]
-    assert result[0]["inputSchema"]["properties"]["filters"]["items"] == {
-        "type": "object"
-    }
+    assert result[0]["inputSchema"] == schema
 
 
 # -- search_tools optional query tests --

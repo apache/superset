@@ -344,7 +344,8 @@ async def generate_chart(  # noqa: C901
             with event_logger.log_context(action="mcp.generate_chart.dataset_lookup"):
                 dataset = None
                 if isinstance(request.dataset_id, int) or (
-                    isinstance(request.dataset_id, str) and request.dataset_id.isdigit()
+                    isinstance(request.dataset_id, str)
+                    and request.dataset_id.isdecimal()
                 ):
                     dataset_id = (
                         int(request.dataset_id)
@@ -618,7 +619,7 @@ async def generate_chart(  # noqa: C901
             from superset.daos.dataset import DatasetDAO
 
             if isinstance(request.dataset_id, int) or (
-                isinstance(request.dataset_id, str) and request.dataset_id.isdigit()
+                isinstance(request.dataset_id, str) and request.dataset_id.isdecimal()
             ):
                 candidate_id = (
                     int(request.dataset_id)
@@ -748,7 +749,7 @@ async def generate_chart(  # noqa: C901
                                 # Convert dataset_id to int only if numeric
                                 if (
                                     isinstance(request.dataset_id, str)
-                                    and request.dataset_id.isdigit()
+                                    and request.dataset_id.isdecimal()
                                 ):
                                     dataset_id_for_preview = int(request.dataset_id)
                                 elif isinstance(request.dataset_id, int):
