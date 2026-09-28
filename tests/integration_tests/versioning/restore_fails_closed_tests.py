@@ -146,7 +146,7 @@ class TestRestoreFailsClosedOnPrunedChildHistory(SupersetTestCase):
         dataset, column, target_tx, _ = self._two_version_dataset()
         edited_description: str | None = column.description
         column_count: int = len(dataset.columns)
-        dataset_uuid: UUID = dataset.uuid
+        dataset_uuid = dataset.uuid
         assert dataset_uuid is not None
         column_id: int = column.id
 
@@ -399,7 +399,7 @@ class TestRestoreFailsClosedOnPrunedChildHistory(SupersetTestCase):
         before: str
         dataset, column, target_tx, before = self._two_version_dataset()
 
-        dataset_uuid: UUID = dataset.uuid
+        dataset_uuid = dataset.uuid
         assert dataset_uuid is not None
         result: RestoreResult | None = restore_version(
             SqlaTable, dataset_uuid, target_tx, entity=dataset
@@ -428,7 +428,7 @@ class TestRestoreFailsClosedOnPrunedChildHistory(SupersetTestCase):
         dataset, column, target_tx, _ = self._two_version_dataset()
         edited_description: str | None = column.description
         parent_description: str | None = dataset.description
-        dataset_uuid: UUID = dataset.uuid
+        dataset_uuid = dataset.uuid
         assert dataset_uuid is not None
         assert _delete_column_shadow_rows(column.id, closed_only=True) >= 1
 
@@ -473,7 +473,7 @@ class TestRestoreFailsClosedOnPrunedChildHistory(SupersetTestCase):
         dataset: SqlaTable
         target_tx: int
         dataset, _, target_tx, _ = self._two_version_dataset()
-        dataset_uuid: UUID = dataset.uuid
+        dataset_uuid = dataset.uuid
         assert dataset_uuid is not None
         versions: list[dict[str, Any]] | None = list_versions(
             SqlaTable, dataset_uuid, entity=dataset
@@ -541,7 +541,7 @@ class TestRestoreFailsClosedOnPrunedChildHistory(SupersetTestCase):
         # Prune the ENTIRE chain (insert row, closed rows, delete row).
         assert _delete_column_shadow_rows(added_id, closed_only=False) >= 1
 
-        dataset_uuid: UUID = dataset.uuid
+        dataset_uuid = dataset.uuid
         assert dataset_uuid is not None
         result: RestoreResult | None = restore_version(
             SqlaTable, dataset_uuid, target_tx, entity=dataset
@@ -622,7 +622,7 @@ class TestRestoreFailsClosedOnPrunedChildHistory(SupersetTestCase):
         )
         db.session.commit()
 
-        dataset_uuid: UUID = dataset.uuid
+        dataset_uuid = dataset.uuid
         assert dataset_uuid is not None
         result: RestoreResult | None = restore_version(
             SqlaTable, dataset_uuid, target_tx, entity=dataset
