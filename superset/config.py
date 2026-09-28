@@ -66,6 +66,7 @@ from superset.tasks.types import ExecutorType
 from superset.themes.types import Theme
 from superset.utils import core as utils
 from superset.utils.encrypt import SQLAlchemyUtilsAdapter
+from superset.utils.export_storage import ExportStorage
 from superset.utils.log import DBEventLogger
 from superset.utils.logging_configurator import DefaultLoggingConfigurator
 from superset.utils.version import get_dev_env_label
@@ -382,6 +383,12 @@ WTF_CSRF_EXEMPT_LIST = [
     # the same reason as the chart data endpoint above.
     "superset.datasource.api.query",
     "superset.dashboards.api.cache_dashboard_screenshot",
+    # Guest-token (embedded) sessions authenticate via the guest token
+    # header and carry no CSRF token cookie; without the exemption their
+    # export POST is rejected outright. Worst case for a logged-in user is a
+    # cross-site forced enqueue of an export they never see (the response is
+    # unreadable cross-origin and the link is never exposed).
+    "superset.dashboards.api.export_xlsx",
     "superset.views.core.log",
     "superset.views.datasource.views.samples",
     "flask_appbuilder.security.views.acs",
@@ -1575,39 +1582,65 @@ CSV_STREAMING_ROW_THRESHOLD = 100000
 # note: index option should not be overridden
 EXCEL_EXPORT: dict[str, Any] = {}
 
+
 # ---------------------------------------------------
-# Dashboard "Export Data to Excel" (async, S3-backed)
+# Dashboard "Export Data to Excel"
 # ---------------------------------------------------
-# Destination S3 bucket for generated dashboard .xlsx exports. The feature is
-# disabled until this is set: the export endpoint returns 501 when it is None.
-EXCEL_EXPORT_S3_BUCKET: str | None = None
-# Key prefix for export objects: {prefix}{dashboard_id}/{job_id}.xlsx
-EXCEL_EXPORT_S3_KEY_PREFIX = "dashboard-exports/"
-# Lifetime (seconds) of the pre-signed download URL emailed to the user (24h).
-# Note: AWS S3 caps pre-signed URL lifetime at 7 days (604800 seconds); larger
-# values are rejected by S3, so keep this at or below that when using AWS.
+# When EXPORT_STORAGE has both a bucket and a backend and CELERY_CONFIG is set,
+# dashboard .xlsx exports run in the background and are delivered by a
+# download link. Otherwise, eligible data exports are returned directly to the
+# browser.
+class ExportStorageConfig(TypedDict, total=False):
+    """Where generated export artifacts (dashboard Excel exports, and
+    potentially other export file types) are uploaded, and how the download
+    endpoint streams them back. See EXPORT_STORAGE."""
+
+    # Destination bucket for generated export artifacts. Background exports
+    # stay disabled until this and ``backend`` are set.
+    bucket: str
+    # Key/blob prefix for export objects: {prefix}{dashboard_id}/{job_id}.xlsx
+    # A callable is invoked per export, inside the worker task (no request
+    # context), for deployments where the prefix is only known at run time
+    # (e.g. a multi-tenant installation scoping a shared bucket per tenant
+    # from worker-ambient app config).
+    key_prefix: str | Callable[[], str]
+    # The storage backend (an instance implementing
+    # superset.utils.export_storage.ExportStorage), the same pattern as
+    # RESULTS_BACKEND or CUSTOM_SECURITY_MANAGER. There is no implicit
+    # default; background exports stay disabled until one is set
+    # explicitly, matching the bucket's provider:
+    #   from superset.utils.s3 import S3ExportStorage      # AWS S3
+    #   from superset.utils.gcs import GCSExportStorage    # Google Cloud Storage
+    #   EXPORT_STORAGE["backend"] = S3ExportStorage()
+    # S3ExportStorage accepts client_kwargs for boto3.client("s3", ...)
+    # overrides (region_name, or an endpoint_url for S3-compatible stores
+    # such as MinIO/LocalStack); credentials otherwise resolve through each
+    # SDK's standard chain.
+    backend: ExportStorage
+
+
+EXPORT_STORAGE: ExportStorageConfig = {
+    "key_prefix": "dashboard-exports/",
+}
+# Lifetime (seconds) of the download link shared with the user (24h). Not
+# part of ExportStorageConfig: it bounds the Superset-issued link itself (see
+# superset.dashboards.excel_export.download_link); each click streams the
+# file from storage through Superset. Guest-initiated exports are clamped to
+# a shorter lifetime (see superset.tasks.export_dashboard_excel).
 EXCEL_EXPORT_LINK_TTL_SECONDS = 86400
-# Extra kwargs passed to boto3.client("s3", ...) — e.g. region_name, or an
-# endpoint_url for S3-compatible stores (MinIO/LocalStack). Credentials
-# otherwise resolve through the standard boto3 chain.
-EXCEL_EXPORT_S3_CLIENT_KWARGS: dict[str, Any] = {}
 # Viz types treated as tables in the "Export Images to Excel" mode: these charts
 # stay tabular (one worksheet of data) while every other viz type is embedded as
 # a rendered image. Set to None to fall back to the built-in default.
 EXCEL_EXPORT_TABLE_VIZ_TYPES: set[str] | None = None
 
-# Optional hook to build a query context for a chart that has no saved
-# ``query_context``, called before the built-in form-data rebuild. Receives the
-# chart's form data (its ``params`` with ``viz_type`` and the
-# ``datasource="{id}__{type}"`` string injected — i.e. ``Slice.form_data``) and
-# returns a query-context payload dict (the shape ``ChartDataQueryContextSchema``
-# loads) or ``None``. A deployment can point this at a service that runs the
-# chart's real frontend ``buildQuery`` (faithful post-processing / multi-query)
-# for viz types the built-in rebuild can't handle. Must return ``None`` — not a
-# partial/stub context — whenever it cannot build the chart faithfully, so the
-# export falls through to the built-in rebuild. The export deep-copies whatever
-# it returns before applying dashboard filters, so a builder is free to memoize
-# or share its payloads. Defaults to ``None`` (built-in behavior only).
+# Maximum combined query ``row_limit`` for a direct download. Queries without a
+# limit use ``ROW_LIMIT``. Keep this within the request timeout.
+EXCEL_EXPORT_SYNC_MAX_ROWS = 100_000
+
+# Optional query-context builder for charts without a saved ``query_context``.
+# It receives ``Slice.form_data`` and returns a payload accepted by
+# ``ChartDataQueryContextSchema``, or ``None`` to use the built-in rebuild.
+# Superset copies returned payloads before applying dashboard filters.
 EXCEL_EXPORT_QUERY_CONTEXT_BUILDER: (
     Callable[[dict[str, Any]], dict[str, Any] | None] | None
 ) = None
@@ -2776,6 +2809,15 @@ DATABASE_OAUTH2_JWT_ALGORITHM = "HS256"
 
 # Timeout when fetching access and refresh tokens.
 DATABASE_OAUTH2_TIMEOUT = timedelta(seconds=30)
+
+# When True, the OAuth2 authorization/token endpoint URIs configured for a
+# database (either via DATABASE_OAUTH2_CLIENTS or, per-connection, via a
+# database's own encrypted_extra.oauth2_client_info) are permitted to target
+# hosts in private/internal IP ranges (RFC-1918, loopback, link-local).
+# Intended for deployments with a legitimately internal identity provider.
+# Leave False (the default) in any deployment where untrusted users can
+# create or edit database connections.
+DATABASE_OAUTH2_ALLOW_INTERNAL_HOSTS: bool = False
 
 # Enable/disable CSP warning
 CONTENT_SECURITY_POLICY_WARNING = True

@@ -25,7 +25,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-21 02:18+0000\n"
+"POT-Creation-Date: 2026-09-24 10:35+0300\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -927,6 +927,12 @@ msgstr ""
 msgid ""
 "A butterfly chart compares two metrics across categories using horizontal"
 " bars that extend left and right from a central axis."
+msgstr ""
+
+msgid ""
+"A candlestick chart shows opening, closing, high, and low values for each"
+" period. It is commonly used for financial and other time-series range "
+"analysis."
 msgstr ""
 
 msgid "A comma separated list of columns that should be parsed as dates"
@@ -2461,9 +2467,6 @@ msgstr ""
 msgid "Automatically adjust column width based on content"
 msgstr ""
 
-msgid "Automatically retry sending the report when delivery fails."
-msgstr ""
-
 msgid "Automatically sync columns"
 msgstr ""
 
@@ -2910,6 +2913,17 @@ msgstr ""
 msgid "Cancellation not available due to missing abort handler"
 msgstr ""
 
+msgid "Candlestick"
+msgstr ""
+
+msgid "Candlestick Chart"
+msgstr ""
+
+msgid ""
+"Candlestick draws a filled body between open and close. OHLC draws ticks "
+"for open and close on a high-low stem."
+msgstr ""
+
 msgid "Cannot access the query"
 msgstr ""
 
@@ -3305,6 +3319,13 @@ msgstr ""
 msgid "Chart width"
 msgstr ""
 
+#, python-format
+msgid ""
+"Chart with ID %(chart_id)s (referenced by annotation layer "
+"'%(layer_name)s') was not found. Please verify that the chart exists and "
+"is accessible."
+msgstr ""
+
 msgid "Charts"
 msgstr ""
 
@@ -3616,6 +3637,9 @@ msgstr ""
 msgid "Close version history"
 msgstr ""
 
+msgid "Closing value for each period."
+msgstr ""
+
 msgid "Cluster label aggregator"
 msgstr ""
 
@@ -3694,6 +3718,9 @@ msgstr ""
 msgid "Color by"
 msgstr ""
 
+msgid "Color by direction"
+msgstr ""
+
 msgid "Color field must be a hex color (#rrggbb) or 'rgb(r, g, b)'"
 msgstr ""
 
@@ -3716,6 +3743,14 @@ msgid "Color of the target location"
 msgstr ""
 
 msgid "Color scheme"
+msgstr ""
+
+msgid ""
+"Color used when the close value is greater than or equal to the open "
+"value."
+msgstr ""
+
+msgid "Color used when the close value is less than the open value."
 msgstr ""
 
 msgid ""
@@ -3984,7 +4019,7 @@ msgstr ""
 msgid "Configure filter scopes"
 msgstr ""
 
-msgid "Configure retry behavior on delivery failure."
+msgid "Configure retries when alert or report generation fails before delivery."
 msgstr ""
 
 msgid "Configure the basics of your Annotation Layer."
@@ -4051,6 +4086,9 @@ msgid "Connection failed, please check your connection settings."
 msgstr ""
 
 msgid "Connection looks good!"
+msgstr ""
+
+msgid "Contact the report owner for error details."
 msgstr ""
 
 msgid "Contains"
@@ -4610,6 +4648,9 @@ msgstr ""
 msgid "Dashboard could not be updated."
 msgstr ""
 
+msgid "Dashboard data exported to Excel"
+msgstr ""
+
 msgid "Dashboard does not exist"
 msgstr ""
 
@@ -4617,6 +4658,9 @@ msgid "Dashboard exported as example successfully"
 msgstr ""
 
 msgid "Dashboard exported successfully"
+msgstr ""
+
+msgid "Dashboard has no charts to export."
 msgstr ""
 
 msgid "Dashboard imported"
@@ -5546,6 +5590,9 @@ msgid ""
 "correctly first; this only changes how they are displayed."
 msgstr ""
 
+msgid "Display format"
+msgstr ""
+
 msgid "Display headers for each column at the top of the matrix"
 msgstr ""
 
@@ -6432,9 +6479,6 @@ msgstr ""
 msgid "Excel XML Export"
 msgstr ""
 
-msgid "Excel export is not configured on this server."
-msgstr ""
-
 msgid "Excel file format cannot be determined"
 msgstr ""
 
@@ -6593,6 +6637,11 @@ msgid "Export to original .CSV"
 msgstr ""
 
 msgid "Export to pivoted .CSV"
+msgstr ""
+
+msgid ""
+"Exporting images to Excel requires background exports. Ask an "
+"administrator to enable them, or export the dashboard's data instead."
 msgstr ""
 
 #, python-format
@@ -7039,6 +7088,9 @@ msgid ""
 " 'Europe')."
 msgstr ""
 
+msgid "Financial"
+msgstr ""
+
 msgid "Find"
 msgstr ""
 
@@ -7480,7 +7532,13 @@ msgstr ""
 msgid "Hierarchy"
 msgstr ""
 
+msgid "High"
+msgstr ""
+
 msgid "High color"
+msgstr ""
+
+msgid "Highest value for each period."
 msgstr ""
 
 msgid "Histogram"
@@ -8155,6 +8213,12 @@ msgstr ""
 msgid "Label threshold"
 msgstr ""
 
+msgid "Label used for decreasing candles in the tooltip."
+msgstr ""
+
+msgid "Label used for increasing candles in the tooltip."
+msgstr ""
+
 msgid "Labelling"
 msgstr ""
 
@@ -8612,6 +8676,9 @@ msgstr ""
 msgid "Longitude of default viewport"
 msgstr ""
 
+msgid "Low"
+msgstr ""
+
 msgid "Low color"
 msgstr ""
 
@@ -8624,6 +8691,9 @@ msgid ""
 msgstr ""
 
 msgid "Lower threshold must be lower than upper threshold"
+msgstr ""
+
+msgid "Lowest value for each period."
 msgstr ""
 
 msgid "MAR"
@@ -9172,6 +9242,9 @@ msgstr ""
 msgid "Moves the given set of dates by a specified interval."
 msgstr ""
 
+msgid "Moving averages"
+msgstr ""
+
 msgid "Multi-Dimensions"
 msgstr ""
 
@@ -9269,6 +9342,11 @@ msgid "Name of the target nodes"
 msgstr ""
 
 msgid "Name of your tag"
+msgstr ""
+
+msgid ""
+"Name used for the candlestick series in the legend and tooltip when no "
+"series dimension is set."
 msgstr ""
 
 msgid "Name your database"
@@ -9580,6 +9658,11 @@ msgstr ""
 msgid "None -> None"
 msgstr ""
 
+msgid ""
+"None of this dashboard's charts can be downloaded directly. Ask an "
+"administrator to enable background exports."
+msgstr ""
+
 msgid "Normal"
 msgstr ""
 
@@ -9760,6 +9843,9 @@ msgstr ""
 msgid "OCT"
 msgstr ""
 
+msgid "OHLC"
+msgstr ""
+
 msgid "OK"
 msgstr ""
 
@@ -9899,6 +9985,9 @@ msgstr ""
 msgid "Opacity, expects values between 0 and 100"
 msgstr ""
 
+msgid "Open"
+msgstr ""
+
 msgid "Open Datasource tab"
 msgstr ""
 
@@ -9929,6 +10018,9 @@ msgstr ""
 msgid "Open query in SQL Lab"
 msgstr ""
 
+msgid "Opening value for each period."
+msgstr ""
+
 msgid ""
 "Operate the database in asynchronous mode, meaning that the queries are "
 "executed on remote workers as opposed to on the web server itself. This "
@@ -9952,6 +10044,11 @@ msgid "Optional d3 date format string"
 msgstr ""
 
 msgid "Optional d3 number format string"
+msgstr ""
+
+msgid ""
+"Optional dimension used to split the chart into multiple candlestick "
+"series."
 msgstr ""
 
 msgid ""
@@ -10061,6 +10158,11 @@ msgid ""
 "Free text is supported. Use \"Inherit range from time filters\" to shift "
 "the comparison time range by the same length as your time range and use "
 "\"Custom\" to set a custom comparison range."
+msgstr ""
+
+msgid ""
+"Overlay simple moving averages of the close price (MA5, MA10, MA15, ...)."
+" Type a custom period to add it."
 msgstr ""
 
 msgid ""
@@ -10610,6 +10712,12 @@ msgstr ""
 msgid "Preparing %(count)s charts for export. This may take a moment."
 msgstr ""
 
+msgid "Preparing dashboard Excel export…"
+msgstr ""
+
+msgid "Preparing export…"
+msgstr ""
+
 msgid "Preview"
 msgstr ""
 
@@ -10992,6 +11100,9 @@ msgstr ""
 msgid "Reload SQL Lab"
 msgstr ""
 
+msgid "Reload the page and try again to continue."
+msgstr ""
+
 msgid "Remove"
 msgstr ""
 
@@ -11340,13 +11451,15 @@ msgstr ""
 msgid "Resume auto-refresh"
 msgstr ""
 
-msgid "Retries are not supported for alerts"
-msgstr ""
-
 msgid "Retry"
 msgstr ""
 
 msgid "Retry fetching results"
+msgstr ""
+
+msgid ""
+"Retry generation failures before delivery starts. Alerts re-check their "
+"condition on each attempt. Delivery failures are not replayed."
 msgstr ""
 
 msgid "Retrying"
@@ -11861,6 +11974,12 @@ msgstr ""
 msgid "Scoping"
 msgstr ""
 
+msgid "Screenshot cache is unavailable"
+msgstr ""
+
+msgid "Screenshot request is temporarily unavailable"
+msgstr ""
+
 msgid "Screenshot width"
 msgstr ""
 
@@ -11975,6 +12094,9 @@ msgid "Secure extra"
 msgstr ""
 
 msgid "Security"
+msgstr ""
+
+msgid "Security token error"
 msgstr ""
 
 msgid "See "
@@ -12485,6 +12607,9 @@ msgstr ""
 msgid "Series chart type (line, bar etc)"
 msgstr ""
 
+msgid "Series colors"
+msgstr ""
+
 msgid "Series decrease setting"
 msgstr ""
 
@@ -12494,7 +12619,13 @@ msgstr ""
 msgid "Series limit"
 msgstr ""
 
+msgid "Series name"
+msgstr ""
+
 msgid "Series settings"
+msgstr ""
+
+msgid "Series style"
 msgstr ""
 
 msgid "Series total setting"
@@ -12799,6 +12930,9 @@ msgstr ""
 msgid "Show or hide the X axis line, ticks, and labels"
 msgstr ""
 
+msgid "Show or hide the Y axis line and labels"
+msgstr ""
+
 msgid "Show or hide the Y axis line, ticks, gridlines, and labels"
 msgstr ""
 
@@ -13059,9 +13193,6 @@ msgid "Sorry, An error occurred"
 msgstr ""
 
 msgid "Sorry, an error occurred"
-msgstr ""
-
-msgid "Sorry, an unknown error occurred"
 msgstr ""
 
 msgid "Sorry, an unknown error occurred."
@@ -13803,6 +13934,9 @@ msgstr ""
 msgid "The API response from %s does not match the IDatabaseTable interface."
 msgstr ""
 
+msgid "The CSRF token could not be validated."
+msgstr ""
+
 msgid ""
 "The CSS for individual dashboards can be altered here, or in the "
 "dashboard view where changes are immediately visible"
@@ -14121,6 +14255,12 @@ msgid ""
 msgstr ""
 
 msgid ""
+"The following charts were omitted because their size cannot be determined"
+" before they run. Ask an administrator to enable background exports to "
+"include them."
+msgstr ""
+
+msgid ""
 "The following charts were omitted because they have no saved query "
 "context. To include them, open each chart in Explore and re-save."
 msgstr ""
@@ -14398,6 +14538,13 @@ msgid "The query contains one or more malformed template parameters."
 msgstr ""
 
 msgid "The query context datasource does not match the chart datasource"
+msgstr ""
+
+#, python-format
+msgid ""
+"The query context for chart ID %(chart_id)s (referenced by annotation "
+"layer '%(layer_name)s') was not found. Please ensure the chart is "
+"properly configured and has a valid query context."
 msgstr ""
 
 msgid "The query couldn't be loaded"
@@ -15108,6 +15255,12 @@ msgstr ""
 msgid "This dashboard does not exist"
 msgstr ""
 
+msgid ""
+"This dashboard has too much data to download directly. Ask an "
+"administrator to enable background exports, or lower the row limits of "
+"its charts."
+msgstr ""
+
 msgid "This dashboard is managed externally, and can't be edited in Superset"
 msgstr ""
 
@@ -15374,9 +15527,10 @@ msgstr ""
 
 msgid ""
 "This update would change the connection's effective destination "
-"(host/port, engine parameters, or SSH tunnel endpoint) while reusing the "
-"stored credential. Provide the real password (or SSH tunnel credential) "
-"to confirm a connection move."
+"(host/port, engine parameters, SSH tunnel endpoint, or OAuth2 endpoint "
+"URIs) while reusing the stored credential. Provide the real password (or "
+"SSH tunnel credential / OAuth2 client secret) to confirm a connection "
+"move."
 msgstr ""
 
 msgid "This username is already taken. Please choose another one."
@@ -16825,6 +16979,12 @@ msgid "When checked, the map will zoom to your data after each query"
 msgstr ""
 
 msgid ""
+"When enabled, increasing candles use the increase color and decreasing "
+"candles use the decrease color. Turn off to use one series color, with a "
+"filled body for increases and a hollow body for decreases."
+msgstr ""
+
+msgid ""
 "When enabled, the axis will display labels for the minimum and maximum "
 "values of your data"
 msgstr ""
@@ -17558,7 +17718,18 @@ msgid ""
 "SUPERSET_DASHBOARD_POSITION_DATA_LIMIT config setting."
 msgstr ""
 
-msgid "Your export is being prepared. You'll receive an email when it's ready."
+msgid ""
+"Your export is being generated and will download automatically when "
+"ready. We'll also email you a download link."
+msgstr ""
+
+msgid "Your export is being generated. Please, do not leave the page."
+msgstr ""
+
+msgid "Your export is ready and downloading."
+msgstr ""
+
+msgid "Your export is taking longer than expected. Try again later."
 msgstr ""
 
 #, python-format

@@ -15,18 +15,23 @@
 # specific language governing permissions and limitations
 # under the License.
 """
-Tests for guest RLS scoping in virtual dataset scenarios.
+Tests for guest RLS scoping in virtual dataset and adhoc sub-query scenarios.
 
 Verifies that dataset-scoped guest RLS rules are correctly applied
-when querying through virtual datasets, and that global (unscoped)
-guest rules are not duplicated across inner and outer queries.
+when querying through virtual datasets, that global (unscoped)
+guest rules are not duplicated across inner and outer queries, and
+that global guest rules still reach adhoc sub-queries, which no outer
+query constrains.
 """
 
 from __future__ import annotations
 
+from collections.abc import Iterator
+from contextlib import contextmanager
 from typing import Callable
 from unittest.mock import MagicMock, patch
 
+import pytest
 from flask import Flask
 from pytest_mock import MockerFixture
 from sqlalchemy.sql.elements import TextClause
@@ -253,9 +258,9 @@ def test_global_guest_rule_excluded_through_get_predicates_for_table(
     mocker: MockerFixture,
 ) -> None:
     """
-    Global (unscoped) guest RLS rules are excluded when
-    get_predicates_for_table() calls get_sqla_row_level_filters()
-    with include_global_guest_rls=False.
+    Global (unscoped) guest RLS rules are excluded when a virtual dataset's
+    inner SQL calls get_predicates_for_table() with
+    include_global_guest_rls=False.
 
     This prevents double application: global guest rules match any dataset,
     so they would appear both in inner SQL (underlying table) and outer query
@@ -289,10 +294,338 @@ def test_global_guest_rule_excluded_through_get_predicates_for_table(
         ),
     ):
         table = Table("physical_table", "public", "examples")
-        predicates = get_predicates_for_table(table, database, "examples")
+        predicates = get_predicates_for_table(
+            table, database, "examples", include_global_guest_rls=False
+        )
 
         assert not any("org_id" in p for p in predicates), (
             f"Global guest rule 'org_id = 1' should be excluded from "
             f"get_predicates_for_table() to prevent double application "
             f"in virtual datasets. Got: {predicates}"
         )
+
+
+def test_global_guest_rule_included_by_default_through_get_predicates_for_table(
+    app: Flask,
+    mocker: MockerFixture,
+) -> None:
+    """
+    Global (unscoped) guest RLS rules are included by default, so a statement
+    that no outer query constrains, such as a SQL Lab query, is still scoped
+    to the guest token.
+    """
+    from sqlalchemy.dialects import sqlite
+
+    global_rule = GuestTokenRlsRule(dataset=None, clause="org_id = 1")
+    guest_user = _make_guest_user(rules=[global_rule])
+
+    mock_pd = _make_datasource_with_real_rls(42)
+
+    database = mocker.MagicMock()
+    database.get_dialect.return_value = sqlite.dialect()
+    db = mocker.patch("superset.utils.rls.db")
+    db.session.query().filter().one_or_none.return_value = mock_pd
+
+    with (
+        patch(
+            "superset.connectors.sqla.models.security_manager.get_rls_filters",
+            return_value=[],
+        ),
+        patch(
+            "superset.connectors.sqla.models.security_manager.get_guest_rls_filters",
+            wraps=_guest_rls_filter(guest_user),
+        ),
+        patch(
+            "superset.connectors.sqla.models.is_feature_enabled",
+            return_value=True,
+        ),
+    ):
+        table = Table("physical_table", "public", "examples")
+        predicates = get_predicates_for_table(table, database, "examples")
+
+        assert any("org_id" in p for p in predicates), (
+            f"Global guest rule 'org_id = 1' should be included by default. "
+            f"Got: {predicates}"
+        )
+
+
+@contextmanager
+def _guest_rls_database(
+    mocker: MockerFixture,
+    rules: list[GuestTokenRlsRule],
+) -> Iterator[MagicMock]:
+    """
+    Act as a guest holding ``rules``, with every table resolving to a physical
+    dataset, and yield the database to apply RLS against.
+    """
+    from sqlalchemy.dialects import sqlite
+
+    from superset.sql.parse import RLSMethod
+
+    guest_user = _make_guest_user(rules=rules)
+    mock_pd = _make_datasource_with_real_rls(42)
+
+    database = mocker.MagicMock()
+    database.get_dialect.return_value = sqlite.dialect()
+    database.get_default_catalog.return_value = None
+    database.db_engine_spec.engine = "sqlite"
+    database.db_engine_spec.get_rls_method.return_value = RLSMethod.AS_PREDICATE
+    db = mocker.patch("superset.utils.rls.db")
+    # SQLite folds unquoted identifiers, so datasets are looked up with ``all()``
+    db.session.query().filter().all.return_value = [mock_pd]
+
+    with (
+        patch(
+            "superset.connectors.sqla.models.security_manager.get_rls_filters",
+            return_value=[],
+        ),
+        patch(
+            "superset.connectors.sqla.models.security_manager.get_guest_rls_filters",
+            wraps=_guest_rls_filter(guest_user),
+        ),
+        patch(
+            "superset.connectors.sqla.models.is_feature_enabled",
+            return_value=True,
+        ),
+        patch(
+            "superset.models.helpers.is_feature_enabled",
+            return_value=True,
+        ),
+        patch(
+            "superset.utils.rls.security_manager.get_current_guest_user_if_guest",
+            return_value=guest_user,
+        ),
+    ):
+        yield database
+
+
+def _validate_adhoc_subquery_as_guest(
+    mocker: MockerFixture,
+    rules: list[GuestTokenRlsRule],
+    sql: str,
+) -> str:
+    """
+    Run ``validate_adhoc_subquery`` for a guest holding ``rules``.
+    """
+    from superset.models.helpers import validate_adhoc_subquery
+
+    with _guest_rls_database(mocker, rules) as database:
+        return validate_adhoc_subquery(sql, database, None, "public", "sqlite")
+
+
+def _apply_virtual_dataset_rls_as_guest(
+    mocker: MockerFixture,
+    rules: list[GuestTokenRlsRule],
+    sql: str,
+) -> str:
+    """
+    Apply RLS to a virtual dataset's inner SQL for a guest holding ``rules``, the
+    way ``get_from_clause`` does.
+    """
+    from superset.sql.parse import SQLStatement
+    from superset.utils.rls import apply_rls
+
+    statement = SQLStatement(sql, "sqlite")
+    with _guest_rls_database(mocker, rules) as database:
+        apply_rls(
+            database,
+            None,
+            "public",
+            statement,
+            exclude_dataset_id=99,
+            include_global_guest_rls=False,
+        )
+    return statement.format(comments=False)
+
+
+def test_global_guest_rule_applied_to_adhoc_subquery(
+    app: Flask,
+    mocker: MockerFixture,
+) -> None:
+    """
+    Global (unscoped) guest RLS rules are injected into adhoc sub-queries.
+
+    Unlike a virtual dataset's inner SQL, an adhoc sub-query is not constrained
+    by the outer query's WHERE clause, so skipping the global guest rules there
+    would let a guest read rows from every tenant.
+    """
+    sql = _validate_adhoc_subquery_as_guest(
+        mocker,
+        [GuestTokenRlsRule(dataset=None, clause="org_id = 1")],
+        "SELECT MAX((SELECT COUNT(DISTINCT org_id) FROM physical_table))",
+    )
+
+    assert "org_id = 1" in sql, (
+        f"Global guest rule 'org_id = 1' must be applied inside the adhoc "
+        f"sub-query. Got: {sql}"
+    )
+
+
+def test_scoped_guest_rule_applied_to_adhoc_subquery(
+    app: Flask,
+    mocker: MockerFixture,
+) -> None:
+    """
+    Dataset-scoped guest RLS rules keep being injected into adhoc sub-queries
+    alongside global ones.
+    """
+    sql = _validate_adhoc_subquery_as_guest(
+        mocker,
+        [
+            GuestTokenRlsRule(dataset=None, clause="org_id = 1"),
+            GuestTokenRlsRule(dataset="42", clause="tenant_id = 5"),
+        ],
+        "SELECT (SELECT COUNT(*) FROM physical_table)",
+    )
+
+    assert "org_id = 1" in sql, f"Global guest rule missing. Got: {sql}"
+    assert "tenant_id = 5" in sql, f"Scoped guest rule missing. Got: {sql}"
+
+
+def test_global_guest_rule_applied_to_virtual_dataset_subquery(
+    app: Flask,
+    mocker: MockerFixture,
+) -> None:
+    """
+    Global guest RLS rules reach a sub-query inside a virtual dataset's SQL.
+
+    The outer query on the virtual dataset only narrows the rows the inner SQL
+    returns, so a scalar sub-query over another table would otherwise count
+    rows from every tenant.
+    """
+    sql = _apply_virtual_dataset_rls_as_guest(
+        mocker,
+        [GuestTokenRlsRule(dataset=None, clause="org_id = 1")],
+        "SELECT a.x, (SELECT COUNT(*) FROM b) AS n FROM a",
+    )
+
+    subquery, outer = sql.split(") AS n", 1)
+    assert "b.org_id = 1" in subquery, f"Sub-query is not scoped. Got: {sql}"
+    assert "org_id" not in outer, (
+        f"Rows reaching the outer query must be left to its own filter. Got: {sql}"
+    )
+
+
+def test_global_guest_rule_left_to_outer_query_for_correlated_subquery(
+    app: Flask,
+    mocker: MockerFixture,
+) -> None:
+    """
+    Global guest RLS rules are left out of a correlated sub-query, which is
+    typically a lookup keyed to the virtual dataset's own rows, so a lookup table
+    without the rule's column keeps working.
+    """
+    sql = _apply_virtual_dataset_rls_as_guest(
+        mocker,
+        [GuestTokenRlsRule(dataset=None, clause="org_id = 1")],
+        "SELECT a.*, (SELECT name FROM lookup WHERE lookup.id = a.lid) AS n FROM a",
+    )
+
+    assert "org_id" not in sql, f"Correlated lookup was filtered. Got: {sql}"
+
+
+def test_global_guest_rule_left_to_outer_query_without_subquery(
+    app: Flask,
+    mocker: MockerFixture,
+) -> None:
+    """
+    Without a sub-query, a virtual dataset's inner SQL keeps leaving global guest
+    RLS rules to the outer query, so they aren't applied twice.
+    """
+    sql = _apply_virtual_dataset_rls_as_guest(
+        mocker,
+        [GuestTokenRlsRule(dataset=None, clause="org_id = 1")],
+        "SELECT a.x, b.y FROM a JOIN b ON a.k = b.k",
+    )
+
+    assert "org_id" not in sql, f"Global guest rule applied twice. Got: {sql}"
+
+
+def test_virtual_dataset_subquery_lookup_skipped_for_non_guest(
+    app: Flask,
+    mocker: MockerFixture,
+) -> None:
+    """
+    Only a guest token carries global guest RLS rules, so for any other user the
+    virtual dataset path looks up each table's predicates once, not twice, unless
+    the virtual dataset has RLS of its own.
+    """
+    from superset.sql.parse import RLSMethod, SQLStatement
+    from superset.utils.rls import apply_rls
+
+    database = mocker.MagicMock()
+    database.db_engine_spec.get_rls_method.return_value = RLSMethod.AS_PREDICATE
+    mocker.patch(
+        "superset.utils.rls.security_manager.get_current_guest_user_if_guest",
+        return_value=None,
+    )
+    mocker.patch("superset.utils.rls._dataset_has_rls", return_value=False)
+    get_predicates = mocker.patch(
+        "superset.utils.rls.get_predicates_for_table",
+        return_value=[],
+    )
+
+    apply_rls(
+        database,
+        None,
+        "public",
+        SQLStatement("SELECT a.x, (SELECT COUNT(*) FROM b) AS n FROM a", "sqlite"),
+        exclude_dataset_id=99,
+        include_global_guest_rls=False,
+    )
+
+    assert get_predicates.call_count == 2
+    assert all(
+        call.kwargs["include_global_guest_rls"] is False
+        for call in get_predicates.call_args_list
+    )
+
+
+@pytest.mark.parametrize("is_guest", [False, True])
+def test_virtual_dataset_own_rls_applied_to_subquery(
+    app: Flask,
+    mocker: MockerFixture,
+    is_guest: bool,
+) -> None:
+    """
+    The outer query only applies a virtual dataset's own RLS to the rows its SQL
+    returns, so a sub-query reading the table the dataset is named after gets that
+    RLS instead of being excluded, for guests and other users alike.
+    """
+    from superset.sql.parse import RLSMethod, SQLStatement
+    from superset.utils.rls import apply_rls
+
+    database = mocker.MagicMock()
+    database.get_default_catalog.return_value = None
+    database.db_engine_spec.get_rls_method.return_value = RLSMethod.AS_PREDICATE
+    mocker.patch(
+        "superset.utils.rls.security_manager.get_current_guest_user_if_guest",
+        return_value=_make_guest_user(rules=[]) if is_guest else None,
+    )
+    mocker.patch("superset.utils.rls._dataset_has_rls", return_value=True)
+    # the virtual dataset (id 99) is named after the physical table ``b``
+    mocker.patch(
+        "superset.utils.rls.get_predicates_for_table",
+        side_effect=lambda table, *args, exclude_dataset_id, **kwargs: (
+            ["region = 'EU'"]
+            if table.table == "b" and exclude_dataset_id is None
+            else []
+        ),
+    )
+    statement = SQLStatement(
+        "SELECT b.x, (SELECT COUNT(*) FROM b AS inner_b) AS n FROM b", "sqlite"
+    )
+
+    apply_rls(
+        database,
+        None,
+        "public",
+        statement,
+        exclude_dataset_id=99,
+        include_global_guest_rls=False,
+    )
+
+    sql = statement.format(comments=False)
+    subquery, outer = sql.split(") AS n", 1)
+    assert "inner_b.region = 'EU'" in subquery, f"Sub-query not scoped. Got: {sql}"
+    assert "region" not in outer, f"Own RLS applied twice. Got: {sql}"

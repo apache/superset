@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-21 02:18+0000\n"
+"POT-Creation-Date: 2026-09-24 10:35+0300\n"
 "PO-Revision-Date: 2024-10-20 00:07+0330\n"
 "Last-Translator: Emad Rad <codewithemad@gmail.com>\n"
 "Language: fa\n"
@@ -1033,6 +1033,15 @@ msgid ""
 "A butterfly chart compares two metrics across categories using horizontal"
 " bars that extend left and right from a central axis."
 msgstr ""
+
+msgid ""
+"A candlestick chart shows opening, closing, high, and low values for each"
+" period. It is commonly used for financial and other time-series range "
+"analysis."
+msgstr ""
+"نمودار شمعی مقادیر باز شدن، بسته شدن، بالاترین و پایین‌ترین را برای هر "
+"دوره نشان می‌دهد. معمولاً برای تحلیل مالی و بازه سری‌های زمانی استفاده "
+"می‌شود."
 
 #, fuzzy
 msgid "A comma separated list of columns that should be parsed as dates"
@@ -2806,9 +2815,6 @@ msgstr "تنظیم خودکار عرض ستون بر اساس فضای موجو�
 msgid "Automatically adjust column width based on content"
 msgstr "تنظیم خودکار عرض ستون بر اساس محتوا"
 
-msgid "Automatically retry sending the report when delivery fails."
-msgstr ""
-
 #, fuzzy
 msgid "Automatically sync columns"
 msgstr "ستون‌ها را سفارشی‌سازی کنید"
@@ -3343,6 +3349,19 @@ msgstr "لغو کوئری در رویداد بارگذاری مجدد پنجره
 msgid "Cancellation not available due to missing abort handler"
 msgstr "لغو به دلیل نبود کنترل‌کننده قطع در دسترس نیست"
 
+msgid "Candlestick"
+msgstr "نمودار شمعی"
+
+msgid "Candlestick Chart"
+msgstr "نمودار شمعی"
+
+msgid ""
+"Candlestick draws a filled body between open and close. OHLC draws ticks "
+"for open and close on a high-low stem."
+msgstr ""
+"نمودار شمعی بدنه پرشده‌ای بین باز و بسته شدن رسم می‌کند. OHLC علامت‌های "
+"باز و بسته شدن را روی ساقه بالا-پایین می‌کشد."
+
 msgid "Cannot access the query"
 msgstr "نمی‌توان به کوئری دسترسی پیدا کرد"
 
@@ -3792,6 +3811,13 @@ msgstr "نمودارها نمی‌توانند حذف شوند."
 msgid "Chart width"
 msgstr "عرض نمودار"
 
+#, python-format
+msgid ""
+"Chart with ID %(chart_id)s (referenced by annotation layer "
+"'%(layer_name)s') was not found. Please verify that the chart exists and "
+"is accessible."
+msgstr ""
+
 msgid "Charts"
 msgstr "نمودارها"
 
@@ -4154,6 +4180,9 @@ msgstr "بستن برگه"
 msgid "Close version history"
 msgstr ""
 
+msgid "Closing value for each period."
+msgstr "مقدار بسته شدن برای هر دوره."
+
 msgid "Cluster label aggregator"
 msgstr "جمع‌آوری برچسب خوشه"
 
@@ -4245,6 +4274,9 @@ msgstr "نقاط شکسته سطل"
 msgid "Color by"
 msgstr "رنگ بر اساس"
 
+msgid "Color by direction"
+msgstr "رنگ بر اساس جهت"
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
 #, fuzzy
@@ -4273,6 +4305,16 @@ msgstr "رنگ مکان هدف"
 
 msgid "Color scheme"
 msgstr "طرح رنگ"
+
+msgid ""
+"Color used when the close value is greater than or equal to the open "
+"value."
+msgstr ""
+"رنگی که وقتی مقدار بسته شدن بزرگ‌تر یا برابر مقدار باز شدن است استفاده "
+"می‌شود."
+
+msgid "Color used when the close value is less than the open value."
+msgstr "رنگی که وقتی مقدار بسته شدن کمتر از مقدار باز شدن است استفاده می‌شود."
 
 msgid ""
 "Color will be shaded based the normalized (0% to 100%) value of a given "
@@ -4581,7 +4623,7 @@ msgstr "پیکربندی ظاهر داشبورد، رنگ‌ها و CSS سفار
 msgid "Configure filter scopes"
 msgstr "تنظیم دامنه‌های فیلتر"
 
-msgid "Configure retry behavior on delivery failure."
+msgid "Configure retries when alert or report generation fails before delivery."
 msgstr ""
 
 msgid "Configure the basics of your Annotation Layer."
@@ -4658,6 +4700,9 @@ msgid "Connection failed, please check your connection settings."
 msgstr "اتصال ناموفق بود، لطفاً تنظیمات اتصال خود را بررسی کنید."
 
 msgid "Connection looks good!"
+msgstr ""
+
+msgid "Contact the report owner for error details."
 msgstr ""
 
 #, fuzzy
@@ -6372,6 +6417,9 @@ msgid ""
 "Display each cell as a percentage of its row, column, or grand total, "
 "instead of its actual value. Totals and subtotals are still computed "
 "correctly first; this only changes how they are displayed."
+msgstr ""
+
+msgid "Display format"
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, fr,
@@ -8127,6 +8175,9 @@ msgstr ""
 " فیلتر به صورت زیر اعمال می‌شود: (department = 'Finance' OR department = "
 "'Marketing') AND (region = 'Europe')."
 
+msgid "Financial"
+msgstr ""
+
 msgid "Find"
 msgstr "یابید"
 
@@ -8650,8 +8701,14 @@ msgstr "خط زمانبندی را پنهان می‌کند"
 msgid "Hierarchy"
 msgstr "سلسله‌مراتب"
 
+msgid "High"
+msgstr ""
+
 msgid "High color"
 msgstr ""
+
+msgid "Highest value for each period."
+msgstr "بالاترین مقدار برای هر دوره."
 
 msgid "Histogram"
 msgstr "هیستوگرام"
@@ -9424,6 +9481,12 @@ msgstr "برچسب خط"
 msgid "Label threshold"
 msgstr "آستانه برچسب"
 
+msgid "Label used for decreasing candles in the tooltip."
+msgstr "برچسب شمع‌های نزولی در راهنمای ابزار."
+
+msgid "Label used for increasing candles in the tooltip."
+msgstr "برچسب شمع‌های صعودی در راهنمای ابزار."
+
 msgid "Labelling"
 msgstr "برچسب‌گذاری"
 
@@ -9941,6 +10004,9 @@ msgstr "طول و عرض جغرافیایی"
 msgid "Longitude of default viewport"
 msgstr "طول جغرافیایی نمای پیش‌فرض"
 
+msgid "Low"
+msgstr ""
+
 msgid "Low color"
 msgstr ""
 
@@ -9954,6 +10020,9 @@ msgstr ""
 
 msgid "Lower threshold must be lower than upper threshold"
 msgstr "آستانه پایین باید کمتر از آستانه بالا باشد."
+
+msgid "Lowest value for each period."
+msgstr "پایین‌ترین مقدار برای هر دوره."
 
 msgid "MAR"
 msgstr "مار"
@@ -10597,6 +10666,9 @@ msgstr ""
 msgid "Moves the given set of dates by a specified interval."
 msgstr "تاریخ‌های تعیین‌شده را به میزان مشخصی جابه‌جا می‌کند."
 
+msgid "Moving averages"
+msgstr "میانگین‌های متحرک"
+
 msgid "Multi-Dimensions"
 msgstr "چندبعدی"
 
@@ -10703,6 +10775,11 @@ msgstr "نام گره‌های هدف"
 
 msgid "Name of your tag"
 msgstr "نام برچسب شما"
+
+msgid ""
+"Name used for the candlestick series in the legend and tooltip when no "
+"series dimension is set."
+msgstr "نام سری شمعی در افسانه و راهنمای ابزار وقتی بُعد سری تنظیم نشده باشد."
 
 msgid "Name your database"
 msgstr "نام پایگاه داده خود را وارد کنید"
@@ -11249,6 +11326,9 @@ msgstr "اطلاعات پایه"
 msgid "OCT"
 msgstr "اکتبر"
 
+msgid "OHLC"
+msgstr "OHLC"
+
 msgid "OK"
 msgstr "باشه"
 
@@ -11403,6 +11483,9 @@ msgstr "شفافیت حباب‌ها، ۰ به معنی کاملاً شفاف و
 msgid "Opacity, expects values between 0 and 100"
 msgstr "شفافیت، انتظار مقادیر بین ۰ تا ۱۰۰ دارد."
 
+msgid "Open"
+msgstr ""
+
 msgid "Open Datasource tab"
 msgstr "برگه داده‌منبع را باز کنید"
 
@@ -11439,6 +11522,9 @@ msgstr "در SQL Lab باز کنید"
 msgid "Open query in SQL Lab"
 msgstr "باز کردن کوئری در آزمایشگاه SQL"
 
+msgid "Opening value for each period."
+msgstr "مقدار باز شدن برای هر دوره."
+
 msgid ""
 "Operate the database in asynchronous mode, meaning that the queries are "
 "executed on remote workers as opposed to on the web server itself. This "
@@ -11469,6 +11555,11 @@ msgstr "رشته فرمت تاریخ d3 اختیاری"
 
 msgid "Optional d3 number format string"
 msgstr "رشته فرمت عدد d3 اختیاری"
+
+msgid ""
+"Optional dimension used to split the chart into multiple candlestick "
+"series."
+msgstr "بُعد اختیاری برای تقسیم نمودار به چند سری شمعی."
 
 msgid ""
 "Optional metric used to scale the size of each dot. Dot areas are scaled "
@@ -11596,6 +11687,13 @@ msgstr ""
 "۳۶۵ روز). متن آزاد پشتیبانی می‌شود. از گزینه \"وراثت دامنه از فیلترهای "
 "زمانی\" برای تغییر دامنه زمانی مقایسه به همان طول دامنه زمانی خود استفاده"
 " کنید و از گزینه \"سفارشی\" برای تعیین دامنه مقایسه سفارشی استفاده کنید."
+
+msgid ""
+"Overlay simple moving averages of the close price (MA5, MA10, MA15, ...)."
+" Type a custom period to add it."
+msgstr ""
+"میانگین‌های متحرک ساده قیمت بسته شدن را همپوشانی کنید (MA5، MA10، MA15، "
+"...). برای افزودن، یک دوره سفارشی بنویسید."
 
 msgid ""
 "Overlays a hexagonal grid on a map, and aggregates data within the "
@@ -12642,6 +12740,9 @@ msgstr "بارگذاری مجدد"
 msgid "Reload SQL Lab"
 msgstr "بارگذاری مجدد SQL Lab"
 
+msgid "Reload the page and try again to continue."
+msgstr ""
+
 msgid "Remove"
 msgstr "حذف"
 
@@ -13021,9 +13122,6 @@ msgstr "پشتوانه نتایج برای کوئریهای غیرهمزمان �
 msgid "Resume auto-refresh"
 msgstr "فواصل تازه‌سازی خودکار را تنظیم کنید"
 
-msgid "Retries are not supported for alerts"
-msgstr ""
-
 #, fuzzy
 msgid "Retry"
 msgstr "سازنده"
@@ -13031,6 +13129,11 @@ msgstr "سازنده"
 #, fuzzy
 msgid "Retry fetching results"
 msgstr "دوباره دریافت نتایج"
+
+msgid ""
+"Retry generation failures before delivery starts. Alerts re-check their "
+"condition on each attempt. Delivery failures are not replayed."
+msgstr ""
 
 msgid "Retrying"
 msgstr ""
@@ -13598,6 +13701,12 @@ msgstr "دامنه"
 msgid "Scoping"
 msgstr "دامنه‌گذاری"
 
+msgid "Screenshot cache is unavailable"
+msgstr ""
+
+msgid "Screenshot request is temporarily unavailable"
+msgstr ""
+
 msgid "Screenshot width"
 msgstr "عرض عکس‌برداری"
 
@@ -13720,6 +13829,9 @@ msgstr "ایمن اضافه"
 
 msgid "Security"
 msgstr "امنیت"
+
+msgid "Security token error"
+msgstr ""
 
 #, fuzzy
 msgid "See "
@@ -14377,6 +14489,9 @@ msgstr "سبک سری"
 msgid "Series chart type (line, bar etc)"
 msgstr "نوع نمودار سری (خطی، میله‌ای و غیره)"
 
+msgid "Series colors"
+msgstr "رنگ‌های سری"
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
 # lv, ro, ru, sk, sr, sr_Latn, tr, uk]
 #, fuzzy
@@ -14392,9 +14507,15 @@ msgstr "تنظیم افزایش سری"
 msgid "Series limit"
 msgstr "محدودیت سری"
 
+msgid "Series name"
+msgstr "نام سری"
+
 #, fuzzy
 msgid "Series settings"
 msgstr "تنظیمات فایل"
+
+msgid "Series style"
+msgstr "سبک سری"
 
 #, fuzzy
 msgid "Series total setting"
@@ -14755,6 +14876,9 @@ msgstr ""
 msgid "Show or hide the X axis line, ticks, and labels"
 msgstr ""
 
+msgid "Show or hide the Y axis line and labels"
+msgstr ""
+
 msgid "Show or hide the Y axis line, ticks, gridlines, and labels"
 msgstr ""
 
@@ -15064,9 +15188,6 @@ msgstr "متاسفم، یک خطا رخ داده است"
 
 msgid "Sorry, an error occurred"
 msgstr "متأسفم، یک خطا رخ داد"
-
-msgid "Sorry, an unknown error occurred"
-msgstr "متاسفیم، یک خطای ناشناخته رخ داده است."
 
 msgid "Sorry, an unknown error occurred."
 msgstr "متأسفم، یک خطای ناشناس رخ داد."
@@ -15924,6 +16045,9 @@ msgstr "ممکن است مجموعه داده مرتبط با این نمودا�
 msgid "The API response from %s does not match the IDatabaseTable interface."
 msgstr "پاسخ API از %s با رابط IDatabaseTable همخوانی ندارد."
 
+msgid "The CSRF token could not be validated."
+msgstr ""
+
 msgid ""
 "The CSS for individual dashboards can be altered here, or in the "
 "dashboard view where changes are immediately visible"
@@ -16694,6 +16818,13 @@ msgid "The query contains one or more malformed template parameters."
 msgstr "کوئری شامل یک یا چند پارامتر الگوی نادرست است."
 
 msgid "The query context datasource does not match the chart datasource"
+msgstr ""
+
+#, python-format
+msgid ""
+"The query context for chart ID %(chart_id)s (referenced by annotation "
+"layer '%(layer_name)s') was not found. Please ensure the chart is "
+"properly configured and has a valid query context."
 msgstr ""
 
 msgid "The query couldn't be loaded"
@@ -17933,9 +18064,10 @@ msgstr ""
 
 msgid ""
 "This update would change the connection's effective destination "
-"(host/port, engine parameters, or SSH tunnel endpoint) while reusing the "
-"stored credential. Provide the real password (or SSH tunnel credential) "
-"to confirm a connection move."
+"(host/port, engine parameters, SSH tunnel endpoint, or OAuth2 endpoint "
+"URIs) while reusing the stored credential. Provide the real password (or "
+"SSH tunnel credential / OAuth2 client secret) to confirm a connection "
+"move."
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
@@ -19651,6 +19783,15 @@ msgstr ""
 "زمانی که تیک خورده باشد، نقشه پس از هر کوئری به داده‌های شما زوم خواهد "
 "کرد."
 
+msgid ""
+"When enabled, increasing candles use the increase color and decreasing "
+"candles use the decrease color. Turn off to use one series color, with a "
+"filled body for increases and a hollow body for decreases."
+msgstr ""
+"در صورت فعال بودن، شمع‌های صعودی رنگ افزایش و شمع‌های نزولی رنگ کاهش را "
+"دارند. خاموش کنید تا یک رنگ سری استفاده شود: بدنه پر برای افزایش و توخالی "
+"برای کاهش."
+
 #, fuzzy
 msgid ""
 "When enabled, the axis will display labels for the minimum and maximum "
@@ -20517,7 +20658,18 @@ msgid ""
 "SUPERSET_DASHBOARD_POSITION_DATA_LIMIT config setting."
 msgstr ""
 
-msgid "Your export is being prepared. You'll receive an email when it's ready."
+msgid ""
+"Your export is being generated and will download automatically when "
+"ready. We'll also email you a download link."
+msgstr ""
+
+msgid "Your export is being generated. Please, do not leave the page."
+msgstr ""
+
+msgid "Your export is ready and downloading."
+msgstr ""
+
+msgid "Your export is taking longer than expected. Try again later."
 msgstr ""
 
 #, python-format

@@ -25,7 +25,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from superset.mcp_service.app import get_default_instructions, init_fastmcp_server, mcp
-from superset.mcp_service.utils.token_utils import COMMITTED_WRITE_SPECS
+from superset.mcp_service.utils.response_size_utils import COMMITTED_WRITE_SPECS
 
 # Patch target for the feature_flag_manager imported inside _apply_config_guards
 _FFM_PATH = "superset.extensions.feature_flag_manager"
@@ -38,10 +38,12 @@ EXPECTED_TOOL_OUTPUT_FIELDS = {
     "add_chart_to_existing_dashboard": "dashboard_url",
     "apply_dashboard_filters": "permalink_key",
     "create_dataset": "table_name",
+    "create_dataset_metric": "metric",
     "create_theme": "theme_name",
     "create_virtual_dataset": "dataset_name",
     "delete_chart": "deleted_id",
     "delete_dashboard": "deleted_id",
+    "delete_dataset_metric": "affected_charts",
     "duplicate_dashboard": "duplicated_slices",
     "execute_sql": "statements",
     "find_users": "users",
@@ -123,10 +125,12 @@ MUTATING_TOOLS = {
     "add_chart_to_existing_dashboard",
     "apply_dashboard_filters",
     "create_dataset",
+    "create_dataset_metric",
     "create_theme",
     "create_virtual_dataset",
     "delete_chart",
     "delete_dashboard",
+    "delete_dataset_metric",
     "duplicate_dashboard",
     "execute_sql",
     "generate_chart",
@@ -162,6 +166,7 @@ NON_COMMITTING_MUTATING_TOOLS = {
 DESTRUCTIVE_TOOLS = {
     "delete_chart",
     "delete_dashboard",
+    "delete_dataset_metric",
     "execute_sql",
     "manage_dashboard_owners",
     "manage_dashboard_roles",

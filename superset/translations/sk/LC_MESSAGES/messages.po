@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-21 02:18+0000\n"
+"POT-Creation-Date: 2026-09-24 10:35+0300\n"
 "PO-Revision-Date: 2026-05-18 15:42+0200\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: sk\n"
@@ -1038,6 +1038,15 @@ msgid ""
 "A butterfly chart compares two metrics across categories using horizontal"
 " bars that extend left and right from a central axis."
 msgstr ""
+
+msgid ""
+"A candlestick chart shows opening, closing, high, and low values for each"
+" period. It is commonly used for financial and other time-series range "
+"analysis."
+msgstr ""
+"Sviečkový graf zobrazuje otváracie, uzatváracie, najvyššie a najnižšie "
+"hodnoty za každé obdobie. Bežne sa používa na finančnú a inú analýzu "
+"rozpätia časových radov."
 
 msgid "A comma separated list of columns that should be parsed as dates"
 msgstr "Čárkami oddelený zoznam stĺpcov, ktoré sa majú spracovať ako data"
@@ -2752,9 +2761,6 @@ msgstr "Automaticky upravovať šírku stĺpca na základe dostupného priestoru
 msgid "Automatically adjust column width based on content"
 msgstr "Automaticky upravovať šírku stĺpca na základe obsahu"
 
-msgid "Automatically retry sending the report when delivery fails."
-msgstr ""
-
 msgid "Automatically sync columns"
 msgstr "Automatické synchronizovanie stĺpcov"
 
@@ -3266,6 +3272,19 @@ msgstr "Zrušiť dotaz pri události uvolnie je okna"
 msgid "Cancellation not available due to missing abort handler"
 msgstr "Zrušenie nie je možné z dôvodu chýbajúceho obsluhovača prerušenia"
 
+msgid "Candlestick"
+msgstr "Sviečkový graf"
+
+msgid "Candlestick Chart"
+msgstr "Sviečkový graf"
+
+msgid ""
+"Candlestick draws a filled body between open and close. OHLC draws ticks "
+"for open and close on a high-low stem."
+msgstr ""
+"Sviečky kreslia vyplnené telo medzi otvorením a zatvorením. OHLC kreslí "
+"značky otvorenia a zatvorenia na stonke maximum–minimum."
+
 msgid "Cannot access the query"
 msgstr "Nemožno pristúpiť k dotazu"
 
@@ -3686,6 +3705,13 @@ msgstr "Graf bol uložený, ale sa nepodarilo pridať do vybraného panela."
 msgid "Chart width"
 msgstr "Šírka grafu"
 
+#, python-format
+msgid ""
+"Chart with ID %(chart_id)s (referenced by annotation layer "
+"'%(layer_name)s') was not found. Please verify that the chart exists and "
+"is accessible."
+msgstr ""
+
 msgid "Charts"
 msgstr "Grafy"
 
@@ -4025,6 +4051,9 @@ msgstr "Zavrieť kartu"
 msgid "Close version history"
 msgstr ""
 
+msgid "Closing value for each period."
+msgstr "Uzatváracia hodnota za každé obdobie."
+
 msgid "Cluster label aggregator"
 msgstr "Agregátor popisků shluků"
 
@@ -4116,6 +4145,9 @@ msgstr "Hranica farieb"
 msgid "Color by"
 msgstr "Farba podle"
 
+msgid "Color by direction"
+msgstr "Farba podľa smeru"
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
 #, fuzzy
@@ -4144,6 +4176,14 @@ msgstr "Farba cieľového umístení"
 
 msgid "Color scheme"
 msgstr "Barevné schéma"
+
+msgid ""
+"Color used when the close value is greater than or equal to the open "
+"value."
+msgstr "Farba, ak je uzatváracia hodnota väčšia alebo rovná otváracej."
+
+msgid "Color used when the close value is less than the open value."
+msgstr "Farba, ak je uzatváracia hodnota menšia ako otváracia."
 
 msgid ""
 "Color will be shaded based the normalized (0% to 100%) value of a given "
@@ -4437,7 +4477,7 @@ msgstr "Konfigurovať vzhled, farby a vlastný CSS pre nástenku"
 msgid "Configure filter scopes"
 msgstr "Konfigurovať rozsahy filtrov"
 
-msgid "Configure retry behavior on delivery failure."
+msgid "Configure retries when alert or report generation fails before delivery."
 msgstr ""
 
 msgid "Configure the basics of your Annotation Layer."
@@ -4506,6 +4546,9 @@ msgid "Connection failed, please check your connection settings."
 msgstr "Pripojenie zlyhalo, skontrolujte prosím nastavenie pripojenie."
 
 msgid "Connection looks good!"
+msgstr ""
+
+msgid "Contact the report owner for error details."
 msgstr ""
 
 #, fuzzy
@@ -6181,6 +6224,9 @@ msgid ""
 "correctly first; this only changes how they are displayed."
 msgstr ""
 
+msgid "Display format"
+msgstr ""
+
 msgid "Display headers for each column at the top of the matrix"
 msgstr "Zobraziť záhlavie každého stĺpce na vrcholu matice"
 
@@ -7819,6 +7865,9 @@ msgstr ""
 "použila filter (department = 'Finance' OR department = 'Marketing') AND "
 "(region = 'Europe')."
 
+msgid "Financial"
+msgstr ""
+
 msgid "Find"
 msgstr "Najít"
 
@@ -8310,8 +8359,14 @@ msgstr "Skryje čáru pre časovou radu"
 msgid "Hierarchy"
 msgstr "Hierarchie"
 
+msgid "High"
+msgstr ""
+
 msgid "High color"
 msgstr ""
+
+msgid "Highest value for each period."
+msgstr "Najvyššia hodnota za každé obdobie."
 
 msgid "Histogram"
 msgstr "Histogram"
@@ -9045,6 +9100,12 @@ msgstr "Jednotka veľkosti popisku"
 msgid "Label threshold"
 msgstr "Prahová hodnota popisku"
 
+msgid "Label used for decreasing candles in the tooltip."
+msgstr "Popisok klesajúcich sviečok v popise."
+
+msgid "Label used for increasing candles in the tooltip."
+msgstr "Popisok rastúcich sviečok v popise."
+
 msgid "Labelling"
 msgstr "Označovanie"
 
@@ -9531,6 +9592,9 @@ msgstr "Zemepisná dĺžka a šírka"
 msgid "Longitude of default viewport"
 msgstr "Zemepisná dĺžka predvoleného zobrazenie"
 
+msgid "Low"
+msgstr ""
+
 msgid "Low color"
 msgstr ""
 
@@ -9544,6 +9608,9 @@ msgstr ""
 
 msgid "Lower threshold must be lower than upper threshold"
 msgstr "Dolní práh musí byť nižší než horní práh"
+
+msgid "Lowest value for each period."
+msgstr "Najnižšia hodnota za každé obdobie."
 
 msgid "MAR"
 msgstr "BŘE"
@@ -10154,6 +10221,9 @@ msgstr ""
 msgid "Moves the given set of dates by a specified interval."
 msgstr "Posune danou sadu dat o zadaný interval."
 
+msgid "Moving averages"
+msgstr "Kĺzavé priemery"
+
 msgid "Multi-Dimensions"
 msgstr "Viac dimenzí"
 
@@ -10260,6 +10330,13 @@ msgstr "Názov cieľových uzlov"
 
 msgid "Name of your tag"
 msgstr "Názov vaší značky"
+
+msgid ""
+"Name used for the candlestick series in the legend and tooltip when no "
+"series dimension is set."
+msgstr ""
+"Názov sviečkového radu v legende a popise, ak nie je nastavená dimenzia "
+"radu."
 
 msgid "Name your database"
 msgstr "Pojmenujte svoju databázy"
@@ -10792,6 +10869,9 @@ msgstr "Informácie o OAuth2 klientovi"
 msgid "OCT"
 msgstr "ŘÍJ"
 
+msgid "OHLC"
+msgstr "OHLC"
+
 msgid "OK"
 msgstr "OK"
 
@@ -10947,6 +11027,9 @@ msgstr "Nepriehľadnosť bublin, 0 znamená zcela průhledné, 1 znamená neprů
 msgid "Opacity, expects values between 0 and 100"
 msgstr "Nepriehľadnosť, očekává hodnoty mezi 0 a 100"
 
+msgid "Open"
+msgstr ""
+
 msgid "Open Datasource tab"
 msgstr "Otvoriť kartu Zdroje dat"
 
@@ -10983,6 +11066,9 @@ msgstr "Otvoriť v SQL Labu"
 msgid "Open query in SQL Lab"
 msgstr "Otvoriť dotaz v SQL Labu"
 
+msgid "Opening value for each period."
+msgstr "Otváracia hodnota za každé obdobie."
+
 msgid ""
 "Operate the database in asynchronous mode, meaning that the queries are "
 "executed on remote workers as opposed to on the web server itself. This "
@@ -11013,6 +11099,11 @@ msgstr "Voliteľný reťazec formátu data d3"
 
 msgid "Optional d3 number format string"
 msgstr "Voliteľný reťazec formátu čísla d3"
+
+msgid ""
+"Optional dimension used to split the chart into multiple candlestick "
+"series."
+msgstr "Voliteľná dimenzia, ktorá rozdelí graf na viacero sviečkových radov."
 
 msgid ""
 "Optional metric used to scale the size of each dot. Dot areas are scaled "
@@ -11138,6 +11229,13 @@ msgstr ""
 "filtrov“ pre posunutí porovnávacího časového rozsahu o stejnou délku ako "
 "váš časový rozsah a použijte „Vlastný“ pre nastavenie vlastného "
 "porovnávacího rozsahu."
+
+msgid ""
+"Overlay simple moving averages of the close price (MA5, MA10, MA15, ...)."
+" Type a custom period to add it."
+msgstr ""
+"Prekryte jednoduché kĺzavé priemery uzatváracej ceny (MA5, MA10, MA15, "
+"...). Vlastné obdobie zadajte na jeho pridanie."
 
 msgid ""
 "Overlays a hexagonal grid on a map, and aggregates data within the "
@@ -12141,6 +12239,9 @@ msgstr "Znovu načítať"
 msgid "Reload SQL Lab"
 msgstr "Znovu načítať SQL Lab"
 
+msgid "Reload the page and try again to continue."
+msgstr ""
+
 msgid "Remove"
 msgstr "Odstrániť"
 
@@ -12504,15 +12605,17 @@ msgstr ""
 msgid "Resume auto-refresh"
 msgstr "Nastaviť interval automatického obnovenie"
 
-msgid "Retries are not supported for alerts"
-msgstr ""
-
 #, fuzzy
 msgid "Retry"
 msgstr "Zkusit znovu"
 
 msgid "Retry fetching results"
 msgstr "Zkusit znovu načítať výsledky"
+
+msgid ""
+"Retry generation failures before delivery starts. Alerts re-check their "
+"condition on each attempt. Delivery failures are not replayed."
+msgstr ""
 
 msgid "Retrying"
 msgstr ""
@@ -13073,6 +13176,12 @@ msgstr "Rozsah"
 msgid "Scoping"
 msgstr "Rozsah platnosti"
 
+msgid "Screenshot cache is unavailable"
+msgstr ""
+
+msgid "Screenshot request is temporarily unavailable"
+msgstr ""
+
 msgid "Screenshot width"
 msgstr "Šírka snímku obrazovky"
 
@@ -13195,6 +13304,9 @@ msgstr "Zabezpečené extra"
 
 msgid "Security"
 msgstr "Zabezpečenie"
+
+msgid "Security token error"
+msgstr ""
 
 #, fuzzy
 msgid "See "
@@ -13821,6 +13933,9 @@ msgstr "Styl série"
 msgid "Series chart type (line, bar etc)"
 msgstr "Typ grafu série (spojnicový, sloupcový atd.)"
 
+msgid "Series colors"
+msgstr "Farby radov"
+
 msgid "Series decrease setting"
 msgstr "Nastavenie sníženie série"
 
@@ -13830,9 +13945,15 @@ msgstr "Nastavenie zvýšenie série"
 msgid "Series limit"
 msgstr "Limit sérií"
 
+msgid "Series name"
+msgstr "Názov radu"
+
 #, fuzzy
 msgid "Series settings"
 msgstr "Nastavenie sérií"
+
+msgid "Series style"
+msgstr "Štýl radu"
 
 #, fuzzy
 msgid "Series total setting"
@@ -14165,6 +14286,9 @@ msgstr ""
 msgid "Show or hide the X axis line, ticks, and labels"
 msgstr ""
 
+msgid "Show or hide the Y axis line and labels"
+msgstr ""
+
 msgid "Show or hide the Y axis line, ticks, gridlines, and labels"
 msgstr ""
 
@@ -14463,9 +14587,6 @@ msgstr "Omlouváme se, došlo k chybe"
 
 msgid "Sorry, an error occurred"
 msgstr "Omlouváme se, došlo k chybe"
-
-msgid "Sorry, an unknown error occurred"
-msgstr "Omlouváme se, došlo k neznámé chybe"
 
 msgid "Sorry, an unknown error occurred."
 msgstr "Omlouváme se, došlo k neznámé chybe."
@@ -15280,6 +15401,9 @@ msgstr "Sada dat propojená s týmto grafem mohla být zmazaná."
 msgid "The API response from %s does not match the IDatabaseTable interface."
 msgstr "Odpoveď API z %s neodpovídá rozhraní IDatabaseTable."
 
+msgid "The CSRF token could not be validated."
+msgstr ""
+
 msgid ""
 "The CSS for individual dashboards can be altered here, or in the "
 "dashboard view where changes are immediately visible"
@@ -16022,6 +16146,13 @@ msgid "The query contains one or more malformed template parameters."
 msgstr "Dotaz obsahuje jeden alebo viac nesprávne formátovaných parametrů šablony."
 
 msgid "The query context datasource does not match the chart datasource"
+msgstr ""
+
+#, python-format
+msgid ""
+"The query context for chart ID %(chart_id)s (referenced by annotation "
+"layer '%(layer_name)s') was not found. Please ensure the chart is "
+"properly configured and has a valid query context."
 msgstr ""
 
 msgid "The query couldn't be loaded"
@@ -17188,9 +17319,10 @@ msgstr ""
 
 msgid ""
 "This update would change the connection's effective destination "
-"(host/port, engine parameters, or SSH tunnel endpoint) while reusing the "
-"stored credential. Provide the real password (or SSH tunnel credential) "
-"to confirm a connection move."
+"(host/port, engine parameters, SSH tunnel endpoint, or OAuth2 endpoint "
+"URIs) while reusing the stored credential. Provide the real password (or "
+"SSH tunnel credential / OAuth2 client secret) to confirm a connection "
+"move."
 msgstr ""
 
 msgid "This username is already taken. Please choose another one."
@@ -18858,6 +18990,15 @@ msgid "When checked, the map will zoom to your data after each query"
 msgstr "Keď je zaškrtnuto, mapa sa po každém dotazu přiblíží k vašim datům"
 
 msgid ""
+"When enabled, increasing candles use the increase color and decreasing "
+"candles use the decrease color. Turn off to use one series color, with a "
+"filled body for increases and a hollow body for decreases."
+msgstr ""
+"Ak je zapnuté, rastúce sviečky používajú farbu rastu a klesajúce farbu "
+"poklesu. Vypnite pre jednu farbu radu: vyplnené telo pri raste a prázdne "
+"pri poklese."
+
+msgid ""
 "When enabled, the axis will display labels for the minimum and maximum "
 "values of your data"
 msgstr ""
@@ -19686,7 +19827,18 @@ msgid ""
 "SUPERSET_DASHBOARD_POSITION_DATA_LIMIT config setting."
 msgstr ""
 
-msgid "Your export is being prepared. You'll receive an email when it's ready."
+msgid ""
+"Your export is being generated and will download automatically when "
+"ready. We'll also email you a download link."
+msgstr ""
+
+msgid "Your export is being generated. Please, do not leave the page."
+msgstr ""
+
+msgid "Your export is ready and downloading."
+msgstr ""
+
+msgid "Your export is taking longer than expected. Try again later."
 msgstr ""
 
 #, python-format

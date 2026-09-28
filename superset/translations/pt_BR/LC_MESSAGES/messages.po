@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-21 02:18+0000\n"
+"POT-Creation-Date: 2026-09-24 10:35+0300\n"
 "PO-Revision-Date: 2023-05-22 08:04-0400\n"
 "Last-Translator: \n"
 "Language: pt_BR\n"
@@ -1027,6 +1027,15 @@ msgid ""
 "A butterfly chart compares two metrics across categories using horizontal"
 " bars that extend left and right from a central axis."
 msgstr ""
+
+msgid ""
+"A candlestick chart shows opening, closing, high, and low values for each"
+" period. It is commonly used for financial and other time-series range "
+"analysis."
+msgstr ""
+"Um gráfico de candlestick mostra os valores de abertura, fechamento, "
+"máxima e mínima de cada período. É comumente usado para análises "
+"financeiras e de intervalo em séries temporais."
 
 #, fuzzy
 msgid "A comma separated list of columns that should be parsed as dates"
@@ -2835,9 +2844,6 @@ msgstr "Ajustar automaticamente a largura da coluna com base no espaço disponí
 msgid "Automatically adjust column width based on content"
 msgstr "Ajustar automaticamente a largura da coluna com base no conteúdo"
 
-msgid "Automatically retry sending the report when delivery fails."
-msgstr ""
-
 #, fuzzy
 msgid "Automatically sync columns"
 msgstr "Personalizar colunas"
@@ -3397,6 +3403,20 @@ msgstr ""
 "Cancelamento não disponível devido à ausência do manipulador de "
 "interrupção"
 
+msgid "Candlestick"
+msgstr "Velas"
+
+msgid "Candlestick Chart"
+msgstr "Gráfico de candlestick"
+
+msgid ""
+"Candlestick draws a filled body between open and close. OHLC draws ticks "
+"for open and close on a high-low stem."
+msgstr ""
+"O candlestick desenha um corpo preenchido entre a abertura e o fechamento. "
+"O OHLC desenha marcas de abertura e fechamento em uma haste de "
+"máxima-mínima."
+
 msgid "Cannot access the query"
 msgstr "Não foi possível acessar a consulta"
 
@@ -3855,6 +3875,13 @@ msgstr "Não foi possível remover o gráfico."
 msgid "Chart width"
 msgstr "Largura do gráfico"
 
+#, python-format
+msgid ""
+"Chart with ID %(chart_id)s (referenced by annotation layer "
+"'%(layer_name)s') was not found. Please verify that the chart exists and "
+"is accessible."
+msgstr ""
+
 msgid "Charts"
 msgstr "Gráficos"
 
@@ -4231,6 +4258,9 @@ msgstr "Fechar aba"
 msgid "Close version history"
 msgstr ""
 
+msgid "Closing value for each period."
+msgstr "Valor de fechamento de cada período."
+
 msgid "Cluster label aggregator"
 msgstr "Agregador de rótulo de cluster"
 
@@ -4322,6 +4352,9 @@ msgstr "Pontos de quebra de balde"
 msgid "Color by"
 msgstr "Cor por"
 
+msgid "Color by direction"
+msgstr "Cor por direção"
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
 #, fuzzy
@@ -4350,6 +4383,15 @@ msgstr "Cor do local de destino"
 
 msgid "Color scheme"
 msgstr "Esquema de cores"
+
+msgid ""
+"Color used when the close value is greater than or equal to the open "
+"value."
+msgstr ""
+"Cor usada quando o valor de fechamento é maior ou igual ao de abertura."
+
+msgid "Color used when the close value is less than the open value."
+msgstr "Cor usada quando o valor de fechamento é menor que o de abertura."
 
 #, fuzzy
 msgid ""
@@ -4673,7 +4715,7 @@ msgstr "Configurar aparência, cores e CSS personalizado do painel"
 msgid "Configure filter scopes"
 msgstr "Configurar os âmbitos de filtragem"
 
-msgid "Configure retry behavior on delivery failure."
+msgid "Configure retries when alert or report generation fails before delivery."
 msgstr ""
 
 msgid "Configure the basics of your Annotation Layer."
@@ -4748,6 +4790,9 @@ msgid "Connection failed, please check your connection settings."
 msgstr "Falha na conexão, por favor verificar suas configurações de conexão"
 
 msgid "Connection looks good!"
+msgstr ""
+
+msgid "Contact the report owner for error details."
 msgstr ""
 
 #, fuzzy
@@ -6535,6 +6580,9 @@ msgid ""
 "correctly first; this only changes how they are displayed."
 msgstr ""
 
+msgid "Display format"
+msgstr ""
+
 msgid "Display headers for each column at the top of the matrix"
 msgstr "Mostrar rótulos para cada coluna no topo da matriz"
 
@@ -8303,6 +8351,9 @@ msgstr ""
 "'região'), a cláusula de filtro aplicaria o filtro (departamento = "
 "'Finanças' OU departamento = 'Marketing') AND (região = 'Europa')."
 
+msgid "Financial"
+msgstr ""
+
 #, fuzzy
 msgid "Find"
 msgstr "em"
@@ -8862,8 +8913,14 @@ msgstr "Oculta a linha da série temporal"
 msgid "Hierarchy"
 msgstr "Hierarquia"
 
+msgid "High"
+msgstr ""
+
 msgid "High color"
 msgstr ""
+
+msgid "Highest value for each period."
+msgstr "Valor máximo de cada período."
 
 msgid "Histogram"
 msgstr "Histograma"
@@ -9678,6 +9735,12 @@ msgstr "Linha de rótulos"
 msgid "Label threshold"
 msgstr "Rótulo limite"
 
+msgid "Label used for decreasing candles in the tooltip."
+msgstr "Rótulo dos candles de baixa no tooltip."
+
+msgid "Label used for increasing candles in the tooltip."
+msgstr "Rótulo dos candles de alta no tooltip."
+
 msgid "Labelling"
 msgstr "Rotulagem"
 
@@ -10206,6 +10269,9 @@ msgstr "Longitude e Latitude"
 msgid "Longitude of default viewport"
 msgstr "Longitude da viewport padrão"
 
+msgid "Low"
+msgstr ""
+
 msgid "Low color"
 msgstr ""
 
@@ -10224,6 +10290,9 @@ msgstr ""
 #, fuzzy
 msgid "Lower threshold must be lower than upper threshold"
 msgstr "O limite inferior deve ser menor que o limite superior"
+
+msgid "Lowest value for each period."
+msgstr "Valor mínimo de cada período."
 
 msgid "MAR"
 msgstr "MAR"
@@ -10859,6 +10928,9 @@ msgstr ""
 msgid "Moves the given set of dates by a specified interval."
 msgstr "Move o conjunto de datas dado por um intervalo especificado."
 
+msgid "Moving averages"
+msgstr "Médias móveis"
+
 msgid "Multi-Dimensions"
 msgstr "Multidimensões"
 
@@ -10967,6 +11039,13 @@ msgstr "Nome dos nós de destino"
 #, fuzzy
 msgid "Name of your tag"
 msgstr "Nome do seu banco de dados"
+
+msgid ""
+"Name used for the candlestick series in the legend and tooltip when no "
+"series dimension is set."
+msgstr ""
+"Nome da série de candlestick na legenda e no tooltip quando nenhuma "
+"dimensão de série está definida."
 
 msgid "Name your database"
 msgstr "Nome do seu banco de dados"
@@ -11541,6 +11620,9 @@ msgstr "Informações básicas"
 msgid "OCT"
 msgstr "OUT"
 
+msgid "OHLC"
+msgstr "OHLC"
+
 msgid "OK"
 msgstr "OK"
 
@@ -11711,6 +11793,9 @@ msgstr ""
 msgid "Opacity, expects values between 0 and 100"
 msgstr "Opacidade, espera valores entre 0 e 100"
 
+msgid "Open"
+msgstr ""
+
 msgid "Open Datasource tab"
 msgstr "Abrir aba fonte de dados"
 
@@ -11747,6 +11832,9 @@ msgstr "Abrir no SQL Lab"
 msgid "Open query in SQL Lab"
 msgstr "Abrir consulta no SQL Lab"
 
+msgid "Opening value for each period."
+msgstr "Valor de abertura de cada período."
+
 msgid ""
 "Operate the database in asynchronous mode, meaning that the queries are "
 "executed on remote workers as opposed to on the web server itself. This "
@@ -11778,6 +11866,12 @@ msgstr "Cadeia de caracteres opcional de formato de data d3"
 
 msgid "Optional d3 number format string"
 msgstr "String opcional de formato de número d3"
+
+msgid ""
+"Optional dimension used to split the chart into multiple candlestick "
+"series."
+msgstr ""
+"Dimensão opcional para dividir o gráfico em várias séries de candlestick."
 
 msgid ""
 "Optional metric used to scale the size of each dot. Dot areas are scaled "
@@ -11905,6 +11999,13 @@ msgstr ""
 "Sobrepor um ou mais séries temporais de um período de tempo relativo. "
 "Espera deltas de tempo relativo em linguagem natural (exemplo: 24 horas, "
 "7 dias , 52 semanas , 365 dias). Livre texto é suportado."
+
+msgid ""
+"Overlay simple moving averages of the close price (MA5, MA10, MA15, ...)."
+" Type a custom period to add it."
+msgstr ""
+"Sobreponha médias móveis simples do preço de fechamento (MA5, MA10, MA15, "
+"...). Digite um período personalizado para adicioná-lo."
 
 msgid ""
 "Overlays a hexagonal grid on a map, and aggregates data within the "
@@ -12996,6 +13097,9 @@ msgstr "Recarregar"
 msgid "Reload SQL Lab"
 msgstr "Recarregar SQL Lab"
 
+msgid "Reload the page and try again to continue."
+msgstr ""
+
 msgid "Remove"
 msgstr "Remover"
 
@@ -13393,9 +13497,6 @@ msgstr ""
 msgid "Resume auto-refresh"
 msgstr "Definir intervalo da atualização automática"
 
-msgid "Retries are not supported for alerts"
-msgstr ""
-
 #, fuzzy
 msgid "Retry"
 msgstr "Criador"
@@ -13403,6 +13504,11 @@ msgstr "Criador"
 #, fuzzy
 msgid "Retry fetching results"
 msgstr "Recuperar resultados"
+
+msgid ""
+"Retry generation failures before delivery starts. Alerts re-check their "
+"condition on each attempt. Delivery failures are not replayed."
+msgstr ""
 
 msgid "Retrying"
 msgstr ""
@@ -13988,6 +14094,12 @@ msgstr "Escopo"
 msgid "Scoping"
 msgstr "Escopo"
 
+msgid "Screenshot cache is unavailable"
+msgstr ""
+
+msgid "Screenshot request is temporarily unavailable"
+msgstr ""
+
 msgid "Screenshot width"
 msgstr "Largura da captura de tela"
 
@@ -14115,6 +14227,9 @@ msgstr "Segurança Extra"
 
 msgid "Security"
 msgstr "Segurança"
+
+msgid "Security token error"
+msgstr ""
 
 #, fuzzy
 msgid "See "
@@ -14805,6 +14920,9 @@ msgstr "Estilo da série"
 msgid "Series chart type (line, bar etc)"
 msgstr "Tipo de Gráfico de série (linha , barra etc)"
 
+msgid "Series colors"
+msgstr "Cores da série"
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
 # lv, ro, ru, sk, sr, sr_Latn, tr, uk]
 #, fuzzy
@@ -14820,9 +14938,15 @@ msgstr "Configuração de aumento de série"
 msgid "Series limit"
 msgstr "Limite da série"
 
+msgid "Series name"
+msgstr "Nome da série"
+
 #, fuzzy
 msgid "Series settings"
 msgstr "Configurações de filtro"
+
+msgid "Series style"
+msgstr "Estilo da série"
 
 #, fuzzy
 msgid "Series total setting"
@@ -15174,6 +15298,9 @@ msgstr ""
 msgid "Show or hide the X axis line, ticks, and labels"
 msgstr ""
 
+msgid "Show or hide the Y axis line and labels"
+msgstr ""
+
 msgid "Show or hide the Y axis line, ticks, gridlines, and labels"
 msgstr ""
 
@@ -15495,9 +15622,6 @@ msgstr "Desculpe, ocorreu um erro"
 
 msgid "Sorry, an error occurred"
 msgstr "Desculpe, ocorreu um erro"
-
-msgid "Sorry, an unknown error occurred"
-msgstr "Desculpe, ocorreu um erro desconhecido"
 
 msgid "Sorry, an unknown error occurred."
 msgstr "Desculpe, ocorreu um erro desconhecido."
@@ -16360,6 +16484,9 @@ msgstr "O conjunto de dados vinculado a esse gráfico pode ter sido excluído."
 msgid "The API response from %s does not match the IDatabaseTable interface."
 msgstr "A resposta da API de %s não corresponde à interface IDatabaseTable."
 
+msgid "The CSRF token could not be validated."
+msgstr ""
+
 msgid ""
 "The CSS for individual dashboards can be altered here, or in the "
 "dashboard view where changes are immediately visible"
@@ -17177,6 +17304,13 @@ msgid "The query contains one or more malformed template parameters."
 msgstr "A consulta contém um ou mais parâmetros de modelo malformados."
 
 msgid "The query context datasource does not match the chart datasource"
+msgstr ""
+
+#, python-format
+msgid ""
+"The query context for chart ID %(chart_id)s (referenced by annotation "
+"layer '%(layer_name)s') was not found. Please ensure the chart is "
+"properly configured and has a valid query context."
 msgstr ""
 
 msgid "The query couldn't be loaded"
@@ -18432,9 +18566,10 @@ msgstr ""
 
 msgid ""
 "This update would change the connection's effective destination "
-"(host/port, engine parameters, or SSH tunnel endpoint) while reusing the "
-"stored credential. Provide the real password (or SSH tunnel credential) "
-"to confirm a connection move."
+"(host/port, engine parameters, SSH tunnel endpoint, or OAuth2 endpoint "
+"URIs) while reusing the stored credential. Provide the real password (or "
+"SSH tunnel credential / OAuth2 client secret) to confirm a connection "
+"move."
 msgstr ""
 
 msgid "This username is already taken. Please choose another one."
@@ -20205,6 +20340,15 @@ msgstr ""
 msgid "When checked, the map will zoom to your data after each query"
 msgstr "Quando marcada, o mapa será ampliado para seus dados após cada consulta"
 
+msgid ""
+"When enabled, increasing candles use the increase color and decreasing "
+"candles use the decrease color. Turn off to use one series color, with a "
+"filled body for increases and a hollow body for decreases."
+msgstr ""
+"Se ativado, os candles de alta usam a cor de alta e os de baixa a de "
+"baixa. Desative para usar uma única cor de série, com corpo preenchido nas "
+"altas e oco nas baixas."
+
 #, fuzzy
 msgid ""
 "When enabled, the axis will display labels for the minimum and maximum "
@@ -21093,7 +21237,18 @@ msgid ""
 "SUPERSET_DASHBOARD_POSITION_DATA_LIMIT config setting."
 msgstr ""
 
-msgid "Your export is being prepared. You'll receive an email when it's ready."
+msgid ""
+"Your export is being generated and will download automatically when "
+"ready. We'll also email you a download link."
+msgstr ""
+
+msgid "Your export is being generated. Please, do not leave the page."
+msgstr ""
+
+msgid "Your export is ready and downloading."
+msgstr ""
+
+msgid "Your export is taking longer than expected. Try again later."
 msgstr ""
 
 #, python-format
