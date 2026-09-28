@@ -1829,13 +1829,25 @@ _MAX_VERSION_HISTORY_RETENTION_DAYS: int = 36_500
 def _parse_version_history_retention_days() -> int:
     """Parse the retention window without making invalid input fatal."""
     value: str | None = os.environ.get("VERSION_HISTORY_RETENTION_DAYS")
+    legacy_value: str | None = os.environ.get("SUPERSET_VERSION_HISTORY_RETENTION_DAYS")
     legacy: bool = False
     if value is None:
-        value = os.environ.get("SUPERSET_VERSION_HISTORY_RETENTION_DAYS")
+        value = legacy_value
         legacy = value is not None
+    elif legacy_value is not None:
+        _warn_legacy_version_history_retention_days()
     if value is None:
         return _DEFAULT_VERSION_HISTORY_RETENTION_DAYS
     return _normalize_version_history_retention_days(value, legacy=legacy)
+
+
+def _warn_legacy_version_history_retention_days() -> None:
+    """Warn about a configured legacy key even when its value is ignored."""
+    logger.warning(
+        "SUPERSET_VERSION_HISTORY_RETENTION_DAYS is deprecated; "
+        "use VERSION_HISTORY_RETENTION_DAYS. "
+        "Legacy nonpositive values disable pruning."
+    )
 
 
 def _normalize_version_history_retention_days(value: object, *, legacy: bool) -> int:
@@ -1853,11 +1865,7 @@ def _normalize_version_history_retention_days(value: object, *, legacy: bool) ->
         logger.warning("Invalid %s=%r; skipping pruning", name, value)
         return 0
     if legacy:
-        logger.warning(
-            "%s is deprecated; use VERSION_HISTORY_RETENTION_DAYS. "
-            "Legacy nonpositive values disable pruning.",
-            name,
-        )
+        _warn_legacy_version_history_retention_days()
         if retention_days <= 0:
             return 0
     if retention_days < -1:
@@ -1873,8 +1881,9 @@ def _normalize_version_history_retention_days(value: object, *, legacy: bool) ->
         return 0
     if retention_days == -1:
         logger.warning(
-            "VERSION_HISTORY_RETENTION_DAYS=-1 makes history eligible for "
-            "immediate pruning on the next scheduled run; use 0 to disable"
+            "%s=-1 makes history eligible for "
+            "immediate pruning on the next scheduled run; use 0 to disable",
+            name,
         )
     return retention_days
 
@@ -1913,13 +1922,16 @@ def _resolve_version_history_retention_days(
         if canonical is _MISSING_RETENTION
         else _normalize_version_history_retention_days(canonical, legacy=False)
     )
-    if legacy is _MISSING_RETENTION or "VERSION_HISTORY_RETENTION_DAYS" in os.environ:
+    if legacy is _MISSING_RETENTION:
+        return canonical_days
+    if "VERSION_HISTORY_RETENTION_DAYS" in os.environ or (
+        canonical is not _MISSING_RETENTION and canonical_days != seed
+    ):
+        _warn_legacy_version_history_retention_days()
         return canonical_days
     legacy_days: int = _normalize_version_history_retention_days(legacy, legacy=True)
     if canonical is _MISSING_RETENTION:
         return legacy_days
-    if canonical_days != seed:
-        return canonical_days
     # A star-imported default is indistinguishable from an explicit same-value
     # override. Keep the non-destructive interpretation when the old key differs.
     return 0 if 0 in (canonical_days, legacy_days) else max(canonical_days, legacy_days)

@@ -168,7 +168,66 @@ def test_explicit_immediate_history_retention_warns(
 
     monkeypatch.setenv("VERSION_HISTORY_RETENTION_DAYS", "-1")
     assert config._parse_version_history_retention_days() == -1
-    assert "immediate pruning" in caplog.text
+    assert "VERSION_HISTORY_RETENTION_DAYS=-1 makes history eligible" in caplog.text
+
+
+def test_legacy_immediate_history_retention_disables_without_immediate_warning(
+    monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
+    """The released legacy -1 value disables pruning instead of requesting it."""
+    from superset import config
+
+    monkeypatch.delenv("VERSION_HISTORY_RETENTION_DAYS", raising=False)
+    monkeypatch.setenv("SUPERSET_VERSION_HISTORY_RETENTION_DAYS", "-1")
+    assert config._parse_version_history_retention_days() == 0
+    assert "SUPERSET_VERSION_HISTORY_RETENTION_DAYS is deprecated" in caplog.text
+    assert "immediate pruning" not in caplog.text
+
+
+@pytest.mark.parametrize("legacy", ["180", "-1", "bad"])
+def test_ignored_legacy_retention_env_warns_without_normalizing(
+    monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
+    legacy: str,
+) -> None:
+    """Ignored legacy input warns about migration without claiming pruning stops."""
+    from superset import config
+
+    monkeypatch.setenv("VERSION_HISTORY_RETENTION_DAYS", "365")
+    monkeypatch.setenv("SUPERSET_VERSION_HISTORY_RETENTION_DAYS", legacy)
+    assert config._parse_version_history_retention_days() == 365
+    assert "SUPERSET_VERSION_HISTORY_RETENTION_DAYS is deprecated" in caplog.text
+    assert "skipping pruning" not in caplog.text
+    assert "immediate pruning" not in caplog.text
+
+
+@pytest.mark.parametrize("canonical_env", [False, True])
+@pytest.mark.parametrize("legacy", ["180", "bad"])
+def test_ignored_legacy_retention_config_warns_when_canonical_wins(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    caplog: pytest.LogCaptureFixture,
+    canonical_env: bool,
+    legacy: str,
+) -> None:
+    """Both configured keys produce a deprecation warning even when env wins."""
+    from superset import config
+
+    config_file: Path = tmp_path / "superset_config.py"
+    config_file.write_text(
+        "VERSION_HISTORY_RETENTION_DAYS = 365\n"
+        f"SUPERSET_VERSION_HISTORY_RETENTION_DAYS = {legacy!r}\n"
+    )
+    monkeypatch.setenv("SUPERSET_CONFIG_PATH", str(config_file))
+    monkeypatch.delenv("SUPERSET_VERSION_HISTORY_RETENTION_DAYS", raising=False)
+    if canonical_env:
+        monkeypatch.setenv("VERSION_HISTORY_RETENTION_DAYS", "7")
+    else:
+        monkeypatch.delenv("VERSION_HISTORY_RETENTION_DAYS", raising=False)
+    loaded: dict[str, Any] = runpy.run_path(config.__file__)
+    assert loaded["VERSION_HISTORY_RETENTION_DAYS"] == 365
+    assert "SUPERSET_VERSION_HISTORY_RETENTION_DAYS is deprecated" in caplog.text
+    assert "skipping pruning" not in caplog.text
 
 
 @pytest.mark.parametrize(
