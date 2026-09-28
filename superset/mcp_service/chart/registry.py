@@ -224,6 +224,12 @@ def get(chart_type: str, *, include_disabled: bool = False) -> "ChartTypePlugin 
     return _REGISTRY[chart_type]
 
 
+def all_plugins() -> list["ChartTypePlugin"]:
+    """Return every registered plugin, enabled or not, in insertion order."""
+    _ensure_plugins_loaded()
+    return list(_REGISTRY.values())
+
+
 def all_types() -> list[str]:
     """Return enabled registered chart type strings in insertion order."""
     _ensure_plugins_loaded()
@@ -314,9 +320,7 @@ class _RegistryProxy:
         return plugin_for_viz_type(viz_type)
 
     def all_plugins(self) -> list["ChartTypePlugin"]:
-        """Return every registered plugin, enabled or not, in insertion order."""
-        _ensure_plugins_loaded()
-        return list(_REGISTRY.values())
+        return all_plugins()
 
 
 _PROXY = _RegistryProxy()

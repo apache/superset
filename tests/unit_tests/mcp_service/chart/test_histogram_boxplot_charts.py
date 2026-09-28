@@ -22,9 +22,12 @@ contracts for viz_type ``histogram_v2`` and ``box_plot``), and registry
 integration.
 """
 
+from unittest.mock import patch
+
 import pytest
 from pydantic import TypeAdapter, ValidationError
 
+from superset.mcp_service.chart import chart_helpers
 from superset.mcp_service.chart.chart_utils import (
     map_box_plot_config,
     map_histogram_config,
@@ -491,10 +494,6 @@ def test_histogram_query_matches_frontend_build_query(
     adhoc_filters: list[dict[str, str]], expected_metrics: list[dict[str, str]]
 ) -> None:
     """Histogram queries select the binned column and apply histogramOperator."""
-    from unittest.mock import patch
-
-    from superset.mcp_service.chart import chart_helpers
-
     form_data = {
         "viz_type": "histogram_v2",
         "datasource": "1__table",
@@ -504,8 +503,9 @@ def test_histogram_query_matches_frontend_build_query(
         "normalize": True,
         "adhoc_filters": adhoc_filters,
     }
-    with patch.object(
-        chart_helpers, "resolve_datasource_engine", return_value="sqlite"
+    with patch(
+        "superset.mcp_service.chart.chart_helpers.resolve_datasource_engine",
+        return_value="sqlite",
     ):
         queries = chart_helpers.build_query_dicts_from_form_data(form_data, 1, "table")
 
