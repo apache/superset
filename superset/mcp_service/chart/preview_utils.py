@@ -1257,6 +1257,53 @@ def generate_bubble_vega_lite_preview(
     )
 
 
+def unsupported_vega_geometry(viz_type: str) -> ChartError | None:
+    """Reject native geometries the Vega-Lite adapter cannot represent."""
+    if viz_type not in {"sankey", "sankey_v2", "radar"}:
+        return None
+    return ChartError(
+        error=(
+            f"Vega-Lite previews do not support {viz_type} geometry. "
+            "Use Explore for the native visualization or ASCII/table for data."
+        ),
+        error_type="UnsupportedFormat",
+    )
+
+
+def generate_funnel_vega_lite_preview(
+    data: list[dict[str, Any]], form_data: dict[str, Any]
+) -> VegaLitePreview | ChartError:
+    """Render funnel stages as horizontal value bars, preserving query order."""
+    from superset.utils.core import get_column_name
+
+    groupby = form_data.get("groupby") or []
+    metric = metric_result_label(form_data.get("metric"))
+    if not groupby or not metric:
+        return ChartError(
+            error="Funnel requires a stage and metric", error_type="InvalidFormData"
+        )
+    stage = get_column_name(groupby[0])
+    return VegaLitePreview(
+        type="vega_lite",
+        specification={
+            "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+            "data": {"values": data},
+            "mark": "bar",
+            "width": "container",
+            "height": 400,
+            "encoding": {
+                "y": {"field": stage, "type": "nominal", "sort": None},
+                "x": {"field": metric, "type": "quantitative"},
+                "tooltip": [
+                    {"field": stage, "type": "nominal"},
+                    {"field": metric, "type": "quantitative"},
+                ],
+            },
+        },
+        supports_streaming=False,
+    )
+
+
 def generate_histogram_vega_lite_preview(
     data: list[dict[str, Any]], form_data: dict[str, Any]
 ) -> VegaLitePreview:
@@ -1314,6 +1361,11 @@ def _generate_vega_lite_preview_from_data(  # noqa: C901
 
     if viz_type == "histogram_v2":
         return generate_histogram_vega_lite_preview(data, form_data)
+
+    if unsupported := unsupported_vega_geometry(viz_type):
+        return unsupported
+    if viz_type == "funnel":
+        return generate_funnel_vega_lite_preview(data, form_data)
 
     # Map Superset viz types to Vega-Lite marks
     viz_to_mark = {

@@ -289,3 +289,25 @@ def test_histogram_preview_uses_postprocessed_bins() -> None:
     assert "bin" not in encoding["x"]
     assert encoding["y"]["field"] == "value"
     assert "aggregate" not in encoding["y"]
+
+
+@pytest.mark.parametrize("viz_type", ["sankey_v2", "radar"])
+def test_vega_preview_rejects_unsupported_native_geometry(viz_type: str) -> None:
+    """Unsupported geometry must not silently become an unrelated scatter plot."""
+    result = preview_utils._generate_vega_lite_preview_from_data(
+        [{"source": "A", "target": "B", "value": 10}], {"viz_type": viz_type}
+    )
+    assert result.error_type == "UnsupportedFormat"
+    assert "Explore" in result.error
+
+
+def test_funnel_preview_binds_stage_and_metric() -> None:
+    """A funnel preview must encode its stages and values rather than a scatter."""
+    result = preview_utils._generate_vega_lite_preview_from_data(
+        [{"stage": "Won", "SUM(value)": 10}],
+        {"viz_type": "funnel", "groupby": ["stage"], "metric": "SUM(value)"},
+    )
+    spec = result.specification
+    assert spec["mark"] == "bar"
+    assert spec["encoding"]["y"]["field"] == "stage"
+    assert spec["encoding"]["x"]["field"] == "SUM(value)"

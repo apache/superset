@@ -43,9 +43,11 @@ from superset.mcp_service.chart.preview_utils import (
     _generate_gantt_vega_lite_preview,
     BUBBLE_VIZ_TYPES,
     generate_bubble_vega_lite_preview,
+    generate_funnel_vega_lite_preview,
     generate_gauge_ascii_preview,
     generate_gauge_vega_lite_preview,
     generate_histogram_vega_lite_preview,
+    unsupported_vega_geometry,
 )
 from superset.mcp_service.chart.query_result import (
     normalize_chart_query_result,
@@ -535,6 +537,11 @@ class VegaLitePreviewStrategy(PreviewFormatStrategy):
 
             if viz_type == "histogram_v2":
                 return generate_histogram_vega_lite_preview(chart_data, form_data)
+
+            if unsupported := unsupported_vega_geometry(viz_type or ""):
+                return unsupported
+            if viz_type == "funnel":
+                return generate_funnel_vega_lite_preview(chart_data, form_data)
 
             # Convert Superset chart type to Vega-Lite specification
             vega_spec = self._create_vega_lite_spec(chart_data)
