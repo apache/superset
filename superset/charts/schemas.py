@@ -1667,6 +1667,8 @@ class ChartDataQueryObjectSchema(Schema):
 
 
 class ChartDataStopSchema(Schema):
+    """Request body for POST /api/v1/chart/data/stop."""
+
     client_id = fields.String(
         required=True,
         validate=Length(min=1, max=64),
