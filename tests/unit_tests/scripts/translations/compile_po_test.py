@@ -58,6 +58,25 @@ def test_resolve_node_entry_dict_bin(tmp_path: Path) -> None:
     assert resolved == str(entry)
 
 
+def test_resolve_node_entry_scoped_package(tmp_path: Path) -> None:
+    """A scoped package (e.g. ``@hainenber/po2json``) is looked up under its
+    own two-segment ``node_modules`` path, with the bin key coming from
+    ``bin_name`` (the unscoped installed binary name) rather than the full
+    scoped package name -- regression for the actual installed package."""
+    pkg_dir = tmp_path / "node_modules" / "@hainenber" / "po2json"
+    pkg_dir.mkdir(parents=True)
+    (pkg_dir / "package.json").write_text(
+        json.dumps({"bin": {"po2json": "bin/po2json"}})
+    )
+    (pkg_dir / "bin").mkdir()
+    entry = pkg_dir / "bin" / "po2json"
+    entry.touch()
+
+    with patch.object(compile_po, "FRONTEND_DIR", str(tmp_path)):
+        resolved = compile_po.resolve_node_entry("@hainenber/po2json", "po2json")
+    assert resolved == str(entry)
+
+
 def test_resolve_node_entry_string_bin(tmp_path: Path) -> None:
     """A plain string "bin" field (single-command package shorthand) resolves too."""
     pkg_dir = tmp_path / "node_modules" / "oxfmt"

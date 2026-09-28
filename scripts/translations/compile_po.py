@@ -50,21 +50,29 @@ FRONTEND_DIR = os.path.join(ROOT_DIR, "superset-frontend")
 TRANSLATIONS_DIR = os.path.join(ROOT_DIR, "superset", "translations")
 
 
-def resolve_node_entry(package: str) -> str | None:
+def resolve_node_entry(package: str, bin_name: str | None = None) -> str | None:
     """Resolve an installed npm package's CLI entry point.
 
     Reads the entry path out of the package's own ``package.json`` "bin"
     field instead of guessing at the ``node_modules/.bin`` wrapper's shape,
     so the result can always be run via ``node <entry>`` directly.
+
+    ``package`` is the npm package name -- e.g. ``@hainenber/po2json`` --
+    which may be scoped and so span two ``node_modules`` path segments.
+    ``bin_name`` is the key under the package's "bin" field (the installed
+    binary name, which for a scoped package is just its unscoped last
+    segment, e.g. ``po2json``); it defaults to ``package`` itself for
+    unscoped packages whose bin name matches the package name.
     """
-    pkg_dir = os.path.join(FRONTEND_DIR, "node_modules", package)
+    pkg_dir = os.path.join(FRONTEND_DIR, "node_modules", *package.split("/"))
     manifest_path = os.path.join(pkg_dir, "package.json")
     if not os.path.isfile(manifest_path):
         return None
     with open(manifest_path, encoding="utf-8") as f:
         manifest = json.load(f)
     bin_field = manifest.get("bin")
-    rel_entry = bin_field.get(package) if isinstance(bin_field, dict) else bin_field
+    key = bin_name or package
+    rel_entry = bin_field.get(key) if isinstance(bin_field, dict) else bin_field
     if not rel_entry:
         return None
     entry_path = os.path.join(pkg_dir, rel_entry)
@@ -112,7 +120,7 @@ def main() -> int:
         print("ERROR: node not found in PATH.", file=sys.stderr)
         return 1
 
-    po2json_entry = resolve_node_entry("po2json")
+    po2json_entry = resolve_node_entry("@hainenber/po2json", "po2json")
     oxfmt_entry = resolve_node_entry("oxfmt")
     if not po2json_entry or not oxfmt_entry:
         print(
