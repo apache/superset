@@ -1584,15 +1584,19 @@ EXCEL_EXPORT: dict[str, Any] = {}
 
 
 # ---------------------------------------------------
-# Dashboard "Export Data to Excel" (async, object-storage-backed)
+# Dashboard "Export Data to Excel"
 # ---------------------------------------------------
+# When EXPORT_STORAGE has both a bucket and a backend and CELERY_CONFIG is set,
+# dashboard .xlsx exports run in the background and are delivered by a
+# download link. Otherwise, eligible data exports are returned directly to the
+# browser.
 class ExportStorageConfig(TypedDict, total=False):
     """Where generated export artifacts (dashboard Excel exports, and
     potentially other export file types) are uploaded, and how the download
     endpoint streams them back. See EXPORT_STORAGE."""
 
-    # Destination bucket for generated export artifacts. The export feature is
-    # disabled until this is set: the export endpoint returns 501 while absent.
+    # Destination bucket for generated export artifacts. Background exports
+    # stay disabled until this and ``backend`` are set.
     bucket: str
     # Key/blob prefix for export objects: {prefix}{dashboard_id}/{job_id}.xlsx
     # A callable is invoked per export, inside the worker task (no request
@@ -1603,8 +1607,8 @@ class ExportStorageConfig(TypedDict, total=False):
     # The storage backend (an instance implementing
     # superset.utils.export_storage.ExportStorage), the same pattern as
     # RESULTS_BACKEND or CUSTOM_SECURITY_MANAGER. There is no implicit
-    # default; the feature is disabled (the export endpoint returns 501)
-    # until one is set explicitly, matching the bucket's provider:
+    # default; background exports stay disabled until one is set
+    # explicitly, matching the bucket's provider:
     #   from superset.utils.s3 import S3ExportStorage      # AWS S3
     #   from superset.utils.gcs import GCSExportStorage    # Google Cloud Storage
     #   EXPORT_STORAGE["backend"] = S3ExportStorage()
@@ -1629,18 +1633,14 @@ EXCEL_EXPORT_LINK_TTL_SECONDS = 86400
 # a rendered image. Set to None to fall back to the built-in default.
 EXCEL_EXPORT_TABLE_VIZ_TYPES: set[str] | None = None
 
-# Optional hook to build a query context for a chart that has no saved
-# ``query_context``, called before the built-in form-data rebuild. Receives the
-# chart's form data (its ``params`` with ``viz_type`` and the
-# ``datasource="{id}__{type}"`` string injected — i.e. ``Slice.form_data``) and
-# returns a query-context payload dict (the shape ``ChartDataQueryContextSchema``
-# loads) or ``None``. A deployment can point this at a service that runs the
-# chart's real frontend ``buildQuery`` (faithful post-processing / multi-query)
-# for viz types the built-in rebuild can't handle. Must return ``None`` — not a
-# partial/stub context — whenever it cannot build the chart faithfully, so the
-# export falls through to the built-in rebuild. The export deep-copies whatever
-# it returns before applying dashboard filters, so a builder is free to memoize
-# or share its payloads. Defaults to ``None`` (built-in behavior only).
+# Maximum combined query ``row_limit`` for a direct download. Queries without a
+# limit use ``ROW_LIMIT``. Keep this within the request timeout.
+EXCEL_EXPORT_SYNC_MAX_ROWS = 100_000
+
+# Optional query-context builder for charts without a saved ``query_context``.
+# It receives ``Slice.form_data`` and returns a payload accepted by
+# ``ChartDataQueryContextSchema``, or ``None`` to use the built-in rebuild.
+# Superset copies returned payloads before applying dashboard filters.
 EXCEL_EXPORT_QUERY_CONTEXT_BUILDER: (
     Callable[[dict[str, Any]], dict[str, Any] | None] | None
 ) = None

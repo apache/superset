@@ -366,15 +366,11 @@ playwright-run() {
       return 0
     fi
     echo "Running tests: ${TEST_PATHS[*]}"
-    # Set INCLUDE_EXPERIMENTAL=true to allow experimental tests to run
-    export INCLUDE_EXPERIMENTAL=true
     # shellcheck disable=SC2086
     npx playwright test "${TEST_PATHS[@]}" --output=playwright-results ${PLAYWRIGHT_EXTRA_ARGS:-}
     local status=$?
-    # Unset to prevent leaking into subsequent commands
-    unset INCLUDE_EXPERIMENTAL
   else
-    echo "Running all required tests (experimental/ excluded via playwright.config.ts)"
+    echo "Running all default-project tests"
     npx playwright test --output=playwright-results
     local status=$?
   fi

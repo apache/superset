@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Apache Superset 0.22.1\n"
 "Report-Msgid-Bugs-To: bestlong168@gmail.com\n"
-"POT-Creation-Date: 2026-09-23 12:43+0200\n"
+"POT-Creation-Date: 2026-09-24 10:35+0300\n"
 "PO-Revision-Date: 2019-01-04 22:19+0800\n"
 "Last-Translator: Shao Yu-Lung <bestlong168@gmail.com>\n"
 "Language: zh_TW\n"
@@ -1045,6 +1045,12 @@ msgid ""
 "A butterfly chart compares two metrics across categories using horizontal"
 " bars that extend left and right from a central axis."
 msgstr ""
+
+msgid ""
+"A candlestick chart shows opening, closing, high, and low values for each"
+" period. It is commonly used for financial and other time-series range "
+"analysis."
+msgstr "K線圖顯示每個週期的開盤、收盤、最高和最低值。常用於金融及其他時間序列區間分析。"
 
 #, fuzzy
 msgid "A comma separated list of columns that should be parsed as dates"
@@ -3424,6 +3430,17 @@ msgstr "當窗口關闭時取消查詢"
 msgid "Cancellation not available due to missing abort handler"
 msgstr "由於缺少中止處理器，無法取消"
 
+msgid "Candlestick"
+msgstr "K線"
+
+msgid "Candlestick Chart"
+msgstr "K線圖"
+
+msgid ""
+"Candlestick draws a filled body between open and close. OHLC draws ticks "
+"for open and close on a high-low stem."
+msgstr "K線在開盤和收盤之間繪製實心實體。開高低收在最高-最低軸上繪製開盤和收盤刻度。"
+
 msgid "Cannot access the query"
 msgstr "無法訪問查詢"
 
@@ -3897,6 +3914,13 @@ msgstr "圖表無法删除。"
 msgid "Chart width"
 msgstr "圖表寬度"
 
+#, python-format
+msgid ""
+"Chart with ID %(chart_id)s (referenced by annotation layer "
+"'%(layer_name)s') was not found. Please verify that the chart exists and "
+"is accessible."
+msgstr ""
+
 msgid "Charts"
 msgstr "圖表"
 
@@ -4259,6 +4283,9 @@ msgstr "關闭選項卡"
 msgid "Close version history"
 msgstr ""
 
+msgid "Closing value for each period."
+msgstr "每個週期的收盤值。"
+
 msgid "Cluster label aggregator"
 msgstr "聚類標籤聚合器"
 
@@ -4355,6 +4382,9 @@ msgstr "桶分割點"
 msgid "Color by"
 msgstr "颜色"
 
+msgid "Color by direction"
+msgstr "依漲跌著色"
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
 #, fuzzy
@@ -4384,6 +4414,14 @@ msgstr "目標位置的颜色"
 
 msgid "Color scheme"
 msgstr "配色方案"
+
+msgid ""
+"Color used when the close value is greater than or equal to the open "
+"value."
+msgstr "收盤值大於或等於開盤值時使用的顏色。"
+
+msgid "Color used when the close value is less than the open value."
+msgstr "收盤值小於開盤值時使用的顏色。"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, ro, ru, sk, sl, sr, sr_Latn, tr, uk]
@@ -8387,6 +8425,9 @@ msgstr ""
 "'department')，其中一個表示欧洲地區(group key = 'region')，filter子句將應用過濾 (department "
 "= 'Finance' OR department = 'Marketing') 和 (region = 'Europe')"
 
+msgid "Financial"
+msgstr ""
+
 #, fuzzy
 msgid "Find"
 msgstr "查找"
@@ -8947,8 +8988,14 @@ msgstr "隐藏時間系列的線"
 msgid "Hierarchy"
 msgstr "層次"
 
+msgid "High"
+msgstr ""
+
 msgid "High color"
 msgstr ""
+
+msgid "Highest value for each period."
+msgstr "每個週期的最高值。"
 
 msgid "Histogram"
 msgstr "直方圖"
@@ -9766,6 +9813,12 @@ msgstr "標籤線"
 msgid "Label threshold"
 msgstr "標籤閥值"
 
+msgid "Label used for decreasing candles in the tooltip."
+msgstr "工具提示中下跌K線使用的標籤。"
+
+msgid "Label used for increasing candles in the tooltip."
+msgstr "工具提示中上漲K線使用的標籤。"
+
 msgid "Labelling"
 msgstr "標籤"
 
@@ -10303,6 +10356,9 @@ msgstr "經度/緯度"
 msgid "Longitude of default viewport"
 msgstr "預設視口經度"
 
+msgid "Low"
+msgstr ""
+
 msgid "Low color"
 msgstr ""
 
@@ -10317,6 +10373,9 @@ msgstr ""
 
 msgid "Lower threshold must be lower than upper threshold"
 msgstr "閥值下限必須比閥值上限小"
+
+msgid "Lowest value for each period."
+msgstr "每個週期的最低值。"
 
 msgid "MAR"
 msgstr "三月"
@@ -10996,6 +11055,9 @@ msgstr ""
 msgid "Moves the given set of dates by a specified interval."
 msgstr "將給定的日期集以指定的間隔進行移動"
 
+msgid "Moving averages"
+msgstr "移動平均線"
+
 msgid "Multi-Dimensions"
 msgstr "多维度"
 
@@ -11112,6 +11174,11 @@ msgstr "目標節點名稱"
 #, fuzzy
 msgid "Name of your tag"
 msgstr "標籤的名稱"
+
+msgid ""
+"Name used for the candlestick series in the legend and tooltip when no "
+"series dimension is set."
+msgstr "未設定系列維度時，圖例和工具提示中使用的K線系列名稱。"
 
 msgid "Name your database"
 msgstr "資料庫名稱"
@@ -11707,6 +11774,9 @@ msgstr "基本情况"
 msgid "OCT"
 msgstr "十月"
 
+msgid "OHLC"
+msgstr "開高低收"
+
 msgid "OK"
 msgstr "確認"
 
@@ -11873,6 +11943,9 @@ msgstr "氣泡的不透明度，0 表示完全透明，1 表示不透明"
 msgid "Opacity, expects values between 0 and 100"
 msgstr "不透明度，期望值介於 0 到 100 之間"
 
+msgid "Open"
+msgstr ""
+
 msgid "Open Datasource tab"
 msgstr "打開數據源 tab"
 
@@ -11909,6 +11982,9 @@ msgstr "在 SQL 工具箱中打開"
 msgid "Open query in SQL Lab"
 msgstr "在 SQL 工具箱中打開查詢"
 
+msgid "Opening value for each period."
+msgstr "每個週期的開盤值。"
+
 msgid ""
 "Operate the database in asynchronous mode, meaning that the queries are "
 "executed on remote workers as opposed to on the web server itself. This "
@@ -11937,6 +12013,11 @@ msgstr "條件格式設定"
 #, fuzzy
 msgid "Optional d3 number format string"
 msgstr "條件格式設定"
+
+msgid ""
+"Optional dimension used to split the chart into multiple candlestick "
+"series."
+msgstr "可選維度，用來將圖表拆成多個 K線系列。"
 
 msgid ""
 "Optional metric used to scale the size of each dot. Dot areas are scaled "
@@ -12056,6 +12137,11 @@ msgid ""
 "the comparison time range by the same length as your time range and use "
 "\"Custom\" to set a custom comparison range."
 msgstr "從相對時間段覆盖一個或多個時間序列。期望自然語言中的相對時間增量（例如：24小時、7天、56週、365天）"
+
+msgid ""
+"Overlay simple moving averages of the close price (MA5, MA10, MA15, ...)."
+" Type a custom period to add it."
+msgstr "疊加收盤價的簡單移動平均（MA5、MA10、MA15 等）。輸入自訂週期即可新增。"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -14975,6 +15061,9 @@ msgstr "系列樣式"
 msgid "Series chart type (line, bar etc)"
 msgstr "系列圖表類型(折線，柱狀圖等)"
 
+msgid "Series colors"
+msgstr "系列顏色"
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
 # lv, ro, ru, sk, sr, sr_Latn, tr, uk]
 #, fuzzy
@@ -14990,9 +15079,15 @@ msgstr "系列遞增設定"
 msgid "Series limit"
 msgstr "系列限制"
 
+msgid "Series name"
+msgstr "系列名稱"
+
 #, fuzzy
 msgid "Series settings"
 msgstr "過濾器設定"
+
+msgid "Series style"
+msgstr "系列樣式"
 
 #, fuzzy
 msgid "Series total setting"
@@ -15356,6 +15451,9 @@ msgid ""
 msgstr ""
 
 msgid "Show or hide the X axis line, ticks, and labels"
+msgstr ""
+
+msgid "Show or hide the Y axis line and labels"
 msgstr ""
 
 msgid "Show or hide the Y axis line, ticks, gridlines, and labels"
@@ -17316,6 +17414,13 @@ msgid "The query contains one or more malformed template parameters."
 msgstr "該查詢包含一個或多個格式不正確的模板参數。"
 
 msgid "The query context datasource does not match the chart datasource"
+msgstr ""
+
+#, python-format
+msgid ""
+"The query context for chart ID %(chart_id)s (referenced by annotation "
+"layer '%(layer_name)s') was not found. Please ensure the chart is "
+"properly configured and has a valid query context."
 msgstr ""
 
 msgid "The query couldn't be loaded"
@@ -20287,6 +20392,12 @@ msgstr "當提供次計量指標時，會使用線性色階。"
 msgid "When checked, the map will zoom to your data after each query"
 msgstr "勾選後，每次查詢後地圖將自動縮放至您的數據範圍"
 
+msgid ""
+"When enabled, increasing candles use the increase color and decreasing "
+"candles use the decrease color. Turn off to use one series color, with a "
+"filled body for increases and a hollow body for decreases."
+msgstr "啟用後，上漲K線使用上漲色，下跌K線使用下跌色。關閉則使用單一系列顏色：上漲為實心實體，下跌為空心實體。"
+
 #, fuzzy
 msgid ""
 "When enabled, the axis will display labels for the minimum and maximum "
@@ -21158,7 +21269,18 @@ msgid ""
 "SUPERSET_DASHBOARD_POSITION_DATA_LIMIT config setting."
 msgstr ""
 
-msgid "Your export is being prepared. You'll receive an email when it's ready."
+msgid ""
+"Your export is being generated and will download automatically when "
+"ready. We'll also email you a download link."
+msgstr ""
+
+msgid "Your export is being generated. Please, do not leave the page."
+msgstr ""
+
+msgid "Your export is ready and downloading."
+msgstr ""
+
+msgid "Your export is taking longer than expected. Try again later."
 msgstr ""
 
 #, python-format
