@@ -135,3 +135,16 @@ test('getFormData should include persisted time_grains for time grain filters', 
 
   expect((formData as any).time_grains).toEqual(['PT1H', 'P1D', 'P1W']);
 });
+
+test('getFormData passes controlValues.displayFormat through to the filter plugin formData', () => {
+  const formData = getFormData({
+    dashboardId: 10,
+    id: 'NATIVE_FILTER-1',
+    filterType: 'filter_time',
+    type: 'NATIVE_FILTER' as any,
+    controlValues: { displayFormat: '%d-%m-%Y' },
+    defaultDataMask: {},
+  });
+
+  expect((formData as any).displayFormat).toBe('%d-%m-%Y');
+});

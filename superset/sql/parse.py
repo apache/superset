@@ -51,6 +51,7 @@ from sqlglot.optimizer.scope import (
 
 from superset.exceptions import QueryClauseValidationException, SupersetParseError
 from superset.sql.dialects import (
+    Databend,
     DB2,
     Dremio,
     Firebolt,
@@ -118,7 +119,7 @@ SQLGLOT_DIALECTS = {
     "cockroachdb": Dialects.POSTGRES,
     "couchbase": Dialects.MYSQL,
     # "crate": ???
-    # "databend": ???
+    "databend": Databend,
     "databricks": Dialects.DATABRICKS,
     "db2": DB2,
     # "denodo": ???
@@ -231,7 +232,9 @@ def folds_unquoted_object_names(engine: str) -> bool:
     return strategy is not NormalizationStrategy.CASE_SENSITIVE
 
 
-def has_aggregate(expression: str, engine: str = "base") -> bool:
+def has_aggregate(
+    expression: str, engine: str = "base", fail_open: bool = True
+) -> bool:
     """
     Return True if the SQL expression contains an aggregate function, ignoring
     only an aggregate that is *itself* windowed (``SUM(x) OVER (...)``), which
@@ -243,14 +246,20 @@ def has_aggregate(expression: str, engine: str = "base") -> bool:
     aggregate inside a scalar subquery still counts, and it fails open (returns
     True) on a parse error or an unmodelled function (``exp.Anonymous``) that
     might itself be an aggregate.
+
+    :param fail_open: what an undecidable expression returns. True (the default)
+        suits a caller rejecting non-aggregates, which must not block a query it
+        could not parse. Callers that instead grant something to an aggregate --
+        such as sizing a query by the rows it collapses to -- pass False, so an
+        expression that cannot be proven to aggregate is not treated as one.
     """
     dialect = SQLGLOT_DIALECTS.get(engine)
     try:
         parsed = sqlglot.parse_one(f"SELECT {expression}", dialect=dialect)
     except Exception:
-        return True
+        return fail_open
     if parsed.find(exp.Anonymous):
-        return True
+        return fail_open
     return any(
         not isinstance(agg.parent, exp.Window) for agg in parsed.find_all(exp.AggFunc)
     )
@@ -653,6 +662,15 @@ class BaseSQLStatement(Generic[InternalRepresentation]):
 
         :param functions: List of functions to check for
         :return: True if any of the functions are present
+        """
+        return bool(self.get_disallowed_functions(functions))
+
+    def get_disallowed_functions(self, functions: set[str]) -> set[str]:
+        """
+        Return the subset of ``functions`` referenced by this statement.
+
+        :param functions: Set of function names to check for
+        :return: The matched entries, in their original denylist form
         """
         raise NotImplementedError()
 
@@ -1436,12 +1454,12 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
 
         return SQLStatement(ast=optimized, engine=self.engine)
 
-    def check_functions_present(self, functions: set[str]) -> bool:
+    def get_disallowed_functions(self, functions: set[str]) -> set[str]:
         """
-        Check if any of the given functions are present in the script.
+        Return the subset of ``functions`` referenced by this statement.
 
-        :param functions: List of functions to check for
-        :return: True if any of the functions are present
+        :param functions: Set of function names to check for
+        :return: The matched entries, in their original denylist form
         """
         # Build the set of SQL-level function names present in the AST. For
         # Anonymous nodes the name is stored directly; for named Func nodes we
@@ -1479,7 +1497,7 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
         for param in self._parsed.find_all(exp.SessionParameter):
             present.add(param.name.upper())
 
-        return any(function.upper() in present for function in functions)
+        return {function for function in functions if function.upper() in present}
 
     def check_tables_present(
         self, tables: set[str], default_schema: str | None = None
@@ -2278,15 +2296,15 @@ class KustoKQLStatement(BaseSQLStatement[str]):
         """
         return KustoKQLStatement(ast=self._parsed, engine=self.engine)
 
-    def check_functions_present(self, functions: set[str]) -> bool:
+    def get_disallowed_functions(self, functions: set[str]) -> set[str]:
         """
-        Check if any of the given functions are present in the script.
+        Return the subset of ``functions`` referenced by this statement.
 
-        :param functions: List of functions to check for
-        :return: True if any of the functions are present
+        :param functions: Set of function names to check for
+        :return: The matched entries, in their original denylist form
         """
         logger.warning("Kusto KQL doesn't support checking for functions present.")
-        return False
+        return set()
 
     def check_tables_present(
         self, tables: set[str], default_schema: str | None = None
@@ -2517,6 +2535,18 @@ class SQLScript:
             statement.check_functions_present(functions)
             for statement in self.statements
         )
+
+    def get_disallowed_functions(self, functions: set[str]) -> set[str]:
+        """
+        Return the subset of ``functions`` referenced anywhere in the script.
+
+        :param functions: Set of function names to check for
+        :return: The matched entries, in their original denylist form
+        """
+        found: set[str] = set()
+        for statement in self.statements:
+            found |= statement.get_disallowed_functions(functions)
+        return found
 
     def check_tables_present(
         self, tables: set[str], default_schema: str | None = None
