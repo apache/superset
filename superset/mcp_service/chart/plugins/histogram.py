@@ -20,7 +20,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
-from typing import Any, ClassVar
+from typing import Any, cast, ClassVar
 
 from superset.mcp_service.chart.chart_utils import (
     _summarize_filters,
@@ -183,3 +183,76 @@ class HistogramChartPlugin(BaseChartPlugin):
             ],
             error_code="HISTOGRAM_VALIDATION_ERROR",
         )
+
+    def resolve_query_fields(
+        self, form_data: Mapping[str, Any], viz_type: str
+    ) -> tuple[list[Any], list[Any]] | None:
+        raw_groupby = form_data.get("groupby") or []
+        groupby = [raw_groupby] if isinstance(raw_groupby, str) else list(raw_groupby)
+        column = form_data.get("column")
+        columns = [*groupby, column] if column else groupby
+        # Matches Histogram buildQuery: a HAVING filter needs an aggregate.
+        has_having = any(
+            isinstance(filter_, Mapping) and filter_.get("clause") == "HAVING"
+            for filter_ in form_data.get("adhoc_filters") or []
+        )
+        metrics: list[Any] = (
+            [
+                {
+                    "expressionType": "SQL",
+                    "sqlExpression": "COUNT(*)",
+                    "label": "COUNT(*)",
+                }
+            ]
+            if has_having
+            else []
+        )
+        return metrics, columns
+
+    def build_query_dicts(
+        self,
+        form_data: dict[str, Any],
+        *,
+        viz_type: str,
+        engine: str,
+        row_limit: int | None,
+        order_desc: bool | None,
+    ) -> list[dict[str, Any]] | None:
+        from superset.mcp_service.chart.chart_helpers import build_single_query_dict
+        from superset.mcp_service.chart.query_result import column_result_label
+
+        metrics, columns = cast(
+            tuple[list[Any], list[Any]],
+            self.resolve_query_fields(form_data, viz_type),
+        )
+        query = build_single_query_dict(
+            form_data,
+            columns,
+            metrics,
+            row_limit=row_limit,
+            order_desc=order_desc,
+        )
+        if column := column_result_label(form_data.get("column")):
+            # Mirror histogramOperator so rows are the binned chart output.
+            try:
+                bins = int(float(form_data.get("bins", 5)))
+            except (TypeError, ValueError, OverflowError):
+                bins = 5
+            groupby = [
+                label
+                for value in columns[:-1]
+                if (label := column_result_label(value)) is not None
+            ]
+            query["post_processing"] = [
+                {
+                    "operation": "histogram",
+                    "options": {
+                        "column": column,
+                        "groupby": groupby,
+                        "bins": bins,
+                        "cumulative": bool(form_data.get("cumulative")),
+                        "normalize": bool(form_data.get("normalize")),
+                    },
+                }
+            ]
+        return [query]
