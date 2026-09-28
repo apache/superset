@@ -24,6 +24,15 @@ assists people when migrating to a new version.
 
 ## Next
 
+### SQL Lab decimal results use exact strings
+
+SQL Lab represents database `DECIMAL`/`NUMERIC` values as JSON strings instead
+of JSON numbers, preserving precision and trailing zeros in the results grid
+and exports. Numeric sorting still compares their exact values. API consumers
+performing arithmetic should parse these strings with a decimal library, not
+JavaScript `Number`. Chart result serialization is unchanged. Re-run queries
+whose cached JSON results were produced before upgrading all workers.
+
 ### Guest token RLS rules without a dataset apply inside sub-queries
 
 A guest token RLS rule with no `dataset` key applies to every dataset. Such

@@ -25,37 +25,7 @@ import { renderResultCell } from './utils';
 
 import type { FilterableTableProps, Datum, CellDataType } from './types';
 
-// This regex handles all possible number formats in javascript, including ints, floats,
-// exponential notation, NaN, and Infinity.
-// See https://stackoverflow.com/a/30987109 for more details
-const ONLY_NUMBER_REGEX = /^(NaN|-?((\d*\.\d+|\d+)([Ee][+-]?\d+)?|Infinity))$/;
-
-const parseNumberFromString = (value: string | number | null) => {
-  if (typeof value === 'string' && ONLY_NUMBER_REGEX.test(value)) {
-    return parseFloat(value);
-  }
-  return value;
-};
-
-const sortResults = (valueA: string | number, valueB: string | number) => {
-  const aValue = parseNumberFromString(valueA);
-  const bValue = parseNumberFromString(valueB);
-
-  // equal items sort equally
-  if (aValue === bValue) {
-    return 0;
-  }
-
-  // nulls sort after anything else
-  if (aValue === null) {
-    return 1;
-  }
-  if (bValue === null) {
-    return -1;
-  }
-
-  return aValue < bValue ? -1 : 1;
-};
+import { sortResults } from './sortResults';
 
 export const FilterableTable = ({
   orderedColumnKeys,

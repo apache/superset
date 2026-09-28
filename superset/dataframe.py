@@ -17,6 +17,7 @@
 """Superset utilities for pandas.DataFrame."""
 
 import logging
+from decimal import Decimal
 from typing import Any
 
 import pandas as pd
@@ -53,6 +54,19 @@ def _is_na(val: Any) -> bool:
         return False
 
 
+def _convert_decimals(value: Any) -> Any:
+    """Keep SQL Lab decimals exact across JSON, MessagePack and browser parsing."""
+    if isinstance(value, Decimal):
+        return str(value) if value.is_finite() else None
+    if isinstance(value, dict):
+        return {key: _convert_decimals(item) for key, item in value.items()}
+    if isinstance(value, list):
+        return [_convert_decimals(item) for item in value]
+    if isinstance(value, tuple):
+        return tuple(_convert_decimals(item) for item in value)
+    return value
+
+
 def df_to_records(dframe: pd.DataFrame) -> list[dict[str, Any]]:
     """
     Convert a DataFrame to a set of records.
@@ -72,7 +86,9 @@ def df_to_records(dframe: pd.DataFrame) -> list[dict[str, Any]]:
     for record in records:
         for key in record:
             record[key] = (
-                None if _is_na(record[key]) else _convert_big_integers(record[key])
+                None
+                if _is_na(record[key])
+                else _convert_decimals(_convert_big_integers(record[key]))
             )
 
     return records

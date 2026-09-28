@@ -90,3 +90,11 @@ Use these when a metric's underlying values are stored in meters or centimeters 
 ## Currency
 
 Some chart types also expose currency-specific formatting, including a dynamic mode that reads the currency from a column value. See [Dynamic Currency Formatting](./creating-your-first-dashboard#dynamic-currency-formatting) for details.
+
+## Exact decimals in SQL Lab
+
+SQL Lab displays database `DECIMAL` and `NUMERIC` results as exact text, including
+trailing zeros. Its JSON responses use strings so a browser does not round values
+such as `12345678901234567890.123456789012345678`. Sorting remains numeric and
+compares all digits; CSV exports retain those digits too. This does not change
+chart number formatting or chart result serialization.

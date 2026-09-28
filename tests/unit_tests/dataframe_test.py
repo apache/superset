@@ -16,8 +16,10 @@
 # under the License.
 # pylint: disable=unused-argument, import-outside-toplevel
 from datetime import datetime
+from decimal import Decimal
 
 import numpy as np
+import pandas as pd
 import pytest
 from pandas import Timestamp
 from pandas._libs.tslibs import NaT
@@ -363,3 +365,44 @@ def test_df_to_records_with_json_serialization_like_sql_lab() -> None:
     )
     parsed_no_flag = superset_json.loads(json_str_no_flag)
     assert parsed_no_flag == parsed  # Same result
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        "12345678901234567890.123456789012345678",
+        "-12345678901234567890.123456789012345678",
+        "0.000000000000000001",
+        "10.50",
+        "0.00",
+        "1E+30",
+    ],
+)
+def test_decimal_records_keep_all_digits(value: str) -> None:
+    decimal = Decimal(value)
+    frame = pd.DataFrame({"value": [decimal, None]})
+    records = df_to_records(frame)
+    assert records == [{"value": str(decimal)}, {"value": None}]
+    # Both the HTTP JSON and JSON cache must quote decimals for JavaScript.
+    assert superset_json.loads(superset_json.dumps(records)) == records
+    # SQL Lab conversion must not modify DataFrames used for chart arithmetic.
+    assert frame.iloc[0, 0] == decimal
+    assert isinstance(frame.iloc[0, 0], Decimal)
+
+
+def test_nested_decimal_records() -> None:
+    value = Decimal("12345678901234567890.123456789012345678")
+    frame = pd.DataFrame({"value": [{"a": [value, None]}, (value,)]})
+    assert df_to_records(frame) == [
+        {"value": {"a": [str(value), None]}},
+        {"value": (str(value),)},
+    ]
+
+
+def test_decimal_conversion_does_not_change_other_numbers() -> None:
+    frame = pd.DataFrame({"i": [2], "f": [0.5], "b": [True]})
+    assert df_to_records(frame) == [{"i": 2, "f": 0.5, "b": True}]
+    # Do not change the shared chart JSON serializer to emit decimal strings.
+    assert superset_json.loads(superset_json.dumps({"x": Decimal("10.50")})) == {
+        "x": 10.5
+    }
