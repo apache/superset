@@ -93,6 +93,7 @@ FLAGS = (
     "allows_empty_result",
     "resizes_saved_preview",
     "supports_column_append",
+    "supports_vega_lite_preview",
 )
 
 MALFORMED_RESULTS: list[Any] = [
@@ -155,6 +156,17 @@ def test_plugin_implements_lifecycle_contract(plugin: ChartTypePlugin) -> None:
         )
     if plugin.requires_config_for_dataset_rebind:
         assert plugin.requires_compile_check
+
+
+@pytest.mark.parametrize(("plugin", "example"), EXAMPLES, ids=EXAMPLE_IDS)
+def test_vega_lite_support_matches_preview_hook(
+    plugin: ChartTypePlugin, example: dict[str, Any]
+) -> None:
+    """A plugin that opts out of Vega-Lite rejects Vega-Lite previews."""
+    if plugin.supports_vega_lite_preview:
+        return
+    form_data = _form_data(plugin, example)
+    assert isinstance(plugin.vega_lite_preview([], deepcopy(form_data)), ChartError)
 
 
 @pytest.mark.parametrize("plugin", PLUGINS, ids=PLUGIN_IDS)

@@ -225,6 +225,10 @@ class ChartTypePlugin(Protocol):
     #: (``add_columns``) instead of requiring a complete replacement config.
     supports_column_append: ClassVar[bool]
 
+    #: Whether a Vega-Lite preview can represent this chart, so capability
+    #: metadata may advertise the ``vega_lite`` format.
+    supports_vega_lite_preview: ClassVar[bool]
+
     #: Caveat appended to saved-chart preview descriptions, if any.
     preview_note: ClassVar[str | None]
 
@@ -339,6 +343,7 @@ class BaseChartPlugin:
     allows_empty_result: ClassVar[bool] = False
     resizes_saved_preview: ClassVar[bool] = False
     supports_column_append: ClassVar[bool] = False
+    supports_vega_lite_preview: ClassVar[bool] = True
     preview_note: ClassVar[str | None] = None
     invalid_result_error_code: ClassVar[str] = "INVALID_CHART_RESULT"
     invalid_result_message: ClassVar[str] = "Chart query returned invalid values"

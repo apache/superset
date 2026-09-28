@@ -2462,15 +2462,13 @@ def analyze_chart_capabilities(viz_type: str | None, config: Any) -> ChartCapabi
     optimal_formats = ["url"]  # Always include static image
     if supports_interaction:
         optimal_formats.append("interactive")
-    # Only advertise Vega-Lite where a spec can actually be produced. Geographic
-    # viz types are rejected by the Vega-Lite preview generator because their
-    # geometry cannot be expressed in a Vega-Lite spec, so advertising the
-    # format for them would guarantee a failed preview request.
-    if supports_interaction and viz_type not in {
-        "country_map",
-        "world_map",
-        "deck_scatter",
-    }:
+    # Only advertise Vega-Lite where a spec can actually be produced. A plugin
+    # whose output cannot be expressed as a Vega-Lite spec (e.g. map geometry)
+    # opts out, so the capability list never promises a failing preview.
+    from superset.mcp_service.chart.registry import plugin_for_viz_type
+
+    owner = plugin_for_viz_type(viz_type)
+    if supports_interaction and (owner is None or owner.supports_vega_lite_preview):
         optimal_formats.append("vega_lite")
     optimal_formats.extend(["ascii", "table"])
 
