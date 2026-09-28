@@ -2933,7 +2933,10 @@ def _is_correlated(scope: Scope) -> bool:
     sub-query has no table of its own under that name. An unqualified column can't
     be told apart from one of the sub-query's own, so it is treated as local, which
     errs toward the sub-query getting the stricter rules. (``Scope``'s own
-    ``is_correlated_subquery`` treats every unqualified column as external.)
+    ``is_correlated_subquery`` treats every unqualified column as external.) An
+    unaliased source, such as a derived table without an alias, is keyed ``''`` in
+    ``Scope.selected_sources``, the same as an unqualified column's table, so the
+    column must be qualified for the names to be compared at all.
 
     Only the sub-query's own columns count, not those of a sub-query nested in it
     (which ``Scope.columns`` includes): a nested correlated sub-query doesn't key the
@@ -2958,6 +2961,7 @@ def _is_correlated(scope: Scope) -> bool:
     local = {name.lower() for name in scope.selected_sources}
     return any(
         isinstance(node, exp.Column)
+        and node.table
         and node.table.lower() in enclosing
         and node.table.lower() not in local
         for node in walk_in_scope(scope.expression)

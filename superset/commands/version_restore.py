@@ -39,6 +39,7 @@ from typing import Any, ClassVar
 from uuid import UUID
 
 from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.orm import Session
 
 from superset import security_manager
 from superset.commands.base import BaseCommand
@@ -98,6 +99,12 @@ class BaseRestoreVersionCommand(BaseCommand):
             )
         )
         def _perform() -> RestoreResult:
+            # The decorator owns commit/rollback but does not begin a SQLAlchemy
+            # transaction. Bind capture authorization to the same transaction
+            # as the restore writes, including before the first lookup query.
+            session: Session = db.session()
+            if not session.in_transaction():
+                session.begin()
             return self._do_restore()
 
         return _perform()
@@ -212,7 +219,7 @@ class BaseRestoreVersionCommand(BaseCommand):
         # a destructive, untracked write. The whole restore surface is
         # therefore inert under the kill-switch (404, indistinguishable from
         # "no such version"). Existing history remains readable.
-        if not capture_enabled():
+        if not capture_enabled(db.session()):
             raise self.not_found_exc()
         entity = find_active_by_uuid(self.model_cls, self._uuid)
         if entity is None:
