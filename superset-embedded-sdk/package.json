@@ -47,7 +47,7 @@
     "tscw-config": "^1.1.2",
     "typescript": "^7.0.2",
     "vitest": "^5.0.1",
-    "webpack": "^5.111.0",
+    "webpack": "^5.111.1",
     "webpack-cli": "^7.2.3"
   },
   "repository": {
