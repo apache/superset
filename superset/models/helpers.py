@@ -60,7 +60,7 @@ from jinja2.exceptions import TemplateError, UndefinedError
 from markupsafe import escape, Markup
 from pandas import DateOffset, Timedelta
 from sqlalchemy import and_, Column, or_, UniqueConstraint
-from sqlalchemy.exc import MultipleResultsFound
+from sqlalchemy.exc import MultipleResultsFound, SQLAlchemyError
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import (
     declared_attr,
@@ -3810,14 +3810,15 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                         for statement in parsed_script.statements
                         for table in statement.tables
                     )
-                except Exception:  # pylint: disable=broad-except
+                except Exception as retry_ex:  # pylint: disable=broad-except
                     # This retry queries db.session again and rebuilds an
                     # engine, so it can re-poison the session the outer handler
                     # just rolled back. Roll back again: failing closed below
                     # raises QueryObjectValidationError, which callers catch
                     # and carry on from, and the continue-path keeps running
                     # this query outright.
-                    db.session.rollback()  # pylint: disable=consider-using-transaction
+                    if isinstance(retry_ex, SQLAlchemyError):
+                        db.session.rollback()  # pylint: disable=consider-using-transaction  # noqa: E501
                     rls_required = True
                 if rls_required:
                     raise QueryObjectValidationError(

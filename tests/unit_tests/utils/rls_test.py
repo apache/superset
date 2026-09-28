@@ -34,6 +34,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 from flask import Flask
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.sql.elements import TextClause
 
 from superset.connectors.sqla.models import BaseDatasource
@@ -223,3 +224,44 @@ def test_real_rls_enforcement_does_not_go_through_the_cache_key_helper(
 
     assert len(filters) == 1
     assert "tenant_id" in str(filters[0])
+
+
+def test_db_error_rolls_back_session_but_parse_failure_does_not(
+    mock_database: MagicMock,
+) -> None:
+    """
+    A DB error caught here leaves ``db.session`` in "pending rollback" state,
+    which would fail every later statement in the request on this lookup rather
+    than on its own merits. Roll it back so the caller's session stays usable.
+
+    A parse failure touches no session, so it must not roll anything back --
+    that would discard pending work this function knows nothing about.
+    """
+    with (
+        patch(
+            "superset.sql.parse.SQLScript",
+            side_effect=SQLAlchemyError("connection lost"),
+        ),
+        patch("superset.utils.rls.get_user_id", return_value=42),
+        patch("superset.utils.rls.db") as mock_db,
+    ):
+        assert collect_rls_predicates_for_sql(
+            "SELECT * FROM some_table",
+            mock_database,
+            catalog=None,
+            schema="public",
+        ) == ["rls-predicate-parse-failed-for-user-42"]
+        mock_db.session.rollback.assert_called_once()
+
+    with (
+        patch("superset.sql.parse.SQLScript", side_effect=ValueError("cannot parse")),
+        patch("superset.utils.rls.get_user_id", return_value=42),
+        patch("superset.utils.rls.db") as mock_db,
+    ):
+        collect_rls_predicates_for_sql(
+            "SELECT * FROM some_table",
+            mock_database,
+            catalog=None,
+            schema="public",
+        )
+        mock_db.session.rollback.assert_not_called()

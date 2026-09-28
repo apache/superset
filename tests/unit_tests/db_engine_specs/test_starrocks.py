@@ -304,10 +304,9 @@ def test_get_prequeries_defers_impersonation_resolution(
     """
     Test that `get_prequeries` impersonates whoever `Database` resolves.
 
-    Deriving the name here instead (re-reading the effective user and looking up
-    its email) would duplicate work `Database._get_sqla_engine` has already done
-    for the same connection, and would put a second unguarded metadata-DB read
-    on the query path. The prefix substitution itself is covered by the
+    Resolving the name here instead would mean a second implementation of the
+    email-prefix substitution, and a second metadata-DB read needing its own
+    guard. The substitution itself is covered by the
     `Database.get_impersonation_username` tests.
     """
     from superset.db_engine_specs.starrocks import StarRocksEngineSpec

@@ -31,6 +31,7 @@ from jinja2 import DebugUndefined, Environment, TemplateSyntaxError, UndefinedEr
 from jinja2.exceptions import SecurityError
 from jinja2.sandbox import SandboxedEnvironment
 from sqlalchemy.engine.interfaces import Dialect
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.sql.expression import bindparam
 from sqlalchemy.types import String
 
@@ -294,12 +295,16 @@ class ExtraCache:
             if add_to_cache_keys:
                 self.cache_key_wrapper(json.dumps(user_roles))
             return user_roles
-        except Exception:  # pylint: disable=broad-except
+        except SQLAlchemyError:
             # `get_user_roles()` lazy-loads roles from db.session, so a caught
             # DB error can leave it in "pending rollback" state. This runs
             # during SQL templating, upstream of the engine build that would
-            # otherwise inherit the failed transaction.
+            # otherwise inherit the failed transaction. Narrower than the
+            # blanket handler below so a non-DB failure (e.g. serializing the
+            # roles for the cache key) never discards pending work.
             db.session.rollback()  # pylint: disable=consider-using-transaction
+            return None
+        except Exception:  # pylint: disable=broad-except
             return None
 
     def current_user_rls_rules(self) -> list[str] | None:

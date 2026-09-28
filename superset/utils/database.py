@@ -21,7 +21,7 @@ from typing import Any, TYPE_CHECKING
 
 from flask import current_app as app
 from flask_babel import gettext as __
-from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.exc import PendingRollbackError
 from sqlalchemy.sql import compiler
 
 from superset.constants import EXAMPLES_DB_UUID
@@ -137,6 +137,11 @@ def find_user_for_impersonation(username: str) -> User | None:
     failure. Roll back and retry once so a poisoned session doesn't cost us the
     lookup.
 
+    Only ``PendingRollbackError`` is handled. Any other ``SQLAlchemyError``
+    describes this lookup's own failure and propagates untouched: rolling back
+    on, say, an ``IntegrityError`` raised by autoflushing the caller's pending
+    writes would silently discard work this function knows nothing about.
+
     The resolved value becomes the identity the analytic database connects as,
     so a lookup that still fails must not degrade to the un-resolved login:
     that would silently query as a different principal than the one being
@@ -144,7 +149,8 @@ def find_user_for_impersonation(username: str) -> User | None:
 
     :param username: the Superset login to resolve
     :return: the matching user, or ``None`` if no such login exists
-    :raises SupersetErrorException: if the lookup fails even after a rollback
+    :raises SupersetErrorException: if the session is still unusable after a
+        rollback and retry
     """
     # pylint: disable=import-outside-toplevel
     from superset import db
@@ -154,7 +160,7 @@ def find_user_for_impersonation(username: str) -> User | None:
 
     try:
         return security_manager.find_user(username=username)
-    except SQLAlchemyError:
+    except PendingRollbackError:
         logger.warning(
             "Impersonation lookup for %s failed on a broken transaction; "
             "rolling back and retrying once.",
@@ -165,7 +171,7 @@ def find_user_for_impersonation(username: str) -> User | None:
 
     try:
         return security_manager.find_user(username=username)
-    except SQLAlchemyError as ex:
+    except PendingRollbackError as ex:
         raise SupersetErrorException(
             SupersetError(
                 message=__(

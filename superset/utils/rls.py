@@ -22,6 +22,7 @@ from functools import partial
 from typing import Any, TYPE_CHECKING
 
 from sqlalchemy import and_, func, or_
+from sqlalchemy.exc import SQLAlchemyError
 
 from superset import db, security_manager
 from superset.sql.parse import folds_unquoted_object_names, Table
@@ -328,12 +329,14 @@ def collect_rls_predicates_for_sql(
                 )
             }
         )
-    except Exception:
+    except Exception as ex:
         # The block above is not only SQL parsing: `get_predicates_for_table`
         # queries `db.session` and `get_default_catalog()` builds an engine, so
         # a caught DB error can leave db.session in "pending rollback" state,
-        # which would poison unrelated queries later in this request.
-        db.session.rollback()  # pylint: disable=consider-using-transaction
+        # which would poison unrelated queries later in this request. A parse
+        # failure touches no session, so only roll back for a DB error.
+        if isinstance(ex, SQLAlchemyError):
+            db.session.rollback()  # pylint: disable=consider-using-transaction
 
         # If we can't parse the SQL, we can't tell which (if any) RLS
         # predicates would apply, so we can't contribute a meaningful cache
