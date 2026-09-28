@@ -888,15 +888,20 @@ def test_geographic_query_context_seeds_native_form_data(kind: str) -> None:
 @pytest.mark.parametrize("kind", KINDS)
 def test_geographic_ascii_clamps_width_and_handles_render_errors(kind: str) -> None:
     """Map data previews share the safe table fallback behavior."""
-    from superset.mcp_service.chart.ascii_charts import generate_ascii_chart
+    from superset.mcp_service.chart.registry import plugin_for_viz_type
 
+    plugin = plugin_for_viz_type(kind)
+    assert plugin is not None
+    form = form_for(kind)
     with patch("superset.mcp_service.chart.ascii_charts.generate_ascii_table") as table:
         table.return_value = "table"
-        assert generate_ascii_chart([{"value": 1}], kind, width=-1).endswith("table")
+        preview = plugin.ascii_preview([{"value": 1}], form, width=-1)
+        assert isinstance(preview, str)
+        assert preview.endswith("table")
         table.assert_called_once_with([{"value": 1}], 21)
         table.side_effect = ValueError("invalid table")
         assert (
-            generate_ascii_chart([{"value": 1}], kind)
+            plugin.ascii_preview([{"value": 1}], form, width=80)
             == "ASCII chart generation failed"
         )
 
@@ -935,7 +940,7 @@ def test_geographic_recommendations_preserve_time_series_and_bound_cardinality()
 
 def test_world_country_aliases_are_cached_by_format() -> None:
     """Per-row validation reuses bounded immutable aliases without format leakage."""
-    from superset.mcp_service.chart.query_result import _world_country_entries
+    from superset.mcp_service.chart.plugins.geographic import _world_country_entries
 
     assert _world_country_entries("cca2") is _world_country_entries("cca2")
     assert ("US", "USA") in _world_country_entries("cca2")

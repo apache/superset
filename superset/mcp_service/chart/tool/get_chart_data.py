@@ -47,7 +47,6 @@ from superset.mcp_service.chart.chart_utils import validate_chart_dataset
 from superset.mcp_service.chart.query_result import (
     normalize_chart_query_result,
     query_result_failure,
-    validate_geographic_query_result,
 )
 from superset.mcp_service.chart.schemas import (
     ChartData,
@@ -93,8 +92,18 @@ _GENERIC_TYPE_MAP: dict[int, str] = {
     GenericDataType.BOOLEAN: "boolean",
 }
 
+
+def _normalizes_data_results(form_data: dict[str, Any]) -> bool:
+    """Return whether the owning plugin validates get_chart_data rows/exports."""
+    from superset.mcp_service.chart.registry import plugin_for_viz_type
+
+    plugin = plugin_for_viz_type(form_data.get("viz_type"))
+    return plugin is not None and plugin.normalize_data_results
+
+
 # Maps Superset viz_type strings to canonical categories so we can
 # avoid recommending a chart type the user already has.
+
 _VIZ_CATEGORY: dict[str, str] = {
     "echarts_timeseries_line": "line",
     "echarts_timeseries_smooth": "line",
@@ -820,16 +829,12 @@ async def execute_chart_data(  # noqa: C901
                 command.validate()
                 result = command.run()
 
-            if form_data.get("viz_type") == "treemap_v2":
+            if _normalizes_data_results(form_data):
                 result = normalize_chart_query_result(result, form_data)
                 if isinstance(result, ChartError):
                     return result
             if query_failure := query_result_failure(result):
                 return query_failure
-            if geographic_failure := validate_geographic_query_result(
-                result, form_data
-            ):
-                return geographic_failure
 
             if rejected := rejected_requested_filter_columns(
                 result, request.extra_form_data
@@ -1201,14 +1206,12 @@ async def _query_from_form_data(  # noqa: C901
             command.validate()
             result = command.run()
 
-        if form_data.get("viz_type") == "treemap_v2":
+        if _normalizes_data_results(form_data):
             result = normalize_chart_query_result(result, form_data)
             if isinstance(result, ChartError):
                 return result
         if query_failure := query_result_failure(result):
             return query_failure
-        if geographic_failure := validate_geographic_query_result(result, form_data):
-            return geographic_failure
 
         if rejected := rejected_requested_filter_columns(
             result, request.extra_form_data

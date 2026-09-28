@@ -102,19 +102,18 @@ def _compile_chart(
     from superset.mcp_service.chart.chart_helpers import (
         build_query_context_from_form_data,
     )
+    from superset.mcp_service.chart.plugin import BaseChartPlugin
+    from superset.mcp_service.chart.registry import plugin_for_viz_type
 
     try:
         query_form_data = deepcopy(form_data)
         query_form_data["datasource"] = f"{dataset_id}__table"
         query_form_data["datasource_id"] = dataset_id
         query_form_data["datasource_type"] = "table"
+        plugin = plugin_for_viz_type(form_data.get("viz_type"))
         query_context = build_query_context_from_form_data(
             query_form_data,
-            row_limit=min(10000, max(1, int(form_data.get("row_limit") or 10000)))
-            if form_data.get("mcp_geographic")
-            else min(10, int(form_data.get("row_limit") or 10))
-            if form_data.get("viz_type") in ("gauge_chart", "treemap_v2")
-            else 2,
+            row_limit=plugin.compile_row_limit(form_data) if plugin else 2,
             force=False,
         )
 
@@ -135,29 +134,16 @@ def _compile_chart(
             )
         result = normalize_chart_query_result(result, form_data)
         if isinstance(result, ChartError):
-            is_geographic = bool(form_data.get("mcp_geographic"))
-            is_treemap = form_data.get("viz_type") == "treemap_v2"
-            if is_geographic:
-                error_code = "INVALID_GEOGRAPHIC_RESULT"
-                message = "Geographic query returned invalid values"
-                suggestions = [
-                    "Match country and value format to the source identifiers",
-                    "Correct source values or filter other geographies",
-                    "Use finite numeric metrics and valid latitude/longitude",
-                ]
-            else:
-                error_code = (
-                    "INVALID_TREEMAP_RESULT" if is_treemap else "INVALID_GAUGE_RESULT"
-                )
-                message = (
-                    "Treemap metric query returned invalid values"
-                    if is_treemap
-                    else "Gauge metric query returned invalid values"
-                )
-                suggestions = [
-                    "Use a numeric-producing metric",
-                    "Check the metric alias and SQL expression",
-                ]
+            error_code = (
+                plugin.invalid_result_error_code
+                if plugin
+                else BaseChartPlugin.invalid_result_error_code
+            )
+            message = (
+                plugin.invalid_result_message
+                if plugin
+                else BaseChartPlugin.invalid_result_message
+            )
             return CompileResult(
                 success=False,
                 error=result.error,
@@ -167,7 +153,10 @@ def _compile_chart(
                     error_type=result.error_type,
                     message=message,
                     details=result.error,
-                    suggestions=suggestions,
+                    suggestions=[
+                        "Use a numeric-producing metric",
+                        "Check the metric alias and SQL expression",
+                    ],
                     error_code=error_code,
                 ),
             )

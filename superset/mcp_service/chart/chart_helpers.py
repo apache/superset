@@ -26,6 +26,7 @@ URL parameter extraction. Config mapping logic lives in chart_utils.py.
 from __future__ import annotations
 
 import logging
+from collections.abc import Mapping
 from typing import Any, TYPE_CHECKING
 from urllib.parse import parse_qs, urlparse
 
@@ -483,25 +484,27 @@ def resolve_deck_gl_columns(form_data: dict[str, Any]) -> list[str]:
     return columns
 
 
+def _plugin_query_fields(
+    form_data: dict[str, Any], viz_type: str
+) -> tuple[list[Any], list[Any]] | None:
+    """Return the owning plugin's (metrics, columns) roles, if it defines them."""
+    from superset.mcp_service.chart.registry import plugin_for_viz_type
+
+    plugin = plugin_for_viz_type(viz_type)
+    if plugin is None:
+        return None
+    return plugin.resolve_query_fields(form_data, viz_type)
+
+
 def resolve_metrics(form_data: dict[str, Any], viz_type: str) -> list[Any]:
     """Extract metrics from form_data, handling chart-type-specific fields."""
-    if viz_type in ("bubble", "bubble_v2"):
-        return [m for field in ("x", "y", "size") if (m := form_data.get(field))]
+    if (fields := _plugin_query_fields(form_data, viz_type)) is not None:
+        return fields[0]
+    return resolve_shared_metrics(form_data)
 
-    if viz_type in {"country_map", "world_map"}:
-        from superset.mcp_service.chart.query_result import metric_result_label
 
-        result = []
-        labels = set()
-        for field in (
-            ("metric", "secondary_metric") if viz_type == "world_map" else ("metric",)
-        ):
-            if metric := form_data.get(field):
-                label = metric_result_label(metric)
-                if label not in labels:
-                    result.append(metric)
-                    labels.add(label)
-        return result
+def resolve_shared_metrics(form_data: Mapping[str, Any]) -> list[Any]:
+    """Extract metrics from the shared ``metrics``/``metric`` roles."""
     metrics = form_data.get("metrics") or []
     if not metrics and (metric := form_data.get("metric")):
         metrics = [metric]
@@ -548,33 +551,9 @@ def resolve_metrics_and_groupby(
     viz_type = (
         form_data.get("viz_type", getattr(chart, "viz_type", "") if chart else "") or ""
     )
-    if viz_type == "treemap_v2":
-        # Treemap has exactly these roles; stale controls from another plugin
-        # must not override its singular metric or ordered hierarchy.
-        metric = form_data.get("metric")
-        hierarchy = form_data.get("groupby") or []
-        return ([metric] if metric else []), (
-            [hierarchy] if isinstance(hierarchy, str) else list(hierarchy)
-        )
-    singular_metric_no_groupby = (
-        "big_number",
-        "big_number_total",
-        "pop_kpi",
-    )
-    if viz_type in singular_metric_no_groupby:
-        metric = form_data.get("metric")
-        if not metric:
-            # Some saved/migrated form_data stores the metric under the
-            # plural "metrics" key even for single-metric chart types.
-            plural_metrics = form_data.get("metrics") or []
-            metric = plural_metrics[0] if plural_metrics else None
-        return ([metric] if metric else []), []
-
-    if viz_type in {"country_map", "world_map"}:
-        entity = form_data.get("entity")
-        return resolve_metrics(form_data, viz_type), [entity] if entity else []
-
-    return resolve_metrics(form_data, viz_type), resolve_groupby(form_data)
+    if (fields := _plugin_query_fields(form_data, viz_type)) is not None:
+        return fields
+    return resolve_shared_metrics(form_data), resolve_groupby(form_data)
 
 
 def resolve_big_number_columns(form_data: dict[str, Any]) -> list[Any]:
@@ -720,7 +699,7 @@ def resolve_sort_metric(form_data: dict[str, Any]) -> Any | None:
     return raw or None
 
 
-def _apply_treemap_query_fields(
+def apply_treemap_query_fields(
     qd: dict[str, Any],
     form_data: dict[str, Any],
     columns: list[Any],
@@ -745,7 +724,7 @@ def _apply_treemap_query_fields(
         qd["orderby"] = ordering
 
 
-def _build_single_query_dict(
+def build_single_query_dict(
     form_data: dict[str, Any],
     columns: list[Any],
     metrics: list[Any],
@@ -779,48 +758,11 @@ def _build_single_query_dict(
             order_desc if order_desc is not None else form_data.get("order_desc", True)
         )
         qd["orderby"] = [(sort_metric, not descending)]
-    if form_data.get("viz_type") == "treemap_v2":
-        _apply_treemap_query_fields(qd, form_data, columns, effective_row_limit)
     apply_form_data_filters_to_query(qd, form_data)
     return qd
 
 
-def _build_gantt_or_big_number_query_dicts(
-    form_data: dict[str, Any],
-    viz_type: str,
-    metrics: list[Any],
-    row_limit: int | None,
-    order_desc: bool | None,
-) -> list[dict[str, Any]] | None:
-    """Build query dictionaries for the two specialized MCP chart contracts."""
-    if viz_type == "gantt_chart":
-        columns, gantt_metrics, orderby, series_columns = resolve_gantt_query_fields(
-            form_data
-        )
-        query = _build_single_query_dict(
-            form_data,
-            columns,
-            gantt_metrics,
-            row_limit=row_limit,
-        )
-        query["orderby"] = orderby
-        query["series_columns"] = series_columns
-        return [query]
-
-    if viz_type == "big_number":
-        return [
-            _build_single_query_dict(
-                form_data,
-                resolve_big_number_columns(form_data),
-                metrics,
-                row_limit=row_limit,
-                order_desc=order_desc,
-            )
-        ]
-    return None
-
-
-def _build_mixed_timeseries_secondary(
+def build_mixed_timeseries_secondary(
     form_data: dict[str, Any],
     x_axis_col: str | None,
     engine: str,
@@ -838,7 +780,7 @@ def _build_mixed_timeseries_secondary(
         groupby_b = [x_axis_col] + groupby_b
 
     # Each series owns its ordering; primary metrics may not exist in query B.
-    qd = _build_single_query_dict(
+    qd = build_single_query_dict(
         {**form_data, "orderby": form_data.get("orderby_b")},
         groupby_b,
         metrics_b,
@@ -871,7 +813,7 @@ _DECK_TIMESERIES_VIZ_TYPES: frozenset[str] = frozenset(
 )
 
 
-def build_query_dicts_from_form_data(  # noqa: C901
+def build_query_dicts_from_form_data(
     form_data: dict[str, Any],
     datasource_id: Any,
     datasource_type: str,
@@ -890,70 +832,41 @@ def build_query_dicts_from_form_data(  # noqa: C901
         datasource_engine=engine,
     )
 
-    metrics, groupby = resolve_metrics_and_groupby(form_data, chart)
     viz_type: str = (
         form_data.get("viz_type")
         or (getattr(chart, "viz_type", "") if chart else "")
         or ""
     )
 
-    if specialized_queries := _build_gantt_or_big_number_query_dicts(
-        form_data,
-        viz_type,
-        metrics,
-        row_limit,
-        order_desc,
-    ):
-        return specialized_queries
+    from superset.mcp_service.chart.registry import plugin_for_viz_type
+
+    if (plugin := plugin_for_viz_type(viz_type)) is not None:
+        plugin_queries = plugin.build_query_dicts(
+            form_data,
+            viz_type=viz_type,
+            engine=engine,
+            row_limit=row_limit,
+            order_desc=order_desc,
+        )
+        if plugin_queries is not None:
+            return plugin_queries
+
+    metrics, groupby = resolve_metrics_and_groupby(form_data, chart)
 
     # Deck.gl charts use spatial column configs rather than the standard
     # metrics / groupby fields. Extract columns from the spatial controls.
     if viz_type.startswith("deck_"):
-        deck_columns = resolve_deck_gl_columns(form_data)
-        deck_metrics = _resolve_deck_gl_metrics(form_data, viz_type)
-        qd = _build_single_query_dict(
-            form_data,
-            deck_columns,
-            deck_metrics,
-            row_limit=row_limit,
-            order_desc=order_desc,
-        )
-        if viz_type == "deck_scatter" and form_data.get("mcp_geographic"):
-            from superset.mcp_service.chart.query_result import metric_result_label
-
-            qd["is_timeseries"] = False
-            qd["orderby"] = (
-                [(metric_result_label(deck_metrics[0]), False)] if deck_metrics else []
+        return [
+            build_deck_gl_query_dict(
+                form_data, viz_type, row_limit=row_limit, order_desc=order_desc
             )
-        elif deck_metrics:
-            # Mirror BaseDeckGLViz.query_obj(): order by first metric descending
-            qd["orderby"] = [(deck_metrics[0], not form_data.get("order_desc", True))]
-        if (
-            not form_data.get("mcp_geographic")
-            and viz_type in _DECK_TIMESERIES_VIZ_TYPES
-            and (time_grain := form_data.get("time_grain_sqla"))
-        ):
-            qd["is_timeseries"] = True
-            qd["granularity"] = form_data.get("granularity_sqla")
-            qd.setdefault("extras", {})["time_grain_sqla"] = time_grain
-        if form_data.get("filter_nulls", True):
-            null_filters = _deck_gl_null_filters(form_data)
-            if null_filters:
-                qd["filters"] = [*(qd.get("filters") or []), *null_filters]
-        return [qd]
+        ]
 
-    is_timeseries = (
-        viz_type.startswith("echarts_timeseries") or viz_type == "mixed_timeseries"
-    )
+    if viz_type.startswith("echarts_timeseries"):
+        groupby = with_x_axis_column(form_data, groupby)
 
-    x_axis_col: str | None = None
-    if is_timeseries:
-        x_axis_col = extract_x_axis_col(form_data)
-        if x_axis_col and x_axis_col not in groupby:
-            groupby = [x_axis_col] + groupby
-
-    queries = [
-        _build_single_query_dict(
+    return [
+        build_single_query_dict(
             form_data,
             groupby,
             metrics,
@@ -961,17 +874,54 @@ def build_query_dicts_from_form_data(  # noqa: C901
             order_desc=order_desc,
         )
     ]
-    if viz_type == "mixed_timeseries":
-        queries.append(
-            _build_mixed_timeseries_secondary(
-                form_data,
-                x_axis_col,
-                engine,
-                row_limit=row_limit,
-                order_desc=order_desc,
-            )
-        )
-    return queries
+
+
+def build_deck_gl_query_dict(
+    form_data: dict[str, Any],
+    viz_type: str,
+    *,
+    row_limit: int | None = None,
+    order_desc: bool | None = None,
+    timeseries: bool = True,
+) -> dict[str, Any]:
+    """Build the single query a Deck.gl layer issues from its spatial controls.
+
+    ``timeseries=False`` skips the time-grain bucketing that
+    ``BaseDeckGLViz.query_obj()`` applies to time-animated layers.
+    """
+    deck_columns = resolve_deck_gl_columns(form_data)
+    deck_metrics = _resolve_deck_gl_metrics(form_data, viz_type)
+    qd = build_single_query_dict(
+        form_data,
+        deck_columns,
+        deck_metrics,
+        row_limit=row_limit,
+        order_desc=order_desc,
+    )
+    if deck_metrics:
+        # Mirror BaseDeckGLViz.query_obj(): order by first metric descending
+        qd["orderby"] = [(deck_metrics[0], not form_data.get("order_desc", True))]
+    if (
+        timeseries
+        and viz_type in _DECK_TIMESERIES_VIZ_TYPES
+        and (time_grain := form_data.get("time_grain_sqla"))
+    ):
+        qd["is_timeseries"] = True
+        qd["granularity"] = form_data.get("granularity_sqla")
+        qd.setdefault("extras", {})["time_grain_sqla"] = time_grain
+    if form_data.get("filter_nulls", True):
+        null_filters = _deck_gl_null_filters(form_data)
+        if null_filters:
+            qd["filters"] = [*(qd.get("filters") or []), *null_filters]
+    return qd
+
+
+def with_x_axis_column(form_data: dict[str, Any], groupby: list[Any]) -> list[Any]:
+    """Prepend a time-series chart's x-axis column to its query columns."""
+    x_axis_col = extract_x_axis_col(form_data)
+    if x_axis_col and x_axis_col not in groupby:
+        return [x_axis_col, *groupby]
+    return groupby
 
 
 def resolve_form_data_datasource(

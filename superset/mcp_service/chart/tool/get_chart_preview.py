@@ -40,17 +40,14 @@ from superset.mcp_service.chart.chart_helpers import (
 )
 from superset.mcp_service.chart.chart_utils import validate_chart_dataset
 from superset.mcp_service.chart.preview_utils import (
-    _generate_gantt_vega_lite_preview,
-    BUBBLE_VIZ_TYPES,
-    generate_bubble_vega_lite_preview,
-    generate_gauge_ascii_preview,
-    generate_gauge_vega_lite_preview,
+    plugin_ascii_preview,
+    plugin_vega_lite_preview,
 )
 from superset.mcp_service.chart.query_result import (
-    GEOGRAPHIC_VIZ_TYPES,
     normalize_chart_query_result,
     query_result_failure,
 )
+from superset.mcp_service.chart.registry import plugin_for_viz_type
 from superset.mcp_service.chart.schemas import (
     AccessibilityMetadata,
     ASCIIPreview,
@@ -63,7 +60,6 @@ from superset.mcp_service.chart.schemas import (
     URLPreview,
     VegaLitePreview,
 )
-from superset.mcp_service.chart.treemap_preview import treemap_ascii, treemap_vega_lite
 from superset.mcp_service.utils.oauth2_utils import (
     build_oauth2_redirect_message,
     OAUTH2_CONFIG_ERROR_MESSAGE,
@@ -187,20 +183,11 @@ def _no_query_fields_error(chart: ChartLike) -> ChartError:
 
 
 def _preview_row_limit(form_data: dict[str, Any], fallback: int) -> int:
-    """Keep chart previews aligned with their frontend row limits."""
-    if form_data.get("mcp_geographic"):
-        return min(10000, max(1, int(form_data.get("row_limit") or 10000)))
-    if form_data.get("viz_type") == "treemap_v2":
-        value = form_data.get("row_limit", 100)
-        try:
-            limit = int(value)
-        except (TypeError, ValueError, OverflowError):
-            limit = 100
-        return limit if 1 <= limit <= 10000 else 100
-    if form_data.get("viz_type") != "gauge_chart":
+    """Keep plugin previews aligned with their frontend row limits."""
+    plugin = plugin_for_viz_type(form_data.get("viz_type"))
+    if plugin is None:
         return fallback
-    value = form_data.get("row_limit", 10)
-    return value if isinstance(value, int) and 1 <= value <= 10 else 10
+    return plugin.preview_row_limit(form_data, fallback)
 
 
 def _build_chart_description(chart: ChartLike) -> str:
@@ -209,11 +196,9 @@ def _build_chart_description(chart: ChartLike) -> str:
         f"Preview of {chart.viz_type or 'chart'}: "
         f"{chart.slice_name or f'Chart {chart.id}'}"
     )
-    if chart.viz_type == "handlebars":
-        base += (
-            ". Note: Handlebars charts use browser-side template rendering; "
-            "this preview shows the raw underlying data, not the rendered template"
-        )
+    plugin = plugin_for_viz_type(chart.viz_type)
+    if plugin is not None and plugin.preview_note:
+        base += f". Note: {plugin.preview_note}"
     return base
 
 
@@ -303,15 +288,10 @@ class ASCIIPreviewStrategy(PreviewFormatStrategy):
             if result and "queries" in result and len(result["queries"]) > 0:
                 data = result["queries"][0].get("data") or []
 
-            if form_data.get("viz_type") == "treemap_v2":
-                ascii_chart = treemap_ascii(
-                    data, form_data, self.request.ascii_width or 80
-                )
-            elif form_data.get("viz_type") == "gauge_chart":
-                ascii_chart = generate_gauge_ascii_preview(
-                    data, form_data, self.request.ascii_width or 80
-                )
-            else:
+            ascii_chart = plugin_ascii_preview(
+                data, form_data, self.request.ascii_width or 80
+            )
+            if ascii_chart is None:
                 ascii_chart = generate_ascii_chart(
                     data,
                     self.chart.viz_type or "table",
@@ -423,23 +403,25 @@ class VegaLitePreviewStrategy(PreviewFormatStrategy):
         except (ValueError, TypeError):
             return None
 
-    def _create_gantt_preview(
+    def _create_plugin_preview(
         self, data: Any, form_data: Dict[str, Any]
-    ) -> VegaLitePreview | ChartError:
-        """Build the saved-chart wrapper around the shared Gantt preview."""
-        preview = _generate_gantt_vega_lite_preview(data, form_data)
-        if isinstance(preview, ChartError):
+    ) -> VegaLitePreview | ChartError | None:
+        """Return the owning plugin's preview framed for this saved chart."""
+        preview = plugin_vega_lite_preview(data, form_data)
+        plugin = plugin_for_viz_type(form_data.get("viz_type"))
+        if not isinstance(preview, VegaLitePreview) or plugin is None:
             return preview
-        preview.specification.update(
-            {
-                "description": (
-                    "Chart preview for "
-                    f"{getattr(self.chart, 'slice_name', 'Untitled Chart')}"
-                ),
-                "width": self.request.width or 400,
-                "height": self.request.height or 300,
-            }
-        )
+        if plugin.resizes_saved_preview:
+            preview.specification.update(
+                {
+                    "description": (
+                        "Chart preview for "
+                        f"{getattr(self.chart, 'slice_name', 'Untitled Chart')}"
+                    ),
+                    "width": self.request.width or 400,
+                    "height": self.request.height or 300,
+                }
+            )
         return preview
 
     def generate(self) -> VegaLitePreview | ChartError:  # noqa: C901
@@ -507,42 +489,22 @@ class VegaLitePreviewStrategy(PreviewFormatStrategy):
             if result and "queries" in result and len(result["queries"]) > 0:
                 chart_data = result["queries"][0].get("data", [])
 
-            if form_data.get("viz_type") in GEOGRAPHIC_VIZ_TYPES:
-                return ChartError(
-                    error=(
-                        "Geographic Vega previews are not supported. "
-                        "Use table/ascii for "
-                        "data or Explore for native geography."
-                    ),
-                    error_type="UnsupportedGeographicPreview",
-                )
-            if form_data.get("viz_type") == "treemap_v2":
-                return treemap_vega_lite(chart_data, form_data)
-            if form_data.get("viz_type") == "gauge_chart":
-                return generate_gauge_vega_lite_preview(chart_data, form_data)
-            viz_type = getattr(self.chart, "viz_type", None) or form_data.get(
-                "viz_type"
-            )
-            if viz_type == "gantt_chart":
-                return self._create_gantt_preview(chart_data, form_data)
+            # Every plugin-owned preview (including those that render an
+            # empty result) is shared with the unsaved-chart preview path.
+            if (
+                plugin_preview := self._create_plugin_preview(chart_data, form_data)
+            ) is not None:
+                return plugin_preview
             if not isinstance(chart_data, list):
                 return ChartError(
                     error="Chart result data is not an array of rows",
                     error_type="InvalidResultData",
                 )
-            # An empty Gantt query is still a valid interval chart and has a
-            # useful, typed Vega-Lite spec. Other chart types retain the existing
-            # explicit no-data response.
-            if not chart_data and viz_type != "gantt_chart":
+            if not chart_data:
                 return ChartError(
                     error="No data available for Vega-Lite visualization",
                     error_type="NoDataError",
                 )
-            if form_data.get("viz_type") in BUBBLE_VIZ_TYPES:
-                # Bubble's metrics live under x/y/size, which the generic
-                # spec builder below does not read — it would position the
-                # bubbles by the first two result columns instead.
-                return generate_bubble_vega_lite_preview(chart_data, form_data)
 
             # Convert Superset chart type to Vega-Lite specification
             vega_spec = self._create_vega_lite_spec(chart_data)
@@ -577,11 +539,13 @@ class VegaLitePreviewStrategy(PreviewFormatStrategy):
             or form_data.get("viz_type")
             or "table"
         )
-        if viz_type == "gantt_chart":
-            preview = self._create_gantt_preview(data, form_data)
-            if isinstance(preview, ChartError):
-                raise ValueError(preview.error)
-            return preview.specification
+        plugin_preview = self._create_plugin_preview(
+            data, {**form_data, "viz_type": viz_type}
+        )
+        if isinstance(plugin_preview, ChartError):
+            raise ValueError(plugin_preview.error)
+        if plugin_preview is not None:
+            return plugin_preview.specification
 
         # Get data fields and analyze types
         first_row = data[0] if data else {}

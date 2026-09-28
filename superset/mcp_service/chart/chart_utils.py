@@ -35,7 +35,6 @@ if TYPE_CHECKING:
     from superset.connectors.sqla.models import SqlaTable
 
 from superset.constants import NO_TIME_RANGE
-from superset.mcp_service.chart.query_result import GEOGRAPHIC_VIZ_TYPES
 from superset.mcp_service.chart.schemas import (
     BigNumberChartConfig,
     BoxPlotChartConfig,
@@ -970,7 +969,7 @@ def _merge_treemap_form_data(
     return merged
 
 
-def merge_chart_form_data(  # noqa: C901
+def merge_chart_form_data(
     existing_form_data: dict[str, Any],
     new_form_data: dict[str, Any],
     config: ChartConfig,
@@ -985,56 +984,83 @@ def merge_chart_form_data(  # noqa: C901
     """
     if existing_form_data.get("viz_type") != new_form_data.get("viz_type"):
         return dict(new_form_data)
-    if config.chart_type in {"country_map", "world_map", "deck_scatter"}:
-        return _merge_geographic_form_data(
-            existing_form_data, new_form_data, config, dataset_rebind=dataset_rebind
-        )
-    if isinstance(config, TreemapChartConfig):
-        return _merge_treemap_form_data(
-            existing_form_data, new_form_data, config, dataset_rebind
-        )
-    if isinstance(config, GanttChartConfig):
-        merged = dict(new_form_data)
-        if not dataset_rebind:
-            for config_field, form_key in (
-                ("tooltip_columns", "tooltip_columns"),
-                ("tooltip_metrics", "tooltip_metrics"),
-                ("order_by", "order_by_cols"),
-                ("row_limit", "row_limit"),
-            ):
-                if (
-                    config_field not in config.model_fields_set
-                    and form_key in existing_form_data
-                ):
-                    merged[form_key] = existing_form_data[form_key]
-            merge_gantt_ui_config(existing_form_data, merged)
-            if config.filters is None:
-                _preserve_gantt_adhoc_filters(merged, existing_form_data, config)
-        return merged
-    if not isinstance(config, GaugeChartConfig):
-        if dataset_rebind:
-            return dict(new_form_data)
-        fields_set = config.model_fields_set
-        if "filters" not in fields_set:
-            preserve_previous_adhoc_filters(new_form_data, existing_form_data)
-        merged = {**existing_form_data, **new_form_data}
-        # Preserve the shared color/limit controls when omitted. Chart-specific
-        # presentation defaults retain their existing mapper behavior.
-        for field in ("color_scheme", "row_limit"):
-            if field not in fields_set and field in existing_form_data:
-                merged[field] = existing_form_data[field]
-        # An explicitly empty collection clears the control rather than
-        # falling through to the inherited value.
-        for config_field, form_data_field in (
-            ("filters", "adhoc_filters"),
-            ("group_by", "groupby"),
-            ("group_by_secondary", "groupby_b"),
-            ("sort_by", "order_by_cols"),
-        ):
-            if config_field in fields_set and getattr(config, config_field, None) == []:
-                merged.pop(form_data_field, None)
-        return merged
+    from superset.mcp_service.chart.registry import plugin_for_viz_type
 
+    if (plugin := plugin_for_viz_type(new_form_data.get("viz_type"))) is not None:
+        plugin_merged = plugin.merge_update_form_data(
+            existing_form_data,
+            new_form_data,
+            config,
+            dataset_rebind=dataset_rebind,
+        )
+        if plugin_merged is not None:
+            return plugin_merged
+    if dataset_rebind:
+        return dict(new_form_data)
+    return _merge_shared_form_data(existing_form_data, new_form_data, config)
+
+
+def _merge_shared_form_data(
+    existing_form_data: dict[str, Any],
+    new_form_data: dict[str, Any],
+    config: ChartConfig,
+) -> dict[str, Any]:
+    """Overlay same-viz, same-dataset update form_data on the saved controls."""
+    fields_set = config.model_fields_set
+    if "filters" not in fields_set:
+        preserve_previous_adhoc_filters(new_form_data, existing_form_data)
+    merged = {**existing_form_data, **new_form_data}
+    # Preserve the shared color/limit controls when omitted. Chart-specific
+    # presentation defaults retain their existing mapper behavior.
+    for field in ("color_scheme", "row_limit"):
+        if field not in fields_set and field in existing_form_data:
+            merged[field] = existing_form_data[field]
+    # An explicitly empty collection clears the control rather than
+    # falling through to the inherited value.
+    for config_field, form_data_field in (
+        ("filters", "adhoc_filters"),
+        ("group_by", "groupby"),
+        ("group_by_secondary", "groupby_b"),
+        ("sort_by", "order_by_cols"),
+    ):
+        if config_field in fields_set and getattr(config, config_field, None) == []:
+            merged.pop(form_data_field, None)
+    return merged
+
+
+def merge_gantt_update_form_data(
+    existing_form_data: dict[str, Any],
+    new_form_data: dict[str, Any],
+    config: GanttChartConfig,
+    dataset_rebind: bool,
+) -> dict[str, Any]:
+    """Preserve omitted Gantt tooltip, ordering, limit and UI controls."""
+    merged = dict(new_form_data)
+    if not dataset_rebind:
+        for config_field, form_key in (
+            ("tooltip_columns", "tooltip_columns"),
+            ("tooltip_metrics", "tooltip_metrics"),
+            ("order_by", "order_by_cols"),
+            ("row_limit", "row_limit"),
+        ):
+            if (
+                config_field not in config.model_fields_set
+                and form_key in existing_form_data
+            ):
+                merged[form_key] = existing_form_data[form_key]
+        merge_gantt_ui_config(existing_form_data, merged)
+        if config.filters is None:
+            _preserve_gantt_adhoc_filters(merged, existing_form_data, config)
+    return merged
+
+
+def merge_gauge_update_form_data(  # noqa: C901
+    existing_form_data: dict[str, Any],
+    new_form_data: dict[str, Any],
+    config: GaugeChartConfig,
+    dataset_rebind: bool,
+) -> dict[str, Any]:
+    """Preserve omitted Gauge controls; a rebind keeps only presentation keys."""
     fields_set = config.model_fields_set
     if dataset_rebind:
         merged = {
@@ -2440,7 +2466,11 @@ def analyze_chart_capabilities(viz_type: str | None, config: Any) -> ChartCapabi
     # viz types are rejected by the Vega-Lite preview generator because their
     # geometry cannot be expressed in a Vega-Lite spec, so advertising the
     # format for them would guarantee a failed preview request.
-    if supports_interaction and viz_type not in GEOGRAPHIC_VIZ_TYPES:
+    if supports_interaction and viz_type not in {
+        "country_map",
+        "world_map",
+        "deck_scatter",
+    }:
         optimal_formats.append("vega_lite")
     optimal_formats.extend(["ascii", "table"])
 
@@ -2612,7 +2642,7 @@ def preserve_previous_adhoc_filters(
     new_form_data["adhoc_filters"] = merged_filters
 
 
-def _merge_geographic_form_data(  # noqa: C901
+def merge_geographic_update_form_data(  # noqa: C901
     existing: dict[str, Any],
     mapped: dict[str, Any],
     config: ChartConfig,

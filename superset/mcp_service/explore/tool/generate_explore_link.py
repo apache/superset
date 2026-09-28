@@ -37,6 +37,7 @@ from superset.mcp_service.chart.chart_utils import (
     map_config_to_form_data,
 )
 from superset.mcp_service.chart.compile import validate_and_compile
+from superset.mcp_service.chart.registry import get_registry
 from superset.mcp_service.chart.schemas import (
     GenerateExploreLinkRequest,
 )
@@ -280,8 +281,10 @@ async def generate_explore_link(
                 normalized_config,
                 form_data,
                 dataset,
-                run_compile_check=normalized_config.chart_type
-                in {"gauge", "treemap_v2", "country_map", "world_map", "deck_scatter"},
+                run_compile_check=bool(
+                    (plugin := get_registry().get(normalized_config.chart_type))
+                    and plugin.requires_compile_check
+                ),
             )
         if not compile_result.success:
             await ctx.warning(

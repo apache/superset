@@ -2714,7 +2714,7 @@ class TestUpdateChartDatasetIdIntegration:
             if viz_type == "gauge_chart" and target_id != 10:
                 assert result.structured_content["success"] is False
                 assert (
-                    "complete Gauge config"
+                    "complete Gauge Chart config"
                     in result.structured_content["error"]["message"]
                 )
                 mock_update_cmd_cls.assert_not_called()

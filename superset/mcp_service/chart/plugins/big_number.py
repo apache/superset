@@ -20,7 +20,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
-from typing import Any, ClassVar
+from typing import Any, cast, ClassVar
 
 from superset.mcp_service.chart.chart_utils import (
     _big_number_chart_what,
@@ -43,6 +43,9 @@ class BigNumberChartPlugin(BaseChartPlugin):
         "big_number": "Big Number with Trendline",
         "big_number_total": "Big Number",
     }
+    TRENDLINE_VIZ_TYPE = "big_number"
+    # Period-over-period KPIs share the singular-metric query contract.
+    additional_viz_types = frozenset({"pop_kpi"})
 
     def pre_validate(
         self,
@@ -246,3 +249,44 @@ class BigNumberChartPlugin(BaseChartPlugin):
             ],
             error_code="BIG_NUMBER_VALIDATION_ERROR",
         )
+
+    def resolve_query_fields(
+        self, form_data: Mapping[str, Any], viz_type: str
+    ) -> tuple[list[Any], list[Any]] | None:
+        metric = form_data.get("metric")
+        if not metric:
+            # Some saved/migrated form_data stores the metric under the
+            # plural "metrics" key even for single-metric chart types.
+            plural_metrics = form_data.get("metrics") or []
+            metric = plural_metrics[0] if plural_metrics else None
+        return ([metric] if metric else []), []
+
+    def build_query_dicts(
+        self,
+        form_data: dict[str, Any],
+        *,
+        viz_type: str,
+        engine: str,
+        row_limit: int | None,
+        order_desc: bool | None,
+    ) -> list[dict[str, Any]] | None:
+        if viz_type != self.TRENDLINE_VIZ_TYPE:
+            return None
+        from superset.mcp_service.chart.chart_helpers import (
+            build_single_query_dict,
+            resolve_big_number_columns,
+        )
+
+        metrics, _columns = cast(
+            tuple[list[Any], list[Any]],
+            self.resolve_query_fields(form_data, viz_type),
+        )
+        return [
+            build_single_query_dict(
+                form_data,
+                resolve_big_number_columns(form_data),
+                metrics,
+                row_limit=row_limit,
+                order_desc=order_desc,
+            )
+        ]
