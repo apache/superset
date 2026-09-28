@@ -27,7 +27,8 @@ from sqlalchemy.engine.url import URL
 from sqlalchemy.sql.elements import ColumnElement
 from sqlalchemy.sql.type_api import TypeEngine
 
-from superset.db_engine_specs.base import DatabaseCategory
+from superset.databases.utils import make_url_safe
+from superset.db_engine_specs.base import BasicParametersType, DatabaseCategory
 from superset.db_engine_specs.mysql import MySQLEngineSpec
 from superset.errors import SupersetErrorType
 from superset.models.core import Database
@@ -112,7 +113,10 @@ class DorisEngineSpec(MySQLEngineSpec):
     engine_aliases = {"doris"}
     engine_name = "Apache Doris"
     max_column_name_length = 64
-    default_driver = "pydoris"
+    # pydoris registers its dialect (a ``MySQLDialect_mysqldb`` subclass) as
+    # ``doris`` and ``pydoris``, so the installed driver is ``mysqldb``. The
+    # connection form is only offered when ``default_driver`` is installed.
+    default_driver = "mysqldb"
     sqlalchemy_uri_placeholder = (
         "doris://user:password@host:port/catalog.db[?key=value&key=value...]"
     )
@@ -277,6 +281,21 @@ class DorisEngineSpec(MySQLEngineSpec):
             {},
         ),
     }
+
+    @classmethod
+    def build_sqlalchemy_uri(
+        cls,
+        parameters: BasicParametersType,
+        encrypted_extra: Optional[dict[str, str]] = None,
+    ) -> str:
+        uri = super().build_sqlalchemy_uri(parameters, encrypted_extra)
+        # ``engine+default_driver`` would be ``pydoris+mysqldb``, which no
+        # SQLAlchemy entry point provides; ``doris`` is the dialect's scheme.
+        return (
+            make_url_safe(uri)
+            .set(drivername="doris")
+            .render_as_string(hide_password=False)
+        )
 
     @classmethod
     def adjust_engine_params(

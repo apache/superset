@@ -280,3 +280,77 @@ def test_get_catalog_names(
 
     # Verify the returned catalog names
     assert catalogs == expected_result
+
+
+def test_connection_form_default_driver_is_installed(mocker: MockerFixture) -> None:
+    """
+    The database picker offers the connection form only when ``default_driver``
+    is among the drivers installed for the engine. pydoris registers a
+    ``MySQLDialect_mysqldb`` subclass named ``pydoris`` under both the ``doris``
+    and ``pydoris`` entry points, so its driver is ``mysqldb``.
+    """
+    from sqlalchemy.dialects.mysql.mysqldb import MySQLDialect_mysqldb
+
+    from superset.db_engine_specs import get_available_engine_specs
+    from superset.db_engine_specs.doris import DorisEngineSpec
+
+    class PyDorisDialect(MySQLDialect_mysqldb):
+        name = "pydoris"
+
+    def entry_point(name: str) -> Any:
+        ep = mocker.MagicMock()
+        ep.name = name
+        ep.value = "pydoris.sqlalchemy.dialect:DorisDialect"
+        ep.load.return_value = PyDorisDialect
+        return ep
+
+    mocker.patch(
+        "superset.db_engine_specs.load_engine_specs",
+        return_value=iter([DorisEngineSpec]),
+    )
+    mocker.patch(
+        "superset.db_engine_specs.entry_points",
+        side_effect=lambda group: (
+            [entry_point("doris"), entry_point("pydoris")]
+            if group == "sqlalchemy.dialects"
+            else []
+        ),
+    )
+
+    drivers = get_available_engine_specs()[DorisEngineSpec]
+
+    assert drivers == {"mysqldb"}
+    assert DorisEngineSpec.default_driver in drivers
+
+
+@pytest.mark.parametrize("encryption", [False, True])
+def test_build_sqlalchemy_uri_uses_the_doris_scheme(encryption: bool) -> None:
+    """
+    A URI built from the connection form must name a registered dialect:
+    ``pydoris+mysqldb`` (``engine+default_driver``) is not one, ``doris`` is.
+    """
+    from superset.db_engine_specs.base import BasicParametersType
+    from superset.db_engine_specs.doris import DorisEngineSpec
+
+    parameters: BasicParametersType = {
+        "username": "user",
+        "password": "p@ss",
+        "host": "doris.example.com",
+        "port": 9030,
+        "database": "internal.sales",
+        "query": {},
+        "encryption": encryption,
+    }
+
+    uri = DorisEngineSpec.build_sqlalchemy_uri(parameters)
+
+    url = make_url(uri)
+    assert url.drivername == "doris"
+    assert (url.username, url.password, url.host, url.port, url.database) == (
+        "user",
+        "p@ss",
+        "doris.example.com",
+        9030,
+        "internal.sales",
+    )
+    assert DorisEngineSpec.get_parameters_from_uri(uri)["encryption"] is encryption
