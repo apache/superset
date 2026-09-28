@@ -32,6 +32,7 @@ from superset import db
 from superset.constants import QUERY_EARLY_CANCEL_KEY, TimeGrain
 from superset.db_engine_specs.base import BaseEngineSpec, DatabaseCategory
 from superset.models.sql_lab import Query
+from superset.utils.core import QueryStatus
 from superset.utils.network import is_safe_host
 
 if TYPE_CHECKING:
@@ -113,7 +114,7 @@ class ImpalaEngineSpec(BaseEngineSpec):
         :see: handle_cursor
         """
 
-        return False
+        return True
 
     @classmethod
     def execute(
@@ -134,6 +135,7 @@ class ImpalaEngineSpec(BaseEngineSpec):
 
         query_id = query.id
         unfinished_states = (
+            "PENDING_STATE",
             "INITIALIZED_STATE",
             "RUNNING_STATE",
         )
@@ -147,33 +149,29 @@ class ImpalaEngineSpec(BaseEngineSpec):
                 # the query was still executed
                 # modified in stop_query in views / core.py is reflected  here.
                 # stop query
-                if query.extra.get(QUERY_EARLY_CANCEL_KEY):
+                if query.extra.get(QUERY_EARLY_CANCEL_KEY) or query.status in (
+                    QueryStatus.STOPPED,
+                    QueryStatus.TIMED_OUT,
+                ):
                     cursor.cancel_operation()
                     cursor.close_operation()
                     cursor.close()
                     break
 
-                #  updates progress info by log
-                try:
-                    log = cursor.get_log() or ""
-                except Exception:  # pylint: disable=broad-except
-                    logger.warning("Call to GetLog() failed")
-                    log = ""
+                # Pending/initialized operations have no execution progress yet.
+                if status == "RUNNING_STATE":
+                    try:
+                        log = cursor.get_log() or ""
+                    except Exception:  # pylint: disable=broad-except
+                        logger.warning("Call to GetLog() failed")
+                        log = ""
 
-                if log:
-                    match = QUERY_PROGRESS_REGEX.match(log)
-                    if match:
+                    if match := QUERY_PROGRESS_REGEX.match(log):
                         progress = int(match.groupdict()["query_progress"])
-                    logger.debug(
-                        "Query %s: Progress total: %s", str(query_id), str(progress)
-                    )
-                    needs_commit = False
-                    if progress > query.progress:
-                        query.progress = progress
-                        needs_commit = True
-
-                    if needs_commit:
-                        db.session.commit()  # pylint: disable=consider-using-transaction
+                        logger.debug("Query %s: Progress total: %s", query_id, progress)
+                        if progress > query.progress:
+                            query.progress = progress
+                            db.session.commit()  # pylint: disable=consider-using-transaction
                 sleep_interval = app.config["DB_POLL_INTERVAL_SECONDS"].get(
                     cls.engine, 5
                 )
