@@ -342,17 +342,13 @@ class DorisEngineSpec(MySQLEngineSpec):
         parameters: BasicParametersType,
         encrypted_extra: Optional[dict[str, str]] = None,
     ) -> str:
-        # Keep explicit hostname verification when rebuilding an encrypted URI.
+        """Build a Doris URI while preserving explicit hostname verification."""
+        uri = make_url_safe(super().build_sqlalchemy_uri(parameters, encrypted_extra))
         if parameters.get("query", {}).get("ssl_mode") == "VERIFY_IDENTITY":
-            parameters = {**parameters, "encryption": False}
-        uri = super().build_sqlalchemy_uri(parameters, encrypted_extra)
+            uri = uri.update_query_dict({"ssl_mode": "VERIFY_IDENTITY"})
         # ``engine+default_driver`` would be ``pydoris+pydoris``, which no
         # SQLAlchemy entry point provides; ``doris`` is the dialect's scheme.
-        return (
-            make_url_safe(uri)
-            .set(drivername="doris")
-            .render_as_string(hide_password=False)
-        )
+        return uri.set(drivername="doris").render_as_string(hide_password=False)
 
     @classmethod
     def get_parameters_from_uri(
