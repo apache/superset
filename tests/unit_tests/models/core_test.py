@@ -2363,9 +2363,9 @@ def test_function_names_returns_empty_list_when_engine_spec_raises(
     assert logger.error.called
 
 
-def _oauth2_database(mocker: MockerFixture, engine: Any) -> Database:
-    """An OAuth2 database whose engine rejects the stored token at login."""
-    database = Database(database_name="oauth2_db", sqlalchemy_uri="snowflake://")
+def _login_rejecting_database(mocker: MockerFixture, engine: Any) -> Database:
+    """A database with a user token that its engine rejects at login."""
+    database = Database(database_name="login_db", sqlalchemy_uri="snowflake://")
     database.id = 1
     mocker.patch.object(Database, "_get_sqla_engine", return_value=engine)
     mocker.patch.object(Database, "is_oauth2_enabled", return_value=True)
@@ -2377,8 +2377,8 @@ def _oauth2_database(mocker: MockerFixture, engine: Any) -> Database:
     g.user.id = 2
     mocker.patch("superset.models.core.g", g)
     mocker.patch("superset.utils.oauth2.g", g)
-    oauth2_db = mocker.patch("superset.utils.oauth2.db")
-    oauth2_db.session.query().filter_by().one_or_none.return_value = (
+    metadata_db = mocker.patch("superset.utils.oauth2.db")
+    metadata_db.session.query().filter_by().one_or_none.return_value = (
         mocker.MagicMock(access_token="stale-token")  # noqa: S106
     )
     return database
@@ -2395,7 +2395,7 @@ def test_get_raw_connection_refreshes_a_token_rejected_at_login(
     engine = mocker.MagicMock()
     connection = mocker.MagicMock()
     engine.raw_connection.side_effect = [RuntimeError("token rejected"), connection]
-    database = _oauth2_database(mocker, engine)
+    database = _login_rejecting_database(mocker, engine)
     refresh = mocker.patch(
         "superset.utils.oauth2.refresh_oauth2_token", return_value="new-token"
     )
@@ -2420,7 +2420,7 @@ def test_get_inspector_refreshes_a_token_rejected_at_login(
 ) -> None:
     """Metadata (and the default schema chart data reads) log in the same way."""
     engine = mocker.MagicMock()
-    database = _oauth2_database(mocker, engine)
+    database = _login_rejecting_database(mocker, engine)
     inspector = mocker.MagicMock()
     inspect = mocker.patch(
         "superset.models.core.sqla.inspect",
@@ -2443,7 +2443,7 @@ def test_get_raw_connection_asks_to_sign_in_when_the_new_token_is_rejected(
 ) -> None:
     engine = mocker.MagicMock()
     engine.raw_connection.side_effect = RuntimeError("token rejected")
-    database = _oauth2_database(mocker, engine)
+    database = _login_rejecting_database(mocker, engine)
     refresh = mocker.patch(
         "superset.utils.oauth2.refresh_oauth2_token", return_value="new-token"
     )
@@ -2468,7 +2468,7 @@ def test_get_raw_connection_does_not_replay_the_callers_block(
 ) -> None:
     """Only opening the connection is retried, never work done with it."""
     engine = mocker.MagicMock()
-    database = _oauth2_database(mocker, engine)
+    database = _login_rejecting_database(mocker, engine)
     refresh = mocker.patch("superset.utils.oauth2.refresh_oauth2_token")
     mocker.patch.object(
         database.db_engine_spec,
@@ -2493,7 +2493,7 @@ def test_get_raw_connection_leaves_recovery_to_an_outer_retry(
 
     engine = mocker.MagicMock()
     engine.raw_connection.side_effect = RuntimeError("token rejected")
-    database = _oauth2_database(mocker, engine)
+    database = _login_rejecting_database(mocker, engine)
     refresh = mocker.patch("superset.utils.oauth2.refresh_oauth2_token")
 
     token = oauth2._oauth2_retry_active.set(True)
@@ -2514,7 +2514,7 @@ def test_get_raw_connection_without_oauth2_is_unchanged(
 ) -> None:
     engine = mocker.MagicMock()
     engine.raw_connection.side_effect = RuntimeError("token rejected")
-    database = _oauth2_database(mocker, engine)
+    database = _login_rejecting_database(mocker, engine)
     mocker.patch.object(Database, "is_oauth2_enabled", return_value=False)
     refresh = mocker.patch("superset.utils.oauth2.refresh_oauth2_token")
 
