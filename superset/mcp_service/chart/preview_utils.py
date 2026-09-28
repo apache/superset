@@ -26,6 +26,8 @@ import logging
 import math
 from copy import deepcopy
 from datetime import date, datetime, time, timezone
+from decimal import Decimal
+from numbers import Real
 from typing import Any, Dict, List
 
 from superset.mcp_service.chart.query_result import (
@@ -1257,7 +1259,7 @@ def generate_bubble_vega_lite_preview(
     )
 
 
-def _resolve_y_metric_column(row: Dict[str, Any], metrics: List[Any]) -> Any:
+def _resolve_y_metric_column(row: Dict[str, Any], metrics: List[Any]) -> str | None:
     """Pick the y-axis column for a Vega-Lite preview.
 
     Prefers the first chart metric with a numeric or null result value.
@@ -1271,7 +1273,7 @@ def _resolve_y_metric_column(row: Dict[str, Any], metrics: List[Any]) -> Any:
             matched_metric = True
             value = row[label]
             if value is None or (
-                isinstance(value, (int, float)) and not isinstance(value, bool)
+                isinstance(value, (Real, Decimal)) and not isinstance(value, bool)
             ):
                 return label
 
@@ -1279,7 +1281,7 @@ def _resolve_y_metric_column(row: Dict[str, Any], metrics: List[Any]) -> Any:
         return None
 
     for col, value in row.items():
-        if isinstance(value, (int, float)) and not isinstance(value, bool):
+        if isinstance(value, (Real, Decimal)) and not isinstance(value, bool):
             return col
     return None
 

@@ -21,6 +21,7 @@ Tests for preview_utils query context column building.
 
 import ast
 import inspect
+from decimal import Decimal
 from pathlib import Path
 from unittest.mock import MagicMock, Mock, patch
 
@@ -384,6 +385,16 @@ def test_vega_preview_y_axis_preserves_null_metric() -> None:
     encoding = _vega_encoding(
         [{"year": 2026, "revenue": None}, {"year": 2027, "revenue": 7}],
         {"viz_type": "bar", "x_axis": "year", "metrics": ["revenue"]},
+    )
+
+    assert encoding["y"]["field"] == "revenue"
+
+
+def test_vega_preview_y_axis_fallback_accepts_decimal() -> None:
+    """A Decimal in a non-metric column is a valid fallback y-axis."""
+    encoding = _vega_encoding(
+        [{"flag": True, "name": "a", "revenue": Decimal("7.25")}],
+        {"viz_type": "bar", "x_axis": "name", "metrics": ["missing"]},
     )
 
     assert encoding["y"]["field"] == "revenue"
