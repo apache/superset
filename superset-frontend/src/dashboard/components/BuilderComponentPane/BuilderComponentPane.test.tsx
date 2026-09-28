@@ -42,26 +42,7 @@ test('BuilderComponentPane has correct tabs in correct order', () => {
   );
 });
 
-test('does not render Filter Card when DashboardNativeFiltersOnCanvas is disabled', () => {
-  window.featureFlags = {};
-  render(<BuilderComponentPane topOffset={115} />, {
-    useRedux: true,
-    useDnd: true,
-    initialState: {
-      dashboardState: {
-        nativeFiltersBarOpen: false,
-      },
-    },
-  });
-
-  fireEvent.click(screen.getByText('Layout elements'));
-  expect(screen.queryByText('Filter Card')).not.toBeInTheDocument();
-});
-
-test('renders Filter Card when DashboardNativeFiltersOnCanvas is enabled', () => {
-  window.featureFlags = {
-    DASHBOARD_NATIVE_FILTERS_ON_CANVAS: true,
-  };
+test('renders Filter Card under Layout elements', () => {
   render(<BuilderComponentPane topOffset={115} />, {
     useRedux: true,
     useDnd: true,
@@ -74,5 +55,4 @@ test('renders Filter Card when DashboardNativeFiltersOnCanvas is enabled', () =>
 
   fireEvent.click(screen.getByText('Layout elements'));
   expect(screen.getByText('Filter Card')).toBeInTheDocument();
-  window.featureFlags = {};
 });
