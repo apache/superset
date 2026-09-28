@@ -1306,8 +1306,6 @@ def test_impersonate_user_service_account_delegation_needs_an_email(
     mocker: MockerFixture,
 ) -> None:
     """A delegated connection never falls back to the service account's access."""
-    from superset.exceptions import SupersetException
-
     with pytest.raises(SupersetException, match="no e-mail"):
         _service_account_adapter_kwargs(
             mocker,
