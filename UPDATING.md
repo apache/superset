@@ -926,12 +926,14 @@ Note that a retried query returns partial data with no truncation indicator
 (e.g. a filter dropdown may list only a subset of values on tables above the
 row cap).
 
-### Dashboard "Export Data to Excel" moves from `EXCEL_EXPORT_S3_*` to `EXPORT_STORAGE`
+### Dashboard "Export Data to Excel": direct downloads, and `EXCEL_EXPORT_S3_*` moves to `EXPORT_STORAGE`
 
 A new dashboard action exports every chart's data to a single multi-sheet
-`.xlsx` asynchronously. It is disabled by default and turns on only when
-`EXPORT_STORAGE` is configured with both a `bucket` and a `backend` (the
-endpoint returns `501` otherwise) — there is no implicit storage default:
+`.xlsx`. Without export storage, Superset builds the workbook during the request
+and returns it to the browser. When `EXPORT_STORAGE` is configured with both a
+`bucket` and a `backend`, a Celery worker builds and uploads the workbook
+instead, and the browser downloads it once ready. There is no implicit storage
+default:
 
 ```python
 from superset.utils.s3 import S3ExportStorage  # or superset.utils.gcs.GCSExportStorage
@@ -942,10 +944,25 @@ EXPORT_STORAGE = {
 }
 ```
 
+Direct downloads are limited by `EXCEL_EXPORT_SYNC_MAX_ROWS` (default
+`100_000`), based on the combined `row_limit` of the planned queries. Superset
+counts aggregate-only queries as one row, uses `ROW_LIMIT` when other queries
+omit it, and returns `400` before querying if the total exceeds the limit.
+Charts whose size can't be known before they run (grouping sets, which pivot
+tables use for non-additive metrics, and post-processing that can add rows such
+as resample, forecasts or custom operations) are left out of direct downloads
+and listed on the workbook's "Export Summary" sheet; if that leaves no chart to
+run, the request returns `400` instead of a summary-only workbook. Image exports
+are hidden without export storage because they require background webdriver
+rendering.
+
+`POST /api/v1/dashboard/<id>/export_xlsx/` returns either `202` with a queued job
+id or `200` with the workbook. It does not return `501` when storage is unset.
+
 **Upgrading from `EXCEL_EXPORT_S3_*`:** the S3-only config keys are removed and
 replaced by the pluggable `EXPORT_STORAGE` above. They are no longer read, so a
-deployment that had the export working keeps a valid-looking config while the
-endpoint starts returning `501`. Port each key:
+deployment that had background exports working falls back to direct downloads
+(and loses image exports) until the config is ported:
 
 | Removed | Replacement |
 | --- | --- |
@@ -955,39 +972,38 @@ endpoint starts returning `501`. Port each key:
 
 `EXPORT_STORAGE["backend"]` has no default and must be set explicitly, which is
 the part an upgrade cannot infer: the previous config implied S3, so keep the
-same bucket with `S3ExportStorage()`. `EXCEL_EXPORT_LINK_TTL_SECONDS` is
+same bucket with `S3ExportStorage()`. A bucket without a backend (or the
+reverse) logs a warning naming the missing key. `EXCEL_EXPORT_LINK_TTL_SECONDS` is
 unchanged in name, but it now bounds a Superset-issued link rather than a
 pre-signed S3 URL, so the AWS seven day ceiling no longer applies.
 
-It also requires a running Celery worker. SMTP is optional and only used to
-additionally email logged-in users a download link; every session (including
-guest/Public ones, which have no email) gets the export through status polling
-and automatic download. Config keys:
-`EXPORT_STORAGE`, `EXCEL_EXPORT_LINK_TTL_SECONDS`,
+The background path also requires a running Celery worker. With
+`CELERY_CONFIG = None`, exports download directly even when `EXPORT_STORAGE` is
+complete, and a warning says so. SMTP is optional and only used to
+additionally email logged-in users a download link; every session
+(including guest/Public ones, which have no email) gets the export through
+status polling and automatic download. Config keys: `EXPORT_STORAGE`,
+`EXCEL_EXPORT_LINK_TTL_SECONDS`, `EXCEL_EXPORT_SYNC_MAX_ROWS`,
 `EXCEL_EXPORT_TABLE_VIZ_TYPES`, and `EXCEL_EXPORT_QUERY_CONTEXT_BUILDER`.
 
 The storage backends depend on SDKs that are **not** installed by default:
 install `pip install apache-superset[excel-export]` (boto3) for
 `S3ExportStorage`, or `pip install apache-superset[excel-export-gcs]`
 (google-cloud-storage) for `GCSExportStorage`. A custom backend can be supplied
-by implementing `superset.utils.export_storage.ExportStorage`.
+by implementing `superset.utils.export_storage.ExportStorage`. The
+direct-download path uses neither.
 
-Charts store their `query_context` only once they have been (re-)saved in
-Explore, so older charts may have none. For a fixed, conservative set of viz
-types (`table`, `big_number_total`, `big_number`, `pie`) the export rebuilds a
-query context from the chart's saved form data so those charts still export.
-The rebuild is a single-query mapping and does **not** reproduce plugin
-post-processing (pivot, rolling, forecast) or multi-query charts, so any chart of
-another type without a saved query context is skipped and listed in the email for
-the user to re-save. To cover those types, set `EXCEL_EXPORT_QUERY_CONTEXT_BUILDER`
-to a callable that receives the chart's form data and returns a query-context
-payload (or `None` to fall back to the built-in rebuild) — for example one backed
-by a service that runs the chart's real frontend `buildQuery`.
+For `table`, `big_number_total`, `big_number`, and `pie` charts without a saved
+`query_context`, Superset rebuilds a single query from saved form data. Charts
+that need post-processing or multiple queries are skipped and listed on the
+workbook's "Export Summary" sheet. Use `EXCEL_EXPORT_QUERY_CONTEXT_BUILDER` to
+support more chart types.
 
 A second mode, **Export Images to Excel**, embeds non-table charts as rendered
 images (which viz types stay tabular is controlled by
 `EXCEL_EXPORT_TABLE_VIZ_TYPES`). It renders through the headless webdriver, so the
-menu option only appears when the webdriver screenshot feature flags
+menu option only appears when an export bucket is configured and the webdriver
+screenshot feature flags
 (`ENABLE_DASHBOARD_SCREENSHOT_ENDPOINTS`,
 `ENABLE_DASHBOARD_DOWNLOAD_WEBDRIVER_SCREENSHOT`) are enabled.
 

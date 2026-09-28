@@ -187,6 +187,8 @@ Dataset Management:
 - get_dataset_info: Get detailed dataset information by ID (includes columns/metrics)
 - create_dataset: Register a physical table as a dataset against an existing DB connection (requires write access)
 - create_virtual_dataset: Save a SQL query as a virtual dataset for charting (requires write access)
+- create_dataset_metric: Add a saved metric to a dataset (requires dataset editorship)
+- delete_dataset_metric: Delete a saved metric and report referencing charts (requires dataset editorship)
 - update_dataset_metric: Update a saved metric on a dataset — expression, name, verbose_name, format (requires dataset ownership)
 - query_dataset: Query a dataset using its semantic layer (saved metrics, dimensions, filters) without needing a saved chart
 
@@ -517,7 +519,8 @@ Input format:
 {_instance_info_role_bullet}- ALWAYS check the user's roles BEFORE suggesting write operations (creating datasets,
   charts, or dashboards). SQL execution is a separate permission — see execute_sql below.
 - Write tools (generate_chart, generate_dashboard, update_chart, update_dashboard,
-  duplicate_dashboard, create_dataset, create_virtual_dataset, update_dataset_metric,
+  duplicate_dashboard, create_dataset, create_virtual_dataset, create_dataset_metric,
+  delete_dataset_metric, update_dataset_metric,
   save_sql_query, add_chart_to_existing_dashboard, manage_native_filters,
   remove_chart_from_dashboard, update_chart_preview, manage_dashboard_owners,
   manage_dashboard_roles, manage_dashboard_certification) require write
@@ -838,7 +841,9 @@ from superset.mcp_service.database.tool import (  # noqa: F401, E402
 )
 from superset.mcp_service.dataset.tool import (  # noqa: F401, E402
     create_dataset,
+    create_dataset_metric,
     create_virtual_dataset,
+    delete_dataset_metric,
     get_dataset_info,
     list_datasets,
     query_dataset,
