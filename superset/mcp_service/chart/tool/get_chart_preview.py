@@ -412,9 +412,7 @@ class TablePreviewStrategy(PreviewFormatStrategy):
                 return result_error
             assert data is not None
 
-            if (
-                plugin_preview := plugin_table_preview(data, form_data)
-            ) is not None:
+            if (plugin_preview := plugin_table_preview(data, form_data)) is not None:
                 return plugin_preview
 
             table_data = generate_ascii_table(data, 120)

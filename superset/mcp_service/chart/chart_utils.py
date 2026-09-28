@@ -2232,11 +2232,7 @@ def merge_form_data_for_update(
         dataset_rebind = False
 
     same_viz = existing_form_data.get("viz_type") == new_form_data.get("viz_type")
-    if (
-        same_viz
-        and plugin is not None
-        and (dataset_rebind or plugin.owns_update_merge)
-    ):
+    if same_viz and plugin is not None and (dataset_rebind or plugin.owns_update_merge):
         plugin_merged = plugin.merge_update_form_data(
             existing_form_data,
             new_form_data,
@@ -2347,7 +2343,7 @@ def retain_mixed_timeseries_secondary_update_state(
     return retained
 
 
-def finalize_sunburst_update_form_data(
+def finalize_sunburst_update_form_data(  # noqa: C901
     existing_form_data: Mapping[str, Any],
     new_form_data: Mapping[str, Any],
     merged: Dict[str, Any],

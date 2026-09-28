@@ -58,7 +58,7 @@ class SunburstChartPlugin(BaseChartPlugin):
     invalid_result_message = (
         "Sunburst query returned data that cannot render as a Sunburst."
     )
-    invalid_result_suggestions = (
+    invalid_result_suggestions: ClassVar[tuple[str, ...]] = (
         "Use a metric that returns finite numeric values",
         "Verify saved and SQL metric result aliases",
         "Ensure every hierarchy column is present in the query result",

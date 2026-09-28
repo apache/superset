@@ -220,7 +220,6 @@ _VIZ_CATEGORY: dict[str, str] = {
 _MAX_RECOMMENDATIONS = 4
 
 
-
 def _build_data_columns(
     data: list[dict[str, Any]],
     raw_columns: list[str],
