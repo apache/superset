@@ -31,7 +31,7 @@ from urllib.parse import parse_qs, urlparse
 
 from superset.common.utils.time_grain_utils import apply_time_grain_to_base_axis
 from superset.constants import EXTRA_FORM_DATA_OVERRIDE_REGULAR_MAPPINGS
-from superset.utils.core import ExtraFiltersReasonType
+from superset.utils.core import ExtraFiltersReasonType, get_column_name
 
 if TYPE_CHECKING:
     from superset.mcp_service.chart.schemas import AppliedDashboardFilter
@@ -767,14 +767,55 @@ def _build_single_query_dict(
     return qd
 
 
-def _build_gantt_or_big_number_query_dicts(
+def _build_specialized_query_dicts(
     form_data: dict[str, Any],
     viz_type: str,
     metrics: list[Any],
     row_limit: int | None,
     order_desc: bool | None,
 ) -> list[dict[str, Any]] | None:
-    """Build query dictionaries for the two specialized MCP chart contracts."""
+    """Build query dictionaries matching specialized frontend chart contracts."""
+    if viz_type == "histogram_v2":
+        column = form_data["column"]
+        groupby = form_data.get("groupby") or []
+        histogram_metrics = (
+            [
+                {
+                    "expressionType": "SQL",
+                    "sqlExpression": "COUNT(*)",
+                    "label": "COUNT(*)",
+                }
+            ]
+            if form_data.get("having")
+            else []
+        )
+        query = _build_single_query_dict(
+            form_data, [*groupby, column], histogram_metrics, row_limit=row_limit
+        )
+        query["post_processing"] = [
+            {
+                "operation": "histogram",
+                "options": {
+                    "column": get_column_name(column),
+                    "groupby": [get_column_name(group) for group in groupby],
+                    "bins": int(form_data.get("bins", 5)),
+                    "normalize": form_data.get("normalize", False),
+                    "cumulative": form_data.get("cumulative", False),
+                },
+            }
+        ]
+        return [query]
+
+    if viz_type == "waterfall":
+        axis = form_data.get("x_axis") or form_data.get("granularity_sqla")
+        columns = list(axis) if isinstance(axis, list) else [axis] if axis else []
+        columns.extend(form_data.get("groupby") or [])
+        query = _build_single_query_dict(
+            form_data, columns, metrics, row_limit=row_limit
+        )
+        query["orderby"] = [(column, True) for column in columns]
+        return [query]
+
     if viz_type == "gantt_chart":
         columns, gantt_metrics, orderby, series_columns = resolve_gantt_query_fields(
             form_data
@@ -879,7 +920,7 @@ def build_query_dicts_from_form_data(
         or ""
     )
 
-    if specialized_queries := _build_gantt_or_big_number_query_dicts(
+    if specialized_queries := _build_specialized_query_dicts(
         form_data,
         viz_type,
         metrics,

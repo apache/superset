@@ -45,6 +45,7 @@ from superset.mcp_service.chart.preview_utils import (
     generate_bubble_vega_lite_preview,
     generate_gauge_ascii_preview,
     generate_gauge_vega_lite_preview,
+    generate_histogram_vega_lite_preview,
 )
 from superset.mcp_service.chart.query_result import (
     normalize_chart_query_result,
@@ -531,6 +532,9 @@ class VegaLitePreviewStrategy(PreviewFormatStrategy):
                 # spec builder below does not read — it would position the
                 # bubbles by the first two result columns instead.
                 return generate_bubble_vega_lite_preview(chart_data, form_data)
+
+            if viz_type == "histogram_v2":
+                return generate_histogram_vega_lite_preview(chart_data, form_data)
 
             # Convert Superset chart type to Vega-Lite specification
             vega_spec = self._create_vega_lite_spec(chart_data)

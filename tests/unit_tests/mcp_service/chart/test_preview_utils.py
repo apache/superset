@@ -273,3 +273,19 @@ def test_unsaved_gauge_preview_surfaces_query_error(
     )
     assert result.error_type == "QueryError"
     assert "bad metric" in result.error
+
+
+def test_histogram_preview_uses_postprocessed_bins() -> None:
+    """The histogram preview must not bin or count already aggregated bin counts."""
+    result = preview_utils._generate_vega_lite_preview_from_data(
+        [{"0 - 10": 4, "10 - 20": 7}], {"viz_type": "histogram_v2"}
+    )
+    assert result.specification["data"]["values"] == [
+        {"bin": "0 - 10", "value": 4, "series": "All"},
+        {"bin": "10 - 20", "value": 7, "series": "All"},
+    ]
+    encoding = result.specification["encoding"]
+    assert encoding["x"]["field"] == "bin"
+    assert "bin" not in encoding["x"]
+    assert encoding["y"]["field"] == "value"
+    assert "aggregate" not in encoding["y"]

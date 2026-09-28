@@ -1257,6 +1257,47 @@ def generate_bubble_vega_lite_preview(
     )
 
 
+def generate_histogram_vega_lite_preview(
+    data: list[dict[str, Any]], form_data: dict[str, Any]
+) -> VegaLitePreview:
+    """Render histogram operator output without re-binning its counts."""
+    from superset.utils.core import get_column_name
+
+    groupby = [get_column_name(column) for column in form_data.get("groupby") or []]
+    bins = [column for column in data[0] if column not in groupby] if data else []
+    values = [
+        {
+            "bin": bin_label,
+            "value": row.get(bin_label),
+            "series": " / ".join(str(row.get(column, "")) for column in groupby)
+            or "All",
+        }
+        for row in data
+        for bin_label in bins
+    ]
+    return VegaLitePreview(
+        type="vega_lite",
+        specification={
+            "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+            "data": {"values": values},
+            "mark": "bar",
+            "width": "container",
+            "height": 400,
+            "encoding": {
+                "x": {"field": "bin", "type": "ordinal", "sort": bins},
+                "y": {"field": "value", "type": "quantitative", "stack": None},
+                "color": {"field": "series", "type": "nominal"},
+                "tooltip": [
+                    {"field": "bin", "type": "ordinal"},
+                    {"field": "value", "type": "quantitative"},
+                    {"field": "series", "type": "nominal"},
+                ],
+            },
+        },
+        supports_streaming=False,
+    )
+
+
 def _generate_vega_lite_preview_from_data(  # noqa: C901
     data: List[Dict[str, Any]], form_data: Dict[str, Any]
 ) -> VegaLitePreview | ChartError:
@@ -1270,6 +1311,9 @@ def _generate_vega_lite_preview_from_data(  # noqa: C901
         return generate_gauge_vega_lite_preview(data, form_data)
     if viz_type in BUBBLE_VIZ_TYPES:
         return generate_bubble_vega_lite_preview(data, form_data)
+
+    if viz_type == "histogram_v2":
+        return generate_histogram_vega_lite_preview(data, form_data)
 
     # Map Superset viz types to Vega-Lite marks
     viz_to_mark = {
