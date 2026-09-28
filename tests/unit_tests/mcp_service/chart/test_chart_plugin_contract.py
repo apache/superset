@@ -84,6 +84,7 @@ HOOKS = (
     "table_preview",
     "unsupported_preview",
     "vega_lite_preview",
+    "validate_form_data_state",
     "resolve_update_config",
     "merge_update_form_data",
     "validate_merged_form_data",
@@ -285,6 +286,15 @@ def test_query_failures_are_not_masked(
 
 
 @pytest.mark.parametrize(("plugin", "example"), EXAMPLES, ids=EXAMPLE_IDS)
+def test_published_examples_have_valid_form_data_state(
+    plugin: ChartTypePlugin, example: dict[str, Any]
+) -> None:
+    """A plugin's own mapped example passes its final-state validation."""
+    form_data = _form_data(plugin, example)
+    assert plugin.validate_form_data_state(deepcopy(form_data)) is None
+
+
+@pytest.mark.parametrize(("plugin", "example"), EXAMPLES, ids=EXAMPLE_IDS)
 def test_row_limits_are_positive(
     plugin: ChartTypePlugin, example: dict[str, Any]
 ) -> None:
@@ -430,7 +440,7 @@ _DISPATCHERS: dict[Any, tuple[str, ...]] = {
         "_generate_table_preview_from_data",
         "_generate_vega_lite_preview_from_data",
     ),
-    compile_module: ("_compile_chart",),
+    compile_module: ("_compile_chart", "validate_and_compile"),
     chart_utils: ("merge_chart_form_data",),
 }
 _DISPATCH_MODULES = (

@@ -40,7 +40,10 @@ from superset.mcp_service.chart.schemas import (
     TablePreview,
     VegaLitePreview,
 )
-from superset.mcp_service.common.error_schemas import ChartGenerationError
+from superset.mcp_service.common.error_schemas import (
+    ChartGenerationError,
+    DatasetContext,
+)
 
 # Query builders intentionally accept multiple native and legacy role names.
 # A replacement config must clear the whole vocabulary before applying the
@@ -366,6 +369,18 @@ class ChartTypePlugin(Protocol):
         """Return a chart-specific Vega-Lite preview, or None for the generic one."""
         ...
 
+    def validate_form_data_state(
+        self,
+        form_data: Mapping[str, Any],
+        dataset_context: DatasetContext | None = None,
+    ) -> ChartGenerationError | None:
+        """Validate chart-specific invariants of the final form_data.
+
+        Runs before the compile check. Without a dataset context only the
+        dataset-independent invariants are checked.
+        """
+        ...
+
     def resolve_update_config(
         self,
         config: Any,
@@ -547,6 +562,13 @@ class BaseChartPlugin:
     def vega_lite_preview(
         self, data: list[Any], form_data: dict[str, Any]
     ) -> VegaLitePreview | ChartError | None:
+        return None
+
+    def validate_form_data_state(
+        self,
+        form_data: Mapping[str, Any],
+        dataset_context: DatasetContext | None = None,
+    ) -> ChartGenerationError | None:
         return None
 
     def resolve_update_config(

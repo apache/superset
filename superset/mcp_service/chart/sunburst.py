@@ -24,7 +24,10 @@ from decimal import Decimal
 from typing import Any
 
 from superset.mcp_service.chart.schemas import ChartError
-from superset.mcp_service.common.error_schemas import DatasetContext
+from superset.mcp_service.common.error_schemas import (
+    ChartGenerationError,
+    DatasetContext,
+)
 
 
 @dataclass(frozen=True)
@@ -285,6 +288,80 @@ def normalize_sunburst_query_result(result: Any, form_data: Mapping[str, Any]) -
         return error
     queries = result["queries"]
     return {**result, "queries": [{**queries[0], "data": rows}, *queries[1:]]}
+
+
+def validate_sunburst_temporal_state(  # noqa: C901
+    form_data: Mapping[str, Any], dataset_context: DatasetContext | None = None
+) -> ChartGenerationError | None:
+    """Validate the final native temporal column/grain pair for Sunburst.
+
+    A grain always requires an explicit temporal subject. With a dataset
+    context, the subject must also resolve to one temporal dataset column.
+    """
+    from superset.mcp_service.chart.validation.dataset_validator import (
+        metadata_entry_name,
+        resolve_exact_first_casefold,
+    )
+
+    grain = form_data.get("time_grain_sqla")
+    temporal_column = form_data.get("granularity_sqla")
+    if grain is not None and not temporal_column:
+        return ChartGenerationError(
+            error_type="invalid_temporal_state",
+            message="Sunburst time grain requires a temporal column",
+            details=(
+                "time_grain_sqla cannot be retained without granularity_sqla in "
+                "the final chart state."
+            ),
+            suggestions=[
+                "Set temporal_column together with time_grain",
+                "Clear time_grain when clearing temporal_column",
+            ],
+            error_code="INVALID_TEMPORAL_STATE",
+        )
+    if dataset_context is None or not temporal_column:
+        return None
+    if not isinstance(temporal_column, str):
+        return ChartGenerationError(
+            error_type="invalid_temporal_column",
+            message="Sunburst temporal column must be a dataset column name",
+            details="granularity_sqla is malformed in the final chart state.",
+            suggestions=["Choose a temporal column from the dataset"],
+            error_code="NON_TEMPORAL_COLUMN",
+        )
+    matching_column, matches = resolve_exact_first_casefold(
+        temporal_column,
+        dataset_context.available_columns,
+        metadata_entry_name,
+    )
+    if matches:
+        return ChartGenerationError(
+            error_type="ambiguous_dataset_reference",
+            message=f"Temporal reference {temporal_column!r} is ambiguous",
+            details=(
+                "The case-insensitive temporal reference matches multiple "
+                f"candidates: {', '.join(repr(name) for name in matches)}."
+            ),
+            suggestions=[f"Use the exact name {name!r}" for name in matches[:10]],
+            error_code="AMBIGUOUS_DATASET_REFERENCE",
+        )
+    if matching_column is None:
+        return ChartGenerationError(
+            error_type="missing_temporal_column",
+            message=f"Temporal column {temporal_column!r} does not exist",
+            details="The final Sunburst temporal column must exist on the dataset.",
+            suggestions=["Choose a temporal column from the dataset"],
+            error_code="MISSING_TEMPORAL_COLUMN",
+        )
+    if not matching_column.get("is_temporal", False):
+        return ChartGenerationError(
+            error_type="invalid_temporal_column",
+            message=f"Column {matching_column['name']!r} is not temporal",
+            details="Sunburst time grain requires a temporal dataset column.",
+            suggestions=["Choose a temporal column from the dataset"],
+            error_code="NON_TEMPORAL_COLUMN",
+        )
+    return None
 
 
 def unsupported_sunburst_preview(preview_format: str) -> ChartError:

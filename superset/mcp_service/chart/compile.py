@@ -96,7 +96,12 @@ def _compile_chart(  # noqa: C901
     Returns a :class:`CompileResult` with ``success=True`` when the
     query executes cleanly.
     """
-    temporal_state_error = _validate_sunburst_temporal_subject(form_data)
+    from superset.mcp_service.chart.registry import plugin_for_viz_type
+
+    plugin = plugin_for_viz_type(form_data.get("viz_type"))
+    temporal_state_error = (
+        plugin.validate_form_data_state(form_data) if plugin is not None else None
+    )
     if temporal_state_error is not None:
         return CompileResult(
             success=False,
@@ -116,7 +121,6 @@ def _compile_chart(  # noqa: C901
         build_query_context_from_form_data,
     )
     from superset.mcp_service.chart.plugin import BaseChartPlugin
-    from superset.mcp_service.chart.registry import plugin_for_viz_type
 
     try:
         query_form_data = canonicalize_operation_form_data(
@@ -124,7 +128,6 @@ def _compile_chart(  # noqa: C901
             datasource_id=dataset_id,
         )
         query_form_data["datasource"] = f"{dataset_id}__table"
-        plugin = plugin_for_viz_type(form_data.get("viz_type"))
         query_context = build_query_context_from_form_data(
             query_form_data,
             row_limit=plugin.compile_row_limit(form_data) if plugin else 2,
@@ -347,85 +350,6 @@ def _validate_adhoc_filter_columns(  # noqa: C901
     )
 
 
-def _validate_sunburst_temporal_subject(
-    form_data: Dict[str, Any],
-) -> ChartGenerationError | None:
-    """Reject a final Sunburst grain that has no explicit temporal subject."""
-    if form_data.get("viz_type") != "sunburst_v2":
-        return None
-    grain = form_data.get("time_grain_sqla")
-    temporal_column = form_data.get("granularity_sqla")
-    if grain is not None and not temporal_column:
-        return ChartGenerationError(
-            error_type="invalid_temporal_state",
-            message="Sunburst time grain requires a temporal column",
-            details=(
-                "time_grain_sqla cannot be retained without granularity_sqla in "
-                "the final chart state."
-            ),
-            suggestions=[
-                "Set temporal_column together with time_grain",
-                "Clear time_grain when clearing temporal_column",
-            ],
-            error_code="INVALID_TEMPORAL_STATE",
-        )
-    return None
-
-
-def _validate_sunburst_temporal_state(
-    form_data: Dict[str, Any], dataset_context: DatasetContext
-) -> ChartGenerationError | None:
-    """Validate the final native temporal column/grain pair for Sunburst."""
-    if error := _validate_sunburst_temporal_subject(form_data):
-        return error
-    if form_data.get("viz_type") != "sunburst_v2":
-        return None
-    temporal_column = form_data.get("granularity_sqla")
-    if not temporal_column:
-        return None
-    if not isinstance(temporal_column, str):
-        return ChartGenerationError(
-            error_type="invalid_temporal_column",
-            message="Sunburst temporal column must be a dataset column name",
-            details="granularity_sqla is malformed in the final chart state.",
-            suggestions=["Choose a temporal column from the dataset"],
-            error_code="NON_TEMPORAL_COLUMN",
-        )
-    matching_column, matches = resolve_exact_first_casefold(
-        temporal_column,
-        dataset_context.available_columns,
-        metadata_entry_name,
-    )
-    if matches:
-        return ChartGenerationError(
-            error_type="ambiguous_dataset_reference",
-            message=f"Temporal reference {temporal_column!r} is ambiguous",
-            details=(
-                "The case-insensitive temporal reference matches multiple "
-                f"candidates: {', '.join(repr(name) for name in matches)}."
-            ),
-            suggestions=[f"Use the exact name {name!r}" for name in matches[:10]],
-            error_code="AMBIGUOUS_DATASET_REFERENCE",
-        )
-    if matching_column is None:
-        return ChartGenerationError(
-            error_type="missing_temporal_column",
-            message=f"Temporal column {temporal_column!r} does not exist",
-            details="The final Sunburst temporal column must exist on the dataset.",
-            suggestions=["Choose a temporal column from the dataset"],
-            error_code="MISSING_TEMPORAL_COLUMN",
-        )
-    if not matching_column.get("is_temporal", False):
-        return ChartGenerationError(
-            error_type="invalid_temporal_column",
-            message=f"Column {matching_column['name']!r} is not temporal",
-            details="Sunburst time grain requires a temporal dataset column.",
-            suggestions=["Choose a temporal column from the dataset"],
-            error_code="NON_TEMPORAL_COLUMN",
-        )
-    return None
-
-
 def _is_inert_adhoc_filter(filter_: dict[str, Any]) -> bool:
     """Whether a saved filter is Superset's non-filtering placeholder."""
     operator = filter_.get("operator", filter_.get("op"))
@@ -510,7 +434,6 @@ def _build_compile_error(message: str) -> ChartGenerationError:
     )
 
 
-
 def validate_and_compile(
     config: Any,
     form_data: Dict[str, Any],
@@ -572,8 +495,13 @@ def validate_and_compile(
                 tier="validation",
                 error_obj=filter_error,
             )
-        temporal_state_error = _validate_sunburst_temporal_state(
-            form_data, dataset_context
+        from superset.mcp_service.chart.registry import plugin_for_viz_type
+
+        state_plugin = plugin_for_viz_type(form_data.get("viz_type"))
+        temporal_state_error = (
+            state_plugin.validate_form_data_state(form_data, dataset_context)
+            if state_plugin is not None
+            else None
         )
         if temporal_state_error is not None:
             return CompileResult(

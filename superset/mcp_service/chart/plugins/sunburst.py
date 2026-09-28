@@ -36,7 +36,10 @@ from superset.mcp_service.chart.schemas import (
 )
 from superset.mcp_service.chart.sunburst import unsupported_sunburst_preview
 from superset.mcp_service.chart.validation.dataset_validator import DatasetValidator
-from superset.mcp_service.common.error_schemas import ChartGenerationError
+from superset.mcp_service.common.error_schemas import (
+    ChartGenerationError,
+    DatasetContext,
+)
 
 
 class SunburstChartPlugin(BaseChartPlugin):
@@ -177,6 +180,17 @@ class SunburstChartPlugin(BaseChartPlugin):
         if preview_format == "vega_lite":
             return unsupported_sunburst_preview("Vega-Lite")
         return None
+
+    def validate_form_data_state(
+        self,
+        form_data: Mapping[str, Any],
+        dataset_context: DatasetContext | None = None,
+    ) -> ChartGenerationError | None:
+        from superset.mcp_service.chart.sunburst import (
+            validate_sunburst_temporal_state,
+        )
+
+        return validate_sunburst_temporal_state(form_data, dataset_context)
 
     def build_query_dicts(
         self,
