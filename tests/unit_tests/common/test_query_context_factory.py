@@ -17,8 +17,10 @@
 from datetime import datetime, timezone
 from unittest.mock import Mock, patch
 
+from superset.common.chart_data import ChartDataResultType
 from superset.common.query_context_factory import QueryContextFactory
 from superset.common.query_object import QueryObject
+from superset.common.query_object_factory import QueryObjectFactory
 from superset.models.slice import Slice
 
 
@@ -843,3 +845,55 @@ class TestQueryContextFactory:
         self.factory._apply_granularity(query_object, form_data, datasource)
 
         assert query_object.granularity == "ds"
+
+    def test_apply_granularity_legacy_query_context_keeps_temporal_filter_bounds(
+        self,
+    ):
+        """Test a legacy chart's temporal filter is replaced, not dropped.
+
+        With no ``time_range``, ``QueryObjectFactory`` takes the range from the
+        query's TEMPORAL_RANGE filter and stores it in ``from_dttm`` and
+        ``to_dttm``. Recovering the legacy granularity makes
+        ``_apply_granularity`` remove that filter, and ``models.helpers``
+        rebuilds the time filter on the granularity from those bounds, so the
+        chart keeps its time restriction.
+        """
+        app_config = {
+            "ROW_LIMIT": 5000,
+            "DEFAULT_RELATIVE_START_TIME": "today",
+            "DEFAULT_RELATIVE_END_TIME": "today",
+            "SAMPLES_ROW_LIMIT": 1000,
+            "SQL_MAX_ROW": 100000,
+        }
+        with patch(
+            "superset.common.query_object_factory.apply_max_row_limit",
+            side_effect=lambda limit, *args, **kwargs: limit,
+        ):
+            query_object = QueryObjectFactory(app_config, Mock()).create(
+                ChartDataResultType.FULL,
+                columns=["ds"],
+                metrics=["count"],
+                is_timeseries=True,
+                filters=[
+                    {
+                        "col": "ds",
+                        "op": "TEMPORAL_RANGE",
+                        "val": "2024-01-01 : 2024-02-01",
+                    }
+                ],
+            )
+        assert query_object.time_range is None
+        assert query_object.from_dttm == datetime(2024, 1, 1)
+        assert query_object.to_dttm == datetime(2024, 2, 1)
+
+        form_data = {"granularity_sqla": "ds"}
+        datasource = Mock()
+        datasource.columns = [{"column_name": "ds", "is_dttm": True}]
+        datasource.main_dttm_col = "ds"
+
+        self.factory._apply_granularity(query_object, form_data, datasource)
+
+        assert query_object.granularity == "ds"
+        assert query_object.filter == []
+        assert query_object.from_dttm == datetime(2024, 1, 1)
+        assert query_object.to_dttm == datetime(2024, 2, 1)
