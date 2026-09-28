@@ -34,7 +34,12 @@ from superset.common.form_data_query_context import (
     MIXED_TIMESERIES_SECONDARY_QUERY_KEYS,
     SHARED_FORM_DATA_QUERY_ROLE_KEYS,
 )
-from superset.mcp_service.chart.schemas import ChartError, ColumnRef, VegaLitePreview
+from superset.mcp_service.chart.schemas import (
+    ChartError,
+    ColumnRef,
+    TablePreview,
+    VegaLitePreview,
+)
 from superset.mcp_service.common.error_schemas import ChartGenerationError
 
 # Query builders intentionally accept multiple native and legacy role names.
@@ -327,9 +332,27 @@ class ChartTypePlugin(Protocol):
         ...
 
     def ascii_preview(
-        self, data: list[Any], form_data: dict[str, Any], width: int
+        self,
+        data: list[Any],
+        form_data: dict[str, Any],
+        width: int,
+        height: int = 20,
     ) -> str | ChartError | None:
         """Return chart-specific ASCII content, or None for the generic preview."""
+        ...
+
+    def table_preview(
+        self, data: list[Any], form_data: dict[str, Any]
+    ) -> TablePreview | ChartError | None:
+        """Return a chart-specific table preview, or None for the generic one."""
+        ...
+
+    def unsupported_preview(self, preview_format: str) -> ChartError | None:
+        """Return an error when preview_format cannot represent this chart.
+
+        Called before any query executes, so an unsupported format fails fast
+        with a chart-specific explanation instead of a misleading fallback.
+        """
         ...
 
     def vega_lite_preview(
@@ -499,8 +522,20 @@ class BaseChartPlugin:
         return fallback
 
     def ascii_preview(
-        self, data: list[Any], form_data: dict[str, Any], width: int
+        self,
+        data: list[Any],
+        form_data: dict[str, Any],
+        width: int,
+        height: int = 20,
     ) -> str | ChartError | None:
+        return None
+
+    def table_preview(
+        self, data: list[Any], form_data: dict[str, Any]
+    ) -> TablePreview | ChartError | None:
+        return None
+
+    def unsupported_preview(self, preview_format: str) -> ChartError | None:
         return None
 
     def vega_lite_preview(

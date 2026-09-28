@@ -81,6 +81,8 @@ HOOKS = (
     "compile_row_limit",
     "preview_row_limit",
     "ascii_preview",
+    "table_preview",
+    "unsupported_preview",
     "vega_lite_preview",
     "resolve_update_config",
     "merge_update_form_data",
@@ -307,6 +309,23 @@ def test_preview_contract(
     assert isinstance(vega_preview, (VegaLitePreview, ChartError))
 
 
+@pytest.mark.parametrize("plugin", PLUGINS, ids=PLUGIN_IDS)
+@pytest.mark.parametrize("preview_format", ["ascii", "table", "vega_lite", "url"])
+def test_unsupported_preview_is_typed_and_consistent(
+    plugin: ChartTypePlugin, preview_format: str
+) -> None:
+    """A rejected format is a typed error, and the renderer agrees with it."""
+    unsupported = plugin.unsupported_preview(preview_format)
+    assert unsupported is None or isinstance(unsupported, ChartError)
+    if isinstance(unsupported, ChartError):
+        assert unsupported.error
+        assert unsupported.error_type
+        if preview_format == "vega_lite":
+            for example in _CHART_EXAMPLES.get(plugin.chart_type, []):
+                preview = plugin.vega_lite_preview([], _form_data(plugin, example))
+                assert isinstance(preview, ChartError)
+
+
 @pytest.mark.parametrize(("plugin", "example"), EXAMPLES, ids=EXAMPLE_IDS)
 def test_saved_and_unsaved_vega_previews_share_plugin_renderer(
     plugin: ChartTypePlugin, example: dict[str, Any]
@@ -407,6 +426,7 @@ _DISPATCHERS: dict[Any, tuple[str, ...]] = {
     preview_utils: (
         "generate_preview_from_form_data",
         "_generate_ascii_preview_from_data",
+        "_generate_table_preview_from_data",
         "_generate_vega_lite_preview_from_data",
     ),
     compile_module: ("_compile_chart",),

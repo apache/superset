@@ -218,7 +218,11 @@ class GaugeChartPlugin(BaseChartPlugin):
         return value if isinstance(value, int) and 1 <= value <= 10 else 10
 
     def ascii_preview(
-        self, data: list[Any], form_data: dict[str, Any], width: int
+        self,
+        data: list[Any],
+        form_data: dict[str, Any],
+        width: int,
+        height: int = 20,
     ) -> str | ChartError | None:
         from superset.mcp_service.chart.preview_utils import (
             generate_gauge_ascii_preview,

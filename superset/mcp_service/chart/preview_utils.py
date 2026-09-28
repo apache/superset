@@ -48,7 +48,6 @@ from superset.mcp_service.chart.schemas import (
 from superset.mcp_service.chart.sunburst import (
     normalize_and_validate_sunburst_result_data,
     resolve_sunburst_result_roles,
-    unsupported_sunburst_preview,
 )
 
 logger = logging.getLogger(__name__)
@@ -129,8 +128,12 @@ def generate_preview_from_form_data(
     Returns:
         Preview object or ChartError
     """
-    if form_data.get("viz_type") == "sunburst_v2" and preview_format == "vega_lite":
-        return unsupported_sunburst_preview("Vega-Lite")
+    if (
+        unsupported := plugin_unsupported_preview(
+            form_data.get("viz_type"), preview_format
+        )
+    ) is not None:
+        return unsupported
 
     try:
         # Execute query to get data
@@ -198,7 +201,7 @@ def generate_preview_from_form_data(
 
 
 def plugin_ascii_preview(
-    data: List[Any], form_data: Dict[str, Any], width: int
+    data: List[Any], form_data: Dict[str, Any], width: int, height: int = 20
 ) -> str | ChartError | None:
     """Return the owning plugin's ASCII preview, or None for the generic one."""
     from superset.mcp_service.chart.registry import plugin_for_viz_type
@@ -206,7 +209,31 @@ def plugin_ascii_preview(
     plugin = plugin_for_viz_type(form_data.get("viz_type"))
     if plugin is None:
         return None
-    return plugin.ascii_preview(data, form_data, width)
+    return plugin.ascii_preview(data, form_data, width, height)
+
+
+def plugin_table_preview(
+    data: List[Any], form_data: Dict[str, Any]
+) -> TablePreview | ChartError | None:
+    """Return the owning plugin's table preview, or None for the generic one."""
+    from superset.mcp_service.chart.registry import plugin_for_viz_type
+
+    plugin = plugin_for_viz_type(form_data.get("viz_type"))
+    if plugin is None:
+        return None
+    return plugin.table_preview(data, form_data)
+
+
+def plugin_unsupported_preview(
+    viz_type: str | None, preview_format: str
+) -> ChartError | None:
+    """Return the owning plugin's error for a format it cannot represent."""
+    from superset.mcp_service.chart.registry import plugin_for_viz_type
+
+    plugin = plugin_for_viz_type(viz_type)
+    if plugin is None:
+        return None
+    return plugin.unsupported_preview(preview_format)
 
 
 def plugin_vega_lite_preview(
@@ -231,16 +258,11 @@ def _generate_ascii_preview_from_data(
     """Generate ASCII preview from raw data."""
     viz_type = form_data.get("viz_type", "table")
 
-    content_or_error = plugin_ascii_preview(data, form_data, width)
+    content_or_error = plugin_ascii_preview(data, form_data, width, height)
     if isinstance(content_or_error, ChartError):
         return content_or_error
     if content_or_error is not None:
         content = content_or_error
-    elif viz_type == "sunburst_v2":
-        _, error = normalize_and_validate_sunburst_result_data(data, form_data)
-        if error is not None:
-            return error
-        content = _generate_safe_ascii_sunburst(data, form_data, height=height)
     else:
         renderer = _GENERIC_ASCII_RENDERERS.get(viz_type, _generate_safe_ascii_table)
         content = renderer(data)
@@ -339,10 +361,13 @@ def _generate_table_preview_from_data(
     data: List[Dict[str, Any]], form_data: Dict[str, Any]
 ) -> TablePreview | ChartError:
     """Generate table preview from raw data with improved formatting."""
-    if form_data.get("viz_type") == "sunburst_v2":
-        _, error = normalize_and_validate_sunburst_result_data(data, form_data)
-        if error is not None:
-            return error
+    if (plugin_preview := plugin_table_preview(data, form_data)) is not None:
+        return plugin_preview
+    return render_table_preview(data)
+
+
+def render_table_preview(data: List[Dict[str, Any]]) -> TablePreview:
+    """Render rows as the aligned, bounded form-data table preview."""
     if not data:
         return TablePreview(
             table_data="No data available", row_count=0, supports_sorting=False
@@ -582,6 +607,31 @@ def _generate_safe_ascii_sunburst(
     if len(data) > rows_rendered:
         lines.append(f"... {len(data) - rows_rendered} more rows")
     return "\n".join(lines)
+
+
+def generate_sunburst_ascii_preview(
+    data: List[Any], form_data: Dict[str, Any], width: int, height: int
+) -> str | ChartError:
+    """Validate Sunburst rows and render their bounded hierarchy paths."""
+    rows = [dict(row) if type(row) is dict else row for row in data]
+    _, error = normalize_and_validate_sunburst_result_data(rows, form_data)
+    if error is not None:
+        return error
+    content = _generate_safe_ascii_sunburst(rows, form_data, height=height)
+    return "\n".join(
+        _truncate_display_line(line, width) for line in content.splitlines()[:height]
+    )
+
+
+def generate_sunburst_table_preview(
+    data: List[Any], form_data: Dict[str, Any]
+) -> TablePreview | ChartError:
+    """Validate Sunburst rows before rendering the shared table preview."""
+    rows = [dict(row) if type(row) is dict else row for row in data]
+    _, error = normalize_and_validate_sunburst_result_data(rows, form_data)
+    if error is not None:
+        return error
+    return render_table_preview(rows)
 
 
 def _sunburst_preview_lines(
@@ -1449,8 +1499,6 @@ def _generate_vega_lite_preview_from_data(  # noqa: C901
 ) -> VegaLitePreview | ChartError:
     """Generate Vega-Lite preview from raw data and form_data."""
     viz_type = form_data.get("viz_type", "table")
-    if viz_type == "sunburst_v2":
-        return unsupported_sunburst_preview("Vega-Lite")
     if (plugin_preview := plugin_vega_lite_preview(data, form_data)) is not None:
         return plugin_preview
 

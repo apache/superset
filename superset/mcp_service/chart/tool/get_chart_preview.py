@@ -41,9 +41,9 @@ from superset.mcp_service.chart.chart_helpers import (
 )
 from superset.mcp_service.chart.chart_utils import validate_chart_dataset
 from superset.mcp_service.chart.preview_utils import (
-    _generate_ascii_preview_from_data,
-    _generate_table_preview_from_data,
     plugin_ascii_preview,
+    plugin_table_preview,
+    plugin_unsupported_preview,
     plugin_vega_lite_preview,
 )
 from superset.mcp_service.chart.query_result import (
@@ -65,7 +65,6 @@ from superset.mcp_service.chart.schemas import (
     URLPreview,
     VegaLitePreview,
 )
-from superset.mcp_service.chart.sunburst import unsupported_sunburst_preview
 from superset.mcp_service.utils.oauth2_utils import (
     build_oauth2_redirect_message,
     OAUTH2_CONFIG_ERROR_MESSAGE,
@@ -329,16 +328,11 @@ class ASCIIPreviewStrategy(PreviewFormatStrategy):
                 return result_error
             assert data is not None
 
-            if self.chart.viz_type == "sunburst_v2":
-                return _generate_ascii_preview_from_data(
-                    data,
-                    form_data,
-                    width=self.request.ascii_width or 80,
-                    height=self.request.ascii_height or 20,
-                )
-
             ascii_chart = plugin_ascii_preview(
-                data, form_data, self.request.ascii_width or 80
+                data,
+                form_data,
+                self.request.ascii_width or 80,
+                self.request.ascii_height or 20,
             )
             if ascii_chart is None:
                 ascii_chart = generate_ascii_chart(
@@ -418,8 +412,10 @@ class TablePreviewStrategy(PreviewFormatStrategy):
                 return result_error
             assert data is not None
 
-            if self.chart.viz_type == "sunburst_v2":
-                return _generate_table_preview_from_data(data, form_data)
+            if (
+                plugin_preview := plugin_table_preview(data, form_data)
+            ) is not None:
+                return plugin_preview
 
             table_data = generate_ascii_table(data, 120)
 
@@ -480,8 +476,10 @@ class VegaLitePreviewStrategy(PreviewFormatStrategy):
 
     def generate(self) -> VegaLitePreview | ChartError:  # noqa: C901
         """Generate Vega-Lite JSON specification from chart data."""
-        if self.chart.viz_type == "sunburst_v2":
-            return unsupported_sunburst_preview("Vega-Lite")
+        if (
+            unsupported := plugin_unsupported_preview(self.chart.viz_type, "vega_lite")
+        ) is not None:
+            return unsupported
         try:
             # Get chart data directly using the same logic as get_chart_data tool
             # but without calling the MCP tool wrapper

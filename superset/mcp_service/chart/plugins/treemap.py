@@ -192,7 +192,11 @@ class TreemapChartPlugin(BaseChartPlugin):
         return limit if 1 <= limit <= 10000 else 100
 
     def ascii_preview(
-        self, data: list[Any], form_data: dict[str, Any], width: int
+        self,
+        data: list[Any],
+        form_data: dict[str, Any],
+        width: int,
+        height: int = 20,
     ) -> str | ChartError | None:
         from superset.mcp_service.chart.treemap_preview import treemap_ascii
 
