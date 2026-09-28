@@ -16,11 +16,23 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { t } from '@apache-superset/core/translation';
 import type {
   PartitionMappingColumn,
   PartitionMappingDatasource,
+  PartitionMappingIssue,
   PartitionRowState,
 } from './types';
+
+/**
+ * Jinja delimiters.
+ *
+ * A transform is evaluated in a different context and at a different time from
+ * the chart query, so a template would not render the same way -- the backend
+ * rejects one outright. Shared so the check that declines to preview a Jinja
+ * transform and the check that blocks saving it cannot drift apart.
+ */
+const JINJA_PATTERN = /\{\{|\{%|\{#/;
 
 /**
  * The column whose filters are mirrored.
@@ -95,9 +107,8 @@ export function transformCanPreview(
   if (!/:value\b/.test(trimmed)) {
     return false;
   }
-  // Jinja would render in a different context at a different time from the
-  // chart query, so it is rejected on save -- previewing it is pointless.
-  if (/\{\{|\{%|\{#/.test(trimmed)) {
+  // Jinja is rejected on save, so previewing it is pointless.
+  if (JINJA_PATTERN.test(trimmed)) {
     return false;
   }
   // A column cannot stand in for itself; the backend rejects this outright.
@@ -105,6 +116,131 @@ export function transformCanPreview(
     return false;
   }
   return true;
+}
+
+/**
+ * What is wrong with one column's value transform, if anything.
+ *
+ * Split out of `partitionMappingErrors` because the two callers disagree about
+ * which text to judge. The save gate reads the committed column record; the
+ * field's own message has to describe the text on screen, which lags the commit
+ * by a debounce. Passing the transform separately lets both ask the same
+ * question about different values instead of reimplementing the checks.
+ */
+export function valueTransformIssues(
+  column: PartitionMappingColumn | undefined,
+  transform: string | null | undefined,
+): PartitionMappingIssue[] {
+  if (!column) {
+    return [];
+  }
+
+  if (JINJA_PATTERN.test(transform ?? '')) {
+    return [
+      {
+        field: 'partition_value_transform',
+        message: t(
+          'Jinja templating is not supported in a partition value transform. The transform is evaluated in a different context and at a different time from the chart query, so a template would not render the same way.',
+        ),
+      },
+    ];
+  }
+
+  // A temporal column falls back on the engine's own default, so leaving the box
+  // empty there only makes the mapping inactive -- which the dataset-level
+  // warning already says. A non-temporal column has nothing to fall back on.
+  if (!column.is_dttm && !transform?.trim()) {
+    return [
+      {
+        field: 'partition_value_transform',
+        message: t(
+          'A value transform is required on %(name)s, which is not a temporal column. Use :value for each value.',
+          { name: column.column_name },
+        ),
+      },
+    ];
+  }
+
+  return [];
+}
+
+/**
+ * Everything wrong with the mapping that should stop the save.
+ *
+ * The client half of `validate_partition_mapping` in
+ * `superset/connectors/sqla/partition_mapping.py`, restricted to its blocking
+ * (Tier 1) issues. Those are the ones the PUT would reject anyway, so catching
+ * them here turns a 400 toast arriving after the modal closed into a disabled
+ * Save button that says why. Tier 2 is deliberately absent: an unparseable
+ * transform, or one missing `:value`, is "saved but stays inactive until it
+ * parses" per the PRD, and must not cost the owner the rest of their edits.
+ *
+ * One check is stricter than the backend's: an empty transform on a
+ * non-temporal mapped column blocks. The backend files that as Tier 2 for every
+ * column, but a non-temporal column has no default transform to fall back on --
+ * the field carries a required marker saying exactly this -- so the marker
+ * should mean something.
+ *
+ * Callers gate on the feature flag themselves, the way the two mount sites in
+ * `DatasourceEditor` already do; a dataset carrying a stale `partition_column`
+ * on an engine that cannot use one must not block a save the backend accepts.
+ */
+export function partitionMappingErrors(
+  datasource: PartitionMappingDatasource,
+  columns: PartitionMappingColumn[],
+): PartitionMappingIssue[] {
+  const partitionColumn = datasource.partition_column;
+  if (!partitionColumn) {
+    return [];
+  }
+
+  const issues: PartitionMappingIssue[] = [];
+  const columnNames = new Set(columns.map(column => column.column_name));
+
+  if (!columnNames.has(partitionColumn)) {
+    issues.push({
+      field: 'partition_column',
+      message: t('Partition column %(name)s is not a column on this dataset.', {
+        name: partitionColumn,
+      }),
+    });
+  }
+
+  const override = datasource.partition_mapped_column;
+  if (override && !columnNames.has(override)) {
+    issues.push({
+      field: 'partition_mapped_column',
+      message: t('Mapped column %(name)s is not a column on this dataset.', {
+        name: override,
+      }),
+    });
+  }
+
+  const mappedColumnName = resolveMappedColumn(datasource);
+  if (mappedColumnName === partitionColumn) {
+    // No transform check can follow: the transform is a property of the mapped
+    // column, and there is no coherent mapped column to read it from.
+    issues.push({
+      field: 'partition_column',
+      message: t(
+        'The partition column cannot be mapped onto itself. %(name)s is both the partition column and the mapped column.',
+        { name: partitionColumn },
+      ),
+    });
+    return issues;
+  }
+
+  const mappedColumn = columns.find(
+    column => column.column_name === mappedColumnName,
+  );
+  issues.push(
+    ...valueTransformIssues(
+      mappedColumn,
+      mappedColumn?.partition_value_transform,
+    ),
+  );
+
+  return issues;
 }
 
 /** Which of the three row-expand treatments a column gets. */

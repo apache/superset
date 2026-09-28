@@ -513,3 +513,81 @@ test('an unmapped column that takes the mapping over starts from the prop', asyn
     'unix_timestamp(:value)',
   );
 });
+
+test('typing Jinja into the transform says so at the field', async () => {
+  // Blocking issues never reach the preview -- `transformCanPreview` declines to
+  // send them -- so without a message of their own they show nothing at all,
+  // and the only clue would be a disabled Save button somewhere above.
+  fetchMock.post(PREVIEW_URL, { result: { valid: true } });
+
+  render(
+    <PartitionMappingSection
+      item={{ column_name: 'event_time', is_dttm: true }}
+      value=":value"
+      datasource={{
+        id: 1,
+        main_dttm_col: 'event_time',
+        partition_column: 'dt_epoch',
+      }}
+      onMoveMappingHere={jest.fn()}
+      onRemoveMapping={jest.fn()}
+      onMonotonicChange={jest.fn()}
+    />,
+  );
+
+  await userEvent.clear(screen.getByLabelText('Value transform'));
+  // Pasted rather than typed: userEvent reads `{{` as its own escape for a
+  // literal brace, so typing this would never produce a Jinja delimiter.
+  await userEvent.click(screen.getByLabelText('Value transform'));
+  await userEvent.paste("unix_timestamp('{{ ds }}')");
+
+  // As it is typed: the commit back into the editor is debounced, so a message
+  // keyed off the committed value would lag the box it describes.
+  expect(
+    await screen.findByTestId('partition-value-transform-error'),
+  ).toHaveTextContent(/Jinja templating is not supported/);
+});
+
+test('an empty transform on a non-temporal column says the field is required', () => {
+  render(
+    <PartitionMappingSection
+      item={{ column_name: 'country', type: 'TEXT' }}
+      value=""
+      datasource={{
+        id: 1,
+        main_dttm_col: 'event_time',
+        partition_column: 'region_key',
+        partition_mapped_column: 'country',
+      }}
+      onMoveMappingHere={jest.fn()}
+      onRemoveMapping={jest.fn()}
+      onMonotonicChange={jest.fn()}
+    />,
+  );
+
+  expect(
+    screen.getByTestId('partition-value-transform-error'),
+  ).toHaveTextContent(/A value transform is required on country/);
+});
+
+test('an empty transform on a temporal column is inactive, not an error', () => {
+  // Tier 2 on the backend, and the dataset-level warning already covers it.
+  render(
+    <PartitionMappingSection
+      item={{ column_name: 'event_time', is_dttm: true }}
+      value=""
+      datasource={{
+        id: 1,
+        main_dttm_col: 'event_time',
+        partition_column: 'dt_epoch',
+      }}
+      onMoveMappingHere={jest.fn()}
+      onRemoveMapping={jest.fn()}
+      onMonotonicChange={jest.fn()}
+    />,
+  );
+
+  expect(
+    screen.queryByTestId('partition-value-transform-error'),
+  ).not.toBeInTheDocument();
+});

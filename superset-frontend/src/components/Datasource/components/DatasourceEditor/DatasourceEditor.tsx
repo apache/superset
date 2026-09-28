@@ -111,6 +111,7 @@ import {
   clearMappingTransforms,
   defaultTransformFor,
   nextMappedColumnOverride,
+  partitionMappingErrors,
 } from './components/PartitionFilterMapping/utils';
 import {
   DEFAULT_COLUMNS_FOLDER_UUID,
@@ -1221,10 +1222,22 @@ function DatasourceEditor({
         validationErrors = validationErrors.concat(folderValidation.errors);
       }
 
+      // Validate the partition filter mapping. `databaseColumns` rather than
+      // `datasource.columns`, because the two only meet in `onChangeInternal`
+      // when the payload is assembled -- `datasource.columns` does not carry the
+      // transform the owner just typed.
+      if (isFeatureEnabled(FeatureFlag.PartitionFilterMapping)) {
+        validationErrors = validationErrors.concat(
+          partitionMappingErrors(datasource, databaseColumns).map(
+            issue => issue.message,
+          ),
+        );
+      }
+
       setErrors(validationErrors);
       callback(validationErrors);
     },
-    [datasource, calculatedColumns, folders, findDuplicates],
+    [datasource, databaseColumns, calculatedColumns, folders, findDuplicates],
   );
 
   const onChangeInternal = useCallback(

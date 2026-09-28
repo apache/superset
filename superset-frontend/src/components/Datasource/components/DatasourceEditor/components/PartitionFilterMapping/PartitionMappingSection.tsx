@@ -35,6 +35,7 @@ import {
   partitionRowState,
   previewOperatorFor,
   sampleValuesFor,
+  valueTransformIssues,
 } from './utils';
 import type {
   PartitionMappingColumn,
@@ -127,6 +128,11 @@ export default function PartitionMappingSection({
     );
   }
 
+  // Judged against the text in the box rather than the committed value, so the
+  // message appears as it is typed. The same check gates Save from
+  // `DatasourceEditor.validate`, reading the committed record instead.
+  const transformErrors = valueTransformIssues(item, transform);
+
   return (
     <Flex
       vertical
@@ -215,6 +221,18 @@ export default function PartitionMappingSection({
                 'Required for non-temporal columns. Use :value for each value.',
               )}
         </Typography.Text>
+        {/* These block the save, so the reason has to be at the field and not
+            only in the disabled Save button's tooltip -- otherwise it means
+            searching a column table for the row that caused it. */}
+        {transformErrors.map(issue => (
+          <Typography.Text
+            key={issue.message}
+            type="danger"
+            data-test="partition-value-transform-error"
+          >
+            {issue.message}
+          </Typography.Text>
+        ))}
       </Flex>
 
       <Flex align="center" gap={theme.sizeUnit}>
