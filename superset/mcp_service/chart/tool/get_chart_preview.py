@@ -40,6 +40,7 @@ from superset.mcp_service.chart.chart_helpers import (
 )
 from superset.mcp_service.chart.chart_utils import validate_chart_dataset
 from superset.mcp_service.chart.preview_utils import (
+    fallback_vega_lite_preview,
     plugin_ascii_preview,
     plugin_vega_lite_preview,
 )
@@ -505,6 +506,10 @@ class VegaLitePreviewStrategy(PreviewFormatStrategy):
                     error="No data available for Vega-Lite visualization",
                     error_type="NoDataError",
                 )
+            if (
+                fallback := fallback_vega_lite_preview(chart_data, form_data)
+            ) is not None:
+                return fallback
 
             # Convert Superset chart type to Vega-Lite specification
             vega_spec = self._create_vega_lite_spec(chart_data)

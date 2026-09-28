@@ -369,11 +369,11 @@ def _build_replacement_form_data(
 ) -> dict[str, Any]:
     """Map and merge a replacement config for preview and save paths."""
     new_form_data = map_config_to_form_data(
-        parsed_config, dataset_id=effective_dataset_id
+        parsed_config, dataset_id=effective_dataset_id, include_disabled=True
     )
     new_form_data.pop("_mcp_warnings", None)
     dataset_rebind = replacement_dataset_id is not None
-    config_plugin = get_registry().get(parsed_config.chart_type)
+    config_plugin = get_registry().get(parsed_config.chart_type, include_disabled=True)
     if replacement_dataset_id is not None and not (
         config_plugin is not None and config_plugin.strict_dataset_rebind
     ):
@@ -869,7 +869,7 @@ async def update_chart(  # noqa: C901
         # config is already a typed ChartConfig | None (validated by Pydantic)
         try:
             config_plugin = (
-                get_registry().get(request.config.chart_type)
+                get_registry().get(request.config.chart_type, include_disabled=True)
                 if request.config is not None
                 else None
             )

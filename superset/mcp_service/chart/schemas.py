@@ -40,6 +40,7 @@ from pydantic import (
     model_validator,
     StrictBool,
     ValidationError,
+    WithJsonSchema,
 )
 from typing_extensions import Self, TypedDict
 
@@ -3871,8 +3872,42 @@ ChartConfig = Annotated[
 ]
 
 
-# Compact description for JSON Schema — keeps tool inputSchema small while
-# giving LLMs enough context to construct valid configs.
+def _chart_type_values(*config_types: Any) -> list[str]:
+    """Return every ``chart_type`` discriminator value, in union order."""
+    values: list[str] = []
+    for config_type in config_types:
+        for model in get_args(get_args(config_type)[0]) or (config_type,):
+            for value in get_args(model.model_fields["chart_type"].annotation):
+                if value not in values:
+                    values.append(value)
+    return values
+
+
+CHART_TYPE_VALUES: list[str] = _chart_type_values(ChartConfig)
+
+# Tool input schemas advertise ``config`` as a compact discriminated reference.
+# Inlining every chart type's schema made each chart tool grow by several kB
+# per registered type; the per-type schemas and examples are served by
+# get_chart_type_schema instead. Server-side validation is unchanged: fields
+# typed with these annotations still validate against the full ChartConfig
+# discriminated union.
+CHART_CONFIG_DESCRIPTION = (
+    "Chart configuration. chart_type selects the chart type; call "
+    "get_chart_type_schema(chart_type) for that type's fields and examples."
+)
+CHART_CONFIG_REFERENCE_SCHEMA: dict[str, Any] = {
+    "type": "object",
+    "properties": {"chart_type": {"type": "string", "enum": CHART_TYPE_VALUES}},
+    "required": ["chart_type"],
+    "additionalProperties": True,
+}
+
+
+def chart_config_reference_schema(*, nullable: bool = False) -> WithJsonSchema:
+    """Return the compact ``config`` schema annotation for chart tool inputs."""
+    if not nullable:
+        return WithJsonSchema(CHART_CONFIG_REFERENCE_SCHEMA)
+    return WithJsonSchema({"anyOf": [CHART_CONFIG_REFERENCE_SCHEMA, {"type": "null"}]})
 
 
 # Superset viz_type values that LLM clients routinely send where this API
@@ -3995,7 +4030,9 @@ class GenerateChartRequest(ChartRequestNormalizerMixin, QueryCacheControl):
     model_config = ConfigDict(populate_by_name=True)
 
     dataset_id: int | str = Field(..., description="Dataset identifier (ID, UUID)")
-    config: ChartConfig = Field(..., description="Chart configuration")
+    config: Annotated[ChartConfig, chart_config_reference_schema()] = Field(
+        ..., description=CHART_CONFIG_DESCRIPTION
+    )
     chart_name: str | None = Field(
         None,
         description="Auto-generates if omitted",
@@ -4095,10 +4132,12 @@ class GenerateExploreLinkRequest(ChartRequestNormalizerMixin, FormDataCacheContr
     model_config = ConfigDict(populate_by_name=True)
 
     dataset_id: int | str = Field(..., description="Dataset identifier (ID, UUID)")
-    config: ChartConfig | None = Field(
+    config: Annotated[
+        ChartConfig | None, chart_config_reference_schema(nullable=True)
+    ] = Field(
         None,
         description=(
-            "Chart configuration. Optional; omit to get a default "
+            f"{CHART_CONFIG_DESCRIPTION} Optional; omit to get a default "
             "explore URL that opens the dataset in Superset without a "
             "preconfigured chart."
         ),
@@ -4113,9 +4152,14 @@ class UpdateChartRequest(ChartRequestNormalizerMixin, QueryCacheControl):
         description="Chart ID or UUID",
         validation_alias=AliasChoices("identifier", "id", "chart_id"),
     )
-    config: ChartConfig | TreemapChartUpdateConfig | None = Field(
+    config: Annotated[
+        ChartConfig | TreemapChartUpdateConfig | None,
+        chart_config_reference_schema(nullable=True),
+    ] = Field(
         None,
-        description="Chart configuration. Optional; omit to only update chart_name.",
+        description=(
+            f"{CHART_CONFIG_DESCRIPTION} Optional; omit to only update chart_name."
+        ),
     )
     add_columns: List[ColumnRef] | None = Field(
         None,
@@ -4188,9 +4232,9 @@ class UpdateChartPreviewRequest(ChartRequestNormalizerMixin, FormDataCacheContro
         ),
     )
     dataset_id: int | str = Field(..., description="Dataset ID or UUID")
-    config: ChartConfig | TreemapChartUpdateConfig = Field(
-        ..., description="Chart configuration"
-    )
+    config: Annotated[
+        ChartConfig | TreemapChartUpdateConfig, chart_config_reference_schema()
+    ] = Field(..., description=CHART_CONFIG_DESCRIPTION)
     generate_preview: bool = True
     preview_formats: List[Literal["url", "ascii", "vega_lite", "table"]] = Field(
         default_factory=lambda: ["url"],

@@ -500,3 +500,17 @@ def test_dispatchers_do_not_branch_on_registered_chart_types() -> None:
             f"{relative} {hit}" for hit in _branches_on_registered_type(tree, names)
         )
     assert not violations, "\n".join(violations)
+
+
+@pytest.mark.parametrize("chart_type", ["gauge", "treemap_v2"])
+@pytest.mark.parametrize(
+    "value", [None, "invalid", [1], {"limit": 1}, float("inf"), -1, 0, 1, "3", 100]
+)
+def test_compile_row_limit_handles_persisted_values(
+    chart_type: str, value: Any
+) -> None:
+    """Malformed saved limits fall back while valid small limits are preserved."""
+    plugin = get_registry().get(chart_type)
+    assert plugin is not None
+    expected = 1 if value == 1 else 3 if value == "3" else 10
+    assert plugin.compile_row_limit({"row_limit": value}) == expected

@@ -357,6 +357,8 @@ def is_column_truly_temporal(
 def map_config_to_form_data(
     config: ChartConfig,
     dataset_id: int | str | None = None,
+    *,
+    include_disabled: bool = False,
 ) -> Dict[str, Any]:
     """Map chart config to Superset form_data via the plugin registry.
 
@@ -371,7 +373,11 @@ def map_config_to_form_data(
     from superset.mcp_service.chart.registry import get_registry
 
     chart_type = getattr(config, "chart_type", None)
-    plugin = get_registry().get(chart_type) if chart_type else None
+    plugin = (
+        get_registry().get(chart_type, include_disabled=include_disabled)
+        if chart_type
+        else None
+    )
 
     if plugin is None:
         if chart_type is None:

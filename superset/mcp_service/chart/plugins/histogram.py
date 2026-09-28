@@ -27,7 +27,12 @@ from superset.mcp_service.chart.chart_utils import (
     map_histogram_config,
 )
 from superset.mcp_service.chart.plugin import BaseChartPlugin
-from superset.mcp_service.chart.schemas import ColumnRef, HistogramChartConfig
+from superset.mcp_service.chart.schemas import (
+    ChartError,
+    ColumnRef,
+    HistogramChartConfig,
+    VegaLitePreview,
+)
 from superset.mcp_service.chart.validation.dataset_validator import (
     DatasetValidator,
     is_numeric_column,
@@ -192,7 +197,7 @@ class HistogramChartPlugin(BaseChartPlugin):
         column = form_data.get("column")
         columns = [*groupby, column] if column else groupby
         # Matches Histogram buildQuery: a HAVING filter needs an aggregate.
-        has_having = any(
+        has_having = bool(form_data.get("having")) or any(
             isinstance(filter_, Mapping) and filter_.get("clause") == "HAVING"
             for filter_ in form_data.get("adhoc_filters") or []
         )
@@ -256,3 +261,12 @@ class HistogramChartPlugin(BaseChartPlugin):
                 }
             ]
         return [query]
+
+    def vega_lite_preview(
+        self, data: list[Any], form_data: dict[str, Any]
+    ) -> VegaLitePreview | ChartError | None:
+        from superset.mcp_service.chart.preview_utils import (
+            generate_histogram_vega_lite_preview,
+        )
+
+        return generate_histogram_vega_lite_preview(data, form_data)

@@ -1275,6 +1275,120 @@ def generate_bubble_vega_lite_preview(
     )
 
 
+# Native geometries the Vega-Lite adapter cannot represent faithfully.
+_UNSUPPORTED_VEGA_GEOMETRIES: frozenset[str] = frozenset(
+    {"sankey", "sankey_v2", "radar"}
+)
+
+
+def unsupported_vega_geometry(viz_type: str) -> ChartError | None:
+    """Reject native geometries the Vega-Lite adapter cannot represent."""
+    if viz_type not in _UNSUPPORTED_VEGA_GEOMETRIES:
+        return None
+    return ChartError(
+        error=(
+            f"Vega-Lite previews do not support {viz_type} geometry. "
+            "Use Explore for the native visualization or ASCII/table for data."
+        ),
+        error_type="UnsupportedFormat",
+    )
+
+
+def generate_funnel_vega_lite_preview(
+    data: list[dict[str, Any]], form_data: dict[str, Any]
+) -> VegaLitePreview | ChartError:
+    """Render funnel stages as horizontal value bars, preserving query order."""
+    from superset.utils.core import get_column_name
+
+    groupby = form_data.get("groupby") or []
+    metric = metric_result_label(form_data.get("metric"))
+    if not groupby or not metric:
+        return ChartError(
+            error="Funnel requires a stage and metric", error_type="InvalidFormData"
+        )
+    stage = get_column_name(groupby[0])
+    return VegaLitePreview(
+        type="vega_lite",
+        specification={
+            "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+            "data": {"values": data},
+            "mark": "bar",
+            "width": "container",
+            "height": 400,
+            "encoding": {
+                "y": {"field": stage, "type": "nominal", "sort": None},
+                "x": {"field": metric, "type": "quantitative"},
+                "tooltip": [
+                    {"field": stage, "type": "nominal"},
+                    {"field": metric, "type": "quantitative"},
+                ],
+            },
+        },
+        supports_streaming=False,
+    )
+
+
+def generate_histogram_vega_lite_preview(
+    data: list[dict[str, Any]], form_data: dict[str, Any]
+) -> VegaLitePreview:
+    """Render histogram operator output without re-binning its counts."""
+    from superset.utils.core import get_column_name
+
+    groupby = [get_column_name(column) for column in form_data.get("groupby") or []]
+    bins = [column for column in data[0] if column not in groupby] if data else []
+    values = [
+        {
+            "bin": bin_label,
+            "value": row.get(bin_label),
+            "series": " / ".join(str(row.get(column, "")) for column in groupby)
+            or "All",
+        }
+        for row in data
+        for bin_label in bins
+    ]
+    return VegaLitePreview(
+        type="vega_lite",
+        specification={
+            "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+            "data": {"values": values},
+            "mark": "bar",
+            "width": "container",
+            "height": 400,
+            "encoding": {
+                "x": {"field": "bin", "type": "ordinal", "sort": bins},
+                "y": {"field": "value", "type": "quantitative", "stack": None},
+                "color": {"field": "series", "type": "nominal"},
+                "tooltip": [
+                    {"field": "bin", "type": "ordinal"},
+                    {"field": "value", "type": "quantitative"},
+                    {"field": "series", "type": "nominal"},
+                ],
+            },
+        },
+        supports_streaming=False,
+    )
+
+
+# Vega-Lite renderers for native viz types that have no plugin-owned preview.
+_FALLBACK_VEGA_RENDERERS = {"funnel": generate_funnel_vega_lite_preview}
+
+
+def fallback_vega_lite_preview(
+    data: List[Any], form_data: Dict[str, Any]
+) -> VegaLitePreview | ChartError | None:
+    """Preview viz types without a plugin renderer, or None for the generic spec.
+
+    Plugin hooks take precedence; this covers saved native charts whose type
+    is not registered or whose plugin does not render Vega-Lite.
+    """
+    viz_type = form_data.get("viz_type") or ""
+    if unsupported := unsupported_vega_geometry(viz_type):
+        return unsupported
+    if renderer := _FALLBACK_VEGA_RENDERERS.get(viz_type):
+        return renderer(data, form_data)
+    return None
+
+
 def _generate_vega_lite_preview_from_data(  # noqa: C901
     data: List[Dict[str, Any]], form_data: Dict[str, Any]
 ) -> VegaLitePreview | ChartError:
@@ -1282,6 +1396,8 @@ def _generate_vega_lite_preview_from_data(  # noqa: C901
     viz_type = form_data.get("viz_type", "table")
     if (plugin_preview := plugin_vega_lite_preview(data, form_data)) is not None:
         return plugin_preview
+    if (fallback := fallback_vega_lite_preview(data, form_data)) is not None:
+        return fallback
 
     # Map Superset viz types to Vega-Lite marks
     viz_to_mark = {

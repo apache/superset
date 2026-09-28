@@ -24,6 +24,7 @@ from typing import Any, ClassVar
 
 from pydantic import ValidationError
 
+from superset.exceptions import QueryObjectValidationError
 from superset.mcp_service.chart.chart_utils import _summarize_filters, map_gantt_config
 from superset.mcp_service.chart.plugin import BaseChartPlugin
 from superset.mcp_service.chart.schemas import (
@@ -258,9 +259,12 @@ class GanttChartPlugin(BaseChartPlugin):
             resolve_gantt_query_fields,
         )
 
-        columns, metrics, orderby, series_columns = resolve_gantt_query_fields(
-            form_data
-        )
+        try:
+            columns, metrics, orderby, series_columns = resolve_gantt_query_fields(
+                form_data
+            )
+        except ValueError as ex:
+            raise QueryObjectValidationError(str(ex)) from ex
         query = build_single_query_dict(
             form_data, columns, metrics, row_limit=row_limit
         )
