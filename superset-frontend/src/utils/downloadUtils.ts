@@ -154,7 +154,7 @@ export async function forceLoadAllCharts(
       window.dispatchEvent(new Event(FORCE_IN_VIEW_EVENT));
     } else {
       addInfoToast?.(
-        t('Preparing %(count)s charts for export. This may take a moment.', {
+        t('Preparing %(count)s rows for export. This may take a moment.', {
           count: rowElements.length,
         }),
       );

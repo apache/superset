@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { SyntheticEvent } from 'react';
 import downloadAsPdf from './downloadAsPdf';
 
 jest.mock('dom-to-pdf', () => ({
@@ -59,7 +60,7 @@ test('warns the user via the bound toast callback and returns early when the tar
     'test-file',
     true,
     addWarningToast,
-  )({} as any);
+  )({} as SyntheticEvent);
 
   // Passed in already bound to dispatch (e.g. via `useToasts()`), so calling
   // it directly is what actually renders the toast -- unlike the raw action
@@ -74,7 +75,11 @@ test('does not throw when the target element is not found and no toast callback 
   jest.spyOn(document, 'querySelector').mockReturnValue(null);
 
   await expect(
-    downloadAsPdf('.non-existent-selector', 'test-file', true)({} as any),
+    downloadAsPdf(
+      '.non-existent-selector',
+      'test-file',
+      true,
+    )({} as SyntheticEvent),
   ).resolves.toBeUndefined();
 });
 
@@ -90,7 +95,7 @@ test('warns the user via the bound toast callback when PDF generation fails', as
     'test-file',
     true,
     addWarningToast,
-  )({} as any);
+  )({} as SyntheticEvent);
 
   expect(addWarningToast).toHaveBeenCalledWith(
     'PDF download failed, please refresh and try again.',

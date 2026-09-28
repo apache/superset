@@ -26,6 +26,10 @@ import { forceLoadAllCharts, restoreVirtualization } from './downloadUtils';
 
 const pdfCompressionLevel = getBootstrapData().common.pdf_compression_level;
 
+const PDF_DOWNLOAD_FAILED_MESSAGE = t(
+  'PDF download failed, please refresh and try again.',
+);
+
 /**
  * generate a consistent file stem from a description and date
  *
@@ -62,9 +66,7 @@ export default function downloadAsPdf(
       : event.currentTarget.closest(selector);
 
     if (!elementToPrint) {
-      addWarningToast?.(
-        t('PDF download failed, please refresh and try again.'),
-      );
+      addWarningToast?.(PDF_DOWNLOAD_FAILED_MESSAGE);
       return;
     }
 
@@ -91,9 +93,7 @@ export default function downloadAsPdf(
       })
       .catch((e: Error) => {
         logging.error('PDF generation failed', e);
-        addWarningToast?.(
-          t('PDF download failed, please refresh and try again.'),
-        );
+        addWarningToast?.(PDF_DOWNLOAD_FAILED_MESSAGE);
       })
       .finally(() => {
         if (didForceLoad) {

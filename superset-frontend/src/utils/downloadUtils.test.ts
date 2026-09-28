@@ -186,7 +186,7 @@ test('forceLoadAllCharts batches rows in groups rather than forcing everything a
   // would only build an action object this module has no way to dispatch).
   expect(mockAddInfoToast).toHaveBeenCalledTimes(1);
   expect(mockAddInfoToast).toHaveBeenCalledWith(
-    expect.stringContaining('Preparing %(count)s charts for export'),
+    expect.stringContaining('Preparing %(count)s rows for export'),
   );
 
   const forceEvents = dispatchSpy.mock.calls
