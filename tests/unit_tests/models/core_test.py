@@ -2361,3 +2361,166 @@ def test_function_names_returns_empty_list_when_engine_spec_raises(
 
     assert database.function_names == []
     assert logger.error.called
+
+
+def _oauth2_database(mocker: MockerFixture, engine: Any) -> Database:
+    """An OAuth2 database whose engine rejects the stored token at login."""
+    database = Database(database_name="oauth2_db", sqlalchemy_uri="snowflake://")
+    database.id = 1
+    mocker.patch.object(Database, "_get_sqla_engine", return_value=engine)
+    mocker.patch.object(Database, "is_oauth2_enabled", return_value=True)
+    mocker.patch.object(Database, "get_oauth2_config", return_value={"id": "client-id"})
+    db_engine_spec = mocker.patch.object(Database, "db_engine_spec")
+    db_engine_spec.get_prequeries.return_value = []
+    db_engine_spec.needs_oauth2.side_effect = lambda ex: "rejected" in str(ex)
+    g = mocker.MagicMock()
+    g.user.id = 2
+    mocker.patch("superset.models.core.g", g)
+    mocker.patch("superset.utils.oauth2.g", g)
+    oauth2_db = mocker.patch("superset.utils.oauth2.db")
+    oauth2_db.session.query().filter_by().one_or_none.return_value = (
+        mocker.MagicMock(access_token="stale-token")  # noqa: S106
+    )
+    return database
+
+
+def test_get_raw_connection_refreshes_a_token_rejected_at_login(
+    app_context: None,
+    mocker: MockerFixture,
+) -> None:
+    """
+    A token the database rejects when the connection logs in is refreshed once
+    and the connection is opened again, instead of asking the user to sign in.
+    """
+    engine = mocker.MagicMock()
+    connection = mocker.MagicMock()
+    engine.raw_connection.side_effect = [RuntimeError("token rejected"), connection]
+    database = _oauth2_database(mocker, engine)
+    refresh = mocker.patch(
+        "superset.utils.oauth2.refresh_oauth2_token", return_value="new-token"
+    )
+    start_dance = mocker.patch.object(database.db_engine_spec, "start_oauth2_dance")
+
+    with database.get_raw_connection() as conn:
+        assert conn is connection
+
+    assert engine.raw_connection.call_count == 2
+    refresh.assert_called_once()
+    assert refresh.call_args.kwargs == {
+        "force": True,
+        "rejected_access_token": "stale-token",  # noqa: S106
+    }
+    start_dance.assert_not_called()
+    connection.close.assert_called_once()
+
+
+def test_get_inspector_refreshes_a_token_rejected_at_login(
+    app_context: None,
+    mocker: MockerFixture,
+) -> None:
+    """Metadata (and the default schema chart data reads) log in the same way."""
+    engine = mocker.MagicMock()
+    database = _oauth2_database(mocker, engine)
+    inspector = mocker.MagicMock()
+    inspect = mocker.patch(
+        "superset.models.core.sqla.inspect",
+        side_effect=[RuntimeError("token rejected"), inspector],
+    )
+    refresh = mocker.patch(
+        "superset.utils.oauth2.refresh_oauth2_token", return_value="new-token"
+    )
+
+    with database.get_inspector() as result:
+        assert result is inspector
+
+    assert inspect.call_count == 2
+    refresh.assert_called_once()
+
+
+def test_get_raw_connection_asks_to_sign_in_when_the_new_token_is_rejected(
+    app_context: None,
+    mocker: MockerFixture,
+) -> None:
+    engine = mocker.MagicMock()
+    engine.raw_connection.side_effect = RuntimeError("token rejected")
+    database = _oauth2_database(mocker, engine)
+    refresh = mocker.patch(
+        "superset.utils.oauth2.refresh_oauth2_token", return_value="new-token"
+    )
+    start_dance = mocker.patch.object(
+        database.db_engine_spec,
+        "start_oauth2_dance",
+        side_effect=OAuth2RedirectError("url", "tab", "redirect"),
+    )
+
+    with pytest.raises(OAuth2RedirectError):
+        with database.get_raw_connection():
+            pass
+
+    assert engine.raw_connection.call_count == 2
+    refresh.assert_called_once()
+    start_dance.assert_called_once_with(database)
+
+
+def test_get_raw_connection_does_not_replay_the_callers_block(
+    app_context: None,
+    mocker: MockerFixture,
+) -> None:
+    """Only opening the connection is retried, never work done with it."""
+    engine = mocker.MagicMock()
+    database = _oauth2_database(mocker, engine)
+    refresh = mocker.patch("superset.utils.oauth2.refresh_oauth2_token")
+    mocker.patch.object(
+        database.db_engine_spec,
+        "start_oauth2_dance",
+        side_effect=OAuth2RedirectError("url", "tab", "redirect"),
+    )
+
+    with pytest.raises(OAuth2RedirectError):
+        with database.get_raw_connection():
+            raise RuntimeError("token rejected")
+
+    engine.raw_connection.assert_called_once()
+    refresh.assert_not_called()
+
+
+def test_get_raw_connection_leaves_recovery_to_an_outer_retry(
+    app_context: None,
+    mocker: MockerFixture,
+) -> None:
+    """Inside an operation that owns the recovery, the login is not retried."""
+    from superset.utils import oauth2
+
+    engine = mocker.MagicMock()
+    engine.raw_connection.side_effect = RuntimeError("token rejected")
+    database = _oauth2_database(mocker, engine)
+    refresh = mocker.patch("superset.utils.oauth2.refresh_oauth2_token")
+
+    token = oauth2._oauth2_retry_active.set(True)
+    try:
+        with pytest.raises(RuntimeError, match="token rejected"):
+            with database.get_raw_connection():
+                pass
+    finally:
+        oauth2._oauth2_retry_active.reset(token)
+
+    engine.raw_connection.assert_called_once()
+    refresh.assert_not_called()
+
+
+def test_get_raw_connection_without_oauth2_is_unchanged(
+    app_context: None,
+    mocker: MockerFixture,
+) -> None:
+    engine = mocker.MagicMock()
+    engine.raw_connection.side_effect = RuntimeError("token rejected")
+    database = _oauth2_database(mocker, engine)
+    mocker.patch.object(Database, "is_oauth2_enabled", return_value=False)
+    refresh = mocker.patch("superset.utils.oauth2.refresh_oauth2_token")
+
+    with pytest.raises(RuntimeError, match="token rejected"):
+        with database.get_raw_connection():
+            pass
+
+    engine.raw_connection.assert_called_once()
+    refresh.assert_not_called()
