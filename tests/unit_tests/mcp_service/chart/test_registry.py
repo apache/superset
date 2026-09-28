@@ -19,7 +19,9 @@
 
 import sys
 import threading
+from collections.abc import Mapping
 from types import ModuleType
+from typing import ClassVar
 
 import pytest
 
@@ -48,13 +50,13 @@ def _isolated_registry(monkeypatch):
 class _FakePlugin(BaseChartPlugin):
     chart_type = "fake"
     display_name = "Fake Chart"
-    native_viz_types = {"fake_viz": "Fake Viz"}
+    native_viz_types: ClassVar[Mapping[str, str]] = {"fake_viz": "Fake Viz"}
 
 
 class _AnotherPlugin(BaseChartPlugin):
     chart_type = "another"
     display_name = "Another Chart"
-    native_viz_types = {"another_viz": "Another Viz"}
+    native_viz_types: ClassVar[Mapping[str, str]] = {"another_viz": "Another Viz"}
 
 
 def test_register_adds_plugin():
@@ -250,3 +252,21 @@ def test_reset_for_testing_clears_cached_plugins_package(monkeypatch):
     assert registry_module._plugins_loaded is False
     assert registry_module._plugins_load_failed is False
     assert module_name not in sys.modules
+
+
+def test_all_plugins_module_and_proxy_include_disabled(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Both registry interfaces list all plugins in registration order."""
+    first = _FakePlugin()
+    second = _AnotherPlugin()
+    register(first)
+    register(second)
+    monkeypatch.setattr(
+        registry_module,
+        "_filter_config",
+        registry_module._PluginFilterConfig(disabled_plugins=frozenset({"fake"})),
+    )
+    assert registry_module.all_plugins() == [first, second]
+    assert get_registry().all_plugins() == [first, second]
+    assert all_types() == ["another"]
