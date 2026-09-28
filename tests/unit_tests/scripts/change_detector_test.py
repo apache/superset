@@ -194,5 +194,5 @@ def test_composite_action_changes_trigger_frontend_tests() -> None:
     while touching nothing under superset-frontend/."""
     assert change_detector.detect_changes(
         [".github/actions/cached-dependencies"],
-        change_detector.PATTERNS["frontend"]
+        change_detector.PATTERNS["frontend"],
     )
