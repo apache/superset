@@ -361,6 +361,7 @@ def test_quarter_time_grain_avoids_interval_quarter() -> None:
     ],
 )
 def test_extract_errors(message: str, error_type: str) -> None:
+    """Driver errors map to the corresponding Superset error types."""
     from superset.db_engine_specs.doris import DorisEngineSpec
 
     errors = DorisEngineSpec.extract_errors(Exception(message))
@@ -368,6 +369,7 @@ def test_extract_errors(message: str, error_type: str) -> None:
 
 
 def test_build_sqlalchemy_uri() -> None:
+    """The parameters form builds a valid Doris URI with optional verified TLS."""
     from superset.db_engine_specs.base import BasicParametersType
     from superset.db_engine_specs.doris import DorisEngineSpec
 
@@ -401,6 +403,7 @@ def test_build_sqlalchemy_uri() -> None:
 
 @pytest.mark.parametrize("source", ["toggle", "ssl=1", "ssl_mode=REQUIRED"])
 def test_doris_tls_request_uses_verification(source: str) -> None:
+    """Toggle, scalar SSL and legacy REQUIRED requests use verified TLS."""
     from superset.db_engine_specs.doris import DorisEngineSpec
 
     if source == "toggle":
@@ -427,6 +430,7 @@ def test_doris_tls_request_uses_verification(source: str) -> None:
 
 @pytest.mark.parametrize("mode", ["DISABLED", "PREFERRED", None])
 def test_doris_toggle_cannot_be_cancelled(mode: Optional[str]) -> None:
+    """Connect arguments cannot cancel a REQUIRED request in the URI."""
     from superset.db_engine_specs.doris import DorisEngineSpec
 
     with pytest.raises(ValueError, match="conflicts"):
@@ -437,6 +441,7 @@ def test_doris_toggle_cannot_be_cancelled(mode: Optional[str]) -> None:
 
 
 def test_doris_tls_preserves_verified_mode_and_ca() -> None:
+    """Explicit hostname verification and the native CA dictionary survive."""
     from superset.db_engine_specs.doris import DorisEngineSpec
 
     uri = make_url("doris://root@localhost/internal.db?ssl_mode=VERIFY_IDENTITY")
@@ -446,7 +451,41 @@ def test_doris_tls_preserves_verified_mode_and_ca() -> None:
 
 
 def test_unrequested_doris_connection_unchanged() -> None:
+    """Connections without a TLS request retain their URI and arguments."""
     from superset.db_engine_specs.doris import DorisEngineSpec
 
     uri = make_url("doris://root@localhost/internal.db")
     assert DorisEngineSpec.adjust_engine_params(uri, {}) == (uri, {})
+
+
+@pytest.mark.parametrize("mode", ["REQUIRED", "VERIFY_CA", "VERIFY_IDENTITY"])
+def test_doris_tls_parameters_round_trip(mode: str) -> None:
+    """Editing TLS URIs keeps encryption enabled and preserves stronger modes."""
+    from superset.db_engine_specs.doris import DorisEngineSpec
+
+    parameters = DorisEngineSpec.get_parameters_from_uri(
+        f"doris://user:p%40ss@localhost:9030/internal.db?ssl_mode={mode}&charset=utf8mb4"
+    )
+    assert parameters["encryption"] is True
+    expected_mode = "VERIFY_IDENTITY" if mode == "VERIFY_IDENTITY" else "VERIFY_CA"
+    expected_query = {"charset": "utf8mb4"}
+    if mode == "VERIFY_IDENTITY":
+        expected_query["ssl_mode"] = mode
+    assert parameters["query"] == expected_query
+    uri = make_url(DorisEngineSpec.build_sqlalchemy_uri(parameters))
+    assert uri.query == {"ssl_mode": expected_mode, "charset": "utf8mb4"}
+    assert uri.password == "p@ss"  # noqa: S105
+
+
+@pytest.mark.parametrize("mode", ["REQUIRED", "VERIFY_CA", "VERIFY_IDENTITY"])
+def test_doris_tls_preserves_uri_query(mode: str) -> None:
+    """TLS normalization preserves unrelated and repeated URI query options."""
+    from superset.db_engine_specs.doris import DorisEngineSpec
+
+    uri = make_url(
+        f"doris://root@localhost/internal.db?ssl_mode={mode}"
+        "&charset=utf8mb4&ssl_ca=%2Fca.pem&option=first&option=second"
+    )
+    url, args = DorisEngineSpec.adjust_engine_params(uri, {})
+    assert url == uri
+    assert args["ssl_mode"] == ("VERIFY_CA" if mode == "REQUIRED" else mode)

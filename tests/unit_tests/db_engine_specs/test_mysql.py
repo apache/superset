@@ -460,9 +460,9 @@ def test_compile_timegrain_expression_preserves_date_truncation() -> None:
     assert compiled == expected, f"DATE_FORMAT truncation was dropped. Got: {compiled}"
 
     proxied = str(select(select(expr.label("bucket")).subquery().c.bucket))
-    assert (
-        expected in proxied
-    ), f"DATE_FORMAT truncation was dropped in proxied expression. Got: {proxied}"
+    assert expected in proxied, (
+        f"DATE_FORMAT truncation was dropped in proxied expression. Got: {proxied}"
+    )
 
 
 def test_identifier_quote_uses_backticks() -> None:
@@ -614,6 +614,7 @@ def test_ssl_request_upgrades_required_mode() -> None:
 
 
 def test_pymysql_hostname_verification_survives() -> None:
+    """The TLS toggle preserves explicit hostname verification."""
     from superset.db_engine_specs.mysql import MySQLEngineSpec
 
     url, args = MySQLEngineSpec.adjust_engine_params(
@@ -625,6 +626,7 @@ def test_pymysql_hostname_verification_survives() -> None:
 
 @pytest.mark.parametrize("option", ["ssl_capath", "ssl_cipher"])
 def test_pymysql_unsupported_ssl_options_fail_closed(option: str) -> None:
+    """Unsupported TLS options raise rather than silently weakening TLS."""
     from superset.db_engine_specs.mysql import MySQLEngineSpec
 
     with pytest.raises(ValueError, match="Unsupported PyMySQL SSL option"):
