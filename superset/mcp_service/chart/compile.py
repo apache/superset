@@ -105,10 +105,6 @@ def _compile_chart(  # noqa: C901
         build_query_context_from_form_data,
     )
     from superset.mcp_service.chart.plugin import BaseChartPlugin
-    from superset.mcp_service.chart.preview_utils import (
-        BulletOutputError,
-        resolve_bullet_render_model,
-    )
     from superset.mcp_service.chart.query_result import query_result_data
     from superset.mcp_service.chart.registry import plugin_for_viz_type
 
@@ -133,7 +129,7 @@ def _compile_chart(  # noqa: C901
         row_count = 0
         query_data, query_failure = query_result_data(
             result,
-            temporal_json_numbers=form_data.get("viz_type") == "bullet",
+            temporal_json_numbers=bool(plugin and plugin.temporal_json_numbers),
         )
         if query_failure is not None:
             error_str = query_failure.error
@@ -149,21 +145,8 @@ def _compile_chart(  # noqa: C901
             query_data = []
         row_count = sum(len(data) for data in query_data)
 
-        if form_data.get("viz_type") == "bullet":
-            data = query_data[0] if query_data else []
-            try:
-                resolve_bullet_render_model(data, form_data)
-            except BulletOutputError as ex:
-                error_text = safe_exception_message(ex)
-                return CompileResult(
-                    success=False,
-                    error=error_text,
-                    error_code="MALFORMED_BULLET_OUTPUT",
-                    tier="compile",
-                    error_obj=_build_bullet_output_error(error_text),
-                )
-        result = normalize_chart_query_result(result, form_data)
-        if isinstance(result, ChartError):
+        normalized = normalize_chart_query_result(result, form_data)
+        if isinstance(normalized, ChartError):
             error_code = (
                 plugin.invalid_result_error_code
                 if plugin
@@ -176,13 +159,13 @@ def _compile_chart(  # noqa: C901
             )
             return CompileResult(
                 success=False,
-                error=result.error,
+                error=normalized.error,
                 error_code=error_code,
                 tier="compile",
                 error_obj=ChartGenerationError(
-                    error_type=result.error_type,
+                    error_type=normalized.error_type,
                     message=message,
-                    details=result.error,
+                    details=normalized.error,
                     suggestions=[
                         "Use a numeric-producing metric",
                         "Check the metric alias and SQL expression",
@@ -190,8 +173,12 @@ def _compile_chart(  # noqa: C901
                     error_code=error_code,
                 ),
             )
-        if form_data.get("viz_type") == "gauge_chart":
-            row_count = sum(len(query.get("data", [])) for query in result["queries"])
+        if normalized is not result:
+            # A plugin that rewrites rows (for example, dropping unrenderable
+            # Gauge dials) reports the rows that will actually render.
+            row_count = sum(
+                len(query.get("data", [])) for query in normalized["queries"]
+            )
 
         return CompileResult(success=True, warnings=warnings, row_count=row_count)
     except (ChartDataQueryFailedError, ChartDataCacheLoadError) as exc:
@@ -872,21 +859,6 @@ def _build_compile_error(message: str) -> ChartGenerationError:
             "Try simplifying the chart configuration",
         ],
         error_code="CHART_COMPILE_FAILED",
-    )
-
-
-def _build_bullet_output_error(message: str) -> ChartGenerationError:
-    """Explain why a successful query still cannot size a Bullet chart."""
-    return ChartGenerationError(
-        error_type="malformed_bullet_output",
-        message="Bullet query output does not contain a usable sizing measure.",
-        details=message,
-        suggestions=[
-            "Ensure the declared metric alias is returned by the query",
-            "Use a saved, SIMPLE, or SQL metric that returns finite numbers",
-            "Give SQL metrics a unique explicit label",
-        ],
-        error_code="MALFORMED_BULLET_OUTPUT",
     )
 
 

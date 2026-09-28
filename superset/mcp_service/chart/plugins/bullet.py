@@ -19,7 +19,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 from typing import Any, ClassVar
 
 from superset.mcp_service.chart.chart_utils import (
@@ -66,6 +66,21 @@ def _canonical_reference(
     return matches[0] if matches else name
 
 
+def _render_model_error(rows: Any, form_data: Mapping[str, Any]) -> ChartError | None:
+    """Return why ``rows`` cannot build the strict Bullet render model."""
+    from superset.mcp_service.chart.preview_utils import (
+        BulletOutputError,
+        resolve_bullet_render_model,
+    )
+    from superset.mcp_service.chart.query_result import safe_exception_message
+
+    try:
+        resolve_bullet_render_model(rows, dict(form_data))
+    except BulletOutputError as ex:
+        return ChartError(error=safe_exception_message(ex), error_type=ex.error_type)
+    return None
+
+
 class BulletChartPlugin(BaseChartPlugin):
     """Plugin matching ``plugin-chart-echarts/src/Bullet``."""
 
@@ -74,6 +89,22 @@ class BulletChartPlugin(BaseChartPlugin):
     native_viz_types: ClassVar[Mapping[str, str]] = {
         "bullet": "Bullet Chart",
     }
+    # Bullet/transformProps.ts converts temporal values with Number().
+    temporal_json_numbers = True
+    # The frontend renders an empty result (a zero measure when ungrouped).
+    allows_empty_result = True
+    # Updates merge filter provenance plus Bullet's bounded native controls;
+    # no other saved control is carried into the typed Bullet state.
+    owns_update_merge = True
+    binds_time_range_to_temporal_filter = True
+    table_preview_unsupported_reason = (
+        "Table previews cannot represent Bullet ranges, markers, "
+        "labels, and legend semantics"
+    )
+    invalid_result_error_code = "MALFORMED_BULLET_OUTPUT"
+    invalid_result_message = (
+        "Bullet query output does not contain a usable sizing measure."
+    )
 
     def pre_validate(self, config: dict[str, Any]) -> ChartGenerationError | None:
         if "metric" in config:
@@ -284,20 +315,108 @@ class BulletChartPlugin(BaseChartPlugin):
             error_code="BULLET_VALIDATION_ERROR",
         )
 
+    def normalize_query_result(self, result: Any, form_data: Mapping[str, Any]) -> Any:
+        """Reject results that cannot size a Bullet chart without guessing."""
+        from superset.mcp_service.chart.query_result import query_result_data
+
+        data, failure = query_result_data(result, temporal_json_numbers=True)
+        if failure is not None:
+            return failure
+        rows = data[0] if data else []
+        if (error := _render_model_error(rows, form_data)) is not None:
+            return error
+        return result
+
+    def sanitize_data_rows(
+        self, data: list[Any], form_data: Mapping[str, Any]
+    ) -> tuple[list[Any], ChartError | None]:
+        """Expose rows through the same strict model the renderers use."""
+        from superset.mcp_service.chart.preview_utils import (
+            BulletOutputError,
+            resolve_bullet_render_model,
+        )
+        from superset.mcp_service.chart.query_result import safe_exception_message
+
+        try:
+            model = resolve_bullet_render_model(data, dict(form_data))
+        except BulletOutputError as ex:
+            return [], ChartError(
+                error=safe_exception_message(ex), error_type=ex.error_type
+            )
+        # The strict model retains exact result keys while replacing unselected
+        # values with None and normalizing the selected roles. Its zero-valued
+        # ungrouped row is a render-only frontend fallback, not source query
+        # data, so an empty query exposes no rows to get-data and exports.
+        return (model.rows if data else []), None
+
     def ascii_preview(
         self, data: list[Any], form_data: dict[str, Any], width: int
     ) -> str | ChartError | None:
         from superset.mcp_service.chart.preview_utils import (
             _generate_ascii_bullet_chart,
+            BulletOutputError,
         )
+        from superset.mcp_service.chart.query_result import safe_exception_message
 
-        return _generate_ascii_bullet_chart(data, form_data)
+        try:
+            return _generate_ascii_bullet_chart(data, form_data)
+        except BulletOutputError as ex:
+            return ChartError(
+                error=safe_exception_message(ex), error_type=ex.error_type
+            )
 
     def vega_lite_preview(
         self, data: list[Any], form_data: dict[str, Any]
     ) -> VegaLitePreview | ChartError | None:
         from superset.mcp_service.chart.preview_utils import (
             _generate_bullet_vega_lite_preview,
+            BulletOutputError,
+        )
+        from superset.mcp_service.chart.query_result import safe_exception_message
+
+        try:
+            return _generate_bullet_vega_lite_preview(data, form_data)
+        except BulletOutputError as ex:
+            return ChartError(
+                error=safe_exception_message(ex), error_type=ex.error_type
+            )
+
+    def merge_update_form_data(
+        self,
+        existing_form_data: dict[str, Any],
+        new_form_data: dict[str, Any],
+        config: Any,
+        *,
+        dataset_rebind: bool,
+    ) -> dict[str, Any] | None:
+        """Merge filter provenance and preserve omitted native Bullet controls."""
+        if not isinstance(config, BulletChartConfig) or dataset_rebind:
+            return None
+        from superset.mcp_service.chart.chart_utils import (
+            merge_bullet_form_data,
+            merge_update_form_data,
         )
 
-        return _generate_bullet_vega_lite_preview(data, form_data)
+        merged = dict(new_form_data)
+        merge_update_form_data(existing_form_data, merged, config)
+        merge_bullet_form_data(existing_form_data, merged)
+        return merged
+
+    def validate_merged_form_data(
+        self,
+        form_data: Mapping[str, Any],
+        dataset_id: int | str | None,
+        dataset_context: Callable[[], Any] | None = None,
+        update_config: Any = None,
+    ) -> Any | None:
+        """Validate the merged state; canonicalize it when dataset metadata exists."""
+        from superset.mcp_service.chart.chart_utils import (
+            validate_merged_bullet_form_data,
+        )
+
+        merged = validate_merged_bullet_form_data(form_data, update_config)
+        if merged is None or dataset_context is None:
+            return merged
+        return DatasetValidator.normalize_column_names(
+            merged, dataset_id, dataset_context=dataset_context()
+        )

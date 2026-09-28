@@ -1412,7 +1412,10 @@ def _bind_dashboard_time_range_filter(  # noqa: C901
                 # QueryContextFactory gives granularity precedence over a temporal
                 # filter, so a different granularity would bind both columns.
                 form_data["granularity_sqla"] = None
-            if config.chart_type == "bullet":
+            from superset.mcp_service.chart.registry import plugin_for_viz_type
+
+            plugin = plugin_for_viz_type(form_data.get("viz_type"))
+            if plugin is not None and plugin.binds_time_range_to_temporal_filter:
                 _bind_temporal_filter(
                     form_data,
                     temporal_column,
@@ -2161,8 +2164,6 @@ def merge_update_form_data(  # noqa: C901
         new_form_data[MCP_DASHBOARD_TIME_FILTER_SUBJECT] = chosen_subject
     else:
         new_form_data.pop(MCP_DASHBOARD_TIME_FILTER_SUBJECT, None)
-
-    merge_bullet_form_data(existing_form_data, new_form_data)
 
 
 def _currency_form_value(value: CurrencyFormat | None) -> dict[str, str] | None:

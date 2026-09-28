@@ -45,7 +45,6 @@ from superset.mcp_service.chart.chart_utils import (
     merge_same_viz_form_data,
     merge_table_column_config,
     merge_update_form_data,
-    validate_merged_bullet_form_data,
 )
 from superset.mcp_service.chart.compile import validate_and_compile
 from superset.mcp_service.chart.preview_utils import (
@@ -58,11 +57,8 @@ from superset.mcp_service.chart.response_preflight import (
 )
 from superset.mcp_service.chart.schemas import (
     AccessibilityMetadata,
-    BulletChartConfig,
     ChartError,
-    GanttChartConfig,
     PerformanceMetadata,
-    TreemapChartConfig,
     UpdateChartPreviewRequest,
     UpdateChartPreviewResponse,
 )
@@ -287,10 +283,9 @@ def update_chart_preview(  # noqa: C901
             if previous_form_data:
                 merge_table_column_config(previous_form_data, new_form_data)
                 merge_interactive_pivot_ui_config(previous_form_data, new_form_data)
-                if isinstance(config, BulletChartConfig):
-                    merge_update_form_data(previous_form_data, new_form_data, config)
-                elif isinstance(config, (GanttChartConfig, TreemapChartConfig)):
-                    # Gantt and Treemap own their temporal/rebind merge contracts.
+                merge_plugin = plugin_for_viz_type(new_form_data.get("viz_type"))
+                if merge_plugin is not None and merge_plugin.owns_update_merge:
+                    # The plugin owns its temporal/rebind merge contract.
                     # Generic merges would restore deliberately removed state.
                     new_form_data = merge_chart_form_data(
                         previous_form_data,
@@ -319,45 +314,41 @@ def update_chart_preview(  # noqa: C901
                             new_form_data.pop(form_data_field, None)
 
             merged_plugin = plugin_for_viz_type(new_form_data.get("viz_type"))
-            merged_config = (
-                merged_plugin.validate_merged_form_data(
-                    new_form_data,
-                    request.dataset_id,
-                    dataset_context=lambda: dataset_context,
-                )
-                if merged_plugin is not None
-                else None
-            )
-            if merged_config is not None:
-                # Compile the final cached state rather than the pre-merge
-                # request, so preserved native fields cannot bypass semantics.
-                config = merged_config
-
-            validation_config = config
             try:
-                if merged_config := validate_merged_bullet_form_data(
-                    new_form_data, config
-                ):
-                    validation_config = DatasetValidator.normalize_column_names(
-                        merged_config,
+                merged_config = (
+                    merged_plugin.validate_merged_form_data(
+                        new_form_data,
                         request.dataset_id,
-                        dataset_context=dataset_context,
+                        dataset_context=lambda: dataset_context,
+                        update_config=config,
                     )
+                    if merged_plugin is not None
+                    else None
+                )
+            except GanttSemanticNormalizationError:
+                # Gantt reports its own role conflict to the tool handler.
+                raise
             except (AttributeError, KeyError, TypeError, ValueError) as ex:
+                chart_type = merged_plugin.chart_type if merged_plugin else "chart"
+                display_name = merged_plugin.display_name if merged_plugin else "chart"
                 return {
                     "chart": None,
                     "error": {
-                        "error_type": "invalid_merged_bullet_state",
-                        "message": "Merged Bullet chart state is invalid",
+                        "error_type": f"invalid_merged_{chart_type}_state",
+                        "message": f"Merged {display_name} state is invalid",
                         "details": str(ex),
                     },
                     "success": False,
                     "schema_version": "2.0",
                     "api_version": "v1",
                 }
+            if merged_config is not None:
+                # Compile the final cached state rather than the pre-merge
+                # request, so preserved native fields cannot bypass semantics.
+                config = merged_config
 
             compile_result = validate_and_compile(
-                validation_config,
+                config,
                 new_form_data,
                 dataset,
                 run_compile_check=True,

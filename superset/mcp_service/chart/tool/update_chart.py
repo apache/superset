@@ -45,7 +45,6 @@ from superset.mcp_service.chart.chart_utils import (
     merge_same_viz_form_data,
     merge_table_column_config,
     merge_update_form_data,
-    validate_merged_bullet_form_data,
 )
 from superset.mcp_service.chart.compile import validate_and_compile
 from superset.mcp_service.chart.registry import get_registry, plugin_for_viz_type
@@ -54,7 +53,6 @@ from superset.mcp_service.chart.response_preflight import (
 )
 from superset.mcp_service.chart.schemas import (
     AccessibilityMetadata,
-    BulletChartConfig,
     ChartConfig,
     ColumnRef,
     GanttChartConfig,
@@ -420,13 +418,11 @@ def _build_replacement_form_data(
         dataset_rebind = False
     merge_table_column_config(existing_form_data, new_form_data)
     merge_interactive_pivot_ui_config(existing_form_data, new_form_data)
-    if isinstance(parsed_config, BulletChartConfig):
-        merge_update_form_data(existing_form_data, new_form_data, parsed_config)
-        merged = new_form_data
-    elif isinstance(parsed_config, (GanttChartConfig, TreemapChartConfig)):
-        # Gantt and Treemap own their complete merge contracts, including
-        # temporal predicates and dataset rebinds. Generic update merges would
-        # restore inherited state that those contracts deliberately removed.
+    merge_plugin = plugin_for_viz_type(new_form_data.get("viz_type"))
+    if merge_plugin is not None and merge_plugin.owns_update_merge:
+        # The plugin owns its complete merge contract, including temporal
+        # predicates and dataset rebinds. Generic update merges would restore
+        # inherited state that the contract deliberately removed.
         merged = _merge_replacement_config(
             existing_form_data,
             new_form_data,
@@ -643,25 +639,24 @@ def _validate_update_against_dataset(
             }
         )
 
+    merged_plugin = plugin_for_viz_type(form_data.get("viz_type"))
     try:
-        if merged_config := validate_merged_bullet_form_data(form_data, parsed_config):
-            parsed_config = merged_config
-    except (TypeError, ValueError) as ex:
-        return _validation_error_response(
-            message="Merged Bullet chart configuration is invalid.",
-            details=str(ex),
-        )
-
-    try:
-        merged_plugin = plugin_for_viz_type(form_data.get("viz_type"))
         merged_config = (
-            merged_plugin.validate_merged_form_data(form_data, dataset.id)
+            merged_plugin.validate_merged_form_data(
+                form_data, dataset.id, update_config=parsed_config
+            )
             if merged_plugin is not None
             else None
         )
     except GanttSemanticNormalizationError as ex:
         return _validation_error_response(
             message="Gantt chart column roles are invalid",
+            details=str(ex),
+        )
+    except (TypeError, ValueError) as ex:
+        display_name = merged_plugin.display_name if merged_plugin else "chart"
+        return _validation_error_response(
+            message=f"Merged {display_name} configuration is invalid.",
             details=str(ex),
         )
     if merged_config is not None:

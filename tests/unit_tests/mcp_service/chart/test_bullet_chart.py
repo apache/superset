@@ -55,6 +55,7 @@ from superset.mcp_service.chart.preview_utils import (
     generate_preview_from_form_data,
     resolve_bullet_render_model,
 )
+from superset.mcp_service.chart.plugins.bullet import BulletChartPlugin
 from superset.mcp_service.chart.query_result import (
     _chart_data_duration_text,
     _chart_data_temporal_number,
@@ -3228,8 +3229,10 @@ def test_bullet_presentation_updates_are_atomic_and_comma_safe() -> None:
         "marker_labels": "Plan,Stretch",
     }
     config = BulletChartConfig(metric=_simple_metric(), ranges=[30], markers=[25])
-    mapped = map_bullet_config(config)
-    merge_update_form_data(existing, mapped, config)
+    mapped = BulletChartPlugin().merge_update_form_data(
+        existing, map_bullet_config(config), config, dataset_rebind=False
+    )
+    assert mapped is not None
     assert mapped["ranges"] == "30"
     assert mapped["range_labels"] == ""
     assert mapped["markers"] == "25"

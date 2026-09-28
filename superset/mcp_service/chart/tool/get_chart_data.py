@@ -22,7 +22,7 @@ MCP tool: get_chart_data
 import logging
 import math
 import time
-from typing import Any, Dict, List, NamedTuple
+from typing import Any, Dict, List, NamedTuple, TYPE_CHECKING
 from uuid import UUID
 
 from fastmcp import Context
@@ -71,6 +71,9 @@ from superset.mcp_service.utils.response_utils import (
     GENERIC_DATA_TYPE_NAMES,
 )
 
+if TYPE_CHECKING:
+    from superset.mcp_service.chart.plugin import ChartTypePlugin
+
 logger = logging.getLogger(__name__)
 
 
@@ -94,6 +97,13 @@ class _ChartFacts(NamedTuple):
 
 _GENERIC_TYPE_MAP = GENERIC_DATA_TYPE_NAMES
 _safe_value_identity = safe_value_identity
+
+
+def _data_plugin(viz_type: Any) -> "ChartTypePlugin | None":
+    """Return the plugin that owns a chart's get_chart_data result contract."""
+    from superset.mcp_service.chart.registry import plugin_for_viz_type
+
+    return plugin_for_viz_type(viz_type if isinstance(viz_type, str) else None)
 
 
 def _normalizes_data_results(form_data: dict[str, Any]) -> bool:
@@ -317,28 +327,6 @@ def _build_query_results(
 # Compatibility aliases keep the established private helper imports stable while all
 # result consumers use the single shared profiling contract.
 _build_data_columns = format_data_columns
-
-
-def _strict_bullet_result_data(
-    data: list[dict[str, Any]], form_data: dict[str, Any]
-) -> tuple[list[dict[str, Any]] | None, ChartError | None]:
-    """Validate and sanitize Bullet data with the shared render contract."""
-    from superset.mcp_service.chart.preview_utils import (
-        BulletOutputError,
-        resolve_bullet_render_model,
-    )
-
-    try:
-        model = resolve_bullet_render_model(data, form_data)
-    except BulletOutputError as ex:
-        return None, ChartError(
-            error=safe_exception_message(ex), error_type=ex.error_type
-        )
-    # The strict model retains exact result keys while replacing unselected
-    # values with None and normalizing the selected roles. Its zero-valued
-    # ungrouped row is a render-only frontend fallback, not source query data.
-    # Return no rows for an empty query so get-data and exports stay truthful.
-    return model.rows if data else [], None
 
 
 @tool(
@@ -849,10 +837,15 @@ async def execute_chart_data(  # noqa: C901
                 result = normalize_chart_query_result(result, form_data)
                 if isinstance(result, ChartError):
                     return result
+            data_plugin = _data_plugin(chart_viz_type)
             queries_data, query_failure = query_result_data(
                 result,
-                temporal_json_numbers=chart_viz_type == "bullet",
-                preserve_nonfinite_floats=chart_viz_type == "gauge_chart",
+                temporal_json_numbers=bool(
+                    data_plugin and data_plugin.temporal_json_numbers
+                ),
+                preserve_nonfinite_floats=bool(
+                    data_plugin and data_plugin.preserve_nonfinite_floats
+                ),
             )
             if query_failure is not None:
                 return query_failure
@@ -877,13 +870,12 @@ async def execute_chart_data(  # noqa: C901
             data = queries_data[0] if queries_data is not None else []
             raw_columns = query_result.get("colnames", [])
 
-            if chart_viz_type == "bullet":
-                strict_data, bullet_error = _strict_bullet_result_data(
+            if data_plugin is not None:
+                data, rows_error = data_plugin.sanitize_data_rows(
                     data, effective_form_data
                 )
-                if bullet_error is not None:
-                    return bullet_error
-                data = strict_data or []
+                if rows_error is not None:
+                    return rows_error
 
             await ctx.debug(
                 "Query results received: row_count=%s, column_count=%s, "
@@ -896,7 +888,9 @@ async def execute_chart_data(  # noqa: C901
             )
 
             # Check if we have data to work with
-            if chart_viz_type != "bullet" and not any(queries_data or []):
+            if not (data_plugin and data_plugin.allows_empty_result) and not any(
+                queries_data or []
+            ):
                 await ctx.warning("No data in query results: chart_id=%s" % (chart_id,))
                 logger.warning(
                     "get_chart_data: no data in query results for chart_id=%s",
@@ -1189,10 +1183,15 @@ async def _query_from_form_data(  # noqa: C901
             result = normalize_chart_query_result(result, form_data)
             if isinstance(result, ChartError):
                 return result
+        data_plugin = _data_plugin(viz_type)
         queries_data, query_failure = query_result_data(
             result,
-            temporal_json_numbers=viz_type == "bullet",
-            preserve_nonfinite_floats=viz_type == "gauge_chart",
+            temporal_json_numbers=bool(
+                data_plugin and data_plugin.temporal_json_numbers
+            ),
+            preserve_nonfinite_floats=bool(
+                data_plugin and data_plugin.preserve_nonfinite_floats
+            ),
         )
         if query_failure is not None:
             return query_failure
@@ -1216,13 +1215,14 @@ async def _query_from_form_data(  # noqa: C901
         raw_columns = query_result.get("colnames", [])
         coltypes = query_result.get("coltypes", [])
 
-        if viz_type == "bullet":
-            strict_data, bullet_error = _strict_bullet_result_data(data, form_data)
-            if bullet_error is not None:
-                return bullet_error
-            data = strict_data or []
+        if data_plugin is not None:
+            data, rows_error = data_plugin.sanitize_data_rows(data, form_data)
+            if rows_error is not None:
+                return rows_error
 
-        if viz_type != "bullet" and not any(queries_data or []):
+        if not (data_plugin and data_plugin.allows_empty_result) and not any(
+            queries_data or []
+        ):
             logger.warning(
                 "get_chart_data: no data for unsaved chart (form_data_key=%s)",
                 request.form_data_key,

@@ -193,6 +193,12 @@ def _preview_row_limit(form_data: dict[str, Any], fallback: int) -> int:
     return plugin.preview_row_limit(form_data, fallback)
 
 
+def _temporal_json_numbers(viz_type: str | None) -> bool:
+    """Whether the owning plugin reads temporal results as frontend numbers."""
+    plugin = plugin_for_viz_type(viz_type)
+    return bool(plugin and plugin.temporal_json_numbers)
+
+
 def _build_chart_description(chart: ChartLike) -> str:
     """Build a human-readable chart description, with hints for special chart types."""
     base = (
@@ -247,10 +253,6 @@ class ASCIIPreviewStrategy(PreviewFormatStrategy):
     def generate(self) -> ASCIIPreview | ChartError:  # noqa: C901
         try:
             from superset.commands.chart.data.get_data_command import ChartDataCommand
-            from superset.mcp_service.chart.preview_utils import (
-                _generate_ascii_preview_from_data,
-                BulletOutputError,
-            )
             from superset.mcp_service.chart.query_result import query_result_data
             from superset.utils import json as utils_json
 
@@ -291,23 +293,18 @@ class ASCIIPreviewStrategy(PreviewFormatStrategy):
             command.validate()
             result = command.run()
 
-            queries_data, failure = query_result_data(
+            _queries_data, failure = query_result_data(
                 result,
-                temporal_json_numbers=self.chart.viz_type == "bullet",
+                temporal_json_numbers=_temporal_json_numbers(self.chart.viz_type),
             )
             if failure is not None:
                 return failure
-
-            data: list[Any] = queries_data[0] if queries_data else []
-
-            if self.chart.viz_type == "bullet":
-                return _generate_ascii_preview_from_data(data, form_data)
 
             result = normalize_chart_query_result(result, form_data)
             if isinstance(result, ChartError):
                 return result
 
-            data = []
+            data: list[Any] = []
             if result and "queries" in result and len(result["queries"]) > 0:
                 data = result["queries"][0].get("data") or []
 
@@ -330,10 +327,6 @@ class ASCIIPreviewStrategy(PreviewFormatStrategy):
                 height=self.request.ascii_height or 20,
             )
 
-        except BulletOutputError as ex:
-            return ChartError(
-                error=safe_exception_message(ex), error_type=ex.error_type
-            )
         except (
             CommandException,
             SupersetException,
@@ -361,12 +354,10 @@ class TablePreviewStrategy(PreviewFormatStrategy):
 
             form_data = utils_json.loads(self.chart.params) if self.chart.params else {}
 
-            if self.chart.viz_type == "bullet":
+            plugin = plugin_for_viz_type(self.chart.viz_type)
+            if plugin is not None and plugin.table_preview_unsupported_reason:
                 return ChartError(
-                    error=(
-                        "Table previews cannot represent Bullet ranges, markers, "
-                        "labels, and legend semantics"
-                    ),
+                    error=plugin.table_preview_unsupported_reason,
                     error_type="UnsupportedFormat",
                 )
 
@@ -483,10 +474,6 @@ class VegaLitePreviewStrategy(PreviewFormatStrategy):
             # but without calling the MCP tool wrapper
             from superset.commands.chart.data.get_data_command import ChartDataCommand
             from superset.daos.chart import ChartDAO
-            from superset.mcp_service.chart.preview_utils import (
-                _generate_bullet_vega_lite_preview,
-                BulletOutputError,
-            )
             from superset.mcp_service.chart.query_result import query_result_data
             from superset.utils import json as utils_json
 
@@ -542,7 +529,7 @@ class VegaLitePreviewStrategy(PreviewFormatStrategy):
 
             queries_data, failure = query_result_data(
                 result,
-                temporal_json_numbers=self.chart.viz_type == "bullet",
+                temporal_json_numbers=_temporal_json_numbers(self.chart.viz_type),
             )
             if failure is not None:
                 return failure
@@ -554,9 +541,6 @@ class VegaLitePreviewStrategy(PreviewFormatStrategy):
 
             # Extract data from result
             chart_data = queries_data[0] if queries_data else []
-
-            if self.chart.viz_type == "bullet":
-                return _generate_bullet_vega_lite_preview(chart_data, form_data)
 
             # Every plugin-owned preview (including those that render an
             # empty result) is shared with the unsaved-chart preview path.
@@ -584,10 +568,6 @@ class VegaLitePreviewStrategy(PreviewFormatStrategy):
                 supports_streaming=False,
             )
 
-        except BulletOutputError as ex:
-            return ChartError(
-                error=safe_exception_message(ex), error_type=ex.error_type
-            )
         except (
             CommandException,
             SupersetException,

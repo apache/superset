@@ -106,13 +106,17 @@ def _generate_preview_from_form_data(  # noqa: C901
     Returns:
         Preview object or ChartError
     """
+    from superset.mcp_service.chart.registry import plugin_for_viz_type
+
+    plugin = plugin_for_viz_type(form_data.get("viz_type"))
     try:
-        if form_data.get("viz_type") == "bullet" and preview_format == "table":
+        if (
+            preview_format == "table"
+            and plugin is not None
+            and plugin.table_preview_unsupported_reason
+        ):
             return ChartError(
-                error=(
-                    "Table previews cannot represent Bullet ranges, markers, "
-                    "labels, and legend semantics"
-                ),
+                error=plugin.table_preview_unsupported_reason,
                 error_type="UnsupportedFormat",
             )
 
@@ -150,16 +154,17 @@ def _generate_preview_from_form_data(  # noqa: C901
 
         queries_data, failure = query_result_data(
             result,
-            temporal_json_numbers=form_data.get("viz_type") == "bullet",
+            temporal_json_numbers=bool(plugin and plugin.temporal_json_numbers),
         )
         if failure is not None:
             return failure
 
-        result = normalize_chart_query_result(result, form_data)
-        if isinstance(result, ChartError):
-            return result
-        if form_data.get("viz_type") == "gauge_chart":
-            queries_data = [query.get("data", []) for query in result["queries"]]
+        normalized = normalize_chart_query_result(result, form_data)
+        if isinstance(normalized, ChartError):
+            return normalized
+        if normalized is not result:
+            # The owning plugin rewrote the rows it renders.
+            queries_data = [query.get("data", []) for query in normalized["queries"]]
         if not queries_data:
             return ChartError(
                 error="No data returned from query", error_type="EmptyResult"
@@ -180,8 +185,6 @@ def _generate_preview_from_form_data(  # noqa: C901
                 error_type="UnsupportedFormat",
             )
 
-    except BulletOutputError as ex:
-        return ChartError(error=safe_exception_message(ex), error_type=ex.error_type)
     except Exception as e:
         error_text = safe_exception_message(e)
         logger.error("Preview generation from form data failed: %s", error_text)
