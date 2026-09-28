@@ -17,7 +17,7 @@
  * under the License.
  */
 import { DragSourceMonitor, DropTargetMonitor } from 'react-dnd';
-import { CHART_TYPE } from '../../util/componentTypes';
+import { CHART_TYPE, ROW_TYPE } from '../../util/componentTypes';
 import type {
   DragDroppableComponent,
   DragDroppableProps,
@@ -41,8 +41,8 @@ import mockedHandleHover from './handleHover';
 // eslint-disable-next-line import/first
 import mockedHandleDrop from './handleDrop';
 
-const { canDrag, beginDrag } = dragConfig[1];
-const { canDrop, hover, drop } = dropConfig[1];
+const [, { canDrag, beginDrag }, dragStateToProps] = dragConfig;
+const [, { canDrop, hover, drop }, dropStateToProps] = dropConfig;
 
 function makeProps(
   overrides: Partial<DragDroppableProps> = {},
@@ -72,6 +72,31 @@ function makeComponent(
   };
 }
 
+function makeDropResult(overrides: Partial<DropResult> = {}): DropResult {
+  return {
+    source: { id: 'a', type: CHART_TYPE, index: 0 },
+    dragging: { id: 'b', type: CHART_TYPE, meta: {} },
+    ...overrides,
+  };
+}
+
+function makeDragConnect() {
+  return {
+    dragSource: jest.fn(() => 'drag-source-ref'),
+    dragPreview: jest.fn(() => 'drag-preview-ref'),
+  };
+}
+
+function makeDragMonitor(
+  isDragging: boolean,
+  item: { id: string; type: string } | null,
+): DragSourceMonitor {
+  return {
+    isDragging: jest.fn(() => isDragging),
+    getItem: jest.fn(() => item),
+  } as unknown as DragSourceMonitor;
+}
+
 beforeEach(() => {
   jest.clearAllMocks();
 });
@@ -87,7 +112,7 @@ test('canDrag forbids dragging when disableDragDrop is true', () => {
 test('beginDrag captures the parent id and type when a parent component is present', () => {
   const parentComponent = {
     id: 'row-1',
-    type: 'ROW',
+    type: ROW_TYPE,
     children: [],
     meta: {},
   } as DragDroppableProps['parentComponent'];
@@ -99,7 +124,7 @@ test('beginDrag captures the parent id and type when a parent component is prese
     meta: {},
     index: 2,
     parentId: 'row-1',
-    parentType: 'ROW',
+    parentType: ROW_TYPE,
   });
 });
 
@@ -147,10 +172,7 @@ test('hover does not call handleHover when the drop target component has unmount
 test('drop delegates to handleDrop when no nested target already produced a result', () => {
   const props = makeProps();
   const component = makeComponent({ mounted: true });
-  const expected: DropResult = {
-    source: { id: 'a', type: CHART_TYPE, index: 0 },
-    dragging: { id: 'b', type: CHART_TYPE, meta: {} },
-  };
+  const expected = makeDropResult();
   (mockedHandleDrop as jest.Mock).mockReturnValueOnce(expected);
   const monitor = {
     getDropResult: jest.fn(() => null),
@@ -166,10 +188,7 @@ test('drop delegates to handleDrop when a nested result has no destination', () 
   const props = makeProps();
   const component = makeComponent({ mounted: true });
   const monitor = {
-    getDropResult: jest.fn(() => ({
-      source: { id: 'a', type: CHART_TYPE, index: 0 },
-      dragging: { id: 'b', type: CHART_TYPE, meta: {} },
-    })),
+    getDropResult: jest.fn(() => makeDropResult()),
   } as unknown as DropTargetMonitor;
 
   drop(props, monitor, component);
@@ -181,11 +200,9 @@ test('drop returns undefined and skips handleDrop when a nested target already p
   const props = makeProps();
   const component = makeComponent({ mounted: true });
   const monitor = {
-    getDropResult: jest.fn(() => ({
-      source: { id: 'a', type: CHART_TYPE, index: 0 },
-      dragging: { id: 'b', type: CHART_TYPE, meta: {} },
-      destination: { id: 'c', type: CHART_TYPE, index: 1 },
-    })),
+    getDropResult: jest.fn(() =>
+      makeDropResult({ destination: { id: 'c', type: CHART_TYPE, index: 1 } }),
+    ),
   } as unknown as DropTargetMonitor;
 
   const result = drop(props, monitor, component);
@@ -208,17 +225,10 @@ test('drop returns undefined and skips handleDrop when the component has unmount
 });
 
 test('dragStateToProps reports isDragging and the dragged component identity from the monitor', () => {
-  const dragStateToProps = dragConfig[2];
-  const connect = {
-    dragSource: jest.fn(() => 'drag-source-ref'),
-    dragPreview: jest.fn(() => 'drag-preview-ref'),
-  };
-  const monitor = {
-    isDragging: jest.fn(() => true),
-    getItem: jest.fn(() => ({ id: 'chart-1', type: CHART_TYPE })),
-  } as unknown as DragSourceMonitor;
-
-  const result = dragStateToProps(connect, monitor);
+  const result = dragStateToProps(
+    makeDragConnect(),
+    makeDragMonitor(true, { id: 'chart-1', type: CHART_TYPE }),
+  );
 
   expect(result).toEqual({
     dragSourceRef: 'drag-source-ref',
@@ -230,7 +240,6 @@ test('dragStateToProps reports isDragging and the dragged component identity fro
 });
 
 test('dropStateToProps reports isDraggingOver from the monitor', () => {
-  const dropStateToProps = dropConfig[2];
   const connect = {
     dropTarget: jest.fn(() => 'drop-target-ref'),
   };
@@ -248,17 +257,10 @@ test('dropStateToProps reports isDraggingOver from the monitor', () => {
 });
 
 test('dragStateToProps reports no dragged component while nothing is being dragged', () => {
-  const dragStateToProps = dragConfig[2];
-  const connect = {
-    dragSource: jest.fn(() => 'drag-source-ref'),
-    dragPreview: jest.fn(() => 'drag-preview-ref'),
-  };
-  const monitor = {
-    isDragging: jest.fn(() => false),
-    getItem: jest.fn(() => null),
-  } as unknown as DragSourceMonitor;
-
-  const result = dragStateToProps(connect, monitor);
+  const result = dragStateToProps(
+    makeDragConnect(),
+    makeDragMonitor(false, null),
+  );
 
   expect(result).toMatchObject({
     isDragging: false,
