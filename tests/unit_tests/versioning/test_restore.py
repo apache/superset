@@ -369,6 +369,46 @@ def test_documented_limitation_rebirth_looks_like_first_birth() -> None:
     assert _provable(survivors, 10)
 
 
+def test_restore_endpoint_maps_recycled_child_identity_to_422(
+    app_context: None,
+) -> None:
+    """The child-identity refusal surfaces as a user-facing 422 like the
+    pruned-history refusal; both leave the entity unchanged."""
+    from superset.models.dashboard import Dashboard
+    from superset.versioning.api_helpers import restore_version_endpoint
+    from superset.versioning.restore import RecycledChildIdentityError
+
+    error: RecycledChildIdentityError = RecycledChildIdentityError(
+        "SqlaTable", "column id=1"
+    )
+
+    class _Command:
+        not_found_exc: type[Exception] = KeyError
+        forbidden_exc: type[Exception] = PermissionError
+        failed_exc: type[Exception] = RuntimeError
+
+        def __init__(self, *_args: object) -> None:
+            pass
+
+        def run(self) -> None:
+            raise error
+
+    api: MagicMock = MagicMock()
+    api.response_422.return_value = "resp-422"
+
+    response: Any = restore_version_endpoint(
+        api,
+        Dashboard,
+        _Command,
+        "00000000-0000-0000-0000-000000000001",
+        "00000000-0000-0000-0000-000000000002",
+    )
+
+    assert response == "resp-422"
+    api.response_422.assert_called_once_with(message=str(error))
+    assert "left unchanged" in str(error)
+
+
 def test_restore_endpoint_maps_pruned_history_to_422(app_context: None) -> None:
     """The fail-closed refusal surfaces as a user-facing 422, not a 500.
 

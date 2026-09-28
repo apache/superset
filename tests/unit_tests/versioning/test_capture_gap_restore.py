@@ -17,6 +17,7 @@
 """Restore snapshots captured after an uncaptured child or membership change."""
 
 from collections.abc import Iterator
+from dataclasses import dataclass
 from typing import Any
 from unittest.mock import patch
 from uuid import UUID
@@ -54,6 +55,16 @@ def capture_session(app: SupersetApp) -> Iterator[Session]:
     yield session
     db.session.remove()
     Model.metadata.drop_all(db.engine)
+
+
+def history_counts(session: Session) -> dict[str, int]:
+    """Count every shadow, association, transaction and semantic-change table."""
+    return {
+        table.name: session.scalar(sa.select(sa.func.count()).select_from(table))
+        for table in Model.metadata.tables.values()
+        if table.name.endswith("_version")
+        or table.name in {"version_transaction", "version_changes"}
+    }
 
 
 def latest_version(session: Session, entity: Any) -> UUID:
@@ -601,3 +612,182 @@ def test_recycled_child_id_reconciles_across_parents_in_any_order(
     assert names(old_parent) == []
     assert new_parent.table_name == "new parent resumed"
     assert names(new_parent) == ["reborn under new parent"]
+
+
+@dataclass
+class _RecycledIdScenario:
+    """Dataset A's child id freed during a gap and reborn under dataset B."""
+
+    old_parent: SqlaTable
+    new_parent: SqlaTable
+    child_model: type[Model]
+    recycled_id: int
+    old_uuid: UUID
+    pre_recycle_target: UUID
+
+    def children(self, dataset: SqlaTable) -> list[Any]:
+        return dataset.columns if self.child_model is TableColumn else dataset.metrics
+
+    def names(self, dataset: SqlaTable) -> list[str]:
+        if self.child_model is TableColumn:
+            return sorted(c.column_name for c in dataset.columns)
+        return sorted(m.metric_name for m in dataset.metrics)
+
+
+def _recycle_child_id_across_datasets(
+    capture_session: Session,
+    app: SupersetApp,
+    monkeypatch: pytest.MonkeyPatch,
+    child: str,
+    captured: str,
+    reborn_under: str = "new_parent",
+) -> _RecycledIdScenario:
+    """Build the scenario through the native listeners and resume capture."""
+    policy: dict[str, bool] = {"enabled": True}
+    monkeypatch.setitem(
+        app.config, "VERSIONING_CAPTURE_PREDICATE", lambda s: policy["enabled"]
+    )
+    database: Database = Database(database_name="private", sqlalchemy_uri="sqlite://")
+
+    def make_child(name: str, **extra: Any) -> Any:
+        if child == "column":
+            return TableColumn(column_name=name, type="STRING", **extra)
+        return SqlMetric(metric_name=name, expression="COUNT(*)", **extra)
+
+    old_parent: SqlaTable = SqlaTable(table_name="old parent", database=database)
+    new_parent: SqlaTable = SqlaTable(table_name="new parent", database=database)
+    scenario: _RecycledIdScenario = _RecycledIdScenario(
+        old_parent=old_parent,
+        new_parent=new_parent,
+        child_model=TableColumn if child == "column" else SqlMetric,
+        recycled_id=0,
+        old_uuid=UUID(int=0),
+        pre_recycle_target=UUID(int=0),
+    )
+    scenario.children(old_parent).append(make_child("captured under old parent"))
+    capture_session.add_all([old_parent, new_parent])
+    capture_session.commit()
+    scenario.recycled_id = scenario.children(old_parent)[0].id
+    scenario.old_uuid = scenario.children(old_parent)[0].uuid
+    scenario.pre_recycle_target = latest_version(capture_session, old_parent)
+    policy["enabled"] = False
+    scenario.children(old_parent).clear()
+    capture_session.commit()
+    reborn_parent: SqlaTable = (
+        new_parent if reborn_under == "new_parent" else old_parent
+    )
+    scenario.children(reborn_parent).append(
+        make_child(
+            f"reborn under {reborn_under.replace('_', ' ')}", id=scenario.recycled_id
+        )
+    )
+    capture_session.commit()
+    policy["enabled"] = True
+    old_parent.table_name = "old parent resumed"
+    if captured == "both_parents":
+        new_parent.table_name = "new parent resumed"
+    capture_session.commit()
+    return scenario
+
+
+@pytest.mark.parametrize("captured", ["both_parents", "old_parent_only"])
+@pytest.mark.parametrize("child", ["column", "metric"])
+def test_pre_recycle_restore_refuses_when_child_id_now_names_another_child(
+    capture_session: Session,
+    app: SupersetApp,
+    monkeypatch: pytest.MonkeyPatch,
+    child: str,
+    captured: str,
+) -> None:
+    """Restoring the old parent before the recycle must not steal the new
+    parent's live child: the historical id is pinned to its uuid, and both
+    datasets, the live child and the history stay untouched."""
+    from superset.versioning.restore import RecycledChildIdentityError
+
+    scenario: _RecycledIdScenario = _recycle_child_id_across_datasets(
+        capture_session, app, monkeypatch, child, captured
+    )
+    before: dict[str, int] = history_counts(capture_session)
+    transaction: Any = versioning_manager.transaction_cls
+    last_tx: int = capture_session.scalar(sa.select(sa.func.max(transaction.id)))
+
+    excinfo: pytest.ExceptionInfo[RecycledChildIdentityError]
+    with (
+        patch.object(security_manager, "raise_for_editorship"),
+        pytest.raises(RecycledChildIdentityError) as excinfo,
+    ):
+        RestoreDatasetVersionCommand(
+            scenario.old_parent.uuid, scenario.pre_recycle_target
+        ).run()
+    assert "left unchanged" in str(excinfo.value)
+    capture_session.expire_all()
+    assert scenario.old_parent.table_name == "old parent resumed"
+    assert scenario.names(scenario.old_parent) == []
+    assert scenario.names(scenario.new_parent) == ["reborn under new parent"]
+    live: Any = capture_session.get(scenario.child_model, scenario.recycled_id)
+    assert live.table_id == scenario.new_parent.id
+    assert live.uuid != scenario.old_uuid
+    assert history_counts(capture_session) == before
+    assert capture_session.scalar(sa.select(sa.func.max(transaction.id))) == last_tx
+
+
+@pytest.mark.parametrize("captured", ["both_parents", "old_parent_only"])
+@pytest.mark.parametrize("child", ["column", "metric"])
+def test_pre_recycle_restore_recreates_a_child_whose_id_is_no_longer_live(
+    capture_session: Session,
+    app: SupersetApp,
+    monkeypatch: pytest.MonkeyPatch,
+    child: str,
+    captured: str,
+) -> None:
+    """Once the recycled id is retired everywhere, the same restore recreates
+    the old child with its historical id and uuid."""
+    scenario: _RecycledIdScenario = _recycle_child_id_across_datasets(
+        capture_session, app, monkeypatch, child, captured
+    )
+    scenario.children(scenario.new_parent).clear()  # captured native delete
+    capture_session.commit()
+
+    with patch.object(security_manager, "raise_for_editorship"):
+        RestoreDatasetVersionCommand(
+            scenario.old_parent.uuid, scenario.pre_recycle_target
+        ).run()
+    capture_session.expire_all()
+    assert scenario.old_parent.table_name == "old parent"
+    assert scenario.names(scenario.old_parent) == ["captured under old parent"]
+    restored: Any = scenario.children(scenario.old_parent)[0]
+    assert (restored.id, restored.uuid) == (scenario.recycled_id, scenario.old_uuid)
+    assert scenario.names(scenario.new_parent) == []
+
+
+@pytest.mark.parametrize("child", ["column", "metric"])
+def test_pre_recycle_restore_rewrites_a_same_parent_reborn_child(
+    capture_session: Session,
+    app: SupersetApp,
+    monkeypatch: pytest.MonkeyPatch,
+    child: str,
+) -> None:
+    """A recycled id that stayed under the same dataset is not a refusal: the
+    reverter rewrites that row to the snapshot's values, uuid included, which
+    is also what keeps pre-import versions restorable after an in-place uuid
+    rewrite."""
+    scenario: _RecycledIdScenario = _recycle_child_id_across_datasets(
+        capture_session,
+        app,
+        monkeypatch,
+        child,
+        "both_parents",
+        reborn_under="old_parent",
+    )
+    assert scenario.names(scenario.old_parent) == ["reborn under old parent"]
+
+    with patch.object(security_manager, "raise_for_editorship"):
+        RestoreDatasetVersionCommand(
+            scenario.old_parent.uuid, scenario.pre_recycle_target
+        ).run()
+    capture_session.expire_all()
+    assert scenario.old_parent.table_name == "old parent"
+    assert scenario.names(scenario.old_parent) == ["captured under old parent"]
+    restored: Any = scenario.children(scenario.old_parent)[0]
+    assert (restored.id, restored.uuid) == (scenario.recycled_id, scenario.old_uuid)
+    assert scenario.names(scenario.new_parent) == []
