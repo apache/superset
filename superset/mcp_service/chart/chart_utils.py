@@ -3329,8 +3329,12 @@ def analyze_chart_capabilities(viz_type: str | None, config: Any) -> ChartCapabi
     # Determine optimal formats
     optimal_formats = ["url"]  # Always include static image
     if supports_interaction:
+        from superset.mcp_service.chart.preview_utils import (
+            plugin_unsupported_preview,
+        )
+
         optimal_formats.append("interactive")
-        if viz_type != "sunburst_v2":
+        if plugin_unsupported_preview(viz_type, "vega_lite") is None:
             optimal_formats.append("vega_lite")
     optimal_formats.extend(["ascii", "table"])
 

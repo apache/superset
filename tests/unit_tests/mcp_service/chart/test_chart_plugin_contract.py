@@ -170,6 +170,19 @@ def test_plugin_implements_lifecycle_contract(plugin: ChartTypePlugin) -> None:
 
 
 @pytest.mark.parametrize("plugin", PLUGINS, ids=PLUGIN_IDS)
+def test_query_role_vocabulary_is_registered(plugin: ChartTypePlugin) -> None:
+    """Each plugin's rebind/replacement vocabulary covers the shared roles."""
+    from superset.mcp_service.chart.plugin import QUERY_ROLE_KEYS
+    from superset.mcp_service.chart.registry import query_role_keys_for_viz_type
+
+    assert isinstance(plugin.query_role_keys, frozenset)
+    assert all(isinstance(key, str) and key for key in plugin.query_role_keys)
+    assert plugin.query_role_keys >= QUERY_ROLE_KEYS
+    for viz_type in plugin.native_viz_types:
+        assert query_role_keys_for_viz_type(viz_type) == plugin.query_role_keys
+
+
+@pytest.mark.parametrize("plugin", PLUGINS, ids=PLUGIN_IDS)
 def test_plugin_publishes_examples(plugin: ChartTypePlugin) -> None:
     """Every registered chart type ships at least one schema example."""
     assert _CHART_EXAMPLES.get(plugin.chart_type), plugin.chart_type
