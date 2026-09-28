@@ -212,7 +212,11 @@ class GaugeChartPlugin(BaseChartPlugin):
         return normalize_gauge_query_result(result, form_data)
 
     def compile_row_limit(self, form_data: Mapping[str, Any]) -> int:
-        return min(10, int(form_data.get("row_limit") or 10))
+        try:
+            limit = int(form_data.get("row_limit") or 10)
+        except (TypeError, ValueError, OverflowError):
+            return 10
+        return min(10, limit) if limit > 0 else 10
 
     def preview_row_limit(self, form_data: Mapping[str, Any], fallback: int) -> int:
         value = form_data.get("row_limit", 10)

@@ -214,10 +214,12 @@ def plugin_for_viz_type(viz_type: str | None) -> "ChartTypePlugin | None":
     return None
 
 
-def get(chart_type: str) -> "ChartTypePlugin | None":
-    """Return the plugin for chart_type, or None if unknown or disabled."""
+def get(chart_type: str, *, include_disabled: bool = False) -> "ChartTypePlugin | None":
+    """Look up a chart type; saved-chart updates may include disabled plugins."""
     _ensure_plugins_loaded()
-    if chart_type not in _REGISTRY or not _is_plugin_enabled(chart_type):
+    if chart_type not in _REGISTRY or (
+        not include_disabled and not _is_plugin_enabled(chart_type)
+    ):
         return None
     return _REGISTRY[chart_type]
 
@@ -290,8 +292,11 @@ def _reset_for_testing() -> None:
 class _RegistryProxy:
     """Thin proxy exposing registry functions as instance methods."""
 
-    def get(self, chart_type: str) -> "ChartTypePlugin | None":
-        return get(chart_type)
+    def get(
+        self, chart_type: str, *, include_disabled: bool = False
+    ) -> "ChartTypePlugin | None":
+        """Look up a chart type, optionally retaining disabled update contracts."""
+        return get(chart_type, include_disabled=include_disabled)
 
     def all_types(self) -> list[str]:
         return all_types()
