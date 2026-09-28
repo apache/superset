@@ -1396,3 +1396,41 @@ def test_waterfall_query_preserves_category_and_order(
     assert query["columns"] == ["category", "region"]
     assert query["metrics"] == ["revenue"]
     assert query["orderby"] == [("category", True), ("region", True)]
+
+
+@pytest.mark.parametrize("legacy_axis", [False, True])
+@pytest.mark.parametrize("time_grain", ["P1M", None])
+def test_waterfall_query_preserves_temporal_binding(
+    monkeypatch: pytest.MonkeyPatch, legacy_axis: bool, time_grain: str | None
+) -> None:
+    """A typed Waterfall's grain stays bound to its selected temporal column."""
+    from superset.mcp_service.chart.chart_utils import map_waterfall_config
+    from superset.mcp_service.chart.schemas import WaterfallChartConfig
+
+    monkeypatch.setattr(
+        "superset.mcp_service.chart.chart_helpers.resolve_datasource_engine",
+        lambda *_: "base",
+    )
+    form_data = map_waterfall_config(
+        WaterfallChartConfig.model_validate(
+            {
+                "x_axis": {"name": "event_time"},
+                "metric": {"name": "revenue", "aggregate": "SUM"},
+                "breakdown": {"name": "region"},
+                "time_grain": time_grain,
+            }
+        )
+    )
+    if legacy_axis:
+        form_data["granularity_sqla"] = form_data.pop("x_axis")
+
+    query = build_query_dicts_from_form_data(form_data, 1, "table")[0]
+
+    assert query["columns"] == ["event_time", "region"]
+    assert query["orderby"] == [("event_time", True), ("region", True)]
+    assert query["metrics"] == [form_data["metric"]]
+    if time_grain or legacy_axis:
+        assert query["granularity"] == "event_time"
+    else:
+        assert "granularity" not in query
+    assert query.get("extras", {}).get("time_grain_sqla") == time_grain
