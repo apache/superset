@@ -120,10 +120,8 @@ class OAuth2StoreTokenCommand(BaseCommand):
         )
 
     def validate(self) -> None:
-        if error := self._parameters.get("error"):
-            raise OAuth2RejectedError(
-                f"The OAuth2 provider denied the request: {error}"
-            )
+        if self._parameters.get("error"):
+            raise OAuth2RejectedError("The OAuth2 provider denied the request")
 
         try:
             state = self._parameters["state"]

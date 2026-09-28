@@ -187,6 +187,11 @@ curl -H "Authorization: Bearer YOUR_ACCESS_TOKEN" \
 
 </details>
 
+The database OAuth2 callback at `/api/v1/database/oauth2/` returns HTTP 400
+when authorization is denied or callback state is missing or invalid. Provider
+error text is not echoed in the response; authorization denials use the message
+"The OAuth2 provider denied the request". Restart the OAuth2 flow to retry.
+
 #### Data Exploration
 
 <details>

@@ -20,7 +20,9 @@ import traceback
 from typing import Any
 from unittest.mock import MagicMock
 
+import jwt
 import pytest
+from flask import current_app
 from pytest_mock import MockerFixture
 from requests.exceptions import HTTPError
 
@@ -104,17 +106,28 @@ def test_validate_database_not_found(
         command.validate()
 
 
-def test_validate_oauth2_error(mock_parameters: OAuth2ProviderResponseSchema) -> None:
-    mock_parameters["error"] = "OAuth2 failure"
+@pytest.mark.parametrize("error", ["access_denied", "provider-sentinel\r\nFORGED LOG"])
+def test_validate_oauth2_error(
+    mock_parameters: OAuth2ProviderResponseSchema,
+    error: str,
+) -> None:
+    """Reject provider errors without reflecting their text in responses or logs."""
+    mock_parameters["error"] = error
     command = OAuth2StoreTokenCommand(mock_parameters)
-    with pytest.raises(OAuth2RejectedError, match="OAuth2 failure") as exc_info:
+    with pytest.raises(OAuth2RejectedError) as exc_info:
         command.validate()
     assert exc_info.value.status == 400
+    assert exc_info.value.to_dict()["message"] == (
+        "The OAuth2 provider denied the request"
+    )
+    assert error not in str(exc_info.value.to_dict())
+    assert error not in "".join(traceback.format_exception(exc_info.value))
 
 
 def test_validate_missing_state(
     mock_parameters: OAuth2ProviderResponseSchema,
 ) -> None:
+    """Reject callbacks missing state with HTTP 400."""
     del mock_parameters["state"]
     command = OAuth2StoreTokenCommand(mock_parameters)
     with pytest.raises(OAuth2RejectedError) as exc_info:
@@ -125,11 +138,36 @@ def test_validate_missing_state(
 def test_validate_invalid_state(
     mock_parameters: OAuth2ProviderResponseSchema,
 ) -> None:
+    """Reject callbacks with an invalid JWT with HTTP 400."""
     mock_parameters["state"] = "not-a-valid-jwt"
     command = OAuth2StoreTokenCommand(mock_parameters)
     with pytest.raises(OAuth2RejectedError) as exc_info:
         command.validate()
     assert exc_info.value.status == 400
+
+
+@pytest.mark.parametrize("database_id", [None, "not-an-integer"])
+def test_validate_invalid_state_payload(
+    mock_parameters: OAuth2ProviderResponseSchema,
+    database_id: str | None,
+) -> None:
+    """Reject signed state with missing or invalid required fields with HTTP 400."""
+    payload = dict(decode_oauth2_state(mock_parameters["state"]))
+    if database_id is None:
+        del payload["database_id"]
+    else:
+        payload["database_id"] = database_id
+    mock_parameters["state"] = jwt.encode(
+        payload,
+        current_app.config["SECRET_KEY"],
+        algorithm=current_app.config["DATABASE_OAUTH2_JWT_ALGORITHM"],
+    )
+    with pytest.raises(OAuth2RejectedError) as exc_info:
+        OAuth2StoreTokenCommand(mock_parameters).validate()
+    assert exc_info.value.status == 400
+    assert exc_info.value.to_dict()["message"] == (
+        "The OAuth2 state parameter is invalid"
+    )
 
 
 def test_run_success(
