@@ -101,6 +101,63 @@ class TestGenerateChart:
         assert result.chart_type_label == "table chart"
 
     @pytest.mark.asyncio
+    async def test_generate_chart_preview_non_decimal_digit_dataset_id(self) -> None:
+        """A Unicode "digit" dataset_id (isdigit() True, isdecimal() False)
+        must route the preview-only compile-check lookup through the uuid
+        branch instead of raising out of ``int()``."""
+        request = GenerateChartRequest(
+            dataset_id="²",
+            config=TableChartConfig(
+                chart_type="table",
+                columns=[ColumnRef(name="region")],
+            ),
+            preview_formats=["url"],
+        )
+        ctx = MagicMock()
+        ctx.info = AsyncMock()
+        ctx.debug = AsyncMock()
+        ctx.warning = AsyncMock()
+        ctx.error = AsyncMock()
+        ctx.report_progress = AsyncMock()
+        validation_result = Mock(
+            is_valid=True,
+            request=request,
+            warnings={},
+            error=None,
+        )
+        mock_user = Mock()
+        mock_user.id = 1
+        mock_user.username = "admin"
+        mock_user.roles = []
+        mock_user.groups = []
+
+        with (
+            patch(
+                "superset.mcp_service.auth.get_user_from_request",
+                return_value=mock_user,
+            ),
+            patch(
+                "superset.mcp_service.chart.validation.ValidationPipeline."
+                "validate_request_with_warnings",
+                return_value=validation_result,
+            ),
+            patch(
+                "superset.mcp_service.chart.chart_utils.generate_explore_link",
+                return_value=(
+                    "http://localhost:9001/explore/?"
+                    "form_data_key=test_form_data_key_123"
+                ),
+            ),
+            patch(
+                "superset.daos.dataset.DatasetDAO.find_by_id", return_value=None
+            ) as mock_find_by_id,
+        ):
+            result = await generate_chart(request, ctx=ctx)
+
+        assert result.chart_type_label == "table chart"
+        mock_find_by_id.assert_called_once_with("²", id_column="uuid")
+
+    @pytest.mark.asyncio
     async def test_generate_chart_entrypoint_exact_limit_and_plus_one(self) -> None:
         request = GenerateChartRequest(
             dataset_id="1",
