@@ -1011,9 +1011,7 @@ def test_oauth2_error(
     assert response.json == {
         "errors": [
             {
-                "message": (
-                    "The OAuth2 provider denied the request: Something bad hapened"
-                ),
+                "message": "The OAuth2 provider denied the request",
                 "error_type": "OAUTH2_REDIRECT_ERROR",
                 "level": "warning",
                 "extra": None,
