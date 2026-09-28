@@ -200,6 +200,31 @@ describe('Heatmap transformProps', () => {
     expect(yAxisData).toEqual(['Amir Cole', 'Mia Chen', 'Zoe Diaz']);
   });
 
+  test("should preserve original data order for Y-axis when sort_y_axis is set to 'none'", () => {
+    // 'none' is the explicit opt-out from the alpha_asc default — it lets users
+    // who have ordinal/custom-ordered Y-axis values (e.g. Low/Medium/High) keep
+    // their original backend query order rather than having alpha sort applied.
+    // Data arrives in ordinal order: Medium < High < Low (non-alphabetical).
+    const ordinalData = [
+      { severity: 'Medium', day: 'Mon', count: 2 },
+      { severity: 'High', day: 'Mon', count: 3 },
+      { severity: 'Low', day: 'Tue', count: 1 },
+    ];
+
+    const chartProps = createChartProps(
+      { xAxis: 'day', groupby: ['severity'], sortYAxis: 'none' },
+      ordinalData,
+    );
+    (chartProps as any).queriesData[0].colnames = ['day', 'severity', 'count'];
+
+    const result = transformProps(chartProps as HeatmapChartProps);
+    const yAxisData = (result.echartOptions.yAxis as any).data;
+
+    // With 'none', order of first appearance is preserved — not alphabetical.
+    // (Alpha ascending would give ['High', 'Low', 'Medium'].)
+    expect(yAxisData).toEqual(['Medium', 'High', 'Low']);
+  });
+
   test('should aggregate metric values for value-based sorting', () => {
     const dataWithDuplicates = [
       { day_of_week: 'Monday', hour: 9, count: 10 },

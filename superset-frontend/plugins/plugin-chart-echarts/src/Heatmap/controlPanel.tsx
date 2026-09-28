@@ -32,6 +32,15 @@ const sortAxisChoices = [
   ['value_desc', t('Metric descending')],
 ];
 
+// Y-axis sort choices extend the shared list with an explicit "no sort" option.
+// Selecting 'none' persists a non-null value that the transform layer honours
+// as "keep original order", giving users a way to opt out of the alpha_asc
+// default that applies when the control is cleared or never touched.
+const sortYAxisChoices = [
+  ...sortAxisChoices,
+  ['none', t('No sort (original order)')],
+];
+
 const config: ControlPanelConfig = {
   controlPanelSections: [
     {
@@ -62,7 +71,7 @@ const config: ControlPanelConfig = {
             config: {
               type: 'SelectControl',
               label: t('Sort Y Axis'),
-              choices: sortAxisChoices,
+              choices: sortYAxisChoices,
               renderTrigger: false,
               clearable: true,
             },
