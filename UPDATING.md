@@ -24,6 +24,12 @@ assists people when migrating to a new version.
 
 ## Next
 
+### Empty MCP chart previews
+
+Saved Bubble and Histogram Vega-Lite previews with zero rows return an empty
+specification instead of `NoDataError`, matching their unsaved previews. Clients
+should handle empty specifications rather than relying on that error.
+
 ### MCP chart tools advertise a compact chart config schema
 
 `generate_chart`, `update_chart`, `update_chart_preview` and

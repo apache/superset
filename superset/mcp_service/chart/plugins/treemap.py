@@ -42,6 +42,7 @@ class TreemapChartPlugin(BaseChartPlugin):
     """Plugin for treemap chart type."""
 
     chart_type = "treemap_v2"
+    allows_empty_result = True
     display_name = "Treemap"
     native_viz_types: ClassVar[Mapping[str, str]] = {
         "treemap_v2": "Treemap",
