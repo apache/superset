@@ -373,6 +373,9 @@ def _verify_child_identities(entity: Any, target_tx: int) -> None:
     _reserve_sqlite_write_lock()
 
     mismatched: list[str] = []
+    label: str
+    child_cls: type[Any]
+    row: sa.engine.Row[Any]
     for label, child_cls in (("column", TableColumn), ("metric", SqlMetric)):
         live: sa.Table = child_cls.__table__
         expected: dict[int, UUID] = _child_identities_at(child_cls, entity, target_tx)
@@ -544,10 +547,9 @@ def restore_version(
     # same transaction, so a retention pass committing between the check
     # and the reverter's re-reads cannot delete them out from under the
     # restore (the pruner blocks on the locks until this commits).
-    # Child identities are pinned to (id, uuid) like the parent above: a
-    # freed child id reused by another column/metric must not be overwritten
-    # in place. Also verified before any write; refusal leaves both datasets
-    # untouched.
+    # Refuse when a live child belongs to a different dataset; same-parent
+    # UUID rewrites are restored to the snapshot's values. Also verified
+    # before any write; refusal leaves both datasets untouched.
     if model_cls.__name__ == "SqlaTable":
         _verify_child_history_complete(entity, transaction_id)
         _verify_child_identities(entity, transaction_id)

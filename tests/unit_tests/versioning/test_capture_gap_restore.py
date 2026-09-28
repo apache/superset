@@ -700,8 +700,8 @@ def test_pre_recycle_restore_refuses_when_child_id_now_names_another_child(
     captured: str,
 ) -> None:
     """Restoring the old parent before the recycle must not steal the new
-    parent's live child: the historical id is pinned to its uuid, and both
-    datasets, the live child and the history stay untouched."""
+    parent's live child: the live child belongs to a different dataset, so
+    both datasets, the live child and the history stay untouched."""
     from superset.versioning.restore import RecycledChildIdentityError
 
     scenario: _RecycledIdScenario = _recycle_child_id_across_datasets(
