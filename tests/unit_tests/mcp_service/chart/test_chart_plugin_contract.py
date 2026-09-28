@@ -514,3 +514,42 @@ def test_compile_row_limit_handles_persisted_values(
     assert plugin is not None
     expected = 1 if value == 1 else 3 if value == "3" else 10
     assert plugin.compile_row_limit({"row_limit": value}) == expected
+
+
+@pytest.mark.parametrize("groupby", ["stage", ["stage"]])
+def test_saved_scalar_groupby_waterfall_query(groupby: str | list[str]) -> None:
+    """Saved params bypass ChartConfig and must preserve full column names."""
+    plugin = get_registry().get("waterfall")
+    assert plugin is not None
+    queries = plugin.build_query_dicts(
+        {"x_axis": "month", "groupby": groupby, "metric": "revenue"},
+        viz_type="waterfall",
+        engine="sqlite",
+        row_limit=10,
+        order_desc=False,
+    )
+    assert queries is not None
+    assert queries[0]["columns"] == ["month", "stage"]
+    assert queries[0]["orderby"] == [("month", True), ("stage", True)]
+
+
+@pytest.mark.parametrize("groupby", ["stage", ["stage"]])
+def test_saved_scalar_groupby_funnel_preview(groupby: str | list[str]) -> None:
+    """Scalar saved groupby binds the complete funnel stage name."""
+    funnel = preview_utils.generate_funnel_vega_lite_preview(
+        [{"stage": "Qualified", "revenue": 5}],
+        {"groupby": groupby, "metric": "revenue"},
+    )
+    assert isinstance(funnel, VegaLitePreview)
+    assert funnel.specification["encoding"]["y"]["field"] == "stage"
+
+
+@pytest.mark.parametrize("groupby", ["stage", ["stage"]])
+def test_saved_scalar_groupby_histogram_preview(groupby: str | list[str]) -> None:
+    """Scalar saved groupby is excluded from bins and retained as the series."""
+    histogram = preview_utils.generate_histogram_vega_lite_preview(
+        [{"stage": "Qualified", "0-10": 5}], {"groupby": groupby}
+    )
+    assert histogram.specification["data"]["values"] == [
+        {"bin": "0-10", "value": 5, "series": "Qualified"}
+    ]

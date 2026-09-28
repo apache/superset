@@ -196,6 +196,7 @@ class WaterfallChartPlugin(BaseChartPlugin):
     ) -> list[dict[str, Any]] | None:
         from superset.mcp_service.chart.chart_helpers import (
             build_single_query_dict,
+            normalize_groupby,
             resolve_shared_metrics,
         )
 
@@ -204,7 +205,7 @@ class WaterfallChartPlugin(BaseChartPlugin):
         # and grand total follow the axis.
         axis = form_data.get("x_axis") or form_data.get("granularity_sqla")
         columns = list(axis) if isinstance(axis, list) else [axis] if axis else []
-        columns.extend(form_data.get("groupby") or [])
+        columns.extend(normalize_groupby(form_data))
         query = build_single_query_dict(
             form_data, columns, resolve_shared_metrics(form_data), row_limit=row_limit
         )

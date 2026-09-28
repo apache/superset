@@ -511,17 +511,19 @@ def resolve_shared_metrics(form_data: Mapping[str, Any]) -> list[Any]:
     return metrics
 
 
+def normalize_groupby(form_data: Mapping[str, Any]) -> list[Any]:
+    """Normalize native scalar groupby without applying query-role aliases."""
+    raw_groupby = form_data.get("groupby") or []
+    return [raw_groupby] if isinstance(raw_groupby, str) else list(raw_groupby)
+
+
 def resolve_groupby(form_data: dict[str, Any]) -> list[Any]:
     """Extract groupby columns from form_data with fallback aliases."""
     raw_columns = form_data.get("all_columns")
     if form_data.get("query_mode") == "raw" and isinstance(raw_columns, list):
         return list(raw_columns)
 
-    raw_groupby = form_data.get("groupby") or []
-    if isinstance(raw_groupby, str):
-        groupby: list[Any] = [raw_groupby]
-    else:
-        groupby = list(raw_groupby)
+    groupby = normalize_groupby(form_data)
 
     if groupby:
         return groupby
