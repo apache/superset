@@ -2217,13 +2217,7 @@ _SUNBURST_IGNORED_LEGACY_FIELDS = frozenset(
 
 
 class SunburstChartConfig(BaseChartConfig):
-    """Config for the ECharts Sunburst plugin (viz_type ``sunburst_v2``).
-
-    ``hierarchy`` follows the frontend ``columns`` control: the first entry is
-    the innermost ring and each later entry adds a child level.  The primary
-    metric sizes arcs; when supplied, the secondary-to-primary ratio drives a
-    sequential color scale. Without a secondary metric, colors are categorical.
-    """
+    """Config for the ECharts Sunburst plugin (viz_type ``sunburst_v2``)."""
 
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
