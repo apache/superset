@@ -73,8 +73,10 @@ def _to_python_value(value: Any) -> Any:
     if isinstance(value, np.datetime64):
         # ``.item()`` returns an int for nanosecond precision; go through pandas.
         value = pd.Timestamp(value)
+    elif isinstance(value, np.timedelta64):
+        # Durations also return an int from ``.item()`` at nanosecond precision.
+        value = pd.Timedelta(value)
     elif isinstance(value, np.generic):
-        # e.g. ``np.timedelta64.item()`` returns a ``timedelta``.
         value = value.item()
     if value is pd.NaT:
         return None
