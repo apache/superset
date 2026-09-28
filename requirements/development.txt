@@ -33,7 +33,7 @@ annotated-types==0.7.0
     #   pydantic
 antlr4-python3-runtime==4.13.2
     # via pymongosql
-anyio==4.11.0
+anyio==4.15.1
     # via
     #   httpx
     #   mcp
@@ -1041,8 +1041,6 @@ slack-sdk==3.44.1
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
-sniffio==1.3.1
-    # via anyio
 sqlalchemy==2.0.52
     # via
     #   -c requirements/base-constraint.txt
