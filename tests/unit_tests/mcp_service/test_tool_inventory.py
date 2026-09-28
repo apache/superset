@@ -30,8 +30,8 @@ from superset.utils import json
 # Compact JSON including tool metadata, measured as UTF-8 bytes.
 # Small-tool budgets are fixed snapshots: ceil(measured_bytes / 100) * 100 + 100,
 # leaving 100-199 bytes for incidental description edits. Do not recompute limits
-# at test time: they must catch schema growth. Large chart tools retain their
-# explicit delivery budgets, well below the sizes produced by reference inlining.
+# at test time: they must catch schema growth. Chart tools advertise a compact
+# config reference and follow the same rule; see test_chart_tool_inventory.py.
 TOOL_BUDGETS = {
     "add_chart_to_existing_dashboard": 1_500,
     "apply_dashboard_filters": 2_900,
@@ -46,9 +46,9 @@ TOOL_BUDGETS = {
     "execute_sql": 2_100,
     "find_users": 1_500,
     "generate_bug_report": 2_600,
-    "generate_chart": 50_000,
+    "generate_chart": 2_500,
     "generate_dashboard": 3_400,
-    "generate_explore_link": 50_000,
+    "generate_explore_link": 2_000,
     "get_annotation_layer_info": 1_000,
     "get_chart_data": 2_900,
     "get_chart_info": 3_600,
@@ -106,8 +106,8 @@ TOOL_BUDGETS = {
     "restore_chart": 1_100,
     "restore_dashboard": 1_000,
     "save_sql_query": 1_600,
-    "update_chart": 55_000,
-    "update_chart_preview": 55_000,
+    "update_chart": 4_200,
+    "update_chart_preview": 2_200,
     "update_dashboard": 4_100,
     "update_dataset_metric": 3_100,
 }
