@@ -230,6 +230,27 @@ class ChartTypePlugin(Protocol):
     invalid_result_error_code: ClassVar[str]
     invalid_result_message: ClassVar[str]
 
+    #: Whether chart-data consumers convert temporal and duration result
+    #: values to the JSON numbers and text the frontend ``transformProps``
+    #: receives, instead of the generic scalar serialization.
+    temporal_json_numbers: ClassVar[bool]
+
+    #: Whether raw get_chart_data rows and CSV/XLSX exports keep exact
+    #: non-finite floats (JSON responses still sanitize them to null).
+    preserve_nonfinite_floats: ClassVar[bool]
+
+    #: Whether ``merge_update_form_data`` owns the complete same-viz update
+    #: merge, so the shared filter-provenance and unmodeled-control
+    #: preservation layers must not run after it.
+    owns_update_merge: ClassVar[bool]
+
+    #: Reason table previews are rejected for this chart type, if they are.
+    table_preview_unsupported_reason: ClassVar[str | None]
+
+    #: Whether an explicit ``time_range`` sets the comparator of the generated
+    #: dashboard temporal filter instead of being ignored by the binding.
+    binds_time_range_to_temporal_filter: ClassVar[bool]
+
     def resolve_query_fields(
         self, form_data: Mapping[str, Any], viz_type: str
     ) -> tuple[list[Any], list[Any]] | None:
@@ -298,13 +319,22 @@ class ChartTypePlugin(Protocol):
         form_data: Mapping[str, Any],
         dataset_id: int | str | None,
         dataset_context: Callable[[], Any] | None = None,
+        update_config: Any = None,
     ) -> Any | None:
         """Validate the final merged update state.
 
-        Return the config the merged state implies (replacing the request
+        ``update_config`` is the request config (None for a dataset-only
+        update), so a plugin can tell explicitly supplied controls from saved
+        ones. Return the config the merged state implies (replacing the request
         config for compile and persistence), or None to keep the request
         config. Raise ``ValueError`` when the merged state is invalid.
         """
+        ...
+
+    def sanitize_data_rows(
+        self, data: list[Any], form_data: Mapping[str, Any]
+    ) -> tuple[list[Any], ChartError | None]:
+        """Return the rows get_chart_data (JSON, CSV, XLSX) exposes, or an error."""
         ...
 
 
@@ -335,6 +365,11 @@ class BaseChartPlugin:
     preview_note: ClassVar[str | None] = None
     invalid_result_error_code: ClassVar[str] = "INVALID_CHART_RESULT"
     invalid_result_message: ClassVar[str] = "Chart query returned invalid values"
+    temporal_json_numbers: ClassVar[bool] = False
+    preserve_nonfinite_floats: ClassVar[bool] = False
+    owns_update_merge: ClassVar[bool] = False
+    table_preview_unsupported_reason: ClassVar[str | None] = None
+    binds_time_range_to_temporal_filter: ClassVar[bool] = False
 
     def is_available(self) -> bool:
         """Return whether the host deployment provides this visualization."""
@@ -455,8 +490,14 @@ class BaseChartPlugin:
         form_data: Mapping[str, Any],
         dataset_id: int | str | None,
         dataset_context: Callable[[], Any] | None = None,
+        update_config: Any = None,
     ) -> Any | None:
         return None
+
+    def sanitize_data_rows(
+        self, data: list[Any], form_data: Mapping[str, Any]
+    ) -> tuple[list[Any], ChartError | None]:
+        return data, None
 
     @staticmethod
     def _with_context(what: str, context: str | None) -> str:

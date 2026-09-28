@@ -84,6 +84,7 @@ HOOKS = (
     "resolve_update_config",
     "merge_update_form_data",
     "validate_merged_form_data",
+    "sanitize_data_rows",
 )
 FLAGS = (
     "requires_compile_check",
@@ -93,6 +94,10 @@ FLAGS = (
     "allows_empty_result",
     "resizes_saved_preview",
     "supports_column_append",
+    "temporal_json_numbers",
+    "preserve_nonfinite_floats",
+    "owns_update_merge",
+    "binds_time_range_to_temporal_filter",
 )
 
 MALFORMED_RESULTS: list[Any] = [
@@ -140,6 +145,9 @@ def test_plugin_implements_lifecycle_contract(plugin: ChartTypePlugin) -> None:
         assert isinstance(getattr(plugin, flag), bool), flag
     assert isinstance(plugin.additional_viz_types, frozenset)
     assert plugin.preview_note is None or isinstance(plugin.preview_note, str)
+    assert plugin.table_preview_unsupported_reason is None or isinstance(
+        plugin.table_preview_unsupported_reason, str
+    )
     assert plugin.invalid_result_error_code
     assert plugin.invalid_result_message
     if plugin.normalize_data_results:

@@ -50,6 +50,7 @@ class TreemapChartPlugin(BaseChartPlugin):
     requires_config_for_dataset_rebind = True
     unbound_form_data_is_rebind = True
     normalize_data_results = True
+    owns_update_merge = True
     invalid_result_error_code = "INVALID_TREEMAP_RESULT"
     invalid_result_message = "Treemap metric query returned invalid values"
 
