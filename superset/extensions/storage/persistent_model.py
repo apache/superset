@@ -31,6 +31,7 @@ from sqlalchemy import (
 from sqlalchemy_utils import UUIDType
 from superset_core.extensions.storage.models import (
     ExtensionStorageEntry as CoreExtensionStorageEntry,
+    StorageAccess,
 )
 
 from superset.models.helpers import AuditMixinNullable
@@ -103,6 +104,12 @@ class ExtensionStorage(CoreExtensionStorageEntry, AuditMixinNullable, Model):
     value_size = Column(Integer, nullable=False)
     codec = Column(String(255), nullable=False, default="json")
     is_encrypted = Column(Boolean, nullable=False, default=False)
+    access = Column(
+        String(32),
+        nullable=False,
+        default=StorageAccess.FRONTEND.value,
+        server_default=StorageAccess.FRONTEND.value,
+    )
 
     __table_args__ = (
         # user_fk, resource_type, and resource_uuid are nullable, and
@@ -114,6 +121,7 @@ class ExtensionStorage(CoreExtensionStorageEntry, AuditMixinNullable, Model):
             "user_fk",
             "resource_type",
             "resource_uuid",
+            "access",
             "key",
             name="uq_extension_storage_scoped_key",
         ),
@@ -124,6 +132,7 @@ class ExtensionStorage(CoreExtensionStorageEntry, AuditMixinNullable, Model):
             "user_fk",
             "resource_type",
             "resource_uuid",
+            "access",
             "key",
         ),
         # Covers both extension_id-only lookups (leftmost prefix) and the

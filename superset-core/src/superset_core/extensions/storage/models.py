@@ -30,6 +30,7 @@ Usage:
 
 from __future__ import annotations
 
+from enum import Enum
 from typing import TYPE_CHECKING
 from uuid import UUID
 
@@ -37,6 +38,13 @@ from superset_core.common.models import CoreModel
 
 if TYPE_CHECKING:
     from datetime import datetime
+
+
+class StorageAccess(str, Enum):
+    """Controls whether a persistent storage entry is browser-accessible."""
+
+    FRONTEND = "frontend"
+    BACKEND = "backend"
 
 
 class ExtensionStorageEntry(CoreModel):
@@ -66,6 +74,7 @@ class ExtensionStorageEntry(CoreModel):
     value_size: int
     codec: str
     is_encrypted: bool
+    access: str
 
     # Audit fields
     created_on: "datetime | None"

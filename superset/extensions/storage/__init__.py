@@ -26,3 +26,4 @@ from superset.extensions.storage.ephemeral import (  # noqa: F401
     EphemeralState,
     SharedEphemeralStateAccessor,
 )
+from superset.extensions.storage.secrets import SecretsState  # noqa: F401

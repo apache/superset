@@ -438,8 +438,8 @@ import { extensions } from '@apache-superset/core';
 
 const ctx = extensions.getContext();
 
-await ctx.storage.persistent.set('api_token', 'sk-...', { encrypt: true });
-const token = await ctx.storage.persistent.get('api_token');
+await ctx.storage.persistent.set('private_note', 'draft', { encrypt: true });
+const note = await ctx.storage.persistent.get('private_note');
 ```
 
 ```python
@@ -448,9 +448,51 @@ from superset_core.extensions.storage.persistent import PersistentSetOptions
 
 ctx = get_context()
 
-ctx.storage.persistent.set('api_token', 'sk-...', PersistentSetOptions(encrypt=True))
-token = ctx.storage.persistent.get('api_token')
+ctx.storage.persistent.set(
+    'private_note',
+    'draft',
+    PersistentSetOptions(encrypt=True),
+)
+note = ctx.storage.persistent.get('private_note')
 ```
+
+Encryption protects a value at rest; it does not make an ordinary persistent
+value backend-only. The persistent API is intentionally available to frontend
+extensions, so the authenticated user's browser can read values written with
+`encrypt=True`. Do not use `persistent` for OAuth tokens, private keys, or
+other credentials that must stay on the server.
+
+### Backend-only secrets
+
+Backend extensions can store user-scoped credentials through the Python-only
+secrets accessor:
+
+```python
+from superset_core.extensions.context import get_context
+
+ctx = get_context()
+ctx.storage.secrets.set(
+    "oauth2:quiver",
+    {
+        "access_token": access_token,
+        "refresh_token": refresh_token,
+        "expires_at": expires_at,
+    },
+)
+token = ctx.storage.secrets.get("oauth2:quiver")
+ctx.storage.secrets.remove("oauth2:quiver")
+```
+
+Secrets are always encrypted at rest and scoped to the current authenticated
+user and extension. They cannot be read, listed, overwritten, or deleted
+through the extension storage REST API and are not exposed by the TypeScript
+SDK. The accessor intentionally has no `list()` or `.shared` operation. Use
+deployment configuration for extension-wide client secrets or service
+credentials.
+
+Secret operations require an authenticated principal. Background work must
+execute with the identity of the user who initiated it; the accessor fails
+closed when no user identity is available.
 
 Encryption reuses Superset's existing `EncryptedType` (from `sqlalchemy-utils`) rather than a separate mechanism — the same infrastructure used for database connection credentials. The key is not configured directly: user-scoped values are encrypted with a key derived per-user via HMAC-SHA256 from the deployment's `SECRET_KEY`, so ciphertext for one user cannot be decrypted as another's; shared/global values (written via `.shared`) use `SECRET_KEY` directly. The encryption engine (AES-CBC by default) can be changed for the whole deployment via the existing `SQLALCHEMY_ENCRYPTED_FIELD_ENGINE` config, the same setting that controls encryption for database credentials elsewhere in Superset — there is no separate key list or rotation mechanism specific to extension storage. When `SECRET_KEY` is rotated, extension storage rows are re-encrypted by the existing `SecretsMigrator` tooling alongside database credentials, with no extension-specific steps required.
 
