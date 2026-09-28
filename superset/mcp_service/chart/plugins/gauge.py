@@ -50,6 +50,7 @@ class GaugeChartPlugin(BaseChartPlugin):
         "gauge_chart": "Gauge Chart",
     }
     requires_compile_check = True
+    strict_dataset_rebind = True
     requires_config_for_dataset_rebind = True
     invalid_result_error_code = "INVALID_GAUGE_RESULT"
     invalid_result_message = "Gauge metric query returned invalid values"

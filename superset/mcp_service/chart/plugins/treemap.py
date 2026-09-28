@@ -47,6 +47,7 @@ class TreemapChartPlugin(BaseChartPlugin):
         "treemap_v2": "Treemap",
     }
     requires_compile_check = True
+    strict_dataset_rebind = True
     requires_config_for_dataset_rebind = True
     unbound_form_data_is_rebind = True
     normalize_data_results = True

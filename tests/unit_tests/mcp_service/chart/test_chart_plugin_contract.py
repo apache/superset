@@ -91,6 +91,7 @@ HOOKS = (
 FLAGS = (
     "requires_compile_check",
     "requires_config_for_dataset_rebind",
+    "strict_dataset_rebind",
     "unbound_form_data_is_rebind",
     "normalize_data_results",
     "allows_empty_result",
@@ -453,6 +454,25 @@ def _branches_on_registered_type(tree: ast.AST, names: set[str]) -> list[str]:
     """Return comparisons against registered chart names in ``tree``."""
     found: list[str] = []
     for node in ast.walk(tree):
+        if (
+            isinstance(node, ast.Call)
+            and isinstance(node.func, ast.Name)
+            and node.func.id == "isinstance"
+            and len(node.args) == 2
+        ):
+            # Dispatch on a chart config class is a chart-type branch too.
+            classes = node.args[1]
+            elements = (
+                classes.elts
+                if isinstance(classes, (ast.Tuple, ast.List))
+                else [classes]
+            )
+            found.extend(
+                f"line {node.lineno}: isinstance {element.id}"
+                for element in elements
+                if isinstance(element, ast.Name) and element.id.endswith("ChartConfig")
+            )
+            continue
         if not isinstance(node, ast.Compare):
             continue
         expression = ast.unparse(node)
