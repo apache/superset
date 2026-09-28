@@ -108,13 +108,3 @@ export const databaseInfo = {
 };
 
 <DatabasePage name="Exasol" database={databaseInfo} />
-
-## Query errors
-
-SQL Lab recognizes Exasol syntax errors, missing-table and missing-column errors,
-and insufficient-privilege errors while retaining the server's diagnostic text.
-An ambiguous `object ... not found` message remains a generic database error;
-it does not distinguish a missing table from a missing column.
-
-For WebSocket connections, use PyExasol 2.4.1 or later to preserve server messages
-in DB-API exceptions. Earlier versions can return an empty error message.

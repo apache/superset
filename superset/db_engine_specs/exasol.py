@@ -67,6 +67,16 @@ class ExasolEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
         "pypi_packages": ["sqlalchemy-exasol"],
         "connection_string": "exa+pyodbc://{username}:{password}@{dsn}",
         "default_port": 8563,
+        "notes": (
+            "SQL Lab recognizes Exasol syntax errors, missing-table and missing-column "
+            "errors, and insufficient-privilege errors while retaining the server's "
+            "diagnostic text. An ambiguous `object ... not found` message remains a "
+            "generic database error; it does not distinguish a missing table from a "
+            "missing column.\n\n"
+            "For WebSocket connections, use PyExasol 2.4.1 or later to preserve server "
+            "messages in DB-API exceptions. Earlier versions can return an empty "
+            "error message."
+        ),
         "parameters": {
             "username": "Database username",
             "password": "Database password",
