@@ -28,7 +28,7 @@ from superset.commands.database.exceptions import DatabaseNotFoundError
 from superset.commands.database.oauth2 import OAuth2StoreTokenCommand
 from superset.daos.database import DatabaseUserOAuth2TokensDAO
 from superset.databases.schemas import OAuth2ProviderResponseSchema
-from superset.exceptions import OAuth2Error
+from superset.exceptions import OAuth2Error, OAuth2RejectedError
 from superset.models.core import Database
 from superset.utils.oauth2 import decode_oauth2_state, encode_oauth2_state
 
@@ -107,8 +107,29 @@ def test_validate_database_not_found(
 def test_validate_oauth2_error(mock_parameters: OAuth2ProviderResponseSchema) -> None:
     mock_parameters["error"] = "OAuth2 failure"
     command = OAuth2StoreTokenCommand(mock_parameters)
-    with pytest.raises(OAuth2Error, match="Something went wrong while doing OAuth2"):
+    with pytest.raises(OAuth2RejectedError, match="OAuth2 failure") as exc_info:
         command.validate()
+    assert exc_info.value.status == 400
+
+
+def test_validate_missing_state(
+    mock_parameters: OAuth2ProviderResponseSchema,
+) -> None:
+    del mock_parameters["state"]
+    command = OAuth2StoreTokenCommand(mock_parameters)
+    with pytest.raises(OAuth2RejectedError) as exc_info:
+        command.validate()
+    assert exc_info.value.status == 400
+
+
+def test_validate_invalid_state(
+    mock_parameters: OAuth2ProviderResponseSchema,
+) -> None:
+    mock_parameters["state"] = "not-a-valid-jwt"
+    command = OAuth2StoreTokenCommand(mock_parameters)
+    with pytest.raises(OAuth2RejectedError) as exc_info:
+        command.validate()
+    assert exc_info.value.status == 400
 
 
 def test_run_success(
@@ -227,9 +248,11 @@ def test_validate_rejects_state_not_bound_to_session(
     command = OAuth2StoreTokenCommand(mock_parameters)
 
     mocker.patch("superset.commands.database.oauth2.get_user_id", return_value=2)
-    with pytest.raises(OAuth2Error):
+    with pytest.raises(OAuth2RejectedError) as exc_info:
         command.validate()
+    assert exc_info.value.status == 400
 
     mocker.patch("superset.commands.database.oauth2.get_user_id", return_value=None)
-    with pytest.raises(OAuth2Error):
+    with pytest.raises(OAuth2RejectedError) as exc_info:
         command.validate()
+    assert exc_info.value.status == 400

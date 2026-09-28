@@ -1007,14 +1007,16 @@ def test_oauth2_error(
         },
     )
 
-    assert response.status_code == 500
+    assert response.status_code == 400
     assert response.json == {
         "errors": [
             {
-                "message": "Something went wrong while doing OAuth2",
+                "message": (
+                    "The OAuth2 provider denied the request: Something bad hapened"
+                ),
                 "error_type": "OAUTH2_REDIRECT_ERROR",
-                "level": "error",
-                "extra": {"error": "Something bad hapened"},
+                "level": "warning",
+                "extra": None,
             }
         ]
     }
