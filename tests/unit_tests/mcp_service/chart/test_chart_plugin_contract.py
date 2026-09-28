@@ -142,6 +142,8 @@ def test_plugin_implements_lifecycle_contract(plugin: ChartTypePlugin) -> None:
     assert plugin.preview_note is None or isinstance(plugin.preview_note, str)
     assert plugin.invalid_result_error_code
     assert plugin.invalid_result_message
+    assert isinstance(plugin.dataset_rebind_roles, str)
+    assert plugin.dataset_rebind_roles
     assert isinstance(plugin.invalid_result_suggestions, tuple)
     assert plugin.invalid_result_suggestions
     assert all(isinstance(s, str) and s for s in plugin.invalid_result_suggestions)

@@ -839,7 +839,8 @@ async def update_chart(  # noqa: C901
                     f"complete {saved_plugin.display_name} config."
                 ),
                 details=(
-                    "Provide the chart type and complete roles valid on the target "
+                    "Provide the chart type and complete "
+                    f"{saved_plugin.dataset_rebind_roles} valid on the target "
                     "dataset. This prevents stale metric, groupby, and filter roles "
                     "from the previous dataset from being retained."
                 ),

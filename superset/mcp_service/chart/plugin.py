@@ -203,6 +203,9 @@ class ChartTypePlugin(Protocol):
     #: saved query roles cannot be trusted on another dataset.
     requires_config_for_dataset_rebind: ClassVar[bool]
 
+    #: Roles named in the guidance returned when such a rebind is rejected.
+    dataset_rebind_roles: ClassVar[str]
+
     #: Whether cached form_data that names no datasource must be treated as
     #: belonging to another dataset, so none of its query roles are inherited.
     unbound_form_data_is_rebind: ClassVar[bool]
@@ -330,6 +333,7 @@ class BaseChartPlugin:
     additional_viz_types: ClassVar[frozenset[str]] = frozenset()
     requires_compile_check: ClassVar[bool] = False
     requires_config_for_dataset_rebind: ClassVar[bool] = False
+    dataset_rebind_roles: ClassVar[str] = "roles"
     unbound_form_data_is_rebind: ClassVar[bool] = False
     normalize_data_results: ClassVar[bool] = False
     allows_empty_result: ClassVar[bool] = False

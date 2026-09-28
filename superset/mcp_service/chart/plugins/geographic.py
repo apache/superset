@@ -109,6 +109,7 @@ class GeographicChartPlugin(BaseChartPlugin):
     native_viz_types: ClassVar[Mapping[str, str]] = {}
     requires_compile_check = True
     requires_config_for_dataset_rebind = True
+    dataset_rebind_roles = "geographic/metric roles"
     normalize_data_results = True
     invalid_result_error_code = "INVALID_GEOGRAPHIC_RESULT"
     invalid_result_message = "Geographic query returned invalid values"
