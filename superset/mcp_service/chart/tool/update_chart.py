@@ -50,13 +50,9 @@ from superset.mcp_service.chart.schemas import (
     AccessibilityMetadata,
     ChartConfig,
     ColumnRef,
-    GanttChartConfig,
-    GaugeChartConfig,
     GenerateChartResponse,
-    GeographicChartConfig,
     PerformanceMetadata,
     TableChartConfig,
-    TreemapChartConfig,
     UpdateChartRequest,
 )
 from superset.mcp_service.chart.validation.dataset_validator import (
@@ -377,19 +373,13 @@ def _build_replacement_form_data(
     )
     new_form_data.pop("_mcp_warnings", None)
     dataset_rebind = replacement_dataset_id is not None
-    if replacement_dataset_id is not None and not isinstance(
-        parsed_config,
-        (
-            GanttChartConfig,
-            GaugeChartConfig,
-            GeographicChartConfig,
-            TreemapChartConfig,
-        ),
+    config_plugin = get_registry().get(parsed_config.chart_type)
+    if replacement_dataset_id is not None and not (
+        config_plugin is not None and config_plugin.strict_dataset_rebind
     ):
         # Drop only the inherited state the replacement dataset cannot
-        # resolve, then merge as a same-dataset update. Gantt, Gauge,
-        # Treemap, and geographic configs keep the stricter rebind contracts
-        # handled downstream.
+        # resolve, then merge as a same-dataset update. Plugins with a strict
+        # rebind contract handle the rebind in merge_update_form_data.
         invalid_keys = _inherited_state_invalid_keys(
             existing_form_data,
             new_form_data,

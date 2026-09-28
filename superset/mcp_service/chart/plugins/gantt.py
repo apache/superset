@@ -50,6 +50,7 @@ class GanttChartPlugin(BaseChartPlugin):
         "gantt_chart": "Gantt Chart",
     }
     allows_empty_result = True
+    strict_dataset_rebind = True
     resizes_saved_preview = True
 
     def pre_validate(self, config: dict[str, Any]) -> ChartGenerationError | None:

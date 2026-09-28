@@ -206,6 +206,11 @@ class ChartTypePlugin(Protocol):
     #: Roles named in the guidance returned when such a rebind is rejected.
     dataset_rebind_roles: ClassVar[str]
 
+    #: Whether a replacement config on another dataset is merged by the
+    #: plugin's own rebind contract (``merge_update_form_data`` with
+    #: ``dataset_rebind=True``) instead of the shared inherited-state pruning.
+    strict_dataset_rebind: ClassVar[bool]
+
     #: Whether cached form_data that names no datasource must be treated as
     #: belonging to another dataset, so none of its query roles are inherited.
     unbound_form_data_is_rebind: ClassVar[bool]
@@ -338,6 +343,7 @@ class BaseChartPlugin:
     requires_compile_check: ClassVar[bool] = False
     requires_config_for_dataset_rebind: ClassVar[bool] = False
     dataset_rebind_roles: ClassVar[str] = "roles"
+    strict_dataset_rebind: ClassVar[bool] = False
     unbound_form_data_is_rebind: ClassVar[bool] = False
     normalize_data_results: ClassVar[bool] = False
     allows_empty_result: ClassVar[bool] = False

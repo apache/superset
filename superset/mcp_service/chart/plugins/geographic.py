@@ -110,6 +110,7 @@ class GeographicChartPlugin(BaseChartPlugin):
     requires_compile_check = True
     requires_config_for_dataset_rebind = True
     dataset_rebind_roles = "geographic/metric roles"
+    strict_dataset_rebind = True
     normalize_data_results = True
     supports_vega_lite_preview = False
     invalid_result_error_code = "INVALID_GEOGRAPHIC_RESULT"
