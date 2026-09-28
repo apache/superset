@@ -1,4 +1,5 @@
-/**
+#!/usr/bin/env node
+/*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -17,15 +18,24 @@
  * under the License.
  */
 
-// Specific modal implementations
-export { ChartPropertiesModal } from './ChartPropertiesModal';
-export { ConfirmDialog } from './ConfirmDialog';
-export { DeleteConfirmationModal } from './DeleteConfirmationModal';
-export { DrillDetailModal } from './DrillDetailModal';
-export { DuplicateDatasetModal } from './DuplicateDatasetModal';
-export { EditDatasetModal } from './EditDatasetModal';
-export { ImportDatasetModal } from './ImportDatasetModal';
-export { NativeFiltersConfigModal } from './NativeFiltersConfigModal';
-export { SaveChartModal } from './SaveChartModal';
-export { SaveDatasetModal } from './SaveDatasetModal';
-export { SaveQueryModal } from './SaveQueryModal';
+// Thin CLI wrapper around po2json.js's poToJed(), called by po2json.sh.
+// Usage: po2json-cli.js --domain <domain> <input.po> <output.json>
+
+import { readFileSync, writeFileSync } from 'node:fs';
+import { parseArgs } from 'node:util';
+import { poToJed } from './po2json.js';
+
+const {
+  values: { domain },
+  positionals: [input, output],
+} = parseArgs({
+  options: { domain: { type: 'string', default: 'messages' } },
+  allowPositionals: true,
+});
+if (!input || !output) {
+  throw new Error(
+    'Usage: po2json-cli.js --domain <domain> <input.po> <output.json>',
+  );
+}
+
+writeFileSync(output, JSON.stringify(poToJed(readFileSync(input), domain)));

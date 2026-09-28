@@ -950,6 +950,15 @@ Every tool with a side effect (create/update/delete/execute) is always excluded 
 
 ---
 
+## Chart previews
+
+For basic Vega-Lite previews, the y-axis uses the first configured metric whose
+result label is present and whose first value is numeric or null. Boolean and
+string metric values are skipped. If metric labels match but none has a suitable
+value, the y-axis is omitted. Only when no metric label matches does the preview
+fall back to the first numeric, non-boolean column; aggregation words in column
+names do not make nonnumeric values eligible.
+
 ## Troubleshooting
 
 ### Server won't start
