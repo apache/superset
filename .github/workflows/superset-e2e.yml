@@ -476,7 +476,7 @@ jobs:
         app_root: ["", "/app/prefix"]
     env:
       SUPERSET_ENV: development
-      SUPERSET_CONFIG: tests.integration_tests.superset_test_config
+      SUPERSET_CONFIG: tests.integration_tests.superset_test_config_gaq
       SUPERSET__SQLALCHEMY_DATABASE_URI: postgresql+psycopg2://superset:superset@127.0.0.1:15432/superset
       PYTHONPATH: ${{ github.workspace }}
       REDIS_PORT: 16379
@@ -521,11 +521,23 @@ jobs:
       - name: Setup Python
         uses: $/.github/actions/setup-backend/
       - name: Setup postgres
-        uses: ./.github/actions/cached-dependencies
+        # cached-dependencies is a submodule (not a plain directory), and
+        # the $/ self-repository syntax resolves action files directly from
+        # the repository without performing a real (submodule-aware)
+        # checkout, so it can't see into a submodule's link. Keep this one
+        # on the workspace-relative ./ form, consistent with every other
+        # workflow in the repo that references this action.
+        uses: ./.github/actions/cached-dependencies # zizmor: ignore[self-repository] - $/ cannot resolve an action that lives in a submodule; ./ is required here
         with:
           run: setup-postgres
       - name: Import test data
-        uses: ./.github/actions/cached-dependencies
+        # cached-dependencies is a submodule (not a plain directory), and
+        # the $/ self-repository syntax resolves action files directly from
+        # the repository without performing a real (submodule-aware)
+        # checkout, so it can't see into a submodule's link. Keep this one
+        # on the workspace-relative ./ form, consistent with every other
+        # workflow in the repo that references this action.
+        uses: ./.github/actions/cached-dependencies # zizmor: ignore[self-repository] - $/ cannot resolve an action that lives in a submodule; ./ is required here
         with:
           run: playwright_testdata
       - name: Setup Node.js
@@ -535,19 +547,43 @@ jobs:
           cache: "npm"
           cache-dependency-path: "superset-frontend/package-lock.json"
       - name: Install npm dependencies
-        uses: ./.github/actions/cached-dependencies
+        # cached-dependencies is a submodule (not a plain directory), and
+        # the $/ self-repository syntax resolves action files directly from
+        # the repository without performing a real (submodule-aware)
+        # checkout, so it can't see into a submodule's link. Keep this one
+        # on the workspace-relative ./ form, consistent with every other
+        # workflow in the repo that references this action.
+        uses: ./.github/actions/cached-dependencies # zizmor: ignore[self-repository] - $/ cannot resolve an action that lives in a submodule; ./ is required here
         with:
           run: npm-install
       - name: Build javascript packages
-        uses: ./.github/actions/cached-dependencies
+        # cached-dependencies is a submodule (not a plain directory), and
+        # the $/ self-repository syntax resolves action files directly from
+        # the repository without performing a real (submodule-aware)
+        # checkout, so it can't see into a submodule's link. Keep this one
+        # on the workspace-relative ./ form, consistent with every other
+        # workflow in the repo that references this action.
+        uses: ./.github/actions/cached-dependencies # zizmor: ignore[self-repository] - $/ cannot resolve an action that lives in a submodule; ./ is required here
         with:
           run: build-instrumented-assets
       - name: Install Playwright
-        uses: ./.github/actions/cached-dependencies
+        # cached-dependencies is a submodule (not a plain directory), and
+        # the $/ self-repository syntax resolves action files directly from
+        # the repository without performing a real (submodule-aware)
+        # checkout, so it can't see into a submodule's link. Keep this one
+        # on the workspace-relative ./ form, consistent with every other
+        # workflow in the repo that references this action.
+        uses: ./.github/actions/cached-dependencies # zizmor: ignore[self-repository] - $/ cannot resolve an action that lives in a submodule; ./ is required here
         with:
           run: playwright-install
       - name: Run Playwright (Global Async Queries Tests)
-        uses: ./.github/actions/cached-dependencies
+        # cached-dependencies is a submodule (not a plain directory), and
+        # the $/ self-repository syntax resolves action files directly from
+        # the repository without performing a real (submodule-aware)
+        # checkout, so it can't see into a submodule's link. Keep this one
+        # on the workspace-relative ./ form, consistent with every other
+        # workflow in the repo that references this action.
+        uses: ./.github/actions/cached-dependencies # zizmor: ignore[self-repository] - $/ cannot resolve an action that lives in a submodule; ./ is required here
         env:
           NODE_OPTIONS: "--max-old-space-size=4096"
           # Scoped to this step for the same reason as the embedded and mobile
@@ -565,11 +601,9 @@ jobs:
           # is what makes the chromium-gaq project exist at all.
           SUPERSET_FEATURE_GLOBAL_ASYNC_QUERIES: "true"
         with:
-          run: >-
-            playwright-run-gaq "${{ matrix.app_root }}"
-            dashboard/global-async-query.spec.ts
-            dashboard/global-async-query-resilience.spec.ts
-            sqllab/global-async-query-sqllab.spec.ts
+          # No spec list: playwright-run-gaq selects --project=chromium-gaq, whose
+          # testMatch is the single definition of what the GAQ suite contains.
+          run: playwright-run-gaq "${{ matrix.app_root }}"
       - name: Set safe app root
         if: failure()
         id: set-safe-app-root
