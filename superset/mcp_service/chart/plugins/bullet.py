@@ -97,7 +97,7 @@ class BulletChartPlugin(BaseChartPlugin):
     # no other saved control is carried into the typed Bullet state.
     owns_update_merge = True
     binds_time_range_to_temporal_filter = True
-    table_preview_unsupported_reason = (
+    table_preview_unsupported_reason: ClassVar[str | None] = (
         "Table previews cannot represent Bullet ranges, markers, "
         "labels, and legend semantics"
     )
@@ -415,7 +415,7 @@ class BulletChartPlugin(BaseChartPlugin):
         )
 
         merged = validate_merged_bullet_form_data(form_data, update_config)
-        if merged is None or dataset_context is None:
+        if merged is None or dataset_context is None or dataset_id is None:
             return merged
         return DatasetValidator.normalize_column_names(
             merged, dataset_id, dataset_context=dataset_context()

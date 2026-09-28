@@ -47,6 +47,7 @@ from superset.mcp_service.chart.chart_utils import (
     validate_merged_bullet_form_data,
 )
 from superset.mcp_service.chart.compile import _compile_chart
+from superset.mcp_service.chart.plugins.bullet import BulletChartPlugin
 from superset.mcp_service.chart.preview_utils import (
     _generate_ascii_preview_from_data,
     _generate_vega_lite_preview_from_data,
@@ -55,7 +56,6 @@ from superset.mcp_service.chart.preview_utils import (
     generate_preview_from_form_data,
     resolve_bullet_render_model,
 )
-from superset.mcp_service.chart.plugins.bullet import BulletChartPlugin
 from superset.mcp_service.chart.query_result import (
     _chart_data_duration_text,
     _chart_data_temporal_number,

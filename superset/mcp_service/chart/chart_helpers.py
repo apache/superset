@@ -1793,8 +1793,7 @@ def build_box_plot_query_dicts(  # noqa: C901
         order_desc=order_desc,
     )
     query["series_columns"] = box_groupby
-    whisker = form_data.get("whiskerOptions")
-    if whisker:
+    if whisker := form_data.get("whiskerOptions"):
         whisker_type = "tukey"
         percentiles: list[int] | None = None
         if whisker == "Min/max (no outliers)":
