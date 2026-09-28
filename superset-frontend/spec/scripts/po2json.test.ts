@@ -102,6 +102,16 @@ test('falls back to English/2-form plurals when a PO carries no Language/Plural-
   });
 });
 
+test("a msgctxt entry is keyed as context\\u0004msgid, Jed.context_delimiter's own convention", () => {
+  const result = poToJed(
+    po(['msgctxt "menu"', 'msgid "Open"', 'msgstr "Ouvrir (menu)"'].join('\n')),
+    'superset',
+  );
+  expect(result.locale_data.superset['menu\u0004Open']).toEqual([
+    'Ouvrir (menu)',
+  ]);
+});
+
 test('header lookup is case-insensitive (not every generator title-cases them)', () => {
   const lowerCaseHeader = Buffer.from(
     [

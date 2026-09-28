@@ -22,26 +22,20 @@
 // Usage: po2json-cli.js --domain <domain> <input.po> <output.json>
 
 import { readFileSync, writeFileSync } from 'node:fs';
+import { parseArgs } from 'node:util';
 import { poToJed } from './po2json.js';
 
-function parseArgs(argv) {
-  const args = { domain: 'messages', positional: [] };
-  for (let i = 0; i < argv.length; i += 1) {
-    if (argv[i] === '--domain') {
-      i += 1;
-      args.domain = argv[i];
-    } else {
-      args.positional.push(argv[i]);
-    }
-  }
-  const [input, output] = args.positional;
-  if (!input || !output) {
-    throw new Error(
-      'Usage: po2json-cli.js --domain <domain> <input.po> <output.json>',
-    );
-  }
-  return { domain: args.domain, input, output };
+const {
+  values: { domain },
+  positionals: [input, output],
+} = parseArgs({
+  options: { domain: { type: 'string', default: 'messages' } },
+  allowPositionals: true,
+});
+if (!input || !output) {
+  throw new Error(
+    'Usage: po2json-cli.js --domain <domain> <input.po> <output.json>',
+  );
 }
 
-const { domain, input, output } = parseArgs(process.argv.slice(2));
 writeFileSync(output, JSON.stringify(poToJed(readFileSync(input), domain)));

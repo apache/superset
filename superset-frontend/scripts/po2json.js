@@ -62,7 +62,6 @@ function findHeader(headers, name) {
  */
 export function poToJed(poBuffer, domain) {
   const parsed = po.parse(poBuffer);
-  const context = parsed.translations[''] ?? {};
 
   /** @type {Record<string, string[] | { domain: string, lang: string, plural_forms: string }>} */
   const localeData = {
@@ -74,14 +73,23 @@ export function poToJed(poBuffer, domain) {
         'nplurals=2; plural=(n != 1)',
     },
   };
-  Object.entries(context).forEach(([msgid, entry]) => {
-    // The header entry (msgid "") describes the file itself, not a real
-    // translatable string -- gettext-parser surfaces it as a regular
-    // context entry, but Jed's own "" key is metadata, not a translation.
-    if (msgid === '') {
-      return;
-    }
-    localeData[msgid] = entry.msgstr;
+  // gettext-parser buckets entries by msgctxt, keyed by context string
+  // ('' is the default, no-msgctxt bucket). Jed looks up a contextual entry
+  // under `context + '\u0004' + msgid` (Jed.context_delimiter, ported
+  // straight from gettext's own convention), so every non-default context
+  // has to be folded in under that composite key or those entries would
+  // silently be dropped from the generated catalog.
+  Object.entries(parsed.translations).forEach(([msgctxt, entries]) => {
+    Object.entries(entries).forEach(([msgid, entry]) => {
+      // The header entry (msgid "") describes the file itself, not a real
+      // translatable string -- gettext-parser surfaces it as a regular
+      // context entry, but Jed's own "" key is metadata, not a translation.
+      if (msgid === '') {
+        return;
+      }
+      const key = msgctxt ? `${msgctxt}\u0004${msgid}` : msgid;
+      localeData[key] = entry.msgstr;
+    });
   });
 
   return { domain, locale_data: { [domain]: localeData } };
