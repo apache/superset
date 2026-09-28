@@ -47,6 +47,8 @@ from contextlib import closing, contextmanager
 from contextvars import ContextVar
 from typing import Any, Callable, cast, Iterator, TYPE_CHECKING
 
+from flask import current_app
+
 from superset.stats_logger import BaseStatsLogger
 
 if TYPE_CHECKING:
@@ -141,8 +143,6 @@ def cancel_chart_query(
     :param app: Flask app for config/DB access from the background thread
     :returns: True if the engine reported the query cancelled
     """
-    from flask import current_app
-
     stats_logger: BaseStatsLogger = (app or current_app).config.get(
         "STATS_LOGGER", BaseStatsLogger()
     )
@@ -193,8 +193,6 @@ def _registry_ttl() -> int:
     as the query returns; this TTL only bounds the leak when a worker dies
     mid-query.
     """
-    from flask import current_app
-
     return int(current_app.config.get("SUPERSET_WEBSERVER_TIMEOUT", 60))
 
 
@@ -216,6 +214,13 @@ def cancellable_chart_query(
     user id to scope the handle to, and an unscoped handle would be cancellable
     by any other anonymous visitor.
     """
+    # Inline (also below, and in _publish_cancel_handle/_discard_cancel_handle/
+    # cancel_chart_query_for_user): the unit tests patch get_user_id and
+    # cache_manager at their defining modules (superset.utils.core,
+    # superset.extensions), not here. A module-level `from ... import X` binds
+    # X once at import time, before any test patch runs, so the patch would
+    # silently never take effect; re-importing on every call picks up the
+    # patched object instead.
     from superset.utils.core import get_user_id
 
     user_id = get_user_id()
@@ -255,6 +260,7 @@ def _publish_cancel_handle(
     user_id: int, client_id: str, database_id: int, cancel_query_id: str
 ) -> None:
     """Publish a cancel handle for the owning user. Best-effort."""
+    # Inline for test-patchability; see cancellable_chart_query's comment.
     from superset.extensions import cache_manager
 
     try:
@@ -270,6 +276,7 @@ def _publish_cancel_handle(
 
 def _discard_cancel_handle(user_id: int, client_id: str) -> None:
     """Drop a cancel handle once its query is no longer running. Best-effort."""
+    # Inline for test-patchability; see cancellable_chart_query's comment.
     from superset.extensions import cache_manager
 
     try:
@@ -286,6 +293,7 @@ def cancel_chart_query_for_user(client_id: str) -> bool:
         caller cannot distinguish them, which is deliberate: it keeps the
         endpoint from confirming whether a given ``client_id`` exists.
     """
+    # Inline for test-patchability; see cancellable_chart_query's comment.
     from superset.daos.database import DatabaseDAO
     from superset.extensions import cache_manager
     from superset.utils.core import get_user_id
