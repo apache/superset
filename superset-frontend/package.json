@@ -252,7 +252,7 @@
     "@emotion/babel-plugin": "^11.13.5",
     "@emotion/jest": "^11.14.2",
     "@formatjs/intl-durationformat": "^0.11.1",
-    "@hainenber/po2json": "^1.0.2",
+    "@hainenber/po2json": "^1.1.0",
     "@istanbuljs/nyc-config-typescript": "^1.0.1",
     "@playwright/test": "^1.62.1",
     "@pmmmwh/react-refresh-webpack-plugin": "^0.6.3",
