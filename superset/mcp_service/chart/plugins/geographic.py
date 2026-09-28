@@ -113,7 +113,7 @@ class GeographicChartPlugin(BaseChartPlugin):
     normalize_data_results = True
     invalid_result_error_code = "INVALID_GEOGRAPHIC_RESULT"
     invalid_result_message = "Geographic query returned invalid values"
-    invalid_result_suggestions = (
+    invalid_result_suggestions: ClassVar[tuple[str, ...]] = (
         "Match country and value format to the source identifiers",
         "Correct source values or filter other geographies",
         "Use finite numeric metrics and valid latitude/longitude",
