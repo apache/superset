@@ -23,15 +23,50 @@ into the abstract superset-core API modules. This allows the core API
 to be used with direct imports while maintaining loose coupling.
 """
 
+from functools import wraps
 from typing import Any, Callable, TYPE_CHECKING, TypeVar
 
 from sqlalchemy.orm import scoped_session
 
-from superset.extensions.context import get_current_extension_context
+from superset.extensions.context import (
+    extension_context,
+    get_current_extension_context,
+)
+from superset.utils.core import get_user_id
 
 if TYPE_CHECKING:
     from superset_core.common.models import Database
+    from superset_core.extensions.types import Manifest
     from superset_core.rest_api.api import RestApi
+
+
+def _contextualize_extension_api(
+    api_class: type["RestApi"],
+    manifest: "Manifest",
+) -> None:
+    """Execute exposed extension API methods with extension and user context."""
+    for attribute_name, attribute in vars(api_class).items():
+        if not callable(attribute) or not getattr(attribute, "_urls", None):
+            continue
+        setattr(
+            api_class,
+            attribute_name,
+            _contextualize_extension_api_method(attribute, manifest),
+        )
+
+
+def _contextualize_extension_api_method(
+    method: Callable[..., Any],
+    manifest: "Manifest",
+) -> Callable[..., Any]:
+    """Wrap one API method in its extension's execution context."""
+
+    @wraps(method)
+    def contextualized(*args: Any, **kwargs: Any) -> Any:
+        with extension_context(manifest, user_id=get_user_id()):
+            return method(*args, **kwargs)
+
+    return contextualized
 
 
 def inject_dao_implementations() -> None:
@@ -196,6 +231,7 @@ def inject_rest_api_implementations() -> None:
                     f"extensions.{context.extension.publisher}."
                     f"{context.extension.name}.{id}"
                 )
+                _contextualize_extension_api(api_class, context.extension)
 
             else:
                 # HOST CONTEXT
@@ -254,7 +290,7 @@ def inject_semantic_layer_implementations() -> None:
     import superset_core.semantic_layers.decorators as core_sl_module
 
     import superset.extensions.context as context_module
-    from superset.semantic_layers.registry import registry
+    from superset.semantic_layers.registry import register_semantic_layer
 
     def semantic_layer_impl(
         id: str,
@@ -273,7 +309,11 @@ def inject_semantic_layer_implementations() -> None:
             cls.name = name
             cls.description = description
             cls._semantic_layer_id = prefixed_id
-            registry[prefixed_id] = cls
+            register_semantic_layer(
+                prefixed_id,
+                cls,
+                context.extension if context is not None else None,
+            )
             return cls
 
         return decorator
@@ -290,15 +330,18 @@ def inject_storage_implementations() -> None:
     import superset_core.extensions.storage.ephemeral as core_ephemeral_state
     import superset_core.extensions.storage.models as core_storage_models
     import superset_core.extensions.storage.persistent as core_persistent_state
+    import superset_core.extensions.storage.secrets as core_secrets_state
 
     from superset.extensions.storage.ephemeral import EphemeralState
     from superset.extensions.storage.persistent import PersistentState
     from superset.extensions.storage.persistent_dao import ExtensionStorageDAO
     from superset.extensions.storage.persistent_model import ExtensionStorage
+    from superset.extensions.storage.secrets import SecretsState
 
     # Replace abstract classes with concrete implementations
     core_ephemeral_state.EphemeralState = EphemeralState  # type: ignore[misc,assignment]
     core_persistent_state.PersistentState = PersistentState  # type: ignore[misc,assignment]
+    core_secrets_state.SecretsState = SecretsState  # type: ignore[misc,assignment]
     core_storage_models.ExtensionStorageEntry = ExtensionStorage  # type: ignore[misc,assignment]
     core_storage_dao.ExtensionStorageDAO = ExtensionStorageDAO  # type: ignore[misc,assignment]
 

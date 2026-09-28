@@ -98,7 +98,7 @@ def test_context_provides_extension_property():
 
 
 def test_context_provides_storage_property():
-    """Context provides storage property with ephemeral tier."""
+    """Context provides browser storage and backend secrets accessors."""
     manifest = create_manifest()
     ctx = ConcreteExtensionContext(manifest)
 
@@ -106,6 +106,16 @@ def test_context_provides_storage_property():
         storage = get_context().storage
         assert storage is not None
         assert hasattr(storage, "ephemeral")
+        assert hasattr(storage, "persistent")
+        assert hasattr(storage, "secrets")
+
+
+def test_extension_context_carries_explicit_user_id():
+    """Background execution can carry the initiating principal explicitly."""
+    manifest = create_manifest()
+
+    with extension_context(manifest, user_id=42) as ctx:
+        assert ctx.user_id == 42
 
 
 def test_context_exception_still_restores():

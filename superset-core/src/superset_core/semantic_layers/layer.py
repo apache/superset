@@ -20,7 +20,7 @@ from __future__ import annotations
 import enum
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import Any, ClassVar, Generic, Mapping, TypeVar
+from typing import Any, ClassVar, Generic, Literal, Mapping, TypeVar
 
 from pydantic import BaseModel
 
@@ -74,6 +74,32 @@ class SemanticCacheIdentityMaterial:
 
     values: Mapping[str, object]
 
+@dataclass(frozen=True)
+class SemanticLayerAction:
+    """A user action required to configure or authenticate a provider."""
+
+    id: str
+    label: str
+    status: Literal["required", "connected", "expired", "error"]
+    required: bool = False
+    message: str | None = None
+
+
+@dataclass(frozen=True)
+class SemanticLayerActionResult:
+    """Result of starting a semantic layer configuration action."""
+
+    redirect_url: str
+
+
+class SemanticLayerAuthenticationRequiredError(Exception):
+    """Raised when a provider needs a personal authentication action."""
+
+    def __init__(self, action_id: str, message: str = "Authentication required"):
+        super().__init__(message)
+        self.action_id = action_id
+        self.message = message
+
 
 class SemanticLayer(ABC, Generic[ConfigT, SemanticViewT]):
     """
@@ -113,6 +139,24 @@ class SemanticLayer(ABC, Generic[ConfigT, SemanticViewT]):
     # Opt in only when all result methods enforce the advertised guarantee.
     # None preserves legacy result-cache keys without constructing the provider.
     result_cache_version: ClassVar[str | None] = None
+
+    @classmethod
+    def get_configuration_actions(
+        cls,
+        configuration: ConfigT | None = None,
+    ) -> list[SemanticLayerAction]:
+        """Return actions associated with the current user's configuration."""
+        return []
+
+    @classmethod
+    def execute_configuration_action(
+        cls,
+        action_id: str,
+        configuration: ConfigT | None,
+        return_url: str | None = None,
+    ) -> SemanticLayerActionResult:
+        """Start an action and return the URL to which the user should navigate."""
+        raise ValueError(f"Unknown semantic layer action: {action_id}")
 
     @classmethod
     @abstractmethod

@@ -45,7 +45,7 @@ from superset.semantic_layers.masking import (
     unmask_configuration,
 )
 from superset.semantic_layers.models import SemanticLayer, SemanticView
-from superset.semantic_layers.registry import registry
+from superset.semantic_layers.registry import registry, semantic_layer_context
 from superset.utils import json
 from superset.utils.decorators import on_error, transaction
 
@@ -56,7 +56,7 @@ logger = logging.getLogger(__name__)
 _MISSING = object()
 
 
-def _unmask_configuration(
+def unmask_stored_configuration(
     existing_raw_configuration: str | None,
     new_configuration: dict[str, Any],
     layer_type: str,
@@ -134,6 +134,10 @@ def _unmask_configuration(
         )
     except MaskedListUpdateError as ex:
         raise SemanticLayerInvalidError(str(ex)) from None
+
+
+# Kept while callers transition to the descriptive shared name above.
+_unmask_configuration = unmask_stored_configuration
 
 
 class UpdateSemanticViewCommand(BaseCommand):
@@ -230,7 +234,7 @@ class UpdateSemanticLayerCommand(BaseCommand):
             raise SemanticLayerInvalidError(f"Name already exists: {name}")
 
         if isinstance(self._properties.get("configuration"), dict):
-            self._properties["configuration"] = _unmask_configuration(
+            self._properties["configuration"] = unmask_stored_configuration(
                 self._model.configuration,
                 self._properties["configuration"],
                 self._model.type,
@@ -241,7 +245,8 @@ class UpdateSemanticLayerCommand(BaseCommand):
             sl_type: str = self._model.type
             if sl_type not in registry:
                 raise SemanticLayerInvalidError(f"Unknown type: {sl_type}")
-            validate_configuration(registry[sl_type], configuration)
+            with semantic_layer_context(sl_type):
+                validate_configuration(registry[sl_type], configuration)
 
 
 class ClearSemanticLayerCacheCommand(BaseCommand):

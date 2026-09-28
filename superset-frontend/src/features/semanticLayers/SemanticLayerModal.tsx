@@ -79,6 +79,14 @@ interface SemanticLayerType {
   description: string;
 }
 
+interface SemanticLayerAction {
+  id: string;
+  label: string;
+  status: 'required' | 'connected' | 'expired' | 'error';
+  required: boolean;
+  message?: string | null;
+}
+
 interface SemanticLayerModalProps {
   show: boolean;
   onHide: () => void;
@@ -101,6 +109,10 @@ export default function SemanticLayerModal({
   const [types, setTypes] = useState<SemanticLayerType[]>([]);
   const [loading, setLoading] = useState(false);
   const [configSchema, setConfigSchema] = useState<JsonSchema | null>(null);
+  const [configurationActions, setConfigurationActions] = useState<
+    SemanticLayerAction[]
+  >([]);
+  const [runningActionId, setRunningActionId] = useState<string | null>(null);
   const [uiSchema, setUiSchema] = useState<UISchemaElement | undefined>(
     undefined,
   );
@@ -132,6 +144,7 @@ export default function SemanticLayerModal({
     useState<ValidationMode>('ValidateAndHide');
   const errorsRef = useRef<ErrorObject[]>([]);
   const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const oauthFocusListenerRef = useRef<(() => void) | null>(null);
   const lastDepSnapshotRef = useRef<string>('');
   const dynamicDepsRef = useRef<Record<string, string[]>>({});
   const schemaRequestRef = useRef(0);
@@ -179,6 +192,7 @@ export default function SemanticLayerModal({
         });
         if (request !== schemaRequestRef.current) return;
         applySchema(json.result);
+        setConfigurationActions(json.actions ?? []);
         if (json.warning) {
           addDangerToast(configurationErrorMessage());
         }
@@ -227,6 +241,8 @@ export default function SemanticLayerModal({
         if (request !== schemaRequestRef.current) return;
         applySchema(schemaJson.result);
         if (schemaJson.warning) addDangerToast(configurationErrorMessage());
+
+        setConfigurationActions(schemaJson.actions ?? []);
         setStep('config');
       } catch {
         if (request !== schemaRequestRef.current) return;
@@ -249,11 +265,19 @@ export default function SemanticLayerModal({
         fetchTypes();
       }
     } else {
+  useEffect(
+    () => () => {
+      if (oauthFocusListenerRef.current) {
+        window.removeEventListener('focus', oauthFocusListenerRef.current);
+        oauthFocusListenerRef.current = null;
+      }
       setStep('type');
       setName('');
       setSelectedType(null);
       setTypes([]);
       setConfigSchema(null);
+      setConfigurationActions([]);
+      setRunningActionId(null);
       setUiSchema(undefined);
       setFormData({});
       setSavedForm(null);
@@ -304,6 +328,14 @@ export default function SemanticLayerModal({
     }
   };
 
+
+      if (oauthFocusListenerRef.current) {
+        window.removeEventListener('focus', oauthFocusListenerRef.current);
+      }
+    },
+    [],
+  );
+
   const handleStepAdvance = () => {
     if (selectedType) {
       // Pre-fill the Name with the type's display name so a user who just
@@ -323,6 +355,7 @@ export default function SemanticLayerModal({
     setRefreshingSchema(false);
     setStep('type');
     setConfigSchema(null);
+    setConfigurationActions([]);
     setUiSchema(undefined);
     setFormData({});
     setValidationMode('ValidateAndHide');
@@ -359,6 +392,62 @@ export default function SemanticLayerModal({
       );
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleConfigurationAction = async (action: SemanticLayerAction) => {
+    if (!selectedType) return;
+    const popup = window.open(
+      '',
+      `semantic-layer-action-${action.id}`,
+      'popup,width=720,height=800',
+    );
+    if (!popup) {
+      addDangerToast(t('Allow popups to connect this semantic layer'));
+      return;
+    }
+
+    setRunningActionId(action.id);
+    try {
+      const { json } = await SupersetClient.post({
+        endpoint: `/api/v1/semantic_layer/type/${encodeURIComponent(
+          selectedType,
+        )}/actions/${encodeURIComponent(action.id)}`,
+        jsonPayload: {
+          configuration: formData,
+          return_url: window.location.href,
+          ...(semanticLayerUuid
+            ? { semantic_layer_uuid: semanticLayerUuid }
+            : {}),
+        },
+      });
+      const redirectUrl = json.result?.redirect_url;
+      if (typeof redirectUrl !== 'string') {
+        throw new Error(t('The connection action did not return a URL'));
+      }
+      popup.location.href = redirectUrl;
+
+      const refreshAfterOAuth = () => {
+        window.removeEventListener('focus', refreshAfterOAuth);
+        oauthFocusListenerRef.current = null;
+        fetchConfigSchema(selectedType, formData);
+      };
+      if (oauthFocusListenerRef.current) {
+        window.removeEventListener('focus', oauthFocusListenerRef.current);
+      }
+      oauthFocusListenerRef.current = refreshAfterOAuth;
+      window.addEventListener('focus', refreshAfterOAuth);
+    } catch (error) {
+      popup.close();
+      const clientError = await getClientErrorObject(error);
+      addDangerToast(
+        clientError.error ||
+          (error instanceof Error
+            ? error.message
+            : t('An error occurred while starting the connection')),
+      );
+    } finally {
+      setRunningActionId(null);
     }
   };
 
@@ -468,6 +557,9 @@ export default function SemanticLayerModal({
     : isTypeStep
       ? t('New Semantic Layer')
       : t('Configure %s', selectedTypeName);
+  const requiredActionPending = configurationActions.some(
+    action => action.required && action.status !== 'connected',
+  );
 
   return (
     <StandardModal
@@ -480,7 +572,7 @@ export default function SemanticLayerModal({
       saveDisabled={
         isTypeStep
           ? !selectedType
-          : saving || clearing || !name.trim() || hasErrors
+          : saving || clearing || !name.trim() || hasErrors || requiredActionPending
       }
       saveText={isTypeStep ? undefined : isEditMode ? t('Save') : t('Create')}
       saveLoading={saving}
@@ -529,6 +621,23 @@ export default function SemanticLayerModal({
                 placeholder={t('Name of the semantic layer')}
               />
             </ModalFormField>
+            {configurationActions.map(action => (
+              <ModalFormField key={action.id} label={action.label}>
+                <Button
+                  buttonStyle="secondary"
+                  disabled={
+                    action.status === 'connected' || runningActionId !== null
+                  }
+                  loading={runningActionId === action.id}
+                  onClick={() => handleConfigurationAction(action)}
+                >
+                  {action.status === 'connected'
+                    ? t('Connected')
+                    : action.label}
+                </Button>
+                {action.message && <div>{action.message}</div>}
+              </ModalFormField>
+            ))}
             {configSchema && (
               // Wrap in a form with autocomplete="off" so browsers do not
               // autofill credential fields (service token, account, etc.).

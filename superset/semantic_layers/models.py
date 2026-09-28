@@ -81,7 +81,11 @@ from superset.semantic_layers.execution import (
     SemanticBindingMemo,
 )
 from superset.semantic_layers.mapper import get_results
-from superset.semantic_layers.registry import registry
+from superset.semantic_layers.registry import (
+    contextualize_semantic_layer,
+    registry,
+    semantic_layer_context,
+)
 from superset.utils import json
 from superset.utils.core import GenericDataType, TIME_COMPARISON
 

@@ -745,3 +745,57 @@ test('A pending clear prevents edits and a closed editor ignores its late respon
   await act(async () => finish({ json: {} }));
   expect(props.addSuccessToast).not.toHaveBeenCalled();
 });
+
+test('starts a required semantic layer configuration action', async () => {
+  mockedPost
+    .mockResolvedValueOnce({
+      json: {
+        result: schemaWithExternalDeps,
+        actions: [
+          {
+            id: 'oauth2',
+            label: 'Connect to Quiver',
+            status: 'required',
+            required: true,
+          },
+        ],
+      },
+    })
+    .mockResolvedValueOnce({
+      json: {
+        result: { redirect_url: 'https://auth.example.test/authorize' },
+      },
+    });
+  const popup = {
+    close: jest.fn(),
+    location: { href: '' },
+  } as unknown as Window;
+  const open = jest.spyOn(window, 'open').mockReturnValue(popup);
+
+  render(<SemanticLayerModal {...props} />);
+
+  const connect = await screen.findByRole('button', {
+    name: 'Connect to Quiver',
+  });
+  expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled();
+  fireEvent.click(connect);
+
+  await waitFor(() => {
+    expect(mockedPost).toHaveBeenNthCalledWith(2, {
+      endpoint: '/api/v1/semantic_layer/type/snowflake/actions/oauth2',
+      jsonPayload: {
+        configuration: expect.any(Object),
+        return_url: window.location.href,
+        semantic_layer_uuid: props.semanticLayerUuid,
+      },
+    });
+    expect(open).toHaveBeenCalledWith(
+      '',
+      'semantic-layer-action-oauth2',
+      'popup,width=720,height=800',
+    );
+    expect(popup.location.href).toBe('https://auth.example.test/authorize');
+  });
+
+  open.mockRestore();
+});
