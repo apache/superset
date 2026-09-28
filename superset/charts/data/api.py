@@ -241,6 +241,8 @@ class ChartDataRestApi(ChartRestApi):
             form_data = json.loads(chart.params)
         except (TypeError, json.JSONDecodeError):
             form_data = {}
+        if not isinstance(form_data, dict):
+            form_data = {}
 
         return self._get_data_response(
             command=command,
