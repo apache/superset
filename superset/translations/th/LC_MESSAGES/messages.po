@@ -11934,6 +11934,10 @@ msgstr ""
 msgid "Extensions"
 msgstr "ส่วนขยาย"
 
+#, python-format
+msgid "Extensions failed to load: %s"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, es,
 # fr, ja, lv, mi, ru, sk, uk]
 #, fuzzy
@@ -21066,6 +21070,9 @@ msgstr "ก.ย."
 msgid "SQL"
 msgstr "SQL"
 
+msgid "SQL Editor"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, ko, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, uk, zh,
 # zh_TW]
@@ -23788,6 +23795,10 @@ msgid "Solid background"
 msgstr ""
 
 msgid "Some charts did not finish loading. The export may be incomplete."
+msgstr ""
+
+#, python-format
+msgid "Some extensions failed to load: %s"
 msgstr ""
 
 msgid ""

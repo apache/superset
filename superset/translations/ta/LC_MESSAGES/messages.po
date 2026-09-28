@@ -7235,6 +7235,10 @@ msgstr ""
 msgid "Extensions"
 msgstr "நீட்டிப்புகள் (Extensions)"
 
+#, python-format
+msgid "Extensions failed to load: %s"
+msgstr ""
+
 msgid "Extent"
 msgstr "அளவு (Extent)"
 
@@ -12436,6 +12440,9 @@ msgstr "செப்"
 msgid "SQL"
 msgstr "SQL"
 
+msgid "SQL Editor"
+msgstr ""
+
 msgid "SQL Lab"
 msgstr "SQL லேப்"
 
@@ -13972,6 +13979,10 @@ msgid "Solid background"
 msgstr "பின்னணி"
 
 msgid "Some charts did not finish loading. The export may be incomplete."
+msgstr ""
+
+#, python-format
+msgid "Some extensions failed to load: %s"
 msgstr ""
 
 msgid ""
