@@ -230,6 +230,9 @@ class ChartTypePlugin(Protocol):
     invalid_result_error_code: ClassVar[str]
     invalid_result_message: ClassVar[str]
 
+    #: Remediation suggestions reported with that compile-time error.
+    invalid_result_suggestions: ClassVar[tuple[str, ...]]
+
     def resolve_query_fields(
         self, form_data: Mapping[str, Any], viz_type: str
     ) -> tuple[list[Any], list[Any]] | None:
@@ -335,6 +338,10 @@ class BaseChartPlugin:
     preview_note: ClassVar[str | None] = None
     invalid_result_error_code: ClassVar[str] = "INVALID_CHART_RESULT"
     invalid_result_message: ClassVar[str] = "Chart query returned invalid values"
+    invalid_result_suggestions: ClassVar[tuple[str, ...]] = (
+        "Use a numeric-producing metric",
+        "Check the metric alias and SQL expression",
+    )
 
     def is_available(self) -> bool:
         """Return whether the host deployment provides this visualization."""

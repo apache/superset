@@ -153,10 +153,11 @@ def _compile_chart(
                     error_type=result.error_type,
                     message=message,
                     details=result.error,
-                    suggestions=[
-                        "Use a numeric-producing metric",
-                        "Check the metric alias and SQL expression",
-                    ],
+                    suggestions=list(
+                        plugin.invalid_result_suggestions
+                        if plugin
+                        else BaseChartPlugin.invalid_result_suggestions
+                    ),
                     error_code=error_code,
                 ),
             )

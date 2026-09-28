@@ -395,6 +395,11 @@ def test_compile_checks_full_bounded_map_result(kind: str) -> None:
         failure = _compile_chart(form_for(kind), 3)
         assert not failure.success
         assert failure.error_code == "INVALID_GEOGRAPHIC_RESULT"
+        assert failure.error_obj is not None
+        assert (
+            "Match country and value format to the source identifiers"
+            in failure.error_obj.suggestions
+        )
 
 
 @pytest.mark.asyncio
