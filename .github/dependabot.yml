@@ -52,7 +52,11 @@ updates:
       # hold comments). Remove this once the proxy code is updated to await
       # the async decompress() API.
       - dependency-name: "simple-zstd"
-    directory: "/superset-frontend/"
+    directories:
+      - "/superset-frontend"
+      - "/superset-embedded-sdk"
+      - "/superset-websocket"
+      - "/docs"
     schedule:
       interval: "daily"
     labels:
@@ -103,6 +107,11 @@ updates:
       fontsource:
         patterns:
           - "@fontsource/*"
+      monorepo-dependencies:
+        group-by: dependency-name
+        patterns:
+          - "webpack"
+          - "@types/node"
     open-pull-requests-limit: 30
     versioning-strategy: increase
     cooldown:
