@@ -502,6 +502,21 @@ def test_dispatchers_do_not_branch_on_registered_chart_types() -> None:
     assert not violations, "\n".join(violations)
 
 
+def test_capped_compile_row_limit_default_and_override() -> None:
+    """The named compile cap preserves the default and explicit overrides."""
+    from superset.mcp_service.chart.plugin import (
+        capped_compile_row_limit,
+        DEFAULT_COMPILE_ROW_LIMIT,
+    )
+
+    assert DEFAULT_COMPILE_ROW_LIMIT == 10
+    assert capped_compile_row_limit({}) == DEFAULT_COMPILE_ROW_LIMIT
+    assert capped_compile_row_limit({"row_limit": 100}) == DEFAULT_COMPILE_ROW_LIMIT
+    assert capped_compile_row_limit({}, cap=5) == 5
+    assert capped_compile_row_limit({"row_limit": 100}, cap=5) == 5
+    assert capped_compile_row_limit({"row_limit": 3}, cap=5) == 3
+
+
 @pytest.mark.parametrize("chart_type", ["gauge", "treemap_v2"])
 @pytest.mark.parametrize(
     "value", [None, "invalid", [1], {"limit": 1}, float("inf"), -1, 0, 1, "3", 100]

@@ -33,8 +33,12 @@ from typing import Any, ClassVar, Protocol, runtime_checkable
 from superset.mcp_service.chart.schemas import ChartError, ColumnRef, VegaLitePreview
 from superset.mcp_service.common.error_schemas import ChartGenerationError
 
+DEFAULT_COMPILE_ROW_LIMIT = 10
 
-def capped_compile_row_limit(form_data: Mapping[str, Any], cap: int = 10) -> int:
+
+def capped_compile_row_limit(
+    form_data: Mapping[str, Any], cap: int = DEFAULT_COMPILE_ROW_LIMIT
+) -> int:
     """Cap compile samples, falling back to the cap for invalid saved limits."""
     try:
         limit = int(form_data.get("row_limit") or cap)
