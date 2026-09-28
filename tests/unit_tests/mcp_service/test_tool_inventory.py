@@ -23,6 +23,7 @@ import pytest
 from jsonschema import Draft202012Validator
 
 from superset.mcp_service.app import mcp
+from superset.mcp_service.chart.schemas import CHART_TYPE_VALUES
 from superset.mcp_service.mcp_config import MCP_TOOL_SEARCH_CONFIG
 from superset.mcp_service.server import _create_search_result_serializer, _strip_titles
 from superset.utils import json
@@ -31,7 +32,24 @@ from superset.utils import json
 # Small-tool budgets are fixed snapshots: ceil(measured_bytes / 100) * 100 + 100,
 # leaving 100-199 bytes for incidental description edits. Do not recompute limits
 # at test time: they must catch schema growth. Chart tools advertise a compact
-# config reference and follow the same rule; see test_chart_tool_inventory.py.
+# config reference and follow the same rule, measured without the chart_type
+# enum so adding chart types never needs a budget change; see
+# test_chart_tool_inventory.py.
+CHART_TYPE_ENUM = json.dumps(
+    CHART_TYPE_VALUES, ensure_ascii=False, separators=(",", ":")
+)
+
+
+def budgeted_bytes(text: str) -> int:
+    """Measure an entry excluding the registry-derived chart_type enum.
+
+    The enum grows by one name per registered chart type; everything else,
+    including any inlined per-type schema, counts against the budget.
+    """
+    enum_bytes = len(CHART_TYPE_ENUM.encode("utf-8")) * text.count(CHART_TYPE_ENUM)
+    return len(text.encode("utf-8")) - enum_bytes
+
+
 TOOL_BUDGETS = {
     "add_chart_to_existing_dashboard": 1_500,
     "apply_dashboard_filters": 2_900,
@@ -46,9 +64,9 @@ TOOL_BUDGETS = {
     "execute_sql": 2_100,
     "find_users": 1_500,
     "generate_bug_report": 2_600,
-    "generate_chart": 2_500,
+    "generate_chart": 2_400,
     "generate_dashboard": 3_400,
-    "generate_explore_link": 2_000,
+    "generate_explore_link": 1_800,
     "get_annotation_layer_info": 1_000,
     "get_chart_data": 2_900,
     "get_chart_info": 3_600,
@@ -106,8 +124,8 @@ TOOL_BUDGETS = {
     "restore_chart": 1_100,
     "restore_dashboard": 1_000,
     "save_sql_query": 1_600,
-    "update_chart": 4_200,
-    "update_chart_preview": 2_200,
+    "update_chart": 4_100,
+    "update_chart_preview": 2_000,
     "update_dashboard": 4_100,
     "update_dataset_metric": 3_100,
 }
@@ -129,7 +147,7 @@ async def test_tool_inventory_size(name: str) -> None:
     entry = _create_search_result_serializer(MCP_TOOL_SEARCH_CONFIG)([tool])[0]
     assert "inputSchema" in entry  # Summary mode must not hide schema growth.
     text = json.dumps(entry, ensure_ascii=False, separators=(",", ":"))
-    byte_count = len(text.encode("utf-8"))
+    byte_count = budgeted_bytes(text)
     byte_budget = TOOL_BUDGETS[name]
     assert byte_count <= byte_budget, (name, byte_count, byte_budget)
 

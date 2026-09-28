@@ -44,6 +44,10 @@ from superset.mcp_service.server import (
     _strip_titles,
 )
 from superset.utils import json
+from tests.unit_tests.mcp_service.test_tool_inventory import (
+    budgeted_bytes,
+    CHART_TYPE_ENUM,
+)
 
 CHART_TOOLS = [
     ("generate_chart", GenerateChartRequest),
@@ -58,13 +62,15 @@ CHART_TOOLS = [
 # registered chart type. Inlining every chart type's schema measured
 # generate_chart 49,531 B, update_chart 53,395 B, update_chart_preview
 # 52,409 B and generate_explore_link 49,230 B with 15 types, and grew by
-# several kB per added type. Budgets follow the small-tool snapshot rule:
-# ceil(measured_bytes / 100) * 100 + 100.
+# several kB per added type. Budgets follow the small-tool snapshot rule,
+# ceil(measured_bytes / 100) * 100 + 100, measured without the registry-derived
+# chart_type enum (budgeted_bytes), so a new chart type needs no budget change
+# while any inlined per-type schema still fails.
 TOOL_BUDGETS = [
-    ("generate_chart", 2_500),
-    ("update_chart", 4_200),
-    ("update_chart_preview", 2_200),
-    ("generate_explore_link", 2_000),
+    ("generate_chart", 2_400),
+    ("update_chart", 4_100),
+    ("update_chart_preview", 2_000),
+    ("generate_explore_link", 1_800),
 ]
 
 
@@ -125,9 +131,11 @@ async def test_chart_tool_inventory_size(name: str, byte_budget: int) -> None:
     entry = serializer([tool])[0]
     assert "inputSchema" in entry  # Summary mode must not mask a size regression.
     text = json.dumps(entry, ensure_ascii=False, separators=(",", ":"))
-    byte_count = len(text.encode("utf-8"))
+    byte_count = budgeted_bytes(text)
 
     assert byte_count <= byte_budget, (name, byte_count)
+    # The enum is the only part allowed to scale with registered chart types.
+    assert text.count(CHART_TYPE_ENUM) == 1, name
 
 
 @pytest.mark.asyncio
@@ -148,6 +156,15 @@ async def test_chart_tool_schema_is_independent_of_chart_type_count(
         CHART_CONFIG_REFERENCE_SCHEMA
     )
     assert config["properties"]["chart_type"]["enum"] == CHART_TYPE_VALUES
+
+
+def test_budget_is_independent_of_chart_type_count() -> None:
+    """Adding a chart type grows only the excluded enum, never the budgeted bytes."""
+    text = '{"enum":' + CHART_TYPE_ENUM + "}"
+    grown = CHART_TYPE_ENUM[:-1] + ',"another_registered_chart_type"]'
+    assert budgeted_bytes(text) == len(b'{"enum":}')
+    # A different enum is not excluded, so inlined per-type schemas still count.
+    assert budgeted_bytes('{"enum":' + grown + "}") > len(b'{"enum":}')
 
 
 @pytest.mark.parametrize("chart_type", CHART_TYPE_VALUES)
