@@ -14,11 +14,13 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from __future__ import annotations
+
 import logging
 from datetime import datetime, timedelta
-from typing import Any, cast, ClassVar, Optional
+from typing import Any, cast, ClassVar, Optional, TYPE_CHECKING
 
-from flask import current_app as app, g
+from flask import current_app as app, g, Response
 from flask_appbuilder.models.filters import BaseFilter
 from flask_babel import lazy_gettext
 from sqlalchemy import and_, false as sa_false, or_
@@ -32,6 +34,11 @@ from superset.models.helpers import (
     SoftDeleteMixin,
 )
 from superset.utils.core import get_user_id
+
+if TYPE_CHECKING:
+    from superset.commands.purge import SoftDeleteBinding
+    from superset.commands.restore import BaseRestoreCommand
+    from superset.views.base_api import BaseSupersetModelRestApi
 
 logger = logging.getLogger(__name__)
 
@@ -367,10 +374,73 @@ class SoftDeleteApiMixin:
     ``pre_get_list`` behaviour in the inheritance chain still runs.
     When the request has not opted into soft-deleted visibility, the
     augmentation is a no-op.
+
+    Concrete restore routes may delegate to ``_restore_soft_deleted`` after
+    binding ``restore_command_cls``, the not-found/forbidden/restore-failed
+    exception tuples, and ``soft_delete_logger``. ``restore_conflict_errors``
+    optionally identifies expected conflicts that return 422 without logging.
+
+    Chart/dashboard purge routes may bind ``purge_binding`` and
+    ``purge_failed_errors`` to use ``_purge_soft_deleted`` with the shared
+    not-found/forbidden tuples and logger. Dataset purge remains concrete:
+    it validates a request body and a confirmed impact token. List augmentation
+    alone does not require restore or purge bindings.
     """
 
     # Concrete subclasses bind these via FAB's ModelRestApi machinery.
     datamodel: Any  # SQLAInterface providing get_pk_name() and .obj
+
+    restore_command_cls: ClassVar[type[BaseRestoreCommand[Any]]]
+    soft_delete_not_found_errors: ClassVar[tuple[type[Exception], ...]]
+    soft_delete_forbidden_errors: ClassVar[tuple[type[Exception], ...]]
+    restore_failed_errors: ClassVar[tuple[type[Exception], ...]]
+    restore_conflict_errors: ClassVar[tuple[type[Exception], ...]] = ()
+    soft_delete_logger: ClassVar[logging.Logger]
+    purge_binding: ClassVar[SoftDeleteBinding]
+    purge_failed_errors: ClassVar[tuple[type[Exception], ...]]
+
+    def _restore_soft_deleted(self, uuid: str) -> Response:
+        """Run the bound restore command with the concrete API's error mapping."""
+        api: BaseSupersetModelRestApi = cast("BaseSupersetModelRestApi", self)
+        try:
+            self.restore_command_cls(uuid).run()
+            return api.response(200, message="OK")
+        except self.soft_delete_not_found_errors:
+            return api.response_404()
+        except self.soft_delete_forbidden_errors:
+            return api.response_403()
+        except self.restore_conflict_errors as ex:
+            return api.response_422(message=str(ex))
+        except self.restore_failed_errors as ex:
+            self.soft_delete_logger.error(
+                "Error restoring model %s: %s",
+                self.__class__.__name__,
+                str(ex),
+                exc_info=True,
+            )
+            return api.response_422(message=str(ex))
+
+    def _purge_soft_deleted(self, uuid: str) -> Response:
+        """Run the body-free chart/dashboard purge with its bound error mapping."""
+        # Avoid an import cycle: purge loads models whose APIs import this mixin.
+        from superset.commands.purge import PurgeArchivedCommand
+
+        api: BaseSupersetModelRestApi = cast("BaseSupersetModelRestApi", self)
+        try:
+            PurgeArchivedCommand(uuid, self.purge_binding).run()
+            return api.response(200, message="OK")
+        except self.soft_delete_not_found_errors:
+            return api.response_404()
+        except self.soft_delete_forbidden_errors:
+            return api.response_403()
+        except self.purge_failed_errors as ex:
+            self.soft_delete_logger.error(
+                "Error purging model %s: %s",
+                self.__class__.__name__,
+                str(ex),
+                exc_info=True,
+            )
+            return api.response_422(message=str(ex))
 
     def pre_get_list(self, data: dict[str, Any]) -> None:
         super().pre_get_list(data)  # type: ignore[misc]

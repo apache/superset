@@ -346,11 +346,13 @@ def map_query_object(query_object: ValidatedQueryObject) -> list[SemanticQuery]:
     visualization and more on semantics.
     """
     semantic_view = query_object.datasource.implementation
+    # The SemanticView ABC contract is the get_metrics()/get_dimensions()
+    # methods; never read undeclared attributes off the provider view.
+    view_metrics = semantic_view.get_metrics()
+    view_dimensions = semantic_view.get_dimensions()
 
-    all_metrics = {metric.name: metric for metric in semantic_view.metrics}
-    all_dimensions = {
-        dimension.name: dimension for dimension in semantic_view.dimensions
-    }
+    all_metrics = {metric.name: metric for metric in view_metrics}
+    all_dimensions = {dimension.name: dimension for dimension in view_dimensions}
 
     # Normalize columns (may be dicts with isColumnReference=True for time-series)
     dimension_names = set(all_dimensions.keys())
@@ -373,7 +375,7 @@ def map_query_object(query_object: ValidatedQueryObject) -> list[SemanticQuery]:
     seen_non_axis: dict[str, Dimension] = {}
     axis_variants: list[Dimension] = []
     axis_match: Dimension | None = None
-    for dimension in semantic_view.dimensions:
+    for dimension in view_dimensions:
         if dimension.name not in normalized_columns:
             continue
         if dimension.name == time_axis_column:
@@ -1123,7 +1125,7 @@ def _validate_metrics(query_object: ValidatedQueryObject) -> None:
     if any(not isinstance(metric, str) for metric in (query_object.metrics or [])):
         raise ValueError("Adhoc metrics are not supported in Semantic Views.")
 
-    metric_names = {metric.name for metric in semantic_view.metrics}
+    metric_names = {metric.name for metric in semantic_view.get_metrics()}
     if not set(query_object.metrics or []) <= metric_names:
         raise ValueError("All metrics must be defined in the Semantic View.")
 
@@ -1133,7 +1135,7 @@ def _validate_dimensions(query_object: ValidatedQueryObject) -> None:
     Make sure all dimensions are defined in the semantic view.
     """
     semantic_view = query_object.datasource.implementation
-    dimension_names = {dimension.name for dimension in semantic_view.dimensions}
+    dimension_names = {dimension.name for dimension in semantic_view.get_dimensions()}
 
     # Normalize all columns to dimension names
     normalized_columns = [
@@ -1162,9 +1164,8 @@ def _validate_granularity(query_object: ValidatedQueryObject) -> None:
     Make sure time column and time grain are valid.
     """
     semantic_view = query_object.datasource.implementation
-    all_dimensions = {
-        dimension.name: dimension for dimension in semantic_view.dimensions
-    }
+    view_dimensions = semantic_view.get_dimensions()
+    all_dimensions = {dimension.name: dimension for dimension in view_dimensions}
     dimension_names = set(all_dimensions.keys())
 
     if (legacy_time_column := query_object.granularity) and (
@@ -1183,7 +1184,7 @@ def _validate_granularity(query_object: ValidatedQueryObject) -> None:
 
         supported_time_grains = {
             dimension.grain
-            for dimension in semantic_view.dimensions
+            for dimension in view_dimensions
             if dimension.name == time_column and dimension.grain
         }
         if _convert_time_grain(time_grain) not in supported_time_grains:
@@ -1212,7 +1213,7 @@ def _validate_group_limit(query_object: ValidatedQueryObject) -> None:
     if any(not isinstance(col, str) for col in query_object.series_columns):
         raise ValueError("Adhoc dimensions are not supported in series columns.")
 
-    metric_names = {metric.name for metric in semantic_view.metrics}
+    metric_names = {metric.name for metric in semantic_view.get_metrics()}
     if query_object.series_limit_metric and (
         not isinstance(query_object.series_limit_metric, str)
         or query_object.series_limit_metric not in metric_names
@@ -1221,7 +1222,7 @@ def _validate_group_limit(query_object: ValidatedQueryObject) -> None:
             "The series limit metric must be defined in the Semantic View."
         )
 
-    dimension_names = {dimension.name for dimension in semantic_view.dimensions}
+    dimension_names = {dimension.name for dimension in semantic_view.get_dimensions()}
     if not set(query_object.series_columns) <= dimension_names:
         raise ValueError("All series columns must be defined in the Semantic View.")
 
@@ -1251,7 +1252,7 @@ def _validate_orderby(query_object: ValidatedQueryObject) -> None:
         )
 
     elements = {orderby[0] for orderby in query_object.orderby}
-    metric_names = {metric.name for metric in semantic_view.metrics}
-    dimension_names = {dimension.name for dimension in semantic_view.dimensions}
+    metric_names = {metric.name for metric in semantic_view.get_metrics()}
+    dimension_names = {dimension.name for dimension in semantic_view.get_dimensions()}
     if not elements <= metric_names | dimension_names:
         raise ValueError("All order by elements must be defined in the Semantic View.")

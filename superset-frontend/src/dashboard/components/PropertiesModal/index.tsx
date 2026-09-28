@@ -55,7 +55,10 @@ import {
   setColorScheme,
   setDashboardMetadata,
 } from 'src/dashboard/actions/dashboardState';
-import { dashboardInfoChanged } from 'src/dashboard/actions/dashboardInfo';
+import {
+  dashboardInfoChanged,
+  dashboardSaveSucceeded,
+} from 'src/dashboard/actions/dashboardInfo';
 import { areObjectsEqual } from 'src/reduxUtils';
 import { AsyncModeOverride } from 'src/utils/asyncMode';
 import { StandardModal, useModalValidation } from 'src/components/Modal';
@@ -477,6 +480,7 @@ const PropertiesModal = ({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(saveData),
       }).then(() => {
+        dispatch(dashboardSaveSucceeded(dashboardId));
         onSubmit(onSubmitProps);
         onHide();
         addSuccessToast(t('The dashboard has been saved'));
@@ -505,16 +509,11 @@ const PropertiesModal = ({
         setIsLoading(false);
       }
 
-      // Fetch themes (excluding system themes)
+      // Fetch all assignable themes, including the system default/dark
+      // themes (THEME_DEFAULT/THEME_DARK), so they can be pinned to a
+      // dashboard like any custom theme.
       const themeQuery = rison.encode({
         columns: ['id', 'theme_name', 'is_system', 'json_data'],
-        filters: [
-          {
-            col: 'is_system',
-            opr: 'eq',
-            value: false,
-          },
-        ],
       });
       SupersetClient.get({ endpoint: `/api/v1/theme/?q=${themeQuery}` })
         .then(({ json }) => {

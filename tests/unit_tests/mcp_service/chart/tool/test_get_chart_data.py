@@ -25,6 +25,7 @@ from types import SimpleNamespace
 from typing import Any
 from unittest.mock import MagicMock, patch
 
+import pandas as pd
 import pytest
 from fastmcp import Client
 
@@ -588,7 +589,10 @@ class TestUnsavedChartDataQueryConstruction:
         assert not isinstance(result, ChartError)
         assert [row["team"] for row in result.data] == ["Empty", "Blue", "NaN"]
         assert result.row_count == result.total_rows == 3
-        assert result.data_quality["completeness"] == pytest.approx(5 / 6)
+        # Both the None and the NaN metric serialize as null, so both count
+        # toward incompleteness: 2 missing cells out of 3 rows x 2 columns.
+        assert result.data_quality["completeness"] == pytest.approx(4 / 6)
+        assert [row["saved_sla"] for row in result.data] == [None, 98.5, None]
         query = captured[0]["queries"][0]
         assert query["metrics"] == ["saved_sla"]
         assert query["orderby"] == [("saved_sla", False)]
@@ -1815,6 +1819,14 @@ class TestSavedChartExtraFormDataFilters:
             {"team": "Infinity", "saved_sla": float("inf")},
             {"team": "Negative infinity", "saved_sla": -float("inf")},
         ]
+        rows.extend(
+            [
+                {"team": "NaT", "saved_sla": pd.NaT},
+                {"team": "NA", "saved_sla": pd.NA},
+            ]
+            if export_format == "json"
+            else []
+        )
         if has_finite:
             rows.append({"team": "Blue", "saved_sla": 42})
         source_rowcount = len(rows) + 7
@@ -1887,9 +1899,18 @@ class TestSavedChartExtraFormDataFilters:
         expected_groups = [row["team"] for row in rows]
         if export_format == "json":
             assert [row["team"] for row in data["data"]] == expected_groups
+            # NaN and the infinities are not valid JSON, so they serialize as
+            # null and count as missing alongside None, NaT and NA: six
+            # missing cells out of len(rows) x 2 columns.
             assert data["data_quality"]["completeness"] == pytest.approx(
-                1 - 1 / (len(rows) * 2)
+                1 - 6 / (len(rows) * 2)
             )
+            assert [row["saved_sla"] for row in data["data"][:6]] == [None] * 6
+            metric_column = next(
+                column for column in data["columns"] if column["name"] == "saved_sla"
+            )
+            assert metric_column["null_count"] == 6
+            assert metric_column["unique_count"] == int(has_finite)
             assert data.get("query_results") is None
         elif export_format == "csv":
             import csv
@@ -1914,6 +1935,161 @@ class TestSavedChartExtraFormDataFilters:
                 "inf",
                 "-inf",
             ] + ([42] if has_finite else [])
+        assert payload["queries"][0]["data"] is rows
+        assert payload["queries"][0]["rowcount"] == source_rowcount
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("data_path", ["saved", "saved_cache", "unsaved_cache"])
+    @pytest.mark.parametrize("export_format", ["json", "csv", "excel"])
+    @pytest.mark.parametrize("has_finite", [True, False])
+    async def test_treemap_fastmcp_validates_results_and_exports(
+        self,
+        mcp_server: Any,
+        mock_auth: Any,
+        data_path: str,
+        export_format: str,
+        has_finite: bool,
+    ) -> None:
+        """Treemap validates hierarchy metrics on saved and cached export paths."""
+        from decimal import Decimal
+
+        module = importlib.import_module(
+            "superset.mcp_service.chart.tool.get_chart_data"
+        )
+        chart = SimpleNamespace(
+            id=10,
+            slice_name="SLA",
+            viz_type="treemap_v2",
+            datasource_id=1,
+            datasource_type="table",
+            query_context=json.dumps(
+                {
+                    "datasource": {"id": 1, "type": "table"},
+                    "queries": [
+                        {
+                            "columns": ["team"],
+                            "metrics": ["saved_sla"],
+                            "row_limit": 10,
+                        }
+                    ],
+                }
+            ),
+            params=json.dumps(
+                {
+                    "viz_type": "treemap_v2",
+                    "metric": "saved_sla",
+                    "groupby": ["team"],
+                }
+            ),
+        )
+
+        def fake_load(self: Any, data: dict[str, Any]) -> Any:
+            return SimpleNamespace(
+                queries=[
+                    SimpleNamespace(
+                        filter=[],
+                        time_range=None,
+                        to_dict=lambda: dict(data["queries"][0]),
+                    )
+                ],
+                form_data={},
+            )
+
+        rows: list[dict[str, Any]] = [
+            {"team": "Blue", "saved_sla": Decimal("42") if has_finite else None}
+        ]
+        source_rowcount = len(rows) + 7
+        payload = {
+            "queries": [
+                {
+                    "data": rows,
+                    "rowcount": source_rowcount,
+                    "colnames": ["team", "saved_sla"],
+                }
+            ]
+        }
+
+        class Command:
+            def __init__(self, query_context: Any) -> None: ...
+            def validate(self) -> None: ...
+            def run(self) -> dict[str, Any]:
+                return payload
+
+        cached_form_data = {
+            "viz_type": "treemap_v2",
+            "datasource": "1__table",
+            "metric": "saved_sla",
+            "groupby": ["team"],
+            "slice_name": "SLA",
+        }
+        query = {"columns": ["team"], "metrics": ["saved_sla"]}
+        with (
+            patch.object(
+                module,
+                "get_cached_form_data",
+                return_value=json.dumps(cached_form_data),
+            ),
+            patch.object(
+                module, "build_query_dicts_from_form_data", return_value=[query]
+            ),
+            patch.object(
+                module,
+                "build_query_context_from_form_data",
+                return_value=fake_load(None, {"queries": [query]}),
+            ),
+            patch.object(module, "find_chart_by_identifier", return_value=chart),
+            patch.object(
+                module,
+                "validate_chart_dataset",
+                return_value=SimpleNamespace(is_valid=True, warnings=[], error=None),
+            ),
+            patch(
+                "superset.charts.schemas.ChartDataQueryContextSchema.load", fake_load
+            ),
+            patch(
+                "superset.commands.chart.data.get_data_command.ChartDataCommand",
+                Command,
+            ),
+        ):
+            async with Client(mcp_server) as client:
+                request = {"format": export_format}
+                if data_path != "unsaved_cache":
+                    request["identifier"] = "10"
+                if data_path != "saved":
+                    request["form_data_key"] = "raw-treemap-cache"
+                result = await client.call_tool("get_chart_data", {"request": request})
+
+        data = json.loads(result.content[0].text)
+        if not has_finite:
+            assert data["error_type"] == "InvalidTreemapMetric"
+            return
+        assert data["row_count"] == len(rows)
+        assert data["total_rows"] == (
+            source_rowcount if export_format == "json" else len(rows)
+        )
+        expected_groups = [row["team"] for row in rows]
+        if export_format == "json":
+            assert [row["team"] for row in data["data"]] == expected_groups
+            assert data["data_quality"]["completeness"] == pytest.approx(1)
+            assert data.get("query_results") is None
+        elif export_format == "csv":
+            import csv
+            from io import StringIO
+
+            exported = list(csv.DictReader(StringIO(data["csv_data"])))
+            assert [row["team"] for row in exported] == expected_groups
+        else:
+            import base64
+            from io import BytesIO
+
+            from openpyxl import load_workbook
+
+            workbook = load_workbook(BytesIO(base64.b64decode(data["excel_data"])))
+            assert list(workbook.active.values)[0] == ("team", "saved_sla")
+            assert [
+                row[0] for row in list(workbook.active.values)[1:]
+            ] == expected_groups
+            assert [row[1] for row in list(workbook.active.values)[1:]] == [42]
         assert payload["queries"][0]["data"] is rows
         assert payload["queries"][0]["rowcount"] == source_rowcount
 
@@ -3226,3 +3402,89 @@ async def test_guest_authorization_with_slice_already_pinned_by_the_factory(
     # depends on payload comparison; what matters here is that reaching into
     # id / query_context / params_dict does not raise.
     assert query_context_modified(query_context) in (True, False)
+
+
+class TestSavedDataFallbackSortDirection:
+    """The saved-data fallback must not invent a sort direction.
+
+    A chart with no saved query_context has its query rebuilt from
+    form_data. That call used to pass a hardcoded order_desc=True, which
+    outranks the chart's own flag in the query builder: a saved ascending
+    bubble sort came back descending, so with a row limit the largest rows
+    were returned where the smallest were asked for.
+    """
+
+    @pytest.mark.asyncio
+    async def test_fallback_forwards_the_charts_saved_direction(
+        self, mcp_server: Any, mock_auth: Any, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        module = importlib.import_module(
+            "superset.mcp_service.chart.tool.get_chart_data"
+        )
+        chart = SimpleNamespace(
+            id=11,
+            slice_name="Smallest bubbles",
+            viz_type="bubble_v2",
+            datasource_id=1,
+            datasource_type="table",
+            query_context=None,
+            params=json.dumps(
+                {
+                    "viz_type": "bubble_v2",
+                    "entity": "country",
+                    "x": {"label": "AVG(gdp)"},
+                    "y": {"label": "AVG(life_expectancy)"},
+                    "size": {"label": "SUM(population)"},
+                    "orderby": {"label": "SUM(population)"},
+                    "order_desc": False,
+                    "row_limit": 1,
+                }
+            ),
+        )
+        captured: dict[str, Any] = {}
+
+        def recording_builder(*args: Any, **kwargs: Any) -> Any:
+            captured.update(kwargs)
+            return [{"columns": ["country"], "metrics": ["SUM(population)"]}]
+
+        class QueryContextFactory:
+            def create(self, **kwargs: Any) -> object:
+                return object()
+
+        class Command:
+            def __init__(self, query_context: object) -> None: ...
+
+            def validate(self) -> None: ...
+
+            def run(self) -> dict[str, Any]:
+                return {
+                    "queries": [
+                        {
+                            "data": [{"country": "France", "SUM(population)": 1}],
+                            "colnames": ["country", "SUM(population)"],
+                            "rowcount": 1,
+                        }
+                    ]
+                }
+
+        monkeypatch.setattr(
+            module, "build_query_dicts_from_form_data", recording_builder
+        )
+        monkeypatch.setattr(
+            "superset.common.query_context_factory.QueryContextFactory",
+            QueryContextFactory,
+        )
+        monkeypatch.setattr(
+            "superset.commands.chart.data.get_data_command.ChartDataCommand", Command
+        )
+        monkeypatch.setattr(module, "find_chart_by_identifier", lambda *a, **k: chart)
+        monkeypatch.setattr(
+            module,
+            "validate_chart_dataset",
+            lambda *a, **k: SimpleNamespace(is_valid=True, warnings=[], error=None),
+        )
+
+        async with Client(mcp_server) as client:
+            await client.call_tool("get_chart_data", {"request": {"identifier": "11"}})
+
+        assert captured["order_desc"] is False

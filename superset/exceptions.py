@@ -206,7 +206,26 @@ class SpatialException(SupersetException):
 
 
 class CertificateException(SupersetException):
-    message = _("Invalid certificate")
+    def __init__(
+        self,
+        message: str = "",
+        exception: Optional[Exception] = None,
+        error_type: Optional[SupersetErrorType] = None,
+    ) -> None:
+        """Translate the default certificate error when constructing the exception.
+
+        Replaces this subclass's class-level ``message`` default with
+        construction-time translation, which resolves to a
+        plain ``str`` inside the request that raises, so no LazyString
+        can leak into ``to_dict()`` / JSON error bodies (the degradation
+        class fixed for ``json_error_response``). The class-level
+        ``message`` falls back to the base's empty default.
+        """
+        super().__init__(
+            message=message or _("Invalid certificate"),
+            exception=exception,
+            error_type=error_type,
+        )
 
 
 class DatabaseNotFound(SupersetException):

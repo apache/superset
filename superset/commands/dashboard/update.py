@@ -23,6 +23,7 @@ from typing import Any, Optional
 from flask import current_app
 from flask_appbuilder.models.sqla import Model
 from marshmallow import ValidationError
+from sqlalchemy.exc import IntegrityError
 
 from superset import db, security_manager
 from superset.commands.base import BaseCommand, UpdateMixin
@@ -36,6 +37,9 @@ from superset.commands.dashboard.exceptions import (
     DashboardSlugExistsValidationError,
     DashboardUpdateFailedError,
 )
+from superset.commands.soft_delete_collisions import (
+    raise_for_soft_deleted_slug_collision,
+)
 from superset.commands.utils import (
     compute_subjects,
     raise_if_managed_externally,
@@ -44,6 +48,7 @@ from superset.commands.utils import (
 )
 from superset.daos.dashboard import DashboardDAO
 from superset.daos.report import ReportScheduleDAO
+from superset.dashboards.layout import repair_position
 from superset.exceptions import SupersetSecurityException
 from superset.models.dashboard import Dashboard
 from superset.reports.models import ReportSchedule
@@ -93,10 +98,12 @@ class UpdateDashboardCommand(UpdateMixin, BaseCommand):
                     ObjectType.dashboard, self._model.id, self._model.tags, tags
                 )
 
-            # Re-serialize position_json to escape 4-byte Unicode characters
+            # Re-serialize position_json to escape 4-byte Unicode characters,
+            # repairing a layout that carries detached components on the way
+            # through.
             if position_json := self._properties.get("position_json"):
                 self._properties["position_json"] = json.dumps(
-                    json.loads(position_json)
+                    repair_position(json.loads(position_json), self._model_id)
                 )
 
             # ``set_dash_metadata`` merges the incoming metadata against
@@ -112,6 +119,15 @@ class UpdateDashboardCommand(UpdateMixin, BaseCommand):
                 self._model,
                 {k: v for k, v in self._properties.items() if k != "json_metadata"},
             )
+            # See CreateDashboardCommand.run: translate a slug collision
+            # with a soft-deleted dashboard (full-constraint dialects) into
+            # restore guidance; anything else re-raises unchanged.
+            try:
+                db.session.flush()
+            except IntegrityError as ex:
+                db.session.rollback()  # pylint: disable=consider-using-transaction
+                raise_for_soft_deleted_slug_collision(self._properties.get("slug"), ex)
+                raise
             if json_metadata:
                 DashboardDAO.set_dash_metadata(
                     dashboard,

@@ -767,3 +767,40 @@ test('commits a searched Cube dimension in no more than three interactions', asy
     expect(mockOnChange).toHaveBeenCalledWith(['category']);
   });
 });
+
+test('anchors the "add column" popover to a block-level trigger box (sc-120502)', async () => {
+  // Regression pin: the "add new" popover opens from a controlled trigger whose
+  // child is an empty placeholder. If the trigger wrapper is a bare inline
+  // span, antd anchors the popup to a 0×0 point at the control's left edge and
+  // the popover renders detached over the control panel.
+  const store = mockStore({
+    explore: {
+      datasource: {
+        type: 'table',
+        id: 1,
+        columns: [{ column_name: 'state' }, { column_name: 'city' }],
+      },
+      form_data: {},
+      controls: {},
+    },
+  });
+
+  render(
+    <DndColumnSelect
+      {...defaultProps}
+      options={[{ column_name: 'state' }, { column_name: 'city' }]}
+      value={[]}
+    />,
+    { useDndKit: true, store },
+  );
+
+  userEvent.click(screen.getByText(/Drop columns here or click/i));
+
+  await waitFor(() => {
+    expect(screen.getByRole('tab', { name: 'Simple' })).toBeInTheDocument();
+  });
+
+  const anchor = document.querySelector('.ant-popover-open');
+  expect(anchor).not.toBeNull();
+  expect(anchor).toHaveStyle('display: block');
+});

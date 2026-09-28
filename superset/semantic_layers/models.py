@@ -27,6 +27,7 @@ from dataclasses import dataclass
 from functools import cached_property
 from typing import Any, TYPE_CHECKING
 
+import pandas as pd
 import pyarrow as pa
 import sqlalchemy as sa
 from flask_appbuilder import Model
@@ -375,6 +376,8 @@ class SemanticView(AuditMixinNullable, Model):
                 result.df = query_object.exec_post_processing(result.df)
             except InvalidPostProcessingError as ex:
                 raise QueryObjectValidationError(ex.message) from ex
+            except (TypeError, pd.errors.DataError) as ex:
+                raise QueryObjectValidationError(str(ex)) from ex
         return result
 
     def get_query_str(self, query_obj: QueryObjectDict) -> str:
@@ -808,6 +811,8 @@ class SemanticView(AuditMixinNullable, Model):
 
         Translates string names to semantic-layer objects, delegates to the
         view implementation, and translates the result back to names.
+        Collapse grain variants into sorted unique names, also bounding
+        the shared list_metrics projection.
         """
         metric_map = {m.name: m for m in self.implementation.get_metrics()}
         dim_map = {d.name: d for d in self.implementation.get_dimensions()}
@@ -816,7 +821,7 @@ class SemanticView(AuditMixinNullable, Model):
         compatible = self.implementation.get_compatible_dimensions(
             sel_metrics, sel_dims
         )
-        return [d.name for d in compatible]
+        return sorted({d.name for d in compatible})
 
 
 sa.event.listen(SemanticLayer, "after_insert", SemanticLayer.after_insert)
