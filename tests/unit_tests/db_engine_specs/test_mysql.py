@@ -460,9 +460,9 @@ def test_compile_timegrain_expression_preserves_date_truncation() -> None:
     assert compiled == expected, f"DATE_FORMAT truncation was dropped. Got: {compiled}"
 
     proxied = str(select(select(expr.label("bucket")).subquery().c.bucket))
-    assert expected in proxied, (
-        f"DATE_FORMAT truncation was dropped in proxied expression. Got: {proxied}"
-    )
+    assert (
+        expected in proxied
+    ), f"DATE_FORMAT truncation was dropped in proxied expression. Got: {proxied}"
 
 
 def test_identifier_quote_uses_backticks() -> None:
