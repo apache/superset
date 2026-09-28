@@ -19,6 +19,7 @@
 import { t } from '@apache-superset/core/translation';
 import { styled } from '@apache-superset/core/theme';
 import { Button } from '@superset-ui/core/components';
+import { tokenizeToNumericArray } from '@superset-ui/plugin-chart-echarts';
 import ControlHeader from '../../ControlHeader';
 import ColorPickerControl from '../ColorPickerControl';
 import type { ColorPickerValue } from '../ColorPickerControl';
@@ -37,14 +38,6 @@ const RangeLabel = styled.span`
   font-size: ${({ theme }) => theme.fontSizeSM}px;
 `;
 
-const parseRanges = (ranges?: string): number[] =>
-  (ranges ?? '')
-    .split(',')
-    .map(part => part.trim())
-    .filter(part => part !== '')
-    .map(Number)
-    .filter(range => Number.isFinite(range));
-
 /**
  * Per-range color editor for the Bullet chart. Row *count* is driven by the
  * sibling `ranges` control (one row per parsed threshold) so range values
@@ -62,7 +55,7 @@ export default function BulletRangeColorsControl({
   ranges,
   ...headerProps
 }: BulletRangeColorsControlProps) {
-  const rangeValues = parseRanges(ranges);
+  const rangeValues = tokenizeToNumericArray(ranges) ?? [];
 
   const colorAt = (index: number): string => value?.[index] || '';
 

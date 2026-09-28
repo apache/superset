@@ -60,6 +60,7 @@ test('renders the down arrow when the metric decreased', () => {
   );
 
   expect(screen.getByText('↓')).toBeInTheDocument();
+  expect(screen.getByText('-20')).toBeInTheDocument();
 });
 
 // The precise color resolution (legacy `comparisonColorScheme` fallback,
