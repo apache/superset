@@ -69,6 +69,11 @@ updates:
         patterns:
           - "@typescript-eslint/*"
           - "typescript-eslint"
+      jest:
+        patterns:
+          - "jest"
+          - "babel-jest"
+          - "jest-environment-jsdom"
       babel:
         patterns:
           - "@babel/*"
