@@ -1445,6 +1445,37 @@ class TestUpdateChartPreviewValidation:
             assert error["error_type"] == "DatasetNotAccessible"
             mock_create_form_data.assert_not_called()
 
+    @patch.object(update_chart_preview_module, "_find_dataset")
+    @patch("superset.daos.dataset.DatasetDAO.find_by_id")
+    @pytest.mark.asyncio
+    async def test_non_decimal_digit_dataset_id_uses_uuid_lookup(
+        self,
+        mock_find_by_id,
+        mock_find_dataset,
+        mcp_server,
+        mock_auth,
+    ):
+        """A Unicode "digit" dataset_id (isdigit() True, isdecimal() False)
+        must route the Tier-1 schema-validation lookup through the uuid
+        branch instead of raising out of ``int()``."""
+        mock_find_dataset.return_value = _mock_dataset(id=3)
+        mock_find_by_id.return_value = None
+
+        config = TableChartConfig(
+            chart_type="table", columns=[ColumnRef(name="region")]
+        )
+        request = UpdateChartPreviewRequest(dataset_id="²", config=config)
+
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "update_chart_preview", {"request": request.model_dump()}
+            )
+
+            assert result.structured_content["success"] is False
+            error = result.structured_content["error"]
+            assert error["error_type"] == "DatasetNotAccessible"
+        mock_find_by_id.assert_called_once_with("²", id_column="uuid")
+
 
 @pytest.mark.parametrize("allowed", [True, False])
 def test_previous_form_data_uses_existing_explore_access_gate(allowed: bool) -> None:

@@ -112,3 +112,38 @@ def test_chart_utils_generate_explore_link_non_decimal_digit(
 
     mock_find.assert_called_once_with(NON_DECIMAL_DIGIT, id_column="uuid")
     assert NON_DECIMAL_DIGIT in result
+
+
+def test_chart_helpers_resolve_form_data_datasource_non_decimal_digit() -> None:
+    """The combined ``"<id>__<type>"`` split must not attempt ``int()`` on a
+    non-decimal digit id half, or it raises instead of passing the id
+    through as a string for downstream uuid resolution."""
+    from superset.mcp_service.chart.chart_helpers import (
+        resolve_form_data_datasource,
+    )
+
+    datasource_id, datasource_type = resolve_form_data_datasource(
+        {"datasource": f"{NON_DECIMAL_DIGIT}__table"}
+    )
+
+    assert datasource_id == NON_DECIMAL_DIGIT
+    assert datasource_type == "table"
+
+
+def test_get_chart_sql_resolve_datasource_name_non_decimal_digit() -> None:
+    """Same combined-id split guard inside the unsaved-chart datasource-name
+    resolver used by ``get_chart_sql``."""
+    from superset.mcp_service.chart.tool.get_chart_sql import (
+        _resolve_datasource_name,
+    )
+
+    with patch("superset.daos.datasource.DatasourceDAO.get_datasource") as mock_get:
+        mock_get.return_value = None
+        _resolve_datasource_name(
+            {"datasource": f"{NON_DECIMAL_DIGIT}__table"},
+            chart=None,
+        )
+
+    # No int() ValueError raised; the non-decimal id half is passed through.
+    mock_get.assert_called_once()
+    assert mock_get.call_args.kwargs["database_id_or_uuid"] == NON_DECIMAL_DIGIT
