@@ -1298,9 +1298,10 @@ def generate_funnel_vega_lite_preview(
     data: list[dict[str, Any]], form_data: dict[str, Any]
 ) -> VegaLitePreview | ChartError:
     """Render funnel stages as horizontal value bars, preserving query order."""
+    from superset.mcp_service.chart.chart_helpers import normalize_groupby
     from superset.utils.core import get_column_name
 
-    groupby = form_data.get("groupby") or []
+    groupby = normalize_groupby(form_data)
     metric = metric_result_label(form_data.get("metric"))
     if not groupby or not metric:
         return ChartError(
@@ -1338,9 +1339,10 @@ def generate_histogram_vega_lite_preview(
     data: list[dict[str, Any]], form_data: dict[str, Any]
 ) -> VegaLitePreview:
     """Render histogram operator output without re-binning its counts."""
+    from superset.mcp_service.chart.chart_helpers import normalize_groupby
     from superset.utils.core import get_column_name
 
-    groupby = [get_column_name(column) for column in form_data.get("groupby") or []]
+    groupby = [get_column_name(column) for column in normalize_groupby(form_data)]
     bins = [column for column in data[0] if column not in groupby] if data else []
     values = [
         {
