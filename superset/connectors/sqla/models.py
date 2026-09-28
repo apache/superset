@@ -1985,7 +1985,19 @@ class SqlaTable(
             return table(quoted_name(full_name, quote=False))
 
         if self.schema:
-            return table(self.table_name, schema=self.schema)
+            if self.database.db_engine_spec.quote_table_includes_schema:
+                return table(self.table_name, schema=self.schema)
+
+            # This engine's `quote_table` doesn't qualify the identifier with the
+            # schema (e.g. MongoDB/PyMongoSQL, which takes the whole FROM reference
+            # as a literal collection name). Build the FROM-clause identifier the
+            # same way `select_star` does for SQL Lab, and rely on
+            # `adjust_engine_params` to select the schema at the connection level.
+            full_table_name = self.database.db_engine_spec.quote_table(
+                Table(self.table_name, self.schema),
+                self.database.get_dialect(),
+            )
+            return table(quoted_name(full_table_name, quote=False))
 
         return table(self.table_name)
 

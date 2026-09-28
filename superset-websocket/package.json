@@ -33,7 +33,7 @@
     "esbuild": "^0.28.2",
     "oxfmt": "^0.68.0",
     "oxlint": "^1.83.0",
-    "oxlint-tsgolint": "^7.0.2001",
+    "oxlint-tsgolint": "^7.0.2002",
     "tscw-config": "^1.1.2",
     "typescript": "^7.0.2",
     "vitest": "^5.0.1"
