@@ -16,6 +16,15 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { clearAllChartCustomizations } from 'src/dashboard/actions/chartCustomizationActions';
+import dashboardStateReducer from 'src/dashboard/reducers/dashboardState';
+import dashboardInfoReducer from 'src/dashboard/reducers/dashboardInfo';
+import { onSave } from 'src/dashboard/actions/dashboardState';
+import {
+  dashboardInfoChanged,
+  dashboardSaveSucceeded,
+  nativeFiltersConfigChanged,
+} from 'src/dashboard/actions/dashboardInfo';
 import type { AnyAction, Store } from 'redux';
 import { act, render, screen } from 'spec/helpers/testing-library';
 import type { VersionHistoryState } from './types';
@@ -78,17 +87,11 @@ const versionHistoryState = (
 
 interface TestState {
   versionHistory: VersionHistoryState;
-  dashboardInfo: {
-    uuid: string;
-    last_modified_time: number;
-    dash_edit_perm?: boolean;
-    is_managed_externally?: boolean;
-  };
-  dashboardState: { hasUnsavedChanges: boolean; lastModifiedTime: number };
+  dashboardInfo: ReturnType<typeof dashboardInfoReducer>;
+  dashboardState: ReturnType<typeof dashboardStateReducer>;
 }
 
-/** Minimal recording store: dispatched actions are captured, never reduced,
- * so tests drive state transitions explicitly via setState. */
+/** Reduce real dashboard saves; unrelated transitions can be driven explicitly. */
 function makeTestStore(initial: TestState) {
   let state = initial;
   const actions: AnyAction[] = [];
@@ -102,6 +105,12 @@ function makeTestStore(initial: TestState) {
     },
     dispatch(action: AnyAction) {
       actions.push(action);
+      state = {
+        ...state,
+        dashboardInfo: dashboardInfoReducer(state.dashboardInfo, action),
+        dashboardState: dashboardStateReducer(state.dashboardState, action),
+      };
+      listeners.forEach(listener => listener());
       return action;
     },
     subscribe(listener: () => void) {
@@ -117,6 +126,7 @@ const makeStore = () =>
   makeTestStore({
     versionHistory: versionHistoryState(),
     dashboardInfo: {
+      id: 1,
       uuid: 'dash-uuid',
       last_modified_time: 100,
       dash_edit_perm: true,
@@ -147,28 +157,27 @@ afterEach(() => {
   jest.clearAllMocks();
 });
 
-test('refreshes the timeline when an edit-mode save bumps lastModifiedTime', () => {
+test('refreshes the timeline on a real edit-mode save', () => {
   const store = makeStore();
   renderAdapter(store);
   expect(refresh).not.toHaveBeenCalled();
 
   act(() => {
-    store.setState({
-      dashboardState: { hasUnsavedChanges: false, lastModifiedTime: 600 },
-    });
+    store.dispatch(onSave(600));
   });
 
   expect(refresh).toHaveBeenCalledTimes(1);
 });
 
-test('refreshes the timeline when a filter or properties save bumps last_modified_time', () => {
+test('timestamp metadata changes do not duplicate a successful properties refresh', () => {
   const store = makeStore();
   renderAdapter(store);
 
   act(() => {
-    store.setState({
-      dashboardInfo: { uuid: 'dash-uuid', last_modified_time: 200 },
-    });
+    store.dispatch(dashboardSaveSucceeded(1));
+  });
+  act(() => {
+    store.dispatch(dashboardInfoChanged({ description: 'updated' }));
   });
 
   expect(refresh).toHaveBeenCalledTimes(1);
@@ -301,4 +310,50 @@ test('renders the panel in place while open — the closed-state discriminator',
   const { container } = renderAdapter(store);
   expect(container).not.toBeEmptyDOMElement();
   expect(screen.getByTestId('mock-version-history-panel')).toBeInTheDocument();
+});
+
+test.each(['edit', 'properties', 'native filters'])(
+  'real %s success reducer refreshes history for successive saves in the same second',
+  path => {
+    const now = jest.spyOn(Date.prototype, 'getTime').mockReturnValue(100000);
+    try {
+      const store = makeStore();
+      renderAdapter(store);
+      for (let save = 1; save <= 2; save += 1) {
+        act(() => {
+          if (path === 'edit') {
+            store.dispatch(onSave(500));
+          } else if (path === 'properties') {
+            store.dispatch(dashboardSaveSucceeded(1));
+          } else {
+            store.dispatch(nativeFiltersConfigChanged([]));
+          }
+        });
+        expect(refresh).toHaveBeenCalledTimes(save);
+      }
+    } finally {
+      now.mockRestore();
+    }
+  },
+);
+
+test('local properties and customization edits do not refresh server history', () => {
+  const store = makeStore();
+  renderAdapter(store);
+  act(() => {
+    store.dispatch(dashboardInfoChanged({ description: 'Draft' }));
+  });
+  act(() => {
+    store.dispatch(clearAllChartCustomizations());
+  });
+  expect(refresh).not.toHaveBeenCalled();
+});
+
+test('a late properties save for another dashboard does not refresh this one', () => {
+  const store = makeStore();
+  renderAdapter(store);
+  act(() => {
+    store.dispatch(dashboardSaveSucceeded(2));
+  });
+  expect(refresh).not.toHaveBeenCalled();
 });

@@ -125,7 +125,7 @@ async def generate_explore_link(
         with event_logger.log_context(action="mcp.generate_explore_link.dataset_check"):
             dataset = None
             if isinstance(request.dataset_id, int) or (
-                isinstance(request.dataset_id, str) and request.dataset_id.isdigit()
+                isinstance(request.dataset_id, str) and request.dataset_id.isdecimal()
             ):
                 dataset_id_int = (
                     int(request.dataset_id)

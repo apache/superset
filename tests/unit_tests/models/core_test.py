@@ -40,7 +40,11 @@ from sqlalchemy.sql import Select
 from superset.connectors.sqla.models import SqlaTable, TableColumn
 from superset.databases.error_provenance import mark_database_engine_error
 from superset.errors import SupersetErrorType
-from superset.exceptions import OAuth2Error, OAuth2RedirectError
+from superset.exceptions import (
+    OAuth2Error,
+    OAuth2RedirectError,
+    SupersetGenericDBErrorException,
+)
 from superset.models.core import Database
 from superset.sql.parse import LimitMethod, Table
 from superset.utils import json
@@ -1245,6 +1249,21 @@ def test_get_oauth2_config_redirect_uri_from_config(
 
     assert config is not None
     assert config["redirect_uri"] == custom_redirect_uri
+
+
+def test_get_oauth2_config_malformed_encrypted_extra(app_context: None) -> None:
+    """
+    Test that malformed JSON in ``encrypted_extra`` raises a Superset exception
+    instead of leaking the raw ``JSONDecodeError``.
+    """
+    database = Database(
+        database_name="db",
+        sqlalchemy_uri="postgresql://user:password@host:5432/examples",
+    )
+    database.encrypted_extra = "{not valid json"
+
+    with pytest.raises(SupersetGenericDBErrorException):
+        database.get_oauth2_config()
 
 
 def test_raw_connection_oauth_engine(mocker: MockerFixture) -> None:

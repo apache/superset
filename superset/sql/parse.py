@@ -232,7 +232,9 @@ def folds_unquoted_object_names(engine: str) -> bool:
     return strategy is not NormalizationStrategy.CASE_SENSITIVE
 
 
-def has_aggregate(expression: str, engine: str = "base") -> bool:
+def has_aggregate(
+    expression: str, engine: str = "base", fail_open: bool = True
+) -> bool:
     """
     Return True if the SQL expression contains an aggregate function, ignoring
     only an aggregate that is *itself* windowed (``SUM(x) OVER (...)``), which
@@ -244,14 +246,20 @@ def has_aggregate(expression: str, engine: str = "base") -> bool:
     aggregate inside a scalar subquery still counts, and it fails open (returns
     True) on a parse error or an unmodelled function (``exp.Anonymous``) that
     might itself be an aggregate.
+
+    :param fail_open: what an undecidable expression returns. True (the default)
+        suits a caller rejecting non-aggregates, which must not block a query it
+        could not parse. Callers that instead grant something to an aggregate --
+        such as sizing a query by the rows it collapses to -- pass False, so an
+        expression that cannot be proven to aggregate is not treated as one.
     """
     dialect = SQLGLOT_DIALECTS.get(engine)
     try:
         parsed = sqlglot.parse_one(f"SELECT {expression}", dialect=dialect)
     except Exception:
-        return True
+        return fail_open
     if parsed.find(exp.Anonymous):
-        return True
+        return fail_open
     return any(
         not isinstance(agg.parent, exp.Window) for agg in parsed.find_all(exp.AggFunc)
     )
