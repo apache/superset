@@ -832,12 +832,9 @@ def test_run_reauthorizes_the_rendered_sql(
     first, second = mock_security_manager.raise_for_access.call_args_list
     # The first check is the unrendered source, as before.
     assert first.kwargs["sql"] == sql
-    # The second pins the literal SQL that goes on to be estimated as
-    # `executed_sql`, which `raise_for_access` prefers over re-rendering
-    # `sql` with `template_params` -- the same handle the execution path
-    # uses in `_validate_rendered_access`.
-    assert second.kwargs["query"].executed_sql == "SELECT * FROM rendered_tbl"
-    assert "sql" not in second.kwargs
+    # The second is the rendered SQL that goes on to be estimated, with no
+    # template params left to expand it differently.
+    assert second.kwargs["sql"] == "SELECT * FROM rendered_tbl"
     assert "template_params" not in second.kwargs
     assert second.kwargs["force_dataset_match"] is True
     assert (
@@ -966,11 +963,8 @@ def test_run_refuses_a_render_the_caller_cannot_access(
     registered ``allowed_ds``; the render does not, and the estimate is the
     render.
 
-    The call *shape* (pinned as ``executed_sql``, the handle
-    ``_validate_rendered_access`` uses) is asserted separately in
-    ``test_run_reauthorizes_the_rendered_sql``: pinning and passing ``sql=``
-    authorize the same text while no template params are supplied, so this
-    test cannot tell them apart and does not try to.
+    Which string reaches the gate is asserted separately, as a call shape, in
+    ``test_run_reauthorizes_the_rendered_sql``.
     """
     mock_app.config = {
         "DISALLOWED_SQL_FUNCTIONS": {},
