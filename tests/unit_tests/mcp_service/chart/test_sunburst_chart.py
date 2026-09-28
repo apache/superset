@@ -4243,7 +4243,7 @@ def test_cached_update_preview_rebinds_datasource_and_stays_unsaved() -> None:
         ),
         patch.object(DatasetValidator, "normalize_column_names", return_value=config),
         patch(
-            "superset.mcp_service.chart.tool.update_chart_preview."
+            "superset.mcp_service.chart.sunburst."
             "normalize_sunburst_form_data_references",
             side_effect=lambda form_data, _context: form_data,
         ),
@@ -4351,7 +4351,7 @@ def test_cached_update_preview_honors_explicit_sunburst_clears(
         ),
         patch.object(DatasetValidator, "normalize_column_names", return_value=config),
         patch(
-            "superset.mcp_service.chart.tool.update_chart_preview."
+            "superset.mcp_service.chart.sunburst."
             "normalize_sunburst_form_data_references",
             side_effect=lambda form_data, _context: form_data,
         ),
@@ -4822,7 +4822,7 @@ def test_cached_update_deletes_explicit_null_mapping_envelopes() -> None:
             return_value=Mock(success=True),
         ),
         patch(
-            "superset.mcp_service.chart.tool.update_chart_preview."
+            "superset.mcp_service.chart.sunburst."
             "normalize_sunburst_form_data_references",
             side_effect=lambda form_data, _context: form_data,
         ),

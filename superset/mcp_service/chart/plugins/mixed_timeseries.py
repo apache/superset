@@ -183,3 +183,22 @@ class MixedTimeseriesChartPlugin(BaseChartPlugin):
         # Query B owns its suffixed filters and ordering, so it is retained
         # before query A's filters are prepared and prepared on its own.
         return retain_mixed_timeseries_secondary_form_data(form_data)
+
+    def finalize_update_form_data(
+        self,
+        existing_form_data: dict[str, Any],
+        new_form_data: dict[str, Any],
+        merged: dict[str, Any],
+        config: Any,
+    ) -> dict[str, Any]:
+        from superset.mcp_service.chart.chart_utils import (
+            retain_mixed_timeseries_secondary_update_state,
+        )
+
+        if existing_form_data.get("viz_type") == new_form_data.get("viz_type"):
+            merged.update(
+                retain_mixed_timeseries_secondary_update_state(
+                    existing_form_data, new_form_data
+                )
+            )
+        return merged

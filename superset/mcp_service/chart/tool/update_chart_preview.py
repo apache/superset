@@ -60,12 +60,10 @@ from superset.mcp_service.chart.response_preflight import (
 from superset.mcp_service.chart.schemas import (
     AccessibilityMetadata,
     ChartError,
-    GanttChartConfig,
     PerformanceMetadata,
     UpdateChartPreviewRequest,
     UpdateChartPreviewResponse,
 )
-from superset.mcp_service.chart.sunburst import normalize_sunburst_form_data_references
 from superset.mcp_service.chart.validation.dataset_validator import (
     GanttSemanticNormalizationError,
 )
@@ -321,12 +319,6 @@ def update_chart_preview(  # noqa: C901
                     config,
                     dataset_rebind=dataset_rebind,
                 )
-                if getattr(config, "filters", None) == [] and not isinstance(
-                    config, GanttChartConfig
-                ):
-                    # Gantt keeps its mapper-generated time binding through an
-                    # explicit filter clear.
-                    new_form_data.pop("adhoc_filters", None)
 
             # This tool owns an unsaved cache entry, not a chart update target.
             # Rebind datasource state to the authorized dataset and remove any
@@ -351,13 +343,12 @@ def update_chart_preview(  # noqa: C901
                 # request, so preserved native fields cannot bypass semantics.
                 config = merged_config
 
-            if (
-                new_form_data.get("viz_type") == "sunburst_v2"
-                and dataset_context is not None
-            ):
-                new_form_data = normalize_sunburst_form_data_references(
-                    new_form_data, dataset_context
+            if merged_plugin is not None:
+                normalized_form_data = merged_plugin.normalize_saved_form_data(
+                    new_form_data, lambda: dataset_context
                 )
+                if normalized_form_data is not None:
+                    new_form_data = normalized_form_data
 
             compile_result = validate_and_compile(
                 config, new_form_data, dataset, run_compile_check=True

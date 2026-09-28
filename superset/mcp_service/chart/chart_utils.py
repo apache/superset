@@ -2203,7 +2203,7 @@ def _merge_allowlisted_form_data(
     return merged
 
 
-def merge_form_data_for_update(  # noqa: C901
+def merge_form_data_for_update(
     existing_form_data: Dict[str, Any],
     new_form_data: Dict[str, Any],
     config: Any,
@@ -2215,21 +2215,54 @@ def merge_form_data_for_update(  # noqa: C901
     Same-viz updates retain native controls outside the simplified MCP schema by
     starting from saved form data. Cross-viz updates remain bounded by the
     shared preservation registry. Explicit clears are applied last.
+
+    A dataset rebind prunes every dataset-bound role from the saved state and
+    then merges as a same-dataset update, unless the owning plugin declares a
+    strict rebind contract (``strict_dataset_rebind``), in which case its
+    ``merge_update_form_data`` hook receives ``dataset_rebind=True``. Plugins
+    that declare ``owns_update_merge`` merge same-viz updates themselves;
+    every other update takes the shared overlay and then the plugin's
+    ``finalize_update_form_data`` hook.
     """
-    if isinstance(config, TreemapChartConfig) and existing_form_data.get(
-        "viz_type"
-    ) == new_form_data.get("viz_type"):
-        return _merge_treemap_form_data(
-            existing_form_data, new_form_data, config, dataset_rebind
-        )
+    from superset.mcp_service.chart.registry import plugin_for_viz_type
 
-    if dataset_rebind:
-        if isinstance(config, GanttChartConfig):
-            # Every Gantt role, including its dependent presentation state, is
-            # bound to the previous dataset, so a rebind is a full replacement.
-            return dict(new_form_data)
+    plugin = plugin_for_viz_type(new_form_data.get("viz_type"))
+    if dataset_rebind and not (plugin is not None and plugin.strict_dataset_rebind):
         existing_form_data = scrub_dataset_bound_form_data(existing_form_data)
+        dataset_rebind = False
 
+    same_viz = existing_form_data.get("viz_type") == new_form_data.get("viz_type")
+    if (
+        same_viz
+        and plugin is not None
+        and (dataset_rebind or plugin.owns_update_merge)
+    ):
+        plugin_merged = plugin.merge_update_form_data(
+            existing_form_data,
+            new_form_data,
+            config,
+            dataset_rebind=dataset_rebind,
+        )
+        if plugin_merged is not None:
+            return plugin_merged
+    if dataset_rebind:
+        # A strict rebind never inherits saved state the plugin did not merge.
+        return dict(new_form_data)
+
+    merged = overlay_update_form_data(existing_form_data, new_form_data, config)
+    if plugin is not None:
+        merged = plugin.finalize_update_form_data(
+            existing_form_data, new_form_data, merged, config
+        )
+    return merged
+
+
+def overlay_update_form_data(
+    existing_form_data: Dict[str, Any],
+    new_form_data: Dict[str, Any],
+    config: Any,
+) -> Dict[str, Any]:
+    """Overlay a same-dataset update on the saved state with shared semantics."""
     same_viz = existing_form_data.get("viz_type") == new_form_data.get("viz_type")
     explicit_control_clears = (
         _apply_modeled_update_semantics(existing_form_data, new_form_data, config)
@@ -2254,34 +2287,6 @@ def merge_form_data_for_update(  # noqa: C901
             if key not in query_role_keys
         }
         merged.update(new_form_data)
-        if new_form_data.get("viz_type") == "mixed_timeseries" and not dataset_rebind:
-            from superset.common.form_data_query_context import (
-                MIXED_TIMESERIES_SECONDARY_QUERY_KEYS,
-            )
-
-            # Query B inherits unsuffixed controls only when the suffixed key is
-            # absent. Preserve explicit native clears for controls the typed
-            # mapper did not replace, so []/None never turns into accidental
-            # inheritance from query A. Valid comparison state is also retained;
-            # malformed/stale dataset roles remain fail-closed and are dropped.
-            for key in MIXED_TIMESERIES_SECONDARY_QUERY_KEYS:
-                if key in new_form_data or key not in existing_form_data:
-                    continue
-                value = existing_form_data[key]
-                is_explicit_clear = value is None or value in ([], {}, "")
-                is_valid_comparison = key == "comparison_type_b" and value in {
-                    "values",
-                    "difference",
-                    "percentage",
-                    "ratio",
-                }
-                is_valid_list_state = key in {
-                    "adhoc_filters_b",
-                    "annotation_layers_b",
-                    "time_compare_b",
-                } and isinstance(value, list)
-                if is_explicit_clear or is_valid_comparison or is_valid_list_state:
-                    merged[key] = value
     else:
         merged = _merge_allowlisted_form_data(existing_form_data, new_form_data)
 
@@ -2289,16 +2294,6 @@ def merge_form_data_for_update(  # noqa: C901
         merged.pop(key, None)
 
     fields_set: set[str] = getattr(config, "model_fields_set", set())
-    if isinstance(config, GanttChartConfig):
-        # The Gantt mapper owns its complete control surface: the typed schema
-        # rejects unmodeled native controls, so saved state is inherited only
-        # through the modeled controls and the presentation allowlist callers
-        # apply with merge_gantt_ui_config. An explicit filters list, including
-        # [], keeps the mapper's generated time binding.
-        merged = dict(new_form_data)
-        if config.filters is None and same_viz:
-            _preserve_gantt_adhoc_filters(merged, existing_form_data, config)
-        return merged
     if getattr(config, "filters", None) == []:
         merged.pop("adhoc_filters", None)
     elif getattr(config, "filters", None) is None:
@@ -2311,10 +2306,56 @@ def merge_form_data_for_update(  # noqa: C901
         )
         if filters is not None:
             merged["adhoc_filters"] = filters
+    return merged
 
-    if not isinstance(config, SunburstChartConfig):
-        return merged
 
+def retain_mixed_timeseries_secondary_update_state(
+    existing_form_data: Mapping[str, Any],
+    new_form_data: Mapping[str, Any],
+) -> Dict[str, Any]:
+    """Return saved query-B controls a same-viz Mixed Timeseries update keeps.
+
+    Query B inherits unsuffixed controls only when the suffixed key is absent.
+    Preserve explicit native clears for controls the typed mapper did not
+    replace, so []/None never turns into accidental inheritance from query A.
+    Valid comparison state is also retained; malformed/stale dataset roles
+    remain fail-closed and are dropped.
+    """
+    from superset.common.form_data_query_context import (
+        MIXED_TIMESERIES_SECONDARY_QUERY_KEYS,
+    )
+
+    retained: Dict[str, Any] = {}
+    for key in MIXED_TIMESERIES_SECONDARY_QUERY_KEYS:
+        if key in new_form_data or key not in existing_form_data:
+            continue
+        value = existing_form_data[key]
+        is_explicit_clear = value is None or value in ([], {}, "")
+        is_valid_comparison = key == "comparison_type_b" and value in {
+            "values",
+            "difference",
+            "percentage",
+            "ratio",
+        }
+        is_valid_list_state = key in {
+            "adhoc_filters_b",
+            "annotation_layers_b",
+            "time_compare_b",
+        } and isinstance(value, list)
+        if is_explicit_clear or is_valid_comparison or is_valid_list_state:
+            retained[key] = value
+    return retained
+
+
+def finalize_sunburst_update_form_data(
+    existing_form_data: Mapping[str, Any],
+    new_form_data: Mapping[str, Any],
+    merged: Dict[str, Any],
+    config: SunburstChartConfig,
+) -> Dict[str, Any]:
+    """Apply Sunburst omission, explicit-clear and temporal-pair semantics."""
+    same_viz = existing_form_data.get("viz_type") == new_form_data.get("viz_type")
+    fields_set: set[str] = getattr(config, "model_fields_set", set())
     temporal_fields = {"time_grain", "temporal_column"}
     for field_name, form_key in _SUNBURST_UPDATE_FIELD_KEYS.items():
         if field_name in temporal_fields:

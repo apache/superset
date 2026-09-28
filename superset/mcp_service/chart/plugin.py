@@ -265,6 +265,11 @@ class ChartTypePlugin(Protocol):
     #: ``dataset_rebind=True``) instead of the shared inherited-state pruning.
     strict_dataset_rebind: ClassVar[bool]
 
+    #: Whether the update tools' merge (``merge_form_data_for_update``) hands
+    #: same-viz, same-dataset updates to ``merge_update_form_data`` instead of
+    #: the shared overlay followed by ``finalize_update_form_data``.
+    owns_update_merge: ClassVar[bool]
+
     #: Whether cached form_data that names no datasource must be treated as
     #: belonging to another dataset, so none of its query roles are inherited.
     unbound_form_data_is_rebind: ClassVar[bool]
@@ -402,6 +407,35 @@ class ChartTypePlugin(Protocol):
         """Merge same-viz update form_data, or None for the shared merge."""
         ...
 
+    def finalize_update_form_data(
+        self,
+        existing_form_data: dict[str, Any],
+        new_form_data: dict[str, Any],
+        merged: dict[str, Any],
+        config: Any,
+    ) -> dict[str, Any]:
+        """Apply chart-specific semantics after the shared update overlay.
+
+        Called by the update tools' merge (``merge_form_data_for_update``) for
+        same-viz and cross-viz updates that ``merge_update_form_data`` did not
+        own. ``existing_form_data`` is the saved state after any dataset-rebind
+        pruning. Return the final form_data (``merged`` or a replacement).
+        """
+        ...
+
+    def normalize_saved_form_data(
+        self,
+        form_data: Mapping[str, Any],
+        dataset_context: Callable[[], DatasetContext | None],
+    ) -> dict[str, Any] | None:
+        """Canonicalize dataset references in final merged update form_data.
+
+        Merged update state can carry saved native controls the typed config
+        never saw. ``dataset_context`` lazily builds the target dataset's
+        context. Return a normalized copy, or None to keep it unchanged.
+        """
+        ...
+
     def validate_merged_form_data(
         self,
         form_data: Mapping[str, Any],
@@ -438,6 +472,7 @@ class BaseChartPlugin:
     requires_compile_check: ClassVar[bool] = False
     requires_config_for_dataset_rebind: ClassVar[bool] = False
     strict_dataset_rebind: ClassVar[bool] = False
+    owns_update_merge: ClassVar[bool] = False
     unbound_form_data_is_rebind: ClassVar[bool] = False
     normalize_data_results: ClassVar[bool] = False
     allows_empty_result: ClassVar[bool] = False
@@ -587,6 +622,22 @@ class BaseChartPlugin:
         config: Any,
         *,
         dataset_rebind: bool,
+    ) -> dict[str, Any] | None:
+        return None
+
+    def finalize_update_form_data(
+        self,
+        existing_form_data: dict[str, Any],
+        new_form_data: dict[str, Any],
+        merged: dict[str, Any],
+        config: Any,
+    ) -> dict[str, Any]:
+        return merged
+
+    def normalize_saved_form_data(
+        self,
+        form_data: Mapping[str, Any],
+        dataset_context: Callable[[], DatasetContext | None],
     ) -> dict[str, Any] | None:
         return None
 

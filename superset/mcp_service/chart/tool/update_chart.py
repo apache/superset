@@ -56,13 +56,11 @@ from superset.mcp_service.chart.schemas import (
     AccessibilityMetadata,
     ChartError,
     ColumnRef,
-    GanttChartConfig,
     GenerateChartResponse,
     PerformanceMetadata,
     TableChartConfig,
     UpdateChartRequest,
 )
-from superset.mcp_service.chart.sunburst import normalize_sunburst_form_data_references
 from superset.mcp_service.chart.validation.dataset_validator import (
     GanttSemanticNormalizationError,
 )
@@ -222,20 +220,17 @@ def _merge_replacement_config(
     *,
     dataset_rebind: bool = False,
 ) -> dict[str, Any]:
-    """Merge a replacement config, honoring an explicit empty filter list."""
-    merged = merge_form_data_for_update(
+    """Merge a replacement config through the plugin-aware update merge.
+
+    An explicit empty filter list clears saved filters; plugins that generate
+    their own time binding (Gantt) keep it through that clear.
+    """
+    return merge_form_data_for_update(
         existing_form_data,
         new_form_data,
         parsed_config,
         dataset_rebind=dataset_rebind,
     )
-    if getattr(parsed_config, "filters", None) == [] and not isinstance(
-        parsed_config, GanttChartConfig
-    ):
-        # Gantt keeps its mapper-generated time binding through an explicit
-        # filter clear; the shared merge already replaced its filter list.
-        merged.pop("adhoc_filters", None)
-    return merged
 
 
 def _is_dataset_rebind(request: UpdateChartRequest, chart: Any) -> bool:
@@ -528,16 +523,16 @@ def _validate_update_against_dataset(
     form_data.clear()
     form_data.update(canonical_form_data)
 
-    if form_data.get("viz_type") == "sunburst_v2":
+    saved_state_plugin = plugin_for_viz_type(form_data.get("viz_type"))
+    if saved_state_plugin is not None:
         from superset.mcp_service.chart.validation.dataset_validator import (
             build_dataset_context_from_orm,
         )
 
-        dataset_context = build_dataset_context_from_orm(dataset)
-        if dataset_context is not None:
-            normalized_form_data = normalize_sunburst_form_data_references(
-                form_data, dataset_context
-            )
+        normalized_form_data = saved_state_plugin.normalize_saved_form_data(
+            form_data, lambda: build_dataset_context_from_orm(dataset)
+        )
+        if normalized_form_data is not None:
             form_data.clear()
             form_data.update(normalized_form_data)
 

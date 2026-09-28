@@ -19,7 +19,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 from typing import Any, ClassVar
 
 from superset.mcp_service.chart.chart_utils import (
@@ -256,3 +256,33 @@ class SunburstChartPlugin(BaseChartPlugin):
             ],
             error_code="SUNBURST_VALIDATION_ERROR",
         )
+
+    def finalize_update_form_data(
+        self,
+        existing_form_data: dict[str, Any],
+        new_form_data: dict[str, Any],
+        merged: dict[str, Any],
+        config: Any,
+    ) -> dict[str, Any]:
+        from superset.mcp_service.chart.chart_utils import (
+            finalize_sunburst_update_form_data,
+        )
+
+        if not isinstance(config, SunburstChartConfig):
+            return merged
+        return finalize_sunburst_update_form_data(
+            existing_form_data, new_form_data, merged, config
+        )
+
+    def normalize_saved_form_data(
+        self,
+        form_data: Mapping[str, Any],
+        dataset_context: Callable[[], DatasetContext | None],
+    ) -> dict[str, Any] | None:
+        from superset.mcp_service.chart.sunburst import (
+            normalize_sunburst_form_data_references,
+        )
+
+        if (context := dataset_context()) is None:
+            return None
+        return normalize_sunburst_form_data_references(form_data, context)

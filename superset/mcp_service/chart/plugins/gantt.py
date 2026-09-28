@@ -278,6 +278,31 @@ class GanttChartPlugin(BaseChartPlugin):
             existing_form_data, new_form_data, config, dataset_rebind
         )
 
+    def finalize_update_form_data(
+        self,
+        existing_form_data: dict[str, Any],
+        new_form_data: dict[str, Any],
+        merged: dict[str, Any],
+        config: Any,
+    ) -> dict[str, Any]:
+        from superset.mcp_service.chart.chart_utils import (
+            _preserve_gantt_adhoc_filters,
+        )
+
+        # The Gantt mapper owns its complete control surface: the typed schema
+        # rejects unmodeled native controls, so saved state is inherited only
+        # through the modeled controls and the presentation allowlist the
+        # update tools apply with merge_gantt_ui_config. An explicit filters
+        # list, including [], keeps the mapper's generated time binding.
+        merged = dict(new_form_data)
+        if (
+            isinstance(config, GanttChartConfig)
+            and config.filters is None
+            and existing_form_data.get("viz_type") == new_form_data.get("viz_type")
+        ):
+            _preserve_gantt_adhoc_filters(merged, existing_form_data, config)
+        return merged
+
     def validate_merged_form_data(
         self,
         form_data: Mapping[str, Any],

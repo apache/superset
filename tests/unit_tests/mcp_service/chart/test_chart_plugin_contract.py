@@ -41,7 +41,10 @@ from superset.mcp_service.chart import (
     query_result,
 )
 from superset.mcp_service.chart.chart_helpers import build_query_dicts_from_form_data
-from superset.mcp_service.chart.chart_utils import merge_chart_form_data
+from superset.mcp_service.chart.chart_utils import (
+    merge_chart_form_data,
+    merge_form_data_for_update,
+)
 from superset.mcp_service.chart.plugin import BaseChartPlugin, ChartTypePlugin
 from superset.mcp_service.chart.preview_utils import (
     _generate_ascii_preview_from_data,
@@ -87,12 +90,15 @@ HOOKS = (
     "validate_form_data_state",
     "resolve_update_config",
     "merge_update_form_data",
+    "finalize_update_form_data",
+    "normalize_saved_form_data",
     "validate_merged_form_data",
 )
 FLAGS = (
     "requires_compile_check",
     "requires_config_for_dataset_rebind",
     "strict_dataset_rebind",
+    "owns_update_merge",
     "unbound_form_data_is_rebind",
     "normalize_data_results",
     "allows_empty_result",
@@ -416,6 +422,33 @@ def test_dataset_rebind_drops_saved_query_roles(
     assert resolved.chart_type == config.chart_type
 
 
+@pytest.mark.parametrize(("plugin", "example"), EXAMPLES, ids=EXAMPLE_IDS)
+@pytest.mark.parametrize("dataset_rebind", [False, True])
+def test_update_tool_merge_keeps_mapped_state_and_drops_stale_filters(
+    plugin: ChartTypePlugin, example: dict[str, Any], dataset_rebind: bool
+) -> None:
+    """The update tools' merge keeps mapped roles; a rebind drops old filters."""
+    config = _config(example)
+    form_data = _form_data(plugin, example)
+    stale_filter = {
+        "expressionType": "SIMPLE",
+        "clause": "WHERE",
+        "subject": "old_column",
+        "operator": "==",
+        "comparator": "x",
+    }
+    existing = {**deepcopy(form_data), "adhoc_filters": [stale_filter]}
+    merged = merge_form_data_for_update(
+        existing, deepcopy(form_data), config, dataset_rebind=dataset_rebind
+    )
+    assert merged["viz_type"] == form_data["viz_type"]
+    for key in ("metric", "metrics", "groupby", "x_axis", "all_columns"):
+        if form_data.get(key):
+            assert merged.get(key) == form_data[key], key
+    if dataset_rebind:
+        assert stale_filter not in merged.get("adhoc_filters", [])
+
+
 def test_viz_type_change_never_inherits_controls() -> None:
     """Changing viz type replaces every saved control, for every plugin."""
     for plugin, example in EXAMPLES:
@@ -441,7 +474,7 @@ _DISPATCHERS: dict[Any, tuple[str, ...]] = {
         "_generate_vega_lite_preview_from_data",
     ),
     compile_module: ("_compile_chart", "validate_and_compile"),
-    chart_utils: ("merge_chart_form_data",),
+    chart_utils: ("merge_chart_form_data", "merge_form_data_for_update"),
 }
 _DISPATCH_MODULES = (
     "superset/mcp_service/chart/tool/get_chart_preview.py",
