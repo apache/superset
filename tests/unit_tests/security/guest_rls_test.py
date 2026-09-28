@@ -506,6 +506,28 @@ def test_global_guest_rule_applied_to_virtual_dataset_subquery(
     )
 
 
+def test_global_guest_rule_applied_to_subquery_beside_unaliased_derived_table(
+    app: Flask,
+    mocker: MockerFixture,
+) -> None:
+    """
+    An unaliased derived table in the outer query doesn't make a sub-query with
+    unqualified columns look correlated, so the sub-query keeps the global guest
+    RLS rules.
+    """
+    sql = _apply_virtual_dataset_rls_as_guest(
+        mocker,
+        [GuestTokenRlsRule(dataset=None, clause="org_id = 1")],
+        "SELECT x, (SELECT COUNT(*) FROM b WHERE v > 0) AS n FROM (SELECT * FROM a)",
+    )
+
+    subquery, outer = sql.split(") AS n", 1)
+    assert "b.org_id = 1" in subquery, f"Sub-query is not scoped. Got: {sql}"
+    assert "org_id" not in outer, (
+        f"Rows reaching the outer query must be left to its own filter. Got: {sql}"
+    )
+
+
 def test_global_guest_rule_left_to_outer_query_for_correlated_subquery(
     app: Flask,
     mocker: MockerFixture,
