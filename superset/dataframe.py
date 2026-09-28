@@ -34,6 +34,30 @@ _NUMPY_FLOAT_TYPES = frozenset(
     for value in (np.float16(0), np.float32(0), np.float64(0), np.longdouble(0))
 )
 _PANDAS_MISSING_TYPES = frozenset({type(pd.NA), type(pd.NaT)})
+_NUMPY_NATIVE_TYPES = frozenset(
+    {
+        np.bool_,
+        np.int8,
+        np.int16,
+        np.int32,
+        np.int64,
+        np.intc,
+        np.intp,
+        np.longlong,
+        np.uint8,
+        np.uint16,
+        np.uint32,
+        np.uint64,
+        np.uintc,
+        np.uintp,
+        np.ulonglong,
+        np.float16,
+        np.float32,
+        np.float64,
+        np.str_,
+        np.bytes_,
+    }
+)
 
 
 def _convert_big_integers(val: Any) -> Any:
@@ -89,6 +113,11 @@ def df_to_records(
 
     for record in records:
         for key, value in dict.items(record):
+            # Restore pandas' native scalar boxing without calling hooks on
+            # arbitrary objects or scalar subclasses. Keep longdouble intact:
+            # converting it to float can overflow or lose precision.
+            if type(value) in _NUMPY_NATIVE_TYPES:
+                value = value.item()
             dict.__setitem__(
                 record,
                 key,

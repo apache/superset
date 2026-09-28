@@ -18,6 +18,7 @@
 from datetime import datetime
 from decimal import Decimal
 from enum import Enum
+from typing import Any
 
 import numpy as np
 import pandas as pd
@@ -43,6 +44,88 @@ class HostileDecimal(Decimal):
 
     def __float__(self) -> float:
         raise AssertionError("hostile Decimal float hook executed")
+
+
+@pytest.mark.parametrize("dtype", ["Float32", "object"])
+def test_df_to_records_boxes_numpy_float(dtype: str) -> None:
+    """Finite NumPy floats serialize as native JSON numbers."""
+    frame = pd.DataFrame({"value": pd.Series([np.float32(1.5), None], dtype=dtype)})
+
+    records = df_to_records(frame)
+
+    assert type(records[0]["value"]) is float
+    assert records[1]["value"] is None
+    assert superset_json.loads(superset_json.dumps(records, ignore_nan=False)) == [
+        {"value": 1.5},
+        {"value": None},
+    ]
+
+
+@pytest.mark.parametrize("dtype", ["Int64", "object"])
+@pytest.mark.parametrize("convert_big_integers", [True, False])
+def test_df_to_records_boxes_numpy_integer(
+    dtype: str, convert_big_integers: bool
+) -> None:
+    """Nullable and object integers retain the browser-safe integer contract."""
+    big = 2**53 + 1
+    frame = pd.DataFrame(
+        {
+            "value": pd.Series(
+                [np.int64(7), np.int64(big), np.int64(-big), pd.NA], dtype=dtype
+            )
+        }
+    )
+
+    records = df_to_records(frame, convert_big_integers=convert_big_integers)
+
+    assert type(records[0]["value"]) is int
+    expected = [
+        {"value": 7},
+        {"value": str(big) if convert_big_integers else big},
+        {"value": str(-big) if convert_big_integers else -big},
+        {"value": None},
+    ]
+    assert records == expected
+    assert (
+        superset_json.loads(superset_json.dumps(records, ignore_nan=False)) == expected
+    )
+
+
+@pytest.mark.parametrize(
+    "value, expected",
+    [
+        (np.bool_(True), True),
+        (np.uint64(2**63), str(2**63)),
+        (np.float16(1.5), 1.5),
+        (np.str_("value"), "value"),
+        (np.bytes_(b"value"), b"value"),
+    ],
+)
+def test_df_to_records_boxes_native_numpy_scalars(value: Any, expected: Any) -> None:
+    """Trusted scalar boxing restores native types for object columns."""
+    records = df_to_records(pd.DataFrame({"value": pd.Series([value], dtype=object)}))
+
+    assert type(records[0]["value"]) is type(expected)
+    assert records[0]["value"] == expected
+
+
+def test_df_to_records_does_not_box_numpy_subclasses() -> None:
+    """Only exact NumPy types may execute scalar conversion methods."""
+
+    class HostileFloat(np.float32):
+        def item(self, *args: Any) -> Any:
+            raise AssertionError("hostile item hook executed")
+
+        def __float__(self) -> float:
+            raise AssertionError("hostile float hook executed")
+
+        def __eq__(self, other: object) -> bool:
+            raise AssertionError("hostile equality hook executed")
+
+    value = HostileFloat(1.5)
+    records = df_to_records(pd.DataFrame({"value": pd.Series([value], dtype=object)}))
+
+    assert records[0]["value"] is value
 
 
 def test_df_to_records_preserves_finite_longdouble_and_nulls_nonfinite() -> None:
