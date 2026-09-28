@@ -29,8 +29,10 @@ from superset.mcp_service.chart.chart_utils import (
 from superset.mcp_service.chart.plugin import BaseChartPlugin
 from superset.mcp_service.chart.schemas import (
     BulletChartConfig,
+    ChartError,
     ColumnRef,
     resolve_bullet_order_target,
+    VegaLitePreview,
 )
 from superset.mcp_service.chart.validation.dataset_validator import (
     AmbiguousDatasetReferenceError,
@@ -281,3 +283,21 @@ class BulletChartPlugin(BaseChartPlugin):
             ],
             error_code="BULLET_VALIDATION_ERROR",
         )
+
+    def ascii_preview(
+        self, data: list[Any], form_data: dict[str, Any], width: int
+    ) -> str | ChartError | None:
+        from superset.mcp_service.chart.preview_utils import (
+            _generate_ascii_bullet_chart,
+        )
+
+        return _generate_ascii_bullet_chart(data, form_data)
+
+    def vega_lite_preview(
+        self, data: list[Any], form_data: dict[str, Any]
+    ) -> VegaLitePreview | ChartError | None:
+        from superset.mcp_service.chart.preview_utils import (
+            _generate_bullet_vega_lite_preview,
+        )
+
+        return _generate_bullet_vega_lite_preview(data, form_data)

@@ -183,3 +183,46 @@ class HistogramChartPlugin(BaseChartPlugin):
             ],
             error_code="HISTOGRAM_VALIDATION_ERROR",
         )
+
+    def resolve_query_fields(
+        self, form_data: Mapping[str, Any], viz_type: str
+    ) -> tuple[list[Any], list[Any]] | None:
+        raw_groupby = form_data.get("groupby") or []
+        groupby = [raw_groupby] if isinstance(raw_groupby, str) else list(raw_groupby)
+        column = form_data.get("column")
+        columns = [*groupby, column] if column else groupby
+        # Matches Histogram buildQuery: a HAVING filter needs an aggregate.
+        has_having = any(
+            isinstance(filter_, Mapping) and filter_.get("clause") == "HAVING"
+            for filter_ in form_data.get("adhoc_filters") or []
+        )
+        metrics: list[Any] = (
+            [
+                {
+                    "expressionType": "SQL",
+                    "sqlExpression": "COUNT(*)",
+                    "label": "COUNT(*)",
+                }
+            ]
+            if has_having
+            else []
+        )
+        return metrics, columns
+
+    def build_query_dicts(
+        self,
+        form_data: dict[str, Any],
+        *,
+        viz_type: str,
+        engine: str,
+        row_limit: int | None,
+        order_desc: bool | None,
+    ) -> list[dict[str, Any]] | None:
+        from superset.mcp_service.chart.chart_helpers import build_histogram_query_dicts
+
+        return build_histogram_query_dicts(
+            form_data,
+            engine=engine,
+            row_limit=row_limit,
+            order_desc=order_desc,
+        )

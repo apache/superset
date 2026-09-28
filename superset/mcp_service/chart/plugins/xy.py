@@ -200,3 +200,23 @@ class XYChartPlugin(BaseChartPlugin):
             ],
             error_code="XY_VALIDATION_ERROR",
         )
+
+    def build_query_dicts(
+        self,
+        form_data: dict[str, Any],
+        *,
+        viz_type: str,
+        engine: str,
+        row_limit: int | None,
+        order_desc: bool | None,
+    ) -> list[dict[str, Any]] | None:
+        from superset.mcp_service.chart.chart_helpers import (
+            build_timeseries_query_dicts,
+        )
+
+        return build_timeseries_query_dicts(
+            form_data,
+            engine=engine,
+            row_limit=row_limit,
+            order_desc=order_desc,
+        )

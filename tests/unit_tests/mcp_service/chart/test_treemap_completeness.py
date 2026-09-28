@@ -28,12 +28,12 @@ from unittest.mock import Mock, patch
 import pytest
 from pydantic import ValidationError
 
-from superset.mcp_service.chart.chart_helpers import _build_single_query_dict
 from superset.mcp_service.chart.chart_utils import (
     map_treemap_config,
     merge_chart_form_data,
     resolve_treemap_update_config,
 )
+from superset.mcp_service.chart.plugins.treemap import TreemapChartPlugin
 from superset.mcp_service.chart.query_result import normalize_chart_query_result
 from superset.mcp_service.chart.schemas import (
     ChartError,
@@ -45,6 +45,17 @@ from superset.mcp_service.chart.schemas import (
 )
 from superset.mcp_service.chart.treemap_preview import treemap_ascii, treemap_vega_lite
 from superset.utils import json
+
+
+def _treemap_query(form: dict[str, Any]) -> dict[str, Any]:
+    """Build the single Treemap query through the plugin contract."""
+    queries = TreemapChartPlugin().build_query_dicts(
+        form, viz_type="treemap_v2", engine="sqlite", row_limit=None, order_desc=None
+    )
+    assert queries is not None
+    assert len(queries) == 1
+    return queries[0]
+
 
 FORM_DATA: dict[str, Any] = {
     "viz_type": "treemap_v2",
@@ -96,7 +107,7 @@ def _query_context_stub(form_data: dict[str, Any]) -> SimpleNamespace:
 def test_hierarchy_query_order_matches_frontend(sort: bool, limit: int | None) -> None:
     """Metric order has precedence, with hierarchy tie-breakers only when bounded."""
     form = {**FORM_DATA, "sort_by_metric": sort, "row_limit": limit}
-    query = _build_single_query_dict(form, form["groupby"], [form["metric"]])
+    query = _treemap_query(form)
     expected = ([("revenue", False)] if sort else []) + [
         ("region", True),
         ("product", True),
@@ -873,9 +884,7 @@ def test_treemap_query_ignores_stale_cross_chart_roles() -> None:
 @pytest.mark.parametrize("limit", ["0", "0.0", "", "1"])
 def test_native_string_row_limits_match_frontend(limit: str) -> None:
     """Frontend applyOrderBy numerically parses string row limits."""
-    query = _build_single_query_dict(
-        {**FORM_DATA, "row_limit": limit}, ["region"], ["revenue"]
-    )
+    query = _treemap_query({**FORM_DATA, "groupby": ["region"], "row_limit": limit})
     assert query.get("orderby", []) == ([("region", True)] if limit == "1" else [])
 
 

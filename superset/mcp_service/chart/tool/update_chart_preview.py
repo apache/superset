@@ -45,8 +45,6 @@ from superset.mcp_service.chart.chart_utils import (
     merge_same_viz_form_data,
     merge_table_column_config,
     merge_update_form_data,
-    resolve_treemap_update_config,
-    validate_gantt_form_data,
     validate_merged_bullet_form_data,
 )
 from superset.mcp_service.chart.compile import validate_and_compile
@@ -54,6 +52,7 @@ from superset.mcp_service.chart.preview_utils import (
     generate_preview_from_form_data,
     SUPPORTED_FORM_DATA_PREVIEW_FORMATS,
 )
+from superset.mcp_service.chart.registry import get_registry, plugin_for_viz_type
 from superset.mcp_service.chart.response_preflight import (
     preflight_update_preview_response,
 )
@@ -226,21 +225,27 @@ def update_chart_preview(  # noqa: C901
                 or (previous_form_data or {}).get("datasource_id")
                 or ""
             ).split("__", 1)[0]
+            plugin = get_registry().get(config.chart_type)
             dataset_rebind = previous_datasource != str(dataset.id) and (
-                bool(previous_datasource) or config.chart_type == "treemap_v2"
+                bool(previous_datasource)
+                or bool(plugin and plugin.unbound_form_data_is_rebind)
             )
             try:
-                config = resolve_treemap_update_config(
-                    config,
-                    previous_form_data or {},
-                    dataset_rebind=dataset_rebind,
-                )
+                if plugin is not None:
+                    config = plugin.resolve_update_config(
+                        config,
+                        previous_form_data or {},
+                        dataset_rebind=dataset_rebind,
+                    )
             except ValueError as ex:
                 return {
                     "chart": None,
                     "error": {
                         "error_type": "ValidationError",
-                        "message": "Invalid Treemap update configuration",
+                        "message": (
+                            f"Invalid {plugin.display_name if plugin else 'chart'} "
+                            "update configuration"
+                        ),
                         "details": str(ex),
                     },
                     "success": False,
@@ -313,19 +318,20 @@ def update_chart_preview(  # noqa: C901
                         ):
                             new_form_data.pop(form_data_field, None)
 
-            merged_gantt_config = validate_gantt_form_data(
-                new_form_data,
-                request.dataset_id,
-                dataset_context=(
-                    dataset_context
-                    if new_form_data.get("viz_type") == "gantt_chart"
-                    else None
-                ),
+            merged_plugin = plugin_for_viz_type(new_form_data.get("viz_type"))
+            merged_config = (
+                merged_plugin.validate_merged_form_data(
+                    new_form_data,
+                    request.dataset_id,
+                    dataset_context=lambda: dataset_context,
+                )
+                if merged_plugin is not None
+                else None
             )
-            if merged_gantt_config is not None:
+            if merged_config is not None:
                 # Compile the final cached state rather than the pre-merge
                 # request, so preserved native fields cannot bypass semantics.
-                config = merged_gantt_config
+                config = merged_config
 
             validation_config = config
             try:

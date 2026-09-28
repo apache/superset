@@ -43,6 +43,9 @@ class BigNumberChartPlugin(BaseChartPlugin):
         "big_number": "Big Number with Trendline",
         "big_number_total": "Big Number",
     }
+    TRENDLINE_VIZ_TYPE = "big_number"
+    # Period-over-period KPIs share the singular-metric query contract.
+    additional_viz_types = frozenset({"pop_kpi"})
 
     def pre_validate(
         self,
@@ -245,4 +248,39 @@ class BigNumberChartPlugin(BaseChartPlugin):
                 "Without trendline: just provide the metric",
             ],
             error_code="BIG_NUMBER_VALIDATION_ERROR",
+        )
+
+    def resolve_query_fields(
+        self, form_data: Mapping[str, Any], viz_type: str
+    ) -> tuple[list[Any], list[Any]] | None:
+        metric = form_data.get("metric")
+        if not metric:
+            # Some saved/migrated form_data stores the metric under the
+            # plural "metrics" key even for single-metric chart types.
+            plural_metrics = form_data.get("metrics") or []
+            metric = plural_metrics[0] if plural_metrics else None
+        return ([metric] if metric else []), []
+
+    def build_query_dicts(
+        self,
+        form_data: dict[str, Any],
+        *,
+        viz_type: str,
+        engine: str,
+        row_limit: int | None,
+        order_desc: bool | None,
+    ) -> list[dict[str, Any]] | None:
+        if viz_type not in self.native_viz_types:
+            # Period-over-period KPIs use the shared singular-metric query.
+            return None
+        from superset.mcp_service.chart.chart_helpers import (
+            build_big_number_query_dicts,
+        )
+
+        return build_big_number_query_dicts(
+            form_data,
+            trendline=viz_type == self.TRENDLINE_VIZ_TYPE,
+            engine=engine,
+            row_limit=row_limit,
+            order_desc=order_desc,
         )
