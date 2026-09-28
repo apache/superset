@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-23 12:43+0200\n"
+"POT-Creation-Date: 2026-09-24 10:35+0300\n"
 "PO-Revision-Date: 2024-05-14 13:30+0900\n"
 "Last-Translator: Yuri Umezaki <bungoume@gmail.com>\n"
 "Language: ja\n"
@@ -939,6 +939,12 @@ msgid ""
 "A butterfly chart compares two metrics across categories using horizontal"
 " bars that extend left and right from a central axis."
 msgstr ""
+
+msgid ""
+"A candlestick chart shows opening, closing, high, and low values for each"
+" period. It is commonly used for financial and other time-series range "
+"analysis."
+msgstr "ローソク足チャートは、各期間の始値、終値、高値、安値を示します。金融やその他の時系列レンジ分析によく使われます。"
 
 msgid "A comma separated list of columns that should be parsed as dates"
 msgstr "日付として解析する列のリスト(カンマ区切り)"
@@ -2939,6 +2945,17 @@ msgstr "ウィンドウのアンロード時にクエリをキャンセル"
 msgid "Cancellation not available due to missing abort handler"
 msgstr "中止ハンドラーが存在しないため、キャンセルは使用できません"
 
+msgid "Candlestick"
+msgstr "ローソク足"
+
+msgid "Candlestick Chart"
+msgstr "ローソク足チャート"
+
+msgid ""
+"Candlestick draws a filled body between open and close. OHLC draws ticks "
+"for open and close on a high-low stem."
+msgstr "ローソク足は始値と終値の間に塗りつぶした実体を描きます。OHLCは高値安値の軸に始値と終値のティックを描きます。"
+
 msgid "Cannot access the query"
 msgstr "クエリにアクセスできません"
 
@@ -3333,6 +3350,13 @@ msgstr "チャートは保存されましたが、選択したタブに追加で
 msgid "Chart width"
 msgstr "チャートの幅"
 
+#, python-format
+msgid ""
+"Chart with ID %(chart_id)s (referenced by annotation layer "
+"'%(layer_name)s') was not found. Please verify that the chart exists and "
+"is accessible."
+msgstr ""
+
 msgid "Charts"
 msgstr "チャート"
 
@@ -3643,6 +3667,9 @@ msgstr "タブを閉じる"
 msgid "Close version history"
 msgstr ""
 
+msgid "Closing value for each period."
+msgstr "各期間の終値。"
+
 msgid "Cluster label aggregator"
 msgstr "クラスターラベル集計"
 
@@ -3721,6 +3748,9 @@ msgstr "色の境界点"
 msgid "Color by"
 msgstr "色分けの基準"
 
+msgid "Color by direction"
+msgstr "方向で色分け"
+
 msgid "Color field must be a hex color (#rrggbb) or 'rgb(r, g, b)'"
 msgstr "カラーフィールドは16進数カラー（#rrggbb）または 'rgb(r, g, b)' である必要があります"
 
@@ -3744,6 +3774,14 @@ msgstr "ターゲット地点の色"
 
 msgid "Color scheme"
 msgstr "配色"
+
+msgid ""
+"Color used when the close value is greater than or equal to the open "
+"value."
+msgstr "終値が始値以上のときに使う色。"
+
+msgid "Color used when the close value is less than the open value."
+msgstr "終値が始値より小さいときに使う色。"
 
 msgid ""
 "Color will be shaded based the normalized (0% to 100%) value of a given "
@@ -7072,6 +7110,9 @@ msgstr ""
 "同じグループキーを持つフィルターはグループ内で「OR(いずれか)」として結合され、異なるグループ間は「AND(すべて一致)」で結合されます。グループキーが未定義のものはそれぞれ固有のグループとして扱われます。例えば、部署(department)キーを持つ「財務」と「マーケティング」のフィルター、および地域(region)キーを持つ「欧州」のフィルターがある場合、結果は「(財務"
 " OR マーケティング) AND 欧州」となります。"
 
+msgid "Financial"
+msgstr ""
+
 msgid "Find"
 msgstr "検索"
 
@@ -7515,8 +7556,14 @@ msgstr "時系列の線を非表示にします"
 msgid "Hierarchy"
 msgstr "階層"
 
+msgid "High"
+msgstr ""
+
 msgid "High color"
 msgstr ""
+
+msgid "Highest value for each period."
+msgstr "各期間の高値。"
 
 msgid "Histogram"
 msgstr "ヒストグラム"
@@ -8196,6 +8243,12 @@ msgstr "ラベルサイズの単位"
 msgid "Label threshold"
 msgstr "ラベルのしきい値"
 
+msgid "Label used for decreasing candles in the tooltip."
+msgstr "ツールチップで陰線に使うラベル。"
+
+msgid "Label used for increasing candles in the tooltip."
+msgstr "ツールチップで陽線に使うラベル。"
+
 msgid "Labelling"
 msgstr "ラベリング"
 
@@ -8653,6 +8706,9 @@ msgstr "経度および緯度"
 msgid "Longitude of default viewport"
 msgstr "既定ビューポートの経度"
 
+msgid "Low"
+msgstr ""
+
 msgid "Low color"
 msgstr ""
 
@@ -8666,6 +8722,9 @@ msgstr ""
 
 msgid "Lower threshold must be lower than upper threshold"
 msgstr "下限しきい値は上限しきい値より小さい必要があります"
+
+msgid "Lowest value for each period."
+msgstr "各期間の安値。"
 
 msgid "MAR"
 msgstr "3月"
@@ -9214,6 +9273,9 @@ msgstr ""
 msgid "Moves the given set of dates by a specified interval."
 msgstr "指定された一連の日付を、指定した間隔だけ移動(シフト)させます。"
 
+msgid "Moving averages"
+msgstr "移動平均"
+
 msgid "Multi-Dimensions"
 msgstr "マルチディメンション"
 
@@ -9312,6 +9374,11 @@ msgstr "ターゲットノードの名前"
 
 msgid "Name of your tag"
 msgstr "タグの名前"
+
+msgid ""
+"Name used for the candlestick series in the legend and tooltip when no "
+"series dimension is set."
+msgstr "系列ディメンションが未設定のときに、凡例とツールチップで使うローソク足系列の名前。"
 
 msgid "Name your database"
 msgstr "データベースに名前を付けてください"
@@ -9805,6 +9872,9 @@ msgstr "OAuth2クライアント情報"
 msgid "OCT"
 msgstr "10月"
 
+msgid "OHLC"
+msgstr "OHLC"
+
 msgid "OK"
 msgstr "OK"
 
@@ -9944,6 +10014,9 @@ msgstr "バブルの不透明度(0は完全透明、1は不透明)"
 msgid "Opacity, expects values between 0 and 100"
 msgstr "不透明度(0から100の間の値)"
 
+msgid "Open"
+msgstr ""
+
 msgid "Open Datasource tab"
 msgstr "データソースタブを開く"
 
@@ -9974,6 +10047,9 @@ msgstr "SQL Labで開く"
 msgid "Open query in SQL Lab"
 msgstr "クエリをSQL Labで開く"
 
+msgid "Opening value for each period."
+msgstr "各期間の始値。"
+
 msgid ""
 "Operate the database in asynchronous mode, meaning that the queries are "
 "executed on remote workers as opposed to on the web server itself. This "
@@ -9998,6 +10074,11 @@ msgstr "任意のD3日付形式文字列"
 
 msgid "Optional d3 number format string"
 msgstr "任意のD3数値形式文字列"
+
+msgid ""
+"Optional dimension used to split the chart into multiple candlestick "
+"series."
+msgstr "チャートを複数のローソク足系列に分割する任意のディメンション。"
 
 msgid ""
 "Optional metric used to scale the size of each dot. Dot areas are scaled "
@@ -10107,6 +10188,11 @@ msgid ""
 "the comparison time range by the same length as your time range and use "
 "\"Custom\" to set a custom comparison range."
 msgstr "相対的な期間の結果をオーバーレイ表示します。24時間、7日、52週間、365日などの自然言語形式で時間差を指定してください。「時間フィルターから範囲を継承」を使用すると、指定した時間範囲と同じ長さだけ比較期間をシフトさせます。「カスタム」で独自の比較範囲を設定することも可能です。"
+
+msgid ""
+"Overlay simple moving averages of the close price (MA5, MA10, MA15, ...)."
+" Type a custom period to add it."
+msgstr "終値の単純移動平均（MA5、MA10、MA15 など）を重ねます。期間を入力すると追加できます。"
 
 msgid ""
 "Overlays a hexagonal grid on a map, and aggregates data within the "
@@ -12559,6 +12645,9 @@ msgstr "系列のスタイル"
 msgid "Series chart type (line, bar etc)"
 msgstr "系列のチャート種類 (折れ線、棒など)"
 
+msgid "Series colors"
+msgstr "系列の色"
+
 msgid "Series decrease setting"
 msgstr "系列減少の設定"
 
@@ -12568,8 +12657,14 @@ msgstr "系列増加の設定"
 msgid "Series limit"
 msgstr "系列の制限"
 
+msgid "Series name"
+msgstr "系列名"
+
 msgid "Series settings"
 msgstr "系列の設定"
+
+msgid "Series style"
+msgstr "系列スタイル"
 
 msgid "Series total setting"
 msgstr "系列合計の設定"
@@ -12872,6 +12967,9 @@ msgid ""
 msgstr ""
 
 msgid "Show or hide the X axis line, ticks, and labels"
+msgstr ""
+
+msgid "Show or hide the Y axis line and labels"
 msgstr ""
 
 msgid "Show or hide the Y axis line, ticks, gridlines, and labels"
@@ -14509,6 +14607,13 @@ msgstr "クエリに1つ以上の不正なテンプレートパラメータが�
 
 msgid "The query context datasource does not match the chart datasource"
 msgstr "クエリのコンテキストのデータソースが、チャートのデータソースと一致しません"
+
+#, python-format
+msgid ""
+"The query context for chart ID %(chart_id)s (referenced by annotation "
+"layer '%(layer_name)s') was not found. Please ensure the chart is "
+"properly configured and has a valid query context."
+msgstr ""
 
 msgid "The query couldn't be loaded"
 msgstr "クエリを読み込めませんでした"
@@ -16964,6 +17069,12 @@ msgid "When checked, the map will zoom to your data after each query"
 msgstr "有効にすると、クエリ実行のたびにデータがある範囲へマップがズームします"
 
 msgid ""
+"When enabled, increasing candles use the increase color and decreasing "
+"candles use the decrease color. Turn off to use one series color, with a "
+"filled body for increases and a hollow body for decreases."
+msgstr "有効にすると、陽線は上昇色、陰線は下降色を使います。オフにすると系列色は1つになり、上昇は実体塗り、下降は中空になります。"
+
+msgid ""
 "When enabled, the axis will display labels for the minimum and maximum "
 "values of your data"
 msgstr "有効にすると、データ内の最小値と最大値のラベルが軸に表示されます"
@@ -17713,7 +17824,18 @@ msgstr ""
 "です。ダッシュボードのサイズを縮小するか（たとえば複数のダッシュボードに分割するなど）SUPERSET_DASHBOARD_POSITION_DATA_LIMIT"
 " 設定値を上げてください。"
 
-msgid "Your export is being prepared. You'll receive an email when it's ready."
+msgid ""
+"Your export is being generated and will download automatically when "
+"ready. We'll also email you a download link."
+msgstr ""
+
+msgid "Your export is being generated. Please, do not leave the page."
+msgstr ""
+
+msgid "Your export is ready and downloading."
+msgstr ""
+
+msgid "Your export is taking longer than expected. Try again later."
 msgstr ""
 
 #, python-format
