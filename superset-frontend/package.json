@@ -388,6 +388,9 @@
     },
     "@jest/globals": "^30.4.0",
     "@jest/types": "^30.4.0",
+    "@loaders.gl/compression": {
+      "fflate": "^0.7.5"
+    },
     "@luma.gl/constants": "~9.2.5",
     "@luma.gl/core": "~9.2.5",
     "@luma.gl/engine": "~9.2.5",
@@ -396,7 +399,7 @@
     "@luma.gl/webgl": "~9.2.5",
     "core-js": "^3.38.1",
     "cosmiconfig": {
-      "js-yaml": "^4.3.1"
+      "js-yaml": "^4.3.2"
     },
     "dompurify": "^3.4.13",
     "esbuild": "^0.28.1",
@@ -419,18 +422,24 @@
     },
     "jspdf": "^4.2.0",
     "lerna": {
-      "js-yaml": "^4.3.1"
+      "js-yaml": "^4.3.2"
     },
     "minimatch@>=10": {
       "brace-expansion": ">=5.0.8"
     },
     "nanoid@>=3 <4": "3.3.18",
     "nwsapi": "^2.2.24",
+    "nx": {
+      "smol-toml": "^1.7.1"
+    },
     "puppeteer": "^22.4.1",
     "react-diff-viewer-continued": {
-      "js-yaml": "^4.3.1"
+      "js-yaml": "^4.3.2"
     },
     "tar": "^7.5.16",
+    "texture-compressor": {
+      "image-size": "^2.0.3"
+    },
     "typescript-json-schema": "^0.68.0",
     "underscore": "^1.13.7",
     "uuid": "$uuid"
