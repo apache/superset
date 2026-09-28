@@ -95,7 +95,7 @@ def convert_po_to_json(node_bin: str, po2json_entry: str, po_file: str) -> str |
             "--domain",
             "superset",
             "--format",
-            "jed1.x",
+            "jed",
             "--fuzzy",
             po_file,
             json_dest,

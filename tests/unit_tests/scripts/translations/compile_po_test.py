@@ -142,7 +142,7 @@ def test_convert_po_to_json_success(tmp_path: Path) -> None:
             "--domain",
             "superset",
             "--format",
-            "jed1.x",
+            "jed",
             "--fuzzy",
             str(po_file),
             str(po_file.with_suffix(".json")),
