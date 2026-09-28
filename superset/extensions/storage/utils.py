@@ -103,7 +103,10 @@ def get_current_user_id(caller: str) -> int:
     :param caller: Name of the calling accessor (e.g. "ephemeral_state",
         "persistent_state"), used in the error message.
     """
-    user_id = get_user_id()
+    context = get_current_extension_context()
+    user_id = context.user_id if context is not None else None
+    if user_id is None:
+        user_id = get_user_id()
     if user_id is None:
         raise RuntimeError(
             f"{caller} requires an authenticated user. "
