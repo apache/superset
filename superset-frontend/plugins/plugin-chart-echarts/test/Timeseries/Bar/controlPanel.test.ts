@@ -17,6 +17,7 @@
  * under the License.
  */
 import { ControlPanelsContainerProps } from '@superset-ui/chart-controls/types';
+import { isCustomControlItem } from '@superset-ui/chart-controls';
 import { GenericDataType } from '@apache-superset/core/common';
 import controlPanel from '../../../src/Timeseries/Regular/Bar/controlPanel';
 import {
@@ -329,4 +330,13 @@ test('x_axis_time_format should be hidden for numeric columns', () => {
   expect(visibilityFn(mockBarControls('year', GenericDataType.Numeric))).toBe(
     false,
   );
+});
+
+test('xAxisForceCategorical defaults to true for bar charts', () => {
+  const control = getControl('xAxisForceCategorical');
+  const defaultValue = isCustomControlItem(control)
+    ? control.config.default
+    : undefined;
+
+  expect(defaultValue).toBe(true);
 });
