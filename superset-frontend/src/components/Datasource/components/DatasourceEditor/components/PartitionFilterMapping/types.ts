@@ -55,3 +55,22 @@ export interface PartitionMappingPreview {
  * mapping rather than a source for one.
  */
 export type PartitionRowState = 'mapped' | 'unmapped' | 'partition' | 'none';
+
+/**
+ * One problem with the mapping that stops the save.
+ *
+ * The client half of `MappingValidationIssue` in
+ * `superset/connectors/sqla/partition_mapping.py`, without its `blocking` flag:
+ * the backend reports two tiers because a half-written transform is allowed to
+ * save and sit inactive, and only the blocking tier is worth stopping the owner
+ * in the editor for. Everything this carries blocks, so the flag has nothing to
+ * distinguish. `field` names the input at fault, so the message can be shown
+ * there rather than only in the Save button's tooltip.
+ */
+export interface PartitionMappingIssue {
+  field:
+    | 'partition_column'
+    | 'partition_mapped_column'
+    | 'partition_value_transform';
+  message: string;
+}

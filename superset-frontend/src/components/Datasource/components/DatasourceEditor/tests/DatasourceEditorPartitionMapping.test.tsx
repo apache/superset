@@ -56,6 +56,17 @@ const lastSavedColumns = (props: DatasourceEditorProps): EditorColumn[] => {
 const columnNamed = (columns: EditorColumn[], name: string) =>
   columns.find(column => column.column_name === name);
 
+/**
+ * The validation errors from the editor's most recent `onChange`.
+ *
+ * What DatasourceModal disables Save on, so this is the save gate as the modal
+ * sees it.
+ */
+const lastValidationErrors = (props: DatasourceEditorProps): string[] => {
+  const { calls } = props.onChange.mock;
+  return (calls[calls.length - 1][1] ?? []) as string[];
+};
+
 beforeEach(() => {
   fetchMock.get(DATASOURCE_ENDPOINT, [], { name: DATASOURCE_ENDPOINT });
   setupDatasourceEditorMocks();
@@ -221,4 +232,50 @@ test('the mapping will not follow the default datetime column onto a calculated 
   expect(
     await screen.findByText(/No value transform is set on ds_day/),
   ).toBeInTheDocument();
+});
+
+test('a mapping onto a bare non-temporal column blocks the save', async () => {
+  // `state` is a VARCHAR, so it has no engine default to fall back on and the
+  // transform field marks itself required. Until now that marker was decorative:
+  // the save went through, the PUT filed it as a non-blocking issue, and the
+  // mapping sat inactive with nothing saying so at the field.
+  const props = createProps();
+  props.datasource.main_dttm_col = 'ds';
+  props.datasource.partition_column = null;
+  props.datasource.partition_mapped_column = 'state';
+
+  fastRender(props);
+  await dismissDatasourceWarning();
+  await userEvent.click(await screen.findByTestId('collection-tab-Columns'));
+  await screen.findByTestId('partition-column-select');
+
+  await selectOption('num', 'Partition column');
+
+  await waitFor(() => {
+    expect(lastValidationErrors(props)).toEqual([
+      expect.stringContaining('A value transform is required on state'),
+    ]);
+  });
+});
+
+test('a mapping onto the default datetime column does not block the save', async () => {
+  // The other side of the check: a temporal column with no transform is the
+  // "saved but inactive" case the PRD asks for, so picking a partition column
+  // must not strand the owner with a disabled Save button.
+  const props = createProps();
+  props.datasource.main_dttm_col = 'ds';
+  props.datasource.partition_column = null;
+  props.datasource.partition_mapped_column = null;
+
+  fastRender(props);
+  await dismissDatasourceWarning();
+  await userEvent.click(await screen.findByTestId('collection-tab-Columns'));
+  await screen.findByTestId('partition-column-select');
+
+  await selectOption('num', 'Partition column');
+
+  await waitFor(() => {
+    expect(props.onChange).toHaveBeenCalled();
+  });
+  expect(lastValidationErrors(props)).toEqual([]);
 });
