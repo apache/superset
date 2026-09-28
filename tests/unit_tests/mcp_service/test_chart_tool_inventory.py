@@ -47,10 +47,12 @@ from superset.utils import json
 # update_chart exceeds the proposed 50 kB target; 55 kB retains the entire
 # contract and stays below the 100 kB delivery cap. Byte budgets catch reference
 # inlining without a tokenizer vocabulary download in the unit-test path.
+# The geographic chart types add ~5.3 kB of schema; budgets still catch reference
+# inlining.
 TOOL_BUDGETS = [
-    ("generate_chart", 50_000),
-    ("update_chart", 55_000),
-    ("generate_explore_link", 50_000),
+    ("generate_chart", 56_000),
+    ("update_chart", 60_000),
+    ("generate_explore_link", 56_000),
 ]
 
 

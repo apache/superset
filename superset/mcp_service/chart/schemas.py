@@ -3676,10 +3676,26 @@ class GanttChartConfig(BaseChartConfig):
 
 
 # Discriminated union for runtime validation (not exposed in JSON Schema)
-class GeographicColumnRef(ColumnRef):
-    """Closed geographic role reference using the shared column/metric contract."""
+def _omit_inherited_descriptions(schema: dict[str, Any]) -> None:
+    """Drop field descriptions the published parent schema already carries.
 
-    model_config = ConfigDict(extra="forbid", populate_by_name=True, strict=True)
+    The geographic references and filters only tighten bounds on the shared
+    ``ColumnRef``/``FilterConfig`` fields, whose descriptions appear in the
+    same tool schema.
+    """
+    for prop in schema.get("properties", {}).values():
+        prop.pop("description", None)
+
+
+class GeographicColumnRef(ColumnRef):
+    """Closed ColumnRef for geographic roles."""
+
+    model_config = ConfigDict(
+        extra="forbid",
+        populate_by_name=True,
+        strict=True,
+        json_schema_extra=_omit_inherited_descriptions,
+    )
     dtype: str | None = Field(None, max_length=128)
 
 
@@ -3687,10 +3703,14 @@ GeographicFilterValue = Annotated[str, Field(max_length=1000)] | int | float | b
 
 
 class GeographicFilterConfig(FilterConfig):
-    """Shared filter semantics with bounded values and no unknown fields."""
+    """Closed FilterConfig with bounded values."""
 
     model_config = ConfigDict(
-        extra="forbid", populate_by_name=True, strict=True, allow_inf_nan=False
+        extra="forbid",
+        populate_by_name=True,
+        strict=True,
+        allow_inf_nan=False,
+        json_schema_extra=_omit_inherited_descriptions,
     )
     value: (
         GeographicFilterValue
