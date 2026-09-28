@@ -19,16 +19,21 @@
 """Cross-platform Python port of ``po2json.sh``.
 
 Compiles ``superset/translations/**/*.po`` into sibling ``.json`` files for
-the frontend (``po2json``), then formats the generated JSON with ``oxfmt`` --
-the same two steps ``po2json.sh`` performed, in the same order.
+the frontend (via the in-repo ``scripts/po2json-cli.js``), then formats the
+generated JSON with ``oxfmt`` -- the same two steps ``po2json.sh`` performed,
+in the same order.
 
-Each tool is invoked as ``node <package's own bin entry point>``, resolved
-from the package's own ``package.json`` "bin" field, rather than through the
-platform-specific ``node_modules/.bin`` wrapper (a symlink on POSIX, a
-``.cmd``/``.ps1`` shim on Windows). ``node`` is a real executable on every
-platform, so this never goes through ``cmd.exe`` the way invoking a ``.cmd``
-wrapper does (even with ``subprocess``'s ``shell=False``) -- so there is no
-shell-metacharacter or ``%VAR%``-expansion surface to defend against here.
+``po2json-cli.js`` is a fixed path in this repo, not an installed npm
+package (master dropped the ``po2json`` npm dependency entirely in favor of
+owning the ~40-line PO-to-Jed transform directly, see #44742), so it's
+invoked at that path rather than resolved. ``oxfmt`` is still a real
+devDependency, so it's still resolved from its own ``package.json`` "bin"
+field rather than through the platform-specific ``node_modules/.bin``
+wrapper (a symlink on POSIX, a ``.cmd``/``.ps1`` shim on Windows). Either
+way, ``node`` is a real executable on every platform, so this never goes
+through ``cmd.exe`` the way invoking a ``.cmd`` wrapper does (even with
+``subprocess``'s ``shell=False``) -- so there is no shell-metacharacter or
+``%VAR%``-expansion surface to defend against here.
 
 Usage:
     python scripts/translations/compile_po.py
@@ -48,6 +53,7 @@ ROOT_DIR = os.path.abspath(
 )
 FRONTEND_DIR = os.path.join(ROOT_DIR, "superset-frontend")
 TRANSLATIONS_DIR = os.path.join(ROOT_DIR, "superset", "translations")
+PO2JSON_CLI = os.path.join(FRONTEND_DIR, "scripts", "po2json-cli.js")
 
 
 def resolve_node_entry(package: str, bin_name: str | None = None) -> str | None:
@@ -57,11 +63,11 @@ def resolve_node_entry(package: str, bin_name: str | None = None) -> str | None:
     field instead of guessing at the ``node_modules/.bin`` wrapper's shape,
     so the result can always be run via ``node <entry>`` directly.
 
-    ``package`` is the npm package name -- e.g. ``@hainenber/po2json`` --
+    ``package`` is the npm package name -- e.g. ``@some-scope/some-tool`` --
     which may be scoped and so span two ``node_modules`` path segments.
     ``bin_name`` is the key under the package's "bin" field (the installed
     binary name, which for a scoped package is just its unscoped last
-    segment, e.g. ``po2json``); it defaults to ``package`` itself for
+    segment, e.g. ``some-tool``); it defaults to ``package`` itself for
     unscoped packages whose bin name matches the package name.
     """
     pkg_dir = os.path.join(FRONTEND_DIR, "node_modules", *package.split("/"))
@@ -90,8 +96,8 @@ def run(command: list[str]) -> int:
     return subprocess.run(command, check=False, env=env).returncode  # noqa: S603
 
 
-def convert_po_to_json(node_bin: str, po2json_entry: str, po_file: str) -> str | None:
-    """Convert one ``.po`` file to its sibling ``.json`` via ``po2json``.
+def convert_po_to_json(node_bin: str, po2json_cli: str, po_file: str) -> str | None:
+    """Convert one ``.po`` file to its sibling ``.json`` via ``po2json-cli.js``.
 
     Returns the generated ``.json`` path on success, ``None`` on failure.
     """
@@ -99,12 +105,9 @@ def convert_po_to_json(node_bin: str, po2json_entry: str, po_file: str) -> str |
     rc = run(
         [
             node_bin,
-            po2json_entry,
+            po2json_cli,
             "--domain",
             "superset",
-            "--format",
-            "jed",
-            "--fuzzy",
             po_file,
             json_dest,
         ]
@@ -112,31 +115,47 @@ def convert_po_to_json(node_bin: str, po2json_entry: str, po_file: str) -> str |
     return json_dest if rc == 0 else None
 
 
-def main() -> int:
-    """Convert every ``.po`` file under ``superset/translations`` to
-    ``.json``, then format the generated JSON with ``oxfmt``."""
+def resolve_prerequisites() -> tuple[str, str] | None:
+    """Resolve ``node`` and ``oxfmt``, and confirm ``po2json-cli.js`` and the
+    translations directory are present. Prints an error and returns ``None``
+    for the first thing missing; returns ``(node_bin, oxfmt_entry)`` once
+    everything needed is confirmed present.
+    """
     node_bin = shutil.which("node")
     if not node_bin:
         print("ERROR: node not found in PATH.", file=sys.stderr)
-        return 1
+        return None
 
-    po2json_entry = resolve_node_entry("@hainenber/po2json", "po2json")
+    if not os.path.isfile(PO2JSON_CLI):
+        print(f"ERROR: {PO2JSON_CLI} not found.", file=sys.stderr)
+        return None
+
     oxfmt_entry = resolve_node_entry("oxfmt")
-    if not po2json_entry or not oxfmt_entry:
+    if not oxfmt_entry:
         print(
-            "ERROR: po2json/oxfmt not found under "
-            f"{FRONTEND_DIR}/node_modules. Run `npm install` in "
-            "superset-frontend first.",
+            f"ERROR: oxfmt not found under {FRONTEND_DIR}/node_modules. "
+            "Run `npm install` in superset-frontend first.",
             file=sys.stderr,
         )
-        return 1
+        return None
 
     if not os.path.isdir(TRANSLATIONS_DIR):
         print(
             f"ERROR: translations directory not found: {TRANSLATIONS_DIR}",
             file=sys.stderr,
         )
+        return None
+
+    return node_bin, oxfmt_entry
+
+
+def main() -> int:
+    """Convert every ``.po`` file under ``superset/translations`` to
+    ``.json``, then format the generated JSON with ``oxfmt``."""
+    prerequisites = resolve_prerequisites()
+    if prerequisites is None:
         return 1
+    node_bin, oxfmt_entry = prerequisites
 
     po_files = sorted(
         glob.glob(os.path.join(TRANSLATIONS_DIR, "**", "*.po"), recursive=True)
@@ -145,7 +164,7 @@ def main() -> int:
     json_files: list[str] = []
     failed: list[str] = []
     for po_file in po_files:
-        json_dest = convert_po_to_json(node_bin, po2json_entry, po_file)
+        json_dest = convert_po_to_json(node_bin, PO2JSON_CLI, po_file)
         if json_dest:
             json_files.append(json_dest)
         else:

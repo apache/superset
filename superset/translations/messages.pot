@@ -921,6 +921,9 @@ msgid ""
 "https://echarts.apache.org/en/option.html. "
 msgstr ""
 
+msgid "A Slack channel is required for Slack recipients"
+msgstr ""
+
 msgid "A TTL is required for ephemeral state."
 msgstr ""
 
@@ -9687,6 +9690,15 @@ msgstr ""
 msgid "Not Time Series"
 msgstr ""
 
+#, python-format
+msgid ""
+"Not a Slack channel id: %(invalid)s. Superset uploads report attachments "
+"with files_upload_v2, which accepts a channel id and rejects a channel "
+"name, so a name is saved successfully and then never delivers. Choose the"
+" channel from the dropdown, or copy its id from Slack (channel name, View"
+" channel details, the id is at the bottom)."
+msgstr ""
+
 msgid "Not a valid ZIP file"
 msgstr ""
 
@@ -15114,6 +15126,10 @@ msgid "There was an issue previewing the selected query. %s"
 msgstr ""
 
 #, python-format
+msgid "These %(type)s will be moved to Recently Archived and may be permanently deleted on the next cleanup run."
+msgstr ""
+
+#, python-format
 msgid ""
 "These %(type)s will be moved to Recently Archived in the Settings menu. "
 "You can recover them there within %(days)s day."
@@ -15130,6 +15146,10 @@ msgid ""
 msgstr ""
 
 msgid "These are the datasets this filter will be applied to."
+msgstr ""
+
+#, python-format
+msgid "This %(type)s will be moved to Recently Archived and may be permanently deleted on the next cleanup run."
 msgstr ""
 
 #, python-format

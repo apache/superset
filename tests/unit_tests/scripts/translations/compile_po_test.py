@@ -59,21 +59,21 @@ def test_resolve_node_entry_dict_bin(tmp_path: Path) -> None:
 
 
 def test_resolve_node_entry_scoped_package(tmp_path: Path) -> None:
-    """A scoped package (e.g. ``@hainenber/po2json``) is looked up under its
-    own two-segment ``node_modules`` path, with the bin key coming from
+    """A scoped package (e.g. ``@some-scope/some-tool``) is looked up under
+    its own two-segment ``node_modules`` path, with the bin key coming from
     ``bin_name`` (the unscoped installed binary name) rather than the full
-    scoped package name -- regression for the actual installed package."""
-    pkg_dir = tmp_path / "node_modules" / "@hainenber" / "po2json"
+    scoped package name."""
+    pkg_dir = tmp_path / "node_modules" / "@some-scope" / "some-tool"
     pkg_dir.mkdir(parents=True)
     (pkg_dir / "package.json").write_text(
-        json.dumps({"bin": {"po2json": "bin/po2json"}})
+        json.dumps({"bin": {"some-tool": "bin/some-tool"}})
     )
     (pkg_dir / "bin").mkdir()
-    entry = pkg_dir / "bin" / "po2json"
+    entry = pkg_dir / "bin" / "some-tool"
     entry.touch()
 
     with patch.object(compile_po, "FRONTEND_DIR", str(tmp_path)):
-        resolved = compile_po.resolve_node_entry("@hainenber/po2json", "po2json")
+        resolved = compile_po.resolve_node_entry("@some-scope/some-tool", "some-tool")
     assert resolved == str(entry)
 
 
@@ -143,26 +143,24 @@ def test_run_returns_process_returncode() -> None:
 
 
 def test_convert_po_to_json_success(tmp_path: Path) -> None:
-    """Builds the po2json argv and writes to the .po file's .json sibling."""
+    """Builds the po2json-cli.js argv and writes to the .po file's .json
+    sibling."""
     po_file = tmp_path / "fr" / "LC_MESSAGES" / "messages.po"
     po_file.parent.mkdir(parents=True)
     po_file.write_text('msgid ""\nmsgstr ""\n')
 
     with patch.object(compile_po, "run", return_value=0) as mock_run:
         json_dest = compile_po.convert_po_to_json(
-            "/usr/bin/node", "/pkg/bin/po2json", str(po_file)
+            "/usr/bin/node", "/repo/scripts/po2json-cli.js", str(po_file)
         )
 
     assert json_dest == str(po_file.with_suffix(".json"))
     mock_run.assert_called_once_with(
         [
             "/usr/bin/node",
-            "/pkg/bin/po2json",
+            "/repo/scripts/po2json-cli.js",
             "--domain",
             "superset",
-            "--format",
-            "jed",
-            "--fuzzy",
             str(po_file),
             str(po_file.with_suffix(".json")),
         ]
@@ -170,10 +168,10 @@ def test_convert_po_to_json_success(tmp_path: Path) -> None:
 
 
 def test_convert_po_to_json_failure() -> None:
-    """Reports failure when po2json returns non-zero."""
+    """Reports failure when po2json-cli.js returns non-zero."""
     with patch.object(compile_po, "run", return_value=1):
         json_dest = compile_po.convert_po_to_json(
-            "/usr/bin/node", "/pkg/bin/po2json", "x.po"
+            "/usr/bin/node", "/repo/scripts/po2json-cli.js", "x.po"
         )
     assert json_dest is None
 
@@ -193,7 +191,7 @@ def test_convert_po_to_json_preserves_locale_in_path(tmp_path: Path) -> None:
     with patch.object(compile_po, "run", return_value=0) as mock_run:
         for po_file in (fr_po, de_po):
             compile_po.convert_po_to_json(
-                "/usr/bin/node", "/pkg/bin/po2json", str(po_file)
+                "/usr/bin/node", "/repo/scripts/po2json-cli.js", str(po_file)
             )
             destinations.append(mock_run.call_args.args[0][-1])
 
@@ -213,8 +211,18 @@ def test_main_missing_node() -> None:
         assert compile_po.main() == 1
 
 
-def test_main_missing_npm_packages() -> None:
-    """Returns 1 when po2json or oxfmt aren't installed."""
+def test_main_missing_po2json_cli(tmp_path: Path) -> None:
+    """Returns 1 when po2json-cli.js isn't present at its fixed repo path
+    (an incomplete checkout, not a missing npm install)."""
+    with (
+        patch.object(compile_po.shutil, "which", return_value="/usr/bin/node"),
+        patch.object(compile_po, "PO2JSON_CLI", str(tmp_path / "nope.js")),
+    ):
+        assert compile_po.main() == 1
+
+
+def test_main_missing_oxfmt() -> None:
+    """Returns 1 when oxfmt isn't installed under node_modules."""
     with (
         patch.object(compile_po.shutil, "which", return_value="/usr/bin/node"),
         patch.object(compile_po, "resolve_node_entry", return_value=None),
