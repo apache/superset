@@ -316,12 +316,17 @@ pybabel init -i superset/translations/messages.pot -d superset/translations -l d
 ### Extracting new strings for translation
 
 ```bash
-# Extract Python strings
-pybabel extract -F babel.cfg -o superset/translations/messages.pot -k lazy_gettext superset
-
-# Extract JavaScript strings
-npm run build-translation
+# Extract backend and frontend strings into messages.pot, then update every
+# language catalog from it
+./scripts/translations/babel_update.sh
 ```
+
+Run the script rather than `pybabel extract` directly. It passes the keywords
+the frontend uses (`t`, `tn`, `tct`), extracts `i18n:` translator comments,
+and stamps do-not-translate markers. A bare
+`pybabel extract` does none of these. CI's template drift check
+(`scripts/translations/check_pot_drift.py`) fails when the template's strings
+differ from what the script's extraction finds.
 
 ### Adding context for translators
 

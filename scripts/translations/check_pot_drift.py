@@ -56,10 +56,12 @@ from babel.messages.pofile import read_po
 ROOT_DIR = Path(__file__).resolve().parent.parent.parent
 DEFAULT_POT = ROOT_DIR / "superset" / "translations" / "messages.pot"
 
-# Kept in sync with the `pybabel extract` invocation in babel_update.sh.
+# Kept in sync with the `pybabel extract` invocation in babel_update.sh
+# (enforced by check_pot_drift_test.py).
 EXTRACT_FLAGS = [
     "--no-location",
     "--sort-output",
+    "--add-comments=i18n:",
     "--copyright-holder=Superset",
     "--project=Superset",
     "-k",

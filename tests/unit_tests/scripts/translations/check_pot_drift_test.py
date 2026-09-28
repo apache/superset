@@ -23,6 +23,7 @@ its on-disk path, matching ``check_translation_regression_test.py``.
 
 import importlib.util
 import io
+import shlex
 import subprocess
 from pathlib import Path
 from unittest.mock import MagicMock, patch
@@ -236,3 +237,18 @@ def test_committed_template_matches_a_fresh_extraction() -> None:
     missing, stale = check_pot_drift.diff()
     assert not missing, f"{len(missing)} string(s) in source missing from messages.pot"
     assert not stale, f"{len(stale)} string(s) in messages.pot no longer in source"
+
+
+def test_extract_flags_match_babel_update_sh() -> None:
+    """``EXTRACT_FLAGS`` mirrors the ``pybabel extract`` call in babel_update.sh.
+
+    Only ``-F`` and ``-o`` differ, since the drift check writes to a temporary
+    path. Any other flag added to one invocation and not the other fails here.
+    """
+    script = (_SCRIPT_PATH.parent / "babel_update.sh").read_text(encoding="utf-8")
+    command = script[script.index("\npybabel extract") :]
+    command = command[: command.index(" .\n") + 2].replace("\\\n", " ")
+    args = shlex.split(command)[2:]
+    for flag in ("-F", "-o"):
+        del args[args.index(flag) : args.index(flag) + 2]
+    assert args == check_pot_drift.EXTRACT_FLAGS
