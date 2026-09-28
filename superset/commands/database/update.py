@@ -221,7 +221,7 @@ class UpdateDatabaseCommand(BaseCommand):
                 self._model.purge_oauth2_tokens()
                 break
 
-    def _resolve_oauth2_client_info(self, client_info: Any) -> Any:
+    def _resolve_oauth2_client_info(self, client_info: Any) -> dict[str, Any]:
         """
         Fill in the values the engine spec derives, as ``get_oauth2_config`` does.
 
@@ -229,8 +229,13 @@ class UpdateDatabaseCommand(BaseCommand):
         the workspace host), so the new one needs them too, otherwise an omitted
         value would count as a change and purge the tokens on every update. The
         new connection URI is used, since a new host means new endpoints.
+
+        A malformed (non-dict) value resolves to an empty config, so the caller
+        treats it as a change and purges the tokens instead of crashing.
         """
-        if not self._model or not client_info or not isinstance(client_info, dict):
+        if not isinstance(client_info, dict):
+            return {}
+        if not self._model or not client_info:
             return client_info
 
         database = self._model
