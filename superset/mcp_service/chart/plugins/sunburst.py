@@ -101,6 +101,42 @@ class SunburstChartPlugin(BaseChartPlugin):
     def resolve_viz_type(self, config: Any) -> str:
         return "sunburst_v2"
 
+    def resolve_query_fields(
+        self, form_data: Mapping[str, Any], viz_type: str
+    ) -> tuple[list[Any], list[Any]] | None:
+        from superset.mcp_service.chart.chart_helpers import (
+            resolve_groupby,
+            resolve_shared_metrics,
+        )
+
+        # The standardized controls promote both singular metrics into the
+        # query: transformProps colors nodes by the secondary/primary ratio.
+        metrics = list(resolve_shared_metrics(form_data))
+        if (secondary_metric := form_data.get("secondary_metric")) and (
+            secondary_metric not in metrics
+        ):
+            metrics.append(secondary_metric)
+        return metrics, resolve_groupby(dict(form_data))
+
+    def build_query_dicts(
+        self,
+        form_data: dict[str, Any],
+        *,
+        viz_type: str,
+        engine: str,
+        row_limit: int | None,
+        order_desc: bool | None,
+    ) -> list[dict[str, Any]] | None:
+        from superset.common.form_data_query_context import (
+            adhoc_filters_to_query_filters,
+        )
+
+        # The frontend query mapper ignores SIMPLE HAVING clauses, and a
+        # QueryObject filter would turn one into WHERE. Reject such clauses in
+        # the complete prepared state, then use the shared builder.
+        adhoc_filters_to_query_filters(form_data.get("adhoc_filters", []))
+        return None
+
     def normalize_column_refs(self, config: Any, dataset_context: Any) -> Any:
         # Preserve omission semantics for update merges. model_dump() without
         # exclude_unset would mark every defaulted field as explicitly supplied

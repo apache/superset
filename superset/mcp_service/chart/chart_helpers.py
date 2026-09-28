@@ -996,19 +996,6 @@ def extract_x_axis_col(form_data: dict[str, Any]) -> str | None:
     return None
 
 
-def _validate_sunburst_simple_filter_clauses(
-    form_data: dict[str, Any], viz_type: str
-) -> None:
-    """Reject clauses the Sunburst query builders cannot preserve."""
-    if viz_type != "sunburst_v2":
-        return
-    from superset.common.form_data_query_context import (
-        adhoc_filters_to_query_filters,
-    )
-
-    adhoc_filters_to_query_filters(form_data.get("adhoc_filters", []))
-
-
 def build_query_dicts_from_form_data(
     form_data: dict[str, Any],
     datasource_id: Any,
@@ -1027,8 +1014,8 @@ def build_query_dicts_from_form_data(
     """
     from superset.common.form_data_query_context import (
         build_query_objects_from_form_data,
-        retain_mixed_timeseries_secondary_form_data,
     )
+    from superset.mcp_service.chart.registry import plugin_for_viz_type
 
     viz_type: str = (
         form_data.get("viz_type")
@@ -1036,10 +1023,9 @@ def build_query_dicts_from_form_data(
         or ""
     )
     engine = resolve_datasource_engine(datasource_id, datasource_type)
+    plugin = plugin_for_viz_type(viz_type)
     secondary_form_data = (
-        retain_mixed_timeseries_secondary_form_data(form_data)
-        if viz_type == "mixed_timeseries"
-        else None
+        plugin.secondary_query_form_data(form_data) if plugin is not None else None
     )
     prepare_form_data_for_query(
         form_data,
@@ -1048,9 +1034,6 @@ def build_query_dicts_from_form_data(
         extra_form_data,
         datasource_engine=engine,
     )
-    # Validate the complete reconstructed state, including legacy clauses and
-    # request-level extra_form_data merged by prepare_form_data_for_query.
-    _validate_sunburst_simple_filter_clauses(form_data, viz_type)
     if secondary_form_data is not None:
         prepare_form_data_for_query(
             secondary_form_data,
@@ -1060,9 +1043,9 @@ def build_query_dicts_from_form_data(
             datasource_engine=engine,
         )
 
-    from superset.mcp_service.chart.registry import plugin_for_viz_type
-
-    if (plugin := plugin_for_viz_type(viz_type)) is not None:
+    # Plugins see (and may validate) the complete reconstructed state, including
+    # legacy clauses and request-level extra_form_data merged above.
+    if plugin is not None:
         plugin_queries = plugin.build_query_dicts(
             form_data,
             viz_type=viz_type,

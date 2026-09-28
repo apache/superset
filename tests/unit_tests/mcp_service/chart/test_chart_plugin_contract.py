@@ -76,6 +76,7 @@ EXAMPLE_IDS = [
 HOOKS = (
     "resolve_query_fields",
     "build_query_dicts",
+    "secondary_query_form_data",
     "normalize_query_result",
     "compile_row_limit",
     "preview_row_limit",
@@ -219,6 +220,9 @@ def test_query_construction_contract(
         assert isinstance(query["metrics"], list)
         assert isinstance(query["filters"], list)
         assert query["columns"] or query["metrics"], "query selects nothing"
+
+    secondary = plugin.secondary_query_form_data(deepcopy(form_data))
+    assert secondary is None or isinstance(secondary, dict)
 
     # A plugin-built query set is exactly what the shared builder returns.
     prepared = deepcopy(form_data)

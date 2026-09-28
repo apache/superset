@@ -297,6 +297,17 @@ class ChartTypePlugin(Protocol):
         """Return QueryContext query dicts, or None to use the shared builder."""
         ...
 
+    def secondary_query_form_data(
+        self, form_data: Mapping[str, Any]
+    ) -> dict[str, Any] | None:
+        """Return unprepared form_data for a secondary query, or None.
+
+        Called before filter preparation. The returned form_data is prepared
+        independently (its own filters and extra_form_data merge) and handed to
+        the shared builder as the secondary query's form_data.
+        """
+        ...
+
     def normalize_query_result(self, result: Any, form_data: Mapping[str, Any]) -> Any:
         """Validate the chart-data envelope; return it, a copy, or a ChartError."""
         ...
@@ -460,6 +471,11 @@ class BaseChartPlugin:
         row_limit: int | None,
         order_desc: bool | None,
     ) -> list[dict[str, Any]] | None:
+        return None
+
+    def secondary_query_form_data(
+        self, form_data: Mapping[str, Any]
+    ) -> dict[str, Any] | None:
         return None
 
     def normalize_query_result(self, result: Any, form_data: Mapping[str, Any]) -> Any:

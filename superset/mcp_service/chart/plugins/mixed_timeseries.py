@@ -172,3 +172,14 @@ class MixedTimeseriesChartPlugin(BaseChartPlugin):
             ],
             error_code="MIXED_TIMESERIES_VALIDATION_ERROR",
         )
+
+    def secondary_query_form_data(
+        self, form_data: Mapping[str, Any]
+    ) -> dict[str, Any] | None:
+        from superset.common.form_data_query_context import (
+            retain_mixed_timeseries_secondary_form_data,
+        )
+
+        # Query B owns its suffixed filters and ordering, so it is retained
+        # before query A's filters are prepared and prepared on its own.
+        return retain_mixed_timeseries_secondary_form_data(form_data)
