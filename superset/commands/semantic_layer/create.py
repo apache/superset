@@ -35,7 +35,7 @@ from superset.commands.semantic_layer.utils import validate_configuration
 from superset.commands.utils import current_user_can_modify_object
 from superset.daos.semantic_layer import SemanticLayerDAO, SemanticViewDAO
 from superset.exceptions import SupersetSecurityException
-from superset.semantic_layers.registry import registry
+from superset.semantic_layers.registry import registry, semantic_layer_context
 from superset.utils import json
 from superset.utils.decorators import on_error, transaction
 
@@ -72,7 +72,8 @@ class CreateSemanticLayerCommand(BaseCommand):
 
         # Validate configuration against the plugin
         cls = registry[sl_type]
-        validate_configuration(cls, self._properties["configuration"])
+        with semantic_layer_context(sl_type):
+            validate_configuration(cls, self._properties["configuration"])
 
 
 class CreateSemanticViewCommand(BaseCommand):

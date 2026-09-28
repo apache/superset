@@ -60,7 +60,11 @@ from superset.extensions import encrypted_field_factory
 from superset.models.helpers import AuditMixinNullable, QueryResult
 from superset.result_set import stringify_extension_columns
 from superset.semantic_layers.mapper import get_results
-from superset.semantic_layers.registry import registry
+from superset.semantic_layers.registry import (
+    contextualize_semantic_layer,
+    registry,
+    semantic_layer_context,
+)
 from superset.utils import json
 from superset.utils.core import GenericDataType
 
@@ -267,7 +271,9 @@ class SemanticLayer(AuditMixinNullable, Model):
         # TODO (betodealmeida):
         # return extension_manager.get_contribution("semanticLayers", self.type)
         class_ = registry[self.type]
-        return class_.from_configuration(json.loads(self.configuration))
+        with semantic_layer_context(self.type):
+            implementation = class_.from_configuration(json.loads(self.configuration))
+        return contextualize_semantic_layer(self.type, implementation)
 
 
 class SemanticView(AuditMixinNullable, Model):

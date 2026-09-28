@@ -46,6 +46,7 @@ from typing import Protocol, TYPE_CHECKING
 if TYPE_CHECKING:
     from superset_core.extensions.storage.ephemeral import EphemeralStateAccessor
     from superset_core.extensions.storage.persistent import PersistentStateAccessor
+    from superset_core.extensions.storage.secrets import SecretsState
     from superset_core.extensions.types import BaseExtension
 
 
@@ -60,6 +61,11 @@ class ExtensionStorage(Protocol):
     @property
     def persistent(self) -> "PersistentStateAccessor":
         """Database-backed persistent storage."""
+        ...
+
+    @property
+    def secrets(self) -> "SecretsState":
+        """Backend-only encrypted storage for user-scoped secrets."""
         ...
 
 

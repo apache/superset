@@ -25,6 +25,10 @@ import pytest
 from flask.testing import FlaskClient
 from pydantic import BaseModel, Field, model_validator, SecretStr
 from pytest_mock import MockerFixture
+from superset_core.semantic_layers.layer import (
+    SemanticLayerAction,
+    SemanticLayerActionResult,
+)
 from werkzeug.test import TestResponse
 
 from superset.commands.semantic_layer.exceptions import (
@@ -361,7 +365,144 @@ def test_configuration_schema(
 
     assert response.status_code == 200
     assert response.json["result"] == {"type": "object"}
+    assert response.json["actions"] == []
     mock_cls.get_configuration_schema.assert_called_once_with(None)
+
+
+@SEMANTIC_LAYERS_APP
+def test_configuration_schema_returns_actions(
+    client: Any,
+    full_api_access: None,
+    mocker: MockerFixture,
+) -> None:
+    """Configuration schema reports the current user's provider actions."""
+    mock_cls = MagicMock()
+    mock_cls.get_configuration_schema.return_value = {"type": "object"}
+    mock_cls.get_configuration_actions.return_value = [
+        SemanticLayerAction(
+            id="oauth2",
+            label="Connect to Quiver",
+            status="required",
+            required=True,
+        )
+    ]
+    mocker.patch.dict(
+        "superset.semantic_layers.api.registry",
+        {"quiver": mock_cls},
+        clear=True,
+    )
+
+    response = client.post(
+        "/api/v1/semantic_layer/schema/configuration",
+        json={"type": "quiver"},
+    )
+
+    assert response.status_code == 200
+    assert response.json["actions"] == [
+        {
+            "id": "oauth2",
+            "label": "Connect to Quiver",
+            "status": "required",
+            "required": True,
+            "message": None,
+        }
+    ]
+
+
+@SEMANTIC_LAYERS_APP
+def test_execute_configuration_action(
+    client: Any,
+    full_api_access: None,
+    mocker: MockerFixture,
+) -> None:
+    """A provider can start OAuth before a semantic layer row exists."""
+    parsed_config = MagicMock()
+    mock_cls = MagicMock()
+    mock_cls.configuration_class.model_json_schema.return_value = {
+        "type": "object",
+        "properties": {},
+    }
+    mock_cls.configuration_class.model_validate.return_value = parsed_config
+    mock_cls.execute_configuration_action.return_value = SemanticLayerActionResult(
+        redirect_url="https://auth.example.test/authorize"
+    )
+    mocker.patch.dict(
+        "superset.semantic_layers.api.registry",
+        {"quiver": mock_cls},
+        clear=True,
+    )
+
+    response = client.post(
+        "/api/v1/semantic_layer/type/quiver/actions/oauth2",
+        json={
+            "configuration": {"host": "quiver.example.test"},
+            "return_url": "https://superset.example.test/semantic-layers",
+        },
+    )
+
+    assert response.status_code == 200
+    assert response.json["result"] == {
+        "redirect_url": "https://auth.example.test/authorize"
+    }
+    mock_cls.execute_configuration_action.assert_called_once_with(
+        "oauth2",
+        parsed_config,
+        "https://superset.example.test/semantic-layers",
+    )
+
+
+@SEMANTIC_LAYERS_APP
+def test_execute_configuration_action_unmasks_existing_layer(
+    client: Any,
+    full_api_access: None,
+    mocker: MockerFixture,
+) -> None:
+    """An edit action resolves masks against the authorized stored layer."""
+    parsed_config = MagicMock()
+    mock_cls = MagicMock()
+    mock_cls.configuration_class.model_json_schema.return_value = {
+        "type": "object",
+        "properties": {},
+    }
+    mock_cls.configuration_class.model_validate.return_value = parsed_config
+    mock_cls.execute_configuration_action.return_value = SemanticLayerActionResult(
+        redirect_url="https://auth.example.test/authorize"
+    )
+    mocker.patch.dict(
+        "superset.semantic_layers.api.registry",
+        {"quiver": mock_cls},
+        clear=True,
+    )
+    layer = MagicMock()
+    layer.type = "quiver"
+    layer.configuration = '{"client_secret": "stored-secret"}'
+    mocker.patch(
+        "superset.semantic_layers.api.SemanticLayerDAO.find_by_uuid",
+        return_value=layer,
+    )
+    unmask = mocker.patch(
+        "superset.semantic_layers.api.unmask_stored_configuration",
+        return_value={"client_secret": "stored-secret"},
+    )
+
+    response = client.post(
+        "/api/v1/semantic_layer/type/quiver/actions/oauth2",
+        json={
+            "configuration": {"client_secret": PASSWORD_MASK},
+            "semantic_layer_uuid": "11111111-1111-1111-1111-111111111111",
+        },
+    )
+
+    assert response.status_code == 200
+    layer.raise_for_access.assert_called_once_with()
+    unmask.assert_called_once_with(
+        layer.configuration,
+        {"client_secret": PASSWORD_MASK},
+        "quiver",
+    )
+    mock_cls.execute_configuration_action.assert_called_once_with(
+        "oauth2", parsed_config, None
+    )
 
 
 @SEMANTIC_LAYERS_APP

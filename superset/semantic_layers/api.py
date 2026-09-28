@@ -17,6 +17,7 @@
 from __future__ import annotations
 
 import logging
+from dataclasses import asdict
 from typing import Any
 
 from flask import make_response, request, Response
@@ -27,6 +28,7 @@ from flask_babel import lazy_gettext as t, ngettext
 from marshmallow import ValidationError
 from pydantic import ValidationError as PydanticValidationError
 from sqlalchemy.orm import load_only, Query
+from superset_core.semantic_layers.layer import SemanticLayerAuthenticationRequiredError
 
 from superset import db, event_logger, is_feature_enabled, security_manager
 from superset.commands.semantic_layer.create import (
@@ -53,6 +55,7 @@ from superset.commands.semantic_layer.exceptions import (
     SemanticViewUpdateFailedError,
 )
 from superset.commands.semantic_layer.update import (
+    unmask_stored_configuration,
     UpdateSemanticLayerCommand,
     UpdateSemanticViewCommand,
 )
@@ -64,7 +67,7 @@ from superset.exceptions import SupersetSecurityException
 from superset.models.core import Database
 from superset.semantic_layers.masking import mask_configuration
 from superset.semantic_layers.models import SemanticLayer, SemanticView
-from superset.semantic_layers.registry import registry
+from superset.semantic_layers.registry import registry, semantic_layer_context
 from superset.semantic_layers.schemas import (
     SemanticLayerPostSchema,
     SemanticLayerPutSchema,
@@ -575,6 +578,9 @@ class SemanticLayerRestApi(BaseSupersetApi):
         **MODEL_API_RW_METHOD_PERMISSION_MAP,
         "types": "read",
         "configuration_schema": "read",
+        "configuration_action": "write",
+        "configuration_actions": "read",
+        "semantic_layer_action": "read",
         "runtime_schema": "read",
         # ``read`` (not the default ``can_views`` / ``can_connections``) so
         # these stay broadly accessible: ``SemanticLayer`` is in
@@ -645,36 +651,166 @@ class SemanticLayerRestApi(BaseSupersetApi):
         if not cls:
             return self.response_400(message=f"Unknown type: {sl_type}")
 
-        parsed_config = None
-        if config := body.get("configuration"):
-            parsed_config = _parse_partial_config(cls, config)
+        with semantic_layer_context(sl_type):  # type: ignore[arg-type]
+            parsed_config = None
+            if config := body.get("configuration"):
+                parsed_config = _parse_partial_config(cls, config)
 
-        warning: str | None = None
-        try:
-            schema = cls.get_configuration_schema(parsed_config)
-        except Exception:  # pylint: disable=broad-except
-            # Show a stable, user-friendly message in the UI; the exception
-            # detail goes to the server log below.
-            warning = str(
-                t(
-                    "Could not load metadata for this configuration; "
-                    "showing the default form. See the server logs for details."
+            warning: str | None = None
+            try:
+                schema = cls.get_configuration_schema(parsed_config)
+            except Exception:  # pylint: disable=broad-except
+                # Show a stable, user-friendly message in the UI; the exception
+                # detail goes to the server log below.
+                warning = str(
+                    t(
+                        "Could not load metadata for this configuration; "
+                        "showing the default form. See the server logs for details."
+                    )
                 )
-            )
-            logger.exception(
-                "Error enriching semantic layer configuration schema for type %s",
-                sl_type,
-            )
-            # Connection or query failures during schema enrichment should not
-            # prevent the form from rendering — return the base schema instead.
-            schema = cls.get_configuration_schema(None)
+                logger.exception(
+                    "Error enriching semantic layer configuration schema for type %s",
+                    sl_type,
+                )
+                # Connection or query failures during schema enrichment should not
+                # prevent the form from rendering — return the base schema instead.
+                schema = cls.get_configuration_schema(None)
 
-        payload: dict[str, Any] = {"result": schema}
+            actions = [
+                asdict(action)
+                for action in cls.get_configuration_actions(parsed_config)
+            ]
+
+        payload: dict[str, Any] = {"result": schema, "actions": actions}
         if warning:
             payload["warning"] = warning
         resp = make_response(json.dumps(payload, sort_keys=False), 200)
         resp.headers["Content-Type"] = "application/json; charset=utf-8"
         return resp
+
+    @expose(
+        "/type/<sl_type>/actions/<action_id>",
+        methods=("POST",),
+    )
+    @protect()
+    @safe
+    @statsd_metrics
+    @requires_json
+    def configuration_action(
+        self,
+        sl_type: str,
+        action_id: str,
+    ) -> FlaskResponse:
+        """Start a configuration action before a semantic layer exists."""
+        cls = registry.get(sl_type)
+        if not cls:
+            return self.response_400(message=f"Unknown type: {sl_type}")
+
+        body = request.json or {}
+        configuration = body.get("configuration") or {}
+        if not isinstance(configuration, dict):
+            return self.response_400(message="Configuration must be an object")
+
+        if semantic_layer_uuid := body.get("semantic_layer_uuid"):
+            layer = SemanticLayerDAO.find_by_uuid(semantic_layer_uuid)
+            if not layer:
+                return self.response_404()
+            try:
+                layer.raise_for_access()
+            except SupersetSecurityException as ex:
+                return self.response(403, message=ex.message)
+            if layer.type != sl_type:
+                return self.response_400(
+                    message="Semantic layer type does not match the requested type"
+                )
+            try:
+                configuration = unmask_stored_configuration(
+                    layer.configuration,
+                    configuration,
+                    layer.type,
+                )
+            except SemanticLayerInvalidError as ex:
+                return self.response_400(message=str(ex))
+
+        with semantic_layer_context(sl_type):
+            parsed_config = _parse_partial_config(cls, configuration)
+            try:
+                result = cls.execute_configuration_action(
+                    action_id,
+                    parsed_config,
+                    body.get("return_url"),
+                )
+            except ValueError as ex:
+                return self.response_400(message=str(ex))
+
+        return self.response(200, result=asdict(result))
+
+    @expose("/<uuid>/actions", methods=("GET",))
+    @protect()
+    @safe
+    @statsd_metrics
+    def configuration_actions(self, uuid: str) -> FlaskResponse:
+        """Return configuration actions for an existing semantic layer."""
+        layer = SemanticLayerDAO.find_by_uuid(uuid)
+        if not layer:
+            return self.response_404()
+        try:
+            layer.raise_for_access()
+        except SupersetSecurityException as ex:
+            return self.response(403, message=ex.message)
+
+        cls = registry.get(layer.type)
+        if not cls:
+            return self.response_400(message=f"Unknown type: {layer.type}")
+        configuration = layer.configuration
+        if isinstance(configuration, str):
+            configuration = json.loads(configuration)
+
+        with semantic_layer_context(layer.type):
+            parsed_config = _parse_partial_config(cls, configuration or {})
+            actions = [
+                asdict(action)
+                for action in cls.get_configuration_actions(parsed_config)
+            ]
+        return self.response(200, result=actions)
+
+    @expose("/<uuid>/actions/<action_id>", methods=("POST",))
+    @protect()
+    @safe
+    @statsd_metrics
+    def semantic_layer_action(
+        self,
+        uuid: str,
+        action_id: str,
+    ) -> FlaskResponse:
+        """Start a personal configuration action for an existing layer."""
+        layer = SemanticLayerDAO.find_by_uuid(uuid)
+        if not layer:
+            return self.response_404()
+        try:
+            layer.raise_for_access()
+        except SupersetSecurityException as ex:
+            return self.response(403, message=ex.message)
+
+        cls = registry.get(layer.type)
+        if not cls:
+            return self.response_400(message=f"Unknown type: {layer.type}")
+        configuration = layer.configuration
+        if isinstance(configuration, str):
+            configuration = json.loads(configuration)
+        body = request.get_json(silent=True) or {}
+
+        with semantic_layer_context(layer.type):
+            parsed_config = _parse_partial_config(cls, configuration or {})
+            try:
+                result = cls.execute_configuration_action(
+                    action_id,
+                    parsed_config,
+                    body.get("return_url"),
+                )
+            except ValueError as ex:
+                return self.response_400(message=str(ex))
+        return self.response(200, result=asdict(result))
 
     @expose("/<uuid>/schema/runtime", methods=("POST",))
     @protect()
@@ -728,10 +864,11 @@ class SemanticLayerRestApi(BaseSupersetApi):
             return self.response_400(message=f"Unknown type: {layer.type}")
 
         try:
-            schema = cls.get_runtime_schema(
-                layer.implementation.configuration,  # type: ignore[attr-defined]
-                runtime_data,
-            )
+            with semantic_layer_context(layer.type):
+                schema = cls.get_runtime_schema(
+                    layer.implementation.configuration,  # type: ignore[attr-defined]
+                    runtime_data,
+                )
         except Exception as ex:  # pylint: disable=broad-except
             return self.response_400(message=str(ex))
 
@@ -786,6 +923,14 @@ class SemanticLayerRestApi(BaseSupersetApi):
 
         try:
             views = layer.implementation.get_semantic_views(runtime_data)
+        except SemanticLayerAuthenticationRequiredError as ex:
+            return self.response(
+                428,
+                message=ex.message,
+                error_type="SEMANTIC_LAYER_AUTHENTICATION_REQUIRED",
+                action_id=ex.action_id,
+                semantic_layer_uuid=str(layer.uuid),
+            )
         except Exception as ex:  # pylint: disable=broad-except
             logger.error(
                 "Error fetching semantic views for layer %s: %s",

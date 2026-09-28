@@ -50,12 +50,19 @@ class ExtensionStorage:
 
         return PersistentState
 
+    @property
+    def secrets(self) -> Any:
+        from superset.extensions.storage.secrets import SecretsState
+
+        return SecretsState
+
 
 class ConcreteExtensionContext:
     """Concrete implementation of ExtensionContext for the host."""
 
-    def __init__(self, manifest: Manifest):
+    def __init__(self, manifest: Manifest, user_id: int | None = None):
         self._manifest = manifest
+        self._user_id = user_id
         self._storage = ExtensionStorage()
 
     @property
@@ -66,6 +73,11 @@ class ConcreteExtensionContext:
     @property
     def storage(self) -> ExtensionStorage:
         return self._storage
+
+    @property
+    def user_id(self) -> int | None:
+        """Explicit principal for extension execution outside a request."""
+        return self._user_id
 
 
 # Context variable for ambient extension context pattern.
@@ -119,7 +131,10 @@ def use_context(ctx: ConcreteExtensionContext) -> Iterator[None]:
 
 
 @contextmanager
-def extension_context(manifest: Manifest) -> Iterator[ConcreteExtensionContext]:
+def extension_context(
+    manifest: Manifest,
+    user_id: int | None = None,
+) -> Iterator[ConcreteExtensionContext]:
     """
     Context manager for setting extension context during loading.
 
@@ -129,6 +144,6 @@ def extension_context(manifest: Manifest) -> Iterator[ConcreteExtensionContext]:
     :param manifest: The extension manifest
     :yields: The created ExtensionContext
     """
-    ctx = ConcreteExtensionContext(manifest)
+    ctx = ConcreteExtensionContext(manifest, user_id=user_id)
     with use_context(ctx):
         yield ctx

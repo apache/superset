@@ -33,6 +33,7 @@ from typing import Any
 from flask import g, request
 from flask.wrappers import Response
 from flask_appbuilder.api import BaseApi, expose, protect, safe
+from superset_core.extensions.storage.models import StorageAccess
 
 from superset.extensions.storage.codecs import DEFAULT_CODEC, get_codec, SAFE_CODECS
 from superset.extensions.storage.ephemeral_dao import (
@@ -471,6 +472,7 @@ class ExtensionStorageRestApi(BaseApi):
                 resource_uuid=resource_uuid,
                 page=page,
                 page_size=page_size,
+                access=StorageAccess.FRONTEND,
             )
         except ExtensionStorageListPayloadTooLarge as ex:
             return self.response(ex.status, message=ex.message)
@@ -560,7 +562,12 @@ class ExtensionStorageRestApi(BaseApi):
 
         shared = request.args.get("shared", "false").lower() == "true"
         user_fk = None if shared else g.user.id
-        entry = ExtensionStorageDAO.get(extension_id, key, user_fk=user_fk)
+        entry = ExtensionStorageDAO.get(
+            extension_id,
+            key,
+            user_fk=user_fk,
+            access=StorageAccess.FRONTEND,
+        )
         if entry is None:
             return self.response(200, result=None)
         if entry.codec not in SAFE_CODECS:
@@ -686,6 +693,7 @@ class ExtensionStorageRestApi(BaseApi):
                 codec=codec,
                 user_fk=user_fk,
                 encrypt=encrypt,
+                access=StorageAccess.FRONTEND,
             )
         except (
             ExtensionStorageKeyTooLong,
@@ -745,6 +753,11 @@ class ExtensionStorageRestApi(BaseApi):
 
         shared = request.args.get("shared", "false").lower() == "true"
         user_fk = None if shared else g.user.id
-        ExtensionStorageDAO.delete_by_key(extension_id, key, user_fk=user_fk)
+        ExtensionStorageDAO.delete_by_key(
+            extension_id,
+            key,
+            user_fk=user_fk,
+            access=StorageAccess.FRONTEND,
+        )
 
         return self.response(200, message="Value deleted successfully")
