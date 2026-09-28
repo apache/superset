@@ -265,7 +265,7 @@ class BaseDAO(CoreBaseDAO[T], Generic[T]):
         id_column = getattr(cls.model_cls, cls.id_column_name)
         uuid_column = getattr(cls.model_cls, cls.uuid_column_name)
 
-        if model_id_or_uuid.isdigit():
+        if model_id_or_uuid.isdecimal():
             filter = id_column == int(model_id_or_uuid)
         else:
             filter = uuid_column == model_id_or_uuid
