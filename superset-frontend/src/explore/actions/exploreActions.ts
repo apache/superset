@@ -117,6 +117,16 @@ export function setControlValue(
   };
 }
 
+export const UNDO_EXPLORE_ACTION = 'UNDO_EXPLORE_ACTION';
+export function undoExploreAction() {
+  return { type: UNDO_EXPLORE_ACTION };
+}
+
+export const REDO_EXPLORE_ACTION = 'REDO_EXPLORE_ACTION';
+export function redoExploreAction() {
+  return { type: REDO_EXPLORE_ACTION };
+}
+
 export const SET_EXPLORE_CONTROLS = 'UPDATE_EXPLORE_CONTROLS';
 export function setExploreControls(formData: QueryFormData) {
   return { type: SET_EXPLORE_CONTROLS, formData };

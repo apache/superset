@@ -64,6 +64,7 @@ const reduxState = {
       metrics: [{ id: 1, metric_name: 'count' }],
     },
     isStarred: false,
+    undoHistory: { past: [], future: [], restoreEpoch: 0 },
     slice: {
       slice_id: 1,
     },

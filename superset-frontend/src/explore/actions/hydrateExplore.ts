@@ -208,6 +208,7 @@ export const hydrateExplore =
       metadata,
       saveAction,
       common,
+      undoHistory: { past: [], future: [], restoreEpoch: 0 },
     };
 
     // apply initial mapStateToProps for all controls, must execute AFTER

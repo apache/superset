@@ -25,8 +25,22 @@ import {
   screen,
   userEvent,
 } from 'spec/helpers/testing-library';
-import { AdhocColumn } from '@superset-ui/core';
-import { ColumnMeta } from '@superset-ui/chart-controls';
+import {
+  AdhocColumn,
+  DatasourceType,
+  getChartControlPanelRegistry,
+  QueryFormData,
+} from '@superset-ui/core';
+import {
+  ColumnMeta,
+  ControlStateMapping,
+  Dataset,
+} from '@superset-ui/chart-controls';
+import { setControlValue } from 'src/explore/actions/exploreActions';
+import exploreReducer, {
+  ExploreState,
+} from 'src/explore/reducers/exploreReducer';
+import { getControlsState } from 'src/explore/store';
 import ColumnSelectPopoverTriggerWrapper from './ColumnSelectPopoverTrigger';
 
 const createStore = (datasource = {}) =>
@@ -180,4 +194,94 @@ test('should show correct labels when switching between multiple existing column
 
   fireEvent.click(screen.getByText('Trigger'));
   expect(screen.getByText('My column')).toBeInTheDocument();
+});
+
+const UNDO_VIZ = 'column-popover-undo-test-viz';
+
+test('a popover commits one undo frame on save, not one per intermediate selection', async () => {
+  getChartControlPanelRegistry().registerValue(UNDO_VIZ, {
+    controlPanelSections: [
+      {
+        label: 'Query',
+        expanded: true,
+        controlSetRows: [['groupby']],
+      },
+    ],
+  });
+  try {
+    const formData = {
+      viz_type: UNDO_VIZ,
+      datasource: '1__table',
+    } as unknown as QueryFormData;
+    const baseState = {
+      datasource: {
+        id: 1,
+        type: DatasourceType.Table,
+        columns: defaultColumns,
+        metrics: [],
+      } as unknown as Dataset,
+      common: { conf: {} },
+      controls: {},
+      form_data: formData,
+      undoHistory: { past: [], future: [], restoreEpoch: 0 },
+    } as ExploreState;
+    const explore: ExploreState = {
+      ...baseState,
+      controls: getControlsState(
+        baseState as unknown as Parameters<typeof getControlsState>[0],
+        formData,
+      ) as ControlStateMapping,
+    };
+    // The state type is intentionally erased: RTK's inference over the full
+    // ExploreState exceeds the compiler's instantiation depth.
+    const store = configureStore({
+      reducer: {
+        explore: (state: unknown, action: unknown): unknown =>
+          exploreReducer(
+            state as ExploreState | undefined,
+            action as Parameters<typeof exploreReducer>[1],
+          ),
+      },
+      preloadedState: { explore },
+      middleware: getDefaultMiddleware =>
+        getDefaultMiddleware({
+          serializableCheck: false,
+          immutableCheck: false,
+        }),
+    });
+    const pastLength = () =>
+      (store.getState().explore as ExploreState).undoHistory.past.length;
+    const onColumnEdit = jest.fn((column: AdhocColumn) => {
+      store.dispatch(setControlValue('groupby', [column]));
+    });
+
+    render(
+      <Provider store={store}>
+        <ColumnSelectPopoverTriggerWrapper
+          {...defaultProps}
+          onColumnEdit={onColumnEdit}
+          editedColumn={undefined}
+        />
+      </Provider>,
+    );
+
+    fireEvent.click(screen.getByText('Trigger'));
+    fireEvent.click(screen.getByText('Custom SQL'));
+    const labelInput = await screen.findByTestId(
+      'AdhocMetricEditTitle#trigger',
+    );
+    await userEvent.type(labelInput, 'Popover Column');
+    fireEvent.click(screen.getByText('Simple'));
+    fireEvent.click(screen.getByText('Custom SQL'));
+
+    expect(onColumnEdit).not.toHaveBeenCalled();
+    expect(pastLength()).toBe(0);
+
+    fireEvent.click(screen.getByTestId('ColumnEdit#save'));
+
+    expect(onColumnEdit).toHaveBeenCalledTimes(1);
+    expect(pastLength()).toBe(1);
+  } finally {
+    getChartControlPanelRegistry().remove(UNDO_VIZ);
+  }
 });

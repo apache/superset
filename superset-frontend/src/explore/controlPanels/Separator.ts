@@ -22,6 +22,7 @@ import type {
   ControlPanelConfig,
   ControlPanelState,
 } from '@superset-ui/chart-controls';
+import { Constants } from '@superset-ui/core/components';
 import { formatSelectOptions } from 'src/explore/exploreUtils';
 
 const config: ControlPanelConfig = {
@@ -60,6 +61,7 @@ const config: ControlPanelConfig = {
                 };
               },
               default: '',
+              debounceDelay: Constants.FAST_DEBOUNCE,
             },
           },
         ],

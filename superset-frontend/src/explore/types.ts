@@ -32,6 +32,7 @@ import {
 import { DatabaseObject } from 'src/views/CRUD/types';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import { Slice } from 'src/types/Chart';
+import type { ExploreUndoHistory } from './reducers/exploreUndoHistory';
 
 export type SaveActionType = 'overwrite' | 'saveas';
 
@@ -186,6 +187,7 @@ export interface ExplorePageState {
     force: boolean;
     common: JsonObject;
     compatibility?: CompatibilityResult;
+    undoHistory: ExploreUndoHistory;
   };
   sliceEntities?: JsonObject; // propagated from Dashboard view
 }

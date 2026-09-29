@@ -28,7 +28,7 @@ import {
   ControlStateMapping,
   Dataset,
 } from '@superset-ui/chart-controls';
-import { omit, pick } from 'lodash-es';
+import { isEqual, omit, pick } from 'lodash-es';
 import { DYNAMIC_PLUGIN_CONTROLS_READY } from 'src/components/Chart/chartAction';
 import { getControlsState } from 'src/explore/store';
 import {
@@ -41,6 +41,12 @@ import * as actions from 'src/explore/actions/exploreActions';
 import { HYDRATE_EXPLORE, HydrateExplore } from '../actions/hydrateExplore';
 import { Slice } from 'src/types/Chart';
 import { CompatibilityResult, SaveActionType } from 'src/explore/types';
+import {
+  buildHistoryFrame,
+  ExploreUndoHistory,
+  MAX_HISTORY,
+  restoreHistoryFrame,
+} from './exploreUndoHistory';
 
 // Type definitions for explore state
 export interface ExploreState {
@@ -73,6 +79,7 @@ export interface ExploreState {
   compatibility?: CompatibilityResult;
   saveAction?: SaveActionType | null;
   chartStates?: Record<number, JsonObject>;
+  undoHistory: ExploreUndoHistory;
 }
 
 // Action type definitions
@@ -118,6 +125,15 @@ interface SetFieldValueAction {
   controlName: string;
   value: unknown;
   validationErrors?: string[];
+  programmatic?: boolean;
+}
+
+interface UndoExploreAction {
+  type: typeof actions.UNDO_EXPLORE_ACTION;
+}
+
+interface RedoExploreAction {
+  type: typeof actions.REDO_EXPLORE_ACTION;
 }
 
 interface SetExploreControlsAction {
@@ -194,6 +210,8 @@ type ExploreAction =
   | UpdateFormDataByDatasourceAction
   | FetchDatasourcesStartedAction
   | SetFieldValueAction
+  | UndoExploreAction
+  | RedoExploreAction
   | SetExploreControlsAction
   | SetFormDataAction
   | UpdateChartTitleAction
@@ -230,8 +248,18 @@ type ActionHandlers = {
   [key: string]: () => Partial<ExploreState> | ExploreState;
 };
 
+const clearUndoHistory = (state: ExploreState): ExploreUndoHistory => ({
+  ...state.undoHistory,
+  past: [],
+  future: [],
+});
+
 export default function exploreReducer(
-  state: ExploreState = { controls: {}, form_data: {} as QueryFormData },
+  state: ExploreState = {
+    controls: {},
+    form_data: {} as QueryFormData,
+    undoHistory: { past: [], future: [], restoreEpoch: 0 },
+  },
   action: ExploreAction,
 ): ExploreState {
   const actionHandlers: ActionHandlers = {
@@ -329,6 +357,7 @@ export default function exploreReducer(
           newFormData as QueryFormData,
         ) as ControlStateMapping,
         controlsTransferred,
+        undoHistory: clearUndoHistory(state),
       };
     },
     [actions.FETCH_DATASOURCES_STARTED]() {
@@ -339,7 +368,8 @@ export default function exploreReducer(
     },
     [actions.SET_FIELD_VALUE]() {
       const typedAction = action as SetFieldValueAction;
-      const { controlName, value, validationErrors } = typedAction;
+      const { controlName, value, validationErrors, programmatic } =
+        typedAction;
       let new_form_data: QueryFormData & { [key: string]: unknown } = {
         ...state.form_data,
         [controlName]: value,
@@ -513,7 +543,7 @@ export default function exploreReducer(
         );
       }
 
-      return {
+      const nextState: ExploreState = {
         ...state,
         form_data: new_form_data as QueryFormData,
         triggerRender: control.renderTrigger && !hasErrors,
@@ -529,6 +559,59 @@ export default function exploreReducer(
           ...updatedControlStates,
         } as ControlStateMapping,
       };
+
+      // Programmatic dispatches (effects, derived values) never create history
+      // and never clear the redo stack. For user edits, compare the canonical
+      // frames of the pre-change and fully built next state, so the decision
+      // matches exactly what a frame would store and restore.
+      if (programmatic) {
+        return nextState;
+      }
+      const prevFrame = buildHistoryFrame(state);
+      const nextFrame = buildHistoryFrame(nextState);
+      if (isEqual(prevFrame.formData, nextFrame.formData)) {
+        return nextState;
+      }
+      return {
+        ...nextState,
+        undoHistory: {
+          ...state.undoHistory,
+          past: [...state.undoHistory.past, prevFrame].slice(-MAX_HISTORY),
+          future: [],
+        },
+      };
+    },
+    [actions.UNDO_EXPLORE_ACTION]() {
+      const { past, future, restoreEpoch } = state.undoHistory;
+      if (past.length === 0) {
+        return state;
+      }
+      const frame = past[past.length - 1];
+      return {
+        ...state,
+        ...restoreHistoryFrame(state, frame),
+        undoHistory: {
+          past: past.slice(0, -1),
+          future: [...future, buildHistoryFrame(state)],
+          restoreEpoch: restoreEpoch + 1,
+        },
+      };
+    },
+    [actions.REDO_EXPLORE_ACTION]() {
+      const { past, future, restoreEpoch } = state.undoHistory;
+      if (future.length === 0) {
+        return state;
+      }
+      const frame = future[future.length - 1];
+      return {
+        ...state,
+        ...restoreHistoryFrame(state, frame),
+        undoHistory: {
+          past: [...past, buildHistoryFrame(state)].slice(-MAX_HISTORY),
+          future: future.slice(0, -1),
+          restoreEpoch: restoreEpoch + 1,
+        },
+      };
     },
     [actions.SET_EXPLORE_CONTROLS]() {
       const typedAction = action as SetExploreControlsAction;
@@ -538,6 +621,7 @@ export default function exploreReducer(
           state as Parameters<typeof getControlsState>[0],
           typedAction.formData,
         ) as ControlStateMapping,
+        undoHistory: clearUndoHistory(state),
       };
     },
     [actions.SET_FORM_DATA]() {
@@ -545,6 +629,7 @@ export default function exploreReducer(
       return {
         ...state,
         form_data: typedAction.formData,
+        undoHistory: clearUndoHistory(state),
       };
     },
     [actions.UPDATE_CHART_TITLE]() {
@@ -573,6 +658,7 @@ export default function exploreReducer(
         can_add: typedAction.can_add,
         can_download: typedAction.can_download,
         can_overwrite: typedAction.can_overwrite,
+        undoHistory: clearUndoHistory(state),
       };
     },
     [actions.SET_STASH_FORM_DATA]() {
@@ -633,6 +719,7 @@ export default function exploreReducer(
                 .filter((x): x is string => x !== null) as string[])
             : null,
         },
+        undoHistory: clearUndoHistory(state),
       };
     },
     [actions.SET_FORCE_QUERY]() {
@@ -667,8 +754,9 @@ export default function exploreReducer(
       const typedAction = action as HydrateExplore;
       const exploreData = typedAction.data.explore;
       return {
-        ...exploreData,
-      } as ExploreState;
+        ...(exploreData as ExploreState),
+        undoHistory: { past: [], future: [], restoreEpoch: 0 },
+      };
     },
   };
   if (action.type in actionHandlers) {

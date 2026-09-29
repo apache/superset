@@ -417,3 +417,28 @@ test('does not seed normalization metadata for dashboard overrides', () => {
     expect.objectContaining({ type: HYDRATE_CHART_NORMALIZATION }),
   );
 });
+
+test('hydrates with an empty undo history', () => {
+  const dispatch = jest.fn();
+  const getState = jest.fn(() => ({
+    user: {},
+    charts: {},
+    datasources: {},
+    common: {},
+    explore: {},
+  }));
+
+  // @ts-expect-error we only need the fields consumed by hydrateExplore
+  hydrateExplore(exploreInitialData)(dispatch, getState);
+
+  expect(dispatch).toHaveBeenCalledWith(
+    expect.objectContaining({
+      type: HYDRATE_EXPLORE,
+      data: expect.objectContaining({
+        explore: expect.objectContaining({
+          undoHistory: { past: [], future: [], restoreEpoch: 0 },
+        }),
+      }),
+    }),
+  );
+});

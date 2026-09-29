@@ -169,6 +169,7 @@ const defaultState = {
   controls: defaultControls,
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   form_data: getFormDataFromControls(defaultControls as any),
+  undoHistory: { past: [], future: [], restoreEpoch: 0 },
 };
 
 export { defaultControls, defaultState };

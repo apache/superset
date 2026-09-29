@@ -23,7 +23,11 @@ import {
   waitFor,
 } from 'spec/helpers/testing-library';
 
+import { act } from '@testing-library/react';
+import { Constants } from '@superset-ui/core/components';
+import type { CustomControlItem } from '@superset-ui/chart-controls';
 import TextAreaControl from 'src/explore/components/controls/TextAreaControl';
+import separatorControlPanel from 'src/explore/controlPanels/Separator';
 
 const defaultProps = {
   name: 'x_axis_label',
@@ -61,4 +65,52 @@ describe('TextArea', () => {
     fireEvent.change(textArea, { target: { value: 'x' } });
     expect(defaultProps.onChange).toHaveBeenCalledWith('x');
   });
+});
+
+test('debounces rapid edits into one onChange with the final value when debounceDelay is set', () => {
+  jest.useFakeTimers();
+  try {
+    const onChange = jest.fn();
+    render(
+      <TextAreaControl
+        {...defaultProps}
+        onChange={onChange}
+        debounceDelay={Constants.FAST_DEBOUNCE}
+      />,
+    );
+    const textArea = screen.getByRole('textbox');
+
+    fireEvent.change(textArea, { target: { value: 'a' } });
+    fireEvent.change(textArea, { target: { value: 'ab' } });
+    fireEvent.change(textArea, { target: { value: 'abc' } });
+    expect(onChange).not.toHaveBeenCalled();
+
+    act(() => {
+      jest.advanceTimersByTime(Constants.FAST_DEBOUNCE - 1);
+    });
+    expect(onChange).not.toHaveBeenCalled();
+
+    act(() => {
+      jest.advanceTimersByTime(1);
+    });
+    expect(onChange).toHaveBeenCalledTimes(1);
+    expect(onChange).toHaveBeenCalledWith('abc');
+  } finally {
+    jest.useRealTimers();
+  }
+});
+
+test('the Separator code control debounces its onChange by FAST_DEBOUNCE', () => {
+  const codeControl = separatorControlPanel.controlPanelSections
+    .flatMap(section => section?.controlSetRows ?? [])
+    .flat()
+    .find(
+      (item): item is CustomControlItem =>
+        typeof item === 'object' &&
+        item !== null &&
+        'name' in item &&
+        item.name === 'code',
+    );
+
+  expect(codeControl?.config.debounceDelay).toBe(Constants.FAST_DEBOUNCE);
 });
