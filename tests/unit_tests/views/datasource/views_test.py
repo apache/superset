@@ -515,6 +515,7 @@ def test_save_rejects_non_string_target_field(
     response = _run_save(database={"id": 1}, **{field: value})
 
     assert response.status_code == 422
+    assert field in response.get_data(as_text=True)
     mock_security_manager.raise_for_access.assert_not_called()
     mock_orm.update_from_object.assert_not_called()
 
