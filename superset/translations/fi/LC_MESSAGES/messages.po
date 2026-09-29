@@ -435,8 +435,6 @@ msgstr "%s%s"
 msgid "%s (copy from %s)"
 msgstr ""
 
-# de, es, fa, fr, it, ja, ko, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh,
-# zh_TW]
 #, python-format
 msgid "%s ENCRYPTED EXTRA"
 msgstr ""
@@ -458,7 +456,6 @@ msgstr ""
 msgid "%s PASSWORD"
 msgstr "%s SALASANA"
 
-# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, python-format
 msgid "%s Physical"
 msgstr ""
@@ -488,8 +485,6 @@ msgstr "%s SSH-TUNNELIN YKSITYISEN AVAIMEN SALASANA"
 msgid "%s Selected"
 msgstr "%s Valittu"
 
-# de, es, fa, fr, it, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, uk, zh,
-# zh_TW]
 #, python-format
 msgid "%s Selected (%s)"
 msgstr ""
@@ -518,7 +513,6 @@ msgstr "%s semantinen näkymä"
 msgid "%s URL"
 msgstr "%s URL"
 
-# de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, tr, uk]
 #, python-format
 msgid "%s Virtual"
 msgstr ""
@@ -603,7 +597,6 @@ msgid_plural "%s hr ago"
 msgstr[0] "%s rivi"
 msgstr[1] "%s riviä"
 
-# fr, ja, lv, mi, ru, sk, uk]
 #, python-format
 msgid "%s imported"
 msgstr ""
@@ -680,22 +673,18 @@ msgstr[1] "%s vaihtoehtoa"
 msgid "%s option(s)"
 msgstr "%s vaihtoehto(a)"
 
-# fr, ja, lv, mi, ru, sk, uk]
 #, python-format
 msgid "%s out of %s column"
 msgid_plural "%s out of %s columns"
 msgstr[0] ""
 msgstr[1] ""
 
-# de, es, fa, fr, it, ja, ko, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh,
-# zh_TW]
 #, python-format
 msgid "%s out of %s metric"
 msgid_plural "%s out of %s metrics"
 msgstr[0] ""
 msgstr[1] ""
 
-# ru, uk]
 #, python-format
 msgid "%s out of %s selected"
 msgstr ""
@@ -3140,7 +3129,6 @@ msgstr ""
 "Taulukon skeemaa laajennettaessa tapahtui virhe. Ota yhteyttä "
 "järjestelmänvalvojaasi."
 
-# de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, python-format
 msgid "An error occurred while fetching %s"
 msgstr ""
@@ -3151,13 +3139,10 @@ msgstr ""
 msgid "An error occurred while fetching %s info: %s"
 msgstr "%s-tietojen hakemisessa tapahtui virhe: %s"
 
-# de, es, fa, fr, it, ja, ko, lv, mi, nl, pt, pt_BR, ru, sk, sl, uk, zh,
-# zh_TW]
 #, python-format
 msgid "An error occurred while fetching %s related data"
 msgstr ""
 
-# de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, python-format
 msgid "An error occurred while fetching %s values: %s"
 msgstr ""
@@ -3307,7 +3292,6 @@ msgstr "Skeeman arvojen hakemisessa tapahtui virhe: %s"
 msgid "An error occurred while fetching semantic layer types"
 msgstr "Käytettävissä olevien teemojen hakemisessa tapahtui virhe"
 
-# de, es, fa, fr, it, ja, lv, mi, nl, pt, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "An error occurred while fetching semantic layers"
 msgstr ""
 
@@ -3318,8 +3302,6 @@ msgstr ""
 msgid "An error occurred while fetching tab state"
 msgstr "Välilehden tilan hakemisessa tapahtui virhe"
 
-# de, es, fa, fr, it, ja, ko, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, uk, zh,
-# zh_TW]
 #, python-format
 msgid "An error occurred while fetching table metadata for %s"
 msgstr ""
@@ -3432,7 +3414,6 @@ msgstr "Avaimen jäsennyksen aikana tapahtui virhe."
 msgid "An error occurred while pruning logs "
 msgstr "Lokien siistimisen aikana tapahtui virhe "
 
-# de, es, fa, fr, it, ja, lv, mi, nl, pt, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "An error occurred while refreshing the configuration schema"
 msgstr ""
 
@@ -4512,7 +4493,6 @@ msgstr "Kantaluvun eksponentti"
 msgid "Base height"
 msgstr "Pohjan korkeus"
 
-# de, es, fa, fr, ja, lv, mi, nl, pl, ru, sk, sl, uk]
 msgid "Base layer map style. Accepts a MapLibre-compatible style URL."
 msgstr ""
 
@@ -6004,7 +5984,6 @@ msgstr ""
 msgid "Child label position"
 msgstr "Lapsi-tunnisteen sijainti"
 
-# de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, tr, uk, zh, zh_TW]
 #, python-format
 msgid "Choose a %s"
 msgstr ""
@@ -6265,7 +6244,6 @@ msgstr "Lauseke"
 msgid "Clear"
 msgstr "Tyhjennä"
 
-# ru, uk]
 #, python-format
 msgid "Clear %s filter"
 msgstr ""
@@ -7139,7 +7117,6 @@ msgstr "Luottamusvälin on oltava välillä 0 ja 1 (ei sisällä rajoja)"
 msgid "Configuration"
 msgstr "Konfiguraatio"
 
-# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, python-format
 msgid "Configure %s"
 msgstr ""
@@ -7796,8 +7773,6 @@ msgstr "Luonut"
 msgid "Created by me"
 msgstr "Minun luomani"
 
-# de, es, fa, fr, it, ja, ko, lv, mi, nl, pl, pt_BR, ru, sk, sl, tr, uk, zh,
-# zh_TW]
 #, python-format
 msgid "Created by: %s"
 msgstr ""
@@ -8279,8 +8254,6 @@ msgstr "Tumma tila"
 msgid "Dashboard"
 msgstr "Kojelauta"
 
-# de, es, fa, fr, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, tr, uk, zh,
-# zh_TW]
 #, python-format
 msgid "Dashboard %(dashboard_id)s not found"
 msgstr ""
@@ -9632,7 +9605,6 @@ msgstr[1] "Poistettu %(num)d teemaa"
 msgid "Deleted %s"
 msgstr "Poistettu %s"
 
-# ru, uk]
 #, python-format
 msgid "Deleted %s item(s)"
 msgstr ""
@@ -9920,7 +9892,6 @@ msgstr "Dimension arvot"
 msgid "Dimensions"
 msgstr "Dimensiot"
 
-# de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
 #, python-format
 msgid "Dimensions (%s)"
 msgstr ""
@@ -10717,7 +10688,6 @@ msgstr "Kaaren leveys"
 msgid "Edit"
 msgstr "Muokkaa"
 
-# ja, lv, mi, ru, sk, uk]
 #, python-format
 msgid "Edit %s"
 msgstr ""
@@ -12311,7 +12281,6 @@ msgstr "Kohteiden merkitseminen tunnisteilla epäonnistui"
 msgid "Failed to generate chart edit URL"
 msgstr "Kaavion muokkaus-URL:n luominen epäonnistui"
 
-# de, es, fa, fr, ja, lv, mi, nl, pl, ru, sk, sl, uk]
 #, python-format
 msgid "Failed to generate download: %s"
 msgstr ""
@@ -12328,7 +12297,6 @@ msgstr "Kaavion tietojen lataaminen epäonnistui"
 msgid "Failed to load chart data."
 msgstr "Kaavion tietojen lataaminen epäonnistui."
 
-# uk]
 #, python-format
 msgid "Failed to load columns for %s %s"
 msgstr ""
@@ -14555,7 +14523,6 @@ msgstr "Virheellinen rolling_type: %(type)s"
 msgid "Invalid state."
 msgstr "Virheellinen tila."
 
-# es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sl, uk]
 #, python-format
 msgid "Invalid tab ids: %(tab_ids)s"
 msgstr ""
@@ -16481,8 +16448,6 @@ msgstr ""
 msgid "Metrics"
 msgstr "Mittarit"
 
-# de, es, fa, fr, it, ja, ko, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, uk, zh,
-# zh_TW]
 #, python-format
 msgid "Metrics (%s)"
 msgstr ""
@@ -16694,7 +16659,6 @@ msgstr "Minuutti"
 msgid "Minutes %s"
 msgstr "Minuutit %s"
 
-# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, python-format
 msgid "Missing %s"
 msgstr ""
@@ -17284,7 +17248,6 @@ msgstr ""
 msgid "No columns found"
 msgstr "Sarakkeita ei löydy"
 
-# de, es, fa, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
 #, python-format
 msgid "No compatible %s found"
 msgstr ""
@@ -17499,12 +17462,10 @@ msgstr "Ei rooleja"
 msgid "No roles yet"
 msgstr "Ei vielä rooleja"
 
-# de, es, fa, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, python-format
 msgid "No rows were returned for this %s"
 msgstr ""
 
-# de, es, fa, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
 #, python-format
 msgid "No samples were returned for this %s"
 msgstr ""
@@ -17544,7 +17505,6 @@ msgstr ""
 msgid "No table columns"
 msgstr "Ei taulukon sarakkeita"
 
-# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "No tasks yet"
 msgstr ""
 
@@ -19330,7 +19290,6 @@ msgstr "Tallenna kojelauta ensin ja yritä sitten luoda uusi sähköpostiraportt
 msgid "Please select at least one role or group"
 msgstr "Valitse vähintään yksi rooli tai ryhmä"
 
-# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, python-format
 msgid "Please select both a %s and a Chart type to proceed"
 msgstr ""
@@ -21551,8 +21510,6 @@ msgstr "Tallenna (Korvaa)"
 msgid "Save as"
 msgstr "Tallenna nimellä"
 
-# de, es, fa, fr, it, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, tr, uk, zh,
-# zh_TW]
 #, python-format
 msgid "Save as %s"
 msgstr ""
@@ -22112,7 +22069,6 @@ msgstr "Näytä kyselyn tiedot"
 msgid "Select"
 msgstr "Valitse"
 
-# de, es, fa, ja, lv, mi, nl, pt_BR, ru, sk, sl, tr, uk]
 #, python-format
 msgid "Select %s or type to search %s"
 msgstr ""
@@ -22163,7 +22119,6 @@ msgstr "Valitse tagit"
 msgid "Select Value"
 msgstr "Valitse arvo"
 
-# de, es, fa, ja, lv, mi, nl, ru, sk, sl, uk]
 #, python-format
 msgid "Select a %s"
 msgstr ""
@@ -24842,7 +24797,6 @@ msgstr "Onnistui"
 msgid "Success message"
 msgstr ""
 
-# de, es, fa, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
 #, python-format
 msgid "Successfully changed %s!"
 msgstr ""
@@ -24944,7 +24898,6 @@ msgstr "Superset kohtasi odottamattoman virheen."
 msgid "Supported databases"
 msgstr "Tuetut tietokannat"
 
-# de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
 #, python-format
 msgid "Swap %s"
 msgstr ""
@@ -25331,7 +25284,6 @@ msgstr "Kohdearvo"
 msgid "Task"
 msgstr "tunnisteet"
 
-# uk]
 #, python-format
 msgid "Task cancelled: %s"
 msgstr ""
@@ -25505,7 +25457,6 @@ msgstr ""
 msgid "The %s"
 msgstr "Haettu %s"
 
-# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, python-format
 msgid "The %s linked to this chart may have been deleted."
 msgstr ""
@@ -27421,7 +27372,6 @@ msgstr ""
 msgid "There was an issue archiving: %s"
 msgstr ""
 
-# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, python-format
 msgid "There was an issue cancelling the task: %s"
 msgstr ""
@@ -27450,7 +27400,6 @@ msgstr "Käyttäjän rekisteröinnin poistamisessa ilmeni ongelma: %s"
 msgid "There was an issue deleting rules: %s"
 msgstr "Sääntöjen poistamisessa ilmeni ongelma: %s"
 
-# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, python-format
 msgid "There was an issue deleting the selected %s"
 msgstr ""
@@ -27505,7 +27454,6 @@ msgstr "Valittujen teemojen poistamisessa ilmeni ongelma: %s"
 msgid "There was an issue deleting: %s"
 msgstr "Poistamisessa ilmeni ongelma: %s"
 
-# de, es, fa, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
 #, python-format
 msgid "There was an issue duplicating the %s."
 msgstr ""
@@ -27516,12 +27464,10 @@ msgstr ""
 msgid "There was an issue duplicating the selected %s: %s"
 msgstr "Valittujen %s poistamisessa ilmeni ongelma: %s"
 
-# uk]
 #, python-format
 msgid "There was an issue exporting the %s"
 msgstr ""
 
-# uk]
 #, python-format
 msgid "There was an issue exporting the selected %s"
 msgstr ""
@@ -27768,7 +27714,6 @@ msgstr ""
 msgid "This chart will be restored to the following version:"
 msgstr ""
 
-# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
 #, python-format
 msgid "This column might be incompatible with current %s"
 msgstr ""
@@ -28015,7 +27960,6 @@ msgstr ""
 msgid "This filter already exist on the report"
 msgstr "Tämä suodatin on jo raportissa"
 
-# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
 #, python-format
 msgid "This filter might be incompatible with current %s"
 msgstr ""
@@ -28181,7 +28125,6 @@ msgid ""
 "compatible metric."
 msgstr ""
 
-# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
 #, python-format
 msgid "This metric might be incompatible with current %s"
 msgstr ""
@@ -32100,7 +32043,6 @@ msgstr "Sinulla ei ole oikeuksia luoda kaaviota"
 msgid "You don't have the rights to create a dashboard"
 msgstr "Sinulla ei ole oikeuksia luoda kojelautaa"
 
-# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, tr, uk, zh, zh_TW]
 #, python-format
 msgid "You have been removed from task: %s"
 msgstr ""

@@ -412,8 +412,6 @@ msgstr "%s%s"
 msgid "%s (copy from %s)"
 msgstr ""
 
-# de, es, fa, fr, it, ja, ko, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh,
-# zh_TW]
 #, python-format
 msgid "%s ENCRYPTED EXTRA"
 msgstr ""
@@ -435,7 +433,6 @@ msgstr ""
 msgid "%s PASSWORD"
 msgstr "%s รหัสผ่าน"
 
-# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, python-format
 msgid "%s Physical"
 msgstr ""
@@ -465,8 +462,6 @@ msgstr "%s รหัสผ่านคีย์ส่วนตัวอุโม
 msgid "%s Selected"
 msgstr "%s รายการที่เลือก"
 
-# de, es, fa, fr, it, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, uk, zh,
-# zh_TW]
 #, python-format
 msgid "%s Selected (%s)"
 msgstr ""
@@ -495,7 +490,6 @@ msgstr "%s มุมมองเชิงความหมาย"
 msgid "%s URL"
 msgstr "%s URL"
 
-# de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, tr, uk]
 #, python-format
 msgid "%s Virtual"
 msgstr ""
@@ -570,7 +564,6 @@ msgid "%s hr ago"
 msgid_plural "%s hr ago"
 msgstr[0] "%s แถว"
 
-# fr, ja, lv, mi, ru, sk, uk]
 #, python-format
 msgid "%s imported"
 msgstr ""
@@ -657,7 +650,6 @@ msgid "%s out of %s metric"
 msgid_plural "%s out of %s metrics"
 msgstr[0] "%s จาก %s เมตริก"
 
-# ru, uk]
 #, python-format
 msgid "%s out of %s selected"
 msgstr ""
@@ -3046,7 +3038,6 @@ msgid ""
 "administrator."
 msgstr "เกิดข้อผิดพลาดขณะขยายโครงสร้างตาราง โปรดติดต่อผู้ดูแลระบบของคุณ."
 
-# de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, python-format
 msgid "An error occurred while fetching %s"
 msgstr ""
@@ -3057,13 +3048,10 @@ msgstr ""
 msgid "An error occurred while fetching %s info: %s"
 msgstr "เกิดข้อผิดพลาดขณะดึงข้อมูล %s: %s"
 
-# de, es, fa, fr, it, ja, ko, lv, mi, nl, pt, pt_BR, ru, sk, sl, uk, zh,
-# zh_TW]
 #, python-format
 msgid "An error occurred while fetching %s related data"
 msgstr ""
 
-# de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, python-format
 msgid "An error occurred while fetching %s values: %s"
 msgstr ""
@@ -3213,7 +3201,6 @@ msgstr "เกิดข้อผิดพลาดขณะดึงค่าส
 msgid "An error occurred while fetching semantic layer types"
 msgstr "เกิดข้อผิดพลาดขณะดึงธีมที่มีอยู่"
 
-# de, es, fa, fr, it, ja, lv, mi, nl, pt, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "An error occurred while fetching semantic layers"
 msgstr ""
 
@@ -3224,8 +3211,6 @@ msgstr ""
 msgid "An error occurred while fetching tab state"
 msgstr "เกิดข้อผิดพลาดขณะดึงสถานะแท็บ"
 
-# de, es, fa, fr, it, ja, ko, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, uk, zh,
-# zh_TW]
 #, python-format
 msgid "An error occurred while fetching table metadata for %s"
 msgstr ""
@@ -3336,7 +3321,6 @@ msgstr "เกิดข้อผิดพลาดขณะแยกวิเค
 msgid "An error occurred while pruning logs "
 msgstr "เกิดข้อผิดพลาดขณะตัดแต่งบันทึก "
 
-# de, es, fa, fr, it, ja, lv, mi, nl, pt, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "An error occurred while refreshing the configuration schema"
 msgstr ""
 
@@ -4403,7 +4387,6 @@ msgstr "เลขชี้กำลังฐาน"
 msgid "Base height"
 msgstr "ความสูงฐาน"
 
-# de, es, fa, fr, ja, lv, mi, nl, pl, ru, sk, sl, uk]
 msgid "Base layer map style. Accepts a MapLibre-compatible style URL."
 msgstr ""
 
@@ -5875,7 +5858,6 @@ msgstr ""
 msgid "Child label position"
 msgstr "ตำแหน่งป้ายกำกับย่อย"
 
-# de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, tr, uk, zh, zh_TW]
 #, python-format
 msgid "Choose a %s"
 msgstr ""
@@ -6127,7 +6109,6 @@ msgstr "เงื่อนไข"
 msgid "Clear"
 msgstr "ล้าง"
 
-# ru, uk]
 #, python-format
 msgid "Clear %s filter"
 msgstr ""
@@ -6991,7 +6972,6 @@ msgstr "ช่วงความเชื่อมั่นต้องอยู
 msgid "Configuration"
 msgstr "การกำหนดค่า"
 
-# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, python-format
 msgid "Configure %s"
 msgstr ""
@@ -7647,8 +7627,6 @@ msgstr "สร้างโดย"
 msgid "Created by me"
 msgstr "สร้างโดยฉัน"
 
-# de, es, fa, fr, it, ja, ko, lv, mi, nl, pl, pt_BR, ru, sk, sl, tr, uk, zh,
-# zh_TW]
 #, python-format
 msgid "Created by: %s"
 msgstr ""
@@ -8124,8 +8102,6 @@ msgstr "โหมดมืด"
 msgid "Dashboard"
 msgstr "แดชบอร์ด"
 
-# de, es, fa, fr, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, tr, uk, zh,
-# zh_TW]
 #, python-format
 msgid "Dashboard %(dashboard_id)s not found"
 msgstr ""
@@ -9450,7 +9426,6 @@ msgstr[0] "ลบ %(num)d ธีมแล้ว"
 msgid "Deleted %s"
 msgstr "ลบ %s แล้ว"
 
-# ru, uk]
 #, python-format
 msgid "Deleted %s item(s)"
 msgstr ""
@@ -9737,7 +9712,6 @@ msgstr "ค่ามิติข้อมูล"
 msgid "Dimensions"
 msgstr "มิติข้อมูล"
 
-# de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
 #, python-format
 msgid "Dimensions (%s)"
 msgstr ""
@@ -10524,7 +10498,6 @@ msgstr "ความกว้างขอบ"
 msgid "Edit"
 msgstr "แก้ไข"
 
-# ja, lv, mi, ru, sk, uk]
 #, python-format
 msgid "Edit %s"
 msgstr ""
@@ -12113,7 +12086,6 @@ msgstr "ไม่สามารถแท็กรายการได้"
 msgid "Failed to generate chart edit URL"
 msgstr "ไม่สามารถสร้าง URL สำหรับแก้ไขแผนภูมิได้"
 
-# de, es, fa, fr, ja, lv, mi, nl, pl, ru, sk, sl, uk]
 #, python-format
 msgid "Failed to generate download: %s"
 msgstr ""
@@ -12130,7 +12102,6 @@ msgstr "ไม่สามารถโหลดข้อมูลแผนภู
 msgid "Failed to load chart data."
 msgstr "ไม่สามารถโหลดข้อมูลแผนภูมิได้."
 
-# uk]
 #, python-format
 msgid "Failed to load columns for %s %s"
 msgstr ""
@@ -14349,7 +14320,6 @@ msgstr "rolling_type ไม่ถูกต้อง: %(type)s"
 msgid "Invalid state."
 msgstr "สถานะไม่ถูกต้อง"
 
-# es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sl, uk]
 #, python-format
 msgid "Invalid tab ids: %(tab_ids)s"
 msgstr ""
@@ -16261,8 +16231,6 @@ msgstr ""
 msgid "Metrics"
 msgstr "ตัวชี้วัด"
 
-# de, es, fa, fr, it, ja, ko, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, uk, zh,
-# zh_TW]
 #, python-format
 msgid "Metrics (%s)"
 msgstr ""
@@ -16474,7 +16442,6 @@ msgstr "นาที"
 msgid "Minutes %s"
 msgstr "นาที %s"
 
-# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, python-format
 msgid "Missing %s"
 msgstr ""
@@ -17059,7 +17026,6 @@ msgstr ""
 msgid "No columns found"
 msgstr "ไม่พบคอลัมน์"
 
-# de, es, fa, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
 #, python-format
 msgid "No compatible %s found"
 msgstr ""
@@ -17272,12 +17238,10 @@ msgstr "ไม่มีบทบาท"
 msgid "No roles yet"
 msgstr "ยังไม่มีบทบาท"
 
-# de, es, fa, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, python-format
 msgid "No rows were returned for this %s"
 msgstr ""
 
-# de, es, fa, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
 #, python-format
 msgid "No samples were returned for this %s"
 msgstr ""
@@ -17315,7 +17279,6 @@ msgstr "ไม่พบคอลัมน์ดังกล่าว หาก�
 msgid "No table columns"
 msgstr "ไม่มีคอลัมน์ในตาราง"
 
-# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "No tasks yet"
 msgstr ""
 
@@ -19085,7 +19048,6 @@ msgstr "โปรดบันทึกแดชบอร์ดของคุณ
 msgid "Please select at least one role or group"
 msgstr "โปรดเลือกบทบาทหรือกลุ่มอย่างน้อยหนึ่งรายการ"
 
-# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, python-format
 msgid "Please select both a %s and a Chart type to proceed"
 msgstr ""
@@ -21303,8 +21265,6 @@ msgstr "บันทึก (เขียนทับ)"
 msgid "Save as"
 msgstr "บันทึกเป็น"
 
-# de, es, fa, fr, it, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, tr, uk, zh,
-# zh_TW]
 #, python-format
 msgid "Save as %s"
 msgstr ""
@@ -21863,7 +21823,6 @@ msgstr "ดูรายละเอียดคิวรี"
 msgid "Select"
 msgstr "เลือก"
 
-# de, es, fa, ja, lv, mi, nl, pt_BR, ru, sk, sl, tr, uk]
 #, python-format
 msgid "Select %s or type to search %s"
 msgstr ""
@@ -21914,7 +21873,6 @@ msgstr "เลือกแท็ก"
 msgid "Select Value"
 msgstr "เลือกค่า"
 
-# de, es, fa, ja, lv, mi, nl, ru, sk, sl, uk]
 #, python-format
 msgid "Select a %s"
 msgstr ""
@@ -24565,7 +24523,6 @@ msgstr "สำเร็จ"
 msgid "Success message"
 msgstr ""
 
-# de, es, fa, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
 #, python-format
 msgid "Successfully changed %s!"
 msgstr ""
@@ -24667,7 +24624,6 @@ msgstr "Superset พบข้อผิดพลาดที่ไม่คาด
 msgid "Supported databases"
 msgstr "ฐานข้อมูลที่รองรับ"
 
-# de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
 #, python-format
 msgid "Swap %s"
 msgstr ""
@@ -25055,7 +25011,6 @@ msgstr "ค่าเป้าหมาย"
 msgid "Task"
 msgstr "แท็ก"
 
-# uk]
 #, python-format
 msgid "Task cancelled: %s"
 msgstr ""
@@ -25226,7 +25181,6 @@ msgstr ""
 msgid "The %s"
 msgstr "ดึงข้อมูลแล้ว %s"
 
-# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, python-format
 msgid "The %s linked to this chart may have been deleted."
 msgstr ""
@@ -27093,7 +27047,6 @@ msgstr ""
 msgid "There was an issue archiving: %s"
 msgstr ""
 
-# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, python-format
 msgid "There was an issue cancelling the task: %s"
 msgstr ""
@@ -27122,7 +27075,6 @@ msgstr "เกิดปัญหาในการลบการลงทะเ
 msgid "There was an issue deleting rules: %s"
 msgstr "เกิดปัญหาในการลบกฎ: %s"
 
-# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, python-format
 msgid "There was an issue deleting the selected %s"
 msgstr ""
@@ -27177,7 +27129,6 @@ msgstr "เกิดปัญหาในการลบธีมที่เล
 msgid "There was an issue deleting: %s"
 msgstr "เกิดปัญหาในการลบ: %s"
 
-# de, es, fa, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
 #, python-format
 msgid "There was an issue duplicating the %s."
 msgstr ""
@@ -27188,12 +27139,10 @@ msgstr ""
 msgid "There was an issue duplicating the selected %s: %s"
 msgstr "เกิดปัญหาในการลบ %s ที่เลือก: %s"
 
-# uk]
 #, python-format
 msgid "There was an issue exporting the %s"
 msgstr ""
 
-# uk]
 #, python-format
 msgid "There was an issue exporting the selected %s"
 msgstr ""
@@ -27434,7 +27383,6 @@ msgstr ""
 msgid "This chart will be restored to the following version:"
 msgstr ""
 
-# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
 #, python-format
 msgid "This column might be incompatible with current %s"
 msgstr ""
@@ -27672,7 +27620,6 @@ msgstr ""
 msgid "This filter already exist on the report"
 msgstr "ตัวกรองนี้มีอยู่ในรายงานแล้ว"
 
-# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
 #, python-format
 msgid "This filter might be incompatible with current %s"
 msgstr ""
@@ -27835,7 +27782,6 @@ msgid ""
 "compatible metric."
 msgstr ""
 
-# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
 #, python-format
 msgid "This metric might be incompatible with current %s"
 msgstr ""
@@ -31698,7 +31644,6 @@ msgstr "คุณไม่มีสิทธิ์สร้างชาร์ต
 msgid "You don't have the rights to create a dashboard"
 msgstr "คุณไม่มีสิทธิ์สร้างแดชบอร์ด"
 
-# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, tr, uk, zh, zh_TW]
 #, python-format
 msgid "You have been removed from task: %s"
 msgstr ""
