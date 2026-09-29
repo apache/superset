@@ -17,6 +17,8 @@
 # pylint: disable=unused-argument, import-outside-toplevel
 from datetime import datetime
 from decimal import Decimal
+from enum import Enum
+from typing import Any
 
 import numpy as np
 import pandas as pd
@@ -29,6 +31,177 @@ from superset.db_engine_specs import BaseEngineSpec
 from superset.result_set import SupersetResultSet
 from superset.superset_typing import DbapiDescription
 from superset.utils import json as superset_json
+
+
+class HostileDecimal(Decimal):
+    """Decimal subclass whose numeric hooks must not run during projection."""
+
+    def is_finite(self) -> bool:
+        raise AssertionError("hostile Decimal is_finite hook executed")
+
+    def __eq__(self, other: object) -> bool:
+        raise AssertionError("hostile Decimal equality hook executed")
+
+    def __float__(self) -> float:
+        raise AssertionError("hostile Decimal float hook executed")
+
+
+@pytest.mark.parametrize("dtype", ["Float32", "object"])
+def test_df_to_records_boxes_numpy_float(dtype: str) -> None:
+    """Finite NumPy floats serialize as native JSON numbers."""
+    frame = pd.DataFrame({"value": pd.Series([np.float32(1.5), None], dtype=dtype)})
+
+    records = df_to_records(frame)
+
+    assert type(records[0]["value"]) is float
+    assert records[1]["value"] is None
+    assert superset_json.loads(superset_json.dumps(records, ignore_nan=False)) == [
+        {"value": 1.5},
+        {"value": None},
+    ]
+
+
+@pytest.mark.parametrize("dtype", ["Int64", "object"])
+@pytest.mark.parametrize("convert_big_integers", [True, False])
+def test_df_to_records_boxes_numpy_integer(
+    dtype: str, convert_big_integers: bool
+) -> None:
+    """Nullable and object integers retain the browser-safe integer contract."""
+    big = 2**53 + 1
+    frame = pd.DataFrame(
+        {
+            "value": pd.Series(
+                [np.int64(7), np.int64(big), np.int64(-big), pd.NA], dtype=dtype
+            )
+        }
+    )
+
+    records = df_to_records(frame, convert_big_integers=convert_big_integers)
+
+    assert type(records[0]["value"]) is int
+    expected = [
+        {"value": 7},
+        {"value": str(big) if convert_big_integers else big},
+        {"value": str(-big) if convert_big_integers else -big},
+        {"value": None},
+    ]
+    assert records == expected
+    assert (
+        superset_json.loads(superset_json.dumps(records, ignore_nan=False)) == expected
+    )
+
+
+@pytest.mark.parametrize(
+    "value, expected",
+    [
+        (np.bool_(True), True),
+        (np.uint64(2**63), str(2**63)),
+        (np.float16(1.5), 1.5),
+        (np.str_("value"), "value"),
+        (np.bytes_(b"value"), b"value"),
+    ],
+)
+def test_df_to_records_boxes_native_numpy_scalars(value: Any, expected: Any) -> None:
+    """Trusted scalar boxing restores native types for object columns."""
+    records = df_to_records(pd.DataFrame({"value": pd.Series([value], dtype=object)}))
+
+    assert type(records[0]["value"]) is type(expected)
+    assert records[0]["value"] == expected
+
+
+def test_df_to_records_does_not_box_numpy_subclasses() -> None:
+    """Only exact NumPy types may execute scalar conversion methods."""
+
+    class HostileFloat(np.float32):
+        def item(self, *args: Any) -> Any:
+            raise AssertionError("hostile item hook executed")
+
+        def __float__(self) -> float:
+            raise AssertionError("hostile float hook executed")
+
+        def __eq__(self, other: object) -> bool:
+            raise AssertionError("hostile equality hook executed")
+
+    value = HostileFloat(1.5)
+    records = df_to_records(pd.DataFrame({"value": pd.Series([value], dtype=object)}))
+
+    assert records[0]["value"] is value
+
+
+def test_df_to_records_preserves_finite_longdouble_and_nulls_nonfinite() -> None:
+    """Long-double classification must not narrow through Python float."""
+    finite = np.longdouble("1e400")
+    frame = pd.DataFrame(
+        {
+            "value": pd.Series(
+                [
+                    finite,
+                    np.longdouble("inf"),
+                    np.longdouble("-inf"),
+                    np.longdouble("nan"),
+                ],
+                dtype=object,
+            )
+        }
+    )
+
+    records = df_to_records(frame)
+
+    assert records[0]["value"] is finite
+    assert [record["value"] for record in records[1:]] == [None, None, None]
+
+
+def test_df_to_records_does_not_compare_object_column_values() -> None:
+    """Materialization must not run equality hooks before envelope validation."""
+
+    class HostileEquality:
+        def __eq__(self, other: object) -> bool:
+            raise AssertionError("hostile equality hook executed")
+
+    class AcceptedEnum(Enum):
+        VALUE = "accepted"
+
+        def __eq__(self, other: object) -> bool:
+            raise AssertionError("enum equality hook executed")
+
+    hostile = HostileEquality()
+    accepted = AcceptedEnum.VALUE
+    frame = pd.DataFrame({"value": pd.Series([hostile, accepted], dtype=object)})
+
+    records = df_to_records(frame)
+
+    assert records[0]["value"] is hostile
+    assert records[1]["value"] is accepted
+
+
+def test_df_to_records_normalizes_only_exact_nonfinite_decimals() -> None:
+    """Exact non-finite Decimal cells become null without subclass hooks."""
+    finite = Decimal("0.10000000000000000001")
+    hostile = HostileDecimal("NaN")
+    values = [
+        Decimal("NaN"),
+        Decimal("sNaN"),
+        Decimal("Infinity"),
+        Decimal("-Infinity"),
+        finite,
+        hostile,
+    ]
+    frame = pd.DataFrame({"value": pd.Series(values, dtype=object)})
+
+    records = df_to_records(frame)
+
+    assert [records[index]["value"] for index in range(4)] == [None] * 4
+    # SQL Lab quotes finite decimals so the browser keeps every digit.
+    assert records[4]["value"] == str(finite)
+    assert records[5]["value"] is hostile
+    strict_json = superset_json.dumps(records[:5], ignore_nan=False)
+    assert superset_json.loads(strict_json) == [
+        {"value": None},
+        {"value": None},
+        {"value": None},
+        {"value": None},
+        {"value": "0.10000000000000000001"},
+    ]
 
 
 def test_df_to_records() -> None:
@@ -258,9 +431,10 @@ def test_df_to_records_with_inf_and_nan() -> None:
     assert records[0]["result"] is None
     assert records[0]["description"] == "division by zero"
 
-    # Infinity values should remain as-is (they're valid JSON)
-    assert records[1]["result"] == np.inf
-    assert records[2]["result"] == -np.inf
+    # Infinity is not a valid strict-JSON number and follows the producer's
+    # missing-value contract.
+    assert records[1]["result"] is None
+    assert records[2]["result"] is None
 
     # Normal values should remain unchanged
     assert records[3]["result"] == 0.0
@@ -379,18 +553,20 @@ def test_df_to_records_with_json_serialization_like_sql_lab() -> None:
     ],
 )
 def test_decimal_records_keep_all_digits(value: str) -> None:
-    decimal = Decimal(value)
-    frame = pd.DataFrame({"value": [decimal, None]})
+    """Decimals become exact strings that survive a JSON round trip unchanged."""
+    decimal_value: Decimal = Decimal(value)
+    frame = pd.DataFrame({"value": [decimal_value, None]})
     records = df_to_records(frame)
-    assert records == [{"value": str(decimal)}, {"value": None}]
+    assert records == [{"value": str(decimal_value)}, {"value": None}]
     # Both the HTTP JSON and JSON cache must quote decimals for JavaScript.
     assert superset_json.loads(superset_json.dumps(records)) == records
     # SQL Lab conversion must not modify DataFrames used for chart arithmetic.
-    assert frame.iloc[0, 0] == decimal
+    assert frame.iloc[0, 0] == decimal_value
     assert isinstance(frame.iloc[0, 0], Decimal)
 
 
 def test_nested_decimal_records() -> None:
+    """Decimals nested inside dicts, lists and tuples also become exact strings."""
     value = Decimal("12345678901234567890.123456789012345678")
     frame = pd.DataFrame({"value": [{"a": [value, None]}, (value,)]})
     assert df_to_records(frame) == [
@@ -400,9 +576,19 @@ def test_nested_decimal_records() -> None:
 
 
 def test_decimal_conversion_does_not_change_other_numbers() -> None:
+    """Ints, floats and bools pass through, and chart JSON still emits numbers."""
     frame = pd.DataFrame({"i": [2], "f": [0.5], "b": [True]})
     assert df_to_records(frame) == [{"i": 2, "f": 0.5, "b": True}]
     # Do not change the shared chart JSON serializer to emit decimal strings.
     assert superset_json.loads(superset_json.dumps({"x": Decimal("10.50")})) == {
         "x": 10.5
     }
+
+
+def test_decimal_conversion_can_be_disabled_for_chart_records() -> None:
+    """Chart records keep Decimal objects so the chart encoder emits numbers."""
+    value = Decimal("10.50")
+    frame = pd.DataFrame({"value": [value, {"a": [value]}]})
+    records = df_to_records(frame, convert_decimals=False)
+    assert records == [{"value": value}, {"value": {"a": [value]}}]
+    assert type(records[0]["value"]) is Decimal

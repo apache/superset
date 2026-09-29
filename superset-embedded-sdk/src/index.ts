@@ -56,6 +56,17 @@ export type UiConfigType = {
 /** Default per-call timeout (ms) applied to the host `fetchGuestToken` callback. */
 const DEFAULT_GUEST_TOKEN_FETCH_TIMEOUT_MS = 30_000;
 
+/**
+ * Method the SDK calls on a freshly navigated-to document to confirm that an
+ * embedded Superset page is listening on the channel. Deliberately not a
+ * method the page implements: the `Method "..." is not defined` error every
+ * version replies with is itself the acknowledgement.
+ */
+const HANDSHAKE_PROBE_METHOD = "supersetEmbeddedSdkHandshake";
+
+/** How long that document has to answer the handshake probe. */
+const HANDSHAKE_PROBE_TIMEOUT_MS = 5_000;
+
 export type EmbedDashboardParams = {
   /** The id provided by the embed configuration UI in Superset */
   id: string;
@@ -100,6 +111,43 @@ export type ObserveDataMaskCallbackFn = (
 export type ThemeMode = "default" | "dark" | "system";
 
 /**
+ * Raised on the calls still in flight when the document they were sent to
+ * goes away, because the iframe navigated or the dashboard was unmounted.
+ * `Switchboard.get` settles only on a reply, and a document that is gone can
+ * never send one, so without this the host would wait forever.
+ */
+export class PortClosedError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "PortClosedError";
+  }
+}
+
+/**
+ * A method the host exposes on the channel, as the registry of replayable
+ * methods holds it. `never` in the argument position is what lets methods of
+ * unrelated shapes share one registry: each one declares the arguments it
+ * actually takes, and `defineHostMethod` — the only writer — keeps that
+ * signature for the caller.
+ */
+type HostMethod = (args: never) => unknown;
+
+/**
+ * One end of a MessageChannel, plus everything scoped to the document on the
+ * other end of it. A navigation inside the iframe replaces that document, so
+ * the SDK opens a new channel and retires the previous connection.
+ */
+type Connection = {
+  switchboard: Switchboard;
+  port: MessagePort;
+  /** Rejectors of the `get` calls still waiting for a reply on this port. */
+  pending: Set<(err: Error) => void>;
+  /** Whether the document on this port has been handed a guest token. */
+  tokenSent: boolean;
+  closed: boolean;
+};
+
+/**
  * Callback to resolve permalink URLs.
  * Receives the permalink key and returns the full URL to use for the permalink.
  */
@@ -125,7 +173,15 @@ export type EmbeddedDashboard = {
   getChartDataPayloads: (params?: {
     chartId?: number;
   }) => Promise<Record<string, any>>;
+  /**
+   * Applies a theme to the dashboard. The theme is remembered and re-applied
+   * to the new document when the dashboard navigates to a page of its own.
+   */
   setThemeConfig: (themeConfig: Record<string, any>) => void;
+  /**
+   * Sets the dashboard's theme mode. Like `setThemeConfig`, it is re-applied
+   * after a navigation internal to the dashboard.
+   */
   setThemeMode: (mode: ThemeMode) => void;
 };
 
@@ -190,7 +246,130 @@ export async function embedDashboard({
     return configNumber;
   }
 
-  async function mountIframe(): Promise<Switchboard> {
+  // Hoisted above `mountIframe`: its `load` listener fires on every load of the
+  // iframe — including the ones a link internal to the dashboard triggers — and
+  // has to re-authenticate the new document on the port it just created. The
+  // definite assignment is the listener's: it runs before `mountIframe` resolves.
+  let connection!: Connection;
+  let refreshTimer: ReturnType<typeof setTimeout> | undefined;
+  let unmounted = false;
+  // Bumped by every token cycle, so a refresh left in flight by a reload stops
+  // instead of emitting a stale token and arming a second timer.
+  let generation = 0;
+  // Methods the host defined on the port. A reloaded document has never heard
+  // of them, so they are replayed on every new port.
+  const hostMethods: Record<string, HostMethod> = {};
+  // State the host pushed to the document with `emit` — the theme, today —
+  // keyed by method name so the last value of each wins. A reloaded document
+  // is a brand new realm holding none of it, so it is replayed as well.
+  const hostState = new Map<string, unknown>();
+
+  // Hand a freshly loaded document its own end of a new MessageChannel.
+  function connect(iframe: HTMLIFrameElement): Connection {
+    // MessageChannel allows us to send and receive messages smoothly between our window and the iframe
+    // See https://developer.mozilla.org/en-US/docs/Web/API/Channel_Messaging_API
+    const commsChannel = new MessageChannel();
+
+    // Send one of the message channel ports to the iframe to initialize embedded comms
+    // See https://developer.mozilla.org/en-US/docs/Web/API/Window/postMessage
+    // we know the content window isn't null because we are called from the load event handler.
+    iframe.contentWindow!.postMessage(
+      { type: IFRAME_COMMS_MESSAGE_TYPE, handshake: "port transfer" },
+      supersetDomain,
+      [commsChannel.port2],
+    );
+    log("sent message channel to the iframe");
+
+    const switchboard = new Switchboard({
+      port: commsChannel.port1,
+      name: "superset-embedded-sdk",
+      debug,
+    });
+    // Starting before the replay is safe: the port was created microseconds
+    // ago and cannot have anything queued yet, and the replay below runs
+    // synchronously in this same task, before any message can be dispatched.
+    switchboard.start();
+    Object.entries(hostMethods).forEach(([name, fn]) => {
+      switchboard.defineMethod(name, fn);
+    });
+    return {
+      switchboard,
+      port: commsChannel.port1,
+      pending: new Set(),
+      tokenSent: false,
+      closed: false,
+    };
+  }
+
+  // Retire a connection whose document is gone: reject whatever the host is
+  // still awaiting on it, since no reply can ever come now, and close the port
+  // so it stops holding on to its listeners.
+  function closeConnection(conn: Connection | undefined, reason: string) {
+    if (!conn || conn.closed) return;
+    conn.closed = true;
+    const pending = Array.from(conn.pending);
+    conn.pending.clear();
+    pending.forEach((reject) => reject(new PortClosedError(reason)));
+    // Optional call so a host test double for MessageChannel needs no `close`.
+    conn.port.close?.();
+  }
+
+  // Stop every cycle and let go of the channel. Shared by `unmount()` and by
+  // the failure path of the initial token fetch.
+  function teardown(reason: string) {
+    unmounted = true;
+    if (refreshTimer !== undefined) {
+      clearTimeout(refreshTimer);
+      refreshTimer = undefined;
+    }
+    closeConnection(connection, reason);
+    //@ts-ignore
+    mountPoint.replaceChildren();
+  }
+
+  // Define a method on the current port, and on every port that follows it.
+  function defineHostMethod<A extends object>(
+    name: string,
+    fn: (args: A) => unknown,
+  ) {
+    hostMethods[name] = fn;
+    connection.switchboard.defineMethod(name, fn);
+  }
+
+  // Push state to the current document and remember it, so the next document
+  // to load is given it too.
+  function emitHostState(method: string, args: unknown) {
+    hostState.set(method, args);
+    connection.switchboard.emit(method, args);
+  }
+
+  // Scope a `get` to the port it was issued on: if the document answers, the
+  // promise settles as usual; if the document leaves first, `closeConnection`
+  // rejects it rather than leaving the host waiting on a reply that the
+  // departed document can no longer send.
+  function portGet<T>(method: string, args?: unknown): Promise<T> {
+    const conn = connection;
+    if (conn.closed) {
+      return Promise.reject(
+        new PortClosedError(`"${method}" was called on a closed port`),
+      );
+    }
+    return new Promise<T>((resolve, reject) => {
+      conn.pending.add(reject);
+      Promise.resolve(conn.switchboard.get<T>(method, args))
+        .then(resolve, reject)
+        .finally(() => conn.pending.delete(reject));
+    });
+  }
+
+  // Arm the next refresh, replacing any timer already pending so that two
+  // token cycles overlapping across a reload cannot leave two of them running.
+  function armRefresh(delayMs: number) {
+    if (refreshTimer !== undefined) clearTimeout(refreshTimer);
+    refreshTimer = setTimeout(refreshGuestToken, delayMs);
+  }
+
+  async function mountIframe(): Promise<void> {
     return new Promise((resolve) => {
       const iframe = document.createElement("iframe");
       const dashboardConfigUrlParams = dashboardUiConfig
@@ -232,31 +411,29 @@ export async function embedDashboard({
       }
 
       // add the event listener before setting src, to be 100% sure that we capture the load event
+      let firstLoad = true;
       iframe.addEventListener("load", () => {
-        // MessageChannel allows us to send and receive messages smoothly between our window and the iframe
-        // See https://developer.mozilla.org/en-US/docs/Web/API/Channel_Messaging_API
-        const commsChannel = new MessageChannel();
-        const ourPort = commsChannel.port1;
-        const theirPort = commsChannel.port2;
-
-        // Send one of the message channel ports to the iframe to initialize embedded comms
-        // See https://developer.mozilla.org/en-US/docs/Web/API/Window/postMessage
-        // we know the content window isn't null because we are in the load event handler.
-        iframe.contentWindow!.postMessage(
-          { type: IFRAME_COMMS_MESSAGE_TYPE, handshake: "port transfer" },
-          supersetDomain,
-          [theirPort],
-        );
-        log("sent message channel to the iframe");
-
-        // return our port from the promise
-        resolve(
-          new Switchboard({
-            port: ourPort,
-            name: "superset-embedded-sdk",
-            debug,
-          }),
-        );
+        // A detached iframe can still report a load, and has no content window
+        // left to hand a port to.
+        if (unmounted || !iframe.contentWindow) return;
+        // Whatever the previous document was still being asked, it will never
+        // answer now.
+        closeConnection(connection, "the embedded page navigated away");
+        connection = connect(iframe);
+        if (firstLoad) {
+          firstLoad = false;
+          resolve();
+          return;
+        }
+        // The dashboard followed a link of its own. The new document is waiting
+        // for a guest token on THIS port, and the one we hold may be seconds
+        // from expiring, so ask the host for a fresh one.
+        log("iframe reloaded, re-authenticating on the new port");
+        if (refreshTimer !== undefined) {
+          clearTimeout(refreshTimer);
+          refreshTimer = undefined;
+        }
+        void reauthenticate(connection);
       });
       iframe.src = `${supersetDomain}/embedded/${id}${urlParamsString}`;
       iframe.title = iframeTitle;
@@ -275,10 +452,9 @@ export async function embedDashboard({
     });
   }
 
-  let guestToken: string;
-  let ourPort: Switchboard;
+  let guestToken: string | undefined;
   try {
-    [guestToken, ourPort] = await Promise.all([
+    [guestToken] = await Promise.all([
       fetchGuestTokenWithTimeout(),
       mountIframe(),
     ]);
@@ -286,51 +462,112 @@ export async function embedDashboard({
     // If the initial token fetch (or timeout) rejects after the iframe has
     // already been mounted, tear down the partially initialized iframe so the
     // host isn't left with an orphaned embedded dashboard before rethrowing.
-    //@ts-ignore
-    mountPoint.replaceChildren();
-    throw err;
+    //
+    // Unless the iframe navigated while this fetch was in flight: that reload
+    // opened a token cycle of its own, and that cycle — not this one — decides
+    // whether the embed lives, either by handing the document in front of the
+    // user a token or by retrying until it can. Tearing down here would take a
+    // dashboard that is already rendering away from the host, on the word of a
+    // fetch nobody is waiting for any more.
+    if (generation === 0) {
+      teardown("the initial guest token fetch failed");
+      throw err;
+    }
+    log("the initial guest token fetch failed, a reload has taken over:", err);
   }
 
-  ourPort.emit("guestToken", { guestToken });
-  log("sent guest token");
+  // Generation 0 is the fetch above. A reload while it was in flight has
+  // already moved the chain on, and `deliverGuestToken` knows what that means.
+  if (guestToken !== undefined) {
+    deliverGuestToken(0, guestToken);
+  }
 
-  // Track the pending refresh timer so it can be cancelled on unmount, and
-  // stop the cycle once unmounted so it cannot leak across mount/unmount cycles.
-  let refreshTimer: ReturnType<typeof setTimeout> | undefined;
-  let unmounted = false;
+  // Hand a token to the document currently on the channel, and arm the next
+  // refresh. `gen` identifies the cycle that fetched it; a newer one means a
+  // reload superseded this cycle, so it no longer arms a timer. It does still
+  // hand the token over when the current document has none, because any valid
+  // token gets that document rendering, and waiting for the newer cycle to
+  // retry a failed fetch would leave the page blank for a full retry interval.
+  function deliverGuestToken(gen: number, token: string) {
+    if (unmounted) return;
+    const ownsChain = gen === generation;
+    if (ownsChain || !connection.tokenSent) {
+      const firstTokenForDocument = !connection.tokenSent;
+      connection.tokenSent = true;
+      connection.switchboard.emit("guestToken", { guestToken: token });
+      log("sent guest token");
+      if (firstTokenForDocument) {
+        // Replay what the host had pushed to the previous document. After the
+        // token, so it arrives in the same order as on a first load, where the
+        // host calls these once `embedDashboard` has resolved.
+        hostState.forEach((args, method) => {
+          connection.switchboard.emit(method, args);
+        });
+      }
+    }
+    if (ownsChain) {
+      armRefresh(getGuestTokenRefreshTiming(token));
+    }
+  }
 
+  // Re-authenticate a document that arrived through a navigation of the
+  // iframe's own. Not all of those land on the embedded page: a link in a
+  // Markdown chart can point at a plain Superset URL, or off site entirely,
+  // and such a document never answers on the channel. Minting a guest token
+  // for it would bill the host's endpoint for a document that cannot use it,
+  // so the handshake is confirmed first.
+  async function reauthenticate(conn: Connection) {
+    if (!(await handshakeAcknowledged(conn))) {
+      log("nothing answered the handshake, not fetching a guest token");
+      return;
+    }
+    // Another load, or an unmount, overtook the probe.
+    if (unmounted || conn !== connection) return;
+    await refreshGuestToken();
+  }
+
+  // Any answer at all proves a Superset switchboard is listening, including
+  // the error reply that an embedded page returns for a method it does not
+  // know — which is every version of the page to date. Silence means we are
+  // not talking to an embedded page, and the probe times out.
+  async function handshakeAcknowledged(conn: Connection): Promise<boolean> {
+    try {
+      await withTimeout(
+        Promise.resolve(conn.switchboard.get(HANDSHAKE_PROBE_METHOD)).catch(
+          () => undefined,
+        ),
+        HANDSHAKE_PROBE_TIMEOUT_MS,
+        "embedded page handshake",
+      );
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  // Emits on whichever port is current: a reload replaces it, and the document
+  // behind the old one is gone.
   async function refreshGuestToken() {
     if (unmounted) return;
+    const gen = ++generation;
     try {
       const newGuestToken = await fetchGuestTokenWithTimeout();
       if (unmounted) return;
-      ourPort.emit("guestToken", { guestToken: newGuestToken });
-      refreshTimer = setTimeout(
-        refreshGuestToken,
-        getGuestTokenRefreshTiming(newGuestToken),
-      );
+      deliverGuestToken(gen, newGuestToken);
     } catch (err) {
       // A transient fetch failure or timeout must not permanently stop the
       // refresh cycle. Log it and retry so the session can recover once the
       // host callback succeeds again.
       log("failed to refresh guest token, will retry:", err);
-      if (unmounted) return;
-      refreshTimer = setTimeout(
-        refreshGuestToken,
-        DEFAULT_TOKEN_REFRESH_RETRY_MS,
-      );
+      if (unmounted || gen !== generation) return;
+      armRefresh(DEFAULT_TOKEN_REFRESH_RETRY_MS);
     }
   }
 
-  refreshTimer = setTimeout(
-    refreshGuestToken,
-    getGuestTokenRefreshTiming(guestToken),
-  );
-
   // Register the resolvePermalinkUrl method for the iframe to call
   // Returns null if no callback provided or on error, allowing iframe to use default URL
-  ourPort.start();
-  ourPort.defineMethod(
+  // Defined through `defineHostMethod` so a reloaded document gets it too.
+  defineHostMethod(
     "resolvePermalinkUrl",
     async ({ key }: { key: string }): Promise<string | null> => {
       if (!resolvePermalinkUrl) {
@@ -347,20 +584,14 @@ export async function embedDashboard({
 
   function unmount() {
     log("unmounting");
-    unmounted = true;
-    if (refreshTimer !== undefined) {
-      clearTimeout(refreshTimer);
-      refreshTimer = undefined;
-    }
-    //@ts-ignore
-    mountPoint.replaceChildren();
+    teardown("the dashboard was unmounted");
   }
 
-  const getScrollSize = () => ourPort.get<Size>("getScrollSize");
+  const getScrollSize = () => portGet<Size>("getScrollSize");
   const getDashboardPermalink = (anchor: string) =>
-    ourPort.get<string>("getDashboardPermalink", { anchor });
-  const getActiveTabs = () => ourPort.get<string[]>("getActiveTabs");
-  const getDataMask = () => ourPort.get<Record<string, any>>("getDataMask");
+    portGet<string>("getDashboardPermalink", { anchor });
+  const getActiveTabs = () => portGet<string[]>("getActiveTabs");
+  const getDataMask = () => portGet<Record<string, any>>("getDataMask");
   // `observeDataMask` hands the host a mask with the change-trigger booleans
   // mixed in, so feeding that payload straight back into `setDataMask` is a
   // natural thing for a host to do. Keep only the entries that look like a
@@ -369,26 +600,25 @@ export async function embedDashboard({
   // an embedded page that predates `setDataMask` replies with an error instead
   // of dropping the message silently.
   const setDataMask = (dataMask: Record<string, any>) =>
-    ourPort.get<void>("setDataMask", {
+    portGet<void>("setDataMask", {
       dataMask: Object.fromEntries(
         Object.entries(dataMask).filter(
           ([, mask]) => typeof mask === "object" && mask !== null,
         ),
       ),
     });
-  const getChartStates = () =>
-    ourPort.get<Record<string, any>>("getChartStates");
+  const getChartStates = () => portGet<Record<string, any>>("getChartStates");
   const getChartDataPayloads = (params?: { chartId?: number }) =>
-    ourPort.get<Record<string, any>>("getChartDataPayloads", params);
+    portGet<Record<string, any>>("getChartDataPayloads", params);
   const observeDataMask = (callbackFn: ObserveDataMaskCallbackFn) => {
-    ourPort.defineMethod("observeDataMask", callbackFn);
+    defineHostMethod("observeDataMask", callbackFn);
   };
   // TODO: Add proper types once theming branch is merged
   const setThemeConfig = async (
     themeConfig: Record<string, any>,
   ): Promise<void> => {
     try {
-      ourPort.emit("setThemeConfig", { themeConfig });
+      emitHostState("setThemeConfig", { themeConfig });
       log("Theme config sent successfully (or at least message dispatched)");
     } catch (error) {
       log(
@@ -400,7 +630,7 @@ export async function embedDashboard({
 
   const setThemeMode = (mode: ThemeMode): void => {
     try {
-      ourPort.emit("setThemeMode", { mode });
+      emitHostState("setThemeMode", { mode });
       log(`Theme mode set to: ${mode}`);
     } catch (error) {
       log(
