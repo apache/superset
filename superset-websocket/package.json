@@ -31,7 +31,7 @@
     "@types/node": "^26.6.2",
     "@types/ws": "^8.18.1",
     "esbuild": "^0.28.2",
-    "oxfmt": "^0.68.0",
+    "oxfmt": "^0.70.0",
     "oxlint": "^1.83.0",
     "oxlint-tsgolint": "^7.0.2002",
     "tscw-config": "^1.1.2",
