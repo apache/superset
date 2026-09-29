@@ -17,6 +17,16 @@
  * under the License.
  */
 
+/**
+ * Timezone-aware strings carry an explicit UTC offset (`Z` or `±hh:mm`).
+ * Rewriting them to a bare `Z` would relabel the wall-clock time as UTC,
+ * shifting the instant; they are returned untouched. Timezone names
+ * (`UTC`, `Europe/Helsinki`) are not valid ISO offsets and are still
+ * stripped the historic way. Trino renders `timestamp with time zone`
+ * with a space before the offset; that separator is accepted too.
+ */
+const TS_REGEX_TZ_AWARE =
+  /^(\d{4}-\d{2}-\d{2})[T\s](\d{2}:\d{2}:\d{2}\.?\d*)[\s]?(?:Z|[+-]\d{2}:?\d{2})$/;
 export const TS_REGEX = /(\d{4}-\d{2}-\d{2})[\sT](\d{2}:\d{2}:\d{2}\.?\d*).*/;
 
 // Matches a bare date with no time component, e.g. "2023-03-11".
@@ -29,6 +39,14 @@ export const TS_REGEX = /(\d{4}-\d{2}-\d{2})[\sT](\d{2}:\d{2}:\d{2}\.?\d*).*/;
 export const DATE_ONLY_REGEX = /^(\d{4}-\d{2}-\d{2})$/;
 
 export default function normalizeTimestamp(value: string): string {
+  if (TS_REGEX_TZ_AWARE.test(value)) {
+    // The ECMA-262 Date Time String Format only recognizes an offset with a
+    // colon (`±hh:mm`); a compact offset (`+0330`) is outside that grammar,
+    // so `new Date(...)` on the result is implementation-defined and known
+    // to disagree across browsers. Insert the colon: it doesn't change the
+    // instant the offset represents, only its string form.
+    return value.replace(/([+-]\d{2})(\d{2})$/, '$1:$2');
+  }
   const match = value.match(TS_REGEX);
   if (match) {
     return `${match[1]}T${match[2]}Z`;
