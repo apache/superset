@@ -80,6 +80,16 @@ SYNTAX_ERROR_REGEX = re.compile(
 )
 
 
+MYSQL_SSL_MODE_REQUIRED = "REQUIRED"
+MYSQL_SSL_MODE_VERIFY_CA = "VERIFY_CA"
+MYSQL_SSL_MODE_VERIFY_IDENTITY = "VERIFY_IDENTITY"
+MYSQL_SSL_REQUIRED_MODES = (
+    MYSQL_SSL_MODE_REQUIRED,
+    MYSQL_SSL_MODE_VERIFY_CA,
+    MYSQL_SSL_MODE_VERIFY_IDENTITY,
+)
+
+
 def _require_mysql_verified_tls(
     driver: str, query: dict[str, Any], args: dict[str, Any]
 ) -> None:
@@ -147,10 +157,12 @@ def require_mysql_tls(
     if driver == "mysqldb":
         # mysqlclient maps REQUIRED to opportunistic TLS with MariaDB
         # Connector/C. Verification modes fail closed on both client libraries.
-        mode = options.get("ssl_mode", "VERIFY_CA")
-        if mode not in ("REQUIRED", "VERIFY_CA", "VERIFY_IDENTITY"):
+        mode = options.get("ssl_mode", MYSQL_SSL_MODE_VERIFY_CA)
+        if mode not in MYSQL_SSL_REQUIRED_MODES:
             raise ValueError("MySQL SSL request conflicts with ssl_mode")
-        args["ssl_mode"] = "VERIFY_CA" if mode == "REQUIRED" else mode
+        args["ssl_mode"] = (
+            MYSQL_SSL_MODE_VERIFY_CA if mode == MYSQL_SSL_MODE_REQUIRED else mode
+        )
     elif driver in ("mysqlconnector", "pymysql"):
         _require_mysql_verified_tls(driver, query, args)
     else:
@@ -166,7 +178,7 @@ def require_mysqlclient_tls(
     # credentials, catalog/schema and the original dialect on the returned URL.
     mysql_uri = uri.set(drivername="mysql+mysqldb")
     if any(
-        mode in ("REQUIRED", "VERIFY_CA", "VERIFY_IDENTITY")
+        mode in MYSQL_SSL_REQUIRED_MODES
         for mode in (uri.query.get("ssl_mode"), connect_args.get("ssl_mode"))
     ):
         mysql_uri = mysql_uri.update_query_dict({"ssl": "1"})

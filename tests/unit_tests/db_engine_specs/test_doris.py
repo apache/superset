@@ -475,6 +475,8 @@ def test_doris_tls_parameters_round_trip(mode: str) -> None:
     uri = make_url(DorisEngineSpec.build_sqlalchemy_uri(parameters))
     assert uri.query == {"ssl_mode": expected_mode, "charset": "utf8mb4"}
     assert uri.password == "p@ss"  # noqa: S105
+    assert parameters["encryption"] is True
+    assert parameters["query"] == expected_query
 
 
 @pytest.mark.parametrize("mode", ["REQUIRED", "VERIFY_CA", "VERIFY_IDENTITY"])

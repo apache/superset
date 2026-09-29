@@ -30,7 +30,13 @@ from sqlalchemy.sql.type_api import TypeEngine
 from superset.constants import TimeGrain
 from superset.databases.utils import make_url_safe
 from superset.db_engine_specs.base import BasicParametersType, DatabaseCategory
-from superset.db_engine_specs.mysql import MySQLEngineSpec, require_mysqlclient_tls
+from superset.db_engine_specs.mysql import (
+    MYSQL_SSL_MODE_REQUIRED,
+    MYSQL_SSL_MODE_VERIFY_CA,
+    MYSQL_SSL_MODE_VERIFY_IDENTITY,
+    MySQLEngineSpec,
+    require_mysqlclient_tls,
+)
 from superset.errors import SupersetErrorType
 from superset.models.core import Database
 from superset.utils.core import GenericDataType
@@ -131,7 +137,7 @@ class DorisEngineSpec(MySQLEngineSpec):
         "doris://user:password@host:port/catalog.db[?key=value&key=value...]"
     )
     # REQUIRED can fall back with MariaDB Connector/C; verification fails closed.
-    encryption_parameters = {"ssl_mode": "VERIFY_CA"}
+    encryption_parameters = {"ssl_mode": MYSQL_SSL_MODE_VERIFY_CA}
     supports_dynamic_schema = True
     supports_catalog = supports_dynamic_catalog = True
     # while technically supported by Doris, this generates invalid table identifiers
@@ -344,8 +350,11 @@ class DorisEngineSpec(MySQLEngineSpec):
     ) -> str:
         """Build a Doris URI while preserving explicit hostname verification."""
         uri = make_url_safe(super().build_sqlalchemy_uri(parameters, encrypted_extra))
-        if parameters.get("query", {}).get("ssl_mode") == "VERIFY_IDENTITY":
-            uri = uri.update_query_dict({"ssl_mode": "VERIFY_IDENTITY"})
+        if (
+            parameters.get("query", {}).get("ssl_mode")
+            == MYSQL_SSL_MODE_VERIFY_IDENTITY
+        ):
+            uri = uri.update_query_dict({"ssl_mode": MYSQL_SSL_MODE_VERIFY_IDENTITY})
         # ``engine+default_driver`` would be ``pydoris+pydoris``, which no
         # SQLAlchemy entry point provides; ``doris`` is the dialect's scheme.
         return uri.set(drivername="doris").render_as_string(hide_password=False)
@@ -356,12 +365,12 @@ class DorisEngineSpec(MySQLEngineSpec):
     ) -> BasicParametersType:
         """Recognize legacy TLS requests without losing hostname verification."""
         url = make_url_safe(uri)
-        if url.query.get("ssl_mode") == "REQUIRED":
+        if url.query.get("ssl_mode") == MYSQL_SSL_MODE_REQUIRED:
             url = url.update_query_dict(cls.encryption_parameters)
         parameters = super().get_parameters_from_uri(
             url.render_as_string(hide_password=False), encrypted_extra
         )
-        if url.query.get("ssl_mode") == "VERIFY_IDENTITY":
+        if url.query.get("ssl_mode") == MYSQL_SSL_MODE_VERIFY_IDENTITY:
             parameters["encryption"] = True
         return parameters
 
