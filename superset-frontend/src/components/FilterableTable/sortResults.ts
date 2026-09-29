@@ -18,21 +18,55 @@
  */
 type CellValue = string | number | null;
 
+// Every pattern below is a single flat run of digits, so matching stays linear
+// in the input length; the optional parts are split off by hand instead of
+// nesting quantified groups, which could backtrack catastrophically.
+const DIGITS = /^\d*$/;
+const EXPONENT = /^[+-]?\d+$/;
+const NUMERIC_MANTISSA = /^(?:\d+|\d*\.\d+)$/;
+
+/** Split `text` at its first `e`/`E`; `null` when the exponent is malformed. */
+function splitExponent(text: string): [string, string | undefined] | null {
+  const at = text.search(/[eE]/);
+  if (at === -1) return [text, undefined];
+  const exponent = text.slice(at + 1);
+  return EXPONENT.test(exponent) ? [text.slice(0, at), exponent] : null;
+}
+
 // Compare significands and decimal orders, never coerce exact strings to Number.
 // Keeping the exponent separate also avoids allocating 10**exponent zeroes.
-const DECIMAL = /^([+-]?)(?:(\d+)(?:\.(\d*))?|\.(\d+))(?:[eE]([+-]?\d+))?$/;
-
-function decimalParts(value: Exclude<CellValue, null>) {
-  const match = DECIMAL.exec(String(value));
-  if (!match) return null;
-  const fraction = match[3] ?? match[4] ?? '';
-  const digits = `${match[2] ?? ''}${fraction}`.replace(/^0+/, '');
+export function decimalParts(value: Exclude<CellValue, null>) {
+  const text = String(value);
+  const signed = text[0] === '+' || text[0] === '-';
+  const parts = splitExponent(signed ? text.slice(1) : text);
+  if (!parts) return null;
+  const [mantissa, exponent] = parts;
+  const dot = mantissa.indexOf('.');
+  const integer = dot === -1 ? mantissa : mantissa.slice(0, dot);
+  const fraction = dot === -1 ? '' : mantissa.slice(dot + 1);
+  if (
+    !(integer || fraction) ||
+    !DIGITS.test(integer) ||
+    !DIGITS.test(fraction)
+  ) {
+    return null;
+  }
+  const digits = `${integer}${fraction}`.replace(/^0+/, '');
   return {
-    sign: digits ? (match[1] === '-' ? -1 : 1) : 0,
+    sign: digits ? (text[0] === '-' ? -1 : 1) : 0,
     digits,
     order:
-      BigInt(digits.length) + BigInt(match[5] ?? '0') - BigInt(fraction.length),
+      BigInt(digits.length) + BigInt(exponent ?? '0') - BigInt(fraction.length),
   };
+}
+
+/** Whether the grid treats a string as a JavaScript number literal. */
+export function isNumericText(value: string): boolean {
+  if (value === 'NaN') return true;
+  const unsigned = value[0] === '-' ? value.slice(1) : value;
+  if (unsigned === 'Infinity') return true;
+  const parts = splitExponent(unsigned);
+  return parts !== null && NUMERIC_MANTISSA.test(parts[0]);
 }
 
 export function sortResults(valueA: CellValue, valueB: CellValue): number {
@@ -54,10 +88,7 @@ export function sortResults(valueA: CellValue, valueB: CellValue): number {
 
   // Retain the table's existing numeric-string, text and infinity behavior.
   const numberOrText = (value: Exclude<CellValue, null>) =>
-    typeof value === 'string' &&
-    /^(NaN|-?((\d*\.\d+|\d+)([Ee][+-]?\d+)?|Infinity))$/.test(value)
-      ? Number(value)
-      : value;
+    typeof value === 'string' && isNumericText(value) ? Number(value) : value;
   const left = numberOrText(valueA);
   const right = numberOrText(valueB);
   if (
