@@ -18,24 +18,27 @@
  */
 /**
  * Global (non-SQL-Lab-scoped) view/menu locations for extension
- * integration, mirroring the pattern in `src/SqlLab/contributions.ts`.
+ * integration. Unlike `src/SqlLab/contributions.ts`, these locations
+ * aren't declared via the manifest `contributions.views`/`contributions.menus`
+ * field -- `ViewContributions`/`MenuContributions` in `superset-core`
+ * only accept a `sqllab` scope today -- so extensions register against
+ * them imperatively instead.
  *
  * @example
- * // In extension.json:
- * {
- *   "contributions": {
- *     "views": {
- *       "global": {
- *         "settingsPanel": [{ "id": "my-ext.settings", "name": "My Settings" }]
- *       }
- *     },
- *     "menus": {
- *       "global": {
- *         "settingsMenu": [{ "view": "my-ext.settings", "command": "my-ext.openSettings" }]
- *       }
- *     }
- *   }
- * }
+ * ```typescript
+ * import { menus, views } from '@apache-superset/core';
+ *
+ * views.registerView(
+ *   { id: 'my-ext.settings', name: 'My Settings' },
+ *   GlobalLocations.settings.panel,
+ *   MySettingsPanel,
+ * );
+ * menus.registerMenuItem(
+ *   { view: 'my-ext.settings', command: 'my-ext.openSettings' },
+ *   GlobalLocations.settings.menu,
+ *   'secondary',
+ * );
+ * ```
  *
  * // In component code:
  * const menu = useMenu(GlobalLocations.settings.menu);

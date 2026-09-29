@@ -56,14 +56,14 @@ class ExtensionContext implements ExtensionContextType {
       // non-component extension code (e.g. a registered command's
       // callback), not just from within a React render.
       this._window = {
-        showInformationMessage: (message: string) => {
-          store.dispatch(addInfoToast(message));
+        showInformationMessage: (message: string, options) => {
+          store.dispatch(addInfoToast(message, options));
         },
-        showWarningMessage: (message: string) => {
-          store.dispatch(addWarningToast(message));
+        showWarningMessage: (message: string, options) => {
+          store.dispatch(addWarningToast(message, options));
         },
-        showErrorMessage: (message: string) => {
-          store.dispatch(addDangerToast(message));
+        showErrorMessage: (message: string, options) => {
+          store.dispatch(addDangerToast(message, options));
         },
       };
     }
