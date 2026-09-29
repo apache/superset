@@ -95,3 +95,16 @@ def test_non_progress_logs_keep_polling(log: str) -> None:
     assert cursor.status.call_count == 2
     assert query.progress == 0
     db.session.commit.assert_not_called()
+
+
+def test_failed_cancel_still_releases_the_operation() -> None:
+    """A cancel RPC that errors must not leave the operation and cursor open."""
+    query = Mock(id=1, extra={QUERY_EARLY_CANCEL_KEY: True}, progress=0)
+    cursor = Mock()
+    cursor.status.return_value = "PENDING_STATE"
+    cursor.cancel_operation.side_effect = RuntimeError("rpc failed")
+    with patch("superset.db_engine_specs.impala.db") as db:
+        db.session.query.return_value.filter_by.return_value.one.return_value = query
+        ImpalaEngineSpec.handle_cursor(cursor, query)
+    cursor.close_operation.assert_called_once_with()
+    cursor.close.assert_called_once_with()

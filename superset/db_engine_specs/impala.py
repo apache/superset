@@ -17,6 +17,7 @@
 
 from __future__ import annotations
 
+import contextlib
 import logging
 import re
 import time
@@ -153,9 +154,17 @@ class ImpalaEngineSpec(BaseEngineSpec):
                     QueryStatus.STOPPED,
                     QueryStatus.TIMED_OUT,
                 ):
-                    cursor.cancel_operation()
-                    cursor.close_operation()
-                    cursor.close()
+                    try:
+                        cursor.cancel_operation()
+                    except Exception:  # pylint: disable=broad-except
+                        logger.warning("Query %s: cancel_operation() failed", query_id)
+                    # The handles are released even when the cancel RPC failed,
+                    # so a stopped query does not leave an operation open on the
+                    # coordinator for the rest of the connection's life.
+                    with contextlib.suppress(Exception):
+                        cursor.close_operation()
+                    with contextlib.suppress(Exception):
+                        cursor.close()
                     break
 
                 # Pending/initialized operations have no execution progress yet.
