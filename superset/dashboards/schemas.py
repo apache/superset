@@ -63,6 +63,10 @@ screenshot_query_schema = {
 }
 dashboard_title_description = "A title for the dashboard."
 description_description = "A description for the dashboard."
+localized_title_description = (
+    "The dashboard title resolved for the viewer's locale (read-only). "
+    "Falls back to dashboard_title when no translation applies."
+)
 slug_description = "Unique identifying part for the web address of the dashboard."
 editors_description = (
     "A list of subject IDs (users, roles, or groups) that can alter the dashboard."
@@ -282,6 +286,11 @@ class DashboardGetResponseSchema(Schema):
     url = fields.String()
     dashboard_title = fields.String(
         metadata={"description": dashboard_title_description}
+    )
+    localized_title = fields.String(
+        dump_only=True,
+        allow_none=True,
+        metadata={"description": localized_title_description},
     )
     thumbnail_url = fields.String(allow_none=True)
     published = fields.Boolean()
