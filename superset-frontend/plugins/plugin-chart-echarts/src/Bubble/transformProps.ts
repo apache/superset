@@ -272,10 +272,7 @@ export default function transformProps(chartProps: EchartsBubbleChartProps) {
         false,
         legendState,
       ),
-      scrollDataIndex: getLegendScrollDataIndex(
-        legendIndex,
-        legendData.length,
-      ),
+      scrollDataIndex: getLegendScrollDataIndex(legendIndex, legendData.length),
       data: legendData,
     },
     tooltip: {

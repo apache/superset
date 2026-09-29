@@ -1004,10 +1004,7 @@ export default function transformProps(
         legendState,
         chartPadding,
       ),
-      scrollDataIndex: getLegendScrollDataIndex(
-        legendIndex,
-        legendData.length,
-      ),
+      scrollDataIndex: getLegendScrollDataIndex(legendIndex, legendData.length),
       data: legendData,
     },
     series: dedupSeries(reorderForecastSeries(series) as SeriesOption[]),

@@ -338,10 +338,7 @@ export default function transformProps(
         false,
         legendState,
       ),
-      scrollDataIndex: getLegendScrollDataIndex(
-        legendIndex,
-        legendData.length,
-      ),
+      scrollDataIndex: getLegendScrollDataIndex(legendIndex, legendData.length),
       data: legendData,
     },
     series,

@@ -453,10 +453,7 @@ export default function transformProps(chartProps: EchartsGanttChartProps) {
         legendState,
         padding,
       ),
-      scrollDataIndex: getLegendScrollDataIndex(
-        legendIndex,
-        legendData.length,
-      ),
+      scrollDataIndex: getLegendScrollDataIndex(legendIndex, legendData.length),
       data: legendData,
     },
     grid: {
