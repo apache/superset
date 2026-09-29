@@ -264,7 +264,7 @@ def _publish_cancel_handle(
     from superset.extensions import cache_manager
 
     try:
-        cache_manager.cache.set(
+        cache_manager.chart_query_cancel_cache.set(
             _registry_key(user_id, client_id),
             {"database_id": database_id, "cancel_query_id": cancel_query_id},
             timeout=_registry_ttl(),
@@ -274,13 +274,31 @@ def _publish_cancel_handle(
         logger.warning("Could not publish chart query cancel handle", exc_info=True)
 
 
-def _discard_cancel_handle(user_id: int, client_id: str) -> None:
-    """Drop a cancel handle once its query is no longer running. Best-effort."""
+def _discard_cancel_handle(
+    user_id: int, client_id: str, expected_cancel_query_id: "str | None" = None
+) -> None:
+    """Drop a cancel handle once its query is no longer running. Best-effort.
+
+    When ``expected_cancel_query_id`` is given, the entry is only deleted if it
+    still names that id. Sequential cursors within one query (e.g. the
+    grouping-sets fallback) republish the same key as each statement starts;
+    without this check, discarding a handle resolved just before a newer
+    cursor's republish would delete that newer, still-live entry instead of
+    the stale one that was actually acted on.
+    """
     # Inline for test-patchability; see cancellable_chart_query's comment.
     from superset.extensions import cache_manager
 
+    key = _registry_key(user_id, client_id)
     try:
-        cache_manager.cache.delete(_registry_key(user_id, client_id))
+        if expected_cancel_query_id is not None:
+            current = cache_manager.chart_query_cancel_cache.get(key)
+            if (
+                not current
+                or current.get("cancel_query_id") != expected_cancel_query_id
+            ):
+                return
+        cache_manager.chart_query_cancel_cache.delete(key)
     except Exception:  # noqa: BLE001 pylint: disable=broad-except
         logger.warning("Could not discard chart query cancel handle", exc_info=True)
 
@@ -303,7 +321,9 @@ def cancel_chart_query_for_user(client_id: str) -> bool:
         return False
 
     try:
-        handle = cache_manager.cache.get(_registry_key(user_id, client_id))
+        handle = cache_manager.chart_query_cancel_cache.get(
+            _registry_key(user_id, client_id)
+        )
     except Exception:  # noqa: BLE001 pylint: disable=broad-except
         logger.warning("Could not read chart query cancel handle", exc_info=True)
         return False
@@ -317,5 +337,5 @@ def cancel_chart_query_for_user(client_id: str) -> bool:
 
     cancelled = cancel_chart_query(database, handle["cancel_query_id"])
     if cancelled:
-        _discard_cancel_handle(user_id, client_id)
+        _discard_cancel_handle(user_id, client_id, handle["cancel_query_id"])
     return cancelled

@@ -1463,6 +1463,21 @@ EXPLORE_FORM_DATA_CACHE_CONFIG: CacheConfig = {
     "CODEC": JsonKeyValueCodec(),
 }
 
+# Registry backing Explore's Stop button (synchronous chart-data query
+# cancellation). `CACHE_TYPE` defaults to `SupersetMetastoreCache` that stores
+# the values in the key-value table in the Superset metastore, as it's
+# required for Stop to work correctly (the general-purpose `CACHE_CONFIG`
+# defaults to `NullCache`, which would make Stop silently a no-op), but can be
+# replaced by any `Flask-Caching` backend.
+CHART_QUERY_CANCEL_CACHE_CONFIG: CacheConfig = {
+    "CACHE_TYPE": "SupersetMetastoreCache",
+    # Entries are always written with an explicit, shorter timeout scoped to
+    # the webserver timeout (see `_registry_ttl` in `query_cancel.py`); this
+    # default only bounds the leak if a worker dies mid-query.
+    "CACHE_DEFAULT_TIMEOUT": int(timedelta(minutes=10).total_seconds()),
+    "CODEC": JsonKeyValueCodec(),
+}
+
 # Extension Tier 2: Ephemeral State - Server-side cache with TTL.
 # Short-lived KV storage that automatically expires. Not guaranteed to
 # survive server restarts. Use for temporary state like job progress,

@@ -190,6 +190,7 @@ class CacheManager:
         self._filter_state_cache = SupersetCache()
         self._explore_form_data_cache = ExploreFormDataCache()
         self._extension_ephemeral_state_cache = SupersetCache()
+        self._chart_query_cancel_cache = SupersetCache()
         self._distributed_coordination: (
             RedisCacheBackend | RedisSentinelCacheBackend | None
         ) = None
@@ -249,6 +250,12 @@ class CacheManager:
             app.config.get("EXTENSIONS_EPHEMERAL_STORAGE", {}),
             required=True,
         )
+        self._init_cache(
+            app,
+            self._chart_query_cancel_cache,
+            "CHART_QUERY_CANCEL_CACHE_CONFIG",
+            required=True,
+        )
         self._init_distributed_coordination(app)
 
     def _init_distributed_coordination(self, app: Flask) -> None:
@@ -299,6 +306,10 @@ class CacheManager:
     @property
     def extension_ephemeral_state_cache(self) -> Cache:
         return self._extension_ephemeral_state_cache
+
+    @property
+    def chart_query_cancel_cache(self) -> Cache:
+        return self._chart_query_cancel_cache
 
     @property
     def distributed_coordination(

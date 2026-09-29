@@ -234,10 +234,11 @@ class _FakeCache:
 @contextmanager
 def _registry_env(user_id: int | None, cache: "_FakeCache"):
     """Run with a given current user and a shared fake cache backend."""
-    # ``cache_manager.cache`` is a read-only property; swap the backing attribute.
+    # ``cache_manager.chart_query_cancel_cache`` is a read-only property; swap
+    # the backing attribute.
     with (
         patch("superset.utils.core.get_user_id", return_value=user_id),
-        patch("superset.extensions.cache_manager._cache", cache),
+        patch("superset.extensions.cache_manager._chart_query_cancel_cache", cache),
         patch("superset.tasks.query_cancel._registry_ttl", return_value=60),
     ):
         yield
@@ -383,6 +384,55 @@ def test_cancel_chart_query_for_user_cancels_its_own_query() -> None:
     cancel.assert_called_once_with(database, "engine-1")
     # A cancelled query's handle is dropped rather than left to expire.
     assert cache.store == {}
+
+
+def test_cancel_chart_query_for_user_does_not_discard_a_newer_handle() -> None:
+    """A stale handle's cancellation must not clobber a fresher cursor's handle.
+
+    Sequential cursors in a multi-statement query (e.g. the grouping-sets
+    fallback) republish the same key. A Stop that reads the cache in the gap
+    between one cursor finishing and the next cursor's republish resolves the
+    finished cursor's stale id; if the engine reports that cancellation
+    successful anyway, discarding must not remove the entry a later cursor has
+    since published for the statement that is actually still running.
+    """
+    from superset.tasks.query_cancel import cancel_chart_query_for_user
+
+    cache = _FakeCache()
+    cache.store["chart-query-cancel:1:client-1"] = {
+        "database_id": 5,
+        "cancel_query_id": "engine-1",  # the stale handle the Stop reads
+    }
+    database = MagicMock()
+
+    def _republish_newer_handle(*_args: object, **_kwargs: object) -> bool:
+        # A later cursor republishes its own handle while the stale
+        # cancellation is in flight against the engine.
+        cache.store["chart-query-cancel:1:client-1"] = {
+            "database_id": 5,
+            "cancel_query_id": "engine-2",
+        }
+        return True
+
+    with _registry_env(1, cache):
+        with (
+            patch(
+                "superset.daos.database.DatabaseDAO.find_by_id", return_value=database
+            ),
+            patch(
+                "superset.tasks.query_cancel.cancel_chart_query",
+                side_effect=_republish_newer_handle,
+            ),
+        ):
+            assert cancel_chart_query_for_user("client-1") is True
+
+    # The newer, still-live handle survives the stale cancellation's cleanup.
+    assert cache.store == {
+        "chart-query-cancel:1:client-1": {
+            "database_id": 5,
+            "cancel_query_id": "engine-2",
+        }
+    }
 
 
 def test_cancel_chart_query_for_user_cannot_reach_another_users_query() -> None:
