@@ -28,6 +28,7 @@ import {
   D3_TIME_FORMAT_OPTIONS,
   getStandardizedControls,
   sharedControls,
+  sections,
   DEFAULT_TIME_FORMAT,
 } from '@superset-ui/chart-controls';
 import { DEFAULT_FORM_DATA } from './types';
@@ -66,6 +67,7 @@ const config: ControlPanelConfig = {
         ],
       ],
     },
+    sections.drilldownHierarchySection,
     {
       label: t('Chart Options'),
       expanded: true,

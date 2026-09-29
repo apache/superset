@@ -106,6 +106,7 @@ const config: ControlPanelConfig = {
       ],
     },
     sections.titleControls,
+    sections.drilldownHierarchySection,
     {
       label: t('Chart Options'),
       expanded: true,
