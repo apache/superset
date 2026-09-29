@@ -64,6 +64,57 @@ const barWidth = (bar: Element): number => {
   return NaN;
 };
 
+// Shared scaffolding for the cell-bar cases below: they all render one column
+// of values and read back the bar each row drew, so a markup or config-shape
+// change should not have to be chased through five copies of the same glue.
+const cellBarProps = ({
+  values,
+  showCellBars,
+  rule,
+  base = testData.raw,
+}: {
+  values: unknown[];
+  showCellBars: boolean;
+  rule: Record<string, unknown>;
+  base?: typeof testData.raw;
+}) =>
+  transformProps({
+    ...base,
+    queriesData: [
+      {
+        ...base.queriesData[0],
+        colnames: ['num'],
+        coltypes: [GenericDataType.Numeric],
+        data: values.map(num => ({ num })),
+      },
+    ],
+    rawFormData: {
+      ...base.rawFormData,
+      show_cell_bars: showCellBars,
+      conditional_formatting: [rule],
+    },
+  });
+
+const cellBarRule = (over: Record<string, unknown> = {}) => ({
+  colorScheme: '#ACE1C4',
+  column: 'num',
+  objectFormatting: ObjectFormattingEnum.CELL_BAR,
+  ...over,
+});
+
+const renderCellBars = (props: ReturnType<typeof cellBarProps>) => {
+  const { container } = render(
+    ProviderWrapper({
+      children: <TableChart {...props} sticky={false} />,
+    }),
+  );
+  const rows = Array.from(container.querySelectorAll('tbody tr'));
+  return {
+    rows,
+    bars: rows.map(row => row.querySelector('td div.cell-bar')),
+  };
+};
+
 const expectValidAriaLabels = (container: HTMLElement) => {
   const allCells = container.querySelectorAll('tbody td');
   const cellsWithLabels = container.querySelectorAll(
@@ -1046,135 +1097,60 @@ describe('plugin-chart-table', () => {
       });
 
       test('renders a bar for a cell-bar conditional formatting rule regardless of the global toggle', () => {
-        const baseProps = (showCellBars: boolean) =>
-          transformProps({
-            ...testData.raw,
-            queriesData: [
-              {
-                ...testData.raw.queriesData[0],
-                colnames: ['num'],
-                coltypes: [GenericDataType.Numeric],
-                data: [{ num: 1234 }, { num: 10000 }, { num: 0 }],
-              },
-            ],
-            rawFormData: {
-              ...testData.raw.rawFormData,
-              show_cell_bars: showCellBars,
-              conditional_formatting: [
-                {
-                  colorScheme: '#ACE1C4',
-                  column: 'num',
-                  operator: Comparator.Equal,
-                  targetValue: 1234,
-                  objectFormatting: ObjectFormattingEnum.CELL_BAR,
-                },
-              ],
-            },
-          });
-
-        const getBars = (props: ReturnType<typeof baseProps>) => {
-          const { container } = render(
-            ProviderWrapper({
-              children: <TableChart {...props} sticky={false} />,
+        const props = (showCellBars: boolean) =>
+          cellBarProps({
+            values: [1234, 10000, 0],
+            showCellBars,
+            rule: cellBarRule({
+              operator: Comparator.Equal,
+              targetValue: 1234,
             }),
-          );
-          const rows = container.querySelectorAll('tbody tr');
-          const bars: (Element | null)[] = [];
-          rows.forEach(row => {
-            bars.push(row.querySelector('td div.cell-bar'));
           });
-          return bars;
-        };
 
         // Toggle ON: bars render everywhere, including the matched cell.
-        const barsOn = getBars(baseProps(true));
+        const barsOn = renderCellBars(props(true)).bars;
         expect(barsOn[0]).toBeTruthy();
         expect(barsOn[1]).toBeTruthy();
 
         // Toggle OFF: only the cell matching the rule draws a bar;
         // non-matching cells stay bare.
-        const barsOff = getBars(baseProps(false));
+        const barsOff = renderCellBars(props(false)).bars;
         expect(barsOff[0]).toBeTruthy();
         expect(barsOff[1]).toBeNull();
         expect(barsOff[2]).toBeNull();
       });
 
       test('cell-bar rule on string numeric cells matches the comparator numerically', () => {
-        const props = transformProps({
-          ...testData.raw,
-          queriesData: [
-            {
-              ...testData.raw.queriesData[0],
-              colnames: ['num'],
-              coltypes: [GenericDataType.Numeric],
-              data: [{ num: '1234.00' }, { num: '10000.00' }, { num: '0.00' }],
-            },
-          ],
-          rawFormData: {
-            ...testData.raw.rawFormData,
-            show_cell_bars: false,
-            conditional_formatting: [
-              {
-                colorScheme: '#ACE1C4',
-                column: 'num',
-                operator: Comparator.Equal,
-                targetValue: 1234,
-                objectFormatting: ObjectFormattingEnum.CELL_BAR,
-              },
-            ],
-          },
-        });
-        const { container } = render(
-          ProviderWrapper({
-            children: <TableChart {...props} sticky={false} />,
+        const { bars } = renderCellBars(
+          cellBarProps({
+            values: ['1234.00', '10000.00', '0.00'],
+            showCellBars: false,
+            rule: cellBarRule({ operator: Comparator.Equal, targetValue: 1234 }),
           }),
         );
-        const rows = container.querySelectorAll('tbody tr');
-        const bar0 = rows[0].querySelector('td div.cell-bar');
-        const bar1 = rows[1].querySelector('td div.cell-bar');
-        expect(bar0).toBeTruthy();
-        expect(bar1).toBeNull();
+        expect(bars[0]).toBeTruthy();
+        expect(bars[1]).toBeNull();
         // Presence alone would also pass for the full-width fallback, so pin
         // the geometry: 1234 against a [0, 10000] range is not the whole cell.
-        expect(barWidth(bar0!)).toBeLessThan(100);
-        expect(barWidth(bar0!)).toBeGreaterThan(0);
+        expect(barWidth(bars[0]!)).toBeLessThan(100);
+        expect(barWidth(bars[0]!)).toBeGreaterThan(0);
       });
 
       test('cell-bar rule with a string comparator still matches numeric-looking cells', () => {
-        const props = transformProps({
-          ...testData.raw,
-          queriesData: [
-            {
-              ...testData.raw.queriesData[0],
-              colnames: ['num'],
-              coltypes: [GenericDataType.Numeric],
-              data: [{ num: '1234.00' }, { num: '5678.00' }],
-            },
-          ],
-          rawFormData: {
-            ...testData.raw.rawFormData,
-            show_cell_bars: false,
-            conditional_formatting: [
-              {
-                colorScheme: '#ACE1C4',
-                column: 'num',
-                operator: Comparator.Containing,
-                targetValue: '23',
-                objectFormatting: ObjectFormattingEnum.CELL_BAR,
-              },
-            ],
-          },
-        });
-        const { container } = render(
-          ProviderWrapper({
-            children: <TableChart {...props} sticky={false} />,
+        const { bars } = renderCellBars(
+          cellBarProps({
+            values: ['1234.00', '5678.00'],
+            showCellBars: false,
+            rule: cellBarRule({
+              operator: Comparator.Containing,
+              targetValue: '23',
+            }),
           }),
         );
-        const rows = container.querySelectorAll('tbody tr');
         // "1234.00" contains "23"; parsing it to 1234 first would hide the text
         // from the comparator and drop the bar entirely.
-        expect(rows[0].querySelector('td div.cell-bar')).toBeTruthy();
-        expect(rows[1].querySelector('td div.cell-bar')).toBeNull();
+        expect(bars[0]).toBeTruthy();
+        expect(bars[1]).toBeNull();
       });
 
       test('bar geometry stays inside the cell when a column mixes numbers and numeric strings', () => {
