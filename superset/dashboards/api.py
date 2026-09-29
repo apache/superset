@@ -790,7 +790,9 @@ class DashboardRestApi(
         if "charts" in result:
             # Only name the member charts the caller can access, consistent with
             # the per-object narrowing applied to the dashboard's datasets and
-            # charts sub-resources.
+            # charts sub-resources. The check reads each chart's editors and
+            # viewers, so load them for the whole set first.
+            DashboardDAO.prefetch_chart_access(dash)
             result["charts"] = [
                 slc.chart
                 for slc in dash.slices
@@ -3441,6 +3443,7 @@ class DashboardRestApi(
     @expose("/<uuid_str>/versions/", methods=("GET",))
     @protect()
     @safe
+    @validate_feature_flags(["VERSION_HISTORY"])
     @statsd_metrics
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.list_versions",
@@ -3489,6 +3492,7 @@ class DashboardRestApi(
     )
     @protect()
     @safe
+    @validate_feature_flags(["VERSION_HISTORY"])
     @statsd_metrics
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.get_version",  # noqa: E501
@@ -3543,6 +3547,7 @@ class DashboardRestApi(
     @expose("/<uuid_str>/activity/", methods=("GET",))
     @protect()
     @safe
+    @validate_feature_flags(["VERSION_HISTORY"])
     @permission_name("get")
     @statsd_metrics
     @event_logger.log_this_with_context(
@@ -3628,6 +3633,7 @@ class DashboardRestApi(
     )
     @protect()
     @safe
+    @validate_feature_flags(["VERSION_HISTORY"])
     @statsd_metrics
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: (
