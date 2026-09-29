@@ -45,10 +45,12 @@ class ExasolEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
         ),
         # Exasol reports a missing column as ``column <NAME> not found``. The
         # keyword must start the diagnostic (not follow another word, as in
-        # ``object COLUMN not found``) and be followed by at most one identifier.
+        # ``object COLUMN not found``) and be followed by at most one qualified
+        # identifier.
         re.compile(
             r'(?P<message>(?<![\w"] )(?<![\w.$"])column'
-            r'(?: (?:"[^"\n]*"|[\w.$]+))? not found[^\n]*)',
+            r'(?: (?:"[^"\n]*"|[\w$]+)(?:\.(?:"[^"\n]*"|[\w$]+))*)?'
+            r" not found[^\n]*)",
             re.IGNORECASE,
         ): (
             "%(message)s",
@@ -78,7 +80,8 @@ class ExasolEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
         "notes": (
             "SQL Lab recognizes Exasol syntax errors, missing-table and missing-column "
             "errors, and insufficient-privilege errors while retaining the server's "
-            "diagnostic text. An ambiguous `object ... not found` message remains a "
+            "diagnostic text. Echoed SQL is excluded from error classification. "
+            "An ambiguous `object ... not found` message remains a "
             "generic database error; it does not distinguish a missing table from a "
             "missing column.\n\n"
             "For WebSocket connections, use PyExasol 2.4.1 or later to preserve server "
@@ -129,6 +132,26 @@ class ExasolEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
         TimeGrain.QUARTER: "DATE_TRUNC('quarter', {col})",
         TimeGrain.YEAR: "DATE_TRUNC('year', {col})",
     }
+
+    @classmethod
+    def _extract_error_message(cls, ex: Exception) -> str:
+        """Extract the server diagnostic without driver-echoed SQL."""
+        message = super()._extract_error_message(ex)
+        # Strip SQL before looking for a verbose message field: SQL literals
+        # can themselves contain text resembling a driver envelope.
+        message = re.split(
+            r"(?m)^[ \t]*(?:query[ \t]*=>|\[SQL:|\[parameters:)",
+            message,
+            maxsplit=1,
+        )[0]
+        if match := re.search(r"(?m)^[ \t]*message[ \t]*=>[ \t]*", message):
+            # PyExasol prints the message first, then connection/query fields.
+            message = re.split(
+                r"(?m)^[ \t]*(?:\w+[ \t]*=>|\)[ \t]*$)",
+                message[match.end() :],
+                maxsplit=1,
+            )[0]
+        return message.strip()
 
     @classmethod
     def fetch_data(

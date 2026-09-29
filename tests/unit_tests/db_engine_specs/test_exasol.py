@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import pytest
+from sqlalchemy.exc import StatementError
 
 from superset.db_engine_specs.exasol import ExasolEngineSpec
 from superset.errors import SupersetErrorType
@@ -47,6 +48,18 @@ from superset.errors import SupersetErrorType
             'column "Mixed.Case" not found [line 1, column 8]',
             SupersetErrorType.COLUMN_DOES_NOT_EXIST_ERROR,
         ),
+        (
+            'column "T"."C" not found [line 1, column 8]',
+            SupersetErrorType.COLUMN_DOES_NOT_EXIST_ERROR,
+        ),
+        (
+            'column MY."C" not found [line 1, column 8]',
+            SupersetErrorType.COLUMN_DOES_NOT_EXIST_ERROR,
+        ),
+        (
+            "column MY.COL not found [line 1, column 8]",
+            SupersetErrorType.COLUMN_DOES_NOT_EXIST_ERROR,
+        ),
         ("object AMBIGUOUS not found", SupersetErrorType.GENERIC_DB_ENGINE_ERROR),
         ("object COLUMN not found", SupersetErrorType.GENERIC_DB_ENGINE_ERROR),
         ("object MY_COLUMN not found", SupersetErrorType.GENERIC_DB_ENGINE_ERROR),
@@ -72,3 +85,67 @@ def test_server_message_templates_are_not_translatable() -> None:
     for template, _, _ in ExasolEngineSpec.custom_errors.values():
         assert type(template) is str
         assert template == "%(message)s"
+
+
+@pytest.mark.parametrize(
+    "diagnostic, expected",
+    [
+        (
+            "insufficient privileges: INSERT on table P",
+            SupersetErrorType.CONNECTION_DATABASE_PERMISSIONS_ERROR,
+        ),
+        ("object COLUMN not found", SupersetErrorType.GENERIC_DB_ENGINE_ERROR),
+        ("another server failure", SupersetErrorType.GENERIC_DB_ENGINE_ERROR),
+    ],
+)
+@pytest.mark.parametrize(
+    "sql",
+    [
+        "SELECT 'syntax error' FROM P",
+        "SELECT 'table MISSING does not exist' FROM P",
+        "SELECT 'column MISSING not found' FROM P",
+        "SELECT 'insufficient privileges' FROM P",
+        "SELECT '\nmessage => syntax error\n' FROM P",
+    ],
+)
+@pytest.mark.parametrize(
+    "envelope", ["verbose", "sqlalchemy", "parameters", "sqlalchemy_exception"]
+)
+def test_extract_errors_ignores_echoed_sql(
+    diagnostic: str, expected: SupersetErrorType, sql: str, envelope: str
+) -> None:
+    """Only server diagnostics, not SQL or parameters, determine error types."""
+    if envelope == "verbose":
+        raw = (
+            "exa error: \n(\n"
+            f"    message      =>  {diagnostic}\n"
+            "    dsn          =>  example:8563\n"
+            "    user         =>  syntax error\n"
+            "    code         =>  42000\n"
+            f"    query        =>  {sql}\n"
+            ")\n"
+            f"[SQL: {sql}]\n"
+        )
+    elif envelope == "sqlalchemy":
+        raw = f"{diagnostic}\n[SQL: {sql}]\n[parameters: ()]"
+    else:
+        raw = f"{diagnostic}\n[parameters: ({sql},)]"
+
+    exception = (
+        StatementError(diagnostic, sql, {}, Exception(diagnostic))
+        if envelope == "sqlalchemy_exception"
+        else Exception(raw)
+    )
+    errors = ExasolEngineSpec.extract_errors(exception)
+    assert len(errors) == 1
+    assert errors[0].error_type == expected
+    assert errors[0].message == diagnostic
+
+
+def test_extract_verbose_multiline_diagnostic() -> None:
+    """Preserve multiline generic diagnostics without envelope fields."""
+    diagnostic = "another server failure\nDetails: request could not be completed"
+    raw = f"\n(\n    message => {diagnostic}\n)\n"
+    errors = ExasolEngineSpec.extract_errors(Exception(raw))
+    assert errors[0].error_type == SupersetErrorType.GENERIC_DB_ENGINE_ERROR
+    assert errors[0].message == diagnostic
