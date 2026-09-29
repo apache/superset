@@ -45,15 +45,19 @@ def test_get_rolls_back_and_reraises_on_db_error(
     cache: SupersetMetastoreCache,
     mocker: MockerFixture,
 ) -> None:
+    error = SQLAlchemyError("connection lost")
     mocker.patch(
         "superset.daos.key_value.KeyValueDAO.get_value",
-        side_effect=SQLAlchemyError("connection lost"),
+        side_effect=error,
     )
     session = mocker.patch("superset.extensions.metastore_cache.db").session
 
-    with pytest.raises(SQLAlchemyError):
+    with pytest.raises(SQLAlchemyError) as exc_info:
         cache.get("some-key")
 
+    # The original error, not a wrapped or swallowed one: callers decide what a
+    # failed read means, and this method only repairs the session on the way out.
+    assert exc_info.value is error
     session.rollback.assert_called_once()
 
 
@@ -61,15 +65,17 @@ def test_set_rolls_back_and_reraises_on_db_error(
     cache: SupersetMetastoreCache,
     mocker: MockerFixture,
 ) -> None:
+    error = SQLAlchemyError("connection lost")
     mocker.patch(
         "superset.daos.key_value.KeyValueDAO.upsert_entry",
-        side_effect=SQLAlchemyError("connection lost"),
+        side_effect=error,
     )
     session = mocker.patch("superset.extensions.metastore_cache.db").session
 
-    with pytest.raises(SQLAlchemyError):
+    with pytest.raises(SQLAlchemyError) as exc_info:
         cache.set("some-key", {"a": 1})
 
+    assert exc_info.value is error
     session.rollback.assert_called_once()
 
 

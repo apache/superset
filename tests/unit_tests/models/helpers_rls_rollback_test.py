@@ -41,15 +41,34 @@ def _virtual_dataset(mocker: MockerFixture) -> SqlaTable:
     return dataset
 
 
-def test_retry_db_error_rolls_back_session(mocker: MockerFixture) -> None:
-    """A DB error in the fail-closed retry repairs the session before raising."""
+@pytest.mark.parametrize(
+    "retry_error",
+    [
+        pytest.param(SQLAlchemyError("still broken"), id="db-error"),
+        pytest.param(ValueError("cannot parse"), id="non-db-error"),
+    ],
+)
+def test_retry_rolls_back_regardless_of_error_type(
+    retry_error: Exception,
+    mocker: MockerFixture,
+) -> None:
+    """
+    The fail-closed retry repairs the session whatever error ends it.
+
+    The retry issues its own DB work, so an error that is not itself a
+    ``SQLAlchemyError`` -- rendering an RLS clause, say -- can still surface on a
+    session that DB work already poisoned. Gating the rollback on the exception
+    type would miss that, and would buy nothing: the outer handler has already
+    rolled back unconditionally by this point, so there is no pending work left
+    for this rollback to discard.
+    """
     mocker.patch(
         "superset.models.helpers.apply_rls",
         side_effect=SQLAlchemyError("connection lost"),
     )
     mocker.patch(
         "superset.models.helpers.get_predicates_for_table",
-        side_effect=SQLAlchemyError("still broken"),
+        side_effect=retry_error,
     )
     session = mocker.patch("superset.models.helpers.db").session
 
@@ -59,22 +78,3 @@ def test_retry_db_error_rolls_back_session(mocker: MockerFixture) -> None:
 
     # Once for the outer handler, once for the retry that re-poisoned it.
     assert session.rollback.call_count == 2
-
-
-def test_retry_non_db_error_does_not_roll_back_again(mocker: MockerFixture) -> None:
-    """A non-DB failure in the retry touches no session, so it rolls back once."""
-    mocker.patch(
-        "superset.models.helpers.apply_rls",
-        side_effect=SQLAlchemyError("connection lost"),
-    )
-    mocker.patch(
-        "superset.models.helpers.get_predicates_for_table",
-        side_effect=ValueError("cannot parse"),
-    )
-    session = mocker.patch("superset.models.helpers.db").session
-
-    dataset = _virtual_dataset(mocker)
-    with pytest.raises(QueryObjectValidationError):
-        dataset.get_from_clause()
-
-    assert session.rollback.call_count == 1
