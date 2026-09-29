@@ -176,3 +176,13 @@ def test_docker_workflow_changes_trigger_docker_build() -> None:
         [".github/workflows/docker.yml"],
         change_detector.PATTERNS["docker"],
     )
+
+
+def test_grype_config_changes_trigger_docker_build() -> None:
+    """A change to only `.grype.yaml` (the vulnerability-scan config) must
+    still be classified as "docker", or an accidental broad exclusion in it
+    goes unexercised by CI until it reaches master."""
+    assert change_detector.detect_changes(
+        [".grype.yaml"],
+        change_detector.PATTERNS["docker"],
+    )
