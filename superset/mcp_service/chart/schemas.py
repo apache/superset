@@ -2608,13 +2608,11 @@ class XYChartConfig(BaseChartConfig):
         if isinstance(v, (list, tuple)):
             if not v:
                 return None
+            if len(v) == 2 and isinstance(v[0], str) and isinstance(v[1], bool):
+                return _coerce_sort_item(v)
             if len(v) > 1:
-                raise ValueError(
-                    "sort_by accepts at most one sort criterion, "
-                    f"received {len(v)}."
-                )
-            first = v[0]
-            return _coerce_sort_item(first)
+                raise ValueError("XY charts support only a single sort column")
+            return _coerce_sort_item(v[0])
         return _coerce_sort_item(v)
 
     @field_validator("group_by", mode="before")

@@ -2723,14 +2723,14 @@ class TestAddXYSortConfig:
         assert form_data["x_axis_sort"] == "unique_users"
 
     def test_non_temporal_sort_by_pair_format(self) -> None:
-        """Verify pair format as SortByConfig is correctly handled."""
+        """Verify pair format [column, ascending] is correctly handled."""
         form_data: dict[str, Any] = {}
         config = XYChartConfig(
             chart_type="xy",
             x=ColumnRef(name="category"),
             y=[ColumnRef(name="sales", aggregate="SUM")],
             kind="bar",
-            sort_by=SortByConfig(column="sales", ascending=True),
+            sort_by=["sales", True],
         )
         add_xy_sort_config(form_data, config, x_is_temporal=False)
         assert form_data["x_axis_sort"] == "SUM(sales)"

@@ -1372,18 +1372,18 @@ class TestXYChartConfigSortBy:
         assert restored.sort_by.saved_metric is None
 
     def test_sort_by_pair_format(self) -> None:
-        """Verify bare [column, ascending] list raises error; nested [[col, asc]] works."""
-        from pydantic import ValidationError
+        """Verify [column, ascending] pair format coerces to SortByConfig."""
+        config = XYChartConfig(
+            chart_type="xy",
+            x=ColumnRef(name="category"),
+            y=[ColumnRef(name="sales", aggregate="SUM")],
+            sort_by=["sales", True],
+        )
+        assert isinstance(config.sort_by, SortByConfig)
+        assert config.sort_by.column == "sales"
+        assert config.sort_by.ascending is True
 
-        with pytest.raises(ValidationError, match="sort_by accepts at most one"):
-            XYChartConfig(
-                chart_type="xy",
-                x=ColumnRef(name="category"),
-                y=[ColumnRef(name="sales", aggregate="SUM")],
-                sort_by=["sales", True],
-            )
-
-        # Nested in a single-element list — still accepted
+        # Nested in a single-element list
         config_nested = XYChartConfig(
             chart_type="xy",
             x=ColumnRef(name="category"),
@@ -1395,12 +1395,12 @@ class TestXYChartConfigSortBy:
         assert config_nested.sort_by.ascending is True
 
     def test_sort_by_alias_order_by_cols(self) -> None:
-        """Verify order_by_cols alias with nested pair is accepted and mapped to sort_by."""
+        """Verify order_by_cols alias is accepted and mapped to sort_by."""
         config = XYChartConfig(
             chart_type="xy",
             x=ColumnRef(name="category"),
             y=[ColumnRef(name="sales", aggregate="SUM")],
-            order_by_cols=[["sales", False]],
+            order_by_cols=["sales", False],
         )
         assert isinstance(config.sort_by, SortByConfig)
         assert config.sort_by.column == "sales"
