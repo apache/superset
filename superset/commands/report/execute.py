@@ -838,6 +838,16 @@ class BaseReportState:
         Get one tab url
         """
         force = self._get_force_param()
+        # ``Superset.dashboard_permalink`` redirects by appending this
+        # state's ``urlParams`` *before* its own query string (which is
+        # where the ``force`` we pass below lands). A stale ``force`` entry
+        # already stored in ``urlParams`` would therefore be read first by
+        # ``request.args.get("force")`` and shadow the one below, so strip
+        # it here to keep ``force_screenshot`` authoritative.
+        if url_params := dashboard_state.get("urlParams"):
+            filtered_params = [p for p in url_params if p[0] != "force"]
+            if len(filtered_params) != len(url_params):
+                dashboard_state = {**dashboard_state, "urlParams": filtered_params}
         permalink_key = CreateDashboardPermalinkCommand(
             dashboard_id=str(self._report_schedule.dashboard.uuid),
             state=dashboard_state,

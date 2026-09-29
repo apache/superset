@@ -1757,6 +1757,46 @@ def test_get_tab_url_propagates_force_screenshot(
     assert result == urllib.parse.urljoin(base_url, "dashboard/p/uri/?force=true")
 
 
+@patch("superset.commands.report.execute.CreateDashboardPermalinkCommand")
+def test_get_tab_url_strips_stale_force_urlparam(
+    mock_permalink_cls,
+    mocker: MockerFixture,
+    app,
+) -> None:
+    """A stale ``force`` entry already stored in ``urlParams`` (e.g. carried
+    over from a previously-saved dashboard state) must not shadow the
+    report's own ``force`` query param: ``Superset.dashboard_permalink``
+    appends stored ``urlParams`` before its own query string, and
+    ``request.args.get`` reads the first match, so a leftover
+    ``force=false`` would silently defeat ``force_screenshot=True``."""
+    mock_report_schedule: ReportSchedule = mocker.Mock(spec=ReportSchedule)
+    mock_report_schedule.dashboard_id = 123
+    mock_report_schedule.force_screenshot = True
+
+    class_instance: BaseReportState = BaseReportState(
+        mock_report_schedule, "January 1, 2021", "execution_id_example"
+    )
+    class_instance._report_schedule = mock_report_schedule
+    mock_permalink_cls.return_value.run.return_value = "uri"
+    dashboard_state = DashboardPermalinkState(
+        anchor="1",
+        dataMask=None,
+        activeTabs=None,
+        urlParams=[["force", "false"], ["standalone", "true"]],
+    )
+    result: str = class_instance._get_tab_url(dashboard_state)
+
+    # The stale "force" entry is dropped from the state passed to the
+    # permalink command; other params are preserved.
+    persisted_state = mock_permalink_cls.call_args.kwargs["state"]
+    assert persisted_state["urlParams"] == [["standalone", "true"]]
+
+    import urllib.parse
+
+    base_url = app.config.get("WEBDRIVER_BASEURL", "http://0.0.0.0:8080/")
+    assert result == urllib.parse.urljoin(base_url, "dashboard/p/uri/?force=true")
+
+
 @patch("superset.commands.report.execute.db.session")
 @patch(
     "superset.commands.dashboard.permalink.create.CreateDashboardPermalinkCommand.run"
