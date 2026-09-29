@@ -150,7 +150,7 @@ def test_copy_archived_slot_policy_and_restore(
         "json_metadata": json.dumps({"positions": positions}),
     }
     if mcp_payload:
-        payload, _ = _build_copy_payload(source, "copy", duplicate_slices)
+        payload = _build_copy_payload(source, "copy", duplicate_slices)[0]
     with (
         patch("superset.daos.dashboard.security_manager.is_editor", return_value=True),
         patch("superset.daos.dashboard.g") as mock_g,
