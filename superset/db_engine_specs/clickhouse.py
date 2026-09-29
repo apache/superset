@@ -264,7 +264,7 @@ class ClickHouseEngineSpec(ClickHouseBaseEngineSpec):
     metadata = {
         "description": (
             "ClickHouse is an open-source column-oriented database for real-time "
-            "analytics using SQL (legacy clickhouse-sqlalchemy connector)."
+            "analytics using SQL (legacy clickhouse-sqlalchemy driver)."
         ),
         "logo": "clickhouse.png",
         "homepage_url": "https://clickhouse.com/",
@@ -273,9 +273,7 @@ class ClickHouseEngineSpec(ClickHouseBaseEngineSpec):
             DatabaseCategory.OPEN_SOURCE,
         ],
         "pypi_packages": ["clickhouse-sqlalchemy"],
-        "connection_string": (
-            "clickhouse://{username}:{password}@{host}:{port}/{database}"
-        ),
+        "connection_string": "clickhouse://{username}:{password}@{host}:{port}/{database}",
         "default_port": 8123,
         "docs_url": "https://clickhouse.com/docs/",
         "sqlalchemy_docs_url": "https://github.com/xzkostyan/clickhouse-sqlalchemy",

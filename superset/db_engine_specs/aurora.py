@@ -38,12 +38,14 @@ class AuroraMySQLDataAPI(MySQLEngineSpec):
 
     metadata = {
         "description": (
-            "Amazon Aurora MySQL via the Data API for serverless connectivity."
+            "Amazon Aurora MySQL accessed via the AWS Data API, allowing "
+            "database queries over HTTP without managing persistent connections."
         ),
         "logo": "aws-aurora.jpg",
         "homepage_url": "https://aws.amazon.com/rds/aurora/",
         "categories": [
             DatabaseCategory.CLOUD_AWS,
+            DatabaseCategory.TRADITIONAL_RDBMS,
             DatabaseCategory.HOSTED_OPEN_SOURCE,
         ],
         "pypi_packages": ["sqlalchemy-aurora-data-api"],
@@ -52,6 +54,7 @@ class AuroraMySQLDataAPI(MySQLEngineSpec):
             "{database_name}?aurora_cluster_arn={aurora_cluster_arn}&"
             "secret_arn={secret_arn}&region_name={region_name}"
         ),
+        "default_port": 3306,
         "parameters": {
             "aws_access_id": "AWS Access Key ID",
             "aws_secret_access_key": "AWS Secret Access Key",
@@ -81,12 +84,14 @@ class AuroraPostgresDataAPI(PostgresEngineSpec):
 
     metadata = {
         "description": (
-            "Amazon Aurora PostgreSQL via the Data API for serverless connectivity."
+            "Amazon Aurora PostgreSQL accessed via the AWS Data API, allowing "
+            "database queries over HTTP without managing persistent connections."
         ),
         "logo": "aws-aurora.jpg",
         "homepage_url": "https://aws.amazon.com/rds/aurora/",
         "categories": [
             DatabaseCategory.CLOUD_AWS,
+            DatabaseCategory.TRADITIONAL_RDBMS,
             DatabaseCategory.HOSTED_OPEN_SOURCE,
         ],
         "pypi_packages": ["sqlalchemy-aurora-data-api"],
@@ -95,6 +100,7 @@ class AuroraPostgresDataAPI(PostgresEngineSpec):
             "{database_name}?aurora_cluster_arn={aurora_cluster_arn}&"
             "secret_arn={secret_arn}&region_name={region_name}"
         ),
+        "default_port": 5432,
         "parameters": {
             "aws_access_id": "AWS Access Key ID",
             "aws_secret_access_key": "AWS Secret Access Key",
@@ -122,13 +128,15 @@ class AuroraMySQLEngineSpec(MySQLEngineSpec):
 
     metadata = {
         "description": (
-            "Amazon Aurora MySQL is a fully managed, "
-            "MySQL-compatible relational database."
+            "Amazon Aurora MySQL is a relational database engine that combines "
+            "high-end commercial database speed with the simplicity of "
+            "open-source MySQL."
         ),
         "logo": "aws-aurora.jpg",
         "homepage_url": "https://aws.amazon.com/rds/aurora/",
         "categories": [
             DatabaseCategory.CLOUD_AWS,
+            DatabaseCategory.TRADITIONAL_RDBMS,
             DatabaseCategory.HOSTED_OPEN_SOURCE,
         ],
         "pypi_packages": ["mysqlclient"],
@@ -159,13 +167,15 @@ class AuroraPostgresEngineSpec(PostgresEngineSpec):
 
     metadata = {
         "description": (
-            "Amazon Aurora PostgreSQL is a fully managed, "
-            "PostgreSQL-compatible relational database."
+            "Amazon Aurora PostgreSQL is a relational database engine that combines "
+            "high-end commercial database speed with the simplicity of "
+            "open-source PostgreSQL."
         ),
         "logo": "aws-aurora.jpg",
         "homepage_url": "https://aws.amazon.com/rds/aurora/",
         "categories": [
             DatabaseCategory.CLOUD_AWS,
+            DatabaseCategory.TRADITIONAL_RDBMS,
             DatabaseCategory.HOSTED_OPEN_SOURCE,
         ],
         "pypi_packages": ["psycopg2"],

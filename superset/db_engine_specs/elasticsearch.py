@@ -326,8 +326,8 @@ class OpenDistroEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
 
     metadata = {
         "description": (
-            "OpenSearch (formerly OpenDistro for Elasticsearch) is an open-source, "
-            "distributed search and analytics suite."
+            "OpenSearch (OpenDistro) SQL connector for querying OpenSearch and "
+            "OpenDistro clusters using SQL syntax."
         ),
         "logo": "elasticsearch.png",
         "homepage_url": "https://opensearch.org/",
@@ -336,16 +336,13 @@ class OpenDistroEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
             DatabaseCategory.OPEN_SOURCE,
         ],
         "pypi_packages": ["elasticsearch-dbapi"],
-        "connection_string": "odelasticsearch+https://{user}:{password}@{host}:{port}/",
+        "connection_string": "odelasticsearch+https://{user}:{password}@{host}:9200/",
         "default_port": 9200,
         "parameters": {
             "user": "OpenSearch username",
             "password": "OpenSearch password",
             "host": "OpenSearch host",
-            "port": "Default 9200 (or 443 for managed services with HTTPS)",
         },
-        "docs_url": "https://opensearch.org/docs/latest/",
-        "sqlalchemy_docs_url": "https://github.com/preset-io/elasticsearch-dbapi",
     }
 
     SQL_ENDPOINT = "/_opendistro/_sql"

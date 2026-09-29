@@ -542,7 +542,11 @@ def test_get_oauth2_token(
     """
     from superset.db_engine_specs.snowflake import SnowflakeEngineSpec
 
-    requests: mock.MagicMock = mocker.patch("superset.db_engine_specs.base.requests")
+    mocker.patch("superset.db_engine_specs.base.is_safe_host", return_value=True)
+    mock_get_requester: mock.MagicMock = mocker.patch(
+        "superset.db_engine_specs.base.get_ssrf_safe_requester"
+    )
+    requests = mock_get_requester.return_value
     requests.post().json.return_value = {
         "access_token": "access-token",
         "expires_in": 3600,
@@ -568,6 +572,7 @@ def test_get_oauth2_token(
             "grant_type": "authorization_code",
         },
         timeout=30.0,
+        allow_redirects=False,
     )
 
 

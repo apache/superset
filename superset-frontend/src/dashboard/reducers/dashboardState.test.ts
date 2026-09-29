@@ -274,6 +274,29 @@ describe('DashboardState reducer', () => {
         expect.arrayContaining(['TAB-Outer1', 'TAB-Inner1']),
       );
     });
+
+    // The component tests assert on a `setActiveTab` mock, so they stop short
+    // of the state that actually gets serialized into the permalink body.
+    test('stores a resolved tab id so activeTabs serializes without null', () => {
+      const store = mockStore({
+        dashboardState: { activeTabs: [] },
+        dashboardLayout: { present: { 'TAB-1': { parents: [] } } },
+      });
+      const thunkAction = setActiveTab('TAB-1')(
+        store.dispatch,
+        store.getState as () => RootState,
+      );
+
+      const result = typedDashboardStateReducer(
+        createMockDashboardState({ activeTabs: [] }),
+        thunkAction,
+      );
+
+      expect(result.activeTabs).toEqual(['TAB-1']);
+      expect(JSON.stringify({ activeTabs: result.activeTabs })).toBe(
+        '{"activeTabs":["TAB-1"]}',
+      );
+    });
   });
   // Pins a side effect of seeding activeTabs at hydration (see
   // actions/hydrate.ts / util/getDefaultActiveTabs.ts): a non-empty seeded

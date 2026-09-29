@@ -91,6 +91,7 @@ from superset.common.utils.time_range_utils import (
 from superset.constants import (
     CacheRegion,
     EMPTY_STRING,
+    EPOCH_FORMATS,
     NULL_STRING,
     SKIP_VISIBILITY_FILTER_CLASSES,
     TimeGrain,
@@ -199,27 +200,6 @@ def get_effective_hours_offset(
 R_SUFFIX = "__right_suffix"
 
 
-# Escape character for LIKE patterns built from user-supplied search text.
-# Deliberately not a backslash: dialects that escape backslashes when rendering
-# string literals would emit a two-character ESCAPE clause, which is a syntax
-# error on engines that honour standard-conforming strings.
-LIKE_ESCAPE_CHAR = "!"
-
-
-def escape_like_pattern(value: str) -> str:
-    """
-    Neutralize LIKE wildcards in user-supplied search text.
-
-    Without this a user typing ``%`` or ``_`` would match every row, which is
-    both wrong and, on a large table, a scan the search was meant to avoid.
-    """
-    return (
-        value.replace(LIKE_ESCAPE_CHAR, LIKE_ESCAPE_CHAR * 2)
-        .replace("%", f"{LIKE_ESCAPE_CHAR}%")
-        .replace("_", f"{LIKE_ESCAPE_CHAR}_")
-    )
-
-
 def build_like_predicate(
     expr: ColumnElement[Any],
     search: str,
@@ -227,11 +207,16 @@ def build_like_predicate(
     """
     Build a case-insensitive containment predicate for ``expr``.
 
+    Uses ``contains(..., autoescape=True)`` rather than a raw ``LIKE ...
+    ESCAPE`` clause because BigQuery's GoogleSQL dialect has no ESCAPE
+    keyword and rejects it outright; ``contains()`` lets each dialect's
+    compiler render wildcard-escaping in its own supported syntax (BigQuery's
+    compiler swaps in backslash-escaping instead of an ESCAPE clause).
+
     ``lower(expr) LIKE lower('%term%')`` is used rather than ``ILIKE`` because
     the latter is not portable across engines.
     """
-    pattern = f"%{escape_like_pattern(search)}%".lower()
-    return sa.func.lower(expr).like(pattern, escape=LIKE_ESCAPE_CHAR)
+    return sa.func.lower(expr).contains(search.lower(), autoescape=True)
 
 
 def _is_parenthesized(sqla_col: ColumnElement) -> bool:
@@ -369,9 +354,13 @@ def _retry_temporal_join_values_at_wider_resolution(
     datetime_format: str | None,
 ) -> pd.Series:
     """Retry valid values outside pandas' nanosecond datetime range."""
-    resolution = "ms" if datetime_format == "epoch_ms" else "s"
+    resolution = (
+        datetime_format.removeprefix("epoch_")
+        if datetime_format in EPOCH_FORMATS
+        else "s"
+    )
     try:
-        if datetime_format and datetime_format not in {"epoch_s", "epoch_ms"}:
+        if datetime_format and datetime_format not in EPOCH_FORMATS:
             parsed_values = [
                 datetime.strptime(str(value), datetime_format)
                 if pd.notna(value)
@@ -3725,6 +3714,19 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                         msg=error_msg,
                     )
                 ) from ex
+            except TypeError as ex:
+                # Raised when a Python builtin invoked from within the template
+                # receives an unexpected type, e.g. `"','".join(filter_values(...))`
+                # where `filter_values()` returns non-string values (numeric filter
+                # values) and `str.join` fails with "expected str instance, int
+                # found". These are not TemplateError/UndefinedError, so they would
+                # otherwise escape as an unhandled 500.
+                raise QueryObjectValidationError(
+                    _(
+                        "Error while rendering virtual dataset query: %(msg)s",
+                        msg=str(ex),
+                    )
+                ) from ex
 
         script = SQLScript(sql, engine=self.db_engine_spec.engine)
         if len(script.statements) > 1:
@@ -3774,6 +3776,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                         self.schema or default_schema or "",
                         statement,
                         exclude_dataset_id=self_id,
+                        include_global_guest_rls=False,
                     ):
                         rls_applied = True
 
@@ -3801,7 +3804,13 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                             ),
                             self.database,
                             self.database.get_default_catalog(),
-                            exclude_dataset_id=self_id,
+                            # at least as strict as apply_rls(), which injects
+                            # this dataset's own RLS and the global guest rules
+                            # into the inner SQL's sub-queries
+                            exclude_dataset_id=(
+                                None if statement.has_subquery() else self_id
+                            ),
+                            include_global_guest_rls=statement.has_subquery(),
                         )
                         for statement in parsed_script.statements
                         for table in statement.tables
@@ -4200,7 +4209,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             )
 
         if tf:
-            if tf in {"epoch_ms", "epoch_s"}:
+            if tf in EPOCH_FORMATS:
                 # In general, Superset works with timezone-naive datetime objects
                 # internally. However, timestamp() applies local timezone to
                 # timezone-naive datetime objects. Therefore, we have to be explicit
@@ -4210,9 +4219,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     dttm_tz_aware = dttm_tz_aware.replace(tzinfo=timezone.utc)
 
                 seconds_since_epoch = int(dttm_tz_aware.timestamp())
-                if tf == "epoch_s":
-                    return str(seconds_since_epoch)
-                return str(seconds_since_epoch * 1000)
+                return str(seconds_since_epoch * EPOCH_FORMATS[tf])
             return f"'{dttm.strftime(tf)}'"
 
         return f"""'{dttm.strftime("%Y-%m-%d %H:%M:%S.%f")}'"""

@@ -72,7 +72,8 @@ class OdpsEngineSpec(BasicParametersMixin, OdpsBaseEngineSpec):
     metadata = {
         "description": (
             "Alibaba Cloud MaxCompute (formerly ODPS) is a fully managed, "
-            "multi-tenant data processing platform for large-scale data warehousing."
+            "multi-tenancy cloud data warehousing platform for large-scale "
+            "batch and streaming analytics."
         ),
         "logo": "maxcompute.png",
         "homepage_url": "https://www.alibabacloud.com/product/maxcompute",
@@ -83,10 +84,18 @@ class OdpsEngineSpec(BasicParametersMixin, OdpsBaseEngineSpec):
         ],
         "pypi_packages": ["pyodps"],
         "connection_string": (
-            "odps://{access_id}:{access_key}@{project_name}?endpoint={endpoint}"
+            "odps://{access_id}:{secret_access_key}@{project}/?endpoint={endpoint}"
         ),
-        "docs_url": "https://www.alibabacloud.com/help/en/maxcompute/",
-        "sqlalchemy_docs_url": "https://pyodps.readthedocs.io/en/latest/",
+        "parameters": {
+            "access_id": "Aliyun Access Key ID",
+            "secret_access_key": "Aliyun Access Key Secret",
+            "project": "MaxCompute project name",
+            "endpoint": "MaxCompute service endpoint URL",
+        },
+        "docs_url": "https://pyodps.readthedocs.io/",
+        "sqlalchemy_docs_url": (
+            "https://pyodps.readthedocs.io/en/latest/sqlalchemy.html"
+        ),
     }
 
     @classmethod
