@@ -1168,6 +1168,19 @@ filters update the `BASE_AXIS` column's `timeGrain`, regardless of its position
 in the query's `columns` list. Other columns are left untouched. Queries without
 a `BASE_AXIS` column continue to use `extras.time_grain_sqla`.
 
+### Exploring large dashboard layouts
+
+`get_dashboard_layout` returns the full parsed layout by default. For large
+dashboards, pass `tabs_only=true` to retrieve just the tab tree: `id`, `name`
+(the title), `parent_tab_id`, zero-based `depth`, and `chart_count` (distinct
+charts in the tab and its descendants), with no chart IDs or positions.
+Then pass `tab="<ID or exact title>"` to retrieve that tab and its descendants
+with chart positions. Matching is case-sensitive; IDs take precedence and
+ambiguous titles require an ID. Both options can be combined to summarize a
+subtree. Parent IDs, depths, and chart paths retain their full-dashboard context.
+Permalink active-tab and filter state remain unchanged; only an explicit `tab`
+scopes the response. Oversized layout errors suggest these options.
+
 ### Reading applied dashboard filters
 
 When answering about a filtered dashboard, call `get_dashboard_info` with the

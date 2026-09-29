@@ -39,11 +39,84 @@ from superset.mcp_service.dashboard.schemas import (
     dashboard_layout_serializer,
     DashboardError,
     DashboardLayout,
+    DashboardTab,
+    DashboardTabSummary,
     GetDashboardLayoutRequest,
 )
 from superset.mcp_service.mcp_core import ModelGetInfoCore
 
 logger = logging.getLogger(__name__)
+
+
+def _scope_layout(
+    layout: DashboardLayout, request: GetDashboardLayoutRequest
+) -> DashboardLayout | DashboardError:
+    """Project the parsed layout without changing permalink or ancestry context."""
+    if not request.tabs_only and request.tab is None:
+        return layout
+
+    tabs = [tab for tab in layout.tabs if isinstance(tab, DashboardTab)]
+    tabs_by_id = {tab.id: tab for tab in tabs}
+    children: dict[str | None, list[str]] = {}
+    for tab in tabs:
+        children.setdefault(tab.parent_tab_id, []).append(tab.id)
+
+    selected_ids = set(tabs_by_id)
+    if request.tab is not None:
+        matches = (
+            [tabs_by_id[request.tab]]
+            if request.tab in tabs_by_id
+            else [tab for tab in tabs if tab.name == request.tab]
+        )
+        if not matches:
+            return DashboardError.create(
+                "Tab not found. Use tabs_only=true to discover tab IDs and titles.",
+                "tab_not_found",
+            )
+        if len(matches) > 1:
+            return DashboardError.create(
+                "Multiple tabs have that title. Use tabs_only=true to discover "
+                "their IDs, then pass a unique tab ID.",
+                "ambiguous_tab",
+            )
+        selected_ids = set()
+        pending = [matches[0].id]
+        while pending:
+            tab_id = pending.pop()
+            if tab_id not in selected_ids:
+                selected_ids.add(tab_id)
+                pending.extend(children.get(tab_id, []))
+        tabs = [tab for tab in tabs if tab.id in selected_ids]
+
+    if request.tabs_only:
+        # Compute absolute depths before projecting a subtree. The parser only
+        # emits reachable tabs and assigns each tab a single enclosing parent.
+        depths: dict[str, int] = {}
+        stack = [(tab_id, 0) for tab_id in children.get(None, [])]
+        while stack:
+            tab_id, depth = stack.pop()
+            depths[tab_id] = depth
+            stack.extend((child, depth + 1) for child in children.get(tab_id, []))
+        summaries = [
+            DashboardTabSummary(
+                id=tab.id,
+                name=tab.name,
+                parent_tab_id=tab.parent_tab_id,
+                depth=depths[tab.id],
+                chart_count=len(tab.chart_ids),
+            )
+            for tab in tabs
+        ]
+        return layout.model_copy(update={"tabs": summaries, "charts": []})
+
+    return layout.model_copy(
+        update={
+            "tabs": tabs,
+            "charts": [
+                chart for chart in layout.charts if chart.tab_id in selected_ids
+            ],
+        }
+    )
 
 
 @tool(
@@ -67,6 +140,13 @@ async def get_dashboard_layout(
     small; call this tool when you need the structured layout (e.g. to
     explain which charts live under which tab, or to locate a chart by
     its parent tab).
+
+    For large dashboards, pass ``tabs_only=true`` to discover the complete tab
+    tree with nesting depths and descendant chart counts, without chart positions.
+    Then pass ``tab="<ID or exact title>"`` to retrieve only that tab's subtree
+    and chart positions. IDs take precedence; duplicate titles require an ID.
+    Combine both options to summarize a subtree. Parent IDs and tab paths remain
+    relative to the full dashboard, and permalink state is preserved unchanged.
 
     If the user gives you a shared URL containing ``/dashboard/p/<key>/``, pass
     the URL or bare key as ``identifier`` (or use ``permalink_key`` alone). The
@@ -145,7 +225,11 @@ async def get_dashboard_layout(
                 % (result.error_type, result.error)
             )
 
-        return result
+        return (
+            _scope_layout(result, request)
+            if isinstance(result, DashboardLayout)
+            else result
+        )
 
     except Exception as e:
         await ctx.error(

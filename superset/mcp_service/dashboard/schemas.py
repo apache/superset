@@ -361,6 +361,32 @@ class GetDashboardLayoutRequest(BaseModel):
         ),
     )
 
+    tabs_only: bool = Field(
+        default=False,
+        description=(
+            "Return only the tab tree (ID, name, parent_tab_id, zero-based depth, "
+            "and descendant chart_count), without chart IDs or positions. "
+            "Use this first to discover tabs on large dashboards."
+        ),
+    )
+    tab: str | None = Field(
+        default=None,
+        description=(
+            "Return only this tab and its descendants, selected by component ID "
+            "or exact, case-sensitive title. IDs take precedence over titles; "
+            "duplicate titles require an ID. Can be combined with tabs_only. "
+            "Omit to return all tabs regardless of permalink active-tab state."
+        ),
+    )
+
+    @field_validator("tab")
+    @classmethod
+    def validate_tab(cls, value: str | None) -> str | None:
+        """Reject blank selectors rather than silently returning the full layout."""
+        if value is not None and not value.strip():
+            raise ValueError("tab must not be blank")
+        return value
+
     @model_validator(mode="after")
     def _require_identifier_or_permalink(self) -> "GetDashboardLayoutRequest":
         identifier_is_blank = self.identifier is None or (
@@ -1519,13 +1545,28 @@ class DashboardTab(BaseModel):
     )
 
 
+class DashboardTabSummary(BaseModel):
+    """Compact tab-tree entry without chart IDs or chart positions."""
+
+    id: str = Field(..., description="Tab component ID from position_json")
+    name: str | None = Field(None, description="Tab display name")
+    parent_tab_id: str | None = Field(None, description="ID of the enclosing tab")
+    depth: int = Field(
+        ..., description="Tab nesting depth; top-level tabs have depth 0"
+    )
+    chart_count: int = Field(
+        ...,
+        description="Distinct chart IDs directly or indirectly under this tab",
+    )
+
+
 class DashboardLayout(BaseModel):
     """Parsed layout data for a dashboard, derived from position_json."""
 
     id: int | None = Field(None, description="Dashboard ID")
     dashboard_title: str | None = Field(None, description="Dashboard title")
     uuid: str | None = Field(None, description="Dashboard UUID")
-    tabs: List[DashboardTab] = Field(
+    tabs: List[DashboardTab | DashboardTabSummary] = Field(
         default_factory=list,
         description=(
             "Tabs declared in the dashboard layout (empty for untabbed dashboards)"

@@ -319,6 +319,16 @@ def _get_tool_specific_suggestions(
             "to shorten the generated query."
         )
 
+    elif tool_name == "get_dashboard_layout":
+        suggestions.append(
+            "Call get_dashboard_layout with tabs_only=true to discover the tab "
+            "tree without chart positions."
+        )
+        suggestions.append(
+            'Then pass tab="<ID or title>" to get only that tab\'s subtree and '
+            "chart positions; use a nested tab ID for a smaller response."
+        )
+
     elif tool_name in ("get_chart_info", "get_dashboard_info", "get_dataset_info"):
         suggestions.append(
             f"For {tool_name}, use 'select_columns' to fetch only specific metadata "
