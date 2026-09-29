@@ -2123,6 +2123,29 @@ class DashboardRestApi(
                     )
                     cache_payload = ScreenshotCachePayload(scope=cache_scope)
                     cache_payload.pending()
+                    # A force-less staleness refresh of a still-valid capture must
+                    # not publish an imageless successor: carry the prior
+                    # generation's last-good image onto this in-progress payload so
+                    # the read path keeps serving it while the refresh renders, and
+                    # a failed render retains it (ERROR keeps the image) instead of
+                    # leaving image_url at 404 for the error backoff. The successor
+                    # stays PENDING, so concurrent producers still coalesce and the
+                    # worker still recomputes it. Skipped for an explicit force (the
+                    # caller asked to discard the capture) and for a scope mismatch
+                    # (must never serve another object's image).
+                    if (
+                        not force
+                        and cached_payload is not None
+                        and cached_payload.is_updated()
+                        and cached_payload.get_scope() == cache_scope
+                        and cached_payload.get_invalid_image_reason() is None
+                    ):
+                        try:
+                            cache_payload.retain_image(
+                                cached_payload.get_image().read()
+                            )
+                        except ScreenshotImageNotAvailableException:
+                            pass
                     try:
                         screenshot_obj.store_cache_payload(
                             next_cache_key,

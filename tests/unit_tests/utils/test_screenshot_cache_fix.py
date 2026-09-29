@@ -316,6 +316,30 @@ class TestShouldTriggerTask:
 
         assert payload.should_trigger_task(force=False) is True
 
+    def test_retain_image_keeps_status_and_timestamp(self):
+        """retain_image attaches an image without changing status or timestamp.
+
+        This is what lets a staleness-refresh successor carry the prior last-good
+        image while staying PENDING: the unchanged fresh timestamp keeps
+        concurrent producers coalescing, and the still-PENDING status keeps the
+        worker's should_trigger_task recomputing it -- neither of which holds if
+        retain_image refreshed the timestamp or flipped the status to UPDATED.
+        """
+        timestamp = "2020-01-01T00:00:00"
+        payload = ScreenshotCachePayload(
+            status=StatusValues.PENDING, timestamp=timestamp
+        )
+
+        payload.retain_image(FAKE_PNG_BYTES)
+
+        # Image is now served, but the entry stays a fresh, triggerable PENDING.
+        assert payload.get_image().read() == FAKE_PNG_BYTES
+        assert payload.get_invalid_image_reason() is None
+        assert payload.status == StatusValues.PENDING
+        assert payload.is_in_progress() is True
+        assert payload.get_timestamp() == timestamp
+        assert payload.should_trigger_task(force=False) is True
+
     @patch("superset.utils.screenshots.app")
     def test_trigger_on_expired_error(self, mock_app):
         """Test that expired ERROR status triggers task."""

@@ -189,6 +189,20 @@ class ScreenshotCachePayload:
         self.status = StatusValues.UPDATED
         self._image = image
 
+    def retain_image(self, image: bytes | None) -> None:
+        """Attach an already-rendered image without changing status or timestamp.
+
+        Unlike ``update`` (which marks the entry ``UPDATED``), this leaves the
+        status in progress. It is used when a staleness refresh publishes a
+        successor generation: carrying the prior generation's last-good image
+        keeps the read path serving it while the refresh renders, and a failed
+        render that transitions to ``ERROR`` retains it (``error()`` without
+        ``discard_image``) instead of leaving ``image_url`` at 404. Keeping the
+        successor ``PENDING`` means concurrent producers still coalesce and the
+        worker's ``should_trigger_task`` still recomputes it.
+        """
+        self._image = image
+
     def error(self, *, discard_image: bool = False) -> None:
         self.update_timestamp()
         if discard_image:
