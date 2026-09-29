@@ -105,17 +105,23 @@ class UpdateChartCommand(UpdateMixin, BaseCommand):
                 self._properties["params"],
             )
 
-        # Touch newly linked dashboards to bump changed_on/changed_by (resolves #44305).
-        # Ensures adding a chart to an existing dashboard updates the dashboard's
-        # last modified state.
+        # Touch dashboards whose links to this chart changed to bump their audit
+        # metadata (resolves #44305). Dashboards the chart was added to and
+        # removed from are both affected, so their last modified state stays
+        # accurate in either direction.
         if "dashboards" in self._properties:
             existing_dashboard_ids = {d.id for d in self._model.dashboards}
-            newly_added_dashboards = [
-                d
-                for d in self._properties["dashboards"]
-                if d.id not in existing_dashboard_ids
+            requested_dashboard_ids = {d.id for d in self._properties["dashboards"]}
+            affected_dashboards = [
+                dashboard
+                for dashboard in self._model.dashboards
+                if dashboard.id not in requested_dashboard_ids
+            ] + [
+                dashboard
+                for dashboard in self._properties["dashboards"]
+                if dashboard.id not in existing_dashboard_ids
             ]
-            touch_dashboards(newly_added_dashboards)
+            touch_dashboards(affected_dashboards)
 
         return ChartDAO.update(self._model, self._properties)
 

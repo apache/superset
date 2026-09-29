@@ -14,6 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from datetime import datetime
 from typing import Any
 from unittest.mock import MagicMock, Mock
 
@@ -445,9 +446,13 @@ def test_update_chart_touches_newly_linked_dashboards(
     mocker: MockerFixture,
 ) -> None:
     """Issue #44305: Adding new dashboards to a chart touches audit metadata."""
-    existing_dashboard = MagicMock(id=1, changed_on=None, changed_by=None)
+    seeded_changed_on = datetime(2020, 1, 1)
+    existing_dashboard = MagicMock(id=1, changed_on=seeded_changed_on, changed_by=None)
     new_dashboard = MagicMock(
-        id=2, is_managed_externally=False, changed_on=None, changed_by=None
+        id=2,
+        is_managed_externally=False,
+        changed_on=seeded_changed_on,
+        changed_by=None,
     )
 
     chart = MagicMock(
@@ -494,9 +499,10 @@ def test_update_chart_touches_newly_linked_dashboards(
     cmd.run()
 
     # The existing dashboard should NOT be touched
-    assert existing_dashboard.changed_on is None
+    assert existing_dashboard.changed_on == seeded_changed_on
+    assert existing_dashboard.changed_by is None
     # The newly linked dashboard MUST be touched
-    assert new_dashboard.changed_on is not None
+    assert new_dashboard.changed_on > seeded_changed_on
     assert new_dashboard.changed_by == user
 
 
@@ -504,7 +510,8 @@ def test_update_chart_does_not_touch_unchanged_dashboards(
     mocker: MockerFixture,
 ) -> None:
     """Updating a chart without changing dashboard attachments does not touch them."""
-    existing_dashboard = MagicMock(id=1, changed_on=None, changed_by=None)
+    seeded_changed_on = datetime(2020, 1, 1)
+    existing_dashboard = MagicMock(id=1, changed_on=seeded_changed_on, changed_by=None)
 
     chart = MagicMock(
         is_managed_externally=False,
@@ -541,16 +548,17 @@ def test_update_chart_does_not_touch_unchanged_dashboards(
     cmd.run()
 
     # The unchanged dashboard should remain untouched
-    assert existing_dashboard.changed_on is None
+    assert existing_dashboard.changed_on == seeded_changed_on
     assert existing_dashboard.changed_by is None
 
 
-def test_update_chart_removing_dashboards_does_not_touch_remaining(
+def test_update_chart_touches_dashboards_when_removed(
     mocker: MockerFixture,
 ) -> None:
-    """Removing a dashboard from a chart leaves remaining dashboards untouched."""
-    d1 = MagicMock(id=1, changed_on=None, changed_by=None)
-    d2 = MagicMock(id=2, changed_on=None, changed_by=None)
+    """Issue #44305: Removing a chart from a dashboard touches that dashboard."""
+    seeded_changed_on = datetime(2020, 1, 1)
+    d1 = MagicMock(id=1, changed_on=seeded_changed_on, changed_by=None)
+    d2 = MagicMock(id=2, changed_on=seeded_changed_on, changed_by=None)
 
     chart = MagicMock(
         is_managed_externally=False,
@@ -587,17 +595,20 @@ def test_update_chart_removing_dashboards_does_not_touch_remaining(
     cmd = UpdateChartCommand(10, {"dashboards": [1]})
     cmd.run()
 
-    assert d1.changed_on is None
+    # The dashboard that keeps the chart is untouched
+    assert d1.changed_on == seeded_changed_on
     assert d1.changed_by is None
-    assert d2.changed_on is None
-    assert d2.changed_by is None
+    # The dashboard the chart was removed from is touched
+    assert d2.changed_on > seeded_changed_on
+    assert d2.changed_by == user
 
 
 def test_update_chart_without_dashboards_in_payload_leaves_dashboards_untouched(
     mocker: MockerFixture,
 ) -> None:
     """Updates that do not alter dashboard links do not evaluate dashboard touches."""
-    dashboard = MagicMock(id=1, changed_on=None, changed_by=None)
+    seeded_changed_on = datetime(2020, 1, 1)
+    dashboard = MagicMock(id=1, changed_on=seeded_changed_on, changed_by=None)
     chart = MagicMock(
         is_managed_externally=False,
         id=10,
@@ -626,5 +637,5 @@ def test_update_chart_without_dashboards_in_payload_leaves_dashboards_untouched(
     cmd = UpdateChartCommand(10, {"slice_name": "Renamed only"})
     cmd.run()
 
-    assert dashboard.changed_on is None
+    assert dashboard.changed_on == seeded_changed_on
     assert dashboard.changed_by is None

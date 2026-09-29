@@ -21,6 +21,7 @@ objects must be rejected before datasource lookup, not fail with an opaque
 500. Table and semantic-view datasources are supported chart sources.
 """
 
+from datetime import datetime
 from unittest.mock import MagicMock, Mock
 
 import pytest
@@ -278,7 +279,10 @@ def test_create_chart_updates_dashboard_changed_on(mocker: MockerFixture) -> Non
     user = MagicMock()
     g.user = user
 
-    dashboard = MagicMock(is_managed_externally=False, changed_on=None, changed_by=None)
+    seeded_changed_on = datetime(2020, 1, 1)
+    dashboard = MagicMock(
+        is_managed_externally=False, changed_on=seeded_changed_on, changed_by=None
+    )
     mocker.patch(
         "superset.commands.chart.create.DashboardDAO.find_by_ids",
         return_value=[dashboard],
@@ -303,7 +307,7 @@ def test_create_chart_updates_dashboard_changed_on(mocker: MockerFixture) -> Non
     )
     cmd.run()
 
-    assert dashboard.changed_on is not None
+    assert dashboard.changed_on > seeded_changed_on
     assert dashboard.changed_by == user
 
 
@@ -315,8 +319,13 @@ def test_create_chart_updates_multiple_dashboards_changed_on(
     user = MagicMock()
     g.user = user
 
-    d1 = MagicMock(is_managed_externally=False, changed_on=None, changed_by=None)
-    d2 = MagicMock(is_managed_externally=False, changed_on=None, changed_by=None)
+    seeded_changed_on = datetime(2020, 1, 1)
+    d1 = MagicMock(
+        is_managed_externally=False, changed_on=seeded_changed_on, changed_by=None
+    )
+    d2 = MagicMock(
+        is_managed_externally=False, changed_on=seeded_changed_on, changed_by=None
+    )
     mocker.patch(
         "superset.commands.chart.create.DashboardDAO.find_by_ids",
         return_value=[d1, d2],
@@ -341,9 +350,9 @@ def test_create_chart_updates_multiple_dashboards_changed_on(
     )
     cmd.run()
 
-    assert d1.changed_on is not None
+    assert d1.changed_on > seeded_changed_on
     assert d1.changed_by == user
-    assert d2.changed_on is not None
+    assert d2.changed_on > seeded_changed_on
     assert d2.changed_by == user
 
 
@@ -353,7 +362,7 @@ def test_create_chart_without_dashboards_runs_cleanly(
     """Creating a chart with no attached dashboards runs smoothly without error."""
     _mock_table_datasource(mocker)
     g.user = MagicMock()
-    mocker.patch(
+    create_mock = mocker.patch(
         "superset.commands.chart.create.ChartDAO.create",
         return_value=MagicMock(),
     )
@@ -367,17 +376,19 @@ def test_create_chart_without_dashboards_runs_cleanly(
         }
     )
     chart = cmd.run()
-    assert chart is not None
+    create_mock.assert_called_once()
+    assert chart == create_mock.return_value
 
 
 def test_touch_dashboards_with_no_user() -> None:
     """When g.user is None, changed_on is updated while changed_by remains untouched."""
     from superset.commands.chart.utils import touch_dashboards
 
-    dashboard = MagicMock(changed_on=None, changed_by=None)
+    seeded_changed_on = datetime(2020, 1, 1)
+    dashboard = MagicMock(changed_on=seeded_changed_on, changed_by=None)
     g.user = None
 
     touch_dashboards([dashboard])
 
-    assert dashboard.changed_on is not None
+    assert dashboard.changed_on > seeded_changed_on
     assert dashboard.changed_by is None
