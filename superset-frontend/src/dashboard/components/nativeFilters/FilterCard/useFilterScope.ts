@@ -77,7 +77,7 @@ export const useFilterScope = (filter: FilterElement) => {
 
     // no top level tabs, charts excluded
     // returns "CHART1, CHART2"
-    if (filter.scope.rootPath[0] === DASHBOARD_ROOT_ID) {
+    if (filter.scope.rootPath[0] === DASHBOARD_ROOT_ID && !topLevelTabs) {
       return {
         charts: chartIds
           .filter(chartId => !filter.scope.excluded.includes(chartId))
@@ -94,8 +94,12 @@ export const useFilterScope = (filter: FilterElement) => {
     // top level tabs, charts excluded
     // returns "TAB1, TAB2, CHART1"
     if (topLevelTabs) {
-      // We start assuming that all charts are in scope for all tabs in the root path
-      const topLevelTabsInFullScope = [...filter.scope.rootPath];
+      // We start assuming that all charts are in scope for all tabs in the root path.
+      // A scope anchored at the dashboard root covers every top level tab.
+      const topLevelTabsInFullScope =
+        filter.scope.rootPath[0] === DASHBOARD_ROOT_ID
+          ? [...topLevelTabs]
+          : [...filter.scope.rootPath];
       const layoutChartElementsInTabsInScope = layoutCharts.filter(element =>
         element.parents?.some(parent =>
           topLevelTabsInFullScope.includes(parent),

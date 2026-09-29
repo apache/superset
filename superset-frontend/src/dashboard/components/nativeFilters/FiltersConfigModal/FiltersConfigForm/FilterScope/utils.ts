@@ -306,18 +306,20 @@ export const findFilterScope = (
   const checkedChartIds = new Set(
     chartKeys
       .filter(item => layout[item]?.type === CHART_TYPE)
-      .map(item => layout[item]?.meta?.chartId as number),
+      .map(item => layout[item]?.meta?.chartId)
+      .filter((chartId): chartId is number => chartId != null),
   );
 
   const rootPath = [DASHBOARD_ROOT_ID];
+  // Sorted so the saved scope does not depend on the layout's key order
   const excluded = Object.values(layout)
+    .filter(item => item.type === CHART_TYPE)
+    .map(item => item.meta?.chartId)
     .filter(
-      item =>
-        item.type === CHART_TYPE &&
-        item.meta?.chartId != null &&
-        !checkedChartIds.has(item.meta.chartId as number),
+      (chartId): chartId is number =>
+        chartId != null && !checkedChartIds.has(chartId),
     )
-    .map(item => item.meta.chartId as number);
+    .sort((a, b) => a - b);
 
   return {
     rootPath: [...new Set(rootPath)],
