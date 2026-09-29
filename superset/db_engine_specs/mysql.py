@@ -602,12 +602,28 @@ class MySQLEngineSpec(BasicParametersMixin, BaseEngineSpec):
             if creating_table and cls._requires_primary_key(engine):
                 index = to_sql_kwargs.get("index", True)
                 index_label = to_sql_kwargs.get("index_label")
-                if index:
+                # A column promoted to PRIMARY KEY must reject duplicate and
+                # NULL values; the DataFrame index has neither guarantee (a
+                # CSV/Excel upload can point the "Dataframe index" option at
+                # a column that repeats or is missing values), so only
+                # promote it when it actually qualifies. Otherwise fall back
+                # to the synthesized key below, the same as the index=False
+                # path, and make sure the real index is not also written out
+                # as an extra column.
+                promote_index = (
+                    bool(index) and df.index.is_unique and not df.index.hasnans
+                )
+                if promote_index:
                     primary_key = index_label or df.index.name or "index"
                 else:
                     df = df.copy()
+                    # Column names are compared case-insensitively in MySQL,
+                    # so an existing "ID" column collides with a lowercase
+                    # synthesized "id" one even though Python sees them as
+                    # different strings.
+                    existing_columns = {col.lower() for col in df.columns}
                     primary_key = "id"
-                    while primary_key in df.columns:
+                    while primary_key.lower() in existing_columns:
                         primary_key = f"_{primary_key}"
                     df.insert(0, primary_key, range(1, len(df) + 1))
 
@@ -616,7 +632,7 @@ class MySQLEngineSpec(BasicParametersMixin, BaseEngineSpec):
                         table.table,
                         pandas_db,
                         frame=df,
-                        index=index,
+                        index=promote_index,
                         if_exists=to_sql_kwargs.get("if_exists", "fail"),
                         index_label=index_label,
                         schema=table.schema,
