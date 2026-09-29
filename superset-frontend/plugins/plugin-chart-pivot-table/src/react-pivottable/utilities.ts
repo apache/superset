@@ -830,6 +830,23 @@ const baseAggregatorTemplates = {
             if (!denominatorAggregator.inner) {
               return null;
             }
+
+            // A DB-computed rollup value can legitimately be a real SQL NULL
+            // (e.g. AVG over an empty group), and a mixed-metric slot's
+            // `inner.value()` is null by construction (see `cellValue`).
+            // Check this before looking at the denominator at all: the
+            // denominator's own `typeof acc === 'string'` branch below
+            // returns immediately for a string-valued metric (e.g. a
+            // MAX()/MIN() on a text column), which would otherwise leak that
+            // unrelated metric's raw string past a numerator that should stay
+            // blank. `null / acc` also coerces to `0` in JS, which would
+            // render a measured "0.0%" for a value that should stay blank,
+            // same as it does in "Actual values" mode.
+            const numerator = this.inner.value();
+            if (numerator === null) {
+              return null;
+            }
+
             const acc = denominatorAggregator.inner.value();
 
             if (typeof acc === 'string') {
@@ -840,15 +857,6 @@ const baseAggregatorTemplates = {
             // instead of the blank the null/missing-denominator contract
             // above already establishes.
             if (acc === null) {
-              return null;
-            }
-
-            // A DB-computed rollup value can legitimately be a real SQL NULL
-            // (e.g. AVG over an empty group). `null / acc` coerces to `0` in
-            // JS, which would render a measured "0.0%" for a value that
-            // should stay blank, same as it does in "Actual values" mode.
-            const numerator = this.inner.value();
-            if (numerator === null) {
               return null;
             }
 
