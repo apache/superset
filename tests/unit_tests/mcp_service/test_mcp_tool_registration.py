@@ -43,6 +43,7 @@ EXPECTED_TOOL_OUTPUT_FIELDS = {
     "create_virtual_dataset": "dataset_name",
     "delete_chart": "deleted_id",
     "delete_dashboard": "deleted_id",
+    "delete_dataset": "deleted_id",
     "delete_dataset_metric": "affected_charts",
     "duplicate_dashboard": "duplicated_slices",
     "execute_sql": "statements",
@@ -104,10 +105,12 @@ EXPECTED_TOOL_OUTPUT_FIELDS = {
     "remove_chart_from_dashboard": "removed_layout_keys",
     "restore_chart": "restored_id",
     "restore_dashboard": "restored_id",
+    "restore_dataset": "restored_id",
     "save_sql_query": "label",
     "update_chart": "chart",
     "update_chart_preview": "previous_form_data_key",
     "update_dashboard": "changed_fields",
+    "update_dataset": "updated_properties",
     "update_dataset_metric": "updated_properties",
 }
 
@@ -130,6 +133,7 @@ MUTATING_TOOLS = {
     "create_virtual_dataset",
     "delete_chart",
     "delete_dashboard",
+    "delete_dataset",
     "delete_dataset_metric",
     "duplicate_dashboard",
     "execute_sql",
@@ -143,10 +147,12 @@ MUTATING_TOOLS = {
     "remove_chart_from_dashboard",
     "restore_chart",
     "restore_dashboard",
+    "restore_dataset",
     "save_sql_query",
     "update_chart",
     "update_chart_preview",
     "update_dashboard",
+    "update_dataset",
     "update_dataset_metric",
 }
 
@@ -166,6 +172,7 @@ NON_COMMITTING_MUTATING_TOOLS = {
 DESTRUCTIVE_TOOLS = {
     "delete_chart",
     "delete_dashboard",
+    "delete_dataset",
     "delete_dataset_metric",
     "execute_sql",
     "manage_dashboard_owners",
@@ -174,6 +181,7 @@ DESTRUCTIVE_TOOLS = {
     "remove_chart_from_dashboard",
     "update_chart",
     "update_dashboard",
+    "update_dataset",
     "update_dataset_metric",
 }
 
