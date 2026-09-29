@@ -19,6 +19,7 @@
 
 from __future__ import annotations
 
+import importlib
 import json  # noqa: TID251
 import re
 from datetime import timedelta
@@ -1960,8 +1961,6 @@ def test_fetch_data_no_result_set(
     Statements without a result set return no rows instead of failing after
     they have already executed.
     """
-    import importlib
-
     module_name, class_name = spec_path.rsplit(".", 1)
     spec = getattr(importlib.import_module(module_name), class_name)
 

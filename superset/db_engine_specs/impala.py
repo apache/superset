@@ -130,20 +130,22 @@ class ImpalaEngineSpec(BaseEngineSpec):
 
     @classmethod
     def fetch_data(cls, cursor: Any, limit: int | None = None) -> list[tuple[Any, ...]]:
-        """
-        Wait for the asynchronous operation before fetching.
+        """Wait for asynchronous operations using the public cursor API."""
+        if callable(getattr(cursor, "execute_async", None)):
+            from impala.error import Error
 
-        ``execute`` submits the statement with ``execute_async`` and
-        ``handle_cursor`` stops polling once the operation leaves the
-        INITIALIZED/RUNNING states, so it can still be PENDING here. Waiting
-        lets DML finish and surfaces the operation's error before the base
-        class checks whether the statement produced a result set.
-        """
-        wait = getattr(cursor, "_wait_to_finish", None)
-        if callable(wait):
+            deadline = time.monotonic() + app.config["SQLLAB_TIMEOUT"]
             try:
-                wait()
-            except Exception as ex:
+                while cursor.is_executing():
+                    if time.monotonic() >= deadline:
+                        cursor.cancel_operation()
+                        raise TimeoutError("Timed out waiting for the Impala operation")
+                    time.sleep(0.1)
+                if cursor.execution_failed():
+                    # Fetching surfaces the driver's detailed asynchronous error,
+                    # including errors on statements that produce no result set.
+                    cursor.fetchall()
+            except Error as ex:
                 raise cls.get_dbapi_mapped_exception(ex) from ex
         return super().fetch_data(cursor, limit)
 
