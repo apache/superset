@@ -29,6 +29,7 @@ from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
+from babel.messages.pofile import read_po
 
 _SCRIPT_PATH = (
     Path(__file__).resolve().parents[4]
@@ -252,3 +253,44 @@ def test_extract_flags_match_babel_update_sh() -> None:
     for flag in ("-F", "-o"):
         del args[args.index(flag) : args.index(flag) + 2]
     assert args == check_pot_drift.EXTRACT_FLAGS
+
+
+def test_extraction_carries_i18n_comments_to_the_template(tmp_path: Path) -> None:
+    """An ``i18n:`` comment above a string lands on its template entry.
+
+    Runs the real ``pybabel extract`` with ``EXTRACT_FLAGS`` (which
+    ``test_extract_flags_match_babel_update_sh`` ties to babel_update.sh) over
+    a Python and a TypeScript source. Dropping ``--add-comments=i18n:`` from
+    both invocations passes the flag-parity and msgid-only drift checks, but
+    fails here. Untagged comments must stay out of the template.
+    """
+    (tmp_path / "babel.cfg").write_text(
+        "[python: **.py]\n[javascript: **.ts]\n", encoding="utf-8"
+    )
+    (tmp_path / "views.py").write_text(
+        "# i18n: the short identifier in a dashboard's URL, not the animal\n"
+        '_("Slug")\n'
+        "# an ordinary code comment\n"
+        '_("Owner")\n',
+        encoding="utf-8",
+    )
+    (tmp_path / "list.ts").write_text(
+        "// i18n: the database engine behind a connection\nt('Backend');\n",
+        encoding="utf-8",
+    )
+    output = tmp_path / "messages.pot"
+    subprocess.run(  # noqa: S603
+        ["pybabel", "extract", "-F", "babel.cfg", "-o", str(output)]  # noqa: S607
+        + check_pot_drift.EXTRACT_FLAGS,
+        cwd=tmp_path,
+        check=True,
+        capture_output=True,
+    )
+
+    with output.open("rb") as pot:
+        comments = {m.id: m.auto_comments for m in read_po(pot) if m.id}
+    assert comments == {
+        "Slug": ["i18n: the short identifier in a dashboard's URL, not the animal"],
+        "Owner": [],
+        "Backend": ["i18n: the database engine behind a connection"],
+    }
