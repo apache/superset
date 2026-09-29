@@ -673,15 +673,12 @@ class TestChartApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCase):
         response = json.loads(rv.data.decode("utf-8"))
         assert response == {"message": {"datasource_id": ["Datasource does not exist"]}}
 
-    def test_create_chart_from_saved_query_rejected_cleanly(self):
+    def test_create_chart_from_saved_query(self):
         """
         Chart API: creating a chart with datasource_type="saved_query" must
-        fail with a clean validation error, not the unhandled 500 "Fatal
-        error" reported in apache/superset#29697. Slice.datasource only
-        ever resolves the "table" relationship, so even a chart that
-        "created" successfully with this datasource_type could never
-        actually render -- "saved_query" is a real, existing row here
-        (not a bad ID), reproducing the original report exactly rather
+        succeed instead of raising the unhandled 500 "Fatal error" reported
+        in apache/superset#29697. "saved_query" is a real, existing row
+        here (not a bad ID), reproducing the original report exactly rather
         than a not-found case.
         """
         self.login(ADMIN_USERNAME)
@@ -702,15 +699,19 @@ class TestChartApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCase):
             "datasource_type": "saved_query",
             "viz_type": "table",
         }
+        chart_id = None
         try:
             rv = self.post_assert_metric("/api/v1/chart/", chart_data, "post")
 
-            assert rv.status_code == 422
+            assert rv.status_code == 201
             response = json.loads(rv.data.decode("utf-8"))
-            assert response == {
-                "message": {"datasource_type": ["Datasource type is invalid"]}
-            }
+            chart_id = response["id"]
+            chart = db.session.query(Slice).get(chart_id)
+            assert chart.datasource_type == "saved_query"
+            assert chart.datasource_id == saved_query_id
         finally:
+            if chart_id is not None:
+                db.session.delete(db.session.query(Slice).get(chart_id))
             db.session.delete(db.session.query(SavedQuery).get(saved_query_id))
             db.session.commit()
 
