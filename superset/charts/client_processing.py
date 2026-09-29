@@ -479,6 +479,133 @@ def _apply_show_values_as(  # pylint: disable=too-many-arguments
     return numeric / denominator.replace(0, np.nan)
 
 
+def _reduce_result_values(values: pd.Series, aggregate: str) -> Any:
+    """Reduce original metric results without aggregating intermediate summaries."""
+    if values.empty:
+        return None
+    name = aggregate.split(" as Fraction of ")[0]
+    if name == "Count":
+        return len(values)
+    if name == "Count Unique Values":
+        return values.nunique(dropna=False)
+    if name == "List Unique Values":
+        return ", ".join(sorted({str(value) for value in values}))
+    if name in {"First", "Last"}:
+        present = values.dropna()
+        return present.iloc[0 if name == "First" else -1] if len(present) else None
+    numeric = pd.to_numeric(values, errors="coerce").dropna()
+    if name == "Sum":
+        text = values.dropna()
+        return text.iloc[-1] if numeric.empty and len(text) else numeric.sum()
+    if numeric.empty:
+        return None
+    if name == "Sample Variance":
+        return numeric.var(ddof=1) if len(numeric) > 1 else 0
+    if name == "Sample Standard Deviation":
+        return numeric.std(ddof=1) if len(numeric) > 1 else 0
+    return {
+        "Average": numeric.mean,
+        "Median": numeric.median,
+        "Minimum": numeric.min,
+        "Maximum": numeric.max,
+    }[name]()
+
+
+def _group_result_records(
+    source: pd.DataFrame, dimensions: list[str]
+) -> dict[tuple[str, ...], pd.DataFrame]:
+    """Index contributing records by the dimension prefix of a summary scope."""
+    if not dimensions:
+        return {(): source}
+    keys = [source[dim].fillna("SUPERSET_PANDAS_NAN").astype(str) for dim in dimensions]
+    return {
+        key if isinstance(key, tuple) else (key,): group
+        for key, group in source.groupby(keys, sort=False, dropna=False)
+    }
+
+
+def _apply_result_aggregation(
+    frame: pd.DataFrame,
+    source: pd.DataFrame,
+    rows: list[str],
+    columns: list[str],
+    metrics: list[str],
+    metric_level: int,
+    row_depths: dict[Any, int],
+    column_depths: dict[Any, int],
+    aggregate: str,
+    show_values_as: Optional[str],
+    metrics_on_rows: bool,
+) -> pd.DataFrame:
+    """Calculate every scope from its original contributing query results."""
+
+    if not set(metrics).issubset(source.columns):
+        return frame
+
+    grouped_sources: dict[tuple[int, int], dict[tuple[str, ...], pd.DataFrame]] = {}
+
+    def contributing(
+        row: Any,
+        column: Any,
+        row_depth: int,
+        column_depth: int,
+        selected_metrics: list[str],
+    ) -> pd.Series:
+        level = (row_depth, column_depth)
+        if level not in grouped_sources:
+            grouped_sources[level] = _group_result_records(
+                source, rows[:row_depth] + columns[:column_depth]
+            )
+        key = _rollup_key(row, row_depth, metric_level, is_column=False) + _rollup_key(
+            column,
+            column_depth,
+            metric_level,
+            is_column=True,
+        )
+        selected = grouped_sources[level].get(key, source.iloc[:0])
+        # Row-major order matches the browser's metric unpivoting.
+        return pd.Series(selected[selected_metrics].to_numpy().ravel(), dtype=object)
+
+    old_fraction = aggregate.partition(" as Fraction of ")[2]
+    fraction = {
+        "Total": "percent_total",
+        "Rows": "percent_row",
+        "Columns": "percent_col",
+    }.get(old_fraction) or show_values_as
+    for ri, row in enumerate(frame.index):
+        for ci, column in enumerate(frame.columns):
+            rd = row_depths.get(row, len(rows))
+            cd = column_depths.get(column, len(columns))
+            metric = _metric_of_column(column, metric_level)
+            selected_metrics = (
+                [metric] if metric in metrics else list(dict.fromkeys(metrics))
+            )
+            # Match the browser's mixed-metric guard: an axis/corner that
+            # combines different metrics has no meaningful single summary.
+            if len(selected_metrics) != 1:
+                frame.iloc[ri, ci] = None
+                continue
+            value = _reduce_result_values(
+                contributing(row, column, rd, cd, selected_metrics), aggregate
+            )
+            if fraction in SHOW_VALUES_AS_PERCENT_MODES:
+                dr, dc = rd, cd
+                if fraction == "percent_total":
+                    dr, dc = 0, 0
+                elif (fraction == "percent_row") != metrics_on_rows:
+                    dc = 0
+                else:
+                    dr = 0
+                denominator = _reduce_result_values(
+                    contributing(row, column, dr, dc, selected_metrics), aggregate
+                )
+                value = (
+                    value / denominator if value is not None and denominator else None
+                )
+            frame.iloc[ri, ci] = value
+    return frame
+
+
 def pivot_df(  # pylint: disable=too-many-locals, too-many-arguments, too-many-statements, too-many-branches  # noqa: C901
     df: pd.DataFrame,
     rows: list[str],
@@ -494,19 +621,26 @@ def pivot_df(  # pylint: disable=too-many-locals, too-many-arguments, too-many-s
     show_values_as: Optional[str] = None,
     metric_rollup_reducers: Optional[dict[str, str]] = None,
     rollup_levels: Optional[dict[frozenset[str], pd.DataFrame]] = None,
+    result_aggregation: bool = False,
+    show_row_subtotals: Optional[bool] = None,
+    show_column_subtotals: Optional[bool] = None,
 ) -> pd.DataFrame:
     percent_mode = (
         show_values_as if show_values_as in SHOW_VALUES_AS_PERCENT_MODES else None
     )
     reducers = metric_rollup_reducers or {}
-    if percent_mode:
-        # The chart ignores `aggregateFunction` post-SIP-216: cells arrive
-        # pre-aggregated from the database and totals are per-metric rollups of
-        # them. Match that here so the totals and the percent denominators
-        # cannot disagree -- otherwise a total stops dividing by itself and the
-        # Total row/column reads something other than 100%.
+    result_function = aggfunc
+    source = df.copy() if result_aggregation else None
+    metric_rollups = not result_aggregation and bool(percent_mode)
+    if metric_rollups or result_aggregation:
+        # Construct the layout first. Metric rollups replace summary cells;
+        # result aggregation replaces every cell directly from source records.
         aggfunc = "Sum"
-    metric_name = __("Total (%(aggfunc)s)", aggfunc=metric_name_aggfunc or aggfunc)
+    metric_name = __(
+        "Total (%(aggfunc)s)",
+        aggfunc=metric_name_aggfunc
+        or (result_function if result_aggregation else aggfunc),
+    )
     # Labels of the total/subtotal rows and columns inserted below, so the
     # `showValuesAs` denominators can be summed over leaf cells only.
     inserted_rows: list[Any] = []
@@ -533,6 +667,17 @@ def pivot_df(  # pylint: disable=too-many-locals, too-many-arguments, too-many-s
         axis = {"columns": 0, "rows": 1}
     else:
         axis = {"columns": 1, "rows": 0}
+
+    if apply_metrics_on_rows:
+        show_row_subtotals, show_column_subtotals = (
+            show_column_subtotals,
+            show_row_subtotals,
+        )
+    # Generate the requested summary levels independently of grand-summary visibility.
+    render_row_total, render_column_total = show_rows_total, show_columns_total
+    if result_aggregation:
+        show_rows_total = show_rows_total or bool(show_column_subtotals)
+        show_columns_total = show_columns_total or bool(show_row_subtotals)
 
     # pivoting with null values will create an empty df
     df = df.fillna("SUPERSET_PANDAS_NAN")
@@ -585,7 +730,7 @@ def pivot_df(  # pylint: disable=too-many-locals, too-many-arguments, too-many-s
     # Compute fractions, if needed. `showValuesAs` supersedes the pre-SIP-216
     # "... as Fraction of ..." aggregate functions, and is applied after the
     # totals below so each total divides by its own rollup, as the chart does.
-    if not percent_mode:
+    if not percent_mode and not result_aggregation:
         if aggfunc.endswith(" as Fraction of Total"):
             total = df.sum().sum()
             df = df.astype(total.dtypes) / total
@@ -654,7 +799,7 @@ def pivot_df(  # pylint: disable=too-many-locals, too-many-arguments, too-many-s
                     # to a number. The row totals below already coerce; do the
                     # same here so a total means the same thing on both axes.
                     block = block.apply(pd.to_numeric, errors="coerce")
-                if percent_mode:
+                if metric_rollups:
                     source, reducer = collapse(block)
                     subtotal = _reduce(source, reducer, axis=1)
                 else:
@@ -691,7 +836,7 @@ def pivot_df(  # pylint: disable=too-many-locals, too-many-arguments, too-many-s
                     subtotal_values = subtotal_values.apply(
                         pd.to_numeric, errors="coerce"
                     )
-                if percent_mode:
+                if metric_rollups:
                     subtotal = subtotal_values.apply(
                         lambda series: _reduce(series, collapse(series.to_frame())[1])
                     )
@@ -707,7 +852,11 @@ def pivot_df(  # pylint: disable=too-many-locals, too-many-arguments, too-many-s
                 inserted_rows.append(subtotal.name)
                 row_prefix_depth[subtotal.name] = level
 
-    if percent_mode and rollup_levels:
+    if (
+        not result_aggregation
+        and rollup_levels
+        and aggfunc != CURRENCY_CONTEXT_AGGREGATION
+    ):
         df = _apply_rollup_totals(
             df,
             rows,
@@ -719,7 +868,22 @@ def pivot_df(  # pylint: disable=too-many-locals, too-many-arguments, too-many-s
             column_prefix_depth,
         )
 
-    if percent_mode:
+    if result_aggregation and source is not None:
+        df = _apply_result_aggregation(
+            df,
+            source,
+            rows,
+            columns,
+            metrics,
+            totals_metric_level,
+            row_prefix_depth,
+            column_prefix_depth,
+            result_function,
+            percent_mode,
+            apply_metrics_on_rows,
+        )
+
+    if percent_mode and not result_aggregation:
         df = _apply_show_values_as(
             df,
             percent_mode,
@@ -744,6 +908,30 @@ def pivot_df(  # pylint: disable=too-many-locals, too-many-arguments, too-many-s
             if rollup_levels
             else None,
         )
+
+    if result_aggregation:
+        df = df.loc[
+            [
+                key
+                for key in df.index
+                if key not in row_prefix_depth
+                or (
+                    render_column_total
+                    if row_prefix_depth[key] == 0
+                    else show_row_subtotals is not False
+                )
+            ],
+            [
+                key
+                for key in df.columns
+                if key not in column_prefix_depth
+                or (
+                    render_row_total
+                    if column_prefix_depth[key] == 0
+                    else show_column_subtotals is not False
+                )
+            ],
+        ]
 
     # if we want to apply the metrics on the rows we need to pivot the
     # dataframe back
@@ -971,6 +1159,7 @@ def build_pivot_currency_context(
     currency_pivot_options = {
         **pivot_options,
         "aggfunc": CURRENCY_CONTEXT_AGGREGATION,
+        "result_aggregation": False,
         "metric_name_aggfunc": pivot_options["aggfunc"],
         # Cells here hold currency-code sets, not numbers, so a percent
         # transform would coerce them away.
@@ -1062,11 +1251,19 @@ def pivot_table_v2(
     percent_mode = (
         show_values_as if show_values_as in SHOW_VALUES_AS_PERCENT_MODES else None
     )
+    aggregate_function = form_data.get("aggregateFunction")
+    result_aggregation = (
+        aggregate_function in pivot_v2_aggfunc_map
+        and aggregate_function != CURRENCY_CONTEXT_AGGREGATION
+    )
     pivot_options: dict[str, Any] = {
         "rows": get_column_names(form_data.get("groupbyRows"), verbose_map),
         "columns": get_column_names(form_data.get("groupbyColumns"), verbose_map),
         "metrics": metrics,
-        "aggfunc": form_data.get("aggregateFunction", "Sum"),
+        "aggfunc": aggregate_function if result_aggregation else "Sum",
+        "result_aggregation": result_aggregation,
+        "show_row_subtotals": form_data.get("rowSubTotals"),
+        "show_column_subtotals": form_data.get("colSubTotals"),
         "transpose_pivot": bool(form_data.get("transposePivot")),
         "combine_metrics": bool(form_data.get("combineMetric")),
         "show_rows_total": bool(form_data.get("rowTotals")),
@@ -1081,7 +1278,11 @@ def pivot_table_v2(
 
     pivoted = pivot_df(df, **pivot_options)
     if apply_number_format:
-        if percent_mode:
+        if percent_mode or (
+            result_aggregation
+            and isinstance(aggregate_function, str)
+            and " as Fraction of " in aggregate_function
+        ):
             # A ratio has no currency and ignores per-metric value formats, the
             # same way the client skips `formattedAggregators` while a fraction
             # is active.
@@ -1449,7 +1650,11 @@ def apply_client_processing(  # noqa: C901
                 number_format=(
                     EXCEL_PERCENT_FORMAT
                     if viz_type == "pivot_table_v2"
-                    and form_data.get("showValuesAs") in SHOW_VALUES_AS_PERCENT_MODES
+                    and (
+                        form_data.get("showValuesAs") in SHOW_VALUES_AS_PERCENT_MODES
+                        or " as Fraction of "
+                        in str(form_data.get("aggregateFunction", ""))
+                    )
                     else None
                 ),
                 **{
