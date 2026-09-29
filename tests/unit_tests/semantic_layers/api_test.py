@@ -22,6 +22,7 @@ from typing import Annotated, Any, Literal
 from unittest.mock import MagicMock, patch
 
 import pytest
+from flask.sessions import SessionMixin
 from flask.testing import FlaskClient
 from pydantic import BaseModel, Field, model_validator, SecretStr
 from pytest_mock import MockerFixture
@@ -51,6 +52,7 @@ from superset.semantic_layers.api import (
     SemanticViewRestApi,
 )
 from superset.semantic_layers.models import SemanticLayer
+from superset.utils import json
 
 SEMANTIC_LAYERS_APP = pytest.mark.parametrize(
     "app",
@@ -3109,3 +3111,326 @@ def test_put_masked_list_secret_replacements_are_not_an_equality_oracle(
         {"accounts": [{"host": "a", "password": "stored-password", "token": guess}]}
     )
     dao.update.assert_called_once()
+
+
+REFRESH_APP: pytest.MarkDecorator = pytest.mark.parametrize(
+    "app",
+    [
+        {
+            "FEATURE_FLAGS": {"SEMANTIC_LAYERS": True},
+            "SEMANTIC_LAYER_METADATA_REFRESH_ENABLED": True,
+        }
+    ],
+    indirect=True,
+)
+REFRESH_URL: str = (
+    "/api/v1/semantic_view/bd2f07da-c65e-40da-b75e-c62b7cdd67f1/refresh_metadata/"
+)
+
+
+@REFRESH_APP
+def test_refresh_metadata_uuid_response(
+    client: FlaskClient,
+    full_api_access: None,
+    mocker: MockerFixture,
+) -> None:
+    from superset_core.semantic_layers.metadata import (
+        CatalogSnapshot,
+        MetadataRefreshResult,
+    )
+
+    command: MagicMock = mocker.patch(
+        "superset.semantic_layers.api.RefreshMetadataCommand"
+    )
+    command.return_value.run.return_value = MetadataRefreshResult(
+        "changed",
+        CatalogSnapshot(
+            "PRIVATE CATALOG", "revision", "PRIVATE SCOPE", "2026-09-29T00:00:00Z"
+        ),
+    )
+    response: TestResponse = client.post(REFRESH_URL, json={})
+    assert response.status_code == 200
+    assert response.json == {
+        "result": {
+            "status": "changed",
+            "revision": "revision",
+            "observed_at": "2026-09-29T00:00:00Z",
+        }
+    }
+    command.assert_called_once_with(
+        uuid_lib.UUID("bd2f07da-c65e-40da-b75e-c62b7cdd67f1")
+    )
+
+
+@REFRESH_APP
+@pytest.mark.parametrize(
+    "payload",
+    [{"layer_uuid": "another"}, {"configuration": {"token": "private"}}, [], None],
+)
+def test_refresh_metadata_rejects_overrides(
+    client: FlaskClient,
+    full_api_access: None,
+    mocker: MockerFixture,
+    payload: object,
+) -> None:
+    command: MagicMock = mocker.patch(
+        "superset.semantic_layers.api.RefreshMetadataCommand"
+    )
+    response: TestResponse = client.post(
+        REFRESH_URL, data=json.dumps(payload), content_type="application/json"
+    )
+    assert response.status_code == 400
+    command.assert_not_called()
+
+
+@REFRESH_APP
+def test_refresh_metadata_numeric_route_is_unavailable(
+    client: FlaskClient,
+    full_api_access: None,
+    mocker: MockerFixture,
+) -> None:
+    command: MagicMock = mocker.patch(
+        "superset.semantic_layers.api.RefreshMetadataCommand"
+    )
+    response: TestResponse = client.post(
+        "/api/v1/semantic_view/1/refresh_metadata/", json={}
+    )
+    assert response.status_code == 404
+    command.assert_not_called()
+
+
+@REFRESH_APP
+@pytest.mark.parametrize(
+    "category,status",
+    [
+        ("unsupported", 422),
+        ("configuration", 422),
+        ("in_progress", 409),
+        ("configuration_changed", 409),
+        ("upstream", 502),
+        ("invalid_payload", 502),
+        ("deadline", 504),
+        ("unavailable", 503),
+        ("indeterminate", 503),
+    ],
+)
+def test_refresh_metadata_safe_error_categories(
+    client: FlaskClient,
+    full_api_access: None,
+    mocker: MockerFixture,
+    category: Any,
+    status: int,
+) -> None:
+    from superset_core.semantic_layers.metadata import MetadataRefreshError
+
+    command: MagicMock = mocker.patch(
+        "superset.semantic_layers.api.RefreshMetadataCommand"
+    )
+    command.return_value.run.side_effect = MetadataRefreshError(category)
+    response: TestResponse = client.post(REFRESH_URL, json={})
+    assert response.status_code == status
+    assert response.json["error"] == category
+    assert response.json["message"]
+
+
+@REFRESH_APP
+@pytest.mark.parametrize(
+    "exception,status",
+    [
+        (SemanticViewNotFoundError(), 404),
+        (SemanticLayerNotFoundError(), 404),
+        (SemanticLayerForbiddenError(), 403),
+    ],
+)
+def test_refresh_metadata_missing_or_denied(
+    client: FlaskClient,
+    full_api_access: None,
+    mocker: MockerFixture,
+    exception: Exception,
+    status: int,
+) -> None:
+    command: MagicMock = mocker.patch(
+        "superset.semantic_layers.api.RefreshMetadataCommand"
+    )
+    command.return_value.run.side_effect = exception
+    response: TestResponse = client.post(REFRESH_URL, json={})
+    assert response.status_code == status
+
+
+@pytest.mark.parametrize(
+    "app",
+    [
+        {
+            "FEATURE_FLAGS": {"SEMANTIC_LAYERS": True},
+            "SEMANTIC_LAYER_METADATA_REFRESH_ENABLED": True,
+            "WTF_CSRF_ENABLED": True,
+        }
+    ],
+    indirect=True,
+)
+@pytest.mark.parametrize("csrf_case", ["missing", "invalid", "valid"])
+def test_refresh_metadata_browser_csrf_boundary(
+    client: FlaskClient,
+    full_api_access: None,
+    mocker: MockerFixture,
+    csrf_case: str,
+) -> None:
+    from itsdangerous import URLSafeTimedSerializer
+    from superset_core.semantic_layers.metadata import (
+        CatalogSnapshot,
+        MetadataRefreshResult,
+    )
+
+    command: MagicMock = mocker.patch(
+        "superset.semantic_layers.api.RefreshMetadataCommand"
+    )
+    command.return_value.run.return_value = MetadataRefreshResult(
+        "unchanged", CatalogSnapshot("{}", "revision", "scope", "2026-09-29T00:00:00Z")
+    )
+    raw_csrf: str = uuid_lib.uuid4().hex
+    session: SessionMixin
+    with client.session_transaction() as session:
+        session["csrf_token"] = raw_csrf
+    headers: dict[str, str] = {}
+    if csrf_case == "invalid":
+        headers["X-CSRFToken"] = "invalid"
+    elif csrf_case == "valid":
+        headers["X-CSRFToken"] = URLSafeTimedSerializer(
+            client.application.secret_key, salt="wtf-csrf-token"
+        ).dumps(raw_csrf)
+    response: TestResponse = client.post(REFRESH_URL, json={}, headers=headers)
+    if csrf_case == "valid":
+        assert response.status_code == 200
+        command.return_value.run.assert_called_once()
+    else:
+        assert response.status_code == 400
+        command.assert_not_called()
+
+
+@REFRESH_APP
+def test_refresh_metadata_route_requires_semantic_view_read(
+    client: FlaskClient,
+    full_api_access: None,
+    mocker: MockerFixture,
+) -> None:
+    from superset import security_manager
+
+    mocker.patch.object(security_manager, "is_item_public", return_value=False)
+    access: MagicMock = mocker.patch.object(
+        security_manager, "has_access", return_value=False
+    )
+    command: MagicMock = mocker.patch(
+        "superset.semantic_layers.api.RefreshMetadataCommand"
+    )
+    response: TestResponse = client.post(REFRESH_URL, json={})
+    assert response.status_code == 403
+    access.assert_called_with("can_read", "SemanticView")
+    command.assert_not_called()
+
+
+@REFRESH_APP
+@pytest.mark.parametrize("enabled", [False, None, "true", 1])
+def test_refresh_metadata_disabled_direct_request_does_no_work(
+    client: FlaskClient,
+    full_api_access: None,
+    mocker: MockerFixture,
+    enabled: object,
+) -> None:
+    lookup: MagicMock = mocker.patch(
+        "superset.commands.semantic_layer.refresh_metadata.SemanticViewDAO.find_by_uuid"
+    )
+    bind: MagicMock = mocker.patch(
+        "superset.commands.semantic_layer.refresh_metadata.bind_metadata_store"
+    )
+    with patch.dict(
+        client.application.config, {"SEMANTIC_LAYER_METADATA_REFRESH_ENABLED": enabled}
+    ):
+        response: TestResponse = client.post(REFRESH_URL, json={})
+    assert response.status_code == 404
+    lookup.assert_not_called()
+    bind.assert_not_called()
+
+
+@REFRESH_APP
+def test_refresh_metadata_semantic_flag_off_does_no_work(
+    client: FlaskClient,
+    full_api_access: None,
+    mocker: MockerFixture,
+) -> None:
+    mocker.patch(
+        "superset.semantic_layers.metadata.is_feature_enabled", return_value=False
+    )
+    lookup: MagicMock = mocker.patch(
+        "superset.commands.semantic_layer.refresh_metadata.SemanticViewDAO.find_by_uuid"
+    )
+    bind: MagicMock = mocker.patch(
+        "superset.commands.semantic_layer.refresh_metadata.bind_metadata_store"
+    )
+    response: TestResponse = client.post(REFRESH_URL, json={})
+    assert response.status_code == 404
+    lookup.assert_not_called()
+    bind.assert_not_called()
+
+
+@REFRESH_APP
+def test_refresh_metadata_failure_does_not_expose_private_exception_context(
+    client: FlaskClient,
+    full_api_access: None,
+    mocker: MockerFixture,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    from superset_core.semantic_layers.metadata import MetadataRefreshError
+
+    error: MetadataRefreshError = MetadataRefreshError("upstream")
+    error.__cause__ = RuntimeError("PRIVATE-UPSTREAM-CREDENTIAL-AND-CATALOG")
+    command: MagicMock = mocker.patch(
+        "superset.semantic_layers.api.RefreshMetadataCommand"
+    )
+    command.return_value.run.side_effect = error
+    with caplog.at_level(logging.INFO, logger="superset.semantic_layers.api"):
+        response: TestResponse = client.post(REFRESH_URL, json={})
+    assert response.status_code == 502
+    assert response.json["error"] == "upstream"
+    assert "PRIVATE-UPSTREAM" not in response.get_data(as_text=True)
+    assert "PRIVATE-UPSTREAM" not in caplog.text
+    assert "Semantic metadata sync outcome: upstream" in caplog.text
+
+
+@REFRESH_APP
+@pytest.mark.parametrize("allowed", [True, False])
+@pytest.mark.parametrize("revision", [None, "opaque-revision"])
+def test_structure_projects_uuid_and_shared_refresh_policy(
+    client: FlaskClient,
+    full_api_access: None,
+    mocker: MockerFixture,
+    allowed: bool,
+    revision: str | None,
+) -> None:
+    view: MagicMock = MagicMock()
+    view.uuid = uuid_lib.UUID("bd2f07da-c65e-40da-b75e-c62b7cdd67f1")
+    view.implementation.metadata_revision = revision
+    private_identity: str = uuid_lib.uuid4().hex
+    view.implementation.metadata_cache_token = private_identity
+    view.name = "renamed semantic view"
+    view.description = "stored description"
+    view.cache_timeout = None
+    view.implementation.get_dimensions.return_value = set()
+    view.implementation.get_metrics.return_value = set()
+    session: MagicMock = mocker.patch("superset.semantic_layers.api.db.session")
+    session.query.return_value.filter_by.return_value.first.return_value = view
+    policy: MagicMock = mocker.patch(
+        "superset.semantic_layers.api.can_refresh_metadata", return_value=allowed
+    )
+    response: TestResponse = client.get("/api/v1/semantic_view/1/structure")
+    assert response.status_code == 200
+    assert response.json["result"]["uuid"] == str(view.uuid)
+    assert response.json["result"]["can_refresh_metadata"] is allowed
+    if revision is None:
+        assert "metadata_revision" not in response.json["result"]
+    else:
+        assert response.json["result"]["metadata_revision"] == revision
+    assert private_identity not in response.get_data(as_text=True)
+    policy.assert_called_once_with(view)
+    view.raise_for_access.assert_called_once()
+    view.implementation.get_dimensions.assert_called_once()
+    view.implementation.get_metrics.assert_called_once()

@@ -46,6 +46,7 @@ from superset.exceptions import (
 )
 from superset.extensions import cache_manager
 from superset.semantic_layers.mapper import SUPPORTED_FILTER_OPERATORS
+from superset.semantic_layers.models import SemanticView
 from superset.superset_typing import FlaskResponse
 from superset.utils import json
 from superset.utils.core import (
@@ -544,17 +545,23 @@ class DatasourceRestApi(BaseSupersetApi):
         selected_metrics = body.get("selected_metrics", [])
         selected_dimensions = body.get("selected_dimensions", [])
 
-        # Build a stable cache key from the datasource identity and the
-        # (sorted) selection so that order differences don't cause cache misses.
+        # Authorization precedes token capture/discovery. SemanticView's cached
+        # implementation supplies both this identity and the answers below, so a
+        # delayed fill can write only into its captured snapshot's namespace.
+        identity: dict[str, Any] = {
+            "uid": datasource.uid,
+            "m": sorted(selected_metrics),
+            "d": sorted(selected_dimensions),
+        }
+        if isinstance(datasource, SemanticView):
+            token: str | None = datasource.metadata_cache_token
+            if token is not None:
+                identity["metadata"] = token
         cache_key = (
             "compatible:"
             + hashlib.sha256(
                 json.dumps(
-                    {
-                        "uid": datasource.uid,
-                        "m": sorted(selected_metrics),
-                        "d": sorted(selected_dimensions),
-                    },
+                    identity,
                     sort_keys=True,
                 ).encode()
             ).hexdigest()

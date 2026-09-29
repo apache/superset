@@ -22,6 +22,7 @@ from typing import Any, Generic, TypeVar
 
 from pydantic import BaseModel
 
+from superset_core.semantic_layers.metadata import MetadataRefreshAdapter
 from superset_core.semantic_layers.view import SemanticView
 
 ConfigT = TypeVar("ConfigT", bound=BaseModel)
@@ -34,6 +35,16 @@ class SemanticLayer(ABC, Generic[ConfigT, SemanticViewT]):
     """
 
     configuration_class: type[BaseModel]
+
+    @classmethod
+    def supports_metadata_refresh(cls, configuration: dict[str, Any]) -> bool:
+        """Declare support without construction, discovery or other I/O."""
+        return False
+
+    @property
+    def metadata_refresh(self) -> MetadataRefreshAdapter | None:
+        """Optional catalog synchronization; existing providers remain unsupported."""
+        return None
 
     @classmethod
     @abstractmethod

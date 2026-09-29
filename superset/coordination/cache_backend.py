@@ -35,6 +35,17 @@ else
 end
 """
 
+# Ownership, publication and release share one server-side operation. A writer
+# whose lease expired cannot overwrite a snapshot published by its successor.
+_COMPARE_AND_PUBLISH_LUA: str = """
+if redis.call('get', KEYS[1]) ~= ARGV[1] then
+    return 0
+end
+redis.call('set', KEYS[2], ARGV[2], 'EX', ARGV[3])
+redis.call('del', KEYS[1])
+return 1
+"""
+
 
 class RedisCommandsMixin:
     """Coordination commands issued against the backend's ``redis.Redis`` client.
@@ -104,6 +115,33 @@ class RedisCommandsMixin:
         :returns: 1 if the key was deleted, 0 otherwise
         """
         return int(self._cache.eval(_COMPARE_AND_DELETE_LUA, 1, name, expected))
+
+    def compare_and_publish(
+        self,
+        lease_key: str,
+        expected: str,
+        snapshot_key: str,
+        value: str,
+        ttl: int,
+    ) -> bool:
+        """Publish and release only while the caller still owns the lease.
+
+        Both keys must share a Redis hash slot. Callers supply the remaining
+        freshness, not a new lifetime measured after their acquisition work.
+        """
+        if ttl <= 0 or lease_key == snapshot_key:
+            raise ValueError("Publication requires positive TTL and distinct keys")
+        return bool(
+            self._cache.eval(
+                _COMPARE_AND_PUBLISH_LUA,
+                2,
+                lease_key,
+                snapshot_key,
+                expected,
+                value,
+                ttl,
+            )
+        )
 
     def publish(self, channel: str, message: str) -> int:
         """

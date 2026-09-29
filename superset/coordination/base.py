@@ -267,6 +267,28 @@ class CoordinationService:
             cls._resolve_key(key), expected
         )
 
+    @classmethod
+    def compare_and_publish(
+        cls,
+        lease_key: KeyLike,
+        expected: str,
+        snapshot_key: KeyLike,
+        value: str,
+        ttl: int,
+        backend: "CoordinationBackend | None" = None,
+    ) -> bool:
+        """Atomically publish and release a same-slot, owner-checked lease.
+
+        A missing shared backend fails closed; there is no database fallback.
+        """
+        return cls._require_backend(backend).compare_and_publish(
+            cls._resolve_key(lease_key),
+            expected,
+            cls._resolve_key(snapshot_key),
+            value,
+            ttl,
+        )
+
     # -- Streams -------------------------------------------------------------
 
     @classmethod

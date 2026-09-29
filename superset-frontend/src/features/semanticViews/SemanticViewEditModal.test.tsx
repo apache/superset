@@ -27,11 +27,13 @@ jest.mock('@superset-ui/core', () => ({
   SupersetClient: {
     ...jest.requireActual('@superset-ui/core').SupersetClient,
     put: jest.fn(),
+    post: jest.fn(),
     get: jest.fn(),
   },
   getClientErrorObject: jest.fn(() => Promise.resolve({ error: '' })),
 }));
 
+const mockedPost = SupersetClient.post as jest.Mock;
 const mockedPut = SupersetClient.put as jest.Mock;
 const mockedGet = SupersetClient.get as jest.Mock;
 const mockedGetClientErrorObject = getClientErrorObject as jest.Mock;
@@ -85,6 +87,7 @@ const createProps = () => ({
 
 beforeEach(() => {
   mockedPut.mockReset();
+  mockedPost.mockReset();
   mockedGet.mockReset();
   mockedGetClientErrorObject.mockReset();
   mockedGetClientErrorObject.mockResolvedValue({ error: '' });
@@ -496,4 +499,238 @@ test('keeps small structures unpaginated', async () => {
     expect(screen.getByText('orders')).toBeInTheDocument();
   });
   expect(document.querySelector('.ant-pagination')).toBeNull();
+});
+
+const SYNC_STRUCTURE = {
+  result: {
+    ...MOCK_STRUCTURE.result,
+    uuid: 'bd2f07da-c65e-40da-b75e-c62b7cdd67f1',
+    can_refresh_metadata: true,
+    metrics: ['orders', 'revenue', 'customers', 'returns'].map(name => ({
+      ...MOCK_STRUCTURE.result.metrics[0],
+      name,
+    })),
+  },
+};
+const SYNCED_STRUCTURE = {
+  result: {
+    ...SYNC_STRUCTURE.result,
+    description: 'Must not replace a draft',
+    cache_timeout: 999,
+    metrics: [
+      ...SYNC_STRUCTURE.result.metrics,
+      { ...MOCK_STRUCTURE.result.metrics[0], name: 'new_metric' },
+    ],
+  },
+};
+
+function deferred<T>() {
+  let resolve!: (value: T) => void;
+  let reject!: (reason: unknown) => void;
+  const promise = new Promise<T>((resolvePromise, rejectPromise) => {
+    resolve = resolvePromise;
+    reject = rejectPromise;
+  });
+  return { promise, resolve, reject };
+}
+
+test('Sync metadata lives beside the tabs and preserves drafts and active tab without Save', async () => {
+  mockedGet
+    .mockResolvedValueOnce({ json: SYNC_STRUCTURE })
+    .mockResolvedValueOnce({ json: SYNCED_STRUCTURE });
+  mockedPost.mockResolvedValue({
+    json: { result: { status: 'changed', revision: 'new' } },
+  });
+  const props = {
+    ...createProps(),
+    onMetadataSync: jest.fn(),
+    addDangerToast: undefined,
+    addSuccessToast: undefined,
+  };
+  render(<SemanticViewEditModal {...props} />);
+  const sync = await screen.findByRole('button', { name: 'Sync metadata' });
+  expect(sync.closest('.ant-tabs-nav')).not.toBeNull();
+  await userEvent.clear(screen.getByRole('textbox'));
+  await userEvent.type(screen.getByRole('textbox'), 'My draft');
+  await userEvent.clear(screen.getByRole('spinbutton'));
+  await userEvent.type(screen.getByRole('spinbutton'), '42');
+  await userEvent.click(screen.getByRole('tab', { name: 'Metrics (4)' }));
+  await userEvent.click(sync);
+  expect(
+    await screen.findByRole('tab', { name: 'Metrics (5)', selected: true }),
+  ).toBeInTheDocument();
+  expect(screen.getByText('new_metric')).toBeInTheDocument();
+  expect(screen.getByRole('status')).toHaveTextContent('Metadata synced');
+  expect(mockedPost).toHaveBeenCalledWith({
+    endpoint: `/api/v1/semantic_view/${SYNC_STRUCTURE.result.uuid}/refresh_metadata/`,
+    jsonPayload: {},
+  });
+  await userEvent.click(screen.getByRole('tab', { name: 'Details' }));
+  expect(screen.getByRole('textbox')).toHaveValue('My draft');
+  expect(screen.getByRole('spinbutton')).toHaveValue('42');
+  expect(props.onMetadataSync).toHaveBeenCalledTimes(1);
+  expect(props.onSave).not.toHaveBeenCalled();
+  expect(props.onHide).not.toHaveBeenCalled();
+  expect(mockedPut).not.toHaveBeenCalled();
+});
+
+test.each([
+  { ...SYNC_STRUCTURE.result, uuid: undefined },
+  { ...SYNC_STRUCTURE.result, can_refresh_metadata: false },
+  MOCK_STRUCTURE.result,
+])(
+  'missing UUID or server capability hides sync regardless of title',
+  async result => {
+    mockedGet.mockResolvedValue({ json: { result } });
+    const props = createProps();
+    props.semanticView.table_name = 'dbt Semantic Layer';
+    render(<SemanticViewEditModal {...props} />);
+    await screen.findByRole('tab', { name: 'Details' });
+    expect(
+      screen.queryByRole('button', { name: 'Sync metadata' }),
+    ).not.toBeInTheDocument();
+  },
+);
+
+test('published metadata with failed reload retries only GET and keeps the modal open', async () => {
+  mockedGet
+    .mockResolvedValueOnce({ json: SYNC_STRUCTURE })
+    .mockRejectedValueOnce(new Error('reload'))
+    .mockResolvedValueOnce({ json: SYNCED_STRUCTURE });
+  mockedPost.mockResolvedValue({ json: { result: { status: 'changed' } } });
+  const props = {
+    ...createProps(),
+    onMetadataSync: jest.fn(),
+    addDangerToast: undefined,
+  };
+  render(<SemanticViewEditModal {...props} />);
+  await userEvent.click(
+    await screen.findByRole('button', { name: 'Sync metadata' }),
+  );
+  expect(await screen.findByRole('alert')).toHaveTextContent(
+    'Metadata synced; unable to reload fields',
+  );
+  expect(props.onMetadataSync).not.toHaveBeenCalled();
+  await userEvent.click(screen.getByRole('button', { name: 'Reload fields' }));
+  await screen.findByRole('tab', { name: 'Metrics (5)' });
+  expect(mockedPost).toHaveBeenCalledTimes(1);
+  expect(mockedGet).toHaveBeenCalledTimes(3);
+  expect(props.onMetadataSync).toHaveBeenCalledTimes(1);
+  expect(props.onHide).not.toHaveBeenCalled();
+});
+
+test('pending sync disables duplicate actions and Save', async () => {
+  mockedGet.mockResolvedValue({ json: SYNC_STRUCTURE });
+  const pending = deferred<object>();
+  mockedPost.mockReturnValue(pending.promise);
+  render(<SemanticViewEditModal {...createProps()} />);
+  await userEvent.click(
+    await screen.findByRole('button', { name: 'Sync metadata' }),
+  );
+  expect(screen.getByRole('button', { name: 'Sync metadata' })).toBeDisabled();
+  expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled();
+  await userEvent.click(screen.getByRole('button', { name: 'Sync metadata' }));
+  expect(mockedPost).toHaveBeenCalledTimes(1);
+  await act(async () =>
+    pending.resolve({ json: { result: { status: 'unchanged' } } }),
+  );
+  expect(await screen.findByRole('status')).toHaveTextContent(
+    'Metadata is up to date',
+  );
+});
+
+test('closing and reopening the same view suppresses a stale publication callback', async () => {
+  mockedGet.mockResolvedValue({ json: SYNC_STRUCTURE });
+  const pending = deferred<object>();
+  mockedPost.mockReturnValue(pending.promise);
+  const props = { ...createProps(), onMetadataSync: jest.fn() };
+  const { rerender } = render(<SemanticViewEditModal {...props} />);
+  await userEvent.click(
+    await screen.findByRole('button', { name: 'Sync metadata' }),
+  );
+  rerender(<SemanticViewEditModal {...props} show={false} />);
+  rerender(<SemanticViewEditModal {...props} />);
+  await screen.findByRole('button', { name: 'Sync metadata' });
+  await act(async () =>
+    pending.resolve({ json: { result: { status: 'changed' } } }),
+  );
+  expect(mockedGet).toHaveBeenCalledTimes(2);
+  expect(props.onMetadataSync).not.toHaveBeenCalled();
+  expect(screen.queryByRole('status')).not.toBeInTheDocument();
+  expect(screen.getByRole('button', { name: 'Save' })).toBeEnabled();
+});
+
+test('sync failure is announced inline and preserves drafts without a structure reload', async () => {
+  mockedGet.mockResolvedValue({ json: SYNC_STRUCTURE });
+  mockedPost.mockRejectedValue(new Error('upstream'));
+  mockedGetClientErrorObject.mockResolvedValue({
+    message: 'The catalog is unavailable',
+  });
+  const props = { ...createProps(), addDangerToast: undefined };
+  render(<SemanticViewEditModal {...props} />);
+  const button = await screen.findByRole('button', { name: 'Sync metadata' });
+  await userEvent.type(screen.getByRole('textbox'), ' edited');
+  button.focus();
+  await userEvent.keyboard('{Enter}');
+  expect(await screen.findByRole('alert')).toHaveTextContent(
+    'The catalog is unavailable',
+  );
+  expect(screen.getByRole('textbox')).toHaveValue('old description edited');
+  expect(mockedGet).toHaveBeenCalledTimes(1);
+  expect(mockedPost).toHaveBeenCalledTimes(1);
+  expect(screen.getByRole('button', { name: 'Save' })).toBeEnabled();
+});
+
+test('a stale reload cannot replace a different view or notify its caller', async () => {
+  const pending = deferred<object>();
+  mockedGet
+    .mockResolvedValueOnce({ json: SYNC_STRUCTURE })
+    .mockReturnValueOnce(pending.promise)
+    .mockResolvedValueOnce({ json: SYNC_STRUCTURE });
+  mockedPost.mockResolvedValue({ json: { result: { status: 'changed' } } });
+  const props = { ...createProps(), onMetadataSync: jest.fn() };
+  const { rerender } = render(<SemanticViewEditModal {...props} />);
+  await userEvent.click(
+    await screen.findByRole('button', { name: 'Sync metadata' }),
+  );
+  await waitFor(() => expect(mockedGet).toHaveBeenCalledTimes(2));
+  rerender(
+    <SemanticViewEditModal
+      {...props}
+      semanticView={{ ...props.semanticView, id: 8 }}
+    />,
+  );
+  await screen.findByRole('button', { name: 'Sync metadata' });
+  await act(async () => pending.resolve({ json: SYNCED_STRUCTURE }));
+  expect(screen.getByRole('tab', { name: 'Metrics (4)' })).toBeInTheDocument();
+  expect(props.onMetadataSync).not.toHaveBeenCalled();
+});
+
+test('late error parsing and finally cannot unlock a newer sync in a reopened session', async () => {
+  const parsed = deferred<{ message: string }>();
+  const current = deferred<object>();
+  mockedGet.mockResolvedValue({ json: SYNC_STRUCTURE });
+  mockedPost
+    .mockRejectedValueOnce(new Error('old'))
+    .mockReturnValueOnce(current.promise);
+  mockedGetClientErrorObject.mockReturnValueOnce(parsed.promise);
+  const props = createProps();
+  const { rerender } = render(<SemanticViewEditModal {...props} />);
+  await userEvent.click(
+    await screen.findByRole('button', { name: 'Sync metadata' }),
+  );
+  await waitFor(() => expect(mockedGetClientErrorObject).toHaveBeenCalled());
+  rerender(<SemanticViewEditModal {...props} show={false} />);
+  rerender(<SemanticViewEditModal {...props} />);
+  await userEvent.click(
+    await screen.findByRole('button', { name: 'Sync metadata' }),
+  );
+  await act(async () => parsed.resolve({ message: 'old error' }));
+  expect(screen.queryByText('old error')).not.toBeInTheDocument();
+  expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled();
+  await userEvent.click(screen.getByRole('button', { name: 'Sync metadata' }));
+  expect(mockedPost).toHaveBeenCalledTimes(2);
+  await act(async () =>
+    current.resolve({ json: { result: { status: 'unchanged' } } }),
+  );
 });

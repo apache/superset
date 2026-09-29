@@ -124,6 +124,14 @@ class SemanticViewDAO(BaseDAO[SemanticView], AbstractSemanticViewDAO):
     model_cls = SemanticView
 
     @staticmethod
+    def find_by_uuid(uuid_str: str) -> SemanticView | None:
+        """Resolve a public UUID; callers must enforce view and connection access."""
+        try:
+            return db.session.query(SemanticView).filter_by(uuid=uuid_str).one_or_none()
+        except (ValueError, StatementError):
+            return None
+
+    @staticmethod
     def _as_configuration_dict(value: Any) -> dict[str, Any]:
         if isinstance(value, dict):
             return value

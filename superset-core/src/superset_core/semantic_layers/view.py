@@ -56,6 +56,16 @@ class SemanticView(ABC):
     # implementations are not required to add a formal @abstractmethod.
     name: str
 
+    @property
+    def metadata_revision(self) -> str | None:
+        """Opaque public revision captured with these members, when supported."""
+        return None
+
+    @property
+    def metadata_cache_token(self) -> str | None:
+        """Identity captured with this view's catalog, or legacy cache behavior."""
+        return None
+
     @abstractmethod
     def uid(self) -> str:
         """

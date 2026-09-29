@@ -764,3 +764,47 @@ test('should verify DatasourceControl callback fires on save', async () => {
 // Note: Cross-component integration test removed due to complex Redux/user context setup
 // The existing callback tests provide sufficient coverage for metric creation workflows
 // Future enhancement could add MetricsControl integration when test infrastructure supports it
+
+test('semantic sync calls the metadata action without the Save datasource rewrite', async () => {
+  const refresh = jest.fn().mockResolvedValue(undefined);
+  const props = createProps({
+    datasource: { ...mockDatasource, id: 7, type: 'semantic_view' },
+    actions: {
+      changeDatasource: jest.fn(),
+      setControlValue: jest.fn(),
+      refreshSemanticMetadata: refresh,
+    },
+  });
+  SupersetClientGet.mockResolvedValue({
+    json: {
+      result: {
+        uuid: 'bd2f07da-c65e-40da-b75e-c62b7cdd67f1',
+        can_refresh_metadata: true,
+        dimensions: [],
+        metrics: [],
+      },
+    },
+  } as unknown as JsonResponse);
+  const post = jest.spyOn(SupersetClient, 'post').mockResolvedValue({
+    json: { result: { status: 'changed' } },
+  } as unknown as JsonResponse);
+  try {
+    render(<DatasourceControl {...props} />, {
+      useRedux: true,
+      useRouter: true,
+    });
+    await userEvent.click(screen.getByTestId('datasource-menu-trigger'));
+    await userEvent.click(await screen.findByText('Edit dataset'));
+    await userEvent.click(
+      await screen.findByRole('button', { name: 'Sync metadata' }),
+    );
+    await waitFor(() =>
+      expect(refresh).toHaveBeenCalledWith(7, expect.any(Function)),
+    );
+    expect(props.actions.changeDatasource).not.toHaveBeenCalled();
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+  } finally {
+    post.mockRestore();
+    SupersetClientGet.mockReset();
+  }
+});

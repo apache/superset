@@ -451,3 +451,34 @@ deployments where low latency and reduced database load are important.
 - [Blog: The Data Engineer's Guide to Lightning-Fast Superset Dashboards](https://preset.io/blog/the-data-engineers-guide-to-lightning-fast-apache-superset-dashboards/)
 - [Blog: Accelerating Dashboards with Materialized Views](https://preset.io/blog/accelerating-apache-superset-dashboards-with-materialized-views/)
   :::
+
+## Semantic layer catalog synchronization
+
+Participating semantic-layer providers can use a shared catalog snapshot and a
+permission-checked **Sync metadata** action in the semantic-view editor. The action
+appears at the right end of the Details / Dimensions / Metrics tabs. It refreshes
+metadata for the view's owning connection while retaining unsaved description and
+cache-timeout edits. It does not save the view or automatically run a chart query.
+
+This experimental capability is disabled by default:
+
+```python
+SEMANTIC_LAYER_METADATA_REFRESH_ENABLED = False
+```
+
+Enabling it also requires the `SEMANTIC_LAYERS` feature flag, a compatible provider,
+and a Redis coordination backend shared by every participating worker. Users need
+read/access permission on the view and read/write/access plus edit permission on
+its owning connection. A client cannot supply a different connection or credentials
+to the refresh action.
+
+Configure `SEMANTIC_LAYER_METADATA_NAMESPACE` as a trusted, non-empty deployment
+namespace. Multi-tenant hosts must provide a namespace scoped to the trusted tenant
+context. Do not derive it from request parameters. All readers and writers for a
+connection must use compatible host/provider versions and the same namespace and
+Redis primary; worker-local caches and mixed-version fleets are not supported.
+
+Deploy and verify the compatible host SDK and provider together before enabling
+refresh. Disable refresh before rolling either component back. If shared snapshot
+state is restored from backup, rotate the namespace consistently across the fleet
+before re-enabling to avoid reusing an archived catalog identity.

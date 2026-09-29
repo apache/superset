@@ -266,8 +266,14 @@ class SemanticLayer(AuditMixinNullable, Model):
         """
         # TODO (betodealmeida):
         # return extension_manager.get_contribution("semanticLayers", self.type)
+        from superset.semantic_layers.metadata import bind_metadata_store
+
         class_ = registry[self.type]
-        return class_.from_configuration(json.loads(self.configuration))
+        implementation: SemanticLayerABC[Any, SemanticViewABC] = (
+            class_.from_configuration(json.loads(self.configuration))
+        )
+        bind_metadata_store(self, implementation)
+        return implementation
 
 
 class SemanticView(AuditMixinNullable, Model):
@@ -505,6 +511,33 @@ class SemanticView(AuditMixinNullable, Model):
     @property
     def kind(self) -> str:
         return "semantic_view"
+
+    @property
+    def metadata_cache_token(self) -> str | None:
+        """Namespace compatibility by the same captured view used for answers."""
+        from superset.semantic_layers.metadata import metadata_refresh_enabled
+
+        if not metadata_refresh_enabled():
+            return None
+        provider: type[SemanticLayerABC[Any, SemanticViewABC]] | None = registry.get(
+            self.semantic_layer.type
+        )
+        if provider is None or not provider.supports_metadata_refresh(
+            json.loads(self.semantic_layer.configuration)
+        ):
+            return None
+        token: str | None = self.implementation.metadata_cache_token
+        if token is None:
+            return None
+        return json.dumps(
+            {
+                "snapshot": token,
+                "view": str(self.uuid),
+                "name": self.name,
+                "configuration": json.loads(self.configuration),
+            },
+            sort_keys=True,
+        )
 
     @property
     def uid(self) -> str:

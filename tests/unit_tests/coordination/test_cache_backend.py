@@ -215,3 +215,52 @@ def test_redis_sentinel_cache_backend_stream_helpers(mocker: MockerFixture) -> N
     assert eval_args[1:] == (1, "lock", "tok")  # numkeys, KEYS[1], ARGV[1]
     master.eval.return_value = 0
     assert backend.compare_and_delete("lock", "other") == 0
+
+
+def test_compare_and_publish_rejects_identical_keys_before_redis() -> None:
+    """Publication must not immediately delete its own snapshot during release."""
+    import pytest
+
+    from superset.coordination.cache_backend import RedisCacheBackend
+
+    backend: RedisCacheBackend = RedisCacheBackend(host="127.0.0.1", port=1)
+    with pytest.raises(ValueError, match="distinct keys"):
+        backend.compare_and_publish("same", "owner", "same", "payload", 30)
+
+
+def test_compare_and_publish_service_forwards_explicit_backend() -> None:
+    """The public service uses the same atomic primitive and resolves both keys."""
+    from superset.coordination.base import CoordinationService
+    from superset.coordination.cache_backend import RedisCacheBackend
+
+    backend: mock.Mock = mock.Mock(spec=RedisCacheBackend)
+    backend.compare_and_publish.return_value = True
+    assert CoordinationService.compare_and_publish(
+        lambda: "{scope}:lease",
+        "owner",
+        lambda: "{scope}:snapshot",
+        "payload",
+        30,
+        backend=backend,
+    )
+    backend.compare_and_publish.assert_called_once_with(
+        "{scope}:lease",
+        "owner",
+        "{scope}:snapshot",
+        "payload",
+        30,
+    )
+
+
+def test_compare_and_publish_service_requires_shared_backend() -> None:
+    """Publication cannot fall back to process-local or database coordination."""
+    import pytest
+
+    from superset.coordination.base import CoordinationService
+    from superset.coordination.exceptions import CoordinationBackendUnavailableError
+
+    with mock.patch.object(CoordinationService, "get_backend", return_value=None):
+        with pytest.raises(CoordinationBackendUnavailableError):
+            CoordinationService.compare_and_publish(
+                "{scope}:lease", "owner", "{scope}:snapshot", "payload", 30
+            )

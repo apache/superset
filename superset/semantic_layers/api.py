@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import logging
 from typing import Any
+from uuid import UUID
 
 from flask import make_response, request, Response
 from flask_appbuilder.api import expose, protect, rison, safe
@@ -27,6 +28,13 @@ from flask_babel import lazy_gettext as t, ngettext
 from marshmallow import ValidationError
 from pydantic import ValidationError as PydanticValidationError
 from sqlalchemy.orm import load_only, Query
+from superset_core.semantic_layers.layer import SemanticLayer as SemanticLayerABC
+from superset_core.semantic_layers.metadata import (
+    MetadataRefreshAdapter,
+    MetadataRefreshError,
+    MetadataRefreshResult,
+)
+from superset_core.semantic_layers.view import SemanticView as SemanticViewABC
 
 from superset import db, event_logger, is_feature_enabled, security_manager
 from superset.commands.semantic_layer.create import (
@@ -51,6 +59,10 @@ from superset.commands.semantic_layer.exceptions import (
     SemanticViewInvalidError,
     SemanticViewNotFoundError,
     SemanticViewUpdateFailedError,
+)
+from superset.commands.semantic_layer.refresh_metadata import (
+    can_refresh_metadata,
+    RefreshMetadataCommand,
 )
 from superset.commands.semantic_layer.update import (
     UpdateSemanticLayerCommand,
@@ -196,8 +208,16 @@ class SemanticViewRestApi(BaseSupersetModelRestApi):
     method_permission_name = {
         **MODEL_API_RW_METHOD_PERMISSION_MAP,
         "structure": "read",
+        "refresh_metadata": "read",
     }
-    include_route_methods = {"put", "post", "delete", "bulk_delete", "structure"}
+    include_route_methods: set[str] = {
+        "put",
+        "post",
+        "delete",
+        "bulk_delete",
+        "structure",
+        "refresh_metadata",
+    }
     # SemanticViewRestApi exposes only write endpoints, but can_read must be
     # declared explicitly so that FAB registers the permission. It is used by
     # DatasourceRestApi.combined_list to gate access to semantic views in the
@@ -205,6 +225,134 @@ class SemanticViewRestApi(BaseSupersetModelRestApi):
     base_permissions = ["can_read", "can_write"]
 
     edit_model_schema = SemanticViewPutSchema()
+
+    @expose("/<uuid:view_uuid>/refresh_metadata/", methods=("POST",))
+    @protect()
+    @safe
+    @statsd_metrics
+    @requires_json
+    def refresh_metadata(self, view_uuid: UUID) -> Response:
+        """Sync the authorized view's owning connection from stored configuration.
+        ---
+        post:
+          summary: Sync semantic metadata
+          parameters:
+          - in: path
+            name: view_uuid
+            required: true
+            schema:
+              type: string
+              format: uuid
+          requestBody:
+            required: true
+            content:
+              application/json:
+                schema:
+                  type: object
+                  additionalProperties: false
+          responses:
+            200:
+              description: Metadata publication confirmed
+            400:
+              description: Only an empty JSON object is accepted
+            403:
+              $ref: '#/components/responses/403'
+            404:
+              $ref: '#/components/responses/404'
+            409:
+              description: Refresh already running or configuration changed
+            422:
+              description: Unsupported provider or incomplete configuration
+            502:
+              description: Upstream catalog failed validation
+            503:
+              description: Coordination unavailable or publication unconfirmed
+            504:
+              description: Refresh deadline exceeded
+        """
+        if request.get_json(silent=True) != {}:
+            return self.response(
+                400, message=str(t("Send an empty JSON object to sync metadata."))
+            )
+        try:
+            result: MetadataRefreshResult = RefreshMetadataCommand(view_uuid).run()
+        except (SemanticViewNotFoundError, SemanticLayerNotFoundError):
+            return self.response_404()
+        except SemanticLayerForbiddenError:
+            return self.response_403()
+        except MetadataRefreshError as ex:
+            return self._metadata_refresh_error(ex)
+        return self.response(
+            200,
+            result={
+                "status": result.status,
+                "revision": result.snapshot.revision,
+                "observed_at": result.snapshot.observed_at,
+            },
+        )
+
+    def _metadata_refresh_error(self, error: MetadataRefreshError) -> Response:
+        """Return only stable categories and actionable, localized safe messages."""
+        errors: dict[str, tuple[int, str]] = {
+            "unsupported": (
+                422,
+                str(t("This semantic layer does not support metadata sync.")),
+            ),
+            "configuration": (
+                422,
+                str(
+                    t(
+                        "Complete the semantic layer configuration "
+                        "before syncing metadata."
+                    )
+                ),
+            ),
+            "in_progress": (
+                409,
+                str(t("A metadata sync is already in progress. Try again shortly.")),
+            ),
+            "configuration_changed": (
+                409,
+                str(
+                    t(
+                        "The semantic view or connection changed. "
+                        "Reopen the editor and try again."
+                    )
+                ),
+            ),
+            "upstream": (
+                502,
+                str(
+                    t(
+                        "The semantic layer could not return its catalog. "
+                        "Try again later."
+                    )
+                ),
+            ),
+            "invalid_payload": (
+                502,
+                str(t("The semantic layer returned an invalid or oversized catalog.")),
+            ),
+            "deadline": (504, str(t("Metadata sync timed out. Try again later."))),
+            "unavailable": (
+                503,
+                str(t("Shared metadata storage is unavailable. Try again later.")),
+            ),
+            "indeterminate": (
+                503,
+                str(
+                    t(
+                        "Metadata sync could not be confirmed. "
+                        "Reload fields before trying again."
+                    )
+                ),
+            ),
+        }
+        status: int
+        message: str
+        status, message = errors[error.category]
+        logger.info("Semantic metadata sync outcome: %s", error.category)
+        return self.response(status, error=error.category, message=message)
 
     @expose("/<int:pk>/structure", methods=("GET",))
     @protect()
@@ -253,6 +401,8 @@ class SemanticViewRestApi(BaseSupersetModelRestApi):
             return self.response(403, message=ex.message)
 
         try:
+            implementation: SemanticViewABC = view.implementation
+            metadata_revision: str | None = implementation.metadata_revision
             dimensions = [
                 {
                     "name": dim.name,
@@ -261,9 +411,7 @@ class SemanticViewRestApi(BaseSupersetModelRestApi):
                     "description": dim.description,
                     "grain": dim.grain.name if dim.grain else None,
                 }
-                for dim in sorted(
-                    view.implementation.get_dimensions(), key=lambda d: d.name
-                )
+                for dim in sorted(implementation.get_dimensions(), key=lambda d: d.name)
             ]
             metrics = [
                 {
@@ -272,10 +420,10 @@ class SemanticViewRestApi(BaseSupersetModelRestApi):
                     "definition": metric.definition,
                     "description": metric.description,
                 }
-                for metric in sorted(
-                    view.implementation.get_metrics(), key=lambda m: m.name
-                )
+                for metric in sorted(implementation.get_metrics(), key=lambda m: m.name)
             ]
+        except MetadataRefreshError as ex:
+            return self._metadata_refresh_error(ex)
         except Exception as ex:  # pylint: disable=broad-except
             logger.error(
                 "Error fetching structure for semantic view %d: %s",
@@ -288,6 +436,13 @@ class SemanticViewRestApi(BaseSupersetModelRestApi):
         return self.response(
             200,
             result={
+                "uuid": str(view.uuid),
+                "can_refresh_metadata": can_refresh_metadata(view),
+                **(
+                    {"metadata_revision": metadata_revision}
+                    if isinstance(metadata_revision, str)
+                    else {}
+                ),
                 "name": view.name,
                 "description": view.description,
                 "cache_timeout": view.cache_timeout,
@@ -728,10 +883,20 @@ class SemanticLayerRestApi(BaseSupersetApi):
             return self.response_400(message=f"Unknown type: {layer.type}")
 
         try:
-            schema = cls.get_runtime_schema(
-                layer.implementation.configuration,  # type: ignore[attr-defined]
-                runtime_data,
+            from superset.semantic_layers.metadata import metadata_refresh_enabled
+
+            implementation: SemanticLayerABC[Any, SemanticViewABC] = (
+                layer.implementation
             )
+            schema: dict[str, Any]
+            adapter: MetadataRefreshAdapter | None = implementation.metadata_refresh
+            if metadata_refresh_enabled() and adapter is not None:
+                schema = adapter.get_runtime_schema(runtime_data)
+            else:
+                schema = cls.get_runtime_schema(
+                    implementation.configuration,  # type: ignore[attr-defined]
+                    runtime_data,
+                )
         except Exception as ex:  # pylint: disable=broad-except
             return self.response_400(message=str(ex))
 
