@@ -18206,7 +18206,12 @@ describe('Ensure buildTree does not throw runtime errors when encountering an in
 describe('findFilterScope', () => {
   // Chart 1 sits directly in the grid, charts 2 and 3 each live in their own tab
   const layout = {
-    ROOT_ID: { id: 'ROOT_ID', type: 'ROOT', children: ['GRID_ID'], parents: [] },
+    ROOT_ID: {
+      id: 'ROOT_ID',
+      type: 'ROOT',
+      children: ['GRID_ID'],
+      parents: [],
+    },
     GRID_ID: {
       id: 'GRID_ID',
       type: 'GRID',
@@ -18259,9 +18264,10 @@ describe('findFilterScope', () => {
   });
 
   test('scopes every chart when all of them are checked', () => {
-    expect(
-      findFilterScope(['CHART-1', 'CHART-2', 'CHART-3'], layout),
-    ).toEqual({ rootPath: ['ROOT_ID'], excluded: [] });
+    expect(findFilterScope(['CHART-1', 'CHART-2', 'CHART-3'], layout)).toEqual({
+      rootPath: ['ROOT_ID'],
+      excluded: [],
+    });
   });
 
   test('keeps the root anchor when the only chart outside a tab is unchecked', () => {
