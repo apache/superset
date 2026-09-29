@@ -36,6 +36,16 @@ def test_pure_frontend_change_needs_frontend_only() -> None:
     assert needs.needs_docs(files) is False
 
 
+def test_frontend_prose_change_needs_neither() -> None:
+    """None of the frontend hooks (oxfmt/oxlint/custom-rules/stylelint/
+    type-checking) fire on a superset-frontend/ file outside their own
+    js/jsx/ts/tsx/css/scss/sass/json extensions, so e.g. a README-only PR
+    must not pay for the npm ci."""
+    files = ["superset-frontend/README.md"]
+    assert needs.needs_frontend(files) is False
+    assert needs.needs_docs(files) is False
+
+
 def test_mixed_backend_and_frontend_change_needs_frontend() -> None:
     files = ["superset/foo.py", "superset-frontend/src/bar.ts"]
     assert needs.needs_frontend(files) is True
@@ -101,3 +111,21 @@ def test_main_writes_expected_outputs_to_github_output(tmp_path: Path) -> None:
     output = output_file.read_text()
     assert "needs_frontend=true" in output
     assert "needs_docs=false" in output
+
+
+def test_main_writes_needs_docs_true_for_a_docs_js_change(tmp_path: Path) -> None:
+    """Same subprocess/main() interface as above, but for a docs-only change
+    that should flip needs_docs on and leave needs_frontend off."""
+    output_file = tmp_path / "github_output.txt"
+    result = subprocess.run(  # noqa: S603
+        [sys.executable, str(SCRIPT_PATH)],
+        input="docs/src/components/Foo.tsx\n",
+        capture_output=True,
+        text=True,
+        env={"GITHUB_OUTPUT": str(output_file), "PATH": "/usr/bin:/bin"},
+        check=True,
+    )
+    assert result.returncode == 0
+    output = output_file.read_text()
+    assert "needs_frontend=false" in output
+    assert "needs_docs=true" in output
