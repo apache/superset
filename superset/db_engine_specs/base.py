@@ -1520,10 +1520,16 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         if cls.arraysize:
             cursor.arraysize = cls.arraysize
         try:
+            # Statements that return no result set (DDL, DML) leave the cursor
+            # description empty (``None`` per PEP 249), and several DB-API
+            # drivers (mysql-connector, ibm_db, pyexasol, impyla, ...) raise on
+            # a fetch in that state instead of returning no rows.
+            description = cursor.description
+            if not description:
+                return []
             if cls.limit_method == LimitMethod.FETCH_MANY and limit:
                 return cursor.fetchmany(limit)
             data = cursor.fetchall()
-            description = cursor.description or []
             # Create a mapping between column index and a mutator function to normalize
             # values with. The first two items in the description row are the column
             # name and type.
