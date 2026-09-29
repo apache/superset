@@ -18,7 +18,7 @@ updates:
   - package-ecosystem: "npm"
     # Hack to allow multiple configs for the same ecosystem/directory combination
     # See https://github.com/dependabot/dependabot-core/issues/1778#issuecomment-1988140219
-    target-branch: main
+    target-branch: master
     ignore:
       # TODO: remove below entries once the application supports React >= 19.0.0
       - dependency-name: "react"
