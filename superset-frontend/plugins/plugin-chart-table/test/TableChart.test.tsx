@@ -50,8 +50,9 @@ import transformProps from '../src/transformProps';
 import testData from './testData';
 import { ProviderWrapper } from './testHelpers';
 
-// The bar's width comes from an emotion class, not an inline style, so it has
-// to be read back out of the stylesheet the rule actually generated.
+// The bar's width is written as an inline `style` percentage by the cell
+// renderer, so reading it back off the element is what tells a scaled bar
+// apart from the full-width fallback band.
 const barWidth = (bar: Element): number => {
   const width = getComputedStyle(bar).width;
   if (width.endsWith('%')) {
