@@ -72,7 +72,7 @@ def test_create_command_success(session_with_data: Session, mocker: MockerFixtur
     from superset.models.dashboard import Dashboard
     from superset.models.slice import Slice
     from superset.models.sql_lab import SavedQuery
-    from superset.tags.models import ObjectType, TaggedObject
+    from superset.tags.models import ObjectType, Tag, TaggedObject
 
     # Define a list of objects to tag
     query = db.session.query(SavedQuery).first()
@@ -95,11 +95,17 @@ def test_create_command_success(session_with_data: Session, mocker: MockerFixtur
         data={"name": "test_tag", "objects_to_tag": objects_to_tag}
     ).run()
 
-    assert len(db.session.query(TaggedObject).all()) == len(objects_to_tag)
+    # Scope to the tag under test: with TAGGING_SYSTEM on, saving the fixture's
+    # assets also mints implicit `type:` tags, so a global count is unstable.
+    tag = db.session.query(Tag).filter_by(name="test_tag").one()
+    assert len(db.session.query(TaggedObject).filter_by(tag_id=tag.id).all()) == len(
+        objects_to_tag
+    )
     for object_type, object_id in objects_to_tag:
         assert (
             db.session.query(TaggedObject)
             .filter(
+                TaggedObject.tag_id == tag.id,
                 TaggedObject.object_type == object_type,
                 TaggedObject.object_id == object_id,
             )
@@ -184,7 +190,7 @@ def test_create_command_success_clear(
     from superset.models.dashboard import Dashboard
     from superset.models.slice import Slice
     from superset.models.sql_lab import SavedQuery
-    from superset.tags.models import ObjectType, TaggedObject
+    from superset.tags.models import ObjectType, Tag, TaggedObject
 
     # Define a list of objects to tag
     query = db.session.query(SavedQuery).first()
@@ -206,10 +212,13 @@ def test_create_command_success_clear(
     CreateCustomTagWithRelationshipsCommand(
         data={"name": "test_tag", "objects_to_tag": objects_to_tag}
     ).run()
-    assert len(db.session.query(TaggedObject).all()) == len(objects_to_tag)
+    tag = db.session.query(Tag).filter_by(name="test_tag").one()
+    assert len(db.session.query(TaggedObject).filter_by(tag_id=tag.id).all()) == len(
+        objects_to_tag
+    )
 
     CreateCustomTagWithRelationshipsCommand(
         data={"name": "test_tag", "objects_to_tag": []}
     ).run()
 
-    assert len(db.session.query(TaggedObject).all()) == 0
+    assert len(db.session.query(TaggedObject).filter_by(tag_id=tag.id).all()) == 0

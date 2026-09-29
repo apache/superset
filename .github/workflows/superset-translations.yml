@@ -51,7 +51,7 @@ jobs:
         # checkout, so it can't see into a submodule's gitlink. Keep this one
         # on the workspace-relative ./ form, consistent with every other
         # workflow in the repo that references this action.
-        uses: ./.github/actions/cached-dependencies
+        uses: ./.github/actions/cached-dependencies # zizmor: ignore[self-repository] - $/ cannot resolve an action that lives in a submodule; ./ is required here
         with:
           run: npm-install
       - name: lint
@@ -81,6 +81,17 @@ jobs:
       - name: Setup Python
         if: steps.check.outputs.python == 'true' || steps.check.outputs.frontend == 'true'
         uses: $/.github/actions/setup-backend/
+
+      # Guards superset/translations/messages.pot itself: a source string can
+      # only reach any .po catalog via this template, so a PR that adds or
+      # renames a translatable string without regenerating it makes that
+      # string untranslatable in every language and nothing else here catches
+      # that — the regression check below re-extracts from scratch on both
+      # sides of its own comparison and never looks at whether the committed
+      # template matches source.
+      - name: Check messages.pot matches a fresh extraction
+        if: steps.check.outputs.python == 'true' || steps.check.outputs.frontend == 'true'
+        run: python scripts/translations/check_pot_drift.py
 
       - name: Install gettext tools
         if: steps.check.outputs.python == 'true' || steps.check.outputs.frontend == 'true'

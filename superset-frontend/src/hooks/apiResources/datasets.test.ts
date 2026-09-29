@@ -303,24 +303,61 @@ test('useDatasetDrillInfo creates new verbose_map from columns and metrics', asy
   expect(result.current.result?.verbose_map).not.toHaveProperty('old_key');
 });
 
-test('useDatasetDrillInfo handles NaN datasource ID from malformed string', async () => {
+test('useDatasetDrillInfo does not fetch when datasource ID resolves to NaN', async () => {
+  // Regression test: a chart's slice entity can still be unhydrated right
+  // after a client-side navigation back to a dashboard from Explore, so
+  // datasetId may transiently resolve to NaN. The hook must not fire a
+  // request for dataset "NaN" and should stay in loading, retrying once a
+  // real datasetId arrives (see the SliceHeaderControls -> Chart.tsx
+  // `state.sliceEntities.slices[id] || EMPTY_OBJECT` fallback).
+  const { result, rerender } = renderHook(
+    ({ id }: { id: string | number }) => useDatasetDrillInfo(id, 456),
+    { initialProps: { id: 'abc' } },
+  );
+
+  expect(result.current.status).toBe('loading');
+  expect(mockedCachedSupersetGet).not.toHaveBeenCalled();
+
+  const mockDataset = { id: 123, columns: [], metrics: [] };
   mockedCachedSupersetGet.mockResolvedValue({
-    json: {
-      result: { id: NaN, columns: [], metrics: [] },
-    },
+    json: { result: mockDataset },
   } as any);
 
-  const { result } = renderHook(() => useDatasetDrillInfo('abc', 456));
+  rerender({ id: '123__table' });
 
   await waitFor(() => {
     expect(result.current.status).toBe('complete');
   });
-
-  // Verify hook calls endpoint with NaN (API will handle validation)
   expect(mockedCachedSupersetGet).toHaveBeenCalledWith({
-    endpoint: '/api/v1/dataset/NaN/drill_info/?q=(dashboard_id:456)',
+    endpoint: '/api/v1/dataset/123/drill_info/?q=(dashboard_id:456)',
   });
-  expect(result.current.status).toBe('complete');
+});
+
+test('useDatasetDrillInfo resets to loading when datasetId regresses to NaN after resolving another dataset', async () => {
+  // Regression test: if the hook already completed for one dataset and then
+  // receives a transient malformed id (e.g. a fresh navigation clears the
+  // resolved datasetId before the new one hydrates), it must not keep
+  // exposing the previous dataset's Complete result -- the context menu
+  // would otherwise offer drill metadata for the wrong dataset.
+  const mockDataset = { id: 123, columns: [], metrics: [] };
+  mockedCachedSupersetGet.mockResolvedValue({
+    json: { result: mockDataset },
+  } as any);
+
+  const { result, rerender } = renderHook(
+    ({ id }: { id: string | number }) => useDatasetDrillInfo(id, 456),
+    { initialProps: { id: 123 } },
+  );
+
+  await waitFor(() => {
+    expect(result.current.status).toBe('complete');
+  });
+  expect(result.current.result).toMatchObject({ id: 123 });
+
+  rerender({ id: 'abc' });
+
+  expect(result.current.status).toBe('loading');
+  expect(result.current.result).toBeNull();
 });
 
 test('useDatasetDrillInfo fetches dataset via extension when extension and formData provided', async () => {
@@ -557,5 +594,89 @@ test('useDatasetDrillInfo falls back to REST API when extension exists but formD
   expect(result.current.result).toEqual({
     ...mockDataset,
     verbose_map: { col1: 'Column 1' },
+  });
+});
+
+/**
+ * sc-111089 T012: type-aware resolution — semantic views resolve their own
+ * structure and never touch /drill_info/ (which would hit the colliding
+ * regular dataset id), including when a drillby extension is registered.
+ */
+
+test('getDatasourceTypeFromDatasourceId parses the semantic_view suffix and falls back to table', () => {
+  const { getDatasourceTypeFromDatasourceId } =
+    jest.requireActual('./datasets');
+  expect(getDatasourceTypeFromDatasourceId('3__semantic_view')).toBe(
+    'semantic_view',
+  );
+  expect(getDatasourceTypeFromDatasourceId('3__table')).toBe('table');
+  expect(getDatasourceTypeFromDatasourceId('3__bogus')).toBe('table');
+  expect(getDatasourceTypeFromDatasourceId(3)).toBe('table');
+});
+
+test('useDatasetDrillInfo resolves a semantic view from its structure with zero drill_info calls', async () => {
+  mockedCachedSupersetGet.mockResolvedValue({
+    json: {
+      result: {
+        name: 'orders',
+        dimensions: [{ name: 'Orders Status', type: 'VARCHAR' }],
+        metrics: [{ name: 'order_count', definition: 'COUNT(*)' }],
+      },
+    },
+  } as any);
+
+  const { result } = renderHook(() =>
+    useDatasetDrillInfo('3__semantic_view', 456),
+  );
+
+  await waitFor(() => expect(result.current.status).toBe('complete'));
+
+  expect(mockedCachedSupersetGet).toHaveBeenCalledWith({
+    endpoint: '/api/v1/semantic_view/3/structure',
+  });
+  const drillInfoCalls = mockedCachedSupersetGet.mock.calls.filter(call =>
+    String(call[0]?.endpoint).includes('/drill_info/'),
+  );
+  expect(drillInfoCalls).toHaveLength(0);
+
+  expect(result.current.result?.table_name).toBe('orders');
+  expect(result.current.result?.verbose_map).toMatchObject({
+    'Orders Status': 'Orders Status',
+    order_count: 'order_count',
+  });
+});
+
+test('semantic view wins over a registered drillby extension', async () => {
+  setupExtensionMock();
+  mockedCachedSupersetGet.mockResolvedValue({
+    json: {
+      result: { name: 'orders', dimensions: [], metrics: [] },
+    },
+  } as any);
+  const mockFormData = { datasource: '3__semantic_view' } as any;
+
+  const { result } = renderHook(() =>
+    useDatasetDrillInfo('3__semantic_view', 456, mockFormData),
+  );
+
+  await waitFor(() => expect(result.current.status).toBe('complete'));
+
+  // The extension path must not run for semantic views — it receives only
+  // the numeric id and would resolve the colliding regular dataset.
+  expect(mockExtension).not.toHaveBeenCalled();
+  expect(result.current.result?.table_name).toBe('orders');
+});
+
+test('a malformed type suffix falls back to the regular dataset drill_info path', async () => {
+  mockedCachedSupersetGet.mockResolvedValue({
+    json: { result: { id: 3, columns: [], metrics: [] } },
+  } as any);
+
+  const { result } = renderHook(() => useDatasetDrillInfo('3__bogus', 456));
+
+  await waitFor(() => expect(result.current.status).toBe('complete'));
+
+  expect(mockedCachedSupersetGet).toHaveBeenCalledWith({
+    endpoint: '/api/v1/dataset/3/drill_info/?q=(dashboard_id:456)',
   });
 });

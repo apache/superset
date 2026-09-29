@@ -25,10 +25,18 @@ import {
   CellClassParams,
 } from '@superset-ui/core/components/ThemedAgGridReact';
 import { useCallback, useMemo } from 'react';
-import { DataRecordValue, JsonObject } from '@superset-ui/core';
+import {
+  DataRecordValue,
+  DateWithFormatter,
+  isEmptyDateInput,
+  JsonObject,
+} from '@superset-ui/core';
 import { GenericDataType } from '@apache-superset/core/common';
 import { useTheme } from '@apache-superset/core/theme';
-import { ColorFormatters } from '@superset-ui/chart-controls';
+import {
+  ColorFormatters,
+  ConditionalFormattingConfig,
+} from '@superset-ui/chart-controls';
 import { extent as d3Extent, max as d3Max } from 'd3-array';
 import {
   BasicColorFormatterType,
@@ -42,7 +50,6 @@ import htmlTextFilterValueGetter, {
   htmlTextComparator,
 } from './htmlTextFilterValueGetter';
 import dateFilterComparator from './dateFilterComparator';
-import DateWithFormatter from './DateWithFormatter';
 import { getAggFunc } from './getAggFunc';
 import { TextCellRenderer } from '../renderers/TextCellRenderer';
 import { NumericCellRenderer } from '../renderers/NumericCellRenderer';
@@ -68,11 +75,16 @@ type UseColDefsProps = {
   colorPositiveNegative: boolean;
   columnColorFormatters: ColorFormatters;
   allowRearrangeColumns?: boolean;
+  allowRenderHtml?: boolean;
   basicColorFormatters?: { [Key: string]: BasicColorFormatterType }[];
   isUsingTimeComparison?: boolean;
   emitCrossFilters?: boolean;
   alignPositiveNegative: boolean;
   slice_id: number;
+  conditionalFormatting?: ConditionalFormattingConfig[];
+  comparisonColorEnabled?: boolean;
+  comparisonColorScheme?: string;
+  zebraStriping?: boolean;
 };
 
 function getValueRange(
@@ -128,7 +140,7 @@ const getFilterType = (col: InputColumn) => {
 
 /**
  * Filter value getter for temporal columns.
- * Returns null for DateWithFormatter objects with null input,
+ * Returns null for DateWithFormatter objects with null/empty input,
  * enabling AG Grid's blank filter to correctly identify null dates.
  */
 const dateFilterValueGetter = (params: {
@@ -136,8 +148,8 @@ const dateFilterValueGetter = (params: {
   colDef: { field?: string };
 }) => {
   const value = params.data?.[params.colDef.field as string];
-  // Return null for DateWithFormatter with null input so AG Grid blank filter works
-  if (value instanceof DateWithFormatter && value.input === null) {
+  // Return null for DateWithFormatter with null/empty input so AG Grid blank filter works
+  if (value instanceof DateWithFormatter && isEmptyDateInput(value.input)) {
     return null;
   }
   return value;
@@ -233,13 +245,38 @@ export const useColDefs = ({
   colorPositiveNegative,
   columnColorFormatters,
   allowRearrangeColumns,
+  allowRenderHtml,
   basicColorFormatters,
   isUsingTimeComparison,
   emitCrossFilters,
   alignPositiveNegative,
   slice_id,
+  conditionalFormatting,
+  comparisonColorEnabled,
+  comparisonColorScheme,
+  zebraStriping,
 }: UseColDefsProps) => {
   const theme = useTheme();
+  // transformProps.ts computes these fresh on every call (no memoization),
+  // so a reference-based dependency here would recreate getCommonColProps -
+  // and therefore colDefs - on every render regardless of whether the
+  // formatting actually changed. Compare by content instead.
+  //
+  // columnColorFormatters/basicColorFormatters can't be stringified directly:
+  // each entry's getColorFromValue closes over the rule's operator/
+  // thresholds/gradient/color, none of which are mirrored as serializable
+  // fields on the entry itself, so JSON.stringify drops them and two
+  // differently-configured rules for the same column serialize identically.
+  // Depend on the raw, fully-serializable formData that produced those
+  // formatters instead.
+  const stringifiedColumnColorFormatters = JSON.stringify(
+    conditionalFormatting,
+  );
+  const stringifiedBasicColorFormatters = JSON.stringify([
+    conditionalFormatting,
+    comparisonColorEnabled,
+    comparisonColorScheme,
+  ]);
   const getCommonColProps = useCallback(
     (
       col: InputColumn,
@@ -297,8 +334,12 @@ export const useColDefs = ({
         valueFormatter: (p: ValueFormatterParams) => valueFormatter(p, col),
         valueGetter: (p: ValueGetterParams) => valueGetter(p, col),
         cellStyle: (p: CellClassParams) => {
+          // Mirrors the oddRowBackgroundColor override AgGridTable passes to
+          // ThemedAgGridReact for this same zebraStriping flag, so the color
+          // used for text-contrast here always matches the row's actual
+          // rendered background.
           const cellSurfaceColor =
-            p.node?.rowPinned != null
+            p.node?.rowPinned != null || !zebraStriping
               ? theme.colorBgBase
               : p.rowIndex % 2 === 0
                 ? theme.colorBgBase
@@ -384,7 +425,7 @@ export const useColDefs = ({
               cellRenderer: (p: CellRendererProps) =>
                 isTextColumn ? TextCellRenderer(p) : NumericCellRenderer(p),
               cellRendererParams: {
-                allowRenderHtml: true,
+                allowRenderHtml,
                 columns,
                 hasBasicColorFormatters,
                 col,
@@ -398,6 +439,12 @@ export const useColDefs = ({
           isMetric,
           isPercentMetric,
           isNumeric,
+          // colId (`field` above) has "Main " stripped for comparison
+          // columns, but row data is still keyed by the unstripped
+          // originalKey -- consumers reading row values by column (e.g. the
+          // "Export Current View" snapshot) need this to look values up
+          // correctly.
+          dataKey: originalKey,
         },
         lockPinned: !allowRearrangeColumns,
         sortable: !serverPagination || !isPercentMetric,
@@ -424,16 +471,18 @@ export const useColDefs = ({
       columns,
       data,
       defaultAlignPN,
-      columnColorFormatters,
-      basicColorFormatters,
+      stringifiedColumnColorFormatters,
+      stringifiedBasicColorFormatters,
       showCellBars,
       colorPositiveNegative,
       isUsingTimeComparison,
       isRawRecords,
       emitCrossFilters,
       allowRearrangeColumns,
+      allowRenderHtml,
       serverPagination,
       alignPositiveNegative,
+      zebraStriping,
       theme.colorBgBase,
       theme.colorFillSecondary,
       theme.colorFillQuaternary,

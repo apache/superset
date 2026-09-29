@@ -782,6 +782,47 @@ def test_user_macros_without_user_info(mocker: MockerFixture):
     assert cache.current_user_rls_rules() is None
 
 
+def test_current_username_email_escaped(mocker: MockerFixture) -> None:
+    """
+    ``current_username`` / ``current_user_email`` apply the same dialect
+    escaping as the other viewer-controlled macros, so a quote in the value
+    cannot break out of a SQL literal it is interpolated into.
+    """
+    mock_g = mocker.patch("superset.utils.core.g")
+    mock_g.user.username = "O'Brien"
+    mock_g.user.email = "o'brien@test.com"
+    cache = ExtraCache(dialect=dialect(), table=mocker.MagicMock())
+    assert cache.current_username() == "O''Brien"
+    assert cache.current_user_email() == "o''brien@test.com"
+
+
+def test_current_username_email_unescaped_opt_out(mocker: MockerFixture) -> None:
+    """
+    ``escape_result=False`` opts out of escaping, mirroring ``url_param``.
+    """
+    mock_g = mocker.patch("superset.utils.core.g")
+    mock_g.user.username = "O'Brien"
+    mock_g.user.email = "o'brien@test.com"
+    cache = ExtraCache(dialect=dialect(), table=mocker.MagicMock())
+    assert cache.current_username(escape_result=False) == "O'Brien"
+    assert cache.current_user_email(escape_result=False) == "o'brien@test.com"
+
+
+def test_current_username_email_unchanged_without_dialect(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Without a configured dialect the value is returned unchanged, preserving
+    the prior behavior.
+    """
+    mock_g = mocker.patch("superset.utils.core.g")
+    mock_g.user.username = "O'Brien"
+    mock_g.user.email = "o'brien@test.com"
+    cache = ExtraCache(table=mocker.MagicMock())
+    assert cache.current_username() == "O'Brien"
+    assert cache.current_user_email() == "o'brien@test.com"
+
+
 def _user_metadata_cache_keys(
     mocker: MockerFixture,
     *,
@@ -966,6 +1007,126 @@ def test_where_in() -> None:
         "`where_in` macro for security reasons\n"
     )
     assert where_in(["O'Malley's"]) == "('O''Malley''s')"
+
+
+@pytest.mark.parametrize(
+    "dialect_name,paramstyle",
+    [
+        ("mysql", "format"),
+        ("mysql", "pyformat"),
+        ("postgresql", "pyformat"),
+        ("postgresql", "named"),
+        ("sqlite", "qmark"),
+        ("mssql", "named"),
+    ],
+)
+@pytest.mark.parametrize(
+    "value",
+    [
+        "plain",
+        "%",
+        "%%",
+        "50%",
+        "%%%",
+        "%s",
+        "a_b",
+        "O'Reilly",
+        r"back\slash",
+        "50%_O'Reilly\\backslash",
+    ],
+)
+def test_where_in_literal_percent(
+    dialect_name: str, paramstyle: str, value: str
+) -> None:
+    """Return literal SQL without changing the dialect's DBAPI escaping."""
+    from importlib import import_module
+
+    from sqlalchemy import bindparam
+
+    sql_dialect = import_module(f"sqlalchemy.dialects.{dialect_name}").dialect(
+        paramstyle=paramstyle
+    )
+    where_in = WhereInMacro(sql_dialect)
+    bind = bindparam("value", value)
+    # Quote and backslash escaping remains dialect-specific; percent is literal.
+    escaped = value.replace("'", "''")
+    if dialect_name == "mysql":
+        escaped = escaped.replace("\\", "\\\\")
+    # SQLAlchemy doubles percents only for the ``format``/``pyformat`` paramstyles,
+    # so a DBAPI can interpolate parameters. Derive the expected compiler output
+    # from the paramstyle instead of reading it back off the dialect, so the
+    # assertions below are pinned to an explicit literal rather than to whatever
+    # the dialect happens to produce.
+    compiler_escaped = (
+        escaped.replace("%", "%%") if paramstyle in {"format", "pyformat"} else escaped
+    )
+    assert (
+        str(bind.compile(dialect=sql_dialect, compile_kwargs={"literal_binds": True}))
+        == f"'{compiler_escaped}'"
+    )
+    assert where_in([value]) == f"('{escaped}')"
+    # The macro ran between the two compilations. Recompiling to the same explicit
+    # escaped literal shows it undid the percent escaping only in its own return
+    # value, leaving the shared dialect's compiler escaping untouched.
+    assert (
+        str(bind.compile(dialect=sql_dialect, compile_kwargs={"literal_binds": True}))
+        == f"'{compiler_escaped}'"
+    )
+    assert where_in([1, None, "50%", "%%"]) == "(1, NULL, '50%', '%%')"
+    assert where_in([]) == "()"
+    assert where_in([], default_to_none=True) is None
+
+
+def test_where_in_athena_parameterless_execution() -> None:
+    """PyAthena must receive literal percents without a parameter-unescape pass."""
+    pytest.importorskip("pyathena")
+    from pyathena.formatter import DefaultParameterFormatter
+    from sqlalchemy import create_engine
+
+    engine = create_engine("awsathena+rest://athena.us-west-2.amazonaws.com/default")
+    where_in = WhereInMacro(engine.dialect)
+    formatter = DefaultParameterFormatter()
+    values = ["50%", "%%", "%(value)s", "50%_O'Reilly\\backslash"]
+    for value in values:
+        expected = "SELECT '" + value.replace("'", "''") + "' AS value"
+        # Use the same parameterless formatter path as cursor.execute(query).
+        rendered = where_in([value])
+        assert rendered is not None
+        assert formatter.format("SELECT " + rendered[1:-1] + " AS value") == expected
+        assert (
+            formatter.format("SELECT %(value)s AS value", {"value": value}) == expected
+        )
+    engine.dispose()
+
+
+@pytest.mark.parametrize("dialect_factory", [mysql.dialect, dialect])
+def test_where_in_pyformat_placeholder_literal(dialect_factory: Any) -> None:
+    """Placeholder-looking data is not interpolated as a parameter."""
+    where_in = WhereInMacro(dialect_factory(paramstyle="pyformat"))
+    assert where_in(["%(value)s", "%s"]) == "('%(value)s', '%s')"
+
+
+@pytest.mark.parametrize("dialect_factory", [mysql.dialect, dialect])
+def test_where_in_chart_compilation(
+    dialect_factory: Any, mocker: MockerFixture
+) -> None:
+    """A chart's second compilation preserves macro and unrelated SQL literals."""
+    from sqlalchemy import literal_column, select, text
+
+    sql_dialect = dialect_factory()
+    engine = mocker.MagicMock(dialect=sql_dialect)
+    database = Database(database_name="test")
+    mocker.patch.object(
+        database, "get_sqla_engine"
+    ).return_value.__enter__.return_value = engine
+    mocker.patch("superset.models.core.is_feature_enabled", return_value=False)
+    rendered = WhereInMacro(sql_dialect)(["50%", "%%"])
+    query = select(literal_column("value")).select_from(
+        text(f"(SELECT 'unrelated%%' AS value WHERE value IN {rendered}) AS virtual")
+    )
+    sql = database.compile_sqla_query(query, is_virtual=True)
+    assert "'unrelated%%'" in sql
+    assert "IN ('50%', '%%')" in sql
 
 
 def test_where_in_empty_list() -> None:

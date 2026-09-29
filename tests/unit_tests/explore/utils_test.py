@@ -14,6 +14,9 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from unittest.mock import Mock, PropertyMock
+
+import pytest
 from flask_appbuilder.security.sqla.models import User
 from jinja2.exceptions import TemplateSyntaxError
 from pytest import raises  # noqa: PT013
@@ -35,6 +38,68 @@ from superset.common.db_query_status import QueryStatus
 from superset.exceptions import SupersetSecurityException, SupersetTemplateException
 from superset.extensions import appbuilder
 from superset.utils.core import DatasourceType, override_user
+
+
+@pytest.mark.parametrize("outcome", ["allowed", "denied", "missing"])
+def test_explore_semantic_view_access(mocker: MockerFixture, outcome: str) -> None:
+    """Explore must use the semantic grant, not a same-ID physical dataset."""
+    from superset.explore.utils import check_datasource_access
+    from superset.semantic_layers.models import SemanticView
+
+    view: SemanticView = SemanticView(name="semantic", perm="view-grant")
+    # Error rendering needs metadata, but this fixture has no provider connection.
+    mocker.patch.object(
+        SemanticView, "data", new_callable=PropertyMock, return_value={"id": 42}
+    )
+    lookup: Mock = mocker.patch(
+        "superset.daos.semantic_layer.SemanticViewDAO.find_by_id",
+        return_value=None if outcome == "missing" else view,
+    )
+    mocker.patch(
+        "superset.security.manager.SupersetSecurityManager.can_access_all_datasources",
+        return_value=False,
+    )
+    mocker.patch(
+        "superset.security.manager.SupersetSecurityManager.is_admin", return_value=False
+    )
+    mocker.patch(
+        "superset.security.manager.SupersetSecurityManager.is_editor",
+        return_value=False,
+    )
+    mocker.patch(
+        "superset.security.manager.SupersetSecurityManager.can_access",
+        side_effect=lambda permission, resource: outcome == "allowed"
+        and (permission, resource) == ("datasource_access", "view-grant"),
+    )
+    if outcome == "missing":
+        with pytest.raises(DatasetNotFoundError):
+            check_datasource_access(42, DatasourceType.SEMANTIC_VIEW)
+    elif outcome == "denied":
+        with pytest.raises(DatasetAccessDeniedError):
+            check_datasource_access(42, DatasourceType.SEMANTIC_VIEW)
+    else:
+        assert check_datasource_access(42, DatasourceType.SEMANTIC_VIEW)
+    lookup.assert_called_once_with(42, skip_base_filter=True)
+
+
+def test_explore_semantic_view_uses_manager_policy(mocker: MockerFixture) -> None:
+    """A manager-only grant must also admit the form-data/permalink access path."""
+    from superset.explore.utils import check_semantic_view_access
+    from superset.semantic_layers.models import SemanticView
+
+    view: SemanticView = SemanticView(name="semantic", perm="view-grant")
+    mocker.patch(
+        "superset.daos.semantic_layer.SemanticViewDAO.find_by_id", return_value=view
+    )
+    model_policy: Mock = mocker.patch.object(view, "raise_for_access")
+    manager_policy: Mock = mocker.patch(
+        "superset.explore.utils.security_manager.can_access_datasource",
+        return_value=True,
+    )
+    assert check_semantic_view_access(42)
+    manager_policy.assert_called_once_with(view)
+    model_policy.assert_not_called()
+
 
 dataset_find_by_id = "superset.daos.dataset.DatasetDAO.find_by_id"
 query_find_by_id = "superset.daos.query.QueryDAO.find_by_id"

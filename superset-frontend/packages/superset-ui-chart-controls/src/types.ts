@@ -98,6 +98,11 @@ export interface Dataset {
   normalize_columns?: boolean;
   always_filter_main_dttm?: boolean;
   extra?: object | string;
+  /**
+   * Stable string values of the features a semantic view's provider declares.
+   * Only present for semantic views; absent elsewhere.
+   */
+  semantic_view_features?: string[];
 }
 
 export interface ControlPanelState {
@@ -536,8 +541,6 @@ export type ResolvedColorFormatterResult = {
   backgroundColor?: string;
   color?: string;
 };
-
-export default {};
 
 export function isColumnMeta(column: AnyDict): column is ColumnMeta {
   return !!column && 'column_name' in column;

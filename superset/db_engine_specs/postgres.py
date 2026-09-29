@@ -36,7 +36,7 @@ from sqlalchemy.sql.elements import ColumnElement
 from sqlalchemy.sql.expression import ColumnClause
 from sqlalchemy.types import Date, DateTime, String
 
-from superset.constants import TimeGrain
+from superset.constants import EPOCH_FORMATS, TimeGrain
 from superset.db_engine_specs.base import (
     AURORA_DATA_API_KNOWN_INCOMPATIBILITIES,
     BaseEngineSpec,
@@ -306,17 +306,28 @@ class PostgresBaseEngineSpec(BaseEngineSpec):
         time_grain: str | None,
     ) -> TimestampExpression:
         """
-        Construct a timestamp expression while preserving pure ``DATE`` semantics.
+        Construct a timestamp expression for Postgres temporal columns.
 
         Applying ``DATE_TRUNC`` to a ``DATE`` column implicitly casts the value to
         ``TIMESTAMP``, which can trigger unwanted timezone conversion on the client
         and shift the displayed date by a day. To avoid this, the truncated value is
         cast back to ``DATE`` when the source column is a pure ``DATE`` type.
 
+        String columns explicitly marked as temporal are cast to ``TIMESTAMP`` before
+        applying a time grain because Postgres does not implicitly cast strings for
+        ``DATE_TRUNC`` or ``EXTRACT``.
+
         See https://github.com/apache/superset/issues/42254.
+        See https://github.com/apache/superset/issues/42386.
         """
         expr = super().get_timestamp_expr(col, pdf, time_grain)
         col_type = getattr(col, "type", None)
+        if time_grain and isinstance(col_type, String) and pdf not in EPOCH_FORMATS:
+            expr = TimestampExpression(
+                expr.name.replace("{col}", "CAST({col} AS TIMESTAMP)"),
+                col,
+                type_=DateTime(),
+            )
         # ``DateTime``/``TIMESTAMP`` are distinct SQLAlchemy types (not subclasses
         # of ``Date``), so this only matches pure ``DATE`` columns.
         if time_grain and isinstance(col_type, Date):

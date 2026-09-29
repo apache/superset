@@ -241,6 +241,8 @@ class ChartDataRestApi(ChartRestApi):
             form_data = json.loads(chart.params)
         except (TypeError, json.JSONDecodeError):
             form_data = {}
+        if not isinstance(form_data, dict):
+            form_data = {}
 
         return self._get_data_response(
             command=command,
@@ -464,13 +466,7 @@ class ChartDataRestApi(ChartRestApi):
 
         if result_format in ChartDataResultFormat.table_like():
             # Verify user has permission to export file
-            if is_feature_enabled("GRANULAR_EXPORT_CONTROLS"):
-                has_export_perm = security_manager.can_access(
-                    "can_export_data", "Superset"
-                )
-            else:
-                has_export_perm = security_manager.can_access("can_csv", "Superset")
-            if not has_export_perm:
+            if not self._has_export_permission():
                 return self.response_403()
 
             if not materialized_result["queries"]:
@@ -655,7 +651,30 @@ class ChartDataRestApi(ChartRestApi):
         slice_: Slice | None = None,
     ) -> Response:
         """Get data response and optionally log is_cached information."""
+        query_context = command.query_context
         try:
+            if self._should_stream_before_execution(query_context, expected_rows):
+                # The client already decided to stream this export, so skip the
+                # regular execution: it would run the full query and hold every
+                # row in memory only to discard the result, and the streaming
+                # command runs the query again anyway. On large exports that
+                # first pass is long enough for proxies to drop the idle
+                # connection before the first byte is sent. It shares the try
+                # below with the regular execution so failures raised while
+                # validating access or building the SQL (the streaming command
+                # validates and compiles synchronously, before the generator
+                # starts) map to the usual chart-data 4xx responses instead of
+                # escaping as a 500.
+                if not self._has_export_permission():
+                    return self.response_403()
+                return self._create_streaming_csv_response(
+                    {"query_context": query_context},
+                    form_data,
+                    filename=filename,
+                    expected_rows=expected_rows,
+                    slice_=slice_ or query_context.slice_,
+                )
+
             result = command.execute(force_cached=force_cached)
         except ChartDataCacheLoadError as exc:
             return self.response_422(message=sanitize_error_message(exc.message))
@@ -734,6 +753,40 @@ class ChartDataRestApi(ChartRestApi):
             return ChartDataQueryContextSchema().load(form_data)
         except KeyError as ex:
             raise ValidationError("Request is incorrect") from ex
+        except ValueError as ex:
+            raise ValidationError(str(ex)) from ex
+
+    @staticmethod
+    def _has_export_permission() -> bool:
+        """Whether the current user may export chart data as a file."""
+        if is_feature_enabled("GRANULAR_EXPORT_CONTROLS"):
+            return security_manager.can_access("can_export_data", "Superset")
+        return security_manager.can_access("can_csv", "Superset")
+
+    @staticmethod
+    def _should_stream_before_execution(
+        query_context: QueryContext, expected_rows: int | None
+    ) -> bool:
+        """
+        Whether a CSV export can go straight to streaming without executing first.
+
+        The frontend only sends ``expected_rows`` when it has decided to stream,
+        comparing its row count against the same ``CSV_STREAMING_ROW_THRESHOLD``.
+        Only raw data (``FULL``) qualifies: post-processed results such as pivot
+        tables need the regular execution path. Multi-query contexts also stay
+        on the regular path: the streaming command exports a single query,
+        while the regular path bundles every query into a zip.
+        """
+        if expected_rows is None:
+            return False
+        if len(query_context.queries) != 1:
+            return False
+        if query_context.result_format != ChartDataResultFormat.CSV:
+            return False
+        if query_context.result_type != ChartDataResultType.FULL:
+            return False
+        threshold = app.config.get("CSV_STREAMING_ROW_THRESHOLD", 100000)
+        return expected_rows >= threshold
 
     def _should_use_streaming(
         self, result: dict[Any, Any], form_data: dict[str, Any] | None = None

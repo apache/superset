@@ -122,7 +122,7 @@ class MixedTimeseriesChartPlugin(BaseChartPlugin):
         return "mixed_timeseries"
 
     def normalize_column_refs(self, config: Any, dataset_context: Any) -> Any:
-        config_dict = config.model_dump()
+        config_dict = config.model_dump(exclude_unset=True)
 
         def _norm_single(key: str) -> None:
             if config_dict.get(key):

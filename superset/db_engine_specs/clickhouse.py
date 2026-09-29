@@ -22,7 +22,7 @@ from datetime import datetime, timezone
 from typing import Any, cast, TYPE_CHECKING
 from urllib import parse
 
-from flask import current_app as app
+from flask import current_app as app, has_app_context
 from flask_babel import gettext as __
 from marshmallow import fields, Schema
 from marshmallow.validate import Range
@@ -261,9 +261,21 @@ class ClickHouseEngineSpec(ClickHouseBaseEngineSpec):
     _show_functions_column = "name"
     supports_file_upload = False
 
-    # Note: Primary metadata is in ClickHouseConnectEngineSpec which consolidates
-    # both drivers. This spec exists for backwards compatibility with existing
-    # connections using the clickhouse-sqlalchemy driver.
+    metadata = {
+        "description": (
+            "ClickHouse is an open-source column-oriented database for real-time "
+            "analytics using SQL (legacy clickhouse-sqlalchemy driver)."
+        ),
+        "logo": "clickhouse.png",
+        "homepage_url": "https://clickhouse.com/",
+        "categories": [
+            DatabaseCategory.ANALYTICAL_DATABASES,
+            DatabaseCategory.OPEN_SOURCE,
+        ],
+        "pypi_packages": ["clickhouse-sqlalchemy"],
+        "connection_string": "clickhouse://{username}:{password}@{host}:{port}/{database}",
+        "default_port": 8123,
+    }
 
     @classmethod
     def get_dbapi_exception_mapping(cls) -> dict[type[Exception], type[Exception]]:
@@ -366,9 +378,16 @@ try:
         "*Int128",
         "string",
     )
+    # Importing this module happens as a side effect of iterating db_engine_specs
+    # (e.g. from a standalone script or test that never builds a Flask app), so
+    # `current_app` may not be bound to an app context yet -- guard the version
+    # lookup rather than let that crash the import outright.
+    version_string = (
+        app.config.get("VERSION_STRING", "dev") if has_app_context() else "dev"
+    )
     set_setting(
         "product_name",
-        f"superset/{app.config.get('VERSION_STRING', 'dev')}",
+        f"superset/{version_string}",
     )
 except ImportError:  # ClickHouse Connect not installed, do nothing
     pass

@@ -220,7 +220,7 @@ npm run cypress-debug
 npm run cypress-run-chrome
 
 # Run specific file
-npm run cypress-run-chrome -- --spec "cypress/e2e/dashboard/dashboard.test.ts"
+npm run cypress-run-chrome -- --spec "cypress/e2e/explore/chart.test.js"
 ```
 
 ### Debugging Server App
@@ -342,8 +342,9 @@ pybabel compile --use-fuzzy -d superset/translations
 ```
 
 `--use-fuzzy` includes `#, fuzzy` entries in the compiled `.mo` files. Superset
-serves fuzzy translations on purpose: the frontend build (`po2json --fuzzy`)
-already includes them, `flask fab babel-compile` (used by the release images)
+serves fuzzy translations on purpose: the frontend build (`npm run
+build-translation`, via `scripts/po2json.js`) already includes them,
+`flask fab babel-compile` (used by the release images)
 compiles with `-f`, and the production `Dockerfile` compiles with `--use-fuzzy`
 as well. This keeps machine-generated (and other draft) translations visible in
 the UI rather than falling back to English while they await review.

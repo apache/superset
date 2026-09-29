@@ -50,6 +50,9 @@ type LoadingState = 'uninitialized' | 'loading' | 'loaded' | 'error';
  * This list is needed because string-based control references (e.g., ['zoomable'])
  * cannot be introspected for their renderTrigger property without importing
  * sharedControls, which would create a circular dependency.
+ *
+ * Keep this list in sync with the `renderTrigger: true` entries in
+ * @superset-ui/chart-controls's sharedControls.tsx.
  */
 const RENDER_TRIGGER_SHARED_CONTROLS = new Set([
   'zoomable',
@@ -57,6 +60,11 @@ const RENDER_TRIGGER_SHARED_CONTROLS = new Set([
   'time_shift_color',
   'y_axis_format',
   'currency_format',
+  'color_picker',
+  'linear_color_scheme',
+  'x_axis_time_format',
+  'x_axis_number_format',
+  'echart_options',
 ]);
 
 /**
@@ -110,6 +118,28 @@ function shouldRefetchData(
         });
       }
     });
+
+    // Individual chart types can override a shared control's renderTrigger
+    // behavior (e.g., Country Map sets `linear_color_scheme` to
+    // renderTrigger: false because it drives the choropleth query, not just
+    // styling). Apply those overrides on top of the shared-control fallback
+    // so such controls still trigger a refetch for that chart type.
+    const { controlOverrides } = controlPanel;
+    if (controlOverrides) {
+      Object.entries(controlOverrides).forEach(([controlName, override]) => {
+        if (
+          override &&
+          typeof override === 'object' &&
+          'renderTrigger' in override
+        ) {
+          if ((override as { renderTrigger?: boolean }).renderTrigger) {
+            renderTriggerControls.add(controlName);
+          } else {
+            renderTriggerControls.delete(controlName);
+          }
+        }
+      });
+    }
 
     // Check which fields changed
     const changedFields = Object.keys(nextFormData).filter(

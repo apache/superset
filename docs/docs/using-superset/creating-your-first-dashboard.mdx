@@ -379,6 +379,15 @@ AG Grid supports server-side column filters that query the full dataset — not 
 
 AG Grid Interactive Table supports **Time Shift** (time comparison), matching the behavior of the standard Table chart. In the **Advanced Analytics** → **Time Comparison** section of the chart configuration, enter a shift expression (e.g., `1 year ago`, `minus 7 days`) to add comparison columns showing values from the offset period. Dashboard-level time range overrides apply to both the base and comparison periods.
 
+#### Show Summary
+
+The **Show summary** checkbox lives at the top of the **Visual formatting** section in the **Customize** tab, for both **Aggregate** and **Raw Records** query modes. Enabling it pins a summary row to the bottom of the grid whenever there is something to summarize: at least one metric in **Aggregate** mode, or at least one eligible numeric column in **Raw Records** mode. Otherwise no summary row is added.
+
+- In **Aggregate** mode, the summary row applies each metric's own aggregation (or the **Summary aggregation** override, where available) across the full filtered dataset.
+- In **Raw Records** mode, the summary row defaults to a server-side `SUM` for each numeric column that's backed by a physical or calculated dataset column; the **Summary aggregation** control can override this to `AVG` as well. Non-numeric cells and columns built from free-form SQL expressions stay blank.
+
+In both modes, the summary is computed across the full result set, independent of the chart's row limit and pagination, and it reflects dashboard and chart-level filters. It does not reflect AG Grid's own server-side column filters (the per-column filter UI in the grid header), which are excluded from the summary query.
+
 ### Dynamic Currency Formatting
 
 Chart metric values can display currencies dynamically rather than using a fixed currency code. To enable:

@@ -40,13 +40,13 @@ import {
   TimeGranularity,
   SMART_DATE_ID,
   getTimeFormatterForGranularity,
+  DateWithFormatter,
 } from '@superset-ui/core';
 import { CellProps, Column, HeaderProps } from 'react-table';
 import DataTable from '../src/DataTable/DataTable';
 import TableChart, { sanitizeHeaderId } from '../src/TableChart';
 import { GenericDataType } from '@apache-superset/core/common';
 import transformProps from '../src/transformProps';
-import DateWithFormatter from '../src/utils/DateWithFormatter';
 import testData from './testData';
 import { ProviderWrapper } from './testHelpers';
 
@@ -333,6 +333,38 @@ describe('plugin-chart-table', () => {
         .find(col => col.key === '% metric_1')
         ?.formatter?.(0.123456);
       expect(formattedPercentMetric).toBe('0.123');
+    });
+
+    test('resolves AUTO currency on comparison columns from detected_currency', () => {
+      const autoCurrency = { symbol: 'AUTO', symbolPosition: 'prefix' };
+      const comparisonKeys = ['Main metric_1', '# metric_1', '△ metric_1'];
+      const transformedProps = transformProps({
+        ...testData.comparisonWithConfig,
+        rawFormData: {
+          ...testData.comparisonWithConfig.rawFormData,
+          column_config: Object.fromEntries(
+            comparisonKeys.map(key => [key, { currencyFormat: autoCurrency }]),
+          ),
+        },
+        datasource: {
+          ...testData.comparisonWithConfig.datasource,
+          currencyCodeColumn: 'currency_code',
+        },
+        queriesData: [
+          {
+            ...testData.comparisonWithConfig.queriesData[0],
+            detected_currency: 'GBP',
+          },
+          testData.comparisonWithConfig.queriesData[1],
+        ],
+      });
+
+      comparisonKeys.forEach(key => {
+        const formatted = transformedProps.columns
+          .find(col => col.key === key)
+          ?.formatter?.(100);
+        expect(formatted).toContain('£');
+      });
     });
 
     test('should set originalLabel for comparison columns when time_compare and comparison_type are set', () => {
@@ -2989,6 +3021,50 @@ describe('plugin-chart-table', () => {
       expect(transformedProps.totals).toEqual({ sum__num: 0.27 });
     },
   );
+
+  test('dropdown preserves serverPageLength if larger than rowCount and avoids invalid 0 (#42243)', async () => {
+    const props = transformProps({
+      ...testData.basic,
+      formData: {
+        ...testData.basic.formData,
+        server_pagination: true,
+        server_page_length: 20,
+      },
+    });
+    props.serverPagination = true;
+    props.serverPageLength = 20;
+    props.rowCount = 12;
+    props.data = Array.from({ length: 12 }, (_, i) => ({
+      name: `Row ${i}`,
+    })) as any;
+
+    const { container } = render(
+      <ProviderWrapper>
+        <TableChart {...props} sticky={false} />
+      </ProviderWrapper>,
+    );
+
+    // Initial page size selector text
+    const pageSizeSelector = container.querySelector('.dt-select-page-size');
+    expect(pageSizeSelector).not.toBeNull();
+    expect(pageSizeSelector).toHaveTextContent('20');
+
+    // Page size combobox control exists and is accessible
+    const selectTrigger = screen.getByRole('combobox', {
+      name: 'Show entries per page',
+    });
+    expect(selectTrigger).toBeInTheDocument();
+    fireEvent.mouseDown(selectTrigger);
+
+    await waitFor(() => {
+      const options = screen.getAllByRole('option');
+      const optionTexts = options.map(opt => opt.textContent);
+      expect(optionTexts).toContain('10');
+      expect(optionTexts).toContain('20');
+      expect(optionTexts).not.toContain('0');
+      expect(optionTexts).not.toContain('All');
+    });
+  });
 });
 
 /**

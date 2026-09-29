@@ -58,8 +58,8 @@ import {
   EmptyState,
   Input,
   Modal,
+  Splitter,
 } from '@superset-ui/core/components';
-import { Splitter } from 'src/components/Splitter';
 import { Skeleton } from '@superset-ui/core/components/Skeleton';
 import { Switch } from '@superset-ui/core/components/Switch';
 import { Menu, MenuItemType } from '@superset-ui/core/components/Menu';

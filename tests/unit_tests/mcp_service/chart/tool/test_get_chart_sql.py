@@ -20,9 +20,14 @@ Unit tests for get_chart_sql MCP tool
 """
 
 import importlib
+from typing import Any, TYPE_CHECKING
 from unittest.mock import Mock, patch
 
 import pytest
+
+if TYPE_CHECKING:
+    from fastmcp import FastMCP
+    from fastmcp.client.client import CallToolResult
 
 from superset.mcp_service.auth import CLASS_PERMISSION_ATTR, METHOD_PERMISSION_ATTR
 from superset.mcp_service.chart.schemas import (
@@ -1209,6 +1214,163 @@ class TestGetChartSqlTool:
 
         return mcp
 
+    @pytest.mark.asyncio
+    async def test_semantic_view_chart_is_unsupported(
+        self, mcp_server: "FastMCP"
+    ) -> None:
+        """Reject semantic views before dataset validation or SQL construction."""
+        from fastmcp import Client
+
+        chart: Mock = Mock(datasource_type="semantic_view")
+        with (
+            patch.object(
+                _get_chart_sql_mod, "_find_chart_by_identifier", return_value=chart
+            ),
+            patch.object(_get_chart_sql_mod, "validate_chart_dataset") as validate,
+            patch.object(_get_chart_sql_mod, "_resolve_effective_form_data") as resolve,
+            patch.object(_get_chart_sql_mod, "_sql_from_saved_query_context") as saved,
+            patch.object(_get_chart_sql_mod, "_sql_from_form_data") as form_data,
+        ):
+            async with Client(mcp_server) as client:
+                result: CallToolResult = await client.call_tool(
+                    "get_chart_sql", {"request": {"identifier": 10}}
+                )
+            assert result.structured_content is not None
+            data: dict[str, Any] = result.structured_content.get(
+                "result", result.structured_content
+            )
+        assert data["error_type"] == "Unsupported"
+        assert data["error"] == (
+            "SQL is not available for semantic-layer charts; the query is "
+            "compiled by the semantic layer."
+        )
+        assert data.get("sql") is None
+        validate.assert_not_called()
+        resolve.assert_not_called()
+        saved.assert_not_called()
+        form_data.assert_not_called()
+
+    @pytest.mark.parametrize("datasource_type", ["semantic_view", "table"])
+    @pytest.mark.parametrize("combined_datasource", [False, True])
+    @pytest.mark.parametrize("guest", [False, True])
+    @pytest.mark.asyncio
+    async def test_saved_chart_with_cached_datasource(
+        self,
+        mcp_server: "FastMCP",
+        datasource_type: str,
+        combined_datasource: bool,
+        guest: bool,
+    ) -> None:
+        """Resolve edited datasources while preserving table and guest behavior."""
+        from fastmcp import Client
+
+        from superset import security_manager
+        from superset.mcp_service.chart.chart_utils import DatasetValidationResult
+        from superset.utils import json
+
+        chart: Mock = Mock(
+            id=10,
+            datasource_id=1,
+            datasource_type="table",
+            slice_name="Sales",
+            viz_type="table",
+        )
+        cached_data: dict[str, str | int] = (
+            {"datasource": f"2__{datasource_type}"}
+            if combined_datasource
+            else {"datasource_id": 2, "datasource_type": datasource_type}
+        )
+        with (
+            patch.object(security_manager, "is_guest_user", return_value=guest),
+            patch.object(
+                _get_chart_sql_mod, "_find_chart_by_identifier", return_value=chart
+            ) as find,
+            patch.object(
+                _get_chart_sql_mod,
+                "validate_chart_dataset",
+                return_value=DatasetValidationResult(
+                    is_valid=True, dataset_id=1, dataset_name="sales", warnings=[]
+                ),
+            ),
+            patch.object(
+                _get_chart_sql_mod,
+                "_get_cached_form_data",
+                return_value=json.dumps(cached_data),
+            ) as cache,
+            patch.object(_get_chart_sql_mod, "_sql_from_saved_query_context") as saved,
+            patch.object(
+                _get_chart_sql_mod,
+                "_sql_from_form_data",
+                return_value=ChartSql(sql="SELECT 1", language="sql"),
+            ) as build,
+        ):
+            async with Client(mcp_server) as client:
+                result: CallToolResult = await client.call_tool(
+                    "get_chart_sql",
+                    {"request": {"identifier": 10, "form_data_key": "edited-key"}},
+                )
+            assert result.structured_content is not None
+            data: dict[str, Any] = result.structured_content.get(
+                "result", result.structured_content
+            )
+        saved.assert_not_called()
+        if guest:
+            assert data["error_type"] == "Forbidden"
+            find.assert_not_called()
+            cache.assert_not_called()
+            build.assert_not_called()
+        elif datasource_type == "semantic_view":
+            assert data["error_type"] == "Unsupported"
+            assert data.get("sql") is None
+            build.assert_not_called()
+        else:
+            assert data["sql"] == "SELECT 1"
+            build.assert_called_once_with(cached_data, chart, None)
+
+    @pytest.mark.parametrize(
+        "cached_data",
+        [
+            {"datasource_id": 1, "datasource_type": "semantic_view"},
+            {"datasource": "1__semantic_view"},
+        ],
+    )
+    @pytest.mark.asyncio
+    async def test_unsaved_semantic_view_is_unsupported(
+        self,
+        mcp_server: "FastMCP",
+        cached_data: dict[str, Any],
+    ) -> None:
+        """Both form-data datasource encodings short-circuit before SQL building."""
+        from fastmcp import Client
+
+        from superset.utils import json
+
+        with (
+            patch.object(
+                _get_chart_sql_mod,
+                "_get_cached_form_data",
+                return_value=json.dumps(cached_data),
+            ),
+            patch.object(_get_chart_sql_mod, "_sql_from_form_data") as build,
+            patch.object(_get_chart_sql_mod, "_sql_from_saved_query_context") as saved,
+        ):
+            async with Client(mcp_server) as client:
+                result: CallToolResult = await client.call_tool(
+                    "get_chart_sql", {"request": {"form_data_key": "semantic-key"}}
+                )
+            assert result.structured_content is not None
+            data: dict[str, Any] = result.structured_content.get(
+                "result", result.structured_content
+            )
+        assert data["error_type"] == "Unsupported"
+        assert data["error"] == (
+            "SQL is not available for semantic-layer charts; the query is "
+            "compiled by the semantic layer."
+        )
+        assert data.get("sql") is None
+        build.assert_not_called()
+        saved.assert_not_called()
+
     @patch.object(_get_chart_sql_mod, "validate_chart_dataset")
     @patch.object(_get_chart_sql_mod, "_find_chart_by_identifier")
     @pytest.mark.asyncio
@@ -1271,6 +1433,7 @@ class TestGetChartSqlTool:
         mock_chart.id = 10
         mock_chart.slice_name = "Sales Chart"
         mock_chart.viz_type = "table"
+        mock_chart.datasource_type = "table"
         mock_find.return_value = mock_chart
 
         mock_validate.return_value = DatasetValidationResult(
@@ -1293,6 +1456,8 @@ class TestGetChartSqlTool:
             data = result.structured_content.get("result", result.structured_content)
             assert "SELECT COUNT(*) FROM sales" in data["sql"]
             assert data["chart_id"] == 10
+
+        mock_saved_qc.assert_called_once_with(mock_chart, None)
 
     @patch.object(_get_chart_sql_mod, "_sql_from_form_data")
     @patch.object(_get_chart_sql_mod, "_sql_from_saved_query_context")
@@ -1552,3 +1717,105 @@ class TestGetChartSqlTool:
         )
 
         assert result is None
+
+
+class TestRejectedFilterColumnsAreSurfaced:
+    """A filter naming a column the dataset does not have is dropped during
+    query construction. get_chart_sql must not return the resulting unfiltered
+    SQL as a success, which would misrepresent it as the SQL for the requested
+    filters."""
+
+    BAD_FILTER = {
+        "clause": "WHERE",
+        "expressionType": "SIMPLE",
+        "subject": "does_not_exist",
+        "operator": "==",
+        "comparator": "value",
+    }
+
+    def _result(self, rejected_columns):
+        return {
+            "queries": [
+                {
+                    "query": "SELECT country, count(*) FROM sales GROUP BY country",
+                    "language": "sql",
+                    "rejected_filters": [
+                        {
+                            "reason": "COL_NOT_IN_DATASOURCE",
+                            "column": column,
+                        }
+                        for column in rejected_columns
+                    ],
+                }
+            ]
+        }
+
+    def test_rejected_request_filter_returns_validation_error(self):
+        from superset.mcp_service.chart.tool.get_chart_sql import (
+            _extract_sql_from_result,
+        )
+
+        result = _extract_sql_from_result(
+            self._result(["does_not_exist"]),
+            chart_id=1,
+            chart_name="Sales",
+            datasource_name="sales",
+            extra_form_data={"adhoc_filters": [self.BAD_FILTER]},
+        )
+
+        assert isinstance(result, ChartError)
+        assert result.error_type == "ValidationError"
+        assert "does_not_exist" in result.error
+
+    def test_rejected_filter_not_requested_by_caller_is_ignored(self):
+        """A stale filter saved on the chart must not fail the request."""
+        from superset.mcp_service.chart.tool.get_chart_sql import (
+            _extract_sql_from_result,
+        )
+
+        result = _extract_sql_from_result(
+            self._result(["stale_saved_filter"]),
+            chart_id=1,
+            chart_name="Sales",
+            datasource_name="sales",
+            extra_form_data={"filters": [{"col": "country", "op": "==", "val": "US"}]},
+        )
+
+        assert isinstance(result, ChartSql)
+        assert result.sql.startswith("SELECT country")
+
+    def test_temporal_rejection_does_not_match_same_named_request_filter(self):
+        """Temporal pseudo-filters and datasource columns have separate origins."""
+        from superset.mcp_service.chart.tool.get_chart_sql import (
+            _extract_sql_from_result,
+        )
+
+        result = self._result(["__time_col"])
+        result["queries"][0]["rejected_filter_columns"] = []
+
+        extracted = _extract_sql_from_result(
+            result,
+            chart_id=1,
+            chart_name="Sales",
+            datasource_name="sales",
+            extra_form_data={
+                "filters": [{"col": "__time_col", "op": "==", "val": "value"}]
+            },
+        )
+
+        assert isinstance(extracted, ChartSql)
+
+    def test_no_rejections_returns_sql(self):
+        from superset.mcp_service.chart.tool.get_chart_sql import (
+            _extract_sql_from_result,
+        )
+
+        result = _extract_sql_from_result(
+            self._result([]),
+            chart_id=1,
+            chart_name="Sales",
+            datasource_name="sales",
+            extra_form_data={"adhoc_filters": [self.BAD_FILTER]},
+        )
+
+        assert isinstance(result, ChartSql)

@@ -260,7 +260,7 @@ test('Should render - default props', () => {
   expect(screen.getByTestId('slice-header')).toBeInTheDocument();
 });
 
-test('Should render default props and "call" actions', () => {
+test('Should render default props and "call" actions', async () => {
   const props = createProps();
 
   delete props.forceRefresh;
@@ -285,13 +285,13 @@ test('Should render default props and "call" actions', () => {
     useRouter: true,
     initialState,
   });
-  userEvent.click(screen.getByTestId('toggleExpandSlice'));
-  userEvent.click(screen.getByTestId('forceRefresh'));
-  userEvent.click(screen.getByTestId('exploreChart'));
-  userEvent.click(screen.getByTestId('exportCSV'));
-  userEvent.click(screen.getByTestId('addSuccessToast'));
-  userEvent.click(screen.getByTestId('addDangerToast'));
-  userEvent.click(screen.getByTestId('handleToggleFullSize'));
+  await userEvent.click(screen.getByTestId('toggleExpandSlice'));
+  await userEvent.click(screen.getByTestId('forceRefresh'));
+  await userEvent.click(screen.getByTestId('exploreChart'));
+  await userEvent.click(screen.getByTestId('exportCSV'));
+  await userEvent.click(screen.getByTestId('addSuccessToast'));
+  await userEvent.click(screen.getByTestId('addDangerToast'));
+  await userEvent.click(screen.getByTestId('handleToggleFullSize'));
   expect(screen.getByTestId('slice-header')).toBeInTheDocument();
 });
 
@@ -316,7 +316,7 @@ test('Should render click to edit prompt and run onExploreChart on click', async
     </Router>,
     { useRedux: true, initialState },
   );
-  userEvent.hover(screen.getByText('Vaccine Candidates per Phase'));
+  await userEvent.hover(screen.getByText('Vaccine Candidates per Phase'));
   expect(
     await screen.findByText('Click to edit Vaccine Candidates per Phase.'),
   ).toBeInTheDocument();
@@ -324,7 +324,7 @@ test('Should render click to edit prompt and run onExploreChart on click', async
     await screen.findByText('Use ctrl + click to open in a new tab.'),
   ).toBeInTheDocument();
 
-  userEvent.click(screen.getByText('Vaccine Candidates per Phase'));
+  await userEvent.click(screen.getByText('Vaccine Candidates per Phase'));
   expect(history.location.pathname).toMatch('/explore');
 });
 
@@ -336,7 +336,7 @@ test('Display cmd button in tooltip if running on MacOS', async () => {
     useRouter: true,
     initialState,
   });
-  userEvent.hover(screen.getByText('Vaccine Candidates per Phase'));
+  await userEvent.hover(screen.getByText('Vaccine Candidates per Phase'));
   expect(
     await screen.findByText('Click to edit Vaccine Candidates per Phase.'),
   ).toBeInTheDocument();
@@ -345,7 +345,7 @@ test('Display cmd button in tooltip if running on MacOS', async () => {
   ).toBeInTheDocument();
 });
 
-test('Should not render click to edit prompt and run onExploreChart on click if supersetCanExplore=false', () => {
+test('Should not render click to edit prompt and run onExploreChart on click if supersetCanExplore=false', async () => {
   const props = createProps({ supersetCanExplore: false });
   const history = createMemoryHistory({
     initialEntries: ['/superset/dashboard/1/'],
@@ -356,18 +356,18 @@ test('Should not render click to edit prompt and run onExploreChart on click if 
     </Router>,
     { useRedux: true, initialState },
   );
-  userEvent.hover(screen.getByText('Vaccine Candidates per Phase'));
+  await userEvent.hover(screen.getByText('Vaccine Candidates per Phase'));
   expect(
     screen.queryByText(
       'Click to edit Vaccine Candidates per Phase in a new tab',
     ),
   ).not.toBeInTheDocument();
 
-  userEvent.click(screen.getByText('Vaccine Candidates per Phase'));
+  await userEvent.click(screen.getByText('Vaccine Candidates per Phase'));
   expect(history.location.pathname).toMatch('/superset/dashboard');
 });
 
-test('Should not render click to edit prompt and run onExploreChart on click if in edit mode', () => {
+test('Should not render click to edit prompt and run onExploreChart on click if in edit mode', async () => {
   const props = createProps({ editMode: true });
   const history = createMemoryHistory({
     initialEntries: ['/superset/dashboard/1/'],
@@ -378,14 +378,14 @@ test('Should not render click to edit prompt and run onExploreChart on click if 
     </Router>,
     { useRedux: true, initialState },
   );
-  userEvent.hover(screen.getByText('Vaccine Candidates per Phase'));
+  await userEvent.hover(screen.getByText('Vaccine Candidates per Phase'));
   expect(
     screen.queryByText(
       'Click to edit Vaccine Candidates per Phase in a new tab',
     ),
   ).not.toBeInTheDocument();
 
-  userEvent.click(screen.getByText('Vaccine Candidates per Phase'));
+  await userEvent.click(screen.getByText('Vaccine Candidates per Phase'));
   expect(history.location.pathname).toMatch('/superset/dashboard');
 });
 
@@ -404,7 +404,7 @@ describe('mobile consumption mode', () => {
     restoreFlag();
   });
 
-  test('Should not render click to edit prompt or SliceHeaderControls on mobile', () => {
+  test('Should not render click to edit prompt or SliceHeaderControls on mobile', async () => {
     const props = createProps();
     const history = createMemoryHistory({
       initialEntries: ['/superset/dashboard/1/'],
@@ -415,12 +415,12 @@ describe('mobile consumption mode', () => {
       </Router>,
       { useRedux: true, initialState },
     );
-    userEvent.hover(screen.getByText('Vaccine Candidates per Phase'));
+    await userEvent.hover(screen.getByText('Vaccine Candidates per Phase'));
     expect(
       screen.queryByText('Click to edit Vaccine Candidates per Phase.'),
     ).not.toBeInTheDocument();
 
-    userEvent.click(screen.getByText('Vaccine Candidates per Phase'));
+    await userEvent.click(screen.getByText('Vaccine Candidates per Phase'));
     expect(history.location.pathname).toMatch('/superset/dashboard');
 
     expect(screen.queryByTestId('SliceHeaderControls')).not.toBeInTheDocument();
@@ -546,7 +546,7 @@ test('Correct props to "SliceHeaderControls"', () => {
   );
 });
 
-test('Correct actions to "SliceHeaderControls"', () => {
+test('Correct actions to "SliceHeaderControls"', async () => {
   const props = createProps();
   render(<SliceHeader {...props} />, {
     useRedux: true,
@@ -555,31 +555,31 @@ test('Correct actions to "SliceHeaderControls"', () => {
   });
 
   expect(props.toggleExpandSlice).toHaveBeenCalledTimes(0);
-  userEvent.click(screen.getByTestId('toggleExpandSlice'));
+  await userEvent.click(screen.getByTestId('toggleExpandSlice'));
   expect(props.toggleExpandSlice).toHaveBeenCalledTimes(1);
 
   expect(props.forceRefresh).toHaveBeenCalledTimes(0);
-  userEvent.click(screen.getByTestId('forceRefresh'));
+  await userEvent.click(screen.getByTestId('forceRefresh'));
   expect(props.forceRefresh).toHaveBeenCalledTimes(1);
 
   expect(props.logExploreChart).toHaveBeenCalledTimes(0);
-  userEvent.click(screen.getByTestId('exploreChart'));
+  await userEvent.click(screen.getByTestId('exploreChart'));
   expect(props.logExploreChart).toHaveBeenCalledTimes(1);
 
   expect(props.exportCSV).toHaveBeenCalledTimes(0);
-  userEvent.click(screen.getByTestId('exportCSV'));
+  await userEvent.click(screen.getByTestId('exportCSV'));
   expect(props.exportCSV).toHaveBeenCalledTimes(1);
 
   expect(props.addSuccessToast).toHaveBeenCalledTimes(0);
-  userEvent.click(screen.getByTestId('addSuccessToast'));
+  await userEvent.click(screen.getByTestId('addSuccessToast'));
   expect(props.addSuccessToast).toHaveBeenCalledTimes(1);
 
   expect(props.addDangerToast).toHaveBeenCalledTimes(0);
-  userEvent.click(screen.getByTestId('addDangerToast'));
+  await userEvent.click(screen.getByTestId('addDangerToast'));
   expect(props.addDangerToast).toHaveBeenCalledTimes(1);
 
   expect(props.handleToggleFullSize).toHaveBeenCalledTimes(0);
-  userEvent.click(screen.getByTestId('handleToggleFullSize'));
+  await userEvent.click(screen.getByTestId('handleToggleFullSize'));
   expect(props.handleToggleFullSize).toHaveBeenCalledTimes(1);
 });
 

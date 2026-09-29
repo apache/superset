@@ -29,14 +29,17 @@ from superset.mcp_service.chart.chart_utils import (
 )
 from superset.mcp_service.chart.plugin import BaseChartPlugin
 from superset.mcp_service.chart.schemas import ColumnRef, GaugeChartConfig
-from superset.mcp_service.chart.validation.dataset_validator import DatasetValidator
+from superset.mcp_service.chart.validation.dataset_validator import (
+    DatasetValidator,
+    is_numeric_column,
+)
 from superset.mcp_service.common.error_schemas import ChartGenerationError
 
 
 class GaugeChartPlugin(BaseChartPlugin):
     """Plugin for gauge chart type."""
 
-    chart_type = "gauge_chart"
+    chart_type = "gauge"
     display_name = "Gauge Chart"
     native_viz_types: ClassVar[Mapping[str, str]] = {
         "gauge_chart": "Gauge Chart",
@@ -56,7 +59,7 @@ class GaugeChartPlugin(BaseChartPlugin):
                 ),
                 suggestions=[
                     "Add 'metric' field: {'name': 'progress', 'aggregate': 'AVG'}",
-                    "Example: {'chart_type': 'gauge_chart', "
+                    "Example: {'chart_type': 'gauge', "
                     "'metric': {'name': 'progress', 'aggregate': 'AVG'}}",
                 ],
                 error_code="MISSING_GAUGE_FIELDS",
@@ -69,6 +72,8 @@ class GaugeChartPlugin(BaseChartPlugin):
         refs: list[ColumnRef] = [config.metric]
         if config.groupby:
             refs.extend(config.groupby)
+        if config.granularity_sqla:
+            refs.append(ColumnRef(name=config.granularity_sqla))
         if config.filters:
             for f in config.filters:
                 refs.append(ColumnRef(name=f.column))
@@ -87,8 +92,62 @@ class GaugeChartPlugin(BaseChartPlugin):
     def resolve_viz_type(self, config: Any) -> str:
         return "gauge_chart"
 
+    def post_map_validate(
+        self,
+        config: Any,
+        form_data: dict[str, Any],
+        dataset_id: int | str | None = None,
+    ) -> ChartGenerationError | None:
+        """Reject definitively non-numeric SIMPLE Gauge metrics.
+
+        Saved and SQL metrics remain supported because their output type is not
+        reliably inferable from metadata; compile/data result validation checks
+        their concrete values instead.
+        """
+        if not isinstance(config, GaugeChartConfig):
+            return None
+        metric = config.metric
+        if (
+            dataset_id is None
+            or metric.saved_metric
+            or metric.sql_expression
+            or metric.aggregate in {"COUNT", "COUNT_DISTINCT"}
+            or metric.name is None
+        ):
+            return None
+        dataset_context = DatasetValidator._get_dataset_context(dataset_id)
+        if dataset_context is None:
+            return None
+        column = next(
+            (
+                candidate
+                for candidate in dataset_context.available_columns
+                if candidate["name"] == metric.name
+            ),
+            None,
+        )
+        if column is None or is_numeric_column(column):
+            return None
+        type_name = str(column.get("type") or "UNKNOWN")
+        if type_name.strip().upper() in {"", "UNKNOWN"}:
+            return None
+        return ChartGenerationError(
+            error_type="non_numeric_gauge_metric",
+            message="Gauge metric must produce numeric values",
+            details=(
+                f"{metric.aggregate}({metric.name}) uses a non-numeric "
+                f"column of type {type_name}."
+            ),
+            suggestions=[
+                "Choose a numeric dataset column",
+                "Use COUNT or COUNT_DISTINCT for a categorical column",
+                "Use a saved or SQL metric that returns a numeric value",
+            ],
+            error_code="NON_NUMERIC_GAUGE_METRIC",
+        )
+
     def normalize_column_refs(self, config: Any, dataset_context: Any) -> Any:
-        config_dict = config.model_dump()
+        config_dict = config.model_dump(exclude_unset=True)
 
         if config_dict.get("metric"):
             if config_dict["metric"].get("sql_expression"):
@@ -110,6 +169,12 @@ class GaugeChartPlugin(BaseChartPlugin):
                 col["name"] = DatasetValidator.get_canonical_column_name(
                     col["name"], dataset_context
                 )
+        if config_dict.get("granularity_sqla"):
+            config_dict["granularity_sqla"] = (
+                DatasetValidator.get_canonical_column_name(
+                    config_dict["granularity_sqla"], dataset_context
+                )
+            )
         DatasetValidator.normalize_filters(config_dict, dataset_context)
         return GaugeChartConfig.model_validate(config_dict)
 
@@ -123,7 +188,7 @@ class GaugeChartPlugin(BaseChartPlugin):
             ),
             suggestions=[
                 "Ensure 'metric' field has 'name' and 'aggregate'",
-                "Example: {'chart_type': 'gauge_chart', "
+                "Example: {'chart_type': 'gauge', "
                 "'metric': {'name': 'progress', 'aggregate': 'AVG'}}",
             ],
             error_code="GAUGE_VALIDATION_ERROR",

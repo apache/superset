@@ -17,6 +17,8 @@
  * under the License.
  */
 import { getNumberFormatterRegistry } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
+import { logging } from '@apache-superset/core/utils';
 import { utils, writeFile } from 'xlsx';
 import type { WorkSheet } from 'xlsx';
 
@@ -63,8 +65,22 @@ function restoreUnambiguousNumbers(sheet: WorkSheet): void {
 export default function exportPivotExcel(
   tableSelector: string,
   fileName: string,
+  // Bound via `useToasts()`/`bindActionCreators`, not the raw action
+  // creator from `actions.ts`: this module has no dispatch of its own, so an
+  // unbound creator would only build a Redux action object and never render
+  // a toast.
+  addWarningToast?: (text: string) => void,
 ) {
   const table = document.querySelector(tableSelector);
+  if (!table) {
+    logging.error(
+      `[exportPivotExcel] No element found for selector: "${tableSelector}"`,
+    );
+    addWarningToast?.(
+      t('Pivot table download failed, please refresh and try again.'),
+    );
+    return;
+  }
   // `raw: true` keeps every cell as the literal text rendered in the DOM.
   // Without it, SheetJS tries to infer numbers/dates from the displayed
   // string, which mangles values that were formatted using a non-US

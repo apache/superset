@@ -184,3 +184,57 @@ test('every Visual formatting control is a renderTrigger', () => {
     expect(control.config.renderTrigger).toBe(true);
   });
 });
+
+function findControl(
+  panel: ControlPanelConfig,
+  controlName: string,
+): CustomControlItem {
+  const item = (panel.controlPanelSections || [])
+    .flatMap(section => section?.controlSetRows || [])
+    .flat()
+    .find(c => isCustomControlItem(c) && c.name === controlName);
+
+  if (!item || !isCustomControlItem(item)) {
+    throw new Error(`Control "${controlName}" not found`);
+  }
+  return item;
+}
+
+test('allow_rearrange_columns defaults to false, matching v1, and hides while time_compare is set', () => {
+  const control = findControl(config, 'allow_rearrange_columns');
+  expect(control.config.type).toBe('CheckboxControl');
+  expect(control.config.default).toBe(false);
+  expect(control.config.renderTrigger).toBe(true);
+
+  const vis = control.config.visibility as VisibilityFn;
+  expect(
+    vis({
+      controls: { time_compare: { value: [] } },
+    } as unknown as ControlPanelsContainerProps),
+  ).toBe(true);
+  expect(
+    vis({
+      controls: { time_compare: { value: ['1 year ago'] } },
+    } as unknown as ControlPanelsContainerProps),
+  ).toBe(false);
+});
+
+test('allow_render_html defaults to true, matching v1, and has no visibility gate', () => {
+  const control = findControl(config, 'allow_render_html');
+  expect(control.config.type).toBe('CheckboxControl');
+  expect(control.config.default).toBe(true);
+  expect(control.config.renderTrigger).toBe(true);
+  expect(control.config.visibility).toBeUndefined();
+});
+
+test('zebra_striping defaults to false and has no visibility gate', () => {
+  // v1 has no equivalent control at all (its striping is unconditional), so
+  // there's no "matching v1" default here -- new v2 charts default to v2's
+  // own subtle look, and the migration processor is what materializes True
+  // for charts migrated from v1.
+  const control = findControl(config, 'zebra_striping');
+  expect(control.config.type).toBe('CheckboxControl');
+  expect(control.config.default).toBe(false);
+  expect(control.config.renderTrigger).toBe(true);
+  expect(control.config.visibility).toBeUndefined();
+});

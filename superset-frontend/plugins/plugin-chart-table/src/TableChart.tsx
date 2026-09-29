@@ -47,6 +47,7 @@ import {
   extractTextFromHTML,
   TimeGranularity,
   forceHexAlpha,
+  DateWithFormatter,
 } from '@superset-ui/core';
 import {
   styled,
@@ -98,7 +99,6 @@ import { formatColumnValue } from './utils/formatValue';
 import { PAGE_SIZE_OPTIONS, SERVER_PAGE_SIZE_OPTIONS } from './consts';
 import { updateTableOwnState } from './DataTable/utils/externalAPIs';
 import getScrollBarSize from './DataTable/utils/getScrollBarSize';
-import DateWithFormatter from './utils/DateWithFormatter';
 
 type ValueRange = [number, number];
 
@@ -471,14 +471,29 @@ export default function TableChart<D extends DataRecord = DataRecord>(
 
   // only take relevant page size options
   const pageSizeOptions = useMemo(() => {
-    const getServerPagination = (n: number) =>
-      n <= Math.max(rowCount, serverPageLength);
-    return (
+    const getServerPagination = (n: number) => n <= rowCount;
+    const baseOptions = (
       serverPagination ? SERVER_PAGE_SIZE_OPTIONS : PAGE_SIZE_OPTIONS
-    ).filter(([n]) =>
-      serverPagination ? getServerPagination(n) : n <= 2 * data.length,
     ) as SizeOption[];
-  }, [data.length, rowCount, serverPageLength, serverPagination]);
+    const options = baseOptions.filter(([n]) =>
+      serverPagination ? getServerPagination(n) : n <= 2 * data.length,
+    );
+
+    if (serverPagination && serverPageLength) {
+      if (!options.some(([n]) => n === serverPageLength)) {
+        const optionInBase = baseOptions.find(([n]) => n === serverPageLength);
+        options.push(
+          optionInBase || [serverPageLength, String(serverPageLength)],
+        );
+      }
+    }
+
+    // Remove duplicates and sort ascending
+    const uniqueOptions = Array.from(
+      new Map(options.map(opt => [opt[0], opt])).values(),
+    );
+    return uniqueOptions.sort((a, b) => a[0] - b[0]);
+  }, [data.length, rowCount, serverPagination, serverPageLength]);
 
   const getValueRange = useCallback(
     function getValueRange(key: string, alignPositiveNegative: boolean) {

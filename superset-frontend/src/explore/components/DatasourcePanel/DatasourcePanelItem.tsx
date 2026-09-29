@@ -16,8 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ReactNode, useCallback } from 'react';
 import type { RowComponentProps } from 'react-window';
+import { ReactNode, useCallback, useMemo } from 'react';
+import { useDraggable } from '@dnd-kit/core';
 
 import { t } from '@apache-superset/core/translation';
 import { useCSSTextTruncation } from '@superset-ui/core';
@@ -28,6 +29,9 @@ import { Tooltip } from '@superset-ui/core/components/Tooltip';
 import { Typography } from '@superset-ui/core/components';
 import DatasourcePanelDragOption from './DatasourcePanelDragOption';
 import { DndItemType } from '../DndItemType';
+import { useActiveDrag } from '../ExploreContainer/ExploreDndContext';
+import { collectFolderDragItems, collectFolderIds } from './folderDrag';
+import { isCompatibleItem, useDatasourceCompatibility } from './compatibility';
 import { DndItemValue, FlattenedItem, Folder } from './types';
 
 const LabelWrapper = styled.div`
@@ -77,12 +81,38 @@ const LabelWrapper = styled.div`
   `}
 `;
 
+const SectionHeaderRow = styled.div`
+  display: flex;
+  align-items: center;
+  width: 100%;
+  height: 100%;
+`;
+
 const SectionHeaderButton = styled.button`
   border: none;
   background: transparent;
-  width: 100%;
+  flex: 1;
+  min-width: 0;
   height: 100%;
   padding-inline: 0;
+`;
+
+const FolderDragHandle = styled.div<{ isDraggable: boolean }>`
+  ${({ theme, isDraggable }) => css`
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: ${theme.sizeUnit * 6}px;
+    height: 100%;
+    cursor: ${isDraggable ? 'grab' : 'not-allowed'};
+    opacity: ${isDraggable ? 1 : 0.35};
+    color: ${theme.colorFill};
+
+    &:hover {
+      color: ${isDraggable ? theme.colorIcon : theme.colorFill};
+    }
+  `}
 `;
 
 const SectionHeaderTextContainer = styled.div`
@@ -172,9 +202,60 @@ const DatasourcePanelItem = ({
     [labelIsTruncated],
   );
 
-  if (!item) return null;
+  // Folder headers double as a drag source: dragging the label picks up every
+  // column/metric in the folder (and its subfolders). Hooks must run on every
+  // row regardless of type, so compute the folder up front and disable the
+  // draggable for non-header rows / empty folders.
+  const isFolderHeader = item?.type === 'header';
+  const folder = item ? folderMap.get(item.folderId) : undefined;
+  const { compatibleMetrics, compatibleDimensions } =
+    useDatasourceCompatibility();
+  const folderDragItems = useMemo(
+    () =>
+      isFolderHeader && folder
+        ? collectFolderDragItems(folder).filter(({ type, value }) =>
+            isCompatibleItem(
+              type,
+              value,
+              compatibleMetrics,
+              compatibleDimensions,
+            ),
+          )
+        : [],
+    [isFolderHeader, folder, compatibleMetrics, compatibleDimensions],
+  );
+  const folderDragIds = useMemo(
+    () => (isFolderHeader && folder ? collectFolderIds(folder) : []),
+    [isFolderHeader, folder],
+  );
+  const {
+    attributes: folderDragAttributes,
+    listeners: folderDragListeners,
+    setNodeRef: setFolderDragRef,
+  } = useDraggable({
+    // Keyed by the flattened row index so every row (header, item, divider…)
+    // gets a unique draggable id — a folder's header and its child rows would
+    // otherwise collide on the shared folder id.
+    id: `datasource-folder-row-${index}`,
+    data: {
+      type: DndItemType.Folder,
+      name: folder?.name,
+      items: folderDragItems,
+      folderIds: folderDragIds,
+    },
+    disabled: !isFolderHeader || folderDragItems.length === 0,
+  });
 
-  const folder = folderMap.get(item.folderId);
+  // Fade every row of the folder currently being dragged (header + its items,
+  // subtitle, divider, and any subfolder rows). Each flattened row carries its
+  // folder id, so a row is in flight when its id is in the drag's folderIds.
+  const activeDrag = useActiveDrag();
+  const isRowInDraggedFolder =
+    activeDrag?.type === DndItemType.Folder &&
+    !!item &&
+    !!activeDrag.folderIds?.includes(item.folderId);
+
+  if (!item) return null;
   if (!folder) return null;
 
   const indentation = item.depth * theme.sizeUnit * 4;
@@ -185,21 +266,36 @@ const DatasourcePanelItem = ({
         ...style,
         paddingLeft: theme.sizeUnit * 4 + indentation,
         paddingRight: theme.sizeUnit * 4,
+        opacity: isRowInDraggedFolder ? 0.5 : undefined,
       }}
     >
       {item.type === 'header' && (
-        <SectionHeaderButton onClick={() => onToggleCollapse(folder.id)}>
-          <Tooltip title={getTooltipNode(folder)}>
-            <SectionHeaderTextContainer>
-              <SectionHeader ref={labelRef}>{folder.name}</SectionHeader>
-              {collapsedFolderIds.has(folder.id) ? (
-                <Icons.DownOutlined iconSize="s" iconColor={theme.colorText} />
-              ) : (
-                <Icons.UpOutlined iconSize="s" iconColor={theme.colorText} />
-              )}
-            </SectionHeaderTextContainer>
-          </Tooltip>
-        </SectionHeaderButton>
+        <SectionHeaderRow>
+          <SectionHeaderButton onClick={() => onToggleCollapse(folder.id)}>
+            <Tooltip title={getTooltipNode(folder)}>
+              <SectionHeaderTextContainer>
+                <SectionHeader ref={labelRef}>{folder.name}</SectionHeader>
+                {collapsedFolderIds.has(folder.id) ? (
+                  <Icons.DownOutlined
+                    iconSize="s"
+                    iconColor={theme.colorText}
+                  />
+                ) : (
+                  <Icons.UpOutlined iconSize="s" iconColor={theme.colorText} />
+                )}
+              </SectionHeaderTextContainer>
+            </Tooltip>
+          </SectionHeaderButton>
+          <FolderDragHandle
+            ref={setFolderDragRef}
+            isDraggable={folderDragItems.length > 0}
+            {...folderDragAttributes}
+            {...folderDragListeners}
+            aria-label={t('Drag %s folder', folder.name)}
+          >
+            <Icons.Drag iconSize="xl" />
+          </FolderDragHandle>
+        </SectionHeaderRow>
       )}
 
       {item.type === 'subtitle' && (

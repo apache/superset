@@ -31,6 +31,7 @@ from superset.datasets.schemas import validate_python_date_format
     [
         "epoch_ms",
         "epoch_s",
+        "epoch_us",
         "%Y-%m-%dT%H:%M:%S.%f",
         "%Y%m%d",
     ],
@@ -296,3 +297,23 @@ def test_import_v1_metric_schema_parses_currency_string() -> None:
     }
     result = schema.load(data)
     assert result["currency"] == {"symbol": "CAD", "symbolPosition": "suffix"}
+
+
+def test_import_v1_column_schema_validates_date_formats() -> None:
+    """ImportV1ColumnSchema validates python_date_format/datetime_format the
+    same way the edit (PUT) schema does, so the import path does not accept a
+    format string the edit path would reject."""
+    from superset.datasets.schemas import ImportV1ColumnSchema
+
+    schema = ImportV1ColumnSchema()
+
+    ok = schema.load(
+        {"column_name": "ds", "python_date_format": "%Y-%m-%d", "is_dttm": True}
+    )
+    assert ok["python_date_format"] == "%Y-%m-%d"
+
+    with pytest.raises(ValidationError):
+        schema.load({"column_name": "ds", "python_date_format": "%Y-%m-%d'"})
+
+    with pytest.raises(ValidationError):
+        schema.load({"column_name": "ds", "datetime_format": "not a format'"})

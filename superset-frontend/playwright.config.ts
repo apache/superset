@@ -26,13 +26,6 @@ export default defineConfig({
   // Test directory
   testDir: './playwright/tests',
 
-  // Conditionally ignore experimental tests based on env var
-  // When INCLUDE_EXPERIMENTAL=true, experimental tests are included
-  // Otherwise, they are excluded (default for required tests)
-  testIgnore: process.env.INCLUDE_EXPERIMENTAL
-    ? undefined
-    : '**/experimental/**',
-
   // Global setup - authenticate once before all tests
   globalSetup: './playwright/global-setup.ts',
 
@@ -94,14 +87,12 @@ export default defineConfig({
       // Default project - uses global authentication for speed
       // E2E tests login once via global-setup.ts and reuse auth state
       // Explicitly ignore auth tests (they run in chromium-unauth project)
-      // Also respect the global experimental testIgnore setting
       name: 'chromium',
       testIgnore: [
         '**/tests/auth/**/*.spec.ts',
         '**/tests/sqllab/**/*.spec.ts',
         '**/tests/embedded/**/*.spec.ts',
         '**/tests/mobile/**/*.spec.ts',
-        ...(process.env.INCLUDE_EXPERIMENTAL ? [] : ['**/experimental/**']),
       ],
       use: {
         browserName: 'chromium',

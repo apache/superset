@@ -38,10 +38,29 @@ EXAMPLES_DB_UUID = "a2dc77af-e654-49bb-b321-40f6b559a1ee"
 
 PASSWORD_MASK = "X" * 10
 
+# ``python_date_format`` values that mark an integer column as a Unix epoch,
+# mapped to the number of units per second. The pandas resolution is the
+# suffix after ``epoch_`` (``s``/``ms``/``us``).
+EPOCH_FORMATS: dict[str, int] = {
+    "epoch_s": 1,
+    "epoch_ms": 1_000,
+    "epoch_us": 1_000_000,
+}
+
 NO_TIME_RANGE = "No filter"
+
+# Keep in sync with superset-frontend/src/utils/common.ts; select-filter masks
+# and dataMask hydration use this exact predicate to recognize an explicit clear.
+EMPTY_FILTER_SQL_EXPRESSION = "1 = 0"
 
 QUERY_CANCEL_KEY = "cancel_query"
 QUERY_EARLY_CANCEL_KEY = "early_cancel_query"
+# Set once execute_sql_statements() has opened a DB connection and asked the
+# engine spec for a cancel handle, regardless of whether one came back. Lets
+# cancel_query() tell "hasn't been dispatched to the engine yet" (safe to
+# fabricate a stop) apart from "this engine just has no cancel support"
+# (must fail honestly) when no cancel ID is on record.
+QUERY_DISPATCHED_KEY = "query_dispatched"
 
 LRU_CACHE_MAX_SIZE = 256
 
@@ -134,6 +153,7 @@ MODEL_API_RW_METHOD_PERMISSION_MAP = {
     "put": "write",
     "related": "read",
     "related_objects": "read",
+    "bulk_related_objects": "read",
     "tables": "read",
     "schemas": "read",
     "catalogs": "read",
