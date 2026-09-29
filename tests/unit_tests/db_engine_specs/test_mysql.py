@@ -22,6 +22,7 @@ from types import SimpleNamespace
 from typing import Any, Optional
 from unittest.mock import Mock, patch
 
+import pandas as pd
 import pytest
 from sqlalchemy import column, types
 from sqlalchemy.dialects.mysql import (
@@ -36,6 +37,7 @@ from sqlalchemy.dialects.mysql import (
     TINYINT,
     TINYTEXT,
 )
+from sqlalchemy.engine import Engine
 from sqlalchemy.engine.url import make_url, URL  # noqa: F401
 
 from superset.constants import TimeGrain
@@ -512,6 +514,36 @@ def test_extended_aggregation_func_median_unsupported() -> None:
     assert spec.get_extended_aggregation_func("MEDIAN") is None
 
 
+def _upload_requiring_primary_key(
+    engine: Engine,
+    df: pd.DataFrame,
+    *,
+    table_name: str = "my_table",
+    index: bool = False,
+) -> None:
+    """
+    Run ``MySQLEngineSpec.df_to_sql`` against ``engine`` with the server
+    reporting ``sql_require_primary_key = ON`` -- the setup every
+    primary-key test below shares.
+    """
+    from superset.db_engine_specs.mysql import MySQLEngineSpec
+    from superset.sql.parse import Table
+
+    with (
+        patch.object(MySQLEngineSpec, "get_engine") as mock_get_engine,
+        patch.object(MySQLEngineSpec, "_requires_primary_key", return_value=True),
+    ):
+        mock_get_engine.return_value.__enter__.return_value = engine
+        mock_get_engine.return_value.__exit__.return_value = False
+
+        MySQLEngineSpec.df_to_sql(
+            database=Mock(),
+            table=Table(table=table_name),
+            df=df,
+            to_sql_kwargs={"if_exists": "fail", "index": index},
+        )
+
+
 def test_df_to_sql_adds_primary_key_when_mysql_requires_one() -> None:
     """
     apache/superset#37399: uploading a CSV/Excel/columnar file creates the
@@ -525,13 +557,9 @@ def test_df_to_sql_adds_primary_key_when_mysql_requires_one() -> None:
     ``CREATE TABLE`` lacking a primary key raises the same error 3750 seen
     in the issue.
     """
-    import pandas as pd
     import sqlalchemy as sa
     from sqlalchemy import create_engine, event
     from sqlalchemy.exc import OperationalError
-
-    from superset.db_engine_specs.mysql import MySQLEngineSpec
-    from superset.sql.parse import Table
 
     engine = create_engine("sqlite://")
 
@@ -560,19 +588,7 @@ def test_df_to_sql_adds_primary_key_when_mysql_requires_one() -> None:
 
     df = pd.DataFrame({"a": [1, 2, 3], "b": ["x", "y", "z"]})
 
-    with (
-        patch.object(MySQLEngineSpec, "get_engine") as mock_get_engine,
-        patch.object(MySQLEngineSpec, "_requires_primary_key", return_value=True),
-    ):
-        mock_get_engine.return_value.__enter__.return_value = engine
-        mock_get_engine.return_value.__exit__.return_value = False
-
-        MySQLEngineSpec.df_to_sql(
-            database=Mock(),
-            table=Table(table="my_table"),
-            df=df,
-            to_sql_kwargs={"if_exists": "fail", "index": False},
-        )
+    _upload_requiring_primary_key(engine, df)
 
     with engine.connect() as conn:
         rows = conn.execute(sa.text("SELECT a, b FROM my_table ORDER BY a")).fetchall()
@@ -594,29 +610,13 @@ def test_df_to_sql_promotes_pandas_index_to_primary_key() -> None:
     column should be promoted to the primary key instead of adding a
     redundant second column.
     """
-    import pandas as pd
     import sqlalchemy as sa
     from sqlalchemy import create_engine
-
-    from superset.db_engine_specs.mysql import MySQLEngineSpec
-    from superset.sql.parse import Table
 
     engine = create_engine("sqlite://")
     df = pd.DataFrame({"a": [1, 2, 3], "b": ["x", "y", "z"]})
 
-    with (
-        patch.object(MySQLEngineSpec, "get_engine") as mock_get_engine,
-        patch.object(MySQLEngineSpec, "_requires_primary_key", return_value=True),
-    ):
-        mock_get_engine.return_value.__enter__.return_value = engine
-        mock_get_engine.return_value.__exit__.return_value = False
-
-        MySQLEngineSpec.df_to_sql(
-            database=Mock(),
-            table=Table(table="my_table"),
-            df=df,
-            to_sql_kwargs={"if_exists": "fail", "index": True},
-        )
+    _upload_requiring_primary_key(engine, df, index=True)
 
     with engine.connect() as conn:
         rows = conn.execute(
@@ -647,13 +647,9 @@ def test_df_to_sql_disables_autoincrement_on_synthesized_primary_key() -> None:
     SQLAlchemy's MySQL dialect directly and assert AUTO_INCREMENT never
     appears.
     """
-    import pandas as pd
     from sqlalchemy import create_engine
     from sqlalchemy.dialects import mysql
     from sqlalchemy.schema import CreateTable
-
-    from superset.db_engine_specs.mysql import MySQLEngineSpec
-    from superset.sql.parse import Table
 
     engine = create_engine("sqlite://")
     df = pd.DataFrame({"a": [1, 2, 3], "b": ["x", "y", "z"]})
@@ -663,20 +659,10 @@ def test_df_to_sql_disables_autoincrement_on_synthesized_primary_key() -> None:
         captured_tables.append(self.table)
 
     with (
-        patch.object(MySQLEngineSpec, "get_engine") as mock_get_engine,
-        patch.object(MySQLEngineSpec, "_requires_primary_key", return_value=True),
         patch.object(pd.io.sql.SQLTable, "create", _capture_instead_of_create),
         patch.object(pd.io.sql.SQLTable, "insert"),
     ):
-        mock_get_engine.return_value.__enter__.return_value = engine
-        mock_get_engine.return_value.__exit__.return_value = False
-
-        MySQLEngineSpec.df_to_sql(
-            database=Mock(),
-            table=Table(table="my_table"),
-            df=df,
-            to_sql_kwargs={"if_exists": "fail", "index": False},
-        )
+        _upload_requiring_primary_key(engine, df)
 
     assert len(captured_tables) == 1
     ddl = str(CreateTable(captured_tables[0]).compile(dialect=mysql.dialect()))
@@ -693,29 +679,13 @@ def test_df_to_sql_falls_back_to_synthesized_key_for_non_unique_index() -> None:
     ``index=False`` path instead of letting MySQL reject the INSERT with a
     duplicate-key or NOT-NULL error.
     """
-    import pandas as pd
     import sqlalchemy as sa
     from sqlalchemy import create_engine
-
-    from superset.db_engine_specs.mysql import MySQLEngineSpec
-    from superset.sql.parse import Table
 
     engine = create_engine("sqlite://")
     df = pd.DataFrame({"a": [1, 2, 3], "b": ["x", "y", "z"]}, index=[0, 0, 1])
 
-    with (
-        patch.object(MySQLEngineSpec, "get_engine") as mock_get_engine,
-        patch.object(MySQLEngineSpec, "_requires_primary_key", return_value=True),
-    ):
-        mock_get_engine.return_value.__enter__.return_value = engine
-        mock_get_engine.return_value.__exit__.return_value = False
-
-        MySQLEngineSpec.df_to_sql(
-            database=Mock(),
-            table=Table(table="my_table"),
-            df=df,
-            to_sql_kwargs={"if_exists": "fail", "index": True},
-        )
+    _upload_requiring_primary_key(engine, df, index=True)
 
     with engine.connect() as conn:
         rows = conn.execute(
@@ -734,35 +704,63 @@ def test_df_to_sql_falls_back_to_synthesized_key_for_non_unique_index() -> None:
     )
 
 
+def test_df_to_sql_falls_back_to_synthesized_key_for_index_with_missing_values() -> (
+    None
+):
+    """
+    The other half of the same guard: an index whose values are all
+    distinct still cannot become a PRIMARY KEY if any of them is missing,
+    because MySQL rejects NULL in a key column (error 1048). Pointing the
+    "Dataframe index" upload option at a column with a blank cell produces
+    exactly that -- ``is_unique`` stays True while ``hasnans`` is True --
+    so only the NaN half of the guard keeps it off the primary key.
+    """
+    import sqlalchemy as sa
+    from sqlalchemy import create_engine
+
+    engine = create_engine("sqlite://")
+    df = pd.DataFrame({"a": [1, 2, 3], "b": ["x", "y", "z"]}, index=[1.0, 2.0, None])
+    df.index.name = "key"
+    assert df.index.is_unique, "the fixture's index values must all be distinct"
+    assert df.index.hasnans, (
+        "the fixture must contain a missing index value to exercise the "
+        "hasnans half of the guard"
+    )
+
+    _upload_requiring_primary_key(engine, df, index=True)
+
+    with engine.connect() as conn:
+        rows = conn.execute(
+            sa.text("SELECT id, a, b FROM my_table ORDER BY id")
+        ).fetchall()
+    assert [tuple(row) for row in rows] == [(1, 1, "x"), (2, 2, "y"), (3, 3, "z")]
+
+    columns = {col["name"] for col in sa.inspect(engine).get_columns("my_table")}
+    assert "key" not in columns, (
+        "the NaN-containing pandas index should not also be written as a "
+        "redundant column"
+    )
+
+    pk = sa.inspect(engine).get_pk_constraint("my_table")
+    assert pk["constrained_columns"] == ["id"], (
+        "expected the synthesized key to be used since the pandas index "
+        "contains a missing value"
+    )
+
+
 def test_df_to_sql_synthesized_key_avoids_case_insensitive_collision() -> None:
     """
     MySQL compares column identifiers case-insensitively, so an existing
     "ID" column would collide with a lowercase synthesized "id" primary key
     at the MySQL level even though Python sees them as different strings.
     """
-    import pandas as pd
     import sqlalchemy as sa
     from sqlalchemy import create_engine
-
-    from superset.db_engine_specs.mysql import MySQLEngineSpec
-    from superset.sql.parse import Table
 
     engine = create_engine("sqlite://")
     df = pd.DataFrame({"ID": [10, 20, 30], "b": ["x", "y", "z"]})
 
-    with (
-        patch.object(MySQLEngineSpec, "get_engine") as mock_get_engine,
-        patch.object(MySQLEngineSpec, "_requires_primary_key", return_value=True),
-    ):
-        mock_get_engine.return_value.__enter__.return_value = engine
-        mock_get_engine.return_value.__exit__.return_value = False
-
-        MySQLEngineSpec.df_to_sql(
-            database=Mock(),
-            table=Table(table="my_table"),
-            df=df,
-            to_sql_kwargs={"if_exists": "fail", "index": False},
-        )
+    _upload_requiring_primary_key(engine, df)
 
     columns = [col["name"] for col in sa.inspect(engine).get_columns("my_table")]
     assert "_id" in columns, (
@@ -786,30 +784,14 @@ def test_df_to_sql_promoted_index_name_collision_falls_back_to_synthesized_key()
     with two columns MySQL sees as the same identifier (error 1060). Fall
     back to the synthesized key instead, the same as a non-unique index.
     """
-    import pandas as pd
     import sqlalchemy as sa
     from sqlalchemy import create_engine
-
-    from superset.db_engine_specs.mysql import MySQLEngineSpec
-    from superset.sql.parse import Table
 
     engine = create_engine("sqlite://")
     df = pd.DataFrame({"id": [1, 2, 3], "b": ["x", "y", "z"]})
     df.index.name = "ID"
 
-    with (
-        patch.object(MySQLEngineSpec, "get_engine") as mock_get_engine,
-        patch.object(MySQLEngineSpec, "_requires_primary_key", return_value=True),
-    ):
-        mock_get_engine.return_value.__enter__.return_value = engine
-        mock_get_engine.return_value.__exit__.return_value = False
-
-        MySQLEngineSpec.df_to_sql(
-            database=Mock(),
-            table=Table(table="my_table"),
-            df=df,
-            to_sql_kwargs={"if_exists": "fail", "index": True},
-        )
+    _upload_requiring_primary_key(engine, df, index=True)
 
     columns = [col["name"] for col in sa.inspect(engine).get_columns("my_table")]
     assert "ID" not in columns, (
@@ -832,11 +814,7 @@ def test_df_to_sql_constraint_name_within_mysql_identifier_limit() -> None:
     MySQL renames PRIMARY KEY constraints to "PRIMARY" internally regardless
     of the name given in DDL, so a short fixed name is safe to force.
     """
-    import pandas as pd
     from sqlalchemy import create_engine
-
-    from superset.db_engine_specs.mysql import MySQLEngineSpec
-    from superset.sql.parse import Table
 
     engine = create_engine("sqlite://")
     df = pd.DataFrame({"a": [1, 2, 3], "b": ["x", "y", "z"]})
@@ -847,20 +825,10 @@ def test_df_to_sql_constraint_name_within_mysql_identifier_limit() -> None:
         captured_tables.append(self.table)
 
     with (
-        patch.object(MySQLEngineSpec, "get_engine") as mock_get_engine,
-        patch.object(MySQLEngineSpec, "_requires_primary_key", return_value=True),
         patch.object(pd.io.sql.SQLTable, "create", _capture_instead_of_create),
         patch.object(pd.io.sql.SQLTable, "insert"),
     ):
-        mock_get_engine.return_value.__enter__.return_value = engine
-        mock_get_engine.return_value.__exit__.return_value = False
-
-        MySQLEngineSpec.df_to_sql(
-            database=Mock(),
-            table=Table(table=long_table_name),
-            df=df,
-            to_sql_kwargs={"if_exists": "fail", "index": False},
-        )
+        _upload_requiring_primary_key(engine, df, table_name=long_table_name)
 
     assert len(captured_tables) == 1
     assert len(captured_tables[0].primary_key.name) <= 64
@@ -874,7 +842,6 @@ def test_df_to_sql_when_server_does_not_expose_sql_require_primary_key() -> None
     the requirement -- the upload must still go through the plain
     ``pandas.DataFrame.to_sql`` path rather than propagating that error.
     """
-    import pandas as pd
     import sqlalchemy as sa
     from sqlalchemy import create_engine
 
