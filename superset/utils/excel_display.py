@@ -101,7 +101,9 @@ def d3_number_to_excel(
     if ntype in {"s", "e"}:
         return None
 
-    digits = int(precision) if precision is not None else (0 if ntype in {"d", "i"} else 2)
+    digits = (
+        int(precision) if precision is not None else (0 if ntype in {"d", "i"} else 2)
+    )
     decimals = "" if digits == 0 else "." + ("0" * digits)
     grouped = "#,##0" if comma else "0"
     body = f"{grouped}{decimals}"
@@ -130,9 +132,7 @@ def d3_time_to_excel(d3_time_format: str | None) -> str | None:
     return excel or None
 
 
-def _currency_excel_format(
-    number_body: str, currency: Mapping[str, Any] | None
-) -> str:
+def _currency_excel_format(number_body: str, currency: Mapping[str, Any] | None) -> str:
     if not currency:
         return number_body
     code = str(currency.get("symbol") or "")
@@ -201,7 +201,9 @@ def styles_from_pivot_form_data(
         d3 = None
         if isinstance(column_formats, dict):
             for metric, fmt in column_formats.items():
-                if metric and (text == metric or text.endswith(metric) or text.startswith(metric)):
+                if metric and (
+                    text == metric or text.endswith(metric) or text.startswith(metric)
+                ):
                     d3 = fmt
                     break
         d3 = d3 or value_format
@@ -249,9 +251,7 @@ def apply_column_display(
         style = styles_by_header.get(header_label)
         if style is None:
             continue
-        alignment = (
-            Alignment(horizontal=style.alignment) if style.alignment else None
-        )
+        alignment = Alignment(horizontal=style.alignment) if style.alignment else None
         for row in range(header_row + 1, sheet.max_row + 1):
             cell = sheet.cell(row=row, column=col_idx)
             if style.number_format and (

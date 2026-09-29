@@ -608,12 +608,15 @@ class QueryContextProcessor:
                 if isinstance(form_data, dict) and isinstance(result, bytes):
                     from superset.utils.excel_conditional import polish_explore_xlsx
 
+                    resolved_verbose = (
+                        verbose_map if isinstance(verbose_map, dict) else None
+                    )
                     result = polish_explore_xlsx(
                         result,
                         df,
                         form_data,
                         include_index=include_index,
-                        verbose_map=verbose_map if isinstance(verbose_map, dict) else None,
+                        verbose_map=resolved_verbose,
                     )
             return result or ""
 

@@ -29,6 +29,7 @@ the download matches the Table chart's default gradient.
 from __future__ import annotations
 
 import io
+import operator
 from typing import Any, Mapping, Optional
 
 import pandas as pd
@@ -91,6 +92,14 @@ _RANGE_OPERATORS = {
     "≤ x <": (">=", "<"),
     "≤ x ≤": (">=", "<="),
 }
+_NUMERIC_COMPARE = {
+    "greaterThan": operator.gt,
+    "lessThan": operator.lt,
+    "greaterThanOrEqual": operator.ge,
+    "lessThanOrEqual": operator.le,
+    "equal": operator.eq,
+    "notEqual": operator.ne,
+}
 
 _DEFAULT_RULE_COLOR = _NAMED_COLORS["success"]
 _DATA_BAR_POSITIVE = "63BE7B"
@@ -143,41 +152,45 @@ def _as_number(value: Any) -> Optional[float]:
     return None
 
 
+def _matches_cell_is(
+    value: Any, number: Optional[float], operator_key: str, rule: dict[str, Any]
+) -> bool:
+    """Apply a CellIs comparator; fall back to string equality if not numeric."""
+    target = rule.get("targetValue")
+    target_number = _as_number(target)
+    if number is not None and target_number is not None:
+        compare = _NUMERIC_COMPARE.get(_CELL_IS_OPERATORS[operator_key])
+        if compare is not None:
+            return bool(compare(number, target_number))
+    return str(value) == str(target)
+
+
+def _matches_range(
+    number: Optional[float], operator_key: str, rule: dict[str, Any]
+) -> bool:
+    """Apply a between-style Explore operator to a numeric cell."""
+    left_op, right_op = _RANGE_OPERATORS[operator_key]
+    left = _as_number(rule.get("targetValueLeft"))
+    right = _as_number(rule.get("targetValueRight"))
+    if number is None or left is None or right is None:
+        return False
+    left_ok = number >= left if left_op == ">=" else number > left
+    right_ok = number <= right if right_op == "<=" else number < right
+    return left_ok and right_ok
+
+
 def _value_matches_rule(value: Any, rule: dict[str, Any]) -> bool:
     """Whether a cell should receive a CELL_BAR rule (Explore comparator)."""
     if value in (None, ""):
         return False
-    operator = rule.get("operator")
-    if operator in (None, "None", ""):
+    operator_key = rule.get("operator")
+    if operator_key in (None, "None", ""):
         return True
     number = _as_number(value)
-    if operator in _CELL_IS_OPERATORS:
-        target = rule.get("targetValue")
-        target_number = _as_number(target)
-        if number is not None and target_number is not None:
-            compare = _CELL_IS_OPERATORS[operator]
-            if compare == "greaterThan":
-                return number > target_number
-            if compare == "lessThan":
-                return number < target_number
-            if compare == "greaterThanOrEqual":
-                return number >= target_number
-            if compare == "lessThanOrEqual":
-                return number <= target_number
-            if compare == "equal":
-                return number == target_number
-            if compare == "notEqual":
-                return number != target_number
-        return str(value) == str(target)
-    if operator in _RANGE_OPERATORS:
-        left_op, right_op = _RANGE_OPERATORS[operator]
-        left = _as_number(rule.get("targetValueLeft"))
-        right = _as_number(rule.get("targetValueRight"))
-        if number is None or left is None or right is None:
-            return False
-        left_ok = number >= left if left_op == ">=" else number > left
-        right_ok = number <= right if right_op == "<=" else number < right
-        return left_ok and right_ok
+    if operator_key in _CELL_IS_OPERATORS:
+        return _matches_cell_is(value, number, operator_key, rule)
+    if operator_key in _RANGE_OPERATORS:
+        return _matches_range(number, operator_key, rule)
     return False
 
 
@@ -230,7 +243,9 @@ def _column_index(
             if value not in (None, ""):
                 header_label = str(value)
                 break
-        if header_label and any(_header_matches(header_label, name) for name in aliases):
+        if header_label and any(
+            _header_matches(header_label, name) for name in aliases
+        ):
             return col_idx
     return None
 

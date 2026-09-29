@@ -18,13 +18,13 @@
 import io
 from datetime import datetime
 
-from openpyxl import Workbook, load_workbook
+from openpyxl import load_workbook, Workbook
 
 from superset.utils.excel_display import (
-    ExcelColumnDisplay,
     apply_column_display,
     d3_number_to_excel,
     d3_time_to_excel,
+    ExcelColumnDisplay,
     styles_from_pivot_form_data,
     styles_from_table_form_data,
 )
