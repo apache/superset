@@ -75,6 +75,7 @@ class OdpsEngineSpec(BasicParametersMixin, OdpsBaseEngineSpec):
             "multi-tenancy cloud data warehousing platform for large-scale "
             "batch and streaming analytics."
         ),
+        "logo": "maxcompute.png",
         "homepage_url": "https://www.alibabacloud.com/product/maxcompute",
         "categories": [
             DatabaseCategory.CLOUD_DATA_WAREHOUSES,
