@@ -19,6 +19,7 @@
 
 import asyncio
 import logging
+from collections.abc import Callable
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock, Mock, patch
 
@@ -1278,3 +1279,122 @@ def test_bm25_always_visible_tools_stay_pinned(
     assert results[0]["name"] == "generate_chart"
     assert len(results) == 5
     assert "health_check" not in [tool["name"] for tool in results]
+
+
+@pytest.fixture
+def production_bm25_transform() -> BM25SearchTransform:
+    """Build the transform from the shipped search configuration."""
+    server = MagicMock()
+    _apply_tool_search_transform(server, dict(MCP_TOOL_SEARCH_CONFIG))
+    return server.add_transform.call_args[0][0]
+
+
+@pytest.fixture
+def registered_catalog() -> list[Tool]:
+    """Return every registered tool as the search catalog reads it."""
+    from superset.mcp_service.app import mcp
+
+    # search_tools reads the catalog through list_tools middleware.
+    catalog = list(asyncio.run(mcp.list_tools()))
+    assert {"generate_chart", "health_check"} <= {tool.name for tool in catalog}
+    return catalog
+
+
+def _exact_name_search(
+    transform: BM25SearchTransform,
+    catalog: list[Tool],
+    *,
+    can_access: bool | Callable[[str, str], bool],
+    can_view_metadata: bool,
+) -> tuple[dict[str, list[str]], set[str]]:
+    """Search each tool's exact name through search_tools as one caller.
+
+    Returns the ranked names for every query and the caller's visible names.
+    """
+    app = Flask(__name__)
+    app.config["MCP_RBAC_ENABLED"] = True
+    with (
+        app.app_context(),
+        patch.object(transform, "get_tool_catalog", AsyncMock(return_value=catalog)),
+        patch(
+            "superset.mcp_service.auth.security_manager", new_callable=MagicMock
+        ) as security_manager,
+        patch(
+            "superset.mcp_service.privacy.user_can_view_data_model_metadata",
+            return_value=can_view_metadata,
+        ),
+    ):
+        g.user = SimpleNamespace(username="viewer")
+        if callable(can_access):
+            security_manager.can_access.side_effect = can_access
+        else:
+            security_manager.can_access.return_value = can_access
+        visible = {
+            tool.name for tool in asyncio.run(transform._get_visible_tools(None))
+        }
+        search = transform._make_search_tool().fn
+        results = {
+            tool.name: [
+                result["name"] for result in asyncio.run(search(query=tool.name))
+            ]
+            for tool in catalog
+        }
+    return results, visible
+
+
+def test_bm25_exact_name_finds_every_registered_tool(
+    production_bm25_transform: BM25SearchTransform,
+    registered_catalog: list[Tool],
+) -> None:
+    """Every searchable registered tool is the first result for its own name.
+
+    Long definitions such as generate_chart previously ranked below the
+    result limit for their own names.
+    """
+    results, visible = _exact_name_search(
+        production_bm25_transform,
+        registered_catalog,
+        can_access=True,
+        can_view_metadata=True,
+    )
+    pinned = set(MCP_TOOL_SEARCH_CONFIG["always_visible"])
+    assert visible == {tool.name for tool in registered_catalog} - pinned
+
+    not_first = {
+        name: ranked[:1]
+        for name, ranked in results.items()
+        if name in visible and ranked[:1] != [name]
+    }
+    assert not_first == {}
+    for name in pinned:
+        assert name not in results[name]
+
+
+def test_bm25_exact_name_never_surfaces_unauthorized_registered_tools(
+    production_bm25_transform: BM25SearchTransform,
+    registered_catalog: list[Tool],
+) -> None:
+    """Exact-name searches only return tools the caller is authorized to see."""
+    results, visible = _exact_name_search(
+        production_bm25_transform,
+        registered_catalog,
+        # A read-only caller without data-model metadata access.
+        can_access=lambda permission, _view: permission in {"can_read", "can_get"},
+        can_view_metadata=False,
+    )
+    denied = {tool.name for tool in registered_catalog} - visible
+    assert "generate_chart" in denied
+    assert visible
+
+    leaked = {
+        name: sorted(set(ranked) - visible)
+        for name, ranked in results.items()
+        if set(ranked) - visible
+    }
+    assert leaked == {}
+    not_first = {
+        name: ranked[:1]
+        for name, ranked in results.items()
+        if name in visible and ranked[:1] != [name]
+    }
+    assert not_first == {}
