@@ -194,6 +194,20 @@ test('Clicking on checkbox', async () => {
   expect(props.forceUpdate).toHaveBeenCalled();
 });
 
+test('excludes displayFormat from the generic checkbox control items', () => {
+  const props = createProps();
+  (getControlItems as jest.Mock).mockReturnValue([
+    {
+      name: 'displayFormat',
+      config: { renderTrigger: true, label: 'Display format' },
+    },
+  ]);
+  const controlItemsMap = getControlItemsMap(props);
+  expect(controlItemsMap.controlItems).not.toHaveProperty('displayFormat');
+  renderControlItems(controlItemsMap);
+  expect(screen.queryByRole('checkbox')).not.toBeInTheDocument();
+});
+
 test('Clicking on checkbox when resetConfig:false', async () => {
   const props = createProps();
   (getControlItems as jest.Mock).mockReturnValue([

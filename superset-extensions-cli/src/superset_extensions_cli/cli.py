@@ -565,6 +565,9 @@ def build(ctx: click.Context) -> None:
         init_frontend_deps(frontend_dir)
         remote_entry = rebuild_frontend(cwd, frontend_dir)
 
+        if remote_entry is None:
+            sys.exit(1)
+
     # Build backend independently if it exists
     if backend_dir.exists():
         pyproject = read_toml(backend_dir / "pyproject.toml")

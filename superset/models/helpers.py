@@ -58,7 +58,7 @@ from flask_appbuilder.security.sqla.models import User
 from flask_babel import get_locale, lazy_gettext as _
 from jinja2.exceptions import TemplateError, UndefinedError
 from markupsafe import escape, Markup
-from pandas import DateOffset
+from pandas import DateOffset, Timedelta
 from sqlalchemy import and_, Column, or_, UniqueConstraint
 from sqlalchemy.exc import MultipleResultsFound
 from sqlalchemy.ext.hybrid import hybrid_property
@@ -71,6 +71,7 @@ from sqlalchemy.orm import (
     with_loader_criteria,
 )
 from sqlalchemy.orm.session import ORMExecuteState
+from sqlalchemy.sql import visitors
 from sqlalchemy.sql.elements import ColumnElement, Grouping, literal_column, TextClause
 from sqlalchemy.sql.expression import Label, Select, TextAsFrom
 from sqlalchemy.sql.selectable import Alias, TableClause
@@ -91,6 +92,7 @@ from superset.common.utils.time_range_utils import (
 from superset.constants import (
     CacheRegion,
     EMPTY_STRING,
+    EPOCH_FORMATS,
     NULL_STRING,
     SKIP_VISIBILITY_FILTER_CLASSES,
     TimeGrain,
@@ -110,6 +112,7 @@ from superset.exceptions import (
     SupersetParseError,
     SupersetSecurityException,
     SupersetSyntaxErrorException,
+    SupersetTemplateException,
 )
 from superset.extensions import feature_flag_manager
 from superset.jinja_context import BaseTemplateProcessor
@@ -198,27 +201,6 @@ def get_effective_hours_offset(
 R_SUFFIX = "__right_suffix"
 
 
-# Escape character for LIKE patterns built from user-supplied search text.
-# Deliberately not a backslash: dialects that escape backslashes when rendering
-# string literals would emit a two-character ESCAPE clause, which is a syntax
-# error on engines that honour standard-conforming strings.
-LIKE_ESCAPE_CHAR = "!"
-
-
-def escape_like_pattern(value: str) -> str:
-    """
-    Neutralize LIKE wildcards in user-supplied search text.
-
-    Without this a user typing ``%`` or ``_`` would match every row, which is
-    both wrong and, on a large table, a scan the search was meant to avoid.
-    """
-    return (
-        value.replace(LIKE_ESCAPE_CHAR, LIKE_ESCAPE_CHAR * 2)
-        .replace("%", f"{LIKE_ESCAPE_CHAR}%")
-        .replace("_", f"{LIKE_ESCAPE_CHAR}_")
-    )
-
-
 def build_like_predicate(
     expr: ColumnElement[Any],
     search: str,
@@ -226,11 +208,16 @@ def build_like_predicate(
     """
     Build a case-insensitive containment predicate for ``expr``.
 
+    Uses ``contains(..., autoescape=True)`` rather than a raw ``LIKE ...
+    ESCAPE`` clause because BigQuery's GoogleSQL dialect has no ESCAPE
+    keyword and rejects it outright; ``contains()`` lets each dialect's
+    compiler render wildcard-escaping in its own supported syntax (BigQuery's
+    compiler swaps in backslash-escaping instead of an ESCAPE clause).
+
     ``lower(expr) LIKE lower('%term%')`` is used rather than ``ILIKE`` because
     the latter is not portable across engines.
     """
-    pattern = f"%{escape_like_pattern(search)}%".lower()
-    return sa.func.lower(expr).like(pattern, escape=LIKE_ESCAPE_CHAR)
+    return sa.func.lower(expr).contains(search.lower(), autoescape=True)
 
 
 def _is_parenthesized(sqla_col: ColumnElement) -> bool:
@@ -368,9 +355,13 @@ def _retry_temporal_join_values_at_wider_resolution(
     datetime_format: str | None,
 ) -> pd.Series:
     """Retry valid values outside pandas' nanosecond datetime range."""
-    resolution = "ms" if datetime_format == "epoch_ms" else "s"
+    resolution = (
+        datetime_format.removeprefix("epoch_")
+        if datetime_format in EPOCH_FORMATS
+        else "s"
+    )
     try:
-        if datetime_format and datetime_format not in {"epoch_s", "epoch_ms"}:
+        if datetime_format and datetime_format not in EPOCH_FORMATS:
             parsed_values = [
                 datetime.strptime(str(value), datetime_format)
                 if pd.notna(value)
@@ -1762,6 +1753,15 @@ class SqlaQuery(NamedTuple):
     sql_shifted_temporal_labels: set[str]
 
 
+WEEK_GRAINS = (
+    TimeGrain.WEEK_STARTING_SUNDAY,
+    TimeGrain.WEEK_ENDING_SATURDAY,
+    TimeGrain.WEEK,
+    TimeGrain.WEEK_STARTING_MONDAY,
+    TimeGrain.WEEK_ENDING_SUNDAY,
+)
+
+
 class ExploreMixin:  # pylint: disable=too-many-public-methods
     """
     Allows any flask_appbuilder.Model (Query, Table, etc.)
@@ -2274,6 +2274,47 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             if is_alias_used_in_orderby(col):
                 col.name = f"{col.name}__"
 
+    def rename_shadowing_aliases(self, qry: Select) -> None:
+        """
+        Rename SELECT aliases that would shadow a source column, in place.
+
+        Some engines (e.g. ClickHouse) resolve an identifier to a SELECT alias
+        before a source column of the same name, in every clause. With an alias
+        like `DATE_TRUNC('day', ts) AS ts`, a `WHERE ts >= ...` then filters on
+        the truncated value and a `GROUP BY DATE_TRUNC('day', ts)` truncates the
+        alias again. An alias is renamed when it names a column of the
+        datasource, or a column its own expression reads, and its expression is
+        not simply that column. The final output columns keep their names, as
+        they are updated by `labels_expected` after querying.
+        """
+        if not self.db_engine_spec.select_alias_shadows_source_column:
+            return
+
+        try:
+            column_names = set(self.column_names)
+        except NotImplementedError:
+            column_names = set()
+
+        def expression_text(element: ColumnElement) -> str | None:
+            try:
+                return str(element.compile(compile_kwargs={"literal_binds": True}))
+            except Exception:  # pylint: disable=broad-except
+                return None
+
+        quotes = "\"`'"
+        for select in [e for e in visitors.iterate(qry) if isinstance(e, Select)]:
+            for col in select.selected_columns:
+                if not isinstance(col, Label) or not isinstance(col.name, str):
+                    continue
+                name = col.name
+                expression = expression_text(col.element)
+                if expression is None or expression.strip().strip(quotes) == name:
+                    continue
+                unquoted = re.sub(f"[{quotes}]", "", expression)
+                reads_it = re.search(rf"(?<![\w.]){re.escape(name)}(?!\w)", unquoted)
+                if name in column_names or reads_it:
+                    col.name = f"{name}__"
+
     def _raise_for_disallowed_sql(self, sql: str) -> None:
         """
         Mirror the DISALLOWED_SQL_* gate that sql_lab.execute_sql_statement
@@ -2336,14 +2377,21 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             :return: Mutated DataFrame
             """
             labels_expected = query_str_ext.labels_expected
-            if df is not None and not df.empty:
-                if len(df.columns) < len(labels_expected):
-                    raise QueryObjectValidationError(
-                        _("Db engine did not return all queried columns")
-                    )
-                if len(df.columns) > len(labels_expected):
-                    df = df.iloc[:, 0 : len(labels_expected)]
-                df.columns = labels_expected
+            if df is None:
+                return df
+            if df.empty and len(df.columns) < len(labels_expected):
+                # Nothing to label, e.g. a result without columns.
+                return df
+            # An empty result is labelled too: it still carries the names the
+            # engine gave its columns, which can differ from the expected labels
+            # (e.g. aliases renamed by `make_orderby_compatible`).
+            if len(df.columns) < len(labels_expected):
+                raise QueryObjectValidationError(
+                    _("Db engine did not return all queried columns")
+                )
+            if len(df.columns) > len(labels_expected):
+                df = df.iloc[:, 0 : len(labels_expected)]
+            df.columns = labels_expected
             return df
 
         extras = query_obj.get("extras") or {}
@@ -3145,6 +3193,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         x_axis_label: str | None = None,
         x_axis_is_temporal: bool = False,
         x_axis_datetime_format: str | None = None,
+        resolved_week_offset: DateOffset | None = None,
     ) -> tuple[pd.DataFrame, list[str]]:
         """Determine appropriate join keys and modify DataFrames if needed."""
         if time_grain and not is_date_range_offset:
@@ -3162,7 +3211,12 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
 
             # Add offset join columns for relative time offsets
             self.add_offset_join_column(
-                df, column_name, time_grain, offset, join_column_producer
+                df,
+                column_name,
+                time_grain,
+                offset,
+                join_column_producer,
+                resolved_week_offset,
             )
             self.add_offset_join_column(
                 offset_df, column_name, time_grain, None, join_column_producer
@@ -3392,6 +3446,19 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 "DATE_RANGE_TIMESHIFTS_ENABLED"
             )
 
+            # Resolved once per offset, from the main series, and reused for
+            # both the join column and (if needed) the full-range coalesce
+            # below so the two cannot drift apart. Skipped entirely when a
+            # custom join_column_producer is configured: that path bypasses
+            # all built-in offset parsing (including normalize_time_delta),
+            # so resolving here could raise on an offset the producer itself
+            # never needs to parse.
+            resolved_week_offset = (
+                None
+                if join_column_producer
+                else self._resolve_week_grain_offset(df, time_grain, offset)
+            )
+
             offset_df, actual_join_keys = self._determine_join_keys(
                 df,
                 offset_df,
@@ -3403,6 +3470,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 x_axis_label,
                 x_axis_is_temporal,
                 x_axis_datetime_format,
+                resolved_week_offset,
             )
 
             # The full-range option is only meaningful for relative offsets aligned
@@ -3419,7 +3487,9 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             df = self._perform_join(df, offset_df, actual_join_keys, how=how)
 
             if use_outer_join:
-                df = self._coalesce_offset_index(df, offset, join_keys)
+                df = self._coalesce_offset_index(
+                    df, offset, join_keys, resolved_week_offset
+                )
 
             df = self._apply_cleanup_logic(
                 df, offset, time_grain, join_keys, is_date_range_offset
@@ -3441,6 +3511,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         df: pd.DataFrame,
         offset: str,
         join_keys: list[str],
+        resolved_week_offset: DateOffset | None = None,
     ) -> pd.DataFrame:
         """
         Rebuild the temporal x-axis after an outer join with an offset DataFrame.
@@ -3451,22 +3522,107 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         right-hand column, expressed in the offset's own time range (e.g. "yesterday
         15:00"). Shifting it forward by the offset places it on the main series'
         axis (e.g. "today 15:00") so the comparison line spans the full period.
+
+        Under a Week grain, ``resolved_week_offset`` is the same whole-week shift
+        used to build the join column (see ``_resolve_week_grain_offset``); reusing
+        it here instead of the raw calendar offset keeps this reconstructed axis
+        value aligned to the same weekday the join matched on.
         """
         x_axis = join_keys[0]
         offset_x_axis = f"{x_axis}{R_SUFFIX}"
         if x_axis not in df.columns or offset_x_axis not in df.columns:
             return df
 
-        # normalize_time_delta returns a negative delta for "... ago" offsets, so
-        # subtracting it shifts the historical timestamp forward onto the main axis.
-        try:
-            forward_shift = DateOffset(**normalize_time_delta(offset))
-        except (ValueError, TimeDeltaAmbiguousError):
-            return df
+        if resolved_week_offset is not None:
+            forward_shift = resolved_week_offset
+        else:
+            # normalize_time_delta returns a negative delta for "... ago"
+            # offsets, so subtracting it shifts the historical timestamp
+            # forward onto the main axis.
+            try:
+                forward_shift = DateOffset(**normalize_time_delta(offset))
+            except (ValueError, TimeDeltaAmbiguousError):
+                return df
 
         shifted = df[offset_x_axis] - forward_shift
         df[x_axis] = df[x_axis].fillna(shifted)
         return df
+
+    @staticmethod
+    def _resolve_week_grain_offset(
+        df: pd.DataFrame,
+        time_grain: str | None,
+        time_offset: str | None,
+    ) -> DateOffset | None:
+        """
+        Resolve a relative time offset applied under a Week grain to a single
+        whole-week ``DateOffset`` shared by every row of ``df``.
+
+        A calendar month/quarter/year is not a whole number of weeks, so
+        applying the raw calendar shift independently to each row rounds to a
+        different number of weeks depending on how many leap days or
+        month-length differences happen to fall inside that particular row's
+        span. Two main-series rows exactly one grain apart can then round to
+        *different* whole-week counts, colliding onto the same shifted date
+        (or skipping one). Resolving the shift once, from a single reference
+        date, and reusing that constant for every row keeps rows exactly as
+        many whole weeks apart as they started -- matching the offset
+        series' own real week-start dates, which are always aligned to the
+        grain's weekday.
+
+        Returns ``None`` when the offset does not apply (no offset, a date
+        range, or a non-Week grain), in which case callers fall back to the
+        original per-call calendar-offset behavior.
+        """
+        if (
+            not time_grain
+            or time_grain not in WEEK_GRAINS
+            or not time_offset
+            or ExploreMixin.is_valid_date_range_static(time_offset)
+            or df.empty
+        ):
+            return None
+
+        reference_column = df.iloc[:, 0]
+        reference_values = reference_column[
+            reference_column.apply(
+                lambda value: hasattr(value, "strftime") and pd.notna(value)
+            )
+        ]
+        if reference_values.empty:
+            return None
+
+        # The reference must be picked by value, not row position: two rows
+        # exactly one grain apart can shift by calendar spans that differ by
+        # up to a whole week (depending on how many leap days fall inside
+        # each row's own span), so whichever row happened to land first
+        # would make the resolved constant depend on DataFrame row order.
+        # The minimum is deterministic for a given set of dates regardless
+        # of ordering.
+        reference = reference_values.min()
+        calendar_offset = DateOffset(**normalize_time_delta(time_offset))
+        calendar_shifted = reference + calendar_offset
+        # Timedelta.days floors toward negative infinity, which would round
+        # e.g. an 83-hour ("< half a week") shift down to a full week instead
+        # of zero; dividing by a one-day Timedelta keeps the exact fraction.
+        exact_days = (calendar_shifted - reference) / Timedelta(days=1)
+        weeks = round(exact_days / 7)
+        if abs(exact_days) < 7:
+            # A sub-week offset (e.g. "3 days ago", "5 days ago") is not the
+            # weekday-drift case this resolution exists to fix -- it does not
+            # touch a calendar unit wider than a week, so per-row rounding
+            # cannot disagree between rows. Checking ``weeks == 0`` here is
+            # not enough: ``round()`` rounds to the nearest whole week rather
+            # than toward zero, so a 4-6 day offset already rounds to a
+            # nonzero week count (e.g. ``round(-5 / 7) == -1``) and would
+            # slip past that guard. Comparing the exact day count against a
+            # full week instead catches every sub-week offset. Returning a
+            # whole-week DateOffset here would override the raw per-row
+            # calendar shift, leaving every row shifted by the wrong number
+            # of days instead of the offset actually requested. Returning
+            # None restores that raw per-row behavior.
+            return None
+        return DateOffset(days=weeks * 7)
 
     def add_offset_join_column(
         self,
@@ -3475,6 +3631,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         time_grain: str,
         time_offset: str | None = None,
         join_column_producer: Any = None,
+        resolved_week_offset: DateOffset | None = None,
     ) -> None:
         """
         Adds an offset join column to the provided DataFrame.
@@ -3486,12 +3643,25 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         :param time_grain: The time grain used to calculate the new column.
         :param time_offset: The time offset used to calculate the new column.
         :param join_column_producer: A function to generate the join column.
+        :param resolved_week_offset: Under a Week grain, the single whole-week
+            ``DateOffset`` to apply to every row (see
+            ``_resolve_week_grain_offset``). Computed from ``df`` when not
+            supplied, so callers that already resolved it for this same
+            ``df`` and ``time_offset`` (e.g. to also reuse it in
+            ``_coalesce_offset_index``) can pass it through instead of
+            recomputing it.
         """
         if join_column_producer:
             df[name] = df.apply(lambda row: join_column_producer(row, 0), axis=1)
         else:
+            if resolved_week_offset is None:
+                resolved_week_offset = self._resolve_week_grain_offset(
+                    df, time_grain, time_offset
+                )
             df[name] = df.apply(
-                lambda row: self.generate_join_column(row, 0, time_grain, time_offset),
+                lambda row: self.generate_join_column(
+                    row, 0, time_grain, time_offset, resolved_week_offset
+                ),
                 axis=1,
             )
 
@@ -3501,12 +3671,16 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         column_index: int,
         time_grain: str,
         time_offset: str | None = None,
+        resolved_week_offset: DateOffset | None = None,
     ) -> str:
         value = row.iloc[column_index]
 
         if hasattr(value, "strftime"):
             if time_offset and not ExploreMixin.is_valid_date_range_static(time_offset):
-                value = value + DateOffset(**normalize_time_delta(time_offset))
+                if resolved_week_offset is not None:
+                    value = value + resolved_week_offset
+                else:
+                    value = value + DateOffset(**normalize_time_delta(time_offset))
 
             if time_grain in (
                 TimeGrain.WEEK_STARTING_SUNDAY,
@@ -3571,17 +3745,35 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                         msg=str(ex),
                     )
                 ) from ex
-            except (TemplateError, SupersetSyntaxErrorException) as ex:
-                # Extract error message from different exception types
+            except (
+                TemplateError,
+                SupersetSyntaxErrorException,
+                SupersetTemplateException,
+            ) as ex:
                 if isinstance(ex, TemplateError):
                     error_msg = ex.message
-                else:  # SupersetSyntaxErrorException
+                elif isinstance(ex, SupersetSyntaxErrorException):
                     error_msg = str(ex.errors[0].message if ex.errors else ex)
+                else:  # SupersetTemplateException
+                    error_msg = str(ex)
 
                 raise QueryObjectValidationError(
                     _(
                         "Error while rendering virtual dataset query: %(msg)s",
                         msg=error_msg,
+                    )
+                ) from ex
+            except TypeError as ex:
+                # Raised when a Python builtin invoked from within the template
+                # receives an unexpected type, e.g. `"','".join(filter_values(...))`
+                # where `filter_values()` returns non-string values (numeric filter
+                # values) and `str.join` fails with "expected str instance, int
+                # found". These are not TemplateError/UndefinedError, so they would
+                # otherwise escape as an unhandled 500.
+                raise QueryObjectValidationError(
+                    _(
+                        "Error while rendering virtual dataset query: %(msg)s",
+                        msg=str(ex),
                     )
                 ) from ex
 
@@ -3633,6 +3825,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                         self.schema or default_schema or "",
                         statement,
                         exclude_dataset_id=self_id,
+                        include_global_guest_rls=False,
                     ):
                         rls_applied = True
 
@@ -3660,12 +3853,33 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                             ),
                             self.database,
                             self.database.get_default_catalog(),
-                            exclude_dataset_id=self_id,
+                            # at least as strict as apply_rls(), which injects
+                            # this dataset's own RLS and the global guest rules
+                            # into the inner SQL's sub-queries
+                            exclude_dataset_id=(
+                                None if statement.has_subquery() else self_id
+                            ),
+                            include_global_guest_rls=statement.has_subquery(),
                         )
                         for statement in parsed_script.statements
                         for table in statement.tables
                     )
                 except Exception:  # pylint: disable=broad-except
+                    # This retry queries db.session again and rebuilds an
+                    # engine, so it can re-poison the session the outer handler
+                    # just rolled back. Roll back again: failing closed below
+                    # raises QueryObjectValidationError, which callers catch
+                    # and carry on from, and the continue-path keeps running
+                    # this query outright.
+                    #
+                    # Unconditional, mirroring the outer handler, rather than
+                    # gated on the exception being a SQLAlchemyError: this code
+                    # issues DB work and can then surface an unrelated error
+                    # (rendering an RLS clause, say) on a session the DB work
+                    # already poisoned. The outer handler has itself already
+                    # rolled back unconditionally by this point, so there is no
+                    # pending work left for this one to discard.
+                    db.session.rollback()  # pylint: disable=consider-using-transaction
                     rls_required = True
                 if rls_required:
                     raise QueryObjectValidationError(
@@ -4059,7 +4273,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             )
 
         if tf:
-            if tf in {"epoch_ms", "epoch_s"}:
+            if tf in EPOCH_FORMATS:
                 # In general, Superset works with timezone-naive datetime objects
                 # internally. However, timestamp() applies local timezone to
                 # timezone-naive datetime objects. Therefore, we have to be explicit
@@ -4069,9 +4283,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     dttm_tz_aware = dttm_tz_aware.replace(tzinfo=timezone.utc)
 
                 seconds_since_epoch = int(dttm_tz_aware.timestamp())
-                if tf == "epoch_s":
-                    return str(seconds_since_epoch)
-                return str(seconds_since_epoch * 1000)
+                return str(seconds_since_epoch * EPOCH_FORMATS[tf])
             return f"'{dttm.strftime(tf)}'"
 
         return f"""'{dttm.strftime("%Y-%m-%d %H:%M:%S.%f")}'"""
@@ -4426,7 +4638,33 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         type_ = column_spec.sqla_type if column_spec else None
         if expression := tbl_column.expression:
             if template_processor:
-                expression = template_processor.process_template(expression)
+                try:
+                    expression = template_processor.process_template(expression)
+                except UndefinedError as ex:
+                    raise QueryObjectValidationError(
+                        _(
+                            "Calculated column template error: %(msg)s",
+                            msg=str(ex),
+                        )
+                    ) from ex
+                except (
+                    TemplateError,
+                    SupersetSyntaxErrorException,
+                    SupersetTemplateException,
+                ) as ex:
+                    if isinstance(ex, TemplateError):
+                        error_msg = ex.message
+                    elif isinstance(ex, SupersetSyntaxErrorException):
+                        error_msg = str(ex.errors[0].message if ex.errors else ex)
+                    else:  # SupersetTemplateException
+                        error_msg = str(ex)
+                    raise QueryObjectValidationError(
+                        _(
+                            "Error while rendering calculated column "
+                            "expression: %(msg)s",
+                            msg=error_msg,
+                        )
+                    ) from ex
                 if expression != tbl_column.expression:
                     # Re-check the rendered expression before embedding it.
                     expression = validate_rendered_expression(
@@ -5595,6 +5833,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     qry = qry.where(top_groups)
 
         qry = qry.select_from(tbl)
+        self.rename_shadowing_aliases(qry)
 
         if is_rowcount:
             if not db_engine_spec.allows_subqueries:

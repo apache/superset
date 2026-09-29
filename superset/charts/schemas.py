@@ -592,15 +592,17 @@ class ChartDataAggregateOptionsSchema(ChartDataPostProcessingOperationOptionsSch
     Aggregate operation config.
     """
 
-    groupby = (
-        fields.List(
-            fields.String(
-                allow_none=False,
-                metadata={"description": "Columns by which to group by"},
-            ),
-            metadata={"minLength": 1},
-            required=True,
+    groupby = fields.List(
+        fields.String(
+            allow_none=False,
+            metadata={"description": "Columns by which to group by"},
         ),
+        # No lower bound: `aggregate()` reads an empty `groupby` as the
+        # global-aggregation case, grouping the frame as a whole, and the
+        # frontend's `aggregateOperator` emits exactly `groupby: []` for it.
+        # A `minItems` constraint here would document that request as invalid.
+        # The parameter has no default, though, so it is still required.
+        required=True,
     )
     aggregates = ChartDataAggregateConfigField()
 
@@ -610,17 +612,18 @@ class ChartDataRollingOptionsSchema(ChartDataPostProcessingOperationOptionsSchem
     Rolling operation config.
     """
 
-    columns = (
-        fields.Dict(
-            metadata={
-                "description": "columns on which to perform rolling, mapping source "
-                "column to target column. For instance, `{'y': 'y'}` will replace the "
-                "column `y` with the rolling value in `y`, while `{'y': 'y2'}` will add "  # noqa: E501
-                "a column `y2` based on rolling values calculated from `y`, leaving the "  # noqa: E501
-                "original column `y` unchanged.",
-                "example": {"weekly_rolling_sales": "sales"},
-            },
-        ),
+    columns = fields.Dict(
+        metadata={
+            "description": "columns on which to perform rolling, mapping source "
+            "column to target column. For instance, `{'y': 'y'}` will replace the "
+            "column `y` with the rolling value in `y`, while `{'y': 'y2'}` will add "
+            "a column `y2` based on rolling values calculated from `y`, leaving the "
+            "original column `y` unchanged.",
+            "example": {"sales": "weekly_rolling_sales"},
+        },
+        # `rolling()` takes `columns` positionally with no default, exactly as
+        # it takes `rolling_type`, which this schema already marks required.
+        required=True,
     )
     rolling_type = fields.String(
         metadata={
@@ -759,15 +762,28 @@ class ChartDataSortOptionsSchema(ChartDataPostProcessingOperationOptionsSchema):
     Sort operation config.
     """
 
-    columns = fields.Dict(
+    is_sort_index = fields.Boolean(
         metadata={
-            "description": "columns by by which to sort. The key specifies the column "
-            "name, value specifies if sorting in ascending order.",
-            "example": {"country": True, "gender": False},
+            "description": "Whether to sort by the index rather than by column values.",
+            "example": True,
         },
-        required=True,
     )
-    aggregates = ChartDataAggregateConfigField()
+    by = fields.Raw(
+        # TODO: add correct union type once supported by Marshmallow
+        metadata={
+            "description": "Name, or list of names, of the columns to sort by. "
+            "Ignored when `is_sort_index` is set.",
+            "example": "country",
+        },
+    )
+    ascending = fields.Raw(
+        # TODO: add correct union type once supported by Marshmallow
+        metadata={
+            "description": "Sort ascending (the default) or descending. A list of "
+            "booleans may be given to set the direction per entry in `by`.",
+            "example": True,
+        },
+    )
 
 
 class ChartDataContributionOptionsSchema(ChartDataPostProcessingOperationOptionsSchema):
@@ -847,13 +863,20 @@ class ChartDataProphetOptionsSchema(ChartDataPostProcessingOperationOptionsSchem
             "example": False,
         },
     )
-    monthly_seasonality = fields.Raw(
+    daily_seasonality = fields.Raw(
         # TODO: add correct union type once supported by Marshmallow
         metadata={
-            "description": "Should monthly seasonality be applied. "
+            "description": "Should daily seasonality be applied. "
             "An integer value will specify Fourier order of seasonality, `None` will "
             "automatically detect seasonality.",
             "example": False,
+        },
+    )
+    index = fields.String(
+        metadata={
+            "description": "Name of the column holding the x-axis data. Defaults to "
+            "`__timestamp`.",
+            "example": "__timestamp",
         },
     )
 
@@ -940,15 +963,17 @@ class ChartDataPivotOptionsSchema(ChartDataPostProcessingOperationOptionsSchema)
     Pivot operation config.
     """
 
-    index = (
-        fields.List(
-            fields.String(allow_none=False),
-            metadata={
-                "description": "Columns to group by on the table index (=rows)",
-                "minLength": 1,
-            },
-            required=True,
-        ),
+    index = fields.List(
+        fields.String(allow_none=False),
+        metadata={
+            "description": "Columns to group by on the table index (=rows)",
+        },
+        # `pivot()` rejects an empty index ("Pivot operation requires at least
+        # one index"), so the schema has to say so. The previous `minLength`
+        # metadata did neither: it is not a validator, and arrays use
+        # `minItems` in OpenAPI.
+        validate=Length(min=1),
+        required=True,
     )
     columns = fields.List(
         fields.String(allow_none=False),

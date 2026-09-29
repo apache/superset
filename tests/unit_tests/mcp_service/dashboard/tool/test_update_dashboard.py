@@ -155,6 +155,76 @@ class TestUpdateDashboard:
     @patch("superset.daos.dashboard.DashboardDAO.get_by_id_or_slug")
     @patch("superset.extensions.db.session")
     @pytest.mark.asyncio
+    async def test_update_layout_repairs_truncated_tabs_parents(
+        self, mock_session: Mock, mock_get: Mock, mcp_server: object
+    ) -> None:
+        """A replacement TABS layout whose ``parents`` hold only the
+        immediate parent is persisted with full
+        ancestor chains from ``ROOT_ID``, so
+        ``superset.dashboards.filter_scope`` derives non-empty
+        ``chartsInScope`` for dashboard-wide native filters on read."""
+        dash = _mock_dashboard(id=42)
+        chart = Mock(
+            id=1436,
+            slice_name="Out of production",
+            viz_type="table",
+            description=None,
+        )
+        dash.slices = [chart]
+        mock_get.return_value = dash
+
+        truncated_layout = {
+            "DASHBOARD_VERSION_KEY": "v2",
+            "ROOT_ID": {"id": "ROOT_ID", "type": "ROOT", "children": ["GRID_ID"]},
+            "GRID_ID": {
+                "id": "GRID_ID",
+                "type": "GRID",
+                "parents": ["ROOT_ID"],
+                "children": ["TABS-1"],
+            },
+            "TABS-1": {
+                "id": "TABS-1",
+                "type": "TABS",
+                "meta": {},
+                "parents": ["GRID_ID"],
+                "children": ["TAB-1"],
+            },
+            "TAB-1": {
+                "id": "TAB-1",
+                "type": "TAB",
+                "meta": {"text": "Overview"},
+                "parents": ["TABS-1"],
+                "children": ["CHART-1436"],
+            },
+            "CHART-1436": {
+                "id": "CHART-1436",
+                "type": "CHART",
+                "parents": ["TAB-1"],
+                "meta": {"chartId": 1436},
+            },
+        }
+
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "update_dashboard",
+                {"request": {"identifier": 42, "position_json": truncated_layout}},
+            )
+
+        payload = json.loads(result.content[0].text)
+        assert payload.get("error") is None
+
+        stored = json.loads(dash.position_json)
+        assert stored["CHART-1436"]["parents"] == [
+            "ROOT_ID",
+            "GRID_ID",
+            "TABS-1",
+            "TAB-1",
+        ]
+        assert stored["TAB-1"]["parents"] == ["ROOT_ID", "GRID_ID", "TABS-1"]
+
+    @patch("superset.daos.dashboard.DashboardDAO.get_by_id_or_slug")
+    @patch("superset.extensions.db.session")
+    @pytest.mark.asyncio
     async def test_read_modify_write_persists_clean_dashboard_values(
         self, mock_session: Mock, mock_get: Mock, mcp_server: object
     ) -> None:

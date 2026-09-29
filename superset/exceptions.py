@@ -206,7 +206,26 @@ class SpatialException(SupersetException):
 
 
 class CertificateException(SupersetException):
-    message = _("Invalid certificate")
+    def __init__(
+        self,
+        message: str = "",
+        exception: Optional[Exception] = None,
+        error_type: Optional[SupersetErrorType] = None,
+    ) -> None:
+        """Translate the default certificate error when constructing the exception.
+
+        Replaces this subclass's class-level ``message`` default with
+        construction-time translation, which resolves to a
+        plain ``str`` inside the request that raises, so no LazyString
+        can leak into ``to_dict()`` / JSON error bodies (the degradation
+        class fixed for ``json_error_response``). The class-level
+        ``message`` falls back to the base's empty default.
+        """
+        super().__init__(
+            message=message or _("Invalid certificate"),
+            exception=exception,
+            error_type=error_type,
+        )
 
 
 class DatabaseNotFound(SupersetException):
@@ -416,6 +435,29 @@ class OAuth2Error(SupersetErrorException):
                 error_type=SupersetErrorType.OAUTH2_REDIRECT_ERROR,
                 level=ErrorLevel.ERROR,
                 extra={"error": error},
+            )
+        )
+
+
+class OAuth2RejectedError(SupersetErrorException):
+    """
+    Exception for when the OAuth2 callback itself can't be completed.
+
+    Raised when the provider denies authorization or the callback request
+    can't be trusted (missing/invalid state, no authenticated session).
+    These are conditions the caller could correct by retrying the OAuth2
+    flow, so unlike ``OAuth2Error`` this maps to a 4xx response instead of
+    a 500.
+    """
+
+    status = 400
+
+    def __init__(self, error: str):
+        super().__init__(
+            SupersetError(
+                message=error,
+                error_type=SupersetErrorType.OAUTH2_REDIRECT_ERROR,
+                level=ErrorLevel.WARNING,
             )
         )
 
