@@ -22,6 +22,7 @@ MCP tool: update_chart_preview
 import logging
 import time
 from collections.abc import Callable
+from contextlib import ExitStack
 from functools import wraps
 from typing import Any, cast, Dict
 
@@ -51,7 +52,11 @@ from superset.mcp_service.chart.preview_utils import (
     generate_preview_from_form_data,
     SUPPORTED_FORM_DATA_PREVIEW_FORMATS,
 )
-from superset.mcp_service.chart.registry import get_registry, plugin_for_viz_type
+from superset.mcp_service.chart.registry import (
+    get_registry,
+    plugin_for_viz_type,
+    saved_chart_contract,
+)
 from superset.mcp_service.chart.response_preflight import (
     preflight_update_preview_response,
 )
@@ -169,6 +174,7 @@ def update_chart_preview(  # noqa: C901
     HTTP in local development).
     """
     start_time = time.time()
+    contract_scope = ExitStack()
 
     try:
         # config is already a typed ChartConfig (validated by Pydantic)
@@ -221,6 +227,11 @@ def update_chart_preview(  # noqa: C901
                 or (previous_form_data or {}).get("datasource_id")
                 or ""
             ).split("__", 1)[0]
+            # The cached chart keeps its plugin's contract for the whole
+            # update, even when its chart type is disabled for new charts.
+            contract_scope.enter_context(
+                saved_chart_contract((previous_form_data or {}).get("viz_type"))
+            )
             plugin = get_registry().get(config.chart_type)
             dataset_rebind = previous_datasource != str(dataset.id) and (
                 bool(previous_datasource)
@@ -551,3 +562,5 @@ def update_chart_preview(  # noqa: C901
             "schema_version": "2.0",
             "api_version": "v1",
         }
+    finally:
+        contract_scope.close()

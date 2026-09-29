@@ -49,7 +49,6 @@ class GanttChartPlugin(BaseChartPlugin):
     native_viz_types: ClassVar[Mapping[str, str]] = {
         "gantt_chart": "Gantt Chart",
     }
-    allows_empty_result = True
     owns_update_merge = True
     strict_dataset_rebind = True
     resizes_saved_preview = True

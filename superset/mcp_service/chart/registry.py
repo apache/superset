@@ -39,7 +39,9 @@ from __future__ import annotations
 import logging
 import sys
 import threading
-from collections.abc import Callable, Iterable
+from collections.abc import Callable, Iterable, Iterator
+from contextlib import contextmanager
+from contextvars import ContextVar
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
@@ -68,6 +70,12 @@ class _PluginFilterConfig:
 
 
 _filter_config: _PluginFilterConfig = _PluginFilterConfig()
+
+# chart_type that get() resolves regardless of runtime enablement while a saved
+# chart of that type is updated (see saved_chart_contract()).
+_saved_chart_type: ContextVar[str | None] = ContextVar(
+    "mcp_saved_chart_type", default=None
+)
 
 
 def _ensure_plugins_loaded() -> None:
@@ -214,10 +222,34 @@ def plugin_for_viz_type(viz_type: str | None) -> "ChartTypePlugin | None":
     return None
 
 
+@contextmanager
+def saved_chart_contract(viz_type: str | None) -> Iterator["ChartTypePlugin | None"]:
+    """Keep a saved chart's plugin resolvable while that chart is updated.
+
+    Yields ``plugin_for_viz_type(viz_type)``. Inside the block, get() returns
+    that plugin for its chart_type even when the type is disabled, so update
+    config resolution, dataset rebinds, form_data mapping and validation apply
+    the same contract as the merge step. Other disabled chart types stay
+    hidden: an update cannot switch a chart to a type disabled for new charts.
+    """
+    plugin = plugin_for_viz_type(viz_type)
+    token = _saved_chart_type.set(plugin.chart_type if plugin else None)
+    try:
+        yield plugin
+    finally:
+        _saved_chart_type.reset(token)
+
+
 def get(chart_type: str) -> "ChartTypePlugin | None":
-    """Return the plugin for chart_type, or None if unknown or disabled."""
+    """Return the plugin for chart_type, or None if unknown or disabled.
+
+    A disabled chart_type still resolves for the saved chart being updated
+    inside saved_chart_contract().
+    """
     _ensure_plugins_loaded()
-    if chart_type not in _REGISTRY or not _is_plugin_enabled(chart_type):
+    if chart_type not in _REGISTRY:
+        return None
+    if chart_type != _saved_chart_type.get() and not _is_plugin_enabled(chart_type):
         return None
     return _REGISTRY[chart_type]
 

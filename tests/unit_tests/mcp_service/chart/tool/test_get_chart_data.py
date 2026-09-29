@@ -4911,6 +4911,109 @@ async def test_form_data_key_bullet_duration_producer_uses_chart_data_wire(
     assert [row["Duration"] for row in payload["data"]] == expected
 
 
+GANTT_FORM_DATA: dict[str, Any] = {
+    "viz_type": "gantt_chart",
+    "start_time": "start_time",
+    "end_time": "end_time",
+    "y_axis": "task",
+}
+
+
+@pytest.mark.asyncio
+async def test_saved_empty_gantt_get_data_reports_no_data(
+    mcp_server: Any, mock_auth: Any
+) -> None:
+    """Only Bullet treats a zero-row result as renderable; Gantt reports NoData."""
+    from unittest.mock import patch
+
+    from fastmcp import Client
+
+    module = importlib.import_module("superset.mcp_service.chart.tool.get_chart_data")
+    command_module = importlib.import_module(
+        "superset.commands.chart.data.get_data_command"
+    )
+    chart = SimpleNamespace(
+        id=22,
+        slice_name="Empty Gantt",
+        viz_type="gantt_chart",
+        datasource_id=1,
+        datasource_type="table",
+        query_context='{"queries": []}',
+        params=json.dumps(GANTT_FORM_DATA),
+    )
+    command = MagicMock()
+    command.run.return_value = {
+        "queries": [
+            {
+                "data": [],
+                "colnames": ["start_time", "end_time", "task"],
+                "rowcount": 0,
+            }
+        ]
+    }
+
+    with (
+        patch.object(module, "find_chart_by_identifier", return_value=chart),
+        patch.object(
+            module,
+            "validate_chart_dataset",
+            return_value=SimpleNamespace(is_valid=True, warnings=[], error=None),
+        ),
+        patch(
+            "superset.charts.schemas.ChartDataQueryContextSchema.load",
+            return_value=_query_context_stub(),
+        ),
+        patch.object(command_module, "ChartDataCommand", lambda _context: command),
+    ):
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "get_chart_data", {"request": {"identifier": 22}}
+            )
+
+    payload = json.loads(result.content[0].text)
+    assert payload["error_type"] == "NoData"
+
+
+@pytest.mark.asyncio
+async def test_unsaved_empty_gantt_get_data_reports_no_data(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from unittest.mock import AsyncMock
+
+    chart_data_module = importlib.import_module(
+        "superset.mcp_service.chart.tool.get_chart_data"
+    )
+    get_data_command_module = importlib.import_module(
+        "superset.commands.chart.data.get_data_command"
+    )
+    command = MagicMock()
+    command.run.return_value = {
+        "queries": [{"data": [], "colnames": ["start_time", "end_time", "task"]}]
+    }
+    monkeypatch.setattr(
+        chart_data_module,
+        "build_query_context_from_form_data",
+        lambda *_args, **_kwargs: _query_context_stub(),
+    )
+    monkeypatch.setattr(
+        chart_data_module,
+        "event_logger",
+        SimpleNamespace(log_context=lambda **_kwargs: nullcontext()),
+    )
+    monkeypatch.setattr(
+        get_data_command_module, "ChartDataCommand", lambda _context: command
+    )
+
+    response = await _query_from_form_data(
+        {**GANTT_FORM_DATA, "datasource_id": 1, "datasource_type": "table"},
+        GetChartDataRequest(form_data_key="empty-gantt"),
+        AsyncMock(),
+    )
+
+    assert isinstance(response, ChartError)
+    assert response.error_type == "NoData"
+
+
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
     ("grouped", "format_", "identifier_alias", "excel_engine"),

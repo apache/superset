@@ -21,6 +21,7 @@ MCP tool: update_chart
 
 import logging
 import time
+from contextlib import ExitStack
 from typing import Any
 
 from fastmcp import Context
@@ -47,7 +48,11 @@ from superset.mcp_service.chart.chart_utils import (
     merge_update_form_data,
 )
 from superset.mcp_service.chart.compile import validate_and_compile
-from superset.mcp_service.chart.registry import get_registry, plugin_for_viz_type
+from superset.mcp_service.chart.registry import (
+    get_registry,
+    plugin_for_viz_type,
+    saved_chart_contract,
+)
 from superset.mcp_service.chart.response_preflight import (
     preflight_generate_chart_response,
 )
@@ -850,6 +855,7 @@ async def update_chart(  # noqa: C901
     - Preview URL and explore URL for further editing
     """
     start_time = time.time()
+    contract_scope = ExitStack()
 
     try:
         with event_logger.log_context(action="mcp.update_chart.chart_lookup"):
@@ -875,7 +881,11 @@ async def update_chart(  # noqa: C901
                 }
             )
 
-        saved_plugin = plugin_for_viz_type(getattr(chart, "viz_type", None))
+        # The saved chart keeps its plugin's contract for the whole update,
+        # even when its chart type is disabled for new charts.
+        saved_plugin = contract_scope.enter_context(
+            saved_chart_contract(getattr(chart, "viz_type", None))
+        )
         if (
             request.dataset_id is not None
             and request.dataset_id != getattr(chart, "datasource_id", None)
@@ -1254,3 +1264,5 @@ async def update_chart(  # noqa: C901
                 "api_version": "v1",
             }
         )
+    finally:
+        contract_scope.close()
