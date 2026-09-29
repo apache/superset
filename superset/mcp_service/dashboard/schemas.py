@@ -1604,8 +1604,8 @@ class DashboardLayout(BaseModel):
     untabbed_chart_count: int = Field(
         0,
         description=(
-            "Distinct charts placed outside every tab in the full dashboard "
-            "layout; request untabbed_only to list them."
+            "Count of distinct charts outside every tab in the full layout; "
+            "untabbed_only lists each placement."
         ),
     )
     scope: DashboardLayoutScope | None = Field(

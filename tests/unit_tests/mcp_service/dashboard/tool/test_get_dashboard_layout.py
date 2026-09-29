@@ -795,6 +795,42 @@ async def test_layout_untabbed_charts_are_reachable(
     assert all(chart in full["charts"] for chart in untabbed["charts"])
 
 
+def test_layout_untabbed_count_is_distinct_charts() -> None:
+    """untabbed_chart_count counts distinct charts; untabbed_only lists placements."""
+    from superset.mcp_service.utils.response_size_utils import (
+        format_size_limit_error,
+    )
+
+    position = json.loads(_mixed_layout())
+    position["ROW-top"]["children"] = ["CHART-u", "CHART-u2", "CHART-none"]
+    position["CHART-u2"] = {
+        **position["CHART-u"],
+        "id": "CHART-u2",
+    }
+    position["CHART-none"] = {
+        "type": "CHART",
+        "id": "CHART-none",
+        "parents": ["ROOT_ID", "GRID_ID", "ROW-top"],
+        "children": [],
+        "meta": {"sliceName": "Unsaved"},
+    }
+    position_json = json.dumps(position)
+
+    full = _scoped_payload(position_json)
+    untabbed = _scoped_payload(position_json, untabbed_only=True)
+    assert full["untabbed_chart_count"] == 1
+    assert [chart["chart_id"] for chart in untabbed["charts"]] == [30, 30, None]
+
+    message = format_size_limit_error(
+        tool_name="get_dashboard_layout",
+        params={"request": {"identifier": 1}},
+        actual_bytes=200_000,
+        max_bytes=100_000,
+        response=full,
+    )
+    assert "outside every tab (1 distinct chart)." in message
+
+
 @patch("superset.daos.dashboard.DashboardDAO.find_by_id")
 @pytest.mark.asyncio
 async def test_layout_untabbed_only_on_untabbed_dashboard(
@@ -872,7 +908,7 @@ def _scoped_payload(position_json: str, **options: Any) -> dict[str, Any]:
                 "tabs_only=true",
                 'tab="<ID or title>"',
                 "untabbed_only=true",
-                "outside every tab (4 charts)",
+                "outside every tab (4 distinct charts)",
             ],
             [],
         ),

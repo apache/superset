@@ -377,7 +377,12 @@ def _unscoped_layout_suggestions(
     if untabbed_count or not known:
         suggestions.append(
             "Pass untabbed_only=true to get the charts placed outside every tab"
-            + (f" ({untabbed_count} charts)." if untabbed_count else ".")
+            + (
+                f" ({untabbed_count} distinct "
+                f"{'chart' if untabbed_count == 1 else 'charts'})."
+                if untabbed_count
+                else "."
+            )
         )
     return suggestions
 
