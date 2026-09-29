@@ -297,6 +297,13 @@ class KustoKqlEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
         return "unixtime_milliseconds_todatetime({col})"
 
     @classmethod
+    def epoch_us_to_dttm(cls) -> str:
+        """
+        Convert from number of microseconds since the epoch to a timestamp.
+        """
+        return "unixtime_microseconds_todatetime({col})"
+
+    @classmethod
     def convert_dttm(
         cls, target_type: str, dttm: datetime, db_extra: Optional[dict[str, Any]] = None
     ) -> Optional[str]:

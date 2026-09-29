@@ -892,6 +892,69 @@ class TestGenerateDashboard:
     @patch("superset.daos.dashboard.DashboardDAO.find_by_id")
     @patch("superset.db.session")
     @pytest.mark.asyncio
+    async def test_generate_dashboard_position_json_repairs_detached_cycle(
+        self,
+        mock_db_session,
+        mock_find_by_id,
+        mock_dashboard_cls,
+        mcp_server,
+    ) -> None:
+        """A caller-supplied layout with a detached COLUMN/ROW cycle is
+        repaired like the other write paths: the cycle is dropped and the
+        chart trapped in it is reattached under the grid."""
+        from superset.utils import json
+
+        charts = [_mock_chart(id=1, slice_name="Sales")]
+        mock_dashboard = _mock_dashboard(id=73, title="Detached Cycle")
+        _setup_generate_dashboard_mocks(
+            mock_db_session,
+            mock_find_by_id,
+            mock_dashboard_cls,
+            charts,
+            mock_dashboard,
+        )
+
+        layout = {
+            "DASHBOARD_VERSION_KEY": "v2",
+            "ROOT_ID": {"id": "ROOT_ID", "type": "ROOT", "children": ["GRID_ID"]},
+            "GRID_ID": {"id": "GRID_ID", "type": "GRID", "children": []},
+            "COLUMN-orphan": {
+                "id": "COLUMN-orphan",
+                "type": "COLUMN",
+                "children": ["CHART-1", "ROW-orphan"],
+            },
+            "ROW-orphan": {
+                "id": "ROW-orphan",
+                "type": "ROW",
+                "children": ["COLUMN-orphan"],
+            },
+            "CHART-1": {
+                "id": "CHART-1",
+                "type": "CHART",
+                "children": [],
+                "meta": {"chartId": 1},
+            },
+        }
+        request = {
+            "chart_ids": [1],
+            "dashboard_title": "Detached Cycle",
+            "position_json": layout,
+        }
+
+        async with Client(mcp_server) as client:
+            result = await client.call_tool("generate_dashboard", {"request": request})
+
+            assert result.structured_content["error"] is None
+            stored = json.loads(mock_dashboard_cls.return_value.position_json)
+            assert "COLUMN-orphan" not in stored
+            assert "ROW-orphan" not in stored
+            [new_row_id] = stored["GRID_ID"]["children"]
+            assert stored["CHART-1"]["parents"] == ["ROOT_ID", "GRID_ID", new_row_id]
+
+    @patch("superset.models.dashboard.Dashboard")
+    @patch("superset.daos.dashboard.DashboardDAO.find_by_id")
+    @patch("superset.db.session")
+    @pytest.mark.asyncio
     async def test_generate_dashboard_position_json_root_children_not_a_list(
         self,
         mock_db_session,
