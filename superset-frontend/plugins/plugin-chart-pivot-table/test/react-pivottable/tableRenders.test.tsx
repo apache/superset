@@ -443,6 +443,28 @@ test('TableRenderer renders with multiple column dimensions', () => {
   expect(screen.getByText('Q2')).toBeInTheDocument();
 });
 
+test('TableRenderer invokes clickRowHeaderCallback as a grand total click when the merged row-attribute name cell is clicked', () => {
+  const clickRowHeaderCallback = jest.fn();
+  const props = buildDefaultProps({
+    tableOptions: { clickRowHeaderCallback },
+  });
+  renderWithTheme(<TableRenderer {...props} />);
+
+  // With one row attribute and one column attribute, the row-attribute name
+  // cell absorbs the removed blank pvtTotalLabel spacer's click contract (see
+  // mergeTotalLabel in TableRenderers.tsx), so clicking it should invoke
+  // clickRowHeaderCallback with isGrandTotal=true, same as the old spacer.
+  const rowAttrNameCell = screen.getByText('color').closest('th');
+  expect(rowAttrNameCell).not.toBeNull();
+  fireEvent.click(rowAttrNameCell!);
+
+  expect(clickRowHeaderCallback).toHaveBeenCalledTimes(1);
+  const [, , , , isSubtotal, isGrandTotal] =
+    clickRowHeaderCallback.mock.calls[0];
+  expect(isSubtotal).toBe(false);
+  expect(isGrandTotal).toBe(true);
+});
+
 test('TableRenderer renders value cells with the pvtVal class', () => {
   const props = buildDefaultProps();
   renderWithTheme(<TableRenderer {...props} />);

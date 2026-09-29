@@ -905,8 +905,11 @@ export function TableRenderer(props: TableRendererProps) {
       // is rowAttrs.length + 1 columns wide: the row-attribute columns plus
       // the padding column that renderTableRow folds into the last row
       // label. Span the column-attribute name across that whole block so a
-      // single sticky cell freezes it, rather than a rowAttrs-wide spacer
-      // that leaves the name's own column scrolling through the corner.
+      // single cell can freeze it when sticky positioning applies (see
+      // canFreezeRowLabels below, which limits that to a single row
+      // dimension; with more it falls back to `position: inherit`), rather
+      // than a rowAttrs-wide spacer that leaves the name's own column
+      // scrolling through the corner.
       const hasRowAttrs = settingsRowAttrs.length !== 0;
       const attrNameCell = (
         <th
@@ -1147,8 +1150,9 @@ export function TableRenderer(props: TableRendererProps) {
       // attrValuePaddingCell rendered after the row's own label cells.
       // Mirror the full-row case here by folding the trailing placeholder
       // into the last axis-label cell instead of rendering it separately,
-      // so the frozen corner block in the header spans the same columns as
-      // the frozen cell(s) it sits above.
+      // so the corner block in the header spans the same columns as the
+      // cell(s) it sits above when sticky positioning applies (a single row
+      // dimension only; canFreezeRowLabels falls back to non-sticky for more).
       const mergeTotalLabel =
         settingsColAttrs.length !== 0 && settingsRowAttrs.length !== 0;
       const totalLabelClickHandler = clickHeaderHandler(
