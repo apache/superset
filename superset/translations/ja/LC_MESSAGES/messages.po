@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-24 10:35+0300\n"
+"POT-Creation-Date: 2026-09-29 13:11+0000\n"
 "PO-Revision-Date: 2024-05-14 13:30+0900\n"
 "Last-Translator: Yuri Umezaki <bungoume@gmail.com>\n"
 "Language: ja\n"
@@ -134,19 +134,12 @@ msgid ""
 "Note\n"
 "                      currently time zones are not supported. If time is "
 "stored\n"
-"                      in epoch format, put `epoch_s` or `epoch_ms`. If no"
-" pattern\n"
+"                      in epoch format, put `epoch_s`, `epoch_ms` or "
+"`epoch_us`. If no pattern\n"
 "                      is specified we fall back to using the optional "
 "defaults on a per\n"
 "                      database/column name level via the extra parameter."
 msgstr ""
-"辞書順(文字列順)が時系列順と一致することを保証するための標準規格です。\n"
-"                      タイムスタンプ形式が ISO 8601 標準に準拠していない場合は、\n"
-"                      文字列を日付またはタイムスタンプに変換するための式と型を定義する必要があります。\n"
-"                      注：現時点ではタイムゾーンはサポートされていません。時間がエポック形式(UNIX時間)で\n"
-"                      保存されている場合は、`epoch_s` または `epoch_ms` を指定してください。パターンが"
-"\n"
-"                      指定されていない場合は、追加パラメータを介してデータベース/列レベルの既定値が適用されます。"
 
 msgid " to add calculated columns"
 msgstr "計算列を追加する"
@@ -932,6 +925,9 @@ msgstr ""
 " title: { text: \"My Chart\" }, tooltip: { trigger: \"item\" } }）。詳細: "
 "https://echarts.apache.org/en/option.html. "
 
+msgid "A Slack channel is required for Slack recipients"
+msgstr ""
+
 msgid "A TTL is required for ephemeral state."
 msgstr ""
 
@@ -1507,6 +1503,9 @@ msgstr "影響を受けるチャート"
 
 msgid "Affected Dashboards"
 msgstr "影響を受けるダッシュボード"
+
+msgid "Affected Datasets"
+msgstr ""
 
 msgid "Affected semantic views"
 msgstr ""
@@ -4680,6 +4679,9 @@ msgstr "ダッシュボードを復元できませんでした。"
 msgid "Dashboard could not be updated."
 msgstr "ダッシュボードを更新できませんでした。"
 
+msgid "Dashboard data exported to Excel"
+msgstr ""
+
 msgid "Dashboard does not exist"
 msgstr "ダッシュボードが存在しません"
 
@@ -4688,6 +4690,9 @@ msgstr "ダッシュボードの構成をエクスポートしました"
 
 msgid "Dashboard exported successfully"
 msgstr "ダッシュボードのエクスポートが完了しました"
+
+msgid "Dashboard has no charts to export."
+msgstr ""
 
 msgid "Dashboard imported"
 msgstr "ダッシュボードをインポートしました"
@@ -5012,6 +5017,9 @@ msgstr "日付形式"
 msgid "Date format string"
 msgstr "日付書式文字列"
 
+msgid "Date range filter"
+msgstr ""
+
 msgid "Date/Time"
 msgstr "日付/時刻"
 
@@ -5244,6 +5252,11 @@ msgstr "グループを削除"
 
 msgid "Delete item"
 msgstr "項目を削除"
+
+msgid ""
+"Delete or move active datasets. To remove archived datasets, open "
+"Recently archived and select Delete permanently."
+msgstr ""
 
 msgid "Delete permanently"
 msgstr ""
@@ -6499,9 +6512,6 @@ msgstr "Excelエクスポート"
 msgid "Excel XML Export"
 msgstr "Excel XMLエクスポート"
 
-msgid "Excel export is not configured on this server."
-msgstr ""
-
 msgid "Excel file format cannot be determined"
 msgstr "Excelファイルの形式を特定できません"
 
@@ -6663,6 +6673,11 @@ msgstr "基データCSVとしてエクスポート"
 
 msgid "Export to pivoted .CSV"
 msgstr "ピボット済みCSVとしてエクスポート"
+
+msgid ""
+"Exporting images to Excel requires background exports. Ask an "
+"administrator to enable them, or export the dashboard's data instead."
+msgstr ""
 
 #, python-format
 msgid ""
@@ -9689,6 +9704,11 @@ msgstr "なし -> 矢印"
 msgid "None -> None"
 msgstr "なし -> なし"
 
+msgid ""
+"None of this dashboard's charts can be downloaded directly. Ask an "
+"administrator to enable background exports."
+msgstr ""
+
 msgid "Normal"
 msgstr "標準"
 
@@ -9712,6 +9732,15 @@ msgstr "等しくない (≠)"
 
 msgid "Not Time Series"
 msgstr "非時系列"
+
+#, python-format
+msgid ""
+"Not a Slack channel id: %(invalid)s. Superset uploads report attachments "
+"with files_upload_v2, which accepts a channel id and rejects a channel "
+"name, so a name is saved successfully and then never delivers. Choose the"
+" channel from the dropdown, or copy its id from Slack (channel name, View"
+" channel details, the id is at the bottom)."
+msgstr ""
 
 msgid "Not a valid ZIP file"
 msgstr "有効なZIPファイルではありません"
@@ -10517,6 +10546,11 @@ msgid "Plain"
 msgstr "プレーン"
 
 msgid ""
+"Plain calendar date-range filter, with no time-of-day or relative-range "
+"options"
+msgstr ""
+
+msgid ""
 "Please check your query and confirm that all template parameters are "
 "surround by double braces, for example, \"{{ ds }}\". Then, try running "
 "your query again."
@@ -10740,6 +10774,12 @@ msgstr "接頭辞または接尾辞"
 
 #, python-format
 msgid "Preparing %(count)s charts for export. This may take a moment."
+msgstr ""
+
+msgid "Preparing dashboard Excel export…"
+msgstr ""
+
+msgid "Preparing export…"
 msgstr ""
 
 msgid "Preview"
@@ -14324,6 +14364,12 @@ msgid ""
 msgstr ""
 
 msgid ""
+"The following charts were omitted because their size cannot be determined"
+" before they run. Ask an administrator to enable background exports to "
+"include them."
+msgstr ""
+
+msgid ""
 "The following charts were omitted because they have no saved query "
 "context. To include them, open each chart in Explore and re-save."
 msgstr ""
@@ -15189,6 +15235,12 @@ msgstr "選択したクエリのプレビュー中に問題が発生しました
 
 #, python-format
 msgid ""
+"These %(type)s will be moved to Recently Archived and may be permanently "
+"deleted on the next cleanup run."
+msgstr ""
+
+#, python-format
+msgid ""
 "These %(type)s will be moved to Recently Archived in the Settings menu. "
 "You can recover them there within %(days)s day."
 msgid_plural ""
@@ -15204,6 +15256,12 @@ msgstr ""
 
 msgid "These are the datasets this filter will be applied to."
 msgstr "このフィルターが適用されるデータセットです。"
+
+#, python-format
+msgid ""
+"This %(type)s will be moved to Recently Archived and may be permanently "
+"deleted on the next cleanup run."
+msgstr ""
 
 #, python-format
 msgid ""
@@ -15332,6 +15390,12 @@ msgstr ""
 
 msgid "This dashboard does not exist"
 msgstr "このダッシュボードは存在しません"
+
+msgid ""
+"This dashboard has too much data to download directly. Ask an "
+"administrator to enable background exports, or lower the row limits of "
+"its charts."
+msgstr ""
 
 msgid "This dashboard is managed externally, and can't be edited in Superset"
 msgstr "このダッシュボードは外部で管理されているため、Superset では編集できません"
@@ -16068,6 +16132,9 @@ msgstr "火曜日"
 
 msgid "Tukey"
 msgstr "Tukey"
+
+msgid "Turn off the logarithmic axis before stacking bars"
+msgstr ""
 
 msgid "Type"
 msgstr "種類"
@@ -18062,6 +18129,11 @@ msgstr "変更を保存するまでは、ボタン (Cmd + Z) で操作可能で�
 
 msgid "by using"
 msgstr "以下を使用して"
+
+#, python-format
+msgid "cannot be deleted because %s dataset is still attached to it."
+msgid_plural "cannot be deleted because %s datasets are still attached to it."
+msgstr[0] ""
 
 msgid "cannot be empty"
 msgstr "空にできません"

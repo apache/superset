@@ -25,7 +25,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-24 10:35+0300\n"
+"POT-Creation-Date: 2026-09-29 13:11+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -4989,6 +4989,9 @@ msgid "Date format"
 msgstr ""
 
 msgid "Date format string"
+msgstr ""
+
+msgid "Date range filter"
 msgstr ""
 
 msgid "Date/Time"
@@ -10508,6 +10511,11 @@ msgid "Plain"
 msgstr ""
 
 msgid ""
+"Plain calendar date-range filter, with no time-of-day or relative-range "
+"options"
+msgstr ""
+
+msgid ""
 "Please check your query and confirm that all template parameters are "
 "surround by double braces, for example, \"{{ ds }}\". Then, try running "
 "your query again."
@@ -15134,7 +15142,9 @@ msgid "There was an issue previewing the selected query. %s"
 msgstr ""
 
 #, python-format
-msgid "These %(type)s will be moved to Recently Archived and may be permanently deleted on the next cleanup run."
+msgid ""
+"These %(type)s will be moved to Recently Archived and may be permanently "
+"deleted on the next cleanup run."
 msgstr ""
 
 #, python-format
@@ -15157,7 +15167,9 @@ msgid "These are the datasets this filter will be applied to."
 msgstr ""
 
 #, python-format
-msgid "This %(type)s will be moved to Recently Archived and may be permanently deleted on the next cleanup run."
+msgid ""
+"This %(type)s will be moved to Recently Archived and may be permanently "
+"deleted on the next cleanup run."
 msgstr ""
 
 #, python-format
