@@ -53,6 +53,10 @@ export default function transformData(
     : undefined;
   const fieldtype = options.countryFieldtype;
 
+  const metricLabels = [
+    metricLabel,
+    ...(secondaryLabel ? [secondaryLabel] : []),
+  ];
   const seen = new Set<string>();
   return records.map(record => {
     const row: WorldMapDataRow = {
@@ -78,10 +82,7 @@ export default function transformData(
         );
       }
       seen.add(countryInfo.cca3);
-      for (const label of [
-        metricLabel,
-        ...(secondaryLabel ? [secondaryLabel] : []),
-      ]) {
+      for (const label of metricLabels) {
         const value = record[label];
         if (typeof value !== 'number' || !Number.isFinite(value)) {
           throw new Error(

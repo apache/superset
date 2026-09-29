@@ -205,3 +205,39 @@ test('conditional formatting uses the normalized region metric and preserves the
   ]);
   expect(transformed.formatters[0].getColorFromValue(10)).toBe('#FF0000');
 });
+
+test.each([undefined, null, 'missing', '10', Number.NaN, Infinity])(
+  'typed country maps leave sparse/non-numeric metric %s blank',
+  count => {
+    const sparse =
+      count === undefined ? { state: 'CA' } : { state: 'CA', count };
+    const data = [
+      sparse,
+      { state: 'NY', count: 0 },
+      { state: 'TX', count: 10 },
+    ];
+    const original = data.map(row => ({ ...row }));
+    const transformed = transformProps(
+      createProps(
+        { entity: 'state', selectCountry: 'usa', regionFormat: 'abbreviation' },
+        { queriesData: [{ data }] },
+      ),
+    );
+    expect(transformed.data).toEqual([
+      { country_id: 'US-NY', source_value: 'NY', metric: 0 },
+      { country_id: 'US-TX', source_value: 'TX', metric: 10 },
+    ]);
+    expect(data).toEqual(original);
+  },
+);
+
+test('typed country maps still reject unresolved regions with NULL metrics', () => {
+  expect(() =>
+    transformProps(
+      createProps(
+        { entity: 'state', selectCountry: 'usa', regionFormat: 'abbreviation' },
+        { queriesData: [{ data: [{ state: 'BC', count: null }] }] },
+      ),
+    ),
+  ).toThrow('Unrecognized');
+});

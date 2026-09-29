@@ -62,18 +62,6 @@ export default function transformProps(chartProps: ChartProps) {
   // labels, so the rename happens here.
   const entityLabel = getColumnLabel(entity);
   const metricLabel = getMetricLabel(metric);
-  // rename only rows carrying both source labels, so pre-shaped legacy
-  // payloads pass through even when the entity column is named country_id
-  if (formData.regionFormat) {
-    for (const row of rawData ?? []) {
-      const value = row[metricLabel];
-      if (typeof value !== 'number' || !Number.isFinite(value)) {
-        throw new Error(
-          `Geographic metric ${metricLabel} must be a finite number`,
-        );
-      }
-    }
-  }
   const displayData = formData.regionFormat
     ? normalizeRegions(
         rawData ?? [],
@@ -82,16 +70,29 @@ export default function transformProps(chartProps: ChartProps) {
         formData.regionFormat,
       )
     : (rawData ?? []);
-  const data = displayData.map((row: Record<string, unknown>, index: number) =>
-    entityLabel in row && metricLabel in row
-      ? {
-          country_id: row[entityLabel],
-          metric: row[metricLabel],
-          ...(formData.regionFormat
-            ? { source_value: rawData[index][entityLabel] }
-            : {}),
-        }
-      : row,
+  const data = displayData.flatMap(
+    (row: Record<string, unknown>, index: number) => {
+      // Validate regions even for sparse rows, but leave missing metrics blank.
+      if (
+        formData.regionFormat &&
+        (typeof row[metricLabel] !== 'number' ||
+          !Number.isFinite(row[metricLabel]))
+      ) {
+        return [];
+      }
+      // Pre-shaped legacy payloads already carry country_id and metric.
+      return [
+        entityLabel in row && metricLabel in row
+          ? {
+              country_id: row[entityLabel],
+              metric: row[metricLabel],
+              ...(formData.regionFormat
+                ? { source_value: rawData[index][entityLabel] }
+                : {}),
+            }
+          : row,
+      ];
+    },
   );
   const formatters = getColorFormatters(conditionalFormatting, data, theme);
 

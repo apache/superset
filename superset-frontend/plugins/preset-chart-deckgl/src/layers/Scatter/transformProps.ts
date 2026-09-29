@@ -66,6 +66,8 @@ function processScatterData(
     categoryColumn,
   ]);
 
+  const parsedFixedRadius = parseMetricValue(fixedRadiusValue);
+
   return spatialFeatures.map(feature => {
     let scatterPoint: ScatterPoint = {
       position: feature.position,
@@ -75,7 +77,6 @@ function processScatterData(
     // Handle radius: either from metric or fixed value
     if (fixedRadiusValue != null) {
       // Use fixed radius value for all points
-      const parsedFixedRadius = parseMetricValue(fixedRadiusValue);
       if (parsedFixedRadius !== undefined) {
         scatterPoint.radius = parsedFixedRadius;
       }
@@ -114,35 +115,34 @@ export default function transformProps(chartProps: ChartProps) {
   const radiusMetricLabel = getMetricLabelFromFormData(point_radius_fixed);
   const records = getRecordsFromQuery(chartProps.queriesData);
 
-  if (formData.mcp_geographic) {
-    for (const record of records) {
-      for (const [column, bound] of [
-        [spatial?.latCol, 90],
-        [spatial?.lonCol, 180],
-      ] as const) {
-        const value = column ? record[column] : undefined;
-        if (
-          typeof value !== 'number' ||
-          !Number.isFinite(value) ||
-          Math.abs(value) > bound
-        ) {
-          throw new Error(
-            `Geographic coordinate ${column} must be a finite number between ${-bound} and ${bound}`,
+  const coordinateBounds = [
+    [spatial?.latCol, 90],
+    [spatial?.lonCol, 180],
+  ] as const;
+  const displayRecords = formData.mcp_geographic
+    ? records.filter(record => {
+        const validCoordinates = coordinateBounds.every(([column, bound]) => {
+          const value = column ? record[column] : undefined;
+          return (
+            typeof value === 'number' &&
+            Number.isFinite(value) &&
+            Math.abs(value) <= bound
           );
-        }
-      }
-      if (radiusMetricLabel) {
-        const value = record[radiusMetricLabel];
-        if (typeof value !== 'number' || !Number.isFinite(value) || value < 0) {
-          throw new Error(
-            'Point radius metric must be a finite nonnegative number',
-          );
-        }
-      }
-    }
-  }
+        });
+        const radius = radiusMetricLabel
+          ? record[radiusMetricLabel]
+          : undefined;
+        return (
+          validCoordinates &&
+          (!radiusMetricLabel ||
+            (typeof radius === 'number' &&
+              Number.isFinite(radius) &&
+              radius >= 0))
+        );
+      })
+    : records;
   const features = processScatterData(
-    records,
+    displayRecords,
     spatial,
     radiusMetricLabel,
     dimension,

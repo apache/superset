@@ -112,3 +112,35 @@ test.each([
     ).toThrow();
   },
 );
+
+test.each(['Curaçao', 'Curacao', 'CURAÇAO'])(
+  'typed world maps render diacritic-folded country name %s',
+  country => {
+    const data = [{ country_code: country, sum__num: 1 }];
+    expect(
+      transformData(data, {
+        ...formData,
+        countryFieldtype: 'name',
+        strict: true,
+      }),
+    ).toMatchObject([{ country: 'CUW', name: 'Curacao', m1: 1 }]);
+    expect(data[0].country_code).toBe(country);
+  },
+);
+
+test.each([
+  ['cca2', 'Áo'],
+  ['cca3', 'ÁGO'],
+  ['cioc', 'ÁNG'],
+])(
+  'typed world maps do not fold diacritics in %s codes',
+  (countryFieldtype, country) => {
+    expect(() =>
+      transformData([{ country_code: country, sum__num: 1 }], {
+        ...formData,
+        countryFieldtype,
+        strict: true,
+      }),
+    ).toThrow('Unrecognized');
+  },
+);

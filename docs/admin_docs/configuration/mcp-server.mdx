@@ -1240,7 +1240,14 @@ NaT, and non-finite numbers, contribute to `null_count` instead.
 bounded geographic configs. Call `get_chart_type_schema` with `country_map`,
 `world_map`, or `deck_scatter` to discover availability and complete examples.
 The `chart_type` discriminator belongs **inside** `config`. Existing chart
-contracts and legacy native map behavior are unchanged.
+validation contracts and legacy native map behavior are unchanged, but tool
+**discovery schemas have changed for every chart type**, including existing
+types such as gauge and treemap. The `config` input schema on `generate_chart`,
+`update_chart`, `update_chart_preview`, and `generate_explore_link` advertises
+only the `chart_type` enum and allows additional properties; it does not expose
+each type's required fields or bounds. Schema-driven clients must first call
+`get_chart_type_schema(chart_type)` for the complete per-type schema and
+examples. See the compact chart config schema migration note in `UPDATING.md`.
 
 ```json
 {
@@ -1284,6 +1291,12 @@ For example, `BC` does not resolve for USA; choose Canada or explicitly filter
 the dataset. No unrecognized returned rows are silently discarded. Multiple
 query groups resolving to one boundary also fail: normalize source values
 before aggregation rather than incorrectly adding averages or distinct counts.
+When rendering in Explore, country maps with an explicit region format omit
+rows with missing, NULL, non-numeric, or non-finite metrics, leaving those
+regions blank. Region identifiers are still validated for every row.
+Typed geographic point maps omit rows with invalid coordinates or missing,
+non-numeric, non-finite, or negative radius metrics rather than failing the chart.
+This display behavior does not relax MCP generation's result validation.
 Source values remain intact for data/export and country-map cross-filtering.
 Database `NUMERIC`/Decimal query coordinates and metrics are supported when
 finite and representable as JSON numbers. Coordinate bounds are checked before

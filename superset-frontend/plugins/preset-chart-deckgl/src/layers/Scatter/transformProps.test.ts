@@ -303,7 +303,7 @@ test('Scatter transformProps should preserve extra properties from records', () 
 });
 
 test.each([91, -91, Number.NaN, Number.POSITIVE_INFINITY, '37.8', null])(
-  'typed geographic points reject invalid latitude %s',
+  'typed geographic points skip invalid latitude %s',
   latitude => {
     const props = {
       ...mockChartProps,
@@ -314,7 +314,7 @@ test.each([91, -91, Number.NaN, Number.POSITIVE_INFINITY, '37.8', null])(
       },
       queriesData: [{ data: [{ LATITUDE: latitude, LONGITUDE: -122.4 }] }],
     } as ChartProps;
-    expect(() => transformProps(props)).toThrow('Geographic coordinate');
+    expect(transformProps(props).payload.data.features).toEqual([]);
   },
 );
 
@@ -332,3 +332,30 @@ test('typed geographic points preserve longitude-latitude ordering and metric ra
     radius: 50000,
   });
 });
+
+test.each([undefined, null, 'missing', '10', Number.NaN, Infinity, -1])(
+  'typed geographic points skip sparse/non-numeric radius %s',
+  population => {
+    const sparse = { LATITUDE: 37.8, LONGITUDE: -122.4 };
+    const data = [
+      population === undefined ? sparse : { ...sparse, population },
+      { LATITUDE: 37.9, LONGITUDE: -122.3, population: 0 },
+      { LATITUDE: 38, LONGITUDE: -122, population: 10 },
+    ];
+    const original = data.map(row => ({ ...row }));
+    const props = {
+      ...mockChartProps,
+      rawFormData: {
+        ...mockChartProps.rawFormData,
+        mcp_geographic: true,
+        point_radius_fixed: { type: 'metric', value: 'population' },
+      },
+      queriesData: [{ data }],
+    } as ChartProps;
+    expect(transformProps(props).payload.data.features).toMatchObject([
+      { position: [-122.3, 37.9], radius: 0 },
+      { position: [-122, 38], radius: 10 },
+    ]);
+    expect(data).toEqual(original);
+  },
+);

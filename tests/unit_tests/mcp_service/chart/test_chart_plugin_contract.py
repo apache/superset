@@ -568,3 +568,38 @@ def test_saved_scalar_groupby_histogram_preview(groupby: str | list[str]) -> Non
     assert histogram.specification["data"]["values"] == [
         {"bin": "0-10", "value": 5, "series": "Qualified"}
     ]
+
+
+@pytest.mark.parametrize(("plugin", "example"), EXAMPLES, ids=EXAMPLE_IDS)
+def test_disabled_chart_update_requires_existing_plugin(
+    plugin: ChartTypePlugin, example: dict[str, Any]
+) -> None:
+    """Disabled types allow same-plugin updates, never type conversions."""
+    from superset.mcp_service.chart import registry
+    from superset.mcp_service.chart.tool.update_chart import (
+        _build_replacement_form_data,
+    )
+
+    config = _config(example)
+    existing = _form_data(plugin, example)
+    with (
+        patch.object(
+            registry,
+            "_filter_config",
+            registry._PluginFilterConfig(enabled_func=lambda chart_type: False),
+        ),
+        patch(
+            "superset.mcp_service.chart.chart_helpers.resolve_datasource_engine",
+            return_value="sqlite",
+        ),
+        patch(
+            "superset.mcp_service.chart.chart_utils._find_dataset_by_id_or_uuid",
+            return_value=None,
+        ),
+    ):
+        assert get_registry().get(plugin.chart_type) is None
+        updated = _build_replacement_form_data(existing, config, 1)
+        assert updated["viz_type"] == existing["viz_type"]
+        other = "table" if plugin.chart_type != "table" else "world_map"
+        with pytest.raises(ValueError, match="Unsupported config type"):
+            _build_replacement_form_data({"viz_type": other}, config, 1)

@@ -29,11 +29,12 @@ function createRegionResolver(
   boundaries: Boundary[],
   format: RegionFormat,
 ): (value: unknown) => string {
-  const fold = (text: string) =>
-    text
-      .toLowerCase()
-      .normalize('NFD')
-      .replace(/[\u0300-\u036F]/g, '');
+  const fold = (text: string) => {
+    const lower = text.toLowerCase();
+    return format === 'name'
+      ? lower.normalize('NFD').replace(/[\u0300-\u036F]/g, '')
+      : lower;
+  };
   const entries = boundaries.flatMap(({ properties: p }) => {
     if (!p.ISO) return [];
     const alias =

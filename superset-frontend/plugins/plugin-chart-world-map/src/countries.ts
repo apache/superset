@@ -2010,6 +2010,16 @@ export const countries: CountryInfo[] = [
   },
 ];
 
+/** Match country names without guessing or folding short country codes. */
+function foldName(value: string): string {
+  return value
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036F]/g, '');
+}
+
+const exactNames = new Map(countries.map(country => [country.name, country]));
+const foldedNames = new Map<string, CountryInfo[]>();
 const lookups: Record<CountryFieldType, Map<string, CountryInfo>> = {
   name: new Map(),
   cca2: new Map(),
@@ -2021,10 +2031,22 @@ const lookups: Record<CountryFieldType, Map<string, CountryInfo>> = {
     lookups[field].set(country[field].toLowerCase(), country);
   });
 });
+countries.forEach(country => {
+  const key = foldName(country.name);
+  const matches = foldedNames.get(key) ?? [];
+  matches.push(country);
+  foldedNames.set(key, matches);
+});
 
 export function getCountry(
   field: string,
   symbol: string,
 ): CountryInfo | undefined {
+  if (field === 'name') {
+    const exact = exactNames.get(symbol);
+    if (exact) return exact;
+    const matches = foldedNames.get(foldName(symbol));
+    return matches?.length === 1 ? matches[0] : undefined;
+  }
   return lookups[field as CountryFieldType]?.get(symbol.toLowerCase());
 }

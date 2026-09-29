@@ -124,3 +124,21 @@ test('bundled duplicate UK names require codes without cross-transform leakage',
     normalizeRegions([{ region: 'bc' }], 'region', 'canada', 'abbreviation'),
   ).toEqual([{ region: 'CA-BC' }]);
 });
+
+test.each([
+  ['Cá', 'abbreviation'],
+  ['US-CÁ', 'iso_3166_2'],
+])('does not fold diacritics in region code %s', (value, format) => {
+  expect(() =>
+    normalizeRegions([{ state: value }], 'state', 'usa', format),
+  ).toThrow('Unrecognized');
+});
+
+test.each(['Kōchi', 'Kochi', 'kōchi'])(
+  'folds diacritics in region name %s',
+  value => {
+    expect(
+      normalizeRegions([{ state: value }], 'state', 'japan', 'name'),
+    ).toEqual([{ state: 'JP-39' }]);
+  },
+);
