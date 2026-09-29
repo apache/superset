@@ -19,7 +19,7 @@ from __future__ import annotations
 import logging
 from typing import Any, TYPE_CHECKING
 
-from flask import current_app as app
+from flask import current_app as app, g, has_app_context
 from flask_babel import gettext as __
 from sqlalchemy.exc import PendingRollbackError
 from sqlalchemy.sql import compiler
@@ -142,6 +142,16 @@ def find_user_for_impersonation(username: str) -> User | None:
     on, say, an ``IntegrityError`` raised by autoflushing the caller's pending
     writes would silently discard work this function knows nothing about.
 
+    Nor is it handled inside a ``@transaction()``-managed unit of work. A write
+    command can reach this function mid-transaction -- ``UpdateDatabaseCommand``
+    calls ``get_default_catalog()`` after ``DatabaseDAO.update()`` has mutated
+    the model but before it is flushed, and some engine specs build an engine to
+    answer that -- where rolling back would discard the caller's uncommitted
+    changes. The retry would then succeed, the command would carry on none the
+    wiser, and ``@transaction()`` would commit an empty session: a write that
+    reports success and persists nothing. Re-raise instead and let the
+    transaction's own handler roll back and report the failure.
+
     The resolved value becomes the identity the analytic database connects as,
     so a lookup that still fails must not degrade to the un-resolved login:
     that would silently query as a different principal than the one being
@@ -161,6 +171,8 @@ def find_user_for_impersonation(username: str) -> User | None:
     try:
         return security_manager.find_user(username=username)
     except PendingRollbackError:
+        if has_app_context() and getattr(g, "in_transaction", False):
+            raise
         logger.warning(
             "Impersonation lookup for %s failed on a broken transaction; "
             "rolling back and retrying once.",

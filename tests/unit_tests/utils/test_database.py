@@ -17,6 +17,7 @@
 """Tests for superset.utils.database module."""
 
 import pytest
+from flask import g
 from pytest_mock import MockerFixture
 from sqlalchemy import Sequence
 from sqlalchemy.dialects import mysql, postgresql
@@ -113,6 +114,39 @@ def test_find_user_for_impersonation_raises_when_retry_fails(
         find_user_for_impersonation("alice")
 
     session.rollback.assert_called_once()
+
+
+def test_find_user_for_impersonation_inside_transaction_reraises(
+    app_context: None,
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test that a poisoned session is left alone inside a unit of work.
+
+    A write command can reach this lookup mid-transaction with uncommitted
+    changes pending -- ``UpdateDatabaseCommand`` resolves the default catalog
+    after mutating the model but before it is flushed. Rolling back there would
+    discard those changes, the retry would succeed, and ``@transaction()`` would
+    then commit an empty session: the write reports success and persists
+    nothing. Re-raise so the transaction's own handler reports the failure.
+    """
+    error = PendingRollbackError("poisoned")
+    find_user = mocker.patch(
+        "superset.extensions.security_manager.find_user",
+        side_effect=error,
+    )
+    session = mocker.patch("superset.db.session")
+    g.in_transaction = True
+
+    try:
+        with pytest.raises(PendingRollbackError) as exc_info:
+            find_user_for_impersonation("alice")
+    finally:
+        g.in_transaction = False
+
+    assert exc_info.value is error
+    session.rollback.assert_not_called()
+    find_user.assert_called_once_with(username="alice")
 
 
 def test_find_user_for_impersonation_unknown_login(mocker: MockerFixture) -> None:
