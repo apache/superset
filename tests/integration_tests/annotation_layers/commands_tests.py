@@ -30,7 +30,7 @@ from superset.commands.annotation_layer.importers import v1
 from superset.commands.annotation_layer.importers.dispatcher import (
     ImportAnnotationLayersCommand,
 )
-from superset.commands.exceptions import CommandInvalidError
+from superset.commands.exceptions import CommandInvalidError, ImportFailedError
 from superset.commands.importers.exceptions import IncorrectVersionError
 from superset.models.annotations import Annotation, AnnotationLayer
 from superset.utils import json
@@ -256,8 +256,10 @@ class TestExportAnnotationLayersCommand(SupersetTestCase):
 class TestImportAnnotationLayersCommand(SupersetTestCase):
     """Integration tests for annotation layer import command behavior."""
 
-    def test_import_v1_annotation_layer(self) -> None:
+    @patch("superset.security.manager.g")
+    def test_import_v1_annotation_layer(self, mock_g: Any) -> None:
         """Import one layer and nested annotations from a v1 bundle payload."""
+        mock_g.user = security_manager.find_user("admin")
         layer_uuid = str(uuid4())
         ann_one_uuid = str(uuid4())
         ann_two_uuid = str(uuid4())
@@ -307,8 +309,10 @@ class TestImportAnnotationLayersCommand(SupersetTestCase):
         finally:
             _purge_layer_by_uuid(layer_uuid)
 
-    def test_import_v1_annotation_layer_multi_layer_bundle(self) -> None:
+    @patch("superset.security.manager.g")
+    def test_import_v1_annotation_layer_multi_layer_bundle(self, mock_g: Any) -> None:
         """Import multiple layers in one bundle and verify parent-child mapping."""
+        mock_g.user = security_manager.find_user("admin")
         layer_one_uuid = str(uuid4())
         layer_two_uuid = str(uuid4())
         layer_one_annotation_uuids = {str(uuid4()), str(uuid4())}
@@ -389,8 +393,10 @@ class TestImportAnnotationLayersCommand(SupersetTestCase):
             _purge_layer_by_uuid(layer_one_uuid)
             _purge_layer_by_uuid(layer_two_uuid)
 
-    def test_import_v1_annotation_layer_round_trip(self) -> None:
+    @patch("superset.security.manager.g")
+    def test_import_v1_annotation_layer_round_trip(self, mock_g: Any) -> None:
         """Round-trip export/import preserves key layer and annotation fields."""
+        mock_g.user = security_manager.find_user("admin")
         source_layer = _create_layer(name=f"round_trip_{uuid4()}", descr="rt descr")
         source_layer_name = source_layer.name
         source_layer_uuid = str(source_layer.uuid)
@@ -436,8 +442,10 @@ class TestImportAnnotationLayersCommand(SupersetTestCase):
         finally:
             _purge_layer_by_uuid(source_layer_uuid)
 
-    def test_import_v1_annotation_layer_multiple(self) -> None:
+    @patch("superset.security.manager.g")
+    def test_import_v1_annotation_layer_multiple(self, mock_g: Any) -> None:
         """Repeated overwrite import preserves a single logical layer."""
+        mock_g.user = security_manager.find_user("admin")
         layer_uuid = str(uuid4())
         contents = {
             "metadata.yaml": yaml.safe_dump(_metadata_config()),
@@ -462,8 +470,12 @@ class TestImportAnnotationLayersCommand(SupersetTestCase):
         finally:
             _purge_layer_by_uuid(layer_uuid)
 
-    def test_import_v1_annotation_layer_overwrite_syncs_children(self) -> None:
+    @patch("superset.security.manager.g")
+    def test_import_v1_annotation_layer_overwrite_syncs_children(
+        self, mock_g: Any
+    ) -> None:
         """Overwrite sync removes stale child annotations."""
+        mock_g.user = security_manager.find_user("admin")
         layer_uuid = str(uuid4())
         ann_one_uuid = str(uuid4())
         ann_two_uuid = str(uuid4())
@@ -651,10 +663,12 @@ class TestImportAnnotationLayersCommand(SupersetTestCase):
             "annotation_layers/layer.yaml": "Not a valid YAML file"
         }
 
+    @patch("superset.security.manager.g")
     def test_import_annotation_layer_command_missing_annotation_list_defaults_to_empty(
-        self,
+        self, mock_g: Any
     ) -> None:
         """Missing annotation list defaults to empty on import."""
+        mock_g.user = security_manager.find_user("admin")
         layer_uuid = str(uuid4())
         contents = {
             "metadata.yaml": yaml.safe_dump(_metadata_config()),
@@ -677,3 +691,26 @@ class TestImportAnnotationLayersCommand(SupersetTestCase):
             assert annotations == []
         finally:
             _purge_layer_by_uuid(layer_uuid)
+
+    @patch("superset.security.manager.g")
+    def test_import_annotation_layer_command_gamma_denied(self, mock_g: Any) -> None:
+        """Gamma lacks can_write on Annotation, so import must be rejected."""
+        mock_g.user = security_manager.find_user("gamma")
+        layer_uuid = str(uuid4())
+        contents = {
+            "metadata.yaml": yaml.safe_dump(_metadata_config()),
+            "annotation_layers/layer.yaml": yaml.safe_dump(
+                {
+                    "name": "gamma-denied",
+                    "descr": None,
+                    "uuid": layer_uuid,
+                    "version": "1.0.0",
+                    "annotation": [],
+                }
+            ),
+        }
+        with pytest.raises(ImportFailedError):
+            ImportAnnotationLayersCommand(contents).run()
+        assert (
+            db.session.query(AnnotationLayer).filter_by(uuid=layer_uuid).first() is None
+        )
