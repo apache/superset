@@ -21,9 +21,10 @@ MCP tool: update_chart
 
 import logging
 import time
-from typing import Any
+from typing import Annotated, Any
 
 from fastmcp import Context
+from pydantic import Field
 from sqlalchemy.exc import SQLAlchemyError
 from superset_core.mcp.decorators import tool, ToolAnnotations
 
@@ -698,7 +699,18 @@ def _create_preview_url(
     ),
 )
 async def update_chart(  # noqa: C901
-    request: UpdateChartRequest, ctx: Context
+    request: Annotated[
+        UpdateChartRequest,
+        Field(
+            description=(
+                'Wrap as {"request": {...}}. '
+                "generate_preview=True previews; False persists immediately. "
+                "MUST display explore URL. identifier: ID/UUID, NOT chart name. "
+                "Omit config to rename only; add_columns appends table columns."
+            )
+        ),
+    ],
+    ctx: Context,
 ) -> GenerateChartResponse:
     """Update existing chart with new configuration.
 

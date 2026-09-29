@@ -301,11 +301,15 @@ def _strip_titles(obj: Any, in_properties_map: bool = False) -> Any:
 
 
 def _truncate_description(text: str, max_length: int) -> str:
-    """Keep only complete prose sentences within the remaining character budget."""
+    """Keep whole paragraphs, or sentences in single-paragraph prose, within budget."""
     if max_length <= 0:
         return ""
     if not text or len(text) <= max_length:
         return text
+    # Do not leave a heading or a numbered/bulleted workflow partly advertised.
+    if paragraphs := list(re.finditer(r"\n\s*\n", text)):
+        ends = [match.start() for match in paragraphs if match.start() <= max_length]
+        return text[: ends[-1]].strip() if ends else ""
     # Calling constraints belong in request schema metadata, not truncated prose.
     boundaries = list(re.finditer(r"[.!?](?=\s|$)", text[: max_length + 1]))
     ends = [match.end() for match in boundaries if match.end() <= max_length]

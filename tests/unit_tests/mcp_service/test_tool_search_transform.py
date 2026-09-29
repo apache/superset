@@ -426,7 +426,7 @@ def test_truncate_description_important_block_sentence(marker: str) -> None:
     """Do not advertise a half instruction when the cut falls in an IMPORTANT block."""
     prefix = f"Summary.\n\n{marker} First rule."
     text = prefix + "\n" + "An instruction too long for the remaining budget " * 100
-    assert _truncate_description(text, 100) == prefix
+    assert _truncate_description(text, 100) == "Summary."
 
 
 # -- _create_search_result_serializer tests --

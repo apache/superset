@@ -83,7 +83,9 @@ async def list_dashboards(
     ] = None,
     ctx: Context = None,
 ) -> DashboardList:
-    """List dashboards with filtering and search. Returns dashboard metadata
+    """List dashboards with filtering and search.
+
+    Returns dashboard metadata
     including title, slug, URL, and last modified time. Use select_columns to
     request additional fields.
 

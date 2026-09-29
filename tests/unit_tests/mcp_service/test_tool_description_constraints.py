@@ -475,3 +475,116 @@ async def test_default_discovery_keeps_purpose_line(
     config = {**MCP_TOOL_SEARCH_CONFIG, "include_schemas": include_schemas}
     entry = _create_search_result_serializer(config)([tool])[0]
     assert entry["description"].startswith(purpose.group(0)), (name, entry)
+
+
+DIRECT_CATALOG_CONSTRAINTS = {
+    "generate_chart": (
+        "save_chart=True saves",
+        "MUST display chart URL",
+        "numeric ID/UUID",
+        "NOT schema.table_name",
+        "config.chart_type required",
+        "line/bar/area/scatter are xy kind values",
+        "get_chart_type_schema",
+    ),
+    "create_virtual_dataset": (
+        "SQL and a dataset name",
+        "returned id as dataset_id",
+        "generate_chart or generate_explore_link",
+        "columns from returned columns",
+    ),
+    "update_chart": (
+        "generate_preview=True previews; False persists immediately",
+        "MUST display explore URL",
+        "ID/UUID, NOT chart name",
+        "Omit config to rename only",
+        "add_columns appends table columns",
+    ),
+    "update_chart_preview": (
+        "Cached preview only, not saved",
+        "form_data_key is invalidated",
+        "use the returned key",
+        "MUST display explore_url",
+        "config + dataset_id and omit form_data_key",
+    ),
+}
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("name", DIRECT_CATALOG_CONSTRAINTS)
+@pytest.mark.parametrize("strategy", ["bm25", "regex"])
+@pytest.mark.parametrize("include_schemas", [True, False])
+async def test_direct_no_query_catalog_preserves_priority_guidance(
+    name: str, strategy: str, include_schemas: bool
+) -> None:
+    """Reporter cases use real registrations and no-query search, without writes."""
+    from unittest.mock import AsyncMock, MagicMock, patch
+
+    from superset.mcp_service.mcp_config import MCP_TOOL_SEARCH_CONFIG
+    from superset.mcp_service.server import _apply_tool_search_transform
+    from superset.utils import json
+
+    server = MagicMock()
+    _apply_tool_search_transform(
+        server,
+        {
+            **MCP_TOOL_SEARCH_CONFIG,
+            "strategy": strategy,
+            "include_schemas": include_schemas,
+        },
+    )
+    transform = server.add_transform.call_args.args[0]
+    tools = await mcp.list_tools(run_middleware=False)
+    # Only discovery of visible tools is substituted; rendering and serialization
+    # run as in a direct MCP call, with no query and the default 300-char budget.
+    with patch.object(transform, "_get_visible_tools", AsyncMock(return_value=tools)):
+        result = await transform._make_search_tool().fn()
+    catalog = json.loads(result) if isinstance(result, str) else result
+    assert len(catalog) == len(tools)
+    entry = next(item for item in catalog if item["name"] == name)
+    tool = next(item for item in tools if item.name == name)
+    instructions = tool.parameters["properties"]["request"]["description"]
+    text = _discovery_text(entry, include_schemas)
+    assert 'Wrap as {"request": {...}}.' in text
+    assert all(phrase in text for phrase in DIRECT_CATALOG_CONSTRAINTS[name]), text
+    assert len(entry["description"]) + len(instructions) <= 300
+    # A purpose paragraph survives; any subsequent paragraphs are whole, never
+    # an incomplete bullet or the misleading numbered-list fragment "Workflow: 1."
+    description = tool.description or ""
+    paragraphs = re.split(r"\n\s*\n", description)
+    assert entry["description"].startswith(paragraphs[0])
+    assert entry["description"] in [
+        description[: match.start()].strip()
+        for match in re.finditer(r"\n\s*\n", description)
+    ]
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("name", DIRECT_CATALOG_CONSTRAINTS)
+async def test_direct_catalog_oversized_prose_keeps_bounded_guidance(name: str) -> None:
+    """Priority rules are not displaced by an arbitrarily long introduction."""
+    tool = await mcp.get_tool(name)
+    assert tool is not None
+    oversized = tool.model_copy(update={"description": "Long prose. " * 10_000})
+    entry = _create_search_result_serializer({"include_schemas": True})([oversized])[0]
+    instructions = entry["inputSchema"]["properties"]["request"]["description"]
+    assert all(phrase in instructions for phrase in DIRECT_CATALOG_CONSTRAINTS[name])
+    assert len(entry["description"]) + len(instructions) <= 300
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("name", DIRECT_CATALOG_CONSTRAINTS)
+async def test_reported_descriptions_truncate_at_whole_paragraphs(name: str) -> None:
+    """The reported 300-char cut cannot leave a partial IMPORTANT block or step 1."""
+    from superset.mcp_service.server import _truncate_description
+
+    tool = await mcp.get_tool(name)
+    assert tool is not None
+    description = tool.description or ""
+    result = _truncate_description(description, 300)
+    assert result
+    assert len(result) <= 300
+    assert result in [
+        description[: match.start()].strip()
+        for match in re.finditer(r"\n\s*\n", description)
+    ]
