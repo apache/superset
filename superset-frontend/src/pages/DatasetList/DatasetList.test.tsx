@@ -19,6 +19,7 @@
 import { act, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import rison from 'rison';
+import { FeatureFlag } from '@superset-ui/core';
 import fetchMock from 'fetch-mock';
 import {
   setupMocks,
@@ -598,3 +599,54 @@ test('does not show RLS badge when dataset has no rls_filters', async () => {
     screen.queryByRole('img', { name: /row-level security/i }),
   ).not.toBeInTheDocument();
 });
+
+test.each([false, true])(
+  'renders dataset type badges with semantic layers enabled=%s',
+  async enabled => {
+    const previousFlags = window.featureFlags;
+    window.featureFlags = {
+      ...previousFlags,
+      [FeatureFlag.SemanticLayers]: enabled,
+    };
+    try {
+      const physical = { ...mockDatasets[0], kind: 'physical' };
+      const virtual = { ...mockDatasets[1], kind: 'virtual' };
+      const semantic = {
+        ...mockDatasets[0],
+        id: 900,
+        table_name: 'Semantic Orders',
+        kind: 'semantic_view',
+      };
+      const result = enabled
+        ? [physical, virtual, semantic]
+        : [physical, virtual];
+      mockDatasetListEndpoints({ result, count: result.length });
+      renderDatasetList(mockAdminUser);
+      const table = await screen.findByRole('table');
+      await waitFor(() =>
+        expect(within(table).getAllByTestId('dataset-type-label')).toHaveLength(
+          result.length,
+        ),
+      );
+      expect(within(table).getByText('Physical')).toBeInTheDocument();
+      expect(within(table).getByText('Virtual')).toBeInTheDocument();
+      if (enabled) {
+        const badge = within(table)
+          .getByText('Semantic View')
+          .closest('[data-test="dataset-type-label"]');
+        expect(badge).toBeInTheDocument();
+        expect(
+          within(badge as HTMLElement).getByRole('img', { name: 'apartment' }),
+        ).toBeInTheDocument();
+        expect(screen.getByText('Datasources')).toBeInTheDocument();
+      } else {
+        expect(
+          within(table).queryByText('Semantic View'),
+        ).not.toBeInTheDocument();
+        expect(screen.getByText('Datasets')).toBeInTheDocument();
+      }
+    } finally {
+      window.featureFlags = previousFlags;
+    }
+  },
+);

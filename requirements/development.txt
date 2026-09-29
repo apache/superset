@@ -33,7 +33,7 @@ annotated-types==0.7.0
     #   pydantic
 antlr4-python3-runtime==4.13.2
     # via pymongosql
-anyio==4.11.0
+anyio==4.15.1
     # via
     #   httpx
     #   httpx2
@@ -408,7 +408,7 @@ google-auth-oauthlib==1.2.1
     # via
     #   pandas-gbq
     #   pydata-google-auth
-google-cloud-bigquery==3.45.0
+google-cloud-bigquery==3.45.2
     # via
     #   apache-superset
     #   pandas-gbq
@@ -423,7 +423,7 @@ googleapis-common-protos==1.66.0
     # via
     #   google-api-core
     #   grpcio-status
-greenlet==3.5.5
+greenlet==3.5.6
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
@@ -460,11 +460,13 @@ holidays==0.104
     #   prophet
 httpcore==1.0.9
     # via httpx
-httpcore2==2.12.0
+httpcore2==2.13.1
     # via httpx2
 httpx==0.28.1
-    # via testcontainers
-httpx2==2.12.0
+    # via
+    #   apache-superset
+    #   testcontainers
+httpx2==2.13.1
     # via
     #   fastmcp-slim
     #   mcp
@@ -474,7 +476,7 @@ humanize==4.12.3
     #   apache-superset
 identify==2.5.36
     # via pre-commit
-idna==3.19
+idna==3.20
     # via
     #   -c requirements/base-constraint.txt
     #   anyio
@@ -635,7 +637,7 @@ multidict==6.7.1
     # via
     #   aiohttp
     #   yarl
-mysqlclient==2.2.8
+mysqlclient==2.3.0
     # via apache-superset
 nh3==0.3.7
     # via
@@ -734,10 +736,6 @@ parsedatetime==2.6
     #   apache-superset
 pathable==0.4.3
     # via jsonschema-path
-pgsanity==0.2.9
-    # via
-    #   -c requirements/base-constraint.txt
-    #   apache-superset
 pillow==12.3.0
     # via
     #   -c requirements/base-constraint.txt
@@ -943,7 +941,7 @@ python-dotenv==1.2.2
     #   fastmcp-slim
     #   pydantic-settings
     #   testcontainers
-python-ldap==3.4.7
+python-ldap==3.4.8
     # via apache-superset
 python-multipart==0.0.29
     # via
@@ -977,7 +975,7 @@ referencing==0.36.2
     #   jsonschema
     #   jsonschema-path
     #   jsonschema-specifications
-regex==2026.4.4
+regex==2026.9.29
     # via tiktoken
 requests==2.33.0
     # via
@@ -1057,8 +1055,6 @@ slack-sdk==3.44.1
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
-sniffio==1.3.1
-    # via anyio
 sqlalchemy==2.0.52
     # via
     #   -c requirements/base-constraint.txt
