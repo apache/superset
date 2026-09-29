@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import re
+from re import Pattern
 from typing import Any, Optional
 
 from superset.constants import TimeGrain
@@ -29,9 +30,9 @@ class ExasolEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
     engine_name = "Exasol"
     max_column_name_length = 128
 
-    # Keep the server's complete message, including its position/identifier.
-    # The passthrough placeholder contains no translatable text.
-    custom_errors = {
+    # Keep the server's message from its keyword onwards, including the
+    # position/identifier. The passthrough placeholder has no translatable text.
+    custom_errors: dict[Pattern[str], tuple[str, SupersetErrorType, dict[str, Any]]] = {
         re.compile(r"(?P<message>syntax error[^\n]*)", re.IGNORECASE): (
             "%(message)s",
             SupersetErrorType.SYNTAX_ERROR,
@@ -42,7 +43,14 @@ class ExasolEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
             SupersetErrorType.TABLE_DOES_NOT_EXIST_ERROR,
             {},
         ),
-        re.compile(r"(?P<message>column(?: [^\n]*)? not found[^\n]*)", re.IGNORECASE): (
+        # Exasol reports a missing column as ``column <NAME> not found``. The
+        # keyword must start the diagnostic (not follow another word, as in
+        # ``object COLUMN not found``) and be followed by at most one identifier.
+        re.compile(
+            r'(?P<message>(?<![\w"] )(?<![\w.$"])column'
+            r'(?: (?:"[^"\n]*"|[\w.$]+))? not found[^\n]*)',
+            re.IGNORECASE,
+        ): (
             "%(message)s",
             SupersetErrorType.COLUMN_DOES_NOT_EXIST_ERROR,
             {},

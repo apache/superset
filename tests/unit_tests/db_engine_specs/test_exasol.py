@@ -15,8 +15,6 @@
 # specific language governing permissions and limitations
 # under the License.
 import pytest
-from flask import Flask
-from flask_babel import Babel
 
 from superset.db_engine_specs.exasol import ExasolEngineSpec
 from superset.errors import SupersetErrorType
@@ -41,16 +39,29 @@ from superset.errors import SupersetErrorType
             "column not found [line 1, column 58]",
             SupersetErrorType.COLUMN_DOES_NOT_EXIST_ERROR,
         ),
+        (
+            "column MISSING_COL not found [line 1, column 8]",
+            SupersetErrorType.COLUMN_DOES_NOT_EXIST_ERROR,
+        ),
+        (
+            'column "Mixed.Case" not found [line 1, column 8]',
+            SupersetErrorType.COLUMN_DOES_NOT_EXIST_ERROR,
+        ),
         ("object AMBIGUOUS not found", SupersetErrorType.GENERIC_DB_ENGINE_ERROR),
+        ("object COLUMN not found", SupersetErrorType.GENERIC_DB_ENGINE_ERROR),
+        ("object MY_COLUMN not found", SupersetErrorType.GENERIC_DB_ENGINE_ERROR),
+        ('object "column" not found', SupersetErrorType.GENERIC_DB_ENGINE_ERROR),
+        ("function TO_COLUMN not found", SupersetErrorType.GENERIC_DB_ENGINE_ERROR),
+        (
+            "object COLUMN_X not found [line 1, column 8]",
+            SupersetErrorType.GENERIC_DB_ENGINE_ERROR,
+        ),
         ("another server failure", SupersetErrorType.GENERIC_DB_ENGINE_ERROR),
     ],
 )
 def test_extract_errors(message: str, expected: SupersetErrorType) -> None:
     """Classify known messages without discarding the server diagnostic."""
-    app = Flask(__name__)
-    Babel(app)
-    with app.app_context():
-        errors = ExasolEngineSpec.extract_errors(Exception(message))
+    errors = ExasolEngineSpec.extract_errors(Exception(message))
     assert len(errors) == 1
     assert errors[0].error_type == expected
     assert errors[0].message == message
