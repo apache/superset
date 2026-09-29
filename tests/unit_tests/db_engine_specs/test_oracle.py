@@ -160,6 +160,7 @@ def test_get_column_spec(
     generic_type: GenericDataType,
     is_dttm: bool,
 ) -> None:
+    """Map Oracle-native types and preserve the base numeric, text and date mappings."""
     from superset.db_engine_specs.oracle import OracleEngineSpec
 
     assert_column_spec(
@@ -172,6 +173,7 @@ def test_get_column_spec(
     ["BLOB", "RAW(16)", "NUMBERING", "BINARY_FLOATING", "CLOBBER", "NCLOBS"],
 )
 def test_get_column_spec_unmapped_types(native_type: str) -> None:
+    """Leave binary types and unrelated names sharing mapped prefixes unmapped."""
     from superset.db_engine_specs.oracle import OracleEngineSpec
 
     assert OracleEngineSpec.get_column_spec(native_type) is None
