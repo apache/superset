@@ -324,6 +324,27 @@ class OpenDistroEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
     engine = "odelasticsearch"
     engine_name = "OpenSearch (OpenDistro)"
 
+    metadata = {
+        "description": (
+            "OpenSearch (OpenDistro) SQL connector for querying OpenSearch and "
+            "OpenDistro clusters using SQL syntax."
+        ),
+        "logo": "elasticsearch.png",
+        "homepage_url": "https://opensearch.org/",
+        "categories": [
+            DatabaseCategory.SEARCH_NOSQL,
+            DatabaseCategory.OPEN_SOURCE,
+        ],
+        "pypi_packages": ["elasticsearch-dbapi"],
+        "connection_string": "odelasticsearch+https://{user}:{password}@{host}:9200/",
+        "default_port": 9200,
+        "parameters": {
+            "user": "OpenSearch username",
+            "password": "OpenSearch password",
+            "host": "OpenSearch host",
+        },
+    }
+
     SQL_ENDPOINT = "/_opendistro/_sql"
     SQL_CLOSE_ENDPOINT = "/_opendistro/_sql/close"
 

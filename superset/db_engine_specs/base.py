@@ -64,13 +64,18 @@ from sqlalchemy.sql.expression import (
 from sqlalchemy.types import TypeEngine
 
 from superset import db
-from superset.constants import QUERY_CANCEL_KEY, TimeGrain as TimeGrainConstants
+from superset.constants import (
+    EPOCH_FORMATS,
+    QUERY_CANCEL_KEY,
+    TimeGrain as TimeGrainConstants,
+)
 from superset.databases.utils import get_table_metadata, make_url_safe
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
     OAuth2Error,
     OAuth2RedirectError,
     OAuth2TokenRefreshError,
+    SupersetGenericDBErrorException,
     SupersetParseError,
 )
 from superset.key_value.types import JsonKeyValueCodec, KeyValueResource
@@ -681,6 +686,16 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     # Is the DB engine spec able to change the default schema? This requires implementing  # noqa: E501
     # a custom `adjust_engine_params` method.
     supports_dynamic_schema = False
+
+    # Does the qualified identifier built by `quote_table` include the schema (and
+    # catalog, if any)? True for virtually every engine. A driver that treats the
+    # whole FROM reference as a single opaque name (e.g. PyMongoSQL, which resolves
+    # `schema.table` as a literal collection name instead of parsing it) sets this to
+    # False and overrides `quote_table` to emit only the table, relying on
+    # `adjust_engine_params`/`supports_dynamic_schema` to select the schema at the
+    # connection level instead. `SqlaTable.get_sqla_table` consults this flag so
+    # datasets build the same FROM-clause identifier as `select_star` (SQL Lab).
+    quote_table_includes_schema = True
 
     # Does the DB support catalogs? A catalog here is a group of schemas, and has
     # different names depending on the DB: BigQuery calles it a "project", Postgres calls  # noqa: E501
@@ -1342,10 +1357,13 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             time_expr = "{col}"
 
         # if epoch, translate to DATE using db specific conf
-        if pdf == "epoch_s":
-            time_expr = time_expr.replace("{col}", cls.epoch_to_dttm())
-        elif pdf == "epoch_ms":
-            time_expr = time_expr.replace("{col}", cls.epoch_ms_to_dttm())
+        if pdf in EPOCH_FORMATS:
+            epoch_to_dttm = {
+                "epoch_s": cls.epoch_to_dttm,
+                "epoch_ms": cls.epoch_ms_to_dttm,
+                "epoch_us": cls.epoch_us_to_dttm,
+            }[pdf]
+            time_expr = time_expr.replace("{col}", epoch_to_dttm())
         elif pdf == "%Y":
             # a bare four-digit year (e.g. the `year` column on the `video_game_sales`
             # example dataset) has no native date type to lean on; without this the
@@ -1596,6 +1614,23 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         :return: SQL Expression
         """
         return cls.epoch_to_dttm().replace("{col}", "({col}/1000)")
+
+    @classmethod
+    def epoch_us_to_dttm(cls) -> str:
+        """
+        SQL expression that converts epoch (microseconds) to datetime that can be used
+        in a query.
+
+        The default routes through ``epoch_ms_to_dttm`` so engines that already
+        override the millisecond conversion keep their validated SQL. The result
+        inherits whatever resolution that engine's ``epoch_ms_to_dttm`` has,
+        which is seconds when the default is inherited. Engines with a native
+        microsecond function should override this (see BigQuery, Snowflake,
+        Kusto, Pinot).
+
+        :return: SQL Expression
+        """
+        return cls.epoch_ms_to_dttm().replace("{col}", "({col}/1000)")
 
     @classmethod
     def year_to_dttm(cls) -> str:
@@ -2727,7 +2762,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
                 extra = json.loads(database.extra)
             except json.JSONDecodeError as ex:
                 logger.error(ex, exc_info=True)
-                raise
+                raise SupersetGenericDBErrorException(message=str(ex)) from ex
         return extra
 
     @staticmethod
@@ -2748,7 +2783,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             params.update(encrypted_extra)
         except json.JSONDecodeError as ex:
             logger.error(ex, exc_info=True)
-            raise
+            raise SupersetGenericDBErrorException(message=str(ex)) from ex
 
     @classmethod
     def array_contains_any(cls, col: ColumnElement, values: list[Any]) -> ColumnElement:
