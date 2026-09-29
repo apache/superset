@@ -350,6 +350,18 @@ test('parseErrorJson keeps a server message that opens with an unclosed HTML tag
   });
 });
 
+test('parseErrorJson keeps a message that starts with < but is not a tag', () => {
+  // No leading tag name to match at all, so this never reaches the
+  // closing-tag check; it must still be treated as plain prose.
+  const message = '<3 is not an HTML tag';
+
+  expect(parseErrorJson({ status: 400, message })).toEqual({
+    status: 400,
+    message,
+    error: message,
+  });
+});
+
 test('parseErrorJson with stacktrace', () => {
   expect(
     parseErrorJson({ error: 'error message', stack: 'stacktrace' }),
