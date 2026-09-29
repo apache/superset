@@ -1036,6 +1036,29 @@ test('TableRenderer blanks the grand-total corner cell instead of fabricating a 
 });
 
 /**
+ * Regression guard: `processRecord`'s "Metric-collapse totals" mirrors the
+ * same per-metric records into a row's own Total slot (not just the
+ * grand-total corner) whenever the Metric axis collapses for that row -- here
+ * "blue" receives both m1=10 and m2=250 into its own `.pvtTotal` cell through
+ * the identical `cellValue`-based aggregator. A fix that only special-cased
+ * the grand corner would leave this cell fabricating a value unnoticed.
+ */
+test('TableRenderer blanks a row total cell that combines two different metrics', () => {
+  const props = buildDefaultProps({
+    data: TAGGED_MULTI_METRIC_ON_COLUMNS,
+    rows: ['color'],
+    cols: ['Metric'],
+    vals: ['value'],
+    tableOptions: { rowTotals: true, colTotals: true },
+  });
+  renderWithTheme(<TableRenderer {...props} />);
+
+  const blueRow = screen.getByText('blue').closest('tr');
+  const rowTotalCell = blueRow?.querySelector('.pvtTotal');
+  expect(rowTotalCell).toHaveTextContent('');
+});
+
+/**
  * Regression guard: a DB-computed value can be a genuine SQL NULL (e.g. AVG
  * over an empty group). `null / acc` coerces to `0` in JS, which would
  * previously render a measured "0.0%" for a cell that renders blank in

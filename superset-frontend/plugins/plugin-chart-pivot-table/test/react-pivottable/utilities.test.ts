@@ -97,3 +97,34 @@ test('grand total still passes through the value for a single metric', () => {
 
   expect(pivotData.getAggregator([], []).value()).toBe(100);
 });
+
+// Same "Metric-collapse totals" mirroring as `metricRecord` above, but with a
+// real row dimension present so the mix lands in a row Total slot instead of
+// the grand-total corner -- `processRecord` routes both the same way.
+const metricRowRecord = (
+  color: string,
+  metric: string,
+  value: number,
+): PivotRecord =>
+  ({
+    color,
+    Metric: metric,
+    value,
+    __metricKey: 'Metric',
+    __rows: ['color'],
+    __columns: ['Metric'],
+  }) as unknown as PivotRecord;
+
+test('row total renders blank when it would combine two different metrics', () => {
+  const pivotData = new PivotData({
+    data: [
+      metricRowRecord('blue', 'MAX(sales)', 100),
+      metricRowRecord('blue', 'MEDIAN(msrp)', 50),
+    ],
+    rows: ['color'],
+    cols: ['Metric'],
+    vals: ['value'],
+  });
+
+  expect(pivotData.getAggregator(['blue'], []).value()).toBeNull();
+});
