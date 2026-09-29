@@ -527,3 +527,53 @@ def test_opendistro_fetch_data_with_cursor_sends_no_extra_content_type() -> None
     assert len(calls) == 3
     for call in calls:
         assert "headers" not in call.kwargs
+
+
+def test_fetch_data_with_cursor_tolerates_column_without_name() -> None:
+    """
+    Column metadata comes from the remote service: an entry without ``name``
+    must not raise KeyError. Alias wins, then name, then a positional label.
+    """
+    from superset.db_engine_specs.elasticsearch import ElasticSearchEngineSpec
+
+    database = _build_fake_database(
+        [
+            {
+                "columns": [{"name": "a"}, {"alias": "b"}, {"type": "long"}],
+                "rows": [[1, 2, 3]],
+            }
+        ]
+    )
+
+    rows, cols = ElasticSearchEngineSpec.fetch_data_with_cursor(
+        database=database,
+        sql="SELECT a, b, c FROM idx",
+        page_index=0,
+        page_size=10,
+    )
+
+    assert cols == ["a", "b", "column_2"]
+    assert rows == [[1, 2, 3]]
+
+
+def test_fetch_page_via_cursor_forwards_explicit_empty_headers() -> None:
+    """
+    An explicit empty ``headers`` dict is forwarded as given; only ``None``
+    omits the kwarg.
+    """
+    from superset.db_engine_specs.elasticsearch import _fetch_page_via_cursor
+
+    database = _build_fake_database([{"columns": [{"name": "a"}], "rows": [[0]]}])
+
+    _fetch_page_via_cursor(
+        database=database,
+        sql="SELECT a FROM idx",
+        page_index=0,
+        page_size=10,
+        sql_path="/_sql",
+        close_path="/_sql/close",
+        headers={},
+    )
+
+    calls = database._transport.perform_request.call_args_list
+    assert calls[0].kwargs["headers"] == {}

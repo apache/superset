@@ -82,7 +82,7 @@ def _fetch_page_via_cursor(
         r"\s+LIMIT\s+\d+\s*$", "", sanitized_sql, flags=re.IGNORECASE
     )
 
-    request_kwargs: dict[str, Any] = {"headers": headers} if headers else {}
+    request_kwargs: dict[str, Any] = {} if headers is None else {"headers": headers}
     with database.get_raw_connection() as conn:
         transport = conn.es.transport
         response = transport.perform_request(
@@ -91,8 +91,11 @@ def _fetch_page_via_cursor(
             body={"query": sanitized_sql, "fetch_size": page_size},
             **request_kwargs,
         )
+        # Column metadata comes from the remote service; fall back to a
+        # positional label rather than failing on an entry without a name.
         columns = [
-            col.get("alias") or col["name"] for col in response.get(columns_key, [])
+            col.get("alias") or col.get("name") or f"column_{idx}"
+            for idx, col in enumerate(response.get(columns_key, []))
         ]
         rows = response.get(rows_key, [])
         cursor = response.get("cursor")
