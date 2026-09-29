@@ -1140,3 +1140,128 @@ def test_pivot_preserves_null_numeric_index_value() -> None:
         f"Expected '{NULL_STRING}' in pivot index; got {result.index.tolist()}"
     )
     assert result.loc[NULL_STRING, "v"] == 99
+
+
+def test_pivot_categorical_no_null_does_not_add_spurious_category() -> None:
+    """A categorical index column with no missing values must not gain
+    NULL_STRING as a category at all, let alone a zero-value group for it.
+
+    Regression: unconditionally adding NULL_STRING to every categorical
+    dimension's categories -- even when nothing is actually missing --
+    created a spurious all-zero '<NULL>' group in pivots that never had one.
+    """
+    df = DataFrame(
+        {
+            "row": pd.Categorical(["r1", "r2", "r1"]),
+            "v": [10, 20, 30],
+        }
+    )
+    result = pivot(
+        df=df,
+        index=["row"],
+        aggregates={"v": {"operator": "sum"}},
+    )
+    assert NULL_STRING not in result.index, (
+        f"Did not expect '{NULL_STRING}' in pivot index; got {result.index.tolist()}"
+    )
+
+
+def test_pivot_preserves_null_index_value_datetime_keeps_valid_values_as_objects() -> (
+    None
+):
+    """A datetime index with one NaT must fill only the missing entry with
+    NULL_STRING; the other, valid entries must remain real Timestamp objects
+    rather than being rewritten to their string representation.
+
+    Regression: casting the whole column to `str` to accommodate the NaT
+    sentinel also stringified every valid timestamp, changing their pivot
+    labels and bypassing the epoch serializer downstream.
+    """
+    df = DataFrame(
+        {
+            "dttm": to_datetime(["2019-01-01", None, "2019-01-03"]),
+            "v": [10, 99, 30],
+        }
+    )
+    result = pivot(
+        df=df,
+        index=["dttm"],
+        aggregates={"v": {"operator": "sum"}},
+    )
+    valid_labels = [label for label in result.index if label != NULL_STRING]
+    assert valid_labels, "Expected at least one non-NULL index label"
+    assert all(isinstance(label, pd.Timestamp) for label in valid_labels), (
+        f"Expected valid datetime labels to stay Timestamp objects; got "
+        f"{[type(label) for label in valid_labels]}"
+    )
+
+
+def test_pivot_preserves_null_index_value_timedelta() -> None:
+    """A timedelta64 index column containing NaT must not raise a TypeError
+    when filled and must be preserved as '<NULL>' in the pivot output.
+
+    Regression: the datetime special-case only matched dtype kind "M", so a
+    timedelta64 column (kind "m") fell through to the plain fillna() branch,
+    which raises TypeError trying to put a string into a timedelta64 array.
+    """
+    df = DataFrame(
+        {
+            "duration": pd.to_timedelta(["1 days", None, "3 days"]),
+            "v": [10, 99, 30],
+        }
+    )
+    result = pivot(
+        df=df,
+        index=["duration"],
+        aggregates={"v": {"operator": "sum"}},
+    )
+    assert NULL_STRING in result.index, (
+        f"Expected '{NULL_STRING}' in pivot index; got {result.index.tolist()}"
+    )
+    assert result.loc[NULL_STRING, "v"] == 99
+
+
+def test_pivot_preserves_null_index_value_nullable_integer() -> None:
+    """An Int64 (pandas nullable) index column containing pd.NA must not
+    raise a TypeError when filled and must be preserved as '<NULL>'.
+
+    Regression: pandas' nullable extension dtypes (Int64, Float64, boolean)
+    enforce internal type homogeneity and reject a string sentinel via
+    fillna() the same way datetime64 does; only datetime64 was handled.
+    """
+    df = DataFrame(
+        {
+            "num_idx": pd.array([1, None, 2], dtype="Int64"),
+            "v": [10, 99, 30],
+        }
+    )
+    result = pivot(
+        df=df,
+        index=["num_idx"],
+        aggregates={"v": {"operator": "sum"}},
+    )
+    assert NULL_STRING in result.index, (
+        f"Expected '{NULL_STRING}' in pivot index; got {result.index.tolist()}"
+    )
+    assert result.loc[NULL_STRING, "v"] == 99
+
+
+def test_pivot_preserves_null_index_value_nullable_boolean() -> None:
+    """A boolean (pandas nullable) index column containing pd.NA must not
+    raise a TypeError when filled and must be preserved as '<NULL>'.
+    """
+    df = DataFrame(
+        {
+            "flag": pd.array([True, None, False], dtype="boolean"),
+            "v": [10, 99, 30],
+        }
+    )
+    result = pivot(
+        df=df,
+        index=["flag"],
+        aggregates={"v": {"operator": "sum"}},
+    )
+    assert NULL_STRING in result.index, (
+        f"Expected '{NULL_STRING}' in pivot index; got {result.index.tolist()}"
+    )
+    assert result.loc[NULL_STRING, "v"] == 99
