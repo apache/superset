@@ -1964,9 +1964,18 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
         ``dblink`` can read tables named in string arguments, which ``tables``
         cannot report.
 
-        :return: The function names, as written
+        :return: The function names, as written; a qualified call keeps its
+            qualifier (``my_schema.my_function``) so it is never mistaken for a
+            builtin of the same name
         """
-        return {node.name for node in self._parsed.find_all(exp.Anonymous)}
+        names: set[str] = set()
+        for node in self._parsed.find_all(exp.Anonymous):
+            parent = node.parent
+            if isinstance(parent, exp.Dot) and parent.expression is node:
+                names.add(f"{parent.this.sql()}.{node.name}")
+            else:
+                names.add(node.name)
+        return names
 
     def has_dynamic_table_source(self) -> bool:
         """

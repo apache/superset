@@ -6983,6 +6983,8 @@ def test_rls_returns_whether_applied(
             "bigquery",
             {"EXTERNAL_QUERY"},
         ),
+        # A qualified call keeps its qualifier, so it never reads as a builtin.
+        ("SELECT NOW(), s.now() FROM t", "mysql", {"NOW", "s.now"}),
     ],
 )
 def test_get_unmodelled_functions(sql: str, engine: str, expected: set[str]) -> None:

@@ -279,6 +279,35 @@ def test_dynamically_named_tables_are_refused(sql: str) -> None:
         _check_statement(statement)
 
 
+@pytest.mark.parametrize(
+    ("sql", "engine"),
+    [
+        (
+            "SELECT client, SUM(amount) FROM orders "
+            "WHERE ds > NOW() - INTERVAL 30 DAY GROUP BY client",
+            "mysql",
+        ),
+        ("SELECT AGE(ds), SUM(amount) FROM orders GROUP BY 1", "postgresql"),
+        ("SELECT toYYYYMM(ds), SUM(amount) FROM orders GROUP BY 1", "clickhouse"),
+    ],
+)
+def test_read_free_builtins_are_allowed(sql: str, engine: str) -> None:
+    from superset.mcp_service.dashboard_scope_sql import _check_statement
+    from superset.sql.parse import SQLScript
+
+    (statement,) = SQLScript(sql, engine).statements
+    assert _check_statement(statement) is statement
+
+
+def test_qualified_calls_never_match_a_builtin_name() -> None:
+    from superset.mcp_service.dashboard_scope_sql import _check_statement
+    from superset.sql.parse import SQLScript
+
+    (statement,) = SQLScript("SELECT my_schema.now() FROM orders", "mysql").statements
+    with pytest.raises(MCPDashboardScopeError, match="my_schema.now"):
+        _check_statement(statement)
+
+
 def test_predicate_form_engines_are_refused(database: Any) -> None:
     """The predicate form misses parenthesised reads such as ``FROM (orders)``."""
     from superset.sql.parse import RLSMethod

@@ -54,6 +54,38 @@ if TYPE_CHECKING:
 # table references and predicates are unknown here; refuse rather than guess.
 _TEMPLATE_MARKERS = re.compile(r"{{|{%|{#")
 
+# Builtin scalar functions the SQL parser does not model but that cannot read
+# tables: date/time, hashing and JSON-path helpers common in analytical SQL.
+# Matched on unqualified calls only, so ``my_schema.now()`` is still refused.
+READ_FREE_BUILTINS = frozenset(
+    {
+        # date and time
+        "AGE",
+        "CURDATE",
+        "CURTIME",
+        "FORMAT_DATETIME",
+        "MAKE_DATE",
+        "MAKE_TIMESTAMP",
+        "NOW",
+        "PARSE_DATETIME",
+        "SYSDATE",
+        "TOSTARTOFDAY",
+        "TOSTARTOFMONTH",
+        "TOSTARTOFQUARTER",
+        "TOSTARTOFWEEK",
+        "TOSTARTOFYEAR",
+        "TOYYYYMM",
+        "TOYYYYMMDD",
+        "UNIX_TIMESTAMP",
+        "UTC_DATE",
+        "UTC_TIMESTAMP",
+        # hashing and JSON paths
+        "HASH",
+        "JSONB_EXTRACT_PATH_TEXT",
+        "JSON_EXTRACT_PATH_TEXT",
+    }
+)
+
 _SQL_GUIDANCE = (
     "Query only registered datasets that have the filtered columns, use "
     "query_dataset, or ask the user to clear the dashboard filter."
@@ -233,7 +265,11 @@ def _check_statement(statement: Any) -> SQLStatement:
             "statements that modify data cannot run while dashboard filters apply.",
             _SQL_GUIDANCE,
         )
-    if unmodelled := statement.get_unmodelled_functions():
+    if unmodelled := {
+        name
+        for name in statement.get_unmodelled_functions()
+        if name.upper() not in READ_FREE_BUILTINS
+    }:
         raise MCPDashboardScopeError(
             "the SQL calls functions whose table reads cannot be checked "
             f"({', '.join(sorted(unmodelled))}).",
