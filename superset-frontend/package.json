@@ -157,7 +157,7 @@
     "@visx/xychart": "^4.0.0",
     "ag-grid-community": "36.2.0",
     "ag-grid-react": "36.2.0",
-    "antd": "^6.6.4",
+    "antd": "^6.6.5",
     "chrono-node": "^2.10.1",
     "classnames": "^2.2.5",
     "content-disposition": "^3.0.0",
@@ -251,7 +251,6 @@
     "@emotion/babel-plugin": "^11.13.5",
     "@emotion/jest": "^11.14.2",
     "@formatjs/intl-durationformat": "^0.11.1",
-    "@hainenber/po2json": "^1.0.2",
     "@istanbuljs/nyc-config-typescript": "^1.0.1",
     "@oxlint/plugins": "^1.81.0",
     "@playwright/test": "^1.62.1",
@@ -277,7 +276,7 @@
     "@types/json-bigint": "^1.0.4",
     "@types/lodash-es": "^4.17.12",
     "@types/mousetrap": "^1.6.15",
-    "@types/node": "^26.6.1",
+    "@types/node": "^26.6.2",
     "@types/react": "^18.3.0",
     "@types/react-dom": "^18.3.0",
     "@types/react-loadable": "^5.5.11",
@@ -289,7 +288,7 @@
     "@types/rison": "0.1.0",
     "@types/tinycolor2": "^1.4.3",
     "@types/unzipper": "^0.10.11",
-    "babel-jest": "^30.5.1",
+    "babel-jest": "^30.5.2",
     "babel-loader": "^10.1.1",
     "babel-plugin-dynamic-import-node": "^2.3.3",
     "babel-plugin-jsx-remove-data-test-id": "^3.0.0",
@@ -301,10 +300,11 @@
     "css-loader": "^7.1.5",
     "fetch-mock": "^12.6.0",
     "fork-ts-checker-webpack-plugin": "^9.1.0",
+    "gettext-parser": "^9.1.1",
     "history": "^5.3.0",
     "html-webpack-plugin": "^5.6.8",
     "imports-loader": "^5.0.0",
-    "jest": "^30.5.1",
+    "jest": "^30.5.2",
     "jest-environment-jsdom": "^30.5.2",
     "jest-html-reporter": "^4.4.2",
     "jest-websocket-mock": "^2.5.0",
@@ -313,7 +313,7 @@
     "lerna": "^10.0.1",
     "lightningcss": "^1.33.0",
     "mini-css-extract-plugin": "^2.10.2",
-    "minimizer-webpack-plugin": "^5.10.1",
+    "minimizer-webpack-plugin": "^5.11.0",
     "open-cli": "^9.0.0",
     "oxfmt": "^0.68.0",
     "oxlint": "^1.83.0",
@@ -335,7 +335,7 @@
     "typescript": "5.4.5",
     "unzipper": "^0.12.5",
     "wait-on": "^9.1.0",
-    "webpack": "^5.111.0",
+    "webpack": "^5.111.1",
     "webpack-bundle-analyzer": "^5.4.0",
     "webpack-cli": "^7.2.3",
     "webpack-dev-server": "^6.0.0",
@@ -367,6 +367,9 @@
     },
     "@jest/globals": "^30.4.0",
     "@jest/types": "^30.4.0",
+    "@loaders.gl/compression": {
+      "fflate": "^0.7.5"
+    },
     "@luma.gl/constants": "~9.2.5",
     "@luma.gl/core": "~9.2.5",
     "@luma.gl/engine": "~9.2.5",
@@ -375,7 +378,7 @@
     "@luma.gl/webgl": "~9.2.5",
     "core-js": "^3.38.1",
     "cosmiconfig": {
-      "js-yaml": "^4.3.1"
+      "js-yaml": "^4.3.2"
     },
     "dompurify": "^3.4.13",
     "esbuild": "^0.28.1",
@@ -392,18 +395,24 @@
     },
     "jspdf": "^4.2.0",
     "lerna": {
-      "js-yaml": "^4.3.1"
+      "js-yaml": "^4.3.2"
     },
     "minimatch@>=10": {
       "brace-expansion": ">=5.0.8"
     },
     "nanoid@>=3 <4": "3.3.18",
     "nwsapi": "^2.2.24",
+    "nx": {
+      "smol-toml": "^1.7.1"
+    },
     "puppeteer": "^22.4.1",
     "react-diff-viewer-continued": {
-      "js-yaml": "^4.3.1"
+      "js-yaml": "^4.3.2"
     },
     "tar": "^7.5.16",
+    "texture-compressor": {
+      "image-size": "^2.0.3"
+    },
     "typescript-json-schema": "^0.68.0",
     "uuid": "$uuid"
   },
