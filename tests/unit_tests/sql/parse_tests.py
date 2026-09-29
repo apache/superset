@@ -2191,6 +2191,17 @@ def test_strip_comments_bounds_literal_nesting() -> None:
     assert "/* c */" not in statement._strip_comments("$t0$/* c */$t0$")
 
 
+def test_split_literal_reports_unterminated_dollar_quote() -> None:
+    """
+    `_split_literal` reports an empty closing delimiter when a dollar-quoted
+    literal never closes, so a caller can tell an unterminated region apart
+    from one that closes normally rather than treating the two the same.
+    """
+    opening, interior, closing = SQLStatement._split_literal("$t$--")
+
+    assert (opening, interior, closing) == ("$t$", "--", "")
+
+
 @pytest.mark.parametrize(
     "sql, expected",
     [
