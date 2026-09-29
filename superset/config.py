@@ -3480,6 +3480,12 @@ except ImportError:
     CUSTOM_DATABASE_ERRORS = {}
 
 
+# Manual catalog synchronization requires a homogeneous provider/host fleet and
+# authoritative shared coordination. Operators disable it before rollback.
+SEMANTIC_LAYER_METADATA_REFRESH_ENABLED: bool = False
+SEMANTIC_LAYER_METADATA_NAMESPACE: str = "superset"
+
+
 LOCAL_EXTENSIONS: list[str] = []
 EXTENSIONS_PATH: str | None = None
 # Extensions that must not be loaded, even if present in LOCAL_EXTENSIONS or
@@ -3727,9 +3733,3 @@ for env_var in ENV_VAR_KEYS:
 # users set just LOGO_TARGET_PATH without also overriding the whole theme.
 sync_theme_logo_href(THEME_DEFAULT, LOGO_TARGET_PATH)
 sync_theme_logo_href(THEME_DARK, LOGO_TARGET_PATH)
-
-
-# Manual catalog synchronization requires a homogeneous provider/host fleet and
-# authoritative shared coordination. Operators disable it before rollback.
-SEMANTIC_LAYER_METADATA_REFRESH_ENABLED: bool = False
-SEMANTIC_LAYER_METADATA_NAMESPACE: str = "superset"
