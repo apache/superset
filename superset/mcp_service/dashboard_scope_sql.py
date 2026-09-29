@@ -150,6 +150,16 @@ def scope_sql(
             _SQL_GUIDANCE,
         ) from ex
 
+    if script.has_unparseable_statement:
+        # An opaque statement (stored-procedure call, dialect command, SHOW
+        # without a target, non-SQL engine) hides which tables it reads, so
+        # "no tables found" would wrongly mean "nothing to filter".
+        raise MCPDashboardScopeError(
+            "the SQL contains a statement whose table reads cannot be "
+            "determined, so the dashboard filters cannot be applied to it.",
+            _SQL_GUIDANCE,
+        )
+
     method = database.db_engine_spec.get_rls_method()
     for statement in script.statements:
         if not isinstance(statement, SQLStatement):

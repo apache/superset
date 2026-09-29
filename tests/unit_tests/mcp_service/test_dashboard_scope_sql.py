@@ -233,6 +233,10 @@ def test_statement_without_tables_is_left_alone(
         ("SELECT COUNT(*) FROM unregistered", "not a registered physical dataset"),
         ("INSERT INTO orders VALUES ('A', 1, NULL)", "modify data"),
         ("SELECT FROM WHERE", "could not be parsed"),
+        # Opaque statements report no tables; they must not read as "nothing
+        # to filter".
+        ("CALL refresh_orders()", "cannot be determined"),
+        ("EXECUTE IMMEDIATE 'SELECT SUM(amount) FROM orders'", "cannot be determined"),
     ],
 )
 def test_unmappable_sql_is_refused(database: Any, sql: str, message: str) -> None:
