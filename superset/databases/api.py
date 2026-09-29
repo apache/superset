@@ -148,6 +148,8 @@ from superset.views.filters import BaseFilterRelatedUsers, FilterRelatedUsers
 
 logger = logging.getLogger(__name__)
 
+MAX_RELATED_DATASETS = 10
+
 
 # pylint: disable=too-many-public-methods
 class DatabaseRestApi(BaseSupersetModelRestApi):
@@ -1388,6 +1390,26 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             {"id": tab_state.id, "label": tab_state.label, "active": tab_state.active}
             for tab_state in data["sqllab_tab_states"]
         ]
+        # Names are access-filtered like charts and dashboards above, but the
+        # count is not. This route only requires ``can_read`` on Database, and
+        # ``DatabaseFilter`` admits a caller holding ``datasource_access`` on a
+        # single dataset in the database, so returning every name here would let
+        # them enumerate datasets they hold no permission on. The count has to
+        # stay unfiltered because it is what explains the delete being blocked --
+        # a bare number discloses far less than a name and schema.
+        datasets = []
+        for dataset in data["datasets"]:
+            if not security_manager.can_access_datasource(dataset):
+                continue
+            datasets.append(
+                {
+                    "id": dataset.id,
+                    "table_name": dataset.table_name,
+                    "schema": dataset.schema,
+                }
+            )
+            if len(datasets) == MAX_RELATED_DATASETS:
+                break
         return self.response(
             200,
             charts={"count": len(charts), "result": charts},
@@ -1396,6 +1418,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
                 "count": len(sqllab_tab_states),
                 "result": sqllab_tab_states,
             },
+            datasets={"count": data["dataset_count"], "result": datasets},
         )
 
     @expose("/<int:pk>/validate_sql/", methods=("POST",))
