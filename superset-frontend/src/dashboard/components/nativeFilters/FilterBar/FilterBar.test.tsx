@@ -889,6 +889,7 @@ test('Clear All in vertical bar lets the same value be re-selected afterwards', 
 
   expect(screen.getByTestId(getTestId('apply-button'))).not.toBeDisabled();
   updateDataMaskSpy.mockRestore();
+  fetchMock.removeRoute('vertical-clear-chart-data');
 });
 
 test('FilterBar Clear All only clears in-scope filters, not out-of-scope ones', async () => {
