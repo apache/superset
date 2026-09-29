@@ -10573,6 +10573,9 @@ msgstr ""
 msgid "Please enter a SQLAlchemy URI to test"
 msgstr ""
 
+msgid "Please enter a new password"
+msgstr ""
+
 msgid "Please enter a valid email"
 msgstr ""
 
