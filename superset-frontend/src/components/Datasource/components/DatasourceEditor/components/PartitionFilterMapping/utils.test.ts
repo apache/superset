@@ -331,7 +331,10 @@ test('the mapping cannot follow the default datetime column onto a column this l
 });
 
 test('a default datetime column with no transform carries none over', () => {
-  const columns = [
+  // Annotated so `applyImplicitMappingMove` infers its type parameter as the
+  // full column, not the two-key literal: the assertion below reads a field the
+  // literal does not carry.
+  const columns: PartitionMappingColumn[] = [
     { column_name: 'event_time' },
     { column_name: 'event_time2' },
   ];

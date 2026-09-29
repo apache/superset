@@ -304,17 +304,19 @@ test('the ordering checkbox reports back which column it belongs to', async () =
   expect(onMonotonicChange).toHaveBeenCalledWith('event_time', true);
 });
 
-test('editing the transform to the bare :value auto-declares it monotonic', () => {
+test('editing the transform to the bare :value auto-declares it monotonic', async () => {
   // The identity transform provably preserves ordering, so typing it back in
   // re-checks the box rather than leaving the owner to assert what cannot be
-  // false.
+  // false. Both writes ride one debounced commit, so the assertion waits.
   fetchMock.post(PREVIEW_URL, { result: { valid: true } });
+  const onChange = jest.fn();
   const onMonotonicChange = jest.fn();
 
   render(
     <PartitionMappingSection
       item={{ column_name: 'event_time', is_dttm: true }}
       value="unix_timestamp(:value)"
+      onChange={onChange}
       datasource={{
         id: 1,
         main_dttm_col: 'event_time',
@@ -330,13 +332,17 @@ test('editing the transform to the bare :value auto-declares it monotonic', () =
     target: { value: ':value' },
   });
 
-  expect(onMonotonicChange).toHaveBeenCalledWith('event_time', true);
+  await waitFor(() => {
+    expect(onMonotonicChange).toHaveBeenCalledWith('event_time', true);
+  });
+  expect(onChange).toHaveBeenCalledWith(':value');
 });
 
-test('editing the transform away from :value clears the monotonic auto-check', () => {
+test('editing the transform away from :value clears the monotonic auto-check', async () => {
   // Monotonicity is a property of the expression, so once the transform is no
   // longer the identity the prior auto-check must not linger on it.
   fetchMock.post(PREVIEW_URL, { result: { valid: true } });
+  const onChange = jest.fn();
   const onMonotonicChange = jest.fn();
 
   render(
@@ -348,6 +354,7 @@ test('editing the transform away from :value clears the monotonic auto-check', (
         partition_transform_is_monotonic: true,
       }}
       value=":value"
+      onChange={onChange}
       datasource={{
         id: 1,
         main_dttm_col: 'event_time',
@@ -363,7 +370,10 @@ test('editing the transform away from :value clears the monotonic auto-check', (
     target: { value: 'unix_timestamp(:value)' },
   });
 
-  expect(onMonotonicChange).toHaveBeenCalledWith('event_time', false);
+  await waitFor(() => {
+    expect(onMonotonicChange).toHaveBeenCalledWith('event_time', false);
+  });
+  expect(onChange).toHaveBeenCalledWith('unix_timestamp(:value)');
 });
 
 test('a hand-declared transform keeps its ordering flag through an edit', async () => {
@@ -586,8 +596,8 @@ test('without a default datetime column the mapping is genuinely removed', async
  * The editor's commit path in miniature: `onChange` advances the parent's state
  * inside the event (the editor's own `setDatabaseColumns`), and the same value
  * is replayed a tick later by the prop-sync effect, which re-seeds the whole
- * column array from a snapshot one render cycle old (DatasourceEditor's
- * `propsDatasource` effect, DatasourceModal's `setCurrentDatasource`). Any
+ * column array from a snapshot one render cycle old
+ * (DatasourceEditor.tsx:1789-1791, DatasourceModal/index.tsx:321-330). Any
  * keystroke landing inside that window is destroyed by the replay, and
  * Fieldset's itemRef then merges the next keystroke onto the reverted string --
  * which is how typing yields interleaved garbage rather than a clean prefix.

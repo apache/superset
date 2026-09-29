@@ -248,6 +248,7 @@ test('a mapping onto a bare non-temporal column blocks the save', async () => {
   props.datasource.main_dttm_col = 'ds';
   props.datasource.partition_column = null;
   props.datasource.partition_mapped_column = 'state';
+  props.datasource.supports_partition_filter_mapping = true;
 
   fastRender(props);
   await dismissDatasourceWarning();
@@ -271,6 +272,7 @@ test('a mapping onto the default datetime column does not block the save', async
   props.datasource.main_dttm_col = 'ds';
   props.datasource.partition_column = null;
   props.datasource.partition_mapped_column = null;
+  props.datasource.supports_partition_filter_mapping = true;
 
   fastRender(props);
   await dismissDatasourceWarning();
