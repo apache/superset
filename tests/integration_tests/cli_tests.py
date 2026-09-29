@@ -598,6 +598,9 @@ def test_backfill_query_context_fills_only_null_contexts(app_context):
     from superset.utils import json
 
     table = db.session.query(SqlaTable).filter_by(table_name="birth_names").one()
+    # Capture the id now: the command commits (expiring instances) and expunges,
+    # so ``table`` is detached by the time the assertions run.
+    table_id = table.id
 
     null_chart = Slice(
         slice_name="qc-backfill-null",
@@ -635,8 +638,17 @@ def test_backfill_query_context_fills_only_null_contexts(app_context):
 
         assert response.exit_code == 0, response.output
 
-        db.session.refresh(null_chart)
-        db.session.refresh(kept_chart)
+        # The command commits each batch and detaches the charts it processed to
+        # keep memory bounded, so the instances created above are no longer
+        # attached to this session. Re-load from the committed state rather than
+        # refreshing the expunged instances (which raises "not persistent within
+        # this Session").
+        null_chart = (
+            db.session.query(Slice).filter_by(slice_name="qc-backfill-null").one()
+        )
+        kept_chart = (
+            db.session.query(Slice).filter_by(slice_name="qc-backfill-existing").one()
+        )
 
         # The empty chart gained a context bound to its own datasource ...
         assert null_chart.query_context is not None
@@ -646,10 +658,12 @@ def test_backfill_query_context_fills_only_null_contexts(app_context):
             if isinstance(datasource, dict)
             else int(str(datasource).split("__")[0])
         )
-        assert datasource_id == table.id
+        assert datasource_id == table_id
         # ... and the chart that already had a context is left untouched.
         assert kept_chart.query_context == '{"existing": true}'
     finally:
-        db.session.delete(null_chart)
-        db.session.delete(kept_chart)
+        for name in ("qc-backfill-null", "qc-backfill-existing"):
+            chart = db.session.query(Slice).filter_by(slice_name=name).one_or_none()
+            if chart is not None:
+                db.session.delete(chart)
         db.session.commit()
