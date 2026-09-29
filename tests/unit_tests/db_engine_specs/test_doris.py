@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 
+from collections.abc import Iterator
 from typing import Any, Optional
 from unittest.mock import MagicMock, Mock
 
@@ -22,6 +23,7 @@ import pytest
 from pytest_mock import MockerFixture
 from sqlalchemy import JSON, types
 from sqlalchemy.engine.url import make_url
+from sqlalchemy.exc import NoSuchModuleError
 
 from superset.db_engine_specs.doris import (
     AggState,
@@ -323,12 +325,32 @@ def test_connection_form_default_driver_is_installed(mocker: MockerFixture) -> N
     assert DorisEngineSpec.default_driver in drivers
 
 
+@pytest.fixture
+def pydoris_dialects() -> Iterator[None]:
+    """
+    Register the two entry points pydoris ships, so that a URI can be resolved
+    to a dialect the way :func:`sqlalchemy.create_engine` resolves one.
+    """
+    from sqlalchemy.dialects import registry
+
+    for name in ("doris", "pydoris"):
+        registry.register(
+            name, "sqlalchemy.dialects.mysql.mysqldb", "MySQLDialect_mysqldb"
+        )
+    yield
+    for name in ("doris", "pydoris"):
+        registry.impls.pop(name, None)
+
+
 @pytest.mark.parametrize("encryption", [False, True])
+@pytest.mark.usefixtures("pydoris_dialects")
 def test_build_sqlalchemy_uri_uses_the_doris_scheme(encryption: bool) -> None:
     """
     A URI built from the connection form must name a registered dialect:
     ``pydoris+mysqldb`` (``engine+default_driver``) is not one, ``doris`` is.
     """
+    from sqlalchemy.dialects.mysql.mysqldb import MySQLDialect_mysqldb
+
     from superset.db_engine_specs.base import BasicParametersType
     from superset.db_engine_specs.doris import DorisEngineSpec
 
@@ -346,6 +368,9 @@ def test_build_sqlalchemy_uri_uses_the_doris_scheme(encryption: bool) -> None:
 
     url = make_url(uri)
     assert url.drivername == "doris"
+    # Resolving the dialect is what ``create_engine`` does first, and is the
+    # step that fails for a scheme no entry point provides.
+    assert url.get_dialect() is MySQLDialect_mysqldb
     assert (url.username, url.password, url.host, url.port, url.database) == (
         "user",
         "p@ss",
@@ -354,3 +379,17 @@ def test_build_sqlalchemy_uri_uses_the_doris_scheme(encryption: bool) -> None:
         "internal.sales",
     )
     assert DorisEngineSpec.get_parameters_from_uri(uri)["encryption"] is encryption
+
+
+@pytest.mark.usefixtures("pydoris_dialects")
+def test_engine_plus_default_driver_scheme_has_no_dialect() -> None:
+    """
+    ``engine+default_driver`` is the scheme the connection form would emit
+    without the override; pydoris registers no such entry point.
+    """
+    from superset.db_engine_specs.doris import DorisEngineSpec
+
+    scheme = f"{DorisEngineSpec.engine}+{DorisEngineSpec.default_driver}"
+
+    with pytest.raises(NoSuchModuleError):
+        make_url(f"{scheme}://user:p@ss@doris.example.com:9030/db").get_dialect()
