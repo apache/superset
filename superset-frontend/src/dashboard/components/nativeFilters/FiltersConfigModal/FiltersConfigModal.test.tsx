@@ -551,10 +551,25 @@ test('shows the dependency control on first render for a saved cascade filter', 
   };
   defaultRender(state, { ...props, createNewOnOpen: false });
 
-  // No interaction: the dependency control and its saved parent must be
-  // visible as soon as the modal opens on a filter that already has a
-  // cascade parent, without waiting for a rerender.
+  // No interaction: the dependency control must be checked as soon as the
+  // modal opens on a filter that already has a cascade parent, without
+  // waiting for a rerender.
   expect(getCheckbox(DEPENDENCIES_REGEX)).toBeChecked();
+
+  // The saved parent ("country") must render as the actual selected
+  // dependency, not a "(deleted or invalid type)" placeholder. antd Select
+  // renders the active selection as a span whose title attribute is the
+  // picked option's label.
+  expect(
+    document.querySelector(
+      '.ant-select-content-has-value[title="country"], .ant-select-selection-item[title="country"]',
+    ),
+  ).toBeInTheDocument();
+
+  // hasAdditionalFilters has the same first-render read as
+  // canDependOnOtherFilters above: the pre-filter control must also be
+  // present (not merely unchecked) on the very first paint.
+  expect(getCheckbox(PRE_FILTER_REGEX)).not.toBeChecked();
 });
 
 const SORTABLE_ITEM_HEIGHT = 40;
