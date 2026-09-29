@@ -1215,7 +1215,9 @@ class TestTablesDatabaseCommand(SupersetTestCase):
         mock_can_access_database.side_effect = SupersetException("Test Error")
         mock_g.user = security_manager.find_user("admin")
 
-        schema_name = self.default_schema_backend_map[database.backend]
+        schema_name: str | None = self.default_schema_backend_map.get(database.backend)
+        if schema_name is None:
+            self.skipTest(f"No default schema mapped for {database.backend}")
         command = TablesDatabaseCommand(database.id, None, schema_name, False)
         with pytest.raises(SupersetException) as excinfo:  # noqa: PT012
             command.run()
@@ -1232,7 +1234,9 @@ class TestTablesDatabaseCommand(SupersetTestCase):
         mock_can_access_database.side_effect = Exception("Test Error")
         mock_g.user = security_manager.find_user("admin")
 
-        schema_name = self.default_schema_backend_map[database.backend]
+        schema_name: str | None = self.default_schema_backend_map.get(database.backend)
+        if schema_name is None:
+            self.skipTest(f"No default schema mapped for {database.backend}")
         command = TablesDatabaseCommand(database.id, None, schema_name, False)
         with pytest.raises(DatabaseTablesUnexpectedError) as excinfo:  # noqa: PT012
             command.run()

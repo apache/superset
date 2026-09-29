@@ -29,6 +29,17 @@ from superset.extensions import security_manager
 from superset.utils.core import DatasourceName
 
 
+def _all_schemas_accessible(
+    database: MagicMock,
+    catalog: str | None,
+    schemas: set[str],
+) -> set[str]:
+    """
+    Grant access to every requested schema.
+    """
+    return set(schemas)
+
+
 @pytest.fixture(autouse=True)
 def schemas_accessible_by_user(mocker: MockerFixture) -> MagicMock:
     """
@@ -37,7 +48,7 @@ def schemas_accessible_by_user(mocker: MockerFixture) -> MagicMock:
     return mocker.patch.object(
         security_manager,
         "get_schemas_accessible_by_user",
-        side_effect=lambda database, catalog, schemas: set(schemas),
+        side_effect=_all_schemas_accessible,
     )
 
 
@@ -327,24 +338,28 @@ def test_tables_unknown_schema(
     with pytest.raises(DatabaseSchemaNotFoundError):
         TablesDatabaseCommand(1, None, "not_a_schema", False).run()
 
-    database_without_catalog.get_all_table_names_in_schema.assert_not_called()
-    database_without_catalog.get_all_view_names_in_schema.assert_not_called()
-    db_mock = database_without_catalog
-    db_mock.get_all_materialized_view_names_in_schema.assert_not_called()
+    for lookup in (
+        "get_all_table_names_in_schema",
+        "get_all_view_names_in_schema",
+        "get_all_materialized_view_names_in_schema",
+    ):
+        getattr(database_without_catalog, lookup).assert_not_called()
     get_datasources_accessible_by_user.assert_not_called()
 
 
 def test_tables_schema_not_accessible(
     mocker: MockerFixture,
     database_without_catalog: MagicMock,
-    schemas_accessible_by_user: MagicMock,
 ) -> None:
     """
     A schema the user cannot access is rejected before any table or view
     lookup runs.
     """
-    schemas_accessible_by_user.side_effect = None
-    schemas_accessible_by_user.return_value = set()
+    schemas_accessible_by_user = mocker.patch.object(
+        security_manager,
+        "get_schemas_accessible_by_user",
+        return_value=set(),
+    )
 
     with pytest.raises(DatabaseSchemaNotFoundError):
         TablesDatabaseCommand(1, None, "schema1", False).run()
@@ -424,14 +439,18 @@ def test_tables_schema_list_uses_cache(
 
 
 def test_tables_schema_check_unexpected_error(
+    mocker: MockerFixture,
     database_without_catalog: MagicMock,
-    schemas_accessible_by_user: MagicMock,
 ) -> None:
     """
     An unexpected error while checking the schema is reported as
     ``DatabaseTablesUnexpectedError``.
     """
-    schemas_accessible_by_user.side_effect = Exception("Test Error")
+    mocker.patch.object(
+        security_manager,
+        "get_schemas_accessible_by_user",
+        side_effect=Exception("Test Error"),
+    )
 
     with pytest.raises(DatabaseTablesUnexpectedError, match="Test Error"):
         TablesDatabaseCommand(1, None, "schema1", False).run()
