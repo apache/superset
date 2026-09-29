@@ -47,13 +47,13 @@ from __future__ import annotations
 
 import subprocess
 import sys
+import tarfile
 import tempfile
 from pathlib import Path
 
 from babel.messages.pofile import read_po
 
 ROOT_DIR = Path(__file__).resolve().parent.parent.parent
-BABEL_CFG = ROOT_DIR / "superset" / "translations" / "babel.cfg"
 DEFAULT_POT = ROOT_DIR / "superset" / "translations" / "messages.pot"
 
 # Kept in sync with the `pybabel extract` invocation in babel_update.sh.
@@ -99,16 +99,95 @@ def _msgid_set(pot_path: Path) -> set[MsgId]:
     }
 
 
-def extract_fresh(output_path: Path) -> None:
-    """Run the project's extraction command into ``output_path``."""
-    subprocess.run(  # noqa: S603
-        ["pybabel", "extract", "-F", str(BABEL_CFG), "-o", str(output_path)]
-        + EXTRACT_FLAGS,
+def _archive_ref() -> str:
+    """Return a tree-ish for ``git archive`` that matches the tracked working tree.
+
+    ``git stash create`` builds a commit object for the current index and
+    tracked-file modifications without touching the working tree, any ref,
+    or the actual stash, so it is safe to call while other processes are
+    using this checkout. It prints nothing when there is nothing to stash,
+    so fall back to ``HEAD``. Because it only knows about tracked files, a
+    new source file with a translatable string that has not yet been
+    ``git add``-ed is not included; that only affects local/pre-commit runs,
+    since CI always operates on a clean, fully-tracked checkout.
+
+    Deliberately uses ``Popen`` rather than ``run``: this module's tests
+    patch ``subprocess.run`` to fake the single "run pybabel" call, and a
+    second real ``run`` call here would be caught by that same patch.
+    """
+    proc = subprocess.Popen(  # noqa: S603
+        ["git", "stash", "create"],  # noqa: S607
         cwd=ROOT_DIR,
-        check=True,
-        capture_output=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
         text=True,
     )
+    stash_sha, stash_stderr = proc.communicate()
+    if proc.returncode != 0:
+        raise subprocess.CalledProcessError(
+            proc.returncode, proc.args, stderr=stash_stderr
+        )
+    return stash_sha.strip() or "HEAD"
+
+
+def extract_fresh(output_path: Path) -> None:
+    """Run the project's extraction command into ``output_path``.
+
+    Extracts from a ``git archive`` snapshot rather than the live checkout.
+    The Python-Unit job runs ``pytest -n auto --dist loadfile``, so many
+    worker processes share this checkout while this test runs; ``pybabel
+    extract`` walks everything under ``cwd``, so scanning the working
+    directory directly makes the msgid set depend on whatever transient
+    files another worker's test happens to write into the tree at that
+    instant.
+    """
+    with tempfile.TemporaryDirectory() as snapshot_dir_str:
+        snapshot_dir = Path(snapshot_dir_str)
+        archive = subprocess.Popen(  # noqa: S603
+            ["git", "archive", _archive_ref()],  # noqa: S607
+            cwd=ROOT_DIR,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
+        if archive.stdout is None:
+            raise RuntimeError("git archive did not open a stdout pipe")
+        try:
+            with tarfile.open(fileobj=archive.stdout, mode="r|") as tar:
+                # Use the safe extraction filter (PEP 706) where available; older
+                # Python patch releases without the backport still work, just
+                # without that defense-in-depth (this is our own trusted `git
+                # archive` output, not attacker-controlled).
+                data_filter = getattr(tarfile, "data_filter", None)
+                if data_filter is not None:
+                    tar.extraction_filter = data_filter
+                tar.extractall(snapshot_dir)  # noqa: S202 (own trusted `git archive` output)
+        finally:
+            # A failed `git archive` closes stdout early, so `tarfile` raises
+            # its own opaque `ReadError`/`EOFError` before we get a chance to
+            # look at git's actual error; draining stderr and the return code
+            # here, and raising from `finally`, surfaces that real cause
+            # instead of (and in place of) the tarfile exception.
+            _, archive_stderr = archive.communicate()
+            if archive.returncode != 0:
+                raise subprocess.CalledProcessError(
+                    archive.returncode, archive.args, stderr=archive_stderr
+                )
+
+        subprocess.run(  # noqa: S603
+            [
+                "pybabel",
+                "extract",
+                "-F",
+                str(snapshot_dir / "superset" / "translations" / "babel.cfg"),
+                "-o",
+                str(output_path.resolve()),
+            ]
+            + EXTRACT_FLAGS,
+            cwd=snapshot_dir,
+            check=True,
+            capture_output=True,
+            text=True,
+        )
 
 
 def diff(committed_pot: Path = DEFAULT_POT) -> tuple[set[MsgId], set[MsgId]]:

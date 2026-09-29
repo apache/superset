@@ -44,6 +44,10 @@ Tools are Python functions that AI agents can call to perform specific tasks. Th
 - Specialized report generation
 - Business-specific operations
 
+Sanitization notices are returned in tool response `warnings`. The internal
+`sanitization_warnings` request attribute is not advertised in input schemas;
+caller-supplied values are discarded rather than echoed in responses.
+
 ### MCP Prompts
 
 Prompts provide interactive guidance and context to AI agents. They help agents understand how to better assist users with specific workflows or domain knowledge.
@@ -233,6 +237,23 @@ The AI agent sees your tool's:
 3. **Extension loading**: Confirm your extension is installed and enabled
 
 ### Input Validation Errors
+
+Argument-validation failures return MCP `isError: true`, with schema field paths
+(such as `request.page_size`) and safe reasons (such as `Expected an integer`).
+Supply required wrappers such as `request` rather than passing their fields at
+the top level. An unexpected top-level argument declared directly under `request`
+gets its expected schema path and a wrapper hint, for example:
+`Validation error in list_datasets: request.page_size: Unexpected top-level argument (place under request)`.
+Diagnostics omit received values and custom validator messages. Undeclared fields
+and dynamic dictionary keys appear as `[field]`; dictionary keys and nested
+extras remain masked even when they match a field declared elsewhere in the
+schema. Apart from the top-level wrapper hint, only fields declared at the
+corresponding schema path are shown. Responses include at most eight validation
+errors with at most eight path segments each. Failures with more than 128 errors
+return an input-free summary instead of individual details, avoiding eager
+materialization of the entire error collection for diagnostics.
+Already-structured tool errors retain their content and error flag; this
+validation formatter does not reinterpret domain-error payloads.
 
 1. **Pydantic models**: Ensure field types match expected inputs
 2. **Field constraints**: Check min/max values and string lengths are reasonable

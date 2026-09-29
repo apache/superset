@@ -18,11 +18,16 @@
  */
 import { HYDRATE_DASHBOARD, hydrateDashboard } from './hydrate';
 import {
+  CHART_TYPE,
+  COLUMN_TYPE,
+  DASHBOARD_GRID_TYPE,
   DASHBOARD_ROOT_TYPE,
+  ROW_TYPE,
   TABS_TYPE,
   TAB_TYPE,
 } from '../util/componentTypes';
-import { DASHBOARD_ROOT_ID } from '../util/constants';
+import { DASHBOARD_GRID_ID, DASHBOARD_ROOT_ID } from '../util/constants';
+import { FilterBarOrientation } from '../types';
 
 /**
  * Regression guard for the follow-up to PR #39417 / PR #41832: the default
@@ -48,6 +53,7 @@ const layoutItem = (
 const buildDashboard = (
   positionData: Record<string, unknown>,
   title = 'Test dashboard',
+  metadata: Record<string, unknown> = {},
 ) => ({
   id: 1,
   dashboard_title: title,
@@ -55,29 +61,40 @@ const buildDashboard = (
   published: true,
   changed_on: '2024-01-01T00:00:00.000Z',
   owners: [],
-  metadata: {},
+  metadata,
   position_data: positionData,
 });
+
+/** A user with dashboard-editor privileges, for editMode/permission tests. */
+const editorUser = {
+  userId: 1,
+  username: 'editor',
+  permissions: {},
+  roles: { Admin: [['can_write', 'Dashboard']] },
+};
 
 const hydrate = (
   positionData: Record<string, unknown>,
   overrides: {
     activeTabs?: string[] | null;
     dashboardState?: Record<string, unknown>;
+    user?: Record<string, unknown>;
+    metadata?: Record<string, unknown>;
+    charts?: unknown[];
   } = {},
 ) => {
   const dispatch = jest.fn((action: unknown) => action);
   const getState = () =>
     ({
-      user: { roles: {}, userId: 1 },
+      user: overrides.user ?? { roles: {}, userId: 1 },
       common: { conf: {} },
       dashboardState: overrides.dashboardState ?? {},
     }) as any;
   const action = (
     hydrateDashboard({
       history: { replace: jest.fn() },
-      dashboard: buildDashboard(positionData),
-      charts: [],
+      dashboard: buildDashboard(positionData, undefined, overrides.metadata),
+      charts: overrides.charts ?? [],
       dataMask: {},
       activeTabs: overrides.activeTabs ?? null,
       chartStates: null,
@@ -273,4 +290,199 @@ test('a permalink activeTabs: [] (empty but present) wins and seeds []', () => {
   const action = hydrate(flatTabsPositionData, { activeTabs: [] });
 
   expect(action.data.dashboardState.activeTabs).toEqual([]);
+});
+
+test('keeps a trapped chart missing from the charts payload in the layout', () => {
+  // e.g. an archived chart with SOFT_DELETE: the charts endpoint omits it, so
+  // hydration cannot re-add it and only its layout entry keeps its membership
+  const positionData = {
+    [DASHBOARD_ROOT_ID]: layoutItem(
+      DASHBOARD_ROOT_ID,
+      DASHBOARD_ROOT_TYPE,
+      [DASHBOARD_GRID_ID],
+      [],
+    ),
+    [DASHBOARD_GRID_ID]: layoutItem(
+      DASHBOARD_GRID_ID,
+      DASHBOARD_GRID_TYPE,
+      [],
+      [DASHBOARD_ROOT_ID],
+    ),
+    'COLUMN-orphan': layoutItem(
+      'COLUMN-orphan',
+      COLUMN_TYPE,
+      ['CHART-archived', 'ROW-orphan'],
+      [DASHBOARD_ROOT_ID, DASHBOARD_GRID_ID],
+    ),
+    'ROW-orphan': layoutItem(
+      'ROW-orphan',
+      ROW_TYPE,
+      ['COLUMN-orphan'],
+      [DASHBOARD_ROOT_ID, DASHBOARD_GRID_ID, 'COLUMN-orphan'],
+    ),
+    'CHART-archived': {
+      ...layoutItem('CHART-archived', CHART_TYPE, [], []),
+      meta: { chartId: 42, width: 4, height: 50 },
+    },
+  };
+
+  const layout = hydrate(positionData).data.dashboardLayout.present;
+
+  expect(layout['COLUMN-orphan']).toBeUndefined();
+  expect(layout['ROW-orphan']).toBeUndefined();
+  const [rowId] = layout[DASHBOARD_GRID_ID].children;
+  expect(layout[rowId].children).toEqual(['CHART-archived']);
+  expect(layout['CHART-archived'].meta.chartId).toBe(42);
+});
+
+test('rebuilds stale parents from the layout children', () => {
+  const positionData = {
+    [DASHBOARD_ROOT_ID]: layoutItem(
+      DASHBOARD_ROOT_ID,
+      DASHBOARD_ROOT_TYPE,
+      [DASHBOARD_GRID_ID],
+      [],
+    ),
+    [DASHBOARD_GRID_ID]: layoutItem(
+      DASHBOARD_GRID_ID,
+      DASHBOARD_GRID_TYPE,
+      ['ROW-a'],
+      [DASHBOARD_ROOT_ID],
+    ),
+    'ROW-a': layoutItem('ROW-a', ROW_TYPE, ['COLUMN-a'], [DASHBOARD_ROOT_ID]),
+    'COLUMN-a': layoutItem(
+      'COLUMN-a',
+      COLUMN_TYPE,
+      [],
+      [DASHBOARD_ROOT_ID, DASHBOARD_GRID_ID, 'ROW-stale'],
+    ),
+  };
+
+  const layout = hydrate(positionData).data.dashboardLayout.present;
+
+  expect(layout['ROW-a'].parents).toEqual([
+    DASHBOARD_ROOT_ID,
+    DASHBOARD_GRID_ID,
+  ]);
+  expect(layout['COLUMN-a'].parents).toEqual([
+    DASHBOARD_ROOT_ID,
+    DASHBOARD_GRID_ID,
+    'ROW-a',
+  ]);
+});
+
+// The following tests read the `edit`/regular query params off
+// window.location via extractUrlParams, so each restores the original URL.
+const originalLocationHref = window.location.href;
+
+afterEach(() => {
+  window.history.replaceState(null, '', originalLocationHref);
+});
+
+const buildChart = (urlParams: Record<string, unknown> = {}) => ({
+  slice_id: 7,
+  slice_url: '/explore/?slice_id=7',
+  slice_name: 'Test chart',
+  form_data: {
+    slice_id: 7,
+    viz_type: 'table',
+    datasource: '1__table',
+    url_params: urlParams,
+  },
+  description: '',
+  description_markeddown: '',
+  editors: [],
+  modified: '',
+  changed_on: '2024-01-01T00:00:00.000Z',
+});
+
+// hydrate.ts derives editMode from the reserved `edit` URL param
+// (extractUrlParams('reserved')), gated on whether the viewer may edit the
+// dashboard at all.
+test('?edit=true hydrates editMode true for a user who can edit', () => {
+  window.history.replaceState(null, '', '/superset/dashboard/1/?edit=true');
+
+  const action = hydrate(flatTabsPositionData, { user: editorUser });
+
+  expect(action.data.dashboardState.editMode).toBe(true);
+});
+
+test('editMode is false with no edit param, even for a user who can edit', () => {
+  window.history.replaceState(null, '', '/superset/dashboard/1/');
+
+  const action = hydrate(flatTabsPositionData, { user: editorUser });
+
+  expect(action.data.dashboardState.editMode).toBe(false);
+});
+
+test('?edit=true does not hydrate editMode for a user without edit permission', () => {
+  window.history.replaceState(null, '', '/superset/dashboard/1/?edit=true');
+
+  const action = hydrate(flatTabsPositionData, {
+    user: { roles: {}, userId: 1 },
+  });
+
+  expect(action.data.dashboardState.editMode).toBe(false);
+});
+
+// hydrate.ts merges the non-reserved ("regular") URL query params into every
+// chart's form_data.url_params so drill-through/native-filter query params
+// carried on the dashboard URL reach each chart's query.
+test('a regular url param is merged into the chart form_data url_params', () => {
+  window.history.replaceState(null, '', '/superset/dashboard/1/?foo=bar');
+
+  const action = hydrate(flatTabsPositionData, {
+    charts: [buildChart()],
+  });
+
+  expect(action.data.charts[7].form_data.url_params).toEqual({
+    foo: 'bar',
+  });
+});
+
+test('a regular url param overrides a same-key param already on the chart', () => {
+  window.history.replaceState(null, '', '/superset/dashboard/1/?foo=fromUrl');
+
+  const action = hydrate(flatTabsPositionData, {
+    charts: [buildChart({ foo: 'fromChart', keep: 'chartOnly' })],
+  });
+
+  expect(action.data.charts[7].form_data.url_params).toEqual({
+    foo: 'fromUrl',
+    keep: 'chartOnly',
+  });
+});
+
+test('reserved edit and standalone params are not merged into chart form_data url_params', () => {
+  window.history.replaceState(
+    null,
+    '',
+    '/superset/dashboard/1/?foo=bar&edit=true&standalone=1',
+  );
+
+  const action = hydrate(flatTabsPositionData, {
+    charts: [buildChart()],
+  });
+
+  expect(action.data.charts[7].form_data.url_params).toEqual({ foo: 'bar' });
+});
+
+// hydrate.ts reads filterBarOrientation back from dashboard.metadata
+// (metadata.filter_bar_orientation), falling back to Vertical when absent.
+test('reads filter_bar_orientation from dashboard metadata', () => {
+  const action = hydrate(flatTabsPositionData, {
+    metadata: { filter_bar_orientation: FilterBarOrientation.Horizontal },
+  });
+
+  expect(action.data.dashboardInfo.filterBarOrientation).toBe(
+    FilterBarOrientation.Horizontal,
+  );
+});
+
+test('falls back to vertical when metadata has no filter_bar_orientation', () => {
+  const action = hydrate(flatTabsPositionData, { metadata: {} });
+
+  expect(action.data.dashboardInfo.filterBarOrientation).toBe(
+    FilterBarOrientation.Vertical,
+  );
 });

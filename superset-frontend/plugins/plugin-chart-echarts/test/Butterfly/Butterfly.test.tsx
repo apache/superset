@@ -24,6 +24,7 @@ import transformProps from '../../src/Butterfly/transformProps';
 import { EchartsButterflyChartProps } from '../../src/Butterfly/types';
 import Echart from '../../src/components/Echart';
 import { EventHandlers } from '../../src/types';
+import { LEGEND_DOUBLE_CLICK_INTERVAL } from '../../src/utils/legendEventHandlers';
 
 jest.mock('../../src/components/Echart', () => ({
   __esModule: true,
@@ -94,6 +95,10 @@ function setup(
 
 beforeEach(() => {
   mockedEchart.mockClear();
+});
+
+afterEach(() => {
+  jest.useRealTimers();
 });
 
 test('context menu exposes drill to detail for the selected category', () => {
@@ -181,16 +186,41 @@ test('click clears cross-filter when the category is already selected', () => {
 });
 
 test('legend selection forwards legend state to the chart hook', () => {
+  jest.useFakeTimers();
   const onLegendStateChanged = jest.fn();
   const { eventHandlers } = setup({ onLegendStateChanged });
   const selected = { left_sum: true, right_sum: false };
 
-  eventHandlers.legendselectchanged({ selected });
+  eventHandlers.legendselectchanged({ name: 'right_sum', selected });
+  // A legend item click is held until it can no longer become a double click
+  expect(onLegendStateChanged).not.toHaveBeenCalled();
+  jest.advanceTimersByTime(LEGEND_DOUBLE_CLICK_INTERVAL);
   eventHandlers.legendselectall({ selected });
   eventHandlers.legendinverseselect({ selected });
 
   expect(onLegendStateChanged).toHaveBeenCalledTimes(3);
   expect(onLegendStateChanged).toHaveBeenCalledWith(selected);
+});
+
+test('double clicking a legend item isolates its series', () => {
+  jest.useFakeTimers();
+  const onLegendStateChanged = jest.fn();
+  const { eventHandlers } = setup({ onLegendStateChanged });
+
+  eventHandlers.legendselectchanged({
+    name: 'right_sum',
+    selected: { left_sum: true, right_sum: false },
+  });
+  eventHandlers.legendselectchanged({
+    name: 'right_sum',
+    selected: { left_sum: true, right_sum: true },
+  });
+
+  expect(onLegendStateChanged).toHaveBeenCalledTimes(1);
+  expect(onLegendStateChanged).toHaveBeenCalledWith({
+    left_sum: false,
+    right_sum: true,
+  });
 });
 
 test('passes selectedValues through to the chart component', () => {
