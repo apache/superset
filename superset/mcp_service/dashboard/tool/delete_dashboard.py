@@ -51,7 +51,7 @@ def _find_dashboard_by_identifier(identifier: int | str) -> "Dashboard | None":
     from superset.daos.dashboard import DashboardDAO
 
     if isinstance(identifier, int) or (
-        isinstance(identifier, str) and identifier.isdigit()
+        isinstance(identifier, str) and identifier.isdecimal()
     ):
         return DashboardDAO.find_by_id(int(identifier))
     # Try UUID, then fall back to slug.

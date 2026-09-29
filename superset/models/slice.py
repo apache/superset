@@ -384,7 +384,10 @@ class Slice(  # pylint: disable=too-many-public-methods
     def form_data(self) -> dict[str, Any]:
         form_data: dict[str, Any] = {}
         try:
-            form_data = json.loads(self.params)
+            d = json.loads(self.params)
+            if not isinstance(d, dict):
+                raise ValueError("params is not a JSON object")
+            form_data = d
         except Exception as ex:  # pylint: disable=broad-except
             logger.error("Malformed json in slice's params", exc_info=True)
             logger.exception(ex)
@@ -487,7 +490,7 @@ class Slice(  # pylint: disable=too-many-public-methods
 def id_or_uuid_filter(id_or_uuid: str | int) -> BinaryExpression:
     if isinstance(id_or_uuid, int):
         return Slice.id == id_or_uuid
-    if id_or_uuid.isdigit():
+    if id_or_uuid.isdecimal():
         return Slice.id == int(id_or_uuid)
     return Slice.uuid == id_or_uuid
 
