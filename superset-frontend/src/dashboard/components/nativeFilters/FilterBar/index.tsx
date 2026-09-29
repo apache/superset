@@ -407,7 +407,13 @@ const FilterBar: FC<FiltersBarProps> = ({
     }
 
     prevDataMaskAppliedRef.current = dataMaskApplied;
-  }, [dataMaskApplied, setDataMaskSelected, dashboardId, previousDashboardId]);
+  }, [
+    dataMaskApplied,
+    setDataMaskSelected,
+    dashboardId,
+    previousDashboardId,
+    filters,
+  ]);
 
   useEffect(() => {
     // embedded users can't persist filter combinations
