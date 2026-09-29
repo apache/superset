@@ -335,47 +335,37 @@ class GetDashboardInfoRequest(MetadataCacheControl):
 
 
 class GetDashboardLayoutRequest(BaseModel):
-    """Request a dashboard layout by its identifier or shared permalink.
-
-    Permalink requests resolve the dashboard while preserving shared active-tab
-    and filter state in the response.
-    """
+    """Dashboard layout, optionally scoped to tabs."""
 
     identifier: Annotated[
         int | str | None,
         Field(
             default=None,
             description=(
-                "Dashboard ID, UUID, slug, bare permalink key, or a shared URL "
-                "containing /superset/dashboard/p/<key>/. Omit when "
-                "permalink_key is provided."
+                "Dashboard ID, UUID, slug, or permalink key/URL (/dashboard/p/<key>/). "
+                "Omit with permalink_key."
             ),
         ),
     ]
     permalink_key: str | None = Field(
         default=None,
         description=(
-            "Key from a shared dashboard URL such as "
-            "'/superset/dashboard/p/<key>/'. Resolves the dashboard and includes "
-            "the shared active-tab and filter context in the layout response."
+            "Permalink key; resolves dashboard and preserves shared "
+            "active-tab/filter state."
         ),
     )
-
     tabs_only: bool = Field(
         default=False,
         description=(
-            "Return only the tab tree (ID, name, parent_tab_id, zero-based depth, "
-            "and descendant chart_count), without chart IDs or positions. "
-            "Use this first to discover tabs on large dashboards."
+            "Tab tree (ID, name, parent, depth, chart_count), "
+            "without chart IDs or positions."
         ),
     )
     tab: str | None = Field(
         default=None,
         description=(
-            "Return only this tab and its descendants, selected by component ID "
-            "or exact, case-sensitive title. IDs take precedence over titles; "
-            "duplicate titles require an ID. Can be combined with tabs_only. "
-            "Omit to return all tabs regardless of permalink active-tab state."
+            "Tab subtree by ID or exact, case-sensitive title. "
+            "IDs win; use IDs for duplicate titles."
         ),
     )
 
