@@ -24,22 +24,18 @@
  * backend round-trip; the reuse-vs-fallback and row-limit slicing logic is
  * unit-tested in useResultsPane.test.tsx, so this E2E asserts only the
  * end-to-end win: opening Results issues no extra chart/data request.
- *
- * Lives under tests/experimental/ until proven stable in CI; run with:
- *   INCLUDE_EXPERIMENTAL=true npm run playwright:test \
- *     tests/experimental/explore/results-tab-reuse.spec.ts -- --headed
  */
-import { testWithAssets, expect } from '../../../helpers/fixtures';
-import { apiPostChart } from '../../../helpers/api/chart';
-import { getDatasetByName } from '../../../helpers/api/dataset';
-import { ExplorePage } from '../../../pages/ExplorePage';
-import { TIMEOUT } from '../../../utils/constants';
+import { testWithAssets, expect } from '../../helpers/fixtures';
+import { apiPostChart } from '../../helpers/api/chart';
+import { getDatasetByName } from '../../helpers/api/dataset';
+import { ExplorePage } from '../../pages/ExplorePage';
+import { TIMEOUT } from '../../utils/constants';
 
 const DATASET_NAME = 'birth_names';
 const CHART_DATA_PATH = '/api/v1/chart/data';
 
 testWithAssets(
-  'Results tab reuses chart data without a duplicate query (#38165)',
+  'Results tab reuses chart data without a duplicate query',
   async ({ page, testAssets }) => {
     testWithAssets.setTimeout(TIMEOUT.SLOW_TEST);
 
