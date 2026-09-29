@@ -19,8 +19,11 @@
 
 import { css, styled } from '@apache-superset/core/theme';
 
-export const Styles = styled.div<{ isDashboardEditMode: boolean }>`
-  ${({ theme, isDashboardEditMode }) => css`
+export const Styles = styled.div<{
+  isDashboardEditMode: boolean;
+  canFreezeRowLabels: boolean;
+}>`
+  ${({ theme, isDashboardEditMode, canFreezeRowLabels }) => css`
     table.pvtTable {
       position: ${isDashboardEditMode ? 'inherit' : 'relative'};
       width: calc(100% - ${theme.sizeUnit}px);
@@ -50,10 +53,16 @@ export const Styles = styled.div<{ isDashboardEditMode: boolean }>`
      * column-header row, and the row-attribute name cell(s) in the
      * row-header row. Both only render when there are row dimensions.
      * The z-index keeps them over the column labels scrolling underneath
-     * within the thead. */
+     * within the thead. Freezing at left: 0 only works cleanly with a
+     * single row attribute; with more, every frozen cell shares that same
+     * edge and stacks on top of the others, so this is scoped to the
+     * single-row-dimension case until a per-column offset fast-follow
+     * lands. */
     table.pvtTable thead th.pvtCornerLabel,
     table.pvtTable thead tr.pvtRowHeaderRow th.pvtAxisLabel {
-      position: ${isDashboardEditMode ? 'inherit' : 'sticky'};
+      position: ${
+        isDashboardEditMode || !canFreezeRowLabels ? 'inherit' : 'sticky'
+      };
       top: 0;
       left: 0;
       z-index: 1;
@@ -93,9 +102,13 @@ export const Styles = styled.div<{ isDashboardEditMode: boolean }>`
 
     /* The totals row's leading label freezes at the left edge like the
      * body row labels above it. The z-index keeps it over the totals
-     * values scrolling underneath within the row's own stacking context. */
+     * values scrolling underneath within the row's own stacking context.
+     * Scoped to the single-row-dimension case for the same reason as the
+     * corner cells above. */
     table.pvtTable tbody tr.pvtRowTotals th.pvtRowTotalLabel {
-      position: ${isDashboardEditMode ? 'inherit' : 'sticky'};
+      position: ${
+        isDashboardEditMode || !canFreezeRowLabels ? 'inherit' : 'sticky'
+      };
       left: 0;
       z-index: 1;
     }
@@ -124,14 +137,6 @@ export const Styles = styled.div<{ isDashboardEditMode: boolean }>`
       border-right: 1px solid ${theme.colorSplit};
     }
 
-    table.pvtTable
-      thead
-      tr:last-of-type:not(:only-child)
-      th.pvtAxisLabel
-      + .pvtTotalLabel {
-      border-right: none;
-    }
-
     table.pvtTable tr th.active {
       background-color: ${theme.colorPrimaryBg};
     }
@@ -157,7 +162,9 @@ export const Styles = styled.div<{ isDashboardEditMode: boolean }>`
 
     table.pvtTable tbody tr th.pvtRowLabel {
       vertical-align: baseline;
-      position: ${isDashboardEditMode ? 'inherit' : 'sticky'};
+      position: ${
+        isDashboardEditMode || !canFreezeRowLabels ? 'inherit' : 'sticky'
+      };
       left: 0;
       z-index: 1;
       background-color: ${theme.colorBgBase};
