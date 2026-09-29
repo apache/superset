@@ -4004,7 +4004,10 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             elif value is not None:
                 value = handle_temporal_value(value)
             if target_generic_type == utils.GenericDataType.BOOLEAN:
-                return utils.cast_to_boolean(value)
+                boolean_value = utils.cast_to_boolean(value)
+                if db_engine_spec is not None:
+                    return db_engine_spec.coerce_boolean_for_sql(boolean_value)
+                return boolean_value
             return value
 
         if isinstance(values, (list, tuple)):

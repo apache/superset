@@ -28,7 +28,7 @@ from flask import g
 from flask_babel import gettext as __
 from marshmallow import fields, Schema
 from marshmallow.validate import Range
-from sqlalchemy import text, types
+from sqlalchemy import false, text, true, types
 from sqlalchemy.engine.default import DefaultDialect
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.url import URL
@@ -248,10 +248,26 @@ class DatabricksBaseEngineSpec(BaseEngineSpec):
     identifier_quote_start: str = "`"
     identifier_quote_end: str = "`"
 
-    # Databricks SQL rejects 'col IN (0)' or 'col IS true' in certain query contexts
-    # (DATATYPE_MISMATCH.DATA_DIFF_TYPES, see #36765). Enabling equality
+    # Databricks SQL applies strict type checking: comparing a boolean column
+    # against an integer literal (or a bound Python boolean that the
+    # Hive/Databricks driver renders as 0/1) fails with
+    # DATATYPE_MISMATCH.DATA_DIFF_TYPES (see #36765). Enabling equality
     # operators ensures boolean filters compile as 'col = true' / 'col = false'.
     use_equality_for_boolean_filters: bool = True
+
+    @classmethod
+    def coerce_boolean_for_sql(cls, value: bool | None) -> Any:
+        """
+        Render Python booleans as explicit boolean keywords.
+
+        The Hive/Databricks SQLAlchemy dialects render Python booleans as
+        integer literals (0/1) in some binding paths, so emit sqlalchemy
+        true()/false() instead: they always compile to the TRUE/FALSE keywords
+        and never reach the driver as bind parameters (#36765).
+        """
+        if value is None:
+            return None
+        return true() if value else false()
 
     @classmethod
     def convert_dttm(
@@ -1062,8 +1078,17 @@ class DatabricksHiveEngineSpec(HiveEngineSpec):
     # consolidates all Databricks connection methods. This spec exists for
     # backwards compatibility with Interactive Cluster connections.
 
-    # Databricks Interactive Clusters reject IS boolean syntax in certain query contexts
+    # Databricks Interactive Clusters apply the same strict type checking as
+    # Databricks SQL, so boolean filters need equality against boolean keywords.
     use_equality_for_boolean_filters: bool = True
+
+    @classmethod
+    def coerce_boolean_for_sql(cls, value: bool | None) -> Any:
+        # Same rationale as DatabricksBaseEngineSpec: the Hive driver renders
+        # Python booleans as 0/1 in some binding paths (#36765).
+        if value is None:
+            return None
+        return true() if value else false()
 
     _show_functions_column = "function"
 

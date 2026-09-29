@@ -5154,6 +5154,48 @@ def test_temporal_epoch_string_filter_list_is_coerced_for_clickhouse() -> None:
 
 
 @pytest.mark.parametrize(
+    "operator",
+    [FilterOperator.IN, FilterOperator.NOT_IN],
+)
+@pytest.mark.parametrize(
+    "values",
+    [[0, 1], [False, True], ["false", "true"]],
+)
+def test_boolean_filter_values_coerced_for_databricks(
+    operator: FilterOperator,
+    values: list[Any],
+) -> None:
+    """
+    Native dashboard filters on boolean columns build `IN` clauses through
+    `filter_values_handler` (#36765). Databricks rejects `col IN (0)` with
+    DATATYPE_MISMATCH, and the Hive/Databricks drivers render bound Python
+    booleans as integers, so values must coerce to boolean keywords.
+    """
+    from sqlalchemy import Boolean, Column
+
+    from superset.db_engine_specs.databricks import DatabricksBaseEngineSpec
+    from superset.db_engine_specs.spark import SparkEngineSpec
+    from superset.models.helpers import ExploreMixin
+
+    for db_engine_spec in (DatabricksBaseEngineSpec, SparkEngineSpec):
+        coerced = ExploreMixin.filter_values_handler(
+            values=values,
+            operator=operator,
+            target_generic_type=GenericDataType.BOOLEAN,
+            is_list_target=True,
+            db_engine_spec=db_engine_spec,
+        )
+        assert isinstance(coerced, list)
+        assert len(coerced) == 2
+        assert all(isinstance(value, ColumnElement) for value in coerced)
+        # the coerced values compile to boolean keywords and never reach the
+        # driver as bind parameters (which pyhive renders as 0/1)
+        compiled = Column("is_test_user", Boolean).in_(coerced).compile()
+        assert str(compiled) == "is_test_user IN (false, true)"
+        assert compiled.params == {}
+
+
+@pytest.mark.parametrize(
     "target_type,expected",
     [
         ("DATE", "TO_DATE('2026-05-13', 'YYYY-MM-DD')"),

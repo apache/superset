@@ -16,6 +16,9 @@
 # under the License.
 from __future__ import annotations
 
+from typing import Any
+
+from sqlalchemy import false, true
 from sqlalchemy.dialects import registry
 
 from superset.constants import TimeGrain
@@ -52,6 +55,15 @@ class SparkEngineSpec(HiveEngineSpec):
     # Spark SQL shares syntax rules with Databricks SQL; equality comparisons
     # are required for boolean filters to avoid type mismatch errors (see #36765).
     use_equality_for_boolean_filters: bool = True
+
+    @classmethod
+    def coerce_boolean_for_sql(cls, value: bool | None) -> Any:
+        # The pyhive driver renders Python booleans as 0/1 in some binding
+        # paths, and Spark SQL applies the same strict type checking as
+        # Databricks SQL (#36765).
+        if value is None:
+            return None
+        return true() if value else false()
 
     metadata = {
         "description": "Apache Spark SQL is a module for structured data processing.",
