@@ -641,4 +641,5 @@ def test_integers_outside_int64_are_stringified() -> None:
 
     df = result_set.to_pandas_df()
     assert df["id"].tolist() == [1, 2, 3]
-    assert df["ubig"].tolist() == ["18446744073709551615", "0", None]
+    assert df["ubig"].iloc[:2].tolist() == ["18446744073709551615", "0"]
+    assert pd.isna(df["ubig"].iloc[2])
