@@ -36,6 +36,7 @@ import {
   EchartsGraphChartProps,
 } from './types';
 import { DEFAULT_GRAPH_SERIES_OPTION } from './constants';
+import { NULL_STRING } from '../constants';
 import {
   getChartPadding,
   getColtypesMapping,
@@ -149,7 +150,7 @@ function getCategoryName(columnName: string, name?: DataRecordValue) {
     return `${columnName}: true`;
   }
   if (name == null) {
-    return 'N/A';
+    return NULL_STRING;
   }
   return String(name);
 }
