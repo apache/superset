@@ -201,7 +201,7 @@ class TestSemanticChartSave(SupersetTestCase):
             db.session.delete(layer)
             db.session.commit()
 
-    @parameterized.expand([("query",), ("bogus",)])
+    @parameterized.expand([("query",), ("dataset",)])
     def test_unsavable_datasource_stays_422(self, datasource_type: str) -> None:
         """The unsupported-type crash protection from #43500 remains intact.
 
