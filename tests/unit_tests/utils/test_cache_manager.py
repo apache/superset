@@ -129,7 +129,7 @@ def test_superset_cache_memoize_make_cache_key_uses_configurable_hash():
         "_memoize_make_cache_key",
         return_value=lambda *args, **kwargs: "cache_key",
     ) as mock_make_key:
-        cache._memoize_make_cache_key(make_name=None, timeout=300)
+        cache._memoize_make_cache_key(make_name=None)
 
         mock_make_key.assert_called_once()
         call_kwargs = mock_make_key.call_args[1]
@@ -145,9 +145,7 @@ def test_superset_cache_memoize_make_cache_key_allows_explicit_hash():
         "_memoize_make_cache_key",
         return_value=lambda *args, **kwargs: "cache_key",
     ) as mock_make_key:
-        cache._memoize_make_cache_key(
-            make_name=None, timeout=300, hash_method=hashlib.md5
-        )
+        cache._memoize_make_cache_key(make_name=None, hash_method=hashlib.md5)
 
         mock_make_key.assert_called_once()
         call_kwargs = mock_make_key.call_args[1]

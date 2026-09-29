@@ -28,16 +28,18 @@ from superset.commands.base import BaseCommand
 from superset.daos.database import DatabaseDAO
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
+    OAuth2RedirectError,
     SupersetDisallowedSQLFunctionException,
     SupersetDisallowedSQLTableException,
     SupersetDMLNotAllowedException,
     SupersetErrorException,
+    SupersetGenericDBErrorException,
     SupersetTimeoutException,
 )
 from superset.jinja_context import get_template_processor
 from superset.models.core import Database
 from superset.sql.parse import SQLScript
-from superset.utils import core as utils
+from superset.utils import core as utils, json
 from superset.utils.rls import apply_rls
 
 logger = logging.getLogger(__name__)
@@ -208,6 +210,26 @@ class QueryEstimationCommand(BaseCommand):
                     level=ErrorLevel.ERROR,
                 ),
                 status=500,
+            ) from ex
+        except json.JSONDecodeError as ex:
+            logger.exception(ex)
+            raise SupersetErrorException(
+                SupersetError(
+                    message=__(
+                        "Unable to parse the cost estimate returned by the database."
+                    ),
+                    error_type=SupersetErrorType.GENERIC_BACKEND_ERROR,
+                    level=ErrorLevel.ERROR,
+                ),
+                status=500,
+            ) from ex
+        except OAuth2RedirectError:
+            # user needs to authenticate with OAuth2 in order to run query
+            raise
+        except Exception as ex:
+            logger.exception("Query cost estimation failed unexpectedly")
+            raise SupersetGenericDBErrorException(
+                utils.error_msg_from_exception(ex)
             ) from ex
 
         spec = self._database.db_engine_spec

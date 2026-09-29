@@ -54,7 +54,7 @@ test('should render the "Clear all" button as disabled', () => {
   expect(clearBtn.parentElement).toBeDisabled();
 });
 
-test('should render the "Apply" button as disabled', () => {
+test('should render the "Apply" button as disabled', async () => {
   const mockedProps = createProps();
   const applyDisabledProps = {
     ...mockedProps,
@@ -63,15 +63,18 @@ test('should render the "Apply" button as disabled', () => {
   render(<ActionButtons {...applyDisabledProps} />, { useRedux: true });
   const applyBtn = screen.getByText('Apply filters');
   expect(applyBtn.parentElement).toBeDisabled();
-  userEvent.click(applyBtn);
+  // The button is disabled via `pointer-events: none`, so a real user could
+  // never click it; explicitly opt out of user-event's pointer events check
+  // to confirm the disabled button still ignores clicks.
+  await userEvent.click(applyBtn, { pointerEventsCheck: 0 });
   expect(mockedProps.onApply).not.toHaveBeenCalled();
 });
 
-test('should apply', () => {
+test('should apply', async () => {
   const mockedProps = createProps();
   render(<ActionButtons {...mockedProps} />, { useRedux: true });
   const applyBtn = screen.getByText('Apply filters');
   expect(mockedProps.onApply).not.toHaveBeenCalled();
-  userEvent.click(applyBtn);
+  await userEvent.click(applyBtn);
   expect(mockedProps.onApply).toHaveBeenCalled();
 });

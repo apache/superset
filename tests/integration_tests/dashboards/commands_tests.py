@@ -80,6 +80,7 @@ class TestExportDashboardsCommand(SupersetTestCase):
             "metadata.yaml",
             f"dashboards/World_Banks_Data_{example_dashboard.id}.yaml",
             "databases/examples.yaml",
+            "tags.yaml",
         }
         for chart in example_dashboard.slices:
             chart_slug = secure_filename(chart.slice_name)
@@ -238,6 +239,7 @@ class TestExportDashboardsCommand(SupersetTestCase):
             "metadata": {"mock_key": "mock_value"},
             "version": "1.0.0",
             "theme_uuid": None,
+            "tags": [],
         }
 
     # @pytest.mark.usefixtures("load_covid_dashboard")
@@ -343,6 +345,7 @@ class TestExportDashboardsCommand(SupersetTestCase):
             "position",
             "metadata",
             "version",
+            "tags",
         }
 
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")

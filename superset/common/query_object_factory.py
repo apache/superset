@@ -59,6 +59,7 @@ class QueryObjectFactory:  # pylint: disable=too-few-public-methods
         time_shift: str | None = None,
         server_pagination: bool | None = None,
         datasource_model_instance: BaseDatasource | None = None,
+        preserve_null_row_limit: bool = False,
         **kwargs: Any,
     ) -> QueryObject:
         if datasource_model_instance is None and datasource:
@@ -74,7 +75,10 @@ class QueryObjectFactory:  # pylint: disable=too-few-public-methods
 
         # Process row limit taking server pagination into account
         row_limit = self._process_row_limit(
-            row_limit, result_type, server_pagination=server_pagination
+            row_limit,
+            result_type,
+            server_pagination=server_pagination,
+            preserve_null_row_limit=preserve_null_row_limit,
         )
 
         processed_time_range = self._process_time_range(
@@ -112,14 +116,19 @@ class QueryObjectFactory:  # pylint: disable=too-few-public-methods
         row_limit: int | None,
         result_type: ChartDataResultType,
         server_pagination: bool | None = None,
-    ) -> int:
+        preserve_null_row_limit: bool = False,
+    ) -> int | None:
         """Process row limit taking into account server pagination.
 
         :param row_limit: The requested row limit
         :param result_type: The type of result being processed
         :param server_pagination: Whether server-side pagination is enabled
+        :param preserve_null_row_limit: Whether explicit null means no limit
         :return: The processed row limit
         """
+        if row_limit is None and preserve_null_row_limit:
+            return None
+
         default_row_limit = (
             self._config["SAMPLES_ROW_LIMIT"]
             if result_type == ChartDataResultType.SAMPLES

@@ -230,6 +230,23 @@ def get_chart_configs_resource() -> str:
         },
     }
 
+    gantt_chart_configs = {
+        "project_schedule": {
+            "description": "Task intervals grouped by owner",
+            "config": {
+                "chart_type": "gantt",
+                "start_time": {"name": "start_time"},
+                "end_time": {"name": "end_time"},
+                "category": {"name": "task_name"},
+                "series": {"name": "owner"},
+                "tooltip_columns": [{"name": "project"}],
+                "order_by": [{"column": "start_time", "ascending": True}],
+                "subcategories": True,
+            },
+            "use_cases": ["Project schedules", "Task and phase timelines"],
+        },
+    }
+
     from superset.mcp_service.chart.registry import get_registry
 
     interactive_pivot_configs = {}
@@ -262,6 +279,24 @@ def get_chart_configs_resource() -> str:
             ],
         }
 
+    # Gauge configs
+    gauge_configs = {
+        "attainment_gauge": {
+            "description": "Gauge with a target range and formatted value",
+            "config": {
+                "chart_type": "gauge",
+                "metric": {"name": "attainment", "aggregate": "AVG"},
+                "min_val": 0,
+                "max_val": 100,
+                "number_format": ".1f",
+                "value_formatter": "{value}%",
+                "intervals": "50,80,100",
+                "interval_color_indices": "6,7,3",
+            },
+            "use_cases": ["Target attainment", "SLA health", "Progress tracking"],
+        }
+    }
+
     # Best practices
     best_practices = {
         "xy_charts": [
@@ -284,6 +319,17 @@ def get_chart_configs_resource() -> str:
             "Pair comparison_period with comparison_type for time comparison",
             "This type appears only when the host enables its visualization plugin",
         ],
+        "gantt_charts": [
+            "Use temporal dataset columns for both start_time and end_time",
+            "Use category for the task/status row and series for color grouping",
+            "Set subcategories=true only when series is configured",
+            "Use tooltip_columns for dimensions and tooltip_metrics for aggregates",
+        ],
+        "gauge_charts": [
+            "Use the public chart_type='gauge'; gauge_chart is the native viz_type",
+            "Use an aggregate, saved metric, or SQL metric that returns finite numbers",
+            "Set min_val/max_val and aligned intervals for a stable shared scale",
+        ],
         "general": [
             "Always verify column names with get_dataset_info before charting",
             "Set temporal_column when dashboard time filters should use a column "
@@ -298,6 +344,8 @@ def get_chart_configs_resource() -> str:
         "xy_chart_configs": xy_chart_configs,
         "table_chart_configs": table_chart_configs,
         "interactive_pivot_configs": interactive_pivot_configs,
+        "gantt_chart_configs": gantt_chart_configs,
+        "gauge_configs": gauge_configs,
         "best_practices": best_practices,
         "usage_notes": [
             "All examples are valid ChartConfig objects that pass validation",

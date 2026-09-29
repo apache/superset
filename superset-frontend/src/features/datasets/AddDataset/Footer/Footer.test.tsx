@@ -119,7 +119,7 @@ describe('Footer', () => {
 
     // Find and click the dropdown trigger (the arrow part)
     const dropdownTrigger = screen.getByRole('button', { name: 'down' });
-    userEvent.click(dropdownTrigger);
+    await userEvent.click(dropdownTrigger);
 
     // Check that the dropdown menu option is visible
     await waitFor(() => {
@@ -136,7 +136,7 @@ describe('Footer', () => {
       name: /Create and explore dataset/i,
     });
 
-    userEvent.click(createButton);
+    await userEvent.click(createButton);
 
     await waitFor(() => {
       expect(mockCreateResource).toHaveBeenCalledWith({
@@ -158,7 +158,7 @@ describe('Footer', () => {
 
     // Open dropdown menu
     const dropdownTrigger = screen.getByRole('button', { name: 'down' });
-    userEvent.click(dropdownTrigger);
+    await userEvent.click(dropdownTrigger);
 
     // Click the "Create dataset" option
     await waitFor(() => {
@@ -186,7 +186,7 @@ describe('Footer', () => {
       name: /Create and explore dataset/i,
     });
 
-    userEvent.click(createButton);
+    await userEvent.click(createButton);
 
     await waitFor(() => {
       expect(mockCreateResource).toHaveBeenCalled();
@@ -212,7 +212,7 @@ describe('Footer', () => {
       name: /Create and explore dataset/i,
     });
 
-    userEvent.click(createButton);
+    await userEvent.click(createButton);
 
     await waitFor(() => {
       expect(mockCreateResource).toHaveBeenCalledWith({

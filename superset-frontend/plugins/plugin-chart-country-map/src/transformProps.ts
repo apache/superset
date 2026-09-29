@@ -22,6 +22,7 @@ import {
   getMetricLabel,
   getValueFormatter,
 } from '@superset-ui/core';
+import { getColorFormatters } from '@superset-ui/chart-controls';
 
 export default function transformProps(chartProps: ChartProps) {
   const {
@@ -33,6 +34,7 @@ export default function transformProps(chartProps: ChartProps) {
     hooks = {},
     filterState,
     emitCrossFilters,
+    theme,
   } = chartProps;
   const {
     entity,
@@ -43,6 +45,7 @@ export default function transformProps(chartProps: ChartProps) {
     colorScheme,
     sliceId,
     metric,
+    conditionalFormatting,
   } = formData;
 
   const {
@@ -64,6 +67,7 @@ export default function transformProps(chartProps: ChartProps) {
       ? { country_id: row[entityLabel], metric: row[metricLabel] }
       : row,
   );
+  const formatters = getColorFormatters(conditionalFormatting, data, theme);
 
   const formatter = getValueFormatter(
     metric,
@@ -94,5 +98,6 @@ export default function transformProps(chartProps: ChartProps) {
     setDataMask,
     emitCrossFilters,
     filterState,
+    formatters,
   };
 }

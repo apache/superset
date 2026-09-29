@@ -54,6 +54,14 @@ curl -H "Authorization: Bearer YOUR_ACCESS_TOKEN" \
 
 ---
 
+### Database connection secrets
+
+The create (`POST /api/v1/database/`) and update (`PUT /api/v1/database/{pk}`)
+responses mask sensitive fields in `result.masked_encrypted_extra` with `XXXXXXXXXX`,
+using the same engine-specific masking as `GET /api/v1/database/{pk}/connection`.
+The submitted secrets are still stored. Sending the masked values back in a later
+update preserves the stored secrets; send new values to replace them.
+
 ### API Endpoints
 
 #### Core Resources
@@ -186,6 +194,11 @@ curl -H "Authorization: Bearer YOUR_ACCESS_TOKEN" \
 | `POST` | [Validate database connection parameters](/developer-docs/api/validate-database-connection-parameters) | `/api/v1/database/validate_parameters/` |
 
 </details>
+
+The database OAuth2 callback at `/api/v1/database/oauth2/` returns HTTP 400
+when authorization is denied or callback state is missing or invalid. Provider
+error text is not echoed in the response; authorization denials use the message
+"The OAuth2 provider denied the request". Restart the OAuth2 flow to retry.
 
 #### Data Exploration
 
@@ -567,15 +580,6 @@ curl -H "Authorization: Bearer YOUR_ACCESS_TOKEN" \
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | `GET` | [Get all available domains](/developer-docs/api/get-all-available-domains) | `/api/v1/available_domains/` |
-
-</details>
-
-<details>
-<summary><strong>AsyncEventsRestApi</strong> (1 endpoints) — Real-time event streaming via Server-Sent Events (SSE).</summary>
-
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| `GET` | [Read off of the Redis events stream](/developer-docs/api/read-off-of-the-redis-events-stream) | `/api/v1/async_event/` |
 
 </details>
 

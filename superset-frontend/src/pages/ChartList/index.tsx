@@ -71,6 +71,7 @@ import {
   ListViewFilterOperator as FilterOperator,
   DashboardCrossLinks,
   type ListViewProps,
+  type ListViewFetchDataConfig,
   type ListViewFilters,
   type ListViewFilter,
 } from 'src/components';
@@ -198,6 +199,7 @@ const CONFIRM_OVERWRITE_MESSAGE = t(
 );
 
 const registry = getChartMetadataRegistry();
+const MAX_VIZ_TYPE_ORDER_LENGTH = 256;
 
 const createFetchDatasets = async (
   filterValue = '',
@@ -260,10 +262,34 @@ function ChartList(props: ChartListProps) {
     },
     setResourceCollection: setCharts,
     hasPerm,
-    fetchData,
+    fetchData: fetchChartData,
     toggleBulkSelect,
     refreshData,
   } = useListViewResource<Chart>('chart', t('chart'), addDangerToast);
+
+  const fetchData = useCallback(
+    (config: ListViewFetchDataConfig) =>
+      fetchChartData({
+        ...config,
+        ...(config.sortBy[0]?.id === 'viz_type'
+          ? {
+              extraQueryParams: {
+                ...config.extraQueryParams,
+                viz_type_order: registry
+                  .keys()
+                  .sort((left, right) => {
+                    const nameComparison = (
+                      registry.get(left)?.name || left
+                    ).localeCompare(registry.get(right)?.name || right);
+                    return nameComparison || left.localeCompare(right);
+                  })
+                  .slice(0, MAX_VIZ_TYPE_ORDER_LENGTH),
+              },
+            }
+          : {}),
+      }),
+    [fetchChartData],
+  );
 
   const chartIds = useMemo(() => charts.map(c => c.id), [charts]);
   const { roles } = useSelector<any, UserWithPermissionsAndRoles>(

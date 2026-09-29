@@ -384,6 +384,34 @@ test('If there is NOT a DB with allow_file_upload set as True the option should 
   );
 });
 
+test('renders the down-chevron caret icon on the "+" and Settings dropdowns, not the caret glyph (regression #43531)', async () => {
+  const mockedProps = createProps();
+  resetUseSelectorMock();
+  render(<RightMenu {...mockedProps} />, {
+    useRedux: true,
+    useQueryParams: true,
+    useRouter: true,
+    useTheme: true,
+  });
+
+  const newDropdownIcon = screen.getByTestId('new-dropdown-icon');
+  const newCaret = newDropdownIcon
+    .closest('li')
+    ?.querySelector('.ant-menu-item-icon');
+  expect(newCaret).toHaveClass('anticon-down');
+  expect(newCaret?.querySelector('svg')).toHaveAttribute('data-icon', 'down');
+
+  const settings = await screen.findByText(/Settings/i);
+  const settingsCaret = settings
+    .closest('li')
+    ?.querySelector('.ant-menu-item-icon');
+  expect(settingsCaret).toHaveClass('anticon-down');
+  expect(settingsCaret?.querySelector('svg')).toHaveAttribute(
+    'data-icon',
+    'down',
+  );
+});
+
 test('Logs out and clears local storage item redux', async () => {
   const mockedProps = createProps();
   resetUseSelectorMock();
@@ -442,7 +470,7 @@ test('shows logout button when not embedded', async () => {
     useTheme: true,
   });
 
-  userEvent.hover(await screen.findByText(/Settings/i));
+  await userEvent.hover(await screen.findByText(/Settings/i));
   expect(await screen.findByText('Logout')).toBeInTheDocument();
 });
 
@@ -457,7 +485,7 @@ test('shows logout button when embedded but flag is disabled', async () => {
     useTheme: true,
   });
 
-  userEvent.hover(await screen.findByText(/Settings/i));
+  await userEvent.hover(await screen.findByText(/Settings/i));
   expect(await screen.findByText('Logout')).toBeInTheDocument();
 });
 
@@ -474,7 +502,7 @@ test('shows logout button when not embedded even if flag is enabled', async () =
     useTheme: true,
   });
 
-  userEvent.hover(await screen.findByText(/Settings/i));
+  await userEvent.hover(await screen.findByText(/Settings/i));
   expect(await screen.findByText('Logout')).toBeInTheDocument();
 });
 
@@ -491,7 +519,7 @@ test('hides logout button when embedded and flag is enabled', async () => {
     useTheme: true,
   });
 
-  userEvent.hover(await screen.findByText(/Settings/i));
+  await userEvent.hover(await screen.findByText(/Settings/i));
   expect(screen.queryByText('Logout')).not.toBeInTheDocument();
 });
 
@@ -514,7 +542,7 @@ test('Info link href is single-prefixed under subdirectory deployment', async ()
       useTheme: true,
     });
 
-    userEvent.hover(await screen.findByText(/Settings/i));
+    await userEvent.hover(await screen.findByText(/Settings/i));
     const infoLink = await screen.findByText('Info');
     expect(infoLink.closest('a')).toHaveAttribute(
       'href',
@@ -547,7 +575,7 @@ test('Logout link href is single-prefixed under subdirectory deployment', async 
       useTheme: true,
     });
 
-    userEvent.hover(await screen.findByText(/Settings/i));
+    await userEvent.hover(await screen.findByText(/Settings/i));
     const logoutLink = await screen.findByText('Logout');
     expect(logoutLink.closest('a')).toHaveAttribute(
       'href',

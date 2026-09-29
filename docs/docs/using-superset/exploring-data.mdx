@@ -89,6 +89,11 @@ Finally, select **Run Query** to see the results of the table.
 
 <img src={useBaseUrl('/img/tutorial/tutorial_table.png')} />
 
+Charts can be saved from datasets or accessible semantic views. Saving a new
+chart requires access to its datasource; overwriting an existing chart also
+requires chart edit permission. SQL Lab queries must first be saved as datasets
+before they can be used as persistent chart datasources.
+
 To save the visualization, click on **Save** in the top left of the screen. In the following modal,
 
 - Select the **Save as**
@@ -151,6 +156,34 @@ see some data!
 You should see months in the rows and Department and Travel Class in the columns. Publish this chart
 to your existing Tutorial Dashboard you created earlier.
 
+:::note
+Row and column totals/subtotals for the Pivot Table are correct even for non-additive metrics,
+such as ratios (`SUM(a)/SUM(b)`), `COUNT_DISTINCT`, `AVG`, and percentiles, not just additive ones
+like `SUM` or `COUNT`. Totals derive client-side, by reducing the same full-detail query results
+used to build the table, only when every selected metric is additive; if any selected metric is
+non-additive, Superset instead issues a database query at each total's own granularity for all
+metrics, so the total reflects each metric's own definition evaluated at that level rather than an
+incorrect combination of the displayed cells. Because of this, there's no separate "Aggregation
+function" control for totals in the Pivot Table: a total always reflects the metric's own
+definition. The Table chart's **Show summary** row is different: its **Summary aggregation**
+control can override a simple metric's own aggregation (to Sum or Average) for the summary row
+only — metrics built from custom SQL keep their own aggregation regardless.
+:::
+
+In the **Options** panel, the **Show values as** control displays each cell as a percentage of its
+row total, column total, or grand total instead of its actual value:
+
+:::note
+Totals and subtotals are still computed correctly first, as described above; **Show values as**
+only changes how the already-correct cell, row-total, column-total, and grand-total values are
+displayed, not how they're calculated. Switching it requires rerunning the query, though: for
+non-additive metrics, a percentage option can pull in an additional rollup level for its
+denominator even when the matching Total row/column isn't shown, so select **Run Query** after
+changing this control to see the correct percentages. Because the result is always a percentage, a
+per-metric custom formatter (currency, decimal precision, etc.) doesn't apply while a fraction
+option is selected.
+:::
+
 ### Line Chart
 
 In this section, we are going to create a line chart to understand the average price of a ticket by
@@ -179,6 +212,12 @@ filter by selecting No in the Show Range Filter drop down and adding some labels
 and Y Axis Label.
 
 <img src={useBaseUrl('/img/tutorial/tutorial_line_chart.png')} />
+
+The Chart Options section of the Customize tab also has a **Percent change** checkbox. Enabling it
+rebases every series to its percent change from a baseline point, the same interactive view the
+legacy nvd3 Time-series Percent Change chart provided. Once it's on, a vertical baseline appears on
+the chart; drag it to any other point to re-index all series against that new baseline without
+re-running the query.
 
 Once you’re done, publish the chart in your Tutorial Dashboard.
 
@@ -328,6 +367,12 @@ the median value within the seven daily data points. For more information on the
 various options in this section, refer to the
 [Pandas documentation](https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.resample.html).
 
+By default, resampling only fills the periods between the first and the last data point returned by
+the query. If your data starts after the beginning of the selected time range, or stops before its
+end, enable **Fill the entire time range** to pad the series so it spans the whole range. This is
+what you want when, for example, you chart hourly counts with Zero imputation and expect empty hours
+to be drawn as zero across the entire day rather than only around the hours that have data.
+
 Lastly, save your chart as Tutorial Resample and add it to the Tutorial Dashboard. Go to the
 tutorial dashboard to see the four charts side by side and compare the different outputs.
 
@@ -338,6 +383,8 @@ tutorial dashboard to see the four charts side by side and compare the different
 **Find in editor**: Press **Ctrl+F** (or **Cmd+F** on Mac) to open the Monaco find/replace widget inside the SQL editor without leaving the editor.
 
 **Resizable panels**: The dividers between the SQL editor, schema browser, and results pane are draggable. Adjust them to match your workflow and screen size.
+
+**Code folding**: In the built-in Ace editor, use the arrows beside the line numbers to collapse or expand multiline parenthesized queries and block comments. Folding hides those lines without changing the SQL.
 
 **Dialect-aware Format SQL**: The **Format SQL** button applies the SQL dialect of the currently selected database — Trino, Presto, MySQL, PostgreSQL, etc. — rather than a generic formatter. Switch to a different database in the toolbar and re-format to get dialect-specific output. Jinja template syntax (`{{ }}`, `{% %}`) is preserved during formatting and will not cause format errors.
 

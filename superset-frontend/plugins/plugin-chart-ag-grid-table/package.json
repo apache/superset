@@ -45,7 +45,7 @@
     "@superset-ui/core": "*",
     "@testing-library/dom": "^10.4.1",
     "@testing-library/jest-dom": "*",
-    "@testing-library/react": "^15.0.0",
+    "@testing-library/react": "*",
     "@testing-library/user-event": "*",
     "@types/react": "*",
     "react": "^18.3.0",

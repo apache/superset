@@ -5,6 +5,7 @@
   "keywords": [],
   "license": "Apache-2.0",
   "author": "Apache",
+  "type": "module",
   "main": "index.ts",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"

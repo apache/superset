@@ -184,6 +184,12 @@ function DashboardList(props: DashboardListProps) {
   const isMobile = useIsMobile();
   const theme = useTheme();
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
+  // Tracks the pending "+ Dashboard" navigation: /dashboard/new/ is a hard
+  // navigation (window.location.assign) whose GET creates the dashboard
+  // server-side before redirecting to the editor, so the click can look dead
+  // for the whole round-trip on large instances. Flipping the button into its
+  // loading state gives immediate feedback until the page unloads.
+  const [creatingDashboard, setCreatingDashboard] = useState(false);
   const { roles } = useSelector<any, UserWithPermissionsAndRoles>(
     state => state.user,
   );
@@ -854,7 +860,9 @@ function DashboardList(props: DashboardListProps) {
       icon: <Icons.PlusOutlined iconSize="m" />,
       name: t('Dashboard'),
       buttonStyle: 'primary',
+      loading: creatingDashboard,
       onClick: () => {
+        setCreatingDashboard(true);
         navigateTo('/dashboard/new/', { assign: true });
       },
     });

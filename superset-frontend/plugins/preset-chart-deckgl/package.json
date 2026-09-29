@@ -49,11 +49,11 @@
     "handlebars": "^4.7.9",
     "lodash": "^4.18.1",
     "lodash-es": "^4.18.1",
-    "maplibre-gl": "^5.24.0",
+    "maplibre-gl": "^6.8.0",
     "mousetrap": "^1.6.5",
     "ngeohash": "^0.6.4",
     "prop-types": "^15.8.1",
-    "react-map-gl": "^8.1.2",
+    "react-map-gl": "^8.1.3",
     "tinycolor2": "^1.6.0",
     "urijs": "^1.19.11",
     "xss": "^1.0.15"

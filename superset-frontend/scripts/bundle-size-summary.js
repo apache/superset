@@ -26,61 +26,11 @@
 //
 // Usage: node scripts/bundle-size-summary.js <path-to-stats.json>
 
-const fs = require('fs');
+import { fileURLToPath } from 'node:url';
+import { main } from './internal/bundle-size-summary.js';
 
-// Entrypoints worth tracking: the two user-facing app shells. `menu`,
-// `preamble`, `theme`, and `service-worker` are small, low-variance
-// infrastructure chunks, not where bundle bloat actually shows up.
-const TRACKED_ENTRYPOINTS = ['spa', 'embedded'];
+const __filename = fileURLToPath(import.meta.url);
 
-function entrypointSizeByExt(entrypoint, ext) {
-  return (entrypoint.assets || [])
-    .filter(asset => asset.name.endsWith(ext))
-    .reduce((total, asset) => total + asset.size, 0);
-}
-
-function main() {
-  const statsPath = process.argv[2];
-  if (!statsPath) {
-    console.error('Usage: bundle-size-summary.js <path-to-stats.json>');
-    process.exit(1);
-  }
-
-  const stats = JSON.parse(fs.readFileSync(statsPath, 'utf8'));
-  const { entrypoints } = stats;
-  if (!entrypoints) {
-    console.error(
-      'stats.json has no `entrypoints` key -- was it built with ' +
-        '`BUNDLE_SIZE_STATS=true` set? Without it, webpack.config.js uses ' +
-        '`stats: "minimal"`, which omits `entrypoints`.',
-    );
-    process.exit(1);
-  }
-
-  const results = [];
-  TRACKED_ENTRYPOINTS.forEach(name => {
-    const entrypoint = entrypoints[name];
-    if (!entrypoint) {
-      console.error(`stats.json is missing the "${name}" entrypoint`);
-      process.exit(1);
-    }
-    results.push({
-      name: `${name} entrypoint (JS)`,
-      unit: 'bytes',
-      value: entrypointSizeByExt(entrypoint, '.js'),
-    });
-    results.push({
-      name: `${name} entrypoint (CSS)`,
-      unit: 'bytes',
-      value: entrypointSizeByExt(entrypoint, '.css'),
-    });
-  });
-
-  console.log(JSON.stringify(results, null, 2));
-}
-
-if (require.main === module) {
+if (__filename === process.argv[1]) {
   main();
 }
-
-module.exports = { entrypointSizeByExt, main, TRACKED_ENTRYPOINTS };

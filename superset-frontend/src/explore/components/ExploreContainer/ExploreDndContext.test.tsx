@@ -17,10 +17,12 @@
  * under the License.
  */
 import { closestCenter, pointerWithin, rectIntersection } from '@dnd-kit/core';
+import { render, screen } from 'spec/helpers/testing-library';
 import {
   ActiveDragData,
   DroppableData,
   exploreCollisionDetection,
+  renderDragOverlayContent,
   resolveDragEnd,
 } from './ExploreDndContext';
 
@@ -44,6 +46,7 @@ beforeEach(() => {
 
 const COLUMN = 'column';
 const METRIC = 'metric';
+const FOLDER = 'folder';
 
 const active = (data: ActiveDragData, id = 'drag-source') => ({
   id,
@@ -153,6 +156,70 @@ test('no-op when dropping onto itself', () => {
   resolveDragEnd(
     active({ type: COLUMN, value: {} }, 'same'),
     over({ accept: [COLUMN], onDrop }, 'same'),
+  );
+  expect(onDrop).not.toHaveBeenCalled();
+});
+
+// --- folder drops ----------------------------------------------------------
+// Dragging a whole folder expands into its columns/metrics; the droppable's
+// bulk `onDropFolder` receives only the items it accepts and that pass canDrop.
+
+type DndItem = NonNullable<ActiveDragData['items']>[number];
+const columnItem = (name: string) =>
+  ({ type: COLUMN, value: { column_name: name } }) as unknown as DndItem;
+const metricItem = (name: string) =>
+  ({ type: METRIC, value: { metric_name: name } }) as unknown as DndItem;
+
+test('folder drop passes all accepted items to onDropFolder', () => {
+  const onDropFolder = jest.fn();
+  const items = [columnItem('a'), metricItem('m')];
+  resolveDragEnd(
+    active({ type: FOLDER, items }, 'datasource-folder-row-0'),
+    over({
+      accept: [COLUMN, METRIC, FOLDER],
+      canDrop: () => true,
+      onDropFolder,
+    }),
+  );
+  expect(onDropFolder).toHaveBeenCalledWith(items);
+});
+
+test('folder drop drops items whose type the droppable does not accept', () => {
+  const onDropFolder = jest.fn();
+  const col = columnItem('a');
+  resolveDragEnd(
+    active({ type: FOLDER, items: [col, metricItem('m')] }),
+    over({ accept: [COLUMN, FOLDER], canDrop: () => true, onDropFolder }),
+  );
+  expect(onDropFolder).toHaveBeenCalledWith([col]);
+});
+
+test('folder drop drops items rejected by canDrop (already present)', () => {
+  const onDropFolder = jest.fn();
+  const b = columnItem('b');
+  const canDrop = (item: DndItem) =>
+    (item.value as { column_name?: string }).column_name !== 'a'; // 'a' selected
+  resolveDragEnd(
+    active({ type: FOLDER, items: [columnItem('a'), b] }),
+    over({ accept: [COLUMN, FOLDER], canDrop, onDropFolder }),
+  );
+  expect(onDropFolder).toHaveBeenCalledWith([b]);
+});
+
+test('folder drop is a no-op when no item is accepted', () => {
+  const onDropFolder = jest.fn();
+  resolveDragEnd(
+    active({ type: FOLDER, items: [columnItem('a')] }),
+    over({ accept: [COLUMN, FOLDER], canDrop: () => false, onDropFolder }),
+  );
+  expect(onDropFolder).not.toHaveBeenCalled();
+});
+
+test('folder drop is ignored by droppables without an onDropFolder handler', () => {
+  const onDrop = jest.fn();
+  resolveDragEnd(
+    active({ type: FOLDER, items: [columnItem('a')] }),
+    over({ accept: [COLUMN], canDrop: () => true, onDrop }),
   );
   expect(onDrop).not.toHaveBeenCalled();
 });
@@ -309,4 +376,75 @@ test('a drag with no active data routes to the external dropzone branch', () => 
   expect(mockClosestCenter).not.toHaveBeenCalled();
   expect(mockPointerWithin).toHaveBeenCalledTimes(1);
   expect(result).toEqual([{ id: 'dropzone-cols' }]);
+});
+
+// --- renderDragOverlayContent -----------------------------------------------
+// The DragOverlay preview content is extracted to a pure function so it can
+// be rendered directly with a given activeData, since @dnd-kit's
+// PointerSensor needs real pointer events/layout that jsdom cannot provide.
+
+test('renders nothing when there is no active drag', () => {
+  const { container } = render(<>{renderDragOverlayContent(null)}</>);
+  expect(container).toBeEmptyDOMElement();
+});
+
+test('renders nothing for a reorder drag (no value, not a folder)', () => {
+  const { container } = render(
+    <>{renderDragOverlayContent({ type: COLUMN, dragIndex: 0 })}</>,
+  );
+  expect(container).toBeEmptyDOMElement();
+});
+
+test('renders the folder name and a singular field count for one item', () => {
+  render(
+    <>
+      {renderDragOverlayContent({
+        type: FOLDER,
+        name: 'My Folder',
+        items: [columnItem('a')],
+      })}
+    </>,
+  );
+  expect(screen.getByText('My Folder')).toBeInTheDocument();
+  expect(screen.getByText('1 field')).toBeInTheDocument();
+});
+
+test('renders a plural field count for a folder with multiple items, including metrics', () => {
+  render(
+    <>
+      {renderDragOverlayContent({
+        type: FOLDER,
+        name: 'Mixed Folder',
+        items: [columnItem('a'), metricItem('m')],
+      })}
+    </>,
+  );
+  expect(screen.getByText('Mixed Folder')).toBeInTheDocument();
+  // The count reflects all folder items regardless of whether they are
+  // columns or metrics - it is intentionally not labeled "columns".
+  expect(screen.getByText('2 fields')).toBeInTheDocument();
+});
+
+test('renders a column preview for a plain column drag', () => {
+  render(
+    <>
+      {renderDragOverlayContent({
+        type: COLUMN,
+        value: { column_name: 'a', verbose_name: 'Column A' },
+      })}
+    </>,
+  );
+  expect(screen.getByText('Column A')).toBeInTheDocument();
+});
+
+test('renders a metric preview for a plain metric drag', () => {
+  render(
+    <>
+      {renderDragOverlayContent({
+        type: METRIC,
+        value: { metric_name: 'm', verbose_name: 'Metric M' },
+      })}
+    </>,
+  );
+  expect(screen.getByText('Metric M')).toBeInTheDocument();
 });
