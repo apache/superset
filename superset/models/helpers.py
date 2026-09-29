@@ -3816,6 +3816,21 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                         for table in statement.tables
                     )
                 except Exception:  # pylint: disable=broad-except
+                    # This retry queries db.session again and rebuilds an
+                    # engine, so it can re-poison the session the outer handler
+                    # just rolled back. Roll back again: failing closed below
+                    # raises QueryObjectValidationError, which callers catch
+                    # and carry on from, and the continue-path keeps running
+                    # this query outright.
+                    #
+                    # Unconditional, mirroring the outer handler, rather than
+                    # gated on the exception being a SQLAlchemyError: this code
+                    # issues DB work and can then surface an unrelated error
+                    # (rendering an RLS clause, say) on a session the DB work
+                    # already poisoned. The outer handler has itself already
+                    # rolled back unconditionally by this point, so there is no
+                    # pending work left for this one to discard.
+                    db.session.rollback()  # pylint: disable=consider-using-transaction
                     rls_required = True
                 if rls_required:
                     raise QueryObjectValidationError(
