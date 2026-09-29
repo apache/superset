@@ -164,7 +164,7 @@ test('tooltip is restored when user clicks outside to close context menu', async
   setup();
 
   const openButton = screen.getByTestId('open-context-menu');
-  userEvent.click(openButton);
+  await userEvent.click(openButton);
 
   await waitFor(() => {
     expect(screen.getByTestId('chart-context-menu')).toBeInTheDocument();
@@ -172,7 +172,7 @@ test('tooltip is restored when user clicks outside to close context menu', async
 
   expect(screen.getByTestId('tooltip-visible')).toBeInTheDocument();
 
-  userEvent.click(document.body);
+  await userEvent.click(document.body);
 
   await waitFor(() => {
     expect(screen.getByTestId('tooltip-visible')).toBeInTheDocument();
@@ -183,14 +183,14 @@ test('tooltip is restored when user selects a menu item', async () => {
   setup();
 
   const openButton = screen.getByTestId('open-context-menu');
-  userEvent.click(openButton);
+  await userEvent.click(openButton);
 
   await waitFor(() => {
     expect(screen.getByTestId('chart-context-menu')).toBeInTheDocument();
   });
 
   const menuItem = screen.getByText('Drill to detail');
-  userEvent.click(menuItem);
+  await userEvent.click(menuItem);
 
   await waitFor(() => {
     expect(screen.getByTestId('tooltip-visible')).toBeInTheDocument();
@@ -205,14 +205,14 @@ test('drill by modal uses the scope selected in the submenu over the raw context
     },
   });
 
-  userEvent.click(screen.getByTestId('open-context-menu'));
+  await userEvent.click(screen.getByTestId('open-context-menu'));
 
   await waitFor(() => {
     expect(screen.getByTestId('chart-context-menu')).toBeInTheDocument();
   });
 
   const submenuButton = await screen.findByTestId('fake-drill-by-submenu');
-  userEvent.click(submenuButton);
+  await userEvent.click(submenuButton);
 
   await waitFor(() => {
     expect(screen.getByTestId('drill-by-modal')).toBeInTheDocument();
@@ -237,20 +237,20 @@ test('context menu can be reopened after Drill By closes it via onCloseMenu', as
   setup();
 
   const openButton = screen.getByTestId('open-context-menu');
-  userEvent.click(openButton);
+  await userEvent.click(openButton);
 
   await waitFor(() => {
     expect(isMenuOpen()).toBe(true);
   });
 
   const submenuButton = await screen.findByTestId('fake-drill-by-submenu');
-  userEvent.click(submenuButton);
+  await userEvent.click(submenuButton);
 
   await waitFor(() => {
     expect(isMenuOpen()).toBe(false);
   });
 
-  userEvent.click(openButton);
+  await userEvent.click(openButton);
 
   await waitFor(() => {
     expect(isMenuOpen()).toBe(true);
@@ -279,7 +279,7 @@ test('drill by only offers dimension columns', async () => {
     },
   });
 
-  userEvent.click(screen.getByTestId('open-context-menu'));
+  await userEvent.click(screen.getByTestId('open-context-menu'));
 
   await waitFor(() => {
     expect(screen.getByTestId('drillable-columns')).toHaveTextContent('city');

@@ -17,6 +17,7 @@
  * under the License.
  */
 export { BasicErrorAlert } from './BasicErrorAlert';
+export { CsrfErrorMessage } from './CsrfErrorMessage';
 export { DatabaseErrorMessage } from './DatabaseErrorMessage';
 export { DatasetNotFoundErrorMessage } from './DatasetNotFoundErrorMessage';
 export { DatasourceSecurityAccessErrorMessage } from './DatasourceSecurityAccessErrorMessage';

@@ -25,6 +25,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from superset.mcp_service.app import get_default_instructions, init_fastmcp_server, mcp
+from superset.mcp_service.utils.response_size_utils import COMMITTED_WRITE_SPECS
 
 # Patch target for the feature_flag_manager imported inside _apply_config_guards
 _FFM_PATH = "superset.extensions.feature_flag_manager"
@@ -35,11 +36,15 @@ _FFM_PATH = "superset.extensions.feature_flag_manager"
 # field assertion rejects missing or fully unconstrained output schemas.
 EXPECTED_TOOL_OUTPUT_FIELDS = {
     "add_chart_to_existing_dashboard": "dashboard_url",
+    "apply_dashboard_filters": "permalink_key",
     "create_dataset": "table_name",
+    "create_dataset_metric": "metric",
     "create_theme": "theme_name",
     "create_virtual_dataset": "dataset_name",
     "delete_chart": "deleted_id",
     "delete_dashboard": "deleted_id",
+    "delete_dataset": "deleted_id",
+    "delete_dataset_metric": "affected_charts",
     "duplicate_dashboard": "duplicated_slices",
     "execute_sql": "statements",
     "find_users": "users",
@@ -48,6 +53,7 @@ EXPECTED_TOOL_OUTPUT_FIELDS = {
     "generate_dashboard": "dashboard",
     "generate_explore_link": "form_data_key",
     "get_annotation_layer_info": "descr",
+    "get_catalog": "next_cursor",
     "get_chart_data": "query_results",
     "get_chart_info": "slice_name",
     "get_chart_preview": "explore_url",
@@ -100,10 +106,12 @@ EXPECTED_TOOL_OUTPUT_FIELDS = {
     "remove_chart_from_dashboard": "removed_layout_keys",
     "restore_chart": "restored_id",
     "restore_dashboard": "restored_id",
+    "restore_dataset": "restored_id",
     "save_sql_query": "label",
     "update_chart": "chart",
     "update_chart_preview": "previous_form_data_key",
     "update_dashboard": "changed_fields",
+    "update_dataset": "updated_properties",
     "update_dataset_metric": "updated_properties",
 }
 
@@ -119,11 +127,15 @@ EXPECTED_TOP_LEVEL_OUTPUT_FIELDS = {
 
 MUTATING_TOOLS = {
     "add_chart_to_existing_dashboard",
+    "apply_dashboard_filters",
     "create_dataset",
+    "create_dataset_metric",
     "create_theme",
     "create_virtual_dataset",
     "delete_chart",
     "delete_dashboard",
+    "delete_dataset",
+    "delete_dataset_metric",
     "duplicate_dashboard",
     "execute_sql",
     "generate_chart",
@@ -136,16 +148,33 @@ MUTATING_TOOLS = {
     "remove_chart_from_dashboard",
     "restore_chart",
     "restore_dashboard",
+    "restore_dataset",
     "save_sql_query",
     "update_chart",
     "update_chart_preview",
     "update_dashboard",
+    "update_dataset",
     "update_dataset_metric",
 }
+
+# Mutating tools deliberately outside COMMITTED_WRITE_SPECS. Each is excluded
+# for a reason about *what* it commits, not about how large its response is:
+# execute_sql commits against the analytics database rather than Superset
+# metadata (and degrades via row truncation), while the two preview tools
+# persist nothing to the metadata database -- they only cache a form_data key,
+# so a retry re-caches instead of replaying a mutation.
+NON_COMMITTING_MUTATING_TOOLS = {
+    "execute_sql",
+    "generate_explore_link",
+    "update_chart_preview",
+}
+
 
 DESTRUCTIVE_TOOLS = {
     "delete_chart",
     "delete_dashboard",
+    "delete_dataset",
+    "delete_dataset_metric",
     "execute_sql",
     "manage_dashboard_owners",
     "manage_dashboard_roles",
@@ -153,6 +182,7 @@ DESTRUCTIVE_TOOLS = {
     "remove_chart_from_dashboard",
     "update_chart",
     "update_dashboard",
+    "update_dataset",
     "update_dataset_metric",
 }
 
@@ -640,3 +670,71 @@ def test_instructions_generated_after_disabled_tools_removed() -> None:
     # get_default_instructions must have been called with the disabled set
     assert len(captured) == 1
     assert "execute_sql" in captured[0]
+
+
+def test_committed_write_specs_cover_every_committing_mutating_tool() -> None:
+    """Every mutating tool that commits before the size guard runs needs a spec.
+
+    The size guard only spares a tool from a hard ToolError -- and so only
+    stops a retrying client replaying an already-committed mutation -- when
+    the tool is in this table. Deriving the expectation from MUTATING_TOOLS
+    means a newly added write tool fails here instead of silently getting the
+    hard-block behaviour.
+    """
+    assert set(COMMITTED_WRITE_SPECS) == MUTATING_TOOLS - NON_COMMITTING_MUTATING_TOOLS
+
+
+def test_committed_write_specs_match_registered_output_schemas() -> None:
+    """Each spec must describe the response the tool actually returns.
+
+    The spec drives which fields survive truncation, so an identifying field
+    that is not on the response would protect nothing, and a wrong
+    ``reports_success`` would either drop the write confirmation or invent a
+    field the schema never declares.
+    """
+    registered = {tool.name: tool for tool in _run(mcp.list_tools())}
+    problems: dict[str, str] = {}
+
+    for name, spec in COMMITTED_WRITE_SPECS.items():
+        top_level = _top_level_schema_property_names(
+            registered[name].output_schema or {}
+        )
+        if missing := spec.identifying_fields - top_level:
+            problems[name] = (
+                f"identifying fields absent from response: {sorted(missing)}"
+            )
+        elif spec.reports_success is not ("success" in top_level):
+            problems[name] = (
+                f"reports_success={spec.reports_success} but 'success' in "
+                f"response schema is {'success' in top_level}"
+            )
+
+    assert not problems, problems
+
+
+def test_committed_write_identifying_fields_are_the_container_ones() -> None:
+    """Only list/dict fields need naming; scalars survive truncation anyway.
+
+    ``truncate_oversized_response`` only summarizes dicts and empties
+    collections -- no phase drops a top-level scalar. So a response whose
+    identity is scalars (delete_chart's ``deleted_id``, create_dataset's
+    ``id``/``table_name``) correctly maps to an empty set, and naming a scalar
+    here would be dead weight that hides that reasoning.
+    """
+    registered = {tool.name: tool for tool in _run(mcp.list_tools())}
+    scalar_types = {"string", "integer", "number", "boolean"}
+    named_scalars: dict[str, list[str]] = {}
+
+    for name, spec in COMMITTED_WRITE_SPECS.items():
+        schema = registered[name].output_schema or {}
+        properties = schema.get("properties", {})
+        for field in sorted(spec.identifying_fields):
+            declared = properties.get(field)
+            if not isinstance(declared, dict):
+                continue
+            # A scalar field declares a plain scalar "type" and nothing else;
+            # object/array fields use $ref, anyOf or an explicit container type.
+            if declared.get("type") in scalar_types and "$ref" not in declared:
+                named_scalars.setdefault(name, []).append(field)
+
+    assert not named_scalars, named_scalars
