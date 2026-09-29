@@ -1613,7 +1613,16 @@ def test_execute_dry_run_caps_limit(
 
 @pytest.mark.parametrize(
     "sql_limit,request_limit,expected_rows",
-    [(5, 10, 5), (10, 5, 5), (5, 5, 5), (5, None, 5), (None, 5, 5), (0, 10, 0)],
+    [
+        (5, 10, 5),
+        (10, 5, 5),
+        (5, 5, 5),
+        (5, None, 5),
+        (3, None, 3),
+        (7, 2, 2),
+        (None, 5, 5),
+        (0, 10, 0),
+    ],
 )
 def test_execute_limit_caps_returned_rows(
     mocker: MockerFixture,
@@ -1647,6 +1656,55 @@ def test_execute_limit_caps_returned_rows(
         SQLScript(statement.executed_sql, "sqlite").statements[0].get_limit_value()
         == expected_rows
     )
+
+
+@pytest.mark.parametrize("engine", ["postgresql", "duckdb"])
+@pytest.mark.parametrize(
+    "sql,request_limit,expected_rows,inner_limit",
+    [
+        ("SELECT * FROM generate_series(1,20) LIMIT 4", 10, 4, None),
+        ("SELECT * FROM generate_series(1,20) LIMIT 0", 10, 0, None),
+        (
+            "SELECT * FROM (SELECT * FROM generate_series(1,20) LIMIT 7) AS s LIMIT 4",
+            10,
+            4,
+            7,
+        ),
+        (
+            "SELECT * FROM (SELECT * FROM generate_series(1,20) LIMIT 7) AS s",
+            2,
+            2,
+            7,
+        ),
+    ],
+)
+def test_apply_limit_generate_series_returned_rows(
+    mocker: MockerFixture,
+    database: Database,
+    app_context: None,
+    engine: str,
+    sql: str,
+    request_limit: int,
+    expected_rows: int,
+    inner_limit: int | None,
+) -> None:
+    """Run capped SELECTs locally, preserving outer and nested limit semantics."""
+    import duckdb
+
+    from superset.sql.execution.executor import SQLExecutor
+
+    mocker.patch.dict(current_app.config, {"SQL_MAX_ROW": None})
+    script = SQLScript(sql, engine)
+    SQLExecutor(database)._apply_limit_to_script(
+        script, QueryOptions(limit=request_limit)
+    )
+    executed_sql = script.format()
+    assert script.statements[0].get_limit_value() == expected_rows
+    if inner_limit is not None:
+        assert f"LIMIT {inner_limit} )" in " ".join(executed_sql.split())
+    # DuckDB executes the PostgreSQL-compatible series without an external server.
+    with closing(duckdb.connect(":memory:")) as connection:
+        assert len(connection.execute(executed_sql).fetchall()) == expected_rows
 
 
 @pytest.mark.parametrize(
