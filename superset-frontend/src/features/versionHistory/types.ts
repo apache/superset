@@ -34,6 +34,8 @@ export type ActivityOperation =
 
 export type ActivityActionKind = 'restore' | 'import' | 'clone' | null;
 
+export type CreationKind = 'pre_tracking' | 'created' | 'imported' | 'unknown';
+
 export interface ActivityChangedBy {
   id: number;
   first_name: string | null;
@@ -77,6 +79,12 @@ export interface ActivityRecord {
    * older backend responses that predate the field.
    */
   first_tracked_save?: boolean;
+  /**
+   * Set only on the synthetic starting-version record
+   * (`kind === '__creation__'`): how the entity came to exist. Machine
+   * values — the display copy lives in `CREATION_LABELS` (display.ts).
+   */
+  creation_kind?: CreationKind | null;
 }
 
 export interface ActivityResponse {
@@ -162,6 +170,12 @@ export interface SaveGroup {
   changedBy: ActivityChangedBy | null;
   actionKind: ActivityActionKind;
   records: ActivityRecord[];
+  /**
+   * Set when this group is the synthetic starting-version row (the
+   * oldest entry): drives the Original version / Created / Imported
+   * headline via `CREATION_LABELS`.
+   */
+  creationKind?: CreationKind | null;
   /**
    * The entity's first tracked save (params-normalization flood) — render
    * compact/collapsed. Set when any of the save's records carries

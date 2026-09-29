@@ -77,7 +77,7 @@ def shadow_valid_at(shadow_table: sa.Table, tx: int) -> sa.ColumnElement[bool]:
 
 
 def shadow_rows_valid_at(
-    session: Session,
+    session: Session | sa.engine.Connection,
     shadow_table: sa.Table,
     fk_col_name: str,
     fk_value: int,
@@ -95,9 +95,14 @@ def shadow_rows_valid_at(
     natural-key diff helpers (``diff_dataset_columns`` etc.).
     """
     fk_col = getattr(shadow_table.c, fk_col_name)
+    # Accept a raw Connection so callers needing snapshot isolation across
+    # SEVERAL reads (get_version's parent + child pair, sc-120012) can run
+    # this on their own transaction instead of the request session's.
+    conn: sa.engine.Connection = (
+        session if isinstance(session, sa.engine.Connection) else session.connection()
+    )
     rows = (
-        session.connection()
-        .execute(
+        conn.execute(
             sa.select(shadow_table).where(
                 fk_col == fk_value,
                 shadow_valid_at(shadow_table, tx),

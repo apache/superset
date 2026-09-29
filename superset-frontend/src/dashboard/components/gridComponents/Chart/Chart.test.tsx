@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { useEffect } from 'react';
 import { act, fireEvent, render } from 'spec/helpers/testing-library';
 import { FeatureFlag, VizType } from '@superset-ui/core';
 import * as redux from 'redux';
@@ -27,6 +28,10 @@ import mockDatasource from 'spec/fixtures/mockDatasource';
 import chartQueries, {
   sliceId as queryId,
 } from 'spec/fixtures/mockChartQueries';
+import {
+  AutoRefreshProvider,
+  useAutoRefreshContext,
+} from 'src/dashboard/contexts/AutoRefreshContext';
 import Chart from './Chart';
 
 let capturedChartContainerProps: Record<string, unknown> = {};
@@ -109,6 +114,32 @@ function setup(
   });
 }
 
+function StartAutoRefreshFor({ chartIds }: { chartIds: number[] }) {
+  const { startAutoRefresh } = useAutoRefreshContext();
+  useEffect(() => {
+    startAutoRefresh(chartIds);
+  }, [chartIds, startAutoRefresh]);
+  return null;
+}
+
+function setupDuringUnrelatedAutoRefresh(
+  refreshingChartIds: number[],
+  overrideProps: Record<string, unknown> = {},
+  overrideState: Record<string, unknown> = {},
+) {
+  return render(
+    <AutoRefreshProvider>
+      <StartAutoRefreshFor chartIds={refreshingChartIds} />
+      <Chart {...props} {...overrideProps} />
+    </AutoRefreshProvider>,
+    {
+      useRedux: true,
+      useRouter: true,
+      initialState: { ...defaultState, ...overrideState },
+    },
+  );
+}
+
 const refreshChart = jest.fn();
 const logEvent = jest.fn();
 const changeFilter = jest.fn();
@@ -132,6 +163,34 @@ beforeAll(() => {
 
 afterEach(() => {
   jest.clearAllMocks();
+});
+
+test('shows the loading spinner for a chart that starts loading outside the in-flight auto-refresh batch', () => {
+  setupDuringUnrelatedAutoRefresh([queryId + 1], undefined, {
+    charts: {
+      ...defaultState.charts,
+      [queryId]: {
+        ...defaultState.charts[queryId],
+        chartStatus: 'loading',
+      },
+    },
+  });
+
+  expect(capturedChartContainerProps.suppressLoadingSpinner).toBe(false);
+});
+
+test('suppresses the loading spinner for a chart included in the in-flight auto-refresh batch', () => {
+  setupDuringUnrelatedAutoRefresh([queryId], undefined, {
+    charts: {
+      ...defaultState.charts,
+      [queryId]: {
+        ...defaultState.charts[queryId],
+        chartStatus: 'loading',
+      },
+    },
+  });
+
+  expect(capturedChartContainerProps.suppressLoadingSpinner).toBe(true);
 });
 
 test('should render a SliceHeader', () => {
@@ -832,4 +891,20 @@ test('Existing expand/collapse behavior continues to work', () => {
   } finally {
     restore();
   }
+});
+
+test('a hidden chart does not adopt a prop update, and adopts it once revealed', () => {
+  const { rerender } = setup({ isComponentVisible: false, isInView: false });
+  expect(capturedChartContainerProps.isInView).toBe(false);
+
+  // The parent passes an updated prop while the chart is still hidden: the
+  // memoized export bails out, so the prop update never reaches
+  // ChartContainer while the tab is hidden. Store-driven updates (such as a
+  // query trigger read via useSelector) are not gated by this memo.
+  rerender(<Chart {...props} isComponentVisible={false} isInView />);
+  expect(capturedChartContainerProps.isInView).toBe(false);
+
+  // Revealing the tab lets the chart re-render and adopt the pending update.
+  rerender(<Chart {...props} isComponentVisible isInView />);
+  expect(capturedChartContainerProps.isInView).toBe(true);
 });

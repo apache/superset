@@ -48,6 +48,13 @@ export interface Datasource {
    * you only need the display name.
    */
   parent?: { name: string };
+  /**
+   * Stable string values of the features a semantic view's provider declares
+   * (for example "ADHOC_COLUMN_EXPRESSIONS"). Only present for semantic
+   * views; absent for tables, queries, and older payloads. Consumed by the
+   * explore picker-capability adapter — carries no provider identity.
+   */
+  semantic_view_features?: string[];
   columns: Column[];
   metrics: Metric[];
   description?: string;

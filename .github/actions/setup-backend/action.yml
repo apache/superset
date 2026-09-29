@@ -51,7 +51,11 @@ runs:
       # or package lookups silently resolve to an empty list.
       if: inputs.install-superset == 'true'
       shell: bash
-      run: sudo apt-get update
+      run: |
+        # Use the runner's preinstalled Chrome; these dependencies do not need
+        # its apt repository. Mirror index failures must not block their setup.
+        sudo rm -f /etc/apt/sources.list.d/google-chrome*.list /etc/apt/sources.list.d/google-chrome*.sources
+        sudo apt-get update
     - name: Install apt packages
       if: inputs.install-superset == 'true'
       uses: awalsh128/cache-apt-pkgs-action@553a35bb8ebd9fcabcb1c9451aa4c98e1b4ca8a9 # v1.6.3
