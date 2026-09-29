@@ -117,23 +117,32 @@ configuration schedules it daily at 00:00 in the configured Celery timezone.
 The task skips purging when `SOFT_DELETE` is off or the window is zero.
 The window resolves in this order:
 
-1. A per-deployment value set with the CLI, which takes precedence when
-   present:
+1. A host policy, when one is installed as `SOFT_DELETE_RETENTION_DAYS_FUNC`.
+   Its result is authoritative; the two sources below are not consulted.
+
+2. Otherwise a per-deployment value set with the CLI, when present:
 
    ```bash
    superset deletion-retention set-window --days 60
    superset deletion-retention show-window   # print the effective window
    ```
 
-2. Otherwise the `SOFT_DELETE_RETENTION_DAYS` configuration value, which
-   defaults to 30.
+3. Otherwise the `SOFT_DELETE_RETENTION_DAYS` configuration value, which is
+   seeded from the environment variable of the same name and defaults to 30.
 
-A window of zero — from either source — disables scheduled purging, so
-archived objects are kept until someone deletes them permanently by hand.
-The CLI rejects negative windows; unlike version-history retention, negative
-values do not mean indefinite retention. An invalid stored value falls back
-to configuration, and an invalid or negative configuration value falls back
-to 30 days.
+Every source accepts whole days from -1 through 36500:
+
+- Zero disables scheduled purging, so archived objects are kept until someone
+  deletes them permanently by hand.
+- `-1` makes every archived object eligible on the next scheduled run. It does
+  not start a run, and an object with a future archive time stays ineligible.
+- Any other negative value, a value above 36500, or a non-integer is invalid.
+
+An invalid value defers purging; it never shortens the window. The CLI refuses
+to store one. An invalid stored value, configuration value, or host policy
+result (including a host policy that fails) is treated as zero and logs a
+warning. Only an absent stored value falls back to configuration, and only an
+absent configuration value uses the 30-day default.
 
 `SOFT_DELETE_PURGE_DRY_RUN` defaults to `False`: scheduled purging is
 destructive when it runs. Set it to `True` in `superset_config.py` and restart
@@ -155,8 +164,8 @@ For automatic retention, operators need all of the following:
   `version_history.prune_old_versions`. When replacing `CELERY_CONFIG`,
   preserve the default imports and schedules or supply equivalent entries;
   task registration alone does not schedule execution.
-- Positive retention windows and, for deletion purging, `SOFT_DELETE` enabled
-  and `SOFT_DELETE_PURGE_DRY_RUN = False` when real deletion is intended.
+- Retention windows other than zero and, for deletion purging, `SOFT_DELETE`
+  enabled and `SOFT_DELETE_PURGE_DRY_RUN = False` when real deletion is intended.
 
 Check startup warnings for missing imports or schedules, and verify completed
 runs and their results in worker logs or monitoring. A configured schedule
