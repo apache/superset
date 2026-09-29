@@ -126,8 +126,8 @@ msgid ""
 "Note\n"
 "                      currently time zones are not supported. If time is "
 "stored\n"
-"                      in epoch format, put `epoch_s` or `epoch_ms`. If no"
-" pattern\n"
+"                      in epoch format, put `epoch_s`, `epoch_ms` or "
+"`epoch_us`. If no pattern\n"
 "                      is specified we fall back to using the optional "
 "defaults on a per\n"
 "                      database/column name level via the extra parameter."
@@ -1485,6 +1485,9 @@ msgid "Affected Charts"
 msgstr ""
 
 msgid "Affected Dashboards"
+msgstr ""
+
+msgid "Affected Datasets"
 msgstr ""
 
 msgid "Affected semantic views"
@@ -5223,6 +5226,11 @@ msgid "Delete group"
 msgstr ""
 
 msgid "Delete item"
+msgstr ""
+
+msgid ""
+"Delete or move active datasets. To remove archived datasets, open "
+"Recently archived and select Delete permanently."
 msgstr ""
 
 msgid "Delete permanently"
@@ -16039,6 +16047,9 @@ msgstr ""
 msgid "Tukey"
 msgstr ""
 
+msgid "Turn off the logarithmic axis before stacking bars"
+msgstr ""
+
 msgid "Type"
 msgstr ""
 
@@ -18007,6 +18018,12 @@ msgstr ""
 
 msgid "by using"
 msgstr ""
+
+#, python-format
+msgid "cannot be deleted because %s dataset is still attached to it."
+msgid_plural "cannot be deleted because %s datasets are still attached to it."
+msgstr[0] ""
+msgstr[1] ""
 
 msgid "cannot be empty"
 msgstr ""
