@@ -39,6 +39,7 @@ from superset.mcp_service.dashboard.schemas import (
     dashboard_layout_serializer,
     DashboardError,
     DashboardLayout,
+    DashboardLayoutScope,
     DashboardTab,
     DashboardTabSummary,
     GetDashboardLayoutRequest,
@@ -48,66 +49,113 @@ from superset.mcp_service.mcp_core import ModelGetInfoCore
 logger = logging.getLogger(__name__)
 
 
+def _resolve_tab(
+    tabs: list[DashboardTab], selector: str
+) -> DashboardTab | DashboardError:
+    """Match a tab by ID first, then by exact title."""
+    if not tabs:
+        return DashboardError.create(
+            "This dashboard has no tabs. Omit tab to get the full layout.",
+            "tab_not_found",
+        )
+    matches = [tab for tab in tabs if tab.id == selector] or [
+        tab for tab in tabs if tab.name == selector
+    ]
+    if not matches:
+        return DashboardError.create(
+            "Tab not found. Use tabs_only=true to discover tab IDs and titles.",
+            "tab_not_found",
+        )
+    if len(matches) > 1:
+        return DashboardError.create(
+            "Multiple tabs have that title. Use tabs_only=true to discover "
+            "their IDs, then pass a unique tab ID.",
+            "ambiguous_tab",
+        )
+    return matches[0]
+
+
+def _subtree_ids(tab_id: str, children: dict[str | None, list[str]]) -> set[str]:
+    """Return a tab ID and the IDs of every tab nested under it."""
+    selected_ids: set[str] = set()
+    pending = [tab_id]
+    while pending:
+        current = pending.pop()
+        if current not in selected_ids:
+            selected_ids.add(current)
+            pending.extend(children.get(current, []))
+    return selected_ids
+
+
+def _tab_summaries(
+    tabs: list[DashboardTab], children: dict[str | None, list[str]]
+) -> list[DashboardTabSummary]:
+    """Summarize tabs with absolute depths from the full dashboard tree."""
+    # The parser only emits reachable tabs and assigns each tab a single
+    # enclosing parent, so walking from the top-level tabs reaches every tab.
+    depths: dict[str, int] = {}
+    stack = [(tab_id, 0) for tab_id in children.get(None, [])]
+    while stack:
+        tab_id, depth = stack.pop()
+        depths[tab_id] = depth
+        stack.extend((child, depth + 1) for child in children.get(tab_id, []))
+    return [
+        DashboardTabSummary(
+            id=tab.id,
+            name=tab.name,
+            parent_tab_id=tab.parent_tab_id,
+            depth=depths[tab.id],
+            chart_count=len(tab.chart_ids),
+        )
+        for tab in tabs
+    ]
+
+
 def _scope_layout(
     layout: DashboardLayout, request: GetDashboardLayoutRequest
 ) -> DashboardLayout | DashboardError:
-    """Project the parsed layout without changing permalink or ancestry context."""
-    if not request.tabs_only and request.tab is None:
+    """Project the parsed layout without changing permalink or ancestry context.
+
+    Scoping only ever removes tabs and chart placements from the parsed layout,
+    so a scoped response never contains a chart the full layout would not.
+    """
+    if not request.tabs_only and request.tab is None and not request.untabbed_only:
         return layout
 
-    tabs = [tab for tab in layout.tabs if isinstance(tab, DashboardTab)]
-    tabs_by_id = {tab.id: tab for tab in tabs}
+    if request.untabbed_only:
+        return layout.model_copy(
+            update={
+                "tabs": [],
+                "charts": [chart for chart in layout.charts if chart.tab_id is None],
+                "scope": DashboardLayoutScope(untabbed_only=True),
+            }
+        )
+
+    tabs = layout.tabs
     children: dict[str | None, list[str]] = {}
     for tab in tabs:
         children.setdefault(tab.parent_tab_id, []).append(tab.id)
 
-    selected_ids = set(tabs_by_id)
+    selected_tab_id: str | None = None
+    selected_ids = {tab.id for tab in tabs}
     if request.tab is not None:
-        matches = (
-            [tabs_by_id[request.tab]]
-            if request.tab in tabs_by_id
-            else [tab for tab in tabs if tab.name == request.tab]
-        )
-        if not matches:
-            return DashboardError.create(
-                "Tab not found. Use tabs_only=true to discover tab IDs and titles.",
-                "tab_not_found",
-            )
-        if len(matches) > 1:
-            return DashboardError.create(
-                "Multiple tabs have that title. Use tabs_only=true to discover "
-                "their IDs, then pass a unique tab ID.",
-                "ambiguous_tab",
-            )
-        selected_ids = set()
-        pending = [matches[0].id]
-        while pending:
-            tab_id = pending.pop()
-            if tab_id not in selected_ids:
-                selected_ids.add(tab_id)
-                pending.extend(children.get(tab_id, []))
+        selected = _resolve_tab(tabs, request.tab)
+        if isinstance(selected, DashboardError):
+            return selected
+        selected_tab_id = selected.id
+        selected_ids = _subtree_ids(selected.id, children)
         tabs = [tab for tab in tabs if tab.id in selected_ids]
 
+    scope = DashboardLayoutScope(tabs_only=request.tabs_only, tab_id=selected_tab_id)
     if request.tabs_only:
-        # Compute absolute depths before projecting a subtree. The parser only
-        # emits reachable tabs and assigns each tab a single enclosing parent.
-        depths: dict[str, int] = {}
-        stack = [(tab_id, 0) for tab_id in children.get(None, [])]
-        while stack:
-            tab_id, depth = stack.pop()
-            depths[tab_id] = depth
-            stack.extend((child, depth + 1) for child in children.get(tab_id, []))
-        summaries = [
-            DashboardTabSummary(
-                id=tab.id,
-                name=tab.name,
-                parent_tab_id=tab.parent_tab_id,
-                depth=depths[tab.id],
-                chart_count=len(tab.chart_ids),
-            )
-            for tab in tabs
-        ]
-        return layout.model_copy(update={"tabs": summaries, "charts": []})
+        return layout.model_copy(
+            update={
+                "tabs": [],
+                "tab_tree": _tab_summaries(tabs, children),
+                "charts": [],
+                "scope": scope,
+            }
+        )
 
     return layout.model_copy(
         update={
@@ -115,6 +163,7 @@ def _scope_layout(
             "charts": [
                 chart for chart in layout.charts if chart.tab_id in selected_ids
             ],
+            "scope": scope,
         }
     )
 
@@ -145,8 +194,10 @@ async def get_dashboard_layout(
     tree with nesting depths and descendant chart counts, without chart positions.
     Then pass ``tab="<ID or exact title>"`` to retrieve only that tab's subtree
     and chart positions. IDs take precedence; duplicate titles require an ID.
-    Combine both options to summarize a subtree. Parent IDs and tab paths remain
-    relative to the full dashboard, and permalink state is preserved unchanged.
+    Combine both options to summarize a subtree. Pass ``untabbed_only=true``
+    for charts outside every tab.
+    Parent IDs and tab paths remain relative to the full dashboard, and
+    permalink state is preserved unchanged.
 
     If the user gives you a shared URL containing ``/dashboard/p/<key>/``, pass
     the URL or bare key as ``identifier`` (or use ``permalink_key`` alone). The
@@ -209,14 +260,19 @@ async def get_dashboard_layout(
                         "permalink_key belongs to a different dashboard; ignoring "
                         "its active-tab and filter state."
                     )
+            result = _scope_layout(result, request)
+
+        if isinstance(result, DashboardLayout):
             await ctx.info(
                 "Dashboard layout retrieved: id=%s, tab_count=%s, chart_count=%s, "
-                "has_layout=%s"
+                "untabbed_chart_count=%s, has_layout=%s, scope=%s"
                 % (
                     result.id,
-                    len(result.tabs),
+                    len(result.tab_tree) if request.tabs_only else len(result.tabs),
                     len(result.charts),
+                    result.untabbed_chart_count,
                     result.has_layout,
+                    result.scope.model_dump() if result.scope else None,
                 )
             )
         else:
@@ -225,11 +281,7 @@ async def get_dashboard_layout(
                 % (result.error_type, result.error)
             )
 
-        return (
-            _scope_layout(result, request)
-            if isinstance(result, DashboardLayout)
-            else result
-        )
+        return result
 
     except Exception as e:
         await ctx.error(

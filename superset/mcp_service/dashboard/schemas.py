@@ -335,7 +335,7 @@ class GetDashboardInfoRequest(MetadataCacheControl):
 
 
 class GetDashboardLayoutRequest(BaseModel):
-    """Dashboard layout, optionally scoped to tabs."""
+    """Dashboard layout, optionally scoped."""
 
     identifier: Annotated[
         int | str | None,
@@ -357,16 +357,18 @@ class GetDashboardLayoutRequest(BaseModel):
     tabs_only: bool = Field(
         default=False,
         description=(
-            "Tab tree (ID, name, parent, depth, chart_count), "
-            "without chart IDs or positions."
+            "Tab tree only (ID, name, parent, depth, chart_count), in tab_tree."
         ),
     )
     tab: str | None = Field(
         default=None,
         description=(
-            "Tab subtree by ID or exact, case-sensitive title. "
-            "IDs win; use IDs for duplicate titles."
+            "Tab subtree by ID or exact title (case-sensitive); IDs win over titles."
         ),
+    )
+    untabbed_only: bool = Field(
+        default=False,
+        description="Only charts outside every tab.",
     )
 
     @field_validator("tab")
@@ -387,6 +389,8 @@ class GetDashboardLayoutRequest(BaseModel):
         )
         if identifier_is_blank and permalink_is_blank:
             raise ValueError("Provide identifier or permalink_key")
+        if self.untabbed_only and (self.tabs_only or self.tab is not None):
+            raise ValueError("untabbed_only cannot be combined with tab or tabs_only")
         return self
 
 
@@ -1550,21 +1554,65 @@ class DashboardTabSummary(BaseModel):
     )
 
 
+class DashboardLayoutScope(BaseModel):
+    """Scope applied to a get_dashboard_layout response."""
+
+    tabs_only: bool = Field(
+        False,
+        description=(
+            "True when chart positions were omitted by request; charts is then "
+            "empty regardless of what the dashboard contains."
+        ),
+    )
+    tab_id: str | None = Field(
+        None, description="Resolved ID of the tab the response is limited to"
+    )
+    untabbed_only: bool = Field(
+        False, description="True when only charts outside every tab are returned"
+    )
+
+
 class DashboardLayout(BaseModel):
     """Parsed layout data for a dashboard, derived from position_json."""
 
     id: int | None = Field(None, description="Dashboard ID")
     dashboard_title: str | None = Field(None, description="Dashboard title")
     uuid: str | None = Field(None, description="Dashboard UUID")
-    tabs: List[DashboardTab | DashboardTabSummary] = Field(
+    tabs: List[DashboardTab] = Field(
         default_factory=list,
         description=(
-            "Tabs declared in the dashboard layout (empty for untabbed dashboards)"
+            "Tabs declared in the dashboard layout, limited to the selected "
+            "subtree when scoped by tab. Empty for untabbed dashboards and when "
+            "tabs_only or untabbed_only is requested."
+        ),
+    )
+    tab_tree: List[DashboardTabSummary] = Field(
+        default_factory=list,
+        description=(
+            "Compact tab tree without chart IDs or positions; populated only when "
+            "tabs_only is requested."
         ),
     )
     charts: List[ChartPosition] = Field(
         default_factory=list,
-        description="Charts placed in the dashboard layout with their tab context",
+        description=(
+            "Charts placed in the dashboard layout with their tab context, limited "
+            "to the requested scope. Always empty when tabs_only is requested; "
+            "see scope."
+        ),
+    )
+    untabbed_chart_count: int = Field(
+        0,
+        description=(
+            "Distinct charts placed outside every tab in the full dashboard "
+            "layout; request untabbed_only to list them."
+        ),
+    )
+    scope: DashboardLayoutScope | None = Field(
+        None,
+        description=(
+            "Scope applied to tabs, tab_tree, and charts; None for the full layout."
+        ),
     )
     has_layout: bool = Field(
         default=False,
@@ -2111,12 +2159,18 @@ def dashboard_layout_serializer(dashboard: "Dashboard") -> DashboardLayout:
     """Serialize a Dashboard model to a parsed DashboardLayout."""
     position_json_str = getattr(dashboard, "position_json", None)
     tabs, charts = _extract_layout_from_position(position_json_str)
+    untabbed_chart_ids = {
+        chart.chart_id
+        for chart in charts
+        if chart.tab_id is None and chart.chart_id is not None
+    }
     return DashboardLayout(
         id=dashboard.id,
         dashboard_title=dashboard.dashboard_title or "Untitled",
         uuid=str(dashboard.uuid) if dashboard.uuid else None,
         tabs=tabs,
         charts=charts,
+        untabbed_chart_count=len(untabbed_chart_ids),
         has_layout=bool(position_json_str),
     )
 

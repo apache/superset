@@ -481,9 +481,12 @@ async def test_layout_tabs_only_large_tree(
             "get_dashboard_layout", {"request": {"identifier": 1, "tabs_only": True}}
         )
     data = json.loads(result.content[0].text)
-    assert len(data["tabs"]) == 114
+    assert len(data["tab_tree"]) == 114
+    assert data["tabs"] == []
     assert data["charts"] == []
-    tabs = {tab["id"]: tab for tab in data["tabs"]}
+    assert data["untabbed_chart_count"] == 4
+    assert data["scope"] == {"tabs_only": True, "tab_id": None, "untabbed_only": False}
+    tabs = {tab["id"]: tab for tab in data["tab_tree"]}
     assert tabs["TAB-group-0"] == {
         "id": "TAB-group-0",
         "name": "Group 0",
@@ -498,7 +501,7 @@ async def test_layout_tabs_only_large_tree(
         "depth": 1,
         "chart_count": 4,
     }
-    assert all("chart_ids" not in tab for tab in data["tabs"])
+    assert all("chart_ids" not in tab for tab in data["tab_tree"])
     # Master guards exact UTF-8 bytes; also bound the legacy bytes/4 estimate.
     response_bytes = get_response_size_bytes(ToolResult(content=result.content))
     assert response_bytes < 25_000
@@ -506,10 +509,22 @@ async def test_layout_tabs_only_large_tree(
 
 
 @patch("superset.daos.dashboard.DashboardDAO.find_by_id")
-@pytest.mark.parametrize("tab", ["TAB-group-0", "Group 0", "TAB-leaf-0", "Detail 0"])
+@pytest.mark.parametrize(
+    "tab, tab_id",
+    [
+        ("TAB-group-0", "TAB-group-0"),
+        ("Group 0", "TAB-group-0"),
+        ("TAB-leaf-0", "TAB-leaf-0"),
+        ("Detail 0", "TAB-leaf-0"),
+    ],
+)
 @pytest.mark.asyncio
 async def test_layout_tab_filter_large_tree(
-    mock_find: Mock, mcp_server: FastMCP, large_tabbed_layout: str, tab: str
+    mock_find: Mock,
+    mcp_server: FastMCP,
+    large_tabbed_layout: str,
+    tab: str,
+    tab_id: str,
 ) -> None:
     """IDs and exact titles select only a tab and its descendants."""
     mock_find.return_value = _build_dashboard_mock(position_json=large_tabbed_layout)
@@ -518,7 +533,7 @@ async def test_layout_tab_filter_large_tree(
             "get_dashboard_layout", {"request": {"identifier": 1, "tab": tab}}
         )
     data = json.loads(result.content[0].text)
-    leaves = range(0, 100, 14) if tab in ("TAB-group-0", "Group 0") else [0]
+    leaves = range(0, 100, 14) if tab_id == "TAB-group-0" else [0]
     expected_chart_ids = {leaf * 4 + offset for leaf in leaves for offset in range(4)}
     assert {chart["chart_id"] for chart in data["charts"]} == expected_chart_ids
     assert len(data["tabs"]) == (9 if len(expected_chart_ids) == 32 else 1)
@@ -526,6 +541,12 @@ async def test_layout_tab_filter_large_tree(
         chart["width"] == 6 and chart["height"] == 40 for chart in data["charts"]
     )
     assert data["charts"][0]["tab_path"] == ["Group 0", "Detail 0"]
+    assert data["scope"] == {
+        "tabs_only": False,
+        "tab_id": tab_id,
+        "untabbed_only": False,
+    }
+    assert data["tab_tree"] == []
 
 
 @patch("superset.daos.dashboard.DashboardDAO.find_by_id")
@@ -548,6 +569,9 @@ async def test_layout_default_response_unchanged(
         "permalink_key": None,
         "filter_state": None,
         "is_permalink_state": False,
+        "tab_tree": [],
+        "untabbed_chart_count": 0,
+        "scope": None,
         "tabs": [
             {
                 "id": "TAB-1",
@@ -597,9 +621,15 @@ async def test_layout_tabs_only_with_filter(
         )
     data = json.loads(result.content[0].text)
     assert data["charts"] == []
-    assert len(data["tabs"]) == 1
-    assert data["tabs"][0]["depth"] == 1
-    assert data["tabs"][0]["parent_tab_id"] == "TAB-group-0"
+    assert data["tabs"] == []
+    assert len(data["tab_tree"]) == 1
+    assert data["tab_tree"][0]["depth"] == 1
+    assert data["tab_tree"][0]["parent_tab_id"] == "TAB-group-0"
+    assert data["scope"] == {
+        "tabs_only": True,
+        "tab_id": "TAB-leaf-0",
+        "untabbed_only": False,
+    }
 
 
 @patch("superset.daos.dashboard.DashboardDAO.find_by_id")
@@ -658,7 +688,10 @@ async def test_layout_tabs_only_without_tabs(
         )
     data = json.loads(result.content[0].text)
     assert data["tabs"] == []
+    assert data["tab_tree"] == []
     assert data["charts"] == []
+    assert data["scope"]["tabs_only"] is True
+    assert data["untabbed_chart_count"] == (1 if position == _simple_layout() else 0)
 
 
 @pytest.mark.parametrize("tab", ["", "   "])
@@ -672,9 +705,300 @@ def test_layout_rejects_blank_tab(tab: str) -> None:
         GetDashboardLayoutRequest(identifier=1, tab=tab)
 
 
+def _mixed_layout() -> str:
+    """A ROOT/GRID layout with one chart in a ROW above the tabs."""
+    position = json.loads(_tabbed_layout())
+    position["ROOT_ID"]["children"] = ["GRID_ID"]
+    position["GRID_ID"] = {
+        "type": "GRID",
+        "id": "GRID_ID",
+        "parents": ["ROOT_ID"],
+        "children": ["ROW-top", "TABS-1"],
+    }
+    position["ROW-top"] = {
+        "type": "ROW",
+        "id": "ROW-top",
+        "parents": ["ROOT_ID", "GRID_ID"],
+        "children": ["CHART-u"],
+        "meta": {},
+    }
+    position["CHART-u"] = {
+        "type": "CHART",
+        "id": "CHART-u",
+        "parents": ["ROOT_ID", "GRID_ID", "ROW-top"],
+        "children": [],
+        "meta": {"chartId": 30, "sliceName": "Headline KPI", "width": 12},
+    }
+    return json.dumps(position)
+
+
+@patch("superset.daos.dashboard.DashboardDAO.find_by_id")
 @pytest.mark.asyncio
-async def test_layout_oversized_guard_hint(large_tabbed_layout: str) -> None:
-    """The real guard points oversized layout callers at supported scope options."""
+async def test_layout_untabbed_charts_are_reachable(
+    mock_find: Mock, mcp_server: FastMCP
+) -> None:
+    """Charts outside every tab are counted in every scope and selectable alone."""
+    mock_find.return_value = _build_dashboard_mock(position_json=_mixed_layout())
+    async with Client(mcp_server) as client:
+        full = json.loads(
+            (
+                await client.call_tool(
+                    "get_dashboard_layout", {"request": {"identifier": 1}}
+                )
+            )
+            .content[0]
+            .text
+        )
+        summary = json.loads(
+            (
+                await client.call_tool(
+                    "get_dashboard_layout",
+                    {"request": {"identifier": 1, "tabs_only": True}},
+                )
+            )
+            .content[0]
+            .text
+        )
+        untabbed = json.loads(
+            (
+                await client.call_tool(
+                    "get_dashboard_layout",
+                    {"request": {"identifier": 1, "untabbed_only": True}},
+                )
+            )
+            .content[0]
+            .text
+        )
+
+    assert {chart["chart_id"] for chart in full["charts"]} == {10, 20, 30}
+    assert full["untabbed_chart_count"] == 1
+    assert summary["untabbed_chart_count"] == 1
+    assert [tab["id"] for tab in summary["tab_tree"]] == ["TAB-1", "TAB-2"]
+    assert untabbed["untabbed_chart_count"] == 1
+    assert untabbed["tabs"] == []
+    assert untabbed["scope"] == {
+        "tabs_only": False,
+        "tab_id": None,
+        "untabbed_only": True,
+    }
+    assert untabbed["charts"] == [
+        {
+            "chart_id": 30,
+            "slice_name": "Headline KPI",
+            "tab_id": None,
+            "tab_path": [],
+            "width": 12,
+            "height": None,
+        }
+    ]
+    # Scoping only removes placements; it never adds one the full layout lacks.
+    assert all(chart in full["charts"] for chart in untabbed["charts"])
+
+
+@patch("superset.daos.dashboard.DashboardDAO.find_by_id")
+@pytest.mark.asyncio
+async def test_layout_untabbed_only_on_untabbed_dashboard(
+    mock_find: Mock, mcp_server: FastMCP
+) -> None:
+    """On a dashboard without tabs, untabbed_only is the full chart list."""
+    mock_find.return_value = _build_dashboard_mock(position_json=_simple_layout())
+    async with Client(mcp_server) as client:
+        result = await client.call_tool(
+            "get_dashboard_layout",
+            {"request": {"identifier": 1, "untabbed_only": True}},
+        )
+    data = json.loads(result.content[0].text)
+    assert [chart["chart_id"] for chart in data["charts"]] == [42]
+    assert data["untabbed_chart_count"] == 1
+
+
+@patch("superset.daos.dashboard.DashboardDAO.find_by_id")
+@pytest.mark.asyncio
+async def test_layout_tab_on_untabbed_dashboard_does_not_loop(
+    mock_find: Mock, mcp_server: FastMCP
+) -> None:
+    """Selecting a tab on an untabbed dashboard must not point back at tabs_only."""
+    mock_find.return_value = _build_dashboard_mock(position_json=_simple_layout())
+    async with Client(mcp_server) as client:
+        result = await client.call_tool(
+            "get_dashboard_layout", {"request": {"identifier": 1, "tab": "TAB-1"}}
+        )
+    data = json.loads(result.content[0].text)
+    assert data["error_type"] == "tab_not_found"
+    assert "no tabs" in data["error"]
+    assert "tabs_only" not in data["error"]
+
+
+@pytest.mark.parametrize(
+    "options", [{"tabs_only": True}, {"tab": "TAB-1"}, {"tab": "X", "tabs_only": True}]
+)
+def test_layout_rejects_untabbed_only_with_tab_options(
+    options: dict[str, Any],
+) -> None:
+    """untabbed_only selects charts outside every tab, so tab scopes conflict."""
+    from pydantic import ValidationError
+
+    from superset.mcp_service.dashboard.schemas import GetDashboardLayoutRequest
+
+    with pytest.raises(ValidationError, match="untabbed_only cannot be combined"):
+        GetDashboardLayoutRequest(identifier=1, untabbed_only=True, **options)
+
+
+def _scoped_payload(position_json: str, **options: Any) -> dict[str, Any]:
+    from superset.mcp_service.dashboard.schemas import (
+        dashboard_layout_serializer,
+        DashboardLayout,
+        GetDashboardLayoutRequest,
+    )
+    from superset.mcp_service.dashboard.tool.get_dashboard_layout import (
+        _scope_layout,
+    )
+
+    layout = _scope_layout(
+        dashboard_layout_serializer(_build_dashboard_mock(position_json=position_json)),
+        GetDashboardLayoutRequest(identifier=1, **options),
+    )
+    assert isinstance(layout, DashboardLayout)
+    return layout.model_dump(mode="json")
+
+
+@pytest.mark.parametrize(
+    "layout_name, options, expected, unexpected",
+    [
+        (
+            "large",
+            {},
+            [
+                "tabs_only=true",
+                'tab="<ID or title>"',
+                "untabbed_only=true",
+                "outside every tab (4 charts)",
+            ],
+            [],
+        ),
+        (
+            "tabbed",
+            {},
+            ["tabs_only=true", 'tab="<ID or title>"'],
+            ["untabbed_only"],
+        ),
+        (
+            "simple",
+            {},
+            ["no tabs", "list_charts", "'dashboards'", "value: 1"],
+            ["tabs_only=true", "untabbed_only"],
+        ),
+        (
+            "large",
+            {"tabs_only": True},
+            ["Keep tabs_only=true", '"TAB-group-0"', '"TAB-group-4", ...'],
+            ["TAB-leaf"],
+        ),
+        (
+            "large",
+            {"tab": "TAB-group-0"},
+            ['"TAB-leaf-0"', "nested tab ID", "Add tabs_only=true"],
+            ["no nested tabs"],
+        ),
+        (
+            "large",
+            {"tab": "TAB-group-0", "tabs_only": True},
+            ['"TAB-leaf-0"', "nested tab ID"],
+            ["Add tabs_only=true", "no nested tabs"],
+        ),
+        (
+            "large",
+            {"tab": "TAB-leaf-0"},
+            ["no nested tabs", "tab cannot narrow it", "list_charts"],
+            ["Pass a nested tab ID", 'tab="<ID or title>"'],
+        ),
+        (
+            "large",
+            {"tab": "Detail 0", "tabs_only": True},
+            ["no nested tabs", "cannot be narrowed further by tab"],
+            ["Pass a nested tab ID", "Keep tabs_only=true"],
+        ),
+        (
+            "mixed",
+            {"untabbed_only": True},
+            ["cannot be narrowed further", "list_charts"],
+            ["tabs_only=true", "Pass a nested tab ID"],
+        ),
+    ],
+)
+def test_layout_oversized_hint_follows_scope(
+    large_tabbed_layout: str,
+    layout_name: str,
+    options: dict[str, Any],
+    expected: list[str],
+    unexpected: list[str],
+) -> None:
+    """Each oversized scope suggests only a narrower scope that actually exists."""
+    from superset.mcp_service.utils.response_size_utils import (
+        format_size_limit_error,
+    )
+
+    position_json = {
+        "large": large_tabbed_layout,
+        "tabbed": _tabbed_layout(),
+        "simple": _simple_layout(),
+        "mixed": _mixed_layout(),
+    }[layout_name]
+    message = format_size_limit_error(
+        tool_name="get_dashboard_layout",
+        params={"request": {"identifier": 1, **options}},
+        actual_bytes=200_000,
+        max_bytes=100_000,
+        response=_scoped_payload(position_json, **options),
+    )
+    for text in expected:
+        assert text in message
+    for text in unexpected:
+        assert text not in message
+
+
+@pytest.mark.parametrize(
+    "options, expected",
+    [
+        ({}, ["tabs_only=true", "untabbed_only=true", "outside every tab."]),
+        ({"tabs_only": True}, ['pass tab="<top-level tab ID>"']),
+        ({"tab": "TAB-1"}, ["If this tab has nested tabs", "list_charts"]),
+        ({"untabbed_only": True}, ["cannot be narrowed further"]),
+    ],
+)
+def test_layout_oversized_hint_without_payload(
+    options: dict[str, Any], expected: list[str]
+) -> None:
+    """When the payload is unavailable, the hint relies on the request alone."""
+    from superset.mcp_service.utils.response_size_utils import (
+        format_size_limit_error,
+    )
+
+    message = format_size_limit_error(
+        tool_name="get_dashboard_layout",
+        params={"request": {"identifier": 1, **options}},
+        actual_bytes=200_000,
+        max_bytes=100_000,
+    )
+    for text in expected:
+        assert text in message
+
+
+@pytest.mark.parametrize(
+    "layout_name, expected, unexpected",
+    [
+        ("large", ["tabs_only=true", 'tab="<ID or title>"'], ["no tabs"]),
+        ("simple", ["no tabs", "list_charts"], ["tabs_only=true"]),
+    ],
+)
+@pytest.mark.asyncio
+async def test_layout_oversized_guard_hint(
+    large_tabbed_layout: str,
+    layout_name: str,
+    expected: list[str],
+    unexpected: list[str],
+) -> None:
+    """The real guard hands the blocked layout to the hint, so it knows the tabs."""
     from unittest.mock import AsyncMock
 
     from fastmcp.exceptions import ToolError
@@ -683,18 +1007,15 @@ async def test_layout_oversized_guard_hint(large_tabbed_layout: str) -> None:
 
     from superset.mcp_service.dashboard.schemas import dashboard_layout_serializer
     from superset.mcp_service.middleware import ResponseSizeGuardMiddleware
-    from superset.mcp_service.utils.response_size_utils import get_response_size_bytes
 
+    position_json = large_tabbed_layout if layout_name == "large" else _simple_layout()
     layout = dashboard_layout_serializer(
-        _build_dashboard_mock(position_json=large_tabbed_layout)
+        _build_dashboard_mock(position_json=position_json)
     )
-    assert len(layout.tabs) == 114
-    assert len(layout.charts) == 404
     response = ToolResult(
         content=[TextContent(type="text", text=layout.model_dump_json())]
     )
-    assert get_response_size_bytes(response) > 80_000
-    middleware = ResponseSizeGuardMiddleware(max_bytes=80_000)
+    middleware = ResponseSizeGuardMiddleware(max_bytes=100)
     context = Mock()
     context.message.name = "get_dashboard_layout"
     context.message.arguments = {"request": {"identifier": 1}}
@@ -706,8 +1027,35 @@ async def test_layout_oversized_guard_hint(large_tabbed_layout: str) -> None:
         await middleware.on_call_tool(context, AsyncMock(return_value=response))
     message = str(exc_info.value)
     assert "Response too large" in message
-    assert "tabs_only=true" in message
-    assert 'tab="<ID or title>"' in message
+    for text in expected:
+        assert text in message
+    for text in unexpected:
+        assert text not in message
+
+
+@patch("superset.daos.dashboard.DashboardDAO.find_by_id")
+@pytest.mark.asyncio
+async def test_layout_logs_scoped_counts(
+    mock_find: Mock, mcp_server: FastMCP, large_tabbed_layout: str
+) -> None:
+    """The retrieval log reports what was returned, not the unscoped layout."""
+    mock_find.return_value = _build_dashboard_mock(position_json=large_tabbed_layout)
+    messages: list[str] = []
+
+    async def log_handler(message: Any) -> None:
+        data = message.data
+        messages.append(data.get("msg", "") if isinstance(data, dict) else str(data))
+
+    async with Client(mcp_server, log_handler=log_handler) as client:
+        await client.call_tool(
+            "get_dashboard_layout",
+            {"request": {"identifier": 1, "tab": "TAB-leaf-0"}},
+        )
+    retrieved = [m for m in messages if "Dashboard layout retrieved" in m]
+    assert len(retrieved) == 1
+    assert "tab_count=1," in retrieved[0]
+    assert "chart_count=4," in retrieved[0]
+    assert "'tab_id': 'TAB-leaf-0'" in retrieved[0]
 
 
 @patch("superset.daos.dashboard.DashboardDAO.find_by_id")
@@ -727,8 +1075,9 @@ async def test_layout_empty_tab(
         )
     data = json.loads(result.content[0].text)
     assert data["charts"] == []
-    assert len(data["tabs"]) == 1
     if tabs_only:
-        assert data["tabs"][0]["chart_count"] == 0
+        assert len(data["tab_tree"]) == 1
+        assert data["tab_tree"][0]["chart_count"] == 0
     else:
+        assert len(data["tabs"]) == 1
         assert data["tabs"][0]["chart_ids"] == []
