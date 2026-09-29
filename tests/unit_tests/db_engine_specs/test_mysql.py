@@ -631,3 +631,82 @@ def test_pymysql_unsupported_ssl_options_fail_closed(option: str) -> None:
         MySQLEngineSpec.adjust_engine_params(
             make_url(f"mysql+pymysql://localhost/db?ssl=1&{option}=test"), {}
         )
+
+
+@pytest.mark.parametrize("driver", ["mysql+mysqlconnector", "mysql+pymysql"])
+@pytest.mark.parametrize("value", ["false", "0", False])
+def test_ssl_request_drops_non_disabling_ssl_disabled(
+    driver: str, value: str | bool
+) -> None:
+    """A false ssl_disabled must not reach drivers that test it for truthiness."""
+    from superset.db_engine_specs.mysql import MySQLEngineSpec
+
+    uri = make_url(f"{driver}://localhost/db?ssl=1")
+    if isinstance(value, str):
+        uri = uri.update_query_dict({"ssl_disabled": value})
+        args: dict[str, Any] = {}
+    else:
+        args = {"ssl_disabled": value}
+    url, result = MySQLEngineSpec.adjust_engine_params(uri, args)
+    assert "ssl_disabled" not in url.query
+    assert "ssl_disabled" not in result
+    assert result["ssl_verify_cert"] is True
+
+
+@pytest.mark.parametrize("value", ["true", "1"])
+def test_ssl_request_rejects_url_ssl_disabled(value: str) -> None:
+    from superset.db_engine_specs.mysql import MySQLEngineSpec
+
+    with pytest.raises(ValueError, match="conflicts with ssl_disabled"):
+        MySQLEngineSpec.adjust_engine_params(
+            make_url(f"mysql+mysqlconnector://localhost/db?ssl=1&ssl_disabled={value}"),
+            {},
+        )
+
+
+def test_ssl_request_aurora_data_api_uses_https() -> None:
+    """The HTTPS-only Data API driver must not receive an ssl argument."""
+    from superset.db_engine_specs.aurora import AuroraMySQLDataAPI
+
+    uri = make_url(
+        AuroraMySQLDataAPI.build_sqlalchemy_uri(
+            {
+                "username": "user",
+                "password": "pass",
+                "host": "",
+                "port": 3306,
+                "database": "db",
+                "encryption": True,
+            },
+            {},
+        )
+    ).update_query_dict({"aurora_cluster_arn": "arn"})
+    assert uri.get_driver_name() == "auroradataapi"
+    url, args = AuroraMySQLDataAPI.adjust_engine_params(uri, {})
+    assert "ssl" not in url.query
+    assert url.query["aurora_cluster_arn"] == "arn"
+    assert args == {}
+
+
+def test_pymysql_blank_hostname_check_is_unset() -> None:
+    """A blank ssl_check_hostname must not crash boolean parsing."""
+    from superset.db_engine_specs.mysql import MySQLEngineSpec
+
+    uri = make_url("mysql+pymysql://localhost/db?ssl=1").update_query_dict(
+        {"ssl_check_hostname": ""}
+    )
+    url, args = MySQLEngineSpec.adjust_engine_params(uri, {})
+    assert "ssl_check_hostname" not in url.query
+    assert "ssl_verify_identity" not in args
+    assert args["ssl_verify_cert"] is True
+
+
+def test_pymysql_hostname_check_conflict_fails_closed() -> None:
+    """A connect_arg must not silently cancel URL hostname verification."""
+    from superset.db_engine_specs.mysql import MySQLEngineSpec
+
+    with pytest.raises(ValueError, match="conflicts with ssl_verify_identity"):
+        MySQLEngineSpec.adjust_engine_params(
+            make_url("mysql+pymysql://localhost/db?ssl=1&ssl_check_hostname=true"),
+            {"ssl_verify_identity": False},
+        )
