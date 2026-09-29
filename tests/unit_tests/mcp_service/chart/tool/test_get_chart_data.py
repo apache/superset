@@ -6082,3 +6082,68 @@ class TestSavedDataFallbackSortDirection:
             await client.call_tool("get_chart_data", {"request": {"identifier": "11"}})
 
         assert captured["order_desc"] is False
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("override", [False, True])
+async def test_saved_data_uses_guarded_effective_form_data(
+    mcp_server: Any, mock_auth: Any, override: bool
+) -> None:
+    """Malformed saved params and cross-type previews retain their query contract."""
+    module = importlib.import_module("superset.mcp_service.chart.tool.get_chart_data")
+    chart = SimpleNamespace(
+        id=21,
+        slice_name="Saved table",
+        viz_type="table",
+        datasource_id=1,
+        datasource_type="table",
+        query_context='{"queries": []}',
+        params='{"viz_type":"table"}' if override else "{",
+    )
+    form_data = {"viz_type": "bullet", "metric": "Revenue", "groupby": ["Region"]}
+    rows = [] if override else [{"Revenue": 12}]
+    with (
+        patch.object(module, "find_chart_by_identifier", return_value=chart),
+        patch.object(
+            module,
+            "validate_chart_dataset",
+            return_value=SimpleNamespace(is_valid=True, warnings=[], error=None),
+        ),
+        patch.object(
+            module, "get_cached_form_data", return_value=json.dumps(form_data)
+        ),
+        patch.object(
+            module,
+            "build_query_context_from_form_data",
+            return_value=_query_context_stub(),
+        ),
+        patch(
+            "superset.charts.schemas.ChartDataQueryContextSchema.load",
+            return_value=_query_context_stub(),
+        ),
+        patch(
+            "superset.commands.chart.data.get_data_command.ChartDataCommand"
+        ) as command,
+    ):
+        command.return_value.run.return_value = {
+            "queries": [
+                {
+                    "data": rows,
+                    "colnames": ["Revenue", "Region"] if override else ["Revenue"],
+                    "rowcount": len(rows),
+                }
+            ]
+        }
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "get_chart_data",
+                {
+                    "request": {
+                        "identifier": 21,
+                        **({"form_data_key": "bullet-preview"} if override else {}),
+                    }
+                },
+            )
+    payload = json.loads(result.content[0].text)
+    assert "error_type" not in payload
+    assert payload["data"] == rows

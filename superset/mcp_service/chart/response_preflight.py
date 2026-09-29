@@ -17,7 +17,7 @@
 
 """Final wire-size gates for MCP chart responses."""
 
-from typing import Any, TypeVar
+from typing import Any, Literal, TypeVar
 
 from pydantic import BaseModel, RootModel
 
@@ -52,6 +52,7 @@ def preflight_generate_chart_response(
     response: GenerateChartResponse,
     *,
     persisted_chart_id: int | None = None,
+    persisted_action: Literal["created", "updated"] = "created",
 ) -> GenerateChartResponse:
     """Map a wire-size failure into the generate/update response error schema."""
     failure = response_json_failure(response)
@@ -65,15 +66,19 @@ def preflight_generate_chart_response(
                 "error": {
                     "error_type": failure.error_type,
                     "message": (
-                        "Chart was created, but its full response could not be "
-                        "returned safely"
+                        f"Chart was {persisted_action}, but its full response "
+                        "could not be returned safely"
                     ),
                     "details": (
-                        f"Chart {persisted_chart_id} was created successfully. "
-                        f"{failure.error}"
+                        f"Chart {persisted_chart_id} was {persisted_action} "
+                        f"successfully. {failure.error}"
                     ),
                     "suggestions": [
-                        "Do not retry creation; use the returned chart ID",
+                        (
+                            "Do not retry creation; use the returned chart ID"
+                            if persisted_action == "created"
+                            else "Do not retry the update; use the returned chart ID"
+                        ),
                         "Request fewer preview formats or reduce result cardinality",
                     ],
                     "error_code": "CHART_RESPONSE_TOO_LARGE",

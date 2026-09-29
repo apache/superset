@@ -1796,6 +1796,12 @@ def map_bullet_config(config: BulletChartConfig) -> Dict[str, Any]:  # noqa: C90
     metric and the groupby hierarchy. Presentation controls stay in native
     snake_case form_data; the chart plugin camelizes them for transformProps.
     """
+    if config.dimensions is None and config.order_by:
+        # An update resolves its saved hierarchy before mapping. Without one,
+        # creation must validate sort targets against an empty hierarchy.
+        BulletChartConfig.model_validate(
+            {**config.model_dump(exclude_unset=True), "dimensions": []}
+        )
     metric = create_metric_object(config.metric)
     form_data: Dict[str, Any] = {
         "viz_type": "bullet",

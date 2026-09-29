@@ -78,10 +78,14 @@ from superset.utils import json
 logger = logging.getLogger(__name__)
 
 
-def _bounded_update_response(payload: object) -> GenerateChartResponse:
+def _bounded_update_response(
+    payload: object, *, persisted_chart_id: int | None = None
+) -> GenerateChartResponse:
     """Validate and preflight one complete update-chart response."""
     return preflight_generate_chart_response(
-        GenerateChartResponse.model_validate(payload)
+        GenerateChartResponse.model_validate(payload),
+        persisted_chart_id=persisted_chart_id,
+        persisted_action="updated",
     )
 
 
@@ -1194,7 +1198,9 @@ async def update_chart(  # noqa: C901
             "schema_version": "2.0",
             "api_version": "v1",
         }
-        return _bounded_update_response(result)
+        return _bounded_update_response(
+            result, persisted_chart_id=chart_id if saved else None
+        )
 
     except GanttSemanticNormalizationError as ex:
         return _validation_error_response(

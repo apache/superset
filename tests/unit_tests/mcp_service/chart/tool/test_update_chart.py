@@ -3153,3 +3153,51 @@ class TestUpdateChartDatasetIdIntegration:
             error_type = result.structured_content["error"]["error_type"]
             assert error_type == "DatasetNotAccessible"
             assert "9999" in result.structured_content["error"]["details"]
+
+
+@pytest.mark.asyncio
+async def test_saved_update_oversized_response_retains_chart_id() -> None:
+    """A persisted update remains identifiable when its response exceeds the limit."""
+    chart = SimpleNamespace(
+        id=9,
+        datasource_id=1,
+        datasource_type="table",
+        slice_name="Updated",
+        viz_type="table",
+        uuid=None,
+        params='{"viz_type":"table"}',
+    )
+    request = UpdateChartRequest(
+        identifier=9, chart_name="Updated", generate_preview=False, preview_formats=[]
+    )
+    ctx = MagicMock()
+    ctx.warning = AsyncMock()
+    ctx.error = AsyncMock()
+    with (
+        patch(
+            "superset.mcp_service.auth.get_user_from_request",
+            return_value=Mock(id=1, username="admin", roles=[], groups=[]),
+        ),
+        patch.object(
+            update_chart_module, "find_chart_by_identifier", return_value=chart
+        ),
+        patch(
+            "superset.mcp_service.auth.check_chart_data_access",
+            return_value=SimpleNamespace(is_valid=True, error=None),
+        ),
+        patch("superset.commands.chart.update.UpdateChartCommand") as command,
+        patch.object(
+            update_chart_module,
+            "_wrapped_form_data_for_response",
+            return_value={"payload": "x" * MAX_QUERY_RESULT_VALUE_BYTES},
+        ),
+    ):
+        command.return_value.run.return_value = chart
+        result = await update_chart_module.update_chart(request, ctx=ctx)
+    command.return_value.run.assert_called_once()
+    assert result.success is False
+    assert result.chart is not None
+    assert result.chart.id == 9
+    assert result.error is not None
+    assert result.error.error_code == "CHART_RESPONSE_TOO_LARGE"
+    assert "updated successfully" in result.error.details

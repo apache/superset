@@ -615,11 +615,6 @@ async def execute_chart_data(  # noqa: C901
             # the chart's data exactly as shown in the visualization
             query_context_json = None
             form_data: dict[str, Any] = {}
-            if chart_params:
-                parsed_form_data = utils_json.loads(chart_params)
-                if type(parsed_form_data) is dict:
-                    form_data = parsed_form_data
-            effective_form_data = form_data
             if using_unsaved_state and cached_form_data_dict is not None:
                 form_data = cached_form_data_dict
             else:
@@ -637,6 +632,7 @@ async def execute_chart_data(  # noqa: C901
 
             if not using_unsaved_state:
                 form_data["viz_type"] = chart_viz_type or form_data.get("viz_type")
+            effective_form_data = form_data
 
             # If using cached form_data, we need to build query_context from it
             if using_unsaved_state and cached_form_data_dict is not None:
@@ -837,7 +833,9 @@ async def execute_chart_data(  # noqa: C901
                 result = normalize_chart_query_result(result, form_data)
                 if isinstance(result, ChartError):
                     return result
-            data_plugin = _data_plugin(chart_viz_type)
+            data_plugin = _data_plugin(
+                effective_form_data.get("viz_type") or chart_viz_type
+            )
             queries_data, query_failure = query_result_data(
                 result,
                 temporal_json_numbers=bool(

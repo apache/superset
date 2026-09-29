@@ -208,17 +208,6 @@ def build_dataset_context_from_orm(dataset: Any) -> DatasetContext | None:
     )
 
 
-# Exceptions that can occur during column name normalization.
-# Shared by the validation pipeline and tool-level normalization calls.
-NORMALIZATION_EXCEPTIONS = (
-    ImportError,
-    AttributeError,
-    KeyError,
-    ValueError,
-    TypeError,
-)
-
-
 class DatasetValidator:
     """Validates chart configuration against dataset schema."""
 

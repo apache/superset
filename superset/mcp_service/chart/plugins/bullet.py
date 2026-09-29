@@ -381,6 +381,27 @@ class BulletChartPlugin(BaseChartPlugin):
                 error=safe_exception_message(ex), error_type=ex.error_type
             )
 
+    def resolve_update_config(
+        self,
+        config: Any,
+        existing_form_data: dict[str, Any],
+        *,
+        dataset_rebind: bool,
+    ) -> Any:
+        """Resolve sort targets against the saved hierarchy before mapping."""
+        if not isinstance(config, BulletChartConfig) or config.dimensions is not None:
+            return config
+        if not config.order_by:
+            return config
+        dimensions = (
+            existing_form_data.get("groupby") or []
+            if not dataset_rebind and existing_form_data.get("viz_type") == "bullet"
+            else []
+        )
+        return BulletChartConfig.model_validate(
+            {**config.model_dump(exclude_unset=True), "dimensions": dimensions}
+        )
+
     def merge_update_form_data(
         self,
         existing_form_data: dict[str, Any],

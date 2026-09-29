@@ -3145,6 +3145,10 @@ class BulletChartConfig(BaseChartConfig):
                 "dimension (its physical output name); provide a unique metric label"
             )
 
+        if self.dimensions is None:
+            # Partial updates resolve the saved hierarchy before mapping.
+            # Creation validates with an empty hierarchy in map_bullet_config.
+            return self
         resolved_order: list[tuple[str, int | None]] = []
         for item in self.order_by:
             try:

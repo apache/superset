@@ -1179,3 +1179,96 @@ def test_gauge_native_time_sentinels_are_neutral(
     else:
         assert config.temporal_column == "event_time"
         assert config.time_range in (None, "No filter")
+
+
+@pytest.mark.parametrize("preview", [False, True])
+@pytest.mark.parametrize("field", ["time_range", "granularity_sqla"])
+def test_gauge_update_tools_honor_null_binding(field: str, preview: bool) -> None:
+    """The generic same-viz pass must not restore Gauge's explicit clears."""
+    from types import SimpleNamespace
+    from unittest.mock import patch
+
+    from superset.mcp_service.chart.schemas import UpdateChartRequest
+    from superset.mcp_service.chart.tool.update_chart import (
+        _build_preview_form_data,
+        _build_update_payload,
+    )
+    from superset.utils import json
+
+    existing = TestGaugeUpdateRoundTrip.existing_form_data()
+    existing.update(time_range="Last week", granularity_sqla="event_time")
+    config = GaugeChartConfig.model_validate(
+        {
+            "metric": {"name": "progress", "aggregate": "AVG"},
+            field: None,
+        }
+    )
+    chart = SimpleNamespace(
+        id=9, datasource_id=1, slice_name="Gauge", params=json.dumps(existing)
+    )
+    request = UpdateChartRequest(identifier=9, config=config)
+    with patch(
+        "superset.mcp_service.chart.validation.dataset_validator.DatasetValidator._get_dataset_context",
+        return_value=None,
+    ):
+        result = (_build_preview_form_data if preview else _build_update_payload)(
+            request, chart, config
+        )
+    assert isinstance(result, dict)
+    form_data = result if preview else json.loads(result["params"])
+    assert field not in form_data
+
+
+@pytest.mark.parametrize("field", ["time_range", "granularity_sqla"])
+def test_gauge_cached_preview_honors_null_binding(field: str) -> None:
+    """Cached preview updates also leave intentionally cleared bindings absent."""
+    import importlib
+    from types import SimpleNamespace
+    from unittest.mock import MagicMock, patch
+
+    from superset.mcp_service.chart.schemas import UpdateChartPreviewRequest
+
+    module = importlib.import_module(
+        "superset.mcp_service.chart.tool.update_chart_preview"
+    )
+    previous = TestGaugeUpdateRoundTrip.existing_form_data()
+    previous.update(time_range="Last week", granularity_sqla="event_time")
+    config = GaugeChartConfig.model_validate(
+        {"metric": {"name": "progress", "aggregate": "AVG"}, field: None}
+    )
+    dataset = SimpleNamespace(
+        id=1, table_name="progress", schema=None, database=None, columns=[], metrics=[]
+    )
+    request = UpdateChartPreviewRequest(
+        dataset_id=1, form_data_key="old", config=config, generate_preview=False
+    )
+    with (
+        patch(
+            "superset.mcp_service.auth.get_user_from_request",
+            return_value=SimpleNamespace(id=1, username="admin", roles=[], groups=[]),
+        ),
+        patch.object(module, "_find_dataset", return_value=dataset),
+        patch.object(module, "has_dataset_access", return_value=True),
+        patch.object(module, "_get_previous_form_data", return_value=previous),
+        patch(
+            "superset.mcp_service.chart.validation.dataset_validator.DatasetValidator.normalize_column_names",
+            side_effect=lambda config, *args, **kwargs: config,
+        ),
+        patch(
+            "superset.mcp_service.chart.validation.dataset_validator.DatasetValidator._get_dataset_context",
+            return_value=None,
+        ),
+        patch.object(
+            module, "validate_and_compile", return_value=SimpleNamespace(success=True)
+        ),
+        patch.object(
+            module,
+            "generate_explore_link",
+            return_value="http://localhost/explore/?form_data_key=new",
+        ) as link,
+        patch.object(module, "analyze_chart_capabilities", return_value=None),
+        patch.object(module, "analyze_chart_semantics", return_value=None),
+    ):
+        result = module.update_chart_preview(request, ctx=MagicMock())
+    assert result["success"] is True
+    assert field not in link.call_args.args[1]

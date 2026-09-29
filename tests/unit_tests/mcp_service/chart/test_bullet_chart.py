@@ -570,7 +570,9 @@ def test_bullet_accepts_short_labels_and_rejects_bad_order_target() -> None:
     )
     assert config.range_labels == ["Only one"]
     with pytest.raises(ValidationError, match="unknown: not_a_role"):
-        BulletChartConfig(metric=_simple_metric(), order_by=[{"column": "not_a_role"}])
+        BulletChartConfig(
+            metric=_simple_metric(), dimensions=[], order_by=[{"column": "not_a_role"}]
+        )
 
 
 def test_bullet_dimension_labels_are_input_aliases_not_result_aliases() -> None:
@@ -3404,11 +3406,14 @@ def test_bullet_null_dimension_alias_is_absent(
         assert "dimensions" not in config.model_fields_set
 
 
-def test_update_chart_preview_tool_preserves_omitted_bullet_state() -> None:
+@pytest.mark.parametrize("order_by", [[], [{"column": "Region", "ascending": True}]])
+def test_update_chart_preview_tool_preserves_omitted_bullet_state(
+    order_by: list[dict[str, Any]],
+) -> None:
     request = UpdateChartPreviewRequest(
         form_data_key="previous_bullet_key",
         dataset_id=7,
-        config=BulletChartConfig(metric=_simple_metric("revenue")),
+        config=BulletChartConfig(metric=_simple_metric("revenue"), order_by=order_by),
         generate_preview=False,
     )
     dataset = _orm_dataset()
@@ -3497,12 +3502,16 @@ def test_update_chart_preview_tool_preserves_omitted_bullet_state() -> None:
     assert preview_form_data["show_labels"] is True
     assert preview_form_data["adhoc_filters"] == previous["adhoc_filters"]
 
+    if order_by:
+        assert preview_form_data["orderby"] == [["Region", True]]
+
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("dimensions", [[], ["Region"]])
+@pytest.mark.parametrize("sort_update", [False, True])
 @pytest.mark.parametrize("aliases", [{}, {"dimensions": None}, {"groupby": None}])
 async def test_update_chart_tool_persists_native_bullet_round_trip(
-    dimensions: list[str], aliases: dict[str, Any]
+    dimensions: list[str], aliases: dict[str, Any], sort_update: bool
 ) -> None:
     """Omitted/null dimensions preserve both empty and populated saved hierarchies."""
     existing = {
@@ -3536,6 +3545,11 @@ async def test_update_chart_tool_persists_native_bullet_round_trip(
             "chart_type": "bullet",
             "metric": _simple_metric("NewRevenue"),
             **aliases,
+            **(
+                {"order_by": [{"column": "Region", "ascending": True}]}
+                if sort_update and dimensions
+                else {}
+            ),
         },
         generate_preview=False,
         preview_formats=[],
@@ -3586,6 +3600,9 @@ async def test_update_chart_tool_persists_native_bullet_round_trip(
     assert persisted["ranges"] == "100,250"
     assert persisted["range_labels"] == "Low"
     assert persisted["show_legend"] is True
+
+    if sort_update and dimensions:
+        assert persisted["orderby"] == [["Region", True]]
 
 
 def test_bullet_exact_case_dimensions_survive_normalization_and_query() -> None:
@@ -3725,3 +3742,45 @@ def test_bullet_ignores_foreign_sort_flag_after_master_merge() -> None:
     }
     query = build_query_dicts_from_form_data(form_data, 7, "table")[0]
     assert query["orderby"] == [["Region", True]]
+
+
+@pytest.mark.parametrize(
+    "rebind, viz_type, target",
+    [
+        (False, "bullet", "Missing"),
+        (True, "bullet", "Region"),
+        (False, "table", "Region"),
+    ],
+)
+def test_bullet_deferred_sort_rejects_unknown_or_unavailable_hierarchy(
+    rebind: bool,
+    viz_type: str,
+    target: str,
+) -> None:
+    """Deferral must not allow unknown roles or inherit from another contract."""
+    config = BulletChartConfig(metric=_simple_metric(), order_by=[{"column": target}])
+    with pytest.raises(ValueError, match="unknown"):
+        BulletChartPlugin().resolve_update_config(
+            config,
+            {"viz_type": viz_type, "groupby": ["Region"]},
+            dataset_rebind=rebind,
+        )
+    with pytest.raises(ValueError, match="unknown"):
+        map_config_to_form_data(config)
+
+
+def test_bullet_deferred_sort_resolves_saved_dimension_before_metric_alias() -> None:
+    """A saved physical dimension takes precedence over a metric input alias."""
+    config = BulletChartConfig(
+        metric={"name": "Revenue", "aggregate": "SUM", "label": "Total"},
+        order_by=[{"column": "Revenue"}, {"column": "Total"}],
+    )
+    resolved = BulletChartPlugin().resolve_update_config(
+        config,
+        {"viz_type": "bullet", "groupby": ["Revenue"]},
+        dataset_rebind=False,
+    )
+    mapped = map_bullet_config(resolved)
+    assert mapped["orderby"] == [["Revenue", False], [mapped["metric"], False]]
+    with pytest.raises(ValueError, match="duplicate outputs"):
+        map_bullet_config(config)

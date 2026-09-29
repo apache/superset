@@ -688,7 +688,9 @@ than a size-limit error. This confirmation retains identifying fields, error
 details, and short string lists such as `changed_fields` (at most 20 items and
 200 total characters). Larger lists are omitted; use `_response_truncated` and
 `_truncation_notes` to detect a partial response and re-read the object if needed.
-This fallback does not slim `update_chart`'s default payload.
+This fallback does not slim `update_chart`'s default payload. If a saved chart
+update exceeds its chart-response limit, the error retains the chart ID and
+confirms that the update was saved; do not retry the write.
 
 ### Caching
 
@@ -1136,7 +1138,9 @@ The MCP Bullet plugin uses `chart_type: "bullet"` and the native ECharts
 `viz_type: "bullet"`. Its optional `dimensions` hierarchy maps to `groupby`.
 Omit `dimensions` (or use `null`) to create a single-metric Bullet without a
 breakdown. On updates, omission or `null` preserves the saved hierarchy; use
-`dimensions: []` to clear it explicitly.
+`dimensions: []` to clear it explicitly. An `order_by` update can reference the
+saved dimensions without resending them; unknown targets are rejected after
+resolving the saved hierarchy.
 
 Dimension and metric output names are case-sensitive: quoted physical columns
 such as `Region` and `region` remain distinct. Reference lookup prefers exact
