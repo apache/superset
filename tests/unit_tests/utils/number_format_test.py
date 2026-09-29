@@ -517,6 +517,32 @@ def test_additional_d3_parity_cases(
 @pytest.mark.parametrize(
     "d3_format,value,expected",
     [
+        (",.2f", -0.001, "0.00"),
+        (",.2f", -0.0049, "0.00"),
+        (",.2f", -0.0, "0.00"),
+        ("(,.2f", -0.001, "0.00"),
+        ("$,.2f", -0.004, "$0.00"),
+        ("($,.2f", -0.001, "$0.00"),
+        (" ,.2f", -0.001, " 0.00"),
+        (".1%", -0.0001, "0.0%"),
+        (",d", -0.4, "0"),
+        (".0f", -0.3, "0"),
+        ("+,.2f", -0.001, "-0.00"),
+        ("+,.2f", -0.0, "-0.00"),
+        ("+,d", -0.4, "-0"),
+        (".2f", -0.005, "-0.01"),
+        ("~g", -1e-20, "-1e-20"),
+    ],
+)
+def test_negative_value_rounding_to_zero_matches_d3(
+    d3_format: str, value: float, expected: str
+) -> None:
+    assert format_number_with_config(d3_format, None, value) == expected
+
+
+@pytest.mark.parametrize(
+    "d3_format,value,expected",
+    [
         ("SMART_NUMBER", 12.345, "12.35"),
         ("SMART_NUMBER", 0.12345, "0.1235"),
         ("SMART_NUMBER", 0.00005, "50µ"),

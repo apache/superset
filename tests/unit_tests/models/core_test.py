@@ -40,7 +40,11 @@ from sqlalchemy.sql import Select
 from superset.connectors.sqla.models import SqlaTable, TableColumn
 from superset.databases.error_provenance import mark_database_engine_error
 from superset.errors import SupersetErrorType
-from superset.exceptions import OAuth2Error, OAuth2RedirectError
+from superset.exceptions import (
+    OAuth2Error,
+    OAuth2RedirectError,
+    SupersetGenericDBErrorException,
+)
 from superset.models.core import Database
 from superset.sql.parse import LimitMethod, Table
 from superset.utils import json
@@ -216,6 +220,12 @@ def test_get_db_engine_spec(mocker: MockerFixture) -> None:
             TableColumn(python_date_format="epoch_ms"),
             Database(),
             "1672536225000",
+        ),
+        (
+            datetime(2023, 1, 1, 1, 23, 45, 600000),
+            TableColumn(python_date_format="epoch_us"),
+            Database(),
+            "1672536225000000",
         ),
         (
             datetime(2023, 1, 1, 1, 23, 45, 600000),
@@ -593,6 +603,29 @@ def test_get_sqla_engine(mocker: MockerFixture) -> None:
         "handle_error",
         mark_database_engine_error,
     )
+
+
+def test_get_sqla_engine_honors_adjusted_connect_args(mocker: MockerFixture) -> None:
+    """
+    ``adjust_engine_params`` returns a *new* ``connect_args`` dict (the base
+    impl merges ``enforce_uri_query_params`` into a fresh copy). The result must
+    be written back into ``engine_kwargs`` so those enforced params actually
+    reach ``create_engine``. Exercised via MySQL, which enforces
+    ``local_infile=0`` this way; before the write-back the enforcement was
+    silently dropped.
+    """
+    from superset.models.core import Database
+
+    create_engine_mock = mocker.patch(
+        "superset.models.core.create_engine",
+        return_value=create_engine("sqlite://"),
+    )
+
+    database = Database(database_name="my_db", sqlalchemy_uri="mysql://u:p@h/db")
+    database._get_sqla_engine(nullpool=False)
+
+    _, kwargs = create_engine_mock.call_args
+    assert kwargs["connect_args"].get("local_infile") == 0
 
 
 def test_get_sqla_engine_caches_engine_per_url(mocker: MockerFixture) -> None:
@@ -1222,6 +1255,21 @@ def test_get_oauth2_config_redirect_uri_from_config(
 
     assert config is not None
     assert config["redirect_uri"] == custom_redirect_uri
+
+
+def test_get_oauth2_config_malformed_encrypted_extra(app_context: None) -> None:
+    """
+    Test that malformed JSON in ``encrypted_extra`` raises a Superset exception
+    instead of leaking the raw ``JSONDecodeError``.
+    """
+    database = Database(
+        database_name="db",
+        sqlalchemy_uri="postgresql://user:password@host:5432/examples",
+    )
+    database.encrypted_extra = "{not valid json"
+
+    with pytest.raises(SupersetGenericDBErrorException):
+        database.get_oauth2_config()
 
 
 def test_raw_connection_oauth_engine(mocker: MockerFixture) -> None:

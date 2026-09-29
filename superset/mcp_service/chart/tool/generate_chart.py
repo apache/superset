@@ -86,9 +86,9 @@ async def generate_chart(  # noqa: C901
     - LLM clients MUST display returned chart URL to users
     - Use numeric dataset ID or UUID (NOT schema.table_name format)
     - MUST include chart_type in config (one of: 'xy', 'table', 'pie',
-      'gauge', 'treemap_v2', 'pivot_table', 'mixed_timeseries',
-      'handlebars',
-      'big_number', 'histogram', 'box_plot', 'waterfall', plus host-gated
+      'gauge', 'treemap_v2', 'bubble_v2', 'pivot_table', 'mixed_timeseries',
+      'handlebars', 'big_number', 'histogram', 'box_plot', 'waterfall',
+      'gantt', plus host-gated
       types returned by get_chart_type_schema such as 'interactive_pivot')
 
     IMPORTANT: The 'chart_type' field in the config is a DISCRIMINATOR that determines
@@ -132,6 +132,9 @@ async def generate_chart(  # noqa: C901
     - chart_type='treemap_v2' for hierarchical part-to-whole.
       Required fields: groupby (ordered hierarchy), metric
 
+    - chart_type='bubble_v2' for a scatter of bubbles sized by a metric.
+      Required fields: entity, x, y, size (x/y/size are metrics)
+
     - chart_type='histogram' for value-distribution charts.
       Required fields: column (numeric); optional: bins, groupby, normalize,
       cumulative
@@ -143,6 +146,11 @@ async def generate_chart(  # noqa: C901
     - Use chart_type='waterfall' for cumulative increase/decrease breakdowns
       Required fields: x_axis, metric; optional: breakdown (single category
       column, alias: groupby), show_total
+
+    - Use chart_type='gantt' for task intervals over time.
+      Required fields: start_time, end_time (both temporal), category;
+      optional: series, tooltip_columns, tooltip_metrics, order_by, filters,
+      time_range, subcategories, and presentation controls
 
     Quick lookup — natural-language ask -> chart_type (+ kind if applicable):
     - "bar chart" / "line chart" / "area chart" / "scatter plot"
@@ -156,9 +164,11 @@ async def generate_chart(  # noqa: C901
     - "single number" / "KPI" / "scorecard" -> chart_type='big_number'
     - "gauge" / "dial" / "speedometer" -> chart_type='gauge'
     - "treemap" / "hierarchy" -> chart_type='treemap_v2'
+    - "bubble" / "bubble chart" -> chart_type='bubble_v2'
     - "custom HTML template" -> chart_type='handlebars'
     - "histogram" / "distribution" -> chart_type='histogram'
     - "box plot" / "box and whisker" -> chart_type='box_plot'
+    - "gantt" / "project schedule" / "task timeline" -> chart_type='gantt'
 
     Example usage for XY chart (bar/line/area/scatter):
     ```json
@@ -334,7 +344,8 @@ async def generate_chart(  # noqa: C901
             with event_logger.log_context(action="mcp.generate_chart.dataset_lookup"):
                 dataset = None
                 if isinstance(request.dataset_id, int) or (
-                    isinstance(request.dataset_id, str) and request.dataset_id.isdigit()
+                    isinstance(request.dataset_id, str)
+                    and request.dataset_id.isdecimal()
                 ):
                     dataset_id = (
                         int(request.dataset_id)
@@ -608,7 +619,7 @@ async def generate_chart(  # noqa: C901
             from superset.daos.dataset import DatasetDAO
 
             if isinstance(request.dataset_id, int) or (
-                isinstance(request.dataset_id, str) and request.dataset_id.isdigit()
+                isinstance(request.dataset_id, str) and request.dataset_id.isdecimal()
             ):
                 candidate_id = (
                     int(request.dataset_id)
@@ -738,7 +749,7 @@ async def generate_chart(  # noqa: C901
                                 # Convert dataset_id to int only if numeric
                                 if (
                                     isinstance(request.dataset_id, str)
-                                    and request.dataset_id.isdigit()
+                                    and request.dataset_id.isdecimal()
                                 ):
                                     dataset_id_for_preview = int(request.dataset_id)
                                 elif isinstance(request.dataset_id, int):

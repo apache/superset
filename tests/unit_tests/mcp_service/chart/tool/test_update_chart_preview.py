@@ -185,6 +185,42 @@ def test_cached_gauge_update_preserves_controls_and_compiles(
 class TestUpdateChartPreview:
     """Tests for update_chart_preview MCP tool."""
 
+    @pytest.mark.parametrize("redirect", [False, True])
+    def test_oauth_errors_include_response_versions(
+        self, redirect: bool, mock_auth: Mock
+    ) -> None:
+        """OAuth error branches retain the common response contract."""
+        from superset.exceptions import OAuth2Error, OAuth2RedirectError
+
+        error = (
+            OAuth2RedirectError(
+                "https://example.com/oauth",
+                "tab-1",
+                "https://example.com/redirect",
+            )
+            if redirect
+            else OAuth2Error("token refresh failed")
+        )
+        request = UpdateChartPreviewRequest(
+            dataset_id=1,
+            config=TableChartConfig(
+                chart_type="table",
+                columns=[ColumnRef(name="country")],
+            ),
+        )
+
+        with patch.object(
+            update_chart_preview_module, "_find_dataset", side_effect=error
+        ):
+            result = update_chart_preview_module.update_chart_preview(
+                request=request,
+                ctx=Mock(),
+            )
+
+        assert result["success"] is False
+        assert result["schema_version"] == "2.0"
+        assert result["api_version"] == "v1"
+
     @pytest.mark.asyncio
     async def test_update_chart_preview_request_structure(self):
         """Test that chart preview update request structures are properly formed."""
@@ -1362,9 +1398,9 @@ class TestUpdateChartPreviewValidation:
                 "update_chart_preview", {"request": request.model_dump()}
             )
 
-            assert result.data["success"] is False
-            assert result.data["chart"] is None
-            error = result.data["error"]
+            assert result.structured_content["success"] is False
+            assert result.structured_content["chart"] is None
+            error = result.structured_content["error"]
             assert isinstance(error, dict)
             assert error["error_code"] == "CHART_VALIDATION_FAILED"
             assert "sum_boys" in error["suggestions"]
@@ -1402,9 +1438,76 @@ class TestUpdateChartPreviewValidation:
                 "update_chart_preview", {"request": request.model_dump()}
             )
 
-            assert result.data["success"] is False
-            assert result.data["chart"] is None
-            error = result.data["error"]
+            assert result.structured_content["success"] is False
+            assert result.structured_content["chart"] is None
+            error = result.structured_content["error"]
             assert isinstance(error, dict)
             assert error["error_type"] == "DatasetNotAccessible"
             mock_create_form_data.assert_not_called()
+
+    @patch.object(update_chart_preview_module, "_find_dataset")
+    @patch("superset.daos.dataset.DatasetDAO.find_by_id")
+    @pytest.mark.asyncio
+    async def test_non_decimal_digit_dataset_id_uses_uuid_lookup(
+        self,
+        mock_find_by_id,
+        mock_find_dataset,
+        mcp_server,
+        mock_auth,
+    ):
+        """A Unicode "digit" dataset_id (isdigit() True, isdecimal() False)
+        must route the Tier-1 schema-validation lookup through the uuid
+        branch instead of raising out of ``int()``."""
+        mock_find_dataset.return_value = _mock_dataset(id=3)
+        mock_find_by_id.return_value = None
+
+        config = TableChartConfig(
+            chart_type="table", columns=[ColumnRef(name="region")]
+        )
+        request = UpdateChartPreviewRequest(dataset_id="²", config=config)
+
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "update_chart_preview", {"request": request.model_dump()}
+            )
+
+            assert result.structured_content["success"] is False
+            error = result.structured_content["error"]
+            assert error["error_type"] == "DatasetNotAccessible"
+        mock_find_by_id.assert_called_once_with("²", id_column="uuid")
+
+
+@pytest.mark.parametrize("allowed", [True, False])
+def test_previous_form_data_uses_existing_explore_access_gate(allowed: bool) -> None:
+    """Cached config retrieval retains Explore's resource-access check."""
+    from superset.commands.dataset.exceptions import DatasetAccessDeniedError
+    from superset.utils.core import DatasourceType
+
+    cached_form_data = '{"viz_type": "gantt_chart", "category": "task"}'
+    state = {
+        "owner": None,
+        "datasource_id": 7,
+        "datasource_type": "table",
+        "chart_id": 12,
+        "form_data": cached_form_data,
+    }
+    with (
+        patch(
+            "superset.commands.explore.form_data.get.app",
+            Mock(config={"EXPLORE_FORM_DATA_CACHE_CONFIG": {}}),
+        ),
+        patch("superset.commands.explore.form_data.get.cache_manager") as cache_manager,
+        patch(
+            "superset.commands.explore.form_data.utils.explore_check_access",
+            side_effect=None if allowed else DatasetAccessDeniedError(),
+        ) as check_access,
+    ):
+        cache_manager.explore_form_data_cache.get.return_value = state
+
+        result = update_chart_preview_module._get_previous_form_data("cached-key")
+
+    cache_manager.explore_form_data_cache.get.assert_called_once_with("cached-key")
+    check_access.assert_called_once_with(7, 12, DatasourceType.TABLE)
+    assert result == (
+        {"viz_type": "gantt_chart", "category": "task"} if allowed else None
+    )

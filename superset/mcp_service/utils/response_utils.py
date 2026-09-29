@@ -64,6 +64,8 @@ if TYPE_CHECKING:
 
 import humanize
 
+from superset.mcp_service.utils.serialization import is_missing_value
+
 
 def humanize_timestamp(dt: datetime | None) -> str | None:
     """Convert a datetime to a humanized string like '2 hours ago'."""
@@ -170,7 +172,10 @@ STATS_ROW_CAP: int = 5000
 
 
 def format_data_columns(
-    data: list[dict[str, Any]], raw_columns: list[str]
+    data: list[dict[str, Any]],
+    raw_columns: list[str],
+    *,
+    temporal_columns: set[str] | None = None,
 ) -> list[DataColumn]:
     """Build column metadata from query result data.
 
@@ -178,6 +183,8 @@ def format_data_columns(
     O(rows*cols) overhead on large result sets. When the result exceeds the
     cap, those counts are marked as sampled/approximate via ``statistics``
     instead of being reported as exact full-dataset totals.
+    Explicit temporal column names override sample-based type inference;
+    omitting them preserves the existing inference behavior.
     """
     # Local import breaks the chart.schemas ↔ response_utils circular dependency.
     from superset.mcp_service.chart.schemas import DataColumn  # noqa: PLC0415
@@ -187,7 +194,9 @@ def format_data_columns(
     columns_meta: list[DataColumn] = []
     for col_name in raw_columns:
         sample_values = [
-            row.get(col_name) for row in data[:3] if row.get(col_name) is not None
+            row.get(col_name)
+            for row in data[:3]
+            if not is_missing_value(row.get(col_name))
         ]
         data_type: str = "string"
         if sample_values:
@@ -195,12 +204,14 @@ def format_data_columns(
                 data_type = "boolean"
             elif all(isinstance(v, (int, float)) for v in sample_values):
                 data_type = "numeric"
+        if temporal_columns and col_name in temporal_columns:
+            data_type = "temporal"
 
         null_count = 0
         unique_vals: set[str] = set()
         for row in stats_rows:
             val = row.get(col_name)
-            if val is None:
+            if is_missing_value(val):
                 null_count += 1
             else:
                 unique_vals.add(str(val))

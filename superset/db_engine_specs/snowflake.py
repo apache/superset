@@ -373,6 +373,7 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
         Return URI for initial OAuth2 request.
         """
         uri = config["authorization_request_uri"]
+        cls._validate_oauth2_endpoint_host(uri)
         # When calling the Snowflake OAuth authorization endpoint for a custom client,
         # specify only the query parameters documented in the URL below.
         # Adding unsupported parameters
@@ -483,6 +484,10 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
     @classmethod
     def epoch_ms_to_dttm(cls) -> str:
         return "DATEADD(MS, {col}, '1970-01-01')"
+
+    @classmethod
+    def epoch_us_to_dttm(cls) -> str:
+        return "DATEADD(US, {col}, '1970-01-01')"
 
     @classmethod
     def convert_dttm(

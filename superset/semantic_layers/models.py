@@ -27,6 +27,7 @@ from dataclasses import dataclass
 from functools import cached_property
 from typing import Any, TYPE_CHECKING
 
+import pandas as pd
 import pyarrow as pa
 import sqlalchemy as sa
 from flask_appbuilder import Model
@@ -123,6 +124,18 @@ def get_column_type(semantic_type: pa.DataType) -> GenericDataType:
     if pa.types.is_boolean(semantic_type):
         return GenericDataType.BOOLEAN
     return GenericDataType.STRING
+
+
+def _feature_value(feature: object) -> str:
+    """Normalize a declared semantic-view feature to its stable string value.
+
+    Features are typed ``frozenset[SemanticViewFeature]``, but a third-party
+    provider may hand back a raw string (or any object) instead of the enum
+    member. Fall back to the value itself rather than 500-ing Explore for that
+    datasource, so a new provider stays safe by default.
+    """
+    value = getattr(feature, "value", feature)
+    return value if isinstance(value, str) else str(value)
 
 
 @dataclass(frozen=True)
@@ -363,6 +376,8 @@ class SemanticView(AuditMixinNullable, Model):
                 result.df = query_object.exec_post_processing(result.df)
             except InvalidPostProcessingError as ex:
                 raise QueryObjectValidationError(ex.message) from ex
+            except (TypeError, pd.errors.DataError) as ex:
+                raise QueryObjectValidationError(str(ex)) from ex
         return result
 
     def get_query_str(self, query_obj: QueryObjectDict) -> str:
@@ -582,6 +597,13 @@ class SemanticView(AuditMixinNullable, Model):
             "id": self.id,
             "uid": self.uid,
             "type": "semantic_view",
+            # Sorted for a deterministic payload; values are the stable
+            # SemanticViewFeature strings, never provider identity.
+            # ``_feature_value`` tolerates a provider that hands back a raw
+            # string instead of the enum member (see its docstring).
+            "semantic_view_features": sorted(
+                _feature_value(feature) for feature in self.implementation.features
+            ),
             "name": self.name,
             "columns": [
                 {
@@ -789,6 +811,8 @@ class SemanticView(AuditMixinNullable, Model):
 
         Translates string names to semantic-layer objects, delegates to the
         view implementation, and translates the result back to names.
+        Collapse grain variants into sorted unique names, also bounding
+        the shared list_metrics projection.
         """
         metric_map = {m.name: m for m in self.implementation.get_metrics()}
         dim_map = {d.name: d for d in self.implementation.get_dimensions()}
@@ -797,7 +821,7 @@ class SemanticView(AuditMixinNullable, Model):
         compatible = self.implementation.get_compatible_dimensions(
             sel_metrics, sel_dims
         )
-        return [d.name for d in compatible]
+        return sorted({d.name for d in compatible})
 
 
 sa.event.listen(SemanticLayer, "after_insert", SemanticLayer.after_insert)
