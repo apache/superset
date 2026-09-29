@@ -80,49 +80,58 @@ SYNTAX_ERROR_REGEX = re.compile(
 )
 
 
-MYSQL_SSL_MODE_REQUIRED = "REQUIRED"
-MYSQL_SSL_MODE_VERIFY_CA = "VERIFY_CA"
-MYSQL_SSL_MODE_VERIFY_IDENTITY = "VERIFY_IDENTITY"
-MYSQL_SSL_REQUIRED_MODES = (
-    MYSQL_SSL_MODE_REQUIRED,
-    MYSQL_SSL_MODE_VERIFY_CA,
-    MYSQL_SSL_MODE_VERIFY_IDENTITY,
-)
+def _mysql_bool_option(options: dict[str, Any], key: str) -> Optional[bool]:
+    """Parse a boolean driver option, treating a blank value as unset."""
+    value = options.get(key)
+    if value is None or value == "":
+        return None
+    return asbool(value) if isinstance(value, str) else bool(value)
+
+
+def _require_pymysql_tls(query: dict[str, Any], args: dict[str, Any]) -> None:
+    """Keep PyMySQL TLS options native so verification applies to them."""
+    pymysql = import_module("pymysql")
+
+    # Older releases silently fall back even with explicit SSL options.
+    if pymysql.VERSION[:2] < (1, 2):
+        raise ValueError("The MySQL SSL toggle requires PyMySQL >= 1.2")
+    # SQLAlchemy folds URL ssl_ca/cert/key into an ssl dictionary,
+    # but PyMySQL ignores that dictionary when ssl_verify_cert is set.
+    # Keep these as native connect_args so the CA is not discarded.
+    for key in ("ssl_ca", "ssl_cert", "ssl_key"):
+        if key in query:
+            args.setdefault(key, query.pop(key))
+    check_hostname = _mysql_bool_option(query, "ssl_check_hostname")
+    query.pop("ssl_check_hostname", None)
+    if check_hostname is not None:
+        verify_identity = _mysql_bool_option(args, "ssl_verify_identity")
+        if verify_identity not in (None, check_hostname):
+            raise ValueError("MySQL SSL request conflicts with ssl_verify_identity")
+        args["ssl_verify_identity"] = check_hostname
+    if query.keys() & {"ssl_capath", "ssl_cipher"}:
+        raise ValueError("Unsupported PyMySQL SSL option with the SSL toggle")
+    if "ssl" in args:
+        raise ValueError(
+            "Use individual ssl_ca/ssl_cert/ssl_key options with the SSL toggle"
+        )
 
 
 def _require_mysql_verified_tls(
     driver: str, query: dict[str, Any], args: dict[str, Any]
 ) -> None:
     """Use required verification on drivers without an encryption-only mode."""
-    options = {**query, **args}
+    # The drivers test ssl_disabled for truthiness, so a URL string such as
+    # "false" would disable TLS. Parse it here and drop non-disabling values.
+    for source in (query, args):
+        if _mysql_bool_option(source, "ssl_disabled"):
+            raise ValueError("MySQL SSL request conflicts with ssl_disabled")
+        source.pop("ssl_disabled", None)
     # Connector/Python has no REQUIRED mode: certificate verification is
     # necessary to prevent its opportunistic fallback to cleartext.
-    if options.get("ssl_disabled"):
-        raise ValueError("MySQL SSL request conflicts with ssl_disabled")
-    if "ssl_verify_cert" in options and not asbool(options["ssl_verify_cert"]):
+    if _mysql_bool_option({**query, **args}, "ssl_verify_cert") is False:
         raise ValueError("MySQL SSL request requires ssl_verify_cert")
     if driver == "pymysql":
-        pymysql = import_module("pymysql")
-
-        # Older releases silently fall back even with explicit SSL options.
-        if pymysql.VERSION[:2] < (1, 2):
-            raise ValueError("The MySQL SSL toggle requires PyMySQL >= 1.2")
-        # SQLAlchemy folds URL ssl_ca/cert/key into an ssl dictionary,
-        # but PyMySQL ignores that dictionary when ssl_verify_cert is set.
-        # Keep these as native connect_args so the CA is not discarded.
-        for key in ("ssl_ca", "ssl_cert", "ssl_key"):
-            if key in query:
-                args.setdefault(key, query.pop(key))
-        if "ssl_check_hostname" in query:
-            args.setdefault(
-                "ssl_verify_identity", asbool(query.pop("ssl_check_hostname"))
-            )
-        if {"ssl_capath", "ssl_cipher"} & query.keys():
-            raise ValueError("Unsupported PyMySQL SSL option with the SSL toggle")
-        if "ssl" in args:
-            raise ValueError(
-                "Use individual ssl_ca/ssl_cert/ssl_key options with the SSL toggle"
-            )
+        _require_pymysql_tls(query, args)
     args["ssl_verify_cert"] = True
 
 
@@ -157,33 +166,18 @@ def require_mysql_tls(
     if driver == "mysqldb":
         # mysqlclient maps REQUIRED to opportunistic TLS with MariaDB
         # Connector/C. Verification modes fail closed on both client libraries.
-        mode = options.get("ssl_mode", MYSQL_SSL_MODE_VERIFY_CA)
-        if mode not in MYSQL_SSL_REQUIRED_MODES:
+        mode = options.get("ssl_mode", "VERIFY_CA")
+        if mode not in ("REQUIRED", "VERIFY_CA", "VERIFY_IDENTITY"):
             raise ValueError("MySQL SSL request conflicts with ssl_mode")
-        args["ssl_mode"] = (
-            MYSQL_SSL_MODE_VERIFY_CA if mode == MYSQL_SSL_MODE_REQUIRED else mode
-        )
+        args["ssl_mode"] = "VERIFY_CA" if mode == "REQUIRED" else mode
     elif driver in ("mysqlconnector", "pymysql"):
         _require_mysql_verified_tls(driver, query, args)
+    elif driver == "auroradataapi":
+        # The Data API is only reachable over HTTPS and takes no ssl argument.
+        pass
     else:
         raise ValueError("Unsupported driver for the MySQL SSL toggle")
     return uri.set(query=query), args
-
-
-def require_mysqlclient_tls(
-    uri: URL, connect_args: dict[str, Any]
-) -> tuple[URL, dict[str, Any]]:
-    """Reuse MySQL TLS normalization for an explicitly opted-in compatible engine."""
-    # Only adapt the driver name for option selection; preserve the endpoint,
-    # credentials, catalog/schema and the original dialect on the returned URL.
-    mysql_uri = uri.set(drivername="mysql+mysqldb")
-    if any(
-        mode in MYSQL_SSL_REQUIRED_MODES
-        for mode in (uri.query.get("ssl_mode"), connect_args.get("ssl_mode"))
-    ):
-        mysql_uri = mysql_uri.update_query_dict({"ssl": "1"})
-    mysql_uri, args = require_mysql_tls(mysql_uri, connect_args)
-    return mysql_uri.set(drivername=uri.drivername), args
 
 
 class MySQLEngineSpec(BasicParametersMixin, BaseEngineSpec):

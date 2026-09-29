@@ -51,6 +51,8 @@ Configure `ssl_ca` for a private certificate authority. PyMySQL must be version
 1.2 or newer because older versions can fall back to an unencrypted connection.
 Use individual `ssl_ca`, `ssl_cert`, and `ssl_key` connection arguments instead
 of a nested `ssl` dictionary when using the toggle with PyMySQL.
+The Aurora MySQL Data API driver (`mysql+auroradataapi://`) always uses HTTPS,
+so the toggle is accepted without passing an `ssl` argument to that driver.
 
 ### Version history retention setting
 
