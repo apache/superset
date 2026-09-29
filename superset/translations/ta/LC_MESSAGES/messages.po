@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-23 12:43+0200\n"
+"POT-Creation-Date: 2026-09-24 10:35+0300\n"
 "PO-Revision-Date: 2026-03-31 02:00-0700\n"
 "Last-Translator: Maazin Ahamed\n"
 "Language: ta\n"
@@ -999,6 +999,15 @@ msgid ""
 "A butterfly chart compares two metrics across categories using horizontal"
 " bars that extend left and right from a central axis."
 msgstr ""
+
+msgid ""
+"A candlestick chart shows opening, closing, high, and low values for each"
+" period. It is commonly used for financial and other time-series range "
+"analysis."
+msgstr ""
+"மெழுகுவர்த்தி விளக்கப்படம் ஒவ்வொரு காலகட்டத்திற்கும் திறப்பு, மூடல், உயர் "
+"மற்றும் தாழ் மதிப்புகளைக் காட்டுகிறது. நிதி மற்றும் பிற நேரத் தொடர் வரம்பு "
+"பகுப்பாய்வுக்கு இது பொதுவாகப் பயன்படுத்தப்படுகிறது."
 
 msgid "A comma separated list of columns that should be parsed as dates"
 msgstr ""
@@ -3184,6 +3193,19 @@ msgstr "விண்டோ அன்லோட் (window unload) நிகழ்
 msgid "Cancellation not available due to missing abort handler"
 msgstr ""
 
+msgid "Candlestick"
+msgstr "மெழுகுவர்த்தி விளக்கப்படம்"
+
+msgid "Candlestick Chart"
+msgstr "மெழுகுவர்த்தி விளக்கப்படம்"
+
+msgid ""
+"Candlestick draws a filled body between open and close. OHLC draws ticks "
+"for open and close on a high-low stem."
+msgstr ""
+"மெழுகுவர்த்தி திறப்புக்கும் மூடலுக்கும் இடையே நிரப்பப்பட்ட உடலை வரைகிறது. "
+"OHLC உயர்-தாழ் தண்டில் திறப்பு மற்றும் மூடல் குறிகளை வரைகிறது."
+
 msgid "Cannot access the query"
 msgstr "வினவலை அணுக முடியவில்லை"
 
@@ -3602,6 +3624,13 @@ msgstr ""
 msgid "Chart width"
 msgstr "சார்ட் அகலம்"
 
+#, python-format
+msgid ""
+"Chart with ID %(chart_id)s (referenced by annotation layer "
+"'%(layer_name)s') was not found. Please verify that the chart exists and "
+"is accessible."
+msgstr ""
+
 msgid "Charts"
 msgstr "சார்ட்டுகள்"
 
@@ -3946,6 +3975,9 @@ msgstr "தாவலை மூடு"
 msgid "Close version history"
 msgstr ""
 
+msgid "Closing value for each period."
+msgstr "ஒவ்வொரு காலகட்டத்திற்கும் மூடல் மதிப்பு."
+
 msgid "Cluster label aggregator"
 msgstr "கிளஸ்டர் லேபிளைத் திரட்டுபவர் (aggregator)"
 
@@ -4027,6 +4059,9 @@ msgstr "வண்ண பிரேக்பாயிண்ட்டுகள்"
 msgid "Color by"
 msgstr "இதன் அடிப்படையில் வண்ணம்"
 
+msgid "Color by direction"
+msgstr "திசைப்படி நிறம்"
+
 msgid "Color field must be a hex color (#rrggbb) or 'rgb(r, g, b)'"
 msgstr ""
 
@@ -4050,6 +4085,17 @@ msgstr "இலக்கு இடத்தின் வண்ணம்"
 
 msgid "Color scheme"
 msgstr "வண்ணத் திட்டம்"
+
+msgid ""
+"Color used when the close value is greater than or equal to the open "
+"value."
+msgstr ""
+"மூடல் மதிப்பு திறப்பு மதிப்பை விட அதிகமாகவோ சமமாகவோ இருக்கும்போது "
+"பயன்படும் நிறம்."
+
+msgid "Color used when the close value is less than the open value."
+msgstr ""
+"மூடல் மதிப்பு திறப்பு மதிப்பை விடக் குறைவாக இருக்கும்போது பயன்படும் நிறம்."
 
 msgid ""
 "Color will be shaded based the normalized (0% to 100%) value of a given "
@@ -7601,6 +7647,9 @@ msgstr ""
 "ஒரே குழுச் சாவியைக் (group key) கொண்ட வடிகட்டிகள் 'OR' நிபந்தனை மூலம் "
 "இணைக்கப்படும், வெவ்வேறு குழுக்கள் 'AND' மூலம் இணைக்கப்படும்."
 
+msgid "Financial"
+msgstr ""
+
 msgid "Find"
 msgstr "கண்டறி"
 
@@ -8078,8 +8127,14 @@ msgstr "காலத் தொடருக்கான கோட்டை மற
 msgid "Hierarchy"
 msgstr "படிநிலை (Hierarchy)"
 
+msgid "High"
+msgstr ""
+
 msgid "High color"
 msgstr ""
+
+msgid "Highest value for each period."
+msgstr "ஒவ்வொரு காலகட்டத்திற்கும் உயர் மதிப்பு."
 
 msgid "Histogram"
 msgstr "ஹிஸ்டோகிராம் (Histogram)"
@@ -8773,6 +8828,12 @@ msgstr "லேபிள் அளவு அலகு"
 msgid "Label threshold"
 msgstr "லேபிள் வரம்பு (threshold)"
 
+msgid "Label used for decreasing candles in the tooltip."
+msgstr "உதவிக்குறிப்பில் குறையும் மெழுகுவர்த்திகளுக்கான லேபிள்."
+
+msgid "Label used for increasing candles in the tooltip."
+msgstr "உதவிக்குறிப்பில் உயரும் மெழுகுவர்த்திகளுக்கான லேபிள்."
+
 msgid "Labelling"
 msgstr "லேபிளிடுதல்"
 
@@ -9241,6 +9302,9 @@ msgstr "தீர்க்கரேகை மற்றும் அட்சர�
 msgid "Longitude of default viewport"
 msgstr "இயல்புநிலை வியூபோர்ட்டின் தீர்க்கரேகை"
 
+msgid "Low"
+msgstr ""
+
 msgid "Low color"
 msgstr ""
 
@@ -9254,6 +9318,9 @@ msgstr ""
 
 msgid "Lower threshold must be lower than upper threshold"
 msgstr "குறைந்த வரம்பு மேல் வரம்பை விடக் குறைவாக இருக்க வேண்டும்"
+
+msgid "Lowest value for each period."
+msgstr "ஒவ்வொரு காலகட்டத்திற்கும் தாழ் மதிப்பு."
 
 msgid "MAR"
 msgstr "மார்ச்"
@@ -9816,6 +9883,9 @@ msgstr ""
 msgid "Moves the given set of dates by a specified interval."
 msgstr "கொடுக்கப்பட்ட தேதிகளைக் குறிப்பிட்ட இடைவெளியில் நகர்த்துகிறது."
 
+msgid "Moving averages"
+msgstr "நகரும் சராசரிகள்"
+
 msgid "Multi-Dimensions"
 msgstr "பல பரிமாணங்கள்"
 
@@ -9915,6 +9985,13 @@ msgstr "இலக்கு நோட்களின் பெயர்"
 
 msgid "Name of your tag"
 msgstr "உங்கள் குறிச்சொல்லின் பெயர்"
+
+msgid ""
+"Name used for the candlestick series in the legend and tooltip when no "
+"series dimension is set."
+msgstr ""
+"தொடர் பரிமாணம் அமைக்கப்படாதபோது விளக்கக் குறிப்பிலும் உதவிக்குறிப்பிலும் பயன்படும் "
+"மெழுகுவர்த்தி தொடர் பெயர்."
 
 msgid "Name your database"
 msgstr "உங்கள் தரவுத்தளத்திற்குப் பெயரிடுங்கள்"
@@ -10415,6 +10492,9 @@ msgstr "OAuth2 கிளையன்ட் தகவல்"
 msgid "OCT"
 msgstr "அக்"
 
+msgid "OHLC"
+msgstr "OHLC"
+
 msgid "OK"
 msgstr "சரி"
 
@@ -10557,6 +10637,9 @@ msgstr "குமிழ்களின் ஒளிப்புகாமை (0 -
 msgid "Opacity, expects values between 0 and 100"
 msgstr "ஒளிப்புகாமை, 0 முதல் 100 வரையிலான மதிப்புகளை எதிர்பார்க்கிறது"
 
+msgid "Open"
+msgstr ""
+
 msgid "Open Datasource tab"
 msgstr "தரவு ஆதாரம் (Datasource) தாவலைத் திற"
 
@@ -10589,6 +10672,9 @@ msgstr "SQL லேப்பில் திற"
 msgid "Open query in SQL Lab"
 msgstr "வினவலை SQL லேப்பில் திற"
 
+msgid "Opening value for each period."
+msgstr "ஒவ்வொரு காலகட்டத்திற்கும் திறப்பு மதிப்பு."
+
 msgid ""
 "Operate the database in asynchronous mode, meaning that the queries are "
 "executed on remote workers as opposed to on the web server itself. This "
@@ -10613,6 +10699,12 @@ msgstr "விருப்பத்தேர்வு d3 தேதி வடி�
 
 msgid "Optional d3 number format string"
 msgstr "விருப்பத்தேர்வு d3 எண் வடிவச் சரம்"
+
+msgid ""
+"Optional dimension used to split the chart into multiple candlestick "
+"series."
+msgstr ""
+"விளக்கப்படத்தை பல மெழுகுவர்த்தி தொடர்களாகப் பிரிக்கும் விருப்பப் பரிமாணம்."
 
 msgid ""
 "Optional metric used to scale the size of each dot. Dot areas are scaled "
@@ -10724,6 +10816,13 @@ msgid ""
 "the comparison time range by the same length as your time range and use "
 "\"Custom\" to set a custom comparison range."
 msgstr "முடிவுகளை மேலடுக்கு செய்யவும்."
+
+msgid ""
+"Overlay simple moving averages of the close price (MA5, MA10, MA15, ...)."
+" Type a custom period to add it."
+msgstr ""
+"மூடல் விலையின் எளிய நகரும் சராசரிகளை மேலே வையுங்கள் (MA5, MA10, MA15, "
+"...). சேர்க்க தனிப்பயன் காலத்தைத் தட்டச்சு செய்யவும்."
 
 msgid ""
 "Overlays a hexagonal grid on a map, and aggregates data within the "
@@ -13266,6 +13365,9 @@ msgstr "தொடர் பாணி (Style)"
 msgid "Series chart type (line, bar etc)"
 msgstr "தொடர் சார்ட் வகை (கோடு, பார் போன்றவை)"
 
+msgid "Series colors"
+msgstr "தொடர் நிறங்கள்"
+
 msgid "Series decrease setting"
 msgstr "தொடர் குறைப்பு அமைப்பு"
 
@@ -13275,8 +13377,14 @@ msgstr "தொடர் அதிகரிப்பு அமைப்பு"
 msgid "Series limit"
 msgstr "தொடர் வரம்பு"
 
+msgid "Series name"
+msgstr "தொடர் பெயர்"
+
 msgid "Series settings"
 msgstr "தொடர் அமைப்புகள்"
+
+msgid "Series style"
+msgstr "தொடர் பாணி"
 
 msgid "Series total setting"
 msgstr "தொடர் மொத்த அமைப்பு"
@@ -13599,6 +13707,9 @@ msgid ""
 msgstr ""
 
 msgid "Show or hide the X axis line, ticks, and labels"
+msgstr ""
+
+msgid "Show or hide the Y axis line and labels"
 msgstr ""
 
 msgid "Show or hide the Y axis line, ticks, gridlines, and labels"
@@ -15311,6 +15422,13 @@ msgid "The query contains one or more malformed template parameters."
 msgstr "வினவலில் ஒன்று அல்லது அதற்கு மேற்பட்ட தவறான டெம்ப்ளேட் அளவுருக்கள் உள்ளன."
 
 msgid "The query context datasource does not match the chart datasource"
+msgstr ""
+
+#, python-format
+msgid ""
+"The query context for chart ID %(chart_id)s (referenced by annotation "
+"layer '%(layer_name)s') was not found. Please ensure the chart is "
+"properly configured and has a valid query context."
 msgstr ""
 
 msgid "The query couldn't be loaded"
@@ -17935,6 +18053,15 @@ msgstr ""
 "பெரிதாக்கிக் காட்டும்"
 
 msgid ""
+"When enabled, increasing candles use the increase color and decreasing "
+"candles use the decrease color. Turn off to use one series color, with a "
+"filled body for increases and a hollow body for decreases."
+msgstr ""
+"இயக்கினால், உயரும் மெழுகுவர்த்திகள் உயர்வு நிறத்தையும் குறையும்வைகள் "
+"குறைவு நிறத்தையும் பயன்படுத்தும். ஒரே தொடர் நிறத்திற்கு அணைக்கவும்: "
+"உயர்வில் நிரப்பிய உடல், குறைவில் வெற்று உடல்."
+
+msgid ""
 "When enabled, the axis will display labels for the minimum and maximum "
 "values of your data"
 msgstr ""
@@ -18749,7 +18876,18 @@ msgid ""
 "SUPERSET_DASHBOARD_POSITION_DATA_LIMIT config setting."
 msgstr ""
 
-msgid "Your export is being prepared. You'll receive an email when it's ready."
+msgid ""
+"Your export is being generated and will download automatically when "
+"ready. We'll also email you a download link."
+msgstr ""
+
+msgid "Your export is being generated. Please, do not leave the page."
+msgstr ""
+
+msgid "Your export is ready and downloading."
+msgstr ""
+
+msgid "Your export is taking longer than expected. Try again later."
 msgstr ""
 
 #, python-format
