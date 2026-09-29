@@ -15,6 +15,11 @@
 # specific language governing permissions and limitations
 # under the License.
 
+from typing import Any
+
+import pytest
+from sqlalchemy.engine.url import make_url
+
 from superset.db_engine_specs.mariadb import MariaDBEngineSpec
 from superset.db_engine_specs.mysql import MySQLEngineSpec
 
@@ -33,3 +38,69 @@ def test_mariadb_inherits_extended_aggregations() -> None:
     assert MariaDBEngineSpec.get_extended_aggregation_func("VAR_SAMP") is not None
     # Same as MySQL, MEDIAN is not supported.
     assert MariaDBEngineSpec.get_extended_aggregation_func("MEDIAN") is None
+
+
+@pytest.mark.parametrize("source", ["toggle", "ssl=1", "ssl_mode=REQUIRED"])
+def test_mariadb_tls_request_uses_verification(source: str) -> None:
+    """MariaDB URIs get the same verified TLS as MySQL under mysqlclient."""
+    if source == "toggle":
+        uri = make_url(
+            MariaDBEngineSpec.build_sqlalchemy_uri(
+                {
+                    "username": "user",
+                    "host": "localhost",
+                    "port": 3306,
+                    "database": "db",
+                    "encryption": True,
+                },
+                {},
+            )
+        )
+    else:
+        uri = make_url(f"mariadb://user@localhost/db?{source}")
+    assert uri.get_backend_name() == "mariadb"
+    url, args = MariaDBEngineSpec.adjust_engine_params(uri, {}, schema="other")
+    options = dict(url.query, **args)
+    assert options["ssl_mode"] == "VERIFY_CA"
+    assert "ssl" not in options
+    assert url.database == "other"
+
+
+@pytest.mark.parametrize("options", [{"ssl_mode": "DISABLED"}, {"ssl_mode": None}])
+def test_mariadb_tls_request_cannot_be_cancelled(options: dict[str, Any]) -> None:
+    with pytest.raises(ValueError, match="conflicts with ssl_mode"):
+        MariaDBEngineSpec.adjust_engine_params(
+            make_url("mariadb://localhost/db?ssl=1"), options
+        )
+
+
+def test_mariadb_pymysql_tls_request_requires_verification() -> None:
+    url, args = MariaDBEngineSpec.adjust_engine_params(
+        make_url("mariadb+pymysql://localhost/db?ssl=1&ssl_ca=/ca.pem"), {}
+    )
+    assert args["ssl_verify_cert"] is True
+    assert args["ssl_ca"] == "/ca.pem"
+    assert "ssl" not in url.query
+
+
+def test_mariadb_connector_tls_request_requires_verification() -> None:
+    """MariaDB Connector/Python keeps its fail-closed ssl flag and verifies."""
+    url, args = MariaDBEngineSpec.adjust_engine_params(
+        make_url("mariadb+mariadbconnector://localhost/db?ssl=1"), {}
+    )
+    assert "ssl" not in url.query
+    assert args["ssl"] is True
+    assert args["ssl_verify_cert"] is True
+
+    with pytest.raises(ValueError, match="requires ssl_verify_cert"):
+        MariaDBEngineSpec.adjust_engine_params(
+            make_url("mariadb+mariadbconnector://localhost/db?ssl=1"),
+            {"ssl_verify_cert": False},
+        )
+
+
+def test_unrequested_mariadb_connection_unchanged() -> None:
+    uri = make_url("mariadb://localhost/db")
+    url, args = MariaDBEngineSpec.adjust_engine_params(uri, {})
+    assert url == uri
+    assert "ssl_mode" not in args

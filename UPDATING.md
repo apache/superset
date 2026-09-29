@@ -54,6 +54,10 @@ of a nested `ssl` dictionary when using the toggle with PyMySQL.
 The Aurora MySQL Data API driver (`mysql+auroradataapi://`) always uses HTTPS,
 so the toggle is accepted without passing an `ssl` argument to that driver.
 
+MariaDB connections (`mariadb://` and its drivers) get the same handling. With
+MariaDB Connector/Python (`mariadb+mariadbconnector://`), the toggle keeps
+`ssl=True` and enables `ssl_verify_cert=True`.
+
 ### Version history retention setting
 
 Use `VERSION_HISTORY_RETENTION_DAYS` for both the application setting and

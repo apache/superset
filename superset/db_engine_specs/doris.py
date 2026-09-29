@@ -75,17 +75,6 @@ COLUMN_DOES_NOT_EXIST_REGEX = re.compile("Unknown column '(?P<column_name>.*?)'"
 logger = logging.getLogger(__name__)
 
 
-def require_mysqlclient_tls(
-    uri: URL, connect_args: dict[str, Any]
-) -> tuple[URL, dict[str, Any]]:
-    """Reuse MySQL TLS normalization for an explicitly opted-in compatible engine."""
-    # Only adapt the driver name for option selection; preserve the endpoint,
-    # credentials, catalog/schema and the original dialect on the returned URL.
-    mysql_uri = uri.set(drivername="mysql+mysqldb")
-    mysql_uri, args = require_mysql_tls(mysql_uri, connect_args)
-    return mysql_uri.set(drivername=uri.drivername), args
-
-
 class TINYINT(Integer):
     __visit_name__ = "TINYINT"
 
@@ -407,7 +396,8 @@ class DorisEngineSpec(MySQLEngineSpec):
         database = ".".join(part for part in (catalog, schema) if part)
         uri = uri.set(database=database)
 
-        return require_mysqlclient_tls(uri, connect_args)
+        # pydoris is a mysqlclient dialect, whatever scheme the URI uses.
+        return require_mysql_tls(uri, connect_args, driver="mysqldb")
 
     @classmethod
     def get_default_catalog(cls, database: Database) -> str:

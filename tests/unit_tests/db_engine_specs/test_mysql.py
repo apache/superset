@@ -736,3 +736,14 @@ def test_non_required_mode_is_not_a_tls_request(mode: str) -> None:
     url, args = MySQLEngineSpec.adjust_engine_params(uri, {})
     assert url == uri
     assert "ssl_mode" not in args
+
+
+def test_require_mysql_tls_uses_explicit_driver() -> None:
+    """Compatible dialects select options by driver, not by URL backend."""
+    from superset.db_engine_specs.mysql import require_mysql_tls
+
+    uri = make_url("doris://localhost/db?ssl=1")
+    url, args = require_mysql_tls(uri, {}, driver="mysqldb")
+    assert url.drivername == "doris"
+    assert "ssl" not in url.query
+    assert args["ssl_mode"] == "VERIFY_CA"
