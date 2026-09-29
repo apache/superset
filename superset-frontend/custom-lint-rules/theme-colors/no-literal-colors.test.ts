@@ -34,6 +34,17 @@ const errors: Array<{ message: string }> = [
   },
 ];
 
+const doubleErrors: Array<{ message: string }> = [
+  {
+    message:
+      'Theme color variables are preferred over rgb(a)/hex/literal colors',
+  },
+  {
+    message:
+      'Theme color variables are preferred over rgb(a)/hex/literal colors',
+  },
+];
+
 ruleTester.run('no-literal-colors', rule, {
   valid: [
     'const styles = { color: theme.colorText, background: theme.colorBg };',
@@ -45,6 +56,10 @@ ruleTester.run('no-literal-colors', rule, {
     {
       code: "const styles = { color: 'red' };",
       errors,
+    },
+    {
+      code: "const styles = { color: 'red', secondColor: 'tan' };",
+      errors: doubleErrors,
     },
     {
       code: "const styles = { background: '#fff' };",
