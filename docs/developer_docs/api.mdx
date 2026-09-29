@@ -54,6 +54,14 @@ curl -H "Authorization: Bearer YOUR_ACCESS_TOKEN" \
 
 ---
 
+### Database connection secrets
+
+The create (`POST /api/v1/database/`) and update (`PUT /api/v1/database/{pk}`)
+responses mask sensitive fields in `result.masked_encrypted_extra` with `XXXXXXXXXX`,
+using the same engine-specific masking as `GET /api/v1/database/{pk}/connection`.
+The submitted secrets are still stored. Sending the masked values back in a later
+update preserves the stored secrets; send new values to replace them.
+
 ### API Endpoints
 
 #### Core Resources
