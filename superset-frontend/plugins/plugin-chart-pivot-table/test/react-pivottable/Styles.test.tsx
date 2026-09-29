@@ -186,9 +186,13 @@ test('does not freeze the row-label column or its corner cell(s) with more than 
   // With multiple row attributes, every row-label and corner cell would
   // freeze at the same left: 0 edge and stack on top of one another, so
   // freezing is scoped to the single-row-dimension case until a
-  // per-column offset fast-follow lands.
+  // per-column offset fast-follow lands. Uses a fixture with both multiple
+  // row dimensions and a column dimension (unlike groupedRowsWithoutColTotals,
+  // which has no column dimension) so the pvtCornerLabel group below is
+  // actually non-empty and its non-sticky assertion is exercised, rather
+  // than passing vacuously.
   const transformedProps = {
-    ...transformProps(testData.groupedRowsWithoutColTotals),
+    ...transformProps(testData.groupedRowsWithColumnDim),
     margin: 32,
     legacy_order_by: null,
     order_desc: false,
@@ -205,12 +209,19 @@ test('does not freeze the row-label column or its corner cell(s) with more than 
     expect(getComputedStyle(cell).position).not.toBe('sticky');
   });
 
-  const cornerCells = [
-    ...container.querySelectorAll('thead th.pvtCornerLabel'),
-    ...container.querySelectorAll('thead tr.pvtRowHeaderRow th.pvtAxisLabel'),
-  ];
-  expect(cornerCells.length).toBeGreaterThan(0);
-  cornerCells.forEach(cell => {
+  // Asserted as two separate non-empty groups, mirroring the
+  // sticky-positioning test above, so that if either selector stops
+  // matching, that group's absence fails the test instead of silently
+  // leaving only the other group's cells checked.
+  const columnCornerCells = container.querySelectorAll(
+    'thead th.pvtCornerLabel',
+  );
+  const rowHeaderCornerCells = container.querySelectorAll(
+    'thead tr.pvtRowHeaderRow th.pvtAxisLabel',
+  );
+  expect(columnCornerCells.length).toBeGreaterThan(0);
+  expect(rowHeaderCornerCells.length).toBeGreaterThan(0);
+  [...columnCornerCells, ...rowHeaderCornerCells].forEach(cell => {
     expect(getComputedStyle(cell).position).not.toBe('sticky');
   });
 });
