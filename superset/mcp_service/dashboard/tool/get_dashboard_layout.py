@@ -137,7 +137,6 @@ def _scope_layout(
         children.setdefault(tab.parent_tab_id, []).append(tab.id)
 
     selected_tab_id: str | None = None
-    selected_ids = {tab.id for tab in tabs}
     if request.tab is not None:
         selected = _resolve_tab(tabs, request.tab)
         if isinstance(selected, DashboardError):
