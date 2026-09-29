@@ -223,6 +223,12 @@ def test_get_db_engine_spec(mocker: MockerFixture) -> None:
         ),
         (
             datetime(2023, 1, 1, 1, 23, 45, 600000),
+            TableColumn(python_date_format="epoch_us"),
+            Database(),
+            "1672536225000000",
+        ),
+        (
+            datetime(2023, 1, 1, 1, 23, 45, 600000),
             TableColumn(python_date_format="%Y-%m-%d"),
             Database(),
             "'2023-01-01'",

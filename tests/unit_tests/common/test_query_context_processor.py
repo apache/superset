@@ -31,6 +31,7 @@ from superset.common.query_context_processor import (
     QueryContextProcessor,
 )
 from superset.exceptions import QueryObjectValidationError
+from superset.utils import json as superset_json
 from superset.utils.core import GenericDataType
 from superset.utils.date_parser import get_past_or_future
 
@@ -194,12 +195,51 @@ def test_get_data_json(processor, mock_query_context):
     assert result == expected
 
 
+def test_get_data_json_preserves_browser_numeric_contract(
+    processor, mock_query_context
+) -> None:
+    """Producer output keeps big integers exact and classifies long doubles safely."""
+    finite_longdouble = np.longdouble("1e400")
+    frame = pd.DataFrame(
+        {
+            "big_integer": pd.Series([2**53 + 1, 2**53 + 1], dtype=object),
+            "longdouble": pd.Series(
+                [finite_longdouble, np.longdouble("inf")], dtype=object
+            ),
+        }
+    )
+    mock_query_context.result_format = ChartDataResultFormat.JSON
+
+    result = processor.get_data(
+        frame, [GenericDataType.NUMERIC, GenericDataType.NUMERIC]
+    )
+
+    assert result[0]["big_integer"] == str(2**53 + 1)
+    assert result[0]["longdouble"] is finite_longdouble
+    assert result[1]["longdouble"] is None
+    # The browser-visible integer and non-finite value stay strict-JSON safe.
+    assert superset_json.loads(
+        superset_json.dumps(
+            {
+                "big_integer": result[0]["big_integer"],
+                "longdouble_nonfinite": result[1]["longdouble"],
+            },
+            ignore_nan=False,
+        )
+    ) == {
+        "big_integer": str(2**53 + 1),
+        "longdouble_nonfinite": None,
+    }
+
+
 def test_get_data_invalid_dataframe(processor, mock_query_context):
     df = pd.DataFrame({"col1": [1, 2, 3], "col2": ["a", "b", "c"]})
     coltypes = [GenericDataType.NUMERIC, GenericDataType.STRING]
     mock_query_context.result_format = ChartDataResultFormat.JSON
 
-    with patch.object(df, "to_dict", side_effect=ValueError("Invalid DataFrame")):
+    with patch.object(
+        pd.DataFrame, "itertuples", side_effect=ValueError("Invalid DataFrame")
+    ):
         with pytest.raises(ValueError, match="Invalid DataFrame"):
             processor.get_data(df, coltypes)
 
