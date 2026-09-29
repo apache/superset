@@ -39,6 +39,7 @@ from unittest.mock import Mock, patch
 
 import pytest
 from fastmcp import Client
+from flask import current_app
 
 from superset.commands.dashboard.exceptions import (
     DashboardAccessDeniedError,
@@ -761,6 +762,7 @@ async def test_data_mask_round_trips_through_get_dashboard_layout(
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize("websocket_enabled", [None, False, True])
 @pytest.mark.parametrize(
     ("backend_defined", "publish_fails", "expected"),
     [(True, False, True), (False, False, False), (True, True, False)],
@@ -768,6 +770,7 @@ async def test_data_mask_round_trips_through_get_dashboard_layout(
 async def test_realtime_publish_outcome(
     mcp_server: object,
     mock_auth: Mock,
+    websocket_enabled: bool | None,
     backend_defined: bool,
     publish_fails: bool,
     expected: bool,
@@ -776,6 +779,7 @@ async def test_realtime_publish_outcome(
     mock_auth.return_value.id = 42
     captured: dict[str, Any] = {}
     with (
+        patch.dict(current_app.config, WEBSOCKET_ENABLE=websocket_enabled),
         patch(DAO_GET, return_value=_mock_dashboard([SELECT_FILTER])),
         patch(CREATE_PERMALINK, side_effect=_mock_permalink_command(captured)),
         patch(
@@ -791,6 +795,8 @@ async def test_realtime_publish_outcome(
             return_value=None,
         ),
     ):
+        if websocket_enabled is None:
+            current_app.config.pop("WEBSOCKET_ENABLE", None)
         data = await _call(
             mcp_server,
             {
@@ -799,10 +805,10 @@ async def test_realtime_publish_outcome(
             },
         )
 
-    assert data["live_update_pushed"] is expected
+    assert data["live_update_pushed"] is (expected and bool(websocket_enabled))
     assert data["error"] is None
     assert data["permalink_key"] == "permakey123"
-    if backend_defined:
+    if backend_defined and websocket_enabled:
         publish.assert_called_once()
         assert json.loads(publish.call_args.args[1]) == {
             "topic": "dashboard.filters_applied",
@@ -822,6 +828,7 @@ def test_realtime_guest_or_missing_principal(channel: str | None) -> None:
     )
 
     with (
+        patch.dict(current_app.config, WEBSOCKET_ENABLE=True),
         patch(
             "superset.coordination.base.CoordinationService.is_backend_defined",
             return_value=True,

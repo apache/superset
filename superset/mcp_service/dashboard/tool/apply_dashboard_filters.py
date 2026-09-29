@@ -29,6 +29,7 @@ import logging
 from typing import Any
 
 from fastmcp import Context
+from flask import current_app
 from superset_core.mcp.decorators import tool, ToolAnnotations
 
 from superset.constants import EMPTY_FILTER_SQL_EXPRESSION, NO_TIME_RANGE
@@ -73,6 +74,8 @@ def _publish_filters_applied(dashboard_id: int, permalink_key: str) -> bool:
     from superset.websocket.channel import get_realtime_principal
 
     try:
+        if not current_app.config.get("WEBSOCKET_ENABLE"):
+            return False
         if not CoordinationService.is_backend_defined():
             return False
         principal = get_realtime_principal()
