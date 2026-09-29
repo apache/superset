@@ -81,6 +81,10 @@ class TestSlice:
             ("uuid_format", "550e8400-e29b-41d4-a716-446655440000"),
             ("invalid_string", "not-a-number"),
             ("integer_id", 123),
+            # str.isdigit() is True for "²" (superscript 2) but int()
+            # rejects it; must not raise and must fall through to the uuid
+            # branch instead of the int(id_or_uuid) branch.
+            ("non_decimal_digit", "²"),
         ]
     )
     def test_id_or_uuid_filter(self, test_name, input_value):
@@ -206,6 +210,30 @@ class TestSlice:
 
         assert 'title="orders"' in html
         assert 'href="/semantic_view/abc/"' in html
+
+    @parameterized.expand(
+        [
+            ("json_string", '"foo"'),
+            ("json_array", "[1, 2]"),
+            ("json_integer", "42"),
+            ("json_null", "null"),
+        ]
+    )
+    def test_form_data_falls_back_for_non_dict_params(self, test_name, params_value):
+        """form_data must not raise when params is valid JSON but not a dict."""
+        slc = Slice()
+        slc.id = 7
+        slc.viz_type = "table"
+        slc.datasource_id = 3
+        slc.datasource_type = "table"
+        slc.params = params_value
+
+        result = slc.form_data
+
+        assert isinstance(result, dict)
+        assert result["slice_id"] == 7
+        assert result["viz_type"] == "table"
+        assert result["datasource"] == "3__table"
 
     def test_icons_escapes_datasource_html(self):
         """icons must HTML-escape the datasource name and edit URL."""
