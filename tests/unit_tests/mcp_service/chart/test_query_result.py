@@ -1105,7 +1105,7 @@ def test_real_postprocessing_nonfinite_is_null_at_materialization(
     assert type(records) is list
     assert records[0][derived_column] is None
     assert records[0]["finite"] == 3.5
-    assert records[0]["finite_integer"] == 2**53 + 1
+    assert records[0]["finite_integer"] == str(2**53 + 1)
     pd.testing.assert_series_equal(processed.dtypes, dtypes)
     assert np.isinf(processed[derived_column].iloc[0])
 
