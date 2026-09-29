@@ -109,7 +109,7 @@ class BoxPlotChartPlugin(BaseChartPlugin):
         return "box_plot"
 
     def normalize_column_refs(self, config: Any, dataset_context: Any) -> Any:
-        config_dict = config.model_dump()
+        config_dict = config.model_dump(exclude_unset=True)
 
         for metric in config_dict.get("metrics") or []:
             if metric.get("sql_expression"):

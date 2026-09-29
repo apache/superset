@@ -60,6 +60,7 @@ def apply_rls(
     schema: str,
     parsed_statement: BaseSQLStatement[Any],
     exclude_dataset_id: int | None = None,
+    include_global_guest_rls: bool = True,
 ) -> bool:
     """
     Modify statement inplace to ensure RLS rules are applied.
@@ -68,7 +69,16 @@ def apply_rls(
         pass the virtual dataset's id here so its own RLS isn't injected again
         on top of the outer-WHERE application (avoids double-apply when the
         virtual dataset's table_name collides with a table in its own SQL — for
-        example, after converting a physical dataset with RLS to virtual).
+        example, after converting a physical dataset with RLS to virtual). Like
+        global guest rules, its RLS is still injected into tables read inside an
+        uncorrelated sub-query, which the outer query does not constrain.
+    :param include_global_guest_rls: Also inject global (unscoped) guest RLS
+        rules. Pass False only for a virtual dataset's inner SQL, whose outer
+        query already applies them to the rows the inner SQL returns. They are
+        still injected into tables read inside an uncorrelated sub-query there,
+        since the outer query does not constrain those. Any other statement, such
+        as a SQL Lab query or an adhoc sub-query, is not constrained by such an
+        outer query.
     :returns: True if any RLS predicates were actually applied, False otherwise.
     """
     # There are two ways to insert RLS: either replacing the table with a subquery
@@ -78,23 +88,58 @@ def apply_rls(
 
     # collect all RLS predicates for all tables in the query
     default_catalog = database.get_default_catalog()
-    predicates: dict[Table, list[Any]] = {}
-    for table in parsed_statement.tables:
-        table = table.qualify(catalog=catalog, schema=schema)
-        predicates[table] = [
-            parsed_statement.parse_predicate(predicate)
-            for predicate in get_predicates_for_table(
-                table,
-                database,
-                default_catalog,
-                exclude_dataset_id=exclude_dataset_id,
-            )
-            if predicate
-        ]
 
-    has_predicates = any(predicates.values())
-    parsed_statement.apply_rls(catalog, schema, predicates, method)
-    return has_predicates
+    def collect_predicates(
+        include_global: bool, exclude_id: int | None
+    ) -> dict[Table, list[Any]]:
+        predicates: dict[Table, list[Any]] = {}
+        for table in parsed_statement.tables:
+            table = table.qualify(catalog=catalog, schema=schema)
+            predicates[table] = [
+                parsed_statement.parse_predicate(predicate)
+                for predicate in get_predicates_for_table(
+                    table,
+                    database,
+                    default_catalog,
+                    exclude_dataset_id=exclude_id,
+                    include_global_guest_rls=include_global,
+                )
+                if predicate
+            ]
+        return predicates
+
+    predicates = collect_predicates(include_global_guest_rls, exclude_dataset_id)
+    # The outer query only constrains the rows that reach it, so a table read
+    # inside an uncorrelated sub-query still gets the rules left to the outer
+    # query: the global guest rules and the excluded dataset's own RLS. The
+    # second lookup is skipped when neither applies: only a guest token carries
+    # global guest rules, and most virtual datasets have no RLS of their own.
+    needs_subquery_predicates = parsed_statement.has_subquery() and (
+        (
+            not include_global_guest_rls
+            and security_manager.get_current_guest_user_if_guest() is not None
+        )
+        or (exclude_dataset_id is not None and _dataset_has_rls(exclude_dataset_id))
+    )
+    subquery_predicates = (
+        collect_predicates(True, None) if needs_subquery_predicates else None
+    )
+
+    return parsed_statement.apply_rls(
+        catalog, schema, predicates, method, subquery_predicates
+    )
+
+
+def _dataset_has_rls(dataset_id: int) -> bool:
+    """
+    Does the dataset have RLS predicates for the current user?
+
+    :param dataset_id: The dataset's id
+    """
+    from superset.connectors.sqla.models import SqlaTable
+
+    dataset = db.session.get(SqlaTable, dataset_id)
+    return dataset is not None and bool(dataset.get_sqla_row_level_filters())
 
 
 def _identifier_predicate(column: Any, value: str | None, fold: bool) -> Any:
@@ -186,6 +231,7 @@ def get_predicates_for_table(
     database: Database,
     default_catalog: str | None,
     exclude_dataset_id: int | None = None,
+    include_global_guest_rls: bool = True,
 ) -> list[str]:
     """
     Get the RLS predicates for a table.
@@ -193,6 +239,9 @@ def get_predicates_for_table(
     This is used to inject RLS rules into SQL statements run in SQL Lab. Note that the
     table must be fully qualified, with catalog (null if the DB doesn't support) and
     schema.
+
+    :param include_global_guest_rls: Also return global (unscoped) guest RLS rules.
+        See ``apply_rls``.
     """
     datasets = _find_datasets(
         table,
@@ -215,16 +264,12 @@ def get_predicates_for_table(
     if not datasets:
         return []
 
-    # Exclude global (unscoped) guest RLS to prevent double application in
-    # virtual datasets. Global guest rules will be applied to the outer query
-    # via get_sqla_row_level_filters() on the virtual dataset itself.
+    # For a virtual dataset's inner SQL, callers exclude global (unscoped) guest
+    # RLS to prevent double application. Global guest rules will be applied to
+    # the outer query via get_sqla_row_level_filters() on the virtual dataset
+    # itself; apply_rls() still includes them for tables read in sub-queries.
     # Dataset-scoped guest rules are still included here because they target
     # this specific physical dataset and won't match on the outer query.
-    # Note: this path is also used by SQL Lab (sql_lab.py, executor.py) via
-    # apply_rls(). Guest users with the default Public role cannot access SQL Lab
-    # (PUBLIC_EXCLUDED_VIEW_MENUS in security/manager.py). If the guest role is
-    # extended to include SQL Lab access, global guest RLS predicates for
-    # underlying tables would be skipped here.
     # A folded match can resolve to several datasets naming the same physical
     # table, in which case every one's predicates apply; deduplicated because a
     # single RLS rule can be attached to more than one of them.
@@ -233,7 +278,7 @@ def get_predicates_for_table(
         str(predicate.compile(dialect=dialect, compile_kwargs={"literal_binds": True}))
         for dataset in datasets
         for predicate in dataset.get_sqla_row_level_filters(
-            include_global_guest_rls=False
+            include_global_guest_rls=include_global_guest_rls
         )
     )
 
@@ -279,6 +324,7 @@ def collect_rls_predicates_for_sql(
                     database,
                     default_catalog,
                     exclude_dataset_id=exclude_dataset_id,
+                    include_global_guest_rls=False,
                 )
             }
         )

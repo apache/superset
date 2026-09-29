@@ -57,7 +57,7 @@ import {
   convertChartStateToOwnState,
   hasChartStateConverter,
 } from '../../../util/chartStateConverter';
-import { useIsAutoRefreshing } from 'src/dashboard/contexts/AutoRefreshContext';
+import { useIsChartAutoRefreshing } from 'src/dashboard/contexts/AutoRefreshContext';
 
 import SliceHeader from '../../SliceHeader';
 import MissingChart from '../../MissingChart';
@@ -254,7 +254,7 @@ const Chart = (props: ChartProps) => {
       (state.dashboardInfo?.metadata as JsonObject)?.show_chart_timestamps ??
       false,
   );
-  const suppressLoadingSpinner = useIsAutoRefreshing();
+  const suppressLoadingSpinner = useIsChartAutoRefreshing(props.id);
 
   const isCached: boolean[] = useMemo(
     () =>

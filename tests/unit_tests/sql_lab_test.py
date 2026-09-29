@@ -23,6 +23,7 @@ from urllib.parse import parse_qs, urlparse
 from uuid import UUID
 
 import pytest
+from flask import g, has_request_context, session
 from freezegun import freeze_time
 from pytest_mock import MockerFixture
 from sqlalchemy import text
@@ -559,6 +560,77 @@ def test_get_sql_results_oauth2(mocker: MockerFixture, app) -> None:
         app_context.pop()
 
 
+def _capture_execution_context(mocker: MockerFixture) -> dict[str, Any]:
+    """
+    Stub out ``execute_sql_statements`` and record the context it runs under.
+    """
+    captured: dict[str, Any] = {}
+
+    def execute_sql_statements(*args: Any, **kwargs: Any) -> dict[str, Any]:
+        captured["rls_tenant"] = session.get("rls_tenant")
+        captured["has_request_context"] = has_request_context()
+        captured["user"] = g.user
+        return {"status": QueryStatus.SUCCESS}
+
+    mocker.patch(
+        "superset.sql_lab.execute_sql_statements",
+        side_effect=execute_sql_statements,
+    )
+    mocker.patch(
+        "superset.sql_lab.security_manager.find_user",
+        return_value="the-user",
+    )
+    return captured
+
+
+def test_get_sql_results_reuses_the_active_request(
+    mocker: MockerFixture, app: SupersetApp
+) -> None:
+    """
+    Test that a synchronous run keeps the real Flask session.
+
+    SQL Lab's synchronous executor invokes this task directly rather than through
+    Celery, so it already runs inside the authenticated request. Fabricating a
+    second request context there would swap the real session for an empty one and
+    break RLS clauses whose Jinja macros read ``flask.session``.
+    """
+    captured = _capture_execution_context(mocker)
+
+    # Pushed/popped manually (rather than via a ``with`` block) so the
+    # ``finally`` below still pops it if an assertion fails, preventing the
+    # request context from leaking into later tests in the same session.
+    app_context = app.test_request_context()
+    app_context.push()
+
+    try:
+        session["rls_tenant"] = "acme"
+        get_sql_results(query_id=1, rendered_query="SELECT 1")
+    finally:
+        app_context.pop()
+
+    assert captured["rls_tenant"] == "acme"
+    assert captured["user"] == "the-user"
+
+
+def test_get_sql_results_builds_a_request_when_there_is_none(
+    mocker: MockerFixture, app: SupersetApp
+) -> None:
+    """
+    Test that a Celery run still gets a request context of its own.
+
+    A worker has no originating request, and the OAuth2 flow needs a request
+    context to build its redirect URI, so one must still be created there.
+    """
+    captured = _capture_execution_context(mocker)
+
+    with app.app_context():
+        assert not has_request_context()
+        get_sql_results(query_id=1, rendered_query="SELECT 1", username="alice")
+
+    assert captured["has_request_context"] is True
+    assert captured["user"] == "the-user"
+
+
 def test_apply_rls(mocker: MockerFixture) -> None:
     """
     Test the ``apply_rls`` helper function.
@@ -584,12 +656,14 @@ def test_apply_rls(mocker: MockerFixture) -> None:
                 database,
                 "examples",
                 exclude_dataset_id=None,
+                include_global_guest_rls=True,
             ),
             mocker.call(
                 Table("t2", "public", "examples"),
                 database,
                 "examples",
                 exclude_dataset_id=None,
+                include_global_guest_rls=True,
             ),
         ]
     )
@@ -631,7 +705,7 @@ def test_get_predicates_for_table(mocker: MockerFixture) -> None:
     table = Table("t1", "public", "examples")
     assert get_predicates_for_table(table, database, "examples") == ["c1 = 1"]
     dataset.get_sqla_row_level_filters.assert_called_once_with(
-        include_global_guest_rls=False
+        include_global_guest_rls=True
     )
 
 
