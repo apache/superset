@@ -24,7 +24,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version:  \n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-23 12:43+0200\n"
+"POT-Creation-Date: 2026-09-24 10:35+0300\n"
 "PO-Revision-Date: 2024-07-14 15:10+0300\n"
 "Last-Translator: Abdalrahim G. Fakhouri <abdilra7eem@yahoo.com>\n"
 "Language: ar\n"
@@ -1159,6 +1159,14 @@ msgid ""
 "A butterfly chart compares two metrics across categories using horizontal"
 " bars that extend left and right from a central axis."
 msgstr ""
+
+msgid ""
+"A candlestick chart shows opening, closing, high, and low values for each"
+" period. It is commonly used for financial and other time-series range "
+"analysis."
+msgstr ""
+"يعرض مخطط الشموع قيم الفتح والإغلاق والأعلى والأدنى لكل فترة. يُستخدم "
+"عادةً في التحليل المالي وتحليل نطاق السلاسل الزمنية."
 
 #, fuzzy
 msgid "A comma separated list of columns that should be parsed as dates"
@@ -3507,6 +3515,19 @@ msgstr "إلغاء الاستعلام في حدث إلغاء تحميل النا
 msgid "Cancellation not available due to missing abort handler"
 msgstr "الإلغاء غير متاح بسبب غياب معالج الإيقاف"
 
+msgid "Candlestick"
+msgstr "شموع يابانية"
+
+msgid "Candlestick Chart"
+msgstr "مخطط الشموع اليابانية"
+
+msgid ""
+"Candlestick draws a filled body between open and close. OHLC draws ticks "
+"for open and close on a high-low stem."
+msgstr ""
+"ترسم الشموع جسمًا مملوءًا بين الفتح والإغلاق. يرسم OHLC علامات الفتح "
+"والإغلاق على ساق الأعلى-الأدنى."
+
 msgid "Cannot access the query"
 msgstr "لا يمكن الوصول إلى الاستعلام"
 
@@ -3962,6 +3983,13 @@ msgstr "تعذر حذف المخططات."
 msgid "Chart width"
 msgstr "عرض المخطط"
 
+#, python-format
+msgid ""
+"Chart with ID %(chart_id)s (referenced by annotation layer "
+"'%(layer_name)s') was not found. Please verify that the chart exists and "
+"is accessible."
+msgstr ""
+
 msgid "Charts"
 msgstr "المخططات"
 
@@ -4332,6 +4360,9 @@ msgstr "إغلاق علامة التبويب"
 msgid "Close version history"
 msgstr ""
 
+msgid "Closing value for each period."
+msgstr "قيمة الإغلاق لكل فترة."
+
 msgid "Cluster label aggregator"
 msgstr "مجمع تسميات نظام المجموعة"
 
@@ -4423,6 +4454,9 @@ msgstr "نقاط كسر الجرافة"
 msgid "Color by"
 msgstr "اللون حسب"
 
+msgid "Color by direction"
+msgstr "تلوين حسب الاتجاه"
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
 #, fuzzy
@@ -4451,6 +4485,14 @@ msgstr "لون الموقع المستهدف"
 
 msgid "Color scheme"
 msgstr "نظام الألوان"
+
+msgid ""
+"Color used when the close value is greater than or equal to the open "
+"value."
+msgstr "اللون المستخدم عندما تكون قيمة الإغلاق أكبر من أو تساوي قيمة الفتح."
+
+msgid "Color used when the close value is less than the open value."
+msgstr "اللون المستخدم عندما تكون قيمة الإغلاق أقل من قيمة الفتح."
 
 msgid ""
 "Color will be shaded based the normalized (0% to 100%) value of a given "
@@ -8440,6 +8482,9 @@ msgstr ""
 "المجموعة = 'المنطقة')، فإن جملة التصفية ستطبق عامل التصفية (القسم = "
 "'الشؤون المالية' أو القسم = 'التسويق') و (المنطقة = 'أوروبا')."
 
+msgid "Financial"
+msgstr ""
+
 msgid "Find"
 msgstr "ابحث"
 
@@ -8976,8 +9021,14 @@ msgstr "يخفي الخط الخاص بالسلسلة الزمنية"
 msgid "Hierarchy"
 msgstr "التسلسل الهرمي"
 
+msgid "High"
+msgstr ""
+
 msgid "High color"
 msgstr ""
+
+msgid "Highest value for each period."
+msgstr "أعلى قيمة لكل فترة."
 
 msgid "Histogram"
 msgstr "الرسم البياني"
@@ -9752,6 +9803,12 @@ msgstr "خط التسمية"
 msgid "Label threshold"
 msgstr "عتبة التسمية"
 
+msgid "Label used for decreasing candles in the tooltip."
+msgstr "التسمية المستخدمة للشموع الهابطة في التلميح."
+
+msgid "Label used for increasing candles in the tooltip."
+msgstr "التسمية المستخدمة للشموع الصاعدة في التلميح."
+
 msgid "Labelling"
 msgstr "وضع العلامات"
 
@@ -10268,6 +10325,9 @@ msgstr "خطوط الطول والعرض"
 msgid "Longitude of default viewport"
 msgstr "خط طول إطار العرض الافتراضي"
 
+msgid "Low"
+msgstr ""
+
 msgid "Low color"
 msgstr ""
 
@@ -10281,6 +10341,9 @@ msgstr ""
 
 msgid "Lower threshold must be lower than upper threshold"
 msgstr "يجب أن يكون الحد الأدنى أقل من الحد الأعلى"
+
+msgid "Lowest value for each period."
+msgstr "أدنى قيمة لكل فترة."
 
 msgid "MAR"
 msgstr "مسخ"
@@ -10944,6 +11007,9 @@ msgstr ""
 msgid "Moves the given set of dates by a specified interval."
 msgstr "ينقل مجموعة التواريخ المحددة بفاصل زمني محدد."
 
+msgid "Moving averages"
+msgstr "المتوسطات المتحركة"
+
 msgid "Multi-Dimensions"
 msgstr "أبعاد متعددة"
 
@@ -11051,6 +11117,13 @@ msgstr "اسم العقد المستهدفة"
 
 msgid "Name of your tag"
 msgstr "اسم العلامة الخاصة بك"
+
+msgid ""
+"Name used for the candlestick series in the legend and tooltip when no "
+"series dimension is set."
+msgstr ""
+"الاسم المستخدم لسلسلة الشموع في وسيلة الإيضاح والتلميح عندما لا يُحدَّد "
+"بُعد السلسلة."
 
 msgid "Name your database"
 msgstr "قم بتسمية قاعدة البيانات الخاصة بك"
@@ -11606,6 +11679,9 @@ msgstr "المعلومات الأساسية"
 msgid "OCT"
 msgstr "أكتوبر"
 
+msgid "OHLC"
+msgstr "OHLC"
+
 msgid "OK"
 msgstr "ok"
 
@@ -11761,6 +11837,9 @@ msgstr "عتامة الفقاعات، 0 تعني الشفافية الكاملة
 msgid "Opacity, expects values between 0 and 100"
 msgstr "العتامة، تتوقع القيم بين 0 و 100"
 
+msgid "Open"
+msgstr ""
+
 msgid "Open Datasource tab"
 msgstr "افتح علامة تبويب مصدر البيانات"
 
@@ -11797,6 +11876,9 @@ msgstr "افتح في مختبر SQL"
 msgid "Open query in SQL Lab"
 msgstr "افتح الاستعلام في SQL Lab"
 
+msgid "Opening value for each period."
+msgstr "قيمة الفتح لكل فترة."
+
 msgid ""
 "Operate the database in asynchronous mode, meaning that the queries are "
 "executed on remote workers as opposed to on the web server itself. This "
@@ -11827,6 +11909,11 @@ msgstr "سلسلة اختيارية لتنسيق التاريخ d3"
 
 msgid "Optional d3 number format string"
 msgstr "سلسلة اختيارية بصيغة رقم d3"
+
+msgid ""
+"Optional dimension used to split the chart into multiple candlestick "
+"series."
+msgstr "بُعد اختياري لتقسيم المخطط إلى عدة سلاسل شموع."
 
 msgid ""
 "Optional metric used to scale the size of each dot. Dot areas are scaled "
@@ -11956,6 +12043,13 @@ msgstr ""
 "قم بتراكب سلسلة زمنية واحدة أو أكثر من فترة زمنية نسبية. تتوقع فترات دلتا"
 " زمنية نسبية باللغة الطبيعية (على سبيل المثال: 24 ساعة، 7 أيام، 52 "
 "أسبوعًا، 365 يومًا). النص المجاني مدعوم."
+
+msgid ""
+"Overlay simple moving averages of the close price (MA5, MA10, MA15, ...)."
+" Type a custom period to add it."
+msgstr ""
+"أضف متوسطات متحركة بسيطة لسعر الإغلاق (MA5، MA10، MA15، ...). اكتب فترة "
+"مخصصة لإضافتها."
 
 msgid ""
 "Overlays a hexagonal grid on a map, and aggregates data within the "
@@ -14812,6 +14906,9 @@ msgstr "نمط السلسلة"
 msgid "Series chart type (line, bar etc)"
 msgstr "نوع مخطط السلسلة (الخط والشريط وما إلى ذلك)"
 
+msgid "Series colors"
+msgstr "ألوان السلسلة"
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
 # lv, ro, ru, sk, sr, sr_Latn, tr, uk]
 #, fuzzy
@@ -14827,9 +14924,15 @@ msgstr "إعداد زيادة السلسلة"
 msgid "Series limit"
 msgstr "حد السلسلة"
 
+msgid "Series name"
+msgstr "اسم السلسلة"
+
 #, fuzzy
 msgid "Series settings"
 msgstr "إعدادات التصفية"
+
+msgid "Series style"
+msgstr "نمط السلسلة"
 
 #, fuzzy
 msgid "Series total setting"
@@ -15189,6 +15292,9 @@ msgid ""
 msgstr ""
 
 msgid "Show or hide the X axis line, ticks, and labels"
+msgstr ""
+
+msgid "Show or hide the Y axis line and labels"
 msgstr ""
 
 msgid "Show or hide the Y axis line, ticks, gridlines, and labels"
@@ -17157,6 +17263,13 @@ msgid "The query contains one or more malformed template parameters."
 msgstr "يحتوي الاستعلام على واحدة أو أكثر من معاملات القالب غير الصحيحة."
 
 msgid "The query context datasource does not match the chart datasource"
+msgstr ""
+
+#, python-format
+msgid ""
+"The query context for chart ID %(chart_id)s (referenced by annotation "
+"layer '%(layer_name)s') was not found. Please ensure the chart is "
+"properly configured and has a valid query context."
 msgstr ""
 
 msgid "The query couldn't be loaded"
@@ -20179,6 +20292,14 @@ msgstr "عند توفير مقياس ثانوي، يتم استخدام مقيا
 msgid "When checked, the map will zoom to your data after each query"
 msgstr "عند التحقق، ستقوم الخريطة بتكبير بياناتك بعد كل استعلام"
 
+msgid ""
+"When enabled, increasing candles use the increase color and decreasing "
+"candles use the decrease color. Turn off to use one series color, with a "
+"filled body for increases and a hollow body for decreases."
+msgstr ""
+"عند التمكين تستخدم الشموع الصاعدة لون الصعود والشموع الهابطة لون الهبوط. "
+"عطّل الخيار لاستخدام لون سلسلة واحد بجسم مملوء للصعود وأجوف للهبوط."
+
 #, fuzzy
 msgid ""
 "When enabled, the axis will display labels for the minimum and maximum "
@@ -21035,7 +21156,18 @@ msgid ""
 "SUPERSET_DASHBOARD_POSITION_DATA_LIMIT config setting."
 msgstr ""
 
-msgid "Your export is being prepared. You'll receive an email when it's ready."
+msgid ""
+"Your export is being generated and will download automatically when "
+"ready. We'll also email you a download link."
+msgstr ""
+
+msgid "Your export is being generated. Please, do not leave the page."
+msgstr ""
+
+msgid "Your export is ready and downloading."
+msgstr ""
+
+msgid "Your export is taking longer than expected. Try again later."
 msgstr ""
 
 #, python-format

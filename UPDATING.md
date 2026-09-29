@@ -24,6 +24,88 @@ assists people when migrating to a new version.
 
 ## Next
 
+### Version history retention setting
+
+Use `VERSION_HISTORY_RETENTION_DAYS` for both the application setting and
+environment variable. `SUPERSET_VERSION_HISTORY_RETENTION_DAYS` shipped in 7.0
+and remains a deprecated compatibility alias when the new setting is absent.
+Existing positive windows are preserved; existing zero or negative values still
+disable pruning. Migrate those deployments to `VERSION_HISTORY_RETENTION_DAYS=0`.
+Set the new environment variable to take precedence over a legacy value. In a
+custom config that star-imports defaults, an inherited new 30-day value cannot
+be distinguished from an explicit 30-day override; when the old key is also
+present, the safer disable or longer window is retained. Remove the old key
+when setting the new value in such a config. **Do not copy
+an old `-1` value to the new key:** the new `-1` makes history immediately
+eligible on the next scheduled run instead of disabling pruning. Startup logs
+a warning when the new `-1` is active. The default remains 30 days when neither
+key is set; zero disables pruning.
+For both this setting and `SOFT_DELETE_RETENTION_DAYS`, `-1` means immediate
+eligibility on the next scheduled cleanup run, with its clock as cutoff (not a
+future cutoff). Live/current data and normal purge guards remain protected.
+An absent environment value retains the 30-day default. Invalid or oversized
+supplied environment values defer scheduled cleanup with 0 for both settings.
+Host policy failures also defer. Malformed or oversized standalone soft-delete
+runtime config and stored CLI windows likewise defer purge with 0 instead of
+falling back to a shorter retention window, and a malformed version-history
+value in the live `app.config` defers the scheduled prune with 0 and a warning
+rather than failing the run. Only absent values use the fallback.
+
+### Version history API access follows `VERSION_HISTORY`
+
+`VERSION_HISTORY` controls the UI and all chart, dashboard, and dataset
+version-list, version-snapshot, activity, and version-restore endpoints.
+With the flag disabled, callers who pass the existing route permissions receive
+404 instead of being able to use those APIs directly. When enabled, existing
+route permissions and object-level editorship checks still apply.
+
+The default remains enabled. API consumers that disabled the flag to hide only
+the panel must enable it to retain history API access. Capture and retention
+remain independently configured; ordinary entity CRUD and soft-delete recovery
+are unaffected. With only `ENABLE_VERSIONING_CAPTURE` disabled, existing history
+is readable if `VERSION_HISTORY` is enabled, but version restore returns 404.
+
+An optional `VERSIONING_CAPTURE_PREDICATE(session)` lets hosts restrict capture
+at save time without changing process-global listeners. `None` preserves existing
+behavior. A false result skips history capture but not the live ORM save, and
+refuses version restore with 404. Hosts must supply tenant context for request,
+import, and background writes and keep the decision stable within a transaction;
+version reads (ETag and version info on the chart, dashboard and dataset APIs)
+consult the predicate with the same request session as the save they accompany.
+Existing history and independent retention are unchanged; skipped edits are not
+reconstructed. The first enabled edit of an entity without history may create
+the existing baseline of its then-current state. Expected service failures must
+be handled by the host predicate; programming/database errors are not suppressed.
+Parent and child snapshots are rebuilt in the save transaction after a captured
+edit. If that rebuild fails, the save fails and must be rolled back, so an
+incomplete snapshot is not exposed as restorable history.
+
+### Guest token RLS rules without a dataset apply inside sub-queries
+
+A guest token RLS rule with no `dataset` key applies to every dataset. Such
+rules are now also injected into sub-queries of custom SQL expressions (with
+`ALLOW_ADHOC_SUBQUERY` enabled) and into SQL Lab queries, for every table that
+resolves to a dataset, instead of only into the chart's outer query. In a
+virtual dataset's SQL they are injected into the tables read inside an
+uncorrelated sub-query (scalar, `IN` or `EXISTS`, including CTEs such a sub-query
+reads). Tables whose rows reach the virtual dataset's output (`FROM`, joins,
+derived tables, `LATERAL`) or are keyed to them by a correlated sub-query (one
+that itself references an outer table or CTE by name or alias, such as
+`lookup.id = a.lid`; a sub-query nested in it doesn't count) are still left to
+the outer query, which already applies the rules. An
+unqualified outer reference (`WHERE id = lid`) can't be told apart from a local
+column, so that sub-query gets the rules; qualify it to keep a lookup without the
+column working. Like a join, a correlated sub-query over another multi-tenant
+table is not scoped by these rules; give such rules a `dataset` if needed. The
+virtual dataset's own RLS rules, which its outer query applies too, are
+injected into those uncorrelated sub-queries the same way, for every user, when
+a sub-query reads the table the virtual dataset is named after.
+
+If a sub-query reads a dataset that lacks a column the rule references, the
+query now fails with a column-not-found error instead of reading rows the rule
+was meant to exclude. To keep such charts working, set `dataset` on the rule so
+it only targets the datasets that have the column.
+
 ### MCP response size guard: byte limit instead of estimated token count
 
 The MCP response-size guard no longer estimates LLM token counts (it
@@ -772,7 +854,7 @@ misrepresents the entity as unchanged.
 - **Storage growth.** Capture writes shadow rows per save, so the metadata
   database grows with edit volume. The `version_history.prune_old_versions`
   beat task removes rows whose transaction is older than
-  `SUPERSET_VERSION_HISTORY_RETENTION_DAYS` (default 30).
+  `VERSION_HISTORY_RETENTION_DAYS` (default 30).
 - **Check a replaced `CELERY_CONFIG`.** Carry both the
   `superset.tasks.version_history_retention` import and the
   `version_history.prune_old_versions` beat entry; see
@@ -786,10 +868,10 @@ misrepresents the entity as unchanged.
 kill-switch — not removed with the rollout toggles. Setting it to a falsy value
 stops capture within a restart, without a revert-and-redeploy. Unlike the
 soft-delete toggle, turning it off is a clean stop: existing version rows remain
-readable and no entity state is altered. Restore is unavailable (404) while
-capture is off. A full rollback also sets
-`FEATURE_FLAGS = {"VERSION_HISTORY": False}` to hide the panel — capture off
-with the panel left on shows an empty or stale history.
+readable if `VERSION_HISTORY` is enabled and no entity state is altered. Restore
+is unavailable (404) while capture is off. A full rollback also sets
+`FEATURE_FLAGS = {"VERSION_HISTORY": False}` to disable the panel and history
+APIs — capture off with the panel left on shows an empty or stale history.
 
 ### Scheduled report execution now enforces one application deadline
 
@@ -913,12 +995,14 @@ Note that a retried query returns partial data with no truncation indicator
 (e.g. a filter dropdown may list only a subset of values on tables above the
 row cap).
 
-### Dashboard "Export Data to Excel" moves from `EXCEL_EXPORT_S3_*` to `EXPORT_STORAGE`
+### Dashboard "Export Data to Excel": direct downloads, and `EXCEL_EXPORT_S3_*` moves to `EXPORT_STORAGE`
 
 A new dashboard action exports every chart's data to a single multi-sheet
-`.xlsx` asynchronously. It is disabled by default and turns on only when
-`EXPORT_STORAGE` is configured with both a `bucket` and a `backend` (the
-endpoint returns `501` otherwise) — there is no implicit storage default:
+`.xlsx`. Without export storage, Superset builds the workbook during the request
+and returns it to the browser. When `EXPORT_STORAGE` is configured with both a
+`bucket` and a `backend`, a Celery worker builds and uploads the workbook
+instead, and the browser downloads it once ready. There is no implicit storage
+default:
 
 ```python
 from superset.utils.s3 import S3ExportStorage  # or superset.utils.gcs.GCSExportStorage
@@ -929,10 +1013,25 @@ EXPORT_STORAGE = {
 }
 ```
 
+Direct downloads are limited by `EXCEL_EXPORT_SYNC_MAX_ROWS` (default
+`100_000`), based on the combined `row_limit` of the planned queries. Superset
+counts aggregate-only queries as one row, uses `ROW_LIMIT` when other queries
+omit it, and returns `400` before querying if the total exceeds the limit.
+Charts whose size can't be known before they run (grouping sets, which pivot
+tables use for non-additive metrics, and post-processing that can add rows such
+as resample, forecasts or custom operations) are left out of direct downloads
+and listed on the workbook's "Export Summary" sheet; if that leaves no chart to
+run, the request returns `400` instead of a summary-only workbook. Image exports
+are hidden without export storage because they require background webdriver
+rendering.
+
+`POST /api/v1/dashboard/<id>/export_xlsx/` returns either `202` with a queued job
+id or `200` with the workbook. It does not return `501` when storage is unset.
+
 **Upgrading from `EXCEL_EXPORT_S3_*`:** the S3-only config keys are removed and
 replaced by the pluggable `EXPORT_STORAGE` above. They are no longer read, so a
-deployment that had the export working keeps a valid-looking config while the
-endpoint starts returning `501`. Port each key:
+deployment that had background exports working falls back to direct downloads
+(and loses image exports) until the config is ported:
 
 | Removed | Replacement |
 | --- | --- |
@@ -942,39 +1041,38 @@ endpoint starts returning `501`. Port each key:
 
 `EXPORT_STORAGE["backend"]` has no default and must be set explicitly, which is
 the part an upgrade cannot infer: the previous config implied S3, so keep the
-same bucket with `S3ExportStorage()`. `EXCEL_EXPORT_LINK_TTL_SECONDS` is
+same bucket with `S3ExportStorage()`. A bucket without a backend (or the
+reverse) logs a warning naming the missing key. `EXCEL_EXPORT_LINK_TTL_SECONDS` is
 unchanged in name, but it now bounds a Superset-issued link rather than a
 pre-signed S3 URL, so the AWS seven day ceiling no longer applies.
 
-It also requires a running Celery worker. SMTP is optional and only used to
-additionally email logged-in users a download link; every session (including
-guest/Public ones, which have no email) gets the export through status polling
-and automatic download. Config keys:
-`EXPORT_STORAGE`, `EXCEL_EXPORT_LINK_TTL_SECONDS`,
+The background path also requires a running Celery worker. With
+`CELERY_CONFIG = None`, exports download directly even when `EXPORT_STORAGE` is
+complete, and a warning says so. SMTP is optional and only used to
+additionally email logged-in users a download link; every session
+(including guest/Public ones, which have no email) gets the export through
+status polling and automatic download. Config keys: `EXPORT_STORAGE`,
+`EXCEL_EXPORT_LINK_TTL_SECONDS`, `EXCEL_EXPORT_SYNC_MAX_ROWS`,
 `EXCEL_EXPORT_TABLE_VIZ_TYPES`, and `EXCEL_EXPORT_QUERY_CONTEXT_BUILDER`.
 
 The storage backends depend on SDKs that are **not** installed by default:
 install `pip install apache-superset[excel-export]` (boto3) for
 `S3ExportStorage`, or `pip install apache-superset[excel-export-gcs]`
 (google-cloud-storage) for `GCSExportStorage`. A custom backend can be supplied
-by implementing `superset.utils.export_storage.ExportStorage`.
+by implementing `superset.utils.export_storage.ExportStorage`. The
+direct-download path uses neither.
 
-Charts store their `query_context` only once they have been (re-)saved in
-Explore, so older charts may have none. For a fixed, conservative set of viz
-types (`table`, `big_number_total`, `big_number`, `pie`) the export rebuilds a
-query context from the chart's saved form data so those charts still export.
-The rebuild is a single-query mapping and does **not** reproduce plugin
-post-processing (pivot, rolling, forecast) or multi-query charts, so any chart of
-another type without a saved query context is skipped and listed in the email for
-the user to re-save. To cover those types, set `EXCEL_EXPORT_QUERY_CONTEXT_BUILDER`
-to a callable that receives the chart's form data and returns a query-context
-payload (or `None` to fall back to the built-in rebuild) — for example one backed
-by a service that runs the chart's real frontend `buildQuery`.
+For `table`, `big_number_total`, `big_number`, and `pie` charts without a saved
+`query_context`, Superset rebuilds a single query from saved form data. Charts
+that need post-processing or multiple queries are skipped and listed on the
+workbook's "Export Summary" sheet. Use `EXCEL_EXPORT_QUERY_CONTEXT_BUILDER` to
+support more chart types.
 
 A second mode, **Export Images to Excel**, embeds non-table charts as rendered
 images (which viz types stay tabular is controlled by
 `EXCEL_EXPORT_TABLE_VIZ_TYPES`). It renders through the headless webdriver, so the
-menu option only appears when the webdriver screenshot feature flags
+menu option only appears when an export bucket is configured and the webdriver
+screenshot feature flags
 (`ENABLE_DASHBOARD_SCREENSHOT_ENDPOINTS`,
 `ENABLE_DASHBOARD_DOWNLOAD_WEBDRIVER_SCREENSHOT`) are enabled.
 
@@ -1287,7 +1385,7 @@ ALTER TABLE tagged_object DROP FOREIGN KEY <constraint_name>;
 
 ### Entity version-history infrastructure
 
-Introduces the schema and SQLAlchemy-Continuum wiring that captures version history for charts, dashboards, and datasets, plus read-only `GET /api/v1/{chart,dashboard,dataset}/<uuid>/versions/` endpoints. Capture is governed by the `ENABLE_VERSIONING_CAPTURE` config value — an operational kill-switch (a release toggle that became a permanent ops switch), not a feature flag; see "Version history is on by default" above for the shipped default. With capture off, no save writes version rows; the endpoints continue to serve already-captured rows read-only. The migration is additive; existing entity `PUT` responses gain `old_version_uuid` / `new_version_uuid` body fields and an `ETag` header (both null/absent when capture is off).
+Introduces the schema and SQLAlchemy-Continuum wiring that captures version history for charts, dashboards, and datasets, plus read-only `GET /api/v1/{chart,dashboard,dataset}/<uuid>/versions/` endpoints. Capture is governed by the `ENABLE_VERSIONING_CAPTURE` config value — an operational kill-switch (a release toggle that became a permanent ops switch), not a feature flag; see "Version history is on by default" above for the shipped default. With capture off, no save writes version rows; the endpoints continue to serve already-captured rows read-only if `VERSION_HISTORY` is enabled. The migration is additive; existing entity `PUT` responses gain `old_version_uuid` / `new_version_uuid` body fields and an `ETag` header (both null/absent when capture is off).
 
 A few save- and import-path internals change **unconditionally** (independent of the flag), because the versioned mappers must behave correctly whether or not capture is enabled:
 
@@ -1316,13 +1414,24 @@ Entity version history (the `version_transaction` / `*_version` shadow tables th
 
 | Key | Default | Purpose |
 |---|---|---|
-| `SUPERSET_VERSION_HISTORY_RETENTION_DAYS` | `30` | Version rows whose owning `version_transaction.issued_at` is older than this many days are pruned. Each entity's live row (`end_transaction_id IS NULL`) is always preserved, as are the live rows of its children and associations; closed historical rows (including the baseline) age out. Set to `0` or a negative value to disable pruning. |
+| `VERSION_HISTORY_RETENTION_DAYS` | `30` | Version rows whose owning `version_transaction.issued_at` is older than this many days are pruned. Each entity's live row (`end_transaction_id IS NULL`) is always preserved, as are the live rows of its children and associations; closed historical rows (including the baseline) age out. `0` disables pruning; `-1` makes historical rows eligible on the next scheduled run. Other negative values are invalid and skip pruning. |
 
 The task ships in the default `CeleryConfig` (both the `superset.tasks.version_history_retention` import and the beat entry). A deployment that overrides `CELERY_CONFIG` without the beat entry logs a startup warning. When the override explicitly defines `imports`, a missing retention module is also reported; an absent `imports` setting is not diagnosed because Celery may register tasks through `include`, autodiscovery, or worker startup imports. Retention only prunes whatever history exists — capture itself is gated separately by `ENABLE_VERSIONING_CAPTURE`, which now ships on.
 
 ### Deletion retention (soft-deleted entities are eventually purged)
 
-Soft-deleted dashboards, charts, and datasets are now permanently removed after a retention window (default 30 days; `SOFT_DELETE_RETENTION_DAYS`, `0` disables; settable per workspace at runtime via the `deletion-retention set-window` CLI, which takes precedence). The `deletion_retention.purge_soft_deleted` Celery beat task runs daily and removes each aged-out entity together with its M:N join rows, owned children, datasource permission, and version-history shadow rows. After purge an entity is **unrecoverable** — its detail and `/restore` endpoints return 404 and its version history is gone.
+`SOFT_DELETE_RETENTION_DAYS` also accepts an environment seed: an integer from
+-1 through 36500, defaulting to 30 when absent. Invalid or oversized supplied
+values defer scheduled purge with 0. An optional
+`SOFT_DELETE_RETENTION_DAYS_FUNC` host callback takes precedence over both the
+stored CLI value and config seed. It must return a nonboolean integer in that
+range; invalid results or callback failure defer scheduled purge with 0, without
+falling back to stored values. The client recovery-window display and CLI
+`show-window` use this same policy. Without a callback, stored CLI values retain
+their precedence over the config seed. This callback does not gate explicit
+force-purge or provide downgrade grace protection.
+
+Soft-deleted dashboards, charts, and datasets are now permanently removed after a retention window (default 30 days; `SOFT_DELETE_RETENTION_DAYS`, `0` disables; settable per workspace at runtime via the `deletion-retention set-window` CLI, which takes precedence when no host retention callback is installed). The `deletion_retention.purge_soft_deleted` Celery beat task runs daily and removes each aged-out entity together with its M:N join rows, owned children, datasource permission, and version-history shadow rows. After purge an entity is **unrecoverable** — its detail and `/restore` endpoints return 404 and its version history is gone.
 
 Purging is **live by default** (`SOFT_DELETE_PURGE_DRY_RUN=False`), so the retention promise above is real on a stock deployment. Set it to `True` to have the task log `would_purge` counts and delete nothing — the lever is retained, so an operator can return to dry-run at any time. Note `would_purge` is an **upper bound** — it counts every entity past the retention window without evaluating deletion blockers, so a real run may purge fewer (entities referenced by report schedules or set as a user's welcome dashboard are blocked and reported separately). The task only acts while the `SOFT_DELETE` rollout flag is on; it now ships on by default.
 

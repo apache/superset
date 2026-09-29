@@ -86,6 +86,7 @@ from typing_extensions import TypeGuard
 
 from superset.constants import (
     DEFAULT_USER_AGENT,
+    EPOCH_FORMATS,
     EXTRA_FORM_DATA_APPEND_KEYS,
     EXTRA_FORM_DATA_OVERRIDE_EXTRA_KEYS,
     EXTRA_FORM_DATA_OVERRIDE_REGULAR_MAPPINGS,
@@ -498,7 +499,7 @@ def cast_to_num(value: float | int | str | None) -> float | int | None:
         return None
     if isinstance(value, (int, float)):
         return value
-    if value.isdigit():
+    if value.isdecimal():
         return int(value)
     try:
         return float(value)
@@ -2046,7 +2047,7 @@ def _process_datetime_column(
     col: DateColumn,
 ) -> None:
     """Process a single datetime column with format detection."""
-    if col.timestamp_format in ("epoch_s", "epoch_ms"):
+    if col.timestamp_format in EPOCH_FORMATS:
         dttm_series = df[col.col_label]
         if is_numeric_dtype(dttm_series):
             # Column is formatted as a numeric value
