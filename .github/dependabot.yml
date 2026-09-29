@@ -16,6 +16,9 @@ updates:
       default-days: 7
 
   - package-ecosystem: "npm"
+    # Hack to allow multiple configs for the same ecosystem/directory combination
+    # See https://github.com/dependabot/dependabot-core/issues/1778#issuecomment-1988140219
+    target-branch: main
     ignore:
       # TODO: remove below entries once the application supports React >= 19.0.0
       - dependency-name: "react"
@@ -112,6 +115,9 @@ updates:
         patterns:
           - "webpack"
           - "@types/node"
+          - "oxfmt"
+          - "oxlint"
+          - "oxlint-tsgolint"
     open-pull-requests-limit: 30
     versioning-strategy: increase
     cooldown:
@@ -175,11 +181,6 @@ updates:
       emotion:
         patterns:
           - "@emotion/*"
-      oxc:
-        patterns:
-          - "oxfmt"
-          - "oxlint"
-          - "oxlint-tsgolint"
     open-pull-requests-limit: 10
     versioning-strategy: increase
     cooldown:
