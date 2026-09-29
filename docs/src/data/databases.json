@@ -1457,6 +1457,7 @@
           "Open Source"
         ],
         "pypi_packages": ["pinotdb"],
+        "version_requirements": "The Pinot extra requires pinotdb[sqlalchemy]>=8.0.0,<10.0.0. Earlier releases declare SQLAlchemy below 2 in their SQLAlchemy extra.",
         "connection_string": "pinot+http://{broker_host}:{broker_port}/query?controller=http://{controller_host}:{controller_port}/",
         "default_port": 8099,
         "connection_examples": [
@@ -3645,6 +3646,7 @@
         ],
         "pypi_packages": ["apache-superset[databricks]"],
         "install_instructions": "pip install apache-superset[databricks]",
+        "version_requirements": "The Databricks extra requires databricks-sqlalchemy 2.x (at least 2.0.1). The 1.x dialect requires SQLAlchemy below 2.",
         "connection_string": "databricks://token:{access_token}@{host}:{port}?http_path={http_path}&catalog={catalog}&schema={schema}",
         "parameters": {
           "access_token": "Personal access token from Settings > User Settings",

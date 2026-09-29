@@ -91,6 +91,7 @@ from superset.common.utils.time_range_utils import (
 from superset.constants import (
     CacheRegion,
     EMPTY_STRING,
+    EPOCH_FORMATS,
     NULL_STRING,
     SKIP_VISIBILITY_FILTER_CLASSES,
     TimeGrain,
@@ -353,9 +354,13 @@ def _retry_temporal_join_values_at_wider_resolution(
     datetime_format: str | None,
 ) -> pd.Series:
     """Retry valid values outside pandas' nanosecond datetime range."""
-    resolution = "ms" if datetime_format == "epoch_ms" else "s"
+    resolution = (
+        datetime_format.removeprefix("epoch_")
+        if datetime_format in EPOCH_FORMATS
+        else "s"
+    )
     try:
-        if datetime_format and datetime_format not in {"epoch_s", "epoch_ms"}:
+        if datetime_format and datetime_format not in EPOCH_FORMATS:
             parsed_values = [
                 datetime.strptime(str(value), datetime_format)
                 if pd.notna(value)
@@ -3709,6 +3714,19 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                         msg=error_msg,
                     )
                 ) from ex
+            except TypeError as ex:
+                # Raised when a Python builtin invoked from within the template
+                # receives an unexpected type, e.g. `"','".join(filter_values(...))`
+                # where `filter_values()` returns non-string values (numeric filter
+                # values) and `str.join` fails with "expected str instance, int
+                # found". These are not TemplateError/UndefinedError, so they would
+                # otherwise escape as an unhandled 500.
+                raise QueryObjectValidationError(
+                    _(
+                        "Error while rendering virtual dataset query: %(msg)s",
+                        msg=str(ex),
+                    )
+                ) from ex
 
         script = SQLScript(sql, engine=self.db_engine_spec.engine)
         if len(script.statements) > 1:
@@ -3758,6 +3776,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                         self.schema or default_schema or "",
                         statement,
                         exclude_dataset_id=self_id,
+                        include_global_guest_rls=False,
                     ):
                         rls_applied = True
 
@@ -3785,7 +3804,13 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                             ),
                             self.database,
                             self.database.get_default_catalog(),
-                            exclude_dataset_id=self_id,
+                            # at least as strict as apply_rls(), which injects
+                            # this dataset's own RLS and the global guest rules
+                            # into the inner SQL's sub-queries
+                            exclude_dataset_id=(
+                                None if statement.has_subquery() else self_id
+                            ),
+                            include_global_guest_rls=statement.has_subquery(),
                         )
                         for statement in parsed_script.statements
                         for table in statement.tables
@@ -4184,7 +4209,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             )
 
         if tf:
-            if tf in {"epoch_ms", "epoch_s"}:
+            if tf in EPOCH_FORMATS:
                 # In general, Superset works with timezone-naive datetime objects
                 # internally. However, timestamp() applies local timezone to
                 # timezone-naive datetime objects. Therefore, we have to be explicit
@@ -4194,9 +4219,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     dttm_tz_aware = dttm_tz_aware.replace(tzinfo=timezone.utc)
 
                 seconds_since_epoch = int(dttm_tz_aware.timestamp())
-                if tf == "epoch_s":
-                    return str(seconds_since_epoch)
-                return str(seconds_since_epoch * 1000)
+                return str(seconds_since_epoch * EPOCH_FORMATS[tf])
             return f"'{dttm.strftime(tf)}'"
 
         return f"""'{dttm.strftime("%Y-%m-%d %H:%M:%S.%f")}'"""
