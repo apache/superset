@@ -48,6 +48,31 @@ def _version_cache_prefix(
     return f"{prefix}{MCP_RESPONSE_CACHE_NAMESPACE}"
 
 
+def _bypass_dashboard_scoped_calls(middleware: Any) -> Any:
+    """Make ``middleware`` skip tool calls that carry a dashboard filter scope.
+
+    FastMCP keys cached tool results on the tool name and arguments only. A
+    dashboard filter scope arrives in a request header instead, so without
+    this a result computed without the scope could be served to a call that
+    carries one (or the reverse). Scoped calls are neither read from nor
+    written to the cache; every other call is cached as before.
+
+    FastMCP resolves ``on_call_tool`` on the instance at dispatch time, so
+    wrapping the bound method is enough.
+    """
+    from superset.mcp_service.dashboard_scope import has_dashboard_scope_header
+
+    cached_call_tool = middleware.on_call_tool
+
+    async def on_call_tool(context: Any, call_next: Any) -> Any:
+        if has_dashboard_scope_header():
+            return await call_next(context)
+        return await cached_call_tool(context, call_next)
+
+    middleware.on_call_tool = on_call_tool
+    return middleware
+
+
 def _build_caching_settings(cache_config: Dict[str, Any]) -> Dict[str, Any]:
     """
     Build FastMCP caching settings from MCP_CACHE_CONFIG.
@@ -176,7 +201,7 @@ def create_response_caching_middleware() -> Any | None:
             **settings,
         )
         logger.info("MCP caching middleware enabled")
-        return middleware
+        return _bypass_dashboard_scoped_calls(middleware)
 
     # Use existing app context if available, otherwise push one
     if has_app_context():

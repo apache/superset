@@ -1,0 +1,337 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+
+"""execute_sql under a dashboard scope: filtered at the table read, or refused.
+
+The rewritten SQL is executed against a real SQLite database, so these tests
+check the numbers a scoped query returns, not just the SQL text.
+"""
+
+from pathlib import Path
+from typing import Any
+from unittest.mock import Mock, patch
+
+import pytest
+import sqlalchemy as sa
+from fastmcp import Client
+from fastmcp.exceptions import ToolError
+from sqlalchemy.orm.session import Session
+
+from superset.mcp_service.app import mcp
+from superset.mcp_service.dashboard_scope import (
+    DashboardConstraints,
+    MCPDashboardScopeError,
+    REFUSAL_PREFIX,
+)
+from superset.mcp_service.dashboard_scope_sql import (
+    scope_execute_sql_request,
+    scope_sql,
+)
+from superset.mcp_service.sql_lab.schemas import ExecuteSqlRequest
+from tests.unit_tests.mcp_service.test_dashboard_scope import (
+    encode,
+    scope_header,
+    scope_payload,
+)
+
+CLIENT_A = {"col": "client", "op": "IN", "val": ["A"]}
+ONLY_A = DashboardConstraints((CLIENT_A,), None, None)
+
+ORDERS = [
+    ("A", 10, "2024-01-15 00:00:00"),
+    ("A", 20, "2024-03-15 00:00:00"),
+    ("B", 100, "2024-01-20 00:00:00"),
+    ("B", 200, "2024-03-20 00:00:00"),
+    (None, 1000, "2024-01-25 00:00:00"),
+]
+REFUNDS = [("A", 1), ("B", 50)]
+
+
+@pytest.fixture
+def warehouse(tmp_path: Path) -> sa.engine.Engine:
+    engine = sa.create_engine(f"sqlite:///{tmp_path / 'warehouse.db'}")
+    with engine.begin() as conn:
+        conn.execute(
+            sa.text("CREATE TABLE orders (client TEXT, amount INTEGER, ds DATETIME)")
+        )
+        conn.execute(sa.text("CREATE TABLE refunds (client TEXT, amount INTEGER)"))
+        conn.execute(sa.text("CREATE TABLE regions (region TEXT)"))
+        conn.execute(sa.text("CREATE TABLE unregistered (client TEXT)"))
+        for client, amount, ds in ORDERS:
+            conn.execute(
+                sa.text("INSERT INTO orders VALUES (:c, :a, :d)"),
+                {"c": client, "a": amount, "d": ds},
+            )
+        for client, amount in REFUNDS:
+            conn.execute(
+                sa.text("INSERT INTO refunds VALUES (:c, :a)"),
+                {"c": client, "a": amount},
+            )
+        conn.execute(sa.text("INSERT INTO regions VALUES ('EU')"))
+    return engine
+
+
+@pytest.fixture
+def database(session: Session, warehouse: sa.engine.Engine) -> Any:
+    """Register the warehouse tables as datasets, the way RLS resolves them."""
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+    from superset.models.core import Database
+
+    SqlaTable.metadata.create_all(session.get_bind())
+    database = Database(
+        database_name="scope_warehouse", sqlalchemy_uri=str(warehouse.url)
+    )
+
+    def dataset(name: str, columns: list[TableColumn], **kwargs: Any) -> SqlaTable:
+        return SqlaTable(
+            table_name=name, schema="main", database=database, columns=columns, **kwargs
+        )
+
+    session.add_all(
+        [
+            database,
+            dataset(
+                "orders",
+                [
+                    TableColumn(column_name="client", type="TEXT"),
+                    TableColumn(column_name="amount", type="INTEGER"),
+                    TableColumn(column_name="ds", type="DATETIME", is_dttm=True),
+                    TableColumn(
+                        column_name="client_upper",
+                        type="TEXT",
+                        expression="UPPER(client)",
+                    ),
+                ],
+                main_dttm_col="ds",
+            ),
+            dataset(
+                "refunds",
+                [
+                    TableColumn(column_name="client", type="TEXT"),
+                    TableColumn(column_name="amount", type="INTEGER"),
+                ],
+            ),
+            dataset("regions", [TableColumn(column_name="region", type="TEXT")]),
+        ]
+    )
+    session.flush()
+    return database
+
+
+def run(engine: sa.engine.Engine, sql: str) -> list[tuple[Any, ...]]:
+    with engine.connect() as conn:
+        return [tuple(row) for row in conn.execute(sa.text(sql))]
+
+
+def scoped(database: Any, sql: str, constraints: DashboardConstraints = ONLY_A) -> str:
+    return scope_sql(
+        database, sql, catalog=None, schema="main", constraints=constraints
+    )
+
+
+def test_aggregate_is_computed_over_filtered_rows(
+    database: Any, warehouse: sa.engine.Engine
+) -> None:
+    sql = "SELECT SUM(amount) FROM orders"
+    assert run(warehouse, sql) == [(1330,)]
+    assert run(warehouse, scoped(database, sql)) == [(30,)]
+
+
+@pytest.mark.parametrize(
+    "sql",
+    [
+        "SELECT SUM(amount) FROM (SELECT * FROM orders) AS t",
+        "WITH o AS (SELECT * FROM orders) SELECT SUM(amount) FROM o",
+        "SELECT SUM(amount) FROM orders WHERE amount > 0 OR client = 'B'",
+        "SELECT SUM(amount) FROM main.orders AS o",
+    ],
+)
+def test_filter_reaches_every_read_shape(
+    database: Any, warehouse: sa.engine.Engine, sql: str
+) -> None:
+    assert run(warehouse, scoped(database, sql)) == [(30,)]
+
+
+def test_every_table_in_a_union_is_filtered(
+    database: Any, warehouse: sa.engine.Engine
+) -> None:
+    sql = (
+        "SELECT SUM(amount) FROM ("
+        "SELECT amount FROM orders UNION ALL SELECT -amount FROM refunds) AS t"
+    )
+    assert run(warehouse, scoped(database, sql)) == [(29,)]
+
+
+def test_model_where_clause_cannot_undo_the_filter(
+    database: Any, warehouse: sa.engine.Engine
+) -> None:
+    sql = "SELECT SUM(amount) FROM orders WHERE client = 'B' OR 1 = 1"
+    assert run(warehouse, scoped(database, sql)) == [(30,)]
+
+
+def test_values_are_rendered_as_literals(
+    database: Any, warehouse: sa.engine.Engine
+) -> None:
+    hostile = DashboardConstraints(
+        ({"col": "client", "op": "IN", "val": ["A') OR ('1'='1"]},), None, None
+    )
+    assert run(warehouse, scoped(database, "SELECT COUNT(*) FROM orders", hostile)) == [
+        (0,)
+    ]
+
+
+def test_null_aware_in_list_matches_the_dataset_path(
+    database: Any, warehouse: sa.engine.Engine
+) -> None:
+    with_null = DashboardConstraints(
+        ({"col": "client", "op": "IN", "val": ["A", None]},), None, None
+    )
+    assert run(
+        warehouse, scoped(database, "SELECT SUM(amount) FROM orders", with_null)
+    ) == [(1030,)]
+
+
+def test_time_range_is_applied_to_the_main_datetime_column(
+    database: Any, warehouse: sa.engine.Engine
+) -> None:
+    january = DashboardConstraints(
+        (CLIENT_A,), "2024-01-01T00:00:00 : 2024-02-01T00:00:00", None
+    )
+    assert run(
+        warehouse, scoped(database, "SELECT SUM(amount) FROM orders", january)
+    ) == [(10,)]
+
+
+def test_statement_without_tables_is_left_alone(
+    database: Any, warehouse: sa.engine.Engine
+) -> None:
+    assert run(warehouse, scoped(database, "SELECT 1")) == [(1,)]
+
+
+@pytest.mark.parametrize(
+    ("sql", "message"),
+    [
+        (
+            "SELECT r.region, SUM(o.amount) FROM orders o CROSS JOIN regions r "
+            "GROUP BY 1",
+            "has no column 'client'",
+        ),
+        ("SELECT COUNT(*) FROM unregistered", "not a registered physical dataset"),
+        ("INSERT INTO orders VALUES ('A', 1, NULL)", "modify data"),
+        ("SELECT FROM WHERE", "could not be parsed"),
+    ],
+)
+def test_unmappable_sql_is_refused(database: Any, sql: str, message: str) -> None:
+    with pytest.raises(MCPDashboardScopeError, match=message) as excinfo:
+        scoped(database, sql)
+    assert str(excinfo.value).startswith(REFUSAL_PREFIX)
+
+
+def test_calculated_columns_cannot_carry_the_filter(database: Any) -> None:
+    upper = DashboardConstraints(
+        ({"col": "client_upper", "op": "==", "val": "A"},), None, None
+    )
+    with pytest.raises(MCPDashboardScopeError, match="has no column 'client_upper'"):
+        scoped(database, "SELECT COUNT(*) FROM orders", upper)
+
+
+def test_time_range_without_a_datetime_column_is_refused(database: Any) -> None:
+    window = DashboardConstraints((CLIENT_A,), "Last week", None)
+    with pytest.raises(MCPDashboardScopeError, match="no main datetime column"):
+        scoped(database, "SELECT COUNT(*) FROM refunds", window)
+
+
+@pytest.mark.parametrize(
+    "request_kwargs",
+    [
+        {"sql": "SELECT * FROM {{ table }}"},
+        {"sql": "SELECT 1 {# note #}"},
+        {"sql": "SELECT 1", "template_params": {"x": 1}},
+    ],
+)
+def test_templated_sql_is_refused(
+    database: Any, request_kwargs: dict[str, Any]
+) -> None:
+    request = ExecuteSqlRequest(database_id=database.id, **request_kwargs)
+    with pytest.raises(MCPDashboardScopeError, match="templated SQL"):
+        scope_execute_sql_request(request, ONLY_A)
+
+
+def test_access_is_checked_before_describing_tables(database: Any) -> None:
+    from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
+    from superset.exceptions import SupersetSecurityException
+
+    denied = SupersetSecurityException(
+        SupersetError(
+            message="You need access to the following tables: orders",
+            error_type=SupersetErrorType.TABLE_SECURITY_ACCESS_ERROR,
+            level=ErrorLevel.ERROR,
+        )
+    )
+    request = ExecuteSqlRequest(database_id=database.id, sql="SELECT 1 FROM orders")
+    with (
+        patch("superset.security_manager.raise_for_access", side_effect=denied),
+        patch("superset.mcp_service.dashboard_scope_sql.scope_sql") as rewrite,
+        pytest.raises(MCPDashboardScopeError, match="access to the query was denied"),
+    ):
+        scope_execute_sql_request(request, ONLY_A)
+    rewrite.assert_not_called()
+
+
+def test_missing_database_is_left_to_the_tool() -> None:
+    request = ExecuteSqlRequest(database_id=999_999, sql="SELECT 1")
+    assert scope_execute_sql_request(request, ONLY_A) is request
+
+
+@pytest.mark.asyncio
+async def test_execute_sql_runs_only_the_scoped_statement(
+    database: Any, warehouse: sa.engine.Engine
+) -> None:
+    """End to end: the hook rewrites the SQL before execute_sql authorizes and
+    runs it, so the executed statement returns the filtered total."""
+    from superset.models.core import Database
+
+    executed: list[str] = []
+
+    def capture(self: Any, sql: str, options: Any) -> Any:
+        executed.append(sql)
+        raise RuntimeError("stop before execution")
+
+    payload = scope_payload({"11": {"filters": [CLIENT_A]}})
+    with (
+        scope_header(encode(payload)),
+        patch(
+            "superset.mcp_service.auth.get_user_from_request",
+            return_value=Mock(id=1, username="admin"),
+        ),
+        patch("superset.security_manager.raise_for_access"),
+        patch.object(Database, "execute", autospec=True, side_effect=capture),
+    ):
+        async with Client(mcp) as client:
+            with pytest.raises(ToolError):
+                await client.call_tool(
+                    "execute_sql",
+                    {
+                        "request": {
+                            "database_id": database.id,
+                            "sql": "SELECT SUM(amount) FROM orders",
+                            "schema_name": "main",
+                        }
+                    },
+                )
+    (sql,) = executed
+    assert run(warehouse, sql) == [(30,)]

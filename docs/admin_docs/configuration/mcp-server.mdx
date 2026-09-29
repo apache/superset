@@ -114,6 +114,56 @@ latest-per-user permalink lookup, and replaying a previously received permalink
 could overwrite manual changes or undo. If a notification is missed or its
 permalink cannot be resolved, open `dashboard_url` from chat.
 
+## Dashboard filter scope
+
+A client that answers questions about a dashboard the user is viewing (for
+example an assistant embedded next to it) can make every tool call honor that
+dashboard's active filters by sending them in the `X-Superset-Dashboard-Scope`
+request header on each MCP HTTP request of the conversation turn. The model
+issuing tool calls never sees the header, so it cannot drop or loosen the
+filters, and retried calls carry them again.
+
+The header value is `base64url(zlib(JSON))` of:
+
+```json
+{
+  "version": 1,
+  "dashboard_id": 12,
+  "chart_filters": {
+    "101": {"filters": [{"col": "client", "op": "IN", "val": ["A"]}],
+            "time_range": "Last quarter"}
+  }
+}
+```
+
+`chart_filters` maps each chart with active filters to the `extra_form_data`
+the dashboard applies to it. A malformed header refuses every tool call rather
+than being ignored. Without the header, behavior is unchanged.
+
+While a scope with active filters is present:
+
+- Chart data tools (`get_chart_data`, `get_chart_preview`, `get_dashboard_data`)
+  apply each chart's dashboard filters and AND any `extra_form_data` the model
+  supplies with them. Filters can be added but not removed, and time ranges,
+  time columns and relative anchors the dashboard sets cannot be changed.
+  Charts that are not on the scoped dashboard are refused.
+- `query_dataset`, `get_table` (datasets) and `execute_sql` apply the
+  dashboard-wide filters. `execute_sql` constrains every table read, the same
+  way row-level security is applied, and refuses SQL whose tables are not
+  registered datasets that have every filtered column. A model-supplied time
+  range is intersected with the dashboard's.
+- Where the filters cannot be applied (for example, a column the dataset lacks,
+  or a column filtered differently by different charts) the call fails with a
+  tool error beginning `Dashboard filter scope refused this call:`. Tools that
+  return no dataset rows are unaffected; any other tool, including extension
+  tools, is refused.
+- MCP response caching is bypassed for scoped calls, and the scope is applied
+  before any query is built, so Superset's query cache never serves an
+  unscoped result.
+
+The scope is a correctness control for answers, not an access control.
+Permissions and row-level security apply exactly as they do without it.
+
 ---
 
 ## Quick Start
