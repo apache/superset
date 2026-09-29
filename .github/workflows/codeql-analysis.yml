@@ -47,7 +47,7 @@ jobs:
           if [[ "${STEPS_CHECK_OUTPUTS_FRONTEND}" == "true" ]]; then
             lang_matrix_string=${lang_matrix_string}'"javascript"'
           fi
-          echo "lang_matrix=$(jq --compact-output --null-input '[inputs] | tostring' <<< $lang_matrix_string)" >> $GITHUB_OUTPUT
+          echo "lang_matrix=$(jq --compact-output --null-input '[inputs]' <<< $lang_matrix_string)" >> $GITHUB_OUTPUT
         env:
           STEPS_CHECK_OUTPUTS_PYTHON: ${{ steps.check.outputs.python }}
           STEPS_CHECK_OUTPUTS_FRONTEND: ${{ steps.check.outputs.frontend }}
