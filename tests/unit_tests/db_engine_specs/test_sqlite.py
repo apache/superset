@@ -33,6 +33,7 @@ from tests.unit_tests.fixtures.common import dttm  # noqa: F401
         ("Text", "'2019-01-02 03:04:05'"),
         ("DateTime", "'2019-01-02 03:04:05'"),
         ("TimeStamp", "'2019-01-02 03:04:05'"),
+        ("Date", "'2019-01-02 03:04:05'"),
         ("Other", None),
     ],
 )
@@ -44,6 +45,81 @@ def test_convert_dttm(
     from superset.db_engine_specs.sqlite import SqliteEngineSpec as spec  # noqa: N813
 
     assert_convert_dttm(spec, target_type, expected_result, dttm)
+
+
+@pytest.mark.parametrize(
+    "target_type,expected_result",
+    [
+        ("Date", "'2019-01-02'"),
+        ("Text", "'2019-01-02 00:00:00'"),
+        ("DateTime", "'2019-01-02 00:00:00'"),
+        ("TimeStamp", "'2019-01-02 00:00:00'"),
+        ("Other", None),
+    ],
+)
+def test_convert_dttm_midnight(
+    target_type: str,
+    expected_result: Optional[str],
+) -> None:
+    """
+    Test that midnight is written as a bare date for DATE columns only.
+    """
+    from superset.db_engine_specs.sqlite import SqliteEngineSpec as spec  # noqa: N813
+
+    assert_convert_dttm(spec, target_type, expected_result, datetime(2019, 1, 2))
+
+
+@pytest.mark.parametrize(
+    "start,end,expected",
+    [
+        (
+            datetime(2026, 9, 20),
+            datetime(2026, 9, 22),
+            ["2026-09-20", "2026-09-21"],
+        ),
+        (
+            datetime(2026, 9, 20, 12),
+            datetime(2026, 9, 22, 12),
+            ["2026-09-21", "2026-09-22"],
+        ),
+    ],
+)
+def test_time_filter_on_date_column(
+    start: datetime,
+    end: datetime,
+    expected: list[str],
+) -> None:
+    """
+    Test that a time filter on a DATE column stored as text returns the right days.
+
+    The bounds are built the way the time filter builds them. Each day counts as
+    its midnight, as it would in a comparison of dates.
+    """
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+    from superset.models.core import Database
+
+    column = TableColumn(column_name="day", type="DATE", is_dttm=True)
+    table = SqlaTable(
+        table_name="t",
+        columns=[column],
+        database=Database(database_name="db", sqlalchemy_uri="sqlite://"),
+    )
+    since = table.dttm_sql_literal(start, column)
+    until = table.dttm_sql_literal(end, column)
+    sql = f"SELECT day FROM t WHERE day >= {since} AND day < {until} ORDER BY day"  # noqa: S608
+
+    engine = create_engine("sqlite://")
+    with engine.connect() as connection:
+        connection.execute(text("CREATE TABLE t (day DATE)"))
+        connection.execute(
+            text(
+                "INSERT INTO t VALUES "
+                "('2026-09-19'), ('2026-09-20'), ('2026-09-21'), ('2026-09-22')"
+            )
+        )
+        rows = connection.execute(text(sql)).fetchall()
+
+    assert [row[0] for row in rows] == expected
 
 
 @pytest.mark.parametrize(

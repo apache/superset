@@ -18,7 +18,7 @@
 from __future__ import annotations
 
 import re
-from datetime import datetime
+from datetime import datetime, time
 from re import Pattern
 from typing import Any, TYPE_CHECKING
 
@@ -164,8 +164,19 @@ class SqliteEngineSpec(BaseEngineSpec):
     def convert_dttm(
         cls, target_type: str, dttm: datetime, db_extra: dict[str, Any] | None = None
     ) -> str | None:
+        """
+        Write midnight as a bare date for DATE columns.
+
+        SQLite has no date type, so a DATE column usually holds text such as
+        ``2026-09-20`` and is compared as text. ``'2026-09-20 00:00:00'`` sorts
+        after the day it starts, so a time filter on a DATE column would be one day
+        off. Any other time keeps its time part, which sorts between two days, as a
+        comparison of dates should.
+        """
         sqla_type = cls.get_sqla_column_type(target_type)
-        if isinstance(sqla_type, (types.String, types.DateTime)):
+        if isinstance(sqla_type, types.Date) and dttm.time() == time.min:
+            return f"'{dttm.date().isoformat()}'"
+        if isinstance(sqla_type, (types.String, types.Date, types.DateTime)):
             return f"""'{dttm.isoformat(sep=" ", timespec="seconds")}'"""
         return None
 
