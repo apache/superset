@@ -16,7 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { render, screen } from 'spec/helpers/testing-library';
+import {
+  createStore,
+  render,
+  screen,
+  userEvent,
+} from 'spec/helpers/testing-library';
+import { Provider } from 'react-redux';
 import getBootstrapData from 'src/utils/getBootstrapData';
 import Login from './index';
 
@@ -358,6 +364,33 @@ test('should show flashed warnings as warning toasts', () => {
     'Invalid login. Please try again.',
   );
   expect(mockAddDangerToast).not.toHaveBeenCalled();
+});
+
+test('should clear a seeded password on an error-category auth message', async () => {
+  mockGetBootstrapData.mockReturnValue({
+    ...defaultBootstrapData,
+    auth_messages: [],
+  });
+  const { rerender } = render(
+    <Provider store={createStore()}>
+      <Login />
+    </Provider>,
+  );
+  const password = screen.getByTestId('password-input') as HTMLInputElement;
+  await userEvent.type(password, 'wrong-secret');
+  expect(password).toHaveValue('wrong-secret');
+
+  mockGetBootstrapData.mockReturnValue({
+    ...defaultBootstrapData,
+    auth_messages: [['error', 'Invalid login. Please try again.']],
+  });
+  rerender(
+    <Provider store={createStore()}>
+      <Login />
+    </Provider>,
+  );
+
+  expect(screen.getByTestId('password-input')).toHaveValue('');
 });
 
 test('should show every drained auth message', () => {
