@@ -522,10 +522,28 @@ const baseAggregatorTemplates = {
           sum: 0 as any,
           currencySet: new Set<string>(),
           push(record: PivotRecord) {
-            if (Number.isNaN(Number(record[attr]))) {
-              this.sum = record[attr];
+            const val = record[attr];
+            // A metric's own value can be a real SQL NULL (e.g. SUM over an
+            // empty group). Number(null) coerces to 0, not NaN, so it would
+            // otherwise fall into the numeric branch below, where
+            // parseFloat(String(null)) ('parseFloat("null")') is NaN and
+            // silently poisons the running sum -- skip it entirely, the same
+            // way a group with no matching leaf record at all is excluded.
+            if (val === null || val === undefined) {
+              if (
+                record.__currencyColumn &&
+                record[record.__currencyColumn as string]
+              ) {
+                this.currencySet.add(
+                  String(record[record.__currencyColumn as string]),
+                );
+              }
+              return;
+            }
+            if (Number.isNaN(Number(val))) {
+              this.sum = val;
             } else {
-              this.sum += parseFloat(String(record[attr]));
+              this.sum += parseFloat(String(val));
             }
             if (
               record.__currencyColumn &&
@@ -558,6 +576,22 @@ const baseAggregatorTemplates = {
           push(record: PivotRecord) {
             const x = record[attr];
             if (['min', 'max'].includes(mode)) {
+              // A metric's own value can be a real SQL NULL. Number(null)
+              // coerces to 0, not NaN, so it would otherwise compete with
+              // genuine values as if it were an actual zero -- skip it
+              // entirely, the same way a group with no matching leaf record
+              // at all is excluded.
+              if (x === null || x === undefined) {
+                if (
+                  record.__currencyColumn &&
+                  record[record.__currencyColumn as string]
+                ) {
+                  this.currencySet.add(
+                    String(record[record.__currencyColumn as string]),
+                  );
+                }
+                return;
+              }
               const coercedValue = Number(x);
               if (Number.isNaN(coercedValue)) {
                 this.val =
@@ -870,37 +904,48 @@ const baseAggregatorTemplates = {
               string[],
               string[],
             ];
-            // Result aggregation (see `rowMetricTotals`/`colMetricTotals` on
-            // PivotData) tracks a per-metric total independently of visible
-            // subtotals and of where Metric sits in `rows`/`cols`; prefer it
-            // over the depth-gated tree, which may never have created this
-            // exact scope (e.g. column subtotals off). Metric-definition mode
-            // (`showValuesAs`) never populates these, so it always falls
-            // through to the original `getAggregator` lookup below, unchanged.
-            let denominatorAggregator: any;
-            // `rowMetricTotals`/`colMetricTotals` are grand totals for a
-            // metric across the whole dataset, so they're only a valid
-            // substitute for the depth-gated tree lookup when `type` is
-            // 'total' (grand-total denominator). For 'row'/'col' types,
-            // `selCol`/`selRow` is `[]` by design (see the `selector` above)
-            // even though the denominator still needs to be scoped to this
-            // specific row/column, not the metric's dataset-wide total.
-            if (type === 'total' && this.metricAxis) {
+            // `type`'s selector (above) collapses one or both axes to `[]`,
+            // meaning "sum across everything on that axis". When Metric
+            // itself lives on the collapsed axis, "everything" would mean
+            // "every metric", silently adding unlike units together (e.g.
+            // SUM and MAX in the same denominator) -- substitute the
+            // metric's own key back in so the lookup stays scoped to this
+            // cell's own metric, the same way it's already scoped to this
+            // cell's own row/column. This applies to 'row'/'col' just as
+            // much as 'total': a row-fraction denominator still needs to
+            // stay within one metric, not sum across the metrics sharing
+            // that row.
+            if (this.metricAxis) {
               if (this.metricAxis.axis === 'col' && selCol.length === 0) {
-                denominatorAggregator =
-                  data.colMetricTotals[this.metricAxis.value];
                 selCol = [this.metricAxis.value];
               } else if (
                 this.metricAxis.axis === 'row' &&
                 selRow.length === 0
               ) {
-                denominatorAggregator =
-                  data.rowMetricTotals[this.metricAxis.value];
                 selRow = [this.metricAxis.value];
               }
             }
-            denominatorAggregator ??= data.getAggregator(selRow, selCol);
-            if (!denominatorAggregator.inner) {
+            let denominatorAggregator: any = data.getAggregator(selRow, selCol);
+            // Result aggregation (see `rowMetricTotals`/`colMetricTotals` on
+            // PivotData) tracks a per-metric grand total independently of
+            // visible subtotals, so it's a fallback for exactly the case the
+            // depth-gated tree can't answer: a dataset-wide ('total')
+            // metric-scoped denominator with column/row subtotals off, where
+            // no tree leaf for `[]`/metric ever gets created. There's no
+            // equivalent precomputed fallback for a row/col-scoped total, so
+            // this only applies to `type === 'total'`; metric-definition mode
+            // (`showValuesAs`) never populates these maps regardless.
+            if (
+              (!denominatorAggregator || !denominatorAggregator.inner) &&
+              type === 'total' &&
+              this.metricAxis
+            ) {
+              denominatorAggregator =
+                this.metricAxis.axis === 'col'
+                  ? data.colMetricTotals[this.metricAxis.value]
+                  : data.rowMetricTotals[this.metricAxis.value];
+            }
+            if (!denominatorAggregator || !denominatorAggregator.inner) {
               return null;
             }
 
@@ -1251,8 +1296,11 @@ class PivotData {
     this.colKeys = [];
     this.rowTotals = {};
     this.colTotals = {};
-    this.rowMetricTotals = {};
-    this.colMetricTotals = {};
+    // Object.create(null): metricValue is a user-controlled metric name, and
+    // a metric literally named "constructor" or "__proto__" would otherwise
+    // collide with Object.prototype instead of indexing a fresh aggregator.
+    this.rowMetricTotals = Object.create(null);
+    this.colMetricTotals = Object.create(null);
     this.allTotal = this.aggregator(this, [], []);
     this.subtotals = subtotals;
     this.sorted = false;

@@ -78,6 +78,26 @@ test('Median excludes a real SQL NULL group instead of counting it as zero', () 
   expect(aggregator.value()).toBe(20);
 });
 
+test('Sum excludes a real SQL NULL group instead of poisoning the total with NaN', () => {
+  const aggregator = aggregators.Sum(['x'])();
+  [{ x: 10 }, { x: null }, { x: 20 }].forEach(record =>
+    aggregator.push(record as unknown as PivotRecord),
+  );
+  // 10 + 20 = 30, not NaN from parseFloat(String(null)).
+  expect(aggregator.value()).toBe(30);
+});
+
+test('Minimum excludes a real SQL NULL group instead of counting it as zero', () => {
+  // Number(null) coerces to 0, which would otherwise win as the minimum.
+  expect(aggregate('Minimum', [{ x: 10 }, { x: null }, { x: 20 }])).toBe(10);
+});
+
+test('Maximum excludes a real SQL NULL group instead of counting it as zero', () => {
+  // Number(null) coerces to 0, which would otherwise win as the maximum
+  // when every real value is negative.
+  expect(aggregate('Maximum', [{ x: -10 }, { x: null }, { x: -20 }])).toBe(-10);
+});
+
 // Records shaped like PivotTableChart.tsx's real output: the "Metric" pseudo
 // -dimension is the sole column, so each record's own rollup level has no
 // "real" columns -- which is exactly the condition that also mirrors its
@@ -275,4 +295,63 @@ test('"... as Fraction of Rows" divides by the row total, not the metric\'s data
   expect(
     pivotData.getAggregator(['South'], ['SUM(sales)']).value(),
   ).toBeCloseTo(1, 5);
+});
+
+test('"... as Fraction of Rows" stays scoped per metric, not just per row, when a row has multiple metrics', () => {
+  // Two different metrics sharing one row. Scoping the denominator to the
+  // row alone (dropping the metric position entirely once Metric's own axis
+  // selector is empty) would sum sales and cost together and read 10%/90%;
+  // it has to stay scoped to both the row and this cell's own metric, the
+  // same way the metric-mixing guard on the grand-total corner (#44657)
+  // never lets unlike metrics share a slot either.
+  const leaves: PivotRecord[] = [
+    { region: 'US', Metric: 'sales', value: 10, __metricKey: 'Metric' },
+    { region: 'US', Metric: 'cost', value: 90, __metricKey: 'Metric' },
+  ] as unknown as PivotRecord[];
+  const pivotData = new PivotData({
+    data: leaves,
+    rows: ['region'],
+    cols: ['Metric'],
+    vals: ['value'],
+    aggregateFunction: 'Sum as Fraction of Rows',
+  });
+
+  expect(pivotData.getAggregator(['US'], ['sales']).value()).toBeCloseTo(1, 5);
+  expect(pivotData.getAggregator(['US'], ['cost']).value()).toBeCloseTo(1, 5);
+});
+
+test('per-metric totals survive a metric literally named "constructor"', () => {
+  // rowMetricTotals/colMetricTotals are indexed by the metric's own display
+  // name; a metric named "constructor" or "__proto__" must not collide with
+  // Object.prototype instead of getting its own aggregator slot.
+  const leaves: PivotRecord[] = [
+    {
+      Metric: 'constructor',
+      category: 'A',
+      value: 10,
+      __metricKey: 'Metric',
+    },
+    {
+      Metric: 'constructor',
+      category: 'B',
+      value: 20,
+      __metricKey: 'Metric',
+    },
+  ] as unknown as PivotRecord[];
+  const pivotData = new PivotData({
+    data: leaves,
+    rows: [],
+    cols: ['Metric', 'category'],
+    vals: ['value'],
+    aggregateFunction: 'Sum as Fraction of Total',
+  });
+
+  expect(pivotData.getAggregator([], ['constructor', 'A']).value()).toBeCloseTo(
+    10 / 30,
+    5,
+  );
+  expect(pivotData.getAggregator([], ['constructor', 'B']).value()).toBeCloseTo(
+    20 / 30,
+    5,
+  );
 });
