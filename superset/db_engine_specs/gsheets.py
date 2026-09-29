@@ -92,15 +92,22 @@ def to_json_value(value: Any) -> Any:
     Convert a dataframe cell into a JSON value the Sheets API parses back.
 
     Dates and timestamps become ISO strings (``USER_ENTERED`` input parses them
-    as dates), durations become ``H:MM:SS`` strings, and numpy scalars become
-    Python scalars.
+    as dates), durations become signed ``H:MM:SS[.ffffff]`` strings with total
+    hours (including days), and numpy scalars become Python scalars.
     """
     value = _to_python_value(value)
     if isinstance(value, datetime):
         return value.isoformat(sep=" ")
     if isinstance(value, (date, time)):
         return value.isoformat()
-    if isinstance(value, (timedelta, Decimal)):
+    if isinstance(value, timedelta):
+        sign = "-" if value < timedelta(0) else ""
+        value = abs(value)
+        hours = value.days * 24 + value.seconds // 3600
+        minutes, seconds = divmod(value.seconds % 3600, 60)
+        fraction = f".{value.microseconds:06d}" if value.microseconds else ""
+        return f"{sign}{hours}:{minutes:02d}:{seconds:02d}{fraction}"
+    if isinstance(value, Decimal):
         return str(value)
     return value
 

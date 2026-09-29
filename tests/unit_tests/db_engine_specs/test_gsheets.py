@@ -1216,6 +1216,12 @@ def test_upload_dates(mocker: MockerFixture) -> None:
         (np.timedelta64("NaT", "ns"), None),
         (pd.Timedelta(seconds=90), "0:01:30"),
         (timedelta(hours=1), "1:00:00"),
+        (timedelta(days=2, seconds=61), "48:01:01"),
+        (timedelta(seconds=-90), "-0:01:30"),
+        (timedelta(days=-2), "-48:00:00"),
+        (timedelta(microseconds=1), "0:00:00.000001"),
+        (timedelta(microseconds=-1), "-0:00:00.000001"),
+        (pd.Timedelta(days=2, microseconds=123456), "48:00:00.123456"),
         (np.int64(3), 3),
     ],
 )
