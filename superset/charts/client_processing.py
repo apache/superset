@@ -191,6 +191,16 @@ def _metric_of_column(column: Any, metric_level: int) -> Any:
     return column[metric_level] if isinstance(column, tuple) else column
 
 
+def _rollup_metric(column: Any, metric_level: int, metrics: list[str]) -> Any:
+    """The metric to read from a rollup record for a cell in ``column``.
+
+    A column carrying a total label instead of a metric name collapses the metric
+    axis; see ``_collapsed_metric``.
+    """
+    name = _metric_of_column(column, metric_level)
+    return name if name in metrics else _collapsed_metric(metrics)
+
+
 def _reduce(
     data: Union[pd.DataFrame, pd.Series],
     reducer: str,
@@ -273,11 +283,6 @@ def _apply_rollup_totals(  # pylint: disable=too-many-arguments,too-many-locals
     cell blank.
     """
     keyed = _rollup_index(rollup_levels)
-    metric_names = set(metrics)
-
-    def metric_of(column: Any) -> Any:
-        name = _metric_of_column(column, metric_level)
-        return name if name in metric_names else _collapsed_metric(list(metrics))
 
     def lookup(row: Any, column: Any) -> tuple[bool, Any]:
         row_depth = row_prefix_depth.get(row, len(rows))
@@ -289,7 +294,7 @@ def _apply_rollup_totals(  # pylint: disable=too-many-arguments,too-many-locals
         record = keyed(grouped).get(key)
         if record is None:
             return False, None
-        return True, record.get(metric_of(column))
+        return True, record.get(_rollup_metric(column, metric_level, metrics))
 
     # Index positionally: a tuple label on a MultiIndex is ambiguous to `.loc`.
     for column_position, column in enumerate(df.columns):
@@ -331,11 +336,6 @@ def _rollup_denominators(  # pylint: disable=too-many-arguments,too-many-locals
         the caller fall back to a leaf-derived total.
     """
     keyed = _rollup_index(rollup_levels)
-    metric_names = set(metrics)
-
-    def metric_of(column: Any) -> Any:
-        name = _metric_of_column(column, metric_level)
-        return name if name in metric_names else _collapsed_metric(list(metrics))
 
     def denominator(row: Any, column: Any) -> tuple[bool, Any]:
         if mode == ShowValuesAs.PERCENT_OF_TOTAL:
@@ -356,7 +356,7 @@ def _rollup_denominators(  # pylint: disable=too-many-arguments,too-many-locals
         record = keyed(grouped).get(key)
         if record is None:
             return False, None
-        return True, record.get(metric_of(column))
+        return True, record.get(_rollup_metric(column, metric_level, metrics))
 
     resolved = [[denominator(row, column) for column in df.columns] for row in df.index]
     values = pd.DataFrame(
