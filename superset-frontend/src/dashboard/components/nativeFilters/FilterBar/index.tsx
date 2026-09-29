@@ -391,11 +391,11 @@ const FilterBar: FC<FiltersBarProps> = ({
           }
         });
 
-        // Remove stale entries that no longer exist in dataMaskApplied
+        // Remove stale entries that no longer exist in the configured filters
         Object.keys(updated).forEach(filterId => {
           if (
             !isChartCustomization(filterId) &&
-            !(filterId in dataMaskApplied)
+            !(filterId in filters)
           ) {
             delete updated[filterId];
             hasChanges = true;

@@ -19,6 +19,7 @@
 
 import {
   act,
+  createStore,
   fireEvent,
   render,
   screen,
@@ -26,6 +27,7 @@ import {
   waitFor,
 } from 'spec/helpers/testing-library';
 import { stateWithoutNativeFilters } from 'spec/fixtures/mockStore';
+import reducerIndex from 'spec/helpers/reducerIndex';
 import { testWithId } from 'src/utils/testUtils';
 import { Preset, makeApi } from '@superset-ui/core';
 import {
@@ -1410,4 +1412,74 @@ test('FilterBar with orientation=Vertical renders Vertical layout (sanity counte
   expect(
     screen.queryByRole('img', { name: 'setting' }),
   ).not.toBeInTheDocument();
+});
+
+test('FilterBar keeps a configured filter selected when its applied data mask is removed', async () => {
+  fetchMock.post(
+    'glob:*/api/v1/chart/data',
+    {
+      result: [
+        {
+          data: [{ region: 'East' }, { region: 'West' }],
+          colnames: ['region'],
+          coltypes: [1],
+          applied_filters: [],
+        },
+      ],
+    },
+    { name: 'configured-filter-selected-chart-data' },
+  );
+
+  const filterId = 'NATIVE_FILTER-keep-selected';
+  const filter = createFilter({
+    id: filterId,
+    name: 'Region',
+    filterType: 'filter_select',
+    targets: [{ datasetId: 7, column: { name: 'region' } }],
+    chartsInScope: [18],
+  });
+
+  const state = createStateWithFilter(
+    filter,
+    createDataMask(filterId, ['East'], {
+      filters: [{ col: 'region', op: 'IN', val: ['East'] }],
+    }),
+    {
+      filterBarOrientation: FilterBarOrientation.Vertical,
+      metadata: {
+        native_filter_configuration: [filter],
+        chart_configuration: {},
+      },
+    },
+  );
+
+  const store = createStore(state, reducerIndex);
+
+  render(
+    <FilterBar
+      orientation={FilterBarOrientation.Vertical}
+      verticalConfig={{
+        width: 280,
+        height: 400,
+        offset: 0,
+        ...createOpenedBarProps(),
+      }}
+    />,
+    { store, useDnd: true, useRouter: true },
+  );
+
+  await act(async () => {
+    jest.advanceTimersByTime(1000);
+  });
+
+  expect(screen.getByText('Region')).toBeInTheDocument();
+  expect(screen.getByTitle('East')).toBeInTheDocument();
+
+  await act(async () => {
+    store.dispatch(dataMaskActions.removeDataMask(filterId));
+    jest.advanceTimersByTime(300);
+  });
+
+  expect(screen.getByText('Region')).toBeInTheDocument();
+  expect(screen.getByTitle('East')).toBeInTheDocument();
 });
