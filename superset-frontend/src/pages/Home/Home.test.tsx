@@ -250,9 +250,9 @@ test('With toggle switch - does not show thumbnails when switch is off', async (
   await renderWelcome();
   const toggle = await screen.findByRole('switch', {}, { timeout: 10000 });
 
+  await userEvent.click(toggle);
   await waitFor(
     () => {
-      userEvent.click(toggle);
       expect(screen.queryByAltText('Thumbnails')).not.toBeInTheDocument();
     },
     { timeout: 10000 },
