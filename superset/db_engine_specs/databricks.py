@@ -321,6 +321,41 @@ class DatabricksDynamicBaseEngineSpec(BasicParametersMixin, DatabricksBaseEngine
         return f"https://{host}/oidc/v1/{path}"
 
     @classmethod
+    def resolve_oauth2_client_info(
+        cls,
+        database: Database,
+        client_info: Any,
+    ) -> Any:
+        """
+        Derive missing OAuth2 endpoints from the workspace host.
+
+        ``authorization_request_uri`` and ``token_request_uri`` are required by
+        ``OAuth2ClientConfigSchema``; without them the database's OAuth2 was
+        disabled (``is_oauth2_enabled`` returned False) and every connection
+        failed with a ValidationError. Each missing or empty endpoint becomes
+        ``https://<workspace-host>/oidc/v1/{authorize,token}``; explicit values
+        win. A connection without a host raises ``OAuth2Error``. A non-dict
+        value is returned unchanged for ``OAuth2ClientConfigSchema`` to reject.
+        """
+        endpoints = {
+            "authorization_request_uri": "authorize",
+            "token_request_uri": "token",
+        }
+        if not isinstance(client_info, dict):
+            # Leave malformed values to ``OAuth2ClientConfigSchema`` to reject.
+            return client_info
+        missing = [key for key in endpoints if not client_info.get(key)]
+        if not missing:
+            return client_info
+        return {
+            **client_info,
+            **{
+                key: cls._workspace_oauth2_endpoint(database, endpoints[key])
+                for key in missing
+            },
+        }
+
+    @classmethod
     def needs_oauth2(cls, ex: Exception) -> bool:
         """
         Identify driver errors that should trigger the OAuth2 dance.
@@ -360,12 +395,7 @@ class DatabricksDynamicBaseEngineSpec(BasicParametersMixin, DatabricksBaseEngine
             if database := db.session.get(Database, database_id):
                 config = cast(
                     "OAuth2ClientConfig",
-                    dict(config)
-                    | {
-                        "authorization_request_uri": cls._workspace_oauth2_endpoint(
-                            database, "authorize"
-                        )
-                    },
+                    cls.resolve_oauth2_client_info(database, dict(config)),
                 )
 
         return super().get_oauth2_authorization_uri(config, state, code_verifier)

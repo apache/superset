@@ -23,6 +23,7 @@ import numpy
 import pandas as pd
 import pytest
 from flask import current_app
+from marshmallow import ValidationError
 from pytest_mock import MockerFixture
 from sqlalchemy import (
     Column,
@@ -1240,6 +1241,92 @@ def test_get_oauth2_config(app_context: None) -> None:
         "redirect_uri": "http://example.com/api/v1/database/oauth2/",
         "request_content_type": "data",  # Default value from BaseEngineSpec
     }
+
+
+@pytest.mark.parametrize(
+    "explicit",
+    [
+        {},
+        {"authorization_request_uri": "", "token_request_uri": ""},
+        {"authorization_request_uri": "https://idp.example/authorize"},
+        {"token_request_uri": "https://idp.example/token"},
+    ],
+)
+def test_get_oauth2_config_databricks_derives_missing_endpoints(
+    app_context: None, explicit: dict[str, str]
+) -> None:
+    """
+    Databricks OAuth2 endpoints omitted from ``oauth2_client_info`` are derived
+    from the workspace host instead of failing validation (which disabled
+    OAuth2 for the database); explicit values win.
+    """
+    database = Database(
+        database_name="db",
+        sqlalchemy_uri=(
+            "databricks://token:@dbc-1234.cloud.databricks.com:443"
+            "?http_path=/sql/1.0/warehouses/abc"
+        ),
+        encrypted_extra=json.dumps(
+            {
+                "oauth2_client_info": {
+                    "id": "my_client_id",
+                    "secret": "my_client_secret",
+                    "scope": "sql offline_access",
+                    **explicit,
+                }
+            }
+        ),
+    )
+
+    config = database.get_oauth2_config()
+
+    assert database.is_oauth2_enabled()
+    assert config is not None
+    assert config["authorization_request_uri"] == (
+        explicit.get("authorization_request_uri")
+        or "https://dbc-1234.cloud.databricks.com/oidc/v1/authorize"
+    )
+    assert config["token_request_uri"] == (
+        explicit.get("token_request_uri")
+        or "https://dbc-1234.cloud.databricks.com/oidc/v1/token"
+    )
+
+
+def test_get_oauth2_config_databricks_without_host_raises(app_context: None) -> None:
+    """
+    Without a host there is nothing to derive from: a clear error, not a
+    silently disabled OAuth2.
+    """
+    database = Database(
+        database_name="db",
+        sqlalchemy_uri="databricks://token:@/?http_path=/sql/1.0/warehouses/abc",
+        encrypted_extra=json.dumps(
+            {"oauth2_client_info": {"id": "a", "secret": "b", "scope": "sql"}}
+        ),
+    )
+
+    with pytest.raises(OAuth2Error):
+        database.get_oauth2_config()
+
+
+def test_get_oauth2_config_databricks_malformed_client_info(
+    app_context: None,
+) -> None:
+    """
+    A malformed ``oauth2_client_info`` is rejected by the schema, not by the
+    endpoint resolver failing on it.
+    """
+    database = Database(
+        database_name="db",
+        sqlalchemy_uri=(
+            "databricks://token:@dbc-1234.cloud.databricks.com:443"
+            "?http_path=/sql/1.0/warehouses/abc"
+        ),
+        encrypted_extra=json.dumps({"oauth2_client_info": "not-a-dict"}),
+    )
+
+    with pytest.raises(ValidationError):
+        database.get_oauth2_config()
 
 
 def test_get_oauth2_config_token_request_type_from_db_engine_specs(
