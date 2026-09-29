@@ -35,6 +35,7 @@ import { TIMEOUT } from '../../utils/constants';
 import { apiPost } from '../../helpers/api/requests';
 import {
   BIG_NUMBER_COUNT_SPEC,
+  nativeFilterValuesIn,
   setupDashboardWithBigNumberCharts,
   setupDashboardWithSelectFilter,
   sliceIdFromChartDataUrl,
@@ -139,7 +140,11 @@ testWithAssets(
   async ({ page, testAssets }) => {
     testWithAssets.setTimeout(TIMEOUT.SLOW_TEST);
 
-    const RACE_DELAY_MS = 3000;
+    // Generous enough that girl's own select/apply cycle plus network latency
+    // cannot consume the window while boy sits parked -- the delay starts when
+    // boy is applied, i.e. before that cycle even begins.
+    const RACE_DELAY_MS = 8000;
+    const FILTER_COLUMN = 'gender';
 
     const { chartId, dashboardId, dashboard, filterBar, value } =
       await setupDashboardWithSelectFilter(
@@ -212,9 +217,30 @@ testWithAssets(
 
     await filterBar.selectOption('boy');
     await filterBar.apply();
+    const boyAppliedAt = Date.now();
     // Deliberately no wait -- "boy" is still in flight as "girl" is applied.
     await filterBar.selectOption('girl');
     await filterBar.apply();
+
+    // Whatever is left of boy's artificial delay once girl has been applied.
+    // Measured rather than assumed: the UI cycle above is not instant, and
+    // hard-coding `RACE_DELAY_MS - 500` silently shrinks to nothing on a loaded
+    // runner, letting boy's response land inside the window below.
+    const remainingParkMs = RACE_DELAY_MS - (Date.now() - boyAppliedAt);
+    expect(
+      remainingParkMs,
+      'girl should have been applied while boy was still parked in the route delay',
+    ).toBeGreaterThan(0);
+
+    // Identify the response by the filter that produced it, not by arrival
+    // order: both requests are for this same slice, so "first status seen for
+    // the slice" can be boy's -- its delay is already running when girl is
+    // applied, so on a slow runner it can respond inside this window and
+    // satisfy the check without girl ever having completed.
+    const statusesFor = (value: string) =>
+      signals.submitStatusesWhere(chartId, body =>
+        nativeFilterValuesIn(body, FILTER_COLUMN).includes(value),
+      );
 
     // "girl" ran once already, so this repeat may be a synchronous cache hit
     // rather than a fresh 202. Either proves the round-trip happened, which is
@@ -224,11 +250,23 @@ testWithAssets(
     // flight, the text assertion below would then pass on stale pixels and the
     // test would be green without a successful round trip.
     await expect(() => {
+      const girlStatuses = statusesFor('girl');
+      expect(
+        girlStatuses,
+        '"girl"\'s fast chart-data request should have been answered',
+      ).not.toHaveLength(0);
       expect(
         [200, 202],
         '"girl"\'s fast chart-data submission should have succeeded (200 cache-hit or 202 async-accepted)',
-      ).toContain(signals.submitStatusFor(chartId));
-    }).toPass({ timeout: RACE_DELAY_MS - 500 });
+      ).toContain(girlStatuses[0]);
+      // The race only exists if boy is still parked at this point. Asserted
+      // alongside girl's success so a run where the delay failed to hold boy
+      // back is reported as such, instead of quietly testing nothing.
+      expect(
+        statusesFor('boy'),
+        '"boy" should still be parked in the route delay while "girl" completes',
+      ).toHaveLength(0);
+    }).toPass({ timeout: remainingParkMs });
 
     await expect(value).toHaveText(expectedGirlText ?? '', {
       timeout: TIMEOUT.UI_TRANSITION,

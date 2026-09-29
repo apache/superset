@@ -490,6 +490,19 @@ export interface GaqSignals {
   submitStatusesFor(sliceId?: number): readonly number[];
   /** First status seen for a slice; `undefined` if it has not responded yet. */
   submitStatusFor(sliceId?: number): number | undefined;
+  /**
+   * Statuses for a slice whose *request payload* satisfies `matches`, in order.
+   *
+   * {@link submitStatusesFor} keys only on slice id, so when two requests for
+   * one slice are in flight it reports whichever responded first -- which on a
+   * loaded runner need not be the one under test. Correlating on the payload
+   * (see {@link nativeFilterValuesIn}) identifies a specific request instead of
+   * relying on response ordering.
+   */
+  submitStatusesWhere(
+    sliceId: number | undefined,
+    matches: (requestBody: string) => boolean,
+  ): readonly number[];
   /** Poll/fetch events are counted, not flagged: on a busy dashboard they arrive per chart. */
   readonly taskStatusPollCount: number;
   /** Chart-data re-requests that were served synchronously (200) after a 202. */
@@ -497,6 +510,45 @@ export interface GaqSignals {
   readonly sawTaskStatusPoll: boolean;
   /** True once some slice went 202 -> 200: a full async round trip completed. */
   readonly sawAsyncRoundTrip: boolean;
+}
+
+/**
+ * The values a chart-data payload filters `column` on.
+ *
+ * A dashboard merges its native filters into the request as
+ * `{ col, op: 'IN', val: [...] }` clauses (see `getSelectExtraFormData` in
+ * src/filters/utils.ts). Reading them back is what lets a test say "this
+ * response belongs to the 'girl' request" rather than trusting arrival order.
+ *
+ * Returns an empty array for an unparseable body, so a caller's predicate
+ * simply does not match rather than throwing inside a `response` listener.
+ */
+export function nativeFilterValuesIn(
+  requestBody: string,
+  column: string,
+): string[] {
+  const values: string[] = [];
+  const visit = (node: unknown): void => {
+    if (Array.isArray(node)) {
+      node.forEach(visit);
+      return;
+    }
+    if (node === null || typeof node !== 'object') {
+      return;
+    }
+    const clause = node as { col?: unknown; val?: unknown };
+    if (clause.col === column && clause.val !== undefined) {
+      const vals = Array.isArray(clause.val) ? clause.val : [clause.val];
+      vals.forEach(val => values.push(String(val)));
+    }
+    Object.values(node as Record<string, unknown>).forEach(visit);
+  };
+  try {
+    visit(JSON.parse(requestBody));
+  } catch {
+    return [];
+  }
+  return values;
 }
 
 /**
@@ -519,6 +571,12 @@ export interface GaqSignals {
  */
 export function trackGaqSignals(page: Page): GaqSignals {
   const submitStatuses = new Map<number | undefined, number[]>();
+  /** Every chart-data response, with the payload that produced it. */
+  const submissions: {
+    sliceId: number | undefined;
+    status: number;
+    requestBody: string;
+  }[] = [];
   let taskStatusPollCount = 0;
   let cachedRereadCount = 0;
 
@@ -535,6 +593,11 @@ export function trackGaqSignals(page: Page): GaqSignals {
         cachedRereadCount += 1;
       }
       submitStatuses.set(sliceId, [...seen, response.status()]);
+      submissions.push({
+        sliceId,
+        status: response.status(),
+        requestBody: request.postData() ?? '',
+      });
       return;
     }
     if (
@@ -548,6 +611,12 @@ export function trackGaqSignals(page: Page): GaqSignals {
   return {
     submitStatusesFor: sliceId => submitStatuses.get(sliceId) ?? [],
     submitStatusFor: sliceId => submitStatuses.get(sliceId)?.[0],
+    submitStatusesWhere: (sliceId, matches) =>
+      submissions
+        .filter(
+          entry => entry.sliceId === sliceId && matches(entry.requestBody),
+        )
+        .map(entry => entry.status),
     get taskStatusPollCount() {
       return taskStatusPollCount;
     },
