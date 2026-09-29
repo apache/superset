@@ -109,6 +109,22 @@ test('ctx.window dispatches an error toast', () => {
   );
 });
 
+test('ctx.window forwards a custom duration to the toast payload', () => {
+  const ctx = createExtensionContext(createMockExtension('test.ext'));
+  mockDispatch.mockClear();
+
+  ctx.window.showInformationMessage('hello', { duration: 12000 });
+
+  expect(mockDispatch).toHaveBeenCalledWith(
+    expect.objectContaining({
+      payload: expect.objectContaining({
+        text: 'hello',
+        duration: 12000,
+      }),
+    }),
+  );
+});
+
 test('ctx.window is lazily created once per context', () => {
   const ctx = createExtensionContext(createMockExtension('test.ext'));
 

@@ -463,9 +463,10 @@ test('renders an extension-contributed item in the Settings dropdown', async () 
   const { commands, menus } = jest.requireActual('src/core');
   const { GlobalLocations } = jest.requireActual('src/core/contributions');
 
+  const commandCallback = jest.fn();
   const disposeCommand = commands.registerCommand(
     { id: 'test-ext.openSettings', title: 'My Extension Settings' },
-    jest.fn(),
+    commandCallback,
   );
   const disposeMenuItem = menus.registerMenuItem(
     { view: 'test-ext.settingsPanel', command: 'test-ext.openSettings' },
@@ -485,9 +486,12 @@ test('renders an extension-contributed item in the Settings dropdown', async () 
 
     await userEvent.hover(await screen.findByText(/Settings/i));
 
-    expect(
-      await screen.findByText('My Extension Settings'),
-    ).toBeInTheDocument();
+    const menuItem = await screen.findByText('My Extension Settings');
+    expect(menuItem).toBeInTheDocument();
+
+    await userEvent.click(menuItem);
+
+    await waitFor(() => expect(commandCallback).toHaveBeenCalledTimes(1));
   } finally {
     disposeCommand.dispose();
     disposeMenuItem.dispose();
