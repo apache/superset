@@ -59,7 +59,8 @@ jobs:
           set -euo pipefail
 
           emit_needs() {
-            # $1: mode (all/none/files-with-$files-set-in-scope)
+            # $1: mode (all/none). The "files" mode is handled separately,
+            # via scripts/pre_commit_dependency_needs.py, not this function.
             case "$1" in
               all)
                 echo "needs_frontend=true" >> "$GITHUB_OUTPUT"

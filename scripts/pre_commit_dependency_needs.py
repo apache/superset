@@ -19,10 +19,10 @@ needed for a given set of changed files.
 
 Every hook that actually needs those installs is already path-gated in
 .pre-commit-config.yaml (oxfmt-frontend, oxlint-frontend, custom-rules-frontend,
-stylelint-frontend, type-checking-frontend on `superset-frontend/`; oxlint-docs
-on `docs/*.{js,jsx,ts,tsx}`), so a changed-file list that matches none of these
-patterns means npm ci / yarn install can be skipped without any hook missing
-its dependencies.
+stylelint-frontend, type-checking-frontend on `superset-frontend/*.{js,jsx,ts,
+tsx,css,scss,sass,json}`; oxlint-docs on `docs/*.{js,jsx,ts,tsx}`), so a
+changed-file list that matches none of these patterns means npm ci / yarn
+install can be skipped without any hook missing its dependencies.
 
 A previous inline-bash version of this (`printf '%s\\n' "$files" | grep -q
 ...`) risked a false "not needed" result: under `set -o pipefail`, grep -q's
@@ -37,9 +37,12 @@ import re
 import sys
 from typing import List
 
-# Mirrors oxfmt-frontend/oxlint-frontend/custom-rules-frontend/
-# stylelint-frontend/type-checking-frontend's own `files:` prefix.
-FRONTEND_PATTERNS: List[str] = [r"^superset-frontend/"]
+# Mirrors the union of oxfmt-frontend/oxlint-frontend/custom-rules-frontend/
+# stylelint-frontend/type-checking-frontend's own `files:` patterns (oxfmt
+# additionally covers css/scss/sass/json; the rest are js/jsx/ts/tsx only).
+FRONTEND_PATTERNS: List[str] = [
+    r"^superset-frontend/.*\.(js|jsx|ts|tsx|css|scss|sass|json)$"
+]
 # Mirrors oxlint-docs's own `files:` pattern exactly. Most docs contributions
 # are prose (.md/.mdx), which this correctly treats as not needing the install.
 DOCS_PATTERNS: List[str] = [r"^docs/.*\.(js|jsx|ts|tsx)$"]
