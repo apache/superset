@@ -72,10 +72,10 @@ class ExecuteSqlRequest(BaseModel):
     limit: int | None = Field(
         default=None,
         description=(
-            "Maximum rows returned. "
+            "Maximum rows returned by the last statement. "
             "Omitted: respects SQL LIMIT. "
-            "If set, caps the last statement's outer LIMIT at min(SQL LIMIT, "
-            "this value), adding one if absent. "
+            "If set, caps its outer LIMIT at min(SQL LIMIT, "
+            "this value), adding a LIMIT if absent. "
             "Never raises stricter SQL limits or changes inner limits. "
             "Explicit limits also obey server SQL_MAX_ROW."
         ),
@@ -154,6 +154,7 @@ class StatementInfo(BaseModel):
         ..., description="SQL after transformations (RLS, mutations, limits)"
     )
     row_count: RowCount = Field(..., description="Number of rows returned/affected")
+    truncated: bool = Field(False, description="Rows omitted by the fetch cap")
     execution_time_ms: float | None = Field(
         None, description="Statement execution time in milliseconds"
     )

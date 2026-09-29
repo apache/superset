@@ -36,6 +36,13 @@ limits are not changed.
 This contract change also applies to the public `Database.execute()` and
 `Database.execute_async()` APIs through `QueryOptions.limit`, including dry runs.
 
+SQL Lab also recognizes literal `FETCH FIRST` counts and parenthesized literal
+limits. SQL Server `TOP ... PERCENT` and `TOP ... WITH TIES` are no longer
+interpreted as fixed row counts: SQL Lab uses the row-limit dropdown (subject to
+server limits) and rewrites these clauses to a fixed `TOP` cap. For example,
+`TOP 5 PERCENT` with a 1000-row dropdown can return up to 1000 rows rather than
+the previous five.
+
 ### Version history retention setting
 
 Use `VERSION_HISTORY_RETENTION_DAYS` for both the application setting and

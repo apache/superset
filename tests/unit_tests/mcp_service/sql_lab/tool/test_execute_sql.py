@@ -153,10 +153,8 @@ async def test_execute_sql_limit_schema_is_a_safety_cap(mcp_server: FastMCP) -> 
     limit_schema = request_schema["properties"]["limit"]
     assert limit_schema["default"] is None
     description = limit_schema["description"]
-    assert (
-        "caps the last statement's outer LIMIT at min(SQL LIMIT, this value)"
-        in description
-    )
+    assert "Maximum rows returned by the last statement." in description
+    assert "caps its outer LIMIT at min(SQL LIMIT, this value)" in description
     assert "Never raises stricter SQL limits" in description
     assert "Omitted: respects SQL LIMIT" in description
     assert "overrides any SQL LIMIT" not in description
@@ -961,6 +959,7 @@ class TestExecuteSql:
                     data=pd.DataFrame([{"total_revenue": 12345.67}]),
                     row_count=1,
                     execution_time_ms=7.0,
+                    truncated=True,
                 ),
             ],
             query_id=None,
@@ -995,6 +994,7 @@ class TestExecuteSql:
 
             # First statement's data is accessible
             first_stmt = data["statements"][0]
+            assert first_stmt["truncated"] is False
             assert first_stmt["data"] is not None
             assert first_stmt["data"]["rows"] == [{"order_count": 42}]
             assert len(first_stmt["data"]["columns"]) == 1
@@ -1002,6 +1002,7 @@ class TestExecuteSql:
 
             # Second statement's data is accessible
             second_stmt = data["statements"][1]
+            assert second_stmt["truncated"] is True
             assert second_stmt["data"] is not None
             assert second_stmt["data"]["rows"] == [{"total_revenue": 12345.67}]
             assert len(second_stmt["data"]["columns"]) == 1

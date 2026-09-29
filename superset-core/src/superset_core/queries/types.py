@@ -102,6 +102,7 @@ class StatementResult:
     data: pd.DataFrame | None = None
     row_count: int = 0
     execution_time_ms: float | None = None
+    truncated: bool = False  # Rows omitted by the fetch cap, beyond executed_sql
 
 
 @dataclass

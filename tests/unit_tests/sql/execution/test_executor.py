@@ -1053,6 +1053,7 @@ def test_execute_multi_statement_updates_query_progress(
     )
 
     mock_result_set = MagicMock(spec=SupersetResultSet)
+    mock_result_set.truncated = False
     mock_result_set.to_pandas_df.return_value = pd.DataFrame(
         {"id": ["1"], "name": ["Alice"]}
     )
@@ -1807,7 +1808,15 @@ def test_apply_limit_preserves_unsafe_tsql_projections(
 
 @pytest.mark.parametrize(
     "request_limit,server_limit,expected_rows",
-    [(10, None, 10), (10, 5, 5), (5, 10, 5), (30, None, 20), (None, 5, 20)],
+    [
+        (10, None, 10),
+        (10, 5, 5),
+        (5, 10, 5),
+        (20, None, 20),
+        (30, None, 20),
+        (None, 5, 20),
+        (0, None, 0),
+    ],
 )
 def test_execute_caps_rows_without_sql_rewrite(
     mocker: MockerFixture,
@@ -1838,6 +1847,8 @@ def test_execute_caps_rows_without_sql_rewrite(
     assert result.status == QueryStatus.SUCCESS
     assert result.statements[0].row_count == 20
     assert result.statements[-1].row_count == expected_rows
+    assert result.statements[0].truncated is False
+    assert result.statements[-1].truncated is (expected_rows < 20)
     assert result.statements[-1].data is not None
     assert len(result.statements[-1].data) == expected_rows
 
@@ -1892,7 +1903,8 @@ def test_execute_bounds_cursor_fetches(
 
     cursor.fetchall.assert_not_called()
     assert (
-        sum(call.args[0] for call in cursor.fetchmany.call_args_list) <= expected_limit
+        sum(call.args[0] for call in cursor.fetchmany.call_args_list)
+        <= expected_limit + 1
     )
     assert result_set.call_args.args[0] == rows[:expected_limit]
     if engine == "mssql":
@@ -2299,6 +2311,7 @@ def test_async_handle_get_result_with_results_backend(
                     ],
                     "row_count": 2,
                     "execution_time_ms": 10.0,
+                    "truncated": True,
                 }
             ],
             "total_execution_time_ms": 10.0,
@@ -2330,6 +2343,7 @@ def test_async_handle_get_result_with_results_backend(
     assert len(query_result.statements) > 0
     assert query_result.statements[0].data is not None
     assert sum(s.row_count for s in query_result.statements) == 2
+    assert query_result.statements[0].truncated is True
 
 
 def test_async_handle_get_result_backend_load_error(
@@ -3013,6 +3027,7 @@ def test_get_from_cache_returns_cached_result(
                 "data": pd.DataFrame({"id": [1, 2]}),
                 "row_count": 2,
                 "execution_time_ms": 10.0,
+                "truncated": True,
             }
         ],
         "total_execution_time_ms": 10.0,
@@ -3027,6 +3042,7 @@ def test_get_from_cache_returns_cached_result(
     assert result.status == QueryStatus.SUCCESS
     assert result.is_cached is True
     assert sum(s.row_count for s in result.statements) == 2
+    assert result.statements[0].truncated is True
 
 
 def test_cached_async_result_get_result_returns_cached(
@@ -3278,3 +3294,84 @@ def test_store_in_cache_skips_when_identity_unknown(
     executor._store_in_cache(result, "SELECT * FROM salaries", QueryOptions())
 
     mock_cache_set.assert_not_called()
+
+
+@pytest.mark.parametrize("limit", [0, 2, 3, 5])
+@pytest.mark.parametrize(
+    "sql",
+    [
+        "PRAGMA table_info(numbers)",
+        "INSERT INTO numbers VALUES (1, 2, 3), (4, 5, 6), (7, 8, 9) RETURNING n",
+    ],
+)
+def test_execute_reports_non_query_truncation(
+    mocker: MockerFixture,
+    database: Database,
+    app_context: None,
+    sql: str,
+    limit: int,
+) -> None:
+    """Metadata and RETURNING results distinguish omitted rows from exact caps."""
+    database.allow_dml = True
+    mocker.patch.dict(
+        current_app.config,
+        {"SQL_MAX_ROW": None, "SQL_QUERY_MUTATOR": None, "QUERY_LOGGER": None},
+    )
+    with closing(sqlite3.connect(":memory:")) as connection:
+        connection.execute("CREATE TABLE numbers (n INTEGER, a INTEGER, b INTEGER)")
+        mocker.patch.object(database, "get_raw_connection", return_value=connection)
+        result = database.execute(sql, QueryOptions(limit=limit))
+        assert result.status == QueryStatus.SUCCESS
+        statement = result.statements[0]
+        assert statement.row_count == min(limit, 3)
+        assert statement.truncated is (limit < 3)
+
+
+@pytest.mark.parametrize("row_count,limit", [(0, 0), (0, 2), (2, 2), (3, 2)])
+def test_limited_cursor_truncation_probe(row_count: int, limit: int) -> None:
+    """A single probe distinguishes an exhausted result from omitted rows."""
+    from superset.sql.execution.executor import _LimitedCursor
+
+    with closing(sqlite3.connect(":memory:")) as connection:
+        cursor = connection.execute(
+            "SELECT 1 UNION ALL SELECT 2 UNION ALL SELECT 3 LIMIT ?", (row_count,)
+        )
+        limited = _LimitedCursor(cursor, limit)
+        assert len(limited.fetchall()) == min(limit, row_count)
+        assert limited.check_truncated() is (row_count > limit)
+
+
+@pytest.mark.parametrize("truncated", [False, True])
+def test_truncation_survives_cache_round_trip(
+    mocker: MockerFixture,
+    database: Database,
+    app_context: None,
+    truncated: bool,
+) -> None:
+    """Cache serialization retains fetch truncation independently of row count."""
+    from superset_core.queries.types import QueryResult, StatementResult
+
+    from superset.extensions import cache_manager
+    from superset.sql.execution.executor import SQLExecutor
+
+    executor = SQLExecutor(database)
+    result = QueryResult(
+        status=QueryStatus.SUCCESS,
+        statements=[
+            StatementResult(
+                original_sql="SELECT 1",
+                executed_sql="SELECT 1",
+                data=pd.DataFrame({"n": [1]}),
+                row_count=1,
+                truncated=truncated,
+            )
+        ],
+    )
+    cache_set = mocker.patch.object(cache_manager.data_cache, "set")
+    executor._store_in_cache(result, "SELECT 1", QueryOptions())
+    mocker.patch.object(
+        cache_manager.data_cache, "get", return_value=cache_set.call_args.args[1]
+    )
+    cached = executor._get_from_cache("SELECT 1", QueryOptions())
+    assert cached is not None
+    assert cached.statements[0].truncated is truncated

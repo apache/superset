@@ -1233,12 +1233,16 @@ restrictions are left unchanged instead: a derived table could reject duplicate
 or unnamed output columns. The executor caps the last statement's returned rows
 at the smaller of the explicit request limit and `SQL_MAX_ROW`, without changing
 percentage, tie, or expression semantics. Cursor reads are bounded by the same
-cap, including across multiple fetch batches, while preserving engine-specific
-result processing. Only successfully returned rows count against the cursor
+cap plus one probe row, including across multiple fetch batches, preserving
+engine-specific result processing. Only successfully returned rows count against the cursor
 budget, so a failed fetch leaves that budget available for an engine fallback.
 This does not bound the work performed by the database.
 Because this cap applies to any row-returning last statement, a non-query
-statement such as `SHOW TABLES` is also truncated to the cap without a warning. In
+statement such as `SHOW TABLES` or DML with `RETURNING` can also be capped. Each
+statement reports `truncated: true` when the fetch cap omits rows from the
+executed SQL result; exactly-at-cap and smaller results report `false`. This
+flag does not indicate rows excluded by a SQL LIMIT visible in `executed_sql`,
+and does not bound or count affected rows for a write with `RETURNING`. In
 `dry_run`, the SQL Server restriction remains unchanged because no results are
 fetched.
 
