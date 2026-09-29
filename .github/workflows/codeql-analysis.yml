@@ -25,6 +25,7 @@ jobs:
     outputs:
       python: ${{ steps.check.outputs.python }}
       frontend: ${{ steps.check.outputs.frontend }}
+      lang_matrix: ${{ steps.set-lang-matrix.outputs.lang_matrix }}
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -46,7 +47,7 @@ jobs:
           if [[ "${STEPS_CHECK_OUTPUTS_FRONTEND}" == "true" ]]; then
             lang_matrix_string=${lang_matrix_string}'"javascript"'
           fi
-          echo "lang_matrix=$(jq --compact-output --null-input '[inputs] | tostring' <<< $lang_matrix_string)"
+          echo "lang_matrix=$(jq --compact-output --null-input '[inputs] | tostring' <<< $lang_matrix_string)" >> $GITHUB_OUTPUT
         env:
           STEPS_CHECK_OUTPUTS_PYTHON: ${{ steps.check.outputs.python }}
           STEPS_CHECK_OUTPUTS_FRONTEND: ${{ steps.check.outputs.frontend }}
