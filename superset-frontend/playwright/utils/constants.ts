@@ -94,10 +94,6 @@ export const TIMEOUT = {
 } as const;
 
 /**
- * Embedded dashboard test app configuration.
- * The test app is served by a Node.js http server started in the test fixture.
- */
-/**
  * Global Async Queries endpoints, as the browser calls them.
  *
  * Kept here rather than inline so the dashboard helpers and the SQL Lab spec
@@ -113,6 +109,10 @@ export const GAQ = {
   TASK_STATUS_CHANGES_PATH: '/api/v1/task/status_changes',
 } as const;
 
+/**
+ * Embedded dashboard test app configuration.
+ * The test app is served by a Node.js http server started in the test fixture.
+ */
 export const EMBEDDED = {
   /** Timeout for iframe to appear in the DOM */
   IFRAME_LOAD: 15000, // 15s

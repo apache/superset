@@ -483,14 +483,14 @@ jobs:
       GITHUB_TOKEN: ${{ github.token }}
     services:
       postgres:
-        image: postgres:17-alpine
+        image: ghcr.io/apache/superset/ci/postgres:17-alpine
         env:
           POSTGRES_USER: superset
           POSTGRES_PASSWORD: superset
         ports:
           - 15432:5432
       redis:
-        image: redis:7-alpine
+        image: ghcr.io/apache/superset/ci/redis:7-alpine
         ports:
           - 16379:6379
     steps:
@@ -586,9 +586,9 @@ jobs:
         uses: ./.github/actions/cached-dependencies # zizmor: ignore[self-repository] - $/ cannot resolve an action that lives in a submodule; ./ is required here
         env:
           NODE_OPTIONS: "--max-old-space-size=4096"
-          # Scoped to this step for the same reason as the embedded and mobile
-          # flags in playwright-tests-experimental: GLOBAL_ASYNC_QUERIES changes
-          # chart-data behaviour for every spec sharing a server.
+          # Scoped to this step for the same reason as the Soft-delete, Embedded
+          # and Mobile steps in playwright-tests above: GLOBAL_ASYNC_QUERIES
+          # changes chart-data behaviour for every spec sharing a server.
           #
           # This suite has its own job, and is not required, because unlike the
           # other flag-gated suites it needs a Celery worker: submissions are
@@ -607,8 +607,9 @@ jobs:
       - name: Set safe app root
         if: failure()
         id: set-safe-app-root
+        env:
+          APP_ROOT: ${{ matrix.app_root }}
         run: |
-          APP_ROOT="${{ matrix.app_root }}"
           SAFE_APP_ROOT=${APP_ROOT//\//_}
           echo "safe_app_root=$SAFE_APP_ROOT" >> $GITHUB_OUTPUT
       - name: Upload Playwright Artifacts

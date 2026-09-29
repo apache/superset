@@ -254,10 +254,35 @@ export interface DashboardChartSpec {
   params: Record<string, unknown>;
 }
 
-/** "A chart that renders a number" -- all most GAQ tests need from their fixture. */
+/**
+ * "A chart that renders a number" -- all most GAQ tests need from their fixture.
+ *
+ * `count` here is the *saved* metric the physical example datasets ship with.
+ * A dataset created through the API carries no saved metrics at all
+ * (`fetch_metadata` only discovers columns), so on one of those this spec's
+ * query fails with "Metric 'count' does not exist" -- use
+ * {@link BIG_NUMBER_ADHOC_COUNT_SPEC} for those.
+ */
 export const BIG_NUMBER_COUNT_SPEC: DashboardChartSpec = {
   viz_type: 'big_number_total',
   params: { metric: 'count' },
+};
+
+/**
+ * `COUNT(name)` as an ad-hoc metric: resolvable on any dataset over
+ * `birth_names`, whether or not it has saved metrics.
+ */
+export const ADHOC_COUNT_NAME_METRIC = {
+  expressionType: 'SIMPLE',
+  column: { column_name: 'name' },
+  aggregate: 'COUNT',
+  label: 'COUNT(name)',
+} as const;
+
+/** {@link BIG_NUMBER_COUNT_SPEC} for datasets without saved metrics. */
+export const BIG_NUMBER_ADHOC_COUNT_SPEC: DashboardChartSpec = {
+  viz_type: 'big_number_total',
+  params: { metric: ADHOC_COUNT_NAME_METRIC },
 };
 
 interface CreateDashboardWithChartsOptions {
@@ -548,6 +573,12 @@ interface SetupFilteredDashboardOptions {
   filterColumn: string;
   /** Label shown in the filter bar (default: the column name). */
   filterName?: string;
+  /**
+   * The dashboard's single chart (default: {@link BIG_NUMBER_COUNT_SPEC}).
+   * Callers passing an API-created dataset must supply one whose metric does
+   * not depend on saved metrics -- see {@link BIG_NUMBER_ADHOC_COUNT_SPEC}.
+   */
+  chartSpec?: DashboardChartSpec;
 }
 
 interface SetupFilteredDashboardResult {
@@ -579,7 +610,7 @@ export async function setupDashboardWithSelectFilter(
       datasetName: options.datasetName,
       datasetId: options.datasetId,
       chartNamePrefix: options.namePrefix,
-      chartSpecs: [BIG_NUMBER_COUNT_SPEC],
+      chartSpecs: [options.chartSpec ?? BIG_NUMBER_COUNT_SPEC],
       chartWidth: 6,
       selectFilter: { column: options.filterColumn, name: options.filterName },
     },

@@ -159,10 +159,30 @@ testWithAssets(
     await expect(value).toBeVisible({ timeout: TIMEOUT.CHART_RENDER });
 
     // Learn "girl"'s real count first, so the race can assert on that specific
-    // number. The unfiltered total already contains a digit, so a bare /\d/
-    // would pass even if the request never completed.
+    // number. The chart keeps showing the unfiltered total while "girl"'s query
+    // is in flight, and that total already contains a digit -- so a bare /\d/
+    // would read the *pre-filter* value as the baseline whenever the query was
+    // slow. Wait for the round trip at the network level instead, as the race
+    // below does: a 200 straight away (cache hit) or 202 then 200, ending in
+    // 200 either way.
+    const baselineSignals = trackGaqSignals(page);
     await filterBar.selectOption('girl');
     await filterBar.apply();
+    await expect(() => {
+      const statuses = baselineSignals.submitStatusesFor(chartId);
+      expect(
+        statuses,
+        '"girl"\'s chart-data request should have been answered',
+      ).not.toHaveLength(0);
+      expect(
+        statuses.every(status => status === 200 || status === 202),
+        `"girl"'s chart-data statuses should all be 200/202, got ${statuses.join(', ')}`,
+      ).toBe(true);
+      expect(
+        statuses[statuses.length - 1],
+        '"girl"\'s chart-data round trip should end with a 200',
+      ).toBe(200);
+    }).toPass({ timeout: TIMEOUT.CHART_RENDER });
     await expect(value).toHaveText(/\d/, { timeout: TIMEOUT.CHART_RENDER });
     const expectedGirlText = await value.textContent();
 

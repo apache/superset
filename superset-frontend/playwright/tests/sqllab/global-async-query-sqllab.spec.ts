@@ -33,9 +33,10 @@
  * under the `chromium-sqllab` project -- that project's `testIgnore` excludes
  * it deliberately. It needs GLOBAL_ASYNC_QUERIES on, which only the workflow's
  * GAQ step provides, so it runs under `chromium-gaq` alongside the dashboard
- * GAQ specs (see the workflow's `playwright-run-gaq` invocation). Without that
- * exclusion it would sit in the ordinary SQL Lab run and skip itself on every
- * execution, reporting coverage it never had.
+ * GAQ specs -- `playwright-run-gaq` selects that project with
+ * `--project=chromium-gaq`. Without that exclusion it would sit in the
+ * ordinary SQL Lab run and skip itself on every execution, reporting coverage
+ * it never had.
  */
 import { test, expect } from '../../helpers/fixtures/testAssets';
 import { SqlLabPage } from '../../pages/SqlLabPage';

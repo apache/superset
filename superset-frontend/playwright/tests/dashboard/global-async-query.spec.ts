@@ -23,8 +23,9 @@
  * cycle entirely, many charts at once, and native filter value lookups.
  *
  * Failure and edge-case behavior lives in global-async-query-resilience.spec.ts.
- * SQL Lab's smoke check lives in tests/sqllab/, which needs the
- * `chromium-sqllab` project rather than this directory's default one.
+ * SQL Lab's smoke check lives in tests/sqllab/ but runs under the same
+ * `chromium-gaq` project as these specs -- `chromium-sqllab` deliberately
+ * excludes it via `testIgnore`, since it needs the flag only the GAQ job sets.
  *
  * Requires the `GLOBAL_ASYNC_QUERIES` feature flag, Redis, and a running
  * Celery worker -- without a worker, submissions still return 202 but no job
@@ -34,6 +35,8 @@
 import { testWithAssets, expect } from '../../helpers/fixtures';
 import { TIMEOUT } from '../../utils/constants';
 import {
+  ADHOC_COUNT_NAME_METRIC,
+  BIG_NUMBER_ADHOC_COUNT_SPEC,
   BIG_NUMBER_COUNT_SPEC,
   bigNumberValueLocator,
   createCacheColdVirtualDataset,
@@ -125,22 +128,10 @@ testWithAssets(
       {
         datasetId,
         chartNamePrefix: 'gaq_cold_first_load',
-        chartSpecs: [
-          {
-            viz_type: 'big_number_total',
-            // An adhoc metric, not the saved `count` the physical example
-            // datasets ship with: a dataset created through the API carries no
-            // metrics at all, so a saved-metric reference would not resolve.
-            params: {
-              metric: {
-                expressionType: 'SIMPLE',
-                column: { column_name: 'name' },
-                aggregate: 'COUNT',
-                label: 'COUNT(name)',
-              },
-            },
-          },
-        ],
+        // An ad-hoc metric, not the saved `count` the physical example datasets
+        // ship with: a dataset created through the API carries no metrics at
+        // all, so a saved-metric reference would not resolve.
+        chartSpecs: [BIG_NUMBER_ADHOC_COUNT_SPEC],
       },
     );
     const [chart] = charts;
@@ -237,34 +228,71 @@ testWithAssets(
       'Barbara',
     ];
 
+    // `birth_names` is static, so a correct refresh reproduces every count
+    // exactly -- which means "same number as before" cannot tell a genuine
+    // re-render from a DOM that never updated. The dataset therefore also
+    // stamps each query with the server clock, and one extra chart shows the
+    // latest stamp: a value that *must* move on a correct refresh.
+    const QUERIED_AT = 'queried_at_ms';
+    const { datasetId } = await createCacheColdVirtualDataset(
+      page,
+      testAssets,
+      testWithAssets.info(),
+      {
+        namePrefix: 'gaq_tc5_busy_dashboard',
+        select: `SELECT name, CAST(EXTRACT(EPOCH FROM CURRENT_TIMESTAMP) * 1000 AS BIGINT) AS ${QUERIED_AT} FROM birth_names`,
+      },
+    );
+
     const { dashboard, charts, valueLocators } =
       await setupDashboardWithBigNumberCharts(
         page,
         testAssets,
         testWithAssets.info(),
         {
-          datasetName: 'birth_names',
+          datasetId,
           chartNamePrefix: 'gaq_tc5_busy_dashboard',
-          chartSpecs: NAMES.map(name => ({
-            viz_type: 'big_number_total',
-            params: {
-              metric: 'count',
-              adhoc_filters: [
-                {
-                  clause: 'WHERE',
+          chartSpecs: [
+            ...NAMES.map(name => ({
+              viz_type: 'big_number_total',
+              params: {
+                metric: ADHOC_COUNT_NAME_METRIC,
+                adhoc_filters: [
+                  {
+                    clause: 'WHERE',
+                    expressionType: 'SIMPLE',
+                    subject: 'name',
+                    operator: '==',
+                    comparator: name,
+                  },
+                ],
+              },
+            })),
+            {
+              viz_type: 'big_number_total',
+              params: {
+                metric: {
                   expressionType: 'SIMPLE',
-                  subject: 'name',
-                  operator: '==',
-                  comparator: name,
+                  column: { column_name: QUERIED_AT },
+                  aggregate: 'MAX',
+                  label: `MAX(${QUERIED_AT})`,
                 },
-              ],
+                // Plain digits: the default SMART_NUMBER would round two stamps
+                // seconds apart to the same "1.76T".
+                y_axis_format: ',d',
+              },
             },
-          })),
-          // 8 charts at the default width (4) would exceed the 12-column grid.
+          ],
+          // 9 charts at the default width (4) would exceed the 12-column grid.
           chartWidth: 1,
         },
         { timeout: TIMEOUT.SLOW_TEST },
       );
+    const nameCharts = charts.slice(0, NAMES.length);
+    const nameValues = valueLocators.slice(0, NAMES.length);
+    const clockValue = valueLocators[NAMES.length];
+    const readClock = async () =>
+      Number((await clockValue.textContent())?.replace(/,/g, ''));
 
     await Promise.all(
       valueLocators.map(locator =>
@@ -276,18 +304,17 @@ testWithAssets(
     // is per-chart ground truth. "Values aren't all identical" would not catch
     // two charts swapping results; "chart N still shows chart N's count" does.
     const expectedValues = await Promise.all(
-      valueLocators.map(locator => locator.textContent()),
+      nameValues.map(locator => locator.textContent()),
     );
+    const clockBefore = await readClock();
+    expect(
+      clockBefore,
+      'the clock chart should render a timestamp',
+    ).toBeGreaterThan(0);
 
     const signals = trackGaqSignals(page);
 
     await dashboard.forceRefresh();
-
-    await Promise.all(
-      valueLocators.map(locator =>
-        expect(locator).toHaveText(/\d/, { timeout: TIMEOUT.CHART_RENDER }),
-      ),
-    );
 
     await expect(() => {
       for (const chart of charts) {
@@ -306,6 +333,18 @@ testWithAssets(
       ).toBeGreaterThanOrEqual(charts.length);
     }).toPass({ timeout: TIMEOUT.CHART_RENDER });
 
+    // The round trips above are network-level proof. This is the render-level
+    // proof: a forced refresh re-executes the query, so the clock chart must
+    // show a later stamp than before -- something a DOM that never repainted
+    // could not do.
+    await expect
+      .poll(readClock, {
+        message:
+          'the clock chart should repaint with the timestamp of the re-executed query',
+        timeout: TIMEOUT.CHART_RENDER,
+      })
+      .toBeGreaterThan(clockBefore);
+
     // If these names didn't produce distinct counts, the per-chart assertion
     // below would pass no matter how badly results were shuffled.
     expect(
@@ -313,10 +352,13 @@ testWithAssets(
       'each chart filters on a different name, so their pre-refresh counts should not all collapse to the same number',
     ).toBeGreaterThan(1);
 
+    // With the repaint established above, "same number as before" is a real
+    // correctness check rather than a tautology: static data means each chart
+    // must reproduce its own count, and only its own.
     const displayedValues = await Promise.all(
-      valueLocators.map(locator => locator.textContent()),
+      nameValues.map(locator => locator.textContent()),
     );
-    for (const [index, chart] of charts.entries()) {
+    for (const [index, chart] of nameCharts.entries()) {
       expect(
         displayedValues[index],
         `chart ${chart.id} (${chart.sliceName}) should show its own count (${expectedValues[index]}) after the refresh, not another chart's result`,
@@ -340,7 +382,7 @@ testWithAssets(
       { namePrefix: 'gaq_tc8_filter_dropdown' },
     );
 
-    const { dashboardId, dashboard, filterBar } =
+    const { dashboardId, dashboard, filterBar, chartId, value } =
       await setupDashboardWithSelectFilter(
         page,
         testAssets,
@@ -352,6 +394,9 @@ testWithAssets(
           // real query rather than a handful of values the UI could inline.
           filterColumn: 'name',
           filterName: 'Name',
+          // The per-run dataset has no saved metrics, so the default spec's
+          // saved `count` would not resolve and the chart would error out.
+          chartSpec: BIG_NUMBER_ADHOC_COUNT_SPEC,
         },
       );
 
@@ -362,6 +407,21 @@ testWithAssets(
     await dashboard.gotoById(dashboardId);
     await dashboard.waitForLoad({ timeout: TIMEOUT.SLOW_TEST });
     await dashboard.waitForChartsToLoad();
+
+    // The chart is not what this test is about, but a broken one must not slip
+    // through just because every assertion below looks at the filter: it has to
+    // render a number, and on this cache-cold dataset its own data has to come
+    // through the async cycle.
+    await expect(value).toHaveText(/\d/, { timeout: TIMEOUT.CHART_RENDER });
+    await expect(
+      dashboard.getChart(chartId).locator('.ant-alert-error'),
+    ).not.toBeAttached();
+    await expect(() => {
+      expect(
+        signals.submitStatusesFor(chartId),
+        'the chart itself should have completed its 202 -> 200 round trip',
+      ).toEqual([202, 200]);
+    }).toPass({ timeout: TIMEOUT.CHART_RENDER });
 
     // Filter-value requests hit the same endpoint as chart data but carry no
     // slice_id, which is exactly how they're told apart here.
