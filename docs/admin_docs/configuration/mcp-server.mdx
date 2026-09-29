@@ -144,14 +144,21 @@ While a scope with active filters is present:
 
 - Chart data tools (`get_chart_data`, `get_chart_preview`, `get_dashboard_data`)
   apply each chart's dashboard filters and AND any `extra_form_data` the model
-  supplies with them. Filters can be added but not removed, and time ranges,
-  time columns and relative anchors the dashboard sets cannot be changed.
-  Charts that are not on the scoped dashboard are refused.
+  supplies with them. Filters can be added but not removed, and time windows,
+  time columns and relative anchors the dashboard sets (including time-series
+  cross-filters) cannot be changed. Charts that are not on the scoped
+  dashboard, and unsaved chart state (`form_data_key`), are refused.
 - `query_dataset`, `get_table` (datasets) and `execute_sql` apply the
-  dashboard-wide filters. `execute_sql` constrains every table read, the same
-  way row-level security is applied, and refuses SQL whose tables are not
-  registered datasets that have every filtered column. A model-supplied time
-  range is intersected with the dashboard's.
+  dashboard-wide filters. A model-supplied time range is intersected with the
+  dashboard's. `execute_sql` replaces every table read with a filtered
+  sub-query, the same way row-level security is applied, and refuses SQL whose
+  tables are not registered datasets that have every filtered column, as well
+  as SQL that could read tables it cannot see: opaque statements, functions
+  the SQL parser does not model, and table functions.
+- Writes that change what charts or datasets query (adding a chart to a
+  dashboard, saving a chart, defining a virtual dataset, editing a dataset or
+  metric, restoring a chart or dataset) are refused while the scope is
+  active.
 - Where the filters cannot be applied (for example, a column the dataset lacks,
   or a column filtered differently by different charts) the call fails with a
   tool error beginning `Dashboard filter scope refused this call:`. Tools that
