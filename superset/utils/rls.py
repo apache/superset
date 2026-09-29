@@ -22,7 +22,6 @@ from functools import partial
 from typing import Any, TYPE_CHECKING
 
 from sqlalchemy import and_, func, or_
-from sqlalchemy.exc import SQLAlchemyError
 
 from superset import db, security_manager
 from superset.sql.parse import folds_unquoted_object_names, Table
@@ -329,14 +328,19 @@ def collect_rls_predicates_for_sql(
                 )
             }
         )
-    except Exception as ex:
+    except Exception:
         # The block above is not only SQL parsing: `get_predicates_for_table`
         # queries `db.session` and `get_default_catalog()` builds an engine, so
         # a caught DB error can leave db.session in "pending rollback" state,
-        # which would poison unrelated queries later in this request. A parse
-        # failure touches no session, so only roll back for a DB error.
-        if isinstance(ex, SQLAlchemyError):
-            db.session.rollback()  # pylint: disable=consider-using-transaction
+        # which would poison unrelated queries later in this request.
+        #
+        # Unconditional, like the RLS handler in `models/helpers.py`: the DB
+        # work above can poison the session and then a different, non-DB error
+        # can surface -- building the engine raises `SupersetErrorException`
+        # when the impersonated user cannot be resolved, for instance -- so
+        # keying the rollback on the exception type would miss exactly the
+        # cases that need it.
+        db.session.rollback()  # pylint: disable=consider-using-transaction
 
         # If we can't parse the SQL, we can't tell which (if any) RLS
         # predicates would apply, so we can't contribute a meaningful cache

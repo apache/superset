@@ -353,7 +353,7 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
                         # leaving the default/service-account username paired
                         # with this user's OAuth token. Use it as given.
                         url = url.set(username=username)
-                    elif email := database.get_impersonation_email():
+                    elif email := database.get_impersonation_email(url):
                         url = url.set(username=email)
 
                 url = url.update_query_dict({"token": user_token})

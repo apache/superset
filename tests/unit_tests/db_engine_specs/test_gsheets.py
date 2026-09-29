@@ -575,14 +575,19 @@ def test_impersonate_user_username(mocker: MockerFixture) -> None:
 
     database = mocker.MagicMock()
     database.get_impersonation_email.return_value = "alice@example.org"
+    url = make_url("gsheets://")
 
     assert GSheetsEngineSpec.impersonate_user(
         database,
         username="alice",
         user_token=None,
-        url=make_url("gsheets://"),
+        url=url,
         engine_kwargs={},
     ) == (make_url("gsheets://?subject=alice%40example.org"), {})
+
+    # Resolved from the same URL `Database._get_sqla_engine()` passes down, so
+    # both paths read the effective user from the same place.
+    database.get_impersonation_email.assert_called_once_with(url)
 
 
 @with_feature_flags(IMPERSONATE_WITH_EMAIL_PREFIX=True)

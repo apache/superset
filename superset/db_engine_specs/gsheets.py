@@ -254,8 +254,10 @@ class GSheetsEngineSpec(ShillelaghEngineSpec):
             # ``IMPERSONATE_WITH_EMAIL_PREFIX`` enabled the caller has already
             # substituted the email prefix into ``username``, so looking it up
             # here as if it were still the login finds nothing whenever the two
-            # differ, silently leaving the subject unset.
-            if email := database.get_impersonation_email():
+            # differ, silently leaving the subject unset. ``url`` is the same
+            # one ``Database._get_sqla_engine()`` resolved from, so both paths
+            # read the effective user from the same place.
+            if email := database.get_impersonation_email(url):
                 url = url.update_query_dict({"subject": email})
 
         if user_token:
