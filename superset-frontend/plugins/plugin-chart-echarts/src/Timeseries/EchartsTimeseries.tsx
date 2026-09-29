@@ -57,6 +57,7 @@ import {
 } from './types';
 import { formatSeriesName } from '../utils/series';
 import { getTemporalXAxisDrillByFilter } from '../utils/xAxisDrillByFilter';
+import { useLegendEventHandlers } from '../utils/legendEventHandlers';
 import { ExtraControls } from '../components/ExtraControls';
 import TimeseriesLegend from './TimeseriesLegend';
 import { TIMESERIES_CONSTANTS } from '../constants';
@@ -540,7 +541,13 @@ export default function EchartsTimeseries({
     [xAxisValueIndex],
   );
 
+  const legendEventHandlers = useLegendEventHandlers(
+    onLegendStateChanged,
+    onLegendScroll,
+  );
+
   const eventHandlers: EventHandlers = {
+    ...legendEventHandlers,
     click: props => {
       // Allow cross-filter by dimensions OR by categorical X-axis (issue #25334)
       if (!hasDimensions && !canCrossFilterByXAxis) {
@@ -585,18 +592,6 @@ export default function EchartsTimeseries({
     },
     mouseover: params => {
       onFocusedSeries(params.seriesName);
-    },
-    legendscroll: payload => {
-      onLegendScroll?.(payload.scrollDataIndex);
-    },
-    legendselectchanged: payload => {
-      onLegendStateChanged?.(payload.selected);
-    },
-    legendselectall: payload => {
-      onLegendStateChanged?.(payload.selected);
-    },
-    legendinverseselect: payload => {
-      onLegendStateChanged?.(payload.selected);
     },
     contextmenu: async eventParams => {
       if (onContextMenu) {

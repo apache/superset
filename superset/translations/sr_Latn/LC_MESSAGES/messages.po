@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-23 12:43+0200\n"
+"POT-Creation-Date: 2026-09-24 10:35+0300\n"
 "PO-Revision-Date: 2026-06-14 13:20+0200\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: sr_Latn\n"
@@ -1189,6 +1189,15 @@ msgid ""
 "A butterfly chart compares two metrics across categories using horizontal"
 " bars that extend left and right from a central axis."
 msgstr ""
+
+msgid ""
+"A candlestick chart shows opening, closing, high, and low values for each"
+" period. It is commonly used for financial and other time-series range "
+"analysis."
+msgstr ""
+"Svećasti grafikon prikazuje vrednosti otvaranja, zatvaranja, maksimum i "
+"minimum za svaki period. Obično se koristi za finansijsku i drugu analizu "
+"opsega vremenskih serija."
 
 # ru, sk, uk]
 msgid "A comma separated list of columns that should be parsed as dates"
@@ -3882,6 +3891,19 @@ msgstr "Otkaži upit pri događaju zatvaranja prozora"
 msgid "Cancellation not available due to missing abort handler"
 msgstr "Otkazivanje nije moguće zbog nedostatka upravljača prekidom"
 
+msgid "Candlestick"
+msgstr "Svećasti grafikon"
+
+msgid "Candlestick Chart"
+msgstr "Svećasti grafikon"
+
+msgid ""
+"Candlestick draws a filled body between open and close. OHLC draws ticks "
+"for open and close on a high-low stem."
+msgstr ""
+"Sveće crtaju ispunjeno telo između otvaranja i zatvaranja. OHLC crta "
+"oznake otvaranja i zatvaranja na stablu maksimum–minimum."
+
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Cannot access the query"
 msgstr "Nije moguće pristupiti upitu"
@@ -4390,6 +4412,13 @@ msgstr "Grafikon je sačuvan, ali nije mogao biti dodat na izabranu karticu."
 msgid "Chart width"
 msgstr "Širina grafikona"
 
+#, python-format
+msgid ""
+"Chart with ID %(chart_id)s (referenced by annotation layer "
+"'%(layer_name)s') was not found. Please verify that the chart exists and "
+"is accessible."
+msgstr ""
+
 # de, es, fa, fr, it, ja, ko, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, tr, uk,
 # zh, zh_TW]
 msgid "Charts"
@@ -4816,6 +4845,9 @@ msgstr "Zatvori karticu"
 msgid "Close version history"
 msgstr ""
 
+msgid "Closing value for each period."
+msgstr "Vrednost zatvaranja za svaki period."
+
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Cluster label aggregator"
 msgstr "Agregator oznaka klastera"
@@ -4912,6 +4944,9 @@ msgstr "Prelomne tačke boje"
 msgid "Color by"
 msgstr "Boja po"
 
+msgid "Color by direction"
+msgstr "Boja prema smeru"
+
 msgid "Color field must be a hex color (#rrggbb) or 'rgb(r, g, b)'"
 msgstr "Polje za boju mora biti heksadecimalna boja (#rrggbb) ili 'rgb(r, g, b)'"
 
@@ -4941,6 +4976,15 @@ msgstr "Boja ciljne lokacije"
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Color scheme"
 msgstr "Šema boja"
+
+msgid ""
+"Color used when the close value is greater than or equal to the open "
+"value."
+msgstr ""
+"Boja kada je vrednost zatvaranja veća ili jednaka vrednosti otvaranja."
+
+msgid "Color used when the close value is less than the open value."
+msgstr "Boja kada je vrednost zatvaranja manja od vrednosti otvaranja."
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, ru, sk, sl, uk]
 msgid ""
@@ -9360,6 +9404,9 @@ msgstr ""
 "(department = 'Finance' OR department = 'Marketing') AND (region = "
 "'Europe')."
 
+msgid "Financial"
+msgstr ""
+
 # de, es, fa, ja, lv, mi, nl, ru, sk, sl, tr, uk]
 msgid "Find"
 msgstr "Pronađi"
@@ -9958,8 +10005,14 @@ msgstr "Sakriva liniju za vremensku seriju"
 msgid "Hierarchy"
 msgstr "Hijerarhija"
 
+msgid "High"
+msgstr ""
+
 msgid "High color"
 msgstr ""
+
+msgid "Highest value for each period."
+msgstr "Najviša vrednost za svaki period."
 
 msgid "Histogram"
 msgstr "Histogram"
@@ -10842,6 +10895,12 @@ msgstr "Jedinica veličine oznake"
 msgid "Label threshold"
 msgstr "Prag oznake"
 
+msgid "Label used for decreasing candles in the tooltip."
+msgstr "Oznaka opadajućih sveća u opisu."
+
+msgid "Label used for increasing candles in the tooltip."
+msgstr "Oznaka rastućih sveća u opisu."
+
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Labelling"
 msgstr "Označavanje"
@@ -11427,6 +11486,9 @@ msgstr "Geografska dužina i širina"
 msgid "Longitude of default viewport"
 msgstr "Geografska dužina podrazumevanog prikaza"
 
+msgid "Low"
+msgstr ""
+
 msgid "Low color"
 msgstr ""
 
@@ -11442,6 +11504,9 @@ msgstr ""
 # de, es, fa, fr, ja, lv, mi, nl, pl, ru, sk, sl, uk, zh, zh_TW]
 msgid "Lower threshold must be lower than upper threshold"
 msgstr "Donji prag mora biti manji od gornjeg praga"
+
+msgid "Lowest value for each period."
+msgstr "Najniža vrednost za svaki period."
 
 msgid "MAR"
 msgstr "MAR"
@@ -12149,6 +12214,9 @@ msgstr ""
 msgid "Moves the given set of dates by a specified interval."
 msgstr "Pomera dati skup datuma za navedeni interval."
 
+msgid "Moving averages"
+msgstr "Pokretni proseci"
+
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Multi-Dimensions"
 msgstr "Više dimenzija"
@@ -12279,6 +12347,13 @@ msgstr "Naziv ciljnih čvorova"
 # de, es, fa, ja, lv, mi, nl, ru, sk, sl, uk]
 msgid "Name of your tag"
 msgstr "Naziv vaše oznake"
+
+msgid ""
+"Name used for the candlestick series in the legend and tooltip when no "
+"series dimension is set."
+msgstr ""
+"Naziv svećaste serije u legendi i opisu kada dimenzija serije nije "
+"postavljena."
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Name your database"
@@ -12929,6 +13004,9 @@ msgstr "Informacije o OAuth2 klijentu"
 msgid "OCT"
 msgstr "OKT"
 
+msgid "OHLC"
+msgstr "OHLC"
+
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "OK"
 msgstr "OK"
@@ -13117,6 +13195,9 @@ msgstr "Providnost balončića, 0 znači potpuno providno, 1 znači neprovidno"
 msgid "Opacity, expects values between 0 and 100"
 msgstr "Providnost, očekuje vrednosti između 0 i 100"
 
+msgid "Open"
+msgstr ""
+
 # de, es, fa, fr, it, ja, ko, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh,
 # zh_TW]
 msgid "Open Datasource tab"
@@ -13159,6 +13240,9 @@ msgstr "Otvori u SQL Lab-u"
 msgid "Open query in SQL Lab"
 msgstr "Otvori upit u SQL Lab-u"
 
+msgid "Opening value for each period."
+msgstr "Vrednost otvaranja za svaki period."
+
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid ""
 "Operate the database in asynchronous mode, meaning that the queries are "
@@ -13195,6 +13279,11 @@ msgstr "Opcioni niz za d3 format datuma"
 # de, es, fa, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
 msgid "Optional d3 number format string"
 msgstr "Opcioni niz za d3 format broja"
+
+msgid ""
+"Optional dimension used to split the chart into multiple candlestick "
+"series."
+msgstr "Opcionalna dimenzija koja deli grafikon na više svećastih serija."
 
 msgid ""
 "Optional metric used to scale the size of each dot. Dot areas are scaled "
@@ -13342,6 +13431,13 @@ msgstr ""
 "iz vremenskih filtera\" da pomerite period za poređenje za istu dužinu "
 "kao vaš vremenski opseg, i koristite \"Prilagođeno\" da podesite "
 "prilagođeni opseg za poređenje."
+
+msgid ""
+"Overlay simple moving averages of the close price (MA5, MA10, MA15, ...)."
+" Type a custom period to add it."
+msgstr ""
+"Preklopite proste pokretne proseke cene zatvaranja (MA5, MA10, MA15, ...). "
+"Unesite prilagođeni period da ga dodate."
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
 msgid ""
@@ -16536,6 +16632,9 @@ msgstr "Stil serije"
 msgid "Series chart type (line, bar etc)"
 msgstr "Tip grafikona serije (linija, traka itd)"
 
+msgid "Series colors"
+msgstr "Boje serija"
+
 # ru, sk, uk]
 msgid "Series decrease setting"
 msgstr "Podešavanje smanjenja serije"
@@ -16548,9 +16647,15 @@ msgstr "Podešavanje povećanja serije"
 msgid "Series limit"
 msgstr "Ograničenje serija"
 
+msgid "Series name"
+msgstr "Naziv serije"
+
 # uk]
 msgid "Series settings"
 msgstr "Podešavanja serija"
+
+msgid "Series style"
+msgstr "Stil serije"
 
 # uk]
 msgid "Series total setting"
@@ -16951,6 +17056,9 @@ msgid ""
 msgstr ""
 
 msgid "Show or hide the X axis line, ticks, and labels"
+msgstr ""
+
+msgid "Show or hide the Y axis line and labels"
 msgstr ""
 
 msgid "Show or hide the Y axis line, ticks, gridlines, and labels"
@@ -19116,6 +19224,13 @@ msgid "The query contains one or more malformed template parameters."
 msgstr "Upit sadrži jedan ili više nepravilno formatiranih parametara šablona."
 
 msgid "The query context datasource does not match the chart datasource"
+msgstr ""
+
+#, python-format
+msgid ""
+"The query context for chart ID %(chart_id)s (referenced by annotation "
+"layer '%(layer_name)s') was not found. Please ensure the chart is "
+"properly configured and has a valid query context."
 msgstr ""
 
 # de, es, fa, fr, it, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, uk, zh,
@@ -22394,6 +22509,15 @@ msgstr "Kada je navedena sekundarna mera, koristi se linearna skala boja."
 msgid "When checked, the map will zoom to your data after each query"
 msgstr "Kada je označeno, mapa će se zumirati na vaše podatke nakon svakog upita"
 
+msgid ""
+"When enabled, increasing candles use the increase color and decreasing "
+"candles use the decrease color. Turn off to use one series color, with a "
+"filled body for increases and a hollow body for decreases."
+msgstr ""
+"Ako je uključeno, rastuće sveće koriste boju rasta, a opadajuće boju pada. "
+"Isključite da koristite jednu boju serije: ispunjeno telo pri rastu i "
+"šuplje pri padu."
+
 # ru, sk, uk]
 msgid ""
 "When enabled, the axis will display labels for the minimum and maximum "
@@ -23384,7 +23508,18 @@ msgid ""
 "SUPERSET_DASHBOARD_POSITION_DATA_LIMIT config setting."
 msgstr ""
 
-msgid "Your export is being prepared. You'll receive an email when it's ready."
+msgid ""
+"Your export is being generated and will download automatically when "
+"ready. We'll also email you a download link."
+msgstr ""
+
+msgid "Your export is being generated. Please, do not leave the page."
+msgstr ""
+
+msgid "Your export is ready and downloading."
+msgstr ""
+
+msgid "Your export is taking longer than expected. Try again later."
 msgstr ""
 
 #, python-format
