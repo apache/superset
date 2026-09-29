@@ -324,8 +324,8 @@ class DatabricksDynamicBaseEngineSpec(BasicParametersMixin, DatabricksBaseEngine
     def resolve_oauth2_client_info(
         cls,
         database: Database,
-        client_info: dict[str, Any],
-    ) -> dict[str, Any]:
+        client_info: Any,
+    ) -> Any:
         """
         Derive missing OAuth2 endpoints from the workspace host.
 
@@ -334,7 +334,8 @@ class DatabricksDynamicBaseEngineSpec(BasicParametersMixin, DatabricksBaseEngine
         disabled (``is_oauth2_enabled`` returned False) and every connection
         failed with a ValidationError. Each missing or empty endpoint becomes
         ``https://<workspace-host>/oidc/v1/{authorize,token}``; explicit values
-        win. A connection without a host raises ``OAuth2Error``.
+        win. A connection without a host raises ``OAuth2Error``. A non-dict
+        value is returned unchanged for ``OAuth2ClientConfigSchema`` to reject.
         """
         endpoints = {
             "authorization_request_uri": "authorize",
@@ -394,12 +395,7 @@ class DatabricksDynamicBaseEngineSpec(BasicParametersMixin, DatabricksBaseEngine
             if database := db.session.get(Database, database_id):
                 config = cast(
                     "OAuth2ClientConfig",
-                    dict(config)
-                    | {
-                        "authorization_request_uri": cls._workspace_oauth2_endpoint(
-                            database, "authorize"
-                        )
-                    },
+                    cls.resolve_oauth2_client_info(database, dict(config)),
                 )
 
         return super().get_oauth2_authorization_uri(config, state, code_verifier)

@@ -1249,3 +1249,39 @@ def test_update_oauth2_malformed_client_info_purges_tokens(
     command._handle_oauth2()
 
     purge_oauth2_tokens.assert_called_once()
+
+
+def test_update_oauth2_unresolvable_endpoints_purges_tokens(
+    mocker: MockerFixture,
+    app_context: None,
+) -> None:
+    """
+    When the new URI has no host the endpoints can't be derived, so the raw
+    client info is compared and the tokens are purged instead of failing.
+    """
+    client_info = {
+        "id": "my_client_id",
+        "secret": "my_client_secret",
+        "scope": "sql offline_access",
+    }
+    database = Database(
+        database_name="db",
+        sqlalchemy_uri=(
+            "databricks://token:@dbc-1234.cloud.databricks.com:443"
+            "?http_path=/sql/1.0/warehouses/abc"
+        ),
+        encrypted_extra=json.dumps({"oauth2_client_info": client_info}),
+    )
+    purge_oauth2_tokens = mocker.patch.object(database, "purge_oauth2_tokens")
+
+    command = UpdateDatabaseCommand(
+        1,
+        {
+            "encrypted_extra": json.dumps({"oauth2_client_info": client_info}),
+            "sqlalchemy_uri": "databricks://token:@:443?http_path=/sql/1.0/warehouses/abc",
+        },
+    )
+    command._model = database
+    command._handle_oauth2()
+
+    purge_oauth2_tokens.assert_called_once()
