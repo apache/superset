@@ -38,6 +38,13 @@ from superset.mcp_service.chart.tool.generate_chart import generate_chart
             "No matching columns found",
         ),
         (
+            "categry",
+            ["month", "category", "revenue"],
+            True,
+            "column_not_found",
+            "Did you mean: category?",
+        ),
+        (
             "revnue",
             ["month", "category", "revenue"],
             True,
@@ -144,6 +151,8 @@ async def test_generate_chart_column_guidance(
     if guidance:
         assert suggestions.count("Use get_dataset_info to see available columns") == 1
         assert guidance in suggestions
+        if guidance == "No matching columns found":
+            assert "Did you mean:" not in suggestions
         assert error.dataset_context is not None
         assert error.dataset_context.available_columns == [
             {"name": name} for name in names
