@@ -1357,10 +1357,10 @@ def test_bm25_exact_name_finds_every_registered_tool(
         can_access=True,
         can_view_metadata=True,
     )
-    pinned = set(MCP_TOOL_SEARCH_CONFIG["always_visible"])
+    pinned: set[str] = set(MCP_TOOL_SEARCH_CONFIG["always_visible"])
     assert visible == {tool.name for tool in registered_catalog} - pinned
 
-    not_first = {
+    not_first: dict[str, list[str]] = {
         name: ranked[:1]
         for name, ranked in results.items()
         if name in visible and ranked[:1] != [name]
@@ -1368,6 +1368,11 @@ def test_bm25_exact_name_finds_every_registered_tool(
     assert not_first == {}
     for name in pinned:
         assert name not in results[name]
+
+
+def _read_only_can_access(permission: str, _view: str) -> bool:
+    """Allow only read and get permissions for the read-only test caller."""
+    return permission in {"can_read", "can_get"}
 
 
 def test_bm25_exact_name_never_surfaces_unauthorized_registered_tools(
@@ -1379,20 +1384,20 @@ def test_bm25_exact_name_never_surfaces_unauthorized_registered_tools(
         production_bm25_transform,
         registered_catalog,
         # A read-only caller without data-model metadata access.
-        can_access=lambda permission, _view: permission in {"can_read", "can_get"},
+        can_access=_read_only_can_access,
         can_view_metadata=False,
     )
-    denied = {tool.name for tool in registered_catalog} - visible
+    denied: set[str] = {tool.name for tool in registered_catalog} - visible
     assert "generate_chart" in denied
     assert visible
 
-    leaked = {
+    leaked: dict[str, list[str]] = {
         name: sorted(set(ranked) - visible)
         for name, ranked in results.items()
         if set(ranked) - visible
     }
     assert leaked == {}
-    not_first = {
+    not_first: dict[str, list[str]] = {
         name: ranked[:1]
         for name, ranked in results.items()
         if name in visible and ranked[:1] != [name]
