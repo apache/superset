@@ -107,15 +107,8 @@ class ImpalaEngineSpec(BaseEngineSpec):
 
     @classmethod
     def has_implicit_cancel(cls) -> bool:
-        """
-        Return True if the live cursor handles the implicit cancelation of the query,
-        False otherwise.
-
-        :return: Whether the live cursor implicitly cancels the query
-        :see: handle_cursor
-        """
-
-        return True
+        """Keep HTTP cancellation independent of the live cursor polling loop."""
+        return False
 
     @classmethod
     def execute(

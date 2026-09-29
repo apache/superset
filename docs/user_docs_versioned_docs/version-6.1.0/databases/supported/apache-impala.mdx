@@ -79,3 +79,10 @@ export const databaseInfo = {
 };
 
 <DatabasePage name="Apache Impala" database={databaseInfo} />
+
+## Query cancellation
+
+SQL Lab Stop uses the coordinator's HTTP cancellation endpoint when an Impala
+query ID has been stored, even if the worker has stopped or is fetching results.
+Pending operations also honor stop requests through the worker's live cursor
+polling loop.

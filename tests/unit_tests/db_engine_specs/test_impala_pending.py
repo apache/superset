@@ -15,13 +15,15 @@
 # specific language governing permissions and limitations
 # under the License.
 
-from unittest.mock import Mock, patch
+from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 from flask import Flask
 
-from superset.constants import QUERY_EARLY_CANCEL_KEY
+from superset.constants import QUERY_CANCEL_KEY, QUERY_EARLY_CANCEL_KEY
 from superset.db_engine_specs.impala import ImpalaEngineSpec
+from superset.sql.execution.executor import SQLExecutor
+from superset.sql_lab import cancel_query
 
 
 @pytest.mark.parametrize(
@@ -63,9 +65,31 @@ def test_pending_operation_is_polled_without_progress() -> None:
     cursor.cancel_operation.assert_not_called()
 
 
-def test_stop_uses_the_live_cursor() -> None:
-    """A Stop before execute_async returns cannot use a published query ID."""
-    assert ImpalaEngineSpec.has_implicit_cancel()
+@pytest.mark.parametrize("use_executor", [False, True])
+def test_stop_with_cancel_id_uses_http(use_executor: bool) -> None:
+    """Stop must reach Impala even when no worker is polling the live cursor."""
+    app = Flask(__name__)
+    app.config["IMPALA_CANCEL_QUERY_ALLOW_INTERNAL_HOSTS"] = True
+    cancel_id = "0123456789abcdef:fedcba9876543210"
+    query = MagicMock(extra={QUERY_CANCEL_KEY: cancel_id})
+    query.database.db_engine_spec = ImpalaEngineSpec
+    query.database.url_object.host = "impala.example.com"
+
+    with (
+        app.app_context(),
+        patch("superset.db_engine_specs.impala.requests.post") as post,
+    ):
+        post.return_value.status_code = 200
+        if use_executor:
+            assert SQLExecutor._cancel_query(query.database, query)
+        else:
+            assert cancel_query(query)
+
+    post.assert_called_once_with(
+        f"http://impala.example.com:25000/cancel_query?query_id={cancel_id}",
+        timeout=3,
+        allow_redirects=False,
+    )
 
 
 @pytest.mark.parametrize("state", ["stopped", "timed_out"])
@@ -78,6 +102,9 @@ def test_stopped_status_cancels_pending_operation(state: str) -> None:
         db.session.query.return_value.filter_by.return_value.one.return_value = query
         ImpalaEngineSpec.handle_cursor(cursor, query)
     cursor.cancel_operation.assert_called_once_with()
+    cursor.close_operation.assert_called_once_with()
+    cursor.close.assert_called_once_with()
+    cursor.get_log.assert_not_called()
 
 
 @pytest.mark.parametrize("log", ["", "Admission queued", "Query abc: 0% Complete"])
