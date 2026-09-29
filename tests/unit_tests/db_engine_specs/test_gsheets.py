@@ -38,10 +38,12 @@ from sqlalchemy.engine.url import make_url, URL
 
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import OAuth2TokenRefreshError, SupersetException
+from superset.models.core import Database
 from superset.sql.parse import Table
 from superset.superset_typing import OAuth2ClientConfig
 from superset.utils import json
 from superset.utils.oauth2 import decode_oauth2_state
+from tests.unit_tests.conftest import with_feature_flags
 from tests.unit_tests.db_engine_specs.utils import assert_convert_dttm
 from tests.unit_tests.fixtures.common import dttm  # noqa: F401
 
@@ -577,22 +579,58 @@ def test_impersonate_user_username(mocker: MockerFixture) -> None:
     """
     from superset.db_engine_specs.gsheets import GSheetsEngineSpec
 
-    user = mocker.MagicMock()
-    user.email = "alice@example.org"
-    mocker.patch(
-        "superset.db_engine_specs.gsheets.security_manager.find_user",
-        return_value=user,
-    )
     database = mocker.MagicMock()
     database.get_encrypted_extra.return_value = {}
+    database.get_impersonation_email.return_value = "alice@example.org"
+    url = make_url("gsheets://")
 
     assert GSheetsEngineSpec.impersonate_user(
         database,
         username="alice",
         user_token=None,
-        url=make_url("gsheets://"),
+        url=url,
         engine_kwargs={},
     ) == (make_url("gsheets://?subject=alice%40example.org"), {})
+
+    # Resolved from the same URL `Database._get_sqla_engine()` passes down, so
+    # both paths read the effective user from the same place.
+    database.get_impersonation_email.assert_called_once_with(url)
+
+
+@with_feature_flags(IMPERSONATE_WITH_EMAIL_PREFIX=True)
+def test_impersonate_user_email_prefix_flag(mocker: MockerFixture) -> None:
+    """
+    Test that the subject is the full email when the prefix flag is on.
+
+    With the flag enabled the caller has already substituted the email prefix
+    into ``username``, so resolving the subject from that value would find no
+    user whenever the login and the prefix differ -- silently leaving the
+    subject unset. Resolving from the database is correct either way.
+    """
+    from superset.db_engine_specs.gsheets import GSheetsEngineSpec
+
+    user = mocker.MagicMock()
+    user.email = "alice.doe@example.org"
+    mocker.patch(
+        "superset.models.core.find_user_for_impersonation",
+        return_value=user,
+    )
+    mocker.patch("superset.models.core.get_username", return_value="alice")
+
+    database = Database(
+        database_name="my_db",
+        sqlalchemy_uri="gsheets://",
+        impersonate_user=True,
+    )
+
+    url, _ = GSheetsEngineSpec.impersonate_user(
+        database,
+        username="alice.doe",
+        user_token=None,
+        url=make_url("gsheets://"),
+        engine_kwargs={},
+    )
+    assert url == make_url("gsheets://?subject=alice.doe%40example.org")
 
 
 def test_impersonate_user_access_token(mocker: MockerFixture) -> None:
@@ -657,13 +695,8 @@ def test_impersonate_user_username_and_access_token(mocker: MockerFixture) -> No
     """
     from superset.db_engine_specs.gsheets import GSheetsEngineSpec
 
-    user: MagicMock = mocker.MagicMock()
-    user.email = "alice@example.org"
-    mocker.patch(
-        "superset.db_engine_specs.gsheets.security_manager.find_user",
-        return_value=user,
-    )
     database: MagicMock = mocker.MagicMock(encrypted_extra=None)
+    database.get_impersonation_email.return_value = "alice@example.org"
     database.get_encrypted_extra.return_value = {}
     url, engine_kwargs = GSheetsEngineSpec.impersonate_user(
         database,
@@ -1243,13 +1276,8 @@ def _service_account_adapter_kwargs(
     """What reaches shillelagh for a secure-extra service account, impersonating."""
     from superset.db_engine_specs.gsheets import GSheetsEngineSpec
 
-    user: MagicMock = mocker.MagicMock()
-    user.email = email
-    mocker.patch(
-        "superset.db_engine_specs.gsheets.security_manager.find_user",
-        return_value=user,
-    )
     database: MagicMock = mocker.MagicMock(encrypted_extra=json.dumps(encrypted_extra))
+    database.get_impersonation_email.return_value = email
     database.get_encrypted_extra.return_value = encrypted_extra
     url, engine_kwargs = GSheetsEngineSpec.impersonate_user(
         database,

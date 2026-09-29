@@ -38,7 +38,7 @@ from sqlalchemy.engine import create_engine
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.url import URL
 
-from superset import db, security_manager
+from superset import db
 from superset.databases.schemas import encrypted_field_properties, EncryptedString
 from superset.db_engine_specs.base import DatabaseCategory
 from superset.db_engine_specs.shillelagh import ShillelaghEngineSpec
@@ -255,9 +255,15 @@ class GSheetsEngineSpec(ShillelaghEngineSpec):
         engine_kwargs: dict[str, Any],
     ) -> tuple[URL, dict[str, Any]]:
         if username is not None:
-            user = security_manager.find_user(username=username)
-            if user and user.email:
-                url = url.update_query_dict({"subject": user.email})
+            # Resolved from the database rather than from ``username``: with
+            # ``IMPERSONATE_WITH_EMAIL_PREFIX`` enabled the caller has already
+            # substituted the email prefix into ``username``, so looking it up
+            # here as if it were still the login finds nothing whenever the two
+            # differ, silently leaving the subject unset. ``url`` is the same
+            # one ``Database._get_sqla_engine()`` resolved from, so both paths
+            # read the effective user from the same place.
+            if email := database.get_impersonation_email(url):
+                url = url.update_query_dict({"subject": email})
 
         if user_token:
             # Pass the token through ``connect_args`` rather than the URL.
