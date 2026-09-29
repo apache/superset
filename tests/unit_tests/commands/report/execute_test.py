@@ -1101,21 +1101,21 @@ def test_log_data_with_missing_values(mocker: MockerFixture) -> None:
             ["mock_tab_anchor_1", "mock_tab_anchor_2"],
             ["url1", "url2"],
             [
-                "dashboard/p/url1/",
-                "dashboard/p/url2/",
+                "dashboard/p/url1/?force=false",
+                "dashboard/p/url2/?force=false",
             ],
         ),
         # Test user select one tab to export in a dashboard report
         (
             "mock_tab_anchor_1",
             ["url1"],
-            ["dashboard/p/url1/"],
+            ["dashboard/p/url1/?force=false"],
         ),
         # Test JSON scalar string anchor falls back to single tab
         (
             json.dumps("mock_tab_anchor_1"),
             ["url1"],
-            ["dashboard/p/url1/"],
+            ["dashboard/p/url1/?force=false"],
         ),
     ],
 )
@@ -1130,6 +1130,7 @@ def test_get_dashboard_urls_with_multiple_tabs(
     mock_report_schedule.chart = False
     mock_report_schedule.chart_id = None
     mock_report_schedule.dashboard_id = 123
+    mock_report_schedule.force_screenshot = False
     mock_report_schedule.type = "report_type"
     mock_report_schedule.report_format = "report_format"
     mock_report_schedule.editors = _make_mock_editors(mocker, [1, 2])
@@ -1292,6 +1293,7 @@ def test_get_dashboard_urls_with_filters_and_tabs(
     mock_report_schedule.chart = False
     mock_report_schedule.chart_id = None
     mock_report_schedule.dashboard_id = 123
+    mock_report_schedule.force_screenshot = False
     mock_report_schedule.type = "report_type"
     mock_report_schedule.report_format = "report_format"
     mock_report_schedule.editors = _make_mock_editors(mocker, [1, 2])
@@ -1330,8 +1332,8 @@ def test_get_dashboard_urls_with_filters_and_tabs(
 
     base_url = app.config.get("WEBDRIVER_BASEURL", "http://0.0.0.0:8080/")
     assert result == [
-        urllib.parse.urljoin(base_url, "dashboard/p/key1/"),
-        urllib.parse.urljoin(base_url, "dashboard/p/key2/"),
+        urllib.parse.urljoin(base_url, "dashboard/p/key1/?force=false"),
+        urllib.parse.urljoin(base_url, "dashboard/p/key2/?force=false"),
     ]
     mock_report_schedule.get_native_filters_params.assert_called_once()  # type: ignore[attr-defined]
     assert mock_permalink_cls.call_count == 2
@@ -1454,6 +1456,7 @@ def test_get_dashboard_urls_with_filters_no_tabs(
     mock_report_schedule.chart = False
     mock_report_schedule.chart_id = None
     mock_report_schedule.dashboard_id = 123
+    mock_report_schedule.force_screenshot = False
     mock_report_schedule.type = "report_type"
     mock_report_schedule.report_format = "report_format"
     mock_report_schedule.editors = _make_mock_editors(mocker, [1, 2])
@@ -1492,7 +1495,7 @@ def test_get_dashboard_urls_with_filters_no_tabs(
 
     base_url = app.config.get("WEBDRIVER_BASEURL", "http://0.0.0.0:8080/")
     assert result == [
-        urllib.parse.urljoin(base_url, "dashboard/p/key1/"),
+        urllib.parse.urljoin(base_url, "dashboard/p/key1/?force=false"),
     ]
     mock_report_schedule.get_native_filters_params.assert_called_once()  # type: ignore[attr-defined]
     assert mock_permalink_cls.call_count == 1
@@ -1613,6 +1616,7 @@ def test_get_tab_urls(
 ) -> None:
     mock_report_schedule: ReportSchedule = mocker.Mock(spec=ReportSchedule)
     mock_report_schedule.dashboard_id = 123
+    mock_report_schedule.force_screenshot = False
 
     class_instance: BaseReportState = BaseReportState(
         mock_report_schedule, "January 1, 2021", "execution_id_example"
@@ -1625,8 +1629,8 @@ def test_get_tab_urls(
 
     base_url = app.config.get("WEBDRIVER_BASEURL", "http://0.0.0.0:8080/")
     assert result == [
-        urllib.parse.urljoin(base_url, "dashboard/p/uri1/"),
-        urllib.parse.urljoin(base_url, "dashboard/p/uri2/"),
+        urllib.parse.urljoin(base_url, "dashboard/p/uri1/?force=false"),
+        urllib.parse.urljoin(base_url, "dashboard/p/uri2/?force=false"),
     ]
 
 
@@ -1699,6 +1703,7 @@ def test_get_tab_url(
 ) -> None:
     mock_report_schedule: ReportSchedule = mocker.Mock(spec=ReportSchedule)
     mock_report_schedule.dashboard_id = 123
+    mock_report_schedule.force_screenshot = False
 
     class_instance: BaseReportState = BaseReportState(
         mock_report_schedule, "January 1, 2021", "execution_id_example"
@@ -1715,7 +1720,41 @@ def test_get_tab_url(
     import urllib.parse
 
     base_url = app.config.get("WEBDRIVER_BASEURL", "http://0.0.0.0:8080/")
-    assert result == urllib.parse.urljoin(base_url, "dashboard/p/uri/")
+    assert result == urllib.parse.urljoin(base_url, "dashboard/p/uri/?force=false")
+
+
+@patch(
+    "superset.commands.dashboard.permalink.create.CreateDashboardPermalinkCommand.run"
+)
+def test_get_tab_url_propagates_force_screenshot(
+    mock_run,
+    mocker: MockerFixture,
+    app,
+) -> None:
+    """``_get_tab_url`` must propagate ``force_screenshot`` the same way
+    ``_get_url`` already does for chart and plain-dashboard reports, so
+    "Ignore cache when generating report" also bypasses cache on the
+    dashboard-tab permalink path (#38672)."""
+    mock_report_schedule: ReportSchedule = mocker.Mock(spec=ReportSchedule)
+    mock_report_schedule.dashboard_id = 123
+    mock_report_schedule.force_screenshot = True
+
+    class_instance: BaseReportState = BaseReportState(
+        mock_report_schedule, "January 1, 2021", "execution_id_example"
+    )
+    class_instance._report_schedule = mock_report_schedule
+    mock_run.return_value = "uri"
+    dashboard_state = DashboardPermalinkState(
+        anchor="1",
+        dataMask=None,
+        activeTabs=None,
+        urlParams=None,
+    )
+    result: str = class_instance._get_tab_url(dashboard_state)
+    import urllib.parse
+
+    base_url = app.config.get("WEBDRIVER_BASEURL", "http://0.0.0.0:8080/")
+    assert result == urllib.parse.urljoin(base_url, "dashboard/p/uri/?force=true")
 
 
 @patch("superset.commands.report.execute.db.session")

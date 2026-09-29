@@ -640,6 +640,14 @@ class BaseReportState:
                 "during execution"
             ) from ex
 
+    def _get_force_param(self) -> str:
+        """
+        Serialize ``force_screenshot`` for use as a ``force`` URL query
+        parameter, so cache-bypass intent survives every URL this report
+        can render (chart, dashboard, and dashboard-tab permalink).
+        """
+        return "true" if self._report_schedule.force_screenshot else "false"
+
     def _get_url(
         self,
         user_friendly: bool = False,
@@ -684,7 +692,7 @@ class BaseReportState:
                 "the report has neither a chart nor a dashboard."
             )
 
-        force = "true" if self._report_schedule.force_screenshot else "false"
+        force = self._get_force_param()
         if chart:
             if result_format in {
                 ChartDataResultFormat.CSV,
@@ -737,7 +745,7 @@ class BaseReportState:
             and self._report_schedule.dashboard is None
         ):
             raise ReportScheduleTargetDashboardDeletedError()
-        force = "true" if self._report_schedule.force_screenshot else "false"
+        force = self._get_force_param()
 
         if (
             dashboard_state := self._report_schedule.extra.get("dashboard")
@@ -829,6 +837,7 @@ class BaseReportState:
         """
         Get one tab url
         """
+        force = self._get_force_param()
         permalink_key = CreateDashboardPermalinkCommand(
             dashboard_id=str(self._report_schedule.dashboard.uuid),
             state=dashboard_state,
@@ -849,6 +858,7 @@ class BaseReportState:
         return get_url_path(
             "Superset.dashboard_permalink",
             key=permalink_key,
+            force=force,
             user_friendly=user_friendly,
         )
 
