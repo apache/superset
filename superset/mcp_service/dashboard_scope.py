@@ -453,7 +453,7 @@ def _normalize_adhoc_clause(clause: Any, chart_id: int) -> dict[str, Any]:
     if (
         not isinstance(clause, dict)
         or clause.get("expressionType") != "SIMPLE"
-        or (clause.get("clause") or "WHERE").upper() != "WHERE"
+        or str(clause.get("clause") or "WHERE").upper() != "WHERE"
         or not isinstance(clause.get("subject"), str)
     ):
         raise MCPDashboardScopeError(
@@ -539,8 +539,9 @@ def dashboard_constraints(scope: DashboardScope) -> DashboardConstraints:
 
     if len(windows) > 1:
         raise MCPDashboardScopeError(
-            "the dashboard applies different time ranges to different charts, so "
-            "there is no single dashboard-wide time range to apply here.",
+            "the dashboard applies different time ranges (or time columns) to "
+            "different charts, so there is no single dashboard-wide time range "
+            "to apply here.",
             _USE_CHART_TOOLS,
         )
     time_range, time_column = next(iter(windows)) if windows else (None, None)

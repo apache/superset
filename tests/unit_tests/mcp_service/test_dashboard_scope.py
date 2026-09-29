@@ -367,6 +367,11 @@ def test_simple_adhoc_filters_count_as_clauses() -> None:
     [
         {11: {"filters": [CLIENT_A]}, 12: {"filters": [CLIENT_B]}},
         {11: {"time_range": "Last week"}, 12: {"time_range": "Last year"}},
+        {
+            11: {"time_range": "Last week", "granularity_sqla": "ds"},
+            12: {"time_range": "Last week", "granularity_sqla": "shipped_ds"},
+        },
+        {11: {"adhoc_filters": [{"expressionType": "SIMPLE", "clause": 1}]}},
         {11: {"adhoc_filters": [{"expressionType": "SQL", "sqlExpression": "1=1"}]}},
         {11: {"filters": [{"col": "client", "op": "TEMPORAL_RANGE", "val": "x"}]}},
         {11: {"filters": [{"col": {"sqlExpression": "a"}, "op": "==", "val": 1}]}},
