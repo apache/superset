@@ -878,7 +878,14 @@ const baseAggregatorTemplates = {
             // (`showValuesAs`) never populates these, so it always falls
             // through to the original `getAggregator` lookup below, unchanged.
             let denominatorAggregator: any;
-            if (this.metricAxis) {
+            // `rowMetricTotals`/`colMetricTotals` are grand totals for a
+            // metric across the whole dataset, so they're only a valid
+            // substitute for the depth-gated tree lookup when `type` is
+            // 'total' (grand-total denominator). For 'row'/'col' types,
+            // `selCol`/`selRow` is `[]` by design (see the `selector` above)
+            // even though the denominator still needs to be scoped to this
+            // specific row/column, not the metric's dataset-wide total.
+            if (type === 'total' && this.metricAxis) {
               if (this.metricAxis.axis === 'col' && selCol.length === 0) {
                 denominatorAggregator =
                   data.colMetricTotals[this.metricAxis.value];

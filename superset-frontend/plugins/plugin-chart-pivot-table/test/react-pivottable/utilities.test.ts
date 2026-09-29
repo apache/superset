@@ -238,3 +238,41 @@ test('"... as Fraction of ..." divides by the metric\'s own total even when colu
     5,
   );
 });
+
+test('"... as Fraction of Rows" divides by the row total, not the metric\'s dataset-wide total, when Metric sits on columns', () => {
+  // A single metric on columns: each row has nothing else to share it with,
+  // so both rows should read 100%. The buggy implementation treated the
+  // 'row' fraction the same as 'total' whenever the (single) metric's own
+  // axis selector happened to be empty -- which it always is for 'row' too,
+  // since fractionOf('row', ...) collapses the column selector -- and divided
+  // by the metric's total across the whole dataset (30) instead of the row's
+  // own total, reading 33%/67%.
+  const leaves: PivotRecord[] = [
+    {
+      region: 'North',
+      Metric: 'SUM(sales)',
+      value: 10,
+      __metricKey: 'Metric',
+    },
+    {
+      region: 'South',
+      Metric: 'SUM(sales)',
+      value: 20,
+      __metricKey: 'Metric',
+    },
+  ] as unknown as PivotRecord[];
+  const pivotData = new PivotData({
+    data: leaves,
+    rows: ['region'],
+    cols: ['Metric'],
+    vals: ['value'],
+    aggregateFunction: 'Sum as Fraction of Rows',
+  });
+
+  expect(
+    pivotData.getAggregator(['North'], ['SUM(sales)']).value(),
+  ).toBeCloseTo(1, 5);
+  expect(
+    pivotData.getAggregator(['South'], ['SUM(sales)']).value(),
+  ).toBeCloseTo(1, 5);
+});

@@ -17,6 +17,8 @@
  * under the License.
  */
 
+import { t } from '@apache-superset/core/translation';
+
 /**
  * A "result aggregation" is a second aggregation pass over a metric's own
  * grouped results (e.g. the median of a set of per-store SUM(sales) values),
@@ -63,3 +65,32 @@ export function getResultAggregation(
 ): ResultAggregation | undefined {
   return RESULT_AGGREGATIONS.find(name => name === value);
 }
+
+/**
+ * Display label for each `RESULT_AGGREGATIONS` choice. `RESULT_AGGREGATIONS`
+ * values double as lookup keys (into `aggregators` in utilities.ts and as the
+ * stored `aggregateFunction` control value), so they must stay literal
+ * English strings; a `t(name)` over a loop variable can't be picked up by
+ * babel's static extraction, so this maps each one through its own literal
+ * `t('...')` call instead.
+ */
+export const RESULT_AGGREGATION_LABELS: Record<ResultAggregation, string> = {
+  Count: t('Count'),
+  'Count Unique Values': t('Count Unique Values'),
+  'List Unique Values': t('List Unique Values'),
+  Sum: t('Sum'),
+  Average: t('Average'),
+  Median: t('Median'),
+  'Sample Variance': t('Sample Variance'),
+  'Sample Standard Deviation': t('Sample Standard Deviation'),
+  Minimum: t('Minimum'),
+  Maximum: t('Maximum'),
+  First: t('First'),
+  Last: t('Last'),
+  'Sum as Fraction of Total': t('Sum as Fraction of Total'),
+  'Sum as Fraction of Rows': t('Sum as Fraction of Rows'),
+  'Sum as Fraction of Columns': t('Sum as Fraction of Columns'),
+  'Count as Fraction of Total': t('Count as Fraction of Total'),
+  'Count as Fraction of Rows': t('Count as Fraction of Rows'),
+  'Count as Fraction of Columns': t('Count as Fraction of Columns'),
+};

@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: avsarcoteli@gmail.com\n"
-"POT-Creation-Date: 2026-09-24 10:35+0300\n"
+"POT-Creation-Date: 2026-09-29 11:48-0700\n"
 "PO-Revision-Date: 2024-02-25 14:00+0300\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: tr\n"
@@ -152,17 +152,6 @@ msgid ""
 "defaults on a per\n"
 "                      database/column name level via the extra parameter."
 msgstr ""
-"lexicografik siparişin olmasını sağlamak için standart\n"
-"kronolojik sipariş ile çakıştı. Eğer\n"
-"Zaman çizelgesi ISO 8601 standardına uymaz\n"
-"Bir ifade ve türü tanımlamanız gerekecek\n"
-"dizeyi bir tarih veya zamana dönüştürme. Not NotNote\n"
-"Şu anda zaman bölgeleri desteklenmez. Zaman depolanırsa\n"
-"Dönem formatında, \"epoch s\" veya \"epoch ms\" koymak. Eğer hiçbir desen"
-" değilse\n"
-"Seçmeli varsayılan varsayılanları bir per başına kullanmaya geri "
-"döndüğümüz belirtilmiştir.\n"
-"veritabanı/column name level via the extra parameter."
 
 msgid " to add calculated columns"
 msgstr "Hesaplamalı sütunlar eklemek için"
@@ -1268,6 +1257,9 @@ msgstr "İptal Ediliyor"
 msgid "About"
 msgstr "Hakkında"
 
+msgid "Accept"
+msgstr ""
+
 msgid "Access"
 msgstr "Erişim"
 
@@ -1712,6 +1704,9 @@ msgstr "Aggregation"
 
 msgid "Aggregation Method"
 msgstr "Aggregation Method"
+
+msgid "Aggregation function"
+msgstr ""
 
 msgid ""
 "Aggregation used for the summary row. By default each metric keeps its "
@@ -4267,8 +4262,7 @@ msgstr "Renk şeması"
 msgid ""
 "Color used when the close value is greater than or equal to the open "
 "value."
-msgstr ""
-"Kapanış değeri açılış değerinden büyük veya ona eşitken kullanılan renk."
+msgstr "Kapanış değeri açılış değerinden büyük veya ona eşitken kullanılan renk."
 
 msgid "Color used when the close value is less than the open value."
 msgstr "Kapanış değeri açılış değerinden küçükken kullanılan renk."
@@ -4856,6 +4850,18 @@ msgstr ""
 msgid "Count"
 msgstr "Say"
 
+msgid "Count Unique Values"
+msgstr ""
+
+msgid "Count as Fraction of Columns"
+msgstr ""
+
+msgid "Count as Fraction of Rows"
+msgstr ""
+
+msgid "Count as Fraction of Total"
+msgstr ""
+
 msgid "Country"
 msgstr "Ülke"
 
@@ -5288,6 +5294,9 @@ msgstr "Pano geri yüklenemedi."
 msgid "Dashboard could not be updated."
 msgstr "Gösterim Paneli güncellenemedi."
 
+msgid "Dashboard data exported to Excel"
+msgstr ""
+
 msgid "Dashboard does not exist"
 msgstr "Gösterim Paneli bulunmuyor"
 
@@ -5298,6 +5307,9 @@ msgstr "Gösterim Paneli başarıyla kaydedildi."
 #, fuzzy
 msgid "Dashboard exported successfully"
 msgstr "Gösterim Paneli başarıyla kaydedildi."
+
+msgid "Dashboard has no charts to export."
+msgstr ""
 
 msgid "Dashboard imported"
 msgstr "Gösterim Paneli aktarıldı"
@@ -7378,9 +7390,6 @@ msgstr "Dışa aktar"
 msgid "Excel XML Export"
 msgstr "Excel XML Export"
 
-msgid "Excel export is not configured on this server."
-msgstr ""
-
 msgid "Excel file format cannot be determined"
 msgstr "Excel dosyası belirlenemez"
 
@@ -7560,6 +7569,11 @@ msgstr "Orijinal .CSV'ye ihracat"
 
 msgid "Export to pivoted .CSV"
 msgstr ".CSV"
+
+msgid ""
+"Exporting images to Excel requires background exports. Ask an "
+"administrator to enable them, or export the dashboard's data instead."
+msgstr ""
 
 #, python-format
 msgid ""
@@ -9695,6 +9709,9 @@ msgstr "Sorguyu düzenle"
 msgid "List Roles"
 msgstr "Liste Roller"
 
+msgid "List Unique Values"
+msgstr ""
+
 #, fuzzy
 msgid "List Users"
 msgstr "Sorguyu düzenle"
@@ -10093,6 +10110,9 @@ msgstr "Belirtilen süre boyunca değerlerin anlamı"
 
 msgid "Mean values"
 msgstr "Ortalama değerler"
+
+msgid "Median"
+msgstr ""
 
 msgid ""
 "Median edge width, the thickest edge will be 4 times thicker than the "
@@ -10952,6 +10972,11 @@ msgstr "Yok Ok"
 
 msgid "None -> None"
 msgstr "Yok Hiçbir şey yok"
+
+msgid ""
+"None of this dashboard's charts can be downloaded directly. Ask an "
+"administrator to enable background exports."
+msgstr ""
 
 msgid "Normal"
 msgstr "Normal"
@@ -12123,6 +12148,12 @@ msgstr "Ek veya ek"
 
 #, python-format
 msgid "Preparing %(count)s charts for export. This may take a moment."
+msgstr ""
+
+msgid "Preparing dashboard Excel export…"
+msgstr ""
+
+msgid "Preparing export…"
 msgstr ""
 
 msgid "Preview"
@@ -14617,11 +14648,11 @@ msgstr "Show chart query timestamps"
 msgid "Show column headers"
 msgstr "Kolonlar bulunamadı"
 
+msgid "Show column summaries"
+msgstr ""
+
 msgid "Show columns subtotal"
 msgstr "Show columns subtotal"
-
-msgid "Show columns total"
-msgstr "Show columns total"
 
 msgid "Show empty columns"
 msgstr "Boş sütunlar göster"
@@ -14702,11 +14733,11 @@ msgstr "Show query tanımlayıcıları göster"
 msgid "Show row labels"
 msgstr "Toplamı göster"
 
+msgid "Show row summaries"
+msgstr ""
+
 msgid "Show rows subtotal"
 msgstr "Show rows sub total"
-
-msgid "Show rows total"
-msgstr "Show rows total"
 
 msgid "Show series values on the chart"
 msgstr "Grafikte seri değerleri göster"
@@ -15407,6 +15438,15 @@ msgstr ""
 
 msgid "Sum"
 msgstr "Sum"
+
+msgid "Sum as Fraction of Columns"
+msgstr ""
+
+msgid "Sum as Fraction of Rows"
+msgstr ""
+
+msgid "Sum as Fraction of Total"
+msgstr ""
 
 msgid "Sum of values over specified period"
 msgstr "Belirtilen süre boyunca değerlerin sum"
@@ -16223,6 +16263,12 @@ msgstr ""
 msgid ""
 "The following charts were omitted because an error occurred while "
 "exporting them:"
+msgstr ""
+
+msgid ""
+"The following charts were omitted because their size cannot be determined"
+" before they run. Ask an administrator to enable background exports to "
+"include them."
 msgstr ""
 
 msgid ""
@@ -17378,6 +17424,9 @@ msgstr ""
 msgid "This chart only"
 msgstr ""
 
+msgid "This chart was updated to use the restored aggregation"
+msgstr ""
+
 msgid "This chart will be restored to the following version:"
 msgstr ""
 
@@ -17429,6 +17478,12 @@ msgstr ""
 "Görme, annotasyon verileri içeren grafiklere geçilmelidir."
 
 msgid "This dashboard does not exist"
+msgstr ""
+
+msgid ""
+"This dashboard has too much data to download directly. Ask an "
+"administrator to enable background exports, or lower the row limits of "
+"its charts."
 msgstr ""
 
 msgid "This dashboard is managed externally, and can't be edited in Superset"
@@ -17701,6 +17756,13 @@ msgstr ""
 #, fuzzy
 msgid "This password is too common; please choose a less guessable one."
 msgstr "Bu parola çok yaygın; lütfen daha az tahmin edilebilir bir tane seçin."
+
+msgid ""
+"This pivot table used a legacy per-table aggregation setting that "
+"Superset previously ignored. It now computes correctly, so totals and "
+"subtotals may look different than before. Please validate them, then "
+"accept this notice or save the chart."
+msgstr ""
 
 msgid ""
 "This section allows you to configure how to use the slice\n"
@@ -18811,8 +18873,18 @@ msgstr "Mevcut ölçüde kullanın"
 msgid "Use date formatting even when metric value is not a timestamp"
 msgstr "metrik değerin bir zamantampamp olmadığı zaman bile tarih formatı kullanın"
 
+msgid ""
+"Use each metric’s own definition for cells and summaries (the default "
+"since SIP-216), or aggregate a second time over the metric’s own grouped "
+"results — e.g. the median of a set of per-store averages. Query limits "
+"apply before a result aggregation runs."
+msgstr ""
+
 msgid "Use gradient"
 msgstr "Kullanım gradient"
+
+msgid "Use metric definition"
+msgstr ""
 
 msgid "Use metrics as a top level group for columns or for rows"
 msgstr "sütunlar veya satırlar için üst düzey bir grup olarak metrikleri kullanın"

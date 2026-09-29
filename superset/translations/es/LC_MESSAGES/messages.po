@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-24 10:35+0300\n"
+"POT-Creation-Date: 2026-09-29 11:48-0700\n"
 "PO-Revision-Date: 2016-05-02 08:49-0700\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: es\n"
@@ -155,21 +155,6 @@ msgid ""
 "defaults on a per\n"
 "                      database/column name level via the extra parameter."
 msgstr ""
-" norma para garantizar que el orden lexicográfico\n"
-"                      coincida con el orden cronológico. Si el\n"
-"                      formato de marca de tiempo no se adhiere a la norma"
-" ISO 8601\n"
-",                      deberás definir una expresión y un tipo para\n"
-"                      transformar la cadena en una fecha o marca de "
-"tiempo. Recuerda que\n"
-"                      actualmente no se admiten zonas horarias. Si la "
-"hora/fecha se almacena\n"
-"                      en formato de época, define «epoch_s» o «epoch_ms»."
-" Si no\n"
-"                      se especifica ningún patrón, volveremos a usar los "
-"valores predeterminados opcionales a nivel de nombre de\n"
-"                      base de datos/columna por medio del parámetro "
-"adicional."
 
 msgid " to add calculated columns"
 msgstr " para añadir columnas calculadas"
@@ -1022,8 +1007,8 @@ msgid ""
 "analysis."
 msgstr ""
 "Un gráfico de velas muestra los valores de apertura, cierre, máximo y "
-"mínimo de cada período. Se usa habitualmente para análisis financiero y de "
-"rangos en series temporales."
+"mínimo de cada período. Se usa habitualmente para análisis financiero y "
+"de rangos en series temporales."
 
 #, fuzzy
 msgid "A comma separated list of columns that should be parsed as dates"
@@ -1266,6 +1251,9 @@ msgstr "Abortando"
 
 msgid "About"
 msgstr "Acerca de"
+
+msgid "Accept"
+msgstr ""
 
 #, fuzzy
 msgid "Access"
@@ -1711,6 +1699,9 @@ msgstr "Agregación"
 
 msgid "Aggregation Method"
 msgstr "Método de agregación"
+
+msgid "Aggregation function"
+msgstr ""
 
 msgid ""
 "Aggregation used for the summary row. By default each metric keeps its "
@@ -4847,6 +4838,18 @@ msgstr ""
 msgid "Count"
 msgstr "Recuento"
 
+msgid "Count Unique Values"
+msgstr ""
+
+msgid "Count as Fraction of Columns"
+msgstr ""
+
+msgid "Count as Fraction of Rows"
+msgstr ""
+
+msgid "Count as Fraction of Total"
+msgstr ""
+
 msgid "Country"
 msgstr "País"
 
@@ -5274,6 +5277,9 @@ msgstr "No se pudo restaurar el panel."
 msgid "Dashboard could not be updated."
 msgstr "No se ha podido actualizar el panel de control."
 
+msgid "Dashboard data exported to Excel"
+msgstr ""
+
 msgid "Dashboard does not exist"
 msgstr "El panel de control no existe"
 
@@ -5284,6 +5290,9 @@ msgstr "Este panel de control se ha guardado correctamente."
 #, fuzzy
 msgid "Dashboard exported successfully"
 msgstr "Este panel de control se ha guardado correctamente."
+
+msgid "Dashboard has no charts to export."
+msgstr ""
 
 msgid "Dashboard imported"
 msgstr "Panel de control importado"
@@ -7362,9 +7371,6 @@ msgstr "Informe semanal"
 msgid "Excel XML Export"
 msgstr "Informe semanal"
 
-msgid "Excel export is not configured on this server."
-msgstr ""
-
 msgid "Excel file format cannot be determined"
 msgstr "No se puede determinar el formato de archivo de Excel"
 
@@ -7539,6 +7545,11 @@ msgstr "Exportar a .CSV original"
 
 msgid "Export to pivoted .CSV"
 msgstr "Exportar a .CSV dinámico"
+
+msgid ""
+"Exporting images to Excel requires background exports. Ask an "
+"administrator to enable them, or export the dashboard's data instead."
+msgstr ""
 
 #, python-format
 msgid ""
@@ -9696,6 +9707,9 @@ msgstr "Listar roles"
 msgid "List Roles"
 msgstr "Listar roles"
 
+msgid "List Unique Values"
+msgstr ""
+
 msgid "List Users"
 msgstr "Listar usuarios"
 
@@ -10085,6 +10099,9 @@ msgstr "Media de los valores durante el periodo especificado"
 
 msgid "Mean values"
 msgstr "Valores medios"
+
+msgid "Median"
+msgstr ""
 
 msgid ""
 "Median edge width, the thickest edge will be 4 times thicker than the "
@@ -10933,6 +10950,11 @@ msgstr "Ninguno -> Flecha"
 
 msgid "None -> None"
 msgstr "Ninguno -> Ninguno"
+
+msgid ""
+"None of this dashboard's charts can be downloaded directly. Ask an "
+"administrator to enable background exports."
+msgstr ""
 
 msgid "Normal"
 msgstr "Normal"
@@ -12123,6 +12145,12 @@ msgstr "Prefijo o sufijo"
 
 #, python-format
 msgid "Preparing %(count)s charts for export. This may take a moment."
+msgstr ""
+
+msgid "Preparing dashboard Excel export…"
+msgstr ""
+
+msgid "Preparing export…"
 msgstr ""
 
 msgid "Preview"
@@ -14574,11 +14602,11 @@ msgstr "Mostrar marca de tiempo"
 msgid "Show column headers"
 msgstr "Mostrar Columna"
 
+msgid "Show column summaries"
+msgstr ""
+
 msgid "Show columns subtotal"
 msgstr "Mostrar subtotal de columnas"
-
-msgid "Show columns total"
-msgstr "Mostrar total de columnas"
 
 msgid "Show empty columns"
 msgstr "Mostrar columnas vacías"
@@ -14661,11 +14689,11 @@ msgstr "Ver detalles de la consulta"
 msgid "Show row labels"
 msgstr "Mostrar etiquetas"
 
+msgid "Show row summaries"
+msgstr ""
+
 msgid "Show rows subtotal"
 msgstr "Mostrar subtotal de filas"
-
-msgid "Show rows total"
-msgstr "Mostrar total de filas"
 
 msgid "Show series values on the chart"
 msgstr "Mostrar los valores de la serie en el gráfico"
@@ -15378,6 +15406,15 @@ msgstr ""
 
 msgid "Sum"
 msgstr "Suma"
+
+msgid "Sum as Fraction of Columns"
+msgstr ""
+
+msgid "Sum as Fraction of Rows"
+msgstr ""
+
+msgid "Sum as Fraction of Total"
+msgstr ""
 
 msgid "Sum of values over specified period"
 msgstr "Suma de los valores durante el periodo especificado"
@@ -16211,6 +16248,12 @@ msgstr ""
 msgid ""
 "The following charts were omitted because an error occurred while "
 "exporting them:"
+msgstr ""
+
+msgid ""
+"The following charts were omitted because their size cannot be determined"
+" before they run. Ask an administrator to enable background exports to "
+"include them."
 msgstr ""
 
 msgid ""
@@ -17418,6 +17461,9 @@ msgstr ""
 msgid "This chart only"
 msgstr ""
 
+msgid "This chart was updated to use the restored aggregation"
+msgstr ""
+
 msgid "This chart will be restored to the following version:"
 msgstr ""
 
@@ -17469,6 +17515,12 @@ msgstr ""
 "anotación."
 
 msgid "This dashboard does not exist"
+msgstr ""
+
+msgid ""
+"This dashboard has too much data to download directly. Ask an "
+"administrator to enable background exports, or lower the row limits of "
+"its charts."
 msgstr ""
 
 msgid "This dashboard is managed externally, and can't be edited in Superset"
@@ -17773,6 +17825,13 @@ msgstr ""
 #, fuzzy
 msgid "This password is too common; please choose a less guessable one."
 msgstr "Esta contraseña es demasiado común; por favor elija una menos predecible."
+
+msgid ""
+"This pivot table used a legacy per-table aggregation setting that "
+"Superset previously ignored. It now computes correctly, so totals and "
+"subtotals may look different than before. Please validate them, then "
+"accept this notice or save the chart."
+msgstr ""
 
 msgid ""
 "This section allows you to configure how to use the slice\n"
@@ -18903,9 +18962,19 @@ msgstr ""
 "Utilizar el formato de fecha incluso cuando el valor de la métrica no sea"
 " una marca de tiempo"
 
+msgid ""
+"Use each metric’s own definition for cells and summaries (the default "
+"since SIP-216), or aggregate a second time over the metric’s own grouped "
+"results — e.g. the median of a set of per-store averages. Query limits "
+"apply before a result aggregation runs."
+msgstr ""
+
 #, fuzzy
 msgid "Use gradient"
 msgstr "Granularidad temporal"
+
+msgid "Use metric definition"
+msgstr ""
 
 msgid "Use metrics as a top level group for columns or for rows"
 msgstr "Utilizar las métricas como grupo de nivel superior para columnas o filas"

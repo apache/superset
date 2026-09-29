@@ -34,7 +34,10 @@ import {
   QueryFormColumn,
 } from '@superset-ui/core';
 import { MetricsLayoutEnum, ShowValuesAsEnum } from '../types';
-import { RESULT_AGGREGATIONS } from './resultAggregation';
+import {
+  RESULT_AGGREGATIONS,
+  RESULT_AGGREGATION_LABELS,
+} from './resultAggregation';
 
 const config: ControlPanelConfig = {
   controlPanelSections: [
@@ -261,7 +264,8 @@ const config: ControlPanelConfig = {
               choices: [
                 ['Metric', t('Use metric definition')],
                 ...RESULT_AGGREGATIONS.map(
-                  name => [name, t(name)] as [string, string],
+                  name =>
+                    [name, RESULT_AGGREGATION_LABELS[name]] as [string, string],
                 ),
               ],
               description: t(

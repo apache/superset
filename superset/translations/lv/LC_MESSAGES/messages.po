@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-24 10:35+0300\n"
+"POT-Creation-Date: 2026-09-29 11:48-0700\n"
 "PO-Revision-Date: 2026-03-27 14:01+0200\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: lv\n"
@@ -160,20 +160,6 @@ msgid ""
 "defaults on a per\n"
 "                      database/column name level via the extra parameter."
 msgstr ""
-" standarts, lai nodrošinātu, ka leksikogrāfiskā secība\n"
-"                      sakrīt ar hronoloģisko secību. Ja\n"
-"                      laika zīmoga formāts neatbilst ISO 8601 standartam,"
-"\n"
-"                      jums būs jādefinē izteiksme un tips, lai\n"
-"                      pārveidotu virkni datumā vai laika zīmogā. Ņemiet "
-"vērā, ka\n"
-"                      pašlaik laika zonas netiek atbalstītas. Ja laiks ir"
-" saglabāts\n"
-"                      epohas formātā, ievadiet `epoch_s` vai `epoch_ms`. "
-"Ja nav norādīts nekāds paraugs\n"
-"                      , mēs izmantojam papildu parametru, lai izmantotu "
-"papildu noklusējumus katram\n"
-"                      datubāzes/kolonnas nosaukuma līmenim."
 
 msgid " to add calculated columns"
 msgstr " lai pievienotu aprēķinātās kolonnas"
@@ -1052,8 +1038,8 @@ msgid ""
 "analysis."
 msgstr ""
 "Sveču diagramma rāda katra perioda atvēršanas, slēgšanas, augstāko un "
-"zemāko vērtību. To parasti izmanto finanšu un citai laika rindu diapazona "
-"analīzei."
+"zemāko vērtību. To parasti izmanto finanšu un citai laika rindu diapazona"
+" analīzei."
 
 msgid "A comma separated list of columns that should be parsed as dates"
 msgstr "Ar komatu atdalīts kolonnu saraksts, kas jāanalizē kā datumi"
@@ -1287,6 +1273,9 @@ msgstr "Darbojas"
 
 msgid "About"
 msgstr "Par"
+
+msgid "Accept"
+msgstr ""
 
 msgid "Access"
 msgstr "Piekļuve"
@@ -1710,6 +1699,9 @@ msgstr "Apkopošana"
 
 msgid "Aggregation Method"
 msgstr "Apkopošanas metode"
+
+msgid "Aggregation function"
+msgstr ""
 
 msgid ""
 "Aggregation used for the summary row. By default each metric keeps its "
@@ -4696,6 +4688,18 @@ msgstr ""
 msgid "Count"
 msgstr "Skaits"
 
+msgid "Count Unique Values"
+msgstr ""
+
+msgid "Count as Fraction of Columns"
+msgstr ""
+
+msgid "Count as Fraction of Rows"
+msgstr ""
+
+msgid "Count as Fraction of Total"
+msgstr ""
+
 msgid "Country"
 msgstr "Valsts"
 
@@ -5092,6 +5096,9 @@ msgstr "Informācijas paneli nevarēja atjaunot."
 msgid "Dashboard could not be updated."
 msgstr "Infopaneli nevarēja atjaunināt."
 
+msgid "Dashboard data exported to Excel"
+msgstr ""
+
 msgid "Dashboard does not exist"
 msgstr "Informācijas panelis neeksistē"
 
@@ -5100,6 +5107,9 @@ msgstr "Informācijas panelis veiksmīgi eksportēts kā piemērs"
 
 msgid "Dashboard exported successfully"
 msgstr "Informācijas panelis veiksmīgi eksportēts"
+
+msgid "Dashboard has no charts to export."
+msgstr ""
 
 msgid "Dashboard imported"
 msgstr "Infopanelis importēts"
@@ -7076,9 +7086,6 @@ msgstr "Excel eksports"
 msgid "Excel XML Export"
 msgstr "Excel XML eksports"
 
-msgid "Excel export is not configured on this server."
-msgstr ""
-
 msgid "Excel file format cannot be determined"
 msgstr "Nevar noteikt Excel faila formātu"
 
@@ -7245,6 +7252,11 @@ msgstr "Eksportēt uz oriģinālo .CSV"
 
 msgid "Export to pivoted .CSV"
 msgstr "Eksportēt uz šķērsgriezuma .CSV"
+
+msgid ""
+"Exporting images to Excel requires background exports. Ask an "
+"administrator to enable them, or export the dashboard's data instead."
+msgstr ""
 
 #, python-format
 msgid ""
@@ -9267,6 +9279,9 @@ msgstr "Grupu saraksts"
 msgid "List Roles"
 msgstr "Lomu saraksts"
 
+msgid "List Unique Values"
+msgstr ""
+
 msgid "List Users"
 msgstr "Lietotāju saraksts"
 
@@ -9641,6 +9656,9 @@ msgstr "Vērtību vidējais norādītajā periodā"
 
 msgid "Mean values"
 msgstr "Vidējās vērtības"
+
+msgid "Median"
+msgstr ""
 
 msgid ""
 "Median edge width, the thickest edge will be 4 times thicker than the "
@@ -10459,6 +10477,11 @@ msgstr "Neviens -> Bulta"
 msgid "None -> None"
 msgstr "Neviens -> Neviens"
 
+msgid ""
+"None of this dashboard's charts can be downloaded directly. Ask an "
+"administrator to enable background exports."
+msgstr ""
+
 msgid "Normal"
 msgstr "Normāls"
 
@@ -11014,8 +11037,8 @@ msgid ""
 "Overlay simple moving averages of the close price (MA5, MA10, MA15, ...)."
 " Type a custom period to add it."
 msgstr ""
-"Pārklājajiet slēgšanas cenas vienkāršos slīdošos vidējos (MA5, MA10, MA15, "
-"...). Ierakstiet pielāgotu periodu, lai to pievienotu."
+"Pārklājajiet slēgšanas cenas vienkāršos slīdošos vidējos (MA5, MA10, "
+"MA15, ...). Ierakstiet pielāgotu periodu, lai to pievienotu."
 
 msgid ""
 "Overlays a hexagonal grid on a map, and aggregates data within the "
@@ -11599,6 +11622,12 @@ msgstr "Prefikss vai piedēklis"
 
 #, python-format
 msgid "Preparing %(count)s charts for export. This may take a moment."
+msgstr ""
+
+msgid "Preparing dashboard Excel export…"
+msgstr ""
+
+msgid "Preparing export…"
 msgstr ""
 
 msgid "Preview"
@@ -13939,11 +13968,11 @@ msgstr "Rādīt diagrammas vaicājumu laika zīmogus"
 msgid "Show column headers"
 msgstr "Rādīt kolonnas virsrakstus"
 
+msgid "Show column summaries"
+msgstr ""
+
 msgid "Show columns subtotal"
 msgstr "Rādīt kolonnu starpsummu"
-
-msgid "Show columns total"
-msgstr "Rādīt kolonnu kopsummu"
 
 msgid "Show empty columns"
 msgstr "Rādīt tukšas kolonnas"
@@ -14023,11 +14052,11 @@ msgstr "Rādīt vaicājumu identifikatorus"
 msgid "Show row labels"
 msgstr "Rādīt rindu apzīmējumus"
 
+msgid "Show row summaries"
+msgstr ""
+
 msgid "Show rows subtotal"
 msgstr "Rādīt rindu starpsummu"
-
-msgid "Show rows total"
-msgstr "Rādīt rindu kopsummu"
 
 msgid "Show series values on the chart"
 msgstr "Rādīt sēriju vērtības diagrammā"
@@ -14702,6 +14731,15 @@ msgstr ""
 
 msgid "Sum"
 msgstr "Summa"
+
+msgid "Sum as Fraction of Columns"
+msgstr ""
+
+msgid "Sum as Fraction of Rows"
+msgstr ""
+
+msgid "Sum as Fraction of Total"
+msgstr ""
 
 msgid "Sum of values over specified period"
 msgstr "Vērtību summa norādītajā periodā"
@@ -15487,6 +15525,12 @@ msgstr ""
 msgid ""
 "The following charts were omitted because an error occurred while "
 "exporting them:"
+msgstr ""
+
+msgid ""
+"The following charts were omitted because their size cannot be determined"
+" before they run. Ask an administrator to enable background exports to "
+"include them."
 msgstr ""
 
 msgid ""
@@ -16600,6 +16644,9 @@ msgstr ""
 msgid "This chart only"
 msgstr ""
 
+msgid "This chart was updated to use the restored aggregation"
+msgstr ""
+
 msgid "This chart will be restored to the following version:"
 msgstr ""
 
@@ -16648,6 +16695,12 @@ msgstr ""
 "                  skata jāpārsūta uz diagrammu, kas satur anotāciju datus."
 
 msgid "This dashboard does not exist"
+msgstr ""
+
+msgid ""
+"This dashboard has too much data to download directly. Ask an "
+"administrator to enable background exports, or lower the row limits of "
+"its charts."
 msgstr ""
 
 msgid "This dashboard is managed externally, and can't be edited in Superset"
@@ -16911,6 +16964,13 @@ msgstr "Šī lapa ir paredzēta iegulšanai iframe, bet šķiet, ka tas tā nav.
 #, fuzzy
 msgid "This password is too common; please choose a less guessable one."
 msgstr "Šī parole ir pārāk izplatīta; lūdzu, izvēlieties grūtāk uzminamu paroli."
+
+msgid ""
+"This pivot table used a legacy per-table aggregation setting that "
+"Superset previously ignored. It now computes correctly, so totals and "
+"subtotals may look different than before. Please validate them, then "
+"accept this notice or save the chart."
+msgstr ""
 
 msgid ""
 "This section allows you to configure how to use the slice\n"
@@ -17991,8 +18051,18 @@ msgstr "Izmantot pašreizējo apjomu"
 msgid "Use date formatting even when metric value is not a timestamp"
 msgstr "Izmantot datuma formatēšanu pat tad, kad metrikas vērtība nav laika zīmogs"
 
+msgid ""
+"Use each metric’s own definition for cells and summaries (the default "
+"since SIP-216), or aggregate a second time over the metric’s own grouped "
+"results — e.g. the median of a set of per-store averages. Query limits "
+"apply before a result aggregation runs."
+msgstr ""
+
 msgid "Use gradient"
 msgstr "Izmantojiet gradientu"
+
+msgid "Use metric definition"
+msgstr ""
 
 msgid "Use metrics as a top level group for columns or for rows"
 msgstr "Izmantot metriku kā augstākā līmeņa grupu kolonnām vai rindām"

@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-24 10:35+0300\n"
+"POT-Creation-Date: 2026-09-29 11:48-0700\n"
 "PO-Revision-Date: 2025-06-26 15:34+0200\n"
 "Last-Translator: \n"
 "Language: fr\n"
@@ -156,14 +156,6 @@ msgid ""
 "defaults on a per\n"
 "                      database/column name level via the extra parameter."
 msgstr ""
-" afin de garantir que l'ordre lexicographique coïncide avec l'ordre "
-"chronologique. Si le format de l'horodatage n'est pas conforme à la norme"
-" ISO 8601, vous devrez définir une expression et un type pour transformer"
-" la chaîne en date ou en horodatage. Notez que les fuseaux horaires ne "
-"sont pas pris en charge actuellement. Si l'heure est stockée au format "
-"epoch, mettez `epoch_s` ou `epoch_ms`. Si aucun modèle n'est spécifié, "
-"nous utilisons les valeurs par défaut optionnelles au niveau de chaque "
-"base de données/nom de colonne via le paramètre supplémentaire."
 
 msgid " to add calculated columns"
 msgstr " pour ajouter des colonnes calculées"
@@ -1255,6 +1247,9 @@ msgstr "En cours d'annulation"
 msgid "About"
 msgstr "À propos"
 
+msgid "Accept"
+msgstr ""
+
 msgid "Access"
 msgstr "Accès"
 
@@ -1682,6 +1677,9 @@ msgstr "Aggregation"
 
 msgid "Aggregation Method"
 msgstr "Méthode d'agrégation"
+
+msgid "Aggregation function"
+msgstr ""
 
 msgid ""
 "Aggregation used for the summary row. By default each metric keeps its "
@@ -3275,8 +3273,9 @@ msgid ""
 "Candlestick draws a filled body between open and close. OHLC draws ticks "
 "for open and close on a high-low stem."
 msgstr ""
-"Les chandeliers dessinent un corps plein entre l'ouverture et la clôture. "
-"OHLC dessine des marques d'ouverture et de clôture sur une tige haut-bas."
+"Les chandeliers dessinent un corps plein entre l'ouverture et la clôture."
+" OHLC dessine des marques d'ouverture et de clôture sur une tige haut-"
+"bas."
 
 msgid "Cannot access the query"
 msgstr "Impossible d'accéder à la requête"
@@ -4171,8 +4170,8 @@ msgid ""
 "Color used when the close value is greater than or equal to the open "
 "value."
 msgstr ""
-"Couleur utilisée lorsque la valeur de clôture est supérieure ou égale à la "
-"valeur d'ouverture."
+"Couleur utilisée lorsque la valeur de clôture est supérieure ou égale à "
+"la valeur d'ouverture."
 
 msgid "Color used when the close value is less than the open value."
 msgstr ""
@@ -4742,6 +4741,18 @@ msgstr ""
 msgid "Count"
 msgstr "Nombre"
 
+msgid "Count Unique Values"
+msgstr ""
+
+msgid "Count as Fraction of Columns"
+msgstr ""
+
+msgid "Count as Fraction of Rows"
+msgstr ""
+
+msgid "Count as Fraction of Total"
+msgstr ""
+
 msgid "Country"
 msgstr "Pays"
 
@@ -5153,6 +5164,9 @@ msgstr "Le tableau de bord n'a pas pu être restauré."
 msgid "Dashboard could not be updated."
 msgstr "Le tableau de bord n'a pas pu être mis à jour."
 
+msgid "Dashboard data exported to Excel"
+msgstr ""
+
 msgid "Dashboard does not exist"
 msgstr "Le tableau de bord n'existe pas"
 
@@ -5161,6 +5175,9 @@ msgstr "Le tableau de bord a été exporté comme exemple avec succès."
 
 msgid "Dashboard exported successfully"
 msgstr "Le tableau de bord a été exporté avec succès."
+
+msgid "Dashboard has no charts to export."
+msgstr ""
 
 msgid "Dashboard imported"
 msgstr "Tableau de bord importé"
@@ -7151,9 +7168,6 @@ msgstr "Export Excel"
 msgid "Excel XML Export"
 msgstr "Export Excel XML"
 
-msgid "Excel export is not configured on this server."
-msgstr ""
-
 msgid "Excel file format cannot be determined"
 msgstr "Le format du fichier Excel ne peut pas être déterminé"
 
@@ -7318,6 +7332,11 @@ msgstr "Exporter vers .CSV original"
 
 msgid "Export to pivoted .CSV"
 msgstr "Exporter vers .CSV pivoté"
+
+msgid ""
+"Exporting images to Excel requires background exports. Ask an "
+"administrator to enable them, or export the dashboard's data instead."
+msgstr ""
 
 #, python-format
 msgid ""
@@ -9375,6 +9394,9 @@ msgstr "Liste des groupes"
 msgid "List Roles"
 msgstr "Liste des rôles"
 
+msgid "List Unique Values"
+msgstr ""
+
 msgid "List Users"
 msgstr "Liste des utilisateurs"
 
@@ -9744,6 +9766,9 @@ msgstr "Moyenne des valeurs sur une période spécifiée"
 
 msgid "Mean values"
 msgstr "Valeurs moyennes"
+
+msgid "Median"
+msgstr ""
 
 msgid ""
 "Median edge width, the thickest edge will be 4 times thicker than the "
@@ -10561,6 +10586,11 @@ msgstr "Aucun -> Flèche"
 
 msgid "None -> None"
 msgstr "Aucun -> Aucun"
+
+msgid ""
+"None of this dashboard's charts can be downloaded directly. Ask an "
+"administrator to enable background exports."
+msgstr ""
 
 msgid "Normal"
 msgstr "Normal"
@@ -11724,6 +11754,12 @@ msgstr "Préfixe ou suffixe"
 
 #, python-format
 msgid "Preparing %(count)s charts for export. This may take a moment."
+msgstr ""
+
+msgid "Preparing dashboard Excel export…"
+msgstr ""
+
+msgid "Preparing export…"
 msgstr ""
 
 msgid "Preview"
@@ -14087,11 +14123,11 @@ msgstr "Afficher l'horodatage de la requête du graphique"
 msgid "Show column headers"
 msgstr "Afficher les en-têtes de colonnes"
 
+msgid "Show column summaries"
+msgstr ""
+
 msgid "Show columns subtotal"
 msgstr "Afficher les sous-totaux"
-
-msgid "Show columns total"
-msgstr "Afficher les totaux des colonnes"
 
 msgid "Show empty columns"
 msgstr "Afficher les colonnes vides"
@@ -14172,11 +14208,11 @@ msgstr "Afficher les identifiants de requête"
 msgid "Show row labels"
 msgstr "Afficher les labels des lignes"
 
+msgid "Show row summaries"
+msgstr ""
+
 msgid "Show rows subtotal"
 msgstr "Afficher les sous-totaux de lignes"
-
-msgid "Show rows total"
-msgstr "Afficher le total des lignes"
 
 msgid "Show series values on the chart"
 msgstr "Afficher les valeurs de série sur le graphique"
@@ -14863,6 +14899,15 @@ msgstr ""
 
 msgid "Sum"
 msgstr "Somme"
+
+msgid "Sum as Fraction of Columns"
+msgstr ""
+
+msgid "Sum as Fraction of Rows"
+msgstr ""
+
+msgid "Sum as Fraction of Total"
+msgstr ""
 
 msgid "Sum of values over specified period"
 msgstr "Somme des valeurs sur une période spécifiée"
@@ -15671,6 +15716,12 @@ msgstr ""
 msgid ""
 "The following charts were omitted because an error occurred while "
 "exporting them:"
+msgstr ""
+
+msgid ""
+"The following charts were omitted because their size cannot be determined"
+" before they run. Ask an administrator to enable background exports to "
+"include them."
 msgstr ""
 
 msgid ""
@@ -16873,6 +16924,9 @@ msgstr ""
 msgid "This chart only"
 msgstr ""
 
+msgid "This chart was updated to use the restored aggregation"
+msgstr ""
+
 msgid "This chart will be restored to the following version:"
 msgstr ""
 
@@ -16916,6 +16970,12 @@ msgstr ""
 
 msgid "This dashboard does not exist"
 msgstr "Ce tableau de bord n'existe pas"
+
+msgid ""
+"This dashboard has too much data to download directly. Ask an "
+"administrator to enable background exports, or lower the row limits of "
+"its charts."
+msgstr ""
 
 msgid "This dashboard is managed externally, and can't be edited in Superset"
 msgstr ""
@@ -17203,6 +17263,13 @@ msgid "This password is too common; please choose a less guessable one."
 msgstr ""
 "Ce mot de passe est trop courant ; veuillez en choisir un moins facile à "
 "deviner."
+
+msgid ""
+"This pivot table used a legacy per-table aggregation setting that "
+"Superset previously ignored. It now computes correctly, so totals and "
+"subtotals may look different than before. Please validate them, then "
+"accept this notice or save the chart."
+msgstr ""
 
 msgid ""
 "This section allows you to configure how to use the slice\n"
@@ -18296,8 +18363,18 @@ msgstr ""
 "Utiliser le formatage de la date même lorsque la valeur mesure n'est pas "
 "un horodatage"
 
+msgid ""
+"Use each metric’s own definition for cells and summaries (the default "
+"since SIP-216), or aggregate a second time over the metric’s own grouped "
+"results — e.g. the median of a set of per-store averages. Query limits "
+"apply before a result aggregation runs."
+msgstr ""
+
 msgid "Use gradient"
 msgstr "Utiliser un dégradé"
+
+msgid "Use metric definition"
+msgstr ""
 
 msgid "Use metrics as a top level group for columns or for rows"
 msgstr ""
@@ -18936,9 +19013,9 @@ msgid ""
 "candles use the decrease color. Turn off to use one series color, with a "
 "filled body for increases and a hollow body for decreases."
 msgstr ""
-"Si activé, les chandeliers haussiers utilisent la couleur de hausse et les "
-"baissiers celle de baisse. Désactivez pour une seule couleur de série, "
-"avec un corps plein à la hausse et creux à la baisse."
+"Si activé, les chandeliers haussiers utilisent la couleur de hausse et "
+"les baissiers celle de baisse. Désactivez pour une seule couleur de "
+"série, avec un corps plein à la hausse et creux à la baisse."
 
 msgid ""
 "When enabled, the axis will display labels for the minimum and maximum "

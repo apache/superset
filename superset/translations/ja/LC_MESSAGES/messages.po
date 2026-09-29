@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-24 10:35+0300\n"
+"POT-Creation-Date: 2026-09-29 11:48-0700\n"
 "PO-Revision-Date: 2024-05-14 13:30+0900\n"
 "Last-Translator: Yuri Umezaki <bungoume@gmail.com>\n"
 "Language: ja\n"
@@ -140,13 +140,6 @@ msgid ""
 "defaults on a per\n"
 "                      database/column name level via the extra parameter."
 msgstr ""
-"辞書順(文字列順)が時系列順と一致することを保証するための標準規格です。\n"
-"                      タイムスタンプ形式が ISO 8601 標準に準拠していない場合は、\n"
-"                      文字列を日付またはタイムスタンプに変換するための式と型を定義する必要があります。\n"
-"                      注：現時点ではタイムゾーンはサポートされていません。時間がエポック形式(UNIX時間)で\n"
-"                      保存されている場合は、`epoch_s` または `epoch_ms` を指定してください。パターンが"
-"\n"
-"                      指定されていない場合は、追加パラメータを介してデータベース/列レベルの既定値が適用されます。"
 
 msgid " to add calculated columns"
 msgstr "計算列を追加する"
@@ -1146,6 +1139,9 @@ msgstr "中止中"
 msgid "About"
 msgstr "概要"
 
+msgid "Accept"
+msgstr ""
+
 msgid "Access"
 msgstr "アクセス"
 
@@ -1543,6 +1539,9 @@ msgstr "集計"
 
 msgid "Aggregation Method"
 msgstr "集計方法"
+
+msgid "Aggregation function"
+msgstr ""
 
 msgid ""
 "Aggregation used for the summary row. By default each metric keeps its "
@@ -4312,6 +4311,18 @@ msgstr ""
 msgid "Count"
 msgstr "カウント (件数)"
 
+msgid "Count Unique Values"
+msgstr ""
+
+msgid "Count as Fraction of Columns"
+msgstr ""
+
+msgid "Count as Fraction of Rows"
+msgstr ""
+
+msgid "Count as Fraction of Total"
+msgstr ""
+
 msgid "Country"
 msgstr "国"
 
@@ -4680,6 +4691,9 @@ msgstr "ダッシュボードを復元できませんでした。"
 msgid "Dashboard could not be updated."
 msgstr "ダッシュボードを更新できませんでした。"
 
+msgid "Dashboard data exported to Excel"
+msgstr ""
+
 msgid "Dashboard does not exist"
 msgstr "ダッシュボードが存在しません"
 
@@ -4688,6 +4702,9 @@ msgstr "ダッシュボードの構成をエクスポートしました"
 
 msgid "Dashboard exported successfully"
 msgstr "ダッシュボードのエクスポートが完了しました"
+
+msgid "Dashboard has no charts to export."
+msgstr ""
 
 msgid "Dashboard imported"
 msgstr "ダッシュボードをインポートしました"
@@ -6499,9 +6516,6 @@ msgstr "Excelエクスポート"
 msgid "Excel XML Export"
 msgstr "Excel XMLエクスポート"
 
-msgid "Excel export is not configured on this server."
-msgstr ""
-
 msgid "Excel file format cannot be determined"
 msgstr "Excelファイルの形式を特定できません"
 
@@ -6663,6 +6677,11 @@ msgstr "基データCSVとしてエクスポート"
 
 msgid "Export to pivoted .CSV"
 msgstr "ピボット済みCSVとしてエクスポート"
+
+msgid ""
+"Exporting images to Excel requires background exports. Ask an "
+"administrator to enable them, or export the dashboard's data instead."
+msgstr ""
 
 #, python-format
 msgid ""
@@ -8579,6 +8598,9 @@ msgstr "グループ一覧"
 msgid "List Roles"
 msgstr "ロール一覧"
 
+msgid "List Unique Values"
+msgstr ""
+
 msgid "List Users"
 msgstr "ユーザー一覧"
 
@@ -8923,6 +8945,9 @@ msgstr "指定期間内の平均値"
 
 msgid "Mean values"
 msgstr "平均値"
+
+msgid "Median"
+msgstr ""
 
 msgid ""
 "Median edge width, the thickest edge will be 4 times thicker than the "
@@ -9688,6 +9713,11 @@ msgstr "なし -> 矢印"
 
 msgid "None -> None"
 msgstr "なし -> なし"
+
+msgid ""
+"None of this dashboard's charts can be downloaded directly. Ask an "
+"administrator to enable background exports."
+msgstr ""
 
 msgid "Normal"
 msgstr "標準"
@@ -10740,6 +10770,12 @@ msgstr "接頭辞または接尾辞"
 
 #, python-format
 msgid "Preparing %(count)s charts for export. This may take a moment."
+msgstr ""
+
+msgid "Preparing dashboard Excel export…"
+msgstr ""
+
+msgid "Preparing export…"
 msgstr ""
 
 msgid "Preview"
@@ -12911,11 +12947,11 @@ msgstr "チャートクエリのタイムスタンプを表示"
 msgid "Show column headers"
 msgstr "列ヘッダーを表示"
 
+msgid "Show column summaries"
+msgstr ""
+
 msgid "Show columns subtotal"
 msgstr "列の小計を表示"
-
-msgid "Show columns total"
-msgstr "列の合計を表示"
 
 msgid "Show empty columns"
 msgstr "空の列を表示"
@@ -12993,11 +13029,11 @@ msgstr "クエリ識別子を表示"
 msgid "Show row labels"
 msgstr "行ラベルを表示"
 
+msgid "Show row summaries"
+msgstr ""
+
 msgid "Show rows subtotal"
 msgstr "行の小計を表示"
-
-msgid "Show rows total"
-msgstr "行の合計を表示"
 
 msgid "Show series values on the chart"
 msgstr "チャート上に系列の値を表示"
@@ -13615,6 +13651,15 @@ msgstr ""
 
 msgid "Sum"
 msgstr "合計"
+
+msgid "Sum as Fraction of Columns"
+msgstr ""
+
+msgid "Sum as Fraction of Rows"
+msgstr ""
+
+msgid "Sum as Fraction of Total"
+msgstr ""
 
 msgid "Sum of values over specified period"
 msgstr "指定期間内の値の合計"
@@ -14321,6 +14366,12 @@ msgstr ""
 msgid ""
 "The following charts were omitted because an error occurred while "
 "exporting them:"
+msgstr ""
+
+msgid ""
+"The following charts were omitted because their size cannot be determined"
+" before they run. Ask an administrator to enable background exports to "
+"include them."
 msgstr ""
 
 msgid ""
@@ -15291,6 +15342,9 @@ msgstr ""
 msgid "This chart only"
 msgstr ""
 
+msgid "This chart was updated to use the restored aggregation"
+msgstr ""
+
 msgid "This chart will be restored to the following version:"
 msgstr ""
 
@@ -15332,6 +15386,12 @@ msgstr ""
 
 msgid "This dashboard does not exist"
 msgstr "このダッシュボードは存在しません"
+
+msgid ""
+"This dashboard has too much data to download directly. Ask an "
+"administrator to enable background exports, or lower the row limits of "
+"its charts."
+msgstr ""
 
 msgid "This dashboard is managed externally, and can't be edited in Superset"
 msgstr "このダッシュボードは外部で管理されているため、Superset では編集できません"
@@ -15553,6 +15613,13 @@ msgstr "このページは iframe 内への埋め込みを想定しています�
 
 msgid "This password is too common; please choose a less guessable one."
 msgstr "このパスワードはありふれています。推測されにくいものを選んでください。"
+
+msgid ""
+"This pivot table used a legacy per-table aggregation setting that "
+"Superset previously ignored. It now computes correctly, so totals and "
+"subtotals may look different than before. Please validate them, then "
+"accept this notice or save the chart."
+msgstr ""
 
 msgid ""
 "This section allows you to configure how to use the slice\n"
@@ -16533,8 +16600,18 @@ msgstr "現在の表示範囲を使用"
 msgid "Use date formatting even when metric value is not a timestamp"
 msgstr "メトリック値がタイムスタンプでない場合も日付フォーマットを適用"
 
+msgid ""
+"Use each metric’s own definition for cells and summaries (the default "
+"since SIP-216), or aggregate a second time over the metric’s own grouped "
+"results — e.g. the median of a set of per-store averages. Query limits "
+"apply before a result aggregation runs."
+msgstr ""
+
 msgid "Use gradient"
 msgstr "グラデーションを使用"
+
+msgid "Use metric definition"
+msgstr ""
 
 msgid "Use metrics as a top level group for columns or for rows"
 msgstr "メトリックを列または行の最上位グループとして使用"

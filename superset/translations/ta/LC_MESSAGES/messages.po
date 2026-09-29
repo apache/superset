@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-24 10:35+0300\n"
+"POT-Creation-Date: 2026-09-29 11:48-0700\n"
 "PO-Revision-Date: 2026-03-31 02:00-0700\n"
 "Last-Translator: Maazin Ahamed\n"
 "Language: ta\n"
@@ -157,22 +157,6 @@ msgid ""
 "defaults on a per\n"
 "                      database/column name level via the extra parameter."
 msgstr ""
-" அகரவரிசை வரிசைமுறை (lexicographical ordering) காலவரிசை வரிசைமுறையுடன் "
-"(chronological ordering)\n"
-"                      ஒத்துப் போவதை உறுதி செய்வதற்கான தரநிலை. "
-"டைம்ஸ்டாம்ப் (timestamp) வடிவம்\n"
-"                      ISO 8601 தரநிலையுடன் இணங்கவில்லை என்றால், அந்த "
-"சரத்தை (string) தேதி அல்லது\n"
-"                      டைம்ஸ்டாம்பாக மாற்ற ஒரு எக்ஸ்பிரஷன் மற்றும் வகையை "
-"நீங்கள் வரையறுக்க வேண்டும்.\n"
-"                      குறிப்பு: தற்போது நேர மண்டலங்கள் (time zones) "
-"ஆதரிக்கப்படுவதில்லை. நேரம்\n"
-"                      epoch வடிவத்தில் சேமிக்கப்பட்டிருந்தால், `epoch_s` "
-"அல்லது `epoch_ms` என இடவும்.\n"
-"                      எந்தவொரு பேட்டர்னும் குறிப்பிடப்படவில்லை எனில், "
-"கூடுதல் அளவுருக்கள் வழியாக\n"
-"                      ஒவ்வொரு தரவுத்தளம்/நெடுவரிசைப் பெயருக்கும் உள்ள "
-"இயல்புநிலை மதிப்புகள் பயன்படுத்தப்படும்."
 
 msgid " to add calculated columns"
 msgstr " கணக்கிடப்பட்ட நெடுவரிசைகளைச் சேர்க்க"
@@ -1005,9 +989,9 @@ msgid ""
 " period. It is commonly used for financial and other time-series range "
 "analysis."
 msgstr ""
-"மெழுகுவர்த்தி விளக்கப்படம் ஒவ்வொரு காலகட்டத்திற்கும் திறப்பு, மூடல், உயர் "
-"மற்றும் தாழ் மதிப்புகளைக் காட்டுகிறது. நிதி மற்றும் பிற நேரத் தொடர் வரம்பு "
-"பகுப்பாய்வுக்கு இது பொதுவாகப் பயன்படுத்தப்படுகிறது."
+"மெழுகுவர்த்தி விளக்கப்படம் ஒவ்வொரு காலகட்டத்திற்கும் திறப்பு, மூடல், உயர்"
+" மற்றும் தாழ் மதிப்புகளைக் காட்டுகிறது. நிதி மற்றும் பிற நேரத் தொடர் "
+"வரம்பு பகுப்பாய்வுக்கு இது பொதுவாகப் பயன்படுத்தப்படுகிறது."
 
 msgid "A comma separated list of columns that should be parsed as dates"
 msgstr ""
@@ -1237,6 +1221,9 @@ msgstr "வடிவமைத்தல்"
 
 msgid "About"
 msgstr "பற்றி"
+
+msgid "Accept"
+msgstr ""
 
 #, fuzzy
 msgid "Access"
@@ -1669,6 +1656,9 @@ msgstr "திரட்டுதல் (Aggregation)"
 
 msgid "Aggregation Method"
 msgstr "திரட்டுதல் முறை"
+
+msgid "Aggregation function"
+msgstr ""
 
 msgid ""
 "Aggregation used for the summary row. By default each metric keeps its "
@@ -3203,8 +3193,8 @@ msgid ""
 "Candlestick draws a filled body between open and close. OHLC draws ticks "
 "for open and close on a high-low stem."
 msgstr ""
-"மெழுகுவர்த்தி திறப்புக்கும் மூடலுக்கும் இடையே நிரப்பப்பட்ட உடலை வரைகிறது. "
-"OHLC உயர்-தாழ் தண்டில் திறப்பு மற்றும் மூடல் குறிகளை வரைகிறது."
+"மெழுகுவர்த்தி திறப்புக்கும் மூடலுக்கும் இடையே நிரப்பப்பட்ட உடலை வரைகிறது."
+" OHLC உயர்-தாழ் தண்டில் திறப்பு மற்றும் மூடல் குறிகளை வரைகிறது."
 
 msgid "Cannot access the query"
 msgstr "வினவலை அணுக முடியவில்லை"
@@ -4094,8 +4084,7 @@ msgstr ""
 "பயன்படும் நிறம்."
 
 msgid "Color used when the close value is less than the open value."
-msgstr ""
-"மூடல் மதிப்பு திறப்பு மதிப்பை விடக் குறைவாக இருக்கும்போது பயன்படும் நிறம்."
+msgstr "மூடல் மதிப்பு திறப்பு மதிப்பை விடக் குறைவாக இருக்கும்போது பயன்படும் நிறம்."
 
 msgid ""
 "Color will be shaded based the normalized (0% to 100%) value of a given "
@@ -4663,6 +4652,18 @@ msgstr ""
 msgid "Count"
 msgstr "எண்ணிக்கை (Count)"
 
+msgid "Count Unique Values"
+msgstr ""
+
+msgid "Count as Fraction of Columns"
+msgstr ""
+
+msgid "Count as Fraction of Rows"
+msgstr ""
+
+msgid "Count as Fraction of Total"
+msgstr ""
+
 msgid "Country"
 msgstr "நாடு"
 
@@ -5056,6 +5057,9 @@ msgstr "டேஷ்போர்டுகளை உருவாக்க மு�
 msgid "Dashboard could not be updated."
 msgstr "டேஷ்போர்டைப் புதுப்பிக்க முடியவில்லை."
 
+msgid "Dashboard data exported to Excel"
+msgstr ""
+
 msgid "Dashboard does not exist"
 msgstr "டேஷ்போர்டு இல்லை"
 
@@ -5064,6 +5068,9 @@ msgstr "டேஷ்போர்டு உதாரணமாக வெற்ற�
 
 msgid "Dashboard exported successfully"
 msgstr "டேஷ்போர்டு வெற்றிகரமாக ஏற்றுமதி செய்யப்பட்டது"
+
+msgid "Dashboard has no charts to export."
+msgstr ""
 
 msgid "Dashboard imported"
 msgstr "டேஷ்போர்டு இறக்குமதி செய்யப்பட்டது"
@@ -7011,9 +7018,6 @@ msgstr "Excel ஏற்றுமதி"
 msgid "Excel XML Export"
 msgstr "Excel XML ஏற்றுமதி"
 
-msgid "Excel export is not configured on this server."
-msgstr ""
-
 msgid "Excel file format cannot be determined"
 msgstr "Excel கோப்பு வடிவத்தைத் தீர்மானிக்க முடியவில்லை"
 
@@ -7181,6 +7185,11 @@ msgstr "அசல் .CSV ஆக ஏற்றுமதி செய்"
 
 msgid "Export to pivoted .CSV"
 msgstr "பிவோட் செய்யப்பட்ட .CSV ஆக ஏற்றுமதி செய்"
+
+msgid ""
+"Exporting images to Excel requires background exports. Ask an "
+"administrator to enable them, or export the dashboard's data instead."
+msgstr ""
 
 #, python-format
 msgid ""
@@ -9172,6 +9181,9 @@ msgstr "குழுக்களைப் பட்டியலிடு"
 msgid "List Roles"
 msgstr "பொறுப்புகளைப் (Roles) பட்டியலிடு"
 
+msgid "List Unique Values"
+msgstr ""
+
 msgid "List Users"
 msgstr "பயனர்களைப் பட்டியலிடு"
 
@@ -9524,6 +9536,9 @@ msgstr "குறிப்பிட்ட காலத்தில் மதி�
 
 msgid "Mean values"
 msgstr "சராசரி மதிப்புகள்"
+
+msgid "Median"
+msgstr ""
 
 msgid ""
 "Median edge width, the thickest edge will be 4 times thicker than the "
@@ -9990,8 +10005,8 @@ msgid ""
 "Name used for the candlestick series in the legend and tooltip when no "
 "series dimension is set."
 msgstr ""
-"தொடர் பரிமாணம் அமைக்கப்படாதபோது விளக்கக் குறிப்பிலும் உதவிக்குறிப்பிலும் பயன்படும் "
-"மெழுகுவர்த்தி தொடர் பெயர்."
+"தொடர் பரிமாணம் அமைக்கப்படாதபோது விளக்கக் குறிப்பிலும் உதவிக்குறிப்பிலும் "
+"பயன்படும் மெழுகுவர்த்தி தொடர் பெயர்."
 
 msgid "Name your database"
 msgstr "உங்கள் தரவுத்தளத்திற்குப் பெயரிடுங்கள்"
@@ -10306,6 +10321,11 @@ msgstr "ஏதுமில்லை -> அம்பு"
 
 msgid "None -> None"
 msgstr "ஏதுமில்லை -> ஏதுமில்லை"
+
+msgid ""
+"None of this dashboard's charts can be downloaded directly. Ask an "
+"administrator to enable background exports."
+msgstr ""
 
 msgid "Normal"
 msgstr "சாதாரண"
@@ -10703,8 +10723,7 @@ msgstr "விருப்பத்தேர்வு d3 எண் வடிவ�
 msgid ""
 "Optional dimension used to split the chart into multiple candlestick "
 "series."
-msgstr ""
-"விளக்கப்படத்தை பல மெழுகுவர்த்தி தொடர்களாகப் பிரிக்கும் விருப்பப் பரிமாணம்."
+msgstr "விளக்கப்படத்தை பல மெழுகுவர்த்தி தொடர்களாகப் பிரிக்கும் விருப்பப் பரிமாணம்."
 
 msgid ""
 "Optional metric used to scale the size of each dot. Dot areas are scaled "
@@ -11396,6 +11415,12 @@ msgstr "முன்னொட்டு அல்லது பின்னொட�
 
 #, python-format
 msgid "Preparing %(count)s charts for export. This may take a moment."
+msgstr ""
+
+msgid "Preparing dashboard Excel export…"
+msgstr ""
+
+msgid "Preparing export…"
 msgstr ""
 
 msgid "Preview"
@@ -13650,11 +13675,11 @@ msgstr "சார்ட் வினவல் நேர முத்திரை
 msgid "Show column headers"
 msgstr "நெடுவரிசை தலைப்புகளைக் காண்பி"
 
+msgid "Show column summaries"
+msgstr ""
+
 msgid "Show columns subtotal"
 msgstr "நெடுவரிசைகளின் துணை மொத்தத்தைக் காண்பி"
-
-msgid "Show columns total"
-msgstr "நெடுவரிசைகளின் மொத்தத்தைக் காண்பி"
 
 msgid "Show empty columns"
 msgstr "வெற்று நெடுவரிசைகளைக் காண்பி"
@@ -13733,11 +13758,11 @@ msgstr "வினவல் அடையாளங்காட்டிகளை�
 msgid "Show row labels"
 msgstr "வரிசை லேபிள்களைக் காண்பி"
 
+msgid "Show row summaries"
+msgstr ""
+
 msgid "Show rows subtotal"
 msgstr "வரிசைகளின் துணை மொத்தத்தைக் காண்பி"
-
-msgid "Show rows total"
-msgstr "வரிசைகளின் மொத்தத்தைக் காண்பி"
 
 msgid "Show series values on the chart"
 msgstr "சார்ட்டில் தொடர் மதிப்புகளைக் காண்பி"
@@ -14394,6 +14419,15 @@ msgstr ""
 
 msgid "Sum"
 msgstr "கூட்டுத்தொகை"
+
+msgid "Sum as Fraction of Columns"
+msgstr ""
+
+msgid "Sum as Fraction of Rows"
+msgstr ""
+
+msgid "Sum as Fraction of Total"
+msgstr ""
 
 msgid "Sum of values over specified period"
 msgstr "குறிப்பிட்ட காலப்பகுதியில் மதிப்புகளின் கூட்டுத்தொகை"
@@ -15111,6 +15145,12 @@ msgstr ""
 msgid ""
 "The following charts were omitted because an error occurred while "
 "exporting them:"
+msgstr ""
+
+msgid ""
+"The following charts were omitted because their size cannot be determined"
+" before they run. Ask an administrator to enable background exports to "
+"include them."
 msgstr ""
 
 msgid ""
@@ -16146,6 +16186,9 @@ msgstr ""
 msgid "This chart only"
 msgstr ""
 
+msgid "This chart was updated to use the restored aggregation"
+msgstr ""
+
 msgid "This chart will be restored to the following version:"
 msgstr ""
 
@@ -16190,6 +16233,12 @@ msgstr ""
 #, fuzzy
 msgid "This dashboard does not exist"
 msgstr "டேஷ்போர்டு இல்லை"
+
+msgid ""
+"This dashboard has too much data to download directly. Ask an "
+"administrator to enable background exports, or lower the row limits of "
+"its charts."
+msgstr ""
 
 msgid "This dashboard is managed externally, and can't be edited in Superset"
 msgstr ""
@@ -16434,6 +16483,13 @@ msgstr ""
 "தெரியவில்லை."
 
 msgid "This password is too common; please choose a less guessable one."
+msgstr ""
+
+msgid ""
+"This pivot table used a legacy per-table aggregation setting that "
+"Superset previously ignored. It now computes correctly, so totals and "
+"subtotals may look different than before. Please validate them, then "
+"accept this notice or save the chart."
 msgstr ""
 
 msgid ""
@@ -17455,8 +17511,18 @@ msgstr ""
 "மெட்ரிக் மதிப்பு நேர முத்திரையாக இல்லாவிட்டாலும் தேதி வடிவமைப்பைப் "
 "பயன்படுத்தவும்"
 
+msgid ""
+"Use each metric’s own definition for cells and summaries (the default "
+"since SIP-216), or aggregate a second time over the metric’s own grouped "
+"results — e.g. the median of a set of per-store averages. Query limits "
+"apply before a result aggregation runs."
+msgstr ""
+
 msgid "Use gradient"
 msgstr "கிரேடியண்ட் (Gradient) பயன்படுத்தவும்"
+
+msgid "Use metric definition"
+msgstr ""
 
 msgid "Use metrics as a top level group for columns or for rows"
 msgstr ""

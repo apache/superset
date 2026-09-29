@@ -18,9 +18,9 @@
 ``141b8ada7731_tag_pivot_tables_with_restored_aggregation``.
 
 Covers the helper (_has_legacy_aggregate_function), the full upgrade() path
-across multiple slices (tagging + query_context invalidation, idempotency,
-and that unaffected slices are left alone), and that downgrade() is a
-genuine no-op.
+across multiple slices (tagging, idempotency, and that unaffected slices are
+left alone -- and that query_context is never touched, see the module
+docstring for why), and that downgrade() is a genuine no-op.
 """
 
 from __future__ import annotations
@@ -131,13 +131,11 @@ def test_upgrade_tags_and_invalidates_only_affected_pivot_tables(engine) -> None
     with Session(engine) as seed:
         seed.add_all(
             [
-                # A legacy aggregateFunction value -- must be tagged and have
-                # its cached query_context cleared.
+                # A legacy aggregateFunction value -- must be tagged.
                 Slice(
                     id=1,
                     viz_type=_VIZ_TYPE,
                     params=json.dumps({"viz_type": _VIZ_TYPE, _FIELD: "Median"}),
-                    query_context=json.dumps({"form_data": {_FIELD: "Median"}}),
                 ),
                 # "Metric" (today's default, "Use metric definition") is not a
                 # legacy value -- was never affected, must be left untouched.
@@ -145,14 +143,12 @@ def test_upgrade_tags_and_invalidates_only_affected_pivot_tables(engine) -> None
                     id=2,
                     viz_type=_VIZ_TYPE,
                     params=json.dumps({"viz_type": _VIZ_TYPE, _FIELD: "Metric"}),
-                    query_context=json.dumps({"form_data": {_FIELD: "Metric"}}),
                 ),
                 # No aggregateFunction at all -- must be left untouched.
                 Slice(
                     id=3,
                     viz_type=_VIZ_TYPE,
                     params=json.dumps({"viz_type": _VIZ_TYPE}),
-                    query_context=json.dumps({"form_data": {}}),
                 ),
                 # A different viz type that happens to reuse the same field
                 # name and a legacy-looking value coincidentally -- must be
@@ -162,7 +158,6 @@ def test_upgrade_tags_and_invalidates_only_affected_pivot_tables(engine) -> None
                     id=4,
                     viz_type="table",
                     params=json.dumps({"viz_type": "table", _FIELD: "Average"}),
-                    query_context=json.dumps({"form_data": {_FIELD: "Average"}}),
                 ),
             ]
         )
@@ -182,18 +177,6 @@ def test_upgrade_tags_and_invalidates_only_affected_pivot_tables(engine) -> None
         }
         assert tagged_object_ids == {1}
 
-        slc1 = verify.get(Slice, 1)
-        assert slc1.query_context is None
-
-        slc2 = verify.get(Slice, 2)
-        assert slc2.query_context is not None
-
-        slc3 = verify.get(Slice, 3)
-        assert slc3.query_context is not None
-
-        slc4 = verify.get(Slice, 4)
-        assert slc4.query_context is not None
-
 
 def test_upgrade_is_idempotent_across_repeated_runs(engine) -> None:
     """A re-run (or a slice matching an already-created tag) must not violate
@@ -205,7 +188,6 @@ def test_upgrade_is_idempotent_across_repeated_runs(engine) -> None:
                 id=1,
                 viz_type=_VIZ_TYPE,
                 params=json.dumps({"viz_type": _VIZ_TYPE, _FIELD: "Sum"}),
-                query_context=json.dumps({"form_data": {_FIELD: "Sum"}}),
             )
         )
         seed.commit()

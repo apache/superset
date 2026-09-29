@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-24 10:35+0300\n"
+"POT-Creation-Date: 2026-09-29 11:48-0700\n"
 "PO-Revision-Date: 2026-07-17 09:44+0100\n"
 "Last-Translator: Daniel Checheta\n"
 "Language: ru\n"
@@ -154,14 +154,6 @@ msgid ""
 "defaults on a per\n"
 "                      database/column name level via the extra parameter."
 msgstr ""
-" стандарта для обеспечения того, чтобы лексикографический порядок "
-"совпадал с хронологическим порядком. Если формат временной метки не "
-"соответствует стандарту ISO 8601, вам нужно будет определить выражение и "
-"тип для преобразования строки в дату или временную метку. В настоящее "
-"время часовые пояса не поддерживаются. Если время хранится в формате "
-"эпохи, введите \\`epoch_s\\` или \\`epoch_ms\\`. Если шаблон не указан, "
-"будут использованы необязательные значения по умолчанию на уровне имен "
-"для каждой базы данных/столбца с помощью дополнительного параметра."
 
 msgid " to add calculated columns"
 msgstr " для добавления вычисляемых столбцов"
@@ -1253,6 +1245,9 @@ msgstr "Отменяется"
 msgid "About"
 msgstr "О программе"
 
+msgid "Accept"
+msgstr ""
+
 msgid "Access"
 msgstr "Доступ"
 
@@ -1667,6 +1662,9 @@ msgstr "Агрегация"
 
 msgid "Aggregation Method"
 msgstr "Метод агрегации"
+
+msgid "Aggregation function"
+msgstr ""
 
 msgid ""
 "Aggregation used for the summary row. By default each metric keeps its "
@@ -4618,6 +4616,18 @@ msgstr ""
 msgid "Count"
 msgstr "Количество"
 
+msgid "Count Unique Values"
+msgstr ""
+
+msgid "Count as Fraction of Columns"
+msgstr ""
+
+msgid "Count as Fraction of Rows"
+msgstr ""
+
+msgid "Count as Fraction of Total"
+msgstr ""
+
 msgid "Country"
 msgstr "Страна"
 
@@ -5003,6 +5013,9 @@ msgstr "Не удалось восстановить дашборд"
 msgid "Dashboard could not be updated."
 msgstr "Не удалось обновить дашборд"
 
+msgid "Dashboard data exported to Excel"
+msgstr ""
+
 msgid "Dashboard does not exist"
 msgstr "Дашборд не существует"
 
@@ -5011,6 +5024,9 @@ msgstr "Дашборд успешно экспортирован как прим
 
 msgid "Dashboard exported successfully"
 msgstr "Дашборд успешно экспортирован"
+
+msgid "Dashboard has no charts to export."
+msgstr ""
 
 msgid "Dashboard imported"
 msgstr "Дашборд импортирован"
@@ -6957,9 +6973,6 @@ msgstr "Экспорт в Excel (.xlsx)"
 msgid "Excel XML Export"
 msgstr "Экспорт в XML (.xml)"
 
-msgid "Excel export is not configured on this server."
-msgstr ""
-
 msgid "Excel file format cannot be determined"
 msgstr "Не удалось определить формат Excel-файла"
 
@@ -7123,6 +7136,11 @@ msgstr "Экспорт исходных данных в CSV"
 
 msgid "Export to pivoted .CSV"
 msgstr "Экспорт сводной таблицы в CSV"
+
+msgid ""
+"Exporting images to Excel requires background exports. Ask an "
+"administrator to enable them, or export the dashboard's data instead."
+msgstr ""
 
 #, python-format
 msgid ""
@@ -9118,6 +9136,9 @@ msgstr "Список групп"
 msgid "List Roles"
 msgstr "Список ролей"
 
+msgid "List Unique Values"
+msgstr ""
+
 msgid "List Users"
 msgstr "Список пользователей"
 
@@ -9481,6 +9502,9 @@ msgstr "Среднее значений за указанный период"
 
 msgid "Mean values"
 msgstr "Средние значения"
+
+msgid "Median"
+msgstr ""
 
 msgid ""
 "Median edge width, the thickest edge will be 4 times thicker than the "
@@ -10288,6 +10312,11 @@ msgstr "Ничего -> Стрелка"
 msgid "None -> None"
 msgstr "Ничего -> Ничего"
 
+msgid ""
+"None of this dashboard's charts can be downloaded directly. Ask an "
+"administrator to enable background exports."
+msgstr ""
+
 msgid "Normal"
 msgstr "Обычный"
 
@@ -10836,8 +10865,8 @@ msgid ""
 "Overlay simple moving averages of the close price (MA5, MA10, MA15, ...)."
 " Type a custom period to add it."
 msgstr ""
-"Наложить простые скользящие средние цены закрытия (MA5, MA10, MA15, ...). "
-"Введите свой период, чтобы добавить его."
+"Наложить простые скользящие средние цены закрытия (MA5, MA10, MA15, ...)."
+" Введите свой период, чтобы добавить его."
 
 msgid ""
 "Overlays a hexagonal grid on a map, and aggregates data within the "
@@ -11413,6 +11442,12 @@ msgstr "Префикс или суффикс"
 
 #, python-format
 msgid "Preparing %(count)s charts for export. This may take a moment."
+msgstr ""
+
+msgid "Preparing dashboard Excel export…"
+msgstr ""
+
+msgid "Preparing export…"
 msgstr ""
 
 msgid "Preview"
@@ -13665,11 +13700,11 @@ msgstr "Показывать метки времени запросов диаг
 msgid "Show column headers"
 msgstr "Показывать заголовки столбцов"
 
+msgid "Show column summaries"
+msgstr ""
+
 msgid "Show columns subtotal"
 msgstr "Показать подытоги по столбцам"
-
-msgid "Show columns total"
-msgstr "Показать итог по столбцам"
 
 msgid "Show empty columns"
 msgstr "Показывать пустые столбцы"
@@ -13749,11 +13784,11 @@ msgstr "Показать идентификаторы запросов"
 msgid "Show row labels"
 msgstr "Показывать подписи строк"
 
+msgid "Show row summaries"
+msgstr ""
+
 msgid "Show rows subtotal"
 msgstr "Показать подытоги по строкам"
-
-msgid "Show rows total"
-msgstr "Показать общий итог по строкам"
 
 msgid "Show series values on the chart"
 msgstr "Показать значения категорий на диаграмме"
@@ -14414,6 +14449,15 @@ msgstr ""
 
 msgid "Sum"
 msgstr "Сумма"
+
+msgid "Sum as Fraction of Columns"
+msgstr ""
+
+msgid "Sum as Fraction of Rows"
+msgstr ""
+
+msgid "Sum as Fraction of Total"
+msgstr ""
 
 msgid "Sum of values over specified period"
 msgstr "Сумма значений за обозначенный период"
@@ -15179,6 +15223,12 @@ msgstr ""
 msgid ""
 "The following charts were omitted because an error occurred while "
 "exporting them:"
+msgstr ""
+
+msgid ""
+"The following charts were omitted because their size cannot be determined"
+" before they run. Ask an administrator to enable background exports to "
+"include them."
 msgstr ""
 
 msgid ""
@@ -16291,6 +16341,9 @@ msgstr ""
 msgid "This chart only"
 msgstr ""
 
+msgid "This chart was updated to use the restored aggregation"
+msgstr ""
+
 msgid "This chart will be restored to the following version:"
 msgstr ""
 
@@ -16338,6 +16391,12 @@ msgstr ""
 "содержащую аннотации"
 
 msgid "This dashboard does not exist"
+msgstr ""
+
+msgid ""
+"This dashboard has too much data to download directly. Ask an "
+"administrator to enable background exports, or lower the row limits of "
+"its charts."
 msgstr ""
 
 msgid "This dashboard is managed externally, and can't be edited in Superset"
@@ -16598,6 +16657,13 @@ msgid "This password is too common; please choose a less guessable one."
 msgstr ""
 "Такой пароль слишком часто встречается. Придумайте какой-нибудь другой, "
 "который было бы сложнее угадать."
+
+msgid ""
+"This pivot table used a legacy per-table aggregation setting that "
+"Superset previously ignored. It now computes correctly, so totals and "
+"subtotals may look different than before. Please validate them, then "
+"accept this notice or save the chart."
+msgstr ""
 
 msgid ""
 "This section allows you to configure how to use the slice\n"
@@ -17658,8 +17724,18 @@ msgstr "Использовать текущий масштаб"
 msgid "Use date formatting even when metric value is not a timestamp"
 msgstr "Отформатировать как дату, даже если мера представлена другим типом данных"
 
+msgid ""
+"Use each metric’s own definition for cells and summaries (the default "
+"since SIP-216), or aggregate a second time over the metric’s own grouped "
+"results — e.g. the median of a set of per-store averages. Query limits "
+"apply before a result aggregation runs."
+msgstr ""
+
 msgid "Use gradient"
 msgstr "Использовать градиент"
+
+msgid "Use metric definition"
+msgstr ""
 
 msgid "Use metrics as a top level group for columns or for rows"
 msgstr "Использовать меры как группы верхнего уровня для столбцов или строк"

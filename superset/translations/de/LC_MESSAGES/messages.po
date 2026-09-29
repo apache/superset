@@ -18,7 +18,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-24 10:35+0300\n"
+"POT-Creation-Date: 2026-09-29 11:48-0700\n"
 "PO-Revision-Date: 2023-04-07 19:45+0200\n"
 "Last-Translator: Holger Bruch <holger.bruch@wattbewerb.de>\n"
 "Language: de\n"
@@ -148,15 +148,6 @@ msgid ""
 "defaults on a per\n"
 "                      database/column name level via the extra parameter."
 msgstr ""
-" Standard entsprechen muss, um sicherzustellen, dass die lexikographische"
-" Reihenfolge mit der chronologischen Reihenfolge übereinstimmt. Wenn das "
-"Zeitstempelformat nicht dem ISO 8601-Standard entspricht, müssen Sie "
-"einen Ausdruck und einen Typ definieren, um die Zeichenfolge in ein Datum"
-" oder einen Zeitstempel umzuwandeln. Hinweis: Derzeit werden Zeitzonen "
-"nicht unterstützt. Wenn Zeit im Epochenformat gespeichert ist, Geben Sie "
-"\"epoch_s\" oder \"epoch_ms\" ein. Wenn kein Muster angegeben ist, "
-"greifen wir die extra Parameter auf die optionalen Standardwerte auf "
-"Datenbank-/Spaltennamenebene zurück."
 
 msgid " to add calculated columns"
 msgstr ", um berechnete Spalten hinzuzufügen"
@@ -996,8 +987,8 @@ msgid ""
 "analysis."
 msgstr ""
 "Ein Kerzenchart zeigt Eröffnungs-, Schluss-, Höchst- und Tiefstwerte für "
-"jeden Zeitraum. Er wird häufig für Finanz- und andere "
-"Zeitreihen-Spannweitenanalysen verwendet."
+"jeden Zeitraum. Er wird häufig für Finanz- und andere Zeitreihen-"
+"Spannweitenanalysen verwendet."
 
 msgid "A comma separated list of columns that should be parsed as dates"
 msgstr ""
@@ -1234,6 +1225,9 @@ msgstr "Wird abgebrochen"
 
 msgid "About"
 msgstr "Über"
+
+msgid "Accept"
+msgstr ""
 
 msgid "Access"
 msgstr "Zugriff"
@@ -1662,6 +1656,9 @@ msgstr "Aggregation"
 
 msgid "Aggregation Method"
 msgstr "Aggregationsmethode"
+
+msgid "Aggregation function"
+msgstr ""
 
 msgid ""
 "Aggregation used for the summary row. By default each metric keeps its "
@@ -3222,8 +3219,8 @@ msgid ""
 "for open and close on a high-low stem."
 msgstr ""
 "Kerzen zeichnen einen gefüllten Körper zwischen Eröffnung und Schluss. "
-"OHLC zeichnet Markierungen für Eröffnung und Schluss an einem "
-"Hoch-Tief-Stiel."
+"OHLC zeichnet Markierungen für Eröffnung und Schluss an einem Hoch-Tief-"
+"Stiel."
 
 msgid "Cannot access the query"
 msgstr "Zugriff auf die Abfrage nicht möglich"
@@ -4097,8 +4094,7 @@ msgstr "Farbschema"
 msgid ""
 "Color used when the close value is greater than or equal to the open "
 "value."
-msgstr ""
-"Farbe, wenn der Schlusswert größer oder gleich dem Eröffnungswert ist."
+msgstr "Farbe, wenn der Schlusswert größer oder gleich dem Eröffnungswert ist."
 
 msgid "Color used when the close value is less than the open value."
 msgstr "Farbe, wenn der Schlusswert kleiner als der Eröffnungswert ist."
@@ -4680,6 +4676,18 @@ msgstr ""
 msgid "Count"
 msgstr "Anzahl"
 
+msgid "Count Unique Values"
+msgstr ""
+
+msgid "Count as Fraction of Columns"
+msgstr ""
+
+msgid "Count as Fraction of Rows"
+msgstr ""
+
+msgid "Count as Fraction of Total"
+msgstr ""
+
 msgid "Country"
 msgstr "Land"
 
@@ -5072,6 +5080,9 @@ msgstr "Dashboard konnte nicht wiederhergestellt werden."
 msgid "Dashboard could not be updated."
 msgstr "Das Dashboard konnte nicht aktualisiert werden."
 
+msgid "Dashboard data exported to Excel"
+msgstr ""
+
 msgid "Dashboard does not exist"
 msgstr "Dashboard existiert nicht"
 
@@ -5080,6 +5091,9 @@ msgstr "Das Dashboard wurde erfolgreich als Beispiel exportiert"
 
 msgid "Dashboard exported successfully"
 msgstr "Das Dashboard wurde erfolgreich exportiert"
+
+msgid "Dashboard has no charts to export."
+msgstr ""
 
 msgid "Dashboard imported"
 msgstr "Dashboard importiert"
@@ -7044,9 +7058,6 @@ msgstr "Excel Export"
 msgid "Excel XML Export"
 msgstr "Excel XML-Export"
 
-msgid "Excel export is not configured on this server."
-msgstr ""
-
 msgid "Excel file format cannot be determined"
 msgstr "Excel-Dateiformat kann nicht bestimmt werden"
 
@@ -7210,6 +7221,11 @@ msgstr "Export in das ursprüngliche .CSV"
 
 msgid "Export to pivoted .CSV"
 msgstr "Export in das pivotierte .CSV"
+
+msgid ""
+"Exporting images to Excel requires background exports. Ask an "
+"administrator to enable them, or export the dashboard's data instead."
+msgstr ""
 
 #, python-format
 msgid ""
@@ -9226,6 +9242,9 @@ msgstr "Gruppen auflisten"
 msgid "List Roles"
 msgstr "Rollen auflisten"
 
+msgid "List Unique Values"
+msgstr ""
+
 msgid "List Users"
 msgstr "Benutzer*innen auflisten"
 
@@ -9580,6 +9599,9 @@ msgstr "Mittelwert der Werte über einen bestimmten Zeitraum"
 
 msgid "Mean values"
 msgstr "Mittelwerte"
+
+msgid "Median"
+msgstr ""
 
 msgid ""
 "Median edge width, the thickest edge will be 4 times thicker than the "
@@ -10386,6 +10408,11 @@ msgstr "Keine -> Pfeil"
 msgid "None -> None"
 msgstr "Keine -> Keine"
 
+msgid ""
+"None of this dashboard's charts can be downloaded directly. Ask an "
+"administrator to enable background exports."
+msgstr ""
+
 msgid "Normal"
 msgstr "Normal"
 
@@ -10814,8 +10841,7 @@ msgstr "Optionale d3-Zahlenformat-Zeichenfolge"
 msgid ""
 "Optional dimension used to split the chart into multiple candlestick "
 "series."
-msgstr ""
-"Optionale Dimension, die das Diagramm in mehrere Kerzenreihen aufteilt."
+msgstr "Optionale Dimension, die das Diagramm in mehrere Kerzenreihen aufteilt."
 
 msgid ""
 "Optional metric used to scale the size of each dot. Dot areas are scaled "
@@ -10948,8 +10974,8 @@ msgid ""
 "Overlay simple moving averages of the close price (MA5, MA10, MA15, ...)."
 " Type a custom period to add it."
 msgstr ""
-"Einfache gleitende Durchschnitte des Schlusskurses überlagern (MA5, MA10, "
-"MA15, …). Geben Sie einen eigenen Zeitraum ein, um ihn hinzuzufügen."
+"Einfache gleitende Durchschnitte des Schlusskurses überlagern (MA5, MA10,"
+" MA15, …). Geben Sie einen eigenen Zeitraum ein, um ihn hinzuzufügen."
 
 msgid ""
 "Overlays a hexagonal grid on a map, and aggregates data within the "
@@ -11544,6 +11570,12 @@ msgstr "Präfix oder Suffix"
 
 #, python-format
 msgid "Preparing %(count)s charts for export. This may take a moment."
+msgstr ""
+
+msgid "Preparing dashboard Excel export…"
+msgstr ""
+
+msgid "Preparing export…"
 msgstr ""
 
 msgid "Preview"
@@ -13835,11 +13867,11 @@ msgstr "Zeitstempel der Diagrammabfragen anzeigen"
 msgid "Show column headers"
 msgstr "Spaltenüberschriften anzeigen"
 
+msgid "Show column summaries"
+msgstr ""
+
 msgid "Show columns subtotal"
 msgstr "Spalten Zwischensumme anzeigen"
-
-msgid "Show columns total"
-msgstr "Spaltensumme anzeigen"
 
 msgid "Show empty columns"
 msgstr "Leere Spalten anzeigen"
@@ -13919,11 +13951,11 @@ msgstr "Abfragekennungen anzeigen"
 msgid "Show row labels"
 msgstr "Zeilenbeschriftung anzeigen"
 
+msgid "Show row summaries"
+msgstr ""
+
 msgid "Show rows subtotal"
 msgstr "Zwischensumme der Zeilen anzeigen"
-
-msgid "Show rows total"
-msgstr "Zeilensumme anzeigen"
 
 msgid "Show series values on the chart"
 msgstr "Reihenwerte im Diagramm anzeigen"
@@ -14594,6 +14626,15 @@ msgstr ""
 
 msgid "Sum"
 msgstr "Summe"
+
+msgid "Sum as Fraction of Columns"
+msgstr ""
+
+msgid "Sum as Fraction of Rows"
+msgstr ""
+
+msgid "Sum as Fraction of Total"
+msgstr ""
 
 msgid "Sum of values over specified period"
 msgstr "Summe der Werte über einen bestimmten Zeitraum"
@@ -15390,6 +15431,12 @@ msgstr ""
 msgid ""
 "The following charts were omitted because an error occurred while "
 "exporting them:"
+msgstr ""
+
+msgid ""
+"The following charts were omitted because their size cannot be determined"
+" before they run. Ask an administrator to enable background exports to "
+"include them."
 msgstr ""
 
 msgid ""
@@ -16548,6 +16595,9 @@ msgstr ""
 msgid "This chart only"
 msgstr ""
 
+msgid "This chart was updated to use the restored aggregation"
+msgstr ""
+
 msgid "This chart will be restored to the following version:"
 msgstr ""
 
@@ -16601,6 +16651,12 @@ msgstr ""
 "übergeben werden soll."
 
 msgid "This dashboard does not exist"
+msgstr ""
+
+msgid ""
+"This dashboard has too much data to download directly. Ask an "
+"administrator to enable background exports, or lower the row limits of "
+"its charts."
 msgstr ""
 
 msgid "This dashboard is managed externally, and can't be edited in Superset"
@@ -16882,6 +16938,13 @@ msgid "This password is too common; please choose a less guessable one."
 msgstr ""
 "Dieses Passwort ist zu gebräuchlich; bitte wählen Sie ein schwerer zu "
 "erratendes."
+
+msgid ""
+"This pivot table used a legacy per-table aggregation setting that "
+"Superset previously ignored. It now computes correctly, so totals and "
+"subtotals may look different than before. Please validate them, then "
+"accept this notice or save the chart."
+msgstr ""
 
 msgid ""
 "This section allows you to configure how to use the slice\n"
@@ -17948,8 +18011,18 @@ msgstr ""
 "Verwenden Sie die Datumsformatierung, auch wenn der Metrikwert kein "
 "Zeitstempel ist"
 
+msgid ""
+"Use each metric’s own definition for cells and summaries (the default "
+"since SIP-216), or aggregate a second time over the metric’s own grouped "
+"results — e.g. the median of a set of per-store averages. Query limits "
+"apply before a result aggregation runs."
+msgstr ""
+
 msgid "Use gradient"
 msgstr "Farbverlauf verwenden"
+
+msgid "Use metric definition"
+msgstr ""
 
 msgid "Use metrics as a top level group for columns or for rows"
 msgstr ""
@@ -18584,8 +18657,8 @@ msgid ""
 "candles use the decrease color. Turn off to use one series color, with a "
 "filled body for increases and a hollow body for decreases."
 msgstr ""
-"Wenn aktiviert, nutzen steigende Kerzen die Anstiegsfarbe und fallende die "
-"Rückgangsfarbe. Deaktivieren Sie die Option für eine Reihenfarbe: "
+"Wenn aktiviert, nutzen steigende Kerzen die Anstiegsfarbe und fallende "
+"die Rückgangsfarbe. Deaktivieren Sie die Option für eine Reihenfarbe: "
 "gefüllter Körper bei Anstieg, hohler Körper bei Rückgang."
 
 msgid ""

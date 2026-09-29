@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-24 10:35+0300\n"
+"POT-Creation-Date: 2026-09-29 11:48-0700\n"
 "PO-Revision-Date: 2021-11-16 17:33+0100\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: fr\n"
@@ -169,21 +169,6 @@ msgid ""
 "defaults on a per\n"
 "                      database/column name level via the extra parameter."
 msgstr ""
-" standard, aby zapewnić, że kolejność leksykograficzna\n"
-"                      pokrywa się z kolejnością chronologiczną. Jeśli\n"
-"                      format znacznika czasu nie jest zgodny z normą ISO "
-"8601,\n"
-"                      musisz zdefiniować wyrażenie i typ do\n"
-"                      przekształcenia ciągu w datę lub znacznik czasu. "
-"Uwaga:\n"
-"                      strefy czasowe nie są obecnie obsługiwane. Jeśli "
-"czas jest\n"
-"                      przechowywany w formacie epoch, użyj `epoch_s` lub "
-"`epoch_ms`. Jeśli\n"
-"                      nie określono wzorca, stosujemy opcjonalne wartości"
-" domyślne\n"
-"                      na poziomie bazy danych/nazwy kolumny za pomocą "
-"dodatkowego parametru."
 
 #, fuzzy
 msgid " to add calculated columns"
@@ -1079,9 +1064,9 @@ msgid ""
 " period. It is commonly used for financial and other time-series range "
 "analysis."
 msgstr ""
-"Wykres świecowy pokazuje wartości otwarcia, zamknięcia, maksimum i minimum "
-"dla każdego okresu. Jest powszechnie używany do analiz finansowych i "
-"zakresów szeregów czasowych."
+"Wykres świecowy pokazuje wartości otwarcia, zamknięcia, maksimum i "
+"minimum dla każdego okresu. Jest powszechnie używany do analiz "
+"finansowych i zakresów szeregów czasowych."
 
 #, fuzzy
 msgid "A comma separated list of columns that should be parsed as dates"
@@ -1332,6 +1317,9 @@ msgstr "Pracuje"
 
 msgid "About"
 msgstr "O programie"
+
+msgid "Accept"
+msgstr ""
 
 #, fuzzy
 msgid "Access"
@@ -1813,6 +1801,9 @@ msgstr "Agregacja"
 #, fuzzy
 msgid "Aggregation Method"
 msgstr "Agregacja"
+
+msgid "Aggregation function"
+msgstr ""
 
 msgid ""
 "Aggregation used for the summary row. By default each metric keeps its "
@@ -3463,8 +3454,8 @@ msgid ""
 "Candlestick draws a filled body between open and close. OHLC draws ticks "
 "for open and close on a high-low stem."
 msgstr ""
-"Świece rysują wypełnione ciało między otwarciem a zamknięciem. OHLC rysuje "
-"znaczniki otwarcia i zamknięcia na trzonie maksimum–minimum."
+"Świece rysują wypełnione ciało między otwarciem a zamknięciem. OHLC "
+"rysuje znaczniki otwarcia i zamknięcia na trzonie maksimum–minimum."
 
 msgid "Cannot access the query"
 msgstr "Nie można uzyskać dostępu do zapytania"
@@ -4442,8 +4433,7 @@ msgstr "Schemat kolorów"
 msgid ""
 "Color used when the close value is greater than or equal to the open "
 "value."
-msgstr ""
-"Kolor, gdy wartość zamknięcia jest większa lub równa wartości otwarcia."
+msgstr "Kolor, gdy wartość zamknięcia jest większa lub równa wartości otwarcia."
 
 msgid "Color used when the close value is less than the open value."
 msgstr "Kolor, gdy wartość zamknięcia jest mniejsza niż wartość otwarcia."
@@ -5082,6 +5072,18 @@ msgstr ""
 msgid "Count"
 msgstr "Liczba"
 
+msgid "Count Unique Values"
+msgstr ""
+
+msgid "Count as Fraction of Columns"
+msgstr ""
+
+msgid "Count as Fraction of Rows"
+msgstr ""
+
+msgid "Count as Fraction of Total"
+msgstr ""
+
 #, fuzzy
 msgid "Country"
 msgstr "Kraj"
@@ -5545,6 +5547,9 @@ msgstr "Nie udało się przywrócić dashboardu."
 msgid "Dashboard could not be updated."
 msgstr "Nie można zaktualizować pulpitu nawigacyjnego."
 
+msgid "Dashboard data exported to Excel"
+msgstr ""
+
 msgid "Dashboard does not exist"
 msgstr "Pulpit nawigacyjny nie istnieje"
 
@@ -5555,6 +5560,9 @@ msgstr "Ten pulpit został pomyślnie zapisany."
 #, fuzzy
 msgid "Dashboard exported successfully"
 msgstr "Ten pulpit został pomyślnie zapisany."
+
+msgid "Dashboard has no charts to export."
+msgstr ""
 
 #, fuzzy
 msgid "Dashboard imported"
@@ -7773,9 +7781,6 @@ msgstr "Raport tygodniowy"
 msgid "Excel XML Export"
 msgstr "Raport tygodniowy"
 
-msgid "Excel export is not configured on this server."
-msgstr ""
-
 msgid "Excel file format cannot be determined"
 msgstr "Nie można określić formatu pliku Excel"
 
@@ -7962,6 +7967,11 @@ msgstr "Eksportuj do oryginalnego .CSV"
 
 msgid "Export to pivoted .CSV"
 msgstr "Eksportuj do .CSV z pivotem"
+
+msgid ""
+"Exporting images to Excel requires background exports. Ask an "
+"administrator to enable them, or export the dashboard's data instead."
+msgstr ""
 
 #, python-format
 msgid ""
@@ -10244,6 +10254,9 @@ msgstr "Numer podziału"
 msgid "List Roles"
 msgstr "Lista ról"
 
+msgid "List Unique Values"
+msgstr ""
+
 #, fuzzy
 msgid "List Users"
 msgstr "Numer podziału"
@@ -10649,6 +10662,9 @@ msgstr "Średnia wartości w określonym okresie"
 
 msgid "Mean values"
 msgstr "Średnie wartości"
+
+msgid "Median"
+msgstr ""
 
 msgid ""
 "Median edge width, the thickest edge will be 4 times thicker than the "
@@ -11184,8 +11200,8 @@ msgid ""
 "Name used for the candlestick series in the legend and tooltip when no "
 "series dimension is set."
 msgstr ""
-"Nazwa serii świecowej w legendzie i podpowiedzi, gdy nie ustawiono wymiaru "
-"serii."
+"Nazwa serii świecowej w legendzie i podpowiedzi, gdy nie ustawiono "
+"wymiaru serii."
 
 msgid "Name your database"
 msgstr "Nazwij swoją bazę danych"
@@ -11545,6 +11561,11 @@ msgstr "Brak -> Strzałka"
 
 msgid "None -> None"
 msgstr "Brak -> Brak"
+
+msgid ""
+"None of this dashboard's charts can be downloaded directly. Ask an "
+"administrator to enable background exports."
+msgstr ""
 
 msgid "Normal"
 msgstr "Normalny"
@@ -12785,6 +12806,12 @@ msgstr "Prefiks lub sufiks"
 
 #, python-format
 msgid "Preparing %(count)s charts for export. This may take a moment."
+msgstr ""
+
+msgid "Preparing dashboard Excel export…"
+msgstr ""
+
+msgid "Preparing export…"
 msgstr ""
 
 msgid "Preview"
@@ -15430,13 +15457,12 @@ msgstr "Pokaż znacznik czasu"
 msgid "Show column headers"
 msgstr "Etykieta nagłówka kolumny."
 
+msgid "Show column summaries"
+msgstr ""
+
 #, fuzzy
 msgid "Show columns subtotal"
 msgstr "Pokaż sumy częściowe kolumn"
-
-#, fuzzy
-msgid "Show columns total"
-msgstr "Pokaż sumę kolumn"
 
 #, fuzzy
 msgid "Show empty columns"
@@ -15526,12 +15552,12 @@ msgstr "Zobacz szczegóły zapytania"
 msgid "Show row labels"
 msgstr "Pokaż etykiety"
 
+msgid "Show row summaries"
+msgstr ""
+
 #, fuzzy
 msgid "Show rows subtotal"
 msgstr "Pokaż sumy częściowe wierszy"
-
-msgid "Show rows total"
-msgstr "Pokaż sumę wierszy"
 
 msgid "Show series values on the chart"
 msgstr "Pokaż wartości serii na wykresie"
@@ -16290,6 +16316,15 @@ msgstr ""
 
 msgid "Sum"
 msgstr "Suma"
+
+msgid "Sum as Fraction of Columns"
+msgstr ""
+
+msgid "Sum as Fraction of Rows"
+msgstr ""
+
+msgid "Sum as Fraction of Total"
+msgstr ""
 
 msgid "Sum of values over specified period"
 msgstr "Suma wartości w określonym okresie"
@@ -17170,6 +17205,12 @@ msgstr ""
 msgid ""
 "The following charts were omitted because an error occurred while "
 "exporting them:"
+msgstr ""
+
+msgid ""
+"The following charts were omitted because their size cannot be determined"
+" before they run. Ask an administrator to enable background exports to "
+"include them."
 msgstr ""
 
 msgid ""
@@ -18392,6 +18433,9 @@ msgstr ""
 msgid "This chart only"
 msgstr ""
 
+msgid "This chart was updated to use the restored aggregation"
+msgstr ""
+
 msgid "This chart will be restored to the following version:"
 msgstr ""
 
@@ -18440,6 +18484,12 @@ msgstr ""
 "powinno zostać przekazane do wykresu zawierającego dane adnotacji."
 
 msgid "This dashboard does not exist"
+msgstr ""
+
+msgid ""
+"This dashboard has too much data to download directly. Ask an "
+"administrator to enable background exports, or lower the row limits of "
+"its charts."
 msgstr ""
 
 msgid "This dashboard is managed externally, and can't be edited in Superset"
@@ -18752,6 +18802,13 @@ msgstr ""
 #, fuzzy
 msgid "This password is too common; please choose a less guessable one."
 msgstr "To hasło jest zbyt popularne; wybierz mniej przewidywalne."
+
+msgid ""
+"This pivot table used a legacy per-table aggregation setting that "
+"Superset previously ignored. It now computes correctly, so totals and "
+"subtotals may look different than before. Please validate them, then "
+"accept this notice or save the chart."
+msgstr ""
 
 #, fuzzy
 msgid ""
@@ -19963,9 +20020,19 @@ msgstr ""
 "Użyj formatowania daty, nawet jeśli wartość miary nie jest znacznikiem "
 "czasu"
 
+msgid ""
+"Use each metric’s own definition for cells and summaries (the default "
+"since SIP-216), or aggregate a second time over the metric’s own grouped "
+"results — e.g. the median of a set of per-store averages. Query limits "
+"apply before a result aggregation runs."
+msgstr ""
+
 #, fuzzy
 msgid "Use gradient"
 msgstr "Jednostka czasu"
+
+msgid "Use metric definition"
+msgstr ""
 
 msgid "Use metrics as a top level group for columns or for rows"
 msgstr "Użyj miar jako grupy najwyższego poziomu dla kolumn lub wierszy"

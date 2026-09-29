@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-24 10:35+0300\n"
+"POT-Creation-Date: 2026-09-29 11:48-0700\n"
 "PO-Revision-Date: 2023-05-22 08:04-0400\n"
 "Last-Translator: \n"
 "Language: pt_BR\n"
@@ -140,7 +140,6 @@ msgstr "Totais"
 msgid " near '%(highlight)s'"
 msgstr " perto de '%(highlight)s'"
 
-#, fuzzy
 msgid ""
 " standard to ensure that the lexicographical ordering\n"
 "                      coincides with the chronological ordering. If the\n"
@@ -157,16 +156,6 @@ msgid ""
 "defaults on a per\n"
 "                      database/column name level via the extra parameter."
 msgstr ""
-"para garantir que a ordem lexicográfica coincida com a ordem cronológica."
-" Se o\n"
-" formato do timestamp não for aderente ao padrão ISO 8601\n"
-" você precisará definir uma expressão e tipo para\n"
-" transformar o texto em data ou timestamp. Nota:\n"
-" naturalmente fusos horários não são suportados. Se o tempo é armazenado "
-"no formato epoch coloque ` epoch_s ` ou ` epoch_ms `. Se nenhum padrão "
-"for especificado\n"
-"emos utilizar os padrões de acordo com cada nível do banco de dados/nome "
-"de coluna via parâmetro extra."
 
 #, fuzzy
 msgid " to add calculated columns"
@@ -1286,6 +1275,9 @@ msgstr "Trabalhando"
 msgid "About"
 msgstr "Sobre"
 
+msgid "Accept"
+msgstr ""
+
 #, fuzzy
 msgid "Access"
 msgstr "sucesso"
@@ -1746,6 +1738,9 @@ msgstr "Agregar"
 #, fuzzy
 msgid "Aggregation Method"
 msgstr "Agregar"
+
+msgid "Aggregation function"
+msgstr ""
 
 msgid ""
 "Aggregation used for the summary row. By default each metric keeps its "
@@ -3413,9 +3408,9 @@ msgid ""
 "Candlestick draws a filled body between open and close. OHLC draws ticks "
 "for open and close on a high-low stem."
 msgstr ""
-"O candlestick desenha um corpo preenchido entre a abertura e o fechamento. "
-"O OHLC desenha marcas de abertura e fechamento em uma haste de "
-"máxima-mínima."
+"O candlestick desenha um corpo preenchido entre a abertura e o "
+"fechamento. O OHLC desenha marcas de abertura e fechamento em uma haste "
+"de máxima-mínima."
 
 msgid "Cannot access the query"
 msgstr "Não foi possível acessar a consulta"
@@ -4387,8 +4382,7 @@ msgstr "Esquema de cores"
 msgid ""
 "Color used when the close value is greater than or equal to the open "
 "value."
-msgstr ""
-"Cor usada quando o valor de fechamento é maior ou igual ao de abertura."
+msgstr "Cor usada quando o valor de fechamento é maior ou igual ao de abertura."
 
 msgid "Color used when the close value is less than the open value."
 msgstr "Cor usada quando o valor de fechamento é menor que o de abertura."
@@ -5002,6 +4996,18 @@ msgstr ""
 msgid "Count"
 msgstr "Contar"
 
+msgid "Count Unique Values"
+msgstr ""
+
+msgid "Count as Fraction of Columns"
+msgstr ""
+
+msgid "Count as Fraction of Rows"
+msgstr ""
+
+msgid "Count as Fraction of Total"
+msgstr ""
+
 msgid "Country"
 msgstr "País"
 
@@ -5474,6 +5480,9 @@ msgstr "O painel não pôde ser restaurado."
 msgid "Dashboard could not be updated."
 msgstr "Não foi possível atualizar o painel."
 
+msgid "Dashboard data exported to Excel"
+msgstr ""
+
 msgid "Dashboard does not exist"
 msgstr "Painel não existe"
 
@@ -5484,6 +5493,9 @@ msgstr "Este painel foi salvo com sucesso."
 #, fuzzy
 msgid "Dashboard exported successfully"
 msgstr "Este painel foi salvo com sucesso."
+
+msgid "Dashboard has no charts to export."
+msgstr ""
 
 msgid "Dashboard imported"
 msgstr "Painel importado"
@@ -7627,9 +7639,6 @@ msgstr "Relatório semanal"
 msgid "Excel XML Export"
 msgstr "Relatório semanal"
 
-msgid "Excel export is not configured on this server."
-msgstr ""
-
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fa, fr, ja, lv, mi, pl, ro, ru, sk, sl, sr, sr_Latn, tr, uk]
 #, fuzzy
@@ -7819,6 +7828,11 @@ msgstr "Exportar para .CSV original"
 #, fuzzy
 msgid "Export to pivoted .CSV"
 msgstr "Exportar para .CSV articulado"
+
+msgid ""
+"Exporting images to Excel requires background exports. Ask an "
+"administrator to enable them, or export the dashboard's data instead."
+msgstr ""
 
 #, python-format
 msgid ""
@@ -10125,6 +10139,9 @@ msgstr "Grupos"
 msgid "List Roles"
 msgstr "Funções"
 
+msgid "List Unique Values"
+msgstr ""
+
 #, fuzzy
 msgid "List Users"
 msgstr "Número de divisão"
@@ -10526,6 +10543,9 @@ msgstr "Média dos valores durante o período especificado"
 
 msgid "Mean values"
 msgstr "Valores médios"
+
+msgid "Median"
+msgstr ""
 
 msgid ""
 "Median edge width, the thickest edge will be 4 times thicker than the "
@@ -11402,6 +11422,11 @@ msgstr "Nenhum -> Seta"
 msgid "None -> None"
 msgstr "Nenhum -> Nenhum"
 
+msgid ""
+"None of this dashboard's charts can be downloaded directly. Ask an "
+"administrator to enable background exports."
+msgstr ""
+
 msgid "Normal"
 msgstr "Normal"
 
@@ -11870,8 +11895,7 @@ msgstr "String opcional de formato de número d3"
 msgid ""
 "Optional dimension used to split the chart into multiple candlestick "
 "series."
-msgstr ""
-"Dimensão opcional para dividir o gráfico em várias séries de candlestick."
+msgstr "Dimensão opcional para dividir o gráfico em várias séries de candlestick."
 
 msgid ""
 "Optional metric used to scale the size of each dot. Dot areas are scaled "
@@ -12004,8 +12028,8 @@ msgid ""
 "Overlay simple moving averages of the close price (MA5, MA10, MA15, ...)."
 " Type a custom period to add it."
 msgstr ""
-"Sobreponha médias móveis simples do preço de fechamento (MA5, MA10, MA15, "
-"...). Digite um período personalizado para adicioná-lo."
+"Sobreponha médias móveis simples do preço de fechamento (MA5, MA10, MA15,"
+" ...). Digite um período personalizado para adicioná-lo."
 
 msgid ""
 "Overlays a hexagonal grid on a map, and aggregates data within the "
@@ -12668,6 +12692,12 @@ msgstr "Prefixo ou sufixo"
 
 #, python-format
 msgid "Preparing %(count)s charts for export. This may take a moment."
+msgstr ""
+
+msgid "Preparing dashboard Excel export…"
+msgstr ""
+
+msgid "Preparing export…"
 msgstr ""
 
 msgid "Preview"
@@ -15234,11 +15264,11 @@ msgstr "Mostrar Carimbo de data/hora"
 msgid "Show column headers"
 msgstr "O rótulo do cabeçalho da coluna"
 
+msgid "Show column summaries"
+msgstr ""
+
 #, fuzzy
 msgid "Show columns subtotal"
-msgstr "Mostrar o total de colunas"
-
-msgid "Show columns total"
 msgstr "Mostrar o total de colunas"
 
 msgid "Show empty columns"
@@ -15324,11 +15354,11 @@ msgstr "Ver detalhes da consulta"
 msgid "Show row labels"
 msgstr "Mostrar rótulos"
 
+msgid "Show row summaries"
+msgstr ""
+
 #, fuzzy
 msgid "Show rows subtotal"
-msgstr "Mostrar total de linhas"
-
-msgid "Show rows total"
 msgstr "Mostrar total de linhas"
 
 msgid "Show series values on the chart"
@@ -16057,6 +16087,15 @@ msgstr ""
 
 msgid "Sum"
 msgstr "Soma"
+
+msgid "Sum as Fraction of Columns"
+msgstr ""
+
+msgid "Sum as Fraction of Rows"
+msgstr ""
+
+msgid "Sum as Fraction of Total"
+msgstr ""
 
 msgid "Sum of values over specified period"
 msgstr "Soma dos valores durante o período especificado"
@@ -16927,6 +16966,12 @@ msgstr ""
 msgid ""
 "The following charts were omitted because an error occurred while "
 "exporting them:"
+msgstr ""
+
+msgid ""
+"The following charts were omitted because their size cannot be determined"
+" before they run. Ask an administrator to enable background exports to "
+"include them."
 msgstr ""
 
 msgid ""
@@ -18142,6 +18187,9 @@ msgstr ""
 msgid "This chart only"
 msgstr ""
 
+msgid "This chart was updated to use the restored aggregation"
+msgstr ""
+
 msgid "This chart will be restored to the following version:"
 msgstr ""
 
@@ -18193,6 +18241,12 @@ msgstr ""
 " deve ser passado para o gráfico que contém os dados de anotação."
 
 msgid "This dashboard does not exist"
+msgstr ""
+
+msgid ""
+"This dashboard has too much data to download directly. Ask an "
+"administrator to enable background exports, or lower the row limits of "
+"its charts."
 msgstr ""
 
 msgid "This dashboard is managed externally, and can't be edited in Superset"
@@ -18502,6 +18556,13 @@ msgstr ""
 #, fuzzy
 msgid "This password is too common; please choose a less guessable one."
 msgstr "Esta senha é muito comum; por favor, escolha uma menos previsível."
+
+msgid ""
+"This pivot table used a legacy per-table aggregation setting that "
+"Superset previously ignored. It now computes correctly, so totals and "
+"subtotals may look different than before. Please validate them, then "
+"accept this notice or save the chart."
+msgstr ""
 
 msgid ""
 "This section allows you to configure how to use the slice\n"
@@ -19675,9 +19736,19 @@ msgstr ""
 "Usar formatação de data mesmo quando o valor da métrica não for um "
 "carimbo de data/hora"
 
+msgid ""
+"Use each metric’s own definition for cells and summaries (the default "
+"since SIP-216), or aggregate a second time over the metric’s own grouped "
+"results — e.g. the median of a set of per-store averages. Query limits "
+"apply before a result aggregation runs."
+msgstr ""
+
 #, fuzzy
 msgid "Use gradient"
 msgstr "Grão de tempo"
+
+msgid "Use metric definition"
+msgstr ""
 
 msgid "Use metrics as a top level group for columns or for rows"
 msgstr "Use métricas como um grupo de nível superior para colunas ou linhas"
@@ -20346,8 +20417,8 @@ msgid ""
 "filled body for increases and a hollow body for decreases."
 msgstr ""
 "Se ativado, os candles de alta usam a cor de alta e os de baixa a de "
-"baixa. Desative para usar uma única cor de série, com corpo preenchido nas "
-"altas e oco nas baixas."
+"baixa. Desative para usar uma única cor de série, com corpo preenchido "
+"nas altas e oco nas baixas."
 
 #, fuzzy
 msgid ""

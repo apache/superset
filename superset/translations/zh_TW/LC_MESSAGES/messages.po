@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Apache Superset 0.22.1\n"
 "Report-Msgid-Bugs-To: bestlong168@gmail.com\n"
-"POT-Creation-Date: 2026-09-24 10:35+0300\n"
+"POT-Creation-Date: 2026-09-29 11:48-0700\n"
 "PO-Revision-Date: 2019-01-04 22:19+0800\n"
 "Last-Translator: Shao Yu-Lung <bestlong168@gmail.com>\n"
 "Language: zh_TW\n"
@@ -147,9 +147,6 @@ msgid ""
 "defaults on a per\n"
 "                      database/column name level via the extra parameter."
 msgstr ""
-"來確保字符的表達順序與時間順序一致的標準。如果時間戳格式不符合 ISO 8601 "
-"標準，则需要定義表達式和類型，以便將字符串轉换為日期或時間戳。注意：當前不支持時區。如果時間以 epoch 格式儲存，請输入 `epoch_s` "
-"or `epoch_ms` 。如果没有指定任何模式，我們可以通過額外的参數在每個 資料庫/欄位 名稱級別上使用可選的預設值。"
 
 #, fuzzy
 msgid " to add calculated columns"
@@ -1311,6 +1308,9 @@ msgstr "正在執行"
 msgid "About"
 msgstr "關於"
 
+msgid "Accept"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # fr, it, ja, lv, mi, nl, ru, sk, sl, tr, uk]
 #, fuzzy
@@ -1785,6 +1785,9 @@ msgstr "合計"
 #, fuzzy
 msgid "Aggregation Method"
 msgstr "合計"
+
+msgid "Aggregation function"
+msgstr ""
 
 msgid ""
 "Aggregation used for the summary row. By default each metric keeps its "
@@ -5053,6 +5056,18 @@ msgstr ""
 msgid "Count"
 msgstr "計數"
 
+msgid "Count Unique Values"
+msgstr ""
+
+msgid "Count as Fraction of Columns"
+msgstr ""
+
+msgid "Count as Fraction of Rows"
+msgstr ""
+
+msgid "Count as Fraction of Total"
+msgstr ""
+
 msgid "Country"
 msgstr "國家"
 
@@ -5521,6 +5536,9 @@ msgstr "無法還原儀表板。"
 msgid "Dashboard could not be updated."
 msgstr "看板無法更新。"
 
+msgid "Dashboard data exported to Excel"
+msgstr ""
+
 msgid "Dashboard does not exist"
 msgstr "看板不存在"
 
@@ -5531,6 +5549,9 @@ msgstr "該看板已成功保存。"
 #, fuzzy
 msgid "Dashboard exported successfully"
 msgstr "該看板已成功保存。"
+
+msgid "Dashboard has no charts to export."
+msgstr ""
 
 #, fuzzy
 msgid "Dashboard imported"
@@ -7675,9 +7696,6 @@ msgstr "週報"
 msgid "Excel XML Export"
 msgstr "週報"
 
-msgid "Excel export is not configured on this server."
-msgstr ""
-
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fa, fr, ja, lv, mi, pl, ro, ru, sk, sl, sr, sr_Latn, tr, uk]
 #, fuzzy
@@ -7876,6 +7894,11 @@ msgstr "導出原始 CSV"
 
 msgid "Export to pivoted .CSV"
 msgstr "導出為透視表形式的 CSV"
+
+msgid ""
+"Exporting images to Excel requires background exports. Ask an "
+"administrator to enable them, or export the dashboard's data instead."
+msgstr ""
 
 #, python-format
 msgid ""
@@ -10202,6 +10225,9 @@ msgstr "數字"
 msgid "List Roles"
 msgstr "角色列表"
 
+msgid "List Unique Values"
+msgstr ""
+
 #, fuzzy
 msgid "List Users"
 msgstr "數字"
@@ -10627,6 +10653,9 @@ msgstr "特定時期内的平均值"
 #, fuzzy
 msgid "Mean values"
 msgstr "平均值"
+
+msgid "Median"
+msgstr ""
 
 msgid ""
 "Median edge width, the thickest edge will be 4 times thicker than the "
@@ -11551,6 +11580,11 @@ msgstr "無 -> 箭頭"
 
 msgid "None -> None"
 msgstr "無 -> 無"
+
+msgid ""
+"None of this dashboard's charts can be downloaded directly. Ask an "
+"administrator to enable background exports."
+msgstr ""
 
 msgid "Normal"
 msgstr "正常"
@@ -12810,6 +12844,12 @@ msgstr "前缀或者後缀"
 
 #, python-format
 msgid "Preparing %(count)s charts for export. This may take a moment."
+msgstr ""
+
+msgid "Preparing dashboard Excel export…"
+msgstr ""
+
+msgid "Preparing export…"
 msgstr ""
 
 msgid "Preview"
@@ -15389,12 +15429,12 @@ msgstr "顯示時間戳"
 msgid "Show column headers"
 msgstr "列的標題"
 
+msgid "Show column summaries"
+msgstr ""
+
 #, fuzzy
 msgid "Show columns subtotal"
 msgstr "顯示列小計"
-
-msgid "Show columns total"
-msgstr "顯示列總計"
 
 #, fuzzy
 msgid "Show empty columns"
@@ -15480,12 +15520,12 @@ msgstr "查看查詢詳情"
 msgid "Show row labels"
 msgstr "顯示標籤"
 
+msgid "Show row summaries"
+msgstr ""
+
 #, fuzzy
 msgid "Show rows subtotal"
 msgstr "顯示行小計"
-
-msgid "Show rows total"
-msgstr "顯示行總計"
 
 msgid "Show series values on the chart"
 msgstr "在圖表上顯示系列值"
@@ -16222,6 +16262,15 @@ msgstr ""
 
 msgid "Sum"
 msgstr "求和"
+
+msgid "Sum as Fraction of Columns"
+msgstr ""
+
+msgid "Sum as Fraction of Rows"
+msgstr ""
+
+msgid "Sum as Fraction of Total"
+msgstr ""
 
 msgid "Sum of values over specified period"
 msgstr "指定期間内的值總和"
@@ -17077,6 +17126,12 @@ msgstr ""
 msgid ""
 "The following charts were omitted because an error occurred while "
 "exporting them:"
+msgstr ""
+
+msgid ""
+"The following charts were omitted because their size cannot be determined"
+" before they run. Ask an administrator to enable background exports to "
+"include them."
 msgstr ""
 
 msgid ""
@@ -18209,6 +18264,9 @@ msgstr ""
 msgid "This chart only"
 msgstr ""
 
+msgid "This chart was updated to use the restored aggregation"
+msgstr ""
+
 msgid "This chart will be restored to the following version:"
 msgstr ""
 
@@ -18265,6 +18323,12 @@ msgstr ""
 "                  檢視中的時間粒度欄位傳遞給包含注釋資料的圖表。"
 
 msgid "This dashboard does not exist"
+msgstr ""
+
+msgid ""
+"This dashboard has too much data to download directly. Ask an "
+"administrator to enable background exports, or lower the row limits of "
+"its charts."
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
@@ -18566,6 +18630,13 @@ msgstr "此頁面設計為嵌入 iframe，但目前似乎並非如此。"
 #, fuzzy
 msgid "This password is too common; please choose a less guessable one."
 msgstr "此密碼過於常見，請選擇一個較難猜測的密碼。"
+
+msgid ""
+"This pivot table used a legacy per-table aggregation setting that "
+"Superset previously ignored. It now computes correctly, so totals and "
+"subtotals may look different than before. Please validate them, then "
+"accept this notice or save the chart."
+msgstr ""
 
 #, fuzzy
 msgid ""
@@ -19747,9 +19818,19 @@ msgstr "運行查詢"
 msgid "Use date formatting even when metric value is not a timestamp"
 msgstr "即使指標值不是時間戳記，也使用日期格式"
 
+msgid ""
+"Use each metric’s own definition for cells and summaries (the default "
+"since SIP-216), or aggregate a second time over the metric’s own grouped "
+"results — e.g. the median of a set of per-store averages. Query limits "
+"apply before a result aggregation runs."
+msgstr ""
+
 #, fuzzy
 msgid "Use gradient"
 msgstr "時間粒度（grain）"
+
+msgid "Use metric definition"
+msgstr ""
 
 msgid "Use metrics as a top level group for columns or for rows"
 msgstr "將指標作為列或行的頂級組使用"

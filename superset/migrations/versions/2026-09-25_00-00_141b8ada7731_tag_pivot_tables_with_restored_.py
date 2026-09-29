@@ -44,14 +44,20 @@ it only:
    queryable and the frontend can surface a one-time "these totals were
    restored, please validate" notice (removed automatically the first time
    the chart is opened and accepted, or saved).
-2. Clears the chart's cached ``query_context`` snapshot. That cache
-   predates the feature entirely (it was built under the old,
-   GROUPING-SETS-only query shape) and would otherwise serve a stale,
-   pre-restoration result to a report or alert until the chart is next
-   opened and re-saved in Explore -- same caveat #42761's migration
-   accepted for its own, narrower fraction-value migration. Clearing it
-   (rather than trying to patch it) forces a correct rebuild on next use
-   instead of risking a subtly wrong hand-patched cache.
+
+This migration deliberately leaves the chart's cached ``query_context``
+snapshot alone rather than clearing it. That cache predates the feature
+entirely (it was built under the old, GROUPING-SETS-only query shape), so it
+will keep serving a stale, pre-restoration result to a report or alert until
+the chart is next opened and re-saved in Explore -- the same caveat #42761's
+migration accepted for its own, narrower fraction-value migration. Unlike
+that stale-but-working tradeoff, clearing ``query_context`` outright (an
+earlier version of this migration did) turns that into a hard failure
+instead: ``ChartWarmUpCacheCommand`` requires a query context to exist and
+raises rather than falling back to a fresh build, so every tagged chart
+would error out of scheduled cache warm-up -- which never opens Explore --
+until a human manually opens and re-saves it. A stale result is exactly what
+the tag/notice already exist to prompt a human to fix; an outage isn't.
 
 Revision ID: 141b8ada7731
 Revises: 95d8a99c822e
@@ -119,7 +125,6 @@ class Slice(Base):  # type: ignore
     id = Column(Integer, primary_key=True)
     viz_type = Column(String(250))
     params = Column(Text)
-    query_context = Column(Text)
 
 
 class Tag(Base):  # type: ignore
@@ -188,21 +193,12 @@ def upgrade() -> None:
                 )
             )
 
-        # Clear the cached query_context snapshot: it predates result
-        # aggregation entirely and would otherwise serve a stale,
-        # pre-restoration shape to a report or alert until the chart is
-        # next opened and saved in Explore. A slice with no query_context
-        # is a normal, already-handled state (Explore rebuilds it fresh),
-        # not an error condition.
-        slc.query_context = None
-
     session.commit()
 
 
 def downgrade() -> None:
-    # The tag and the query_context clear are both purely additive/neutral:
-    # an untagged chart behaves identically to one this migration never
-    # touched, and a cleared query_context is rebuilt fresh on next render
-    # regardless. There is no `aggregateFunction` value to restore -- this
-    # migration never changed one -- so there is nothing to reverse.
+    # Purely additive: an untagged chart behaves identically to one this
+    # migration never touched, and query_context is never modified. There is
+    # no `aggregateFunction` value to restore -- this migration never changed
+    # one -- so there is nothing to reverse.
     pass

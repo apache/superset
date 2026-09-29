@@ -17,6 +17,7 @@
  * under the License.
  */
 import { useEffect, useState, useCallback } from 'react';
+import { useSelector } from 'react-redux';
 import { t } from '@apache-superset/core/translation';
 import { logging } from '@apache-superset/core/utils';
 import { css } from '@apache-superset/core/theme';
@@ -33,22 +34,44 @@ export const LegacyAggregationAlert = ({
   sliceId,
 }: LegacyAggregationAlertProps) => {
   const [tag, setTag] = useState<TagType | null>(null);
+  // A same-slice save is the other way (alongside this component's own
+  // "Accept" button) a legacy aggregation tag can go away -- saveModalActions
+  // deletes it server-side as part of a pivot_table_v2 save. This object
+  // changes identity on every successful save, so including it below
+  // re-fetches after a save and drops a tag the save already cleared,
+  // instead of leaving this component's local state stale until the user
+  // navigates away and back.
+  const lastSaveResult = useSelector(
+    (state: { saveModal?: { data?: unknown } }) => state.saveModal?.data,
+  );
 
   useEffect(() => {
     setTag(null);
     if (!sliceId) {
-      return;
+      return undefined;
     }
+    // Guards the async callbacks below against a stale in-flight request --
+    // e.g. the user switches charts (`sliceId` changes) or saves again
+    // (`lastSaveResult` changes) before the first request resolves.
+    let cancelled = false;
     fetchTags(
       { objectType: 'chart', objectId: sliceId },
       (tags: TagType[]) => {
+        if (cancelled) {
+          return;
+        }
         setTag(tags.find(t => t.name === LEGACY_AGGREGATION_TAG) ?? null);
       },
       error => {
-        logging.warn('Failed to fetch chart tags', error);
+        if (!cancelled) {
+          logging.warn('Failed to fetch chart tags', error);
+        }
       },
     );
-  }, [sliceId]);
+    return () => {
+      cancelled = true;
+    };
+  }, [sliceId, lastSaveResult]);
 
   const removeTag = useCallback(() => {
     if (!sliceId || !tag) {

@@ -18,7 +18,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version:  \n"
 "Report-Msgid-Bugs-To: ted.korostiled@gmail.com\n"
-"POT-Creation-Date: 2026-09-24 10:35+0300\n"
+"POT-Creation-Date: 2026-09-29 11:48-0700\n"
 "PO-Revision-Date: 2026-04-30 22:04+0300\n"
 "Last-Translator: Danylo Korostil\n"
 "Language: uk\n"
@@ -155,20 +155,6 @@ msgid ""
 "defaults on a per\n"
 "                      database/column name level via the extra parameter."
 msgstr ""
-" Стандарт для забезпечення того, щоб лексикографічне впорядкування\n"
-"                     збігалося з хронологічним. Якщо формат часової мітки"
-" не відповідає\n"
-"                     стандарту ISO 8601, потрібно визначити вираз і тип "
-"для\n"
-"                     перетворення рядка у дату або часову мітку. Зверніть"
-" увагу,\n"
-"                     що наразі часові пояси не підтримуються. Якщо час "
-"збережено\n"
-"                     у форматі epoch, використовуйте epoch_s або "
-"epoch_ms. Якщо шаблон\n"
-"                     не вказано, буде використано значення за "
-"замовчуванням на рівні\n"
-"                     бази даних/назви стовпця через параметр extra."
 
 msgid " to add calculated columns"
 msgstr " для додавання обчислювальних стовпців"
@@ -1073,8 +1059,8 @@ msgid ""
 "analysis."
 msgstr ""
 "Свічковий графік показує ціни відкриття, закриття, максимум і мінімум за "
-"кожен період. Зазвичай використовується для фінансового та іншого аналізу "
-"діапазонів часових рядів."
+"кожен період. Зазвичай використовується для фінансового та іншого аналізу"
+" діапазонів часових рядів."
 
 msgid "A comma separated list of columns that should be parsed as dates"
 msgstr "Перелік стовпців, розділених комами, які слід розпізнавати як дати"
@@ -1311,6 +1297,9 @@ msgstr "Опрацьовується"
 
 msgid "About"
 msgstr "Про програму"
+
+msgid "Accept"
+msgstr ""
 
 msgid "Access"
 msgstr "Доступ"
@@ -1729,6 +1718,9 @@ msgstr "Агрегація"
 
 msgid "Aggregation Method"
 msgstr "Спосіб агрегації даних"
+
+msgid "Aggregation function"
+msgstr ""
 
 msgid ""
 "Aggregation used for the summary row. By default each metric keeps its "
@@ -4136,10 +4128,14 @@ msgstr "Кольорова схема"
 msgid ""
 "Color used when the close value is greater than or equal to the open "
 "value."
-msgstr "Колір, який використовується, коли значення закриття більше або дорівнює значенню відкриття."
+msgstr ""
+"Колір, який використовується, коли значення закриття більше або дорівнює "
+"значенню відкриття."
 
 msgid "Color used when the close value is less than the open value."
-msgstr "Колір, який використовується, коли значення закриття менше за значення відкриття."
+msgstr ""
+"Колір, який використовується, коли значення закриття менше за значення "
+"відкриття."
 
 msgid ""
 "Color will be shaded based the normalized (0% to 100%) value of a given "
@@ -4698,6 +4694,18 @@ msgstr ""
 msgid "Count"
 msgstr "Кількість"
 
+msgid "Count Unique Values"
+msgstr ""
+
+msgid "Count as Fraction of Columns"
+msgstr ""
+
+msgid "Count as Fraction of Rows"
+msgstr ""
+
+msgid "Count as Fraction of Total"
+msgstr ""
+
 msgid "Country"
 msgstr "Країна"
 
@@ -5092,6 +5100,9 @@ msgstr "Не вдалося відновити панель."
 msgid "Dashboard could not be updated."
 msgstr "Не вдалось оновити звіт."
 
+msgid "Dashboard data exported to Excel"
+msgstr ""
+
 msgid "Dashboard does not exist"
 msgstr "Звіт не існує"
 
@@ -5100,6 +5111,9 @@ msgstr "Звіт успішно експортовано як приклад"
 
 msgid "Dashboard exported successfully"
 msgstr "Звіт успішно експортовано"
+
+msgid "Dashboard has no charts to export."
+msgstr ""
 
 msgid "Dashboard imported"
 msgstr "Звіт імпортовано"
@@ -7085,9 +7099,6 @@ msgstr "Експортувати в Excel"
 msgid "Excel XML Export"
 msgstr "Експортувати в XML"
 
-msgid "Excel export is not configured on this server."
-msgstr ""
-
 msgid "Excel file format cannot be determined"
 msgstr "Не вдалося визначити формат файла Excel"
 
@@ -7254,6 +7265,11 @@ msgstr "Експортувати до первинного .csv"
 
 msgid "Export to pivoted .CSV"
 msgstr "Експортувати до зведеного .csv"
+
+msgid ""
+"Exporting images to Excel requires background exports. Ask an "
+"administrator to enable them, or export the dashboard's data instead."
+msgstr ""
 
 #, python-format
 msgid ""
@@ -9270,6 +9286,9 @@ msgstr "Перелік груп"
 msgid "List Roles"
 msgstr "Перелік ролей"
 
+msgid "List Unique Values"
+msgstr ""
+
 msgid "List Users"
 msgstr "Перелік користувачів"
 
@@ -9642,6 +9661,9 @@ msgstr "Середнє значення за вказаний період"
 
 msgid "Mean values"
 msgstr "Середні значення"
+
+msgid "Median"
+msgstr ""
 
 msgid ""
 "Median edge width, the thickest edge will be 4 times thicker than the "
@@ -10131,8 +10153,7 @@ msgstr "Назва вашої мітки"
 msgid ""
 "Name used for the candlestick series in the legend and tooltip when no "
 "series dimension is set."
-msgstr ""
-"Назва свічкового ряду в легенді та підказці, якщо вимір ряду не задано."
+msgstr "Назва свічкового ряду в легенді та підказці, якщо вимір ряду не задано."
 
 msgid "Name your database"
 msgstr "Назвіть вашу базу даних"
@@ -10458,6 +10479,11 @@ msgstr "Нічого -> Стрілка"
 
 msgid "None -> None"
 msgstr "Нічого -> Нічого"
+
+msgid ""
+"None of this dashboard's charts can be downloaded directly. Ask an "
+"administrator to enable background exports."
+msgstr ""
 
 msgid "Normal"
 msgstr "Звичайний"
@@ -11593,6 +11619,12 @@ msgstr "Префікс або суфікс"
 
 #, python-format
 msgid "Preparing %(count)s charts for export. This may take a moment."
+msgstr ""
+
+msgid "Preparing dashboard Excel export…"
+msgstr ""
+
+msgid "Preparing export…"
 msgstr ""
 
 msgid "Preview"
@@ -13939,11 +13971,11 @@ msgstr "Показати час запиту діаграми"
 msgid "Show column headers"
 msgstr "Показати заголовки стовпців"
 
+msgid "Show column summaries"
+msgstr ""
+
 msgid "Show columns subtotal"
 msgstr "Показати проміжні підсумки стовпців"
-
-msgid "Show columns total"
-msgstr "Показати підсумки стовпців"
 
 msgid "Show empty columns"
 msgstr "Показати порожні стовпці"
@@ -14024,11 +14056,11 @@ msgstr "Показати ідентифікатори запитів"
 msgid "Show row labels"
 msgstr "Показати мітки рядків"
 
+msgid "Show row summaries"
+msgstr ""
+
 msgid "Show rows subtotal"
 msgstr "Показати проміжні підсумки рядків"
-
-msgid "Show rows total"
-msgstr "Показати проміжки рядків"
 
 msgid "Show series values on the chart"
 msgstr "Показати значення ряду на діаграмі"
@@ -14704,6 +14736,15 @@ msgstr ""
 
 msgid "Sum"
 msgstr "Сума"
+
+msgid "Sum as Fraction of Columns"
+msgstr ""
+
+msgid "Sum as Fraction of Rows"
+msgstr ""
+
+msgid "Sum as Fraction of Total"
+msgstr ""
 
 msgid "Sum of values over specified period"
 msgstr "Сума значень протягом вказаного періоду"
@@ -15487,6 +15528,12 @@ msgstr ""
 msgid ""
 "The following charts were omitted because an error occurred while "
 "exporting them:"
+msgstr ""
+
+msgid ""
+"The following charts were omitted because their size cannot be determined"
+" before they run. Ask an administrator to enable background exports to "
+"include them."
 msgstr ""
 
 msgid ""
@@ -16599,6 +16646,9 @@ msgstr ""
 msgid "This chart only"
 msgstr ""
 
+msgid "This chart was updated to use the restored aggregation"
+msgstr ""
+
 msgid "This chart will be restored to the following version:"
 msgstr ""
 
@@ -16646,6 +16696,12 @@ msgstr ""
 " анотацій."
 
 msgid "This dashboard does not exist"
+msgstr ""
+
+msgid ""
+"This dashboard has too much data to download directly. Ask an "
+"administrator to enable background exports, or lower the row limits of "
+"its charts."
 msgstr ""
 
 msgid "This dashboard is managed externally, and can't be edited in Superset"
@@ -16911,6 +16967,13 @@ msgstr "Ця сторінка має відкриватися лише в iframe
 #, fuzzy
 msgid "This password is too common; please choose a less guessable one."
 msgstr "Цей пароль занадто простий; будь ласка, оберіть більш складний."
+
+msgid ""
+"This pivot table used a legacy per-table aggregation setting that "
+"Superset previously ignored. It now computes correctly, so totals and "
+"subtotals may look different than before. Please validate them, then "
+"accept this notice or save the chart."
+msgstr ""
 
 msgid ""
 "This section allows you to configure how to use the slice\n"
@@ -17989,8 +18052,18 @@ msgstr "Використовувати поточний масштаб"
 msgid "Use date formatting even when metric value is not a timestamp"
 msgstr "Форматувати як дату, навіть коли показник не є часовою міткою"
 
+msgid ""
+"Use each metric’s own definition for cells and summaries (the default "
+"since SIP-216), or aggregate a second time over the metric’s own grouped "
+"results — e.g. the median of a set of per-store averages. Query limits "
+"apply before a result aggregation runs."
+msgstr ""
+
 msgid "Use gradient"
 msgstr "Використовувати градієнт"
+
+msgid "Use metric definition"
+msgstr ""
 
 msgid "Use metrics as a top level group for columns or for rows"
 msgstr "Використовуйте показники як групу вищого рівня для стовпців або рядків"
@@ -18617,8 +18690,8 @@ msgid ""
 "candles use the decrease color. Turn off to use one series color, with a "
 "filled body for increases and a hollow body for decreases."
 msgstr ""
-"Якщо ввімкнено, зростаючі свічки використовують колір зростання, а спадні "
-"— колір падіння. Вимкніть, щоб використати один колір ряду: зафарбоване "
+"Якщо ввімкнено, зростаючі свічки використовують колір зростання, а спадні"
+" — колір падіння. Вимкніть, щоб використати один колір ряду: зафарбоване "
 "тіло при зростанні та порожнє при падінні."
 
 msgid ""

@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-24 10:35+0300\n"
+"POT-Creation-Date: 2026-09-29 11:48-0700\n"
 "PO-Revision-Date: 2026-07-17 14:21+0000\n"
 "Last-Translator: José Teixeira <jose.teixeira@douroeci.com>\n"
 "Language: pt\n"
@@ -160,9 +160,6 @@ msgstr " para detalhes."
 msgid " near '%(highlight)s'"
 msgstr " perto de '%(highlight)s'"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
-# de, es, fa, fr, ja, lv, mi, nl, pl, ro, ru, sk, sl, sr, sr_Latn, tr, uk, zh,
-# zh_TW]
 msgid ""
 " standard to ensure that the lexicographical ordering\n"
 "                      coincides with the chronological ordering. If the\n"
@@ -179,21 +176,6 @@ msgid ""
 "defaults on a per\n"
 "                      database/column name level via the extra parameter."
 msgstr ""
-" padrão para garantir que a ordenação lexicográfica\n"
-"                      coincida com a ordenação cronológica. Se o\n"
-"                      formato do carimbo de data/hora não cumprir o "
-"padrão ISO 8601,\n"
-"                      terá de definir uma expressão e um tipo para\n"
-"                      transformar a cadeia numa data ou carimbo de "
-"data/hora. Note\n"
-"                      que atualmente os fusos horários não são "
-"suportados. Se o tempo for armazenado\n"
-"                      no formato epoch, coloque `epoch_s` ou `epoch_ms`. "
-"Se nenhum padrão\n"
-"                      for especificado, utilizamos os valores "
-"predefinidos opcionais por\n"
-"                      base de dados/nome de coluna através do parâmetro "
-"extra."
 
 msgid " to add calculated columns"
 msgstr " para adicionar colunas calculadas"
@@ -1291,8 +1273,8 @@ msgid ""
 " period. It is commonly used for financial and other time-series range "
 "analysis."
 msgstr ""
-"Um gráfico de velas mostra os valores de abertura, fecho, máximo e mínimo "
-"de cada período. É habitualmente usado em análises financeiras e de "
+"Um gráfico de velas mostra os valores de abertura, fecho, máximo e mínimo"
+" de cada período. É habitualmente usado em análises financeiras e de "
 "intervalos de séries temporais."
 
 msgid "A comma separated list of columns that should be parsed as dates"
@@ -1588,6 +1570,9 @@ msgstr "A cancelar"
 # uk, zh, zh_TW]
 msgid "About"
 msgstr "Sobre"
+
+msgid "Accept"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # fr, it, ja, lv, mi, nl, ru, sk, sl, tr, uk]
@@ -2118,6 +2103,9 @@ msgstr "Agregação"
 
 msgid "Aggregation Method"
 msgstr "Método de Agregação"
+
+msgid "Aggregation function"
+msgstr ""
 
 msgid ""
 "Aggregation used for the summary row. By default each metric keeps its "
@@ -6038,6 +6026,18 @@ msgstr ""
 msgid "Count"
 msgstr "Contagem"
 
+msgid "Count Unique Values"
+msgstr ""
+
+msgid "Count as Fraction of Columns"
+msgstr ""
+
+msgid "Count as Fraction of Rows"
+msgstr ""
+
+msgid "Count as Fraction of Total"
+msgstr ""
+
 msgid "Country"
 msgstr "País"
 
@@ -6553,6 +6553,9 @@ msgstr "O painel não pôde ser restaurado."
 msgid "Dashboard could not be updated."
 msgstr "Não foi possível atualizar o dashboard."
 
+msgid "Dashboard data exported to Excel"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, ko, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn,
 # tr, uk, zh, zh_TW]
@@ -6564,6 +6567,9 @@ msgstr "Dashboard exportado como exemplo com sucesso"
 
 msgid "Dashboard exported successfully"
 msgstr "Dashboard exportado com sucesso"
+
+msgid "Dashboard has no charts to export."
+msgstr ""
 
 msgid "Dashboard imported"
 msgstr "Dashboard importado"
@@ -9103,9 +9109,6 @@ msgstr "Exportar Excel"
 msgid "Excel XML Export"
 msgstr "Exportar Excel XML"
 
-msgid "Excel export is not configured on this server."
-msgstr ""
-
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fa, fr, ja, lv, mi, pl, ro, ru, sk, sl, sr, sr_Latn, tr, uk]
 msgid "Excel file format cannot be determined"
@@ -9312,6 +9315,11 @@ msgstr "Exportar para .CSV original"
 
 msgid "Export to pivoted .CSV"
 msgstr "Exportar para .CSV dinamizado"
+
+msgid ""
+"Exporting images to Excel requires background exports. Ask an "
+"administrator to enable them, or export the dashboard's data instead."
+msgstr ""
 
 #, python-format
 msgid ""
@@ -12033,6 +12041,9 @@ msgstr "Listar Grupos"
 msgid "List Roles"
 msgstr "Listar Funções"
 
+msgid "List Unique Values"
+msgstr ""
+
 msgid "List Users"
 msgstr "Listar Utilizadores"
 
@@ -12543,6 +12554,9 @@ msgstr "Média dos valores durante o período especificado"
 
 msgid "Mean values"
 msgstr "Valores médios"
+
+msgid "Median"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -13636,6 +13650,11 @@ msgstr "Nenhum -> Seta"
 msgid "None -> None"
 msgstr "Nenhum -> Nenhum"
 
+msgid ""
+"None of this dashboard's charts can be downloaded directly. Ask an "
+"administrator to enable background exports."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk, zh, zh_TW]
@@ -14406,8 +14425,8 @@ msgid ""
 "Overlay simple moving averages of the close price (MA5, MA10, MA15, ...)."
 " Type a custom period to add it."
 msgstr ""
-"Sobreponha médias móveis simples do preço de fecho (MA5, MA10, MA15, ...). "
-"Escreva um período personalizado para o adicionar."
+"Sobreponha médias móveis simples do preço de fecho (MA5, MA10, MA15, "
+"...). Escreva um período personalizado para o adicionar."
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -15238,6 +15257,12 @@ msgstr "Prefixo ou sufixo"
 
 #, python-format
 msgid "Preparing %(count)s charts for export. This may take a moment."
+msgstr ""
+
+msgid "Preparing dashboard Excel export…"
+msgstr ""
+
+msgid "Preparing export…"
 msgstr ""
 
 msgid "Preview"
@@ -18185,11 +18210,11 @@ msgstr "Mostrar carimbos de data/hora da consulta do gráfico"
 msgid "Show column headers"
 msgstr "Mostrar cabeçalhos de coluna"
 
+msgid "Show column summaries"
+msgstr ""
+
 msgid "Show columns subtotal"
 msgstr "Mostrar subtotal de colunas"
-
-msgid "Show columns total"
-msgstr "Mostrar total de colunas"
 
 msgid "Show empty columns"
 msgstr "Mostrar colunas vazias"
@@ -18295,14 +18320,11 @@ msgstr "Mostrar identificadores de consulta"
 msgid "Show row labels"
 msgstr "Mostrar etiquetas de linha"
 
+msgid "Show row summaries"
+msgstr ""
+
 msgid "Show rows subtotal"
 msgstr "Mostrar subtotal de linhas"
-
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
-# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
-# uk, zh, zh_TW]
-msgid "Show rows total"
-msgstr "Mostrar total de linhas"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -19214,6 +19236,15 @@ msgstr ""
 # uk, zh, zh_TW]
 msgid "Sum"
 msgstr "Soma"
+
+msgid "Sum as Fraction of Columns"
+msgstr ""
+
+msgid "Sum as Fraction of Rows"
+msgstr ""
+
+msgid "Sum as Fraction of Total"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -20217,6 +20248,12 @@ msgstr ""
 msgid ""
 "The following charts were omitted because an error occurred while "
 "exporting them:"
+msgstr ""
+
+msgid ""
+"The following charts were omitted because their size cannot be determined"
+" before they run. Ask an administrator to enable background exports to "
+"include them."
 msgstr ""
 
 msgid ""
@@ -21671,6 +21708,9 @@ msgstr ""
 msgid "This chart only"
 msgstr ""
 
+msgid "This chart was updated to use the restored aggregation"
+msgstr ""
+
 msgid "This chart will be restored to the following version:"
 msgstr ""
 
@@ -21739,6 +21779,12 @@ msgstr ""
 
 msgid "This dashboard does not exist"
 msgstr "Este dashboard não existe"
+
+msgid ""
+"This dashboard has too much data to download directly. Ask an "
+"administrator to enable background exports, or lower the row limits of "
+"its charts."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -22086,6 +22132,13 @@ msgid "This password is too common; please choose a less guessable one."
 msgstr ""
 "Esta palavra-passe é demasiado comum; por favor escolha uma menos "
 "previsível."
+
+msgid ""
+"This pivot table used a legacy per-table aggregation setting that "
+"Superset previously ignored. It now computes correctly, so totals and "
+"subtotals may look different than before. Please validate them, then "
+"accept this notice or save the chart."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, ja, lv, mi, nl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr, uk]
@@ -23514,8 +23567,18 @@ msgstr ""
 "Usar formatação de data mesmo quando o valor da métrica não é uma marca "
 "temporal"
 
+msgid ""
+"Use each metric’s own definition for cells and summaries (the default "
+"since SIP-216), or aggregate a second time over the metric’s own grouped "
+"results — e.g. the median of a set of per-store averages. Query limits "
+"apply before a result aggregation runs."
+msgstr ""
+
 msgid "Use gradient"
 msgstr "Usar gradiente"
+
+msgid "Use metric definition"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -24361,8 +24424,8 @@ msgid ""
 "candles use the decrease color. Turn off to use one series color, with a "
 "filled body for increases and a hollow body for decreases."
 msgstr ""
-"Se ativado, as velas de subida usam a cor de aumento e as de descida a de "
-"diminuição. Desative para uma só cor de série, com corpo preenchido nas "
+"Se ativado, as velas de subida usam a cor de aumento e as de descida a de"
+" diminuição. Desative para uma só cor de série, com corpo preenchido nas "
 "subidas e oco nas descidas."
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,

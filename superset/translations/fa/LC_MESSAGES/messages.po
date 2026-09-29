@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-24 10:35+0300\n"
+"POT-Creation-Date: 2026-09-29 11:48-0700\n"
 "PO-Revision-Date: 2024-10-20 00:07+0330\n"
 "Last-Translator: Emad Rad <codewithemad@gmail.com>\n"
 "Language: fa\n"
@@ -153,13 +153,6 @@ msgid ""
 "defaults on a per\n"
 "                      database/column name level via the extra parameter."
 msgstr ""
-"استاندارد برای اطمینان از همخوانی ترتیب لغوی با ترتیب زمانی. اگر فرمت "
-"برچسب زمان به استاندارد ISO 8601 پایبند نیست، شما باید یک عبارت و نوع را "
-"برای تبدیل رشته به تاریخ یا برچسب زمان تعریف کنید. توجه کنید که در حال "
-"حاضر مناطق زمانی پشتیبانی نمی‌شوند. اگر زمان به فرمت epoch ذخیره شده است،"
-" `epoch_s` یا `epoch_ms` را قرار دهید. اگر الگویی مشخص نشده است، ما به "
-"استفاده از پیش‌فرض‌های اختیاری در سطح پایگاه داده / نام ستون از طریق "
-"پارامتر اضافی باز می‌گردیم."
 
 msgid " to add calculated columns"
 msgstr "برای اضافه کردن ستون‌های محاسبه‌شده"
@@ -1292,6 +1285,9 @@ msgstr "در حال کار کردن"
 msgid "About"
 msgstr "در مورد"
 
+msgid "Accept"
+msgstr ""
+
 #, fuzzy
 msgid "Access"
 msgstr "موفقیت"
@@ -1741,6 +1737,9 @@ msgstr "تجمیع"
 #, fuzzy
 msgid "Aggregation Method"
 msgstr "تجمیع"
+
+msgid "Aggregation function"
+msgstr ""
 
 msgid ""
 "Aggregation used for the summary row. By default each metric keeps its "
@@ -4918,6 +4917,18 @@ msgstr ""
 msgid "Count"
 msgstr "شمارش"
 
+msgid "Count Unique Values"
+msgstr ""
+
+msgid "Count as Fraction of Columns"
+msgstr ""
+
+msgid "Count as Fraction of Rows"
+msgstr ""
+
+msgid "Count as Fraction of Total"
+msgstr ""
+
 msgid "Country"
 msgstr "کشور"
 
@@ -5346,6 +5357,9 @@ msgstr "داشبورد قابل بازیابی نبود."
 msgid "Dashboard could not be updated."
 msgstr "داشبورد قابل به‌روزرسانی نیست."
 
+msgid "Dashboard data exported to Excel"
+msgstr ""
+
 msgid "Dashboard does not exist"
 msgstr "داشبورد وجود ندارد"
 
@@ -5356,6 +5370,9 @@ msgstr "این داشبورد با موفقیت ذخیره شد."
 #, fuzzy
 msgid "Dashboard exported successfully"
 msgstr "این داشبورد با موفقیت ذخیره شد."
+
+msgid "Dashboard has no charts to export."
+msgstr ""
 
 msgid "Dashboard imported"
 msgstr "داشبورد وارد شد"
@@ -7472,9 +7489,6 @@ msgstr "گزارش هفتگی"
 msgid "Excel XML Export"
 msgstr "گزارش هفتگی"
 
-msgid "Excel export is not configured on this server."
-msgstr ""
-
 msgid "Excel file format cannot be determined"
 msgstr "فرمت فایل اکسل قابل شناسایی نیست"
 
@@ -7655,6 +7669,11 @@ msgstr "صادر کردن به .CSV اصلی"
 
 msgid "Export to pivoted .CSV"
 msgstr "صادرات به فایل .CSV محور شده"
+
+msgid ""
+"Exporting images to Excel requires background exports. Ask an "
+"administrator to enable them, or export the dashboard's data instead."
+msgstr ""
 
 #, python-format
 msgid ""
@@ -9862,6 +9881,9 @@ msgstr "عدد را تقسیم کن"
 msgid "List Roles"
 msgstr "فهرست نقش‌ها"
 
+msgid "List Unique Values"
+msgstr ""
+
 #, fuzzy
 msgid "List Users"
 msgstr "عدد را تقسیم کن"
@@ -10267,6 +10289,9 @@ msgstr "میانگین مقادیر در دوره مشخص شده"
 
 msgid "Mean values"
 msgstr "مقادیر میانگین"
+
+msgid "Median"
+msgstr ""
 
 msgid ""
 "Median edge width, the thickest edge will be 4 times thicker than the "
@@ -11125,6 +11150,11 @@ msgstr "هیچ -> پیکان"
 
 msgid "None -> None"
 msgstr "هیچ -> هیچ"
+
+msgid ""
+"None of this dashboard's charts can be downloaded directly. Ask an "
+"administrator to enable background exports."
+msgstr ""
 
 msgid "Normal"
 msgstr "عادی"
@@ -12322,6 +12352,12 @@ msgstr "پیشوند یا پسوند"
 
 #, python-format
 msgid "Preparing %(count)s charts for export. This may take a moment."
+msgstr ""
+
+msgid "Preparing dashboard Excel export…"
+msgstr ""
+
+msgid "Preparing export…"
 msgstr ""
 
 msgid "Preview"
@@ -14814,11 +14850,11 @@ msgstr "نمایش زمان‌سنج"
 msgid "Show column headers"
 msgstr "برچسب سرستون"
 
+msgid "Show column summaries"
+msgstr ""
+
 msgid "Show columns subtotal"
 msgstr "نمایش زیرمجموعه ستون‌ها"
-
-msgid "Show columns total"
-msgstr "نمایش مجموع ستون‌ها"
 
 msgid "Show empty columns"
 msgstr "ستون‌های خالی را نمایش بدهید"
@@ -14902,11 +14938,11 @@ msgstr "جزئیات کوئری را ببینید"
 msgid "Show row labels"
 msgstr "نمایش برچسب‌ها"
 
+msgid "Show row summaries"
+msgstr ""
+
 msgid "Show rows subtotal"
 msgstr "نمایش زیرمجموعه ردیف‌ها"
-
-msgid "Show rows total"
-msgstr "نمایش مجموع سطرها"
 
 msgid "Show series values on the chart"
 msgstr "نمایش مقادیر سری در نمودار"
@@ -15619,6 +15655,15 @@ msgstr ""
 
 msgid "Sum"
 msgstr "جمع"
+
+msgid "Sum as Fraction of Columns"
+msgstr ""
+
+msgid "Sum as Fraction of Rows"
+msgstr ""
+
+msgid "Sum as Fraction of Total"
+msgstr ""
 
 msgid "Sum of values over specified period"
 msgstr "مجموع مقادیر در بازه زمانی مشخص شده"
@@ -16463,6 +16508,12 @@ msgstr ""
 msgid ""
 "The following charts were omitted because an error occurred while "
 "exporting them:"
+msgstr ""
+
+msgid ""
+"The following charts were omitted because their size cannot be determined"
+" before they run. Ask an administrator to enable background exports to "
+"include them."
 msgstr ""
 
 msgid ""
@@ -17636,6 +17687,9 @@ msgstr ""
 msgid "This chart only"
 msgstr ""
 
+msgid "This chart was updated to use the restored aggregation"
+msgstr ""
+
 msgid "This chart will be restored to the following version:"
 msgstr ""
 
@@ -17684,6 +17738,12 @@ msgstr ""
 "داده‌های توضیحات منتقل شود یا خیر."
 
 msgid "This dashboard does not exist"
+msgstr ""
+
+msgid ""
+"This dashboard has too much data to download directly. Ask an "
+"administrator to enable background exports, or lower the row limits of "
+"its charts."
 msgstr ""
 
 msgid "This dashboard is managed externally, and can't be edited in Superset"
@@ -17995,6 +18055,13 @@ msgstr ""
 #, fuzzy
 msgid "This password is too common; please choose a less guessable one."
 msgstr "این رمز عبور بسیار رایج است؛ لطفاً رمز عبور کمتر قابل حدسی انتخاب کنید."
+
+msgid ""
+"This pivot table used a legacy per-table aggregation setting that "
+"Superset previously ignored. It now computes correctly, so totals and "
+"subtotals may look different than before. Please validate them, then "
+"accept this notice or save the chart."
+msgstr ""
 
 msgid ""
 "This section allows you to configure how to use the slice\n"
@@ -19137,9 +19204,19 @@ msgstr "اجرای کوئری جاری"
 msgid "Use date formatting even when metric value is not a timestamp"
 msgstr "از فرمت تاریخ استفاده کنید حتی زمانی که مقدار متریک زمان‌سنج نیست."
 
+msgid ""
+"Use each metric’s own definition for cells and summaries (the default "
+"since SIP-216), or aggregate a second time over the metric’s own grouped "
+"results — e.g. the median of a set of per-store averages. Query limits "
+"apply before a result aggregation runs."
+msgstr ""
+
 #, fuzzy
 msgid "Use gradient"
 msgstr "دانه زمانی"
+
+msgid "Use metric definition"
+msgstr ""
 
 msgid "Use metrics as a top level group for columns or for rows"
 msgstr ""
@@ -19789,8 +19866,8 @@ msgid ""
 "filled body for increases and a hollow body for decreases."
 msgstr ""
 "در صورت فعال بودن، شمع‌های صعودی رنگ افزایش و شمع‌های نزولی رنگ کاهش را "
-"دارند. خاموش کنید تا یک رنگ سری استفاده شود: بدنه پر برای افزایش و توخالی "
-"برای کاهش."
+"دارند. خاموش کنید تا یک رنگ سری استفاده شود: بدنه پر برای افزایش و توخالی"
+" برای کاهش."
 
 #, fuzzy
 msgid ""

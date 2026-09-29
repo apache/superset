@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version:  superset-ds\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-24 10:35+0300\n"
+"POT-Creation-Date: 2026-09-29 11:48-0700\n"
 "PO-Revision-Date: 2024-05-08 14:41+0000\n"
 "Last-Translator: \n"
 "Language: nl\n"
@@ -171,20 +171,6 @@ msgid ""
 "defaults on a per\n"
 "                      database/column name level via the extra parameter."
 msgstr ""
-" standaard om ervoor te zorgen dat de lexicografische volgorde\n"
-"                      samenvalt met de chronologische volgorde. Als het "
-"tijdstempel\n"
-"                      niet overeenkomt met de ISO 8601 standaard\n"
-"                      dan moet u een expressie definiëren en typen voor\n"
-"                      om de tekenreeks om te zetten in een datum of "
-"tijdstempel. Note\n"
-"                      currently time zones are not supported Als de tijd "
-"wordt opgeslagen\n"
-"                      in epoch formaat, zet `epoch_s` of `epoch_ms`. Als "
-"er geen patroon\n"
-"                      is opgegeven, vallen we terug naar de optionele "
-"standaardwaarden op een\n"
-"                      database/kolom naam niveau via de extra parameter."
 
 msgid " to add calculated columns"
 msgstr " berekende kolommen toevoegen"
@@ -1054,8 +1040,8 @@ msgid ""
 " period. It is commonly used for financial and other time-series range "
 "analysis."
 msgstr ""
-"Een candlestick-grafiek toont openings-, slot-, hoogste en laagste waarden "
-"per periode. Wordt vaak gebruikt voor financiële en andere "
+"Een candlestick-grafiek toont openings-, slot-, hoogste en laagste "
+"waarden per periode. Wordt vaak gebruikt voor financiële en andere "
 "tijdreeks-bereikanalyses."
 
 #, fuzzy
@@ -1302,6 +1288,9 @@ msgstr "Werken"
 
 msgid "About"
 msgstr "Over"
+
+msgid "Accept"
+msgstr ""
 
 msgid "Access"
 msgstr "Toegang"
@@ -1761,6 +1750,9 @@ msgstr "Aggregatie"
 #, fuzzy
 msgid "Aggregation Method"
 msgstr "Aggregatie"
+
+msgid "Aggregation function"
+msgstr ""
 
 msgid ""
 "Aggregation used for the summary row. By default each metric keeps its "
@@ -4416,8 +4408,7 @@ msgstr "Kleurenschema"
 msgid ""
 "Color used when the close value is greater than or equal to the open "
 "value."
-msgstr ""
-"Kleur wanneer de slotwaarde groter dan of gelijk aan de openingswaarde is."
+msgstr "Kleur wanneer de slotwaarde groter dan of gelijk aan de openingswaarde is."
 
 msgid "Color used when the close value is less than the open value."
 msgstr "Kleur wanneer de slotwaarde kleiner is dan de openingswaarde."
@@ -5041,6 +5032,18 @@ msgstr ""
 msgid "Count"
 msgstr "Tel"
 
+msgid "Count Unique Values"
+msgstr ""
+
+msgid "Count as Fraction of Columns"
+msgstr ""
+
+msgid "Count as Fraction of Rows"
+msgstr ""
+
+msgid "Count as Fraction of Total"
+msgstr ""
+
 msgid "Country"
 msgstr "Land"
 
@@ -5482,6 +5485,9 @@ msgstr "Dashboard kon niet worden hersteld."
 msgid "Dashboard could not be updated."
 msgstr "Dashboard kon niet worden bijgewerkt."
 
+msgid "Dashboard data exported to Excel"
+msgstr ""
+
 msgid "Dashboard does not exist"
 msgstr "Het dashboard bestaat niet"
 
@@ -5492,6 +5498,9 @@ msgstr "Dit dashboard is succesvol opgeslagen."
 #, fuzzy
 msgid "Dashboard exported successfully"
 msgstr "Dit dashboard is succesvol opgeslagen."
+
+msgid "Dashboard has no charts to export."
+msgstr ""
 
 msgid "Dashboard imported"
 msgstr "Dashboard geïmporteerd"
@@ -7655,9 +7664,6 @@ msgstr "Wekelijks Rapport"
 msgid "Excel XML Export"
 msgstr "Wekelijks Rapport"
 
-msgid "Excel export is not configured on this server."
-msgstr ""
-
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fa, fr, ja, lv, mi, pl, ro, ru, sk, sl, sr, sr_Latn, tr, uk]
 #, fuzzy
@@ -7843,6 +7849,11 @@ msgstr "Exporteren naar origineel .CSV bestand"
 
 msgid "Export to pivoted .CSV"
 msgstr "Exporteren naar pivoted .CSV"
+
+msgid ""
+"Exporting images to Excel requires background exports. Ask an "
+"administrator to enable them, or export the dashboard's data instead."
+msgstr ""
 
 #, python-format
 msgid ""
@@ -10092,6 +10103,9 @@ msgstr "Splits nummer"
 msgid "List Roles"
 msgstr "Rollen weergeven"
 
+msgid "List Unique Values"
+msgstr ""
+
 #, fuzzy
 msgid "List Users"
 msgstr "Splits nummer"
@@ -10500,6 +10514,9 @@ msgstr "Gemiddelde van waarden over de opgegeven periode"
 
 msgid "Mean values"
 msgstr "Gemiddelde waarden"
+
+msgid "Median"
+msgstr ""
 
 msgid ""
 "Median edge width, the thickest edge will be 4 times thicker than the "
@@ -11379,6 +11396,11 @@ msgstr "Geen -> Pijl"
 msgid "None -> None"
 msgstr "Geen -> Geen"
 
+msgid ""
+"None of this dashboard's charts can be downloaded directly. Ask an "
+"administrator to enable background exports."
+msgstr ""
+
 msgid "Normal"
 msgstr "Normaal"
 
@@ -11964,8 +11986,8 @@ msgid ""
 "Overlay simple moving averages of the close price (MA5, MA10, MA15, ...)."
 " Type a custom period to add it."
 msgstr ""
-"Eenvoudige voortschrijdende gemiddelden van de slotkoers overlappen (MA5, "
-"MA10, MA15, ...). Typ een eigen periode om die toe te voegen."
+"Eenvoudige voortschrijdende gemiddelden van de slotkoers overlappen (MA5,"
+" MA10, MA15, ...). Typ een eigen periode om die toe te voegen."
 
 msgid ""
 "Overlays a hexagonal grid on a map, and aggregates data within the "
@@ -12607,6 +12629,12 @@ msgstr "Voorvoegsel of achtervoegsel"
 
 #, python-format
 msgid "Preparing %(count)s charts for export. This may take a moment."
+msgstr ""
+
+msgid "Preparing dashboard Excel export…"
+msgstr ""
+
+msgid "Preparing export…"
 msgstr ""
 
 msgid "Preview"
@@ -15152,11 +15180,11 @@ msgstr "Toon Tijdstempel"
 msgid "Show column headers"
 msgstr "De kolomkop label"
 
+msgid "Show column summaries"
+msgstr ""
+
 msgid "Show columns subtotal"
 msgstr "Toon kolommen subtotaal"
-
-msgid "Show columns total"
-msgstr "Toon kolommen totaal"
 
 msgid "Show empty columns"
 msgstr "Toon lege kolommen"
@@ -15240,11 +15268,11 @@ msgstr "Bekijk query details"
 msgid "Show row labels"
 msgstr "Toon Labels"
 
+msgid "Show row summaries"
+msgstr ""
+
 msgid "Show rows subtotal"
 msgstr "Toon rijen subtotaal"
-
-msgid "Show rows total"
-msgstr "Toon rijen totaal"
 
 msgid "Show series values on the chart"
 msgstr "Toon series waarden op de grafiek"
@@ -15961,6 +15989,15 @@ msgstr ""
 
 msgid "Sum"
 msgstr "Som"
+
+msgid "Sum as Fraction of Columns"
+msgstr ""
+
+msgid "Sum as Fraction of Rows"
+msgstr ""
+
+msgid "Sum as Fraction of Total"
+msgstr ""
 
 msgid "Sum of values over specified period"
 msgstr "Som van waarden over de opgegeven periode"
@@ -16845,6 +16882,12 @@ msgstr ""
 msgid ""
 "The following charts were omitted because an error occurred while "
 "exporting them:"
+msgstr ""
+
+msgid ""
+"The following charts were omitted because their size cannot be determined"
+" before they run. Ask an administrator to enable background exports to "
+"include them."
 msgstr ""
 
 msgid ""
@@ -18081,6 +18124,9 @@ msgstr ""
 msgid "This chart only"
 msgstr ""
 
+msgid "This chart was updated to use the restored aggregation"
+msgstr ""
+
 msgid "This chart will be restored to the following version:"
 msgstr ""
 
@@ -18132,6 +18178,12 @@ msgstr ""
 "annotatie gegevens."
 
 msgid "This dashboard does not exist"
+msgstr ""
+
+msgid ""
+"This dashboard has too much data to download directly. Ask an "
+"administrator to enable background exports, or lower the row limits of "
+"its charts."
 msgstr ""
 
 msgid "This dashboard is managed externally, and can't be edited in Superset"
@@ -18449,6 +18501,13 @@ msgstr ""
 #, fuzzy
 msgid "This password is too common; please choose a less guessable one."
 msgstr "Dit wachtwoord is te gewoon; kies een minder voorspelbaar wachtwoord."
+
+msgid ""
+"This pivot table used a legacy per-table aggregation setting that "
+"Superset previously ignored. It now computes correctly, so totals and "
+"subtotals may look different than before. Please validate them, then "
+"accept this notice or save the chart."
+msgstr ""
 
 msgid ""
 "This section allows you to configure how to use the slice\n"
@@ -19621,9 +19680,19 @@ msgstr "Voer huidige query uit"
 msgid "Use date formatting even when metric value is not a timestamp"
 msgstr "Gebruik datum opmaak zelfs wanneer metrische waarde geen tijdstempel is"
 
+msgid ""
+"Use each metric’s own definition for cells and summaries (the default "
+"since SIP-216), or aggregate a second time over the metric’s own grouped "
+"results — e.g. the median of a set of per-store averages. Query limits "
+"apply before a result aggregation runs."
+msgstr ""
+
 #, fuzzy
 msgid "Use gradient"
 msgstr "Tijdsinterval"
+
+msgid "Use metric definition"
+msgstr ""
 
 msgid "Use metrics as a top level group for columns or for rows"
 msgstr "Gebruik metrieken als topniveau groep voor kolommen of rijen"

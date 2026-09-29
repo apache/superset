@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-24 10:35+0300\n"
+"POT-Creation-Date: 2026-09-29 11:48-0700\n"
 "PO-Revision-Date: 2016-05-02 08:49-0700\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: en\n"
@@ -1118,6 +1118,9 @@ msgstr ""
 msgid "About"
 msgstr ""
 
+msgid "Accept"
+msgstr ""
+
 msgid "Access"
 msgstr ""
 
@@ -1514,6 +1517,9 @@ msgid "Aggregation"
 msgstr ""
 
 msgid "Aggregation Method"
+msgstr ""
+
+msgid "Aggregation function"
 msgstr ""
 
 msgid ""
@@ -4277,6 +4283,18 @@ msgstr ""
 msgid "Count"
 msgstr ""
 
+msgid "Count Unique Values"
+msgstr ""
+
+msgid "Count as Fraction of Columns"
+msgstr ""
+
+msgid "Count as Fraction of Rows"
+msgstr ""
+
+msgid "Count as Fraction of Total"
+msgstr ""
+
 msgid "Country"
 msgstr ""
 
@@ -4646,6 +4664,9 @@ msgstr ""
 msgid "Dashboard could not be updated."
 msgstr ""
 
+msgid "Dashboard data exported to Excel"
+msgstr ""
+
 msgid "Dashboard does not exist"
 msgstr ""
 
@@ -4653,6 +4674,9 @@ msgid "Dashboard exported as example successfully"
 msgstr ""
 
 msgid "Dashboard exported successfully"
+msgstr ""
+
+msgid "Dashboard has no charts to export."
 msgstr ""
 
 msgid "Dashboard imported"
@@ -6478,9 +6502,6 @@ msgstr ""
 msgid "Excel XML Export"
 msgstr ""
 
-msgid "Excel export is not configured on this server."
-msgstr ""
-
 msgid "Excel file format cannot be determined"
 msgstr ""
 
@@ -6639,6 +6660,11 @@ msgid "Export to original .CSV"
 msgstr ""
 
 msgid "Export to pivoted .CSV"
+msgstr ""
+
+msgid ""
+"Exporting images to Excel requires background exports. Ask an "
+"administrator to enable them, or export the dashboard's data instead."
 msgstr ""
 
 #, python-format
@@ -8547,6 +8573,9 @@ msgstr ""
 msgid "List Roles"
 msgstr ""
 
+msgid "List Unique Values"
+msgstr ""
+
 msgid "List Users"
 msgstr ""
 
@@ -8889,6 +8918,9 @@ msgid "Mean of values over specified period"
 msgstr ""
 
 msgid "Mean values"
+msgstr ""
+
+msgid "Median"
 msgstr ""
 
 msgid ""
@@ -9657,6 +9689,11 @@ msgid "None -> Arrow"
 msgstr ""
 
 msgid "None -> None"
+msgstr ""
+
+msgid ""
+"None of this dashboard's charts can be downloaded directly. Ask an "
+"administrator to enable background exports."
 msgstr ""
 
 msgid "Normal"
@@ -10707,6 +10744,12 @@ msgstr ""
 
 #, python-format
 msgid "Preparing %(count)s charts for export. This may take a moment."
+msgstr ""
+
+msgid "Preparing dashboard Excel export…"
+msgstr ""
+
+msgid "Preparing export…"
 msgstr ""
 
 msgid "Preview"
@@ -12872,10 +12915,10 @@ msgstr ""
 msgid "Show column headers"
 msgstr ""
 
-msgid "Show columns subtotal"
+msgid "Show column summaries"
 msgstr ""
 
-msgid "Show columns total"
+msgid "Show columns subtotal"
 msgstr ""
 
 msgid "Show empty columns"
@@ -12954,10 +12997,10 @@ msgstr ""
 msgid "Show row labels"
 msgstr ""
 
-msgid "Show rows subtotal"
+msgid "Show row summaries"
 msgstr ""
 
-msgid "Show rows total"
+msgid "Show rows subtotal"
 msgstr ""
 
 msgid "Show series values on the chart"
@@ -13574,6 +13617,15 @@ msgid "Suggestions could not be loaded. You can still type a value."
 msgstr ""
 
 msgid "Sum"
+msgstr ""
+
+msgid "Sum as Fraction of Columns"
+msgstr ""
+
+msgid "Sum as Fraction of Rows"
+msgstr ""
+
+msgid "Sum as Fraction of Total"
 msgstr ""
 
 msgid "Sum of values over specified period"
@@ -14252,6 +14304,12 @@ msgstr ""
 msgid ""
 "The following charts were omitted because an error occurred while "
 "exporting them:"
+msgstr ""
+
+msgid ""
+"The following charts were omitted because their size cannot be determined"
+" before they run. Ask an administrator to enable background exports to "
+"include them."
 msgstr ""
 
 msgid ""
@@ -15211,6 +15269,9 @@ msgstr ""
 msgid "This chart only"
 msgstr ""
 
+msgid "This chart was updated to use the restored aggregation"
+msgstr ""
+
 msgid "This chart will be restored to the following version:"
 msgstr ""
 
@@ -15247,6 +15308,12 @@ msgid ""
 msgstr ""
 
 msgid "This dashboard does not exist"
+msgstr ""
+
+msgid ""
+"This dashboard has too much data to download directly. Ask an "
+"administrator to enable background exports, or lower the row limits of "
+"its charts."
 msgstr ""
 
 msgid "This dashboard is managed externally, and can't be edited in Superset"
@@ -15460,6 +15527,13 @@ msgid ""
 msgstr ""
 
 msgid "This password is too common; please choose a less guessable one."
+msgstr ""
+
+msgid ""
+"This pivot table used a legacy per-table aggregation setting that "
+"Superset previously ignored. It now computes correctly, so totals and "
+"subtotals may look different than before. Please validate them, then "
+"accept this notice or save the chart."
 msgstr ""
 
 msgid ""
@@ -16433,7 +16507,17 @@ msgstr ""
 msgid "Use date formatting even when metric value is not a timestamp"
 msgstr ""
 
+msgid ""
+"Use each metric’s own definition for cells and summaries (the default "
+"since SIP-216), or aggregate a second time over the metric’s own grouped "
+"results — e.g. the median of a set of per-store averages. Query limits "
+"apply before a result aggregation runs."
+msgstr ""
+
 msgid "Use gradient"
+msgstr ""
+
+msgid "Use metric definition"
 msgstr ""
 
 msgid "Use metrics as a top level group for columns or for rows"
