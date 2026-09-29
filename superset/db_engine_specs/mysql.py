@@ -125,16 +125,21 @@ def _require_pymysql_tls(query: dict[str, Any], args: dict[str, Any]) -> None:
         )
 
 
-def _require_mysql_verified_tls(
-    driver: str, query: dict[str, Any], args: dict[str, Any]
-) -> None:
-    """Use required verification on drivers without an encryption-only mode."""
-    # The drivers test ssl_disabled for truthiness, so a URL string such as
+def _reject_mysql_ssl_disabled(query: dict[str, Any], args: dict[str, Any]) -> None:
+    """Fail on a true ssl_disabled and drop values that do not disable TLS."""
+    # Drivers test ssl_disabled for truthiness, so a URL string such as
     # "false" would disable TLS. Parse it here and drop non-disabling values.
     for source in (query, args):
         if _mysql_bool_option(source, "ssl_disabled"):
             raise ValueError("MySQL SSL request conflicts with ssl_disabled")
         source.pop("ssl_disabled", None)
+
+
+def _require_mysql_verified_tls(
+    driver: str, query: dict[str, Any], args: dict[str, Any]
+) -> None:
+    """Use required verification on drivers without an encryption-only mode."""
+    _reject_mysql_ssl_disabled(query, args)
     # Connector/Python has no REQUIRED mode: certificate verification is
     # necessary to prevent its opportunistic fallback to cleartext.
     if _mysql_bool_option({**query, **args}, "ssl_verify_cert") is False:
@@ -144,11 +149,12 @@ def _require_mysql_verified_tls(
     args["ssl_verify_cert"] = True
 
 
-def _require_mysqlclient_tls(options: dict[str, Any], args: dict[str, Any]) -> None:
+def _require_mysqlclient_tls(query: dict[str, Any], args: dict[str, Any]) -> None:
     """Select an ssl_mode that fails closed with either client library."""
+    _reject_mysql_ssl_disabled(query, args)
     # mysqlclient maps REQUIRED to opportunistic TLS with MariaDB
     # Connector/C. Verification modes fail closed on both client libraries.
-    mode = options.get("ssl_mode", MYSQL_SSL_MODE_VERIFY_CA)
+    mode = {**query, **args}.get("ssl_mode", MYSQL_SSL_MODE_VERIFY_CA)
     if mode not in MYSQL_SSL_REQUIRED_MODES:
         raise ValueError("MySQL SSL request conflicts with ssl_mode")
     if mode == MYSQL_SSL_MODE_REQUIRED:
@@ -203,7 +209,7 @@ def require_mysql_tls(
     driver = driver or uri.get_driver_name()
     options = {**query, **args}
     if driver == "mysqldb":
-        _require_mysqlclient_tls(options, args)
+        _require_mysqlclient_tls(query, args)
     elif driver in ("mysqlconnector", "pymysql"):
         _require_mysql_verified_tls(driver, query, args)
     elif driver == "mariadbconnector":
