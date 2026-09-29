@@ -1296,6 +1296,24 @@ def _resolve_filter_operator_and_value(
     return None, None
 
 
+def _safe_json_loads_dict(
+    raw: str | None, field_name: str, dashboard_id: int
+) -> dict[str, Any] | None:
+    """Parse a JSON string expected to be an object, returning *None* on failure."""
+    from superset.utils import json
+
+    try:
+        value = json.loads(raw or "{}")
+    except (TypeError, ValueError):
+        logger.warning(
+            "Failed to parse %s for dashboard %s, skipping native filter resolution.",
+            field_name,
+            dashboard_id,
+        )
+        return None
+    return value if isinstance(value, dict) else None
+
+
 def build_applied_dashboard_filters(
     dashboard_id: int, chart_id: int
 ) -> list[AppliedDashboardFilter]:
@@ -1320,7 +1338,6 @@ def build_applied_dashboard_filters(
     from superset.commands.dashboard.exceptions import DashboardNotFoundError
     from superset.mcp_service.chart.schemas import AppliedDashboardFilter
     from superset.models.dashboard import Dashboard
-    from superset.utils import json
 
     dashboard = db.session.query(Dashboard).filter_by(id=dashboard_id).one_or_none()
     if not dashboard:
@@ -1334,13 +1351,18 @@ def build_applied_dashboard_filters(
             f"Chart {chart_id} is not on dashboard {dashboard_id}"
         )
 
-    metadata = json.loads(dashboard.json_metadata or "{}")
+    metadata = _safe_json_loads_dict(
+        dashboard.json_metadata, "json_metadata", dashboard_id
+    )
+    if metadata is None:
+        return []
     native_filter_config = metadata.get("native_filter_configuration", [])
     if not isinstance(native_filter_config, list):
         return []
-    position_json = json.loads(dashboard.position_json or "{}")
-    if not isinstance(position_json, dict):
-        position_json = {}
+    position_json = (
+        _safe_json_loads_dict(dashboard.position_json, "position_json", dashboard_id)
+        or {}
+    )
 
     applied: list[AppliedDashboardFilter] = []
     for flt in native_filter_config:

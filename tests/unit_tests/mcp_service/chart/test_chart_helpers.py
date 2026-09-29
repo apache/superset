@@ -25,6 +25,7 @@ from superset.mcp_service.chart.chart_helpers import (
     _is_metric_ref,
     _resolve_deck_gl_metrics,
     apply_form_data_filters_to_query,
+    build_applied_dashboard_filters,
     build_query_dicts_from_form_data,
     extract_form_data_key_from_url,
     find_chart_by_identifier,
@@ -1834,3 +1835,59 @@ def test_deck_path_metric_keeps_canonical_path_grouping(
     sql = table.get_query_str(query_object.to_dict())
     assert "GROUP BY path" in sql, sql
     assert "COUNT(*)" in sql, sql
+
+
+def _setup_dashboard_mock(mock_db, json_metadata, position_json="{}", chart_id=1):
+    """Wire a mock db to return a Dashboard with the given fields."""
+    dashboard = MagicMock()
+    dashboard.json_metadata = json_metadata
+    dashboard.position_json = position_json
+    slc = MagicMock()
+    slc.id = chart_id
+    dashboard.slices = [slc]
+    query_chain = mock_db.session.query.return_value
+    query_chain.filter_by.return_value.one_or_none.return_value = dashboard
+
+
+@patch("superset.security_manager", MagicMock())
+@patch("superset.db")
+def test_build_applied_dashboard_filters_malformed_json_metadata(
+    mock_db,
+):
+    _setup_dashboard_mock(mock_db, json_metadata="not valid json {{{")
+    result = build_applied_dashboard_filters(dashboard_id=1, chart_id=1)
+    assert result == []
+
+
+@patch("superset.security_manager", MagicMock())
+@patch("superset.db")
+def test_build_applied_dashboard_filters_json_metadata_is_array(
+    mock_db,
+):
+    _setup_dashboard_mock(mock_db, json_metadata="[1, 2, 3]")
+    result = build_applied_dashboard_filters(dashboard_id=1, chart_id=1)
+    assert result == []
+
+
+@patch("superset.security_manager", MagicMock())
+@patch("superset.db")
+def test_build_applied_dashboard_filters_json_metadata_is_string(
+    mock_db,
+):
+    _setup_dashboard_mock(mock_db, json_metadata='"just a string"')
+    result = build_applied_dashboard_filters(dashboard_id=1, chart_id=1)
+    assert result == []
+
+
+@patch("superset.security_manager", MagicMock())
+@patch("superset.db")
+def test_build_applied_dashboard_filters_malformed_position_json(
+    mock_db,
+):
+    _setup_dashboard_mock(
+        mock_db,
+        json_metadata='{"native_filter_configuration": []}',
+        position_json="not valid json {{{",
+    )
+    result = build_applied_dashboard_filters(dashboard_id=1, chart_id=1)
+    assert result == []
