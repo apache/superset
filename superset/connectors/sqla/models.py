@@ -76,6 +76,7 @@ from superset.connectors.sqla.utils import (
     get_physical_table_metadata,
     get_virtual_table_metadata,
 )
+from superset.constants import EPOCH_FORMATS
 from superset.db_engine_specs.base import BaseEngineSpec, TimestampExpression
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
@@ -1316,7 +1317,7 @@ class TableColumn(AuditMixinNullable, ImportExportMixin, CertificationMixin, Mod
         label = label or utils.DTTM_ALIAS
 
         pdf = self.python_date_format
-        is_epoch = pdf in ("epoch_s", "epoch_ms")
+        is_epoch = pdf in EPOCH_FORMATS
         db_engine_spec = self.db_engine_spec
         column_spec = db_engine_spec.get_column_spec(self.type, db_extra=self.db_extra)
         type_ = column_spec.sqla_type if column_spec else DateTime
