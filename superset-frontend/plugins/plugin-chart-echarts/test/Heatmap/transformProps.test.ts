@@ -18,7 +18,11 @@
  */
 import { ChartProps } from '@superset-ui/core';
 import { supersetTheme } from '@apache-superset/core/theme';
-import { HeatmapChartProps, HeatmapFormData } from '../../src/Heatmap/types';
+import {
+  HeatmapChartProps,
+  HeatmapFormData,
+  SORT_Y_AXIS_NONE,
+} from '../../src/Heatmap/types';
 import transformProps from '../../src/Heatmap/transformProps';
 
 describe('Heatmap transformProps', () => {
@@ -200,10 +204,11 @@ describe('Heatmap transformProps', () => {
     expect(yAxisData).toEqual(['Amir Cole', 'Mia Chen', 'Zoe Diaz']);
   });
 
-  test("should preserve original data order for Y-axis when sort_y_axis is set to 'none'", () => {
-    // 'none' is the explicit opt-out from the alpha_asc default — it lets users
-    // who have ordinal/custom-ordered Y-axis values (e.g. Low/Medium/High) keep
-    // their original backend query order rather than having alpha sort applied.
+  test('should preserve original data order for Y-axis when sort_y_axis is set to SORT_Y_AXIS_NONE', () => {
+    // SORT_Y_AXIS_NONE is the explicit opt-out from the alpha_asc default — it
+    // lets users who have ordinal/custom-ordered Y-axis values (e.g.
+    // Low/Medium/High) keep their original backend query order rather than
+    // having alpha sort applied.
     // Data arrives in ordinal order: Medium < High < Low (non-alphabetical).
     const ordinalData = [
       { severity: 'Medium', day: 'Mon', count: 2 },
@@ -212,7 +217,7 @@ describe('Heatmap transformProps', () => {
     ];
 
     const chartProps = createChartProps(
-      { xAxis: 'day', groupby: ['severity'], sortYAxis: 'none' },
+      { xAxis: 'day', groupby: ['severity'], sortYAxis: SORT_Y_AXIS_NONE },
       ordinalData,
     );
     (chartProps as any).queriesData[0].colnames = ['day', 'severity', 'count'];
@@ -220,8 +225,8 @@ describe('Heatmap transformProps', () => {
     const result = transformProps(chartProps as HeatmapChartProps);
     const yAxisData = (result.echartOptions.yAxis as any).data;
 
-    // With 'none', order of first appearance is preserved — not alphabetical.
-    // (Alpha ascending would give ['High', 'Low', 'Medium'].)
+    // With SORT_Y_AXIS_NONE, order of first appearance is preserved — not
+    // alphabetical. (Alpha ascending would give ['High', 'Low', 'Medium'].)
     expect(yAxisData).toEqual(['Medium', 'High', 'Low']);
   });
 

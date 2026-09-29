@@ -34,7 +34,11 @@ import { maxBy, minBy } from 'lodash-es';
 import type { ComposeOption } from 'echarts/core';
 import type { HeatmapSeriesOption } from 'echarts/charts';
 import type { CallbackDataParams } from 'echarts/types/src/util/types';
-import { HeatmapChartProps, HeatmapTransformedProps } from './types';
+import {
+  HeatmapChartProps,
+  HeatmapTransformedProps,
+  SORT_Y_AXIS_NONE,
+} from './types';
 import { getDefaultTooltip } from '../utils/tooltip';
 import { Refs } from '../types';
 import { parseAxisBound } from '../utils/controls';
@@ -270,11 +274,11 @@ export default function transformProps(
   // the backend in a natural, e.g. chronological, order), the Y-axis
   // groupby dimension has no such natural ordering to fall back on, so
   // default it to ascending sort when the user hasn't chosen one.
-  // 'none' is an explicit "keep original order" selection (distinct from
-  // null/undefined, which means the control was never touched or was cleared,
-  // and both map to the alpha_asc default).
+  // SORT_Y_AXIS_NONE is an explicit "keep original order" selection (distinct
+  // from null/undefined, which means the control was never touched or was
+  // cleared, and both map to the alpha_asc default).
   const effectiveSortYAxis =
-    sortYAxis === 'none' ? undefined : (sortYAxis ?? 'alpha_asc');
+    sortYAxis === SORT_Y_AXIS_NONE ? undefined : (sortYAxis ?? 'alpha_asc');
   const sortedYAxisValues = sortAxisValues(
     yAxisValues,
     data,
