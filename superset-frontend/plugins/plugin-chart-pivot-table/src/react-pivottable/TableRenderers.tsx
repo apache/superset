@@ -1142,10 +1142,13 @@ export function TableRenderer(props: TableRendererProps) {
       } = settings;
       // When column attributes are present, renderTableRow gives the last
       // row-label cell in the body an extra colSpan to absorb the corner
-      // placeholder column (see colIncrSpan below). Mirror that here by
-      // folding the trailing placeholder into the last axis-label cell
-      // instead of rendering it separately, so the frozen corner block in
-      // the header spans the same columns as the frozen cell it sits above.
+      // placeholder column (see colIncrSpan below) -- except for a subtotal
+      // row, where that extra span instead lands on the separate
+      // attrValuePaddingCell rendered after the row's own label cells.
+      // Mirror the full-row case here by folding the trailing placeholder
+      // into the last axis-label cell instead of rendering it separately,
+      // so the frozen corner block in the header spans the same columns as
+      // the frozen cell(s) it sits above.
       const mergeTotalLabel =
         settingsColAttrs.length !== 0 && settingsRowAttrs.length !== 0;
       const totalLabelClickHandler = clickHeaderHandler(
@@ -1526,7 +1529,10 @@ export function TableRenderer(props: TableRendererProps) {
   );
 
   return (
-    <Styles isDashboardEditMode={isDashboardEditMode()}>
+    <Styles
+      isDashboardEditMode={isDashboardEditMode()}
+      canFreezeRowLabels={rowAttrs.length <= 1}
+    >
       <table className="pvtTable" role="grid">
         <thead>
           {colAttrs.map((c: string, j: number) =>

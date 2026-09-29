@@ -46,19 +46,27 @@ test('sticky-positions the row-label column and its corner header cell(s) so the
   // The corner cells above the frozen row-label column (the column
   // attribute name cell in each column-header row and the row-attribute
   // name cell in the row-header row) must stick on both axes and paint
-  // over the column labels that scroll underneath them.
-  const cornerCells = [
-    ...container.querySelectorAll('thead th.pvtCornerLabel'),
-    ...container.querySelectorAll('thead tr.pvtRowHeaderRow th.pvtAxisLabel'),
-  ];
-  expect(cornerCells.length).toBeGreaterThan(0);
+  // over the column labels that scroll underneath them. Asserted as two
+  // separate non-empty groups -- rather than one merged list -- so that if
+  // either selector stops matching (e.g. `pvtCornerLabel` is dropped from
+  // the column-attribute name cell), that group's absence fails the test
+  // instead of silently leaving only the other group's cells checked.
+  const columnCornerCells = container.querySelectorAll(
+    'thead th.pvtCornerLabel',
+  );
+  const rowHeaderCornerCells = container.querySelectorAll(
+    'thead tr.pvtRowHeaderRow th.pvtAxisLabel',
+  );
+  expect(columnCornerCells.length).toBeGreaterThan(0);
+  expect(rowHeaderCornerCells.length).toBeGreaterThan(0);
+  const cornerCells = [...columnCornerCells, ...rowHeaderCornerCells];
   // The frozen block in each column-header row has to cover the same
   // columns as the frozen row label below it (its own column plus the
   // padding column), otherwise the uncovered strip shows column labels
   // scrolling through the corner.
   const rowLabelSpan = (rowLabelCell as HTMLTableCellElement).colSpan;
   expect(rowLabelSpan).toBe(2);
-  container.querySelectorAll('thead th.pvtCornerLabel').forEach(cell => {
+  columnCornerCells.forEach(cell => {
     expect((cell as HTMLTableCellElement).colSpan).toBe(rowLabelSpan);
   });
   cornerCells.forEach(cell => {
@@ -66,7 +74,10 @@ test('sticky-positions the row-label column and its corner header cell(s) so the
     expect(style.position).toBe('sticky');
     expect(style.top).toBe('0px');
     expect(style.left).toBe('0px');
-    expect(Number(style.zIndex)).toBeGreaterThan(0);
+    // Assert the declared value, not just a positive number: with no
+    // z-index rule applied, jsdom's getComputedStyle resolves to '' and
+    // Number('') is 0, so a bare `> 0` check would still pass.
+    expect(style.zIndex).toBe('1');
   });
 
   // The sticky thead is its own stacking context, so the corner cell's
@@ -74,9 +85,8 @@ test('sticky-positions the row-label column and its corner header cell(s) so the
   // has to sit above the frozen row-label column.
   const thead = container.querySelector('thead');
   expect(thead).toBeInTheDocument();
-  expect(Number(getComputedStyle(thead as Element).zIndex)).toBeGreaterThan(
-    Number(rowLabelStyle.zIndex),
-  );
+  expect(getComputedStyle(thead as Element).zIndex).toBe('2');
+  expect(rowLabelStyle.zIndex).toBe('1');
 });
 
 test('keeps the sticky totals row above the frozen row-label column', () => {
@@ -96,9 +106,8 @@ test('keeps the sticky totals row above the frozen row-label column', () => {
   const totalsRow = container.querySelector('tbody tr.pvtRowTotals');
   expect(rowLabelCell).toBeInTheDocument();
   expect(totalsRow).toBeInTheDocument();
-  expect(Number(getComputedStyle(totalsRow as Element).zIndex)).toBeGreaterThan(
-    Number(getComputedStyle(rowLabelCell as Element).zIndex),
-  );
+  expect(getComputedStyle(totalsRow as Element).zIndex).toBe('2');
+  expect(getComputedStyle(rowLabelCell as Element).zIndex).toBe('1');
 
   // The totals row's leading label freezes at the left edge alongside the
   // body row labels, and sits above the totals values in its own row.
@@ -107,7 +116,10 @@ test('keeps the sticky totals row above the frozen row-label column', () => {
   const totalsLabelStyle = getComputedStyle(totalsLabel as Element);
   expect(totalsLabelStyle.position).toBe('sticky');
   expect(totalsLabelStyle.left).toBe('0px');
-  expect(Number(totalsLabelStyle.zIndex)).toBeGreaterThan(0);
+  // Assert the declared value rather than `> 0`: with no z-index rule
+  // applied, jsdom resolves getComputedStyle(...).zIndex to '', and
+  // Number('') is 0, so a bare positivity check would still pass.
+  expect(totalsLabelStyle.zIndex).toBe('1');
   expect((totalsLabel as HTMLTableCellElement).colSpan).toBe(
     (rowLabelCell as HTMLTableCellElement).colSpan,
   );
@@ -166,6 +178,39 @@ test('does not freeze any header cell when the pivot has column dimensions but n
   const headerCells = container.querySelectorAll('thead th');
   expect(headerCells.length).toBeGreaterThan(0);
   headerCells.forEach(cell => {
+    expect(getComputedStyle(cell).position).not.toBe('sticky');
+  });
+});
+
+test('does not freeze the row-label column or its corner cell(s) with more than one row dimension', () => {
+  // With multiple row attributes, every row-label and corner cell would
+  // freeze at the same left: 0 edge and stack on top of one another, so
+  // freezing is scoped to the single-row-dimension case until a
+  // per-column offset fast-follow lands.
+  const transformedProps = {
+    ...transformProps(testData.groupedRowsWithoutColTotals),
+    margin: 32,
+    legacy_order_by: null,
+    order_desc: false,
+  };
+  const { container } = render(
+    ProviderWrapper({
+      children: <PivotTableChart {...transformedProps} />,
+    }),
+  );
+
+  const rowLabelCells = container.querySelectorAll('tbody th.pvtRowLabel');
+  expect(rowLabelCells.length).toBeGreaterThan(0);
+  rowLabelCells.forEach(cell => {
+    expect(getComputedStyle(cell).position).not.toBe('sticky');
+  });
+
+  const cornerCells = [
+    ...container.querySelectorAll('thead th.pvtCornerLabel'),
+    ...container.querySelectorAll('thead tr.pvtRowHeaderRow th.pvtAxisLabel'),
+  ];
+  expect(cornerCells.length).toBeGreaterThan(0);
+  cornerCells.forEach(cell => {
     expect(getComputedStyle(cell).position).not.toBe('sticky');
   });
 });
