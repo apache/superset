@@ -33,6 +33,8 @@ from sqlalchemy.pool import StaticPool
 
 from superset.db_engine_specs.base import BaseEngineSpec
 from superset.exceptions import (
+    AcquireDistributedLockFailedException,
+    LockAlreadyHeldException,
     OAuth2Error,
     OAuth2RedirectError,
     OAuth2TokenRefreshError,
@@ -43,6 +45,7 @@ from superset.utils.oauth2 import (
     decode_oauth2_state,
     encode_oauth2_state,
     execute_with_oauth2_retry,
+    force_refresh_oauth2_token,
     generate_code_challenge,
     generate_code_verifier,
     get_oauth2_access_token,
@@ -907,3 +910,127 @@ def test_get_oauth2_redirect_uri_raises_on_runtime_error(
     )
     with pytest.raises(OAuth2Error):
         get_oauth2_redirect_uri()
+
+
+def test_force_refresh_waits_out_lock_contention(
+    mocker: MockerFixture,
+) -> None:
+    """
+    A loser of the refresh race reuses the winner's token instead of raising.
+
+    Every chart on a dashboard opening a connection with the same rejected token
+    races for the non-blocking refresh lock. The losers must retry until the winner
+    commits, then short circuit on the committed access token.
+    """
+    mocker.patch("time.sleep")  # avoid backoff delays in tests
+    db = mocker.patch("superset.utils.oauth2.db")
+    mocker.patch("superset.utils.oauth2.Session", return_value=db.session)
+    lock = mocker.patch("superset.utils.oauth2.DistributedLock")
+    lock.side_effect = [
+        LockAlreadyHeldException("Lock already taken"),
+        mocker.MagicMock(),
+    ]
+    db_engine_spec = mocker.MagicMock()
+    token = mocker.MagicMock(access_token="winning-token")  # noqa: S106
+    db.session.query().populate_existing().filter_by().one_or_none.return_value = token
+
+    result = force_refresh_oauth2_token(
+        DUMMY_OAUTH2_CONFIG,
+        1,
+        2,
+        db_engine_spec,
+        rejected_access_token="rejected-token",  # noqa: S106
+    )
+
+    assert result == "winning-token"
+    assert lock.call_count == 2
+    db_engine_spec.get_oauth2_fresh_token.assert_not_called()
+
+
+def test_force_refresh_reads_committed_token_when_lock_never_frees(
+    mocker: MockerFixture,
+) -> None:
+    """Giving up on the lock still reuses a token another worker committed."""
+    mocker.patch("time.sleep")  # avoid backoff delays in tests
+    db = mocker.patch("superset.utils.oauth2.db")
+    mocker.patch("superset.utils.oauth2.Session", return_value=db.session)
+    mocker.patch(
+        "superset.utils.oauth2.DistributedLock",
+        side_effect=AcquireDistributedLockFailedException("Lock not available"),
+    )
+    db_engine_spec = mocker.MagicMock()
+    db.session.query().filter_by().one_or_none.return_value = mocker.MagicMock(
+        access_token="winning-token"  # noqa: S106
+    )
+
+    result = force_refresh_oauth2_token(
+        DUMMY_OAUTH2_CONFIG,
+        1,
+        2,
+        db_engine_spec,
+        rejected_access_token="rejected-token",  # noqa: S106
+    )
+
+    assert result == "winning-token"
+    db_engine_spec.get_oauth2_fresh_token.assert_not_called()
+
+
+def test_force_refresh_returns_none_when_no_one_refreshed(
+    mocker: MockerFixture,
+) -> None:
+    """With the lock held and the stored token unchanged there is nothing to reuse."""
+    mocker.patch("time.sleep")  # avoid backoff delays in tests
+    db = mocker.patch("superset.utils.oauth2.db")
+    mocker.patch("superset.utils.oauth2.Session", return_value=db.session)
+    mocker.patch(
+        "superset.utils.oauth2.DistributedLock",
+        side_effect=LockAlreadyHeldException("Lock already taken"),
+    )
+    db.session.query().filter_by().one_or_none.return_value = mocker.MagicMock(
+        access_token="rejected-token"  # noqa: S106
+    )
+
+    result = force_refresh_oauth2_token(
+        DUMMY_OAUTH2_CONFIG,
+        1,
+        2,
+        mocker.MagicMock(),
+        rejected_access_token="rejected-token",  # noqa: S106
+    )
+
+    assert result is None
+
+
+def test_execute_with_oauth2_retry_survives_lock_contention(
+    mocker: MockerFixture,
+) -> None:
+    """
+    A chart that loses the refresh race renders with the winner's token.
+
+    Without contention tolerance the lock failure is not an OAuth2 error, so it
+    escapes as an opaque `AcquireDistributedLockFailedException` and the chart fails.
+    """
+    mocker.patch("time.sleep")  # avoid backoff delays in tests
+    operation = mocker.Mock(side_effect=[RuntimeError("stale OAuth token"), "result"])
+    database = mocker.MagicMock()
+    database.id = 1
+    database.is_oauth2_enabled.return_value = True
+    database.db_engine_spec.needs_oauth2.return_value = True
+    database.get_oauth2_config.return_value = DUMMY_OAUTH2_CONFIG
+    mocker.patch("superset.utils.oauth2.g").user.id = 2
+    db = mocker.patch("superset.utils.oauth2.db")
+    mocker.patch("superset.utils.oauth2.Session", return_value=db.session)
+    mocker.patch(
+        "superset.utils.oauth2.DistributedLock",
+        side_effect=LockAlreadyHeldException("Lock already taken"),
+    )
+    # The rejected token is read first, then the winner's committed replacement.
+    db.session.query().filter_by().one_or_none.side_effect = [
+        mocker.MagicMock(access_token="rejected-token"),  # noqa: S106
+        mocker.MagicMock(access_token="winning-token"),  # noqa: S106
+    ]
+
+    assert execute_with_oauth2_retry(database, operation) == "result"
+
+    assert operation.call_count == 2
+    database.start_oauth2_dance.assert_not_called()

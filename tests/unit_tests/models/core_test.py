@@ -41,6 +41,7 @@ from superset.connectors.sqla.models import SqlaTable, TableColumn
 from superset.databases.error_provenance import mark_database_engine_error
 from superset.errors import SupersetErrorType
 from superset.exceptions import (
+    LockAlreadyHeldException,
     OAuth2Error,
     OAuth2RedirectError,
     SupersetGenericDBErrorException,
@@ -2524,3 +2525,39 @@ def test_get_raw_connection_without_oauth2_is_unchanged(
 
     engine.raw_connection.assert_called_once()
     refresh.assert_not_called()
+
+
+def test_get_raw_connection_survives_a_lost_refresh_race(
+    app_context: None,
+    mocker: MockerFixture,
+) -> None:
+    """
+    A chart that loses the refresh race opens with the token the winner stored.
+
+    Every chart on a dashboard whose token is rejected at login competes for the
+    non-blocking refresh lock. The losers must pick up the committed token rather
+    than failing with an opaque lock error.
+    """
+    mocker.patch("time.sleep")  # avoid backoff delays in tests
+    engine = mocker.MagicMock()
+    connection = mocker.MagicMock()
+    engine.raw_connection.side_effect = [RuntimeError("token rejected"), connection]
+    database = _login_rejecting_database(mocker, engine)
+    metadata_db = mocker.patch("superset.utils.oauth2.db")
+    mocker.patch("superset.utils.oauth2.Session", return_value=metadata_db.session)
+    # The rejected token is read first, then the winner's committed replacement.
+    metadata_db.session.query().filter_by().one_or_none.side_effect = [
+        mocker.MagicMock(access_token="stale-token"),  # noqa: S106
+        mocker.MagicMock(access_token="winning-token"),  # noqa: S106
+    ]
+    mocker.patch(
+        "superset.utils.oauth2.DistributedLock",
+        side_effect=LockAlreadyHeldException("Lock already taken"),
+    )
+    start_dance = mocker.patch.object(database.db_engine_spec, "start_oauth2_dance")
+
+    with database.get_raw_connection() as conn:
+        assert conn is connection
+
+    assert engine.raw_connection.call_count == 2
+    start_dance.assert_not_called()
