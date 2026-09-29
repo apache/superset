@@ -17,7 +17,8 @@
  * under the License.
  */
 import React from 'react';
-import { views, resolveView } from './index';
+import { act, render, screen } from 'spec/helpers/testing-library';
+import { views, resolveView, useResolveView } from './index';
 
 const disposables: Array<{ dispose: () => void }> = [];
 
@@ -109,4 +110,29 @@ test('dispose removes the view registration', () => {
   disposable.dispose();
 
   expect(views.getViews('sqllab.panels')).toBeUndefined();
+});
+
+test('useResolveView re-renders once a view registers after first render', () => {
+  const ResolvedView = () => useResolveView('late.view');
+  render(React.createElement(ResolvedView), { useTheme: true });
+
+  expect(
+    screen.getByText('The extension late.view could not be loaded.'),
+  ).toBeInTheDocument();
+
+  const provider = () => React.createElement('div', null, 'Late Content');
+  act(() => {
+    disposables.push(
+      views.registerView(
+        { id: 'late.view', name: 'Late View' },
+        'sqllab.panels',
+        provider,
+      ),
+    );
+  });
+
+  expect(screen.getByText('Late Content')).toBeInTheDocument();
+  expect(
+    screen.queryByText('The extension late.view could not be loaded.'),
+  ).not.toBeInTheDocument();
 });

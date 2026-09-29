@@ -953,6 +953,22 @@ class TestCore(SupersetTestCase):
         assert resp.status_code == 404
         assert "Location" not in resp.headers
 
+    def test_extension_view_anonymous_redirects_to_login(self):
+        resp = self.client.get("/extensions/view/my-ext.settings")
+
+        expected_url = "/login/?next=%2Fextensions%2Fview%2Fmy-ext.settings"
+
+        assert resp.status_code == 302
+        assert resp.headers["Location"] == expected_url
+
+    def test_extension_view_authenticated_returns_spa_shell(self):
+        self.login(ADMIN_USERNAME)
+
+        resp = self.client.get("/extensions/view/my-ext.settings")
+
+        assert resp.status_code == 200
+        assert b'id="app"' in resp.data
+
 
 class TestLocalePatch(SupersetTestCase):
     MOCK_LANGUAGES = (
