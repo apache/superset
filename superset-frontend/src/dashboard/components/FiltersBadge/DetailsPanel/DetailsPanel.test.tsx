@@ -23,6 +23,7 @@ import {
   render,
   screen,
   userEvent,
+  waitFor,
 } from 'spec/helpers/testing-library';
 import { Indicator } from 'src/dashboard/components/nativeFilters/selectors';
 import DetailsPanel from '.';
@@ -252,9 +253,24 @@ test('Arrow key navigation switches focus between indicators', async () => {
   expect(firstMenuItem).toBeInTheDocument();
   expect(secondMenuItem).toBeInTheDocument();
 
-  userEvent.type(firstMenuItem, '{arrowdown}');
+  firstMenuItem.focus();
   expect(firstMenuItem).toHaveFocus();
 
-  userEvent.type(secondMenuItem, '{arrowdown}');
-  expect(secondMenuItem).toHaveFocus();
+  // ArrowDown should move focus from the first indicator to the next one
+  fireEvent.keyDown(firstMenuItem, {
+    key: 'ArrowDown',
+    code: 'ArrowDown',
+    keyCode: 40,
+    which: 40,
+  });
+  await waitFor(() => expect(secondMenuItem).toHaveFocus());
+
+  // ArrowUp should move focus back to the previous indicator
+  fireEvent.keyDown(secondMenuItem, {
+    key: 'ArrowUp',
+    code: 'ArrowUp',
+    keyCode: 38,
+    which: 38,
+  });
+  await waitFor(() => expect(firstMenuItem).toHaveFocus());
 });
