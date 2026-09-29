@@ -18,6 +18,7 @@
 """Per-tool size and schema fidelity budgets for the entire registered inventory."""
 
 from copy import deepcopy
+from typing import Any
 
 import pytest
 from jsonschema import Draft202012Validator
@@ -179,3 +180,46 @@ async def test_inventory_budget_allows_incidental_description_edit() -> None:
     entry["description"] += " A chart preview."
     text = json.dumps(entry, ensure_ascii=False, separators=(",", ":"))
     assert len(text.encode("utf-8")) <= TOOL_BUDGETS["get_chart_preview"]
+
+
+# Tool search results are delivered as one page. MCP gateways cap a page at
+# 100 KB, so the largest ``max_results`` entries together must fit; with chart
+# config schemas inlined, generate_chart and update_chart alone exceeded it.
+SEARCH_PAGE_BYTE_LIMIT = 100_000
+
+
+@pytest.mark.asyncio
+async def test_worst_case_search_page_fits_gateway_limit() -> None:
+    """The largest possible tool-search page stays under the gateway page cap."""
+    serializer = _create_search_result_serializer(MCP_TOOL_SEARCH_CONFIG)
+    tools = await mcp.list_tools(run_middleware=False)
+
+    def entry_bytes(tool: Any) -> int:
+        text = json.dumps(
+            serializer([tool])[0], ensure_ascii=False, separators=(",", ":")
+        )
+        return len(text.encode("utf-8"))
+
+    limit = MCP_TOOL_SEARCH_CONFIG["max_results"]
+    largest = sorted(tools, key=entry_bytes, reverse=True)[:limit]
+    page = json.dumps(serializer(largest), ensure_ascii=False, separators=(",", ":"))
+    assert len(page.encode("utf-8")) <= SEARCH_PAGE_BYTE_LIMIT, [
+        (tool.name, entry_bytes(tool)) for tool in largest
+    ]
+    # Every chart tool together also fits, whatever the configured limit.
+    chart_tools = [
+        tool
+        for tool in tools
+        if tool.name
+        in {
+            "generate_chart",
+            "update_chart",
+            "update_chart_preview",
+            "generate_explore_link",
+            "get_chart_type_schema",
+        }
+    ]
+    chart_page = json.dumps(
+        serializer(chart_tools), ensure_ascii=False, separators=(",", ":")
+    )
+    assert len(chart_page.encode("utf-8")) <= SEARCH_PAGE_BYTE_LIMIT
