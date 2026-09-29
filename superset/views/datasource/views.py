@@ -155,18 +155,19 @@ def _requested_target(datasource_dict: dict[str, Any]) -> tuple[str | None, Tabl
 
     Raises ``ValueError`` naming the offending field.
     """
-    values: dict[str, str | None] = {}
-    for field in ("sql", "table_name", "schema", "catalog"):
+
+    def string(field: str) -> str | None:
         value = datasource_dict.get(field)
         if value is not None and not isinstance(value, str):
             raise ValueError(field)
-        values[field] = value
-    return values["sql"], Table(
+        return value
+
+    return string("sql"), Table(
         # ``Table`` is annotated for a table that exists, but an omitted
         # ``table_name`` lands as ``None`` and has to be compared as one.
-        cast(str, values["table_name"]),
-        values["schema"] or None,
-        values["catalog"] or None,
+        cast(str, string("table_name")),
+        string("schema") or None,
+        string("catalog") or None,
     )
 
 
@@ -261,10 +262,7 @@ class Datasource(BaseSupersetView):
             requested_sql, requested_table = _requested_target(datasource_dict)
         except ValueError as ex:
             return json_error_response(
-                _(
-                    "Dataset schema is invalid, caused by: %(error)s",
-                    error=f"`{ex}` must be a string",
-                ),
+                _("The `%(field)s` field must be a string.", field=str(ex)),
                 status=422,
             )
 
