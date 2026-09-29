@@ -4258,6 +4258,9 @@ class TestDatabaseApi(SupersetTestCase):
         assert "charts" in rv.json
         assert "dashboards" in rv.json
         assert "sqllab_tab_states" in rv.json
+        # Datasets block the delete, so the confirmation has to be able to
+        # enumerate them too.
+        assert "datasets" in rv.json
 
     @pytest.mark.sql_json_flow
     @pytest.mark.usefixtures("load_birth_names_data")
