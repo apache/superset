@@ -223,6 +223,34 @@ class KustoKqlEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
     allows_sql_comments = False
     run_multiple_statements_as_one = True
 
+    metadata = {
+        "description": (
+            "Azure Data Explorer (Kusto) using native Kusto Query Language (KQL) "
+            "for high-performance log and telemetry analytics."
+        ),
+        "logo": "kusto.png",
+        "homepage_url": "https://azure.microsoft.com/en-us/products/data-explorer/",
+        "categories": [
+            DatabaseCategory.CLOUD_AZURE,
+            DatabaseCategory.ANALYTICAL_DATABASES,
+            DatabaseCategory.PROPRIETARY,
+        ],
+        "pypi_packages": ["sqlalchemy-kusto"],
+        "connection_string": (
+            "kustokql+https://{cluster}.kusto.windows.net/{database}"
+            "?msi=False&azure_ad_client_id={client_id}"
+            "&azure_ad_client_secret={client_secret}"
+            "&azure_ad_tenant_id={tenant_id}"
+        ),
+        "parameters": {
+            "cluster": "Azure Data Explorer cluster name",
+            "database": "Database name",
+            "client_id": "Azure AD application (client) ID",
+            "client_secret": "Azure AD application secret",
+            "tenant_id": "Azure AD tenant ID",
+        },
+    }
+
     _time_grain_expressions = {
         None: "{col}",
         TimeGrain.SECOND: "bin({col},1s)",
