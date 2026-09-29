@@ -807,28 +807,51 @@ def test_catalog_documented_fields_match_schema() -> None:
     assert set(fields) <= set(CatalogItem.model_fields)
 
 
-def test_catalog_insert_between_count_and_page(
+def test_catalog_pages_issue_no_count_query(
     catalog_fixtures: SimpleNamespace, act_as: Any
 ) -> None:
-    """An insertion after the count must not suppress the continuation cursor."""
+    """Continuation comes from the lookahead row, so no count query runs."""
     from sqlalchemy.orm import Query
 
     act_as(admin_role())
-    original_count = Query.count
 
-    def count_then_insert(query: Query) -> int:
-        """Insert a visible row after the DAO has counted the existing rows."""
-        count = original_count(query)
-        _add_datasets(catalog_fixtures.session, 1, start_id=3)
-        return count
+    def fail_count(query: Query) -> int:
+        """Fail the test if the catalog asks the DAO for a total count."""
+        raise AssertionError("get_catalog must not issue a count query")
 
-    with patch.object(Query, "count", count_then_insert):
-        first = _page("datasets", page_size=2)
-    assert [item.id for item in first.items] == [1, 2]
-    assert first.next_cursor is not None
-    last = _page("datasets", page_size=2, cursor=first.next_cursor)
-    assert [item.id for item in last.items] == [3]
+    with patch.object(Query, "count", fail_count):
+        first = _page("datasets", page_size=1)
+        assert [item.id for item in first.items] == [1]
+        assert first.next_cursor is not None
+        last = _page("datasets", page_size=1, cursor=first.next_cursor)
+    assert [item.id for item in last.items] == [2]
     assert last.next_cursor is None
+
+
+@pytest.mark.parametrize("max_page_size", [100, 50, 2, 1])
+def test_catalog_walks_every_row_under_low_dao_page_cap(
+    app: Any, catalog_fixtures: SimpleNamespace, act_as: Any, max_page_size: int
+) -> None:
+    """A DAO page-size cap at or below the page size must not hide later pages."""
+    act_as(admin_role())
+    _add_datasets(catalog_fixtures.session, 160, start_id=10)  # 162 in total
+    original = app.config.get("SQLALCHEMY_DAO_MAX_PAGE_SIZE")
+    app.config["SQLALCHEMY_DAO_MAX_PAGE_SIZE"] = max_page_size
+    pages: list[list[int]] = []
+    cursor = None
+    try:
+        for _ in range(500):
+            page = _page("datasets", page_size=100, cursor=cursor)
+            pages.append([item.id for item in page.items])
+            cursor = page.next_cursor
+            if cursor is None:
+                break
+    finally:
+        app.config["SQLALCHEMY_DAO_MAX_PAGE_SIZE"] = original
+    ids = [item_id for page in pages for item_id in page]
+    assert len(ids) == 162
+    assert ids == sorted(set(ids))
+    assert all(len(page) <= max_page_size for page in pages)
 
 
 @pytest.mark.parametrize("character", ["x", "界"])
