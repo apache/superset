@@ -602,26 +602,38 @@ class MySQLEngineSpec(BasicParametersMixin, BaseEngineSpec):
             if creating_table and cls._requires_primary_key(engine):
                 index = to_sql_kwargs.get("index", True)
                 index_label = to_sql_kwargs.get("index_label")
+                # Column names are compared case-insensitively in MySQL, so
+                # an existing "ID" column collides with a lowercase "id" one
+                # even though Python sees them as different strings.
+                existing_columns = {col.lower() for col in df.columns}
+                index_name = index_label or df.index.name or "index"
                 # A column promoted to PRIMARY KEY must reject duplicate and
-                # NULL values; the DataFrame index has neither guarantee (a
+                # NULL values and must not collide with an existing column;
+                # the DataFrame index has none of those guaranteed (a
                 # CSV/Excel upload can point the "Dataframe index" option at
-                # a column that repeats or is missing values), so only
-                # promote it when it actually qualifies. Otherwise fall back
-                # to the synthesized key below, the same as the index=False
-                # path, and make sure the real index is not also written out
-                # as an extra column.
+                # a column that repeats, is missing values, or shares a name
+                # with a real column), so only promote it when it actually
+                # qualifies. Otherwise fall back to the synthesized key
+                # below, and make sure the real index is not also written
+                # out as an extra column.
                 promote_index = (
-                    bool(index) and df.index.is_unique and not df.index.hasnans
+                    bool(index)
+                    and df.index.is_unique
+                    and not df.index.hasnans
+                    and index_name.lower() not in existing_columns
                 )
                 if promote_index:
-                    primary_key = index_label or df.index.name or "index"
+                    primary_key = index_name
                 else:
+                    if index:
+                        logger.warning(
+                            "Dropping the DataFrame index instead of "
+                            "promoting it to PRIMARY KEY: %s",
+                            f"its name {index_name!r} collides with an existing column"
+                            if index_name.lower() in existing_columns
+                            else "it is not unique or contains missing values",
+                        )
                     df = df.copy()
-                    # Column names are compared case-insensitively in MySQL,
-                    # so an existing "ID" column collides with a lowercase
-                    # synthesized "id" one even though Python sees them as
-                    # different strings.
-                    existing_columns = {col.lower() for col in df.columns}
                     primary_key = "id"
                     while primary_key.lower() in existing_columns:
                         primary_key = f"_{primary_key}"

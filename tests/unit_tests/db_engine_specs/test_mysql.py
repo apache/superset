@@ -774,6 +774,56 @@ def test_df_to_sql_synthesized_key_avoids_case_insensitive_collision() -> None:
     assert pk["constrained_columns"] == ["_id"]
 
 
+def test_df_to_sql_promoted_index_name_collision_falls_back_to_synthesized_key() -> (
+    None
+):
+    """
+    The pandas index is unique and NaN-free, so it would normally be
+    promoted straight to PRIMARY KEY. But its name ("ID") collides
+    case-insensitively with an existing "id" column, and pandas'
+    ``SQLTable`` only rejects exact (case-sensitive) name clashes when
+    resetting the index -- so promoting it would produce a CREATE TABLE
+    with two columns MySQL sees as the same identifier (error 1060). Fall
+    back to the synthesized key instead, the same as a non-unique index.
+    """
+    import pandas as pd
+    import sqlalchemy as sa
+    from sqlalchemy import create_engine
+
+    from superset.db_engine_specs.mysql import MySQLEngineSpec
+    from superset.sql.parse import Table
+
+    engine = create_engine("sqlite://")
+    df = pd.DataFrame({"id": [1, 2, 3], "b": ["x", "y", "z"]})
+    df.index.name = "ID"
+
+    with (
+        patch.object(MySQLEngineSpec, "get_engine") as mock_get_engine,
+        patch.object(MySQLEngineSpec, "_requires_primary_key", return_value=True),
+    ):
+        mock_get_engine.return_value.__enter__.return_value = engine
+        mock_get_engine.return_value.__exit__.return_value = False
+
+        MySQLEngineSpec.df_to_sql(
+            database=Mock(),
+            table=Table(table="my_table"),
+            df=df,
+            to_sql_kwargs={"if_exists": "fail", "index": True},
+        )
+
+    columns = [col["name"] for col in sa.inspect(engine).get_columns("my_table")]
+    assert "ID" not in columns, (
+        "the colliding index name should not be promoted to a column"
+    )
+    assert "_id" in columns, (
+        "the synthesized key should be renamed to avoid the case-"
+        "insensitive collision with the existing 'id' column"
+    )
+
+    pk = sa.inspect(engine).get_pk_constraint("my_table")
+    assert pk["constrained_columns"] == ["_id"]
+
+
 def test_df_to_sql_constraint_name_within_mysql_identifier_limit() -> None:
     """
     MySQL caps identifiers at 64 characters; pandas names the primary key
