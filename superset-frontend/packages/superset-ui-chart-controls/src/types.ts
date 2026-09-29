@@ -532,6 +532,9 @@ export type ColorFormatters = {
   toTextColor?: boolean;
   columnFormatting?: string;
   objectFormatting?: ObjectFormattingEnum;
+  // Carried so a consumer can tell whether the rule compares numerically or as
+  // text before deciding how to hand the value to getColorFromValue.
+  operator?: Comparator;
   getColorFromValue: (
     value: number | string | boolean | null,
   ) => string | undefined;

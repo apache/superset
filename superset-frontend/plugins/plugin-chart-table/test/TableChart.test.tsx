@@ -50,6 +50,20 @@ import transformProps from '../src/transformProps';
 import testData from './testData';
 import { ProviderWrapper } from './testHelpers';
 
+// The bar's width comes from an emotion class, not an inline style, so it has
+// to be read back out of the stylesheet the rule actually generated.
+const barWidth = (bar: Element): number => {
+  const width = getComputedStyle(bar).width;
+  if (width.endsWith('%')) {
+    return parseFloat(width);
+  }
+  // jsdom reports px for anything it cannot resolve against a layout box; the
+  // rule under test only ever emits percentages, so a pixel value means the
+  // width declaration never reached the element.
+  expect(width).toMatch(/%$/);
+  return NaN;
+};
+
 const expectValidAriaLabels = (container: HTMLElement) => {
   const allCells = container.querySelectorAll('tbody td');
   const cellsWithLabels = container.querySelectorAll(
@@ -1120,6 +1134,216 @@ describe('plugin-chart-table', () => {
         const bar1 = rows[1].querySelector('td div.cell-bar');
         expect(bar0).toBeTruthy();
         expect(bar1).toBeNull();
+        // Presence alone would also pass for the full-width fallback, so pin
+        // the geometry: 1234 against a [0, 10000] range is not the whole cell.
+        expect(barWidth(bar0!)).toBeLessThan(100);
+        expect(barWidth(bar0!)).toBeGreaterThan(0);
+      });
+
+      test('cell-bar rule with a string comparator still matches numeric-looking cells', () => {
+        const props = transformProps({
+          ...testData.raw,
+          queriesData: [
+            {
+              ...testData.raw.queriesData[0],
+              colnames: ['num'],
+              coltypes: [GenericDataType.Numeric],
+              data: [{ num: '1234.00' }, { num: '5678.00' }],
+            },
+          ],
+          rawFormData: {
+            ...testData.raw.rawFormData,
+            show_cell_bars: false,
+            conditional_formatting: [
+              {
+                colorScheme: '#ACE1C4',
+                column: 'num',
+                operator: Comparator.Containing,
+                targetValue: '23',
+                objectFormatting: ObjectFormattingEnum.CELL_BAR,
+              },
+            ],
+          },
+        });
+        const { container } = render(
+          ProviderWrapper({
+            children: <TableChart {...props} sticky={false} />,
+          }),
+        );
+        const rows = container.querySelectorAll('tbody tr');
+        // "1234.00" contains "23"; parsing it to 1234 first would hide the text
+        // from the comparator and drop the bar entirely.
+        expect(rows[0].querySelector('td div.cell-bar')).toBeTruthy();
+        expect(rows[1].querySelector('td div.cell-bar')).toBeNull();
+      });
+
+      test('bar geometry stays inside the cell when a column mixes numbers and numeric strings', () => {
+        const props = transformProps({
+          ...testData.raw,
+          queriesData: [
+            {
+              ...testData.raw.queriesData[0],
+              colnames: ['num'],
+              coltypes: [GenericDataType.Numeric],
+              data: [{ num: 50 }, { num: '-50' }, { num: '100' }],
+            },
+          ],
+          rawFormData: {
+            ...testData.raw.rawFormData,
+            show_cell_bars: true,
+          },
+        });
+        const { container } = render(
+          ProviderWrapper({
+            children: <TableChart {...props} sticky={false} />,
+          }),
+        );
+        const bars = container.querySelectorAll('div.cell-bar');
+        expect(bars.length).toBe(3);
+        bars.forEach(bar => {
+          // The range is built from the same parsed values the renderer uses,
+          // so no cell — string or native — can measure past the column max.
+          const width = barWidth(bar);
+          expect(width).toBeGreaterThanOrEqual(0);
+          expect(width).toBeLessThanOrEqual(100);
+        });
+      });
+
+      test('a cell-bar rule leaves click-to-filter on the cells it does not match', () => {
+        const setDataMask = jest.fn();
+        const props = transformProps({
+          ...testData.raw,
+          queriesData: [
+            {
+              ...testData.raw.queriesData[0],
+              colnames: ['name', 'num'],
+              coltypes: [GenericDataType.String, GenericDataType.Numeric],
+              data: [
+                { name: 'a', num: 1 },
+                { name: 'b', num: 9000 },
+              ],
+            },
+          ],
+          rawFormData: {
+            ...testData.raw.rawFormData,
+            show_cell_bars: false,
+            conditional_formatting: [
+              {
+                colorScheme: '#ACE1C4',
+                column: 'num',
+                operator: Comparator.GreaterThan,
+                targetValue: 5000,
+                objectFormatting: ObjectFormattingEnum.CELL_BAR,
+              },
+            ],
+          },
+          emitCrossFilters: true,
+        });
+        const { container } = render(
+          <ProviderWrapper>
+            <TableChart
+              {...props}
+              emitCrossFilters
+              setDataMask={setDataMask}
+              sticky={false}
+            />
+          </ProviderWrapper>,
+        );
+        const rows = container.querySelectorAll('tbody tr');
+        // Only the second row matches the rule and therefore only it draws a bar.
+        expect(rows[0].querySelector('div.cell-bar')).toBeNull();
+        expect(rows[1].querySelector('div.cell-bar')).toBeTruthy();
+        // Click the bar column itself: a column-wide gate would have made the
+        // first row's cell unclickable even though it draws nothing.
+        const bareCell = rows[0].querySelectorAll('td')[1];
+        expect(bareCell.querySelector('div.cell-bar')).toBeNull();
+        fireEvent.click(bareCell);
+        const crossFilterCall = setDataMask.mock.calls.find(
+          (call: any[]) => call[0]?.filterState?.filters,
+        );
+        expect(crossFilterCall).toBeDefined();
+        expect(crossFilterCall![0].filterState.filters).toEqual({ num: [1] });
+      });
+
+      test('a numeric-as-string metric column gets scaled bars, not a full-width band', () => {
+        const props = transformProps({
+          ...testData.basic,
+          queriesData: [
+            {
+              ...testData.basic.queriesData[0],
+              colnames: ['name', 'num'],
+              coltypes: [GenericDataType.String, GenericDataType.Numeric],
+              // A DECIMAL metric delivered as strings is listed in `metrics` but
+              // fails the every-value-is-a-number check, so the column is not
+              // flagged as a metric and the numeric-column gate stays shut.
+              data: [
+                { name: 'a', num: '1000' },
+                { name: 'b', num: '4000' },
+                { name: 'c', num: '6000' },
+              ],
+            },
+          ],
+          rawFormData: {
+            ...testData.basic.rawFormData,
+            metrics: ['num'],
+            percent_metrics: null,
+            query_mode: QueryMode.Aggregate,
+            show_cell_bars: false,
+            conditional_formatting: [
+              {
+                colorScheme: '#ACE1C4',
+                column: 'num',
+                operator: Comparator.GreaterThan,
+                targetValue: 1500,
+                objectFormatting: ObjectFormattingEnum.CELL_BAR,
+              },
+            ],
+          },
+        });
+        const { container } = render(
+          ProviderWrapper({
+            children: <TableChart {...props} sticky={false} />,
+          }),
+        );
+        const bars = container.querySelectorAll('div.cell-bar');
+        expect(bars.length).toBe(2);
+        // 4000 against a [1000, 6000] range. A full-width band, which is what
+        // the unresolved-geometry fallback paints, would read as 100.
+        expect(barWidth(bars[0])).toBe(67);
+      });
+
+      test('a non-finite value is not treated as a magnitude', () => {
+        const props = transformProps({
+          ...testData.raw,
+          queriesData: [
+            {
+              ...testData.raw.queriesData[0],
+              colnames: ['num'],
+              coltypes: [GenericDataType.Numeric],
+              data: [
+                { num: 10 },
+                { num: 'Infinity' },
+                { num: 20 },
+                { num: Number.POSITIVE_INFINITY },
+              ],
+            },
+          ],
+          rawFormData: {
+            ...testData.raw.rawFormData,
+            show_cell_bars: true,
+          },
+        });
+        const { container } = render(
+          ProviderWrapper({
+            children: <TableChart {...props} sticky={false} />,
+          }),
+        );
+        const rows = container.querySelectorAll('tbody tr');
+        // An infinite magnitude — as a string or as a native number — would
+        // stretch the range to [10, Infinity] and collapse every finite cell's
+        // bar to 0%. Excluding both leaves [10, 20].
+        expect(barWidth(rows[0].querySelector('div.cell-bar')!)).toBe(50);
+        expect(barWidth(rows[2].querySelector('div.cell-bar')!)).toBe(100);
       });
 
       test('render cell bars even when column contains NULL values', () => {

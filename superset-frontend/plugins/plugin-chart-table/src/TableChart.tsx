@@ -81,6 +81,7 @@ import {
   getTextColorForBackground,
   ObjectFormattingEnum,
   ColorSchemeEnum,
+  Comparator,
 } from '@superset-ui/chart-controls';
 import {
   DataColumnMeta,
@@ -148,18 +149,30 @@ function getSortTypeByDataType(dataType: GenericDataType): DefaultSortTypes {
 // Parse a cell value into a number when it reads as one. Datasources can
 // deliver numeric columns as strings ("1.00"); bars are geometric and need
 // the numeric magnitude, the same way the XLSX export interprets them.
+// Infinity is not a magnitude a bar can be drawn from, and it would collapse
+// the column range, so only finite numbers count as numeric.
 function parseNumeric(value: unknown): number | undefined {
   if (typeof value === 'number') {
-    return value;
+    return Number.isFinite(value) ? value : undefined;
   }
   if (typeof value === 'string' && value.trim() !== '') {
     const parsed = Number(value);
-    if (!Number.isNaN(parsed)) {
+    if (Number.isFinite(parsed)) {
       return parsed;
     }
   }
   return undefined;
 }
+
+// These comparators only ever match text. Handing them a parsed number makes
+// them miss the very cells they were written for, so a numeric-looking string
+// must reach them unchanged.
+const STRING_COMPARATORS = new Set<string>([
+  Comparator.BeginsWith,
+  Comparator.EndsWith,
+  Comparator.Containing,
+  Comparator.NotContaining,
+]);
 
 /**
  * Cell background width calculation for horizontal bar chart
@@ -1083,11 +1096,17 @@ export default function TableChart<D extends DataRecord = DataRecord>(
               ? formatter.columnFormatting === key
               : formatter.column === key),
         );
+      // Render geometry parses numeric-looking strings, so the range has to be
+      // built from the same values or a string cell gets a width measured
+      // against a range that excluded it. An explicit CELL_BAR rule also lifts
+      // the numeric-column gate: a DECIMAL metric delivered as a string is not
+      // flagged isMetric, and it still needs proportionally scaled bars rather
+      // than a full-width band.
       const valueRange =
         !hasBasicColorFormatters &&
         (generalShowCellBars || hasCellBarFormatter) &&
-        (isMetric || isRawRecords || isPercentMetric) &&
-        getValueRange(key, alignPositiveNegative, hasCellBarFormatter);
+        (isMetric || isRawRecords || isPercentMetric || hasCellBarFormatter) &&
+        getValueRange(key, alignPositiveNegative, true);
 
       let className = '';
       if (emitCrossFilters && !isMetric) {
@@ -1178,9 +1197,15 @@ export default function TableChart<D extends DataRecord = DataRecord>(
                 }
                 // String cells that read as numbers ("1.00") must compare
                 // numerically, or comparator rules like `= 1` never match.
+                // Text comparators are the exception: they match on the string
+                // itself, so parsing first would hide the value from them.
                 if (
                   formatter.objectFormatting ===
                     ObjectFormattingEnum.CELL_BAR &&
+                  !(
+                    formatter.operator !== undefined &&
+                    STRING_COMPARATORS.has(formatter.operator)
+                  ) &&
                   valueToFormat !== null &&
                   valueToFormat !== undefined
                 ) {
@@ -1237,46 +1262,55 @@ export default function TableChart<D extends DataRecord = DataRecord>(
             };
           `;
 
-          const cellBarStyles = css`
-            position: absolute;
-            height: 100%;
-            display: block;
-            top: 0;
-            ${
-              valueRange &&
-              numericValue !== undefined &&
-              valueRangeFlag &&
-              `
-                width: ${`${cellWidth({
-                  value: numericValue,
-                  valueRange,
-                  alignPositiveNegative,
-                })}%`};
-                left: ${`${cellOffset({
-                  value: numericValue,
-                  valueRange,
-                  alignPositiveNegative,
-                })}%`};
-                background-color: ${
-                  backgroundColorCellBar ||
-                  cellBackground({
-                    value: numericValue,
-                    colorPositiveNegative,
-                    theme,
-                  })
-                };
-              `
-            }
-            ${
-              !(valueRange && numericValue !== undefined && valueRangeFlag) &&
-              backgroundColorCellBar &&
-              `
-                width: 100%;
-                left: 0;
-                background-color: ${backgroundColorCellBar};
-              `
-            }
-          `;
+          // Whether this particular cell draws a bar. A CELL_BAR rule can match
+          // some cells of a column and not others, so the bar — and with it the
+          // click-to-filter suppression, which exists because the bar overlay
+          // would swallow the click — has to be decided per cell rather than
+          // from the column-wide valueRange.
+          const cellDrawsBar =
+            (generalShowCellBars ? !!valueRange : false) ||
+            !!backgroundColorCellBar;
+
+          // Inline style for the same reason as the arrow below: the `css` prop
+          // needs the emotion JSX pragma, which this codebase's own Jest/Babel
+          // config does not wire up. As a `css` block the bar's geometry was
+          // silently dropped under test, so bar presence was the only thing
+          // any assertion could see — including for a bar that had no width.
+          const barHasGeometry =
+            !!valueRange && numericValue !== undefined && valueRangeFlag;
+          const cellBarStyles: CSSProperties = {
+            position: 'absolute',
+            height: '100%',
+            display: 'block',
+            top: 0,
+            ...(barHasGeometry
+              ? {
+                  width: `${cellWidth({
+                    value: numericValue!,
+                    valueRange: valueRange!,
+                    alignPositiveNegative,
+                  })}%`,
+                  left: `${cellOffset({
+                    value: numericValue!,
+                    valueRange: valueRange!,
+                    alignPositiveNegative,
+                  })}%`,
+                  backgroundColor:
+                    backgroundColorCellBar ||
+                    cellBackground({
+                      value: numericValue!,
+                      colorPositiveNegative,
+                      theme,
+                    }),
+                }
+              : backgroundColorCellBar
+                ? {
+                    width: '100%',
+                    left: 0,
+                    backgroundColor: backgroundColorCellBar,
+                  }
+                : {}),
+          };
 
           // Plain inline style (rather than the `css` prop) so the arrow's
           // color is guaranteed to apply regardless of whether the consuming
@@ -1316,7 +1350,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
             // show raw number in title in case of numeric values
             title: typeof value === 'number' ? String(value) : undefined,
             onClick:
-              emitCrossFilters && !valueRange && !isMetric
+              emitCrossFilters && !cellDrawsBar && !isMetric
                 ? () => {
                     const isFilterable = columnsMeta.find(
                       (cm: DataColumnMeta) => cm.key === key,
@@ -1374,8 +1408,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
           // render `Cell`. This saves some time for large tables.
           return (
             <StyledCell {...cellProps}>
-              {(generalShowCellBars ? !!valueRange : false) ||
-              backgroundColorCellBar ? (
+              {cellDrawsBar ? (
                 <div
                   /* The following classes are added to support custom CSS styling */
                   className={cx(
@@ -1384,7 +1417,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
                       ? 'negative'
                       : 'positive',
                   )}
-                  css={cellBarStyles}
+                  style={cellBarStyles}
                   role="presentation"
                 />
               ) : null}
