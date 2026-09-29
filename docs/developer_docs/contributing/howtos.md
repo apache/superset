@@ -107,6 +107,17 @@ npm link superset-plugin-chart-hello-world
 7. **Import and register in Superset**:
    Edit `superset-frontend/src/visualizations/presets/MainPreset.ts` to include your plugin.
 
+### Sharing colors in composed charts
+
+`ChartProps.colorScale` accepts an optional `CategoricalColorScale`. A parent
+visualization can pass the same scale to its child chart transforms so categories
+use consistent colors across the composition. Create a fresh scale for each parent
+transformation using the selected color scheme. Child plugins must explicitly use
+the supplied scale, falling back to their own scale when it is absent.
+
+Cartodiagram uses this contract with Pie charts to coordinate category colors
+across map locations in Explore.
+
 ## Testing
 
 ### Python Testing
