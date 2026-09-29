@@ -38,7 +38,7 @@ from unittest.mock import MagicMock
 import msgpack
 import pandas as pd
 import pytest
-from flask import current_app
+from flask import current_app, has_request_context
 from pytest_mock import MockerFixture
 from superset_core.queries.types import (
     CacheOptions,
@@ -53,6 +53,7 @@ from superset.sql.parse import LimitMethod, SQLScript
 # mock_query_execution helper are imported from conftest.py
 from .conftest import (
     _passthrough_mutate_sql_based_on_config,
+    create_mock_connection,
     create_mock_cursor,
     mock_query_execution,
 )
@@ -1908,7 +1909,10 @@ def test_execute_bounds_cursor_fetches(
     )
     assert result_set.call_args.args[0] == rows[:expected_limit]
     if engine == "mssql":
-        convert.assert_called_once_with(rows[:expected_limit])
+        assert convert.call_args_list == [
+            mocker.call(rows[:expected_limit]),
+            mocker.call(rows[expected_limit : expected_limit + 1]),
+        ]
 
 
 @pytest.mark.parametrize("first_read", ["fetchmany", "fetchone", "iterate"])
@@ -3330,6 +3334,7 @@ def test_execute_reports_non_query_truncation(
 @pytest.mark.parametrize("row_count,limit", [(0, 0), (0, 2), (2, 2), (3, 2)])
 def test_limited_cursor_truncation_probe(row_count: int, limit: int) -> None:
     """A single probe distinguishes an exhausted result from omitted rows."""
+    from superset.db_engine_specs.base import BaseEngineSpec
     from superset.sql.execution.executor import _LimitedCursor
 
     with closing(sqlite3.connect(":memory:")) as connection:
@@ -3338,7 +3343,124 @@ def test_limited_cursor_truncation_probe(row_count: int, limit: int) -> None:
         )
         limited = _LimitedCursor(cursor, limit)
         assert len(limited.fetchall()) == min(limit, row_count)
-        assert limited.check_truncated() is (row_count > limit)
+        assert limited.check_truncated(BaseEngineSpec) is (row_count > limit)
+
+
+@pytest.mark.parametrize("eof", [True, False])
+def test_execute_truncation_probe_engine_errors(
+    mocker: MockerFixture,
+    mock_database: MagicMock,
+    mock_query: MagicMock,
+    app_context: None,
+    eof: bool,
+) -> None:
+    """Normalize Drill EOF and map real driver errors during the bounded probe."""
+    from superset.db_engine_specs.drill import DrillEngineSpec
+    from superset.db_engine_specs.exceptions import SupersetDBAPIConnectionError
+    from superset.result_set import SupersetResultSet
+    from superset.sql.execution.executor import execute_sql_with_cursor
+
+    mock_database.db_engine_spec = DrillEngineSpec
+    mock_query.limit = 2
+    cursor = create_mock_cursor(["n"])
+    error = (
+        RuntimeError("generator raised StopIteration")
+        if eof
+        else OSError("connection lost")
+    )
+    cursor.fetchmany.side_effect = [[(1,), (2,)], error]
+    mocker.patch.object(
+        DrillEngineSpec,
+        "get_dbapi_exception_mapping",
+        return_value={OSError: SupersetDBAPIConnectionError},
+    )
+
+    def execute() -> list[tuple[str, SupersetResultSet | None, float, int]]:
+        """Exercise the shared sync/Celery fetch path."""
+        return execute_sql_with_cursor(
+            mock_database,
+            cursor,
+            ["SELECT n FROM t"],
+            mock_query,
+            execute_fn=MagicMock(),
+        )
+
+    if eof:
+        results = execute()
+        result_set = results[0][1]
+        assert result_set is not None
+        assert result_set.size == 2
+        assert result_set.truncated is False
+    else:
+        with pytest.raises(SupersetDBAPIConnectionError, match="connection lost"):
+            execute()
+    assert cursor.fetchmany.call_args_list == [mocker.call(2), mocker.call(1)]
+    cursor.fetchall.assert_not_called()
+
+
+@pytest.mark.parametrize("async_execution", [False, True])
+@pytest.mark.parametrize("limit", [None, 5])
+@pytest.mark.parametrize("sample_size", [2, 4])
+def test_execute_bigquery_memory_truncation_without_request(
+    mocker: MockerFixture,
+    mock_database: MagicMock,
+    mock_query: MagicMock,
+    app_context: None,
+    async_execution: bool,
+    limit: int | None,
+    sample_size: int,
+) -> None:
+    """Both execution paths retain engine truncation without a request context."""
+    from superset.db_engine_specs.bigquery import BigQueryEngineSpec
+    from superset.sql.execution.celery_task import _execute_sql_statements
+    from superset.sql.execution.executor import SQLExecutor
+
+    assert not has_request_context()
+    mocker.patch.dict(
+        current_app.config,
+        {"BQ_FETCH_MAX_MB": 1, "SQL_MAX_ROW": None, "QUERY_LOGGER": None},
+    )
+    mocker.patch(
+        "superset.db_engine_specs.bigquery._BQ_INITIAL_SAMPLE_ROWS", sample_size
+    )
+    mock_database.db_engine_spec = BigQueryEngineSpec
+    mock_query.database = mock_database
+    mock_query.limit = limit
+    mock_query.sql = "SELECT n FROM t"
+    # Three rows fit in 1 MB: exercise both the first- and second-batch caps.
+    rows = [("x" * 300_000,) for _ in range(5)]
+    remaining = iter(rows)
+    cursor = create_mock_cursor(["n"])
+    cursor.fetchmany.side_effect = lambda size: list(islice(remaining, size))
+    mock_database.get_raw_connection.return_value = create_mock_connection(cursor)
+    mocker.patch.object(BigQueryEngineSpec, "execute")
+    mocker.patch.object(BigQueryEngineSpec, "execute_with_cursor")
+    mocker.patch.object(BigQueryEngineSpec, "get_cancel_query_id", return_value=None)
+
+    if async_execution:
+        mocker.patch(
+            "superset.sql.execution.celery_task._get_query", return_value=mock_query
+        )
+        mocker.patch("superset.sql.execution.celery_task.results_backend", None)
+        mocker.patch("superset.results_backend_use_msgpack", False)
+        payload = _execute_sql_statements(mock_query.id, mock_query.sql, None)
+        assert payload is not None
+        statement = payload["statements"][0]
+        assert statement["truncated"] is True
+        assert statement["row_count"] == max(3, sample_size)
+    else:
+        script = SQLScript(mock_query.sql, "bigquery")
+        statements = SQLExecutor(mock_database)._execute_statements(
+            script,
+            script,
+            None,
+            None,
+            mock_query,
+        )
+        assert statements[0].truncated is True
+        assert statements[0].row_count == max(3, sample_size)
+    assert sum(call.args[0] for call in cursor.fetchmany.call_args_list) == 4
+    cursor.fetchall.assert_not_called()
 
 
 @pytest.mark.parametrize("truncated", [False, True])

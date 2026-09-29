@@ -52,7 +52,7 @@ from superset.db_engine_specs.exceptions import SupersetDBAPIConnectionError
 from superset.errors import SupersetError, SupersetErrorType
 from superset.exceptions import SupersetException
 from superset.sql.parse import SQLScript, Table
-from superset.superset_typing import ResultSetColumnType
+from superset.superset_typing import FetchedRows, ResultSetColumnType
 from superset.utils import core as utils, json
 from superset.utils.hashing import hash_from_str
 
@@ -471,7 +471,7 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
                 if has_request_context():
                     g.bq_memory_limited = memory_limited
                     g.bq_memory_limited_row_count = len(first_batch)
-                return first_batch
+                return FetchedRows(first_batch, truncated=memory_limited)
 
             # Fetch one extra row to confirm truncation without false positives
             second_batch: list[Any] = cursor.fetchmany(remaining_rows + 1) or []
@@ -488,7 +488,7 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
             if has_request_context():
                 g.bq_memory_limited = memory_limited
                 g.bq_memory_limited_row_count = len(data)
-            return data
+            return FetchedRows(data, truncated=memory_limited)
 
         except Exception:  # pylint: disable=broad-except
             # Broad catch on purpose: any failure in the size-estimation /

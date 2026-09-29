@@ -79,6 +79,7 @@ from superset.exceptions import (
 )
 from superset.extensions import cache_manager
 from superset.sql.parse import SQLScript
+from superset.superset_typing import FetchedRows
 from superset.utils import core as utils
 
 if TYPE_CHECKING:
@@ -219,9 +220,11 @@ class _LimitedCursor:
         self._remaining -= len(rows)
         return rows
 
-    def check_truncated(self) -> bool:
-        """Probe one extra row after exhausting the returned-row budget."""
-        return self._remaining == 0 and bool(self._cursor.fetchmany(1))
+    def check_truncated(self, db_engine_spec: type[BaseEngineSpec]) -> bool:
+        """Probe one extra row using the engine's fetch and error handling."""
+        return self._remaining == 0 and bool(
+            db_engine_spec.fetch_data(_LimitedCursor(self._cursor, 1))
+        )
 
     def fetchall(self) -> list[Any]:
         """Translate an unbounded read into a bounded driver fetch."""
@@ -342,13 +345,15 @@ def execute_sql_with_cursor(
             # Keep each spec's conversion/error handling. Even specs that ignore
             # a fetch_data limit can only consume the bounded cursor's budget.
             rows = database.db_engine_spec.fetch_data(fetch_cursor)
+            truncated = (isinstance(rows, FetchedRows) and rows.truncated) or (
+                limited_cursor is not None
+                and limited_cursor.check_truncated(database.db_engine_spec)
+            )
             result_set = SupersetResultSet(
                 rows,
                 description,
                 database.db_engine_spec,
-                truncated=(
-                    limited_cursor.check_truncated() if limited_cursor else False
-                ),
+                truncated=truncated,
             )
         else:
             # DML statement - no result set
