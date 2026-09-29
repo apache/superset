@@ -31,22 +31,15 @@ from superset.constants import TimeGrain
 from superset.databases.utils import make_url_safe
 from superset.db_engine_specs.base import BasicParametersType, DatabaseCategory
 from superset.db_engine_specs.mysql import (
+    MYSQL_SSL_MODE_REQUIRED,
+    MYSQL_SSL_MODE_VERIFY_CA,
+    MYSQL_SSL_MODE_VERIFY_IDENTITY,
     MySQLEngineSpec,
     require_mysql_tls,
 )
 from superset.errors import SupersetErrorType
 from superset.models.core import Database
 from superset.utils.core import GenericDataType
-
-MYSQL_SSL_MODE_REQUIRED = "REQUIRED"
-MYSQL_SSL_MODE_VERIFY_CA = "VERIFY_CA"
-MYSQL_SSL_MODE_VERIFY_IDENTITY = "VERIFY_IDENTITY"
-MYSQL_SSL_REQUIRED_MODES = (
-    MYSQL_SSL_MODE_REQUIRED,
-    MYSQL_SSL_MODE_VERIFY_CA,
-    MYSQL_SSL_MODE_VERIFY_IDENTITY,
-)
-
 
 DEFAULT_CATALOG = "internal"
 DEFAULT_SCHEMA = "information_schema"
@@ -89,11 +82,6 @@ def require_mysqlclient_tls(
     # Only adapt the driver name for option selection; preserve the endpoint,
     # credentials, catalog/schema and the original dialect on the returned URL.
     mysql_uri = uri.set(drivername="mysql+mysqldb")
-    if any(
-        mode in MYSQL_SSL_REQUIRED_MODES
-        for mode in (uri.query.get("ssl_mode"), connect_args.get("ssl_mode"))
-    ):
-        mysql_uri = mysql_uri.update_query_dict({"ssl": "1"})
     mysql_uri, args = require_mysql_tls(mysql_uri, connect_args)
     return mysql_uri.set(drivername=uri.drivername), args
 

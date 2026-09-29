@@ -710,3 +710,29 @@ def test_pymysql_hostname_check_conflict_fails_closed() -> None:
             make_url("mysql+pymysql://localhost/db?ssl=1&ssl_check_hostname=true"),
             {"ssl_verify_identity": False},
         )
+
+
+@pytest.mark.parametrize("source", ["uri", "connect_args"])
+def test_saved_required_mode_is_a_tls_request(source: str) -> None:
+    """A bare ssl_mode=REQUIRED is upgraded without also needing ssl=1."""
+    from superset.db_engine_specs.mysql import MySQLEngineSpec
+
+    uri = make_url("mysql://localhost/db")
+    args: dict[str, Any] = {}
+    if source == "uri":
+        uri = uri.update_query_dict({"ssl_mode": "REQUIRED"})
+    else:
+        args = {"ssl_mode": "REQUIRED"}
+    _, result = MySQLEngineSpec.adjust_engine_params(uri, args)
+    assert result["ssl_mode"] == "VERIFY_CA"
+
+
+@pytest.mark.parametrize("mode", ["DISABLED", "PREFERRED"])
+def test_non_required_mode_is_not_a_tls_request(mode: str) -> None:
+    """Modes that do not require TLS are left to the driver without a request."""
+    from superset.db_engine_specs.mysql import MySQLEngineSpec
+
+    uri = make_url(f"mysql://localhost/db?ssl_mode={mode}")
+    url, args = MySQLEngineSpec.adjust_engine_params(uri, {})
+    assert url == uri
+    assert "ssl_mode" not in args

@@ -198,8 +198,9 @@ The **SSL** toggle (or `ssl=1` in the connection URI) requires TLS rather than
 allowing an unencrypted fallback. With mysqlclient, it selects
 `ssl_mode=VERIFY_CA`. Configure the appropriate `ssl_ca` for a private CA and
 use a certificate valid for the connection hostname. Explicit `VERIFY_IDENTITY`
-is retained. `REQUIRED` alone is not sufficient with MariaDB Connector/C, so
-combining it with the toggle upgrades it to `VERIFY_CA`.
+is retained. `REQUIRED` alone is not sufficient with MariaDB Connector/C, so a
+URI or `connect_args` value of `ssl_mode=REQUIRED` is upgraded to `VERIFY_CA`,
+with or without the toggle.
 
 With `mysql+mysqlconnector://` or `mysql+pymysql://`, the toggle enables
 certificate verification. A private CA must be supplied as `ssl_ca`; do not

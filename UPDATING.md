@@ -35,15 +35,15 @@ normalization without changing Doris catalog/schema handling.
 
 ### MySQL SSL requests require TLS
 
-The MySQL SSL toggle and legacy `ssl=1` URLs require an encrypted connection.
-For mysqlclient (`mysql://` and `mysql+mysqldb://`), Superset translates this
+The MySQL SSL toggle, legacy `ssl=1` URLs and saved `ssl_mode=REQUIRED`
+(or stronger) URLs require an encrypted connection. For mysqlclient (`mysql://` and `mysql+mysqldb://`), Superset translates this
 request to `ssl_mode=VERIFY_CA`, retaining explicit `VERIFY_CA` or
 `VERIFY_IDENTITY` modes. Contradictory options such as `ssl_mode=DISABLED`
 or `ssl_disabled=True` fail rather than cancelling the SSL request.
 
 Certificate verification is needed because mysqlclient built with MariaDB
-Connector/C can fall back to cleartext even with `ssl_mode=REQUIRED`; the toggle
-upgrades that mode to `VERIFY_CA`. Configure a trusted CA and a server certificate
+Connector/C can fall back to cleartext even with `ssl_mode=REQUIRED`, so that
+mode is upgraded to `VERIFY_CA` whether or not `ssl=1` is also set. Configure a trusted CA and a server certificate
 valid for the connection hostname (MariaDB Connector/C also checks identity).
 
 For Connector/Python and PyMySQL, the toggle enables `ssl_verify_cert=True`.

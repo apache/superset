@@ -79,6 +79,15 @@ SYNTAX_ERROR_REGEX = re.compile(
     "version for the right syntax to use near '(?P<server_error>.*)"
 )
 
+MYSQL_SSL_MODE_REQUIRED = "REQUIRED"
+MYSQL_SSL_MODE_VERIFY_CA = "VERIFY_CA"
+MYSQL_SSL_MODE_VERIFY_IDENTITY = "VERIFY_IDENTITY"
+MYSQL_SSL_REQUIRED_MODES = (
+    MYSQL_SSL_MODE_REQUIRED,
+    MYSQL_SSL_MODE_VERIFY_CA,
+    MYSQL_SSL_MODE_VERIFY_IDENTITY,
+)
+
 
 def _mysql_bool_option(options: dict[str, Any], key: str) -> Optional[bool]:
     """Parse a boolean driver option, treating a blank value as unset."""
@@ -147,7 +156,7 @@ def _mysql_ssl_requested(value: Any) -> bool:
 def require_mysql_tls(
     uri: URL, connect_args: dict[str, Any]
 ) -> tuple[URL, dict[str, Any]]:
-    """Consume scalar ``ssl`` requests without weakening native TLS settings."""
+    """Require TLS for ``ssl`` or ``ssl_mode`` requests without weakening them."""
     if uri.get_backend_name() != "mysql":
         return uri, connect_args
     query = dict(uri.query)
@@ -155,6 +164,11 @@ def require_mysql_tls(
     # A true URL request cannot be cancelled by an advanced connect argument.
     requested = _mysql_ssl_requested(query.get("ssl"))
     requested = _mysql_ssl_requested(args.get("ssl")) or requested
+    # A saved ssl_mode that already requires TLS is a request in its own right,
+    # so REQUIRED is upgraded here rather than bypassing normalization.
+    requested = requested or any(
+        options.get("ssl_mode") in MYSQL_SSL_REQUIRED_MODES for options in (query, args)
+    )
     if not requested:
         return uri, connect_args
 
@@ -166,10 +180,12 @@ def require_mysql_tls(
     if driver == "mysqldb":
         # mysqlclient maps REQUIRED to opportunistic TLS with MariaDB
         # Connector/C. Verification modes fail closed on both client libraries.
-        mode = options.get("ssl_mode", "VERIFY_CA")
-        if mode not in ("REQUIRED", "VERIFY_CA", "VERIFY_IDENTITY"):
+        mode = options.get("ssl_mode", MYSQL_SSL_MODE_VERIFY_CA)
+        if mode not in MYSQL_SSL_REQUIRED_MODES:
             raise ValueError("MySQL SSL request conflicts with ssl_mode")
-        args["ssl_mode"] = "VERIFY_CA" if mode == "REQUIRED" else mode
+        if mode == MYSQL_SSL_MODE_REQUIRED:
+            mode = MYSQL_SSL_MODE_VERIFY_CA
+        args["ssl_mode"] = mode
     elif driver in ("mysqlconnector", "pymysql"):
         _require_mysql_verified_tls(driver, query, args)
     elif driver == "auroradataapi":
