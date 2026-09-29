@@ -17,14 +17,20 @@
 
 # pylint: disable=import-outside-toplevel, invalid-name, line-too-long
 
+# ``GSheetsEngineSpec`` is imported inside each test on purpose: its module
+# binds ``superset.db`` and ``superset.security_manager`` at import time, so it
+# has to load after the app fixture has initialized them.
+
 from __future__ import annotations
 
 from datetime import datetime
 from typing import Any, TYPE_CHECKING
+from unittest.mock import MagicMock
 from urllib.parse import parse_qs, urlparse
 
 import pandas as pd
 import pytest
+import sqlalchemy
 from pytest_mock import MockerFixture
 from requests.exceptions import HTTPError
 from shillelagh.exceptions import UnauthenticatedError
@@ -621,11 +627,9 @@ def test_impersonate_user_access_token_with_catalog(mocker: MockerFixture) -> No
     The catalog is stored in ``connect_args``, which SQLAlchemy merges shallowly
     over the dialect arguments built from the URL.
     """
-    from sqlalchemy import create_engine
-
     from superset.db_engine_specs.gsheets import GSheetsEngineSpec
 
-    database = mocker.MagicMock(encrypted_extra=None)
+    database: MagicMock = mocker.MagicMock(encrypted_extra=None)
     database.get_encrypted_extra.return_value = {}
     catalog = {"sheet": "https://docs.google.com/spreadsheets/d/1/edit#gid=0"}
     url, engine_kwargs = GSheetsEngineSpec.impersonate_user(
@@ -637,7 +641,7 @@ def test_impersonate_user_access_token_with_catalog(mocker: MockerFixture) -> No
     )
     GSheetsEngineSpec.update_params_from_encrypted_extra(database, engine_kwargs)
 
-    engine = create_engine(url, **engine_kwargs)
+    engine = sqlalchemy.create_engine(url, **engine_kwargs)
     connect = mocker.patch.object(engine.dialect, "connect")
     engine.pool._creator()
 
@@ -651,17 +655,15 @@ def test_impersonate_user_username_and_access_token(mocker: MockerFixture) -> No
     Test that the URL-derived ``subject`` still reaches the adapter when an access
     token is also passed through ``connect_args``.
     """
-    from sqlalchemy import create_engine
-
     from superset.db_engine_specs.gsheets import GSheetsEngineSpec
 
-    user = mocker.MagicMock()
+    user: MagicMock = mocker.MagicMock()
     user.email = "alice@example.org"
     mocker.patch(
         "superset.db_engine_specs.gsheets.security_manager.find_user",
         return_value=user,
     )
-    database = mocker.MagicMock(encrypted_extra=None)
+    database: MagicMock = mocker.MagicMock(encrypted_extra=None)
     database.get_encrypted_extra.return_value = {}
     url, engine_kwargs = GSheetsEngineSpec.impersonate_user(
         database,
@@ -672,7 +674,7 @@ def test_impersonate_user_username_and_access_token(mocker: MockerFixture) -> No
     )
     GSheetsEngineSpec.update_params_from_encrypted_extra(database, engine_kwargs)
 
-    engine = create_engine(url, **engine_kwargs)
+    engine = sqlalchemy.create_engine(url, **engine_kwargs)
     connect = mocker.patch.object(engine.dialect, "connect")
     engine.pool._creator()
 
@@ -1239,17 +1241,15 @@ def _service_account_adapter_kwargs(
     email: str | None = "alice@example.org",
 ) -> tuple[URL, dict[str, Any]]:
     """What reaches shillelagh for a secure-extra service account, impersonating."""
-    from sqlalchemy import create_engine
-
     from superset.db_engine_specs.gsheets import GSheetsEngineSpec
 
-    user = mocker.MagicMock()
+    user: MagicMock = mocker.MagicMock()
     user.email = email
     mocker.patch(
         "superset.db_engine_specs.gsheets.security_manager.find_user",
         return_value=user,
     )
-    database = mocker.MagicMock(encrypted_extra=json.dumps(encrypted_extra))
+    database: MagicMock = mocker.MagicMock(encrypted_extra=json.dumps(encrypted_extra))
     database.get_encrypted_extra.return_value = encrypted_extra
     url, engine_kwargs = GSheetsEngineSpec.impersonate_user(
         database,
@@ -1260,7 +1260,7 @@ def _service_account_adapter_kwargs(
     )
     GSheetsEngineSpec.update_params_from_encrypted_extra(database, engine_kwargs)
 
-    engine = create_engine(url, **engine_kwargs)
+    engine = sqlalchemy.create_engine(url, **engine_kwargs)
     connect = mocker.patch.object(engine.dialect, "connect")
     engine.pool._creator()
     return url, connect.call_args.kwargs["adapter_kwargs"]["gsheetsapi"]
