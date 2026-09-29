@@ -99,7 +99,7 @@ const baseInitialState = {
       },
 
       'TABS-1': {
-        children: ['TAB-1', 'TAB-2'],
+        children: ['TAB-1', 'TAB-2', 'TAB-3'],
         id: 'TABS-1',
         meta: {},
         parents: ['ROOT_ID'],
@@ -123,6 +123,18 @@ const baseInitialState = {
           defaultText: 'Tab title',
           placeholder: 'Tab title',
           text: 'Tab 2',
+        },
+        parents: ['ROOT_ID', 'TABS-1'],
+        type: 'TAB',
+      },
+      // A tab without charts, e.g. one holding only markdown
+      'TAB-3': {
+        children: [],
+        id: 'TAB-3',
+        meta: {
+          defaultText: 'Tab title',
+          placeholder: 'Tab title',
+          text: 'Tab 3',
         },
         parents: ['ROOT_ID', 'TABS-1'],
         type: 'TAB',
