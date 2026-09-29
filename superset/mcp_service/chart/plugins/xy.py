@@ -249,12 +249,11 @@ class XYChartPlugin(BaseChartPlugin):
                 refs.append(ColumnRef(name=f.column))
         if config.sort_by:
             sort_col, is_saved = _extract_sort_col_info(config.sort_by)
-            # Do not emit a separate column ref if sort_col refers to a
-            # column or metric already represented in x, y, or group_by.
-            # In particular, metric labels (e.g. "SUM(sales)") or custom labels
-            # are not physical dataset columns and would fail validation.
-            if sort_col and sort_col.lower() not in _get_covered_xy_names(config):
-                refs.append(ColumnRef(name=sort_col, saved_metric=is_saved))
+            if sort_col and not any(
+                sort_col.lower() in {n.lower() for n in (yc.name, yc.label) if n}
+                for yc in config.y
+            ):
+                refs.append(ColumnRef(name=sort_col))
         return refs
 
     def to_form_data(
