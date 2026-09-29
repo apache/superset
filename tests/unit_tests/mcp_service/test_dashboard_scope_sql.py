@@ -237,12 +237,71 @@ def test_statement_without_tables_is_left_alone(
         # to filter".
         ("CALL refresh_orders()", "cannot be determined"),
         ("EXECUTE IMMEDIATE 'SELECT SUM(amount) FROM orders'", "cannot be determined"),
+        # Functions that read tables named in strings are invisible to table
+        # extraction, alone or next to a real read.
+        ("SELECT query_to_xml('SELECT * FROM orders', true, false, '')", "functions"),
+        (
+            "SELECT SUM(amount), table_to_xml('orders', true, false, '') FROM orders",
+            "functions",
+        ),
+        ("SELECT * FROM json_each('[1, 2]')", "cannot be checked"),
     ],
 )
 def test_unmappable_sql_is_refused(database: Any, sql: str, message: str) -> None:
     with pytest.raises(MCPDashboardScopeError, match=message) as excinfo:
         scoped(database, sql)
     assert str(excinfo.value).startswith(REFUSAL_PREFIX)
+
+
+def test_modelled_functions_do_not_trigger_refusal(
+    database: Any, warehouse: sa.engine.Engine
+) -> None:
+    sql = (
+        "SELECT UPPER(client), SUM(amount), COALESCE(MAX(amount), 0) "
+        "FROM orders GROUP BY 1"
+    )
+    assert run(warehouse, scoped(database, sql)) == [("A", 30, 20)]
+
+
+@pytest.mark.parametrize(
+    "sql",
+    [
+        "SELECT * FROM TABLE('orders')",
+        "SELECT * FROM IDENTIFIER('orders')",
+    ],
+)
+def test_dynamically_named_tables_are_refused(sql: str) -> None:
+    from superset.mcp_service.dashboard_scope_sql import _check_statement
+    from superset.sql.parse import SQLScript
+
+    (statement,) = SQLScript(sql, "snowflake").statements
+    with pytest.raises(MCPDashboardScopeError, match="dynamically named table"):
+        _check_statement(statement)
+
+
+def test_predicate_form_engines_are_refused(database: Any) -> None:
+    """The predicate form misses parenthesised reads such as ``FROM (orders)``."""
+    from superset.sql.parse import RLSMethod
+
+    with (
+        patch.object(
+            database.db_engine_spec,
+            "get_rls_method",
+            return_value=RLSMethod.AS_PREDICATE,
+        ),
+        pytest.raises(MCPDashboardScopeError, match="sub-query form"),
+    ):
+        scoped(database, "SELECT SUM(amount) FROM (orders)")
+
+
+def test_rewrite_errors_refuse_instead_of_running_the_original(database: Any) -> None:
+    from superset.sql.parse import SQLStatement
+
+    with (
+        patch.object(SQLStatement, "apply_rls", side_effect=RuntimeError("boom")),
+        pytest.raises(MCPDashboardScopeError, match="could not be attached"),
+    ):
+        scoped(database, "SELECT SUM(amount) FROM orders")
 
 
 def test_calculated_columns_cannot_carry_the_filter(database: Any) -> None:

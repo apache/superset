@@ -334,26 +334,93 @@ def _dedupe(clauses: list[Any]) -> list[Any]:
     return result
 
 
+def _column_names(column: Any) -> set[str]:
+    """Names a filter column can be matched by: the name itself, or an adhoc
+    column's label and SQL expression."""
+    if isinstance(column, str):
+        return {column}
+    if isinstance(column, dict):
+        return {
+            value
+            for value in (column.get("label"), column.get("sqlExpression"))
+            if isinstance(value, str)
+        }
+    return set()
+
+
+def _clauses(extra_form_data: Mapping[str, Any]) -> list[tuple[Any, Any]]:
+    """(column, operator) for every filter and adhoc filter clause."""
+    clauses = [
+        (clause.get("col"), clause.get("op"))
+        for clause in extra_form_data.get("filters") or []
+        if isinstance(clause, dict)
+    ]
+    clauses += [
+        (clause.get("subject"), clause.get("operator"))
+        for clause in extra_form_data.get("adhoc_filters") or []
+        if isinstance(clause, dict)
+    ]
+    return clauses
+
+
 def _clause_columns(extra_form_data: Mapping[str, Any]) -> set[str]:
-    columns: set[str] = set()
-    for clause in extra_form_data.get("filters") or []:
-        if isinstance(clause, dict) and isinstance(clause.get("col"), str):
-            columns.add(clause["col"])
-    for clause in extra_form_data.get("adhoc_filters") or []:
-        if isinstance(clause, dict) and isinstance(clause.get("subject"), str):
-            columns.add(clause["subject"])
-    return columns
+    return {
+        name
+        for column, _ in _clauses(extra_form_data)
+        for name in _column_names(column)
+    }
 
 
-def _temporal_range_columns(extra_form_data: Mapping[str, Any]) -> set[str]:
-    columns: set[str] = set()
-    for clause in extra_form_data.get("filters") or []:
-        if isinstance(clause, dict) and clause.get("op") == TEMPORAL_RANGE:
-            columns.add(str(clause.get("col")))
-    for clause in extra_form_data.get("adhoc_filters") or []:
-        if isinstance(clause, dict) and clause.get("operator") == TEMPORAL_RANGE:
-            columns.add(str(clause.get("subject")))
-    return columns
+def _constrains_time(extra_form_data: Mapping[str, Any]) -> bool:
+    """True when the scope limits the time window: a time range, or a
+    TEMPORAL_RANGE clause such as a cross-filter on a time-series axis."""
+    return _time_range(extra_form_data) is not None or any(
+        op == TEMPORAL_RANGE for _, op in _clauses(extra_form_data)
+    )
+
+
+def _check_model_temporal_filters(
+    scope_efd: Mapping[str, Any], model_efd: Mapping[str, Any]
+) -> None:
+    """Refuse model TEMPORAL_RANGE clauses that Superset could apply in place
+    of the scope's filters.
+
+    Query construction keeps one time window per granularity column and drops
+    other filters on that column, so a model temporal clause may replace the
+    dashboard's window or remove a dashboard filter on the same column.
+    """
+    # Clauses the scope already carries (e.g. a client re-sending the chart's
+    # filters) add nothing and are ignored.
+    scope_keys = {
+        _clause_key(clause)
+        for key in ("filters", "adhoc_filters")
+        for clause in scope_efd.get(key) or []
+    }
+    added = {
+        key: [
+            clause
+            for clause in model_efd.get(key) or []
+            if _clause_key(clause) not in scope_keys
+        ]
+        for key in ("filters", "adhoc_filters")
+    }
+    temporal = [column for column, op in _clauses(added) if op == TEMPORAL_RANGE]
+    if not temporal or not _restricts_rows(scope_efd):
+        return
+    if _constrains_time(scope_efd):
+        raise MCPDashboardScopeError(
+            "a TEMPORAL_RANGE filter cannot be added while the dashboard limits "
+            "the time range for this chart.",
+            _ASK_USER,
+        )
+    scope_columns = _clause_columns(scope_efd)
+    for column in temporal:
+        if not isinstance(column, str) or column in scope_columns:
+            raise MCPDashboardScopeError(
+                f"a TEMPORAL_RANGE filter on {column!r} would replace the "
+                "dashboard's filter on that column.",
+                _ASK_USER,
+            )
 
 
 def compose_extra_form_data(
@@ -374,13 +441,7 @@ def compose_extra_form_data(
             "extra_form_data must be an object while dashboard filters apply."
         )
 
-    if moved := _temporal_range_columns(model_efd) & _clause_columns(scope_efd):
-        raise MCPDashboardScopeError(
-            "a TEMPORAL_RANGE filter on "
-            f"{', '.join(sorted(moved))} would replace the dashboard's filter "
-            "on that column.",
-            _ASK_USER,
-        )
+    _check_model_temporal_filters(scope_efd, model_efd)
 
     composed = dict(scope_efd)
     for key, value in model_efd.items():
@@ -430,6 +491,14 @@ def _check_row_override(scope_efd: Mapping[str, Any], key: str, value: Any) -> N
             f"{key} cannot be set while dashboard filters apply, because it "
             "changes which column the dashboard's filters and time range "
             "constrain.",
+            _ASK_USER,
+        )
+    elif key not in TIME_TARGET_KEYS and _constrains_time(scope_efd):
+        # time_range or a relative anchor would move a window the dashboard
+        # set through a temporal cross-filter rather than a time range.
+        raise MCPDashboardScopeError(
+            f"{key} cannot be set while the dashboard limits the time range for "
+            "this chart.",
             _ASK_USER,
         )
 
@@ -686,18 +755,31 @@ def _compose_chart_request(
     request: Any, scope: DashboardScope, *, returns_rows: bool
 ) -> Any:
     identifier = _field(request, "identifier")
+    if returns_rows and _field(request, "form_data_key"):
+        # Unsaved Explore state can query any dataset with any filters; the
+        # chart it was opened from says nothing about what it reads.
+        raise MCPDashboardScopeError(
+            "unsaved chart state (form_data_key) is not part of the dashboard, "
+            "so the dashboard's filters cannot be mapped to it.",
+            _USE_CHART_TOOLS,
+        )
     if identifier is None:
         if returns_rows:
             raise MCPDashboardScopeError(
-                "an unsaved chart (form_data_key without a chart identifier) is "
-                "not part of the dashboard, so its filters cannot be mapped to it.",
+                "the request names no chart on the dashboard, so the "
+                "dashboard's filters cannot be mapped to it.",
                 _USE_CHART_TOOLS,
             )
         return request
     chart_id = _resolve_chart_id(identifier)
     if chart_id is None:
-        # Not found or not accessible: the tool reports that itself and
-        # returns no rows.
+        if returns_rows:
+            # Some tools fall back to reading an unresolvable identifier as a
+            # form_data_key, so "not found" must not mean "pass through".
+            raise MCPDashboardScopeError(
+                f"{identifier!r} is not an accessible chart on the scoped dashboard.",
+                _USE_CHART_TOOLS,
+            )
         return request
     chart_scope = _ChartResolver(scope).chart_scope(chart_id)
     if chart_scope is None:
@@ -962,9 +1044,9 @@ def _gate_generate_chart(request: Any, scope: DashboardScope) -> Any:
 
 
 def _gate_update_chart(request: Any, scope: DashboardScope) -> Any:
-    # update_chart renders previews only after saving (generate_preview=False).
-    if not _field(request, "generate_preview") and _wants_data_preview(request):
-        raise _refuse_data_preview("update_chart")
+    # generate_preview=True only returns an Explore link; False saves the edit.
+    if not _field(request, "generate_preview"):
+        raise _refuse_definition_change("update_chart")
     return request
 
 
@@ -974,11 +1056,44 @@ def _gate_update_chart_preview(request: Any, scope: DashboardScope) -> Any:
     return request
 
 
+Rewriter = Callable[[Any, DashboardScope], Any]
+
+
+def _refuse_definition_change(tool_name: str) -> MCPDashboardScopeError:
+    return MCPDashboardScopeError(
+        f"{tool_name} changes what charts or datasets query, which could put "
+        "data on the dashboard that its captured filters do not cover.",
+        "Ask the user to make this change outside the filtered dashboard "
+        "conversation, or to clear the dashboard filters first.",
+    )
+
+
+def _refuse_while_scoped(tool_name: str) -> Rewriter:
+    def refuse(request: Any, scope: DashboardScope) -> Any:
+        raise _refuse_definition_change(tool_name)
+
+    return refuse
+
+
+# Writes that change what existing or new charts and datasets query. A chart
+# added to the scoped dashboard, a re-pointed chart, or a dataset defined by
+# the model (e.g. ``SELECT 'A' AS client, ...``) would otherwise be read under
+# filters captured before the change, or satisfy them vacuously.
+DEFINITION_CHANGING_TOOLS = (
+    "add_chart_to_existing_dashboard",
+    "update_dashboard",
+    "create_virtual_dataset",
+    "update_dataset",
+    "create_dataset_metric",
+    "update_dataset_metric",
+    "restore_chart",
+    "restore_dataset",
+)
+
+
 # ---------------------------------------------------------------------------
 # Tool classification and dispatch
 # ---------------------------------------------------------------------------
-
-Rewriter = Callable[[Any, DashboardScope], Any]
 
 SCOPE_REWRITERS: dict[str, Rewriter] = {
     "get_chart_data": _rewrite_chart_data,
@@ -992,6 +1107,7 @@ SCOPE_REWRITERS: dict[str, Rewriter] = {
     "generate_chart": _gate_generate_chart,
     "update_chart": _gate_update_chart,
     "update_chart_preview": _gate_update_chart_preview,
+    **{name: _refuse_while_scoped(name) for name in DEFINITION_CHANGING_TOOLS},
 }
 
 # Tools that return no dataset rows: metadata, links, and writes. Keep this an
@@ -999,12 +1115,9 @@ SCOPE_REWRITERS: dict[str, Rewriter] = {
 # active, which is the safe failure for anything that might read data.
 SCOPE_NEUTRAL_TOOLS = frozenset(
     {
-        "add_chart_to_existing_dashboard",
         "apply_dashboard_filters",
         "create_dataset",
-        "create_dataset_metric",
         "create_theme",
-        "create_virtual_dataset",
         "delete_chart",
         "delete_dashboard",
         "delete_dataset",
@@ -1058,13 +1171,8 @@ SCOPE_NEUTRAL_TOOLS = frozenset(
         "manage_native_filters",
         "open_sql_lab_with_context",
         "remove_chart_from_dashboard",
-        "restore_chart",
         "restore_dashboard",
-        "restore_dataset",
         "save_sql_query",
-        "update_dashboard",
-        "update_dataset",
-        "update_dataset_metric",
     }
 )
 

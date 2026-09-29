@@ -46,6 +46,7 @@ from superset.mcp_service.dashboard_scope import (
     DashboardConstraints,
     DashboardScope,
     decode_dashboard_scope,
+    DEFINITION_CHANGING_TOOLS,
     HEADER_NAME,
     intersect_time_ranges,
     MAX_PAYLOAD_BYTES,
@@ -323,6 +324,59 @@ def test_model_time_range_allowed_when_dashboard_sets_none() -> None:
     assert composed == {"filters": [CLIENT_A], "time_range": "2024"}
 
 
+TEMPORAL_CROSS_FILTER = {
+    "filters": [{"col": "ds", "op": "TEMPORAL_RANGE", "val": "2024-01-01 : 2024-02-01"}]
+}
+
+
+@pytest.mark.parametrize(
+    "model_efd",
+    [
+        {"time_range": "No filter"},
+        {"time_range": "Last year"},
+        {"relative_end": "2015-01-01"},
+        {"filters": [{"col": "other_ds", "op": "TEMPORAL_RANGE", "val": "x"}]},
+    ],
+)
+def test_temporal_cross_filter_window_cannot_be_moved(
+    model_efd: dict[str, Any],
+) -> None:
+    """A time-series cross-filter sends TEMPORAL_RANGE with no time_range, so
+    the window must be protected without relying on a time_range key."""
+    with pytest.raises(MCPDashboardScopeError):
+        compose_extra_form_data(TEMPORAL_CROSS_FILTER, model_efd)
+
+
+@pytest.mark.parametrize("key", ["relative_start", "relative_end"])
+def test_relative_anchor_cannot_shift_the_dashboard_window(key: str) -> None:
+    with pytest.raises(MCPDashboardScopeError):
+        compose_extra_form_data(SCOPE_EFD, {key: "2015-01-01"})
+
+
+def test_adhoc_temporal_column_cannot_target_a_scoped_column() -> None:
+    adhoc_column = {"sqlExpression": "client", "label": "client"}
+    with pytest.raises(MCPDashboardScopeError):
+        compose_extra_form_data(
+            {"filters": [CLIENT_A]},
+            {"filters": [{"col": adhoc_column, "op": "TEMPORAL_RANGE", "val": "x"}]},
+        )
+
+
+def test_resending_the_scope_is_not_a_model_change() -> None:
+    """The current client also injects the chart's own filters; an exact
+    repeat of the scope (temporal cross-filter included) is accepted."""
+    assert (
+        compose_extra_form_data(TEMPORAL_CROSS_FILTER, dict(TEMPORAL_CROSS_FILTER))
+        == TEMPORAL_CROSS_FILTER
+    )
+
+
+def test_unrelated_temporal_filter_allowed_when_dashboard_sets_no_window() -> None:
+    other = {"col": "shipped_ds", "op": "TEMPORAL_RANGE", "val": "Last week"}
+    composed = compose_extra_form_data({"filters": [CLIENT_A]}, {"filters": [other]})
+    assert composed["filters"] == [CLIENT_A, other]
+
+
 # ---------------------------------------------------------------------------
 # Dashboard-wide constraints for dataset and SQL paths
 # ---------------------------------------------------------------------------
@@ -585,6 +639,57 @@ def test_chart_off_the_dashboard_is_refused_for_data_but_not_description() -> No
         assert _rewrite("get_chart_preview", url_preview) is url_preview
 
 
+def test_unresolvable_identifier_is_refused_for_data() -> None:
+    """get_chart_preview falls back to reading an unknown identifier as a
+    form_data_key, so "not found" must refuse rather than pass through."""
+    with (
+        scope_header(encode(CHART_SCOPE)),
+        patch(
+            "superset.mcp_service.chart.chart_helpers.find_chart_by_identifier",
+            return_value=None,
+        ),
+    ):
+        for request in (
+            GetChartPreviewRequest(identifier="cached-key", format="vega_lite"),
+            GetChartDataRequest(identifier="cached-key"),
+        ):
+            with pytest.raises(MCPDashboardScopeError, match="not an accessible"):
+                _rewrite(_tool_for(request), request)
+        info = GetChartInfoRequest(identifier="cached-key")
+        assert _rewrite("get_chart_info", info) is info
+
+
+def _tool_for(request: Any) -> str:
+    return {
+        GetChartPreviewRequest: "get_chart_preview",
+        GetChartDataRequest: "get_chart_data",
+    }[type(request)]
+
+
+@pytest.mark.parametrize(
+    ("tool_name", "request_model"),
+    [
+        ("get_chart_data", GetChartDataRequest(identifier=11, form_data_key="k")),
+        (
+            "get_chart_preview",
+            GetChartPreviewRequest(identifier=11, form_data_key="k", format="table"),
+        ),
+    ],
+)
+def test_unsaved_state_on_a_dashboard_chart_is_refused(
+    tool_name: str, request_model: Any
+) -> None:
+    """Cached Explore state can query any dataset; the chart id it was opened
+    from does not describe it."""
+    with (
+        scope_header(encode(CHART_SCOPE)),
+        charts_exist(),
+        dashboard([11]),
+        pytest.raises(MCPDashboardScopeError, match="unsaved chart state"),
+    ):
+        _rewrite(tool_name, request_model)
+
+
 def test_unsaved_chart_data_is_refused() -> None:
     with scope_header(encode(CHART_SCOPE)), pytest.raises(MCPDashboardScopeError):
         _rewrite("get_chart_data", GetChartDataRequest(form_data_key="abc"))
@@ -693,6 +798,7 @@ def test_execute_sql_receives_the_dashboard_constraints() -> None:
             {"generate_preview": True, "preview_formats": ["ascii"]},
         ),
         ("update_chart", {"generate_preview": False, "preview_formats": ["vega_lite"]}),
+        ("update_chart", {"generate_preview": False, "preview_formats": ["url"]}),
     ],
 )
 def test_authoring_data_previews_are_refused(
@@ -715,6 +821,24 @@ def test_authoring_without_data_previews_is_allowed(
 ) -> None:
     with scope_header(encode(CHART_SCOPE)):
         assert _rewrite(tool_name, request_dict) is request_dict
+
+
+@pytest.mark.parametrize("tool_name", DEFINITION_CHANGING_TOOLS)
+def test_definition_changes_are_refused_under_scope(tool_name: str) -> None:
+    """Adding a chart to the dashboard, re-pointing one, or defining a dataset
+    (``SELECT 'A' AS client, ...``) would let a later read satisfy the captured
+    filters without honoring them."""
+    with (
+        scope_header(encode(CHART_SCOPE)),
+        pytest.raises(MCPDashboardScopeError, match="changes what charts"),
+    ):
+        _rewrite(tool_name, {"anything": True})
+
+
+def test_definition_changes_are_allowed_without_a_scope() -> None:
+    with scope_header():
+        request = {"dataset_id": 3}
+        assert _rewrite("update_dataset", request) is request
 
 
 # ---------------------------------------------------------------------------

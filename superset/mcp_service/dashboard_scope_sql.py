@@ -17,11 +17,10 @@
 
 """Apply dashboard filter scope to raw SQL for ``execute_sql``.
 
-Every table the statement reads is constrained, in place, by the dashboard's
-filters — the same AST rewrite row-level security uses, so the predicate lands
-on the table read itself (as a sub-query or an extra predicate, per engine)
-rather than on the statement's output, and aggregates are computed over the
-filtered rows only.
+Every table the statement reads is replaced, in place, by a filtered
+sub-query — the same AST rewrite row-level security uses — so the filter lands
+on the table read itself rather than on the statement's output, and aggregates
+are computed over the filtered rows only.
 
 Predicates are built from the registered dataset for each table, with the
 dataset's own column quoting, value coercion and time-filter rendering, so a
@@ -30,7 +29,9 @@ filter means the same thing here as it does on the dataset query path.
 The rewrite is deliberately strict. It refuses unless every table read maps to
 a registered physical dataset that physically has every filtered column: a
 table without the column (a dimension table in a join, or one branch of a
-UNION) would otherwise contribute rows the dashboard excludes.
+UNION) would otherwise contribute rows the dashboard excludes. It also refuses
+anything that can read rows without a table reference the parser can see:
+opaque statements, functions it does not model, and table functions.
 """
 
 from __future__ import annotations
@@ -47,7 +48,7 @@ from superset.mcp_service.dashboard_scope import (
 if TYPE_CHECKING:
     from superset.connectors.sqla.models import SqlaTable, TableColumn
     from superset.models.core import Database
-    from superset.sql.parse import SQLStatement, Table
+    from superset.sql.parse import SQLScript, SQLStatement, Table
 
 # Jinja markers. Templated SQL is rendered after this rewrite, so its final
 # table references and predicates are unknown here; refuse rather than guess.
@@ -125,8 +126,57 @@ def scope_sql(
     constraints: DashboardConstraints,
 ) -> str:
     """Rewrite ``sql`` so every table read is filtered by ``constraints``."""
+    from superset.sql.parse import RLSMethod
+
+    script, catalog, schema = _parse_script(database, sql, catalog, schema)
+    method = database.db_engine_spec.get_rls_method()
+    if method != RLSMethod.AS_SUBQUERY:
+        # The predicate form only attaches to a table read directly under FROM
+        # or JOIN, so a parenthesised read would run unfiltered.
+        raise MCPDashboardScopeError(
+            "this database cannot run the sub-query form the dashboard filters "
+            "are applied with.",
+            "Use query_dataset or the dashboard's charts instead.",
+        )
+
+    for parsed in script.statements:
+        statement = _check_statement(parsed)
+        tables = {
+            table.qualify(catalog=catalog, schema=schema) for table in statement.tables
+        }
+        if not tables:
+            # Reads no table (and no table-reading function, checked above),
+            # so there are no rows to filter.
+            continue
+        predicates = {
+            table: _table_predicates(database, statement, table, constraints)
+            for table in tables
+        }
+        try:
+            applied = statement.apply_rls(catalog, schema, predicates, method)
+        except Exception as ex:  # noqa: BLE001 - never run SQL the rewrite rejected
+            raise MCPDashboardScopeError(
+                "the dashboard filters could not be attached to the tables this "
+                "SQL reads.",
+                _SQL_GUIDANCE,
+            ) from ex
+        if not applied:
+            # Every table had predicates, so nothing being applied means the
+            # rewrite could not locate the reads; never run the original.
+            raise MCPDashboardScopeError(
+                "the dashboard filters could not be attached to the tables "
+                "this SQL reads.",
+                _SQL_GUIDANCE,
+            )
+    return script.format()
+
+
+def _parse_script(
+    database: Database, sql: str, catalog: str | None, schema: str | None
+) -> tuple[SQLScript, str | None, str]:
+    """Parse ``sql`` and resolve the catalog and schema it runs against."""
     from superset.exceptions import SupersetParseError
-    from superset.sql.parse import SQLScript, SQLStatement
+    from superset.sql.parse import SQLScript
 
     try:
         script = SQLScript(sql, database.db_engine_spec.engine)
@@ -159,39 +209,43 @@ def scope_sql(
             "determined, so the dashboard filters cannot be applied to it.",
             _SQL_GUIDANCE,
         )
+    return script, catalog, schema
 
-    method = database.db_engine_spec.get_rls_method()
-    for statement in script.statements:
-        if not isinstance(statement, SQLStatement):
-            raise MCPDashboardScopeError(
-                "the dashboard filters can only be applied to SQL statements "
-                "this database's SQL parser understands.",
-                _SQL_GUIDANCE,
-            )
-        if statement.is_mutating():
-            raise MCPDashboardScopeError(
-                "statements that modify data cannot run while dashboard filters apply.",
-                _SQL_GUIDANCE,
-            )
-        tables = {
-            table.qualify(catalog=catalog, schema=schema) for table in statement.tables
-        }
-        if not tables:
-            # Reads no table, so there are no rows to filter.
-            continue
-        predicates = {
-            table: _table_predicates(database, statement, table, constraints)
-            for table in tables
-        }
-        if not statement.apply_rls(catalog, schema, predicates, method):
-            # Every table had predicates, so nothing being applied means the
-            # rewrite could not locate the reads; never run the original.
-            raise MCPDashboardScopeError(
-                "the dashboard filters could not be attached to the tables "
-                "this SQL reads.",
-                _SQL_GUIDANCE,
-            )
-    return script.format()
+
+def _check_statement(statement: Any) -> SQLStatement:
+    """Refuse statements whose reads cannot all be filtered.
+
+    Functions the parser does not model (``query_to_xml``, ``dblink``,
+    ``EXTERNAL_QUERY``, user-defined functions) and table functions or
+    dynamically named tables can read tables named in strings, which table
+    extraction cannot see and the rewrite cannot filter.
+    """
+    from superset.sql.parse import SQLStatement
+
+    if not isinstance(statement, SQLStatement):
+        raise MCPDashboardScopeError(
+            "the dashboard filters can only be applied to SQL statements this "
+            "database's SQL parser understands.",
+            _SQL_GUIDANCE,
+        )
+    if statement.is_mutating():
+        raise MCPDashboardScopeError(
+            "statements that modify data cannot run while dashboard filters apply.",
+            _SQL_GUIDANCE,
+        )
+    if unmodelled := statement.get_unmodelled_functions():
+        raise MCPDashboardScopeError(
+            "the SQL calls functions whose table reads cannot be checked "
+            f"({', '.join(sorted(unmodelled))}).",
+            "Rewrite the query with standard SQL functions, or use query_dataset.",
+        )
+    if statement.has_dynamic_table_source():
+        raise MCPDashboardScopeError(
+            "the SQL reads from a table function or a dynamically named table, "
+            "whose rows the dashboard filters cannot be attached to.",
+            _SQL_GUIDANCE,
+        )
+    return statement
 
 
 def _table_predicates(

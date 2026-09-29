@@ -1955,6 +1955,37 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
         """
         return isinstance(self._parsed, exp.SetOperation)
 
+    def get_unmodelled_functions(self) -> set[str]:
+        """
+        Return the names of function calls SQLGlot does not model.
+
+        Such calls parse into ``exp.Anonymous`` and their behavior is opaque: a
+        user-defined function or a dialect builtin such as ``query_to_xml`` or
+        ``dblink`` can read tables named in string arguments, which ``tables``
+        cannot report.
+
+        :return: The function names, as written
+        """
+        return {node.name for node in self._parsed.find_all(exp.Anonymous)}
+
+    def has_dynamic_table_source(self) -> bool:
+        """
+        Check if the statement reads from something other than a named table.
+
+        Table functions (``read_csv(...)``, ``generate_series(...)``) and
+        dynamically named tables (``IDENTIFIER('t')``, Snowflake ``TABLE('t')``)
+        carry no table name for ``tables`` to report.
+
+        :return: True if any table source is not a plain named table
+        """
+        return (
+            any(
+                not isinstance(table.this, exp.Identifier)
+                for table in self._parsed.find_all(exp.Table)
+            )
+            or self._parsed.find(exp.TableFromRows) is not None
+        )
+
     def parse_predicate(self, predicate: str) -> exp.Expression:
         """
         Parse a predicate string into an AST.

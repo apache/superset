@@ -6966,3 +6966,48 @@ def test_rls_returns_whether_applied(
         )
         is expected
     )
+
+
+@pytest.mark.parametrize(
+    "sql, engine, expected",
+    [
+        ("SELECT SUM(amount), COALESCE(MAX(x), 0) FROM t", "postgresql", set()),
+        (
+            "SELECT query_to_xml('SELECT * FROM t', true, false, '')",
+            "postgresql",
+            {"query_to_xml"},
+        ),
+        ("SELECT a FROM t WHERE my_udf(a) > 1", "postgresql", {"my_udf"}),
+        (
+            "SELECT * FROM EXTERNAL_QUERY('c', 'SELECT 1')",
+            "bigquery",
+            {"EXTERNAL_QUERY"},
+        ),
+    ],
+)
+def test_get_unmodelled_functions(sql: str, engine: str, expected: set[str]) -> None:
+    """
+    Functions SQLGlot does not model are reported, since they may read tables
+    that table extraction cannot see.
+    """
+    assert SQLStatement(sql, engine).get_unmodelled_functions() == expected
+
+
+@pytest.mark.parametrize(
+    "sql, engine, expected",
+    [
+        ("SELECT * FROM t JOIN s.u ON t.id = u.id", "postgresql", False),
+        ('SELECT * FROM "Quoted Table"', "postgresql", False),
+        ("WITH c AS (SELECT 1 AS a) SELECT * FROM c", "postgresql", False),
+        ("SELECT * FROM generate_series(1, 3)", "postgresql", True),
+        ("SELECT * FROM read_csv('x.csv')", "duckdb", True),
+        ("SELECT * FROM IDENTIFIER('t')", "snowflake", True),
+        ("SELECT * FROM TABLE('t')", "snowflake", True),
+    ],
+)
+def test_has_dynamic_table_source(sql: str, engine: str, expected: bool) -> None:
+    """
+    Table functions and dynamically named tables are sources without a table
+    name, so ``tables`` cannot report them.
+    """
+    assert SQLStatement(sql, engine).has_dynamic_table_source() == expected
