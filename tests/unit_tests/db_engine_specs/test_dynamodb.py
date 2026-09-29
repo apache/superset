@@ -19,7 +19,9 @@ from datetime import datetime
 from typing import Optional
 
 import pytest
+from sqlalchemy import types
 
+from superset.utils.core import GenericDataType
 from tests.unit_tests.db_engine_specs.utils import assert_convert_dttm
 from tests.unit_tests.fixtures.common import dttm  # noqa: F401
 
@@ -42,3 +44,41 @@ def test_convert_dttm(
     )
 
     assert_convert_dttm(spec, target_type, expected_result, dttm)
+
+
+@pytest.mark.parametrize(
+    "native_type,sqla_type,generic_type",
+    [
+        ("NUMBER", types.Numeric, GenericDataType.NUMERIC),
+        ("number", types.Numeric, GenericDataType.NUMERIC),
+        ("STRING", types.String, GenericDataType.STRING),
+        ("DATETIME", types.DateTime, GenericDataType.TEMPORAL),
+        ("DATE", types.Date, GenericDataType.TEMPORAL),
+        ("BOOL", types.Boolean, GenericDataType.BOOLEAN),
+    ],
+)
+def test_get_column_spec(
+    native_type: str,
+    sqla_type: type[types.TypeEngine],
+    generic_type: GenericDataType,
+) -> None:
+    from superset.db_engine_specs.dynamodb import (
+        DynamoDBEngineSpec as spec,  # noqa: N813
+    )
+
+    column_spec = spec.get_column_spec(native_type)
+    assert column_spec is not None
+    assert isinstance(column_spec.sqla_type, sqla_type)
+    assert column_spec.generic_type == generic_type
+
+
+def test_orders_by_expression_not_alias() -> None:
+    """
+    The PyDynamoDB dialect drops top-level aliases, so ORDER BY must not
+    reference one.
+    """
+    from superset.db_engine_specs.dynamodb import (
+        DynamoDBEngineSpec as spec,  # noqa: N813
+    )
+
+    assert spec.allows_alias_in_orderby is False

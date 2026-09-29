@@ -391,6 +391,11 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         allows_hidden_orderby_agg:     Whether the engine allows ORDER BY to
                                        directly use aggregation clauses, without
                                        having to add the same aggregation in SELECT.
+        select_alias_shadows_source_column: Whether the engine resolves an
+                                       identifier to a SELECT alias before a
+                                       source column of the same name in every
+                                       clause (WHERE, GROUP BY, HAVING, ORDER
+                                       BY), so such aliases must be renamed.
     """
 
     engine_name: str | None = None  # for user messages, overridden in child classes
@@ -579,6 +584,12 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     # Whether ORDER BY clause can use aliases created in SELECT
     # that are the same as a source column
     allows_alias_to_source_column = True
+
+    # Whether the engine resolves an identifier to a SELECT alias before a source
+    # column of the same name, in WHERE, GROUP BY, HAVING and ORDER BY alike
+    # (ClickHouse). An alias such as `DATE_TRUNC(ts) AS ts` then changes what the
+    # query's other clauses read, so chart queries rename it.
+    select_alias_shadows_source_column = False
 
     # Whether ORDER BY clause must appear in SELECT
     # if True, then it doesn't have to.
@@ -887,6 +898,21 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         )
 
         raise OAuth2RedirectError(oauth_url, tab_id, default_redirect_uri)
+
+    @classmethod
+    def resolve_oauth2_client_info(
+        cls,
+        database: Database,
+        client_info: dict[str, Any],
+    ) -> dict[str, Any]:
+        """
+        Complete a database's ``oauth2_client_info`` before it is validated.
+
+        Engine specs that can derive values (for example the OAuth2 endpoints
+        from the connection host) return a copy with the missing values filled
+        in; values set explicitly must be kept. The default returns it as is.
+        """
+        return client_info
 
     @classmethod
     def get_oauth2_config(cls) -> OAuth2ClientConfig | None:
@@ -1520,10 +1546,16 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         if cls.arraysize:
             cursor.arraysize = cls.arraysize
         try:
+            # Statements that return no result set (DDL, DML) leave the cursor
+            # description empty (``None`` per PEP 249), and several DB-API
+            # drivers (mysql-connector, ibm_db, pyexasol, impyla, ...) raise on
+            # a fetch in that state instead of returning no rows.
+            description = cursor.description
+            if not description:
+                return []
             if cls.limit_method == LimitMethod.FETCH_MANY and limit:
                 return cursor.fetchmany(limit)
             data = cursor.fetchall()
-            description = cursor.description or []
             # Create a mapping between column index and a mutator function to normalize
             # values with. The first two items in the description row are the column
             # name and type.
