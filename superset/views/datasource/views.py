@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 from collections import Counter
-from typing import Any
+from typing import Any, cast
 
 from flask import redirect, request, url_for
 from flask_appbuilder import expose, permission_name
@@ -103,6 +103,8 @@ def _repoints_table(
     binds that label to a real table: a repoint even when the label is
     unchanged.
     """
+    # Ahead of the dataset check on purpose: a move to another connection is
+    # a repoint whatever the datasource is, and must not go unchecked.
     if database_changed:
         return True
     if not isinstance(datasource, SqlaTable) or requested_sql:
@@ -127,10 +129,11 @@ def _repoints_sql(
     """
     Would the request change what the SQL on ``datasource`` reads?
 
-    ``is_virtual`` derives from whether ``sql`` is set, so new SQL aims the
-    dataset at whatever that SQL reads, converting a physical dataset on the
-    way. Unchanged SQL still lands somewhere new when the connection, catalog
-    or schema it resolves unqualified names against moves.
+    Supplying ``sql`` aims the dataset at whatever that SQL reads, converting
+    a physical dataset on the way. Unchanged SQL still lands somewhere new
+    when the connection, catalog or schema it resolves unqualified names
+    against moves, which ``UpdateDatasetCommand._validate_sql_access`` gates
+    on changed SQL text alone and so does not yet cover.
     """
     if not isinstance(datasource, SqlaTable) or not requested_sql:
         return False
@@ -140,6 +143,83 @@ def _repoints_sql(
         or (requested_table.schema, requested_table.catalog)
         != (datasource.schema or None, datasource.catalog or None)
     )
+
+
+def _requested_target(datasource_dict: dict[str, Any]) -> tuple[str | None, Table]:
+    """The SQL and table a save aims the dataset at.
+
+    ``update_from_object`` applies an omitted key as ``None``, so the request
+    body alone describes the target: no stored value feeds into it. The body
+    is free-form JSON, so each field is type-checked here, since the access
+    checks below parse these values and only a string survives that.
+
+    Raises ``ValueError`` naming the offending field.
+    """
+    values: dict[str, str | None] = {}
+    for field in ("sql", "table_name", "schema", "catalog"):
+        value = datasource_dict.get(field)
+        if value is not None and not isinstance(value, str):
+            raise ValueError(field)
+        values[field] = value
+    return values["sql"], Table(
+        # ``Table`` is annotated for a table that exists, but an omitted
+        # ``table_name`` lands as ``None`` and has to be compared as one.
+        cast(str, values["table_name"]),
+        values["schema"] or None,
+        values["catalog"] or None,
+    )
+
+
+def _authorize_repoint(
+    datasource: DatasourceModel,
+    database_id: int,
+    database_changed: bool,
+    requested_sql: str | None,
+    requested_table: Table,
+) -> FlaskResponse | None:
+    """Authorise the target a save aims ``datasource`` at.
+
+    Editorship of the dataset alone is not sufficient to repoint it. Ports
+    ``UpdateDatasetCommand``'s table and SQL checks, which are independent:
+    one save can do both, and each needs its own ``raise_for_access`` call
+    because passing ``sql`` builds an ephemeral query that supersedes
+    ``table``.
+
+    Returns an error response when the target cannot be resolved, and ``None``
+    once the target is authorised or the save does not repoint at all.
+    """
+    repoints_table = _repoints_table(
+        datasource, database_changed, requested_sql, requested_table
+    )
+    repoints_sql = _repoints_sql(
+        datasource, database_changed, requested_sql, requested_table
+    )
+    if not (repoints_table or repoints_sql):
+        return None
+
+    target_database = (
+        DatasetDAO.get_database_by_id(database_id)
+        if database_changed
+        else datasource.database
+    )
+    if target_database is None:
+        return json_error_response(_("Database not found."), status=422)
+    try:
+        if repoints_table:
+            security_manager.raise_for_access(
+                database=target_database,
+                table=requested_table,
+            )
+        if repoints_sql:
+            security_manager.raise_for_access(
+                database=target_database,
+                sql=requested_sql,
+                catalog=requested_table.catalog,
+                schema=requested_table.schema,
+            )
+    except SupersetSecurityException as ex:
+        raise DatasetForbiddenError() from ex
+    return None
 
 
 class Datasource(BaseSupersetView):
@@ -177,49 +257,25 @@ class Datasource(BaseSupersetView):
             raise DatasetForbiddenError() from ex
 
         database_changed = database_id != orm_datasource.database_id
-        requested_sql = datasource_dict.get("sql")
-        # The table this request lands on: an omitted key clears the field.
-        requested_table = Table(
-            datasource_dict.get("table_name"),
-            datasource_dict.get("schema") or None,
-            datasource_dict.get("catalog") or None,
-        )
-
-        # Editorship of the dataset alone is not sufficient to repoint it.
-        # Ports ``UpdateDatasetCommand``'s table and SQL checks, not the other
-        # source validation the command also runs. As there, the two are
-        # independent: one save can do both. They need separate
-        # ``raise_for_access`` calls because passing ``sql`` builds an
-        # ephemeral query that supersedes ``table``.
-        repoints_table = _repoints_table(
-            orm_datasource, database_changed, requested_sql, requested_table
-        )
-        repoints_sql = _repoints_sql(
-            orm_datasource, database_changed, requested_sql, requested_table
-        )
-        if repoints_table or repoints_sql:
-            target_database = (
-                DatasetDAO.get_database_by_id(database_id)
-                if database_changed
-                else orm_datasource.database
+        try:
+            requested_sql, requested_table = _requested_target(datasource_dict)
+        except ValueError as ex:
+            return json_error_response(
+                _(
+                    "Dataset schema is invalid, caused by: %(error)s",
+                    error=f"`{ex}` must be a string",
+                ),
+                status=422,
             )
-            if target_database is None:
-                return json_error_response(_("Database not found."), status=422)
-            try:
-                if repoints_table:
-                    security_manager.raise_for_access(
-                        database=target_database,
-                        table=requested_table,
-                    )
-                if repoints_sql:
-                    security_manager.raise_for_access(
-                        database=target_database,
-                        sql=requested_sql,
-                        catalog=requested_table.catalog,
-                        schema=requested_table.schema,
-                    )
-            except SupersetSecurityException as ex:
-                raise DatasetForbiddenError() from ex
+
+        if error := _authorize_repoint(
+            orm_datasource,
+            database_id,
+            database_changed,
+            requested_sql,
+            requested_table,
+        ):
+            return error
 
         if database_changed:
             orm_datasource.database_id = database_id
