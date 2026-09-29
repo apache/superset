@@ -11991,6 +11991,9 @@ msgstr ""
 msgid "Schema cache timeout"
 msgstr ""
 
+msgid "Schema not found."
+msgstr ""
+
 msgid "Schemas allowed for File upload"
 msgstr ""
 
