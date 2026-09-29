@@ -60,5 +60,18 @@ export function sortResults(valueA: CellValue, valueB: CellValue): number {
       : value;
   const left = numberOrText(valueA);
   const right = numberOrText(valueB);
-  return left === right ? 0 : left < right ? -1 : 1;
+  if (
+    typeof left === 'number' &&
+    typeof right === 'number' &&
+    !Number.isNaN(left) &&
+    !Number.isNaN(right)
+  ) {
+    return left === right ? 0 : left < right ? -1 : 1;
+  }
+  // Comparing a number against text (or against NaN) with `<` yields false both
+  // ways round, which makes the comparator intransitive and leaves the grid's
+  // sort order dependent on the input order. Compare those as text instead.
+  const leftText = String(left);
+  const rightText = String(right);
+  return leftText === rightText ? 0 : leftText < rightText ? -1 : 1;
 }

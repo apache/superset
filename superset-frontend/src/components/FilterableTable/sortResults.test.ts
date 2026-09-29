@@ -48,3 +48,24 @@ test.each([
 ] as const)('sorts %s vs %s exactly', (a, b, expected) => {
   expect(sortResults(a, b)).toBe(expected);
 });
+
+test.each([
+  ['apple', 5],
+  ['apple', 'NaN'],
+  [NaN, 1.5],
+  ['2024-01-01', 7],
+] as const)('orders %s against %s in one direction only', (a, b) => {
+  expect(sortResults(a, b)).toBe(-sortResults(b, a));
+});
+
+test('treats two NaNs as equal rather than unordered', () => {
+  expect(sortResults(NaN, NaN)).toBe(0);
+  expect(sortResults('NaN', 'NaN')).toBe(0);
+});
+
+test('sorts a mixed text and number column transitively', () => {
+  const column = [5, 'apple', 'NaN', 10, 'banana'];
+  const ascending = [...column].sort(sortResults);
+  const descending = [...column].reverse().sort(sortResults);
+  expect(descending).toEqual(ascending);
+});
