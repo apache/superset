@@ -144,6 +144,22 @@ test('a mismatched confirmation blocks saving', async () => {
   expect(fetchMock.callHistory.calls(userEndpoint)).toHaveLength(0);
 });
 
+test('a confirmation typed without a new password points at the empty field', async () => {
+  fetchMock.put(userEndpoint, { status: 200, body: {} });
+  render(<UserListEditModal {...props} />);
+
+  fireEvent.change(confirmPasswordInput(), {
+    target: { value: 'SomethingElse1!' },
+  });
+
+  expect(
+    await screen.findByText('Please enter a new password'),
+  ).toBeInTheDocument();
+  expect(screen.queryByText('Passwords do not match!')).not.toBeInTheDocument();
+  await waitFor(() => expect(saveButton()).toBeDisabled());
+  expect(fetchMock.callHistory.calls(userEndpoint)).toHaveLength(0);
+});
+
 test('a new password without confirmation blocks saving', async () => {
   fetchMock.put(userEndpoint, { status: 200, body: {} });
   render(<UserListEditModal {...props} />);

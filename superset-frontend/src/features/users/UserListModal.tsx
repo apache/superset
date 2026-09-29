@@ -237,6 +237,11 @@ function UserListModal({
                     if (isEditMode && !password && !value) {
                       return Promise.resolve();
                     }
+                    if (isEditMode && !password && value) {
+                      return Promise.reject(
+                        new Error(t('Please enter a new password')),
+                      );
+                    }
                     if (!value) {
                       return Promise.reject(
                         new Error(t('Please confirm your password')),
