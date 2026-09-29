@@ -153,7 +153,7 @@ function overrideMatrixifyMetrics(
   ];
 
   metricsKeys.forEach(key => {
-    metricsFields[key] = metrics;
+    metricsFields[key] = [...metrics];
   });
   metricsFields.metric = metrics[0];
 }

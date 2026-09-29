@@ -245,6 +245,30 @@ test('should apply a metrics-axis selection to every query-specific metrics coll
   ]);
 });
 
+test('should store independent metrics array references per query-specific field', () => {
+  // Each query-specific metrics collection must be its own array, not the
+  // same reference reused across keys, or mutating one (e.g. via push/sort)
+  // would silently mutate the others too.
+  const mixedChartFormData: TestFormData = {
+    viz_type: 'mixed_timeseries',
+    datasource: '1__table',
+    matrixify_enable: true,
+    matrixify_mode_rows: 'metrics',
+    matrixify_mode_columns: 'disabled',
+    matrixify_rows: [createAdhocMetric('Revenue')],
+    metrics: [createAdhocMetric('Original Primary')],
+    metrics_b: [createAdhocMetric('Original Secondary')],
+  };
+
+  const grid = generateMatrixifyGrid(mixedChartFormData);
+  const cellFormData = grid!.cells[0][0]!.formData;
+
+  expect(cellFormData.metrics).not.toBe(cellFormData.metrics_b);
+
+  cellFormData.metrics.push(createAdhocMetric('Mutation'));
+  expect(cellFormData.metrics_b).toEqual([createAdhocMetric('Revenue')]);
+});
+
 test('should generate grid for mixed mode (metrics rows, dimensions columns)', () => {
   const mixedFormData: TestFormData = {
     viz_type: 'table',
