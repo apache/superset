@@ -510,9 +510,7 @@ test('Export Data to Excel polls status and auto-downloads once ready', async ()
 test('Export Data to Excel asks for a download reason when required and sends it', async () => {
   requireDownloadReason();
   (requestDownloadReason as jest.Mock).mockResolvedValue('WP-1 audit');
-  mockSupersetClient.post.mockResolvedValue({
-    json: { job_id: 'abc' },
-  } as never);
+  mockQueuedResponse();
 
   render(<MenuWrapper />, { useRedux: true });
   await userEvent.click(screen.getByText('Export Data to Excel'), {
@@ -524,7 +522,9 @@ test('Export Data to Excel asks for a download reason when required and sends it
     expect(mockSupersetClient.post).toHaveBeenCalledWith({
       endpoint:
         '/api/v1/dashboard/123/export_xlsx/?download_reason=WP-1%20audit',
+      fetchRetryOptions: { retries: 0 },
       jsonPayload: { active_data_mask: {}, mode: 'data' },
+      parseMethod: 'raw',
     });
   });
 });
