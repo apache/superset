@@ -1171,8 +1171,8 @@ def test_real_postprocessing_nonfinite_is_canonicalized_at_materialization(
     assert type(records) is list
     assert records[0][derived_column] is None
     assert records[0]["finite"] == 3.5
-    assert records[0]["finite_integer"] == 2**53 + 1
-    assert type(records[0]["finite_integer"]) is int
+    assert records[0]["finite_integer"] == str(2**53 + 1)
+    assert type(records[0]["finite_integer"]) is str
     pd.testing.assert_series_equal(processed.dtypes, dtypes)
     assert np.isinf(processed[derived_column].iloc[0])
 
@@ -1198,7 +1198,7 @@ def test_real_postprocessing_nonfinite_is_canonicalized_at_materialization(
     assert data is not None
     assert data[0][0][derived_column] is None
     assert data[0][0]["finite"] == 3.5
-    assert data[0][0]["finite_integer"] == 2**53 + 1
+    assert data[0][0]["finite_integer"] == str(2**53 + 1)
 
 
 def test_query_result_rejects_infinity_outside_the_producer_boundary() -> None:

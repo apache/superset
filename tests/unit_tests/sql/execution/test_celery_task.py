@@ -871,7 +871,7 @@ def test_serialize_result_set_json(
 def test_serialize_result_set_json_normalizes_decimal_nonfinite(
     mocker: MockerFixture, app_context: None, mock_result_set: MagicMock
 ) -> None:
-    """Async SQL JSON results contain null, never Decimal non-finite tokens."""
+    """Async JSON results contain null, never bare Decimal non-finite tokens."""
     from superset.sql.execution.celery_task import (
         _serialize_payload,
         _serialize_result_set,

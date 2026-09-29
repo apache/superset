@@ -64,7 +64,11 @@ from sqlalchemy.sql.expression import (
 from sqlalchemy.types import TypeEngine
 
 from superset import db
-from superset.constants import QUERY_CANCEL_KEY, TimeGrain as TimeGrainConstants
+from superset.constants import (
+    EPOCH_FORMATS,
+    QUERY_CANCEL_KEY,
+    TimeGrain as TimeGrainConstants,
+)
 from superset.databases.utils import get_table_metadata, make_url_safe
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
@@ -1353,10 +1357,13 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             time_expr = "{col}"
 
         # if epoch, translate to DATE using db specific conf
-        if pdf == "epoch_s":
-            time_expr = time_expr.replace("{col}", cls.epoch_to_dttm())
-        elif pdf == "epoch_ms":
-            time_expr = time_expr.replace("{col}", cls.epoch_ms_to_dttm())
+        if pdf in EPOCH_FORMATS:
+            epoch_to_dttm = {
+                "epoch_s": cls.epoch_to_dttm,
+                "epoch_ms": cls.epoch_ms_to_dttm,
+                "epoch_us": cls.epoch_us_to_dttm,
+            }[pdf]
+            time_expr = time_expr.replace("{col}", epoch_to_dttm())
         elif pdf == "%Y":
             # a bare four-digit year (e.g. the `year` column on the `video_game_sales`
             # example dataset) has no native date type to lean on; without this the
@@ -1607,6 +1614,23 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         :return: SQL Expression
         """
         return cls.epoch_to_dttm().replace("{col}", "({col}/1000)")
+
+    @classmethod
+    def epoch_us_to_dttm(cls) -> str:
+        """
+        SQL expression that converts epoch (microseconds) to datetime that can be used
+        in a query.
+
+        The default routes through ``epoch_ms_to_dttm`` so engines that already
+        override the millisecond conversion keep their validated SQL. The result
+        inherits whatever resolution that engine's ``epoch_ms_to_dttm`` has,
+        which is seconds when the default is inherited. Engines with a native
+        microsecond function should override this (see BigQuery, Snowflake,
+        Kusto, Pinot).
+
+        :return: SQL Expression
+        """
+        return cls.epoch_ms_to_dttm().replace("{col}", "({col}/1000)")
 
     @classmethod
     def year_to_dttm(cls) -> str:

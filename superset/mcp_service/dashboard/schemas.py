@@ -795,12 +795,10 @@ class GenerateDashboardRequest(BaseModel):
 
 
 class UpdateDashboardRequest(BaseModel):
-    """Request schema for updating an existing dashboard's layout/theme/style.
+    """Patch a dashboard's layout/theme/style without re-creating it.
 
-    All fields are optional; only the fields explicitly passed are applied.
-    Use to retroactively set a custom layout, brand palette, or CSS on a
-    dashboard that was created via ``generate_dashboard`` (or earlier via
-    the REST API) without a full re-create.
+    Only explicitly supplied fields change; identifier is required.
+    Supports dashboards created via ``generate_dashboard`` or the REST API.
     """
 
     model_config = ConfigDict(populate_by_name=True)

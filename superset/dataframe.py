@@ -18,6 +18,7 @@
 
 import logging
 import math
+import warnings
 from decimal import Decimal
 from typing import Any
 
@@ -32,7 +33,31 @@ _NUMPY_FLOAT_TYPES = frozenset(
     type(value)
     for value in (np.float16(0), np.float32(0), np.float64(0), np.longdouble(0))
 )
-_PANDAS_MISSING_TYPES = frozenset((type(pd.NA), type(pd.NaT)))
+_PANDAS_MISSING_TYPES = frozenset({type(pd.NA), type(pd.NaT)})
+_NUMPY_NATIVE_TYPES = frozenset(
+    {
+        np.bool_,
+        np.int8,
+        np.int16,
+        np.int32,
+        np.int64,
+        np.intc,
+        np.intp,
+        np.longlong,
+        np.uint8,
+        np.uint16,
+        np.uint32,
+        np.uint64,
+        np.uintc,
+        np.uintp,
+        np.ulonglong,
+        np.float16,
+        np.float32,
+        np.float64,
+        np.str_,
+        np.bytes_,
+    }
+)
 
 
 def _convert_big_integers(val: Any) -> Any:
@@ -47,16 +72,16 @@ def _convert_big_integers(val: Any) -> Any:
 
 
 def _is_trusted_missing_or_nonfinite(value: Any) -> bool:
-    """Identify producer nulls without invoking an object's comparison hooks."""
+    """Recognize producer nulls without consulting object-column hooks."""
     value_type = type(value)
-    if value is None or value_type in _PANDAS_MISSING_TYPES:
+    if value_type in _PANDAS_MISSING_TYPES:
         return True
     if value_type is Decimal:
         return not Decimal.is_finite(value)
     if value_type is float:
         return not math.isfinite(value)
     if value_type in _NUMPY_FLOAT_TYPES:
-        return not math.isfinite(float(value))
+        return not bool(np.isfinite(value))
     return False
 
 
@@ -75,17 +100,28 @@ def df_to_records(
     :returns: a list of dictionaries reflecting each single row of the DataFrame
     """
     if not dframe.columns.is_unique:
-        logger.warning(
-            "DataFrame columns are not unique, some columns will be omitted."
-        )
-    # Materialize first. ``DataFrame.replace`` compares its replacement values
-    # against object-dtype cells and can therefore execute an arbitrary
-    # ``__eq__``. The projected records can be normalized by exact trusted type
-    # without changing cached/query DataFrame dtypes or invoking cell hooks.
-    records = dframe.to_dict(orient="records")
+        message = "DataFrame columns are not unique, some columns will be omitted."
+        logger.warning(message)
+        warnings.warn(message, UserWarning, stacklevel=2)
+    # Materialize first, then inspect only exact trusted scalar types. DataFrame
+    # replacement and generic missing-value checks compare object-column values;
+    # an injected value could run ``__eq__`` before the MCP envelope validator.
+    records = [
+        dict(zip(dframe.columns, row, strict=True))
+        for row in dframe.itertuples(index=False, name=None)
+    ]
 
     for record in records:
         for key, value in dict.items(record):
+            # Restore pandas' native scalar boxing without calling hooks on
+            # arbitrary objects or scalar subclasses. Keep longdouble intact:
+            # converting it to float can overflow or lose precision.
+            if type(value) in _NUMPY_NATIVE_TYPES:
+                value = value.item()
+            elif type(value) is np.timedelta64:
+                value = pd.Timedelta(value)
+            elif type(value) is np.datetime64:
+                value = pd.Timestamp(value)
             dict.__setitem__(
                 record,
                 key,
