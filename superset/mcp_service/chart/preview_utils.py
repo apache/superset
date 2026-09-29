@@ -26,10 +26,13 @@ import logging
 import math
 from copy import deepcopy
 from datetime import date, datetime, time, timezone
+from decimal import Decimal
+from numbers import Real
 from typing import Any, Dict, List
 
 from superset.mcp_service.chart.query_result import (
     metric_result_label,
+    normalize_chart_query_result,
     normalize_gauge_query_result,
     query_result_failure,
 )
@@ -39,6 +42,7 @@ from superset.mcp_service.chart.schemas import (
     TablePreview,
     VegaLitePreview,
 )
+from superset.mcp_service.chart.treemap_preview import treemap_ascii, treemap_vega_lite
 
 logger = logging.getLogger(__name__)
 
@@ -105,8 +109,7 @@ def generate_preview_from_form_data(
 
         if query_failure := query_result_failure(result):
             return query_failure
-
-        result = normalize_gauge_query_result(result, form_data)
+        result = normalize_chart_query_result(result, form_data)
         if isinstance(result, ChartError):
             return result
         if not result or not result.get("queries"):
@@ -144,7 +147,12 @@ def _generate_ascii_preview_from_data(
     viz_type = form_data.get("viz_type", "table")
 
     # Handle different chart types
-    if viz_type == "gauge_chart":
+    if viz_type == "treemap_v2":
+        content_or_error = treemap_ascii(data, form_data)
+        if isinstance(content_or_error, ChartError):
+            return content_or_error
+        content = content_or_error
+    elif viz_type == "gauge_chart":
         content_or_error = generate_gauge_ascii_preview(data, form_data)
         if isinstance(content_or_error, ChartError):
             return content_or_error
@@ -1251,11 +1259,40 @@ def generate_bubble_vega_lite_preview(
     )
 
 
+def _resolve_y_metric_column(row: Dict[str, Any], metrics: List[Any]) -> str | None:
+    """Pick the y-axis column for a Vega-Lite preview.
+
+    Prefers the first chart metric with a numeric or null result value.
+    Falls back to a numeric column only when no metric label matches.
+    Booleans are never treated as numeric.
+    """
+    matched_metric = False
+    for metric in metrics:
+        label = metric_result_label(metric)
+        if label is not None and label in row:
+            matched_metric = True
+            value = row[label]
+            if value is None or (
+                isinstance(value, (Real, Decimal)) and not isinstance(value, bool)
+            ):
+                return label
+
+    if matched_metric:
+        return None
+
+    for col, value in row.items():
+        if isinstance(value, (Real, Decimal)) and not isinstance(value, bool):
+            return col
+    return None
+
+
 def _generate_vega_lite_preview_from_data(  # noqa: C901
     data: List[Dict[str, Any]], form_data: Dict[str, Any]
 ) -> VegaLitePreview | ChartError:
     """Generate Vega-Lite preview from raw data and form_data."""
     viz_type = form_data.get("viz_type", "table")
+    if viz_type == "treemap_v2":
+        return treemap_vega_lite(data, form_data)
     if viz_type == "gantt_chart":
         return _generate_gantt_vega_lite_preview(data, form_data)
     if viz_type == "gauge_chart":
@@ -1317,20 +1354,7 @@ def _generate_vega_lite_preview_from_data(  # noqa: C901
 
     # Handle Y-axis (metrics)
     if metrics and data:
-        # Find the first metric column in the data
-        metric_col = None
-        for col in data[0].keys():
-            # Check if this is a metric column (usually has aggregation in name)
-            if any(
-                agg in str(col).upper()
-                for agg in ["SUM", "AVG", "COUNT", "MIN", "MAX", "TOTAL"]
-            ):
-                metric_col = col
-                break
-            # Or check if it's numeric
-            elif isinstance(data[0].get(col), (int, float)):
-                metric_col = col
-                break
+        metric_col = _resolve_y_metric_column(data[0], metrics)
 
         if metric_col:
             encoding["y"] = {

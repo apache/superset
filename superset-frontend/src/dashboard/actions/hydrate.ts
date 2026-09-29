@@ -55,6 +55,7 @@ import getLocationHash from 'src/dashboard/util/getLocationHash';
 import newComponentFactory, {
   DashboardEntity,
 } from 'src/dashboard/util/newComponentFactory';
+import removeUnreachableComponents from 'src/dashboard/util/removeUnreachableComponents';
 import { URL_PARAMS } from 'src/constants';
 import { getUrlParam } from 'src/utils/urlUtils';
 import { ResourceStatus } from 'src/hooks/apiResources/apiResources';
@@ -133,11 +134,13 @@ export const hydrateDashboard =
     // new dash: position_json could be {} or null
     // getEmptyLayout() includes a version string entry plus BasicLayoutItem entries
     // which lack the `meta` field; layout is mutated below to add full LayoutItem entries
-    const layout = (
-      positionData && Object.keys(positionData).length > 0
+    // Repaired before anything indexes the layout: a detached cycle crashes the
+    // filter scope modal, and a chart trapped in one would never render.
+    const layout = removeUnreachableComponents(
+      (positionData && Object.keys(positionData).length > 0
         ? positionData
-        : getEmptyLayout()
-    ) as Record<string, LayoutItem | DashboardEntity>;
+        : getEmptyLayout()) as Record<string, LayoutItem | DashboardEntity>,
+    );
 
     // create a lookup to sync layout names with slice names
     const chartIdToLayoutId: Record<number, string> = {};
@@ -241,17 +244,12 @@ export const hydrateDashboard =
       }
     });
 
-    // make sure that parents tree is built
-    if (
-      Object.values(layout).some(
-        element => element.id !== DASHBOARD_ROOT_ID && !element.parents,
-      )
-    ) {
-      updateComponentParentsList({
-        currentComponent: layout[DASHBOARD_ROOT_ID] as LayoutItem,
-        layout: layout as Record<string, LayoutItem>,
-      });
-    }
+    // buildActiveFilters reads `parents` for filter scopes before the layout
+    // reducer rebuilds them, and the repair above may have moved components
+    updateComponentParentsList({
+      currentComponent: layout[DASHBOARD_ROOT_ID] as LayoutItem,
+      layout: layout as Record<string, LayoutItem>,
+    });
 
     buildActiveFilters({
       dashboardFilters: dashboardFilters as Parameters<

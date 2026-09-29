@@ -38,8 +38,7 @@
   },
   "devDependencies": {
     "cross-env": "^10.1.0",
-    "fs-extra": "^11.4.0",
-    "jest": "^30.5.1",
+    "jest": "^30.5.2",
     "yeoman-test": "^11.8.2"
   },
   "engines": {

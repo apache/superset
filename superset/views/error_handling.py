@@ -32,6 +32,7 @@ from flask import (
 )
 from flask_babel import gettext as _
 from flask_babel.speaklater import LazyString
+from flask_jwt_extended.exceptions import NoAuthorizationError
 from flask_wtf.csrf import CSRFError
 from sqlalchemy import exc
 from werkzeug.exceptions import HTTPException
@@ -138,7 +139,7 @@ def handle_api_exception(  # noqa: C901
     exceptions.
     """
 
-    def wraps(self: BaseSupersetView, *args: Any, **kwargs: Any) -> FlaskResponse:
+    def wraps(self: BaseSupersetView, *args: Any, **kwargs: Any) -> FlaskResponse:  # noqa: C901
         try:
             return f(self, *args, **kwargs)
         except SupersetSecurityException as ex:
@@ -175,6 +176,9 @@ def handle_api_exception(  # noqa: C901
             return json_error_response(utils.error_msg_from_exception(ex), status=422)
         except sshtunnel.BaseSSHTunnelForwarderError as ex:
             return handle_ssh_tunnel_error(ex)
+        except NoAuthorizationError as ex:
+            logger.warning("Api failed- no authorization", exc_info=True)
+            return json_error_response(str(ex), status=401)
         except Exception as ex:  # pylint: disable=broad-except
             logger.exception(ex)
             return json_error_response(utils.error_msg_from_exception(ex))
