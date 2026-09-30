@@ -74,6 +74,8 @@ export const DynamicEditableTitle = memo(
     title,
     placeholder,
     onSave,
+    onChange,
+    onEditingChange,
     canEdit,
     label,
   }: DynamicEditableTitleProps) => {
@@ -163,7 +165,8 @@ export const DynamicEditableTitle = memo(
         return;
       }
       setIsEditing(true);
-    }, [canEdit, isEditing]);
+      onEditingChange?.(true);
+    }, [canEdit, isEditing, onEditingChange]);
 
     const handleBlur = useCallback(() => {
       if (!canEdit) {
@@ -184,7 +187,8 @@ export const DynamicEditableTitle = memo(
       }
       dirtyRef.current = false;
       setIsEditing(false);
-    }, [canEdit, currentTitle, onSave, title]);
+      onEditingChange?.(false);
+    }, [canEdit, currentTitle, onSave, title, onEditingChange]);
 
     const handleChange = useCallback(
       (ev: ChangeEvent<HTMLInputElement>) => {
@@ -198,11 +202,15 @@ export const DynamicEditableTitle = memo(
         // controlled input would revert to the previous value.
         if (!isEditing) {
           setIsEditing(true);
+          onEditingChange?.(true);
         }
         dirtyRef.current = true;
         setCurrentTitle(ev.target.value);
+        // Notify the parent on every keystroke so it can flag unsaved changes
+        // immediately (before blur/commit).
+        onChange?.(ev.target.value);
       },
-      [canEdit, isEditing],
+      [canEdit, isEditing, onChange, onEditingChange],
     );
 
     const handleKeyPress = useCallback(

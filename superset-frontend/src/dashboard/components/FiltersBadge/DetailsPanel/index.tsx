@@ -18,8 +18,8 @@
  */
 import { RefObject, useEffect, useRef, KeyboardEvent } from 'react';
 
-import { useSelector } from 'react-redux';
 import { t } from '@apache-superset/core/translation';
+import { useActiveTabs } from 'src/dashboard/stores';
 import { useTheme } from '@apache-superset/core/theme';
 import { List, Popover } from '@superset-ui/core/components';
 import {
@@ -30,7 +30,6 @@ import {
 } from 'src/dashboard/components/FiltersBadge/Styles';
 import { Indicator } from 'src/dashboard/components/nativeFilters/selectors';
 import FilterIndicator from 'src/dashboard/components/FiltersBadge/FilterIndicator';
-import { RootState } from 'src/dashboard/types';
 
 export interface DetailsPanelProps {
   appliedCrossFilterIndicators: Indicator[];
@@ -53,9 +52,7 @@ const DetailsPanelPopover = ({
   popoverTriggerRef,
   setPopoverVisible,
 }: DetailsPanelProps) => {
-  const activeTabs = useSelector<RootState>(
-    state => state.dashboardState?.activeTabs,
-  );
+  const activeTabs = useActiveTabs();
   // Combined ref array for all filter indicator elements
   const indicatorRefs = useRef<(HTMLButtonElement | null)[]>([]);
 

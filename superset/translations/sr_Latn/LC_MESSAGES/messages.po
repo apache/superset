@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-24 10:35+0300\n"
+"POT-Creation-Date: 2026-09-30 17:53-0300\n"
 "PO-Revision-Date: 2026-06-14 13:20+0200\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: sr_Latn\n"
@@ -153,7 +153,6 @@ msgstr " za detalje."
 msgid " near '%(highlight)s'"
 msgstr " blizu '%(highlight)s'"
 
-# de, es, fa, fr, ja, lv, mi, nl, pl, ru, sk, sl, uk, zh, zh_TW]
 msgid ""
 " standard to ensure that the lexicographical ordering\n"
 "                      coincides with the chronological ordering. If the\n"
@@ -164,26 +163,12 @@ msgid ""
 "Note\n"
 "                      currently time zones are not supported. If time is "
 "stored\n"
-"                      in epoch format, put `epoch_s` or `epoch_ms`. If no"
-" pattern\n"
+"                      in epoch format, put `epoch_s`, `epoch_ms` or "
+"`epoch_us`. If no pattern\n"
 "                      is specified we fall back to using the optional "
 "defaults on a per\n"
 "                      database/column name level via the extra parameter."
 msgstr ""
-" standardu da bi leksikografsko uređivanje\n"
-"                      odgovaralo hronološkom uređivanju. Ako format\n"
-"                      vremenske oznake ne odgovara ISO 8601 standardu,\n"
-"                      morate definisati izraz i tip za\n"
-"                      pretvaranje stringa u datum ili vremensku oznaku. "
-"Imajte na umu\n"
-"                      da trenutno vremenske zone nisu podržane. Ako je "
-"vreme sačuvano\n"
-"                      u epoch formatu, unesite `epoch_s` ili `epoch_ms`. "
-"Ako obrazac\n"
-"                      nije naveden, koristimo opcione podrazumevane "
-"vrednosti na nivou\n"
-"                      baze podataka/naziva kolone putem dodatnog "
-"parametra."
 
 # de, es, fa, fr, ja, lv, mi, nl, ru, sk, sl, uk]
 msgid " to add calculated columns"
@@ -1182,6 +1167,9 @@ msgstr ""
 " text: \"My Chart\" }, tooltip: { trigger: \"item\" } }). Detalji: "
 "https://echarts.apache.org/en/option.html. "
 
+msgid "A Slack channel is required for Slack recipients"
+msgstr ""
+
 msgid "A TTL is required for ephemeral state."
 msgstr ""
 
@@ -1196,8 +1184,8 @@ msgid ""
 "analysis."
 msgstr ""
 "Svećasti grafikon prikazuje vrednosti otvaranja, zatvaranja, maksimum i "
-"minimum za svaki period. Obično se koristi za finansijsku i drugu analizu "
-"opsega vremenskih serija."
+"minimum za svaki period. Obično se koristi za finansijsku i drugu analizu"
+" opsega vremenskih serija."
 
 # ru, sk, uk]
 msgid "A comma separated list of columns that should be parsed as dates"
@@ -1948,6 +1936,9 @@ msgstr "Pogođeni grafici"
 # ja, lv, mi, ru, sl, uk]
 msgid "Affected Dashboards"
 msgstr "Pogođene kontrolne table"
+
+msgid "Affected Datasets"
+msgstr ""
 
 msgid "Affected semantic views"
 msgstr ""
@@ -4980,8 +4971,7 @@ msgstr "Šema boja"
 msgid ""
 "Color used when the close value is greater than or equal to the open "
 "value."
-msgstr ""
-"Boja kada je vrednost zatvaranja veća ili jednaka vrednosti otvaranja."
+msgstr "Boja kada je vrednost zatvaranja veća ili jednaka vrednosti otvaranja."
 
 msgid "Color used when the close value is less than the open value."
 msgstr "Boja kada je vrednost zatvaranja manja od vrednosti otvaranja."
@@ -5656,6 +5646,12 @@ msgstr ""
 msgid "Could not resolve hostname: \"%(host)s\"."
 msgstr "Nije moguće razrešiti naziv hosta: \"%(host)s\"."
 
+msgid ""
+"Could not resolve the user to impersonate on the database connection. The"
+" query was not run, because running it would have connected as the wrong "
+"user."
+msgstr ""
+
 # fr, ja, lv, mi, pt_BR, ru, sk, uk]
 msgid "Could not validate the user in the current session."
 msgstr "Nije moguće potvrditi korisnika u trenutnoj sesiji."
@@ -6159,6 +6155,9 @@ msgstr "Kontrolni panel nije mogao biti vraćen."
 msgid "Dashboard could not be updated."
 msgstr "Kontrolna tabla nije mogla biti ažurirana."
 
+msgid "Dashboard data exported to Excel"
+msgstr ""
+
 # de, es, fa, fr, ja, ko, lv, mi, nl, pl, pt_BR, ru, sk, sl, tr, uk, zh,
 # zh_TW]
 msgid "Dashboard does not exist"
@@ -6171,6 +6170,9 @@ msgstr "Kontrolna tabla je uspešno izvezena kao primer"
 # uk]
 msgid "Dashboard exported successfully"
 msgstr "Kontrolna tabla je uspešno izvezena"
+
+msgid "Dashboard has no charts to export."
+msgstr ""
 
 # de, es, fa, ja, lv, mi, nl, pt_BR, ru, sk, sl, tr, uk]
 msgid "Dashboard imported"
@@ -6963,6 +6965,11 @@ msgstr "Obriši grupu"
 msgid "Delete item"
 msgstr "Obriši stavku"
 
+msgid ""
+"Delete or move active datasets. To remove archived datasets, open "
+"Recently archived and select Delete permanently."
+msgstr ""
+
 msgid "Delete permanently"
 msgstr ""
 
@@ -7371,6 +7378,9 @@ msgstr "Onemogućava funkciju prelaska na detalje za ovu bazu podataka."
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
 msgid "Discard"
 msgstr "Odbaci"
+
+msgid "Discard changes?"
+msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Display Name"
@@ -8634,9 +8644,6 @@ msgstr "Izvoz u Excel"
 msgid "Excel XML Export"
 msgstr "Izvoz u Excel XML"
 
-msgid "Excel export is not configured on this server."
-msgstr ""
-
 # es, fa, fr, ja, lv, mi, pl, ru, sk, sl, uk]
 msgid "Excel file format cannot be determined"
 msgstr "Format Excel fajla ne može biti utvrđen"
@@ -8849,6 +8856,11 @@ msgstr "Izvezi u originalni .CSV"
 msgid "Export to pivoted .CSV"
 msgstr "Izvezi u ukršteni .CSV"
 
+msgid ""
+"Exporting images to Excel requires background exports. Ask an "
+"administrator to enable them, or export the dashboard's data instead."
+msgstr ""
+
 #, python-format
 msgid ""
 "Exporting semantic views is not supported yet — %s semantic-view row(s) "
@@ -9032,6 +9044,9 @@ msgstr "Neuspelo učitavanje podataka grafikona."
 msgid "Failed to load columns for %s %s"
 msgstr "Neuspelo učitavanje kolona za %s %s"
 
+msgid "Failed to load dashboard properties"
+msgstr ""
+
 #, python-format
 msgid "Failed to load dimensions for semantic view %s"
 msgstr ""
@@ -9106,6 +9121,9 @@ msgstr "Neuspelo čuvanje opsega ukrštenog filtera"
 # uk]
 msgid "Failed to save cross-filters setting"
 msgstr "Neuspelo čuvanje podešavanja ukrštenih filtera"
+
+msgid "Failed to save filter changes"
+msgstr ""
 
 # lv, ru, sk, uk]
 msgid "Failed to set local theme: Invalid JSON configuration"
@@ -12764,6 +12782,11 @@ msgstr "Ništa -> Strelica"
 msgid "None -> None"
 msgstr "Ništa -> Ništa"
 
+msgid ""
+"None of this dashboard's charts can be downloaded directly. Ask an "
+"administrator to enable background exports."
+msgstr ""
+
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Normal"
 msgstr "Normalno"
@@ -12795,6 +12818,15 @@ msgstr "Nije jednako"
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Not Time Series"
 msgstr "Nije vremenska serija"
+
+#, python-format
+msgid ""
+"Not a Slack channel id: %(invalid)s. Superset uploads report attachments "
+"with files_upload_v2, which accepts a channel id and rejects a channel "
+"name, so a name is saved successfully and then never delivers. Choose the"
+" channel from the dropdown, or copy its id from Slack (channel name, View"
+" channel details, the id is at the bottom)."
+msgstr ""
 
 # es, fa, ja, lv, mi, pl, ru, sk, sl, uk]
 msgid "Not a valid ZIP file"
@@ -13436,8 +13468,8 @@ msgid ""
 "Overlay simple moving averages of the close price (MA5, MA10, MA15, ...)."
 " Type a custom period to add it."
 msgstr ""
-"Preklopite proste pokretne proseke cene zatvaranja (MA5, MA10, MA15, ...). "
-"Unesite prilagođeni period da ga dodate."
+"Preklopite proste pokretne proseke cene zatvaranja (MA5, MA10, MA15, "
+"...). Unesite prilagođeni period da ga dodate."
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
 msgid ""
@@ -14160,6 +14192,12 @@ msgstr "Prefiks ili sufiks"
 
 #, python-format
 msgid "Preparing %(count)s charts for export. This may take a moment."
+msgstr ""
+
+msgid "Preparing dashboard Excel export…"
+msgstr ""
+
+msgid "Preparing export…"
 msgstr ""
 
 # de, es, fa, fr, ja, ko, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, uk, zh,
@@ -15787,6 +15825,9 @@ msgstr "Šema"
 msgid "Schema cache timeout"
 msgstr "Istek keša šeme"
 
+msgid "Schema not found."
+msgstr ""
+
 # de, es, fa, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
 msgid "Schemas allowed for File upload"
 msgstr "Šeme dozvoljene za otpremanje datoteka"
@@ -17389,10 +17430,6 @@ msgstr ""
 "Žao nam je, došlo je do greške prilikom preuzimanja informacija o bazi "
 "podataka: %s"
 
-# de, es, fa, fr, ja, lv, mi, nl, pl, pt, ru, sk, sl, uk, zh, zh_TW]
-msgid "Sorry there was an error fetching saved charts: "
-msgstr "Žao nam je, došlo je do greške prilikom preuzimanja sačuvanih grafikona: "
-
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Sorry, An error occurred"
 msgstr "Žao nam je, došlo je do greške"
@@ -17412,6 +17449,9 @@ msgstr "Žao nam je, došlo je do greške. Ugrađivanje nije moglo biti deaktivi
 # de, es, fa, fr, ja, lv, mi, nl, ru, sk, sl, uk]
 msgid "Sorry, something went wrong. Please try again."
 msgstr "Žao nam je, došlo je do greške. Pokušajte ponovo."
+
+msgid "Sorry, something went wrong. The changes could not be saved."
+msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Sorry, something went wrong. Try again later."
@@ -18838,6 +18878,12 @@ msgid ""
 msgstr ""
 
 msgid ""
+"The following charts were omitted because their size cannot be determined"
+" before they run. Ask an administrator to enable background exports to "
+"include them."
+msgstr ""
+
+msgid ""
 "The following charts were omitted because they have no saved query "
 "context. To include them, open each chart in Explore and re-save."
 msgstr ""
@@ -19373,6 +19419,10 @@ msgstr ""
 "Šema \"%(schema)s\" ne postoji. Za izvršavanje ovog upita mora se "
 "koristiti važeća šema."
 
+#, python-format
+msgid "The schema \"%(schema_name)s\" does not exist."
+msgstr ""
+
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, python-format
 msgid ""
@@ -19448,6 +19498,10 @@ msgid ""
 msgstr ""
 "Tabela \"%(table)s\" ne postoji. Za izvršavanje ovog upita mora se "
 "koristiti važeća tabela."
+
+#, python-format
+msgid "The table \"%(table_name)s\" does not exist."
+msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, python-format
@@ -19995,6 +20049,12 @@ msgstr "Došlo je do problema pri pregledu odabranog upita. %s"
 
 #, python-format
 msgid ""
+"These %(type)s will be moved to Recently Archived and may be permanently "
+"deleted on the next cleanup run."
+msgstr ""
+
+#, python-format
+msgid ""
 "These %(type)s will be moved to Recently Archived in the Settings menu. "
 "You can recover them there within %(days)s day."
 msgid_plural ""
@@ -20016,6 +20076,12 @@ msgstr "Ovo su skupovi podataka na koje će se ovaj filter primeniti."
 
 #, python-format
 msgid ""
+"This %(type)s will be moved to Recently Archived and may be permanently "
+"deleted on the next cleanup run."
+msgstr ""
+
+#, python-format
+msgid ""
 "This %(type)s will be moved to Recently Archived in the Settings menu. "
 "You can recover it there within %(days)s day."
 msgid_plural ""
@@ -20032,6 +20098,11 @@ msgid ""
 msgstr ""
 
 msgid "This CSS uses @import, which cannot be saved"
+msgstr ""
+
+msgid ""
+"This Google Sheets connection impersonates the logged-in user, who has no"
+" e-mail address."
 msgstr ""
 
 # de, es, fa, fr, it, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, uk, zh,
@@ -20181,6 +20252,12 @@ msgstr ""
 "podatke napomena."
 
 msgid "This dashboard does not exist"
+msgstr ""
+
+msgid ""
+"This dashboard has too much data to download directly. Ask an "
+"administrator to enable background exports, or lower the row limits of "
+"its charts."
 msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
@@ -21173,6 +21250,9 @@ msgstr "Utorak"
 
 msgid "Tukey"
 msgstr "Tukey"
+
+msgid "Turn off the logarithmic axis before stacking bars"
+msgstr ""
 
 # de, es, fa, fr, it, ja, ko, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, tr, uk,
 # zh, zh_TW]
@@ -22364,6 +22444,10 @@ msgid ""
 "%(location)s."
 msgstr "Nije moguće pronaći kolonu „%(column_name)s” u redu %(location)s."
 
+#, python-format
+msgid "We can't seem to resolve the column \"%(column_name)s\"."
+msgstr ""
+
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
 #, python-format
 msgid "We have the following keys: %s"
@@ -22514,9 +22598,9 @@ msgid ""
 "candles use the decrease color. Turn off to use one series color, with a "
 "filled body for increases and a hollow body for decreases."
 msgstr ""
-"Ako je uključeno, rastuće sveće koriste boju rasta, a opadajuće boju pada. "
-"Isključite da koristite jednu boju serije: ispunjeno telo pri rastu i "
-"šuplje pri padu."
+"Ako je uključeno, rastuće sveće koriste boju rasta, a opadajuće boju "
+"pada. Isključite da koristite jednu boju serije: ispunjeno telo pri rastu"
+" i šuplje pri padu."
 
 # ru, sk, uk]
 msgid ""
@@ -23456,6 +23540,9 @@ msgstr ""
 "Ažurirali ste vrednosti na kontrolnoj tabli, ali grafikon nije automatski"
 " ažuriran. Pokrenite upit klikom na dugme „Ažuriraj grafikon” ili"
 
+msgid "You will lose all changes since your last save. This cannot be undone."
+msgstr ""
+
 #, python-format
 msgid ""
 "You'll be removed from this task. It will continue running for %s other "
@@ -23820,6 +23907,13 @@ msgstr "dugme (cmd + z) dok ne sačuvate izmene."
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "by using"
 msgstr "koristeći"
+
+#, python-format
+msgid "cannot be deleted because %s dataset is still attached to it."
+msgid_plural "cannot be deleted because %s datasets are still attached to it."
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, tr, uk, zh, zh_TW]
 msgid "cannot be empty"

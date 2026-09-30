@@ -18,15 +18,21 @@
  */
 
 import { useCallback, useMemo, useState } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
+import { useDispatch } from 'react-redux';
 import { t } from '@apache-superset/core/translation';
 import { styled, useTheme, css } from '@apache-superset/core/theme';
 import { MenuProps } from '@superset-ui/core/components/Menu';
-import { FilterBarOrientation, RootState } from 'src/dashboard/types';
+import { FilterBarOrientation } from 'src/dashboard/types';
 import {
-  saveFilterBarOrientation,
-  saveCrossFiltersSetting,
-} from 'src/dashboard/actions/dashboardInfo';
+  useFilterBarOrientation,
+  useCrossFiltersEnabled,
+  useCanEditDashboard,
+  useDashboardId,
+} from 'src/dashboard/stores';
+import {
+  useSaveFilterBarOrientation,
+  useSaveCrossFiltersSetting,
+} from 'src/dashboard/queries';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { Button, Checkbox, Dropdown } from '@superset-ui/core/components';
 import { Space } from '@superset-ui/core/components/Space';
@@ -59,26 +65,18 @@ const isOrientation = (o: SelectedKey): o is FilterBarOrientation =>
 const FilterBarSettings = () => {
   const theme = useTheme();
   const dispatch = useDispatch();
-  const isCrossFiltersEnabled = useSelector<RootState, boolean>(
-    ({ dashboardInfo }) => dashboardInfo.crossFiltersEnabled,
-  );
-  const filterBarOrientation = useSelector<RootState, FilterBarOrientation>(
-    ({ dashboardInfo }) => dashboardInfo.filterBarOrientation,
-  );
+  const isCrossFiltersEnabled = useCrossFiltersEnabled();
+  const filterBarOrientation = useFilterBarOrientation();
   const [selectedFilterBarOrientation, setSelectedFilterBarOrientation] =
     useState(filterBarOrientation);
 
   const [crossFiltersEnabled, setCrossFiltersEnabled] = useState<boolean>(
     isCrossFiltersEnabled,
   );
-  const canEdit = useSelector<RootState, boolean>(
-    ({ dashboardInfo }) => dashboardInfo.dash_edit_perm,
-  );
+  const canEdit = useCanEditDashboard();
   const filters = useFilters();
   const filterValues = useMemo(() => Object.values(filters), [filters]);
-  const dashboardId = useSelector<RootState, number>(
-    ({ dashboardInfo }) => dashboardInfo.id,
-  );
+  const dashboardId = useDashboardId();
 
   const [openScopingModal, scopingModal] = useCrossFiltersScopingModal();
 
@@ -88,14 +86,23 @@ const FilterBarSettings = () => {
       dashboardId,
     });
 
+  const { mutateAsync: saveCrossFiltersSetting } = useSaveCrossFiltersSetting();
+  const { mutateAsync: saveFilterBarOrientation } =
+    useSaveFilterBarOrientation();
+
   const updateCrossFiltersSetting = useCallback(
     async (isEnabled: boolean) => {
       if (!isEnabled) {
         dispatch(clearDataMaskState());
       }
-      await dispatch(saveCrossFiltersSetting(isEnabled));
+      try {
+        await saveCrossFiltersSetting(isEnabled);
+      } catch {
+        // revert the local checkbox if the save failed
+        setCrossFiltersEnabled(!isEnabled);
+      }
     },
-    [dispatch],
+    [dispatch, saveCrossFiltersSetting],
   );
 
   const toggleCrossFiltering = useCallback(() => {
@@ -111,14 +118,14 @@ const FilterBarSettings = () => {
       // set displayed selection in local state for immediate visual response after clicking
       setSelectedFilterBarOrientation(orientation);
       try {
-        // save selection in Redux and backend
-        await dispatch(saveFilterBarOrientation(orientation));
+        // save selection in the store and backend
+        await saveFilterBarOrientation(orientation);
       } catch {
         // revert local state in case of error when saving
         setSelectedFilterBarOrientation(filterBarOrientation);
       }
     },
-    [dispatch, filterBarOrientation],
+    [saveFilterBarOrientation, filterBarOrientation],
   );
 
   const handleClick = useCallback(

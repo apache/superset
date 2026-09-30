@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-24 10:35+0300\n"
+"POT-Creation-Date: 2026-09-30 17:53-0300\n"
 "PO-Revision-Date: 2016-05-02 08:49-0700\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: es\n"
@@ -149,27 +149,12 @@ msgid ""
 "Note\n"
 "                      currently time zones are not supported. If time is "
 "stored\n"
-"                      in epoch format, put `epoch_s` or `epoch_ms`. If no"
-" pattern\n"
+"                      in epoch format, put `epoch_s`, `epoch_ms` or "
+"`epoch_us`. If no pattern\n"
 "                      is specified we fall back to using the optional "
 "defaults on a per\n"
 "                      database/column name level via the extra parameter."
 msgstr ""
-" norma para garantizar que el orden lexicográfico\n"
-"                      coincida con el orden cronológico. Si el\n"
-"                      formato de marca de tiempo no se adhiere a la norma"
-" ISO 8601\n"
-",                      deberás definir una expresión y un tipo para\n"
-"                      transformar la cadena en una fecha o marca de "
-"tiempo. Recuerda que\n"
-"                      actualmente no se admiten zonas horarias. Si la "
-"hora/fecha se almacena\n"
-"                      en formato de época, define «epoch_s» o «epoch_ms»."
-" Si no\n"
-"                      se especifica ningún patrón, volveremos a usar los "
-"valores predeterminados opcionales a nivel de nombre de\n"
-"                      base de datos/columna por medio del parámetro "
-"adicional."
 
 msgid " to add calculated columns"
 msgstr " para añadir columnas calculadas"
@@ -1008,6 +993,9 @@ msgstr ""
 "ej. { title: { text: \"Mi gráfico\" }, tooltip: { trigger: \"item\" } })."
 " Detalles: https://echarts.apache.org/en/option.html. "
 
+msgid "A Slack channel is required for Slack recipients"
+msgstr ""
+
 msgid "A TTL is required for ephemeral state."
 msgstr ""
 
@@ -1022,8 +1010,8 @@ msgid ""
 "analysis."
 msgstr ""
 "Un gráfico de velas muestra los valores de apertura, cierre, máximo y "
-"mínimo de cada período. Se usa habitualmente para análisis financiero y de "
-"rangos en series temporales."
+"mínimo de cada período. Se usa habitualmente para análisis financiero y "
+"de rangos en series temporales."
 
 #, fuzzy
 msgid "A comma separated list of columns that should be parsed as dates"
@@ -1667,6 +1655,9 @@ msgstr "Gráficos afectados"
 #, -ERR:PROP-NOT-FOUND-
 msgid "Affected Dashboards"
 msgstr "Paneles de control afectados"
+
+msgid "Affected Datasets"
+msgstr ""
 
 msgid "Affected semantic views"
 msgstr ""
@@ -4836,6 +4827,12 @@ msgstr ""
 msgid "Could not resolve hostname: \"%(host)s\"."
 msgstr "No se ha podido resolver el nombre del «host»: «%(host)s»."
 
+msgid ""
+"Could not resolve the user to impersonate on the database connection. The"
+" query was not run, because running it would have connected as the wrong "
+"user."
+msgstr ""
+
 msgid "Could not validate the user in the current session."
 msgstr "No se ha podido validar al usuario en la sesión actual."
 
@@ -5274,6 +5271,9 @@ msgstr "No se pudo restaurar el panel."
 msgid "Dashboard could not be updated."
 msgstr "No se ha podido actualizar el panel de control."
 
+msgid "Dashboard data exported to Excel"
+msgstr ""
+
 msgid "Dashboard does not exist"
 msgstr "El panel de control no existe"
 
@@ -5284,6 +5284,9 @@ msgstr "Este panel de control se ha guardado correctamente."
 #, fuzzy
 msgid "Dashboard exported successfully"
 msgstr "Este panel de control se ha guardado correctamente."
+
+msgid "Dashboard has no charts to export."
+msgstr ""
 
 msgid "Dashboard imported"
 msgstr "Panel de control importado"
@@ -5930,6 +5933,11 @@ msgstr "Eliminar rol"
 msgid "Delete item"
 msgstr "Eliminar plantilla"
 
+msgid ""
+"Delete or move active datasets. To remove archived datasets, open "
+"Recently archived and select Delete permanently."
+msgstr ""
+
 msgid "Delete permanently"
 msgstr ""
 
@@ -6273,6 +6281,9 @@ msgstr "Deshabilita la función de desglose a detalle para esta base de datos."
 
 msgid "Discard"
 msgstr "Descartar"
+
+msgid "Discard changes?"
+msgstr ""
 
 msgid "Display Name"
 msgstr "Nombre a mostrar"
@@ -7362,9 +7373,6 @@ msgstr "Informe semanal"
 msgid "Excel XML Export"
 msgstr "Informe semanal"
 
-msgid "Excel export is not configured on this server."
-msgstr ""
-
 msgid "Excel file format cannot be determined"
 msgstr "No se puede determinar el formato de archivo de Excel"
 
@@ -7540,6 +7548,11 @@ msgstr "Exportar a .CSV original"
 msgid "Export to pivoted .CSV"
 msgstr "Exportar a .CSV dinámico"
 
+msgid ""
+"Exporting images to Excel requires background exports. Ask an "
+"administrator to enable them, or export the dashboard's data instead."
+msgstr ""
+
 #, python-format
 msgid ""
 "Exporting semantic views is not supported yet — %s semantic-view row(s) "
@@ -7706,6 +7719,9 @@ msgstr "No se han podido cargar los datos del gráfico."
 msgid "Failed to load columns for %s %s"
 msgstr "No se han podido cargar las columnas de %s %s"
 
+msgid "Failed to load dashboard properties"
+msgstr ""
+
 #, python-format
 msgid "Failed to load dimensions for semantic view %s"
 msgstr ""
@@ -7778,6 +7794,9 @@ msgstr "No se ha podido guardar el alcance del filtro cruzado"
 #, fuzzy
 msgid "Failed to save cross-filters setting"
 msgstr "No se ha podido guardar el alcance del filtro cruzado"
+
+msgid "Failed to save filter changes"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: fr, ru]
 #, fuzzy
@@ -10934,6 +10953,11 @@ msgstr "Ninguno -> Flecha"
 msgid "None -> None"
 msgstr "Ninguno -> Ninguno"
 
+msgid ""
+"None of this dashboard's charts can be downloaded directly. Ask an "
+"administrator to enable background exports."
+msgstr ""
+
 msgid "Normal"
 msgstr "Normal"
 
@@ -10958,6 +10982,15 @@ msgstr "No es igual a (≠)"
 
 msgid "Not Time Series"
 msgstr "No es una serie temporal"
+
+#, python-format
+msgid ""
+"Not a Slack channel id: %(invalid)s. Superset uploads report attachments "
+"with files_upload_v2, which accepts a channel id and rejects a channel "
+"name, so a name is saved successfully and then never delivers. Choose the"
+" channel from the dropdown, or copy its id from Slack (channel name, View"
+" channel details, the id is at the bottom)."
+msgstr ""
 
 msgid "Not a valid ZIP file"
 msgstr "No es un archivo ZIP válido"
@@ -12123,6 +12156,12 @@ msgstr "Prefijo o sufijo"
 
 #, python-format
 msgid "Preparing %(count)s charts for export. This may take a moment."
+msgstr ""
+
+msgid "Preparing dashboard Excel export…"
+msgstr ""
+
+msgid "Preparing export…"
 msgstr ""
 
 msgid "Preview"
@@ -13482,6 +13521,9 @@ msgstr "Esquema"
 
 msgid "Schema cache timeout"
 msgstr "Tiempo de espera del caché del esquema"
+
+msgid "Schema not found."
+msgstr ""
 
 msgid "Schemas allowed for File upload"
 msgstr "Esquemas permitidos para la subida de archivos"
@@ -14940,11 +14982,6 @@ msgstr ""
 "Lo sentimos, se ha producido un error al recuperar la información de la "
 "base de datos: %s"
 
-msgid "Sorry there was an error fetching saved charts: "
-msgstr ""
-"Lo sentimos, se ha producido un error al recuperar los gráficos "
-"guardados: "
-
 msgid "Sorry, An error occurred"
 msgstr "Lo sentimos, se ha producido un error"
 
@@ -14961,6 +14998,9 @@ msgstr ""
 
 msgid "Sorry, something went wrong. Please try again."
 msgstr "Lo sentimos, se ha producido un error. Inténtalo de nuevo."
+
+msgid "Sorry, something went wrong. The changes could not be saved."
+msgstr ""
 
 msgid "Sorry, something went wrong. Try again later."
 msgstr "Lo sentimos, se ha producido un error. Inténtalo de nuevo más tarde."
@@ -16214,6 +16254,12 @@ msgid ""
 msgstr ""
 
 msgid ""
+"The following charts were omitted because their size cannot be determined"
+" before they run. Ask an administrator to enable background exports to "
+"include them."
+msgstr ""
+
+msgid ""
 "The following charts were omitted because they have no saved query "
 "context. To include them, open each chart in Explore and re-save."
 msgstr ""
@@ -16734,6 +16780,10 @@ msgstr ""
 "para ejecutar esta consulta."
 
 #, python-format
+msgid "The schema \"%(schema_name)s\" does not exist."
+msgstr ""
+
+#, python-format
 msgid ""
 "The schema \"%(schema_name)s\" does not exist. A valid schema must be "
 "used to run this query."
@@ -16798,6 +16848,10 @@ msgid ""
 msgstr ""
 "La tabla «%(table)s» no existe. Se debe utilizar una tabla válida para "
 "ejecutar esta consulta."
+
+#, python-format
+msgid "The table \"%(table_name)s\" does not exist."
+msgstr ""
 
 #, python-format
 msgid ""
@@ -17302,6 +17356,12 @@ msgstr "Ha habido un problema al previsualizar la consulta seleccionada. %s"
 
 #, python-format
 msgid ""
+"These %(type)s will be moved to Recently Archived and may be permanently "
+"deleted on the next cleanup run."
+msgstr ""
+
+#, python-format
+msgid ""
 "These %(type)s will be moved to Recently Archived in the Settings menu. "
 "You can recover them there within %(days)s day."
 msgid_plural ""
@@ -17321,6 +17381,12 @@ msgstr "Estos son los conjuntos de datos a los que se aplicará este filtro."
 
 #, python-format
 msgid ""
+"This %(type)s will be moved to Recently Archived and may be permanently "
+"deleted on the next cleanup run."
+msgstr ""
+
+#, python-format
+msgid ""
 "This %(type)s will be moved to Recently Archived in the Settings menu. "
 "You can recover it there within %(days)s day."
 msgid_plural ""
@@ -17336,6 +17402,11 @@ msgid ""
 msgstr ""
 
 msgid "This CSS uses @import, which cannot be saved"
+msgstr ""
+
+msgid ""
+"This Google Sheets connection impersonates the logged-in user, who has no"
+" e-mail address."
 msgstr ""
 
 msgid ""
@@ -17469,6 +17540,12 @@ msgstr ""
 "anotación."
 
 msgid "This dashboard does not exist"
+msgstr ""
+
+msgid ""
+"This dashboard has too much data to download directly. Ask an "
+"administrator to enable background exports, or lower the row limits of "
+"its charts."
 msgstr ""
 
 msgid "This dashboard is managed externally, and can't be edited in Superset"
@@ -18360,6 +18437,9 @@ msgstr "Martes"
 
 msgid "Tukey"
 msgstr "Tukey"
+
+msgid "Turn off the logarithmic axis before stacking bars"
+msgstr ""
 
 msgid "Type"
 msgstr "Tipo"
@@ -19437,6 +19517,10 @@ msgstr ""
 "%(location)s."
 
 #, python-format
+msgid "We can't seem to resolve the column \"%(column_name)s\"."
+msgstr ""
+
+#, python-format
 msgid "We have the following keys: %s"
 msgstr "Tenemos las siguientes claves: %s"
 
@@ -20367,6 +20451,9 @@ msgstr ""
 " actualizó automáticamente. Ejecuta la consulta haciendo clic en el botón"
 " «Actualizar gráfico» o"
 
+msgid "You will lose all changes since your last save. This cannot be undone."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
 #, fuzzy, python-format
@@ -20681,6 +20768,12 @@ msgstr "botón (cmd + z) hasta que guardes tus cambios."
 
 msgid "by using"
 msgstr "utilizando"
+
+#, python-format
+msgid "cannot be deleted because %s dataset is still attached to it."
+msgid_plural "cannot be deleted because %s datasets are still attached to it."
+msgstr[0] ""
+msgstr[1] ""
 
 msgid "cannot be empty"
 msgstr "no puede estar vacío"

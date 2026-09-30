@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-24 10:35+0300\n"
+"POT-Creation-Date: 2026-09-30 17:53-0300\n"
 "PO-Revision-Date: 2024-10-20 00:07+0330\n"
 "Last-Translator: Emad Rad <codewithemad@gmail.com>\n"
 "Language: fa\n"
@@ -147,19 +147,12 @@ msgid ""
 "Note\n"
 "                      currently time zones are not supported. If time is "
 "stored\n"
-"                      in epoch format, put `epoch_s` or `epoch_ms`. If no"
-" pattern\n"
+"                      in epoch format, put `epoch_s`, `epoch_ms` or "
+"`epoch_us`. If no pattern\n"
 "                      is specified we fall back to using the optional "
 "defaults on a per\n"
 "                      database/column name level via the extra parameter."
 msgstr ""
-"استاندارد برای اطمینان از همخوانی ترتیب لغوی با ترتیب زمانی. اگر فرمت "
-"برچسب زمان به استاندارد ISO 8601 پایبند نیست، شما باید یک عبارت و نوع را "
-"برای تبدیل رشته به تاریخ یا برچسب زمان تعریف کنید. توجه کنید که در حال "
-"حاضر مناطق زمانی پشتیبانی نمی‌شوند. اگر زمان به فرمت epoch ذخیره شده است،"
-" `epoch_s` یا `epoch_ms` را قرار دهید. اگر الگویی مشخص نشده است، ما به "
-"استفاده از پیش‌فرض‌های اختیاری در سطح پایگاه داده / نام ستون از طریق "
-"پارامتر اضافی باز می‌گردیم."
 
 msgid " to add calculated columns"
 msgstr "برای اضافه کردن ستون‌های محاسبه‌شده"
@@ -1026,6 +1019,9 @@ msgstr ""
 "text: \"My Chart\" }, tooltip: { trigger: \"item\" } }). جزئیات: "
 "https://echarts.apache.org/en/option.html. "
 
+msgid "A Slack channel is required for Slack recipients"
+msgstr ""
+
 msgid "A TTL is required for ephemeral state."
 msgstr ""
 
@@ -1697,6 +1693,9 @@ msgstr "نمودارها را انتخاب کنید"
 #, fuzzy
 msgid "Affected Dashboards"
 msgstr "داشبوردها را انتخاب کنید"
+
+msgid "Affected Datasets"
+msgstr ""
 
 msgid "Affected semantic views"
 msgstr ""
@@ -4901,6 +4900,12 @@ msgstr ""
 msgid "Could not resolve hostname: \"%(host)s\"."
 msgstr "نتوانستم نام میزبان را شناسایی کنم: \"%(host)s\"."
 
+msgid ""
+"Could not resolve the user to impersonate on the database connection. The"
+" query was not run, because running it would have connected as the wrong "
+"user."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fr, ja, lv, mi, pt_BR, ro, ru, sk, sr, sr_Latn, tr, uk]
 #, fuzzy
@@ -5343,6 +5348,9 @@ msgstr "داشبورد قابل بازیابی نبود."
 msgid "Dashboard could not be updated."
 msgstr "داشبورد قابل به‌روزرسانی نیست."
 
+msgid "Dashboard data exported to Excel"
+msgstr ""
+
 msgid "Dashboard does not exist"
 msgstr "داشبورد وجود ندارد"
 
@@ -5353,6 +5361,9 @@ msgstr "این داشبورد با موفقیت ذخیره شد."
 #, fuzzy
 msgid "Dashboard exported successfully"
 msgstr "این داشبورد با موفقیت ذخیره شد."
+
+msgid "Dashboard has no charts to export."
+msgstr ""
 
 msgid "Dashboard imported"
 msgstr "داشبورد وارد شد"
@@ -6002,6 +6013,11 @@ msgstr "فایل را انتخاب کنید"
 msgid "Delete item"
 msgstr "قالب را حذف کنید"
 
+msgid ""
+"Delete or move active datasets. To remove archived datasets, open "
+"Recently archived and select Delete permanently."
+msgstr ""
+
 msgid "Delete permanently"
 msgstr ""
 
@@ -6344,6 +6360,9 @@ msgstr "این ویژگی جستجوی جزئیات برای این پایگاه
 
 msgid "Discard"
 msgstr "رد کنید"
+
+msgid "Discard changes?"
+msgstr ""
 
 msgid "Display Name"
 msgstr "نام نمایشی"
@@ -7468,9 +7487,6 @@ msgstr "گزارش هفتگی"
 msgid "Excel XML Export"
 msgstr "گزارش هفتگی"
 
-msgid "Excel export is not configured on this server."
-msgstr ""
-
 msgid "Excel file format cannot be determined"
 msgstr "فرمت فایل اکسل قابل شناسایی نیست"
 
@@ -7652,6 +7668,11 @@ msgstr "صادر کردن به .CSV اصلی"
 msgid "Export to pivoted .CSV"
 msgstr "صادرات به فایل .CSV محور شده"
 
+msgid ""
+"Exporting images to Excel requires background exports. Ask an "
+"administrator to enable them, or export the dashboard's data instead."
+msgstr ""
+
 #, python-format
 msgid ""
 "Exporting semantic views is not supported yet — %s semantic-view row(s) "
@@ -7825,6 +7846,9 @@ msgstr "بارگذاری داده‌های نمودار ناموفق بود."
 msgid "Failed to load columns for %s %s"
 msgstr ""
 
+msgid "Failed to load dashboard properties"
+msgstr ""
+
 #, python-format
 msgid "Failed to load dimensions for semantic view %s"
 msgstr ""
@@ -7898,6 +7922,9 @@ msgstr "خطا در ذخیره‌سازی دامنه فیلتر متقاطع"
 #, fuzzy
 msgid "Failed to save cross-filters setting"
 msgstr "خطا در ذخیره‌سازی دامنه فیلتر متقاطع"
+
+msgid "Failed to save filter changes"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, fr,
 # ja, lv, ro, ru, sk, sr, sr_Latn, tr, uk]
@@ -11117,6 +11144,11 @@ msgstr "هیچ -> پیکان"
 msgid "None -> None"
 msgstr "هیچ -> هیچ"
 
+msgid ""
+"None of this dashboard's charts can be downloaded directly. Ask an "
+"administrator to enable background exports."
+msgstr ""
+
 msgid "Normal"
 msgstr "عادی"
 
@@ -11142,6 +11174,15 @@ msgstr "نابرابر با (≠)"
 
 msgid "Not Time Series"
 msgstr "غیر از سری زمانی"
+
+#, python-format
+msgid ""
+"Not a Slack channel id: %(invalid)s. Superset uploads report attachments "
+"with files_upload_v2, which accepts a channel id and rejects a channel "
+"name, so a name is saved successfully and then never delivers. Choose the"
+" channel from the dropdown, or copy its id from Slack (channel name, View"
+" channel details, the id is at the bottom)."
+msgstr ""
 
 msgid "Not a valid ZIP file"
 msgstr "فایل فشرده معتبری نیست"
@@ -12311,6 +12352,12 @@ msgstr "پیشوند یا پسوند"
 
 #, python-format
 msgid "Preparing %(count)s charts for export. This may take a moment."
+msgstr ""
+
+msgid "Preparing dashboard Excel export…"
+msgstr ""
+
+msgid "Preparing export…"
 msgstr ""
 
 msgid "Preview"
@@ -13678,6 +13725,9 @@ msgstr "طرح‌بندی"
 
 msgid "Schema cache timeout"
 msgstr "زمان محدودیت کش схемه"
+
+msgid "Schema not found."
+msgstr ""
 
 msgid "Schemas allowed for File upload"
 msgstr "طرح‌های مجاز برای بارگذاری فایل"
@@ -15166,9 +15216,6 @@ msgstr "چیزی اشتباه پیش رفت."
 msgid "Sorry there was an error fetching database information: %s"
 msgstr "متأسفیم، در بازیابی اطلاعات پایگاه داده خطایی رخ داده است: %s"
 
-msgid "Sorry there was an error fetching saved charts: "
-msgstr "متأسفم، خطایی در بارگذاری نمودارهای ذخیره شده وجود داشت:"
-
 msgid "Sorry, An error occurred"
 msgstr "متاسفم، یک خطا رخ داده است"
 
@@ -15183,6 +15230,9 @@ msgstr "متأسفم، مشکلی پیش آمد. غیر فعال کردن جاس
 
 msgid "Sorry, something went wrong. Please try again."
 msgstr "متأسفم، مشکلی پیش آمده است. لطفاً دوباره تلاش کنید."
+
+msgid "Sorry, something went wrong. The changes could not be saved."
+msgstr ""
 
 msgid "Sorry, something went wrong. Try again later."
 msgstr "متأسفم، مشکلی پیش آمده است. بعداً تلاش کنید."
@@ -16452,6 +16502,12 @@ msgid ""
 msgstr ""
 
 msgid ""
+"The following charts were omitted because their size cannot be determined"
+" before they run. Ask an administrator to enable background exports to "
+"include them."
+msgstr ""
+
+msgid ""
 "The following charts were omitted because they have no saved query "
 "context. To include them, open each chart in Explore and re-save."
 msgstr ""
@@ -16936,6 +16992,10 @@ msgstr ""
 "اسکیمای معتبر استفاده شود."
 
 #, python-format
+msgid "The schema \"%(schema_name)s\" does not exist."
+msgstr ""
+
+#, python-format
 msgid ""
 "The schema \"%(schema_name)s\" does not exist. A valid schema must be "
 "used to run this query."
@@ -17007,6 +17067,10 @@ msgid ""
 msgstr ""
 "جدول \"%(table)s\" وجود ندارد. برای اجرای این کوئری باید از یک جدول معتبر"
 " استفاده شود."
+
+#, python-format
+msgid "The table \"%(table_name)s\" does not exist."
+msgstr ""
 
 #, python-format
 msgid ""
@@ -17498,6 +17562,12 @@ msgstr "در پیش‌نمایش کوئریی انتخاب‌شده مشکلی �
 
 #, python-format
 msgid ""
+"These %(type)s will be moved to Recently Archived and may be permanently "
+"deleted on the next cleanup run."
+msgstr ""
+
+#, python-format
+msgid ""
 "These %(type)s will be moved to Recently Archived in the Settings menu. "
 "You can recover them there within %(days)s day."
 msgid_plural ""
@@ -17517,6 +17587,12 @@ msgstr "اینها مجموعه داده‌هایی هستند که این فی�
 
 #, python-format
 msgid ""
+"This %(type)s will be moved to Recently Archived and may be permanently "
+"deleted on the next cleanup run."
+msgstr ""
+
+#, python-format
+msgid ""
 "This %(type)s will be moved to Recently Archived in the Settings menu. "
 "You can recover it there within %(days)s day."
 msgid_plural ""
@@ -17532,6 +17608,11 @@ msgid ""
 msgstr ""
 
 msgid "This CSS uses @import, which cannot be saved"
+msgstr ""
+
+msgid ""
+"This Google Sheets connection impersonates the logged-in user, who has no"
+" e-mail address."
 msgstr ""
 
 msgid ""
@@ -17665,6 +17746,12 @@ msgstr ""
 "داده‌های توضیحات منتقل شود یا خیر."
 
 msgid "This dashboard does not exist"
+msgstr ""
+
+msgid ""
+"This dashboard has too much data to download directly. Ask an "
+"administrator to enable background exports, or lower the row limits of "
+"its charts."
 msgstr ""
 
 msgid "This dashboard is managed externally, and can't be edited in Superset"
@@ -18571,6 +18658,9 @@ msgstr "سه‌شنبه"
 
 msgid "Tukey"
 msgstr "توکی"
+
+msgid "Turn off the logarithmic axis before stacking bars"
+msgstr ""
 
 msgid "Type"
 msgstr "نوع"
@@ -19650,6 +19740,10 @@ msgid ""
 msgstr "ما نمی‌توانیم ستون \"%(column_name)s\" را در خط %(location)s حل کنیم."
 
 #, python-format
+msgid "We can't seem to resolve the column \"%(column_name)s\"."
+msgstr ""
+
+#, python-format
 msgid "We have the following keys: %s"
 msgstr "ما کلیدهای زیر را داریم: %s"
 
@@ -19769,8 +19863,8 @@ msgid ""
 "filled body for increases and a hollow body for decreases."
 msgstr ""
 "در صورت فعال بودن، شمع‌های صعودی رنگ افزایش و شمع‌های نزولی رنگ کاهش را "
-"دارند. خاموش کنید تا یک رنگ سری استفاده شود: بدنه پر برای افزایش و توخالی "
-"برای کاهش."
+"دارند. خاموش کنید تا یک رنگ سری استفاده شود: بدنه پر برای افزایش و توخالی"
+" برای کاهش."
 
 #, fuzzy
 msgid ""
@@ -20581,6 +20675,9 @@ msgstr ""
 "به‌روزرسانی نشد. با کلیک بر روی دکمه \"به‌روزرسانی نمودار\" query را اجرا"
 " کنید یا"
 
+msgid "You will lose all changes since your last save. This cannot be undone."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
 #, fuzzy, python-format
@@ -20900,6 +20997,12 @@ msgstr "دکمه (cmd + ز) را بزنید تا زمانی که تغییرات 
 
 msgid "by using"
 msgstr "با استفاده از"
+
+#, python-format
+msgid "cannot be deleted because %s dataset is still attached to it."
+msgid_plural "cannot be deleted because %s datasets are still attached to it."
+msgstr[0] ""
+msgstr[1] ""
 
 msgid "cannot be empty"
 msgstr "نمی‌تواند خالی باشد"
