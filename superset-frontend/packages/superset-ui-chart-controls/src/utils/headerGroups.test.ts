@@ -413,6 +413,79 @@ test('normalizeColumnConfigKeys returns an empty object without saved config', (
   expect(normalizeColumnConfigKeys(null, comparisonRevenueColumns)).toEqual({});
 });
 
+test('normalizeColumnConfigKeys keeps keys that do not match colnames', () => {
+  expect(
+    normalizeColumnConfigKeys(
+      { leftover: { columnWidth: 10 } },
+      comparisonRevenueColumns,
+    ),
+  ).toEqual({ leftover: { columnWidth: 10 } });
+});
+
+test('buildHeaderGroupRows fills empty cells for ungrouped columns', () => {
+  const rows = buildHeaderGroupRows(chartGroups, ['revenue', 'region']);
+
+  expect(rows[0]).toEqual([
+    expect.objectContaining({
+      label: 'Sales',
+      colSpan: 1,
+      columnIndex: 0,
+    }),
+    expect.objectContaining({
+      label: '',
+      colSpan: 1,
+      columnIndex: 1,
+      isLastColumn: true,
+    }),
+  ]);
+});
+
+test('buildHeaderGroupRows skips cells already covered by a taller group', () => {
+  const rows = buildHeaderGroupRows(
+    [
+      {
+        id: 'wide',
+        label: 'Wide',
+        columns: ['revenue'],
+      },
+      {
+        id: 'nested',
+        label: 'Nested',
+        columns: [],
+        children: [
+          {
+            id: 'inner',
+            label: 'Inner',
+            columns: ['profit'],
+          },
+        ],
+      },
+    ],
+    ['revenue', 'profit'],
+  );
+
+  expect(rows).toHaveLength(2);
+  expect(rows[0]).toEqual([
+    expect.objectContaining({
+      label: 'Wide',
+      colSpan: 1,
+      rowSpan: 2,
+    }),
+    expect.objectContaining({
+      label: 'Nested',
+      colSpan: 1,
+      rowSpan: 1,
+    }),
+  ]);
+  expect(rows[1]).toEqual([
+    expect.objectContaining({
+      label: 'Inner',
+      colSpan: 1,
+      columnIndex: 1,
+    }),
+  ]);
+});
+
 test('expandGroupColumnKey skips ambiguous localized Main keys', () => {
   expect(
     expandGroupColumnKey('Main revenue', [
