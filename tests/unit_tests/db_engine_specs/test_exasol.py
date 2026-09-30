@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import pytest
-from sqlalchemy.exc import StatementError
+from sqlalchemy.exc import DBAPIError, StatementError
 
 from superset.db_engine_specs.exasol import ExasolEngineSpec
 from superset.errors import SupersetErrorType
@@ -166,3 +166,26 @@ def test_extract_verbose_diagnostic_keeps_arrow_lines() -> None:
     errors = ExasolEngineSpec.extract_errors(Exception(raw))
     assert errors[0].error_type == SupersetErrorType.GENERIC_DB_ENGINE_ERROR
     assert errors[0].message == diagnostic
+
+
+@pytest.mark.parametrize("diagnostic", ["", " \t", "\n \t\n"])
+@pytest.mark.parametrize("wrapped", [False, True])
+def test_extract_verbose_empty_diagnostic(diagnostic: str, wrapped: bool) -> None:
+    """Keep the error code when the message is empty, without echoed SQL."""
+    envelope = (
+        "exa error: \n(\n"
+        f"    message      =>  {diagnostic}\n"
+        "    dsn          =>  example:8563\n"
+        "    user         =>  SYS\n"
+        "    code         =>  42000\n"
+    )
+    sql = "SELECT 'syntax error' FROM P"
+    raw = f"{envelope}    query        =>  {sql}\n)\n[SQL: {sql}]\n"
+    exception = DBAPIError(sql, {}, Exception(raw)) if wrapped else Exception(raw)
+    errors = ExasolEngineSpec.extract_errors(exception)
+    assert len(errors) == 1
+    assert errors[0].error_type == SupersetErrorType.GENERIC_DB_ENGINE_ERROR
+    prefix = "(builtins.Exception) " if wrapped else ""
+    assert errors[0].message == prefix + envelope.strip()
+    assert "code         =>  42000" in errors[0].message
+    assert sql not in errors[0].message

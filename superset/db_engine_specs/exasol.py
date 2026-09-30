@@ -148,12 +148,14 @@ class ExasolEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
             # PyExasol prints the message first, then its fixed connection/query
             # fields. Only those field names end the message, so a diagnostic
             # line that itself contains ``=>`` is kept.
-            message = re.split(
+            diagnostic = re.split(
                 r"(?m)^[ \t]*(?:(?:dsn|user|schema|session_id|code|query)[ \t]*=>"
                 r"|\)[ \t]*$)",
                 message[match.end() :],
                 maxsplit=1,
-            )[0]
+            )[0].strip()
+            if diagnostic:
+                return diagnostic
         return message.strip()
 
     @classmethod
