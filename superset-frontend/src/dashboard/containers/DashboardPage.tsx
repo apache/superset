@@ -96,7 +96,7 @@ function getStorageKey(dashboardId: number, userId: number | undefined) {
   // Scope the key to userId to prevent one user's filter state from
   // leaking into another user's session on the same browser profile.
   // Guest users (no userId) are not scoped — guest sessions are ephemeral.
-  return userId
+  return userId != null
     ? `${DASHBOARD_FILTERS_STORAGE_PREFIX}${userId}__${dashboardId}`
     : `${DASHBOARD_FILTERS_STORAGE_PREFIX}${dashboardId}`;
 }
@@ -221,6 +221,7 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
     status,
   } = useDashboardDatasets(idOrSlug);
   const isDashboardHydrated = useRef(false);
+  const isRestoringUrlFilters = useRef(false);
 
   const error = dashboardApiError || chartsApiError;
   // Only 404 gets a graceful not-found state; a 403 (access denied) still
@@ -288,6 +289,13 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
       const permalinkKey = getUrlParam(URL_PARAMS.permalinkKey);
       const nativeFilterKeyValue = getUrlParam(URL_PARAMS.nativeFiltersKey);
       const isOldRison = getUrlParam(URL_PARAMS.nativeFilters);
+
+      isRestoringUrlFilters.current = Boolean(
+        permalinkKey ||
+        nativeFilterKeyValue ||
+        isOldRison ||
+        getRisonFilterParam()
+      );
 
       let dataMask = nativeFilterKeyValue || {};
       // activeTabs is initialized with undefined so that it doesn't override
@@ -566,6 +574,11 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
       !isDashboardHydrated.current
     )
       return;
+
+    if (isRestoringUrlFilters.current) {
+      isRestoringUrlFilters.current = false;
+      return;
+    }
     // Persist only entries that correspond to configured native filters.
     // This avoids saving chart customization or other transient dataMask
     // entries that are not part of the user's filter selections.

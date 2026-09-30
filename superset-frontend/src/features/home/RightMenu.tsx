@@ -375,6 +375,14 @@ const RightMenu = ({
     try {
       window.localStorage.removeItem('redux');
       window.sessionStorage.removeItem('login_attempted');
+      // Clear dashboard native filters persistence to prevent leaking saved
+      // filter selections (which may contain business-sensitive data) to the
+      // next user logging in on the same browser profile.
+      Object.keys(window.localStorage).forEach(key => {
+        if (key.startsWith('dashboard__native_filters__')) {
+          window.localStorage.removeItem(key);
+        }
+      });
       // Purge the namespaced Cache API store so cached GET responses are not
       // retained on the device after the session ends. Best-effort: the
       // returned promise is not awaited since logout navigates away.
