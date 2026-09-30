@@ -953,6 +953,10 @@ Every tool with a side effect (create/update/delete/execute) is always excluded 
 
 ## Chart previews
 
+Saved and unsaved Vega-Lite previews return `NoDataError` for empty query
+results unless the chart plugin declares `allows_empty_result` (for example,
+Gantt renders an empty task list).
+
 For basic Vega-Lite previews, the y-axis uses the first configured metric whose
 result label is present and whose first value is numeric or null. Boolean and
 string metric values are skipped. If metric labels match but none has a suitable

@@ -1850,7 +1850,7 @@ def test_saved_gauge_preview_skips_empty_aggregate_groups(
             False,
         ),
         ("gauge_chart", {"metric": "count"}, False),
-        ("treemap_v2", {"groupby": ["region"], "metric": "count"}, False),
+        ("bar", {"x_axis": "region", "metrics": ["count"]}, False),
         (
             "gantt_chart",
             {"start_time": "start_time", "end_time": "end_time", "y_axis": "task"},

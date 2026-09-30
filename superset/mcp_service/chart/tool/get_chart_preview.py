@@ -40,6 +40,7 @@ from superset.mcp_service.chart.chart_helpers import (
 )
 from superset.mcp_service.chart.chart_utils import validate_chart_dataset
 from superset.mcp_service.chart.preview_utils import (
+    empty_vega_lite_preview_error,
     fallback_vega_lite_preview,
     plugin_ascii_preview,
     plugin_vega_lite_preview,
@@ -490,15 +491,8 @@ class VegaLitePreviewStrategy(PreviewFormatStrategy):
             if result and "queries" in result and len(result["queries"]) > 0:
                 chart_data = result["queries"][0].get("data", [])
 
-            # Only plugins that declare an empty result renderable (Gantt)
-            # bypass the explicit no-data response.
-            plugin = plugin_for_viz_type(form_data.get("viz_type"))
-            allows_empty = plugin is not None and plugin.allows_empty_result
-            if isinstance(chart_data, list) and not chart_data and not allows_empty:
-                return ChartError(
-                    error="No data available for Vega-Lite visualization",
-                    error_type="NoDataError",
-                )
+            if empty_error := empty_vega_lite_preview_error(chart_data, form_data):
+                return empty_error
             # Every plugin-owned preview is shared with the unsaved-chart
             # preview path.
             if (
