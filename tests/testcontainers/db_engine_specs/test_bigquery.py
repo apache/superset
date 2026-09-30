@@ -38,6 +38,10 @@ from sqlalchemy.engine import Engine
 
 pytestmark = pytest.mark.testcontainers
 
+from ._driver import require_driver  # noqa: E402
+
+require_driver("testcontainers.core.container")
+
 from google.cloud import bigquery  # noqa: E402
 from sqlalchemy_bigquery import BigQueryDialect  # noqa: E402
 
