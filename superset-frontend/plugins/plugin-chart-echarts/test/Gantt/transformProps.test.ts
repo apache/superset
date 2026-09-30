@@ -278,7 +278,8 @@ describe('Gantt transformProps', () => {
 describe('category label width reservation', () => {
   test('reserves the ink extent of the widest label, not just its narrower advance width', () => {
     // Simulates a glyph whose visible ink extends past the metrics.width
-    // advance value returned by measureText (e.g. italics or descenders).
+    // advance value returned by measureText (e.g. italics, or glyphs whose
+    // ink overhangs the pen advance).
     // The grid must grow to fit the ink extent, or the previous
     // "prevent cut off" fix (#39137) regresses back to clipped labels.
     const getContext = jest.spyOn(HTMLCanvasElement.prototype, 'getContext');
@@ -322,6 +323,68 @@ describe('category label width reservation', () => {
       // Ink extent for "second" is 5 + 45 = 50 vs. its 10px advance width;
       // the reserved space must grow by the full 40px difference.
       expect(overhangLeft - noOverhangLeft).toBe(40);
+    } finally {
+      getContext.mockRestore();
+    }
+  });
+
+  test('reserves the advance width when bounding-box metrics are absent', () => {
+    const getContext = jest.spyOn(HTMLCanvasElement.prototype, 'getContext');
+    try {
+      getContext.mockReturnValue({
+        measureText: (text: string) =>
+          text === 'second'
+            ? {
+                width: 10,
+                actualBoundingBoxLeft: 0,
+                actualBoundingBoxRight: 10,
+              }
+            : { width: 5, actualBoundingBoxLeft: 0, actualBoundingBoxRight: 5 },
+      } as never);
+      const withMetrics = transformProps(
+        new ChartProps(chartPropsConfig) as EchartsGanttChartProps,
+      );
+
+      // Same advance widths, but no actualBoundingBox* fields at all.
+      getContext.mockReturnValue({
+        measureText: (text: string) => ({ width: text === 'second' ? 10 : 5 }),
+      } as never);
+      const withoutMetrics = transformProps(
+        new ChartProps(chartPropsConfig) as EchartsGanttChartProps,
+      );
+
+      const withMetricsLeft = (
+        withMetrics.echartOptions.grid as { left: number }
+      ).left;
+      const withoutMetricsLeft = (
+        withoutMetrics.echartOptions.grid as { left: number }
+      ).left;
+
+      expect(withoutMetricsLeft).not.toBeNaN();
+      expect(withoutMetricsLeft).toBe(withMetricsLeft);
+    } finally {
+      getContext.mockRestore();
+    }
+  });
+
+  test('reserves an approximate width when canvas is unavailable', () => {
+    const getContext = jest
+      .spyOn(HTMLCanvasElement.prototype, 'getContext')
+      .mockReturnValue(null);
+    try {
+      const transformed = transformProps(
+        new ChartProps(chartPropsConfig) as EchartsGanttChartProps,
+      );
+      const categoryLabelSeries = (
+        transformed.echartOptions.series as Array<{
+          markLine?: { label?: { show?: boolean; width?: number } };
+        }>
+      ).find(series => series.markLine?.label?.show);
+
+      // "second" is the widest category name (6 chars) at ~0.62em per char.
+      expect(categoryLabelSeries?.markLine?.label?.width).toBe(
+        Math.ceil('second'.length * supersetTheme.fontSizeSM * 0.62),
+      );
     } finally {
       getContext.mockRestore();
     }
