@@ -276,8 +276,10 @@ class DatabricksBaseEngineSpec(BaseEngineSpec):
         return super().extract_errors(ex, context, database_name)
 
 
-# Credential connect args of databricks-sql-connector. With impersonation on, the
-# user's OAuth2 token (set by ``impersonate_user``) is the only credential kept.
+# Credential connect args of databricks-sql-connector. With impersonation on, all
+# of them are dropped from ``extra`` and the secure extra; ``impersonate_user``
+# then writes the user's OAuth2 token as ``access_token`` (when ``extra`` set one),
+# so that token is the only credential the connector receives.
 DATABRICKS_SHARED_CREDENTIAL_CONNECT_ARGS = frozenset(
     {
         "access_token",
@@ -478,13 +480,39 @@ class DatabricksDynamicBaseEngineSpec(BasicParametersMixin, DatabricksBaseEngine
         # back to an empty string to force re-authentication when none is set.
         url = url.set(password=user_token or "")
 
+        # Drop shared credentials from ``extra`` (a PAT, OAuth M2M client, Azure
+        # service principal) so none of them reaches the connector next to the
+        # user's token. The secure extra is filtered the same way in
+        # ``update_params_from_encrypted_extra``.
+        connect_args = engine_kwargs.get("connect_args") or {}
+        filtered_connect_args = {
+            key: value
+            for key, value in connect_args.items()
+            if key not in DATABRICKS_SHARED_CREDENTIAL_CONNECT_ARGS
+        }
         # The Python connector passes the token via ``connect_args`` instead of the
         # URL password, so keep it in sync (clearing it likewise forces re-auth).
-        connect_args = engine_kwargs.setdefault("connect_args", {})
         if "access_token" in connect_args:
-            connect_args["access_token"] = user_token or ""
+            filtered_connect_args["access_token"] = user_token or ""
+        engine_kwargs["connect_args"] = filtered_connect_args
 
         return url, engine_kwargs
+
+    @classmethod
+    def start_oauth2_dance(cls, database: Database) -> None:
+        """
+        Start the OAuth2 dance only when the database impersonates the user.
+
+        The user's OAuth2 token only reaches the connection through
+        ``impersonate_user``. Without impersonation the connection uses the
+        shared credential, so an authorization prompt cannot fix an auth failure
+        (e.g. a revoked shared token returning HTTP 401). Return instead, so the
+        caller raises the original error for an admin to act on.
+        """
+        if not database.impersonate_user:
+            return
+
+        super().start_oauth2_dance(database)
 
     @staticmethod
     def update_params_from_encrypted_extra(
@@ -502,9 +530,10 @@ class DatabricksDynamicBaseEngineSpec(BasicParametersMixin, DatabricksBaseEngine
         ``connect_args`` are merged key by key, so credentials kept in the secure
         extra (an access token, an OAuth M2M client secret) do not discard the
         ``connect_args`` from ``extra`` or Superset's own (e.g. the User-Agent).
-        With user impersonation enabled, shared credentials are dropped: the
-        user's OAuth2 token set by ``impersonate_user`` is the only credential,
-        instead of being silently replaced by a shared one.
+        With user impersonation enabled, shared credentials in the secure extra
+        are dropped (``impersonate_user`` drops the ones from ``extra``): the
+        user's OAuth2 token is the only credential, instead of being silently
+        replaced by a shared one.
         """
         if not database.encrypted_extra:
             return
@@ -527,12 +556,6 @@ class DatabricksDynamicBaseEngineSpec(BasicParametersMixin, DatabricksBaseEngine
         secure_connect_args = secure_connect_args or {}
         connect_args = dict(params.get("connect_args") or {})
         if database.impersonate_user:
-            connect_args = {
-                key: value
-                for key, value in connect_args.items()
-                if key == "access_token"
-                or key not in DATABRICKS_SHARED_CREDENTIAL_CONNECT_ARGS
-            }
             secure_connect_args = {
                 key: value
                 for key, value in secure_connect_args.items()

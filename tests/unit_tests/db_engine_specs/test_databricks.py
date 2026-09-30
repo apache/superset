@@ -20,6 +20,7 @@ from datetime import datetime
 from importlib import import_module
 from importlib.metadata import PackageNotFoundError, requires
 from typing import Any, Optional
+from unittest.mock import MagicMock
 from urllib.parse import parse_qs, urlparse
 
 import pytest
@@ -28,7 +29,7 @@ from pytest_mock import MockerFixture
 from sqlalchemy import __version__ as sqlalchemy_version, create_engine, text
 from sqlalchemy.engine.url import make_url
 
-from superset.db_engine_specs.base import OAuth2State
+from superset.db_engine_specs.base import BaseEngineSpec, OAuth2State
 from superset.db_engine_specs.databricks import (
     DatabricksNativeEngineSpec,
     DatabricksPythonConnectorEngineSpec,
@@ -744,7 +745,7 @@ def test_update_params_merges_connect_args(mocker: MockerFixture) -> None:
     Secure ``connect_args`` (e.g. OAuth M2M credentials) are merged key by key
     into the ``connect_args`` from ``extra`` instead of replacing them.
     """
-    database = mocker.MagicMock()
+    database: MagicMock = mocker.MagicMock()
     database.impersonate_user = False
     database.encrypted_extra = json.dumps(
         {"connect_args": {"oauth_client_id": "sp", "oauth_client_secret": "secret"}}
@@ -778,22 +779,90 @@ def test_update_params_impersonation_keeps_only_the_user_token(
     ``extra``) must not replace the user's OAuth2 token set by
     ``impersonate_user``.
     """
-    database = mocker.MagicMock()
+    database: MagicMock = mocker.MagicMock()
     database.impersonate_user = True
     database.encrypted_extra = json.dumps(
         {"connect_args": {"access_token": "shared-pat", "http_path": "/sql/1"}}
     )
-    params: dict[str, Any] = {
-        "connect_args": {"access_token": "user-token", "oauth_client_secret": "s"}
+    engine_kwargs: dict[str, Any] = {
+        "connect_args": {"access_token": "extra-pat", "oauth_client_secret": "s"}
     }
 
+    # Same order as ``Database._get_sqla_engine``.
+    _, engine_kwargs = DatabricksPythonConnectorEngineSpec.impersonate_user(
+        database=database,
+        username="user1",
+        user_token="user-token",  # noqa: S106
+        url=make_url("databricks://token:extra-pat@host:443?http_path=/sql/1"),
+        engine_kwargs=engine_kwargs,
+    )
     DatabricksPythonConnectorEngineSpec.update_params_from_encrypted_extra(
-        database, params
+        database, engine_kwargs
     )
 
-    assert params == {
+    assert engine_kwargs == {
         "connect_args": {"access_token": "user-token", "http_path": "/sql/1"}
     }
+
+
+def test_impersonate_user_drops_shared_credentials_without_secure_extra(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Shared credentials in ``extra`` are dropped even when the database has no
+    secure extra (e.g. OAuth2 configured through ``DATABASE_OAUTH2_CLIENTS``),
+    so only the user's token reaches the connector.
+    """
+    database: MagicMock = mocker.MagicMock()
+    database.impersonate_user = True
+    database.encrypted_extra = None
+    engine_kwargs: dict[str, Any] = {
+        "connect_args": {
+            "_user_agent_entry": "Apache Superset",
+            "auth_type": "databricks-oauth",
+            "oauth_client_id": "sp",
+            "oauth_client_secret": "secret",
+        }
+    }
+
+    url, engine_kwargs = DatabricksPythonConnectorEngineSpec.impersonate_user(
+        database=database,
+        username="user1",
+        user_token="user-oauth-token",  # noqa: S106
+        url=make_url("databricks://token:@host:443?http_path=/sql/1"),
+        engine_kwargs=engine_kwargs,
+    )
+    DatabricksPythonConnectorEngineSpec.update_params_from_encrypted_extra(
+        database, engine_kwargs
+    )
+
+    assert url.password == "user-oauth-token"  # noqa: S105
+    assert engine_kwargs == {"connect_args": {"_user_agent_entry": "Apache Superset"}}
+
+
+@pytest.mark.parametrize(
+    "spec",
+    [DatabricksNativeEngineSpec, DatabricksPythonConnectorEngineSpec],
+)
+def test_start_oauth2_dance_requires_impersonation(
+    mocker: MockerFixture,
+    spec: Any,
+) -> None:
+    """
+    Without impersonation the user's token is never used, so an auth failure
+    (e.g. a revoked shared token) does not send the user through an
+    authorization prompt; the caller raises the original error instead.
+    """
+    base_start = mocker.patch.object(BaseEngineSpec, "start_oauth2_dance")
+    database: MagicMock = mocker.MagicMock()
+    database.impersonate_user = False
+
+    spec.start_oauth2_dance(database)
+    base_start.assert_not_called()
+
+    database.impersonate_user = True
+    spec.start_oauth2_dance(database)
+    base_start.assert_called_once_with(database)
 
 
 def test_impersonation_with_shared_token_only_in_secure_extra(
@@ -805,7 +874,7 @@ def test_impersonation_with_shared_token_only_in_secure_extra(
     URL password, which the dialect uses as ``access_token``, and the shared
     token is dropped rather than overriding it.
     """
-    database = mocker.MagicMock()
+    database: MagicMock = mocker.MagicMock()
     database.impersonate_user = True
     database.encrypted_extra = json.dumps(
         {"connect_args": {"access_token": "shared-pat"}}
