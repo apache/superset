@@ -869,6 +869,43 @@ def test_fetch_data_fallback_on_exception(mocker: MockerFixture) -> None:
     assert flask_g.bq_memory_limited_row_count == 2
 
 
+@pytest.mark.parametrize("bounded", [False, True])
+@pytest.mark.parametrize("failure_stage", ["probe", "second_batch", "estimate"])
+def test_fetch_data_does_not_discard_sample_after_error(
+    mocker: MockerFixture, bounded: bool, failure_stage: str
+) -> None:
+    """A failure after consuming rows must not return only the cursor remainder."""
+    from superset.db_engine_specs.bigquery import BigQueryEngineSpec
+    from superset.db_engine_specs.exceptions import SupersetDBAPIConnectionError
+    from superset.sql.execution.executor import _LimitedCursor
+
+    _, app = _patch_bq_fetch_deps(mocker)
+    mocker.patch("superset.db_engine_specs.bigquery.has_app_context", return_value=True)
+    app.config = {"BQ_FETCH_MAX_MB": 1}
+    mocker.patch("superset.db_engine_specs.bigquery._BQ_INITIAL_SAMPLE_ROWS", 2)
+    mocker.patch.object(
+        BigQueryEngineSpec,
+        "get_dbapi_exception_mapping",
+        return_value={OSError: SupersetDBAPIConnectionError},
+    )
+    row = ("x" * (600_000 if failure_stage == "probe" else 300_000),)
+    cursor = mock.MagicMock()
+    cursor.description = [("n", "STRING", None, None, None, None, None)]
+    cursor.fetchmany.side_effect = [[row, row], OSError("read failed"), [row]]
+    cursor.fetchall.return_value = [row]
+    if failure_stage == "estimate":
+        mocker.patch(
+            "superset.db_engine_specs.bigquery.sys.getsizeof",
+            side_effect=OSError("read failed"),
+        )
+
+    with pytest.raises(SupersetDBAPIConnectionError, match="read failed"):
+        BigQueryEngineSpec.fetch_data(_LimitedCursor(cursor, 5) if bounded else cursor)
+
+    assert cursor.fetchmany.call_count == (1 if failure_stage == "estimate" else 2)
+    cursor.fetchall.assert_not_called()
+
+
 def test_fetch_data_converts_bigquery_row_objects(mocker: MockerFixture) -> None:
     """
     Test that BigQuery Row objects are converted to plain values.

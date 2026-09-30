@@ -1254,6 +1254,9 @@ percentage, tie, or expression semantics. Cursor reads are bounded by the same
 cap plus one probe row, including across multiple fetch batches, preserving
 engine-specific result processing. Only successfully returned rows count against the cursor
 budget, so a failed fetch leaves that budget available for an engine fallback.
+BigQuery only falls back if its initial fetch fails; errors after a successful
+sample, including during the EOF probe, fail the query rather than silently
+discarding buffered rows.
 This does not bound the work performed by the database.
 Because this cap applies to any row-returning last statement, a non-query
 statement such as `SHOW TABLES` or DML with `RETURNING` can also be capped. Each

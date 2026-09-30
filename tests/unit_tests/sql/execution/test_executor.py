@@ -3465,25 +3465,30 @@ def test_execute_bigquery_memory_truncation_without_request(
     cursor.fetchall.assert_not_called()
 
 
-@pytest.mark.parametrize("row_count", [999, 1000, 1001])
-@pytest.mark.parametrize("limit", [None, 1000])
+@pytest.mark.parametrize("row_delta", [-1, 0, 1])
+@pytest.mark.parametrize("request_cap", [False, True])
 def test_execute_bigquery_exact_sample_truncation(
     mocker: MockerFixture,
     mock_database: MagicMock,
     mock_query: MagicMock,
     app_context: None,
-    row_count: int,
-    limit: int | None,
+    row_delta: int,
+    request_cap: bool,
 ) -> None:
     """A full memory-limited sample is truncated only if another row exists."""
-    from superset.db_engine_specs.bigquery import BigQueryEngineSpec
+    from superset.db_engine_specs.bigquery import (
+        _BQ_INITIAL_SAMPLE_ROWS,
+        BigQueryEngineSpec,
+    )
     from superset.sql.execution.executor import execute_sql_with_cursor
 
     mocker.patch.dict(current_app.config, {"BQ_FETCH_MAX_MB": 1, "SQL_MAX_ROW": None})
     mock_database.db_engine_spec = BigQueryEngineSpec
-    mock_query.limit = limit
-    # The 1000-row initial sample exceeds 1 MB, even at the exact EOF boundary.
-    rows = [("x" * 2000,) for _ in range(row_count)]
+    mock_query.limit = _BQ_INITIAL_SAMPLE_ROWS if request_cap else None
+    row_count = _BQ_INITIAL_SAMPLE_ROWS + row_delta
+    # The initial sample exceeds 1 MB, even at the exact EOF boundary.
+    row_bytes = 1024 * 1024 // _BQ_INITIAL_SAMPLE_ROWS + 1
+    rows = [("x" * row_bytes,) for _ in range(row_count)]
     remaining = iter(rows)
     cursor = create_mock_cursor(["n"])
     cursor.fetchmany.side_effect = lambda size: list(islice(remaining, size))
@@ -3497,10 +3502,10 @@ def test_execute_bigquery_exact_sample_truncation(
     )
     result_set = results[0][1]
     assert result_set is not None
-    assert result_set.size == min(row_count, 1000)
-    assert result_set.truncated is (row_count > 1000)
-    expected_calls = [mocker.call(1000)]
-    if row_count >= 1000:
+    assert result_set.size == min(row_count, _BQ_INITIAL_SAMPLE_ROWS)
+    assert result_set.truncated is (row_delta > 0)
+    expected_calls = [mocker.call(_BQ_INITIAL_SAMPLE_ROWS)]
+    if row_delta >= 0:
         expected_calls.append(mocker.call(1))
     assert cursor.fetchmany.call_args_list == expected_calls
     cursor.fetchall.assert_not_called()
