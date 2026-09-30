@@ -163,10 +163,23 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             # nested context here would silently hand the task a second,
             # blind session unable to see the caller's uncommitted work.
             def __call__(self, *args: Any, **kwargs: Any) -> Any:
-                if has_app_context():
-                    return task_base.__call__(self, *args, **kwargs)
-                with superset_app.app_context():
-                    return task_base.__call__(self, *args, **kwargs)
+                # Avoid circular import through superset.app during initialization.
+                from superset.semantic_layers.metadata_binding import metadata_operation
+
+                with (
+                    contextlib.nullcontext()
+                    if has_app_context()
+                    else superset_app.app_context()
+                ):
+                    with (
+                        metadata_operation()
+                        if superset_app.config.get(
+                            "SEMANTIC_LAYER_METADATA_REFRESH_ENABLED"
+                        )
+                        is True
+                        else contextlib.nullcontext()
+                    ):
+                        return task_base.__call__(self, *args, **kwargs)
 
         celery_app.Task = AppContextTask
 

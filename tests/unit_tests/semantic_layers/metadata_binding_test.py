@@ -1,0 +1,377 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+
+"""Host binding keeps a single operation budget and checks capability before I/O."""
+
+from __future__ import annotations
+
+from unittest.mock import Mock, patch
+from uuid import uuid4
+
+import pytest
+from flask import Flask
+from superset_core.semantic_layers.metadata import CatalogSnapshot, MetadataRefreshError
+from superset_core.semantic_layers.view import SemanticView as ViewABC
+
+from superset.semantic_layers.metadata import ScopedMetadataStore
+from superset.semantic_layers.metadata_binding import (
+    connection_metadata_scope,
+    connection_store,
+    layer_implementation,
+    metadata_operation,
+    operation_deadline,
+    request_metadata_budget,
+    view_implementation,
+)
+from superset.semantic_layers.models import SemanticLayer, SemanticView
+from superset.semantic_layers.registry import registry
+from tests.unit_tests.semantic_layers.metadata_contract_test import (
+    OptedInLayer,
+)
+from tests.unit_tests.semantic_layers.metadata_store_test import MemoryBackend
+
+
+def test_multiple_store_calls_share_the_request_deadline(app: Flask) -> None:
+    with (
+        patch.dict(app.config, {"SEMANTIC_LAYER_METADATA_REFRESH_ENABLED": True}),
+        app.test_request_context(),
+        patch(
+            "superset.semantic_layers.metadata_binding.time.monotonic", return_value=100
+        ),
+    ):
+        request_metadata_budget()
+        assert operation_deadline() == 130
+        with patch(
+            "superset.semantic_layers.metadata_binding.time.monotonic", return_value=120
+        ):
+            assert operation_deadline() == 130
+            with metadata_operation():
+                assert operation_deadline() == 130
+        with patch(
+            "superset.semantic_layers.metadata_binding.time.monotonic", return_value=131
+        ):
+            with pytest.raises(MetadataRefreshError, match="deadline"):
+                operation_deadline()
+
+
+def test_worker_operation_is_explicit_and_nested_calls_do_not_reset() -> None:
+    with pytest.raises(MetadataRefreshError, match="configuration"):
+        operation_deadline()
+    with patch(
+        "superset.semantic_layers.metadata_binding.time.monotonic", return_value=100
+    ):
+        with metadata_operation(deadline=100000000000):
+            with metadata_operation():
+                assert operation_deadline() == 130
+        with metadata_operation(deadline=120):
+            assert operation_deadline() == 120
+    with pytest.raises(MetadataRefreshError, match="configuration"):
+        operation_deadline()
+
+
+@pytest.mark.parametrize("deadline", [float("nan"), float("inf"), float("-inf")])
+def test_worker_rejects_nonfinite_deadline(deadline: float) -> None:
+    with pytest.raises(MetadataRefreshError, match="configuration"):
+        with metadata_operation(deadline=deadline):
+            pytest.fail("invalid deadline entered")
+
+
+def test_celery_task_establishes_a_fresh_budget_before_task_work(app: Flask) -> None:
+    from superset.extensions import celery_app
+
+    class Probe(celery_app.Task):
+        def run(self) -> float:
+            return operation_deadline()
+
+    Probe.bind(celery_app)
+    with (
+        app.app_context(),
+        patch.dict(app.config, {"SEMANTIC_LAYER_METADATA_REFRESH_ENABLED": True}),
+        patch(
+            "superset.semantic_layers.metadata_binding.time.monotonic", return_value=100
+        ),
+    ):
+        assert Probe()() == 130
+        with pytest.raises(MetadataRefreshError, match="configuration"):
+            operation_deadline()
+
+
+def test_bound_provider_observation_is_stable_only_within_the_operation(
+    app: Flask,
+) -> None:
+    layer: SemanticLayer = SemanticLayer(
+        uuid=uuid4(), type="fixture", configuration="{}"
+    )
+    view: SemanticView = SemanticView(
+        uuid=uuid4(), name="orders", configuration="{}", semantic_layer=layer
+    )
+    memory: MemoryBackend = MemoryBackend()
+    provider: Mock = Mock(wraps=OptedInLayer)
+    provider.from_configuration.side_effect = lambda configuration: OptedInLayer()
+    provider.supports_metadata_refresh.return_value = True
+    session: Mock
+    with (
+        patch.dict(
+            app.config,
+            {
+                "SEMANTIC_LAYER_METADATA_REFRESH_ENABLED": True,
+                "SEMANTIC_LAYER_METADATA_NAMESPACE": "test-tenant",
+                "DISTRIBUTED_COORDINATION_CONFIG": {"CACHE_TYPE": "RedisCache"},
+            },
+        ),
+        patch.dict(registry, {"fixture": provider}),
+        patch(
+            "superset.semantic_layers.metadata_binding.is_feature_enabled",
+            return_value=True,
+        ),
+        patch(
+            "superset.semantic_layers.metadata_binding.DeadlineRedisBackend",
+            return_value=memory,
+        ),
+        patch("superset.semantic_layers.metadata_binding.Session") as session,
+        patch("superset.semantic_layers.metadata_binding.db"),
+    ):
+        session.return_value.__enter__.return_value.get.return_value = layer
+        with metadata_operation():
+            first: ViewABC = view_implementation(view)
+            assert view_implementation(view) is first
+            assert layer_implementation(layer) is layer_implementation(layer)
+            store: ScopedMetadataStore = connection_store(layer)
+            changed: CatalogSnapshot = store.refresh(
+                lambda deadline: '["new_metric"]'
+            ).snapshot
+            assert view_implementation(view) is first
+            assert first.metadata_cache_token != changed.cache_token
+        with metadata_operation():
+            second: ViewABC = view_implementation(view)
+            assert second is not first
+            assert second.metadata_cache_token == changed.cache_token
+            assert {metric.id for metric in second.get_metrics()} == {"new_metric"}
+        assert provider.from_configuration.call_count == 2
+
+
+@pytest.mark.parametrize("change", ["config", "namespace", "removed", "disabled"])
+def test_publication_rechecks_connection_scope(app: Flask, change: str) -> None:
+    layer: SemanticLayer = SemanticLayer(
+        uuid=uuid4(), type="fixture", configuration="{}"
+    )
+    fresh: SemanticLayer = SemanticLayer(
+        uuid=layer.uuid,
+        type="fixture",
+        configuration='{"changed":true}' if change == "config" else "{}",
+    )
+    memory: MemoryBackend = MemoryBackend()
+    session: Mock
+    with (
+        patch.dict(
+            app.config,
+            {
+                "SEMANTIC_LAYER_METADATA_REFRESH_ENABLED": True,
+                "SEMANTIC_LAYER_METADATA_NAMESPACE": "test-tenant",
+                "DISTRIBUTED_COORDINATION_CONFIG": {"CACHE_TYPE": "RedisCache"},
+            },
+        ),
+        patch.dict(registry, {"fixture": OptedInLayer}),
+        patch(
+            "superset.semantic_layers.metadata_binding.is_feature_enabled",
+            return_value=True,
+        ),
+        patch(
+            "superset.semantic_layers.metadata_binding.DeadlineRedisBackend",
+            return_value=memory,
+        ),
+        patch("superset.semantic_layers.metadata_binding.Session") as session,
+        patch("superset.semantic_layers.metadata_binding.db"),
+        metadata_operation(),
+    ):
+        session.return_value.__enter__.return_value.get.return_value = (
+            None if change == "removed" else fresh
+        )
+        store: ScopedMetadataStore = connection_store(layer)
+
+        def fetch(deadline: float) -> str:
+            if change == "disabled":
+                app.config["SEMANTIC_LAYER_METADATA_REFRESH_ENABLED"] = False
+            if change == "namespace":
+                app.config["SEMANTIC_LAYER_METADATA_NAMESPACE"] = "other-tenant"
+            return "[]"
+
+        with pytest.raises(MetadataRefreshError, match="configuration_changed"):
+            store.refresh(fetch)
+        assert store.peek() is None
+
+
+def test_connection_configuration_and_missing_capability_fail_closed(
+    app: Flask,
+) -> None:
+    layer: SemanticLayer = SemanticLayer(
+        uuid=uuid4(), type="fixture", configuration="{}"
+    )
+    with app.app_context(), metadata_operation():
+        with patch.dict(app.config, {"SEMANTIC_LAYER_METADATA_NAMESPACE": None}):
+            with pytest.raises(MetadataRefreshError, match="configuration"):
+                connection_metadata_scope(layer)
+        with patch.dict(
+            app.config,
+            {
+                "SEMANTIC_LAYER_METADATA_NAMESPACE": lambda: "tenant",
+                "SECRET_KEY": b"test-secret",
+                "DISTRIBUTED_COORDINATION_CONFIG": None,
+            },
+        ):
+            assert connection_metadata_scope(layer)
+            with pytest.raises(MetadataRefreshError, match="unavailable"):
+                connection_store(layer)
+        with patch.dict(
+            app.config,
+            {
+                "SEMANTIC_LAYER_METADATA_NAMESPACE": "tenant",
+                "DISTRIBUTED_COORDINATION_CONFIG": {"CACHE_TYPE": "NullCache"},
+            },
+        ):
+            with pytest.raises(MetadataRefreshError, match="configuration"):
+                connection_store(layer)
+
+
+def test_http_budget_is_required_and_disabled_hook_is_inert(app: Flask) -> None:
+    with (
+        app.test_request_context(),
+        patch.dict(app.config, {"SEMANTIC_LAYER_METADATA_REFRESH_ENABLED": False}),
+    ):
+        request_metadata_budget()
+        with pytest.raises(MetadataRefreshError, match="configuration"):
+            with metadata_operation():
+                pytest.fail("missing early request budget")
+
+
+def test_opted_in_providers_must_supply_adapter_and_view_token(app: Flask) -> None:
+    from tests.unit_tests.semantic_layers.metadata_contract_test import (
+        LegacyLayer,
+        LegacyView,
+    )
+
+    layer: SemanticLayer = SemanticLayer(
+        uuid=uuid4(), type="fixture", configuration="{}"
+    )
+    view: SemanticView = SemanticView(
+        uuid=uuid4(), name="orders", configuration="{}", semantic_layer=layer
+    )
+    provider: Mock = Mock()
+    provider.from_configuration.return_value = LegacyLayer()
+    with (
+        app.app_context(),
+        patch.dict(app.config, {"SEMANTIC_LAYER_METADATA_NAMESPACE": "tenant"}),
+        patch.dict(registry, {"fixture": provider}),
+        patch("superset.semantic_layers.metadata_binding.connection_store"),
+        metadata_operation(),
+    ):
+        with pytest.raises(MetadataRefreshError, match="configuration"):
+            layer_implementation(layer)
+        with patch(
+            "superset.semantic_layers.metadata_binding.layer_implementation",
+            return_value=LegacyLayer(),
+        ):
+            with pytest.raises(MetadataRefreshError, match="configuration"):
+                view_implementation(view)
+        with (
+            patch(
+                "superset.semantic_layers.metadata_binding.participates",
+                return_value=True,
+            ),
+            patch.object(SemanticLayer, "raise_for_access"),
+            patch(
+                "superset.semantic_layers.metadata_binding.layer_implementation",
+                return_value=LegacyLayer(),
+            ),
+        ):
+            assert isinstance(layer.implementation, LegacyLayer)
+        with (
+            patch(
+                "superset.semantic_layers.metadata_binding.participates",
+                return_value=True,
+            ),
+            patch.object(
+                SemanticView, "implementation", new=property(lambda self: LegacyView())
+            ),
+        ):
+            with pytest.raises(MetadataRefreshError, match="configuration"):
+                _rejected_token: str | None = view.metadata_cache_token
+
+
+def test_revalidation_uses_a_fresh_database_read(app: Flask) -> None:
+    from sqlalchemy import create_engine
+    from sqlalchemy.engine import Connection, Engine
+
+    engine: Engine = create_engine("sqlite://")
+    layer: SemanticLayer = SemanticLayer(
+        uuid=uuid4(), name="fixture", type="fixture", configuration="{}"
+    )
+    SemanticLayer.__table__.create(engine)
+    connection: Connection
+    with engine.begin() as connection:
+        connection.execute(
+            SemanticLayer.__table__.insert().values(
+                uuid=layer.uuid,
+                name="fixture",
+                type="fixture",
+                configuration="{}",
+                configuration_version=1,
+            )
+        )
+    memory: MemoryBackend = MemoryBackend()
+    try:
+        database: Mock
+        with (
+            patch.dict(
+                app.config,
+                {
+                    "SEMANTIC_LAYER_METADATA_REFRESH_ENABLED": True,
+                    "SEMANTIC_LAYER_METADATA_NAMESPACE": "tenant",
+                    "DISTRIBUTED_COORDINATION_CONFIG": {"CACHE_TYPE": "RedisCache"},
+                },
+            ),
+            patch.dict(registry, {"fixture": OptedInLayer}),
+            patch(
+                "superset.semantic_layers.metadata_binding.is_feature_enabled",
+                return_value=True,
+            ),
+            patch(
+                "superset.semantic_layers.metadata_binding.DeadlineRedisBackend",
+                return_value=memory,
+            ),
+            patch("superset.semantic_layers.metadata_binding.db") as database,
+            metadata_operation(),
+        ):
+            database.session.get_bind.return_value = engine
+            store: ScopedMetadataStore = connection_store(layer)
+            old: CatalogSnapshot = store.read(lambda deadline: "[]")
+
+            def fetch(deadline: float) -> str:
+                writer: Connection
+                with engine.begin() as writer:
+                    writer.execute(
+                        SemanticLayer.__table__.update()
+                        .where(SemanticLayer.uuid == layer.uuid)
+                        .values(configuration='{"changed":true}')
+                    )
+                return '["new"]'
+
+            with pytest.raises(MetadataRefreshError, match="configuration_changed"):
+                store.refresh(fetch)
+            assert store.peek() == old
+    finally:
+        engine.dispose()

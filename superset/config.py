@@ -3572,6 +3572,12 @@ GTF_ORPHAN_TASK_TIMEOUT = 60  # seconds
 # }
 DISTRIBUTED_COORDINATION_CONFIG: CacheConfig | None = None
 
+# Optional shared semantic metadata. Enable only after all participating workers
+# and providers support the contract. The namespace is trusted deployment/tenant
+# configuration; change it after restoring or rolling back the shared store.
+SEMANTIC_LAYER_METADATA_REFRESH_ENABLED: bool = False
+SEMANTIC_LAYER_METADATA_NAMESPACE: str | Callable[[], str] | None = None
+
 # Retention (seconds) for the Redis Streams the coordination service uses to deliver
 # signals (e.g. task completion/abort). Each signal is one short-lived stream entry
 # that a waiter consumes almost immediately; the TTL is a safety net so signal

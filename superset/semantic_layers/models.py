@@ -41,6 +41,7 @@ from sqlalchemy_utils.types.json import JSONType
 from superset_core.semantic_layers.layer import (
     SemanticLayer as SemanticLayerABC,
 )
+from superset_core.semantic_layers.metadata import MetadataRefreshError
 from superset_core.semantic_layers.types import (
     Filter,
     Operator,
@@ -59,6 +60,7 @@ from superset.explorables.base import TimeGrainDict
 from superset.extensions import encrypted_field_factory
 from superset.models.helpers import AuditMixinNullable, QueryResult
 from superset.result_set import stringify_extension_columns
+from superset.semantic_layers import metadata_binding, metadata_cache
 from superset.semantic_layers.mapper import get_results
 from superset.semantic_layers.registry import registry
 from superset.utils import json
@@ -257,8 +259,17 @@ class SemanticLayer(AuditMixinNullable, Model):
 
         security_manager.semantic_layer_after_delete(mapper, connection, target)
 
-    @cached_property
+    @property
     def implementation(
+        self,
+    ) -> SemanticLayerABC[Any, SemanticViewABC]:
+        if metadata_binding.participates(self):
+            # Read authorization belongs to callers with full request context.
+            return metadata_binding.layer_implementation(self)
+        return self._legacy_implementation
+
+    @cached_property
+    def _legacy_implementation(
         self,
     ) -> SemanticLayerABC[Any, SemanticViewABC]:
         """
@@ -355,8 +366,15 @@ class SemanticView(AuditMixinNullable, Model):
 
         security_manager.semantic_view_after_delete(mapper, connection, target)
 
-    @cached_property
+    @property
     def implementation(self) -> SemanticViewABC:
+        if metadata_binding.participates(self.semantic_layer):
+            # Preserve canonical chart/dashboard/guest policy at the caller.
+            return metadata_binding.view_implementation(self)
+        return self._legacy_implementation
+
+    @cached_property
+    def _legacy_implementation(self) -> SemanticViewABC:
         """
         Return semantic view implementation.
         """
@@ -700,7 +718,18 @@ class SemanticView(AuditMixinNullable, Model):
         return self.data
 
     def get_extra_cache_keys(self, query_obj: QueryObjectDict) -> list[Hashable]:
-        return []
+        token: str | None = self.metadata_cache_token
+        return [token] if token is not None else []
+
+    @property
+    def metadata_cache_token(self) -> str | None:
+        """Namespace derived caches by the observation actually used by this view."""
+        if not metadata_binding.participates(self.semantic_layer):
+            return None
+        token: str | None = self.implementation.metadata_cache_token
+        if not token:
+            raise MetadataRefreshError("configuration")
+        return metadata_cache.view_cache_token(self, token)
 
     @property
     def catalog_perm(self) -> str | None:
