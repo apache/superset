@@ -89,11 +89,13 @@ export const resolveView = (id: string): React.ReactElement => {
   if (!entry) {
     return React.createElement(ExtensionPlaceholder, { id });
   }
-  return React.createElement(
-    ErrorBoundary,
-    null,
-    React.createElement(entry.component),
-  );
+  return React.createElement(ErrorBoundary, {
+    key: id,
+    // No JSX in a .ts file; `key` requires a props object, so `children`
+    // has to travel through it too.
+    // oxlint-disable-next-line no-children-prop
+    children: React.createElement(entry.component),
+  });
 };
 
 /**
@@ -127,11 +129,13 @@ export const useResolveView = (id: string): React.ReactElement => {
   if (!component) {
     return React.createElement(ExtensionPlaceholder, { id });
   }
-  return React.createElement(
-    ErrorBoundary,
-    null,
-    React.createElement(component),
-  );
+  return React.createElement(ErrorBoundary, {
+    key: id,
+    // No JSX in a .ts file; `key` requires a props object, so `children`
+    // has to travel through it too.
+    // oxlint-disable-next-line no-children-prop
+    children: React.createElement(component),
+  });
 };
 
 const getViews: typeof viewsApi.getViews = (
