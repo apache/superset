@@ -136,7 +136,7 @@ class GSheetsParametersSchema(Schema):
 
 
 class GSheetsParametersType(TypedDict, total=False):
-    service_account_info: str
+    service_account_info: str | dict[str, Any]
     catalog: dict[str, str] | None
     oauth2_client_info: dict[str, str] | None
 
@@ -460,21 +460,17 @@ class GSheetsEngineSpec(ShillelaghEngineSpec):
                 )
                 return errors
 
-        # Impersonate the admin only when the database impersonates users, as
-        # queries do (see ``impersonate_user``). With domain wide delegation this
-        # means that the admin will be able to add sheets that only they have
-        # access to; without delegation a subject makes every check fail.
-        subject = (
-            g.user.email if g.user and properties.get("impersonate_user") else None
-        )
-
+        # Service-account queries use connect_args.adapter_kwargs, which replaces
+        # the dialect's URL-derived adapter_kwargs (including its subject).
+        # Validate as the same service account even when the modal has stored
+        # impersonate_user=True; a delegated subject breaks non-DWD credentials.
         engine = create_engine(
             "gsheets://",
             connect_args={
                 "adapter_kwargs": {
                     "gsheetsapi": {
                         "service_account_info": encrypted_credentials,
-                        "subject": subject,
+                        "subject": None,
                     }
                 }
             },

@@ -19,7 +19,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta
+from datetime import datetime, time, timedelta
 from typing import Any, TYPE_CHECKING
 from urllib.parse import parse_qs, urlparse
 
@@ -262,7 +262,7 @@ def test_validate_parameters_catalog(
             "adapter_kwargs": {
                 "gsheetsapi": {
                     "service_account_info": {},
-                    "subject": "admin@example.com",
+                    "subject": None,
                 }
             }
         },
@@ -1223,6 +1223,7 @@ def test_upload_dates(mocker: MockerFixture) -> None:
         (timedelta(microseconds=-1), "-0:00:00.000001"),
         (pd.Timedelta(days=2, microseconds=123456), "48:00:00.123456"),
         (np.int64(3), 3),
+        (time(12, 34, 56, 123456), "12:34:56.123456"),
     ],
 )
 def test_to_json_value_numpy_dates_and_durations(value: Any, expected: Any) -> None:
@@ -1236,12 +1237,14 @@ def test_to_json_value_numpy_dates_and_durations(value: Any, expected: Any) -> N
     json.dumps(result)
 
 
-def test_validate_parameters_impersonates_only_when_enabled(
+@pytest.mark.parametrize("impersonate_user", [None, False, True])
+@pytest.mark.parametrize("serialized_credentials", [False, True])
+def test_validate_parameters_service_account_subject(
     mocker: MockerFixture,
+    impersonate_user: bool | None,
+    serialized_credentials: bool,
 ) -> None:
-    """
-    Test that the logged-in user is used as subject only with impersonation.
-    """
+    """Create and edit validate as the service account, even with the modal flag."""
     from superset.db_engine_specs.gsheets import (
         GSheetsEngineSpec,
         GSheetsPropertiesType,
@@ -1251,18 +1254,71 @@ def test_validate_parameters_impersonates_only_when_enabled(
     g.user.email = "admin@example.com"
     create_engine = mocker.patch("superset.db_engine_specs.gsheets.create_engine")
     mocker.patch.object(GSheetsEngineSpec, "register_engine_events")
+    credentials = {"client_email": "service@example.com", "private_key": "KEY"}
+    sheet_url = "https://docs.google.com/spreadsheets/d/1/edit"
+    properties: GSheetsPropertiesType = {
+        "parameters": {
+            "service_account_info": (
+                json.dumps(credentials) if serialized_credentials else credentials
+            ),
+            "catalog": {"sheet": sheet_url},
+        },
+    }
+    if impersonate_user is not None:
+        properties["impersonate_user"] = impersonate_user
 
-    def subject(impersonate_user: bool | None = None) -> str | None:
-        properties: GSheetsPropertiesType = {
-            "parameters": {"service_account_info": "{}"},
-            "catalog": {},
-        }
-        if impersonate_user is not None:
-            properties["impersonate_user"] = impersonate_user
-        GSheetsEngineSpec.validate_parameters(properties)
-        adapter_kwargs = create_engine.call_args.kwargs["connect_args"]
-        return adapter_kwargs["adapter_kwargs"]["gsheetsapi"]["subject"]
+    assert GSheetsEngineSpec.validate_parameters(properties) == []
 
-    assert subject() is None
-    assert subject(impersonate_user=False) is None
-    assert subject(impersonate_user=True) == "admin@example.com"
+    create_engine.assert_called_once_with(
+        "gsheets://",
+        connect_args={
+            "adapter_kwargs": {
+                "gsheetsapi": {"service_account_info": credentials, "subject": None},
+            },
+        },
+    )
+    conn = create_engine.return_value.connect.return_value
+    assert str(conn.execute.call_args.args[0]) == (
+        'SELECT * FROM "https://docs.google.com/spreadsheets/d/1/edit" LIMIT 1'
+    )
+    conn.execute.return_value.fetchall.assert_called_once()
+
+
+@pytest.mark.parametrize("impersonate_user", [False, True])
+def test_query_service_account_subject(
+    mocker: MockerFixture,
+    impersonate_user: bool,
+) -> None:
+    """Exercise SQLAlchemy's final DBAPI arguments, not just the URL subject."""
+    from superset.models.core import Database
+
+    user = mocker.MagicMock(email="admin@example.com")
+    mocker.patch("superset.models.core.get_username", return_value="admin")
+    mocker.patch(
+        "superset.db_engine_specs.gsheets.security_manager.find_user",
+        return_value=user,
+    )
+    credentials = {"client_email": "service@example.com", "private_key": "KEY"}
+    catalog = {"sheet": "https://docs.google.com/spreadsheets/d/1/edit"}
+    database = Database(
+        database_name="sheets",
+        sqlalchemy_uri="gsheets://",
+        impersonate_user=impersonate_user,
+        encrypted_extra=json.dumps({"service_account_info": credentials}),
+        extra=json.dumps({"engine_params": {"catalog": catalog}}),
+    )
+    engine = database._get_sqla_engine()
+    connect = mocker.spy(engine.dialect.dbapi, "connect")
+    try:
+        # No network or Google credentials are needed for a literal query.
+        with engine.connect() as conn:
+            assert conn.exec_driver_sql("SELECT 1").scalar() == 1
+        adapter_kwargs = connect.call_args.kwargs["adapter_kwargs"]["gsheetsapi"]
+        assert adapter_kwargs["service_account_info"] == credentials
+        assert adapter_kwargs["catalog"] == catalog
+        assert adapter_kwargs.get("subject") is None
+        if impersonate_user:
+            # The URL has a subject, but connect_args replaces adapter_kwargs.
+            assert engine.url.query["subject"] == "admin@example.com"
+    finally:
+        engine.dispose()
