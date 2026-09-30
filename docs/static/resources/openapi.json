@@ -1986,6 +1986,17 @@
             "description": "Amount of rows in result set",
             "type": "integer"
           },
+          "semantic_cache_status": {
+            "description": "Semantic containment cache provenance of this query: HIT when every semantic query behind it was served from containment, MISS when none was, MIXED when only some were (for example a time-comparison offset).",
+            "enum": [
+              "HIT",
+              "MISS",
+              "MIXED",
+              null
+            ],
+            "nullable": true,
+            "type": "string"
+          },
           "stacktrace": {
             "description": "Stacktrace if there was an error",
             "nullable": true,

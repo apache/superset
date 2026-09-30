@@ -24,6 +24,37 @@ assists people when migrating to a new version.
 
 ## Next
 
+### Empty MCP chart previews
+
+Saved Bubble and Histogram Vega-Lite previews with zero rows return an empty
+specification instead of `NoDataError`, matching their unsaved previews. Clients
+should handle empty specifications rather than relying on that error.
+
+### MCP chart tools advertise a compact chart config schema
+
+`generate_chart`, `update_chart`, `update_chart_preview` and
+`generate_explore_link` no longer inline every chart type's JSON Schema in
+their tool input schemas. Their `config` parameter is advertised as an object
+whose `chart_type` is one of the supported chart types. The fields and
+examples for each chart type come from `get_chart_type_schema(chart_type)`,
+which returns the same per-type schema as before.
+
+Server-side validation is unchanged: requests are still validated against the
+complete chart configuration model and invalid fields are rejected with the
+same errors. MCP clients that built chart configs only from the tool input
+schema should call `get_chart_type_schema` first.
+
+### DynamoDB timestamp string format
+
+DynamoDB time-filter bounds use ISO 8601 with a `T` separator, preserving
+fractional seconds (for example, `2019-01-02T04:00:00.500000`).
+Tables storing space-separated timestamps such as `str(datetime)` must normalize
+their stored strings to the same ISO format before using these time filters.
+Otherwise both sub-day and whole-day ranges can return incorrect rows: a
+January 2–3 range can exclude January 2 and include January 3 instead.
+boto3 does not serialize Python datetime objects; applications choose the string
+format. Use a consistent timezone and precision for stored strings and bounds.
+
 - The `/register/` self-registration page and the login page's "Register" button
   are only served for the auth types that support self-registration
   (`AUTH_DB`, and `AUTH_OAUTH` for the page), and only when
@@ -35,6 +66,65 @@ assists people when migrating to a new version.
   `GET /register/activation/<hash>`, which previously stayed reachable and
   able to provision a user regardless of `AUTH_USER_REGISTRATION`; it now
   requires the same gate as `/register/`.
+
+### Doris SSL requests require TLS
+
+The Doris SSL toggle uses `ssl_mode=VERIFY_CA`. Saved `ssl_mode=REQUIRED` and
+`ssl=1` URLs also require TLS and follow the mysqlclient rules below: `REQUIRED`
+is kept with Oracle libmysqlclient 5.7/8.x/9.x and upgraded to `VERIFY_CA` with
+MariaDB Connector/C or an unrecognized client, which can otherwise fall back to
+cleartext. Supply the trusted `ssl_ca` (or `connect_args.ssl.ca`) and a
+certificate valid for the connection hostname. Conflicting advanced settings
+fail closed. This shares MySQL's TLS normalization without changing Doris
+catalog/schema handling.
+
+### MySQL SSL requests require TLS
+
+The SSL toggle (or ssl=1 in the URI) requires TLS, and so does a saved
+ssl_mode of REQUIRED, VERIFY_CA or VERIFY_IDENTITY without ssl=1. With
+mysqlclient, Oracle libmysqlclient 5.7/8.x/9.x uses ssl_mode=REQUIRED; MariaDB
+Connector/C and unrecognized client versions use VERIFY_CA to prevent cleartext
+fallback. Explicit VERIFY_CA and VERIFY_IDENTITY are retained. Contradictory
+options such as ssl_mode=DISABLED or ssl_disabled=True fail rather than
+cancelling the SSL request.
+
+Existing saved connections with the toggle on are affected at upgrade, without a
+feature flag. Verification can fail for self-signed/default server certificates
+or missing trust roots. MySQL does not use the connection form's Root
+certificate field (server_cert). Set ssl_ca to a trusted CA file path available
+on every web and worker node, for example in the URI
+(?ssl=1&ssl_ca=/path/to/ca.pem).
+
+Connector/Python and PyMySQL enable ssl_verify_cert=True. PyMySQL requires
+version 1.2 or newer; use individual ssl_ca, ssl_cert and ssl_key options
+instead of a nested ssl dictionary with the toggle. Options that disable TLS or
+required verification are rejected.
+
+Standard Aurora MySQL connections intentionally follow the same rules, including
+IAM connections. For certificate verification, install the Amazon RDS CA bundle
+on every web and worker node and set ssl_ca to that file. IAM authentication
+does not supply a CA. The Aurora Data API uses HTTPS and needs no MySQL TLS
+arguments.
+
+SSH tunnels rewrite the connection host to the local bind address (typically
+127.0.0.1). MariaDB Connector/C also checks hostname identity with VERIFY_CA, so
+a certificate for the remote database hostname will fail. For SSH-only
+transport, turn off the SSL toggle and remove ssl=1; this removes the TLS
+guarantee on the SSH endpoint-to-database leg. If end-to-end TLS is required,
+use a driver/native TLS configuration compatible with the tunnel and validate it
+separately.
+
+Operators using native TLS settings can turn off the toggle, remove ssl=1 and
+configure extra.engine_params.connect_args (for example a driver-supported
+native ssl dictionary). Superset passes those settings through without enforcing
+TLS; ensure the chosen driver configuration does not silently fall back to
+cleartext.
+
+Connections using the separate MariaDB engine (mariadb:// URIs and its drivers)
+get the same handling. With MariaDB Connector/Python
+(mariadb+mariadbconnector://), the toggle keeps ssl=True and enables
+ssl_verify_cert=True. Other MySQL-compatible engines such as OceanBase and
+StarRocks keep their existing SSL handling.
 
 ### Version history retention setting
 

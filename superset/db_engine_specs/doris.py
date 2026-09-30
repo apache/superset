@@ -20,15 +20,23 @@ from re import Pattern
 from typing import Any, Callable, Optional
 from urllib import parse
 
-from flask_babel import gettext as __
+from flask_babel import gettext as __, lazy_gettext as _
 from sqlalchemy import Float, Integer, Numeric, String, TEXT, text, types
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.url import URL
 from sqlalchemy.sql.elements import ColumnElement
 from sqlalchemy.sql.type_api import TypeEngine
 
-from superset.db_engine_specs.base import DatabaseCategory
-from superset.db_engine_specs.mysql import MySQLEngineSpec
+from superset.constants import TimeGrain
+from superset.databases.utils import make_url_safe
+from superset.db_engine_specs.base import BasicParametersType, DatabaseCategory
+from superset.db_engine_specs.mysql import (
+    MYSQL_SSL_MODE_REQUIRED,
+    MYSQL_SSL_MODE_VERIFY_CA,
+    MYSQL_SSL_MODE_VERIFY_IDENTITY,
+    MySQLEngineSpec,
+    require_mysql_tls,
+)
 from superset.errors import SupersetErrorType
 from superset.models.core import Database
 from superset.utils.core import GenericDataType
@@ -40,17 +48,29 @@ DEFAULT_SCHEMA = "information_schema"
 CONNECTION_ACCESS_DENIED_REGEX = re.compile(
     "Access denied for user '(?P<username>.*?)'"
 )
+# The client library (libmysqlclient or MariaDB Connector/C) words these; the
+# MariaDB one omits the server name ("Can't connect to server on ...").
 CONNECTION_INVALID_HOSTNAME_REGEX = re.compile(
-    "Unknown Doris server host '(?P<hostname>.*?)'"
+    "Unknown (?:MySQL |Doris )?server host '(?P<hostname>.*?)'"
 )
 CONNECTION_UNKNOWN_DATABASE_REGEX = re.compile("Unknown database '(?P<database>.*?)'")
 CONNECTION_HOST_DOWN_REGEX = re.compile(
-    "Can't connect to Doris server on '(?P<hostname>.*?)'"
+    "Can't connect to (?:MySQL |Doris )?server on '(?P<hostname>.*?)'"
 )
 SYNTAX_ERROR_REGEX = re.compile(
     "check the manual that corresponds to your MySQL server "
     "version for the right syntax to use near '(?P<server_error>.*)"
 )
+# Doris' own parser: "mismatched input 'SELEC' expecting ..."
+DORIS_SYNTAX_ERROR_REGEX = re.compile(
+    r"(?:mismatched input|extraneous input|no viable alternative at input)"
+    r" '(?P<server_error>.*?)'"
+)
+TABLE_DOES_NOT_EXIST_REGEX = re.compile(r"Table \[(?P<table_name>.*?)\] does not exist")
+SCHEMA_DOES_NOT_EXIST_REGEX = re.compile(
+    r"Database \[(?P<schema_name>.*?)\] does not exist"
+)
+COLUMN_DOES_NOT_EXIST_REGEX = re.compile("Unknown column '(?P<column_name>.*?)'")
 
 logger = logging.getLogger(__name__)
 
@@ -116,7 +136,8 @@ class DorisEngineSpec(MySQLEngineSpec):
     sqlalchemy_uri_placeholder = (
         "doris://user:password@host:port/catalog.db[?key=value&key=value...]"
     )
-    encryption_parameters = {"ssl": "0"}
+    # REQUIRED can fall back with MariaDB Connector/C; verification fails closed.
+    encryption_parameters = {"ssl_mode": MYSQL_SSL_MODE_VERIFY_CA}
     supports_dynamic_schema = True
     supports_catalog = supports_dynamic_catalog = True
     # while technically supported by Doris, this generates invalid table identifiers
@@ -126,6 +147,13 @@ class DorisEngineSpec(MySQLEngineSpec):
     # against real MySQL behavior, not Doris's OLAP query engine; disable it here
     # until someone confirms the same expressions against a live Doris instance.
     _extended_aggregations: dict[str, Callable[[ColumnElement], ColumnElement]] = {}
+
+    _time_grain_expressions = {
+        **MySQLEngineSpec._time_grain_expressions,
+        # Doris rejects MySQL's ``+ INTERVAL n QUARTER``
+        TimeGrain.QUARTER: "MAKEDATE(YEAR({col}), 1) "
+        "+ INTERVAL (QUARTER({col}) - 1) * 3 MONTH",
+    }
 
     metadata = {
         "description": (
@@ -245,6 +273,19 @@ class DorisEngineSpec(MySQLEngineSpec):
             String(),
             GenericDataType.STRING,
         ),
+        (
+            re.compile(r"^variant", re.IGNORECASE),
+            types.JSON(),
+            GenericDataType.STRING,
+        ),
+        (
+            re.compile(r"^ipv[46]$", re.IGNORECASE),
+            String(),
+            GenericDataType.STRING,
+        ),
+        # MySQL protocol type names, as reported for SQL Lab result columns
+        # (NEWDECIMAL, TINY, SHORT, BLOB, ...)
+        *MySQLEngineSpec.column_type_mappings,
     )
 
     custom_errors: dict[Pattern[str], tuple[str, SupersetErrorType, dict[str, Any]]] = {
@@ -276,7 +317,62 @@ class DorisEngineSpec(MySQLEngineSpec):
             SupersetErrorType.SYNTAX_ERROR,
             {},
         ),
+        DORIS_SYNTAX_ERROR_REGEX: (
+            _(
+                'Please check your query for syntax errors near "%(server_error)s". '
+                "Then, try running your query again."
+            ),
+            SupersetErrorType.SYNTAX_ERROR,
+            {},
+        ),
+        TABLE_DOES_NOT_EXIST_REGEX: (
+            _('The table "%(table_name)s" does not exist.'),
+            SupersetErrorType.TABLE_DOES_NOT_EXIST_ERROR,
+            {},
+        ),
+        SCHEMA_DOES_NOT_EXIST_REGEX: (
+            _('The schema "%(schema_name)s" does not exist.'),
+            SupersetErrorType.SCHEMA_DOES_NOT_EXIST_ERROR,
+            {},
+        ),
+        COLUMN_DOES_NOT_EXIST_REGEX: (
+            _('We can\'t seem to resolve the column "%(column_name)s".'),
+            SupersetErrorType.COLUMN_DOES_NOT_EXIST_ERROR,
+            {},
+        ),
     }
+
+    @classmethod
+    def build_sqlalchemy_uri(
+        cls,
+        parameters: BasicParametersType,
+        encrypted_extra: Optional[dict[str, str]] = None,
+    ) -> str:
+        """Build a Doris URI while preserving explicit hostname verification."""
+        uri = make_url_safe(super().build_sqlalchemy_uri(parameters, encrypted_extra))
+        if (
+            parameters.get("query", {}).get("ssl_mode")
+            == MYSQL_SSL_MODE_VERIFY_IDENTITY
+        ):
+            uri = uri.update_query_dict({"ssl_mode": MYSQL_SSL_MODE_VERIFY_IDENTITY})
+        # ``engine+default_driver`` would be ``pydoris+pydoris``, which no
+        # SQLAlchemy entry point provides; ``doris`` is the dialect's scheme.
+        return uri.set(drivername="doris").render_as_string(hide_password=False)
+
+    @classmethod
+    def get_parameters_from_uri(
+        cls, uri: str, encrypted_extra: Optional[dict[str, Any]] = None
+    ) -> BasicParametersType:
+        """Recognize legacy TLS requests without losing hostname verification."""
+        url = make_url_safe(uri)
+        if url.query.get("ssl_mode") == MYSQL_SSL_MODE_REQUIRED:
+            url = url.update_query_dict(cls.encryption_parameters)
+        parameters = super().get_parameters_from_uri(
+            url.render_as_string(hide_password=False), encrypted_extra
+        )
+        if url.query.get("ssl_mode") == MYSQL_SSL_MODE_VERIFY_IDENTITY:
+            parameters["encryption"] = True
+        return parameters
 
     @classmethod
     def adjust_engine_params(
@@ -300,7 +396,8 @@ class DorisEngineSpec(MySQLEngineSpec):
         database = ".".join(part for part in (catalog, schema) if part)
         uri = uri.set(database=database)
 
-        return uri, connect_args
+        # pydoris is a mysqlclient dialect, whatever scheme the URI uses.
+        return require_mysql_tls(uri, connect_args, driver="mysqldb")
 
     @classmethod
     def get_default_catalog(cls, database: Database) -> str:

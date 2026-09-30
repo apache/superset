@@ -214,7 +214,7 @@
     "react-table": "^7.8.0",
     "react-transition-group": "^4.4.5",
     "react-virtualized-auto-sizer": "^1.0.26",
-    "react-window": "^2.3.2",
+    "react-window": "^2.3.3",
     "redux": "^4.2.1",
     "redux-localstorage": "^0.4.1",
     "redux-thunk": "^2.1.0",
@@ -406,7 +406,7 @@
     "eslint-plugin-jest-dom": {
       "eslint": "$eslint"
     },
-    "fast-uri": "^3.1.7",
+    "fast-uri": "^3.1.8",
     "fast-xml-parser": "^5.8.0",
     "http-proxy-middleware": "^2.0.10",
     "jest-circus": "^30.4.0",
