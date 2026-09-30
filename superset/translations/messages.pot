@@ -11991,6 +11991,9 @@ msgstr ""
 msgid "Schema cache timeout"
 msgstr ""
 
+msgid "Schema not found."
+msgstr ""
+
 msgid "Schemas allowed for File upload"
 msgstr ""
 
@@ -15183,6 +15186,11 @@ msgid ""
 msgstr ""
 
 msgid "This CSS uses @import, which cannot be saved"
+msgstr ""
+
+msgid ""
+"This Google Sheets connection impersonates the logged-in user, who has no "
+"e-mail address."
 msgstr ""
 
 msgid ""
