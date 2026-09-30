@@ -15,8 +15,12 @@
 # specific language governing permissions and limitations
 # under the License.
 
-import pytest  # noqa: F401
+from typing import Callable
+
+import pytest
 from pytest_mock import MockerFixture
+from sqlalchemy.engine import Dialect, make_url
+from sqlalchemy.engine.default import DefaultDialect
 from sqlglot import parse_one
 from sqlglot.errors import ParseError
 
@@ -88,22 +92,38 @@ def test_get_table_comment_unexpected_error(mocker: MockerFixture):
     )
 
 
-def test_get_prequeries(mocker: MockerFixture) -> None:
+def _ibm_db_sa_dialect() -> Dialect:
+    """The real DB2 dialect; building it needs ``ibm_db_sa`` but no server."""
+    pytest.importorskip("ibm_db_sa")
+    return make_url("db2+ibm_db://u:p@h/d").get_dialect()()
+
+
+def _sqlalchemy_normalizing_dialect() -> Dialect:
+    """
+    SQLAlchemy's own name normalization, which ``ibm_db_sa`` matches. CI does
+    not install ``ibm_db_sa`` (no Linux arm64 wheel), so this keeps the
+    assertions running there.
+    """
+    dialect = DefaultDialect()
+    dialect.requires_name_normalize = True
+    return dialect
+
+
+@pytest.mark.parametrize(
+    "dialect_factory",
+    [_ibm_db_sa_dialect, _sqlalchemy_normalizing_dialect],
+    ids=["ibm_db_sa", "sqlalchemy"],
+)
+def test_get_prequeries(
+    mocker: MockerFixture, dialect_factory: Callable[[], Dialect]
+) -> None:
     """
     Test the ``get_prequeries`` method.
     """
     from superset.db_engine_specs.db2 import Db2EngineSpec
 
     database = mocker.MagicMock()
-
-    # Stand-in for the DB2 dialect: unquoted names are stored upper case and
-    # reflected lower case; other names are stored as reflected.
-    def denormalize_name(name: str) -> str:
-        """Restore the catalog case of an unquoted DB2 identifier."""
-        return name.upper() if name.islower() and name.isidentifier() else name
-
-    database.get_dialect.return_value.requires_name_normalize = True
-    database.get_dialect.return_value.denormalize_name.side_effect = denormalize_name
+    database.get_dialect.return_value = dialect_factory()
 
     assert Db2EngineSpec.get_prequeries(database) == []
     assert Db2EngineSpec.get_prequeries(database, schema="my_schema") == [

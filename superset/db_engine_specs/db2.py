@@ -150,6 +150,11 @@ class Db2EngineSpec(BaseEngineSpec):
         any tables with unqualified names. If the schema is not set by SQL Lab it could
         be anything, and we would have to block users from running any queries
         referencing tables without an explicit schema.
+
+        The schema name is denormalized like reflection does, so a schema created
+        quoted and lower case (``CREATE SCHEMA "lowonly"``) resolves to its
+        upper-case name (``LOWONLY``), matching ``get_table_names``. Such schemas
+        are not reachable through unqualified names in SQL Lab.
         """
         if not schema:
             return []
