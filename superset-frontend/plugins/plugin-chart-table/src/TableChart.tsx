@@ -1788,6 +1788,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
         serverPagination={serverPagination}
         onServerPaginationChange={handleServerPaginationChange}
         onColumnOrderChange={() => setColumnOrderToggle(!columnOrderToggle)}
+        resetColumnOrder={hasHeaderGroups}
         initialSearchText={serverPaginationData?.searchText || ''}
         sortByFromParent={serverPaginationData?.sortBy || []}
         searchInputId={`${slice_id}-search`}
