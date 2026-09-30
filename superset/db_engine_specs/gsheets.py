@@ -40,7 +40,7 @@ from sqlalchemy.engine import create_engine
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.url import URL
 
-from superset import db, security_manager
+from superset import db
 from superset.databases.schemas import encrypted_field_properties, EncryptedString
 from superset.db_engine_specs.base import DatabaseCategory
 from superset.db_engine_specs.shillelagh import ShillelaghEngineSpec
@@ -137,6 +137,11 @@ class GSheetsParametersSchema(Schema):
         },
         allow_none=True,
     )
+
+
+# Secure-extra key a service-account connection sets to impersonate the
+# logged-in user through Google Workspace domain-wide delegation.
+DELEGATION_KEY = "domain_wide_delegation"
 
 
 class GSheetsParametersType(TypedDict, total=False):
@@ -303,12 +308,54 @@ class GSheetsEngineSpec(ShillelaghEngineSpec):
         engine_kwargs: dict[str, Any],
     ) -> tuple[URL, dict[str, Any]]:
         if username is not None:
-            user = security_manager.find_user(username=username)
-            if user and user.email:
-                url = url.update_query_dict({"subject": user.email})
+            # Resolved from the database rather than from ``username``: with
+            # ``IMPERSONATE_WITH_EMAIL_PREFIX`` enabled the caller has already
+            # substituted the email prefix into ``username``, so looking it up
+            # here as if it were still the login finds nothing whenever the two
+            # differ, silently leaving the subject unset. ``url`` is the same
+            # one ``Database._get_sqla_engine()`` resolved from, so both paths
+            # read the effective user from the same place.
+            if email := database.get_impersonation_email(url):
+                url = url.update_query_dict({"subject": email})
 
         if user_token:
-            url = url.update_query_dict({"access_token": user_token})
+            # Pass the token through ``connect_args`` rather than the URL.
+            # ``update_params_from_encrypted_extra`` stores the catalog (and any
+            # service account) in ``connect_args["adapter_kwargs"]``, and SQLAlchemy
+            # merges ``connect_args`` over the dialect's own arguments shallowly,
+            # so a token in the URL would be dropped and the query would run
+            # without credentials. For the same reason a ``subject`` set on the URL
+            # above is carried over, so it isn't dropped either.
+            connect_args = engine_kwargs.setdefault("connect_args", {})
+            adapter_kwargs = connect_args.setdefault("adapter_kwargs", {})
+            gsheetsapi_kwargs = adapter_kwargs.setdefault("gsheetsapi", {})
+            gsheetsapi_kwargs["access_token"] = user_token
+            if subject := url.query.get("subject"):
+                gsheetsapi_kwargs.setdefault("subject", subject)
+
+        encrypted_extra = database.get_encrypted_extra()
+        if encrypted_extra.get("service_account_info"):
+            # A service account from the secure extra always sits in
+            # ``connect_args``, so a ``subject`` on the URL never reaches
+            # shillelagh and the query runs as the service account itself.
+            # Honouring it for every such connection would break service
+            # accounts without Google Workspace domain-wide delegation (the
+            # connection form enables impersonation for every Google Sheets
+            # database), so the connection has to opt in explicitly.
+            subject = url.query.get("subject")
+            url = url.difference_update_query(["subject"])
+            if not user_token and encrypted_extra.get(DELEGATION_KEY) is True:
+                if not subject:
+                    # Never fall back to the service account's own access.
+                    raise SupersetException(
+                        __(
+                            "This Google Sheets connection impersonates the "
+                            "logged-in user, who has no e-mail address."
+                        )
+                    )
+                connect_args = engine_kwargs.setdefault("connect_args", {})
+                adapter_kwargs = connect_args.setdefault("adapter_kwargs", {})
+                adapter_kwargs.setdefault("gsheetsapi", {})["subject"] = subject
 
         return url, engine_kwargs
 
@@ -380,6 +427,9 @@ class GSheetsEngineSpec(ShillelaghEngineSpec):
 
         if "oauth2_client_info" in params:
             del params["oauth2_client_info"]
+
+        # Read by ``impersonate_user``; not a shillelagh argument.
+        params.pop(DELEGATION_KEY, None)
 
         if "service_account_info" in params:
             sa_info = params.pop("service_account_info")
@@ -465,7 +515,8 @@ class GSheetsEngineSpec(ShillelaghEngineSpec):
                 return errors
 
         # Service-account queries use connect_args.adapter_kwargs, which replaces
-        # the dialect's URL-derived adapter_kwargs (including its subject).
+        # the dialect's URL-derived adapter_kwargs, so they run as the service
+        # account unless the secure extra opts into domain-wide delegation.
         # Validate as the same service account even when the modal has stored
         # impersonate_user=True; a delegated subject breaks non-DWD credentials.
         engine = create_engine(
