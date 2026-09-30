@@ -121,8 +121,13 @@ class DorisEngineSpec(MySQLEngineSpec):
         "doris://user:password@host:port/catalog.db[?key=value&key=value...]"
     )
     # mysqlclient receives URI query values as strings, and neither ``ssl=0`` nor
-    # ``ssl=1`` enables TLS. ``VERIFY_CA`` requires TLS with a trusted CA rather
-    # than falling back to cleartext, as ``REQUIRED`` can with MariaDB Connector/C.
+    # ``ssl=1`` enables TLS. ``VERIFY_CA`` requires TLS rather than falling back to
+    # cleartext, as ``REQUIRED`` can with MariaDB Connector/C. With MariaDB
+    # Connector/C, mysqlclient maps ``VERIFY_CA`` to
+    # ``MYSQL_OPT_SSL_VERIFY_SERVER_CERT``, which also verifies the hostname: the
+    # switch needs ``ssl_ca=<path>`` in the connection's additional parameters and
+    # a server certificate matching the host. A Doris FE on its default
+    # self-signed certificate fails closed once the switch is on.
     encryption_parameters = {"ssl_mode": "VERIFY_CA"}
     supports_dynamic_schema = True
     supports_catalog = supports_dynamic_catalog = True
@@ -150,6 +155,14 @@ class DorisEngineSpec(MySQLEngineSpec):
             "doris://{username}:{password}@{host}:{port}/{catalog}.{database}"
         ),
         "default_port": 9030,
+        "notes": (
+            "The SSL switch sets ssl_mode=VERIFY_CA. With MariaDB Connector/C, "
+            "which mysqlclient uses in the Superset image, this also verifies the "
+            "server hostname. Add ssl_ca=<path to the CA certificate> in Additional "
+            "parameters and use a Doris FE certificate that matches the host. A "
+            "Doris FE on its default self-signed certificate fails to connect once "
+            "the switch is on."
+        ),
         "parameters": {
             "username": "User name",
             "password": "Password",

@@ -284,16 +284,13 @@ def test_get_catalog_names(
     assert catalogs == expected_result
 
 
-def test_connection_form_default_driver_is_installed(mocker: MockerFixture) -> None:
+def _install_pydoris(mocker: MockerFixture) -> None:
     """
-    The database picker offers the connection form only when ``default_driver``
-    is among the drivers installed for the engine. pydoris registers a
-    ``MySQLDialect_mysqldb`` subclass named ``pydoris`` under both the ``doris``
-    and ``pydoris`` entry points, so its driver is ``mysqldb``.
+    Make ``DorisEngineSpec`` the only engine spec, with the two entry points
+    pydoris ships installed.
     """
     from sqlalchemy.dialects.mysql.mysqldb import MySQLDialect_mysqldb
 
-    from superset.db_engine_specs import get_available_engine_specs
     from superset.db_engine_specs.doris import DorisEngineSpec
 
     class PyDorisDialect(MySQLDialect_mysqldb):
@@ -319,10 +316,46 @@ def test_connection_form_default_driver_is_installed(mocker: MockerFixture) -> N
         ),
     )
 
+
+def test_connection_form_default_driver_is_installed(mocker: MockerFixture) -> None:
+    """
+    The database picker offers the connection form only when ``default_driver``
+    is among the drivers installed for the engine. pydoris registers a
+    ``MySQLDialect_mysqldb`` subclass named ``pydoris`` under both the ``doris``
+    and ``pydoris`` entry points, so its driver is ``mysqldb``.
+    """
+    from superset.db_engine_specs import get_available_engine_specs
+    from superset.db_engine_specs.doris import DorisEngineSpec
+
+    _install_pydoris(mocker)
+
     drivers = get_available_engine_specs()[DorisEngineSpec]
 
     assert drivers == {"mysqldb"}
     assert DorisEngineSpec.default_driver in drivers
+
+
+@pytest.mark.parametrize(
+    "app,hidden",
+    [
+        ({"DBS_AVAILABLE_DENYLIST": {"pydoris": {"mysqldb"}}}, True),
+        ({"DBS_AVAILABLE_DENYLIST": {"pydoris": {"pydoris"}}}, False),
+    ],
+    indirect=["app"],
+)
+def test_denylist_matches_the_default_driver(
+    mocker: MockerFixture, hidden: bool
+) -> None:
+    """
+    ``DBS_AVAILABLE_DENYLIST`` is matched against ``default_driver``, so Doris is
+    hidden with ``{"pydoris": {"mysqldb"}}``, not ``{"pydoris": {"pydoris"}}``.
+    """
+    from superset.db_engine_specs import get_available_engine_specs
+    from superset.db_engine_specs.doris import DorisEngineSpec
+
+    _install_pydoris(mocker)
+
+    assert (DorisEngineSpec not in get_available_engine_specs()) is hidden
 
 
 @pytest.fixture
