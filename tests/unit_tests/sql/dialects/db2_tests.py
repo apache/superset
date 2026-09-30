@@ -255,6 +255,7 @@ def test_column_plus_literal_duration() -> None:
             "SELECT * FROM (SELECT 1 AS a FROM t) AS x LIMIT 5",
         ),
         ("SELECT a % 3 FROM t LIMIT 4", "SELECT a % 3 FROM t LIMIT 4"),
+        ("SELECT * FROM t LIMIT 10 %", "SELECT * FROM t LIMIT 10 PERCENT"),
         ("SELECT a COLLATE x FROM t", "SELECT a COLLATE x FROM t"),
     ],
 )
