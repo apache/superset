@@ -42,7 +42,7 @@ from superset.mcp_service.chart.schemas import (
     TablePreview,
     VegaLitePreview,
 )
-from superset.utils.core import get_column_name
+from superset.utils.core import DatasourceType, get_column_name
 
 logger = logging.getLogger(__name__)
 
@@ -67,9 +67,9 @@ def _preview_source_exists(dataset_id: int, datasource_type: str) -> bool:
     from superset.extensions import db
     from superset.mcp_service.chart.datasource_resolver import resolve_semantic_view
 
-    if datasource_type == "semantic_view":
+    if datasource_type == DatasourceType.SEMANTIC_VIEW.value:
         return resolve_semantic_view(dataset_id) is not None
-    if datasource_type == "table":
+    if datasource_type == DatasourceType.TABLE.value:
         return db.session.get(SqlaTable, dataset_id) is not None
     raise ValueError("Unsupported chart datasource type")
 

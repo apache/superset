@@ -3784,6 +3784,32 @@ _VIZ_TYPE_TO_CHART_TYPE: dict[str, tuple[str, str | None]] = {
 }
 
 
+def _normalize_chart_target_alias(data: dict[str, Any]) -> dict[str, Any]:
+    """Copy legacy target vocabulary without changing its datasource family."""
+    data = dict(data)
+    if "datasource_type" in data and (
+        (data.get("dataset_id") is not None and data["datasource_type"] != "table")
+        or (
+            data.get("view_id") is not None
+            and data["datasource_type"] != "semantic_view"
+        )
+    ):
+        raise ValueError("datasource_type conflicts with the explicit chart target")
+    if "datasource_id" in data:
+        source_type: object = data.get("datasource_type", "table")
+        if source_type not in ("table", "semantic_view"):
+            raise ValueError("datasource_type must be table or semantic_view")
+        target_key: str = "view_id" if source_type == "semantic_view" else "dataset_id"
+        other_key: str = "dataset_id" if target_key == "view_id" else "view_id"
+        source_id: object = data.pop("datasource_id")
+        if data.get(other_key) is not None or (
+            data.get(target_key) is not None and data[target_key] != source_id
+        ):
+            raise ValueError("datasource_id conflicts with the explicit chart target")
+        data[target_key] = source_id
+    return data
+
+
 def _normalize_chart_request_input(data: Any) -> Any:
     """Accept common Superset REST/form_data vocabulary in chart requests.
 
@@ -3795,8 +3821,7 @@ def _normalize_chart_request_input(data: Any) -> Any:
     """
     if not isinstance(data, dict):
         return data
-    if "dataset_id" not in data and "datasource_id" in data:
-        data["dataset_id"] = data.pop("datasource_id")
+    data = _normalize_chart_target_alias(data)
     config = data.get("config")
     if isinstance(config, dict):
         viz_type = config.get("viz_type")
@@ -3886,11 +3911,8 @@ class ChartTargetMixin(BaseModel):
     dataset_id: int | str | None = Field(
         None,
         description=(
-            "Table dataset identifier (numeric ID or UUID). Use ONLY for "
-            "datasets (rows with a dataset_id in list_datasets / list_metrics). "
-            "For a semantic view pass view_id instead: dataset and view ids are "
-            "unrelated numbering spaces, so a view id passed here resolves to a "
-            "different object."
+            "Table dataset ID or UUID. For a semantic view use view_id "
+            "(separate ID space)."
         ),
     )
     view_id: Annotated[int, Field(strict=True, gt=0)] | UUID | None = Field(
@@ -3899,9 +3921,8 @@ class ChartTargetMixin(BaseModel):
             "Semantic view UUID or legacy numeric ID (the view_id from list_metrics / "
             "get_compatible_dimensions / get_compatible_metrics for "
             "source='external'). Charts on a semantic view may only use the "
-            'view\'s saved metrics ({"name": ..., "saved_metric": true}) '
-            "and its dimension names; ad-hoc aggregates and custom SQL are "
-            "rejected."
+            "view's saved metrics and dimension names; ad-hoc aggregates "
+            "and custom SQL are rejected."
         ),
     )
 

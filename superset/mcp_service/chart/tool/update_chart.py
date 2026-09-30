@@ -27,9 +27,14 @@ from fastmcp import Context
 from sqlalchemy.exc import SQLAlchemyError
 from superset_core.mcp.decorators import tool, ToolAnnotations
 
+from superset import security_manager
 from superset.commands.exceptions import CommandException
 from superset.common.form_data_query_context import is_raw_query_mode
-from superset.exceptions import OAuth2Error, OAuth2RedirectError
+from superset.exceptions import (
+    OAuth2Error,
+    OAuth2RedirectError,
+    SupersetSecurityException,
+)
 from superset.extensions import event_logger
 from superset.mcp_service.chart.chart_helpers import (
     extract_form_data_key_from_url,
@@ -44,6 +49,7 @@ from superset.mcp_service.chart.chart_utils import (
     merge_chart_form_data,
     merge_interactive_pivot_ui_config,
     merge_table_column_config,
+    validate_chart_dataset,
 )
 from superset.mcp_service.chart.compile import (
     _compile_chart,
@@ -386,7 +392,12 @@ def _chart_datasource_type(chart: Slice) -> str:
     value: object = getattr(chart, "datasource_type", DatasourceType.TABLE.value)
     if not isinstance(value, str):
         return DatasourceType.TABLE.value
-    if value not in (DatasourceType.TABLE.value, DatasourceType.SEMANTIC_VIEW.value):
+    if value not in (
+        DatasourceType.TABLE.value,
+        DatasourceType.SEMANTIC_VIEW.value,
+        DatasourceType.QUERY.value,
+        DatasourceType.SAVEDQUERY.value,
+    ):
         raise ValueError(f"Unsupported chart datasource type: {value}")
     return value
 
@@ -432,7 +443,7 @@ def _build_replacement_form_data(
     dataset_rebind = replacement_dataset_id is not None
     config_plugin = get_registry().get(parsed_config.chart_type, include_disabled=True)
     if (
-        replacement_type == "table"
+        replacement_type == DatasourceType.TABLE.value
         and replacement_dataset_id is not None
         and not (config_plugin is not None and config_plugin.strict_dataset_rebind)
     ):
@@ -788,6 +799,18 @@ def _validate_update_against_target(
     if target_type != DatasourceType.TABLE.value:
         raise ValueError(f"Unsupported chart datasource type: {target_type}")
     if _chart_datasource_type(chart) == DatasourceType.SEMANTIC_VIEW.value:
+        target_access: DatasetValidationResult = validate_chart_dataset(
+            target_id, check_access=True
+        )
+        if not target_access.is_valid:
+            return GenerateChartResponse(
+                success=False,
+                error=ChartGenerationError(
+                    error_type="DatasetNotAccessible",
+                    message="Target dataset is not accessible",
+                    details="The replacement dataset is missing or inaccessible.",
+                ),
+            )
         # Retained semantic names must resolve against the replacement table,
         # including a source-only rebind with no typed configuration.
         run_compile_check = True
@@ -1040,6 +1063,20 @@ async def update_chart(  # noqa: C901
                     }
                 )
             validation_result = None
+        elif _chart_datasource_type(chart) in (
+            DatasourceType.QUERY.value,
+            DatasourceType.SAVEDQUERY.value,
+        ):
+            # Query-backed title updates retain chart authorization without
+            # interpreting the query's numeric ID as a table dataset ID.
+            try:
+                security_manager.raise_for_access(chart=chart)
+            except SupersetSecurityException:
+                validation_result = DatasetValidationResult(
+                    False, chart.datasource_id, None, [], "Chart is not accessible"
+                )
+            else:
+                validation_result = None
         else:
             validation_result = check_chart_data_access(chart)
         if validation_result is not None and not validation_result.is_valid:

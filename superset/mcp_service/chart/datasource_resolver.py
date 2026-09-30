@@ -184,9 +184,17 @@ def validate_semantic_view_form_data(
     filter_error: ChartGenerationError | None = _validate_semantic_filters(form_data)
     if filter_error is not None:
         return filter_error
-    metric_values: list[object] = list(form_data.get("metrics") or []) + [
+    metric_values: list[object] = [
+        *(form_data.get("metrics") or []),
+        *(form_data.get("metrics_b") or []),
+    ] + [
         form_data[key]
-        for key in ("metric", "secondary_metric", "timeseries_limit_metric")
+        for key in (
+            "metric",
+            "secondary_metric",
+            "timeseries_limit_metric",
+            "timeseries_limit_metric_b",
+        )
         if form_data.get(key) is not None
     ]
     if any(
@@ -202,7 +210,11 @@ def validate_semantic_view_form_data(
     dimensions: list[object] = [
         dimension
         for key in ("groupby", "groupby_b", "columns", "all_columns")
-        for dimension in form_data.get(key) or []
+        for dimension in (
+            [form_data[key]]
+            if isinstance(form_data.get(key), str)
+            else form_data.get(key) or []
+        )
     ] + [form_data[key] for key in ("x_axis", "granularity_sqla") if form_data.get(key)]
     if any(not isinstance(value, str) or value not in columns for value in dimensions):
         return ChartGenerationError(
@@ -219,7 +231,15 @@ def validate_semantic_view_form_data(
     # avoid circular import: compile imports schemas, whose plugins load validators.
     from superset.mcp_service.chart.compile import _validate_adhoc_filter_columns
 
-    return _validate_adhoc_filter_columns(form_data, context)
+    return _validate_adhoc_filter_columns(
+        {
+            "adhoc_filters": [
+                *(form_data.get("adhoc_filters") or []),
+                *(form_data.get("adhoc_filters_b") or []),
+            ]
+        },
+        context,
+    )
 
 
 def _validate_semantic_filters(
@@ -234,7 +254,10 @@ def _validate_semantic_filters(
             details="Replace SQL expressions with simple dimension filters.",
         )
     filter_value: object
-    for filter_value in form_data.get("adhoc_filters") or []:
+    for filter_value in [
+        *(form_data.get("adhoc_filters") or []),
+        *(form_data.get("adhoc_filters_b") or []),
+    ]:
         if (
             not isinstance(filter_value, dict)
             or filter_value.get("expressionType") not in (None, "SIMPLE")
@@ -258,6 +281,7 @@ def _validate_semantic_ordering(
     for entry in [
         *(form_data.get("order_by_cols") or []),
         *(form_data.get("orderby") or []),
+        *(form_data.get("orderby_b") or []),
     ]:
         try:
             ordering: object = json.loads(entry) if isinstance(entry, str) else entry

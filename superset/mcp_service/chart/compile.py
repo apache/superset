@@ -57,6 +57,7 @@ from superset.mcp_service.common.error_schemas import (
     DatasetContext,
 )
 from superset.mcp_service.constants import CONNECTION_ERROR_TYPES
+from superset.utils.core import DatasourceType
 
 logger = logging.getLogger(__name__)
 
@@ -159,7 +160,10 @@ def _compile_chart(
 
         return CompileResult(success=True, warnings=warnings, row_count=row_count)
     except (ChartDataQueryFailedError, ChartDataCacheLoadError) as exc:
-        if datasource_type == "table" and _classify_as_database_error(exc, dataset_id):
+        if (
+            datasource_type == DatasourceType.TABLE.value
+            and _classify_as_database_error(exc, dataset_id)
+        ):
             logger.warning(
                 "Database connection error during chart compile check: %s: %s",
                 type(exc).__name__,

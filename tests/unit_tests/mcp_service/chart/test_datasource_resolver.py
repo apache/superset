@@ -286,3 +286,66 @@ def test_retained_saved_sort_is_accepted() -> None:
         )
         is None
     )
+
+
+@pytest.mark.parametrize("key", ["groupby", "groupby_b", "columns", "all_columns"])
+def test_scalar_dimension_roles_keep_complete_names(key: str) -> None:
+    """Scalar persisted dimensions have the same meaning as singleton lists."""
+    target: ChartDatasource = ChartDatasource(
+        _mock_view(), DatasourceType.SEMANTIC_VIEW, 7, "Jaffle Shop"
+    )
+    assert validate_semantic_view_form_data({key: "customer__region"}, target) is None
+
+
+@pytest.mark.parametrize(
+    "form_data",
+    [
+        {"timeseries_limit_metric_b": "missing"},
+        {"timeseries_limit_metric_b": {"expressionType": "SQL", "sqlExpression": "1"}},
+        {"metrics_b": ["missing"]},
+        {"metrics_b": [{"expressionType": "SQL", "sqlExpression": "count(*)"}]},
+        {"orderby_b": [["missing", True]]},
+        {"adhoc_filters_b": [{"expressionType": "SQL", "sqlExpression": "1=1"}]},
+        {
+            "adhoc_filters_b": [
+                {
+                    "expressionType": "SIMPLE",
+                    "subject": "missing",
+                    "operator": "==",
+                    "comparator": "x",
+                    "clause": "WHERE",
+                }
+            ]
+        },
+    ],
+)
+def test_secondary_roles_reject_invalid_saved_state(form_data: dict[str, Any]) -> None:
+    """The second query must validate the same saved references as the first."""
+    target: ChartDatasource = ChartDatasource(
+        _mock_view(), DatasourceType.SEMANTIC_VIEW, 7, "Jaffle Shop"
+    )
+    assert validate_semantic_view_form_data(form_data, target) is not None
+
+
+def test_valid_secondary_roles_are_preserved() -> None:
+    """Valid secondary roles remain usable without rewriting query constraints."""
+    target: ChartDatasource = ChartDatasource(
+        _mock_view(), DatasourceType.SEMANTIC_VIEW, 7, "Jaffle Shop"
+    )
+    form_data: dict[str, Any] = {
+        "timeseries_limit_metric_b": "revenue",
+        "metrics_b": ["revenue"],
+        "groupby_b": ["customer__region"],
+        "orderby_b": [["revenue", False]],
+        "adhoc_filters_b": [
+            {
+                "expressionType": "SIMPLE",
+                "subject": "customer__region",
+                "operator": "==",
+                "comparator": "west",
+                "clause": "WHERE",
+            }
+        ],
+    }
+    assert validate_semantic_view_form_data(form_data, target) is None
+    assert form_data["adhoc_filters_b"][0]["comparator"] == "west"

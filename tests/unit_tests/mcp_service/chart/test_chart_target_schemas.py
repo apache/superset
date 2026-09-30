@@ -107,3 +107,78 @@ def test_view_selector_accepts_uuid() -> None:
     assert request.view_id == identity
     assert request.dataset_id is None
     assert request.model_dump(mode="json")["view_id"] == str(identity)
+
+
+@pytest.mark.parametrize(
+    "request_cls",
+    [GenerateChartRequest, GenerateExploreLinkRequest, UpdateChartRequest],
+)
+@pytest.mark.parametrize("source_type", ["table", "semantic_view"])
+def test_legacy_alias_keeps_explicit_family(
+    request_cls: type[GenerateChartRequest]
+    | type[GenerateExploreLinkRequest]
+    | type[UpdateChartRequest],
+    source_type: str,
+) -> None:
+    """Colliding legacy IDs select the supplied family rather than a table."""
+    request: GenerateChartRequest | GenerateExploreLinkRequest | UpdateChartRequest = (
+        request_cls.model_validate(
+            {
+                "identifier": 12,
+                "datasource_id": 7,
+                "datasource_type": source_type,
+                "config": _config(),
+            }
+        )
+    )
+    assert request.view_id == (7 if source_type == "semantic_view" else None)
+    assert request.dataset_id == (7 if source_type == "table" else None)
+
+
+@pytest.mark.parametrize("source_type", ["query", "saved_query", "unknown", None])
+def test_legacy_alias_rejects_unsupported_family(source_type: str | None) -> None:
+    """Unsupported explicit families cannot be silently reinterpreted as tables."""
+    with pytest.raises(ValidationError, match="datasource_type"):
+        GenerateExploreLinkRequest.model_validate(
+            {"datasource_id": 7, "datasource_type": source_type}
+        )
+
+
+@pytest.mark.parametrize("selectors", [{"dataset_id": 7}, {"view_id": 8}])
+def test_legacy_alias_rejects_conflicting_selectors(selectors: dict[str, int]) -> None:
+    """Do not silently choose one of contradictory explicit identities."""
+    with pytest.raises(ValidationError):
+        GenerateExploreLinkRequest.model_validate(
+            {"datasource_id": 7, "datasource_type": "semantic_view", **selectors}
+        )
+
+
+@pytest.mark.parametrize(
+    "request_cls",
+    [GenerateChartRequest, GenerateExploreLinkRequest, UpdateChartRequest],
+)
+@pytest.mark.parametrize("target_key", ["dataset_id", "view_id"])
+@pytest.mark.parametrize("source_type", ["table", "semantic_view", "query", None])
+def test_explicit_target_checks_supplied_family(
+    request_cls: type[GenerateChartRequest]
+    | type[GenerateExploreLinkRequest]
+    | type[UpdateChartRequest],
+    target_key: str,
+    source_type: str | None,
+) -> None:
+    """An explicit selector must agree with supplied legacy type vocabulary."""
+    data: dict[str, object] = {
+        "identifier": 12,
+        target_key: 7,
+        "datasource_type": source_type,
+        "config": _config(),
+    }
+    expected_type: str = "table" if target_key == "dataset_id" else "semantic_view"
+    if source_type != expected_type:
+        with pytest.raises(ValidationError, match="datasource_type"):
+            request_cls.model_validate(data)
+    else:
+        request: (
+            GenerateChartRequest | GenerateExploreLinkRequest | UpdateChartRequest
+        ) = request_cls.model_validate(data)
+        assert getattr(request, target_key) == 7

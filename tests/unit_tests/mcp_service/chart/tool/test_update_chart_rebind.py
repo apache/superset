@@ -26,6 +26,8 @@ import pytest
 from pytest_mock import MockerFixture
 
 from superset.connectors.sqla.models import SqlaTable
+from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
+from superset.exceptions import SupersetSecurityException
 from superset.mcp_service.chart.chart_utils import DatasetValidationResult
 from superset.mcp_service.chart.compile import CompileResult
 from superset.mcp_service.chart.datasource_resolver import ChartDatasource
@@ -234,15 +236,23 @@ def test_semantic_to_table_rebind_compiles_retained_state() -> None:
     assert isinstance(payload, dict)
     form_data: dict[str, Any] = json.loads(payload["params"])
     assert form_data["datasource"] == "3__table"
-    with patch.object(
-        update_chart_module, "_validate_update_against_dataset", return_value=None
-    ) as validate:
+    with (
+        patch.object(
+            update_chart_module, "_validate_update_against_dataset", return_value=None
+        ) as validate,
+        patch.object(
+            update_chart_module,
+            "validate_chart_dataset",
+            return_value=DatasetValidationResult(True, 3, "Target", []),
+        ) as access,
+    ):
         assert (
             _validate_update_against_target(
                 None, form_data, chart, 3, "table", run_compile_check=False
             )
             is None
         )
+    access.assert_called_once_with(3, check_access=True)
     assert validate.call_args.args[1] == form_data
     assert validate.call_args.kwargs["run_compile_check"] is True
 
@@ -431,3 +441,223 @@ async def test_table_source_only_rebind_retains_filters_in_both_modes(
         }
         preview.assert_not_called()
     assert json.loads(chart.params) == form_data
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("source_type", ["query", "saved_query"])
+@pytest.mark.parametrize("allowed", [False, True])
+@pytest.mark.parametrize("preview_mode", [False, True])
+async def test_query_backed_rename_keeps_family(
+    mocker: MockerFixture, source_type: str, preview_mode: bool, allowed: bool
+) -> None:
+    """A title-only update must not reinterpret a query as a table or view."""
+    chart: Mock = _chart(3, source_type)
+    chart.uuid = None
+    mocker.patch.object(
+        update_chart_module, "find_chart_by_identifier", return_value=chart
+    )
+    access: MagicMock = mocker.patch("superset.security_manager.raise_for_access")
+    if not allowed:
+        access.side_effect = SupersetSecurityException(
+            SupersetError(
+                message="denied",
+                level=ErrorLevel.ERROR,
+                error_type=SupersetErrorType.DATASOURCE_SECURITY_ACCESS_ERROR,
+            )
+        )
+    table_access: MagicMock = mocker.patch(
+        "superset.mcp_service.auth.check_chart_data_access",
+        side_effect=AssertionError("query is not a table"),
+    )
+    mocker.patch(
+        "superset.mcp_service.auth.get_user_from_request",
+        return_value=Mock(id=1, username="owner", roles=[], groups=[]),
+    )
+    mocker.patch("superset.utils.log.DBEventLogger.log")
+    preview: MagicMock = mocker.patch.object(
+        update_chart_module,
+        "_create_preview_url",
+        return_value=("http://localhost/explore/?form_data_key=key", "key", []),
+    )
+    write: MagicMock = mocker.patch("superset.commands.chart.update.UpdateChartCommand")
+    write.return_value.run.return_value = chart
+    ctx: MagicMock = MagicMock(
+        info=AsyncMock(),
+        debug=AsyncMock(),
+        warning=AsyncMock(),
+        error=AsyncMock(),
+        report_progress=AsyncMock(),
+    )
+    response: GenerateChartResponse = await update_chart_module.update_chart(
+        UpdateChartRequest(
+            identifier=12,
+            chart_name="Renamed",
+            generate_preview=preview_mode,
+            preview_formats=[],
+        ),
+        ctx=ctx,
+    )
+    if not allowed:
+        assert not response.success
+        preview.assert_not_called()
+        write.assert_not_called()
+        table_access.assert_not_called()
+        access.assert_called_once_with(chart=chart)
+        return
+    assert response.success, response.error
+    access.assert_called_once_with(chart=chart)
+    table_access.assert_not_called()
+    if preview_mode:
+        assert preview.call_args.args[1]["datasource"] == f"3__{source_type}"
+        assert preview.call_args.kwargs["datasource_type"] == source_type
+        write.assert_not_called()
+    else:
+        assert write.call_args.args[1] == {"slice_name": "Renamed"}
+        preview.assert_not_called()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("preview_mode", [False, True])
+@pytest.mark.parametrize("target_access", [False, True])
+async def test_semantic_to_table_denial_precedes_cache_and_write(
+    mocker: MockerFixture, preview_mode: bool, target_access: bool
+) -> None:
+    """Real compile command validation denies a rebound target before effects."""
+    chart: Mock = _chart(3, "semantic_view")
+    chart.uuid = None
+    target: SqlaTable = SqlaTable(id=3, table_name="restricted")
+    mocker.patch(
+        "superset.mcp_service.auth.has_dataset_access", return_value=target_access
+    )
+    mocker.patch.object(
+        update_chart_module, "find_chart_by_identifier", return_value=chart
+    )
+    mocker.patch.object(
+        update_chart_module, "resolve_semantic_view", return_value=Mock()
+    )
+    mocker.patch("superset.daos.dataset.DatasetDAO.find_by_id", return_value=target)
+    mocker.patch(
+        "superset.mcp_service.auth.get_user_from_request",
+        return_value=Mock(id=1, username="owner", roles=[], groups=[]),
+    )
+    mocker.patch("superset.utils.log.DBEventLogger.log")
+    context: Mock = Mock()
+    context.raise_for_access.side_effect = SupersetSecurityException(
+        SupersetError(
+            message="target denied",
+            level=ErrorLevel.ERROR,
+            error_type=SupersetErrorType.DATASOURCE_SECURITY_ACCESS_ERROR,
+        )
+    )
+    build: MagicMock = mocker.patch(
+        "superset.mcp_service.chart.chart_helpers.build_query_context_from_form_data",
+        return_value=context,
+    )
+    execute: MagicMock = mocker.patch(
+        "superset.commands.chart.data.get_data_command.ChartDataCommand.run"
+    )
+    preview: MagicMock = mocker.patch.object(update_chart_module, "_create_preview_url")
+    write: MagicMock = mocker.patch("superset.commands.chart.update.UpdateChartCommand")
+    ctx: MagicMock = MagicMock(
+        info=AsyncMock(),
+        debug=AsyncMock(),
+        warning=AsyncMock(),
+        error=AsyncMock(),
+        report_progress=AsyncMock(),
+    )
+    request: UpdateChartRequest = UpdateChartRequest(
+        identifier=12, dataset_id=3, generate_preview=preview_mode, preview_formats=[]
+    )
+    if target_access:
+        with pytest.raises(SupersetSecurityException, match="target denied"):
+            await update_chart_module.update_chart(request, ctx=ctx)
+        assert build.call_args.args[0]["datasource"] == "3__table"
+        assert build.call_args.args[0]["datasource_type"] == "table"
+        context.raise_for_access.assert_called_once_with()
+    else:
+        response: GenerateChartResponse = await update_chart_module.update_chart(
+            request, ctx=ctx
+        )
+        assert not response.success
+        assert response.error is not None
+        assert response.error.error_type == "DatasetNotAccessible"
+        build.assert_not_called()
+    execute.assert_not_called()
+    preview.assert_not_called()
+    write.assert_not_called()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("preview_mode", [False, True])
+@pytest.mark.parametrize(
+    "retained",
+    [
+        {"timeseries_limit_metric_b": "missing"},
+        {"metrics_b": ["missing"]},
+        {"orderby_b": [["missing", True]]},
+        {"adhoc_filters_b": [{"expressionType": "SQL", "sqlExpression": "1=1"}]},
+        {
+            "adhoc_filters_b": [
+                {
+                    "expressionType": "SIMPLE",
+                    "subject": "missing",
+                    "operator": "==",
+                    "comparator": "x",
+                }
+            ]
+        },
+    ],
+)
+async def test_secondary_rebind_validation_precedes_effects(
+    mocker: MockerFixture, preview_mode: bool, retained: dict[str, Any]
+) -> None:
+    """Source-only semantic rebinding validates query B before either effect."""
+    chart: Mock = _chart()
+    chart.uuid = None
+    chart.params = json.dumps({**json.loads(chart.params), **retained})
+    view: Mock = Mock(
+        id=7,
+        columns=[],
+        metrics=[Mock(metric_name="revenue", expression="revenue", description=None)],
+    )
+    target: ChartDatasource = ChartDatasource(
+        view, DatasourceType.SEMANTIC_VIEW, 7, "Semantic revenue"
+    )
+    mocker.patch.object(
+        update_chart_module, "find_chart_by_identifier", return_value=chart
+    )
+    mocker.patch.object(
+        update_chart_module, "resolve_semantic_view", return_value=target
+    )
+    mocker.patch(
+        "superset.mcp_service.auth.check_chart_data_access",
+        return_value=DatasetValidationResult(True, 3, "Original", []),
+    )
+    mocker.patch(
+        "superset.mcp_service.auth.get_user_from_request",
+        return_value=Mock(id=1, username="owner", roles=[], groups=[]),
+    )
+    mocker.patch("superset.utils.log.DBEventLogger.log")
+    preview: MagicMock = mocker.patch.object(update_chart_module, "_create_preview_url")
+    write: MagicMock = mocker.patch("superset.commands.chart.update.UpdateChartCommand")
+    ctx: MagicMock = MagicMock(
+        info=AsyncMock(),
+        debug=AsyncMock(),
+        warning=AsyncMock(),
+        error=AsyncMock(),
+        report_progress=AsyncMock(),
+    )
+    response: GenerateChartResponse = await update_chart_module.update_chart(
+        UpdateChartRequest(
+            identifier=12, view_id=7, generate_preview=preview_mode, preview_formats=[]
+        ),
+        ctx=ctx,
+    )
+    assert not response.success
+    assert response.error is not None
+    assert response.error.error_type in {
+        "semantic_view_adhoc_not_supported",
+        "invalid_column",
+    }
+    preview.assert_not_called()
+    write.assert_not_called()

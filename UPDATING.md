@@ -24,6 +24,13 @@ assists people when migrating to a new version.
 
 ## Next
 
+### MCP chart target aliases
+
+Chart tools interpret legacy `datasource_id` with `datasource_type`:
+`table` (the default when omitted) selects a dataset; `semantic_view` selects a
+view. Unsupported types or conflicting explicit selectors return validation
+errors instead of silently selecting a table. Prefer `dataset_id` or `view_id`.
+
 ### Empty MCP chart previews
 
 Saved Bubble and Histogram Vega-Lite previews with zero rows return an empty
