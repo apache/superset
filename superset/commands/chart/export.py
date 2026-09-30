@@ -34,7 +34,10 @@ from superset.commands.tag.export import ExportTagsCommand
 from superset.models.annotations import AnnotationLayer
 from superset.models.slice import Slice
 from superset.tags.models import TagType
-from superset.utils.dict_import_export import EXPORT_VERSION
+from superset.utils.dict_import_export import (
+    EXPORT_VERSION,
+    SELECTED_CHARTS_FILE_NAME,
+)
 from superset.utils.file import get_filename
 from superset.utils import json
 from superset.utils.core import (
@@ -187,21 +190,32 @@ class ExportChartsCommand(ExportModelsCommand):
     def run(
         self, seen: set[str] | None = None
     ) -> Iterator[tuple[str, Callable[[], str]]]:
+        is_root = seen is None
         yield from super().run(seen=seen)
+        if not self.export_related:
+            return
+
+        chart_ids = ExportChartsCommand.chart_ids_with_annotation_sources(self._models)
+
+        # When annotation sources were pulled in, record which charts were
+        # picked so the importer only reuses the others.
+        if is_root and len(chart_ids) > len(self._models):
+            selected_chart_uuids = [str(model.uuid) for model in self._models]
+            yield (
+                SELECTED_CHARTS_FILE_NAME,
+                lambda: yaml.safe_dump(
+                    {"chart_uuids": selected_chart_uuids}, sort_keys=False
+                ),
+            )
 
         # Tags are exported once for all requested charts (rather than per
         # chart in `_export`) so a multi-chart export doesn't lose tags to
         # the parent's per-file-name de-duplication of `tags.yaml`.
         if (
-            self.export_related
-            and ExportChartsCommand._include_tags
+            ExportChartsCommand._include_tags
             and feature_flag_manager.is_feature_enabled("TAGGING_SYSTEM")
         ):
-            yield from ExportTagsCommand(
-                chart_ids=ExportChartsCommand.chart_ids_with_annotation_sources(
-                    self._models
-                )
-            ).run()
+            yield from ExportTagsCommand(chart_ids=chart_ids).run()
 
     @staticmethod
     def _export(

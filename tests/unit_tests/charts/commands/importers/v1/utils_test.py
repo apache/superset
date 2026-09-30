@@ -20,11 +20,12 @@ from typing import Any
 from pytest_mock import MockerFixture
 
 from superset.commands.chart.importers.v1.utils import (
-    find_annotation_dependency_chart_uuids,
+    get_dependency_chart_uuids,
     migrate_chart,
 )
 from superset.extensions import feature_flag_manager
 from superset.utils import json
+from superset.utils.dict_import_export import SELECTED_CHARTS_FILE_NAME
 
 
 def test_migrate_chart_area() -> None:
@@ -286,41 +287,22 @@ def test_migrate_chart_table_migrates_when_flag_enabled(
     assert json.loads(new_config["params"])["viz_type"] == "ag-grid-table"
 
 
-def _chart_with_sources(chart_uuid: str, *source_uuids: str) -> dict[str, Any]:
-    return {
-        "uuid": chart_uuid,
-        "params": {
-            "annotation_layers": [
-                {"sourceType": "table", "value": source_uuid}
-                for source_uuid in source_uuids
-            ]
-        },
-    }
+def test_get_dependency_chart_uuids_uses_selection_file() -> None:
+    """Charts missing from the selection file are dependencies."""
+    configs = [{"uuid": "a"}, {"uuid": "b"}, {"uuid": "c"}]
+    contents = {SELECTED_CHARTS_FILE_NAME: "chart_uuids:\n- a\n"}
+    assert get_dependency_chart_uuids(contents, configs) == {"b", "c"}
 
 
-def test_find_annotation_dependency_chart_uuids_follows_chain() -> None:
-    """Charts reachable from a requested chart are dependencies."""
-    configs = [
-        _chart_with_sources("a", "b"),
-        _chart_with_sources("b", "c"),
-        _chart_with_sources("c"),
-        _chart_with_sources("standalone"),
-    ]
-    assert find_annotation_dependency_chart_uuids(configs) == {"b", "c"}
+def test_get_dependency_chart_uuids_without_selection_file() -> None:
+    """Without a selection file every bundled chart counts as selected."""
+    configs = [{"uuid": "a"}, {"uuid": "b"}]
+    assert get_dependency_chart_uuids({}, configs) == set()
 
 
-def test_find_annotation_dependency_chart_uuids_cycle_without_root() -> None:
-    """A cycle nothing else points into is treated as requested."""
-    configs = [_chart_with_sources("a", "b"), _chart_with_sources("b", "a")]
-    assert find_annotation_dependency_chart_uuids(configs) == set()
-
-
-def test_find_annotation_dependency_chart_uuids_cycle_below_root() -> None:
-    """A cycle reached from a requested chart is made of dependencies."""
-    configs = [
-        _chart_with_sources("root", "a"),
-        _chart_with_sources("a", "b"),
-        _chart_with_sources("b", "a"),
-        _chart_with_sources("self", "self"),
-    ]
-    assert find_annotation_dependency_chart_uuids(configs) == {"a", "b"}
+def test_get_dependency_chart_uuids_ignores_malformed_selection_file() -> None:
+    """A malformed selection file is ignored rather than failing the import."""
+    configs = [{"uuid": "a"}, {"uuid": "b"}]
+    for raw in ("chart_uuids: a", "- a", "chart_uuids: [a"):
+        contents = {SELECTED_CHARTS_FILE_NAME: raw}
+        assert get_dependency_chart_uuids(contents, configs) == set()

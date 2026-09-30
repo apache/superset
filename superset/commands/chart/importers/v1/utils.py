@@ -21,6 +21,8 @@ from inspect import isclass
 from typing import Any
 from uuid import UUID
 
+import yaml
+
 from superset import db, security_manager
 from superset.commands.exceptions import ImportFailedError
 from superset.commands.importers.v1.utils import (
@@ -40,6 +42,7 @@ from superset.utils.core import (
     get_annotation_layer_lists,
     get_user,
 )
+from superset.utils.dict_import_export import SELECTED_CHARTS_FILE_NAME
 
 logger = logging.getLogger(__name__)
 
@@ -340,32 +343,32 @@ def get_chart_annotation_dependencies(chart_config: dict[str, Any]) -> set[str]:
     }
 
 
-def find_annotation_dependency_chart_uuids(
+def get_dependency_chart_uuids(
+    contents: dict[str, Any],
     chart_configs: list[dict[str, Any]],
 ) -> set[str]:
     """
-    Return UUIDs of bundled charts that are only there as annotation sources.
+    Return UUIDs of bundled charts that weren't picked for the export, i.e. the
+    ones only there as annotation sources.
 
-    Charts no other bundled chart points at are the ones requested; every chart
-    reachable from them through annotation references is a dependency. Charts
-    in a cycle with no entry point count as requested.
+    The picked charts come from ``SELECTED_CHARTS_FILE_NAME``. A bundle without
+    it (or with an unreadable one) treats every chart as picked.
     """
-    configs_by_uuid = {str(config["uuid"]): config for config in chart_configs}
-    dependencies_by_uuid = {
-        chart_uuid: get_chart_annotation_dependencies(config) - {chart_uuid}
-        for chart_uuid, config in configs_by_uuid.items()
+    raw_selection = contents.get(SELECTED_CHARTS_FILE_NAME)
+    if not raw_selection:
+        return set()
+    try:
+        selection = yaml.safe_load(raw_selection)
+    except yaml.YAMLError:
+        logger.warning("Ignoring unreadable %s", SELECTED_CHARTS_FILE_NAME)
+        return set()
+    selected = selection.get("chart_uuids") if isinstance(selection, dict) else None
+    if not isinstance(selected, list):
+        logger.warning("Ignoring malformed %s", SELECTED_CHARTS_FILE_NAME)
+        return set()
+    return {str(config["uuid"]) for config in chart_configs} - {
+        str(chart_uuid) for chart_uuid in selected
     }
-    referenced = set().union(*dependencies_by_uuid.values())
-    roots = set(configs_by_uuid) - referenced
-
-    reachable: set[str] = set()
-    pending = list(roots)
-    while pending:
-        for dependency_uuid in dependencies_by_uuid.get(pending.pop(), set()):
-            if dependency_uuid in configs_by_uuid and dependency_uuid not in reachable:
-                reachable.add(dependency_uuid)
-                pending.append(dependency_uuid)
-    return reachable - roots
 
 
 def topological_sort_charts(

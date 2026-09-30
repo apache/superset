@@ -28,7 +28,7 @@ from superset.commands.annotation_layer.importers.v1.utils import (
 )
 from superset.commands.chart.exceptions import ChartImportError
 from superset.commands.chart.importers.v1.utils import (
-    find_annotation_dependency_chart_uuids,
+    get_dependency_chart_uuids,
     import_charts,
 )
 from superset.commands.database.importers.v1.utils import import_database
@@ -41,6 +41,7 @@ from superset.daos.chart import ChartDAO
 from superset.databases.schemas import ImportV1DatabaseSchema
 from superset.datasets.schemas import ImportV1DatasetSchema
 from superset.extensions import feature_flag_manager
+from superset.models.slice import Slice
 from superset.subjects.utils import get_default_viewers_for_current_user
 
 
@@ -59,12 +60,13 @@ class ImportChartsCommand(ImportModelsCommand):
     import_error = ChartImportError
 
     def _reused_dependency_uuids(self) -> set[str]:
-        return find_annotation_dependency_chart_uuids(
+        return get_dependency_chart_uuids(
+            self.contents,
             [
                 config
                 for file_name, config in self._configs.items()
                 if file_name.startswith("charts/")
-            ]
+            ],
         )
 
     @staticmethod
@@ -137,18 +139,30 @@ class ImportChartsCommand(ImportModelsCommand):
                 }
                 chart_configs.append(update_chart_config_dataset(config, dataset_dict))
 
+        # Charts bundled only as annotation sources are reused when they exist,
+        # the same way datasets and databases are, and keep their local tags.
+        dependency_chart_uuids = get_dependency_chart_uuids(contents, chart_configs)
+        reused_chart_uuids = (
+            {
+                str(chart_uuid)
+                for (chart_uuid,) in db.session.query(Slice.uuid).filter(
+                    Slice.uuid.in_(dependency_chart_uuids)
+                )
+            }
+            if dependency_chart_uuids
+            else set()
+        )
+
         # annotation source charts are imported before the charts using them
-        # Charts pulled in only as annotation sources are reused when they
-        # exist, the same way datasets and databases are.
         for config, chart in import_charts(
             chart_configs,
             overwrite=overwrite,
             default_viewers=default_viewers,
             annotation_layer_ids=annotation_layer_ids,
-            dependency_chart_uuids=find_annotation_dependency_chart_uuids(
-                chart_configs
-            ),
+            dependency_chart_uuids=dependency_chart_uuids,
         ):
+            if str(config["uuid"]) in reused_chart_uuids:
+                continue
             # Handle tags using import_tag function
             if feature_flag_manager.is_feature_enabled("TAGGING_SYSTEM"):
                 if "tags" in config:

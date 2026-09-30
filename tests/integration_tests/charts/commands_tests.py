@@ -53,6 +53,7 @@ from superset.security.guest_token import GuestTokenResourceType
 from superset.tags.models import ObjectType, Tag, TaggedObject, TagType
 from superset.utils import json
 from superset.utils.core import override_user
+from superset.utils.dict_import_export import SELECTED_CHARTS_FILE_NAME
 from tests.integration_tests.base_tests import (
     subjects_from_users,
     SupersetTestCase,
@@ -1017,6 +1018,33 @@ def _chart_import_config(chart_uuid, slice_name):
     return config
 
 
+def _chart_using_source(chart_uuid, source_chart_uuid):
+    config = _chart_import_config(chart_uuid, "Uses Source")
+    config["params"]["annotation_layers"] = [
+        {
+            "name": "Source",
+            "annotationType": "EVENT",
+            "sourceType": "table",
+            "value": source_chart_uuid,
+        }
+    ]
+    return config
+
+
+def _source_chart_bundle(source_chart, main_chart=None, selected=None):
+    contents = {
+        "metadata.yaml": yaml.safe_dump(chart_metadata_config),
+        "databases/imported_database.yaml": yaml.safe_dump(database_config),
+        "datasets/imported_dataset.yaml": yaml.safe_dump(dataset_config),
+        "charts/source_chart.yaml": yaml.safe_dump(source_chart),
+    }
+    if main_chart is not None:
+        contents["charts/main_chart.yaml"] = yaml.safe_dump(main_chart)
+    if selected is not None:
+        contents[SELECTED_CHARTS_FILE_NAME] = yaml.safe_dump({"chart_uuids": selected})
+    return contents
+
+
 def _cleanup_imported_chart_bundle(chart_uuids, layer_uuids):
     for chart_uuid in chart_uuids:
         chart = db.session.query(Slice).filter_by(uuid=chart_uuid).one_or_none()
@@ -1635,6 +1663,9 @@ class TestExportChartsAnnotationLayers(SupersetTestCase):
             contents = dict(ExportChartsCommand([main_chart.id]).run())
             tags = yaml.safe_load(contents["tags.yaml"]())["tags"]
             assert {"tag_name": tag.name, "description": tag.description} in tags
+            assert yaml.safe_load(contents[SELECTED_CHARTS_FILE_NAME]()) == {
+                "chart_uuids": [str(main_chart.uuid)]
+            }
         finally:
             main_chart.params = original_params
             db.session.query(TaggedObject).filter_by(tag_id=tag.id).delete()
@@ -2263,44 +2294,39 @@ class TestImportChartsAnnotationLayers(SupersetTestCase):
     def test_import_chart_reuses_existing_annotation_source_chart(
         self, mock_add_permissions, sm_g, utils_g
     ):
-        """An existing source chart doesn't block importing the chart using it."""
+        """An existing source chart is reused unchanged, tags included."""
         sm_g.user = utils_g.user = security_manager.find_user("admin")
         source_chart_uuid = str(uuid4())
         main_chart_uuid = str(uuid4())
-        source_chart = _chart_import_config(source_chart_uuid, "Existing Source")
-        base_contents = {
-            "metadata.yaml": yaml.safe_dump(chart_metadata_config),
-            "databases/imported_database.yaml": yaml.safe_dump(database_config),
-            "datasets/imported_dataset.yaml": yaml.safe_dump(dataset_config),
-        }
+        tag = None
         try:
             ImportChartsCommand(
-                {
-                    **base_contents,
-                    "charts/source_chart.yaml": yaml.safe_dump(source_chart),
-                },
+                _source_chart_bundle(
+                    _chart_import_config(source_chart_uuid, "Existing Source")
+                ),
                 overwrite=True,
             ).run()
             existing_source = (
                 db.session.query(Slice).filter_by(uuid=source_chart_uuid).one()
             )
+            tag = Tag(name=f"local-tag-{uuid4().hex[:8]}", type=TagType.custom)
+            db.session.add(tag)
+            db.session.flush()
+            db.session.add(
+                TaggedObject(
+                    tag_id=tag.id,
+                    object_id=existing_source.id,
+                    object_type=ObjectType.chart,
+                )
+            )
+            db.session.commit()
 
-            changed_source = deepcopy(source_chart)
-            changed_source["slice_name"] = "Changed Source"
-            main_chart = _chart_import_config(main_chart_uuid, "Uses Source")
-            main_chart["params"]["annotation_layers"] = [
-                {
-                    "name": "Source",
-                    "annotationType": "EVENT",
-                    "sourceType": "table",
-                    "value": source_chart_uuid,
-                }
-            ]
-            contents = {
-                **base_contents,
-                "charts/source_chart.yaml": yaml.safe_dump(changed_source),
-                "charts/main_chart.yaml": yaml.safe_dump(main_chart),
-            }
+            changed_source = _chart_import_config(source_chart_uuid, "Changed Source")
+            changed_source["tags"] = []
+            main_chart = _chart_using_source(main_chart_uuid, source_chart_uuid)
+            contents = _source_chart_bundle(
+                changed_source, main_chart, selected=[main_chart_uuid]
+            )
 
             # Alpha can write charts but isn't an editor of the admin's source.
             sm_g.user = utils_g.user = security_manager.find_user("alpha")
@@ -2316,8 +2342,44 @@ class TestImportChartsAnnotationLayers(SupersetTestCase):
             main = db.session.query(Slice).filter_by(uuid=main_chart_uuid).one()
             assert source.id == existing_source.id
             assert source.slice_name == "Existing Source"
+            assert tag.name in {source_tag.name for source_tag in source.tags}
             assert [
                 layer["value"] for layer in json.loads(main.params)["annotation_layers"]
             ] == [source.id]
+        finally:
+            if tag is not None:
+                db.session.query(TaggedObject).filter_by(tag_id=tag.id).delete()
+                db.session.delete(tag)
+                db.session.commit()
+            _cleanup_imported_chart_bundle([main_chart_uuid, source_chart_uuid], [])
+
+    @patch("superset.utils.core.g")
+    @patch("superset.security.manager.g")
+    @patch("superset.commands.database.importers.v1.utils.add_permissions")
+    def test_import_chart_overwrites_selected_annotation_source_chart(
+        self, mock_add_permissions, sm_g, utils_g
+    ):
+        """A source chart that was picked for the export is overwritten."""
+        sm_g.user = utils_g.user = security_manager.find_user("admin")
+        source_chart_uuid = str(uuid4())
+        main_chart_uuid = str(uuid4())
+        try:
+            ImportChartsCommand(
+                _source_chart_bundle(
+                    _chart_import_config(source_chart_uuid, "Existing Source")
+                ),
+                overwrite=True,
+            ).run()
+
+            contents = _source_chart_bundle(
+                _chart_import_config(source_chart_uuid, "Changed Source"),
+                _chart_using_source(main_chart_uuid, source_chart_uuid),
+                selected=[main_chart_uuid, source_chart_uuid],
+            )
+            ImportChartsCommand(contents, overwrite=True).run()
+
+            db.session.expire_all()
+            source = db.session.query(Slice).filter_by(uuid=source_chart_uuid).one()
+            assert source.slice_name == "Changed Source"
         finally:
             _cleanup_imported_chart_bundle([main_chart_uuid, source_chart_uuid], [])
