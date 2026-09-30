@@ -4084,73 +4084,35 @@ def _raw_query_object() -> MagicMock:
     return query_object
 
 
-def test_normalize_df_applies_python_date_format_to_unaggregated_columns() -> None:
+@pytest.mark.parametrize(
+    "python_date_format,values",
+    [
+        ("epoch_s", [1577836800, 1609459200, 1640995200]),
+        ("epoch_ms", [1577836800000, 1609459200000, 1640995200000]),
+        ("epoch_us", [1577836800000000, 1609459200000000, 1640995200000000]),
+    ],
+)
+def test_normalize_df_applies_python_date_format_to_unaggregated_columns(
+    python_date_format: str, values: list[int]
+) -> None:
     """A temporal column selected in a raw/unaggregated query is a plain column
     name rather than a base-axis adhoc column, so it is excluded from
     ``get_base_axis_labels``. It must still receive its ``python_date_format``,
-    so an ``epoch_s`` column is converted to datetimes the same way it is for
-    aggregated charts."""
+    so an epoch column (seconds, milliseconds, or microseconds) is converted
+    to datetimes the same way it is for aggregated charts."""
     import pandas as pd
     from pandas.api.types import is_datetime64_any_dtype
 
     ts_col = MagicMock(
         column_name="ts",
         is_dttm=True,
-        python_date_format="epoch_s",
+        python_date_format=python_date_format,
         datetime_format=None,
     )
     datasource = _normalize_df_datasource(ts_col)
 
-    # 2020-01-01, 2021-01-01, 2022-01-01 as epoch seconds
-    df = pd.DataFrame({"ts": [1577836800, 1609459200, 1640995200]})
-
-    result = datasource.normalize_df(df, _raw_query_object())
-
-    assert is_datetime64_any_dtype(result["ts"])
-    assert result["ts"][0].strftime("%Y-%m-%d") == "2020-01-01"
-    assert result["ts"][2].strftime("%Y-%m-%d") == "2022-01-01"
-
-
-def test_normalize_df_applies_epoch_ms_to_unaggregated_columns() -> None:
-    """``epoch_ms`` is a separate conversion branch from ``epoch_s``; an
-    unaggregated column declaring it must also be converted to datetimes."""
-    import pandas as pd
-    from pandas.api.types import is_datetime64_any_dtype
-
-    ts_col = MagicMock(
-        column_name="ts",
-        is_dttm=True,
-        python_date_format="epoch_ms",
-        datetime_format=None,
-    )
-    datasource = _normalize_df_datasource(ts_col)
-
-    # 2020-01-01, 2021-01-01, 2022-01-01 as epoch milliseconds
-    df = pd.DataFrame({"ts": [1577836800000, 1609459200000, 1640995200000]})
-
-    result = datasource.normalize_df(df, _raw_query_object())
-
-    assert is_datetime64_any_dtype(result["ts"])
-    assert result["ts"][0].strftime("%Y-%m-%d") == "2020-01-01"
-    assert result["ts"][2].strftime("%Y-%m-%d") == "2022-01-01"
-
-
-def test_normalize_df_applies_epoch_us_to_unaggregated_columns() -> None:
-    """``epoch_us`` values are microseconds; the raw-column path must convert
-    them with the matching pandas unit."""
-    import pandas as pd
-    from pandas.api.types import is_datetime64_any_dtype
-
-    ts_col = MagicMock(
-        column_name="ts",
-        is_dttm=True,
-        python_date_format="epoch_us",
-        datetime_format=None,
-    )
-    datasource = _normalize_df_datasource(ts_col)
-
-    # 2020-01-01, 2021-01-01, 2022-01-01 as epoch microseconds
-    df = pd.DataFrame({"ts": [1577836800000000, 1609459200000000, 1640995200000000]})
+    # values are 2020-01-01, 2021-01-01, 2022-01-01 in python_date_format's unit
+    df = pd.DataFrame({"ts": values})
 
     result = datasource.normalize_df(df, _raw_query_object())
 
