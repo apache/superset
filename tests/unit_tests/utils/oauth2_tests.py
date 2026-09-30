@@ -50,6 +50,7 @@ from superset.utils.oauth2 import (
     generate_code_verifier,
     get_oauth2_access_token,
     get_oauth2_redirect_uri,
+    OAUTH2_LOCK_BACKOFF_MAX_TRIES,
     refresh_oauth2_token,
 )
 
@@ -954,7 +955,7 @@ def test_force_refresh_reads_committed_token_when_lock_never_frees(
     mocker.patch("time.sleep")  # avoid backoff delays in tests
     db = mocker.patch("superset.utils.oauth2.db")
     mocker.patch("superset.utils.oauth2.Session", return_value=db.session)
-    mocker.patch(
+    lock = mocker.patch(
         "superset.utils.oauth2.DistributedLock",
         side_effect=AcquireDistributedLockFailedException("Lock not available"),
     )
@@ -974,6 +975,9 @@ def test_force_refresh_reads_committed_token_when_lock_never_frees(
     assert result == "winning-token"
     db_engine_spec.get_oauth2_fresh_token.assert_not_called()
 
+    assert lock.call_count == OAUTH2_LOCK_BACKOFF_MAX_TRIES
+    db.session.query().filter_by().one_or_none.assert_called()
+
 
 def test_force_refresh_returns_none_when_no_one_refreshed(
     mocker: MockerFixture,
@@ -982,7 +986,7 @@ def test_force_refresh_returns_none_when_no_one_refreshed(
     mocker.patch("time.sleep")  # avoid backoff delays in tests
     db = mocker.patch("superset.utils.oauth2.db")
     mocker.patch("superset.utils.oauth2.Session", return_value=db.session)
-    mocker.patch(
+    lock = mocker.patch(
         "superset.utils.oauth2.DistributedLock",
         side_effect=LockAlreadyHeldException("Lock already taken"),
     )
@@ -999,6 +1003,9 @@ def test_force_refresh_returns_none_when_no_one_refreshed(
     )
 
     assert result is None
+
+    assert lock.call_count == OAUTH2_LOCK_BACKOFF_MAX_TRIES
+    db.session.query().filter_by().one_or_none.assert_called()
 
 
 def test_execute_with_oauth2_retry_survives_lock_contention(
@@ -1020,7 +1027,7 @@ def test_execute_with_oauth2_retry_survives_lock_contention(
     mocker.patch("superset.utils.oauth2.g").user.id = 2
     db = mocker.patch("superset.utils.oauth2.db")
     mocker.patch("superset.utils.oauth2.Session", return_value=db.session)
-    mocker.patch(
+    lock = mocker.patch(
         "superset.utils.oauth2.DistributedLock",
         side_effect=LockAlreadyHeldException("Lock already taken"),
     )
@@ -1034,3 +1041,6 @@ def test_execute_with_oauth2_retry_survives_lock_contention(
 
     assert operation.call_count == 2
     database.start_oauth2_dance.assert_not_called()
+
+    assert lock.call_count == OAUTH2_LOCK_BACKOFF_MAX_TRIES
+    db.session.query().filter_by().one_or_none.assert_called()

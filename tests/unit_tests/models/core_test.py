@@ -2726,3 +2726,61 @@ def test_get_raw_connection_survives_a_lost_refresh_race(
 
     assert engine.raw_connection.call_count == 2
     start_dance.assert_not_called()
+
+
+@pytest.mark.parametrize("connection_method", ["get_raw_connection", "get_inspector"])
+def test_connection_does_not_re_exchange_a_refused_refresh_token(
+    mocker: MockerFixture,
+    connection_method: str,
+) -> None:
+    """A refused expired-token refresh starts sign-in without another exchange."""
+    from datetime import datetime, timedelta
+
+    from superset.exceptions import OAuth2TokenRefreshError
+    from superset.utils.oauth2 import get_oauth2_access_token
+
+    engine = mocker.MagicMock()
+    database = _login_rejecting_database(mocker, engine)
+    spec = database.db_engine_spec
+    mocker.patch.object(
+        spec,
+        "needs_oauth2",
+        side_effect=lambda ex: isinstance(ex, OAuth2TokenRefreshError),
+    )
+    spec.oauth2_exception = ValueError
+    exchange = mocker.patch.object(
+        spec, "get_oauth2_fresh_token", side_effect=ValueError("refresh refused")
+    )
+    metadata_db = mocker.patch("superset.utils.oauth2.db")
+    token = mocker.MagicMock(
+        access_token="expired-token",  # noqa: S106
+        access_token_expiration=datetime.now() - timedelta(seconds=1),
+        refresh_token="refused-token",  # noqa: S106
+    )
+    metadata_db.session.query().filter_by().one_or_none.return_value = token
+    # A coordination lock must not commit the caller's pending deletion.
+    mocker.patch("superset.utils.oauth2.DistributedLock")
+    isolated_session = mocker.patch("superset.utils.oauth2.Session")
+    mocker.patch.object(
+        Database,
+        "_get_sqla_engine",
+        side_effect=lambda *args, **kwargs: get_oauth2_access_token({}, 1, 2, spec),
+    )
+    start_dance = mocker.patch.object(
+        spec,
+        "start_oauth2_dance",
+        side_effect=OAuth2RedirectError("url", "tab", "redirect"),
+    )
+
+    with pytest.raises(OAuth2RedirectError) as exc:
+        with getattr(database, connection_method)():
+            pytest.fail("A refused refresh must not open a connection")
+
+    assert not isinstance(exc.value, OAuth2TokenRefreshError)
+    exchange.assert_called_once_with({}, "refused-token")
+    metadata_db.session.delete.assert_called_once_with(token)
+    metadata_db.session.flush.assert_called_once()
+    metadata_db.session.commit.assert_not_called()
+    isolated_session.assert_not_called()
+    start_dance.assert_called_once_with(database)
+    engine.raw_connection.assert_not_called()

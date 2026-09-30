@@ -57,6 +57,10 @@ _oauth2_retry_active: ContextVar[bool] = ContextVar(
 # PKCE code verifier length (RFC 7636 recommends 43-128 characters)
 PKCE_CODE_VERIFIER_LENGTH = 64
 
+OAUTH2_LOCK_BACKOFF_FACTOR = 0.1
+OAUTH2_LOCK_BACKOFF_BASE = 2
+OAUTH2_LOCK_BACKOFF_MAX_TRIES = 8
+
 
 def generate_code_verifier() -> str:
     """
@@ -89,9 +93,9 @@ def generate_code_challenge(code_verifier: str) -> str:
 @backoff.on_exception(
     backoff.expo,
     AcquireDistributedLockFailedException,
-    factor=0.1,
-    base=2,
-    max_tries=8,
+    factor=OAUTH2_LOCK_BACKOFF_FACTOR,
+    base=OAUTH2_LOCK_BACKOFF_BASE,
+    max_tries=OAUTH2_LOCK_BACKOFF_MAX_TRIES,
     raise_on_giveup=False,
     giveup_log_level=logging.DEBUG,
 )
@@ -271,12 +275,12 @@ def _refresh_oauth2_token_locked(  # noqa: C901
 @backoff.on_exception(
     backoff.expo,
     AcquireDistributedLockFailedException,
-    factor=0.1,
-    base=2,
-    max_tries=8,
+    factor=OAUTH2_LOCK_BACKOFF_FACTOR,
+    base=OAUTH2_LOCK_BACKOFF_BASE,
+    max_tries=OAUTH2_LOCK_BACKOFF_MAX_TRIES,
     giveup_log_level=logging.DEBUG,
 )
-def _refresh_oauth2_token_forced(
+def _retry_forced_refresh_until_lock_available(
     config: OAuth2ClientConfig,
     database_id: int,
     user_id: int,
@@ -348,7 +352,7 @@ def force_refresh_oauth2_token(
     token instead of surfacing an opaque lock error.
     """
     try:
-        return _refresh_oauth2_token_forced(
+        return _retry_forced_refresh_until_lock_available(
             config,
             database_id,
             user_id,
@@ -401,6 +405,12 @@ def execute_with_oauth2_retry(  # noqa: C901
             database.is_oauth2_enabled() and database.db_engine_spec.needs_oauth2(ex)
         )
         if not is_oauth2_error:
+            raise
+        if isinstance(ex, OAuth2TokenRefreshError):
+            # The provider already refused the exchange. Retrying through a second
+            # session can block on the token deletion held by the caller.
+            app.config["STATS_LOGGER"].incr("oauth2.forced_refresh.exchange_rejected")
+            database.start_oauth2_dance()
             raise
         if can_retry is not None and not can_retry():
             app.config["STATS_LOGGER"].incr(
