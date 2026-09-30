@@ -275,19 +275,6 @@ jobs:
   # which case GHA skips its dependents too. Accepting (b) would let a broken
   # change-detector report a false green, so the anchor first requires
   # `changes` to have succeeded before honouring a skip.
-  # TEMPORARY: master's branch protection (.asf.yaml) still requires this
-  # context until the .asf.yaml change in the same PR that removed Cypress is
-  # applied on merge. Without a job reporting it, that PR could never satisfy
-  # the requirement. Remove this job in a follow-up once .asf.yaml on master no
-  # longer lists `cypress-matrix-required`.
-  cypress-matrix-required:
-    if: always()
-    runs-on: ubuntu-26.04
-    timeout-minutes: 5
-    permissions: {}
-    steps:
-      - run: echo "Cypress has been removed; this check is a no-op placeholder."
-
   playwright-tests-required:
     needs: [changes, playwright-tests]
     if: always()
