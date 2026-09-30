@@ -573,12 +573,12 @@ export function buildHeaderGroupRows(
       if (label !== undefined) {
         let colSpan = 1;
         while (colIndex + colSpan < columnKeys.length) {
-          const nextLabels =
-            ancestorMap.get(columnKeys[colIndex + colSpan])?.labels ?? [];
-          const sharesPrefix = labels
+          const nextIds =
+            ancestorMap.get(columnKeys[colIndex + colSpan])?.ids ?? [];
+          const sharesGroup = ids
             .slice(0, level + 1)
-            .every((item, index) => nextLabels[index] === item);
-          if (!sharesPrefix) {
+            .every((item, index) => nextIds[index] === item);
+          if (!sharesGroup) {
             break;
           }
           colSpan += 1;

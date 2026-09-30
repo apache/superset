@@ -119,6 +119,42 @@ test('buildHeaderGroupRows returns no rows without groups or columns', () => {
   expect(buildHeaderGroupRows(chartGroups, ['region'])).toEqual([]);
 });
 
+test('buildHeaderGroupRows keeps adjacent groups with the same label separate', () => {
+  const rows = buildHeaderGroupRows(
+    [
+      {
+        id: 'left-total',
+        label: 'Total',
+        columns: ['revenue'],
+        labelAlign: 'left',
+      },
+      {
+        id: 'right-total',
+        label: 'Total',
+        columns: ['profit'],
+        labelAlign: 'right',
+      },
+    ],
+    ['revenue', 'profit'],
+  );
+
+  expect(rows[0]).toHaveLength(2);
+  expect(rows[0][0]).toEqual(
+    expect.objectContaining({
+      label: 'Total',
+      colSpan: 1,
+      labelAlign: 'left',
+    }),
+  );
+  expect(rows[0][1]).toEqual(
+    expect.objectContaining({
+      label: 'Total',
+      colSpan: 1,
+      labelAlign: 'right',
+    }),
+  );
+});
+
 test('hasRenderableHeaderGroups ignores label-only and stale groups', () => {
   expect(hasRenderableHeaderGroups([])).toBe(false);
   expect(hasRenderableHeaderGroups([{ id: '1', label: '', columns: [] }])).toBe(
