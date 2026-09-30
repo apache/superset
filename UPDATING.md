@@ -24,6 +24,17 @@ assists people when migrating to a new version.
 
 ## Next
 
+### DynamoDB timestamp string format
+
+DynamoDB time-filter bounds use ISO 8601 with a `T` separator, preserving
+fractional seconds (for example, `2019-01-02T04:00:00.500000`).
+Tables storing space-separated timestamps such as `str(datetime)` must normalize
+their stored strings to the same ISO format before using these time filters.
+Otherwise both sub-day and whole-day ranges can return incorrect rows: a
+January 2–3 range can exclude January 2 and include January 3 instead.
+boto3 does not serialize Python datetime objects; applications choose the string
+format. Use a consistent timezone and precision for stored strings and bounds.
+
 - The `/register/` self-registration page and the login page's "Register" button
   are only served for the auth types that support self-registration
   (`AUTH_DB`, and `AUTH_OAUTH` for the page), and only when

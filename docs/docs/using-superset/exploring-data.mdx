@@ -415,3 +415,11 @@ the export isn't limited to the page currently visible in the table.
 - [Blog: From Drill Down to Drill By](https://preset.io/blog/drill-down-and-drill-by/)
 - [Blog: Cross-Filtering in Apache Superset](https://preset.io/blog/cross-filtering-in-Superset-and-Preset/)
   :::
+
+### DynamoDB time filters
+
+DynamoDB timestamp strings used in time filters must use the ISO 8601 `T`
+separator, for example `2019-01-02T04:15:00`. Superset renders bounds in this
+format and preserves fractional seconds. Normalize space-separated timestamps
+before applying time ranges; mixing separators can shift even whole-day results.
+Use consistent timezone and precision conventions for stored timestamps and bounds.
