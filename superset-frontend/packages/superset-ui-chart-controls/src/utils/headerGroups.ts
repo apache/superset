@@ -334,7 +334,7 @@ export function syncTimeComparisonGroups(
  * before it filters `column_config` down to `colnames`.
  */
 export function normalizeColumnConfigKeys<T>(
-  value: Record<string, T> | undefined,
+  value: Record<string, T> | null | undefined,
   colnames: string[],
 ): Record<string, T> {
   if (!value) {
