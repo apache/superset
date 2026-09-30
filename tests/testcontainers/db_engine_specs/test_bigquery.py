@@ -38,17 +38,14 @@ from sqlalchemy.engine import Engine
 
 pytestmark = pytest.mark.testcontainers
 
-from ._driver import require_driver  # noqa: E402
-
-require_driver("testcontainers.community.google")
-
 from google.cloud import bigquery  # noqa: E402
 from sqlalchemy_bigquery import BigQueryDialect  # noqa: E402
-from testcontainers.community.google import BigQueryContainer  # noqa: E402
 
 # Importing this triggers _monkeypatch_bigquery_string_literal(), exactly as
 # it runs in a real Superset process.
 import superset.db_engine_specs.bigquery  # noqa: E402, F401
+
+from ._bigquery_container import BigQueryContainer  # noqa: E402
 
 DATASET = "ds"
 TABLE = "t"

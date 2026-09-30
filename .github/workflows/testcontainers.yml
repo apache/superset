@@ -86,6 +86,7 @@ jobs:
               {"dialect": "risingwave", "timeout": 10},
               {"dialect": "firebird", "timeout": 10},
               {"dialect": "ydb", "timeout": 10},
+              {"dialect": "bigquery", "timeout": 10},
               {"dialect": "oceanbase", "timeout": 20, "nightly_only": true}
             ]
         run: |
