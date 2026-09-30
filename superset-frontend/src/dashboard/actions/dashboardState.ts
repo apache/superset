@@ -30,6 +30,7 @@ import {
   promiseTimeout,
   JsonObject,
 } from '@superset-ui/core';
+import type { QueryFormData, AgGridChartState } from '@superset-ui/core';
 import {
   addChart,
   removeChart,
@@ -63,7 +64,6 @@ import { navigateWithState, navigateTo } from 'src/utils/navigationUtils';
 import type { AnyAction } from 'redux';
 import type { ThunkDispatch } from 'redux-thunk';
 import { ResourceStatus } from 'src/hooks/apiResources/apiResources';
-import type { AgGridChartState } from '@superset-ui/core';
 import type { DashboardChartStates } from 'src/dashboard/types/chartState';
 import { UPDATE_COMPONENTS_PARENTS_LIST } from './dashboardLayout';
 import {
@@ -895,7 +895,7 @@ export function addSliceToDashboard(
       id,
       form_data: applyDefaultFormData(
         form_data as Parameters<typeof applyDefaultFormData>[0],
-      ),
+      ) as QueryFormData,
     };
 
     return Promise.all([

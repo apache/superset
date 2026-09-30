@@ -19,6 +19,7 @@
 import getFormDataWithExtraFilters, {
   CachedFormDataWithExtraControls,
   GetFormDataWithExtraFiltersArguments,
+  invalidateChartFormDataCache,
 } from 'src/dashboard/util/charts/getFormDataWithExtraFilters';
 import { ChartCustomizationType } from '@superset-ui/core';
 import { sliceId as chartId } from 'spec/fixtures/mockChartQueries';
@@ -155,6 +156,41 @@ test('should compose extra control', () => {
   const result: CachedFormDataWithExtraControls =
     getFormDataWithExtraFilters(mockArgs);
   expect(result.stack).toEqual('Stacked');
+});
+
+test('caches by dataMask/filters/etc, so a form_data-only change is not picked up on its own', () => {
+  const updatedArgs: GetFormDataWithExtraFiltersArguments = {
+    ...mockArgs,
+    chart: {
+      ...mockChart,
+      form_data: { ...mockChart.form_data, viz_type: 'big_number' },
+    },
+  };
+
+  getFormDataWithExtraFilters(mockArgs);
+  const staleResult = getFormDataWithExtraFilters(
+    updatedArgs,
+  ) as CachedFormDataWithExtraControls;
+
+  expect(staleResult.viz_type).toBe('filter_select');
+});
+
+test('invalidateChartFormDataCache forces the next call to pick up a form_data change', () => {
+  const updatedArgs: GetFormDataWithExtraFiltersArguments = {
+    ...mockArgs,
+    chart: {
+      ...mockChart,
+      form_data: { ...mockChart.form_data, viz_type: 'big_number' },
+    },
+  };
+
+  getFormDataWithExtraFilters(mockArgs);
+  invalidateChartFormDataCache(chartId);
+  const freshResult = getFormDataWithExtraFilters(
+    updatedArgs,
+  ) as CachedFormDataWithExtraControls;
+
+  expect(freshResult.viz_type).toBe('big_number');
 });
 
 test('should merge extraFormData from chart customizations', () => {

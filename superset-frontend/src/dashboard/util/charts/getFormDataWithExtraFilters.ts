@@ -21,7 +21,6 @@ import {
   DataMaskStateWithId,
   DataRecordFilters,
   DataRecordValue,
-  ensureIsArray,
   JsonObject,
   PartialFilters,
   ChartCustomization,
@@ -79,6 +78,16 @@ const cachedFormdataByChart: Record<
     nativeFilters: PartialFilters;
   }
 > = {};
+
+// The cache above is only invalidated by changes to dataMask/nativeFilters/
+// filters/color/customization — never by the chart's own form_data — so a
+// caller that knows a chart's saved configuration changed independently of
+// those (e.g. after re-fetching it from the server) must evict it explicitly
+// to avoid re-querying with a stale cached form data.
+export function invalidateChartFormDataCache(chartId: number): void {
+  delete cachedFiltersByChart[chartId];
+  delete cachedFormdataByChart[chartId];
+}
 
 export interface GetFormDataWithExtraFiltersArguments {
   chartConfiguration: ChartConfiguration;
@@ -314,13 +323,13 @@ function processGroupByCustomizations(
     return datasetMatches && chartMatches;
   });
 
-  const chartType = chart.form_data?.viz_type;
+  const chartType = chart.form_data?.viz_type ?? '';
   if (isChartWithoutGroupBy(chartType) || chartType === 'chord') {
     return {};
   }
 
   const existingColumns = buildExistingColumnsSet(chart);
-  const existingGroupBy = ensureIsArray(chart.form_data?.groupby);
+  const existingGroupBy = extractColumnNames(chart.form_data?.groupby ?? []);
   const xAxisColumn = chart.form_data?.x_axis;
 
   const groupByColumns: string[] = [];
