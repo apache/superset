@@ -104,10 +104,13 @@ export const Styles = styled.div<{
      * body row labels above it. The z-index keeps it over the totals
      * values scrolling underneath within the row's own stacking context.
      * Scoped to the single-row-dimension case for the same reason as the
-     * corner cells above. */
+     * corner cells above. Uses 'static' rather than 'inherit' for the
+     * non-sticky branch: this cell's direct parent is tr.pvtRowTotals,
+     * which is unconditionally sticky, so 'inherit' would pick up that
+     * stickiness and leave the label pinned at left: 0 anyway. */
     table.pvtTable tbody tr.pvtRowTotals th.pvtRowTotalLabel {
       position: ${
-        isDashboardEditMode || !canFreezeRowLabels ? 'inherit' : 'sticky'
+        isDashboardEditMode || !canFreezeRowLabels ? 'static' : 'sticky'
       };
       left: 0;
       z-index: 1;

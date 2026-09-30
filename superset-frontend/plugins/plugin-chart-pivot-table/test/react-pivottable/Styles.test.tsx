@@ -226,6 +226,31 @@ test('does not freeze the row-label column or its corner cell(s) with more than 
   });
 });
 
+test('does not leak sticky positioning onto the totals label from its row with more than one row dimension', () => {
+  // th.pvtRowTotalLabel's direct parent is tr.pvtRowTotals, which is
+  // unconditionally sticky (it freezes to the bottom edge regardless of
+  // row-dimension count). The non-sticky branch here must resolve to an
+  // explicit 'static' rather than 'inherit', or the label would pick up
+  // the row's own sticky position and stay pinned at left: 0 anyway.
+  const transformedProps = {
+    ...transformProps(testData.groupedRowsWithColTotals),
+    margin: 32,
+    legacy_order_by: null,
+    order_desc: false,
+  };
+  const { container } = render(
+    ProviderWrapper({
+      children: <PivotTableChart {...transformedProps} />,
+    }),
+  );
+
+  const totalsLabel = container.querySelector(
+    'tbody tr.pvtRowTotals th.pvtRowTotalLabel',
+  );
+  expect(totalsLabel).toBeInTheDocument();
+  expect(getComputedStyle(totalsLabel as Element).position).toBe('static');
+});
+
 test('does not sticky-position the row-label column or corner cell(s) in dashboard edit mode', () => {
   // TableRenderers detects dashboard edit mode by looking for this class
   // on the document, rather than via a prop.
