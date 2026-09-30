@@ -1200,7 +1200,9 @@ def test_get_engine_spec_unrecognized_driver_prefers_python_connector() -> None:
     )
 
 
-def test_monkeypatch_dialect_leaves_shared_colspecs_alone() -> None:
+def test_monkeypatch_dialect_leaves_shared_colspecs_alone(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     """
     The Databricks string patch must not reach dialects outside the Hive family.
 
@@ -1223,6 +1225,7 @@ def test_monkeypatch_dialect_leaves_shared_colspecs_alone() -> None:
     class OtherDialect(DefaultDialect):
         """A dialect that relies on the shared colspecs."""
 
+    monkeypatch.setattr(pyhive.HiveDialect, "colspecs", pyhive.HiveDialect.colspecs)
     monkeypatch_dialect()  # also ran when the module was imported
 
     assert sa.String not in DefaultDialect.colspecs
@@ -1236,3 +1239,32 @@ def test_monkeypatch_dialect_leaves_shared_colspecs_alone() -> None:
     for dialect in (other, hive()):
         impl = sa.Enum(Color).dialect_impl(dialect)
         assert impl.result_processor(dialect, None)("red") is Color.red
+
+
+def test_monkeypatch_dialect_preserves_hive_databricks_escaping(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The isolated mapping still escapes Hive-based Databricks literals."""
+    import sqlalchemy as sa
+
+    pyhive = pytest.importorskip("pyhive.sqlalchemy_hive")
+    pytest.importorskip("databricks.sql")
+
+    from pyhive.sqlalchemy_hive import HiveDialect
+
+    from superset.db_engine_specs.databricks import monkeypatch_dialect
+
+    class DatabricksDialect(HiveDialect):
+        """Represent the legacy Hive-based Databricks dialect."""
+
+    monkeypatch.setattr(pyhive.HiveDialect, "colspecs", pyhive.HiveDialect.colspecs)
+    monkeypatch_dialect()
+
+    assert (
+        str(
+            sa.literal("O'Hara").compile(
+                dialect=DatabricksDialect(), compile_kwargs={"literal_binds": True}
+            )
+        )
+        == r"'O\'Hara'"
+    )
