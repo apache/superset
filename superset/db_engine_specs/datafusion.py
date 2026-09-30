@@ -26,7 +26,16 @@ from superset.db_engine_specs.base import DatabaseCategory
 
 
 def _date_bin(interval: str) -> str:
-    """Bucket from the Unix epoch without unsupported interval/Float64 arithmetic."""
+    """
+    Bucket from the Unix epoch without unsupported interval/Float64 arithmetic.
+
+    The UTC-epoch origin aligns buckets to UTC, while ``DATE_TRUNC`` aligns to
+    the column's local time. On timezone-aware columns in zones with a :45
+    offset (e.g. Asia/Kathmandu), sub-hour grains therefore land on different
+    boundaries than the hour grain: PT30M maps 13:32:33 to 13:15, PT1H to 13:00.
+    A per-zone origin is not possible because DataFusion only accepts a literal
+    origin.
+    """
     return f"DATE_BIN(INTERVAL '{interval}', {{col}}, TIMESTAMP '1970-01-01 00:00:00')"
 
 
