@@ -15,14 +15,13 @@
 # specific language governing permissions and limitations
 # under the License.
 
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional
 
 import pytest
 from sqlalchemy import types
 
 from superset.utils.core import GenericDataType
-
 from tests.unit_tests.db_engine_specs.utils import assert_convert_dttm
 from tests.unit_tests.fixtures.common import dttm  # noqa: F401
 
@@ -113,3 +112,15 @@ def test_orders_by_expression_not_alias() -> None:
     )
 
     assert spec.allows_alias_in_orderby is False
+
+
+def test_convert_dttm_preserves_timezone_offset() -> None:
+    """Aware bounds retain their explicit timezone offset."""
+    from superset.db_engine_specs.dynamodb import DynamoDBEngineSpec
+
+    assert (
+        DynamoDBEngineSpec.convert_dttm(
+            "text", datetime(2019, 1, 2, 4, tzinfo=timezone.utc)
+        )
+        == "'2019-01-02T04:00:00+00:00'"
+    )

@@ -105,7 +105,7 @@ class DynamoDBEngineSpec(BaseEngineSpec):
         if isinstance(sqla_type, (types.String, types.DateTime)):
             # DynamoDB has no datetime type: timestamps are strings compared as
             # text, conventionally ISO 8601 ("2019-01-02T03:04:05", which is also
-            # what boto3/PyDynamoDB write for datetime values). A space separator
+            # what PyDynamoDB writes for datetime values). A space separator
             # sorts before "T", so a bound like "2019-01-02 04:00:00" excluded
             # "2019-01-02T04:15:00" from a sub-day range. Fractional seconds are
             # kept when set, so sub-second bounds are not truncated.
