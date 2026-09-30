@@ -240,7 +240,22 @@ function NewTabButton({ onAddSqlEditor }: { onAddSqlEditor: () => void }) {
         onOpenChange={setOpen}
         menu={{ items: dropdownItems }}
         trigger={[]}
-        popupRender={node => <div ref={popupRef}>{node}</div>}
+        popupRender={node => (
+          // The popup is DOM-portaled to document.body, but it's still a
+          // React-tree descendant of this button — and antd's Tabs wraps
+          // addIcon in its own <button onClick={() => onEdit('add')}>.
+          // React's synthetic events bubble along the React tree (piercing
+          // straight through the portal), so without this, clicking any
+          // item here also fires that ancestor button's onEdit('add'),
+          // creating an unwanted second plain tab alongside whatever was
+          // actually picked.
+          // Pure event-boundary wrapper: only stops the click from reaching
+          // antd's ancestor add-tab button, not itself interactive.
+          // eslint-disable-next-line jsx-a11y/no-static-element-interactions, jsx-a11y/click-events-have-key-events
+          <div ref={popupRef} onClick={e => e.stopPropagation()}>
+            {node}
+          </div>
+        )}
       >
         <span ref={anchorRef}>{PlusIcon}</span>
       </Dropdown>
@@ -378,23 +393,11 @@ function TabbedSqlEditors({
   const emptyTab = (
     <StyledTab>
       <TabTitle>{t('Add a new tab')}</TabTitle>
-      <Tooltip
-        id="add-tab"
-        placement="bottom"
-        title={
-          userOS === 'Windows'
-            ? t('New tab (Ctrl + q)')
-            : t('New tab (Ctrl + t)')
-        }
-      >
-        <Icons.PlusCircleOutlined
-          iconSize="s"
-          css={css`
-            vertical-align: middle;
-          `}
-          data-test="add-tab-icon"
-        />
-      </Tooltip>
+      {/* Reuses the toolbar's own add-tab control (dropdown when an
+          extension contributes to sqllab.newTab, plain create otherwise)
+          instead of a bare icon, so this empty-state entry point offers the
+          same choices as the "+" in the tab bar once tabs exist. */}
+      <NewTabButton onAddSqlEditor={newQueryEditor} />
     </StyledTab>
   );
 
