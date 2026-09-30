@@ -215,17 +215,20 @@ def get_user_subject_ids(user_id: int) -> list[int]:
     cache that misses a just-created subject: the subject is not yet listed in
     any resource's editors or viewers, so an ``is_editor``/``is_viewer`` check
     still returns the same answer. A cache that retains a subject removed
-    earlier in the same request: the only path that reads it back is
-    ``ensure_no_lockout`` in ``commands/utils.py``, where a stale membership can
-    at most let the caller lock themselves out -- annoying, not a security
-    hole. Neither direction flips a decision for a third party, and the
-    staleness window is bounded by the request.
+    earlier in the same request: membership only changes in the Admin user,
+    role and group endpoints or in login-time role sync, and none of those
+    requests read this back afterwards. Neither direction flips a decision
+    for a third party, and the staleness window is bounded by the request.
 
     The cache lives on ``flask.request``, not ``g``: ``g`` is bound to the app
     context, which a worker can hold open across many requests, so a ``g``-keyed
     cache would survive past the request it was built for. The request object is
     torn down when the request ends, giving the cache exactly the request
     lifetime the docstring promises.
+
+    Guest users don't reach this cache: ``is_viewer`` falls through to
+    ``subjects_from_roles`` for them, still paying a query per role per
+    resource. That path is out of scope here.
     """
     if not has_request_context():
         return _query_user_subject_ids(user_id)
