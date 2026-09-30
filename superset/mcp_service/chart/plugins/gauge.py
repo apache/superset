@@ -27,7 +27,7 @@ from superset.mcp_service.chart.chart_utils import (
     _summarize_filters,
     map_gauge_config,
 )
-from superset.mcp_service.chart.plugin import BaseChartPlugin
+from superset.mcp_service.chart.plugin import BaseChartPlugin, capped_compile_row_limit
 from superset.mcp_service.chart.schemas import (
     ChartError,
     ColumnRef,
@@ -45,6 +45,7 @@ class GaugeChartPlugin(BaseChartPlugin):
     """Plugin for gauge chart type."""
 
     chart_type = "gauge"
+    allows_empty_result = True
     display_name = "Gauge Chart"
     native_viz_types: ClassVar[Mapping[str, str]] = {
         "gauge_chart": "Gauge Chart",
@@ -214,7 +215,7 @@ class GaugeChartPlugin(BaseChartPlugin):
         return normalize_gauge_query_result(result, form_data)
 
     def compile_row_limit(self, form_data: Mapping[str, Any]) -> int:
-        return min(10, int(form_data.get("row_limit") or 10))
+        return capped_compile_row_limit(form_data)
 
     def preview_row_limit(self, form_data: Mapping[str, Any], fallback: int) -> int:
         value = form_data.get("row_limit", 10)

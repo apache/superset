@@ -33,7 +33,12 @@ from superset_core.mcp.decorators import tool, ToolAnnotations
 
 from superset.charts.data.form_data import set_query_context_form_data
 from superset.commands.exceptions import CommandException
-from superset.exceptions import OAuth2Error, OAuth2RedirectError, SupersetException
+from superset.exceptions import (
+    OAuth2Error,
+    OAuth2RedirectError,
+    QueryObjectValidationError,
+    SupersetException,
+)
 from superset.extensions import event_logger
 from superset.mcp_service import guest_scope
 from superset.mcp_service.chart.chart_helpers import (
@@ -1055,6 +1060,11 @@ async def execute_chart_data(  # noqa: C901
             # dedicated outer handlers return the OAuth redirect message
             # instead of a generic DataError.
             raise
+        except QueryObjectValidationError as ex:
+            logger.warning(
+                "Chart data validation failed for chart %s: %s", chart_id, ex
+            )
+            return ChartError(error=str(ex), error_type="ValidationError")
         except (
             CommandException,
             SupersetException,
@@ -1287,6 +1297,9 @@ async def _query_from_form_data(  # noqa: C901
         # outer OAuth handlers return the redirect instead of a generic
         # DataError.
         raise
+    except QueryObjectValidationError as ex:
+        logger.warning("Unsaved chart data validation failed: %s", ex)
+        return ChartError(error=str(ex), error_type="ValidationError")
     except (
         CommandException,
         SupersetException,

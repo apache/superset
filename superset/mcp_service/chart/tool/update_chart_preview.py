@@ -287,7 +287,7 @@ def update_chart_preview(  # noqa: C901
             # Map the new config to form_data format
             # Pass dataset_id to enable column type checking
             new_form_data = map_config_to_form_data(
-                config, dataset_id=request.dataset_id
+                config, dataset_id=request.dataset_id, include_disabled=True
             )
             new_form_data.pop("_mcp_warnings", None)
 

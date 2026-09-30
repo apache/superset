@@ -34,6 +34,18 @@ from superset.mcp_service.chart.schemas import ChartError, ColumnRef, VegaLitePr
 from superset.mcp_service.common.error_schemas import ChartGenerationError
 
 
+def capped_compile_row_limit(form_data: Mapping[str, Any], cap: int = 10) -> int:
+    """Cap compile samples, falling back to the cap for invalid saved limits."""
+    value = form_data.get("row_limit")
+    if isinstance(value, bool):
+        return cap
+    try:
+        limit = int(value or cap)
+    except (TypeError, ValueError, OverflowError):
+        return cap
+    return min(cap, limit) if limit > 0 else cap
+
+
 @runtime_checkable
 class ChartTypePlugin(Protocol):
     """

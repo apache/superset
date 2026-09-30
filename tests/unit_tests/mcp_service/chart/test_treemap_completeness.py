@@ -697,10 +697,13 @@ async def test_registered_cached_preview_is_treemap(
 @pytest.mark.parametrize(
     "patch_data", [{"show_labels": True}, {"filters": []}, {"color_scheme": None}]
 )
+@pytest.mark.parametrize("disabled", [False, True])
 @pytest.mark.parametrize("known_dataset", [True, False, None])
 async def test_registered_update_preview_preserves_cached_controls(
     patch_data: dict[str, Any],
     known_dataset: bool | None,
+    disabled: bool,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Partial native updates reach real FastMCP hydration, merge, and cache writes."""
     import importlib
@@ -790,7 +793,10 @@ async def test_registered_update_preview_preserves_cached_controls(
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("malformed", [False, True])
-async def test_registered_saved_update_preserves_omissions(malformed: bool) -> None:
+@pytest.mark.parametrize("disabled", [False, True])
+async def test_registered_saved_update_preserves_omissions(
+    malformed: bool, disabled: bool, monkeypatch: pytest.MonkeyPatch
+) -> None:
     """The registered save path persists the same partial Treemap merge as preview."""
     import importlib
 
@@ -799,6 +805,15 @@ async def test_registered_saved_update_preserves_omissions(malformed: bool) -> N
     from superset.mcp_service.app import mcp
 
     module = importlib.import_module("superset.mcp_service.chart.tool.update_chart")
+    from superset.mcp_service.chart import registry
+
+    monkeypatch.setattr(
+        registry,
+        "_filter_config",
+        registry._PluginFilterConfig(
+            disabled_plugins=frozenset({"treemap_v2"}) if disabled else frozenset()
+        ),
+    )
     chart = Mock(
         id=1,
         datasource_id=7,
@@ -1592,3 +1607,34 @@ async def test_disabled_treemap_update_preview_completes_cached_fields() -> None
     assert merged["groupby"] == ["region", "product"]
     assert merged["metric"] == "revenue"
     assert merged["show_labels"] is True
+
+
+def test_disabled_treemap_retains_dataset_validation(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Disabling creation must not bypass column resolution on saved updates."""
+    from superset.mcp_service.chart import registry
+    from superset.mcp_service.chart.validation.dataset_validator import DatasetValidator
+    from superset.mcp_service.common.error_schemas import DatasetContext
+
+    config = TreemapChartConfig(
+        groupby=[{"name": "region"}],
+        metric={"name": "revenue", "saved_metric": True},
+    )
+    context = DatasetContext(
+        id=7,
+        table_name="sales",
+        database_name="db",
+        available_columns=[{"name": "Region", "type": "VARCHAR"}],
+        available_metrics=[{"name": "Revenue", "expression": "SUM(amount)"}],
+    )
+    monkeypatch.setattr(
+        registry,
+        "_filter_config",
+        registry._PluginFilterConfig(disabled_plugins=frozenset({"treemap_v2"})),
+    )
+    refs = DatasetValidator._extract_column_references(config)
+    assert {ref.name for ref in refs} == {"region", "revenue"}
+    normalized = DatasetValidator.normalize_column_names(config, 7, context)
+    assert normalized.groupby[0].name == "Region"
+    assert normalized.metric.name == "Revenue"

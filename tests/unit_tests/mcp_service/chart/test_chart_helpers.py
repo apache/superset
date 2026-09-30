@@ -2753,11 +2753,13 @@ _BASE_AXIS_EVENT_TIME = _base_axis("event_time")
             [
                 {
                     "columns": [_BASE_AXIS_EVENT_TIME, "region"],
+                    "series_columns": ["region"],
                     "metrics": ["count"],
                     "filters": [],
                 },
                 {
                     "columns": [_BASE_AXIS_EVENT_TIME, "product"],
+                    "series_columns": ["product"],
                     "metrics": ["sum_sales"],
                     "filters": [],
                 },
@@ -2860,6 +2862,8 @@ def test_shared_query_builder_keeps_mixed_timeseries_ordering_per_query(
     assert primary["metrics"] == ["count"]
     assert primary["orderby"] == [["count", True]]
     assert secondary["metrics"] == ["sum_sales"]
+    assert primary["series_columns"] == ["region"]
+    assert secondary["series_columns"] == ["product"]
     if secondary_orderby is not None:
         assert secondary["orderby"] == secondary_orderby
     else:

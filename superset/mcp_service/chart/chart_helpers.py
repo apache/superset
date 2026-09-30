@@ -513,17 +513,19 @@ def resolve_shared_metrics(form_data: Mapping[str, Any]) -> list[Any]:
     return metrics
 
 
+def normalize_groupby(form_data: Mapping[str, Any]) -> list[Any]:
+    """Normalize native scalar groupby without applying query-role aliases."""
+    raw_groupby = form_data.get("groupby") or []
+    return [raw_groupby] if isinstance(raw_groupby, str) else list(raw_groupby)
+
+
 def resolve_groupby(form_data: dict[str, Any]) -> list[Any]:
     """Extract groupby columns from form_data with fallback aliases."""
     raw_columns = form_data.get("all_columns")
     if form_data.get("query_mode") == "raw" and isinstance(raw_columns, list):
         return list(raw_columns)
 
-    raw_groupby = form_data.get("groupby") or []
-    if isinstance(raw_groupby, str):
-        groupby: list[Any] = [raw_groupby]
-    else:
-        groupby = list(raw_groupby)
+    groupby = normalize_groupby(form_data)
 
     if groupby:
         return groupby
@@ -556,6 +558,92 @@ def resolve_metrics_and_groupby(
     if (fields := _plugin_query_fields(form_data, viz_type)) is not None:
         return fields
     return resolve_shared_metrics(form_data), resolve_groupby(form_data)
+
+
+def resolve_gantt_query_fields(  # noqa: C901
+    form_data: dict[str, Any],
+) -> tuple[list[Any], list[Any], list[list[Any]], list[Any]]:
+    """Mirror the ECharts Gantt ``buildQuery`` field extraction contract.
+
+    Returns ``(columns, metrics, orderby, series_columns)``. Saved form data is
+    user-editable, so malformed or oversized native ordering is rejected rather
+    than silently dropped or passed into ``QueryContextFactory``.
+    """
+    from superset.utils import json as utils_json
+
+    def require_column(value: Any, field_name: str) -> Any:
+        if isinstance(value, str) and value:
+            return value
+        if isinstance(value, dict) and 0 < len(value) <= 20:
+            # QueryFormColumn objects use column_name for physical columns or
+            # expressionType/sqlExpression/label for adhoc columns.
+            if value.get("column_name") or (
+                value.get("expressionType") and value.get("label")
+            ):
+                return value
+        raise ValueError(f"Gantt {field_name} must be a column reference")
+
+    start_time = require_column(form_data.get("start_time"), "start_time")
+    end_time = require_column(form_data.get("end_time"), "end_time")
+    category = require_column(form_data.get("y_axis"), "y_axis")
+
+    raw_series = form_data.get("series")
+    series_columns = (
+        [require_column(raw_series, "series")] if raw_series is not None else []
+    )
+
+    raw_tooltip_columns = form_data.get("tooltip_columns") or []
+    raw_tooltip_metrics = form_data.get("tooltip_metrics") or []
+    if not isinstance(raw_tooltip_columns, list) or len(raw_tooltip_columns) > 50:
+        raise ValueError("Gantt tooltip_columns must contain at most 50 entries")
+    if not isinstance(raw_tooltip_metrics, list) or len(raw_tooltip_metrics) > 50:
+        raise ValueError("Gantt tooltip_metrics must contain at most 50 entries")
+    tooltip_columns = [
+        require_column(column, f"tooltip_columns[{index}]")
+        for index, column in enumerate(raw_tooltip_columns)
+    ]
+
+    raw_order = form_data.get("order_by_cols") or []
+    if not isinstance(raw_order, list) or len(raw_order) > 100:
+        raise ValueError("Gantt order_by_cols must contain at most 100 entries")
+    orderby: list[list[Any]] = []
+    for index, entry in enumerate(raw_order):
+        if isinstance(entry, str):
+            if len(entry) > 1000:
+                raise ValueError(f"Gantt order_by_cols[{index}] is too long")
+            try:
+                entry = utils_json.loads(entry)
+            except (TypeError, ValueError) as ex:
+                raise ValueError(
+                    f"Gantt order_by_cols[{index}] is not valid JSON"
+                ) from ex
+        if (
+            not isinstance(entry, (list, tuple))
+            or len(entry) != 2
+            or not isinstance(entry[0], str)
+            or not entry[0]
+            or not isinstance(entry[1], bool)
+        ):
+            raise ValueError(
+                f"Gantt order_by_cols[{index}] must be [column, ascending_boolean]"
+            )
+        orderby.append([entry[0], entry[1]])
+
+    columns: list[Any] = []
+    seen: set[str] = set()
+    for column in (
+        start_time,
+        end_time,
+        category,
+        *series_columns,
+        *tooltip_columns,
+        *(entry[0] for entry in orderby),
+    ):
+        key = utils_json.dumps(column, sort_keys=True, default=str)
+        if key not in seen:
+            seen.add(key)
+            columns.append(column)
+    return columns, list(raw_tooltip_metrics), orderby, series_columns
 
 
 def extract_x_axis_col(form_data: dict[str, Any]) -> str | None:
@@ -1059,53 +1147,6 @@ def _parse_orderby(values: Any) -> list[list[Any]]:
                 f"order_by_cols[{index}] must be [column, ascending_boolean]"
             )
     return result
-
-
-def resolve_gantt_query_fields(
-    form_data: dict[str, Any],
-) -> tuple[list[Any], list[Any], list[list[Any]], list[Any]]:
-    """Mirror the bounded ECharts Gantt field extraction contract."""
-
-    def require_column(value: Any, field_name: str) -> Any:
-        if isinstance(value, str) and value:
-            return value
-        if isinstance(value, dict) and 0 < len(value) <= 20:
-            if value.get("column_name") or (
-                value.get("expressionType") and value.get("label")
-            ):
-                return value
-        raise ValueError(f"Gantt {field_name} must be a column reference")
-
-    start_time = require_column(form_data.get("start_time"), "start_time")
-    end_time = require_column(form_data.get("end_time"), "end_time")
-    category = require_column(form_data.get("y_axis"), "y_axis")
-    raw_series = form_data.get("series")
-    series_columns = (
-        [require_column(raw_series, "series")] if raw_series is not None else []
-    )
-    raw_tooltips = form_data.get("tooltip_columns") or []
-    raw_metrics = form_data.get("tooltip_metrics") or []
-    if not isinstance(raw_tooltips, list) or len(raw_tooltips) > 50:
-        raise ValueError("Gantt tooltip_columns must contain at most 50 entries")
-    if not isinstance(raw_metrics, list) or len(raw_metrics) > 50:
-        raise ValueError("Gantt tooltip_metrics must contain at most 50 entries")
-    tooltip_columns = [
-        require_column(column, f"tooltip_columns[{index}]")
-        for index, column in enumerate(raw_tooltips)
-    ]
-    orderby = _parse_orderby(form_data.get("order_by_cols"))
-    columns = _dedupe_query_fields(
-        [
-            start_time,
-            end_time,
-            category,
-            *series_columns,
-            *tooltip_columns,
-            *(item[0] for item in orderby),
-        ],
-        _column_label,
-    )
-    return columns, list(raw_metrics), orderby, series_columns
 
 
 def _table_time_offsets(form_data: dict[str, Any], query: dict[str, Any]) -> list[Any]:
@@ -1688,8 +1729,9 @@ def build_mixed_timeseries_secondary(
     if x_axis_col and x_axis_col not in groupby_b:
         groupby_b = [x_axis_col] + groupby_b
 
+    # Each series owns its ordering; primary metrics may not exist in query B.
     qd = build_single_query_dict(
-        form_data,
+        {**form_data, "orderby": form_data.get("orderby_b")},
         groupby_b,
         metrics_b,
         row_limit=row_limit,
@@ -1733,7 +1775,7 @@ def build_histogram_query_dicts(
         row_limit=row_limit,
         order_desc=order_desc,
     )
-    having_filter = any(
+    having_filter = bool(form_data.get("having")) or any(
         isinstance(filter_, dict) and filter_.get("clause") == "HAVING"
         for filter_ in form_data.get("adhoc_filters") or []
     )

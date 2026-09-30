@@ -489,7 +489,7 @@ class DatasetValidator:
         if chart_type is None:
             return []
 
-        plugin = get_registry().get(chart_type)
+        plugin = get_registry().get(chart_type, include_disabled=True)
         if plugin is None:
             logger.warning("No plugin registered for chart_type=%r", chart_type)
             return []
@@ -670,7 +670,7 @@ class DatasetValidator:
         if chart_type is None:
             return config
 
-        plugin = get_registry().get(chart_type)
+        plugin = get_registry().get(chart_type, include_disabled=True)
         if plugin is None:
             logger.warning(
                 "No plugin for chart_type=%r; skipping column normalization", chart_type
